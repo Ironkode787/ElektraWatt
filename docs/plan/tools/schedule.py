@@ -329,7 +329,7 @@ def b_phases():
          "grid, navigators, messages; model breadth for devices, terminals, cables, numbering; rule engine and core "
          "online checks; project parts", "S1, S2", "M-PP, release 0.0.x (pilot only)"),
         ("**P3 Interactive MVP**", ["M2"], "M2", "Rule packs, revisions, collaboration, parts libraries and macros; "
-         "PLC, bus and fluid MVP model; domain tables, palette, keymaps; 2D panel; packaging, signing, CRA processes; "
+         "PLC, bus and fluid MVP model; domain tables, palette, keymaps; 2D panel; packaging, release sums and provenance; "
          "R0 and R1", "S1, S2, S4, S6, S7", "M2, release 0.1.0"),
         ("**P4 Automation breadth and migration**", ["M3"], "M3", "PLC, bus and fluid 1.0; QET project migration; AML, "
          "TIA and PLCopen exchange; EDZ; DXF/DWG", "S1, S2, S3", "M3"),
@@ -337,8 +337,8 @@ def b_phases():
          "lengths; wire records, ferrules, labels, machine profiles, `.ewpp`", "S4, S5", "M4"),
         ("**P6 Completion**", ["M5"], "M5", "Model, rule-pack and report completion; deferred MVP Should items; beta",
          "S1, S2, S3", "M5, 1.0 beta"),
-        ("**P7 Hardening and release**", ["M6"], "M6", "1.0 quality layers, R2, external acceptance (SC-7, SC-8), "
-         "documentation and German, format freeze, stabilisation", "S6, S2, S7", "M6, release 1.0"),
+        ("**P7 Hardening and release**", ["M6"], "M6", "1.0 quality layers, R2, external acceptance (SC-7, SC-8), signing, the update check, the steward's CRA "
+         "processes, documentation and German, format freeze, stabilisation", "S6, S2, S7", "M6, release 1.0"),
     ]
     rows = []
     for name, groups, end, goal, streams, ends in defs:
@@ -497,7 +497,7 @@ GANTT_GROUPS = [
         ("Machine profiles and production package", ["WP-S5.04", "WP-S5.07"])]),
     ("S6 Quality and release", [
         ("Test kit determinism perf gate", ["WP-S6.01", "WP-S6.02", "WP-S6.03"]),
-        ("Packaging security signing privacy", ["WP-S6.04", "WP-S6.05", "WP-S6.06", "WP-S6.07"]),
+        ("Packaging security privacy sums provenance", ["WP-S6.04", "WP-S6.05", "WP-S6.06", "WP-S6.07"]),
         ("MVP stabilisation", ["WP-S6.08"]), ("Monthly 0.x releases", ("SPAN", "M2", "M6")),
         ("1.0 hardening and stabilisation", ["WP-S6.10", "WP-S6.12"]),
         ("External acceptance SC-7 SC-8", ["WP-S6.11"])]),
@@ -560,7 +560,7 @@ INTERFACES = {
     ("S2", "S4"): ("Renderer and navigators for 3D", "WP-S2.02 → WP-S4.04"),
     ("S2", "S6"): ("Shell and renderer for packaging", "WP-S2.01 → WP-S6.06"),
     ("S3", "S2"): ("The display list feeds the 2D canvas", "WP-S3.01 → WP-S2.02"),
-    ("S0", "S6"): ("Steward, signing identities and CI for the release pipeline", "WP-S0.05 → WP-S6.07"),
+    ("S0", "S6"): ("Repository and CI, and the signing enrolment, for packaging and security", "WP-S0.01 → WP-S6.06; WP-S0.05a → WP-S6.04"),
 }
 
 
@@ -846,7 +846,7 @@ def b_pilot_timeline():
          "reports, PDF, online checks, save and load); unsigned, pilot only"],
         [mlabel(math.ceil(r0 * 12 / 52 - 1e-9)), "R0", "Formative usability round on the preview build"],
         [mlabel(math.ceil(r1_ * 12 / 52 - 1e-9)), "R1", "Summative usability round on the MVP release candidate"],
-        [mlabel(ms["M2"]), "M2, release 0.1.0", "Signed release for new projects on three OSes"],
+        [mlabel(ms["M2"]), "M2, release 0.1.0", "First release (unsigned) for new projects on Windows and Linux"],
         [mlabel(qet), f"release 0.{qet - ms['M2'] + 1}.0", "Migration of existing QET projects (lever b)"],
         [mlabel(ms["M6"]), "M6, release 1.0", "PLC exchange, 3D layout, wire lengths and machine files"],
     ]

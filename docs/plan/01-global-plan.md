@@ -1,6 +1,6 @@
 # Global plan
 
-**Status:** Draft v0.51 · Amended 2026-11-02, cycle 46, part 3 (ID-1172, ID-1173): FIXW46 as built and the delivery's last verify on 41f8412e in the cycle-46 section's table, wave 4, end phase and end, and the next IDs. · Amended 2026-11-02, cycle 46, part 2 (ID-1168 to ID-1171): the cycle-46 section gains the wave-4 verify and the self-tests' re-record, the end phase (FIXG46 as built, the window check W46.4 with FIXW46, the play-test rv-vis-7 and its checker), the closings and the next IDs; FIXW46 as built and the last verify follow by amendment; the cycle-47 candidates with the High row FT-1082 first; the progress table's M2 row. · Amended 2026-11-02, cycle 46 (ID-1152 to ID-1167): the cycle-46 section (cycle 45's checkpoint, the first commit and the rulings, waves 1 to 4 as merged with the verifies on 0892ae24 and 7d00dbe3, the review's parts 1 to 4 and the cycle's acceptance, the closings, the end and the owner's hold; FIXG46, the last verify, the window check W46.4 and the play-test rv-vis-7 follow by amendment); the cycle-47 candidates; the progress table's M2 row (WP-S1.17 part 1, WP-S3.07 part 2 and WP-S3.08 part 1 built). · Amended 2026-11-02, cycle 45, the late items (ID-1143): FIXW45 as built and the last verify on cae4859c in the cycle-45 section, and the next IDs. · Amended 2026-11-02, cycle 45, part 3 (ID-1140 to ID-1142): the cycle-45 section gains the wave-3 verify, the review's part 3 and the cycle's acceptance, the window check W45.2 and the end phase (FIX45c; FIXW45 follows by amendment), `ew-scene`'s edge to `ew-derive` written into ADR-0015 and doc 04, the closings and the next IDs; the cycle-46 candidates gain FT-1056 to FT-1058. · Amended 2026-11-02, cycle 45, part 2 (ID-1133 to ID-1136): the cycle-45 section's wave 3 gains FIX45 part b and BK45a, the closings and the next IDs follow; the cycle-46 candidates. · Amended 2026-11-02, cycle 45 (ID-1116 to ID-1132): the cycle-45 section (cycle 44's delivery, the first commit and the reads of the rulings, waves 1 to 3 as merged with the verifies of merge points 1 and 2, the review's parts 1 and 2, the window check W45.1, the closings and moves, the end and the next IDs; BK45a, FIX45 part b, the wave-3 verify, the review's part 3 and W45.2 follow by amendment); the cycle-46 candidates; the progress table's M2 row (WP-S4.02 complete, WP-S3.07 part 1 built). · Amended 2026-11-01, cycle 44, part 1 (ID-1084 to ID-1094): the cycle-44 section (cycle 43's end recorded, the hold lifted, waves 1 and 2 as merged with their verifies, the review's parts 1 to 4, the window checks W44.1 to W44.4, the end left for part 2); the cycle-45 candidates; the progress table's M2 row (WP-S4.02 parts 4 and 5 built, WP-S3.06 complete). · Amended 2026-11-01, cycle 44, part 2 (ID-1095 to ID-1102): the cycle-44 section completed with the end phase (FIX44c and its round 2, the window checks W44.4 and W44.5, which are part 2's, not part 1's, the play-test rv-vis-6 and its checker, the review's parts 4 and 5, FIX44d, the closings and moves, the end and the next IDs); the cycle-45 candidates with the High row FT-1020 first; the progress table's M2 row (the end phase). · Amended 2026-11-01, cycle 43, part 1 (ID-1054 to ID-1072): the cycle-43 section, the workflow redesign RD43 under the owner's hold as a checkpoint (the owner's decision, wave 0, waves 1 to 3 as merged with their verifies, wave 4 in the end phase, the review's parts 1 to 5, the lanes not landed as briefed, the end and the next IDs; R14a, FIX-R13 and the review's part 6 follow in part 2); the cycle-44 candidates; the progress table's M2 row (no M2 work package in cycle 43). · Amended 2026-11-01, cycle 43, part 2 (ID-1073 to ID-1075): the cycle-43 section completed with R14a, FIX-R13, the review's part 6 and its fixes FIX-R18a and FIX-R18b, the end's remaining steps (the review's part 7 and the last verify) and the next IDs; the cycle-44 candidates gain FT-1009 to FT-1013. · Amended 2026-11-01, cycle 42, part 3 (ID-1036 to ID-1050): the cycle-42 section completed with wave 3 as merged (WP-S3.06 part 2, WP-S4.02 part 3, the fixes of the window check W42b) with its verify, the review's parts 1 to 3 accepted with FIX42-F, the last window check W42c, the end (the last verify, the delivery through CI, the hold) and the next IDs; the progress table's M2 row (WP-S4.02 parts 1 to 3 and WP-S3.06 parts 1 and 2 built). · Amended 2026-10-31, cycle 42, part 2 (ID-1015 to ID-1035): the cycle-42 section continued with wave 2 as merged (FIXPT41, WP-S1.21 and WP-S1.22 complete, WP-S4.02 part 2, the polish batch) with its verify, the three specifications (WP-S1.17, WP-S3.08, WP-S3.07), the review's part 2, the owner's decisions on the format and the second maintainer, wave 3 as dispatched with G42 integrated, the hold after the cycle and the cycle ending as a delivery, the next IDs; the progress table's M2 row (seven packages complete, 14 not yet specified on the lean scope); the effort and schedule blocks regenerated for the PERTs of WP-S1.17 (6.9 pw), WP-S3.08 (2.8 pw) and WP-S3.07 (3.3 pw). · Amended 2026-10-31, cycle 42, part 1 (ID-998 to ID-1014): the cycle-42 section opened with cycle 41's delivery (CI green, `main` at 60b7fe5e), the retro's changes, wave 1 as merged (`cargo xtask settle`, WP-S4.01 complete, WP-S4.02 part 1, the FT batch) with its verify, the play-test rv-vis-5 and its checker, the window check W42a, the review's part 1, wave 2 as dispatched and the next IDs; the cycle-42 candidates as dispatched; the progress table's M2 row (WP-S4.01 complete, WP-S4.02 in progress). · Amended 2026-10-31, cycle 41, part 2 (ID-977 to ID-997): the cycle-41 section completed with wave 3 as merged (WP-S4.01 part 5, 902 at its printed scale, WP-S1.22 part 4), the fix rounds, the merge points and the end tip's full-suite verify, the review's parts 3 and 4 and its acceptance, the window check W41b, the play-test sentence, the next IDs and the cycle-42 candidates; the progress table's M2 row (the delivery's end tip and verify; WP-S1.22 part 5 and WP-S4.01 part 4b left). · Amended 2026-10-31, cycle 41, part 1 (ID-948 to ID-976): the cycle-41 section with waves 1 and 2 as merged (WP-S4.01 parts 3 and 4a, WP-S1.18 complete, WP-S1.22 part 3 with the recovery data-loss fix, one test binary per crate, WP-S4.02 and WP-S3.06 specified), the review's parts 1 and 2, the window check W41a, the cycle-40 retro's three changes and wave 3 as dispatched; the cycle-41 candidates as dispatched; the progress table's M2 row (WP-S1.18 complete, 17 packages without a specification on the lean scope); the effort and schedule blocks regenerated for the PERTs of WP-S4.02 (5.5 pw) and WP-S3.06 (2.5 pw). · Amended 2026-10-31, cycle 40, part 4 (ID-945 to ID-947): the fix round FIXPT40 and the play-test rv-vis-4 in the cycle-40 section and the M2 row; cycle 41's first IDs. · Amended 2026-10-31, cycle 40, part 3, the checkpoint (ID-939 to ID-944): the cycle-40 section's end phase (the fix rounds FIX40d and FIX40e, the review's parts 6 and 7 and the FIX40e addendum, all accepted, the window check W40b, the checkpoint) and cycle 41 as dispatched; §3.8's process sentence for the streamlined cycle system (ID-941); the progress table's M2 row: cycle 40 closed at a checkpoint. · Amended 2026-10-31, cycle 40, part 2 (ID-932 to ID-937): the cycle-40 section's lanes J40, FIX40c, H40 and UPKEEP40, the waves as merged, the review's parts 4 to 6, OU-2 on Linux, the cycle-40 candidates as dispatched and the cycle-41 candidates; the progress table's M2 row with its remaining work counted; the owner's process rulings of 2026-10-31 in §3.8's process sentence (ID-938): cycle 40 ends at a checkpoint, the last window check, the play-test and the review's end recorded at the checkpoint, CI at cycle 41's delivery. · Amended 2026-10-31, cycle 40, part 1 (ID-919 to ID-931): the cycle-40 section with its lanes and waves so far (FT-814, WP-S4.01 part 1, WP-S2.08 part 2, WP-S1.22 part 2, WP-S1.19 complete, WP-S1.21 part 4b, the widths at 1920, page arrows and PLC addresses), the review's parts 1 to 3, the window check W40a, the progress table's M2 row; the rest of the cycle in part 2. · Amended 2026-10-31, cycle 39, part 2 (ID-913 to ID-918): the cycle-39 section's end phase (lane M39's follow-up, the fix rounds FIX39a and FIX39b, the window check W39c, the play-test rv-vis-3 and the review loop, accepted); the progress table's M2 row; the cycle-40 candidates with FT-814 (data loss) and FT-816; FT-814 to FT-828; the gate and the delivery recorded in cycle 40's first row. · Amended 2026-10-31, cycle 39, part 1 (ID-892 to ID-912): the cycle-38 delivery and the retro's changes; the cycle-39 section with its lanes, waves, rulings, golden changes and counts, and the owner's two-size rule; the progress table's M2 row; the cycle-39 candidates as dispatched; the cycle-40 candidates; FT-770 to FT-813; the window check, play-test, review and gate recorded at delivery. · Amended 2026-10-30, cycle 38, part 3 (ID-885 to ID-891): lane J38 (WP-S1.19 part 6, UI-1 and UI-4 partly met), the fix rounds FX38b to FX38d, the window check W38, the play-test rv-vis-2 and the review loop (accepted) in the cycle-38 section with its counts; the progress table's M2 row; the cycle-39 candidates; FT-754 to FT-769; the gate and the delivery not yet recorded (cycle 39's first row). · Amended 2026-10-30, cycle 38, part 2 (ID-880 to ID-884): the cycle-38 section's rows for lanes I38, K38, L38 and M38 and the fix round FX38a, WP-S2.18 complete; lane J38, the window check, the play-test, the review loop's outcome and the gate not yet recorded. · Amended 2026-10-30: macOS is not a supported platform (decision log ID-880); §6.2, §9.2 rule 5, §12.1, §13.4 and the first 90 days on Windows and Linux; the generated budget row is not re-based. · Amended 2026-10-30, cycle 38, part 1 (ID-869 to ID-879): the cycle-37 delivery with its fix verify and CI hotfix recorded (ID-869), so cycle 37's gate is recorded; the cycle-38 section with its waves 1 and 2 and the first lanes of wave 3 (WP-S1.21 part 3, WP-S1.18 part 3, WP-S2.07 part 3, WP-S1.19 part 5's acceptance, Golden A's `plc_address` slot and black-box pin designations, two golden changes, the play-test follow-ups); the progress table's M2 row; the cycle-38 candidates as dispatched; FT-725 to FT-749; the rest of wave 3, the window check, the play-test, the review loop, the gate and the cycle-39 candidates not yet recorded. · Amended 2026-10-30, cycle 37 (ID-853 to ID-864): the cycle-36 delivery with its gate fix and CI hotfix recorded (ID-853), so cycle 36's gate is recorded; the cycle-37 section with its three waves and rulings (WP-S1.21 parts 1 and 2, the per-project text styles, WP-S1.18 parts 1 and 2, the UI follow-ups, `rep.join_device`); the progress table's M2 row; the cycle-37 candidates as dispatched; the cycle-38 candidates, M2's fifth cycle (ID-864); FT-690 to FT-704; the play-test and the window check recorded (ID-865, ID-866), the review loop and the fix round (ID-867, ID-868); the gate not yet recorded. · Amended 2026-10-30, cycle 36 (ID-834 to ID-852): the cycle-35 delivery and its CI hotfix recorded (ID-834); the cycle-36 section with its waves and rulings (the test clean-up and opt-level 1, WP-S1.16 part 5, WP-S1.19 part 5, FT-655, FT-656, the small follow-ups, the disk incidents); the progress table's M2 row; the cycle-36 candidates as dispatched; the cycle-37 candidates, M2's fourth cycle (ID-848); FT-670 to FT-680; the play-test, the window check, the review loop and the gate not yet recorded. · Amended 2026-10-29, cycle 35 (ID-815 to ID-830; WP-S2.18 parts 2 and 3 as built, ID-830, with FT-655 and FT-656 among the cycle-36 candidates): the cycle-34 delivery and its CI hotfix recorded (ID-815); the cycle-35 delivered section with its lane table and rulings (WP-S2.18 part 1, WP-S1.19 parts 2 to 4, WP-S2.07 part 2, WP-S1.16 parts 3 and 4; no calamine, ID-827); the progress table's M2 row; the cycle-35 candidates as dispatched; the cycle-36 candidates, M2's third cycle (ID-829); the play-test (ID-831), the window check W35 (ID-832) and the fix round (ID-833) recorded with FT-662 to FT-665, and FT-606, FT-607 and FT-617 among the cycle-36 candidates; the re-review and the gate not yet recorded. · Amended 2026-10-29, cycle 34 (ID-795 to ID-813): the cycle-33 delivery recorded (ID-795); the cycle-34 delivered section with its lane table and rulings; the owner's rulings on visual play-tests and the freeze list (ID-808); WP-S2.18, basic elements from the window, added (ID-812; 28 WPs in M2, the generated tables refreshed); the cycle-35 candidates, M2's second cycle (ID-813); gpp-3, the calibration round and W34 recorded (ID-809 to ID-811); the review loop and the gate not yet recorded. · Amended 2026-10-29, cycle 33 (ID-761 to ID-780): the cycle-32 delivery recorded and the gates at 12 jobs (ID-761); the cycle-33 delivered section (the two G-PP blind runs, gpp-r1's findings built, FT-524 and FT-527 to FT-541); **G-PP recorded Go on the blind-run proxy, M-PP closed and the plan moved to M2** by the owner's rulings (ID-777; §3.8, §5.3); the progress table; the M-PP chain closed; the cycle-33 candidates as dispatched; the cycle-34 candidates, M2's first cycle, with M2's order by dependency (ID-779); owner items unchanged; the review loop and the gate not yet recorded. · Amended 2026-10-29, cycle 32 (ID-744 to ID-759): the cycle-31 delivery recorded (gate, CI with the pixel gate's first hosted run, FT-479's second measurement, ID-744); the build-jobs rule (ID-745) and the tooling lane (ID-746); the cycle-32 delivered section (WP-S2.17 parts 2 to 5, so WP-S2.17 is complete; FT-515, FT-516 and FT-525), the progress table, the M-PP chain with WP-S2.17 complete, the cycle-32 candidates as dispatched, the cycle-33 candidates with G-PP at about cycle 33 or 34 and the owner items; the window fixes' outcome, the review loop and the gate not yet recorded. · Amended 2026-10-28, cycle 31 (ID-721 to ID-742): the cycle-30 delivery recorded (gate, CI, FT-479's first measurement, ID-721); large cycles in waves in §3.8's process sentence (ID-722); the cycle-31 delivered section (WP-S2.06 part 3 and WP-S2.09 parts 2 and 3, so both are complete; the design language with ADR-0031 and the approved mockup; WP-S2.17 specified with parts 1 and 6 delivered; FT-500 to FT-506, FT-509, FT-512 and FT-513), the progress table, the M-PP chain with WP-S2.17, the cycle-31 candidates as dispatched, the cycle-32 candidates with G-PP at about cycle 33, the pixel gate's CI risk and the owner items (the audit item closed, ID-723; the G-PP month question moot, ID-724); window checks, the review loop and the gate not yet recorded. · Amended 2026-10-28, cycle 30 (ID-700 to ID-720; the delivery records: verify, R30, the review loop, FT-499 fixed, FT-513): the cycle-30 delivered section (WP-S2.06 parts 1 and 2, WP-S2.09 part 1, FT-480's GPU image pipeline, FT-485's findings, the SVG work bounds, the router's hygiene and fourteen further follow-ups), Sonnet excluded in §3.8's process sentence (ID-700), the progress table, the M-PP chain, the cycle-30 candidates as dispatched (the stale "no closed specification" text of WP-S2.06 and WP-S2.09 removed), the cycle-31 candidates and the owner items; the review loop's outcome, lane R30's fixes and the gate are not yet recorded. · Amended 2026-10-27, cycle 29 (ID-667 to ID-680): the cycle-29 delivered section (WP-S2.04 part 5, so WP-S2.04 is complete; WP-S6.13 part 2; the `ew-commands` lane FT-460, FT-451, FT-447 and FT-459; FT-456; FT-442 and FT-465; FT-438 taken), the process sentence of §3.8 rewritten to the owner's rulings of 2026-10-27, the progress table, the M-PP chain, the cycle-30 candidates and the owner items; FT-467 closed (ID-676), blind replay made deterministic (ID-677), BD16 done and unblessed (ID-678), the image routing and the asset-save fix (ID-679), the window check (ID-680), FT-480 and FT-485 among the cycle-30 candidates; the review loop's outcome and the gate are not yet recorded. · Amended 2026-10-26, cycle 28 (ID-659 to ID-666): accepted cycle-28 implementation; local validation complete (ID-665); publication status in ID-665; hosted CI pending at publication; hold after delivery; corrected eight-file raster corpus and partial FT-436, FT-470 to FT-473 open, FT-474 enforcement closed; merged references/raster validation and accepted window corrections recorded; scoped Windows window checks passed. · **Date:** 2026-10-25 (v0.27: the cycle-27 delivered section (FT-439; WP-S6.13 part 1; WP-S2.04 parts 3 and 4a; WP-S2.05 part 3, so WP-S2.05 is complete; FT-404, FT-405, FT-408, FT-409 and FT-410; the Windows partitions re-balanced), the progress table, the M-PP chain, the process rulings (two lane builds, the DeepSeek coder) and the cycle-28 candidates, decision log ID-643 to ID-656; v0.26: the cycle-26 delivered section (WP-S2.04 part 2 and WP-S2.05 part 2 delivered, FT-422's alias, FT-406, FT-387 closed with the Windows chain measured at 20:24), the progress table, the M-PP chain and the cycle-27 candidates, decision log ID-633 to ID-642; v0.25: the cycle-25 delivered section (WP-S2.04 part 1 and WP-S2.05 part 1 delivered, WP-S6.13 specified, FT-387 taken in part with a third Windows run job, the integration rules and the window check), the progress table, the M-PP chain and the cycle-26 candidates, decision log ID-625 to ID-632; v0.24: WP-S6.13's fix round and the pilot's prerequisites before G-PP in the M-PP chain, decision log ID-621 to ID-624; v0.23: WP-S6.13 specified in the M-PP chain and the M-PP row, decision log ID-610 to ID-619; v0.22: the cycle-24 delivered section (WP-S2.03 complete with the tool framework, WP-S2.05 specified with its dep-rules precondition met, FT-366 and FT-370 closed, the cycle-23 CI run meeting G-M0-04's wall-time clause), the M1 remaining list, the M-PP chain and the cycle-25 candidates, decision log ID-586 to ID-609; v0.21: the cycle-23 delivered section (WP-S2.03 part 1, the read-only viewer; WP-S2.04 specified in six parts; the wizard completed by report blocks, the asset store, the logo and the profiles; `PRIVACY.md`; the CI split proven and NFR-MAINT-05 read as wall time), the M1 remaining list, the M-PP chain and the cycle-24 candidates, decision log ID-556 to ID-585; v0.20: the cycle-22 delivered section (WP-S2.02 complete with the GPU canvas, WP-S2.03 specified, the wizard's commands, the test-job split and the golden change list), the M1 remaining list after cycle 22, the M-PP chain with WP-S2.03 part 1 next and the cycle-23 candidates, §3.8 and the progress table; decision log ID-531 to ID-555; v0.19: the cycle-21 delivered section (WP-S2.02 part 1, the wgpu audit and `release-check`, the channel indexes and the per-PR fuzz run), the owner's rulings on performance runs and on the viewer, the M1 remaining list after cycle 21, the M-PP chain with WP-S2.02 part 2 next and the cycle-22 candidates, §3.8 and the progress table; decision log ID-512 to ID-530; v0.18: the M-PP chain with WP-S2.02 specified for cycle 21, §3.8; decision log ID-505 to ID-511; v0.17: the cycle-20 delivered section (the shell's second half, the deep nightly and the cargo-fuzz crate, the UI dependency audit), the M1 remaining list after cycle 20, the M-PP chain status with WP-S2.02 next and the cycle-21 candidates, §3.8 and the progress table; decision log ID-486 to ID-504; v0.16: the cycle-19 delivered section (the first UI), the M1 remaining list after cycle 19, the M-PP chain status and the cycle-20 candidates, §3.8 and the progress table; the stale LG-2 text of §11.1 and §14; decision log ID-472 to ID-485; v0.15: the cycle-18 delivered section, the M1 remaining list after cycle 18 and the cycle-19 candidates, §3.8 and the progress table, decision log ID-470, ID-471; v0.14: the owner rulings of 2026-10-22: PD-1 and PD-3 decided, the date rule adopted, no second named code owner, no funding pursued (§13 a reference), the legal and licensing items no longer gate items; §3.8, §13, §15, decision log ID-450 to ID-455; v0.13: the M-PP kick-off: the owner's go, the UI-chain order, the parallel M1 work and the cycle-19 candidates, §3.8, decision log ID-440 to ID-449; v0.12: the cycle-17 delivered section, the M1 remaining list after cycle 17 (the readiness report's §6 and the owner side) and the cycle-18 candidates, §3.8, decision log ID-438, ID-439; v0.11: the G-M1 readiness note, §3.8, decision log ID-419 to ID-426; v0.10: the cycle-16 progress view, the M1 remaining list (the owner-side items, the typed revision FT-165 and the G-M1 readiness run; D-06 with M-PP) and the cycle-17 candidates, §3.8, decision log ID-407; v0.9: the cycle-15 progress view, the M1 remaining list (one not-built entry, the UI-side D-06, plus WP-S6.03, WP-S0.06 and the rest of WP-S6.02) and the cycle-16 candidates, §3.8, decision log ID-391; v0.8: the cycle-14 progress view, the M1 remaining list at six not-built entries and the cycle-15 candidates, §3.8, decision log ID-361; WP-S6.13 in M-PP and the 1.0 month of the plan of record, ID-342; v0.7: the cycle-13 progress view, the M1 gap list without fails and the cycle-14 candidates, §3.8, decision log ID-339; v0.6: the cycle-12 progress view, the M1 gap list at two fails and the cycle-13 candidates, §3.8, decision log ID-321; v0.5: the cycle-11 progress view, the M1 gap list and the cycle-12 candidates, §3.8, decision log ID-300; v0.4: the months are a human-team reference, progress is tracked in cycles, §3.8, decision log ID-271; v0.3: the G-SP re-forecast of 2026-10-20) · **Part of:** ElektraWatt plan
+**Status:** Draft v0.51 · Amended 2026-11-02 (ID-1187, ID-1188): the pilot release 0.1.0's scope: M2 is a first release on Windows and Linux, unsigned and with no network code; signing, the update check and the steward's CRA processes are 1.0's; WP-S0.05 moves to M6, WP-S0.07 is not pursued, WP-S6.04 to WP-S6.07 are re-estimated and WP-S6.10 takes what moves; the progress table's M2 row follows in its counts and release packages. · Amended 2026-11-02, cycle 46, part 3 (ID-1172, ID-1173): FIXW46 as built and the delivery's last verify on 41f8412e in the cycle-46 section's table, wave 4, end phase and end, and the next IDs. · Amended 2026-11-02, cycle 46, part 2 (ID-1168 to ID-1171): the cycle-46 section gains the wave-4 verify and the self-tests' re-record, the end phase (FIXG46 as built, the window check W46.4 with FIXW46, the play-test rv-vis-7 and its checker), the closings and the next IDs; FIXW46 as built and the last verify follow by amendment; the cycle-47 candidates with the High row FT-1082 first; the progress table's M2 row. · Amended 2026-11-02, cycle 46 (ID-1152 to ID-1167): the cycle-46 section (cycle 45's checkpoint, the first commit and the rulings, waves 1 to 4 as merged with the verifies on 0892ae24 and 7d00dbe3, the review's parts 1 to 4 and the cycle's acceptance, the closings, the end and the owner's hold; FIXG46, the last verify, the window check W46.4 and the play-test rv-vis-7 follow by amendment); the cycle-47 candidates; the progress table's M2 row (WP-S1.17 part 1, WP-S3.07 part 2 and WP-S3.08 part 1 built). · Amended 2026-11-02, cycle 45, the late items (ID-1143): FIXW45 as built and the last verify on cae4859c in the cycle-45 section, and the next IDs. · Amended 2026-11-02, cycle 45, part 3 (ID-1140 to ID-1142): the cycle-45 section gains the wave-3 verify, the review's part 3 and the cycle's acceptance, the window check W45.2 and the end phase (FIX45c; FIXW45 follows by amendment), `ew-scene`'s edge to `ew-derive` written into ADR-0015 and doc 04, the closings and the next IDs; the cycle-46 candidates gain FT-1056 to FT-1058. · Amended 2026-11-02, cycle 45, part 2 (ID-1133 to ID-1136): the cycle-45 section's wave 3 gains FIX45 part b and BK45a, the closings and the next IDs follow; the cycle-46 candidates. · Amended 2026-11-02, cycle 45 (ID-1116 to ID-1132): the cycle-45 section (cycle 44's delivery, the first commit and the reads of the rulings, waves 1 to 3 as merged with the verifies of merge points 1 and 2, the review's parts 1 and 2, the window check W45.1, the closings and moves, the end and the next IDs; BK45a, FIX45 part b, the wave-3 verify, the review's part 3 and W45.2 follow by amendment); the cycle-46 candidates; the progress table's M2 row (WP-S4.02 complete, WP-S3.07 part 1 built). · Amended 2026-11-01, cycle 44, part 1 (ID-1084 to ID-1094): the cycle-44 section (cycle 43's end recorded, the hold lifted, waves 1 and 2 as merged with their verifies, the review's parts 1 to 4, the window checks W44.1 to W44.4, the end left for part 2); the cycle-45 candidates; the progress table's M2 row (WP-S4.02 parts 4 and 5 built, WP-S3.06 complete). · Amended 2026-11-01, cycle 44, part 2 (ID-1095 to ID-1102): the cycle-44 section completed with the end phase (FIX44c and its round 2, the window checks W44.4 and W44.5, which are part 2's, not part 1's, the play-test rv-vis-6 and its checker, the review's parts 4 and 5, FIX44d, the closings and moves, the end and the next IDs); the cycle-45 candidates with the High row FT-1020 first; the progress table's M2 row (the end phase). · Amended 2026-11-01, cycle 43, part 1 (ID-1054 to ID-1072): the cycle-43 section, the workflow redesign RD43 under the owner's hold as a checkpoint (the owner's decision, wave 0, waves 1 to 3 as merged with their verifies, wave 4 in the end phase, the review's parts 1 to 5, the lanes not landed as briefed, the end and the next IDs; R14a, FIX-R13 and the review's part 6 follow in part 2); the cycle-44 candidates; the progress table's M2 row (no M2 work package in cycle 43). · Amended 2026-11-01, cycle 43, part 2 (ID-1073 to ID-1075): the cycle-43 section completed with R14a, FIX-R13, the review's part 6 and its fixes FIX-R18a and FIX-R18b, the end's remaining steps (the review's part 7 and the last verify) and the next IDs; the cycle-44 candidates gain FT-1009 to FT-1013. · Amended 2026-11-01, cycle 42, part 3 (ID-1036 to ID-1050): the cycle-42 section completed with wave 3 as merged (WP-S3.06 part 2, WP-S4.02 part 3, the fixes of the window check W42b) with its verify, the review's parts 1 to 3 accepted with FIX42-F, the last window check W42c, the end (the last verify, the delivery through CI, the hold) and the next IDs; the progress table's M2 row (WP-S4.02 parts 1 to 3 and WP-S3.06 parts 1 and 2 built). · Amended 2026-10-31, cycle 42, part 2 (ID-1015 to ID-1035): the cycle-42 section continued with wave 2 as merged (FIXPT41, WP-S1.21 and WP-S1.22 complete, WP-S4.02 part 2, the polish batch) with its verify, the three specifications (WP-S1.17, WP-S3.08, WP-S3.07), the review's part 2, the owner's decisions on the format and the second maintainer, wave 3 as dispatched with G42 integrated, the hold after the cycle and the cycle ending as a delivery, the next IDs; the progress table's M2 row (seven packages complete, 14 not yet specified on the lean scope); the effort and schedule blocks regenerated for the PERTs of WP-S1.17 (6.9 pw), WP-S3.08 (2.8 pw) and WP-S3.07 (3.3 pw). · Amended 2026-10-31, cycle 42, part 1 (ID-998 to ID-1014): the cycle-42 section opened with cycle 41's delivery (CI green, `main` at 60b7fe5e), the retro's changes, wave 1 as merged (`cargo xtask settle`, WP-S4.01 complete, WP-S4.02 part 1, the FT batch) with its verify, the play-test rv-vis-5 and its checker, the window check W42a, the review's part 1, wave 2 as dispatched and the next IDs; the cycle-42 candidates as dispatched; the progress table's M2 row (WP-S4.01 complete, WP-S4.02 in progress). · Amended 2026-10-31, cycle 41, part 2 (ID-977 to ID-997): the cycle-41 section completed with wave 3 as merged (WP-S4.01 part 5, 902 at its printed scale, WP-S1.22 part 4), the fix rounds, the merge points and the end tip's full-suite verify, the review's parts 3 and 4 and its acceptance, the window check W41b, the play-test sentence, the next IDs and the cycle-42 candidates; the progress table's M2 row (the delivery's end tip and verify; WP-S1.22 part 5 and WP-S4.01 part 4b left). · Amended 2026-10-31, cycle 41, part 1 (ID-948 to ID-976): the cycle-41 section with waves 1 and 2 as merged (WP-S4.01 parts 3 and 4a, WP-S1.18 complete, WP-S1.22 part 3 with the recovery data-loss fix, one test binary per crate, WP-S4.02 and WP-S3.06 specified), the review's parts 1 and 2, the window check W41a, the cycle-40 retro's three changes and wave 3 as dispatched; the cycle-41 candidates as dispatched; the progress table's M2 row (WP-S1.18 complete, 17 packages without a specification on the lean scope); the effort and schedule blocks regenerated for the PERTs of WP-S4.02 (5.5 pw) and WP-S3.06 (2.5 pw). · Amended 2026-10-31, cycle 40, part 4 (ID-945 to ID-947): the fix round FIXPT40 and the play-test rv-vis-4 in the cycle-40 section and the M2 row; cycle 41's first IDs. · Amended 2026-10-31, cycle 40, part 3, the checkpoint (ID-939 to ID-944): the cycle-40 section's end phase (the fix rounds FIX40d and FIX40e, the review's parts 6 and 7 and the FIX40e addendum, all accepted, the window check W40b, the checkpoint) and cycle 41 as dispatched; §3.8's process sentence for the streamlined cycle system (ID-941); the progress table's M2 row: cycle 40 closed at a checkpoint. · Amended 2026-10-31, cycle 40, part 2 (ID-932 to ID-937): the cycle-40 section's lanes J40, FIX40c, H40 and UPKEEP40, the waves as merged, the review's parts 4 to 6, OU-2 on Linux, the cycle-40 candidates as dispatched and the cycle-41 candidates; the progress table's M2 row with its remaining work counted; the owner's process rulings of 2026-10-31 in §3.8's process sentence (ID-938): cycle 40 ends at a checkpoint, the last window check, the play-test and the review's end recorded at the checkpoint, CI at cycle 41's delivery. · Amended 2026-10-31, cycle 40, part 1 (ID-919 to ID-931): the cycle-40 section with its lanes and waves so far (FT-814, WP-S4.01 part 1, WP-S2.08 part 2, WP-S1.22 part 2, WP-S1.19 complete, WP-S1.21 part 4b, the widths at 1920, page arrows and PLC addresses), the review's parts 1 to 3, the window check W40a, the progress table's M2 row; the rest of the cycle in part 2. · Amended 2026-10-31, cycle 39, part 2 (ID-913 to ID-918): the cycle-39 section's end phase (lane M39's follow-up, the fix rounds FIX39a and FIX39b, the window check W39c, the play-test rv-vis-3 and the review loop, accepted); the progress table's M2 row; the cycle-40 candidates with FT-814 (data loss) and FT-816; FT-814 to FT-828; the gate and the delivery recorded in cycle 40's first row. · Amended 2026-10-31, cycle 39, part 1 (ID-892 to ID-912): the cycle-38 delivery and the retro's changes; the cycle-39 section with its lanes, waves, rulings, golden changes and counts, and the owner's two-size rule; the progress table's M2 row; the cycle-39 candidates as dispatched; the cycle-40 candidates; FT-770 to FT-813; the window check, play-test, review and gate recorded at delivery. · Amended 2026-10-30, cycle 38, part 3 (ID-885 to ID-891): lane J38 (WP-S1.19 part 6, UI-1 and UI-4 partly met), the fix rounds FX38b to FX38d, the window check W38, the play-test rv-vis-2 and the review loop (accepted) in the cycle-38 section with its counts; the progress table's M2 row; the cycle-39 candidates; FT-754 to FT-769; the gate and the delivery not yet recorded (cycle 39's first row). · Amended 2026-10-30, cycle 38, part 2 (ID-880 to ID-884): the cycle-38 section's rows for lanes I38, K38, L38 and M38 and the fix round FX38a, WP-S2.18 complete; lane J38, the window check, the play-test, the review loop's outcome and the gate not yet recorded. · Amended 2026-10-30: macOS is not a supported platform (decision log ID-880); §6.2, §9.2 rule 5, §12.1, §13.4 and the first 90 days on Windows and Linux; the generated budget row is not re-based. · Amended 2026-10-30, cycle 38, part 1 (ID-869 to ID-879): the cycle-37 delivery with its fix verify and CI hotfix recorded (ID-869), so cycle 37's gate is recorded; the cycle-38 section with its waves 1 and 2 and the first lanes of wave 3 (WP-S1.21 part 3, WP-S1.18 part 3, WP-S2.07 part 3, WP-S1.19 part 5's acceptance, Golden A's `plc_address` slot and black-box pin designations, two golden changes, the play-test follow-ups); the progress table's M2 row; the cycle-38 candidates as dispatched; FT-725 to FT-749; the rest of wave 3, the window check, the play-test, the review loop, the gate and the cycle-39 candidates not yet recorded. · Amended 2026-10-30, cycle 37 (ID-853 to ID-864): the cycle-36 delivery with its gate fix and CI hotfix recorded (ID-853), so cycle 36's gate is recorded; the cycle-37 section with its three waves and rulings (WP-S1.21 parts 1 and 2, the per-project text styles, WP-S1.18 parts 1 and 2, the UI follow-ups, `rep.join_device`); the progress table's M2 row; the cycle-37 candidates as dispatched; the cycle-38 candidates, M2's fifth cycle (ID-864); FT-690 to FT-704; the play-test and the window check recorded (ID-865, ID-866), the review loop and the fix round (ID-867, ID-868); the gate not yet recorded. · Amended 2026-10-30, cycle 36 (ID-834 to ID-852): the cycle-35 delivery and its CI hotfix recorded (ID-834); the cycle-36 section with its waves and rulings (the test clean-up and opt-level 1, WP-S1.16 part 5, WP-S1.19 part 5, FT-655, FT-656, the small follow-ups, the disk incidents); the progress table's M2 row; the cycle-36 candidates as dispatched; the cycle-37 candidates, M2's fourth cycle (ID-848); FT-670 to FT-680; the play-test, the window check, the review loop and the gate not yet recorded. · Amended 2026-10-29, cycle 35 (ID-815 to ID-830; WP-S2.18 parts 2 and 3 as built, ID-830, with FT-655 and FT-656 among the cycle-36 candidates): the cycle-34 delivery and its CI hotfix recorded (ID-815); the cycle-35 delivered section with its lane table and rulings (WP-S2.18 part 1, WP-S1.19 parts 2 to 4, WP-S2.07 part 2, WP-S1.16 parts 3 and 4; no calamine, ID-827); the progress table's M2 row; the cycle-35 candidates as dispatched; the cycle-36 candidates, M2's third cycle (ID-829); the play-test (ID-831), the window check W35 (ID-832) and the fix round (ID-833) recorded with FT-662 to FT-665, and FT-606, FT-607 and FT-617 among the cycle-36 candidates; the re-review and the gate not yet recorded. · Amended 2026-10-29, cycle 34 (ID-795 to ID-813): the cycle-33 delivery recorded (ID-795); the cycle-34 delivered section with its lane table and rulings; the owner's rulings on visual play-tests and the freeze list (ID-808); WP-S2.18, basic elements from the window, added (ID-812; 28 WPs in M2, the generated tables refreshed); the cycle-35 candidates, M2's second cycle (ID-813); gpp-3, the calibration round and W34 recorded (ID-809 to ID-811); the review loop and the gate not yet recorded. · Amended 2026-10-29, cycle 33 (ID-761 to ID-780): the cycle-32 delivery recorded and the gates at 12 jobs (ID-761); the cycle-33 delivered section (the two G-PP blind runs, gpp-r1's findings built, FT-524 and FT-527 to FT-541); **G-PP recorded Go on the blind-run proxy, M-PP closed and the plan moved to M2** by the owner's rulings (ID-777; §3.8, §5.3); the progress table; the M-PP chain closed; the cycle-33 candidates as dispatched; the cycle-34 candidates, M2's first cycle, with M2's order by dependency (ID-779); owner items unchanged; the review loop and the gate not yet recorded. · Amended 2026-10-29, cycle 32 (ID-744 to ID-759): the cycle-31 delivery recorded (gate, CI with the pixel gate's first hosted run, FT-479's second measurement, ID-744); the build-jobs rule (ID-745) and the tooling lane (ID-746); the cycle-32 delivered section (WP-S2.17 parts 2 to 5, so WP-S2.17 is complete; FT-515, FT-516 and FT-525), the progress table, the M-PP chain with WP-S2.17 complete, the cycle-32 candidates as dispatched, the cycle-33 candidates with G-PP at about cycle 33 or 34 and the owner items; the window fixes' outcome, the review loop and the gate not yet recorded. · Amended 2026-10-28, cycle 31 (ID-721 to ID-742): the cycle-30 delivery recorded (gate, CI, FT-479's first measurement, ID-721); large cycles in waves in §3.8's process sentence (ID-722); the cycle-31 delivered section (WP-S2.06 part 3 and WP-S2.09 parts 2 and 3, so both are complete; the design language with ADR-0031 and the approved mockup; WP-S2.17 specified with parts 1 and 6 delivered; FT-500 to FT-506, FT-509, FT-512 and FT-513), the progress table, the M-PP chain with WP-S2.17, the cycle-31 candidates as dispatched, the cycle-32 candidates with G-PP at about cycle 33, the pixel gate's CI risk and the owner items (the audit item closed, ID-723; the G-PP month question moot, ID-724); window checks, the review loop and the gate not yet recorded. · Amended 2026-10-28, cycle 30 (ID-700 to ID-720; the delivery records: verify, R30, the review loop, FT-499 fixed, FT-513): the cycle-30 delivered section (WP-S2.06 parts 1 and 2, WP-S2.09 part 1, FT-480's GPU image pipeline, FT-485's findings, the SVG work bounds, the router's hygiene and fourteen further follow-ups), Sonnet excluded in §3.8's process sentence (ID-700), the progress table, the M-PP chain, the cycle-30 candidates as dispatched (the stale "no closed specification" text of WP-S2.06 and WP-S2.09 removed), the cycle-31 candidates and the owner items; the review loop's outcome, lane R30's fixes and the gate are not yet recorded. · Amended 2026-10-27, cycle 29 (ID-667 to ID-680): the cycle-29 delivered section (WP-S2.04 part 5, so WP-S2.04 is complete; WP-S6.13 part 2; the `ew-commands` lane FT-460, FT-451, FT-447 and FT-459; FT-456; FT-442 and FT-465; FT-438 taken), the process sentence of §3.8 rewritten to the owner's rulings of 2026-10-27, the progress table, the M-PP chain, the cycle-30 candidates and the owner items; FT-467 closed (ID-676), blind replay made deterministic (ID-677), BD16 done and unblessed (ID-678), the image routing and the asset-save fix (ID-679), the window check (ID-680), FT-480 and FT-485 among the cycle-30 candidates; the review loop's outcome and the gate are not yet recorded. · Amended 2026-10-26, cycle 28 (ID-659 to ID-666): accepted cycle-28 implementation; local validation complete (ID-665); publication status in ID-665; hosted CI pending at publication; hold after delivery; corrected eight-file raster corpus and partial FT-436, FT-470 to FT-473 open, FT-474 enforcement closed; merged references/raster validation and accepted window corrections recorded; scoped Windows window checks passed. · **Date:** 2026-10-25 (v0.27: the cycle-27 delivered section (FT-439; WP-S6.13 part 1; WP-S2.04 parts 3 and 4a; WP-S2.05 part 3, so WP-S2.05 is complete; FT-404, FT-405, FT-408, FT-409 and FT-410; the Windows partitions re-balanced), the progress table, the M-PP chain, the process rulings (two lane builds, the DeepSeek coder) and the cycle-28 candidates, decision log ID-643 to ID-656; v0.26: the cycle-26 delivered section (WP-S2.04 part 2 and WP-S2.05 part 2 delivered, FT-422's alias, FT-406, FT-387 closed with the Windows chain measured at 20:24), the progress table, the M-PP chain and the cycle-27 candidates, decision log ID-633 to ID-642; v0.25: the cycle-25 delivered section (WP-S2.04 part 1 and WP-S2.05 part 1 delivered, WP-S6.13 specified, FT-387 taken in part with a third Windows run job, the integration rules and the window check), the progress table, the M-PP chain and the cycle-26 candidates, decision log ID-625 to ID-632; v0.24: WP-S6.13's fix round and the pilot's prerequisites before G-PP in the M-PP chain, decision log ID-621 to ID-624; v0.23: WP-S6.13 specified in the M-PP chain and the M-PP row, decision log ID-610 to ID-619; v0.22: the cycle-24 delivered section (WP-S2.03 complete with the tool framework, WP-S2.05 specified with its dep-rules precondition met, FT-366 and FT-370 closed, the cycle-23 CI run meeting G-M0-04's wall-time clause), the M1 remaining list, the M-PP chain and the cycle-25 candidates, decision log ID-586 to ID-609; v0.21: the cycle-23 delivered section (WP-S2.03 part 1, the read-only viewer; WP-S2.04 specified in six parts; the wizard completed by report blocks, the asset store, the logo and the profiles; `PRIVACY.md`; the CI split proven and NFR-MAINT-05 read as wall time), the M1 remaining list, the M-PP chain and the cycle-24 candidates, decision log ID-556 to ID-585; v0.20: the cycle-22 delivered section (WP-S2.02 complete with the GPU canvas, WP-S2.03 specified, the wizard's commands, the test-job split and the golden change list), the M1 remaining list after cycle 22, the M-PP chain with WP-S2.03 part 1 next and the cycle-23 candidates, §3.8 and the progress table; decision log ID-531 to ID-555; v0.19: the cycle-21 delivered section (WP-S2.02 part 1, the wgpu audit and `release-check`, the channel indexes and the per-PR fuzz run), the owner's rulings on performance runs and on the viewer, the M1 remaining list after cycle 21, the M-PP chain with WP-S2.02 part 2 next and the cycle-22 candidates, §3.8 and the progress table; decision log ID-512 to ID-530; v0.18: the M-PP chain with WP-S2.02 specified for cycle 21, §3.8; decision log ID-505 to ID-511; v0.17: the cycle-20 delivered section (the shell's second half, the deep nightly and the cargo-fuzz crate, the UI dependency audit), the M1 remaining list after cycle 20, the M-PP chain status with WP-S2.02 next and the cycle-21 candidates, §3.8 and the progress table; decision log ID-486 to ID-504; v0.16: the cycle-19 delivered section (the first UI), the M1 remaining list after cycle 19, the M-PP chain status and the cycle-20 candidates, §3.8 and the progress table; the stale LG-2 text of §11.1 and §14; decision log ID-472 to ID-485; v0.15: the cycle-18 delivered section, the M1 remaining list after cycle 18 and the cycle-19 candidates, §3.8 and the progress table, decision log ID-470, ID-471; v0.14: the owner rulings of 2026-10-22: PD-1 and PD-3 decided, the date rule adopted, no second named code owner, no funding pursued (§13 a reference), the legal and licensing items no longer gate items; §3.8, §13, §15, decision log ID-450 to ID-455; v0.13: the M-PP kick-off: the owner's go, the UI-chain order, the parallel M1 work and the cycle-19 candidates, §3.8, decision log ID-440 to ID-449; v0.12: the cycle-17 delivered section, the M1 remaining list after cycle 17 (the readiness report's §6 and the owner side) and the cycle-18 candidates, §3.8, decision log ID-438, ID-439; v0.11: the G-M1 readiness note, §3.8, decision log ID-419 to ID-426; v0.10: the cycle-16 progress view, the M1 remaining list (the owner-side items, the typed revision FT-165 and the G-M1 readiness run; D-06 with M-PP) and the cycle-17 candidates, §3.8, decision log ID-407; v0.9: the cycle-15 progress view, the M1 remaining list (one not-built entry, the UI-side D-06, plus WP-S6.03, WP-S0.06 and the rest of WP-S6.02) and the cycle-16 candidates, §3.8, decision log ID-391; v0.8: the cycle-14 progress view, the M1 remaining list at six not-built entries and the cycle-15 candidates, §3.8, decision log ID-361; WP-S6.13 in M-PP and the 1.0 month of the plan of record, ID-342; v0.7: the cycle-13 progress view, the M1 gap list without fails and the cycle-14 candidates, §3.8, decision log ID-339; v0.6: the cycle-12 progress view, the M1 gap list at two fails and the cycle-13 candidates, §3.8, decision log ID-321; v0.5: the cycle-11 progress view, the M1 gap list and the cycle-12 candidates, §3.8, decision log ID-300; v0.4: the months are a human-team reference, progress is tracked in cycles, §3.8, decision log ID-271; v0.3: the G-SP re-forecast of 2026-10-20) · **Part of:** ElektraWatt plan
 
 **Purpose.** This is the global plan of ElektraWatt (EW). It turns the [work breakdown](02-work-packages.md) (123
 work packages, WPs, with three-point estimates and dependencies) into a capacity model, milestone dates for teams
@@ -26,7 +26,7 @@ done, G-SP is passed with the outcome Recycle, and 16 of the 22 M1 work packages
 part). The WBS, the estimates, the gates and the acceptance criteria are unchanged.
 
 <!-- generated:summary-headline -->
-**The headline.** The full v1 scope is **538.2 person-weeks** (pw) of estimated work, **645.8 pw** with the 20 % integration and bug-fix reserve: 14.9 productive developer-years, 17.9 with the reserve. The lean scope of record is 483.3 pw (579.9 pw with the reserve). Three developers deliver 108 productive pw a year. **The architecture's indicative 15–18 months to 1.0 cannot be met by 2–4 developers.** With three developers, month 16 is when the spine exits (headless golden PDF, M1). No team size reaches 1.0 in 18 months, because the longest dependency chain alone takes 28.5 months.
+**The headline.** The full v1 scope is **535.5 person-weeks** (pw) of estimated work, **642.6 pw** with the 20 % integration and bug-fix reserve: 14.9 productive developer-years, 17.9 with the reserve. The lean scope of record is 480.6 pw (576.7 pw with the reserve). Three developers deliver 108 productive pw a year. **The architecture's indicative 15–18 months to 1.0 cannot be met by 2–4 developers.** With three developers, month 17 is when the spine exits (headless golden PDF, M1). No team size reaches 1.0 in 18 months, because the longest dependency chain alone takes 33.8 months.
 <!-- /generated:summary-headline -->
 
 **Plan of record (proposed): three developers, lean scope.** Month *n* counts from 2026-11-01 and is labelled
@@ -37,14 +37,14 @@ iterations against. At G-M1 both are replaced by one re-baseline from the measur
 <!-- generated:summary-dates -->
 | Scenario | M1 spine exit | M-PP pilot preview 0.0.x | M2 MVP 0.1.0 | M6 release 1.0 |
 |---|---|---|---|---|
-| **3 developers, lean scope: plan of record, external commitments** | **16 (Feb 2028)** | **26 (Dec 2028)** | **42 (Apr 2030)** | **65 (Mar 2032)** |
-| Same, capacity −20 % / +20 % | 20 (Jun 2028) / 13 (Nov 2027) | 33 (Jul 2029) / 22 (Aug 2028) | 52 (Feb 2031) / 35 (Sep 2029) | 82 (Aug 2033) / 55 (May 2031) |
-| **3 developers + AI-moderate, lean scope: internal target** | **13 (Nov 2027)** | **21 (Jul 2028)** | **34 (Aug 2029)** | **53 (Mar 2031)** |
-| 3 developers + AI-strong, lean scope (upside, not planned) | 11 (Sep 2027) | 18 (Apr 2028) | 29 (Mar 2029) | 46 (Aug 2030) |
-| 3 developers, full scope (if PD-1 rejects the levers) | 16 (Feb 2028) | 26 (Dec 2028) | 45 (Jul 2030) | 72 (Oct 2032) |
-| 4 developers (fourth from month 4), lean scope | 16 (Feb 2028) | 24 (Oct 2028) | 37 (Nov 2029) | 58 (Aug 2031) |
-| 2 developers, lean scope | 24 (Oct 2028) | 39 (Jan 2030) | 61 (Nov 2031) | 98 (Dec 2034) |
-| 6 developers (funded growth, outside the 2–4 decision), lean scope | 16 (Feb 2028) | 21 (Jul 2028) | 29 (Mar 2029) | 47 (Sep 2030) |
+| **3 developers, lean scope: plan of record, external commitments** | **17 (Mar 2028)** | **27 (Jan 2029)** | **41 (Mar 2030)** | **69 (Jul 2032)** |
+| Same, capacity −20 % / +20 % | 21 (Jul 2028) / 14 (Dec 2027) | 34 (Aug 2029) / 23 (Sep 2028) | 51 (Jan 2031) / 34 (Aug 2029) | 86 (Dec 2033) / 58 (Aug 2031) |
+| **3 developers + AI-moderate, lean scope: internal target** | **13 (Nov 2027)** | **21 (Jul 2028)** | **32 (Jun 2029)** | **54 (Apr 2031)** |
+| 3 developers + AI-strong, lean scope (upside, not planned) | 11 (Sep 2027) | 18 (Apr 2028) | 27 (Jan 2029) | 46 (Aug 2030) |
+| 3 developers, full scope (if PD-1 rejects the levers) | 17 (Mar 2028) | 27 (Jan 2029) | 44 (Jun 2030) | 77 (Mar 2033) |
+| 4 developers (fourth from month 4), lean scope | 16 (Feb 2028) | 26 (Dec 2028) | 36 (Oct 2029) | 63 (Jan 2032) |
+| 2 developers, lean scope | 23 (Sep 2028) | 38 (Dec 2029) | 58 (Aug 2031) | 97 (Nov 2034) |
+| 6 developers (funded growth, outside the 2–4 decision), lean scope | 16 (Feb 2028) | 23 (Sep 2028) | 28 (Feb 2029) | 53 (Mar 2031) |
 <!-- /generated:summary-dates -->
 
 **"Lean"** applies the three scope levers of the [work breakdown](02-work-packages.md#7-scope-levers), recorded per
@@ -65,15 +65,15 @@ folios 101–103 and 901 interactively.
 **What moves the dates.**
 
 <!-- generated:summary-movers -->
-| Change against the plan of record (M-PP 26, M2 42, M6 65) | M-PP month (change) | M2 month (change) | M6 month (change) |
+| Change against the plan of record (M-PP 27, M2 41, M6 69) | M-PP month (change) | M2 month (change) | M6 month (change) |
 |---|---|---|---|
-| AI-moderate (internal target, §3.7) | 21 (−5) | 34 (−8) | 53 (−12) |
-| Fourth developer from month 4 (§10.3) | 24 (−2) | 37 (−5) | 58 (−7) |
-| Effort +10 % (estimates optimistic) | 29 (+3) | 46 (+4) | 72 (+7) |
-| Capacity −20 % | 33 (+7) | 52 (+10) | 82 (+17) |
-| Third developer joins at month 6 | 28 (+2) | 44 (+2) | 67 (+2) |
-| Strict stream silos instead of the pull rule (§10.2) | 38 (+12) | 56 (+14) | 77 (+12) |
-| Full scope instead of the levers (PD-1) | 26 (±0) | 45 (+3) | 72 (+7) |
+| AI-moderate (internal target, §3.7) | 21 (−6) | 32 (−9) | 54 (−15) |
+| Fourth developer from month 4 (§10.3) | 26 (−1) | 36 (−5) | 63 (−6) |
+| Effort +10 % (estimates optimistic) | 30 (+3) | 45 (+4) | 76 (+7) |
+| Capacity −20 % | 34 (+7) | 51 (+10) | 86 (+17) |
+| Third developer joins at month 6 | 28 (+1) | 42 (+1) | 70 (+1) |
+| Strict stream silos instead of the pull rule (§10.2) | 38 (+11) | 56 (+15) | 76 (+7) |
+| Full scope instead of the levers (PD-1) | 27 (±0) | 44 (+3) | 77 (+8) |
 <!-- /generated:summary-movers -->
 
 - **Measured velocity decides.** The estimates are judgement. Actuals logged from the first commit re-scale the plan
@@ -82,8 +82,8 @@ folios 101–103 and 901 interactively.
 - **A fourth developer, early,** brings the MVP and 1.0 forward but not the preview, which is bound by the UI chain
   after M1 (§10.3).
 - **Generalists, not silos.** Stream owners own design and review; whoever is free pulls the next ready WP (§10.2).
-- **Legal gates and lead times.** No signed release without the employer statement (LG-1), the steward and its
-  signing identity (LG-4). Signing enrolment takes at least 12 months of calendar time, so it starts in the first
+- **Legal gates and lead times.** No release without the employer statement (LG-1), and no signed release without the
+  steward and its signing identity (LG-4), which is 1.0's (ID-1187). Signing enrolment takes at least 12 months of calendar time, so it starts in the first
   90 days (WP-S0.05a) and the plan models the wait (§9.2 rule 5).
 
 **Decisions needed now (M0, November 2026)** (§14): PD-1 adopt the plan of record and the AI-moderate internal
@@ -99,13 +99,13 @@ NLnet steps are reference text for a human-team scenario.*
 <!-- generated:pilot-timeline -->
 | Month (plan of record) | Milestone or event | What the pilot gets |
 |---|---|---|
-| 16 (Feb 2028) | M1 | The reference set as a PDF generated from the model; nightly `ew` CLI builds |
-| 26 (Dec 2028) | M-PP, release 0.0.x | **Pilot preview**: draws new projects interactively (place, wire, terminals, cables, title block, core reports, PDF, online checks, save and load); unsigned, pilot only |
+| 17 (Mar 2028) | M1 | The reference set as a PDF generated from the model; nightly `ew` CLI builds |
+| 27 (Jan 2029) | M-PP, release 0.0.x | **Pilot preview**: draws new projects interactively (place, wire, terminals, cables, title block, core reports, PDF, online checks, save and load); unsigned, pilot only |
 | 26 (Dec 2028) | R0 | Formative usability round on the preview build |
-| 41 (Mar 2030) | R1 | Summative usability round on the MVP release candidate |
-| 42 (Apr 2030) | M2, release 0.1.0 | Signed release for new projects on three OSes |
-| 47 (Sep 2030) | release 0.6.0 | Migration of existing QET projects (lever b) |
-| 65 (Mar 2032) | M6, release 1.0 | PLC exchange, 3D layout, wire lengths and machine files |
+| 40 (Feb 2030) | R1 | Summative usability round on the MVP release candidate |
+| 41 (Mar 2030) | M2, release 0.1.0 | First release (unsigned) for new projects on Windows and Linux |
+| 46 (Aug 2030) | release 0.6.0 | Migration of existing QET projects (lever b) |
+| 69 (Jul 2032) | M6, release 1.0 | PLC exchange, 3D layout, wire lengths and machine files |
 <!-- /generated:pilot-timeline -->
 
 **Budget.** With the illustrative loaded cost of €100k per developer-year, the baseline costs about €1.7 million
@@ -173,7 +173,7 @@ developer; specialisation; and the wait for the first release, which M-PP now sh
 | GA-8 | **Committed dates** | The baseline dates at base capacity are the external plan of record; the ±20 % band is what we communicate externally. The AI-moderate dates are the internal target only. Each gate review replaces both with a re-forecast from actuals (§3.7, §11.2) | This plan |
 | GA-9 | **Scope of record** | Lean scope (levers a, b and c; the `milestone_lean` column) pending PD-1; full-scope dates (the `milestone` column) are kept alongside so that PD-1 can be taken either way | WBS §7.4 |
 | GA-10 | **Releases** | No public binary release before the MVP: until then only nightlies labelled "unsigned development build" exist ([governance](../design/19-open-source-governance.md#33-legal-and-organisational-gates) §3.3). The pilot preview 0.0.x is such a build, handed to the pilot only. Monthly 0.x releases from the MVP to 1.0 | 19 §3.3, 18 §7.1 |
-| GA-11 | **CRA** | Full application from 2027-12-11, which is month 14. Every public release in every scenario ships under full application, so steward-grade processes (WP-S6.04, WP-S0.05) are MVP exit conditions | 18 §13.1 |
+| GA-11 | **CRA** | Full application from 2027-12-11, which is month 14. Every public release in every scenario ships under full application, so steward-grade processes (WP-S6.10, WP-S0.05) are conditions of 1.0, not of M2 (owner rulings ID-454 and ID-1187; the placement at 1.0 is ID-1188's) | 18 §13.1 |
 | GA-12 | **Money, not pw** | Counsel, notary, trademark fees, signing, CI, test hardware, test participants, partner-shop time and AI tooling are paid, not estimated in pw (§13.4, §13.5) | WBS PA-10 |
 | GA-13 | **Background load** | Routine support, triage, meetings and the quarterly upgrade train are inside the GA-3 deduction; planned pilot and community deliverables are in WP-S0.08 and WP-S0.09 | WBS PA-11 |
 | GA-14 | **AI-assisted scenarios** | Development work in S1–S7 is divided by 1.4 (AI-moderate) or 1.8 (AI-strong); S0, people-bound WPs and the review and decision share of each WP are not accelerated; the reserve still applies (§3.7) | This plan; CLAUDE.md |
@@ -239,13 +239,13 @@ Lean scope to 1.0, PERT means in pw:
 <!-- generated:effort-parts -->
 | Part | pw | Share | Contains |
 |---|---|---|---|
-| Feature work, streams S1–S5 | 373.4 | 77.3 % | Core model and derivation, UI, documents and migration, physical, manufacturing |
-| Quality, security and release engineering, S6 | 56.3 | 11.6 % | Test kit, perf gate, fuzzing, privacy, packaging, signing, SBOM, CRA; release engineering and stabilisation 33.3 pw (WP-S6.06 … WP-S6.10, WP-S6.12) |
-| Content and documentation, S7 | 27.7 | 5.7 % | Golden data, starter symbols and parts, user documentation and tutorials |
-| Foundation, governance, pilot and community, S0 | 25.9 | 5.4 % | Repository, licences, legal gates, signing enrolment, docs site, funding, pilot programme |
-| **Subtotal** | **483.3** | **100 %** |  |
-| Integration, hardening and bug-fix reserve (20 %) | 96.7 |  | GA-6 |
-| **Total to 1.0** | **579.9** |  |  |
+| Feature work, streams S1–S5 | 373.4 | 77.7 % | Core model and derivation, UI, documents and migration, physical, manufacturing |
+| Quality, security and release engineering, S6 | 56.3 | 11.7 % | Test kit, perf gate, fuzzing, privacy, packaging, signing, SBOM, CRA; release engineering and stabilisation 39.3 pw (WP-S6.06 … WP-S6.10, WP-S6.12) |
+| Content and documentation, S7 | 27.7 | 5.8 % | Golden data, starter symbols and parts, user documentation and tutorials |
+| Foundation, governance, pilot and community, S0 | 23.3 | 4.8 % | Repository, licences, legal gates, signing enrolment, docs site, funding, pilot programme |
+| **Subtotal** | **480.6** | **100 %** |  |
+| Integration, hardening and bug-fix reserve (20 %) | 96.1 |  | GA-6 |
+| **Total to 1.0** | **576.7** |  |  |
 
 Cross-cutting lines inside these totals: documentation 13.8 pw (WP-S0.06, WP-S7.05, WP-S7.07, plus the crate docs inside every WP); pilot, usability and external acceptance 19.0 pw (WP-S0.08, WP-S0.09, WP-S2.12, WP-S2.16, WP-S6.11).
 <!-- /generated:effort-parts -->
@@ -255,8 +255,8 @@ Cross-cutting lines inside these totals: documentation 13.8 pw (WP-S0.06, WP-S7.
 <!-- generated:effort-scope -->
 | Scope | M-PP (PERT) | M-PP with reserve | MVP (PERT) | MVP with reserve | 1.0 (PERT) | 1.0 with reserve | 1.x backlog (PERT) |
 |---|---|---|---|---|---|---|---|
-| Full scope | 187.4 | 224.9 | 320.0 | 384.0 | 538.2 | 645.8 | 43.5 |
-| **Lean: levers (a), (b) and (c) — plan of record** | **187.4** | **224.9** | **298.3** | **357.9** | **483.3** | **579.9** | **98.4** |
+| Full scope | 187.4 | 224.9 | 302.5 | 363.0 | 535.5 | 642.6 | 43.5 |
+| **Lean: levers (a), (b) and (c) — plan of record** | **187.4** | **224.9** | **280.8** | **336.9** | **480.6** | **576.7** | **98.4** |
 <!-- /generated:effort-scope -->
 
 Levers (a) and (b) move work from the MVP into the 1.0 releases; only lever (c) removes work from 1.0. M-PP is a
@@ -270,9 +270,9 @@ month adds the dependencies, the lead times and the one-owner-per-WP rule.
 <!-- generated:capacity-bound -->
 | Team | Lean M-PP: bound / simulated | Lean MVP: bound / simulated | Lean 1.0: bound / simulated | Full M-PP: bound / simulated | Full MVP: bound / simulated | Full 1.0: bound / simulated |
 |---|---|---|---|---|---|---|
-| 2 developers | 37.5 / 39 | 59.7 / 61 | 96.7 / 98 | 37.5 / 39 | 64.0 / 66 | 107.6 / 109 |
-| 3 developers | 25.0 / 26 | 39.8 / 42 | 64.4 / 65 | 25.0 / 26 | 42.7 / 45 | 71.8 / 72 |
-| 4 developers (fourth from month 4) | 21.5 / 24 | 33.8 / 37 | 54.4 / 58 | 21.5 / 25 | 36.2 / 39 | 60.5 / 62 |
+| 2 developers | 37.5 / 38 | 56.2 / 58 | 96.1 / 97 | 37.5 / 38 | 60.5 / 62 | 107.1 / 108 |
+| 3 developers | 25.0 / 27 | 37.4 / 41 | 64.1 / 69 | 25.0 / 27 | 40.3 / 44 | 71.4 / 77 |
+| 4 developers (fourth from month 4) | 21.5 / 26 | 31.9 / 36 | 54.1 / 63 | 21.5 / 26 | 34.3 / 38 | 60.2 / 67 |
 <!-- /generated:capacity-bound -->
 
 **Reading it.** For the MVP and 1.0 the simulated dates are within a few months of the capacity bound: the team
@@ -294,9 +294,9 @@ any hand-over to a human team.
 <!-- generated:dates-lean -->
 | Team | M0 | G-SP spike | M1 | M-PP 0.0.x | M2 MVP | M3 | M4 | M5 beta | M6 1.0 |
 |---|---|---|---|---|---|---|---|---|---|
-| 2 developers | 3 (Jan 2027) | 7 (May 2027) | 24 (Oct 2028) | 39 (Jan 2030) | 61 (Nov 2031) | 71 (Sep 2032) | 85 (Nov 2033) | 90 (Apr 2034) | 98 (Dec 2034) |
-| **3 developers** | **3 (Jan 2027)** | **6 (Apr 2027)** | **16 (Feb 2028)** | **26 (Dec 2028)** | **42 (Apr 2030)** | **49 (Nov 2030)** | **59 (Sep 2031)** | **60 (Oct 2031)** | **65 (Mar 2032)** |
-| 4 developers (fourth from month 4) | 3 (Jan 2027) | 6 (Apr 2027) | 16 (Feb 2028) | 24 (Oct 2028) | 37 (Nov 2029) | 41 (Mar 2030) | 53 (Mar 2031) | 53 (Mar 2031) | 58 (Aug 2031) |
+| 2 developers | 3 (Jan 2027) | 7 (May 2027) | 23 (Sep 2028) | 38 (Dec 2029) | 58 (Aug 2031) | 67 (May 2032) | 81 (Jul 2033) | 86 (Dec 2033) | 97 (Nov 2034) |
+| **3 developers** | **3 (Jan 2027)** | **6 (Apr 2027)** | **17 (Mar 2028)** | **27 (Jan 2029)** | **41 (Mar 2030)** | **48 (Oct 2030)** | **57 (Jul 2031)** | **59 (Sep 2031)** | **69 (Jul 2032)** |
+| 4 developers (fourth from month 4) | 3 (Jan 2027) | 6 (Apr 2027) | 16 (Feb 2028) | 26 (Dec 2028) | 36 (Oct 2029) | 40 (Feb 2030) | 52 (Feb 2031) | 52 (Feb 2031) | 63 (Jan 2032) |
 <!-- /generated:dates-lean -->
 
 **Full scope (if PD-1 rejects the levers), base capacity.**
@@ -304,9 +304,9 @@ any hand-over to a human team.
 <!-- generated:dates-full -->
 | Team | M0 | G-SP spike | M1 | M-PP 0.0.x | M2 MVP | M3 | M4 | M5 beta | M6 1.0 |
 |---|---|---|---|---|---|---|---|---|---|
-| 2 developers | 3 (Jan 2027) | 7 (May 2027) | 24 (Oct 2028) | 39 (Jan 2030) | 66 (Apr 2032) | 73 (Nov 2032) | 88 (Feb 2034) | 101 (Mar 2035) | 109 (Nov 2035) |
-| 3 developers | 3 (Jan 2027) | 6 (Apr 2027) | 16 (Feb 2028) | 26 (Dec 2028) | 45 (Jul 2030) | 49 (Nov 2030) | 61 (Nov 2031) | 67 (May 2032) | 72 (Oct 2032) |
-| 4 developers (fourth from month 4) | 3 (Jan 2027) | 6 (Apr 2027) | 16 (Feb 2028) | 25 (Nov 2028) | 39 (Jan 2030) | 43 (May 2030) | 52 (Feb 2031) | 57 (Jul 2031) | 62 (Dec 2031) |
+| 2 developers | 3 (Jan 2027) | 7 (May 2027) | 23 (Sep 2028) | 38 (Dec 2029) | 62 (Dec 2031) | 70 (Aug 2032) | 84 (Oct 2033) | 97 (Nov 2034) | 108 (Oct 2035) |
+| 3 developers | 3 (Jan 2027) | 6 (Apr 2027) | 17 (Mar 2028) | 27 (Jan 2029) | 44 (Jun 2030) | 48 (Oct 2030) | 60 (Oct 2031) | 66 (Apr 2032) | 77 (Mar 2033) |
+| 4 developers (fourth from month 4) | 3 (Jan 2027) | 6 (Apr 2027) | 16 (Feb 2028) | 26 (Dec 2028) | 38 (Dec 2029) | 43 (May 2030) | 51 (Jan 2031) | 56 (Jun 2031) | 67 (May 2032) |
 <!-- /generated:dates-full -->
 
 With the lean scope, M5 falls one month after M4 (3 developers) or in the same month (4 developers), because lever
@@ -320,12 +320,12 @@ uses 120 % capacity.
 <!-- generated:sensitivity -->
 | Team | Scope | M2 at −20 % | M2 base | M2 at +20 % | M6 at −20 % | M6 base | M6 at +20 % | Best case M2 / M6 |
 |---|---|---|---|---|---|---|---|---|
-| 2 | Lean | 76 (Feb 2033) | 61 (Nov 2031) | 51 (Jan 2031) | 122 (Dec 2036) | 98 (Dec 2034) | 81 (Jul 2033) | 34 / 54 |
-| **3** | **Lean** | **52 (Feb 2031)** | **42 (Apr 2030)** | **35 (Sep 2029)** | **82 (Aug 2033)** | **65 (Mar 2032)** | **55 (May 2031)** | **24 / 37** |
-| 4 | Lean | 45 (Jul 2030) | 37 (Nov 2029) | 31 (May 2029) | 73 (Nov 2032) | 58 (Aug 2031) | 49 (Nov 2030) | 21 / 33 |
-| 2 | Full | 82 (Aug 2033) | 66 (Apr 2032) | 55 (May 2031) | 136 (Feb 2038) | 109 (Nov 2035) | 91 (May 2034) | 36 / 60 |
-| 3 | Full | 56 (Jun 2031) | 45 (Jul 2030) | 38 (Dec 2029) | 90 (Apr 2034) | 72 (Oct 2032) | 60 (Oct 2031) | 26 / 41 |
-| 4 | Full | 48 (Oct 2030) | 39 (Jan 2030) | 33 (Jul 2029) | 77 (Mar 2033) | 62 (Dec 2031) | 52 (Feb 2031) | 22 / 35 |
+| 2 | Lean | 72 (Oct 2032) | 58 (Aug 2031) | 48 (Oct 2030) | 121 (Nov 2036) | 97 (Nov 2034) | 81 (Jul 2033) | 33 / 54 |
+| **3** | **Lean** | **51 (Jan 2031)** | **41 (Mar 2030)** | **34 (Aug 2029)** | **86 (Dec 2033)** | **69 (Jul 2032)** | **58 (Aug 2031)** | **23 / 38** |
+| 4 | Lean | 44 (Jun 2030) | 36 (Oct 2029) | 30 (Apr 2029) | 79 (May 2033) | 63 (Jan 2032) | 53 (Mar 2031) | 20 / 35 |
+| 2 | Full | 78 (Apr 2033) | 62 (Dec 2031) | 52 (Feb 2031) | 135 (Jan 2038) | 108 (Oct 2035) | 90 (Apr 2034) | 35 / 60 |
+| 3 | Full | 55 (May 2031) | 44 (Jun 2030) | 37 (Nov 2029) | 96 (Oct 2034) | 77 (Mar 2033) | 64 (Feb 2032) | 24 / 42 |
+| 4 | Full | 47 (Sep 2030) | 38 (Dec 2029) | 32 (Jun 2029) | 83 (Sep 2033) | 67 (May 2032) | 56 (Jun 2031) | 21 / 38 |
 <!-- /generated:sensitivity -->
 
 ### 3.6 Can v1 fit 15–18 months?
@@ -348,35 +348,35 @@ gantt
   M1 to MVP           :i2, 2027-02-01, 2027-06-01
   MVP to 1.0          :i3, 2027-06-01, 2028-05-01
   section 2 developers
-  Spine to M1         :s00, 2026-11-01, 2028-11-01
-  M1 to pilot preview :s01, 2028-11-01, 2030-02-01
-  Preview to MVP      :s02, 2030-02-01, 2031-12-01
-  MVP to 1.0          :s03, 2031-12-01, 2035-01-01
+  Spine to M1         :s00, 2026-11-01, 2028-10-01
+  M1 to pilot preview :s01, 2028-10-01, 2030-01-01
+  Preview to MVP      :s02, 2030-01-01, 2031-09-01
+  MVP to 1.0          :s03, 2031-09-01, 2034-12-01
   section 3 developers plan of record
-  Spine to M1         :s10, 2026-11-01, 2028-03-01
-  M1 to pilot preview :s11, 2028-03-01, 2029-01-01
-  Preview to MVP      :s12, 2029-01-01, 2030-05-01
-  MVP to 1.0          :s13, 2030-05-01, 2032-04-01
+  Spine to M1         :s10, 2026-11-01, 2028-04-01
+  M1 to pilot preview :s11, 2028-04-01, 2029-02-01
+  Preview to MVP      :s12, 2029-02-01, 2030-04-01
+  MVP to 1.0          :s13, 2030-04-01, 2032-08-01
   section 3 developers AI-moderate
   Spine to M1         :s20, 2026-11-01, 2027-12-01
   M1 to pilot preview :s21, 2027-12-01, 2028-08-01
-  Preview to MVP      :s22, 2028-08-01, 2029-09-01
-  MVP to 1.0          :s23, 2029-09-01, 2031-04-01
+  Preview to MVP      :s22, 2028-08-01, 2029-07-01
+  MVP to 1.0          :s23, 2029-07-01, 2031-05-01
   section 3 developers AI-strong
   Spine to M1         :s30, 2026-11-01, 2027-10-01
   M1 to pilot preview :s31, 2027-10-01, 2028-05-01
-  Preview to MVP      :s32, 2028-05-01, 2029-04-01
-  MVP to 1.0          :s33, 2029-04-01, 2030-09-01
+  Preview to MVP      :s32, 2028-05-01, 2029-02-01
+  MVP to 1.0          :s33, 2029-02-01, 2030-09-01
   section 4 developers
   Spine to M1         :s40, 2026-11-01, 2028-03-01
-  M1 to pilot preview :s41, 2028-03-01, 2028-11-01
-  Preview to MVP      :s42, 2028-11-01, 2029-12-01
-  MVP to 1.0          :s43, 2029-12-01, 2031-09-01
+  M1 to pilot preview :s41, 2028-03-01, 2029-01-01
+  Preview to MVP      :s42, 2029-01-01, 2029-11-01
+  MVP to 1.0          :s43, 2029-11-01, 2032-02-01
   section 6 developers funded
   Spine to M1         :s50, 2026-11-01, 2028-03-01
-  M1 to pilot preview :s51, 2028-03-01, 2028-08-01
-  Preview to MVP      :s52, 2028-08-01, 2029-04-01
-  MVP to 1.0          :s53, 2029-04-01, 2030-10-01
+  M1 to pilot preview :s51, 2028-03-01, 2028-10-01
+  Preview to MVP      :s52, 2028-10-01, 2029-03-01
+  MVP to 1.0          :s53, 2029-03-01, 2031-04-01
 ```
 <!-- /generated:gantt-teams -->
 
@@ -402,10 +402,10 @@ level of assistance (GA-5).
 <!-- generated:ai-scenarios -->
 | Scenario (3 developers, lean scope) | Effort to 1.0 with reserve (pw) | Equivalent velocity ratio | M1 | M-PP 0.0.x | M2 MVP 0.1.0 | M6 1.0 |
 |---|---|---|---|---|---|---|
-| Baseline: conservative estimates (plan of record, external) | 580 | 1.00 | 16 (Feb 2028) | 26 (Dec 2028) | 42 (Apr 2030) | 65 (Mar 2032) |
-| AI-moderate: development × 1/1.4 (internal target) | 465 | 1.25 | 13 (Nov 2027) | 21 (Jul 2028) | 34 (Aug 2029) | 53 (Mar 2031) |
-| AI-strong: development × 1/1.8 (upside) | 402 | 1.44 | 11 (Sep 2027) | 18 (Apr 2028) | 29 (Mar 2029) | 46 (Aug 2030) |
-| AI-moderate with capacity −20 % | 465 | 1.25 | 16 (Feb 2028) | 27 (Jan 2029) | 42 (Apr 2030) | 66 (Apr 2032) |
+| Baseline: conservative estimates (plan of record, external) | 577 | 1.00 | 17 (Mar 2028) | 27 (Jan 2029) | 41 (Mar 2030) | 69 (Jul 2032) |
+| AI-moderate: development × 1/1.4 (internal target) | 462 | 1.25 | 13 (Nov 2027) | 21 (Jul 2028) | 32 (Jun 2029) | 54 (Apr 2031) |
+| AI-strong: development × 1/1.8 (upside) | 399 | 1.45 | 11 (Sep 2027) | 18 (Apr 2028) | 27 (Jan 2029) | 46 (Aug 2030) |
+| AI-moderate with capacity −20 % | 462 | 1.25 | 16 (Feb 2028) | 26 (Dec 2028) | 40 (Feb 2030) | 67 (May 2032) |
 <!-- /generated:ai-scenarios -->
 
 "Equivalent velocity ratio" is the baseline effort divided by the scenario's effort: the ratio the G-M1 measurement
@@ -488,7 +488,7 @@ listed separately because they, not the agents' throughput, bound the gates.
 | **G-SP** Performance spike | — | Held 2026-10-20 in cycle 8: **passed with the outcome Recycle** (ADR-0002 amendment 4). The recycle's engine and incremental connectivity are delivered in cycles 9 and 10 (WP-S1.07 parts 1 and 2, ADR-0002 amendments 5 and 6) | The re-test on a BM-class runner (DEC-034), with the memory measurements at XL (FT-114) and FT-26 (the composite bench family and the growth test were delivered in the cycle-10 fix round); S within budget first, because the pilot's size data (received 2026-10-20, G-SP-08 closed) puts all its projects in class S. Class S was re-tested on 2026-10-22 on the developer machine, informational: every median within noise of the baseline, NFR-PERF-05 met at S on the incremental commit path, the cold path still over (ID-501). **The owner moved the rest to the release phase** (ID-512): no performance measurement runs during development, and the performance criteria are assumed to pass until then |
 | **M1** Spine exit | 22 | Delivered with open follow-up tasks: WP-S1.01 to WP-S1.04, WP-S1.06 to WP-S1.10 (WP-S1.10 as v0, ID-328), WP-S3.01 to WP-S3.05, WP-S7.02; WP-S1.05 (engine and instruments; the re-test above is open); WP-S7.01 for Golden A (tables including the PLC and bus records, expected rows, 36 of the 36 pages, the 27-row parts list, the cover tables, part data on 101 and 102, the computed wire numbers), Golden B (two command logs, AC-18 headless) and Golden C (migration report and fix script, gated at G-M3; ID-302); WP-S6.01's acceptance runner (`cargo xtask acceptance`, 94 entries: 88 pass, 0 fail, 0 not built, 6 not applicable; ID-438), delivered in cycle 15 with both golden builders (path (b) through the builder DSL, ID-384; passing since cycle 16, when commands build the valve-terminal assembly, the PLC records and the supply origin, ID-392 to ID-401), with the written PDF read back (AC-01, AC-06, AC-13), the SVG and parallel export (AC-14) and the freshness check (AC-16); the `Session` export job with `ew export pdf|svg` (WP-S3.04, FT-59; G-M1-01's command writes the golden digest) and `ew apply` (FT-156) in cycle 15. Delivered ahead of plan: the QET project import spike (M3 scope, ID-273) and `project.settings.set` (WP-S1.11 scope, ID-290) in cycle 11; the check engine with prevent at apply and `ew check` (WP-S1.15 and WP-S1.16a scope, ID-305, ID-306, ID-309) in cycle 12; the PLC record kinds and the DP bus potential (WP-S1.21 scope, ID-333 to ID-337) in cycle 13; five rules of WP-S1.16 (ID-354), `ew export cables` and `ew export bom` and `ew verify-derived` (WP-S1.22 scope, ID-356, ID-357) in cycle 14; the typed assembly aspect with A1 and A2 and the derived break marks (WP-S1.13 scope, ID-371 to ID-374) and the strict and lenient table import (ID-375) in cycle 15; the device-tree, PLC, supply and library commands with normaliser N1 (WP-S1.13, WP-S1.19 and WP-S1.21 scope, ID-392 to ID-399) and the user guide with the generated reference and the `docs-book` job (WP-S0.06 in part, ID-402 to ID-404) in cycle 16; the typed revision with `revision.create` (WP-S1.18 scope, FT-165, ID-427 to ID-433) and the fuzzer over all 37 commands with its nightly `fuzz.yml` (WP-S6.02 in part, ID-434 to ID-437) in cycle 17; the PLC part-data binding with N2, N3 and `plc.set_module_part` (WP-S1.21 scope, ID-464 to ID-469), the ordered-collection lint and the CI evidence jobs (WP-S6.02 in part, ID-456 to ID-463) in cycle 18; the undo of `library.embed` restored (FT-316, ID-478), the `disallowed-methods` lint (FT-317, ID-481) and the nightly CLI artefact (FT-299, ID-480) in cycle 19; the deep nightly CI-N-02 with the cargo-fuzz crate `fuzz/` (CI-N-03) and AddressSanitizer (WP-S6.02 in part, FT-297, FT-304, ID-494 to ID-497) in cycle 20. The golden PDF is generated from the model with 64 link annotations | Development (the [readiness report](gate-records/G-M1-2026-10-readiness.md) §6; about two cycles): the headless M1 acceptance list has **no blocking entry** (D-06's property grid is `not_applicable` at G-M1 and gates at G-M2, ID-422) and path (b) writes every record; what is left is gate evidence and follow-up tasks: the evidence jobs `verapdf` and `headless` are green on `main` since the cycle-18 delivery (G-M1-01 met, ID-483; FT-296's coverage report waits for the owner's dated plan); the CI jobs and artefacts the gate still names (the deep nightly and the fuzz targets are built in cycle 20, and their seven nights count from the first scheduled run; CI-PR-08, the per-pull-request fuzz run, FT-335; FT-298 the permissive sample reader, FT-300 the golden change list, the first scheduled run of the nightly CLI artefact and the filled `m1` notes); the G-SP re-test and WP-S6.03's measurements are no longer M1 work (release phase, owner ruling ID-512; G-M1-05, -11 and -12 assumed pass); CI-PR-08 is built in cycle 21 (FT-335); the tasks due before the page approvals (FT-102, FT-103, FT-107, FT-108, FT-240, the logo of FT-202, FT-262, FT-246) and FT-207 (folio 911) before the side-by-side review; FT-301, the Appendix B sweep; follow-ups with their own dues (the rest of WP-S1.10, FT-234, FT-282). Owner side (the readiness report §5, after the owner rulings of 2026-10-22, ID-450 to ID-455): the G-M0 decisions PD-2 and PD-14 and the acceptance of ADR-0027 and ADR-0028, the BM-class runner with seven green nights (DEC-034), the first PNG approval (FT-10), the pilot's P1 and P2 answers, golden acknowledgement and side-by-side review, PD-11's re-plan at T (G-M1-24), the repository settings (FT-284), the Weblate project and the website (FT-281, FT-285). No longer gate items: LG-1 to LG-5, ADR-0030 with counsel and the enrolments (ID-454), the second named code owner (ID-452), funding (ID-453); the go-ahead for WP-S2.01 is given (ID-440) |
 | **M-PP** Pilot preview | 16 | **Closed; G-PP recorded Go on the blind-run proxy (the owner's ruling of 2026-10-29, ID-777).** Cycle 33 (ID-761 to ID-780): **WP-S6.13 part 3 delivered** (the G-PP blind runs gpp-r1 and gpp-r2, ID-768, ID-776), so **WP-S6.13 is complete**; gpp-r1's thirteen findings built (ID-770 to ID-774); FT-524 and FT-527 to FT-541 closed (ID-779). Cycle 32 (ID-744 to ID-759): **WP-S2.17 parts 2 to 5 delivered** (the command surface, the canvas overlays, the docks, rails, rows, Properties and the status bar, the dialogs, toasts, menus, palette and empty states; ID-747 to ID-750), so **WP-S2.17 is complete** (ID-751); FT-338, FT-348 (except FT-526), FT-390, FT-391, FT-425, FT-507, FT-508, FT-510, FT-514 to FT-516, FT-518, FT-519, FT-521, FT-523 and FT-525 closed (ID-759). Cycle 31 (ID-721 to ID-742): **WP-S2.06 part 3 delivered** (table mode; ID-729), so **WP-S2.06 is complete**; **WP-S2.09 parts 2 and 3 delivered** (the message panel, the Preview tab, the renumber dialogs, the history panel; ID-730, ID-731), so **WP-S2.09 is complete**; **WP-S2.17 specified** (the design language, ADR-0031 and the owner-approved mockup; ID-725, ID-726) with **parts 1 and 6 delivered** (tokens, themes, fonts and the pixel gate; the icon set; ID-740, ID-737); FT-500 to FT-506, FT-509, FT-512, FT-513, FT-417, FT-466 and FT-493 closed (ID-742). Cycle 30 (ID-700 to ID-718): **WP-S2.06 parts 1 and 2 delivered** (the navigator framework, eleven navigators, `page.reorder`, 55 commands, highlighting; ID-709, ID-712), **WP-S2.09 part 1 delivered** (jobs, the export job, notifications, the recovery dialog; ID-714); FT-480, FT-485, FT-484, FT-470, FT-471, FT-437, FT-424, FT-392, FT-389 and further follow-ups closed (ID-717). Cycle 29 (ID-667 to ID-680): WP-S2.04 part 5 and WP-S6.13 part 2 delivered; BD16, the dry run on folio 101, done as pass-with-gaps and unblessed (ID-678); FT-467 closed (ID-676). Cycle 28 implementation and local validation complete (ID-665); hosted CI pending at publication. Started (the owner's go of 2026-10-22, ID-440): **WP-S2.01 delivered** (part 1 in cycle 19, ID-473 to ID-477; part 2 in cycle 20, ID-486 to ID-493: new project, the complete start page, first run and the company-standard wizard, docking with named workspaces, F1 and the complete About, the leftover-journal discard; muda deferred, FT-310); **WP-S2.02 delivered** (part 1 in cycle 21, the canvas on the CPU tile path, ID-517 to ID-522; part 2 in cycle 22, the GPU canvas and the switch rule, ID-539 to ID-544); **WP-S2.03 delivered** (specified in cycle 22, ID-531 to ID-538; part 1 in cycle 23, the read-only viewer with navigation, ID-556 to ID-560; part 2 in cycle 24, the tool framework with Select and Measure, ID-586 to ID-590); **WP-S2.04 specified** in cycle 23 (ID-561 to ID-571), **its part 1 delivered** in cycle 25 (place and arrange, 45 commands, ID-625), **its part 2** in cycle 26 (wiring: the router, the Wire tool, proposals, route edit, the junction editor, hops; ID-635), **its parts 3 and 4a** in cycle 27 (interruption points and black boxes, ID-646; the page-item and structure-box record kinds, ID-647); **WP-S2.05 specified** in cycle 24 (ID-591 to ID-600), **its part 1 delivered** in cycle 25 (the field catalogue, the property sheet and the grid, PG9 as D-06's G-M2 evidence, ID-626), **its part 2** in cycle 26 (find and replace with `fields.set_many`, 46 commands, ID-634), **its part 3** in cycle 27 (the clipboard, ID-648), so **WP-S2.05 is delivered**; the two parts integrated with shortcuts unique per shell context and the window check passed (ID-628, ID-629), and again in cycle 26 with Ctrl+Enter bound per context (ID-638, ID-639); the ID alias `@n` in the shell's machine text (FT-422, ID-640); no UUID-keyed order in shell output (FT-439, ID-643); the pilot's prerequisites FT-408 and FT-409 (`page.new`, `structure.new`, `external_ref.new`, ID-650) and FT-410 (the parts import, ID-651); undo and redo under `HumanOnly` (FT-404, ID-649); rasters in the PDF writer (FT-406, ID-636); **WP-S6.13 specified** in cycle 25 (ID-610 to ID-619), **its part 1 delivered** in cycle 27 (the harness `cargo xtask blind`, ID-645); the wizard complete: FT-336 (the company, frames, languages and check-scheme commands, ID-545 to ID-547), FT-341 (report blocks) and FT-337 (the asset store, the logo and the profiles) closed in cycle 23 (ID-572 to ID-578), and `PRIVACY.md` (FT-342, ID-579); since cycle 25 the shell edits: it places, moves, transforms, exchanges and deletes symbols and edits properties (ID-513's viewer phase ends), since cycle 26 it wires and finds and replaces, and since cycle 27 it places interruption points and black boxes, copies and pastes, creates pages, structure nodes and external references, and imports parts (54 commands); the UI dependency audit in part (FT-326, ID-498, ID-515: wgpu audited; the distribution hold of ID-476 lifts with FT-331 and a green `release-check`); delivered ahead of plan in M1 cycles: parts of WP-S1.11, WP-S1.13, WP-S1.15, WP-S1.16a and WP-S1.19a (the M1 row); **WP-S2.04 part 4b implemented in cycle 28** (ID-659, ID-660), including FT-411, FT-441, FT-446, FT-450, FT-452 and FT-462; FT-418 calibration and FT-474 timing enforcement implemented; local validation complete; publication status ID-665; **WP-S2.04 part 5 delivered in cycle 29** (images, ID-668), so **WP-S2.04 is delivered**; **WP-S6.13 part 2 delivered in cycle 29** (the prompts, personas, checker, the G-PP task sheet and the scoring, ID-669); the owner's process rulings of 2026-10-27 (ID-667) | None for G-PP. **Carried into M2 (ID-777):** the remaining scope of WP-S1.11 to WP-S1.15, WP-S1.16a and WP-S1.19a, delivered where the tools needed them, and every open follow-up due before G-PP, re-dated to M2 (FT-399 to M2 cycle 1); the preview build on the tag `pp` and the pilot's own run of G-PP-01 stay available to the owner. *Before cycle 33 this cell read:* the other 11, in the order of the kick-off plan below (ID-449), next content candidate WP-S6.13's part 3, the G-PP blind run (ID-759); FT-87, FT-88, FT-89, FT-91 and FT-92 of WP-S1.09, re-dated from M1 to before G-PP (ID-425); FT-310, FT-331, FT-332, FT-334 (FT-331 with a green `release-check` lifts the distribution hold), FT-339, FT-340, FT-346, FT-347, FT-357 to FT-365, FT-367, FT-368, FT-371 to FT-379, FT-381, FT-384 to FT-386, FT-393 to FT-403, FT-407, FT-412, FT-426, FT-430, FT-436/FT-472 (partial raster evidence), FT-473 (before broadening SVG/image acceptance), FT-455, FT-479 (measured twice, over 30 minutes; ID-744), FT-524, FT-526, FT-528, FT-530, FT-532 (the empty state and the focus ring), FT-536 and FT-538 where due before G-PP; the visual pass FT-348 is delivered as WP-S2.17 (ID-751) |
-| **M2** MVP 0.1.0 | 28 | Cycle 46, M2's twelfth cycle, a delivery (ID-1144 to ID-1151; ID-1152 to ID-1173, the design pass): WP-S1.17 part 1 built (the store's stamps and safeguards); WP-S3.07 part 2 built (the print set and `ew print`, a golden change); WP-S3.08 part 1 built (the table writers and the crate `ew-zip`); the strip tags printed (FT-1026, a golden change); the FT batch, the placing tools' and the IP tool's rows, keys from the keymap and fresh scratch folders in the binaries' tests; merge points 1 and 2 green with no flake, wave 4's verify with one flake; the review's parts 1 to 4 accepted, no major, C46-p4#1 fixed by FIXG46; the window check W46.4's major fixed by FIXW46; the play-test rv-vis-7 (no blocker or major; the High row FT-1082 for cycle 47); the work holds after the cycle (the owner, 2026-11-02). Cycle 45, M2's eleventh cycle, a checkpoint (ID-1103 to ID-1113; ID-1116 to ID-1132, the design pass): WP-S4.02 part 6 built (the starter library's layout parts), so **WP-S4.02 is complete**; WP-S3.07 part 1 built (the SVG font subsets, a golden change); FT-1020's terminal split with EW-TERM-006; the FT batch, the polish lane and the backlog's command rows; merge points 1 and 2 green, the second with two flaky PDF tests; the review's part 1 not accepted and fixed in the cycle, part 2 accepted; the window check W45.1; WP-S3.07 part 2 and WP-S1.17 part 1 ruled for cycle 46 (ID-1114, ID-1115). Cycle 44, M2's tenth cycle, the hold lifted (ID-1076 to ID-1083; ID-1084 to ID-1094, part 1 of the design pass; ID-1095 to ID-1102, part 2): WP-S4.02 parts 5 and 4 built (the end brackets in the BOM, on 902 and in EW-LAY-010, a golden change; the set-up tools, the Layout group and the layout rows in Properties); WP-S3.06 part 3 built (the report back-links drawn, 246 links in the golden PDF, a golden change), so **WP-S3.06 is complete**; the FT batch FT44 and the tooling lanes T44 and FT44x; both merged-tip verifies green, the first with one flaky test; the review's parts 1, 3 and 4 accepted, part 2 not accepted and fixed by FIX44b; the window checks W44.1 to W44.3; the end phase: FIX44c (two rounds) and FIX44d, the review's part 5 accepted, the window checks W44.4 and W44.5, the play-test rv-vis-6 with its terminal-split row High (FT-1020); the last verify and the delivery follow. Cycle 43, the workflow redesign RD43 under the owner's product hold, a checkpoint, builds no M2 work package (ID-1054 to ID-1075). Cycle 42, M2's ninth cycle, a delivery by the owner's decision (ID-1035) (ID-998 to ID-1014, part 1): cycle 41's delivery recorded (CI green on 60b7fe5e, `main` fast-forwarded; ID-998); `cargo xtask settle` (T1); WP-S4.01 part 4b built (every embedded report block drawn, PART DATA at 3 : 10, the legend on 902; a golden change on 201, 202 and 902), so **WP-S4.01 is complete**; WP-S4.02 part 1 built (the rail model, free, push and swap, the derived end brackets); the FT batch FT42; wave 1's merged-tip verify on cfc5bb3d green the first time; the play-test rv-vis-5 (85 turns, no blocker or major) and its checker's High finding to FIXPT41; the window check W42a; the review's part 1 accepted, no major; wave 2 (C42, E42, FIXPT41; P42 and D42 queued) dispatched; ID-1015 to ID-1035, part 2: WP-S1.21 part 5 and WP-S1.22 part 5 built, so **WP-S1.21 and WP-S1.22 are complete**; WP-S4.02 part 2 built; FIXPT41 (FT-937) and the polish batch P42; WP-S1.17, WP-S3.08 and WP-S3.07 specified; wave 2's merged-tip verify on 8788b781 green the first time; the review's part 2 accepted, no major; the owner's decisions on the format before the first release and on the second maintainer; wave 3 (G42, F42, H42) dispatched, WP-S3.06 part 1 built and integrated; the work holds after the cycle, which ends as a delivery with CI as the gate; ID-1036 to ID-1050, part 3: WP-S3.06 part 2 built (the open-items list; a new golden CSV) and WP-S4.02 part 3 built (placing on a panel page in the window; FT-486 closed); the window checks W42b and W42c with the fixes FIX42-P and FIX42-P2; wave 3's merged-tip verify on 5836dd88 green the first time; the review's part 3 accepted with its fix FIX42-F, so the cycle-42 review is accepted; the last verify on the code end tip 73ee3ee5; CI (`ci.yml`, `docs.yml`) on the delivered tip and `main`'s fast-forward recorded in cycle 43's first design pass; then the owner's hold. Cycle 41, M2's eighth cycle (ID-948 to ID-976, part 1, waves 1 and 2): WP-S4.01 parts 3 and 4a built (the panel page; the carrier lines, the folios and the legend query; golden changes on 902, 901 and 901.1), WP-S1.18 part 5 built so **WP-S1.18 is complete**, WP-S1.22 part 3 built (`ew fmt`, `ew recover`, `ew import csv`) with a recovery data-loss fix (FT-889), one integration-test binary per crate, WP-S4.02 and WP-S3.06 specified; the review's parts 1 and 2 accepted with no major; the window check W41a; ID-977 to ID-997, part 2: WP-S4.01 part 5 built (the EW-LAYOUT rules, FT-845; Golden A's release count 42) and 902 at its printed 1:10, WP-S1.22 part 4 built (`ew query --explain`), the fix rounds FIXPT40's, FIX41b, FIX41d, FIX41e and FIX41f, the review accepted (parts 1 to 4), the window check W41b, the play-test rv-vis-5 beside the design pass; the delivery on the code end tip `283abb80` with this design pass on top, its last verify the merged-tip verify on Windows, the full suite, green; CI (`ci.yml`, `docs.yml`) on the delivered tip, recorded in cycle 42's first row. Cycle 40, M2's seventh cycle (ID-919 to ID-931, part 1; ID-932 to ID-937, part 2: WP-S4.01 part 2 built, the layout queries and Golden A's layout data; WP-S2.08 part 2 complete, KM-4 met; FT-717 and FT-779 closed; OU-2 met on Linux; the cycle ends at a checkpoint, ID-938, so main stays at cycle 39's delivery and CI covers cycles 40 and 41 at cycle 41's delivery; ID-939 to ID-944, part 3: the fix rounds FIX40d and FIX40e, the review accepted (parts 1 to 7 and the FIX40e addendum), the window check W40b; ID-945 to ID-947, part 4: the fix round FIXPT40 for the play-test rv-vis-4's two blockers (the job done in 114 turns, no electrical fault); and **the checkpoint on `eb878aba`**, its last verify the full suite on Windows, green): FT-814 closed (a release discard needs this directory's own run record), WP-S4.01 part 1 built (the layout records and commands), WP-S2.08 part 2 built (keymaps; KM-4 in part), WP-S1.22 part 2 built (page and row outputs; five golden PNGs re-blessed), WP-S1.19 complete (FT-785, FT-786), WP-S1.21 part 4b built (the part-level bus port; FT-770), the widths at 1920 (FT-816, FT-798 in part), FT-822 and FT-823 (page arrows, PLC addresses); the review's parts 1 to 3 accepted; the rest in part 2. Cycle 39, M2's sixth cycle (ID-892 to ID-912, part 1): WP-S1.21 part 4 built (the typed bus model, the EW-BUS rules, AC-31; BU-7 waits, FT-770), WP-S1.18 part 4 built (the atomic release and the as-built archive), WP-S2.07 parts 4a and 4b built (the part selection dialog, the part editor, the paste choice; the package open for FT-781 and FT-782), WP-S1.22 part 1 and WP-S2.08 part 1 built (the CLI conventions and result schemas, the palette), FT-754 in part, the play-test blockers FT-753, FT-734 with FT-758 and FT-756 closed, the window at two sizes with the owner's rule; WP-S4.01 specified; three golden changes; part 2 (ID-913 to ID-918): the fix rounds FIX39a (a release discard keeps another project's archive; FT-814 High for cycle 40) and FIX39b, the window check W39c, the play-test rv-vis-3b complete and electrically correct by its checker, and the review loop, accepted; the gate recorded in cycle 40's first row. Cycle 38, M2's fifth cycle (ID-869 to ID-879, part 1; ID-880 to ID-884, part 2: WP-S2.18 complete with part 4, the fix round FX38a): WP-S1.21 part 3 built (addressing commands, the MVP EW-PLC rules, AC-29; PA-2 de-scoped, FT-725), WP-S1.18 part 3 built (the content digest, `revision.approve`, the release gate), WP-S2.07 part 3 built (the PLC navigator and grid), WP-S1.19 part 5's acceptance complete (MC-4, MC-5), Golden A prints its Q addresses (FT-698) and its black-box pin designations (FT-707), two golden changes; the play-test follow-ups FT-705 to FT-712; part 3 (ID-885 to ID-891): WP-S1.19 part 6 built (the Macros and Libraries navigators; UI-1 and UI-4 partly met, FT-754), the fix rounds FX38b to FX38d (a free representation in line connected through, the Messages dock's close and the zoom kept across docks), the window check W38, the play-test rv-vis-2 (not accepted by its checker) and the review loop, accepted; the gate not yet recorded. Cycle 37, M2's fourth cycle (ID-853 to ID-864, delivered ID-869): WP-S1.21 parts 1 and 2 built (PLC records from the window, the derived address texts; Golden A unchanged), WP-S1.18 parts 1 and 2 built (the revision lifecycle, page digests and the derived revision overview; folio 911 a golden change), WP-S1.12's per-project text styles built (ADR-0032, FT-662), WP-S2.18 D3 built as `rep.join_device`, and the UI follow-ups FT-633, FT-649, FT-663, FT-664, FT-670, FT-673 to FT-675 and FT-687; play-test, window check, review and gate not yet recorded. Cycle 36, M2's third cycle (ID-834 to ID-852, delivered ID-853): WP-S1.16 part 5 built, so WP-S1.16 parts 1 to 5 are in (FT-186 and nl-NL beyond the golden rules de-scoped); WP-S1.19 part 5 built without MC-4 and MC-5, so parts 1 to 5 are in and part 6 is open; FT-655 and FT-656; WP-S1.21 and WP-S1.18 specified; the test clean-up. Cycle 35, M2's second cycle (ID-815 to ID-829): WP-S2.18 part 1 (D3 deferred), WP-S1.19 parts 2, 3 and 4, WP-S2.07 part 2 and WP-S1.16 parts 3 and 4 delivered; WP-S2.18 parts 2 and 3 delivered (the generic starter parts, ID-830), so WP-S2.18 parts 1 to 3 are in and part 4 waits for WP-S1.21. Cycle 34 was M2's first cycle (ID-796 to ID-813): WP-S2.07 part 1, WP-S1.16 parts 1 and 2, WP-S1.19 part 1 and WP-S6.13 part 4 delivered; WP-S2.18 (basic elements from the window) added on the owner's request (ID-812); next: cycle 40, FT-814 first, then WP-S4.01 part 1 (ID-912, amended by ID-914) | 28 under the lean scope (the 34 packages whose milestone is M2, less WP-S1.23, WP-S2.10 and WP-S3.10 to WP-S3.13, which the lean scope moves to M3 or M5), as they stand at cycle 45's design pass: **complete (9):** WP-S1.16 (parts 1 to 5; FT-680 and FT-186's quick fix de-scoped), WP-S1.18 (FT-666, FT-693, FT-731, FT-733, FT-872 and FT-873 open as follow-ups), WP-S1.19, WP-S1.21 (parts 1 to 5; BU-7g's last clause with FT-841; FT-952 to FT-955 open), WP-S1.22 (parts 1 to 5; FT-958 to FT-960 open), WP-S2.18, WP-S3.06 (parts 1 to 3; FT-977 and FT-978 open), WP-S4.01 (parts 1 to 5; FT-204's row 26 built by WP-S4.02 part 5; FT-920 to FT-923 open), WP-S4.02 (parts 1 to 6; FT-1053 open); **built, open for follow-ups (1):** WP-S2.07 (parts 1 to 4b; FT-737 to FT-740, FT-781, FT-782 and FT-784 open); **in progress (2), parts left:** WP-S2.08 parts 3 to 6; WP-S3.07 parts 2 to 4 (part 1 built; part 2 ruled, ID-1114); **specified, not started (2):** WP-S1.17 (6.9 pw; part 3 before the first release; part 1 ruled, ID-1115), WP-S3.08 (2.8 pw); **not yet specified (14 on the lean scope; the full scope gives 20):** WP-S0.03, WP-S0.05 (its legal part not pursued, ID-454), WP-S0.07, WP-S1.20, WP-S2.11, WP-S2.12, WP-S3.09, WP-S6.04, WP-S6.05, WP-S6.06, WP-S6.07, WP-S6.08, WP-S7.03, WP-S7.05, with groundwork built ahead in earlier milestones for WP-S3.07 (`ew export svg`, cycle 15), WP-S3.08 (the CSV row exports and the XLSX reader, ID-827), WP-S3.09 (the importers' lineage records), WP-S2.11 (the `egui_kittest` snapshot tests), WP-S6.05 (`PRIVACY.md`, ID-579) and WP-S7.03 (the generic starter parts and the basic-project backend, WP-S2.18 and WP-S1.19); and the legal and signing gates (SR-6) |
+| **M2** MVP 0.1.0 | 26 | Cycle 46, M2's twelfth cycle, a delivery (ID-1144 to ID-1151; ID-1152 to ID-1173, the design pass): WP-S1.17 part 1 built (the store's stamps and safeguards); WP-S3.07 part 2 built (the print set and `ew print`, a golden change); WP-S3.08 part 1 built (the table writers and the crate `ew-zip`); the strip tags printed (FT-1026, a golden change); the FT batch, the placing tools' and the IP tool's rows, keys from the keymap and fresh scratch folders in the binaries' tests; merge points 1 and 2 green with no flake, wave 4's verify with one flake; the review's parts 1 to 4 accepted, no major, C46-p4#1 fixed by FIXG46; the window check W46.4's major fixed by FIXW46; the play-test rv-vis-7 (no blocker or major; the High row FT-1082 for cycle 47); the work holds after the cycle (the owner, 2026-11-02). Cycle 45, M2's eleventh cycle, a checkpoint (ID-1103 to ID-1113; ID-1116 to ID-1132, the design pass): WP-S4.02 part 6 built (the starter library's layout parts), so **WP-S4.02 is complete**; WP-S3.07 part 1 built (the SVG font subsets, a golden change); FT-1020's terminal split with EW-TERM-006; the FT batch, the polish lane and the backlog's command rows; merge points 1 and 2 green, the second with two flaky PDF tests; the review's part 1 not accepted and fixed in the cycle, part 2 accepted; the window check W45.1; WP-S3.07 part 2 and WP-S1.17 part 1 ruled for cycle 46 (ID-1114, ID-1115). Cycle 44, M2's tenth cycle, the hold lifted (ID-1076 to ID-1083; ID-1084 to ID-1094, part 1 of the design pass; ID-1095 to ID-1102, part 2): WP-S4.02 parts 5 and 4 built (the end brackets in the BOM, on 902 and in EW-LAY-010, a golden change; the set-up tools, the Layout group and the layout rows in Properties); WP-S3.06 part 3 built (the report back-links drawn, 246 links in the golden PDF, a golden change), so **WP-S3.06 is complete**; the FT batch FT44 and the tooling lanes T44 and FT44x; both merged-tip verifies green, the first with one flaky test; the review's parts 1, 3 and 4 accepted, part 2 not accepted and fixed by FIX44b; the window checks W44.1 to W44.3; the end phase: FIX44c (two rounds) and FIX44d, the review's part 5 accepted, the window checks W44.4 and W44.5, the play-test rv-vis-6 with its terminal-split row High (FT-1020); the last verify and the delivery follow. Cycle 43, the workflow redesign RD43 under the owner's product hold, a checkpoint, builds no M2 work package (ID-1054 to ID-1075). Cycle 42, M2's ninth cycle, a delivery by the owner's decision (ID-1035) (ID-998 to ID-1014, part 1): cycle 41's delivery recorded (CI green on 60b7fe5e, `main` fast-forwarded; ID-998); `cargo xtask settle` (T1); WP-S4.01 part 4b built (every embedded report block drawn, PART DATA at 3 : 10, the legend on 902; a golden change on 201, 202 and 902), so **WP-S4.01 is complete**; WP-S4.02 part 1 built (the rail model, free, push and swap, the derived end brackets); the FT batch FT42; wave 1's merged-tip verify on cfc5bb3d green the first time; the play-test rv-vis-5 (85 turns, no blocker or major) and its checker's High finding to FIXPT41; the window check W42a; the review's part 1 accepted, no major; wave 2 (C42, E42, FIXPT41; P42 and D42 queued) dispatched; ID-1015 to ID-1035, part 2: WP-S1.21 part 5 and WP-S1.22 part 5 built, so **WP-S1.21 and WP-S1.22 are complete**; WP-S4.02 part 2 built; FIXPT41 (FT-937) and the polish batch P42; WP-S1.17, WP-S3.08 and WP-S3.07 specified; wave 2's merged-tip verify on 8788b781 green the first time; the review's part 2 accepted, no major; the owner's decisions on the format before the first release and on the second maintainer; wave 3 (G42, F42, H42) dispatched, WP-S3.06 part 1 built and integrated; the work holds after the cycle, which ends as a delivery with CI as the gate; ID-1036 to ID-1050, part 3: WP-S3.06 part 2 built (the open-items list; a new golden CSV) and WP-S4.02 part 3 built (placing on a panel page in the window; FT-486 closed); the window checks W42b and W42c with the fixes FIX42-P and FIX42-P2; wave 3's merged-tip verify on 5836dd88 green the first time; the review's part 3 accepted with its fix FIX42-F, so the cycle-42 review is accepted; the last verify on the code end tip 73ee3ee5; CI (`ci.yml`, `docs.yml`) on the delivered tip and `main`'s fast-forward recorded in cycle 43's first design pass; then the owner's hold. Cycle 41, M2's eighth cycle (ID-948 to ID-976, part 1, waves 1 and 2): WP-S4.01 parts 3 and 4a built (the panel page; the carrier lines, the folios and the legend query; golden changes on 902, 901 and 901.1), WP-S1.18 part 5 built so **WP-S1.18 is complete**, WP-S1.22 part 3 built (`ew fmt`, `ew recover`, `ew import csv`) with a recovery data-loss fix (FT-889), one integration-test binary per crate, WP-S4.02 and WP-S3.06 specified; the review's parts 1 and 2 accepted with no major; the window check W41a; ID-977 to ID-997, part 2: WP-S4.01 part 5 built (the EW-LAYOUT rules, FT-845; Golden A's release count 42) and 902 at its printed 1:10, WP-S1.22 part 4 built (`ew query --explain`), the fix rounds FIXPT40's, FIX41b, FIX41d, FIX41e and FIX41f, the review accepted (parts 1 to 4), the window check W41b, the play-test rv-vis-5 beside the design pass; the delivery on the code end tip `283abb80` with this design pass on top, its last verify the merged-tip verify on Windows, the full suite, green; CI (`ci.yml`, `docs.yml`) on the delivered tip, recorded in cycle 42's first row. Cycle 40, M2's seventh cycle (ID-919 to ID-931, part 1; ID-932 to ID-937, part 2: WP-S4.01 part 2 built, the layout queries and Golden A's layout data; WP-S2.08 part 2 complete, KM-4 met; FT-717 and FT-779 closed; OU-2 met on Linux; the cycle ends at a checkpoint, ID-938, so main stays at cycle 39's delivery and CI covers cycles 40 and 41 at cycle 41's delivery; ID-939 to ID-944, part 3: the fix rounds FIX40d and FIX40e, the review accepted (parts 1 to 7 and the FIX40e addendum), the window check W40b; ID-945 to ID-947, part 4: the fix round FIXPT40 for the play-test rv-vis-4's two blockers (the job done in 114 turns, no electrical fault); and **the checkpoint on `eb878aba`**, its last verify the full suite on Windows, green): FT-814 closed (a release discard needs this directory's own run record), WP-S4.01 part 1 built (the layout records and commands), WP-S2.08 part 2 built (keymaps; KM-4 in part), WP-S1.22 part 2 built (page and row outputs; five golden PNGs re-blessed), WP-S1.19 complete (FT-785, FT-786), WP-S1.21 part 4b built (the part-level bus port; FT-770), the widths at 1920 (FT-816, FT-798 in part), FT-822 and FT-823 (page arrows, PLC addresses); the review's parts 1 to 3 accepted; the rest in part 2. Cycle 39, M2's sixth cycle (ID-892 to ID-912, part 1): WP-S1.21 part 4 built (the typed bus model, the EW-BUS rules, AC-31; BU-7 waits, FT-770), WP-S1.18 part 4 built (the atomic release and the as-built archive), WP-S2.07 parts 4a and 4b built (the part selection dialog, the part editor, the paste choice; the package open for FT-781 and FT-782), WP-S1.22 part 1 and WP-S2.08 part 1 built (the CLI conventions and result schemas, the palette), FT-754 in part, the play-test blockers FT-753, FT-734 with FT-758 and FT-756 closed, the window at two sizes with the owner's rule; WP-S4.01 specified; three golden changes; part 2 (ID-913 to ID-918): the fix rounds FIX39a (a release discard keeps another project's archive; FT-814 High for cycle 40) and FIX39b, the window check W39c, the play-test rv-vis-3b complete and electrically correct by its checker, and the review loop, accepted; the gate recorded in cycle 40's first row. Cycle 38, M2's fifth cycle (ID-869 to ID-879, part 1; ID-880 to ID-884, part 2: WP-S2.18 complete with part 4, the fix round FX38a): WP-S1.21 part 3 built (addressing commands, the MVP EW-PLC rules, AC-29; PA-2 de-scoped, FT-725), WP-S1.18 part 3 built (the content digest, `revision.approve`, the release gate), WP-S2.07 part 3 built (the PLC navigator and grid), WP-S1.19 part 5's acceptance complete (MC-4, MC-5), Golden A prints its Q addresses (FT-698) and its black-box pin designations (FT-707), two golden changes; the play-test follow-ups FT-705 to FT-712; part 3 (ID-885 to ID-891): WP-S1.19 part 6 built (the Macros and Libraries navigators; UI-1 and UI-4 partly met, FT-754), the fix rounds FX38b to FX38d (a free representation in line connected through, the Messages dock's close and the zoom kept across docks), the window check W38, the play-test rv-vis-2 (not accepted by its checker) and the review loop, accepted; the gate not yet recorded. Cycle 37, M2's fourth cycle (ID-853 to ID-864, delivered ID-869): WP-S1.21 parts 1 and 2 built (PLC records from the window, the derived address texts; Golden A unchanged), WP-S1.18 parts 1 and 2 built (the revision lifecycle, page digests and the derived revision overview; folio 911 a golden change), WP-S1.12's per-project text styles built (ADR-0032, FT-662), WP-S2.18 D3 built as `rep.join_device`, and the UI follow-ups FT-633, FT-649, FT-663, FT-664, FT-670, FT-673 to FT-675 and FT-687; play-test, window check, review and gate not yet recorded. Cycle 36, M2's third cycle (ID-834 to ID-852, delivered ID-853): WP-S1.16 part 5 built, so WP-S1.16 parts 1 to 5 are in (FT-186 and nl-NL beyond the golden rules de-scoped); WP-S1.19 part 5 built without MC-4 and MC-5, so parts 1 to 5 are in and part 6 is open; FT-655 and FT-656; WP-S1.21 and WP-S1.18 specified; the test clean-up. Cycle 35, M2's second cycle (ID-815 to ID-829): WP-S2.18 part 1 (D3 deferred), WP-S1.19 parts 2, 3 and 4, WP-S2.07 part 2 and WP-S1.16 parts 3 and 4 delivered; WP-S2.18 parts 2 and 3 delivered (the generic starter parts, ID-830), so WP-S2.18 parts 1 to 3 are in and part 4 waits for WP-S1.21. Cycle 34 was M2's first cycle (ID-796 to ID-813): WP-S2.07 part 1, WP-S1.16 parts 1 and 2, WP-S1.19 part 1 and WP-S6.13 part 4 delivered; WP-S2.18 (basic elements from the window) added on the owner's request (ID-812); next: cycle 40, FT-814 first, then WP-S4.01 part 1 (ID-912, amended by ID-914) | 26 under the lean scope (the 32 packages whose milestone is M2 since ID-1187, which moves WP-S0.05 and WP-S0.07 to M6, less WP-S1.23, WP-S2.10 and WP-S3.10 to WP-S3.13, which the lean scope moves to M3 or M5), as they stand at cycle 45's design pass (the counts and the release packages' entries follow ID-1187): **complete (9):** WP-S1.16 (parts 1 to 5; FT-680 and FT-186's quick fix de-scoped), WP-S1.18 (FT-666, FT-693, FT-731, FT-733, FT-872 and FT-873 open as follow-ups), WP-S1.19, WP-S1.21 (parts 1 to 5; BU-7g's last clause with FT-841; FT-952 to FT-955 open), WP-S1.22 (parts 1 to 5; FT-958 to FT-960 open), WP-S2.18, WP-S3.06 (parts 1 to 3; FT-977 and FT-978 open), WP-S4.01 (parts 1 to 5; FT-204's row 26 built by WP-S4.02 part 5; FT-920 to FT-923 open), WP-S4.02 (parts 1 to 6; FT-1053 open); **built, open for follow-ups (1):** WP-S2.07 (parts 1 to 4b; FT-737 to FT-740, FT-781, FT-782 and FT-784 open); **in progress (2), parts left:** WP-S2.08 parts 3 to 6; WP-S3.07 parts 2 to 4 (part 1 built; part 2 ruled, ID-1114); **specified, not started (2):** WP-S1.17 (6.9 pw; part 3 before the first release; part 1 ruled, ID-1115), WP-S3.08 (2.8 pw); **not yet specified (12 on the lean scope; the full scope gives 18):** WP-S0.03, WP-S1.20, WP-S2.11, WP-S2.12, WP-S3.09, WP-S6.04, WP-S6.05, WP-S6.06, WP-S6.07, WP-S6.08, WP-S7.03, WP-S7.05 (WP-S0.05 and WP-S0.07 left M2 for M6, ID-1187; WP-S0.05's legal part is not pursued, ID-454), with groundwork built ahead in earlier milestones for WP-S3.07 (`ew export svg`, cycle 15), WP-S3.08 (the CSV row exports and the XLSX reader, ID-827), WP-S3.09 (the importers' lineage records), WP-S2.11 (the `egui_kittest` snapshot tests), WP-S6.05 (`PRIVACY.md`, ID-579) and WP-S7.03 (the generic starter parts and the basic-project backend, WP-S2.18 and WP-S1.19); and the legal and signing gates (SR-6), which are 1.0's since ID-1187 |
 | **M3 to M6**, 1.x | 38, 18 | Not started | All |
 
 **Cycle 28 implementation and local validation complete (ID-665, ID-666).** WP-S2.04 part 4b and FT-411/441/446/450/452/462 are implemented; the clipboard carries items/boxes and guards incomplete Cut (ID-659, ID-660). FT-418's 27-file SVG calibration is implemented, with FT-470/471 work bounds due before G-PP and FT-473 before broader SVG/image acceptance. FT-436 is partial: eight provenance-checked raster files, remaining evidence FT-472 before G-PP. FT-468/469 save completeness/generator fixes and FT-474 six-file lazy timing enforcement are closed; local-dev excludes dedicated perf tests. A/B corrections are accepted/integrated. The merged, unblessed blind-reference tests passed 3/3: 198 actions and 266 structural words, with 54 commands (ten actions/fourteen words added). All eight retained fixture PDFs generated from merged code passed external veraPDF 1.30.3 validation as PDF/A-2b (8/8 compliant), and the checker passed with `--expect-jobs 8`. The accepted Properties lookup and incomplete-item Cut banner corrections passed focused normal Windows rechecks; scoped normal Windows checks, including OS clipboard publication and changed-external-fragment Paste after `6ecc9e7`, passed with supplementary and platform limits recorded in ID-665; final local validation and publication status are recorded in ID-665; hosted CI was pending at publication. Automated rehearsal does not establish G-PP usability. Deferred content candidates, subject to the owner's hold after cycle 28 delivery, remain WP-S6.13 part 2 (FT-442/465), the bounded command follow-ups FT-459/460/447/451 (FT-440/456 if it fits), FT-438, FT-467 and part 5; FT-389/392/424's second half/437 and ID-655 owner work stay open. Historical cycle-27 gate evidence is unchanged. No further candidate work or cycle 29 starts until the owner resumes it.
@@ -527,7 +527,7 @@ accepted); no funding is pursued (G-M1-26 not applicable; §13 is a reference on
 are no longer gate items, in the owner's words: "Regarding all the licensing, and legal items, this is no longer relevant." This retires
 LG-1 to LG-6, ADR-0025 and ADR-0030 with counsel, the enrolments and the trademark search as gate criteria
 (G-M0-08, -09, -10, -17, G-M1-18 to G-M1-21, G-M2-18, G-M2-19's legal part, G-M6-12, G-M6-13); the signing identities
-that sign release binaries stay a release item of WP-S6.07, and the repository's licence rules are unchanged. After
+that sign release binaries stay a release item of WP-S6.07 (since ID-1187 of WP-S6.10, at 1.0), and the repository's licence rules are unchanged. After
 these rulings G-M1 has 5 of 11 applicable hard criteria met; the [readiness report](gate-records/G-M1-2026-10-readiness.md)
 carries the recount in its second addendum.
 
@@ -1155,14 +1155,14 @@ are for the plan of record (3 developers, lean scope); a phase starts with its f
 | Phase | Months | Calendar | Goal | Main streams | Ends with |
 |---|---|---|---|---|---|
 | **P0 Foundations** | 0–3 | Nov 2026 – Jan 2027 | Repository, CI on three OSes, licences and the licence boundary, pilot kick-off, signing enrolment and trademark search started, early ADRs | S0, S6 | M0 |
-| **P1 Spine** | 0–16 | Nov 2026 – Feb 2028 | Two lanes ([architecture](../design/04-architecture.md#15-spine-build-order-and-parallel-streams) §15.1): core (crates, schema, model, commands, derivation, `ew-memo`, persistence, SQL projection) and output (display list, forms, reports, CPU renderer, PDF), plus test kit and golden data | S1, S3, S6, S7 | M1 |
-| **P2 Pilot preview** | 15–26 | Feb 2028 – Dec 2028 | Shell, 2D canvas, viewer, placement and wiring tools, property grid, navigators, messages; model breadth for devices, terminals, cables, numbering; rule engine and core online checks; project parts | S1, S2 | M-PP, release 0.0.x (pilot only) |
-| **P3 Interactive MVP** | 25–42 | Dec 2028 – Apr 2030 | Rule packs, revisions, collaboration, parts libraries and macros; PLC, bus and fluid MVP model; domain tables, palette, keymaps; 2D panel; packaging, signing, CRA processes; R0 and R1 | S1, S2, S4, S6, S7 | M2, release 0.1.0 |
-| **P4 Automation breadth and migration** | 38–49 | Jan 2030 – Nov 2030 | PLC, bus and fluid 1.0; QET project migration; AML, TIA and PLCopen exchange; EDZ; DXF/DWG | S1, S2, S3 | M3 |
-| **P5 Physical and manufacturing** | 46–59 | Sep 2030 – Sep 2031 | STEP worker, 3D model and view, collision, routing, lengths; wire records, ferrules, labels, machine profiles, `.ewpp` | S4, S5 | M4 |
-| **P6 Completion** | 55–60 | Jun 2031 – Oct 2031 | Model, rule-pack and report completion; deferred MVP Should items; beta | S1, S2, S3 | M5, 1.0 beta |
-| **P7 Hardening and release** | 59–65 | Oct 2031 – Mar 2032 | 1.0 quality layers, R2, external acceptance (SC-7, SC-8), documentation and German, format freeze, stabilisation | S6, S2, S7 | M6, release 1.0 |
-| **P8 1.x** | from 66 | from Apr 2032 | Quarterly minors with the 1.x themes (§6.4) | all | — |
+| **P1 Spine** | 0–17 | Nov 2026 – Mar 2028 | Two lanes ([architecture](../design/04-architecture.md#15-spine-build-order-and-parallel-streams) §15.1): core (crates, schema, model, commands, derivation, `ew-memo`, persistence, SQL projection) and output (display list, forms, reports, CPU renderer, PDF), plus test kit and golden data | S1, S3, S6, S7 | M1 |
+| **P2 Pilot preview** | 15–27 | Feb 2028 – Jan 2029 | Shell, 2D canvas, viewer, placement and wiring tools, property grid, navigators, messages; model breadth for devices, terminals, cables, numbering; rule engine and core online checks; project parts | S1, S2 | M-PP, release 0.0.x (pilot only) |
+| **P3 Interactive MVP** | 26–41 | Jan 2029 – Mar 2030 | Rule packs, revisions, collaboration, parts libraries and macros; PLC, bus and fluid MVP model; domain tables, palette, keymaps; 2D panel; packaging, release sums and provenance; R0 and R1 | S1, S2, S4, S6, S7 | M2, release 0.1.0 |
+| **P4 Automation breadth and migration** | 37–48 | Dec 2029 – Oct 2030 | PLC, bus and fluid 1.0; QET project migration; AML, TIA and PLCopen exchange; EDZ; DXF/DWG | S1, S2, S3 | M3 |
+| **P5 Physical and manufacturing** | 44–57 | Jul 2030 – Jul 2031 | STEP worker, 3D model and view, collision, routing, lengths; wire records, ferrules, labels, machine profiles, `.ewpp` | S4, S5 | M4 |
+| **P6 Completion** | 54–59 | May 2031 – Sep 2031 | Model, rule-pack and report completion; deferred MVP Should items; beta | S1, S2, S3 | M5, 1.0 beta |
+| **P7 Hardening and release** | 58–69 | Sep 2031 – Jul 2032 | 1.0 quality layers, R2, external acceptance (SC-7, SC-8), signing, the update check, the steward's CRA processes, documentation and German, format freeze, stabilisation | S6, S2, S7 | M6, release 1.0 |
+| **P8 1.x** | from 70 | from Aug 2032 | Quarterly minors with the 1.x themes (§6.4) | all | — |
 <!-- /generated:phases -->
 
 ---
@@ -1182,7 +1182,7 @@ the levers. The WPs of each milestone are those of the `milestone_lean` column.
 | **M0** Kick-off and foundations | Workspace and per-PR CI green on three OSes; licence files, REUSE, DCO and licence-boundary check active; pilot kick-off and the pre-G-M0 scope workshop held; ADR-0027 and ADR-0028 decided; LG-1 and LG-5 requested; signing enrolment submitted and trademark search commissioned; PD-1 taken | None (CI artefacts only) | **G-M0**: the M0 exit criteria of the [WBS](02-work-packages.md#22-milestones) §2.2 | WP-S0.01, WP-S0.02, WP-S0.05a, WP-S0.08 | A pull request that adds a GPL dependency to a permissive crate fails the boundary check on all three OSes |
 | **M1** Spine exit: headless golden PDF | `ew export pdf golden/J-E-2416.ew` writes the 18 folios plus report folios 903–911 without a GUI; acceptance SQL/CSV pairs pass with the oracle on; perf gate running; two owners per critical crate; ADR-0030 decided; LG-1 and LG-2 closed | None: a signed source tag `m1`; nightly CLI builds for the pilot | **G-M1**: AC-01 … AC-13, AC-14 (Linux), AC-15 … AC-17, AC-18 (CLI), AC-20, AC-39; golden §19 rows gated M1; the velocity re-baseline (§3.7) | Spine lanes WP-S1.01 … WP-S1.10 and WP-S3.01 … WP-S3.05; WP-S6.01 … WP-S6.03; WP-S7.01, WP-S7.02; WP-S0.04, WP-S0.06 | The generated PDF beside the reference set; rename T55 and renumber folio 3 → 4 (the D-01 replay): every affected output changes in one commit, and undo restores the bytes |
 | **M-PP** Pilot preview | Interactive 2D editing of new projects with the starter symbol set; core reports and PDF from the M1 stack; core online checks; save and load (§5.3) | **0.0.x**: unsigned development build, pilot only | **G-PP** (light, §5.3) | The 16 WPs of §5.3 | The pilot draws golden folios 101–103 and 901 in a new project and exports the PDF |
-| **M2** MVP: pilot release | Interactive 2D editing of the reference set; core reports, PDF and SVG; checks with the pre-delivery scheme; revisions and as-built archive; 2D panel (folio 902); PLC, bus and fluid MVP model; first signed release on three OSes; R1 passed (validates ADR-0007); LG-3 and LG-4 closed; ADR-0029 decided; CRA steward processes live | **0.1.0** | **G-M2**: AC-14 (all OSes), AC-18 (GUI), AC-19, AC-21, AC-23, AC-28, AC-29, AC-31, AC-32 (MVP part), AC-33, AC-37 (SVG), AC-40, AC-41; SC-1, SC-2 (2D), SC-5 (S, M), SC-6, SC-9 (R1), SC-10 … SC-12. AC-25 … AC-27 move to G-M3 with lever (b) | The M2 WPs of the lean scope, closed by WP-S6.08 | Usability tasks T1–T5 live on Golden A; `ew check --scheme pre-delivery` exits 1 with exactly the expected findings; offline installation of the signed build on a clean Windows VM |
+| **M2** MVP: pilot release | Interactive 2D editing of the reference set; core reports, PDF and SVG; checks with the pre-delivery scheme; revisions and as-built archive; 2D panel (folio 902); PLC, bus and fluid MVP model; first release (0.1.0) on Windows and Linux, unsigned and with no network code (ID-1187); R1 passed (validates ADR-0007); LG-3, LG-4, ADR-0029, signing and the steward's CRA processes are 1.0's | **0.1.0** | **G-M2**: AC-14 (all OSes), AC-18 (GUI), AC-19, AC-21, AC-23, AC-28, AC-29, AC-31, AC-32 (MVP part), AC-33, AC-37 (SVG), AC-40, AC-41; SC-1, SC-2 (2D), SC-5 (S, M), SC-6, SC-9 (R1), SC-10 … SC-12. AC-25 … AC-27 move to G-M3 with lever (b) | The M2 WPs of the lean scope, closed by WP-S6.08 | Usability tasks T1–T5 live on Golden A; `ew check --scheme pre-delivery` exits 1 with exactly the expected findings; offline installation of the build on a clean Windows VM |
 | **M3** Automation breadth and migration | PLC and bus 1.0; fluid 1.0; QET project migration (lever b); AML, TIA tag table and PLCopen exchange against reference files; EDZ and EPLAN parts XML; DXF and DWG; automation workspaces | 0.x (0.7.0 in the baseline) | **G-M3**: AC-25, AC-26, AC-27 (SC-4), AC-30 (reference files), AC-32 (1.0 part), AC-37 (DXF), AC-38; the EW-PLC and EW-BUS part of AC-22 | WP-S1.24, WP-S1.25, WP-S2.13, WP-S3.10, WP-S3.11, WP-S3.13, WP-S3.16, WP-S3.18, WP-S3.19 | A QET corpus project imported with its migration report; the AML of station -201U1 exported and validated; a golden part updated from an EDZ through a previewed command |
 | **M4** Manufacturing and 2D/3D panel | STEP worker, 3D view, collision, routing and lengths; production wire records, ferrules, labels; Komax, Rittal and Weidmüller profiles; drilling DXF; `.ewpp` | 0.x (0.18.0 in the baseline) | **G-M4**: AC-34; AC-35 content. AC-36 (thermal) moves to 1.x with lever (c) | WP-S1.28, WP-S4.03 … WP-S4.08, WP-S5.01 … WP-S5.07, WP-S7.06 | Golden A-R in 3D without collisions; `RouteWires` commits lengths that folio 907 shows; moving -102G1 marks lengths stale; the `.ewpp` rows equal folio 907 |
 | **M5** 1.0 feature complete (beta) | All 1.0 features merged; 1.0 rule packs exact; beta to the pilot and early adopters | 1.0.0-beta.1 | **G-M5**: AC-22 | WP-S1.26, WP-S1.30, WP-S3.15; lever (a) WPs WP-S1.23, WP-S2.10, WP-S3.12 | The pre-delivery check with the 1.0 packs on Golden A equals golden §18.1 plus §18.2; walkthrough of journeys J1–J6 |
@@ -1195,7 +1195,7 @@ the levers. The WPs of each milestone are those of the `milestone_lean` column.
 | **Who** | Maintainers (chair: project lead), the pilot user, the steward liaison; the release manager from G-M2. G-PP: project lead, pilot user and the S2 owner only |
 | **Input, one week before** | Acceptance-runner report per AC-nn and D-nn (NFR-MAINT-11); the exit criteria of §5.1 with evidence links; open risks (§9.3); actual versus estimated pw; the re-forecast of the remaining milestones (§11.2); the decisions of §14 that are due |
 | **Outcomes** | **Pass**; **pass with conditions**, closed within 4 weeks and re-checked by the chair; **fail**, with a re-plan within 2 weeks that uses the descoping ladder of §16 |
-| **Never waived** | Any AC of the gate, the CRA and signing conditions before a public release, the 20 % reserve as a scope buffer, the anonymisation guard (AC-39) |
+| **Never waived** | Any AC of the gate, the CRA and signing conditions before a public release from 1.0 (owner rulings ID-454, "this is no longer relevant", and ID-1187; the placement at 1.0 is ID-1188's), the 20 % reserve as a scope buffer, the anonymisation guard (AC-39) |
 | **Record** | A gate record in the repository: date, outcome, evidence, conditions, decisions, new forecast. `ROADMAP.md` is regenerated from it (GV-07) |
 
 Milestone reviews are lighter: at every monthly plan review (§11.2) the forecast for the next two milestones is
@@ -1219,7 +1219,7 @@ and the as-built archive, collaboration and merge, broad libraries, the symbol e
 **Release.** 0.0.x builds are unsigned development builds from CI, handed to the pilot for use on their own
 machines and own projects; no public binaries, no download page (GA-10). Every 0.0.x build may change the format
 and upgrades on read. **Verify with counsel** that a pilot-only preview is not "making available on the market"
-under the CRA (WP-S6.04, ADR-0030).
+under the CRA (WP-S6.10, ADR-0030).
 
 **Gate G-PP (light).** One criterion: the pilot user completes golden folios 101–103 and the parts list 901 in a
 new project interactively, without developer help, and exports the PDF; the generated parts list equals golden
@@ -1250,7 +1250,7 @@ blocks other work and has no conditions.
 | WP-S6.13 | Blind-drafter gate agent: harness, personas and prompt | S6 | 1.6 |
 | **Sum** | **16 WPs** |  | **76.1** |
 
-With the M0 and M1 WPs, M-PP needs 187.4 pw (224.9 pw with the reserve); the MVP needs 298.3 pw. The preview is therefore 63 % of the MVP effort and reuses every M1 output unchanged.
+With the M0 and M1 WPs, M-PP needs 187.4 pw (224.9 pw with the reserve); the MVP needs 280.8 pw. The preview is therefore 67 % of the MVP effort and reuses every M1 output unchanged.
 <!-- /generated:pp-scope -->
 
 ---
@@ -1261,7 +1261,7 @@ With the M0 and M1 WPs, M-PP needs 187.4 pw (224.9 pw with the reserve); the MVP
 
 ### 6.1 Before the MVP: no public binary releases
 
-Governance §3.3 allows no tagged binary release before the first signed installer. Until 0.1.0:
+Governance §3.3 allows no tagged binary release before the first binary release, 0.1.0, which is unsigned (ID-1187). Until 0.1.0:
 - **Nightlies** from `main`, labelled "unsigned development build" (ADR-0030). They may write an unreleased format,
   with a warning ([quality](../design/18-quality-security-release.md#71-versions-and-cadence) §7.1). The pilot
   uses CLI nightlies from M1 (WP-S0.09).
@@ -1286,22 +1286,21 @@ WP ship fixes only):
 <!-- generated:release-train -->
 | Release | Month (calendar) | Milestone | WPs that land (finished in that month) |
 |---|---|---|---|
-| 0.3.0 | 44 (Jun 2030) |  | WP-S1.25 Fluid 1.0: valve models, media, tubes, fluid reports; WP-S3.19 DXF and DWG exchange |
-| 0.5.0 | 46 (Aug 2030) |  | WP-S3.11 QET project import II: links, formulas, strips, tables; WP-S3.16 PLC exchange: AutomationML, TIA tag tables, PLCopen XML |
-| 0.6.0 | 47 (Sep 2030) |  | WP-S2.13 Automation workspaces: PLC, bus and fluid; WP-S3.13 QET corpus, migration verifier and pilot migrations |
-| 0.8.0 | 49 (Nov 2030) | **M3** at 0.8.0 | WP-S3.18 EDZ, EPLAN parts XML and QET 1.0 import; WP-S4.03 STEP worker (ew-step-worker) |
-| 0.9.0 | 50 (Dec 2030) |  | WP-S1.28 Parts 1.0: accessories, variants, classification, consumables; WP-S5.01 Production wire records, change list and Manufacturing workspace |
-| 0.10.0 | 51 (Jan 2031) |  | WP-S4.05 3D layout model: enclosures, doors, surfaces, panel macros, 3D CPs |
-| 0.11.0 | 52 (Feb 2031) |  | WP-S5.02 Ferrules and end treatments |
-| 0.12.0 | 53 (Mar 2031) |  | WP-S4.04 3D renderer and the Panel 3D workspace; WP-S5.03 Marking schemes and label engine |
-| 0.13.0 | 54 (Apr 2031) |  | WP-S4.06 Collision and clearance checking; WP-S4.07 Routing graph and RouteWires |
-| 0.14.0 | 55 (May 2031) |  | WP-S4.08 Wire lengths, duct fill and wiring manager; WP-S5.06 Machining features, drilling DXF and hole tables |
-| 0.15.0 | 56 (Jun 2031) |  | WP-S5.05 Terminal assembly lists, cut lists and consumables; WP-S7.06 Golden 1.0 fixtures: A-R, 3D, thermal, exchange, manufacturing |
-| 0.16.0 | 57 (Jul 2031) |  | WP-S5.04 Machine export profiles and pre-flight |
-| 0.17.0 | 58 (Aug 2031) |  | WP-S1.26 Model 1.0 completion: connections, terminals, cables, numbering, project; WP-S1.30 1.0 rule packs, SQL rules and SARIF |
-| 0.18.0 | 59 (Sep 2031) | **M4** at 0.18.0 | WP-S2.10 Symbol editor; WP-S5.07 Production package .ewpp |
+| 0.3.0 | 43 (May 2030) |  | WP-S1.25 Fluid 1.0: valve models, media, tubes, fluid reports; WP-S3.19 DXF and DWG exchange |
+| 0.5.0 | 45 (Jul 2030) |  | WP-S2.13 Automation workspaces: PLC, bus and fluid; WP-S3.11 QET project import II: links, formulas, strips, tables; WP-S3.16 PLC exchange: AutomationML, TIA tag tables, PLCopen XML |
+| 0.6.0 | 46 (Aug 2030) |  | WP-S3.13 QET corpus, migration verifier and pilot migrations |
+| 0.8.0 | 48 (Oct 2030) | **M3** at 0.8.0 | WP-S3.18 EDZ, EPLAN parts XML and QET 1.0 import; WP-S4.03 STEP worker (ew-step-worker) |
+| 0.9.0 | 49 (Nov 2030) |  | WP-S1.28 Parts 1.0: accessories, variants, classification, consumables; WP-S5.01 Production wire records, change list and Manufacturing workspace |
+| 0.10.0 | 50 (Dec 2030) |  | WP-S4.05 3D layout model: enclosures, doors, surfaces, panel macros, 3D CPs; WP-S5.02 Ferrules and end treatments; WP-S5.03 Marking schemes and label engine |
+| 0.12.0 | 52 (Feb 2031) |  | WP-S4.06 Collision and clearance checking |
+| 0.13.0 | 53 (Mar 2031) |  | WP-S4.07 Routing graph and RouteWires |
+| 0.14.0 | 54 (Apr 2031) |  | WP-S4.04 3D renderer and the Panel 3D workspace; WP-S4.08 Wire lengths, duct fill and wiring manager; WP-S5.06 Machining features, drilling DXF and hole tables |
+| 0.15.0 | 55 (May 2031) |  | WP-S5.05 Terminal assembly lists, cut lists and consumables; WP-S7.06 Golden 1.0 fixtures: A-R, 3D, thermal, exchange, manufacturing |
+| 0.16.0 | 56 (Jun 2031) |  | WP-S5.04 Machine export profiles and pre-flight |
+| 0.17.0 | 57 (Jul 2031) | **M4** at 0.17.0 | WP-S1.26 Model 1.0 completion: connections, terminals, cables, numbering, project; WP-S1.30 1.0 rule packs, SQL rules and SARIF; WP-S5.07 Production package .ewpp |
+| 0.18.0 | 58 (Aug 2031) |  | WP-S2.10 Symbol editor |
 
-Finished before the MVP although they are later scope (in the 0.1.0 build, but neither promised nor gated by the MVP): WP-S1.24, WP-S3.10.
+Finished before the MVP although they are later scope (in the 0.1.0 build, but neither promised nor gated by the MVP): WP-S0.07, WP-S1.24, WP-S3.10.
 <!-- /generated:release-train -->
 
 ### 6.3 1.0: betas, release candidates and the format freeze
@@ -1309,12 +1308,17 @@ Finished before the MVP although they are later scope (in the 0.1.0 build, but n
 <!-- generated:betas -->
 | Release | Month (calendar) | Content |
 |---|---|---|
-| 1.0.0-beta.1 | 60 (Oct 2031) | **M5**: feature complete; WP-S1.23 Headless read-only MCP server; WP-S3.12 QET migration assistants: cables, fluid map, layout binding, reconstruction; WP-S3.15 1.0 report kinds and user SQL reports |
-| 1.0.0-beta.2 | 61 (Nov 2031) | Fixes |
-| 1.0.0-beta.3 | 62 (Dec 2031) | WP-S2.16 Usability round R2 and fixes; WP-S6.10 1.0 quality layers and release hardening |
-| 1.0.0-rc.1 | 63 (Jan 2032) | **Format freeze**, 8 weeks before 1.0 ([quality](../design/18-quality-security-release.md#72-format-change-window) §7.2) |
-| 1.0.0-rc.2 | 64 (Feb 2032) | WP-S7.07 Documentation and tutorials 1.0, German translation |
-| **1.0.0** | 65 (Mar 2032) | **M6**; WP-S6.11 External acceptance: TIA Portal, CODESYS and a machine shop (SC-7, SC-8); WP-S6.12 1.0 beta-to-release stabilisation; WP-S7.08 First manufacturer data pack and content repositories |
+| 1.0.0-beta.1 | 59 (Sep 2031) | **M5**: feature complete; WP-S1.23 Headless read-only MCP server; WP-S3.12 QET migration assistants: cables, fluid map, layout binding, reconstruction; WP-S3.15 1.0 report kinds and user SQL reports |
+| 1.0.0-beta.2 | 60 (Oct 2031) | WP-S2.16 Usability round R2 and fixes |
+| 1.0.0-beta.3 | 61 (Nov 2031) | Fixes |
+| 1.0.0-beta.4 | 62 (Dec 2031) | WP-S0.05 Steward, signing identities and trademark: LG-3, LG-4 close; WP-S6.11 External acceptance: TIA Portal, CODESYS and a machine shop (SC-7, SC-8); WP-S7.07 Documentation and tutorials 1.0, German translation |
+| 1.0.0-beta.5 | 63 (Jan 2032) | WP-S7.08 First manufacturer data pack and content repositories |
+| 1.0.0-beta.6 | 64 (Feb 2032) | Fixes |
+| 1.0.0-beta.7 | 65 (Mar 2032) | Fixes |
+| 1.0.0-beta.8 | 66 (Apr 2032) | WP-S6.10 1.0 quality layers and release hardening |
+| 1.0.0-rc.1 | 67 (May 2032) | **Format freeze**, 8 weeks before 1.0 ([quality](../design/18-quality-security-release.md#72-format-change-window) §7.2) |
+| 1.0.0-rc.2 | 68 (Jun 2032) | Fixes |
+| **1.0.0** | 69 (Jul 2032) | **M6**; WP-S6.12 1.0 beta-to-release stabilisation |
 <!-- /generated:betas -->
 
 Betas and release candidates keep the monthly rhythm and are pre-1.0 in SemVer, so the 0.x rules (latest only,
@@ -1328,10 +1332,10 @@ window (§11.6).
 <!-- generated:themes-1x -->
 | Theme | Earliest release | WPs | PERT (pw) | With reserve |
 |---|---|---|---|---|
-| Review and productivity: revision compare, change lists, review and merge UI, editor completion, macros 1.0 | 1.1 (Jun 2032) | WP-S1.31, WP-S2.15, WP-S2.14, WP-S1.29 | 15.5 | 18.6 |
-| Panel engineering: thermal calculation, model views, busbars, 3D export, verification checklists, wiring viewer | 1.2 (Sep 2032) | WP-S4.10, WP-S4.09, WP-S5.08, WP-S5.09 | 17.1 | 20.5 |
-| Content, forms and languages: full IEC 60617 and ISO 1219 libraries, forms editor and ISO 5457 frames, project translations, GSD/GSDML/IODD | 1.3 (Dec 2032) | WP-S7.04, WP-S3.14, WP-S1.27, WP-S3.17 | 19.2 | 23.0 |
-| Extensibility and backlogs: WASM plugins and SDK, automation 1.0, interop, physical and manufacturing 1.x | 1.4 (Mar 2033), then 2.0 in the format window (Mar 2033 at the earliest) | WP-S1.33, WP-S1.32, WP-S3.20, WP-S4.11, WP-S5.10, WP-S1.34 | 46.7 | 56.0 |
+| Review and productivity: revision compare, change lists, review and merge UI, editor completion, macros 1.0 | 1.1 (Oct 2032) | WP-S1.31, WP-S2.15, WP-S2.14, WP-S1.29 | 15.5 | 18.6 |
+| Panel engineering: thermal calculation, model views, busbars, 3D export, verification checklists, wiring viewer | 1.2 (Jan 2033) | WP-S4.10, WP-S4.09, WP-S5.08, WP-S5.09 | 17.1 | 20.5 |
+| Content, forms and languages: full IEC 60617 and ISO 1219 libraries, forms editor and ISO 5457 frames, project translations, GSD/GSDML/IODD | 1.3 (Apr 2033) | WP-S7.04, WP-S3.14, WP-S1.27, WP-S3.17 | 19.2 | 23.0 |
+| Extensibility and backlogs: WASM plugins and SDK, automation 1.0, interop, physical and manufacturing 1.x | 1.4 (Jul 2033), then 2.0 in the format window (Mar 2034 at the earliest) | WP-S1.33, WP-S1.32, WP-S3.20, WP-S4.11, WP-S5.10, WP-S1.34 | 46.7 | 56.0 |
 
 The 1.x backlog (lever (c) WPs plus the original 1.x WPs) is 98.4 pw, 118.1 pw with the reserve: about 13 months of the 3-developer team before any new 1.x scope.
 <!-- /generated:themes-1x -->
@@ -1354,74 +1358,74 @@ gantt
   axisFormat %Y
   section Milestones
   M0 foundations :milestone, m0, 2027-01-03, 0d
-  M1 spine exit :milestone, m1, 2028-02-14, 0d
-  M-PP pilot preview 0.0.x :milestone, m2, 2028-12-24, 0d
-  M2 MVP 0.1.0 :milestone, m3, 2030-04-15, 0d
-  M3 automation :milestone, m4, 2030-10-27, 0d
-  M4 manufacturing and 3D :milestone, m5, 2031-08-28, 0d
-  M5 beta :milestone, m6, 2031-10-19, 0d
-  M6 release 1.0 :milestone, m7, 2032-03-20, 0d
+  M1 spine exit :milestone, m1, 2028-03-24, 0d
+  M-PP pilot preview 0.0.x :milestone, m2, 2029-01-17, 0d
+  M2 MVP 0.1.0 :milestone, m3, 2030-03-16, 0d
+  M3 automation :milestone, m4, 2030-09-27, 0d
+  M4 manufacturing and 3D :milestone, m5, 2031-07-27, 0d
+  M5 beta :milestone, m6, 2031-09-15, 0d
+  M6 release 1.0 :milestone, m7, 2032-07-07, 0d
   G-SP spike decision :milestone, gsp, 2027-04-20, 0d
-  R0 formative usability :milestone, r0, 2028-12-04, 0d
-  R1 summative usability :milestone, r1, 2030-03-17, 0d
+  R0 formative usability :milestone, r0, 2028-12-28, 0d
+  R1 summative usability :milestone, r1, 2030-02-15, 0d
   section S0 Foundation and governance
   Pilot kick-off :t1, 2026-11-01, 2026-11-20
   Repository and CI bootstrap :t2, 2026-11-01, 2026-12-09
   Signing enrolment and trademark search :t3, 2026-11-20, 2026-12-02
   Licences REUSE DCO and LG-1 LG-2 LG-5 :t4, 2026-12-09, 2027-01-23
-  Docs site and governance files :t5, 2026-12-09, 2027-01-27
-  Pilot programme and community :t6, 2028-02-14, 2032-03-20
+  Docs site and governance files :t5, 2026-12-09, 2027-01-15
+  Pilot programme and community :t6, 2028-03-24, 2032-07-07
   Enrolment lead time external :t7, 2026-12-02, 2027-12-01
-  Steward signing identities LG-3 LG-4 close :t8, 2029-08-12, 2029-08-31
+  Steward signing identities LG-3 LG-4 close :t8, 2031-12-04, 2031-12-23
   section S1 Core model and derivation
   Foundation crates schema model commands :t9, 2026-11-01, 2027-05-27
-  Persistence core :t10, 2027-02-12, 2027-04-23
-  Derivation I to III :t11, 2027-04-06, 2027-11-01
-  Perf spike ew-memo and SQL projection :t12, 2027-06-21, 2027-12-15
-  Preview breadth numbering devices terminals parts :t13, 2028-02-08, 2028-12-02
-  Rule engine and core online checks :t14, 2028-04-11, 2028-08-01
-  Parts macros rule packs revisions :t15, 2028-12-02, 2029-04-10
-  PLC bus fluid models :t16, 2028-12-24, 2029-05-23
-  Collaboration and CLI :t17, 2029-04-20, 2029-11-21
-  PLC bus and fluid 1.0 :t18, 2030-01-26, 2030-06-07
-  Parts 1.0 :t19, 2030-10-27, 2030-12-10
-  Model 1.0 rule packs 1.0 and MCP :t20, 2031-06-01, 2031-10-19
+  Persistence core :t10, 2027-07-23, 2027-09-30
+  Derivation I to III :t11, 2027-04-02, 2027-11-20
+  Perf spike ew-memo and SQL projection :t12, 2027-07-05, 2028-01-28
+  Preview breadth numbering devices terminals parts :t13, 2028-02-13, 2029-01-08
+  Rule engine and core online checks :t14, 2028-05-05, 2028-08-25
+  Parts macros rule packs revisions :t15, 2029-01-08, 2029-05-13
+  PLC bus fluid models :t16, 2029-02-17, 2029-06-20
+  Collaboration and CLI :t17, 2029-05-26, 2029-10-07
+  PLC bus and fluid 1.0 :t18, 2029-12-20, 2030-05-06
+  Parts 1.0 :t19, 2030-09-27, 2030-11-09
+  Model 1.0 rule packs 1.0 and MCP :t20, 2031-05-07, 2031-09-15
   section S2 Interaction and UI
-  Shell canvas and viewer :t21, 2028-02-11, 2028-07-12
-  Placement wiring tools property grid navigators messages :t22, 2028-07-12, 2028-12-04
-  Domain tables palette keymaps :t23, 2029-07-07, 2030-02-02
-  GUI tests and usability R0 R1 :t24, 2029-10-15, 2030-01-04
-  Automation workspaces :t25, 2030-06-07, 2030-08-28
-  Symbol editor :t26, 2031-08-18, 2031-09-24
-  Usability R2 and fixes :t27, 2031-11-17, 2031-12-04
+  Shell canvas and viewer :t21, 2028-03-19, 2028-08-17
+  Placement wiring tools property grid navigators messages :t22, 2028-08-17, 2028-12-28
+  Domain tables palette keymaps :t23, 2029-06-20, 2030-01-02
+  GUI tests and usability R0 R1 :t24, 2029-09-27, 2029-12-05
+  Automation workspaces :t25, 2030-05-06, 2030-07-27
+  Symbol editor :t26, 2031-07-14, 2031-08-21
+  Usability R2 and fixes :t27, 2031-09-15, 2031-10-02
   section S3 Documents and migration
-  Display list frames forms report engine PDF :t28, 2027-01-27, 2028-01-08
-  Spine importers CSV and QET elements :t29, 2027-07-23, 2027-09-11
-  Importer contracts and migration report :t30, 2029-03-09, 2029-04-16
-  MVP reports SVG printing table exports :t31, 2029-09-17, 2030-01-27
-  QET project import and corpus :t32, 2030-01-27, 2030-09-23
-  AML TIA PLCopen EDZ DXF DWG exchange :t33, 2030-04-15, 2030-10-27
-  1.0 reports and QET assistants :t34, 2031-08-08, 2031-10-04
+  Display list frames forms report engine PDF :t28, 2027-01-23, 2028-02-10
+  Spine importers CSV and QET elements :t29, 2027-10-26, 2027-12-16
+  Importer contracts and migration report :t30, 2029-05-04, 2029-06-10
+  MVP reports SVG printing table exports :t31, 2029-08-18, 2029-12-13
+  QET project import and corpus :t32, 2029-12-25, 2030-08-17
+  AML TIA PLCopen EDZ DXF DWG exchange :t33, 2030-03-16, 2030-09-27
+  1.0 reports and QET assistants :t34, 2031-07-06, 2031-09-01
   section S4 Physical
-  2D panel model and tools :t35, 2029-02-10, 2029-09-17
-  STEP worker 3D model and 3D view :t36, 2030-08-28, 2031-03-20
-  Collision routing and wire lengths :t37, 2031-01-15, 2031-05-26
+  2D panel model and tools :t35, 2029-03-18, 2029-10-08
+  STEP worker 3D model and 3D view :t36, 2030-07-27, 2031-03-30
+  Collision routing and wire lengths :t37, 2030-12-13, 2031-04-24
   section S5 Manufacturing outputs
-  Wire records ferrules labels :t38, 2030-09-23, 2031-03-11
-  Drilling and assembly lists :t39, 2031-03-20, 2031-06-22
-  Machine profiles and production package :t40, 2031-05-26, 2031-08-28
+  Wire records ferrules labels :t38, 2030-08-17, 2030-12-23
+  Drilling and assembly lists :t39, 2031-02-05, 2031-05-10
+  Machine profiles and production package :t40, 2031-04-24, 2031-07-27
   section S6 Quality and release
-  Test kit determinism perf gate :t41, 2027-10-12, 2028-02-14
-  Packaging security signing privacy :t42, 2029-04-10, 2029-12-27
-  MVP stabilisation :t43, 2030-02-02, 2030-04-15
-  Monthly 0.x releases :t44, 2030-04-15, 2032-03-20
-  1.0 hardening and stabilisation :t45, 2031-10-04, 2032-03-02
-  External acceptance SC-7 SC-8 :t46, 2032-02-05, 2032-03-20
+  Test kit determinism perf gate :t41, 2027-10-14, 2028-03-19
+  Packaging security privacy sums provenance :t42, 2029-01-17, 2029-12-25
+  MVP stabilisation :t43, 2030-01-02, 2030-03-16
+  Monthly 0.x releases :t44, 2030-03-16, 2032-07-07
+  1.0 hardening and stabilisation :t45, 2031-09-01, 2032-07-07
+  External acceptance SC-7 SC-8 :t46, 2031-10-16, 2031-11-29
   section S7 Content
-  Golden data and starter symbols :t47, 2027-11-26, 2028-02-08
-  MVP docs and starter parts :t48, 2029-05-23, 2030-01-26
-  Golden 1.0 fixtures :t49, 2031-04-24, 2031-06-01
-  1.0 docs and manufacturer pack :t50, 2031-12-04, 2032-03-11
+  Golden data and starter symbols :t47, 2028-01-07, 2028-03-24
+  MVP docs and starter parts :t48, 2029-06-10, 2029-12-12
+  Golden 1.0 fixtures :t49, 2031-03-30, 2031-05-07
+  1.0 docs and manufacturer pack :t50, 2031-10-02, 2031-12-31
 ```
 <!-- /generated:gantt-baseline -->
 
@@ -1429,11 +1433,12 @@ gantt
 - **The spine takes the first 16 months** because both lanes are long: lane 1 (WP-S1.01 … WP-S1.10) and lane 2
   (WP-S3.01 … WP-S3.05) together are about 74 pw, plus CI, legal, test kit, golden data and starter symbols.
 - **The UI starts at M1** and reaches the pilot preview about ten months later; the rest of the MVP (rule packs,
-  revisions, collaboration, parts libraries, PLC, bus and fluid models, panel, packaging and CRA processes) fills
+  revisions, collaboration, parts libraries, PLC, bus and fluid models, panel, packaging and the release pipeline) fills
   the 15 months from the preview to the MVP, ending with the stabilisation WP-S6.08.
 - **The physical and manufacturing chain runs at the end** and is near-critical for 1.0 (§9.2).
-- **Release engineering is spread out:** packaging, security and CRA, privacy and the release pipeline all fall in
-  the last year before the MVP; the first signed release needs all of them and the signing identities of WP-S0.05.
+- **Release engineering is spread out:** packaging, security, privacy and the release pipeline all fall in
+  the last year before the MVP; the first release (0.1.0) needs all of them, and the first signed release also needs the
+  signing identities of WP-S0.05 and WP-S6.10 (1.0, ID-1187).
 
 ---
 
@@ -1482,7 +1487,7 @@ flowchart LR
   end
   subgraph S6["S6 Quality and release"]
     s6a["Test kit, determinism,<br/>perf gate"]
-    s6b["Packaging, security,<br/>signing, CRA"]
+    s6b["Packaging, security,<br/>privacy, sums"]
     s6c["MVP stabilisation<br/>0.1.0"]
     s6d["1.0 hardening and<br/>external acceptance"]
   end
@@ -1543,17 +1548,17 @@ flowchart LR
 ```
 
 <!-- generated:cross-stream -->
-Cross-stream dependencies in the CSV (lean scope, without the two stabilisation WPs) concentrate on S1: 41 of the 76 cross-stream edges start in S1. The strongest interfaces:
+Cross-stream dependencies in the CSV (lean scope, without the two stabilisation WPs) concentrate on S1: 41 of the 75 cross-stream edges start in S1. The strongest interfaces:
 
 | From → to | Edges | Interface | Typical WP pair |
 |---|---|---|---|
 | S1 → S3 | 14 | Schema, derivation queries, rule engine, PLC model | WP-S1.06/WP-S1.07 → WP-S3.03 (report engine); WP-S1.24 → WP-S3.16 (PLC exchange) |
 | S1 → S2 | 11 | `Session` facade, view-model queries, model breadth | WP-S1.04 → WP-S2.01; WP-S1.13/WP-S1.07 → WP-S2.04 (tools) |
 | S1 → S6 | 5 | Determinism and perf targets need the model and the memo engine | WP-S1.05 → WP-S6.03 |
-| S0 → S6 | 4 | Steward, signing identities and CI for the release pipeline | WP-S0.05 → WP-S6.07 |
 | S1 → S4 | 4 | Parts and device breadth | WP-S1.19 → WP-S4.01 |
 | S1 → S7 | 4 | Part data for content | WP-S1.28 → WP-S7.08 |
 | S2 → S6 | 4 | Shell and renderer for packaging | WP-S2.01 → WP-S6.06 |
+| S0 → S6 | 3 | Repository and CI, and the signing enrolment, for packaging and security | WP-S0.01 → WP-S6.06; WP-S0.05a → WP-S6.04 |
 | S2 → S4 | 3 | Renderer and navigators for 3D | WP-S2.02 → WP-S4.04 |
 | S4 → S5 | 3 | Layout and routed lengths feed the manufacturing outputs | WP-S4.08 → WP-S5.04 |
 | S3 → S2 | 1 | The display list feeds the 2D canvas | WP-S3.01 → WP-S2.02 |
@@ -1574,10 +1579,10 @@ they concern the pace (SR-1, SR-2, SR-7, SR-15).
 <!-- generated:critical-path -->
 | Milestone (lean scope) | Longest dependency chain, unlimited developers | Capacity bound, 3 developers | Simulated, 3 developers |
 |---|---|---|---|
-| M1 | 13.7 months (WP-S1.01 → WP-S1.02 → WP-S1.03 → WP-S1.07 → WP-S3.03 → WP-S3.04) | 14.8 months | 15.5 → month 16 |
-| M-PP | 18.0 months (WP-S1.01 … WP-S1.03, WP-S1.07, WP-S1.08, WP-S2.03, WP-S2.04, WP-S6.13) | 25.0 months | 25.8 → month 26 |
-| M2 | 20.9 months (WP-S1.01 … WP-S1.03, WP-S1.07, WP-S1.08, WP-S2.03, WP-S2.04, WP-S2.12, WP-S6.08) | 39.8 months | 41.6 → month 42 |
-| M6 | 28.5 months (WP-S1.01 … WP-S1.04, WP-S1.13, WP-S1.19a, WP-S1.19, WP-S4.01, WP-S4.05, WP-S4.07, WP-S4.08, WP-S5.04, WP-S5.07, WP-S6.10, WP-S6.12) | 64.4 months | 64.8 → month 65 |
+| M1 | 13.7 months (WP-S1.01 → WP-S1.02 → WP-S1.03 → WP-S1.07 → WP-S3.03 → WP-S3.04) | 14.8 months | 16.8 → month 17 |
+| M-PP | 18.0 months (WP-S1.01 … WP-S1.03, WP-S1.07, WP-S1.08, WP-S2.03, WP-S2.04, WP-S6.13) | 25.0 months | 26.6 → month 27 |
+| M2 | 20.9 months (WP-S1.01 … WP-S1.03, WP-S1.07, WP-S1.08, WP-S2.03, WP-S2.04, WP-S2.12, WP-S6.08) | 37.4 months | 40.6 → month 41 |
+| M6 | 33.8 months (WP-S1.01 … WP-S1.04, WP-S1.13, WP-S1.19a, WP-S1.19, WP-S4.01, WP-S4.05, WP-S4.07, WP-S4.08, WP-S5.04, WP-S5.07, WP-S6.10, WP-S6.12) | 64.1 months | 68.4 → month 69 |
 <!-- /generated:critical-path -->
 
 **The M1 WPs include 1.9 pw moved from M2 work packages** (WP-S1.12, WP-S1.14, WP-S1.18, WP-S3.08, WP-S6.05,
@@ -1614,7 +1619,7 @@ chain) and in the last 18 months before 1.0.
    calendar time, not pw. WP-S0.05a submits the enrolments in the first
    90 days, together with the trademark clearance search (LG-3); WP-S0.05 ("signing identities usable by CI") has a
    lagged dependency of 12 months on it, so the scheduler cannot place it earlier, and WP-S6.07 (release pipeline)
-   waits for WP-S0.05. Line up the TIA Portal installation, a CODESYS installation and the partner shop for SC-7
+   waited for WP-S0.05 until ID-1187, which moved WP-S0.05 to 1.0 (M6). Line up the TIA Portal installation, a CODESYS installation and the partner shop for SC-7
    and SC-8 at M3.
 
 ### 9.3 Schedule risk register
@@ -1624,22 +1629,22 @@ Impacts are simulated on the plan of record (3 developers, lean scope) unless st
 <!-- generated:impacts -->
 | Case (lean scope) | M1 | M-PP | M2 | M6 |
 |---|---|---|---|---|
-| Plan of record (3 developers, lean scope) | 16 | 26 | 42 | 65 |
-| Effort +10 % | 18 | 29 | 46 | 72 |
-| Effort +25 % | 20 | 33 | 52 | 82 |
-| Velocity ratio 0.90 (effort +11 %) | 18 | 29 | 47 | 73 |
-| Velocity ratio 0.80 (effort +25 %) | 20 | 33 | 52 | 82 |
-| Velocity ratio 0.67 (effort +50 %) | 24 | 39 | 63 | 98 |
-| Velocity ratio 1.25 on every WP | 13 | 21 | 34 | 52 |
-| Velocity ratio 1.50 on every WP (clamp limit) | 11 | 18 | 28 | 44 |
-| Capacity −20 % | 20 | 33 | 52 | 82 |
-| Third developer joins at month 6 | 18 | 28 | 44 | 67 |
-| Third developer joins at month 12 | 20 | 30 | 46 | 69 |
-| Strict roles: dev 1 S0 and S1; dev 2 S2, S4, S6; dev 3 S3, S5, S6, S7 | 27 | 38 | 56 | 77 |
-| Strict, but dev 3 also takes S1, dev 2 also S7 and dev 1 also S6 | 20 | 35 | 47 | 72 |
-| 4 developers, plan order | 16 | 24 | 37 | 58 |
-| 4 developers, STEP worker (WP-S4.03) before M2 | 16 | 24 | 38 | 56 |
-| 3 developers, STEP worker (WP-S4.03) before M2 | 16 | 26 | 43 | 65 |
+| Plan of record (3 developers, lean scope) | 17 | 27 | 41 | 69 |
+| Effort +10 % | 19 | 30 | 45 | 76 |
+| Effort +25 % | 21 | 34 | 51 | 86 |
+| Velocity ratio 0.90 (effort +11 %) | 19 | 30 | 46 | 77 |
+| Velocity ratio 0.80 (effort +25 %) | 21 | 34 | 51 | 86 |
+| Velocity ratio 0.67 (effort +50 %) | 26 | 40 | 61 | 103 |
+| Velocity ratio 1.25 on every WP | 14 | 22 | 33 | 55 |
+| Velocity ratio 1.50 on every WP (clamp limit) | 12 | 18 | 28 | 46 |
+| Capacity −20 % | 21 | 34 | 51 | 86 |
+| Third developer joins at month 6 | 18 | 28 | 42 | 70 |
+| Third developer joins at month 12 | 20 | 30 | 44 | 72 |
+| Strict roles: dev 1 S0 and S1; dev 2 S2, S4, S6; dev 3 S3, S5, S6, S7 | 27 | 38 | 56 | 76 |
+| Strict, but dev 3 also takes S1, dev 2 also S7 and dev 1 also S6 | 21 | 33 | 45 | 73 |
+| 4 developers, plan order | 16 | 26 | 36 | 63 |
+| 4 developers, STEP worker (WP-S4.03) before M2 | 16 | 27 | 36 | 61 |
+| 3 developers, STEP worker (WP-S4.03) before M2 | 17 | 27 | 42 | 69 |
 <!-- /generated:impacts -->
 
 | ID | Risk | Early indicator | Impact (rows of the table above) | Mitigation | Owner |
@@ -1649,7 +1654,7 @@ Impacts are simulated on the plan of record (3 developers, lean scope) unless st
 | SR-3 | **Specialisation** | Ready WPs waiting for "their" developer while another is idle | "Strict roles" rows (§10.2) | Pull rule; pairing across lanes during the spine; two owners per critical crate by M1 | Project lead |
 | SR-4 | **Loss of a key developer** | A crate with one reviewer; one person with most commits in `ew-memo`, the `Op` set, `ew-format` or `ew-derive` | Three months out ≈ +1 month. Permanent loss of one of three gives the 2-developer dates of §3.4 unless replaced | Two owners (NFR-MAINT-07); design notes per crate; hire developer 4 (§10.3) | Project lead |
 | SR-5 | **Third developer starts late** | Not on board at kick-off | "Third developer joins at month 6 / 12" | Hire before kick-off; the output lane starts with WP-S3.01 at month 3 at the latest | Employer |
-| SR-6 | **Legal and steward gates late** | Identity holder not named or enrolment not submitted at G-M0; ADR-0030 not decided at G-M1; LG-1 unsigned at G-M0 | Blocks 0.1.0 however ready the code is. With the 12-month lead time the enrolment could start as late as about month 20 in the baseline before it moves the MVP, but only about month 18 in AI-moderate and month 13 in AI-strong (tested with the model) | Enrolment in the first 90 days (WP-S0.05a); ADR-0030 by M1; SignPath as documented fallback ([quality](../design/18-quality-security-release.md) open question 4) | Steward liaison |
+| SR-6 | **Legal and steward gates late** | Identity holder not named or enrolment not submitted at G-M0; ADR-0030 not decided at G-M1; LG-1 unsigned at G-M0 | Blocked 0.1.0 however ready the code was, until ID-1187 made 0.1.0 unsigned; it now blocks the first signed release (1.0, or earlier with a signing identity). With the 12-month lead time the enrolment could start as late as about month 20 in the baseline before it moves the MVP, but only about month 18 in AI-moderate and month 13 in AI-strong (tested with the model) | Enrolment in the first 90 days (WP-S0.05a); ADR-0030 by M1; SignPath as documented fallback ([quality](../design/18-quality-security-release.md) open question 4) | Steward liaison |
 | SR-7 | **Performance spike fails** | Partly materialised at G-SP (2026-10-20, outcome Recycle): cold connectivity 2.6–97× over NFR-PERF-05 | Human-team reference: up to 1–2 months at M1 (re-forecast +1 month, M1 at month 16). In cycles: the recycle took two cycles, 9 and 10 (WP-S1.07 parts 1 and 2), instead of one | Recycle: incremental connectivity, push invalidation and the `ew-memo` integration, delivered in cycles 9 and 10 (WP-S1.07, WP-S1.05; ADR-0002 amendments 5 and 6); re-test on a BM-class runner with the composite bench family delivered in cycle 10 | Core developer |
 | SR-8 | **Pilot engagement fades** before the first release | Monthly pilot review missed twice; pilot questions open for more than 2 months | SC-3 starts late; acceptance truth unconfirmed; usability rounds lack participants | M-PP (§5.3); engagement plan §12: monthly demos, nightlies from M1, R0 on the preview, a named pilot liaison | Pilot liaison |
 | SR-9 | **UI-stack churn** | Upgrade train above 3 developer-days twice in a row | Up to one developer-week per quarter | Abort rule and lag limits ([quality](../design/18-quality-security-release.md#63-the-quarterly-upgrade-train) §6.3); `ew-ui` isolation | Quarter's steward |
@@ -1657,7 +1662,7 @@ Impacts are simulated on the plan of record (3 developers, lean scope) unless st
 | SR-11 | **Third-party format material missing** (EDZ samples, Komax and Rittal formats, AS-5) | Not received by G-M2 | M3 and M4 WPs at their pessimistic values | Request through the pilot at M0 and M1 | Output developer |
 | SR-12 | **Scope creep** | Catalogue rows added without a WP; pilot requests merged without trade-off | Every 9 pw ≈ one month | A new catalogue row needs a WP in the same PR ([WBS](02-work-packages.md#8-requirement-coverage) §8); "one in, one out" at gate reviews | Project lead |
 | SR-13 | **Funding not obtained** (NLnet calls after 2025 uncertain, **verify**) | Rejection or no suitable call | None on the plan of record, which assumes no grants; the upside of §10.3 is lost | WBSO first; several NLnet proposals; sponsors from the steward's creation | Project lead |
-| SR-14 | **CRA duties broader than assumed** (steward scope, nightlies, the pilot preview) | Counsel's opinion at M1 | Extra process work before M-PP or 0.1.0 | Counsel review at M1; WP-S6.04 carries the work | Steward liaison |
+| SR-14 | **CRA duties broader than assumed** (steward scope, nightlies, the pilot preview) | Counsel's opinion at M1 | Extra process work before M-PP or 0.1.0 (from 1.0 since ID-1187) | Counsel review at M1; WP-S6.04 carried the work, WP-S6.10 carries it from 1.0 | Steward liaison |
 | SR-15 | **AI effect smaller than the internal target, or negative** | Velocity ratio of AI-assisted WPs not above that of unassisted WPs at two monthly reviews; review queues grow | The internal target slips towards the baseline; external dates unaffected | External commitments on the baseline only; separate time logs (§11.2); review capacity protected (the 25 % share of §3.7) | Project lead |
 
 ---
@@ -1682,7 +1687,7 @@ Roles are hats, not people ([WBS](02-work-packages.md#24-owner-roles) §2.4,
 | **AI workflow lead** | The project lead | The project lead | Routing policy of [CLAUDE.md](../../CLAUDE.md), closed specifications for worker agents, review of agent output, the AI time-log tags (§11.2) | M0 |
 | **Release manager** | Rotating per release | Rotating | Release checklist RC-01 … RC-11; never the only reviewer of the release PR | 0.1.0 |
 | **Pilot liaison** | Dev 3 day to day; project lead for agreements and escalation | Same | Pilot reviews, pilot log, corpus, acceptance-truth acknowledgements, test participants, the preview builds | M0 |
-| **Security response team** | Dev 1 and dev 2 | Dev 1 and dev 4 | Private advisories, CRA notifications through the steward | WP-S6.04 (before 0.1.0) |
+| **Security response team** | Dev 1 and dev 2 | Dev 1 and dev 4 | Private advisories, CRA notifications through the steward | WP-S6.04 (before 0.1.0); the steward's notifications from 1.0 (WP-S6.10) |
 | **Conduct contacts** | Two people, at least one outside the core team where possible | Same | Code of Conduct reports | First binary release |
 
 ### 10.2 Generalists, not silos
@@ -1694,9 +1699,9 @@ The schedule model uses exactly this rule. Strict silos are expensive:
 <!-- generated:silos -->
 | Working mode (3 developers, lean scope) | M1 | M-PP | M2 | M6 |
 |---|---|---|---|---|
-| **Pull rule, owners review (plan of record)** | 16 | 26 | 42 | 65 |
-| Strict: dev 1 S0 and S1; dev 2 S2, S4, S6; dev 3 S3, S5, S6, S7 | 27 | 38 | 56 | 77 |
-| Strict, but dev 3 also takes S1, dev 2 also S7 and dev 1 also S6 | 20 | 35 | 47 | 72 |
+| **Pull rule, owners review (plan of record)** | 17 | 27 | 41 | 69 |
+| Strict: dev 1 S0 and S1; dev 2 S2, S4, S6; dev 3 S3, S5, S6, S7 | 27 | 38 | 56 | 76 |
+| Strict, but dev 3 also takes S1, dev 2 also S7 and dev 1 also S6 | 21 | 33 | 45 | 73 |
 <!-- /generated:silos -->
 
 S1 is almost 30 % of the effort; one person cannot carry it. Everyone therefore works in the core during the
@@ -1711,15 +1716,15 @@ the join date (GA-2). "Developer-years added" counts from the join to 1.0.
 <!-- generated:dev4-join -->
 | Developer 4 joins | M1 | M-PP | M2 | M6 | Gain against 3 developers (M2 / M6, months) | Developer-years added |
 |---|---|---|---|---|---|---|
-| Not at all | 16 | 26 | 42 | 65 | — | — |
-| Month 4 (from 2027-03-01) | 16 | 24 | 37 | 58 | 5 / 7 | 4.5 |
-| Month 9 (from 2027-08-01) | 15 | 27 | 38 | 59 | 4 / 6 | 4.2 |
-| Month 12 (from 2027-11-01) | 15 | 27 | 38 | 60 | 4 / 5 | 4.0 |
-| Month 15 (from 2028-02-01) | 16 | 28 | 39 | 60 | 3 / 5 | 3.8 |
-| Month 24 (from 2028-11-01) | 16 | 26 | 40 | 62 | 2 / 3 | 3.2 |
-| Month 30 (from 2029-05-01) | 16 | 26 | 41 | 63 | 1 / 2 | 2.8 |
-| Month 40 (from 2030-03-01) | 16 | 26 | 42 | 64 | 0 / 1 | 2.0 |
-| Month 46 (from 2030-09-01) | 16 | 26 | 42 | 65 | 0 / 0 | 1.6 |
+| Not at all | 17 | 27 | 41 | 69 | — | — |
+| Month 4 (from 2027-03-01) | 16 | 26 | 36 | 63 | 5 / 6 | 4.9 |
+| Month 9 (from 2027-08-01) | 16 | 27 | 36 | 64 | 5 / 5 | 4.6 |
+| Month 12 (from 2027-11-01) | 17 | 28 | 37 | 65 | 4 / 4 | 4.4 |
+| Month 15 (from 2028-02-01) | 17 | 28 | 37 | 65 | 4 / 4 | 4.2 |
+| Month 24 (from 2028-11-01) | 17 | 27 | 39 | 67 | 2 / 2 | 3.6 |
+| Month 30 (from 2029-05-01) | 17 | 27 | 40 | 68 | 1 / 1 | 3.2 |
+| Month 40 (from 2030-03-01) | 17 | 27 | 41 | 69 | 0 / 0 | 2.4 |
+| Month 46 (from 2030-09-01) | 17 | 27 | 41 | 70 | 0 / −1 | 2.0 |
 <!-- /generated:dev4-join -->
 
 **Recommendation.**
@@ -1738,8 +1743,8 @@ Growth beyond four is outside the user's 2–4 decision and is shown only to mak
 <!-- generated:beyond-four -->
 | Team (lean scope) | M-PP | M2 | M6 |
 |---|---|---|---|
-| 5: 3 from month 0, 1 from month 4, 1 from month 6, 85 % efficiency from month 6 | 24 (Oct 2028) | 32 (Jun 2029) | 52 (Feb 2031) |
-| 6: 3 from month 0, 1 from month 4, 2 from month 6, 85 % efficiency from month 6 | 21 (Jul 2028) | 29 (Mar 2029) | 47 (Sep 2030) |
+| 5: 3 from month 0, 1 from month 4, 1 from month 6, 85 % efficiency from month 6 | 24 (Oct 2028) | 32 (Jun 2029) | 57 (Jul 2031) |
+| 6: 3 from month 0, 1 from month 4, 2 from month 6, 85 % efficiency from month 6 | 23 (Sep 2028) | 28 (Feb 2029) | 53 (Mar 2031) |
 <!-- /generated:beyond-four -->
 
 A cheaper route to extra capacity is a contractor on a self-contained WP set funded by a grant (§13.3). The best
@@ -1859,7 +1864,7 @@ timeline of the summary and in §3.4.
 | **M-PP**, release 0.0.x, and **R0** | The pilot preview: the editor for new projects (§5.3); an onboarding session | Gate G-PP (folios 101–103 and 901 drawn in a new project); the pilot user and a colleague for R0 tasks T1, T2, T8 (think-aloud); their title block and logo for a private basic project | G-PP record; R0 report → fix list; first EPLAN-like keymap notes; pilot log with timings |
 | **M-PP to M2** | Preview builds every iteration; help to build their company basic project (their title block and logo stay private) | Real small projects drawn in the preview, with QET as the production tool; project-size data for the L and XL fixtures | Iteration demos; monthly review; preview issues triaged at iteration planning |
 | **R1** (six weeks before M2) | The M2 release candidate | Two EPLAN users and one QET user for T1–T8 (PQ-27) | R1 report; ADR-0007 validation record |
-| **M2, 0.1.0** | Signed release for Windows and Linux; an onboarding session; a direct support channel | The first new production project in EW, with QET as fallback; three consecutive projects close SC-3 (target: within six months) | Weekly 30-min check-in during the first project; pilot log with timings |
+| **M2, 0.1.0** | Release for Windows and Linux (unsigned); an onboarding session; a direct support channel | The first new production project in EW, with QET as fallback; three consecutive projects close SC-3 (target: within six months) | Weekly 30-min check-in during the first project; pilot log with timings |
 | **0.x to M3** | Migration of their existing QET projects; PLC, bus and fluid 1.0; AML and TIA tag exports | Their QET projects for the private corpus; access to a TIA Portal installation for the first AML import; EDZ samples | Migration reports reviewed together |
 | **M4** | 3D layout, routing, wire lengths, `.ewpp` and machine files | A partner shop contact (Komax, Rittal WT); a wireman for T11 | Shop trial |
 | **M5, beta** | 1.0 beta | Beta use on production projects | Beta feedback in `pilot` issues |
@@ -1928,15 +1933,15 @@ when the listed WPs finish in the baseline.
 | ID | Proposal | Deliverable | WPs | Evidence | Baseline month (WPs finish) |
 |---|---|---|---|---|---|
 | NL-1 | 1 | Derivation engine: connectivity, potentials, wire properties, cross-references and interruption points | WP-S1.07, WP-S1.08 | AC-05, AC-09, AC-10, AC-12 | 10–13 |
-| NL-2 | 1 | SQL projection `api_v1` and the acceptance runner | WP-S1.10, WP-S6.01 | AC-15 | 13–14 |
-| NL-3 | 1 | `ew-memo` engine with oracle and the performance gate | WP-S1.05, WP-S6.03 | AC-16, AC-17 | 12–16 |
-| NL-4 | 1 | PDF/A-2b of the golden drawing set; published format specification and a permissive-only sample reader | WP-S3.04 | AC-13, AC-14 (Linux), SC-11 | 15 |
-| NL-5 | 2 | Rule engine and `ew check` CLI with the MVP packs | WP-S1.15, WP-S1.16a, WP-S1.16, WP-S1.22 | AC-21 | 21–37 |
-| NL-6 | 2 | QET project import with lineage and migration report | WP-S3.09, WP-S3.10, WP-S3.11 | AC-25, AC-26 | 30–46 |
-| NL-7 | 2 | QET corpus and migration verifier | WP-S3.13 | AC-27, SC-4 | 47 |
-| NL-8 | 3 | AML AR APC, TIA tag tables and PLCopen XML | WP-S3.16 | AC-30 | 46 |
-| NL-9 | 3 | EDZ and EPLAN parts XML import; DXF and DWG exchange | WP-S3.18, WP-S3.19 | AC-37 (DXF), AC-38 | 44–49 |
-| NL-10 | 3 | Machine export profiles and the production package | WP-S5.04, WP-S5.07 | AC-35 | 57–59 |
+| NL-2 | 1 | SQL projection `api_v1` and the acceptance runner | WP-S1.10, WP-S6.01 | AC-15 | 13–15 |
+| NL-3 | 1 | `ew-memo` engine with oracle and the performance gate | WP-S1.05, WP-S6.03 | AC-16, AC-17 | 12–15 |
+| NL-4 | 1 | PDF/A-2b of the golden drawing set; published format specification and a permissive-only sample reader | WP-S3.04 | AC-13, AC-14 (Linux), SC-11 | 16 |
+| NL-5 | 2 | Rule engine and `ew check` CLI with the MVP packs | WP-S1.15, WP-S1.16a, WP-S1.16, WP-S1.22 | AC-21 | 22–36 |
+| NL-6 | 2 | QET project import with lineage and migration report | WP-S3.09, WP-S3.10, WP-S3.11 | AC-25, AC-26 | 32–45 |
+| NL-7 | 2 | QET corpus and migration verifier | WP-S3.13 | AC-27, SC-4 | 46 |
+| NL-8 | 3 | AML AR APC, TIA tag tables and PLCopen XML | WP-S3.16 | AC-30 | 45 |
+| NL-9 | 3 | EDZ and EPLAN parts XML import; DXF and DWG exchange | WP-S3.18, WP-S3.19 | AC-37 (DXF), AC-38 | 43–48 |
+| NL-10 | 3 | Machine export profiles and the production package | WP-S5.04, WP-S5.07 | AC-35 | 56–57 |
 <!-- /generated:nlnet -->
 
 This splits the governance's single first proposal (format crates, importers and `ew check` at M1) into three,
@@ -1973,25 +1978,25 @@ counted in the plan of record because the employer applies every year; NLnet is 
 
 | Cost line (euro, excluding VAT; all amounts are estimates to verify) | 3 devs (baseline) | 3 devs + AI-moderate | 3 devs + AI-strong | 4 devs | 2 devs |
 |---|---|---|---|---|---|
-| M6 1.0 at month | 65 | 53 | 46 | 58 | 98 |
-| Developer-years to 1.0 (to the MVP) | 16.3 (10.5) | 13.3 (8.5) | 11.5 (7.3) | 19.0 (12.0) | 16.3 (10.2) |
-| Developer staff to 1.0 (developer-years × loaded cost) | €1 625k | €1 325k | €1 150k | €1 900k | €1 633k |
-| AI tooling (subscriptions or API use per developer-month) | €10k | €32k | €55k | €11k | €10k |
+| M6 1.0 at month | 69 | 54 | 46 | 63 | 97 |
+| Developer-years to 1.0 (to the MVP) | 17.3 (10.3) | 13.5 (8.0) | 11.5 (6.8) | 20.7 (11.7) | 16.2 (9.7) |
+| Developer staff to 1.0 (developer-years × loaded cost) | €1 725k | €1 350k | €1 150k | €2 067k | €1 617k |
+| AI tooling (subscriptions or API use per developer-month) | €10k | €32k | €55k | €12k | €10k |
 | Counsel: LG-1, ADR-0025, ADR-0030, CRA scope (one-off) | €20k | €20k | €20k | €20k | €20k |
-| Counsel after M1 (per year) | €12k | €10k | €9k | €10k | €18k |
+| Counsel after M1 (per year) | €13k | €10k | €9k | €12k | €18k |
 | Trademark: clearance search, EU word mark (classes 9, 42), attorney | €4k | €4k | €4k | €4k | €4k |
 | Code signing: Artifact Signing and Apple Developer Program (per year from enrolment) | €1k | €1k | €1k | €1k | €2k |
-| CI runners beyond the free tier, Weblate, website (per year) | €8k | €7k | €6k | €7k | €12k |
+| CI runners beyond the free tier, Weblate, website (per year) | €9k | €7k | €6k | €8k | €12k |
 | Test hardware: three OSes and a performance runner, refreshed every 3 years | €8k | €8k | €8k | €8k | €10k |
 | Usability rounds R1 and R2: participants, optional moderator | €6k | €6k | €6k | €6k | €6k |
 | External acceptance: partner-shop time, TIA Portal access | €5k | €5k | €5k | €5k | €5k |
 | Stichting founding (LG-6, phase 2) | €2k | €2k | €2k | €2k | €2k |
-| Pilot time, in kind (hours per month × rate) | €35k | €29k | €25k | €31k | €53k |
-| **Gross cost to 1.0** | **€1 737k** | **€1 449k** | **€1 291k** | **€2 007k** | **€1 776k** |
-| WBSO offset (share of staff cost, **verify** rates with RVO) | −€406k | −€331k | −€288k | −€475k | −€408k |
-| **Net cost to 1.0, plan of record (no grants)** | **€1 331k** | **€1 117k** | **€1 003k** | **€1 532k** | **€1 368k** |
+| Pilot time, in kind (hours per month × rate) | €37k | €29k | €25k | €34k | €52k |
+| **Gross cost to 1.0** | **€1 841k** | **€1 475k** | **€1 291k** | **€2 180k** | **€1 759k** |
+| WBSO offset (share of staff cost, **verify** rates with RVO) | −€431k | −€338k | −€288k | −€517k | −€404k |
+| **Net cost to 1.0, plan of record (no grants)** | **€1 410k** | **€1 138k** | **€1 003k** | **€1 663k** | **€1 355k** |
 | NLnet, if 3 proposals are granted at €30k each (upside, not planned) | −€90k | −€90k | −€90k | −€90k | −€90k |
-| Net cost with NLnet | €1 241k | €1 027k | €913k | €1 442k | €1 278k |
+| Net cost with NLnet | €1 320k | €1 048k | €913k | €1 573k | €1 265k |
 <!-- /generated:budget -->
 
 **Reading it.** Staff is close to 90 % of the cost or more in every scenario, so the cost follows the
@@ -2012,9 +2017,9 @@ is small but has deadlines: counsel and the enrolment fees fall in the first 90 
 | PD-5 | ADR-0028 default drawing fonts | Pilot user | Spine week 3 (late November 2026) | WP-S3.02 text stack, goldens | Noto Sans, as the ADR recommends |
 | PD-6 | ADR-0025 plugin-exception wording (LG-2) | Project owner, counsel | Not gated since the owner ruling of 2026-10-22 (decision log ID-454) | Nothing: the merge block was removed (FT-315, ID-480) | Settle the wording before 1.x plugins |
 | PD-7a | ADR-0030 part 1: the phase-1 identity holder, so that signing enrolment can start | Project owner, legal advice | First 90 days (M0) | WP-S0.05a, and through its 12-month lag the first signed release | The pilot's company as interim steward, or the stichting if it is founded first ([governance](../design/19-open-source-governance.md) §3.10) |
-| PD-7 | ADR-0030 in full: steward, CRA role, support period (LG-4) | Project owner, legal advice | G-M1 | WP-S0.05, steward processes, 0.1.0 | Decide by M1 |
+| PD-7 | ADR-0030 in full: steward, CRA role, support period (LG-4) | Project owner, legal advice | G-M1 | WP-S0.05, steward processes, 1.0 (ID-1187) | Decide by M1 |
 | PD-8 | Performance spike: go or fallback (architecture §6.1), gate G-SP. **Decided 2026-10-20: Recycle** (ADR-0002 amendment 4; decision log ID-218) | Core developer | Month 6 (Apr 2027), right after WP-S1.03 | Which queries `ew-memo` memoises | Spike first (§9.2 rule 2) |
-| PD-9 | ADR-0029 network, telemetry and crash reporting | Project owner | Before WP-S6.05 starts ([wp-schedule.csv](wp-schedule.csv)) | First-run prompt, `PRIVACY.md`, 0.1.0 | Zero by default, as the ADR recommends |
+| PD-9 | ADR-0029 network, telemetry and crash reporting | Project owner | Before 1.0 (0.1.0 follows the interim rule, ID-1187) | The update check, the first-run choice, `PRIVACY.md`'s 1.0 rows | Zero by default, as the ADR recommends |
 | PD-10 | ADR-0007 autoconnect validation | Maintainers | R1 | Wiring-tool defaults | Accept or adjust from the R1 findings; R0 on the preview gives early evidence |
 | PD-11 | G-M1 re-baseline: velocity scaling, retirement of the AI scenarios, confirmation of lever (c) | Project owner | G-M1 | 1.0 dates | Scale by the measured ratio, clamped 0.6–1.5 (§3.7) |
 | PD-12 | Further descoping if behind (§16, DS-4 onwards) | Project owner | Any gate review | 1.0 dates | Follow the ladder in order |
@@ -2091,10 +2096,10 @@ scope). Rule of thumb: 9 pw ≈ one month with three developers, 10.8 pw with fo
 <!-- generated:descoping -->
 | Step | Option | PERT pw out of the MVP | PERT pw out of 1.0 | M2 (3 developers) | M6 (3 developers) |
 |---|---|---|---|---|---|
-| DS-1 | Lever (a) | 7.8 | 0.0 | 45 → 44 | 72 → 72 |
-| DS-2 | Lever (b) | 14.0 | 0.0 | 44 → 42 | 72 → 72 |
-| DS-3 | Lever (c) | 0.0 | 54.9 | 42 → 42 | 72 → 65 |
-| DS-6 | 3D, routing and lengths chain to 1.1 | 0.0 | 34.3 | 42 → 43 | 65 → 61 |
+| DS-1 | Lever (a) | 7.8 | 0.0 | 44 → 43 | 77 → 76 |
+| DS-2 | Lever (b) | 14.0 | 0.0 | 43 → 41 | 76 → 76 |
+| DS-3 | Lever (c) | 0.0 | 54.9 | 41 → 41 | 76 → 69 |
+| DS-6 | 3D, routing and lengths chain to 1.1 | 0.0 | 34.3 | 41 → 41 | 69 → 65 |
 <!-- /generated:descoping -->
 
 | Order | Option | What users lose | Decision |
@@ -2109,7 +2114,7 @@ scope). Rule of thumb: 9 pw ≈ one month with three developers, 10.8 pw with fo
 | DS-8 | Accept the later date inside the ±20 % band (§3.5) | Time | Project owner |
 
 **Never cut:** the 20 % reserve and the stabilisation WPs, the acceptance gates of §5, CRA and signing conditions
-before a public release, the anonymisation guard, the licence-boundary check. Cutting them moves defects to the
+before a public release from 1.0 (owner rulings ID-454 and ID-1187; the placement at 1.0 is ID-1188's), the anonymisation guard, the licence-boundary check. Cutting them moves defects to the
 pilot, which is the failure EW exists to prevent.
 
 ---

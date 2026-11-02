@@ -1,6 +1,6 @@
 # Work breakdown structure
 
-**Status:** Draft v0.51 · Amended 2026-11-02, cycle-46 design pass (ID-1152 to ID-1167): WP-S1.17 part 1, WP-S3.07 part 2 and WP-S3.08 part 1 built; follow-ups FT-1059 to FT-1074 in `follow-ups.md`. · Amended 2026-11-02, cycle-45 design pass (ID-1116 to ID-1132): WP-S4.02 part 6 built, so WP-S4.02 is complete (FT-805 closed); WP-S3.07 part 1 built (FT-233 closed); follow-ups FT-1039 to FT-1053 in `follow-ups.md`. · Amended 2026-11-01, cycle-44 design pass, part 1 (ID-1084 to ID-1094): WP-S4.02 parts 4 and 5 built (FT-804, FT-839, FT-204 and FT-942 closed); WP-S3.06 part 3 built, so WP-S3.06 is complete (FT-231, FT-874 closed); follow-ups FT-1014 to FT-1019 in `follow-ups.md`. · Amended 2026-11-01, cycle-44 design pass, part 2 (ID-1095 to ID-1102): the fixers FIX44c (two rounds) and FIX44d in the statuses of WP-S3.06 and WP-S4.02; WP-S3.06's status names the BOM's (`parts_summary`) links (ID-1101); FT-987 closed; follow-ups FT-1020 to FT-1038 in `follow-ups.md`. · Amended 2026-11-01, cycle-42 design pass, part 3 (ID-1036 to ID-1050): WP-S4.02 part 3 built (FT-486 closed); WP-S3.06 part 2 built; FT-974 to FT-998 (the lanes' follow-ups, the window checks W42b and W42c, the review's part 3); FT-962, FT-963 and FT-971 closed by their document edits; FT-950 repeated in W42b; FT-69 and FT-924 annotated. · Amended 2026-10-31, cycle-42 design pass, part 2 (ID-1015 to ID-1035): WP-S1.21 part 5 built and WP-S1.22 part 5 built, both packages complete; WP-S4.02 part 2 built; WP-S3.06 part 1 built; WP-S1.17, WP-S3.08 and WP-S3.07 specified with their PERTs re-estimated (6.9 pw after the owner's format decision; 2.8 pw; 3.3 pw); FT-946 to FT-973 (the lanes' follow-ups and the review's part 2); FT-320, FT-321, FT-352, FT-857, FT-884, FT-890 to FT-896, FT-899, FT-901 (its words), FT-902, FT-910, FT-915, FT-916, FT-934, FT-935, FT-937 and FT-954 closed; FT-61, FT-95 to FT-98, FT-191, FT-218, FT-233, FT-241, FT-242 and FT-403 annotated. · Amended 2026-10-31, cycle-42 design pass, part 1 (ID-998 to ID-1014): WP-S4.01 part 4b built, the package complete; WP-S4.02 part 1 built; FT-918 to FT-945 (the lanes' follow-ups, rv-vis-5's findings and its checker's High finding, W42a, the review's part 1); FT-871, FT-876, FT-877, FT-878, FT-880 and FT-886 closed; FT-335 and FT-484 completed; FT-890 to FT-893, FT-895, FT-896 and FT-898 repeated in rv-vis-5; FT-915 to P42. · Amended 2026-10-31, cycle-41 design pass, part 2 (ID-977 to ID-997): WP-S4.01 part 5 built (FT-845 closed) and part 3's fix round (902 at its stated 1:10, the labels' knockout); WP-S1.22 part 4 built; FT-890 to FT-917 (rv-vis-4's findings, the lanes' follow-ups, the review's parts 3 and 4, W41b); FT-845 and FT-865 closed; FT-589 annotated; FT-879 and FT-883 moved to their own lanes. · Amended 2026-10-31, cycle-41 design pass, part 1 (ID-948 to ID-976): WP-S1.18 part 5 built, the package complete; WP-S4.01 parts 3 and 4a built; WP-S1.22 part 3 built; WP-S4.02 and WP-S3.06 specified with their PERTs re-estimated (5.5 pw; 2.5 pw, the remaining work only); WP-S3.03's stale status row corrected; FT-868 to FT-889; FT-27, FT-200, FT-252, FT-253, FT-842 and FT-889 closed; FT-46, FT-61, FT-69, FT-218, FT-231, FT-241, FT-242, FT-704, FT-731, FT-733 and FT-864 annotated. · Amended 2026-10-31, cycle-40 design pass, part 4 (ID-945 to ID-947): FIXPT40's follow-ups FT-863 to FT-867. · Amended 2026-10-31, cycle-40 design pass, part 3 (ID-939 to ID-944): the fix rounds FIX40d and FIX40e, the review accepted, the window check W40b, cycle 40 closed at a checkpoint; FT-848 to FT-862; FT-843 and FT-844 annotated. · Amended 2026-10-31, cycle-40 design pass, part 2 (ID-932 to ID-937): WP-S4.01 part 2 built (the layout queries and Golden A's layout data; parts 3 to 5 remain); WP-S2.08 part 2 complete (KM-4 met); WP-S1.22's OU-2 met on Windows and Linux; FT-845 to FT-847; FT-717, FT-754, FT-779 and FT-803 closed; FT-810 annotated. · Amended 2026-10-31, cycle-40 design pass, part 1 (ID-921 to ID-931): WP-S1.18 (FT-814 closed), WP-S4.01 part 1, WP-S2.08 part 2, WP-S1.22 part 2, WP-S1.21 part 4b built; WP-S1.19 complete; WP-S2.17's look at 1920 (FT-798 in part); FT-832 to FT-844; FT-646, FT-770, FT-785, FT-786, FT-795, FT-814, FT-816, FT-822 and FT-823 closed; FT-798 in part; FT-813, FT-818 and FT-831 annotated. · Amended 2026-10-31, cycle-39 design pass, part 2 (ID-913 to ID-918): FT-814 to FT-828 (FT-814 High: two copies of one project share its ID, a release discard risk); FT-792 and FT-799 closed; FT-779 in part; FT-798 gains the left pane at 1920. · Amended 2026-10-31, cycle-39 design pass, part 1 (ID-892 to ID-912): WP-S1.21 part 4 (BU-7 waits, FT-770), WP-S1.18 part 4, WP-S2.07 parts 4a and 4b (the package open for FT-781 and FT-782), WP-S1.22 part 1 and WP-S2.08 part 1 built, FT-754 in part; FT-225, FT-249, FT-302, FT-361, FT-394, FT-396 (adapt and update; keep both FT-784), FT-629, FT-734, FT-735, FT-751, FT-753, FT-755 to FT-760, FT-763, FT-766, FT-767 and FT-769 closed; FT-589, FT-717, FT-731, FT-733, FT-752, FT-754 and FT-764 amended; FT-357 and FT-489 re-homed; FT-770 to FT-813 new. · Amended 2026-10-30, cycle-38 design pass, part 3 (ID-885 to ID-891): WP-S1.19 part 6 delivered with UI-1 and UI-4 partly met (FT-754); FT-487, FT-720 and FT-765 closed; FT-734, FT-736 and FT-752 amended; FT-754 to FT-769 new (the WP-S1.19 follow-ups, the Libraries navigator's words, words not IDs in command errors, PLC navigator polish, canvas texts and the router, picker and tools polish, test and record gaps, RG-3's comment command, EW-PLC-001's waiver drift, macro keys, Golden A's overprints, the merged-tip regression, the harness's stateless check runs, `route::clear`'s start node, accidental series insertion, the refit on a dock). · Amended 2026-10-30, cycle-38 design pass, part 2 (ID-881 to ID-884): WP-S2.18 part 4 delivered, so WP-S2.18 is complete; WP-S1.21 part 3 with the fix round's bit address without size and EW-PLC-001 per overlap group; FT-593, FT-714 to FT-716, FT-718, FT-719, FT-722 to FT-724 and FT-745 to FT-750 closed; FT-720 in part; FT-717 to cycle 39; FT-726 reworded (the cycle-38 review, w2); FT-750 to FT-753 new; lane J38 (WP-S1.19 part 6, FT-720 (b)) not yet recorded. · Amended 2026-10-30: macOS is not a supported platform (decision log ID-880); WP-S0.05a, WP-S6.06, WP-S6.07, FT-234, FT-310, FT-431 and FT-542 follow, the estimates unchanged. · Amended 2026-10-30, cycle-38 design pass, part 1 (ID-869 to ID-879): WP-S1.21 part 3 (PA-2 de-scoped), WP-S1.18 part 3 and WP-S2.07 part 3 delivered, WP-S1.19 part 5's acceptance complete; FT-224, FT-227, FT-350, FT-671, FT-672, FT-690, FT-698, FT-705 to FT-712 and FT-721 closed (FT-711 corrected to EW-POT-011); FT-302, FT-323, FT-402, FT-589 and FT-701 in part; FT-697 ruled (dates in records are UTC dates); FT-725 to FT-749 new (FT-745 to FT-749 for the cycle-38 fix round); wave 3 (WP-S1.19 part 6, WP-S2.18 part 4, the small window follow-ups) not yet recorded. · Amended 2026-10-30, cycle-37 recording pass (ID-867, ID-868): FT-723 and FT-724 new; FT-687 and FT-722 updated. · Amended 2026-10-30, cycle-37 design pass (ID-853 to ID-864): FT-207, FT-303, FT-628, FT-633, FT-649, FT-662, FT-663, FT-664, FT-670, FT-673, FT-674, FT-675 and FT-687 closed; FT-227, FT-302 and FT-402 in part and open; FT-690 to FT-704 new (the PLC address in the grid, the revision follow-ups of parts 1 and 2, the coil's kind text, the conflict overlay's CP-keyed potentials, the waiver's local date, Golden A's `plc_address` library update, the PLC pin and target texts, the page digest's languages and consumers). · Amended 2026-10-30, cycle-36 design pass (ID-834, ID-839 to ID-848): FT-494, FT-607, FT-640, FT-651, FT-654 (as narrowed), FT-655, FT-656, FT-658, FT-659, FT-660 and FT-665 closed, FT-606 (a) done; FT-186 de-scoped from WP-S1.16 part 5 and FT-638 annotated (ID-844); FT-670 to FT-680 new (the Properties row of `template_entry`, MC-4 and MC-5, the orientation on macro insert, one-step embedding for the remaining paths, the Waive… action, the canvas conflict colour, the cycle-35 review's minors, nl-NL beyond the golden rules). · Amended 2026-10-29, cycle-35 design pass (ID-815 to ID-830): WP-S2.18 parts 1 to 3 (D3 deferred; parts 2 and 3 by lane G35, ID-830, FT-592 closed, FT-655 to FT-661 new; FT-662 to FT-665 from the play-test, W35 and the fix round, ID-831 to ID-833; FT-606, FT-607 and FT-617 targeted to the cycle-36 candidates, FT-654 narrowed to the build), WP-S1.19 parts 2, 3 and 4, WP-S2.07 part 2 and WP-S1.16 parts 3 and 4 delivered; FT-39, FT-168, FT-194, FT-196, FT-208, FT-229, FT-261, FT-265, FT-274, FT-368, FT-463, FT-594 to FT-600, FT-602, FT-604, FT-605, FT-618, FT-619, FT-621, FT-622 and FT-624 to FT-627 closed (FT-595 as ruled); FT-323, FT-487 and FT-490 in part; FT-627 to FT-654 new. · Amended 2026-10-29, cycle-34 design pass (ID-795 to ID-813): WP-S2.07 part 1, WP-S1.16 parts 1 and 2, WP-S1.19 part 1 and WP-S6.13 part 4 delivered; **WP-S2.18, basic elements from the window, added** on the owner's request with the generic starter parts moved from WP-S7.03 (ID-812; 126 WPs, 28 in M2); FT-24, FT-187 to FT-189, FT-236, FT-399, FT-543 to FT-551, FT-553 to FT-567, FT-569 to FT-571, FT-576 to FT-578 and FT-580 to FT-588 closed; FT-592 and FT-593 re-owned to WP-S2.18; FT-594 to FT-625 new (FT-605 to FT-625 from the calibration round, gpp-3 and W34). · Amended 2026-10-29, cycle-33 design pass (ID-761 to ID-779): WP-S6.13 part 3 delivered (the two G-PP blind runs), so WP-S6.13 is complete; G-PP recorded Go on the blind-run proxy and M-PP closed (ID-777); the minimal part chooser moved out of WP-S2.07, which gains the strip accessories of G-PP's H4 gap; FT-524 and FT-527 to FT-541 closed; FT-399 re-dated to M2 cycle 1 and every other open follow-up due before G-PP to M2; FT-543 to FT-584 (from the second run's triage, the window check W33, the lanes and the first run's harness defects); FT-585 and FT-586 from the cycle-33 review (ID-780). · Amended 2026-10-29, cycle-32 design pass (ID-744 to ID-759): WP-S2.17 parts 2 to 5 delivered, so WP-S2.17 is complete; FT-338, FT-348 (except the position clamp at start, FT-526), FT-390, FT-391, FT-425, FT-507, FT-508, FT-510, FT-514, FT-515, FT-516, FT-518, FT-519, FT-521, FT-523 and FT-525 closed; FT-479 measured twice and still open; FT-524's watch extended (FT-538); FT-526 to FT-541 (FT-540 and FT-541 from WP-S2.17 part 3, ID-749). · Amended 2026-10-28, cycle-31 design pass (ID-721 to ID-742): WP-S2.06 part 3 and WP-S2.09 parts 2 and 3 delivered, so both packages are complete; WP-S2.17 specified (absorbing FT-338, FT-348, FT-390, FT-391, FT-425, FT-507, FT-508, FT-510 and FT-514), parts 1 and 6 delivered; FT-326 and FT-435 closed for the pilot's 0.0.x builds; FT-417, FT-466, FT-493, FT-500 to FT-506, FT-509, FT-512 and FT-513 closed (FT-503 as the elapsed time); FT-479 measured once; FT-514 to FT-524. · Amended 2026-10-28, cycle-30 design pass and delivery records (ID-700 to ID-720): WP-S2.06 parts 1 and 2 and WP-S2.09 part 1 delivered; FT-251 (except the memo snapshot), FT-313, FT-360, FT-362, FT-389, FT-392, FT-424, FT-437, FT-438, FT-461, FT-464, FT-470, FT-471, FT-475, FT-476, FT-478, FT-480, FT-481 (environmental), FT-483, FT-484 and FT-485 closed; FT-371 narrowed; FT-479 taken and open until measured; FT-499 to FT-513 (FT-507 to FT-512 from the window checks, FT-511 closed as specified, FT-513 from the review; FT-499 fixed in the review round). · Amended 2026-10-28, cycle 30 (ID-681 to ID-699): WP-S2.06 and WP-S2.09 specified; FT-486 to FT-498; FT-463 moved to WP-S1.19a and FT-488 to WP-S2.14 (ID-691). · Amended 2026-10-27, cycle 29 (ID-667 to ID-680): WP-S2.04 part 5 delivered, so WP-S2.04 is complete; WP-S6.13 part 2 delivered; FT-442, FT-447, FT-451, FT-456, FT-459, FT-460, FT-465 and FT-467 closed; FT-438 taken and open until measured; FT-440 closed after the owner accepted its golden renumbering; FT-401 noted; BD16 done, pass-with-gaps and unblessed (ID-678); FT-475 to FT-485. · Amended 2026-10-26, cycle 28 (ID-659 to ID-666): accepted implementation; final local validation and publication status in ID-665; hosted CI pending at publication; hold after delivery; corrected eight-file raster corpus, FT-436 partial; FT-470 to FT-473 open and FT-474 timing enforcement closed; merged references/raster validation and accepted window corrections recorded; scoped Windows window checks passed. · **Date:** 2026-10-25 (v0.28: the cycle-27 statuses (decision log ID-643 to ID-657): WP-S2.04 parts 3 and 4a, WP-S2.05 part 3 (the package delivered) and WP-S6.13 part 1 delivered, the first slices of WP-S2.06 and WP-S2.09; FT-314, FT-404, FT-405, FT-408, FT-409, FT-410, FT-415 and FT-439 closed, FT-416, FT-420 and FT-432 amended, FT-387 and FT-438 noted, FT-389, FT-392, FT-424 and FT-437 re-dated to WP-S2.04 part 4b, FT-440 to FT-468; v0.27: the cycle-26 statuses (decision log ID-633 to ID-642): WP-S2.04 part 2 and WP-S2.05 part 2 delivered, FT-387, FT-406, FT-421, FT-422, FT-423 and FT-427 closed, FT-424 in part, FT-389, FT-391, FT-392, FT-404 and FT-405 re-dated, FT-374, FT-412 and FT-416 amended, FT-430 to FT-439; v0.26: the cycle-25 statuses (decision log ID-625 to ID-632): WP-S2.04 part 1 and WP-S2.05 part 1 delivered, FT-387 taken in part with a third Windows run job, FT-389, FT-391 and FT-392 re-dated to WP-S2.04 part 2, FT-412 amended by the alias grammar, FT-421 to FT-429; v0.25: WP-S6.13's fix round (decision log ID-621 to ID-624): its status and restated parts with the PERT unchanged, FT-408 to FT-411 with hosts and sizes before G-PP, FT-414 and FT-415 amended, FT-420; notes under WP-S2.06 and WP-S2.09; v0.24: lane C's fix round recorded (decision log ID-620): FT-380 closed as a `HumanOnly` purge, FT-383 hardened, FT-417 to FT-419; v0.23: WP-S6.13 specified (decision log ID-610 to ID-619), FT-408 to FT-416, FT-314's closing route; v0.22: the cycle-24 statuses (WP-S2.03 delivered, parts 1 and 2; WP-S2.05 specified with decision log ID-591 to ID-600, part 1's dep-rules precondition met), FT-366 and FT-370 closed, FT-387's README part closed, FT-371 narrowed, FT-380, FT-382 and FT-383 closed and FT-384 closed in part (lane C), FT-389 to FT-407, decision log ID-586 to ID-609; v0.21: the cycle-23 statuses (WP-S2.03 part 1 delivered, part 2 next; WP-S2.04 specified with decision log ID-561 to ID-571; WP-S1.12's structure-box item to WP-S2.04 part 4a; WP-S6.05's `PRIVACY.md`), FT-336, FT-337, FT-341, FT-342 and FT-345 closed, FT-359 narrowed, FT-338 and FT-353 noted, FT-371 to FT-388, decision log ID-556 to ID-585; v0.20: the cycle-22 statuses (WP-S2.02 delivered, parts 1 and 2; WP-S2.03 specified, part 1 next; FR-UI-015 and FR-UI-018 added to WP-S2.04 and FR-UI-018 to WP-S2.06), FT-300, FT-328, FT-349, FT-353, FT-356 and FT-369 closed, FT-336 and FT-347 in part, FT-354 deferred, FT-310, FT-314, FT-326, FT-338 extended, FT-357 to FT-370, decision log ID-531 to ID-555; v0.19: the cycle-21 statuses (WP-S2.02 part 1 delivered, part 2 open; WP-S2.03's specification next; WP-S6.03's measurements in the release phase), FT-318, FT-319, FT-333, FT-335, FT-343 and FT-344 closed, FT-326 in part, FT-26, FT-114 to FT-119, FT-121, FT-288 and FT-291 re-dated to the release phase, FT-347 extended, FT-348 to FT-356, decision log ID-512 to ID-530; v0.18: WP-S2.02 specified for cycle 21 in two parts, FT-345 to FT-347, decision log ID-505 to ID-511; v0.17: the cycle-20 statuses (WP-S2.01 delivered, parts 1 and 2, muda deferred; WP-S6.02 with the deep nightly CI-N-02 and the cargo-fuzz crate CI-N-03 built, CI-PR-08 open), FT-113, FT-272, FT-297, FT-304, FT-307, FT-308, FT-309, FT-311, FT-312, FT-327 and FT-330 closed, FT-313 and FT-326 in part, FT-314 extended, FT-335 to FT-344, decision log ID-486 to ID-504; v0.16: the cycle-19 statuses (WP-S2.01 part 1 delivered, part 2 cycle 20; WP-S0.04's stale LG-2 text), FT-299, FT-315, FT-316 and FT-317 closed, FT-302, FT-313 and FT-314 extended, FT-326 to FT-330, decision log ID-472 to ID-485; v0.15: the cycle-18 statuses (WP-S1.21 part-data binding delivered with follow-ups; WP-S6.02 delivered in part; WP-S6.01), FT-228, FT-275 to FT-277, FT-294, FT-295 and FT-306 closed, FT-296 delivered report-only, FT-192 extended, FT-317 to FT-325, decision log ID-456 to ID-471; v0.14: the owner rulings of 2026-10-22: WP-S0.04 and the legal parts of WP-S0.05a and WP-S0.05 not pursued, the signing identities a later release item of WP-S6.07, FT-315, decision log ID-450 to ID-455; v0.13: the M-PP kick-off: WP-S2.01 specified for cycle 19 in two parts, FT-307 to FT-314, decision log ID-440 to ID-449; v0.12: the cycle-17 statuses (the typed revision, WP-S1.18 in part; the fuzzer's coverage and nightly form, WP-S6.02), FT-165 and FT-279 closed, FT-272 closed in part, FT-139, FT-207 and FT-286 extended, FT-302 to FT-306; v0.11: the G-M1 readiness run: WP-S0.04's status, FT-294 to FT-301; its rulings: FT-87, FT-88, FT-89, FT-91 and FT-92 re-dated to before G-PP; v0.10: the cycle-16 statuses (the device-tree, PLC, supply and library commands with AC-15 path (b) passing, the user guide and its generated reference, the acceptance tests once per CI job and the nightly performance gate), FT-273 to FT-293 (the lane-B review follow-ups FT-287 to FT-293), FT-169 and FT-256, FT-268, FT-269 closed, FT-167 and FT-270 in part; v0.9: the cycle-15 statuses (the export job, `ew apply`, the assembly aspect, the import modes), the builder DSL and the fuzzer, FT-246 to FT-272, FT-59, FT-156, FT-164, FT-206 and FT-245 closed; v0.8: the cycle-14 statuses, WP-S6.13 (the blind-drafter harness, 124 WPs), FT-233 to FT-245, FT-101 and FT-212 to FT-214 closed; v0.7: the cycle-13 statuses, wire numbering, the SQL projection v0, the PLC record kinds and the DP bus potential, FT-212 to FT-232, FT-100, FT-105, FT-111 and FT-201 closed, FT-80 partly; v0.6: the cycle-12 statuses, Golden C, the check engine, the M1 report and page gaps, FT-164 to FT-211, FT-15, FT-62, FT-65, FT-110 and FT-159 to FT-162 closed; v0.5: the cycle-11 statuses, the QET project import spike, the acceptance runner, Golden B, the symbol rulings, FT-127 to FT-163; v0.4: the cycle-10 statuses, WP-S1.07 part 2 delivered, FT-84, FT-86 and FT-109 closed, FT-117 to FT-126; v0.3: the cycle-9 statuses, WP-S1.07 in two parts, FT-100 to FT-116; v0.2: the estimates of WP-S1.05, WP-S1.07 and WP-S1.08 after G-SP, the cycle-8 statuses and FT-86 to FT-99) · **Part of:** ElektraWatt plan
+**Status:** Draft v0.51 · Amended 2026-11-02 (ID-1187, ID-1188): the pilot release 0.1.0's scope: WP-S0.03 closes with `GOVERNANCE.md` and `ROADMAP.md`, WP-S0.05 moves to M6, WP-S0.07 is not pursued, WP-S6.04 to WP-S6.07 are re-estimated and WP-S6.10 takes what moves to 1.0. · Amended 2026-11-02, cycle-46 design pass (ID-1152 to ID-1167): WP-S1.17 part 1, WP-S3.07 part 2 and WP-S3.08 part 1 built; follow-ups FT-1059 to FT-1074 in `follow-ups.md`. · Amended 2026-11-02, cycle-45 design pass (ID-1116 to ID-1132): WP-S4.02 part 6 built, so WP-S4.02 is complete (FT-805 closed); WP-S3.07 part 1 built (FT-233 closed); follow-ups FT-1039 to FT-1053 in `follow-ups.md`. · Amended 2026-11-01, cycle-44 design pass, part 1 (ID-1084 to ID-1094): WP-S4.02 parts 4 and 5 built (FT-804, FT-839, FT-204 and FT-942 closed); WP-S3.06 part 3 built, so WP-S3.06 is complete (FT-231, FT-874 closed); follow-ups FT-1014 to FT-1019 in `follow-ups.md`. · Amended 2026-11-01, cycle-44 design pass, part 2 (ID-1095 to ID-1102): the fixers FIX44c (two rounds) and FIX44d in the statuses of WP-S3.06 and WP-S4.02; WP-S3.06's status names the BOM's (`parts_summary`) links (ID-1101); FT-987 closed; follow-ups FT-1020 to FT-1038 in `follow-ups.md`. · Amended 2026-11-01, cycle-42 design pass, part 3 (ID-1036 to ID-1050): WP-S4.02 part 3 built (FT-486 closed); WP-S3.06 part 2 built; FT-974 to FT-998 (the lanes' follow-ups, the window checks W42b and W42c, the review's part 3); FT-962, FT-963 and FT-971 closed by their document edits; FT-950 repeated in W42b; FT-69 and FT-924 annotated. · Amended 2026-10-31, cycle-42 design pass, part 2 (ID-1015 to ID-1035): WP-S1.21 part 5 built and WP-S1.22 part 5 built, both packages complete; WP-S4.02 part 2 built; WP-S3.06 part 1 built; WP-S1.17, WP-S3.08 and WP-S3.07 specified with their PERTs re-estimated (6.9 pw after the owner's format decision; 2.8 pw; 3.3 pw); FT-946 to FT-973 (the lanes' follow-ups and the review's part 2); FT-320, FT-321, FT-352, FT-857, FT-884, FT-890 to FT-896, FT-899, FT-901 (its words), FT-902, FT-910, FT-915, FT-916, FT-934, FT-935, FT-937 and FT-954 closed; FT-61, FT-95 to FT-98, FT-191, FT-218, FT-233, FT-241, FT-242 and FT-403 annotated. · Amended 2026-10-31, cycle-42 design pass, part 1 (ID-998 to ID-1014): WP-S4.01 part 4b built, the package complete; WP-S4.02 part 1 built; FT-918 to FT-945 (the lanes' follow-ups, rv-vis-5's findings and its checker's High finding, W42a, the review's part 1); FT-871, FT-876, FT-877, FT-878, FT-880 and FT-886 closed; FT-335 and FT-484 completed; FT-890 to FT-893, FT-895, FT-896 and FT-898 repeated in rv-vis-5; FT-915 to P42. · Amended 2026-10-31, cycle-41 design pass, part 2 (ID-977 to ID-997): WP-S4.01 part 5 built (FT-845 closed) and part 3's fix round (902 at its stated 1:10, the labels' knockout); WP-S1.22 part 4 built; FT-890 to FT-917 (rv-vis-4's findings, the lanes' follow-ups, the review's parts 3 and 4, W41b); FT-845 and FT-865 closed; FT-589 annotated; FT-879 and FT-883 moved to their own lanes. · Amended 2026-10-31, cycle-41 design pass, part 1 (ID-948 to ID-976): WP-S1.18 part 5 built, the package complete; WP-S4.01 parts 3 and 4a built; WP-S1.22 part 3 built; WP-S4.02 and WP-S3.06 specified with their PERTs re-estimated (5.5 pw; 2.5 pw, the remaining work only); WP-S3.03's stale status row corrected; FT-868 to FT-889; FT-27, FT-200, FT-252, FT-253, FT-842 and FT-889 closed; FT-46, FT-61, FT-69, FT-218, FT-231, FT-241, FT-242, FT-704, FT-731, FT-733 and FT-864 annotated. · Amended 2026-10-31, cycle-40 design pass, part 4 (ID-945 to ID-947): FIXPT40's follow-ups FT-863 to FT-867. · Amended 2026-10-31, cycle-40 design pass, part 3 (ID-939 to ID-944): the fix rounds FIX40d and FIX40e, the review accepted, the window check W40b, cycle 40 closed at a checkpoint; FT-848 to FT-862; FT-843 and FT-844 annotated. · Amended 2026-10-31, cycle-40 design pass, part 2 (ID-932 to ID-937): WP-S4.01 part 2 built (the layout queries and Golden A's layout data; parts 3 to 5 remain); WP-S2.08 part 2 complete (KM-4 met); WP-S1.22's OU-2 met on Windows and Linux; FT-845 to FT-847; FT-717, FT-754, FT-779 and FT-803 closed; FT-810 annotated. · Amended 2026-10-31, cycle-40 design pass, part 1 (ID-921 to ID-931): WP-S1.18 (FT-814 closed), WP-S4.01 part 1, WP-S2.08 part 2, WP-S1.22 part 2, WP-S1.21 part 4b built; WP-S1.19 complete; WP-S2.17's look at 1920 (FT-798 in part); FT-832 to FT-844; FT-646, FT-770, FT-785, FT-786, FT-795, FT-814, FT-816, FT-822 and FT-823 closed; FT-798 in part; FT-813, FT-818 and FT-831 annotated. · Amended 2026-10-31, cycle-39 design pass, part 2 (ID-913 to ID-918): FT-814 to FT-828 (FT-814 High: two copies of one project share its ID, a release discard risk); FT-792 and FT-799 closed; FT-779 in part; FT-798 gains the left pane at 1920. · Amended 2026-10-31, cycle-39 design pass, part 1 (ID-892 to ID-912): WP-S1.21 part 4 (BU-7 waits, FT-770), WP-S1.18 part 4, WP-S2.07 parts 4a and 4b (the package open for FT-781 and FT-782), WP-S1.22 part 1 and WP-S2.08 part 1 built, FT-754 in part; FT-225, FT-249, FT-302, FT-361, FT-394, FT-396 (adapt and update; keep both FT-784), FT-629, FT-734, FT-735, FT-751, FT-753, FT-755 to FT-760, FT-763, FT-766, FT-767 and FT-769 closed; FT-589, FT-717, FT-731, FT-733, FT-752, FT-754 and FT-764 amended; FT-357 and FT-489 re-homed; FT-770 to FT-813 new. · Amended 2026-10-30, cycle-38 design pass, part 3 (ID-885 to ID-891): WP-S1.19 part 6 delivered with UI-1 and UI-4 partly met (FT-754); FT-487, FT-720 and FT-765 closed; FT-734, FT-736 and FT-752 amended; FT-754 to FT-769 new (the WP-S1.19 follow-ups, the Libraries navigator's words, words not IDs in command errors, PLC navigator polish, canvas texts and the router, picker and tools polish, test and record gaps, RG-3's comment command, EW-PLC-001's waiver drift, macro keys, Golden A's overprints, the merged-tip regression, the harness's stateless check runs, `route::clear`'s start node, accidental series insertion, the refit on a dock). · Amended 2026-10-30, cycle-38 design pass, part 2 (ID-881 to ID-884): WP-S2.18 part 4 delivered, so WP-S2.18 is complete; WP-S1.21 part 3 with the fix round's bit address without size and EW-PLC-001 per overlap group; FT-593, FT-714 to FT-716, FT-718, FT-719, FT-722 to FT-724 and FT-745 to FT-750 closed; FT-720 in part; FT-717 to cycle 39; FT-726 reworded (the cycle-38 review, w2); FT-750 to FT-753 new; lane J38 (WP-S1.19 part 6, FT-720 (b)) not yet recorded. · Amended 2026-10-30: macOS is not a supported platform (decision log ID-880); WP-S0.05a, WP-S6.06, WP-S6.07, FT-234, FT-310, FT-431 and FT-542 follow, the estimates unchanged. · Amended 2026-10-30, cycle-38 design pass, part 1 (ID-869 to ID-879): WP-S1.21 part 3 (PA-2 de-scoped), WP-S1.18 part 3 and WP-S2.07 part 3 delivered, WP-S1.19 part 5's acceptance complete; FT-224, FT-227, FT-350, FT-671, FT-672, FT-690, FT-698, FT-705 to FT-712 and FT-721 closed (FT-711 corrected to EW-POT-011); FT-302, FT-323, FT-402, FT-589 and FT-701 in part; FT-697 ruled (dates in records are UTC dates); FT-725 to FT-749 new (FT-745 to FT-749 for the cycle-38 fix round); wave 3 (WP-S1.19 part 6, WP-S2.18 part 4, the small window follow-ups) not yet recorded. · Amended 2026-10-30, cycle-37 recording pass (ID-867, ID-868): FT-723 and FT-724 new; FT-687 and FT-722 updated. · Amended 2026-10-30, cycle-37 design pass (ID-853 to ID-864): FT-207, FT-303, FT-628, FT-633, FT-649, FT-662, FT-663, FT-664, FT-670, FT-673, FT-674, FT-675 and FT-687 closed; FT-227, FT-302 and FT-402 in part and open; FT-690 to FT-704 new (the PLC address in the grid, the revision follow-ups of parts 1 and 2, the coil's kind text, the conflict overlay's CP-keyed potentials, the waiver's local date, Golden A's `plc_address` library update, the PLC pin and target texts, the page digest's languages and consumers). · Amended 2026-10-30, cycle-36 design pass (ID-834, ID-839 to ID-848): FT-494, FT-607, FT-640, FT-651, FT-654 (as narrowed), FT-655, FT-656, FT-658, FT-659, FT-660 and FT-665 closed, FT-606 (a) done; FT-186 de-scoped from WP-S1.16 part 5 and FT-638 annotated (ID-844); FT-670 to FT-680 new (the Properties row of `template_entry`, MC-4 and MC-5, the orientation on macro insert, one-step embedding for the remaining paths, the Waive… action, the canvas conflict colour, the cycle-35 review's minors, nl-NL beyond the golden rules). · Amended 2026-10-29, cycle-35 design pass (ID-815 to ID-830): WP-S2.18 parts 1 to 3 (D3 deferred; parts 2 and 3 by lane G35, ID-830, FT-592 closed, FT-655 to FT-661 new; FT-662 to FT-665 from the play-test, W35 and the fix round, ID-831 to ID-833; FT-606, FT-607 and FT-617 targeted to the cycle-36 candidates, FT-654 narrowed to the build), WP-S1.19 parts 2, 3 and 4, WP-S2.07 part 2 and WP-S1.16 parts 3 and 4 delivered; FT-39, FT-168, FT-194, FT-196, FT-208, FT-229, FT-261, FT-265, FT-274, FT-368, FT-463, FT-594 to FT-600, FT-602, FT-604, FT-605, FT-618, FT-619, FT-621, FT-622 and FT-624 to FT-627 closed (FT-595 as ruled); FT-323, FT-487 and FT-490 in part; FT-627 to FT-654 new. · Amended 2026-10-29, cycle-34 design pass (ID-795 to ID-813): WP-S2.07 part 1, WP-S1.16 parts 1 and 2, WP-S1.19 part 1 and WP-S6.13 part 4 delivered; **WP-S2.18, basic elements from the window, added** on the owner's request with the generic starter parts moved from WP-S7.03 (ID-812; 126 WPs, 28 in M2); FT-24, FT-187 to FT-189, FT-236, FT-399, FT-543 to FT-551, FT-553 to FT-567, FT-569 to FT-571, FT-576 to FT-578 and FT-580 to FT-588 closed; FT-592 and FT-593 re-owned to WP-S2.18; FT-594 to FT-625 new (FT-605 to FT-625 from the calibration round, gpp-3 and W34). · Amended 2026-10-29, cycle-33 design pass (ID-761 to ID-779): WP-S6.13 part 3 delivered (the two G-PP blind runs), so WP-S6.13 is complete; G-PP recorded Go on the blind-run proxy and M-PP closed (ID-777); the minimal part chooser moved out of WP-S2.07, which gains the strip accessories of G-PP's H4 gap; FT-524 and FT-527 to FT-541 closed; FT-399 re-dated to M2 cycle 1 and every other open follow-up due before G-PP to M2; FT-543 to FT-584 (from the second run's triage, the window check W33, the lanes and the first run's harness defects); FT-585 and FT-586 from the cycle-33 review (ID-780). · Amended 2026-10-29, cycle-32 design pass (ID-744 to ID-759): WP-S2.17 parts 2 to 5 delivered, so WP-S2.17 is complete; FT-338, FT-348 (except the position clamp at start, FT-526), FT-390, FT-391, FT-425, FT-507, FT-508, FT-510, FT-514, FT-515, FT-516, FT-518, FT-519, FT-521, FT-523 and FT-525 closed; FT-479 measured twice and still open; FT-524's watch extended (FT-538); FT-526 to FT-541 (FT-540 and FT-541 from WP-S2.17 part 3, ID-749). · Amended 2026-10-28, cycle-31 design pass (ID-721 to ID-742): WP-S2.06 part 3 and WP-S2.09 parts 2 and 3 delivered, so both packages are complete; WP-S2.17 specified (absorbing FT-338, FT-348, FT-390, FT-391, FT-425, FT-507, FT-508, FT-510 and FT-514), parts 1 and 6 delivered; FT-326 and FT-435 closed for the pilot's 0.0.x builds; FT-417, FT-466, FT-493, FT-500 to FT-506, FT-509, FT-512 and FT-513 closed (FT-503 as the elapsed time); FT-479 measured once; FT-514 to FT-524. · Amended 2026-10-28, cycle-30 design pass and delivery records (ID-700 to ID-720): WP-S2.06 parts 1 and 2 and WP-S2.09 part 1 delivered; FT-251 (except the memo snapshot), FT-313, FT-360, FT-362, FT-389, FT-392, FT-424, FT-437, FT-438, FT-461, FT-464, FT-470, FT-471, FT-475, FT-476, FT-478, FT-480, FT-481 (environmental), FT-483, FT-484 and FT-485 closed; FT-371 narrowed; FT-479 taken and open until measured; FT-499 to FT-513 (FT-507 to FT-512 from the window checks, FT-511 closed as specified, FT-513 from the review; FT-499 fixed in the review round). · Amended 2026-10-28, cycle 30 (ID-681 to ID-699): WP-S2.06 and WP-S2.09 specified; FT-486 to FT-498; FT-463 moved to WP-S1.19a and FT-488 to WP-S2.14 (ID-691). · Amended 2026-10-27, cycle 29 (ID-667 to ID-680): WP-S2.04 part 5 delivered, so WP-S2.04 is complete; WP-S6.13 part 2 delivered; FT-442, FT-447, FT-451, FT-456, FT-459, FT-460, FT-465 and FT-467 closed; FT-438 taken and open until measured; FT-440 closed after the owner accepted its golden renumbering; FT-401 noted; BD16 done, pass-with-gaps and unblessed (ID-678); FT-475 to FT-485. · Amended 2026-10-26, cycle 28 (ID-659 to ID-666): accepted implementation; final local validation and publication status in ID-665; hosted CI pending at publication; hold after delivery; corrected eight-file raster corpus, FT-436 partial; FT-470 to FT-473 open and FT-474 timing enforcement closed; merged references/raster validation and accepted window corrections recorded; scoped Windows window checks passed. · **Date:** 2026-10-25 (v0.28: the cycle-27 statuses (decision log ID-643 to ID-657): WP-S2.04 parts 3 and 4a, WP-S2.05 part 3 (the package delivered) and WP-S6.13 part 1 delivered, the first slices of WP-S2.06 and WP-S2.09; FT-314, FT-404, FT-405, FT-408, FT-409, FT-410, FT-415 and FT-439 closed, FT-416, FT-420 and FT-432 amended, FT-387 and FT-438 noted, FT-389, FT-392, FT-424 and FT-437 re-dated to WP-S2.04 part 4b, FT-440 to FT-468; v0.27: the cycle-26 statuses (decision log ID-633 to ID-642): WP-S2.04 part 2 and WP-S2.05 part 2 delivered, FT-387, FT-406, FT-421, FT-422, FT-423 and FT-427 closed, FT-424 in part, FT-389, FT-391, FT-392, FT-404 and FT-405 re-dated, FT-374, FT-412 and FT-416 amended, FT-430 to FT-439; v0.26: the cycle-25 statuses (decision log ID-625 to ID-632): WP-S2.04 part 1 and WP-S2.05 part 1 delivered, FT-387 taken in part with a third Windows run job, FT-389, FT-391 and FT-392 re-dated to WP-S2.04 part 2, FT-412 amended by the alias grammar, FT-421 to FT-429; v0.25: WP-S6.13's fix round (decision log ID-621 to ID-624): its status and restated parts with the PERT unchanged, FT-408 to FT-411 with hosts and sizes before G-PP, FT-414 and FT-415 amended, FT-420; notes under WP-S2.06 and WP-S2.09; v0.24: lane C's fix round recorded (decision log ID-620): FT-380 closed as a `HumanOnly` purge, FT-383 hardened, FT-417 to FT-419; v0.23: WP-S6.13 specified (decision log ID-610 to ID-619), FT-408 to FT-416, FT-314's closing route; v0.22: the cycle-24 statuses (WP-S2.03 delivered, parts 1 and 2; WP-S2.05 specified with decision log ID-591 to ID-600, part 1's dep-rules precondition met), FT-366 and FT-370 closed, FT-387's README part closed, FT-371 narrowed, FT-380, FT-382 and FT-383 closed and FT-384 closed in part (lane C), FT-389 to FT-407, decision log ID-586 to ID-609; v0.21: the cycle-23 statuses (WP-S2.03 part 1 delivered, part 2 next; WP-S2.04 specified with decision log ID-561 to ID-571; WP-S1.12's structure-box item to WP-S2.04 part 4a; WP-S6.05's `PRIVACY.md`), FT-336, FT-337, FT-341, FT-342 and FT-345 closed, FT-359 narrowed, FT-338 and FT-353 noted, FT-371 to FT-388, decision log ID-556 to ID-585; v0.20: the cycle-22 statuses (WP-S2.02 delivered, parts 1 and 2; WP-S2.03 specified, part 1 next; FR-UI-015 and FR-UI-018 added to WP-S2.04 and FR-UI-018 to WP-S2.06), FT-300, FT-328, FT-349, FT-353, FT-356 and FT-369 closed, FT-336 and FT-347 in part, FT-354 deferred, FT-310, FT-314, FT-326, FT-338 extended, FT-357 to FT-370, decision log ID-531 to ID-555; v0.19: the cycle-21 statuses (WP-S2.02 part 1 delivered, part 2 open; WP-S2.03's specification next; WP-S6.03's measurements in the release phase), FT-318, FT-319, FT-333, FT-335, FT-343 and FT-344 closed, FT-326 in part, FT-26, FT-114 to FT-119, FT-121, FT-288 and FT-291 re-dated to the release phase, FT-347 extended, FT-348 to FT-356, decision log ID-512 to ID-530; v0.18: WP-S2.02 specified for cycle 21 in two parts, FT-345 to FT-347, decision log ID-505 to ID-511; v0.17: the cycle-20 statuses (WP-S2.01 delivered, parts 1 and 2, muda deferred; WP-S6.02 with the deep nightly CI-N-02 and the cargo-fuzz crate CI-N-03 built, CI-PR-08 open), FT-113, FT-272, FT-297, FT-304, FT-307, FT-308, FT-309, FT-311, FT-312, FT-327 and FT-330 closed, FT-313 and FT-326 in part, FT-314 extended, FT-335 to FT-344, decision log ID-486 to ID-504; v0.16: the cycle-19 statuses (WP-S2.01 part 1 delivered, part 2 cycle 20; WP-S0.04's stale LG-2 text), FT-299, FT-315, FT-316 and FT-317 closed, FT-302, FT-313 and FT-314 extended, FT-326 to FT-330, decision log ID-472 to ID-485; v0.15: the cycle-18 statuses (WP-S1.21 part-data binding delivered with follow-ups; WP-S6.02 delivered in part; WP-S6.01), FT-228, FT-275 to FT-277, FT-294, FT-295 and FT-306 closed, FT-296 delivered report-only, FT-192 extended, FT-317 to FT-325, decision log ID-456 to ID-471; v0.14: the owner rulings of 2026-10-22: WP-S0.04 and the legal parts of WP-S0.05a and WP-S0.05 not pursued, the signing identities a later release item of WP-S6.07, FT-315, decision log ID-450 to ID-455; v0.13: the M-PP kick-off: WP-S2.01 specified for cycle 19 in two parts, FT-307 to FT-314, decision log ID-440 to ID-449; v0.12: the cycle-17 statuses (the typed revision, WP-S1.18 in part; the fuzzer's coverage and nightly form, WP-S6.02), FT-165 and FT-279 closed, FT-272 closed in part, FT-139, FT-207 and FT-286 extended, FT-302 to FT-306; v0.11: the G-M1 readiness run: WP-S0.04's status, FT-294 to FT-301; its rulings: FT-87, FT-88, FT-89, FT-91 and FT-92 re-dated to before G-PP; v0.10: the cycle-16 statuses (the device-tree, PLC, supply and library commands with AC-15 path (b) passing, the user guide and its generated reference, the acceptance tests once per CI job and the nightly performance gate), FT-273 to FT-293 (the lane-B review follow-ups FT-287 to FT-293), FT-169 and FT-256, FT-268, FT-269 closed, FT-167 and FT-270 in part; v0.9: the cycle-15 statuses (the export job, `ew apply`, the assembly aspect, the import modes), the builder DSL and the fuzzer, FT-246 to FT-272, FT-59, FT-156, FT-164, FT-206 and FT-245 closed; v0.8: the cycle-14 statuses, WP-S6.13 (the blind-drafter harness, 124 WPs), FT-233 to FT-245, FT-101 and FT-212 to FT-214 closed; v0.7: the cycle-13 statuses, wire numbering, the SQL projection v0, the PLC record kinds and the DP bus potential, FT-212 to FT-232, FT-100, FT-105, FT-111 and FT-201 closed, FT-80 partly; v0.6: the cycle-12 statuses, Golden C, the check engine, the M1 report and page gaps, FT-164 to FT-211, FT-15, FT-62, FT-65, FT-110 and FT-159 to FT-162 closed; v0.5: the cycle-11 statuses, the QET project import spike, the acceptance runner, Golden B, the symbol rulings, FT-127 to FT-163; v0.4: the cycle-10 statuses, WP-S1.07 part 2 delivered, FT-84, FT-86 and FT-109 closed, FT-117 to FT-126; v0.3: the cycle-9 statuses, WP-S1.07 in two parts, FT-100 to FT-116; v0.2: the estimates of WP-S1.05, WP-S1.07 and WP-S1.08 after G-SP, the cycle-8 statuses and FT-86 to FT-99) · **Part of:** ElektraWatt plan
 
 **Purpose.** This document breaks the full v1 scope of ElektraWatt (EW) into 124 work packages (WPs) in eight
 streams. For every WP it states the objective, scope, deliverables, dependencies, the requirements it delivers,
@@ -15,17 +15,17 @@ by hand.
 
 <!-- generated:wbs-key-results -->
 > **Key results**
-> - **Effort.** The MVP and 1.0 scope is 121 WPs with a PERT mean of **538.2 person-weeks** (pw), σ ≈
->   7.2 pw, or **645.8 pw** with the 20 % integration and bug-fix reserve. The MVP alone is 320.0 pw
->   (384.0 pw with the reserve). The 1.x backlog adds 43.5 pw. 1.0 is about 14.9 productive
+> - **Effort.** The MVP and 1.0 scope is 121 WPs with a PERT mean of **535.5 person-weeks** (pw), σ ≈
+>   7.4 pw, or **642.6 pw** with the 20 % integration and bug-fix reserve. The MVP alone is 302.5 pw
+>   (363.0 pw with the reserve). The 1.x backlog adds 43.5 pw. 1.0 is about 14.9 productive
 >   developer-years.
 > - **The full v1 scope does not fit 15–18 months.** Three developers have about 162 pw in 18 months;
->   1.0 needs 4.0 times that. No team size reaches 1.0 before month 29, because the longest
+>   1.0 needs 4.0 times that. No team size reaches 1.0 before month 34, because the longest
 >   dependency chain alone takes that long (§6).
-> - **Realistic dates, full scope, base capacity.** 3 developers: spine exit (M1) at month 16 (Feb 2028), MVP at month 45 (Jul 2030), 1.0 at month 72 (Oct 2032). 2 developers: MVP at month 66 (Apr 2032), 1.0 at month 109 (Nov 2035). 4 developers: MVP at month 39 (Jan 2030), 1.0 at month 62 (Dec 2031).
+> - **Realistic dates, full scope, base capacity.** 3 developers: spine exit (M1) at month 17 (Mar 2028), MVP at month 44 (Jun 2030), 1.0 at month 77 (Mar 2033). 2 developers: MVP at month 62 (Dec 2031), 1.0 at month 108 (Oct 2035). 4 developers: MVP at month 38 (Dec 2029), 1.0 at month 67 (May 2032).
 > - **Levers.** Deferring the MVP's Should items, moving the QET migration to the 0.x release after the MVP and
->   moving 13 1.0 WPs to 1.x (the `milestone_lean` column) brings 3 developers to the MVP at month 42 (Apr 2030) and 1.0 at month 65 (Mar 2032). Even with every WP at its optimistic estimate and 20 % more capacity, that lean scope lands at month 24 (MVP) and month 37 (1.0). §7.4 recommends a combination.
-> - **Pilot preview.** 16 WPs, two of them slices split off MVP WPs, form milestone M-PP (release 0.0.x, pilot only): interactive 2D drawing of new projects at month 26 (Dec 2028) with three developers, 16 months before the MVP.
+>   moving 13 1.0 WPs to 1.x (the `milestone_lean` column) brings 3 developers to the MVP at month 41 (Mar 2030) and 1.0 at month 69 (Jul 2032). Even with every WP at its optimistic estimate and 20 % more capacity, that lean scope lands at month 23 (MVP) and month 38 (1.0). §7.4 recommends a combination.
+> - **Pilot preview.** 16 WPs, two of them slices split off MVP WPs, form milestone M-PP (release 0.0.x, pilot only): interactive 2D drawing of new projects at month 27 (Jan 2029) with three developers, 14 months before the MVP.
 <!-- /generated:wbs-key-results -->
 
 **Contents**
@@ -81,7 +81,7 @@ by hand.
 ### 2.2 Milestones
 
 Milestones are cumulative: reaching M3 means that every WP of M0 … M3 is done. M-PP is a pilot-only preview
-(release 0.0.x, no public binaries) of the interactive editor; M2 is the first signed binary release
+(release 0.0.x, no public binaries) of the interactive editor; M2 is the first binary release (0.1.0, unsigned, ID-1187)
 ([governance](../design/19-open-source-governance.md) §3.3). M3 and M4 are internal milestones that ship as monthly
 0.x releases. Each milestone has the gate of the same name in [gates](03-gates.md) (G-M0 … G-M6, G-PP). The
 acceptance column below is the **full-scope** allocation of the [golden project](../design/20-golden-project.md)
@@ -94,11 +94,11 @@ the realistic months below.
 | M0 | Kick-off and foundations | MVP | Workspace and per-PR CI green on three OSes; licence files, REUSE, DCO and boundary check active; pilot kick-off and the pre-G-M0 scope workshop held; ADR-0027 and ADR-0028 decided; LG-1 and LG-5 requested (LG-1 target); signing enrolment submitted and trademark clearance search commissioned (WP-S0.05a) | — | 0 |
 | M1 | Spine exit: headless golden PDF | MVP | `ew export pdf golden/J-E-2416.ew` writes the 18 folios plus report folios 903–911 headless; acceptance SQL/CSV pairs pass with the oracle; perf gate running; ADR-0030 decided; LG-1, LG-2 closed; NLnet proposal sent (the ADR-0030, LG and NLnet items not applicable since decision log ID-453, ID-454) | AC-01 … AC-17, AC-18 (CLI), AC-20, AC-39 | 3 |
 | M-PP | Pilot preview | MVP (release 0.0.x, pilot only) | Interactive 2D schematic editing with the starter symbol set: place, wire, junctions, interruption points, terminals, cables; title block and frame; core reports (TOC, BOM, terminal diagram, wire list) and PDF with links and bookmarks from the M1 stack; core online checks; save and load. Unsigned development build handed to the pilot; no public binaries | Gate G-PP: the pilot draws golden folios 101–103 and 901 interactively in a new project; its parts list is correct | — |
-| M2 | MVP: pilot release | MVP | First signed binary release on three OSes; interactive 2D editing of the reference set; QET corpus imports; pre-delivery check exact; R1 passed (validates ADR-0007); LG-3 and LG-4 closed; ADR-0029 decided; CRA steward processes live | AC-14 (all OSes), AC-18 (GUI), AC-19, AC-21, AC-23, AC-25 … AC-29, AC-31, AC-32 (MVP part), AC-33, AC-37 (SVG), AC-40, AC-41 | 6–7 |
+| M2 | MVP: pilot release | MVP | First binary release (0.1.0) on Windows and Linux, unsigned, with no network code (ID-1187); interactive 2D editing of the reference set; QET corpus imports; pre-delivery check exact; R1 passed (validates ADR-0007); the steward's CRA processes, LG-3 and LG-4, the update check and signing are 1.0's (M6, WP-S6.10, WP-S0.05) | AC-14 (all OSes), AC-18 (GUI), AC-19, AC-21, AC-23, AC-25 … AC-29, AC-31, AC-32 (MVP part), AC-33, AC-37 (SVG), AC-40, AC-41 | 6–7 |
 | M3 | Automation breadth: PLC, bus, fluid, exchange | 1.0 | PLC and bus 1.0 model; fluid 1.0; AML, TIA tag and PLCopen exchange against reference files; EDZ, DXF and DWG import; automation workspaces | AC-30, AC-32 (1.0 part), AC-37 (DXF), AC-38; EW-PLC and EW-BUS part of AC-22 | 9 |
 | M4 | Manufacturing and 2D/3D panel | 1.0 | STEP worker, 3D view, collision, routing and lengths; production wire records, ferrules, labels, Komax, Rittal and Weidmüller profiles, `.ewpp`; thermal | AC-34, AC-36; AC-35 content; EW-LAYOUT part of AC-22 | 12 |
 | M5 | 1.0 feature complete (beta) | 1.0 | All 1.0 features merged; 1.0 rule packs exact; translations exchange; beta release to the pilot and early adopters | AC-22, AC-42 | — |
-| M6 | 1.0 release | 1.0 | Format freeze; R2 passed; SC-7 and SC-8 shown with real machines and installations; 1.0 signed release; word mark filed; LG-6 review | AC-35 with SC-7; SC-8; NFR-UX-01 and NFR-UX-02 at 1.0 | 15–18 |
+| M6 | 1.0 release | 1.0 | Format freeze; R2 passed; SC-7 and SC-8 shown with real machines and installations; 1.0 signed release; the steward's CRA processes, signing, the update check and ADR-0029 decided (moved from M2, ID-1187); word mark filed; LG-6 review | AC-35 with SC-7; SC-8; NFR-UX-01 and NFR-UX-02 at 1.0 | 15–18 |
 | 1.x | 1.x backlog | 1.x | Not a milestone: the backlog of 1.x rows, to be split into WPs after 1.0 | — | — |
 
 **Realistic months** (base capacity; every scenario is in [milestones.csv](milestones.csv)):
@@ -107,13 +107,13 @@ the realistic months below.
 | ID | Name | Gate | Realistic month, 3 developers, full scope | Realistic month, 3 developers, lean scope (plan of record) |
 |---|---|---|---|---|
 | M0 | Kick-off and foundations | G-M0 | 3 (Jan 2027) | 3 (Jan 2027) |
-| M1 | Spine exit: headless golden PDF | G-M1 | 16 (Feb 2028) | 16 (Feb 2028) |
-| M-PP | Pilot preview 0.0.x | G-PP | 26 (Dec 2028) | 26 (Dec 2028) |
-| M2 | MVP: pilot release 0.1.0 | G-M2 | 45 (Jul 2030) | 42 (Apr 2030) |
-| M3 | Automation breadth and migration | G-M3 | 49 (Nov 2030) | 49 (Nov 2030) |
-| M4 | Manufacturing and 2D/3D panel | G-M4 | 61 (Nov 2031) | 59 (Sep 2031) |
-| M5 | 1.0 feature complete (beta) | G-M5 | 67 (May 2032) | 60 (Oct 2031) |
-| M6 | 1.0 release | G-M6 | 72 (Oct 2032) | 65 (Mar 2032) |
+| M1 | Spine exit: headless golden PDF | G-M1 | 17 (Mar 2028) | 17 (Mar 2028) |
+| M-PP | Pilot preview 0.0.x | G-PP | 27 (Jan 2029) | 27 (Jan 2029) |
+| M2 | MVP: pilot release 0.1.0 | G-M2 | 44 (Jun 2030) | 41 (Mar 2030) |
+| M3 | Automation breadth and migration | G-M3 | 48 (Oct 2030) | 48 (Oct 2030) |
+| M4 | Manufacturing and 2D/3D panel | G-M4 | 60 (Oct 2031) | 57 (Jul 2031) |
+| M5 | 1.0 feature complete (beta) | G-M5 | 66 (Apr 2032) | 59 (Sep 2031) |
+| M6 | 1.0 release | G-M6 | 77 (Mar 2033) | 69 (Jul 2032) |
 <!-- /generated:wbs-milestone-months -->
 
 ### 2.3 Decision deadlines inside the WPs
@@ -125,8 +125,8 @@ the realistic months below.
 | ADR-0025 plugin-exception wording (gate LG-2; not gated since ID-454) | No longer a gate (ID-454); before 1.x plugins | WP-S0.04 (not pursued) | Nothing since the merge block was removed (FT-315, ID-480); the licence text for plugin authors |
 | ADR-0030 part 1: the phase-1 identity holder, so that signing enrolment can start | First 90 days (M0) | WP-S0.05a | The 12-month enrolment lead time, hence the first signed release |
 | Trademark clearance search (LG-3 search) | First 90 days (M0) | WP-S0.05a | Public announcement, logo, domain |
-| ADR-0030 in full: steward, CRA role, support period (gates LG-4, later LG-6) | M1 | WP-S0.05 | Steward processes (WP-S6.04), the first signed release |
-| ADR-0029 network, telemetry and crash reporting | Before M2 | WP-S6.05 | First-run prompt, `PRIVACY.md`, MVP release |
+| ADR-0030 in full: steward, CRA role, support period (gates LG-4, later LG-6) | M1 | WP-S0.05 | Steward processes (WP-S6.10, from 1.0), the first signed release |
+| ADR-0029 network, telemetry and crash reporting | Before 1.0 (0.1.0 holds no network code and follows its interim rule, ID-1187) | WP-S6.05, WP-S6.10 | First-run prompt, `PRIVACY.md`, the update check at 1.0 |
 | ADR-0007 autoconnect validation | R1, before M2 | WP-S2.12 | Wiring-tool design (WP-S2.04) |
 | Performance spike go/fallback (architecture §6.1), gate G-SP | Month 6, right after WP-S1.03 (the spike needs `ew-model`) | WP-S1.05 | Which queries `ew-memo` memoises |
 | Scope versus team versus date (§7.4) | M0 | Project owner | The dates of every other plan document |
@@ -224,15 +224,15 @@ All figures are person-weeks computed from [work-packages.csv](work-packages.csv
 <!-- generated:wbs-totals-stream -->
 | Stream | Name | WPs | O | L | P | PERT mean | Mean + 20 % reserve | Share of 1.0 | PERT mean, lean scope |
 |---|---|---|---|---|---|---|---|---|---|
-| S0 | Project foundation and governance | 10 | 15.5 | 25.0 | 40.0 | 25.9 | 31.1 | 5 % | 25.9 |
+| S0 | Project foundation and governance | 10 | 14.0 | 22.5 | 35.5 | 23.3 | 27.9 | 4 % | 23.3 |
 | S1 | Core model and derivation | 34 | 105.2 | 153.7 | 236.5 | 159.4 | 191.3 | 30 % | 145.3 |
 | S2 | Interaction and UI | 18 | 53.5 | 77.8 | 117.7 | 80.4 | 96.5 | 15 % | 72.7 |
 | S3 | Documents, reports and migration | 19 | 59.5 | 87.2 | 134.0 | 90.4 | 108.5 | 17 % | 80.5 |
-| S4 | Physical: 2D/3D layout, routing, thermal | 10 | 37.5 | 54.5 | 82.0 | 56.3 | 67.5 | 10 % | 45.4 |
+| S4 | Physical: 2D/3D layout, routing, thermal | 10 | 37.5 | 54.5 | 82.0 | 56.3 | 67.5 | 11 % | 45.4 |
 | S5 | Manufacturing outputs | 9 | 23.5 | 34.5 | 52.5 | 35.7 | 42.8 | 7 % | 29.4 |
-| S6 | Quality, security and release engineering | 13 | 36.5 | 54.5 | 83.0 | 56.3 | 67.5 | 10 % | 56.3 |
+| S6 | Quality, security and release engineering | 13 | 36.5 | 54.5 | 83.0 | 56.3 | 67.5 | 11 % | 56.3 |
 | S7 | Content: symbols, parts, golden project, docs | 8 | 22.1 | 33.0 | 49.3 | 33.9 | 40.7 | 6 % | 27.7 |
-| **All** | **MVP and 1.0** | **121** | **353.3** | **520.2** | **795.0** | **538.2** | **645.8** | **100 %** | **483.3** |
+| **All** | **MVP and 1.0** | **121** | **351.8** | **517.7** | **790.5** | **535.5** | **642.6** | **100 %** | **480.6** |
 | 1.x | Backlog bucket (5 WPs, not in the totals above) | 5 | 28.0 | 42.5 | 63.0 | 43.5 | 52.2 | — | — |
 <!-- /generated:wbs-totals-stream -->
 
@@ -247,11 +247,11 @@ scope (`milestone` column):
 | M0 | Kick-off and foundations | MVP | 4 | 4.5 | 7.5 | 12.0 | 7.8 | 0.7 | 7.8 | 9.3 | 10.0 |
 | M1 | Spine exit: headless golden PDF | MVP | 22 | 68.8 | 99.9 | 152.7 | 103.5 | 3.2 | 111.3 | 133.5 | 136.8 |
 | M-PP | Pilot preview 0.0.x | MVP | 16 | 50.7 | 73.7 | 111.2 | 76.1 | 2.7 | 187.4 | 224.9 | 229.2 |
-| M2 | MVP: pilot release | MVP | 34 | 86.8 | 128.3 | 195.9 | 132.7 | 3.3 | 320.0 | 384.0 | 389.5 |
-| M3 | Automation breadth: PLC, bus, fluid, exchange | 1.0 | 7 | 28.0 | 41.0 | 63.5 | 42.6 | 2.3 | 362.6 | 435.1 | 441.1 |
-| M4 | Manufacturing and 2D/3D panel | 1.0 | 16 | 49.5 | 72.0 | 109.5 | 74.5 | 2.7 | 437.1 | 524.5 | 531.0 |
-| M5 | 1.0 feature complete (beta) | 1.0 | 15 | 43.0 | 64.5 | 99.0 | 66.7 | 2.5 | 503.8 | 604.5 | 611.5 |
-| M6 | 1.0 release | 1.0 | 7 | 22.0 | 33.3 | 51.2 | 34.4 | 2.0 | 538.2 | 645.8 | 653.1 |
+| M2 | MVP: pilot release | MVP | 32 | 74.7 | 111.4 | 170.5 | 115.1 | 3.0 | 302.5 | 363.0 | 368.3 |
+| M3 | Automation breadth: PLC, bus, fluid, exchange | 1.0 | 7 | 28.0 | 41.0 | 63.5 | 42.6 | 2.3 | 345.1 | 414.1 | 419.9 |
+| M4 | Manufacturing and 2D/3D panel | 1.0 | 16 | 49.5 | 72.0 | 109.5 | 74.5 | 2.7 | 419.6 | 503.5 | 509.9 |
+| M5 | 1.0 feature complete (beta) | 1.0 | 15 | 43.0 | 64.5 | 99.0 | 66.7 | 2.5 | 486.3 | 583.5 | 590.4 |
+| M6 | 1.0 release | 1.0 | 9 | 32.6 | 47.7 | 72.1 | 49.3 | 3.0 | 535.5 | 642.6 | 650.1 |
 | 1.x | backlog bucket (no milestone) | 1.x | 5 | 28.0 | 42.5 | 63.0 | 43.5 | 2.6 | — | — | — |
 <!-- /generated:wbs-totals-milestone -->
 
@@ -263,11 +263,11 @@ Lean scope, the plan of record (`milestone_lean` column):
 | M0 | Kick-off and foundations | MVP | 4 | 4.5 | 7.5 | 12.0 | 7.8 | 0.7 | 7.8 | 9.3 | 10.0 |
 | M1 | Spine exit: headless golden PDF | MVP | 22 | 68.8 | 99.9 | 152.7 | 103.5 | 3.2 | 111.3 | 133.5 | 136.8 |
 | M-PP | Pilot preview 0.0.x | MVP | 16 | 50.7 | 73.7 | 111.2 | 76.1 | 2.7 | 187.4 | 224.9 | 229.2 |
-| M2 | MVP: pilot release | MVP | 28 | 73.3 | 107.3 | 162.9 | 110.9 | 3.0 | 298.3 | 357.9 | 363.2 |
-| M3 | Automation breadth: PLC, bus, fluid, exchange | 1.0 | 9 | 35.0 | 51.5 | 79.5 | 53.4 | 2.6 | 351.7 | 422.0 | 427.9 |
-| M4 | Manufacturing and 2D/3D panel | 1.0 | 15 | 46.5 | 68.0 | 103.5 | 70.3 | 2.6 | 422.0 | 506.4 | 512.9 |
-| M5 | 1.0 feature complete (beta) | 1.0 | 7 | 17.0 | 26.0 | 40.0 | 26.8 | 1.5 | 448.9 | 538.6 | 545.2 |
-| M6 | 1.0 release | 1.0 | 7 | 22.0 | 33.3 | 51.2 | 34.4 | 2.0 | 483.3 | 579.9 | 586.8 |
+| M2 | MVP: pilot release | MVP | 26 | 61.2 | 90.4 | 137.5 | 93.4 | 2.7 | 280.8 | 336.9 | 342.0 |
+| M3 | Automation breadth: PLC, bus, fluid, exchange | 1.0 | 9 | 35.0 | 51.5 | 79.5 | 53.4 | 2.6 | 334.2 | 401.0 | 406.7 |
+| M4 | Manufacturing and 2D/3D panel | 1.0 | 15 | 46.5 | 68.0 | 103.5 | 70.3 | 2.6 | 404.5 | 485.4 | 491.7 |
+| M5 | 1.0 feature complete (beta) | 1.0 | 7 | 17.0 | 26.0 | 40.0 | 26.8 | 1.5 | 431.4 | 517.6 | 524.1 |
+| M6 | 1.0 release | 1.0 | 9 | 32.6 | 47.7 | 72.1 | 49.3 | 3.0 | 480.6 | 576.7 | 583.8 |
 | 1.x | backlog bucket (no milestone) | 1.x | 18 | 63.5 | 95.5 | 145.0 | 98.4 | 3.5 | — | — | — |
 <!-- /generated:wbs-totals-milestone-lean -->
 
@@ -276,21 +276,21 @@ Lean scope, the plan of record (`milestone_lean` column):
 <!-- generated:wbs-totals-matrix -->
 | Stream | M0 | M1 | M-PP | M2 | M3 | M4 | M5 | M6 | 1.x | Total to 1.0 |
 |---|---|---|---|---|---|---|---|---|---|---|
-| S0 | 7.8 | 3.7 | — | 5.3 | — | — | — | 9.3 | — | 25.9 |
+| S0 | 7.8 | 3.7 | — | 1.0 | — | — | — | 10.8 | — | 23.3 |
 | S1 | — | 55.3 | 27.7 | 36.4 | 12.0 | 3.6 | 24.4 | — | 21.0 | 159.4 |
 | S2 | — | — | 46.8 | 17.8 | 6.8 | — | 7.7 | 1.4 | — | 80.4 |
 | S3 | — | 26.8 | — | 28.3 | 23.8 | — | 11.4 | — | 8.2 | 90.4 |
 | S4 | — | — | — | 11.2 | — | 38.4 | 6.7 | — | 8.2 | 56.3 |
 | S5 | — | — | — | — | — | 29.4 | 6.3 | — | 6.2 | 35.7 |
-| S6 | — | 10.1 | 1.6 | 24.5 | — | — | 4.1 | 16.0 | — | 56.3 |
+| S6 | — | 10.1 | 1.6 | 11.3 | — | — | 4.1 | 29.3 | — | 56.3 |
 | S7 | — | 7.7 | — | 9.2 | — | 3.1 | 6.2 | 7.8 | — | 33.9 |
-| **All** | **7.8** | **103.5** | **76.1** | **132.7** | **42.6** | **74.5** | **66.7** | **34.4** | **43.5** | **538.2** |
+| **All** | **7.8** | **103.5** | **76.1** | **115.1** | **42.6** | **74.5** | **66.7** | **49.3** | **43.5** | **535.5** |
 <!-- /generated:wbs-totals-matrix -->
 
 ### 4.4 Plausibility checks
 
 <!-- generated:wbs-plausibility -->
-- **Per requirement.** The catalogues hold 999 rows released at MVP or 1.0. 538.2 pw over them is
+- **Per requirement.** The catalogues hold 998 rows released at MVP or 1.0. 535.5 pw over them is
   0.54 pw, about 2.7 productive days per row, each with an acceptance criterion, tests and documentation. For an ECAD application whose rows include an AML exchange with three-way merge, a STEP worker and negotiated-congestion routing, this is not slack.
 - **The spine.** Architecture §15.1 plans the spine as two developers for 12 weeks: 24 calendar person-weeks, about 17 productive pw under PA-3. The M0 and M1 WPs here total 111.3 pw: lane 1 (WP-S1.01 … WP-S1.10) is 55.3 pw, lane 2 (WP-S3.01 … WP-S3.05) is 26.8 pw, and 29.1 pw are the CI, licensing, legal, signing enrolment, test kit, determinism tests, performance gate, golden data and starter symbols that the M1 exit criteria need but the lane table does not list. The lane table assumes roughly one week per crate-level component; the estimates here assume three to six.
 <!-- /generated:wbs-plausibility -->
@@ -307,9 +307,9 @@ MVP does not fit months 6–7. The gap is not a rounding issue:
 <!-- generated:wbs-capacity -->
 | Team | Capacity per month (pw, steady state) | 15 months | 18 months | Months for MVP effort + reserve | Months for 1.0 effort + reserve |
 |---|---|---|---|---|---|
-| 2 | 6.0 | 90 pw | 108 pw | 65 | 108 |
-| 3 | 9.0 | 135 pw | 162 pw | 43 | 72 |
-| 4 | 10.8 | 155 pw | 187 pw | 37 | 61 |
+| 2 | 6.0 | 90 pw | 108 pw | 61 | 108 |
+| 3 | 9.0 | 135 pw | 162 pw | 41 | 72 |
+| 4 | 10.8 | 155 pw | 187 pw | 35 | 61 |
 <!-- /generated:wbs-capacity -->
 
 "Months for … effort" is the pure capacity bound with perfect parallelism; the simulated dates below are later
@@ -322,9 +322,9 @@ Month numbers per PA-1 (calendar month in brackets), base capacity.
 <!-- generated:wbs-dates-full -->
 | Team | M0 | G-SP spike | M1 | M-PP 0.0.x | M2 MVP | M3 | M4 | M5 beta | M6 1.0 |
 |---|---|---|---|---|---|---|---|---|---|
-| 2 developers | 3 (Jan 2027) | 7 (May 2027) | 24 (Oct 2028) | 39 (Jan 2030) | 66 (Apr 2032) | 73 (Nov 2032) | 88 (Feb 2034) | 101 (Mar 2035) | 109 (Nov 2035) |
-| 3 developers (baseline) | 3 (Jan 2027) | 6 (Apr 2027) | 16 (Feb 2028) | 26 (Dec 2028) | 45 (Jul 2030) | 49 (Nov 2030) | 61 (Nov 2031) | 67 (May 2032) | 72 (Oct 2032) |
-| 4 developers | 3 (Jan 2027) | 6 (Apr 2027) | 16 (Feb 2028) | 25 (Nov 2028) | 39 (Jan 2030) | 43 (May 2030) | 52 (Feb 2031) | 57 (Jul 2031) | 62 (Dec 2031) |
+| 2 developers | 3 (Jan 2027) | 7 (May 2027) | 23 (Sep 2028) | 38 (Dec 2029) | 62 (Dec 2031) | 70 (Aug 2032) | 84 (Oct 2033) | 97 (Nov 2034) | 108 (Oct 2035) |
+| 3 developers (baseline) | 3 (Jan 2027) | 6 (Apr 2027) | 17 (Mar 2028) | 27 (Jan 2029) | 44 (Jun 2030) | 48 (Oct 2030) | 60 (Oct 2031) | 66 (Apr 2032) | 77 (Mar 2033) |
+| 4 developers | 3 (Jan 2027) | 6 (Apr 2027) | 16 (Feb 2028) | 26 (Dec 2028) | 38 (Dec 2029) | 43 (May 2030) | 51 (Jan 2031) | 56 (Jun 2031) | 67 (May 2032) |
 <!-- /generated:wbs-dates-full -->
 
 ### 5.3 Sensitivity and best case
@@ -335,12 +335,12 @@ optimistic estimate **and** uses 120 % capacity. "Lean" applies all three levers
 <!-- generated:wbs-sensitivity -->
 | Team | Scope | M2 at −20 % | M2 base | M2 at +20 % | M6 at −20 % | M6 base | M6 at +20 % | Best case M2 / M6 |
 |---|---|---|---|---|---|---|---|---|
-| 2 | Lean | 76 | 61 | 51 | 122 | 98 | 81 | 34 / 54 |
-| **3** | **Lean** | **52** | **42** | **35** | **82** | **65** | **55** | **24 / 37** |
-| 4 | Lean | 45 | 37 | 31 | 73 | 58 | 49 | 21 / 33 |
-| 2 | Full | 82 | 66 | 55 | 136 | 109 | 91 | 36 / 60 |
-| 3 | Full | 56 | 45 | 38 | 90 | 72 | 60 | 26 / 41 |
-| 4 | Full | 48 | 39 | 33 | 77 | 62 | 52 | 22 / 35 |
+| 2 | Lean | 72 | 58 | 48 | 121 | 97 | 81 | 33 / 54 |
+| **3** | **Lean** | **51** | **41** | **34** | **86** | **69** | **58** | **23 / 38** |
+| 4 | Lean | 44 | 36 | 30 | 79 | 63 | 53 | 20 / 35 |
+| 2 | Full | 78 | 62 | 52 | 135 | 108 | 90 | 35 / 60 |
+| 3 | Full | 55 | 44 | 37 | 96 | 77 | 64 | 24 / 42 |
+| 4 | Full | 47 | 38 | 32 | 83 | 67 | 56 | 21 / 38 |
 <!-- /generated:wbs-sensitivity -->
 
 Even the best case with the lean scope and four developers misses an 18-month 1.0. The estimates would have to be
@@ -356,11 +356,11 @@ and a first NLnet grant, typically €5k–€50k (unverified, [governance](../d
 <!-- generated:wbs-larger-teams -->
 | Team | Profile | M1 | M2 MVP | M6 1.0 | M6 with the lean scope |
 |---|---|---|---|---|---|
-| 3 | 3 from month 0 | 16 (Feb 2028) | 45 (Jul 2030) | 72 (Oct 2032) | 65 (Mar 2032) |
-| 4 | 3 from month 0, 1 from month 4, 90 % efficiency from month 4 | 16 (Feb 2028) | 39 (Jan 2030) | 62 (Dec 2031) | 58 (Aug 2031) |
-| 6 | 3 from month 0, 1 from month 4, 2 from month 6, 85 % efficiency from month 6 | 16 (Feb 2028) | 30 (Apr 2029) | 48 (Oct 2030) | 47 (Sep 2030) |
-| 8 | 3 from month 0, 1 from month 4, 4 from month 6, 85 % efficiency from month 6 | 16 (Feb 2028) | 27 (Jan 2029) | 40 (Feb 2030) | 39 (Jan 2030) |
-| 10 | 3 from month 0, 1 from month 4, 6 from month 6, 85 % efficiency from month 6 | 16 (Feb 2028) | 25 (Nov 2028) | 37 (Nov 2029) | 36 (Oct 2029) |
+| 3 | 3 from month 0 | 17 (Mar 2028) | 44 (Jun 2030) | 77 (Mar 2033) | 69 (Jul 2032) |
+| 4 | 3 from month 0, 1 from month 4, 90 % efficiency from month 4 | 16 (Feb 2028) | 38 (Dec 2029) | 67 (May 2032) | 63 (Jan 2032) |
+| 6 | 3 from month 0, 1 from month 4, 2 from month 6, 85 % efficiency from month 6 | 16 (Feb 2028) | 30 (Apr 2029) | 54 (Apr 2031) | 53 (Mar 2031) |
+| 8 | 3 from month 0, 1 from month 4, 4 from month 6, 85 % efficiency from month 6 | 16 (Feb 2028) | 26 (Dec 2028) | 45 (Jul 2030) | 45 (Jul 2030) |
+| 10 | 3 from month 0, 1 from month 4, 6 from month 6, 85 % efficiency from month 6 | 16 (Feb 2028) | 25 (Nov 2028) | 42 (Apr 2030) | 42 (Apr 2030) |
 <!-- /generated:wbs-larger-teams -->
 
 With unlimited developers the dependency chain of §6 still takes more than 28 months, so no team size reaches 1.0
@@ -370,7 +370,7 @@ in 15–18 months with this WBS. Splitting the chain's WPs between two developer
 
 - **Calendar.** With the baseline team, every public binary release falls after 2027-12-11, so the MVP and 1.0
   ship under the full application of the CRA ([quality](../design/18-quality-security-release.md) §13.1).
-  WP-S6.04 and WP-S0.05 must be complete before the first public release in any scenario.
+  WP-S6.04 must be complete before the first public release (0.1.0) and WP-S0.05 before 1.0 in any scenario (ID-1187).
 - **Pilot.** SC-3 (three projects without QET) cannot start before the MVP release. Between M1 and M-PP the pilot
   sees headless nightly builds (WP-S0.09); from M-PP it draws new projects in the pilot preview (release 0.0.x,
   unsigned, pilot only), which is the main lever against the long wait for the MVP.
@@ -402,7 +402,7 @@ flowchart LR
   n10["WP-S4.08<br/>Wire lengths, duct fill and …<br/>8 wk · M4"]
   n11["WP-S5.04<br/>Machine export profiles and …<br/>8 wk · M4"]
   n12["WP-S5.07<br/>Production package .ewpp<br/>5 wk · M4"]
-  n13["WP-S6.10<br/>1.0 quality layers and release …<br/>11 wk · M6"]
+  n13["WP-S6.10<br/>1.0 quality layers and release …<br/>34 wk · M6"]
   n14["WP-S6.12<br/>1.0 beta-to-release stabilisation<br/>11 wk · M6"]
   n0 --> n1
   n1 --> n2
@@ -435,12 +435,12 @@ flowchart LR
 | 11 | WP-S4.08 | Wire lengths, duct fill and wiring manager | M4 | 4.7 | 8.1 | 20.5 |
 | 12 | WP-S5.04 | Machine export profiles and pre-flight | M4 | 4.7 | 8.1 | 22.4 |
 | 13 | WP-S5.07 | Production package .ewpp | M4 | 3.1 | 5.3 | 23.6 |
-| 14 | WP-S6.10 | 1.0 quality layers and release hardening | M6 | 6.2 | 10.7 | 26.1 |
-| 15 | WP-S6.12 | 1.0 beta-to-release stabilisation | M6 | 6.2 | 10.7 | 28.5 |
+| 14 | WP-S6.10 | 1.0 quality layers and release hardening | M6 | 19.4 | 33.7 | 31.4 |
+| 15 | WP-S6.12 | 1.0 beta-to-release stabilisation | M6 | 6.2 | 10.7 | 33.8 |
 
 **Near-critical chains** (lean scope, unlimited developers). To M1: WP-S1.01 → WP-S1.02 → WP-S1.03 → WP-S1.07 → WP-S3.03 → WP-S3.04, 13.7 months. To M-PP: WP-S1.01 → WP-S1.02 → WP-S1.03 → WP-S1.07 → WP-S1.08 → WP-S2.03 → WP-S2.04 → WP-S6.13, 18.0 months. To M2: WP-S1.01 → WP-S1.02 → WP-S1.03 → WP-S1.07 → WP-S1.08 → WP-S2.03 → WP-S2.04 → WP-S2.12 → WP-S6.08, 20.9 months.
 
-**Float** to the end of the chain: the STEP worker (WP-S4.03) about 38 weeks, the production wire records (WP-S5.01) about 5 weeks and the PLC exchange (WP-S3.16) about 28 weeks.
+**Float** to the end of the chain: the STEP worker (WP-S4.03) about 38 weeks, the production wire records (WP-S5.01) about 5 weeks and the PLC exchange (WP-S3.16) about 51 weeks.
 <!-- /generated:wbs-critical-path -->
 
 **Reading it.**
@@ -512,11 +512,11 @@ Each row applies only the named levers (the `lever` column of the CSV); "Lean" i
 <!-- generated:wbs-lever-dates -->
 | Scope | Effort to MVP (mean + reserve) | Effort to 1.0 (mean + reserve) | 2 devs M2 / M6 | 3 devs M2 / M6 | 4 devs M2 / M6 |
 |---|---|---|---|---|---|
-| Full scope | 384 pw | 646 pw | 66 / 109 | 45 / 72 | 39 / 62 |
-| Lever (a): MVP Should deferral | 375 pw | 646 pw | 64 / 108 | 44 / 72 | 38 / 62 |
-| Levers (a) and (b): plus MVP split | 358 pw | 646 pw | 61 / 108 | 42 / 72 | 37 / 62 |
-| Lever (c) only: 1.0-lean | 384 pw | 580 pw | 66 / 97 | 45 / 65 | 39 / 57 |
-| Lean: all three levers | 358 pw | 580 pw | 61 / 98 | 42 / 65 | 37 / 58 |
+| Full scope | 363 pw | 643 pw | 62 / 108 | 44 / 77 | 38 / 67 |
+| Lever (a): MVP Should deferral | 354 pw | 643 pw | 61 / 108 | 43 / 76 | 37 / 67 |
+| Levers (a) and (b): plus MVP split | 337 pw | 643 pw | 58 / 108 | 41 / 76 | 36 / 67 |
+| Lever (c) only: 1.0-lean | 363 pw | 577 pw | 62 / 97 | 44 / 69 | 38 / 62 |
+| Lean: all three levers | 337 pw | 577 pw | 58 / 97 | 41 / 69 | 36 / 63 |
 <!-- /generated:wbs-lever-dates -->
 
 Differences of one month between neighbouring rows are scheduling noise of the PA-9 model. The levers save
@@ -581,12 +581,12 @@ S0 makes the project legally and organisationally able to accept contributions, 
 |---|---|---|---|---|---|
 | [WP-S0.01](#wp-s001-repository-workspace-and-ci-bootstrap) | Repository, workspace and CI bootstrap | M0 | same | 3.2 | Release engineer |
 | [WP-S0.02](#wp-s002-licensing-reuse-dco-and-licence-boundary-check) | Licensing, REUSE, DCO and licence-boundary check | M0 | same | 2.0 | Project lead |
-| [WP-S0.03](#wp-s003-governance-files-and-contribution-process) | Governance files and contribution process | M2 | same | 2.0 | Project lead |
+| [WP-S0.03](#wp-s003-governance-files-and-contribution-process) | Governance files and contribution process | M2 | same | 1.0 | Project lead |
 | [WP-S0.04](#wp-s004-legal-gates-for-contributions-lg-1-lg-2-lg-5) | Legal gates for contributions: LG-1, LG-2, LG-5 | M1 | same | 1.7 | Steward liaison |
 | [WP-S0.05a](#wp-s005a-signing-enrolment-and-trademark-search-lg-3-lg-4-start) | Signing enrolment and trademark search: LG-3, LG-4 start | M0 | same | 1.0 | Steward liaison |
-| [WP-S0.05](#wp-s005-steward-signing-identities-and-trademark-lg-3-lg-4-close) | Steward, signing identities and trademark: LG-3, LG-4 close | M2 | same | 1.6 | Steward liaison |
+| [WP-S0.05](#wp-s005-steward-signing-identities-and-trademark-lg-3-lg-4-close) | Steward, signing identities and trademark: LG-3, LG-4 close | M6 | same | 1.6 | Steward liaison |
 | [WP-S0.06](#wp-s006-documentation-and-website-infrastructure) | Documentation and website infrastructure | M1 | same | 2.0 | Docs maintainer |
-| [WP-S0.07](#wp-s007-funding-applications-and-reporting) | Funding applications and reporting | M2 | same | 1.7 | Project lead |
+| [WP-S0.07](#wp-s007-funding-applications-and-reporting) | Funding applications and reporting | M6 | same | 0.0 | Project lead |
 | [WP-S0.08](#wp-s008-pilot-kick-off-and-early-decisions) | Pilot kick-off and early decisions | M0 | same | 1.6 | Project lead |
 | [WP-S0.09](#wp-s009-pilot-programme-community-and-governance-to-10) | Pilot programme, community and governance to 1.0 | M6 | same | 9.3 | Project lead |
 <!-- /generated:wbs-stream-S0 -->
@@ -626,15 +626,17 @@ S0 makes the project legally and organisationally able to accept contributions, 
 | Field | Value |
 |---|---|
 | Objective | Publish how the project is run and how people contribute, in two steps: the pre-MVP set at M0 and the launch set at the first binary release. |
-| Scope in | M0: `CONTRIBUTING.md` with the AI-assistance policy, `CODE_OF_CONDUCT.md`, `SECURITY.md` stub, `CODEOWNERS`, issue and PR templates, ADR and schema-steward process. M2: `GOVERNANCE.md`, `ROADMAP.md`, `TRADEMARKS.md`, RFC process, Discussions and Matrix, `FUNDING.yml` |
-| Scope out | `PRIVACY.md` content (WP-S6.05); the full `SECURITY.md` policy (WP-S6.04) |
-| Deliverables | Governance files in the repository root; RFC template |
+| Scope in | M0: `CONTRIBUTING.md` with the AI-assistance policy, `CODE_OF_CONDUCT.md`, `SECURITY.md` stub, `CODEOWNERS`, issue and PR templates, ADR and schema-steward process. M2 (ID-1187, ID-1188): `GOVERNANCE.md` (one maintainer; decisions in the ADRs and the decision log; how a contribution is reviewed; the RFC process is the ADR process) and `ROADMAP.md` (the milestones by name and content, linking `docs/plan/`, no dates: ID-450), Discussions and Matrix |
+| Scope out | `PRIVACY.md` content (WP-S6.05); the full `SECURITY.md` policy (WP-S6.04); `TRADEMARKS.md` (WP-S0.05, at 1.0); `FUNDING.yml` (dropped); a separate RFC process and template (the ADR process serves) |
+| Deliverables | `GOVERNANCE.md` and `ROADMAP.md` in the repository root, beside the M0 set |
 | Depends on | WP-S0.01 |
 | Requirements | NFR-DOC-08, NFR-DOC-09, NFR-COMP-03 (3 rows) |
-| Effort (pw) | O 1 · L 2 · P 3 · **PERT 2.0** (σ 0.3) |
+| Effort (pw) | O 0.5 · L 1 · P 1.5 · **PERT 1.0** (σ 0.2) |
 | Milestone · release | M2 MVP: pilot release · MVP |
 | Acceptance | NFR-DOC-08 |
 | Owner role | Project lead |
+
+*Status (2026-11-02, ID-1187, ID-1188).* **Closes in a short form:** the M0 set exists; `GOVERNANCE.md` and `ROADMAP.md` are written and the file check names them (adding both to `REQUIRED_FILES` of `xtask/src/governance.rs`, and rewording its comment, is a follow-up task). `TRADEMARKS.md` moves to WP-S0.05 at 1.0, `FUNDING.yml` is dropped, and the RFC process is the ADR process. The estimate was 1 · 2 · 3.
 
 #### WP-S0.04 Legal gates for contributions: LG-1, LG-2, LG-5
 
@@ -680,26 +682,33 @@ in cycle 19 (FT-315, decision log ID-480). The repository's licence rules (REUSE
 (LG-3) and the steward and identity-holder decision as a gate item are dropped. The signing enrolments (D-U-N-S, the
 Windows signing identity; no Apple enrolment since ID-880) are kept, because binaries cannot be distributed signed without
 them, and move to WP-S6.07 as a later release item; their 12-month lead time still applies before the first signed
-release (§9.2 rule 5 of the global plan). The CSV is unchanged.
+release (§9.2 rule 5 of the global plan). The CSV is unchanged. *Update (2026-11-02, ID-1187):* the first signed release is
+1.0's, or earlier when the owner holds a signing identity, and the release item is WP-S6.10's.
 
 #### WP-S0.05 Steward, signing identities and trademark: LG-3, LG-4 close
 
 | Field | Value |
 |---|---|
 | Objective | Have a legal person that can sign releases and act as open-source steward before the first signed release. |
-| Scope in | ADR-0030 decided in full by M1 (CRA role, support period, phase-2 trigger); phase-1 steward set up with its transfer commitment; GitHub organisation with two owners and repository transfer; enrolments of WP-S0.05a completed and the signing identities wired into the release environment; SignPath fallback active if an enrolment fails; LG-3 closed (search passed, `TRADEMARKS.md` drafted) |
+| Scope in | ADR-0030 decided in full by M1 (CRA role, support period, phase-2 trigger); phase-1 steward set up with its transfer commitment; GitHub organisation with two owners and repository transfer; enrolments of WP-S0.05a completed and the signing identities wired into the release environment; SignPath fallback active if an enrolment fails; LG-3 closed (search passed, `TRADEMARKS.md` drafted); `TRADEMARKS.md` with the use policy published (moved from WP-S0.03, ID-1187) |
 | Scope out | Founding the stichting (LG-6, WP-S0.09); word-mark filing (WP-S0.09); the release pipeline itself (WP-S6.07) |
-| Deliverables | ADR-0030 accepted; steward checklist complete; signing identities usable by CI |
+| Deliverables | ADR-0030 accepted; steward checklist complete; signing identities usable by CI; `TRADEMARKS.md` |
 | Depends on | WP-S0.04, WP-S0.05a; external lead time: starts no earlier than WP-S0.05a + 12 months (enrolment and identity validation) |
-| Requirements | NFR-COMP-01, NFR-COMP-02, NFR-COMP-08 (3 rows) |
+| Requirements | NFR-COMP-01, NFR-COMP-02, NFR-COMP-08, NFR-DOC-08 (4 rows) |
 | Effort (pw) | O 1 · L 1.5 · P 2.5 · **PERT 1.6** (σ 0.3) |
-| Milestone · release | M2 MVP: pilot release · MVP |
+| Milestone · release | M6 1.0 release · 1.0 |
 | Acceptance | NFR-COMP-08 |
 | Owner role | Steward liaison |
 
 *Status (2026-10-22, owner ruling).* **Legal part not pursued** (decision log ID-454): the steward as a legal person,
 ADR-0030 with counsel, the CRA role and the trademark are no longer gate items. The signing identities usable by CI
 stay, as a release item of WP-S6.07. The CSV is unchanged.
+
+*Status (2026-11-02, ID-1187, ID-1188).* **Moved to 1.0** (M6, release 1.0): the pilot release 0.1.0 is unsigned and needs no
+steward, so the package's work (the steward and the organisation of NFR-COMP-08, the steward's CRA processes of
+NFR-COMP-01, the signing identities) falls to 1.0, or the signing identities earlier when the owner holds one. Its efforts
+are unchanged, it gains `TRADEMARKS.md` (from WP-S0.03), and WP-S6.07 no longer depends on it. The signing items it
+names as a release item of WP-S6.07 are now WP-S6.10's.
 
 #### WP-S0.06 Documentation and website infrastructure
 
@@ -727,11 +736,17 @@ stay, as a release item of WP-S6.07. The CSV is unchanged.
 | Scope out | Paid services or support (excluded by NFR-COMP-02) |
 | Deliverables | Submitted applications; milestone plan for the grant; funding page |
 | Depends on | WP-S0.04 |
-| Requirements | NFR-COMP-07 (1 rows) |
-| Effort (pw) | O 1 · L 1.5 · P 3 · **PERT 1.7** (σ 0.3) |
-| Milestone · release | M2 MVP: pilot release · MVP |
-| Acceptance | NFR-COMP-07 |
+| Requirements | None: NFR-COMP-07 is not pursued (0 rows) |
+| Effort (pw) | O 0 · L 0 · P 0 · **PERT 0.0** (σ 0.0) |
+| Milestone · release | M6 1.0 release · 1.0 |
+| Acceptance | — |
 | Owner role | Project lead |
+
+*Status (2026-11-02, ID-1187, ID-1188).* **Not pursued** (ID-454, ID-1187): no funding is pursued (ID-453) and the yearly funding
+statement of NFR-COMP-07 is not pursued, so the work package leaves the plan, in the form of WP-S0.04. Its old estimate,
+1 · 1.5 · 3 (PERT 1.7), is kept here as a reference. No tool can withdraw a package, so the CSV sets its efforts to 0 · 0 · 0
+with milestone M6 and release 1.0, which no milestone counts, and the traceability report lists it among the packages that
+cover no requirement.
 
 #### WP-S0.08 Pilot kick-off and early decisions
 
@@ -2758,13 +2773,13 @@ S6 implements the test layers, gates, packaging, signing and CRA processes of [q
 | [WP-S6.01](#wp-s601-ew-testkit-and-acceptance-runner) | ew-testkit and acceptance runner | M1 | same | 3.7 | Release engineer |
 | [WP-S6.02](#wp-s602-determinism-property-tests-and-command-fuzzer) | Determinism, property tests and command fuzzer | M1 | same | 3.1 | Release engineer |
 | [WP-S6.03](#wp-s603-performance-and-memory-gate) | Performance and memory gate | M1 | same | 3.3 | Release engineer |
-| [WP-S6.04](#wp-s604-security-engineering-and-cra-readiness) | Security engineering and CRA readiness | M2 | same | 4.7 | Release engineer |
-| [WP-S6.05](#wp-s605-privacy-controls-crash-reports-and-update-check) | Privacy controls, crash reports and update check | M2 | same | 3.0 | Release engineer |
-| [WP-S6.06](#wp-s606-packaging-installers-and-the-platform-ci-matrix) | Packaging, installers and the platform CI matrix | M2 | same | 7.3 | Release engineer |
-| [WP-S6.07](#wp-s607-release-pipeline-signing-provenance-sbom) | Release pipeline: signing, provenance, SBOM | M2 | same | 3.7 | Release engineer |
-| [WP-S6.08](#wp-s608-mvp-release-stabilisation-and-the-first-signed-release) | MVP release stabilisation and the first signed release | M2 | same | 6.0 | Release engineer |
+| [WP-S6.04](#wp-s604-security-engineering-for-the-pilot-release) | Security engineering for the pilot release | M2 | same | 1.1 | Release engineer |
+| [WP-S6.05](#wp-s605-privacy-controls-and-the-local-crash-log) | Privacy controls and the local crash log | M2 | same | 0.6 | Release engineer |
+| [WP-S6.06](#wp-s606-the-pilot-releases-installers-and-the-platform-ci-matrix) | The pilot release's installers and the platform CI matrix | M2 | same | 2.6 | Release engineer |
+| [WP-S6.07](#wp-s607-release-pipeline-sums-provenance-sbom) | Release pipeline: sums, provenance, SBOM | M2 | same | 1.1 | Release engineer |
+| [WP-S6.08](#wp-s608-mvp-release-stabilisation-and-the-first-release) | MVP release stabilisation and the first release | M2 | same | 6.0 | Release engineer |
 | [WP-S6.09](#wp-s609-monthly-0x-releases-and-support-from-mvp-to-10) | Monthly 0.x releases and support from MVP to 1.0 | M5 | same | 4.1 | Release engineer |
-| [WP-S6.10](#wp-s610-10-quality-layers-and-release-hardening) | 1.0 quality layers and release hardening | M6 | same | 6.2 | Release engineer |
+| [WP-S6.10](#wp-s610-10-quality-layers-and-release-hardening) | 1.0 quality layers and release hardening | M6 | same | 19.4 | Release engineer |
 | [WP-S6.11](#wp-s611-external-acceptance-tia-portal-codesys-and-a-machine-shop-sc-7-sc-8) | External acceptance: TIA Portal, CODESYS and a machine shop (SC-7, SC-8) | M6 | same | 3.7 | Output and migration developer |
 | [WP-S6.12](#wp-s612-10-beta-to-release-stabilisation) | 1.0 beta-to-release stabilisation | M6 | same | 6.2 | Release engineer |
 | [WP-S6.13](#wp-s613-blind-drafter-gate-agent-harness-personas-and-prompt) | Blind-drafter gate agent: harness, personas and prompt | M-PP | same | 1.6 | UX researcher |
@@ -2845,64 +2860,70 @@ S6 implements the test layers, gates, packaging, signing and CRA processes of [q
 
 *Status (2026-10-22, cycle 21 design pass).* **Measurements moved to the release phase** (owner ruling, decision log ID-512): no performance measurement runs during development; the BM-class runner (DEC-034), the class-M baseline (FT-291), the budget check (FT-288) and the first measurement and bless of the `canvas` bench (FT-355) are release-phase items, and G-M1-05, -11 and -12 are assumed pass until then. The nightly `perf.yml` stays as built, report-only on the hosted runner, and now also runs the `canvas` bench of `ew-ui` once per gate run (class GP, report-only); a bench that cannot run still fails the job (ID-520).
 
-#### WP-S6.04 Security engineering and CRA readiness
+#### WP-S6.04 Security engineering for the pilot release
 
 | Field | Value |
 |---|---|
-| Objective | Treat every received file as hostile and meet steward-grade CRA duties before the first public release. |
-| Scope in | Threat model; cargo-fuzz targets for every parser, the merge driver and the SQL sandbox; hostile corpus; `unsafe` allowlist; `SECURITY.md` with private reporting and support period; vulnerability-handling runbook (24 h / 72 h / 14 days); single-reporting-platform account; disclaimers |
-| Scope out | Tabletop exercise (WP-S6.10) |
-| Deliverables | Threat model; fuzz jobs; runbook |
+| Objective | Treat every received file as hostile before the first public release (0.1.0). The steward-grade CRA duties are 1.0's (WP-S6.10, ID-1187, ID-1188). |
+| Scope in | Threat model; cargo-fuzz targets for every parser, the merge driver and the SQL sandbox; hostile corpus; `unsafe` allowlist; `SECURITY.md` with private reporting and support period; disclaimers |
+| Scope out | Tabletop exercise, the vulnerability-handling runbook (24 h / 72 h / 14 days) and the single-reporting-platform account (WP-S6.10, from 1.0) |
+| Deliverables | Threat model; fuzz jobs |
 | Depends on | WP-S3.09, WP-S1.09, WP-S0.05a |
-| Requirements | NFR-SEC-01 … NFR-SEC-04, NFR-SEC-14, NFR-SEC-18, NFR-REL-12, NFR-COMP-01, NFR-COMP-03, NFR-COMP-04 (10 rows) |
-| Effort (pw) | O 3 · L 4.5 · P 7 · **PERT 4.7** (σ 0.7) |
+| Requirements | NFR-SEC-01 … NFR-SEC-04, NFR-SEC-14, NFR-SEC-18, NFR-REL-12, NFR-COMP-03, NFR-COMP-04 (9 rows) |
+| Effort (pw) | O 0.5 · L 1 · P 2 · **PERT 1.1** (σ 0.3) |
 | Milestone · release | M2 MVP: pilot release · MVP |
-| Acceptance | NFR-SEC-03, NFR-COMP-01 |
+| Acceptance | NFR-SEC-03 |
 | Owner role | Release engineer |
 
-#### WP-S6.05 Privacy controls, crash reports and update check
+*Status (2026-11-02, ID-1187, ID-1188).* **Re-estimated** from 3 · 4.5 · 7 (PERT 4.7): the steward's CRA processes (NFR-COMP-01) leave G-M2 and move to WP-S6.10 at 1.0, and the package keeps its product items.
+
+#### WP-S6.05 Privacy controls and the local crash log
 
 | Field | Value |
 |---|---|
 | Objective | Make 'zero network without a user action' provable and crash data local. |
-| Scope in | ADR-0029 decision before MVP; CI network sandbox; `PRIVACY.md`; local minidumps and redacted logs; opt-in update check with signed manifest; policy keys for MSI deployments; release-binary audit for debug endpoints; anonymisation n-gram guard |
-| Scope out | Crash upload endpoint (only if ADR-0029 creates one) |
-| Deliverables | Sandbox job; privacy docs; update check |
+| Scope in | The interim rule of ADR-0029 for 0.1.0 (no update check, no crash upload); CI network sandbox; `PRIVACY.md`; the local crash log with the panic's message and backtrace, the journal flush and the recovery offer at the next start (NFR-REL-13); redacted logs; release-binary audit for debug endpoints; anonymisation n-gram guard |
+| Scope out | Crash upload endpoint (only if ADR-0029 creates one); the update check with its signed manifest, the policy keys for MSI deployments and the local minidumps (WP-S6.10, from 1.0) |
+| Deliverables | Sandbox job; privacy docs; the local crash log |
 | Depends on | WP-S2.01 |
-| Requirements | NFR-PRIV-01 … NFR-PRIV-05, NFR-PRIV-07 … NFR-PRIV-09, NFR-REL-13, NFR-SEC-09, NFR-SEC-15, NFR-PLAT-08 (12 rows) |
-| Effort (pw) | O 1.9 · L 2.9 · P 4.4 · **PERT 3.0** (σ 0.4) |
+| Requirements | NFR-PRIV-01, NFR-PRIV-02, NFR-PRIV-05, NFR-PRIV-07 … NFR-PRIV-09, NFR-REL-13, NFR-SEC-09 (8 rows) |
+| Effort (pw) | O 0.3 · L 0.5 · P 1 · **PERT 0.6** (σ 0.1) |
 | Milestone · release | M2 MVP: pilot release · MVP |
 | Acceptance | AC-39, NFR-PRIV-01 |
 | Owner role | Release engineer |
 
 *Status note (2026-10-23, cycle 23 design pass).* `PRIVACY.md` is delivered (FT-342, decision log ID-579): the stored-data and network-flow inventory, linked from the About dialog and the first-run privacy step through the repository's web copy until FT-386 bundles it; NFR-PRIV-07 is met for this version's flows (all network flows unbuilt) and is re-checked whenever a flow is built. The rest of the package is open.
 
-#### WP-S6.06 Packaging, installers and the platform CI matrix
+*Status (2026-11-02, ID-1187, ID-1188).* **Re-estimated** from 1.9 · 2.9 · 4.4 (PERT 3.0): 0.1.0 holds no network code, so the update check (NFR-SEC-15, NFR-PRIV-03), the policy keys (NFR-PLAT-08), the local minidump and the upload (NFR-PRIV-04) move to WP-S6.10 at 1.0; the package keeps the sandbox, `PRIVACY.md` and the local crash log (NFR-REL-13).
+
+#### WP-S6.06 The pilot release's installers and the platform CI matrix
 
 | Field | Value |
 |---|---|
 | Objective | Ship offline installers that run without admin rights, and keep all platforms and GPU-less paths green while egui and wgpu move. |
-| Scope in | MSI and per-user setup; AppImage and `.deb`; CLI archives; fonts, symbols, starter libraries and the golden sample inside; best-effort artefacts; `--smoke` tests; Windows and Linux runners (no macOS: ID-880; the PERT estimate is not re-based); WARP and CPU-renderer jobs; cross-platform byte identity; quarterly lock-step upgrade train |
-| Scope out | Flathub (WP-S6.10) |
+| Scope in | The per-user setup; the AppImage; CLI archives; fonts, symbols, starter libraries and the golden sample inside; best-effort artefacts; `--smoke` tests; Windows and Linux runners (no macOS: ID-880; the PERT estimate is not re-based); WARP and CPU-renderer jobs; cross-platform byte identity; quarterly lock-step upgrade train |
+| Scope out | The per-machine MSI with its policy keys, the `.deb` and Flathub (WP-S6.10, from 1.0) |
 | Deliverables | Installers per OS |
 | Depends on | WP-S2.01, WP-S2.02, WP-S0.01 |
 | Requirements | NFR-PLAT-01 … NFR-PLAT-04, NFR-PLAT-06, NFR-PLAT-07, NFR-MAINT-04, NFR-MAINT-09 (8 rows) |
-| Effort (pw) | O 5 · L 7 · P 10.5 · **PERT 7.3** (σ 0.9) |
+| Effort (pw) | O 1.5 · L 2.5 · P 4 · **PERT 2.6** (σ 0.4) |
 | Milestone · release | M2 MVP: pilot release · MVP |
 | Acceptance | AC-14, AC-40 |
 | Owner role | Release engineer |
 
-#### WP-S6.07 Release pipeline: signing, provenance, SBOM
+*Status (2026-11-02, ID-1187, ID-1188).* **Re-estimated** from 5 · 7 · 10.5 (PERT 7.3): 0.1.0 ships the per-user Windows setup, the AppImage and the CLI archives, with Golden A and the offline documentation inside (AC-40); the MSI, its policy keys and the `.deb` move to WP-S6.10 at 1.0.
+
+#### WP-S6.07 Release pipeline: sums, provenance, SBOM
 
 | Field | Value |
 |---|---|
-| Objective | Build every release from a signed tag with signatures, provenance and SBOMs. |
-| Scope in | Release environment with second-maintainer approval; Authenticode or Artifact Signing; no macOS notarisation (ID-880; the PERT estimate is not re-based); SLSA provenance; signed `SHA256SUMS`; CycloneDX SBOM including non-Rust components; cargo-auditable; advisory gate; release checklist with LG-1 and LG-4 |
-| Scope out | Reproducible builds (WP-S6.10) |
+| Objective | Build every release from a tag, with sums, provenance and SBOMs. |
+| Scope in | One release workflow from a tag, in the protected environment with short-lived OIDC credentials; SLSA provenance; `SHA256SUMS` (unsigned); CycloneDX SBOM including non-Rust components; cargo-auditable; advisory gate; the canary assertions; release checklist with LG-1 |
+| Scope out | Reproducible builds (WP-S6.10); the second maintainer's approval, Authenticode or Artifact Signing (no macOS notarisation: ID-880), the signed tag, signed `SHA256SUMS` and LG-4 in the checklist (WP-S6.10, from 1.0) |
 | Deliverables | Release workflow; checklist |
-| Depends on | WP-S6.06, WP-S0.05 |
+| Depends on | WP-S6.06 |
 | Requirements | NFR-SEC-10 … NFR-SEC-13, NFR-SEC-19 (5 rows) |
-| Effort (pw) | O 2.5 · L 3.5 · P 5.5 · **PERT 3.7** (σ 0.5) |
+| Effort (pw) | O 0.5 · L 1 · P 2 · **PERT 1.1** (σ 0.3) |
 | Milestone · release | M2 MVP: pilot release · MVP |
 | Acceptance | NFR-SEC-12, NFR-SEC-13 |
 | Owner role | Release engineer |
@@ -2911,15 +2932,17 @@ S6 implements the test layers, gates, packaging, signing and CRA processes of [q
 the signing identities of WP-S0.05 as a later release item: they are needed to sign the release binaries, not a legal
 gate. Its release checklist drops the LG items.
 
-#### WP-S6.08 MVP release stabilisation and the first signed release
+*Note (2026-11-02, ID-1187, ID-1188).* **Re-estimated** from 2.5 · 3.5 · 5.5 (PERT 3.7): 0.1.0 is built from an unsigned tag with `SHA256SUMS` and provenance, and ships unsigned until the owner holds a signing identity. The signing items move to WP-S6.10 (1.0, or earlier with a signing identity), and the package no longer depends on WP-S0.05.
+
+#### WP-S6.08 MVP release stabilisation and the first release
 
 | Field | Value |
 |---|---|
-| Objective | Turn the M2 release candidate into the first signed binary release the pilot can rely on. |
-| Scope in | Release-candidate cycles; R1 fix list; pilot blocker fixes; MVP acceptance run on all gates; release notes and migration notes; first signed MVP release |
+| Objective | Turn the M2 release candidate into the first binary release (0.1.0, unsigned) the pilot can rely on. |
+| Scope in | Release-candidate cycles; R1 fix list; pilot blocker fixes; MVP acceptance run on all gates; release notes and migration notes; first MVP release |
 | Scope out | Routine integration work during development (in the 20 % reserve) |
-| Deliverables | Signed MVP release; acceptance report |
-| Depends on | Every M0–M2 work package except WP-S0.07 and itself; the CSV lists the 27 that are not already implied: WP-S0.03, WP-S1.11, WP-S1.12, WP-S1.17, WP-S1.18, WP-S1.23, WP-S2.07, WP-S2.08, WP-S2.09, WP-S2.10, WP-S2.11, WP-S2.12, WP-S2.18, WP-S3.06, WP-S3.07, WP-S3.08, WP-S3.12, WP-S3.13, WP-S4.02, WP-S6.02, WP-S6.03, WP-S6.04, WP-S6.05, WP-S6.07, WP-S7.01, WP-S7.03, WP-S7.05 |
+| Deliverables | MVP release (0.1.0); acceptance report |
+| Depends on | Every M0–M2 work package except itself (WP-S0.05 and WP-S0.07 moved to M6, ID-1187); the CSV lists the 27 that are not already implied: WP-S0.03, WP-S1.11, WP-S1.12, WP-S1.17, WP-S1.18, WP-S1.23, WP-S2.07, WP-S2.08, WP-S2.09, WP-S2.10, WP-S2.11, WP-S2.12, WP-S2.18, WP-S3.06, WP-S3.07, WP-S3.08, WP-S3.12, WP-S3.13, WP-S4.02, WP-S6.02, WP-S6.03, WP-S6.04, WP-S6.05, WP-S6.07, WP-S7.01, WP-S7.03, WP-S7.05 |
 | Requirements | NFR-REL-11, NFR-DOC-07 (2 rows; an activity WP, it also verifies requirements delivered elsewhere) |
 | Effort (pw) | O 3.8 · L 5.8 · P 8.8 · **PERT 6.0** (σ 0.8) |
 | Milestone · release | M2 MVP: pilot release · MVP |
@@ -2945,16 +2968,25 @@ gate. Its release checklist drops the LG items.
 
 | Field | Value |
 |---|---|
-| Objective | Add the 1.0 test layers and freeze what 1.0 promises to keep stable. |
-| Scope in | L/XL gating; routing, collision and STEP benchmarks; lavapipe 3D smoke; 8-hour soak; worker crash isolation; format freeze and yearly window; API guard at the 1.0 freeze; reproducible Linux builds; crates.io trusted publishing of the permissive crates; Flathub; tabletop exercise |
+| Objective | Add the 1.0 test layers, freeze what 1.0 promises to keep stable, and take what the pilot release 0.1.0 leaves for 1.0 (ID-1187). |
+| Scope in | L/XL gating; routing, collision and STEP benchmarks; lavapipe 3D smoke; 8-hour soak; worker crash isolation; format freeze and yearly window; API guard at the 1.0 freeze; reproducible Linux builds; crates.io trusted publishing of the permissive crates; Flathub; tabletop exercise; the items listed under "From the pilot release's scope" below |
 | Scope out | — |
-| Deliverables | 1.0 CI layers; published crates |
+| Deliverables | 1.0 CI layers; published crates; the release items that moved from 0.1.0 |
 | Depends on | WP-S6.03, WP-S4.07, WP-S5.07, WP-S6.07 |
-| Requirements | FR-COL-011, FR-EXT-023, NFR-SEC-20, NFR-REL-05, NFR-REL-12, NFR-REL-14 (6 rows) |
-| Effort (pw) | O 4 · L 6 · P 9 · **PERT 6.2** (σ 0.8) |
+| Requirements | FR-COL-011, FR-EXT-023, NFR-SEC-20, NFR-REL-05, NFR-REL-12, NFR-REL-14, NFR-PLAT-06, NFR-PLAT-08, NFR-SEC-12, NFR-SEC-15, NFR-SEC-19, NFR-PRIV-03, NFR-PRIV-04, NFR-REL-13, NFR-COMP-01 (15 rows) |
+| Effort (pw) | O 13.6 · L 18.9 · P 27.4 · **PERT 19.4** (σ 2.3) |
 | Milestone · release | M6 1.0 release · 1.0 |
 | Acceptance | NFR-REL-05, NFR-REL-14 |
 | Owner role | Release engineer |
+
+*From the pilot release's scope (ID-1187, ID-1188).* The effort of this package is the 4 · 6 · 9 of its own scope plus the
+9.6 · 12.9 · 18.4 that left WP-S6.04 to WP-S6.07, together 13.6 · 18.9 · 27.4. What moved, with its text kept:
+- **Installers and policy** (from WP-S6.06 and WP-S6.05; NFR-PLAT-06's 1.0 part, NFR-PLAT-08): the per-machine MSI with silent install and its policy keys, the `.deb` for Ubuntu 22.04+ and Debian 12+, and the administrator policy of the Windows registry keys and the Linux policy file.
+- **Signing** (from WP-S6.07; NFR-SEC-12's 1.0 part): Authenticode or Artifact Signing (no macOS notarisation: ID-880), the signed tag, signed `SHA256SUMS` and LG-4 in the release checklist, or earlier when the owner holds a signing identity; with the enrolments and identities of WP-S0.05a and WP-S0.05.
+- **The release environment** (from WP-S6.07; NFR-SEC-19): the second maintainer's approval of release jobs.
+- **The update check** (from WP-S6.05; NFR-SEC-15, NFR-PRIV-03): opt-in, the signed manifest and the ed25519 release key, the first-run choice, the policy keys for MSI deployments, and ADR-0029 decided before 1.0.
+- **Crash evidence** (from WP-S6.05; NFR-REL-13's minidump, NFR-PRIV-04): the local minidump, the crash monitor and the upload with its payload if ADR-0029 creates an endpoint.
+- **The steward's CRA processes** (from WP-S6.04; NFR-COMP-01, beside WP-S0.05): the vulnerability-handling runbook (24 h / 72 h / 14 days) and the single-reporting-platform account.
 
 #### WP-S6.11 External acceptance: TIA Portal, CODESYS and a machine shop (SC-7, SC-8)
 

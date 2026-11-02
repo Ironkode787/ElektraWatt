@@ -1,12 +1,12 @@
 wp_id,stream,title,milestone,milestone_lean,lever,release,effort_opt_pw,effort_likely_pw,effort_pess_pw,depends_on,lagged_deps,requirements,acceptance,owner_role
 WP-S0.01,S0,"Repository, workspace and CI bootstrap",M0,M0,,MVP,2,3,5,,,NFR-MAINT-01 NFR-MAINT-03 NFR-MAINT-05 NFR-MAINT-08 NFR-MAINT-13 NFR-SEC-10 NFR-SEC-19,NFR-MAINT-05,Release engineer
 WP-S0.02,S0,"Licensing, REUSE, DCO and licence-boundary check",M0,M0,,MVP,1,2,3,WP-S0.01,,NFR-LIC-01..NFR-LIC-05 NFR-LIC-08 NFR-LIC-09 NFR-LIC-10 NFR-MAINT-02,NFR-LIC-01 NFR-LIC-04,Project lead
-WP-S0.03,S0,Governance files and contribution process,M2,M2,,MVP,1,2,3,WP-S0.01,,NFR-DOC-08 NFR-DOC-09 NFR-COMP-03,NFR-DOC-08,Project lead
+WP-S0.03,S0,Governance files and contribution process,M2,M2,,MVP,0.5,1,1.5,WP-S0.01,,NFR-DOC-08 NFR-DOC-09 NFR-COMP-03,NFR-DOC-08,Project lead
 WP-S0.04,S0,"Legal gates for contributions: LG-1, LG-2, LG-5",M1,M1,,MVP,1,1.5,3,WP-S0.02,,NFR-LIC-11 NFR-LIC-12,NFR-LIC-12,Steward liaison
 WP-S0.05a,S0,"Signing enrolment and trademark search: LG-3, LG-4 start",M0,M0,,MVP,0.5,1,1.5,WP-S0.08,,NFR-LIC-13,NFR-LIC-13,Steward liaison
-WP-S0.05,S0,"Steward, signing identities and trademark: LG-3, LG-4 close",M2,M2,,MVP,1,1.5,2.5,WP-S0.04 WP-S0.05a,WP-S0.05a+12,NFR-COMP-01 NFR-COMP-02 NFR-COMP-08,NFR-COMP-08,Steward liaison
+WP-S0.05,S0,"Steward, signing identities and trademark: LG-3, LG-4 close",M6,M6,,1.0,1,1.5,2.5,WP-S0.04 WP-S0.05a,WP-S0.05a+12,NFR-COMP-01 NFR-COMP-02 NFR-COMP-08 NFR-DOC-08,NFR-COMP-08,Steward liaison
 WP-S0.06,S0,Documentation and website infrastructure,M1,M1,,MVP,1,2,3,WP-S0.01,,NFR-DOC-01 NFR-I18N-07,NFR-DOC-01,Docs maintainer
-WP-S0.07,S0,Funding applications and reporting,M2,M2,,MVP,1,1.5,3,WP-S0.04,,NFR-COMP-07,NFR-COMP-07,Project lead
+WP-S0.07,S0,Funding applications and reporting,M6,M6,,1.0,0,0,0,WP-S0.04,,,,Project lead
 WP-S0.08,S0,Pilot kick-off and early decisions,M0,M0,,MVP,1,1.5,2.5,,,NFR-UX-05,NFR-UX-05,Project lead
 WP-S0.09,S0,"Pilot programme, community and governance to 1.0",M6,M6,,1.0,6,9,13.5,WP-S0.08 WP-S0.03,,NFR-UX-05 NFR-LIC-14 NFR-LIC-13,NFR-UX-05,Project lead
 WP-S1.01,S1,"Permissive foundation crates: units, ids, text, reference designations",M1,M1,,MVP,2.5,3.5,5.5,,,FR-NUM-003 FR-NUM-015..FR-NUM-018 FR-PRJ-017 FR-I18N-001..FR-I18N-003 FR-I18N-010 FR-I18N-011 NFR-I18N-03 NFR-I18N-04,AC-06 NFR-I18N-03,Core developer
@@ -107,13 +107,13 @@ WP-S5.10,S5,Manufacturing 1.x backlog,1.x,1.x,,1.x,4,6,9,WP-S5.09,,FR-MFG-009 FR
 WP-S6.01,S6,ew-testkit and acceptance runner,M1,M1,,MVP,2.6,3.6,5.1,WP-S1.02 WP-S0.01,,NFR-MAINT-11 NFR-PRIV-09,AC-15 AC-24 AC-39,Release engineer
 WP-S6.02,S6,"Determinism, property tests and command fuzzer",M1,M1,,MVP,2,3,4.5,WP-S1.04 WP-S1.09,,NFR-REL-07 NFR-REL-08 NFR-REL-16 NFR-MAINT-06 NFR-MAINT-12,AC-14 AC-16,Release engineer
 WP-S6.03,S6,Performance and memory gate,M1,M1,,MVP,2.2,3.2,4.7,WP-S1.05 WP-S6.01,,NFR-PERF-01 NFR-PERF-03 NFR-PERF-13 NFR-PERF-20 NFR-PERF-09,AC-17 NFR-PERF-20,Release engineer
-WP-S6.04,S6,Security engineering and CRA readiness,M2,M2,,MVP,3,4.5,7,WP-S3.09 WP-S1.09 WP-S0.05a,,NFR-SEC-01..NFR-SEC-04 NFR-SEC-14 NFR-SEC-18 NFR-REL-12 NFR-COMP-01 NFR-COMP-03 NFR-COMP-04,NFR-SEC-03 NFR-COMP-01,Release engineer
-WP-S6.05,S6,"Privacy controls, crash reports and update check",M2,M2,,MVP,1.9,2.9,4.4,WP-S2.01,,NFR-PRIV-01..NFR-PRIV-05 NFR-PRIV-07..NFR-PRIV-09 NFR-REL-13 NFR-SEC-09 NFR-SEC-15 NFR-PLAT-08,AC-39 NFR-PRIV-01,Release engineer
-WP-S6.06,S6,"Packaging, installers and the platform CI matrix",M2,M2,,MVP,5,7,10.5,WP-S2.01 WP-S2.02 WP-S0.01,,NFR-PLAT-01..NFR-PLAT-04 NFR-PLAT-06 NFR-PLAT-07 NFR-MAINT-04 NFR-MAINT-09,AC-14 AC-40,Release engineer
-WP-S6.07,S6,"Release pipeline: signing, provenance, SBOM",M2,M2,,MVP,2.5,3.5,5.5,WP-S6.06 WP-S0.05,,NFR-SEC-10..NFR-SEC-13 NFR-SEC-19,NFR-SEC-12 NFR-SEC-13,Release engineer
-WP-S6.08,S6,MVP release stabilisation and the first signed release,M2,M2,,MVP,3.8,5.8,8.8,WP-S0.03 WP-S1.11 WP-S1.12 WP-S1.17 WP-S1.18 WP-S1.23 WP-S2.07 WP-S2.08 WP-S2.09 WP-S2.10 WP-S2.11 WP-S2.12 WP-S2.18 WP-S3.06 WP-S3.07 WP-S3.08 WP-S3.12 WP-S3.13 WP-S4.02 WP-S6.02 WP-S6.03 WP-S6.04 WP-S6.05 WP-S6.07 WP-S7.01 WP-S7.03 WP-S7.05,,NFR-REL-11 NFR-DOC-07,AC-21 AC-23 AC-40 AC-41,Release engineer
+WP-S6.04,S6,Security engineering for the pilot release,M2,M2,,MVP,0.5,1,2,WP-S3.09 WP-S1.09 WP-S0.05a,,NFR-SEC-01..NFR-SEC-04 NFR-SEC-14 NFR-SEC-18 NFR-REL-12 NFR-COMP-03 NFR-COMP-04,NFR-SEC-03,Release engineer
+WP-S6.05,S6,Privacy controls and the local crash log,M2,M2,,MVP,0.3,0.5,1,WP-S2.01,,NFR-PRIV-01 NFR-PRIV-02 NFR-PRIV-05 NFR-PRIV-07..NFR-PRIV-09 NFR-REL-13 NFR-SEC-09,AC-39 NFR-PRIV-01,Release engineer
+WP-S6.06,S6,The pilot release's installers and the platform CI matrix,M2,M2,,MVP,1.5,2.5,4,WP-S2.01 WP-S2.02 WP-S0.01,,NFR-PLAT-01..NFR-PLAT-04 NFR-PLAT-06 NFR-PLAT-07 NFR-MAINT-04 NFR-MAINT-09,AC-14 AC-40,Release engineer
+WP-S6.07,S6,"Release pipeline: sums, provenance, SBOM",M2,M2,,MVP,0.5,1,2,WP-S6.06,,NFR-SEC-10..NFR-SEC-13 NFR-SEC-19,NFR-SEC-12 NFR-SEC-13,Release engineer
+WP-S6.08,S6,MVP release stabilisation and the first release,M2,M2,,MVP,3.8,5.8,8.8,WP-S0.03 WP-S1.11 WP-S1.12 WP-S1.17 WP-S1.18 WP-S1.23 WP-S2.07 WP-S2.08 WP-S2.09 WP-S2.10 WP-S2.11 WP-S2.12 WP-S2.18 WP-S3.06 WP-S3.07 WP-S3.08 WP-S3.12 WP-S3.13 WP-S4.02 WP-S6.02 WP-S6.03 WP-S6.04 WP-S6.05 WP-S6.07 WP-S7.01 WP-S7.03 WP-S7.05,,NFR-REL-11 NFR-DOC-07,AC-21 AC-23 AC-40 AC-41,Release engineer
 WP-S6.09,S6,Monthly 0.x releases and support from MVP to 1.0,M5,M5,,1.0,2.5,4,6,WP-S6.08,,NFR-DOC-07,,Release engineer
-WP-S6.10,S6,1.0 quality layers and release hardening,M6,M6,,1.0,4,6,9,WP-S6.03 WP-S4.07 WP-S5.07 WP-S6.07,,FR-COL-011 FR-EXT-023 NFR-SEC-20 NFR-REL-05 NFR-REL-12 NFR-REL-14,NFR-REL-05 NFR-REL-14,Release engineer
+WP-S6.10,S6,1.0 quality layers and release hardening,M6,M6,,1.0,13.6,18.9,27.4,WP-S6.03 WP-S4.07 WP-S5.07 WP-S6.07,,FR-COL-011 FR-EXT-023 NFR-SEC-20 NFR-REL-05 NFR-REL-12 NFR-REL-14 NFR-PLAT-06 NFR-PLAT-08 NFR-SEC-12 NFR-SEC-15 NFR-SEC-19 NFR-PRIV-03 NFR-PRIV-04 NFR-REL-13 NFR-COMP-01,NFR-REL-05 NFR-REL-14,Release engineer
 WP-S6.11,S6,"External acceptance: TIA Portal, CODESYS and a machine shop (SC-7, SC-8)",M6,M6,,1.0,2,3.5,6,WP-S3.16 WP-S5.07,,FR-PLC-036 FR-PLC-037 FR-MFG-020 FR-MFG-021,AC-30 AC-35,Output and migration developer
 WP-S6.12,S6,1.0 beta-to-release stabilisation,M6,M6,,1.0,4,6,9,WP-S1.26 WP-S1.27 WP-S1.29 WP-S1.30 WP-S1.32 WP-S2.14 WP-S2.15 WP-S2.16 WP-S3.14 WP-S3.15 WP-S3.16 WP-S3.17 WP-S3.18 WP-S4.09 WP-S4.10 WP-S5.05 WP-S5.06 WP-S5.08 WP-S5.09 WP-S6.08 WP-S6.10 WP-S7.04 WP-S7.06,,NFR-COMP-06 NFR-REL-14,AC-22 AC-35 AC-42,Release engineer
 WP-S6.13,S6,"Blind-drafter gate agent: harness, personas and prompt",M-PP,M-PP,,MVP,1,1.5,2.5,WP-S2.04 WP-S6.01,,NFR-UX-04,,UX researcher
