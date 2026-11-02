@@ -107,6 +107,25 @@ fn the_part_dialog_by_keyboard_and_its_accessibility_tree() {
     h.state_mut().shell_mut().shutdown();
 }
 
+/// W45.1 F2 (ID-1110): an empty search says it once, in the list, and Choose is disabled with its reason.
+#[test]
+fn the_empty_search_says_it_once_and_chooses_nothing() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp);
+    dispatch(&mut h, "select.set", json!({"refs": ["tag:F55"]}));
+    dispatch(&mut h, "part.choose", json!({"use": 0}));
+    dispatch(&mut h, "part.search", json!({"text": "zz-no-such-part"}));
+    settle(&mut h);
+    settle(&mut h);
+    let said = "No part matches \u{201c}zz-no-such-part\u{201d}";
+    assert_eq!(h.query_all_by_label(said).count(), 1, "said once");
+    assert!(
+        h.get_by_label("Choose").accesskit_node().is_disabled(),
+        "Choose is disabled"
+    );
+    h.state_mut().shell_mut().shutdown();
+}
+
 #[test]
 fn the_part_editor_by_keyboard() {
     let tmp = Tmp::new();

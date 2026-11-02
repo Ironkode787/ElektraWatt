@@ -226,23 +226,20 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
             }
         }
         // WP-S2.07 part 4a (D19): Choose (Enter, the active row) and Cancel; the list and the filters are the dialog's.
+        // W45.1 F2 (ID-1110): an empty search is said once, in the list (not here); Choose is disabled while the list is
+        // empty, with its reason.
         Dialog::PartChoose(c) => {
-            let body = if c.offers.is_empty() {
-                vec![strings::format(key!("part-choose-empty"), &[&c.query.text])]
-            } else {
-                Vec::new()
-            };
+            let mut choose = DialogButton::new(
+                key!("dialog-part-choose-button"),
+                DialogAnswer::Action("part.pick", Value::Null),
+            );
+            if c.offers.is_empty() {
+                choose.disabled = Some(strings::text(key!("part-choose-nothing")).to_owned());
+            }
             DialogSpec {
                 secondary: vec![cancel()],
                 form: true,
-                ..small(
-                    c.title(),
-                    body,
-                    DialogButton::new(
-                        key!("dialog-part-choose-button"),
-                        DialogAnswer::Action("part.pick", Value::Null),
-                    ),
-                )
+                ..small(c.title(), Vec::new(), choose)
             }
         }
         // WP-S2.07 part 4a (D20): Save (Enter) and Cancel; a fork says that the library is not changed.

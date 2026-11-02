@@ -503,6 +503,59 @@ fn the_device_dialog_never_offers_a_layout_part() {
     s.shutdown();
 }
 
+/// ID-1110 (WP-S4.02 D3): a strip has no main function, so its Part dialog offers every kind: the end bracket
+/// EW-GEN-EB-1 (a Part use of kind `end_bracket`) is found by search.
+#[test]
+fn the_strip_1x1_offers_its_end_bracket_by_search() {
+    let tmp = Tmp::new("part-sel-1x1");
+    let mut s = golden(&tmp);
+    select(&mut s, "1X1");
+    done(&mut s, "part.choose", json!({ "add": true }));
+    done(&mut s, "part.search", json!({ "text": "EW-GEN-EB-1" }));
+    assert!(
+        results(&s).iter().any(|r| r == "EW-GEN-EB-1"),
+        "{:?}",
+        results(&s)
+    );
+    s.shutdown();
+}
+
+/// ID-1110 (WP-S4.02 D14): the enclosure device -UC1 has no main function, so its Part dialog offers every kind: the
+/// enclosure EW-GEN-ENC-1 is found by search.
+#[test]
+fn the_enclosure_device_offers_its_enclosure_by_search() {
+    let tmp = Tmp::new("part-sel-uc1");
+    let mut s = golden(&tmp);
+    select(&mut s, "-UC1");
+    done(&mut s, "part.choose", json!({ "add": true }));
+    done(&mut s, "part.search", json!({ "text": "EW-GEN-ENC-1" }));
+    assert!(
+        results(&s).iter().any(|r| r == "EW-GEN-ENC-1"),
+        "{:?}",
+        results(&s)
+    );
+    s.shutdown();
+}
+
+/// W45.1 F2 (ID-1110): an empty search says so once, in the list and not in the dialog's body, and Choose is disabled
+/// with its reason, since it has nothing to choose.
+#[test]
+fn the_empty_search_says_it_once_and_chooses_nothing() {
+    let tmp = Tmp::new("part-sel-empty");
+    let mut s = golden(&tmp);
+    select(&mut s, "F55");
+    done(&mut s, "part.choose", json!({ "use": 0 }));
+    done(&mut s, "part.search", json!({ "text": "zz-no-such-part" }));
+    assert!(results(&s).is_empty(), "{:?}", results(&s));
+    let spec = ew_viewmodel::dialogs::spec(s.dialog().unwrap(), &s);
+    assert!(spec.body.is_empty(), "{:?}", spec.body);
+    assert_eq!(
+        spec.primary.disabled.as_deref(),
+        Some("No part to choose; change the search.")
+    );
+    s.shutdown();
+}
+
 /// PS7 in the shell: a copy from a library forks: the card carries the fork note, Apply re-points F55 to the fork, and
 /// a second edit of the fork is in place.
 #[test]

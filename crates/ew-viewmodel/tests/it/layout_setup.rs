@@ -680,6 +680,17 @@ fn the_starter_enclosure_is_offered_by_the_create_dialog() {
         ),
         ("Create enclosure", Vec::<String>::new(), "Create", None)
     );
+    // C45-p1#6: the part line names the starter's enclosure, whole.
+    let describe = s.describe();
+    let part_line: Vec<&str> = describe
+        .lines()
+        .map(str::trim_start)
+        .filter(|l| l.starts_with("field \"Enclosure part\""))
+        .collect();
+    assert_eq!(
+        part_line,
+        ["field \"Enclosure part\": \"EW-GEN-ENC-1 · Wall enclosure 600 × 800 × 250 mm\""]
+    );
     s.shutdown();
 }
 

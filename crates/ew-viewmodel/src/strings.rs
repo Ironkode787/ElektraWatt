@@ -2876,6 +2876,7 @@ pub const TEXTS: &[(&str, &str)] = &[
     ("badge-fits-function", "Fits {0}'s function"),
     ("badge-same-category", "Same category"),
     ("part-choose-empty", "No part matches \u{201c}{0}\u{201d}"),
+    ("part-choose-nothing", "No part to choose; change the search."),
     ("part-choose-more", "Search all parts\u{2026}"),
     ("dialog-part-edit-title", "Edit part {0}"),
     (
