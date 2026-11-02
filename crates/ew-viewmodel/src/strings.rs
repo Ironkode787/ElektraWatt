@@ -362,6 +362,10 @@ pub const TEXTS: &[(&str, &str)] = &[
         "reason-place-stacked",
         "An identical symbol already stands here; move the pointer to place another",
     ),
+    (
+        "reason-place-wire-off-sheet",
+        "Not placed: this wire runs off the sheet here; move its ends onto the sheet first",
+    ),
     ("reason-nothing-selected", "Nothing is selected"),
     (
         "error-wire-reference",

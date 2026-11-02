@@ -37,7 +37,7 @@ use ew_api::output::SymbolShape;
 use ew_api::output::ew_dl::EntityRef;
 use serde_json::{Value, json};
 
-use super::autoconnect::{GhostCp, ProposalTarget, Proposals, proposals};
+use super::autoconnect::{GhostCp, ProposalTarget, Proposals, on_off_sheet_segment, proposals};
 use super::{
     Anchor, Button, CanvasEvent, Ghost, MarkerKind, Overlay, OverlayItem, PreviewInfo, Style, Token, Tool,
     ToolCx, ToolKey, ToolOutput,
@@ -591,10 +591,23 @@ impl PlaceTool {
                 .is_some_and(|(_, at)| self.lands_on_twin(cx, self.stacked_pos(cx, at)))
     }
 
+    /// Whether a CP of the placement at the current point lies strictly inside a wire segment the scene's clamp drew
+    /// along the sheet's edge (FT-1049).
+    fn on_off_sheet(&self, cx: &ToolCx<'_>) -> bool {
+        self.at.is_some_and(|(_, at)| {
+            on_off_sheet_segment(&self.ghost_cps(self.stacked_pos(cx, at)), &cx.page.tables)
+        })
+    }
+
     fn commit(&mut self, cx: &ToolCx<'_>, alt: bool) -> ToolOutput {
         // FT-751: refused in words (doc 16a, a refusal leaves the model unchanged), never a stacked twin.
         if self.on_twin(cx) {
             return ToolOutput::Refused(key!("reason-place-stacked"));
+        }
+        // FT-1049 (ID-1148): never with a CP strictly inside a stretch the scene drew along the sheet's edge, where
+        // the wire does not run (normaliser 7 would not split it there).
+        if self.on_off_sheet(cx) {
+            return ToolOutput::Refused(key!("reason-place-wire-off-sheet"));
         }
         let Some(cmd) = self.command(cx, alt || self.suppressed) else {
             return ToolOutput::None;

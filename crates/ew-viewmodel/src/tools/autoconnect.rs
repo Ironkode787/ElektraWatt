@@ -240,6 +240,34 @@ fn ray_hits(
     hits
 }
 
+/// Whether `p` lies strictly inside the axis-parallel segment `a`–`b` (on its line by grid index, between its ends);
+/// never for a segment of another slope or of no length.
+fn strictly_on(grid: GridMap, a: (i64, i64), b: (i64, i64), p: (i64, i64)) -> bool {
+    if a.1 == b.1 && a.0 != b.0 {
+        grid.index(p.1) == grid.index(a.1) && a.0.min(b.0) < p.0 && p.0 < a.0.max(b.0)
+    } else if a.0 == b.0 && a.1 != b.1 {
+        grid.index(p.0) == grid.index(a.0) && a.1.min(b.1) < p.1 && p.1 < a.1.max(b.1)
+    } else {
+        false
+    }
+}
+
+/// Whether a ghost CP lies strictly inside a segment that the scene's clamp drew along the sheet's edge, off its
+/// wire's path (FT-1049, ID-1148: [`TableConnection::off_sheet`](ew_api::output::TableConnection::off_sheet)): the
+/// Place tool refuses that drop, because the symbol would look joined to a wire that does not run there. A CP at
+/// such a segment's end is not inside it.
+pub fn on_off_sheet_segment(cps: &[GhostCp], tables: &PageTables) -> bool {
+    let grid = GridMap::of(tables);
+    tables.connections.iter().any(|c| {
+        c.off_sheet.iter().any(|&i| {
+            let (Some(a), Some(b)) = (c.polyline.get(i), c.polyline.get(i + 1)) else {
+                return false;
+            };
+            cps.iter().any(|p| strictly_on(grid, *a, *b, p.at))
+        })
+    })
+}
+
 /// The splits of the ghost: pairs of ghost CPs on one segment of a connection facing its two ends, those of the
 /// connections with a stored route first (normaliser 7 splits a routed connection before a route-less one drawn on
 /// the same line).
@@ -251,16 +279,11 @@ fn splits(cps: &[GhostCp], tables: &PageTables, grid: GridMap) -> Vec<Proposal> 
             let (a, b) = (w[0], w[1]);
             let horizontal = a.1 == b.1 && a.0 != b.0;
             let vertical_seg = a.0 == b.0 && a.1 != b.1;
-            if !(horizontal || vertical_seg) {
+            // FT-1049: a stretch the clamp drew along the sheet's edge is not the wire's path; nothing splits there.
+            if !(horizontal || vertical_seg) || c.is_off_sheet(a, b) {
                 continue;
             }
-            let on = |p: (i64, i64)| {
-                if horizontal {
-                    grid.index(p.1) == grid.index(a.1) && a.0.min(b.0) < p.0 && p.0 < a.0.max(b.0)
-                } else {
-                    grid.index(p.0) == grid.index(a.0) && a.1.min(b.1) < p.1 && p.1 < a.1.max(b.1)
-                }
-            };
+            let on = |p: (i64, i64)| strictly_on(grid, a, b, p);
             let along = |p: &GhostCp| if horizontal { p.at.0 } else { p.at.1 };
             for (i, p) in cps.iter().enumerate() {
                 for q in &cps[i + 1..] {
@@ -489,6 +512,7 @@ mod tests {
             kind: "wire".into(),
             polyline: vec![(-5 * G, 5 * G), (5 * G, 5 * G)],
             stored_route: true,
+            off_sheet: Vec::new(),
         });
         assert_eq!(proposals(&g, &t, &[], AREA, 0).list.len(), 1);
         // A segment along the ray occupies the line.
@@ -499,6 +523,7 @@ mod tests {
             kind: "wire".into(),
             polyline: vec![(0, 3 * G), (0, 7 * G)],
             stored_route: true,
+            off_sheet: Vec::new(),
         });
         assert!(proposals(&g, &t, &[], AREA, 0).list.is_empty());
         // A CP facing the wrong way or connected is no hit.
@@ -520,6 +545,7 @@ mod tests {
             kind: "wire".into(),
             polyline: vec![(0, 0), (0, 0), (0, 20 * G), (0, 20 * G)],
             stored_route: true,
+            off_sheet: Vec::new(),
         });
         let g = [ghost(0, (0, 8 * G), Dir::Up), ghost(1, (0, 12 * G), Dir::Down)];
         let p = proposals(&g, &t, &[], AREA, 0);
@@ -543,6 +569,7 @@ mod tests {
                 kind: "wire".into(),
                 polyline: vec![(0, 0), (0, 20 * G)],
                 stored_route,
+                off_sheet: Vec::new(),
             });
         }
         let g = [ghost(0, (0, 8 * G), Dir::Up), ghost(1, (0, 12 * G), Dir::Down)];
@@ -551,6 +578,47 @@ mod tests {
         assert!(
             matches!(&p.list[0].target, ProposalTarget::Split { connection, .. } if *connection == EntityRef(uuid(0x601))),
             "{p:?}"
+        );
+    }
+
+    /// FT-1049 (ID-1148): a segment the clamp drew along the sheet's edge proposes no split, and a ghost CP strictly
+    /// inside it is on it; one at its end, or on the wire's own segment, is not.
+    #[test]
+    fn a_stretch_drawn_along_the_sheet_edge_is_no_split_and_refuses_a_drop() {
+        let mut t = tables();
+        // An L whose second segment, (0, 0)–(0, 20 G), is the clamp's.
+        t.connections.push(TableConnection {
+            id: uuid(0x600),
+            a: TableEnd::Junction { id: uuid(1) },
+            b: TableEnd::Junction { id: uuid(2) },
+            kind: "wire".into(),
+            polyline: vec![(20 * G, 0), (0, 0), (0, 20 * G)],
+            stored_route: false,
+            off_sheet: vec![1],
+        });
+        let on_edge = [ghost(0, (0, 8 * G), Dir::Up), ghost(1, (0, 12 * G), Dir::Down)];
+        assert!(proposals(&on_edge, &t, &[], AREA, 0).list.is_empty());
+        assert!(on_off_sheet_segment(&on_edge, &t));
+        assert!(
+            !on_off_sheet_segment(&[ghost(0, (0, 0), Dir::Up)], &t),
+            "a segment's end"
+        );
+        assert!(
+            !on_off_sheet_segment(&[ghost(0, (0, 20 * G), Dir::Up)], &t),
+            "a segment's end"
+        );
+        let on_wire = [ghost(0, (8 * G, 0), Dir::Left), ghost(1, (12 * G, 0), Dir::Right)];
+        assert!(!on_off_sheet_segment(&on_wire, &t));
+        let p = proposals(&on_wire, &t, &[], AREA, 0);
+        assert!(
+            matches!(
+                p.list.as_slice(),
+                [Proposal {
+                    target: ProposalTarget::Split { .. },
+                    ..
+                }]
+            ),
+            "the wire's own segment still splits: {p:?}"
         );
     }
 }

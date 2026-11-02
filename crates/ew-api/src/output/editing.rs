@@ -1364,6 +1364,45 @@ pub struct TableConnection {
     pub polyline: Vec<(i64, i64)>,
     /// Whether the connection has a stored route.
     pub stored_route: bool,
+    /// The polyline's segments (`i` for `polyline[i]` to `polyline[i + 1]`) that the scene's clamp drew along the
+    /// sheet's edge, off the connection's path (an end or a route vertex off the sheet; FT-1049, ID-1148): the wire
+    /// does not run there, so the Place tool neither splits nor drops on them. Ascending; empty for a path on the
+    /// sheet.
+    pub off_sheet: Vec<usize>,
+}
+
+impl TableConnection {
+    /// Whether the segment `a`–`b` of [`polyline`](Self::polyline) is one of [`off_sheet`](Self::off_sheet).
+    pub fn is_off_sheet(&self, a: (i64, i64), b: (i64, i64)) -> bool {
+        self.off_sheet
+            .iter()
+            .any(|&i| self.polyline.get(i) == Some(&a) && self.polyline.get(i + 1) == Some(&b))
+    }
+}
+
+/// The segments of the drawn (clamped) `polyline` that lie on no segment of the connection's unclamped `path`
+/// (`ew_derive::drawn_path`, the path normaliser 7 and EW-TERM-006 read; FT-1049). A stored route is drawn vertex
+/// for vertex, so its segment `i` is compared with the path's segment `i` alone; a provisional route (at most three
+/// vertices, cleaned after the clamp) with every segment of the path.
+fn off_sheet_segments(polyline: &[Pt2], path: &[Pt2], stored: bool) -> Vec<usize> {
+    if polyline == path {
+        return Vec::new();
+    }
+    let on = |a: Pt2, b: Pt2, s: &[Pt2]| {
+        ew_derive::on_segment(a, s[0], s[1]) && ew_derive::on_segment(b, s[0], s[1])
+    };
+    polyline
+        .windows(2)
+        .enumerate()
+        .filter(|(i, w)| {
+            if stored && polyline.len() == path.len() {
+                !on(w[0], w[1], &path[*i..*i + 2])
+            } else {
+                !path.windows(2).any(|s| on(w[0], w[1], s))
+            }
+        })
+        .map(|(i, _)| i)
+        .collect()
 }
 
 /// A junction row of the page tables.
@@ -1753,12 +1792,20 @@ impl Session {
                     Endpoint::Unknown(_) => None,
                 }
             };
-            let polyline = match (end(&c.a), end(&c.b)) {
-                (Some(ea), Some(eb)) => connection_polyline(&ea, &eb, &c.route, rect)
-                    .into_iter()
-                    .map(pt)
-                    .collect(),
-                _ => c.route.iter().map(|p| pt(*p)).collect(),
+            let (polyline, off_sheet) = match (end(&c.a), end(&c.b)) {
+                (Some(ea), Some(eb)) => {
+                    let drawn = connection_polyline(&ea, &eb, &c.route, rect);
+                    // FT-1049: the segments the clamp moved, against the path normaliser 7 reads; only a path with
+                    // a vertex off the sheet is clamped at all.
+                    let (lo, hi) = (rect.min(), rect.max());
+                    let off = |p: &Pt2| p.x < lo.x || p.x > hi.x || p.y < lo.y || p.y > hi.y;
+                    let off_sheet = ew_derive::drawn_path(&q, &c, page_id)
+                        .filter(|path| path.iter().any(off))
+                        .map(|path| off_sheet_segments(&drawn, &path, !c.route.is_empty()))
+                        .unwrap_or_default();
+                    (drawn.into_iter().map(pt).collect(), off_sheet)
+                }
+                _ => (c.route.iter().map(|p| pt(*p)).collect(), Vec::new()),
             };
             connections.push(TableConnection {
                 id: cid.as_uuid(),
@@ -1767,6 +1814,7 @@ impl Session {
                 kind: connection_kind_word(&c.kind),
                 polyline,
                 stored_route: !c.route.is_empty(),
+                off_sheet,
             });
         }
         // By place: the first vertex, then the last (y, then x), then ID; a CP lists its connections in this order.

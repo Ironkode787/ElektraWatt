@@ -585,6 +585,7 @@ mod tests {
                     kind: "wire".into(),
                     polyline: polyline.to_vec(),
                     stored_route: true,
+                    off_sheet: Vec::new(),
                 })
                 .collect(),
             junctions: Vec::new(),
