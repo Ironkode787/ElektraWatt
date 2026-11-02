@@ -1048,6 +1048,55 @@ impl Command for MoveReps {
     }
 }
 
+/// FT-867 (ID-1108: "a device's texts keep their place relative to its box after a half turn"): a half turn keeps a
+/// black box's bounding box ([`box_pivot`]), but its texts are drawn at `pos + orient(slot pos)`, so they would turn
+/// to the other side of the box. Each text of `old` that the drawing places from its slot position gets an override
+/// in `new` that keeps it where it was: its position the same page point in `new`'s frame, its angle turned by 180°
+/// (so the readable angle and the alignment the drawing derives stay). A caption of a black-box symbol (a symbol
+/// without connection points) that is neither moved nor turned is left alone: the drawing places it from the
+/// outline, which stays.
+fn keep_texts(tx: &TxBuilder<'_>, old: &Representation, new: &mut Representation) -> Result<(), OutOfRange> {
+    use ew_schema::{SlotKind, SlotOverride};
+    let Some(symbol) = tx.get::<LibCopy<SymbolDef>>(old.symbol) else {
+        return Ok(());
+    };
+    let def = &symbol.item;
+    let mut slots: BTreeMap<u16, SlotOverride> =
+        old.text_slots.iter().map(|o| (o.slot, o.clone())).collect();
+    let back = new.orient.inverse();
+    for (i, slot) in def.text_slots.iter().enumerate() {
+        let Ok(i) = u16::try_from(i) else { break };
+        let ov = slots.get(&i).cloned();
+        let moved = ov.as_ref().is_some_and(|o| o.pos.is_some() || o.angle.is_some());
+        let caption = matches!(
+            slot.kind,
+            SlotKind::Tag | SlotKind::PartNumber | SlotKind::Manufacturer
+        );
+        if !moved && caption && def.cps.is_empty() && slot.rot.is_zero() {
+            continue;
+        }
+        let pos = ov.as_ref().and_then(|o| o.pos).unwrap_or(slot.pos);
+        let angle = ov.as_ref().and_then(|o| o.angle).unwrap_or(slot.rot);
+        let at = add(old.pos, old.orient.apply(pos))?;
+        let rel = back.apply(sub(at, new.pos)?);
+        let turned = ew_units::Angle2((angle.normalized().0 + 180_000) % 360_000);
+        slots.insert(
+            i,
+            SlotOverride {
+                slot: i,
+                pos: Some(rel),
+                angle: Some(turned),
+                visible: ov.as_ref().and_then(|o| o.visible),
+                extra: ov.map(|o| o.extra).unwrap_or_default(),
+            },
+        );
+    }
+    if let Ok(list) = ew_schema::KeyedList::from_vec(slots.into_values().collect()) {
+        new.text_slots = list;
+    }
+    Ok(())
+}
+
 /// `rep.transform`: rotates, mirrors or changes the variant of representations about their insertion point
 /// (doc 06 §3.4); a black box within its own bounding box.
 ///
@@ -1131,6 +1180,11 @@ impl Command for TransformReps {
                         continue;
                     }
                 }
+            }
+            // FT-867 (ID-1108): after a half turn a black box's texts keep their place relative to its box
+            if self.rotate == 2 && !self.mirror && old.box_.is_some() && keep_texts(tx, &old, &mut new).is_err() {
+                out_of_range(tx)?;
+                continue;
             }
             let (Ok(before), Ok(after_cps)) = (rep_cps_checked(tx, &old), rep_cps_checked(tx, &new)) else {
                 out_of_range(tx)?;

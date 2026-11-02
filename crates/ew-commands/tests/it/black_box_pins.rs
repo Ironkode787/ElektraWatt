@@ -448,6 +448,85 @@ fn a_black_box_mirrors_and_turns_within_its_bounding_box() {
     }
 }
 
+/// The fixture with `SYM` given the generic black box's text slots (`content/symbols/ew.gen.blackbox.json`): tag 0,
+/// function text 1, cross-reference 2, part number 3.
+fn texts_model() -> Model {
+    let (p, records, _) = mini_golden_parts();
+    let mut lib = library();
+    let slots: Vec<ew_schema::TextSlot> = serde_json::from_value(json!([
+        {"kind": "tag", "pos": [0, -1_000_000], "align": "bottom_left", "visible": true},
+        {"kind": "function_text", "pos": [20_000_000, 12_000_000], "align": "centre", "visible": true},
+        {"kind": "xref", "pos": [1_000_000, 1_000_000], "align": "top_left", "visible": true},
+        {"kind": "part_number", "pos": [40_000_000, -1_000_000], "align": "bottom_right", "visible": true}
+    ]))
+    .expect("text slots");
+    for doc in &mut lib {
+        if let ew_schema::LibDocument::Symbol(s) = doc {
+            if s.id == SYM {
+                s.item.text_slots = slots.clone();
+            }
+        }
+    }
+    Model::from_records(p, records, lib).expect("valid model")
+}
+
+/// Each text slot the drawing places from its slot position, as the drawing reads it (`ew-scene`'s labels): the page
+/// point `pos + orient(slot pos)` and the angle in the page's frame before the readability turn, so equal values
+/// draw the same text at the same place, aligned alike.
+fn drawn_slots(e: &Engine, rep: Id<Representation>) -> Vec<(u16, Pt2, i32)> {
+    let r = row(e, rep);
+    let def = e
+        .model()
+        .table::<ew_schema::LibCopy<ew_schema::SymbolDef>>()
+        .get(&r.symbol)
+        .expect("the symbol")
+        .item
+        .clone();
+    (0u16..)
+        .zip(&def.text_slots)
+        .map(|(i, slot)| {
+            let ov = r.text_slots.iter().find(|o| o.slot == i);
+            let pos = ov.and_then(|o| o.pos).unwrap_or(slot.pos);
+            let angle = ov.and_then(|o| o.angle).unwrap_or(slot.rot).normalized().0;
+            let page_angle = (angle - i32::from(r.orient.quarter_turns()) * 90_000).rem_euclid(360_000);
+            (i, r.pos + r.orient.apply(pos), page_angle)
+        })
+        .collect()
+}
+
+/// FT-867 (ID-1108: "a device's texts keep their place relative to its box after a half turn"): a half turn keeps the
+/// black box's bounding box, and every text the drawing places from its slot position (the function text, the
+/// cross-reference and a moved tag) keeps its place and its reading angle; the part number, a caption the drawing
+/// places from the outline, is left alone. A second half turn brings the box and its texts back.
+#[test]
+fn ft867_a_half_turn_keeps_the_texts_of_a_black_box_in_place() {
+    let mut e = engine(texts_model());
+    let (pos, spec) = play_box();
+    let (rep, _) = place_box(&mut e, pos, spec);
+    // the tag moved by the user
+    e.execute(&ew_commands::commands::SetFields {
+        kind: ew_commands::commands::KindName::Representation,
+        targets: vec![rep.cast()],
+        path: "text_slots".into(),
+        value: json!([{"slot": 0, "pos": [2_000_000, -3_000_000]}]),
+        copies: Vec::new(),
+    })
+    .expect("the tag moved");
+    let start = row(&e, rep);
+    let before = drawn_slots(&e, rep);
+    let kept = |v: &[(u16, Pt2, i32)]| -> Vec<(u16, Pt2, i32)> { v.iter().filter(|s| s.0 != 3).copied().collect() };
+    e.execute(&transform(rep, 2, false)).expect("a half turn");
+    assert_eq!(kept(&drawn_slots(&e, rep)), kept(&before));
+    assert!(
+        row(&e, rep).text_slots.iter().all(|o| o.slot != 3),
+        "the part number caption is placed from the outline"
+    );
+    e.execute(&transform(rep, 2, false)).expect("a second half turn");
+    let back = row(&e, rep);
+    assert_eq!((back.pos, back.orient), (start.pos, start.orient));
+    assert_eq!(kept(&drawn_slots(&e, rep)), kept(&before));
+}
+
 #[test]
 fn a_quarter_turn_snaps_the_centre_to_the_grid_and_four_turns_bring_the_box_back() {
     let mut e = engine(golden_model());
