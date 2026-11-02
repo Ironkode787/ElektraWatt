@@ -421,6 +421,47 @@ fn ft1027_hovering_a_toast_pauses_its_fade() {
     h.state_mut().shell_mut().shutdown();
 }
 
+/// FT-1088, ID-1183: a toast that appears under a pointer that does not move fades on time (the hover pauses a toast
+/// only after the pointer moved onto it); once the pointer moves onto it, it is paused and stays paused while the
+/// pointer is still.
+#[test]
+fn ft1088_a_toast_under_a_still_pointer_fades_on_time() {
+    let tmp = Tmp::new();
+    let dir = tmp.golden("g.ew");
+    let mut h = harness(&tmp, Scripted::default(), Some(dir));
+    settle(&mut h);
+    dispatch(&mut h, "page.goto", json!({"folio": "101"}));
+    settle(&mut h);
+    // The pointer comes to rest where the toasts will stand: under the canvas's top right.
+    let pane = h.state().command_surface_rects().2.expect("the canvas pane");
+    let tokens = ew_ui::theme::current(&h.ctx);
+    let rest = egui::pos2(
+        pane.right() - tokens.space_4 - 50.0,
+        pane.top() + tokens.size_dock_tab_bar + tokens.space_4 + 20.0,
+    );
+    h.input_mut().events.push(egui::Event::PointerMoved(rest));
+    h.step();
+    dispatch(&mut h, "select.set", json!({"refs": ["tag:-101F1", "tag:-102F1"]}));
+    dispatch(
+        &mut h,
+        "props.set",
+        json!({"row": "device/function_text", "value": "Spare"}),
+    );
+    h.step();
+    assert_eq!(h.state().shell().notifications().visible().len(), 1);
+    let shown = h.ctx.input(|i| i.time);
+    assert_eq!(opacity_at(&mut h, shown, 1.0), Some(1.0), "standing");
+    let toast = h
+        .get_all_by_role(egui::Role::Group)
+        .find(|n| n.accesskit_node().label().as_deref() == Some("Notification"))
+        .expect("the toast's node")
+        .rect();
+    assert!(toast.contains(rest), "the toast {toast:?} stands under the pointer at {rest:?}");
+    assert_eq!(opacity_at(&mut h, shown, 4.0), Some(1.0), "standing");
+    assert_eq!(opacity_at(&mut h, shown, 8.0), None, "gone at 8 s under a still pointer");
+    h.state_mut().shell_mut().shutdown();
+}
+
 /// C46-p1#5 (ID-1139 as drawn): at the 1280 × 800 floor, a click on the greyed Symbol button of a panel layout page
 /// shows a toast whose title stands whole on two rows (its text runs as drawn), never cut with an ellipsis.
 #[test]

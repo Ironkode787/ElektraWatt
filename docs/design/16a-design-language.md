@@ -928,7 +928,8 @@ in an ellipsis, with the whole text in the tooltip, the HUD and the log.
 *As built (cycle 45; decision log ID-1107, FT-1027).* **A toast fades out as it fades in:** its opacity rises from 0 to
 1 over `motion.base` from the frame that first paints it, stands at 1, and falls to 0 over the last `motion.base` of
 its 8 s, all on the window's frame clock; then it leaves. Hovering a toast still pauses it: its clock stands still
-while the pointer is on it.
+while the pointer is on it, once the pointer has moved onto it (FT-1088, ID-1183): a toast that appears under a pointer at rest
+fades on time, and a toast already paused stays paused while the pointer is still.
 
 ### 6.11 Banners
 

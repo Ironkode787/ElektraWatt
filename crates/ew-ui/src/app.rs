@@ -1022,8 +1022,9 @@ impl App {
         // still for the time since that frame.
         let step = self.toast_clock.map_or(0.0, |last| (frame_time - last).max(0.0));
         self.toast_clock = Some(frame_time);
-        for serial in std::mem::take(&mut self.toast_hovered) {
-            if let Some(since) = self.toast_since.get_mut(&serial) {
+        let was_paused = std::mem::take(&mut self.toast_hovered);
+        for serial in &was_paused {
+            if let Some(since) = self.toast_since.get_mut(serial) {
                 *since += step;
             }
         }
@@ -1040,7 +1041,7 @@ impl App {
                 )
             })
             .collect();
-        self.toast_hovered = crate::notifications::show_toasts(
+        let hovered = crate::notifications::show_toasts(
             &ctx,
             &self.shell,
             anchor,
@@ -1048,6 +1049,14 @@ impl App {
             &self.toast_opacity,
             &mut events,
         );
+        // FT-1088 (ID-1183; doc 16a §6.10): a hover pauses a toast only once the pointer has moved onto it (a
+        // pointer-moved event in this frame) and keeps it paused while the pointer stays; a toast that appears under a
+        // pointer at rest is not paused, so it fades on time.
+        let pointer_moved = ctx.input(|i| i.events.iter().any(|e| matches!(e, egui::Event::PointerMoved(_))));
+        self.toast_hovered = hovered
+            .into_iter()
+            .filter(|serial| pointer_moved || was_paused.contains(serial))
+            .collect();
         crate::notifications::show_log(&ctx, &self.shell, &mut events);
         about::show(
             &ctx,
