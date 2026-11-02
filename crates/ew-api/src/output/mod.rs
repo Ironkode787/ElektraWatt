@@ -123,7 +123,7 @@ pub use fields::{
 pub use find::{FindField, FindHit, FindQuery, FindResults};
 // WP-S2.09 part 1
 pub use history::{HistoryRow, HistoryView};
-pub use job::ExportJob;
+pub use job::{ExportJob, PrintSetJob};
 pub use join::{JoinCandidate, JoinCandidates, JoinProposal, JoinedText};
 pub use layers::{
     CarriersLayer, FrameLayer, LabelsLayer, PageLayer, PlacementsLayer, SurfaceLayer, SymbolsLayer,

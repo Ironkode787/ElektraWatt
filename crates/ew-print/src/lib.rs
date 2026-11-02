@@ -15,11 +15,17 @@
 //!
 //! Both write their file only as a new one (`create_new`, mode `0o600` on Unix), never through a name already taken.
 //!
+//! Part 3 adds the Linux portal adapter (`Portal`, D11: xdg-desktop-portal Print through `ashpd`, Linux only) and the
+//! [`Chain`] the window prints through (ID-1180 ruling 3): the adapters tried in order, a failure giving way to the
+//! next with one [`Fallback`] notice; on Linux the portal, `lp`, then the viewer; elsewhere the viewer.
+//!
 //! Each adapter takes the program it runs as a [`Program`], so a test runs a stand-in that records its arguments.
 
 #![forbid(unsafe_code)]
 
 mod lp;
+#[cfg(target_os = "linux")]
+mod portal;
 mod viewer;
 
 use std::ffi::OsString;
@@ -30,6 +36,8 @@ use std::sync::atomic::{AtomicU32, Ordering};
 
 pub use ew_export::PdfPage;
 pub use lp::Lp;
+#[cfg(target_os = "linux")]
+pub use portal::Portal;
 pub use viewer::Viewer;
 
 /// What an adapter prints: a print set's fields (`ew_api::output::print::PrintSet`), built by the binaries.
@@ -94,6 +102,14 @@ pub enum PrintError {
         /// The system's reason.
         reason: String,
     },
+    /// The person cancelled the system's print dialog (the portal); nothing was printed and no other adapter is
+    /// tried.
+    Cancelled,
+    /// The system's print dialog (the portal) could not be used.
+    Portal {
+        /// The portal's reason.
+        reason: String,
+    },
 }
 
 /// The most characters of a program's error output a [`PrintError::Failed`] keeps.
@@ -122,6 +138,8 @@ impl fmt::Display for PrintError {
                 message,
             } => write!(f, "`{program}` failed with {status}: {message}"),
             PrintError::Io { path, reason } => write!(f, "{}: {reason}", path.display()),
+            PrintError::Cancelled => write!(f, "printing was cancelled"),
+            PrintError::Portal { reason } => write!(f, "the system print dialog could not be used: {reason}"),
         }
     }
 }
@@ -139,6 +157,111 @@ pub trait PrintAdapter {
     ///
     /// [`PrintError`] when the job cannot be handed over.
     fn print(&self, job: &PrintJob) -> Result<PrintOutcome, PrintError>;
+}
+
+/// The adapters tried one after the other (WP-S3.07 D11, ruling 3 of ID-1180): the window's way to print. A failure
+/// gives way to the next adapter, and the job that prints after a failure carries one [`Fallback`] notice; the
+/// person's cancel of a print dialog ([`PrintError::Cancelled`]) ends the chain, so nothing prints. A panic in an
+/// adapter is a failure like any other.
+pub struct Chain {
+    adapters: Vec<Box<dyn PrintAdapter + Send>>,
+}
+
+/// The one notice of a job that printed after a failure: which adapters failed and why, in order, and the one that
+/// printed.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct Fallback {
+    /// The adapters that failed before, with their errors.
+    pub failed: Vec<(&'static str, PrintError)>,
+    /// The adapter that printed.
+    pub used: &'static str,
+}
+
+/// What a [`Chain`] did with a job.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct Printed {
+    /// The adapter that printed.
+    pub adapter: &'static str,
+    /// What it did.
+    pub outcome: PrintOutcome,
+    /// The notice when an adapter before it failed.
+    pub fallback: Option<Fallback>,
+}
+
+impl Chain {
+    /// The chain of `adapters`, tried in their order.
+    pub fn new(adapters: Vec<Box<dyn PrintAdapter + Send>>) -> Chain {
+        Chain { adapters }
+    }
+
+    /// The window's Print… on this system (ID-1180 ruling 3): on Linux the portal, then `lp`, then the viewer; on
+    /// other systems the viewer (until the Windows adapter, part 4). Print files go to `temp_dir`; `project` names the
+    /// viewer's file.
+    pub fn system(temp_dir: PathBuf, project: &str) -> Chain {
+        let mut adapters: Vec<Box<dyn PrintAdapter + Send>> = Vec::new();
+        #[cfg(target_os = "linux")]
+        {
+            adapters.push(Box::new(Portal::new(temp_dir.clone())));
+            adapters.push(Box::new(Lp::new(temp_dir.clone())));
+        }
+        adapters.push(Box::new(Viewer::new(temp_dir, project)));
+        Chain::new(adapters)
+    }
+
+    /// The window's Open in PDF viewer: the viewer alone.
+    pub fn viewer(temp_dir: PathBuf, project: &str) -> Chain {
+        Chain::new(vec![Box::new(Viewer::new(temp_dir, project))])
+    }
+
+    /// The adapters' names, in order.
+    pub fn names(&self) -> Vec<&'static str> {
+        self.adapters.iter().map(|a| a.name()).collect()
+    }
+
+    /// Tries each adapter in turn until one prints `job`.
+    ///
+    /// # Errors
+    ///
+    /// The adapters' failures in order when none printed (an empty chain gives an empty list); a cancel ends the list
+    /// with [`PrintError::Cancelled`].
+    pub fn print(&self, job: &PrintJob) -> Result<Printed, Vec<(&'static str, PrintError)>> {
+        let mut failed: Vec<(&'static str, PrintError)> = Vec::new();
+        for adapter in &self.adapters {
+            let name = adapter.name();
+            let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| adapter.print(job)))
+                .unwrap_or_else(|_| {
+                    Err(PrintError::Spawn {
+                        program: name.to_owned(),
+                        reason: "it stopped unexpectedly".to_owned(),
+                    })
+                });
+            match result {
+                Ok(outcome) => {
+                    let fallback = (!failed.is_empty()).then(|| Fallback {
+                        failed: std::mem::take(&mut failed),
+                        used: name,
+                    });
+                    return Ok(Printed {
+                        adapter: name,
+                        outcome,
+                        fallback,
+                    });
+                }
+                Err(PrintError::Cancelled) => {
+                    failed.push((name, PrintError::Cancelled));
+                    return Err(failed);
+                }
+                Err(e) => failed.push((name, e)),
+            }
+        }
+        Err(failed)
+    }
+}
+
+impl fmt::Debug for Chain {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Chain").field("adapters", &self.names()).finish()
+    }
 }
 
 /// A program an adapter runs: its path and the arguments that come before the adapter's own.

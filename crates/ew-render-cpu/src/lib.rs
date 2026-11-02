@@ -37,6 +37,6 @@ pub use fonts::{FontBytes, FontResolver};
 pub use image::{DecodedImage, MAX_IMAGE_PIXELS, decode_image, jpeg_is_cmyk};
 pub use mono::{monochrome, render_monochrome};
 pub use render::{
-    ItemBounds, RegionOptions, RenderError, RenderOptions, RenderReport, RgbaImage, SheetSize, pixel_size,
-    render, render_region,
+    ItemBounds, PagePlacement, RegionOptions, RenderError, RenderOptions, RenderReport, RgbaImage, SheetSize,
+    pixel_size, render, render_placed, render_region,
 };

@@ -6,7 +6,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::panic::{AssertUnwindSafe, catch_unwind};
 
-use ew_dl::ew_units::{Nm, Rect};
+use ew_dl::ew_units::{Nm, Pt2, Rect};
 use ew_dl::{
     Brush, Cap, Color, DisplayList, FontKey, GeometryResolver, ImageFormat, ImageItem, ItemKind, Join,
     MAX_INSTANCE_DEPTH, MITER_LIMIT, PathItem, ShapedRun, Stroke, Transform,
@@ -33,6 +33,58 @@ pub struct SheetSize {
     pub width: Nm,
     /// Paper height.
     pub height: Nm,
+}
+
+/// A sheet placed on a paper (WP-S3.07 D7, decision log ID-1114, ID-1180): the fit of a print page as a page
+/// placement, not a display-list scale, so that a print page's content stays the export page's list item for item.
+///
+/// One rule for every renderer: the content at the target resolution times [`scale`](PagePlacement::scale), at
+/// [`offset`](PagePlacement::offset), then [`overlay`](PagePlacement::overlay) at the paper's resolution. A sheet
+/// point `p` lands on the paper at [`place(p)`](PagePlacement::place). [`render_placed`] draws by this rule, as the
+/// PDF writer of `ew-export` does.
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+pub struct PagePlacement {
+    /// The paper width.
+    pub width: Nm,
+    /// The paper height.
+    pub height: Nm,
+    /// The uniform scale as an exact ratio `num / den` (both at least 1; `1 / 1` for a sheet printed at its size).
+    pub scale: (u64, u64),
+    /// Where the sheet's top-left corner lands on the paper.
+    pub offset: Pt2,
+    /// Drawn over the placed sheet, in paper coordinates (the stamp "scaled 70 %").
+    pub overlay: DisplayList,
+}
+
+impl PagePlacement {
+    /// The sheet point `p` on the paper: `offset + p × num / den`, each coordinate rounded towards negative infinity
+    /// in integer nm.
+    pub fn place(&self, p: Pt2) -> Pt2 {
+        let (num, den) = (i128::from(self.scale.0), i128::from(self.scale.1.max(1)));
+        let f = |v: Nm, o: Nm| {
+            let scaled = (i128::from(v.0) * num).div_euclid(den);
+            Nm(i64::try_from(scaled).unwrap_or(i64::MAX).saturating_add(o.0))
+        };
+        Pt2::new(f(p.x, self.offset.x), f(p.y, self.offset.y))
+    }
+
+    /// Whether the sheet lies on the paper unscaled with its top-left corner at the paper's.
+    pub fn is_identity(&self) -> bool {
+        self.scale.0 == self.scale.1 && self.offset == Pt2::ORIGIN
+    }
+
+    /// The scale as a factor (for a renderer's transform; the exact value is [`scale`](PagePlacement::scale)).
+    pub fn factor(&self) -> f64 {
+        self.scale.0 as f64 / self.scale.1.max(1) as f64
+    }
+
+    /// The paper's size.
+    pub fn paper(&self) -> SheetSize {
+        SheetSize {
+            width: self.width,
+            height: self.height,
+        }
+    }
 }
 
 /// What to render at.
@@ -165,13 +217,80 @@ pub fn render(
     };
     let scale = f64::from(options.dpi) / NM_PER_INCH as f64;
     Ok(paint(
-        list,
-        None,
+        &[Pass {
+            list,
+            visible: None,
+            device: Affine::scale(scale),
+            scale,
+        }],
         Canvas {
             width: pw,
             height: ph,
-            device: Affine::scale(scale),
-            scale,
+            background: options.background,
+        },
+        fonts,
+        geometry,
+    ))
+}
+
+/// Renders a print page (WP-S3.07 D7, ID-1180): `content` (sheet coordinates) placed on the paper of `placement`,
+/// onto a [`pixel_size`] image of the paper at `options.dpi`. The content is painted through the device transform
+/// times the placement's scale at its offset, so a sheet point `p` lands on the paper's pixel of
+/// [`PagePlacement::place`]`(p)` and glyphs are sized by the composed scale; then the overlay (the stamp) is painted
+/// over it in a second pass at the paper's resolution, as `ew-export`'s PDF writer draws the page. What lies beyond
+/// the paper is cut off.
+///
+/// An identity placement on a paper of the sheet's size with an empty overlay renders exactly as [`render`] does.
+///
+/// # Errors
+///
+/// As [`render`], for the paper's size: [`RenderError::Size`] for a paper with no positive extent, `dpi == 0`, or
+/// more than `u16::MAX` pixels on a side.
+pub fn render_placed(
+    content: &DisplayList,
+    placement: &PagePlacement,
+    options: &RenderOptions,
+    fonts: &dyn FontResolver,
+    geometry: Option<&dyn GeometryResolver>,
+) -> Result<(RgbaImage, RenderReport), RenderError> {
+    let paper = placement.paper();
+    let (w, h) = pixel_size(paper, options.dpi);
+    let degenerate = paper.width.0 <= 0 || paper.height.0 <= 0 || options.dpi == 0;
+    let side = |v: u64| u16::try_from(v).ok().filter(|&v| v > 0);
+    let (Some(pw), Some(ph), false) = (side(w), side(h), degenerate) else {
+        return Err(degenerate_error(paper, options.dpi, w, h));
+    };
+    let k = f64::from(options.dpi) / NM_PER_INCH as f64;
+    // The device transform times the placement: pixel = (offset + p × factor) × k. For an identity placement the
+    // coefficients are exactly those of `render`'s `Affine::scale(k)`.
+    let composed = k * placement.factor();
+    let content_device = Affine::new([
+        composed,
+        0.0,
+        0.0,
+        composed,
+        placement.offset.x.0 as f64 * k,
+        placement.offset.y.0 as f64 * k,
+    ]);
+    let mut passes = vec![Pass {
+        list: content,
+        visible: None,
+        device: content_device,
+        scale: composed,
+    }];
+    if !placement.overlay.items.is_empty() {
+        passes.push(Pass {
+            list: &placement.overlay,
+            visible: None,
+            device: Affine::scale(k),
+            scale: k,
+        });
+    }
+    Ok(paint(
+        &passes,
+        Canvas {
+            width: pw,
+            height: ph,
             background: options.background,
         },
         fonts,
@@ -273,13 +392,15 @@ pub fn render_region(
             .collect::<Vec<bool>>()
     });
     let (mut image, report) = paint(
-        list,
-        visible.as_deref(),
+        &[Pass {
+            list,
+            visible: visible.as_deref(),
+            device,
+            scale,
+        }],
         Canvas {
             width: rw,
             height: rh,
-            device,
-            scale,
             background: options.background,
         },
         fonts,
@@ -437,18 +558,24 @@ fn reach_of(
 struct Canvas {
     width: u16,
     height: u16,
-    /// Sheet nm to device pixels.
-    device: Affine,
-    /// Pixels per nm (the scale part of `device`).
-    scale: f64,
     background: Color,
 }
 
-/// Draws the top-level items of `list` that `visible` lets through (all of them without it) onto `canvas`: the
-/// one pipeline of [`render`] and [`render_region`].
+/// One list [`paint`] draws, under its own transform.
+struct Pass<'a> {
+    list: &'a DisplayList,
+    /// Which top-level items are drawn (all of them without it).
+    visible: Option<&'a [bool]>,
+    /// The list's nm to device pixels.
+    device: Affine,
+    /// Pixels per nm (the scale part of `device`).
+    scale: f64,
+}
+
+/// Draws each pass in order onto `canvas`, the top-level items of a pass that its `visible` lets through (all of
+/// them without it): the one pipeline of [`render`], [`render_region`] and [`render_placed`].
 fn paint(
-    list: &DisplayList,
-    visible: Option<&[bool]>,
+    passes: &[Pass<'_>],
     canvas: Canvas,
     fonts: &dyn FontResolver,
     geometry: Option<&dyn GeometryResolver>,
@@ -456,8 +583,6 @@ fn paint(
     let Canvas {
         width: pw,
         height: ph,
-        device,
-        scale,
         background,
     } = canvas;
     let mut ctx = RenderContext::new_with(
@@ -475,11 +600,12 @@ fn paint(
     ctx.set_paint(paint_color(background));
     ctx.fill_rect(&kurbo::Rect::new(0.0, 0.0, f64::from(pw), f64::from(ph)));
 
+    let first = passes.first();
     let mut painter = Painter {
         ctx,
         resources,
-        device,
-        scale,
+        device: first.map_or(Affine::IDENTITY, |p| p.device),
+        scale: first.map_or(1.0, |p| p.scale),
         fonts,
         geometry,
         font_cache: BTreeMap::new(),
@@ -488,11 +614,15 @@ fn paint(
         skipped_images: 0,
         images: BTreeMap::new(),
     };
-    match visible {
-        None => painter.items(&list.items, Affine::IDENTITY, 0, 0),
-        Some(visible) => {
-            for (item, _) in list.items.iter().zip(visible).filter(|(_, v)| **v) {
-                painter.items(std::slice::from_ref(item), Affine::IDENTITY, 0, 0);
+    for pass in passes {
+        painter.device = pass.device;
+        painter.scale = pass.scale;
+        match pass.visible {
+            None => painter.items(&pass.list.items, Affine::IDENTITY, 0, 0),
+            Some(visible) => {
+                for (item, _) in pass.list.items.iter().zip(visible).filter(|(_, v)| **v) {
+                    painter.items(std::slice::from_ref(item), Affine::IDENTITY, 0, 0);
+                }
             }
         }
     }

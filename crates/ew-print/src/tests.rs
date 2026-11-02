@@ -327,4 +327,151 @@ fn the_errors_read_as_words() {
         "`xdg-open` could not be started: permission denied"
     );
     assert_eq!(bounded(&[b'x'; 5000]).len(), MAX_MESSAGE);
+    assert_eq!(PrintError::Cancelled.to_string(), "printing was cancelled");
+    assert_eq!(
+        portal_down().to_string(),
+        "the system print dialog could not be used: org.freedesktop.portal.Desktop was not provided by any .service files"
+    );
+}
+
+// WP-S3.07 part 3 (D11, PW-3; ruling 3 of ID-1180): the fallback chain.
+
+type Calls = std::sync::Arc<std::sync::Mutex<Vec<PrintJob>>>;
+
+/// A test double of the adapter trait: answers with `answer` and records every job it was called with; it panics on
+/// the title `panic`.
+struct Double {
+    name: &'static str,
+    answer: Result<PrintOutcome, PrintError>,
+    calls: Calls,
+}
+
+impl Double {
+    fn new(name: &'static str, answer: Result<PrintOutcome, PrintError>) -> Double {
+        Double {
+            name,
+            answer,
+            calls: Calls::default(),
+        }
+    }
+
+    fn calls(&self) -> Calls {
+        std::sync::Arc::clone(&self.calls)
+    }
+}
+
+impl PrintAdapter for Double {
+    fn name(&self) -> &'static str {
+        self.name
+    }
+
+    fn print(&self, job: &PrintJob) -> Result<PrintOutcome, PrintError> {
+        self.calls.lock().unwrap().push(job.clone());
+        assert!(job.title != "panic", "asked to panic");
+        self.answer.clone()
+    }
+}
+
+fn portal_down() -> PrintError {
+    PrintError::Portal {
+        reason: "org.freedesktop.portal.Desktop was not provided by any .service files".to_owned(),
+    }
+}
+
+fn spooled() -> PrintOutcome {
+    PrintOutcome::Spooled {
+        printer: None,
+        message: String::new(),
+    }
+}
+
+/// PW-3: the portal adapter is called with the set; when it fails, `lp` prints it (the stand-in records its
+/// arguments) and the result carries D11's one notice, naming the failed portal and `lp`; the viewer is not run.
+#[test]
+fn a_failing_portal_falls_back_to_lp_with_one_notice() {
+    let dir = Dir::new();
+    let portal = Double::new("portal", Err(portal_down()));
+    let portal_calls = portal.calls();
+    let chain = Chain::new(vec![
+        Box::new(portal),
+        Box::new(Lp {
+            program: stand_in_program(),
+            temp_dir: dir.0.clone(),
+        }),
+        Box::new(stand_in_viewer(&dir)),
+    ]);
+    assert_eq!(chain.names(), ["portal", "lp", "viewer"]);
+    let set = job("J-E-2416", None);
+    let printed = chain.print(&set).unwrap();
+    assert_eq!(*portal_calls.lock().unwrap(), [set.clone()], "the portal got the set");
+    assert_eq!(printed.adapter, "lp");
+    assert_eq!(
+        printed.fallback,
+        Some(Fallback {
+            failed: vec![("portal", portal_down())],
+            used: "lp",
+        })
+    );
+    assert!(
+        matches!(printed.outcome, PrintOutcome::Spooled { printer: None, .. }),
+        "{:?}",
+        printed.outcome
+    );
+    let (name, args) = recorded(&dir);
+    assert_eq!(args[..2], ["-t".to_owned(), "J-E-2416".to_owned()]);
+    assert_eq!(dir.names(), [name], "lp's print file is removed; the viewer wrote none");
+}
+
+/// A portal that prints needs no notice; a cancel in the print dialog ends the chain with nothing printed; a
+/// panicking adapter fails like any other; when all fail, every failure is listed.
+#[test]
+fn the_chain_stops_at_the_first_print_and_at_a_cancel() {
+    let after = Double::new("lp", Ok(spooled()));
+    let after_calls = after.calls();
+    let chain = Chain::new(vec![Box::new(Double::new("portal", Ok(spooled()))), Box::new(after)]);
+    let printed = chain.print(&job("t", None)).unwrap();
+    assert_eq!((printed.adapter, printed.fallback), ("portal", None));
+    assert!(after_calls.lock().unwrap().is_empty());
+
+    let after = Double::new("lp", Ok(spooled()));
+    let after_calls = after.calls();
+    let chain = Chain::new(vec![
+        Box::new(Double::new("portal", Err(PrintError::Cancelled))),
+        Box::new(after),
+    ]);
+    assert_eq!(
+        chain.print(&job("t", None)),
+        Err(vec![("portal", PrintError::Cancelled)])
+    );
+    assert!(after_calls.lock().unwrap().is_empty(), "a cancel prints nothing");
+
+    let chain = Chain::new(vec![
+        Box::new(Double::new("portal", Ok(spooled()))),
+        Box::new(Double::new("viewer", Ok(spooled()))),
+    ]);
+    let failed = chain.print(&job("panic", None)).unwrap_err();
+    let stopped = |program: &str| PrintError::Spawn {
+        program: program.to_owned(),
+        reason: "it stopped unexpectedly".to_owned(),
+    };
+    assert_eq!(failed, [("portal", stopped("portal")), ("viewer", stopped("viewer"))]);
+    assert_eq!(
+        failed[0].1.to_string(),
+        "`portal` could not be started: it stopped unexpectedly"
+    );
+    assert_eq!(Chain::new(Vec::new()).print(&job("t", None)), Err(Vec::new()));
+}
+
+/// The window's chains: on Linux the portal, `lp`, then the viewer; elsewhere the viewer; Open in PDF viewer is the
+/// viewer alone.
+#[test]
+fn the_system_chain_is_portal_lp_viewer_on_linux_and_the_viewer_elsewhere() {
+    let dir = Dir::new();
+    let system = Chain::system(dir.0.clone(), "J-E-2416");
+    if cfg!(target_os = "linux") {
+        assert_eq!(system.names(), ["portal", "lp", "viewer"]);
+    } else {
+        assert_eq!(system.names(), ["viewer"]);
+    }
+    assert_eq!(Chain::viewer(dir.0.clone(), "J-E-2416").names(), ["viewer"]);
 }

@@ -151,3 +151,82 @@ fn jb2_a_selection_the_page_order_does_not_have_fails_with_its_cause() {
     }
     s.close();
 }
+
+// WP-S3.07 part 3, ruling 2 of ID-1180: the print set as a job.
+
+const PRINT_DIGEST: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../../golden/J-E-2416/expected/print/sha256.txt"
+);
+
+/// PW-1's set: section 1 on A5, scaled to fit.
+fn section_1_on_a5() -> ew_api::output::print::PrintOptions {
+    ew_api::output::print::PrintOptions {
+        pages: ew_api::output::PageSelection::parse_sections("1").unwrap(),
+        paper: ew_api::output::print::Paper::A5,
+        fit: ew_api::output::print::Fit::ToPaper,
+        ..Default::default()
+    }
+}
+
+fn print_job(
+    gate: Option<Gate>,
+    job: ew_api::output::PrintSetJob,
+) -> Job<ew_api::output::print::PrintSet> {
+    Job::spawn(
+        JobOptions {
+            name: "print".to_owned(),
+            waker: None,
+            gate,
+        },
+        move |ctl| job.run(ctl),
+    )
+    .unwrap()
+}
+
+/// PW-1 and PW-2 at the API: the job's set is `Session::print_set`'s, its PDF is `expected/print/sha256.txt`, and a
+/// job made before an edit builds the revision it was made on.
+#[test]
+fn pw1_the_print_job_builds_the_committed_print_set_of_its_revision() {
+    let tmp = Tmp::new("print");
+    let mut s = golden_copy(&tmp);
+    let sync = s.print_set(&section_1_on_a5()).unwrap();
+    let job = s.print_set_job(&section_1_on_a5());
+    assert_eq!(job.rev(), s.world().rev.0);
+    s.execute(&AnyCommand {
+        name: "page.create".into(),
+        params: serde_json::json!({"number": 150, "title": "Made after the print job"}),
+    })
+    .unwrap();
+    let end = print_job(None, job).wait();
+    let JobEnd::Done(set) = end else { panic!("{end:?}") };
+    let expected = std::fs::read_to_string(PRINT_DIGEST).unwrap();
+    assert_eq!(sha256_hex(&set.pdf), expected.trim());
+    let labels: Vec<&str> = set.pages.iter().map(|p| p.label.as_str()).collect();
+    assert_eq!(labels, ["100", "101", "102", "103", "106"], "the snapshot's section 1");
+    assert!(set == sync, "the job's set is the synchronous set");
+    s.close();
+}
+
+/// PW-2 at the API: a cancel at the held gate ends the print job `Cancelled`.
+#[test]
+fn pw2_a_cancelled_print_job_is_cancelled() {
+    let tmp = Tmp::new("print-cancel");
+    let s = golden_copy(&tmp);
+    let gate = Gate::new();
+    gate.hold("page");
+    let job = print_job(Some(gate.clone()), s.print_set_job(&section_1_on_a5()));
+    gate.wait_reached("page");
+    assert_eq!(
+        job.progress(),
+        Progress {
+            done: 0,
+            total: 5,
+            phase: "building"
+        }
+    );
+    job.cancel();
+    gate.release();
+    assert_eq!(job.wait(), JobEnd::Cancelled);
+    s.close();
+}

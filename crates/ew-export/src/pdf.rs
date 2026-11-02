@@ -46,6 +46,9 @@ use ew_dl::{
     Join, Link, MAX_INSTANCE_DEPTH, MITER_LIMIT, PathEl, ShapedRun, Stroke, Transform,
 };
 use ew_render_cpu::{FontResolver, decode_image, jpeg_is_cmyk, monochrome};
+
+/// A sheet placed on a paper (WP-S3.07 D7): `ew-render-cpu`'s, which draws by the same rule (ID-1180, ruling 1).
+pub use ew_render_cpu::PagePlacement;
 use krilla::SerializeSettings;
 use krilla::annotation::{Annotation, LinkAnnotation, Target};
 use krilla::color::rgb;
@@ -82,49 +85,6 @@ pub struct PdfPage {
     /// Where the sheet lies on a paper of another size (a print page, WP-S3.07 D7); `None` for every export page,
     /// whose paper is its sheet.
     pub placement: Option<PagePlacement>,
-}
-
-/// A sheet placed on a paper (WP-S3.07 D7, decision log ID-1114): the fit of a print page as a page placement, not
-/// a display-list scale, so that [`PdfPage::content`] stays the export page's list item for item.
-///
-/// One rule for every renderer: the content at the target resolution times [`scale`](PagePlacement::scale), at
-/// [`offset`](PagePlacement::offset), then [`overlay`](PagePlacement::overlay) at the paper's resolution. A sheet
-/// point `p` lands on the paper at [`place(p)`](PagePlacement::place).
-#[derive(Clone, PartialEq, Eq, Hash, Debug)]
-pub struct PagePlacement {
-    /// The paper width.
-    pub width: Nm,
-    /// The paper height.
-    pub height: Nm,
-    /// The uniform scale as an exact ratio `num / den` (both at least 1; `1 / 1` for a sheet printed at its size).
-    pub scale: (u64, u64),
-    /// Where the sheet's top-left corner lands on the paper.
-    pub offset: Pt2,
-    /// Drawn over the placed sheet, in paper coordinates (the stamp "scaled 70 %").
-    pub overlay: DisplayList,
-}
-
-impl PagePlacement {
-    /// The sheet point `p` on the paper: `offset + p × num / den`, each coordinate rounded towards negative infinity
-    /// in integer nm.
-    pub fn place(&self, p: Pt2) -> Pt2 {
-        let (num, den) = (i128::from(self.scale.0), i128::from(self.scale.1.max(1)));
-        let f = |v: Nm, o: Nm| {
-            let scaled = (i128::from(v.0) * num).div_euclid(den);
-            Nm(i64::try_from(scaled).unwrap_or(i64::MAX).saturating_add(o.0))
-        };
-        Pt2::new(f(p.x, self.offset.x), f(p.y, self.offset.y))
-    }
-
-    /// Whether the sheet lies on the paper unscaled with its top-left corner at the paper's.
-    pub fn is_identity(&self) -> bool {
-        self.scale.0 == self.scale.1 && self.offset == Pt2::ORIGIN
-    }
-
-    /// The scale as a factor (for a renderer's transform; the exact value is [`scale`](PagePlacement::scale)).
-    pub fn factor(&self) -> f64 {
-        self.scale.0 as f64 / self.scale.1.max(1) as f64
-    }
 }
 
 /// The PDF conformance level.

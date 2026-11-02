@@ -34,8 +34,8 @@ use ew_text::TextStyle;
 pub use ew_export::PagePlacement;
 
 use super::{
-    ExportAssets, ExportOptions, OutputError, PageFindingAt, PageSelection, PdfDate, export_pages_with,
-    font_bytes,
+    ExportAssets, ExportOptions, Halt, Hooks, NoHooks, OutputError, PageFindingAt, PageSelection, PdfDate,
+    export_pages_hooked, font_bytes,
 };
 use crate::Session;
 
@@ -334,7 +334,22 @@ fn stamp(text: &str, pw: Nm, ph: Nm) -> Item {
 ///
 /// [`OutputError`] for a selection the page order does not have or pages the writer refuses.
 pub fn print_set_with(q: &Q, options: &PrintOptions, assets: &ExportAssets) -> Result<PrintSet, OutputError> {
-    let export = export_pages_with(
+    print_set_hooked(q, options, assets, &NoHooks).map_err(|h| match h {
+        Halt::Output(e) => e,
+        // No hook cancels.
+        Halt::Cancelled => OutputError::Selection("the print set was cancelled".to_owned()),
+    })
+}
+
+/// [`print_set_with`] with `hooks` (the print job, ID-1180 ruling 2): the export's phases with their reports and
+/// checkpoints, then `report(0, 0, "writing")` before the placement and the writer.
+pub(crate) fn print_set_hooked<H: Hooks>(
+    q: &Q,
+    options: &PrintOptions,
+    assets: &ExportAssets,
+    hooks: &H,
+) -> Result<PrintSet, Halt> {
+    let export = export_pages_hooked(
         q,
         &ExportOptions {
             pages: options.pages.clone(),
@@ -343,7 +358,9 @@ pub fn print_set_with(q: &Q, options: &PrintOptions, assets: &ExportAssets) -> R
             date: options.date,
         },
         assets,
+        hooks,
     )?;
+    hooks.report(0, 0, "writing");
     let mut set = print_pages(export.pages, export.options, options.paper, options.fit)?;
     set.findings = export.findings;
     Ok(set)

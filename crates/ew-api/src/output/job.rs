@@ -2,13 +2,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The PDF export as a job (WP-S2.09 part 1, D4, §6.2; FT-251): a snapshot that crosses to the job's thread and runs
-//! the export's three phases there with a cold `Q`, progress and checkpoints.
+//! the export's three phases there with a cold `Q`, progress and checkpoints. The print set is built the same way
+//! ([`PrintSetJob`], WP-S3.07 ruling 2 of ID-1180): the window's print pre-dialog builds it in the background.
 
 use std::sync::Arc;
 
 use ew_derive::{Q, ReportPagesProvider};
 use ew_jobs::{JobCtl, JobError};
 
+use super::print::{PrintOptions, PrintSet, print_set_hooked};
 use super::{ExportAssets, ExportOptions, Halt, OutputError, PdfExport, export_pages_hooked, font_bytes};
 use crate::{Session, World};
 
@@ -68,13 +70,70 @@ impl std::fmt::Debug for ExportJob {
 const _: () = {
     const fn send<T: Send>() {}
     send::<ExportJob>();
+    send::<PrintSetJob>();
 };
+
+/// The print set of the session's current snapshot, built on another thread ([`Session::print_set_job`]; WP-S3.07
+/// ruling 2 of ID-1180): the `World`, the report engine and the asset bytes, as [`ExportJob`] holds them.
+pub struct PrintSetJob {
+    world: World,
+    reports: Arc<dyn ReportPagesProvider>,
+    assets: ExportAssets,
+    options: PrintOptions,
+}
+
+impl PrintSetJob {
+    /// Builds the print set on the calling thread (the job's): a cold `Q` over the snapshot with the report engine,
+    /// the export's phases with `ctl`'s reports and checkpoints, then the placement and the PDF writer (phase
+    /// `writing`, indeterminate) and the checkpoint `written`. The set equals [`Session::print_set`]'s on the
+    /// revision the job was made on, whatever happened to the session since. Writes no file.
+    ///
+    /// # Errors
+    ///
+    /// [`JobError::Cancelled`] at a checkpoint after [`ew_jobs::Job::cancel`]; [`JobError::Failed`] with the
+    /// [`OutputError`]'s text (no path) for a selection the page order does not have or pages the writer refuses.
+    pub fn run(self, ctl: &JobCtl) -> Result<PrintSet, JobError> {
+        let q = Q::new(&self.world.model).with_report_pages(self.reports);
+        let set = print_set_hooked(&q, &self.options, &self.assets, ctl).map_err(|h| match h {
+            Halt::Cancelled => JobError::Cancelled,
+            Halt::Output(e) => JobError::Failed(e.to_string()),
+        })?;
+        ctl.checkpoint("written")?;
+        Ok(set)
+    }
+
+    /// The revision of the snapshot the set is built from.
+    pub fn rev(&self) -> u64 {
+        self.world.rev.0
+    }
+}
+
+impl std::fmt::Debug for PrintSetJob {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("PrintSetJob")
+            .field("rev", &self.world.rev)
+            .field("options", &self.options)
+            .field("assets", &self.assets)
+            .finish_non_exhaustive()
+    }
+}
 
 impl Session {
     /// The export of the current snapshot as a job (WP-S2.09 part 1, D4): O(1) in the model (the snapshot and the
     /// report engine are shared), plus the asset map. Run it with [`ExportJob::run`] on a job's thread.
     pub fn export_job(&self, options: &ExportOptions) -> ExportJob {
         ExportJob {
+            world: self.world(),
+            reports: Arc::clone(&self.reports),
+            assets: self.export_assets(),
+            options: options.clone(),
+        }
+    }
+
+    /// The print set of the current snapshot as a job (WP-S3.07 ruling 2 of ID-1180), made as
+    /// [`Session::export_job`] is. Run it with [`PrintSetJob::run`] on a job's thread.
+    pub fn print_set_job(&self, options: &PrintOptions) -> PrintSetJob {
+        PrintSetJob {
             world: self.world(),
             reports: Arc::clone(&self.reports),
             assets: self.export_assets(),
