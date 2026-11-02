@@ -8,7 +8,7 @@ external change in the store and the session (1.1 pw, D20 to D23), part 7 the wi
 status (0.8 pw, D24, D25), part 8 `ew diff`, `ew git setup`, the post-merge integrity and AC-41 (0.9 pw, D26 to D29).
 The parts sum to **7.4 pw plus 0.3 pw reserve** against a 6.8 pw PERT (O1) · **Amended in cycle 42** (decision log ID-1029, the owner's format decision): part 3, D4 and D3's `unstable` marker move to the wave before the first release, beside WP-S6.08; the PERT is 6.9 pw; format parts route at `high`, a save, a journal, recovery or a merge at `xhigh` (§16) · **Date:** 2026-10-31 · **Work package:**
 [WP-S1.17](../02-work-packages.md#wp-s117-collaboration-external-change-migrations-integrity-merge-driver) ·
-**Decision log:** ID-1015; amended by ID-1029; part 1 ruled by ID-1115, its fixes by ID-1144; as built ID-1152, ID-1156 · **Part of:** ElektraWatt plan, specifications
+**Decision log:** ID-1015; amended by ID-1029; part 1 ruled by ID-1115, its fixes by ID-1144; part 2 ruled by ID-1175; as built ID-1152, ID-1156 · **Part of:** ElektraWatt plan, specifications
 
 **Purpose.** WP-S1.09 built the canonical format, the save protocol, the lock, the journal and recovery, and left to
 this package everything that happens when a project changes outside the running session or between builds: a pull
@@ -270,6 +270,49 @@ current generation beside the project; WP-S1.22 D2). **0.8 pw.** `ew-store` (`ew
 - **EZ-5** `ew fmt --repair` on a page file with one broken line writes the backup `.ewz`, then a project without the
   line, and opens editable; without a broken line it changes nothing.
 - **EZ-6** Targeted checks for `ew-store`, `ew-api`, `ew`.
+
+**Rulings at dispatch (ID-1175, cycle 47; facts at `b57b62db`).**
+1. **The ZIP is `ew-zip`'s** (moved in cycle 46, ID-1145), reached as `ew_store::zip`; §2.1's and §14.2's `zip.rs` read
+   `crates/ew-zip/src/lib.rs`. No new edge.
+2. **Entry order.** `mimetype` (stored) first, `manifest.json` second, then the manifest's files and the git files
+   present in strictly increasing byte order of their paths. The reader checks exactly this order (`ew_zip::read`
+   returns entries in archive order) from the third entry on, and refuses any other; `archive.rs`'s order loop
+   (`:333-340`, from the second entry) is not reused.
+3. **Bounds.** The reader takes `ZipLimits::default()` (ratio 200 above the 64 KiB floor), not `open_archive`'s lifted
+   ratio; EZ-4's 201 : 1 entry is larger than the floor (at least 327 compressed bytes). `pack` reads its archive back
+   through the reader before it writes the file and refuses one the reader would refuse: "this project cannot be packed
+   into an .ewz (<reason>); share the project folder instead".
+4. **Extract** writes through `Vfs` only (`create_new`, `sync`, `sync_dir`; not `write_atomically`), so EZ-3's faults
+   reach every write. `Vfs` gains a required `create_dir(path)` that fails when the path exists (`OsVfs` by
+   `std::fs::create_dir`, `MemVfs`, and `archive.rs`'s test doubles `Racing` and `Faulty`); it creates the staging
+   `<target>.tmp-ewz`. The finished staging directory is moved by `Vfs::rename` (not `rename_noreplace`, which takes
+   files only) after the target's absence is checked again; `MemVfs`'s `rename` learns directory renames (a namespace
+   operation moving every path under the prefix; today `mem.rs:550-553` refuses them). The residual race, an empty
+   directory made at `<target>` between the check and the rename on Linux, is accepted and named in the module's note.
+   Without `--into`, the target is `<stem>.ew` beside the archive (doc 05 §12).
+5. **The CLI.** `ew export ewz [<project>] --out <file.ewz>`: `--out` is required ("`ew export ewz` writes a file: give
+   `--out <file.ewz>`"). Readers that open an `.ewz` given as their project through `Session::open_ewz`: `check`, `sql`
+   and `sql dump`, the row and page exports, `print`, `render`, `verify-derived`, `query`, `fmt --check`. Every other
+   subcommand that takes a project, `apply --preview` and `assets purge --preview` included, refuses it with D9's text.
+   Each new subcommand and flag enters `bin/ew/src/catalogue.rs`, gets a `--json` result under WP-S1.22's conventions
+   (`crates/ew-api/src/cli_results.rs`, `bin/ew/schemas/` with `index.json`), re-blesses `bin/ew/api/cli.json`
+   (additive), and one `docs/release-notes/unreleased.md` line.
+6. **`ew fmt --repair` and EZ-5 move out of part 2** into a lane of their own after it, at `xhigh` (a save, ID-1029),
+   ruled then: the store keeps a quarantined line's key and text but not its finding kind (`store.rs:1146-1149`),
+   quarantines more than EW-CORE-005's lines (`read.rs:558-657`), has one read-only reason (`store.rs:1110`,
+   `:129-144`), and every save writes the kept lines back (`store.rs:2187-2189`). Amended with it: §7's scope and
+   `bin/ew` list (`:255-258`), EZ-5 (`:270`, marked moved), §4's rows `:101` and `:113`, §14.5's size (`:447`, part 2's
+   0.8 pw loses `fmt --repair`'s 0.1) and §16's part-2 size (`:526`), and §15's list after part 2 (`:481`). §14's
+   routing (`:416`) and WP-S1.22 D2 and D9 still give `--repair` to WP-S1.17 and do not change. A follow-up row is
+   recorded at the design pass.
+7. **Fuzz:** a target `ewz_read` over the reader, added beside `png_pdf` in `fuzz/Cargo.toml`, `fuzz/fuzz_targets/`,
+   `fuzz/src/`, `fuzz/tests/replay.rs` (its array of four becomes a slice), `fuzz/README.md` (a row and a max_len line),
+   `ci/fuzz-smoke-targets.py`'s list, `.github/workflows/deep-nightly.yml`'s matrix (its "(the four run in parallel)"
+   loses the count), and `ci/fuzz-smoke-targets.toml`, which gains a `[targets.ewz_read]` entry with its roots by hand
+   (`fuzz-smoke-table` refuses a target without one, `xtask/src/workflows.rs:533-538`) and is then regenerated by `cargo
+   xtask fuzz-smoke-table`; these `ci/` and `.github/` files are granted to part 2 for that.
+8. Golden A has no git files: EZ-1 adds them to a copy of Golden A that the test makes in a scratch folder; nothing new
+   under `golden/`. Golden A is only read (`Session::open_read_only`), and packed into a scratch file.
 
 ## 8. Part 3: format migrations and the upgrade backup
 

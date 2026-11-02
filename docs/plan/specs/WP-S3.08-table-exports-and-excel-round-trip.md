@@ -5,7 +5,7 @@ the CSV presets, the formula guard) behind every row export (1.0 pw, D2 to D7), 
 tables, `ew import table`, the I/O list, 1.0 pw, D8 to D13), part 3 the window (export and import from a navigator's
 table, the export as a job, 0.5 pw, D14); 0.3 pw reserve; part 1 first, part 2 after it, part 3 after part 2 ·
 **Date:** 2026-10-31 · **Work package:**
-[WP-S3.08](../02-work-packages.md#wp-s308-table-exports-and-excel-round-trip) · **Decision log:** ID-1016, ID-1145 (part 1's rulings); part 1 as built ID-1157 · **Part of:** ElektraWatt plan, specifications
+[WP-S3.08](../02-work-packages.md#wp-s308-table-exports-and-excel-round-trip) · **Decision log:** ID-1016, ID-1145 (part 1's rulings), ID-1174 (part 2's rulings); part 1 as built ID-1157 · **Part of:** ElektraWatt plan, specifications
 
 **Purpose.** WP-S3.08's CSV half was built ahead of it: every row export writes the rows of a report block, as its
 folios print them, in the golden CSV dialect (WP-S3.03, cycle 14; WP-S1.22 part 2, cycle 40), and an own bounded XLSX
@@ -252,6 +252,63 @@ numbers read back in their shortest form and dates as serials, and the review's 
 - **RT-6** Twice-run determinism of both new exports; table mode's view-model tests pass unchanged after D10; the
   hostile-input bounds of the reader apply (a workbook over the loader limit is refused before inflation); targeted
   checks for `ew-import-catalog`, `ew-api`, `ew-viewmodel`, `ew`; `check-deps`.
+
+**Rulings at dispatch (ID-1174, cycle 47; facts at `b57b62db`).** They amend D4, D6, D8, D10, D12, D16, §9.1 and §9.2
+item 2 where they say so.
+1. **`_ew_base`'s digest is made in `ew-api`.** `ew-reports` takes no hash (§9.2 item 1): `ew_reports::xlsx` gains a
+   public `base_text(&Table) -> String` (the `_ew_base` sheet's cell texts, the row's `id` then its editable cells, in
+   row order, tab-separated, LF line ends, without the `sha256` row), and `WorkbookMeta` a `base_sha256:
+   Option<String>`, set by `row_output` (`crates/ew-api/src/output/rows.rs:721-726`), on a clone of the meta
+   (`WorkbookMeta` derives `Clone`), to the lowercase-hex SHA-256 of that text. The writer writes `_ew_base` exactly
+   when the table has an editable column and refuses with an `XlsxError` when the digest is then missing. The import
+   recomputes the digest in `table_io.rs`.
+2. **The round-trip sheets are read whole** (D12 amended). `ew_import_catalog::sheet` gains `read_rows(bytes: &[u8],
+   format: SourceFormat, sheet: &str, limits: &Limits) -> Result<Vec<Vec<String>>, ImportError>`: every record as read,
+   no header and no cut to the header's width (`table.rs:134-140`), text-free records dropped as `read_sheet` drops
+   them, the same limits and errors; both readers (`read_csv`, `read_xlsx`) are split so that it and `read_sheet` share
+   their records. The round trip reads `_ew` and `_ew_base` through it, and D16's dumps read those two sheets through
+   it, so the three part-1 dumps (`expected/xlsx/{bom_parts,wires,block_908}.cells.txt`) gain `_ew`'s label, type and
+   editable cells while their XLSX digests stay: a golden change of those three files only (D16 and §9.2 item 2 amended;
+   C46-p2#2).
+3. **D10's move takes what `cell_reason` and `compile` reach:** besides D10's list, `cell_reason`, `CellValue`,
+   `GestureCell`, `GestureKind`, `Gesture`, `Compiled`, `MemberBase`, `DefineAt`, `DEFINING_PATHS`, `define_point`,
+   `potential_input`, `STRIP_ROUTE`, `strip_route`, `strip_reason`, `cell_of`, `accessory_index`, `TYPED_PLC`,
+   `compile_define`, `rows_word`, and `crates/ew-viewmodel/src/properties.rs`'s `compose`, `Seg` and `segments`.
+   `gesture_rows` stays (it reads the `Navigator`). **Texts:** a moved item returns text keys, never English: the nine
+   `table-*` keys not yet in `ew_api::TEXT_KEYS` (`crates/ew-api/src/lib.rs:124-154`; counted at `b57b62db`, another
+   count is a stop) join it, and every English literal a moved item returns today (`GestureCell::reason`,
+   `GestureKind::word`, `Gesture::title`, `rows_word`) becomes a key with the same text in `strings.rs`. The view model
+   gives back the old texts under the old names: free functions by re-export, and a moved type's text methods as a
+   view-model extension trait with the same method names and signatures; `ew-ui`'s callers (`navigator.rs`,
+   `nav_table.rs`) gain that trait's `use` line only, and the view model's other readers (`shell/part_dialog.rs`,
+   `shell/strip_editor.rs`) keep their paths. Table mode's and the properties' tests run unchanged (§9.2 item 6 stays a
+   stop).
+4. **D8's navigators** (amended): `unplaced` joins the table navigators, since table mode shows it (its rows are
+   devices, its cells the devices table's routes); macros, libraries and messages stay out. The refusal lists the twelve
+   words in `NavKind::ALL`'s order.
+5. **Part 1's writer and reader, from review part 2:**
+   - a number is written as a number cell only when its shortest text has at most 15 significant digits, otherwise as a
+     text cell, so `ew sql`'s 9007199254740993 stays exact (D4 amended; C46-p2#1); the CSV presets do not change;
+   - a carriage return in a text cell is written `_x000D_`, and a literal `_xHHHH_` keeps its underscore as `_x005F_`;
+     the sheet module (`read_sheet`, `read_rows`) decodes both, the parts import's `read_xlsx` path is unchanged
+     (C46-p2#3);
+   - sheet names are unique ignoring case by `str::to_lowercase`, and an apostrophe at either end of a name is replaced
+     as `[]:*?/\` are (D4 amended; C46-p2#10);
+   - the template at `bin/ew/src/cli/tree.rs:639`, "`--{flag}` applies to CSV: `--format {format}` takes none", becomes
+     "`--{flag}` applies to CSV only; drop it, or give `--format csv`" for every format (D6 amended, ID-1108), re-pinned
+     at `bin/ew/tests/it/tables.rs:407-408` and `bin/ew/src/cli.rs:4378`, `:4395`, `:4655`, `:4661`, `:4698`, and in
+     `docs/release-notes/unreleased.md:40`; each `XlsxError` text (`xlsx.rs:110-118`) ends with what to do and gets a
+     whole-text test (C46-p2#4);
+   - `golden/J-E-2416/README.md` describes `expected/xlsx/` and `expected/csv/presets/`. No existing XLSX digest or
+     preset CSV byte moves (a stop if one does).
+6. **Files** (§9.1 amended for part 2): besides its list, the move's source
+   `crates/ew-viewmodel/src/navigators/table.rs` and D10's destination `crates/ew-api/src/output/table_edit.rs` with
+   `output/mod.rs`, `crates/ew-reports/src/{xlsx.rs,table.rs}` (items 1 and 5),
+   `crates/ew-import-catalog/src/{lib.rs,table.rs,xlsx.rs}` (item 2, the decode of item 5),
+   `crates/ew-viewmodel/src/properties.rs` (the move), `crates/ew-ui/src/{navigator.rs,nav_table.rs}` (`use` lines
+   only), `crates/ew-api/src/{lib.rs,output/rows.rs}`, `crates/ew-viewmodel/src/strings.rs` (the new keys),
+   `golden/J-E-2416/README.md` and the three part-1 dumps.
+7. RT-5 uses `ew export report --kind io_list`, in since WP-S3.06 part 1; build item 2 was done in part 1 (ID-1145).
 
 ## 7. Part 3: the window
 
