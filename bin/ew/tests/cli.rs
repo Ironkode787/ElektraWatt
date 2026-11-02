@@ -2781,9 +2781,11 @@ fn fmt_repair_backs_up_a_hand_edited_project_as_found() {
         let listed = if merged {
             let manifest = std::fs::read_to_string(project.join("manifest.json")).unwrap();
             assert_eq!(manifest.matches(&hash(&original)).count(), 1);
-            let pending = manifest
-                .replace(&hash(&original), "sha256:pending")
-                .replacen("\n  }\n}\n", "\n  },\n  \"merged\": true\n}\n", 1);
+            let pending = manifest.replace(&hash(&original), "sha256:pending").replacen(
+                "\n  }\n}\n",
+                "\n  },\n  \"merged\": true\n}\n",
+                1,
+            );
             assert!(pending.ends_with("\"merged\": true\n}\n"));
             std::fs::write(project.join("manifest.json"), pending).unwrap();
             "sha256:pending".to_owned()

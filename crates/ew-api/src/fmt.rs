@@ -474,7 +474,9 @@ fn pack_words(e: &PackError) -> String {
         }
         PackError::Refused(why) => format!("an .ewz cannot hold it ({why})"),
         // Not `pack_as_found`'s: a pack as found takes a changed or pending file as it is.
-        PackError::Generation(e @ (GenerationError::Changed { .. } | GenerationError::Pending { .. })) => e.to_string(),
+        PackError::Generation(e @ (GenerationError::Changed { .. } | GenerationError::Pending { .. })) => {
+            e.to_string()
+        }
     }
 }
 

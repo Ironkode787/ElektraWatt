@@ -593,9 +593,10 @@ fn pend(disk: &mut BTreeMap<String, Vec<u8>>, name: &str, before: &[u8]) {
         1,
         "the manifest lists {name} once"
     );
-    let merged = manifest
-        .replace(&old, "sha256:pending")
-        .replacen("\n  }\n}\n", "\n  },\n  \"merged\": true\n}\n", 1);
+    let merged =
+        manifest
+            .replace(&old, "sha256:pending")
+            .replacen("\n  }\n}\n", "\n  },\n  \"merged\": true\n}\n", 1);
     assert!(merged.ends_with("\"merged\": true\n}\n"), "{merged}");
     disk.insert("manifest.json".to_owned(), merged.into_bytes());
 }
@@ -670,10 +671,7 @@ fn a_hand_edited_project_is_repaired_after_a_backup_of_its_files_as_found() {
         }
         let bytes = vfs.read(&backup()).unwrap();
         let packed = ewz::read(&bytes).expect("the backup verifies");
-        assert_eq!(
-            (packed.generation(), packed.manifest.merged),
-            (1, merged)
-        );
+        assert_eq!((packed.generation(), packed.manifest.merged), (1, merged));
         assert_eq!(
             packed.entries, found,
             "the files as found, the manifest hashed to them"

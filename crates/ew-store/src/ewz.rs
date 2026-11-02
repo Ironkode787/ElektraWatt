@@ -499,9 +499,9 @@ pub fn pack_as_found(store: &Store) -> Result<AsFound, PackError> {
     let mut edited = 0;
     for (path, listed) in &loaded.files {
         let full = join(store.root(), path.as_str());
-        let bytes = vfs.read(&full).map_err(|error| {
-            PackError::Generation(GenerationError::Io { path: full, error })
-        })?;
+        let bytes = vfs
+            .read(&full)
+            .map_err(|error| PackError::Generation(GenerationError::Io { path: full, error }))?;
         let hash = sha256(&bytes);
         if store.loaded_hash(path) != Some(hash) {
             return Err(PackError::ChangedSinceOpen {
