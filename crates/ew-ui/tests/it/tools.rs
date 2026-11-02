@@ -1039,6 +1039,53 @@ fn ov2_the_place_ghost_draws_its_tag_once_and_its_chips_keep_apart() {
     h.state_mut().shell_mut().shutdown();
 }
 
+/// FT-1079 (ID-1183) at the floor: the Place ghost's anchor panned to the canvas's top left corner, where the tool
+/// options card stands, leaves the preview's chips no free candidate; each stands inside the canvas all the same
+/// (clamped), none cut at its edge.
+#[test]
+fn ft1079_the_preview_chips_stay_inside_the_canvas_at_the_floor() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "103");
+    h.set_size(Vec2::new(1280.0, 800.0));
+    settle(&mut h);
+    let at = place_and_rest(&mut h);
+    let tl = h
+        .state()
+        .shell()
+        .canvas()
+        .unwrap()
+        .page()
+        .snapper
+        .page_to_sheet(at);
+    let bounds = h
+        .get_all_by_role(egui::Role::Canvas)
+        .next()
+        .expect("the canvas node")
+        .accesskit_node()
+        .raw_bounds()
+        .expect("bounds");
+    let canvas = egui::Rect::from_min_max(
+        Pos2::new(bounds.x0 as f32, bounds.y0 as f32),
+        Pos2::new(bounds.x1 as f32, bounds.y1 as f32),
+    );
+    let anchor = drawn_of(&mut h, tl);
+    let d = canvas.min + Vec2::splat(2.0) - anchor;
+    dispatch(&mut h, "view.pan", json!({"dx": d.x, "dy": d.y}));
+    settle(&mut h);
+    settle(&mut h);
+    let chips = h.state_mut().canvas_host().canvas_chips(0).to_vec();
+    assert!(chips.len() >= 2, "the preview is kept: {chips:?}");
+    for c in &chips {
+        assert!(
+            canvas.contains_rect(c.rect),
+            "{:?} {:?} inside the canvas {canvas:?}",
+            c.kind,
+            c.rect
+        );
+    }
+    h.state_mut().shell_mut().shutdown();
+}
+
 /// R30 F3 in the window: after Insert ▸ Image…'s file dialog answers, the status hint is the armed tool's at once,
 /// without a pointer event over the canvas.
 #[test]

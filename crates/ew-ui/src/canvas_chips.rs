@@ -115,12 +115,27 @@ fn caption_semibold(t: &Tokens) -> TypeToken {
     }
 }
 
+/// `texts` without the entries that read the same as an earlier one (the first keeps its place).
+fn drop_repeats<T>(texts: &mut Vec<(String, T)>) {
+    let mut seen = std::collections::HashSet::new();
+    texts.retain(|(text, _)| seen.insert(text.clone()));
+}
+
+/// `chip` moved the least that puts it inside `bounds`; when it is larger than `bounds`, its top left stays in.
+fn clamp_inside(chip: Rect, bounds: Rect) -> Rect {
+    let dx = (bounds.right() - chip.right()).min(0.0).max(bounds.left() - chip.left());
+    let dy = (bounds.bottom() - chip.bottom()).min(0.0).max(bounds.top() - chip.top());
+    chip.translate(Vec2::new(dx, dy))
+}
+
 /// The places taken so far and the pointer.
 struct Placer<'u> {
     ui: &'u Ui,
     tokens: &'u Tokens,
     obstacles: Vec<vm::Rect>,
     pointer: Option<vm::Pos2>,
+    /// The canvas: a chip no candidate fits for is clamped inside it (FT-1079).
+    bounds: Rect,
     out: Vec<CanvasChip>,
 }
 
@@ -154,7 +169,14 @@ impl Placer<'_> {
             &self.obstacles,
             self.pointer,
         );
-        self.obstacles.push(p.rect);
+        // FT-1079 (ID-1183): where no candidate is free the chip stands at the rule's first one, faded; that one may
+        // lie off the canvas, so the chip is moved in (its top left wins in a canvas too small for it).
+        let rect = if p.faded {
+            clamp_inside(from_vm(p.rect), self.bounds)
+        } else {
+            from_vm(p.rect)
+        };
+        self.obstacles.push(to_vm(rect));
         let (fill, text_colour) = match kind {
             ChipKind::Highlight(slot) => {
                 let (r, g, b) = SLOT_COLOURS[usize::from(slot) % MAX_HIGHLIGHTS];
@@ -162,7 +184,6 @@ impl Placer<'_> {
             }
             _ => (t.canvas_chip, t.canvas_chip_text),
         };
-        let rect = from_vm(p.rect);
         self.out.push(CanvasChip {
             kind,
             text,
@@ -186,6 +207,7 @@ pub fn plan(ui: &Ui, input: &ChipInput<'_>, canvas: &CanvasModel, shell: &ShellM
         tokens: &tokens,
         obstacles,
         pointer: input.pointer.map(|p| vm::Pos2::new(p.x, p.y)),
+        bounds: input.rect,
         out: Vec::new(),
     };
     let screen = |at: (i64, i64)| {
@@ -288,6 +310,9 @@ fn preview(
             at,
         ));
     }
+    // FT-1079: a text that reads the same as an earlier one (a tag and a cross-reference both going from -103S2 to
+    // -103S2) shows once.
+    drop_repeats(&mut texts);
     texts.truncate(11);
     let start = placer.out.len();
     // The placed changes first, by their targets.
@@ -425,7 +450,71 @@ pub fn paint_popup_frame(ui: &Ui, clip: Rect, rect: Rect, folio: &str) {
 mod tests {
     use egui::{Rect, pos2, vec2};
 
-    use super::{OFFSET, clear_corner};
+    use super::{OFFSET, clear_corner, clamp_inside, drop_repeats};
+
+    /// FT-1079 (ID-1183): a chip no candidate was free for is moved inside the canvas: off its left and top edges
+    /// by the least, off its right and bottom edges by the least, and in a canvas too small it keeps its top left.
+    #[test]
+    fn a_chip_with_no_free_candidate_is_clamped_inside_the_canvas() {
+        let canvas = Rect::from_min_max(pos2(100.0, 50.0), pos2(500.0, 300.0));
+        let chip = |x: f32, y: f32| Rect::from_min_size(pos2(x, y), vec2(120.0, 20.0));
+        assert_eq!(clamp_inside(chip(150.0, 80.0), canvas), chip(150.0, 80.0), "inside: untouched");
+        assert_eq!(clamp_inside(chip(60.0, 30.0), canvas), chip(100.0, 50.0), "off the top left");
+        assert_eq!(clamp_inside(chip(450.0, 290.0), canvas), chip(380.0, 280.0), "off the bottom right");
+        let small = Rect::from_min_size(pos2(100.0, 50.0), vec2(80.0, 10.0));
+        assert_eq!(clamp_inside(chip(60.0, 30.0), small), chip(100.0, 50.0), "larger than the canvas");
+    }
+
+    /// FT-1079 at the floor's canvas: the placer puts a chip whose every candidate is taken (the whole canvas is an
+    /// obstacle) inside the canvas, faded, though its first candidate lies above the canvas's top left corner.
+    #[test]
+    fn the_placer_clamps_a_chip_with_no_free_candidate() {
+        use crate::theme::{Density, Theme, tokens};
+        use ew_viewmodel::canvas::chip as vm;
+        let t = tokens(Theme::Light, Density::Comfortable);
+        let canvas = Rect::from_min_max(pos2(328.0, 125.0), pos2(1224.0, 758.0));
+        let ctx = egui::Context::default();
+        let mut checked = false;
+        let mut out = ctx.run_ui(egui::RawInput::default(), |ui| {
+            let mut obstacles = vm::outside(super::to_vm(canvas)).to_vec();
+            obstacles.push(super::to_vm(canvas));
+            let mut placer = super::Placer {
+                ui,
+                tokens: &t,
+                obstacles,
+                pointer: None,
+                bounds: canvas,
+                out: Vec::new(),
+            };
+            let at = super::point(canvas.min + vec2(2.0, 2.0));
+            let frame = placer.put(super::ChipKind::PreviewHeader, "Preview of Place device".to_owned(), at);
+            assert!(placer.out[0].faded);
+            assert!(canvas.contains_rect(frame), "{frame:?} inside {canvas:?}");
+            checked = true;
+        });
+        // The font atlas the pass built is never uploaded here.
+        out.textures_delta.clear();
+        assert!(checked);
+    }
+
+    /// FT-1079: the preview's texts drop an exact repeat (a tag and a cross-reference that both read "-103S2 →
+    /// -103S2" show once), the first keeping its place; texts that differ stay.
+    #[test]
+    fn the_preview_shows_a_text_that_repeats_once() {
+        let mut texts = vec![
+            ("-103S2 → -103S2".to_owned(), Some(1)),
+            ("-103S1 → -103S3".to_owned(), None),
+            ("-103S2 → -103S2".to_owned(), None),
+        ];
+        drop_repeats(&mut texts);
+        assert_eq!(
+            texts,
+            [
+                ("-103S2 → -103S2".to_owned(), Some(1)),
+                ("-103S1 → -103S3".to_owned(), None)
+            ]
+        );
+    }
 
     /// W40b: the preview's corner moves below the tool options card at the canvas's top left, and stays put when
     /// nothing is there or when below the card would leave the canvas.
