@@ -669,7 +669,7 @@ impl PropertiesPane {
         // M39 (owner 2026-10-31: scale, not cap): the label column fits the widest label on show, between
         // `size.property_label` and 40 % of the row; W40b: it gives way to the widest value it can make whole (a tag,
         // a part number). A label that still does not fit elides with the whole label in its tooltip.
-        let (row_height, label_width, indent) = (
+        let (row_height, label_column_width, indent) = (
             t.size_row,
             label_column(&t, width, self.label_need, &self.value_needs),
             t.space_3,
@@ -726,6 +726,22 @@ impl PropertiesPane {
         child.spacing_mut().interact_size.y = t.size_control_inline;
         child.spacing_mut().item_spacing.x = t.space_3;
         let depth = indent * f32::from(row.depth.saturating_sub(self.base_depth)).min(6.0);
+        // FT-1077 (ID-1183): a row with no value, that nothing edits or follows, has nothing to show in its value
+        // column, so its label runs on across it (all but the last `size.control.inline`, where the "…" button
+        // stands). The column and its cap stay for a row with a value (M39).
+        let valueless = value.is_empty()
+            && !(row.actions.contains(&RowAction::Edit) || is_link(row))
+            && !props.edit().is_some_and(|e| e.row == row.key);
+        let mut label_width = label_column_width;
+        if valueless {
+            let natural = child
+                .painter()
+                .layout_no_wrap(label.clone(), crate::theme::font(&t.type_small), crate::theme::NONE)
+                .size()
+                .x;
+            let room = child.available_width() - t.space_3 - t.size_control_inline;
+            label_width = label_width.max((depth + natural).min(room));
+        }
         let (label_rect, label_button) =
             child.allocate_exact_size(Vec2::new(label_width, t.size_control_inline), Sense::click());
         let label_name = middle(&label);
@@ -880,7 +896,13 @@ impl PropertiesPane {
                     format.underline = crate::theme::stroke(t.border_width, t.accent);
                     child.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
                 }
-                let mut job = egui::text::LayoutJob::single_section(shown.clone(), format);
+                // FT-1077: where the label has run across the cell, the empty value's dash would overlap it.
+                let painted = if valueless && label_width > label_column_width {
+                    String::new()
+                } else {
+                    shown.clone()
+                };
+                let mut job = egui::text::LayoutJob::single_section(painted, format);
                 job.wrap = egui::text::TextWrapping::truncate_at_width(
                     (text_right - cell.left() - t.space_icon).max(0.0),
                 );

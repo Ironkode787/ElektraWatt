@@ -289,3 +289,58 @@ fn click_canvas_centre(h: &mut Harness<'_, App>) -> Vec<String> {
         .map(|(_, name)| name)
         .collect()
 }
+
+/// FT-1077 (ID-1183) at the floor: the Interruption point row of a placed point's function has no value, so its label
+/// runs across the value column and is whole; a row with a value keeps the label column (M39).
+#[test]
+fn ft1077_a_row_with_no_value_lets_its_label_run_across_the_value_column() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "103");
+    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    settle(&mut h);
+    press(&mut h, Key::P);
+    click_canvas_centre(&mut h);
+    let id = ips(&h)[0].0.clone();
+    press(&mut h, Key::Escape);
+    dispatch(&mut h, "select.set", json!({"ids": [id]}));
+    settle(&mut h);
+    settle(&mut h);
+    let t = ew_ui::theme::current(&h.ctx);
+    let label_rect = |h: &Harness<'_, App>, label: &str| {
+        let row = h
+            .get_all_by_role(egui::Role::Group)
+            .find(|n| n.accesskit_node().label().as_deref() == Some(label))
+            .unwrap_or_else(|| panic!("the row {label}"))
+            .rect();
+        h.get_all_by_role(egui::Role::Button)
+            .find(|n| n.accesskit_node().label().as_deref() == Some(label) && row.contains_rect(n.rect()))
+            .unwrap_or_else(|| panic!("the label {label}"))
+            .rect()
+    };
+    let whole = h.ctx.fonts_mut(|f| {
+        f.layout_no_wrap(
+            "Interruption point".to_owned(),
+            ew_ui::theme::font(&t.type_small),
+            egui::Color32::WHITE,
+        )
+        .size()
+        .x
+    });
+    let empty = label_rect(&h, "Interruption point");
+    assert!(
+        empty.width() >= whole,
+        "the label needs {whole} and has {}",
+        empty.width()
+    );
+    // A row with a value keeps the column the labels share.
+    let with_value = label_rect(&h, "Direction");
+    let name = label_rect(&h, "Name");
+    assert_eq!(with_value.width(), name.width());
+    assert!(
+        with_value.width() < empty.width(),
+        "the column {} is narrower than the run-on label {}",
+        with_value.width(),
+        empty.width()
+    );
+}
+
