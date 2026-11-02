@@ -16,6 +16,9 @@ the `records` step of `cargo xtask settle --merge` runs it at the merge point.
 Every ID of [decisions.md](decisions.md) and every ID a `Decision:` or `Golden:` trailer cites, newest first, with the commits that cite it, newest first.
 
 - **ID-1151** (cycle 46): The rulings for lane G46, FT-1026, a golden change, from a scout, a rulings read and a feasibility read at 36f32605 (project owner (delegated)): doc 08 §6.1's and §6.7's printing is built: a terminal drawn alone prints its designation, or its function text when its strip's `label_mode` is FunctionText (an empty one falling back to the designation, the function-text slot then empty); on a page with no segment of its strip, the strip's displayed tag is printed once, as a page-level text one grid step above the designation of the strip's first terminal on that page in the strip's own order, amending doc 08 §6.7's (row, column, ID) order, which at Golden A's 101-D2 would pick the PE terminal; so an unnumbered strip's terminals name it, "-X??"; `tag_print` PerPage prints a strip's tag at its first segment on each page; Golden A's page 101 gains "1X1" once, re-blessed in its text, PNG, PDF and print digests and the headless acceptance report, and no other golden byte moves. ID-162; ID-1095; ID-1129.
+  - `ab4791f5d6` test(ui): re-bless the window snapshots that draw page 101's strip tag
+  - `03b4849e52` test(golden): re-bless page 101 for the strip tag at 1X1's terminals
+  - `05e0fe5614` feat(scene): print a strip's tag once at its terminals drawn alone (FT-1026)
   - `948e0f1af1` docs(plan): cycle 46 wave-4 rulings for INFRA46, BK46a and G46
 - **ID-1150** (cycle 46): The rulings for lane BK46a, FT-849, FT-850, FT-851, FT-948, FT-949, FT-951, FT-964, FT-972, FT-986 and FT-989, from a scout, a rulings read and a feasibility read at 36f32605 (project owner (delegated)): every hint, HUD prompt and toast that names a key the default keymap binds takes it from the keymap, the hints in full names and the HUD's compact texts in short ones, an unbound action reading "(no key)", literal only the keys no action binds, and with the default keymap every text reads as before (FT-964, FT-949); an interruption point dropped on a junction or inside a wire is refused ("Not placed: the point would sit on a wire without joining it; place it on a pin or a free grid point"), a pin always winning (FT-948); the IP tool's "Not placed" notices take one sentence, what and why, then what to do, and a HUD prompt that wraps balances its two rows (FT-972, FT-951); the IP name field shows the typed name, else the proposal as hint text (FT-851); a keymap copy aside finds an existing equal copy before writing (FT-849); the import refusal gets its test (FT-850); one history step reads "1 step" (FT-986); CB8's comment moves to its own test (FT-989). ID-1019; ID-1021; ID-1025; ID-1036; doc 16a P8, §8.
   - `948e0f1af1` docs(plan): cycle 46 wave-4 rulings for INFRA46, BK46a and G46
@@ -267,7 +270,7 @@ Every ID of [decisions.md](decisions.md) and every ID a `Decision:` or `Golden:`
 
 ## Open follow-up tasks
 
-538 open: 13 scheduled, 68 expired, 457 other. The entries of [follow-ups.md](follow-ups.md) and the open rows of the frozen [Appendix B](02-work-packages.md#appendix-b-follow-up-tasks-from-the-implementation-cycles), minus every ID an `FT-Closes:` trailer names; by number.
+537 open: 13 scheduled, 68 expired, 456 other. The entries of [follow-ups.md](follow-ups.md) and the open rows of the frozen [Appendix B](02-work-packages.md#appendix-b-follow-up-tasks-from-the-implementation-cycles), minus every ID an `FT-Closes:` trailer names; by number.
 
 ### Scheduled (due in cycle 46 or later)
 
@@ -814,5 +817,4 @@ Every ID of [decisions.md](decisions.md) and every ID a `Decision:` or `Golden:`
 - FT-988 (`ew`; WP-S1.22; due: Cycle 43 (FT batch)): **Nit (CLI help).** `bin/ew/src/cli.rs:127` has a 166-character `--help` line where the rest wraps at 120 (the cycle-42 review, part 3, nit 5). Source: ID-1048
 - FT-989 (`ew-viewmodel`; WP-S2.17; due: Cycle 43 (FT batch)): **Nit (tests).** `crates/ew-viewmodel/tests/it/command_bar.rs:229-236`: CB8's doc comment heads the W42b test; give each test its own comment (the cycle-42 review, part 3, nit 7). Source: ID-1048
 - FT-1008 (cycle 43, Low, WP-S1.22; due: cycle 44): `ew check --help` prints a 465-character line, because clap does not wrap the long doc paragraphs without its `wrap_help` feature (compare FT-988); enable `wrap_help`, with its vet entries, or break the paragraphs. Source: ID-1067
-- FT-1026 (cycle 44, Cosmetic, ew-scene; due: cycle 45 (polish lane)): an untagged strip's terminals show only their numbers ("1", "2") on the page, nothing of the strip they belong to, while the strip is still "-X??" (play-test rv-vis-6, t0019). Source: ID-1095
 <!-- /generated:records -->
