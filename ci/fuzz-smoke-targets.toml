@@ -16,7 +16,8 @@
 # (src/open_path.rs); `command_sequence` runs the seeded command generator of `ew-testkit`
 # (crates/ew-testkit/tests/command_fuzz, included as modules) through the `ew-api` facade, so it reaches the
 # whole command, derivation, import and export stack. `png_pdf` feeds PNG bytes to `ew-render-cpu`'s decoder and the PDF
-# writer of `ew-export` (src/png_pdf.rs).
+# writer of `ew-export` (src/png_pdf.rs). `ewz_read` feeds bytes to the strict `.ewz` reader of `ew-store`
+# (src/ewz_read.rs).
 
 [targets.jsonl_loader]
 max_len = 65536
@@ -104,3 +105,19 @@ closure = [
 max_len = 16384
 roots = ["ew-dl", "ew-export"]
 closure = ["ew-dl", "ew-export", "ew-hack", "ew-render-cpu", "ew-units"]
+
+[targets.ewz_read]
+max_len = 16384
+roots = ["ew-store"]
+closure = [
+    "ew-format",
+    "ew-hack",
+    "ew-ids",
+    "ew-mltext",
+    "ew-model",
+    "ew-rds",
+    "ew-schema",
+    "ew-store",
+    "ew-units",
+    "ew-zip",
+]

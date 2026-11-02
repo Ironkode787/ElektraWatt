@@ -3,13 +3,14 @@
 
 //! The cargo-fuzz crate of ElektraWatt (FT-297, FT-272, FT-304; doc 18 §3.6, §3.12; `fuzz/README.md`).
 //!
-//! Four targets (`fuzz_targets/`), each a thin `fuzz_target!` over a `check` function of this library, so that
+//! The targets (`fuzz_targets/`), each a thin `fuzz_target!` over a `check` function of this library, so that
 //! a crash input replays in a plain test and the seed corpora are made with the same encoders:
 //!
 //! - [`loader`]: arbitrary bytes through the `ew-format` reader;
 //! - [`open_path`]: the golden project with old-shape records, opened by `ew-store`;
 //! - [`command`]: the seeded command generator of the nightly command fuzzer over the fuzzer's input;
-//! - [`png_pdf`]: a PNG through `ew-render-cpu`'s `decode_image` and, when it accepts it, the PDF writer of `ew-export`.
+//! - [`png_pdf`]: a PNG through `ew-render-cpu`'s `decode_image` and, when it accepts it, the PDF writer of `ew-export`;
+//! - [`ewz_read`]: arbitrary bytes through `ew-store`'s strict `.ewz` reader (WP-S1.17 part 2).
 //!
 //! The crate is outside the cargo workspace and builds on the nightly toolchain of `rust-toolchain.toml`.
 //! `unsafe`: none in this crate; the `unsafe` of cargo-fuzz's `fuzz_target!` macro lives in `libfuzzer-sys`.
@@ -17,6 +18,7 @@
 #![forbid(unsafe_code)]
 
 pub mod command;
+pub mod ewz_read;
 pub mod golden;
 pub mod loader;
 pub mod open_path;

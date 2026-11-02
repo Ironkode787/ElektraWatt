@@ -138,6 +138,25 @@ fn the_png_pdf_seeds_decode_and_print() {
     }
 }
 
+/// The `.ewz` reader's seeds (`ew export ewz` of `golden/fixtures/release-min`, with and without the two git files)
+/// are accepted and pack again.
+#[test]
+fn the_ewz_read_seeds_are_accepted() {
+    let seeds = inputs("corpus/ewz_read");
+    assert!(seeds.len() >= 2, "the .ewz reader's seed corpus is missing");
+    for (name, bytes) in &seeds {
+        assert_eq!(
+            ew_fuzz::ewz_read::check(bytes),
+            ew_fuzz::ewz_read::Outcome { accepted: true },
+            "{name}"
+        );
+    }
+    assert_eq!(
+        ew_fuzz::ewz_read::check(b"PK"),
+        ew_fuzz::ewz_read::Outcome { accepted: false }
+    );
+}
+
 /// The fuzz finding of CI run 40897313649 (`regressions/png_pdf/plte-length-not-a-multiple-of-3`, 93 bytes): a 2 × 2
 /// palette PNG whose `PLTE` is 14 bytes long, which made `png` 0.18.1 panic in its palette code (`range end index 3
 /// out of range for slice of length 2`). Fixed by the chunk check of `ew_render_cpu`: the target's entry point refuses
@@ -161,7 +180,7 @@ fn the_png_pdf_plte_finding_is_refused_without_a_panic() {
 fn the_regressions_are_replayed_and_reported() {
     use std::panic::{AssertUnwindSafe, catch_unwind};
     type Check = fn(&[u8]);
-    let targets: [(&str, Check); 4] = [
+    let targets: &[(&str, Check)] = &[
         ("regressions/jsonl_loader", |b| {
             let _ = loader::check(b);
         }),
@@ -174,8 +193,11 @@ fn the_regressions_are_replayed_and_reported() {
         ("regressions/png_pdf", |b| {
             let _ = ew_fuzz::png_pdf::check(b);
         }),
+        ("regressions/ewz_read", |b| {
+            let _ = ew_fuzz::ewz_read::check(b);
+        }),
     ];
-    for (dir, check) in targets {
+    for &(dir, check) in targets {
         for (name, bytes) in inputs(dir) {
             let failed = catch_unwind(AssertUnwindSafe(|| check(&bytes))).is_err();
             eprintln!(

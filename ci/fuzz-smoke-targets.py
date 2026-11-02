@@ -84,19 +84,22 @@ def selftest():
         return " ".join(select(paths))
 
     every = " ".join(f"{t}:{n}" for t, n in MAX_LEN.items())
-    assert list(MAX_LEN) == ["jsonl_loader", "migration_chain", "command_sequence", "png_pdf"], list(MAX_LEN)
+    assert list(MAX_LEN) == ["jsonl_loader", "migration_chain", "command_sequence", "png_pdf", "ewz_read"], list(MAX_LEN)
     loader, chain, command = "jsonl_loader:65536", "migration_chain:65", "command_sequence:512"
+    ewz = "ewz_read:16384"
     # nothing relevant
     assert run() == ""
     assert run("README.md", "docs/design/10-plc-and-bus.md", "crates/ew-ui/src/lib.rs") == ""
     assert run("fuzz/README.md", "fuzz/deny.toml", "fuzz/target/corpus/x", "fuzz/artifacts/y/crash-1") == ""
     # a crate's tests, benches, examples and Markdown are not built into a target
     assert run("crates/ew-format/tests/roundtrip.rs", "crates/ew-store/benches/b.rs", "crates/ew-derive/README.md") == ""
-    # the closure of each target: the format crate is in all three (the command target saves through ew-store)
-    assert run("crates/ew-format/src/lib.rs") == f"{loader} {chain} {command}"
-    assert run("crates/ew-schema/src/plc.rs") == f"{loader} {chain} {command}"
-    assert run("crates/ew-store/src/open.rs") == f"{chain} {command}"
-    assert run("crates/ew-model/src/index.rs") == f"{chain} {command}"
+    # the closure of each target: the format crate is in four (the command target saves through ew-store, the
+    # .ewz reader parses the manifest)
+    assert run("crates/ew-format/src/lib.rs") == f"{loader} {chain} {command} {ewz}"
+    assert run("crates/ew-schema/src/plc.rs") == f"{loader} {chain} {command} {ewz}"
+    assert run("crates/ew-store/src/open.rs") == f"{chain} {command} {ewz}"
+    assert run("crates/ew-model/src/index.rs") == f"{chain} {command} {ewz}"
+    assert run("crates/ew-zip/src/lib.rs") == f"{chain} {command} {ewz}"
     assert run("crates/ew-commands/src/tx.rs") == command
     assert run("crates/ew-derive/src/plc.rs") == command
     assert run("crates/ew-api/src/verify.rs") == command
@@ -109,6 +112,7 @@ def selftest():
     assert run("fuzz/fuzz_targets/jsonl_loader.rs") == loader
     assert run("fuzz/corpus/migration_chain/seed-1") == chain
     assert run("fuzz/regressions/command_sequence/crash-x") == command
+    assert run("fuzz/corpus/ewz_read/release-min.ewz") == ewz
     assert run("fuzz/src/loader.rs") == every
     assert run("fuzz/Cargo.lock") == every
     assert run("fuzz/rust-toolchain.toml") == every
@@ -121,7 +125,7 @@ def selftest():
         == every
     )
     # Windows separators and a leading ./ (a local run)
-    assert run("crates\\ew-store\\src\\lib.rs") == f"{chain} {command}"
+    assert run("crates\\ew-store\\src\\lib.rs") == f"{chain} {command} {ewz}"
     assert run("./crates/ew-commands/src/tx.rs") == command
 
     # the table agrees with the crate and the deep nightly's matrix (the dependency closure is checked by xtask)

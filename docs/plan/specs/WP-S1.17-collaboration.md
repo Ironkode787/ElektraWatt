@@ -98,7 +98,7 @@ and after merges with the "renumber the newer" fix for device tags; and AC-41 pa
 | `Origin::External`, `Origin::Merge`; the history's "external change" origin text | `crates/ew-commands/src/meta.rs`, `crates/ew-api/src/output/history.rs` | Parts 5 and 6 |
 | `Vfs` with `rename_noreplace` (by hard link: files only), no exclusive directory create | `crates/ew-store/src/vfs.rs` | Part 2 adds `create_dir` |
 | The uniqueness rules EW-RDS-004, EW-TERM-002, EW-POT-015, EW-CORE-052, EW-PLC-001, EW-PLC-007; EW-CORE-011 and -013 as catalogue rows only; `QuickFix` | `crates/ew-checks/src/rules/`, `finding.rs` | Part 8 |
-| `ew fmt` and `ew recover` | `bin/ew/src/cli/project_files.rs:23, :159` | Parts 1 and 2 (`fmt` keeps original lines, `fmt --repair`) |
+| `ew fmt` and `ew recover` | `bin/ew/src/cli/project_files.rs:23, :159` | Part 1 (`fmt` keeps original lines); `fmt --repair` in its own lane after part 2 (ID-1175) |
 | The CLI's read-only refusals of writers | `bin/ew/src/cli.rs:151, :161` | Parts 2, 3, 5 (the same refusal for `.ewz` and migrated projects) |
 | The window's read-only reasons and save errors (`readonly-lock-lost`, `saveerr-external`) | `crates/ew-viewmodel/src/shell.rs` | Part 7 |
 
@@ -110,7 +110,7 @@ and after merges with the "renumber the newer" fix for device tags; and AC-41 pa
 | An untouched record with unknown members is re-emitted canonically (FT-96) | Part 1 (D4) |
 | The save checks only `manifest.json`: a hand edit or a checkout of a file the manifest still names is overwritten by the next save that touches that file | Part 1 (D5), a data-loss fix |
 | A conflicted manifest restarts the generation at 1 (FT-97); stray copies can multiply under a sync client (FT-98) | Part 1 (D6, D7) |
-| No `.ewz`; no `ew fmt --repair` | Part 2 |
+| No `.ewz`; no `ew fmt --repair` | Part 2 (`.ewz`); `fmt --repair` in its own lane after part 2 (ID-1175) |
 | No migration chain; an older format does not open | Part 3 |
 | No merge core, no driver, no strategy table in `ew-schema` | Part 4 |
 | `conflict` untyped; markers force read-only and nothing resolves them | Part 5 |
@@ -252,10 +252,10 @@ conflicted manifest is not tested through a roll-forward; FT-95's `unstable` mar
 
 ## 7. Part 2: `.ewz` transport
 
-**Scope.** D8, D9; `ew fmt --repair` (EW-CORE-005's fix: discard the unparseable lines after packing an `.ewz` of the
-current generation beside the project; WP-S1.22 D2). **0.8 pw.** `ew-store` (`ewz.rs`, `vfs.rs`), `ew-api`
-(`Session::open_ewz`, the export), `bin/ew` (`ew export ewz`, the reader argument, `ew extract <file.ewz> [--into
-<dir>]`, `fmt --repair`). The window's menu items are part 7's.
+**Scope.** D8, D9. **0.7 pw.** `ew-store` (`ewz.rs`, `vfs.rs`), `ew-api` (`Session::open_ewz`, the export), `bin/ew`
+(`ew export ewz`, the reader argument, `ew extract <file.ewz> [--into <dir>]`). The window's menu items are part 7's.
+`ew fmt --repair` (EW-CORE-005's fix: discard the unparseable lines after packing an `.ewz` of the current generation
+beside the project; WP-S1.22 D2, 0.1 pw) moved to a lane of its own after part 2 (ruling 6 below).
 
 **Acceptance.**
 - **EZ-1** Golden A packed twice gives byte-identical `.ewz` files; `mimetype` is the first entry, stored; extracting
@@ -267,8 +267,9 @@ current generation beside the project; WP-S1.22 D2). **0.8 pw.** `ew-store` (`ew
 - **EZ-4** Archives with `..`, a backslash, a duplicate name ignoring case, an entry outside D9's set, a hash mismatch,
   a missing `mimetype` or a 201 : 1 entry are refused unread (the bounds of `ZipLimits`); a fuzz target over the
   reader joins `fuzz/`.
-- **EZ-5** `ew fmt --repair` on a page file with one broken line writes the backup `.ewz`, then a project without the
-  line, and opens editable; without a broken line it changes nothing.
+- **EZ-5** (moved with `ew fmt --repair` to its own lane, ruling 6) `ew fmt --repair` on a page file with one broken
+  line writes the backup `.ewz`, then a project without the line, and opens editable; without a broken line it changes
+  nothing.
 - **EZ-6** Targeted checks for `ew-store`, `ew-api`, `ew`.
 
 **Rulings at dispatch (ID-1175, cycle 47; facts at `b57b62db`).**
@@ -487,7 +488,8 @@ texts beyond those quoted (doc 16a §8).
 ### 14.5 Size, order and routing
 
 **Size.** Part 1 **0.9** (stamps 0.2, original lines 0.3, target pre-check 0.15, FT-97 and FT-98 0.15, tests 0.1);
-part 2 **0.8** (pack 0.15, extract 0.2, read-only open and the CLI argument 0.2, `fmt --repair` 0.1, tests 0.15);
+part 2 **0.7** (pack 0.15, extract 0.2, read-only open and the CLI argument 0.2, tests 0.15; `fmt --repair`'s 0.1
+moved to its own lane after part 2, ID-1175);
 part 3 **0.8** (chain 0.2, open and consent 0.25, `ew upgrade` 0.1, corpus check 0.15, FT-403 0.05, tests 0.05);
 part 4 **1.2** (table 0.15, record and field merge 0.4, conflict records 0.15, manifest and library documents 0.15,
 driver 0.15, property and fuzz tests 0.2); part 5 **0.9** (typing 0.25, markers 0.25, `merge.resolve` and CLI 0.25,
@@ -521,7 +523,7 @@ to 6 (format, store, a core crate). **Unblocks:** WP-S6.08 after part 8; WP-S2.1
 
 **Documents.** **After part 1:** doc 05 §4 and §10.3, §10.4 (stamps, original lines as built), §5.2 step 2 (D5),
 §11.3 (FT-97); ADR-0011 a dated note (D3). **After part 2:** doc 05 §12 (D8, D9), doc 17 §3.3 (`export ewz`,
-`extract`, `fmt --repair`). **After part 3:** doc 05 §10.1, §10.2, §10.4 (the chain, the consent, the corpus).
+`extract`); `fmt --repair`'s row in doc 17 §3.3 after its own lane (ID-1175). **After part 3:** doc 05 §10.1, §10.2, §10.4 (the chain, the consent, the corpus).
 **After part 4:** doc 05 §11.2, §11.3 (D13 to D16, the file-level `path`); ADR-0012 a dated note (D13). **After part
 5:** doc 05 §2.2, §6.3 (EW-CORE-006 and -011), §11.4; doc 15 §6.5. **After part 6:** doc 05 §9 (D20 to D23) and §19
 (no `notify`). **After part 7:** doc 05 §15, §16; doc 16 (the dialogs). **After part 8:** doc 05 §11.1, §11.6, §11.7
@@ -566,7 +568,7 @@ outside the session, part 1), D6 and D7, the journals (D23), and the merges (D2,
 half, FT-97 and FT-98 still close with part 1, FT-191's `--integrity` with part 8.
 
 **Size.** The parts left for M2 are part 1 **0.55** (stamps without the marker 0.15, the target pre-check 0.15, FT-97
-and FT-98 0.15, tests 0.1), part 2 **0.8**, part 4 **1.2**, part 5 **0.9**, part 6 **1.1**, part 7 **0.8** (the upgrade
+and FT-98 0.15, tests 0.1), part 2 **0.7** and `fmt --repair`'s lane 0.1 (ID-1175), part 4 **1.2**, part 5 **0.9**, part 6 **1.1**, part 7 **0.8** (the upgrade
 consent dialog of D24 leaves with part 3) and part 8 **0.9**: 6.25 pw. The PERT is **6.9 pw** (O 4.8 · L 6.7 · P 9.7):
 the 7.7 pw of O1 less 0.8 pw (decision log ID-1029). The 0.65 pw between the parts and the PERT is the reserve, wider
 than §14.5's 0.3 pw because part 1's D4 work (0.35 pw) leaves the M2 sizing too; the deferred part 3 (about 1.15 pw
