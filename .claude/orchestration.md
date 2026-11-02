@@ -167,13 +167,17 @@ The main session orchestrates. It plans each cycle, briefs Claude subagents, int
         merges them (ID-1113, from cycle 46).
     - Subagent check results are claims until re-run.
     - Lanes keep their `target` for a fix round; the orchestrator deletes it when the part is accepted (2026-11-01).
-17. **Facts and the feasibility read before dispatch** (amended 2026-11-01; the facts, 2026-11-01, cycle-43 retro).
+17. **Facts and the feasibility read before dispatch** (amended 2026-11-02; the facts, 2026-11-01, cycle-43 retro;
+    fix rulings, cycle-45 retro).
     - **The facts, for every brief:** a `scout` (Haiku) gathers them at the lane's base hash with `git show` and
       `git grep`: the `path:line` of each named item, every reader of a changed item, and where a new item goes by its
       `// map:` marker. The brief's facts section is written from that report.
     - **The feasibility read, only for briefs that touch:** the file format or a schema, a core crate, golden data, a
       check rule's meaning, or a bug that must reproduce. Every other brief goes out after the orchestrator's own
       check of its cited sources.
+    - **Every fix ruling gets the read too** (cycle-45 retro), for a resumed author as for a fresh lane, sent by
+      message or by brief: its premises at the lane's base (the items exist, the edges and callers it assumes, the
+      behaviour it changes), beside the Opus `low` read of the ruling.
     - **The read:** a `scout` (Haiku `high`) checks with a checklist: the named items exist, a claimed bug reproduces,
       the files and the format touched, the consumers of a changed behaviour, an item's version already on `main`,
       each expectation against its cited source.
