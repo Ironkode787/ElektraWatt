@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The print pre-dialog (WP-S3.07 part 3, D10 and ruling 4 of ID-1180; doc 16a §6.12): the options on the left on
-//! §6.12's form rows, the preview of the print set on the right at the page's aspect ratio, "<n> of <m>" with
+//! §6.12's form rows, the preview of the print set on the right at the page's aspect ratio, `<n> of <m>` with
 //! Previous and Next under it, the stamp visible. While the set builds, §6.19's progress line stands in the preview's
 //! place; with no page chosen, §6.17's empty state. The dialog is `size.dialog.preview` wide, growing with the window
 //! ([`crate::dialog::preview_width`]).
@@ -412,7 +412,7 @@ fn progress(ui: &mut Ui, shell: &ShellModel) {
     }
 }
 
-/// "<n> of <m>" with Previous and Next under the preview.
+/// `<n> of <m>` with Previous and Next under the preview.
 fn navigation(ui: &mut Ui, shell: &ShellModel, d: &PrintDialog, pages: usize, events: &mut Vec<Event>) {
     let t = theme::current(ui.ctx());
     ui.add_space(t.space_2);

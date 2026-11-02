@@ -198,13 +198,14 @@ impl Chain {
     /// other systems the viewer (until the Windows adapter, part 4). Print files go to `temp_dir`; `project` names the
     /// viewer's file.
     pub fn system(temp_dir: PathBuf, project: &str) -> Chain {
-        let mut adapters: Vec<Box<dyn PrintAdapter + Send>> = Vec::new();
         #[cfg(target_os = "linux")]
-        {
-            adapters.push(Box::new(Portal::new(temp_dir.clone())));
-            adapters.push(Box::new(Lp::new(temp_dir.clone())));
-        }
-        adapters.push(Box::new(Viewer::new(temp_dir, project)));
+        let adapters: Vec<Box<dyn PrintAdapter + Send>> = vec![
+            Box::new(Portal::new(temp_dir.clone())),
+            Box::new(Lp::new(temp_dir.clone())),
+            Box::new(Viewer::new(temp_dir, project)),
+        ];
+        #[cfg(not(target_os = "linux"))]
+        let adapters: Vec<Box<dyn PrintAdapter + Send>> = vec![Box::new(Viewer::new(temp_dir, project))];
         Chain::new(adapters)
     }
 
