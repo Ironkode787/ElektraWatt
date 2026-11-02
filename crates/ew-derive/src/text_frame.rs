@@ -20,7 +20,7 @@
 //! The readers that place a slot text all go through it: the page scene's slot texts (`ew-scene`), the tag anchor of
 //! the page tables (`ew-api`) and a slot anchor ([`crate::anchor_point_of`]).
 
-use ew_schema::{BoxSpec, Representation, SymbolDef};
+use ew_schema::{BoxSpec, Representation, SlotKind, SymbolDef};
 use ew_units::{Nm, Orient2, Pt2};
 
 /// The origin on the page and the orientation in which a representation's slot texts are placed (see the module
@@ -45,6 +45,43 @@ impl TextFrame {
 pub fn text_frame(rep: &Representation, symbol: &SymbolDef) -> TextFrame {
     let black_box = rep.box_.as_ref().filter(|_| symbol.cps.is_empty());
     frame_of(rep.pos, rep.orient, black_box)
+}
+
+/// Whether slot `slot` of `symbol` is shown on `rep`: the representation's `visible` override of the slot, else its
+/// arrangement (the slot is shown when the named arrangement lists it; an arrangement the symbol does not define
+/// counts as none), else the slot's own `visible` (FR-SYM-012). `false` for a slot the symbol does not have. The page
+/// scene's slot texts and the strip tags of terminals drawn alone (ID-1151) decide by it.
+pub fn slot_shown(rep: &Representation, symbol: &SymbolDef, slot: u16) -> bool {
+    let Some(def) = symbol.text_slots.get(usize::from(slot)) else {
+        return false;
+    };
+    if let Some(v) = rep
+        .text_slots
+        .iter()
+        .find(|o| o.slot == slot)
+        .and_then(|o| o.visible)
+    {
+        return v;
+    }
+    match rep
+        .arrangement
+        .as_ref()
+        .and_then(|name| symbol.arrangements.iter().find(|a| a.name == *name))
+    {
+        Some(a) => a.slots.contains(&slot),
+        None => def.visible,
+    }
+}
+
+/// The index of the first `tag` slot of `symbol` when [`slot_shown`] on `rep`; `None` when the symbol has no tag
+/// slot or its first one is hidden (decision log ID-1151: where a terminal drawn alone can carry its strip's tag).
+pub fn tag_slot_shown(rep: &Representation, symbol: &SymbolDef) -> Option<u16> {
+    let i = symbol
+        .text_slots
+        .iter()
+        .position(|s| matches!(s.kind, SlotKind::Tag))?;
+    let i = u16::try_from(i).ok()?;
+    slot_shown(rep, symbol, i).then_some(i)
 }
 
 /// [`text_frame`] of a representation at `pos` in `orient`, with `black_box` its box when it is a black box.

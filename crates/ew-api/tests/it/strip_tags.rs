@@ -229,8 +229,9 @@ fn the_strip_tag_prints_once_at_the_first_terminal_of_a_page_without_a_segment()
             .unwrap()
     };
     let (designation, tag) = (line("1"), line("1X1"));
-    // The quad runs top-left, bottom-left, bottom-right, top-right: the tag stands above the designation, at the
-    // same right edge (the slot's horizontal alignment, middle right).
+    // The quad runs top-left, bottom-left, bottom-right, top-right. The tag stands one connection-grid step above the
+    // tag slot's anchor (where the designation stands, as no placement rule moves it here), bottom-aligned, so it is
+    // above the designation, at the same right edge (the slot's horizontal alignment, middle right).
     assert_eq!(tag[2].x, designation[2].x);
     assert!(tag[2].y < designation[2].y, "{tag:?} above {designation:?}");
 }
@@ -312,8 +313,9 @@ fn per_page_prints_the_strip_tag_once_at_the_first_segment() {
     assert_eq!(at(&texts(&s, 103), &[alone]), strings(&[&["1+"]]));
 }
 
-/// FT-1026: an unnumbered strip's terminals name their strip: its displayed tag, with "?" for the counter it lacks
-/// (Golden A's strip rule prints the page: "-X101?"; a project without the rule prints "-X??").
+/// FT-1026: an unnumbered strip's terminals name their strip: its displayed tag, with "?" for the counter it lacks.
+/// Golden A's 1X1 is frozen as "1X1"; with its frozen tag and its counter removed, the golden strip rule derives the
+/// tag with the page token: "-X101?" (a strip without a page token reads "-X??").
 #[test]
 fn an_unnumbered_strip_prints_its_tag_at_its_terminals() {
     let mut g = Golden::new();
@@ -326,4 +328,67 @@ fn an_unnumbered_strip_prints_its_tag_at_its_terminals() {
         at(&texts(&s, 101), &reps),
         strings(&[&["-X101?", "1"], &["2"], &["PE"]])
     );
+}
+
+/// The symbol copy of library key `key` in Golden A's library.
+fn symbol_copy(g: &Golden, key: &str) -> Id<ew_schema::SymbolDef> {
+    g.lib
+        .iter()
+        .find_map(|d| match d {
+            ew_schema::LibDocument::Symbol(c)
+                if c.item.meta.key.as_ref().is_some_and(|k| k.as_str() == key) =>
+            {
+                Some(c.id)
+            }
+            _ => None,
+        })
+        .unwrap_or_else(|| panic!("no symbol {key}"))
+}
+
+/// Hides the tag slot (slot 0 of both golden terminal symbols) of representation `key`.
+fn hide_tag(g: &mut Golden, key: &str) {
+    let hidden: ew_schema::SlotOverride =
+        serde_json::from_value(serde_json::json!({"slot": 0, "visible": false})).unwrap();
+    g.rep_mut(key).text_slots.insert(hidden);
+}
+
+/// C46-p4#3: a first terminal whose designation is hidden carries no strip tag; the next terminal in the strip's
+/// order does.
+#[test]
+fn a_hidden_first_designation_moves_the_strip_tag_to_the_next_terminal() {
+    let mut g = Golden::new();
+    let reps = rep_ids(&mut g, &["1X1:1", "1X1:2", "1X1:PE"]);
+    hide_tag(&mut g, "1X1:1");
+    let s = g.session();
+    assert_eq!(
+        at(&texts(&s, 101), &reps),
+        strings(&[&[], &["1X1", "2"], &["PE"]])
+    );
+}
+
+/// C46-p4#3: a first terminal whose symbol has no tag slot (drawn with the interruption-point symbol, whose slots are
+/// `function_text` and `xref`) carries no strip tag; the next terminal does.
+#[test]
+fn a_first_terminal_without_a_tag_slot_passes_the_strip_tag_on() {
+    let mut g = Golden::new();
+    let reps = rep_ids(&mut g, &["1X1:1", "1X1:2", "1X1:PE"]);
+    let ip = symbol_copy(&g, "ew.gen.ip@qet10");
+    g.rep_mut("1X1:1").symbol = ip;
+    let s = g.session();
+    assert_eq!(
+        at(&texts(&s, 101), &reps),
+        strings(&[&[], &["1X1", "2"], &["PE"]])
+    );
+}
+
+/// C46-p4#3: with no terminal of the strip showing its tag slot on the page, the page prints no strip tag.
+#[test]
+fn no_shown_tag_slot_no_strip_tag() {
+    let mut g = Golden::new();
+    let reps = rep_ids(&mut g, &["1X1:1", "1X1:2", "1X1:PE"]);
+    for key in ["1X1:1", "1X1:2", "1X1:PE"] {
+        hide_tag(&mut g, key);
+    }
+    let s = g.session();
+    assert_eq!(at(&texts(&s, 101), &reps), strings(&[&[], &[], &[]]));
 }

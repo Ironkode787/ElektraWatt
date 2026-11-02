@@ -912,19 +912,23 @@ bus with dots. That drawing is derived from the bridge connections.
 - **Cross-references.** A strip segment is never a cross-reference target and never the cross-reference main
   representation of its device: it neither refers nor is referred to (decision log ID-191). The tag, numbering and
   BOM main representation is unchanged.
-- **Terminals drawn alone** (decision log ID-162). A terminal with its own representation (1X1) prints its
-  designation or function text (`label_mode`), never the full tag; on a page without a segment of its strip, the
-  strip tag is printed once, at the first terminal representation in (row, column, ID) order.
-  *As built (cycle 46; decision log ID-1151, FT-1026):* the strip tag's terminal is the strip's first terminal
-  representation on the page in the strip's own order (designation in natural order, then terminal ID, then
-  representation ID), as the strip's main representation is taken, not in (row, column, ID) order, which at
-  Golden A's 101-D2 would pick the PE terminal: page 101 prints "1X1" at terminal "1". The tag is a page-level text
-  (`PageView::strip_tags`), at that terminal's tag-slot anchor moved one connection-grid step up, in the slot's
-  style and horizontal alignment, bottom-aligned; the tag-placement rules neither move it nor yield to it, and the
-  designation stays where it was. It is the strip's displayed tag on the page whatever `label_mode` is, so an
-  unnumbered strip's terminals read "-X??". Under `label_mode` FunctionText a terminal prints its function text in
-  its tag slot (an empty one falls back to the designation) and nothing in its function-text slot. `tag_print`
-  PerPage prints the tag at the strip's first segment on each page in (row, column, ID) order.
+- **Terminals drawn alone** (decision log ID-162, ID-1151). A terminal with its own representation (1X1) prints its
+  designation or function text (`label_mode`), never the full tag. On a page without a segment of its strip, the
+  strip tag is printed once, at the strip's first terminal representation on the page in the strip's own order
+  (designation in natural order, then terminal ID, then representation ID; as the strip's main representation is
+  taken) whose tag slot is shown (its `visible` override, else its arrangement, else the slot's own `visible`); a
+  strip without such a terminal on the page prints no tag there.
+  *As built (cycle 46; decision log ID-1151, FT-1026):* page 101 prints "1X1" at terminal "1" (a (row, column, ID)
+  order would pick the PE terminal, as all three share 101-D2). The tag is a page-level text
+  (`PageView::strip_tags`), at that terminal's tag-slot anchor moved one connection-grid step up in the text's own
+  frame (exactly on the page axes for a quarter turn; otherwise by the deterministic arc point of doc 09 §4.3 rule 4),
+  in the slot's style and horizontal alignment, bottom-aligned; the tag-placement rules neither move it nor yield to
+  it, and the designation stays where it was. It is the strip's displayed tag on the page whatever `label_mode` is,
+  so an unnumbered strip's terminals name it, with "?" for what is not derived: "-X101?" on page 101 under a strip
+  rule with `{page}` (FR-NUM-021, FR-NUM-032), "-X??" without a page token. Under `label_mode` FunctionText a
+  terminal prints its function text in its tag slot (an empty one falls back to the designation) and nothing in its
+  function-text slot. `tag_print` PerPage prints the tag at the strip's first segment on each page in (row, column,
+  ID) order.
 - **Page token.** The strip's `{page}` comes from its first segment in (page order, row, column, ID). A strip
   without a segment takes the page of its first placed terminal (FR-NUM-032): the lowest page by folio order, folio
   label and page ID, then the lowest designation in natural order, then the smallest ID (decision log ID-293; the

@@ -190,7 +190,7 @@ pub use structure::{
     ResolvedStructure, SlotSource, StructureOf, StructurePath,
 };
 pub use tag::{DeviceTag, DisplayedTag, MainFunction, MainRep, Tag, TagSource, rule_product};
-pub use text_frame::{TextFrame, text_frame};
+pub use text_frame::{TextFrame, slot_shown, tag_slot_shown, text_frame};
 pub use title_block::{
     TbValue, TitleBlock, TitleBlockValues, last_changed_in, last_released_revision, open_revision,
     recorded_changed_pages, revision_label_key,

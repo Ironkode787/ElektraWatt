@@ -125,7 +125,7 @@
 //! - **Stored symbol variants** (`Representation.variant`, contact-image variants) are not drawn yet: the
 //!   main graphics are used, and the geometry key's `extra` is `None`.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 use std::ops::Range;
 use std::sync::Arc;
 
@@ -377,8 +377,9 @@ pub struct PageView {
 }
 
 /// A strip's tag printed once on a page that shows its terminals without a segment (doc 08 §6.7, decision log
-/// ID-1151): at the tag-slot anchor of `rep`, the strip's first terminal representation on the page, moved one
-/// connection-grid step up in the text's own frame, in the slot's style and horizontal alignment, bottom-aligned.
+/// ID-1151): at the tag-slot anchor of `rep`, the strip's first terminal representation on the page whose tag slot is
+/// shown (`ew_derive::tag_slot_shown`), moved one connection-grid step up in the text's own frame, in the slot's style
+/// and horizontal alignment, bottom-aligned.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct StripTagView {
     /// The terminal representation it stands at.
@@ -984,12 +985,6 @@ impl Builder<'_> {
             let black_box = def.cps.is_empty() && rep.box_.is_some();
             // FT-867 (ID-1137): a half-turned black box places its texts as on the same box unturned.
             let frame = ew_derive::text_frame(rep, def);
-            let arrangement: Option<BTreeSet<u16>> = rep.arrangement.as_ref().and_then(|name| {
-                def.arrangements
-                    .iter()
-                    .find(|a| a.name == *name)
-                    .map(|a| a.slots.iter().copied().collect())
-            });
             let mut values: Vec<&SlotValue> = rv.slots.iter().collect();
             values.sort_by_key(|v| v.slot);
             for value in values {
@@ -1000,12 +995,7 @@ impl Builder<'_> {
                     continue;
                 }
                 let ov = rep.text_slots.iter().find(|o| o.slot == value.slot);
-                let visible = ov.and_then(|o| o.visible).unwrap_or_else(|| {
-                    arrangement
-                        .as_ref()
-                        .map_or(slot.visible, |a| a.contains(&value.slot))
-                });
-                if !visible {
+                if !ew_derive::slot_shown(rep, def, value.slot) {
                     continue;
                 }
                 let moved = ov.and_then(|o| o.pos).is_some();
@@ -1102,16 +1092,15 @@ impl Builder<'_> {
             };
             let Some(def) = &rv.symbol else { continue };
             let rep = &rv.rep;
-            let Some((i, slot)) = def
-                .text_slots
-                .iter()
-                .enumerate()
-                .find(|(_, s)| matches!(s.kind, SlotKind::Tag))
-            else {
+            // The caller picks a terminal whose tag slot is shown; a hidden one prints no strip tag either.
+            let Some(i) = ew_derive::tag_slot_shown(rep, def) else {
+                continue;
+            };
+            let Some(slot) = def.text_slots.get(usize::from(i)) else {
                 continue;
             };
             let frame = ew_derive::text_frame(rep, def);
-            let ov = rep.text_slots.iter().find(|o| usize::from(o.slot) == i);
+            let ov = rep.text_slots.iter().find(|o| o.slot == i);
             let pos = ov.and_then(|o| o.pos).unwrap_or(slot.pos);
             let rot = ov.and_then(|o| o.angle).unwrap_or(slot.rot);
             let angle = symbol::readable_angle(rot, frame.orient);
@@ -1932,22 +1921,12 @@ fn bottom_align(align: &Align) -> Align {
 }
 
 /// `step` towards the top of a text at `angle` (y down; a text at 90° reads bottom to top, so its top is to the
-/// left), on the exact page axes for a quarter turn.
+/// left): the point of the circle of radius `step` at `angle + 90°`, by `ew_dl::num::arc_point` (doc 09 §4.3 rule 4:
+/// no platform trigonometry, nanometre ties toward zero; a quarter turn lands exactly on the page axes).
 fn up_by(angle: Angle2, step: Nm) -> Pt2 {
-    match angle.normalized().0 {
-        0 => Pt2::new(Nm::ZERO, Nm(-step.0)),
-        90_000 => Pt2::new(Nm(-step.0), Nm::ZERO),
-        180_000 => Pt2::new(Nm::ZERO, step),
-        270_000 => Pt2::new(step, Nm::ZERO),
-        a => {
-            let r = f64::from(a) / 1000.0 * std::f64::consts::PI / 180.0;
-            let s = step.0 as f64;
-            Pt2::new(
-                Nm((-r.sin() * s).round() as i64),
-                Nm((-r.cos() * s).round() as i64),
-            )
-        }
-    }
+    // `normalized` is below 360°, so adding a quarter turn cannot overflow.
+    let up = Angle2(angle.normalized().0 + 90_000);
+    ew_dl::num::arc_point(Pt2::ORIGIN, step, step, up)
 }
 
 /// `align` mirrored left to right.
@@ -2063,4 +2042,31 @@ fn marker_point(pts: &[Pt2]) -> Option<(Pt2, bool)> {
         }
     }
     best.map(|(_, p, v)| (p, v))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// One step of the QET 10 px grid (7937500/3 nm), as `Grid::at(1)` gives it.
+    const STEP: Nm = Nm(2_645_833);
+
+    /// C46-p4#1: the strip tag's step up (ID-1151) is exact on the quarter turns and, at any other angle, the
+    /// deterministic `arc_point` rounded to the nanometre, ties toward zero (doc 09 §4.3 rule 4).
+    #[test]
+    fn up_by_is_exact_on_quarter_turns_and_deterministic_between() {
+        assert_eq!(up_by(Angle2(0), STEP), Pt2::new(Nm(0), Nm(-2_645_833)));
+        assert_eq!(up_by(Angle2(90_000), STEP), Pt2::new(Nm(-2_645_833), Nm(0)));
+        assert_eq!(up_by(Angle2(180_000), STEP), Pt2::new(Nm(0), Nm(2_645_833)));
+        assert_eq!(up_by(Angle2(270_000), STEP), Pt2::new(Nm(2_645_833), Nm(0)));
+        assert_eq!(up_by(Angle2(-90_000), STEP), Pt2::new(Nm(2_645_833), Nm(0)));
+        assert_eq!(
+            up_by(Angle2(45_000), STEP),
+            Pt2::new(Nm(-1_870_886), Nm(-1_870_886))
+        );
+        assert_eq!(
+            up_by(Angle2(30_000), STEP),
+            Pt2::new(Nm(-1_322_916), Nm(-2_291_359))
+        );
+    }
 }

@@ -63,8 +63,10 @@
 //!   empty text is not listed.
 //! - **Strip tags at terminals drawn alone** (doc 08 §6.7, ID-1151; [`page_strip_tags`]): on a page that shows
 //!   terminals of a strip and no segment of it, the strip's displayed tag for the page, once, at the strip's first
-//!   terminal representation on the page (designation in natural order, then IDs); the scene prints it one grid
-//!   step above that terminal's tag-slot anchor, so an unnumbered strip's terminals read "-X??".
+//!   terminal representation on the page (designation in natural order, then IDs) whose tag slot is shown
+//!   (`ew_derive::tag_slot_shown`; none shown, no tag); the scene prints it one connection-grid step above that
+//!   terminal's tag-slot anchor, so an unnumbered strip's terminals name it ("-X101?" on page 101 under a strip rule
+//!   with `{page}`, "-X??" without a page token).
 //! - **Pin texts** (WP-S1.21 D7, FT-707): a black box (`Representation.box` with CPs, a symbol without CPs) lists, per
 //!   box CP, the designation of that CP of its first function as stored and, when the function CP is bound to a PLC
 //!   channel, the channel's printed address (`PlcAddressText::pins` of its function) after one space
@@ -894,11 +896,13 @@ fn prints_segment_tag(q: &Q, device: Id<ew_schema::Device>, rep: &Representation
 
 /// `page_strip_tags(page)`: the strip tags of the terminals drawn alone on a drawn page (doc 08 §6.7, ID-1151), by
 /// representation ID. A strip with a terminal representation on the page and no segment there prints its displayed
-/// tag for the page once, at its first terminal representation on the page in the strip's own order (designation in
-/// natural order, then terminal ID, as `ew_derive::MainRep` takes a strip's terminal; then representation ID), so an
-/// unnumbered strip's terminals name it ("-X??").
+/// tag for the page once, at the first terminal representation on the page whose tag slot is shown
+/// (`ew_derive::tag_slot_shown`), in the strip's own order (designation in natural order, then terminal ID, as
+/// `ew_derive::MainRep` takes a strip's terminal; then representation ID); a strip without such a terminal on the page
+/// prints no tag there. So an unnumbered strip's terminals name it: its displayed tag for the page, with "?" for what
+/// is not derived ("-X101?" under a strip rule with `{page}`, "-X??" without a page token).
 pub fn page_strip_tags(q: &Q, page: Id<Page>) -> Vec<StripTagView> {
-    let (reps, functions, devices) = (q.reps(), q.functions(), q.devices());
+    let (reps, functions, devices, symbols) = (q.reps(), q.functions(), q.devices(), q.symbols());
     let mut segmented = std::collections::BTreeSet::new();
     let mut firsts = BTreeMap::new();
     for rid in q.idx().reps_by_page(page) {
@@ -922,6 +926,12 @@ pub fn page_strip_tags(q: &Q, page: Id<Page>) -> Vec<StripTagView> {
         let Some(t) = devices.get(d).and_then(|d| d.aspects.terminal.as_ref()) else {
             continue;
         };
+        let shown = symbols
+            .get(rep.symbol)
+            .and_then(|s| ew_derive::tag_slot_shown(rep, &s.item));
+        if shown.is_none() {
+            continue;
+        }
         let key = (t.designation.natural_key(), d, rid);
         let first = firsts.entry(t.strip).or_insert_with(|| key.clone());
         if key < *first {
