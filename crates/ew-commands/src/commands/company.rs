@@ -128,7 +128,7 @@ impl Command for SetCompany {
                 let reference = store_image(tx, Self::NAME, "/logo", ("the logo", "a company logo"), text)?;
                 if reference.format.is_raster() {
                     outcome.notices.push(format!(
-                        "the logo is a {} raster image: it prints rasterised (D-07); an SVG logo prints as vectors",
+                        "the logo is a {} raster image: it prints rasterised; an SVG logo prints as vectors",
                         reference.format.ext().to_uppercase()
                     ));
                 }

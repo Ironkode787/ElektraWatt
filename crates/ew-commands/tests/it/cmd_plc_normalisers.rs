@@ -280,7 +280,11 @@ fn a_preview_of_a_binding_is_re_run_after_another_channel_took_the_cp() {
     e.execute(&bind(channel_id(DEV_102F2, 2), Some((f, 5))))
         .expect("another channel takes the CP");
     let r = e.commit(preview).expect("commit");
-    assert!(has_notice(&r, "FR-PLC-005"), "{:?}", r.outcome.notices);
+    // FT-952 (ID-1108: "N1's and N3's PLC notices drop their UUIDs and requirement IDs and read as N2's do")
+    assert_eq!(
+        r.outcome.notices,
+        ["channel 2 of the same module was bound to this connection point and is now unbound"]
+    );
     assert_eq!(binding(&e, 1), Some(Endpoint::Cp(f, 5)));
     assert_eq!(
         binding(&e, 2),
@@ -428,8 +432,15 @@ fn n3_reports_missing_held_and_unexpandable_pins() {
     assert_eq!(binding(&e, 1), None, "Out4 is held");
     assert_eq!(binding(&e, 2), None, "no CP is named Out5");
     assert_eq!(binding(&e, 3), None, "no CP is named Out6");
-    assert!(has_notice(&r, "FR-PLC-005"), "{:?}", r.outcome.notices);
-    assert!(has_notice(&r, "is named Out5"), "{:?}", r.outcome.notices);
+    // FT-952 (ID-1108, as above)
+    assert_eq!(
+        r.outcome.notices,
+        [
+            "channel 1 of -102F2 stays unbound: another channel binds its pin Out4",
+            "channel 2 of -102F2 stays unbound: no CP of its main function is named Out5",
+            "channel 3 of -102F2 stays unbound: no CP of its main function is named Out6",
+        ]
+    );
 
     let mut e = engine(model_with(vec![pinned(BROKEN, json!("Out{n"))]));
     let r = make_module(&mut e, BROKEN);
@@ -490,8 +501,14 @@ fn n1_applies_the_new_kind_to_existing_channels() {
         8,
         "no channel is created or removed"
     );
-    assert_eq!(r.outcome.notices.len(), 8, "{:?}", r.outcome.notices);
-    assert!(has_notice(&r, "kind `do` → `di`"), "{:?}", r.outcome.notices);
+    // FT-952 (ID-1108: "N1's and N3's PLC notices drop their UUIDs and requirement IDs and read as N2's do")
+    let want: Vec<String> = (0..8)
+        .map(|n| {
+            let stays = if n == 3 { "bound to -102F2:GND" } else { "unbound" };
+            format!("channel {n} of module -102F2 changes from do to di after its part; it stays {stays}")
+        })
+        .collect();
+    assert_eq!(r.outcome.notices, want);
     e.undo(&ew_commands::Origin::Gui).expect("undo");
     assert_eq!(row(&e, channel_id(DEV_102F2, 3)).kind, ChannelKind::Do);
 }
@@ -577,14 +594,15 @@ fn a_part_change_removes_surplus_channels_only_through_the_preview() {
     ));
     let preview = e.preview(&set_part(Some(NARROW))).expect("preview");
     assert_eq!(removed(&preview), channel_keys(4..8));
-    let notices = &preview.outcome().notices;
-    assert_eq!(notices.len(), 4, "{notices:?}");
-    assert!(
-        notices
-            .iter()
-            .any(|n| n.starts_with("channel 5 ") && n.contains(&FN_102F2.to_string())),
-        "the bound channel names its binding: {notices:?}"
-    );
+    // FT-952 (ID-1108: "N1's and N3's PLC notices drop their UUIDs and requirement IDs and read as N2's do"): the
+    // bound channel names its binding in words
+    let want: Vec<String> = (4..8)
+        .map(|n| {
+            let was = if n == 5 { "bound to -102F2:GND" } else { "unbound" };
+            format!("channel {n} of module -102F2 is removed: beyond its part's 4 channels; it was {was}, no symbol")
+        })
+        .collect();
+    assert_eq!(preview.outcome().notices, want);
     assert_eq!(
         e.model().table::<Channel>().iter().count(),
         8,
@@ -640,8 +658,14 @@ fn surplus_left_by_fields_set_is_removed_by_the_bulk_command_without_parts() {
         8,
         "fields.set removes nothing"
     );
-    assert!(has_notice(&r, "4 surplus channel(s)"), "{:?}", r.outcome.notices);
-    assert!(has_notice(&r, "plc.set_module_part"), "{:?}", r.outcome.notices);
+    // FT-952 (ID-1108, as above)
+    assert_eq!(
+        r.outcome.notices,
+        [
+            "module -102F2 keeps 4 surplus channels beyond its part's 4: channel 4 (unbound), channel 5 (unbound), \
+             channel 6 (unbound), channel 7 (unbound); Set PLC module part removes them after its preview"
+        ]
+    );
     let preview = e.preview(&set_part(None)).expect("preview");
     assert_eq!(removed(&preview), channel_keys(4..8));
     assert_eq!(preview.diff().len(), 4, "only the surplus channels change");

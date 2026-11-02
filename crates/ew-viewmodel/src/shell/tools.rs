@@ -1146,6 +1146,8 @@ pub(super) fn command_failed(e: &CmdError, params: &Value) -> Outcome {
                 message,
             ],
         ),
+        // FT-909 (ID-1108): a refusal shows its reason, never the error's Display form ("<source>: <reason>")
+        CmdError::Rejected { reason, .. } => failed(key!("error-command"), &[reason]),
         other => failed(key!("error-command"), &[&other.to_string()]),
     }
 }

@@ -294,6 +294,32 @@ fn the_table_lives_for_the_run_across_projects() {
     shell.shutdown();
 }
 
+/// FT-909 (ID-1108: "a refusal text is words, with no JSON pointer, UUID, requirement ID or nanometres"): a command's
+/// refusal shows its reason alone, never the error's Display form with the command's name before it.
+#[test]
+fn a_refused_command_shows_its_reason_alone() {
+    let tmp = Tmp::new("alias-refused");
+    let (mut shell, dir) = shell(&tmp);
+    let lines = run(
+        &mut shell,
+        &[
+            ("file.open", json!({ "dir": dir })),
+            (
+                "command.run",
+                json!({"cmd": "page.surface_view.set", "params": {"page": {"ref": "folio:101"},
+                    "surface": "00000000-0000-0000-0000-0000000000ab", "datum_at": [0, 0]}}),
+            ),
+        ],
+    );
+    let failed = step(&lines[2]);
+    assert_eq!(failed["outcome"], "failed", "{failed}");
+    assert_eq!(
+        failed["message"],
+        "folio 101 is not a panel-layout page; a surface view goes on a panel-layout page"
+    );
+    shell.shutdown();
+}
+
 /// A `Failed` message of `command.run` that names a UUID prints its alias.
 #[test]
 fn a_failed_command_message_prints_the_alias() {

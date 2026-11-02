@@ -36,6 +36,7 @@ use ew_schema::{AddrSpec, Channel, ChannelKind, Device, Endpoint, Extra, Kind, L
 use crate::error::CmdError;
 use crate::normalise::Normaliser;
 use crate::tx::TxBuilder;
+use crate::words;
 
 /// Normaliser #3.
 #[derive(Clone, Copy, Debug, Default)]
@@ -96,16 +97,6 @@ pub(crate) fn kind_name(kind: &ChannelKind) -> String {
         Ok(serde_json::Value::String(s)) => s,
         Ok(other) => other.to_string(),
         Err(_) => format!("{kind:?}"),
-    }
-}
-
-/// A binding as a notice names it.
-pub(crate) fn binding_text(binding: Option<&Endpoint>) -> String {
-    match binding {
-        Some(Endpoint::Cp(f, idx)) => format!("bound to CP {idx} of function {f}"),
-        Some(Endpoint::Junction(j)) => format!("bound to junction {j}"),
-        Some(_) => "bound to an endpoint of a newer format".to_owned(),
-        None => "unbound".to_owned(),
     }
 }
 
@@ -204,9 +195,11 @@ impl Normaliser for ChannelInstantiation {
                     let id = v5::plc_channel_id(dev.id, number);
                     if let Some(other) = tx.get::<Channel>(id) {
                         return tx.reject(format!(
-                            "channel {number} of module {} would take the ID {id}, which channel {} of module \
-                             {} holds",
-                            dev.id, other.number, other.module
+                            "channel {number} of module {} cannot be made: channel {} of module {} already has its \
+                             identity; delete that channel first",
+                            words::device(tx, dev.id),
+                            other.number,
+                            words::device(tx, other.module)
                         ));
                     }
                     tx.insert(Channel {
@@ -232,22 +225,23 @@ impl Normaliser for ChannelInstantiation {
                     .values()
                     .filter(|c| c.number < spec.count && c.kind != spec.kind)
                 {
+                    // FT-952 (ID-1108): the module by its tag and the binding in words, as N2's notices name them
                     if let ChannelKind::Unknown(_) = c.kind {
                         tx.notice(format!(
-                            "channel {} of module {} keeps its kind of a newer format; its part gives `{}`",
+                            "channel {} of module {} keeps its kind of a newer format; its part gives {}",
                             c.number,
-                            dev.id,
+                            words::device(tx, dev.id),
                             kind_name(&spec.kind)
                         ));
                         continue;
                     }
                     tx.notice(format!(
-                        "channel {} of module {}: kind `{}` → `{}` from its part (it stays {})",
+                        "channel {} of module {} changes from {} to {} after its part; it stays {}",
                         c.number,
-                        dev.id,
+                        words::device(tx, dev.id),
                         kind_name(&c.kind),
                         kind_name(&spec.kind),
-                        binding_text(c.binding.as_ref())
+                        binding_words(tx, c.binding.as_ref())
                     ));
                     let kind = spec.kind.clone();
                     tx.update::<Channel>(c.id, |c| c.kind = kind)?;
@@ -259,13 +253,16 @@ impl Normaliser for ChannelInstantiation {
             if !surplus.is_empty() {
                 let list: Vec<String> = surplus
                     .iter()
-                    .map(|c| format!("{} ({})", c.number, binding_text(c.binding.as_ref())))
+                    .map(|c| format!("channel {} ({})", c.number, binding_words(tx, c.binding.as_ref())))
                     .collect();
+                let (n, noun) = match surplus.len() {
+                    1 => ("1".to_owned(), "channel"),
+                    n => (n.to_string(), "channels"),
+                };
                 tx.notice(format!(
-                    "module {} keeps {} surplus channel(s) beyond its part's {count}: {}; \
-                     `plc.set_module_part` removes them after its preview (FR-PLC-053)",
-                    dev.id,
-                    surplus.len(),
+                    "module {} keeps {n} surplus {noun} beyond its part's {count}: {}; Set PLC module part removes \
+                     them after its preview",
+                    words::device(tx, dev.id),
                     list.join(", ")
                 ));
             }

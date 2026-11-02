@@ -251,15 +251,13 @@ impl CreateReportBlock {
                 format!("`form` is {}, which none of `form_copies` is", self.form),
             ));
         }
-        for (copy, item) in copies {
+        for (copy, _) in copies {
             match tx.get::<LibCopy<FormDef>>(copy.id) {
                 Some(held) if held.sha256 == copy.sha256 => {}
-                Some(held) => {
-                    return tx.reject(format!(
-                        "the project holds another version of form {} (item {item}, {}); updating it is \"update \
-                         from library\" (FR-PRT-014)",
-                        copy.id, held.sha256
-                    ));
+                Some(_) => {
+                    return tx.reject(
+                        "the project holds another version of this form; take the new one with update from library",
+                    );
                 }
                 None => {
                     tx.insert(copy)?;

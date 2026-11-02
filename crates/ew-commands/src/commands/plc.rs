@@ -24,7 +24,7 @@ use crate::command::{Command, Outcome};
 use crate::commands::common::EndpointParam;
 use crate::error::CmdError;
 use crate::meta::CommandMeta;
-use crate::normalise::channel_instantiation::{binding_text, module_section};
+use crate::normalise::channel_instantiation::{binding_words, module_section};
 use crate::proxy::{IdentS, UuidS};
 use crate::tx::TxBuilder;
 
@@ -235,7 +235,7 @@ impl Command for BindChannel {
                 };
                 tx.update::<Channel>(other, |c| c.binding = None)?;
                 notices.push(format!(
-                    "{words} was bound to this connection point and is now unbound (FR-PLC-005)"
+                    "{words} was bound to this connection point and is now unbound"
                 ));
             }
         }
@@ -516,10 +516,12 @@ impl Command for SetModulePart {
                 .symbol
                 .as_ref()
                 .map_or_else(|| "no symbol".to_owned(), |s| format!("symbol {s}"));
+            // FT-952: the module by its tag and the binding in words, as N2's notices name them
             notices.push(format!(
-                "channel {} of module {m} is removed: beyond its part's {count} channels; it was {}, {symbol}",
+                "channel {} of module {} is removed: beyond its part's {count} channels; it was {}, {symbol}",
                 c.number,
-                binding_text(c.binding.as_ref()),
+                crate::words::device(tx, m),
+                binding_words(tx, c.binding.as_ref()),
             ));
             doomed.push((Kind::Channel, c.id.cast()));
         }

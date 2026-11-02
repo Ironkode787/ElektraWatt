@@ -189,9 +189,7 @@ impl Command for EmbedLibraryCopies {
             let kind = doc.kind().expect("an implemented kind");
             if tx.row(&(kind, l.id)).is_some() {
                 return tx.reject(format!(
-                    "{kind} copy {} (item {}) is embedded already; updating it to another version is \"update \
-                     from library\" (FR-PRT-014)",
-                    l.id, l.item
+                    "the project holds this {kind} already; take another version of it with update from library"
                 ));
             }
             docs.push((kind, doc));

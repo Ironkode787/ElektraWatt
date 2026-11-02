@@ -160,7 +160,7 @@ fn repin(
                 new.item.part_number.as_str()
             )),
             Some((pin, idx)) if !tx.channels_at_cp(main.id, idx).is_empty() => tx.notice(format!(
-                "channel {} of {module} is unbound: another channel binds its pin {pin} (FR-PLC-005)",
+                "channel {} of {module} is unbound: another channel binds its pin {pin}",
                 c.number
             )),
             Some((_, idx)) => {
@@ -238,7 +238,7 @@ impl Normaliser for ModulePinBinding {
             // whether some channel binds the pin: an index lookup with read-your-writes (FT-319)
             if !tx.channels_at_cp(main.id, idx).is_empty() {
                 tx.notice(format!(
-                    "channel {} of {} stays unbound: another channel binds its pin {pin} (FR-PLC-005)",
+                    "channel {} of {} stays unbound: another channel binds its pin {pin}",
                     c.number,
                     words::device(tx, c.module)
                 ));

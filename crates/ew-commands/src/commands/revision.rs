@@ -132,7 +132,7 @@ impl Command for CreateRevision {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/checker",
-                "the checker is the author's party; four eyes need another party (D-34, FR-REV-005)",
+                "the checker is the author's party; four eyes need another party: choose another checker",
             ));
         }
         let notes: Vec<PageNote> = self
@@ -250,7 +250,8 @@ fn refuse_label_out_of_order(
         return Err(CmdError::Prevented {
             rule: LABEL_ORDER_RULE.into(),
             finding: format!(
-                "the label {label} is not in the project's revision label format {} (FR-REV-002){next}",
+                "the label {label} is not in the project's revision label format {}; give a label in that \
+                 format{next}",
                 format.pattern()
             ),
             keys: Vec::new(),
@@ -267,15 +268,15 @@ fn refuse_label_out_of_order(
     };
     let finding = if opening {
         format!(
-            "the label {label} does not follow {} of revision {}: revision labels increase in natural order \
-             (FR-REV-002){next}",
-            r.label, r.id
+            "the label {label} does not follow revision {}: revision labels increase in natural order; give a \
+             later label{next}",
+            r.label
         )
     } else {
         format!(
-            "the label {label} does not precede {} of the open revision {}: revision labels increase in natural \
-             order, the open revision last (FR-REV-002)",
-            r.label, r.id
+            "the label {label} does not precede {}, the label of the open revision: revision labels increase in \
+             natural order, the open revision last; give an earlier label",
+            r.label
         )
     };
     Err(CmdError::Prevented {
@@ -321,7 +322,7 @@ impl Command for SetRevisionAuthor {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/role",
-                "the author is the checker's party; four eyes need another party (D-34, FR-REV-005)",
+                "the author is the checker's party; four eyes need another party: choose another author",
             ));
         }
         let role = self.role.clone();
@@ -377,8 +378,8 @@ impl Command for WithdrawRevision {
                 Self::NAME,
                 "/revision",
                 format!(
-                    "revision {} ({}) is {what}; only a released revision is withdrawn (FR-REV-009)",
-                    revision.label, revision.id
+                    "revision {} is {what}; only a released revision is withdrawn: choose a released one",
+                    revision.label
                 ),
             ));
         }
@@ -511,7 +512,7 @@ impl Command for ApproveRevision {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/checker",
-                "the checker is the author's party; four eyes need another party (D-34, FR-REV-005)",
+                "the checker is the author's party; four eyes need another party: choose another checker",
             ));
         }
         let schemes = crate::commands::SHIPPED_CHECK_SCHEMES;
@@ -784,8 +785,9 @@ pub(crate) fn refuse_closed_revision(
         command,
         path,
         format!(
-            "revision {} ({}) is not open; a released or withdrawn revision is immutable (FR-REV-009)",
-            revision.label, revision.id
+            "revision {} is not open; a released or withdrawn revision is immutable: make the change in the open \
+             revision",
+            revision.label
         ),
     ))
 }

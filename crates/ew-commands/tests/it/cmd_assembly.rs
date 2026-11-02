@@ -512,14 +512,11 @@ fn rebinding_a_held_cp_names_the_unbound_channel_in_the_notice() {
     let (c1, c3) = (channel_id(DEV_102F2, 1), channel_id(DEV_102F2, 3));
     e.execute(&bind(c1, cp_param(FN_102F2, 4))).expect("bind");
     let r = e.execute(&bind(c3, cp_param(FN_102F2, 4))).expect("rebind");
-    assert_eq!(r.outcome.notices.len(), 1);
-    assert!(
-        // FT-757: the channel in words (its number), no record ID.
-        r.outcome.notices[0].starts_with("channel 1 of the same module ")
-            && !r.outcome.notices[0].contains(&c1.to_string())
-            && r.outcome.notices[0].contains("FR-PLC-005"),
-        "{:?}",
-        r.outcome.notices
+    // FT-757: the channel in words (its number), no record ID; FT-952 (ID-1108: "N1's and N3's PLC notices drop their
+    // UUIDs and requirement IDs"): no requirement ID.
+    assert_eq!(
+        r.outcome.notices,
+        ["channel 1 of the same module was bound to this connection point and is now unbound"]
     );
     e.undo(&ew_commands::Origin::Gui).expect("undo");
     assert_eq!(
@@ -589,13 +586,15 @@ fn a_part_change_adds_channels_keeps_surplus_and_keeps_authored_data() {
         .expect("narrower part");
     assert!(created::<Channel>(&r, Kind::Channel).is_empty());
     assert_eq!(e.model().table::<Channel>().iter().count(), 16);
-    assert!(
-        r.outcome
-            .notices
-            .iter()
-            .any(|n| n.contains("12 surplus channel(s)")),
-        "{:?}",
-        r.outcome.notices
+    // FT-952 (ID-1108: "N1's and N3's PLC notices drop their UUIDs and requirement IDs and read as N2's do")
+    let list: Vec<String> = (4..16).map(|n| format!("channel {n} (unbound)")).collect();
+    assert_eq!(
+        r.outcome.notices,
+        [format!(
+            "module -102F2 keeps 12 surplus channels beyond its part's 4: {}; Set PLC module part removes them after \
+             its preview",
+            list.join(", ")
+        )]
     );
     // an edit that changes neither the aspect nor the parts does not trigger N1
     let r = e

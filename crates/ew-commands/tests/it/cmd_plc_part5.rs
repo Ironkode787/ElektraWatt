@@ -474,7 +474,7 @@ fn ft321_shifted_pins_re_pin_and_a_held_pin_unbinds() {
     assert_eq!(
         r.outcome.notices,
         [format!(
-            "channel 3 of {module} is unbound: another channel binds its pin 5 (FR-PLC-005)"
+            "channel 3 of {module} is unbound: another channel binds its pin 5"
         )]
     );
 }
@@ -553,7 +553,7 @@ fn n3_notices_name_the_records_in_words() {
     assert_eq!(
         r.outcome.notices,
         [
-            format!("channel 1 of {module} stays unbound: another channel binds its pin Out4 (FR-PLC-005)"),
+            format!("channel 1 of {module} stays unbound: another channel binds its pin Out4"),
             format!("channel 2 of {module} stays unbound: no CP of its main function is named Out5"),
             format!("channel 3 of {module} stays unbound: no CP of its main function is named Out6"),
         ]

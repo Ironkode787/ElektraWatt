@@ -791,8 +791,9 @@ fn ruling1_the_revision_refusals_read_in_words() {
     );
     assert_eq!(
         refusal,
-        "Set revision author: Role: the author is the checker's party; four eyes need another party (D-34, \
-         FR-REV-005)"
+        // FT-909 (ID-1108: "a refusal text is words, with no JSON pointer, UUID, requirement ID or nanometres")
+        "Set revision author: Role: the author is the checker's party; four eyes need another party: choose another \
+         author"
     );
     assert_eq!(
         form(&s).2.as_deref(),
