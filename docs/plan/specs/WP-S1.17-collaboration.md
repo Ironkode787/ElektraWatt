@@ -8,7 +8,7 @@ external change in the store and the session (1.1 pw, D20 to D23), part 7 the wi
 status (0.8 pw, D24, D25), part 8 `ew diff`, `ew git setup`, the post-merge integrity and AC-41 (0.9 pw, D26 to D29).
 The parts sum to **7.4 pw plus 0.3 pw reserve** against a 6.8 pw PERT (O1) · **Amended in cycle 42** (decision log ID-1029, the owner's format decision): part 3, D4 and D3's `unstable` marker move to the wave before the first release, beside WP-S6.08; the PERT is 6.9 pw; format parts route at `high`, a save, a journal, recovery or a merge at `xhigh` (§16) · **Date:** 2026-10-31 · **Work package:**
 [WP-S1.17](../02-work-packages.md#wp-s117-collaboration-external-change-migrations-integrity-merge-driver) ·
-**Decision log:** ID-1015; amended by ID-1029; part 1 ruled by ID-1115, its fixes by ID-1144; part 2 ruled by ID-1175; as built ID-1152, ID-1156 · **Part of:** ElektraWatt plan, specifications
+**Decision log:** ID-1015; amended by ID-1029; part 1 ruled by ID-1115, its fixes by ID-1144; part 2 ruled by ID-1175; `fmt --repair` ruled by ID-1185; as built ID-1152, ID-1156 · **Part of:** ElektraWatt plan, specifications
 
 **Purpose.** WP-S1.09 built the canonical format, the save protocol, the lock, the journal and recovery, and left to
 this package everything that happens when a project changes outside the running session or between builds: a pull
@@ -314,6 +314,63 @@ beside the project; WP-S1.22 D2, 0.1 pw) moved to a lane of its own after part 2
    xtask fuzz-smoke-table`; these `ci/` and `.github/` files are granted to part 2 for that.
 8. Golden A has no git files: EZ-1 adds them to a copy of Golden A that the test makes in a scratch folder; nothing new
    under `golden/`. Golden A is only read (`Session::open_read_only`), and packed into a scratch file.
+
+**Rulings for `ew fmt --repair` and EZ-5 (ID-1185, cycle 47; facts at `a2fc2d5d`, part 2 as built).** They amend §7's
+scope and EZ-5 where they say so; ruling 6 of ID-1175 moved them here. The lane is at `xhigh` (a save, ID-1029).
+1. **What a repair discards.** Only the lines that gave EW-CORE-005 at line level: a JSON syntax error or a line that
+   is not UTF-8 (`crates/ew-format/src/read.rs:575`, `:378-382`), as doc 05's quick fix says (§6.3). The other
+   quarantined lines (EW-CORE-006, -007, -009, -019) stay byte for byte and are reported. A file-level EW-CORE-005 (a
+   library document that is not UTF-8, `read.rs:734`) is not a line: it refuses the repair (ruling 3).
+2. **The store tells them apart.** `quarantine()` (`read.rs:524`) takes the finding's kind at its eight call sites,
+   and `KeptLine` (`read.rs:182-197`) carries it. The store keeps its kept entries as they are (`store.rs:649`) and
+   adds the set of (file, line key) of the line-level EW-CORE-005 lines. The kind lives in memory only; kept lines are
+   written back byte for byte, as today (`store.rs:2190-2191`).
+3. **Refusals come first,** before anything is written, each named, exit 2, in this order: an `.ewz` as the project
+   (ID-1175 ruling 5); a crashed session's journal, as `ew fmt` (`bin/ew/src/cli/project_files.rs:50-53`); any
+   finding that forces read-only (`crates/ew-format/src/finding.rs:123-131`) other than a line-level EW-CORE-005.
+   The reader counts those in a flag of its own, because `report.findings` is capped (`read.rs:270`,
+   `finding.rs:212-216`) and a dropped finding must still refuse. A store that `pack_store` refuses (no manifest, a
+   pending save) refuses too. With no refusal and no EW-CORE-005 line the repair writes nothing, prints "Nothing to
+   repair" and exits 0.
+4. **Opening for a repair.** `StoreOptions` (`store.rs:67-89`) gains a repair flag, which only the repair sets. With
+   it the store takes the writer's lock, and the integrity demotion (`store.rs:1113-1114`) does not demote when the
+   only forcing findings are line-level EW-CORE-005 lines. `open_editing` (`bin/ew/src/cli.rs:1833`) lets the repair
+   through.
+5. **The backup first.** `ew_store::ewz::pack_store` (`crates/ew-store/src/ewz.rs:410`) packs the generation's files
+   as they are on disk, broken lines included; its read-back checks the archive's structure and hashes, and a broken
+   JSON line inside a member must not refuse it (if it does, the lane stops). The archive is written beside the
+   project, in its parent folder, as `<project folder>.before-repair-g<generation>.ewz` (this ruling's name), while
+   the lock is held: to a temporary name, synced, then `Vfs::rename_noreplace` (`vfs.rs:77`, as the archive's writer
+   does) and the folder synced. A name that exists is read. If it holds this generation's pack (equal bytes), it is
+   reused and named in the report; otherwise the repair refuses (exit 2), naming the file and saying to move it. A
+   parent folder that cannot be written refuses with nothing changed.
+6. **Then one save.** A store method marks the files that hold the EW-CORE-005 lines for rewriting (`self.rewrite`,
+   `store.rs:656`) and saves with `Changes::Keys` of no keys, through the save protocol (generation g+1). A
+   rewritten file's records change form only (canonical), as `ew fmt`'s do; no record's content changes (WP-S1.22
+   D9). The EW-CORE-005 entries leave the kept lines only after the save succeeds (in `adopt`, `store.rs:2046`), so a
+   failed save loses nothing. Then the project is opened again. If it opens editable with no EW-CORE-005 finding the
+   repair exits 0. Otherwise it exits 2, naming the finding and the backup; the new generation stays (EW never
+   deletes and never rolls back by itself).
+7. **The CLI.** `ew fmt [<project>] --repair`: the flag on `FmtCli` (`bin/ew/src/cli/tree.rs:944-958`, help
+   `:116-126`, converted `:1780-1789`) and `FmtArgs` (`bin/ew/src/cli.rs:175-184`; built also at
+   `project_files.rs:514`). `--repair` with `--check` is refused by the parser before any open (exit 2). The repair
+   prints each discarded line from the store's own data (not `kept_lines`, whose list is capped): `file:line` and its
+   text cut at 80 characters with "…" (this ruling's choice), then the backup's path. `--json` gives a result type in
+   `crates/ew-api/src/cli_results.rs` (beside `FmtResult`), with its schema in `bin/ew/schemas/` and its `index.json`
+   entry, and one line goes to `docs/release-notes/unreleased.md`. The catalogue's `fmt` row and its exit texts
+   (`bin/ew/src/catalogue.rs:266-281`) and `bin/ew/api/cli.json` gain the flag.
+8. **EZ-5** as specified, and: an EW-CORE-005 line beside an EW-CORE-007 line keeps the 007 line byte for byte; an
+   EW-CORE-006 line refuses with nothing written; a forcing finding beyond the findings cap still refuses; a backup
+   name holding another file refuses, one holding this generation's pack is reused. Faults injected through the `Vfs`
+   at each write: during the backup (no backup left; the project unchanged); between the backup and the save (the
+   project unchanged; a rerun reuses the backup); inside the save before its commit point (`store.rs:1874`; the
+   project unchanged); after it (the next open completes generation g+1). A rerun after each fault succeeds. Golden A
+   is never the repaired project; tests repair a copy.
+9. **Files:** `crates/ew-format/src/{read.rs,finding.rs}`, `crates/ew-store/src/store.rs` (the options, the set, the
+   repair's save), `crates/ew-store/src/ewz.rs` only if the backup's writing needs it, `crates/ew-api/src/{fmt.rs,
+   cli_results.rs}` (a `repair` beside `format`, `fmt.rs:267`), `bin/ew/src/{cli.rs,catalogue.rs}`,
+   `bin/ew/src/cli/{tree.rs,project_files.rs}`, `bin/ew/api/cli.json`, `bin/ew/schemas/`, the release notes, tests;
+   doc 05 §6.3's EW-CORE-005 row as built (the backup's name). The window's banner stays part 7's.
 
 ## 8. Part 3: format migrations and the upgrade backup
 
