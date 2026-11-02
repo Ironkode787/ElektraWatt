@@ -331,7 +331,8 @@ fn the_row_exports_and_sql_write_workbooks() {
 
 /// TX-3 and D16: `--preset excel-nl`, `excel-en` and `rfc4180` on `ew export bom` are the committed files (`id` first,
 /// the quantities 1.71 and 3.17 written "1,71" and "3,17" in `excel-nl`); `--bom off --line-end lf` drops the
-/// byte-order mark and writes LF; the default is still `bom_parts.csv`.
+/// byte-order mark and writes LF; the default is still `bom_parts.csv`. The presets write CRLF, asserted here; the
+/// committed files hold LF, as the repository's `eol=lf` stores every text file.
 #[test]
 fn the_bom_presets_are_the_committed_files() {
     let t = Tmp::new();
@@ -340,8 +341,14 @@ fn the_bom_presets_are_the_committed_files() {
     for preset in ["excel-nl", "excel-en", "rfc4180"] {
         let o = t.ew(&args([&"export", &"bom", &p, &"--preset", &preset]));
         assert_eq!(o.status.code(), Some(0), "{preset}: {}", stderr(&o));
-        golden_file(&format!("csv/presets/bom_parts.{preset}.csv"), &o.stdout);
-        texts.push(stdout(&o));
+        let text = stdout(&o);
+        // Every line ends in CRLF; the committed file keeps LF (the repository's `eol=lf`).
+        assert_eq!(text.matches('\n').count(), text.matches("\r\n").count(), "{preset}");
+        golden_file(
+            &format!("csv/presets/bom_parts.{preset}.csv"),
+            text.replace("\r\n", "\n").as_bytes(),
+        );
+        texts.push(text);
     }
     let nl = &texts[0];
     assert!(nl.starts_with("\u{feff}id;Pos;Qty;Unit;Manufacturer;Part number;Description;Tags;Folios\r\n"));

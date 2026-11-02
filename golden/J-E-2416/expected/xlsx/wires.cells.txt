@@ -1,0 +1,73 @@
+[wire_list]
+id	No.	From	CP	To	CP	Potential	Colour	mm²	Source	Via	Wire part	Pages
+e:6d50c972-2f47-5fba-90e2-85cf584d6208	101.1	ext. J-E-206-L		1X1:1	2	L	BK	1.5 mm²	rule			101
+e:13c75a2c-b8f2-5b51-8e22-4cb6522139b0	101.2	ext. J-E-206-N		1X1:2	2	N	BU	1.5 mm²	rule			101
+e:5945bf6c-b3b1-5964-8651-59a4b48396d3	101.3	ext. J-E-206-PE		1X1:PE	2	PE	GNYE	1.5 mm²	rule			101
+e:ce52ac00-8816-55b3-8051-e0e770d7d128	101.4	S51	1	-101F1	1	L-S	BK	2.5 mm²	cdp/rule	chain on -101F1:1		101
+e:17b31bbc-26c9-56fb-b935-7c78c463d210	101.5	S51	3	-101F1	N	N-S	BU	2.5 mm²	cdp/rule	chain on -101F1:N#1		101
+e:628881aa-5eff-5358-b984-9fe14b3b1143	101.6	1X1:1	1	S51	2	L	BK	2.5 mm²	cdp/rule			101
+e:09ed5beb-149f-54af-a050-ce0a109109f5	101.7	1X1:2	1	S51	4	N	BU	2.5 mm²	cdp/rule			101
+e:aba94b57-3f5d-5766-b17f-bc94930b907c	101.8	1X1:PE	1	-XPE	PE	PE	GNYE	1.5 mm²	rule			101
+e:2b9b8f17-3589-573c-8dcf-da14efe662de	101.9	-101F1	1	F55	1	L-S	BK	1.5 mm²	rule	chain on -101F1:1		101
+e:301459db-110b-5e39-9efa-056c2d26b779	101.10	-101F1	N	F55	N	N-S	BU	1.5 mm²	rule	chain on -101F1:N#1		101
+e:8d8a21d8-e1ee-5d57-85ef-678a7c243b6f	101.11	-101F1	2	-102G1	L	L-1	BK	1.5 mm²	rule	IP L-1		101, 102
+e:167f6be5-e3bc-5b97-8b15-46b3057062b5	101.12	-101F1	N	-102G1	N	N-1	BU	1.5 mm²	rule	IP N-1		101, 102
+e:f40a98e3-3bd6-5d3f-85f7-004cda0ab94a	101.13	F55	N	T55	5	N-55	BU	1.5 mm²	rule	101-C13 star at F55:N#2		101
+e:b5382424-26cf-50ca-8d31-fbc88577dcb0	101.14	F55	2	E55	L	L-55	BK	1.5 mm²	rule	101-C11 star at F55:2		101
+e:5e9d92b4-924b-5ab1-92d1-ece031def28c	101.15	F55	N	S56	13	N-55	BU	1.5 mm²	rule	101-C13 star at F55:N#2		101
+e:c851008e-8c93-5281-a629-8c218446b4c7	101.16	F55	2	E56	X2	L-55	BK	1.5 mm²	rule	101-C11 star at F55:2		101
+e:2be33590-37ea-5dc5-bc5d-db368fcb59e5	101.17	T55	3	E55	N	N-55T	BU	1.5 mm²	rule			101
+e:6a3591e9-a9e1-5233-8f6f-5a98c971a52c	101.18	E55	PE	-X1032:1	b	PE	GNYE	1.5 mm²	rule	IP PE-1.1		101, 103
+e:48f5a362-b1d2-5683-a1f9-2c89858f1c44	101.19	S56	14	E56	X1	N-55S	BU	1.5 mm²	rule			101
+e:1c5963b7-6c34-53d6-8fa6-9d02d4629711	102.1	-102G1	+	-102F1	1	+24V	DBU	1.5 mm²	cdp/rule	102-C6 chain on -102F1:1		102
+e:8f31b054-1708-58c4-b180-661b2fce6646	102.2	-102G1	+	-102F1	1	+24V	DBU	1.5 mm²	cdp/rule	102-C6 chain on -102F1:1		102
+e:956c17d2-2c11-507a-a9e9-af1f6ff6c30e	102.3	-102G1	−	-102F2	GND	0V	WH	1.5 mm²	cdp/rule	102-D5 star at -102G1:−#1		102
+e:606e3348-8694-5d4c-9884-b3e9cd8ef715	102.4	-102G1	−	-102F2	GND	0V	WH	1.5 mm²	cdp/rule	102-D6 star at -102G1:−#2		102
+e:88a4ff09-37d3-512a-8694-badbc02f392b	102.5	-102G1	−	-X1032:2	a	0V ⇄ PE	GNYE	0.75 mm²	bond/rule	102-D5 star at -102G1:−#1; IP PE-0VDC		102, 103
+e:c299b814-18a9-5adf-8c12-e517469b6698	102.6	-102G1	PE	-X1032:2	b	PE	GNYE	1.5 mm²	rule	IP PE-1.2		102, 103
+e:569601c0-05ee-5180-936e-309cd7a1f7f7	102.7	-102G1	−	-X1031:11	a	0V	WH	0.75 mm²	rule	102-D6 star at -102G1:−#2; IP 0VDC		102, 103
+e:e2587c1e-aa94-5be2-a167-0d9c1ee18e5c	102.8	-102F1	2	-102F2	24VDC	+24V-F	DBU	1.5 mm²	cdp/rule	102-D7 chain on -102F1:2		102
+e:ca8251d3-ec7c-56ca-9fc5-4fa267b82f83	102.9	-102F1	2	-102F2	24VDC	+24V-F	DBU	1.5 mm²	cdp/rule	102-D7 chain on -102F1:2		102
+e:9eb2d865-fca4-59b1-87bf-c073d7190ceb	102.10	-102F2	Out1	-X1031:1	a	24VDC-1	DBU	0.75 mm²	rule	IP 24VDC-1		102, 103
+e:1693c77f-8f43-5a24-b8ef-35cf922ab345	102.11	-102F2	Out2	-X1031:5	a	24VDC-2	DBU	0.75 mm²	rule	IP 24VDC-2		102, 103
+e:9c27a320-6c72-5e4a-a04b-1a5734675763	102.12	-102F2	Out3	-X1031:7	a	24VDC-3	DBU	0.75 mm²	rule	IP 24VDC-3		102, 103
+e:322b2510-93f1-5eec-8b31-dc07b4b792fc	102.13	-102F2	Out4	-X1031:9	a	24VDC-4	DBU	0.75 mm²	rule	IP 24VDC-4		102, 103
+e:8b17127e-e954-5989-9fba-bca4d5fb9ded		-X1031:2	b	-201U1	4	24VDC-1	WH	0.75 mm²	rule/core	-106W1 WH; IP 24VDC-AIR2		103, 106
+e:93e01b82-85f2-5ef2-8bc3-ca19b1dfc82d		-X1031:1	b	-201U1	5	24VDC-1	BN	0.75 mm²	rule/core	-106W1 BN; IP 24VDC-AIR1		103, 106
+e:016ec639-fd1e-5dd6-be1e-1b3e42c2a613		-X1032:1	a	-202U1	3	PE	GNYE	0.75 mm²	rule/core	-106W2 GNYE; IP PE-AIR2		103, 106
+e:095fe4fe-3a8e-500a-b3b4-ff36eb66efb5		-X1031:4	b	-202U1	4	24VDC-1	WH	0.75 mm²	rule/core	-106W2 WH; IP 24VDC-AIR4		103, 106
+e:5f63d4f4-2629-57d5-af48-b1f87dba0530		-X1031:3	b	-202U1	5	24VDC-1	BN	0.75 mm²	rule/core	-106W2 BN; IP 24VDC-AIR3		103, 106
+e:0f73a423-eb4f-577f-8ecd-19bd81c42914		-X1032:3	a	-201U1	3	PE	GNYE	0.75 mm²	rule/core	-106W1 GNYE; IP PE-AIR1		103, 106
+e:703d8b7b-71a3-51f3-b45b-24541b4c1fea	103.1	-X1032:3	b	-201U1	FE	PE	GNYE	0.75 mm²	rule	IP PE-1.3		103, 106
+e:823b4ce4-4b9a-502e-a1b8-18d8924a00a5	103.2	-X1032:4	b	-202U1	FE	PE	GNYE	0.75 mm²	rule	IP PE-1.4		103, 106
+e:ce9fc0c5-e118-5b43-8562-435ea1785147		-X1031:12	b	-201U1	1	0V	BK	0.75 mm²	rule/core	-106W1 BK; IP 0VDC-AIR2		103, 106
+e:fbb0a7f9-2eac-5955-a3b4-ef6cd2f1cf08		-X1031:11	b	-201U1	2	0V	BU	0.75 mm²	rule/core	-106W1 BU; IP 0VDC-AIR1		103, 106
+e:298f0610-5663-597e-89db-359f2aeb9f46		-X1031:14	b	-202U1	1	0V	BK	0.75 mm²	rule/core	-106W2 BK; IP 0VDC-AIR4		103, 106
+e:4d1e83af-5d5b-5a18-9999-387ca6a5a046		-X1031:13	b	-202U1	2	0V	BU	0.75 mm²	rule/core	-106W2 BU; IP 0VDC-AIR3		103, 106
+	Bridges											
+e:d8221507-61e8-5141-a2cb-95300ef8a242/n:bridge/i:1	BR1	-X1031:1		-X1031:4		24VDC-1				plug-in bridge, terminals 1–4	TBD	
+e:d8221507-61e8-5141-a2cb-95300ef8a242/n:bridge/i:2	BR2	-X1031:5		-X1031:6		24VDC-2				plug-in bridge, terminals 5–6	TBD	
+e:d8221507-61e8-5141-a2cb-95300ef8a242/n:bridge/i:3	BR3	-X1031:7		-X1031:8		24VDC-3				plug-in bridge, terminals 7–8	TBD	
+e:d8221507-61e8-5141-a2cb-95300ef8a242/n:bridge/i:4	BR4	-X1031:9		-X1031:10		24VDC-4				plug-in bridge, terminals 9–10	TBD	
+e:d8221507-61e8-5141-a2cb-95300ef8a242/n:bridge/i:5	BR5	-X1031:11		-X1031:20		0V				plug-in bridge, terminals 11–20	TBD	
+e:6b0d3435-87a4-5d78-a424-c173167d4ac1/n:bridge/i:1	BR6	-X1032:1		-X1032:5		PE				plug-in bridge, terminals 1–5	TBD	
+[_ew]
+format	ew-table/1
+project	d76f5765-c456-5393-935c-4cec32a87b01
+table	block:9c936995-9fd6-5a42-9cac-271bd70c3e16
+rev	0
+generation	1
+locale	neutral
+ew	0.0.0
+column	no
+column	from
+column	from_cp
+column	to
+column	to_cp
+column	potential
+column	colour
+column	cross_section
+column	source
+column	via
+column	part
+column	pages

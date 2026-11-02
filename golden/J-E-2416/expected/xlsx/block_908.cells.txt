@@ -1,0 +1,78 @@
+[plc_overview]
+id	Module	Part	Address	Channel	Designation	Kind	Symbol	Function text	Process tag	Target	State	Page
+e:06f6d922-cc58-5e3a-b3b4-94cd732e1cc2/n:channel	-201U3	533361	Q0.0	0	0	DO					deactivated	
+e:e9316975-3229-5e2b-a6b6-2cf477b5501c/n:channel	-201U3	533361	Q0.1	1	1	DO		TA05-V-15	TA05-V-15	-201U3-Q1	used	203-D1
+e:831dc29b-8217-5b45-a5c1-47bba51fa6e8/n:channel	-201U3	533361	Q0.2	2	2	DO					deactivated	
+e:a9966042-8022-5c29-856f-a05d4bad3e06/n:channel	-201U3	533361	Q0.3	3	3	DO		TA05-V-33	TA05-V-33	-201U3-Q2	used	203-D3
+e:4901cf55-9222-58c4-a0ac-376f8e67153f/n:channel	-201U3	533361	Q0.4	4	4	DO					deactivated	
+e:d431dc50-4830-578f-a9db-34d1c815b277/n:channel	-201U3	533361	Q0.5	5	5	DO		TA05-V-18	TA05-V-18	-201U3-Q3	used	203-D5
+e:d0ecfdef-edce-5e04-90ca-b71421bfe240/n:channel	-201U3	533361	Q0.6	6	6	DO					deactivated	
+e:3ec77b33-65ec-5116-8345-63b7daf58070/n:channel	-201U3	533361	Q0.7	7	7	DO		TA05-V-17	TA05-V-17	-201U3-Q4	used	203-D7
+e:e981dc18-73df-5e5d-9875-a81dc7eecf93/n:channel	-201U4	533361	Q1.0	0	0	DO					deactivated	
+e:182e001d-ceb9-5ec6-8bb2-44aacdac32a3/n:channel	-201U4	533361	Q1.1	1	1	DO		TA05-V-36	TA05-V-36	-201U4-Q1	used	203-D9
+e:b98edc4e-7714-560a-8977-78509023df62/n:channel	-201U4	533361	Q1.2	2	2	DO					deactivated	
+e:8f081491-7a48-5575-bf53-b754c932a9e2/n:channel	-201U4	533361	Q1.3	3	3	DO		TA05-V-38	TA05-V-38	-201U4-Q2	used	203-D11
+e:c987aba4-10bc-5170-a68e-a1bbd67a7ee2/n:channel	-201U4	533361	Q1.4	4	4	DO					deactivated	
+e:0099b0fe-b103-54a8-a7cd-04a2c32b165b/n:channel	-201U4	533361	Q1.5	5	5	DO		TA05-V-16	TA05-V-16	-201U4-Q3	used	203-D13
+e:9952fc00-8345-54d1-9c39-900dae253776/n:channel	-201U4	533361	Q1.6	6	6	DO					deactivated	
+e:77117067-c421-5b18-9ff2-9478ab111348/n:channel	-201U4	533361	Q1.7	7	7	DO		TA05-V-37	TA05-V-37	-201U4-Q4	used	203-D15
+e:6445ae1d-3701-58a0-87f9-84f59107baf4/n:channel	-201U5	533361	Q2.0	0	0	DO					deactivated	
+e:92fe50f4-32f6-5337-a8d6-294b68aff771/n:channel	-201U5	533361	Q2.1	1	1	DO		Spare		-201U5-Q1	spare	204-D1
+e:135747c8-ea97-5c21-8e42-aa66c102ebdb/n:channel	-201U5	533361	Q2.2	2	2	DO					deactivated	
+e:39e18036-d6c3-5407-95a4-abeed12be937/n:channel	-201U5	533361	Q2.3	3	3	DO		Spare		-201U5-Q2	spare	204-D3
+e:91ddbf0a-8164-5f01-be30-5b19e3aa7d82/n:channel	-201U5	533361	Q2.4	4	4	DO					deactivated	
+e:043e2076-287a-5e5b-8cf6-088b1ce0f896/n:channel	-201U5	533361	Q2.5	5	5	DO		Spare		-201U5-Q3	spare	204-D5
+e:f85fe5da-4c84-531f-8ba3-a1d981b00244/n:channel	-201U5	533361	Q2.6	6	6	DO					deactivated	
+e:1ed14d45-6427-5622-a413-9cbc3bcdacff/n:channel	-201U5	533361	Q2.7	7	7	DO		Spare		-201U5-Q4	spare	204-D7
+e:d54c1998-4425-5483-b8af-4bc3d3c9080c/n:channel	-201U6	533361	Q3.0	0	0	DO					deactivated	
+e:51d1b177-2c91-5e4e-8fd3-3c60a954a99d/n:channel	-201U6	533361	Q3.1	1	1	DO		Spare		-201U6-Q1	spare	204-D9
+e:a6d5e4f1-e1fd-5251-877d-c12bbaf52be2/n:channel	-201U6	533361	Q3.2	2	2	DO					deactivated	
+e:edcbff1a-d229-533f-b9e8-a3c491788bb4/n:channel	-201U6	533361	Q3.3	3	3	DO		Spare		-201U6-Q2	spare	204-D11
+e:abf526ff-b5cc-5fa3-ae78-a282703a116f/n:channel	-201U6	533361	Q3.4	4	4	DO					deactivated	
+e:4fcb5f1c-e3bf-5835-8f3a-6c27e938ea28/n:channel	-201U6	533361	Q3.5	5	5	DO		Spare		-201U6-Q3	spare	204-D13
+e:d5d00eed-06b0-5e50-bfc3-27b037d276ab/n:channel	-201U6	533361	Q3.6	6	6	DO					deactivated	
+e:7486d276-1a53-5522-b17a-9d9eff11aad2/n:channel	-201U6	533361	Q3.7	7	7	DO		Spare		-201U6-Q4	spare	204-D15
+e:38c1dcec-a2a4-58f0-8169-fd7f74a7c50f/n:channel	-201U7	533361	Q4.0	0	0	DO					deactivated	
+e:91ccefa5-d375-5736-a3a5-d222d8cc94e8/n:channel	-201U7	533361	Q4.1	1	1	DO		Spare		-201U7-Q1	spare	205-D1
+e:e88dd5e8-2525-5bf1-baf6-fb9c0d2dbf06/n:channel	-201U7	533361	Q4.2	2	2	DO					deactivated	
+e:24a07f34-3b8e-51f4-8254-a0c9a6a19f9c/n:channel	-201U7	533361	Q4.3	3	3	DO		Spare		-201U7-Q2	spare	205-D3
+e:967cfb0d-8e84-52bc-94bb-7feca5dbe07c/n:channel	-201U7	533361	Q4.4	4	4	DO					deactivated	
+e:6cd3b929-3cb9-5d41-987c-2b4d47214200/n:channel	-201U7	533361	Q4.5	5	5	DO		Spare		-201U7-Q3	spare	205-D5
+e:7a16fb1e-190f-58bf-a3de-642ddbb52912/n:channel	-201U7	533361	Q4.6	6	6	DO					deactivated	
+e:d84fc0f8-bffa-5dd1-bf1e-80b9ec6a69e2/n:channel	-201U7	533361	Q4.7	7	7	DO		Spare		-201U7-Q4	spare	205-D7
+e:4375c6f0-b02e-5022-9a71-982a90008fa0/n:channel	-201U8	533361	Q5.0	0	0	DO					deactivated	
+e:c53e3833-23f0-551d-8723-3e23030ac02b/n:channel	-201U8	533361	Q5.1	1	1	DO		Spare		-201U8-Q1	spare	205-D9
+e:1ef806d4-a2ae-5cb3-a4e5-0d1f051773e1/n:channel	-201U8	533361	Q5.2	2	2	DO					deactivated	
+e:80460700-54c9-5653-835f-82481ba3f80f/n:channel	-201U8	533361	Q5.3	3	3	DO		Spare		-201U8-Q2	spare	205-D11
+e:faedddd3-7f98-51a1-81d4-14b5e4c886c1/n:channel	-201U8	533361	Q5.4	4	4	DO					deactivated	
+e:41427287-5223-589e-86c7-b8c5bbf52489/n:channel	-201U8	533361	Q5.5	5	5	DO		Spare		-201U8-Q3	spare	205-D13
+e:6807006a-8c43-5798-a711-620dd9f80e7a/n:channel	-201U8	533361	Q5.6	6	6	DO					deactivated	
+e:cc0bb85a-1c6f-52a3-b2e0-c75fa465240e/n:channel	-201U8	533361	Q5.7	7	7	DO		Spare		-201U8-Q4	spare	205-D15
+e:aba245ad-d944-5434-9cc5-d6c6fba1297e/n:channel	-202U2	533361	Q6.0	0	0	DO					deactivated	
+e:d44a9abf-d00e-53a4-836e-e4dd2e99baeb/n:channel	-202U2	533361	Q6.1	1	1	DO		Spare		-202U2-Q1	spare	206-D1
+e:cba3da35-fd89-5a92-ad3c-24efa5c289bf/n:channel	-202U2	533361	Q6.2	2	2	DO					deactivated	
+e:46129afc-a46e-56d3-8849-615d3323fb05/n:channel	-202U2	533361	Q6.3	3	3	DO		Spare		-202U2-Q2	spare	206-D3
+e:a95e6f63-0099-53d3-8404-5cdfd2808c61/n:channel	-202U2	533361	Q6.4	4	4	DO					deactivated	
+e:4ffa9ba3-5961-53fd-8225-b407a09a1ae8/n:channel	-202U2	533361	Q6.5	5	5	DO		Spare		-202U2-Q3	spare	206-D5
+e:f6b228ea-188f-54df-b3e0-9fba6952f38f/n:channel	-202U2	533361	Q6.6	6	6	DO					deactivated	
+e:b4db9d30-b8cb-5c62-8d72-eb4fd1216e18/n:channel	-202U2	533361	Q6.7	7	7	DO		Spare		-202U2-Q4	spare	206-D7
+[_ew]
+format	ew-table/1
+project	d76f5765-c456-5393-935c-4cec32a87b01
+table	block:18d6bd10-4543-5dba-a5bd-1f6e47e1a83c
+rev	0
+generation	1
+locale	neutral
+ew	0.0.0
+column	module
+column	part
+column	address
+column	channel
+column	designation
+column	kind
+column	symbol
+column	function
+column	process_tag
+column	target
+column	state
+column	page

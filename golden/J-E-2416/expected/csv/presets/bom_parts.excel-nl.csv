@@ -1,0 +1,28 @@
+﻿id;Pos;Qty;Unit;Manufacturer;Part number;Description;Tags;Folios
+e:22ea7428-f5dd-5283-a359-ed71da1f5efc/n:/n:component;1;1;pc;Festo;532216;PROFIBUS DP plug with terminating resistor;'-3X1;3
+e:c03b8a10-9652-5fad-af91-70124eab515d/n:/n:component;2;1;m;Siemens;6XV1830-0EH10;PROFIBUS FC standard cable;'-3W1;3
+e:dd99b569-e579-5d7d-ab5b-6bff4489afe3/n:/n:component;3;1;pc;Eaton;533356;Main switch, 2-pole;S51;101
+e:ace63996-f106-592d-ad67-dc27e86cf040/n:/n:component;4;2;pc;Phoenix Contact;UK 5 N;Feed-through terminal;1X1:1, 1X1:2;101
+e:b2f07bd3-e67c-5227-b0a5-efbd68dc4435/n:/n:component;5;1;pc;Phoenix Contact;USLKG 5;PE terminal;1X1:PE;101
+e:c93f4464-c792-5ba7-b55e-e62493e5730f/n:/n:component;6;1;pc;Schneider Electric;A9P52610;Miniature circuit breaker 1P+N;'-101F1;101
+e:f54fb48e-fc5d-5bd2-9d6a-67edb901dc3f/n:/n:component;7;1;pc;Siemens;5SY4204-7;Miniature circuit breaker 1P+N;F55;101
+e:5c675976-c163-5a61-96f8-3fdcd723cc6c/n:/n:component;8;1;pc;Rittal;SK 3110.000;Thermostat;T55;101
+e:8b25158e-79cb-559a-94e0-2b4146b6ea8f/n:/n:component;9;1;pc;Rittal;SK 3102.000;Enclosure heater;E55;101
+e:68075c2c-1eed-5753-8749-88e37b4496d5/n:/n:component;10;1;pc;Phoenix Contact;2904602;Power supply 1 AC / DC;'-102G1;102
+e:afadf5a1-d905-53a7-98ce-23f2db576353/n:/n:component;11;1;pc;Schneider Electric;A9F78116;Miniature circuit breaker 1P;'-102F1;102
+e:6b848305-0ec3-5ef1-9d84-7277eb168d2a/n:/n:component;12;1;pc;Murrelektronik;MICO 4.10;Electronic load distribution, 4 channels;'-102F2;102
+e:14908083-618d-55c0-b20d-4810fbc5a350/n:/n:component;13;20;pc;Phoenix Contact;PT 2.5-TWIN;Feed-through terminal, 3 connections;'-X1031:1 … 20;103
+e:4db9940a-862a-5af9-b16c-35cbba22b2fe/n:/n:component;14;5;pc;Phoenix Contact;PT 2.5-TWIN-PE;PE terminal, 3 connections;'-X1032:1 … 5;103
+e:cf355405-cad5-50b1-92a5-54cc7cac3c21/n:/n:component;15;2;pc;Festo;NEBU-G78W5-K-2-N-LE5;"Connecting cable 7/8"", 5-pin, open end";'-106W1, -106W2;106
+e:64bbfbce-de70-5e94-9338-ea2bdf74897a/n:/n:component;16;1;pc;Festo;195740;CPX-FB13 bus node, PROFIBUS DP;'-201U1;201
+e:f81b8f71-4bcf-57e8-a182-5bca37b74ac9/n:/n:component;17;2;pc;Festo;550208;CPX-M-GE-EV-S-7/8-5POL interlinking block with supply;'-201U1, -202U1;201, 202
+e:07a6c371-1881-5acc-9ac3-0d773f0ddc16/n:/n:component;18;1;pc;Festo;552286;VMPA-FB-EPLM-G pneumatic interface;'-201U2;201
+e:496e2ad0-fbe2-5733-bb7c-b950ab527a14/n:/n:component;19;7;pc;Festo;533361;VMPA1-FB-EMG-8 electronic module, 4 positions;'-201U3 … -201U8, -202U2;201, 202
+e:d2aa0a7e-ac57-5015-95b6-b3d81ee7168a/n:/n:component;20;2;pc;Festo;533354;VMPA1-FB-SP supply plate;'-201U9, -202U3;201, 202
+e:2b23f42b-b502-5f8b-aab9-6200eb76adcf/n:/n:component;21;28;pc;Festo;571334;5/2 monostable solenoid valve;'-201U3-Q1 … -202U2-Q4;203–206
+e:4bde6d18-b392-5878-8a30-c6a03e92b4b4/n:/n:component;22;1;pc;Schneider Electric;NSYPLA1074G;Enclosure, polyester;'-UC1;902
+e:17103e5d-7891-56cd-a43c-4dec6bc6f9ed/n:/n:component;23;1;pc;Schneider Electric;NSYPMM107;Mounting plate;'-UC1-plate;902
+e:3ca56721-1ede-51cd-b51c-c120ac11148a/n:/n:component;24;1,71;m;TBD;TBD;DIN rail TS 35;'-UC1;902
+e:215ab51c-0f37-54d7-bf95-19c352e2f4f6/n:/n:component;25;3,17;m;TBD;TBD;Wiring duct 40×60;'-UC1;902
+e:c236ee7d-ff98-5754-9e02-64260efbfabf/n:/n:component;26;4;pc;TBD;TBD;End bracket;'-X1031, -X1032, 1X1;902
+e:d838425d-a9e4-57fc-9107-7b66ce4a6ac6/n:/n:component;27;6;pc;TBD;TBD;Plug-in bridge;'-X1031, -X1032;103
