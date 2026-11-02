@@ -207,7 +207,9 @@ the blind reference, `docs-gen` (whose only committed output is `SUMMARY.md`), `
 the blind self-tests) in one order, and reports `symbols-qet10 --check` and the fuzz crate's `cargo check`. A step with
 `deps_of` packages fires on a change in one of them or in a workspace package they depend on directly (not
 transitively: the merge point's affected verify, which runs every bless test in compare mode for every package the
-change reaches, is the safety net). The triggered bless tests run as one nested `cargo nextest run --profile lane
+change reaches, is the safety net). With `--merge` the two self-tests also run when the change reaches `elektrawatt` or
+`ew` (transitively, by `affected`'s selection), so a product change that moves their recordings is re-recorded at its
+integration. The triggered bless tests run as one nested `cargo nextest run --profile lane
 --all-features -p … -E '<union>'`, and each changed file and each failure is reported under its step. `--check` writes
 nothing and fails when a step would rewrite a file (the merged-tip verify's mode; a lane's `lane-check` writes): it skips the
 self-tests, and without `--merge` also `check-brief` and the MSRV check, and says so. `--merge` adds the allow-list

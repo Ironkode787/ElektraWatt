@@ -17,6 +17,7 @@
 //! - **The safety net of the direct triggers.** A change two or more edges below a `deps_of` package does not
 //!   trigger its step here. The merge point's affected verify runs every bless test in compare mode for every
 //!   package the change reaches, so a derived file such a change alters fails there and is settled then.
+//!   With `--merge`, a step's `merge_reaches` packages also trigger it transitively, by `affected`'s selection.
 //! - **One nested nextest call.** The triggered bless steps (`BlessTest`, `BlessBin`) run together as one
 //!   `cargo nextest run --profile lane --all-features -p … -E '<union of their binaries and filters>'`, with every
 //!   triggered step's bless variable set (none with `--check`). A failure is named by its test binary's id and
@@ -152,6 +153,10 @@ pub(crate) struct Step {
     pub triggers: &'static [&'static str],
     /// Packages whose source and dependencies trigger it (see the module documentation).
     pub deps_of: &'static [&'static str],
+    /// Packages whose transitive reach triggers it with `--merge` only: a change whose `affected` selection holds
+    /// one of them (or selects the whole workspace). Merge-only because the merge point runs the self-tests on
+    /// every change that reaches the binaries they replay; a lane does not (FT-1101).
+    pub merge_reaches: &'static [&'static str],
     /// Globs of the files it may rewrite or remove.
     pub outputs: &'static [&'static str],
     /// The outputs it rewrites only in part (hand-written lines kept): not `merge=regen`. Read by
@@ -203,6 +208,7 @@ pub(crate) const STEPS: &[Step] = &[
         phase: Phase::Regen,
         triggers: &["**/*.rs"],
         deps_of: &[],
+        merge_reaches: &[],
         outputs: &["**/*.rs"],
         partial: &["**/*.rs"],
         reads: &[],
@@ -214,6 +220,7 @@ pub(crate) const STEPS: &[Step] = &[
         phase: Phase::Regen,
         triggers: &["**/Cargo.toml", "Cargo.lock", HAKARI_CONFIG],
         deps_of: &[],
+        merge_reaches: &[],
         outputs: &["**/Cargo.toml", "Cargo.lock"],
         partial: &["**/Cargo.toml", "Cargo.lock"],
         reads: &[],
@@ -224,6 +231,7 @@ pub(crate) const STEPS: &[Step] = &[
         phase: Phase::Regen,
         triggers: &[COMMAND_SCHEMAS],
         deps_of: &["ew-commands"],
+        merge_reaches: &[],
         outputs: &[COMMAND_SCHEMAS],
         partial: &[],
         reads: &[],
@@ -239,6 +247,7 @@ pub(crate) const STEPS: &[Step] = &[
         phase: Phase::Regen,
         triggers: &[CLI_SCHEMAS],
         deps_of: &["ew"],
+        merge_reaches: &[],
         outputs: &[CLI_SCHEMAS],
         partial: &[],
         // `registry_subcommands_print_the_committed_files` reads the command schemas that command-schemas rewrites.
@@ -255,6 +264,7 @@ pub(crate) const STEPS: &[Step] = &[
         phase: Phase::Regen,
         triggers: &[CATALOGUE],
         deps_of: &["ew-checks"],
+        merge_reaches: &[],
         outputs: &[CATALOGUE],
         partial: &[],
         reads: &[],
@@ -270,6 +280,7 @@ pub(crate) const STEPS: &[Step] = &[
         phase: Phase::Regen,
         triggers: &KEYMAPS,
         deps_of: &["ew-viewmodel"],
+        merge_reaches: &[],
         outputs: &KEYMAPS,
         partial: &[],
         reads: &[],
@@ -285,6 +296,7 @@ pub(crate) const STEPS: &[Step] = &[
         phase: Phase::Regen,
         triggers: &[BLIND_REFERENCE],
         deps_of: &["ew-viewmodel"],
+        merge_reaches: &[],
         outputs: &[BLIND_REFERENCE],
         partial: &[],
         reads: &[],
@@ -302,6 +314,7 @@ pub(crate) const STEPS: &[Step] = &[
         phase: Phase::Regen,
         triggers: &[CLI_SNAPSHOT],
         deps_of: &["ew"],
+        merge_reaches: &[],
         outputs: &[CLI_SNAPSHOT],
         partial: &[],
         reads: &[],
@@ -317,6 +330,7 @@ pub(crate) const STEPS: &[Step] = &[
         phase: Phase::Regen,
         triggers: &[API_V1_SNAPSHOT],
         deps_of: &["ew-sqlview"],
+        merge_reaches: &[],
         outputs: &[API_V1_SNAPSHOT],
         partial: &[],
         reads: &[],
@@ -332,6 +346,7 @@ pub(crate) const STEPS: &[Step] = &[
         phase: Phase::Regen,
         triggers: &[QUERY_SNAPSHOT],
         deps_of: &["ew-api"],
+        merge_reaches: &[],
         outputs: &[QUERY_SNAPSHOT],
         partial: &[],
         reads: &[],
@@ -365,6 +380,7 @@ pub(crate) const STEPS: &[Step] = &[
             ARCHITECTURE,
         ],
         deps_of: &[],
+        merge_reaches: &[],
         // The reference pages it writes are built, not committed (the root `.gitignore`): only `SUMMARY.md` and
         // doc 04's crate table are outputs.
         outputs: &[BOOK_SUMMARY, ARCHITECTURE],
@@ -377,6 +393,7 @@ pub(crate) const STEPS: &[Step] = &[
         phase: Phase::Regen,
         triggers: &["assets/icons/**", "xtask/src/icons.rs", ICONS],
         deps_of: &[],
+        merge_reaches: &[],
         outputs: &[ICONS],
         partial: &[],
         reads: &[],
@@ -393,6 +410,7 @@ pub(crate) const STEPS: &[Step] = &[
             CLIPPY_TOML,
         ],
         deps_of: &[],
+        merge_reaches: &[],
         outputs: &[CLIPPY_TOML],
         partial: &[],
         reads: &[],
@@ -409,6 +427,7 @@ pub(crate) const STEPS: &[Step] = &[
             "xtask/src/workflows.rs",
         ],
         deps_of: &[],
+        merge_reaches: &[],
         outputs: &[FUZZ_TABLE],
         partial: &[FUZZ_TABLE],
         reads: &[],
@@ -426,6 +445,7 @@ pub(crate) const STEPS: &[Step] = &[
             GOLDEN_LIST,
         ],
         deps_of: &[],
+        merge_reaches: &[],
         outputs: &[GOLDEN_LIST],
         partial: &[GOLDEN_LIST],
         reads: &[],
@@ -442,6 +462,7 @@ pub(crate) const STEPS: &[Step] = &[
             "xtask/src/blind/**",
         ],
         deps_of: &[],
+        merge_reaches: &["elektrawatt", "ew"],
         outputs: &[SELFTEST_RECORDING],
         partial: &[],
         reads: &[],
@@ -458,6 +479,7 @@ pub(crate) const STEPS: &[Step] = &[
             "xtask/src/blind/**",
         ],
         deps_of: &[],
+        merge_reaches: &["elektrawatt", "ew"],
         outputs: &[SELFTEST_VISUAL_RECORDING],
         partial: &[],
         reads: &[],
@@ -468,6 +490,7 @@ pub(crate) const STEPS: &[Step] = &[
         phase: Phase::CheckOnly,
         triggers: &["content/symbols/**", "content/fndefs/**", "xtask/src/symbols.rs"],
         deps_of: &[],
+        merge_reaches: &[],
         outputs: &[],
         partial: &[],
         reads: &[],
@@ -483,6 +506,7 @@ pub(crate) const STEPS: &[Step] = &[
             FUZZ_TABLE,
         ],
         deps_of: &[],
+        merge_reaches: &[],
         outputs: &[],
         partial: &[],
         reads: &[],
@@ -498,6 +522,7 @@ pub(crate) const STEPS: &[Step] = &[
             "ci/dep-rules.toml",
         ],
         deps_of: &[],
+        merge_reaches: &[],
         outputs: &["ci/disallowed-methods-allow.toml"],
         partial: &[],
         reads: &[],
@@ -508,6 +533,7 @@ pub(crate) const STEPS: &[Step] = &[
         phase: Phase::MergeOnly,
         triggers: &["**/*.rs", "**/Cargo.toml", "ci/ordered-collections-allow.toml"],
         deps_of: &[],
+        merge_reaches: &[],
         outputs: &["ci/ordered-collections-allow.toml"],
         partial: &[],
         reads: &[],
@@ -530,6 +556,7 @@ pub(crate) const STEPS: &[Step] = &[
             "tools/blind/tasks/brief-*/**",
         ],
         deps_of: &[],
+        merge_reaches: &[],
         outputs: &[],
         partial: &[],
         reads: &[],
@@ -541,6 +568,7 @@ pub(crate) const STEPS: &[Step] = &[
         // And a changed `rust-version` line, or a permissive crate's source or manifest (`msrv_triggered`).
         triggers: &["Cargo.lock"],
         deps_of: &[],
+        merge_reaches: &[],
         outputs: &[],
         partial: &[],
         reads: &[],
@@ -553,6 +581,7 @@ pub(crate) const STEPS: &[Step] = &[
         phase: Phase::MergeOnly,
         triggers: &["**"],
         deps_of: &[],
+        merge_reaches: &[],
         outputs: &[RECORDS, GLOBAL_PLAN],
         partial: &[GLOBAL_PLAN],
         reads: &[],
@@ -642,6 +671,20 @@ pub(crate) fn triggered(step: &Step, files: &BTreeSet<String>, members: Option<&
     files
         .iter()
         .any(|f| BUILD_WIDE.contains(&f.as_str()) || owner(f, members).is_some_and(|o| inputs.contains(o)))
+}
+
+/// Whether one of `files` reaches one of `step`'s `merge_reaches` packages (in `affected`'s selection, or a
+/// workspace-wide change). Asked with `--merge` only; `None` counts as reached.
+fn merge_reached(step: &Step, files: &BTreeSet<String>, members: Option<&Members>) -> bool {
+    if step.merge_reaches.is_empty() {
+        return false;
+    }
+    let Some(members) = members else {
+        return true;
+    };
+    let files: Vec<String> = files.iter().cloned().collect();
+    let selection = affected::select(&files, members);
+    !selection.workspace_wide.is_empty() || step.merge_reaches.iter().any(|p| selection.affected.contains(*p))
 }
 
 /// Whether a manifest's `rust-version` lines differ between its `old` and `new` text (an absent file is empty).
@@ -1715,7 +1758,10 @@ pub(crate) fn run(args: &[String], root: &Path) -> Result<bool> {
             }
             continue;
         }
-        if !a.all && (is_bless(step) || !step.deps_of.is_empty()) && members.is_none() {
+        if !a.all
+            && (is_bless(step) || !step.deps_of.is_empty() || (a.merge && !step.merge_reaches.is_empty()))
+            && members.is_none()
+        {
             members = Some(affected::members_of(&crate::metadata_all_features(root)?)?);
         }
         if is_bless(step) {
@@ -1730,6 +1776,7 @@ pub(crate) fn run(args: &[String], root: &Path) -> Result<bool> {
         }
         if !a.all {
             let fired = triggered(step, &files, members.as_ref())
+                || (a.merge && merge_reached(step, &files, members.as_ref()))
                 || (matches!(step.action, Action::Msrv)
                     && msrv_triggered(root, merge_base.as_deref(), &files)?);
             if !fired {
@@ -2003,16 +2050,63 @@ mod tests {
             );
         }
         // A self-test is not re-blessed by a product change alone; the visual one not by the text task.
-        assert!(!triggered(
-            step("selftest"),
-            &set(&["crates/ew-ui/src/lib.rs"]),
-            Some(&empty)
-        ));
+        for name in ["selftest", "selftest-visual"] {
+            assert!(
+                !triggered(step(name), &set(&["crates/ew-ui/src/lib.rs"]), Some(&empty)),
+                "{name}"
+            );
+        }
         assert!(!triggered(
             step("selftest-visual"),
             &set(&["tools/blind/tasks/selftest/agent.jsonl"]),
             Some(&empty)
         ));
+    }
+
+    /// With `--merge`, a self-test is triggered by a change that reaches `elektrawatt` or `ew` transitively, not by
+    /// one that reaches neither; without `--merge` (a lane) only its globs trigger it, and they do in both modes.
+    #[test]
+    fn a_self_test_follows_the_binaries_reach_with_merge_only() {
+        let member = |dir: &str, deps: &[&str]| Member {
+            dir: dir.to_owned(),
+            deps: deps.iter().map(|s| (*s).to_owned()).collect(),
+            ..Member::default()
+        };
+        let members: Members = [
+            ("ew-viewmodel", member("crates/ew-viewmodel", &[])),
+            ("ew-ui", member("crates/ew-ui", &["ew-viewmodel"])),
+            ("elektrawatt", member("bin/elektrawatt", &["ew-ui"])),
+            ("ew", member("bin/ew", &[])),
+            ("ew-lonely", member("crates/ew-lonely", &[])),
+        ]
+        .into_iter()
+        .map(|(n, m)| (n.to_owned(), m))
+        .collect();
+        // What `run` asks: the glob and `deps_of` triggers, and with `--merge` the binaries' reach.
+        let fires = |name: &str, file: &str, merge: bool| {
+            let s = step(name);
+            let files = set(&[file]);
+            triggered(s, &files, Some(&members)) || (merge && merge_reached(s, &files, Some(&members)))
+        };
+        for name in ["selftest", "selftest-visual"] {
+            assert!(fires(name, "crates/ew-viewmodel/src/lib.rs", true), "{name}");
+            assert!(!fires(name, "crates/ew-viewmodel/src/lib.rs", false), "{name}");
+            assert!(!fires(name, "crates/ew-lonely/src/lib.rs", true), "{name}");
+            for glob_case in ["tools/blind/reference/actions.txt", "tools/blind/HELP.md"] {
+                if name == "selftest-visual" && glob_case.ends_with("HELP.md") {
+                    continue;
+                }
+                assert!(fires(name, glob_case, true), "{name} by {glob_case}");
+                assert!(fires(name, glob_case, false), "{name} by {glob_case}");
+            }
+        }
+        // Every other step leaves the reach to `deps_of`.
+        for s in STEPS
+            .iter()
+            .filter(|s| !matches!(s.action, Action::Selftest { .. }))
+        {
+            assert!(s.merge_reaches.is_empty(), "{}", s.name);
+        }
     }
 
     /// A `deps_of` step is triggered by its package, by a package it depends on directly and by the build-wide
