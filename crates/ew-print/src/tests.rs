@@ -403,7 +403,7 @@ fn a_failing_portal_falls_back_to_lp_with_one_notice() {
     assert_eq!(chain.names(), ["portal", "lp", "viewer"]);
     let set = job("J-E-2416", None);
     let printed = chain.print(&set).unwrap();
-    assert_eq!(*portal_calls.lock().unwrap(), [set.clone()], "the portal got the set");
+    assert_eq!(*portal_calls.lock().unwrap(), std::slice::from_ref(&set), "the portal got the set");
     assert_eq!(printed.adapter, "lp");
     assert_eq!(
         printed.fallback,
