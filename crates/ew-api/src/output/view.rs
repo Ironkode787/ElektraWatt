@@ -788,6 +788,9 @@ fn slot_values(q: &Q, page: Id<Page>, rep: &Representation, def: &SymbolDef) -> 
                         .flatten()
                         .or_else(|| main_part(q, d))
                 })
+                // FT-1094 (ID-1184): the starter library's "Generic" names no maker, so the slot prints nothing for it
+                // (the chooser and the tables keep the word; `manufacturer_name` is unchanged).
+                .filter(|p| p.item.manufacturer.item.as_uuid() != ew_library::STARTER_GENERIC_MANUFACTURER)
                 .map(|p| manufacturer_name(q, &p.item.manufacturer)),
             SlotKind::PartNumber => device
                 .and_then(|d| main_part(q, d))

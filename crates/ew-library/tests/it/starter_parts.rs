@@ -833,6 +833,39 @@ fn shipped_parts() -> BTreeMap<String, Value> {
     out
 }
 
+/// FT-1094 (ID-1184): `STARTER_GENERIC_MANUFACTURER` is the item ID of the manufacturer "Generic" that every generic
+/// part names, as the shipped records have it; the sheet's maker slot leaves that item out by it.
+#[test]
+fn the_generic_manufacturer_constant_is_the_shipped_records_item() {
+    assert_eq!(
+        ew_library::STARTER_GENERIC_MANUFACTURER,
+        item_id("manufacturer", GENERIC)
+    );
+    assert_eq!(
+        ew_library::STARTER_GENERIC_MANUFACTURER.to_string(),
+        "f4260253-4a2b-5c11-a3d6-b01e2aa5efe6"
+    );
+    let shipped = std::fs::read_to_string(
+        Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../content/libraries/ew-starter-parts.ewlib/manufacturers.2.jsonl"),
+    )
+    .unwrap();
+    assert!(
+        shipped.contains(&format!(
+            "\"id\":\"{}\"",
+            ew_library::STARTER_GENERIC_MANUFACTURER
+        )),
+        "{shipped}"
+    );
+    for (number, part) in shipped_parts() {
+        assert_eq!(
+            part["manufacturer"]["item"].as_str(),
+            Some("f4260253-4a2b-5c11-a3d6-b01e2aa5efe6"),
+            "{number}"
+        );
+    }
+}
+
 /// D5: every part carries a description, the manufacturer "Generic", a part number of the fixed form, a function
 /// template with one main function on starter FnDefs whose CP indices exist, and contacts whose CPs are in its CP
 /// pattern; no order data. The five layout parts of WP-S4.02 D14 have no function template and are skipped here
