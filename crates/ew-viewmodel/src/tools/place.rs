@@ -632,6 +632,16 @@ impl PlaceTool {
         }
     }
 
+    /// The designation of a `new_terminal` target, as the catalogue proposes it after an Undo or a Redo (FT-1083,
+    /// ID-1181): the tool stops asking for one.
+    pub fn set_designation(&mut self, next: String) {
+        if let PlaceTarget::Terminal { designation, .. } = &mut self.target {
+            *designation = next;
+            self.ask = false;
+            self.tag = None;
+        }
+    }
+
     /// Whether a `new_terminal` target waits for the next designation (§7.2: after a commit with a designation that
     /// is not decimal digits the next commit asks again; `text.input` or a new `place.pick` gives it).
     pub fn needs_designation(&self) -> bool {

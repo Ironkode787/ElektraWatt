@@ -142,6 +142,9 @@ pub(crate) struct ToolHost {
     // WP-S2.05 part 3
     /// The paste tool committed: at the end of the dispatch Select takes over with the pasted representations selected.
     pub pasted: bool,
+    /// An Undo or a Redo ran: at the end of the dispatch a terminal placement takes its strip's next designation from
+    /// the catalogue again (FT-1083, ID-1181).
+    pub reread_designation: bool,
     /// The last committed interruption point's name and direction (WP-S2.04 part 3, §9.1), kept across tools.
     pub ip_memory: IpMemory,
     /// `tool.black_box` is choosing: a row that is no black box is refused.
@@ -245,6 +248,7 @@ impl ToolHost {
             notice_at: None,
             notice_basis: None,
             pasted: false,
+            reread_designation: false,
             ip_memory: IpMemory::default(),
             black_box_pick: false,
             grips: None,

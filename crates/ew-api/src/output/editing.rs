@@ -658,19 +658,22 @@ impl Session {
 /// Every terminal strip of the project with its tag as `page` prints it and the next designation and sequence
 /// number (FT-421), by tag, ties by ID.
 fn strips_of(q: &Q, page: Id<Page>) -> Vec<CatalogueStrip> {
-    // The largest decimal designation (with the width of its widest spelling, so `01` is followed by `02`) and the
-    // largest sequence number of each strip's terminals.
-    let mut used: BTreeMap<Id<Device>, (u64, usize, u32)> = BTreeMap::new();
+    // The decimal designations in use (FT-1083, ID-1181: the next one is the lowest number free, so a gap an Undo
+    // left is filled), the width of the widest zero-padded spelling (so `01` is followed by `02`) and the largest
+    // sequence number of each strip's terminals.
+    let mut used: BTreeMap<Id<Device>, (BTreeSet<u64>, usize, u32)> = BTreeMap::new();
     for (_, d) in q.devices().iter() {
         if let Some(t) = &d.aspects.terminal {
-            let e = used.entry(t.strip).or_insert((0, 0, 0));
+            let e = used.entry(t.strip).or_default();
             let designation = t.designation.as_str();
             if !designation.is_empty()
                 && designation.bytes().all(|b| b.is_ascii_digit())
                 && let Ok(n) = designation.parse::<u64>()
-                && (n > e.0 || (n == e.0 && designation.len() > e.1))
             {
-                (e.0, e.1) = (n, designation.len());
+                e.0.insert(n);
+                if designation.len() > 1 && designation.starts_with('0') {
+                    e.1 = e.1.max(designation.len());
+                }
             }
             e.2 = e.2.max(t.seq);
         }
@@ -680,7 +683,12 @@ fn strips_of(q: &Q, page: Id<Page>) -> Vec<CatalogueStrip> {
         .iter()
         .filter(|(_, d)| d.aspects.strip.is_some())
         .map(|(id, _)| {
-            let (designation, width, seq) = used.get(&id).copied().unwrap_or((0, 0, 0));
+            let (taken, width, seq) = used.get(&id).map_or((None, 0, 0), |(t, w, s)| (Some(t), *w, *s));
+            // The lowest number from 1 not in use: at most one step more than the strip has numbers.
+            let mut next: u64 = 1;
+            while next < u64::MAX && taken.is_some_and(|t| t.contains(&next)) {
+                next += 1;
+            }
             // The tag as the page prints it; a strip the page shows nothing of yet prints its short tag.
             let shown = q.get::<DisplayedTag>((id, page)).as_ref().clone();
             let tag = if shown.is_empty() {
@@ -695,7 +703,7 @@ fn strips_of(q: &Q, page: Id<Page>) -> Vec<CatalogueStrip> {
             CatalogueStrip {
                 id: id.as_uuid(),
                 tag,
-                next_designation: format!("{:0width$}", designation.saturating_add(1), width = width),
+                next_designation: format!("{next:0width$}"),
                 next_seq: seq.saturating_add(1),
             }
         })

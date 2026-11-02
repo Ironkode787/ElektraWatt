@@ -1836,6 +1836,8 @@ impl ShellModel {
                 self.tools.overlay = crate::tools::Overlay::default();
                 self.tools.preview = None;
                 self.crossed_step(crossed);
+                // FT-1083: a terminal placement takes the strip's next designation again.
+                self.tools.reread_designation = true;
                 Outcome::Done
             }
             Err(CmdError::Exposure { .. }) => Outcome::Refused {
@@ -1871,6 +1873,8 @@ impl ShellModel {
                 self.tools.overlay = crate::tools::Overlay::default();
                 self.tools.preview = None;
                 self.crossed_step(crossed);
+                // FT-1083: a terminal placement takes the strip's next designation again.
+                self.tools.reread_designation = true;
                 Outcome::Done
             }
             Err(CmdError::Exposure { .. }) => Outcome::Refused {

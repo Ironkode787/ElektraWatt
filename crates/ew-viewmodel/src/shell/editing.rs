@@ -1573,6 +1573,8 @@ impl ShellModel {
     /// revision, so a dispatch that changes nothing reads nothing), because a new strip prints its tag only once its
     /// first terminal numbers it.
     fn refresh_strip_tag(&mut self) {
+        // FT-1083 (ID-1181): after an Undo or a Redo the designation is the catalogue's again (the lowest free).
+        let reread = std::mem::take(&mut self.tools.reread_designation);
         let strip = self
             .with_tool(|t, _| {
                 t.as_any_mut()
@@ -1585,17 +1587,20 @@ impl ShellModel {
             .flatten();
         let Some(strip) = strip else { return };
         let Some(cat) = self.catalogue() else { return };
-        let Some(tag) = cat
+        let Some((tag, next)) = cat
             .strips
             .iter()
             .find(|st| st.id.to_string() == strip)
-            .map(|st| st.tag.clone())
+            .map(|st| (st.tag.clone(), st.next_designation.clone()))
         else {
             return;
         };
         let _ = self.with_tool(|t, _| {
             if let Some(p) = t.as_any_mut().and_then(|a| a.downcast_mut::<PlaceTool>()) {
                 p.set_strip_tag(tag);
+                if reread {
+                    p.set_designation(next);
+                }
             }
         });
     }

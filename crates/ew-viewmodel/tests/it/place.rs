@@ -871,6 +871,38 @@ fn a_terminal_symbol_asks_for_its_strip_and_proposes_the_next_designation() {
     assert!(line.contains(&format!("strip \"{numbered}:2\"")), "{line}");
 }
 
+/// FT-1083 (ID-1181): after an Undo of a placed terminal the Place tool proposes the number the Undo freed, not the
+/// one after it, and after a Redo the number after the one redone; a strip keeps no gap.
+#[test]
+fn after_an_undo_the_place_tool_proposes_the_number_it_freed() {
+    let tmp = Tmp::new("terminal-undo");
+    let mut s = shell(&tmp, "103");
+    done(
+        &mut s,
+        "place.pick",
+        json!({"symbol": "ew.iec.terminal@qet10", "strip": "-X1032"}),
+    );
+    let (a, b) = (
+        sheet(&s, grid_point(&s, (82, 40))),
+        sheet(&s, grid_point(&s, (86, 40))),
+    );
+    click(&mut s, a, json!({}));
+    click(&mut s, b, json!({}));
+    done(&mut s, "canvas.pointer", at(a, json!({})));
+    assert!(describe_line(&s, "canvas ghost place").contains("strip \"-X1032:8\""));
+    done(&mut s, "edit.undo", json!({}));
+    assert_eq!(s.tool().name(), "place");
+    done(&mut s, "canvas.pointer", at(b, json!({})));
+    assert_eq!(
+        describe_line(&s, "canvas ghost place"),
+        "canvas ghost place symbol \"ew.iec.terminal@qet10\" variant \"A\" rep \"multi_line\" at 227.542 105.833 mm \
+         target terminal strip \"-X1032:7\""
+    );
+    done(&mut s, "edit.redo", json!({}));
+    done(&mut s, "canvas.pointer", at(a, json!({})));
+    assert!(describe_line(&s, "canvas ghost place").contains("strip \"-X1032:8\""));
+}
+
 /// Cycle 36 (play-test rv-txt-2): a terminal placed from a part whose template names no clamps (EW-GEN-TRM-1) is named
 /// by its own tag, the strip's and its designation (`-X1032:7`), in the page text and the placement's toast, not by the
 /// strip's tag alone; a clamped terminal of Golden A keeps `-X1031:<n>`.

@@ -152,3 +152,31 @@ fn the_next_designation_keeps_the_width_of_a_padded_one() {
     let x1032 = cat.strips.iter().find(|r| r.tag == "-X1032").unwrap();
     assert_eq!(x1032.next_designation, "06");
 }
+
+/// FT-1083 (ID-1181): the next designation is the lowest number free in the strip, not the largest plus one: with
+/// terminals 1 and 3 (2 renamed PE) the catalogue proposes 2; once 2 is back it proposes 6 again.
+#[test]
+fn the_next_designation_is_the_lowest_number_free() {
+    let mut s = golden_session();
+    let terminal = s.resolve_reference("tag:-X1032:2").expect("-X1032:2");
+    let designate = |s: &mut Session, d: &str| {
+        s.execute(&AnyCommand {
+            name: "terminal.designate".into(),
+            params: json!({"assignments": [{"terminal": terminal.to_string(), "designation": d}]}),
+        })
+        .unwrap();
+    };
+    let next = |s: &Session| {
+        let cat = s.place_catalogue("103").unwrap();
+        cat.strips
+            .iter()
+            .find(|r| r.tag == "-X1032")
+            .unwrap()
+            .next_designation
+            .clone()
+    };
+    designate(&mut s, "PE");
+    assert_eq!(next(&s), "2");
+    designate(&mut s, "2");
+    assert_eq!(next(&s), "6");
+}
