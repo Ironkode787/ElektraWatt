@@ -51,6 +51,11 @@
       "schema": "ew.export-svg-result-1.schema.json"
     },
     {
+      "command": "export table",
+      "name": "ew.export-table-result/1",
+      "schema": "ew.export-table-result-1.schema.json"
+    },
+    {
       "command": "export terminals",
       "name": "ew.export-terminals-result/1",
       "schema": "ew.export-terminals-result-1.schema.json"
@@ -84,6 +89,11 @@
       "command": "import qet",
       "name": "ew.import-qet-result/1",
       "schema": "ew.import-qet-result-1.schema.json"
+    },
+    {
+      "command": "import table",
+      "name": "ew.import-table-result/1",
+      "schema": "ew.import-table-result-1.schema.json"
     },
     {
       "command": "lib create",

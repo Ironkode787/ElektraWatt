@@ -475,6 +475,63 @@
       "stability": "preview"
     },
     {
+      "path": "export table",
+      "flags": [
+        {
+          "name": "--project",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--strip",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--format",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--preset",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--bom",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--line-end",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--out",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--json",
+          "value": false,
+          "repeatable": false
+        }
+      ],
+      "exits": [
+        {
+          "code": 0,
+          "meaning": "success"
+        },
+        {
+          "code": 2,
+          "meaning": "usage, open, I/O and writer errors, an unknown navigator or strip"
+        }
+      ],
+      "result": "ew.export-table-result/1",
+      "stability": "preview"
+    },
+    {
       "path": "export terminals",
       "flags": [
         {
@@ -788,6 +845,53 @@
         }
       ],
       "result": "ew.import-qet-result/1",
+      "stability": "preview"
+    },
+    {
+      "path": "import table",
+      "flags": [
+        {
+          "name": "--project",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--table",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--preset",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--take-file",
+          "value": false,
+          "repeatable": false
+        },
+        {
+          "name": "--apply",
+          "value": false,
+          "repeatable": false
+        },
+        {
+          "name": "--json",
+          "value": false,
+          "repeatable": false
+        }
+      ],
+      "exits": [
+        {
+          "code": 0,
+          "meaning": "previewed, and with `--apply` applied and saved"
+        },
+        {
+          "code": 2,
+          "meaning": "usage, open, read and save errors, a file without a table or of another project"
+        }
+      ],
+      "result": "ew.import-table-result/1",
       "stability": "preview"
     },
     {
