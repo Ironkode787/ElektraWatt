@@ -579,7 +579,10 @@ impl App {
                 .shell
                 .properties()
                 .error()
-                .is_some_and(|(row, shown)| shown == message && self.properties.drew_row(row));
+                // The pane shows the message with a capital first (FT-1075), so it is that form that is the same.
+                .is_some_and(|(row, shown)| {
+                    shown == strings::sentence_start(&message) && self.properties.drew_row(row)
+                });
         if under_row {
             return;
         }

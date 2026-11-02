@@ -13,7 +13,8 @@
 //! module keeps the entries. Nothing here reads a clock, a path or a `Session`.
 
 use crate::key;
-use crate::strings::Key;
+use crate::strings::{self, Key};
+use std::borrow::Cow;
 use std::collections::VecDeque;
 use std::path::PathBuf;
 
@@ -123,11 +124,12 @@ impl Notification {
 
     /// The title and the optional line of the toast (doc 16a §6.10): a toned result's text splits at its first `": "`
     /// into the title ("Check") and the line of counts ("4 errors, 25 warnings"); any other text is the title alone.
-    pub fn lines(&self) -> (&str, Option<&str>) {
+    /// The line stands on its own, so it starts with a capital (FT-1075, ID-1182: [`strings::sentence_start`]).
+    pub fn lines(&self) -> (&str, Option<Cow<'_, str>>) {
         if self.tone.is_some()
             && let Some((title, line)) = self.text.split_once(": ")
         {
-            return (title, Some(line));
+            return (title, Some(strings::sentence_start(line)));
         }
         (&self.text, None)
     }
@@ -321,11 +323,49 @@ mod tests {
         // A toned result splits into the title and the line of counts; any other text is the title alone.
         assert_eq!(
             log.get(checked).map(Notification::lines),
-            Some(("Check", Some("1 error, 0 warnings")))
+            Some(("Check", Some("1 error, 0 warnings".into())))
         );
         assert_eq!(
             log.get(plain).map(Notification::lines),
             Some(("Placed -K1", None))
+        );
+    }
+
+    /// FT-1075 (ID-1182): the line under a toast's title starts with a capital where it started lowercase; the text
+    /// itself, a digit or a designation first, stays as it is.
+    #[test]
+    fn a_toasts_line_starts_with_a_capital() {
+        let mut log = NotificationLog::default();
+        let mut line = |text: &str| {
+            let s = log.push_toned(text.into(), "edit", None, Some(NoteTone::Warning));
+            log.get(s)
+                .map(|n| (n.lines().0.to_owned(), n.lines().1.map(Cow::into_owned)))
+        };
+        assert_eq!(
+            line("Not placed: the interruption point W464 is already here; place it on a pin"),
+            Some((
+                "Not placed".to_owned(),
+                Some("The interruption point W464 is already here; place it on a pin".to_owned())
+            ))
+        );
+        assert_eq!(
+            line("Place symbol: draw on a schematic page"),
+            Some((
+                "Place symbol".to_owned(),
+                Some("Draw on a schematic page".to_owned())
+            ))
+        );
+        assert_eq!(
+            line("Check: 4 errors, 25 warnings"),
+            Some(("Check".to_owned(), Some("4 errors, 25 warnings".to_owned())))
+        );
+        assert_eq!(
+            line("Bound: -K1 is on the card"),
+            Some(("Bound".to_owned(), Some("-K1 is on the card".to_owned())))
+        );
+        assert_eq!(
+            log.get(1).map(|n| n.text.as_str()),
+            Some("Not placed: the interruption point W464 is already here; place it on a pin")
         );
     }
 

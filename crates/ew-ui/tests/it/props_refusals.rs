@@ -20,12 +20,12 @@ use support::{Scripted, Tmp, harness, settle, wait_for_page};
 /// The star row of an interruption point's sheet.
 const STAR: &str = "function/kind.ip.star_source";
 
-/// The refusal of a star on the external point "IP".
+/// The refusal of a star on the external point "IP", as the pane shows it: a capital first (FT-1075).
 const EXTERNAL: &str =
-    "interruption point IP: an external point never pairs, so it takes no star; clear the star";
+    "Interruption point IP: an external point never pairs, so it takes no star; clear the star";
 
-/// The refusal of a star on the target point "W464".
-const TARGET: &str = "interruption point W464: a star source is a source point; set the direction to source, or clear the star";
+/// The refusal of a star on the target point "W464", as the pane shows it.
+const TARGET: &str = "Interruption point W464: a star source is a source point; set the direction to source, or clear the star";
 
 fn dispatch(h: &mut Harness<'_, App>, action: &str, params: Value) {
     assert_eq!(
@@ -217,6 +217,41 @@ fn escape_in_an_editor_holding_an_error_cancels_the_edit() {
     assert!(
         !after.contains(&"ui.dismiss"),
         "Escape is the editor's: {after:?}"
+    );
+    h.state_mut().shell_mut().shutdown();
+}
+
+/// FT-1075 (ID-1182): a toast's line stands under its title with a capital, as the window draws it: "Not placed" over
+/// "The interruption point W464 is already here; ...". The toast's own text (its tooltip, the log) keeps the
+/// command's lowercase.
+#[test]
+fn a_toasts_line_is_drawn_with_a_capital() {
+    let tmp = Tmp::new();
+    let mut h = with_two_points(&tmp);
+    dispatch(&mut h, "tool.ip", json!({}));
+    dispatch(&mut h, "ip.name", json!({"text": "W465"}));
+    dispatch(&mut h, "cursor.set", json!({"x_mm": 60.0, "y_mm": 160.0}));
+    assert_eq!(
+        h.state_mut().shell_mut().dispatch("canvas.activate", &json!({})),
+        Outcome::Refused {
+            reason_key: key!("reason-ip-not-placed")
+        }
+    );
+    settle(&mut h);
+    let texts: Vec<String> = painted_texts(&h).into_iter().map(|(t, _, _)| t).collect();
+    assert!(texts.contains(&"Not placed".to_owned()), "{texts:?}");
+    let line = "The interruption point W464 is already here; place it on a pin or a free grid point";
+    assert!(texts.contains(&line.to_owned()), "{texts:?}");
+    let whole =
+        "Not placed: the interruption point W464 is already here; place it on a pin or a free grid point";
+    assert!(
+        h.state()
+            .shell()
+            .notifications()
+            .visible()
+            .iter()
+            .any(|n| n.text == whole),
+        "the toast's own text is the command's"
     );
     h.state_mut().shell_mut().shutdown();
 }

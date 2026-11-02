@@ -176,3 +176,18 @@ fn the_armed_ip_tools_hud_leads_with_its_name() {
         format!("IP \u{b7} source: feeds its targets \u{b7} {d}: target")
     );
 }
+
+/// FT-1075 (ID-1182): a greyed command's reason, clicked, is a toast whose line under the title starts with a
+/// capital ("Draw on a schematic page"); the toast's own text stays the reason.
+#[test]
+fn ft1075_a_greyed_commands_reason_reads_with_a_capital_under_its_title() {
+    let tmp = Tmp::new("p45b-reason-capital");
+    let mut s = new_project(&tmp);
+    let reason = ew_viewmodel::strings::text(ew_viewmodel::key!("reason-page-type-no-symbols"));
+    s.explain_disabled(reason.to_owned());
+    let n = *s.notifications().visible().last().expect("the toast");
+    assert_eq!(n.text, reason);
+    let (title, line) = n.lines();
+    assert_eq!(title, "This page type takes no symbols or wires");
+    assert_eq!(line.as_deref(), Some("Draw on a schematic page"));
+}

@@ -157,7 +157,7 @@ fn toast(ui: &mut Ui, t: &Tokens, shell: &ShellModel, n: &Notification, events: 
                             });
                             ui.add(
                                 egui::Label::new(line_job(
-                                    line,
+                                    &line,
                                     theme::font(&t.type_small),
                                     t.text_secondary.color32(),
                                     LINE_ROWS,

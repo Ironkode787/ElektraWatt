@@ -537,6 +537,15 @@ impl PropertiesState {
         self.edit.as_ref()
     }
 
+    /// Shows `message` as the error under the row `row`, starting with a capital: the line stands on its own under the
+    /// row, and the commands' texts are lowercase (FT-1075, ID-1182; [`crate::strings::sentence_start`]).
+    pub(crate) fn set_error(&mut self, row: impl Into<String>, message: impl AsRef<str>) {
+        self.error = Some((
+            row.into(),
+            crate::strings::sentence_start(message.as_ref()).into_owned(),
+        ));
+    }
+
     /// The error under a field: (row key, message).
     pub fn error(&self) -> Option<(&str, &str)> {
         self.error.as_ref().map(|(r, m)| (r.as_str(), m.as_str()))

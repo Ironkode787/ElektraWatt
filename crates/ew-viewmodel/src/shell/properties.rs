@@ -956,12 +956,12 @@ impl ShellModel {
                 return Outcome::Done;
             }
             (Err(InputError::Invalid(message)), _) => {
-                self.props.error = Some((key.to_owned(), message.clone()));
+                self.props.set_error(key.to_owned(), message.clone());
                 return Outcome::Failed { message };
             }
             (Err(InputError::UnknownPart(typed)), _) => {
                 let message = strings::format(key!("error-no-part"), &[&typed]);
-                self.props.error = Some((key.to_owned(), message.clone()));
+                self.props.set_error(key.to_owned(), message.clone());
                 return Outcome::Failed { message };
             }
         };
@@ -1021,7 +1021,7 @@ impl ShellModel {
                 Some(RowValue::One { json, .. }) => Some(json),
                 Some(RowValue::Varies { .. }) if row.path != member => {
                     let message = strings::text(key!("props-member-varies")).to_owned();
-                    self.props.error = Some((key.to_owned(), message.clone()));
+                    self.props.set_error(key.to_owned(), message.clone());
                     return Outcome::Failed { message };
                 }
                 _ => None,
@@ -1029,7 +1029,7 @@ impl ShellModel {
         };
         let Some(new) = compose(&member, &row.path, base.as_ref(), &value) else {
             let message = strings::text(key!("props-cannot-compose")).to_owned();
-            self.props.error = Some((key.to_owned(), message.clone()));
+            self.props.set_error(key.to_owned(), message.clone());
             return Outcome::Failed { message };
         };
         // A value equal to the current one builds no command (§6.6).
@@ -1094,7 +1094,7 @@ impl ShellModel {
         let cmd = match project.session.layout_edit(&edit) {
             Ok(c) => c,
             Err(ew_api::output::LayoutEditError::Invalid(message)) => {
-                self.props.error = Some((row.key.clone(), message.clone()));
+                self.props.set_error(row.key.clone(), message.clone());
                 return Outcome::Failed { message };
             }
         };
@@ -1151,7 +1151,7 @@ impl ShellModel {
             }
             Err(e) => {
                 let message = message_of(&Err(e));
-                self.props.error = Some((row.key.clone(), message.clone()));
+                self.props.set_error(row.key.clone(), message.clone());
                 return Outcome::Failed { message };
             }
         };
@@ -1306,7 +1306,7 @@ impl ShellModel {
                     };
                     self.props.tag_proposal = Some(proposal);
                 }
-                self.props.error = Some((row, shown));
+                self.props.set_error(row, shown);
                 self.props.card = None;
                 Outcome::Failed { message }
             }
@@ -1427,7 +1427,7 @@ impl ShellModel {
                 }
             }
             Outcome::Failed { message } => {
-                self.props.error = Some((edit.row.clone(), message.clone()));
+                self.props.set_error(edit.row.clone(), message.clone());
             }
             Outcome::Refused { .. } => {}
         }
@@ -1501,7 +1501,7 @@ impl ShellModel {
             shown.clone()
         };
         self.props.choices = None;
-        self.props.error = Some((key.to_owned(), shown));
+        self.props.set_error(key.to_owned(), shown);
         self.props.tag_proposal = Some(crate::properties::TagProposal {
             row: key.to_owned(),
             tag: proposal.tag,
@@ -1892,7 +1892,7 @@ impl ShellModel {
                     (RowValue::One { text, .. }, "connection") if text != "?" => json!({ "frozen": text }),
                     _ => {
                         let message = strings::text(key!("props-cannot-freeze")).to_owned();
-                        self.props.error = Some((key.to_owned(), message.clone()));
+                        self.props.set_error(key.to_owned(), message.clone());
                         return Outcome::Failed { message };
                     }
                 };
@@ -1938,7 +1938,7 @@ impl ShellModel {
         }
         if edits.is_empty() {
             let message = strings::text(key!("props-cannot-freeze")).to_owned();
-            self.props.error = Some((row.key.clone(), message.clone()));
+            self.props.set_error(row.key.clone(), message.clone());
             return Outcome::Failed { message };
         }
         // The base of a stale card's check: the member as the sheet shows it now.
@@ -2180,7 +2180,7 @@ impl ShellModel {
         };
         if let Err(message) = &card.preview.result {
             let message = message.clone();
-            self.props.error = Some((card.edit.row.clone(), message.clone()));
+            self.props.set_error(card.edit.row.clone(), message.clone());
             return Outcome::Failed { message };
         }
         if card.preview.base_rev == rev {
@@ -2201,7 +2201,7 @@ impl ShellModel {
         });
         if now != edit.base || !same_targets {
             let message = strings::text(key!("props-changed-meanwhile")).to_owned();
-            self.props.error = Some((edit.row.clone(), message));
+            self.props.set_error(edit.row.clone(), message);
             self.props.edit = Some(EditBuffer {
                 row: edit.row.clone(),
                 buffer: edit.typed.clone(),

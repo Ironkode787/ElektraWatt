@@ -8,6 +8,7 @@
 //! or, for a key built at run time, with [`Key::run_time`]. A text may hold the placeholders `{0}`, `{1}`, … that
 //! [`format()`] fills in.
 
+use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::sync::OnceLock;
 
@@ -3919,6 +3920,38 @@ pub fn in_sentence(label: &str) -> String {
     }
 }
 
+/// A part of a message the window shows on its own line (FT-1075, ID-1182: a toast's line under its title, a
+/// Properties refusal), starting with a capital: the text of a command or a check stays lowercase after its title or
+/// its prefix (doc 16a §8.1), and the window capitalises where the part stands alone. A rule code first ("EW-CORE-052:
+/// ") is left as it is and the words after it start with the capital; a designation, a code or a digit first ("-K1
+/// exists", "W464: …", "4 errors": no lowercase letter first, or a first word that holds a digit) is left as it is.
+pub fn sentence_start(part: &str) -> Cow<'_, str> {
+    fn is_code(word: &str) -> bool {
+        word.strip_suffix(':').is_some_and(|c| {
+            c.len() > 1
+                && c.contains('-')
+                && c
+                    .chars()
+                    .all(|ch| ch.is_ascii_uppercase() || ch.is_ascii_digit() || ch == '-')
+        })
+    }
+    if let Some((code, rest)) = part.split_once(' ')
+        && is_code(code)
+    {
+        return match sentence_start(rest) {
+            Cow::Borrowed(_) => Cow::Borrowed(part),
+            Cow::Owned(rest) => Cow::Owned(format!("{code} {rest}")),
+        };
+    }
+    let first_word = part.split(char::is_whitespace).next().unwrap_or_default();
+    match part.chars().next() {
+        Some(first) if first.is_lowercase() && !first_word.chars().any(|c| c.is_ascii_digit()) => {
+            Cow::Owned(first.to_uppercase().chain(part.chars().skip(1)).collect())
+        }
+        _ => Cow::Borrowed(part),
+    }
+}
+
 /// A count-dependent string: `<key>-one` for exactly one, `<key>` with the count as `{0}` otherwise. The key is a
 /// [`CountKey`], made by [`count_key!`](crate::count_key), which checks both texts at compile time.
 pub fn format_count(key: CountKey, count: usize) -> String {
@@ -3953,6 +3986,27 @@ mod tests {
     use super::*;
 
     const NOW: u64 = 1_793_000_000_000;
+
+    /// FT-1075 (ID-1182): a part shown on its own line starts with a capital; a designation, a code or a digit first
+    /// is left as it is, and a rule code first leaves the words after it to start with the capital.
+    #[test]
+    fn a_part_on_its_own_line_starts_with_a_capital() {
+        for (part, shown) in [
+            ("the interruption point W464 is already here", "The interruption point W464 is already here"),
+            ("interruption point W464: a star source is a source point", "Interruption point W464: a star source is a source point"),
+            ("draw on a schematic page", "Draw on a schematic page"),
+            ("on -101F1: refused", "On -101F1: refused"),
+            ("EW-CORE-052: a second source of 0V", "EW-CORE-052: A second source of 0V"),
+            ("W464: a star source", "W464: a star source"),
+            ("-K1 exists", "-K1 exists"),
+            ("k1 exists", "k1 exists"),
+            ("4 errors, 25 warnings", "4 errors, 25 warnings"),
+            ("Already a capital", "Already a capital"),
+            ("", ""),
+        ] {
+            assert_eq!(sentence_start(part), shown, "{part}");
+        }
+    }
 
     /// FT-964 (ID-1150): the texts that name a key the default keymap binds by its literal name, each with why it stays:
     /// a key no keymap action reaches there (a popup's or a text field's own key), or a letter that is no key.
