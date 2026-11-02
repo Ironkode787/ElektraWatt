@@ -260,8 +260,9 @@ beside the project; WP-S1.22 D2, 0.1 pw) moved to a lane of its own after part 2
 **Acceptance.**
 - **EZ-1** Golden A packed twice gives byte-identical `.ewz` files; `mimetype` is the first entry, stored; extracting
   gives a directory byte-equal to the source (FR-COL-009's acceptance).
-- **EZ-2** `ew check`, `ew export pdf` and `ew query` on Golden A's `.ewz` give the same output as on the directory;
-  `ew apply` on it exits 2 with D9's text.
+- **EZ-2** Every reader of ruling 5 (`ew check`, `ew export pdf`, `ew export table` and `ew query` among them) on
+  Golden A's `.ewz` gives the same exit code, stdout, stderr and written bytes as on the directory; `ew apply` and
+  `ew import table` (with and without `--apply`) on it exit 2 with D9's text.
 - **EZ-3** Extracting onto an existing directory exits 2 and writes nothing; a failure injected through the `Vfs` at
   each write leaves no `<target>` and removes the temporary directory.
 - **EZ-4** Archives with `..`, a backslash, a duplicate name ignoring case, an entry outside D9's set, a hash mismatch,
@@ -293,8 +294,9 @@ beside the project; WP-S1.22 D2, 0.1 pw) moved to a lane of its own after part 2
    Without `--into`, the target is `<stem>.ew` beside the archive (doc 05 §12).
 5. **The CLI.** `ew export ewz [<project>] --out <file.ewz>`: `--out` is required ("`ew export ewz` writes a file: give
    `--out <file.ewz>`"). Readers that open an `.ewz` given as their project through `Session::open_ewz`: `check`, `sql`
-   and `sql dump`, the row and page exports, `print`, `render`, `verify-derived`, `query`, `fmt --check`. Every other
-   subcommand that takes a project, `apply --preview` and `assets purge --preview` included, refuses it with D9's text.
+   and `sql dump`, the row and page exports, `export table`, `print`, `render`, `verify-derived`, `query`,
+   `fmt --check`. Every other subcommand that takes a project, `apply --preview`, `assets purge --preview` and
+   `import table` without `--apply` included, refuses it with D9's text.
    Each new subcommand and flag enters `bin/ew/src/catalogue.rs`, gets a `--json` result under WP-S1.22's conventions
    (`crates/ew-api/src/cli_results.rs`, `bin/ew/schemas/` with `index.json`), re-blesses `bin/ew/api/cli.json`
    (additive), and one `docs/release-notes/unreleased.md` line.

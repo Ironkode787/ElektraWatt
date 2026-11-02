@@ -165,8 +165,8 @@ fn stderr(o: &Output) -> String {
 /// (a file as `""`, a directory's files by name).
 type Run = (Option<i32>, String, String, BTreeMap<String, Vec<u8>>);
 
-/// EZ-2: every reader (`check`, `sql`, `sql dump`, the row and page exports, `print`, `render`, `verify-derived`,
-/// `query`, `fmt --check`) gives the same exit code, stdout, stderr and output bytes on Golden A's `.ewz` as on its
+/// EZ-2: every reader (`check`, `sql`, `sql dump`, the row and page exports, `export table`, `print`, `render`,
+/// `verify-derived`, `query`, `fmt --check`) gives the same exit code, stdout, stderr and output bytes on Golden A's `.ewz` as on its
 /// directory; nothing is written beside the archive. The runs go in parallel, each with its own output path.
 #[test]
 fn ez2_every_reader_gives_the_same_output_on_the_ewz() {
@@ -188,6 +188,11 @@ fn ez2_every_reader_gives_the_same_output_on_the_ewz() {
         &["export", "wires", "{p}"],
         &["export", "terminals", "{p}", "--strip", "-X1031"],
         &["export", "report", "{p}", "--block", "908"],
+        &["export", "table", "strips", "{p}", "--strip", "-X1031"],
+        &[
+            "export", "table", "strips", "{p}", "--strip", "-X1031", "--format", "xlsx", "--out", "{out}",
+        ],
+        &["export", "table", "devices", "{p}"],
         &["export", "pdf", "{p}", "--out", "{out}", "--pages", "101-103"],
         &["export", "svg", "{p}", "--out", "{out}", "--pages", "101"],
         &["export", "png", "{p}", "--out", "{out}", "--pages", "103"],
@@ -250,7 +255,8 @@ fn ez2_every_reader_gives_the_same_output_on_the_ewz() {
 }
 
 /// EZ-2 and ID-1175 ruling 5: every subcommand that takes a project and is no reader refuses an `.ewz` with D9's text
-/// (exit 2), `apply --preview` and `project assets purge --preview` included, and the archive is unchanged.
+/// (exit 2), `apply --preview`, `project assets purge --preview` and `import table` without `--apply` included, and the
+/// archive is unchanged.
 #[test]
 fn ez2_every_other_subcommand_refuses_the_ewz() {
     let t = Tmp::new();
@@ -263,6 +269,13 @@ fn ez2_every_other_subcommand_refuses_the_ewz() {
         ewz.display()
     );
     let copy = t.0.join("copy.ewz");
+    let table = t.0.join("strips.csv");
+    std::fs::write(
+        &table,
+        "terminal
+",
+    )
+    .unwrap();
     for line in [
         args([&"apply", &ewz, &log]),
         args([&"apply", &ewz, &log, &"--preview"]),
@@ -272,6 +285,8 @@ fn ez2_every_other_subcommand_refuses_the_ewz() {
         args([&"recover", &ewz, &"--replay"]),
         args([&"project", &"assets", &"purge", &ewz, &"--preview"]),
         args([&"import", &"parts", &GOLDEN_PARTS, &"--project", &ewz]),
+        args([&"import", &"table", &table, &ewz]),
+        args([&"import", &"table", &table, &ewz, &"--apply"]),
         args([&"export", &"ewz", &ewz, &"--out", &copy]),
     ] {
         let o = t.ew(&line);

@@ -46,9 +46,9 @@ SPDX-License-Identifier: CC-BY-4.0
   `preset` and `rev`)
 - api-add: cli ew export ewz [<project-dir>] --out <file.ewz> [--json] and ew extract <file.ewz> [--into <dir>]
   [--json] (pack the saved generation into a deterministic `.ewz` and unpack one into a new folder, all or nothing;
-  results `ew.export-ewz-result/1` and `ew.extract-result/1`); check, sql, sql dump, the row and page exports, print,
-  render, verify-derived, query and fmt --check open an `.ewz` read-only, every other subcommand refuses it with "an
-  .ewz opens read-only; extract it first" (WP-S1.17 part 2)
+  results `ew.export-ewz-result/1` and `ew.extract-result/1`); check, sql, sql dump, the row and page exports, export
+  table, print, render, verify-derived, query and fmt --check open an `.ewz` read-only, every other subcommand
+  (import table included) refuses it with "an .ewz opens read-only; extract it first" (WP-S1.17 part 2)
 - text-change: cli ew export and ew sql `--format xlsx` (no longer refused as not built; without `--out` it is refused
   with "`--format xlsx` writes a file: give `--out <file.xlsx>`"; `--preset`, `--bom` or `--line-end` with it with
   "`--preset` applies to CSV only; drop it, or give `--format csv`"; `--format pdf` on a row export names CSV or XLSX)

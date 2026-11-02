@@ -478,9 +478,10 @@ enum ExportCli {
     /// `mimetype` first, `manifest.json`, then every file the manifest lists and `.gitattributes` and `.gitignore` when
     /// present, read back from the disk and checked against the manifest; strays, foreign files, `.ew/`, the lock files,
     /// temps and `.git/` never enter, and the same project gives the same bytes. Every reader (`check`, `sql`, the row
-    /// and page exports, `print`, `render`, `verify-derived`, `query`, `fmt --check`) takes an `.ewz` as its project and
-    /// opens it read-only; every other subcommand refuses one; `ew extract` unpacks one. Exit 0 when written, 2 on
-    /// everything else (usage, open errors, a project changed on disk or one that cannot be packed, write errors).
+    /// and page exports, `export table`, `print`, `render`, `verify-derived`, `query`, `fmt --check`) takes an `.ewz` as
+    /// its project and opens it read-only; every other subcommand refuses one; `ew extract` unpacks one. Exit 0 when
+    /// written, 2 on everything else (usage, open errors, a project changed on disk or one that cannot be packed, write
+    /// errors).
     Ewz(EwzCli),
     /// Write one PNG file per page.
     ///

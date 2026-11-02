@@ -690,8 +690,8 @@ fn ewz_refusal(path: &Path) -> String {
 }
 
 /// The explicit project, else the directory found from the current directory, for a reader (`check`, `sql`, the row
-/// and page exports, `print`, `render`, `verify-derived`, `query`, `fmt --check`): an `.ewz` is taken as it is and
-/// opened read-only from memory by `Session::open_reader` (WP-S1.17 D9, ID-1175 ruling 5).
+/// and page exports, `export table`, `print`, `render`, `verify-derived`, `query`, `fmt --check`): an `.ewz` is taken
+/// as it is and opened read-only from memory by `Session::open_reader` (WP-S1.17 D9, ID-1175 ruling 5).
 fn reader_dir(explicit: Option<&PathBuf>) -> Option<PathBuf> {
     match explicit {
         Some(d) => Some(d.clone()),
@@ -1073,7 +1073,7 @@ fn run_export_table(a: &ExportArgs, session: &ew_api::Session) -> i32 {
 /// `ew export table` (WP-S3.08 D7, D8): a navigator's table unfiltered, as CSV in a preset or as a workbook with the
 /// round-trip sheets (`_ew`, and `_ew_base` with its digest), the file written atomically.
 fn run_export_nav_table(a: &ExportTableArgs) -> i32 {
-    let Some(dir) = project_dir(a.project.as_ref()) else {
+    let Some(dir) = reader_dir(a.project.as_ref()) else {
         return 2;
     };
     let (session, _) = match ew_api::Session::open_reader(&dir, env!("CARGO_PKG_VERSION"), "export") {
