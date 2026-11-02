@@ -309,7 +309,8 @@ impl Command for SetStart {
             let dev = tx.require::<Device>(*m)?;
             let Some(aspect) = dev.aspects.plc_module.as_ref() else {
                 return tx.reject(format!(
-                    "device {m} is not a module: it has no `plc_module` aspect; a start belongs to a module"
+                    "{} is not a PLC module, and a start address belongs to a module; make it a module first",
+                    crate::words::device(tx, *m)
                 ));
             };
             let spec = match word.as_str() {
@@ -348,7 +349,8 @@ impl Command for SetStart {
             let has_range = module_section(tx, &dev).is_some_and(|s| s.io.iter().any(|r| r.dir == dir));
             if !has_range {
                 notices.push(format!(
-                    "module {m} has no {} range in its part: the start has no effect until it has one",
+                    "module {} has no {} range in its part: the start has no effect until it has one",
+                    crate::words::device(tx, *m),
                     if dir == IoDir::In { "input" } else { "output" }
                 ));
             }
@@ -474,7 +476,8 @@ impl Command for SetModulePart {
         let before = tx.require::<Device>(m)?;
         let Some(aspect) = before.aspects.plc_module.as_ref() else {
             return tx.reject(format!(
-                "device {m} is not a module: it has no `plc_module` aspect (set it with `fields.set`)"
+                "{} is not a PLC module; make it a module first",
+                crate::words::device(tx, m)
             ));
         };
         if let Some(parts) = &self.parts {
