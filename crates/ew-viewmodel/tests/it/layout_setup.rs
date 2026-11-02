@@ -693,8 +693,9 @@ fn create_line(s: &ShellModel) -> String {
 }
 
 /// C44-p2#1: on 902 at a scale of 1:4 000 000 000 with its datum 10⁹ mm away, every click lies far beyond the `i64`
-/// range on the surface; Draw rail's two clicks and Draw duct's finish reach the command, which refuses the points in
-/// its own words, and nothing panics.
+/// range on the surface; Draw rail's two clicks and Draw duct's finish are refused by the tool in words, before the
+/// command, and nothing panics (ID-1106: "The draw tools refuse a point outside the drawable range before they send
+/// the command, with \"That point lies outside the drawing area.\"").
 #[test]
 fn far_points_of_the_draw_tools_are_refused_in_words() {
     let tmp = Tmp::new("far");
@@ -712,36 +713,30 @@ fn far_points_of_the_draw_tools_are_refused_in_words() {
         json!({"row": "page/derived.datum", "value": "1000000000, 1000000000"}),
     );
     let rev = s.revision();
+    let far_refused = Outcome::Refused {
+        reason_key: key!("reason-point-outside-drawing"),
+    };
     let a = (100_000_000, 100_000_000);
     let b = (300_000_000, 100_000_000);
     done(&mut s, "tool.rail_draw", json!({}));
     common::click(&mut s, a, json!({}));
     done(&mut s, "canvas.pointer", at(b, json!({})));
     let out = s.dispatch("canvas.press", &at(b, json!({})));
-    assert_eq!(
-        out,
-        Outcome::Failed {
-            message: FAR_REFUSAL.to_owned()
-        }
-    );
+    assert_eq!(out, far_refused);
+    assert_eq!(s.tool_notice(), Some(FAR_REFUSAL));
     done(&mut s, "ui.dismiss", json!({}));
     done(&mut s, "tool.duct_draw", json!({}));
     common::click(&mut s, a, json!({}));
     common::click(&mut s, b, json!({}));
     let out = s.dispatch("tool.finish", &json!({}));
-    assert_eq!(
-        out,
-        Outcome::Failed {
-            message: FAR_REFUSAL.to_owned()
-        }
-    );
+    assert_eq!(out, far_refused);
+    assert_eq!(s.tool_notice(), Some(FAR_REFUSAL));
     assert_eq!(s.revision(), rev, "nothing drawn");
     s.shutdown();
 }
 
-/// `layout.carrier.add`'s refusal of a path point beyond the drawable range (its parameter check, in its own words).
-const FAR_REFUSAL: &str =
-    "Add carrier: Path, item 1: -9223372036854775808 is below the minimum -9007199254740991";
+/// The draw tools' refusal of a point beyond the drawable range (ID-1106), whole.
+const FAR_REFUSAL: &str = "That point lies outside the drawing area.";
 
 /// The texts of the draw tools' overlay labels.
 fn overlay_labels(s: &ShellModel) -> Vec<String> {

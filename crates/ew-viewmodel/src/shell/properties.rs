@@ -412,7 +412,8 @@ impl ShellModel {
         {
             return Some(key!("reason-human-only"));
         }
-        Some(key!("reason-read-only"))
+        // ID-1106: in an editable project, a row without the action is computed, not read-only.
+        Some(key!("reason-row-computed"))
     }
 
     // -----------------------------------------------------------------------------------------------------------

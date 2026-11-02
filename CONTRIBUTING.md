@@ -105,6 +105,9 @@ per new entry of [`docs/plan/decisions.md`](docs/plan/decisions.md) and
 | `Golden: ID-n <one-line reason>` | The decision behind a change of `golden/**`; such a commit needs it |
 | `Spec: <docs path>[, …]` | The specification it follows |
 
+Beside these, a commit may carry `Co-Authored-By:`, `Signed-off-by:` and `Assisted-by:` (see the AI-use policy
+below). Any other key is unknown; `Claude-Session:` is one of them and is refused.
+
 No trailer is required otherwise. `cargo xtask check-trailers --range <a>..<b>` refuses an unknown key, a malformed
 value, an ID or path that does not exist at that commit and a change of `golden/**` without `Golden:`; CI runs it on
 pull requests. `cargo xtask records` generates [`docs/plan/records.md`](docs/plan/records.md), the decision index and

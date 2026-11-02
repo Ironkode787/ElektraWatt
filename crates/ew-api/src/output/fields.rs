@@ -384,17 +384,10 @@ pub struct FieldSpec {
     pub ty: FieldType,
     /// The category.
     pub category: Category,
-    /// The key of the English label: `field-<kind>-<path>` with `.` and `[]` replaced by `-`.
-    pub label_key: String,
     /// How the grid edits it.
     pub route: EditRoute,
     /// Whether it is an outgoing identifier of FR-UI-044 rule 2 (a tag letter, a counter, a wire number).
     pub identifier: bool,
-}
-
-/// The label key of a field: `field-<kind>-<path>` with `.` and `[]` replaced by `-`.
-pub(crate) fn label_key(kind: &str, path: &str) -> String {
-    format!("field-{kind}-{}", path.replace("[]", "-").replace('.', "-"))
 }
 
 /// The kinds the catalogue covers: the implemented kinds that are not library documents, in kind-rank order.
@@ -855,7 +848,6 @@ fn spec(
         kind: kind.to_owned(),
         path: path.to_owned(),
         category,
-        label_key: label_key(kind, path),
         route: route_of(kind, path, exposure),
         identifier: IDENTIFIERS.iter().any(|(k, p)| *k == kind && *p == flat),
         ty,
@@ -2106,11 +2098,9 @@ mod tests {
     }
 
     #[test]
-    fn generic_paths_and_label_keys() {
+    fn generic_paths() {
         assert_eq!(generic_path("parts[0].qty"), "parts[].qty");
         assert_eq!(generic_path("[ew.company]"), "[ew.company]");
-        assert_eq!(label_key("device", "parts[].qty"), "field-device-parts--qty");
-        assert_eq!(label_key("device", "tag.letter"), "field-device-tag-letter");
     }
 
     impl DisplayCx for Cx {

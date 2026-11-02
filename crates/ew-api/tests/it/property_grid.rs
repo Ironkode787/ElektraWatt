@@ -173,7 +173,6 @@ fn pg1_every_settable_path_maps_to_a_node_with_its_own_route() {
     assert_eq!(id.route, EditRoute::ReadOnly(FieldReadOnly::Identity));
     let tag = device.iter().find(|f| f.path == "tag.counter").unwrap();
     assert!(tag.identifier && tag.category == Category::Identity);
-    assert_eq!(tag.label_key, "field-device-tag-counter");
     let qty = device.iter().find(|f| f.path == "parts[].qty").unwrap();
     assert_eq!(
         qty.route,
@@ -1053,7 +1052,6 @@ fn ft670_a_templated_function_shows_its_part_function() {
         .map(|f| {
             let sheet = s.property_sheet(&[*f]);
             let r = row(&sheet, "function/template_entry");
-            assert_eq!(r.label_key, "field-function-template_entry");
             assert_eq!(r.ty, FieldType::Text);
             assert_eq!(r.route, EditRoute::ReadOnly(FieldReadOnly::NoCommand));
             assert!(r.actions.is_empty());

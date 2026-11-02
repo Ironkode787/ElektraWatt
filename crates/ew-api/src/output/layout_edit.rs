@@ -353,7 +353,6 @@ fn row(
     PropRow {
         key: format!("{kind}/derived.{name}"),
         path: format!("derived.{name}"),
-        label_key: super::fields::label_key(kind, &format!("derived.{name}")),
         category: Category::Placement,
         depth: 0,
         ty,

@@ -113,8 +113,6 @@ pub struct PropRow {
     /// The row's path with list indices; for a derived row the authored partner's path (`tag.frozen`,
     /// `overrides.csa`), or `derived.<name>` when it has none.
     pub path: String,
-    /// The label key.
-    pub label_key: String,
     /// The category.
     pub category: Category,
     /// The nesting level.
@@ -892,7 +890,6 @@ fn terminal_rows(q: &Q, cx: &SheetCx<'_>, targets: &[Uuid], built: &mut Vec<Buil
     if let Some(text) = built.iter().find(|b| b.row.key == "device/function_text") {
         let mut row = text.row.clone();
         row.key = "device/derived.printed_label".to_owned();
-        row.label_key = super::fields::label_key("device", "derived.printed_label");
         row.category = Category::Terminal;
         row.depth = depth;
         rows.push(Built { row, derived: true });
@@ -1025,7 +1022,6 @@ impl SectionCx<'_, '_> {
             row: PropRow {
                 key: format!("{}/{rpath}", self.kind),
                 path: rpath.to_owned(),
-                label_key: spec.label_key.clone(),
                 category: spec.category,
                 depth,
                 ty: spec.ty.clone(),
@@ -1128,7 +1124,6 @@ impl SectionCx<'_, '_> {
                         } else {
                             category
                         },
-                        label_key: super::fields::label_key(self.kind, &path),
                         route: route_of(self.kind, &path, &exposure),
                         identifier: false,
                     }
@@ -1207,7 +1202,6 @@ fn derived(
     Built {
         row: PropRow {
             key: format!("{kind}/derived.{name}"),
-            label_key: super::fields::label_key(kind, &format!("derived.{name}")),
             path,
             category,
             depth: 0,

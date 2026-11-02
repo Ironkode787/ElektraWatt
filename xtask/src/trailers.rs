@@ -33,8 +33,9 @@ pub(crate) const GOLDEN: &str = "Golden";
 pub(crate) const SPEC: &str = "Spec";
 /// The five record keys.
 pub(crate) const RECORD_KEYS: [&str; 5] = [DECISION, FT_OPENS, FT_CLOSES, GOLDEN, SPEC];
-/// The other trailer keys a commit may carry.
-const OTHER_KEYS: [&str; 2] = ["Co-Authored-By", "Signed-off-by"];
+/// The other trailer keys a commit may carry. `Assisted-by` is the AI-use policy's (CONTRIBUTING.md); any other key,
+/// `Claude-Session` among them, is refused (ID-1106).
+const OTHER_KEYS: [&str; 3] = ["Co-Authored-By", "Signed-off-by", "Assisted-by"];
 
 /// One commit with its trailers, as git parses the trailer block.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -491,11 +492,13 @@ pub(crate) mod tests {
         let ok = r.commit(
             &[("golden/a.txt", "a\n")],
             "fix: all good\n\nDecision: ID-1, ID-2, DEC-43, ADR-3\nFT-Opens: FT-2\nFT-Closes: FT-01, FT-02\n\
-             Golden: ID-2 the reason\nSpec: docs/spec.md, docs/adr\nCo-authored-by: X <x>",
+             Golden: ID-2 the reason\nSpec: docs/spec.md, docs/adr\nCo-authored-by: X <x>\n\
+             Assisted-by: a tool",
         );
         // ID-3 lands only later: the commit that cites it is still refused.
         let early = r.commit(&[("x.txt", "1\n")], "feat: early\n\nDecision: ID-3");
-        let unknown = r.commit(&[("x.txt", "2\n")], "feat: unknown\n\nReviewed-by: Somebody");
+        // ID-1106: `Assisted-by` is allowed (the commit `ok` carries it); `Claude-Session` stays refused.
+        let unknown = r.commit(&[("x.txt", "2\n")], "feat: unknown\n\nClaude-Session: s1");
         let bad = r.commit(
             &[("x.txt", "3\n")],
             "feat: malformed\n\nDecision: ID-?\nFT-Opens: ID-2\nGolden: ID-2\nSpec: README.md",
@@ -550,8 +553,8 @@ pub(crate) mod tests {
                     "{bad} feat: malformed: malformed trailer `Spec: README.md` (expected `Spec: docs/<path>[, …]`) (at {bad})"
                 ),
                 format!(
-                    "{unknown} feat: unknown: unknown trailer key `Reviewed-by` (the known keys: Decision, FT-Opens, \
-                     FT-Closes, Golden, Spec, Co-Authored-By, Signed-off-by) (at {unknown})"
+                    "{unknown} feat: unknown: unknown trailer key `Claude-Session` (the known keys: Decision, FT-Opens, \
+                     FT-Closes, Golden, Spec, Co-Authored-By, Signed-off-by, Assisted-by) (at {unknown})"
                 ),
                 format!(
                     "{early} feat: early: ID-3 is in neither the decision log nor docs/plan/decisions.md (at {early})"

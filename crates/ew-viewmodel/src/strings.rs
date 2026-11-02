@@ -31,6 +31,24 @@ impl<'a> Key<'a> {
     }
 }
 
+/// A count text key: a key of [`TEXTS`] with its `-one` text, the only key [`format_count`] takes (ID-1106). It is
+/// made by [`count_key!`](crate::count_key), which checks both texts at compile time.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct CountKey(&'static str);
+
+impl CountKey {
+    /// The constructor behind [`count_key!`](crate::count_key); call the macro instead, which checks both texts.
+    #[doc(hidden)]
+    pub const fn checked_by_macro(key: &'static str) -> Self {
+        Self(key)
+    }
+
+    /// The key as text (the text for any count but one).
+    pub const fn as_str(self) -> &'static str {
+        self.0
+    }
+}
+
 /// Whether `key` is a key of [`TEXTS`]: the compile-time check of [`key!`](crate::key) (lengths first, then bytes).
 pub const fn has_key(key: &str) -> bool {
     let wanted = key.as_bytes();
@@ -89,6 +107,13 @@ macro_rules! key {
 /// ```compile_fail
 /// let _ = ew_viewmodel::count_key!("menu-file");
 /// ```
+///
+/// and [`format_count`](crate::strings::format_count) takes no other key:
+///
+/// ```compile_fail
+/// use ew_viewmodel::{key, strings};
+/// let _ = strings::format_count(key!("toast-recovered"), 2);
+/// ```
 #[macro_export]
 macro_rules! count_key {
     ($k:literal) => {
@@ -101,7 +126,7 @@ macro_rules! count_key {
                 $crate::strings::has_key(concat!($k, "-one")),
                 concat!("unknown text key: ", $k, "-one")
             );
-            $crate::strings::Key::run_time($k)
+            $crate::strings::CountKey::checked_by_macro($k)
         }
     };
 }
@@ -1038,6 +1063,14 @@ pub const TEXTS: &[(&str, &str)] = &[
     ("action-ui-dismiss", "Dismiss popup or dialog"),
     // Why an action is disabled.
     ("reason-read-only", "The project is open read-only"),
+    (
+        "reason-point-outside-drawing",
+        "That point lies outside the drawing area.",
+    ),
+    (
+        "reason-row-computed",
+        "This value is computed from the drawing; it cannot be edited here.",
+    ),
     ("reason-nothing-to-undo", "Nothing to undo"),
     ("reason-nothing-to-redo", "Nothing to redo"),
     ("reason-no-project", "No project is open"),
@@ -3745,13 +3778,13 @@ pub fn in_sentence(label: &str) -> String {
     }
 }
 
-/// A count-dependent string: `<key>-one` for exactly one, `<key>` with the count as `{0}` otherwise. A literal key is
-/// [`count_key!`](crate::count_key), which checks both texts at compile time.
-pub fn format_count(key: Key<'_>, count: usize) -> String {
+/// A count-dependent string: `<key>-one` for exactly one, `<key>` with the count as `{0}` otherwise. The key is a
+/// [`CountKey`], made by [`count_key!`](crate::count_key), which checks both texts at compile time.
+pub fn format_count(key: CountKey, count: usize) -> String {
     if count == 1 {
         text(Key::run_time(&format!("{}-one", key.as_str()))).to_owned()
     } else {
-        format(key, &[&count.to_string()])
+        format(Key::run_time(key.as_str()), &[&count.to_string()])
     }
 }
 
@@ -3834,6 +3867,66 @@ mod tests {
             .filter(|k| lookup(k).is_none())
             .map(|k| format!("the ew-api key {k} has no text"))
             .collect();
+        assert_eq!(missing, Vec::<String>::new());
+    }
+
+    /// ID-1106 (FT-1009): "a test scans `crates/ew-api/src/**` for the string literals passed where a text key is
+    /// taken (the `reason-`, `toast-` and `category-` prefixes, and the others `TEXT_KEYS` holds). It fails, naming
+    /// the key, when a key is missing from `TEXT_KEYS`". A literal is a key when it starts with one of the prefixes
+    /// and holds only lower-case letters, digits, `-` and `_`.
+    #[test]
+    fn every_text_key_literal_of_ew_api_is_in_text_keys() {
+        fn scan(dir: &std::path::Path, files: &mut Vec<std::path::PathBuf>) {
+            for entry in std::fs::read_dir(dir).expect("the ew-api sources") {
+                let path = entry.expect("a directory entry").path();
+                if path.is_dir() {
+                    scan(&path, files);
+                } else if path.extension().is_some_and(|e| e == "rs") {
+                    files.push(path);
+                }
+            }
+        }
+        let mut prefixes: Vec<String> = ["reason-", "toast-", "category-"].map(str::to_owned).to_vec();
+        for key in ew_api::TEXT_KEYS {
+            let (head, _) = key.split_once('-').expect("a key with a prefix");
+            let prefix = format!("{head}-");
+            if !prefixes.contains(&prefix) {
+                prefixes.push(prefix);
+            }
+        }
+        let src = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../ew-api/src");
+        let mut files = Vec::new();
+        scan(&src, &mut files);
+        files.sort();
+        assert!(files.iter().any(|f| f.ends_with("lib.rs")), "{}", src.display());
+        let mut found = 0;
+        let mut missing = Vec::new();
+        for file in &files {
+            let text = std::fs::read_to_string(file).expect("an ew-api source");
+            for line in text.lines() {
+                // The odd pieces between quotes are the literals of the line.
+                for literal in line.split('"').skip(1).step_by(2) {
+                    let is_key = prefixes
+                        .iter()
+                        .any(|p| literal.len() > p.len() && literal.starts_with(p.as_str()))
+                        && literal
+                            .bytes()
+                            .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-' || b == b'_');
+                    if !is_key {
+                        continue;
+                    }
+                    found += 1;
+                    if !ew_api::TEXT_KEYS.contains(&literal) {
+                        let name = file.strip_prefix(&src).unwrap_or(file).display().to_string();
+                        let line = format!("the ew-api key {literal} ({name}) is not in TEXT_KEYS");
+                        if !missing.contains(&line) {
+                            missing.push(line);
+                        }
+                    }
+                }
+            }
+        }
+        assert!(found > 0, "the scan found no key literal");
         assert_eq!(missing, Vec::<String>::new());
     }
 

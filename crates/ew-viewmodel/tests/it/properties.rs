@@ -386,10 +386,15 @@ fn pg8_refusals_notes_and_read_only_rows() {
         "{:?}",
         shell.properties().notes()
     );
-    // Read-only rows.
+    // A row that cannot be edited, in an editable project: computed, not read-only (ID-1106: "in an editable
+    // project, a row that cannot be edited gives the reason ... with a new key `reason-row-computed`").
     assert_eq!(
         refused(&mut shell, "props.set", json!({"row": "device/id", "value": "x"})),
-        "reason-read-only"
+        "reason-row-computed"
+    );
+    assert_eq!(
+        ew_viewmodel::strings::text(key!("reason-row-computed")),
+        "This value is computed from the drawing; it cannot be edited here."
     );
     done(&mut shell, "props.project", json!({}));
     assert_eq!(
@@ -706,6 +711,11 @@ fn a_read_only_project_offers_no_action() {
         ),
         "reason-read-only"
     );
+    // ID-1106: "A read-only project keeps `reason-read-only`".
+    assert_eq!(
+        ew_viewmodel::strings::text(key!("reason-read-only")),
+        "The project is open read-only"
+    );
     shell.shutdown();
 }
 
@@ -874,6 +884,7 @@ fn selected_page_item_properties_refresh_after_edit() {
             EditRoute::ReadOnly(FieldReadOnly::Narrowed { .. })
         ));
     }
+    // ID-1106: in an editable project a row that cannot be edited gives `reason-row-computed`.
     for path in ["page", "kind"] {
         assert_eq!(
             refused(
@@ -883,7 +894,7 @@ fn selected_page_item_properties_refresh_after_edit() {
                     "row": format!("page_item/{path}"), "value": "x"
                 })
             ),
-            "reason-read-only"
+            "reason-row-computed"
         );
     }
     assert_eq!(

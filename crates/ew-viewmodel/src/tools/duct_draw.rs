@@ -19,7 +19,9 @@ use ew_api::output::PanelTables;
 use serde_json::{Value, json};
 
 use super::layout::{sheet_of_surface, surface_of_sheet};
-use super::rail_draw::{DrawPart, dominant, midpoint, mm_of, point_json, reach_at, snap_lines, snap_point};
+use super::rail_draw::{
+    DrawPart, dominant, drawable, midpoint, mm_of, point_json, reach_at, snap_lines, snap_point,
+};
 use super::{
     Anchor, Button, CanvasEvent, Ghost, Mods, Overlay, OverlayItem, Style, Token, Tool, ToolCx, ToolKey,
     ToolOutput,
@@ -170,6 +172,9 @@ impl DuctDrawTool {
     fn finish(&mut self, panel: &PanelTables) -> ToolOutput {
         if self.points.len() < 2 {
             return ToolOutput::Refused(key!("reason-duct-two-points"));
+        }
+        if !drawable(&self.points) {
+            return ToolOutput::Refused(key!("reason-point-outside-drawing"));
         }
         let (w, h) = self.size();
         let mut params = json!({

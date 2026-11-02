@@ -166,11 +166,22 @@ pub(crate) fn mm_of(panel: &PanelTables, nm: i128) -> String {
     }
 }
 
-/// A point of the surface as a JSON pair, each coordinate saturated to the `i64` range (C44-p2#1): a point far off
-/// the plate (a large scale, a far datum) then reaches the command, which refuses it in its own words, where an
-/// `i128` beyond `i64` would make no JSON number.
+/// A point of the surface as a JSON pair, each coordinate saturated to the `i64` range (C44-p2#1), so that an
+/// `i128` beyond `i64` still makes a JSON number; the tools refuse such a point first ([`drawable`]).
 pub(crate) fn point_json(p: (i128, i128)) -> Value {
     json!([clamp64(p.0), clamp64(p.1)])
+}
+
+/// The largest coordinate magnitude a carrier path takes, nm: `layout.carrier.add`'s range (2^53 - 1).
+const DRAWABLE: i128 = (1 << 53) - 1;
+
+/// Whether every point lies inside the drawable range. The draw tools refuse a point outside it in words, with
+/// `reason-point-outside-drawing`, before they send the command (ID-1106); the command's own range text stays for
+/// scripts.
+pub(crate) fn drawable(points: &[(i128, i128)]) -> bool {
+    points
+        .iter()
+        .all(|p| p.0.abs() <= DRAWABLE && p.1.abs() <= DRAWABLE)
 }
 
 /// The midpoint of two sheet points, computed in `i128` so that two far points cannot overflow (C44-p2#1).
@@ -282,6 +293,9 @@ impl RailDrawTool {
         };
         if p == start {
             return ToolOutput::Transient(self.overlay(cx, panel));
+        }
+        if !drawable(&[start, p]) {
+            return ToolOutput::Refused(key!("reason-point-outside-drawing"));
         }
         let mut params = json!({
             "surface": panel.surface.to_string(),

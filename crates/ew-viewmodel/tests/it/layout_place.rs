@@ -794,12 +794,14 @@ fn footprint_centre(shell: &ShellModel, tag: &str) -> (i64, i64) {
     )
 }
 
-/// A refused turn names the keymap's keys on every path: with `tool.rotate_cw` rebound to Q, the rotate key on a rail
-/// reads the same whole text from `layout.rotate` on the selected placement (the shell), from the layout place tool's
-/// floating ghost and from Select's drag of a placement (the tools); the reason itself names no keys.
+/// A refused turn names the keymap's keys on every path: with `tool.rotate_cw` rebound to Q and `tool.mirror_x` to K,
+/// the rotate key on a rail reads the same whole text from `layout.rotate` on the selected placement (the shell), from
+/// the layout place tool's floating ghost and from Select's drag of a placement (the tools); the reason itself names
+/// no keys.
 #[test]
 fn a_refused_turn_names_the_rebound_keys_on_every_path() {
-    const TEXT: &str = "Q turns a placement on the plate; X flips one on a rail.";
+    // ID-1106: the second key comes from `tool.mirror_x`, rebound here to K.
+    const TEXT: &str = "Q turns a placement on the plate; K flips one on a rail.";
     let tmp = Tmp::new("layout-turn-keys");
     let mut shell = writable(&tmp);
     assert_eq!(
@@ -816,6 +818,16 @@ fn a_refused_turn_names_the_rebound_keys_on_every_path() {
         &mut shell,
         "keymap.record",
         json!({"action": "tool.rotate_cw", "keys": "Q"}),
+    );
+    done(
+        &mut shell,
+        "keymap.record_start",
+        json!({"action": "tool.mirror_x"}),
+    );
+    done(
+        &mut shell,
+        "keymap.record",
+        json!({"action": "tool.mirror_x", "keys": "K"}),
     );
     done(&mut shell, "ui.dismiss", json!({}));
     let turn_refused = Outcome::Refused {

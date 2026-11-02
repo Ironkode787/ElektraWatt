@@ -20,6 +20,30 @@ fn field<'a, 'h>(h: &'h egui_kittest::Harness<'a, ew_ui::app::App>, name: &str) 
         .unwrap_or_else(|| panic!("no field {name}"))
 }
 
+/// Runs the frame until `done` holds of the shell, bounded like `support::wait_for_page` (600 frames, 20 ms apart),
+/// then settles. ID-1106 (FT-1018): after Create or Enter the test waits on the state, not on one `settle` frame.
+#[track_caller]
+fn wait_until(
+    h: &mut egui_kittest::Harness<'_, ew_ui::app::App>,
+    what: &str,
+    done: impl Fn(&ew_ui::ew_viewmodel::shell::ShellModel) -> bool,
+) {
+    for _ in 0..600 {
+        h.run_ok();
+        if done(h.state().shell()) {
+            settle(h);
+            return;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(20));
+    }
+    panic!("{what} did not happen (dialog {:?})", h.state().shell().dialog());
+}
+
+/// Whether the open form shows a refusal.
+fn form_refused(shell: &ew_ui::ew_viewmodel::shell::ShellModel) -> bool {
+    matches!(shell.dialog(), Some(Dialog::Form(f)) if f.error.is_some())
+}
+
 fn form_values(h: &egui_kittest::Harness<'_, ew_ui::app::App>) -> Vec<(String, String)> {
     match h.state().shell().dialog() {
         Some(Dialog::Form(f)) => f
@@ -64,8 +88,7 @@ fn page_new_asks_for_the_fields_enter_creates_and_escape_cancels() {
     assert_eq!(values[1], ("type".into(), "multi_line".into()));
     assert_eq!(values[2], ("title".into(), "Typed in the window".into()));
     h.key_press(Key::Enter);
-    settle(&mut h);
-    assert!(h.state().shell().dialog().is_none());
+    wait_until(&mut h, "the dialog's close", |s| s.dialog().is_none());
     assert_eq!(h.state().shell().page_count(), before + 1);
     assert_eq!(h.state().shell().current_folio(), Some("999"));
     // A second time Escape cancels and creates nothing.
@@ -102,7 +125,7 @@ fn a_refusal_stays_in_the_dialog_and_the_type_is_a_choice() {
     field(&h, "Folio").type_text(&existing);
     settle(&mut h);
     h.get_by_label("Create").click();
-    settle(&mut h);
+    wait_until(&mut h, "the refusal", form_refused);
     assert_eq!(h.state().shell().page_count(), before);
     match h.state().shell().dialog() {
         Some(Dialog::Form(f)) => assert!(
@@ -140,8 +163,7 @@ fn the_insert_entries_open_the_structure_and_external_reference_dialogs() {
     field(&h, "Designation").type_text("J-E-999");
     settle(&mut h);
     h.key_press(Key::Enter);
-    settle(&mut h);
-    assert!(h.state().shell().dialog().is_none());
+    wait_until(&mut h, "the dialog's close", |s| s.dialog().is_none());
     support::open_menu(&mut h, &["Project", "Project"]);
     settle(&mut h);
     h.get_by_label("External reference…").click();
@@ -152,12 +174,7 @@ fn the_insert_entries_open_the_structure_and_external_reference_dialogs() {
     field(&h, "Device").type_text("JE-N1000-99");
     settle(&mut h);
     h.key_press(Key::Enter);
-    settle(&mut h);
-    assert!(
-        h.state().shell().dialog().is_none(),
-        "{:?}",
-        h.state().shell().dialog()
-    );
+    wait_until(&mut h, "the dialog's close", |s| s.dialog().is_none());
     assert!(h.state().shell().is_dirty());
     h.state_mut().shell_mut().shutdown();
 }
