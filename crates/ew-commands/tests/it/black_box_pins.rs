@@ -470,40 +470,8 @@ fn texts_model() -> Model {
     Model::from_records(p, records, lib).expect("valid model")
 }
 
-/// Each text slot the drawing places from its slot position, as the drawing reads it (`ew-scene`'s labels): the page
-/// point `pos + orient(slot pos)` and the angle in the page's frame before the readability turn, so equal values
-/// draw the same text at the same place, aligned alike.
-fn drawn_slots(e: &Engine, rep: Id<Representation>) -> Vec<(u16, Pt2, i32)> {
-    let r = row(e, rep);
-    let def = e
-        .model()
-        .table::<ew_schema::LibCopy<ew_schema::SymbolDef>>()
-        .get(&r.symbol)
-        .expect("the symbol")
-        .item
-        .clone();
-    (0u16..)
-        .zip(&def.text_slots)
-        .map(|(i, slot)| {
-            let ov = r.text_slots.iter().find(|o| o.slot == i);
-            let pos = ov.and_then(|o| o.pos).unwrap_or(slot.pos);
-            let angle = ov.and_then(|o| o.angle).unwrap_or(slot.rot).normalized().0;
-            let page_angle = (angle - i32::from(r.orient.quarter_turns()) * 90_000).rem_euclid(360_000);
-            (i, r.pos + r.orient.apply(pos), page_angle)
-        })
-        .collect()
-}
-
-/// FT-867 (ID-1108: "a device's texts keep their place relative to its box after a half turn"): a half turn keeps the
-/// black box's bounding box, and every text the drawing places from its slot position (the function text, the
-/// cross-reference and a moved tag) keeps its place and its reading angle; the part number, a caption the drawing
-/// places from the outline, is left alone. A second half turn brings the box and its texts back.
-#[test]
-fn ft867_a_half_turn_keeps_the_texts_of_a_black_box_in_place() {
-    let mut e = engine(texts_model());
-    let (pos, spec) = play_box();
-    let (rep, _) = place_box(&mut e, pos, spec);
-    // the tag moved by the user
+/// The tag of `rep` moved by the user, through the generic field edit.
+fn move_tag(e: &mut Engine, rep: Id<Representation>) {
     e.execute(&ew_commands::commands::SetFields {
         kind: ew_commands::commands::KindName::Representation,
         targets: vec![rep.cast()],
@@ -512,20 +480,38 @@ fn ft867_a_half_turn_keeps_the_texts_of_a_black_box_in_place() {
         copies: Vec::new(),
     })
     .expect("the tag moved");
+}
+
+/// FT-867 (ID-1137): a half turn of a black box writes no text override; the drawing places its texts as on the same
+/// box unturned (`ew_derive::text_frame`, tested through the page scene in `ew-api`'s `half_turned_black_box`).
+#[test]
+fn ft867_a_half_turn_of_a_black_box_writes_no_text_override() {
+    for moved in [false, true] {
+        let mut e = engine(texts_model());
+        let (pos, spec) = play_box();
+        let (rep, _) = place_box(&mut e, pos, spec);
+        if moved {
+            move_tag(&mut e, rep);
+        }
+        let start = row(&e, rep).text_slots;
+        e.execute(&transform(rep, 2, false)).expect("a half turn");
+        let after = row(&e, rep);
+        assert_eq!(after.orient, Orient2::R180);
+        assert_eq!(after.text_slots, start, "moved tag: {moved}");
+    }
+}
+
+/// FT-867 (ID-1137): a second half turn gives back the record as it was before the first.
+#[test]
+fn ft867_a_second_half_turn_gives_back_the_original_record() {
+    let mut e = engine(texts_model());
+    let (pos, spec) = play_box();
+    let (rep, _) = place_box(&mut e, pos, spec);
+    move_tag(&mut e, rep);
     let start = row(&e, rep);
-    let before = drawn_slots(&e, rep);
-    let kept =
-        |v: &[(u16, Pt2, i32)]| -> Vec<(u16, Pt2, i32)> { v.iter().filter(|s| s.0 != 3).copied().collect() };
     e.execute(&transform(rep, 2, false)).expect("a half turn");
-    assert_eq!(kept(&drawn_slots(&e, rep)), kept(&before));
-    assert!(
-        row(&e, rep).text_slots.iter().all(|o| o.slot != 3),
-        "the part number caption is placed from the outline"
-    );
     e.execute(&transform(rep, 2, false)).expect("a second half turn");
-    let back = row(&e, rep);
-    assert_eq!((back.pos, back.orient), (start.pos, start.orient));
-    assert_eq!(kept(&drawn_slots(&e, rep)), kept(&before));
+    assert_eq!(row(&e, rep), start);
 }
 
 #[test]
@@ -625,7 +611,7 @@ fn an_off_grid_wire_corner_is_refused_in_words() {
     }));
     assert_eq!(
         reason,
-        "the wire's corner at x 15.9, y 7.9 mm on page 102 is not on the drawing grid"
+        "the wire's corner at x 15.9, y 7.9 mm on page 102 is not on the drawing grid; move the corner onto the grid"
     );
 }
 
@@ -649,7 +635,7 @@ fn an_off_grid_position_is_refused_in_words() {
     }));
     assert_eq!(
         reason,
-        "the position at x 8.4, y 15.9 mm on page 102 is not on the drawing grid"
+        "the position at x 8.4, y 15.9 mm on page 102 is not on the drawing grid; move it onto the grid"
     );
 }
 
@@ -692,7 +678,7 @@ fn an_off_grid_paste_point_is_refused_in_words() {
             assert_eq!(path, "/at");
             assert_eq!(
                 message,
-                "the paste point at x 8.4, y 15.9 mm on page 101 is not on the drawing grid"
+                "the paste point at x 8.4, y 15.9 mm on page 101 is not on the drawing grid; paste at a point on the grid"
             );
         }
         other => panic!("{other:?}"),

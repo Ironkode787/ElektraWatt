@@ -44,6 +44,7 @@ use serde_json::Value;
 use crate::Q;
 use crate::note::DeriveNote;
 use crate::query::{Policy, Query};
+use crate::text_frame::{TextFrame, text_frame};
 
 /// One cell of a page's frame grid.
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
@@ -426,6 +427,8 @@ fn letter(r: u32, skip_io: bool) -> Option<String> {
 ///   position, it is a point of the symbol frame that the orientation then transforms (doc 07 §4.1 "the
 ///   anchor transforms with the variant's matrix like any point"; the override only moves the slot,
 ///   doc 06 §2.5).
+///   The slot's point is placed in the representation's [`text_frame`] (FT-867, ID-1137): on a black box turned
+///   by a half turn, as on the same box unturned.
 /// - `GraphicCentre`: the centre of the integer bounding box of the symbol's graphics (lines, polylines,
 ///   polygons, rectangle corners, circle centre ± radius, ellipse and arc bounding rectangles, text
 ///   positions, image rectangles), `(min + max) / 2` with ties toward zero; the origin for no graphics.
@@ -439,17 +442,26 @@ pub fn anchor_point(q: &Q, rep: Id<Representation>) -> Option<Pt2> {
 /// [`anchor_point`], shared with the command layer's model-only cell lookup
 /// (`ew_commands::numbering::anchor_cell`). `None` on overflow.
 pub fn anchor_point_of(symbol: &SymbolDef, rep: &Representation) -> Option<Pt2> {
-    let anchor = symbol_anchor(symbol, rep)?;
-    let offset = rep.orient.checked_apply(anchor)?;
-    rep.pos.checked_add(offset)
+    let (anchor, slot) = symbol_anchor(symbol, rep)?;
+    let frame = if slot {
+        text_frame(rep, symbol)
+    } else {
+        TextFrame {
+            origin: rep.pos,
+            orient: rep.orient,
+        }
+    };
+    frame.place(anchor)
 }
 
 /// The anchor in symbol coordinates, from the representation's own policy (`Representation.anchor`, set by
-/// `rep.set_anchor_policy`) or else its symbol copy's.
-fn symbol_anchor(symbol: &SymbolDef, rep: &Representation) -> Option<Pt2> {
+/// `rep.set_anchor_policy`) or else its symbol copy's, and whether it is a slot's position: a slot is placed in the
+/// representation's [`text_frame`] (FT-867, ID-1137: on a half-turned black box, as on the box unturned), every other
+/// anchor in its own frame.
+fn symbol_anchor(symbol: &SymbolDef, rep: &Representation) -> Option<(Pt2, bool)> {
     match rep.anchor.as_ref().unwrap_or(&symbol.anchor) {
-        AnchorPolicy::Origin | AnchorPolicy::Unknown(_) => Some(Pt2::ORIGIN),
-        AnchorPolicy::Named(p) => Some(*p),
+        AnchorPolicy::Origin | AnchorPolicy::Unknown(_) => Some((Pt2::ORIGIN, false)),
+        AnchorPolicy::Named(p) => Some((*p, false)),
         AnchorPolicy::Slot(kind) => {
             let Some((index, slot)) = symbol
                 .text_slots
@@ -457,7 +469,7 @@ fn symbol_anchor(symbol: &SymbolDef, rep: &Representation) -> Option<Pt2> {
                 .enumerate()
                 .find(|(_, s)| s.kind == *kind)
             else {
-                return Some(Pt2::ORIGIN);
+                return Some((Pt2::ORIGIN, false));
             };
             let moved = u16::try_from(index).ok().and_then(|index| {
                 rep.text_slots
@@ -466,9 +478,9 @@ fn symbol_anchor(symbol: &SymbolDef, rep: &Representation) -> Option<Pt2> {
                     .find(|o| o.slot == index)
                     .and_then(|o| o.pos)
             });
-            Some(moved.unwrap_or(slot.pos))
+            Some((moved.unwrap_or(slot.pos), true))
         }
-        AnchorPolicy::GraphicCentre => graphic_centre(&symbol.graphics),
+        AnchorPolicy::GraphicCentre => graphic_centre(&symbol.graphics).map(|p| (p, false)),
     }
 }
 

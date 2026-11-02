@@ -335,7 +335,7 @@ fn draw_to_ip_rejections_write_nothing() {
     cmd.ip.pos = pt(5 * G + 1, 0);
     assert_eq!(
         rejection(e.execute(&cmd)),
-        "the position at x 39.7, y 0 mm on page 102 is not on the drawing grid"
+        "the position at x 39.7, y 0 mm on page 102 is not on the drawing grid; move it onto the grid"
     );
     // A FnDef with two CPs.
     let mut cmd = good();
@@ -836,7 +836,7 @@ fn ft863_a_drifted_box_reshapes_with_its_untouched_vertices_kept() {
     ];
     assert_eq!(
         rejection(e.execute(&reshape(touched_off_grid, None))),
-        "the outline's corner at x 60.9, y 7.9 mm on page 102 is not on the drawing grid"
+        "the outline's corner at x 60.9, y 7.9 mm on page 102 is not on the drawing grid; move it onto the grid"
     );
 }
 
@@ -860,7 +860,7 @@ fn reshape_rejections_write_nothing() {
     outline[2] = pt(outline[2].x.0, outline[2].y.0 + 1);
     assert_eq!(
         rejection(e.execute(&reshape(outline, None))),
-        "the outline's corner at x 60.9, y 39.7 mm on page 102 is not on the drawing grid"
+        "the outline's corner at x 60.9, y 39.7 mm on page 102 is not on the drawing grid; move it onto the grid"
     );
     // Two CPs with one index.
     invalid_at(
@@ -893,7 +893,7 @@ fn reshape_rejections_write_nothing() {
                 box_cp(2, pt(2 * G + 1, 0), Dir4::Up),
             ]),
         ))),
-        "the box's connection point at x 23.8, y 7.9 mm on page 102 is not on the drawing grid"
+        "the box's connection point at x 23.8, y 7.9 mm on page 102 is not on the drawing grid; move it onto the grid"
     );
     // `cps` that leave out CP 6, at which a connection on the page ends.
     rejected_with(

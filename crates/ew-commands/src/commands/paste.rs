@@ -711,7 +711,10 @@ impl Insertion<'_> {
         if !point_in_range(self.at) || !point_on_grid(grid, self.at) {
             return Err(self.invalid(
                 "/at",
-                crate::geometry::off_grid(tx, "the paste point", self.page, self.at),
+                format!(
+                    "{}; paste at a point on the grid",
+                    crate::geometry::off_grid(tx, "the paste point", self.page, self.at)
+                ),
             ));
         }
         let anchor = self.fragment.anchor;

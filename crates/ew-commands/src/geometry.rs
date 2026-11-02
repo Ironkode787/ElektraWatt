@@ -7,7 +7,7 @@
 //!
 //! **Range.** Every stored coordinate lies within ±[`MAX_COORD`] = ±(2⁵³ − 1) nm, the range a record can
 //! be written in (ADR-0005). The arithmetic here is checked: a result outside that range is
-//! [`OutOfRange`], which the commands turn into a `Rejected` naming the parameter. Point tests treat a
+//! [`OutOfRange`], which the commands turn into a `Rejected` in words. Point tests treat a
 //! point outside the range as lying on nothing, which also keeps their `i128` products from overflowing.
 
 use std::sync::Arc;
@@ -30,7 +30,7 @@ impl std::fmt::Display for OutOfRange {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "a coordinate would leave the drawable range of ±{MAX_COORD} nm"
+            "a coordinate would leave the drawable range; move it nearer the page origin"
         )
     }
 }
@@ -376,13 +376,10 @@ pub fn point_on_grid(grid: Grid, p: Pt2) -> bool {
     on_grid(grid, p.x) && on_grid(grid, p.y)
 }
 
-fn fmt_pt(p: Pt2) -> String {
-    format!("[{}, {}]", p.x.0, p.y.0)
-}
-
 /// The refusal of a point off the grid of `page`, in words (a refusal reaches the window's banner, FT-756): what
 /// the point is, its position in mm and its page, no nm and no JSON Pointer ("the wire's corner at x 77, y 161 mm
-/// on page 101 is not on the drawing grid").
+/// on page 101 is not on the drawing grid"). A fragment: each caller ends it with the step the user can take
+/// (FT-1054, ID-1108).
 pub(crate) fn off_grid(tx: &TxBuilder<'_>, what: &str, page: Id<Page>, p: Pt2) -> String {
     format!(
         "{what} at {} is not on the drawing grid",
@@ -407,20 +404,26 @@ fn what_of(field: &str) -> &'static str {
 /// D3 (doc 06 §5.7: CPs never leave the connection grid, in any tool and any origin): a position at which
 /// a command places or to which it moves a representation must lie on the connection grid of its page
 /// (`Page.grid`, ADR-0027) and within ±[`MAX_COORD`]. Front-ends snap before they submit. `field` is the
-/// JSON Pointer of the parameter (`/pos`), named in the range refusal; the grid refusal names the point in words
-/// (as in "the position at x 8.4, y 15.9 mm on page 102 is not on the drawing grid").
+/// JSON Pointer of the parameter (`/pos`), from which both refusals name the point in words: the range
+/// refusal by its position in mm ("the position at x 9007199254.7, y 0 mm lies outside the drawable range; move it
+/// nearer the page origin"), the grid refusal by its position and page ("the position at x 8.4, y 15.9 mm on page
+/// 102 is not on the drawing grid; move it onto the grid").
 pub fn require_on_grid(tx: &TxBuilder<'_>, page: Id<Page>, pos: Pt2, field: &str) -> Result<(), CmdError> {
     let grid = tx.require::<Page>(page)?.grid;
     if !point_in_range(pos) {
         return tx.reject(format!(
-            "`{field}` {} lies outside the drawable range of ±{MAX_COORD} nm",
-            fmt_pt(pos)
+            "{} at {} lies outside the drawable range; move it nearer the page origin",
+            what_of(field),
+            crate::words::position(pos)
         ));
     }
     if point_on_grid(grid, pos) {
         return Ok(());
     }
-    tx.reject(off_grid(tx, what_of(field), page, pos))
+    tx.reject(format!(
+        "{}; move it onto the grid",
+        off_grid(tx, what_of(field), page, pos)
+    ))
 }
 
 /// D3 for a split point: the point at which a junction is placed on connection `w` (drawn on `page`) by
@@ -552,7 +555,10 @@ pub fn require_route(
         let ok_x = on_grid(grid, v.x) || exact.iter().any(|c| c.x == v.x);
         let ok_y = on_grid(grid, v.y) || exact.iter().any(|c| c.y == v.y);
         if !(ok_x && ok_y) {
-            return tx.reject(off_grid(tx, what(i), page, *v));
+            return tx.reject(format!(
+                "{}; move the corner onto the grid",
+                off_grid(tx, what(i), page, *v)
+            ));
         }
     }
     match route_defect(route) {

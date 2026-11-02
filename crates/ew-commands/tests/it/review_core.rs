@@ -148,7 +148,10 @@ fn f1_two_moves_by_max_safe_integer_reject_the_second() {
     assert_eq!(row(&e, REP_102F2_AUX).pos, pt(d, 0));
     let before = lines(e.model());
     let reason = rejection(e.execute(&move_reps(vec![REP_102F2_AUX], pt(d, 0))));
-    assert!(reason.contains("/delta"), "got: {reason}");
+    assert_eq!(
+        reason,
+        "the move takes the symbol of -102F2 outside the drawable range; move it less far"
+    );
     assert_eq!(lines(e.model()), before, "a refused move changes nothing");
 }
 
@@ -159,8 +162,61 @@ fn f1_a_single_move_by_max_coord_from_a_positive_position_is_rejected() {
         .expect("move to G");
     let before = lines(e.model());
     let reason = rejection(e.execute(&move_reps(vec![REP_102F2_AUX], pt(MAX_COORD, 0))));
-    assert!(reason.contains("/delta"), "got: {reason}");
+    assert_eq!(
+        reason,
+        "the move takes the symbol of -102F2 outside the drawable range; move it less far"
+    );
     assert_eq!(lines(e.model()), before);
+}
+
+/// C45-p3#3 (ID-1137): a step move that keeps the position in range but takes a connection point outside it is
+/// refused in words, without the JSON pointer `/steps`, ending with what the user can do.
+#[test]
+fn f1_a_step_move_that_takes_a_connection_point_out_of_range_is_refused_in_words() {
+    let (dev, f, r): (Id<Device>, Id<Function>, Id<Representation>) = (id(0x7402), id(0x7412), id(0x7422));
+    // CP 1 of the two-CP symbol lies 10 mm below the insertion point: in range three steps of `G` below the largest
+    // grid coordinate, out of range one step of `G` below it.
+    let top = largest_on_grid(Grid::QET_10PX);
+    let mut e = engine(golden_with(|records| {
+        records.push(Record::Device(device(dev, "K", 7)));
+        records.push(Record::Function(function(f, dev, fndef_two(), FnRole::Main)));
+        let mut rec = rep(r, PAGE_102, vec![f]);
+        rec.symbol = SYM_TWO;
+        rec.pos = pt(0, top - 3 * G);
+        records.push(Record::Representation(rec));
+    }));
+    let before = lines(e.model());
+    let reason = rejection(e.execute(&MoveReps {
+        items: Vec::new(),
+        reps: vec![r],
+        delta: Pt2::ORIGIN,
+        page: None,
+        steps: Some([0, 6]),
+    }));
+    assert_eq!(
+        reason,
+        "the move takes a connection point of the symbol of -102K7 outside the drawable range; move it fewer grid \
+         steps"
+    );
+    assert_eq!(lines(e.model()), before);
+}
+
+/// C45-p3#3 (ID-1137): `require_on_grid`'s range refusal names the item and its position in mm, no JSON pointer or
+/// nanometres, and ends with what the user can do.
+#[test]
+fn d3_a_position_outside_the_drawable_range_is_refused_in_words() {
+    let mut e = engine(golden_model());
+    assert_eq!(
+        rejection(e.execute(&place_k("K", PAGE_102, pt(MAX_COORD + 1, 0)))),
+        "the position at x 9007199254.7, y 0 mm lies outside the drawable range; move it nearer the page origin"
+    );
+    // A position in range whose connection point (10 mm below it) is not.
+    let top = largest_on_grid(Grid::QET_10PX);
+    assert_eq!(
+        rejection(e.execute(&place_k("K", PAGE_102, pt(0, top - G)))),
+        "the position puts a connection point of the symbol outside the drawable range; place it nearer the page \
+         origin"
+    );
 }
 
 #[test]
@@ -452,7 +508,14 @@ fn place_ip(pos: Pt2) -> PlaceIp {
 fn d3_off_grid_positions_are_rejected() {
     // device.place
     let mut e = engine(golden_model());
-    let off = |what: &str, at: &str| format!("{what} at {at} on page 102 is not on the drawing grid");
+    let off = |what: &str, at: &str| {
+        format!("{what} at {at} on page 102 is not on the drawing grid; move it onto the grid")
+    };
+    let corner_off = |at: &str| {
+        format!(
+            "the wire's corner at {at} on page 102 is not on the drawing grid; move the corner onto the grid"
+        )
+    };
     assert_eq!(
         rejection(e.execute(&place_k("K", PAGE_102, pt(1, 0)))),
         off("the position", "x 0, y 0 mm")
@@ -492,7 +555,7 @@ fn d3_off_grid_positions_are_rejected() {
     };
     assert_eq!(
         rejection(e.execute(&draw(vec![pt(G, G), pt(2 * G + 1, G), pt(4 * G, G)]))),
-        off("the wire's corner", "x 15.9, y 7.9 mm")
+        corner_off("x 15.9, y 7.9 mm")
     );
     let r = e
         .execute(&draw(vec![pt(G, G), pt(2 * G, G), pt(4 * G, G)]))
@@ -523,7 +586,7 @@ fn d3_off_grid_positions_are_rejected() {
     let last = *c.route.last().expect("a route");
     assert_eq!(
         rejection(e.execute(&route(vec![pt(G, G), pt(2 * G, G + 1), last]))),
-        off("the wire's corner", "x 15.9, y 7.9 mm")
+        corner_off("x 15.9, y 7.9 mm")
     );
     // FT-864 (ID-1108: "a refusal text is words, with no JSON pointer, UUID, requirement ID or nanometres")
     assert_eq!(

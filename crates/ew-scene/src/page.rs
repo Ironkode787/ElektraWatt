@@ -67,8 +67,11 @@
 //! - **Slot texts.** A slot is shown when its override says so, else when it belongs to the
 //!   representation's arrangement (FR-SYM-012), else by the symbol's default; an empty value prints
 //!   nothing. Position and angle overrides are in the symbol frame. Placement follows
-//!   [`crate::symbol`]: the position turns with the orientation, the angle is made readable, the alignment
-//!   flips (doc 07 §4.1); the style is the slot's own `style` when it names a known text style, else
+//!   [`crate::symbol`] in the representation's text frame (`ew_derive::text_frame`): the position turns with the
+//!   orientation, the angle is made readable, the alignment flips (doc 07 §4.1). The text frame is the
+//!   representation's own, except on a black box turned by a half turn without a mirror (FT-867, ID-1137): its texts
+//!   are placed as on the same box unturned (origin `2C − pos`, `C` the box's centre on the page, no turn), so they
+//!   keep their place relative to the box and their collision rules; the style is the slot's own `style` when it names a known text style, else
 //!   [`symbol::default_style_key`] of the slot kind (an unknown name is reported as
 //!   [`PageFinding::UnknownSlotStyle`], ID-227). `max_width` is not applied yet.
 //!   A text that lists several items carries one link per item ([`SlotValue::item_links`], FT-86): an invisible
@@ -965,6 +968,8 @@ impl Builder<'_> {
             let rep = &rv.rep;
             let entity = EntityRef(rep.id.as_uuid());
             let black_box = def.cps.is_empty() && rep.box_.is_some();
+            // FT-867 (ID-1137): a half-turned black box places its texts as on the same box unturned.
+            let frame = ew_derive::text_frame(rep, def);
             let arrangement: Option<BTreeSet<u16>> = rep.arrangement.as_ref().and_then(|name| {
                 def.arrangements
                     .iter()
@@ -997,9 +1002,9 @@ impl Builder<'_> {
                 texts.push(SlotText {
                     symbol: rep.symbol.as_uuid(),
                     value,
-                    at: rep.pos + rep.orient.apply(pos),
-                    angle: symbol::readable_angle(rot, rep.orient),
-                    align: symbol::placed_align(&slot.align, rot, rep.orient),
+                    at: frame.origin + frame.orient.apply(pos),
+                    angle: symbol::readable_angle(rot, frame.orient),
+                    align: symbol::placed_align(&slot.align, rot, frame.orient),
                     style_key,
                     unknown,
                     entity,

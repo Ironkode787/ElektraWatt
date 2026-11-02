@@ -1489,9 +1489,10 @@ fn page_rect(q: &Q, page: PageRef) -> Rect {
     }
 }
 
-/// The position in the symbol frame of the tag text `rep` prints with `def` (FT-502), by the scene's rules
-/// (`ew_scene::page`'s labels): the first tag slot, visible by the representation's override, else by its named
-/// arrangement, else by the slot's default; the override's position, else the slot's. With it the em height (nm)
+/// The page point of the tag text `rep` prints with `def` (FT-502), by the scene's rules (`ew_scene::page`'s
+/// labels): the first tag slot, visible by the representation's override, else by its named arrangement, else by the
+/// slot's default; the override's position, else the slot's, placed in the representation's text frame
+/// (`ew_derive::text_frame`, FT-867: on a half-turned black box, as on the box unturned). With it the em height (nm)
 /// of the slot's text style in the project's table `styles`.
 fn tag_anchor(rep: &Representation, def: &SymbolDef, styles: &ew_text::TextStyleTable) -> Option<(Pt2, i64)> {
     let (i, slot) = def
@@ -1509,7 +1510,8 @@ fn tag_anchor(rep: &Representation, def: &SymbolDef, styles: &ew_text::TextStyle
     });
     let (style, _) = ew_scene::symbol::slot_style_key(slot, styles);
     let em = styles.resolve(style).map_or(0, |t| t.size.0.max(0));
-    visible.then(|| (ov.and_then(|o| o.pos).unwrap_or(slot.pos), em))
+    let at = ew_derive::text_frame(rep, def).place(ov.and_then(|o| o.pos).unwrap_or(slot.pos))?;
+    visible.then_some((at, em))
 }
 
 /// The body of a shape under orientation `o`, translated to `pos`.
@@ -1612,11 +1614,8 @@ impl Session {
                 })
                 .flatten()
                 .map(|(p, em)| {
-                    let r = orient_point(o, pt(p));
-                    (
-                        r.0.saturating_add(pos.0),
-                        r.1.saturating_add(pos.1).saturating_sub(em),
-                    )
+                    let (x, y) = pt(p);
+                    (x, y.saturating_sub(em))
                 });
             reps.push(TableRep {
                 id: rid.as_uuid(),

@@ -1040,7 +1040,7 @@ fn the_same_move_as_one_nm_delta_is_refused() {
     match e.execute(&delta) {
         Err(CmdError::Rejected { reason, .. }) => assert_eq!(
             reason,
-            "the position at x 13.2, y 15.9 mm on page 102 is not on the drawing grid"
+            "the position at x 13.2, y 15.9 mm on page 102 is not on the drawing grid; move it onto the grid"
         ),
         other => panic!("expected a rejection, got {other:?}"),
     }
@@ -1133,11 +1133,14 @@ fn move_by_steps_rejections() {
     // An empty list, an unknown representation.
     rejected_with(e.execute(&steps_cmd(vec![], [1, 0])), "at least one");
     not_found(e.execute(&steps_cmd(vec![id(0x999)], [1, 0])));
-    // A move out of the drawable range.
-    rejected_with(
-        e.execute(&steps_cmd(vec![REP_102F2], [i64::MAX / 2, 0])),
-        "drawable range",
-    );
+    // A move out of the drawable range, in words (C45-p3#3, ID-1137: no JSON pointer, ending with what to do).
+    match e.execute(&steps_cmd(vec![REP_102F2], [i64::MAX / 2, 0])) {
+        Err(CmdError::Rejected { reason, .. }) => assert_eq!(
+            reason,
+            "the move takes the symbol of -102F2 outside the drawable range; move it fewer grid steps"
+        ),
+        other => panic!("expected a rejection, got {other:?}"),
+    }
     assert_eq!(e.model().rev(), rev, "no refused move wrote anything");
 }
 

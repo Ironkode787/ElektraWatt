@@ -141,7 +141,7 @@ fn n1_an_off_grid_x_is_still_rejected() {
     let reason = rejection(e.execute(&branch(w, pt(2 * G + 1, Y_CP), fa)));
     assert_eq!(
         reason,
-        "the branch point at x 15.9, y 5.3 mm on page 102 is not on the drawing grid"
+        "the branch point at x 15.9, y 5.3 mm on page 102 is not on the drawing grid; move it onto the grid"
     );
     assert_eq!(lines(e.model()), before);
 }
@@ -173,7 +173,7 @@ fn n1_a_hint_onto_the_wire_takes_the_same_rule() {
     let reason = rejection(e.execute(&hint(pt(2 * G + 1, Y_CP))));
     assert_eq!(
         reason,
-        "the branch point at x 15.9, y 5.3 mm on page 102 is not on the drawing grid"
+        "the branch point at x 15.9, y 5.3 mm on page 102 is not on the drawing grid; move it onto the grid"
     );
 
     let r = e
