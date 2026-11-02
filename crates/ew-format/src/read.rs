@@ -587,7 +587,14 @@ impl Loader<'_> {
                 Some(ln),
                 "a git conflict marker line",
             );
-            self.quarantine(path, ln, FindingKind::ConflictMarkers, keyless, bytes.to_vec(), st);
+            self.quarantine(
+                path,
+                ln,
+                FindingKind::ConflictMarkers,
+                keyless,
+                bytes.to_vec(),
+                st,
+            );
             return;
         }
         let text = match std::str::from_utf8(bytes) {

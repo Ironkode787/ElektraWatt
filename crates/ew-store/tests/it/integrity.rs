@@ -22,9 +22,7 @@ use ew_model::{AnyRow, Op};
 use ew_store::ew_format::ew_schema::Device;
 use ew_store::ew_format::{FilePath, FindingKind, Limits};
 use ew_store::mem::{DirSync, Fault, MemVfs};
-use ew_store::{
-    Access, BrokenLine, Changes, Opened, ReadOnlyReason, SaveError, Store, StoreOptions, join,
-};
+use ew_store::{Access, BrokenLine, Changes, Opened, ReadOnlyReason, SaveError, Store, StoreOptions, join};
 
 #[test]
 fn a_finding_beyond_the_cap_still_forces_read_only_and_quarantined_bytes_survive() {
@@ -239,10 +237,16 @@ fn a_repair_open_lets_only_broken_lines_through_and_one_save_discards_them() {
     let (vfs, root, shard, before, n) = shard_with(&[NOT_JSON, NOT_UTF8]);
     let plain = Store::open(&root, options(&vfs, 1)).expect("opens");
     assert_eq!(plain.report.access, Access::ReadOnly(ReadOnlyReason::Integrity));
-    assert_eq!(plain.store.broken_lines().len(), 2, "the store tells them apart in any open");
+    assert_eq!(
+        plain.store.broken_lines().len(),
+        2,
+        "the store tells them apart in any open"
+    );
     plain.store.close();
 
-    let Opened { mut store, report, .. } = Store::open(&root, repair_options(&vfs, 1)).expect("opens");
+    let Opened {
+        mut store, report, ..
+    } = Store::open(&root, repair_options(&vfs, 1)).expect("opens");
     assert_eq!(report.access, Access::Edit, "{:?}", report.findings);
     let file = FilePath::new(shard.as_str()).expect("a valid path");
     assert_eq!(
@@ -360,5 +364,8 @@ fn a_failed_repair_save_keeps_the_broken_lines() {
             .collect();
         assert_eq!(rest, before, "at {at}: the shard without the broken line");
     }
-    assert!(failed && decided, "the errors reach both sides of the commit point");
+    assert!(
+        failed && decided,
+        "the errors reach both sides of the commit point"
+    );
 }

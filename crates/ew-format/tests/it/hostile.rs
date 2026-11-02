@@ -226,7 +226,11 @@ fn each_quarantined_line_carries_its_kind() {
             (3, Kept::Quarantined, Some(FindingKind::JsonSyntax), true),
         ]
     );
-    assert!(loaded.findings.iter().all(|f| f.is_broken_line()), "{:?}", loaded.findings);
+    assert!(
+        loaded.findings.iter().all(|f| f.is_broken_line()),
+        "{:?}",
+        loaded.findings
+    );
     assert!(loaded.read_only);
     assert!(!loaded.read_only_beyond_repair);
 
@@ -234,8 +238,11 @@ fn each_quarantined_line_carries_its_kind() {
     // beyond a repair.
     let text = format!("{FUNCTION}\n<<<<<<< HEAD\n{FUNCTION}\n");
     let loaded = load_bytes(SHARD, text.as_bytes(), &Limits::default());
-    let kinds: Vec<(u32, Option<FindingKind>, bool)> =
-        loaded.kept.iter().map(|k| (k.line, k.kind, k.is_broken())).collect();
+    let kinds: Vec<(u32, Option<FindingKind>, bool)> = loaded
+        .kept
+        .iter()
+        .map(|k| (k.line, k.kind, k.is_broken()))
+        .collect();
     assert_eq!(
         kinds,
         [
@@ -263,9 +270,15 @@ fn a_forcing_finding_beyond_the_cap_sets_the_flag() {
         .collect();
     assert_eq!(
         listed,
-        [(FindingKind::JsonSyntax, Some(2)), (FindingKind::JsonSyntax, Some(3))]
+        [
+            (FindingKind::JsonSyntax, Some(2)),
+            (FindingKind::JsonSyntax, Some(3))
+        ]
     );
-    assert!(loaded.read_only_beyond_repair, "the marker at line 5 is beyond the cap");
+    assert!(
+        loaded.read_only_beyond_repair,
+        "the marker at line 5 is beyond the cap"
+    );
 
     // The same without the marker: only broken lines, beyond the cap too.
     let text = format!("{FUNCTION}\n{{\n{{\n{{\n");

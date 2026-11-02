@@ -258,7 +258,11 @@ fn repair_report(discarded: &[DiscardedLine], backup: &Backup) -> Vec<String> {
             backup.generation
         )
     } else {
-        format!("backup {} (generation {})", backup.path.display(), backup.generation)
+        format!(
+            "backup {} (generation {})",
+            backup.path.display(),
+            backup.generation
+        )
     });
     lines
 }
@@ -760,9 +764,11 @@ mod tests {
         // ID-1185 ruling 7: `--repair` with `--check` is refused by the parser, before any open.
         assert_eq!(
             parse(&["fmt", "p.ew", "--repair", "--check"]),
-            Err("error: the argument '--repair' cannot be used with '--check'\n\nUsage: ew fmt --repair \
+            Err(
+                "error: the argument '--repair' cannot be used with '--check'\n\nUsage: ew fmt --repair \
                  <project-dir>\n\nFor more information, try '--help'.\n"
-                .to_owned())
+                    .to_owned()
+            )
         );
         assert_eq!(
             parse(&["fmt", "a", "b"]),

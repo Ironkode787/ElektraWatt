@@ -150,10 +150,16 @@ fn copy_dir(from: &Path, to: &Path) {
 fn with_a_broken_line(project: &Path) {
     use sha2::Digest;
     let hash = |b: &[u8]| {
-        let hex: String = sha2::Sha256::digest(b).iter().map(|x| format!("{x:02x}")).collect();
+        let hex: String = sha2::Sha256::digest(b)
+            .iter()
+            .map(|x| format!("{x:02x}"))
+            .collect();
         format!("sha256:{hex}")
     };
-    let first = tree(&project.join("pages")).into_keys().next().expect("a page file");
+    let first = tree(&project.join("pages"))
+        .into_keys()
+        .next()
+        .expect("a page file");
     let file = project.join("pages").join(first);
     let old = std::fs::read(&file).unwrap();
     let at = old.iter().position(|b| *b == b'\n').expect("a first line") + 1;

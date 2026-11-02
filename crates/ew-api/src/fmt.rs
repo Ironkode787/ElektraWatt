@@ -539,7 +539,13 @@ fn write_backup(vfs: &dyn Vfs, target: &Path, bytes: &[u8]) -> Result<bool, Repa
     };
     let taken = || RepairError::BackupTaken(target.to_path_buf());
     match vfs.stat(target) {
-        Ok(_) => return if holds(vfs, target, bytes).map_err(failed)? { Ok(true) } else { Err(taken()) },
+        Ok(_) => {
+            return if holds(vfs, target, bytes).map_err(failed)? {
+                Ok(true)
+            } else {
+                Err(taken())
+            };
+        }
         Err(e) if e.kind() == io::ErrorKind::NotFound => {}
         Err(e) => return Err(failed(e)),
     }
@@ -570,7 +576,9 @@ fn write_backup(vfs: &dyn Vfs, target: &Path, bytes: &[u8]) -> Result<bool, Repa
             if same {
                 Ok(())
             } else {
-                Err(io::Error::other("the bytes read back differ from the bytes written"))
+                Err(io::Error::other(
+                    "the bytes read back differ from the bytes written",
+                ))
             }
         });
     if let Err(e) = written {

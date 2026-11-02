@@ -2635,7 +2635,10 @@ fn after_the_first_line(bytes: &[u8], lines: &[&[u8]]) -> Vec<u8> {
 fn put_as_saved(project: &std::path::Path, rel: &str, bytes: &[u8]) {
     use sha2::Digest;
     let hash = |b: &[u8]| {
-        let hex: String = sha2::Sha256::digest(b).iter().map(|x| format!("{x:02x}")).collect();
+        let hex: String = sha2::Sha256::digest(b)
+            .iter()
+            .map(|x| format!("{x:02x}"))
+            .collect();
         format!("sha256:{hex}")
     };
     let (old, new) = (hash(&std::fs::read(project.join(rel)).unwrap()), hash(bytes));
@@ -2660,10 +2663,7 @@ fn backup_of(project: &std::path::Path, generation: u64) -> PathBuf {
 
 /// The names of the files beside `project` that start with its folder's name and `.before-repair`.
 fn beside_the_project(project: &std::path::Path) -> Vec<String> {
-    let prefix = format!(
-        "{}.before-repair",
-        project.file_name().unwrap().to_string_lossy()
-    );
+    let prefix = format!("{}.before-repair", project.file_name().unwrap().to_string_lossy());
     let mut names: Vec<String> = std::fs::read_dir(project.parent().unwrap())
         .unwrap()
         .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
@@ -2706,7 +2706,11 @@ fn fmt_repair_discards_a_broken_line_after_a_backup() {
     let after = tree(&project);
     assert_eq!(after[&rel], original, "the page file without the line");
     let changed: Vec<&String> = after.keys().filter(|k| after.get(*k) != before.get(*k)).collect();
-    assert_eq!(changed, ["manifest.json", &rel], "only the manifest and the page file");
+    assert_eq!(
+        changed,
+        ["manifest.json", &rel],
+        "only the manifest and the page file"
+    );
     let packed = ew_api::ewz::read(&std::fs::read(&backup).unwrap()).unwrap();
     assert_eq!(packed.generation(), 1);
     assert_eq!(packed.entries[&rel], bytes, "the backup holds the broken line");
@@ -2786,7 +2790,10 @@ fn fmt_repair_refusals_come_first_and_write_nothing() {
         (
             Some(2),
             String::new(),
-            format!("error: {}: an .ewz opens read-only; extract it first\n", ewz.display())
+            format!(
+                "error: {}: an .ewz opens read-only; extract it first\n",
+                ewz.display()
+            )
         )
     );
 
@@ -2810,7 +2817,10 @@ fn fmt_repair_refusals_come_first_and_write_nothing() {
             )
         )
     );
-    assert!(tree(&p) == before && journal_files(&home) == journals, "nothing is written; the journal stays");
+    assert!(
+        tree(&p) == before && journal_files(&home) == journals,
+        "nothing is written; the journal stays"
+    );
 
     // A conflict marker (EW-CORE-006) beside a broken line.
     let (t, p, rel) = project(&[NOT_JSON, MARKER], false);

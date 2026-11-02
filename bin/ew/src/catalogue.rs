@@ -611,7 +611,11 @@ mod tests {
                 .filter(|e| e.flags.iter().any(|f| f.name == flag))
                 .filter(|e| e.flags.iter().any(|f| f.name == "--json"))
                 .count();
-            assert_eq!(takes, 1, "{}: no entry `{} {flag}` with `--json`", r.name, r.command);
+            assert_eq!(
+                takes, 1,
+                "{}: no entry `{} {flag}` with `--json`",
+                r.name, r.command
+            );
             assert!(named.insert(r.name), "{} twice", r.name);
         }
         let published: BTreeSet<&str> = ew_api::cli_results::RESULTS.iter().map(|r| r.name).collect();

@@ -374,7 +374,8 @@ fn a_format_that_would_change_content_is_refused_and_writes_nothing() {
 const BROKEN: &[u8] = br#"{"$k":"page","id":"#;
 
 /// A page line whose number is not a number: EW-CORE-007, a schema violation, which a repair keeps.
-const SCHEMA: &[u8] = br#"{"$k":"page","id":"0f0e0d0c-0b0a-7908-8706-050403020100","number":{"not":"a number"}}"#;
+const SCHEMA: &[u8] =
+    br#"{"$k":"page","id":"0f0e0d0c-0b0a-7908-8706-050403020100","number":{"not":"a number"}}"#;
 
 /// The backup's path for the project `/p` at generation 1.
 fn backup() -> PathBuf {
@@ -419,8 +420,15 @@ fn page_with(lines: &[&[u8]], hashed: bool) -> (BTreeMap<String, Vec<u8>>, Strin
 fn rehash(disk: &mut BTreeMap<String, Vec<u8>>, name: &str, before: &[u8]) {
     let (old, new) = (hash_text(&sha256(before)), hash_text(&sha256(&disk[name])));
     let manifest = String::from_utf8(disk["manifest.json"].clone()).unwrap();
-    assert_eq!(manifest.matches(&old).count(), 1, "the manifest lists {name} once");
-    disk.insert("manifest.json".to_owned(), manifest.replace(&old, &new).into_bytes());
+    assert_eq!(
+        manifest.matches(&old).count(),
+        1,
+        "the manifest lists {name} once"
+    );
+    disk.insert(
+        "manifest.json".to_owned(),
+        manifest.replace(&old, &new).into_bytes(),
+    );
 }
 
 /// Store options for a repair open ([`StoreOptions::repair`]).
@@ -489,8 +497,15 @@ fn a_repair_discards_the_broken_line_after_a_backup() {
     }
     let packed = ewz::read(&vfs.read(&backup()).unwrap()).unwrap();
     assert_eq!(packed.generation(), 1);
-    assert_eq!(packed.entries, disk, "the backup holds generation 1 as it was on disk");
-    assert_eq!(beside(&vfs), ["p.before-repair-g1.ewz"], "no temporary file is left");
+    assert_eq!(
+        packed.entries, disk,
+        "the backup holds generation 1 as it was on disk"
+    );
+    assert_eq!(
+        beside(&vfs),
+        ["p.before-repair-g1.ewz"],
+        "no temporary file is left"
+    );
     let s = open(&vfs, 3);
     s.close();
 }
@@ -541,7 +556,11 @@ fn a_repair_keeps_a_schema_violation_byte_for_byte() {
     assert_eq!(discarded, [(page.clone(), 2)]);
     let after = files(&vfs);
     let lines: Vec<&[u8]> = after[&page].split(|b| *b == b'\n').collect();
-    assert_eq!(lines.iter().filter(|l| **l == SCHEMA).count(), 1, "the 007 line, verbatim");
+    assert_eq!(
+        lines.iter().filter(|l| **l == SCHEMA).count(),
+        1,
+        "the 007 line, verbatim"
+    );
     assert!(!lines.contains(&BROKEN));
     let rest: Vec<u8> = after[&page]
         .split_inclusive(|b| *b == b'\n')
@@ -654,9 +673,8 @@ fn after_repair_fault(
     canonical: &[u8],
     backup_bytes: &[u8],
 ) -> Result<(u64, bool), String> {
-    let take_over = || {
-        Store::take_over(&root(), repair_options(vfs, 3)).map_err(|e| format!("take-over failed: {e}"))
-    };
+    let take_over =
+        || Store::take_over(&root(), repair_options(vfs, 3)).map_err(|e| format!("take-over failed: {e}"));
     let opened = match Store::open(&root(), repair_options(vfs, 3)) {
         Ok(o) => o,
         Err(ew_store::OpenError::SaveInProgress) => take_over()?,
@@ -767,7 +785,9 @@ fn a_fault_at_every_call_of_a_repair_leaves_the_old_or_the_new_generation_and_a_
             Ok((1, backed_up)) => {
                 seen[3] = true;
                 if result.is_ok() && matches!(fault, Fault::Error { .. }) {
-                    failures.push(format!("{fault:?}: the repair said done and generation 1 is open"));
+                    failures.push(format!(
+                        "{fault:?}: the repair said done and generation 1 is open"
+                    ));
                 }
                 backed_up
             }
@@ -785,12 +805,17 @@ fn a_fault_at_every_call_of_a_repair_leaves_the_old_or_the_new_generation_and_a_
         match fmt::repair(&mut s) {
             Ok(done) => {
                 if done.generation != 2 {
-                    failures.push(format!("{fault:?}: the rerun left generation {}", done.generation));
+                    failures.push(format!(
+                        "{fault:?}: the rerun left generation {}",
+                        done.generation
+                    ));
                 }
                 if let Some(b) = &done.backup
                     && b.reused != had_backup
                 {
-                    failures.push(format!("{fault:?}: the rerun's backup {b:?}, one was there: {had_backup}"));
+                    failures.push(format!(
+                        "{fault:?}: the rerun's backup {b:?}, one was there: {had_backup}"
+                    ));
                 }
             }
             Err(e) => failures.push(format!("{fault:?}: the rerun failed: {e}")),
