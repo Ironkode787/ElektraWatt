@@ -451,20 +451,21 @@ fn a_junction_that_cannot_merge_two_numbers_is_named_in_words() {
     }
 }
 
-/// FT-779 (cycle-40 review): two different assigned numbers are named each, never both as "a wire with an assigned
-/// number".
-#[test]
-fn a_junction_that_cannot_merge_two_assigned_numbers_names_both() {
+/// The refusal of deleting `gone` at J5 (moved to x 120, y 45.5 mm) when `first` and `second` carry the assigned
+/// counters 3 and 4.
+fn assigned_junction_refusal(first: Id<Connection>, second: Id<Connection>, gone: Id<Connection>) -> String {
     let (p, mut records, _) = mini_golden_parts();
+    // without the PE bond that W27 realises, W27's wire is numbered like any other
+    records.retain(|r| !matches!(r, Record::Bond(b) if b.via == Some(CON_W27)));
     let assigned = |counter: u32| {
         serde_json::from_value::<ew_schema::NumberSpec>(serde_json::json!({"assigned": {"counter": counter}}))
             .expect("an assigned number")
     };
     for r in &mut records {
         if let Record::Connection(c) = r {
-            if c.id == CON_J5_IN {
+            if c.id == first {
                 c.number = assigned(3);
-            } else if c.id == CON_W22 {
+            } else if c.id == second {
                 c.number = assigned(4);
             }
         }
@@ -476,16 +477,33 @@ fn a_junction_that_cannot_merge_two_assigned_numbers_names_both() {
     }
     let mut e = engine(Model::from_records(p, records, library()).expect("valid"));
     match e.execute(&DeleteConnections {
-        connections: vec![CON_W27],
+        connections: vec![gone],
     }) {
-        Err(CmdError::Rejected { reason, .. }) => assert_eq!(
-            reason,
-            "the junction at x 120, y 45.5 mm on page 102 would merge a wire with assigned number 3 and a wire \
-             with assigned number 4, which carry different numbers; clear one of the numbers or delete the wires \
-             separately"
-        ),
+        Err(CmdError::Rejected { reason, .. }) => reason,
         other => panic!("expected a rejection, got {other:?}"),
     }
+}
+
+/// FT-848 (ID-1108: "the junction refusal names the printed number, the counter only where the printed labels
+/// coincide"): the two members of one physical wire print the same number, so the refusal adds their counters.
+#[test]
+fn a_junction_that_cannot_merge_two_assigned_numbers_names_both() {
+    assert_eq!(
+        assigned_junction_refusal(CON_J5_IN, CON_W22, CON_W27),
+        "the junction at x 120, y 45.5 mm on page 102 would merge a wire numbered \"102.1\" with assigned number 3 \
+         and a wire numbered \"102.1\" with assigned number 4, which carry different numbers; clear one of the numbers \
+         or delete the wires separately"
+    );
+}
+
+/// FT-848 (ID-1108, as above): two wires that print different numbers are named by the printed numbers alone.
+#[test]
+fn a_junction_refusal_names_the_printed_numbers_where_they_differ() {
+    assert_eq!(
+        assigned_junction_refusal(CON_W22, CON_W27, CON_J5_IN),
+        "the junction at x 120, y 45.5 mm on page 102 would merge a wire numbered \"102.1\" and a wire numbered \
+         \"102.3\", which carry different numbers; clear one of the numbers or delete the wires separately"
+    );
 }
 
 #[test]

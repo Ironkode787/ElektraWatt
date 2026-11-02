@@ -159,12 +159,14 @@ fn prefer_numbered(
     let (n1, n2) = (c1.number.clone(), c2.number.clone());
     let unassigned = |n: &NumberSpec| matches!(n, NumberSpec::Unassigned);
     if !unassigned(&n1) && !unassigned(&n2) && n1 != n2 {
+        let (p1, p2) = (printed_number(tx, j, first, second), printed_number(tx, j, second, first));
+        let coincide = p1 == p2;
         return tx.reject(format!(
             "{} would merge a wire {} and a wire {}, which carry different numbers; clear one of the \
              numbers or delete the wires separately",
             crate::words::junction(tx, j),
-            number_words(&n1),
-            number_words(&n2)
+            number_words(&n1, p1.as_deref(), coincide),
+            number_words(&n2, p2.as_deref(), coincide)
         ));
     }
     if unassigned(&n1) && !unassigned(&n2) {
@@ -174,13 +176,45 @@ fn prefer_numbered(
     }
 }
 
-/// A wire's number in words for a refusal (FT-779): `numbered "101"` for a frozen number, `with assigned number 5`
-/// for an assigned one (its counter: a wire's printed number is derived and two members of one physical wire print
-/// the same), so two different numbers never read the same; or how it is numbered.
-fn number_words(n: &NumberSpec) -> String {
+/// The number the drawing prints for the physical wire of `connection`, a member of junction `j` (the derived
+/// `wire_numbers` label of the base snapshot, `102.5`); `None` for a wire without one. A star's feed arm is a
+/// constituent of every branch's wire: the wire that also holds `partner`, the other member, is the one the merge
+/// keeps, so it is taken first.
+fn printed_number(
+    tx: &TxBuilder<'_>,
+    j: Id<Junction>,
+    connection: Id<Connection>,
+    partner: Id<Connection>,
+) -> Option<String> {
+    let q = ew_derive::Q::new(tx.base_model());
+    let partition = q.get::<ew_derive::PotentialPartition>(());
+    let potential = partition.potential_at(EndpointKey::Junction(j))?;
+    let wires = q.get::<ew_derive::PhysicalWiresOf>(potential.id);
+    let holding: Vec<&ew_derive::PhysicalWire> = wires
+        .wires
+        .iter()
+        .filter(|w| w.constituents.contains(&connection))
+        .collect();
+    let wire = holding
+        .iter()
+        .find(|w| w.constituents.contains(&partner))
+        .or_else(|| holding.first())?;
+    let numbers = q.get::<ew_derive::WireNumbers>(());
+    numbers.number(wire.id).map(|n| n.label.clone())
+}
+
+/// A wire's number in words for a refusal (FT-779, FT-848): `numbered "101"` for a frozen number; for an assigned one
+/// the number the drawing prints, `numbered "102.5"`, and its counter only where the two wires' printed numbers
+/// coincide (`numbered "102.5" with assigned number 5`) or it prints none (`with assigned number 5`), so two different
+/// numbers never read the same; or how it is numbered.
+fn number_words(n: &NumberSpec, printed: Option<&str>, coincide: bool) -> String {
     match n {
         NumberSpec::Frozen(i) => format!("numbered \"{i}\""),
-        NumberSpec::Assigned(a) => format!("with assigned number {}", a.counter),
+        NumberSpec::Assigned(a) => match printed {
+            Some(p) if !coincide => format!("numbered \"{p}\""),
+            Some(p) => format!("numbered \"{p}\" with assigned number {}", a.counter),
+            None => format!("with assigned number {}", a.counter),
+        },
         NumberSpec::Unassigned => "without a number".to_owned(),
         NumberSpec::Unknown(_) => "with a number of a newer format".to_owned(),
     }
