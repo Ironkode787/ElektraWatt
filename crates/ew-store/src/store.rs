@@ -207,6 +207,8 @@ pub enum OpenError {
     Takeover(Box<TakeoverError>),
     /// `create` into a directory that already holds a project.
     Exists(PathBuf),
+    /// An `.ewz` opened read-only is refused unread (WP-S1.17 D9).
+    Ewz(crate::ewz::EwzError),
 }
 
 impl fmt::Display for OpenError {
@@ -221,6 +223,7 @@ impl fmt::Display for OpenError {
             OpenError::Model { error, .. } => write!(f, "the project does not load: {error}"),
             OpenError::Takeover(e) => write!(f, "takeover failed: {e:?}"),
             OpenError::Exists(p) => write!(f, "{} already holds a project", p.display()),
+            OpenError::Ewz(e) => write!(f, "the .ewz is refused: {e}"),
         }
     }
 }

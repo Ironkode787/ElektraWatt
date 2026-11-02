@@ -25,10 +25,12 @@
 //!   "powers off" calls for the fault-injection harness (doc 05 §5.6).
 //! - **As-built archive** ([`archive`], [`zip`]): the release's archive as an own deterministic ZIP, its check and
 //!   its atomic write through the seam (doc 05 §14; WP-S1.18 D11, D13).
+//! - **`.ewz` transport** ([`ewz`]): one verified generation packed as a deterministic ZIP, its strict reader and the
+//!   all-or-nothing extract into a new directory through the seam (doc 05 §12; WP-S1.17 D8, D9).
 //! - **Git** ([`git`]): the release's commit and tag through the `git` executable, never a shell (doc 05 §11.6;
 //!   WP-S1.18 D12).
 //!
-//! Not in v0: the watcher and the external-change merge (§9), `.ewz` (§12), the rest of git integration (§11),
+//! Not in v0: the watcher and the external-change merge (§9), the rest of git integration (§11),
 //! journal snapshot slots (§8.1) and migrations (§10.2), which are later work packages.
 //!
 //! The save is synchronous and takes an immutable snapshot (`&Model`), so it can move to a writer thread
@@ -48,6 +50,7 @@ pub use ew_zip as zip;
 
 pub mod archive;
 pub mod clock;
+pub mod ewz;
 pub mod git;
 pub mod journal;
 pub mod lock;

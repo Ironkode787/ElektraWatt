@@ -50,6 +50,10 @@ pub trait Vfs: Send + Sync + fmt::Debug {
     fn list(&self, dir: &Path) -> io::Result<Vec<(String, EntryKind)>>;
     /// Creates a directory and its missing parents.
     fn create_dir_all(&self, dir: &Path) -> io::Result<()>;
+    /// Creates one directory, exclusively: `AlreadyExists` when anything (a file, a link, a directory) is at the path,
+    /// `NotFound` when its parent is missing. The `.ewz` extract's staging directory (WP-S1.17 D9, ID-1175 ruling 4).
+    /// Not durable until [`Vfs::sync_dir`] of its parent.
+    fn create_dir(&self, dir: &Path) -> io::Result<()>;
     /// Creates a new file with `data` (`O_EXCL`, SMB2 `FILE_CREATE`); `AlreadyExists` when the path exists.
     /// Nothing is durable until [`Vfs::sync`] and [`Vfs::sync_dir`].
     ///
@@ -64,7 +68,9 @@ pub trait Vfs: Send + Sync + fmt::Debug {
     fn sync(&self, path: &Path) -> io::Result<()>;
     /// Makes a directory's entries durable; a no-op where the platform has no directory sync (Windows).
     fn sync_dir(&self, dir: &Path) -> io::Result<()>;
-    /// Renames `from` over `to`, replacing it atomically.
+    /// Renames `from` over `to`, replacing it atomically. `from` may be a directory, which moves with everything below
+    /// it (the `.ewz` extract's staging directory); a directory replaces at most an empty directory, as POSIX
+    /// `rename` does, and Windows refuses any existing target.
     fn rename(&self, from: &Path, to: &Path) -> io::Result<()>;
     /// Renames `from` to `to` without replacing: `AlreadyExists` when `to` exists, `Unsupported` where the
     /// file system cannot do it atomically (doc 05 §7.4 step 3: the caller falls back to [`Vfs::rename`]).
@@ -156,6 +162,10 @@ impl Vfs for OsVfs {
 
     fn create_dir_all(&self, dir: &Path) -> io::Result<()> {
         fs::create_dir_all(dir)
+    }
+
+    fn create_dir(&self, dir: &Path) -> io::Result<()> {
+        fs::create_dir(dir)
     }
 
     fn create_new(&self, path: &Path, data: &[u8]) -> io::Result<()> {

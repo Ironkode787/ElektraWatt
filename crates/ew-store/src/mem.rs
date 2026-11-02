@@ -96,6 +96,8 @@ struct Ns {
 enum NsOp {
     Create { path: String, node: Node },
     Rename { from: String, to: String, node: Node },
+    /// A directory moved with everything below it (an empty directory at `to` replaced).
+    RenameDir { from: String, to: String },
     Remove { path: String },
     MkDir { path: String },
     RmDir { path: String },
@@ -109,7 +111,7 @@ impl NsOp {
             | NsOp::Remove { path }
             | NsOp::MkDir { path }
             | NsOp::RmDir { path } => vec![path],
-            NsOp::Rename { from, to, .. } => vec![from, to],
+            NsOp::Rename { from, to, .. } | NsOp::RenameDir { from, to } => vec![from, to],
         }
     }
 }
@@ -123,6 +125,29 @@ impl Ns {
             NsOp::Rename { from, to, node } => {
                 self.names.remove(from);
                 self.names.insert(to.clone(), *node);
+            }
+            NsOp::RenameDir { from, to } => {
+                let (old, new) = (child_prefix(from), child_prefix(to));
+                let moved = |set: Vec<String>| -> Vec<(String, String)> {
+                    set.into_iter()
+                        .filter_map(|n| {
+                            let rest = n.strip_prefix(&old)?.to_owned();
+                            Some((n, format!("{new}{rest}")))
+                        })
+                        .collect()
+                };
+                for (was, now) in moved(self.names.keys().cloned().collect()) {
+                    if let Some(node) = self.names.remove(&was) {
+                        self.names.insert(now, node);
+                    }
+                }
+                for (was, now) in moved(self.dirs.iter().cloned().collect()) {
+                    self.dirs.remove(&was);
+                    self.dirs.insert(now);
+                }
+                if self.dirs.remove(from) {
+                    self.dirs.insert(to.clone());
+                }
             }
             NsOp::Remove { path } => {
                 self.names.remove(path);
@@ -346,6 +371,45 @@ impl State {
     fn exists(&self, path: &str) -> bool {
         self.cur.names.contains_key(path) || self.cur.dirs.contains(path)
     }
+
+    /// Whether anything (a name or a directory) lies below the directory `dir`.
+    fn has_children(&self, dir: &str) -> bool {
+        let prefix = child_prefix(dir);
+        self.cur
+            .names
+            .keys()
+            .chain(self.cur.dirs.iter())
+            .any(|n| n.starts_with(&prefix))
+    }
+
+    /// [`Vfs::rename`] of the directory `f` to `t` (POSIX `rename`): every path below `f` moves with it; `t` may be an
+    /// empty directory, which is replaced, and nothing else; `t` inside `f` is refused.
+    fn rename_dir(&mut self, f: String, t: String) -> io::Result<()> {
+        if f == t {
+            return Ok(());
+        }
+        if is_root(&f) || t.starts_with(&child_prefix(&f)) {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                format!("{f}: a directory cannot move into itself"),
+            ));
+        }
+        self.require_parent(&t)?;
+        if self.cur.names.contains_key(&t) {
+            return Err(io::Error::new(
+                io::ErrorKind::NotADirectory,
+                format!("{t}: not a directory"),
+            ));
+        }
+        if self.cur.dirs.contains(&t) && self.has_children(&t) {
+            return Err(io::Error::new(
+                io::ErrorKind::DirectoryNotEmpty,
+                format!("{t}: not empty"),
+            ));
+        }
+        self.record(NsOp::RenameDir { from: f, to: t });
+        Ok(())
+    }
 }
 
 impl MemVfs {
@@ -547,9 +611,15 @@ impl MemVfs {
                 }
             }
         }
+        if replace && s.cur.dirs.contains(&f) {
+            return s.rename_dir(f, t);
+        }
         let Some(&node) = s.cur.names.get(&f) else {
             return Err(if s.cur.dirs.contains(&f) {
-                io::Error::new(io::ErrorKind::InvalidInput, "directory renames are not supported")
+                io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    "a rename without replacement moves files only",
+                )
             } else {
                 not_found(&f)
             });
@@ -652,6 +722,20 @@ impl Vfs for MemVfs {
             ));
         }
         s.make_dirs(&d)
+    }
+
+    fn create_dir(&self, dir: &Path) -> io::Result<()> {
+        let mut s = self.enter("create_dir", &[dir], true)?;
+        let d = norm(dir)?;
+        if is_root(&d) || s.exists(&d) {
+            return Err(io::Error::new(
+                io::ErrorKind::AlreadyExists,
+                format!("{d}: exists"),
+            ));
+        }
+        s.require_parent(&d)?;
+        s.record(NsOp::MkDir { path: d });
+        Ok(())
     }
 
     fn create_new(&self, path: &Path, data: &[u8]) -> io::Result<()> {
@@ -767,14 +851,7 @@ impl Vfs for MemVfs {
                 not_found(&d)
             });
         }
-        let prefix = child_prefix(&d);
-        let has_child = s
-            .cur
-            .names
-            .keys()
-            .chain(s.cur.dirs.iter())
-            .any(|n| n.starts_with(&prefix));
-        if has_child {
+        if s.has_children(&d) {
             return Err(io::Error::new(
                 io::ErrorKind::DirectoryNotEmpty,
                 format!("{d}: not empty"),

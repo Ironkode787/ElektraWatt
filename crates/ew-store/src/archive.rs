@@ -1431,6 +1431,9 @@ mod tests {
         fn create_dir_all(&self, dir: &Path) -> io::Result<()> {
             self.inner.create_dir_all(dir)
         }
+        fn create_dir(&self, dir: &Path) -> io::Result<()> {
+            self.inner.create_dir(dir)
+        }
         fn create_new(&self, path: &Path, data: &[u8]) -> io::Result<()> {
             self.race(path);
             let created = self.inner.create_new(path, data);
@@ -1642,6 +1645,9 @@ mod tests {
         }
         fn create_dir_all(&self, dir: &Path) -> io::Result<()> {
             self.inner.create_dir_all(dir)
+        }
+        fn create_dir(&self, dir: &Path) -> io::Result<()> {
+            self.inner.create_dir(dir)
         }
         fn create_new(&self, path: &Path, data: &[u8]) -> io::Result<()> {
             if self.torn.as_deref() == Some(path) {
