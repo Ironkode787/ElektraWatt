@@ -704,7 +704,7 @@
       "exits": [
         {
           "code": 0,
-          "meaning": "every file is canonical, or the files were rewritten and saved"
+          "meaning": "every file is canonical, or the files were rewritten and saved; repaired, or nothing to repair"
         },
         {
           "code": 1,
@@ -712,7 +712,7 @@
         },
         {
           "code": 2,
-          "meaning": "usage, open, lock, a crashed session's journal, a content change and save errors"
+          "meaning": "usage, open, lock, a crashed session's journal, a content change and save errors; a repair refused before writing, its save failed, or its re-open found a finding (the new generation and the backup stay)"
         }
       ],
       "result": "ew.fmt-result/1",

@@ -9,6 +9,11 @@ SPDX-License-Identifier: CC-BY-4.0
   array; a Preview surface, WP-S1.22 D3 (d))
 - api-break: cli lib search --json (prints `{"$schema": "ew.lib-search-result/1", "hits": [...]}` instead of a bare
   array; a Preview surface, WP-S1.22 D3 (d))
+- api-break: cli fmt exit 0 (its meaning gains `--repair`'s outcomes: "repaired, or nothing to repair"; a Preview
+  surface, WP-S1.17 ID-1185 ruling 7)
+- api-break: cli fmt exit 2 (its meaning gains `--repair`'s outcomes: "a repair refused before writing, its save
+  failed, or its re-open found a finding (the new generation and the backup stay)"; a Preview surface, WP-S1.17
+  ID-1185 ruling 7)
 - api-add: cli elektrawatt --headless --visual --window <W>x<H> --ppp <n> (a visual run chooses its window in points
   and its scale; the default 1280x800 at 1.2 and every earlier frame and transcript are unchanged; `xtask blind start
   --senses visual` takes the same flags)

@@ -292,12 +292,14 @@ pub const TABLE: &[Row] = &[
         exits: &[
             exit(
                 0,
-                "every file is canonical, or the files were rewritten and saved",
+                "every file is canonical, or the files were rewritten and saved; repaired, or nothing to repair",
             ),
             exit(1, "`--check` found files to rewrite"),
             exit(
                 2,
-                "usage, open, lock, a crashed session's journal, a content change and save errors",
+                "usage, open, lock, a crashed session's journal, a content change and save errors; a repair refused \
+                 before writing, its save failed, or its re-open found a finding (the new generation and the backup \
+                 stay)",
             ),
         ],
         result: Some(ew_api::cli_results::FMT),
