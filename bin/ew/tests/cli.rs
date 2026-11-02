@@ -2609,6 +2609,305 @@ fn fmt_refuses_a_project_with_a_crashed_session_journal() {
     assert!(journal_files(&home) == journals, "the journal stays");
 }
 
+/// The first page file of `project` (`pages/<id>.jsonl`).
+fn first_page_file(project: &std::path::Path) -> String {
+    let first = tree(&project.join("pages"))
+        .into_keys()
+        .next()
+        .expect("a page file");
+    format!("pages/{first}")
+}
+
+/// `bytes` with `lines` inserted after their first line.
+fn after_the_first_line(bytes: &[u8], lines: &[&[u8]]) -> Vec<u8> {
+    let first = bytes.iter().position(|b| *b == b'\n').expect("a first line") + 1;
+    let mut out = bytes[..first].to_vec();
+    for line in lines {
+        out.extend_from_slice(line);
+        out.push(b'\n');
+    }
+    out.extend_from_slice(&bytes[first..]);
+    out
+}
+
+/// Writes `bytes` to the project file `rel` with their hash in the manifest, as a save of those bytes writes it: lines
+/// that came with the generation, not an edit outside ElektraWatt since the last save.
+fn put_as_saved(project: &std::path::Path, rel: &str, bytes: &[u8]) {
+    use sha2::Digest;
+    let hash = |b: &[u8]| {
+        let hex: String = sha2::Sha256::digest(b).iter().map(|x| format!("{x:02x}")).collect();
+        format!("sha256:{hex}")
+    };
+    let (old, new) = (hash(&std::fs::read(project.join(rel)).unwrap()), hash(bytes));
+    let manifest = std::fs::read_to_string(project.join("manifest.json")).unwrap();
+    assert_eq!(manifest.matches(&old).count(), 1, "the manifest lists {rel} once");
+    std::fs::write(project.join("manifest.json"), manifest.replace(&old, &new)).unwrap();
+    std::fs::write(project.join(rel), bytes).unwrap();
+}
+
+/// The backup `ew fmt --repair` writes for `project` at `generation`: beside the project folder, named
+/// `<project folder>.before-repair-g<generation>.ewz`, as the file system names it.
+fn backup_of(project: &std::path::Path, generation: u64) -> PathBuf {
+    let canonical = std::fs::canonicalize(project).unwrap();
+    let text = canonical.to_string_lossy().into_owned();
+    let plain = PathBuf::from(text.strip_prefix(r"\\?\").unwrap_or(&text));
+    let name = format!(
+        "{}.before-repair-g{generation}.ewz",
+        plain.file_name().unwrap().to_string_lossy()
+    );
+    plain.parent().unwrap().join(name)
+}
+
+/// The names of the files beside `project` that start with its folder's name and `.before-repair`.
+fn beside_the_project(project: &std::path::Path) -> Vec<String> {
+    let prefix = format!(
+        "{}.before-repair",
+        project.file_name().unwrap().to_string_lossy()
+    );
+    let mut names: Vec<String> = std::fs::read_dir(project.parent().unwrap())
+        .unwrap()
+        .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+        .filter(|n| n.starts_with(&prefix))
+        .collect();
+    names.sort();
+    names
+}
+
+/// EZ-5 (WP-S1.17, decision log ID-1185): `ew fmt --repair` on a page file of Golden A's copy with one broken line
+/// prints the line (its text cut at 80 characters) and the backup, writes the backup `.ewz` beside the project folder
+/// (generation 1 as it was, the line included) and a project without the line, which opens editable and canonical; a
+/// second run has nothing to repair and writes nothing; run on the project as it was, it reuses the backup.
+#[test]
+fn fmt_repair_discards_a_broken_line_after_a_backup() {
+    let t = Tmp::new();
+    let home = t.0.join("home");
+    let project = golden_copy(&t);
+    let rel = first_page_file(&project);
+    let original = std::fs::read(project.join(&rel)).unwrap();
+    let broken = format!("{{\"$k\":\"page\",\"title\":\"{}\"", "x".repeat(100));
+    let bytes = after_the_first_line(&original, &[broken.as_bytes()]);
+    put_as_saved(&project, &rel, &bytes);
+    let saved = t.0.join("as-it-was.ew");
+    copy_dir(&project, &saved);
+    let before = tree(&project);
+    let fmt = |extra: &[&str]| ew_in(&home, &["fmt".as_ref(), project.as_os_str()], extra);
+    let run = |o: &Output| (o.status.code(), stdout(o), stderr(o));
+    let backup = backup_of(&project, 1);
+    let shown: String = broken.chars().take(80).collect();
+    let discarded = format!("discarded {rel}:2: {shown}\u{2026}\n");
+    assert_eq!(
+        run(&fmt(&["--repair"])),
+        (
+            Some(0),
+            format!("{discarded}backup {} (generation 1)\n", backup.display()),
+            "Repaired: discarded 1 line; saved generation 2\n".to_owned()
+        )
+    );
+    let after = tree(&project);
+    assert_eq!(after[&rel], original, "the page file without the line");
+    let changed: Vec<&String> = after.keys().filter(|k| after.get(*k) != before.get(*k)).collect();
+    assert_eq!(changed, ["manifest.json", &rel], "only the manifest and the page file");
+    let packed = ew_api::ewz::read(&std::fs::read(&backup).unwrap()).unwrap();
+    assert_eq!(packed.generation(), 1);
+    assert_eq!(packed.entries[&rel], bytes, "the backup holds the broken line");
+    assert_eq!(
+        beside_the_project(&project),
+        ["J-E-2416.ew.before-repair-g1.ewz"],
+        "no temporary file is left"
+    );
+    assert_eq!(
+        run(&fmt(&["--check"])),
+        (
+            Some(0),
+            String::new(),
+            "fmt: every file is in canonical form\n".to_owned()
+        )
+    );
+
+    let now = tree(&project);
+    assert_eq!(
+        run(&fmt(&["--repair"])),
+        (Some(0), String::new(), "Nothing to repair\n".to_owned())
+    );
+    assert!(tree(&project) == now, "nothing is written");
+
+    std::fs::remove_dir_all(&project).unwrap();
+    copy_dir(&saved, &project);
+    assert_eq!(
+        run(&fmt(&["--repair"])),
+        (
+            Some(0),
+            format!(
+                "{discarded}backup {} (generation 1, already there and reused)\n",
+                backup.display()
+            ),
+            "Repaired: discarded 1 line; saved generation 2\n".to_owned()
+        )
+    );
+    assert_eq!(tree(&project)[&rel], original);
+    assert!(journal_files(&home).is_empty(), "the repair's journal is closed");
+}
+
+/// ID-1185 ruling 3: the refusals come before anything is written, each named, exit 2, in this order: an `.ewz`; a
+/// crashed session's journal (here before a conflict marker the repair cannot discard); a finding other than a broken
+/// line that forces read-only (EW-CORE-006), also one beyond the findings cap; a project whose backup cannot be packed
+/// (a page file edited outside ElektraWatt since the last save); a backup name holding another file. And `--repair`
+/// with `--check` is refused by the parser.
+#[test]
+fn fmt_repair_refusals_come_first_and_write_nothing() {
+    const NOT_JSON: &[u8] = br#"{"$k":"page","id":"#;
+    const MARKER: &[u8] = b"<<<<<<< HEAD";
+    let run = |o: &Output| (o.status.code(), stdout(o), stderr(o));
+    let repair = |home: &std::path::Path, p: &std::path::Path, extra: &[&str]| {
+        ew_in(home, &["fmt".as_ref(), p.as_os_str(), "--repair".as_ref()], extra)
+    };
+    // The project of a fresh temporary directory, its first page file holding `lines` after its first line, written as
+    // a save writes them (`saved`) or by hand.
+    let project = |lines: &[&[u8]], saved: bool| {
+        let t = Tmp::new();
+        let p = tiny_project(&t);
+        let rel = first_page_file(&p);
+        let bytes = after_the_first_line(&std::fs::read(p.join(&rel)).unwrap(), lines);
+        if saved {
+            put_as_saved(&p, &rel, &bytes);
+        } else {
+            std::fs::write(p.join(&rel), &bytes).unwrap();
+        }
+        (t, p, rel)
+    };
+
+    // An `.ewz`.
+    let t = Tmp::new();
+    let home = t.0.join("home");
+    let ewz = t.0.join("x.ewz");
+    std::fs::write(&ewz, b"not read").unwrap();
+    assert_eq!(
+        run(&repair(&home, &ewz, &[])),
+        (
+            Some(2),
+            String::new(),
+            format!("error: {}: an .ewz opens read-only; extract it first\n", ewz.display())
+        )
+    );
+
+    // A crashed session's journal, before the conflict marker.
+    let (t, p, _) = project(&[], true);
+    let home = t.0.join("home");
+    crashed_session(&home, &p, &[new_page(7777)]);
+    let rel = first_page_file(&p);
+    let bytes = after_the_first_line(&std::fs::read(p.join(&rel)).unwrap(), &[NOT_JSON, MARKER]);
+    std::fs::write(p.join(&rel), &bytes).unwrap();
+    let (before, journals) = (tree(&p), journal_files(&home));
+    assert_eq!(
+        run(&repair(&home, &p, &[])),
+        (
+            Some(2),
+            String::new(),
+            format!(
+                "error: {}: a crashed session left unsaved changes in its journal; replay or discard them first with \
+                 `ew recover`; nothing was written\n",
+                p.display()
+            )
+        )
+    );
+    assert!(tree(&p) == before && journal_files(&home) == journals, "nothing is written; the journal stays");
+
+    // A conflict marker (EW-CORE-006) beside a broken line.
+    let (t, p, rel) = project(&[NOT_JSON, MARKER], false);
+    let home = t.0.join("home");
+    let before = tree(&p);
+    assert_eq!(
+        run(&repair(&home, &p, &[])),
+        (
+            Some(2),
+            String::new(),
+            format!(
+                "error: {}: EW-CORE-006 at {rel}:3 forces read-only, and `ew fmt --repair` discards only lines that \
+                 are not JSON or not UTF-8 (EW-CORE-005); nothing was written; resolve it first (`ew check` lists the \
+                 findings), then run `ew fmt --repair` again\n",
+                p.display()
+            )
+        )
+    );
+    assert!(tree(&p) == before, "nothing is written");
+
+    // The marker after 1,001 broken lines: its finding is beyond the cap of the open's list, and still refuses.
+    let mut lines = vec![NOT_JSON; 1_001];
+    lines.push(MARKER);
+    let (t, p, _) = project(&lines, false);
+    let home = t.0.join("home");
+    let before = tree(&p);
+    assert_eq!(
+        run(&repair(&home, &p, &[])),
+        (
+            Some(2),
+            String::new(),
+            format!(
+                "error: {}: a finding beyond those the open lists forces read-only, and `ew fmt --repair` discards \
+                 only lines that are not JSON or not UTF-8 (EW-CORE-005); nothing was written; resolve it first (`ew \
+                 check` lists the findings), then run `ew fmt --repair` again\n",
+                p.display()
+            )
+        )
+    );
+    assert!(tree(&p) == before, "nothing is written");
+
+    // A page file edited outside ElektraWatt since the last save: the generation on disk cannot be packed.
+    let (t, p, rel) = project(&[NOT_JSON], false);
+    let home = t.0.join("home");
+    let before = tree(&p);
+    assert_eq!(
+        run(&repair(&home, &p, &[])),
+        (
+            Some(2),
+            String::new(),
+            format!(
+                "error: {}: the backup cannot be packed: {rel} does not match the manifest (changed outside \
+                 ElektraWatt since the last save); nothing was written; keep a copy of the project folder and correct \
+                 the broken lines by hand\n",
+                p.display()
+            )
+        )
+    );
+    assert!(tree(&p) == before, "nothing is written");
+    assert_eq!(beside_the_project(&p), Vec::<String>::new());
+
+    // A file at the backup's name that is not this generation's backup.
+    let (t, p, _) = project(&[NOT_JSON], true);
+    let home = t.0.join("home");
+    let backup = backup_of(&p, 1);
+    std::fs::write(&backup, b"another file").unwrap();
+    let before = tree(&p);
+    assert_eq!(
+        run(&repair(&home, &p, &[])),
+        (
+            Some(2),
+            String::new(),
+            format!(
+                "error: {}: {} already exists and does not hold this generation's backup; nothing was written; move it \
+                 out of the folder, then run `ew fmt --repair` again\n",
+                p.display(),
+                backup.display()
+            )
+        )
+    );
+    assert!(tree(&p) == before, "nothing is written");
+    assert_eq!(std::fs::read(&backup).unwrap(), b"another file");
+
+    // `--repair` with `--check`: the parser's refusal, before any open.
+    assert_eq!(
+        run(&repair(&home, &p, &["--check"])),
+        (
+            Some(2),
+            String::new(),
+            "error: the argument '--repair' cannot be used with '--check'\n\nUsage: ew fmt --repair <project-dir>\n\n\
+             For more information, try '--help'.\n"
+                .to_owned()
+        )
+    );
+    drop(t);
+}
+
 /// FM-4 (FT-252): `ew recover` prints the journal's summary and changes nothing; `--discard` off a terminal exits 2
 /// before the project is opened (the typed paths are unit tests with the injected terminal, `cli/project_files.rs`);
 /// `--replay` saves the journal's transactions and removes it.

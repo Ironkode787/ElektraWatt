@@ -206,6 +206,90 @@ fn invalid_utf8_is_a_syntax_error_kept_byte_for_byte() {
     );
 }
 
+/// WP-S1.17, decision log ID-1185 rulings 1 and 2: each quarantined line carries the kind of the finding that kept it;
+/// a line that is not JSON or not UTF-8 is a broken line (EW-CORE-005 at line level), which alone does not set the
+/// loader's flag of findings beyond a repair.
+#[test]
+fn each_quarantined_line_carries_its_kind() {
+    let mut bytes = format!("{FUNCTION}\n{{\"$k\":\n").into_bytes();
+    bytes.extend_from_slice(b"\xff\xfe\n");
+    let loaded = load_bytes(SHARD, &bytes, &Limits::default());
+    let kinds: Vec<(u32, Kept, Option<FindingKind>, bool)> = loaded
+        .kept
+        .iter()
+        .map(|k| (k.line, k.kept.clone(), k.kind, k.is_broken()))
+        .collect();
+    assert_eq!(
+        kinds,
+        [
+            (2, Kept::Quarantined, Some(FindingKind::JsonSyntax), true),
+            (3, Kept::Quarantined, Some(FindingKind::JsonSyntax), true),
+        ]
+    );
+    assert!(loaded.findings.iter().all(|f| f.is_broken_line()), "{:?}", loaded.findings);
+    assert!(loaded.read_only);
+    assert!(!loaded.read_only_beyond_repair);
+
+    // A conflict marker (EW-CORE-006) and a duplicate (EW-CORE-009) keep their own kinds; the marker forces read-only
+    // beyond a repair.
+    let text = format!("{FUNCTION}\n<<<<<<< HEAD\n{FUNCTION}\n");
+    let loaded = load_bytes(SHARD, text.as_bytes(), &Limits::default());
+    let kinds: Vec<(u32, Option<FindingKind>, bool)> =
+        loaded.kept.iter().map(|k| (k.line, k.kind, k.is_broken())).collect();
+    assert_eq!(
+        kinds,
+        [
+            (2, Some(FindingKind::ConflictMarkers), false),
+            (3, Some(FindingKind::DuplicateRecord), false),
+        ]
+    );
+    assert!(loaded.read_only_beyond_repair);
+}
+
+/// ID-1185 ruling 3: the flag counts a forcing finding beyond the findings cap, which the list no longer holds.
+#[test]
+fn a_forcing_finding_beyond_the_cap_sets_the_flag() {
+    let limits = Limits {
+        max_findings: 2,
+        ..Limits::default()
+    };
+    let text = format!("{FUNCTION}\n{{\n{{\n{{\n<<<<<<< HEAD\n");
+    let loaded = load_bytes(SHARD, text.as_bytes(), &limits);
+    let listed: Vec<(FindingKind, Option<u32>)> = loaded
+        .findings
+        .iter()
+        .filter(|f| f.kind != FindingKind::Truncated)
+        .map(|f| (f.kind, f.line))
+        .collect();
+    assert_eq!(
+        listed,
+        [(FindingKind::JsonSyntax, Some(2)), (FindingKind::JsonSyntax, Some(3))]
+    );
+    assert!(loaded.read_only_beyond_repair, "the marker at line 5 is beyond the cap");
+
+    // The same without the marker: only broken lines, beyond the cap too.
+    let text = format!("{FUNCTION}\n{{\n{{\n{{\n");
+    let loaded = load_bytes(SHARD, text.as_bytes(), &limits);
+    assert!(loaded.read_only);
+    assert!(!loaded.read_only_beyond_repair);
+}
+
+/// ID-1185 ruling 1: a library document that is not UTF-8 is EW-CORE-005 of the whole file, with no line: not a broken
+/// line, and beyond a repair.
+#[test]
+fn a_library_document_not_utf8_is_beyond_a_repair() {
+    let path = "lib/fndefs/5d1ab4de-706a-5b85-b463-8b15311c4f39.json";
+    let loaded = load_bytes(path, b"\xff\xfe", &Limits::default());
+    let found: Vec<(FindingKind, Option<u32>, bool)> = loaded
+        .findings
+        .iter()
+        .map(|f| (f.kind, f.line, f.is_broken_line()))
+        .collect();
+    assert_eq!(found, [(FindingKind::JsonSyntax, None, false)]);
+    assert!(loaded.read_only);
+    assert!(loaded.read_only_beyond_repair);
+}
+
 #[test]
 fn a_two_mebibyte_string_member_parses() {
     let big = "a".repeat(2 << 20);

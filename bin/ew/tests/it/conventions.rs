@@ -145,6 +145,29 @@ fn copy_dir(from: &Path, to: &Path) {
     }
 }
 
+/// A line that is not JSON after the first line of the project's first page file, with the file's hash in the manifest
+/// as a save of those bytes writes it (`ew fmt --repair`'s case, WP-S1.17 ID-1185).
+fn with_a_broken_line(project: &Path) {
+    use sha2::Digest;
+    let hash = |b: &[u8]| {
+        let hex: String = sha2::Sha256::digest(b).iter().map(|x| format!("{x:02x}")).collect();
+        format!("sha256:{hex}")
+    };
+    let first = tree(&project.join("pages")).into_keys().next().expect("a page file");
+    let file = project.join("pages").join(first);
+    let old = std::fs::read(&file).unwrap();
+    let at = old.iter().position(|b| *b == b'\n').expect("a first line") + 1;
+    let new = [&old[..at], &b"{\"$k\":\"page\",\n"[..], &old[at..]].concat();
+    let manifest = std::fs::read_to_string(project.join("manifest.json")).unwrap();
+    assert_eq!(manifest.matches(&hash(&old)).count(), 1);
+    std::fs::write(
+        project.join("manifest.json"),
+        manifest.replace(&hash(&old), &hash(&new)),
+    )
+    .unwrap();
+    std::fs::write(&file, new).unwrap();
+}
+
 /// Every file of a directory tree with its bytes, by relative path.
 fn tree(dir: &Path) -> BTreeMap<String, Vec<u8>> {
     fn go(dir: &Path, base: &Path, out: &mut BTreeMap<String, Vec<u8>>) {
@@ -842,6 +865,34 @@ fn every_writing_json_result_validates_and_round_trips() {
         outs.push(stdout(&o));
     }
     assert_eq!(outs[0], outs[1]);
+    // `fmt --repair` on two copies with the same broken line (WP-S1.17, ID-1185): the same bytes but for the backup's
+    // path; then again on one, with nothing to repair.
+    let mut outs = Vec::new();
+    for name in ["r1.ew", "r2.ew"] {
+        let p = t.golden(name);
+        with_a_broken_line(&p);
+        let o = t.ew(&args([&"fmt", &p, &"--repair", &"--json"]));
+        assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+        let r: results::FmtRepairResult = assert_result(&stdout(&o), results::FMT_REPAIR);
+        assert_eq!(
+            (r.discarded.len(), r.files.len(), r.kept.len(), r.generation),
+            (1, 1, 0, 2),
+            "{r:?}"
+        );
+        let backup = r.backup.expect("a backup");
+        assert_eq!((backup.generation, backup.reused), (1, false));
+        let path = serde_json::to_string(&backup.path).unwrap();
+        outs.push(stdout(&o).replace(&path, "\"<backup>\""));
+    }
+    assert_eq!(outs[0], outs[1]);
+    let o = t.ew(&args([&"fmt", &t.0.join("r1.ew"), &"--repair", &"--json"]));
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    let r: results::FmtRepairResult = assert_result(&stdout(&o), results::FMT_REPAIR);
+    assert_eq!(
+        (r.discarded.len(), r.backup, r.generation),
+        (0, None, 2),
+        "nothing to repair"
+    );
     // `recover` and `recover --replay` of a crashed session's journal on two copies.
     let mut outs = Vec::new();
     for name in ["h.ew", "i.ew"] {

@@ -12,14 +12,19 @@
 use crate::common;
 
 use std::collections::BTreeSet;
+use std::path::PathBuf;
 use std::sync::Arc;
 
-use common::{apply, device_copy, fixture, mem_project, options, project_files, reopen};
+use common::{
+    apply, device_copy, fixture, mem_project, mem_project_of, options, project_files, reopen, small_fixture,
+};
 use ew_model::{AnyRow, Op};
 use ew_store::ew_format::ew_schema::Device;
 use ew_store::ew_format::{FilePath, FindingKind, Limits};
-use ew_store::mem::DirSync;
-use ew_store::{Access, Changes, Opened, ReadOnlyReason, Store, join};
+use ew_store::mem::{DirSync, Fault, MemVfs};
+use ew_store::{
+    Access, BrokenLine, Changes, Opened, ReadOnlyReason, SaveError, Store, StoreOptions, join,
+};
 
 #[test]
 fn a_finding_beyond_the_cap_still_forces_read_only_and_quarantined_bytes_survive() {
@@ -190,4 +195,170 @@ fn an_editing_open_deletes_only_the_save_protocols_temps() {
     for name in theirs {
         assert!(left.contains_key(name), "{name} was deleted");
     }
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// `ew fmt --repair`'s open and save (WP-S1.17, decision log ID-1185)
+
+/// A line that is not one JSON value.
+const NOT_JSON: &[u8] = b"{\"$k\":\"device\",";
+
+/// A line that is not UTF-8.
+const NOT_UTF8: &[u8] = b"\xff\xfe{\"not\":\"utf-8\"}";
+
+/// The small fixture in a [`MemVfs`] with `lines` appended to its first device shard: the shard's name, its bytes
+/// before and the number of its lines before.
+fn shard_with(lines: &[&[u8]]) -> (Arc<MemVfs>, PathBuf, String, Vec<u8>, u32) {
+    let (vfs, root) = mem_project_of(DirSync::Explicit, small_fixture());
+    let shard = project_files(&vfs, &root)
+        .into_keys()
+        .find(|n| n.starts_with("devices/"))
+        .expect("a device shard");
+    let before = project_files(&vfs, &root)[&shard].clone();
+    let count = u32::try_from(before.iter().filter(|b| **b == b'\n').count()).unwrap();
+    let mut bytes = before.clone();
+    for line in lines {
+        bytes.extend_from_slice(line);
+        bytes.push(b'\n');
+    }
+    vfs.put(&join(&root, &shard), &bytes);
+    (vfs, root, shard, before, count)
+}
+
+fn repair_options(vfs: &Arc<MemVfs>, pid: u32) -> StoreOptions {
+    let mut o = options(vfs, pid);
+    o.repair = true;
+    o
+}
+
+/// ID-1185 rulings 2, 4 and 6: a repair open of a project whose only forcing findings are broken lines is editable and
+/// lists them from the store's own data; one save discards them, after which none is left and the shard holds its
+/// bytes before. A plain editing open of the same project stays read-only.
+#[test]
+fn a_repair_open_lets_only_broken_lines_through_and_one_save_discards_them() {
+    let (vfs, root, shard, before, n) = shard_with(&[NOT_JSON, NOT_UTF8]);
+    let plain = Store::open(&root, options(&vfs, 1)).expect("opens");
+    assert_eq!(plain.report.access, Access::ReadOnly(ReadOnlyReason::Integrity));
+    assert_eq!(plain.store.broken_lines().len(), 2, "the store tells them apart in any open");
+    plain.store.close();
+
+    let Opened { mut store, report, .. } = Store::open(&root, repair_options(&vfs, 1)).expect("opens");
+    assert_eq!(report.access, Access::Edit, "{:?}", report.findings);
+    let file = FilePath::new(shard.as_str()).expect("a valid path");
+    assert_eq!(
+        store.broken_lines(),
+        [
+            BrokenLine {
+                file: file.clone(),
+                line: n + 1,
+                text: NOT_JSON.to_vec(),
+            },
+            BrokenLine {
+                file: file.clone(),
+                line: n + 2,
+                text: NOT_UTF8.to_vec(),
+            },
+        ]
+    );
+    let rewrite = store.repair_rewrite().expect("renders");
+    assert_eq!(rewrite.keys().collect::<Vec<_>>(), [&file]);
+    let saved = store.discard_broken_lines().expect("the save succeeds");
+    assert_eq!(saved.generation, report.generation + 1);
+    assert_eq!(store.broken_lines(), []);
+    store.close();
+    assert_eq!(project_files(&vfs, &root)[&shard], before);
+    let again = reopen(&vfs, 2);
+    assert_eq!(again.report.access, Access::Edit);
+    again.store.close();
+}
+
+/// ID-1185 rulings 3 and 4: a repair open still demotes for every other finding that forces read-only, also one beyond
+/// the findings cap (1,001 broken lines fill the list before the conflict marker).
+#[test]
+fn a_repair_open_still_demotes_for_any_other_forcing_finding() {
+    let (vfs, root, ..) = shard_with(&[NOT_JSON, b"<<<<<<< HEAD"]);
+    let opened = Store::open(&root, repair_options(&vfs, 1)).expect("opens");
+    assert_eq!(opened.report.access, Access::ReadOnly(ReadOnlyReason::Integrity));
+    opened.store.close();
+
+    let mut lines: Vec<&[u8]> = vec![NOT_JSON; 1_001];
+    lines.push(b"<<<<<<< HEAD");
+    let (vfs, root, ..) = shard_with(&lines);
+    let opened = Store::open(&root, repair_options(&vfs, 1)).expect("opens");
+    assert!(Limits::default().max_findings < 1_001);
+    assert!(
+        !opened
+            .report
+            .findings
+            .iter()
+            .any(|f| f.kind == FindingKind::ConflictMarkers),
+        "the marker's finding is one of those dropped"
+    );
+    assert_eq!(
+        opened.report.access,
+        Access::ReadOnly(ReadOnlyReason::Integrity),
+        "a dropped finding beyond a repair still demotes"
+    );
+    opened.store.close();
+}
+
+/// ID-1185 ruling 6: the broken lines leave the kept lines only when the save succeeds (in `adopt`). An error at each
+/// file-system call of the save: before its commit point the save fails, the lines are still there and the next
+/// discard succeeds; after it the save is decided and they are gone. A schema violation in the same shard stays.
+#[test]
+fn a_failed_repair_save_keeps_the_broken_lines() {
+    let schema: &[u8] = br#"{"$k":"device","id":"0e9d8b7a-6c5d-7e4f-8a3b-2c1d0e9f8a71","tag":5}"#;
+    let calls = {
+        let (vfs, root, ..) = shard_with(&[NOT_JSON, schema]);
+        let Opened { mut store, .. } = Store::open(&root, repair_options(&vfs, 1)).expect("opens");
+        vfs.reset_calls();
+        store.discard_broken_lines().expect("the save succeeds");
+        let n = vfs.calls();
+        store.close();
+        n
+    };
+    let (mut failed, mut decided) = (false, false);
+    for at in 1..=calls {
+        let (vfs, root, shard, before, _) = shard_with(&[NOT_JSON, schema]);
+        let Opened { mut store, .. } = Store::open(&root, repair_options(&vfs, 1)).expect("opens");
+        vfs.reset_calls();
+        vfs.set_fault(Fault::Error {
+            at,
+            kind: std::io::ErrorKind::Other,
+        });
+        match store.discard_broken_lines() {
+            Ok(_) => assert_eq!(store.broken_lines(), [], "at {at}"),
+            Err(SaveError::Incomplete { .. }) => {
+                decided = true;
+                assert_eq!(store.broken_lines(), [], "at {at}: decided");
+            }
+            Err(e) => {
+                failed = true;
+                assert_eq!(store.broken_lines().len(), 1, "at {at}: {e}");
+                store.discard_broken_lines().expect("the next discard succeeds");
+            }
+        }
+        store.close();
+        // The next open completes a decided save.
+        let next = reopen(&vfs, 2);
+        assert_eq!(next.report.access, Access::Edit, "at {at}");
+        next.store.close();
+        let written = &project_files(&vfs, &root)[&shard];
+        let lines: Vec<&[u8]> = written.split_inclusive(|b| *b == b'\n').collect();
+        let mut line = schema.to_vec();
+        line.push(b'\n');
+        assert_eq!(
+            lines.iter().filter(|l| **l == line.as_slice()).count(),
+            1,
+            "at {at}: the 007 line, verbatim"
+        );
+        let rest: Vec<u8> = lines
+            .into_iter()
+            .filter(|l| *l != line.as_slice())
+            .flatten()
+            .copied()
+            .collect();
+        assert_eq!(rest, before, "at {at}: the shard without the broken line");
+    }
+    assert!(failed && decided, "the errors reach both sides of the commit point");
 }

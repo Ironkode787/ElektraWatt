@@ -458,7 +458,7 @@ fn pack_words(e: &PackError) -> String {
         PackError::Generation(GenerationError::NoManifest) => "the project has no manifest.json".to_owned(),
         PackError::Generation(GenerationError::Incomplete) => "a save is incomplete".to_owned(),
         PackError::Generation(GenerationError::Changed { path }) => {
-            format!("{path} changed on disk since the project was opened")
+            format!("{path} does not match the manifest (changed outside ElektraWatt since the last save)")
         }
         PackError::Generation(GenerationError::Pending { path }) => {
             format!("the manifest's hash of {path} is pending (a merged project)")

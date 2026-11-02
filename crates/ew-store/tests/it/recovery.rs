@@ -232,3 +232,42 @@ fn a_journal_whose_base_moved_and_collides_is_refused_and_kept() {
     assert!(d.model.content_eq(&edited));
     d.store.close();
 }
+
+/// WP-S1.17, decision log ID-1185 ruling 3: `ew fmt --repair` names a crashed session's journal before a finding it
+/// cannot repair, so a repair open that a conflict marker made read-only still summarises the journal (and keeps it);
+/// a plain open made read-only by the same finding does not.
+#[test]
+fn a_read_only_repair_open_summarises_a_crashed_sessions_journal() {
+    let (vfs, _) = mem_project_of(DirSync::Explicit, small_fixture());
+    let (_, segment) = crashed_session(&vfs, 1, 10, 0, "edited", "test.edit");
+    let shard = vfs
+        .files(&root())
+        .into_keys()
+        .find(|n| n.starts_with("devices/"))
+        .expect("a device shard");
+    let path = ew_store::join(&root(), &shard);
+    let mut bytes = vfs.files(&root())[&shard].clone();
+    bytes.extend_from_slice(b"<<<<<<< HEAD\n");
+    vfs.put(&path, &bytes);
+
+    let open = |repair: bool| {
+        let mut o = options_at(&vfs, 2, 20);
+        o.repair = repair;
+        let opened = Store::open(&root(), o.clone()).expect("the project opens");
+        if let Access::ReadOnly(ReadOnlyReason::LockedBy(info)) = &opened.report.access {
+            assert!(info.stale);
+            drop(opened);
+            return Store::take_over(&root(), o).expect("the stale lock is taken over");
+        }
+        opened
+    };
+    let plain = open(false);
+    assert_eq!(plain.report.access, Access::ReadOnly(ReadOnlyReason::Integrity));
+    assert!(plain.report.recovery.is_none());
+    plain.store.close();
+    let repair = open(true);
+    assert_eq!(repair.report.access, Access::ReadOnly(ReadOnlyReason::Integrity));
+    assert!(repair.report.recovery.is_some(), "the journal is named first");
+    repair.store.close();
+    assert!(journals(&vfs).contains_key(&segment), "the journal stays");
+}
