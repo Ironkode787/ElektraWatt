@@ -448,14 +448,12 @@ struct RawCell {
     inline: String,
 }
 
-/// Reads the sheet `sheet` (the first when `None`) of an XLSX workbook into records (row number, cells).
-pub(crate) fn read(
-    bytes: &[u8],
-    sheet: Option<&str>,
+/// The workbook part's path and its sheets in workbook order: (name, relationship ID), hidden sheets included.
+fn workbook_sheets(
+    book: &Archive<'_>,
     limits: &Limits,
-) -> Result<Vec<(u32, Vec<Cell>)>, ImportError> {
-    let book = Archive::open(bytes, limits)?;
-    let root = relationships(&book, "_rels/.rels", "", limits)?;
+) -> Result<(String, Vec<(String, String)>), ImportError> {
+    let root = relationships(book, "_rels/.rels", "", limits)?;
     let workbook = root
         .values()
         .find(|(_, kind)| kind.ends_with(OFFICE_DOCUMENT))
@@ -463,8 +461,6 @@ pub(crate) fn read(
     let book_xml = book
         .text(&workbook, limits)?
         .ok_or_else(|| unreadable(format!("no workbook part {workbook}")))?;
-    let rels = relationships(&book, &rels_of(&workbook), dir_of(&workbook), limits)?;
-    // The sheets in workbook order: (name, relationship ID).
     let mut sheets: Vec<(String, String)> = Vec::new();
     walk(&book_xml, limits, |node| {
         if let Node::Start(e, _) = node
@@ -477,6 +473,25 @@ pub(crate) fn read(
         }
         Ok(())
     })?;
+    Ok((workbook, sheets))
+}
+
+/// The names of the sheets of an XLSX workbook in workbook order, hidden sheets included (WP-S3.08 D12).
+pub(crate) fn sheet_names(bytes: &[u8], limits: &Limits) -> Result<Vec<String>, ImportError> {
+    let book = Archive::open(bytes, limits)?;
+    let (_, sheets) = workbook_sheets(&book, limits)?;
+    Ok(sheets.into_iter().map(|(name, _)| name).collect())
+}
+
+/// Reads the sheet `sheet` (the first when `None`) of an XLSX workbook into records (row number, cells).
+pub(crate) fn read(
+    bytes: &[u8],
+    sheet: Option<&str>,
+    limits: &Limits,
+) -> Result<Vec<(u32, Vec<Cell>)>, ImportError> {
+    let book = Archive::open(bytes, limits)?;
+    let (workbook, sheets) = workbook_sheets(&book, limits)?;
+    let rels = relationships(&book, &rels_of(&workbook), dir_of(&workbook), limits)?;
     let (_, rid) = match sheet {
         Some(s) => sheets
             .iter()

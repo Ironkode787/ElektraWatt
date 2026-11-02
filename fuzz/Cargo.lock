@@ -671,6 +671,7 @@ dependencies = [
  "ew-hack",
  "ew-sqlview",
  "ew-text",
+ "ew-zip",
  "serde_json",
 ]
 

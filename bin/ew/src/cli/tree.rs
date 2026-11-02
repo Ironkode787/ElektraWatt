@@ -17,15 +17,15 @@ use clap::{ArgGroup, Args, CommandFactory, Parser, Subcommand, ValueEnum};
 use ew_api::BomMode;
 use ew_api::checks::CheckMode;
 use ew_api::import::migration::ReportFormat;
-use ew_api::output::PageSelection;
 use ew_api::output::print::Paper;
+use ew_api::output::{CsvOptions, LineEnd, PageSelection, Preset};
 
 use super::query::QueryArgs;
 use super::{
     ApplyArgs, AssetsPurgeArgs, CheckArgs, CheckFormat, ChecksSetArgs, Command, ExportArgs, ExportKind,
     ExportPagesArgs, FmtArgs, ImportCsvArgs, ImportPartsArgs, ImportQetArgs, LibAction, LibArgs, PageFormat,
-    PrintArgs, PrintVia, RecoverAction, RecoverArgs, RenderArgs, RevisionAction, RevisionArgs, SqlArgs,
-    SqlDumpArgs, SqlFormat, SqlSource, VerifyArgs,
+    PrintArgs, PrintVia, RecoverAction, RecoverArgs, RenderArgs, RevisionAction, RevisionArgs, RowFormat,
+    SqlArgs, SqlDumpArgs, SqlFormat, SqlSource, VerifyArgs, XLSX_NEEDS_OUT,
 };
 
 /// The ElektraWatt command-line interface.
@@ -65,8 +65,10 @@ enum Top {
     /// prints them) in the sandbox of doc 17 §6.2, with the query given inline or from `--file`. With one positional
     /// it is the query; with two, the project directory and the query; with `--file`, the one positional is the
     /// project directory. An inline query may start with an SQL comment (`-- ...`). The result is CSV (default) or
-    /// JSON on stdout, the row count on stderr; with `--out` it goes to a file. `--timeout` sets a deadline in
-    /// seconds. `sql` exits 0 on success and 2 on everything else (usage, open and SQL errors, denials, limits).
+    /// JSON on stdout, the row count on stderr; with `--out` it goes to a file; `--format xlsx` writes a workbook to
+    /// `--out`. `--preset` writes the CSV for Excel (`excel-nl`, `excel-en`) or as RFC 4180 (`rfc4180`); `--bom` and
+    /// `--line-end` override the preset. `--timeout` sets a deadline in seconds. `sql` exits 0 on success and 2 on
+    /// everything else (usage, open and SQL errors, denials, limits).
     Sql(SqlCli),
     /// Write a report's rows as CSV, or the pages as PDF, SVG or PNG.
     #[command(subcommand)]
@@ -299,9 +301,12 @@ struct SqlCli {
         overrides_with = "file"
     )]
     file: Option<PathBuf>,
-    /// The result format: csv (default) or json.
+    /// The result format: csv (default), json, or xlsx (with `--out`).
     #[arg(long, value_name = "format", allow_hyphen_values = true, overrides_with = "format", value_parser = sql_format)]
     format: Option<SqlFormat>,
+    /// The CSV options.
+    #[command(flatten)]
+    csv: CsvCli,
     /// Print the result as JSON (`--format json`).
     #[arg(long, overrides_with = "json")]
     json: bool,
@@ -345,41 +350,44 @@ struct SqlDumpCli {
 /// `ew export`.
 #[derive(Subcommand, Debug)]
 enum ExportCli {
-    /// Write the cable list as CSV.
+    /// Write the cable list as CSV or XLSX.
     ///
     /// Writes the rows of the project's cable overview (the golden dialect) to stdout or to `--out`. `--block`
     /// names the report block by its ID or its first folio (`908`); without it the block is the project's block of
-    /// the kind with the lowest first folio; a block of another kind is refused. XLSX waits for the writer of
-    /// FT-61. Exit 0 on success, 2 on everything else (usage, open errors, a project without the block, an unknown
-    /// or wrong block).
+    /// the kind with the lowest first folio; a block of another kind is refused. `--format xlsx` writes a workbook to
+    /// `--out`; `--preset` writes the CSV for Excel (`excel-nl`, `excel-en`) or as RFC 4180 (`rfc4180`), and `--bom`
+    /// and `--line-end` override the preset. Exit 0 on success, 2 on everything else (usage, open errors, a project
+    /// without the block, an unknown or wrong block).
     Cables(RowsCli),
-    /// Write the bill of materials as CSV.
+    /// Write the bill of materials as CSV or XLSX.
     ///
     /// Writes the rows of the project's parts summary (the golden dialect) to stdout or to `--out`. `--mode parts`
     /// (alias `component`, the default) lists every component part; `--mode assembly` replaces the parts a
     /// configured product covers by its row. `--block` names the report block by its ID or its first folio;
-    /// without it the block is the project's block of the kind with the lowest first folio. Exit 0 on success, 2 on
-    /// everything else.
+    /// without it the block is the project's block of the kind with the lowest first folio. `--format`, `--preset`,
+    /// `--bom` and `--line-end` as for `export cables`. Exit 0 on success, 2 on everything else.
     Bom(BomCli),
-    /// Write the wire list as CSV.
+    /// Write the wire list as CSV or XLSX.
     ///
     /// Writes the rows of the project's wire list (the golden dialect) to stdout or to `--out`. `--block` names the
     /// report block by its ID or its first folio; without it the block is the project's block of the kind with the
-    /// lowest first folio. Exit 0 on success, 2 on everything else.
+    /// lowest first folio. `--format`, `--preset`, `--bom` and `--line-end` as for `export cables`. Exit 0 on success,
+    /// 2 on everything else.
     Wires(RowsCli),
-    /// Write the terminal diagrams as CSV.
+    /// Write the terminal diagrams as CSV or XLSX.
     ///
     /// Writes the rows of the project's terminal diagram blocks (the golden dialect) to stdout or to `--out`.
     /// Without `--block`, every terminal diagram block. `--strip <tag>` writes the rows of one strip (`-X1031`);
-    /// without it every strip, each strip's rows after a heading row `heading,<tag>`. Exit 0 on success, 2 on
-    /// everything else (also an unknown strip).
+    /// without it every strip, each strip's rows after a heading row `heading,<tag>` (in XLSX, one sheet per strip
+    /// named by its tag). `--format`, `--preset`, `--bom` and `--line-end` as for `export cables`. Exit 0 on success,
+    /// 2 on everything else (also an unknown strip).
     Terminals(TerminalsCli),
     /// Write the rows of a report block or a report kind.
     ///
-    /// `--block <block>` writes the rows of any block as CSV, or with `--format pdf` the block's pages as a PDF to
-    /// `--out` (as `export pdf --pages`). `--kind <kind>` writes the whole-project rows of a report kind
-    /// (`device_list`, `terminal_overview`, ...) in the kind's default order, as CSV only, with no block. Exit 0 on
-    /// success, 2 on everything else.
+    /// `--block <block>` writes the rows of any block as CSV or XLSX, or with `--format pdf` the block's pages as a
+    /// PDF to `--out` (as `export pdf --pages`). `--kind <kind>` writes the whole-project rows of a report kind
+    /// (`device_list`, `terminal_overview`, ...) in the kind's default order, as CSV or XLSX, with no block.
+    /// `--preset`, `--bom` and `--line-end` as for `export cables`. Exit 0 on success, 2 on everything else.
     Report(ReportCli),
     /// Write the pages as one PDF/A-2b.
     ///
@@ -426,9 +434,12 @@ struct RowsCli {
         overrides_with = "block"
     )]
     block: Option<String>,
-    /// The format: csv.
+    /// The format: csv (default) or xlsx (with `--out`).
     #[arg(long, value_name = "format", allow_hyphen_values = true, overrides_with = "format", value_parser = row_format)]
     format: Option<ReportPages>,
+    /// The CSV options.
+    #[command(flatten)]
+    csv: CsvCli,
     /// The output file (default: stdout).
     #[arg(long, value_name = "file", allow_hyphen_values = true, overrides_with = "out")]
     out: Option<PathBuf>,
@@ -468,9 +479,12 @@ struct BomCli {
         default_value = "parts"
     )]
     mode: BomArg,
-    /// The format: csv.
+    /// The format: csv (default) or xlsx (with `--out`).
     #[arg(long, value_name = "format", allow_hyphen_values = true, overrides_with = "format", value_parser = row_format)]
     format: Option<ReportPages>,
+    /// The CSV options.
+    #[command(flatten)]
+    csv: CsvCli,
     /// The output file (default: stdout).
     #[arg(long, value_name = "file", allow_hyphen_values = true, overrides_with = "out")]
     out: Option<PathBuf>,
@@ -519,9 +533,12 @@ struct TerminalsCli {
         overrides_with = "strip"
     )]
     strip: Option<String>,
-    /// The format: csv.
+    /// The format: csv (default) or xlsx (with `--out`).
     #[arg(long, value_name = "format", allow_hyphen_values = true, overrides_with = "format", value_parser = row_format)]
     format: Option<ReportPages>,
+    /// The CSV options.
+    #[command(flatten)]
+    csv: CsvCli,
     /// The output file (default: stdout).
     #[arg(long, value_name = "file", allow_hyphen_values = true, overrides_with = "out")]
     out: Option<PathBuf>,
@@ -554,7 +571,7 @@ struct ReportCli {
         overrides_with = "block"
     )]
     block: Option<String>,
-    /// A report kind: its whole-project rows (CSV only, no block).
+    /// A report kind: its whole-project rows (CSV or XLSX, no block).
     #[arg(
         long,
         value_name = "kind",
@@ -562,9 +579,12 @@ struct ReportCli {
         overrides_with = "kind"
     )]
     kind: Option<String>,
-    /// The format: csv (default) or pdf (a block's pages, with `--out`).
+    /// The format: csv (default), xlsx (with `--out`) or pdf (a block's pages, with `--out`).
     #[arg(long, value_name = "format", allow_hyphen_values = true, overrides_with = "format", value_parser = report_format)]
     format: Option<ReportPages>,
+    /// The CSV options.
+    #[command(flatten)]
+    csv: CsvCli,
     /// The output file (default: stdout).
     #[arg(
         long,
@@ -584,8 +604,71 @@ struct ReportCli {
 enum ReportPages {
     /// Rows as CSV.
     Csv,
+    /// Rows as an XLSX workbook.
+    Xlsx,
     /// A block's pages as PDF.
     Pdf,
+}
+
+/// The CSV options of a row export and of `sql` (WP-S3.08 D6).
+#[derive(Args, Debug)]
+struct CsvCli {
+    /// The CSV preset: ew (default, the golden dialect), excel-nl, excel-en or rfc4180.
+    #[arg(long, value_name = "preset", allow_hyphen_values = true, overrides_with = "preset", value_parser = preset)]
+    preset: Option<Preset>,
+    /// A UTF-8 byte-order mark: on or off (default: the preset's).
+    #[arg(long, value_name = "on|off", allow_hyphen_values = true, overrides_with = "bom", value_parser = bom)]
+    bom: Option<bool>,
+    /// The line end: crlf or lf (default: the preset's).
+    #[arg(long, value_name = "crlf|lf", allow_hyphen_values = true, overrides_with = "line_end", value_parser = line_end)]
+    line_end: Option<LineEnd>,
+}
+
+impl CsvCli {
+    /// The options, or the refusal of a CSV option given with another format (`format`: its name).
+    fn options(self, path: &[&str], format: &str) -> Result<CsvOptions, clap::Error> {
+        if format != "csv" {
+            let given = [
+                ("preset", self.preset.is_some()),
+                ("bom", self.bom.is_some()),
+                ("line-end", self.line_end.is_some()),
+            ];
+            if let Some((flag, _)) = given.into_iter().find(|(_, g)| *g) {
+                return Err(usage_error(
+                    path,
+                    format!("`--{flag}` applies to CSV: `--format {format}` takes none"),
+                ));
+            }
+        }
+        Ok(CsvOptions {
+            preset: self.preset.unwrap_or(Preset::Ew),
+            bom: self.bom,
+            line_end: self.line_end,
+        })
+    }
+}
+
+/// The format of a row export (WP-S3.08 D7): `xlsx` takes no CSV option and needs `--out`; `pdf` takes no CSV option.
+fn rows_format(
+    path: &[&str],
+    format: Option<ReportPages>,
+    csv: CsvCli,
+    out: Option<&PathBuf>,
+) -> Result<RowFormat, clap::Error> {
+    match format {
+        Some(ReportPages::Xlsx) => {
+            csv.options(path, "xlsx")?;
+            if out.is_none() {
+                return Err(usage_error(path, XLSX_NEEDS_OUT));
+            }
+            Ok(RowFormat::Xlsx)
+        }
+        Some(ReportPages::Pdf) => {
+            csv.options(path, "pdf")?;
+            Ok(RowFormat::default())
+        }
+        Some(ReportPages::Csv) | None => Ok(RowFormat::Csv(csv.options(path, "csv")?)),
+    }
 }
 
 /// `ew export pdf|svg`.
@@ -1362,31 +1445,51 @@ fn sql_format(v: &str) -> Result<SqlFormat, String> {
     match v {
         "csv" => Ok(SqlFormat::Csv),
         "json" => Ok(SqlFormat::Json),
-        "xlsx" => Err("`--format xlsx` is not built yet (csv, json)".to_owned()),
-        other => Err(format!("unknown format `{other}` (csv, json)")),
+        "xlsx" => Ok(SqlFormat::Xlsx),
+        other => Err(format!("unknown format `{other}` (csv, json, xlsx)")),
     }
 }
 
-/// The `--format` of a row export (`export cables|bom|wires|terminals`): CSV only; `pdf` is refused by the lowering
-/// with the subject's words ([`csv_only`]).
+/// The `--format` of a row export (`export cables|bom|wires|terminals`): CSV or XLSX; `pdf` is refused by the
+/// lowering with the subject's words ([`csv_only`]).
 fn row_format(v: &str) -> Result<ReportPages, String> {
     match v {
         "csv" => Ok(ReportPages::Csv),
+        "xlsx" => Ok(ReportPages::Xlsx),
         "pdf" => Ok(ReportPages::Pdf),
-        "xlsx" => {
-            Err("`--format xlsx` is not built yet (csv; XLSX waits for the writer of FT-61)".to_owned())
-        }
-        other => Err(format!("unknown format `{other}` (csv)")),
+        other => Err(format!("unknown format `{other}` (csv, xlsx)")),
     }
 }
 
-/// A row export's `--format pdf`: the row exports are CSV only, and the refusal points to the report PDF.
+/// A `--preset` (WP-S3.08 D6).
+fn preset(v: &str) -> Result<Preset, String> {
+    Preset::parse(v).ok_or_else(|| {
+        let names: Vec<&str> = Preset::ALL.iter().map(|p| p.name()).collect();
+        format!("unknown preset `{v}` ({})", names.join(", "))
+    })
+}
+
+/// A `--bom`.
+fn bom(v: &str) -> Result<bool, String> {
+    match v {
+        "on" => Ok(true),
+        "off" => Ok(false),
+        other => Err(format!("unknown byte-order mark setting `{other}` (on, off)")),
+    }
+}
+
+/// A `--line-end`.
+fn line_end(v: &str) -> Result<LineEnd, String> {
+    LineEnd::parse(v).ok_or_else(|| format!("unknown line end `{v}` (crlf, lf)"))
+}
+
+/// A row export's `--format pdf`: the row exports write rows, and the refusal points to the report PDF.
 fn csv_only(what: &str, format: Option<ReportPages>) -> Result<(), clap::Error> {
     match format {
         Some(ReportPages::Pdf) => Err(usage_error(
             &["export", what],
             format!(
-                "`export {what}` is CSV only; a report block's pages go to PDF with `ew export report --block <block> --format pdf`"
+                "`export {what}` writes rows as CSV or XLSX; a report block's pages go to PDF with `ew export report --block <block> --format pdf`"
             ),
         )),
         _ => Ok(()),
@@ -1397,11 +1500,9 @@ fn csv_only(what: &str, format: Option<ReportPages>) -> Result<(), clap::Error> 
 fn report_format(v: &str) -> Result<ReportPages, String> {
     match v {
         "csv" => Ok(ReportPages::Csv),
+        "xlsx" => Ok(ReportPages::Xlsx),
         "pdf" => Ok(ReportPages::Pdf),
-        "xlsx" => {
-            Err("`--format xlsx` is not built yet (csv, pdf; XLSX waits for the writer of FT-61)".to_owned())
-        }
-        other => Err(format!("unknown format `{other}` (csv, pdf)")),
+        other => Err(format!("unknown format `{other}` (csv, xlsx, pdf)")),
     }
 }
 
@@ -1784,6 +1885,7 @@ fn sql(a: SqlCli) -> Result<Command, clap::Error> {
         project: flag,
         file,
         format,
+        csv,
         json,
         timeout,
         out,
@@ -1818,31 +1920,46 @@ fn sql(a: SqlCli) -> Result<Command, clap::Error> {
     let format_name = format.map(|f| match f {
         SqlFormat::Csv => "csv",
         SqlFormat::Json => "json",
+        SqlFormat::Xlsx => "xlsx",
     });
     let project = counted_project(&["sql"], flag, dir)?;
     json_alias(&["sql"], json, format_name)?;
+    let format = if json {
+        SqlFormat::Json
+    } else {
+        format.unwrap_or(SqlFormat::Csv)
+    };
+    let csv = csv.options(
+        &["sql"],
+        match format {
+            SqlFormat::Csv => "csv",
+            SqlFormat::Json => "json",
+            SqlFormat::Xlsx => "xlsx",
+        },
+    )?;
+    if format == SqlFormat::Xlsx && out.is_none() {
+        return Err(usage_error(&["sql"], XLSX_NEEDS_OUT));
+    }
     Ok(Command::Sql(SqlArgs {
         project,
         query,
-        format: if json {
-            SqlFormat::Json
-        } else {
-            format.unwrap_or(SqlFormat::Csv)
-        },
+        format,
         timeout,
         out,
+        csv,
     }))
 }
 
 /// `ew export` and its subjects.
 fn export(e: ExportCli) -> Result<Command, clap::Error> {
-    let rows = |kind, block, flag, dir, out, json| {
+    let rows = |kind, block, flag, dir, out, json, format| {
         Command::Export(ExportArgs {
             kind,
             block,
             project: project(flag, dir),
             out,
             json,
+            format,
         })
     };
     Ok(match e {
@@ -1851,22 +1968,26 @@ fn export(e: ExportCli) -> Result<Command, clap::Error> {
             project: flag,
             block,
             format,
+            csv,
             out,
             json,
         }) => {
             csv_only("cables", format)?;
-            rows(ExportKind::Cables, block, flag, project_dir, out, json)
+            let format = rows_format(&["export", "cables"], format, csv, out.as_ref())?;
+            rows(ExportKind::Cables, block, flag, project_dir, out, json, format)
         }
         ExportCli::Wires(RowsCli {
             project_dir,
             project: flag,
             block,
             format,
+            csv,
             out,
             json,
         }) => {
             csv_only("wires", format)?;
-            rows(ExportKind::Wires, block, flag, project_dir, out, json)
+            let format = rows_format(&["export", "wires"], format, csv, out.as_ref())?;
+            rows(ExportKind::Wires, block, flag, project_dir, out, json, format)
         }
         ExportCli::Bom(BomCli {
             project_dir,
@@ -1874,15 +1995,17 @@ fn export(e: ExportCli) -> Result<Command, clap::Error> {
             block,
             mode,
             format,
+            csv,
             out,
             json,
         }) => {
             csv_only("bom", format)?;
+            let format = rows_format(&["export", "bom"], format, csv, out.as_ref())?;
             let mode = match mode {
                 BomArg::Parts => BomMode::Component,
                 BomArg::Assembly => BomMode::Assembly,
             };
-            rows(ExportKind::Bom(mode), block, flag, project_dir, out, json)
+            rows(ExportKind::Bom(mode), block, flag, project_dir, out, json, format)
         }
         ExportCli::Terminals(TerminalsCli {
             project_dir,
@@ -1890,11 +2013,21 @@ fn export(e: ExportCli) -> Result<Command, clap::Error> {
             block,
             strip,
             format,
+            csv,
             out,
             json,
         }) => {
             csv_only("terminals", format)?;
-            rows(ExportKind::Terminals(strip), block, flag, project_dir, out, json)
+            let format = rows_format(&["export", "terminals"], format, csv, out.as_ref())?;
+            rows(
+                ExportKind::Terminals(strip),
+                block,
+                flag,
+                project_dir,
+                out,
+                json,
+                format,
+            )
         }
         ExportCli::Report(ReportCli {
             project_dir,
@@ -1902,6 +2035,7 @@ fn export(e: ExportCli) -> Result<Command, clap::Error> {
             block,
             kind,
             format,
+            csv,
             out,
             json,
         }) => {
@@ -1925,7 +2059,8 @@ fn export(e: ExportCli) -> Result<Command, clap::Error> {
                 }
                 None => ExportKind::Report { pdf },
             };
-            rows(kind, block, flag, project_dir, out, json)
+            let format = rows_format(&["export", "report"], format, csv, out.as_ref())?;
+            rows(kind, block, flag, project_dir, out, json, format)
         }
         ExportCli::Pdf(a) => pages_command(PageFormat::Pdf, a)?,
         ExportCli::Svg(a) => pages_command(PageFormat::Svg, a)?,

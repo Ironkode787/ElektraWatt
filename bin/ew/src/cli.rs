@@ -10,7 +10,10 @@ use ew_api::cli_results as results;
 use ew_api::import::Severity;
 use ew_api::import::migration::ReportFormat;
 use ew_api::import::{StarterLibrary, import_qet};
-use ew_api::output::{ExportOptions, PageSelection, Parallelism, RowExport, date_from_epoch};
+use ew_api::output::{
+    CsvOptions, ExportOptions, PageSelection, Parallelism, Preset, RowExport, RowsFormat, RowsOutput,
+    date_from_epoch,
+};
 use ew_api::{BomMode, CmdLog, Export};
 
 mod project_files;
@@ -371,6 +374,23 @@ pub struct ExportArgs {
     pub out: Option<PathBuf>,
     /// Print the result as JSON (`--json`).
     pub json: bool,
+    /// How the rows are written (`--format`, `--preset`, `--bom`, `--line-end`; WP-S3.08 D6, D7).
+    pub format: RowFormat,
+}
+
+/// How a row export writes its rows (WP-S3.08 D7).
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum RowFormat {
+    /// CSV in a preset (the default: the golden dialect `ew`).
+    Csv(CsvOptions),
+    /// An XLSX workbook (`--format xlsx`, with `--out`).
+    Xlsx,
+}
+
+impl Default for RowFormat {
+    fn default() -> RowFormat {
+        RowFormat::Csv(CsvOptions::default())
+    }
 }
 
 /// The arguments of `ew verify-derived`.
@@ -385,10 +405,12 @@ pub struct VerifyArgs {
 /// The result format of `ew sql`.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum SqlFormat {
-    /// RFC 4180 CSV.
+    /// CSV: the golden dialect, or a preset (`--preset`).
     Csv,
     /// JSON (`ew.sql-result/1`).
     Json,
+    /// An XLSX workbook (`--format xlsx`, with `--out`; FT-218).
+    Xlsx,
 }
 
 /// Where the query text of `ew sql` comes from.
@@ -413,6 +435,8 @@ pub struct SqlArgs {
     pub timeout: Option<u64>,
     /// The output file (`--out`).
     pub out: Option<PathBuf>,
+    /// The CSV preset and its overrides (`--preset`, `--bom`, `--line-end`; WP-S3.08 D6).
+    pub csv: CsvOptions,
 }
 
 /// The arguments of `ew sql dump`.
@@ -595,6 +619,13 @@ fn project_dir(explicit: Option<&PathBuf>) -> Option<PathBuf> {
 
 /// Opens the project read-only and builds its SQL projection (exit code 2 on failure).
 fn open_projection(project: Option<&PathBuf>) -> Result<ew_api::sql::Projection, i32> {
+    open_projection_and_session(project).map(|(projection, _)| projection)
+}
+
+/// [`open_projection`] with the session it was built from (the metadata of `ew sql --format xlsx`).
+fn open_projection_and_session(
+    project: Option<&PathBuf>,
+) -> Result<(ew_api::sql::Projection, ew_api::Session), i32> {
     let dir = project_dir(project).ok_or(2)?;
     let (session, opened) = match ew_api::Session::open_reader(&dir, env!("CARGO_PKG_VERSION"), "sql") {
         Ok(r) => r,
@@ -606,10 +637,11 @@ fn open_projection(project: Option<&PathBuf>) -> Result<ew_api::sql::Projection,
     let report = session
         .check(&ew_api::checks::PRE_DELIVERY, CheckMode::Release)
         .with_integrity(ew_api::integrity_items(&opened));
-    session.sql_projection(Some(&report)).map_err(|e| {
+    let projection = session.sql_projection(Some(&report)).map_err(|e| {
         eprintln!("error: {e}");
         2
-    })
+    })?;
+    Ok((projection, session))
 }
 
 fn run_sql(a: &SqlArgs) -> i32 {
@@ -623,7 +655,7 @@ fn run_sql(a: &SqlArgs) -> i32 {
             }
         },
     };
-    let projection = match open_projection(a.project.as_ref()) {
+    let (projection, session) = match open_projection_and_session(a.project.as_ref()) {
         Ok(p) => p,
         Err(code) => return code,
     };
@@ -639,8 +671,12 @@ fn run_sql(a: &SqlArgs) -> i32 {
         }
     };
     let text = match a.format {
-        SqlFormat::Csv => set.to_csv(),
+        SqlFormat::Csv if a.csv.preset == Preset::Ew => {
+            ew_api::output::restyle(&set.to_csv(), a.csv.writes_bom(), a.csv.writes_line_end())
+        }
+        SqlFormat::Csv => ew_api::output::table_csv(&ew_api::output::sql_table(&set), &a.csv),
         SqlFormat::Json => format!("{:#}\n", set.to_json()),
+        SqlFormat::Xlsx => return write_sql_xlsx(a, &session, &set),
     };
     match &a.out {
         Some(path) => match write_report(path, &text) {
@@ -657,6 +693,37 @@ fn run_sql(a: &SqlArgs) -> i32 {
     }
     0
 }
+
+/// `ew sql --format xlsx --out <file>` (FT-218): the result as the one sheet `sql` of a workbook, written atomically.
+fn write_sql_xlsx(a: &SqlArgs, session: &ew_api::Session, set: &ew_api::sql::ResultSet) -> i32 {
+    let Some(path) = &a.out else {
+        eprintln!("error: {XLSX_NEEDS_OUT}");
+        return 2;
+    };
+    let date = match source_date() {
+        Ok(d) => d,
+        Err(e) => {
+            eprintln!("error: {e}");
+            return 2;
+        }
+    };
+    let bytes = match ew_api::output::xlsx(&[ew_api::output::sql_table(set)], &session.workbook_meta(date)) {
+        Ok(b) => b,
+        Err(e) => {
+            eprintln!("error: {e}");
+            return 2;
+        }
+    };
+    if let Err(e) = write_atomically(path, &bytes) {
+        eprintln!("error: {}: {e}", path.display());
+        return 2;
+    }
+    println!("result written to {}", path.display());
+    0
+}
+
+/// The refusal of `--format xlsx` without `--out` (WP-S3.08 D7).
+pub const XLSX_NEEDS_OUT: &str = "`--format xlsx` writes a file: give `--out <file.xlsx>`";
 
 /// The message of a refused export (FT-465). A project without the report block of the export's kind has no row source:
 /// the export is the rows of that block (doc 17 §3.3), so it is refused, not empty, and the message names the block, the
@@ -693,6 +760,12 @@ fn run_export(a: &ExportArgs) -> i32 {
             return 2;
         }
     };
+    let options = match a.format {
+        RowFormat::Csv(options) if options.preset == Preset::Ew => options,
+        _ if a.kind == (ExportKind::Report { pdf: true }) => CsvOptions::default(),
+        _ => return run_export_table(a, &session),
+    };
+    let rev = session.world().rev.0;
     let rows = match (&a.kind, &a.block) {
         // The default blocks of `cables` and `bom`: the report layer's export, as before `--block`.
         (ExportKind::Cables, None) | (ExportKind::Bom(_), None) => {
@@ -724,7 +797,7 @@ fn run_export(a: &ExportArgs) -> i32 {
                         eprintln!("{notice}");
                     }
                     if let ExportKind::Report { .. } | ExportKind::ReportKind(_) = kind {
-                        return finish_export_report_csv(a, &r);
+                        return finish_export_report_csv(a, &r, &options, rev);
                     }
                     (r.csv, r.rows, r.strips)
                 }
@@ -736,33 +809,175 @@ fn run_export(a: &ExportArgs) -> i32 {
         }
     };
     let (csv, count, strips) = rows;
+    let csv = restyle(&csv, &options);
     if write_rows(a, &csv, count) != 0 {
         return 2;
     }
     if a.json {
-        let out = a.out.as_ref().map(|p| p.display().to_string());
-        let csv = a.out.is_none().then_some(csv);
-        let text = match &a.kind {
-            ExportKind::Terminals(_) => results::to_text(&results::ExportTerminalsResult {
-                schema: results::EXPORT_TERMINALS.to_owned(),
-                rows: count,
-                strips,
-                out,
-                csv,
-            }),
-            kind => results::to_text(&results::ExportRowsResult {
-                schema: match kind {
-                    ExportKind::Cables => results::EXPORT_CABLES,
-                    ExportKind::Bom(_) => results::EXPORT_BOM,
-                    _ => results::EXPORT_WIRES,
-                }
-                .to_owned(),
-                rows: count,
-                out,
-                csv,
-            }),
+        let summary = RowsSummary {
+            rows: count,
+            strips,
+            out: a.out.as_ref().map(|p| p.display().to_string()),
+            csv: a.out.is_none().then_some(csv),
+            format: "csv",
+            preset: Some(options.preset.name()),
+            rev,
         };
-        print!("{text}");
+        print!("{}", rows_json(&a.kind, summary));
+    }
+    0
+}
+
+/// `csv` (the golden dialect) with the byte-order mark and line end of `options` (WP-S3.08 D6).
+fn restyle(csv: &str, options: &CsvOptions) -> String {
+    ew_api::output::restyle(csv, options.writes_bom(), options.writes_line_end())
+}
+
+/// What the `--json` result of `export cables|bom|wires|terminals` says (WP-S3.08 TX-7).
+struct RowsSummary {
+    rows: usize,
+    strips: Vec<String>,
+    out: Option<String>,
+    csv: Option<String>,
+    format: &'static str,
+    preset: Option<&'static str>,
+    rev: u64,
+}
+
+/// The `--json` result of a row export of `kind` other than `report`.
+fn rows_json(kind: &ExportKind, s: RowsSummary) -> String {
+    match kind {
+        ExportKind::Terminals(_) => results::to_text(&results::ExportTerminalsResult {
+            schema: results::EXPORT_TERMINALS.to_owned(),
+            rows: s.rows,
+            strips: s.strips,
+            out: s.out,
+            csv: s.csv,
+            format: Some(s.format.to_owned()),
+            preset: s.preset.map(str::to_owned),
+            rev: Some(s.rev),
+        }),
+        kind => results::to_text(&results::ExportRowsResult {
+            schema: match kind {
+                ExportKind::Cables => results::EXPORT_CABLES,
+                ExportKind::Bom(_) => results::EXPORT_BOM,
+                _ => results::EXPORT_WIRES,
+            }
+            .to_owned(),
+            rows: s.rows,
+            out: s.out,
+            csv: s.csv,
+            format: Some(s.format.to_owned()),
+            preset: s.preset.map(str::to_owned),
+            rev: Some(s.rev),
+        }),
+    }
+}
+
+/// A row export in XLSX or a CSV preset other than `ew` (WP-S3.08 D6, D7): [`ew_api::output::row_output`] over the
+/// row choice of the golden path, the file written atomically (`<file>.tmp`, synced, renamed).
+fn run_export_table(a: &ExportArgs, session: &ew_api::Session) -> i32 {
+    let what = match &a.kind {
+        ExportKind::Cables => RowExport::Cables,
+        ExportKind::Bom(mode) => RowExport::Bom(*mode),
+        ExportKind::Wires => RowExport::Wires,
+        ExportKind::Terminals(strip) => RowExport::Terminals { strip: strip.clone() },
+        ExportKind::Report { .. } => RowExport::Report,
+        ExportKind::ReportKind(name) => RowExport::Kind(name.clone()),
+    };
+    let (format, preset) = match a.format {
+        RowFormat::Csv(options) => (RowsFormat::Csv(options), Some(options.preset.name())),
+        RowFormat::Xlsx => {
+            let date = match source_date() {
+                Ok(d) => d,
+                Err(e) => {
+                    eprintln!("error: {e}");
+                    return 2;
+                }
+            };
+            (RowsFormat::Xlsx(session.workbook_meta(date)), None)
+        }
+    };
+    let file = match ew_api::output::row_output(&session.query(), &what, a.block.as_deref(), &format) {
+        Ok(f) => f,
+        Err(e) => {
+            // `cables` and `bom` without `--block` refuse a project without the block as the golden path does.
+            let text = match (&e, &a.kind, &a.block) {
+                (ew_api::output::RowsError::NoBlock(kind), ExportKind::Cables, None) => {
+                    export_refusal(Export::Cables, &ew_api::ExportError::NoBlock(kind))
+                }
+                (ew_api::output::RowsError::NoBlock(kind), ExportKind::Bom(mode), None) => {
+                    export_refusal(Export::Bom(*mode), &ew_api::ExportError::NoBlock(kind))
+                }
+                (e, _, _) => rows_refusal(e),
+            };
+            eprintln!("error: {text}");
+            return 2;
+        }
+    };
+    for notice in &file.notices {
+        eprintln!("{notice}");
+    }
+    let (bytes, text, format_name) = match file.output {
+        RowsOutput::Csv(csv) => (csv.clone().into_bytes(), Some(csv), "csv"),
+        RowsOutput::Xlsx(bytes) => (bytes, None, "xlsx"),
+    };
+    match &a.out {
+        Some(path) => {
+            if let Err(e) = write_atomically(path, &bytes) {
+                eprintln!("error: {}: {e}", path.display());
+                return 2;
+            }
+            if !a.json {
+                println!("export written to {}", path.display());
+            }
+        }
+        // `--format xlsx` needs `--out` (the lowering refuses it without); a CSV goes to stdout.
+        None => match &text {
+            Some(csv) if !a.json => {
+                print!("{csv}");
+                eprintln!("{} rows", file.rows);
+            }
+            Some(_) => {}
+            None => {
+                eprintln!("error: {XLSX_NEEDS_OUT}");
+                return 2;
+            }
+        },
+    }
+    if a.json {
+        let out = a.out.as_ref().map(|p| p.display().to_string());
+        let csv = if a.out.is_none() { text } else { None };
+        let rev = session.world().rev.0;
+        let json = match &a.kind {
+            ExportKind::Report { .. } | ExportKind::ReportKind(_) => {
+                results::to_text(&results::ExportReportResult {
+                    schema: results::EXPORT_REPORT.to_owned(),
+                    block: file.blocks.first().cloned().unwrap_or_default(),
+                    kind: file.kind.clone(),
+                    format: format_name.to_owned(),
+                    rows: Some(file.rows),
+                    folios: None,
+                    out,
+                    csv,
+                    preset: preset.map(str::to_owned),
+                    rev: Some(rev),
+                })
+            }
+            kind => rows_json(
+                kind,
+                RowsSummary {
+                    rows: file.rows,
+                    strips: file.strips,
+                    out,
+                    csv,
+                    format: format_name,
+                    preset,
+                    rev,
+                },
+            ),
+        };
+        print!("{json}");
     }
     0
 }
@@ -814,8 +1029,14 @@ fn rows_refusal(e: &ew_api::output::RowsError) -> String {
 
 /// `ew export report --format csv`: the rows of the block (or of the kind, `--kind`), then the `--json` result; its
 /// `block` is empty for `--kind` (the orchestrator's ruling 2 of cycle 42).
-fn finish_export_report_csv(a: &ExportArgs, r: &ew_api::output::RowsCsv) -> i32 {
-    if write_rows(a, &r.csv, r.rows) != 0 {
+fn finish_export_report_csv(
+    a: &ExportArgs,
+    r: &ew_api::output::RowsCsv,
+    options: &CsvOptions,
+    rev: u64,
+) -> i32 {
+    let csv = restyle(&r.csv, options);
+    if write_rows(a, &csv, r.rows) != 0 {
         return 2;
     }
     if a.json {
@@ -829,7 +1050,9 @@ fn finish_export_report_csv(a: &ExportArgs, r: &ew_api::output::RowsCsv) -> i32 
                 rows: Some(r.rows),
                 folios: None,
                 out: a.out.as_ref().map(|p| p.display().to_string()),
-                csv: a.out.is_none().then(|| r.csv.clone()),
+                csv: a.out.is_none().then(|| csv.clone()),
+                preset: Some(options.preset.name().to_owned()),
+                rev: Some(rev),
             })
         );
     }
@@ -890,6 +1113,8 @@ fn run_export_report_pdf(a: &ExportArgs, session: &ew_api::Session, block: &str)
                 folios: Some(folios),
                 out: Some(out.display().to_string()),
                 csv: None,
+                preset: None,
+                rev: Some(session.world().rev.0),
             })
         );
     } else {
@@ -4138,17 +4363,43 @@ mod tests {
 
     #[test]
     fn sql_errors() {
+        // WP-S3.08 D7 (FT-218): `--format xlsx` writes a file, and the CSV options apply to CSV only.
         assert_eq!(
             p(&["sql", "SELECT 1", "--format", "xlsx"]),
-            invalid(
+            usage_error(
+                "`--format xlsx` writes a file: give `--out <file.xlsx>`",
+                "ew sql [OPTIONS] [project-dir] <select>\n       ew sql [OPTIONS] [project-dir] --file <query.sql>\n       \
+                 ew sql <COMMAND>"
+            )
+        );
+        assert_eq!(
+            p(&["sql", "SELECT 1", "--json", "--preset", "excel-nl"]),
+            usage_error(
+                "`--preset` applies to CSV: `--format json` takes none",
+                "ew sql [OPTIONS] [project-dir] <select>\n       ew sql [OPTIONS] [project-dir] --file <query.sql>\n       \
+                 ew sql <COMMAND>"
+            )
+        );
+        assert_eq!(
+            p(&[
+                "sql",
+                "SELECT 1",
+                "--format",
                 "xlsx",
-                "--format <format>",
-                "`--format xlsx` is not built yet (csv, json)"
+                "--out",
+                "q.xlsx",
+                "--line-end",
+                "lf"
+            ]),
+            usage_error(
+                "`--line-end` applies to CSV: `--format xlsx` takes none",
+                "ew sql [OPTIONS] [project-dir] <select>\n       ew sql [OPTIONS] [project-dir] --file <query.sql>\n       \
+                 ew sql <COMMAND>"
             )
         );
         assert_eq!(
             p(&["sql", "SELECT 1", "--format", "x"]),
-            invalid("x", "--format <format>", "unknown format `x` (csv, json)")
+            invalid("x", "--format <format>", "unknown format `x` (csv, json, xlsx)")
         );
         assert!(p(&["sql", "SELECT 1", "--timeout", "0"]).is_err());
         assert!(p(&["sql", "SELECT 1", "--timeout", "abc"]).is_err());
@@ -4390,34 +4641,137 @@ SELECT 1"
         assert!(p(&["export", "report"]).is_err());
         assert!(p(&["export", "report", "--block", "908", "--format", "pdf"]).is_err());
         assert!(p(&["export", "report", "--block", "908", "--format", "svg"]).is_err());
-        assert_eq!(
-            p(&["export", "wires", "--format", "xlsx"]),
-            invalid(
-                "xlsx",
-                "--format <format>",
-                "`--format xlsx` is not built yet (csv; XLSX waits for the writer of FT-61)"
-            )
-        );
+        // WP-S3.08 D6, D7: `--format xlsx` needs `--out` and takes no CSV option; the value refusals name the choices.
+        for what in ["bom", "cables", "wires", "terminals"] {
+            let usage = format!("ew export {what} [OPTIONS] [project-dir]");
+            assert_eq!(
+                p(&["export", what, "--format", "xlsx"]),
+                usage_error("`--format xlsx` writes a file: give `--out <file.xlsx>`", &usage)
+            );
+            assert_eq!(
+                p(&[
+                    "export", what, "--format", "xlsx", "--out", "x.xlsx", "--preset", "excel-nl"
+                ]),
+                usage_error("`--preset` applies to CSV: `--format xlsx` takes none", &usage)
+            );
+            assert_eq!(
+                p(&[
+                    "export", what, "--format", "xlsx", "--out", "x.xlsx", "--bom", "on"
+                ]),
+                usage_error("`--bom` applies to CSV: `--format xlsx` takes none", &usage)
+            );
+            assert_eq!(
+                p(&["export", what, "--preset", "excel"]),
+                invalid(
+                    "excel",
+                    "--preset <preset>",
+                    "unknown preset `excel` (ew, excel-nl, excel-en, rfc4180)"
+                )
+            );
+            assert_eq!(
+                p(&["export", what, "--bom", "yes"]),
+                invalid(
+                    "yes",
+                    "--bom <on|off>",
+                    "unknown byte-order mark setting `yes` (on, off)"
+                )
+            );
+            assert_eq!(
+                p(&["export", what, "--line-end", "cr"]),
+                invalid("cr", "--line-end <crlf|lf>", "unknown line end `cr` (crlf, lf)")
+            );
+            assert_eq!(
+                p(&["export", what, "--format", "tsv"]),
+                invalid("tsv", "--format <format>", "unknown format `tsv` (csv, xlsx)")
+            );
+        }
+        let report = "ew export report [OPTIONS] <--block <block>|--kind <kind>> [project-dir]";
         assert_eq!(
             p(&["export", "report", "--block", "908", "--format", "xlsx"]),
+            usage_error("`--format xlsx` writes a file: give `--out <file.xlsx>`", report)
+        );
+        assert_eq!(
+            p(&[
+                "export", "report", "--block", "908", "--format", "pdf", "--out", "r.pdf", "--preset",
+                "rfc4180",
+            ]),
+            usage_error("`--preset` applies to CSV: `--format pdf` takes none", report)
+        );
+        assert_eq!(
+            p(&["export", "report", "--block", "908", "--format", "svg"]),
             invalid(
-                "xlsx",
+                "svg",
                 "--format <format>",
-                "`--format xlsx` is not built yet (csv, pdf; XLSX waits for the writer of FT-61)"
+                "unknown format `svg` (csv, xlsx, pdf)"
             )
         );
-        // Cycle-40 review, part 3, finding 5: the row exports are CSV only, and the refusal points to the report PDF.
+        // Cycle-40 review, part 3, finding 5: the row exports write rows, and the refusal points to the report PDF.
         for what in ["bom", "cables", "wires", "terminals"] {
             assert_eq!(
                 p(&["export", what, "--format", "pdf"]),
                 usage_error(
                     &format!(
-                        "`export {what}` is CSV only; a report block's pages go to PDF with `ew export report --block <block> --format pdf`"
+                        "`export {what}` writes rows as CSV or XLSX; a report block's pages go to PDF with `ew export report --block <block> --format pdf`"
                     ),
                     &format!("ew export {what} [OPTIONS] [project-dir]")
                 )
             );
         }
+    }
+
+    /// WP-S3.08 D6, D7: `--format xlsx` with `--out`, `--preset`, `--bom` and `--line-end` lower to the row format;
+    /// the default is the golden dialect.
+    #[test]
+    fn row_export_formats() {
+        use ew_api::output::{CsvOptions, LineEnd, Preset};
+        let Ok(Command::Export(a)) = p(&["export", "wires", "--format", "xlsx", "--out", "w.xlsx"]) else {
+            panic!("parse failed");
+        };
+        assert_eq!(
+            (a.format, a.out),
+            (RowFormat::Xlsx, Some(PathBuf::from("w.xlsx")))
+        );
+        let Ok(Command::Export(a)) = p(&[
+            "export",
+            "bom",
+            "--preset",
+            "excel-nl",
+            "--bom",
+            "off",
+            "--line-end",
+            "lf",
+        ]) else {
+            panic!("parse failed");
+        };
+        assert_eq!(
+            a.format,
+            RowFormat::Csv(CsvOptions {
+                preset: Preset::ExcelNl,
+                bom: Some(false),
+                line_end: Some(LineEnd::Lf),
+            })
+        );
+        let Ok(Command::Export(a)) = p(&[
+            "export", "report", "--kind", "io_list", "--format", "xlsx", "--out", "k.xlsx",
+        ]) else {
+            panic!("parse failed");
+        };
+        assert_eq!(
+            (a.kind, a.format),
+            (ExportKind::ReportKind("io_list".to_owned()), RowFormat::Xlsx)
+        );
+        let Ok(Command::Export(a)) = p(&["export", "terminals"]) else {
+            panic!("parse failed");
+        };
+        assert_eq!(a.format, RowFormat::default());
+        let Ok(Command::Sql(q)) = p(&["sql", "SELECT 1", "--format", "xlsx", "--out", "q.xlsx"]) else {
+            panic!("parse failed");
+        };
+        assert_eq!((q.format, q.csv), (SqlFormat::Xlsx, CsvOptions::default()));
+        let Ok(Command::Sql(q)) = p(&["sql", "SELECT 1", "--preset", "rfc4180"]) else {
+            panic!("parse failed");
+        };
+        assert_eq!(q.csv, CsvOptions::preset(Preset::Rfc4180));
     }
 
     /// D8: `wires`, `terminals [--strip]`, `report --block … --format csv|pdf` and `--block` on the row exports.

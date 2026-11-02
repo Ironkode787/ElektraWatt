@@ -139,6 +139,21 @@
           "repeatable": false
         },
         {
+          "name": "--preset",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--bom",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--line-end",
+          "value": true,
+          "repeatable": false
+        },
+        {
           "name": "--out",
           "value": true,
           "repeatable": false
@@ -177,6 +192,21 @@
         },
         {
           "name": "--format",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--preset",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--bom",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--line-end",
           "value": true,
           "repeatable": false
         },
@@ -327,6 +357,21 @@
           "repeatable": false
         },
         {
+          "name": "--preset",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--bom",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--line-end",
+          "value": true,
+          "repeatable": false
+        },
+        {
           "name": "--out",
           "value": true,
           "repeatable": false
@@ -421,6 +466,21 @@
           "repeatable": false
         },
         {
+          "name": "--preset",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--bom",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--line-end",
+          "value": true,
+          "repeatable": false
+        },
+        {
           "name": "--out",
           "value": true,
           "repeatable": false
@@ -459,6 +519,21 @@
         },
         {
           "name": "--format",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--preset",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--bom",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--line-end",
           "value": true,
           "repeatable": false
         },
@@ -1242,6 +1317,21 @@
         },
         {
           "name": "--format",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--preset",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--bom",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--line-end",
           "value": true,
           "repeatable": false
         },

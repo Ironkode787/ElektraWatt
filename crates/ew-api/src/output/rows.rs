@@ -18,6 +18,17 @@
 //! heading row `heading,<strip tag>,,…`. Within a block every run of a strip is kept (runs concatenated in row order);
 //! a strip a later block lists again keeps the earlier block's rows, and [`RowsCsv::notices`] says so. `--strip`
 //! takes a full tag exactly, else the printed tag, and refuses a printed tag two strips share.
+//!
+//! **The table writers** (WP-S3.08 part 1, D4 to D8; [`row_output`]): the same row choice written as XLSX or in a CSV
+//! preset. Each row set becomes an [`ew_reports::table::Table`] named by its kind (a strip's by its printed tag) and
+//! keyed by what it is (D8): `block:<uuid>` for a block's rows (`kind:terminal_diagram` for the strips of several
+//! blocks), `kind:parts_summary/<mode>` for the bill of materials (`parts` or `assembly`), `kind:<name>` for a kind's
+//! whole-project rows. The XLSX ([`ew_reports::xlsx::xlsx`]) has one sheet per table, `export terminals` without
+//! `--strip` one per strip in the order of the CSV; a preset ([`ew_reports::csv::table_csv`]) writes one table, the
+//! strips each after a heading row naming the strip; the default preset `ew` is [`row_export`]'s CSV byte for byte,
+//! given another byte-order mark or line end by [`ew_reports::csv::restyle`]. [`sql_table`] is the `ew sql` result as a
+//! table (`sql`), [`Session::workbook_meta`] the metadata of a workbook (the project, the session's revision and the
+//! store's generation, the export date).
 
 use std::fmt;
 use std::sync::Arc;
@@ -25,11 +36,17 @@ use std::sync::Arc;
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_schema::{Device, ReportBlock, ReportSource};
 use ew_derive::{BomMode, DeviceTag, PageOrder, PageRef, Q};
-use ew_reports::csv::{csv_field, rows_csv};
+use ew_export::PdfDate;
+use ew_reports::csv::{CsvOptions, Preset, csv_field, restyle, rows_csv, table_csv};
 use ew_reports::kinds::PartsSummary;
+use ew_reports::table::{Table, TableCell, TableColumn, TableRow};
+use ew_reports::xlsx::{DateTime, WorkbookMeta, xlsx};
 use ew_reports::{
-    Registry, Row, RowKey, RowKind, RowSet, RowSetStatus, arranged, kind_name, project_rows, rows_of,
+    CellType, Registry, Row, RowKey, RowKind, RowSet, RowSetStatus, arranged, kind_name, project_rows,
+    rows_of,
 };
+
+use crate::Session;
 
 /// What a row export writes.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -122,6 +139,8 @@ pub enum RowsError {
     UnknownKind(String, Vec<String>),
     /// `terminal_diagram` lists one strip, so it has no whole-project rows (WP-S3.06 D4).
     KindOneStrip,
+    /// The workbook was not written (the writer's sentence: a table larger than a sheet; WP-S3.08 D3).
+    Xlsx(String),
 }
 
 impl fmt::Display for RowsError {
@@ -170,6 +189,7 @@ impl fmt::Display for RowsError {
             RowsError::KindOneStrip => {
                 write!(f, "`terminal_diagram` lists one strip: use `ew export terminals`")
             }
+            RowsError::Xlsx(why) => f.write_str(why),
         }
     }
 }
@@ -236,6 +256,32 @@ fn derived(set: RowSet, kind: &str) -> Result<RowSet, RowsError> {
     }
 }
 
+/// The rows a row export writes, before a writer: the block's (or kind's) row set, one strip's, or every strip's.
+#[derive(Clone, PartialEq, Eq, Debug)]
+enum Body {
+    /// A whole row set.
+    Whole(RowSet),
+    /// One strip's rows (`--strip`) and its printed tag.
+    Strip(RowSet, String),
+    /// Every strip: the blocks' columns (no rows), and each strip's printed tag and rows, in output order.
+    Strips(RowSet, Vec<(String, Vec<Row>)>),
+}
+
+/// The row choice of a row export (D8), with what the writers and the summaries name.
+#[derive(Clone, PartialEq, Eq, Debug)]
+struct Chosen {
+    /// The rows.
+    body: Body,
+    /// The kind of the blocks (or the kind of `--kind`).
+    kind: String,
+    /// The IDs of the blocks the rows come from, in block order.
+    blocks: Vec<String>,
+    /// The table's key (WP-S3.08 D8).
+    key: String,
+    /// Sentences about rows left out.
+    notices: Vec<String>,
+}
+
 /// The rows of `what` (D8), from the block `block` names or, without one, the default block of the kind; for
 /// [`RowExport::Kind`] the kind's whole-project rows (WP-S3.06 D4).
 ///
@@ -249,6 +295,25 @@ fn derived(set: RowSet, kind: &str) -> Result<RowSet, RowsError> {
 /// with a block is [`RowsError::KindAndBlock`]; an unregistered name [`RowsError::UnknownKind`]; `terminal_diagram`
 /// [`RowsError::KindOneStrip`].
 pub fn row_export(q: &Q, what: &RowExport, block: Option<&str>) -> Result<RowsCsv, RowsError> {
+    let chosen = choose(q, what, block)?;
+    let (csv, rows) = golden_csv(q, &chosen.body);
+    let strips = match &chosen.body {
+        Body::Whole(_) => Vec::new(),
+        Body::Strip(_, tag) => vec![tag.clone()],
+        Body::Strips(_, strips) => strips.iter().map(|(tag, _)| tag.clone()).collect(),
+    };
+    Ok(RowsCsv {
+        csv,
+        rows,
+        blocks: chosen.blocks,
+        kind: chosen.kind,
+        strips,
+        notices: chosen.notices,
+    })
+}
+
+/// The row choice of `what` (see [`row_export`]).
+fn choose(q: &Q, what: &RowExport, block: Option<&str>) -> Result<Chosen, RowsError> {
     if let RowExport::Kind(name) = what {
         if block.is_some() {
             return Err(RowsError::KindAndBlock);
@@ -283,18 +348,68 @@ pub fn row_export(q: &Q, what: &RowExport, block: Option<&str>) -> Result<RowsCs
     };
     let kind = block_kind(&first).to_owned();
     let blocks: Vec<String> = chosen.iter().map(|(id, _)| id.to_string()).collect();
+    let block_key = format!("block:{first_id}");
     match what {
-        RowExport::Terminals { strip } => terminals(q, &chosen, strip.as_deref(), &kind, blocks),
+        RowExport::Terminals { strip } => {
+            let key = if chosen.len() == 1 {
+                block_key
+            } else {
+                format!("kind:{kind}")
+            };
+            let (body, notices) = terminals(q, &chosen, strip.as_deref(), &kind)?;
+            Ok(Chosen {
+                body,
+                kind,
+                blocks,
+                key,
+                notices,
+            })
+        }
         RowExport::Bom(mode) => {
             let set = derived(arranged(q, &first, PartsSummary.rows_in_mode(q, *mode)), &kind)?;
-            Ok(whole(q, &set, kind, blocks))
+            let mode = match mode {
+                BomMode::Assembly => "assembly",
+                _ => "parts",
+            };
+            Ok(whole(q, set, kind, blocks, format!("kind:parts_summary/{mode}")))
         }
         RowExport::Cables | RowExport::Wires | RowExport::Report => {
             let set = derived((*rows_of(q, first_id)).clone(), &kind)?;
-            Ok(whole(q, &set, kind, blocks))
+            Ok(whole(q, set, kind, blocks, block_key))
         }
         RowExport::Kind(_) => Err(RowsError::KindAndBlock),
     }
+}
+
+/// The CSV of the golden dialect of `body` and its row count (a strip's heading row included).
+fn golden_csv(q: &Q, body: &Body) -> (String, usize) {
+    match body {
+        Body::Whole(set) | Body::Strip(set, _) => (rows_csv(q, set), set.rows.len()),
+        Body::Strips(template, strips) => {
+            let columns = template.columns.len();
+            let mut csv = rows_csv(q, template);
+            let mut count = 0;
+            for (name, rows) in strips {
+                let mut heading = vec!["heading".to_owned(), csv_field(name)];
+                heading.resize(columns + 1, String::new());
+                csv.push_str(&heading.join(","));
+                csv.push('\n');
+                let set = with_rows(template, rows.clone());
+                let text = rows_csv(q, &set);
+                csv.push_str(text.split_once('\n').map_or("", |(_, rest)| rest));
+                count += 1 + set.rows.len();
+            }
+            (csv, count)
+        }
+    }
+}
+
+/// `template` with `rows` and no groups.
+fn with_rows(template: &RowSet, rows: Vec<Row>) -> RowSet {
+    let mut set = template.clone();
+    set.rows = rows;
+    set.groups = Vec::new();
+    set
 }
 
 /// The registered report kinds of this build, in name order: the names [`RowExport::Kind`] takes.
@@ -303,7 +418,7 @@ pub fn report_kinds() -> Vec<&'static str> {
 }
 
 /// The whole-project rows of the registered kind `name` (WP-S3.06 D4).
-fn kind_rows(q: &Q, name: &str) -> Result<RowsCsv, RowsError> {
+fn kind_rows(q: &Q, name: &str) -> Result<Chosen, RowsError> {
     let registry = Registry::builtin();
     let Some(def) = registry.by_name(name) else {
         return Err(RowsError::UnknownKind(
@@ -319,7 +434,13 @@ fn kind_rows(q: &Q, name: &str) -> Result<RowsCsv, RowsError> {
         why: "the kind has no whole-project rows".to_owned(),
     })?;
     let set = derived(set, def.name())?;
-    Ok(whole(q, &set, def.name().to_owned(), Vec::new()))
+    Ok(whole(
+        q,
+        set,
+        def.name().to_owned(),
+        Vec::new(),
+        format!("kind:{}", def.name()),
+    ))
 }
 
 /// `set` with the `pages` cell of every data row of a `revision_overview` row set replaced by the revision's changed
@@ -340,21 +461,18 @@ fn with_revision_pages(q: &Q, set: &RowSet, kind: &str) -> Option<RowSet> {
     Some(set)
 }
 
-/// The CSV of a whole row set (a revision overview's with its changed pages, D11).
-fn whole(q: &Q, set: &RowSet, kind: String, blocks: Vec<String>) -> RowsCsv {
-    let filled = with_revision_pages(q, set, &kind);
-    let set = filled.as_ref().unwrap_or(set);
-    RowsCsv {
-        csv: rows_csv(q, set),
-        rows: set.rows.len(),
-        blocks,
+/// The choice of a whole row set (a revision overview's with its changed pages, D11).
+fn whole(q: &Q, set: RowSet, kind: String, blocks: Vec<String>, key: String) -> Chosen {
+    let set = with_revision_pages(q, &set, &kind).unwrap_or(set);
+    Chosen {
+        body: Body::Whole(set),
         kind,
-        strips: Vec::new(),
+        blocks,
+        key,
         notices: Vec::new(),
     }
 }
-
-/// The printed tag of a strip.
+// The printed tag of a strip.
 fn strip_tag(q: &Q, strip: Id<Device>) -> String {
     q.get::<DeviceTag>(strip)
         .as_ref()
@@ -475,14 +593,14 @@ fn repeat_notice(tag: &str, later: &str, from: &str) -> String {
     format!("{tag} is also in {later}; its rows come from {from}.")
 }
 
-/// The terminal rows of `chosen`'s blocks: one strip (`--strip`) or every strip after its heading row.
+/// The terminal rows of `chosen`'s blocks: one strip (`--strip`) or every strip; with the notices of strips a later
+/// block lists again.
 fn terminals(
     q: &Q,
     chosen: &[(Id<ReportBlock>, Arc<ReportBlock>)],
     strip: Option<&str>,
     kind: &str,
-    blocks: Vec<String>,
-) -> Result<RowsCsv, RowsError> {
+) -> Result<(Body, Vec<String>), RowsError> {
     let mut sets: Vec<(String, RowSet)> = Vec::with_capacity(chosen.len());
     for (id, b) in chosen {
         let label = block_label(b.first_folio);
@@ -509,12 +627,6 @@ fn terminals(
             })
             .collect()
     };
-    let of = |rows: Vec<Row>| {
-        let mut set = template.clone();
-        set.rows = rows;
-        set.groups = Vec::new();
-        set
-    };
     if let Some(tag) = strip {
         let tags: Vec<(String, String)> = strips
             .iter()
@@ -527,43 +639,246 @@ fn terminals(
             ));
         };
         let (id, name, _, rows) = strips[i].clone();
-        let set = of(rows);
-        return Ok(RowsCsv {
-            csv: rows_csv(q, &set),
-            rows: set.rows.len(),
-            blocks,
-            kind: kind.to_owned(),
-            strips: vec![name],
-            notices: notices_of(Some(id)),
-        });
+        let notices = notices_of(Some(id));
+        return Ok((Body::Strip(with_rows(template, rows), name), notices));
     }
     let notices = notices_of(None);
-    let columns = template.columns.len();
-    let mut csv = rows_csv(q, &of(Vec::new()));
-    let mut count = 0;
-    let mut names = Vec::with_capacity(strips.len());
-    for (_, name, _, rows) in strips {
-        let mut heading = vec!["heading".to_owned(), csv_field(&name)];
-        heading.resize(columns + 1, String::new());
-        csv.push_str(&heading.join(","));
-        csv.push('\n');
-        let set = of(rows);
-        let text = rows_csv(q, &set);
-        csv.push_str(text.split_once('\n').map_or("", |(_, rest)| rest));
-        count += 1 + set.rows.len();
-        names.push(name);
-    }
-    Ok(RowsCsv {
-        csv,
-        rows: count,
-        blocks,
-        kind: kind.to_owned(),
-        strips: names,
-        notices,
+    let empty = with_rows(template, Vec::new());
+    let strips = strips
+        .into_iter()
+        .map(|(_, name, _, rows)| (name, rows))
+        .collect();
+    Ok((Body::Strips(empty, strips), notices))
+}
+
+/// How a row export is written (WP-S3.08 D6, D7).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum RowsFormat {
+    /// CSV in a preset ([`Preset::Ew`]: [`row_export`]'s CSV).
+    Csv(CsvOptions),
+    /// An XLSX workbook with this metadata.
+    Xlsx(WorkbookMeta),
+}
+
+/// What a row export wrote.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum RowsOutput {
+    /// The CSV text.
+    Csv(String),
+    /// The workbook's bytes.
+    Xlsx(Vec<u8>),
+}
+
+/// A row export in a format ([`row_output`]).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct RowsFile {
+    /// The file.
+    pub output: RowsOutput,
+    /// The rows written (data and heading rows, the header excluded; in a CSV of every strip, each strip's heading
+    /// row too).
+    pub rows: usize,
+    /// The IDs of the blocks the rows come from, in block order (empty for a kind).
+    pub blocks: Vec<String>,
+    /// The kind of the blocks.
+    pub kind: String,
+    /// For terminals: the printed tags of the strips written, in output order; else empty.
+    pub strips: Vec<String>,
+    /// Sentences for the user about rows left out (a strip a later block lists again).
+    pub notices: Vec<String>,
+    /// The table's key (WP-S3.08 D8): `_ew`'s `table`.
+    pub table: String,
+}
+
+/// The rows of `what` (as [`row_export`] chooses them) written in `format` (WP-S3.08 D4 to D7).
+///
+/// # Errors
+///
+/// As [`row_export`]; [`RowsError::Xlsx`] for a table larger than a sheet.
+pub fn row_output(
+    q: &Q,
+    what: &RowExport,
+    block: Option<&str>,
+    format: &RowsFormat,
+) -> Result<RowsFile, RowsError> {
+    let chosen = choose(q, what, block)?;
+    let strips = match &chosen.body {
+        Body::Whole(_) => Vec::new(),
+        Body::Strip(_, tag) => vec![tag.clone()],
+        Body::Strips(_, strips) => strips.iter().map(|(tag, _)| tag.clone()).collect(),
+    };
+    let (output, rows) = match format {
+        RowsFormat::Csv(options) if options.preset == Preset::Ew => {
+            let (csv, rows) = golden_csv(q, &chosen.body);
+            (
+                RowsOutput::Csv(restyle(&csv, options.writes_bom(), options.writes_line_end())),
+                rows,
+            )
+        }
+        RowsFormat::Csv(options) => {
+            let table = one_table(q, &chosen);
+            (RowsOutput::Csv(table_csv(&table, options)), table.rows.len())
+        }
+        RowsFormat::Xlsx(meta) => {
+            let tables = sheets(q, &chosen);
+            let rows = tables.iter().map(|t| t.rows.len()).sum();
+            let bytes = xlsx(&tables, meta).map_err(|e| RowsError::Xlsx(e.to_string()))?;
+            (RowsOutput::Xlsx(bytes), rows)
+        }
+    };
+    Ok(RowsFile {
+        output,
+        rows,
+        blocks: chosen.blocks,
+        kind: chosen.kind,
+        strips,
+        notices: chosen.notices,
+        table: chosen.key,
     })
 }
 
-/// The folio labels of the pages of the block `block` names, in page order (`ew export report --format pdf`).
+/// The sheets of a choice: one table, or one per strip named by its printed tag.
+fn sheets(q: &Q, chosen: &Chosen) -> Vec<Table> {
+    match &chosen.body {
+        Body::Whole(set) => vec![Table::from_rowset(q, set, &chosen.kind, &chosen.key)],
+        Body::Strip(set, tag) => vec![Table::from_rowset(q, set, tag, &chosen.key)],
+        Body::Strips(template, strips) => strips
+            .iter()
+            .map(|(tag, rows)| Table::from_rowset(q, &with_rows(template, rows.clone()), tag, &chosen.key))
+            .collect(),
+    }
+}
+
+/// The one table of a choice's CSV: every strip's rows after a heading row whose first cell is the strip's tag.
+fn one_table(q: &Q, chosen: &Chosen) -> Table {
+    match &chosen.body {
+        Body::Whole(_) | Body::Strip(..) => sheets(q, chosen).remove(0),
+        Body::Strips(template, strips) => {
+            let mut table = Table::from_rowset(q, template, &chosen.kind, &chosen.key);
+            for (tag, rows) in strips {
+                let mut cells = vec![TableCell::Text(String::new()); table.columns.len()];
+                if let Some(first) = cells.first_mut() {
+                    *first = TableCell::Text(tag.clone());
+                }
+                table.rows.push(TableRow {
+                    id: None,
+                    heading: true,
+                    cells,
+                });
+                let strip = Table::from_rowset(q, &with_rows(template, rows.clone()), tag, &chosen.key);
+                table.rows.extend(strip.rows);
+            }
+            table
+        }
+    }
+}
+
+/// The `ew sql` result as a table (WP-S3.08 D8: key `sql`, never re-importable): one column per result column, a
+/// number column when every value that is not `NULL` is a number; an integer and a finite real are number cells (a
+/// real in its shortest form), `NULL` an empty text, a blob its `x'…'` text. The rows have no ID.
+pub fn sql_table(set: &crate::sql::ResultSet) -> Table {
+    use crate::sql::Value;
+    let number = |v: &Value| match v {
+        Value::Integer(i) => Some(i.to_string()),
+        Value::Real(r) if r.is_finite() => Some(format!("{r}")),
+        _ => None,
+    };
+    let columns = set
+        .columns
+        .iter()
+        .enumerate()
+        .map(|(i, name)| {
+            let values: Vec<&Value> = set
+                .rows
+                .iter()
+                .filter_map(|r| r.get(i))
+                .filter(|v| **v != Value::Null)
+                .collect();
+            let numeric = !values.is_empty() && values.iter().all(|v| number(v).is_some());
+            TableColumn {
+                key: name.clone(),
+                label: name.clone(),
+                cell: if numeric { CellType::Number } else { CellType::Text },
+                editable: false,
+            }
+        })
+        .collect();
+    Table {
+        name: "sql".to_owned(),
+        key: "sql".to_owned(),
+        columns,
+        rows: set
+            .rows
+            .iter()
+            .map(|r| TableRow {
+                id: None,
+                heading: false,
+                cells: r
+                    .iter()
+                    .map(|v| number(v).map_or_else(|| TableCell::Text(v.text()), TableCell::Number))
+                    .collect(),
+            })
+            .collect(),
+    }
+}
+
+impl Session {
+    /// The metadata of a workbook exported from this session (WP-S3.08 D3, D5): the project's ID, the session's
+    /// revision, the store's generation (`None` without a store), this program's version, and the export date: `date`
+    /// (the CLI's `SOURCE_DATE_EPOCH`), else the model's edited date, else its created date, else 1980-01-01, as the
+    /// PDF's (doc 09 §4.3 rule 1).
+    pub fn workbook_meta(&self, date: Option<PdfDate>) -> WorkbookMeta {
+        let q = self.query();
+        let d = date.unwrap_or_else(|| super::model_date(&q));
+        WorkbookMeta {
+            date: DateTime {
+                year: d.year,
+                month: d.month,
+                day: d.day,
+                hour: d.hour,
+                minute: d.minute,
+                second: d.second,
+            },
+            project: q.project().id.to_string(),
+            rev: self.world().rev.0,
+            generation: self.store().map(ew_store::Store::generation),
+            version: env!("CARGO_PKG_VERSION").to_owned(),
+        }
+    }
+}
+
+/// A workbook as text, through the round trip's reader (WP-S3.08 D12, D16): for each sheet in workbook order (hidden
+/// ones included) a line `[<name>]`, then its rows as the reader gives them, the header row first, each row's cell
+/// texts joined by tabs (`\`, tab, LF and CR in a cell written `\\`, `\t`, `\n`, `\r`), LF line ends.
+///
+/// # Errors
+///
+/// The reader's [`ImportError`](ew_import_catalog::ew_interop_api::ImportError) for bytes that are not a workbook or
+/// beyond its limits.
+pub fn workbook_dump(bytes: &[u8]) -> Result<String, ew_import_catalog::ew_interop_api::ImportError> {
+    use ew_import_catalog::sheet::{read_sheet, sheet_names};
+    let limits = ew_import_catalog::table_limits();
+    let escape = |t: &str| {
+        t.replace('\\', "\\\\")
+            .replace('\t', "\\t")
+            .replace('\n', "\\n")
+            .replace('\r', "\\r")
+    };
+    let mut out = String::new();
+    for name in sheet_names(bytes, &limits)? {
+        out.push('[');
+        out.push_str(&name);
+        out.push_str("]\n");
+        let table = read_sheet(bytes, ew_import_catalog::SourceFormat::Xlsx, Some(&name), &limits)?;
+        for row in std::iter::once(&table.headers).chain(&table.rows) {
+            let cells: Vec<String> = row.iter().map(|c| escape(c)).collect();
+            out.push_str(&cells.join("\t"));
+            out.push('\n');
+        }
+    }
+    Ok(out)
+}
+
+// The folio labels of the pages of the block `block` names, in page order (`ew export report --format pdf`).
 ///
 /// # Errors
 ///

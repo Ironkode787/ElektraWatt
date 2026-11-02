@@ -14,10 +14,33 @@
         "null"
       ]
     },
-    "out": {
-      "description": "The file the CSV was written to (`--out`); `null` without one.",
+    "format": {
+      "description": "The format written: `csv` or `xlsx` (WP-S3.08 TX-7).",
       "type": [
         "string",
+        "null"
+      ]
+    },
+    "out": {
+      "description": "The file the CSV or XLSX was written to (`--out`); `null` without one.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "preset": {
+      "description": "The CSV preset (`ew`, `excel-nl`, `excel-en`, `rfc4180`); `null` for XLSX.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "rev": {
+      "description": "The session revision the rows were read at.",
+      "format": "uint64",
+      "minimum": 0,
+      "type": [
+        "integer",
         "null"
       ]
     },

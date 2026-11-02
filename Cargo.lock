@@ -1772,6 +1772,7 @@ dependencies = [
  "ew-model",
  "ew-sqlview",
  "ew-text",
+ "ew-zip",
  "proptest",
  "serde_json",
 ]

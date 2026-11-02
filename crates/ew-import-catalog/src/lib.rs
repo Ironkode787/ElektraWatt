@@ -40,6 +40,13 @@ pub use parts::{
     CatalogTarget, FIRST_VERSION, IMPORTER_ID, IMPORTER_VERSION, PartsImport, RowCounts, RowOutcome,
     RowStatus, manufacturer_item, namespace, parse_parts, part_item, pn_norm,
 };
+/// The readers of the parts import as the table round trip uses them (WP-S3.08 D12; decision log ID-1145): a table of
+/// a CSV or an XLSX sheet as header and cell texts ([`sheet::read_sheet`]), and a workbook's sheet names, hidden ones
+/// included ([`sheet::sheet_names`]). No second reader: these are the readers [`parse_parts`] reads with.
+pub mod sheet {
+    pub use crate::table::{SheetTable, read_sheet, sheet_names};
+}
+
 pub use table::{
     MAX_CELL_BYTES, MAX_COLUMNS, MAX_ROWS, SourceFormat, TableColumn, table_columns, table_limits,
 };

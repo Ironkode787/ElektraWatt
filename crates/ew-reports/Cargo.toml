@@ -23,6 +23,8 @@ ew-text = { path = "../ew-text" }
 # `profile_tables` reads the provisional `colour_profile` and `size_profile` members of the project settings
 # (`ProjectSettings.extra`, doc 03 §5.1) as JSON values.
 serde_json = "1.0.154"
+# The XLSX writer's container (WP-S3.08 D3, decision log ID-1145): the own deterministic ZIP, no ZIP or XLSX crate.
+ew-zip = { path = "../ew-zip" }
 ew-hack = { version = "0.0.0", path = "../ew-hack" }
 
 [dev-dependencies]

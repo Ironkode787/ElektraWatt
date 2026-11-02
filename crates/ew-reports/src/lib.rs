@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Built-in report row queries, user SQL reports through the sandboxed query API of `ew-sqlview`,
-//! pagination into virtual pages, and XLSX and CSV tables (doc 09 §1.3, ADR-0018).
+//! pagination into virtual pages, and the table writers: CSV presets and an own XLSX writer (doc 09 §1.3, ADR-0018;
+//! WP-S3.08 part 1: [`table`], [`csv`], [`xlsx`]).
 //!
 //! # Pipeline
 //!
@@ -38,6 +39,8 @@ pub mod paginate;
 mod queries;
 pub mod render;
 mod rowset;
+pub mod table;
+pub mod xlsx;
 
 pub use arrange::{Arrangement, Filter, FilterOp, arrange};
 pub use kind::{

@@ -409,9 +409,9 @@ fn report_pdf_writes_the_block_folios_only() {
     assert!(std::fs::read(&report).unwrap() == std::fs::read(&pages).unwrap());
 }
 
-/// OU-3: `--format xlsx` exits 2 naming FT-61; an unknown block exits 2 naming it.
+/// OU-3 (WP-S3.08 D7): `--format xlsx` without `--out` exits 2 asking for the file; an unknown block exits 2 naming it.
 #[test]
-fn report_refuses_xlsx_and_an_unknown_block() {
+fn report_refuses_xlsx_without_a_file_and_an_unknown_block() {
     let t = Tmp::new();
     let p = t.golden();
     let o = t.ew(&args([
@@ -426,8 +426,8 @@ fn report_refuses_xlsx_and_an_unknown_block() {
     assert_eq!(o.status.code(), Some(2));
     assert_eq!(
         stderr(&o),
-        "error: invalid value 'xlsx' for '--format <format>': `--format xlsx` is not built yet (csv, pdf; XLSX waits \
-         for the writer of FT-61)\n\nFor more information, try '--help'.\n"
+        "error: `--format xlsx` writes a file: give `--out <file.xlsx>`\n\nUsage: ew export report [OPTIONS] <--block \
+         <block>|--kind <kind>> [project-dir]\n\nFor more information, try '--help'.\n"
     );
     let o = t.ew(&args([&"export", &"report", &p, &"--block", &"777"]));
     assert_eq!(o.status.code(), Some(2));

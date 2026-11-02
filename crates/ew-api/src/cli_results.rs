@@ -443,10 +443,16 @@ pub struct ExportRowsResult {
     pub schema: String,
     /// The rows (data and heading rows, the header line excluded).
     pub rows: usize,
-    /// The file the CSV was written to (`--out`); `null` without one.
+    /// The file the CSV or XLSX was written to (`--out`); `null` without one.
     pub out: Option<String>,
     /// The CSV text when there is no `--out`; `null` with one.
     pub csv: Option<String>,
+    /// The format written: `csv` or `xlsx` (WP-S3.08 TX-7).
+    pub format: Option<String>,
+    /// The CSV preset (`ew`, `excel-nl`, `excel-en`, `rfc4180`); `null` for XLSX.
+    pub preset: Option<String>,
+    /// The session revision the rows were read at.
+    pub rev: Option<u64>,
 }
 
 /// `ew export pdf --json` ([`EXPORT_PDF`]).
@@ -515,10 +521,16 @@ pub struct ExportTerminalsResult {
     pub rows: usize,
     /// The printed tags of the strips written, in output order.
     pub strips: Vec<String>,
-    /// The file the CSV was written to (`--out`); `null` without one.
+    /// The file the CSV or XLSX was written to (`--out`); `null` without one.
     pub out: Option<String>,
     /// The CSV text when there is no `--out`; `null` with one.
     pub csv: Option<String>,
+    /// The format written: `csv` or `xlsx` (WP-S3.08 TX-7).
+    pub format: Option<String>,
+    /// The CSV preset (`ew`, `excel-nl`, `excel-en`, `rfc4180`); `null` for XLSX.
+    pub preset: Option<String>,
+    /// The session revision the rows were read at.
+    pub rev: Option<u64>,
 }
 
 /// `ew export report --json` ([`EXPORT_REPORT`]).
@@ -532,16 +544,20 @@ pub struct ExportReportResult {
     pub block: String,
     /// The block's report kind (`plc_overview`, ...).
     pub kind: String,
-    /// `csv` or `pdf`.
+    /// `csv`, `xlsx` or `pdf`.
     pub format: String,
-    /// For CSV: the rows (data and heading rows, the header line excluded); `null` for PDF.
+    /// For CSV and XLSX: the rows (data and heading rows, the header line excluded); `null` for PDF.
     pub rows: Option<usize>,
-    /// For PDF: the folio labels of the block's pages written, in page order; `null` for CSV.
+    /// For PDF: the folio labels of the block's pages written, in page order; `null` for CSV and XLSX.
     pub folios: Option<Vec<String>>,
     /// The file written (`--out`); `null` for CSV on stdout.
     pub out: Option<String>,
     /// The CSV text when it goes to stdout; else `null`.
     pub csv: Option<String>,
+    /// The CSV preset (`ew`, `excel-nl`, `excel-en`, `rfc4180`); `null` for XLSX and PDF (WP-S3.08 TX-7).
+    pub preset: Option<String>,
+    /// The session revision the rows or pages were read at.
+    pub rev: Option<u64>,
 }
 
 /// `ew export png --json` ([`EXPORT_PNG`]).

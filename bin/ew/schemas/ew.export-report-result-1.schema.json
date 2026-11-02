@@ -19,7 +19,7 @@
       ]
     },
     "folios": {
-      "description": "For PDF: the folio labels of the block's pages written, in page order; `null` for CSV.",
+      "description": "For PDF: the folio labels of the block's pages written, in page order; `null` for CSV and XLSX.",
       "items": {
         "type": "string"
       },
@@ -29,7 +29,7 @@
       ]
     },
     "format": {
-      "description": "`csv` or `pdf`.",
+      "description": "`csv`, `xlsx` or `pdf`.",
       "type": "string"
     },
     "kind": {
@@ -43,8 +43,24 @@
         "null"
       ]
     },
+    "preset": {
+      "description": "The CSV preset (`ew`, `excel-nl`, `excel-en`, `rfc4180`); `null` for XLSX and PDF (WP-S3.08 TX-7).",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "rev": {
+      "description": "The session revision the rows or pages were read at.",
+      "format": "uint64",
+      "minimum": 0,
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
     "rows": {
-      "description": "For CSV: the rows (data and heading rows, the header line excluded); `null` for PDF.",
+      "description": "For CSV and XLSX: the rows (data and heading rows, the header line excluded); `null` for PDF.",
       "format": "uint",
       "minimum": 0,
       "type": [

@@ -308,9 +308,100 @@ pub fn table_columns(
         .collect())
 }
 
+/// A table as the round trip reads it (WP-S3.08 D12, [`crate::sheet`]): the header row and the data rows' cell texts.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct SheetTable {
+    /// The header row: the first record with any text, each cell trimmed.
+    pub headers: Vec<String>,
+    /// The data rows after it (records without any text left out), one cell per header column: a missing cell and an
+    /// error value (`#N/A`) read as empty, a cell beyond the last header is not read.
+    pub rows: Vec<Vec<String>>,
+}
+
+/// The input size check of every reader: an input above `limits.max_input_bytes` is refused unread.
+fn check_size(bytes: &[u8], limits: &Limits) -> Result<(), ImportError> {
+    if bytes.len() as u64 > limits.max_input_bytes {
+        return Err(ImportError::LimitExceeded {
+            what: "input size".into(),
+            limit: limits.max_input_bytes,
+        });
+    }
+    Ok(())
+}
+
+/// Reads a table in `format` (WP-S3.08 D12) with the parts import's readers: CSV, or the XLSX sheet named `sheet`
+/// (the first when `None`; CSV has one table and takes no name). Cells are their displayed text as
+/// [`crate::parse_parts`] reads them: a number in its shortest form (`1.10` reads `1.1`), a date as its serial number.
+///
+/// # Errors
+///
+/// As [`table_columns`]: [`ImportError::LimitExceeded`] for an input above `limits.max_input_bytes` or too many rows,
+/// columns or too long a cell; [`ImportError::Malformed`] for a table without a header row, not UTF-8, not a workbook or
+/// without the named sheet; [`ImportError::Unsupported`] for a ZIP64 or encrypted workbook.
+pub fn read_sheet(
+    bytes: &[u8],
+    format: SourceFormat,
+    sheet: Option<&str>,
+    limits: &Limits,
+) -> Result<SheetTable, ImportError> {
+    check_size(bytes, limits)?;
+    let read = match format {
+        SourceFormat::Csv => read_csv(bytes, limits)?,
+        SourceFormat::Xlsx => read_xlsx(bytes, sheet, limits)?,
+    };
+    Ok(SheetTable {
+        headers: read.headers,
+        rows: read
+            .rows
+            .into_iter()
+            .map(|r| r.cells.iter().map(|c| c.text().to_owned()).collect())
+            .collect(),
+    })
+}
+
+/// The names of the sheets of an XLSX workbook in workbook order, hidden sheets included (WP-S3.08 D12).
+///
+/// # Errors
+///
+/// [`ImportError::LimitExceeded`] for an input above `limits.max_input_bytes`; [`ImportError::Malformed`] for bytes
+/// that are not a workbook; [`ImportError::Unsupported`] for a ZIP64 workbook.
+pub fn sheet_names(bytes: &[u8], limits: &Limits) -> Result<Vec<String>, ImportError> {
+    check_size(bytes, limits)?;
+    crate::xlsx::sheet_names(bytes, limits)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// D12: a CSV reads as its header and its rows; an error value of a workbook reads empty (the `Cell` rule).
+    #[test]
+    fn read_sheet_gives_headers_and_cell_texts() {
+        let t = read_sheet(b"a;b\n1;\n\n3;x\n", SourceFormat::Csv, None, &Limits::default()).unwrap();
+        assert_eq!(
+            t,
+            SheetTable {
+                headers: vec!["a".into(), "b".into()],
+                rows: vec![vec!["1".into(), String::new()], vec!["3".into(), "x".into()]],
+            }
+        );
+        assert_eq!(Cell::Error("#N/A".into()).text(), "");
+        let small = Limits {
+            max_input_bytes: 3,
+            ..Limits::default()
+        };
+        assert_eq!(
+            read_sheet(b"a,b\n", SourceFormat::Csv, None, &small),
+            Err(ImportError::LimitExceeded {
+                what: "input size".into(),
+                limit: 3
+            })
+        );
+        assert!(matches!(
+            sheet_names(b"a,b\n", &Limits::default()),
+            Err(ImportError::Malformed { .. })
+        ));
+    }
 
     fn csv(text: &str) -> Result<Sheet, ImportError> {
         read_csv(text.as_bytes(), &Limits::default())
