@@ -237,6 +237,38 @@ fn the_editor_of_another_selection_shows_its_own_value() {
     );
 }
 
+/// C44-p6#4 (W44.4 F-h, the frames' case): with -102F1's Realised part editor focused, `select.set` on -201U1's
+/// placement and `props.edit` on the same row with no frame between: the field keeps its focus across the change,
+/// and still shows -201U1's own part.
+#[test]
+fn the_focused_editor_takes_the_new_selections_value() {
+    let tmp = Tmp::new();
+    let mut h = on_902(&tmp);
+    let row = json!({"row": "placement/derived.realised_part"});
+    let f1 = placement_of(&h, "-102F1");
+    let u1 = placement_of(&h, "-201U1");
+    dispatch(&mut h, "select.set", json!({"ids": [f1]}));
+    settle(&mut h);
+    dispatch(&mut h, "props.edit", row.clone());
+    settle(&mut h);
+    assert_eq!(focused_field(&h).0, "A9F78116");
+    dispatch(&mut h, "select.set", json!({"ids": [u1]}));
+    dispatch(&mut h, "props.edit", row);
+    settle(&mut h);
+    let buffer = h
+        .state()
+        .shell()
+        .properties()
+        .edit()
+        .expect("an editor")
+        .buffer
+        .clone();
+    assert_eq!(
+        (focused_field(&h).0, buffer.as_str()),
+        ("195740".to_owned(), "195740")
+    );
+}
+
 /// W44.4 F-f (doc 16a §6.8): the editor's text starts `space.icon` (6 px) inside the field.
 #[test]
 fn the_editors_text_is_padded_from_the_fields_edge() {

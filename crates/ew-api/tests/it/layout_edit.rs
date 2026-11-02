@@ -263,6 +263,28 @@ fn the_panel_pages_surface_view_rows_set_the_view() {
         refusal(edit(&s, "page", page, "surface", &Uuid::from_u128(7).to_string())),
         "That surface no longer exists; choose one of the list."
     );
+    // C44-p6#5: an existing surface's ID in another form names it: upper case, braces, simple, padded.
+    let plate = uuid::<MountingSurface>("mounting_surfaces", "-UC1");
+    for form in [
+        plate.to_string().to_uppercase(),
+        format!("{{{plate}}}"),
+        plate.simple().to_string(),
+        format!("  {plate} "),
+    ] {
+        let cmd = edit(&s, "page", page, "surface", &form).unwrap_or_else(|e| panic!("{form}: {e:?}"));
+        assert_eq!(cmd.params["surface"], json!(plate.to_string()), "{form}");
+    }
+    // An ID of no surface in another form is still refused.
+    assert_eq!(
+        refusal(edit(
+            &s,
+            "page",
+            page,
+            "surface",
+            &format!("{{{}}}", Uuid::from_u128(7))
+        )),
+        "That surface no longer exists; choose one of the list."
+    );
     assert_eq!(
         refusal(edit(&s, "page", page, "label_mode", "Short")),
         "Choose Abbreviated or Full."

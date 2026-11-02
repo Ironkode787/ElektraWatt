@@ -1136,7 +1136,10 @@ impl Session {
                         // A choice from the list is its value, the surface's ID; a typed text is its words, which
                         // must name one surface (C44-p2#4).
                         let surfaces = surfaces_in_order(&q);
-                        let by_id = surfaces.iter().find(|(id, _)| id.as_uuid().to_string() == text);
+                        // The ID in any form `Uuid::parse_str` reads (upper case, braces, simple, padded:
+                        // C44-p6#5), compared as a UUID.
+                        let as_id = Uuid::parse_str(text.trim()).ok();
+                        let by_id = as_id.and_then(|u| surfaces.iter().find(|(id, _)| id.as_uuid() == u));
                         let by_words: Vec<&(Id<MountingSurface>, String)> = surfaces
                             .iter()
                             .filter(|(_, n)| n.eq_ignore_ascii_case(text))
@@ -1145,7 +1148,7 @@ impl Session {
                             (Some((id, _)), _) | (None, [(id, _)]) => *id,
                             // A surface ID that names no surface (a deleted one, or a stale list): no ID in
                             // the words (C44-p4#3).
-                            (None, []) if Uuid::parse_str(text.trim()).is_ok() => {
+                            (None, []) if as_id.is_some() => {
                                 return invalid("That surface no longer exists; choose one of the list.");
                             }
                             (None, []) => {
