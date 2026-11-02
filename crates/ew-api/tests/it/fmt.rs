@@ -929,17 +929,27 @@ fn after_repair_fault(
 /// unchanged; after the commit point the next open completes generation 2, which never comes without the backup. A
 /// failed save keeps the broken lines, so the same session repairs again; and a rerun after every fault succeeds,
 /// reusing the backup it finds. Both on a project whose broken line came with the generation and on one edited by hand,
-/// whose backup holds its files as found (ID-1186): the faults reach the backup's reads of every listed file too.
+/// whose backup holds its files as found (ID-1186): the faults reach the backup's reads of every listed file too. And
+/// each again on a file system without hard links (C47-p2#3), where the backup's temporary file is renamed onto its
+/// name after the name is checked absent: a power loss leaves at most the temporary file.
 #[test]
 fn a_fault_at_every_call_of_a_repair_leaves_the_old_or_the_new_generation_and_a_rerun_succeeds() {
-    repair_fault_sweep(true);
-    repair_fault_sweep(false);
+    for no_links in [false, true] {
+        repair_fault_sweep(true, no_links);
+        repair_fault_sweep(false, no_links);
+    }
 }
 
 /// The sweep of the test above on the page file with a broken line, its hash in the manifest as a save writes it
-/// (`hashed`) or not (edited by hand).
-fn repair_fault_sweep(hashed: bool) {
+/// (`hashed`) or not (edited by hand), on a file system with or without hard links (`no_links`: no
+/// [`Vfs::rename_noreplace`]).
+fn repair_fault_sweep(hashed: bool, no_links: bool) {
     let (disk, page, canonical) = page_with(&[BROKEN], hashed);
+    let mem = |disk: &BTreeMap<String, Vec<u8>>| {
+        let vfs = mem(disk);
+        vfs.set_noreplace_unsupported(no_links);
+        vfs
+    };
     let (calls, backup_bytes) = {
         let vfs = mem(&disk);
         let (mut s, _) = open_repair(&vfs, 2);
@@ -1050,13 +1060,13 @@ fn repair_fault_sweep(hashed: bool) {
     }
     assert!(
         failures.is_empty(),
-        "hashed: {hashed}: {} failures:\n{}",
+        "hashed: {hashed}, no links: {no_links}: {} failures:\n{}",
         failures.len(),
         failures.join("\n")
     );
     assert_eq!(
         seen, [true; 6],
-        "hashed: {hashed}: the sweep reaches a failed backup, both sides of the save's commit point, both \
-         generations and a failed read of the backup's files"
+        "hashed: {hashed}, no links: {no_links}: the sweep reaches a failed backup, both sides of the save's commit \
+         point, both generations and a failed read of the backup's files"
     );
 }

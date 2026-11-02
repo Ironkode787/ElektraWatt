@@ -27,8 +27,9 @@
 //! manifest is the loaded one hashed to those bytes ([`ewz::pack_as_found`]; [`Backup::edited`] counts the files that
 //! differ from the generation as saved) and written into the project folder's parent as
 //! `<project folder>.before-repair-g<generation>.ewz` ([`backup_path`]), to a temporary name beside it, read back,
-//! synced, moved there without replacing anything ([`Vfs::rename_noreplace`], else a new file on a file system without
-//! hard links) and the folder synced; a file already at that name is reused when it holds this generation's pack byte
+//! synced, moved there without replacing anything ([`Vfs::rename_noreplace`]; on a file system without hard links,
+//! [`Vfs::rename`] after the name is checked absent again) and the folder synced; a file already at that name is reused
+//! when it holds this generation's pack byte
 //! for byte and refused otherwise. Last the one save, [`ew_store::Store::discard_broken_lines`]: the files that hold
 //! the broken lines rewritten without them, every other line as `ew fmt` writes it (kept lines byte for byte). A
 //! failure before the save's commit point leaves the generation on disk as it was, the backup beside it; the caller
@@ -539,8 +540,9 @@ fn holds(vfs: &dyn Vfs, path: &Path, bytes: &[u8]) -> io::Result<bool> {
 /// Writes the backup `bytes` at `target` without replacing anything (ID-1185 ruling 5); `Ok(true)` when a file there
 /// already held these bytes and is reused. Otherwise: the temporary name `<target>.tmp` beside it (a leftover of an
 /// interrupted repair of this project removed first: the caller holds its lock), the bytes written, read back and
-/// synced, moved to `target` by [`Vfs::rename_noreplace`] (on a file system without hard links, `target` created
-/// anew, which never replaces either) and the folder synced. Any failure removes what this call created.
+/// synced, moved to `target` by [`Vfs::rename_noreplace`] (on a file system without hard links, by [`Vfs::rename`]
+/// after `target` is checked absent again, the race between the two accepted as for the extract, C47-p2#3) and the
+/// folder synced. Any failure removes what this call created; a power loss leaves at most the temporary file.
 fn write_backup(vfs: &dyn Vfs, target: &Path, bytes: &[u8]) -> Result<bool, RepairError> {
     let failed = |error: io::Error| RepairError::Backup {
         path: target.to_path_buf(),
@@ -600,24 +602,27 @@ fn write_backup(vfs: &dyn Vfs, target: &Path, bytes: &[u8]) -> Result<bool, Repa
             undo(false);
             return Err(taken());
         }
-        // No rename without replacement on this file system: the target is created anew, which never replaces.
+        // No rename without replacement on this file system (no hard links, C47-p2#3): the target's absence is checked
+        // again and the temporary file, synced and read back, renamed onto it, so that a power loss leaves at most the
+        // temporary file, which a rerun removes. The race between the check and the rename is accepted, as ID-1175
+        // accepts it for the extract.
         Err(e) if e.kind() == io::ErrorKind::Unsupported => {
-            match vfs.create_new(target, bytes) {
-                Ok(()) => {}
-                Err(e) if e.kind() == io::ErrorKind::AlreadyExists => {
+            match vfs.stat(target) {
+                Ok(_) => {
                     undo(false);
                     return Err(taken());
                 }
+                Err(e) if e.kind() == io::ErrorKind::NotFound => {}
                 Err(e) => {
                     undo(false);
                     return Err(failed(e));
                 }
             }
-            if let Err(e) = vfs.sync(target) {
-                undo(true);
+            // A failed rename moved nothing: the target is not ours.
+            if let Err(e) = vfs.rename(&temp, target) {
+                undo(false);
                 return Err(failed(e));
             }
-            let _ = vfs.remove_file(&temp);
         }
         // A rename by link and unlink can fail after the link: the target is then ours, and goes too.
         Err(e) => {
