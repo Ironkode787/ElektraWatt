@@ -44,6 +44,15 @@ fn portal_error(e: ashpd::Error) -> PrintError {
     }
 }
 
+/// The print file, removed when the adapter returns.
+struct RemovedOnDrop(PathBuf);
+
+impl Drop for RemovedOnDrop {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_file(&self.0);
+    }
+}
+
 impl PrintAdapter for Portal {
     fn name(&self) -> &'static str {
         "portal"
@@ -51,6 +60,8 @@ impl PrintAdapter for Portal {
 
     fn print(&self, job: &PrintJob) -> Result<PrintOutcome, PrintError> {
         let path = fresh_file(&self.temp_dir, "ew-print", &job.pdf)?;
+        // Removed on every way out, a panic in the portal's reply included (the chain catches it).
+        let _removed = RemovedOnDrop(path.clone());
         let ran = File::open(&path)
             .map_err(|e| PrintError::Io {
                 path: path.clone(),
@@ -84,7 +95,6 @@ impl PrintAdapter for Portal {
                         .map_err(portal_error)
                 })
             });
-        let _ = std::fs::remove_file(&path);
         ran?;
         Ok(PrintOutcome::Spooled {
             printer: None,
