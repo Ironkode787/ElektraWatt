@@ -20,7 +20,8 @@
 //! that is not one JSON value, or not UTF-8, doc 05 §6.3), from a session opened with
 //! [`StoreOptions::repair`](crate::StoreOptions): the integrity demotion let those lines through, and only those. In
 //! order, before anything is written: a store `pack_store` refuses refuses (no manifest, an incomplete save, a file
-//! changed on disk); without a broken line nothing is written; the content check runs over the repair's rewrite set
+//! that no longer matches the manifest, as after an edit outside ElektraWatt since the last save, a pending hash);
+//! without a broken line nothing is written; the content check runs over the repair's rewrite set
 //! with the broken lines left out (only form may change elsewhere). Then the backup: the generation on disk, broken
 //! lines included, packed as an `.ewz` ([`ewz::pack_store`]) and written into the project folder's parent as
 //! `<project folder>.before-repair-g<generation>.ewz` ([`backup_path`]), to a temporary name beside it, read back,

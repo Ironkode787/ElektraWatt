@@ -98,7 +98,7 @@ and after merges with the "renumber the newer" fix for device tags; and AC-41 pa
 | `Origin::External`, `Origin::Merge`; the history's "external change" origin text | `crates/ew-commands/src/meta.rs`, `crates/ew-api/src/output/history.rs` | Parts 5 and 6 |
 | `Vfs` with `rename_noreplace` (by hard link: files only), no exclusive directory create | `crates/ew-store/src/vfs.rs` | Part 2 adds `create_dir` |
 | The uniqueness rules EW-RDS-004, EW-TERM-002, EW-POT-015, EW-CORE-052, EW-PLC-001, EW-PLC-007; EW-CORE-011 and -013 as catalogue rows only; `QuickFix` | `crates/ew-checks/src/rules/`, `finding.rs` | Part 8 |
-| `ew fmt` and `ew recover` | `bin/ew/src/cli/project_files.rs:23, :159` | Part 1 (`fmt` keeps original lines); `fmt --repair` in its own lane after part 2 (ID-1175) |
+| `ew fmt` and `ew recover` | `bin/ew/src/cli/project_files.rs:23, :159` | Part 1 (`fmt` keeps original lines); `fmt --repair` in its own lane after part 2 (ID-1175), built to ID-1185 |
 | The CLI's read-only refusals of writers | `bin/ew/src/cli.rs:151, :161` | Parts 2, 3, 5 (the same refusal for `.ewz` and migrated projects) |
 | The window's read-only reasons and save errors (`readonly-lock-lost`, `saveerr-external`) | `crates/ew-viewmodel/src/shell.rs` | Part 7 |
 
@@ -110,7 +110,7 @@ and after merges with the "renumber the newer" fix for device tags; and AC-41 pa
 | An untouched record with unknown members is re-emitted canonically (FT-96) | Part 1 (D4) |
 | The save checks only `manifest.json`: a hand edit or a checkout of a file the manifest still names is overwritten by the next save that touches that file | Part 1 (D5), a data-loss fix |
 | A conflicted manifest restarts the generation at 1 (FT-97); stray copies can multiply under a sync client (FT-98) | Part 1 (D6, D7) |
-| No `.ewz`; no `ew fmt --repair` | Part 2 (`.ewz`); `fmt --repair` in its own lane after part 2 (ID-1175) |
+| No `.ewz`; no `ew fmt --repair` | Part 2 (`.ewz`); `fmt --repair` in its own lane after part 2 (ID-1175), built to ID-1185 |
 | No migration chain; an older format does not open | Part 3 |
 | No merge core, no driver, no strategy table in `ew-schema` | Part 4 |
 | `conflict` untyped; markers force read-only and nothing resolves them | Part 5 |
@@ -255,7 +255,9 @@ conflicted manifest is not tested through a roll-forward; FT-95's `unstable` mar
 **Scope.** D8, D9. **0.7 pw.** `ew-store` (`ewz.rs`, `vfs.rs`), `ew-api` (`Session::open_ewz`, the export), `bin/ew`
 (`ew export ewz`, the reader argument, `ew extract <file.ewz> [--into <dir>]`). The window's menu items are part 7's.
 `ew fmt --repair` (EW-CORE-005's fix: discard the unparseable lines after packing an `.ewz` of the current generation
-beside the project; WP-S1.22 D2, 0.1 pw) moved to a lane of its own after part 2 (ruling 6 below).
+beside the project; WP-S1.22 D2, 0.1 pw) moved to a lane of its own after part 2 (ruling 6 below), built to ID-1185's
+rulings below: it discards the lines that are not JSON or not UTF-8, after packing the generation on disk as
+`<project folder>.before-repair-g<generation>.ewz` in the project folder's parent.
 
 **Acceptance.**
 - **EZ-1** Golden A packed twice gives byte-identical `.ewz` files; `mimetype` is the first entry, stored; extracting
@@ -268,9 +270,12 @@ beside the project; WP-S1.22 D2, 0.1 pw) moved to a lane of its own after part 2
 - **EZ-4** Archives with `..`, a backslash, a duplicate name ignoring case, an entry outside D9's set, a hash mismatch,
   a missing `mimetype` or a 201 : 1 entry are refused unread (the bounds of `ZipLimits`); a fuzz target over the
   reader joins `fuzz/`.
-- **EZ-5** (moved with `ew fmt --repair` to its own lane, ruling 6) `ew fmt --repair` on a page file with one broken
-  line writes the backup `.ewz`, then a project without the line, and opens editable; without a broken line it changes
-  nothing.
+- **EZ-5** (moved with `ew fmt --repair` to its own lane, ruling 6; built to ID-1185, whose ruling 8 adds cases)
+  `ew fmt --repair` on a page file with one broken line writes the backup `.ewz`
+  (`<project folder>.before-repair-g<generation>.ewz` beside the project folder), then a project without the line, and
+  opens editable; without a broken line it changes nothing. As built, the page file's hash in the manifest is the hash
+  of its bytes: a file edited outside ElektraWatt since the last save no longer matches the manifest, `pack_store`
+  refuses the generation, and so does the repair (ID-1185 ruling 3).
 - **EZ-6** Targeted checks for `ew-store`, `ew-api`, `ew`.
 
 **Rulings at dispatch (ID-1175, cycle 47; facts at `b57b62db`).**

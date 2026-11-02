@@ -848,7 +848,7 @@ records are loaded, FR-COL-025). The flag counts every such finding, also those 
 | EW-CORE-002 | Mixed generation that cannot roll forward | error; R | Journal recovery; best-effort read-only load |
 | EW-CORE-003 | A listed file is missing | error; R | Restore it from git or the sync client; drop the entry |
 | EW-CORE-004 | Orphan or sync-conflict copy, an unlisted file, or a file a save moved aside to a stray `.unlisted-<g>` name (§5.2 step 4) | warning | Compare; merge the copy as an external change (§9); delete by hand (EW never deletes it) |
-| EW-CORE-005 | JSON syntax error at file:line | error; R; read-only | `ew fmt --repair`: discard the line, with an `.ewz` backup |
+| EW-CORE-005 | JSON syntax error at file:line | error; R; read-only | `ew fmt --repair`: discard the line (one that is not JSON or not UTF-8), after packing the generation on disk, the line included, as `<project folder>.before-repair-g<generation>.ewz` beside the project folder (a file of that name is reused only when it holds that pack); refused for a library document that is not UTF-8, while another finding forces read-only, and when the generation cannot be packed (ID-1185) |
 | EW-CORE-006 | Git conflict markers in a JSONL file | error; R | Converted into conflict records (§11.4) |
 | EW-CORE-007 | Schema violation: wrong type, missing member, a float, an unparseable value such as a `Dec3` with four fraction digits. An undeclared company colour code such as "BR" parses as a company code and is reported by EW-CORE-031; a lenient import writes `{"foreign":"BR"}` (§3.2) | error; R | The line is quarantined verbatim and references to it are reported |
 | EW-CORE-008 | Dangling reference | error; R | The link's delete policy, as a previewed fix |

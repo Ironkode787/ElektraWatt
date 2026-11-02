@@ -132,7 +132,8 @@ enum Top {
     /// characters) and the backup's path; with `--json` the result is `ew.fmt-repair-result/1`. Refused before anything
     /// is written (exit 2): an `.ewz`, a crashed session's journal, any other finding that forces read-only, a
     /// project that cannot be packed, a backup name holding another file, a folder that cannot be written. Exit 0 when
-    /// the project opens editable afterwards or there was nothing to repair, 2 otherwise; never with `--check`.
+    /// the project opens editable afterwards or there was nothing to repair, 2 otherwise. `--repair` and `--check`
+    /// exclude each other.
     Fmt(FmtCli),
     /// Summarise, replay or discard the journal a crashed session left.
     ///
