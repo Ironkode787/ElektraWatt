@@ -87,6 +87,11 @@ count = 1
 
 [[allow]]
 crate = "ew-commands"
+item = "fn follow_cases > call env::var"
+count = 1
+
+[[allow]]
+crate = "ew-commands"
 item = "fn ten_megabyte_string_fails_fast > call Instant::now"
 count = 1
 

@@ -1902,6 +1902,7 @@ fn check_routes(
 /// explicit `cases` hides the variable, which proptest reads only into its default).
 // ID-1106 (FT-1029): "the property keeps its failures, takes its case count from `PROPTEST_CASES` when set".
 fn follow_cases() -> u32 {
+    // The variable only sets how many cases run; no persisted, exported or printed result depends on it.
     std::env::var("PROPTEST_CASES")
         .ok()
         .and_then(|v| v.parse().ok())
