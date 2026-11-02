@@ -1096,6 +1096,18 @@ fn move_by_steps_rejections() {
         rejection(edge.execute(&steps_cmd(vec![REP_102F2, REP_T1], [0, 1]))),
         "the move takes the route of wire 102.1 outside the drawable range; move it less far"
     );
+    // FT-864 (ID-1108, as above): a move to another page that leaves one end of a wire behind names the wire.
+    let mut split = engine(arrange_model(|_| {}));
+    assert_eq!(
+        rejection(split.execute(&MoveReps {
+            items: Vec::new(),
+            reps: vec![REP_102F2],
+            delta: pt(0, 0),
+            page: Some(PAGE_101),
+            steps: None,
+        })),
+        "the move would keep one end of wire 102.1 behind on the old page; move both ends together"
+    );
     // A representation off the grid cannot be moved by steps, and the refusal names it.
     let mut off = engine(arrange_model(|records| {
         for rec in records.iter_mut() {

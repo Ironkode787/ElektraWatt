@@ -1011,8 +1011,8 @@ impl Command for MoveReps {
             if let Some(new_page) = self.page.filter(|np| *np != page) {
                 if !(a && b) {
                     return tx.reject(format!(
-                        "connection {cid} would keep one end behind on the old page; move both ends \
-                         together (the interruption-point replacement of FR-CON-043 is not available yet)"
+                        "the move would keep one end of {} behind on the old page; move both ends together",
+                        crate::words::wire(tx, cid)
                     ));
                 }
                 next.page = Some(new_page);
