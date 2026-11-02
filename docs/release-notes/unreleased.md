@@ -113,3 +113,4 @@ SPDX-License-Identifier: CC-BY-4.0
   for "a newer file format"; FT-943)
 - text-change: title block of a page drawn to scale (a Dutch title prints "Schaal", such as "Kastindeling · Schaal
   1:10", every other language "Scale"; a stored scale of 0 prints the plain title and no scale; FT-881)
+- dependency: async-executor 1.14.0 → 1.14.1 (a use-after-free fixed upstream; 1.14.0 yanked)
