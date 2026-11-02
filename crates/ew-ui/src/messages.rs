@@ -258,7 +258,12 @@ fn paint_severity_chip(ui: &mut Ui, severity: &str, word: &str, name: &str, tip:
         galley,
         text.color32(),
     );
-    response.tip(tip)
+    // FT-1092 (ID-1184): the Pending chip says what it counts; the others list their findings.
+    if severity == "pending" {
+        response.tip(strings::text(key!("tip-pending")))
+    } else {
+        response.tip(tip)
+    }
 }
 
 /// The header (doc 16a §6.24): the scheme in `type.small` `color.text.secondary`, one count badge per severity, then
@@ -290,8 +295,9 @@ pub(crate) fn header(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                     theme::font(&t.type_small),
                     colour.color32(),
                 );
-                let (rect, _) = ui.allocate_exact_size(galley.size(), Sense::hover());
+                let (rect, response) = ui.allocate_exact_size(galley.size(), Sense::hover());
                 ui.painter().galley(rect.min, galley, colour.color32());
+                response
             };
             small(ui, scheme, t.text_secondary);
             count_badge(ui, &t, "error", c.errors);
@@ -300,7 +306,10 @@ pub(crate) fn header(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             let waived = strings::format(key!("messages-header-waived"), &[&c.waived.to_string()]);
             small(ui, &waived, t.text_tertiary);
             let pending = strings::format(key!("messages-header-pending"), &[&c.pending.to_string()]);
-            small(ui, &pending, t.text_tertiary);
+            // FT-1092 (ID-1184): "pending n" says what it counts, in its tooltip (the Pending chips' text).
+            let response = small(ui, &pending, t.text_tertiary);
+            response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Label, true, &pending));
+            response.tip(strings::text(key!("tip-pending")));
         });
         let id = ui.scope_id().with("messages-header");
         let node = ui.interact(row.response.rect, id, Sense::hover());

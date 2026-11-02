@@ -1715,7 +1715,12 @@ fn glyph_chip(ui: &mut Ui, severity: &str, findings: &[(&str, &str)]) -> egui::R
             text.color32(),
         );
     }
-    response.tip(lines.join("\n"))
+    // FT-1092 (ID-1184): the Pending chip says what it counts; the others list their findings.
+    if severity == "pending" {
+        response.tip(strings::text(key!("tip-pending")))
+    } else {
+        response.tip(lines.join("\n"))
+    }
 }
 
 #[cfg(test)]

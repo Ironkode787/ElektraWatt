@@ -97,6 +97,77 @@ fn row_key(h: &Harness<'_, App>, role: NavRole, badge: Option<&str>) -> Option<S
         .map(|n| n.key.clone())
 }
 
+/// FT-1092 (ID-1184; play-test rv-vis-7, t0018): the Pending chip of the Properties header (whole at the floor, the
+/// glyph chip in a narrow pane) and the Messages header's "pending n" say what they count in a tooltip, whole.
+#[test]
+fn ft1092_the_pending_chips_and_the_messages_header_say_what_they_count() {
+    const TIP: &str = "Findings on the page you are editing that wait until you leave it or run a check";
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, false);
+    dispatch(&mut h, "messages.show", json!({"on": true}));
+    settle(&mut h);
+    place_ip(&mut h, "K32PEND");
+    settle(&mut h);
+    let away = |h: &mut Harness<'_, App>| {
+        h.hover_at(egui::Pos2::new(2.0, 2.0));
+        h.run_steps(10);
+    };
+    // The Properties header's chip, whole (1280 × 800) and as the glyph chip (a narrow window).
+    for (width, glyph) in [(1280.0, false), (600.0, true)] {
+        h.set_size(egui::Vec2::new(width, 800.0));
+        settle(&mut h);
+        settle(&mut h);
+        let chip = h
+            .get_all_by_role(egui::Role::Button)
+            .find(|n| {
+                n.accesskit_node()
+                    .label()
+                    .is_some_and(|l| l.starts_with("1 Pending: EW-"))
+            })
+            .unwrap_or_else(|| panic!("the Pending chip at {width}"));
+        let bounds = chip.accesskit_node().raw_bounds().expect("bounds");
+        let (w, hgt) = (bounds.x1 - bounds.x0, bounds.y1 - bounds.y0);
+        assert_eq!(
+            w <= 2.0 * hgt,
+            glyph,
+            "the glyph chip is the narrow one: {w} by {hgt}"
+        );
+        assert!(h.query_by_label(TIP).is_none(), "no tooltip before the hover");
+        chip.hover();
+        h.run_steps(40);
+        assert!(
+            h.query_by_label(TIP).is_some(),
+            "the Pending chip's tooltip at {width}: {:?}",
+            h.query_all_by_label_contains("Findings")
+                .map(|n| n.accesskit_node().label())
+                .collect::<Vec<_>>()
+        );
+        away(&mut h);
+        assert!(
+            h.query_by_label(TIP).is_none(),
+            "the tooltip goes with the pointer"
+        );
+    }
+    // The Messages header's "pending n".
+    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    settle(&mut h);
+    settle(&mut h);
+    let n = h.state().shell().messages_counts().unwrap().pending;
+    assert!(n > 0);
+    let text = format!("pending {n}");
+    let label = h
+        .get_all_by_role(egui::Role::Label)
+        .find(|node| node.accesskit_node().value().as_deref() == Some(text.as_str()))
+        .unwrap_or_else(|| panic!("the header's {text}"));
+    label.hover();
+    h.run_steps(40);
+    assert!(
+        h.query_by_label(TIP).is_some(),
+        "the header's {text} has the tooltip"
+    );
+    h.state_mut().shell_mut().shutdown();
+}
+
 /// DK10 (doc 16a §6.24): on Golden A with an error, a warning and a pending completeness finding, every finding row on
 /// show is named with its severity word; the pending row carries a "Pending" status badge node; the header is one
 /// node named by the as-built sentence; the walker passes.
