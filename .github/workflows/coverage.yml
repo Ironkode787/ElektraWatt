@@ -3,10 +3,10 @@
 
 # CI-PR-13 coverage (FT-296, NFR-MAINT-06; docs/design/18-quality-security-release.md §5.2): cargo-llvm-cov 0.9.1 runs
 # the workspace tests (all features, nextest) with instrumentation and reports the line coverage of the core crates
-# (ew-model, ew-commands, ew-memo, ew-derive, ew-format, ew-store) against the threshold of 80 %. The tests of every
-# crate count for a core crate (the acceptance and fuzz tests exercise ew-commands and ew-derive from outside), which is
-# why the whole workspace runs; the job is slow (the acceptance tests alone take about 2 min uninstrumented) and so
-# runs weekly, not per pull request.
+# (ew-model, ew-commands, ew-memo, ew-derive, ew-format, ew-store, ew-zip) against the threshold of 80 %. The tests of
+# every crate count for a core crate (the acceptance and fuzz tests exercise ew-commands and ew-derive from outside),
+# which is why the whole workspace runs; the job is slow (the acceptance tests alone take about 2 min uninstrumented)
+# and so runs weekly, not per pull request.
 #
 # REPORT-ONLY: the report is the job summary and the artifact `coverage-report`. The job fails only when the tool
 # fails (cargo-llvm-cov, the report generation, or a summary that does not hold a line of every core crate: the run did

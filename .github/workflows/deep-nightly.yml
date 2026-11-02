@@ -11,10 +11,11 @@
 #                      headless acceptance report on every read, the PNG of every golden page, the spike's memo path
 #                      under the full oracle, each headless script run twice), in the release profile with debug
 #                      assertions and overflow checks (as fuzz.yml);
-#   proptest           every test of the core crates (`ew-model`, `ew-commands`, `ew-store`, `ew-format`, `ew-memo`,
-#                      `ew-derive`, `ew-schema`), and so every property test, with PROPTEST_CASES=20000 (the variable
-#                      overrides the case count each test sets, and the two hand-built runners of `ew-derive` read it
-#                      through `contextualize_config`); the failing inputs proptest persists are uploaded;
+#   proptest           every test of the core crates (`ew-model`, `ew-commands`, `ew-store`, `ew-zip`, `ew-format`,
+#                      `ew-memo`, `ew-derive`, `ew-schema`), and so every property test, with PROPTEST_CASES=20000
+#                      (the variable overrides the case count each test sets, and the two hand-built runners of
+#                      `ew-derive` read it through `contextualize_config`); the failing inputs proptest persists are
+#                      uploaded;
 #   fuzz               (debug assertions and overflow checks come from the CARGO_PROFILE_RELEASE_* variables below, not
 #                      from cargo-fuzz: its release build adds them only with `-a`) the three cargo-fuzz targets of `fuzz/` (the JSONL loader, the migration chain, the command
 #                      sequence), 30 minutes each in parallel jobs, on the nightly toolchain pinned below and in
@@ -215,7 +216,7 @@ jobs:
         id: build
         continue-on-error: true
         shell: bash
-        run: cargo nextest run --release --locked --no-run -p ew-model -p ew-commands -p ew-store -p ew-format -p ew-memo -p ew-derive -p ew-schema
+        run: cargo nextest run --release --locked --no-run -p ew-model -p ew-commands -p ew-store -p ew-zip -p ew-format -p ew-memo -p ew-derive -p ew-schema
       - name: property tests
         id: props
         if: steps.build.outcome == 'success'
@@ -228,7 +229,7 @@ jobs:
           cases="${INPUT_CASES:-20000}"
           echo "PROPTEST_CASES=$cases" | tee target/deep/params.txt
           PROPTEST_CASES="$cases" timeout 95m cargo nextest run --release --locked --profile ci --no-fail-fast \
-            -p ew-model -p ew-commands -p ew-store -p ew-format -p ew-memo -p ew-derive -p ew-schema \
+            -p ew-model -p ew-commands -p ew-store -p ew-zip -p ew-format -p ew-memo -p ew-derive -p ew-schema \
             2>&1 | tee target/deep/proptest-log.txt
           exit "${PIPESTATUS[0]}"
       - name: verdict and job summary

@@ -22,8 +22,8 @@ import re
 import sys
 
 # The core crates of CI-PR-13 (18 §5.2, NFR-MAINT-06): the model, the commands, the memo engine, the derived-data
-# engine and the two persistence crates.
-CORE_CRATES = ("ew-model", "ew-commands", "ew-memo", "ew-derive", "ew-format", "ew-store")
+# engine, the persistence crates and the ZIP container they write.
+CORE_CRATES = ("ew-model", "ew-commands", "ew-memo", "ew-derive", "ew-format", "ew-store", "ew-zip")
 SOURCE = re.compile(r"/crates/(?P<crate>[^/]+)/src/")
 
 
@@ -85,6 +85,7 @@ def selftest():
         entry("/w/crates/ew-derive/src/a.rs", 5, 10),
         entry("C:\\w\\crates\\ew-format\\src\\a.rs", 9, 10),  # a Windows path
         entry("/w/crates/ew-store/src/a.rs", 10, 10),
+        entry("/w/crates/ew-zip/src/a.rs", 9, 10),
         entry("/w/crates/ew-api/src/a.rs", 0, 1000),  # not a core crate
         entry("/w/bin/ew/src/main.rs", 0, 1000),
     ]
@@ -98,7 +99,7 @@ def selftest():
     assert "| ew-commands | 10 | 8 | 80.0 % | met |" in text, text
     assert "| ew-derive | 10 | 5 | 50.0 % | below |" in text, text
     assert "Below the threshold: ew-model, ew-derive." in text, text
-    assert "| **core crates** | 241 | 133 | **55.2 %** | |" in text, text
+    assert "| **core crates** | 251 | 142 | **56.6 %** | |" in text, text
 
     # all met
     ok = {"data": [{"files": [entry(f"/w/crates/{c}/src/a.rs", 9, 10) for c in CORE_CRATES]}]}
@@ -108,7 +109,7 @@ def selftest():
     # a crate that was not measured fails the check; a file that is not a summary raises
     partial = {"data": [{"files": [entry("/w/crates/ew-model/src/a.rs", 1, 1)]}]}
     errors, _ = report(measure(partial), 80)
-    assert len(errors) == len(CORE_CRATES) - 1 and "ew-store: no instrumented line" in errors[-1], errors
+    assert len(errors) == len(CORE_CRATES) - 1 and "ew-zip: no instrumented line" in errors[-1], errors
     for bad in ({}, {"data": []}, {"data": [{}]}, [], None):
         try:
             measure(bad)
