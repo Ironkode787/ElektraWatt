@@ -1,6 +1,6 @@
 # Open-source governance
 
-**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-11-02 (ID-1187, ID-1188): the first binary release 0.1.0 is unsigned, so the release pipeline's checks of §3.3 and the interim steward's signing identity read from 1.0, or earlier when the owner holds a signing identity; amended 2026-10-30: no Apple signing identity, macOS is not a supported platform (decision log ID-880); amended 2026-10-25, cycle-27 design pass: the `tools/blind/` rows of §2.1, decision log ID-645) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-11-02 (ID-1187, ID-1188): the first binary release 0.1.0 is unsigned, so the release pipeline's checks of §3.3 and the interim steward's signing identity read from 1.0, or earlier when the owner holds a signing identity; `TRADEMARKS.md` is 1.0's, `FUNDING.yml` is dropped and the RFC process is the ADR process, §2.4, §3.4; amended 2026-10-30: no Apple signing identity, macOS is not a supported platform (decision log ID-880); amended 2026-10-25, cycle-27 design pass: the `tools/blind/` rows of §2.1, decision log ID-645) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies how ElektraWatt (EW) is run as an open-source project: the licence of every
 layer and how CI enforces it, contributor terms under the DCO, copyright ownership and the legal gates that come
@@ -172,10 +172,10 @@ prose files is NFR-DOC-08.
 | `CODE_OF_CONDUCT.md` | Contributor Covenant 3.0 (C-13) with the project's enforcement contacts | M0 |
 | `SECURITY.md` | Private reporting, supported-versions table, timings, CVE policy, CRA notification procedure | M0 with private reporting enabled (the source is public from the first commit; ADR-0030 "set up anyway"); complete by the first binary release |
 | `PRIVACY.md` | Data flows (ADR-0029, NFR-PRIV-07) | MVP |
-| `TRADEMARKS.md` | Use policy for the name and logo (§3.3) | first binary release |
-| `ROADMAP.md` | Milestones, funded and help-wanted items, non-goals (§3.4) | MVP |
-| `.github/CODEOWNERS`, `ISSUE_TEMPLATE/`, `PULL_REQUEST_TEMPLATE.md`, `FUNDING.yml` | Review routing, bug, feature, part-data and symbol templates, the PR checklist, sponsor links | M0 (`FUNDING.yml` at the first binary release) |
-| `rfcs/NNNN-title.md`, `docs/adr/NNNN-title.md` | RFCs and ADRs (§3.4) | ADRs at M0; RFCs from the first binary release |
+| `TRADEMARKS.md` | Use policy for the name and logo (§3.3) | 1.0 (WP-S0.05; decision log ID-1188) |
+| `ROADMAP.md` | Milestones by name and content, without dates (ID-450), and the non-goals by link (§3.4) | MVP |
+| `.github/CODEOWNERS`, `ISSUE_TEMPLATE/`, `PULL_REQUEST_TEMPLATE.md`, `FUNDING.yml` | Review routing, bug, feature, part-data and symbol templates, the PR checklist, sponsor links | M0 (`FUNDING.yml` is dropped: no funding is pursued, ID-453, ID-1188) |
+| `rfcs/NNNN-title.md`, `docs/adr/NNNN-title.md` | RFCs and ADRs (§3.4) | ADRs at M0; the ADR process is the RFC process, with no separate `rfcs/` directory (`GOVERNANCE.md`, ID-1188) |
 | `publiccode.yml` | Public-sector catalogue metadata, as QET publishes one | 1.0 |
 
 ### 2.5 Roles
@@ -317,7 +317,7 @@ carry no binaries.
 |---|---|
 | GV-01 | Normal decisions use lazy consensus with a 72-hour objection window. An objection must state a reason and an alternative. Unresolved objections go to an RFC or to the project lead's tie-break. |
 | GV-02 | No one approves their own PR. With two maintainers, each reviews the other's work. A single-maintainer merge is allowed only for a security release under embargo, and it is reviewed afterwards within 7 days. |
-| GV-03 | Before the first binary release, decisions are recorded as ADRs by the owner and maintainers. From the first binary release on, the RFC process applies to the matrix rows above. |
+| GV-03 | Before the first binary release, decisions are recorded as ADRs by the owner and maintainers. From the first binary release on, the RFC process applies to the matrix rows above (the RFC process is the ADR process, `GOVERNANCE.md`, ID-1188). |
 | GV-04 | **Schema-steward duties.** The steward reviews every PR labelled `format`. They decide minor versus major, check that the migration, fixture, regenerated JSON Schemas and docs are present ([04](04-architecture.md) §7.6), maintain the format changelog for the release notes (NFR-DOC-07), and check `api_v1` view changes against the `Preview` policy ([17](17-extensibility.md) OQ12). After 1.0 they run the yearly format window: they collect accepted format-major RFCs and freeze them one month before the major. The role rotates every quarter, together with the UI-stack upgrade of NFR-MAINT-04. |
 | GV-05 | Funded work keeps the normal review rules. A funder never receives merge rights, a veto or private roadmap influence. Funded items are labelled `funded:<source>` on the public roadmap. |
 | GV-06 | While one employer employs a majority of maintainers, licence, trademark and governance RFCs need an independent check in addition. **Phase 1** (the employer is itself the steward, §3.10, so no board exists): the FCP is 14 days, it is announced in Discussions and the release feed, and a reasoned objection from any maintainer or regular contributor not employed by that employer moves the decision to the phase-2 board, or blocks it until that board exists. **Phase 2:** the stichting board approves; it includes at least one member not employed by that employer. |
