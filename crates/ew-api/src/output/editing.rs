@@ -1293,6 +1293,16 @@ pub struct TableBox {
     pub cps: Vec<(u16, (i64, i64), Dir)>,
 }
 
+/// The derived potential of a [`TableCp`] (FT-950): its name, and whether that name is only the fallback.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct TablePotential {
+    /// The derived name (`PotentialNameOf`).
+    pub name: String,
+    /// The name is the fallback `<tag>:<designation>` of a member CP (`NameSource::Fallback`), not one a definition,
+    /// a source interruption point or the supply gives.
+    pub fallback: bool,
+}
+
 /// A connection point row of the page tables.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct TableCp {
@@ -1312,8 +1322,8 @@ pub struct TableCp {
     pub dir: Option<Dir>,
     /// The connections on this page ending at it, in the order of [`PageTables::connections`].
     pub connections: Vec<Uuid>,
-    /// The derived name of its potential.
-    pub potential: Option<String>,
+    /// The derived name of its potential, and whether that name is a fallback (FT-950).
+    pub potential: Option<TablePotential>,
     /// A terminal CP's side in the model's words (doc 08 §2.1): `field` when its side is the strip's
     /// `field_side`, `internal` for the other side; `None` for a CP without a side.
     pub side: Option<&'static str>,
@@ -1656,9 +1666,13 @@ impl Session {
                 .map(|c| c.as_uuid())
                 .collect();
             let id: Id<()> = v5::cp_id(function, u32::from(idx));
-            let potential = partition
-                .potential_at(CpRef::new(function, idx).key())
-                .map(|p| q.get::<PotentialNameOf>(p.id).name.text.clone());
+            let potential = partition.potential_at(CpRef::new(function, idx).key()).map(|p| {
+                let name = &q.get::<PotentialNameOf>(p.id).name;
+                TablePotential {
+                    name: name.text.clone(),
+                    fallback: matches!(name.source, ew_derive::NameSource::Fallback(_)),
+                }
+            });
             cps.push(TableCp {
                 id: id.as_uuid(),
                 function: function.as_uuid(),

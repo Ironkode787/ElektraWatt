@@ -161,13 +161,14 @@ fn ib2_the_ip_tool_proposes_names_by_series_and_direction_and_d_and_star_toggle(
     let ghost = canvas(&s)["ghost"].clone();
     assert_eq!(ghost["direction"], "target");
     assert_eq!(ghost["name"], "24VDC-1", "typed: no series");
-    // D goes on from the offered target: undirected; the star toggles.
+    // D goes on from the offered target: undirected; the star toggles, and walks the point to source (FT-980, ID-1146:
+    // a star source is a source point).
     done(&mut s, "tool.ip_direction", json!({}));
     assert_eq!(canvas(&s)["ghost"]["direction"], "undirected");
     done(&mut s, "tool.star_source", json!({}));
     let line = describe_line(&s, "canvas ghost ip ").expect("the ghost line");
     assert!(
-        line.starts_with("canvas ghost ip name \"24VDC-1\" direction undirected star on at "),
+        line.starts_with("canvas ghost ip name \"24VDC-1\" direction source star on at "),
         "{line}"
     );
     assert!(line.ends_with(" mm"), "{line}");
@@ -182,16 +183,17 @@ fn ib2_the_ip_tool_proposes_names_by_series_and_direction_and_d_and_star_toggle(
     assert_eq!(s.tool().name(), "ip");
     let after = ips(&tables(&s));
     assert_eq!(after.len(), before.len() + 1);
-    let placed = ip(&tables(&s), "24VDC-1", "undirected");
+    let placed = ip(&tables(&s), "24VDC-1", "source");
     assert_eq!(placed.pos, right);
     // FT-547: the direction chosen with D stays after the commit (no flip after a placement), in either quarter; the
-    // star is cleared, and the remembered name's series goes on among the undirected points.
+    // star left it alone and is cleared, and the remembered name is proposed among the undirected points, where no
+    // 24VDC-1 stands yet.
     assert_eq!(canvas(&s)["ghost"]["direction"], "undirected");
     assert_eq!(canvas(&s)["ghost"]["star"], false);
-    assert_eq!(canvas(&s)["ghost"]["name"], "24VDC-2");
+    assert_eq!(canvas(&s)["ghost"]["name"], "24VDC-1");
     cursor(&mut s, left);
     assert_eq!(canvas(&s)["ghost"]["direction"], "undirected");
-    assert_eq!(canvas(&s)["ghost"]["name"], "24VDC-2");
+    assert_eq!(canvas(&s)["ghost"]["name"], "24VDC-1");
     // Escape ends the tool without a change.
     let rev = s.revision();
     done(&mut s, "ui.dismiss", json!({}));
@@ -220,7 +222,7 @@ fn ib2_the_name_proposal_is_the_potential_under_the_ghost_cp() {
         .find(|c| c.potential.is_some())
         .expect("a CP with a potential")
         .clone();
-    let potential = cp.potential.clone().unwrap();
+    let potential = cp.potential.clone().unwrap().name;
     let k = index_of(&s, cp.at);
     done(&mut s, "tool.ip", json!({}));
     cursor_k(&mut s, (k.0, k.1 + 1));
@@ -287,7 +289,7 @@ fn ib2_ending_a_wire_in_an_ip_is_one_transaction_and_one_undo_step() {
     assert_eq!(wire.polyline.last(), Some(&ip_cp.at));
     // Named from the start's potential, in its series.
     let name = &new_ip.ip.as_ref().unwrap().name;
-    if let Some(p) = &start.potential {
+    if let Some(p) = start.potential.as_ref().map(|p| &p.name) {
         assert!(name == p || name.starts_with(&format!("{p}-")), "{name} for {p}");
     }
     // One undo step removes both.

@@ -2939,7 +2939,7 @@ pub fn page_describe(page: &CanvasPage) -> String {
                 page_at(page, cp.at),
                 cp.connections.len()
             );
-            if let Some(name) = &cp.potential {
+            if let Some(name) = cp.potential.as_ref().map(|p| &p.name) {
                 line.push_str(&format!(" potential {}", page_quoted(name)));
             }
             lines.push(line);

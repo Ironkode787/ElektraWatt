@@ -1965,7 +1965,8 @@ fn connection_draw_to_ip(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let name = format!("FZ-{}", rng.below(1000));
     let direction = *rng.pick(&["source", "target", "undirected"])?;
     let pos = on_page(page, rng);
-    let star_source = rng.chance(4);
+    // FT-980 (ID-1146): a star source is a source point; a star with another direction is refused.
+    let star_source = rng.chance(4) && direction == "source";
     let sort = rng.chance(3).then(|| rng.range(1, 9));
     let idx = small_idx(rng);
     let end = rng.pick(&live.ip_end_syms).cloned();
@@ -2633,7 +2634,8 @@ fn ip_place(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let mut p = json!({
         "page": page.id, "symbol": symbol, "fndef": def, "pos": on_page(page, rng),
         "name": format!("FZ-{}", rng.below(1000)), "direction": direction,
-        "star_source": rng.chance(4),
+        // FT-980 (ID-1146): a star source is a source point.
+        "star_source": rng.chance(4) && direction == "source",
     });
     match rng.below(12) {
         0 => {
@@ -2652,6 +2654,8 @@ fn ip_place(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         k => {
             if k == 3 {
                 p["external"] = json!(rng.pick(&live.ext_refs)?);
+                // An external point takes no star (ID-1146).
+                p["star_source"] = json!(false);
             }
             Some(Step::cmd("ip.place", p).counts(&[
                 (Table::Reps, 1),

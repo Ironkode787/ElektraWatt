@@ -179,6 +179,7 @@ fn ip_at_end(pos: Pt2) -> IpAtEnd {
         direction: IpDirection::Source,
         star_source: false,
         sort: None,
+        external: None,
     }
 }
 
@@ -934,12 +935,16 @@ fn fields_set_renames_an_ip_and_sets_its_direction_sort_and_star() {
         .unwrap();
     e.execute(&set_ip(IP_A, "direction", serde_json::json!("undirected")))
         .unwrap();
+    assert_eq!(spec_of(&e, IP_A).direction, IpDirection::Undirected);
+    // ID-1146: a star source is a source point, so the direction is source before the star.
+    e.execute(&set_ip(IP_A, "direction", serde_json::json!("source")))
+        .unwrap();
     e.execute(&set_ip(IP_A, "star_source", serde_json::json!(true)))
         .unwrap();
     e.execute(&set_ip(IP_A, "sort", serde_json::json!(3))).unwrap();
     let spec = spec_of(&e, IP_A);
     assert_eq!(spec.name.as_str(), "L-9");
-    assert_eq!(spec.direction, IpDirection::Undirected);
+    assert_eq!(spec.direction, IpDirection::Source);
     assert!(spec.star_source);
     assert_eq!(spec.sort, Some(3));
     e.execute(&set_ip(IP_A, "sort", serde_json::Value::Null)).unwrap();
@@ -1062,4 +1067,241 @@ fn ft673_ip_place_embeds_its_copies_in_the_same_undo_step() {
     e.undo(&Origin::Gui).expect("undo");
     assert_eq!(lines(e.model()), before, "one undo step");
     assert_eq!(held_symbols(&e), symbols, "the copy went with the undo");
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// FT-980 (ID-1146): a star source is a source point, and an external point takes no star; FT-946: an external
+// point at the end of a wire
+
+/// The refusal of a starred point with another direction.
+const NOT_SOURCE: &str = "a star source is a source point; set the direction to source, or clear the star";
+/// The refusal of a starred external point.
+const EXTERNAL: &str = "an external point never pairs, so it takes no star; clear the star";
+
+/// An external reference for the external points.
+const XREF: Id<ew_schema::ExternalRef> = id(0x4e46);
+/// An external interruption point "X-1", a source, drawn on page 102.
+const IP_X: Id<Function> = id(0x213);
+const REP_X: Id<Representation> = id(0x313);
+
+fn xref_record() -> Record {
+    Record::ExternalRef(ew_schema::ExternalRef {
+        id: XREF,
+        v: 1,
+        project: None,
+        location: LOC,
+        device: ident("JE-N1000-03"),
+        connection: None,
+        source_ref: None,
+        extra: Extra::new(),
+    })
+}
+
+/// [`arrange_model`] with the external point [`IP_X`]; `A-1` starred when `star_a`.
+fn star_model(star_a: bool) -> Model {
+    arrange_model(|records| {
+        records.push(xref_record());
+        let mut x = ip_function(IP_X, "X-1", IpDirection::Source);
+        if let FunctionKind::Ip(spec) = &mut x.kind {
+            spec.external = Some(XREF);
+        }
+        records.push(Record::Function(x));
+        records.push(ip_rep(REP_X, PAGE_102, IP_X, pt(8 * G, 2 * G)));
+        if star_a {
+            for r in records.iter_mut() {
+                if let Record::Function(f) = r
+                    && f.id == IP_A
+                    && let FunctionKind::Ip(spec) = &mut f.kind
+                {
+                    spec.star_source = true;
+                }
+            }
+        }
+    })
+}
+
+fn place_ip_cmd(
+    direction: IpDirection,
+    star_source: bool,
+    external: Option<Id<ew_schema::ExternalRef>>,
+) -> ew_commands::commands::PlaceIp {
+    ew_commands::commands::PlaceIp {
+        page: PAGE_102,
+        symbol: SYM_IP,
+        fndef: None,
+        pos: pt(5 * G, 0),
+        orient: Orient2::default(),
+        name: ident(IP_NAME),
+        direction,
+        star_source,
+        sort: None,
+        external,
+        copies: Vec::new(),
+    }
+}
+
+fn draw_to_ip_cmd(
+    direction: IpDirection,
+    star_source: bool,
+    external: Option<Id<ew_schema::ExternalRef>>,
+) -> DrawToIp {
+    let mut cmd = draw_to_ip(cp_param(FN_102G1, 1), pt(5 * G, 0), vec![pt(0, 0), pt(6 * G, 0)]);
+    cmd.ip.direction = direction;
+    cmd.ip.star_source = star_source;
+    cmd.ip.external = external;
+    cmd
+}
+
+/// `ip.place` refuses a starred target or undirected point and a starred external point, in words, nothing made; a
+/// starred source and an unstarred external point are placed.
+#[test]
+fn ft980_ip_place_refuses_a_star_on_a_point_that_is_no_source_or_is_external() {
+    let mut e = engine(ip_model(|r| r.push(xref_record())));
+    let (rev, before) = (e.model().rev(), lines(e.model()));
+    for direction in [IpDirection::Target, IpDirection::Undirected] {
+        assert_eq!(
+            rejection(e.execute(&place_ip_cmd(direction, true, None))),
+            NOT_SOURCE
+        );
+    }
+    assert_eq!(
+        rejection(e.execute(&place_ip_cmd(IpDirection::Source, true, Some(XREF)))),
+        EXTERNAL
+    );
+    assert_eq!(
+        rejection(e.execute(&place_ip_cmd(IpDirection::Target, true, Some(XREF)))),
+        EXTERNAL,
+        "the external refusal first: clearing the star answers both"
+    );
+    assert_eq!(e.model().rev(), rev);
+    assert_eq!(lines(e.model()), before);
+    e.execute(&place_ip_cmd(IpDirection::Source, true, None))
+        .expect("a starred source");
+    e.execute(&place_ip_cmd(IpDirection::Target, false, Some(XREF)))
+        .expect("an unstarred external point");
+}
+
+/// `connection.draw_to_ip` refuses the same states with the same words, nothing made.
+#[test]
+fn ft980_draw_to_ip_refuses_a_star_on_a_point_that_is_no_source_or_is_external() {
+    let mut e = engine(ip_model(|r| r.push(xref_record())));
+    let (rev, before) = (e.model().rev(), lines(e.model()));
+    for direction in [IpDirection::Target, IpDirection::Undirected] {
+        assert_eq!(
+            rejection(e.execute(&draw_to_ip_cmd(direction, true, None))),
+            NOT_SOURCE
+        );
+    }
+    assert_eq!(
+        rejection(e.execute(&draw_to_ip_cmd(IpDirection::Source, true, Some(XREF)))),
+        EXTERNAL
+    );
+    assert_eq!(e.model().rev(), rev);
+    assert_eq!(lines(e.model()), before);
+    e.execute(&draw_to_ip_cmd(IpDirection::Source, true, None))
+        .expect("a starred source");
+    assert!(spec_of(&e, new_ips(&e)[0].id).star_source);
+}
+
+/// FT-946: `connection.draw_to_ip` takes an external target as `ip.place` does: the point is external and wired, in
+/// one undo step; a missing external reference is not found.
+#[test]
+fn ft946_draw_to_ip_writes_the_external_target_in_one_undo_step() {
+    let mut e = engine(ip_model(|r| r.push(xref_record())));
+    let before = lines(e.model());
+    not_found(e.execute(&draw_to_ip_cmd(IpDirection::Source, false, Some(id(0xdeaf)))));
+    let r = e
+        .execute(&draw_to_ip_cmd(IpDirection::Source, false, Some(XREF)))
+        .expect("connection.draw_to_ip with an external target");
+    let f = new_ips(&e)[0].id;
+    assert_eq!(spec_of(&e, f).external, Some(XREF));
+    let c = row(&e, typed::<Connection>(r.outcome.primary.expect("primary")));
+    assert_eq!(c.b, cp(f, 0));
+    e.undo(&Origin::Gui).expect("undo");
+    assert_eq!(lines(e.model()), before, "one undo step");
+}
+
+fn set_ips(
+    targets: &[Id<Function>],
+    member: &str,
+    value: serde_json::Value,
+) -> ew_commands::commands::SetFields {
+    let mut cmd = set_ip(targets[0], member, value);
+    cmd.targets = targets.iter().map(|t| t.cast()).collect();
+    cmd
+}
+
+/// `fields.set` refuses a star on a target point, a direction other than source on a starred point and a star on an
+/// external point, naming the point; a call over two points with one bad point writes nothing.
+#[test]
+fn ft980_fields_set_refuses_a_bad_star_naming_the_point() {
+    let mut e = engine(star_model(false));
+    e.execute(&set_ip(IP_B, "direction", serde_json::json!("target")))
+        .unwrap();
+    let (rev, before) = (e.model().rev(), lines(e.model()));
+    assert_eq!(
+        rejection(e.execute(&set_ip(IP_B, "star_source", serde_json::json!(true)))),
+        format!("interruption point B-1: {NOT_SOURCE}")
+    );
+    assert_eq!(
+        rejection(e.execute(&set_ip(IP_X, "star_source", serde_json::json!(true)))),
+        format!("interruption point X-1: {EXTERNAL}")
+    );
+    // Two points, the second bad: the whole call is refused, nothing written.
+    assert_eq!(
+        rejection(e.execute(&set_ips(&[IP_A, IP_B], "star_source", serde_json::json!(true)))),
+        format!("interruption point B-1: {NOT_SOURCE}")
+    );
+    assert_eq!(e.model().rev(), rev);
+    assert_eq!(lines(e.model()), before);
+    // A starred source refuses another direction.
+    e.execute(&set_ip(IP_A, "star_source", serde_json::json!(true)))
+        .expect("a starred source");
+    let (rev, before) = (e.model().rev(), lines(e.model()));
+    assert_eq!(
+        rejection(e.execute(&set_ip(IP_A, "direction", serde_json::json!("undirected")))),
+        format!("interruption point A-1: {NOT_SOURCE}")
+    );
+    assert_eq!(e.model().rev(), rev);
+    assert_eq!(lines(e.model()), before);
+}
+
+fn set_many(edits: Vec<ew_commands::commands::SetFields>) -> ew_commands::commands::SetManyFields {
+    ew_commands::commands::SetManyFields {
+        edits,
+        copies: Vec::new(),
+    }
+}
+
+/// `fields.set_many` judges each point after all of its entries: setting target and clearing the star passes;
+/// setting target alone on a starred point, or one bad point among two, refuses the whole call.
+#[test]
+fn ft980_fields_set_many_judges_each_point_after_all_its_entries() {
+    let mut e = engine(star_model(true));
+    let (rev, before) = (e.model().rev(), lines(e.model()));
+    assert_eq!(
+        rejection(e.execute(&set_many(vec![set_ip(
+            IP_A,
+            "direction",
+            serde_json::json!("target")
+        )]))),
+        format!("interruption point A-1: {NOT_SOURCE}")
+    );
+    assert_eq!(
+        rejection(e.execute(&set_many(vec![
+            set_ip(IP_C, "star_source", serde_json::json!(true)),
+            set_ip(IP_X, "star_source", serde_json::json!(true)),
+        ]))),
+        format!("interruption point X-1: {EXTERNAL}")
+    );
+    assert_eq!(e.model().rev(), rev);
+    assert_eq!(lines(e.model()), before);
+    // The direction first, the star cleared after: the point is judged once, at the end.
+    e.execute(&set_many(vec![
+        set_ip(IP_A, "direction", serde_json::json!("target")),
+        set_ip(IP_A, "star_source", serde_json::json!(false)),
+    ]))
+    .expect("a set_many that sets target and clears the star");
+    let spec = spec_of(&e, IP_A);
+    assert_eq!((spec.direction, spec.star_source), (IpDirection::Target, false));
 }

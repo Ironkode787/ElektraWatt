@@ -1662,7 +1662,7 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
     // WP-S2.04 part 3
     /// `connection.draw_to_ip` (doc 06 §4.4 "P"): a wire from `a` that ends in a new interruption point, in one
     /// transaction. `route` (empty for none) must end at the IP's one connection point; `kind` `None` draws a wire.
-    /// `ip.spec.external` is not part of the command and is ignored. Returns the new connection and the new IP
+    /// `ip.spec.external`, when set, is the point's external target (FT-946). Returns the new connection and the new IP
     /// function.
     ///
     /// # Errors
@@ -1683,11 +1683,7 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
         }
         at_end.insert("pos".into(), json!(ip.pos));
         if let Ok(Value::Object(s)) = serde_json::to_value(&ip.spec) {
-            for (k, v) in s {
-                if k != "external" {
-                    at_end.insert(k, v);
-                }
-            }
+            at_end.extend(s);
         }
         let mut p = json!({"a": a.param(), "page": page, "ip": Value::Object(at_end)});
         if !route.is_empty() {

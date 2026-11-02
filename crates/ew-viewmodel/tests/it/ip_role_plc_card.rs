@@ -153,9 +153,10 @@ fn ghost_label(s: &ShellModel) -> String {
         .expect("the ghost's label")
 }
 
-/// W42b (ruling: the window says what ew-derive does, which takes a starred point as its name's star source whatever
-/// its direction): with the star on, in each of the three directions, the HUD names the star source alone (no role
-/// beside it) and the ghost label says "0V star source"; with the star off the role and "0V <direction>" come back.
+/// W42b, re-pinned by FT-980 (ID-1146: a star source is a source point): with the star on the point is a source, the
+/// HUD names the star source alone (no role beside it) and the ghost label says "0V star source"; D clears the star and
+/// steps on from source (target, undirected, then source with the star still off, no notice); the star turned on from
+/// another direction walks the point to source, and turned off gives back the direction it had before.
 #[test]
 fn w42b_a_starred_point_is_named_the_star_source_alone_in_every_direction() {
     let tmp = Tmp::new("w42b-star");
@@ -163,36 +164,67 @@ fn w42b_a_starred_point_is_named_the_star_source_alone_in_every_direction() {
     arm_ip(&mut s, "0V", 150.0);
     let d = key_of(&s, "tool.ip_direction");
     let prompt = |s: &ShellModel| ew_viewmodel::command_bar::hud(s).prompt;
-    // A starred name is not offered as a target (the star source is a source), so the walk starts at source; D still
-    // sets the direction that is saved.
-    done(&mut s, "tool.star_source", json!({}));
-    let mut seen = Vec::new();
-    for _ in 0..3 {
-        let direction = ghost(&s)["direction"].as_str().unwrap().to_owned();
-        seen.push((direction, prompt(&s), ghost_label(&s)));
-        done(&mut s, "tool.ip_direction", json!({}));
-    }
-    let star =
-        |next: &str| format!("0V \u{b7} star source: feeds every point of the name \u{b7} {d}: {next}");
-    let label = "0V star source".to_owned();
-    assert_eq!(
-        seen,
-        [
-            ("source".to_owned(), star("target"), label.clone()),
-            ("target".to_owned(), star("undirected"), label.clone()),
-            ("undirected".to_owned(), star("source"), label),
-        ]
-    );
-    // The star off: the role in words and the "<name> <direction>" label, as before.
-    done(&mut s, "tool.star_source", json!({}));
-    assert_eq!(ghost(&s)["direction"], "source");
-    assert_eq!(
-        (prompt(&s), ghost_label(&s)),
+    let star = format!("0V \u{b7} star source: feeds every point of the name \u{b7} {d}: target");
+    let seen = |s: &ShellModel| {
         (
-            format!("0V \u{b7} source: feeds its targets \u{b7} {d}: target"),
-            "0V source".to_owned()
+            ghost(s)["direction"].as_str().unwrap().to_owned(),
+            ghost(s)["star"].as_bool().unwrap(),
+            prompt(s),
+            ghost_label(s),
+        )
+    };
+    // 0V is offered as a target (its source stands on 101); the star walks it to source.
+    assert_eq!(ghost(&s)["direction"], "target");
+    done(&mut s, "tool.star_source", json!({}));
+    assert_eq!(
+        seen(&s),
+        (
+            "source".to_owned(),
+            true,
+            star.clone(),
+            "0V star source".to_owned()
         )
     );
+    // D on the starred point: the star goes and D steps on from source; it stays off when D comes back to source.
+    let mut walk = Vec::new();
+    for _ in 0..3 {
+        done(&mut s, "tool.ip_direction", json!({}));
+        walk.push(seen(&s));
+    }
+    assert_eq!(
+        walk,
+        [
+            (
+                "target".to_owned(),
+                false,
+                format!("0V \u{b7} target: fed by its source \u{b7} {d}: undirected"),
+                "0V target".to_owned()
+            ),
+            (
+                "undirected".to_owned(),
+                false,
+                format!("0V \u{b7} undirected: pairs either way \u{b7} {d}: source"),
+                "0V undirected".to_owned()
+            ),
+            (
+                "source".to_owned(),
+                false,
+                format!("0V \u{b7} source: feeds its targets \u{b7} {d}: target"),
+                "0V source".to_owned()
+            ),
+        ]
+    );
+    assert_eq!(s.tool_notice(), None, "no notice");
+    // From a chosen undirected the star walks to source; off again, the chosen undirected comes back.
+    done(&mut s, "tool.ip_direction", json!({"direction": "undirected"}));
+    done(&mut s, "tool.star_source", json!({}));
+    assert_eq!(
+        seen(&s),
+        ("source".to_owned(), true, star, "0V star source".to_owned())
+    );
+    done(&mut s, "tool.star_source", json!({}));
+    assert_eq!(ghost(&s)["direction"], "undirected");
+    assert_eq!(ghost_label(&s), "0V undirected");
 }
 
 /// The first shortcut of action `id` as the window's chips show it.

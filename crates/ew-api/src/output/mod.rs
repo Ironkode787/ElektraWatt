@@ -101,7 +101,8 @@ pub use clipboard::{
 pub use editing::{
     CataloguePart, CatalogueStrip, CatalogueSymbol, CatalogueTemplateFn, ExchangeMap, JunctionWire,
     OUTLINE_TOLERANCE_NM, PageTables, PlaceCatalogue, ShapeCp, SymbolShape, TableBox, TableConnection,
-    TableCp, TableEnd, TableIp, TableItem, TableJunction, TableRep, TableStructureBox, exchange_map,
+    TableCp, TableEnd, TableIp, TableItem, TableJunction, TablePotential, TableRep, TableStructureBox,
+    exchange_map,
 };
 /// The display-list IR the pages of an export are made of ([`ExportPages`]' `content`), re-exported so that the
 /// shell names its types (`DisplayList`, `EntityRef`, `Rect`) without a workspace edge to `ew-dl` (WP-S2.02 §4.2;

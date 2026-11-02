@@ -57,7 +57,10 @@ use crate::tx::TxBuilder;
 ///
 /// An interruption point's `name`, `direction`, `sort` and `star_source` are settable on its function as
 /// `kind.ip.<member>` (FT-399: renaming an interruption point from the grid); on any other function they are refused
-/// at `/path`. Its `external` keeps `ip.place`'s route.
+/// at `/path`. Its `external` keeps `ip.place`'s route. A star source is a source point and an external point takes no
+/// star (ID-1146): judged on each point whose direction or star the call sets, after all of the call's changes (so a
+/// `fields.set_many` that clears the star and sets the direction to target passes), a starred point with another
+/// direction or a starred external point refuses the whole call, naming the first such point.
 ///
 /// The project row (kind `project`, its one ID as the target) takes `master.description`, the project
 /// description that title blocks and bound free texts print (FT-447, FR-SYM-024); the other project members
@@ -284,6 +287,7 @@ impl Command for SetFields {
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
         crate::commands::assign::embed_closure(Self::NAME, tx, &self.copies)?;
         self.apply(tx)?;
+        refuse_bad_stars(tx, std::slice::from_ref(self))?;
         if self.kind == KindName::Page {
             drop_left_surface_views(tx, &self.targets)?;
         }
@@ -755,6 +759,7 @@ impl Command for SetManyFields {
                 other => other,
             })?;
         }
+        refuse_bad_stars(tx, &self.edits)?;
         // FT-869: judged on each page's final kind; a batch that sets the kind away and back is refused (one entry per
         // target and path), so the view stays.
         let pages: BTreeSet<AnyId> = self
@@ -979,6 +984,35 @@ fn refuse_unknown_direction(tx: &TxBuilder<'_>, target: AnyId) -> Result<(), Cmd
             "/value",
             format!("{v} is not a direction; give source, target or undirected"),
         ));
+    }
+    Ok(())
+}
+
+/// ID-1146: after all of a call's entries, each interruption point whose direction or star an entry sets must be an
+/// unstarred point or a starred source that is not external; the first that is not, in entry and target order,
+/// refuses the whole call, named in words ("interruption point L-1: a star source is a source point; …").
+fn refuse_bad_stars(tx: &TxBuilder<'_>, edits: &[SetFields]) -> Result<(), CmdError> {
+    for e in edits {
+        if e.kind != KindName::Function
+            || !matches!(e.path.as_str(), "kind.ip.direction" | "kind.ip.star_source")
+        {
+            continue;
+        }
+        for t in &e.targets {
+            let f = tx.require::<Function>(t.cast())?;
+            if let FunctionKind::Ip(ip) = &f.kind
+                && let Some(problem) = crate::commands::connection::star_problem(
+                    &ip.direction,
+                    ip.star_source,
+                    ip.external.is_some(),
+                )
+            {
+                return tx.reject(format!(
+                    "{}: {problem}",
+                    crate::words::interruption_point(tx, t.cast())
+                ));
+            }
+        }
     }
     Ok(())
 }

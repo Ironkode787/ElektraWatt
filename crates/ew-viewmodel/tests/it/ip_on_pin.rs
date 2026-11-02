@@ -11,7 +11,9 @@ use crate::common;
 use common::{Tmp, at, done, refused, state};
 use ew_viewmodel::ew_api::Session;
 use ew_viewmodel::ew_api::checks;
-use ew_viewmodel::ew_api::output::{PageTables, TableConnection, TableCp, TableEnd, TableRep};
+use ew_viewmodel::ew_api::output::{
+    PageTables, TableConnection, TableCp, TableEnd, TablePotential, TableRep,
+};
 use ew_viewmodel::shell::{Mode, ShellModel};
 use ew_viewmodel::tools::{IpDir, MarkerKind, OverlayItem};
 use serde_json::{Value, json};
@@ -321,10 +323,11 @@ fn a_point_on_another_point_is_refused() {
     assert_eq!(toast(&s), words);
 }
 
-/// Ruling 3 (a): an external connection point on a pin would not be connected (`connection.draw_to_ip` places none):
-/// refused in words; on a free grid point it still places.
+/// FT-946 (ID-1146, ID-1019's ruling 3 b): an external connection point dropped on a pin connects to it as any point
+/// does: the HUD says so, the click commits `connection.draw_to_ip` with the point's `external`, in one undo step, and
+/// the saved point is external; on a free grid point it still places.
 #[test]
-fn an_external_point_on_a_pin_is_refused() {
+fn an_external_point_on_a_pin_connects_to_it() {
     let tmp = Tmp::new("ip-pin-external");
     let mut s = shell(&tmp, "102");
     let pin = cp(&s, "-102F2:13");
@@ -332,19 +335,40 @@ fn an_external_point_on_a_pin_is_refused() {
     done(&mut s, "ip.external", json!({"external": "JE-N1000-03:N"}));
     let pos = insertion_for(&mut s, pin.at);
     cursor(&mut s, pos);
-    assert_eq!(ghost(&s)["connects"], Value::Null);
+    assert_eq!(ghost(&s)["connects"], "-102F2:13");
+    done(&mut s, "canvas.dwell", json!({"ms": 100}));
+    assert_eq!(state(&s)["canvas"]["preview"]["command"], "connection.draw_to_ip");
     let before = tables(&s);
     let rev = s.revision();
-    assert_eq!(
-        refused(&mut s, "canvas.activate", json!({})),
-        "reason-ip-not-placed"
-    );
-    let words = "Not placed: an external point on -102F2:13 would not be connected. Place it beside the pin and draw a \
-                 wire to it";
-    assert_eq!(s.revision(), rev, "nothing committed");
-    assert_eq!(*tables(&s), *before);
-    assert_eq!(s.tool_notice(), Some(words));
-    assert_eq!(toast(&s), words);
+    done(&mut s, "canvas.activate", json!({}));
+    assert_eq!(s.revision(), rev.map(|r| r + 1), "one commit");
+    let name = added(&before, &s).0[0].ip.as_ref().unwrap().name.clone();
+    assert_connects(&s, &before, &pin, &name);
+    let function = added(&before, &s).0[0].functions[0];
+    // The saved point is external, to JE-N1000-03:N.
+    done(&mut s, "file.save", json!({}));
+    {
+        let (session, _) = Session::open_read_only(&tmp.golden_copy(), "test").unwrap();
+        let q = session.query();
+        let want = q
+            .external_refs()
+            .iter()
+            .find(|(_, x)| {
+                x.device.as_str() == "JE-N1000-03" && x.connection.as_ref().map(|c| c.as_str()) == Some("N")
+            })
+            .map(|(id, _)| id.to_string())
+            .expect("JE-N1000-03:N");
+        let f = q
+            .functions()
+            .iter()
+            .find(|(id, _)| id.as_uuid() == function)
+            .map(|(_, f)| serde_json::to_value(&**f).unwrap())
+            .expect("the new point");
+        assert_eq!(f["kind"]["ip"]["external"], json!(want));
+    }
+    // One undo step removes the point and its connection.
+    done(&mut s, "edit.undo", json!({}));
+    assert_eq!(*tables(&s), *before, "the page tables as before");
     // On a free grid point the external arrow places as before.
     let free = grid_point(&s, (40, 40));
     cursor(&mut s, free);
@@ -433,4 +457,53 @@ fn a_route_less_connection_to_a_point_on_a_pin_saves_and_reloads_byte_stable() {
     for (a, b) in first.iter().zip(&second) {
         assert!(a.1 == b.1, "{} changed on a re-save", a.0.display());
     }
+}
+
+/// FT-950 (ID-1146): the next name after a connecting drop. A target "FT950" dropped on the free pin -102F2:14 makes a
+/// potential whose name is only the pin's fallback; the ghost kept there proposes the next of the name just placed (as
+/// `propose` counts among the targets of the page), not the fallback name. The Wire tool's P, from that pin, names its
+/// end from the name just placed the same way.
+#[test]
+fn ft950_after_a_connecting_drop_the_next_name_goes_on_from_the_name_placed() {
+    let tmp = Tmp::new("ip-pin-next-name");
+    let mut s = shell(&tmp, "102");
+    let pin = cp(&s, "-102F2:14");
+    arm_on(&mut s, "FT950", pin.at);
+    done(&mut s, "tool.ip_direction", json!({"direction": "target"}));
+    let before = tables(&s);
+    done(&mut s, "canvas.activate", json!({}));
+    assert_connects(&s, &before, &pin, "FT950");
+    // A target names no potential: the pin's potential has its fallback name.
+    let start = cp(&s, "-102F2:14");
+    assert_eq!(
+        start.potential,
+        Some(TablePotential {
+            name: "-102F2:14".to_owned(),
+            fallback: true
+        })
+    );
+    // The ghost stays where it was dropped: its CP on the pin and the new point's.
+    let pos = ghost_pos(&s);
+    cursor(&mut s, pos);
+    assert_eq!(
+        (ghost(&s)["name"].as_str(), ghost(&s)["direction"].as_str()),
+        (Some("FT950-1"), Some("target"))
+    );
+    // The Wire tool's P from the pin: the end is named from the name just placed.
+    done(&mut s, "ui.dismiss", json!({}));
+    done(&mut s, "tool.wire", json!({}));
+    cursor(&mut s, start.at);
+    done(&mut s, "canvas.activate", json!({}));
+    assert_eq!(s.tool().state(), "routing");
+    let k = {
+        let sn = &s.canvas().unwrap().page().snapper;
+        (sn.grid_index_of(start.at.0), sn.grid_index_of(start.at.1))
+    };
+    let end = grid_point(&s, (k.0, k.1 + 4));
+    cursor(&mut s, end);
+    let before = tables(&s);
+    done(&mut s, "tool.ip", json!({}));
+    let (reps, _) = added(&before, &s);
+    let ip = reps[0].ip.clone().expect("the end's interruption point");
+    assert_eq!((ip.name.as_str(), ip.direction.as_str()), ("FT950-1", "target"));
 }

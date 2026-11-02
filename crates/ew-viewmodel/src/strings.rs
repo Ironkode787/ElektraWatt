@@ -583,14 +583,10 @@ pub const TEXTS: &[(&str, &str)] = &[
     // FT-822: a refused interruption point (a prevent rule) keeps its ghost; the HUD and a toast say why.
     ("reason-ip-not-placed", "The interruption point was not placed"),
     ("notice-ip-not-placed", "Not placed: {0}"),
-    // FIXPT41: the two drops on a connection point the IP tool cannot honour.
+    // FIXPT41: the drop on a connection point the IP tool cannot honour (FT-946: an external point on a pin connects).
     (
         "notice-ip-on-ip",
         "Not placed: the point would cover the interruption point {0}; place it on a free grid point or on a pin",
-    ),
-    (
-        "notice-external-on-pin",
-        "Not placed: an external point on {0} would not be connected. Place it beside the pin and draw a wire to it",
     ),
     // H40 item 6: EW-CORE-052 in words: what is in the way (the existing source's page) and the way out.
     (

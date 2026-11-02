@@ -1739,7 +1739,7 @@ fn demo_terminal_cps(
         .cps
         .iter()
         .filter(|c| c.rep.to_string() == rep && !c.connections.is_empty())
-        .map(|c| (c.label.clone(), c.potential.clone()))
+        .map(|c| (c.label.clone(), c.potential.as_ref().map(|p| p.name.clone())))
         .collect()
 }
 

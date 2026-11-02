@@ -30,7 +30,9 @@ use crate::tools::black_box::{
     nearest_on_outline, on_outline, outward, reshape_by_grip, reshape_command, selected_black_box,
     signed_area2,
 };
-use crate::tools::ip::{drawing_area, potential_at, potential_of_end, propose, quarter_direction};
+use crate::tools::ip::{
+    drawing_area, potential_at, potential_of_end, proposal_base, propose, quarter_direction,
+};
 use crate::tools::wire::PageGridMap;
 use crate::tools::{
     CanvasEvent, IpDir, IpExternal, IpMemory, IpTool, PickerMode, ProjectIps, ToolKey, ToolOutput, WireTool,
@@ -271,9 +273,8 @@ impl ShellModel {
                             propose(typed, true, direction, false, false, &project, tables);
                         return (name, direction.word());
                     }
-                    let base = potential_of_end(tables, start)
-                        .or_else(|| memory.last_name.clone())
-                        .unwrap_or_else(|| "IP".to_owned());
+                    // FT-950: a given potential name, else the last name placed, else the fallback, as the IP tool's.
+                    let base = proposal_base(potential_of_end(tables, start), memory.last_name.as_deref());
                     // FT-822: the project's sources decide the role and the series, as the IP tool's do.
                     let (name, direction) = propose(&base, false, direction, false, false, &project, tables);
                     (name, direction.word())
@@ -747,13 +748,14 @@ impl ShellModel {
                         .cps
                         .iter()
                         .filter(|c| c.rep == r.id)
-                        .find_map(|c| c.potential.clone())
+                        .find_map(|c| c.potential.as_ref().map(|p| p.name.clone()))
                         .or_else(|| {
                             tables
                                 .cps
                                 .iter()
                                 .find(|c| c.rep == r.id)
                                 .and_then(|c| potential_at(&tables, c.at))
+                                .map(|p| p.name)
                         })
                 } else {
                     None

@@ -1073,7 +1073,10 @@ pub fn cp_tip(page: &CanvasPage, cp: &PageCp) -> String {
         .and_then(|t| page.tables.reps.iter().find(|r| r.id == t.rep))
         .map(|r| symbol_name(&r.symbol_key))
         .filter(|k| !k.is_empty());
-    let potential = row.and_then(|t| t.potential.as_deref()).filter(|p| !p.is_empty());
+    let potential = row
+        .and_then(|t| t.potential.as_ref())
+        .map(|p| p.name.as_str())
+        .filter(|p| !p.is_empty());
     let mut parts = vec![cp.label.as_str()];
     parts.extend(kind);
     parts.extend(potential);

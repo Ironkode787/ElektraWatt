@@ -439,7 +439,9 @@ impl Command for EditJunction {
 /// copy and an external reference must exist. The pairing scope is the project's `ip_pairing` setting, not
 /// a record field. `copies` (FT-673): library documents (`lib/` JSON form) embedded first, in the same transaction,
 /// as `device.place` embeds its `copies` (checked as `library.embed` checks them, at `/copies/i`), so placing a starter
-/// IP symbol is one undo step and replays without a library. Outcome: the IP function.
+/// IP symbol is one undo step and replays without a library. A star source is a source point and an external point
+/// takes no star (ID-1146): a starred point with another direction, and a starred external point, are refused
+/// before anything is made. Outcome: the IP function.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct PlaceIp {
@@ -496,6 +498,9 @@ impl Command for PlaceIp {
         require_on_grid(tx, self.page, self.pos, "/pos")?;
         if let Some(external) = self.external {
             tx.require::<ExternalRef>(external)?;
+        }
+        if let Some(problem) = star_problem(&self.direction, self.star_source, self.external.is_some()) {
+            return tx.reject(problem);
         }
         let def = self.fndef.unwrap_or_else(|| {
             ew_ids::v5::lib_copy_id(
@@ -742,8 +747,27 @@ fn is_r0(o: &Orient2) -> bool {
     o.is_default()
 }
 
+/// The refusal of an interruption point's star (ID-1146, ID-1038's ruling (a)): a star source is a source point, and
+/// an external point never pairs, so it takes no star. `None` for an unstarred point and a starred source; the
+/// external refusal first, since clearing the star answers both.
+pub(crate) fn star_problem(
+    direction: &IpDirection,
+    star_source: bool,
+    external: bool,
+) -> Option<&'static str> {
+    if !star_source {
+        None
+    } else if external {
+        Some("an external point never pairs, so it takes no star; clear the star")
+    } else if *direction != IpDirection::Source {
+        Some("a star source is a source point; set the direction to source, or clear the star")
+    } else {
+        None
+    }
+}
+
 /// The interruption point that [`DrawToIp`] creates at the end of its wire: `ip.place`'s members without `page`
-/// (the wire's) and `external` (an external connection point is placed with `ip.place`).
+/// (the wire's).
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct IpAtEnd {
@@ -772,14 +796,18 @@ pub struct IpAtEnd {
     /// Chain order.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sort: Option<i32>,
+    /// An external target (an external connection point; FT-946: one dropped on a pin).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<UuidS>")]
+    pub external: Option<Id<ExternalRef>>,
 }
 
 /// `connection.draw_to_ip` (`DrawToIp`, doc 06 §4.4 "P", WP-S2.04 §5.1, §9.2): a wire that ends in a new
 /// interruption point, in one transaction and one undo step.
 ///
 /// - First the IP function and its representation exactly as `ip.place` creates them (`ip` holds `ip.place`'s
-///   members; the page is the wire's, `external` is absent): `Function {device: none, def, role: main, kind: ip
-///   {name, direction, star_source, sort}}` and `Representation {functions: [f], page, symbol, pos, orient,
+///   members; the page is the wire's): `Function {device: none, def, role: main, kind: ip {name, direction,
+///   star_source, sort, external}}` and `Representation {functions: [f], page, symbol, pos, orient,
 ///   rep_type: multi_line}`; `def` is `ip.fndef` or the copy the symbol's `fndef` resolves to (must be embedded),
 ///   and its FnDef must have exactly one connection point, which the symbol must draw.
 /// - Then the connection from `a` to that connection point exactly as `connection.draw` creates it: `a` is a CP, a
@@ -788,9 +816,10 @@ pub struct IpAtEnd {
 ///   connection grid and meets both CPs exactly (`geometry::require_route`), so it ends at the IP's CP.
 ///
 /// Nothing derived is read inside the transaction (the name and the direction are the tool's). Rejected: as
-/// `ip.place` (a missing page or symbol copy, a FnDef that is not embedded, `ip.pos` off the grid), as
-/// `connection.draw` (a missing endpoint record, off-grid geometry, a route that does not meet its CPs) and an `a` end
-/// that no representation of `page` draws; an IP symbol whose FnDef has not exactly one CP, or that does not draw it.
+/// `ip.place` (a missing page, symbol copy or external reference, a FnDef that is not embedded, `ip.pos` off the
+/// grid, a starred point that is no source or is external, ID-1146), as `connection.draw` (a missing endpoint record,
+/// off-grid geometry, a route that does not meet its CPs) and an `a` end that no representation of `page` draws; an IP
+/// symbol whose FnDef has not exactly one CP, or that does not draw it.
 /// `copies` (FT-673): library documents (`lib/` JSON form) embedded first, in the same transaction, as `ip.place`
 /// embeds them, so ending a wire in a starter IP symbol is one undo step. Interactive. Outcome: the connection.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
@@ -829,6 +858,16 @@ impl Command for DrawToIp {
         tx.require::<Page>(self.page)?;
         let symbol = tx.require::<LibCopy<SymbolDef>>(self.ip.symbol)?;
         require_on_grid(tx, self.page, self.ip.pos, "/ip/pos")?;
+        if let Some(external) = self.ip.external {
+            tx.require::<ExternalRef>(external)?;
+        }
+        if let Some(problem) = star_problem(
+            &self.ip.direction,
+            self.ip.star_source,
+            self.ip.external.is_some(),
+        ) {
+            return tx.reject(problem);
+        }
         let def = self.ip.fndef.unwrap_or_else(|| {
             ew_ids::v5::lib_copy_id(
                 symbol.item.fndef.library.as_uuid(),
@@ -902,7 +941,7 @@ impl Command for DrawToIp {
             direction: self.ip.direction.clone(),
             star_source: self.ip.star_source,
             sort: self.ip.sort,
-            external: None,
+            external: self.ip.external,
             extra: Extra::new(),
         };
         let function = new_ip(

@@ -8,20 +8,21 @@
 //! |---|---|---|---|
 //! | floating | `PointerMove` or `CursorMove` to p | floating | `Transient`: the IP symbol's outline at the grid point nearest to p, a `cp` marker, a label `<name> <direction>` |
 //! | floating | `Key(RotateCw, RotateCcw, MirrorX, MirrorY, NextVariant)` | floating | the orientation as the Place tool turns it; `Transient` |
-//! | floating | `Key(ToggleDirection)` (D) | floating | the direction source → target → undirected → source; `Transient` |
-//! | floating | `Key(ToggleStar)` | floating | the star source toggled (the host refuses it for an external point); `Transient` |
+//! | floating | `Key(ToggleDirection)` (D) | floating | the direction source → target → undirected → source; on a starred point the star is cleared and D steps on from source (FT-980); `Transient` |
+//! | floating | `Key(ToggleStar)` | floating | the star source toggled (the host refuses it for an external point); while it is on the point is a source, the chosen direction kept for after it (FT-980); `Transient` |
 //! | floating | `Text(s)` (`ip.name`) | floating | the name is `s`; `Transient` |
 //! | floating | `Dwell { ms ≥ 80 }` | floating | `Preview` of the command a click commits |
 //! | floating | `Press` primary or `Activate`, the ghost's CP on a free grid point, or Alt held | floating | `Commit(ip.place …)`; sticky |
-//! | floating | `Press` primary or `Activate`, the ghost's CP on a pin | floating | `Commit(connection.draw_to_ip {a: the pin, route: []} …)`; sticky |
-//! | floating | `Press` primary or `Activate`, the ghost's CP on another interruption point, or an external point's on a pin | floating | refused by the host ([`IpTool::refusal`]): nothing committed, the ghost stays |
+//! | floating | `Press` primary or `Activate`, the ghost's CP on a pin | floating | `Commit(connection.draw_to_ip {a: the pin, route: []} …)`, an external point's with its `external` (FT-946); sticky |
+//! | floating | `Press` primary or `Activate`, the ghost's CP on another interruption point | floating | refused by the host ([`IpTool::refusal`]): nothing committed, the ghost stays |
 //! | floating | `Escape` | — | `None` (the host returns to Select) |
 //!
-//! **The name** is the typed one, unchanged; else a proposal: (not for an external point) the derived potential name
-//! of the page's CP that lies exactly under the ghost's CP, else (not for an external point either, FT-619) the last
-//! name this tool or the Wire tool's P committed, else `IP`; then, while an interruption point of the same direction on the page already has the
-//! proposal, the next name of its numbered series ([`next_in_series`]: `24VDC-1` → `24VDC-2`, `L` → `L-1`). **The direction** is the one D chose, else `target` for
-//! an external point, else `source` in the right or bottom quarter of the page's drawing area and `target` in the left
+//! **The name** is the typed one, unchanged; else a proposal from a base ([`proposal_base`], FT-950; an external point's
+//! is `IP`, FT-619): the derived potential name of the page's CP that lies exactly under the ghost's CP when it is
+//! given (not a fallback), else the last name this tool or the Wire tool's P committed, else that potential's fallback
+//! name, else `IP`; then, while an interruption point of the same direction on the page already has the
+//! proposal, the next name of its numbered series ([`next_in_series`]: `24VDC-1` → `24VDC-2`, `L` → `L-1`). **The direction** is `source` while the star is on (FT-980, ID-1146: a star source is a source point; the chosen
+//! direction is kept for after it), else the one D chose, else `target` for an external point, else `source` in the right or bottom quarter of the page's drawing area and `target` in the left
 //! or top quarter ([`quarter_direction`]: the horizontal quarters first), else the last committed one. After a commit
 //! the typed name and the star are cleared and the committed name and direction (an external point's are not) are remembered ([`IpMemory`], kept by
 //! the host across tools); **the chosen direction stays** for the next placements (FT-547: no flip after a placement)
@@ -29,21 +30,22 @@
 //! point is a target.
 //!
 //! **External connection points** (FR-XRF-012): while the host has set an external reference, the ghost and the
-//! commit use the external-arrow symbol the host gives, `ip.place` carries `external`, and the star is refused.
+//! commit use the external-arrow symbol the host gives, `ip.place` and `connection.draw_to_ip` carry `external`, and
+//! the star is refused.
 //!
 //! **A drop on a pin connects** (FIXPT41, FR-CON-003, WP-S2.04 §9.1): when the ghost's CP lies exactly on a CP of the
 //! page that no interruption point draws (a pin, free or wired), the click commits `connection.draw_to_ip` with that
 //! CP as `a` and an empty route (a route-less wire of length zero, one undo step), and the ghost says so ("connects
 //! to -102F2:14"); Alt (held on the last pointer move or the press, or `canvas.activate_alt`) places the point free
-//! with `ip.place`. On the CP of another interruption point, and for an external connection point on any CP (which
-//! `connection.draw_to_ip` cannot create), the click is refused in words.
+//! with `ip.place`. An external connection point connects the same way (FT-946). On the CP of another interruption
+//! point the click is refused in words.
 
 use std::collections::BTreeSet;
 use std::sync::Arc;
 
 use ew_api::AnyCommand;
 use ew_api::geometry::{orient_point, orient_then};
-use ew_api::output::{PageTables, SymbolShape, TableCp, TableEnd, Uuid};
+use ew_api::output::{PageTables, SymbolShape, TableCp, TableEnd, TablePotential, Uuid};
 use serde_json::{Value, json};
 
 use super::place::ORIENT_NAMES;
@@ -273,8 +275,8 @@ pub fn drawing_area(page: &CanvasPage) -> Option<[i64; 4]> {
     Some([a.0.min(b.0), a.1.min(b.1), a.0.max(b.0), a.1.max(b.1)])
 }
 
-/// The derived potential name of the first CP of the page (in ID order) that lies exactly at `at`.
-pub fn potential_at(tables: &PageTables, at: (i64, i64)) -> Option<String> {
+/// The derived potential of the first CP of the page (in ID order) that lies exactly at `at`.
+pub fn potential_at(tables: &PageTables, at: (i64, i64)) -> Option<TablePotential> {
     tables
         .cps
         .iter()
@@ -282,9 +284,23 @@ pub fn potential_at(tables: &PageTables, at: (i64, i64)) -> Option<String> {
         .find_map(|c| c.potential.clone())
 }
 
-/// The derived potential name at a Wire tool's start: a CP's own; for a junction or a point on a wire, the first
+/// The base of a name proposal (FT-950, ID-1146), in the IP tool and the Wire tool's P alike: the potential's name when
+/// it is given (by a definition, a source interruption point or the supply), else the last name placed, else the
+/// potential's fallback name (`-101F1:2`), else `IP`. So a point dropped on a pin whose potential has only a fallback
+/// name proposes the next of the name just placed, not the pin's.
+pub fn proposal_base(potential: Option<TablePotential>, last_name: Option<&str>) -> String {
+    match potential {
+        Some(p) if !p.fallback => p.name,
+        fallback => last_name
+            .map(str::to_owned)
+            .or_else(|| fallback.map(|p| p.name))
+            .unwrap_or_else(|| "IP".to_owned()),
+    }
+}
+
+/// The derived potential at a Wire tool's start: a CP's own; for a junction or a point on a wire, the first
 /// potential of a CP at an end of the connections there (connections in ID order).
-pub fn potential_of_end(tables: &PageTables, end: &WireTarget) -> Option<String> {
+pub fn potential_of_end(tables: &PageTables, end: &WireTarget) -> Option<TablePotential> {
     let of_end = |e: &TableEnd| match e {
         TableEnd::Cp { function, idx } => tables
             .cps
@@ -454,8 +470,12 @@ impl IpTool {
         self.refresh(cx)
     }
 
-    /// Sets the direction (`tool.ip_direction {direction}`, the headless form of D).
+    /// Sets the direction (`tool.ip_direction {direction}`, the headless form of D); a direction other than source
+    /// clears the star, as D does (FT-980: a star source is a source point).
     pub fn choose_direction(&mut self, direction: IpDir, cx: &ToolCx<'_>) -> Overlay {
+        if direction != IpDir::Source {
+            self.star = false;
+        }
         self.chosen = Some(direction);
         self.refresh(cx)
     }
@@ -474,8 +494,12 @@ impl IpTool {
     }
 
     /// The direction at the insertion point `pos` before the project's sources are considered, and whether it is
-    /// chosen (by D, `tool.ip_direction` or an external reference) rather than found.
+    /// chosen (by the star, D, `tool.ip_direction` or an external reference) rather than found.
     fn auto_direction(&self, pos: Option<(i64, i64)>) -> (IpDir, bool) {
+        // FT-980 (ID-1146): a star source is a source point; the chosen direction is kept for the next point (FT-547).
+        if self.star {
+            return (IpDir::Source, true);
+        }
         if let Some(d) = self.chosen {
             return (d, true);
         }
@@ -513,13 +537,13 @@ impl IpTool {
         }
         // An external connection point proposes its own name, never the last interruption point's (FT-619).
         let base = if self.external.is_some() {
-            None
+            "IP".to_owned()
         } else {
-            pos.and_then(|p| self.cp_at(p))
-                .and_then(|c| potential_at(tables, c))
-                .or_else(|| self.memory.last_name.clone())
+            let potential = pos
+                .and_then(|p| self.cp_at(p))
+                .and_then(|c| potential_at(tables, c));
+            proposal_base(potential, self.memory.last_name.as_deref())
         };
-        let base = base.unwrap_or_else(|| "IP".to_owned());
         let (name, direction) = propose(&base, false, auto, chosen, self.star, &self.project, tables);
         let taken = (name != base).then_some(base);
         (name, direction, taken)
@@ -534,9 +558,9 @@ impl IpTool {
     }
 
     /// What a click at the insertion point `pos` does with the ghost's CP (FIXPT41): on the CP of an interruption
-    /// point of the page it is refused (16a P10: no point stacked on another), as for an external connection point on
-    /// any CP (`connection.draw_to_ip` places none, ruling 3), Alt or not; on another CP (a pin, free or wired, ruling
-    /// 2) it connects unless Alt is held; elsewhere it places the point free.
+    /// point of the page it is refused (16a P10: no point stacked on another), Alt or not; on another CP (a pin, free or
+    /// wired, ruling 2) it connects unless Alt is held, an external connection point too (FT-946); elsewhere it places
+    /// the point free.
     fn drop_on(&self, cx: &ToolCx<'_>, pos: (i64, i64)) -> DropOn {
         let Some(c) = self.cp_at(pos) else {
             return DropOn::Free;
@@ -559,12 +583,6 @@ impl IpTool {
         let Some(pin) = under.first() else {
             return DropOn::Free;
         };
-        if self.external.is_some() {
-            return DropOn::Refused(crate::strings::format(
-                key!("notice-external-on-pin"),
-                &[&crate::describe::pin_in_sentence(&pin.label)],
-            ));
-        }
         if self.suppressed {
             DropOn::Free
         } else {
@@ -605,6 +623,10 @@ impl IpTool {
                 });
                 if self.star {
                     ip["star_source"] = Value::Bool(true);
+                }
+                // FT-946: an external point on a pin is connected too, in the same one undo step.
+                if let Some(e) = &self.external {
+                    ip["external"] = Value::from(e.id.clone());
                 }
                 (
                     "connection.draw_to_ip",
@@ -728,8 +750,10 @@ impl Tool for IpTool {
             }
             CanvasEvent::Key(ToolKey::ToggleDirection) => {
                 // D goes on from the direction the ghost shows (FT-822: a target offered for a name that has a
-                // source elsewhere turns undirected, then source).
+                // source elsewhere turns undirected, then source). FT-980: on a starred point (a source) D clears the
+                // star and steps on from source; the star stays off when D comes back to source.
                 let _ = self.refresh(cx);
+                self.star = false;
                 self.chosen = Some(self.shown_dir.next());
                 ToolOutput::Transient(self.refresh(cx))
             }
