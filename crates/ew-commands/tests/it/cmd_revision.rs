@@ -519,22 +519,31 @@ fn create_prevents_a_label_out_of_format_or_order() {
     assert_eq!(rule, LABEL_ORDER_RULE);
     // FT-909 (ID-1108: "a refusal text is words, with no JSON pointer, UUID, requirement ID or nanometres ... and ends
     // with what the user can do")
-    assert_eq!(finding, "the label 2 is not in the project's revision label format V{major}.{minor}; give a label in that format; the \
-         next label is V1.0");
+    assert_eq!(
+        finding,
+        "the label 2 is not in the project's revision label format V{major}.{minor}; give a label in that format; the \
+         next label is V1.0"
+    );
     e.execute(&create("V2.0", NewRevisionState::Released))
         .expect("V2.0");
     let (rule, finding) = prevented(e.execute(&create("V1.5", NewRevisionState::Open)).unwrap_err());
     assert_eq!(rule, "EW-REL-004");
-    assert_eq!(finding, "the label V1.5 does not follow revision V2.0: revision labels increase in natural order; give a later label; \
-         the next label is V3.0");
+    assert_eq!(
+        finding,
+        "the label V1.5 does not follow revision V2.0: revision labels increase in natural order; give a later label; \
+         the next label is V3.0"
+    );
     e.execute(&create("V3.0", NewRevisionState::Open))
         .expect("V3.0 follows");
     let (_, finding) = prevented(
         e.execute(&create("V3.5", NewRevisionState::Released))
             .unwrap_err(),
     );
-    assert_eq!(finding, "the label V3.5 does not precede V3.0, the label of the open revision: revision labels increase in natural \
-             order, the open revision last; give an earlier label");
+    assert_eq!(
+        finding,
+        "the label V3.5 does not precede V3.0, the label of the open revision: revision labels increase in natural \
+             order, the open revision last; give an earlier label"
+    );
     e.execute(&create("V0.9", NewRevisionState::Released))
         .expect("history before the open revision");
 }
@@ -548,12 +557,18 @@ fn fields_set_label_prevents_a_label_out_of_format_or_order() {
     let (rule, finding) = prevented(e.execute(&set(&[v2], "label", json!("2"))).unwrap_err());
     assert_eq!(rule, LABEL_ORDER_RULE);
     // FT-909 (ID-1108, as above)
-    assert_eq!(finding, "the label 2 is not in the project's revision label format V{major}.{minor}; give a label in that format; the \
-         next label is V2.0");
+    assert_eq!(
+        finding,
+        "the label 2 is not in the project's revision label format V{major}.{minor}; give a label in that format; the \
+         next label is V2.0"
+    );
     let (rule, finding) = prevented(e.execute(&set(&[v2], "label", json!("V0.5"))).unwrap_err());
     assert_eq!(rule, LABEL_ORDER_RULE);
-    assert_eq!(finding, "the label V0.5 does not follow revision V1.0: revision labels increase in natural order; give a later label; \
-         the next label is V2.0");
+    assert_eq!(
+        finding,
+        "the label V0.5 does not follow revision V1.0: revision labels increase in natural order; give a later label; \
+         the next label is V2.0"
+    );
     assert_eq!(lines(e.model()), before, "a prevented label writes nothing");
     e.execute(&set(&[v2], "label", json!("V3.0")))
         .expect("an in-order label is accepted");

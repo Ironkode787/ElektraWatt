@@ -159,7 +159,10 @@ fn prefer_numbered(
     let (n1, n2) = (c1.number.clone(), c2.number.clone());
     let unassigned = |n: &NumberSpec| matches!(n, NumberSpec::Unassigned);
     if !unassigned(&n1) && !unassigned(&n2) && n1 != n2 {
-        let (p1, p2) = (printed_number(tx, j, first, second), printed_number(tx, j, second, first));
+        let (p1, p2) = (
+            printed_number(tx, j, first, second),
+            printed_number(tx, j, second, first),
+        );
         let coincide = p1 == p2;
         return tx.reject(format!(
             "{} would merge a wire {} and a wire {}, which carry different numbers; clear one of the \

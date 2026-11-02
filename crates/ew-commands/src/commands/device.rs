@@ -12,8 +12,8 @@ use ew_mltext::{Ident, MlText};
 use ew_schema::{
     AnchorPolicy, AnyId, BoxSpec, Connection, ConnectionKind, ContactKind, Device, DeviceAspects, DeviceKind,
     Endpoint, Extra, FnDef, FnRole, Function, FunctionKind, Junction, JunctionStyle, Kind, LibCopy,
-    NumberSpec, Page, PageItem, PageItemKind, PageType, Part, PartRef, PartUse, RepType, Representation, Strip,
-    StructureAssignment, StructureBox, SymbolDef, TagSpec,
+    NumberSpec, Page, PageItem, PageItemKind, PageType, Part, PartRef, PartUse, RepType, Representation,
+    Strip, StructureAssignment, StructureBox, SymbolDef, TagSpec,
 };
 use ew_units::{Dec3, Grid, Nm, Orient2, Pt2};
 use schemars::JsonSchema;
@@ -1061,8 +1061,7 @@ fn keep_texts(tx: &TxBuilder<'_>, old: &Representation, new: &mut Representation
         return Ok(());
     };
     let def = &symbol.item;
-    let mut slots: BTreeMap<u16, SlotOverride> =
-        old.text_slots.iter().map(|o| (o.slot, o.clone())).collect();
+    let mut slots: BTreeMap<u16, SlotOverride> = old.text_slots.iter().map(|o| (o.slot, o.clone())).collect();
     let back = new.orient.inverse();
     for (i, slot) in def.text_slots.iter().enumerate() {
         let Ok(i) = u16::try_from(i) else { break };
@@ -1182,7 +1181,11 @@ impl Command for TransformReps {
                 }
             }
             // FT-867 (ID-1108): after a half turn a black box's texts keep their place relative to its box
-            if self.rotate == 2 && !self.mirror && old.box_.is_some() && keep_texts(tx, &old, &mut new).is_err() {
+            if self.rotate == 2
+                && !self.mirror
+                && old.box_.is_some()
+                && keep_texts(tx, &old, &mut new).is_err()
+            {
                 out_of_range(tx)?;
                 continue;
             }

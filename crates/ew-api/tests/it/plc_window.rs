@@ -424,8 +424,7 @@ fn bind_channel_takes_a_pin_of_a_black_box_card() {
     // UUIDs and requirement IDs"): no requirement ID either.
     assert!(!format!("{:?}", receipt.outcome.notices).contains(&ch5.to_string()));
     let notice =
-        "channel 5 of the same module was bound to this connection point and is now unbound"
-            .to_owned();
+        "channel 5 of the same module was bound to this connection point and is now unbound".to_owned();
     assert!(
         receipt.outcome.notices.contains(&notice),
         "{:?}",

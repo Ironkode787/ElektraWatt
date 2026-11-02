@@ -171,13 +171,16 @@ fn library_embed_inserts_a_manufacturer_and_a_macro_copy_once_and_undo_removes_t
     // Embedded already, at any version: refused, each kind on its own.
     // FT-909 (ID-1108: "a refusal text is words, with no JSON pointer, UUID, requirement ID or nanometres ... and ends
     // with what the user can do")
-    for (again, want) in [(
+    for (again, want) in [
+        (
             mfr_json,
             "the project holds this manufacturer already; take another version of it with update from library",
-        ), (
+        ),
+        (
             mac_json,
             "the project holds this macro already; take another version of it with update from library",
-        )] {
+        ),
+    ] {
         match e.execute(&embed(vec![again])) {
             Err(CmdError::Rejected { reason, .. }) => assert_eq!(reason, want),
             other => panic!("expected a rejection, got {other:?}"),

@@ -514,7 +514,8 @@ fn ft867_a_half_turn_keeps_the_texts_of_a_black_box_in_place() {
     .expect("the tag moved");
     let start = row(&e, rep);
     let before = drawn_slots(&e, rep);
-    let kept = |v: &[(u16, Pt2, i32)]| -> Vec<(u16, Pt2, i32)> { v.iter().filter(|s| s.0 != 3).copied().collect() };
+    let kept =
+        |v: &[(u16, Pt2, i32)]| -> Vec<(u16, Pt2, i32)> { v.iter().filter(|s| s.0 != 3).copied().collect() };
     e.execute(&transform(rep, 2, false)).expect("a half turn");
     assert_eq!(kept(&drawn_slots(&e, rep)), kept(&before));
     assert!(

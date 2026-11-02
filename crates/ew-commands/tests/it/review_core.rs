@@ -638,8 +638,7 @@ fn ft437_a_repeated_vertex_is_refused_by_draw_and_route() {
     let (mut e, fa, fb) = two_devices();
     let dup = vec![pt(G, G), pt(2 * G, G), pt(2 * G, G), pt(4 * G, G)];
     // FT-864 (ID-1108: "a refusal text is words, with no JSON pointer, UUID, requirement ID or nanometres")
-    let expected =
-        "the wire's corner at x 15.9, y 7.9 mm on page 102 repeats the corner before it; remove the duplicate corner";
+    let expected = "the wire's corner at x 15.9, y 7.9 mm on page 102 repeats the corner before it; remove the duplicate corner";
     assert_eq!(rejection(e.execute(&draw_between(fa, fb, dup.clone()))), expected);
     let r = e
         .execute(&draw_between(fa, fb, vec![pt(G, G), pt(4 * G, G)]))

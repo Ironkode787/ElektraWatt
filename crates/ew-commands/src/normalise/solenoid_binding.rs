@@ -102,11 +102,7 @@ fn subtree(tx: &TxBuilder<'_>, root: Id<Device>) -> Vec<Id<Device>> {
 
 /// Unbinds the channels bound to `device`'s functions whose module it is no longer on; `moved` is the device whose
 /// parent changed (`device` itself or an ancestor).
-fn unbind_device(
-    tx: &mut TxBuilder<'_>,
-    device: Id<Device>,
-    moved: Id<Device>,
-) -> Result<bool, CmdError> {
+fn unbind_device(tx: &mut TxBuilder<'_>, device: Id<Device>, moved: Id<Device>) -> Result<bool, CmdError> {
     let Some(device) = tx.get::<Device>(device) else {
         return Ok(false);
     };

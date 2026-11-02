@@ -693,8 +693,7 @@ fn ft973_a_device_without_room_mints_no_placement() {
     };
     let run = |list: Vec<Id<Device>>| -> (Id<Placement>, Id<Placement>) {
         let mut f = fx();
-        f.e.execute(&fill(f.rail3, Some(list), FillOrder::Dt))
-            .unwrap();
+        f.e.execute(&fill(f.rail3, Some(list), FillOrder::Dt)).unwrap();
         f.e.execute(&fill(f.rail1, Some(vec![k(3)]), FillOrder::Dt))
             .unwrap();
         (placement_of(&f.e, k(1)), placement_of(&f.e, k(3)))
