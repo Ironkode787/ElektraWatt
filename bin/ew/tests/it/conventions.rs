@@ -354,6 +354,7 @@ fn project_flag_equals_the_positional_directory() {
     let png_dir = t.0.join("png");
     let png = t.0.join("103.png");
     let report_pdf = t.0.join("908.pdf");
+    let ewz = t.0.join("p.ewz");
     let parts = t.0.join("parts.csv");
     std::fs::copy(GOLDEN_PARTS, &parts).unwrap();
     // (the words before the project, the words after it, the project)
@@ -399,6 +400,7 @@ fn project_flag_equals_the_positional_directory() {
             args([&"--page", &"103", &"--png", &"--out", &png]),
             &p,
         ),
+        (vec!["export", "ewz"], args([&"--out", &ewz, &"--json"]), &p),
         (vec!["verify-derived"], args([&"--json"]), &tiny),
         (vec!["fmt"], args([&"--check", &"--json"]), &p),
         (vec!["recover"], args([&"--json"]), &p),
@@ -884,6 +886,27 @@ fn every_writing_json_result_validates_and_round_trips() {
             (results::RecoverAction::Replay, true, 2),
             "{r:?}"
         );
+        outs.push(stdout(&o));
+    }
+    assert_eq!(outs[0], outs[1]);
+    // `export ewz` twice to the same file, and `extract` twice into the same fresh target (WP-S1.17 part 2).
+    let golden = t.golden("ewz.ew");
+    let ewz = t.0.join("p.ewz");
+    let r: results::ExportEwzResult = json_twice(
+        &t,
+        &args([&"export", &"ewz", &golden, &"--out", &ewz, &"--json"]),
+        results::EXPORT_EWZ,
+        0,
+    );
+    assert_eq!((r.generation, r.files), (1, 181), "{r:?}");
+    let into = t.0.join("extracted.ew");
+    let mut outs = Vec::new();
+    for _ in 0..2 {
+        let _ = std::fs::remove_dir_all(&into);
+        let o = t.ew(&args([&"extract", &ewz, &"--into", &into, &"--json"]));
+        assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+        let r: results::ExtractResult = assert_result(&stdout(&o), results::EXTRACT);
+        assert_eq!((r.generation, r.files), (1, 181), "{r:?}");
         outs.push(stdout(&o));
     }
     assert_eq!(outs[0], outs[1]);

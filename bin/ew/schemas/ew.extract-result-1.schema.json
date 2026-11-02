@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`ew extract --json` ([`EXTRACT`]; WP-S1.17 D9).",
+  "properties": {
+    "$schema": {
+      "const": "ew.extract-result/1",
+      "description": "The name of this schema."
+    },
+    "files": {
+      "description": "The files written: `manifest.json`, the files it lists and the git files the archive holds.",
+      "format": "uint",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "generation": {
+      "description": "The generation extracted.",
+      "format": "uint64",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "into": {
+      "description": "The new project directory.",
+      "type": "string"
+    }
+  },
+  "required": [
+    "$schema",
+    "into",
+    "generation",
+    "files"
+  ],
+  "title": "ew.extract-result/1",
+  "type": "object"
+}

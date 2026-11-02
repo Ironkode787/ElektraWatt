@@ -26,6 +26,11 @@
       "schema": "ew.export-cables-result-1.schema.json"
     },
     {
+      "command": "export ewz",
+      "name": "ew.export-ewz-result/1",
+      "schema": "ew.export-ewz-result-1.schema.json"
+    },
+    {
       "command": "export pdf",
       "name": "ew.export-pdf-result/1",
       "schema": "ew.export-pdf-result-1.schema.json"
@@ -54,6 +59,11 @@
       "command": "export wires",
       "name": "ew.export-wires-result/1",
       "schema": "ew.export-wires-result-1.schema.json"
+    },
+    {
+      "command": "extract",
+      "name": "ew.extract-result/1",
+      "schema": "ew.extract-result-1.schema.json"
     },
     {
       "command": "fmt",
