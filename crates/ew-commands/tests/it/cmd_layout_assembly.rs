@@ -679,6 +679,29 @@ fn as3_auto_fill_refusals() {
     );
 }
 
+/// FT-973 (ID-1108: "`layout.auto_fill` mints placement IDs after the fit, its output unchanged"): a device left
+/// without room mints no placement, so the IDs of the fill and of the next command are those of a fill that never
+/// listed it.
+#[test]
+fn ft973_a_device_without_room_mints_no_placement() {
+    let placement_of = |e: &Engine, device: Id<Device>| -> Id<Placement> {
+        rows::<Placement>(e)
+            .into_iter()
+            .find(|p| p.device == device)
+            .map(|p| p.id)
+            .expect("placed")
+    };
+    let run = |list: Vec<Id<Device>>| -> (Id<Placement>, Id<Placement>) {
+        let mut f = fx();
+        f.e.execute(&fill(f.rail3, Some(list), FillOrder::Dt))
+            .unwrap();
+        f.e.execute(&fill(f.rail1, Some(vec![k(3)]), FillOrder::Dt))
+            .unwrap();
+        (placement_of(&f.e, k(1)), placement_of(&f.e, k(3)))
+    };
+    assert_eq!(run(vec![k(1), k(2)]), run(vec![k(1)]));
+}
+
 /// The default list: the unplaced devices of the rail's space that fit it; the unfit (TS 32, screw-mounted) are not
 /// listed, so they give no notice.
 #[test]

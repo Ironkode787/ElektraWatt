@@ -1695,39 +1695,68 @@ struct Member {
     ext: RailExtent,
 }
 
-/// Mints a member's placement and builds its item (turned 0°, unlocked; the part as `layout.place` records it).
-fn member(tx: &mut TxBuilder<'_>, q: &Q, device: std::sync::Arc<Device>) -> Member {
+/// A device a bulk command measures before it places it: its record, its part, its rail item without a placement yet
+/// and the extent.
+struct Measured {
+    device: std::sync::Arc<Device>,
+    part: Option<PartRef>,
+    item: RailItem,
+    ext: RailExtent,
+}
+
+/// Builds a device's item (turned 0°, unlocked; the part as `layout.place` records it), without minting its placement.
+fn measure(tx: &TxBuilder<'_>, q: &Q, device: std::sync::Arc<Device>) -> Measured {
     let part = primary_part(tx, &device);
-    let id: Id<Placement> = tx.mint();
-    let (item, ext) = drop_item(q, &device, part.as_ref(), false, false, Some(id));
-    Member {
+    let (item, ext) = drop_item(q, &device, part.as_ref(), false, false, None);
+    Measured {
         device,
         part,
-        id,
         item,
         ext,
     }
 }
 
-/// The block of `members` laid at their minimum gaps (D6): each member's offset from the block's left edge, and the
-/// item the block resolves as: the block's width, its pads the first member's before and the last member's after (a
-/// strip's bracket width counts as its pad), not a strip, no placement. One member is its own item.
-fn block_of(members: &[Member]) -> (Vec<i128>, RailItem) {
-    if let [one] = members {
-        return (vec![0], one.item);
+/// Mints a measured device's placement: the member it places.
+fn mint_member(tx: &mut TxBuilder<'_>, m: Measured) -> Member {
+    let id: Id<Placement> = tx.mint();
+    Member {
+        device: m.device,
+        part: m.part,
+        id,
+        item: RailItem {
+            placement: Some(id),
+            ..m.item
+        },
+        ext: m.ext,
     }
-    let mut offsets = Vec::with_capacity(members.len());
+}
+
+/// Mints a member's placement and builds its item (turned 0°, unlocked; the part as `layout.place` records it).
+fn member(tx: &mut TxBuilder<'_>, q: &Q, device: std::sync::Arc<Device>) -> Member {
+    let m = measure(tx, q, device);
+    mint_member(tx, m)
+}
+
+/// The block of the items of `members` laid at their minimum gaps (D6): each member's offset from the block's left
+/// edge, and the item the block resolves as: the block's width, its pads the first member's before and the last
+/// member's after (a strip's bracket width counts as its pad), not a strip, no placement. One member is its own item.
+fn block_of<'a>(members: impl Iterator<Item = &'a RailItem>) -> (Vec<i128>, RailItem) {
+    let items: Vec<&RailItem> = members.collect();
+    if let [one] = items.as_slice() {
+        return (vec![0], **one);
+    }
+    let mut offsets = Vec::with_capacity(items.len());
     let mut end = 0i128;
     let mut prev: Option<&RailItem> = None;
-    for m in members {
-        let off = prev.map_or(0, |p| end.saturating_add(min_gap(p, &m.item)));
+    for m in &items {
+        let off = prev.map_or(0, |p| end.saturating_add(min_gap(p, m)));
         offsets.push(off);
-        end = off.saturating_add(m.item.width());
-        prev = Some(&m.item);
+        end = off.saturating_add(m.width());
+        prev = Some(m);
     }
     let pad = [
-        members.first().map_or(0, |m| min_gap(&BARE, &m.item)),
-        members.last().map_or(0, |m| min_gap(&m.item, &BARE)),
+        items.first().map_or(0, |m| min_gap(&BARE, m)),
+        items.last().map_or(0, |m| min_gap(m, &BARE)),
     ];
     (offsets, RailItem { s1: end, pad, ..BARE })
 }
@@ -2002,7 +2031,7 @@ impl Command for PlaceAssembly {
         let mut mem = base.clone();
         match block_s {
             Some(s_left) => {
-                let (offsets, block) = block_of(&members);
+                let (offsets, block) = block_of(members.iter().map(|m| &m.item));
                 let item = match members.as_slice() {
                     [one] => tag(tx, one.device.id),
                     _ => format!("the assembly {}", tag(tx, root)),
@@ -2264,11 +2293,11 @@ impl Command for AutoFill {
         let mut last: Option<RailItem> = None;
         let mut placed: Vec<(Member, Pose3)> = Vec::new();
         for unit in fill_units(tx, &q, candidates) {
-            let members: Vec<Member> = unit
+            let measured: Vec<Measured> = unit
                 .iter()
-                .map(|(_, d)| member(tx, &q, std::sync::Arc::clone(d)))
+                .map(|(_, d)| measure(tx, &q, std::sync::Arc::clone(d)))
                 .collect();
-            let (offsets, item) = block_of(&members);
+            let (offsets, item) = block_of(measured.iter().map(|m| &m.item));
             let floor = last.map_or(i128::MIN, |l| l.s1.saturating_add(min_gap(&l, &item)));
             let Some(s) = next_fit(&mem, axis.length, &item, floor) else {
                 for (i, d) in &unit {
@@ -2276,6 +2305,8 @@ impl Command for AutoFill {
                 }
                 continue;
             };
+            // FT-973: the placement IDs are minted after the fit, only for the members placed
+            let members: Vec<Member> = measured.into_iter().map(|m| mint_member(tx, m)).collect();
             for (m, off) in members.into_iter().zip(offsets) {
                 let at = item_at(&m.item, s.saturating_add(off));
                 mem.push(at);
