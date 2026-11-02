@@ -50,7 +50,8 @@ The main session orchestrates. It plans each cycle, briefs Claude subagents, int
      - the facts: gathered by a `scout` at the lane's base hash, never copied from an older inventory. Each item the
        brief names has its `path:line` there, and each changed item lists every reader, found by grep (rule 17);
      - the lane's package set and its expected files;
-     - the golden expectations;
+     - the golden expectations. A lane that re-blesses golden or snapshot files is given the exact test targets it
+       runs and blesses first, by name; its one lane-check runs after them (cycle-46 retro);
      - the trailers, as the exact lines the lane's commits carry (cycle-44 retro);
      - the stops;
      - the hand-off note and code map to read;
@@ -93,6 +94,8 @@ The main session orchestrates. It plans each cycle, briefs Claude subagents, int
 
      A checkpoint's last verify runs the full suite.
    - Then, beside the next wave: the wave's review part, and a window check only if the wave changed what users see.
+     At the verify, mark the wave UI or not: a UI wave has a lane whose report lists window items. A UI wave's window
+     check is dispatched with its review part, on the verified tip's binaries (cycle-46 retro).
 8. **The end phase overlaps the next cycle** (2026-10-31, ruling C).
    - After the last wave come:
      - the last review part and its fixes;
@@ -142,6 +145,8 @@ The main session orchestrates. It plans each cycle, briefs Claude subagents, int
     - Resume that lane with SendMessage while its context is under about 250k tokens. Otherwise use a fresh `lane`
       fixer (Opus `medium`) with the findings and the lane's hand-off note (2026-11-01).
     - The lane's worktree is kept until its part is accepted.
+    - A lane resumed after it has handed back may not be able to hand back again. Its message asks it to write its
+      report to a file in the orchestrator's notes and to end with one line naming that file (cycle-46 retro).
 14. **No separate re-review rounds.**
     - The next part's reviewer first checks the earlier fixes in the ledger: each finding closed, with the test that
       shows it.
