@@ -191,7 +191,10 @@ impl Command for ReshapeBox {
         let mut new_abs: Vec<Pt2> = Vec::with_capacity(self.outline.len());
         for (i, v) in self.outline.iter().enumerate() {
             let Ok(p) = abs(*v) else { return out_of_range(tx) };
-            require_on_grid(tx, rep.page, p, &format!("/outline/{i}"))?;
+            // FT-863: a vertex of the old outline is untouched and keeps its place, also off the grid (a drifted box)
+            if !old.outline.contains(v) {
+                require_on_grid(tx, rep.page, p, &format!("/outline/{i}"))?;
+            }
             new_abs.push(p);
         }
         let mut old_abs: Vec<Pt2> = Vec::with_capacity(old.outline.len());

@@ -792,6 +792,35 @@ fn reshape_to_a_triangle_moves_the_cp_of_the_vanished_edge_to_the_nearest_edge_w
     );
 }
 
+/// FT-863 (ID-1108: "`box.reshape` reshapes a drifted box's untouched vertices, the drift kept"): the box sits 1 nm
+/// off the grid; widening it moves the right edge to a grid point and keeps the left vertices where they were, off
+/// the grid. A touched vertex off the grid is still refused.
+#[test]
+fn ft863_a_drifted_box_reshapes_with_its_untouched_vertices_kept() {
+    let mut e = engine(ip_model(|records| {
+        for rec in records.iter_mut() {
+            if let Record::Representation(r) = rec {
+                if r.id == REP_102F2 {
+                    r.pos = pt(BOX_POS + 1, BOX_POS);
+                    r.box_ = Some(box_spec(rect(18, 12), standard_cps()));
+                }
+            }
+        }
+    }));
+    let old = rect(18, 12);
+    // the right edge on the grid in page coordinates: one nanometre less in box coordinates
+    let right = Nm(grid_at(20).0 - 1);
+    let outline = vec![old[0], Pt2::new(right, old[1].y), Pt2::new(right, old[2].y), old[3]];
+    e.execute(&reshape(outline.clone(), None))
+        .expect("box.reshape of a drifted box");
+    assert_eq!(box_of(&e).outline, outline);
+    let touched_off_grid = vec![old[0], Pt2::new(grid_at(20), old[1].y), Pt2::new(grid_at(20), old[2].y), old[3]];
+    assert_eq!(
+        rejection(e.execute(&reshape(touched_off_grid, None))),
+        "the outline's corner at x 60.9, y 7.9 mm on page 102 is not on the drawing grid"
+    );
+}
+
 #[test]
 fn reshape_rejections_write_nothing() {
     let mut e = engine(standard_box());
