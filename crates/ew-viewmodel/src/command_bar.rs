@@ -767,7 +767,7 @@ pub fn hud(model: &ShellModel) -> HudModel {
             let mut parts = vec![model.tool().proposal_note().unwrap_or(name)];
             // FT-822: the role and the key that changes it ("0V · source: feeds its targets · D: target"), so the next
             // role is on screen; FT-899: the role says what it does, the key's part keeps the short next word.
-            // W42b: a starred point is its name's star source whatever its direction (ew-derive pairs from it), so the
+            // W42b, ID-1146: a star source is a source point (the tool shows a starred point as a source), so the
             // star's hint stands alone in the role's place.
             if let Some(d) = crate::tools::IpDir::from_word(direction) {
                 let role = if star { key!("hud-ip-star") } else { ip_role_key(d) };
@@ -779,9 +779,6 @@ pub fn hud(model: &ShellModel) -> HudModel {
                 ));
             } else {
                 parts.push(direction.to_owned());
-            }
-            if star && crate::tools::IpDir::from_word(direction).is_none() {
-                parts.push(strings::text(key!("hud-ip-star")).to_owned());
             }
             parts.extend(external);
             // FIXPT41: a click on a pin connects the point; the HUD says it before the click.
