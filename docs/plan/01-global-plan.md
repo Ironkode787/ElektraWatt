@@ -718,7 +718,7 @@ An estimate, not a commitment.
 | review | — | Opus/high | Part 3 (7fb9e834..f54a8cc8), accepted, no major; the cycle accepted | ID-1137; ID-1140 |
 | check | — | Opus/medium | The window check W45.2 (wave 3, on f54a8cc8, both sizes): six items right; F1 to F5 to FIXW45 | ID-1139 |
 | end phase | FIX45c | Opus/high | C45-p3#2 and #3 with FT-1054: FT-867 by derivation, `rep.move`'s refusals in words | ID-1137; ID-1142 |
-| end phase | FIXW45 | — | W45.2's F1 to F5: the toast's title on two rows, a card per tool, the IP HUD, the grid in words, sentence-case headers | ID-1139; ID-1143 |
+| end phase | FIXW45 | Opus/medium | W45.2's F1 to F5: the toast's title on two rows, a card per tool, the IP HUD, the grid in words, sentence-case headers | ID-1139; ID-1143 |
 | verify | — | — | The last verify on cae4859c: the checkpoint's full suite, green with no flake | ID-1143 |
 | end | — | — | This pass, part 1 (ID-1116 to ID-1132), part 2 (BK45a, FIX45 part b) and part 3 (the verify, the review's part 3, W45.2, FIX45c, C45-p3#1 as built) | ID-1116 to ID-1136; ID-1140 to ID-1142; ID-1143 |
 
