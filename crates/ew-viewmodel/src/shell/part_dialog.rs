@@ -415,8 +415,7 @@ impl ShellModel {
             if let PartTarget::Devices { devices, .. } = &c.target {
                 let allowed = project.session.chooser_layout_kinds(devices);
                 c.offers.retain(|o| {
-                    !LAYOUT_KIND_WORDS.contains(&o.kind.as_str())
-                        || allowed.iter().any(|k| *k == o.kind.as_str())
+                    !LAYOUT_KIND_WORDS.contains(&o.kind.as_str()) || allowed.contains(&o.kind)
                 });
             }
             c.cursor = c.cursor.min(c.offers.len().saturating_sub(1));

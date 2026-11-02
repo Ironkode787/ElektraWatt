@@ -348,7 +348,7 @@ impl Session {
     /// device is a strip (its `aspects.strip` is set, with or without terminals); an enclosure and a mounting plate only
     /// when every device has no main function; a rail and a duct never (they are layout items, not part uses of a
     /// device). Every other device is offered none. Empty when `devices` is empty or one names no device.
-    pub fn chooser_layout_kinds(&self, devices: &[Uuid]) -> Vec<&'static str> {
+    pub fn chooser_layout_kinds(&self, devices: &[Uuid]) -> Vec<String> {
         if devices.is_empty() {
             return Vec::new();
         }
@@ -360,7 +360,7 @@ impl Session {
         let Some(found) = devices.iter().map(exists).collect::<Option<Vec<_>>>() else {
             return Vec::new();
         };
-        let mut kinds = Vec::new();
+        let mut kinds: Vec<&str> = Vec::new();
         if found.iter().all(|d| d.aspects.strip.is_some()) {
             kinds.push("end_bracket");
         }
@@ -368,7 +368,7 @@ impl Session {
             kinds.push("enclosure");
             kinds.push("mounting_plate");
         }
-        kinds
+        kinds.into_iter().map(str::to_owned).collect()
     }
 
     /// The part selection dialog's list (D17): the project's part copies and the catalogue hits, one row per
