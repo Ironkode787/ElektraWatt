@@ -283,6 +283,111 @@ fn potential_overview_lists_every_potential_and_the_bond() {
     assert_eq!(pages(&q, &batch, "909"), vec![("909".to_owned(), 0..20)]);
 }
 
+/// FT-1098 (ID-1182): the window names a potential as the reports do. The page tables' connection points carry
+/// `TablePotential`, the name the connection point's tooltip, the wire-number proposals and the describe lines show;
+/// the wire list's Potential column carries the reports' name. A named potential (a definition or a source point
+/// gives it its name: Golden A's) and an unnamed one (two coils wired to each other on folio 103: only the fallback
+/// `<tag>:<designation>` of a member pin names it) read the same on both sides, whole.
+#[test]
+fn the_windows_potential_names_are_the_reports_names() {
+    use ew_api::AnyCommand;
+    use serde_json::json;
+
+    let batch = golden_common::batch();
+    let mut s = golden_common::session_with_profiles(&batch);
+    let run = |s: &mut ew_api::Session, name: &str, params: serde_json::Value| {
+        let before: std::collections::BTreeSet<_> = s.query().functions().ids().collect();
+        s.execute(&AnyCommand {
+            name: name.into(),
+            params,
+        })
+        .unwrap_or_else(|e| panic!("{name}: {e:?}"));
+        let new: Vec<_> = s
+            .query()
+            .functions()
+            .ids()
+            .filter(|f| !before.contains(f))
+            .collect();
+        new
+    };
+    // Two coils on an empty stretch of folio 103, the lower CP of the upper one wired to the upper CP of the lower.
+    let page = s.page_tables("103").expect("folio 103").page.to_string();
+    if let Some(embed) = s.starter_embed("ew.iec.coil@qet10") {
+        run(&mut s, "library.embed", embed);
+    }
+    let coil = s
+        .starter_symbol_copy("ew.iec.coil@qet10")
+        .expect("a starter symbol")
+        .to_string();
+    let at = |row: i64| json!([158_750_000, (row * 7_937_500 + 1) / 3]);
+    let mut coils = Vec::new();
+    for row in [20, 40] {
+        let placed = run(
+            &mut s,
+            "device.place",
+            json!({"page": page, "symbol": coil, "pos": at(row), "target": {"new_device": {"letter": "K"}}}),
+        );
+        coils.push(placed[0].as_uuid());
+    }
+    let t = s.page_tables("103").expect("folio 103");
+    let end = |f: ew_derive::ew_ids::Uuid, lower: bool| {
+        let mut cps: Vec<_> = t.cps.iter().filter(|c| c.function == f).collect();
+        cps.sort_by_key(|c| c.at.1);
+        let c = if lower { cps[cps.len() - 1] } else { cps[0] };
+        json!({"cp": {"function": f.to_string(), "idx": c.idx}})
+    };
+    let wire = json!({"a": end(coils[0], true), "b": end(coils[1], false), "page": page});
+    run(&mut s, "connection.draw", wire);
+
+    let q = plain(&s);
+    let set = rows_of(&q, &batch, "907");
+    let pot = col(&set, "potential");
+    let report: Vec<String> = (0..set.rows.len())
+        .map(|i| texts(&q, &set, i)[pot].clone())
+        .collect();
+    // The table entries of the connection points that carry a wire: their potentials' names.
+    let mut named = std::collections::BTreeSet::new();
+    let mut unnamed = std::collections::BTreeSet::new();
+    for folio in ["101", "102", "103", "104", "105", "106"] {
+        // The pages that are not drawn (generated ones) have no tables.
+        let Some(tables) = s.page_tables(folio) else {
+            continue;
+        };
+        for cp in tables.cps.iter().filter(|c| !c.connections.is_empty()) {
+            let Some(p) = &cp.potential else { continue };
+            if p.fallback {
+                unnamed.insert(p.name.clone());
+            } else {
+                named.insert(p.name.clone());
+            }
+        }
+    }
+    // A bond wire's cell reads `A ⇄ B`: its sides are names too.
+    let in_report = |name: &str| {
+        report
+            .iter()
+            .any(|cell| cell == name || cell.split(" \u{21C4} ").any(|side| side == name))
+    };
+    assert!(named.contains("L") && named.contains("24VDC-1"), "{named:?}");
+    for name in &named {
+        assert!(
+            in_report(name),
+            "the window names {name}, the wire list does not: {report:?}"
+        );
+    }
+    assert_eq!(
+        unnamed.len(),
+        1,
+        "the one potential only a pin names: {unnamed:?}"
+    );
+    for name in &unnamed {
+        assert!(
+            in_report(name),
+            "the window names {name}, the wire list does not: {report:?}"
+        );
+    }
+}
+
 #[test]
 fn terminal_diagrams_list_the_strips_terminals() {
     let batch = golden_common::batch();
