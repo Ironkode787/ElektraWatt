@@ -1279,7 +1279,8 @@ upgrade-on-read and an unstable-format banner; only the latest 0.x is supported.
 interactive 2D schematics reproducing the reference set; IEC 81346 structure, numbering with previewed renumber;
 connections, potentials, wire properties, cross-references; terminals, cables, PLC, bus and fluid MVP model; parts
 and macros; rule engine with the pre-delivery scheme; revisions and as-built archive; core reports, PDF/A-2b, SVG,
-printing, table exports; 2D panel (folio 902); `ew` CLI; signed installers for Windows and Linux. After it,
+printing, table exports; 2D panel (folio 902); `ew` CLI; per-user installer, AppImage and CLI archives for Windows and
+Linux, unsigned (ID-1187). After it,
 a capability lands in the release of the month in which its WP finishes (plan of record; months without a landing
 WP ship fixes only):
 
