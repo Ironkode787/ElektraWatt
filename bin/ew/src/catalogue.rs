@@ -580,11 +580,14 @@ mod tests {
     }
 
     /// Every result-printing entry takes `--json` and names a published schema whose subcommand is the entry's path;
-    /// every published result belongs to one entry; every entry that takes a project takes `--project`.
+    /// every published result belongs to one entry: as its result, or (a result of a flag, `fmt --repair`'s) as the
+    /// result of an entry of that path that takes the flag and `--json`; every entry that takes a project takes
+    /// `--project`.
     #[test]
     fn results_and_flags_follow_the_conventions() {
+        let entries = catalogue();
         let mut named = BTreeSet::new();
-        for e in catalogue() {
+        for e in &entries {
             let has = |n: &str| e.flags.iter().any(|f| f.name == n);
             match e.result {
                 Some(name) => {
@@ -592,12 +595,24 @@ mod tests {
                     let r = ew_api::cli_results::result(name)
                         .unwrap_or_else(|| panic!("{name} is not published"));
                     assert_eq!(r.command, e.path.join(" "), "{name}");
+                    assert_eq!(r.flag, None, "{name} is a flag's result");
                     assert!(named.insert(name), "{name} twice");
                 }
                 None => assert!(!has("--json"), "{:?} takes `--json` without a result", e.path),
             }
             assert!(e.exits.iter().any(|x| x.code == 0), "{:?}", e.path);
             assert_eq!(e.stability, Stability::Preview);
+        }
+        for r in ew_api::cli_results::RESULTS {
+            let Some(flag) = r.flag else { continue };
+            let takes = entries
+                .iter()
+                .filter(|e| e.path.join(" ") == r.command)
+                .filter(|e| e.flags.iter().any(|f| f.name == flag))
+                .filter(|e| e.flags.iter().any(|f| f.name == "--json"))
+                .count();
+            assert_eq!(takes, 1, "{}: no entry `{} {flag}` with `--json`", r.name, r.command);
+            assert!(named.insert(r.name), "{} twice", r.name);
         }
         let published: BTreeSet<&str> = ew_api::cli_results::RESULTS.iter().map(|r| r.name).collect();
         assert_eq!(named, published);

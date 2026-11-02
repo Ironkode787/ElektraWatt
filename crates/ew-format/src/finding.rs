@@ -170,6 +170,13 @@ impl Finding {
     pub fn severity(&self) -> Severity {
         self.kind.severity()
     }
+
+    /// Whether this is EW-CORE-005 at line level: a line of a JSON Lines file that is not one JSON value or not UTF-8,
+    /// which `ew fmt --repair` discards (doc 05 §6.3; WP-S1.17, decision log ID-1185). A library document that is not
+    /// JSON or not UTF-8 is EW-CORE-005 of the whole file, with no line, and is not one.
+    pub fn is_broken_line(&self) -> bool {
+        self.kind == FindingKind::JsonSyntax && self.line.is_some()
+    }
 }
 
 impl fmt::Display for Finding {
@@ -194,6 +201,7 @@ pub struct Findings {
     cap: usize,
     dropped: usize,
     read_only: bool,
+    beyond_repair: bool,
     worst: Option<Severity>,
 }
 
@@ -205,13 +213,16 @@ impl Findings {
             cap,
             dropped: 0,
             read_only: false,
+            beyond_repair: false,
             worst: None,
         }
     }
 
     /// Adds a finding, or counts it beyond the cap.
     pub fn push(&mut self, finding: Finding) {
-        self.read_only |= finding.kind.forces_read_only();
+        let forces = finding.kind.forces_read_only();
+        self.read_only |= forces;
+        self.beyond_repair |= forces && !finding.is_broken_line();
         self.worst = self.worst.max(Some(finding.severity()));
         if self.items.len() < self.cap {
             self.items.push(finding);
@@ -223,6 +234,12 @@ impl Findings {
     /// Whether any finding pushed (kept or dropped) forces a read-only session.
     pub fn forces_read_only(&self) -> bool {
         self.read_only
+    }
+
+    /// Whether any finding pushed (kept or dropped) other than a broken line ([`Finding::is_broken_line`]) forces a
+    /// read-only session: what `ew fmt --repair` cannot discard, and refuses (WP-S1.17, decision log ID-1185).
+    pub fn forces_read_only_beyond_repair(&self) -> bool {
+        self.beyond_repair
     }
 
     /// The highest severity pushed (kept or dropped).

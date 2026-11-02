@@ -62,7 +62,7 @@ mod vfs;
 pub use clock::{Clock, ManualClock, SystemClock};
 pub use lock::{HEARTBEAT, Identity, LockInfo, LockRecord, OsProbe, ProcessProbe, ProcessState, STALE_AFTER};
 pub use store::{
-    Access, BASE_MEMBER, Changes, Generation, GenerationError, LockState, OpenError, OpenMode, OpenReport,
+    Access, BASE_MEMBER, BrokenLine, Changes, Generation, GenerationError, LockState, OpenError, OpenMode, OpenReport,
     Opened, PurgeError, PurgeFile, PurgePlan, READ_ONLY_POLL, READ_ONLY_WAIT, RENAME_BACKOFF, ReadOnlyReason,
     RecoverError, Recovered, SaveError, SaveReport, SaveStep, Store, StoreOptions, default_state_dir,
 };

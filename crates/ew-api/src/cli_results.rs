@@ -29,6 +29,9 @@ pub struct ResultSchema {
     pub name: &'static str,
     /// The subcommand path that prints it, words joined by a space (`export pdf`).
     pub command: &'static str,
+    /// The flag that selects this result instead of the subcommand's own (`--repair` of `ew fmt`, whose result is
+    /// `ew.fmt-repair-result/1`); `None` for the subcommand's own result.
+    pub flag: Option<&'static str>,
     schema: fn() -> Value,
 }
 
@@ -73,6 +76,8 @@ pub const IMPORT_QET: &str = "ew.import-qet-result/1";
 pub const IMPORT_CSV: &str = "ew.import-csv-result/1";
 /// `ew fmt --json`.
 pub const FMT: &str = "ew.fmt-result/1";
+/// `ew fmt --repair --json` (WP-S1.17, decision log ID-1185).
+pub const FMT_REPAIR: &str = "ew.fmt-repair-result/1";
 /// `ew recover --json`.
 pub const RECOVER: &str = "ew.recover-result/1";
 /// `ew import parts --json`.
@@ -137,161 +142,199 @@ pub const RESULTS: &[ResultSchema] = &[
     ResultSchema {
         name: APPLY,
         command: "apply",
+        flag: None,
         schema: schema_of::<ApplyResult>,
     },
     ResultSchema {
         name: CHECK,
         command: "check",
+        flag: None,
         schema: schema_of::<CheckResult>,
     },
     ResultSchema {
         name: COMMANDS,
         command: "commands",
+        flag: None,
         schema: schema_of::<CommandsResult>,
     },
     ResultSchema {
         name: EXPORT_BOM,
         command: "export bom",
+        flag: None,
         schema: schema_of::<ExportRowsResult>,
     },
     ResultSchema {
         name: EXPORT_CABLES,
         command: "export cables",
+        flag: None,
         schema: schema_of::<ExportRowsResult>,
     },
     ResultSchema {
         name: EXPORT_EWZ,
         command: "export ewz",
+        flag: None,
         schema: schema_of::<ExportEwzResult>,
     },
     ResultSchema {
         name: EXPORT_PDF,
         command: "export pdf",
+        flag: None,
         schema: schema_of::<ExportPdfResult>,
     },
     ResultSchema {
         name: EXPORT_PNG,
         command: "export png",
+        flag: None,
         schema: schema_of::<ExportPngResult>,
     },
     ResultSchema {
         name: EXPORT_REPORT,
         command: "export report",
+        flag: None,
         schema: schema_of::<ExportReportResult>,
     },
     ResultSchema {
         name: EXPORT_SVG,
         command: "export svg",
+        flag: None,
         schema: schema_of::<ExportSvgResult>,
     },
     ResultSchema {
         name: EXPORT_TABLE,
         command: "export table",
+        flag: None,
         schema: schema_of::<ExportTableResult>,
     },
     ResultSchema {
         name: EXPORT_TERMINALS,
         command: "export terminals",
+        flag: None,
         schema: schema_of::<ExportTerminalsResult>,
     },
     ResultSchema {
         name: EXPORT_WIRES,
         command: "export wires",
+        flag: None,
         schema: schema_of::<ExportRowsResult>,
     },
     ResultSchema {
         name: EXTRACT,
         command: "extract",
+        flag: None,
         schema: schema_of::<ExtractResult>,
+    },
+    ResultSchema {
+        name: FMT_REPAIR,
+        command: "fmt",
+        flag: Some("--repair"),
+        schema: schema_of::<FmtRepairResult>,
     },
     ResultSchema {
         name: FMT,
         command: "fmt",
+        flag: None,
         schema: schema_of::<FmtResult>,
     },
     ResultSchema {
         name: IMPORT_CSV,
         command: "import csv",
+        flag: None,
         schema: schema_of::<ImportCsvResult>,
     },
     ResultSchema {
         name: IMPORT_PARTS,
         command: "import parts",
+        flag: None,
         schema: schema_of::<ImportPartsResult>,
     },
     ResultSchema {
         name: IMPORT_QET,
         command: "import qet",
+        flag: None,
         schema: schema_of::<ImportQetResult>,
     },
     ResultSchema {
         name: IMPORT_TABLE,
         command: "import table",
+        flag: None,
         schema: schema_of::<ImportTableResult>,
     },
     ResultSchema {
         name: LIB_CREATE,
         command: "lib create",
+        flag: None,
         schema: schema_of::<LibCreateResult>,
     },
     ResultSchema {
         name: LIB_IMPORT_PARTS,
         command: "lib import parts",
+        flag: None,
         schema: schema_of::<LibImportPartsResult>,
     },
     ResultSchema {
         name: LIB_INDEX,
         command: "lib index",
+        flag: None,
         schema: schema_of::<LibIndexResult>,
     },
     ResultSchema {
         name: LIB_LIST,
         command: "lib list",
+        flag: None,
         schema: schema_of::<LibListResult>,
     },
     ResultSchema {
         name: LIB_SEARCH,
         command: "lib search",
+        flag: None,
         schema: schema_of::<LibSearchResult>,
     },
     ResultSchema {
         name: PRINT,
         command: "print",
+        flag: None,
         schema: schema_of::<PrintResult>,
     },
     ResultSchema {
         name: QUERIES,
         command: "queries",
+        flag: None,
         schema: schema_of::<QueriesResult>,
     },
     ResultSchema {
         name: QUERY,
         command: "query",
+        flag: None,
         schema: schema_of::<QueryResult>,
     },
     ResultSchema {
         name: RECOVER,
         command: "recover",
+        flag: None,
         schema: schema_of::<RecoverResult>,
     },
     ResultSchema {
         name: RENDER,
         command: "render",
+        flag: None,
         schema: schema_of::<RenderResult>,
     },
     ResultSchema {
         name: SQL_DUMP,
         command: "sql dump",
+        flag: None,
         schema: schema_of::<SqlDumpResult>,
     },
     ResultSchema {
         name: SQL,
         command: "sql",
+        flag: None,
         schema: schema_of::<SqlResult>,
     },
     ResultSchema {
         name: VERIFY_DERIVED,
         command: "verify-derived",
+        flag: None,
         schema: schema_of::<VerifyDerivedResult>,
     },
 ];
@@ -1150,6 +1193,51 @@ pub struct KeptRow {
     pub reason: String,
 }
 
+/// `ew fmt --repair --json` ([`FMT_REPAIR`]; WP-S1.17, decision log ID-1185): the broken lines discarded (EW-CORE-005 at
+/// line level), the backup of the generation before, the files the save rewrote, and the lines kept verbatim.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct FmtRepairResult {
+    /// [`FMT_REPAIR`].
+    #[serde(rename = "$schema")]
+    pub schema: String,
+    /// The lines discarded, in file and line order; empty when there was nothing to repair.
+    pub discarded: Vec<DiscardedRow>,
+    /// The backup `.ewz` of the generation before the repair; `null` when there was nothing to repair.
+    pub backup: Option<BackupRow>,
+    /// The files the save rewrote or removed, in path order.
+    pub files: Vec<FmtFile>,
+    /// The lines (or files) the open kept verbatim that stay: the other quarantined lines, malformed values, unknown
+    /// kinds, members or files.
+    pub kept: Vec<KeptRow>,
+    /// The generation on disk afterwards.
+    pub generation: u64,
+}
+
+/// One discarded line of [`FmtRepairResult`].
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct DiscardedRow {
+    /// The file, relative to the project directory.
+    pub file: String,
+    /// The 1-based line in the generation before the repair.
+    pub line: u32,
+    /// Its text as shown: invalid UTF-8 as U+FFFD, cut after 80 characters with "…" (the backup holds the line whole).
+    pub text: String,
+}
+
+/// The backup of [`FmtRepairResult`].
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct BackupRow {
+    /// The `.ewz` file, `<project folder>.before-repair-g<generation>.ewz` beside the project folder.
+    pub path: String,
+    /// The generation it holds: the one before the repair.
+    pub generation: u64,
+    /// Whether it was there already, holding this generation's pack byte for byte, and was reused.
+    pub reused: bool,
+}
+
 /// `ew recover --json` ([`RECOVER`]): the crashed session's journal that was summarised, and whether it was replayed.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -1313,7 +1401,11 @@ mod tests {
         sorted.dedup();
         assert_eq!(names, sorted);
         for r in RESULTS {
-            let words = r.command.replace(' ', "-");
+            let mut words = r.command.replace(' ', "-");
+            if let Some(flag) = r.flag {
+                // A flag's own result: its word after the command's (`ew.fmt-repair-result/1`).
+                words = format!("{words}-{}", flag.trim_start_matches("--"));
+            }
             assert_eq!(r.name, format!("ew.{words}-result/1"), "{}", r.command);
         }
     }

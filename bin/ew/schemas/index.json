@@ -72,6 +72,11 @@
     },
     {
       "command": "fmt",
+      "name": "ew.fmt-repair-result/1",
+      "schema": "ew.fmt-repair-result-1.schema.json"
+    },
+    {
+      "command": "fmt",
       "name": "ew.fmt-result/1",
       "schema": "ew.fmt-result-1.schema.json"
     },

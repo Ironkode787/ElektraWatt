@@ -86,6 +86,12 @@ pub struct StoreOptions {
     pub release_build: bool,
     /// How long a read-only opener waits for a save in progress.
     pub read_only_wait: Duration,
+    /// An open for `ew fmt --repair` only (WP-S1.17, decision log ID-1185): with [`OpenMode::Edit`] the store takes the
+    /// writer's lock as for any edit, and the integrity demotion does not demote when the only findings that force a
+    /// read-only session are broken lines ([`Finding::is_broken_line`]), which the repair discards
+    /// ([`Store::discard_broken_lines`]); a repair open that another finding made read-only still summarises a crashed
+    /// session's journal ([`OpenReport::recovery`]), which the repair names first. `false` everywhere else.
+    pub repair: bool,
 }
 
 impl StoreOptions {
@@ -103,6 +109,7 @@ impl StoreOptions {
             limits: Limits::default(),
             release_build: !cfg!(debug_assertions),
             read_only_wait: READ_ONLY_WAIT,
+            repair: false,
         }
     }
 }
@@ -665,6 +672,9 @@ pub struct Store {
     /// The files that hold quarantined lines (EW-CORE-005, EW-CORE-007), kept verbatim: the asset purge is refused
     /// while there are any (doc 05 §13.3, FT-380).
     quarantined: BTreeSet<FilePath>,
+    /// The broken lines among the kept ones (EW-CORE-005 at line level), by file: what `ew fmt --repair` discards
+    /// (WP-S1.17, decision log ID-1185). In memory only; their bytes stay in `kept` until a repair's save adopts.
+    broken: BTreeMap<FilePath, Broken>,
     journal: Option<Journal>,
     leftovers: Vec<Segment>,
     recovery: Option<RecoveryInfo>,
@@ -709,6 +719,27 @@ fn lf_hash(bytes: &[u8], raw: &[u8; 32]) -> Option<[u8; 32]> {
     }
     let lf = sha256(&crlf_to_lf(bytes));
     (lf != *raw).then_some(lf)
+}
+
+/// The broken lines of one file (EW-CORE-005 at line level, WP-S1.17 ID-1185): each line's key in `kept` with its
+/// line number in the generation loaded, and whether the file holds another quarantined line, which keeps it among the
+/// quarantined files after a repair.
+#[derive(Clone, PartialEq, Eq, Debug, Default)]
+struct Broken {
+    lines: BTreeMap<LineKey, u32>,
+    other_quarantined: bool,
+}
+
+/// A broken line of the generation on disk ([`Store::broken_lines`]): EW-CORE-005 at line level, a line that is not one
+/// JSON value or not UTF-8, which `ew fmt --repair` discards (WP-S1.17, decision log ID-1185).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct BrokenLine {
+    /// The file.
+    pub file: FilePath,
+    /// The 1-based line in the generation loaded.
+    pub line: u32,
+    /// Its bytes, without the line end, as the file holds them.
+    pub text: Vec<u8>,
 }
 
 /// An opened project.
@@ -809,6 +840,7 @@ impl Store {
             notes: Vec::new(),
             all_assets: false,
             quarantined: BTreeSet::new(),
+            broken: BTreeMap::new(),
             journal: None,
             leftovers: Vec::new(),
             recovery: None,
@@ -1093,7 +1125,14 @@ impl Store {
         let loaded = ew_format::load(manifest.as_ref(), &files, &limits);
         // The loader's list is capped at `max_findings`; its flag also counts the findings it dropped
         // (review cycle 8, major 2: a thousand duplicates must not hide a line the writer would lose).
-        let loader_read_only = loaded.read_only;
+        // A repair open (WP-S1.17 ID-1185 ruling 4) lets broken lines through, which the repair discards, and nothing
+        // else: the loader's own flag for the other forcing findings counts those beyond its cap too.
+        let repair = self.opts.repair;
+        let loader_read_only = if repair {
+            loaded.read_only_beyond_repair
+        } else {
+            loaded.read_only
+        };
         findings.extend(loaded.findings);
         findings.sort();
         let Some(project) = loaded.project else {
@@ -1110,7 +1149,10 @@ impl Store {
                 model.put_asset(asset);
             }
         }
-        if !repairable || loader_read_only || findings.iter().any(|f| f.kind.forces_read_only()) {
+        let forced = findings
+            .iter()
+            .any(|f| f.kind.forces_read_only() && !(repair && f.is_broken_line()));
+        if !repairable || loader_read_only || forced {
             self.demote(ReadOnlyReason::Integrity);
         }
 
@@ -1140,9 +1182,19 @@ impl Store {
             .into_iter()
             .map(|(p, h)| (p, FileHash::Sha256(h)))
             .collect();
+        let mut other_quarantined: BTreeSet<FilePath> = BTreeSet::new();
         for line in loaded.kept {
             if matches!(line.kept, Kept::Quarantined) {
                 self.quarantined.insert(line.file.clone());
+                if line.is_broken() {
+                    self.broken
+                        .entry(line.file.clone())
+                        .or_default()
+                        .lines
+                        .insert(line.key.clone(), line.line);
+                } else {
+                    other_quarantined.insert(line.file.clone());
+                }
             }
             match line.kept {
                 Kept::UnknownKind | Kept::Quarantined => {
@@ -1157,6 +1209,9 @@ impl Store {
                     }
                 }
             }
+        }
+        for (file, broken) in &mut self.broken {
+            broken.other_quarantined = other_quarantined.contains(file);
         }
         for doc in loaded.kept_docs {
             if let Some(row) = document_row(*doc.original) {
@@ -1194,6 +1249,20 @@ impl Store {
                 }
             }
         } else {
+            // `ew fmt --repair` names a crashed session's journal before a finding that forces read-only (WP-S1.17
+            // ID-1185 ruling 3): a repair open that went read-only with the lock held read the leftovers, and
+            // summarises them as an editing open does, deleting and starting nothing.
+            if repair && self.holds_lock {
+                let generation = self.generation;
+                let mut keep: Vec<Segment> = self
+                    .leftovers
+                    .iter()
+                    .filter(|seg| !seg.unsaved(generation).is_empty())
+                    .cloned()
+                    .collect();
+                keep.sort_by_key(|seg| std::cmp::Reverse(seg.last_change(generation)));
+                self.recovery = journal::summarise(&keep, generation, self.manifest_hash.as_ref());
+            }
             self.journal = None;
             self.leftovers.clear();
         }
@@ -1604,6 +1673,7 @@ impl Store {
             notes: Vec::new(),
             all_assets: false,
             quarantined: BTreeSet::new(),
+            broken: BTreeMap::new(),
             journal: None,
             leftovers: Vec::new(),
             recovery: None,
@@ -1655,6 +1725,19 @@ impl Store {
         changes: Changes<'_>,
         drop: &BTreeSet<FilePath>,
     ) -> Result<SaveReport, SaveError> {
+        self.save_inner(model, changes, drop, false)
+    }
+
+    /// [`Store::save_with`] that also discards the broken lines when `discard` is set ([`Store::discard_broken_lines`]):
+    /// their files join the plan's rewrite set and are rendered without them, and they leave the kept lines in
+    /// [`Store::adopt`], never before.
+    fn save_inner(
+        &mut self,
+        model: &Model,
+        changes: Changes<'_>,
+        drop: &BTreeSet<FilePath>,
+        discard: bool,
+    ) -> Result<SaveReport, SaveError> {
         if let Access::ReadOnly(reason) = &self.access {
             return Err(SaveError::ReadOnly(reason.clone()));
         }
@@ -1703,7 +1786,7 @@ impl Store {
         }
 
         // Step 3: serialise the dirty files.
-        let mut plan = self.plan(model, changes)?;
+        let mut plan = self.plan(model, changes, discard)?;
         let drop: BTreeSet<FilePath> = drop
             .iter()
             .filter(|p| self.opaque.contains_key(*p) && !plan.writes.contains_key(*p))
@@ -1769,7 +1852,7 @@ impl Store {
                 .insert(BASE_MEMBER.to_owned(), serde_json::Value::from(hash_text(h)));
         }
         if plan.writes.is_empty() && plan.removes.is_empty() && manifest_same {
-            self.adopt(model, plan.contents, plan.disk);
+            self.adopt(model, plan.contents, plan.disk, discard);
             return Ok(SaveReport {
                 generation: g,
                 findings: std::mem::take(&mut self.notes),
@@ -1875,7 +1958,7 @@ impl Store {
         let manifest_hash = sha256(manifest_text.as_bytes());
         self.opaque.retain(|p, _| !drop.contains(p));
         self.opaque.extend(plan.assets);
-        self.adopt(model, plan.contents, plan.disk);
+        self.adopt(model, plan.contents, plan.disk, discard);
         self.manifest = Some(manifest);
         self.manifest_hash = Some(manifest_hash);
         self.generation = g1;
@@ -2042,12 +2125,16 @@ impl Store {
         Ok(changed)
     }
 
-    /// Makes `model` the baseline after a successful plan.
+    /// Makes `model` the baseline after a successful plan: at the commit point of a save, or for a save with nothing to
+    /// write. With `discard` (a repair's save, [`Store::discard_broken_lines`]) the broken lines leave the kept lines
+    /// here, and only here, so that a save that fails before its commit point keeps every one of them; a file left with
+    /// no other quarantined line leaves the quarantined files.
     fn adopt(
         &mut self,
         model: &Model,
         contents: BTreeMap<FilePath, BTreeSet<AnyKey>>,
         disk: BTreeMap<FilePath, Held>,
+        discard: bool,
     ) {
         for (path, keys) in contents {
             if keys.is_empty() {
@@ -2059,10 +2146,24 @@ impl Store {
         self.disk = disk;
         self.rewrite.clear();
         self.base = model.clone();
+        if discard {
+            for (file, broken) in std::mem::take(&mut self.broken) {
+                if let Some(lines) = self.kept.get_mut(&file) {
+                    lines.retain(|(key, _)| !broken.lines.contains_key(key));
+                    if lines.is_empty() {
+                        self.kept.remove(&file);
+                    }
+                }
+                if !broken.other_quarantined {
+                    self.quarantined.remove(&file);
+                }
+            }
+        }
     }
 
-    /// Step 3 of doc 05 §5.2: the bytes of every dirty file and the files to remove.
-    fn plan(&self, model: &Model, changes: Changes<'_>) -> Result<SavePlan, SaveError> {
+    /// Step 3 of doc 05 §5.2: the bytes of every dirty file and the files to remove. With `discard` (a repair's save)
+    /// the files that hold broken lines join the dirty files, rendered without those lines.
+    fn plan(&self, model: &Model, changes: Changes<'_>, discard: bool) -> Result<SavePlan, SaveError> {
         let closure: BTreeSet<AnyKey> = match changes {
             Changes::Keys(keys) => follow_closure(keys, &self.base, model),
             Changes::All => {
@@ -2072,6 +2173,11 @@ impl Store {
             }
         };
         let mut dirty: BTreeSet<FilePath> = self.rewrite.clone();
+        // A repair (WP-S1.17 ID-1185 ruling 6): the files that hold broken lines are rewritten as `self.rewrite`'s are,
+        // since under `Changes::Keys` a file whose only change is a dropped kept line is not otherwise dirty.
+        if discard {
+            dirty.extend(self.broken.keys().cloned());
+        }
         if matches!(changes, Changes::All) {
             dirty.extend(self.disk.keys().cloned());
             dirty.extend(self.kept.keys().cloned());
@@ -2116,7 +2222,7 @@ impl Store {
                 continue;
             }
             let keys = &contents[path];
-            let bytes = self.render(model, path, keys)?;
+            let bytes = self.render(model, path, keys, discard)?;
             if bytes.is_empty() {
                 if disk.remove(path).is_some() {
                     removes.insert(path.clone());
@@ -2162,8 +2268,14 @@ impl Store {
         })
     }
 
-    /// The bytes of one writer-owned file from the model and the kept lines.
-    fn render(&self, model: &Model, path: &FilePath, keys: &BTreeSet<AnyKey>) -> Result<Vec<u8>, SaveError> {
+    /// The bytes of one writer-owned file from the model and the kept lines; with `discard`, without its broken lines.
+    fn render(
+        &self,
+        model: &Model,
+        path: &FilePath,
+        keys: &BTreeSet<AnyKey>,
+        discard: bool,
+    ) -> Result<Vec<u8>, SaveError> {
         if let PathClass::LibDocument { .. } = classify(path.as_str()) {
             let Some(key) = keys.iter().find(|k| is_library(k)) else {
                 return Ok(Vec::new());
@@ -2188,7 +2300,12 @@ impl Store {
             lines.push((row_line_key(key), text));
         }
         if let Some(kept) = self.kept.get(path) {
-            lines.extend(kept.iter().cloned());
+            let broken = self.broken.get(path).filter(|_| discard);
+            lines.extend(
+                kept.iter()
+                    .filter(|(key, _)| broken.is_none_or(|b| !b.lines.contains_key(key)))
+                    .cloned(),
+            );
         }
         Ok(jsonl_file(lines))
     }
@@ -2211,7 +2328,7 @@ impl Store {
         }
         let mut out = BTreeMap::new();
         for (path, keys) in &contents {
-            let bytes = self.render(model, path, keys)?;
+            let bytes = self.render(model, path, keys, false)?;
             if !bytes.is_empty() {
                 out.insert(path.clone(), bytes);
             }
@@ -2230,7 +2347,24 @@ impl Store {
     ///
     /// [`SaveError::Format`] for a record without a file or a JSON form.
     pub fn canonical_rewrite(&self) -> Result<BTreeMap<FilePath, Option<Vec<u8>>>, SaveError> {
-        let plan = self.plan(&self.base, Changes::Keys(&BTreeSet::new()))?;
+        self.rewrite_plan(false)
+    }
+
+    /// The files `ew fmt --repair`'s save writes ([`Store::discard_broken_lines`]), as [`Store::canonical_rewrite`]
+    /// gives `ew fmt`'s: the files that hold broken lines, with the bytes the save writes for them (every other line as
+    /// the next save writes it, kept lines verbatim), and the files the loader found not in canonical form; `None` for
+    /// a file the save removes (nothing is left in it). Nothing is written.
+    ///
+    /// # Errors
+    ///
+    /// [`SaveError::Format`] for a record without a file or a JSON form.
+    pub fn repair_rewrite(&self) -> Result<BTreeMap<FilePath, Option<Vec<u8>>>, SaveError> {
+        self.rewrite_plan(true)
+    }
+
+    /// The record files and library documents of the plan with no changed record, with or without the broken lines.
+    fn rewrite_plan(&self, discard: bool) -> Result<BTreeMap<FilePath, Option<Vec<u8>>>, SaveError> {
+        let plan = self.plan(&self.base, Changes::Keys(&BTreeSet::new()), discard)?;
         let mut out: BTreeMap<FilePath, Option<Vec<u8>>> = plan
             .writes
             .into_iter()
@@ -2388,6 +2522,46 @@ impl Store {
         if let Some(j) = &self.journal {
             j.discard(std::slice::from_ref(&seg));
         }
+    }
+
+    /// The broken lines of the generation loaded (EW-CORE-005 at line level: not one JSON value, or not UTF-8), in file
+    /// and line order, from the store's own data, never the open's findings, whose list is capped: what
+    /// [`Store::discard_broken_lines`] discards (WP-S1.17, decision log ID-1185).
+    pub fn broken_lines(&self) -> Vec<BrokenLine> {
+        let mut out = Vec::new();
+        for (file, broken) in &self.broken {
+            let mut lines: Vec<BrokenLine> = self
+                .kept
+                .get(file)
+                .into_iter()
+                .flatten()
+                .filter_map(|(key, text)| {
+                    broken.lines.get(key).map(|line| BrokenLine {
+                        file: file.clone(),
+                        line: *line,
+                        text: text.clone(),
+                    })
+                })
+                .collect();
+            lines.sort_by_key(|l| l.line);
+            out.append(&mut lines);
+        }
+        out
+    }
+
+    /// `ew fmt --repair`'s save (WP-S1.17, decision log ID-1185 ruling 6): one save of the generation loaded through the
+    /// protocol, with no changed key, in which the files that hold broken lines ([`Store::broken_lines`]) are rewritten
+    /// without them, in canonical form as `ew fmt` writes them, every other kept line byte for byte; generation g + 1
+    /// (nothing is written without a broken line or a file to rewrite). The broken lines leave the store's kept lines
+    /// only at the save's commit point (in `adopt`): a save that fails before it keeps all of them, and the next
+    /// attempt discards the same lines. Unsaved edits of a caller's model are not this save's: it writes the baseline.
+    ///
+    /// # Errors
+    ///
+    /// As [`Store::save`].
+    pub fn discard_broken_lines(&mut self) -> Result<SaveReport, SaveError> {
+        let base = self.base.clone();
+        self.save_inner(&base, Changes::Keys(&BTreeSet::new()), &BTreeSet::new(), true)
     }
 
     /// The access of the session.

@@ -691,6 +691,11 @@
           "repeatable": false
         },
         {
+          "name": "--repair",
+          "value": false,
+          "repeatable": false
+        },
+        {
           "name": "--json",
           "value": false,
           "repeatable": false

@@ -183,6 +183,9 @@ pub struct FmtArgs {
     pub project: Option<PathBuf>,
     /// List the files a format would rewrite and write nothing (`--check`, a reader).
     pub check: bool,
+    /// Discard the broken lines (EW-CORE-005 at line level) after an `.ewz` backup (`--repair`; WP-S1.17, decision log
+    /// ID-1185); never with `check`.
+    pub repair: bool,
     /// Print the result as JSON (`--json`).
     pub json: bool,
 }
@@ -2127,13 +2130,16 @@ fn open_for_writing_items(
 
 /// Opens the project in `dir` for editing with `origin`, `recovery` saying what happens to a crashed session's
 /// journal: refused (exit 2, [`read_only_refusal`]) when the open went read-only, which an editing open does silently
-/// when another session holds the lock (ruling 2 of cycle 41: a writer never acts read-only).
+/// when another session holds the lock (ruling 2 of cycle 41: a writer never acts read-only). A repair open
+/// ([`ew_api::StoreOptions::repair`]) that integrity findings made read-only is let through: `ew fmt --repair` names a
+/// crashed session's journal first and then the finding (WP-S1.17, decision log ID-1185 rulings 3 and 4).
 fn open_editing(
     dir: &Path,
     origin: ew_api::Origin,
     store: ew_api::StoreOptions,
     recovery: ew_api::Recovery,
 ) -> Result<(ew_api::Session, ew_api::OpenReport), i32> {
+    let repair = store.repair;
     let options = ew_api::SessionOptions {
         origin,
         ..ew_api::SessionOptions::default()
@@ -2145,10 +2151,14 @@ fn open_editing(
             return Err(2);
         }
     };
-    if let ew_api::Access::ReadOnly(reason) = &opened.access {
-        eprintln!("{}", read_only_refusal(dir, reason));
-        session.close();
-        return Err(2);
+    match &opened.access {
+        ew_api::Access::ReadOnly(ew_api::ReadOnlyReason::Integrity) if repair => {}
+        ew_api::Access::ReadOnly(reason) => {
+            eprintln!("{}", read_only_refusal(dir, reason));
+            session.close();
+            return Err(2);
+        }
+        ew_api::Access::Edit => {}
     }
     Ok((session, opened))
 }

@@ -14,6 +14,23 @@
 //! - **The write** ([`format()`]) is a save of the session's store: the save protocol's temps, intent and renames, so a
 //!   crash between files leaves either the old or the new generation, never a torn file (ruling 1 of cycle 41).
 //!
+//! # `ew fmt --repair`
+//!
+//! [`repair`] (WP-S1.17, decision log ID-1185) discards exactly the broken lines, EW-CORE-005 at line level (a line
+//! that is not one JSON value, or not UTF-8, doc 05 §6.3), from a session opened with
+//! [`StoreOptions::repair`](crate::StoreOptions): the integrity demotion let those lines through, and only those. In
+//! order, before anything is written: a store `pack_store` refuses refuses (no manifest, an incomplete save, a file
+//! changed on disk); without a broken line nothing is written; the content check runs over the repair's rewrite set
+//! with the broken lines left out (only form may change elsewhere). Then the backup: the generation on disk, broken
+//! lines included, packed as an `.ewz` ([`ewz::pack_store`]) and written into the project folder's parent as
+//! `<project folder>.before-repair-g<generation>.ewz` ([`backup_path`]), to a temporary name beside it, read back,
+//! synced, moved there without replacing anything ([`Vfs::rename_noreplace`], else a new file on a file system without
+//! hard links) and the folder synced; a file already at that name is reused when it holds this generation's pack byte
+//! for byte and refused otherwise. Last the one save, [`ew_store::Store::discard_broken_lines`]: the files that hold
+//! the broken lines rewritten without them, every other line as `ew fmt` writes it (kept lines byte for byte). A
+//! failure before the save's commit point leaves the generation on disk as it was, the backup beside it; the caller
+//! opens the project again afterwards.
+//!
 //! # Form and content
 //!
 //! Form, which `ew fmt` may change: the order of the lines and of an object's members, white space, string escapes,
@@ -23,14 +40,17 @@
 //! than rewritten), a value, or the order of an array's items. A line that is not one JSON value compares by its bytes
 //! (CR line end aside).
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 use std::io;
+use std::path::{Path, PathBuf};
 
-use ew_store::ew_format::{FilePath, FindingKind, PathClass, classify};
+use ew_store::ew_format::{FilePath, Finding, FindingKind, PathClass, classify};
+use ew_store::ewz::{self, PackError};
+use ew_store::{EntryKind, GenerationError, Vfs};
 use serde_json::Value;
 
-use crate::{OpenReport, SaveError, Session};
+use crate::{Access, OpenReport, ReadOnlyReason, SaveError, Session};
 
 /// A file of the rewrite set.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -165,9 +185,19 @@ pub fn plan(session: &Session) -> Result<Plan, FmtError> {
 /// -009, a limit), malformed values of known variants (EW-CORE-017) and unknown kinds, members or files of a newer
 /// format (EW-CORE-016), in the report's order.
 pub fn kept_lines(report: &OpenReport) -> Vec<KeptLine> {
+    kept_where(report, |_| true)
+}
+
+/// [`kept_lines`] that stay after `ew fmt --repair`: every one but the broken lines, which the repair discards.
+pub fn kept_after_repair(report: &OpenReport) -> Vec<KeptLine> {
+    kept_where(report, |f| !f.is_broken_line())
+}
+
+fn kept_where(report: &OpenReport, keep: impl Fn(&Finding) -> bool) -> Vec<KeptLine> {
     report
         .findings
         .iter()
+        .filter(|f| keep(f))
         .filter(|f| {
             matches!(
                 f.kind,
@@ -199,6 +229,16 @@ pub fn kept_lines(report: &OpenReport) -> Vec<KeptLine> {
 /// [`FmtError::Content`] naming the first line whose content would change; [`FmtError::Read`] when a file cannot be
 /// read back.
 pub fn verify_content(session: &Session, plan: &Plan) -> Result<(), FmtError> {
+    verify_content_except(session, plan, &BTreeSet::new())
+}
+
+/// [`verify_content`] with the lines `discarded` (file and 1-based line on disk) left out of the files on disk: the
+/// repair's check, whose canonical bytes no longer hold the broken lines.
+fn verify_content_except(
+    session: &Session,
+    plan: &Plan,
+    discarded: &BTreeSet<(String, u32)>,
+) -> Result<(), FmtError> {
     let store = session.store().ok_or(FmtError::NoProject)?;
     let mut disk: BTreeMap<Content, Vec<(String, u32)>> = BTreeMap::new();
     let mut canonical: BTreeMap<Content, Vec<(String, u32)>> = BTreeMap::new();
@@ -216,6 +256,9 @@ pub fn verify_content(session: &Session, plan: &Plan) -> Result<(), FmtError> {
             }
         };
         for (line, content) in contents(path, &old) {
+            if discarded.contains(&(path.as_str().to_owned(), line)) {
+                continue;
+            }
             disk.entry(content)
                 .or_default()
                 .push((path.as_str().to_owned(), line));
@@ -283,6 +326,356 @@ pub fn format(session: &mut Session) -> Result<Formatted, FmtError> {
         generation: saved.generation,
         files,
     })
+}
+
+/// The most characters of a discarded line's text that `ew fmt --repair` shows (ID-1185 ruling 7); a longer text is
+/// cut there and ends with "…".
+pub const SHOWN_CHARS: usize = 80;
+
+/// The name of the backup `.ewz` between the project folder's name and the generation:
+/// `<project folder>.before-repair-g<generation>.ewz` ([`backup_path`]).
+pub const BACKUP_INFIX: &str = ".before-repair-g";
+
+/// A broken line that [`repair`] discards (EW-CORE-005 at line level), from the store's own data.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct DiscardedLine {
+    /// The file, relative to the project directory.
+    pub file: String,
+    /// The 1-based line in the generation before the repair.
+    pub line: u32,
+    /// Its bytes as the file held them (the backup holds them too).
+    pub text: Vec<u8>,
+}
+
+impl DiscardedLine {
+    /// The text as shown: invalid UTF-8 as U+FFFD, cut after [`SHOWN_CHARS`] characters with "…". Control characters
+    /// are the printer's to escape.
+    pub fn shown(&self) -> String {
+        let text = String::from_utf8_lossy(&self.text);
+        let mut chars = text.chars();
+        let mut out: String = chars.by_ref().take(SHOWN_CHARS).collect();
+        if chars.next().is_some() {
+            out.push('\u{2026}');
+        }
+        out
+    }
+}
+
+/// The backup [`repair`] wrote or found.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct Backup {
+    /// The `.ewz` ([`backup_path`]).
+    pub path: PathBuf,
+    /// The generation it holds: the one before the repair.
+    pub generation: u64,
+    /// Whether it was there already, holding this generation's pack byte for byte, and was reused.
+    pub reused: bool,
+}
+
+/// What [`repair`] did.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct Repaired {
+    /// The generation on disk afterwards (the one before when there was nothing to repair).
+    pub generation: u64,
+    /// The lines discarded, in file and line order; empty when there was nothing to repair.
+    pub discarded: Vec<DiscardedLine>,
+    /// The files the save rewrote or removed, in path order: those that held the lines, and those the open found not in
+    /// canonical form.
+    pub files: Vec<Rewrite>,
+    /// The backup; `None` when there was nothing to repair.
+    pub backup: Option<Backup>,
+}
+
+/// Why [`repair`] did not repair.
+#[derive(Debug)]
+pub enum RepairError {
+    /// The session has no project directory.
+    NoProject,
+    /// The session has unsaved changes: a repair writes only the saved project.
+    Dirty,
+    /// The session is read-only (a repair opens through [`StoreOptions::repair`](crate::StoreOptions), which the CLI
+    /// refuses for every other forcing reason first).
+    ReadOnly(ReadOnlyReason),
+    /// The generation on disk cannot be packed as the backup ([`ewz::pack_store`]): no manifest, an incomplete save, a
+    /// file changed on disk, an archive the reader would refuse. Nothing was written.
+    Pack(PackError),
+    /// The project folder has no name or no parent folder to hold the backup. Nothing was written.
+    NoFolder(PathBuf),
+    /// A file is at the backup's name and does not hold this generation's pack. Nothing was written.
+    BackupTaken(PathBuf),
+    /// The backup could not be written (its folder cannot be written, the disk is full, a read-back differs). Nothing
+    /// of it is left and the project was not changed.
+    Backup {
+        /// The backup's path.
+        path: PathBuf,
+        /// The error.
+        error: io::Error,
+    },
+    /// The content check or the rewrite set refused (a [`FmtError`]). Nothing was written.
+    Format(FmtError),
+    /// The save failed; the backup is in place. Before the save's commit point the generation on disk is as it was;
+    /// with [`SaveError::Incomplete`] of the new generation it is decided and completes at the next open.
+    Save {
+        /// The save's error.
+        error: SaveError,
+        /// The backup.
+        backup: Backup,
+    },
+}
+
+impl fmt::Display for RepairError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            RepairError::NoProject => f.write_str("the session has no project directory"),
+            RepairError::Dirty => {
+                f.write_str("the session has unsaved changes; a repair writes only the saved project")
+            }
+            RepairError::ReadOnly(reason) => write!(f, "the session is read-only ({reason:?})"),
+            RepairError::Pack(e) => write!(f, "the backup cannot be packed: {}", pack_words(e)),
+            RepairError::NoFolder(p) => {
+                write!(f, "{} has no parent folder to hold the backup", p.display())
+            }
+            RepairError::BackupTaken(p) => write!(
+                f,
+                "{} already exists and does not hold this generation's backup",
+                p.display()
+            ),
+            RepairError::Backup { path, error } => {
+                write!(f, "the backup cannot be written ({}: {error})", path.display())
+            }
+            RepairError::Format(e) => e.fmt(f),
+            RepairError::Save { error, .. } => write!(f, "the save failed: {error}"),
+        }
+    }
+}
+
+impl std::error::Error for RepairError {}
+
+/// Why the backup cannot be packed, in the repair's words: the pack's own texts name steps (save first) that a
+/// project that opens read-only cannot take.
+fn pack_words(e: &PackError) -> String {
+    match e {
+        PackError::Generation(GenerationError::NoManifest) => "the project has no manifest.json".to_owned(),
+        PackError::Generation(GenerationError::Incomplete) => "a save is incomplete".to_owned(),
+        PackError::Generation(GenerationError::Changed { path }) => {
+            format!("{path} changed on disk since the project was opened")
+        }
+        PackError::Generation(GenerationError::Pending { path }) => {
+            format!("the manifest's hash of {path} is pending (a merged project)")
+        }
+        PackError::Generation(GenerationError::Io { path, error }) | PackError::Io { path, error } => {
+            format!("{}: {error}", path.display())
+        }
+        PackError::Refused(why) => format!("an .ewz cannot hold it ({why})"),
+    }
+}
+
+/// A finding in words for a refusal: its rule and where (`EW-CORE-006 at pages/p1.jsonl:3`).
+pub fn finding_words(f: &Finding) -> String {
+    let code = f.code().unwrap_or("a finding");
+    match (&f.file, f.line) {
+        (Some(file), Some(line)) => format!("{code} at {file}:{line}"),
+        (Some(file), None) => format!("{code} at {file}"),
+        _ => code.to_owned(),
+    }
+}
+
+/// The first finding of `report` that forces a read-only session and is not a broken line: what `ew fmt --repair`
+/// does not repair and names in its refusal. `None` when the open has none in its list: then the one that forced it is
+/// beyond the findings cap (the loader's own flag counted it), or the open is read-only for another reason.
+pub fn beyond_repair(report: &OpenReport) -> Option<&Finding> {
+    report
+        .findings
+        .iter()
+        .find(|f| f.kind.forces_read_only() && !f.is_broken_line())
+}
+
+/// The backup's path for the store's project at `generation`: `<project folder>.before-repair-g<generation>.ewz` in
+/// the parent folder of the project folder, as the file system names it (links and `.` resolved).
+///
+/// # Errors
+///
+/// [`RepairError::NoFolder`] when the project folder has no name or no parent.
+pub fn backup_path(vfs: &dyn Vfs, root: &Path, generation: u64) -> Result<PathBuf, RepairError> {
+    let root = vfs.canonicalize(root).unwrap_or_else(|_| root.to_path_buf());
+    let (Some(name), Some(parent)) = (root.file_name(), root.parent()) else {
+        return Err(RepairError::NoFolder(root.clone()));
+    };
+    let mut file = name.to_owned();
+    file.push(format!("{BACKUP_INFIX}{generation}.{}", ewz::EXTENSION));
+    Ok(parent.join(file))
+}
+
+/// The bytes read and compared in one step when an existing backup is checked or the written one read back.
+const COMPARE_CHUNK: usize = 1 << 20;
+
+/// Whether the regular file at `path` holds exactly `bytes`: its kind and length first, then its content chunk by chunk
+/// (a file of another size is never read).
+fn holds(vfs: &dyn Vfs, path: &Path, bytes: &[u8]) -> io::Result<bool> {
+    let stat = vfs.stat(path)?;
+    if stat.kind != EntryKind::File || stat.len != bytes.len() as u64 {
+        return Ok(false);
+    }
+    let mut offset = 0u64;
+    for chunk in bytes.chunks(COMPARE_CHUNK) {
+        if vfs.read_at(path, offset, chunk.len())? != chunk {
+            return Ok(false);
+        }
+        offset += chunk.len() as u64;
+    }
+    Ok(true)
+}
+
+/// Writes the backup `bytes` at `target` without replacing anything (ID-1185 ruling 5); `Ok(true)` when a file there
+/// already held these bytes and is reused. Otherwise: the temporary name `<target>.tmp` beside it (a leftover of an
+/// interrupted repair of this project removed first: the caller holds its lock), the bytes written, read back and
+/// synced, moved to `target` by [`Vfs::rename_noreplace`] (on a file system without hard links, `target` created
+/// anew, which never replaces either) and the folder synced. Any failure removes what this call created.
+fn write_backup(vfs: &dyn Vfs, target: &Path, bytes: &[u8]) -> Result<bool, RepairError> {
+    let failed = |error: io::Error| RepairError::Backup {
+        path: target.to_path_buf(),
+        error,
+    };
+    let taken = || RepairError::BackupTaken(target.to_path_buf());
+    match vfs.stat(target) {
+        Ok(_) => return if holds(vfs, target, bytes).map_err(failed)? { Ok(true) } else { Err(taken()) },
+        Err(e) if e.kind() == io::ErrorKind::NotFound => {}
+        Err(e) => return Err(failed(e)),
+    }
+    let parent = target
+        .parent()
+        .filter(|p| !p.as_os_str().is_empty())
+        .unwrap_or(Path::new("."));
+    let mut temp = target.as_os_str().to_owned();
+    temp.push(".tmp");
+    let temp = PathBuf::from(temp);
+    // Only a target that this call made holds `bytes`: another file there is never removed.
+    let undo = |placed: bool| {
+        let _ = vfs.remove_file(&temp);
+        if placed && holds(vfs, target, bytes).unwrap_or(false) {
+            let _ = vfs.remove_file(target);
+        }
+        let _ = vfs.sync_dir(parent);
+    };
+    let _ = vfs.remove_file(&temp);
+    if let Err(e) = vfs.create_new(&temp, bytes) {
+        undo(false);
+        return Err(failed(e));
+    }
+    let written = vfs
+        .sync(&temp)
+        .and_then(|()| holds(vfs, &temp, bytes))
+        .and_then(|same| {
+            if same {
+                Ok(())
+            } else {
+                Err(io::Error::other("the bytes read back differ from the bytes written"))
+            }
+        });
+    if let Err(e) = written {
+        undo(false);
+        return Err(failed(e));
+    }
+    match vfs.rename_noreplace(&temp, target) {
+        Ok(()) => {}
+        Err(e) if e.kind() == io::ErrorKind::AlreadyExists => {
+            undo(false);
+            return Err(taken());
+        }
+        // No rename without replacement on this file system: the target is created anew, which never replaces.
+        Err(e) if e.kind() == io::ErrorKind::Unsupported => {
+            match vfs.create_new(target, bytes) {
+                Ok(()) => {}
+                Err(e) if e.kind() == io::ErrorKind::AlreadyExists => {
+                    undo(false);
+                    return Err(taken());
+                }
+                Err(e) => {
+                    undo(false);
+                    return Err(failed(e));
+                }
+            }
+            if let Err(e) = vfs.sync(target) {
+                undo(true);
+                return Err(failed(e));
+            }
+            let _ = vfs.remove_file(&temp);
+        }
+        // A rename by link and unlink can fail after the link: the target is then ours, and goes too.
+        Err(e) => {
+            undo(true);
+            return Err(failed(e));
+        }
+    }
+    if let Err(e) = vfs.sync_dir(parent) {
+        // The name may not be durable: take the backup back, so that the failure leaves none.
+        undo(true);
+        return Err(failed(e));
+    }
+    Ok(false)
+}
+
+/// `ew fmt --repair` (see the module documentation): the backup, then one save without the broken lines. The session
+/// must be a fresh editing open with [`StoreOptions::repair`](crate::StoreOptions) (the CLI refuses an `.ewz`, a crashed
+/// session's journal and every other forcing finding before it gets here). Without a broken line nothing is written and
+/// the result holds no backup.
+///
+/// # Errors
+///
+/// [`RepairError`]: every variant but [`RepairError::Save`] wrote nothing; with it the backup is in place.
+pub fn repair(session: &mut Session) -> Result<Repaired, RepairError> {
+    let store = session.store().ok_or(RepairError::NoProject)?;
+    if let Access::ReadOnly(reason) = store.access() {
+        return Err(RepairError::ReadOnly(reason.clone()));
+    }
+    if session.is_dirty() {
+        return Err(RepairError::Dirty);
+    }
+    // Ruling 3: a store that `pack_store` refuses refuses, before the answer that nothing is to be repaired.
+    let packed = ewz::pack_store(store).map_err(RepairError::Pack)?;
+    let discarded: Vec<DiscardedLine> = store
+        .broken_lines()
+        .into_iter()
+        .map(|b| DiscardedLine {
+            file: b.file.as_str().to_owned(),
+            line: b.line,
+            text: b.text,
+        })
+        .collect();
+    if discarded.is_empty() {
+        return Ok(Repaired {
+            generation: store.generation(),
+            discarded,
+            files: Vec::new(),
+            backup: None,
+        });
+    }
+    let plan = Plan {
+        files: store
+            .repair_rewrite()
+            .map_err(|e| RepairError::Format(FmtError::Render(e)))?,
+    };
+    let lines: BTreeSet<(String, u32)> = discarded.iter().map(|d| (d.file.clone(), d.line)).collect();
+    verify_content_except(session, &plan, &lines).map_err(RepairError::Format)?;
+    let target = backup_path(&**store.vfs(), store.root(), packed.generation)?;
+    let reused = write_backup(&**store.vfs(), &target, &packed.bytes)?;
+    let backup = Backup {
+        path: target,
+        generation: packed.generation,
+        reused,
+    };
+    let Some(persistence) = session.persistence.as_mut() else {
+        return Err(RepairError::NoProject);
+    };
+    match persistence.store.discard_broken_lines() {
+        Ok(saved) => Ok(Repaired {
+            generation: saved.generation,
+            discarded,
+            files: plan.files(),
+            backup: Some(backup),
+        }),
+        Err(error) => Err(RepairError::Save { error, backup }),
+    }
 }
 
 /// The content of one line (or of a whole library document) for the comparison of [`verify_content`].

@@ -1,15 +1,17 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `ew fmt` and `ew recover` (WP-S1.22 part 3, D9 and D10): the subcommands that work on the project's files and
-//! journals as the store keeps them.
+//! `ew fmt` and `ew recover` (WP-S1.22 part 3, D9 and D10), and `ew fmt --repair` (WP-S1.17, decision log ID-1185):
+//! the subcommands that work on the project's files and journals as the store keeps them.
+
+use std::path::Path;
 
 use ew_api::cli_results as results;
-use ew_api::fmt::{FmtError, KeptLine, Rewrite};
+use ew_api::fmt::{Backup, DiscardedLine, FmtError, KeptLine, RepairError, Repaired, Rewrite};
 
 use super::{
     FmtArgs, RecoverAction, RecoverArgs, journal_refusal, open_editing, plural, printable, project_dir,
-    reader_dir, typed_word,
+    read_only_words, reader_dir, typed_word,
 };
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -21,6 +23,9 @@ const DISCARD_WORD: &str = "discard";
 /// lock, nothing written) or rewritten through the save protocol after the content check (`ew_api::fmt`). The lines the
 /// open kept verbatim are listed on stderr in both modes.
 pub(super) fn run_fmt(a: &FmtArgs) -> i32 {
+    if a.repair {
+        return run_repair(a);
+    }
     // `--check` is a reader and takes an `.ewz` (WP-S1.17 D9); `fmt` writes and refuses one.
     let dir = if a.check {
         reader_dir(a.project.as_ref())
@@ -146,6 +151,231 @@ fn fmt_summary(check: bool, files: &[Rewrite], generation: u64) -> String {
             "fmt: rewrote {}; saved generation {generation}",
             plural(n, "file", "files")
         ),
+    }
+}
+
+/// The origin of `ew fmt`'s sessions.
+fn fmt_origin() -> ew_api::Origin {
+    ew_api::Origin::Cli {
+        subcommand: "fmt".to_owned(),
+        confirmed: false,
+    }
+}
+
+/// `ew fmt --repair` (WP-S1.17, decision log ID-1185): the refusals in ruling 3's order (an `.ewz`, a crashed session's
+/// journal, any other finding that forces read-only, then the repair's own: a project that cannot be packed, the
+/// backup's name or folder, the content check), each before anything is written; then the backup and the one save
+/// (`ew_api::fmt::repair`), and the project opened again as an editor opens it (ruling 6): exit 0 when it opens editable
+/// with no EW-CORE-005 finding, else 2, the new generation kept. The discarded lines and the backup go to stdout (stderr
+/// with `--json`); the kept lines and the summary to stderr.
+fn run_repair(a: &FmtArgs) -> i32 {
+    let Some(dir) = project_dir(a.project.as_ref()) else {
+        return 2;
+    };
+    let mut store = ew_api::StoreOptions::new(VERSION);
+    store.repair = true;
+    let (mut session, report) = match open_editing(&dir, fmt_origin(), store, ew_api::Recovery::Keep) {
+        Ok(r) => r,
+        Err(code) => return code,
+    };
+    if report.recovery.is_some() {
+        eprintln!("{}", journal_refusal(&dir));
+        session.close();
+        return 2;
+    }
+    // `open_editing` lets through only a repair open that integrity findings other than broken lines made read-only.
+    if report.access != ew_api::Access::Edit {
+        eprintln!("{}", beyond_repair_refusal(&dir, &report));
+        session.close();
+        return 2;
+    }
+    let kept = ew_api::fmt::kept_after_repair(&report);
+    for k in &kept {
+        eprintln!("{}", kept_line(k));
+    }
+    let outcome = ew_api::fmt::repair(&mut session);
+    // A repair's session holds no unsaved transaction: the clean close loses nothing.
+    session.close();
+    let repaired = match outcome {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("{}", repair_refusal(&dir, &e));
+            return 2;
+        }
+    };
+    let json = |repaired: &Repaired| {
+        if a.json {
+            print!("{}", results::to_text(&repair_result(repaired, &kept)));
+        }
+    };
+    let Some(backup) = &repaired.backup else {
+        eprintln!("Nothing to repair");
+        json(&repaired);
+        return 0;
+    };
+    for line in repair_report(&repaired.discarded, backup) {
+        if a.json {
+            eprintln!("{line}");
+        } else {
+            println!("{line}");
+        }
+    }
+    match reopen(&dir) {
+        Ok(()) => {
+            eprintln!(
+                "Repaired: discarded {}; saved generation {}",
+                plural(repaired.discarded.len(), "line", "lines"),
+                repaired.generation
+            );
+            json(&repaired);
+            0
+        }
+        Err(what) => {
+            eprintln!(
+                "error: {}: after the repair the project {what}; the repaired generation {} stays; the backup {} \
+                 holds generation {}, and `ew extract` makes a project of it in a new folder",
+                dir.display(),
+                repaired.generation,
+                backup.path.display(),
+                backup.generation
+            );
+            2
+        }
+    }
+}
+
+/// What `ew fmt --repair` prints when it repaired: each discarded line (`file:line` and its text as shown, cut after 80
+/// characters, control characters escaped), then the backup's path (ID-1185 ruling 7).
+fn repair_report(discarded: &[DiscardedLine], backup: &Backup) -> Vec<String> {
+    let mut lines: Vec<String> = discarded
+        .iter()
+        .map(|d| format!("discarded {}:{}: {}", d.file, d.line, printable(&d.shown())))
+        .collect();
+    lines.push(if backup.reused {
+        format!(
+            "backup {} (generation {}, already there and reused)",
+            backup.path.display(),
+            backup.generation
+        )
+    } else {
+        format!("backup {} (generation {})", backup.path.display(), backup.generation)
+    });
+    lines
+}
+
+/// `ew fmt --repair --json`'s result.
+fn repair_result(repaired: &Repaired, kept: &[KeptLine]) -> results::FmtRepairResult {
+    results::FmtRepairResult {
+        schema: results::FMT_REPAIR.to_owned(),
+        discarded: repaired
+            .discarded
+            .iter()
+            .map(|d| results::DiscardedRow {
+                file: d.file.clone(),
+                line: d.line,
+                text: d.shown(),
+            })
+            .collect(),
+        backup: repaired.backup.as_ref().map(|b| results::BackupRow {
+            path: b.path.display().to_string(),
+            generation: b.generation,
+            reused: b.reused,
+        }),
+        files: repaired
+            .files
+            .iter()
+            .map(|f| results::FmtFile {
+                file: f.file.clone(),
+                removed: f.removed,
+            })
+            .collect(),
+        kept: kept
+            .iter()
+            .map(|k| results::KeptRow {
+                file: k.file.clone(),
+                line: k.line,
+                code: k.code.clone(),
+                reason: k.reason.clone(),
+            })
+            .collect(),
+        generation: repaired.generation,
+    }
+}
+
+/// Opens the repaired project again as an editor opens it (ID-1185 ruling 6) and closes it: `Err` with what is still
+/// wrong, in words.
+fn reopen(dir: &Path) -> Result<(), String> {
+    let options = ew_api::SessionOptions {
+        origin: fmt_origin(),
+        ..ew_api::SessionOptions::default()
+    };
+    let (session, report) = ew_api::Session::open(
+        dir,
+        ew_api::StoreOptions::new(VERSION),
+        options,
+        ew_api::Recovery::Keep,
+    )
+    .map_err(|e| format!("does not open: {e}"))?;
+    session.close();
+    if let Some(f) = report.findings.iter().find(|f| f.code() == Some("EW-CORE-005")) {
+        return Err(format!("still has {}", ew_api::fmt::finding_words(f)));
+    }
+    match &report.access {
+        ew_api::Access::Edit => Ok(()),
+        ew_api::Access::ReadOnly(reason) => Err(format!("opens read-only: {}", read_only_words(reason))),
+    }
+}
+
+/// The refusal of a repair open that a finding other than a broken line made read-only (ID-1185 ruling 3): the first
+/// such finding by its rule and place; one beyond the findings cap is named as such.
+fn beyond_repair_refusal(dir: &Path, report: &ew_api::OpenReport) -> String {
+    let what = ew_api::fmt::beyond_repair(report).map_or_else(
+        || "a finding beyond those the open lists".to_owned(),
+        ew_api::fmt::finding_words,
+    );
+    format!(
+        "error: {}: {what} forces read-only, and `ew fmt --repair` discards only lines that are not JSON or not UTF-8 \
+         (EW-CORE-005); nothing was written; resolve it first (`ew check` lists the findings), then run `ew fmt \
+         --repair` again",
+        dir.display()
+    )
+}
+
+/// The refusal of a repair that `ew_api::fmt::repair` stopped: before the save nothing was written; a failed save
+/// leaves the backup in place.
+fn repair_refusal(dir: &Path, e: &RepairError) -> String {
+    let d = dir.display();
+    match e {
+        RepairError::Pack(_) => format!(
+            "error: {d}: {e}; nothing was written; keep a copy of the project folder and correct the broken lines by \
+             hand"
+        ),
+        RepairError::BackupTaken(path) => format!(
+            "error: {d}: {} already exists and does not hold this generation's backup; nothing was written; move it out \
+             of the folder, then run `ew fmt --repair` again",
+            path.display()
+        ),
+        RepairError::Backup { path, error } => format!(
+            "error: {d}: the backup {} cannot be written: {error}; nothing was written; make its folder writable, then \
+             run `ew fmt --repair` again",
+            path.display()
+        ),
+        RepairError::Format(f @ FmtError::Content { .. }) => format!(
+            "error: {d}: {f}; nothing was written; correct that line by hand, then run `ew fmt --repair` again"
+        ),
+        RepairError::Save {
+            error: error @ ew_api::SaveError::Incomplete { .. },
+            backup,
+        } => format!(
+            "error: {d}: the repair's save is incomplete: {error}; the repaired generation is decided and completes at \
+             the next open; the backup is {}",
+            backup.path.display()
+        ),
+        RepairError::Save { error, backup } => format!(
+            "error: {d}: the repair's save failed: {error}; the backup {} stays; run `ew fmt --repair` again",
+            backup.path.display()
+        ),
+        other => format!("error: {d}: {other}; nothing was written"),
     }
 }
 
@@ -514,8 +744,25 @@ mod tests {
             Ok(Command::Fmt(FmtArgs {
                 project: Some(PathBuf::from("p.ew")),
                 check: true,
+                repair: false,
                 json: false,
             }))
+        );
+        assert_eq!(
+            parse(&["fmt", "p.ew", "--repair", "--json"]),
+            Ok(Command::Fmt(FmtArgs {
+                project: Some(PathBuf::from("p.ew")),
+                check: false,
+                repair: true,
+                json: true,
+            }))
+        );
+        // ID-1185 ruling 7: `--repair` with `--check` is refused by the parser, before any open.
+        assert_eq!(
+            parse(&["fmt", "p.ew", "--repair", "--check"]),
+            Err("error: the argument '--repair' cannot be used with '--check'\n\nUsage: ew fmt --repair \
+                 <project-dir>\n\nFor more information, try '--help'.\n"
+                .to_owned())
         );
         assert_eq!(
             parse(&["fmt", "a", "b"]),

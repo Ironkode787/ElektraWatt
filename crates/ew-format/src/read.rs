@@ -172,8 +172,8 @@ pub enum Kept {
         original: Box<Record>,
     },
     /// A line that is not in [`Loaded::records`]: a syntax error (EW-CORE-005), a conflict marker line
-    /// (EW-CORE-006), a schema violation (EW-CORE-007) or a duplicate (EW-CORE-009). Always written
-    /// verbatim, so nothing is lost.
+    /// (EW-CORE-006), a schema violation (EW-CORE-007), a duplicate (EW-CORE-009) or a line above a limit
+    /// (EW-CORE-019), the finding's kind in [`KeptLine::kind`]. Always written verbatim, so nothing is lost.
     Quarantined,
 }
 
@@ -193,12 +193,22 @@ pub struct KeptLine {
     pub text: Vec<u8>,
     /// Why it is kept.
     pub kept: Kept,
+    /// The kind of the finding that quarantined a [`Kept::Quarantined`] line (EW-CORE-005, -006, -007, -009 or a
+    /// limit); `None` for the other kept lines. In memory only: the line is written back byte for byte whatever its
+    /// kind (WP-S1.17, decision log ID-1185).
+    pub kind: Option<FindingKind>,
 }
 
 impl KeptLine {
     /// The line as text for messages and display (invalid UTF-8 replaced by U+FFFD); never for writing.
     pub fn text_lossy(&self) -> std::borrow::Cow<'_, str> {
         String::from_utf8_lossy(&self.text)
+    }
+
+    /// Whether the line gave EW-CORE-005 (not one JSON value, or not UTF-8): a broken line, which `ew fmt --repair`
+    /// discards ([`Finding::is_broken_line`](crate::Finding::is_broken_line)).
+    pub fn is_broken(&self) -> bool {
+        self.kind == Some(FindingKind::JsonSyntax)
     }
 }
 
@@ -241,6 +251,9 @@ pub struct Loaded {
     pub findings: Vec<Finding>,
     /// Whether a finding forces a read-only session.
     pub read_only: bool,
+    /// Whether a finding other than a broken line (EW-CORE-005 at line level) forces a read-only session, the findings
+    /// beyond the cap included: what `ew fmt --repair` refuses (WP-S1.17, decision log ID-1185).
+    pub read_only_beyond_repair: bool,
 }
 
 /// Reads the files of a project (doc 05 §3, §6.2, §6.3).
@@ -520,8 +533,16 @@ impl Loader<'_> {
         }
     }
 
-    /// Keeps a line verbatim (its bytes), without a record.
-    fn quarantine(&mut self, path: &FilePath, line: u32, key: LineKey, text: Vec<u8>, st: &mut FileState) {
+    /// Keeps a line verbatim (its bytes), without a record, with the kind of the finding that quarantined it.
+    fn quarantine(
+        &mut self,
+        path: &FilePath,
+        line: u32,
+        kind: FindingKind,
+        key: LineKey,
+        text: Vec<u8>,
+        st: &mut FileState,
+    ) {
         st.lines.push((key.clone(), text.clone()));
         self.out.kept.push(KeptLine {
             file: path.clone(),
@@ -529,6 +550,7 @@ impl Loader<'_> {
             key,
             text,
             kept: Kept::Quarantined,
+            kind: Some(kind),
         });
     }
 
@@ -555,7 +577,7 @@ impl Loader<'_> {
                     self.limits.max_line_bytes
                 ),
             );
-            self.quarantine(path, ln, keyless, bytes.to_vec(), st);
+            self.quarantine(path, ln, FindingKind::LimitExceeded, keyless, bytes.to_vec(), st);
             return;
         }
         if LINE_MARKERS.iter().any(|m| bytes.starts_with(m)) {
@@ -565,7 +587,7 @@ impl Loader<'_> {
                 Some(ln),
                 "a git conflict marker line",
             );
-            self.quarantine(path, ln, keyless, bytes.to_vec(), st);
+            self.quarantine(path, ln, FindingKind::ConflictMarkers, keyless, bytes.to_vec(), st);
             return;
         }
         let text = match std::str::from_utf8(bytes) {
@@ -577,7 +599,7 @@ impl Loader<'_> {
                     Some(ln),
                     format!("the line is not UTF-8: {e}"),
                 );
-                self.quarantine(path, ln, keyless, bytes.to_vec(), st);
+                self.quarantine(path, ln, FindingKind::JsonSyntax, keyless, bytes.to_vec(), st);
                 return;
             }
         };
@@ -588,7 +610,7 @@ impl Loader<'_> {
                 Some(ln),
                 format!("nesting deeper than {}", self.limits.max_depth),
             );
-            self.quarantine(path, ln, keyless, bytes.to_vec(), st);
+            self.quarantine(path, ln, FindingKind::LimitExceeded, keyless, bytes.to_vec(), st);
             return;
         }
         match ew_schema::parse_value(text) {
@@ -596,7 +618,7 @@ impl Loader<'_> {
             Err(e) => {
                 let (kind, message) = parse_failure(e);
                 self.find(kind, path, Some(ln), message);
-                self.quarantine(path, ln, keyless, bytes.to_vec(), st);
+                self.quarantine(path, ln, kind, keyless, bytes.to_vec(), st);
             }
         }
     }
@@ -620,7 +642,14 @@ impl Loader<'_> {
                     e.to_string()
                 };
                 self.find(FindingKind::SchemaViolation, path, Some(ln), message);
-                self.quarantine(path, ln, quarantine_key, text.as_bytes().to_vec(), st);
+                self.quarantine(
+                    path,
+                    ln,
+                    FindingKind::SchemaViolation,
+                    quarantine_key,
+                    text.as_bytes().to_vec(),
+                    st,
+                );
                 return;
             }
         };
@@ -637,7 +666,14 @@ impl Loader<'_> {
                 Some(ln),
                 "missing or invalid id",
             );
-            self.quarantine(path, ln, quarantine_key, text.as_bytes().to_vec(), st);
+            self.quarantine(
+                path,
+                ln,
+                FindingKind::SchemaViolation,
+                quarantine_key,
+                text.as_bytes().to_vec(),
+                st,
+            );
             return;
         };
         let is_project = matches!(record, Record::Project(_));
@@ -654,7 +690,14 @@ impl Loader<'_> {
                 Some(ln),
                 format!("{kind_name}:{id} duplicates a record first read at {at}; the first is kept"),
             );
-            self.quarantine(path, ln, quarantine_key, text.as_bytes().to_vec(), st);
+            self.quarantine(
+                path,
+                ln,
+                FindingKind::DuplicateRecord,
+                quarantine_key,
+                text.as_bytes().to_vec(),
+                st,
+            );
             return;
         }
         self.seen
@@ -688,6 +731,7 @@ impl Loader<'_> {
                     key: base_key,
                     text: text.as_bytes().to_vec(),
                     kept,
+                    kind: None,
                 });
             }
             None => match (LineKey::of(&record), crate::record_line(&record)) {
@@ -897,6 +941,7 @@ impl Loader<'_> {
 
     fn finish(mut self) -> Loaded {
         self.out.read_only = self.findings.forces_read_only();
+        self.out.read_only_beyond_repair = self.findings.forces_read_only_beyond_repair();
         self.out.findings = self.findings.into_vec();
         self.out
     }

@@ -123,6 +123,16 @@ enum Top {
     /// writes nothing. A project with unsaved changes of a crashed session, or one that opens read-only, is refused
     /// (exit 2). Exit 0 when every file is canonical or was rewritten, 1 when `--check` finds files to rewrite, 2 on
     /// usage, open, lock, content and save errors.
+    ///
+    /// `fmt --repair` discards the lines that are not JSON or not UTF-8 (EW-CORE-005), which make the project open
+    /// read-only, and nothing else: it first packs the generation on disk, those lines included, as an `.ewz` backup
+    /// beside the project folder (`<project folder>.before-repair-g<generation>.ewz`; a file already there is reused
+    /// only when it holds that backup), then rewrites the files that held the lines in one save, other kept lines
+    /// verbatim, and opens the project again. It prints each discarded line (`file:line` and its text, cut at 80
+    /// characters) and the backup's path; with `--json` the result is `ew.fmt-repair-result/1`. Refused before anything
+    /// is written (exit 2): an `.ewz`, a crashed session's journal, any other finding that forces read-only, a
+    /// project that cannot be packed, a backup name holding another file, a folder that cannot be written. Exit 0 when
+    /// the project opens editable afterwards or there was nothing to repair, 2 otherwise; never with `--check`.
     Fmt(FmtCli),
     /// Summarise, replay or discard the journal a crashed session left.
     ///
@@ -1055,6 +1065,9 @@ struct FmtCli {
     /// List the files a format would rewrite and write nothing.
     #[arg(long, overrides_with = "check")]
     check: bool,
+    /// Discard the lines that are not JSON or not UTF-8, after an `.ewz` backup beside the project folder.
+    #[arg(long, overrides_with = "repair", conflicts_with = "check")]
+    repair: bool,
     /// Print the result as JSON.
     #[arg(long, overrides_with = "json")]
     json: bool,
@@ -1919,10 +1932,12 @@ impl Cli {
                 project_dir,
                 project: flag,
                 check,
+                repair,
                 json,
             }) => Command::Fmt(FmtArgs {
                 project: project(flag, project_dir),
                 check,
+                repair,
                 json,
             }),
             Top::Recover(RecoverCli {
