@@ -122,6 +122,7 @@
     - [`ew check`](reference/cli/check.md)
     - [`ew commands`](reference/cli/commands.md)
     - [`ew export`](reference/cli/export.md)
+    - [`ew extract`](reference/cli/extract.md)
     - [`ew fmt`](reference/cli/fmt.md)
     - [`ew import`](reference/cli/import.md)
     - [`ew lib`](reference/cli/lib.md)
