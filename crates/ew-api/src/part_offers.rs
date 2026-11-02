@@ -13,7 +13,7 @@ use std::collections::BTreeSet;
 use ew_commands::commands::{AssignModeParam, AssignPart};
 use ew_derive::Q;
 use ew_derive::ew_ids::{Id, Uuid, v5};
-use ew_schema::{FnDef, ItemStatus, LibDocument, LibRef, Part, PartKind};
+use ew_schema::{Device, FnDef, ItemStatus, LibDocument, LibRef, Part, PartKind};
 use ew_units::Dec3;
 
 use crate::library::{FnCompat, PartQuery, Tier};
@@ -342,6 +342,33 @@ impl Session {
             Ok(LibDocument::Part(c)) => c.item.part_number.as_str().to_owned(),
             _ => r.item.as_uuid().to_string(),
         })
+    }
+
+    /// The layout kinds a part dialog for `devices` offers (ID-1112, WP-S4.02 D3, D14): an end bracket only when every
+    /// device is a strip (its `aspects.strip` is set, with or without terminals); an enclosure and a mounting plate only
+    /// when every device has no main function; a rail and a duct never (they are layout items, not part uses of a
+    /// device). Every other device is offered none. Empty when `devices` is empty or one names no device.
+    pub fn chooser_layout_kinds(&self, devices: &[Uuid]) -> Vec<&'static str> {
+        if devices.is_empty() {
+            return Vec::new();
+        }
+        let q = self.query();
+        let exists = |d: &Uuid| {
+            let id: Id<Device> = Id::from_uuid(*d);
+            q.devices().get(id).cloned()
+        };
+        let Some(found) = devices.iter().map(exists).collect::<Option<Vec<_>>>() else {
+            return Vec::new();
+        };
+        let mut kinds = Vec::new();
+        if found.iter().all(|d| d.aspects.strip.is_some()) {
+            kinds.push("end_bracket");
+        }
+        if devices.iter().all(|d| self.main_function(*d).is_none()) {
+            kinds.push("enclosure");
+            kinds.push("mounting_plate");
+        }
+        kinds
     }
 
     /// The part selection dialog's list (D17): the project's part copies and the catalogue hits, one row per

@@ -34,7 +34,8 @@ use crate::strings::Key;
 /// The result list shows this many rows at a time (WP-S2.06 D15's window).
 pub const PART_ROWS: usize = 50;
 
-/// The part kinds of the layout tools (WP-S4.02 D14): a part dialog opened for a function never offers them (ID-1109).
+/// The part kinds of the layout tools (WP-S4.02 D14): a device's part dialog offers one only where WP-S4.02 attaches it
+/// (ID-1109, ID-1112).
 const LAYOUT_KIND_WORDS: [&str; 5] = ["enclosure", "mounting_plate", "rail", "duct", "end_bracket"];
 
 /// The part selection dialog's state (D19).
@@ -408,10 +409,15 @@ impl ShellModel {
             c.query.favourites = favourites;
             c.query.recent = recent;
             c.offers = project.session.part_offers(&c.query);
-            // ID-1109 and ID-1110 (WP-S4.02 D3, D14): a part dialog opened for a function never offers a layout part;
-            // a device without a main function (a strip's end brackets, an enclosure device) is offered every kind.
-            if c.query.function.is_some() {
-                c.offers.retain(|o| !LAYOUT_KIND_WORDS.contains(&o.kind.as_str()));
+            // ID-1109, ID-1110 and ID-1112 (WP-S4.02 D3, D14): a layout kind is offered to a device only where WP-S4.02
+            // attaches it (`chooser_layout_kinds`: an end bracket to a strip, an enclosure or a plate to a device
+            // without a main function, never a rail or a duct).
+            if let PartTarget::Devices { devices, .. } = &c.target {
+                let allowed = project.session.chooser_layout_kinds(devices);
+                c.offers.retain(|o| {
+                    !LAYOUT_KIND_WORDS.contains(&o.kind.as_str())
+                        || allowed.iter().any(|k| *k == o.kind.as_str())
+                });
             }
             c.cursor = c.cursor.min(c.offers.len().saturating_sub(1));
         }

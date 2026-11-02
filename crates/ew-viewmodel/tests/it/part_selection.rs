@@ -503,10 +503,11 @@ fn the_device_dialog_never_offers_a_layout_part() {
     s.shutdown();
 }
 
-/// ID-1110 (WP-S4.02 D3): a strip has no main function, so its Part dialog offers every kind: the end bracket
-/// EW-GEN-EB-1 (a Part use of kind `end_bracket`) is found by search.
+/// ID-1112 (WP-S4.02 D3, D14): a strip is offered end brackets though it has a main function, so its Part dialog finds
+/// the end bracket EW-GEN-EB-1 by search, and not the enclosure EW-GEN-ENC-1 (an enclosure goes to a device without a
+/// main function).
 #[test]
-fn the_strip_1x1_offers_its_end_bracket_by_search() {
+fn the_strip_1x1_finds_its_end_bracket_but_no_enclosure() {
     let tmp = Tmp::new("part-sel-1x1");
     let mut s = golden(&tmp);
     select(&mut s, "1X1");
@@ -517,13 +518,19 @@ fn the_strip_1x1_offers_its_end_bracket_by_search() {
         "{:?}",
         results(&s)
     );
+    done(&mut s, "part.search", json!({ "text": "EW-GEN-ENC-1" }));
+    assert!(
+        !results(&s).iter().any(|r| r == "EW-GEN-ENC-1"),
+        "{:?}",
+        results(&s)
+    );
     s.shutdown();
 }
 
-/// ID-1110 (WP-S4.02 D14): the enclosure device -UC1 has no main function, so its Part dialog offers every kind: the
-/// enclosure EW-GEN-ENC-1 is found by search.
+/// ID-1112 (WP-S4.02 D14): the enclosure device -UC1 has no main function, so its Part dialog finds the enclosure
+/// EW-GEN-ENC-1 by search, and not the end bracket EW-GEN-EB-1 (a device takes an end bracket only as a strip).
 #[test]
-fn the_enclosure_device_offers_its_enclosure_by_search() {
+fn the_enclosure_device_finds_its_enclosure_but_no_end_bracket() {
     let tmp = Tmp::new("part-sel-uc1");
     let mut s = golden(&tmp);
     select(&mut s, "-UC1");
@@ -534,7 +541,34 @@ fn the_enclosure_device_offers_its_enclosure_by_search() {
         "{:?}",
         results(&s)
     );
+    done(&mut s, "part.search", json!({ "text": "EW-GEN-EB-1" }));
+    assert!(
+        !results(&s).iter().any(|r| r == "EW-GEN-EB-1"),
+        "{:?}",
+        results(&s)
+    );
     s.shutdown();
+}
+
+/// ID-1112 (WP-S4.02 D3, D14): a rail and a duct are layout items, never part uses of a device: no device's Part dialog
+/// finds RAIL-1 or DUCT-1. The strip 1X1, the enclosure device -UC1 and the valve F55 are searched.
+#[test]
+fn no_device_finds_a_rail_or_a_duct() {
+    for (i, tag) in ["1X1", "-UC1", "F55"].into_iter().enumerate() {
+        let tmp = Tmp::new(&format!("part-sel-rail-{i}"));
+        let mut s = golden(&tmp);
+        select(&mut s, tag);
+        done(&mut s, "part.choose", json!({ "add": true }));
+        for number in ["EW-GEN-RAIL-1", "EW-GEN-DUCT-1"] {
+            done(&mut s, "part.search", json!({ "text": number }));
+            assert!(
+                !results(&s).iter().any(|r| r == number),
+                "{tag}: {number} is offered: {:?}",
+                results(&s)
+            );
+        }
+        s.shutdown();
+    }
 }
 
 /// W45.1 F2 (ID-1110): an empty search says so once, in the list and not in the dialog's body, and Choose is disabled
