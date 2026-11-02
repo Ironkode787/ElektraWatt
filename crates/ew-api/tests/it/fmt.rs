@@ -715,8 +715,7 @@ fn a_repair_that_cannot_pack_the_backup_writes_nothing() {
     let (disk, page, _) = page_with(&[BROKEN], false);
     let last = disk
         .keys()
-        .filter(|n| *n != "manifest.json")
-        .next_back()
+        .rfind(|n| *n != "manifest.json")
         .cloned()
         .expect("a listed file");
     assert!(last > page, "{last} is listed after {page}");
