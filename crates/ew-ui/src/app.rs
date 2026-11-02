@@ -1422,7 +1422,9 @@ impl App {
             structure_location,
             ..
         } = self;
-        let card = egui::Area::new(egui::Id::unique("tool-options"))
+        // ID-1139: the area is named per tool, so a tool's card sizes itself on a sizing pass rather than inheriting the
+        // last tool's size as its bound.
+        let card = egui::Area::new(egui::Id::unique(("tool-options", tool)))
             .fixed_pos(at)
             .order(egui::Order::Middle)
             .show(ctx, |ui| {

@@ -991,6 +991,18 @@ pub fn kind_plural(kind: &str, n: usize) -> String {
     strings::kind_plural(kind)
 }
 
+/// The header of a sheet's section of `n` records of `kind` (ID-1139): the kind in sentence case, singular for one,
+/// with the count ("Device (1)", "Devices (2)").
+pub fn section_header(kind: &str, n: usize) -> String {
+    let words = kind_plural(kind, n);
+    let mut chars = words.chars();
+    let words = match chars.next() {
+        Some(first) => first.to_uppercase().chain(chars).collect(),
+        None => String::new(),
+    };
+    format!("{words} ({n})")
+}
+
 /// The default value of a new list item of type `ty` (`props.list` `add`, §6.5).
 pub fn item_default(ty: &FieldType) -> Value {
     match ty.inner() {
@@ -1007,6 +1019,28 @@ pub fn item_default(ty: &FieldType) -> Value {
         ),
         FieldType::List(_) => Value::Array(Vec::new()),
         _ => Value::Null,
+    }
+}
+
+/// Writes a page's Connection grid rows in words (ID-1139): the group `{ num, den }` has no text of its own, so its
+/// shown value is the grid as the status bar writes it ("QET 10 px", "4 mm"). Its JSON value is unchanged.
+pub fn grid_in_words(sheet: &mut PropertySheet) {
+    for row in sheet
+        .sections
+        .iter_mut()
+        .filter(|s| s.kind == "page")
+        .flat_map(|s| s.rows.iter_mut())
+        .filter(|r| r.path == "grid")
+    {
+        if let RowValue::One { json, text } = &mut row.value
+            && let (Some(num), Some(den)) = (
+                json.get("num").and_then(Value::as_i64),
+                json.get("den").and_then(Value::as_i64),
+            )
+            && den > 0
+        {
+            *text = crate::status::grid_words(num, den);
+        }
     }
 }
 
@@ -1103,6 +1137,19 @@ mod tests {
     use serde_json::json;
 
     use super::*;
+
+    /// ID-1139: a section's header names its kind in sentence case, singular for one record.
+    #[test]
+    fn a_section_header_reads_in_sentence_case() {
+        assert_eq!(
+            [
+                section_header("device", 1),
+                section_header("device", 2),
+                section_header("potential_def", 3)
+            ],
+            ["Device (1)", "Devices (2)", "Potential definitions (3)"]
+        );
+    }
 
     /// FX38d: a refusal's leading rule code is split off for the secondary text; any other message stays whole.
     #[test]

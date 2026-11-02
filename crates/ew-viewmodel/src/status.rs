@@ -29,10 +29,24 @@ pub fn grid_text(model: &ShellModel) -> String {
         .canvas()
         .and_then(|c| c.page().grid)
         .filter(|_| model.grid_on());
-    match grid.map(|g| grid_label(&g)) {
+    match grid {
         None => strings::text(key!("status-grid-off")).to_owned(),
-        Some(GridLabel::Qet10) => strings::text(key!("status-grid-qet")).to_owned(),
-        Some(GridLabel::Mm(n)) => strings::format(key!("status-grid-mm"), &[&n]),
+        Some(g) => grid_words(g.num_nm, g.den),
+    }
+}
+
+/// A connection grid of pitch `num_nm / den` nanometres in the status bar's words: "QET 10 px", else its pitch in mm
+/// ("4 mm"). The Properties sheet's Connection grid row shows the same words (ID-1139).
+pub fn grid_words(num_nm: i64, den: i64) -> String {
+    let grid = ew_api::output::PageGrid {
+        num_nm,
+        den,
+        sheet_scale_ppb: 1_000_000_000,
+        sheet_offset_nm: (0, 0),
+    };
+    match grid_label(&grid) {
+        GridLabel::Qet10 => strings::text(key!("status-grid-qet")).to_owned(),
+        GridLabel::Mm(n) => strings::format(key!("status-grid-mm"), &[&n]),
     }
 }
 
@@ -421,5 +435,23 @@ pub fn phase_text(phase: &str) -> String {
         "drawing" => strings::text(key!("job-phase-drawing")).to_owned(),
         "writing" => strings::text(key!("job-phase-writing")).to_owned(),
         other => other.to_owned(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::grid_words;
+
+    /// ID-1139: a grid in the status bar's words, which the Properties sheet's Connection grid row shows too.
+    #[test]
+    fn a_grid_reads_as_the_status_bar_writes_it() {
+        assert_eq!(
+            [
+                grid_words(7_937_500, 3),
+                grid_words(4_000_000, 1),
+                grid_words(2_500_000, 1)
+            ],
+            ["QET 10 px", "4 mm", "2.5 mm"]
+        );
     }
 }

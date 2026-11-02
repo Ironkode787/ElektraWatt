@@ -221,10 +221,9 @@ impl PropertiesPane {
                     for section in &sheet.sections {
                         if sheet.sections.len() > 1 {
                             ui.label(
-                                RichText::new(format!(
-                                    "{} ({})",
-                                    strings::kind_plural(&section.kind),
-                                    section.targets.len()
+                                RichText::new(ew_viewmodel::properties::section_header(
+                                    &section.kind,
+                                    section.targets.len(),
                                 ))
                                 .font(crate::theme::font(&t.type_body_strong)),
                             );

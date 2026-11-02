@@ -75,6 +75,38 @@ fn the_duct_button_arms_draw_duct_with_its_options_card() {
     );
 }
 
+/// ID-1139 (W45.2 F2): Draw duct armed after Draw rail sizes its own card: Golden A's duct part gives no size, so the
+/// card shows Width and Height, each at least its desired width (48 px), and Height reads its value whole (60).
+#[test]
+fn the_duct_card_after_the_rail_card_keeps_its_fields_width() {
+    let tmp = Tmp::new();
+    let mut h = on_902(&tmp);
+    dispatch(&mut h, "tool.rail_draw", json!({}));
+    settle(&mut h);
+    assert_eq!(h.state().shell().tool().name(), "rail_draw");
+    dispatch(&mut h, "tool.duct_draw", json!({}));
+    settle(&mut h);
+    assert_eq!(h.state().shell().tool().name(), "duct_draw");
+    let fields: Vec<(String, String, f32)> = ["Width (mm)", "Height (mm)"]
+        .into_iter()
+        .map(|label| {
+            let field = h
+                .get_all_by_role(egui::Role::TextInput)
+                .find(|n| n.accesskit_node().label().as_deref() == Some(label))
+                .unwrap_or_else(|| panic!("the field {label}"));
+            (
+                label.to_owned(),
+                field.accesskit_node().value().unwrap_or_default().to_owned(),
+                field.rect().width(),
+            )
+        })
+        .collect();
+    for (label, _, width) in &fields {
+        assert!(*width >= 48.0, "{label} is {width} px wide");
+    }
+    assert_eq!(fields[1].1, "60");
+}
+
 #[test]
 fn the_create_enclosure_dialog_keeps_its_refusal_under_the_fields() {
     let tmp = Tmp::new();

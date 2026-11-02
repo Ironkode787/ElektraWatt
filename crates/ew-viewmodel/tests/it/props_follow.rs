@@ -90,7 +90,8 @@ fn f_follows_in_the_properties_context() {
 
 /// ID-1107 (FT-1019): "a placement's rows show labels and values in the user's words, and the members with no meaning
 /// to the user move to Advanced (doc 16a §6.8)". 902's Placement rows: Scale "1:10"; the form's ID and the connection
-/// grid's fraction only under Advanced. The scale is edited in its words.
+/// grid's fraction only under Advanced, the grid itself as the status bar writes it (ID-1139). The scale is edited in
+/// its words.
 #[test]
 fn the_placement_rows_of_902_read_in_words_and_the_scale_edits_as_it_shows() {
     let tmp = Tmp::new("ft1019");
@@ -112,7 +113,7 @@ fn the_placement_rows_of_902_read_in_words_and_the_scale_edits_as_it_shows() {
         advanced,
         pairs(&[
             ("Form", "c80af135-34f8-574c-8f52-756bd24c7bd0"),
-            ("Connection grid", ""),
+            ("Connection grid", "QET 10 px"),
             ("Den", "3"),
             ("Num", "7937500"),
             ("Scale", "1:10"),

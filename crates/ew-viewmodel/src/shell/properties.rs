@@ -355,6 +355,7 @@ impl ShellModel {
         let uuids: Vec<_> = ids.iter().map(|e| e.0).collect();
         let mut sheet = p.session.property_sheet(&uuids);
         sheet.read_only = self.read_only_reason().map(str::to_owned);
+        crate::properties::grid_in_words(&mut sheet);
         // A read-only project's rows offer nothing (§6.3, §6.8).
         if sheet.read_only.is_some() {
             for s in &mut sheet.sections {

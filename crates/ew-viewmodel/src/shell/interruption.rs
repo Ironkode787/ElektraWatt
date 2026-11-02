@@ -237,6 +237,13 @@ impl ShellModel {
         let mut tool = IpTool::new(shape, self.tools.ip_memory.clone(), area).with_copies(copies);
         tool.set_project(self.project_ips(), self.revision());
         self.activate_tool(Box::new(tool));
+        // ID-1139: the ghost's name is computed at once, so the HUD leads with it before the pointer is over the
+        // canvas (a cursor already there has refreshed it; the overlay stays the one that move drew).
+        let _ = self.with_tool(|t, cx| {
+            t.as_any_mut()
+                .and_then(|a| a.downcast_mut::<IpTool>())
+                .map(|ip| ip.refresh(cx))
+        });
         Outcome::Done
     }
 

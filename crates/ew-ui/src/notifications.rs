@@ -87,16 +87,27 @@ pub(crate) const TOAST_SHARE: f32 = 0.22;
 /// not fit in three rows is in the HUD, the log and the tooltip).
 pub(crate) const LINE_ROWS: usize = 3;
 
+/// The rows a toast's title wraps to before it is cut (ID-1139: a disabled command's reason is never cut at one line;
+/// the whole text is in the toast's tooltip).
+pub(crate) const TITLE_ROWS: usize = 2;
+
 /// A toast's width in a window `window` wide: `size.toast`, growing with the window ([`TOAST_SHARE`]).
 pub(crate) fn toast_width(t: &Tokens, window: f32) -> f32 {
     crate::dialog::grown(t.size_toast, TOAST_SHARE, window)
 }
 
-/// The layout of a toast's line: wrapped at the text column, up to [`LINE_ROWS`] rows, then cut with an ellipsis.
-fn line_job(line: &str, font: egui::FontId, colour: egui::Color32) -> egui::text::LayoutJob {
+/// The width of a toast's text column in a toast `width` wide: the card less its padding, the icon, the Dismiss
+/// button and the two gaps.
+pub(crate) fn text_width(t: &Tokens, width: f32) -> f32 {
+    width - 2.0 * t.space_4 - t.icon_md - t.size_control_inline - 2.0 * t.space_3
+}
+
+/// The layout of a toast's title or line: wrapped at word boundaries in the text column, up to `rows` rows
+/// ([`TITLE_ROWS`], [`LINE_ROWS`]), then cut with an ellipsis.
+fn line_job(line: &str, font: egui::FontId, colour: egui::Color32, rows: usize) -> egui::text::LayoutJob {
     let mut job =
         egui::text::LayoutJob::single_section(line.to_owned(), egui::TextFormat::simple(font, colour));
-    job.wrap.max_rows = LINE_ROWS;
+    job.wrap.max_rows = rows;
     job.wrap.break_anywhere = false;
     job
 }
@@ -118,23 +129,26 @@ fn toast(ui: &mut Ui, t: &Tokens, shell: &ShellModel, n: &Notification, events: 
                 let (icon, colour) = tone_icon(t, n.tone());
                 let (r, _) = ui.allocate_exact_size(Vec2::splat(t.icon_md), egui::Sense::hover());
                 icons::paint(ui.painter(), icon, r, colour.color32(), t.icon_stroke);
-                let text_w = inner - t.icon_md - t.size_control_inline - 2.0 * t.space_3;
+                let text_w = text_width(t, width);
                 ui.vertical(|ui| {
                     ui.set_width(text_w);
                     ui.spacing_mut().item_spacing.y = t.space_icon;
                     match n.lines() {
                         (title, Some(line)) => {
-                            // The title carries the whole text as the live region. The line wraps (W40b: a refusal's
-                            // reason is never cut at one line) up to three rows, then is cut with an ellipsis, whole in
-                            // its tooltip; a check's counts stay on one line (FT-664: the waived and pending counts
-                            // qualify the title, so the severities fit).
+                            // The title carries the whole text as the live region. It wraps at word boundaries up to two
+                            // rows (ID-1139: a disabled command's reason is never cut at one line), the line up to three
+                            // (W40b), each then cut with an ellipsis; the whole text is the toast's tooltip (ID-940), so
+                            // the labels show no tooltip of their own. A check's counts stay on one line (FT-664: the
+                            // waived and pending counts qualify the title, so the severities fit).
                             let response = ui.add(
-                                egui::Label::new(
-                                    RichText::new(title)
-                                        .font(theme::font(&t.type_body_strong))
-                                        .color(t.text_primary.color32()),
-                                )
-                                .truncate(),
+                                egui::Label::new(line_job(
+                                    title,
+                                    theme::font(&t.type_body_strong),
+                                    t.text_primary.color32(),
+                                    TITLE_ROWS,
+                                ))
+                                .wrap()
+                                .show_tooltip_when_elided(false),
                             );
                             let live = n.text.clone();
                             ui.ctx().accesskit_node_builder(response.id, |node| {
@@ -146,8 +160,10 @@ fn toast(ui: &mut Ui, t: &Tokens, shell: &ShellModel, n: &Notification, events: 
                                     line,
                                     theme::font(&t.type_small),
                                     t.text_secondary.color32(),
+                                    LINE_ROWS,
                                 ))
-                                .wrap(),
+                                .wrap()
+                                .show_tooltip_when_elided(false),
                             );
                         }
                         (_, None) => {
@@ -161,12 +177,15 @@ fn toast(ui: &mut Ui, t: &Tokens, shell: &ShellModel, n: &Notification, events: 
                 }
             });
         });
-    // A `Group` node over the card, named "Notification" (its text is the live region inside).
-    let node = ui.interact(
-        frame.response.rect,
-        ui.scope_id().with(("toast", n.serial)),
-        egui::Sense::hover(),
-    );
+    // A `Group` node over the card, named "Notification" (its text is the live region inside). Hovering it shows the
+    // whole text (ID-940, ID-1139), unless a control inside shows its own tooltip.
+    let node = ui
+        .interact(
+            frame.response.rect,
+            ui.scope_id().with(("toast", n.serial)),
+            egui::Sense::hover(),
+        )
+        .on_hover_text(n.text.clone());
     node.widget_info(|| {
         egui::WidgetInfo::labeled(egui::Role::Group, true, strings::text(key!("toast-name")))
     });
@@ -354,10 +373,10 @@ mod tests {
         let mut output = ctx.run_ui(egui::RawInput::default(), |ui| {
             let t = theme::tokens(Theme::Light, Density::Comfortable);
             let font = theme::font(&t.type_small);
-            let mut job = line_job(reason, font.clone(), theme::NO_TINT);
+            let mut job = line_job(reason, font.clone(), theme::NO_TINT, LINE_ROWS);
             job.wrap.max_width = 120.0;
             let short = ui.painter().layout_job(job);
-            let mut job = line_job(reason, font, theme::NO_TINT);
+            let mut job = line_job(reason, font, theme::NO_TINT, LINE_ROWS);
             job.wrap.max_width = 260.0;
             let wide = ui.painter().layout_job(job);
             assert!(
@@ -369,5 +388,42 @@ mod tests {
         output.textures_delta.clear();
         assert_eq!(rows.0, LINE_ROWS);
         assert!(rows.1 > 1 && rows.1 <= LINE_ROWS, "{} rows", rows.1);
+    }
+
+    /// ID-1139: at the floor, a disabled click's title lays out whole on two rows in the text column, and a longer one
+    /// is cut with an ellipsis after two rows.
+    #[test]
+    fn the_title_wraps_up_to_two_rows() {
+        let reason = strings::text(key!("reason-page-type-no-symbols-panel"));
+        let (title, _) = reason.split_once(": ").expect("a title and a line");
+        assert_eq!(title, "A panel layout page takes no symbols or wires");
+        let longer = "A panel layout page takes no symbols, no wires, no terminals, no cables and no black boxes of any \
+                      kind at all";
+        // The window's fonts, as the toast lays out with them (they take effect with the next pass).
+        let ctx = egui::Context::default();
+        crate::fonts::install(&ctx);
+        let mut output = ctx.run_ui(egui::RawInput::default(), |_| {});
+        output.textures_delta.clear();
+        let mut shown = (0, false, 0, false, String::new());
+        let mut output = ctx.run_ui(egui::RawInput::default(), |ui| {
+            let t = theme::tokens(Theme::Light, Density::Comfortable);
+            let font = theme::font(&t.type_body_strong);
+            let column = text_width(&t, toast_width(&t, 1280.0));
+            let mut job = line_job(title, font.clone(), theme::NO_TINT, TITLE_ROWS);
+            job.wrap.max_width = column;
+            let whole = ui.painter().layout_job(job);
+            let mut job = line_job(longer, font, theme::NO_TINT, TITLE_ROWS);
+            job.wrap.max_width = column;
+            let cut = ui.painter().layout_job(job);
+            shown = (
+                whole.rows.len(),
+                whole.elided,
+                cut.rows.len(),
+                cut.elided,
+                whole.text().to_owned(),
+            );
+        });
+        output.textures_delta.clear();
+        assert_eq!(shown, (2, false, TITLE_ROWS, true, title.to_owned()));
     }
 }

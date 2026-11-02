@@ -747,6 +747,8 @@ pub fn hud(model: &ShellModel) -> HudModel {
             if let Some(cp) = connects {
                 parts.push(strings::format(key!("hud-ip-connects"), &[&cp]));
             }
+            // ID-1139: an empty part (a name not yet computed) never joins the HUD.
+            parts.retain(|p| !p.is_empty());
             parts.join(" \u{b7} ")
         }
         // FT-759: the count says what it counts ("7 connection points"), never a bare "· 7".

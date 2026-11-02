@@ -162,3 +162,17 @@ fn ft1032_undo_and_redo_clear_the_refusal() {
     done(&mut s, "edit.redo", json!({}));
     assert_eq!(s.tool_notice(), None, "redo");
 }
+
+/// ID-1139 (W45.2 F3): the IP tool armed with no pointer over the canvas leads its HUD with its proposed name, never
+/// with an empty part (" · source: …").
+#[test]
+fn the_armed_ip_tools_hud_leads_with_its_name() {
+    let tmp = Tmp::new("p45b-armed");
+    let mut s = new_project(&tmp);
+    done(&mut s, "tool.ip", json!({}));
+    let d = key_of(&s, "tool.ip_direction");
+    assert_eq!(
+        hud(&s),
+        format!("IP \u{b7} source: feeds its targets \u{b7} {d}: target")
+    );
+}
