@@ -37,7 +37,9 @@ use ew_api::output::SymbolShape;
 use ew_api::output::ew_dl::EntityRef;
 use serde_json::{Value, json};
 
-use super::autoconnect::{GhostCp, ProposalTarget, Proposals, on_off_sheet_segment, proposals};
+use super::autoconnect::{
+    GhostCp, ProposalTarget, Proposals, is_strip_terminal, on_off_sheet_segment, proposals,
+};
 use super::{
     Anchor, Button, CanvasEvent, Ghost, MarkerKind, Overlay, OverlayItem, PreviewInfo, Style, Token, Tool,
     ToolCx, ToolKey, ToolOutput,
@@ -266,6 +268,11 @@ impl PlaceTool {
 
     /// The ghost's CPs at the insertion point `pos` (page nm).
     fn ghost_cps(&self, pos: (i64, i64)) -> Vec<GhostCp> {
+        // A terminal's CPs never connect to a terminal of its own strip (FT-1082, ID-1177).
+        let strip_tag = match &self.target {
+            PlaceTarget::Terminal { strip_tag, .. } => Some(strip_tag.clone()),
+            _ => None,
+        };
         self.shape
             .cps
             .iter()
@@ -277,6 +284,7 @@ impl PlaceTool {
                     at: (pos.0 + o.0, pos.1 + o.1),
                     dir: orient_dir(self.orient, cp.dir),
                     connected: false,
+                    strip_tag: strip_tag.clone(),
                 }
             })
             .collect()
@@ -416,21 +424,18 @@ impl PlaceTool {
     /// The insertion point of a placement at `at` (FT-622, the orchestrator's ruling): a new terminal on a page point
     /// where a terminal of the same strip already sits moves to the right, two grid steps at a time, until the point
     /// is free (Golden A's 1X1 draws its three terminals of one cell 20 QET px apart). A terminal of the same strip is
-    /// a representation whose connection points print `<strip>:…`; every other target, and a terminal of another
-    /// strip, stays at `at`.
+    /// told by [`is_strip_terminal`] (its connection points print `<strip>:…`; autoconnect tells it the same way,
+    /// FT-1082); every other target, and a terminal of another strip, stays at `at`.
     fn stacked_pos(&self, cx: &ToolCx<'_>, at: (i64, i64)) -> (i64, i64) {
         let PlaceTarget::Terminal { strip_tag, .. } = &self.target else {
             return at;
         };
-        let prefix = format!("{strip_tag}:");
         let tables = &cx.page.tables;
         let taken = |p: (i64, i64)| {
-            tables.reps.iter().any(|r| {
-                r.pos == p && {
-                    let mut cps = tables.cps.iter().filter(|c| c.rep == r.id).peekable();
-                    cps.peek().is_some() && cps.all(|c| c.label.starts_with(&prefix))
-                }
-            })
+            tables
+                .reps
+                .iter()
+                .any(|r| r.pos == p && is_strip_terminal(tables, r, strip_tag))
         };
         // By grid index, so that the point stays on a grid of a fractional step (QET's 10 px).
         let grid = super::wire::PageGridMap::new(tables.grid);

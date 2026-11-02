@@ -1010,6 +1010,9 @@ proposals(rep_ghost):
   return proposals; Tab cycles alternatives (next hit further along each ray)
 ```
 
+A terminal's CP never proposes a CP of a terminal of its own strip: two terminals of one strip are joined by a bridge,
+never by an autoconnected wire (FT-1082, decision log ID-1177).
+
 - **On placement**, accepted proposals are committed by default; Alt suppresses them for one placement.
 - **On move**, proposals for free CPs are shown but committed only when the user presses `C` during the drag. A move
   never adds a connection silently (FR-CON-004; Open question 5 asks the M2 usability test to confirm this default,

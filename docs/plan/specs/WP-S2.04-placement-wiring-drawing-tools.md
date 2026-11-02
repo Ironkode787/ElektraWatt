@@ -579,7 +579,9 @@ move of the ghost) and by Select's drag (shown only, never committed in this pac
    at a time, inside the drawing area: a representation body (other than the ghost's) stops the walk; a free CP `q` of
    the same discipline with `q.dir` opposite to the CP's direction, at the walk point, is a proposal `Cp(q)`; a connection
    segment collinear with the ray at the walk point stops the walk (the line is occupied); a segment crossing the ray
-   is passed.
+   is passed. *Amended by decision log ID-1177 (FT-1082, cycle 47):* a terminal's ghost CP never takes a CP of a
+   terminal of its own strip (its CPs print `<strip tag>:…`) as a proposal, placing or moving; that terminal's body
+   then stops the walk, as two terminals of one strip are joined by a bridge (WP-S2.07), never by a proposed wire.
 3. When two ghost CPs lie on one segment of a connection W with a stored route and face its two ends, both proposals are
    replaced by the split of W: no hint is sent for them, because normaliser 7 splits W when the symbol lands on its
    route (FR-CON-008, doc 06 §5.3); the split is drawn as two dashed stubs at the CPs and counted as one proposal. On a

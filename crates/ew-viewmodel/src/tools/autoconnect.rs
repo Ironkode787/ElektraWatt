@@ -11,7 +11,9 @@
 //! CP whose direction is opposite to the ray's, at the walk point (equal grid indices on both axes), is a hit; a
 //! connection segment collinear with the ray at the walk point stops it (the line is occupied); a segment crossing
 //! the ray is passed. Several CPs at one walk point are hits in label order (the page tables' order, FT-439; never
-//! the v5 ID, which follows the minted function ID). The proposal of a ray is its
+//! the v5 ID, which follows the minted function ID). A terminal's ghost CP never takes a CP of a terminal of its own
+//! strip as a hit (FT-1082, decision log ID-1177): two terminals of one strip are joined by a bridge, never by a
+//! proposed wire; that terminal's body then stops the walk as any body does. The proposal of a ray is its
 //! first hit; [`ToolKey::NextProposal`](super::ToolKey::NextProposal) (Tab) cycles every ray to its next hit further
 //! along, wrapping.
 //!
@@ -22,7 +24,7 @@
 
 use ew_api::geometry::Dir;
 use ew_api::output::ew_dl::EntityRef;
-use ew_api::output::{PageTables, TableEnd};
+use ew_api::output::{PageTables, TableEnd, TableRep, Uuid};
 use serde_json::{Value, json};
 
 /// The most grid steps a ray walks.
@@ -41,6 +43,21 @@ pub struct GhostCp {
     pub dir: Dir,
     /// Whether a connection already ends at it (a moved representation's CP); such a CP proposes nothing.
     pub connected: bool,
+    /// The strip tag of the ghost's terminal as the page prints it (`-X1031`), `None` for a non-terminal: a CP of a
+    /// terminal of that strip is never a hit (FT-1082, ID-1177).
+    pub strip_tag: Option<String>,
+}
+
+/// Whether the representation `rep` of the page is a terminal of the strip printed `strip_tag`: a terminal
+/// representation whose connection points all print `<strip_tag>:…` (and that has one). The tables carry no strip
+/// identity; two strips printed with one tag are a duplicate tag, which a check reports. Shared by autoconnect
+/// (FT-1082, ID-1177) and the Place tool's stacking of a terminal on one of its strip (FT-622, ID-822).
+pub fn is_strip_terminal(tables: &PageTables, rep: &TableRep, strip_tag: &str) -> bool {
+    let prefix = format!("{strip_tag}:");
+    rep.terminal && {
+        let mut cps = tables.cps.iter().filter(|c| c.rep == rep.id).peekable();
+        cps.peek().is_some() && cps.all(|c| c.label.starts_with(&prefix))
+    }
 }
 
 /// What a proposal connects to.
@@ -195,13 +212,20 @@ fn ray_hits(
         if x < area[0] || x > area[2] || y < area[1] || y > area[3] {
             break;
         }
-        // Free CPs facing the ray at the walk point, in label order (the rows' order, FT-439).
+        // Free CPs facing the ray at the walk point, in label order (the rows' order, FT-439); never a terminal of the
+        // ghost's own strip (FT-1082).
         for q in &tables.cps {
             if grid.index(q.at.0) == kx
                 && grid.index(q.at.1) == ky
                 && !own.contains(&EntityRef(q.rep))
                 && q.connections.is_empty()
                 && q.dir == Some(want)
+                && !cp.strip_tag.as_deref().is_some_and(|tag| {
+                    tables
+                        .reps
+                        .iter()
+                        .any(|r| r.id == q.rep && is_strip_terminal(tables, r, tag))
+                })
             {
                 hits.push(ProposalTarget::Cp {
                     function: EntityRef(q.function),
@@ -372,7 +396,8 @@ pub fn proposals(
 }
 
 /// The ghost CPs of the representations `reps` of the page moved by the page displacements `delta(rep)`: their table
-/// CPs at the moved points, the designation the label prints after its colon.
+/// CPs at the moved points, the designation the label prints after its colon, and the strip tag of a moved terminal
+/// (see `moved_strip_tag`).
 pub fn moved_cps(tables: &PageTables, delta: &dyn Fn(EntityRef) -> Option<(i64, i64)>) -> Vec<GhostCp> {
     let mut out = Vec::new();
     for (k, cp) in tables.cps.iter().enumerate() {
@@ -390,9 +415,27 @@ pub fn moved_cps(tables: &PageTables, delta: &dyn Fn(EntityRef) -> Option<(i64, 
             at: (cp.at.0 + d.0, cp.at.1 + d.1),
             dir,
             connected: !cp.connections.is_empty(),
+            strip_tag: moved_strip_tag(tables, cp.rep),
         });
     }
     out
+}
+
+/// The strip tag of the terminal representation `rep` (FT-1082): the text before the last colon of its CP labels;
+/// `None` for a non-terminal, a representation without CPs, a label without a colon, or labels that disagree.
+fn moved_strip_tag(tables: &PageTables, rep: Uuid) -> Option<String> {
+    if !tables.reps.iter().any(|r| r.id == rep && r.terminal) {
+        return None;
+    }
+    let mut tag: Option<&str> = None;
+    for c in tables.cps.iter().filter(|c| c.rep == rep) {
+        let (t, _) = c.label.rsplit_once(':')?;
+        if tag.is_some_and(|seen| seen != t) {
+            return None;
+        }
+        tag = Some(t);
+    }
+    tag.map(str::to_owned)
 }
 
 /// Whether `end` is a connection point of the page (a junction end is not).
@@ -403,7 +446,7 @@ pub fn is_cp(end: &TableEnd) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ew_api::output::{TableConnection, TableCp, TableRep};
+    use ew_api::output::{TableConnection, TableCp};
 
     const G: i64 = 1_000_000;
 
@@ -452,6 +495,7 @@ mod tests {
             at,
             dir,
             connected: false,
+            strip_tag: None,
         }
     }
 
@@ -620,5 +664,65 @@ mod tests {
             ),
             "the wire's own segment still splits: {p:?}"
         );
+    }
+
+    /// A representation of the tables (`terminal`: of a terminal) with the CPs `cps` (FT-1082).
+    fn terminal_rep(t: &mut PageTables, n: u128, terminal: bool, cps: &[(u128, &str)]) {
+        t.reps.push(TableRep {
+            id: uuid(0x300 + n),
+            functions: Vec::new(),
+            device: None,
+            symbol: uuid(0x500),
+            symbol_key: String::new(),
+            orient: 0,
+            rep_type: "multi_line".into(),
+            pos: (0, 0),
+            body: [0, 0, 0, 0],
+            tag_at: None,
+            ip: None,
+            black_box: None,
+            terminal,
+        });
+        for (k, label) in cps {
+            let mut c = cp(*k, (0, 0), Dir::Up, label);
+            c.rep = uuid(0x300 + n);
+            t.cps.push(c);
+        }
+    }
+
+    #[test]
+    fn ft1082_a_cp_of_a_terminal_of_the_ghost_s_strip_is_no_hit() {
+        let mut t = tables();
+        terminal_rep(&mut t, 1, true, &[(1, "-X1:1/a")]);
+        t.cps[0].at = (0, 10 * G);
+        let mut g = [ghost(0, (0, 0), Dir::Down)];
+        g[0].strip_tag = Some("-X1".into());
+        assert!(proposals(&g, &t, &[], AREA, 0).list.is_empty());
+        // Another strip's terminal, and a ghost that is no terminal, take it as today.
+        g[0].strip_tag = Some("-X2".into());
+        assert_eq!(proposals(&g, &t, &[], AREA, 0).list.len(), 1);
+        g[0].strip_tag = None;
+        assert_eq!(proposals(&g, &t, &[], AREA, 0).list.len(), 1);
+        // A non-terminal whose labels happen to print the tag is taken.
+        t.reps[0].terminal = false;
+        g[0].strip_tag = Some("-X1".into());
+        assert_eq!(proposals(&g, &t, &[], AREA, 0).list.len(), 1);
+    }
+
+    #[test]
+    fn ft1082_a_moved_terminal_s_strip_tag_is_its_labels_text_before_the_last_colon() {
+        let mut t = tables();
+        terminal_rep(&mut t, 1, true, &[(1, "-X1:70/a"), (2, "-X1:70/b")]);
+        terminal_rep(&mut t, 2, true, &[(3, "-X1:71/a"), (4, "-X2:71/b")]);
+        terminal_rep(&mut t, 3, false, &[(5, "-K1:13"), (6, "-K1:14")]);
+        terminal_rep(&mut t, 4, true, &[(7, "70")]);
+        let tag = |n: u128| moved_strip_tag(&t, uuid(0x300 + n));
+        assert_eq!(tag(1).as_deref(), Some("-X1"));
+        assert_eq!(tag(2), None, "labels that disagree");
+        assert_eq!(tag(3), None, "a non-terminal");
+        assert_eq!(tag(4), None, "a label without a colon");
+        assert_eq!(tag(5), None, "no representation");
+        let all = moved_cps(&t, &|_| Some((0, 0)));
+        assert_eq!(all[0].strip_tag.as_deref(), Some("-X1"));
     }
 }
