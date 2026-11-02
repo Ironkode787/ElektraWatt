@@ -63,7 +63,7 @@ impl fmt::Display for FileHash {
 pub struct Manifest {
     /// The writer's two-part format (`"0.1"`, doc 05 §10.1).
     pub format: String,
-    /// The lowest format a reader needs.
+    /// The lowest format a reader needs: computed by a save from the files it lists ([`min_reader`](crate::min_reader)).
     pub min_reader: String,
     /// The program and version that wrote this generation (`"ElektraWatt 0.0.0"`). The fixture comparison
     /// of doc 20 §3.2 ignores it (doc 05 §17.1).
@@ -134,11 +134,12 @@ impl fmt::Display for ManifestError {
 impl std::error::Error for ManifestError {}
 
 impl Manifest {
-    /// A manifest without files.
+    /// A manifest without files: its `min_reader` is `format`'s major floor ([`min_reader`](crate::min_reader) of no
+    /// file), `format` itself before 1.0.
     pub fn new(format: &str, generator: &str, project: AnyId, generation: u64) -> Manifest {
         Manifest {
             format: format.to_owned(),
-            min_reader: format.to_owned(),
+            min_reader: crate::min_reader(format, None),
             generator: generator.to_owned(),
             project,
             generation,
@@ -211,6 +212,30 @@ impl Manifest {
             unstable,
             extra,
         })
+    }
+
+    /// The generation a save continues from when `manifest.json` came out of a git text merge with conflict markers
+    /// (doc 05 §11.3, FT-97): the greatest `"generation": <n>` line of the text, the lines of every hunk side and of the
+    /// text the sides share alike, so that the next save writes one more than either side. `None` when the text holds
+    /// no conflict marker, holds no such line, is larger than [`Limits::max_manifest_bytes`] or is not UTF-8; a line
+    /// whose number is not an integer from 0 to 2⁵³ − 1 counts as none.
+    ///
+    /// ```
+    /// use ew_format::{Limits, Manifest};
+    ///
+    /// let text = "{\n<<<<<<< ours\n  \"generation\": 7,\n=======\n  \"generation\": 9,\n>>>>>>> theirs\n}\n";
+    /// assert_eq!(Manifest::conflicted_generation(text.as_bytes(), &Limits::default()), Some(9));
+    /// assert_eq!(Manifest::conflicted_generation(b"{\n  \"generation\": 9\n}\n", &Limits::default()), None);
+    /// ```
+    pub fn conflicted_generation(bytes: &[u8], limits: &Limits) -> Option<u64> {
+        if bytes.len() as u64 > limits.max_manifest_bytes {
+            return None;
+        }
+        let text = std::str::from_utf8(bytes).ok()?;
+        if !text.split('\n').any(has_conflict_marker) {
+            return None;
+        }
+        text.split('\n').filter_map(generation_line).max()
     }
 
     /// The text of `manifest.json` (doc 05 §4).
@@ -287,6 +312,22 @@ fn has_conflict_marker(line: &str) -> bool {
     ["<<<<<<<", "=======", ">>>>>>>"]
         .iter()
         .any(|m| line.starts_with(m))
+}
+
+/// The number of a `"generation": <n>` member line (indented or not, with or without its comma and a CR), when `n` is a
+/// JSON integer from 0 to 2⁵³ − 1.
+fn generation_line(line: &str) -> Option<u64> {
+    let rest = line.trim().strip_prefix("\"generation\"")?.trim_start();
+    let rest = rest.strip_prefix(':')?.trim();
+    let digits = rest.strip_suffix(',').unwrap_or(rest).trim_end();
+    let json_integer = !digits.is_empty()
+        && digits.len() <= 16
+        && digits.bytes().all(|b| b.is_ascii_digit())
+        && (digits == "0" || !digits.starts_with('0'));
+    json_integer
+        .then(|| digits.parse::<u64>().ok())
+        .flatten()
+        .filter(|g| *g <= MAX_GENERATION)
 }
 
 fn take_string(members: &mut Map<String, Value>, name: &str) -> Result<String, ManifestError> {

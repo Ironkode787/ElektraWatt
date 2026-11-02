@@ -641,7 +641,7 @@ fn save_error_key(e: &SaveError) -> Key<'static> {
     match e {
         SaveError::ReadOnly(_) => key!("saveerr-read-only"),
         SaveError::LockLost(_) => key!("saveerr-lock-lost"),
-        SaveError::ExternalChange => key!("saveerr-external"),
+        SaveError::ExternalChange { .. } => key!("saveerr-external"),
         SaveError::Failed { .. } => key!("saveerr-failed"),
         SaveError::Incomplete { .. } => key!("saveerr-incomplete"),
         SaveError::PendingIncomplete { .. } => key!("saveerr-pending"),

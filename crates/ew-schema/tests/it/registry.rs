@@ -10,8 +10,8 @@ use std::collections::BTreeSet;
 
 use common::fill;
 use ew_schema::{
-    AnchorRef, FileRule, Kind, KindRegistry, KindStatus, PERSONAL_DATA_FIELDS, Record, SCHEMA_VERSIONS,
-    kind_schema,
+    AnchorRef, FORMAT, FileRule, KIND_SINCE, Kind, KindRegistry, KindStatus, MEMBER_SINCE,
+    PERSONAL_DATA_FIELDS, RELEASED_FORMATS, Record, SCHEMA_VERSIONS, VARIANT_SINCE, kind_schema,
 };
 use serde_json::Value;
 
@@ -255,4 +255,73 @@ fn every_personal_data_path_exists() {
         &kind_schema(Kind::Project).unwrap(),
         "parties[].nickname"
     ));
+}
+
+/// A `major.minor` format as numbers (doc 05 §10.1: no leading zeros, no third part).
+fn format_number(text: &str) -> Option<(u32, u32)> {
+    let (major, minor) = text.split_once('.')?;
+    let num = |s: &str| {
+        (!s.is_empty() && s.bytes().all(|b| b.is_ascii_digit()) && (s == "0" || !s.starts_with('0')))
+            .then(|| s.parse().ok())
+            .flatten()
+    };
+    Some((num(major)?, num(minor)?))
+}
+
+#[test]
+fn every_kind_has_a_since_format_no_newer_than_the_schema() {
+    // The `since` metadata of the computed `min_reader` (WP-S1.17 D3): every kind is "0.1" until a later format adds
+    // one; the kind table lists every kind once, in registry order.
+    let format = format_number(FORMAT).expect("FORMAT is major.minor");
+    assert_eq!(KIND_SINCE.len(), Kind::ALL.len());
+    for ((kind, since), expected) in KIND_SINCE.iter().zip(Kind::ALL) {
+        assert_eq!(*kind, expected);
+        assert_eq!(*since, kind.since());
+        let v = format_number(since).unwrap_or_else(|| panic!("{kind}: since {since:?} is not major.minor"));
+        assert!(v <= format, "{kind}: since {since} is newer than {FORMAT}");
+    }
+    assert_eq!(
+        Kind::Conflict.since(),
+        "0.1",
+        "a reserved kind has its format too"
+    );
+}
+
+#[test]
+fn every_member_and_variant_since_row_names_a_path_newer_than_its_kind() {
+    // The tables are empty while every member is 0.1; a row added later must name a real path and a format between its
+    // kind's and the schema's.
+    let format = format_number(FORMAT).expect("FORMAT is major.minor");
+    let rows = MEMBER_SINCE
+        .iter()
+        .map(|m| (m.kind, m.path, m.since))
+        .chain(VARIANT_SINCE.iter().map(|v| (v.kind, v.path, v.since)));
+    for (kind, path, since) in rows {
+        let schema = kind_schema(kind).unwrap_or_else(|| panic!("{kind} has no schema"));
+        assert!(schema_has_path(&schema, path), "{kind}: {path} does not exist");
+        let v = format_number(since)
+            .unwrap_or_else(|| panic!("{kind}.{path}: since {since:?} is not major.minor"));
+        assert!(v <= format, "{kind}.{path}: since {since} is newer than {FORMAT}");
+        assert!(
+            format_number(kind.since()).is_some_and(|k| k < v),
+            "{kind}.{path}: since {since} is not newer than its kind's {}",
+            kind.since()
+        );
+    }
+    for v in VARIANT_SINCE {
+        assert!(!v.variant.is_empty(), "{}.{}: an empty variant", v.kind, v.path);
+    }
+}
+
+#[test]
+fn released_formats_are_formats_in_ascending_order() {
+    // Empty until the first release (WP-S6.08 adds "0.1"); every entry a format, oldest first, none newer than the
+    // schema's.
+    let released: Vec<(u32, u32)> = RELEASED_FORMATS
+        .iter()
+        .map(|f| format_number(f).unwrap_or_else(|| panic!("{f:?} is not major.minor")))
+        .collect();
+    assert!(released.windows(2).all(|w| w[0] < w[1]), "{RELEASED_FORMATS:?}");
+    let format = format_number(FORMAT).expect("FORMAT is major.minor");
+    assert!(released.iter().all(|r| *r <= format), "{RELEASED_FORMATS:?}");
 }

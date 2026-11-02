@@ -24,7 +24,7 @@ pub enum Access {
 }
 
 /// A `major.minor` format.
-fn parse(format: &str) -> Option<(u32, u32)> {
+pub(crate) fn parse(format: &str) -> Option<(u32, u32)> {
     let (major, minor) = format.split_once('.')?;
     let num = |s: &str| {
         (!s.is_empty() && s.bytes().all(|b| b.is_ascii_digit()) && (s == "0" || !s.starts_with('0')))

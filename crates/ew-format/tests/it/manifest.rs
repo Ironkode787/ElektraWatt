@@ -98,6 +98,89 @@ fn rejects_conflict_markers() {
     }
 }
 
+fn conflicted(text: &str) -> Option<u64> {
+    Manifest::conflicted_generation(text.as_bytes(), &Limits::default())
+}
+
+#[test]
+fn a_conflicted_manifest_gives_the_greatest_generation_of_its_sides() {
+    // FT-97 (WP-S1.17 D6): git's two-way and diff3 hunks on the `generation` line; the next save writes one more.
+    let two_way = format!(
+        "{{\n  \"format\": \"0.1\",\n  \"project\": \"{PROJECT}\",\n<<<<<<< ours\n  \"generation\": 7,\n=======\n  \
+         \"generation\": 9,\n>>>>>>> theirs\n  \"files\": {{}}\n}}\n"
+    );
+    assert_eq!(parse(&two_way), Err(ManifestError::ConflictMarkers));
+    assert_eq!(conflicted(&two_way), Some(9));
+    let diff3 = "{\n<<<<<<< ours\n  \"generation\": 12,\n||||||| base\n  \"generation\": 4,\n=======\n  \
+                 \"generation\": 5,\n>>>>>>> theirs\n}\n";
+    assert_eq!(conflicted(diff3), Some(12));
+    // CRLF line ends (a checkout with `core.autocrlf`), and the last member without its comma.
+    let crlf = "{\r\n<<<<<<< ours\r\n  \"generation\": 3\r\n=======\r\n  \"generation\" : 30\r\n>>>>>>> theirs\r\n}\r\n";
+    assert_eq!(conflicted(crlf), Some(30));
+    // The conflict is elsewhere: the shared generation line is both sides' generation.
+    let elsewhere = "{\n  \"generation\": 6,\n  \"files\": {\n<<<<<<< ours\n    \"a.jsonl\": \"x\"\n=======\n    \
+                     \"b.jsonl\": \"y\"\n>>>>>>> theirs\n  }\n}\n";
+    assert_eq!(conflicted(elsewhere), Some(6));
+}
+
+#[test]
+fn a_conflicted_manifest_without_a_usable_generation_line_gives_none() {
+    // No marker: not a conflicted manifest (a broken one restarts at 0, as before).
+    assert_eq!(conflicted("{\n  \"generation\": 9,\n  \"files\": {}\n}\n"), None);
+    assert_eq!(conflicted("{\n  \"generation\": 9,\n"), None);
+    // Markers without a generation line, or with numbers that are not generations.
+    assert_eq!(
+        conflicted("{\n<<<<<<< ours\n  \"files\": {}\n=======\n>>>>>>> theirs\n}\n"),
+        None
+    );
+    for bad in [
+        "-1",
+        "1.5",
+        "07",
+        "\"9\"",
+        "9007199254740992",
+        "99999999999999999999",
+        "",
+        "9 9",
+    ] {
+        let text = format!("<<<<<<< ours\n  \"generation\": {bad},\n=======\n>>>>>>> theirs\n");
+        assert_eq!(conflicted(&text), None, "{bad}");
+    }
+    // A generation inside another member's value is not a member line.
+    let nested =
+        "<<<<<<< ours\n  \"x\": {\"generation\": 40},\n=======\n  \"generation\": 2,\n>>>>>>> theirs\n";
+    assert_eq!(conflicted(nested), Some(2));
+    assert_eq!(
+        conflicted("<<<<<<< ours\n  \"generation\": 9007199254740991\n>>>>>>> theirs\n"),
+        Some(9_007_199_254_740_991),
+        "2^53 - 1 is the largest generation"
+    );
+    // Not UTF-8, or larger than the manifest limit: nothing is read.
+    let mut bytes = b"<<<<<<< ours\n  \"generation\": 5,\n\xff\n".to_vec();
+    assert_eq!(Manifest::conflicted_generation(&bytes, &Limits::default()), None);
+    bytes.truncate(bytes.len() - 2);
+    let small = Limits {
+        max_manifest_bytes: 8,
+        ..Limits::default()
+    };
+    assert_eq!(Manifest::conflicted_generation(&bytes, &small), None);
+    assert_eq!(
+        Manifest::conflicted_generation(&bytes, &Limits::default()),
+        Some(5)
+    );
+}
+
+#[test]
+fn a_new_manifest_needs_the_major_floor_of_its_format() {
+    // FT-95 (WP-S1.17 D3): a manifest without files needs no more than its format's major floor; before 1.0 every step
+    // is a major, so the floor of 0.1 is 0.1.
+    assert_eq!(base().min_reader, "0.1");
+    let id = PROJECT.parse().unwrap();
+    assert_eq!(Manifest::new("1.3", "g", id, 1).min_reader, "1.0");
+    assert_eq!(Manifest::new("0.2", "g", id, 1).min_reader, "0.2");
+    assert_eq!(Manifest::new("x", "g", id, 1).min_reader, "x");
+}
+
 #[test]
 fn rejects_duplicate_member_and_non_utf8_and_non_object() {
     let dup = text_with("1", "{}", ",\"generation\":2");

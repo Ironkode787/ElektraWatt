@@ -251,64 +251,70 @@ impl Kind {
         Kind::LabelProfile,
     ];
 
-    /// The registry row: name, rank, file rule, status.
-    const fn row(self) -> (&'static str, Option<u8>, FileRule, KindStatus) {
+    /// The registry row: name, rank, file rule, status, and the format the kind first appeared in.
+    const fn row(self) -> (&'static str, Option<u8>, FileRule, KindStatus, &'static str) {
         use FileRule as F;
         use KindStatus::{Implemented as I, Reserved as R};
         match self {
-            Kind::Project => ("project", Some(10), F::ProjectFile, I),
-            Kind::PlcConfigProject => ("plc_config_project", Some(11), F::ProjectFile, I),
-            Kind::LogicalNet => ("logical_net", Some(12), F::ProjectFile, I),
-            Kind::PhysicalNet => ("physical_net", Some(13), F::ProjectFile, I),
-            Kind::Medium => ("medium", Some(14), F::ProjectFile, R),
-            Kind::ImportLineage => ("import_lineage", Some(15), F::ProjectFile, I),
-            Kind::StructureNode => ("structure_node", Some(20), F::StructureFile, I),
-            Kind::Section => ("section", Some(21), F::StructureFile, I),
-            Kind::ExternalRef => ("external_ref", Some(22), F::StructureFile, I),
-            Kind::Page => ("page", Some(30), F::PageFile, I),
-            Kind::Device => ("device", Some(31), F::Shard, I),
-            Kind::Function => ("function", Some(32), F::ShardOrPage, I),
-            Kind::Representation => ("representation", Some(33), F::PageFile, I),
-            Kind::Connection => ("connection", Some(34), F::PageOrShard, I),
-            Kind::Junction => ("junction", Some(35), F::PageFile, I),
-            Kind::Conductor => ("conductor", Some(36), F::Shard, I),
-            Kind::Channel => ("channel", Some(37), F::Shard, I),
-            Kind::PotentialDef => ("potential_def", Some(38), F::ShardOrPage, I),
-            Kind::NetDef => ("net_def", Some(39), F::ShardOrPage, R),
-            Kind::MediumDef => ("medium_def", Some(40), F::ShardOrPage, R),
-            Kind::Bond => ("bond", Some(41), F::ShardOrPage, I),
-            Kind::DeviceLink => ("device_link", Some(42), F::Shard, I),
-            Kind::PageItem => ("page_item", Some(43), F::PageFile, I),
-            Kind::StructureBox => ("structure_box", Some(44), F::PageFile, I),
-            Kind::ReportBlock => ("report_block", Some(45), F::ReportBlocksOrPage, I),
-            Kind::MacroInstance => ("macro_instance", Some(46), F::PageFile, I),
-            Kind::PlaceholderGroup => ("placeholder_group", Some(47), F::PageFile, R),
-            Kind::LayoutSpace => ("layout_space", Some(50), F::LayoutFile, I),
-            Kind::Enclosure => ("enclosure", Some(51), F::LayoutFile, I),
-            Kind::MountingSurface => ("mounting_surface", Some(52), F::LayoutFile, I),
-            Kind::Carrier => ("carrier", Some(53), F::LayoutFile, I),
-            Kind::Placement => ("placement", Some(54), F::LayoutFile, I),
-            Kind::RouteOverride => ("route_override", Some(55), F::LayoutFile, R),
-            Kind::CommittedRoute => ("committed_route", Some(56), F::LayoutFile, R),
-            Kind::RoutingPath => ("routing_path", Some(57), F::LayoutFile, R),
-            Kind::SurfaceFeature => ("surface_feature", Some(58), F::LayoutFile, R),
-            Kind::Revision => ("revision", Some(60), F::RootFile("revisions.jsonl"), I),
-            Kind::Waiver => ("waiver", Some(61), F::RootFile("waivers.jsonl"), I),
-            Kind::Comment => ("comment", Some(62), F::RootFile("comments.jsonl"), R),
-            Kind::Transmittal => ("transmittal", Some(63), F::RootFile("revisions.jsonl"), R),
-            Kind::ExchangeRecord => ("exchange_record", Some(70), F::ExchangeFile, R),
-            Kind::ForeignId => ("foreign_id", Some(71), F::ExchangeFile, R),
-            Kind::ImportRun => ("import_run", Some(72), F::ImportsFile, R),
-            Kind::Conflict => ("conflict", Some(255), F::TargetFile, R),
-            Kind::Part => ("part", None, F::LibraryDocument("parts"), I),
-            Kind::Symbol => ("symbol", None, F::LibraryDocument("symbols"), I),
-            Kind::Fndef => ("fndef", None, F::LibraryDocument("fndefs"), I),
-            Kind::Form => ("form", None, F::LibraryDocument("forms"), I),
-            Kind::Macro => ("macro", None, F::LibraryDocument("macros"), I),
-            Kind::Manufacturer => ("manufacturer", None, F::LibraryDocument("manufacturers"), I),
-            Kind::PlcProfile => ("plc_profile", None, F::LibraryDocument("plc-profiles"), R),
-            Kind::MachineProfile => ("machine_profile", None, F::LibraryToml("profiles"), R),
-            Kind::LabelProfile => ("label_profile", None, F::LibraryToml("profiles"), R),
+            Kind::Project => ("project", Some(10), F::ProjectFile, I, "0.1"),
+            Kind::PlcConfigProject => ("plc_config_project", Some(11), F::ProjectFile, I, "0.1"),
+            Kind::LogicalNet => ("logical_net", Some(12), F::ProjectFile, I, "0.1"),
+            Kind::PhysicalNet => ("physical_net", Some(13), F::ProjectFile, I, "0.1"),
+            Kind::Medium => ("medium", Some(14), F::ProjectFile, R, "0.1"),
+            Kind::ImportLineage => ("import_lineage", Some(15), F::ProjectFile, I, "0.1"),
+            Kind::StructureNode => ("structure_node", Some(20), F::StructureFile, I, "0.1"),
+            Kind::Section => ("section", Some(21), F::StructureFile, I, "0.1"),
+            Kind::ExternalRef => ("external_ref", Some(22), F::StructureFile, I, "0.1"),
+            Kind::Page => ("page", Some(30), F::PageFile, I, "0.1"),
+            Kind::Device => ("device", Some(31), F::Shard, I, "0.1"),
+            Kind::Function => ("function", Some(32), F::ShardOrPage, I, "0.1"),
+            Kind::Representation => ("representation", Some(33), F::PageFile, I, "0.1"),
+            Kind::Connection => ("connection", Some(34), F::PageOrShard, I, "0.1"),
+            Kind::Junction => ("junction", Some(35), F::PageFile, I, "0.1"),
+            Kind::Conductor => ("conductor", Some(36), F::Shard, I, "0.1"),
+            Kind::Channel => ("channel", Some(37), F::Shard, I, "0.1"),
+            Kind::PotentialDef => ("potential_def", Some(38), F::ShardOrPage, I, "0.1"),
+            Kind::NetDef => ("net_def", Some(39), F::ShardOrPage, R, "0.1"),
+            Kind::MediumDef => ("medium_def", Some(40), F::ShardOrPage, R, "0.1"),
+            Kind::Bond => ("bond", Some(41), F::ShardOrPage, I, "0.1"),
+            Kind::DeviceLink => ("device_link", Some(42), F::Shard, I, "0.1"),
+            Kind::PageItem => ("page_item", Some(43), F::PageFile, I, "0.1"),
+            Kind::StructureBox => ("structure_box", Some(44), F::PageFile, I, "0.1"),
+            Kind::ReportBlock => ("report_block", Some(45), F::ReportBlocksOrPage, I, "0.1"),
+            Kind::MacroInstance => ("macro_instance", Some(46), F::PageFile, I, "0.1"),
+            Kind::PlaceholderGroup => ("placeholder_group", Some(47), F::PageFile, R, "0.1"),
+            Kind::LayoutSpace => ("layout_space", Some(50), F::LayoutFile, I, "0.1"),
+            Kind::Enclosure => ("enclosure", Some(51), F::LayoutFile, I, "0.1"),
+            Kind::MountingSurface => ("mounting_surface", Some(52), F::LayoutFile, I, "0.1"),
+            Kind::Carrier => ("carrier", Some(53), F::LayoutFile, I, "0.1"),
+            Kind::Placement => ("placement", Some(54), F::LayoutFile, I, "0.1"),
+            Kind::RouteOverride => ("route_override", Some(55), F::LayoutFile, R, "0.1"),
+            Kind::CommittedRoute => ("committed_route", Some(56), F::LayoutFile, R, "0.1"),
+            Kind::RoutingPath => ("routing_path", Some(57), F::LayoutFile, R, "0.1"),
+            Kind::SurfaceFeature => ("surface_feature", Some(58), F::LayoutFile, R, "0.1"),
+            Kind::Revision => ("revision", Some(60), F::RootFile("revisions.jsonl"), I, "0.1"),
+            Kind::Waiver => ("waiver", Some(61), F::RootFile("waivers.jsonl"), I, "0.1"),
+            Kind::Comment => ("comment", Some(62), F::RootFile("comments.jsonl"), R, "0.1"),
+            Kind::Transmittal => ("transmittal", Some(63), F::RootFile("revisions.jsonl"), R, "0.1"),
+            Kind::ExchangeRecord => ("exchange_record", Some(70), F::ExchangeFile, R, "0.1"),
+            Kind::ForeignId => ("foreign_id", Some(71), F::ExchangeFile, R, "0.1"),
+            Kind::ImportRun => ("import_run", Some(72), F::ImportsFile, R, "0.1"),
+            Kind::Conflict => ("conflict", Some(255), F::TargetFile, R, "0.1"),
+            Kind::Part => ("part", None, F::LibraryDocument("parts"), I, "0.1"),
+            Kind::Symbol => ("symbol", None, F::LibraryDocument("symbols"), I, "0.1"),
+            Kind::Fndef => ("fndef", None, F::LibraryDocument("fndefs"), I, "0.1"),
+            Kind::Form => ("form", None, F::LibraryDocument("forms"), I, "0.1"),
+            Kind::Macro => ("macro", None, F::LibraryDocument("macros"), I, "0.1"),
+            Kind::Manufacturer => (
+                "manufacturer",
+                None,
+                F::LibraryDocument("manufacturers"),
+                I,
+                "0.1",
+            ),
+            Kind::PlcProfile => ("plc_profile", None, F::LibraryDocument("plc-profiles"), R, "0.1"),
+            Kind::MachineProfile => ("machine_profile", None, F::LibraryToml("profiles"), R, "0.1"),
+            Kind::LabelProfile => ("label_profile", None, F::LibraryToml("profiles"), R, "0.1"),
         }
     }
 
@@ -331,6 +337,19 @@ impl Kind {
     /// Whether v0 implements the kind.
     pub const fn status(self) -> KindStatus {
         self.row().3
+    }
+
+    /// The format the kind first appeared in (doc 05 §4, ADR-0011): a record of the kind needs a reader of at least
+    /// this format. `"0.1"` for every kind of the registry, reserved kinds included; a kind added by a later format
+    /// states that format in its row.
+    ///
+    /// ```
+    /// use ew_schema::Kind;
+    ///
+    /// assert_eq!(Kind::Device.since(), "0.1");
+    /// ```
+    pub const fn since(self) -> &'static str {
+        self.row().4
     }
 
     /// Whether the kind is a library document kind (`lib/**`).
@@ -414,6 +433,59 @@ pub const PERSONAL_DATA_FIELDS: &[(Kind, &str)] = &[
     (Kind::Project, "parties[].name"),
     (Kind::Project, "parties[].address"),
 ];
+
+/// The format each kind first appeared in ([`Kind::since`]), in [`Kind::ALL`] order: the kind table of the computed
+/// `min_reader` (doc 05 §4; `ew-format` reads it as its `SINCE` tables).
+pub const KIND_SINCE: [(Kind, &str); Kind::ALL.len()] = kind_since();
+
+const fn kind_since() -> [(Kind, &'static str); Kind::ALL.len()] {
+    let mut out = [(Kind::Project, ""); Kind::ALL.len()];
+    let mut i = 0;
+    while i < Kind::ALL.len() {
+        out[i] = (Kind::ALL[i], Kind::ALL[i].since());
+        i += 1;
+    }
+    out
+}
+
+/// A member added to a kind after the kind itself (doc 05 §4; members are append-only, ADR-0011): a record of `kind`
+/// with a value at `path` needs a reader of format `since`.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+pub struct MemberSince {
+    /// The kind.
+    pub kind: Kind,
+    /// The member, as a path into the kind's JSON: `a.b` descends into an object member, `a[]` into the elements of an
+    /// array (the form of [`PERSONAL_DATA_FIELDS`]).
+    pub path: &'static str,
+    /// The format the member first appeared in.
+    pub since: &'static str,
+}
+
+/// A variant added to an enum member after the member itself (doc 05 §4): a record of `kind` whose value at `path` is
+/// `variant` (that string, or an object whose one member is named `variant`) needs a reader of format `since`.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+pub struct VariantSince {
+    /// The kind.
+    pub kind: Kind,
+    /// The enum member, as a path into the kind's JSON ([`MemberSince::path`]).
+    pub path: &'static str,
+    /// The variant's name as the canonical form writes it.
+    pub variant: &'static str,
+    /// The format the variant first appeared in.
+    pub since: &'static str,
+}
+
+/// The members added after their kind, for the computed `min_reader` (doc 05 §4). Empty: every member is format 0.1.
+/// A member added by a later format gets a row here in the same change.
+pub const MEMBER_SINCE: &[MemberSince] = &[];
+
+/// The variants added after their member, for the computed `min_reader` (doc 05 §4). Empty: every variant is format
+/// 0.1. A variant added by a later format gets a row here in the same change.
+pub const VARIANT_SINCE: &[VariantSince] = &[];
+
+/// The formats released so far, oldest first (doc 05 §10.4). Empty until the first release, when WP-S6.08 adds
+/// `"0.1"`; from then on a build whose [`FORMAT`] is not in it writes `unstable: true` (WP-S1.17 part 3).
+pub const RELEASED_FORMATS: &[&str] = &[];
 
 /// The kind registry (doc 05 §2.2) as an API: rank, ownership rule, anchor and schema version.
 ///

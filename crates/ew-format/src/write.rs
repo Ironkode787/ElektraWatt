@@ -75,16 +75,23 @@ pub fn render_records(
     Ok(out)
 }
 
-/// The manifest of a set of files: `format` and `min_reader` this crate's [`FORMAT`](ew_schema::FORMAT)
-/// (no member of a newer minor exists yet, so `min_reader` equals `format`), the given generator and
-/// generation, and the SHA-256 of every file.
+/// The manifest of a set of files: `format` this crate's [`FORMAT`](ew_schema::FORMAT), `min_reader` computed from
+/// the files as a save computes it ([`min_reader`](crate::min_reader) over [`file_since`](crate::file_since) with the
+/// [`SINCE`](crate::SINCE) tables), the given generator and generation, and the SHA-256 of every file.
 pub fn manifest_of(
     files: &BTreeMap<FilePath, Vec<u8>>,
     project: AnyId,
     generation: u64,
     generator: &str,
 ) -> Manifest {
-    let mut manifest = Manifest::new(ew_schema::FORMAT, generator, project, generation);
+    let format = ew_schema::FORMAT;
+    let mut manifest = Manifest::new(format, generator, project, generation);
+    manifest.min_reader = crate::min_reader(
+        format,
+        files
+            .iter()
+            .filter_map(|(path, bytes)| crate::file_since(format, path, bytes, &crate::SINCE)),
+    );
     manifest.files = files
         .iter()
         .map(|(path, bytes)| (path.clone(), FileHash::Sha256(sha256(bytes))))

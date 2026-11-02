@@ -24,7 +24,9 @@
 //!   inline (§3.4).
 //! - **Manifest** ([`Manifest`]): format stamps, generation and the SHA-256 of every file (§4), with the
 //!   reader decisions of §10.1 ([`reader_access`]), and the content digest of a generation that a sign-off binds to
-//!   ([`content_digest`], doc 15 §5.4).
+//!   ([`content_digest`], doc 15 §5.4). Its `min_reader` is computed ([`min_reader`]) from the `since` value of each
+//!   file ([`file_since`]) under `ew-schema`'s tables ([`SINCE`]); a manifest that came out of a git text merge with
+//!   conflict markers still gives the generation a save continues from ([`Manifest::conflicted_generation`]).
 //! - **Reading** ([`plan`], [`load`]): which files to read, then records, lines kept verbatim (unknown kinds,
 //!   malformed variants, quarantined lines), the rewrite set and the integrity findings of §6.2 and §6.3
 //!   ([`Finding`]), under the hostile-input [`Limits`] of §3.6.
@@ -32,8 +34,7 @@
 //!   and of the golden fixture (doc 20 §3.2 path (c)).
 //!
 //! Not in v0: migrations (the upgrade chain on `serde_json::Value`, WP-S1.17), the 3-way merge core and
-//! conflict records (the merge driver, FR-COL-014), `min_reader` from `since` metadata (every member is
-//! format 0.1, so `min_reader` equals `format`).
+//! conflict records (the merge driver, FR-COL-014).
 //!
 //! # Determinism
 //!
@@ -81,6 +82,7 @@ mod manifest;
 mod order;
 mod path;
 mod read;
+mod since;
 mod version;
 mod write;
 
@@ -105,6 +107,9 @@ pub use path::{
     FilePath, LIB_JSON_DIRS, LOCK, MANIFEST, MAX_INTERNAL_PATH, MAX_PATH, OpaqueKind, PathClass, PathError,
     ROOT_FILES, RecordFile, STALE_LOCK_PREFIX, TEMP_INFIX, classify,
 };
-pub use read::{EntryKind, Kept, KeptDocument, KeptLine, Loaded, ReadPlan, library_copy_hash, load, plan};
+pub use read::{
+    EntryKind, Kept, KeptDocument, KeptLine, Loaded, ReadPlan, crlf_to_lf, library_copy_hash, load, plan,
+};
+pub use since::{SINCE, SinceTables, file_since, min_reader};
 pub use version::{Access, reader_access};
 pub use write::{manifest_of, project_files, render_records};

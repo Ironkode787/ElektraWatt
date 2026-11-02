@@ -318,8 +318,14 @@ struct Loader<'a> {
     placed: Vec<Placed>,
 }
 
-/// `bytes` with every `\r\n` replaced by `\n`.
-fn crlf_to_lf(bytes: &[u8]) -> Vec<u8> {
+/// `bytes` with every `\r\n` replaced by `\n`, a lone `\r` kept: the line-end normalisation under which a file equals
+/// its manifest hash (doc 05 §6.2, [`FindingKind::LineEndings`](crate::FindingKind)), and under which a save finds a
+/// file it replaces or removes unchanged.
+///
+/// ```
+/// assert_eq!(ew_format::crlf_to_lf(b"a\r\nb\rc\r\n"), b"a\nb\rc\n");
+/// ```
+pub fn crlf_to_lf(bytes: &[u8]) -> Vec<u8> {
     let mut out = Vec::with_capacity(bytes.len());
     let mut i = 0;
     while i < bytes.len() {
@@ -335,7 +341,7 @@ fn crlf_to_lf(bytes: &[u8]) -> Vec<u8> {
 
 /// Whether the JSON text nests arrays and objects deeper than `max`: one linear scan that ignores brackets
 /// inside strings, run before the text reaches a recursive parser.
-fn exceeds_depth(text: &[u8], max: usize) -> bool {
+pub(crate) fn exceeds_depth(text: &[u8], max: usize) -> bool {
     let (mut depth, mut in_string, mut escaped) = (0usize, false, false);
     for &b in text {
         if in_string {

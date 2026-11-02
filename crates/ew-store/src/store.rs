@@ -15,7 +15,8 @@ use ew_format::ew_schema::{AnyId, FORMAT};
 use ew_format::ew_schema::{AssetFormat, AssetRef, Sha256};
 use ew_format::{
     Access as FormatAccess, FileHash, FilePath, Finding, FindingKind, Kept, Limits, LineKey, MANIFEST,
-    Manifest, OpaqueKind, PathClass, classify, hash_text, jsonl_file, sha256, unknown_record_file,
+    Manifest, OpaqueKind, PathClass, SINCE, classify, crlf_to_lf, file_since, hash_text, jsonl_file,
+    min_reader, sha256, unknown_record_file,
 };
 use ew_model::{AnyKey, AnyRow, Asset, Model, ModelError};
 
@@ -47,6 +48,10 @@ pub const RENAME_BACKOFF: [Duration; 5] = [
 ];
 /// The deepest directory level the store lists below the project root.
 const MAX_WALK_DEPTH: usize = 16;
+/// The most files [`SaveError::ExternalChange`]'s text names; it counts the others.
+const EXTERNAL_CHANGE_NAMED: usize = 10;
+/// The most stray names a move-aside tries for one file and generation ([`FilePath::unlisted`]).
+const UNLISTED_ATTEMPTS: u32 = 1_000;
 
 /// Whether a session edits or only reads.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -304,7 +309,7 @@ pub enum Changes<'a> {
 /// The steps of the save protocol (doc 05 §5.2), for error reports and the fault-injection harness.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum SaveStep {
-    /// Step 2: the lock and manifest pre-checks.
+    /// Step 2: the lock and manifest pre-checks, and the reads of the files the save replaces or removes.
     PreCheck,
     /// Step 4: writing and syncing the temps.
     Temps,
@@ -323,9 +328,13 @@ pub enum SaveError {
     ReadOnly(ReadOnlyReason),
     /// The lock was lost (taken over): the session is now read-only, nothing was written (doc 05 §5.4).
     LockLost(Option<Box<LockRecord>>),
-    /// `manifest.json` changed since we loaded or wrote it: an external change (doc 05 §9) must be
-    /// merged first; nothing was written.
-    ExternalChange,
+    /// Files changed on disk since we loaded or wrote them: `manifest.json` (an external change, doc 05 §9, to be
+    /// merged first), or files this save would replace or remove whose bytes, also in their CRLF-to-LF form, are no
+    /// longer those we hold (doc 05 §6.2, WP-S1.17 D5). Nothing was written.
+    ExternalChange {
+        /// The changed files, in path order.
+        files: Vec<FilePath>,
+    },
     /// A failure before the commit point: generation g is intact, our temps are deleted, the project stays
     /// dirty (NFR-REL-03).
     Failed {
@@ -365,7 +374,22 @@ impl fmt::Display for SaveError {
         match self {
             SaveError::ReadOnly(r) => write!(f, "read-only session: {r:?}"),
             SaveError::LockLost(_) => f.write_str("the lock was taken over; the session is read-only"),
-            SaveError::ExternalChange => f.write_str("the project changed on disk; merge the change first"),
+            SaveError::ExternalChange { files } => {
+                f.write_str("the project changed on disk")?;
+                if !files.is_empty() {
+                    let named: Vec<&str> = files
+                        .iter()
+                        .take(EXTERNAL_CHANGE_NAMED)
+                        .map(FilePath::as_str)
+                        .collect();
+                    write!(f, " ({}", named.join(", "))?;
+                    if files.len() > named.len() {
+                        write!(f, " and {} more", files.len() - named.len())?;
+                    }
+                    f.write_str(")")?;
+                }
+                f.write_str("; merge the change first")
+            }
             SaveError::Failed { step, path, error } => {
                 write!(
                     f,
@@ -603,8 +627,9 @@ pub struct Store {
     manifest_hash: Option<[u8; 32]>,
     /// Whether the manifest's format stamp is kept (a newer minor, doc 05 §10.1).
     keep_format: bool,
-    /// Writer-owned files (record files and library documents of known kinds) on disk, with their hashes.
-    disk: BTreeMap<FilePath, [u8; 32]>,
+    /// Writer-owned files (record files and library documents of known kinds) on disk, with their hashes and their
+    /// `since` values.
+    disk: BTreeMap<FilePath, Held>,
     /// Files kept by hash only.
     opaque: BTreeMap<FilePath, FileHash>,
     /// The model keys of every writer-owned file.
@@ -634,6 +659,25 @@ pub struct Store {
     leftovers: Vec<Segment>,
     recovery: Option<RecoveryInfo>,
     closed: bool,
+}
+
+/// A writer-owned file as the store holds it: the SHA-256 of its bytes as loaded or written, and its `since` value
+/// ([`ew_format::file_since`]; `None` at the format's floor), which the computed `min_reader` of every save reads
+/// without reading the file again (WP-S1.17 D3).
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+struct Held {
+    hash: [u8; 32],
+    since: Option<&'static str>,
+}
+
+impl Held {
+    /// The held form of `bytes` at `path`.
+    fn of(path: &FilePath, bytes: &[u8]) -> Held {
+        Held {
+            hash: sha256(bytes),
+            since: file_since(FORMAT, path, bytes, &SINCE),
+        }
+    }
 }
 
 /// An opened project.
@@ -891,6 +935,8 @@ impl Store {
                 }
             }
         }
+        // The generation of an unusable manifest that came out of a git text merge (FT-97).
+        let mut conflicted = None;
         let manifest = match intent
             .clone()
             .map(|m| Ok(Some((m, [0u8; 32]))))
@@ -904,6 +950,7 @@ impl Store {
             Err(e) => {
                 if let Ok(bytes) = vfs.read(&join(&self.root, MANIFEST)) {
                     self.manifest_hash = Some(sha256(&bytes));
+                    conflicted = Manifest::conflicted_generation(&bytes, &self.opts.limits);
                 }
                 findings.push(Finding::new(
                     FindingKind::ManifestUnreadable,
@@ -937,6 +984,11 @@ impl Store {
                 FormatAccess::ReadWrite => {}
             }
             self.generation = m.generation;
+        } else if let Some(g) = conflicted {
+            // A manifest with git conflict markers (doc 05 §11.3, WP-S1.17 D6): the greatest generation of its sides,
+            // so that the next save writes one more than either side and never restarts at 1 under both. Without
+            // such a line the generation stays 0, as for a missing manifest.
+            self.generation = g;
         }
 
         // Plan, read, parse (doc 05 §6.1, §6.2, §6.3).
@@ -1038,7 +1090,10 @@ impl Store {
                 PathClass::Records(_) | PathClass::LibDocument { .. }
             ) && !loaded.opaque.contains_key(path)
             {
-                self.disk.insert(path.clone(), *hash);
+                let since = files
+                    .get(path)
+                    .and_then(|bytes| file_since(FORMAT, path, bytes, &SINCE));
+                self.disk.insert(path.clone(), Held { hash: *hash, since });
             }
         }
         self.opaque = loaded
@@ -1317,11 +1372,14 @@ impl Store {
     /// for a save of generation `g`, so that the save never renames over another user's file (review cycle
     /// 8, owner ruling). The rename does not replace: a taken name is skipped. Returns the EW-CORE-004
     /// finding naming the new path.
+    ///
+    /// A retried save or roll-forward of the same generation can find the file again, restored by a sync client after
+    /// the first move (FT-98): when the new stray's bytes equal those of an older stray of the same file and
+    /// generation, the new one is removed and the finding names the older one, which holds the bytes (WP-S1.17 D7).
     fn move_aside(&self, path: &FilePath, g: u64) -> io::Result<Finding> {
-        const ATTEMPTS: u32 = 1_000;
         let vfs = &*self.opts.vfs;
         let from = join(&self.root, path.as_str());
-        for n in 0..ATTEMPTS {
+        for n in 0..UNLISTED_ATTEMPTS {
             let aside = path.unlisted(g, n);
             let to = join(&self.root, aside.as_str());
             let moved = match vfs.rename_noreplace(&from, &to) {
@@ -1339,6 +1397,21 @@ impl Store {
                 Err(e) => return Err(e),
             };
             if moved {
+                if let Some(older) = self.equal_older_stray(path, g, n) {
+                    // The bytes stay in the older stray; a duplicate that cannot be removed simply stays.
+                    if vfs.remove_file(&to).is_ok() {
+                        return Ok(Finding::new(
+                            FindingKind::Orphan,
+                            Some(older),
+                            None,
+                            format!(
+                                "found again at {path}, which manifest.json does not list (another user's or a \
+                                 sync client's file), with the bytes this file already holds; moved aside so that \
+                                 the save of generation {g} does not overwrite it, and the duplicate removed"
+                            ),
+                        ));
+                    }
+                }
                 return Ok(Finding::new(
                     FindingKind::Orphan,
                     Some(aside),
@@ -1354,6 +1427,31 @@ impl Store {
             io::ErrorKind::AlreadyExists,
             format!("{path}: no free name to move the unlisted file aside"),
         ))
+    }
+
+    /// An older stray of `path` and generation `g` ([`FilePath::unlisted`] with any other `n`, gaps skipped) whose
+    /// bytes equal those of the stray `path.unlisted(g, new)` just moved, both read again just before the comparison
+    /// (WP-S1.17 D7, FT-98). `None` when there is none, or when a listing or a read fails: the new stray then stays.
+    fn equal_older_stray(&self, path: &FilePath, g: u64, new: u32) -> Option<FilePath> {
+        let vfs = &*self.opts.vfs;
+        let dir = if path.dir().is_empty() {
+            self.root.clone()
+        } else {
+            join(&self.root, path.dir())
+        };
+        let names: BTreeSet<String> = vfs
+            .list(&dir)
+            .ok()?
+            .into_iter()
+            .filter(|(_, kind)| *kind == EntryKind::File)
+            .map(|(name, _)| name)
+            .collect();
+        let fresh = join(&self.root, path.unlisted(g, new).as_str());
+        (0..UNLISTED_ATTEMPTS)
+            .filter(|m| *m != new)
+            .map(|m| path.unlisted(g, m))
+            .filter(|older| names.contains(older.file_name()))
+            .find(|older| same_bytes(vfs, &fresh, &join(&self.root, older.as_str())).unwrap_or(false))
     }
 
     fn rename_retrying(&self, from: &Path, to: &Path) -> io::Result<()> {
@@ -1496,9 +1594,9 @@ impl Store {
     // Save
 
     /// Saves `model` (doc 05 §5.2): serialise the files of the dirty set, drop those equal to their
-    /// hashes, then temps with `sync_all`, the intent manifest, directory syncs, `save-begin` in the
-    /// journal (the commit point), renames, the manifest rename, removals, `save-done`. An unchanged
-    /// project writes nothing.
+    /// hashes, check that every file it replaces or removes is still as loaded or written, then temps with
+    /// `sync_all`, the intent manifest, directory syncs, `save-begin` in the journal (the commit point),
+    /// renames, the manifest rename, removals, `save-done`. An unchanged project writes nothing.
     ///
     /// # Errors
     ///
@@ -1560,7 +1658,9 @@ impl Store {
             }
         };
         if on_disk != self.manifest_hash {
-            return Err(SaveError::ExternalChange);
+            return Err(SaveError::ExternalChange {
+                files: FilePath::new(MANIFEST).into_iter().collect(),
+            });
         }
 
         // Step 3: serialise the dirty files.
@@ -1571,6 +1671,12 @@ impl Store {
             .cloned()
             .collect();
         plan.removes.extend(drop.iter().cloned());
+        // The rest of step 2 (WP-S1.17 D5): every file this save replaces or removes still holds the bytes we loaded or
+        // wrote, else it changed outside the session and nothing is written. Before any temp and any move-aside.
+        let changed = self.changed_targets(&plan)?;
+        if !changed.is_empty() {
+            return Err(SaveError::ExternalChange { files: changed });
+        }
         let g = self.generation;
         let g1 = g + 1;
         let mut manifest = Manifest::new(
@@ -1579,10 +1685,17 @@ impl Store {
             model.project().id.cast(),
             g1,
         );
+        // The computed stamp (doc 05 §4, WP-S1.17 D3): the greatest `since` of the files the new generation lists.
+        let since: Vec<&str> = plan.disk.values().filter_map(|h| h.since).collect();
+        manifest.min_reader = min_reader(FORMAT, since.iter().copied());
         if self.keep_format {
             if let Some(old) = &self.manifest {
+                // A newer minor keeps its stamps; its `min_reader` rises when our records need more.
                 manifest.format.clone_from(&old.format);
-                manifest.min_reader.clone_from(&old.min_reader);
+                manifest.min_reader = min_reader(
+                    &old.format,
+                    since.iter().copied().chain([old.min_reader.as_str()]),
+                );
             }
         }
         if let Some(old) = &self.manifest {
@@ -1593,7 +1706,7 @@ impl Store {
         manifest.files = plan
             .disk
             .iter()
-            .map(|(p, h)| (p.clone(), FileHash::Sha256(*h)))
+            .map(|(p, h)| (p.clone(), FileHash::Sha256(h.hash)))
             .chain(
                 self.opaque
                     .iter()
@@ -1844,12 +1957,50 @@ impl Store {
         SaveError::LockLost(rec)
     }
 
+    /// The files of `plan` that the save replaces or removes and that changed on disk since we loaded or wrote them
+    /// (WP-S1.17 D5), in path order: each is compared with the hash we hold, `disk` for record files and library
+    /// documents, `opaque` for opaque files and assets ([`unchanged_on_disk`]). A new target (one we hold no hash for)
+    /// is not compared: the save moves it aside when it is there.
+    ///
+    /// # Errors
+    ///
+    /// [`SaveError::Failed`] at [`SaveStep::PreCheck`] when a file cannot be read.
+    fn changed_targets(&self, plan: &SavePlan) -> Result<Vec<FilePath>, SaveError> {
+        let targets: BTreeSet<&FilePath> = plan.writes.keys().chain(&plan.removes).collect();
+        let mut changed = Vec::new();
+        for path in targets {
+            let held = match (self.disk.get(path), self.opaque.get(path)) {
+                (Some(held), _) => held.hash,
+                (None, Some(FileHash::Sha256(hash))) => *hash,
+                // A hash we do not know cannot show the file unchanged.
+                (None, Some(FileHash::Pending)) => {
+                    changed.push(path.clone());
+                    continue;
+                }
+                (None, None) => continue,
+            };
+            let full = join(&self.root, path.as_str());
+            match unchanged_on_disk(&*self.opts.vfs, &full, &held) {
+                Ok(true) => {}
+                Ok(false) => changed.push(path.clone()),
+                Err(error) => {
+                    return Err(SaveError::Failed {
+                        step: SaveStep::PreCheck,
+                        path: full,
+                        error,
+                    });
+                }
+            }
+        }
+        Ok(changed)
+    }
+
     /// Makes `model` the baseline after a successful plan.
     fn adopt(
         &mut self,
         model: &Model,
         contents: BTreeMap<FilePath, BTreeSet<AnyKey>>,
-        disk: BTreeMap<FilePath, [u8; 32]>,
+        disk: BTreeMap<FilePath, Held>,
     ) {
         for (path, keys) in contents {
             if keys.is_empty() {
@@ -1926,8 +2077,8 @@ impl Store {
                 continue;
             }
             let hash = sha256(&bytes);
-            if disk.get(path) != Some(&hash) {
-                disk.insert(path.clone(), hash);
+            if disk.get(path).map(|h| h.hash) != Some(hash) {
+                disk.insert(path.clone(), Held::of(path, &bytes));
                 writes.insert(path.clone(), bytes);
             }
         }
@@ -2328,12 +2479,73 @@ impl Drop for Store {
 struct SavePlan {
     writes: BTreeMap<FilePath, Vec<u8>>,
     removes: BTreeSet<FilePath>,
-    /// The writer-owned files and hashes after the save.
-    disk: BTreeMap<FilePath, [u8; 32]>,
+    /// The writer-owned files, their hashes and `since` values after the save.
+    disk: BTreeMap<FilePath, Held>,
     /// The new key sets of the dirty files.
     contents: BTreeMap<FilePath, BTreeSet<AnyKey>>,
     /// The asset files this save writes, with their hashes (they join the opaque files).
     assets: BTreeMap<FilePath, FileHash>,
+}
+
+/// Whether the file at `full`, held with the SHA-256 `held`, can be replaced or removed without losing a change made
+/// outside the session (WP-S1.17 D5, doc 05 §6.2): it is absent (nothing to overwrite), or a regular file whose bytes,
+/// or their CRLF-to-LF form ([`crlf_to_lf`]), hash to `held`. A directory, a link or anything else in its place is a
+/// change. Read in chunks of [`purge::SCAN_CHUNK`], so that a file grown outside the session is never held whole.
+fn unchanged_on_disk(vfs: &dyn Vfs, full: &Path, held: &[u8; 32]) -> io::Result<bool> {
+    use sha2::Digest as _;
+    let stat = match vfs.stat(full) {
+        Ok(stat) => stat,
+        Err(e) if e.kind() == io::ErrorKind::NotFound => return Ok(true),
+        Err(e) => return Err(e),
+    };
+    if stat.kind != EntryKind::File {
+        return Ok(false);
+    }
+    let (mut raw, mut lf) = (sha2::Sha256::new(), sha2::Sha256::new());
+    // A CR that ends a full chunk waits for the next chunk's first byte, so that no CRLF pair is split.
+    let mut cr = false;
+    let mut offset = 0u64;
+    loop {
+        let chunk = vfs.read_at(full, offset, purge::SCAN_CHUNK)?;
+        let more = chunk.len() == purge::SCAN_CHUNK;
+        offset += chunk.len() as u64;
+        raw.update(&chunk);
+        let mut part = Vec::with_capacity(chunk.len() + 1);
+        if cr {
+            part.push(b'\r');
+        }
+        part.extend_from_slice(&chunk);
+        cr = more && part.last() == Some(&b'\r');
+        if cr {
+            part.pop();
+        }
+        lf.update(crlf_to_lf(&part));
+        if !more {
+            break;
+        }
+    }
+    let (raw, lf): ([u8; 32], [u8; 32]) = (raw.finalize().into(), lf.finalize().into());
+    Ok(raw == *held || lf == *held)
+}
+
+/// Whether the regular files `a` and `b` hold the same bytes: their lengths first, then their content in chunks of
+/// [`purge::SCAN_CHUNK`], so that neither is ever held whole.
+fn same_bytes(vfs: &dyn Vfs, a: &Path, b: &Path) -> io::Result<bool> {
+    let (sa, sb) = (vfs.stat(a)?, vfs.stat(b)?);
+    if sa.kind != EntryKind::File || sb.kind != EntryKind::File || sa.len != sb.len {
+        return Ok(false);
+    }
+    let mut offset = 0u64;
+    loop {
+        let ca = vfs.read_at(a, offset, purge::SCAN_CHUNK)?;
+        if ca != vfs.read_at(b, offset, purge::SCAN_CHUNK)? {
+            return Ok(false);
+        }
+        if ca.len() < purge::SCAN_CHUNK {
+            return Ok(true);
+        }
+        offset += ca.len() as u64;
+    }
 }
 
 /// The project row of an empty baseline (never written: a save writes the model's project).
@@ -2343,4 +2555,80 @@ fn placeholder_project() -> ew_format::ew_schema::Project {
         "derivation_profile": "2027.1",
     }))
     .expect("a project with an ID and a profile parses")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::mem::{DirSync, MemVfs};
+
+    /// `bytes` in a file of a fresh in-memory file system, and its path.
+    fn put(bytes: &[u8]) -> (MemVfs, PathBuf) {
+        let vfs = MemVfs::new(DirSync::Explicit);
+        let path = PathBuf::from("/p/pages/x.jsonl");
+        vfs.put(&path, bytes);
+        (vfs, path)
+    }
+
+    #[test]
+    fn a_crlf_pair_across_a_chunk_boundary_is_one_line_end() {
+        // D5's chunked comparison equals `crlf_to_lf` of the whole file: a CR that ends a full chunk is held for the
+        // next chunk's LF, and a CR that ends the file stays.
+        let chunk = purge::SCAN_CHUNK;
+        let mut straddling = vec![b'a'; chunk - 1];
+        straddling.extend_from_slice(b"\r\nb\r\n\r");
+        let mut lone = vec![b'a'; chunk - 1];
+        lone.extend_from_slice(b"\rx");
+        let mut at_end = vec![b'a'; chunk - 1];
+        at_end.push(b'\r');
+        for bytes in [straddling, lone, at_end, b"a\r\nb".to_vec(), Vec::new()] {
+            let (vfs, path) = put(&bytes);
+            let lf = crlf_to_lf(&bytes);
+            assert_eq!(unchanged_on_disk(&vfs, &path, &sha256(&bytes)).ok(), Some(true));
+            assert_eq!(unchanged_on_disk(&vfs, &path, &sha256(&lf)).ok(), Some(true));
+            let mut other = lf.clone();
+            other.push(b'\n');
+            assert_eq!(unchanged_on_disk(&vfs, &path, &sha256(&other)).ok(), Some(false));
+        }
+    }
+
+    #[test]
+    fn an_absent_file_is_unchanged_and_a_directory_is_not() {
+        let (vfs, path) = put(b"x\n");
+        assert_eq!(
+            unchanged_on_disk(&vfs, Path::new("/p/pages/y.jsonl"), &sha256(b"x\n")).ok(),
+            Some(true)
+        );
+        assert_eq!(
+            unchanged_on_disk(&vfs, Path::new("/p/pages"), &sha256(b"x\n")).ok(),
+            Some(false)
+        );
+        assert_eq!(unchanged_on_disk(&vfs, &path, &sha256(b"x\n")).ok(), Some(true));
+    }
+
+    #[test]
+    fn same_bytes_compares_lengths_then_every_chunk() {
+        let chunk = purge::SCAN_CHUNK;
+        let vfs = MemVfs::new(DirSync::Explicit);
+        let mut a = vec![7u8; chunk + 3];
+        let (pa, pb, pc, pd) = (
+            Path::new("/p/a"),
+            Path::new("/p/b"),
+            Path::new("/p/c"),
+            Path::new("/p/d"),
+        );
+        vfs.put(pa, &a);
+        vfs.put(pb, &a);
+        a[chunk + 1] = 8;
+        vfs.put(pc, &a);
+        vfs.put(pd, &a[..chunk]);
+        assert_eq!(same_bytes(&vfs, pa, pb).ok(), Some(true));
+        assert_eq!(
+            same_bytes(&vfs, pa, pc).ok(),
+            Some(false),
+            "the second chunk differs"
+        );
+        assert_eq!(same_bytes(&vfs, pa, pd).ok(), Some(false), "the lengths differ");
+        assert!(same_bytes(&vfs, pa, Path::new("/p/e")).is_err(), "an absent file");
+    }
 }
