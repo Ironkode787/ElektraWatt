@@ -430,7 +430,7 @@ barely show on dark grey (Material's dark-theme guidance, with #121212 as its ba
   into a generated Rust table of paths (`crates/ew-ui/src/icons/generated.rs`), drawn through epaint. No icon font and
   no icon crate (the egui wrapper crates track older egui releases).
 - **EW glyphs.** Glyphs Tabler lacks (cable, terminal strip, interruption point, black box, potential, structure box,
-  QET grid) are drawn by the project on the same grid with the same stroke rules, stored beside the vendored set under
+  QET grid, DIN rail, duct; the last two from cycle 45, ID-1107) are drawn by the project on the same grid with the same stroke rules, stored beside the vendored set under
   the application's licence, and go through the same generator.
 - **Sizes and stroke.** `icon.sm` 16 px (rows, menus, small command buttons, quick access, the HUD, status fields,
   dock tabs), `icon.md` 20 px (large command buttons, rails, toasts), `icon.lg` 24 px (dialogs; empty states at 32).

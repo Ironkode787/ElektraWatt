@@ -536,6 +536,13 @@ still checks the others. **SP-3** No test pins the number of starter parts (CONT
 changed to a relation, not a new total. **SP-4** `cargo nextest run -p ew-library -p ew-api`, the matching clippy,
 `cargo fmt --all --check`, `cargo xtask check-licence-map`, `reuse lint`.
 
+*As built (cycle 45, A45 and FIXA45; decision log ID-1121):* the starter library 0.3.0 carries the five layout parts
+and the twelve `mech` members above, so part 6 and WP-S4.02 are complete. A device's part chooser offers a layout kind
+only where this package attaches it to a device (ID-1112), through `Session::chooser_layout_kinds(devices)` in
+`ew-api`: an end bracket when every device has `aspects.strip` (terminals not checked, FT-1053), an enclosure and a
+mounting plate when no device has a main function, a rail and a duct never. Golden A's 1X1 is offered EW-GEN-EB-1,
+-UC1 EW-GEN-ENC-1, and F55 none; an empty search is said once, in the list, and Choose is disabled with a reason.
+
 ## 11. Files owned and what a lane may not decide
 
 ### 11.1 Files owned

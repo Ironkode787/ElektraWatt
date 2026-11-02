@@ -164,6 +164,13 @@ that pins the SVG digest. The PDF, PNG, text, rows and CSV files do not change; 
 - **SV-4** No PDF, PNG or CSV byte changes; twice-run determinism; targeted checks for `ew-export`, `ew-api`, `ew`.
   Manual (G-M2 checklist): folio 103's SVG in a browser without Noto Sans installed looks like the PDF page.
 
+*As built (cycle 45, B45; decision log ID-1122):* a page's subset of a face holds the glyphs of its runs and the cmap
+glyphs of the characters written; a face the subsetter refuses (CFF or any other refusal), a face of a collection or a
+run glyph ID above 65535 is named only and counted in `named_fonts`; `.notdef` stays empty (D3). AC-14's SVG digest is
+d6515093…; Golden A's 36 SVG files carry 45 subsets in 3.48 MB, and folio 103 embeds Noto Sans 400 only (a 35,540-byte
+subset in an 80,480-byte page). SV-4's browser check stays a manual G-M2 item. Open: the hinting tables (FT-1045), two
+hostile-case tests (FT-1046) and the characters collected as written (FT-1047).
+
 ## 6. Part 2: the print set and ew print
 
 **Scope.** D5 to D9, D13; FR-EXT-009, FR-OUT-017's headless half. **0.9 pw.**
