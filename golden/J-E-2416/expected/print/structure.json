@@ -1,0 +1,43 @@
+{
+  "command": "ew print golden/J-E-2416.ew --sections 1 --paper A5 --fit",
+  "pages": 5,
+  "page_labels": [
+    "100",
+    "101",
+    "102",
+    "103",
+    "106"
+  ],
+  "page_list": [
+    {
+      "label": "100",
+      "width_mm": 210.0,
+      "height_mm": 148.0,
+      "stamp": "scaled 70 %"
+    },
+    {
+      "label": "101",
+      "width_mm": 210.0,
+      "height_mm": 148.0,
+      "stamp": "scaled 70 %"
+    },
+    {
+      "label": "102",
+      "width_mm": 210.0,
+      "height_mm": 148.0,
+      "stamp": "scaled 70 %"
+    },
+    {
+      "label": "103",
+      "width_mm": 210.0,
+      "height_mm": 148.0,
+      "stamp": "scaled 70 %"
+    },
+    {
+      "label": "106",
+      "width_mm": 210.0,
+      "height_mm": 148.0,
+      "stamp": "scaled 70 %"
+    }
+  ]
+}

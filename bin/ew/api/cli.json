@@ -223,6 +223,11 @@
           "repeatable": false
         },
         {
+          "name": "--sections",
+          "value": true,
+          "repeatable": false
+        },
+        {
           "name": "--threads",
           "value": true,
           "repeatable": false
@@ -261,6 +266,11 @@
         },
         {
           "name": "--pages",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--sections",
           "value": true,
           "repeatable": false
         },
@@ -355,6 +365,11 @@
         },
         {
           "name": "--pages",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--sections",
           "value": true,
           "repeatable": false
         },
@@ -829,6 +844,73 @@
         }
       ],
       "result": "ew.lib-search-result/1",
+      "stability": "preview"
+    },
+    {
+      "path": "print",
+      "flags": [
+        {
+          "name": "--project",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--pages",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--sections",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--paper",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--fit",
+          "value": false,
+          "repeatable": false
+        },
+        {
+          "name": "--mono",
+          "value": false,
+          "repeatable": false
+        },
+        {
+          "name": "--printer",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--via",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--out",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--json",
+          "value": false,
+          "repeatable": false
+        }
+      ],
+      "exits": [
+        {
+          "code": 0,
+          "meaning": "printed, opened in the viewer or written"
+        },
+        {
+          "code": 2,
+          "meaning": "usage, open, I/O and writer errors, an unknown folio or section, a refusal of the adapter"
+        }
+      ],
+      "result": "ew.print-result/1",
       "stability": "preview"
     },
     {

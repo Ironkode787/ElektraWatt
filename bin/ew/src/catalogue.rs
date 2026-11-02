@@ -206,6 +206,18 @@ pub const TABLE: &[Row] = &[
         stability: Stability::Preview,
     },
     Row {
+        path: &["print"],
+        exits: &[
+            exit(0, "printed, opened in the viewer or written"),
+            exit(
+                2,
+                "usage, open, I/O and writer errors, an unknown folio or section, a refusal of the adapter",
+            ),
+        ],
+        result: Some(ew_api::cli_results::PRINT),
+        stability: Stability::Preview,
+    },
+    Row {
         path: &["render"],
         exits: &[
             OK,
@@ -479,6 +491,7 @@ mod tests {
                 f("--project", true, false),
                 f("--out", true, false),
                 f("--pages", true, false),
+                f("--sections", true, false),
                 f("--dpi", true, false),
                 f("--threads", true, false),
                 f("--json", false, false),

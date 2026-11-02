@@ -20,6 +20,7 @@
 //! | `Instance` | the resolved geometry under the instance transform; unresolved: skipped and counted |
 //! | `Image` | PNG and JPEG: an image XObject stretched over the item's rectangle (top-left corner at `rect.min()`, the pixel grid mapped onto the rectangle, as the CPU renderer draws it), through krilla's `raster-images` (FT-406). The bytes must first decode with [`ew_render_cpu::decode_image`] within its pixel bound, so an image the CPU renderer cannot draw is not embedded either; a JPEG is embedded unchanged (DCT) unless it holds CMYK samples, a PNG keeps its bit depth and alpha (a soft mask); when krilla refuses the bytes the decoded pixels are embedded instead. Undrawable images, images without bytes and SVG image items (the export job turns SVG into paths first) are skipped and counted |
 //! | [`PdfOptions`] | Info and XMP: title, description, keywords, language, creator, producer, authors (empty = omitted, FR-OUT-025), creation date, document ID |
+//! | `PdfPage::placement` | `None` (every export page): the page is its sheet. A [`PagePlacement`] (a print page, WP-S3.07 D7): the `MediaBox` is the paper, the content is drawn under one transform (the placement's scale, then its offset), link rectangles and targets mapped by the same rule, then the overlay (the stamp) in paper coordinates |
 //!
 //! # Determinism (doc 09 §4.3)
 //!
@@ -78,6 +79,52 @@ pub struct PdfPage {
     pub height: Nm,
     /// The page's display list on the sheet (exported layers only, page-to-sheet map applied).
     pub content: DisplayList,
+    /// Where the sheet lies on a paper of another size (a print page, WP-S3.07 D7); `None` for every export page,
+    /// whose paper is its sheet.
+    pub placement: Option<PagePlacement>,
+}
+
+/// A sheet placed on a paper (WP-S3.07 D7, decision log ID-1114): the fit of a print page as a page placement, not
+/// a display-list scale, so that [`PdfPage::content`] stays the export page's list item for item.
+///
+/// One rule for every renderer: the content at the target resolution times [`scale`](PagePlacement::scale), at
+/// [`offset`](PagePlacement::offset), then [`overlay`](PagePlacement::overlay) at the paper's resolution. A sheet
+/// point `p` lands on the paper at [`place(p)`](PagePlacement::place).
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+pub struct PagePlacement {
+    /// The paper width.
+    pub width: Nm,
+    /// The paper height.
+    pub height: Nm,
+    /// The uniform scale as an exact ratio `num / den` (both at least 1; `1 / 1` for a sheet printed at its size).
+    pub scale: (u64, u64),
+    /// Where the sheet's top-left corner lands on the paper.
+    pub offset: Pt2,
+    /// Drawn over the placed sheet, in paper coordinates (the stamp "scaled 70 %").
+    pub overlay: DisplayList,
+}
+
+impl PagePlacement {
+    /// The sheet point `p` on the paper: `offset + p × num / den`, each coordinate rounded towards negative infinity
+    /// in integer nm.
+    pub fn place(&self, p: Pt2) -> Pt2 {
+        let (num, den) = (i128::from(self.scale.0), i128::from(self.scale.1.max(1)));
+        let f = |v: Nm, o: Nm| {
+            let scaled = (i128::from(v.0) * num).div_euclid(den);
+            Nm(i64::try_from(scaled).unwrap_or(i64::MAX).saturating_add(o.0))
+        };
+        Pt2::new(f(p.x, self.offset.x), f(p.y, self.offset.y))
+    }
+
+    /// Whether the sheet lies on the paper unscaled with its top-left corner at the paper's.
+    pub fn is_identity(&self) -> bool {
+        self.scale.0 == self.scale.1 && self.offset == Pt2::ORIGIN
+    }
+
+    /// The scale as a factor (for a renderer's transform; the exact value is [`scale`](PagePlacement::scale)).
+    pub fn factor(&self) -> f64 {
+        self.scale.0 as f64 / self.scale.1.max(1) as f64
+    }
 }
 
 /// The PDF conformance level.
@@ -299,6 +346,19 @@ fn write(
     } else {
         pages.iter().map(|p| &p.content).collect()
     };
+    let mono_overlays: Vec<Option<DisplayList>>;
+    let overlays: Vec<Option<&DisplayList>> = if options.monochrome {
+        mono_overlays = pages
+            .iter()
+            .map(|p| p.placement.as_ref().map(|pl| monochrome(&pl.overlay)))
+            .collect();
+        mono_overlays.iter().map(Option::as_ref).collect()
+    } else {
+        pages
+            .iter()
+            .map(|p| p.placement.as_ref().map(|pl| &pl.overlay))
+            .collect()
+    };
 
     let mut report = PdfReport::default();
     let mut page_index: BTreeMap<Destination, usize> = BTreeMap::new();
@@ -314,10 +374,15 @@ fn write(
         let mut scan = Scan {
             page: index,
             geometry,
+            placement: pages[index].placement.as_ref(),
             targets: &mut targets,
             wanted: &mut wanted,
         };
         scan.items(&list.items, &[], 0);
+        if let Some(overlay) = overlays[index] {
+            scan.placement = None;
+            scan.items(&overlay.items, &[], 0);
+        }
     }
     let resolve = |d: &Destination| -> Option<(usize, Point)> {
         match d {
@@ -332,7 +397,8 @@ fn write(
     let mut missing: BTreeSet<FontKey> = BTreeSet::new();
     let mut used: BTreeSet<FontKey> = BTreeSet::new();
     for (index, (page, list)) in pages.iter().zip(&contents).enumerate() {
-        let (w, h) = (pt(page.width), pt(page.height));
+        let placement = page.placement.as_ref();
+        let (w, h) = placement.map_or((pt(page.width), pt(page.height)), |p| (pt(p.width), pt(p.height)));
         let settings = PageSettings::from_wh(w, h)
             .filter(|_| w > 0.0 && h > 0.0)
             .ok_or(PdfError::PageSize { index })?
@@ -351,7 +417,34 @@ fn write(
                 report: &mut report,
                 links: &mut links,
             };
-            w.items(&mut surface, &list.items, &[], 0);
+            match placement.filter(|p| !p.is_identity()) {
+                Some(p) => {
+                    // The placement's one transform: the scale, then the offset (D7).
+                    let s = p.factor() as f32;
+                    surface.push_transform(&kg::Transform::from_row(
+                        s,
+                        0.0,
+                        0.0,
+                        s,
+                        pt(p.offset.x),
+                        pt(p.offset.y),
+                    ));
+                    w.items(&mut surface, &list.items, &[], 0);
+                    surface.pop();
+                }
+                None => w.items(&mut surface, &list.items, &[], 0),
+            }
+            // The content's link boxes are sheet points: on the paper through the placement.
+            if let Some(p) = placement {
+                for (_, quad) in w.links.iter_mut() {
+                    for q in quad.iter_mut() {
+                        *q = p.place(*q);
+                    }
+                }
+            }
+            if let Some(overlay) = overlays[index] {
+                w.items(&mut surface, &overlay.items, &[], 0);
+            }
             surface.finish();
         }
         for (dest, quad) in links {
@@ -594,6 +687,8 @@ fn source_quad(item: &Item, geometry: Option<&dyn GeometryResolver>) -> Vec<Pt2>
 struct Scan<'a> {
     page: usize,
     geometry: Option<&'a dyn GeometryResolver>,
+    /// The page's placement: target anchors are sheet points, placed on the paper.
+    placement: Option<&'a PagePlacement>,
     targets: &'a mut BTreeMap<Destination, (usize, Point)>,
     wanted: &'a mut BTreeSet<Destination>,
 }
@@ -604,7 +699,8 @@ impl Scan<'_> {
             match item.link {
                 Some(Link::Target(d)) => {
                     if let Some(a) = anchor(item) {
-                        let p = point(to_sheet(stack, a));
+                        let on_sheet = to_sheet(stack, a);
+                        let p = point(self.placement.map_or(on_sheet, |pl| pl.place(on_sheet)));
                         self.targets.entry(d).or_insert((self.page, p));
                     }
                 }
@@ -984,6 +1080,7 @@ mod tests {
             width: Nm::from_mm(297),
             height: Nm::from_mm(210),
             content: DisplayList { items: vec![moved] },
+            placement: None,
         };
         let mut options = PdfOptions::new(PdfDate::ymd(2026, 1, 1));
         options.conformance = Conformance::None;

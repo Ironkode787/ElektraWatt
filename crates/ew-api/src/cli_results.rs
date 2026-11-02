@@ -101,6 +101,8 @@ pub const EXPORT_TERMINALS: &str = "ew.export-terminals-result/1";
 pub const EXPORT_REPORT: &str = "ew.export-report-result/1";
 /// `ew render --json`.
 pub const RENDER: &str = "ew.render-result/1";
+/// `ew print --json`.
+pub const PRINT: &str = "ew.print-result/1";
 /// `ew apply --json`.
 pub const APPLY: &str = "ew.apply-result/1";
 /// `ew verify-derived --json`.
@@ -223,6 +225,11 @@ pub const RESULTS: &[ResultSchema] = &[
         name: LIB_SEARCH,
         command: "lib search",
         schema: schema_of::<LibSearchResult>,
+    },
+    ResultSchema {
+        name: PRINT,
+        command: "print",
+        schema: schema_of::<PrintResult>,
     },
     ResultSchema {
         name: QUERIES,
@@ -457,6 +464,29 @@ pub struct ExportPdfResult {
     pub links: usize,
     /// The page findings (unresolved wire ends, unknown styles, overflowing table texts).
     pub findings: usize,
+}
+
+/// `ew print --json` ([`PRINT`]; WP-S3.07 D9).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct PrintResult {
+    /// [`PRINT`].
+    #[serde(rename = "$schema")]
+    pub schema: String,
+    /// The adapter that took the print set (`lp`, `viewer`), or `file` when `--out` wrote it.
+    pub adapter: String,
+    /// The printer named with `--printer`; empty for the default printer or the viewer's choice.
+    pub printer: String,
+    /// The folio labels printed, in page order.
+    pub pages: Vec<String>,
+    /// The paper (`sheet`, `A5`, `A4`, ..., `Tabloid`).
+    pub paper: String,
+    /// The smallest scale of a page in whole percent, rounded half up (100 when no page is scaled).
+    pub scale: u32,
+    /// The notices, in page order: each page printed at 100 % and clipped to a smaller paper.
+    pub notices: Vec<String>,
+    /// The file written (`--out`) or opened in the viewer; `null` when spooled.
+    pub out: Option<String>,
 }
 
 /// `ew export svg --json` ([`EXPORT_SVG`]).

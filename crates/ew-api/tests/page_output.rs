@@ -10,6 +10,11 @@
 
 #[path = "page_output/golden_files.rs"]
 mod golden_files;
+// The print set's structure reads its PDF back (page sizes, the stamp texts); the reader's other parts serve the
+// acceptance harness.
+#[allow(dead_code)]
+#[path = "page_output/pdf_read.rs"]
+mod pdf_read;
 #[path = "page_output/pdf_support.rs"]
 mod pdf_support;
 #[path = "page_output/snapshot.rs"]
@@ -714,6 +719,7 @@ fn a_hostile_page_renders_and_exports_without_panic() {
         width: scene.sheet_width,
         height: scene.sheet_height,
         content: list,
+        placement: None,
     };
     let options = PdfOptions::new(PdfDate::ymd(2000, 1, 1));
     let out = pdf(&[page], &options, &f, None).expect("the hostile PDF is written");
@@ -899,4 +905,303 @@ fn session_page_grid_gives_the_grid_and_the_sheet_map() {
     assert_eq!(grid.sheet_scale_ppb, 986_282_578);
     assert_eq!(grid.sheet_offset_nm, (9_790_000, 9_790_000));
     assert_eq!(s.page_grid("no such folio"), None);
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// The print set (WP-S3.07 part 2, D6 to D8; decision log ID-1114)
+
+/// The print set of Golden A's section 1 on A5 with the fit (D8's command
+/// `ew print golden/J-E-2416.ew --sections 1 --paper A5 --fit`).
+fn section_1_on_a5(s: &ew_api::Session) -> ew_api::output::print::PrintSet {
+    use ew_api::output::PageSelection;
+    use ew_api::output::print::{Fit, Paper, PrintOptions};
+    s.print_set(&PrintOptions {
+        pages: PageSelection::Sections(vec!["1".to_owned()]),
+        paper: Paper::A5,
+        fit: Fit::ToPaper,
+        ..PrintOptions::default()
+    })
+    .expect("section 1 prints")
+}
+
+/// D6 (ID-1114 ruling 5): a section selection is the section's pages in page order with its divider; an unknown
+/// number is refused naming the sections; `--pages` and `--sections` resolve through the same `resolve`.
+#[test]
+fn a_section_selection_is_the_sections_pages_with_its_divider() {
+    use ew_api::output::{ExportOptions, OutputError, PageSelection};
+    let s = golden_session(None);
+    let labels = |pages: PageSelection| -> Result<Vec<String>, OutputError> {
+        let out = s.export_pages(&ExportOptions {
+            pages,
+            ..ExportOptions::default()
+        })?;
+        Ok(out.pages.into_iter().map(|p| p.label).collect())
+    };
+    let sections = |spec: &str| PageSelection::parse_sections(spec).expect("a section list");
+    assert_eq!(
+        labels(sections("1")).unwrap(),
+        ["100", "101", "102", "103", "106"]
+    );
+    assert_eq!(
+        labels(sections("9,1")).unwrap()[..6],
+        ["100", "101", "102", "103", "106", "900"]
+    );
+    assert_eq!(
+        labels(sections("7")).unwrap_err().to_string(),
+        "page selection: no section `7` (the sections are 1, 2, 9)"
+    );
+    assert_eq!(
+        PageSelection::parse_sections("1,").unwrap_err().to_string(),
+        "page selection: `1,` has an empty item (section numbers separated by `,`)"
+    );
+    assert_eq!(
+        labels(PageSelection::parse("101-106").unwrap()).unwrap(),
+        ["101", "102", "103", "106"]
+    );
+}
+
+/// PR-1, PR-3 and D8: section 1 on A5 with the fit prints the five pages on A5 landscape sheets, each stamped
+/// "scaled 70 %" (min(210/297, 148/210), ID-1114 ruling 2); each page's content is the export page's list item for
+/// item and its overlay is the stamp alone; read back, every page is 210 × 148 mm and prints its stamp once; the set
+/// is the same bytes twice. Its SHA-256 and structure are the committed `expected/print/` files (`EW_BLESS=1`
+/// rewrites them; `ew`'s `print_of_golden_a_section_1_on_a5_is_the_committed_print_set` checks the CLI's bytes).
+#[test]
+fn the_print_set_of_section_1_on_a5_matches_the_committed_files() {
+    use ew_api::output::{ExportOptions, PageSelection};
+    use sha2::{Digest, Sha256};
+    let s = golden_session(None);
+    let set = section_1_on_a5(&s);
+    let export = s
+        .export_pages(&ExportOptions {
+            pages: PageSelection::Sections(vec!["1".to_owned()]),
+            ..ExportOptions::default()
+        })
+        .expect("section 1 exports");
+    let labels: Vec<String> = set.pages.iter().map(|p| p.label.clone()).collect();
+    assert_eq!(labels, ["100", "101", "102", "103", "106"]);
+    assert_eq!(set.stamps, vec![Some("scaled 70 %".to_owned()); 5]);
+    assert!(set.notices.is_empty());
+    for (page, exported) in set.pages.iter().zip(&export.pages) {
+        assert!(
+            page.content == exported.content,
+            "folio {}: the content is the export page's",
+            page.label
+        );
+        let placement = page.placement.as_ref().expect("a print page is placed");
+        assert_eq!(
+            (placement.width, placement.height),
+            (ew_units::Nm::from_mm(210), ew_units::Nm::from_mm(148))
+        );
+        assert_eq!(placement.scale, (74, 105));
+        assert_eq!(placement.overlay.items.len(), 1, "the stamp only");
+        let ItemKind::Glyphs(run) = &placement.overlay.items[0].kind else {
+            panic!("folio {}: the stamp is a glyph run", page.label)
+        };
+        assert_eq!(run.text, "scaled 70 %");
+    }
+    let again = section_1_on_a5(&golden_session(Some(0x5eed_1234)));
+    assert!(set.pdf == again.pdf, "two runs (and a record shuffle) differ");
+    let read = pdf_read::PdfFile::parse(&set.pdf)
+        .and_then(|f| f.pages())
+        .expect("the print set reads back");
+    assert_eq!(read.len(), 5);
+    let mut entries = Vec::new();
+    for ((page, stamp), r) in set.pages.iter().zip(&set.stamps).zip(&read) {
+        let stamp = stamp.as_deref().unwrap_or_default();
+        assert_eq!(
+            r.runs.iter().filter(|t| t.text == stamp).count(),
+            1,
+            "folio {}: the stamp prints once",
+            page.label
+        );
+        entries.push(format!(
+            "    {{\n      \"label\": {},\n      \"width_mm\": {:.1},\n      \"height_mm\": {:.1},\n      \"stamp\": {}\n    }}",
+            serde_json::to_string(&page.label).unwrap(),
+            r.width_mm,
+            r.height_mm,
+            serde_json::to_string(stamp).unwrap()
+        ));
+    }
+    // The JSON map of the workspace's serde_json sorts its keys, so the file is written by hand in the documented
+    // key order, as `expected/pdf/structure.json` is.
+    let text = format!(
+        "{{\n  \"command\": \"ew print golden/J-E-2416.ew --sections 1 --paper A5 --fit\",\n  \"pages\": {},\n  \
+         \"page_labels\": {},\n  \"page_list\": [\n{}\n  ]\n}}\n",
+        set.pages.len(),
+        pdf_support::string_list(&labels, 1),
+        entries.join(",\n")
+    );
+    check_or_bless(&expected_dir("print").join("structure.json"), text.as_bytes());
+    check_or_bless(
+        &expected_dir("print").join("sha256.txt"),
+        format!("{:x}\n", Sha256::digest(&set.pdf)).as_bytes(),
+    );
+}
+
+/// PR-1's other cases and PR-3's monochrome: A4 with the fit is 100 % with no stamp; the folio range prints its four
+/// folios; a set on its own sheets at actual size, in monochrome, is the monochrome export PDF byte for byte.
+#[test]
+fn a4_with_the_fit_has_no_stamp_and_a_set_on_its_sheets_is_the_export() {
+    use ew_api::output::print::{Fit, Paper, PrintOptions};
+    use ew_api::output::{ExportOptions, PageSelection};
+    let s = golden_session(None);
+    let a4 = s
+        .print_set(&PrintOptions {
+            pages: PageSelection::Sections(vec!["1".to_owned()]),
+            paper: Paper::A4,
+            fit: Fit::ToPaper,
+            ..PrintOptions::default()
+        })
+        .unwrap();
+    assert_eq!(a4.stamps, vec![None; 5]);
+    assert_eq!((0..5).map(|i| a4.percent(i)).collect::<Vec<_>>(), [100; 5]);
+    let range = s
+        .print_set(&PrintOptions {
+            pages: PageSelection::parse("101-106").unwrap(),
+            ..PrintOptions::default()
+        })
+        .unwrap();
+    let labels: Vec<&str> = range.pages.iter().map(|p| p.label.as_str()).collect();
+    assert_eq!(labels, ["101", "102", "103", "106"]);
+    let mono = s
+        .print_set(&PrintOptions {
+            pages: PageSelection::Sections(vec!["1".to_owned()]),
+            monochrome: true,
+            ..PrintOptions::default()
+        })
+        .unwrap();
+    let export = s
+        .export_pdf(&ExportOptions {
+            pages: PageSelection::Sections(vec!["1".to_owned()]),
+            monochrome: true,
+            ..ExportOptions::default()
+        })
+        .unwrap();
+    assert!(
+        mono.pdf == export.bytes,
+        "the monochrome set is the monochrome PDF"
+    );
+}
+
+/// D6's stop (ID-1114, the brief): on every page of section 1 printed on A5 with the fit, the stamp's box, taken back
+/// to the sheet, touches no drawn item: no glyph run's box, no image, and no point of a path (each segment sampled
+/// densely, widened by half its stroke). The clearance to the nearest drawn point is printed.
+#[test]
+fn the_stamp_covers_no_drawn_item_of_section_1() {
+    let s = golden_session(None);
+    let set = section_1_on_a5(&s);
+    let mut nearest = f64::MAX;
+    for page in &set.pages {
+        let placement = page.placement.as_ref().unwrap();
+        let ItemKind::Glyphs(run) = &placement.overlay.items[0].kind else {
+            panic!("the stamp is a glyph run")
+        };
+        let (num, den) = (placement.scale.0 as f64, placement.scale.1 as f64);
+        let to_sheet = |p: ew_units::Pt2| {
+            (
+                (p.x.0 - placement.offset.x.0) as f64 * den / num,
+                (p.y.0 - placement.offset.y.0) as f64 * den / num,
+            )
+        };
+        let stamp = box_of(&run.layout_quad().map(to_sheet));
+        let (mut points, mut boxes) = (Vec::new(), Vec::new());
+        drawn_points(&page.content.items, &[], &mut points, &mut boxes);
+        for b in boxes {
+            let apart = b.2 < stamp.0 || b.0 > stamp.2 || b.3 < stamp.1 || b.1 > stamp.3;
+            assert!(
+                apart,
+                "folio {}: the stamp {stamp:?} overlaps the box {b:?}",
+                page.label
+            );
+            // A box's corners measure its clearance.
+            points.extend([(b.0, b.1, 0.0), (b.2, b.3, 0.0), (b.0, b.3, 0.0), (b.2, b.1, 0.0)]);
+        }
+        for (x, y, pad) in points {
+            let dx = (stamp.0 - x).max(x - stamp.2).max(0.0);
+            let dy = (stamp.1 - y).max(y - stamp.3).max(0.0);
+            let d = dx.hypot(dy) - pad;
+            assert!(
+                d > 0.0,
+                "folio {}: the stamp {stamp:?} covers a drawn point ({x}, {y})",
+                page.label
+            );
+            nearest = nearest.min(d);
+        }
+    }
+    eprintln!("the stamp's clearance on the sheet: {:.2} mm", nearest / 1e6);
+}
+
+/// The drawn points of `items` on the sheet in nm, each with its half stroke width (every path segment sampled at
+/// 64 points), and the boxes of every glyph run and image (min x, min y, max x, max y).
+fn drawn_points(
+    items: &[ew_dl::Item],
+    stack: &[ew_dl::Transform],
+    out: &mut Vec<(f64, f64, f64)>,
+    boxes: &mut Vec<(f64, f64, f64, f64)>,
+) {
+    use ew_dl::PathEl;
+    let on_sheet = |p: ew_units::Pt2| {
+        let q = stack.iter().rev().fold(p, |q, t| t.apply(q));
+        (q.x.0 as f64, q.y.0 as f64)
+    };
+    for item in items {
+        match &item.kind {
+            ItemKind::Path(p) => {
+                let pad = p.stroke.as_ref().map_or(0.0, |s| s.width.0 as f64 / 2.0);
+                let mut start = None;
+                let mut at = None;
+                for el in &p.path.els {
+                    let (to, ctrl): (ew_units::Pt2, Vec<ew_units::Pt2>) = match *el {
+                        PathEl::MoveTo(q) => {
+                            start = Some(q);
+                            at = Some(q);
+                            out.push((on_sheet(q).0, on_sheet(q).1, pad));
+                            continue;
+                        }
+                        PathEl::LineTo(q) => (q, vec![]),
+                        PathEl::QuadTo(c, q) => (q, vec![c]),
+                        PathEl::CubicTo(c1, c2, q) => (q, vec![c1, c2]),
+                        PathEl::ClosePath => match start {
+                            Some(q) => (q, vec![]),
+                            None => continue,
+                        },
+                    };
+                    let from = at.unwrap_or(to);
+                    // The polygon through the control points bounds the curve: sample it.
+                    let mut poly = vec![from];
+                    poly.extend(ctrl);
+                    poly.push(to);
+                    for w in poly.windows(2) {
+                        let (a, b) = (on_sheet(w[0]), on_sheet(w[1]));
+                        for k in 0..=64 {
+                            let t = f64::from(k) / 64.0;
+                            out.push((a.0 + (b.0 - a.0) * t, a.1 + (b.1 - a.1) * t, pad));
+                        }
+                    }
+                    at = Some(to);
+                }
+            }
+            ItemKind::Glyphs(run) => boxes.push(box_of(&run.layout_quad().map(on_sheet))),
+            ItemKind::Image(img) => {
+                let (a, b) = (img.rect.min(), img.rect.max());
+                let corners = [a, ew_units::Pt2::new(a.x, b.y), b, ew_units::Pt2::new(b.x, a.y)];
+                boxes.push(box_of(&corners.map(on_sheet)));
+            }
+            ItemKind::Group(g) => {
+                let mut inner = stack.to_vec();
+                inner.push(g.transform.unwrap_or(ew_dl::Transform::IDENTITY));
+                drawn_points(&g.items, &inner, out, boxes);
+            }
+            ItemKind::Instance(_) => panic!("a sheet list has its instances inlined"),
+        }
+    }
+}
+
+/// The bounding box of points: (min x, min y, max x, max y).
+fn box_of(points: &[(f64, f64)]) -> (f64, f64, f64, f64) {
+    points
+        .iter()
+        .fold((f64::MAX, f64::MAX, f64::MIN, f64::MIN), |b, p| {
+            (b.0.min(p.0), b.1.min(p.1), b.2.max(p.0), b.3.max(p.1))
+        })
 }

@@ -18,13 +18,14 @@ use ew_api::BomMode;
 use ew_api::checks::CheckMode;
 use ew_api::import::migration::ReportFormat;
 use ew_api::output::PageSelection;
+use ew_api::output::print::Paper;
 
 use super::query::QueryArgs;
 use super::{
     ApplyArgs, AssetsPurgeArgs, CheckArgs, CheckFormat, ChecksSetArgs, Command, ExportArgs, ExportKind,
     ExportPagesArgs, FmtArgs, ImportCsvArgs, ImportPartsArgs, ImportQetArgs, LibAction, LibArgs, PageFormat,
-    RecoverAction, RecoverArgs, RenderArgs, RevisionAction, RevisionArgs, SqlArgs, SqlDumpArgs, SqlFormat,
-    SqlSource, VerifyArgs,
+    PrintArgs, PrintVia, RecoverAction, RecoverArgs, RenderArgs, RevisionAction, RevisionArgs, SqlArgs,
+    SqlDumpArgs, SqlFormat, SqlSource, VerifyArgs,
 };
 
 /// The ElektraWatt command-line interface.
@@ -70,6 +71,19 @@ enum Top {
     /// Write a report's rows as CSV, or the pages as PDF, SVG or PNG.
     #[command(subcommand)]
     Export(ExportCli),
+    /// Print the pages through the OS, or write the print set as a PDF.
+    ///
+    /// Builds the print set of the pages (`--pages` folio labels and ranges, or `--sections` section numbers, a
+    /// section with its divider; not both; default every page) and hands it to the OS: `--via lp` runs the CUPS
+    /// command `lp` (the default on Linux; `--printer` names the printer, else the default one), `--via viewer`
+    /// opens it in the default PDF application, which asks for the printer (the default elsewhere). `--paper` prints
+    /// on a paper size (sheet, the default, or A5, A4, A3, A2, A1, A0, Letter, Legal, Tabloid, turned like each
+    /// page); `--fit` scales each page to the whole paper, never enlarged, and stamps a scaled page `scaled <n> %`
+    /// in its bottom margin; without it a larger page is clipped and named in a notice. `--mono` prints in black and
+    /// grey. `--out <file.pdf>` writes the print set instead and prints nothing. The date is `SOURCE_DATE_EPOCH`
+    /// when set, else the model's. Exit 0 when printed or written, 2 on everything else (usage, open errors, an
+    /// unknown folio or section, a refusal of the adapter, write errors).
+    Print(PrintCli),
     /// Render one page as PNG.
     ///
     /// `render --page <folio> --png` renders one page to `--out` (default: `<folio>.png` in the current directory,
@@ -370,21 +384,23 @@ enum ExportCli {
     /// Write the pages as one PDF/A-2b.
     ///
     /// Writes the project's pages as one PDF/A-2b (outline, page labels, links) through the session's export job
-    /// with the bundled fonts only. `--pages` selects folio labels and ranges in page order (`101-106,901`);
-    /// `--threads` changes the speed, never the bytes. The date is `SOURCE_DATE_EPOCH` when set, else the model's.
-    /// Exit 0 on success, 2 on everything else.
+    /// with the bundled fonts only. `--pages` selects folio labels and ranges in page order (`101-106,901`), or
+    /// `--sections` section numbers, each section's pages with its divider (`1,2`), not both; `--threads` changes
+    /// the speed, never the bytes. The date is `SOURCE_DATE_EPOCH` when set, else the model's. Exit 0 on success, 2
+    /// on everything else.
     Pdf(PagesCli),
     /// Write one SVG file per page.
     ///
     /// Writes one `<folio>.svg` per page into the directory `--out` (replaced as a whole; it may hold SVG files
-    /// only) through the session's export job with the bundled fonts only. `--pages` and `--threads` as for
-    /// `export pdf`. Exit 0 on success, 2 on everything else.
+    /// only) through the session's export job with the bundled fonts only. `--pages`, `--sections` and `--threads`
+    /// as for `export pdf`. Exit 0 on success, 2 on everything else.
     Svg(PagesCli),
     /// Write one PNG file per page.
     ///
     /// Writes one `<folio>.png` per page into the directory `--out` (replaced as a whole; it may hold PNG files
     /// only), rendered on the CPU with the bundled fonts at `--dpi` (72 to 600, default 150, the golden PNGs'
-    /// resolution). Exit 0 on success, 2 on everything else (usage, open errors, an unknown folio, write errors).
+    /// resolution). `--pages` and `--sections` as for `export pdf`. Exit 0 on success, 2 on everything else (usage,
+    /// open errors, an unknown folio or section, write errors).
     Png(PngCli),
 }
 
@@ -592,6 +608,9 @@ struct PagesCli {
     /// The folio labels and ranges, in page order (`101-106,901`; default: every page).
     #[arg(long, value_name = "folios", allow_hyphen_values = true, overrides_with = "pages", value_parser = pages)]
     pages: Option<PageSelection>,
+    /// The section numbers, each section's pages with its divider (`1,2`; instead of `--pages`).
+    #[arg(long, value_name = "numbers", allow_hyphen_values = true, overrides_with = "sections", value_parser = sections)]
+    sections: Option<PageSelection>,
     /// The threads of the page phase (1 to 256; default: the machine's parallelism).
     #[arg(long, value_name = "n", allow_hyphen_values = true, overrides_with = "threads", value_parser = threads)]
     threads: Option<usize>,
@@ -604,6 +623,72 @@ struct PagesCli {
     /// Not built yet: refused.
     #[arg(long, hide = true, overrides_with = "omit_personal_data")]
     omit_personal_data: bool,
+}
+
+/// `ew print`.
+#[derive(Args, Debug)]
+struct PrintCli {
+    /// The project directory.
+    #[arg(value_name = "project-dir")]
+    project_dir: Option<PathBuf>,
+    /// The project directory (instead of the positional one).
+    #[arg(
+        long,
+        value_name = "dir",
+        allow_hyphen_values = true,
+        conflicts_with = "project_dir"
+    )]
+    project: Option<PathBuf>,
+    /// The folio labels and ranges, in page order (`101-106,901`; default: every page).
+    #[arg(long, value_name = "folios", allow_hyphen_values = true, overrides_with = "pages", value_parser = pages)]
+    pages: Option<PageSelection>,
+    /// The section numbers, each section's pages with its divider (`1,2`; instead of `--pages`).
+    #[arg(long, value_name = "numbers", allow_hyphen_values = true, overrides_with = "sections", value_parser = sections)]
+    sections: Option<PageSelection>,
+    /// The paper (sheet, A5, A4, A3, A2, A1, A0, Letter, Legal, Tabloid; default: each page's sheet).
+    #[arg(long, value_name = "size", allow_hyphen_values = true, overrides_with = "paper", value_parser = paper)]
+    paper: Option<Paper>,
+    /// Scale each page to the whole paper (never enlarged) and stamp a scaled page.
+    #[arg(long, overrides_with = "fit")]
+    fit: bool,
+    /// Print in black and grey.
+    #[arg(long, overrides_with = "mono")]
+    mono: bool,
+    /// The printer (with `--via lp`; default: the default printer).
+    #[arg(
+        long,
+        value_name = "name",
+        allow_hyphen_values = true,
+        overrides_with = "printer",
+        conflicts_with = "out"
+    )]
+    printer: Option<String>,
+    /// How the set reaches the printer (default: `lp` on Linux, else `viewer`).
+    #[arg(
+        long,
+        value_name = "adapter",
+        allow_hyphen_values = true,
+        overrides_with = "via",
+        conflicts_with = "out"
+    )]
+    via: Option<ViaArg>,
+    /// Write the print set to this PDF file instead of printing it.
+    #[arg(long, value_name = "file", allow_hyphen_values = true, overrides_with = "out")]
+    out: Option<PathBuf>,
+    /// Print the result as JSON.
+    #[arg(long, overrides_with = "json")]
+    json: bool,
+}
+
+/// The adapter of `ew print --via`.
+#[derive(ValueEnum, Clone, Copy, PartialEq, Eq, Debug)]
+enum ViaArg {
+    /// The CUPS command `lp`.
+    Lp,
+    /// The default PDF application.
+    Viewer,
+    /// The Windows print dialog (not built yet).
+    Windows,
 }
 
 /// `ew export png`.
@@ -626,6 +711,9 @@ struct PngCli {
     /// The folio labels and ranges, in page order (`101-106,901`; default: every page).
     #[arg(long, value_name = "folios", allow_hyphen_values = true, overrides_with = "pages", value_parser = pages)]
     pages: Option<PageSelection>,
+    /// The section numbers, each section's pages with its divider (`1,2`; instead of `--pages`).
+    #[arg(long, value_name = "numbers", allow_hyphen_values = true, overrides_with = "sections", value_parser = sections)]
+    sections: Option<PageSelection>,
     /// The resolution (72 to 600).
     #[arg(long, value_name = "n", allow_hyphen_values = true, overrides_with = "dpi", value_parser = dpi, default_value_t = ew_api::output::DEFAULT_DPI)]
     dpi: u32,
@@ -1209,6 +1297,29 @@ fn pages(v: &str) -> Result<PageSelection, String> {
     PageSelection::parse(v).map_err(|e| e.to_string())
 }
 
+/// A `--sections` selection.
+fn sections(v: &str) -> Result<PageSelection, String> {
+    PageSelection::parse_sections(v).map_err(|e| e.to_string())
+}
+
+/// A `--paper` name.
+fn paper(v: &str) -> Result<Paper, String> {
+    Paper::parse(v).map_err(|e| e.to_string())
+}
+
+/// The selection of `--pages` or `--sections` (WP-S3.07 D6): both together is a usage error, neither is every page.
+fn selection(
+    path: &[&str],
+    pages: Option<PageSelection>,
+    sections: Option<PageSelection>,
+) -> Result<PageSelection, clap::Error> {
+    match (pages, sections) {
+        (Some(_), Some(_)) => Err(usage_error(path, "give `--pages` or `--sections`, not both")),
+        (Some(s), None) | (None, Some(s)) => Ok(s),
+        (None, None) => Ok(PageSelection::All),
+    }
+}
+
 /// A `--timeout` in seconds: 1 to the sandbox's longest deadline (one day).
 fn timeout(v: &str) -> Result<u64, String> {
     let max = ew_api::sql::Profile::MAX_DEADLINE.as_secs();
@@ -1427,6 +1538,44 @@ impl Cli {
             }
             Top::Sql(a) => sql(a)?,
             Top::Export(e) => export(e)?,
+            Top::Print(PrintCli {
+                project_dir,
+                project: flag,
+                pages,
+                sections,
+                paper,
+                fit,
+                mono,
+                printer,
+                via,
+                out,
+                json,
+            }) => {
+                let pages = selection(&["print"], pages, sections)?;
+                let via = match via {
+                    Some(ViaArg::Lp) => PrintVia::Lp,
+                    Some(ViaArg::Viewer) => PrintVia::Viewer,
+                    Some(ViaArg::Windows) => {
+                        return Err(usage_error(&["print"], "`--via windows` is not built yet"));
+                    }
+                    None if cfg!(target_os = "linux") => PrintVia::Lp,
+                    None => PrintVia::Viewer,
+                };
+                if via == PrintVia::Viewer && printer.is_some() {
+                    return Err(usage_error(&["print"], ew_print::PrintError::PrinterWithViewer));
+                }
+                Command::Print(PrintArgs {
+                    project: project(flag, project_dir),
+                    pages,
+                    paper: paper.unwrap_or_default(),
+                    fit,
+                    mono,
+                    printer,
+                    via,
+                    out,
+                    json,
+                })
+            }
             Top::Render(RenderCli {
                 project_dir,
                 project: flag,
@@ -1785,6 +1934,7 @@ fn export(e: ExportCli) -> Result<Command, clap::Error> {
             project: flag,
             out,
             pages,
+            sections,
             dpi,
             threads,
             json,
@@ -1796,7 +1946,7 @@ fn export(e: ExportCli) -> Result<Command, clap::Error> {
                 format: PageFormat::Png,
                 project: project(flag, project_dir),
                 out,
-                pages: pages.unwrap_or(PageSelection::All),
+                pages: selection(&["export", "png"], pages, sections)?,
                 threads,
                 dpi,
                 json,
@@ -1812,6 +1962,7 @@ fn pages_command(format: PageFormat, a: PagesCli) -> Result<Command, clap::Error
         project: flag,
         out,
         pages,
+        sections,
         threads,
         json,
         lang,
@@ -1826,7 +1977,7 @@ fn pages_command(format: PageFormat, a: PagesCli) -> Result<Command, clap::Error
         format,
         project: project(flag, project_dir),
         out,
-        pages: pages.unwrap_or(PageSelection::All),
+        pages: selection(path, pages, sections)?,
         threads,
         dpi: ew_api::output::DEFAULT_DPI,
         json,

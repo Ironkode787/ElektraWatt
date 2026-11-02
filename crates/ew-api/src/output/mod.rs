@@ -39,6 +39,9 @@
 //! `ew-pdf/1 <project id> <derivation profile> <date> <pages>[ mono] ew <version> sha256:<digest>` (doc 09 §4.3
 //! rule 2: a hash of the export input), `<pages>` being `all` or the selected folio labels joined by `,` and
 //! `<digest>` the [`content_digest`] of the pages and the bundled fonts.
+//!
+//! **The print set** (WP-S3.07 part 2, [`mod@print`]): the same pages placed on a paper ([`ew_export::PagePlacement`]),
+//! stamped when scaled, and written by the same writer; [`PageSelection::Sections`] selects pages by section for both.
 
 // WP-S2.07 part 2: the edit-cable table's gestures (§7).
 mod cable_edit;
@@ -66,6 +69,8 @@ pub(crate) mod panel;
 mod plc_bind;
 // WP-S2.09 part 3: the labelled entity list of a preview (§4.2).
 mod preview;
+// WP-S3.07 part 2: the print set (D5 to D7).
+pub mod print;
 mod properties;
 // WP-S1.22 part 2: page rasters (D7) and the row exports (D8).
 mod raster;
@@ -80,11 +85,12 @@ use std::collections::BTreeMap;
 use std::fmt;
 use std::sync::{Arc, OnceLock};
 
-use ew_derive::{PageEntry, PageOrder, PageOrderV, PageTitle, Policy, Q, Query};
+use ew_derive::{PageEntry, PageOrder, PageOrderV, PageTitle, Policy, Q, Query, TableView};
 use ew_dl::FontKey;
 use ew_export::ew_render_cpu::FontBytes;
 use ew_export::{PdfError, PdfOptions, PdfPage, SvgError, SvgFace, SvgOptions, par_map};
 use ew_scene::page::PageFinding;
+use ew_schema::Section;
 use sha2::{Digest, Sha256};
 
 // WP-S2.05 part 3
@@ -219,7 +225,7 @@ impl fmt::Display for OutputError {
 
 impl std::error::Error for OutputError {}
 
-/// Which pages of the page order an export writes (`--pages`).
+/// Which pages of the page order an export writes (`--pages`, `--sections`).
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub enum PageSelection {
     /// Every page of the page order.
@@ -228,6 +234,9 @@ pub enum PageSelection {
     /// The listed items in page order, each page once: an item is a folio label ("101", "2.1") or a range
     /// `<first>-<last>` of two folio labels, every page from the first to the last in page order.
     Folios(Vec<String>),
+    /// The pages of each named section (by its number, `1`) in page order, its divider included, each page once
+    /// (WP-S3.07 D6).
+    Sections(Vec<String>),
 }
 
 impl PageSelection {
@@ -246,44 +255,109 @@ impl PageSelection {
         Ok(PageSelection::Folios(items))
     }
 
-    /// The positions in `order` the selection names, ascending and unique.
+    /// The selection of a `--sections` text: section numbers separated by `,` (see [`PageSelection::Sections`]).
     ///
     /// # Errors
     ///
-    /// [`OutputError::Selection`] when an item names no folio, a range runs backwards or is ambiguous.
-    pub fn resolve(&self, order: &PageOrderV) -> Result<Vec<usize>, OutputError> {
-        let PageSelection::Folios(items) = self else {
-            return Ok((0..order.entries.len()).collect());
-        };
-        let at = |label: &str| order.entries.iter().position(|e| e.folio == label);
-        let mut picked = std::collections::BTreeSet::new();
-        for item in items {
-            if let Some(i) = at(item) {
-                picked.insert(i);
-                continue;
-            }
-            // A range: the one split at a `-` whose both sides are folio labels (labels may contain `-`).
-            let splits: Vec<(usize, usize)> = item
-                .match_indices('-')
-                .filter_map(|(k, _)| Some((at(&item[..k])?, at(&item[k + 1..])?)))
-                .collect();
-            match splits.as_slice() {
-                [(a, b)] if a <= b => picked.extend(*a..=*b),
-                [(_, _)] => {
-                    return Err(OutputError::Selection(format!(
-                        "the range `{item}` runs backwards in the page order"
-                    )));
-                }
-                [] => {
-                    return Err(OutputError::Selection(format!(
-                        "`{item}` is no folio label and no range of two folio labels"
-                    )));
-                }
-                _ => return Err(OutputError::Selection(format!("the range `{item}` is ambiguous"))),
-            }
+    /// [`OutputError::Selection`] for an empty text or an empty item.
+    pub fn parse_sections(spec: &str) -> Result<PageSelection, OutputError> {
+        let items: Vec<String> = spec.split(',').map(|s| s.trim().to_owned()).collect();
+        if items.iter().any(String::is_empty) {
+            return Err(OutputError::Selection(format!(
+                "`{spec}` has an empty item (section numbers separated by `,`)"
+            )));
         }
-        Ok(picked.into_iter().collect())
+        Ok(PageSelection::Sections(items))
     }
+
+    /// The positions in `order` the selection names, ascending and unique; `sections` are the project's sections
+    /// ([`Q::sections`]), which [`PageSelection::Sections`] names by number.
+    ///
+    /// # Errors
+    ///
+    /// [`OutputError::Selection`] when an item names no folio, a range runs backwards or is ambiguous, or a section
+    /// number names no section.
+    pub fn resolve(
+        &self,
+        order: &PageOrderV,
+        sections: TableView<'_, Section>,
+    ) -> Result<Vec<usize>, OutputError> {
+        match self {
+            PageSelection::All => Ok((0..order.entries.len()).collect()),
+            PageSelection::Folios(items) => resolve_folios(order, items),
+            PageSelection::Sections(numbers) => resolve_sections(order, sections, numbers),
+        }
+    }
+}
+
+/// The positions of the pages of the named sections, in page order: refused with "no section `<n>` (the sections
+/// are <numbers>)" for a number no section has (WP-S3.07 D6).
+fn resolve_sections(
+    order: &PageOrderV,
+    sections: TableView<'_, Section>,
+    numbers: &[String],
+) -> Result<Vec<usize>, OutputError> {
+    let all: Vec<(ew_derive::ew_ids::Id<Section>, u16)> =
+        sections.iter().map(|(id, s)| (id, s.number)).collect();
+    let mut wanted = std::collections::BTreeSet::new();
+    for n in numbers {
+        let ids: Vec<ew_derive::ew_ids::Id<Section>> = all
+            .iter()
+            .filter(|(_, number)| number.to_string() == *n)
+            .map(|(id, _)| *id)
+            .collect();
+        if ids.is_empty() {
+            let mut known: Vec<u16> = all.iter().map(|(_, number)| *number).collect();
+            known.sort_unstable();
+            known.dedup();
+            let known: Vec<String> = known.iter().map(u16::to_string).collect();
+            return Err(OutputError::Selection(if known.is_empty() {
+                format!("no section `{n}` (the project has no sections)")
+            } else {
+                format!("no section `{n}` (the sections are {})", known.join(", "))
+            }));
+        }
+        wanted.extend(ids);
+    }
+    Ok(order
+        .entries
+        .iter()
+        .enumerate()
+        .filter(|(_, e)| e.section.is_some_and(|s| wanted.contains(&s)))
+        .map(|(i, _)| i)
+        .collect())
+}
+
+/// The positions of [`PageSelection::Folios`]' items, ascending and unique.
+fn resolve_folios(order: &PageOrderV, items: &[String]) -> Result<Vec<usize>, OutputError> {
+    let at = |label: &str| order.entries.iter().position(|e| e.folio == label);
+    let mut picked = std::collections::BTreeSet::new();
+    for item in items {
+        if let Some(i) = at(item) {
+            picked.insert(i);
+            continue;
+        }
+        // A range: the one split at a `-` whose both sides are folio labels (labels may contain `-`).
+        let splits: Vec<(usize, usize)> = item
+            .match_indices('-')
+            .filter_map(|(k, _)| Some((at(&item[..k])?, at(&item[k + 1..])?)))
+            .collect();
+        match splits.as_slice() {
+            [(a, b)] if a <= b => picked.extend(*a..=*b),
+            [(_, _)] => {
+                return Err(OutputError::Selection(format!(
+                    "the range `{item}` runs backwards in the page order"
+                )));
+            }
+            [] => {
+                return Err(OutputError::Selection(format!(
+                    "`{item}` is no folio label and no range of two folio labels"
+                )));
+            }
+            _ => return Err(OutputError::Selection(format!("the range `{item}` is ambiguous"))),
+        }
+    }
+    Ok(picked.into_iter().collect())
 }
 
 /// What an export writes, beyond the pages.
@@ -639,7 +713,7 @@ pub(crate) fn export_pages_hooked<H: Hooks>(
     hooks: &H,
 ) -> Result<ExportPages, Halt> {
     let order = q.get::<PageOrder>(());
-    let picked = options.pages.resolve(&order)?;
+    let picked = options.pages.resolve(&order, q.sections())?;
     if picked.is_empty() {
         return Err(OutputError::Selection("the export has no pages".to_owned()).into());
     }
@@ -680,6 +754,7 @@ pub(crate) fn export_pages_hooked<H: Hooks>(
             width: p.scene.sheet_width,
             height: p.scene.sheet_height,
             content,
+            placement: None,
         };
         Some((page, report))
     });
@@ -706,7 +781,9 @@ pub(crate) fn export_pages_hooked<H: Hooks>(
     }
     let labels: Option<Vec<String>> = match options.pages {
         PageSelection::All => None,
-        PageSelection::Folios(_) => Some(pages.iter().map(|p| p.label.clone()).collect()),
+        PageSelection::Folios(_) | PageSelection::Sections(_) => {
+            Some(pages.iter().map(|p| p.label.clone()).collect())
+        }
     };
     Ok(ExportPages {
         options: pdf_options(q, options, labels.as_deref(), &pages),

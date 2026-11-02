@@ -18,7 +18,8 @@ use std::sync::Arc;
 use ew_dl::{Brush, Color, Destination, DisplayList, FontKey, Item, Link, Path, Pen, Stroke};
 use ew_export::ew_render_cpu::FontBytes;
 use ew_export::{
-    Conformance, OutlineEntry, PdfDate, PdfError, PdfOptions, PdfPage, outline_entries, pdf, pdf_bytes,
+    Conformance, OutlineEntry, PagePlacement, PdfDate, PdfError, PdfOptions, PdfPage, outline_entries, pdf,
+    pdf_bytes,
 };
 use ew_text::{builtin, bundled};
 use ew_units::{Nm, Pt2, Rect};
@@ -66,6 +67,7 @@ fn page(n: u128, label: &str, section: Option<&str>, items: Vec<Item>) -> PdfPag
         width: Nm::from_mm(297),
         height: Nm::from_mm(210),
         content: DisplayList { items },
+        placement: None,
     }
 }
 
@@ -681,4 +683,104 @@ fn every_jpeg_and_png_variant_prints() {
     assert_eq!(count(b, "/SMask"), 1, "the palette PNG's tRNS");
     assert_eq!(count(b, "/BitsPerComponent 16"), 1, "the 16-bit PNG");
     assert_eq!(count(b, "/Subtype/Image"), 8, "seven images and one soft mask");
+}
+
+/// The `/MediaBox[...]` of every page, in file order.
+fn media_boxes(b: &[u8]) -> Vec<[f64; 4]> {
+    let text = String::from_utf8_lossy(b);
+    text.match_indices("/MediaBox[")
+        .map(|(i, m)| {
+            let rest = &text[i + m.len()..];
+            let end = rest.find(']').unwrap();
+            let v: Vec<f64> = rest[..end]
+                .split_whitespace()
+                .map(|n| n.parse().unwrap())
+                .collect();
+            [v[0], v[1], v[2], v[3]]
+        })
+        .collect()
+}
+
+/// A page with a link and the page of its target, both with `placement`.
+fn placed(placement: Option<PagePlacement>) -> Vec<PdfPage> {
+    let source = Item::path(
+        Path::polygon(&[mm(50, 48), mm(50, 52), mm(58, 52), mm(58, 48)]),
+        None,
+        None,
+    )
+    .with_link(Link::Source(rep(7)));
+    let target = Item::path(
+        Path::circle(mm(100, 80), Nm::from_mm(2)),
+        None,
+        Some(Brush::BLACK),
+    )
+    .with_link(Link::Target(rep(7)));
+    let mut a = page(101, "101", None, vec![text("103-G6", mm(50, 50)), source]);
+    let mut b = page(103, "103", None, vec![target]);
+    a.placement = placement.clone();
+    b.placement = placement;
+    vec![a, b]
+}
+
+/// WP-S3.07 D7 (decision log ID-1114): a placed page is the paper, its content under the placement's one transform,
+/// its link boxes placed by the same rule, the overlay on top; the placement maps sheet points exactly.
+#[test]
+fn a_placed_page_is_the_paper_with_the_sheet_scaled_at_the_offset_and_the_overlay() {
+    let half = PagePlacement {
+        width: Nm::from_mm(210),
+        height: Nm::from_mm(148),
+        scale: (1, 2),
+        offset: mm(10, 5),
+        overlay: DisplayList {
+            items: vec![text("scaled 50 %", mm(150, 144))],
+        },
+    };
+    assert_eq!(half.place(mm(100, 80)), mm(60, 45));
+    assert_eq!(
+        half.place(Pt2::new(Nm(3), Nm(-3))),
+        Pt2::new(Nm(10_000_001), Nm(4_999_998))
+    );
+    assert!(!half.is_identity());
+    let plain = pdf(&placed(None), &options(), &fonts(), None).unwrap();
+    let out = pdf(&placed(Some(half)), &options(), &fonts(), None).unwrap();
+    // The A5 paper in pt (210 mm = 595.276 pt, 148 mm = 419.528 pt) instead of the A4 sheet.
+    assert_eq!(media_boxes(&plain.bytes)[0], [0.0, 0.0, 841.89, 595.276]);
+    assert_eq!(media_boxes(&out.bytes), [[0.0, 0.0, 595.276, 419.528]; 2]);
+    // The link and its target survive; the box is the sheet box halved and moved 10 mm (28.346 pt) right and 5 mm
+    // (14.173 pt) down.
+    assert_eq!((out.report.links, plain.report.links), (1, 1));
+    let (s, p) = (link_rects(&plain.bytes)[0], link_rects(&out.bytes)[0]);
+    let near = |a: f64, b: f64| (a - b).abs() < 0.01;
+    assert!(
+        near(p[0], 28.346 + s[0] / 2.0) && near(p[2], 28.346 + s[2] / 2.0),
+        "{s:?} {p:?}"
+    );
+    let top = |r: [f64; 4], h: f64| h - r[3];
+    assert!(
+        near(top(p, 419.528), 14.173 + top(s, 595.276) / 2.0),
+        "{s:?} {p:?}"
+    );
+    assert_eq!(out.report.fonts, plain.report.fonts);
+    assert_ne!(out.bytes, plain.bytes);
+}
+
+/// An identity placement on the sheet's own size with no overlay writes the unplaced bytes, in colour and in
+/// monochrome: the placement adds nothing a printer would see.
+#[test]
+fn an_identity_placement_on_the_sheet_writes_the_unplaced_bytes() {
+    let identity = || PagePlacement {
+        width: Nm::from_mm(297),
+        height: Nm::from_mm(210),
+        scale: (1, 1),
+        offset: Pt2::ORIGIN,
+        overlay: DisplayList::default(),
+    };
+    assert!(identity().is_identity());
+    let mut mono = options();
+    mono.monochrome = true;
+    for o in [options(), mono] {
+        let plain = pdf(&placed(None), &o, &fonts(), None).unwrap();
+        let same = pdf(&placed(Some(identity())), &o, &fonts(), None).unwrap();
+        assert!(plain.bytes == same.bytes, "monochrome {}", o.monochrome);
+    }
 }

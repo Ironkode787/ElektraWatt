@@ -742,3 +742,191 @@ fn a_named_block_equals_the_default_one() {
     assert_eq!(named.status.code(), Some(0), "{}", stderr(&named));
     assert_eq!(stdout(&named), stdout(&default));
 }
+
+// ---------------------------------------------------------------------------------------------------------
+// WP-S3.07 part 2: `ew print` (PR-1, PR-2, D9)
+
+/// The `--json` result of a run, parsed.
+fn json(o: &Output) -> serde_json::Value {
+    serde_json::from_str(&stdout(o)).unwrap_or_else(|e| panic!("{e}: {}", stdout(o)))
+}
+
+/// PR-1 and D8: `ew print golden/J-E-2416.ew --sections 1 --paper A5 --fit --out <file>` writes the print set whose
+/// SHA-256 is `expected/print/sha256.txt` (written by `ew-api`'s page-output test), prints nothing, leaves no
+/// temporary file; `--json` names the five folios at 70 %; `--paper A4 --fit` is 100 %; `--pages 101-106` prints
+/// the four folios.
+#[test]
+fn print_of_golden_a_section_1_on_a5_is_the_committed_print_set() {
+    use sha2::{Digest, Sha256};
+    let t = Tmp::new();
+    let p = t.golden();
+    let out = t.0.join("p.pdf");
+    let o = t.ew(&args([
+        &"print",
+        &p,
+        &"--sections",
+        &"1",
+        &"--paper",
+        &"A5",
+        &"--fit",
+        &"--out",
+        &out,
+    ]));
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    assert_eq!((stdout(&o).as_str(), stderr(&o).as_str()), ("", ""));
+    let digest = format!("{:x}\n", Sha256::digest(std::fs::read(&out).unwrap()));
+    assert_eq!(digest, expected_text("print/sha256.txt"));
+    assert!(!t.0.join("p.pdf.tmp").exists());
+    let o = t.ew(&args([
+        &"print",
+        &p,
+        &"--sections",
+        &"1",
+        &"--paper",
+        &"a5",
+        &"--fit",
+        &"--out",
+        &out,
+        &"--json",
+    ]));
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    assert_eq!(
+        json(&o),
+        serde_json::json!({
+            "$schema": "ew.print-result/1",
+            "adapter": "file",
+            "printer": "",
+            "pages": ["100", "101", "102", "103", "106"],
+            "paper": "A5",
+            "scale": 70,
+            "notices": [],
+            "out": out.display().to_string(),
+        })
+    );
+    let o = t.ew(&args([
+        &"print",
+        &p,
+        &"--sections",
+        &"1",
+        &"--paper",
+        &"A4",
+        &"--fit",
+        &"--out",
+        &out,
+        &"--json",
+    ]));
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    assert_eq!(
+        (json(&o)["scale"].clone(), json(&o)["paper"].clone()),
+        (100.into(), "A4".into())
+    );
+    let o = t.ew(&args([
+        &"print", &p, &"--pages", &"101-106", &"--out", &out, &"--json",
+    ]));
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    assert_eq!(json(&o)["pages"], serde_json::json!(["101", "102", "103", "106"]));
+}
+
+/// PR-2: a page on an A3 sheet printed on A4 with the fit reads 71 %; without it the page is clipped and the notice
+/// names it, on stderr and in the result.
+#[test]
+fn print_of_an_a3_page_on_a4_is_scaled_or_clipped_with_a_notice() {
+    let t = Tmp::new();
+    let p = golden_with_sheet(&t, 420, 297);
+    let out = t.0.join("a3.pdf");
+    let o = t.ew(&args([
+        &"print", &p, &"--pages", &"103", &"--paper", &"A4", &"--fit", &"--out", &out, &"--json",
+    ]));
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    assert_eq!(json(&o)["scale"], 71);
+    assert_eq!(json(&o)["notices"], serde_json::json!([]));
+    let o = t.ew(&args([
+        &"print", &p, &"--pages", &"103", &"--paper", &"A4", &"--out", &out, &"--json",
+    ]));
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    let notice = "page 103 is larger than A4: it is printed at 100 % and clipped from its top-left corner";
+    assert_eq!(json(&o)["scale"], 100);
+    assert_eq!(json(&o)["notices"], serde_json::json!([notice]));
+    assert_eq!(stderr(&o), format!("notice: {notice}\n"));
+}
+
+/// D6 and D9: every refusal of `ew print`, whole, with exit 2 and nothing written; `--sections` on `export pdf`
+/// refuses `--pages` beside it the same way.
+#[test]
+fn print_refusals_are_whole_texts() {
+    let t = Tmp::new();
+    let p = t.golden();
+    let out = t.0.join("r.pdf");
+    let usage = |message: &str, usage: &str| {
+        format!("error: {message}\n\nUsage: {usage}\n\nFor more information, try '--help'.\n")
+    };
+    let cases: Vec<(Vec<OsString>, String)> = vec![
+        (
+            args([&"print", &p, &"--pages", &"101", &"--sections", &"1", &"--out", &out]),
+            usage(
+                "give `--pages` or `--sections`, not both",
+                "ew print [OPTIONS] [project-dir]",
+            ),
+        ),
+        (
+            args([&"export", &"pdf", &p, &"--pages", &"101", &"--sections", &"1", &"--out", &out]),
+            usage(
+                "give `--pages` or `--sections`, not both",
+                "ew export pdf [OPTIONS] --out <path> [project-dir]",
+            ),
+        ),
+        (
+            args([&"print", &p, &"--paper", &"A7", &"--out", &out]),
+            "error: invalid value 'A7' for '--paper <size>': unknown paper `A7` (sheet, A5, A4, A3, A2, A1, A0, \
+             Letter, Legal, Tabloid)\n\nFor more information, try '--help'.\n"
+                .to_owned(),
+        ),
+        (
+            args([&"print", &p, &"--sections", &"7", &"--out", &out]),
+            "error: page selection: no section `7` (the sections are 1, 2, 9)\n".to_owned(),
+        ),
+        (
+            args([&"print", &p, &"--via", &"viewer", &"--printer", &"office"]),
+            usage(
+                "`--printer` needs `--via lp` or `--via windows`; the viewer asks",
+                "ew print [OPTIONS] [project-dir]",
+            ),
+        ),
+        (
+            args([&"print", &p, &"--via", &"windows"]),
+            usage(
+                "`--via windows` is not built yet",
+                "ew print [OPTIONS] [project-dir]",
+            ),
+        ),
+    ];
+    for (line, want) in cases {
+        let o = t.ew(&line);
+        assert_eq!(o.status.code(), Some(2), "{line:?}");
+        assert_eq!(stderr(&o), want, "{line:?}");
+        assert_eq!(stdout(&o), "", "{line:?}");
+        assert!(!out.exists(), "{line:?}");
+    }
+}
+
+/// `--sections` on `export pdf`: the section's pages with its divider, the same PDF as the same folios listed.
+#[test]
+fn export_pdf_takes_sections() {
+    let t = Tmp::new();
+    let p = t.golden();
+    let a = t.0.join("a.pdf");
+    let b = t.0.join("b.pdf");
+    let o = t.ew(&args([&"export", &"pdf", &p, &"--sections", &"1", &"--out", &a]));
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    let o = t.ew(&args([
+        &"export",
+        &"pdf",
+        &p,
+        &"--pages",
+        &"100,101-106",
+        &"--out",
+        &b,
+    ]));
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    assert!(std::fs::read(&a).unwrap() == std::fs::read(&b).unwrap());
+}

@@ -101,6 +101,11 @@
       "schema": "ew.lib-search-result-1.schema.json"
     },
     {
+      "command": "print",
+      "name": "ew.print-result/1",
+      "schema": "ew.print-result-1.schema.json"
+    },
+    {
       "command": "queries",
       "name": "ew.queries-result/1",
       "schema": "ew.queries-result-1.schema.json"

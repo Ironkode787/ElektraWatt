@@ -54,6 +54,7 @@ pub fn check(data: &[u8]) -> Outcome {
                 Rect::from_points(mm(10, 10), mm(110, 80)),
             )],
         },
+        placement: None,
     };
     let options = PdfOptions {
         document_id: "fuzz".into(),

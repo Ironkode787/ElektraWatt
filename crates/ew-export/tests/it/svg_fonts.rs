@@ -43,6 +43,7 @@ fn page(n: u128, items: Vec<Item>) -> ew_export::PdfPage {
         width: Nm::from_mm(297),
         height: Nm::from_mm(210),
         content: DisplayList { items },
+        placement: None,
     }
 }
 

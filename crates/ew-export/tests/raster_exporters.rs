@@ -51,6 +51,7 @@ fn page(n: u128, label: &str, section: Option<&str>, items: Vec<Item>) -> PdfPag
         width: Nm::from_mm(297),
         height: Nm::from_mm(210),
         content: DisplayList { items },
+        placement: None,
     }
 }
 

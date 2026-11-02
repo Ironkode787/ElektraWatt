@@ -40,6 +40,8 @@ pub enum Command {
     VerifyDerived(VerifyArgs),
     /// Write the pages as PDF, SVG or PNG.
     ExportPages(ExportPagesArgs),
+    /// `ew print`: the print set through an adapter, or to a file (WP-S3.07 part 2).
+    Print(PrintArgs),
     /// `ew render --page <folio> --png`: one page as PNG (WP-S1.22 D7).
     Render(RenderArgs),
     /// Replay a command log.
@@ -289,6 +291,38 @@ pub struct ExportPagesArgs {
     pub json: bool,
 }
 
+/// How `ew print` hands the print set to the OS (`--via`).
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum PrintVia {
+    /// The CUPS command `lp`.
+    Lp,
+    /// The default PDF application.
+    Viewer,
+}
+
+/// The arguments of `ew print`.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct PrintArgs {
+    /// The project directory; `None`: found from the current directory.
+    pub project: Option<PathBuf>,
+    /// The page selection (`--pages`, `--sections`).
+    pub pages: PageSelection,
+    /// The paper (`--paper`).
+    pub paper: ew_api::output::print::Paper,
+    /// Scale each page to the paper (`--fit`).
+    pub fit: bool,
+    /// Black and grey (`--mono`).
+    pub mono: bool,
+    /// The printer (`--printer`).
+    pub printer: Option<String>,
+    /// The adapter (`--via`, its platform default resolved).
+    pub via: PrintVia,
+    /// The print set's file (`--out`); `None`: printed.
+    pub out: Option<PathBuf>,
+    /// Print the result as JSON (`--json`).
+    pub json: bool,
+}
+
 /// The arguments of `ew apply`.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct ApplyArgs {
@@ -517,6 +551,7 @@ pub fn run(cmd: Command) -> i32 {
         Command::Export(a) => run_export(&a),
         Command::VerifyDerived(a) => run_verify_derived(&a),
         Command::ExportPages(a) => run_export_pages(&a),
+        Command::Print(a) => run_print(&a),
         Command::Render(a) => run_render(&a),
         Command::Apply(a) => run_apply(&a),
         Command::Fmt(a) => project_files::run_fmt(&a),
@@ -981,6 +1016,121 @@ fn write_file_set(out: &Path, ext: &str, a_file: &str, files: &[(&str, &[u8])]) 
         let _ = std::fs::remove_dir_all(&old);
     }
     Ok(())
+}
+
+/// `ew print` (WP-S3.07 D9): the print set of the selection, written to `--out` or handed to the adapter.
+fn run_print(a: &PrintArgs) -> i32 {
+    use ew_api::output::print::{Fit, PrintOptions};
+    let Some(dir) = project_dir(a.project.as_ref()) else {
+        return 2;
+    };
+    let date = match source_date() {
+        Ok(d) => d,
+        Err(e) => {
+            eprintln!("error: {e}");
+            return 2;
+        }
+    };
+    let (session, _) = match ew_api::Session::open_reader(&dir, env!("CARGO_PKG_VERSION"), "print") {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("error: {}: {e}", dir.display());
+            return 2;
+        }
+    };
+    let options = PrintOptions {
+        pages: a.pages.clone(),
+        paper: a.paper,
+        fit: if a.fit { Fit::ToPaper } else { Fit::Actual },
+        monochrome: a.mono,
+        date,
+        parallelism: Parallelism::threads(
+            std::thread::available_parallelism().map_or(1, std::num::NonZeroUsize::get),
+        ),
+    };
+    let set = match session.print_set(&options) {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("error: {e}");
+            return 2;
+        }
+    };
+    let folios: Vec<String> = set.pages.iter().map(|p| p.label.clone()).collect();
+    let scale = (0..set.pages.len()).map(|i| set.percent(i)).min().unwrap_or(100);
+    let notices: Vec<String> = set.notices.iter().map(ToString::to_string).collect();
+    for n in &notices {
+        eprintln!("notice: {n}");
+    }
+    let result = |adapter: &str, out: Option<String>| results::PrintResult {
+        schema: results::PRINT.to_owned(),
+        adapter: adapter.to_owned(),
+        printer: a.printer.clone().unwrap_or_default(),
+        pages: folios.clone(),
+        paper: a.paper.name().to_owned(),
+        scale,
+        notices: notices.clone(),
+        out,
+    };
+    if let Some(out) = &a.out {
+        if let Err(e) = write_atomically(out, &set.pdf) {
+            eprintln!("error: {}: {e}", out.display());
+            return 2;
+        }
+        if a.json {
+            print!(
+                "{}",
+                results::to_text(&result("file", Some(out.display().to_string())))
+            );
+        }
+        return 0;
+    }
+    // The job's title and the viewer's file stem: the project directory's name without its extension.
+    let title = dir
+        .file_stem()
+        .map_or_else(|| "project".to_owned(), |n| n.to_string_lossy().into_owned());
+    let job = ew_print::PrintJob {
+        title: title.clone(),
+        pdf: set.pdf,
+        pages: set.pages,
+        printer: a.printer.clone(),
+        monochrome: a.mono,
+    };
+    let adapter: Box<dyn ew_print::PrintAdapter> = match a.via {
+        PrintVia::Lp => Box::new(ew_print::Lp::new(std::env::temp_dir())),
+        PrintVia::Viewer => Box::new(ew_print::Viewer::new(std::env::temp_dir(), &title)),
+    };
+    let outcome = match adapter.print(&job) {
+        Ok(o) => o,
+        Err(e) => {
+            eprintln!("error: {e}");
+            return 2;
+        }
+    };
+    let file = match &outcome {
+        ew_print::PrintOutcome::Opened { file } => Some(file.display().to_string()),
+        ew_print::PrintOutcome::Spooled { .. } => None,
+    };
+    if a.json {
+        print!("{}", results::to_text(&result(adapter.name(), file)));
+    } else {
+        match &outcome {
+            ew_print::PrintOutcome::Spooled { printer, message } => {
+                let to = printer
+                    .as_deref()
+                    .map_or_else(|| "the default printer".to_owned(), |p| format!("printer {p}"));
+                println!("{} pages sent to {to} through `lp`", folios.len());
+                if !message.is_empty() {
+                    println!("{message}");
+                }
+            }
+            ew_print::PrintOutcome::Opened { file } => println!(
+                "{} pages opened in the PDF viewer from {}; print them from there",
+                folios.len(),
+                file.display()
+            ),
+        }
+    }
+    0
 }
 
 fn run_export_pages(a: &ExportPagesArgs) -> i32 {
@@ -3420,6 +3570,81 @@ mod tests {
         Err(format!(
             "error: invalid value '{value}' for '{flag}': {message}\n\nFor more information, try '--help'.\n"
         ))
+    }
+
+    /// WP-S3.07 D9: `ew print` lowers its flags, the platform's default adapter resolved (`lp` on Linux, else the
+    /// viewer); `--out` excludes `--via` and `--printer`; `--sections` reaches `export png` too.
+    #[test]
+    fn print_lowers_its_flags_and_resolves_the_adapter() {
+        use ew_api::output::print::Paper;
+        let default = if cfg!(target_os = "linux") {
+            PrintVia::Lp
+        } else {
+            PrintVia::Viewer
+        };
+        assert_eq!(
+            p(&[
+                "print",
+                "proj",
+                "--sections",
+                "1,2",
+                "--paper",
+                "A5",
+                "--fit",
+                "--mono",
+                "--out",
+                "p.pdf"
+            ]),
+            Ok(Command::Print(PrintArgs {
+                project: Some(PathBuf::from("proj")),
+                pages: PageSelection::Sections(vec!["1".to_owned(), "2".to_owned()]),
+                paper: Paper::A5,
+                fit: true,
+                mono: true,
+                printer: None,
+                via: default,
+                out: Some(PathBuf::from("p.pdf")),
+                json: false,
+            }))
+        );
+        let Ok(Command::Print(a)) = p(&["print", "--via", "lp", "--printer", "office"]) else {
+            panic!("`--via lp --printer`");
+        };
+        assert_eq!(
+            (a.via, a.printer.as_deref(), a.paper, a.pages),
+            (PrintVia::Lp, Some("office"), Paper::Sheet, PageSelection::All)
+        );
+        let printer = p(&["print", "--printer", "office"]);
+        if cfg!(target_os = "linux") {
+            assert!(matches!(printer, Ok(Command::Print(_))));
+        } else {
+            assert_eq!(
+                printer,
+                usage_error(
+                    "`--printer` needs `--via lp` or `--via windows`; the viewer asks",
+                    "ew print [OPTIONS] [project-dir]"
+                )
+            );
+        }
+        assert_eq!(
+            p(&["print", "--out", "p.pdf", "--via", "lp"]),
+            usage_error(
+                "the argument '--out <file>' cannot be used with '--via <adapter>'",
+                "ew print --out <file> [project-dir]"
+            )
+        );
+        let Ok(Command::ExportPages(png)) = p(&["export", "png", "--out", "d", "--sections", "9"]) else {
+            panic!("`export png --sections`");
+        };
+        assert_eq!(png.pages, PageSelection::Sections(vec!["9".to_owned()]));
+        assert_eq!(
+            p(&["export", "svg", "--out", "d", "--sections", "1,,2"]),
+            invalid(
+                "1,,2",
+                "--sections <numbers>",
+                "page selection: `1,,2` has an empty item (section numbers separated by `,`)"
+            )
+        );
     }
 
     /// Cycle 43, ruling 4: a line without its subcommand prints the help on stderr and exits 2; `--help` and

@@ -22,6 +22,10 @@ SPDX-License-Identifier: CC-BY-4.0
   a reader; `--explain` adds the memo policy, the dependencies and the provenance; result `ew.query-result/1`)
 - api-add: cli ew queries [--json] (lists the query registry with each query's output schema; result
   `ew.queries-result/1`, the text of `crates/ew-api/api/queries.json`)
+- api-add: cli ew print [<project-dir>] [--pages <folios> | --sections <numbers>] [--paper <size>] [--fit] [--mono]
+  [--printer <name>] [--via lp|viewer] [--out <file.pdf>] [--json] (prints the print set through CUPS `lp` or the
+  default PDF viewer, or writes it; `--fit` stamps a scaled page "scaled <n> %"; result `ew.print-result/1`), and
+  `--sections <numbers>` on ew export pdf|svg|png
 - text-change: cli ew import csv, the window's import (a table refused for a stray quote, a stray carriage return or
   an unterminated quoted field names the column too: "table refused: line 2, column 3: stray quote"; FT-880)
 - text-change: reports parts_summary, parts_list, part_data, enclosure_legend (a manufacturer whose copy is missing
