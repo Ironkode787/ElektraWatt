@@ -476,27 +476,37 @@ pub fn require_split_point(
 ///   runs over another one (a stretch of positive length shared on one line, a doubling back included).
 ///   A collinear vertex where the route runs straight on is no defect.
 ///
-/// `field` is the JSON Pointer of the route parameter (`/route`); a refusal names the vertex
-/// (`/route/2`), for an overlap the later segment's first vertex, except the grid refusal, which names the vertex in
-/// words (as in "the wire's corner at x 15.9, y 7.9 mm on page 102 is not on the drawing grid"; the first
-/// vertex is the wire's start, the last its end).
+/// Every refusal names the vertex in words, without a JSON Pointer or nanometres (FT-864, ID-1108), and ends with what
+/// the user can do: "the wire's corner at x 15.9, y 7.9 mm on page 102 is not on the drawing grid" (the first vertex
+/// is the wire's start, the last its end). `_field`, the JSON Pointer of the route parameter (`/route`), is named by
+/// none of them.
 pub fn require_route(
     tx: &TxBuilder<'_>,
     page: Id<Page>,
     a: &Endpoint,
     b: &Endpoint,
     route: &[Pt2],
-    field: &str,
+    _field: &str,
 ) -> Result<(), CmdError> {
     let (Some(first), Some(last)) = (route.first().copied(), route.last().copied()) else {
         return Ok(());
     };
     let grid = tx.require::<Page>(page)?.grid;
+    let what = |i: usize| {
+        if i == 0 {
+            "the wire's start"
+        } else if i + 1 == route.len() {
+            "the wire's end"
+        } else {
+            "the wire's corner"
+        }
+    };
     for (i, v) in route.iter().enumerate() {
         if !point_in_range(*v) {
             return tx.reject(format!(
-                "`{field}/{i}` {} lies outside the drawable range of ±{MAX_COORD} nm",
-                fmt_pt(*v)
+                "{} at {} lies outside the drawable range; draw the wire nearer the page origin",
+                what(i),
+                crate::words::point(tx, page, *v)
             ));
         }
     }
@@ -509,12 +519,31 @@ pub fn require_route(
             continue;
         };
         if v != cp {
+            let is_ip = tx
+                .get::<Function>(*function)
+                .is_some_and(|f| matches!(f.kind, ew_schema::FunctionKind::Ip(_)));
+            let pin = if is_ip {
+                format!(
+                    "the connection point of {}",
+                    crate::words::interruption_point(tx, *function)
+                )
+            } else {
+                format!(
+                    "connection point {}",
+                    crate::normalise::channel_instantiation::cp_words(tx, *function, *idx)
+                )
+            };
+            let (at, cp_at) = (crate::words::position(v), crate::words::position(cp));
+            // two positions that print alike in mm are told apart by the gap, not by the same words twice
+            let miss = if at == cp_at {
+                format!("misses {pin} by less than 0.1 mm")
+            } else {
+                format!("does not meet {pin} at {cp_at}")
+            };
             return tx.reject(format!(
-                "`{field}/{i}` {} does not meet connection point {idx} of {} at {}; end the route at its \
-                 connection point",
-                fmt_pt(v),
-                crate::words::function(tx, *function),
-                fmt_pt(cp)
+                "{} at {} {miss}; end the wire at its connection point",
+                what(i),
+                crate::words::point(tx, page, v)
             ));
         }
         exact.push(cp);
@@ -523,29 +552,24 @@ pub fn require_route(
         let ok_x = on_grid(grid, v.x) || exact.iter().any(|c| c.x == v.x);
         let ok_y = on_grid(grid, v.y) || exact.iter().any(|c| c.y == v.y);
         if !(ok_x && ok_y) {
-            let what = if i == 0 {
-                "the wire's start"
-            } else if i + 1 == route.len() {
-                "the wire's end"
-            } else {
-                "the wire's corner"
-            };
-            return tx.reject(off_grid(tx, what, page, *v));
+            return tx.reject(off_grid(tx, what(i), page, *v));
         }
     }
     match route_defect(route) {
         None => Ok(()),
         Some(RouteDefect::Duplicate(i)) => tx.reject(format!(
-            "`{field}/{i}` {} repeats the vertex before it; remove the duplicate vertex",
-            fmt_pt(route[i])
+            "{} at {} repeats the corner before it; remove the duplicate corner",
+            what(i),
+            crate::words::point(tx, page, route[i])
         )),
         Some(RouteDefect::Overlap(i, j)) => tx.reject(format!(
-            "`{field}/{j}` the segment from {} to {} runs over the segment from {} to {} (`{field}/{i}`); a \
-             route never overlaps itself, remove the stretch it runs back over",
-            fmt_pt(route[j]),
-            fmt_pt(route[j + 1]),
-            fmt_pt(route[i]),
-            fmt_pt(route[i + 1])
+            "the wire runs back over itself on {}: its stretch from {} to {} lies on its stretch from {} to {}; \
+             remove the stretch it runs back over",
+            crate::words::page(tx, page),
+            crate::words::position(route[j]),
+            crate::words::position(route[j + 1]),
+            crate::words::position(route[i]),
+            crate::words::position(route[i + 1])
         )),
     }
 }

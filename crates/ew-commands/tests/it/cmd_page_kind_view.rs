@@ -292,3 +292,25 @@ fn a_page_without_a_view_deletes_nothing() {
     e.commit(preview).unwrap();
     assert_eq!(count(e.model()), items);
 }
+
+/// FT-882 (ID-1108: "a refusal text is words, with no JSON pointer, UUID, requirement ID or nanometres ... and ends
+/// with what the user can do"): a move of a selection that holds the surface view names the view and the true reason.
+#[test]
+fn ft882_a_move_of_a_selection_with_the_surface_view_names_it() {
+    let (mut e, view) = fx();
+    let r = e.execute(&ew_commands::commands::MoveReps {
+        items: vec![view.1],
+        reps: Vec::new(),
+        delta: Pt2::new(Nm(10 * MM), Nm(0)),
+        page: None,
+        steps: None,
+    });
+    match r {
+        Err(ew_commands::CmdError::Rejected { reason, .. }) => assert_eq!(
+            reason,
+            "the surface view on page 902 does not move with a selection; leave it out of the selection, or change \
+             it with Set panel view"
+        ),
+        other => panic!("expected a rejection, got {other:?}"),
+    }
+}

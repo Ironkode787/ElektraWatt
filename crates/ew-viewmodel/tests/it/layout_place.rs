@@ -245,6 +245,29 @@ fn rows_of(expected: &[(&str, f64)]) -> Vec<(String, f64, u8)> {
     rows(expected)
 }
 
+/// FT-882 (ID-1108: "`ui.describe` names a surface view \"surface view\""): folio 902's view is described as one,
+/// never as an unknown item.
+#[test]
+fn ft882_describe_names_the_surface_view() {
+    let tmp = Tmp::new("layout-ft882");
+    let mut shell = writable(&tmp);
+    done(&mut shell, "page.describe", json!({"folio": "902"}));
+    let text = shell.take_page_text().expect("the page text");
+    let items: Vec<&str> = text
+        .lines()
+        .filter(|l| l.trim_start().starts_with("item "))
+        .map(|l| l.split(" cell ").next().unwrap_or(l))
+        .collect();
+    assert_eq!(items, ["  item surface view"]);
+    for token in common::structural_tokens(items[0]) {
+        assert!(
+            ew_viewmodel::describe::VOCABULARY.contains(&token.as_str()),
+            "`{token}` is a vocabulary word"
+        );
+    }
+    shell.shutdown();
+}
+
 /// PW-1's empty states (doc 16a §6.17), whole: every device placed names the location; a project without a layout
 /// space says so.
 #[test]

@@ -12,7 +12,7 @@ use ew_mltext::{Ident, MlText};
 use ew_schema::{
     AnchorPolicy, AnyId, BoxSpec, Connection, ConnectionKind, ContactKind, Device, DeviceAspects, DeviceKind,
     Endpoint, Extra, FnDef, FnRole, Function, FunctionKind, Junction, JunctionStyle, Kind, LibCopy,
-    NumberSpec, Page, PageItem, PageType, Part, PartRef, PartUse, RepType, Representation, Strip,
+    NumberSpec, Page, PageItem, PageItemKind, PageType, Part, PartRef, PartUse, RepType, Representation, Strip,
     StructureAssignment, StructureBox, SymbolDef, TagSpec,
 };
 use ew_units::{Dec3, Grid, Nm, Orient2, Pt2};
@@ -700,11 +700,28 @@ impl MoveReps {
             match m {
                 MovedItem::Item(item) => {
                     let Some(mut next) = crate::commands::items::translate_item(item, d) else {
-                        return tx.reject(format!(
-                            "page item {} cannot be moved: it is of a kind this build keeps verbatim, or the move \
-                             takes it outside the drawable range",
-                            item.id
-                        ));
+                        // FT-882 (ID-1108): the item in words and the true reason
+                        let page = crate::words::page(tx, item.page);
+                        let why = match &item.kind {
+                            PageItemKind::SurfaceView(_) => format!(
+                                "the surface view on {page} does not move with a selection; leave it out of the \
+                                 selection, or change it with Set panel view"
+                            ),
+                            PageItemKind::Unknown(_) => format!(
+                                "a page item on {page} is of a kind this build keeps as it is, so it cannot be \
+                                 moved; leave it out of the selection"
+                            ),
+                            kind => format!(
+                                "the move takes the {} on {page} outside the drawable range; move it less far",
+                                match kind {
+                                    PageItemKind::Graphic(_) => "graphic",
+                                    PageItemKind::FreeText(_) => "text",
+                                    PageItemKind::WireMarker(_) => "wire marker",
+                                    _ => "image",
+                                }
+                            ),
+                        };
+                        return tx.reject(why);
                     };
                     crate::commands::items::clean_marker(tx, &mut next);
                     tx.put(next);
@@ -712,8 +729,8 @@ impl MoveReps {
                 MovedItem::Box(b) => {
                     let Some(next) = crate::commands::items::translate_box(b, d) else {
                         return tx.reject(format!(
-                            "the move takes structure box {} outside the drawable range; move it less far",
-                            b.id
+                            "the move takes a structure box on {} outside the drawable range; move it less far",
+                            crate::words::page(tx, b.page)
                         ));
                     };
                     tx.put(next);
@@ -824,7 +841,8 @@ impl MoveReps {
             };
             if followed.is_err() {
                 return tx.reject(format!(
-                    "`/steps` moves the route of connection {cid} outside the drawable range; move it less far"
+                    "the move takes the route of {} outside the drawable range; move it less far",
+                    crate::words::wire(tx, cid)
                 ));
             }
             changed.push(next);
@@ -1008,7 +1026,8 @@ impl Command for MoveReps {
             };
             if followed.is_err() {
                 return tx.reject(format!(
-                    "`/delta` moves the route of connection {cid} outside the drawable range; move it less far"
+                    "the move takes the route of {} outside the drawable range; move it less far",
+                    crate::words::wire(tx, cid)
                 ));
             }
             changed.push(next);
@@ -1153,7 +1172,9 @@ impl Command for TransformReps {
             let followed = follow_ends(&mut next.route, grid, da, db);
             if followed.is_err() {
                 return tx.reject(format!(
-                    "the transform moves the route of connection {cid} outside the drawable range"
+                    "the transform moves the route of {} outside the drawable range; turn it nearer the page \
+                     origin",
+                    crate::words::wire(tx, cid)
                 ));
             }
             tx.put(next);

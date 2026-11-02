@@ -568,6 +568,9 @@ const WORDS: &[(&str, &[Reach])] = &[
     ("unplaced", &[Reach::Layout]),
     ("layout", &[Reach::Layout]),
     ("refused", &[Reach::Layout]),
+    // FT-882 (ID-1108): a panel page's surface view is an "item surface view" line; 1 word, a reviewed vocabulary
+    // change (`view` is older).
+    ("surface", &[Reach::Layout]),
 ];
 
 /// Every structural word of the describe text, in the order of `WORDS` (the blind reference's `vocabulary.txt`
@@ -3000,6 +3003,8 @@ pub fn page_describe(page: &CanvasPage) -> String {
             "free_text" => "text",
             "wire_marker" => "marker",
             "image" => "image",
+            // FT-882 (ID-1108: "`ui.describe` names a surface view \"surface view\"")
+            "surface_view" => "surface view",
             _ => "unknown",
         };
         // G-PP triage row 12: the middle of the bounds, a point that picks the item, like a rep's or a wire's `at`.

@@ -324,7 +324,9 @@ impl Command for ExchangeSymbol {
             let followed = follow_ends(&mut route, page.grid, da, db);
             if followed.is_err() {
                 return tx.reject(format!(
-                    "the exchange moves the route of connection {cid} outside the drawable range"
+                    "the exchange moves the route of {} outside the drawable range; move the representation \
+                     nearer the page origin first",
+                    crate::words::wire(tx, cid)
                 ));
             }
             if route != c.route {

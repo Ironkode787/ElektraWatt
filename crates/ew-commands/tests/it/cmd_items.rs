@@ -989,13 +989,12 @@ fn rep_move_refuses_an_unknown_variant() {
     let CmdError::Rejected { reason, .. } = err else {
         panic!("{err:?}");
     };
+    // FT-882 (ID-1108: "a refusal text is words, with no JSON pointer, UUID, requirement ID or nanometres ... and
+    // ends with what the user can do")
     assert_eq!(
         reason,
-        format!(
-            "page item {} cannot be moved: it is of a kind this build keeps verbatim, or the move takes it \
-             outside the drawable range",
-            id::<()>(0x4300)
-        )
+        "a page item on page 101 is of a kind this build keeps as it is, so it cannot be moved; leave it out of the \
+         selection"
     );
 }
 

@@ -1100,7 +1100,8 @@ pub(crate) fn follow_moved_cps(
         let mut route = c.route.clone();
         if crate::geometry::follow_ends(&mut route, grid, da, db).is_err() {
             return tx.reject(format!(
-                "{what} moves the route of connection {cid} outside the drawable range"
+                "{what} moves the route of {} outside the drawable range; move it less far",
+                crate::words::wire(tx, cid)
             ));
         }
         if route != c.route {

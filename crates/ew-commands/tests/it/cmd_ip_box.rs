@@ -348,11 +348,20 @@ fn draw_to_ip_rejections_write_nothing() {
     // A route that does not end at the IP's CP (6 G).
     let mut cmd = good();
     cmd.route = vec![pt(0, 0), pt(5 * G, 0)];
-    rejected_with(e.execute(&cmd), "/route/1");
+    // FT-864 (ID-1108: "a refusal text is words, with no JSON pointer, UUID, requirement ID or nanometres")
+    assert_eq!(
+        rejection(e.execute(&cmd)),
+        "the wire's end at x 39.7, y 0 mm on page 102 does not meet the connection point of interruption point \
+         24VDC-2 at x 47.6, y 0 mm; end the wire at its connection point"
+    );
     // A route vertex off the grid.
     let mut cmd = good();
     cmd.route = vec![pt(1, 0), pt(6 * G, 0)];
-    rejected_with(e.execute(&cmd), "/route/0");
+    assert_eq!(
+        rejection(e.execute(&cmd)),
+        "the wire's start at x 0, y 0 mm on page 102 misses connection point -102G1:N by less than 0.1 mm; end the \
+         wire at its connection point"
+    );
     // A missing `a` record: a function, a junction, a connection.
     let mut cmd = good();
     cmd.a = cp_param(id(0xdeb0), 1);

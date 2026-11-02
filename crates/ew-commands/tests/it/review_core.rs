@@ -52,14 +52,6 @@ fn rejection<T: std::fmt::Debug>(r: Result<T, CmdError>) -> String {
     }
 }
 
-fn rejected_naming<T: std::fmt::Debug>(r: Result<T, CmdError>, param: &str) {
-    let reason = rejection(r);
-    assert!(
-        reason.contains(param),
-        "the reason should name `{param}`, got: {reason}"
-    );
-}
-
 fn cp_param(f: Id<Function>, idx: u16) -> EndpointParam {
     EndpointParam::Cp { function: f, idx }
 }
@@ -533,7 +525,17 @@ fn d3_off_grid_positions_are_rejected() {
         rejection(e.execute(&route(vec![pt(G, G), pt(2 * G, G + 1), last]))),
         off("the wire's corner", "x 15.9, y 7.9 mm")
     );
-    rejected_naming(e.execute(&route(vec![pt(2 * G, G), last])), "/route/0");
+    // FT-864 (ID-1108: "a refusal text is words, with no JSON pointer, UUID, requirement ID or nanometres")
+    assert_eq!(
+        rejection(e.execute(&route(vec![pt(2 * G, G), last]))),
+        "the wire's start at x 15.9, y 7.9 mm on page 102 does not meet connection point -102K1:1 at x 7.9, y 7.9 mm; \
+         end the wire at its connection point"
+    );
+    assert_eq!(
+        rejection(e.execute(&route(vec![pt(G, G), pt(G, i64::MAX), last]))),
+        "the wire's corner at x 7.9, y 9223372036854.8 mm on page 102 lies outside the drawable range; draw the wire \
+         nearer the page origin"
+    );
     e.execute(&route(vec![pt(G, G), pt(G, 2 * G), pt(last.x.0, 2 * G), last]))
         .expect("on-grid route that starts at its CP");
 }
@@ -635,11 +637,9 @@ fn naive_defect(route: &[Pt2]) -> bool {
 fn ft437_a_repeated_vertex_is_refused_by_draw_and_route() {
     let (mut e, fa, fb) = two_devices();
     let dup = vec![pt(G, G), pt(2 * G, G), pt(2 * G, G), pt(4 * G, G)];
-    let expected = format!(
-        "`/route/2` [{}, {}] repeats the vertex before it; remove the duplicate vertex",
-        2 * G,
-        G
-    );
+    // FT-864 (ID-1108: "a refusal text is words, with no JSON pointer, UUID, requirement ID or nanometres")
+    let expected =
+        "the wire's corner at x 15.9, y 7.9 mm on page 102 repeats the corner before it; remove the duplicate corner";
     assert_eq!(rejection(e.execute(&draw_between(fa, fb, dup.clone()))), expected);
     let r = e
         .execute(&draw_between(fa, fb, vec![pt(G, G), pt(4 * G, G)]))
@@ -666,13 +666,9 @@ fn ft437_a_route_that_doubles_back_is_refused() {
     ];
     assert_eq!(
         rejection(e.execute(&draw_between(fa, fb, back))),
-        format!(
-            "`/route/1` the segment from [{x3}, {g}] to [{x2}, {g}] runs over the segment from [{g}, {g}] to \
-             [{x3}, {g}] (`/route/0`); a route never overlaps itself, remove the stretch it runs back over",
-            g = G,
-            x2 = 2 * G,
-            x3 = 3 * G
-        )
+        // FT-864 (ID-1108, as above)
+        "the wire runs back over itself on page 102: its stretch from x 23.8, y 7.9 mm to x 15.9, y 7.9 mm lies on its \
+         stretch from x 7.9, y 7.9 mm to x 23.8, y 7.9 mm; remove the stretch it runs back over"
     );
     // A loop whose last stretch runs over its first, three segments later.
     let lap = vec![
@@ -683,9 +679,10 @@ fn ft437_a_route_that_doubles_back_is_refused() {
         pt(2 * G, G),
         pt(4 * G, G),
     ];
-    rejected_naming(
-        e.execute(&draw_between(fa, fb, lap)),
-        "`/route/4` the segment from",
+    assert_eq!(
+        rejection(e.execute(&draw_between(fa, fb, lap))),
+        "the wire runs back over itself on page 102: its stretch from x 15.9, y 7.9 mm to x 31.8, y 7.9 mm lies on its \
+         stretch from x 7.9, y 7.9 mm to x 23.8, y 7.9 mm; remove the stretch it runs back over"
     );
     // Running straight on through a collinear vertex is no defect.
     e.execute(&draw_between(fa, fb, vec![pt(G, G), pt(2 * G, G), pt(4 * G, G)]))

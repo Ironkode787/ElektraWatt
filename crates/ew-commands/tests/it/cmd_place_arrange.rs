@@ -58,6 +58,15 @@ fn rejected_with<T: Debug>(r: Result<T, CmdError>, needle: &str) {
     }
 }
 
+/// The reason of a rejection, whole.
+#[track_caller]
+fn rejection<T: Debug>(r: Result<T, CmdError>) -> String {
+    match r {
+        Err(CmdError::Rejected { reason, .. }) => reason,
+        other => panic!("expected a rejection, got {other:?}"),
+    }
+}
+
 #[track_caller]
 fn not_found<T: Debug>(r: Result<T, CmdError>) {
     match r {
@@ -781,10 +790,14 @@ const CON_C: Id<ew_schema::Connection> = id(0x4203);
 /// `CON_A` from CP 1 of the first to CP 0 of the second (both ends move), `CON_C` from CP 1 of the third to a
 /// function nothing draws (one end moves); the golden wire `CON_W11A` on folio 101 gets a route and never moves.
 fn steps_model() -> Model {
+    steps_model_at(grid_at(11))
+}
+
+/// [`steps_model`] with `CON_A`'s horizontal middle stretch at `ymid`.
+fn steps_model_at(ymid: Nm) -> Model {
     let mut route_a = Vec::new();
     let a = p(grid_at(4), Nm(grid_at(6).0 + MM10));
     let b = gp(8, 9);
-    let ymid = grid_at(11);
     route_a.extend([a, p(a.x, ymid), p(b.x, ymid), b]);
     let g1_cp1 = p(grid_at(3), Nm(grid_at(12).0 + MM10));
     arrange_model(|records| {
@@ -1074,6 +1087,14 @@ fn move_by_steps_rejections() {
             steps: Some([1, 0]),
         }),
         "/steps",
+    );
+    // FT-864 (ID-1108: "a refusal text is words, with no JSON pointer, UUID, requirement ID or nanometres, names ... a
+    // wire by its printed number"): a wire whose route the move takes outside the drawable range is named by its
+    // number.
+    let mut edge = engine(steps_model_at(Nm(ew_commands::geometry::MAX_COORD - 1)));
+    assert_eq!(
+        rejection(edge.execute(&steps_cmd(vec![REP_102F2, REP_T1], [0, 1]))),
+        "the move takes the route of wire 102.1 outside the drawable range; move it less far"
     );
     // A representation off the grid cannot be moved by steps, and the refusal names it.
     let mut off = engine(arrange_model(|records| {

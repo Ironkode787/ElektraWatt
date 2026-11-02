@@ -6,7 +6,7 @@
 //! not exist has no words: the refusal says so and its JSON Pointer names the parameter.
 
 use ew_derive::{DeviceTag, Q};
-use ew_schema::{Device, Function, FunctionKind, Junction, Page, Representation};
+use ew_schema::{Connection, Device, Function, FunctionKind, Junction, Kind, Page, Representation};
 
 use crate::tx::TxBuilder;
 
@@ -106,5 +106,38 @@ pub(crate) fn interruption_point(tx: &TxBuilder<'_>, id: ew_ids::Id<Function>) -
     match tx.get::<Function>(id).map(|f| f.kind.clone()) {
         Some(FunctionKind::Ip(ip)) => format!("interruption point {}", ip.name.as_str()),
         _ => function(tx, id),
+    }
+}
+
+/// A position of a page without the page ("x 120, y 45.5 mm").
+pub(crate) fn position(p: ew_units::Pt2) -> String {
+    format!("x {}, y {} mm", mm(p.x), mm(p.y))
+}
+
+/// A wire by the number the drawing prints for its physical wire ("wire 102.5", the derived `wire_numbers` label of
+/// the base snapshot; a star's shared feed arm takes the first of its wires), else by its page ("a wire on page
+/// 102"), else "a wire". A connection the transaction made has no printed number yet.
+pub(crate) fn wire(tx: &TxBuilder<'_>, id: ew_ids::Id<Connection>) -> String {
+    let printed = || -> Option<String> {
+        let c = tx
+            .base_row(&(Kind::Connection, id.cast()))
+            .and_then(|r| r.get::<Connection>().cloned())?;
+        let q = Q::new(tx.base_model());
+        let partition = q.get::<ew_derive::PotentialPartition>(());
+        let potential = [&c.a, &c.b]
+            .into_iter()
+            .filter_map(ew_model::EndpointKey::of)
+            .find_map(|k| partition.potential_at(k).map(|p| p.id))?;
+        let wires = q.get::<ew_derive::PhysicalWiresOf>(potential);
+        let w = wires.wires.iter().find(|w| w.constituents.contains(&id))?;
+        let numbers = q.get::<ew_derive::WireNumbers>(());
+        numbers.number(w.id).map(|n| n.label.clone())
+    };
+    if let Some(n) = printed() {
+        return format!("wire {n}");
+    }
+    match tx.get::<Connection>(id).and_then(|c| c.page) {
+        Some(p) => format!("a wire on {}", page(tx, p)),
+        None => "a wire".to_owned(),
     }
 }
