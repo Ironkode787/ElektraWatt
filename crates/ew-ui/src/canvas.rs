@@ -324,6 +324,55 @@ fn paint_conflicts(
     }
 }
 
+/// Paints `IconId::lock` at the top-right corner of each locked placement's footprint on a panel page (doc 12 §12.1,
+/// FT-997): `icon.sm` in `color.text.secondary`, fixed on screen whatever the zoom, standing on the footprint's top
+/// edge at its right end, so it covers none of the device's drawing or labels. An overlay of the window only: the
+/// page's output (SVG, PDF) has no lock. Returns the icons' frames in points.
+fn paint_locks(ui: &egui::Ui, rect: Rect, ppp: f32, t: &DrawTransform, canvas: &CanvasModel) -> Vec<Rect> {
+    let page = canvas.page();
+    let Some(panel) = page.panel.as_deref() else {
+        return Vec::new();
+    };
+    let tokens = crate::theme::current(ui.ctx());
+    let size = tokens.icon_sm;
+    let painter = ui.painter_at(rect);
+    let mut out = Vec::new();
+    for p in panel.placements.iter().filter(|p| p.locked) {
+        let (lo, hi) = (p.footprint.min(), p.footprint.max());
+        let corners = [
+            (lo.x.0, lo.y.0),
+            (hi.x.0, lo.y.0),
+            (hi.x.0, hi.y.0),
+            (lo.x.0, hi.y.0),
+        ];
+        let on_screen: Vec<Pos2> = corners
+            .iter()
+            .map(|&(u, v)| {
+                let sheet = page
+                    .snapper
+                    .page_to_sheet(panel.to_page((i128::from(u), i128::from(v))));
+                let (x, y) = t.to_screen((sheet.0 as f64, sheet.1 as f64));
+                rect.min + Vec2::new(x as f32, y as f32) / ppp
+            })
+            .collect();
+        let right = on_screen.iter().map(|q| q.x).fold(f32::NEG_INFINITY, f32::max);
+        let top = on_screen.iter().map(|q| q.y).fold(f32::INFINITY, f32::min);
+        let icon = Rect::from_min_size(Pos2::new(right - size, top - size), Vec2::splat(size));
+        if !icon.intersects(rect) {
+            continue;
+        }
+        crate::icons::paint(
+            &painter,
+            crate::icons::IconId::lock,
+            icon,
+            tokens.text_secondary.color32(),
+            tokens.icon_stroke,
+        );
+        out.push(icon);
+    }
+    out
+}
+
 // WP-S2.06 part 2
 /// The bands of a highlight item on screen (physical pixels of the pane), with its slot.
 fn highlight_bands(
@@ -709,6 +758,8 @@ pub struct CanvasHost {
     /// The canvas rectangle (points), the pixels per point and the transform each group's canvas was drawn with last:
     /// the exact one while the view moves, the settled one (whole dpi, whole-pixel origin) once it rests (tests).
     drawn: [Option<(Rect, f32, DrawTransform)>; GROUPS],
+    /// The lock icons painted last per group, points (FT-997; tests).
+    locks: [Vec<Rect>; GROUPS],
 }
 
 impl Default for CanvasHost {
@@ -802,6 +853,7 @@ impl CanvasHost {
             chip_plans: Default::default(),
             chrome: Default::default(),
             drawn: Default::default(),
+            locks: Default::default(),
         }
     }
 
@@ -840,6 +892,12 @@ impl CanvasHost {
         let (rect, ppp, t) = self.drawn.get(group).copied().flatten()?;
         let (x, y) = t.to_screen((nm.0 as f64, nm.1 as f64));
         Some(rect.min + Vec2::new(x as f32, y as f32) / ppp)
+    }
+
+    /// The lock icons (points) the last frame of `group` painted, one per locked placement in view (FT-997).
+    #[doc(hidden)]
+    pub fn lock_marks(&self, group: usize) -> &[Rect] {
+        self.locks.get(group).map_or(&[], Vec::as_slice)
     }
 
     /// The GPU side of the first group's canvas (the switch rule runs there).
@@ -1045,6 +1103,8 @@ impl CanvasHost {
         paint_conflicts(ui, rect, ppp, &transform, shell, group);
         // WP-S2.06 part 2: the window's highlights on this page (§7.3).
         paint_highlights(ui, rect, ppp, &transform, shell, group);
+        // FT-997: a locked placement's lock icon, over the page on either backend.
+        self.locks[group] = paint_locks(ui, rect, ppp, &transform, canvas);
         let stats = shell
             .frame_stats_shown()
             .then(|| self.statistics_frame(ui, rect, shell));

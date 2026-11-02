@@ -420,3 +420,42 @@ fn ft1027_hovering_a_toast_pauses_its_fade() {
     assert_eq!(opacity_at(&mut h, shown, 31.0), None, "8 s of its life are over");
     h.state_mut().shell_mut().shutdown();
 }
+
+/// C46-p1#5 (ID-1139 as drawn): at the 1280 × 800 floor, a click on the greyed Symbol button of a panel layout page
+/// shows a toast whose title stands whole on two rows (its text runs as drawn), never cut with an ellipsis.
+#[test]
+fn a_greyed_commands_toast_title_stands_whole_on_two_rows_at_the_floor() {
+    const TITLE: &str = "A panel layout page takes no symbols or wires";
+    let tmp = Tmp::new();
+    let dir = tmp.golden("g.ew");
+    let shell =
+        ew_ui::ew_viewmodel::shell::ShellModel::new(ew_ui::ew_viewmodel::shell::Mode::Gui, tmp.config());
+    let app = App::new(shell, Box::new(Scripted::default()), Some(dir));
+    let mut h = Harness::builder()
+        .with_size(egui::Vec2::new(1280.0, 800.0))
+        .with_context_setup(ew_ui::app::setup)
+        .build_ui_state(|ui, app: &mut App| app.ui(ui), app);
+    settle(&mut h);
+    support::wait_for_page(&mut h);
+    dispatch(&mut h, "page.goto", json!({"folio": "902"}));
+    settle(&mut h);
+    h.get_all_by_role(egui::Role::Button)
+        .find(|n| n.accesskit_node().label().as_deref() == Some("Symbol"))
+        .expect("the Symbol button")
+        .click();
+    settle(&mut h);
+    // The title's label carries the toast's whole text as its live value; its text runs are the rows as drawn.
+    let whole = format!("{TITLE}: draw on a schematic page");
+    let label = h
+        .get_all_by_role(egui::Role::Label)
+        .find(|n| n.accesskit_node().value().as_deref() == Some(whole.as_str()))
+        .expect("the toast's title");
+    let rows: Vec<String> = label
+        .children()
+        .filter(|n| n.accesskit_node().role() == egui::accesskit::Role::TextRun)
+        .map(|n| n.accesskit_node().value().unwrap_or_default())
+        .collect();
+    assert_eq!(rows.len(), 2, "two rows: {rows:?}");
+    assert_eq!(rows.concat().trim_end(), TITLE, "whole, uncut: {rows:?}");
+    h.state_mut().shell_mut().shutdown();
+}

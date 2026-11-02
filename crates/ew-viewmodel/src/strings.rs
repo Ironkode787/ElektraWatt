@@ -3460,7 +3460,7 @@ pub const TEXTS: &[(&str, &str)] = &[
     ),
     ("reason-layout-refused", "The drop is refused; nothing changed"),
     ("tool-layout_place", "Place device"),
-    ("hint-layout-place", "Click or release to place; Escape cancels"),
+    ("hint-layout-place", "Click or release to place; Escape ends"),
     (
         "hint-layout-idle",
         "Drag a device from Unplaced devices onto the page",
@@ -3481,9 +3481,18 @@ pub const TEXTS: &[(&str, &str)] = &[
         "hud-layout-place",
         "Place {0} \u{b7} Ctrl pushes \u{b7} Alt swaps \u{b7} Shift no snap \u{b7} Esc done",
     ),
+    // FT-996: each key only where the selected placement takes it.
     (
         "hud-layout-selected",
-        "{0} selected \u{b7} arrows nudge \u{b7} {1} rotates \u{b7} {2} flips \u{b7} {3} deletes",
+        "{0} selected \u{b7} arrows nudge \u{b7} {1} deletes",
+    ),
+    (
+        "hud-layout-selected-plate",
+        "{0} selected \u{b7} arrows nudge \u{b7} {1} rotates \u{b7} {2} deletes",
+    ),
+    (
+        "hud-layout-selected-rail",
+        "{0} selected \u{b7} arrows nudge \u{b7} {1} flips \u{b7} {2} deletes",
     ),
     ("layout-mode-free", "Free"),
     ("layout-mode-push", "Push"),

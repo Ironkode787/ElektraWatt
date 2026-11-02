@@ -1487,6 +1487,8 @@ impl ShellModel {
         self.after_layout_commit();
         // WP-S2.05 part 3
         self.after_paste();
+        // FT-900
+        self.after_place();
         self.refresh_place_shape();
         self.refresh_strip_tag();
         // WP-S2.18 D1: a sticky join target fills the next slot, then makes new auxiliary functions.

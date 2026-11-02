@@ -428,6 +428,12 @@ fn pw2_f55_pushed_onto_rail_1_by_a_drag() {
     );
     assert_eq!(shell.tool().name(), "select", "the tool returns to Select");
     assert!(ghost(&shell).is_null());
+    // FT-900 (ID-1147): the placement the drop made is the selection.
+    let f55_placed = placement(&shell, "F55");
+    assert_eq!(
+        state(&shell)["canvas"]["selection"],
+        json!([f55_placed.to_string()])
+    );
     undo_all_once(&mut shell);
     assert_eq!(rail_poses(&shell, "Rail 1"), rows_of(&R1_BEFORE));
     assert_eq!(unplaced(&shell, "F55"), f55);
@@ -711,9 +717,10 @@ fn pw6_tab_cycles_the_rail_with_the_live_region() {
         shell.layout_live_text().as_deref(),
         Some("S51, rail 1 at 267.5 mm, 1 finding")
     );
+    // FT-996: on a rail only X turns it, so R goes unnamed.
     assert_eq!(
         hud(&shell).prompt,
-        "1 selected · arrows nudge · R rotates · X flips · Delete deletes"
+        "1 selected · arrows nudge · X flips · Delete deletes"
     );
     // Enter with a placement selected focuses Properties.
     done(&mut shell, "canvas.activate", json!({}));
@@ -890,5 +897,344 @@ fn a_refused_turn_names_the_rebound_keys_on_every_path() {
     assert_eq!(key(&mut shell, "tool.rotate_cw"), turn_refused);
     assert_eq!(shell.tool_notice(), Some(TEXT));
     assert_eq!(shell.revision(), revision, "nothing committed");
+    shell.shutdown();
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Cycle 46 (ID-1147): the placing tools' polish rows
+
+/// The whole text of a refused turn with the default keymap.
+const TURN_TEXT: &str = "R turns a placement on the plate; X flips one on a rail.";
+
+/// Moves the pointer off every placement and rail, so the HUD names no pick stack.
+fn rest_away(shell: &mut ShellModel) {
+    let away = sheet_of(shell, (300 * MM as i128, 640 * MM as i128));
+    done(shell, "canvas.pointer", at(away, json!({})));
+    assert_eq!(hud(shell).stack, 0);
+}
+
+/// Presses `action` until it is refused (at most 200 times) and returns how many presses moved.
+fn press_until_refused(shell: &mut ShellModel, action: &'static str) -> usize {
+    for n in 0..200 {
+        match key(shell, action) {
+            Outcome::Done => {}
+            Outcome::Refused { reason_key } => {
+                assert_eq!(reason_key, key!("reason-layout-blocked"), "after {n} presses");
+                return n;
+            }
+            other => panic!("{action}: {other:?}"),
+        }
+    }
+    panic!("{action} never stopped: {}", ghost(shell));
+}
+
+/// FT-991 (ID-1147): a refused R keeps the layout ghost, its overlay and its gesture with the refusal's words, for the
+/// layout place tool's ghost and for Select's drag of a placement alike; X then flips the same gesture. Other refusals
+/// still end their ghost.
+#[test]
+fn ft991_a_refused_turn_keeps_the_ghost_and_its_gesture() {
+    let tmp = Tmp::new("layout-ft991");
+    let mut shell = writable(&tmp);
+    let turn_refused = Outcome::Refused {
+        reason_key: key!("reason-layout-turn"),
+    };
+    let f55 = unplaced(&shell, "F55");
+    done(
+        &mut shell,
+        "tool.place_layout",
+        json!({"device": f55.to_string()}),
+    );
+    let over = on_rail(&shell, "Rail 1", 400 * MM);
+    done(&mut shell, "canvas.pointer", at(over, json!({})));
+    let floating = ghost(&shell);
+    let overlay = shell.tool_overlay().clone();
+    assert!(!overlay.items.is_empty());
+    assert_eq!(key(&mut shell, "tool.rotate_cw"), turn_refused);
+    assert_eq!(shell.tool_notice(), Some(TURN_TEXT));
+    assert_eq!(ghost(&shell), floating, "the ghost stays");
+    assert_eq!(shell.tool_overlay(), &overlay, "and so does its overlay");
+    assert_eq!(shell.tool().state(), "placing");
+    assert_eq!(key(&mut shell, "tool.mirror_x"), Outcome::Done);
+    assert!(!shell.tool_overlay().items.is_empty());
+    assert_eq!(shell.tool_notice(), None);
+
+    // Select's drag of -102F1 along Rail 1: R is refused, the drag goes on and its release commits.
+    done(&mut shell, "tool.select", json!({}));
+    let revision = shell.revision();
+    let from = footprint_centre(&shell, "-102F1");
+    done(&mut shell, "canvas.press", at(from, json!({})));
+    let to = on_rail(&shell, "Rail 1", 400 * MM);
+    done(&mut shell, "canvas.pointer", at(to, json!({})));
+    let dragged = ghost(&shell);
+    assert_eq!(dragged["kind"], "layout");
+    let overlay = shell.tool_overlay().clone();
+    assert_eq!(key(&mut shell, "tool.rotate_cw"), turn_refused);
+    assert_eq!(shell.tool_notice(), Some(TURN_TEXT));
+    assert_eq!(ghost(&shell), dragged);
+    assert_eq!(shell.tool_overlay(), &overlay);
+    done(&mut shell, "canvas.release", at(to, json!({})));
+    assert_eq!(shell.revision(), revision.map(|r| r + 1), "the drag committed");
+
+    // Another refusal ends its ghost: F55 released away from every rail.
+    done(
+        &mut shell,
+        "tool.place_layout",
+        json!({"device": f55.to_string()}),
+    );
+    let away = sheet_of(&shell, (300 * MM as i128, 640 * MM as i128));
+    done(&mut shell, "canvas.pointer", at(away, json!({})));
+    assert!(!shell.tool_overlay().items.is_empty());
+    assert_eq!(
+        refused(&mut shell, "canvas.release", at(away, json!({}))),
+        "reason-layout-refused"
+    );
+    assert!(
+        shell.tool_overlay().items.is_empty(),
+        "the refused drop's ghost goes"
+    );
+    shell.shutdown();
+}
+
+/// FT-992 (ID-1147): the arrows stop a floating ghost as they stop a selected placement: at the rail's start and end
+/// with "At the rail end" and at a neighbour with "Blocked by -102G1", the ghost staying on Rail 1; a selected
+/// placement stops at the rail end in the same words.
+#[test]
+fn ft992_the_arrows_stop_a_floating_ghost_at_the_rail_end_and_at_a_neighbour() {
+    let tmp = Tmp::new("layout-ft992");
+    let mut shell = writable(&tmp);
+    let f55 = unplaced(&shell, "F55");
+    done(
+        &mut shell,
+        "tool.place_layout",
+        json!({"device": f55.to_string()}),
+    );
+    // Armed from the keyboard, it floats at the start of Rail 1.
+    assert_eq!(ghost(&shell)["carrier"], "Rail 1");
+    assert_eq!(ghost(&shell)["at_nm"], json!([0]));
+    assert_eq!(press_until_refused(&mut shell, "cursor.left"), 0);
+    assert_eq!(shell.tool_notice(), Some("At the rail end"));
+    assert_eq!(shell.tool_announcement(), Some("At the rail end"));
+    assert_eq!(ghost(&shell)["at_nm"], json!([0]), "the ghost stays");
+    // Right: up to -102G1, then blocked by it.
+    assert!(press_until_refused(&mut shell, "cursor.right") > 0);
+    assert_eq!(shell.tool_notice(), Some("Blocked by -102G1"));
+    assert_eq!(ghost(&shell)["carrier"], "Rail 1");
+    assert_eq!(ghost(&shell)["refused"], Value::Null, "it stops touching -102G1");
+    // From the free end of the rail: right to the end, never onto the plate.
+    let free = on_rail(&shell, "Rail 1", 400 * MM);
+    done(&mut shell, "canvas.pointer", at(free, json!({})));
+    assert!(press_until_refused(&mut shell, "cursor.right") > 0);
+    assert_eq!(shell.tool_notice(), Some("At the rail end"));
+    assert_eq!(ghost(&shell)["carrier"], "Rail 1");
+    assert_eq!(ghost(&shell)["refused"], Value::Null);
+    let predicted = shell.layout_predicted_poses();
+    done(&mut shell, "canvas.activate", json!({}));
+    assert_eq!(
+        committed(&shell, &predicted),
+        predicted,
+        "it drops where it stopped"
+    );
+
+    // The selected placement S51 stops at the rail end in the same words (F55's drop undone).
+    done(&mut shell, "edit.undo", json!({}));
+    select_placement(&mut shell, "S51");
+    assert!(press_until_refused(&mut shell, "cursor.right") > 0);
+    assert_eq!(shell.tool_notice(), Some("At the rail end"));
+    assert_eq!(shell.tool_announcement(), Some("At the rail end"));
+    shell.shutdown();
+}
+
+/// FT-993 (ID-1147): Escape on a layout ghost drops it and returns to Select, as the schematic Place tool does; the
+/// hint says so.
+#[test]
+fn ft993_escape_drops_the_layout_ghost_and_returns_to_select() {
+    let tmp = Tmp::new("layout-ft993");
+    let mut shell = writable(&tmp);
+    assert_eq!(
+        ew_viewmodel::strings::text(key!("hint-layout-place")),
+        "Click or release to place; Escape ends"
+    );
+    let f55 = unplaced(&shell, "F55");
+    done(
+        &mut shell,
+        "tool.place_layout",
+        json!({"device": f55.to_string()}),
+    );
+    let over = on_rail(&shell, "Rail 1", 400 * MM);
+    done(&mut shell, "canvas.pointer", at(over, json!({})));
+    assert_eq!(ghost(&shell)["carrier"], "Rail 1");
+    let revision = shell.revision();
+    done(&mut shell, "ui.dismiss", json!({}));
+    assert_eq!(shell.tool().name(), "select");
+    assert!(ghost(&shell).is_null());
+    assert!(shell.tool_overlay().items.is_empty());
+    assert_eq!(shell.revision(), revision, "nothing placed");
+    assert_eq!(unplaced(&shell, "F55"), f55);
+    shell.shutdown();
+}
+
+/// FT-994 (ID-1147): at grid 1 mm an arrow moves a plate ghost exactly one grid step from where it is drawn, at every
+/// turn: E55 floating 30 mm right of -201U7's, -102G1's and -X1032's footprints, level with their tops, where an edge
+/// of a neighbour snaps it off the grid (a step from the pointer re-snapped it 0.5 mm further, or short).
+#[test]
+fn ft994_an_arrow_steps_a_turned_plate_ghost_one_grid_step() {
+    let tmp = Tmp::new("layout-ft994");
+    let mut shell = writable(&tmp);
+    done(&mut shell, "layout.options", json!({"grid": 1}));
+    let e55 = unplaced(&shell, "E55");
+    let t = panel(&shell);
+    for tag in ["-201U7", "-102G1", "-X1032"] {
+        let fp = t.placements.iter().find(|p| p.tag == tag).unwrap().footprint;
+        let start = (
+            i128::from(fp.max().x.0) + i128::from(30 * MM),
+            i128::from(fp.min().y.0),
+        );
+        for turn in 0..4u8 {
+            done(
+                &mut shell,
+                "tool.place_layout",
+                json!({"device": e55.to_string()}),
+            );
+            let spot = sheet_of(&shell, start);
+            done(&mut shell, "canvas.pointer", at(spot, json!({})));
+            for _ in 0..turn {
+                assert_eq!(key(&mut shell, "tool.rotate_cw"), Outcome::Done);
+            }
+            for (action, (du, dv)) in [
+                ("cursor.right", (MM, 0)),
+                ("cursor.up", (0, MM)),
+                ("cursor.left", (-MM, 0)),
+                ("cursor.down", (0, -MM)),
+                ("cursor.right", (MM, 0)),
+            ] {
+                let (_, (u, v, k)) = shell.layout_predicted_poses()[0];
+                assert_eq!(k, turn);
+                assert_eq!(key(&mut shell, action), Outcome::Done);
+                let (_, (u2, v2, _)) = shell.layout_predicted_poses()[0];
+                assert_eq!(
+                    (u2 - u, v2 - v),
+                    (du, dv),
+                    "{action} beside {tag} at {turn} quarter turns"
+                );
+            }
+            // The drop commits what the ghost shows.
+            let predicted = shell.layout_predicted_poses();
+            done(&mut shell, "canvas.activate", json!({}));
+            assert_eq!(committed(&shell, &predicted), predicted);
+            done(&mut shell, "edit.undo", json!({}));
+        }
+    }
+    shell.shutdown();
+}
+
+/// FT-995 (ID-1147): after a layout drop and after Select's drag of a placement, the HUD names no pick stack where the
+/// drop left the pointer; once the pointer moves it does again.
+#[test]
+fn ft995_after_a_drop_the_hud_names_no_stack_until_the_pointer_moves() {
+    let tmp = Tmp::new("layout-ft995");
+    let mut shell = writable(&tmp);
+    let f55 = unplaced(&shell, "F55");
+    done(
+        &mut shell,
+        "tool.place_layout",
+        json!({"device": f55.to_string()}),
+    );
+    let drop = on_rail(&shell, "Rail 1", 400 * MM);
+    done(&mut shell, "canvas.pointer", at(drop, json!({})));
+    done(&mut shell, "canvas.release", at(drop, json!({})));
+    assert_eq!(shell.tool().name(), "select");
+    let h = hud(&shell);
+    assert_eq!(h.stack, 0);
+    assert_eq!(h.prompt, "1 selected · arrows nudge · X flips · Delete deletes");
+    let near = on_rail(&shell, "Rail 1", 401 * MM);
+    done(&mut shell, "canvas.pointer", at(near, json!({})));
+    let h = hud(&shell);
+    assert_eq!(h.stack, 2, "F55 and Rail 1");
+    assert_eq!(
+        h.prompt,
+        "2 objects overlap here · click again to select the next"
+    );
+
+    // Select's drag of F55 further along the rail.
+    let from = footprint_centre(&shell, "F55");
+    done(&mut shell, "canvas.press", at(from, json!({})));
+    let to = on_rail(&shell, "Rail 1", 450 * MM);
+    done(&mut shell, "canvas.pointer", at(to, json!({})));
+    done(&mut shell, "canvas.release", at(to, json!({})));
+    let h = hud(&shell);
+    assert_eq!(h.stack, 0);
+    assert_eq!(h.prompt, "1 selected · arrows nudge · X flips · Delete deletes");
+    let near = on_rail(&shell, "Rail 1", 451 * MM);
+    done(&mut shell, "canvas.pointer", at(near, json!({})));
+    assert_eq!(hud(&shell).stack, 2);
+    shell.shutdown();
+}
+
+/// FT-996 (ID-1147): the HUD of a selected placement names only the keys it takes: X on a rail, R on the plate, Delete
+/// always.
+#[test]
+fn ft996_the_selected_placements_hud_names_only_its_keys() {
+    let tmp = Tmp::new("layout-ft996");
+    let mut shell = writable(&tmp);
+    select_placement(&mut shell, "S51");
+    rest_away(&mut shell);
+    assert_eq!(
+        hud(&shell).prompt,
+        "1 selected · arrows nudge · X flips · Delete deletes"
+    );
+    let surface = panel(&shell).surface.to_string();
+    let e55 = unplaced(&shell, "E55");
+    done(
+        &mut shell,
+        "command.run",
+        json!({"cmd": "layout.place", "params": {
+            "device": e55.to_string(),
+            "carrier": {"surface": surface},
+            "pose": {"t": [520 * MM, 300 * MM, 0], "q": [1_000_000_000, 0, 0, 0]},
+        }}),
+    );
+    select_placement(&mut shell, "E55");
+    rest_away(&mut shell);
+    assert_eq!(
+        hud(&shell).prompt,
+        "1 selected · arrows nudge · R rotates · Delete deletes"
+    );
+    assert_eq!(
+        ew_viewmodel::strings::format(key!("hud-layout-selected"), &["2", "Delete"]),
+        "2 selected · arrows nudge · Delete deletes"
+    );
+    shell.shutdown();
+}
+
+/// FT-997 (ID-1147): a nudge's "Blocked by T55" ends with the next action: Lock, Unlock and Enter each clear it.
+#[test]
+fn ft997_blocked_by_clears_on_lock_unlock_and_enter() {
+    let tmp = Tmp::new("layout-ft997");
+    let mut shell = writable(&tmp);
+    select_placement(&mut shell, "-102F2");
+    rest_away(&mut shell);
+    let selected = "1 selected · arrows nudge · X flips · Delete deletes";
+    let blocked = |shell: &mut ShellModel| {
+        assert_eq!(
+            key(shell, "cursor.right"),
+            Outcome::Refused {
+                reason_key: key!("reason-layout-blocked")
+            }
+        );
+        assert_eq!(shell.tool_notice(), Some("Blocked by T55"));
+        assert_eq!(hud(shell).prompt, "Blocked by T55");
+    };
+    blocked(&mut shell);
+    done(&mut shell, "layout.lock_selection", json!({}));
+    assert_eq!(shell.tool_notice(), None);
+    assert_eq!(hud(&shell).prompt, selected);
+    blocked(&mut shell);
+    done(&mut shell, "layout.unlock_selection", json!({}));
+    assert_eq!(shell.tool_notice(), None);
+    assert_eq!(hud(&shell).prompt, selected);
+    blocked(&mut shell);
+    done(&mut shell, "canvas.activate", json!({}));
+    assert_eq!(shell.tool_notice(), None);
+    assert_eq!(hud(&shell).prompt, selected);
     shell.shutdown();
 }

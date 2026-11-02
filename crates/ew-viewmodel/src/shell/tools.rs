@@ -493,6 +493,20 @@ impl ShellModel {
                 self.tools.preview = None;
                 // WP-S2.05 part 3: a committed paste returns to Select with the pasted representations selected.
                 self.tools.pasted = out == Outcome::Done && self.tools.tool.name() == "paste";
+                // FT-900 (ID-1147): what a placement made is the selection, replacing it: the schematic Place tool's
+                // representations (the tool stays armed) and a layout drop's placement, at the end of the dispatch.
+                self.tools.placed = out == Outcome::Done && self.tools.tool.name() == "place";
+                if out == Outcome::Done
+                    && cmd.name() == "layout.place"
+                    && let Ok(params) = cmd.to_json()
+                {
+                    self.tools.placed_device = params["device"].as_str().and_then(|s| s.parse().ok());
+                }
+                // FT-995: the pick stack under the drop point is the dropped item and what it sits on; the HUD says
+                // nothing of it until the pointer moves on.
+                if out == Outcome::Done && matches!(cmd.name(), "layout.place" | "layout.move") {
+                    self.tools.quiet_stack_at = self.canvas().and_then(CanvasModel::pointer);
+                }
                 // The IP tool's memory and its next name (WP-S2.04 part 3, §9.1).
                 if out == Outcome::Done {
                     self.after_ip_commit();
@@ -554,9 +568,12 @@ impl ShellModel {
             ToolOutput::Refused(reason_key) => {
                 // The same path as a refused canvas key: the status bar shows the reason until the next canvas input.
                 // A refusal ends the gesture it answers: its ghost and its kept preview go, as a refused release's
-                // `Select` and the old `Transient(Overlay::default())` did (review fix, F1).
-                self.tools.overlay = Overlay::default();
-                self.tools.preview = None;
+                // `Select` and the old `Transient(Overlay::default())` did (review fix, F1). A refused turn (R on a
+                // rail, X on the plate) is no end: the layout ghost and its gesture stay with the reason (FT-991).
+                if reason_key != key!("reason-layout-turn") {
+                    self.tools.overlay = Overlay::default();
+                    self.tools.preview = None;
+                }
                 self.tools.notice = Some(self.refusal_text(reason_key));
                 self.tools.notice_sticky = true;
                 Outcome::Refused { reason_key }
@@ -643,6 +660,36 @@ impl ShellModel {
             &[&hints.to_string()],
         );
         Some((count, list.join(", ")))
+    }
+
+    /// After a committed placement of the schematic Place tool (FT-900, ID-1147): the representations the page tables
+    /// hold now and did not before the commit are the selection, one selection change; the tool stays armed.
+    pub(super) fn after_place(&mut self) {
+        if !std::mem::take(&mut self.tools.placed) {
+            return;
+        }
+        let before = self.tools.before_commit.clone();
+        let Some(now) = self.canvas().map(|c| Arc::clone(&c.page().tables)) else {
+            return;
+        };
+        let placed: Vec<EntityRef> = now
+            .reps
+            .iter()
+            .filter(|r| {
+                before
+                    .as_ref()
+                    .is_none_or(|b| !b.reps.iter().any(|o| o.id == r.id))
+            })
+            .map(|r| EntityRef(r.id))
+            .collect();
+        if !placed.is_empty() && self.tools.selection.apply(&SelectionChange::Replace(placed)) {
+            self.announce_selection();
+        }
+    }
+
+    /// Whether the HUD keeps quiet about the pick stack under the pointer: it rests where a drop left it (FT-995).
+    pub(crate) fn stack_quiet(&self) -> bool {
+        self.tools.quiet_stack_at.is_some()
     }
 
     /// Announces the selection's size through the live region.
@@ -872,6 +919,10 @@ impl ShellModel {
         if self.area.as_ref().map(|a| a.focused) != Some(g) {
             return Outcome::Done;
         }
+        // FT-995: a move away from a drop's point lets the HUD name the pick stack again.
+        if self.tools.quiet_stack_at.is_some_and(|q| q != at) {
+            self.tools.quiet_stack_at = None;
+        }
         self.send_tool(&CanvasEvent::PointerMove { at, mods })
     }
 
@@ -1041,6 +1092,10 @@ impl ShellModel {
         }
         // WP-S4.02 part 3 (doc 12 §12.4): on a panel page, Enter with a placement selected focuses Properties.
         if self.tools.tool.name() == "select" && self.selected_placements() > 0 {
+            // FT-997: Enter is the next action; a nudge's "Blocked by T55" ends with it.
+            self.tools.notice = None;
+            self.tools.notice_sticky = false;
+            self.tools.notice_at = None;
             return self.act_props_focus();
         }
         // The keyboard route editor commits without a grid cursor (its segment stays where it is), and so does the paste

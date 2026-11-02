@@ -163,6 +163,14 @@ pub(crate) struct ToolHost {
     /// Whether a `layout.*` commit of this dispatch announces the selected placement's live text once the page is
     /// read again (at the end of the dispatch).
     pub layout_announce: bool,
+    // FT-900, FT-995 (ID-1147)
+    /// The schematic Place tool committed: at the end of the dispatch the representations it made are the selection.
+    pub placed: bool,
+    /// The device a layout drop placed: at the end of the dispatch its placement is the selection.
+    pub placed_device: Option<ew_api::output::Uuid>,
+    /// The pointer point of a layout drop or of a Select drag's drop: the HUD names no pick stack there until the
+    /// pointer moves elsewhere (FT-995).
+    pub quiet_stack_at: Option<(i64, i64)>,
     // WP-S4.02 part 4 (C44-p2#2)
     /// The draw tools' part offers of (session, revision, kind): computed when Draw rail or Draw duct is armed, and
     /// again only when its options or the revision change (the options card reads them every frame).
@@ -243,6 +251,9 @@ impl ToolHost {
             result_note: None,
             layout_options: super::LayoutOptions::default(),
             layout_announce: false,
+            placed: false,
+            placed_device: None,
+            quiet_stack_at: None,
             draw_offers: std::cell::RefCell::new(None),
         }
     }

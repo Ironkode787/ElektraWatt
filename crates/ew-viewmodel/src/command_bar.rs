@@ -619,21 +619,32 @@ pub fn hud(model: &ShellModel) -> HudModel {
     let hint = || crate::status::hint(model);
     let prompt = match model.tool_ghost() {
         None if name == "select" && tool.state() == "idle" => {
-            stack = pointer_stack(model);
+            // FT-995: where a drop left the pointer, the stack is the dropped item and what it sits on; the HUD names
+            // it again once the pointer moves on.
+            if !model.stack_quiet() {
+                stack = pointer_stack(model);
+            }
             let selected = model.selection().items.len();
             if stack > 1 {
                 strings::format(key!("hud-stack"), &[&stack.to_string()])
             } else if selected > 0 && model.selected_placements() > 0 {
                 // WP-S4.02 part 3 (doc 16a §5.5): a placement selected on a panel page, its keys from the keymap.
-                strings::format(
-                    key!("hud-layout-selected"),
-                    &[
-                        &selected.to_string(),
-                        &key_of(model, "tool.rotate_cw"),
-                        &key_of(model, "tool.mirror_x"),
-                        &key_of(model, "edit.delete_selection"),
-                    ],
-                )
+                // FT-996: only the keys the selected placement takes: R on the plate, X on a rail, Delete always.
+                let delete = key_of(model, "edit.delete_selection");
+                let on_rail = model
+                    .selected_placement()
+                    .map(|(panel, row)| row.carrier.and_then(|c| panel.carrier(c)).is_some());
+                match on_rail {
+                    Some(true) => strings::format(
+                        key!("hud-layout-selected-rail"),
+                        &[&selected.to_string(), &key_of(model, "tool.mirror_x"), &delete],
+                    ),
+                    Some(false) => strings::format(
+                        key!("hud-layout-selected-plate"),
+                        &[&selected.to_string(), &key_of(model, "tool.rotate_cw"), &delete],
+                    ),
+                    None => strings::format(key!("hud-layout-selected"), &[&selected.to_string(), &delete]),
+                }
             } else if selected > 0 {
                 strings::format(
                     key!("hud-selected"),

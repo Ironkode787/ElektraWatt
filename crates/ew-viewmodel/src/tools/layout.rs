@@ -173,6 +173,69 @@ pub struct Resolved {
     pub command: Option<AnyCommand>,
     /// The same boxes in sheet nm, for the overlay.
     pub sheet: SheetGeom,
+    /// On the plate, how far the snapping moved the drawn footprint from where the pointer put it, surface nm: the
+    /// keyboard steps from where the ghost is drawn (FT-994). `(0, 0)` on a rail.
+    pub drawn_shift: (i128, i128),
+}
+
+/// Where an arrow takes a floating ghost ([`LayoutGesture::step`]).
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Step {
+    /// The surface point the pointer moves to; the ghost snaps there as under the pointer.
+    To((i128, i128)),
+    /// The surface point the pointer moves to, the ghost resolved there without snapping (as with Shift): one grid
+    /// step on the plate from where the ghost is drawn stays exactly one grid step (FT-994).
+    Exact((i128, i128)),
+    /// Nothing moves: blocked by this neighbour's placement, or by the rail end (`None`), as a selected placement's
+    /// nudge is (FT-992).
+    Blocked(Option<Uuid>),
+}
+
+/// Where a free nudge along a rail stops (the selected placement's arrows and a floating ghost's, FT-992).
+pub(crate) enum Stop {
+    /// At this left edge.
+    Free(i128),
+    /// Blocked by this neighbour's placement (`None`: the rail end).
+    Blocked(Option<Uuid>),
+}
+
+/// A free nudge of `own` towards `target` (`sign` its direction): it stops where it would touch the next item at its
+/// minimum gap, or at the rail end's gap; blocked when it cannot move at all. `own` without a placement (a device's
+/// ghost) meets every item of the rail.
+pub(crate) fn nudge_stop(items: &[RailItem], own: &RailItem, length: i128, target: i128, sign: i128) -> Stop {
+    let width = own.width();
+    let others = items
+        .iter()
+        .filter(|i| own.placement.is_none() || i.placement != own.placement);
+    if sign > 0 {
+        let next = others
+            .filter(|i| i.s0 >= own.s1 || (i.s0 > own.s0))
+            .min_by_key(|i| (i.s0, i.s1));
+        let (limit, by) = match next {
+            Some(n) => (n.s0 - min_gap(own, n) - width, n.placement.map(|p| p.as_uuid())),
+            None => (length - end_gap(own) - width, None),
+        };
+        let s = target.min(limit);
+        if s <= own.s0 {
+            Stop::Blocked(by)
+        } else {
+            Stop::Free(s)
+        }
+    } else {
+        let prev = others
+            .filter(|i| i.s1 <= own.s0 || (i.s0 < own.s0))
+            .max_by_key(|i| (i.s1, i.s0));
+        let (limit, by) = match prev {
+            Some(n) => (n.s1 + min_gap(n, own), n.placement.map(|p| p.as_uuid())),
+            None => (start_gap(own), None),
+        };
+        let s = target.max(limit);
+        if s >= own.s0 {
+            Stop::Blocked(by)
+        } else {
+            Stop::Free(s)
+        }
+    }
 }
 
 /// A resolution's boxes in sheet nm (the overlay draws them without the page).
@@ -455,12 +518,13 @@ impl LayoutGesture {
         })
     }
 
-    /// The keyboard's step of the floating ghost (doc 12 §12.4, "arrows move by snap step"): the surface point the
-    /// pointer moves to for the arrow `(dx, dy)` (page directions). Along a rail, the next snap target in that
-    /// direction (a neighbour touched at its minimum gap, a rail end at its gap, the next grid point); across it, the
-    /// nearest parallel rail on that side at the same clip point, else one grid step; on the plate, one grid step.
-    /// `None` when nothing floats or nothing lies further that way.
-    pub fn step(&self, panel: &PanelTables, (dx, dy): (i64, i64), grid: i128) -> Option<(i128, i128)> {
+    /// The keyboard's step of the floating ghost (doc 12 §12.4, "arrows move by snap step"): where the pointer moves
+    /// for the arrow `(dx, dy)` (page directions). Along a rail, the next snap target in that direction (a neighbour
+    /// touched at its minimum gap, a rail end at its gap, the next grid point), stopped as a selected placement's free
+    /// nudge is (FT-992): in free mode at a neighbour and at the rail ends, in push and swap mode at the rail ends;
+    /// across it, the nearest parallel rail on that side at the same clip point, else one grid step; on the plate, one
+    /// grid step from where the ghost is drawn (FT-994). `None` when nothing floats or nothing lies further that way.
+    pub fn step(&self, panel: &PanelTables, (dx, dy): (i64, i64), grid: i128) -> Option<Step> {
         let r = self.current.as_ref()?;
         let ptr = self.pointer?;
         let grid = grid.max(1);
@@ -470,10 +534,15 @@ impl LayoutGesture {
             carrier,
             s_input,
             clip,
+            mode,
             ..
         } = &r.drop
         else {
-            return Some((ptr.0 + way.0 * grid, ptr.1 + way.1 * grid));
+            let (du, dv) = r.drawn_shift;
+            return Some(Step::Exact((
+                ptr.0 + du + way.0 * grid,
+                ptr.1 + dv + way.1 * grid,
+            )));
         };
         let c = panel.carrier(*carrier)?;
         let (axis, length) = (c.axis?, c.length?);
@@ -503,7 +572,18 @@ impl LayoutGesture {
             } else {
                 cands.into_iter().filter(|v| *v < s).max()?
             };
-            return Some(axis.point_at(next + clip));
+            // The stop: a free ghost meets its neighbours, a pushing or swapping one passes them (the resolver moves
+            // them); every ghost meets the rail ends.
+            let own = RailItem {
+                s0: s,
+                s1: s + width,
+                ..item
+            };
+            let met: &[RailItem] = if *mode == SnapMode::Free { &c.items } else { &[] };
+            return Some(match nudge_stop(met, &own, length, next, along.signum()) {
+                Stop::Free(to) => Step::To(axis.point_at(to + clip)),
+                Stop::Blocked(by) => Step::Blocked(by),
+            });
         }
         // Across: the nearest parallel rail on that side.
         let here = axis.point_at(s_input + clip);
@@ -516,10 +596,10 @@ impl LayoutGesture {
             .filter(|(a, _)| a.dir.0 * axis.dir.1 == a.dir.1 * axis.dir.0)
             .filter(|(a, _)| side(a.start) > 0)
             .min_by_key(|(a, _)| side(a.start));
-        Some(match other {
+        Some(Step::To(match other {
             Some((a, len)) => a.point_at(a.project(here).0.clamp(0, len)),
             None => (ptr.0 + way.0 * grid, ptr.1 + way.1 * grid),
-        })
+        }))
     }
 
     /// The rail item of the source at the current turn, at `s0 = 0`.
@@ -915,6 +995,7 @@ fn resolve_at(
                 refused: result.is_err() || fit == Fit::DoesNotFit,
                 command,
                 sheet: SheetGeom::default(),
+                drawn_shift: (0, 0),
             })
         }
         None => {
@@ -1016,6 +1097,7 @@ fn resolve_at(
                 }),
                 local_text,
                 sheet: SheetGeom::default(),
+                drawn_shift: (u_min - min0.0, v_min - min0.1),
             })
         }
     }
@@ -1173,12 +1255,11 @@ impl Tool for LayoutPlaceTool {
                 g.update(at, mods, cx);
                 track_output(g)
             }
+            // FT-993: Escape drops the ghost and the tool gives way to Select (the host's answer to `None`), as the
+            // schematic Place tool's Escape does.
             CanvasEvent::Escape => {
-                if self.gesture.take().is_some() {
-                    ToolOutput::Cancel
-                } else {
-                    ToolOutput::None
-                }
+                self.gesture = None;
+                ToolOutput::None
             }
             _ => ToolOutput::None,
         }

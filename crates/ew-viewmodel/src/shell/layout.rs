@@ -15,16 +15,14 @@ use std::sync::Arc;
 use ew_api::AnyCommand;
 use ew_api::checks::{CheckMode, FindingState};
 use ew_api::output::ew_dl::EntityRef;
-use ew_api::output::{
-    Fit, PanelPlacement, PanelTables, RailItem, SnapMode, Uuid, end_gap, fits_rail, min_gap, start_gap,
-};
+use ew_api::output::{Fit, PanelPlacement, PanelTables, SnapMode, Uuid, fits_rail};
 use serde_json::{Map, Value, json};
 
 use super::navigation::bump;
 use super::{Outcome, ShellModel, failed, string_param};
 use crate::strings;
 use crate::strings::Key;
-use crate::tools::layout::{mode_word, quarter_quat};
+use crate::tools::layout::{Step, Stop, mode_word, nudge_stop, quarter_quat};
 use crate::tools::{
     CanvasEvent, EntityKind, LayoutOptions, LayoutPlaceTool, SelectionChange, ToolKey, page_entity_kind,
 };
@@ -109,7 +107,7 @@ impl ShellModel {
     }
 
     /// The selected placement (the primary entity, else the first placement of the selection) with the panel tables.
-    fn selected_placement(&self) -> Option<(Arc<PanelTables>, PanelPlacement)> {
+    pub(crate) fn selected_placement(&self) -> Option<(Arc<PanelTables>, PanelPlacement)> {
         let panel = self.panel_tables()?;
         let sel = &self.tools.selection;
         let row = sel
@@ -257,7 +255,8 @@ impl ShellModel {
     }
 
     /// The arrows while a layout ghost floats: the gesture's keyboard step (`LayoutGesture::step`), sent to the tool as
-    /// a cursor move; nothing further that way is no error.
+    /// a cursor move; nothing further that way is no error. Along a rail the ghost stops at a neighbour and at the rail
+    /// end in words, as a selected placement does ("Blocked by -102F2", "At the rail end"; FT-992); the ghost stays.
     fn step_layout_ghost(&mut self, dx: i64, dy: i64) -> Outcome {
         let Some(panel) = self.panel_tables() else {
             return Outcome::Refused {
@@ -265,13 +264,19 @@ impl ShellModel {
             };
         };
         let grid = self.tools.layout_options.grid();
-        let Some(p) = self
+        let (p, exact) = match self
             .tools
             .tool
             .layout_gesture()
             .and_then(|g| g.step(&panel, (dx, dy), grid))
-        else {
-            return Outcome::Done;
+        {
+            None => return Outcome::Done,
+            Some(Step::To(p)) => (p, false),
+            Some(Step::Exact(p)) => (p, true),
+            Some(Step::Blocked(by)) => {
+                let text = blocked_text(&panel, by);
+                return self.refuse_with(text, key!("reason-layout-blocked"));
+            }
         };
         let Some(at) = self
             .canvas()
@@ -279,6 +284,14 @@ impl ShellModel {
         else {
             return Outcome::Done;
         };
+        if exact {
+            // FT-994: the tool resolves the step without snapping, as a pointer move with Shift held.
+            let mods = crate::tools::Mods {
+                shift: true,
+                ..crate::tools::Mods::default()
+            };
+            return self.send_tool(&CanvasEvent::PointerMove { at, mods });
+        }
         self.send_tool(&CanvasEvent::CursorMove { at })
     }
 
@@ -372,10 +385,7 @@ impl ShellModel {
                     match nudge_stop(&rail.items, own, length, target, sign) {
                         Stop::Free(s) => s,
                         Stop::Blocked(by) => {
-                            let text = match by.and_then(|p| panel.placement(p)) {
-                                Some(n) => strings::format(key!("layout-blocked"), &[&n.tag]),
-                                None => strings::text(key!("layout-rail-end")).to_owned(),
-                            };
+                            let text = blocked_text(&panel, by);
                             return self.refuse_with(text, key!("reason-layout-blocked"));
                         }
                     }
@@ -498,6 +508,18 @@ impl ShellModel {
     /// The after-commit duty of a `layout.*` commit (at the end of its dispatch, the page read again): the live region
     /// says where the selected placement now is ("-102F1, rail 1 at 163 mm, no findings").
     pub(super) fn after_layout_commit(&mut self) {
+        // FT-900 (ID-1147): the placement a layout drop made is the selection, replacing it.
+        if let Some(device) = self.tools.placed_device.take()
+            && let Some(id) = self
+                .panel_tables()
+                .and_then(|p| p.placements.iter().find(|r| r.device == device).map(|r| r.id))
+            && self
+                .tools
+                .selection
+                .apply(&SelectionChange::Replace(vec![EntityRef(id)]))
+        {
+            self.announce_selection();
+        }
         if std::mem::take(&mut self.tools.layout_announce)
             && let Some(text) = self.layout_live_text()
         {
@@ -506,47 +528,11 @@ impl ShellModel {
     }
 }
 
-/// Where a free nudge stops.
-enum Stop {
-    /// At this left edge.
-    Free(i128),
-    /// Blocked by this neighbour's placement (`None`: the rail end).
-    Blocked(Option<Uuid>),
-}
-
-/// A free nudge of `own` towards `target` (`sign` its direction): it stops where it would touch the next item at its
-/// minimum gap, or at the rail end's gap; blocked when it cannot move at all.
-fn nudge_stop(items: &[RailItem], own: &RailItem, length: i128, target: i128, sign: i128) -> Stop {
-    let width = own.width();
-    let others = items.iter().filter(|i| i.placement != own.placement);
-    if sign > 0 {
-        let next = others
-            .filter(|i| i.s0 >= own.s1 || (i.s0 > own.s0))
-            .min_by_key(|i| (i.s0, i.s1));
-        let (limit, by) = match next {
-            Some(n) => (n.s0 - min_gap(own, n) - width, n.placement.map(|p| p.as_uuid())),
-            None => (length - end_gap(own) - width, None),
-        };
-        let s = target.min(limit);
-        if s <= own.s0 {
-            Stop::Blocked(by)
-        } else {
-            Stop::Free(s)
-        }
-    } else {
-        let prev = others
-            .filter(|i| i.s1 <= own.s0 || (i.s0 < own.s0))
-            .max_by_key(|i| (i.s1, i.s0));
-        let (limit, by) = match prev {
-            Some(n) => (n.s1 + min_gap(n, own), n.placement.map(|p| p.as_uuid())),
-            None => (start_gap(own), None),
-        };
-        let s = target.max(limit);
-        if s >= own.s0 {
-            Stop::Blocked(by)
-        } else {
-            Stop::Free(s)
-        }
+/// The words of a stopped nudge: "Blocked by -102F2" for a neighbour's placement, "At the rail end" for the end.
+fn blocked_text(panel: &PanelTables, by: Option<Uuid>) -> String {
+    match by.and_then(|p| panel.placement(p)) {
+        Some(n) => strings::format(key!("layout-blocked"), &[&n.tag]),
+        None => strings::text(key!("layout-rail-end")).to_owned(),
     }
 }
 

@@ -1868,3 +1868,60 @@ fn ft675_the_conflict_overlay_in_light() {
     shell.shutdown();
     assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
+
+/// FT-997 (ID-1147): a locked placement's lock icon on folio 902 (-102F1 locked, the view two steps in), cropped round
+/// the icon, at the 1280 × 800 floor and at the typical 1920 × 1080, light Comfortable at ppp 1 (gated).
+#[test]
+fn ft997_the_lock_icon_at_both_sizes() {
+    let dev = device();
+    let mut failures = Vec::new();
+    for (name, size) in [
+        ("lock-icon-1280", WINDOW),
+        ("lock-icon-1920", Vec2::new(1920.0, 1080.0)),
+    ] {
+        let tmp = Tmp::new();
+        let dir = tmp.golden("g.ew");
+        let (mut h, recorder) = window_on(tmp.config(), dir, "light", "comfortable", 1.0, false, size);
+        act(&mut h, "page.goto", json!({"folio": "902"}));
+        support::wait_for_page(&mut h);
+        let id = h
+            .state()
+            .shell()
+            .panel_tables()
+            .and_then(|p| p.placements.iter().find(|r| r.tag == "-102F1").map(|r| r.id))
+            .expect("-102F1 on 902");
+        act(&mut h, "select.set", json!({"ids": [id.to_string()]}));
+        act(&mut h, "layout.lock_selection", json!({}));
+        act(&mut h, "select.set", json!({"ids": []}));
+        // Twice the zoom about -102F1's footprint, so the rail's devices read beside the icon.
+        let (zoom, at) = {
+            let shell = h.state().shell();
+            let canvas = shell.canvas().expect("902's canvas");
+            let page = canvas.page();
+            let panel = page.panel.clone().expect("902's panel");
+            let fp = panel.placement(id).expect("-102F1").footprint;
+            let centre = (
+                (i128::from(fp.min().x.0) + i128::from(fp.max().x.0)) / 2,
+                (i128::from(fp.min().y.0) + i128::from(fp.max().y.0)) / 2,
+            );
+            (canvas.zoom(), page.snapper.page_to_sheet(panel.to_page(centre)))
+        };
+        act(
+            &mut h,
+            "view.zoom_to",
+            json!({"percent": zoom * 200.0, "x_mm": at.0 as f64 / 1e6, "y_mm": at.1 as f64 / 1e6}),
+        );
+        dismiss_toasts(&mut h);
+        support::wait_for_page(&mut h);
+        h.run_ok();
+        h.run_ok();
+        let marks = h.state_mut().canvas_host().lock_marks(0).to_vec();
+        assert_eq!(marks.len(), 1, "{name}: one lock");
+        let image = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
+        failures.extend(record(name, &crop(&image, marks[0].expand(96.0)), true));
+        h.state_mut().shell_mut().shutdown();
+        drop(h);
+        drop(tmp);
+    }
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
+}
