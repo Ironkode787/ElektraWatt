@@ -200,6 +200,8 @@ pub enum ResultNote {
         name: String,
         /// The pin, as the ghost named it.
         pin: String,
+        /// Whether the point is external (FT-946), so the toast names it so (FT-1067).
+        external: bool,
         /// The sentence of a proposal whose base is taken, said first (FT-1023).
         taken: Option<String>,
     },

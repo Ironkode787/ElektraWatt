@@ -491,6 +491,7 @@ impl ShellModel {
                         pos: (x, y),
                         name: json["ip"]["name"].as_str().unwrap_or_default().to_owned(),
                         pin,
+                        external: !json["ip"]["external"].is_null(),
                         taken,
                     });
                 } else if out == Outcome::Done

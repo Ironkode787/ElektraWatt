@@ -428,6 +428,19 @@ fn an_external_point_on_a_pin_connects_to_it() {
     assert_eq!(s.revision(), rev.map(|r| r + 1), "one commit");
     let name = added(&before, &s).0[0].ip.as_ref().unwrap().name.clone();
     assert_connects(&s, &before, &pin, &name);
+    // FT-1067: the toast names the external point so.
+    let cell = {
+        let (reps, _) = added(&before, &s);
+        let page = s.canvas().unwrap().page();
+        page.cell_text(page.snapper.page_to_sheet(reps[0].pos)).unwrap()
+    };
+    assert_eq!(
+        toast(&s),
+        format!(
+            "Placed the external point {name} at {cell} and connected it to -102F2:13. Alt+Click or Ctrl+Enter \
+             places it without connecting"
+        )
+    );
     let function = added(&before, &s).0[0].functions[0];
     // The saved point is external, to JE-N1000-03:N.
     done(&mut s, "file.save", json!({}));

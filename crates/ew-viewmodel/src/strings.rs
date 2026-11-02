@@ -1592,6 +1592,14 @@ pub const TEXTS: &[(&str, &str)] = &[
         "toast-ip-connected-no-cell",
         "Placed the interruption point {0} and connected it to {2}. Alt+Click or {3} places it without connecting",
     ),
+    (
+        "toast-ip-external-connected",
+        "Placed the external point {0} at {1} and connected it to {2}. Alt+Click or {3} places it without connecting",
+    ),
+    (
+        "toast-ip-external-connected-no-cell",
+        "Placed the external point {0} and connected it to {2}. Alt+Click or {3} places it without connecting",
+    ),
     ("terminal-in-sentence", "{0} terminal {1}"),
     // FX38d: a pin whose designation the device shares, by its position in words ("-1A4 pin - (2nd)").
     ("pin-in-sentence", "{0} pin {1} ({2})"),

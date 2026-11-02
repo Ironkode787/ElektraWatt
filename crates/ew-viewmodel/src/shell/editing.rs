@@ -182,6 +182,7 @@ impl ShellModel {
                 pos,
                 name,
                 pin,
+                external,
                 taken,
             } => {
                 let cell = self.canvas().and_then(|c| {
@@ -189,9 +190,21 @@ impl ShellModel {
                     page.cell_text(page.snapper.page_to_sheet(pos))
                 });
                 let key = crate::command_bar::key_name(self, "canvas.activate_alt");
-                let text = match cell {
-                    Some(cell) => strings::format(key!("toast-ip-connected"), &[&name, &cell, &pin, &key]),
-                    None => strings::format(key!("toast-ip-connected-no-cell"), &[&name, "", &pin, &key]),
+                // FT-1067: an external point is named so.
+                let text = match (cell, external) {
+                    (Some(cell), false) => {
+                        strings::format(key!("toast-ip-connected"), &[&name, &cell, &pin, &key])
+                    }
+                    (None, false) => {
+                        strings::format(key!("toast-ip-connected-no-cell"), &[&name, "", &pin, &key])
+                    }
+                    (Some(cell), true) => {
+                        strings::format(key!("toast-ip-external-connected"), &[&name, &cell, &pin, &key])
+                    }
+                    (None, true) => strings::format(
+                        key!("toast-ip-external-connected-no-cell"),
+                        &[&name, "", &pin, &key],
+                    ),
                 };
                 // FT-1023: a renamed point says why first.
                 let text = match taken {
