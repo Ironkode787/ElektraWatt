@@ -1323,6 +1323,75 @@ fn every_arm_commits_on_golden_a() {
     eprintln!("{}", report("every arm", &stats));
 }
 
+/// FT-1064 (ID-1178): on Golden A, the `connection.draw_to_ip` arm reaches both star refusals (a starred point that is
+/// no source, a starred external point with a live external reference), each with the "either" verdict a rule's
+/// refusal takes, and the `page.surface_view.set` arm reaches the schema's minimum of a scale, with the "refuse"
+/// verdict. Each refusal is asserted whole; a committed step is undone.
+#[test]
+fn ft1064_the_star_and_scale_arms_reach_their_refusals() {
+    let mut session = open_session_with(7, MemoMode::On);
+    let fixture = Rc::new(Fixture::of(&session.query()));
+    let live = Live::read(&session.query(), &fixture);
+    let initial = session.world().model.clone();
+    let mut seen: BTreeSet<(String, bool)> = BTreeSet::new();
+    for command in ["connection.draw_to_ip", "page.surface_view.set"] {
+        let arm = ARMS.iter().find(|a| a.command == command).expect("a hand arm");
+        for seed in 0..300u64 {
+            let mut rng = SplitMix64::new(seed);
+            let Some(Step::Cmd(c)) = (arm.build)(&live, &mut rng) else {
+                continue;
+            };
+            let refuse = c.verdict == Verdict::Refuse;
+            let rev = session.world().rev;
+            let cmd = AnyCommand {
+                name: c.name.to_owned(),
+                params: c.params.clone(),
+            };
+            match session.execute(&cmd) {
+                Ok(_) => {
+                    assert!(
+                        !refuse,
+                        "`{command}` accepted a step built to be refused: {}",
+                        c.params
+                    );
+                    if session.world().rev > rev {
+                        session
+                            .undo(&ew_api::Origin::Gui)
+                            .expect("a committed step undoes");
+                    }
+                }
+                Err(e) => {
+                    seen.insert((e.to_string(), refuse));
+                }
+            }
+        }
+    }
+    assert!(
+        session.world().model.content_eq(&initial),
+        "the steps, each undone, leave Golden A"
+    );
+    for (text, refuse) in [
+        (
+            "connection.draw_to_ip: a star source is a source point; set the direction to source, or clear \
+             the star",
+            false,
+        ),
+        (
+            "connection.draw_to_ip: an external point never pairs, so it takes no star; clear the star",
+            false,
+        ),
+        (
+            "page.surface_view.set: invalid parameters at `/scale`: no variant of the object matches the value",
+            true,
+        ),
+    ] {
+        assert!(
+            seen.contains(&(text.to_owned(), refuse)),
+            "not reached: {text} (refuse: {refuse}); seen: {seen:#?}"
+        );
+    }
+}
+
 /// Cycle-29 review: the `item.place` arm that places an image from its file gives the image's rectangle an area on
 /// every draw: the two opposite corners differ on both axes, whichever grid position the first corner drew (before, a
 /// fixed second corner made the rectangle empty on about one draw in forty, and `item.place` refuses an empty

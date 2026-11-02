@@ -1981,12 +1981,30 @@ fn connection_draw_to_ip(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         ip
     };
     let step = |a: Value, page: &Value, ip: Value| json!({"a": a, "page": page, "ip": ip});
-    match rng.below(10) {
+    match rng.below(12) {
         // Refused: the page does not exist.
         0 => {
             let (symbol, def) = end?;
             let p = step(cp_end(a, idx), &json!(rng.uuid()), ip(&symbol, &def));
             Some(Step::cmd("connection.draw_to_ip", p).refuse())
+        }
+        // The command refuses (FT-1064, ID-1146): a starred point whose direction is not source.
+        10 => {
+            let (symbol, def) = end?;
+            let mut ip = ip(&symbol, &def);
+            ip["direction"] = json!(*rng.pick(&["target", "undirected"])?);
+            ip["star_source"] = json!(true);
+            let p = step(cp_end(a, idx), &page.id, ip);
+            Some(Step::cmd("connection.draw_to_ip", p))
+        }
+        // The command refuses (FT-1064, ID-1146): a starred external point, with a live external reference.
+        11 => {
+            let (symbol, def) = end?;
+            let mut ip = ip(&symbol, &def);
+            ip["external"] = json!(rng.pick(&live.ext_refs)?);
+            ip["star_source"] = json!(true);
+            let p = step(cp_end(a, idx), &page.id, ip);
+            Some(Step::cmd("connection.draw_to_ip", p))
         }
         // Refused: the first end names a function that does not exist, or a junction that does not.
         1 => {
@@ -2025,11 +2043,19 @@ fn connection_draw_to_ip(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             p["route"] = json!([[1, 1], [2, 2]]);
             Some(Step::cmd("connection.draw_to_ip", p))
         }
-        // The wire and its interruption point: one function, one representation, one connection. Either: the
-        // generator does not model the prevent rules.
+        // The wire and its interruption point: one function, one representation, one connection; some of the time
+        // an external point, unstarred (an external point takes no star, ID-1146). Either: the generator does not
+        // model the prevent rules.
         _ => {
             let (symbol, def) = end?;
-            let p = step(cp_end(a, idx), &page.id, ip(&symbol, &def));
+            let mut ip = ip(&symbol, &def);
+            if rng.chance(5)
+                && let Some(e) = rng.pick(&live.ext_refs)
+            {
+                ip["external"] = json!(e);
+                ip["star_source"] = json!(false);
+            }
+            let p = step(cp_end(a, idx), &page.id, ip);
             let name = name.clone();
             Some(
                 Step::cmd("connection.draw_to_ip", p)
@@ -6199,8 +6225,9 @@ fn layout_lock(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
 }
 
 /// `page.surface_view.set` (WP-S4.01 part 3, D9): a panel-layout page shows a surface at a datum, in either label mode
-/// (accepted: the page's view is replaced in place, or a first one is added); refused: a page that does not exist, a
-/// page of another kind, a surface that is not in the project.
+/// (accepted: the page's view is replaced in place, or a first one is added), some of the time with a scale the page
+/// takes (FT-1064); refused: a page that does not exist, a page of another kind, a surface that is not in the
+/// project, a scale of 1:0 (the schema's minimum, FT-1065).
 fn page_surface_view_set(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let cmd = |p: Value| Step::cmd("page.surface_view.set", p);
     let surface = rng.pick(&live.layout.surfaces)?.clone();
@@ -6216,8 +6243,16 @@ fn page_surface_view_set(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         .iter()
         .filter(|p| p.kind != "panel_layout")
         .collect();
-    match rng.below(8) {
+    match rng.below(9) {
         0 => Some(cmd(json!({"page": rng.uuid(), "surface": surface, "datum_at": datum})).refuse()),
+        // Refused by the registry's schema check: a scale of 1:0 (FT-1065).
+        3 => {
+            let page = rng.pick(&panels)?;
+            Some(
+                cmd(json!({"page": page.id, "surface": surface, "datum_at": datum, "scale": {"one_to": 0}}))
+                    .refuse(),
+            )
+        }
         1 => {
             let page = rng.pick(&others)?;
             Some(cmd(
@@ -6230,9 +6265,15 @@ fn page_surface_view_set(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         }
         _ => {
             let page = rng.pick(&panels)?;
-            Some(cmd(
-                json!({"page": page.id, "surface": surface, "datum_at": datum, "label_mode": mode}),
-            ))
+            let mut p = json!({"page": page.id, "surface": surface, "datum_at": datum, "label_mode": mode});
+            if rng.chance(3) {
+                p["scale"] = if rng.chance(4) {
+                    json!("not_to_scale")
+                } else {
+                    json!({"one_to": rng.range(1, 50)})
+                };
+            }
+            Some(cmd(p))
         }
     }
 }
