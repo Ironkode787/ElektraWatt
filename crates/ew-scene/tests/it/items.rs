@@ -93,6 +93,7 @@ fn view(items: Vec<ItemView>, structure_boxes: Vec<StructureBoxView>) -> PageVie
         items,
         structure_boxes,
         panel: None,
+        strip_tags: Vec::new(),
     }
 }
 

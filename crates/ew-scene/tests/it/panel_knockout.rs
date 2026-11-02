@@ -94,6 +94,7 @@ fn view(labels: bool) -> PageView {
                 Vec::new()
             },
         }),
+        strip_tags: Vec::new(),
     }
 }
 

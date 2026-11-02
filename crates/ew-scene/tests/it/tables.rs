@@ -49,6 +49,7 @@ fn view(table: Option<TableView>) -> PageView {
         items: Vec::new(),
         structure_boxes: Vec::new(),
         panel: None,
+        strip_tags: Vec::new(),
     }
 }
 

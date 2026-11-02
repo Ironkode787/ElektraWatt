@@ -10,7 +10,7 @@
 //! | [`FrameLayer`] | [`Layer::Frame`] | `page_frame`, `page_bindings` (`title_block(page)`, the date format) |
 //! | [`SymbolsLayer`] | [`Layer::Symbols`] | `page_reps`, `page_cp_targets`, `assembly_break_marks`, `page_grid` (the pen of the break marks and graphics), the page items and structure boxes without texts |
 //! | [`WiresLayer`] | [`Layer::Wires`] | `page_reps`, `page_connections`, `page_junctions`, `page_grid`, `page_frame` (the page rectangle) |
-//! | [`LabelsLayer`] | [`Layer::Labels`] | `page_reps`, `page_slots`, `page_connections`, `page_junctions`, `page_grid` (the step of a black box's caption, FT-734), `page_frame`, the page items with texts and the structure boxes with captions; on a panel-layout page also the placement labels (`panel.rs`) |
+//! | [`LabelsLayer`] | [`Layer::Labels`] | `page_reps`, `page_slots`, `page_connections`, `page_junctions`, `page_grid` (the step of a black box's caption, FT-734), `page_frame`, the page items with texts, the structure boxes with captions and the strip tags of terminals drawn alone (`page_strip_tags`); on a panel-layout page also the placement labels (`panel.rs`) |
 //! | [`TablesLayer`] | [`Layer::Tables`] | `page_frame` (the sheet map), `page_table` or `page_embedded` |
 //! | [`SurfaceLayer`] | [`Layer::Surface`] | the surface outlines of the page's surface view (`panel.rs`) |
 //! | [`CarriersLayer`] | [`Layer::Carriers`] | the carriers of the page's surface view and its placement labels, which the carriers are cut around (`panel.rs`) |
@@ -39,7 +39,7 @@ use super::panel::{Parts, panel_view};
 use super::view::{
     PageBindingsOf, PageConnectionsOf, PageCpTargetsOf, PageEmbeddedOf, PageFrameOf, PageJunctionsOf,
     PageRepsOf, PageSlotsOf, PageTableOf, generic_symbols, page_boxes, page_break_marks, page_grid,
-    page_items, page_uuid,
+    page_items, page_strip_tags, page_uuid,
 };
 
 /// One layer of one page: the display list in page coordinates, the symbol geometry its instances name and the
@@ -74,6 +74,7 @@ fn base_view(page: PageRef) -> PageView {
         items: Vec::new(),
         structure_boxes: Vec::new(),
         panel: None,
+        strip_tags: Vec::new(),
     }
 }
 
@@ -153,6 +154,7 @@ fn layer_view(q: &Q, page: PageRef, layer: Layer) -> Option<PageView> {
             v.wire_marker = generic_symbols().wire_marker.clone();
             v.items = page_items(q, p, true);
             v.structure_boxes = page_boxes(q, p, true);
+            v.strip_tags = page_strip_tags(q, p);
             v.panel = panel_view(
                 q,
                 p,
@@ -363,6 +365,7 @@ pub fn page_view(q: &Q, entry: &PageEntry) -> PageView {
             v.crossings = crossings(q);
             v.items = page_items(q, p, true);
             v.structure_boxes = page_boxes(q, p, true);
+            v.strip_tags = page_strip_tags(q, p);
             v.panel = panel_view(q, p, Parts::ALL);
         }
         _ => v.table = (*q.get::<PageTableOf>(page)).clone(),

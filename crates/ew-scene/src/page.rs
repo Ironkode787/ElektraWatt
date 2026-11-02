@@ -22,7 +22,7 @@
 //! | [`Layer::Frame`] | `frame` | [`crate::forms::lower_form`]: frame, grid labels, form graphics and cells, title block |
 //! | [`Layer::Symbols`] | `reps`, `break_marks`, `items`, `structure_boxes` | per representation (by ID): one [`Item::instance`] of `symbol_geometry(symbol, orient)` at `pos`, tagged with the representation and its [`Link::Target`]; then its static symbol texts; then per break mark (by representation and side): its path; then the CP destinations; then the graphics and structure-box outlines ([`crate::items`]) |
 //! | [`Layer::Wires`] | `reps` (CP positions), `connections`, `junctions` | per connection (by ID): its polyline; then per junction (by ID): its dot or bevel symbol |
-//! | [`Layer::Labels`] | `reps`, `connections`, `wire_marker`, `items`, `structure_boxes` | per representation (by ID): its visible slot texts (a [`Link::Source`] where the slot value names a destination); then per connection with a marker (by ID): the marker box and text; then the free texts, wire-marker groups and structure-box captions ([`crate::items`]) |
+//! | [`Layer::Labels`] | `reps`, `connections`, `wire_marker`, `items`, `structure_boxes`, `strip_tags` | per representation (by ID): its visible slot texts (a [`Link::Source`] where the slot value names a destination); then the pin texts; then per strip tag (by representation ID): the strip's tag at its terminal ([`StripTagView`]); then per connection with a marker (by ID): the marker box and text; then the free texts, wire-marker groups and structure-box captions ([`crate::items`]) |
 //! | [`Layer::Tables`] | `table`, `embedded` | [`crate::table::lower_table`]: the house report table of a generated page; then per embedded block (by its rectangle): [`crate::embedded::lower_embedded`] (the cover's colour and standard-size tables, or the boxed report table of any other kind: PART DATA, the layout legend) |
 //! | [`Layer::Surface`], [`Layer::Carriers`], [`Layer::Placements`] | `panel` | the surface view of a panel-layout page ([`crate::panel`]); the labels layer adds its placement labels after the texts above |
 //! | others | — | empty: revision marks, highlights, features and dimensions arrive with their work packages |
@@ -371,6 +371,20 @@ pub struct PageView {
     /// The surface view of a panel-layout page (WP-S4.01 part 3, [`crate::panel`]): drawn into [`Layer::Surface`],
     /// [`Layer::Carriers`], [`Layer::Placements`] and [`Layer::Labels`]; `None` on every other page.
     pub panel: Option<PanelView>,
+    /// The strip tags printed at terminals drawn alone (doc 08 §6.7, decision log ID-1151), drawn into
+    /// [`Layer::Labels`] after the slot and pin texts.
+    pub strip_tags: Vec<StripTagView>,
+}
+
+/// A strip's tag printed once on a page that shows its terminals without a segment (doc 08 §6.7, decision log
+/// ID-1151): at the tag-slot anchor of `rep`, the strip's first terminal representation on the page, moved one
+/// connection-grid step up in the text's own frame, in the slot's style and horizontal alignment, bottom-aligned.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct StripTagView {
+    /// The terminal representation it stands at.
+    pub rep: Id<Representation>,
+    /// The strip's displayed tag.
+    pub text: String,
 }
 
 /// A connection point that is a link destination on its page (see [`PageView::cp_targets`]).
@@ -1070,9 +1084,51 @@ impl Builder<'_> {
                 items: &[],
             });
         }
+        self.strip_tags(view);
         self.connection_markers(view);
         // The free texts, wire-marker groups and structure-box captions (WP-S2.04 part 4a).
         self.item_labels(view);
+    }
+
+    /// The strip tags of terminals drawn alone ([`PageView::strip_tags`], ID-1151), by representation ID. They are
+    /// no obstacle of the placement rules above and are not moved by them.
+    fn strip_tags(&mut self, view: &PageView) {
+        let step = view.grid.at(1).unwrap_or(Nm::ZERO);
+        let mut tags: Vec<&StripTagView> = view.strip_tags.iter().collect();
+        tags.sort_by_key(|t| t.rep);
+        for tag in tags {
+            let Some(rv) = view.reps.iter().find(|r| r.rep.id == tag.rep) else {
+                continue;
+            };
+            let Some(def) = &rv.symbol else { continue };
+            let rep = &rv.rep;
+            let Some((i, slot)) = def
+                .text_slots
+                .iter()
+                .enumerate()
+                .find(|(_, s)| matches!(s.kind, SlotKind::Tag))
+            else {
+                continue;
+            };
+            let frame = ew_derive::text_frame(rep, def);
+            let ov = rep.text_slots.iter().find(|o| usize::from(o.slot) == i);
+            let pos = ov.and_then(|o| o.pos).unwrap_or(slot.pos);
+            let rot = ov.and_then(|o| o.angle).unwrap_or(slot.rot);
+            let angle = symbol::readable_angle(rot, frame.orient);
+            let align = bottom_align(&symbol::placed_align(&slot.align, rot, frame.orient));
+            let at = frame.origin + frame.orient.apply(pos) + up_by(angle, step);
+            let (style_key, _) = symbol::slot_style_key(slot, self.styles);
+            self.text(&TextSpec {
+                text: &tag.text,
+                at,
+                angle,
+                align: &align,
+                style_key,
+                entity: EntityRef(rep.id.as_uuid()),
+                link: None,
+                items: &[],
+            });
+        }
     }
 
     /// The caption of each black box (FT-734, module documentation, "Black-box captions"): its tag, part-number and
@@ -1863,6 +1919,35 @@ struct SlotText<'v> {
     movable_tag: bool,
     /// A CP designation slot: a fixed text the tag rule yields to.
     designation: bool,
+}
+
+/// `align` with its horizontal part kept and its vertical part at the bottom (a strip tag, ID-1151).
+fn bottom_align(align: &Align) -> Align {
+    match align {
+        Align::TopLeft | Align::MiddleLeft | Align::BottomLeft => Align::BottomLeft,
+        Align::TopCentre | Align::Centre | Align::BottomCentre => Align::BottomCentre,
+        Align::TopRight | Align::MiddleRight | Align::BottomRight => Align::BottomRight,
+        other => other.clone(),
+    }
+}
+
+/// `step` towards the top of a text at `angle` (y down; a text at 90° reads bottom to top, so its top is to the
+/// left), on the exact page axes for a quarter turn.
+fn up_by(angle: Angle2, step: Nm) -> Pt2 {
+    match angle.normalized().0 {
+        0 => Pt2::new(Nm::ZERO, Nm(-step.0)),
+        90_000 => Pt2::new(Nm(-step.0), Nm::ZERO),
+        180_000 => Pt2::new(Nm::ZERO, step),
+        270_000 => Pt2::new(step, Nm::ZERO),
+        a => {
+            let r = f64::from(a) / 1000.0 * std::f64::consts::PI / 180.0;
+            let s = step.0 as f64;
+            Pt2::new(
+                Nm((-r.sin() * s).round() as i64),
+                Nm((-r.cos() * s).round() as i64),
+            )
+        }
+    }
 }
 
 /// `align` mirrored left to right.

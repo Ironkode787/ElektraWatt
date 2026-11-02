@@ -92,6 +92,7 @@ fn page(reps: Vec<RepView>) -> PageView {
         items: Vec::new(),
         structure_boxes: Vec::new(),
         panel: None,
+        strip_tags: Vec::new(),
     }
 }
 

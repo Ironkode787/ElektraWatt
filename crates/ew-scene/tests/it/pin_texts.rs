@@ -84,6 +84,7 @@ fn view(orient: &str) -> PageView {
         items: Vec::new(),
         structure_boxes: Vec::new(),
         panel: None,
+        strip_tags: Vec::new(),
     }
 }
 

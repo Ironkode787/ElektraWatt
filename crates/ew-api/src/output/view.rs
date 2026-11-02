@@ -49,8 +49,11 @@
 //!   kind's title, and a block whose rows do not derive prints the reason as its note (capitalised, as a generated
 //!   page's placeholder). An embedded block draws no back-links (WP-S3.06 §1): only a PLC overview box's
 //!   connection-point links.
-//! - **Slot texts** (ID-162, ID-166, ID-228, ID-315; FT-206): `tag` → `displayed_tag(device, page)`, except that a
-//!   terminal's own representation prints only the terminal's designation and an interruption point has no `tag`;
+//! - **Slot texts** (ID-162, ID-166, ID-228, ID-315, ID-1151; FT-206): `tag` → `displayed_tag(device, page)`,
+//!   except that a terminal's own representation prints its label, never the full tag (doc 08 §6.1: its function
+//!   text when its strip's `label_mode` is FunctionText and the text is not empty, its `function_text` slot then
+//!   empty; else its designation), a strip segment of a strip with `tag_print` PerPage prints it only at the strip's
+//!   first segment on its page in (row, column, ID) order, and an interruption point has no `tag`;
 //!   `cp_designation(i)` → the designation of the function CP that symbol CP `i` draws; `function_text` → the
 //!   device's function text, or an interruption point's pairing name; `process_tag` → the device's process tag;
 //!   `xref` → `xref_text(rep)` with one link per listed item; `tech_data` → `tech_data_text(device)`;
@@ -58,6 +61,10 @@
 //!   `order_code` → `order_code_text(device)` (the order code of its first assembly config, D-36); `plc_address` →
 //!   the first drawn function's `ew_derive::PlcAddressText` text (WP-S1.21 D7); every other kind has no value. An
 //!   empty text is not listed.
+//! - **Strip tags at terminals drawn alone** (doc 08 §6.7, ID-1151; [`page_strip_tags`]): on a page that shows
+//!   terminals of a strip and no segment of it, the strip's displayed tag for the page, once, at the strip's first
+//!   terminal representation on the page (designation in natural order, then IDs); the scene prints it one grid
+//!   step above that terminal's tag-slot anchor, so an unnumbered strip's terminals read "-X??".
 //! - **Pin texts** (WP-S1.21 D7, FT-707): a black box (`Representation.box` with CPs, a symbol without CPs) lists, per
 //!   box CP, the designation of that CP of its first function as stored and, when the function CP is bound to a PLC
 //!   channel, the channel's printed address (`PlcAddressText::pins` of its function) after one space
@@ -91,9 +98,9 @@ use ew_derive::ew_mltext::MlText;
 use ew_derive::ew_units::Grid;
 use ew_derive::{
     DisplayedTag, FunctionCps, GeneratedPage, MainRep, PageOrder, PageRef, PlcAddressText, Policy, Q, Query,
-    TbValue, TitleBlockValues, XrefTextOf, box_caption, connection_marker, frame_form_of, free_text,
-    group_marker, grouped_connections, main_part, manufacturer_name, order_code_part, order_code_text,
-    tech_data_text,
+    RepAnchorCell, TbValue, TitleBlockValues, XrefTextOf, box_caption, connection_marker, frame_form_of,
+    free_text, group_marker, grouped_connections, main_part, manufacturer_name, order_code_part,
+    order_code_text, tech_data_text,
 };
 use ew_dl::Destination;
 use ew_reports::render::{RenderOptions, folios_printed, render};
@@ -102,12 +109,12 @@ use ew_scene::embedded::{CoverTables, EmbeddedContent, EmbeddedTable, EmbeddedVi
 use ew_scene::forms::{AssetRef, BoundValue, PageBindings};
 use ew_scene::page::{
     BreakMarkView, BreakSide, ConnectionView, CpTarget, FrameView, ItemLink, JunctionView, PinText, RepView,
-    SegmentTerminal, SlotValue, SymbolRef,
+    SegmentTerminal, SlotValue, StripTagView, SymbolRef,
 };
 use ew_scene::table::{TableColumn, TableLink, TableRow, TableRowKind, TableView};
 use ew_schema::{
-    FnRole, FormDef, Function, FunctionKind, JunctionStyle, LibCopy, LibDocument, Page, PageType, RepType,
-    ReportBlock, ReportKind, ReportSource, Representation, Side, SlotKind, SymbolDef,
+    FnRole, FormDef, Function, FunctionKind, JunctionStyle, LabelMode, LibCopy, LibDocument, Page, PageType,
+    RepType, ReportBlock, ReportKind, ReportSource, Representation, Side, SlotKind, SymbolDef, TagPrint,
 };
 
 /// The key of the frame form of dividers, and of pages without a form (ID-144).
@@ -725,17 +732,21 @@ fn slot_values(q: &Q, page: Id<Page>, rep: &Representation, def: &SymbolDef) -> 
     let f = q.functions().get(function).cloned();
     let device = f.as_ref().and_then(|f| f.device);
     let dev = device.and_then(|d| q.devices().get(d).cloned());
+    let label = dev
+        .as_ref()
+        .filter(|_| rep.rep_type != RepType::StripSegment)
+        .and_then(|d| terminal_label(q, d));
     let mut out = Vec::new();
     for (i, slot) in def.text_slots.iter().enumerate() {
         let mut item_links = Vec::new();
         let text = match &slot.kind {
             SlotKind::Tag => match (&f, device) {
                 (Some(f), _) if matches!(f.kind, FunctionKind::Ip(_)) => None,
-                // ID-162 (doc 08 §6.7): a terminal's own representation prints only its designation.
-                (_, Some(_)) if dev.as_ref().is_some_and(|d| d.aspects.terminal.is_some()) => dev
-                    .as_ref()
-                    .and_then(|d| d.aspects.terminal.as_ref())
-                    .map(|t| t.designation.as_str().to_owned()),
+                // ID-162, ID-1151 (doc 08 §6.1, §6.7): a terminal's own representation prints its label, never
+                // the full tag.
+                (_, Some(_)) if label.is_some() => label.as_ref().map(|(l, _)| l.clone()),
+                // ID-1151: `tag_print` PerPage prints a strip's tag at its first segment on each page only.
+                (_, Some(d)) if !prints_segment_tag(q, d, rep) => None,
                 (_, Some(d)) => Some((*q.get::<DisplayedTag>((d, page))).clone()),
                 _ => None,
             },
@@ -756,6 +767,8 @@ fn slot_values(q: &Q, page: Id<Page>, rep: &Representation, def: &SymbolDef) -> 
             // name (ID-166).
             SlotKind::FunctionText => match f.as_ref().map(|f| &f.kind) {
                 Some(FunctionKind::Ip(ip)) => Some(ip.name.as_str().to_owned()),
+                // ID-1151: a terminal labelled by its function text prints it once, in its tag slot.
+                _ if label.as_ref().is_some_and(|(_, by_text)| *by_text) => None,
                 _ => dev.as_ref().map(|d| neutral(&d.function_text)),
             },
             SlotKind::ProcessTag => dev
@@ -819,6 +832,112 @@ fn slot_values(q: &Q, page: Id<Page>, rep: &Representation, def: &SymbolDef) -> 
             });
         }
     }
+    out
+}
+
+/// The label a terminal's own representation prints in its tag slot (doc 08 §6.1, FR-TRM-021; ID-162, ID-1151):
+/// its function text when its strip's `label_mode` is FunctionText and the text is not empty (then `true`: the
+/// function-text slot stays empty), else its designation; `None` for a device that is not a terminal.
+fn terminal_label(q: &Q, dev: &ew_schema::Device) -> Option<(String, bool)> {
+    let t = dev.aspects.terminal.as_ref()?;
+    let by_text = q
+        .devices()
+        .get(t.strip)
+        .and_then(|s| s.aspects.strip.as_ref())
+        .is_some_and(|s| s.label_mode == LabelMode::FunctionText);
+    let text = neutral(&dev.function_text);
+    Some(if by_text && !text.is_empty() {
+        (text, true)
+    } else {
+        (t.designation.as_str().to_owned(), false)
+    })
+}
+
+/// The (row, column) cell of a representation's anchor, the frame order of doc 08 §6.7; a representation outside
+/// the frame grid sorts last.
+fn cell_key(q: &Q, rep: Id<Representation>) -> (u32, u32) {
+    q.get::<RepAnchorCell>(rep)
+        .as_ref()
+        .as_ref()
+        .map_or((u32::MAX, u32::MAX), |c| (c.row, c.column))
+}
+
+/// Whether strip segment `rep` of device `device` prints the strip's tag (doc 08 §6.7, ID-1151): every segment
+/// with `tag_print` PerSegment; with PerPage only the strip's first segment on its page in (row, column, ID)
+/// order. A representation that is not a strip segment prints its tag.
+fn prints_segment_tag(q: &Q, device: Id<ew_schema::Device>, rep: &Representation) -> bool {
+    if rep.rep_type != RepType::StripSegment {
+        return true;
+    }
+    let per_page = q
+        .devices()
+        .get(device)
+        .and_then(|d| d.aspects.strip.as_ref())
+        .is_some_and(|s| s.tag_print == TagPrint::PerPage);
+    if !per_page {
+        return true;
+    }
+    let reps = q.reps();
+    let first = q
+        .idx()
+        .functions_of_device(device)
+        .collect::<Vec<_>>()
+        .into_iter()
+        .flat_map(|f| q.idx().reps_of_function(f).collect::<Vec<_>>())
+        .filter(|r| {
+            reps.get(*r)
+                .is_some_and(|r| r.rep_type == RepType::StripSegment && r.page == rep.page)
+        })
+        .min_by_key(|r| (cell_key(q, *r), *r));
+    first == Some(rep.id)
+}
+
+/// `page_strip_tags(page)`: the strip tags of the terminals drawn alone on a drawn page (doc 08 §6.7, ID-1151), by
+/// representation ID. A strip with a terminal representation on the page and no segment there prints its displayed
+/// tag for the page once, at its first terminal representation on the page in the strip's own order (designation in
+/// natural order, then terminal ID, as `ew_derive::MainRep` takes a strip's terminal; then representation ID), so an
+/// unnumbered strip's terminals name it ("-X??").
+pub fn page_strip_tags(q: &Q, page: Id<Page>) -> Vec<StripTagView> {
+    let (reps, functions, devices) = (q.reps(), q.functions(), q.devices());
+    let mut segmented = std::collections::BTreeSet::new();
+    let mut firsts = BTreeMap::new();
+    for rid in q.idx().reps_by_page(page) {
+        let Some(rep) = reps.get(rid) else { continue };
+        let Some(d) = rep
+            .functions
+            .first()
+            .and_then(|f| functions.get(*f))
+            .and_then(|f| f.device)
+        else {
+            continue;
+        };
+        match rep.rep_type {
+            RepType::StripSegment => {
+                segmented.insert(d);
+                continue;
+            }
+            RepType::ContactImage => continue,
+            _ => {}
+        }
+        let Some(t) = devices.get(d).and_then(|d| d.aspects.terminal.as_ref()) else {
+            continue;
+        };
+        let key = (t.designation.natural_key(), d, rid);
+        let first = firsts.entry(t.strip).or_insert_with(|| key.clone());
+        if key < *first {
+            *first = key;
+        }
+    }
+    let mut out: Vec<StripTagView> = firsts
+        .into_iter()
+        .filter(|(strip, _)| !segmented.contains(strip))
+        .map(|(strip, (_, _, rep))| StripTagView {
+            rep,
+            text: (*q.get::<DisplayedTag>((strip, page))).clone(),
+        })
+        .filter(|t| !t.text.is_empty())
+        .collect();
+    out.sort_by_key(|t| t.rep);
     out
 }
 
