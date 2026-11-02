@@ -15,10 +15,12 @@ SPDX-License-Identifier: CC-BY-4.0
 - api-add: cli ew fmt [--check] [--json] (lists or rewrites the files not in canonical form through the save
   protocol; result `ew.fmt-result/1`)
 - api-add: cli ew fmt --repair [--json] (discards the lines that are not JSON or not UTF-8, EW-CORE-005, in one save,
-  after packing the generation on disk as `<project folder>.before-repair-g<generation>.ewz` beside the project folder;
-  refused before anything is written for an `.ewz`, a crashed session's journal, any other finding that forces
-  read-only, a generation that cannot be packed and a backup name holding another file; "Nothing to repair" without
-  such a line; result `ew.fmt-repair-result/1`; WP-S1.17)
+  after packing the project's files as found, a file edited outside EW since the last save included and counted ("as
+  found: N files edited outside EW", `backup.edited`), as `<project folder>.before-repair-g<generation>.ewz` beside
+  the project folder; refused before anything is written for an `.ewz`, a crashed session's journal, any other finding
+  that forces read-only, files that cannot be packed (no manifest, an incomplete save, a file that cannot be read or
+  changed since the open) and a backup name holding another file; "Nothing to repair" without such a line; result
+  `ew.fmt-repair-result/1`; WP-S1.17)
 - api-add: cli ew recover [--replay | --discard] [--json] (summarises, replays or deletes the journal of the crashed
   session with the latest change, one at a time; result `ew.recover-result/1`)
 - api-add: cli ew import csv <tables-dir> --out <dir> [--content <dir>] [--strict | --lenient] [--json] (creates a new

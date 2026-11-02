@@ -125,13 +125,15 @@ enum Top {
     /// usage, open, lock, content and save errors.
     ///
     /// `fmt --repair` discards the lines that are not JSON or not UTF-8 (EW-CORE-005), which make the project open
-    /// read-only, and nothing else: it first packs the generation on disk, those lines included, as an `.ewz` backup
-    /// beside the project folder (`<project folder>.before-repair-g<generation>.ewz`; a file already there is reused
-    /// only when it holds that backup), then rewrites the files that held the lines in one save, other kept lines
-    /// verbatim, and opens the project again. It prints each discarded line (`file:line` and its text, cut at 80
-    /// characters) and the backup's path; with `--json` the result is `ew.fmt-repair-result/1`. Refused before anything
-    /// is written (exit 2): an `.ewz`, a crashed session's journal, any other finding that forces read-only, a
-    /// project that cannot be packed, a backup name holding another file, a folder that cannot be written. Exit 0 when
+    /// read-only, and nothing else: it first packs the project's files as found, those lines and any edit outside EW
+    /// since the last save included, as an `.ewz` backup beside the project folder
+    /// (`<project folder>.before-repair-g<generation>.ewz`; a file already there is reused only when it holds that
+    /// backup), then rewrites the files that held the lines in one save, other kept lines verbatim, and opens the
+    /// project again. It prints each discarded line (`file:line` and its text, cut at 80 characters) and the backup's
+    /// path, with the number of files edited outside EW; with `--json` the result is `ew.fmt-repair-result/1`. Refused
+    /// before anything is written (exit 2): an `.ewz`, a crashed session's journal, any other finding that forces
+    /// read-only, a project whose files cannot be packed (no manifest, a file that cannot be read or that changed
+    /// since the repair opened it), a backup name holding another file, a folder that cannot be written. Exit 0 when
     /// the project opens editable afterwards or there was nothing to repair, 2 otherwise. `--repair` and `--check`
     /// exclude each other.
     Fmt(FmtCli),

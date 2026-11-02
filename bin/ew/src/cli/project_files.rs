@@ -953,4 +953,39 @@ mod tests {
             "2 more journals of crashed sessions remain; run ew recover again\n"
         );
     }
+
+    /// WP-S1.17 ID-1186 rulings 3 and 4: the backup's line counts the files edited outside EW, without the clause when
+    /// there are none, also for a backup reused; a file changed on disk between the repair's open and its backup
+    /// refuses, saying to run the repair again (a race the binary's tests cannot place).
+    #[test]
+    fn the_repair_report_counts_the_files_edited_outside_ew() {
+        let backup = |edited, reused| Backup {
+            path: PathBuf::from("p.ew.before-repair-g3.ewz"),
+            generation: 3,
+            reused,
+            edited,
+        };
+        let line = |b: &Backup| repair_report(&[], b).join("\n");
+        assert_eq!(
+            line(&backup(0, false)),
+            "backup p.ew.before-repair-g3.ewz (generation 3)"
+        );
+        assert_eq!(
+            line(&backup(1, false)),
+            "backup p.ew.before-repair-g3.ewz (generation 3, as found: 1 file edited outside EW)"
+        );
+        assert_eq!(
+            line(&backup(2, true)),
+            "backup p.ew.before-repair-g3.ewz (generation 3, as found: 2 files edited outside EW, already there and \
+             reused)"
+        );
+        let changed = RepairError::Pack(ew_api::ewz::PackError::ChangedSinceOpen {
+            path: "pages/1.jsonl".to_owned(),
+        });
+        assert_eq!(
+            repair_refusal(Path::new("p.ew"), &changed),
+            "error: p.ew: the backup cannot be packed: pages/1.jsonl changed on disk since the repair opened the \
+             project; nothing was written; run `ew fmt --repair` again"
+        );
+    }
 }

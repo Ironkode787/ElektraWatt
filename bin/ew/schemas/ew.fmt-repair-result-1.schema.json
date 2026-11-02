@@ -4,6 +4,12 @@
       "additionalProperties": false,
       "description": "The backup of [`FmtRepairResult`].",
       "properties": {
+        "edited": {
+          "description": "How many of its files were edited outside EW since the generation was saved: the backup holds the files as\nfound, its manifest hashed to them (decision log ID-1186). 0 when every file is as saved.",
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        },
         "generation": {
           "description": "The generation it holds: the one before the repair.",
           "format": "uint64",
@@ -22,7 +28,8 @@
       "required": [
         "path",
         "generation",
-        "reused"
+        "reused",
+        "edited"
       ],
       "type": "object"
     },
