@@ -43,23 +43,25 @@ how every lane works.
 
 ## Hand-back checks (once, after the code is final)
 
-First run `cargo xtask lane-check --base <base> -p <A> -p <B> --only fmt` and `cargo xtask settle --base <base>`,
-and commit what they rewrite. Then run `cargo xtask lane-check --base <base> -p <A> -p <B>` with your package set
-**once, as your last test run**, and quote its summary. On a clean worktree it skips a step that passed on the same
-tree with the same commands (`ok (from memory; …)`); commit before you run it. `--fresh` runs every step.
-- After a failure, fix it and re-run only the failed step (`--only <step>`).
-- When `fmt` reports `rewrote <files>`, commit them before you hand back. After an amend that only formats, run
+Commit, then run `cargo xtask lane-check --base <base> -p <A> -p <B> --trailers "<Key>: <items>"` with your package
+set and one `--trailers` per trailer key of your brief's Expected, **once, as your last test run**, and quote its
+summary. On a clean worktree it skips a step that passed on the same tree with the same commands (`ok (from memory;
+…)`); `--fresh` runs every step. The trailers step is never remembered.
+- When `fmt` or `settle` reports `rewrote <files>`, the run stops and each later step reads `not run`: commit the
+  rewrites and run again.
+- After a failure, fix it and re-run only the failed step (`--only <step>`). After an amend that only formats, run
   `--only fmt`, not the whole check.
-- A failed `settle` step is fixed with `cargo xtask settle --base <base>` (write mode). Commit its rewrites (`ew-hack`,
-  the fuzz table, the CLI schemas).
 
-It runs these steps, each only when the diff selects it, and `--plan` prints the selection and the commands:
+It runs these steps in this order, each only when the diff selects it, and `--plan` prints the selection and the
+commands:
 1. `fmt`: `cargo fmt` over the changed crates and your set, then rustfmt per file over the diff's `.rs` files, which
    reaches the `automod` test modules that `cargo fmt` does not see. This formats the code; it is not a check.
-2. `clippy`: the changed crates and your set, `--all-targets --all-features -- -D warnings`.
-3. `doc`: `cargo doc --no-deps` over the changed crates and your set, with `RUSTDOCFLAGS="-D warnings"`, then
+2. `settle`: `settle --base <base>` in write mode. It covers rustfmt and the generated files (`ew-hack`, the fuzz
+   table, the CLI schemas).
+3. `clippy`: the changed crates and your set, `--all-targets --all-features -- -D warnings`.
+4. `doc`: `cargo doc --no-deps` over the changed crates and your set, with `RUSTDOCFLAGS="-D warnings"`, then
    `cargo test --doc` over those with a library.
-4. `nextest`: one run over the changed crates, their direct dependants, your set and these additions:
+5. `nextest`: one run over the changed crates, their direct dependants, your set and these additions:
    - **the scene, rendered output, the shell, `ew-ui`, commands, checks or the CLI:** `elektrawatt` and `ew`;
    - **commands or check rules:** `ew-testkit`'s `command_fuzz` and `golden_dsl`;
    - **rendered output or Golden A's findings:** `ew-ui`'s `snapshots`. Inspect each `.diff.png` before you run
@@ -67,11 +69,12 @@ It runs these steps, each only when the diff selects it, and `--plan` prints the
 
    A changed file outside every crate (`golden/`, `content/`, `schemas/`, `assets/`, `Cargo.lock`, ...) fails this
    step unless you name the packages it reaches with `-p`.
-5. `settle`: `settle --check --base <base>`. It covers rustfmt and the generated files.
 6. `policy`: the policy checks the diff touches (dependencies, new files, `.rs` files, tests), and `api-guard --base
    <base>` when `bin/ew/api/cli.json` or `crates/ew-sqlview/api/api_v1.json` changed (a breaking change is a stop).
    An exemption for `cargo deny` or `cargo vet` needs a ruling: stop.
-7. `fuzz`: the fuzz workspace's `cargo check`, when `command_fuzz`, `fuzz/` or a fuzzed crate's `Cargo.toml` changed.
+7. `trailers`: each `--trailers` item must sit under its key in a commit since the merge base; a missing one is
+   named. Skipped without the option.
+8. `fuzz`: the fuzz workspace's `cargo check`, when `command_fuzz`, `fuzz/` or a fuzzed crate's `Cargo.toml` changed.
 
 A failed step's log is printed whole and kept in `target/lane-check/<step>.log`. At the start of a lane,
 `cargo xtask lane-check --base <base> -p <A> -p <B> --warm` builds the nextest step's test binaries in the

@@ -162,7 +162,9 @@ The main session orchestrates. It plans each cycle, briefs Claude subagents, int
         `git config merge.regen.driver true` for its `merge=regen` files);
       - verifies, `settle --check` included, before calling the tip green;
       - copies the verify script for each run and never edits a running one, and stages named paths in an
-        integration commit, never `git add -A` (2026-11-01, cycle-43 retro).
+        integration commit, never `git add -A` (2026-11-01, cycle-43 retro);
+      - squashes a lane's work-in-progress commits that fail alone into the commit that completes them when it
+        merges them (ID-1113, from cycle 46).
     - Subagent check results are claims until re-run.
     - Lanes keep their `target` for a fix round; the orchestrator deletes it when the part is accepted (2026-11-01).
 17. **Facts and the feasibility read before dispatch** (amended 2026-11-01; the facts, 2026-11-01, cycle-43 retro).
@@ -179,7 +181,8 @@ The main session orchestrates. It plans each cycle, briefs Claude subagents, int
     - **Fits:** a spec or brief that fixes a fit names the fixture data it was tried against, or leaves the number to
       the lane with a stop (cycle-41 retro).
 18. **Upkeep** (re-bless, regeneration, seed corpus, count bumps) runs through `cargo xtask settle` at each merge
-    point. Lanes run `settle --check --base <their base>`. Tests never pin totals of growing sets (CONTRIBUTING.md).
+    point. Lanes run it in write mode as `lane-check`'s settle step (amended 2026-11-02, ID-1103). Tests never pin
+    totals of growing sets (CONTRIBUTING.md).
 19. **Window checks** run after a wave that changed what users see, beside the next wave, and once at the end
     (amended 2026-11-01). They use `checker` agents.
     - They render offscreen only (`--visual`) and never drive the owner's desktop (2026-10-28). If a real window is
