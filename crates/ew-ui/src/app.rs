@@ -183,6 +183,9 @@ impl Platform for NoPlatform {
 /// How long a toast stays on screen (WP-S2.09 D6), measured by the window's frame clock.
 const TOAST_SECONDS: f64 = 8.0;
 
+/// The opacity of the tool options card while the tool's ghost is under it (FT-1086, doc 16a §5.5).
+const OPTIONS_FADED_OPACITY: f32 = 0.4;
+
 /// A job younger than this shows no status-bar field (WP-S2.09 §6.4).
 const JOB_FIELD_AFTER: Duration = Duration::from_millis(200);
 
@@ -272,6 +275,8 @@ pub struct App {
     page_pane: Option<egui::Rect>,
     /// The HUD's rectangle in the last frame.
     hud_rect: Option<egui::Rect>,
+    /// The tool options card's rectangle in the last frame (FT-1086: where the ghost is under it).
+    options_rect: Option<egui::Rect>,
     /// Whether the window had the operating system's focus in the last frame (FT-514).
     window_focused: Option<bool>,
     /// How many times the window regained the focus and asked for the frames that repaint it (FT-514; tests).
@@ -347,6 +352,7 @@ impl App {
             command_bar: CommandBarHost::new(),
             page_pane: None,
             hud_rect: None,
+            options_rect: None,
             window_focused: None,
             focus_repaints: 0,
             alt_alone: false,
@@ -941,6 +947,9 @@ impl App {
         self.page_pane = page_pane.filter(|_| canvas_shown);
         self.hud_rect = None;
         let mut options_card = None;
+        if self.page_pane.is_none() {
+            self.options_rect = None;
+        }
         if let Some(pane) = self.page_pane {
             self.hud_rect = Some(crate::hud::show(&ctx, &self.shell, pane, &mut events));
             crate::hud::show_zoom(&ctx, &self.shell, pane, &mut events);
@@ -952,7 +961,8 @@ impl App {
         let chrome: Vec<egui::Rect> = match (self.page_pane, self.hud_rect) {
             (Some(pane), Some(hud)) => [hud, crate::hud::zoom_rect(&crate::theme::current(&ctx), pane)]
                 .into_iter()
-                .chain(options_card)
+                // FT-1086: no obstacle for a ghost under the card.
+                .chain(options_card.filter(|(_, faded)| !faded).map(|(rect, _)| rect))
                 .collect(),
             _ => Vec::new(),
         };
@@ -1448,7 +1458,7 @@ impl App {
         ctx: &egui::Context,
         pane: egui::Rect,
         events: &mut Vec<Event>,
-    ) -> Option<egui::Rect> {
+    ) -> Option<(egui::Rect, bool)> {
         let tool = self.shell.tool().name();
         let (ip, text, marker, structure_box) = (
             tool == "ip",
@@ -1467,6 +1477,7 @@ impl App {
             .draw_card()
             .map(|card| (card, self.shell.layout_options().grid_mm));
         if !(ip || text || marker || structure_box || layout.is_some() || draw.is_some()) {
+            self.options_rect = None;
             return None;
         }
         let t = crate::theme::current(ctx);
@@ -1482,6 +1493,11 @@ impl App {
             Some(ew_viewmodel::tools::Ghost::Ip { name, .. }) if ip && !name.is_empty() => Some(name),
             _ => None,
         };
+        // FT-1086 (ID-1183): see below.
+        let faded = self
+            .options_rect
+            .zip(self.ghost_screen_point())
+            .is_some_and(|(rect, ghost)| rect.contains(ghost));
         let at = egui::pos2(
             pane.left() + t.space_4,
             pane.top() + t.size_dock_tab_bar + t.space_4,
@@ -1494,61 +1510,107 @@ impl App {
             structure_location,
             ..
         } = self;
-        // ID-1139: the area is named per tool, so a tool's card sizes itself on a sizing pass rather than inheriting the
-        // last tool's size as its bound.
-        let card = egui::Area::new(egui::Id::unique(("tool-options", tool)))
+        // FT-1086 (ID-1183): only the controls take the pointer. The card is two layers: its frame and title, which
+        // let the pointer through to the canvas beneath (a click on them reaches the sheet), and, over it, a band
+        // holding the controls, which are the card's only interactive part. While the tool's ghost is under the card
+        // (by the rect the last frame drew, so the card never flips) it is drawn at 40 % and is no chip obstacle.
+        let opacity = if faded { OPTIONS_FADED_OPACITY } else { 1.0 };
+        let title = strings::text(key!("hud-tool-options"));
+        let title_font = crate::theme::font(&t.type_body_strong);
+        let title_size = ctx.fonts_mut(|f| {
+            f.layout_no_wrap(title.to_owned(), title_font.clone(), crate::theme::NONE)
+                .size()
+        });
+        let frame = crate::components::card_frame(&t).shadow(crate::theme::shadow(&t.elevation_1));
+        let margin = frame.total_margin();
+        let gap = ctx.global_style().spacing.item_spacing.y;
+        let band_at = at + egui::vec2(margin.left, margin.top + title_size.y + gap);
+        // ID-1139: the areas are named per tool, so a tool's card sizes itself on a sizing pass rather than inheriting
+        // the last tool's size as its bound.
+        let id = egui::Id::unique(("tool-options", tool));
+        let band = egui::Area::new(id.with("controls"))
+            .fixed_pos(band_at)
+            .order(egui::Order::Middle)
+            .show(ctx, |ui| {
+                ui.set_opacity(opacity);
+            ui.horizontal(|ui| {
+                // WP-S2.04 §9.1: the IP tool's name field and external-reference field.
+                if ip {
+                    crate::tool_view::ip_fields(
+                        ui,
+                        ip_name,
+                        ip_typed.as_deref(),
+                        ip_proposal.as_deref(),
+                        &externals,
+                        events,
+                    );
+                }
+                // WP-S2.04 §10.5: the Text tool's binding.
+                if text {
+                    crate::tool_view::text_fields(ui, text_bind.as_deref(), events);
+                }
+                // WP-S2.04 §10.5: the Wire marker's fields and the Structure box's style and fields.
+                if marker {
+                    crate::tool_view::marker_fields(ui, marker_csa, marker_colours, events);
+                }
+                if structure_box {
+                    crate::tool_view::structure_box_fields(
+                        ui,
+                        &externals,
+                        structure_caption,
+                        structure_location,
+                        events,
+                    );
+                }
+                if let Some(options) = layout {
+                    crate::tool_view::layout_fields(ui, options, events);
+                }
+                if let Some((card, grid_mm)) = &draw {
+                    crate::tool_view::draw_fields(ui, card, *grid_mm, events);
+                }
+            });
+
+            });
+        let band_size = band.response.rect.size();
+        let card = egui::Area::new(id)
+            .interactable(false)
             .fixed_pos(at)
             .order(egui::Order::Middle)
             .show(ctx, |ui| {
+                ui.set_opacity(opacity);
                 // WP-S2.17 part 4: a card of doc 16a §6.9 (panel fill, a 1-px border, `radius.md`, `space.4` padding,
                 // the title in `type.body.strong`) with `elevation.1`, as it floats over the canvas.
-                crate::components::card_frame(&t)
-                    .shadow(crate::theme::shadow(&t.elevation_1))
-                    .show(ui, |ui| {
-                        ui.label(
-                            egui::RichText::new(strings::text(key!("hud-tool-options")))
-                                .font(crate::theme::font(&t.type_body_strong))
-                                .color(t.text_primary.color32()),
-                        );
-                        ui.horizontal(|ui| {
-                            // WP-S2.04 §9.1: the IP tool's name field and external-reference field.
-                            if ip {
-                                crate::tool_view::ip_fields(
-                                    ui,
-                                    ip_name,
-                                    ip_typed.as_deref(),
-                                    ip_proposal.as_deref(),
-                                    &externals,
-                                    events,
-                                );
-                            }
-                            // WP-S2.04 §10.5: the Text tool's binding.
-                            if text {
-                                crate::tool_view::text_fields(ui, text_bind.as_deref(), events);
-                            }
-                            // WP-S2.04 §10.5: the Wire marker's fields and the Structure box's style and fields.
-                            if marker {
-                                crate::tool_view::marker_fields(ui, marker_csa, marker_colours, events);
-                            }
-                            if structure_box {
-                                crate::tool_view::structure_box_fields(
-                                    ui,
-                                    &externals,
-                                    structure_caption,
-                                    structure_location,
-                                    events,
-                                );
-                            }
-                            if let Some(options) = layout {
-                                crate::tool_view::layout_fields(ui, options, events);
-                            }
-                            if let Some((card, grid_mm)) = &draw {
-                                crate::tool_view::draw_fields(ui, card, *grid_mm, events);
-                            }
-                        });
-                    });
+                frame.show(ui, |ui| {
+                    ui.label(
+                        egui::RichText::new(title)
+                            .font(title_font)
+                            .color(t.text_primary.color32()),
+                    );
+                    ui.allocate_space(band_size);
+                });
             });
-        Some(card.response.rect)
+        // The controls stand over the frame, which was shown after them.
+        ctx.move_to_top(band.response.layer_id);
+        self.options_rect = Some(card.response.rect);
+        Some((card.response.rect, faded))
+    }
+
+    /// The screen point of the tool's ghost on the focused canvas as its last frame drew it: its insertion point, else
+    /// the pointer's (FT-1086); `None` without a ghost.
+    fn ghost_screen_point(&self) -> Option<egui::Pos2> {
+        use ew_viewmodel::tools::Ghost;
+        let ghost = self.shell.tool_ghost()?;
+        let canvas = self.shell.canvas()?;
+        let at = match ghost {
+            Ghost::Place { at_nm, .. }
+            | Ghost::Paste { at_nm, .. }
+            | Ghost::Ip { at_nm, .. }
+            | Ghost::Text { at_nm, .. } => at_nm.map(|p| canvas.page().snapper.page_to_sheet(p)),
+            _ => None,
+        }
+        .or_else(|| canvas.pointer())?;
+        let group = self.shell.area().map_or(0, |a| a.focused);
+        self.canvas.drawn_screen_of(group, at)
     }
 
     fn apply(&mut self, event: Event) {

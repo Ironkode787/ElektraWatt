@@ -290,6 +290,70 @@ fn click_canvas_centre(h: &mut Harness<'_, App>) -> Vec<String> {
         .collect()
 }
 
+/// FT-1086 (ID-1183) at the floor: the IP tool's Tool options card takes the pointer only with its controls. A click on
+/// its title (its free area) places a point on the sheet beneath; while the tool's ghost is under the card the card is
+/// drawn at 40 % opacity and is no chip obstacle, and away from it the card is whole and an obstacle again.
+#[test]
+fn ft1086_a_click_on_the_free_area_of_the_tool_options_card_reaches_the_sheet() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "103");
+    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    settle(&mut h);
+    press(&mut h, Key::P);
+    assert_eq!(h.state().shell().tool().name(), "ip");
+    settle(&mut h);
+    let t = ew_ui::theme::current(&h.ctx);
+    let title = h.get_by_label("Tool options").rect();
+    let card_fill = t.surface_panel.color32();
+    let faded_fill = card_fill.gamma_multiply(0.4);
+    // The painted card: the largest filled rectangle in the card's fill colour, whole or at 40 %.
+    let painted = |h: &Harness<'_, App>, fill: egui::Color32| {
+        fn walk(shape: &egui::Shape, fill: egui::Color32, found: &mut bool) {
+            match shape {
+                egui::Shape::Vec(v) => v.iter().for_each(|s| walk(s, fill, found)),
+                egui::Shape::Rect(r) => *found |= r.fill == fill && r.rect.width() > 100.0 && r.rect.width() < 600.0,
+                _ => {}
+            }
+        }
+        let mut found = false;
+        for c in &h.output().shapes {
+            walk(&c.shape, fill, &mut found);
+        }
+        found
+    };
+    // The pointer away from the card: the card is whole and a chip obstacle (the HUD, the zoom control, the card).
+    let away = egui::pos2(title.right() + 300.0, title.center().y + 200.0);
+    h.event(egui::Event::PointerMoved(away));
+    settle(&mut h);
+    settle(&mut h);
+    assert_eq!(h.state_mut().canvas_host().chrome_obstacles(0).len(), 3);
+    assert!(painted(&h, card_fill), "the card whole");
+    assert!(!painted(&h, faded_fill));
+    // The pointer on the card's title: the ghost is under it.
+    h.event(egui::Event::PointerMoved(title.center()));
+    settle(&mut h);
+    settle(&mut h);
+    assert_eq!(
+        h.state_mut().canvas_host().chrome_obstacles(0).len(),
+        2,
+        "no obstacle for a ghost under the card"
+    );
+    assert!(painted(&h, faded_fill), "the card at 40 %");
+    // A click there places a point on the sheet.
+    let before = ips(&h);
+    for pressed in [true, false] {
+        h.event(egui::Event::PointerButton {
+            pos: title.center(),
+            button: egui::PointerButton::Primary,
+            pressed,
+            modifiers: egui::Modifiers::NONE,
+        });
+    }
+    settle(&mut h);
+    assert_eq!(ips(&h).len(), before.len() + 1, "the click reached the sheet");
+    h.state_mut().shell_mut().shutdown();
+}
+
 /// FT-1077 (ID-1183) at the floor: the Interruption point row of a placed point's function has no value, so its label
 /// runs across the value column and is whole; a row with a value keeps the label column (M39).
 #[test]

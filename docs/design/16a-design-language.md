@@ -684,6 +684,8 @@ live in the app menu's Edit, the canvas context menu and their keys, as everywhe
 
 *As built (cycle 38; decision log ID-883).* **The double-click rule:** the window turns a double click's second press into `tool.finish` only for a tool that finishes on a double click (`Tool::finishes_on_double_click`): Wire, Select (a free text opens for editing), the polyline and polygon graphics and Structure box. Every other tool sees two plain presses, so two quick clicks with Place place twice (WP-S2.04 §6.1 as amended; FT-751 for the stacked twin). A right-click on the canvas opens a context menu: over an object the selection's Arrange commands in the command bar's order, then Delete; over nothing Paste when it is enabled; no menu when there is nothing to offer (FT-715). The Black box tool marks its first corner, and after an Escape its hint says that a second Escape leaves the tool (FT-714).
 
+*As built (cycle 47; decision log ID-1183, FT-1086).* **The tool options card takes the pointer only with its controls (the band they stand in):** a click on its frame or title reaches the sheet beneath, and while the tool's ghost stands under the card (by the card's rectangle of the last frame) the card is drawn at 40 % opacity and is no obstacle to the canvas chips.
+
 ### 5.6 Right: the palettes
 
 A right rail (`size.rail`) with **Symbols** and **Parts**; the right column is closed by default and opens to
