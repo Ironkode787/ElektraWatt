@@ -618,7 +618,7 @@ pub(crate) fn copy_aside_as(path: &Path, file_name: &str) -> Option<String> {
 pub(crate) fn copy_aside_once_as(path: &Path, file_name: &str) -> Option<String> {
     let dir = path.parent()?;
     let bytes = std::fs::read(path).ok()?;
-    let names = (1..=999).map(|n| format!("{file_name}.bad-{n}"));
+    let names = (1..=BAD_COPIES).map(|n| format!("{file_name}.bad-{n}"));
     // Only a copy of the same length is read, so the look stays bounded by the file's own size.
     let same = names.clone().find(|name| {
         let target = dir.join(name);
@@ -628,15 +628,55 @@ pub(crate) fn copy_aside_once_as(path: &Path, file_name: &str) -> Option<String>
     if same.is_some() {
         return same;
     }
-    let free = names.into_iter().find(|name| !dir.join(name).exists())?;
-    // Through a temporary file and a rename: a failed copy leaves no half-written `.bad-<n>` that a later look would
-    // take for a different file.
-    let tmp = dir.join(format!("{free}.tmp"));
-    let written = std::fs::write(&tmp, &bytes).and_then(|()| std::fs::rename(&tmp, dir.join(&free)));
-    if written.is_err() {
-        let _ = std::fs::remove_file(&tmp);
-    }
-    written.ok().map(|()| free)
+    let free = (1..=BAD_COPIES).find(|n| !dir.join(format!("{file_name}.bad-{n}")).exists())?;
+    write_aside(dir, file_name, free, &bytes)
+}
+
+/// The most `.bad-<n>` copies of one file.
+const BAD_COPIES: u32 = 999;
+
+/// The most attempts at a fresh temporary name for a copy aside.
+const TEMP_ATTEMPTS: u32 = 64;
+
+/// Writes `bytes` to `<file_name>.bad-<first>` in `dir`, or to the next free `.bad-<n>` when a file is at that name
+/// by the time it is written (another instance's copy made meanwhile; FT-1073, ID-1179); the name, or `None`.
+///
+/// The bytes go to a fresh temporary file first, created only if nothing is at its name (the process and a counter
+/// name it, so no other file or link is written through and two instances never share one; mode `0o600` on Unix),
+/// which is then hard-linked to the target: a link never replaces a file that is there, and a failed write leaves no
+/// half-written `.bad-<n>` that a later look would take for a different file. The temporary file is removed in every
+/// case; any failure but a taken name gives up.
+fn write_aside(dir: &Path, file_name: &str, first: u32, bytes: &[u8]) -> Option<String> {
+    use std::io::Write as _;
+    use std::sync::atomic::{AtomicU32, Ordering};
+    static NEXT: AtomicU32 = AtomicU32::new(0);
+    let (tmp, mut file) = (0..TEMP_ATTEMPTS).find_map(|_| {
+        let n = NEXT.fetch_add(1, Ordering::Relaxed);
+        let tmp = dir.join(format!("{file_name}.aside-{}-{n}.tmp", std::process::id()));
+        let mut options = std::fs::OpenOptions::new();
+        options.write(true).create_new(true);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::OpenOptionsExt as _;
+            options.mode(0o600);
+        }
+        options.open(&tmp).ok().map(|f| (tmp, f))
+    })?;
+    let written = file.write_all(bytes).and_then(|()| file.sync_all());
+    drop(file);
+    let linked = written.ok().and_then(|()| {
+        for n in first..=BAD_COPIES {
+            let name = format!("{file_name}.bad-{n}");
+            match std::fs::hard_link(&tmp, dir.join(&name)) {
+                Ok(()) => return Some(name),
+                Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {}
+                Err(_) => return None,
+            }
+        }
+        None
+    });
+    let _ = std::fs::remove_file(&tmp);
+    linked
 }
 
 /// An environment variable as a path, `None` when unset or empty.
@@ -733,6 +773,35 @@ mod tests {
         );
         assert!(
             !dir.join("keymap.toml.bad-2.tmp").exists(),
+            "no temporary file left"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// FT-1073 (ID-1179): a `.bad-<n>` another instance made after the look is never replaced: the copy takes the
+    /// next free name, the other files keep their bytes, and no temporary file is left.
+    #[test]
+    fn ft1073_a_copy_aside_never_replaces_a_copy_made_meanwhile() {
+        let dir = temp_dir("bad-race");
+        std::fs::write(dir.join("keymap.toml.bad-1"), "made meanwhile").unwrap();
+        std::fs::write(dir.join("keymap.toml.bad-2"), "made meanwhile too").unwrap();
+        assert_eq!(
+            write_aside(&dir, "keymap.toml", 1, b"bad = [").as_deref(),
+            Some("keymap.toml.bad-3")
+        );
+        let read = |n: u32| std::fs::read_to_string(dir.join(format!("keymap.toml.bad-{n}"))).unwrap();
+        assert_eq!(
+            [read(1), read(2), read(3)],
+            ["made meanwhile", "made meanwhile too", "bad = ["]
+        );
+        let mut left: Vec<String> = std::fs::read_dir(&dir)
+            .unwrap()
+            .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+            .collect();
+        left.sort();
+        assert_eq!(
+            left,
+            ["keymap.toml.bad-1", "keymap.toml.bad-2", "keymap.toml.bad-3"],
             "no temporary file left"
         );
         let _ = std::fs::remove_dir_all(&dir);
