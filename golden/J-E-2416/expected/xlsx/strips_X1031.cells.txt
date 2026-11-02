@@ -1,0 +1,65 @@
+[-X1031]
+id	Strip	Pos	Terminal	Function text	Group	Part	Potential	Side 1 (clamp a)	Side 2 (clamp b)	Bridge	Bridge part	State
+strip:d8221507-61e8-5141-a2cb-95300ef8a242/terminal:78532d37-2122-56c2-a92c-cf3340ef93a8	-X1031	1	1	1+	Pneumatics	PT 2.5-TWIN	24VDC-1	-102F2:Out1	-201U1:5 via -106W1 BN	BR1		used
+strip:d8221507-61e8-5141-a2cb-95300ef8a242/terminal:46e82110-0737-5547-b146-aac63d618b30	-X1031	2	2	1+	Pneumatics	PT 2.5-TWIN	24VDC-1		-201U1:4 via -106W1 WH	BR1		used
+strip:d8221507-61e8-5141-a2cb-95300ef8a242/terminal:b571c572-3d0d-5170-acdd-ee6a855d4056	-X1031	3	3	1+	Pneumatics	PT 2.5-TWIN	24VDC-1		-202U1:5 via -106W2 BN	BR1		used
+strip:d8221507-61e8-5141-a2cb-95300ef8a242/terminal:14ba2699-bec9-51eb-9530-0bf191bafdde	-X1031	4	4	1+	Pneumatics	PT 2.5-TWIN	24VDC-1		-202U1:4 via -106W2 WH	BR1		used
+strip:d8221507-61e8-5141-a2cb-95300ef8a242/terminal:57641700-ad7a-5186-a026-bb03d2c33c91	-X1031	5	5	2+	Spare	PT 2.5-TWIN	24VDC-2	-102F2:Out2		BR2		spare
+strip:d8221507-61e8-5141-a2cb-95300ef8a242/terminal:1ca8cdbe-c400-5662-8ada-c316c225e733	-X1031	6	6	2+	Spare	PT 2.5-TWIN	24VDC-2			BR2		spare
+strip:d8221507-61e8-5141-a2cb-95300ef8a242/terminal:cfe9de31-1f66-50e6-a949-6771255059af	-X1031	7	7	3+	Spare	PT 2.5-TWIN	24VDC-3	-102F2:Out3		BR3		spare
+strip:d8221507-61e8-5141-a2cb-95300ef8a242/terminal:c4ac6b68-5a96-5ed8-a3ed-854b1f0445df	-X1031	8	8	3+	Spare	PT 2.5-TWIN	24VDC-3			BR3		spare
+strip:d8221507-61e8-5141-a2cb-95300ef8a242/terminal:b7545ae9-cfe2-572d-83eb-5b6532ca99d2	-X1031	9	9	4+	Spare	PT 2.5-TWIN	24VDC-4	-102F2:Out4		BR4		spare
+strip:d8221507-61e8-5141-a2cb-95300ef8a242/terminal:9d0be982-25b9-5cd7-a42b-52afd393621e	-X1031	10	10	4+	Spare	PT 2.5-TWIN	24VDC-4			BR4		spare
+strip:d8221507-61e8-5141-a2cb-95300ef8a242/terminal:e238f025-b171-5406-9512-c11d11530071	-X1031	11	11	1-	Pneumatics	PT 2.5-TWIN	0V	-102G1:−	-201U1:2 via -106W1 BU	BR5		used
+strip:d8221507-61e8-5141-a2cb-95300ef8a242/terminal:99102c93-968e-54d0-949f-6b3e942848fd	-X1031	12	12	1-	Pneumatics	PT 2.5-TWIN	0V		-201U1:1 via -106W1 BK	BR5		used
+strip:d8221507-61e8-5141-a2cb-95300ef8a242/terminal:425b4dd3-9265-53a0-bc90-46d12c43fafb	-X1031	13	13	1-	Pneumatics	PT 2.5-TWIN	0V		-202U1:2 via -106W2 BU	BR5		used
+strip:d8221507-61e8-5141-a2cb-95300ef8a242/terminal:5617905a-2cec-5ca0-9ec1-4f1a9bc1b011	-X1031	14	14	1-	Pneumatics	PT 2.5-TWIN	0V		-202U1:1 via -106W2 BK	BR5		used
+strip:d8221507-61e8-5141-a2cb-95300ef8a242/terminal:e201d7c9-f53c-51f6-a09d-115aa59d70ad	-X1031	15	15	2-	Spare	PT 2.5-TWIN	0V			BR5		spare
+strip:d8221507-61e8-5141-a2cb-95300ef8a242/terminal:78056ae0-3eea-5333-9319-74046fc4bebd	-X1031	16	16	2-	Spare	PT 2.5-TWIN	0V			BR5		spare
+strip:d8221507-61e8-5141-a2cb-95300ef8a242/terminal:578ea242-2eb2-5b5b-8844-40bc46f629a9	-X1031	17	17	3-	Spare	PT 2.5-TWIN	0V			BR5		spare
+strip:d8221507-61e8-5141-a2cb-95300ef8a242/terminal:d484720e-8091-573e-9a88-90f1059bf367	-X1031	18	18	3-	Spare	PT 2.5-TWIN	0V			BR5		spare
+strip:d8221507-61e8-5141-a2cb-95300ef8a242/terminal:80b45d7a-cbdd-5e2c-9f59-f001648d6ad3	-X1031	19	19	4-	Spare	PT 2.5-TWIN	0V			BR5		spare
+strip:d8221507-61e8-5141-a2cb-95300ef8a242/terminal:31cc8007-66f2-575e-af87-ef92ccde2a71	-X1031	20	20	4-	Spare	PT 2.5-TWIN	0V			BR5		spare
+[_ew]
+format	ew-table/1
+project	d76f5765-c456-5393-935c-4cec32a87b01
+table	nav:strips/d8221507-61e8-5141-a2cb-95300ef8a242
+rev	0
+generation	1
+locale	neutral
+ew	0.0.0
+column	strip	Strip	Text	false
+column	pos	Pos	Text	false
+column	terminal	Terminal	Text	true
+column	label	Function text	Text	true
+column	group	Group	Text	false
+column	part	Part	Text	false
+column	potential	Potential	Text	false
+column	side1	Side 1 (clamp a)	Text	false
+column	side2	Side 2 (clamp b)	Text	false
+column	bridge	Bridge	Text	false
+column	bridge_part	Bridge part	Text	false
+column	state	State	Text	true
+[_ew_base]
+id	terminal	label	state
+strip:d8221507-61e8-5141-a2cb-95300ef8a242/terminal:78532d37-2122-56c2-a92c-cf3340ef93a8	1	1+	used
+strip:d8221507-61e8-5141-a2cb-95300ef8a242/terminal:46e82110-0737-5547-b146-aac63d618b30	2	1+	used
+strip:d8221507-61e8-5141-a2cb-95300ef8a242/terminal:b571c572-3d0d-5170-acdd-ee6a855d4056	3	1+	used
+strip:d8221507-61e8-5141-a2cb-95300ef8a242/terminal:14ba2699-bec9-51eb-9530-0bf191bafdde	4	1+	used
+strip:d8221507-61e8-5141-a2cb-95300ef8a242/terminal:57641700-ad7a-5186-a026-bb03d2c33c91	5	2+	spare
+strip:d8221507-61e8-5141-a2cb-95300ef8a242/terminal:1ca8cdbe-c400-5662-8ada-c316c225e733	6	2+	spare
+strip:d8221507-61e8-5141-a2cb-95300ef8a242/terminal:cfe9de31-1f66-50e6-a949-6771255059af	7	3+	spare
+strip:d8221507-61e8-5141-a2cb-95300ef8a242/terminal:c4ac6b68-5a96-5ed8-a3ed-854b1f0445df	8	3+	spare
+strip:d8221507-61e8-5141-a2cb-95300ef8a242/terminal:b7545ae9-cfe2-572d-83eb-5b6532ca99d2	9	4+	spare
+strip:d8221507-61e8-5141-a2cb-95300ef8a242/terminal:9d0be982-25b9-5cd7-a42b-52afd393621e	10	4+	spare
+strip:d8221507-61e8-5141-a2cb-95300ef8a242/terminal:e238f025-b171-5406-9512-c11d11530071	11	1-	used
+strip:d8221507-61e8-5141-a2cb-95300ef8a242/terminal:99102c93-968e-54d0-949f-6b3e942848fd	12	1-	used
+strip:d8221507-61e8-5141-a2cb-95300ef8a242/terminal:425b4dd3-9265-53a0-bc90-46d12c43fafb	13	1-	used
+strip:d8221507-61e8-5141-a2cb-95300ef8a242/terminal:5617905a-2cec-5ca0-9ec1-4f1a9bc1b011	14	1-	used
+strip:d8221507-61e8-5141-a2cb-95300ef8a242/terminal:e201d7c9-f53c-51f6-a09d-115aa59d70ad	15	2-	spare
+strip:d8221507-61e8-5141-a2cb-95300ef8a242/terminal:78056ae0-3eea-5333-9319-74046fc4bebd	16	2-	spare
+strip:d8221507-61e8-5141-a2cb-95300ef8a242/terminal:578ea242-2eb2-5b5b-8844-40bc46f629a9	17	3-	spare
+strip:d8221507-61e8-5141-a2cb-95300ef8a242/terminal:d484720e-8091-573e-9a88-90f1059bf367	18	3-	spare
+strip:d8221507-61e8-5141-a2cb-95300ef8a242/terminal:80b45d7a-cbdd-5e2c-9f59-f001648d6ad3	19	4-	spare
+strip:d8221507-61e8-5141-a2cb-95300ef8a242/terminal:31cc8007-66f2-575e-af87-ef92ccde2a71	20	4-	spare
+sha256	3f5cdfafab5afa973e331c547b7e7b4ba79b941d092b7ecc09694c175d2e4d26

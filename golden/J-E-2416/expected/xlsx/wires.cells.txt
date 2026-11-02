@@ -59,15 +59,15 @@ rev	0
 generation	1
 locale	neutral
 ew	0.0.0
-column	no
-column	from
-column	from_cp
-column	to
-column	to_cp
-column	potential
-column	colour
-column	cross_section
-column	source
-column	via
-column	part
-column	pages
+column	no	No.	Ident	false
+column	from	From	Tag	false
+column	from_cp	CP	Ident	false
+column	to	To	Tag	false
+column	to_cp	CP	Ident	false
+column	potential	Potential	Ident	false
+column	colour	Colour	Colour	false
+column	cross_section	mm²	Qty	false
+column	source	Source	Ident	false
+column	via	Via	Text	false
+column	part	Wire part	Ident	false
+column	pages	Pages	Folios	false

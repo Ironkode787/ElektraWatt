@@ -64,15 +64,15 @@ rev	0
 generation	1
 locale	neutral
 ew	0.0.0
-column	module
-column	part
-column	address
-column	channel
-column	designation
-column	kind
-column	symbol
-column	function
-column	process_tag
-column	target
-column	state
-column	page
+column	module	Module	Ident	false
+column	part	Part	Ident	false
+column	address	Address	Address	false
+column	channel	Channel	Number	false
+column	designation	Designation	Ident	false
+column	kind	Kind	Text	false
+column	symbol	Symbol	Ident	false
+column	function	Function text	Text	false
+column	process_tag	Process tag	Ident	false
+column	target	Target	Ident	false
+column	state	State	Text	false
+column	page	Page	CellRef	false

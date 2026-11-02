@@ -35,11 +35,11 @@ rev	0
 generation	1
 locale	neutral
 ew	0.0.0
-column	pos
-column	qty
-column	unit
-column	manufacturer
-column	part_number
-column	description
-column	tags
-column	folios
+column	pos	Pos	Ident	false
+column	qty	Qty	Qty	false
+column	unit	Unit	Ident	false
+column	manufacturer	Manufacturer	Ident	false
+column	part_number	Part number	Ident	false
+column	description	Description	Text	false
+column	tags	Tags	Range	false
+column	folios	Folios	Folios	false

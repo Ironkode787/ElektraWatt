@@ -467,6 +467,22 @@ lower-left corner); points are `u v`, lists `;`-separated.
 Path (b) builds the same records with `layout.space.create`, `layout.enclosure.create`, `layout.carrier.add` and
 `layout.place` (step 9 of `crates/ew-testkit/src/golden/translate.rs`).
 
+## Workbooks and CSV presets (WP-S3.08 D16)
+
+- `expected/xlsx/` pins the XLSX exports of the golden project without committing a binary file. `sha256.txt` has one
+  line `<sha256>  <file>` per workbook: `bom_parts.xlsx` (`ew export bom --format xlsx`), `wires.xlsx` (`ew export
+  wires`), `block_908.xlsx` (`ew export report --block 908`), `strips_X1031.xlsx` (`ew export table strips --strip
+  -X1031`) and `io_list.xlsx` (`ew export report --kind io_list`). Each workbook has a dump `<name>.cells.txt`: every
+  sheet (the hidden `_ew` and `_ew_base` included) as its name on a line, then its rows as tab-separated cell texts
+  read back through the import's sheet reader; `_ew` and `_ew_base` are read whole, so a dump also shows each column's
+  key, label, type and whether a round trip may edit it.
+- `expected/csv/presets/<name>.<preset>.csv` are the CSV presets other than the golden dialect: `bom_parts` in
+  `excel-nl`, `excel-en` and `rfc4180`, and `io_list` in `excel-nl`. A preset writes the `id` column first and no
+  `row` column; the Excel presets put a byte-order mark first, an apostrophe before a text that starts with `=`, `+`,
+  `-`, `@`, a tab or a carriage return, and `excel-nl` separates with `;` and writes a decimal comma. The presets
+  write CR LF; the committed files hold LF, as the repository stores every text file.
+- `bin/ew/tests/it/tables.rs` and `round_trip.rs` compare them; `EW_BLESS=1` rewrites them.
+
 ## Stopgaps
 
 - **Manufacturer** (closed in cycle 35, WP-S1.19 D10, FT-39). A part's manufacturer is a `LibRef` to `v5(ns,
