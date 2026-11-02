@@ -194,7 +194,7 @@ fn ib2_the_ip_tool_proposes_names_by_series_and_direction_and_d_and_star_toggle(
     cursor(&mut s, left);
     assert_eq!(canvas(&s)["ghost"]["direction"], "undirected");
     assert_eq!(canvas(&s)["ghost"]["name"], "24VDC-1");
-    // Escape ends the tool without a change.
+    // Esc ends the tool without a change.
     let rev = s.revision();
     done(&mut s, "ui.dismiss", json!({}));
     assert_eq!(s.tool().name(), "select");
@@ -577,11 +577,11 @@ fn ft714_the_black_box_shows_its_first_corner_and_escape_leaves_in_two_steps() {
     // FT-896: the armed hint names both corners, and the HUD's prompt is that hint with the box's pin count.
     assert_eq!(
         s.tool_hint(),
-        "Click the box's first corner, then its opposite corner; Escape ends"
+        "Click the box's first corner, then its opposite corner; Esc ends"
     );
     assert_eq!(
         ew_viewmodel::command_bar::hud(&s).prompt,
-        "Click the box's first corner, then its opposite corner; Escape ends \u{b7} 10 connection points"
+        "Click the box's first corner, then its opposite corner; Esc ends \u{b7} 10 connection points"
     );
     cursor_k(&mut s, (30, 30));
     assert_eq!(canvas(&s)["overlay"], 1, "the grid marker");
@@ -596,7 +596,7 @@ fn ft714_the_black_box_shows_its_first_corner_and_escape_leaves_in_two_steps() {
     );
     assert_eq!(
         s.tool_hint(),
-        "Click or Enter at the opposite corner; Escape starts again"
+        "Click or Enter at the opposite corner; Esc starts again"
     );
     // The pointer is the opposite corner: the rectangle (one outline, ten CPs, the label) and no corner marker.
     cursor_k(&mut s, (32, 36));
@@ -608,7 +608,7 @@ fn ft714_the_black_box_shows_its_first_corner_and_escape_leaves_in_two_steps() {
     assert_eq!(s.tool().state(), "armed");
     assert_eq!(
         s.tool_hint(),
-        "Click or Enter at the first corner; Escape again leaves the tool"
+        "Click or Enter at the first corner; Esc again leaves the tool"
     );
     // The second leaves the tool.
     done(&mut s, "ui.dismiss", json!({}));
@@ -1038,7 +1038,7 @@ fn a_refused_grip_drag_keeps_its_notice_through_dwell_and_release() {
     done(&mut s, "canvas.pointer", at(inward, json!({})));
     assert_eq!(
         s.status_fields(false)[0],
-        "Release, click or Enter to move; Escape cancels",
+        "Release, click or Enter to move; Esc cancels",
         "the valid move clears the notice and shows the drag hint"
     );
     assert!(!s.tool_overlay().is_empty(), "the ghost is back");

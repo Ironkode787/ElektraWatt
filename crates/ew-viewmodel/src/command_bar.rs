@@ -592,26 +592,18 @@ pub fn pointer_stack(model: &ShellModel) -> usize {
     tools::pick_stack(page, &page.snapper, at, reach).len()
 }
 
-/// The first shortcut of action `id` as the window's chips show it ([`crate::keymap::display`]), or an empty text.
+/// The first shortcut of action `id` in its keycap form ("Esc", "Del", "Up", "Ctrl+Z"; [`crate::keymap::short_display`]),
+/// or an empty text: the one form every text of the window names a key by (FT-1081, ID-1182, doc 16a §8 item 7).
 pub(crate) fn key_of(model: &ShellModel, id: &str) -> String {
     actions::find(id)
-        .map(|m| crate::keymap::display(&model.shortcut_text(m)))
+        .map(|m| crate::keymap::short_display(&model.shortcut_text(m)))
         .unwrap_or_default()
 }
 
-/// The key a hint, a HUD prompt or a toast names for action `id` (FT-964, ID-1150): its first shortcut by its full
-/// name ("Enter", "Escape"), or "(no key)" when the keymap binds it to none.
+/// The key a hint, a HUD prompt, a toast or a reason names for action `id` (FT-964, ID-1150; FT-1081, ID-1182): its
+/// first shortcut in the keycap form of [`key_of`], or "(no key)" when the keymap binds it to none.
 pub(crate) fn key_name(model: &ShellModel, id: &str) -> String {
     or_no_key(key_of(model, id))
-}
-
-/// As [`key_name`], in the short form of the HUD's compact texts ("Esc", "Del", "Up"; [`crate::keymap::short_display`]).
-pub(crate) fn key_short(model: &ShellModel, id: &str) -> String {
-    or_no_key(
-        actions::find(id)
-            .map(|m| crate::keymap::short_display(&model.shortcut_text(m)))
-            .unwrap_or_default(),
-    )
 }
 
 /// `key`, or "(no key)" when it is empty.
@@ -673,8 +665,8 @@ pub fn hud(model: &ShellModel) -> HudModel {
                     key!("hud-selected"),
                     &[
                         &selected.to_string(),
-                        &key_short(model, "tool.rotate_cw"),
-                        &key_short(model, "edit.delete_selection"),
+                        &key_name(model, "tool.rotate_cw"),
+                        &key_name(model, "edit.delete_selection"),
                     ],
                 )
             } else {
@@ -715,7 +707,7 @@ pub fn hud(model: &ShellModel) -> HudModel {
                     "{what} \u{b7} {}",
                     strings::format(
                         key!("hud-place-wires"),
-                        &[&count, &key_short(model, "canvas.activate_alt")]
+                        &[&count, &key_name(model, "canvas.activate_alt")]
                     )
                 );
             }
@@ -724,19 +716,19 @@ pub fn hud(model: &ShellModel) -> HudModel {
                 strings::format(
                     key!("hud-keys-place-join"),
                     &[
-                        &key_short(model, "tool.rotate_cw"),
-                        &key_short(model, "tool.next_variant"),
-                        &key_short(model, "place.join"),
-                        &key_short(model, crate::tools::ESCAPE),
+                        &key_name(model, "tool.rotate_cw"),
+                        &key_name(model, "tool.next_variant"),
+                        &key_name(model, "place.join"),
+                        &key_name(model, crate::tools::ESCAPE),
                     ],
                 )
             } else {
                 strings::format(
                     key!("hud-keys-place"),
                     &[
-                        &key_short(model, "tool.rotate_cw"),
-                        &key_short(model, "tool.next_variant"),
-                        &key_short(model, crate::tools::ESCAPE),
+                        &key_name(model, "tool.rotate_cw"),
+                        &key_name(model, "tool.next_variant"),
+                        &key_name(model, crate::tools::ESCAPE),
                     ],
                 )
             };
@@ -773,7 +765,7 @@ pub fn hud(model: &ShellModel) -> HudModel {
                 parts.push(strings::text(role).to_owned());
                 parts.push(format!(
                     "{}: {}",
-                    key_short(model, "tool.ip_direction"),
+                    key_name(model, "tool.ip_direction"),
                     d.next().word()
                 ));
             } else {
@@ -835,7 +827,7 @@ pub fn hud(model: &ShellModel) -> HudModel {
         // WP-S4.02 part 3 (doc 16a §5.5): the placing prompt; a refused drop's text stands in its chip.
         Some(Ghost::Layout { device, .. }) => strings::format(
             key!("hud-layout-place"),
-            &[&device, &key_short(model, crate::tools::ESCAPE)],
+            &[&device, &key_name(model, crate::tools::ESCAPE)],
         ),
         // WP-S4.02 part 4 (D11): the draw tools' line; the length stands at the line.
         Some(Ghost::Line { .. }) => hint(),
@@ -877,14 +869,13 @@ mod tests {
     }
 
     /// FT-1071 (ID-1150, ID-1179): an action the keymap binds to no key (`layout.nudge` ships with none) is named
-    /// "(no key)" in a hint's full form and in the HUD's short form, and a text formatted with it reads whole.
+    /// "(no key)" in a hint and in the HUD (one form since FT-1081), and a text formatted with it reads whole.
     #[test]
     fn an_action_with_no_key_is_named_no_key() {
         let model = ShellModel::for_tests();
         assert_eq!(key_of(&model, "layout.nudge"), "", "layout.nudge has no shortcut");
         let full = key_name(&model, "layout.nudge");
         assert_eq!(full, "(no key)");
-        assert_eq!(key_short(&model, "layout.nudge"), "(no key)");
         assert_eq!(
             strings::format(key!("hint-layout-place"), &[&full]),
             "Click or release to place; (no key) ends"
@@ -892,7 +883,7 @@ mod tests {
         assert_eq!(
             strings::format(
                 key!("hud-layout-selected"),
-                &["1", &key_short(&model, "layout.nudge")]
+                &["1", &key_name(&model, "layout.nudge")]
             ),
             "1 selected \u{b7} arrows nudge \u{b7} (no key) deletes"
         );

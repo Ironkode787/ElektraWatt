@@ -125,7 +125,7 @@ impl ShellModel {
         self.hint_text(self.tools.tool.status_hint())
     }
 
-    /// The text of hint `hint` with the keys of its actions from the keymap, by their full names ("Enter", "Escape";
+    /// The text of hint `hint` with the keys of its actions from the keymap, in their keycap form ("Enter", "Esc";
     /// "(no key)" for an action the keymap binds to none).
     pub(crate) fn hint_text(&self, hint: crate::tools::Hint) -> String {
         let keys: Vec<String> = hint

@@ -168,6 +168,10 @@ pub fn chord_text(key: Key, physical: Option<Key>, modifiers: Modifiers) -> Opti
 /// view-model's one display function, so the chips, the menus and the keymap editor's texts agree.
 pub use ew_viewmodel::keymap::display;
 
+/// A binding for a tooltip or a hint: the keycap form ("Esc", "Del", "Up", "Ctrl+Z"), the one form every text names a key by
+/// (FT-1081, ID-1182, doc 16a §8 item 7).
+pub use ew_viewmodel::keymap::short_display;
+
 #[cfg(test)]
 mod tests {
     use super::*;

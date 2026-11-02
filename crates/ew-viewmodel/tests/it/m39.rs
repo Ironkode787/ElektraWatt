@@ -60,11 +60,11 @@ fn a_folio_row_shows_the_page_title() {
 fn the_form_hint_says_enter_and_escape() {
     assert_eq!(
         strings::text(key!("palette-form-hint")),
-        "Enter applies \u{b7} Escape goes back"
+        "Enter applies \u{b7} Esc goes back"
     );
 }
 
-/// Edit ▸ Delete deletes the canvas selection only: with nothing selected it is disabled with "Nothing is selected",
+/// Edit ▸ Del deletes the canvas selection only: with nothing selected it is disabled with "Nothing is selected",
 /// like Cut; with a selection it is enabled.
 #[test]
 fn delete_is_disabled_with_nothing_selected() {

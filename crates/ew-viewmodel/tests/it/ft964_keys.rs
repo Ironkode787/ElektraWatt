@@ -62,7 +62,7 @@ fn ft964_a_rebound_key_shows_in_the_hints_and_the_hud() {
     cursor(&mut s, (60, 38));
     assert_eq!(
         s.tool_hint(),
-        "Click or Enter to place; R, X, Y and V turn it; Escape ends"
+        "Click or Enter to place; R, X, Y and V turn it; Esc ends"
     );
     let prompt = hud(&s);
     assert!(
@@ -129,7 +129,7 @@ fn ft949_the_autoconnect_toast_takes_ctrl_enter_from_the_keymap() {
     assert_eq!(
         hint,
         "Click or Enter to place and connect the proposed wires; Alt+Click or Ctrl+Enter places without them; Tab \
-         tries the next target; Escape ends"
+         tries the next target; Esc ends"
     );
     assert!(
         toast.ends_with(". Alt+Click or Ctrl+Enter places without connecting"),

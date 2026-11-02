@@ -372,7 +372,7 @@ fn without_a_clear_route_the_wire_is_drawn_direct_and_the_tool_says_so() {
     click(&mut p.s, p.bottom[0].at, false);
     assert_eq!(
         p.s.tool_hint(),
-        "Click a connection point; Backspace removes the last bend; Escape cancels"
+        "Click a connection point; Backspace removes the last bend; Esc cancels"
     );
     hover(&mut p.s, p.l.at);
     assert_eq!(p.s.tool_hint(), "No clear route; drawn direct");
@@ -398,6 +398,6 @@ fn without_a_clear_route_the_wire_is_drawn_direct_and_the_tool_says_so() {
     click(&mut p.s, p.bottom[1].at, false);
     assert_eq!(
         p.s.tool_hint(),
-        "Click a connection point; Backspace removes the last bend; Escape cancels"
+        "Click a connection point; Backspace removes the last bend; Esc cancels"
     );
 }

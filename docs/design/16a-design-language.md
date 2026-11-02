@@ -1291,6 +1291,10 @@ HUD; chips avoid it (§7.4).
 7. **Keys** are written as on the keyboard with "+" ("Ctrl+Shift+H") in text and tooltips, and as spaced keys in a key
    chip ("Ctrl K"). The macOS symbols (⌘⇧H) from the same registry text (doc 16 §3.9 Keyboard) are kept for
    portability only: macOS is not a supported platform (decision log ID-880).
+   *As built (cycle 47; decision log ID-1182, FT-1081):* a key has one name in every text, the form on its keycap
+   (`keymap::short_display`: "Esc", "Del", "Up", with its modifiers, "Ctrl+Z"), in the HUDs, the hints, toasts,
+   notices, reasons and tooltips alike ("Esc ends", "Del deletes"); the full names ("Escape", "Delete") are not used.
+   The chips, the menus and the keymap editor show the registry's own text.
 8. **Abbreviations** only where the user's documents use them (PE, N, L1, IP for interruption point in EPLAN usage);
    tooltips spell them out the first time ("IP: interruption point").
    *As built (cycle 38; decision log ID-883, FT-716):* a sentence names a terminal by strip and number in words,

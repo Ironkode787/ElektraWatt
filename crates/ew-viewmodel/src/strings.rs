@@ -311,7 +311,7 @@ pub const TEXTS: &[(&str, &str)] = &[
     ),
     (
         "hint-choose-strip",
-        "Choose the terminal strip in the list; Escape cancels",
+        "Choose the terminal strip in the list; Esc cancels",
     ),
     (
         "hint-place-proposals",
@@ -433,7 +433,7 @@ pub const TEXTS: &[(&str, &str)] = &[
     ("reason-designation-needed", "Give the terminal's designation"),
     (
         "reason-choose-strip",
-        "Choose a terminal strip in the list first, or press Escape",
+        "Choose a terminal strip in the list first, or press Esc",
     ),
     ("reason-ip-exchange", "An interruption point keeps its symbol"),
     (
@@ -673,13 +673,10 @@ pub const TEXTS: &[(&str, &str)] = &[
     ("tool-text_edit", "Edit text"),
     ("tool-graphic", "Graphic"),
     ("hint-text-armed", "Click or {0} where the text goes; {1} ends"),
-    (
-        "hint-text-typing",
-        "Type the text; Enter places it; Escape cancels",
-    ),
+    ("hint-text-typing", "Type the text; Enter places it; Esc cancels"),
     (
         "hint-text-edit",
-        "Type the new text; Enter changes it; Escape cancels",
+        "Type the new text; Enter changes it; Esc cancels",
     ),
     ("hint-graphic-armed", "Click or {0} at the first point; {1} ends"),
     (
@@ -1233,7 +1230,7 @@ pub const TEXTS: &[(&str, &str)] = &[
     ("palette-title", "Command palette"),
     ("palette-hint", "Type a command…"),
     ("palette-no-match", "No matching command"),
-    ("palette-form-hint", "Enter applies \u{b7} Escape goes back"),
+    ("palette-form-hint", "Enter applies \u{b7} Esc goes back"),
     ("dialog-close", "Close"),
     ("dialog-save", "Save"),
     ("dialog-discard", "Discard"),
@@ -3930,8 +3927,7 @@ pub fn sentence_start(part: &str) -> Cow<'_, str> {
         word.strip_suffix(':').is_some_and(|c| {
             c.len() > 1
                 && c.contains('-')
-                && c
-                    .chars()
+                && c.chars()
                     .all(|ch| ch.is_ascii_uppercase() || ch.is_ascii_digit() || ch == '-')
         })
     }
@@ -3992,11 +3988,20 @@ mod tests {
     #[test]
     fn a_part_on_its_own_line_starts_with_a_capital() {
         for (part, shown) in [
-            ("the interruption point W464 is already here", "The interruption point W464 is already here"),
-            ("interruption point W464: a star source is a source point", "Interruption point W464: a star source is a source point"),
+            (
+                "the interruption point W464 is already here",
+                "The interruption point W464 is already here",
+            ),
+            (
+                "interruption point W464: a star source is a source point",
+                "Interruption point W464: a star source is a source point",
+            ),
             ("draw on a schematic page", "Draw on a schematic page"),
             ("on -101F1: refused", "On -101F1: refused"),
-            ("EW-CORE-052: a second source of 0V", "EW-CORE-052: A second source of 0V"),
+            (
+                "EW-CORE-052: a second source of 0V",
+                "EW-CORE-052: A second source of 0V",
+            ),
             ("W464: a star source", "W464: a star source"),
             ("-K1 exists", "-K1 exists"),
             ("k1 exists", "k1 exists"),
@@ -4023,13 +4028,10 @@ mod tests {
         // link hint is `status-hint-follow`.
         ("status-hint-link", "props.follow's F, not yet from the keymap"),
         // Keys no keymap action reaches there.
-        ("hint-choose-strip", "Escape closes the picker popup (app.rs)"),
-        ("reason-choose-strip", "Escape closes the picker popup (app.rs)"),
-        (
-            "hint-text-typing",
-            "Enter and Escape inside the text popup's field",
-        ),
-        ("hint-text-edit", "Enter and Escape inside the text popup's field"),
+        ("hint-choose-strip", "Esc closes the picker popup (app.rs)"),
+        ("reason-choose-strip", "Esc closes the picker popup (app.rs)"),
+        ("hint-text-typing", "Enter and Esc inside the text popup's field"),
+        ("hint-text-edit", "Enter and Esc inside the text popup's field"),
         ("action-ip-name-hint", "Enter and Tab inside the IP name field"),
         (
             "junction-sequence",
@@ -4037,7 +4039,7 @@ mod tests {
         ),
         ("junction-orient", "R inside the junction popup"),
         ("table-pos-move", "Alt+Up and Alt+Down inside the table editor"),
-        ("palette-form-hint", "Enter and Escape inside the palette's form"),
+        ("palette-form-hint", "Enter and Esc inside the palette's form"),
         ("tooltip-learn-more", "F1 on a hovered menu item (menu.rs)"),
     ];
 
@@ -4137,6 +4139,19 @@ mod tests {
                 "{key} ({why}) names no key"
             );
         }
+    }
+
+    /// FT-1081 (ID-1182, doc 16a §8 item 7): a key has one name in every text, the form on its keycap. No text names
+    /// the Escape key in full, and the long forms `short_display` shortens ("Arrow Up") stand in none.
+    #[test]
+    fn ft1081_no_text_names_a_key_by_its_long_form() {
+        for (key, text) in TEXTS {
+            assert!(!names_key(text, "Escape"), "{key}: {text}");
+            assert!(!text.contains("Arrow "), "{key}: {text}");
+        }
+        // The short form is the one every action's key takes.
+        assert_eq!(crate::keymap::short_display("Escape"), "Esc");
+        assert_eq!(crate::keymap::short_display("Alt+Delete"), "Alt+Del");
     }
 
     /// FT-1072 (ID-1179): a skipped key word counts only in a key's context, the word exact and "press" in any case.

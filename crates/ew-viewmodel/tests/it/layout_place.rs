@@ -720,7 +720,7 @@ fn pw6_tab_cycles_the_rail_with_the_live_region() {
     // FT-996: on a rail only X turns it, so R goes unnamed.
     assert_eq!(
         hud(&shell).prompt,
-        "1 selected · arrows nudge · X flips · Delete deletes"
+        "1 selected · arrows nudge · X flips · Del deletes"
     );
     // Enter with a placement selected focuses Properties.
     done(&mut shell, "canvas.activate", json!({}));
@@ -1068,8 +1068,8 @@ fn ft993_escape_drops_the_layout_ghost_and_returns_to_select() {
     assert_eq!(unplaced(&shell, "F55"), f55);
     // The text after the behaviour (FT-1066), so a changed hint does not hide it.
     assert_eq!(
-        ew_viewmodel::strings::format(key!("hint-layout-place"), &["Escape"]),
-        "Click or release to place; Escape ends"
+        ew_viewmodel::strings::format(key!("hint-layout-place"), &["Esc"]),
+        "Click or release to place; Esc ends"
     );
     shell.shutdown();
 }
@@ -1146,7 +1146,7 @@ fn ft995_after_a_drop_the_hud_names_no_stack_until_the_pointer_moves() {
     assert_eq!(shell.tool().name(), "select");
     let h = hud(&shell);
     assert_eq!(h.stack, 0);
-    assert_eq!(h.prompt, "1 selected · arrows nudge · X flips · Delete deletes");
+    assert_eq!(h.prompt, "1 selected · arrows nudge · X flips · Del deletes");
     let near = on_rail(&shell, "Rail 1", 401 * MM);
     done(&mut shell, "canvas.pointer", at(near, json!({})));
     let h = hud(&shell);
@@ -1164,7 +1164,7 @@ fn ft995_after_a_drop_the_hud_names_no_stack_until_the_pointer_moves() {
     done(&mut shell, "canvas.release", at(to, json!({})));
     let h = hud(&shell);
     assert_eq!(h.stack, 0);
-    assert_eq!(h.prompt, "1 selected · arrows nudge · X flips · Delete deletes");
+    assert_eq!(h.prompt, "1 selected · arrows nudge · X flips · Del deletes");
     let near = on_rail(&shell, "Rail 1", 451 * MM);
     done(&mut shell, "canvas.pointer", at(near, json!({})));
     assert_eq!(hud(&shell).stack, 2);
@@ -1181,7 +1181,7 @@ fn ft996_the_selected_placements_hud_names_only_its_keys() {
     rest_away(&mut shell);
     assert_eq!(
         hud(&shell).prompt,
-        "1 selected · arrows nudge · X flips · Delete deletes"
+        "1 selected · arrows nudge · X flips · Del deletes"
     );
     let surface = panel(&shell).surface.to_string();
     let e55 = unplaced(&shell, "E55");
@@ -1198,11 +1198,11 @@ fn ft996_the_selected_placements_hud_names_only_its_keys() {
     rest_away(&mut shell);
     assert_eq!(
         hud(&shell).prompt,
-        "1 selected · arrows nudge · R rotates · Delete deletes"
+        "1 selected · arrows nudge · R rotates · Del deletes"
     );
     assert_eq!(
-        ew_viewmodel::strings::format(key!("hud-layout-selected"), &["2", "Delete"]),
-        "2 selected · arrows nudge · Delete deletes"
+        ew_viewmodel::strings::format(key!("hud-layout-selected"), &["2", "Del"]),
+        "2 selected · arrows nudge · Del deletes"
     );
     shell.shutdown();
 }
@@ -1214,7 +1214,7 @@ fn ft997_blocked_by_clears_on_lock_unlock_and_enter() {
     let mut shell = writable(&tmp);
     select_placement(&mut shell, "-102F2");
     rest_away(&mut shell);
-    let selected = "1 selected · arrows nudge · X flips · Delete deletes";
+    let selected = "1 selected · arrows nudge · X flips · Del deletes";
     let blocked = |shell: &mut ShellModel| {
         assert_eq!(
             key(shell, "cursor.right"),

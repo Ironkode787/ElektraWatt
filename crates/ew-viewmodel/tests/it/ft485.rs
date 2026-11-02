@@ -411,7 +411,7 @@ fn item3_the_hint_offers_alt_and_the_toast_names_the_wires_a_placement_drew() {
     done(&mut s, "cursor.set", at(k(60, 38), json!({})));
     assert_eq!(
         state(&s)["status"][0],
-        "Click or Enter to place; R, X, Y and V turn it; Escape ends"
+        "Click or Enter to place; R, X, Y and V turn it; Esc ends"
     );
     done(&mut s, "canvas.activate", json!({}));
     let span = 4;

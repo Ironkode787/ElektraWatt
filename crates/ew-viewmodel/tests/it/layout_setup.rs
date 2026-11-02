@@ -872,18 +872,18 @@ fn the_draw_tools_texts_read_whole() {
         "Choose Rail or Duct first"
     );
     done(&mut s, "tool.rail_draw", json!({}));
-    assert_eq!(s.tool_hint(), "Click the rail's start; Escape cancels");
+    assert_eq!(s.tool_hint(), "Click the rail's start; Esc cancels");
     click_mm(&mut s, 40.0, 740.0);
     assert_eq!(
         s.tool_hint(),
-        "Click the rail's end; Backspace drops the start; Escape cancels"
+        "Click the rail's end; Backspace drops the start; Esc cancels"
     );
     let p = sheet_mm(&s, 610.0, 740.0);
     done(&mut s, "canvas.pointer", at(p, json!({})));
     assert_eq!(overlay_labels(&s), ["570 mm"]);
     done(&mut s, "ui.dismiss", json!({}));
     done(&mut s, "tool.duct_draw", json!({}));
-    assert_eq!(s.tool_hint(), "Click the duct's first point; Escape cancels");
+    assert_eq!(s.tool_hint(), "Click the duct's first point; Esc cancels");
     assert_eq!(free_click_mm(&mut s, 100.0, 100.0), Outcome::Done);
     assert_eq!(
         s.tool_hint(),

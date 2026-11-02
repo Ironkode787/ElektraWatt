@@ -71,7 +71,7 @@ fn button(ui: &Ui, t: &Tokens, side: Side, b: &RailButton, rect: Rect, events: &
     let tip = if b.shortcut.is_empty() {
         b.label.clone()
     } else {
-        format!("{} ({})", b.label, crate::keys::display(&b.shortcut))
+        format!("{} ({})", b.label, crate::keys::short_display(&b.shortcut))
     };
     let response = response.tip(tip);
     if response.clicked() {

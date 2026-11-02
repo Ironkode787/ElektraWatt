@@ -294,7 +294,7 @@ fn tooltip(b: &CommandButton) -> String {
     match (&b.reason, b.shortcut.is_empty()) {
         (Some(reason), _) if !b.enabled => format!("{}: {reason}", b.label),
         (_, true) => b.label.clone(),
-        (_, false) => format!("{} ({})", b.label, crate::keys::display(&b.shortcut)),
+        (_, false) => format!("{} ({})", b.label, crate::keys::short_display(&b.shortcut)),
     }
 }
 

@@ -105,7 +105,7 @@ fn ft1082_a_terminal_placed_under_one_of_its_strip_is_not_connected_to_it() {
     let hint = place(&mut s, terminal("-X1031", "71"), (60, 34), "canvas.activate");
     assert_eq!(s.revision(), rev.map(|r| r + 1), "one commit");
     assert_eq!(
-        hint, "Click or Enter to place; R, X, Y and V turn it; Escape ends",
+        hint, "Click or Enter to place; R, X, Y and V turn it; Esc ends",
         "no proposal: the place hint without them"
     );
     assert_eq!(
@@ -124,7 +124,7 @@ fn ft1082_a_terminal_of_another_strip_in_that_line_is_proposed_and_connected() {
     assert_eq!(
         hint,
         "Click or Enter to place and connect the proposed wires; Alt+Click or Ctrl+Enter places without them; Tab tries \
-         the next target; Escape ends"
+         the next target; Esc ends"
     );
     assert_eq!(
         connections(&s),
