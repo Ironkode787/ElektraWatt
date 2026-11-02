@@ -1,6 +1,6 @@
 # Open-source governance
 
-**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-30: no Apple signing identity, macOS is not a supported platform (decision log ID-880); amended 2026-10-25, cycle-27 design pass: the `tools/blind/` rows of §2.1, decision log ID-645) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-11-02 (ID-1187, ID-1188): the first binary release 0.1.0 is unsigned, so the release pipeline's checks of §3.3 and the interim steward's signing identity read from 1.0, or earlier when the owner holds a signing identity; amended 2026-10-30: no Apple signing identity, macOS is not a supported platform (decision log ID-880); amended 2026-10-25, cycle-27 design pass: the `tools/blind/` rows of §2.1, decision log ID-645) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies how ElektraWatt (EW) is run as an open-source project: the licence of every
 layer and how CI enforces it, contributor terms under the DCO, copyright ownership and the legal gates that come
@@ -266,11 +266,12 @@ record of the design. The repository's licence rules are unchanged: REUSE header
 permissive/GPL boundary and the dependency checks stay in force. The signing identities that sign release binaries
 stay a release item (WP-S6.07). The `blocked:LG-2` merge block was removed in cycle 19 (FT-315, decision log ID-480).
 
-These gates belong in the global plan as milestone conditions. The release pipeline checks LG-1, LG-4 and the
-steward checklist of §3.10 as checklist items (RC-10 of [18](18-quality-security-release.md); NFR-COMP-01).
-"First binary release" means the first signed installer, 0.1.0 at M2 (MVP). Until LG-4 is met, only unsigned nightlies
-carrying the banner "unsigned development build" are published (ADR-0023, ADR-0030): no version tags (`vX.Y.Z`)
-and no signed or tagged release. The pilot preview 0.0.x (M-PP) consists of such unsigned development builds handed to the
+These gates belong in the global plan as milestone conditions. The release pipeline checks LG-1 as a checklist item at 0.1.0 and, from 1.0, also LG-4 and the
+steward checklist of §3.10 (RC-10 of [18](18-quality-security-release.md); NFR-COMP-01; decision log ID-1187, ID-1188).
+"First binary release" means the first release with installers, 0.1.0 at M2 (MVP): an unsigned build from an unsigned
+tag (ID-1187). Before it, only unsigned nightlies carrying the banner "unsigned development build" are published
+(ADR-0023, ADR-0030): no version tags (`vX.Y.Z`) and no tagged release. The first signed release, and with it LG-4 as a
+hard gate, is 1.0's, or earlier when the owner holds a signing identity. The pilot preview 0.0.x (M-PP) consists of such unsigned development builds handed to the
 pilot only, with no public download ([global plan](../plan/01-global-plan.md) §5.3, §6.1); the signed source tags `m1` and `pp`
 carry no binaries.
 
@@ -279,7 +280,7 @@ carry no binaries.
 | **LG-1 Employer copyright statement** | The pilot panel builder signs a statement. It (a) states who holds the rights in its staff's EW work (the employer as maker under Auteurswet art. 7, or the employee where agreed otherwise), (b) licenses all contributions since the first commit under §2.1, including both exceptions, (c) optionally gives standing consent to future L1→L4 moves (§3.2), (d) covers the repository owner's own work if it falls within their job, (e) names the authorised signatories (held privately). Every other employer whose staff contribute on company time signs an equivalent statement before their first merge. | Target M0. Hard gate before the first binary release (NFR-LIC-11) | Pilot user, counsel |
 | **LG-2 Exceptions adopted** | ADR-0025 is accepted. The plugin-exception text and the design-exception text are in `LICENSES/` and in the SPDX headers. | Before the first PR from a non-maintainer is merged (ADR-0025; NFR-LIC-12); this may fall before MVP. Until then, such PRs carry the label `blocked:LG-2` | Owner, counsel |
 | **LG-3 Trademark clearance** | Searches in TMview, EUIPO eSearch and the BOIP register for "ElektraWatt" and phonetic neighbours in Nice classes 9 and 42; a domain check. "Electra"-named ECAD products are a known confusion risk ([oss-landscape](../research/oss-landscape.md) §7.5, unverified lineage). With a conflict, the product is renamed before any logo or domain spend. | Before the first public announcement or binary release; the word mark is filed by 1.0 (NFR-LIC-13) | Steward |
-| **LG-4 Steward and identity** | ADR-0030 is decided. The steward exists as a legal person and holds the signing identity (Artifact Signing for an EU organisation, ADR-0030; no Apple enrolment, since macOS is not a supported platform (decision log ID-880); the SignPath Foundation OSS programme is the documented Windows fallback, [18](18-quality-security-release.md) OQ4, eligibility **verify**). The repository, which today sits under a personal GitHub account, is transferred to a GitHub organisation controlled by the steward with at least two owners (NFR-COMP-08). `SECURITY.md` and the steward checklist of §3.10 (NFR-COMP-01) are complete. | The phase-1 identity holder is named and enrolment submitted in the first 90 days (PD-7a of the [global plan](../plan/01-global-plan.md) §14; enrolment takes at least 12 months); ADR-0030 decided in full by gate G-M1 (PD-7; [18](18-quality-security-release.md) OQ4); hard gate before the first signed release (NFR-SEC-12) | Owner |
+| **LG-4 Steward and identity** | ADR-0030 is decided. The steward exists as a legal person and holds the signing identity (Artifact Signing for an EU organisation, ADR-0030; no Apple enrolment, since macOS is not a supported platform (decision log ID-880); the SignPath Foundation OSS programme is the documented Windows fallback, [18](18-quality-security-release.md) OQ4, eligibility **verify**). The repository, which today sits under a personal GitHub account, is transferred to a GitHub organisation controlled by the steward with at least two owners (NFR-COMP-08). `SECURITY.md` and the steward checklist of §3.10 (NFR-COMP-01) are complete. | The phase-1 identity holder is named and enrolment submitted in the first 90 days (PD-7a of the [global plan](../plan/01-global-plan.md) §14; enrolment takes at least 12 months); ADR-0030 decided in full by gate G-M1 (PD-7; [18](18-quality-security-release.md) OQ4); hard gate before the first signed release (NFR-SEC-12), which is 1.0's, or earlier when the owner holds a signing identity (ID-1187) | Owner |
 | **LG-5 Fixture publication consent** | The pilot panel builder consents in writing that the anonymised technical content of the reference project may be published as CC0: tags, part numbers, wiring and order codes, as in [20](20-golden-project.md) and the design docs. If its customer contract requires it, the customer consents too. | **Now.** The public repository already contains this content in `docs/` (open question 4) | Pilot user |
 | **LG-6 Steward review** | Re-decide the steward form (§3.10) once there are more than 3 regular external contributors, more than €50k of income a year, or 1.0 is reached, whichever comes first. | Event-driven | Maintainers, steward |
 
@@ -837,7 +838,8 @@ as:
    `ew-caex` and `ew-devdesc`, are permissive from their first line, [04](04-architecture.md) §3).
 7. **Interim steward.** ADR-0030 leaves the choice between a stichting and the pilot panel builder.
    *Recommendation:* the company in phase 1, with a signed transfer commitment; a stichting at LG-6 or by 1.0. This
-   gives the signing identity in time for the MVP without the set-up delay of a foundation. The trade-off: an
+   gives the signing identity in time for the first signed release (1.0, or earlier when the owner holds a signing identity;
+   ID-1187) without the set-up delay of a foundation. The trade-off: an
    Authenticode certificate shows the organisation's name on every binary, and the About dialog names the
    steward as publisher, so phase 1 makes the pilot panel builder publicly visible as publisher. If it wants to stay
    anonymous (open question 3), found the stichting before the first signed release instead.
