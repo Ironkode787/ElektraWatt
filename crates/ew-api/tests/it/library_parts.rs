@@ -5,8 +5,10 @@
 //! new project, and choosing one in the Parts row is one `part.assign` that carries the part with its closure, so
 //! that the command replays without a library.
 
+use ew_api::library::LibraryTiers;
 use ew_api::{AnyCommand, NewProjectKind, ProjectTemplate, Session, SessionOptions};
 use ew_ids::Uuid;
+use ew_schema::LibRef;
 use serde_json::{Value, json};
 
 fn fresh() -> Session {
@@ -141,4 +143,108 @@ fn a_held_part_or_a_list_of_several_stays_the_rows_own_edit() {
         s.part_uses_assign(&[device], &unknown).is_none(),
         "no library holds it"
     );
+}
+
+/// The catalogue's parts as the picker lists them: maker, part number and whether the project holds the part.
+fn catalogue_order(s: &Session) -> Vec<(String, String, bool)> {
+    let folio = s.page_labels()[0].clone();
+    s.place_catalogue(&folio)
+        .expect("a drawn page")
+        .parts
+        .into_iter()
+        .map(|p| (p.manufacturer, p.part_number, p.library.is_none()))
+        .collect()
+}
+
+/// FT-1087 (ID-1184): the chooser has one order, (maker, part number), across the parts the project holds and those of
+/// the libraries it does not; embedding a part (here by the Parts row's `part.assign`, which carries the part with its
+/// closure) does not move it.
+#[test]
+fn embedding_a_library_part_does_not_move_it_in_the_catalogue() {
+    let (mut s, device) = with_device();
+    let before = catalogue_order(&s);
+    assert!(before.len() > 2, "the starter parts are listed");
+    assert!(before.iter().all(|(_, _, held)| !held), "none is held yet");
+    let keys: Vec<(&str, &str)> = before.iter().map(|(m, n, _)| (m.as_str(), n.as_str())).collect();
+    let mut sorted = keys.clone();
+    sorted.sort_unstable();
+    assert_eq!(keys, sorted, "maker, then part-number order");
+    // A part that is not the first of its maker: embedding it must not bring it to the front of the maker's group.
+    let number = before[before.len() / 2].1.clone();
+    let copy = library_copy(&s, &number);
+    let value = json!([{"part": {"copy": copy.to_string()}, "qty": "1"}]);
+    let cmd = s
+        .part_uses_assign(&[device], &value)
+        .expect("a library part")
+        .unwrap();
+    s.execute(&cmd).unwrap();
+    let after = catalogue_order(&s);
+    assert_eq!(
+        after.iter().filter(|(_, _, held)| *held).count(),
+        1,
+        "the part is held now"
+    );
+    assert!(
+        after.iter().any(|(_, n, held)| *held && *n == number),
+        "{number} is the held one"
+    );
+    let names = |v: &[(String, String, bool)]| -> Vec<(String, String)> {
+        v.iter().map(|(m, n, _)| (m.clone(), n.clone())).collect()
+    };
+    assert_eq!(
+        names(&after),
+        names(&before),
+        "the same order after the embedding"
+    );
+}
+
+/// FT-1087 (ID-1184): a part names its maker by the library record's name, not its key: a library part whose
+/// manufacturer the project does not hold is listed under the same text as the part is once embedded.
+#[test]
+fn a_part_names_its_maker_by_the_library_records_name_not_its_key() {
+    let root = ew_testdir::fresh_dir("ew-api-maker-name");
+    let tiers = LibraryTiers {
+        system: Vec::new(),
+        community: root.join("data").join("packs"),
+        company: vec![root.join("company")],
+        user: root.join("data").join("libraries"),
+        cache: root.join("cache"),
+    };
+    let project = serde_json::from_str(
+        r#"{"id":"7f0c2a91-5d3e-7b48-9a61-0e2f4c8d1b37","derivation_profile":"2027.1"}"#,
+    )
+    .unwrap();
+    let mut s = Session::from_records(
+        project,
+        [],
+        [],
+        SessionOptions {
+            libraries: Some(tiers),
+            ..SessionOptions::default()
+        },
+    )
+    .unwrap();
+    let lib = s
+        .libraries_mut()
+        .create(
+            &root.join("company").join("makers.ewlib"),
+            "makers",
+            "Makers",
+            "CC0-1.0",
+        )
+        .unwrap();
+    s.libraries_mut()
+        .write(lib, &ew_testkit::library::generated_parts(1, lib))
+        .unwrap();
+    let r: LibRef = serde_json::from_value(json!({
+        "library": lib.to_string(),
+        "item": ew_testkit::library::manufacturer_item(lib, 0).to_string(),
+        "version_req": "^1"
+    }))
+    .unwrap();
+    let name = s.library_manufacturer(&r);
+    drop(s);
+    std::fs::remove_dir_all(&root).unwrap();
+    // The record's key is "M00"; its name is what the chooser groups by.
+    assert_eq!(name, "Manufacturer 00");
 }

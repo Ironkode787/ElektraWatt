@@ -974,6 +974,65 @@ fn the_strip_chooser_says_what_it_waits_for_and_a_canvas_press_starts_nothing() 
     assert_ne!(state(&s)["status"][0], hint);
 }
 
+/// FT-1087 (ID-1184; play-test rv-vis-7, t0059): the chooser's order does not change between openings. Placing a
+/// terminal from a library part embeds the part, and the part keeps its row: the rows (maker, part number, function) of
+/// the chooser opened again are those of the first opening, only the part's `library` mark is gone.
+#[test]
+fn ft1087_the_chooser_keeps_its_order_when_a_placement_embeds_a_part() {
+    use ew_viewmodel::tools::PickerRow;
+    let tmp = Tmp::new("ft1087-order");
+    let mut s = shell(&tmp, "103");
+    // The part rows: maker, part number, the template function; and whether the project held the part.
+    let rows = |s: &ShellModel| -> Vec<(String, String, u16, bool)> {
+        let p = s.picker().expect("the picker");
+        p.rows
+            .iter()
+            .filter_map(|r| match r {
+                PickerRow::PartFn(i, k) => {
+                    let part = &p.catalogue.parts[*i];
+                    Some((
+                        part.manufacturer.clone(),
+                        part.part_number.clone(),
+                        part.functions[*k].index,
+                        part.library.is_none(),
+                    ))
+                }
+                _ => None,
+            })
+            .collect()
+    };
+    done(&mut s, "tool.place", json!({}));
+    let before = rows(&s);
+    let held_before = |n: &str| before.iter().any(|r| r.1 == n && r.3);
+    assert!(!held_before("EW-GEN-TRM-1"), "the library part is not held yet");
+    assert!(before.iter().any(|r| r.1 == "EW-GEN-TRM-1"));
+    let keys: Vec<(&str, &str)> = before.iter().map(|r| (r.0.as_str(), r.1.as_str())).collect();
+    let mut sorted = keys.clone();
+    sorted.sort();
+    assert_eq!(keys, sorted, "maker, then part number");
+    done(&mut s, "ui.dismiss", json!({}));
+    // The placement embeds the part with its closure.
+    done(
+        &mut s,
+        "place.pick",
+        json!({"part": "EW-GEN-TRM-1", "strip": "-X1032", "designation": "7"}),
+    );
+    let here = sheet(&s, grid_point(&s, (82, 40)));
+    click(&mut s, here, json!({}));
+    done(&mut s, "ui.dismiss", json!({}));
+    done(&mut s, "tool.place", json!({}));
+    let after = rows(&s);
+    assert!(
+        after.iter().any(|r| r.1 == "EW-GEN-TRM-1" && r.3),
+        "the part is held after its placement"
+    );
+    let order = |v: &[(String, String, u16, bool)]| -> Vec<(String, String, u16)> {
+        v.iter().map(|r| (r.0.clone(), r.1.clone(), r.2)).collect()
+    };
+    assert_eq!(order(&after), order(&before), "the same rows in the same order");
+    s.shutdown();
+}
+
 /// Cycle 36 (play-test rv-txt-2): the picker's filter matches a part's description and category and a symbol's name
 /// and keywords besides the keys, every typed token somewhere in the row: "relay" finds EW-GEN-RLY-1 ("Relay with
 /// four changeover contacts"), "relay changeover" too, "relay valve" nothing of it; "feed-through" (a keyword) finds

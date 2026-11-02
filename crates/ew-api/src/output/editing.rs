@@ -29,7 +29,7 @@ use ew_derive::ew_units::{Nm, Orient2, Pt2, Rect};
 use ew_derive::{
     CpRef, DeviceTag, DisplayedTag, FunctionCps, PageOrder, PageRef, PhysicalWiresOf, PotentialNameOf,
     PotentialPartition, Q, WireNumbers, box_caption, cp_label, cp_point, free_text, group_marker,
-    live_connections, manufacturer_name,
+    live_connections,
 };
 use ew_dl::{ItemKind, PathEl};
 use ew_library::starter::{self, StarterKind};
@@ -121,7 +121,7 @@ pub struct CataloguePart {
     /// The part's description in words (FT-712: the picker row leads with it): its neutral text, else its first
     /// language's; empty when it has none.
     pub description: String,
-    /// The manufacturer's key.
+    /// The manufacturer's name (the library record's, held or not; [`Session::library_manufacturer`]).
     pub manufacturer: String,
     /// The template's functions, in template order.
     pub functions: Vec<CatalogueTemplateFn>,
@@ -432,8 +432,10 @@ impl Session {
     /// the project identifier set's letter for the FnDef's category (`ew-rds`' mapping), `black_box` whether the
     /// FnDef's contact kind is `black_box`, `terminal` whether its first category is `Terminal`, `allowed` whether
     /// the page's type allows the symbol's representation type (`allowed_rep_types`). `parts` lists every embedded
-    /// part copy with a non-empty function template, by part number (ties by copy ID); a template function's
-    /// `symbol` is the key of the first allowed symbol row that draws its FnDef.
+    /// part copy with a non-empty function template and every part of the system libraries the project does not
+    /// hold, in one order: manufacturer name, part number, copy ID (FT-1087, ID-1184: embedding a part on placing
+    /// it does not move it); a template function's `symbol` is the key of the first allowed symbol row that draws
+    /// its FnDef.
     pub fn place_catalogue(&self, folio: &str) -> Option<PlaceCatalogue> {
         let q = self.query();
         let (_, page_id) = drawn_page(&q, folio)?;
@@ -467,34 +469,32 @@ impl Session {
                 .cmp(&b.key)
                 .then_with(|| b.copy.is_some().cmp(&a.copy.is_some()))
         });
+        // FT-1087 (ID-1184): one order for the chooser, (maker, part number, copy), across the embedded copies and the
+        // system libraries' parts the project does not hold, so that embedding a part on placing it does not move it;
+        // and one maker name, the library record's, held or not ([`Session::library_manufacturer`]).
         let mut parts: Vec<CataloguePart> = Vec::new();
         for (id, copy) in q.parts().iter() {
             if let Some(row) = catalogue_part(&q, &rows, id.as_uuid(), &copy.item, None) {
                 parts.push(CataloguePart {
-                    manufacturer: manufacturer_name(&q, &copy.item.manufacturer),
+                    manufacturer: self.library_manufacturer(&copy.item.manufacturer),
                     ..row
                 });
             }
         }
+        // WP-S2.18 D6: the system libraries' parts the project does not hold.
+        for c in self.library_parts() {
+            if q.parts().contains(c.id) {
+                continue;
+            }
+            let manufacturer = self.library_manufacturer(&c.item.manufacturer);
+            let source = Some((c.library_id.as_uuid(), c.item_id.as_uuid()));
+            if let Some(row) = catalogue_part(&q, &rows, c.id.as_uuid(), &c.item, source) {
+                parts.push(CataloguePart { manufacturer, ..row });
+            }
+        }
         parts.sort_by(|a, b| {
-            (&a.part_number, &a.manufacturer, a.copy).cmp(&(&b.part_number, &b.manufacturer, b.copy))
+            (&a.manufacturer, &a.part_number, a.copy).cmp(&(&b.manufacturer, &b.part_number, b.copy))
         });
-        // WP-S2.18 D6: the system libraries' parts the project does not hold, after the embedded copies.
-        let mut library: Vec<CataloguePart> = self
-            .library_parts()
-            .into_iter()
-            .filter(|c| !q.parts().contains(c.id))
-            .filter_map(|c| {
-                let manufacturer = self.library_manufacturer(&c.item.manufacturer);
-                let source = Some((c.library_id.as_uuid(), c.item_id.as_uuid()));
-                catalogue_part(&q, &rows, c.id.as_uuid(), &c.item, source)
-                    .map(|row| CataloguePart { manufacturer, ..row })
-            })
-            .collect();
-        library.sort_by(|a, b| {
-            (&a.part_number, &a.manufacturer, a.copy).cmp(&(&b.part_number, &b.manufacturer, b.copy))
-        });
-        parts.extend(library);
         Some(PlaceCatalogue {
             symbols: rows.into_iter().map(|(r, _)| r).collect(),
             parts,

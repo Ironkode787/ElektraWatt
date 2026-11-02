@@ -98,28 +98,25 @@ fn the_catalogue_of_folio_102_keeps_the_grid_family_and_maps_the_letters() {
         cat.symbols.iter().any(|r| r.copy.is_none()),
         "starter rows beside the embedded ones"
     );
-    // Parts: every embedded part copy with a template, by part number, then the system libraries' parts the project
-    // does not hold, by part number (WP-S2.18 D6); a template function names a symbol of the page that draws its FnDef.
-    let held: Vec<&str> = cat
+    // Parts: every embedded part copy with a template and every part of the system libraries the project does not hold,
+    // in one order, (maker, part number, copy), embedded or not (FT-1087, ID-1184); a template function names a symbol
+    // of the page that draws its FnDef.
+    let order: Vec<(&str, &str, Uuid)> = cat
         .parts
         .iter()
-        .take_while(|p| p.library.is_none())
-        .map(|p| p.part_number.as_str())
+        .map(|p| (p.manufacturer.as_str(), p.part_number.as_str(), p.copy))
         .collect();
-    let library: Vec<&str> = cat.parts[held.len()..]
+    let mut sorted = order.clone();
+    sorted.sort();
+    assert_eq!(order, sorted, "one order across embedded and library parts");
+    assert!(cat.parts.iter().any(|p| p.library.is_none()), "embedded rows");
+    let library: Vec<&str> = cat
+        .parts
         .iter()
+        .filter(|p| p.library.is_some())
         .map(|p| p.part_number.as_str())
         .collect();
-    assert!(
-        cat.parts[held.len()..].iter().all(|p| p.library.is_some()),
-        "embedded first"
-    );
-    for numbers in [&held, &library] {
-        let mut sorted = numbers.clone();
-        sorted.sort();
-        assert_eq!(numbers, &sorted);
-    }
-    assert!(!held.is_empty());
+    assert!(!library.is_empty());
     assert!(library.iter().all(|n| n.starts_with("EW-GEN-")), "{library:?}");
     for p in &cat.parts {
         assert!(!p.functions.is_empty());

@@ -556,15 +556,24 @@ impl Session {
             .collect()
     }
 
-    /// The manufacturer a library part names, as the picker shows it: the held copy's name, else the library
-    /// record's key; empty when neither resolves.
+    /// The manufacturer a part names, as the picker and the Properties part cell show it, held or not (FT-1087): the
+    /// held copy's name, else the library record's name (its key only when it has no name); empty when neither
+    /// resolves. The name is the same text before and after the part is embedded, so that a maker group does not
+    /// change on placing a part.
     pub fn library_manufacturer(&self, r: &LibRef) -> String {
         let held = ew_derive::manufacturer_name(&self.query(), r);
         if !held.is_empty() {
             return held;
         }
         match self.libraries().resolve(r) {
-            Ok(LibDocument::Manufacturer(c)) => c.item.key.as_str().to_owned(),
+            Ok(LibDocument::Manufacturer(c)) => {
+                let name = ew_derive::neutral(&c.item.name);
+                if name.is_empty() {
+                    c.item.key.as_str().to_owned()
+                } else {
+                    name
+                }
+            }
             _ => String::new(),
         }
     }

@@ -162,14 +162,13 @@ impl Picker {
             }
         }
         if self.mode != PickerMode::Exchange {
-            // FT-425 (WP-S2.17 part 4): the part rows grouped by manufacturer (in the manufacturer's order, the
-            // catalogue's order within one), under the manufacturer's header ([`Picker::header_before`]); the filter
-            // matches the manufacturer too.
+            // FT-425 (WP-S2.17 part 4): the part rows grouped by manufacturer, under the manufacturer's header
+            // ([`Picker::header_before`]); the filter matches the manufacturer too. FT-1087 (ID-1184): one order,
+            // (manufacturer, part number), whether a part is embedded or not, the catalogue's order within a tie.
             let mut parts: Vec<usize> = (0..self.catalogue.parts.len()).collect();
             parts.sort_by(|a, b| {
-                self.catalogue.parts[*a]
-                    .manufacturer
-                    .cmp(&self.catalogue.parts[*b].manufacturer)
+                let (a, b) = (&self.catalogue.parts[*a], &self.catalogue.parts[*b]);
+                (&a.manufacturer, &a.part_number).cmp(&(&b.manufacturer, &b.part_number))
             });
             for p in parts {
                 let part = &self.catalogue.parts[p];
