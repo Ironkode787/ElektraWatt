@@ -7,8 +7,10 @@
 //!   module by `assembly.attach` (to a plain device or another module) unbinds its coil in the same step; a move
 //!   within the module keeps it; undo restores it. (`fields.set` does not set `parent`.)
 //! - FT-352: N2 reads a module's children through the parent index, so a child added meanwhile invalidates a prepared
-//!   transaction and the commit re-runs N2 over it. (`assembly.attach` itself scans the device table, so an unrelated
-//!   device edit still invalidates an attach: not N2's read.)
+//!   transaction and the commit re-runs N2 over it.
+//! - FT-953: the unbind of FT-320 checks every descendant of a moved sub-assembly.
+//! - FT-955: `assembly.attach` reads the parent's children through the parent index, so an unrelated device edit
+//!   leaves a prepared attach valid.
 //! - FT-321: a module re-parted with `part.assign replace` re-pins its channels from the old part's pins to the new
 //!   part's; no pin, or a pin another channel holds, unbinds with a notice; a channel bound elsewhere stays.
 //! - Ruling 8 ("rewrite every notice of the two files with `crate::words::device` and `crate::words::function` ...,
@@ -275,8 +277,7 @@ fn ft320_a_move_within_the_module_keeps_the_binding() {
 
 /// FT-352: N2 reads the module's children through the parent index (`TxBuilder::children_of`, recorded in the read
 /// set as `IndexRead::DeviceChildren`). A move within the module prepared before a valve was added to the module is
-/// re-run at commit, and the re-run sees the new child. (`assembly.attach` itself scans the device table, so an
-/// unrelated device edit invalidates this preview too; the narrower read shows in commands that do not.)
+/// re-run at commit, and the re-run sees the new child.
 #[test]
 fn ft352_n2_reads_the_children_through_the_parent_index() {
     let mut e = engine(model_with(vec![], vec![]));
@@ -297,6 +298,63 @@ fn ft352_n2_reads_the_children_through_the_parent_index() {
         "the valve added meanwhile"
     );
     assert!(binding(&e, 4).is_some(), "the moved valve binds at position 3");
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// FT-953, FT-955
+
+/// FT-953 (ID-1108: "FT-320's unbind checks every descendant of a moved sub-assembly"): a valve that sits on its
+/// module through a sub-assembly leaves the module when the sub-assembly is attached elsewhere; its coil is unbound in
+/// the same step, the notice names the valve and the moved sub-assembly, and undo restores the binding.
+#[test]
+fn ft953_a_moved_sub_assembly_unbinds_the_coils_of_its_descendants() {
+    let mut e = engine(model_with(vec![], vec![]));
+    make_module(&mut e, MODULE_H1);
+    let (_, valve, f) = add_valve(&mut e, 1);
+    assert_eq!(binding(&e, 0), Some(Endpoint::Cp(f, 5)));
+    // the sub-assembly -X1031 on the module, the valve under it: still on the module, so the coil stays bound
+    e.execute(&attach(DEV_102F2, DEV_X1031, None))
+        .expect("sub-assembly on the module");
+    e.execute(&attach(DEV_X1031, valve, Some(1)))
+        .expect("valve under the sub-assembly");
+    assert_eq!(binding(&e, 0), Some(Endpoint::Cp(f, 5)));
+    let (module_tag, valve_tag, sub_tag) = (tag(&e, DEV_102F2), tag(&e, valve), tag(&e, DEV_X1031));
+    let r = e
+        .execute(&attach(DEV_101F1, DEV_X1031, None))
+        .expect("the sub-assembly leaves the module");
+    assert_eq!(binding(&e, 0), None);
+    assert_eq!(
+        r.outcome.notices,
+        [format!(
+            "channel 0 of {module_tag} is unbound: {valve_tag} left the module with {sub_tag}"
+        )]
+    );
+    e.undo(&Origin::Gui).expect("undo");
+    assert_eq!(binding(&e, 0), Some(Endpoint::Cp(f, 5)));
+}
+
+/// FT-955 (ID-1108: "`assembly.attach` reads only the parent's children", ADR-0008): the positions taken under the
+/// parent come from the parent index, so an edit of an unrelated device leaves a prepared attach valid, while a
+/// child added to the parent invalidates it.
+#[test]
+fn ft955_an_unrelated_device_edit_leaves_a_prepared_attach_valid() {
+    let mut e = engine(model_with(vec![], vec![]));
+    let preview = e
+        .preview(&attach(DEV_102F2, DEV_X1031, Some(2)))
+        .expect("preview");
+    let base = preview.base_rev();
+    e.execute(&set_device(DEV_T1, "tag.scheme", json!("child")))
+        .expect("an unrelated edit");
+    assert!(
+        preview.read_set().unchanged_since(e.model(), base),
+        "an unrelated device edit does not touch what the attach read"
+    );
+    e.execute(&attach(DEV_102F2, DEV_3W1, Some(3)))
+        .expect("another child of the parent");
+    assert!(
+        !preview.read_set().unchanged_since(e.model(), base),
+        "a child added to the parent changes the parent index the attach read"
+    );
 }
 
 // ---------------------------------------------------------------------------------------------------------

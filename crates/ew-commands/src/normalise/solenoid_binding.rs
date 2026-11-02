@@ -30,7 +30,9 @@
 //!   (`commands::is_on_module`: the module itself or one of its descendants) is unbound in the same transaction, with
 //!   the notice "channel N of M is unbound: D left the module" (N the channel number, M the module, D the device). A
 //!   move within the module keeps the binding. The check scans the device's bound channels, not its old module,
-//!   because the pairs are keyed by the new parent. Only the moved device's own functions are checked.
+//!   because the pairs are keyed by the new parent. The descendants of a moved device (a sub-assembly) are checked
+//!   alike, through the parent index (FT-953): "channel N of M is unbound: V left the module with D" (V the descendant,
+//!   D the moved device).
 //! - **Children** (FT-352): a module's valve children come from the parent index (`TxBuilder::children_of`), not a
 //!   scan of the device table, so a prepared transaction re-runs when a child is added meanwhile.
 //! - **Notices** name records in words (`crate::words`), never by ID.
@@ -71,9 +73,43 @@ fn parent_changed(tx: &TxBuilder<'_>, dev: &Device) -> bool {
         .is_none_or(|b| b.parent != dev.parent)
 }
 
-/// FT-320: unbinds every channel bound to a CP of a function of `device` whose module `device` is no longer on, with a
-/// notice each. Returns whether it unbound one.
-fn unbind_departed(tx: &mut TxBuilder<'_>, device: &Device) -> Result<bool, CmdError> {
+/// FT-320, FT-953: unbinds every channel bound to a CP of a function of `moved` or of one of its descendants whose module
+/// that device is no longer on, with a notice each. Returns whether it unbound one.
+fn unbind_departed(tx: &mut TxBuilder<'_>, moved: &Device) -> Result<bool, CmdError> {
+    let mut changed = false;
+    for device in subtree(tx, moved.id) {
+        changed |= unbind_device(tx, device, moved.id)?;
+    }
+    Ok(changed)
+}
+
+/// `root` and its descendants, through the parent index (FT-953), `root` first and then breadth first in ID order;
+/// a cycle (EW-INV-009) is visited once.
+fn subtree(tx: &TxBuilder<'_>, root: Id<Device>) -> Vec<Id<Device>> {
+    let mut seen = BTreeSet::from([root]);
+    let mut out = vec![root];
+    let mut at = 0;
+    while let Some(&d) = out.get(at) {
+        at += 1;
+        for c in tx.children_of(d) {
+            if seen.insert(c) {
+                out.push(c);
+            }
+        }
+    }
+    out
+}
+
+/// Unbinds the channels bound to `device`'s functions whose module it is no longer on; `moved` is the device whose
+/// parent changed (`device` itself or an ancestor).
+fn unbind_device(
+    tx: &mut TxBuilder<'_>,
+    device: Id<Device>,
+    moved: Id<Device>,
+) -> Result<bool, CmdError> {
+    let Some(device) = tx.get::<Device>(device) else {
+        return Ok(false);
+    };
     let mut functions = tx.functions_of_device(device.id);
     functions.sort();
     let mut bound: BTreeSet<Id<Channel>> = BTreeSet::new();
@@ -81,7 +117,7 @@ fn unbind_departed(tx: &mut TxBuilder<'_>, device: &Device) -> Result<bool, CmdE
         let Some(func) = tx.get::<Function>(f) else {
             continue;
         };
-        for idx in crate::commands::common::function_cp_indices(tx, &func, device) {
+        for idx in crate::commands::common::function_cp_indices(tx, &func, &device) {
             bound.extend(tx.channels_at_cp(f, idx));
         }
     }
@@ -97,8 +133,13 @@ fn unbind_departed(tx: &mut TxBuilder<'_>, device: &Device) -> Result<bool, CmdE
             continue;
         }
         tx.update::<Channel>(id, |c| c.binding = None)?;
+        let with = if moved == device.id {
+            String::new()
+        } else {
+            format!(" with {}", words::device(tx, moved))
+        };
         tx.notice(format!(
-            "channel {} of {} is unbound: {} left the module",
+            "channel {} of {} is unbound: {} left the module{with}",
             c.number,
             words::device(tx, c.module),
             words::device(tx, device.id)

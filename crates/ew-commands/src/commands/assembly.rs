@@ -52,15 +52,18 @@ fn ancestors(tx: &TxBuilder<'_>, device: Id<Device>) -> Vec<Id<Device>> {
     out
 }
 
-/// The positions taken among the children of `parent`, except `skip`: position → child.
+/// The positions taken among the children of `parent`, except `skip`: position → child. The children come from the
+/// parent index (`TxBuilder::children_of`), not a scan of the device table, so an edit of an unrelated device leaves a
+/// prepared attach valid (FT-955, ADR-0008).
 fn taken_positions(
     tx: &TxBuilder<'_>,
     parent: Id<Device>,
     skip: &BTreeSet<Id<Device>>,
 ) -> BTreeMap<u32, Id<Device>> {
-    tx.iter::<Device>()
+    tx.children_of(parent)
         .into_iter()
-        .filter(|d| d.parent == Some(parent) && !skip.contains(&d.id))
+        .filter(|c| !skip.contains(c))
+        .filter_map(|c| tx.get::<Device>(c))
         .filter_map(|d| d.position.map(|p| (p, d.id)))
         .collect()
 }
