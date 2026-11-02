@@ -386,15 +386,12 @@ fn pg8_refusals_notes_and_read_only_rows() {
         "{:?}",
         shell.properties().notes()
     );
-    // A row that cannot be edited, in an editable project: computed, not read-only (ID-1106: "in an editable
-    // project, a row that cannot be edited gives the reason ... with a new key `reason-row-computed`").
+    // The ID row reads its read-only reason (ID-1113: "a row with a read-only reason reads that reason").
     assert_eq!(
-        refused(&mut shell, "props.set", json!({"row": "device/id", "value": "x"})),
-        "reason-row-computed"
-    );
-    assert_eq!(
-        ew_viewmodel::strings::text(key!("reason-row-computed")),
-        "This value is computed from the drawing; it cannot be edited here."
+        shell.dispatch("props.set", &json!({"row": "device/id", "value": "x"})),
+        Outcome::Failed {
+            message: "This row cannot be edited: identity.".to_owned()
+        }
     );
     done(&mut shell, "props.project", json!({}));
     assert_eq!(
@@ -884,19 +881,26 @@ fn selected_page_item_properties_refresh_after_edit() {
             EditRoute::ReadOnly(FieldReadOnly::Narrowed { .. })
         ));
     }
-    // ID-1106: in an editable project a row that cannot be edited gives `reason-row-computed`.
-    for path in ["page", "kind"] {
-        assert_eq!(
-            refused(
-                &mut shell,
-                "props.set",
-                json!({
-                    "row": format!("page_item/{path}"), "value": "x"
-                })
-            ),
-            "reason-row-computed"
-        );
-    }
+    // ID-1113: the narrowed row reads its read-only reason; `kind` is a group header (its members are editable), whose
+    // row offers no action of its own.
+    let set = |shell: &mut ShellModel, path: &str| {
+        shell.dispatch(
+            "props.set",
+            &json!({"row": format!("page_item/{path}"), "value": "x"}),
+        )
+    };
+    assert_eq!(
+        set(&mut shell, "page"),
+        Outcome::Failed {
+            message: NARROWED.to_owned()
+        }
+    );
+    assert_eq!(
+        set(&mut shell, "kind"),
+        Outcome::Refused {
+            reason_key: key!("reason-action-not-offered")
+        }
+    );
     assert_eq!(
         shell.session_calls().property_sheet,
         calls + 1,
@@ -1083,3 +1087,57 @@ fn ft554_wire_marker_beside_colour_and_the_mode_switch_counts_markers() {
         "{all}"
     );
 }
+
+/// ID-1113 (C45-p2#1): "in an editable project, for a row refused an action: a derived row (`is_derived`) reads
+/// `reason-row-computed`; a row with a read-only reason reads that reason: identity, narrowed, command, human-only,
+/// no command, generated; an editable row that does not offer the action reads a new key". Each text whole.
+#[test]
+fn a_refused_row_action_names_why_the_row_refuses_it() {
+    let tmp = Tmp::new("props-refusal-reasons");
+    let mut shell = writable(&tmp, "102");
+    let failed = |message: &str| Outcome::Failed {
+        message: message.to_owned(),
+    };
+    let action = |shell: &mut ShellModel, row: &str, action: &str| {
+        shell.dispatch("props.action", &json!({"row": row, "action": action}))
+    };
+    done(&mut shell, "select.set", json!({"refs": ["tag:-102F1"]}));
+    // An editable row that does not offer Reset.
+    assert_eq!(
+        action(&mut shell, "device/function_text", "reset"),
+        Outcome::Refused {
+            reason_key: key!("reason-action-not-offered")
+        }
+    );
+    assert_eq!(
+        ew_viewmodel::strings::text(key!("reason-action-not-offered")),
+        "That action does not apply to this row; its menu shows the ones that do."
+    );
+    // The identity row reads its read-only reason.
+    assert_eq!(
+        action(&mut shell, "device/id", "edit"),
+        failed("This row cannot be edited: identity.")
+    );
+    // A derived row is computed.
+    done(&mut shell, "select.set", json!({"ids": [W29]}));
+    assert_eq!(
+        action(&mut shell, "connection/derived.potential", "edit"),
+        Outcome::Refused {
+            reason_key: key!("reason-row-computed")
+        }
+    );
+    assert_eq!(
+        ew_viewmodel::strings::text(key!("reason-row-computed")),
+        "This value is computed from the drawing; it cannot be edited here."
+    );
+    // A row a command of its own changes reads that reason.
+    assert_eq!(
+        action(&mut shell, "connection/a", "edit"),
+        failed("This row cannot be edited: changed with the canvas.")
+    );
+    shell.shutdown();
+}
+
+/// The refusal of a page item's narrowed row (ID-1113), whole.
+const NARROWED: &str =
+    "This row cannot be edited: stays on its page; delete it and place it on the other page.";

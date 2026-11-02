@@ -1072,12 +1072,17 @@ pub const TEXTS: &[(&str, &str)] = &[
     ("reason-read-only", "The project is open read-only"),
     (
         "reason-point-outside-drawing",
-        "That point lies outside the drawing area.",
+        "That point lies too far away to draw; check the page's scale and datum.",
     ),
     (
         "reason-row-computed",
         "This value is computed from the drawing; it cannot be edited here.",
     ),
+    (
+        "reason-action-not-offered",
+        "That action does not apply to this row; its menu shows the ones that do.",
+    ),
+    ("props-refused-read-only", "This row cannot be edited: {0}."),
     ("reason-nothing-to-undo", "Nothing to undo"),
     ("reason-nothing-to-redo", "Nothing to redo"),
     ("reason-no-project", "No project is open"),
@@ -3916,17 +3921,7 @@ mod tests {
         for file in &files {
             let text = std::fs::read_to_string(file).expect("an ew-api source");
             for line in text.lines() {
-                // The odd pieces between quotes are the literals of the line.
-                for literal in line.split('"').skip(1).step_by(2) {
-                    let is_key = prefixes
-                        .iter()
-                        .any(|p| literal.len() > p.len() && literal.starts_with(p.as_str()))
-                        && literal
-                            .bytes()
-                            .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-' || b == b'_');
-                    if !is_key {
-                        continue;
-                    }
+                for literal in quoted_keys(line, &prefixes) {
                     found += 1;
                     if !ew_api::TEXT_KEYS.contains(&literal) {
                         let name = file.strip_prefix(&src).unwrap_or(file).display().to_string();
@@ -3940,6 +3935,58 @@ mod tests {
         }
         assert!(found > 0, "the scan found no key literal");
         assert_eq!(missing, Vec::<String>::new());
+    }
+
+    /// The quoted keys of `line`: every `"<prefix>[a-z0-9_-]+"` anywhere on it, whatever quotes stand before it
+    /// (ID-1113, C45-p2#3).
+    fn quoted_keys<'l>(line: &'l str, prefixes: &[String]) -> Vec<&'l str> {
+        let is_key_byte = |b: u8| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-' || b == b'_';
+        let bytes = line.as_bytes();
+        let mut keys = Vec::new();
+        for (open, _) in line.match_indices('"') {
+            let start = open + 1;
+            let len = bytes[start..].iter().take_while(|b| is_key_byte(**b)).count();
+            let end = start + len;
+            if bytes.get(end) != Some(&b'"') {
+                continue;
+            }
+            let candidate = &line[start..end];
+            if prefixes
+                .iter()
+                .any(|p| candidate.len() > p.len() && candidate.starts_with(p.as_str()))
+            {
+                keys.push(candidate);
+            }
+        }
+        keys
+    }
+
+    /// ID-1113 (C45-p2#3): "match a quoted key (`\"<prefix>[a-z0-9_-]+\"`) anywhere on the line": a `'"'` or an
+    /// escaped `\"` before a key hides it no more.
+    #[test]
+    fn the_key_scan_finds_a_key_after_a_quote_character() {
+        let prefixes = vec!["reason-".to_owned()];
+        assert_eq!(
+            quoted_keys(
+                r#"    if c == '"' { return Err("reason-after-a-quote"); }"#,
+                &prefixes
+            ),
+            ["reason-after-a-quote"]
+        );
+        assert_eq!(
+            quoted_keys(
+                r#"    let s = "a \"x\" b"; key("reason-after-an-escape")"#,
+                &prefixes
+            ),
+            ["reason-after-an-escape"]
+        );
+        assert_eq!(
+            quoted_keys(
+                r#"    ("reason-one", "not-a-key", "Reason-two", "reason-")"#,
+                &prefixes
+            ),
+            ["reason-one"]
+        );
     }
 
     /// The part editor's field labels are built at run time as `part-field-<f>` over `ew_api::DRAFT_FIELDS`

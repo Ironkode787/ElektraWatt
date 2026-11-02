@@ -390,30 +390,39 @@ impl ShellModel {
         find_row(sheet, key).map(|(s, r)| (s.clone(), r.clone()))
     }
 
-    /// Why a row cannot be edited now: `None` when it can.
-    fn props_refusal(
-        &self,
-        section: &SheetSection,
-        row: &PropRow,
-        action: RowAction,
-    ) -> Option<Key<'static>> {
+    /// Why a row cannot take `action` now, as the outcome that refuses it: `None` when it can (ID-1113). A read-only
+    /// project refuses with `reason-read-only`; in an editable project a derived row is computed
+    /// (`reason-row-computed`), a human-only row keeps `reason-human-only`, a row with another read-only reason reads
+    /// that reason in a sentence (`props-refused-read-only`, a formatted refusal), and an editable row that does not
+    /// offer the action reads `reason-action-not-offered`.
+    fn props_refusal(&self, section: &SheetSection, row: &PropRow, action: RowAction) -> Option<Outcome> {
         let sheet = self.props.sheet()?;
+        let refused = |reason_key: Key<'static>| Some(Outcome::Refused { reason_key });
         if sheet.read_only.is_some() || !self.is_writable() {
-            return Some(key!("reason-read-only"));
+            return refused(key!("reason-read-only"));
         }
         if row.actions.contains(&action) {
             return None;
         }
-        if read_only_reason(sheet, section, row).is_some()
-            && matches!(
-                row.route,
-                crate::properties::EditRoute::ReadOnly(crate::properties::FieldReadOnly::HumanOnly { .. })
-            )
-        {
-            return Some(key!("reason-human-only"));
+        if is_derived(row) {
+            return refused(key!("reason-row-computed"));
         }
-        // ID-1106: in an editable project, a row without the action is computed, not read-only.
-        Some(key!("reason-row-computed"))
+        match read_only_reason(sheet, section, row) {
+            Some(_)
+                if matches!(
+                    row.route,
+                    crate::properties::EditRoute::ReadOnly(
+                        crate::properties::FieldReadOnly::HumanOnly { .. }
+                    )
+                ) =>
+            {
+                refused(key!("reason-human-only"))
+            }
+            Some(reason) => Some(Outcome::Failed {
+                message: strings::format(key!("props-refused-read-only"), &[&reason]),
+            }),
+            None => refused(key!("reason-action-not-offered")),
+        }
     }
 
     // -----------------------------------------------------------------------------------------------------------
@@ -644,8 +653,8 @@ impl ShellModel {
         let Some((section, row)) = self.props_find(key) else {
             return failed(key!("error-no-row"), &[key]);
         };
-        if let Some(reason_key) = self.props_refusal(&section, &row, action) {
-            return Outcome::Refused { reason_key };
+        if let Some(out) = self.props_refusal(&section, &row, action) {
+            return out;
         }
         let shown = buffer.is_none();
         let buffer = match buffer {
@@ -1854,8 +1863,8 @@ impl ShellModel {
         let Some((section, row)) = self.props_find(key) else {
             return failed(key!("error-no-row"), &[key]);
         };
-        if let Some(reason_key) = self.props_refusal(&section, &row, action) {
-            return Outcome::Refused { reason_key };
+        if let Some(out) = self.props_refusal(&section, &row, action) {
+            return out;
         }
         self.props.row = Some(key.to_owned());
         match action {
@@ -1982,8 +1991,8 @@ impl ShellModel {
         let Some((_, list)) = self.props_find(&list_key) else {
             return failed(key!("error-no-row"), &[&list_key]);
         };
-        if let Some(reason_key) = self.props_refusal(&section, &list, RowAction::Edit) {
-            return Outcome::Refused { reason_key };
+        if let Some(out) = self.props_refusal(&section, &list, RowAction::Edit) {
+            return out;
         }
         let crate::properties::FieldType::List(item) = list.ty.inner() else {
             return failed(key!("error-bad-param"), &["row"]);
@@ -2026,10 +2035,10 @@ impl ShellModel {
                 reason_key: key!("reason-not-mltext"),
             };
         }
-        if let Some(reason_key) = self.props_refusal(&section, &row, RowAction::Edit)
+        if let Some(out) = self.props_refusal(&section, &row, RowAction::Edit)
             && !(is_derived(&row) && row.actions.contains(&RowAction::Override))
         {
-            return Outcome::Refused { reason_key };
+            return out;
         }
         let lang = match string_param(p, "lang") {
             Err(e) => return e,

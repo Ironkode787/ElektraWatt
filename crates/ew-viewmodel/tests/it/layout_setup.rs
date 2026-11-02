@@ -706,7 +706,7 @@ fn create_line(s: &ShellModel) -> String {
 /// C44-p2#1: on 902 at a scale of 1:4 000 000 000 with its datum 10⁹ mm away, every click lies far beyond the `i64`
 /// range on the surface; Draw rail's two clicks and Draw duct's finish are refused by the tool in words, before the
 /// command, and nothing panics (ID-1106: "The draw tools refuse a point outside the drawable range before they send
-/// the command, with \"That point lies outside the drawing area.\"").
+/// the command"; ID-1113: the text reads "That point lies too far away to draw; check the page's scale and datum.").
 #[test]
 fn far_points_of_the_draw_tools_are_refused_in_words() {
     let tmp = Tmp::new("far");
@@ -746,8 +746,8 @@ fn far_points_of_the_draw_tools_are_refused_in_words() {
     s.shutdown();
 }
 
-/// The draw tools' refusal of a point beyond the drawable range (ID-1106), whole.
-const FAR_REFUSAL: &str = "That point lies outside the drawing area.";
+/// The draw tools' refusal of a point beyond the drawable range (ID-1106, the text ID-1113's), whole.
+const FAR_REFUSAL: &str = "That point lies too far away to draw; check the page's scale and datum.";
 
 /// The texts of the draw tools' overlay labels.
 fn overlay_labels(s: &ShellModel) -> Vec<String> {
