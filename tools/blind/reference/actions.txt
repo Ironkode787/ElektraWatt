@@ -279,6 +279,7 @@ props.set Command "Set a property" menu none shortcut none context global hidden
 props.accept_tag_proposal Command "Accept the proposed tag" menu none shortcut none context global hidden params ""
 props.choose Command "Choose" menu none shortcut none context properties hidden params "index?:uint, step?:int"
 props.row_menu View "Property actions" menu none shortcut "Shift+F10" context properties hidden params "step?:int"
+props.follow View "Go to the linked record" menu none shortcut "F" context properties hidden params "row?:text"
 props.action Command "Run a property action" menu none shortcut none context properties hidden params "row?:text, action:enum(edit|clear|override|reset|freeze|unfreeze)"
 props.list Command "Change a list property" menu none shortcut none context properties hidden params "row?:text, op:enum(add|remove|up|down)"
 props.mltext Command "Texts per language" menu none shortcut "Shift+Enter" context properties hidden params "row?:text, lang?:text, text?:text"

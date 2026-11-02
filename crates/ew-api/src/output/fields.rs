@@ -1116,8 +1116,40 @@ pub(crate) fn format_with(cx: &dyn DisplayCx, ty: &FieldType, value: &Value) -> 
         },
         // A unit variant of a tagged enum (a function's `black_box`) is its word.
         FieldType::Group(_) => value.as_str().map(str::to_owned).unwrap_or_default(),
-        FieldType::Json => length_source_text(value).unwrap_or_else(|| compact_json(value)),
+        FieldType::Json => length_source_text(value)
+            .or_else(|| scale_text(value))
+            .unwrap_or_else(|| compact_json(value)),
     }
+}
+
+/// A page's drawing scale in the words its title block prints and its editor reads back (FT-1019, ID-1107):
+/// `{"one_to": n}` as `1:n`, `not_to_scale` as `not to scale`; `None` for any other JSON value.
+fn scale_text(value: &Value) -> Option<String> {
+    match value {
+        Value::String(s) if s == "not_to_scale" => Some("not to scale".to_owned()),
+        Value::Object(m) if m.len() == 1 => Some(format!("1:{}", m.get("one_to")?.as_u64()?)),
+        _ => None,
+    }
+}
+
+/// A scale typed in the words [`scale_text`] shows (FT-1019): `1:n` (spaces allowed around the colon) is
+/// `{"one_to": n}`, `not to scale` is `not_to_scale`; `None` for any other text (a JSON value, parsed as before).
+fn scale_input(text: &str) -> Option<Result<Value, InputError>> {
+    let t = text.trim();
+    if t.eq_ignore_ascii_case("not to scale") {
+        return Some(Ok(Value::String("not_to_scale".to_owned())));
+    }
+    let (one, n) = t.split_once(':')?;
+    let n = n.trim();
+    if one.trim() != "1" || n.is_empty() || !n.chars().all(|c| c.is_ascii_digit()) {
+        return None;
+    }
+    Some(match n.parse::<u32>() {
+        Ok(k) if k > 0 => Ok(serde_json::json!({ "one_to": k })),
+        _ => Err(invalid(format!(
+            "`{t}` is not a scale; type 1:n with n a whole number from 1 to 4294967295"
+        ))),
+    })
 }
 
 /// A cable's length source in the words its typed editor reads back (FT-429, WP-S2.07 §7): `{"manual": <nm>}` as
@@ -1438,6 +1470,12 @@ pub(crate) fn parse_input(
             notes: Vec::new(),
         })
     };
+    // FT-1019: a scale is typed as it shows ("1:5").
+    if matches!(ty, FieldType::Json)
+        && let Some(scale) = scale_input(text)
+    {
+        return scale.and_then(plain);
+    }
     match ty {
         FieldType::Optional(inner) => {
             if text.trim().is_empty() {

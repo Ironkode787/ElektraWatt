@@ -1419,6 +1419,10 @@ pub const TEXTS: &[(&str, &str)] = &[
     ("action-props-accept-tag-proposal", "Accept the proposed tag"),
     ("action-props-choose", "Choose"),
     ("action-props-row-menu", "Property actions"),
+    // FT-1030 (ID-1107): a link row of the grid followed.
+    ("action-props-follow", "Go to the linked record"),
+    ("reason-row-no-link", "The property row links to nothing"),
+    ("error-device-not-drawn", "{0} is drawn on no page."),
     ("action-props-filter", "Filter the properties"),
     ("props-filter-hint", "Filter properties"),
     ("props-finding-tip", "{0}: {1}"),

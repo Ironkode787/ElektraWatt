@@ -920,6 +920,80 @@ impl ShellModel {
         Outcome::Done
     }
 
+    /// `props.follow {row?}` (F or a click on a link row of the grid; FT-1030, ID-1107): follows the device link of
+    /// `row` (else the focused row) as the Devices navigator opens the device: its main page shows in the focused
+    /// group and its drawings there are selected.
+    pub(crate) fn act_props_follow(&mut self, p: &Map<String, Value>) -> Outcome {
+        let key = match self.props_row_param(p) {
+            Ok(k) => k,
+            Err(e) => return e,
+        };
+        let device = self
+            .props_find(&key)
+            .and_then(|(_, row)| match (row.ty.inner(), &row.value) {
+                (
+                    crate::properties::FieldType::Link { kind },
+                    crate::properties::RowValue::One { json, text },
+                ) if kind == "device" => json
+                    .as_str()
+                    .and_then(|id| id.parse::<ew_api::output::Uuid>().ok())
+                    .map(|id| (id, text.clone())),
+                _ => None,
+            });
+        let Some((device, tag)) = device else {
+            return Outcome::Refused {
+                reason_key: key!("reason-row-no-link"),
+            };
+        };
+        let Some(project) = &self.project else {
+            return Outcome::Refused {
+                reason_key: key!("reason-no-project"),
+            };
+        };
+        // The device's row of the Devices navigator (a terminal's of the Strips navigator) knows its main page and
+        // its drawings there (§6.1 item 6 of WP-S2.06: main function first, then page order).
+        let open = [ew_api::output::NavKind::Devices, ew_api::output::NavKind::Strips]
+            .into_iter()
+            .find_map(|kind| {
+                project
+                    .session
+                    .navigator_table(kind)
+                    .nodes
+                    .into_iter()
+                    .find(|n| n.records.first() == Some(&device) && n.open.is_some())
+                    .and_then(|n| n.open)
+            });
+        let Some(open) = open else {
+            return failed(key!("error-device-not-drawn"), &[&tag]);
+        };
+        let page = PageId(Destination::Page(open.page));
+        let Some(g) = self.area.as_ref().map(|a| a.focused) else {
+            return Outcome::Done;
+        };
+        if self.row_index(page).is_none() {
+            return Outcome::Refused {
+                reason_key: key!("reason-no-page"),
+            };
+        }
+        self.jump_to(g, page);
+        let items: Vec<ew_api::output::ew_dl::EntityRef> = open
+            .select
+            .iter()
+            .map(|u| ew_api::output::ew_dl::EntityRef(*u))
+            .collect();
+        if self
+            .tools
+            .selection
+            .apply(&crate::tools::SelectionChange::Replace(items))
+        {
+            self.tools.announcement = Some(strings::format(
+                key!("announce-selected"),
+                &[&self.tools.selection.items.len().to_string()],
+            ));
+        }
+        Outcome::Done
+    }
+
     pub(crate) fn act_link_step(&mut self, p: &Map<String, Value>, forward: bool) -> Outcome {
         let g = match self.group_param(p) {
             Ok(g) => g,

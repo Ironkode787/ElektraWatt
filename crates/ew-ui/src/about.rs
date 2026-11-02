@@ -57,6 +57,20 @@ fn dialog_now_ms(ctx: &egui::Context) -> u64 {
         .unwrap_or_else(now_ms)
 }
 
+/// FT-1021 (ID-1107): a pre-filled field selects its whole text when it takes the focus, as the Properties editor does,
+/// so that what is typed replaces the proposal instead of being appended to it.
+fn select_all_on_focus(ui: &Ui, field: &egui::Response, text: &str) {
+    if !field.gained_focus() || text.is_empty() {
+        return;
+    }
+    let mut state = egui::text_edit::TextEditState::load(ui.ctx(), field.id).unwrap_or_default();
+    state
+        .cursor
+        .set_char_range(Some(egui::text::CCursorRange::select_all_str(text)));
+    state.store(ui.ctx(), field.id);
+    ui.ctx().request_repaint();
+}
+
 /// A one-line text field that tells the shell what is typed (`on_change`) and says "go" on Enter.
 fn name_field(
     ui: &mut Ui,
@@ -76,6 +90,7 @@ fn name_field(
     if just_opened {
         edit.request_focus();
     }
+    select_all_on_focus(ui, &edit, text);
     let changed = (field != text).then(|| field.clone());
     let enter = edit.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter));
     (changed, enter)
@@ -359,6 +374,7 @@ fn form_fields(ui: &mut Ui, form: &FormDialog, just_opened: bool, events: &mut V
                     edit.request_focus();
                     first = false;
                 }
+                select_all_on_focus(ui, &edit, &f.value);
                 if text != f.value {
                     events.push(Event::FormField(f.name, text));
                 }

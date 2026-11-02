@@ -62,6 +62,11 @@ pub struct PropertiesPane {
     value_needs: Vec<(f32, f32)>,
     /// The filter field's text (FT-541; the shell's filter is set from it).
     filter: String,
+    /// The cursor row last brought into view (FT-1037): a row the cursor moves to (Up, Down, Home, End) scrolls into
+    /// view once, and the pane's scrolling is the user's again after that.
+    cursor_shown: Option<String>,
+    /// F followed a link row (FT-1030): its typed letter, in this frame or a later one, is dropped, not typed.
+    follow_letter: bool,
     /// The shell's filter text as last seen: a change made elsewhere (`props.filter`, Clear filter) shows in the field
     /// even while a text field has the focus.
     filter_seen: String,
@@ -123,6 +128,8 @@ impl PropertiesPane {
             if !editing {
                 self.keys(ui, shell, events);
             }
+        } else {
+            self.follow_letter = false;
         }
         if pane.gained_focus() && !ours {
             events.push(Event::Action("ui.focus", json!({"area": "properties"})));
@@ -316,9 +323,45 @@ impl PropertiesPane {
     }
 
     /// The grid's keys while it has the focus and no field is edited (§6.9).
-    fn keys(&self, ui: &Ui, shell: &ShellModel, events: &mut Vec<Event>) {
+    fn keys(&mut self, ui: &Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         let pressed = |m: Modifiers, k: Key| ui.ctx().input_mut(|i| i.consume_key(m, k));
         let row = shell.properties_row();
+        // FT-1030 (ID-1107): the keymap's `props.follow` (F) follows a link row, and its typed letter starts no edit
+        // (the letter may come in the same frame as the key or in a later one); on any other row the key is typed (it
+        // starts the row's edit, as every letter does).
+        if let Some(at) = events
+            .iter()
+            .position(|e| matches!(e, Event::Action("props.follow", _)))
+        {
+            if row.as_deref().is_some_and(|k| link_row(shell, k)) {
+                self.follow_letter = true;
+            } else {
+                events.remove(at);
+            }
+        }
+        if self.follow_letter {
+            let (letter, other_key) = ui.ctx().input_mut(|i| {
+                let mut letter = false;
+                i.events.retain(|e| match e {
+                    egui::Event::Text(t) if t.eq_ignore_ascii_case("f") => {
+                        letter = true;
+                        false
+                    }
+                    _ => true,
+                });
+                let other_key = i.events.iter().any(|e| {
+                    matches!(e, egui::Event::Key { key, pressed: true, .. } if *key != Key::F)
+                        || matches!(e, egui::Event::Text(_))
+                });
+                (letter, other_key)
+            });
+            if letter || other_key {
+                self.follow_letter = false;
+            }
+            if letter {
+                return;
+            }
+        }
         // The actions popup: Up, Down and Enter.
         if let Some(ew_viewmodel::properties::Popup::Actions { index, .. }) = shell.properties().popup() {
             if pressed(Modifiers::NONE, Key::ArrowDown) {
@@ -624,6 +667,11 @@ impl PropertiesPane {
             events.push(Event::Action("props.row_menu", json!({})));
         }
         let selected = focused == Some(row.key.as_str());
+        // FT-1037 (ID-1107): the cursor row moved to (an arrow, Home, End) scrolls into view.
+        if selected && self.cursor_shown.as_deref() != Some(row.key.as_str()) {
+            ui.scroll_to_rect(rect, None);
+            self.cursor_shown = Some(row.key.clone());
+        }
         // The cursor row: the Selected state of a tree row (§6.6), `color.accent.subtle` and the 2-px accent bar.
         if selected {
             ui.painter()
@@ -680,6 +728,8 @@ impl PropertiesPane {
             events.push(Event::Action("props.row", json!({"to": row.key})));
         }
         let editing = props.edit().is_some_and(|e| e.row == row.key);
+        // Where the value cell (or its editor) starts: the choice list's left edge (FT-1036).
+        let value_left = child.cursor().min.x;
         // The chip's word: the source in one word, the whole text in the tooltip (doc 16a §6.8).
         let word = chip_word(&row.provenance);
         if editing {
@@ -742,9 +792,15 @@ impl PropertiesPane {
                 // `color.border.control` on hover; `space.icon` padding; an empty value is an em dash in
                 // `color.text.tertiary`; the provenance chip at the cell's right end.
                 let editable = !header && row.actions.contains(&RowAction::Edit);
+                // FT-1030 (ID-1107): a link row (Device) is a link in `color.accent` (doc 16a P4); a click follows it.
+                let link = !header && !editable && is_link(row);
                 let (cell, response) = child.allocate_exact_size(
                     Vec2::new(value_w, t.size_control_inline),
-                    if editable { Sense::click() } else { Sense::hover() },
+                    if editable || link {
+                        Sense::click()
+                    } else {
+                        Sense::hover()
+                    },
                 );
                 let shown = if value.is_empty() && !header {
                     strings::text(key!("props-empty-value")).to_owned()
@@ -755,6 +811,8 @@ impl PropertiesPane {
                 let cell_name = shown.clone();
                 let role = if editable {
                     egui::Role::Button
+                } else if link {
+                    egui::Role::Link
                 } else {
                     egui::Role::Label
                 };
@@ -783,14 +841,18 @@ impl PropertiesPane {
                 }
                 let colour = if value.is_empty() {
                     tertiary
+                } else if link {
+                    t.accent
                 } else {
                     t.text_primary
                 };
                 // The value ellipsised at the chip (or the cell's end), the whole value in the tooltip.
-                let mut job = egui::text::LayoutJob::single_section(
-                    shown.clone(),
-                    egui::TextFormat::simple(crate::theme::font(&t.type_body), colour.color32()),
-                );
+                let mut format = egui::TextFormat::simple(crate::theme::font(&t.type_body), colour.color32());
+                if link && response.hovered() {
+                    format.underline = crate::theme::stroke(t.border_width, t.accent);
+                    child.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
+                }
+                let mut job = egui::text::LayoutJob::single_section(shown.clone(), format);
                 job.wrap = egui::text::TextWrapping::truncate_at_width(
                     (text_right - cell.left() - t.space_icon).max(0.0),
                 );
@@ -809,6 +871,9 @@ impl PropertiesPane {
                 let long = (cut || value.chars().count() > MAX_SHOWN).then(|| value.clone());
                 let tip = if on_chip {
                     Some(chip.clone())
+                } else if link {
+                    // The canvas link's hint (FT-1030): "Click or F: go to -201U7".
+                    Some(strings::format(key!("status-hint-link"), &[&value]))
                 } else if !editable && !header {
                     reason.clone().or(long)
                 } else {
@@ -821,7 +886,11 @@ impl PropertiesPane {
                 if response.clicked() {
                     events.push(Event::Action("ui.focus", json!({"area": "properties"})));
                     events.push(Event::Action("props.row", json!({"to": row.key})));
-                    events.push(Event::Action("props.edit", json!({})));
+                    if link {
+                        events.push(Event::Action("props.follow", json!({"row": row.key})));
+                    } else {
+                        events.push(Event::Action("props.edit", json!({})));
+                    }
                 }
             }
             if !row.actions.is_empty() {
@@ -919,8 +988,13 @@ impl PropertiesPane {
                 });
             }
         }
-        if let Some(c) = props.choices().filter(|c| c.row == row.key) {
-            self.choices(ui, &t, &label, &row.key, rect, c, events);
+        // FT-1035 (ID-1107): a list with no match opens no popup. FT-1036: the list starts under the value cell.
+        if let Some(c) = props
+            .choices()
+            .filter(|c| c.row == row.key && !c.items.is_empty())
+        {
+            let anchor = egui::Rect::from_x_y_ranges(value_left..=rect.right() - t.space_4, rect.y_range());
+            self.choices(ui, &t, &label, &row.key, anchor, c, events);
         } else if self.choices_rect.as_ref().is_some_and(|(r, _)| *r == row.key) {
             self.choices_rect = None;
         }
@@ -1099,6 +1173,8 @@ impl PropertiesPane {
                         .inner_margin(egui::Margin::symmetric(crate::theme::margin_px(t.space_icon), 0)),
                 )
                 .desired_width(f32::INFINITY)
+                // FT-1034 (ID-1107): the text centred in its field, as the value's is in its cell.
+                .align(egui::Align2::LEFT_CENTER)
                 .hint_text(label),
         );
         let radius = crate::theme::radius(t.radius_sm);
@@ -1211,10 +1287,10 @@ pub(crate) fn remember_free_area(ui: &Ui) {
 }
 
 /// Where the options popup of a choice editor opens (the top-left corner) and how high its list may be before it
-/// scrolls: under `anchor` (the row) when the list's `content` height and its frame (`pad` on each side) fit between
+/// scrolls: under `anchor` (the row's value cell, FT-1036) when the list's `content` height and its frame (`pad` on each side) fit between
 /// the row and `bound`'s bottom (the status bar), else over the row when they fit above it, else on the side with
 /// more room with the list cut to that room. `gap` separates the popup from the row. The popup is `width` wide, its
-/// left edge at the row's, moved left as far as needed to stay inside `bound`.
+/// left edge at the anchor's, moved left as far as needed to stay inside `bound`.
 pub(crate) fn choices_placement(
     anchor: egui::Rect,
     bound: egui::Rect,
@@ -1236,6 +1312,21 @@ pub(crate) fn choices_placement(
     } else {
         (egui::pos2(x, bound.top()), (above - 2.0 * pad).max(0.0))
     }
+}
+
+/// Whether `row` is a link the grid follows (FT-1030): a device link with a value.
+fn is_link(row: &PropRow) -> bool {
+    matches!(row.ty.inner(), FieldType::Link { kind } if kind == "device")
+        && matches!(&row.value, RowValue::One { json, .. } if json.is_string())
+}
+
+/// Whether the row `key` of the shell's sheet is a link the grid follows ([`is_link`]).
+fn link_row(shell: &ShellModel, key: &str) -> bool {
+    shell
+        .properties()
+        .sheet()
+        .and_then(|sheet| ew_viewmodel::properties::find_row(sheet, key))
+        .is_some_and(|(_, row)| is_link(row))
 }
 
 /// The focused row's key and value when it is an editable boolean (Space toggles it).

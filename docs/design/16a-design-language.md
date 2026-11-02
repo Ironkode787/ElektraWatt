@@ -878,6 +878,14 @@ part number: "EW-GEN-CPU-1 …"), so the tag or the number is not cut while the 
 does not count. As built a prose value that fits whole narrows the labels too; the review's ruling is that only
 identifier values do, and that the widths get a 0.5 px margin (FT-861, FT-862, cycle 41).
 
+*As built (cycle 45; decision log ID-1107).* **A value that names a record is a link.** A placement's Device row is
+drawn in `color.accent` (P4), underlined on hover; a click or F (`props.follow`, the Properties context of every
+keymap) shows the device's main page with its drawings selected, and the tooltip is the canvas link's hint ("Click or
+F: go to -102F1"). While an editor field has the focus F is typed (FT-1030). A page's scale reads and is typed "1:10";
+its connection grid is an Advanced row (FT-1019). The editor's text is centred as the value's (FT-1034); a choice list
+opens under the value cell (FT-1036) and not at all when nothing matches (FT-1035); Home, End and the arrows scroll the
+cursor row into view (FT-1037). A pre-filled form or dialog field selects its text when it takes the focus (FT-1021).
+
 ### 6.9 Cards
 
 A card is a bounded panel inside a pane for one object that waits for a decision (the preview card of WP-S2.05 and

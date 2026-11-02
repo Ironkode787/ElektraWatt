@@ -1428,6 +1428,20 @@
       "label_key": "action-props-row-menu"
     },
     {
+      "action": "props.follow",
+      "bindings": {
+        "ew": [
+          "F"
+        ],
+        "kicad": [
+          "F"
+        ]
+      },
+      "context": "properties",
+      "label": "Go to the linked record",
+      "label_key": "action-props-follow"
+    },
+    {
       "action": "props.mltext",
       "bindings": {
         "ew": [

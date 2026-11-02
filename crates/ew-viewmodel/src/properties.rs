@@ -678,8 +678,9 @@ const PRIMARY: &[(&str, &[&str])] = &[
 ];
 
 /// The internal members shown only under Advanced, by the row's path: the record version, the ID, the source reference
-/// with its key and lineage, the tag counter and the form's UUID.
-const ADVANCED: &[&str] = &["$v", "id", "source_ref", "tag.counter", "form"];
+/// with its key and lineage, the tag counter, the form's UUID and (FT-1019, ID-1107) a page's connection grid, a
+/// fraction of nanometres (`num`, `den`) with no meaning to the user.
+const ADVANCED: &[&str] = &["$v", "id", "source_ref", "tag.counter", "form", "grid"];
 
 /// Whether `rest` is `base` or one of its members (`parts[0].qty` of `parts`).
 fn under(rest: &str, base: &str) -> bool {

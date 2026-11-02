@@ -1,0 +1,134 @@
+// SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+//! Cycle 45's Properties polish through the shell on temporary copies of Golden A (ID-1107): `props.follow` on a
+//! placement's Device row (FT-1030) and 902's Placement rows in words (FT-1019).
+
+use crate::common;
+
+use common::{Tmp, done, refused};
+use ew_viewmodel::ew_api::output::{PanelTables, RowValue};
+use ew_viewmodel::properties::{row_label, value_text, visible_rows};
+use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
+use serde_json::json;
+
+fn panel(shell: &ShellModel) -> std::sync::Arc<PanelTables> {
+    shell.panel_tables().expect("a panel page with a surface view")
+}
+
+/// The (label, value) pairs of the rows on show, Advanced on or off.
+fn shown(s: &ShellModel, advanced: bool) -> Vec<(String, String)> {
+    let sheet = s.properties().sheet().expect("a Properties sheet");
+    visible_rows(sheet, &s.properties_collapsed(), advanced, "")
+        .into_iter()
+        .map(|v| (row_label(v.section, v.row), value_text(v.row)))
+        .collect()
+}
+
+fn pairs(list: &[(&str, &str)]) -> Vec<(String, String)> {
+    list.iter()
+        .map(|(a, b)| ((*a).to_owned(), (*b).to_owned()))
+        .collect()
+}
+
+/// ID-1107 (FT-1030): "Properties' Device row is a link in the accent colour that a click or F (`props.follow`, in the
+/// properties context of every keymap, through the action registry; typed, not followed, while an editor field has
+/// the focus) follows to the device on its main page". `props.follow` on -102F1's placement shows -102F1's main page
+/// (102) with its drawings there selected, so Properties shows the device; on a row that links nothing it is refused.
+#[test]
+fn props_follow_goes_from_a_placement_to_its_device_on_its_main_page() {
+    let tmp = Tmp::new("props-follow");
+    let mut s = tmp.shell_in(Mode::Headless, true, "902");
+    done(&mut s, "props.show", json!({"on": true}));
+    let f1 = panel(&s)
+        .placements
+        .iter()
+        .find(|p| p.tag == "-102F1")
+        .unwrap()
+        .id;
+    done(&mut s, "select.set", json!({"ids": [f1.to_string()]}));
+    let sheet = s.properties().sheet().expect("a sheet");
+    let device = sheet.sections[0]
+        .rows
+        .iter()
+        .find(|r| r.key == "placement/derived.device")
+        .expect("the Device row");
+    assert!(matches!(&device.value, RowValue::One { text, .. } if text == "-102F1"));
+    // A row that links nothing: refused in words.
+    assert_eq!(
+        refused(
+            &mut s,
+            "props.follow",
+            json!({"row": "placement/derived.position"})
+        ),
+        "reason-row-no-link"
+    );
+    assert_eq!(s.current_folio(), Some("902"));
+    // The focused row, moved to the Device row, followed.
+    done(&mut s, "props.row", json!({"to": "placement/derived.device"}));
+    done(&mut s, "props.follow", json!({}));
+    assert_eq!(s.current_folio(), Some("102"));
+    assert!(!s.selection().items.is_empty());
+    let sheet = s.properties().sheet().expect("the device's sheet");
+    assert_eq!(sheet.header.title, "-102F1");
+    s.shutdown();
+}
+
+/// The keymaps bind `props.follow` to F in the Properties context, as `nav.follow` is F on the canvas.
+#[test]
+fn f_follows_in_the_properties_context() {
+    let tmp = Tmp::new("props-follow-key");
+    let s = tmp.shell_in(Mode::Headless, false, "902");
+    let keys: Vec<(String, String)> = s
+        .bindings()
+        .into_iter()
+        .filter(|b| b.action == "props.follow")
+        .map(|b| (b.chord.text(), format!("{:?}", b.context)))
+        .collect();
+    assert_eq!(keys, pairs(&[("F", "Properties")]));
+}
+
+/// ID-1107 (FT-1019): "a placement's rows show labels and values in the user's words, and the members with no meaning
+/// to the user move to Advanced (doc 16a §6.8)". 902's Placement rows: Scale "1:10"; the form's ID and the connection
+/// grid's fraction only under Advanced. The scale is edited in its words.
+#[test]
+fn the_placement_rows_of_902_read_in_words_and_the_scale_edits_as_it_shows() {
+    let tmp = Tmp::new("ft1019");
+    let mut s = tmp.shell_in(Mode::Headless, true, "902");
+    done(&mut s, "props.show", json!({"on": true}));
+    done(&mut s, "select.set", json!({"ids": []}));
+    let rows = shown(&s, false);
+    let placement: Vec<(String, String)> = rows
+        .iter()
+        .filter(|(l, _)| ["Scale", "Connection grid", "Den", "Num", "Form"].contains(&l.as_str()))
+        .cloned()
+        .collect();
+    assert_eq!(placement, pairs(&[("Scale", "1:10")]));
+    let advanced: Vec<(String, String)> = shown(&s, true)
+        .into_iter()
+        .filter(|(l, _)| ["Scale", "Connection grid", "Den", "Num", "Form"].contains(&l.as_str()))
+        .collect();
+    assert_eq!(
+        advanced,
+        pairs(&[
+            ("Form", "c80af135-34f8-574c-8f52-756bd24c7bd0"),
+            ("Connection grid", ""),
+            ("Den", "3"),
+            ("Num", "7937500"),
+            ("Scale", "1:10"),
+        ])
+    );
+    done(&mut s, "props.edit", json!({"row": "page/scale"}));
+    assert_eq!(s.properties().edit().map(|e| e.buffer.as_str()), Some("1:10"));
+    done(&mut s, "props.input", json!({"text": "1:5"}));
+    assert_eq!(s.dispatch("props.commit", &json!({})), Outcome::Done);
+    let sheet = s.properties().sheet().expect("a sheet");
+    let scale = sheet
+        .sections
+        .iter()
+        .flat_map(|sec| &sec.rows)
+        .find(|r| r.key == "page/scale")
+        .expect("the Scale row");
+    assert_eq!(value_text(scale), "1:5");
+    s.shutdown();
+}

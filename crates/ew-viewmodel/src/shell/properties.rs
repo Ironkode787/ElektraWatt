@@ -661,6 +661,14 @@ impl ShellModel {
                         text.clone()
                     }
                 }
+                // FT-1019 (ID-1107): a JSON value shown in words (a scale's `1:10`, a length's `12.5 m`) is edited in
+                // those words, which its parser reads back.
+                (RowValue::One { json, text }, None)
+                    if matches!(row.ty.inner(), crate::properties::FieldType::Json)
+                        && serde_json::from_str::<Value>(text).ok().as_ref() != Some(json) =>
+                {
+                    text.clone()
+                }
                 (RowValue::One { json, text }, None) => {
                     if row.ty.is_container() || matches!(row.ty.inner(), crate::properties::FieldType::Json) {
                         json.to_string()

@@ -4468,6 +4468,19 @@ pub static ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_props_row_menu(p),
         ))),
     )),
+    // FT-1030 (ID-1107): F (or a click) on a link row of the grid follows it, as F follows a link on the canvas.
+    keeps_banner(with_params(
+        "row?:text",
+        hidden(in_properties(act(
+            "props.follow",
+            View,
+            Menu::Edit,
+            &["F"],
+            grid_shown,
+            None,
+            |s, p| s.act_props_follow(p),
+        ))),
+    )),
     keeps_banner(with_params(
         "row?:text, action:enum(edit|clear|override|reset|freeze|unfreeze)",
         hidden(in_properties(act(
