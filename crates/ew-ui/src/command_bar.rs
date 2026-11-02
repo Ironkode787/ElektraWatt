@@ -298,6 +298,16 @@ fn tooltip(b: &CommandButton) -> String {
     }
 }
 
+/// A click on the disabled command `b` (FT-1025, ID-1107; doc 16a §5.2): its reason as a toast, the sentence its
+/// tooltip ends with; nothing for an enabled command or one without a reason.
+fn say_why(b: &CommandButton, events: &mut Vec<Event>) {
+    if !b.enabled
+        && let Some(reason) = &b.reason
+    {
+        events.push(Event::DisabledClick(reason.clone()));
+    }
+}
+
 /// What a button's node says and how it answers the pointer.
 pub(crate) struct Spec<'a> {
     /// Its accessible name.
@@ -764,6 +774,9 @@ impl CommandBarHost {
             paint_icon(ui, b.icon, icon, colour.color32(), t.icon_stroke);
             if response.clicked() && b.enabled {
                 events.push(Event::Action(b.id, Value::Null));
+            } else if response.clicked() {
+                // FT-1025: a greyed command says why.
+                say_why(b, events);
             }
             x = r.right();
         }
@@ -952,6 +965,10 @@ fn command_row(ui: &mut Ui, t: &Tokens, model: &CommandBarModel, row: Rect, even
                     let Some((gi, bi)) = p.button else { continue };
                     let b = &model.groups[gi].buttons[bi];
                     let (response, chevron) = command_button(ui, t, b, p.rect);
+                    // FT-1025 (ID-1107, doc 16a §5.2): a click on a greyed command says why, as its tooltip does.
+                    if response.clicked() && !b.enabled {
+                        say_why(b, events);
+                    }
                     match &b.kind {
                         ButtonKind::Plain => {
                             if response.clicked() && b.enabled {
@@ -1032,6 +1049,9 @@ fn next_step(ui: &Ui, t: &Tokens, b: &CommandButton, rect: Rect, events: &mut Ve
     ui.painter().galley(at, galley, text.color32());
     if response.clicked() && b.enabled {
         events.push(Event::Action(b.id, Value::Null));
+    } else if response.clicked() {
+        // FT-1025: a greyed command says why.
+        say_why(b, events);
     }
 }
 

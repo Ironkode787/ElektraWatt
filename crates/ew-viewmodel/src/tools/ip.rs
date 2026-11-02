@@ -355,6 +355,8 @@ pub struct IpTool {
     suppressed: bool,
     /// The pin the last overlay's click would connect to, in words (the ghost's `connects`).
     shown_connects: Option<String>,
+    /// The base of the proposal the last overlay showed, when it is taken and the name differs from it (FT-1023).
+    shown_taken: Option<String>,
 }
 
 /// What a click does with the ghost's CP where it is (FIXPT41).
@@ -391,6 +393,7 @@ impl IpTool {
             copies: Vec::new(),
             suppressed: false,
             shown_connects: None,
+            shown_taken: None,
         }
     }
 
@@ -493,12 +496,20 @@ impl IpTool {
 
     /// The name and direction at the insertion point `pos` ([`propose`]).
     fn resolve(&self, cx: &ToolCx<'_>, pos: Option<(i64, i64)>) -> (String, IpDir) {
+        let (name, direction, _) = self.proposal(cx, pos);
+        (name, direction)
+    }
+
+    /// The name and direction at the insertion point `pos` ([`propose`]), and the base the proposal started from when
+    /// it is taken, so that the name differs from it (FT-1023); `None` for a typed name or a free base.
+    fn proposal(&self, cx: &ToolCx<'_>, pos: Option<(i64, i64)>) -> (String, IpDir, Option<String>) {
         let (auto, chosen) = self.auto_direction(pos);
         let tables = &cx.page.tables;
         // A typed name is the user's: the series rule never changes it (a second target of a star source shares the
         // name on purpose; fix round, item 4).
         if let Some(typed) = &self.typed {
-            return propose(typed, true, auto, chosen, self.star, &self.project, tables);
+            let (name, direction) = propose(typed, true, auto, chosen, self.star, &self.project, tables);
+            return (name, direction, None);
         }
         // An external connection point proposes its own name, never the last interruption point's (FT-619).
         let base = if self.external.is_some() {
@@ -509,7 +520,17 @@ impl IpTool {
                 .or_else(|| self.memory.last_name.clone())
         };
         let base = base.unwrap_or_else(|| "IP".to_owned());
-        propose(&base, false, auto, chosen, self.star, &self.project, tables)
+        let (name, direction) = propose(&base, false, auto, chosen, self.star, &self.project, tables);
+        let taken = (name != base).then_some(base);
+        (name, direction, taken)
+    }
+
+    /// The sentence the HUD and the placement toast say when the proposal is not its base's name (FT-1023, ID-1107):
+    /// "0V is taken, so this point is 0V-1."; `None` when the point takes its base's name or a typed one.
+    pub fn taken_note(&self) -> Option<String> {
+        self.shown_taken
+            .as_ref()
+            .map(|base| crate::strings::format(key!("hud-ip-taken"), &[base, &self.shown]))
     }
 
     /// What a click at the insertion point `pos` does with the ghost's CP (FIXPT41): on the CP of an interruption
@@ -626,9 +647,10 @@ impl IpTool {
     /// The overlay at the current point; the ghost's name follows it.
     pub fn refresh(&mut self, cx: &ToolCx<'_>) -> Overlay {
         let pos = self.at.map(|(_, p)| p);
-        let (name, direction) = self.resolve(cx, pos);
+        let (name, direction, taken) = self.proposal(cx, pos);
         self.shown = name.clone();
         self.shown_dir = direction;
+        self.shown_taken = taken;
         self.shown_connects = match pos.map(|p| self.drop_on(cx, p)) {
             Some(DropOn::Pin(pin)) => Some(crate::describe::pin_in_sentence(&pin.label)),
             _ => None,
@@ -767,6 +789,10 @@ impl Tool for IpTool {
 
     fn wants_hover(&self) -> bool {
         false
+    }
+
+    fn proposal_note(&self) -> Option<String> {
+        self.taken_note()
     }
 
     fn ghost(&self) -> Option<Ghost> {

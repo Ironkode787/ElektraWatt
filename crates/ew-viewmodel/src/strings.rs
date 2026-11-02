@@ -542,6 +542,11 @@ pub const TEXTS: &[(&str, &str)] = &[
     ("action-tool-ip-direction", "Interruption point direction"),
     ("action-tool-star-source", "Star source"),
     ("action-ip-name", "Interruption point name"),
+    // FT-1022 (ID-1107): the name field's tooltip names the keys that end it.
+    (
+        "action-ip-name-hint",
+        "Enter or Tab ends the name and gives the keys back to the tool",
+    ),
     ("action-ip-external", "External reference"),
     ("action-ip-continue-on", "Continue on page…"),
     ("action-ip-arrange-selected", "Arrange interruption points"),
@@ -1044,6 +1049,8 @@ pub const TEXTS: &[(&str, &str)] = &[
     ("hud-place-wires", "connects {0}; Alt+Click or {1} places without"),
     // FIXPT41: the IP tool's ghost on a pin.
     ("hud-ip-connects", "connects to {0}"),
+    // FT-1023 (ID-1107): the proposal's base is taken; the HUD and the placement toast say the name it gets.
+    ("hud-ip-taken", "{0} is taken, so this point is {1}."),
     // FT-899: the IP tool's role in words, so "target" and "star source" explain themselves.
     ("hud-ip-source", "source: feeds its targets"),
     ("hud-ip-target", "target: fed by its source"),

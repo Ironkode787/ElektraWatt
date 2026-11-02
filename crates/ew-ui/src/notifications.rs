@@ -101,8 +101,8 @@ fn line_job(line: &str, font: egui::FontId, colour: egui::Color32) -> egui::text
     job
 }
 
-/// One toast (doc 16a §6.10).
-fn toast(ui: &mut Ui, t: &Tokens, shell: &ShellModel, n: &Notification, events: &mut Vec<Event>) {
+/// One toast (doc 16a §6.10); returns whether the pointer is over it (hovering pauses it).
+fn toast(ui: &mut Ui, t: &Tokens, shell: &ShellModel, n: &Notification, events: &mut Vec<Event>) -> bool {
     let width = toast_width(t, ui.ctx().content_rect().width());
     let frame = egui::Frame::new()
         .fill(t.surface_raised.color32())
@@ -170,6 +170,7 @@ fn toast(ui: &mut Ui, t: &Tokens, shell: &ShellModel, n: &Notification, events: 
     node.widget_info(|| {
         egui::WidgetInfo::labeled(egui::Role::Group, true, strings::text(key!("toast-name")))
     });
+    ui.rect_contains_pointer(frame.response.rect)
 }
 
 /// Where the toasts stand: the canvas's top right under its tabs, else the window's under the command bar.
@@ -186,18 +187,31 @@ pub(crate) fn toast_anchor(t: &Tokens, ctx: &Context, canvas: Option<Rect>, bar_
 /// The id of the toasts' area (tests: its layer).
 pub const TOASTS_AREA: &str = "ew-toasts";
 
-/// The visible toasts of `shell`, the newest at the top, anchored at `anchor` (their top-right corner); `under_modal`
-/// puts them in the middle order, below a modal dialog's backdrop (doc 16a §6.12), so the dialog is the only focus.
+/// A toast's opacity `age` seconds (frame clock) after the frame that first painted it, for a toast that lives `life`
+/// seconds and fades over `fade` seconds (`motion.base`): it fades in over the first `fade` seconds and out over the
+/// last, linearly, and stands at 1 between (FT-1027, ID-1107; doc 16a §4.12, §6.10). No fade (`motion.none`): 1.
+pub(crate) fn toast_opacity(age: f64, life: f64, fade: f64) -> f32 {
+    if fade <= 0.0 {
+        return 1.0;
+    }
+    ((age / fade).min((life - age) / fade)).clamp(0.0, 1.0) as f32
+}
+
+/// The visible toasts of `shell`, the newest at the top, anchored at `anchor` (their top-right corner), each painted
+/// at its opacity in `opacity` (1 when absent); `under_modal` puts them in the middle order, below a modal dialog's
+/// backdrop (doc 16a §6.12), so the dialog is the only focus. Returns the serials of the toasts under the pointer.
 pub(crate) fn show_toasts(
     ctx: &Context,
     shell: &ShellModel,
     anchor: egui::Pos2,
     under_modal: bool,
+    opacity: &std::collections::BTreeMap<u64, f32>,
     events: &mut Vec<Event>,
-) {
+) -> Vec<u64> {
     let visible = shell.notifications().visible();
+    let mut hovered = Vec::new();
     if visible.is_empty() {
-        return;
+        return hovered;
     }
     let t = theme::current(ctx);
     let order = if under_modal {
@@ -210,12 +224,24 @@ pub(crate) fn show_toasts(
         .fixed_pos(anchor)
         .order(order)
         .interactable(true)
+        // The fade is the toasts' own, on the frame clock (FT-1027), not the area's.
+        .fade_in(false)
         .show(ctx, |ui| {
             ui.spacing_mut().item_spacing.y = t.space_3;
             for n in visible.into_iter().rev() {
-                toast(ui, &t, shell, n, events);
+                let alpha = opacity.get(&n.serial).copied().unwrap_or(1.0);
+                let over = ui
+                    .scope(|ui| {
+                        ui.multiply_opacity(alpha);
+                        toast(ui, &t, shell, n, events)
+                    })
+                    .inner;
+                if over {
+                    hovered.push(n.serial);
+                }
             }
         });
+    hovered
 }
 
 /// The notifications log while its popover is open.

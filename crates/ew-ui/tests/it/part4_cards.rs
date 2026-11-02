@@ -328,3 +328,95 @@ fn ft_524_a_toast_lives_8_seconds_of_the_frame_clock() {
     }
     panic!("the frame clock did not reach 8 seconds");
 }
+
+/// A harness on Golden A with one toast (an edit's) painted in its first frame; returns the frame time of that frame.
+fn one_toast(h: &mut Harness<'_, App>) -> f64 {
+    settle(h);
+    dispatch(h, "page.goto", json!({"folio": "101"}));
+    dispatch(h, "select.set", json!({"refs": ["tag:-101F1", "tag:-102F1"]}));
+    dispatch(
+        h,
+        "props.set",
+        json!({"row": "device/function_text", "value": "Spare"}),
+    );
+    h.step();
+    assert_eq!(h.state().shell().notifications().visible().len(), 1);
+    h.ctx.input(|i| i.time)
+}
+
+/// One frame at `t` seconds after `shown` on the frame clock; the opacity of the one toast, `None` once it is gone.
+fn opacity_at(h: &mut Harness<'_, App>, shown: f64, t: f64) -> Option<f32> {
+    h.input_mut().time = Some(shown + t);
+    h.step();
+    if h.state().shell().notifications().visible().is_empty() {
+        return None;
+    }
+    let opacities = h.state().toast_opacities();
+    assert!(opacities.len() <= 1, "{opacities:?}");
+    opacities.first().map(|(_, a)| *a)
+}
+
+/// FT-1027, ID-1107: "a toast fades out as it fades in (`motion.base`), on the frame clock." The opacity is 0 in the
+/// frame that first paints it and 1 at `motion.base`; 1 at the start of the fade out, `motion.base` before the 8 s,
+/// half way through it, and the toast is gone at the end.
+#[test]
+fn ft1027_a_toast_fades_in_and_out_over_motion_base_on_the_frame_clock() {
+    let tmp = Tmp::new();
+    let dir = tmp.golden("g.ew");
+    let mut h = harness(&tmp, Scripted::default(), Some(dir));
+    let shown = one_toast(&mut h);
+    let fade = f64::from(ew_ui::theme::current(&h.ctx).motion_base) / 1000.0;
+    assert_eq!(fade, 0.14, "motion.base");
+    assert_eq!(h.state().toast_opacities()[0].1, 0.0, "the first frame");
+    let near = |a: Option<f32>, want: f32, what: &str| {
+        let a = a.unwrap_or_else(|| panic!("{what}: the toast is gone"));
+        assert!((a - want).abs() < 1e-3, "{what}: {a}, want {want}");
+    };
+    near(opacity_at(&mut h, shown, fade / 2.0), 0.5, "half way in");
+    near(opacity_at(&mut h, shown, fade), 1.0, "faded in");
+    near(opacity_at(&mut h, shown, 4.0), 1.0, "standing");
+    near(
+        opacity_at(&mut h, shown, 8.0 - fade),
+        1.0,
+        "the start of the fade out",
+    );
+    near(opacity_at(&mut h, shown, 8.0 - fade / 2.0), 0.5, "half way out");
+    near(
+        opacity_at(&mut h, shown, 8.0 - 0.001),
+        0.007,
+        "the end of the fade out",
+    );
+    assert_eq!(opacity_at(&mut h, shown, 8.0), None, "gone at 8 s");
+    assert_eq!(h.state().shell().notifications().visible().len(), 0);
+    h.state_mut().shell_mut().shutdown();
+}
+
+/// FT-1027, ID-1107: "Hovering still pauses it." A hovered toast's clock stands still: it is on screen, unfaded, 20 s
+/// after it came; once the pointer leaves, its 8 s go on from where they stood.
+#[test]
+fn ft1027_hovering_a_toast_pauses_its_fade() {
+    let tmp = Tmp::new();
+    let dir = tmp.golden("g.ew");
+    let mut h = harness(&tmp, Scripted::default(), Some(dir));
+    let shown = one_toast(&mut h);
+    assert_eq!(opacity_at(&mut h, shown, 1.0), Some(1.0));
+    let toast = h
+        .get_all_by_role(egui::Role::Group)
+        .find(|n| n.accesskit_node().label().as_deref() == Some("Notification"))
+        .expect("the toast's node")
+        .rect()
+        .center();
+    h.input_mut().events.push(egui::Event::PointerMoved(toast));
+    for t in [2.0, 7.95, 20.0] {
+        assert_eq!(opacity_at(&mut h, shown, t), Some(1.0), "hovered at {t} s");
+    }
+    // The pointer leaves: 2 s of its life had passed (the frame clock counts from the frame after the pointer came to
+    // the frame after it left), the rest runs on.
+    h.input_mut()
+        .events
+        .push(egui::Event::PointerMoved(egui::pos2(1.0, 400.0)));
+    assert_eq!(opacity_at(&mut h, shown, 25.0), Some(1.0), "2 s of its life");
+    assert_eq!(opacity_at(&mut h, shown, 30.0), Some(1.0), "7 s of its life");
+    assert_eq!(opacity_at(&mut h, shown, 31.0), None, "8 s of its life are over");
+    h.state_mut().shell_mut().shutdown();
+}

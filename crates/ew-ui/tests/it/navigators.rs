@@ -496,10 +496,114 @@ fn ft891_double_clicking_the_rows_of_100_and_101_shows_each_folio() {
             "a double click on {folio} (one frame: {one_frame})"
         );
     }
-    // The play-test's case: no pause after the double click on 102: egui counts a triple click, and 103 stays shut.
+    // The play-test's case: no pause after the double click on 102: egui counts a triple click, so the double click
+    // never reaches 103; since FT-1024 its single click opens 103 all the same.
     double_click(&mut h, "102", false, 0.5);
     double_click(&mut h, "103", false, 0.0);
-    assert_eq!(h.state().shell().current_folio(), Some("102"));
+    assert_eq!(h.state().shell().current_folio(), Some("103"));
+    h.state_mut().shell_mut().shutdown();
+}
+
+/// One click on the tree item `folio` with `modifiers`, after a pause (no double click with an earlier one).
+fn click_row(h: &mut Harness<'_, App>, folio: &str, modifiers: Modifiers) {
+    let at = item_centre(h, folio);
+    let now = h.ctx.input(|i| i.time);
+    h.input_mut().time = Some(now + 1.0);
+    h.input_mut()
+        .events
+        .push(egui::Event::ModifiersChanged(modifiers));
+    h.input_mut().events.push(egui::Event::PointerMoved(at));
+    h.step();
+    for pressed in [true, false] {
+        h.input_mut().events.push(egui::Event::PointerButton {
+            pos: at,
+            button: PointerButton::Primary,
+            pressed,
+            modifiers,
+        });
+        h.step();
+    }
+    h.input_mut()
+        .events
+        .push(egui::Event::ModifiersChanged(Modifiers::NONE));
+    settle(h);
+    settle(h);
+}
+
+/// The folios of the Pages navigator's marked rows.
+fn marked_folios(h: &Harness<'_, App>) -> Vec<String> {
+    let shell = h.state().shell();
+    shell
+        .navigator_rows()
+        .iter()
+        .filter(|r| shell.navigator().marked().contains(&r.key))
+        .filter_map(|r| match &r.kind {
+            RowKind::Page(i) => Some(shell.page_rows()[*i].folio.clone()),
+            _ => None,
+        })
+        .collect()
+}
+
+/// FT-1024, ID-1107: "A single click on a page row opens that page." (doc 16a §6.6)
+#[test]
+fn ft1024_a_single_click_on_a_page_row_opens_the_page() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp);
+    dispatch(&mut h, "page.goto", json!({"folio": "102"}));
+    settle(&mut h);
+    click_row(&mut h, "101", Modifiers::NONE);
+    assert_eq!(h.state().shell().current_folio(), Some("101"));
+    click_row(&mut h, "103", Modifiers::NONE);
+    assert_eq!(h.state().shell().current_folio(), Some("103"));
+    h.state_mut().shell_mut().shutdown();
+}
+
+/// FT-1024, ID-1107: "Ctrl-click and Shift-click mark rows without opening."
+#[test]
+fn ft1024_ctrl_and_shift_click_mark_page_rows_without_opening() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp);
+    dispatch(&mut h, "page.goto", json!({"folio": "102"}));
+    settle(&mut h);
+    click_row(&mut h, "101", Modifiers::COMMAND);
+    assert_eq!(h.state().shell().current_folio(), Some("102"), "Ctrl-click");
+    assert!(
+        marked_folios(&h).contains(&"101".to_owned()),
+        "Ctrl-click marks 101"
+    );
+    click_row(&mut h, "103", Modifiers::SHIFT);
+    assert_eq!(h.state().shell().current_folio(), Some("102"), "Shift-click");
+    assert!(
+        marked_folios(&h).contains(&"103".to_owned()),
+        "Shift-click marks 103"
+    );
+    h.state_mut().shell_mut().shutdown();
+}
+
+/// FT-1024, ID-1107: "A double click still opens." (one frame, as egui's four events)
+#[test]
+fn ft1024_a_double_click_on_a_page_row_still_opens_the_page() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp);
+    dispatch(&mut h, "page.goto", json!({"folio": "102"}));
+    settle(&mut h);
+    let at = item_centre(&h, "103");
+    let now = h.ctx.input(|i| i.time);
+    h.input_mut().time = Some(now + 1.0);
+    h.input_mut().events.push(egui::Event::PointerMoved(at));
+    h.step();
+    for pressed in [true, false, true, false] {
+        h.input_mut().events.push(egui::Event::PointerButton {
+            pos: at,
+            button: PointerButton::Primary,
+            pressed,
+            modifiers: Modifiers::NONE,
+        });
+    }
+    h.step();
+    settle(&mut h);
+    settle(&mut h);
+    assert_eq!(h.state().shell().current_folio(), Some("103"));
     h.state_mut().shell_mut().shutdown();
 }
 

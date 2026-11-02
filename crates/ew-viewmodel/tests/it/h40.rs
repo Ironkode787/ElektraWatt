@@ -66,3 +66,38 @@ fn parts_list_without_a_bom_block_is_refused_in_words() {
         "reason-no-parts-list"
     );
 }
+
+/// FT-1028, ID-1107: "the command ends with the BOM's first page fitted in the canvas and its row selected in the page
+/// tree", and "dismiss the earlier export toast". After a PDF export on 102, zoomed in, Parts list shows 901 at the
+/// fit zoom, marks its row (the row cursor on it) and leaves no export toast on screen.
+#[test]
+fn ft1028_parts_list_fits_the_page_selects_its_row_and_dismisses_the_export_toast() {
+    let tmp = Tmp::new("h40-ft1028");
+    let mut shell = tmp.shell("102");
+    done(&mut shell, "view.zoom_in", json!({}));
+    let path = tmp.0.join("set.pdf");
+    done(
+        &mut shell,
+        "file.export_pdf",
+        json!({"path": path.to_string_lossy()}),
+    );
+    let toasts =
+        |s: &ShellModel| -> Vec<&'static str> { s.notifications().visible().iter().map(|n| n.key).collect() };
+    assert_eq!(toasts(&shell), ["export"]);
+    done(&mut shell, "lists.parts", json!({}));
+    assert_eq!(shell.current_folio(), Some("901"));
+    let c = shell.canvas().expect("a canvas");
+    assert_eq!(c.zoom(), c.fit_zoom(), "fitted");
+    let rows = shell.page_rows();
+    let marked: Vec<String> = shell
+        .navigator_rows()
+        .iter()
+        .filter(|r| shell.navigator().is_marked(&r.key))
+        .filter_map(|r| match r.kind {
+            ew_viewmodel::navigator::RowKind::Page(i) => Some(rows[i].folio.clone()),
+            ew_viewmodel::navigator::RowKind::Node { .. } => None,
+        })
+        .collect();
+    assert_eq!(marked, ["901"]);
+    assert_eq!(toasts(&shell), Vec::<&str>::new());
+}

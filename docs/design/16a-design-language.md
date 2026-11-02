@@ -448,10 +448,11 @@ icons take their
 | Token | Value | Use |
 |---|---|---|
 | `motion.fast` | 80 ms | Hover and press fades (egui's `animation_time`) |
-| `motion.base` | 140 ms | Popover, menu, toast and HUD fade in |
+| `motion.base` | 140 ms | Popover, menu, toast and HUD fade in; a toast fades out too (ID-1107) |
 | `motion.none` | 0 | Everything when Reduce motion is on, and always on the CPU renderer (doc 16 §10.4) |
 
-No slide-ins, no bounce, no animated zoom by default. A toast or a popover fades in; nothing moves the layout.
+No slide-ins, no bounce, no animated zoom by default. A toast or a popover fades in, and a toast fades out as it fades
+in; nothing moves the layout.
 
 ### 4.13 Density
 
@@ -598,7 +599,9 @@ breadcrumb in the palette. Inside a group:
 - **Split buttons** for a command with variants (Mirror ▸ left to right, top to bottom; Check scheme ▾): the main
   part runs the default, the chevron opens a menu.
 - A command that cannot run now is drawn disabled with its reason as tooltip; nothing is hidden or reflowed by state,
-  so the bar never jumps.
+  so the bar never jumps. *As built (cycle 45; decision log ID-1107, FT-1025):* a click on a disabled command shows
+  its reason as an information toast as well ("A section divider takes no symbols or wires: draw on a schematic
+  page"), where the user looks (P3); a second click replaces that toast.
 
 **Collapse.** Double-clicking a tab or pressing Ctrl+F1 collapses the bar to the tab row (32 px); a tab click then
 shows its command row as a popover over the canvas until a command runs or Escape. **Overflow.** When the window is too
@@ -828,6 +831,10 @@ structure levels) look like other rows with a folder icon and their child count.
 `type.body.strong`. Selected rows take the Selected state; selection synchronisation with the canvas (doc 16 §5.4)
 shows the same accent in both. Pending or muted rows (WP-S2.09 D9) use `color.text.tertiary` and an outline icon.
 
+*As built (cycle 45; decision log ID-1107, FT-1024).* **A single click on a page row opens that page** in the focused
+canvas tab, as a double click does (which still opens); Ctrl-click and Shift-click mark rows without opening, so a
+selection of pages is made without leaving the page on show.
+
 ### 6.7 Table and grid rows
 
 Header row 24 px on `color.surface.sunken`, `type.small` SemiBold in `color.text.secondary`, sticky, with a
@@ -914,6 +921,11 @@ in tree-row style, newest first, each with its time, message and still-valid act
 1280 × 800 floor, 0.22 of the window's width above it (422 px at 1920), never wider than the window. Its line wraps at
 word boundaries up to three rows, so a refusal's reason is never cut at one line; what does not fit in three rows ends
 in an ellipsis, with the whole text in the tooltip, the HUD and the log.
+
+*As built (cycle 45; decision log ID-1107, FT-1027).* **A toast fades out as it fades in:** its opacity rises from 0 to
+1 over `motion.base` from the frame that first paints it, stands at 1, and falls to 0 over the last `motion.base` of
+its 8 s, all on the window's frame clock; then it leaves. Hovering a toast still pauses it: its clock stands still
+while the pointer is on it.
 
 ### 6.11 Banners
 

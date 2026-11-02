@@ -135,12 +135,13 @@ fn a_click_in_the_page_list_marks_and_enter_goes_to_that_page() {
         .unwrap();
     let name =
         ew_ui::ew_viewmodel::navigator::PageNavigator::accessible_name(&row, &rows, shell.current_page());
-    // WP-S2.06 §6.4: a click marks the row and moves the cursor without switching the page; Enter opens it.
+    // WP-S2.06 §6.4: a click marks the row and moves the cursor; since FT-1024 (ID-1107, doc 16a §6.6) it also opens
+    // the page.
     h.get_by_label(&name).click();
     settle(&mut h);
-    assert_eq!(h.state().shell().page_index(), 0);
+    assert_eq!(h.state().shell().page_index(), 3);
     assert!(h.state().shell().navigator().is_marked(&row.key));
-    // Enter on the cursor row (the click put it there and focused the navigator) opens the page.
+    // Enter on the cursor row (the click put it there and focused the navigator) opens it, as before: the page stays.
     h.key_press(egui::Key::Enter);
     settle(&mut h);
     assert_eq!(h.state().shell().page_index(), 3);

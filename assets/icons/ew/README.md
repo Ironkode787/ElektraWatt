@@ -13,6 +13,8 @@ at the token stroke). `cargo xtask gen-icons` reads them with the vendored set a
 |---|---|---|
 | `black-box.svg` | `ew-black-box` | A dashed rectangle: a device drawn as a black box with an open outline |
 | `cable.svg` | `ew-cable` | A cable end: two conductors leave a round sheath end, with a sheath band |
+| `din-rail.svg` | `ew-din-rail` | A DIN rail's top-hat profile: the rail seen end-on, a raised channel between two flanges |
+| `duct.svg` | `ew-duct` | A slotted wiring duct: a channel with the comb slots of its two walls |
 | `interruption-point.svg` | `ew-interruption-point` | A conductor ending in an arrow at a page edge: the connection continues elsewhere |
 | `potential.svg` | `ew-potential` | A conductor with two node dots and two taps ending in connection points: one electrical potential (net) |
 | `qet-grid.svg` | `ew-qet-grid` | A frame with a three-by-three dot grid: the QElectroTech grid badge |

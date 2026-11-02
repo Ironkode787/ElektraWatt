@@ -170,7 +170,12 @@ impl ShellModel {
             }
             // FIXPT41: an interruption point dropped on a pin says where it stands, what it connects to and the way
             // to place it free (the key from the keymap).
-            ResultNote::IpConnected { pos, name, pin } => {
+            ResultNote::IpConnected {
+                pos,
+                name,
+                pin,
+                taken,
+            } => {
                 let cell = self.canvas().and_then(|c| {
                     let page = c.page();
                     page.cell_text(page.snapper.page_to_sheet(pos))
@@ -179,6 +184,11 @@ impl ShellModel {
                 let text = match cell {
                     Some(cell) => strings::format(key!("toast-ip-connected"), &[&name, &cell, &pin, &key]),
                     None => strings::format(key!("toast-ip-connected-no-cell"), &[&name, "", &pin, &key]),
+                };
+                // FT-1023: a renamed point says why first.
+                let text = match taken {
+                    Some(taken) => format!("{taken} {text}"),
+                    None => text,
                 };
                 self.notify(text, true);
             }

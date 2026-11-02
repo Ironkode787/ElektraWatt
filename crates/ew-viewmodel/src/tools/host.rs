@@ -135,6 +135,10 @@ pub(crate) struct ToolHost {
     /// one after every press) and a dwell keep the notice while a tool is busy (FT-751); a refused Enter sets
     /// `(i64::MIN, i64::MIN)`, which no pointer move matches.
     pub notice_at: Option<(i64, i64)>,
+    /// The project revision and the selection's generation at the end of the last dispatch: a notice clears when
+    /// either changes, since the state it refused is gone (FT-1032: a committed command, a Properties edit, undo or
+    /// redo, a selection change).
+    pub notice_basis: Option<(Option<u64>, u64)>,
     // WP-S2.05 part 3
     /// The paste tool committed: at the end of the dispatch Select takes over with the pasted representations selected.
     pub pasted: bool,
@@ -188,6 +192,8 @@ pub enum ResultNote {
         name: String,
         /// The pin, as the ghost named it.
         pin: String,
+        /// The sentence of a proposal whose base is taken, said first (FT-1023).
+        taken: Option<String>,
     },
     /// A delete of representations (Delete, the command bar's Delete): the names of the interruption points among
     /// them and the connections at their connection points that the selection did not name (said only for those
@@ -227,6 +233,7 @@ impl ToolHost {
             notice: None,
             notice_sticky: false,
             notice_at: None,
+            notice_basis: None,
             pasted: false,
             ip_memory: IpMemory::default(),
             black_box_pick: false,

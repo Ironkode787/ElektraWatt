@@ -224,11 +224,24 @@ pub(crate) fn ip_fields(
     events: &mut Vec<crate::app::Event>,
 ) {
     ui.label(strings::text(key!("action-ip-name")));
-    let edit = ui.add(egui::TextEdit::singleline(name).desired_width(120.0));
+    // `lock_focus(true)` keeps Tab from moving the focus to the next widget in the strip (a single-line field inserts no
+    // tab): Tab, like Enter, ends the name and gives the keys back to the tool (FT-1022, ID-1107).
+    let edit = ui
+        .add(
+            egui::TextEdit::singleline(name)
+                .desired_width(120.0)
+                .lock_focus(true),
+        )
+        .on_hover_text(strings::text(key!("action-ip-name-hint")));
     // Named for assistive technology (and the tests); while it has the focus the canvas keys (P, D, B …) stay with it
     // (`app.rs`, the `text_edit_focused` gate of the key routing).
     let label = strings::text(key!("action-ip-name")).to_owned();
     edit.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, true, &label));
+    // Tab ends the name (Enter does so by itself, a single-line field's own key): the field gives up the focus and
+    // takes the key, so that it does not also reach the canvas (Tab there is the next proposal).
+    if edit.has_focus() && ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Tab)) {
+        edit.surrender_focus();
+    }
     // Every change reaches the tool at once, so the name is the next point's however the field is left: by Enter, or
     // by a click on the canvas, whose press the window dispatches before this card's events and before the field
     // reports the lost focus (the play-test of cycle 40). Erasing the field sends the empty text, which cancels the

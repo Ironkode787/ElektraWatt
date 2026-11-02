@@ -478,6 +478,12 @@ pub trait Tool {
     /// Whether the hover, the link hover and the link preview are shown while the tool is active.
     fn wants_hover(&self) -> bool;
 
+    /// A sentence about what the tool proposes, said in the HUD and in the toast of the commit it makes (FT-1023: the
+    /// IP tool's "0V is taken, so this point is 0V-1."); `None` for most tools.
+    fn proposal_note(&self) -> Option<String> {
+        None
+    }
+
     /// Whether the window sends a double click's second press as `tool.finish` (WP-S2.04 §6.1). Only a tool whose
     /// keymap (doc 16) or status hint names the double click answers `true`; every other tool sees two plain presses,
     /// so two quick clicks of the Place tool place twice.

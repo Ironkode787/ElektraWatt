@@ -1103,6 +1103,11 @@ fn row_ui(
                 "navigator.select",
                 json!({"kind": word, "keys": [row.key]}),
             ));
+            // FT-1024 (ID-1107, doc 16a §6.6): a single click on a page row opens that page; Ctrl-click and Shift-click
+            // only mark rows, and a double click still opens.
+            if pages && row.openable {
+                open(events, kind, pages, &row.key, false);
+            }
         }
     }
 }

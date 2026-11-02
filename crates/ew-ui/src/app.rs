@@ -75,6 +75,8 @@ pub(crate) enum Event {
     JunctionRow(usize),
     /// A toast's Close (WP-S2.09 §6.5): the toast leaves the screen, the log keeps it.
     DismissToast(u64),
+    /// A click on a disabled command (FT-1025): its reason in words, as a toast.
+    DisabledClick(String),
 }
 
 /// What a file dialog came back with.
@@ -187,6 +189,12 @@ pub struct App {
     /// the wall clock in the window and the harness's steps in a test, so no test depends on how fast a loaded machine
     /// runs (FT-524).
     toast_since: std::collections::BTreeMap<u64, f64>,
+    /// FT-1027: the opacity each visible toast was painted with in the last frame (its fade in and out on the frame
+    /// clock), and the frame time of that frame (a hovered toast's clock stands still between two frames).
+    toast_opacity: std::collections::BTreeMap<u64, f32>,
+    toast_clock: Option<f64>,
+    /// The toasts the pointer was on in the last frame (their clocks stand still).
+    toast_hovered: Vec<u64>,
     /// The running jobs by number and the frame time (egui's `input.time`, seconds) the window first saw each (the
     /// elapsed time and the 200 ms rule, §6.4; FT-570: the frame clock, like the toasts').
     job_started: std::collections::BTreeMap<u64, f64>,
@@ -281,6 +289,9 @@ impl App {
             properties: PropertiesPane::new(),
             find: FindPane::new(),
             toast_since: std::collections::BTreeMap::new(),
+            toast_opacity: std::collections::BTreeMap::new(),
+            toast_clock: None,
+            toast_hovered: Vec::new(),
             job_started: std::collections::BTreeMap::new(),
             waker_set: false,
             area_splitters: 0,
@@ -362,6 +373,11 @@ impl App {
     #[doc(hidden)]
     pub fn navigator_rebuilds(&self) -> u64 {
         self.navigator.rebuilds()
+    }
+
+    /// The opacity each visible toast was painted with in the last frame, by serial (FT-1027; tests).
+    pub fn toast_opacities(&self) -> Vec<(u64, f32)> {
+        self.toast_opacity.iter().map(|(s, a)| (*s, *a)).collect()
     }
 
     // WP-S2.06 part 1
@@ -930,7 +946,39 @@ impl App {
         let dialog_open = self.shell.dialog().is_some();
         // Doc 16a §6.12: under a modal the toasts go below its backdrop, which dims them with the rest.
         let under_modal = dialog_open || ctx.memory(|m| m.top_modal_layer().is_some());
-        crate::notifications::show_toasts(&ctx, &self.shell, anchor, under_modal, &mut events);
+        // FT-1027 (ID-1107; doc 16a §4.12, §6.10): each toast fades in and out over `motion.base` on the frame clock.
+        let frame_time = ctx.input(|i| i.time);
+        let fade = f64::from(tokens.motion_base) / 1000.0;
+        // Hovering a toast pauses it (doc 16a §6.10): the clock of a toast the pointer was on in the last frame stands
+        // still for the time since that frame.
+        let step = self.toast_clock.map_or(0.0, |last| (frame_time - last).max(0.0));
+        self.toast_clock = Some(frame_time);
+        for serial in std::mem::take(&mut self.toast_hovered) {
+            if let Some(since) = self.toast_since.get_mut(&serial) {
+                *since += step;
+            }
+        }
+        self.toast_opacity = self
+            .shell
+            .notifications()
+            .visible()
+            .iter()
+            .map(|n| {
+                let age = self.toast_since.get(&n.serial).map_or(0.0, |s| frame_time - s);
+                (
+                    n.serial,
+                    crate::notifications::toast_opacity(age, TOAST_SECONDS, fade),
+                )
+            })
+            .collect();
+        self.toast_hovered = crate::notifications::show_toasts(
+            &ctx,
+            &self.shell,
+            anchor,
+            under_modal,
+            &self.toast_opacity,
+            &mut events,
+        );
         crate::notifications::show_log(&ctx, &self.shell, &mut events);
         about::show(
             &ctx,
@@ -967,13 +1015,16 @@ impl App {
             .map(|n| n.serial)
             .collect();
         self.toast_since.retain(|s, _| visible.contains(s));
-        let frame_time = ctx.input(|i| i.time);
         for serial in visible {
-            let since = *self.toast_since.entry(serial).or_insert(frame_time);
-            if frame_time - since >= TOAST_SECONDS {
+            let age = frame_time - *self.toast_since.entry(serial).or_insert(frame_time);
+            if age >= TOAST_SECONDS {
                 events.push(Event::DismissToast(serial));
+            } else if age < fade || age >= TOAST_SECONDS - fade {
+                // In a fade: every frame until it ends.
+                ctx.request_repaint();
             } else {
-                ctx.request_repaint_after(Duration::from_millis(500));
+                let to_fade = Duration::from_secs_f64((TOAST_SECONDS - fade - age).max(0.0));
+                ctx.request_repaint_after(to_fade.min(Duration::from_millis(500)));
             }
         }
         let dispatch_started = crate::clock::now();
@@ -1451,6 +1502,7 @@ impl App {
             }
             Event::DismissBanner => self.shell.dismiss_banner(),
             Event::DismissToast(serial) => self.shell.dismiss_toast(serial),
+            Event::DisabledClick(text) => self.shell.explain_disabled(text),
             Event::JunctionRow(row) => self.shell.set_junction_row(row),
             Event::OpenPrivacy => {
                 if !self.platform.open_url(ew_viewmodel::about::PRIVACY_URL) {

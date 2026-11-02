@@ -48,7 +48,7 @@ const MOCKUP_TITLES: &[(&str, &str)] = &[
     ("Close", "x"),
     ("Derived; read-only", "math-function"),
     ("Device from part", "package"),
-    ("Duct", "adjustments-horizontal"),
+    ("Duct", "ew-duct"),
     ("Dismiss", "x"),
     ("Findings", "circle-x"),
     ("Fit page", "maximize"),
@@ -63,7 +63,7 @@ const MOCKUP_TITLES: &[(&str, &str)] = &[
     ("Parts", "package"),
     ("Potential", "ew-potential"),
     ("Potentials", "ew-potential"),
-    ("Rail", "layout-align-left"),
+    ("Rail", "ew-din-rail"),
     ("Redo", "arrow-forward-up"),
     ("Renumber devices", "sort-ascending-numbers"),
     ("Rotate", "rotate-clockwise"),
@@ -257,4 +257,72 @@ fn ic4_the_notices_list_tabler_icons() {
     assert!(notice.contains("Tabler Icons, version 3.50.0, licensed under the MIT License"));
     assert!(notice.contains("Copyright (c) 2020-2026"));
     assert!(notice.contains("Permission is hereby granted"));
+}
+
+/// FT-1015, ID-1107: Rail, Duct, Auto-fill rail and Enclosure… each show an icon of their own: "Enclosure gets a
+/// Tabler 3.50.0 icon that no other concept uses ... Auto-fill keeps `wand`", and Rail and Duct the project's
+/// glyphs.
+#[test]
+fn ft1015_the_layout_commands_show_their_own_icons() {
+    let icon = |id: &str| {
+        ew_viewmodel::actions::find(id)
+            .and_then(|a| a.icon)
+            .unwrap_or_else(|| panic!("{id} has an icon"))
+    };
+    assert_eq!(
+        [
+            icon("tool.rail_draw"),
+            icon("tool.duct_draw"),
+            icon("layout.auto_fill_rail"),
+            icon("layout.enclosure_new"),
+        ],
+        ["ew-din-rail", "ew-duct", "wand", "door"]
+    );
+    for k in ["ew-din-rail", "ew-duct", "door"] {
+        key(k);
+    }
+}
+
+/// FT-1015, ID-1107: no icon key serves two concepts. A concept is a placed command of the registry or an entry of a
+/// rail: a right-rail palette is the concept of the command it runs, a left-rail entry that of its pane. A key may
+/// serve two entries only when they are one concept: the list below, each with its reason.
+#[test]
+fn ft1015_no_icon_key_serves_two_concepts() {
+    use std::collections::{BTreeMap, BTreeSet};
+    const SHARED: &[(&str, &[&str])] = &[
+        // The Interruption points navigator and the tool that places one.
+        ("ew-interruption-point", &["pane ips", "tool.ip"]),
+        // The Structure identifiers navigator and the command that adds one.
+        ("sitemap", &["pane structure", "structure.new"]),
+        // Known before FT-1015 and outside its ruling, each two concepts on one key: open until a ruling gives each
+        // its own icon (reported with the lane's proposed rows).
+        ("layout-dashboard", &["pane unplaced", "view.workspace_load"]),
+        ("list-details", &["lists.parts", "props.show"]),
+        ("package", &["pane macros", "tool.place_part"]),
+    ];
+    let mut by_key: BTreeMap<&str, BTreeSet<String>> = BTreeMap::new();
+    for a in ew_viewmodel::actions::ACTIONS {
+        if let (Some(_), Some(icon)) = (a.placement, a.icon) {
+            by_key.entry(icon).or_default().insert(a.id.to_owned());
+        }
+    }
+    for (_, _, icon, action) in ew_viewmodel::rail::RIGHT {
+        by_key.entry(icon).or_default().insert(action.to_owned());
+    }
+    for (word, icon, _) in ew_viewmodel::rail::LEFT {
+        by_key.entry(icon).or_default().insert(format!("pane {word}"));
+    }
+    let mut twice: Vec<(&str, Vec<String>)> = Vec::new();
+    for (k, concepts) in by_key {
+        let allowed: BTreeSet<String> = SHARED
+            .iter()
+            .filter(|(s, _)| *s == k)
+            .flat_map(|(_, c)| c.iter().map(|c| (*c).to_owned()))
+            .collect();
+        let rest: Vec<String> = concepts.difference(&allowed).cloned().collect();
+        if concepts.len() > 1 && !rest.is_empty() {
+            twice.push((k, concepts.into_iter().collect()));
+        }
+    }
+    assert_eq!(twice, Vec::<(&str, Vec<String>)>::new());
 }

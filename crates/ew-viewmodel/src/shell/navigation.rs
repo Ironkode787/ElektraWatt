@@ -1107,16 +1107,46 @@ impl ShellModel {
     }
 
     /// `lists.parts` (FT-717): opens the first page of the parts list in the focused group, as `page.goto` does.
+    /// FT-1028 (ID-1107): the command ends with that page fitted in the canvas and its row selected in the page tree,
+    /// and the earlier export's toast dismissed, so its effect is in view.
     pub(crate) fn act_lists_parts(&mut self) -> Outcome {
         match self.parts_list_folio() {
             Some(folio) => {
                 let mut p = Map::new();
-                p.insert("folio".to_owned(), Value::String(folio));
-                self.act_page_goto(&p)
+                p.insert("folio".to_owned(), Value::String(folio.clone()));
+                let out = self.act_page_goto(&p);
+                if out != Outcome::Done {
+                    return out;
+                }
+                let _ = self.act_fit_page(&Map::new());
+                let rows = self.page_rows().to_vec();
+                if let Some(i) = rows.iter().position(|r| r.folio == folio) {
+                    let key = self.navigator.key_of(&rows, i);
+                    let mut select = Map::new();
+                    select.insert("kind".to_owned(), Value::from("pages"));
+                    select.insert("keys".to_owned(), Value::from(vec![key]));
+                    let _ = self.act_navigator_select(&select);
+                }
+                self.dismiss_export_toasts();
+                Outcome::Done
             }
             None => Outcome::Refused {
                 reason_key: key!("reason-no-parts-list"),
             },
+        }
+    }
+
+    /// Takes the visible toasts of an export off the screen (FT-1028; the log keeps them).
+    fn dismiss_export_toasts(&mut self) {
+        let export: Vec<u64> = self
+            .notes
+            .visible()
+            .iter()
+            .filter(|n| n.key == "export")
+            .map(|n| n.serial)
+            .collect();
+        for serial in export {
+            self.notes.dismiss(serial);
         }
     }
 

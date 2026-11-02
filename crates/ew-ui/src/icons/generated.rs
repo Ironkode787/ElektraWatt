@@ -9,7 +9,7 @@
 use super::Seg::{self, C, L, M, Q, Z};
 
 /// The number of icons in the table.
-pub const COUNT: usize = 103;
+pub const COUNT: usize = 105;
 
 /// One icon of the table, named by its key in `snake_case` (`ew_` for the project's own glyphs).
 #[allow(non_camel_case_types, missing_docs)]
@@ -17,7 +17,6 @@ pub const COUNT: usize = 103;
 pub enum IconId {
     activity,
     adjustments,
-    adjustments_horizontal,
     alert_circle,
     alert_triangle,
     arrow_back_up,
@@ -52,9 +51,12 @@ pub enum IconId {
     current_location,
     database_import,
     device_floppy,
+    door,
     dots,
     ew_black_box,
     ew_cable,
+    ew_din_rail,
+    ew_duct,
     ew_interruption_point,
     ew_potential,
     ew_qet_grid,
@@ -125,7 +127,6 @@ impl IconId {
     pub const ALL: [IconId; COUNT] = [
         IconId::activity,
         IconId::adjustments,
-        IconId::adjustments_horizontal,
         IconId::alert_circle,
         IconId::alert_triangle,
         IconId::arrow_back_up,
@@ -160,9 +161,12 @@ impl IconId {
         IconId::current_location,
         IconId::database_import,
         IconId::device_floppy,
+        IconId::door,
         IconId::dots,
         IconId::ew_black_box,
         IconId::ew_cable,
+        IconId::ew_din_rail,
+        IconId::ew_duct,
         IconId::ew_interruption_point,
         IconId::ew_potential,
         IconId::ew_qet_grid,
@@ -233,7 +237,6 @@ impl IconId {
 pub const KEYS: [&str; COUNT] = [
     "activity",
     "adjustments",
-    "adjustments-horizontal",
     "alert-circle",
     "alert-triangle",
     "arrow-back-up",
@@ -268,9 +271,12 @@ pub const KEYS: [&str; COUNT] = [
     "current-location",
     "database-import",
     "device-floppy",
+    "door",
     "dots",
     "ew-black-box",
     "ew-cable",
+    "ew-din-rail",
+    "ew-duct",
     "ew-interruption-point",
     "ew-potential",
     "ew-qet-grid",
@@ -376,36 +382,6 @@ pub(super) static PATHS: [&[Seg]; COUNT] = [
         L(18.0, 5.0),
         M(18.0, 9.0),
         L(18.0, 20.0),
-    ],
-    // adjustments-horizontal
-    &[
-        M(12.0, 6.0),
-        C(12.0, 7.105, 12.895, 8.0, 14.0, 8.0),
-        C(15.105, 8.0, 16.0, 7.105, 16.0, 6.0),
-        C(16.0, 4.895, 15.105, 4.0, 14.0, 4.0),
-        C(12.895, 4.0, 12.0, 4.895, 12.0, 6.0),
-        M(4.0, 6.0),
-        L(12.0, 6.0),
-        M(16.0, 6.0),
-        L(20.0, 6.0),
-        M(6.0, 12.0),
-        C(6.0, 13.105, 6.895, 14.0, 8.0, 14.0),
-        C(9.105, 14.0, 10.0, 13.105, 10.0, 12.0),
-        C(10.0, 10.895, 9.105, 10.0, 8.0, 10.0),
-        C(6.895, 10.0, 6.0, 10.895, 6.0, 12.0),
-        M(4.0, 12.0),
-        L(6.0, 12.0),
-        M(10.0, 12.0),
-        L(20.0, 12.0),
-        M(15.0, 18.0),
-        C(15.0, 19.105, 15.895, 20.0, 17.0, 20.0),
-        C(18.105, 20.0, 19.0, 19.105, 19.0, 18.0),
-        C(19.0, 16.895, 18.105, 16.0, 17.0, 16.0),
-        C(15.895, 16.0, 15.0, 16.895, 15.0, 18.0),
-        M(4.0, 18.0),
-        L(15.0, 18.0),
-        M(19.0, 18.0),
-        L(20.0, 18.0),
     ],
     // alert-circle
     &[
@@ -886,6 +862,19 @@ pub(super) static PATHS: [&[Seg]; COUNT] = [
         L(8.0, 8.0),
         L(8.0, 4.0),
     ],
+    // door
+    &[
+        M(14.0, 12.0),
+        L(14.0, 12.01),
+        M(3.0, 21.0),
+        L(21.0, 21.0),
+        M(6.0, 21.0),
+        L(6.0, 5.0),
+        C(6.0, 3.895, 6.895, 3.0, 8.0, 3.0),
+        L(16.0, 3.0),
+        C(17.105, 3.0, 18.0, 3.895, 18.0, 5.0),
+        L(18.0, 21.0),
+    ],
     // dots
     &[
         M(4.0, 12.0),
@@ -944,6 +933,39 @@ pub(super) static PATHS: [&[Seg]; COUNT] = [
         L(6.4, 10.0),
         M(3.0, 14.0),
         L(6.4, 14.0),
+    ],
+    // ew-din-rail
+    &[
+        M(3.0, 17.0),
+        L(6.0, 17.0),
+        L(6.0, 7.0),
+        L(18.0, 7.0),
+        L(18.0, 17.0),
+        L(21.0, 17.0),
+    ],
+    // ew-duct
+    &[
+        M(4.0, 5.0),
+        L(20.0, 5.0),
+        C(20.552, 5.0, 21.0, 5.448, 21.0, 6.0),
+        L(21.0, 18.0),
+        C(21.0, 18.552, 20.552, 19.0, 20.0, 19.0),
+        L(4.0, 19.0),
+        C(3.448, 19.0, 3.0, 18.552, 3.0, 18.0),
+        L(3.0, 6.0),
+        C(3.0, 5.448, 3.448, 5.0, 4.0, 5.0),
+        M(7.5, 5.0),
+        L(7.5, 9.0),
+        M(12.0, 5.0),
+        L(12.0, 9.0),
+        M(16.5, 5.0),
+        L(16.5, 9.0),
+        M(7.5, 19.0),
+        L(7.5, 15.0),
+        M(12.0, 19.0),
+        L(12.0, 15.0),
+        M(16.5, 19.0),
+        L(16.5, 15.0),
     ],
     // ew-interruption-point
     &[

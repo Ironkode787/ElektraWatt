@@ -83,12 +83,68 @@ fn p_d_and_b_stay_with_the_ip_name_field_while_it_has_the_focus() {
     assert_eq!(h.state().shell().tool().name(), "ip", "B arms no black box tool");
     assert_eq!(direction(&h), second, "D does not reach the tool");
     assert_eq!(h.state().shell().revision(), rev);
-    // Enter sends the name to the tool.
+    // FT-1022, ID-1107: "Enter or Tab ends the name and gives the keys back to the tool." Enter sends the name, the
+    // field gives up the focus, and D turns the tool again.
     press(&mut h, Key::Enter);
-    match ghost(&h) {
-        Some(ew_ui::ew_viewmodel::tools::Ghost::Ip { name, .. }) => assert_eq!(name, "X1"),
-        other => panic!("{other:?}"),
+    assert_eq!(ghost_name(&h), "X1");
+    assert!(!h.ctx.text_edit_focused(), "Enter ends the field's focus");
+    press(&mut h, Key::D);
+    assert_ne!(direction(&h), second, "D reaches the tool again");
+    assert_eq!(ghost_name(&h), "X1", "the tool keeps the name");
+}
+
+/// The name the IP tool's ghost carries.
+fn ghost_name(h: &Harness<'_, App>) -> String {
+    match ghost(h) {
+        Some(ew_ui::ew_viewmodel::tools::Ghost::Ip { name, .. }) => name,
+        other => panic!("not the IP tool's ghost: {other:?}"),
     }
+}
+
+/// FT-1022, ID-1107: "Enter or Tab ends the name and gives the keys back to the tool." Tab does what Enter does: the
+/// focus goes to no other widget, Tab does not reach the canvas, and D turns the tool again.
+#[test]
+fn tab_ends_the_ip_name_and_gives_the_keys_back_to_the_tool() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "103");
+    press(&mut h, Key::P);
+    assert_eq!(h.state().shell().tool().name(), "ip");
+    let first = direction(&h);
+    type_in_name_field(&mut h, "X1");
+    press(&mut h, Key::D);
+    assert_eq!(direction(&h), first, "D is the field's");
+    press(&mut h, Key::Tab);
+    assert!(!h.ctx.text_edit_focused(), "Tab ends the field's focus");
+    let focused: Vec<egui::Role> = h
+        .query_all(egui_kittest::kittest::by().predicate(|n| n.is_focused()))
+        .map(|n| n.accesskit_node().role())
+        .collect();
+    assert_eq!(focused, [egui::Role::Canvas], "the keys go back to the canvas");
+    assert_eq!(ghost_name(&h), "X1");
+    press(&mut h, Key::D);
+    assert_ne!(direction(&h), first, "D reaches the tool again");
+    assert_eq!(ghost_name(&h), "X1", "the tool keeps the name");
+}
+
+/// FT-1022, ID-1107: the field's tooltip names the keys that end it (doc 16a P8).
+#[test]
+fn the_ip_name_tooltip_names_the_keys_that_end_it() {
+    const TIP: &str = "Enter or Tab ends the name and gives the keys back to the tool";
+    assert_eq!(
+        ew_ui::ew_viewmodel::strings::text(ew_ui::ew_viewmodel::key!("action-ip-name-hint")),
+        TIP
+    );
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "103");
+    press(&mut h, Key::P);
+    assert!(h.query_by_label(TIP).is_none(), "no tooltip before the hover");
+    h.get_all_by_role(egui::Role::TextInput)
+        .find(|n| n.accesskit_node().label().as_deref() == Some("Interruption point name"))
+        .expect("the IP name field")
+        .hover();
+    settle(&mut h);
+    settle(&mut h);
+    assert!(h.query_by_label(TIP).is_some(), "the field's tooltip");
 }
 
 /// The IP points of the page on show: (representation, name).

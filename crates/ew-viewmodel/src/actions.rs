@@ -2534,7 +2534,7 @@ pub static ACTIONS: &[ActionMeta] = &[
     // surface view, the draw tools' options card, and Project ▸ Enclosure….
     keeps_banner(in_canvas(placed(
         place(Group::PanelLayout, 1, CommandSize::Small, Some(key!("bar-rail"))),
-        "layout-align-left",
+        "ew-din-rail",
         act(
             "tool.rail_draw",
             Command,
@@ -2547,7 +2547,7 @@ pub static ACTIONS: &[ActionMeta] = &[
     ))),
     keeps_banner(in_canvas(placed(
         place(Group::PanelLayout, 2, CommandSize::Small, Some(key!("bar-duct"))),
-        "adjustments-horizontal",
+        "ew-duct",
         act(
             "tool.duct_draw",
             Command,
@@ -2595,7 +2595,7 @@ pub static ACTIONS: &[ActionMeta] = &[
         "location?:text, part?:text",
         placed(
             place(Group::Project, 3, CommandSize::Small, Some(key!("bar-enclosure"))),
-            "category",
+            "door",
             act(
                 "layout.enclosure_new",
                 Command,

@@ -195,6 +195,14 @@ impl ShellModel {
     // -----------------------------------------------------------------------------------------------------------
     // The host
 
+    /// A click on a disabled command (FT-1025, ID-1107; doc 16a §5.2): `text`, its reason in words (the sentence its
+    /// tooltip ends with), as an information toast of key `disabled`, so a second click replaces it rather than
+    /// stacking.
+    pub fn explain_disabled(&mut self, text: String) {
+        self.notes
+            .push_toned(text, "disabled", None, Some(crate::notifications::NoteTone::Info));
+    }
+
     /// A fresh host: Select active, nothing selected (a project opened or closed).
     pub(super) fn reset_tools(&mut self) {
         self.tools = crate::tools::ToolHost::new();
@@ -211,6 +219,16 @@ impl ShellModel {
     /// Escapes a busy tool and clears the overlay, the preview and the link preview when the canvas the tool works
     /// on changed (the end of every dispatch).
     pub(super) fn sync_tool_context(&mut self) {
+        // FT-1032 (ID-1107): a refusal clears when the state it refused changes: a committed command, a Properties
+        // edit, undo or redo (each moves the revision) or a selection change (its generation). A refusal set by this
+        // dispatch, which changed neither, stands.
+        let basis = (self.revision(), self.tools.selection.generation);
+        if self.tools.notice_basis.is_some_and(|b| b != basis) {
+            self.tools.notice = None;
+            self.tools.notice_sticky = false;
+            self.tools.notice_at = None;
+        }
+        self.tools.notice_basis = Some(basis);
         let now = self.tool_context();
         if now == self.tools.context {
             return;
@@ -429,6 +447,11 @@ impl ShellModel {
                     }
                     _ => None,
                 };
+                // FT-1023: the IP tool's "0V is taken, so this point is 0V-1.", said again by the placement's toast.
+                let taken = match cmd.name() {
+                    "ip.place" | "connection.draw_to_ip" => self.tools.tool.proposal_note(),
+                    _ => None,
+                };
                 // WP-S2.09 D6: an earlier toast stays (its Undo expires with this commit); a new toast of key `edit`
                 // replaces it.
                 let out = self.run_commit(cmd.as_ref());
@@ -455,7 +478,13 @@ impl ShellModel {
                         pos: (x, y),
                         name: json["ip"]["name"].as_str().unwrap_or_default().to_owned(),
                         pin,
+                        taken,
                     });
+                } else if out == Outcome::Done
+                    && let Some(taken) = taken
+                {
+                    // A point placed free has no result line of its own: the sentence is its toast.
+                    self.notify(taken, true);
                 }
                 self.tools.tool.on_commit(out == Outcome::Done);
                 if !keep_ghost {
