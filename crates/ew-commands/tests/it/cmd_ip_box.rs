@@ -1305,3 +1305,30 @@ fn ft980_fields_set_many_judges_each_point_after_all_its_entries() {
     let spec = spec_of(&e, IP_A);
     assert_eq!((spec.direction, spec.star_source), (IpDirection::Target, false));
 }
+
+/// FT-1063: the star cleared first and the direction after passes as the other order does; a call that fixes one point
+/// (A's star cleared with its direction) and breaks another (B made a starred target) is refused whole, naming B.
+#[test]
+fn ft1063_fields_set_many_star_in_either_order_and_one_point_fixed_another_broken() {
+    let mut e = engine(star_model(true));
+    let (rev, before) = (e.model().rev(), lines(e.model()));
+    assert_eq!(
+        rejection(e.execute(&set_many(vec![
+            set_ip(IP_A, "direction", serde_json::json!("target")),
+            set_ip(IP_A, "star_source", serde_json::json!(false)),
+            set_ip(IP_B, "star_source", serde_json::json!(true)),
+            set_ip(IP_B, "direction", serde_json::json!("target")),
+        ]))),
+        format!("interruption point B-1: {NOT_SOURCE}")
+    );
+    assert_eq!(e.model().rev(), rev);
+    assert_eq!(lines(e.model()), before);
+    // The star cleared first, the direction after.
+    e.execute(&set_many(vec![
+        set_ip(IP_A, "star_source", serde_json::json!(false)),
+        set_ip(IP_A, "direction", serde_json::json!("target")),
+    ]))
+    .expect("a set_many that clears the star and sets target");
+    let spec = spec_of(&e, IP_A);
+    assert_eq!((spec.direction, spec.star_source), (IpDirection::Target, false));
+}
