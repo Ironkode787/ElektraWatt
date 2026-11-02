@@ -8,7 +8,7 @@ external change in the store and the session (1.1 pw, D20 to D23), part 7 the wi
 status (0.8 pw, D24, D25), part 8 `ew diff`, `ew git setup`, the post-merge integrity and AC-41 (0.9 pw, D26 to D29).
 The parts sum to **7.4 pw plus 0.3 pw reserve** against a 6.8 pw PERT (O1) · **Amended in cycle 42** (decision log ID-1029, the owner's format decision): part 3, D4 and D3's `unstable` marker move to the wave before the first release, beside WP-S6.08; the PERT is 6.9 pw; format parts route at `high`, a save, a journal, recovery or a merge at `xhigh` (§16) · **Date:** 2026-10-31 · **Work package:**
 [WP-S1.17](../02-work-packages.md#wp-s117-collaboration-external-change-migrations-integrity-merge-driver) ·
-**Decision log:** ID-1015; amended by ID-1029; part 1 ruled by ID-1115, its fixes by ID-1144; part 2 ruled by ID-1175; `fmt --repair` ruled by ID-1185; as built ID-1152, ID-1156 · **Part of:** ElektraWatt plan, specifications
+**Decision log:** ID-1015; amended by ID-1029; part 1 ruled by ID-1115, its fixes by ID-1144; part 2 ruled by ID-1175; `fmt --repair` ruled by ID-1185, its backup by ID-1186; as built ID-1152, ID-1156 · **Part of:** ElektraWatt plan, specifications
 
 **Purpose.** WP-S1.09 built the canonical format, the save protocol, the lock, the journal and recovery, and left to
 this package everything that happens when a project changes outside the running session or between builds: a pull
@@ -378,6 +378,58 @@ scope and EZ-5 where they say so; ruling 6 of ID-1175 moved them here. The lane 
    cli_results.rs}` (a `repair` beside `format`, `fmt.rs:267`), `bin/ew/src/{cli.rs,catalogue.rs}`,
    `bin/ew/src/cli/{tree.rs,project_files.rs}`, `bin/ew/api/cli.json`, `bin/ew/schemas/`, the release notes, tests;
    doc 05 §6.3's EW-CORE-005 row as built (the backup's name). The window's banner stays part 7's.
+
+**Ruling after FR47: the repair's backup holds the project as found (ID-1186, cycle 47; facts at `836cd1df`).** It
+amends D8 and ID-1185's rulings 3 and 5 where it says so, and traces the backup to FR-COL-004 (a hand edit opens
+"with an integrity notice and no data loss").
+1. **Why.** A broken line almost always comes from an edit outside EW. The open adopts such a file with a
+   `ForeignEdit` notice (`crates/ew-format/src/read.rs:437-477`). But its bytes no longer match the manifest, so
+   `pack_store` refuses (`GenerationError::Changed`; a merged project's `Pending`; `store.rs:2610-2650`). As built,
+   the repair refuses the case it exists for. A save before the backup is no remedy: it rewrites the files that were
+   not canonical at open (`store.rs:2175`) and leaves a new generation even when the repair is then refused.
+2. **The backup is packed as found.** A sibling of `pack_store` in `crates/ew-store/src/ewz.rs`, used by the repair
+   alone, shares `pack` and the git-file loop (a private helper) without a second writer. It works as follows:
+   - It reads every file the loaded manifest lists, through the store's `Vfs`.
+   - It refuses when a file's bytes differ from what the store loaded (`Held.hash`): the file changed since the
+     repair opened it, so nothing is written, and the text says to run the repair again.
+   - It writes `manifest.json` as the loaded manifest (`store.manifest()`, `Manifest::to_text`) with each listed
+     file's hash set to those bytes. A pending hash is set the same way. The generation and every other member stay
+     as they are.
+   The backup then verifies (doc 05 §12), opens through `Session::open_ewz`, and extracts to every listed file byte for
+   byte as it was. Unlisted files (orphans, not read) are neither packed nor touched.
+3. **D8 gains one exception:** an `.ewz` is one verified generation, except the repair's backup, which holds that
+   generation's files as found. Its name stays `<project folder>.before-repair-g<generation>.ewz`.
+   - The report says how many files differ from generation g as EW saved it: "backup <path> (generation g, as found:
+     N files edited outside EW)", or without the clause when N is 0.
+   - The `--json` result gains that count.
+   - `pack_store` and `ew export ewz` are unchanged: an export hands over a verified generation, and still refuses a
+     changed or pending file.
+4. **Still refused,** with nothing written:
+   - no manifest;
+   - an incomplete save;
+   - a listed file that cannot be read;
+   - a file changed since the open (ruling 2);
+   - the entry cap.
+   The rest of ID-1185 stands: the order of the refusals, the name, the temporary file, `rename_noreplace`, the folder
+   sync, and the reuse of an existing name only on equal bytes.
+5. **Tests.**
+   - EZ-5 on a hand-edited copy of Golden A, the broken line written without touching the manifest. The backup is
+     written, then the project without the line, which opens editable. The backup extracts through `ew extract` with
+     its manifest verified, every listed file equal to its pre-repair bytes. `ew export ewz` on the same project still
+     refuses, with its text, asserted whole.
+   - The same with a merged project's pending hash.
+   - `a_repair_that_cannot_pack_the_backup_writes_nothing` takes a case that still cannot pack (a `Vfs` read fault on
+     a listed file, or no manifest).
+   - The reuse test computes its bytes with the sibling.
+   - A file changed between the open and the backup refuses, with nothing written.
+6. **Docs:**
+   - doc 05 §6.3's EW-CORE-005 row ("after packing the files as found");
+   - §12's "Uses", a third sub-bullet after `ew export ewz`: the repair's backup (§6.3), the generation's files as
+     found, its manifest hashed to them;
+   - D8;
+   - ID-1185's ruling 5 and EZ-5 as built;
+   - §3's trace, FR-COL-004;
+   - the release note.
 
 ## 8. Part 3: format migrations and the upgrade backup
 
