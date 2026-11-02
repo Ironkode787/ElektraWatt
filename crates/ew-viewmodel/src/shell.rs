@@ -645,7 +645,27 @@ fn save_error_key(e: &SaveError) -> Key<'static> {
         SaveError::Failed { .. } => key!("saveerr-failed"),
         SaveError::Incomplete { .. } => key!("saveerr-incomplete"),
         SaveError::PendingIncomplete { .. } => key!("saveerr-pending"),
+        SaveError::GenerationLimit => key!("saveerr-generation-limit"),
         _ => key!("saveerr-other"),
+    }
+}
+
+#[cfg(test)]
+mod save_error_tests {
+    use super::{SaveError, key, save_error_key, strings};
+
+    /// ID-1144: a save refused at the manifest's ceiling says so in words and ends with what the user can do.
+    #[test]
+    fn the_generation_limit_names_the_limit_and_save_as() {
+        let message = strings::format(
+            key!("error-save"),
+            &[strings::text(save_error_key(&SaveError::GenerationLimit))],
+        );
+        assert_eq!(
+            message,
+            "Saving failed: this project has been saved the greatest number of times its format allows; save it to a \
+             new folder (Save as\u{2026}), which starts the count again."
+        );
     }
 }
 

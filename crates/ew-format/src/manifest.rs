@@ -293,8 +293,9 @@ impl Manifest {
     }
 }
 
-/// The largest generation: 2^53 - 1 (doc 05 §3.2).
-const MAX_GENERATION: u64 = (1 << 53) - 1;
+/// The largest generation a manifest holds: 2^53 - 1 (doc 05 §3.2). The reader refuses a greater one, so a save whose
+/// next generation would pass it is refused before any write.
+pub const MAX_GENERATION: u64 = (1 << 53) - 1;
 
 fn invalid(member: &str, message: &str) -> ManifestError {
     ManifestError::Invalid {

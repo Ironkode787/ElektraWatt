@@ -22,7 +22,8 @@ use common::{
 use ew_model::{AnyKey, AnyRow, Asset, Model, Op};
 use ew_store::ew_format::ew_schema::{AssetRef, COMPANY_MEMBER, Device, Page, Record, Sha256, sniff};
 use ew_store::ew_format::{
-    FileHash, FilePath, Finding, FindingKind, Limits, MANIFEST, Manifest, hash_text, record_line, sha256,
+    FileHash, FilePath, Finding, FindingKind, Limits, MANIFEST, MAX_GENERATION, Manifest, hash_text,
+    record_line, sha256,
 };
 use ew_store::mem::{DirSync, MemVfs};
 use ew_store::{Access, Changes, Opened, SaveError, SaveStep, Store, Vfs, join};
@@ -635,4 +636,133 @@ fn a_save_stamps_the_computed_min_reader() {
         (manifest.format.as_str(), manifest.min_reader.as_str()),
         ("0.1", "0.1")
     );
+}
+
+/// The file of the fixture's first page, which [`renumber_first_page`] replaces.
+fn first_page_file() -> FilePath {
+    let (vfs, root) = mem_project(DirSync::Explicit);
+    let Opened { model, .. } = Store::open(&root, options(&vfs, 1)).expect("opens");
+    renumber_first_page(&model).2
+}
+
+/// The fixture with the file `path` held as CRLF on disk, opened, and the file's LF bytes (the fixture's).
+fn opened_with_crlf(path: &FilePath) -> (Arc<MemVfs>, std::path::PathBuf, Opened, Vec<u8>) {
+    let mut files = fixture();
+    let lf = files[path.as_str()].clone();
+    let crlf = String::from_utf8(lf.clone())
+        .expect("text")
+        .replace('\n', "\r\n")
+        .into_bytes();
+    assert_ne!(crlf, lf);
+    files.insert(path.as_str().to_owned(), crlf);
+    let (vfs, root) = mem_project_of(DirSync::Explicit, files);
+    let opened = Store::open(&root, options(&vfs, 1)).expect("opens");
+    assert_eq!(opened.report.access, Access::Edit);
+    (vfs, root, opened, lf)
+}
+
+#[test]
+fn a_record_held_as_crlf_and_now_lf_on_disk_saves() {
+    // C46-p1#4 (ID-1144): a page file opened as CRLF and turned into LF by a checkout is the same text, so the save
+    // that replaces it goes through. Before, the store held the CRLF bytes' hash only and refused every such save.
+    let page = first_page_file();
+    let (vfs, root, Opened { mut store, model, .. }, lf) = opened_with_crlf(&page);
+    let (edited, keys, renumbered) = renumber_first_page(&model);
+    assert_eq!(renumbered, page);
+    vfs.put(&join(&root, page.as_str()), &lf);
+    let saved = store
+        .save(&edited, Changes::Keys(&keys))
+        .expect("the save goes through");
+    assert_eq!(saved.generation, 2);
+    assert!(saved.written.contains(&page), "{:?}", saved.written);
+    let written = &project_files(&vfs, &root)[page.as_str()];
+    assert!(!written.contains(&b'\r'), "the save writes LF");
+    assert_ne!(written, &lf, "the renumbered page");
+}
+
+#[test]
+fn a_record_held_as_crlf_and_changed_on_disk_refuses_the_save() {
+    // C46-p1#4 (ID-1144): the LF form is a second accepted hash, not a looser rule: one character changed refuses the
+    // save with the file named, and nothing is written.
+    let page = first_page_file();
+    let (vfs, root, Opened { mut store, model, .. }, lf) = opened_with_crlf(&page);
+    let (edited, keys, _) = renumber_first_page(&model);
+    let mut changed = lf.clone();
+    let at = changed.iter().position(u8::is_ascii_lowercase).expect("a letter");
+    changed[at] = changed[at].to_ascii_uppercase();
+    vfs.put(&join(&root, page.as_str()), &changed);
+    let before = project_files(&vfs, &root);
+    let refused = store.save(&edited, Changes::Keys(&keys));
+    let Err(error @ SaveError::ExternalChange { .. }) = refused else {
+        panic!("expected ExternalChange, got {refused:?}");
+    };
+    assert_eq!(
+        error.to_string(),
+        format!("the project changed on disk ({page}); merge the change first")
+    );
+    assert_eq!(project_files(&vfs, &root), before, "nothing was written");
+    assert_eq!(store.generation(), 1);
+}
+
+/// The fixture with its manifest's generation set to `generation`.
+fn at_generation(generation: u64) -> BTreeMap<String, Vec<u8>> {
+    let mut files = fixture();
+    let text = String::from_utf8(files[MANIFEST].clone()).expect("a manifest is text");
+    let line = "  \"generation\": 1,\n";
+    assert!(text.contains(line), "the fixture's manifest is at generation 1");
+    let text = text.replace(line, &format!("  \"generation\": {generation},\n"));
+    files.insert(MANIFEST.to_owned(), text.into_bytes());
+    files
+}
+
+#[test]
+fn a_save_past_the_generation_ceiling_is_refused_before_any_write() {
+    // C46-p1#3 (ID-1144): at 2^53 - 1 the next generation is one the manifest's reader refuses; the save is refused in
+    // words and every file, the manifest included, is byte-identical. A save with nothing to write stays allowed.
+    assert_eq!(MAX_GENERATION, (1u64 << 53) - 1);
+    let (vfs, root) = mem_project_of(DirSync::Explicit, at_generation(MAX_GENERATION));
+    let Opened {
+        mut store,
+        model,
+        report,
+    } = Store::open(&root, options(&vfs, 1)).expect("opens");
+    assert_eq!(report.access, Access::Edit);
+    assert_eq!(report.generation, MAX_GENERATION);
+    let before = project_files(&vfs, &root);
+
+    let unchanged = store
+        .save(&model, Changes::Keys(&BTreeSet::new()))
+        .expect("a save with nothing to write");
+    assert_eq!(unchanged.generation, MAX_GENERATION);
+    assert!(unchanged.written.is_empty());
+    assert_eq!(project_files(&vfs, &root), before, "nothing was written");
+
+    let (edited, keys) = edit_device(&model, 0, "edited");
+    let refused = store.save(&edited, Changes::Keys(&keys));
+    let Err(error @ SaveError::GenerationLimit) = refused else {
+        panic!("expected GenerationLimit, got {refused:?}");
+    };
+    assert_eq!(
+        error.to_string(),
+        "this project has been saved the greatest number of times its format allows; save it to a new folder \
+         (Save as\u{2026}), which starts the count again"
+    );
+    assert_eq!(project_files(&vfs, &root), before, "nothing was written");
+    assert_eq!(store.generation(), MAX_GENERATION);
+}
+
+#[test]
+fn a_save_up_to_the_generation_ceiling_writes_it_and_reopens() {
+    // C46-p1#3 (ID-1144): from 2^53 - 2 the save writes 2^53 - 1, which the next open reads.
+    let (vfs, root) = mem_project_of(DirSync::Explicit, at_generation(MAX_GENERATION - 1));
+    let Opened { mut store, model, .. } = Store::open(&root, options(&vfs, 1)).expect("opens");
+    let (edited, keys) = edit_device(&model, 0, "edited");
+    let saved = store.save(&edited, Changes::Keys(&keys)).expect("the save");
+    assert_eq!(saved.generation, MAX_GENERATION);
+    assert_eq!(manifest_on_disk(&vfs, &root).generation, MAX_GENERATION);
+    store.close();
+    let again = reopen(&vfs, 2);
+    assert_eq!(again.report.generation, MAX_GENERATION);
+    assert_eq!(again.report.access, Access::Edit);
+    assert!(again.model.content_eq(&edited));
 }

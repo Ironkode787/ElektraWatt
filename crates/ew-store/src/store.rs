@@ -367,6 +367,9 @@ pub enum SaveError {
     },
     /// A record has no file or no JSON form.
     Format(ew_format::FormatError),
+    /// The next generation would pass [`ew_format::MAX_GENERATION`], which the manifest's reader refuses: nothing
+    /// was written (ID-1144). A copy in a new folder ([`Store::create`]) starts again at generation 0.
+    GenerationLimit,
 }
 
 impl fmt::Display for SaveError {
@@ -410,6 +413,10 @@ impl fmt::Display for SaveError {
                 "the earlier save of generation {generation} is still incomplete ({error}); nothing was saved"
             ),
             SaveError::Format(e) => e.fmt(f),
+            SaveError::GenerationLimit => f.write_str(
+                "this project has been saved the greatest number of times its format allows; save it to a new \
+                 folder (Save as\u{2026}), which starts the count again",
+            ),
         }
     }
 }
@@ -661,23 +668,44 @@ pub struct Store {
     closed: bool,
 }
 
-/// A writer-owned file as the store holds it: the SHA-256 of its bytes as loaded or written, and its `since` value
-/// ([`ew_format::file_since`]; `None` at the format's floor), which the computed `min_reader` of every save reads
-/// without reading the file again (WP-S1.17 D3).
+/// A writer-owned file as the store holds it: the SHA-256 of its bytes as loaded or written, the SHA-256 of their
+/// CRLF-to-LF form when it differs, and its `since` value ([`ew_format::file_since`]; `None` at the format's floor),
+/// which the computed `min_reader` of every save reads without reading the file again (WP-S1.17 D3).
+///
+/// `hash` is the raw hash: the manifest lists it and the plan compares the bytes it renders with it. `lf` serves only
+/// the save's pre-check (WP-S1.17 D5, ID-1144), which compares a record file or library document by its text, so that
+/// a checkout that changed only its line endings is not a change.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 struct Held {
     hash: [u8; 32],
+    lf: Option<[u8; 32]>,
     since: Option<&'static str>,
 }
 
 impl Held {
     /// The held form of `bytes` at `path`.
     fn of(path: &FilePath, bytes: &[u8]) -> Held {
+        let hash = sha256(bytes);
         Held {
-            hash: sha256(bytes),
+            hash,
+            lf: lf_hash(bytes, &hash),
             since: file_since(FORMAT, path, bytes, &SINCE),
         }
     }
+
+    /// The hashes the pre-check accepts for this file: the raw one, and the LF form's when it differs.
+    fn accepted(&self) -> Vec<[u8; 32]> {
+        std::iter::once(self.hash).chain(self.lf).collect()
+    }
+}
+
+/// The SHA-256 of the CRLF-to-LF form of `bytes` ([`crlf_to_lf`]) when it differs from `raw`, the hash of `bytes`.
+fn lf_hash(bytes: &[u8], raw: &[u8; 32]) -> Option<[u8; 32]> {
+    if !bytes.windows(2).any(|w| w == b"\r\n") {
+        return None;
+    }
+    let lf = sha256(&crlf_to_lf(bytes));
+    (lf != *raw).then_some(lf)
 }
 
 /// An opened project.
@@ -1090,10 +1118,18 @@ impl Store {
                 PathClass::Records(_) | PathClass::LibDocument { .. }
             ) && !loaded.opaque.contains_key(path)
             {
-                let since = files
-                    .get(path)
-                    .and_then(|bytes| file_since(FORMAT, path, bytes, &SINCE));
-                self.disk.insert(path.clone(), Held { hash: *hash, since });
+                // The raw hash as the reader found it (the manifest's), and the LF form's beside it (ID-1144).
+                let bytes = files.get(path);
+                let since = bytes.and_then(|bytes| file_since(FORMAT, path, bytes, &SINCE));
+                let lf = bytes.and_then(|bytes| lf_hash(bytes, hash));
+                self.disk.insert(
+                    path.clone(),
+                    Held {
+                        hash: *hash,
+                        lf,
+                        since,
+                    },
+                );
             }
         }
         self.opaque = loaded
@@ -1678,7 +1714,7 @@ impl Store {
             return Err(SaveError::ExternalChange { files: changed });
         }
         let g = self.generation;
-        let g1 = g + 1;
+        let g1 = g.saturating_add(1);
         let mut manifest = Manifest::new(
             FORMAT,
             &self.opts.identity.app_version,
@@ -1736,6 +1772,12 @@ impl Store {
                 findings: std::mem::take(&mut self.notes),
                 ..SaveReport::default()
             });
+        }
+        // The manifest's ceiling (ID-1144): a generation above it is one the next open refuses, so a save that would
+        // write one is refused here, beside D5's pre-check and before any temp or move-aside. A save with nothing to
+        // write (above) stays allowed.
+        if g1 > ew_format::MAX_GENERATION {
+            return Err(SaveError::GenerationLimit);
         }
         let manifest_text = manifest.to_text();
         let vfs = Arc::clone(&self.opts.vfs);
@@ -1958,9 +2000,10 @@ impl Store {
     }
 
     /// The files of `plan` that the save replaces or removes and that changed on disk since we loaded or wrote them
-    /// (WP-S1.17 D5), in path order: each is compared with the hash we hold, `disk` for record files and library
-    /// documents, `opaque` for opaque files and assets ([`unchanged_on_disk`]). A new target (one we hold no hash for)
-    /// is not compared: the save moves it aside when it is there.
+    /// (WP-S1.17 D5), in path order: each is compared with the hashes we hold ([`unchanged_on_disk`]), for record files
+    /// and library documents (`disk`) the raw hash and the LF form's, so that their text is compared (ID-1144), for
+    /// opaque files and assets (`opaque`) the one hash. A new target (one we hold no hash for) is not compared: the save
+    /// moves it aside when it is there.
     ///
     /// # Errors
     ///
@@ -1970,8 +2013,9 @@ impl Store {
         let mut changed = Vec::new();
         for path in targets {
             let held = match (self.disk.get(path), self.opaque.get(path)) {
-                (Some(held), _) => held.hash,
-                (None, Some(FileHash::Sha256(hash))) => *hash,
+                // A record file or library document: its raw hash or its LF form's (ID-1144).
+                (Some(held), _) => held.accepted(),
+                (None, Some(FileHash::Sha256(hash))) => vec![*hash],
                 // A hash we do not know cannot show the file unchanged.
                 (None, Some(FileHash::Pending)) => {
                     changed.push(path.clone());
@@ -2487,11 +2531,12 @@ struct SavePlan {
     assets: BTreeMap<FilePath, FileHash>,
 }
 
-/// Whether the file at `full`, held with the SHA-256 `held`, can be replaced or removed without losing a change made
-/// outside the session (WP-S1.17 D5, doc 05 §6.2): it is absent (nothing to overwrite), or a regular file whose bytes,
-/// or their CRLF-to-LF form ([`crlf_to_lf`]), hash to `held`. A directory, a link or anything else in its place is a
-/// change. Read in chunks of [`purge::SCAN_CHUNK`], so that a file grown outside the session is never held whole.
-fn unchanged_on_disk(vfs: &dyn Vfs, full: &Path, held: &[u8; 32]) -> io::Result<bool> {
+/// Whether the file at `full`, held with the SHA-256 values `held`, can be replaced or removed without losing a change
+/// made outside the session (WP-S1.17 D5, doc 05 §6.2): it is absent (nothing to overwrite), or a regular file whose
+/// bytes, or their CRLF-to-LF form ([`crlf_to_lf`]), hash to one of `held`. A directory, a link or anything else in its
+/// place is a change. Read in chunks of [`purge::SCAN_CHUNK`], so that a file grown outside the session is never held
+/// whole.
+fn unchanged_on_disk(vfs: &dyn Vfs, full: &Path, held: &[[u8; 32]]) -> io::Result<bool> {
     use sha2::Digest as _;
     let stat = match vfs.stat(full) {
         Ok(stat) => stat,
@@ -2525,7 +2570,7 @@ fn unchanged_on_disk(vfs: &dyn Vfs, full: &Path, held: &[u8; 32]) -> io::Result<
         }
     }
     let (raw, lf): ([u8; 32], [u8; 32]) = (raw.finalize().into(), lf.finalize().into());
-    Ok(raw == *held || lf == *held)
+    Ok(held.contains(&raw) || held.contains(&lf))
 }
 
 /// Whether the regular files `a` and `b` hold the same bytes: their lengths first, then their content in chunks of
@@ -2584,26 +2629,52 @@ mod tests {
         for bytes in [straddling, lone, at_end, b"a\r\nb".to_vec(), Vec::new()] {
             let (vfs, path) = put(&bytes);
             let lf = crlf_to_lf(&bytes);
-            assert_eq!(unchanged_on_disk(&vfs, &path, &sha256(&bytes)).ok(), Some(true));
-            assert_eq!(unchanged_on_disk(&vfs, &path, &sha256(&lf)).ok(), Some(true));
+            assert_eq!(unchanged_on_disk(&vfs, &path, &[sha256(&bytes)]).ok(), Some(true));
+            assert_eq!(unchanged_on_disk(&vfs, &path, &[sha256(&lf)]).ok(), Some(true));
             let mut other = lf.clone();
             other.push(b'\n');
-            assert_eq!(unchanged_on_disk(&vfs, &path, &sha256(&other)).ok(), Some(false));
+            assert_eq!(
+                unchanged_on_disk(&vfs, &path, &[sha256(&other)]).ok(),
+                Some(false)
+            );
         }
+    }
+
+    #[test]
+    fn a_held_crlf_file_accepts_its_raw_and_its_lf_hash() {
+        // ID-1144: a record file held as CRLF bytes keeps the LF form's hash beside the raw one; LF bytes, or a lone
+        // CR that the conversion keeps, have one hash only.
+        let path = FilePath::new("pages/0190a1b2-0000-7000-8000-000000000001.jsonl").expect("a page file");
+        let crlf = Held::of(&path, b"a\r\nb\r\n");
+        assert_eq!(crlf.hash, sha256(b"a\r\nb\r\n"));
+        assert_eq!(crlf.lf, Some(sha256(b"a\nb\n")));
+        assert_eq!(crlf.accepted(), [sha256(b"a\r\nb\r\n"), sha256(b"a\nb\n")]);
+        for bytes in [&b"a\nb\n"[..], b"a\rb\n", b""] {
+            let held = Held::of(&path, bytes);
+            assert_eq!((held.hash, held.lf), (sha256(bytes), None));
+            assert_eq!(held.accepted(), [sha256(bytes)]);
+        }
+        // The disk's raw bytes and their LF form, each against either held hash.
+        let (vfs, full) = put(b"a\nb\n");
+        assert_eq!(unchanged_on_disk(&vfs, &full, &crlf.accepted()).ok(), Some(true));
+        let (vfs, full) = put(b"a\r\nb\r\n");
+        assert_eq!(unchanged_on_disk(&vfs, &full, &crlf.accepted()).ok(), Some(true));
+        let (vfs, full) = put(b"a\nc\n");
+        assert_eq!(unchanged_on_disk(&vfs, &full, &crlf.accepted()).ok(), Some(false));
     }
 
     #[test]
     fn an_absent_file_is_unchanged_and_a_directory_is_not() {
         let (vfs, path) = put(b"x\n");
         assert_eq!(
-            unchanged_on_disk(&vfs, Path::new("/p/pages/y.jsonl"), &sha256(b"x\n")).ok(),
+            unchanged_on_disk(&vfs, Path::new("/p/pages/y.jsonl"), &[sha256(b"x\n")]).ok(),
             Some(true)
         );
         assert_eq!(
-            unchanged_on_disk(&vfs, Path::new("/p/pages"), &sha256(b"x\n")).ok(),
+            unchanged_on_disk(&vfs, Path::new("/p/pages"), &[sha256(b"x\n")]).ok(),
             Some(false)
         );
-        assert_eq!(unchanged_on_disk(&vfs, &path, &sha256(b"x\n")).ok(), Some(true));
+        assert_eq!(unchanged_on_disk(&vfs, &path, &[sha256(b"x\n")]).ok(), Some(true));
     }
 
     #[test]

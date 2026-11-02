@@ -101,7 +101,7 @@ pub use limits::{
 pub use line::{
     INLINE_LIMIT, jsonl_file, lib_document_text, pretty, record_line, tagged_document, tagged_line,
 };
-pub use manifest::{FileHash, Manifest, ManifestError, hash_text, sha256};
+pub use manifest::{FileHash, MAX_GENERATION, Manifest, ManifestError, hash_text, sha256};
 pub use order::LineKey;
 pub use path::{
     FilePath, LIB_JSON_DIRS, LOCK, MANIFEST, MAX_INTERNAL_PATH, MAX_PATH, OpaqueKind, PathClass, PathError,

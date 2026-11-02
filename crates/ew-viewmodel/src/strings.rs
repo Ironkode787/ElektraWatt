@@ -1208,6 +1208,11 @@ pub const TEXTS: &[(&str, &str)] = &[
         "the save is incomplete and completes on the next open",
     ),
     ("saveerr-pending", "an earlier save is still incomplete"),
+    (
+        "saveerr-generation-limit",
+        "this project has been saved the greatest number of times its format allows; save it to a new folder \
+         (Save as\u{2026}), which starts the count again",
+    ),
     ("saveerr-other", "the project could not be written"),
     // The window, the start page, the page view.
     ("window-title", "{0} - ElektraWatt"),
