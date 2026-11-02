@@ -25,7 +25,8 @@ SPDX-License-Identifier: CC-BY-4.0
   the project folder; refused before anything is written for an `.ewz`, a crashed session's journal, any other finding
   that forces read-only, files that cannot be packed (no manifest, an incomplete save, a file that cannot be read or
   changed since the open) and a backup name holding another file; "Nothing to repair" without such a line; result
-  `ew.fmt-repair-result/1`; WP-S1.17)
+  `ew.fmt-repair-result/1`, printed on every way out once the backup exists, with `save_error` after a failed save and
+  `reopen_finding` after a re-open that still finds something wrong; WP-S1.17)
 - api-add: cli ew recover [--replay | --discard] [--json] (summarises, replays or deletes the journal of the crashed
   session with the latest change, one at a time; result `ew.recover-result/1`)
 - api-add: cli ew import csv <tables-dir> --out <dir> [--content <dir>] [--strict | --lenient] [--json] (creates a new

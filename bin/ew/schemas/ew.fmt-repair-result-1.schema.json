@@ -146,7 +146,7 @@
       "type": "array"
     },
     "generation": {
-      "description": "The generation on disk afterwards.",
+      "description": "The generation on disk afterwards (after a failed save, the one before; after a save incomplete at its commit\npoint, the decided one, which completes at the next open).",
       "format": "uint64",
       "minimum": 0,
       "type": "integer"
@@ -157,6 +157,20 @@
         "$ref": "#/$defs/KeptRow"
       },
       "type": "array"
+    },
+    "reopen_finding": {
+      "description": "What was still wrong when the project was opened again after the repair, in words: a finding (`still has\nEW-CORE-005 at <file>:<line>`), a read-only open or an open error (exit 2; the new generation and the backup\nstay). Absent when the project opened editable.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "save_error": {
+      "description": "Why the save after the backup failed, in words (exit 2; `discarded` and `files` are then empty, the broken lines\nstay and the backup is in place). Absent when there was no such failure.",
+      "type": [
+        "string",
+        "null"
+      ]
     }
   },
   "required": [

@@ -196,50 +196,84 @@ fn run_repair(a: &FmtArgs) -> i32 {
     let outcome = ew_api::fmt::repair(&mut session);
     // A repair's session holds no unsaved transaction: the clean close loses nothing.
     session.close();
+    let (code, out, err) = repair_outcome(&dir, a.json, &kept, outcome, || reopen(&dir));
+    print!("{out}");
+    eprint!("{err}");
+    code
+}
+
+/// What `ew fmt --repair` prints after `ew_api::fmt::repair`, and its exit code: `(code, stdout, stderr)`. `reopen`
+/// opens the repaired project again (ID-1185 ruling 6) and runs only after a save. Once the backup exists, `--json`
+/// prints the result on every way out (C47-p2#2): after a failed save with `save_error` (`discarded` and `files`
+/// empty), after a re-open that found something wrong with `reopen_finding`, each with exit 2; a refusal before
+/// anything is written prints no result. The human text goes to stderr with `--json`.
+fn repair_outcome(
+    dir: &Path,
+    json: bool,
+    kept: &[KeptLine],
+    outcome: Result<Repaired, RepairError>,
+    reopen: impl FnOnce() -> Result<(), String>,
+) -> (i32, String, String) {
+    let (mut out, mut err) = (String::new(), String::new());
     let repaired = match outcome {
         Ok(r) => r,
         Err(e) => {
-            eprintln!("{}", repair_refusal(&dir, &e));
-            return 2;
-        }
-    };
-    let json = |repaired: &Repaired| {
-        if a.json {
-            print!("{}", results::to_text(&repair_result(repaired, &kept)));
+            err.push_str(&format!("{}\n", repair_refusal(dir, &e)));
+            if json && let RepairError::Save { error, backup } = &e {
+                // A save incomplete after its commit point has decided the repaired generation; any other failure
+                // left the one before.
+                let generation = match error {
+                    ew_api::SaveError::Incomplete { generation, .. } => *generation,
+                    _ => backup.generation,
+                };
+                out.push_str(&results::to_text(&results::FmtRepairResult {
+                    save_error: Some(error.to_string()),
+                    ..backup_result(Some(backup), generation, kept)
+                }));
+            }
+            return (2, out, err);
         }
     };
     let Some(backup) = &repaired.backup else {
-        eprintln!("Nothing to repair");
-        json(&repaired);
-        return 0;
+        err.push_str("Nothing to repair\n");
+        if json {
+            out.push_str(&results::to_text(&repair_result(&repaired, kept)));
+        }
+        return (0, out, err);
     };
     for line in repair_report(&repaired.discarded, backup) {
-        if a.json {
-            eprintln!("{line}");
-        } else {
-            println!("{line}");
-        }
+        let to = if json { &mut err } else { &mut out };
+        to.push_str(&line);
+        to.push('\n');
     }
-    match reopen(&dir) {
+    match reopen() {
         Ok(()) => {
-            eprintln!(
-                "Repaired: discarded {}; saved generation {}",
+            err.push_str(&format!(
+                "Repaired: discarded {}; saved generation {}\n",
                 plural(repaired.discarded.len(), "line", "lines"),
                 repaired.generation
-            );
-            json(&repaired);
-            0
+            ));
+            if json {
+                out.push_str(&results::to_text(&repair_result(&repaired, kept)));
+            }
+            (0, out, err)
         }
         Err(what) => {
-            eprintln!(
+            err.push_str(&format!(
                 "error: {}: after the repair the project {what}; the repaired generation {} stays; the backup {} \
-                 holds generation {}, and `ew extract` makes a project of it in a new folder",
+                 holds generation {}, and `ew extract` makes a project of it in a new folder\n",
                 dir.display(),
                 repaired.generation,
                 backup.path.display(),
                 backup.generation
-            );
-            2
+            ));
+            if json {
+                out.push_str(&results::to_text(&results::FmtRepairResult {
+                    reopen_finding: Some(what),
+                    ..repair_result(&repaired, kept)
+                }));
+            }
+            (2, out, err)
         }
     }
 }
@@ -266,10 +300,9 @@ fn repair_report(discarded: &[DiscardedLine], backup: &Backup) -> Vec<String> {
     lines
 }
 
-/// `ew fmt --repair --json`'s result.
+/// `ew fmt --repair --json`'s result of a repair that ran: its discarded lines and files beside [`backup_result`]'s.
 fn repair_result(repaired: &Repaired, kept: &[KeptLine]) -> results::FmtRepairResult {
     results::FmtRepairResult {
-        schema: results::FMT_REPAIR.to_owned(),
         discarded: repaired
             .discarded
             .iter()
@@ -279,12 +312,6 @@ fn repair_result(repaired: &Repaired, kept: &[KeptLine]) -> results::FmtRepairRe
                 text: d.shown(),
             })
             .collect(),
-        backup: repaired.backup.as_ref().map(|b| results::BackupRow {
-            path: b.path.display().to_string(),
-            generation: b.generation,
-            reused: b.reused,
-            edited: b.edited,
-        }),
         files: repaired
             .files
             .iter()
@@ -293,6 +320,23 @@ fn repair_result(repaired: &Repaired, kept: &[KeptLine]) -> results::FmtRepairRe
                 removed: f.removed,
             })
             .collect(),
+        ..backup_result(repaired.backup.as_ref(), repaired.generation, kept)
+    }
+}
+
+/// `ew fmt --repair --json`'s result from the backup alone (`None`: nothing to repair), the generation on disk and the
+/// kept lines that stay: no line discarded, no file written, nothing wrong.
+fn backup_result(backup: Option<&Backup>, generation: u64, kept: &[KeptLine]) -> results::FmtRepairResult {
+    results::FmtRepairResult {
+        schema: results::FMT_REPAIR.to_owned(),
+        discarded: Vec::new(),
+        backup: backup.map(|b| results::BackupRow {
+            path: b.path.display().to_string(),
+            generation: b.generation,
+            reused: b.reused,
+            edited: b.edited,
+        }),
+        files: Vec::new(),
         kept: kept
             .iter()
             .map(|k| results::KeptRow {
@@ -302,7 +346,9 @@ fn repair_result(repaired: &Repaired, kept: &[KeptLine]) -> results::FmtRepairRe
                 reason: k.reason.clone(),
             })
             .collect(),
-        generation: repaired.generation,
+        generation,
+        reopen_finding: None,
+        save_error: None,
     }
 }
 
@@ -951,6 +997,147 @@ mod tests {
         assert_eq!(
             further(2),
             "2 more journals of crashed sessions remain; run ew recover again\n"
+        );
+    }
+
+    /// C47-p2#2: once the backup exists, `--json` prints the result on every way out, with exit 2 where it is a failure,
+    /// and the human text goes to stderr: a re-open that still finds something wrong (with `reopen_finding`), a save
+    /// incomplete after its commit point and a save that failed before it (with `save_error`, `discarded` and `files`
+    /// empty), each with and without `--json` (the faults the binary's tests cannot place).
+    #[test]
+    fn a_repair_with_a_backup_prints_its_result_on_every_way_out() {
+        let dir = Path::new("p.ew");
+        let backup = Backup {
+            path: PathBuf::from("p.ew.before-repair-g1.ewz"),
+            generation: 1,
+            reused: false,
+            edited: 1,
+        };
+        let kept = [KeptLine {
+            file: "pages/1.jsonl".to_owned(),
+            line: Some(4),
+            code: "EW-CORE-007".to_owned(),
+            reason: "a schema violation".to_owned(),
+        }];
+        let repaired = Repaired {
+            generation: 2,
+            discarded: vec![DiscardedLine {
+                file: "pages/1.jsonl".to_owned(),
+                line: 2,
+                text: b"not json".to_vec(),
+            }],
+            files: vec![Rewrite {
+                file: "pages/1.jsonl".to_owned(),
+                removed: false,
+            }],
+            backup: Some(backup.clone()),
+        };
+        // The printer writes the members in byte order of their names.
+        let kept_json = "  \"kept\": [\n    {\n      \"code\": \"EW-CORE-007\",\n      \"file\": \"pages/1.jsonl\",\n      \
+                         \"line\": 4,\n      \"reason\": \"a schema violation\"\n    }\n  ],\n";
+        let backup_json = "  \"backup\": {\n    \"edited\": 1,\n    \"generation\": 1,\n    \"path\": \
+                           \"p.ew.before-repair-g1.ewz\",\n    \"reused\": false\n  },\n";
+
+        // The re-open after the save finds a broken line still there.
+        let report = "discarded pages/1.jsonl:2: not json\nbackup p.ew.before-repair-g1.ewz (generation 1, as found: 1 \
+                      file edited outside EW)\n";
+        let failed = "error: p.ew: after the repair the project still has EW-CORE-005 at pages/1.jsonl:3; the repaired \
+                      generation 2 stays; the backup p.ew.before-repair-g1.ewz holds generation 1, and `ew extract` \
+                      makes a project of it in a new folder\n";
+        let reopen = || Err("still has EW-CORE-005 at pages/1.jsonl:3".to_owned());
+        assert_eq!(
+            repair_outcome(dir, false, &kept, Ok(repaired.clone()), reopen),
+            (2, report.to_owned(), failed.to_owned())
+        );
+        assert_eq!(
+            repair_outcome(dir, true, &kept, Ok(repaired.clone()), reopen),
+            (
+                2,
+                format!(
+                    "{{\n  \"$schema\": \"ew.fmt-repair-result/1\",\n{backup_json}  \"discarded\": [\n    {{\n      \
+                     \"file\": \"pages/1.jsonl\",\n      \"line\": 2,\n      \"text\": \"not json\"\n    }}\n  ],\n  \
+                     \"files\": [\n    {{\n      \"file\": \"pages/1.jsonl\",\n      \"removed\": false\n    }}\n  ],\n  \
+                     \"generation\": 2,\n{kept_json}  \"reopen_finding\": \"still has EW-CORE-005 at \
+                     pages/1.jsonl:3\"\n}}\n"
+                ),
+                format!("{report}{failed}")
+            )
+        );
+
+        // The save after the backup: incomplete after its commit point, and failed before it.
+        let incomplete = RepairError::Save {
+            error: ew_api::SaveError::Incomplete {
+                generation: 2,
+                step: ew_api::SaveStep::Renames,
+                error: std::io::Error::other("injected error"),
+            },
+            backup: backup.clone(),
+        };
+        let incomplete_text = "error: p.ew: the repair's save is incomplete: save incomplete at Renames (generation 2): \
+                               injected error; the repaired generation is decided and completes at the next open; the \
+                               backup is p.ew.before-repair-g1.ewz\n";
+        let save_failed = || RepairError::Save {
+            error: ew_api::SaveError::Failed {
+                step: ew_api::SaveStep::Temps,
+                path: PathBuf::from("pages/1.jsonl.tmp-2"),
+                error: std::io::Error::other("disk full"),
+            },
+            backup: backup.clone(),
+        };
+        let failed_text = "error: p.ew: the repair's save failed: save failed at Temps (pages/1.jsonl.tmp-2): disk full; \
+                           nothing changed on disk; the backup p.ew.before-repair-g1.ewz stays; run `ew fmt --repair` \
+                           again\n";
+        let never = || -> Result<(), String> { panic!("no re-open after a failed save") };
+        assert_eq!(
+            repair_outcome(dir, false, &kept, Err(save_failed()), never),
+            (2, String::new(), failed_text.to_owned())
+        );
+        let saved_json = |generation: u64, error: &str| {
+            format!(
+                "{{\n  \"$schema\": \"ew.fmt-repair-result/1\",\n{backup_json}  \"discarded\": [],\n  \"files\": [],\n  \
+                 \"generation\": {generation},\n{kept_json}  \"save_error\": \"{error}\"\n}}\n"
+            )
+        };
+        assert_eq!(
+            repair_outcome(dir, true, &kept, Err(save_failed()), never),
+            (
+                2,
+                saved_json(
+                    1,
+                    "save failed at Temps (pages/1.jsonl.tmp-2): disk full; nothing changed on disk"
+                ),
+                failed_text.to_owned()
+            )
+        );
+        let (code, out, err) = repair_outcome(dir, false, &kept, Err(incomplete), never);
+        assert_eq!((code, out, err), (2, String::new(), incomplete_text.to_owned()));
+        let incomplete = RepairError::Save {
+            error: ew_api::SaveError::Incomplete {
+                generation: 2,
+                step: ew_api::SaveStep::Renames,
+                error: std::io::Error::other("injected error"),
+            },
+            backup: backup.clone(),
+        };
+        assert_eq!(
+            repair_outcome(dir, true, &kept, Err(incomplete), never),
+            (
+                2,
+                saved_json(2, "save incomplete at Renames (generation 2): injected error"),
+                incomplete_text.to_owned()
+            )
+        );
+
+        // A refusal before anything is written prints no result.
+        assert_eq!(
+            repair_outcome(dir, true, &kept, Err(RepairError::Dirty), never),
+            (
+                2,
+                String::new(),
+                "error: p.ew: the session has unsaved changes; a repair writes only the saved project; nothing was \
+                 written\n"
+                    .to_owned()
+            )
         );
     }
 
