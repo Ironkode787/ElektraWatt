@@ -472,7 +472,7 @@ fn whole(q: &Q, set: RowSet, kind: String, blocks: Vec<String>, key: String) -> 
         notices: Vec::new(),
     }
 }
-// The printed tag of a strip.
+/// The printed tag of a strip.
 fn strip_tag(q: &Q, strip: Id<Device>) -> String {
     q.get::<DeviceTag>(strip)
         .as_ref()
@@ -878,7 +878,7 @@ pub fn workbook_dump(bytes: &[u8]) -> Result<String, ew_import_catalog::ew_inter
     Ok(out)
 }
 
-// The folio labels of the pages of the block `block` names, in page order (`ew export report --format pdf`).
+/// The folio labels of the pages of the block `block` names, in page order (`ew export report --format pdf`).
 ///
 /// # Errors
 ///
