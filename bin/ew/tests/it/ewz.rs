@@ -27,7 +27,7 @@ impl Tmp {
     /// `ew` in this directory with its user directories inside it, no starter content, no display and no
     /// `SOURCE_DATE_EPOCH`.
     fn ew(&self, args: &[OsString]) -> Output {
-        let mut cmd = Command::new(bin_exe());
+        let mut cmd = Command::new(super::conventions::bin_exe());
         cmd.args(args)
             .current_dir(&self.0)
             .env_remove("DISPLAY")
@@ -101,15 +101,6 @@ impl Drop for Tmp {
     fn drop(&mut self) {
         let _ = std::fs::remove_dir_all(&self.0);
     }
-}
-
-/// The path of the `ew` binary under test (nextest's run-time path, else the compile-time one).
-// The program boundary of a test: the path only chooses which binary runs; no compared result depends on it.
-#[allow(clippy::disallowed_methods)]
-fn bin_exe() -> PathBuf {
-    std::env::var_os("NEXTEST_BIN_EXE_ew")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| PathBuf::from(env!("CARGO_BIN_EXE_ew"))) // bin-exe-fallback
 }
 
 fn copy_dir(from: &Path, to: &Path) {

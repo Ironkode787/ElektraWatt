@@ -122,10 +122,11 @@ impl Drop for Tmp {
     }
 }
 
-/// The path of the `ew` binary under test (nextest's run-time path, else the compile-time one).
+/// The path of the `ew` binary under test (nextest's run-time path, else the compile-time one); the `ewz` module
+/// shares it.
 // The program boundary of a test: the path only chooses which binary runs; no compared result depends on it.
 #[allow(clippy::disallowed_methods)]
-fn bin_exe() -> PathBuf {
+pub(super) fn bin_exe() -> PathBuf {
     std::env::var_os("NEXTEST_BIN_EXE_ew")
         .map(PathBuf::from)
         .unwrap_or_else(|| PathBuf::from(env!("CARGO_BIN_EXE_ew"))) // bin-exe-fallback
