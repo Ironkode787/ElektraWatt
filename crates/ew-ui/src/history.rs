@@ -163,6 +163,8 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             );
         };
         ui.horizontal_wrapped(|ui| {
+            // FT-1078 (ID-1183): the pane's `space.4` gutter, as the Messages header has it.
+            ui.add_space(t.space_4);
             ui.spacing_mut().item_spacing.x = t.space_4;
             // FT-986: "1 step" for one.
             small(ui, history.header().unwrap_or_default());

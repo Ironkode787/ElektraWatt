@@ -157,6 +157,35 @@ fn pv5_the_history_panel_lists_the_steps_with_undo_to_here_and_show_changes() {
     h.state_mut().shell_mut().shutdown();
 }
 
+/// FT-1078 (ID-1183), as FT-567: the History header starts `space.4` inside the pane, as the Messages header does.
+#[test]
+fn ft1078_the_history_header_keeps_space_4_from_the_pane_edge() {
+    let tmp = Tmp::new();
+    let dir = tmp.golden("g.ew");
+    let mut h = harness(&tmp, Scripted::default(), Some(dir));
+    settle(&mut h);
+    dispatch(
+        &mut h,
+        "command.run",
+        json!({"cmd": "fields.set", "params": {"kind": "device", "targets": [{"ref": "tag:-101F1"}],
+            "path": "function_text", "value": "one"}}),
+    );
+    dispatch(&mut h, "history.show", json!({}));
+    settle(&mut h);
+    let t = ew_ui::theme::current(&h.ctx);
+    let pane = h
+        .get_all_by_role(egui::Role::Group)
+        .find(|n| n.accesskit_node().label().as_deref() == Some("History"))
+        .expect("the History panel")
+        .rect();
+    let header = h.get_by_label("1 step · cursor at 1").rect();
+    assert!(
+        (header.left() - pane.left() - t.space_4).abs() < 0.5,
+        "the header at {header:?} in {pane:?}"
+    );
+    h.state_mut().shell_mut().shutdown();
+}
+
 /// W31-2: at 1280×800 the renumber card's first tag change is on show in the Preview tab without a click: Tags is the
 /// list that carries the change, first and open, below Apply and Cancel.
 #[test]
