@@ -34,6 +34,11 @@ action = "file.export_pdf"
 context = "global"
 
 [[bind]]
+keys = "Ctrl+P"
+action = "file.print"
+context = "global"
+
+[[bind]]
 keys = "Ctrl+Shift+W"
 action = "file.close"
 context = "global"

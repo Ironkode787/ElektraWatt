@@ -103,6 +103,7 @@ size.button.min_width 72px
 size.dialog.small 440px
 size.dialog.form 640px
 size.dialog.label 160px
+size.dialog.preview 1040px
 size.palette 560px
 size.palette.row 32px
 size.toast 300px
@@ -241,6 +242,7 @@ size.button.min_width 72px
 size.dialog.small 440px
 size.dialog.form 640px
 size.dialog.label 160px
+size.dialog.preview 1040px
 size.palette 560px
 size.palette.row 32px
 size.toast 300px
@@ -379,6 +381,7 @@ size.button.min_width 72px
 size.dialog.small 440px
 size.dialog.form 640px
 size.dialog.label 160px
+size.dialog.preview 1040px
 size.palette 560px
 size.palette.row 32px
 size.toast 300px
@@ -517,6 +520,7 @@ size.button.min_width 72px
 size.dialog.small 440px
 size.dialog.form 640px
 size.dialog.label 160px
+size.dialog.preview 1040px
 size.palette 560px
 size.palette.row 32px
 size.toast 300px
@@ -655,6 +659,7 @@ size.button.min_width 72px
 size.dialog.small 440px
 size.dialog.form 640px
 size.dialog.label 160px
+size.dialog.preview 1040px
 size.palette 560px
 size.palette.row 32px
 size.toast 300px
@@ -793,6 +798,7 @@ size.button.min_width 72px
 size.dialog.small 440px
 size.dialog.form 640px
 size.dialog.label 160px
+size.dialog.preview 1040px
 size.palette 560px
 size.palette.row 32px
 size.toast 300px
@@ -931,6 +937,7 @@ size.button.min_width 72px
 size.dialog.small 440px
 size.dialog.form 640px
 size.dialog.label 160px
+size.dialog.preview 1040px
 size.palette 560px
 size.palette.row 32px
 size.toast 300px
@@ -1069,6 +1076,7 @@ size.button.min_width 72px
 size.dialog.small 440px
 size.dialog.form 640px
 size.dialog.label 160px
+size.dialog.preview 1040px
 size.palette 560px
 size.palette.row 32px
 size.toast 300px

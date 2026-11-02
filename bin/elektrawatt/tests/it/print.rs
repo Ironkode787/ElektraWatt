@@ -25,7 +25,7 @@ fn pw1_the_print_dialog_builds_pr1s_set_and_escape_prints_nothing() {
         Mode::Headless,
         ShellConfig::in_dir(&tmp.path("config"), "0.0.0-test"),
     );
-    let mut run = |s: &mut ShellModel, action: &str, params: serde_json::Value| {
+    let run = |s: &mut ShellModel, action: &str, params: serde_json::Value| {
         assert_eq!(s.dispatch(action, &params), Outcome::Done, "{action} {params}");
     };
     run(&mut s, "file.open", json!({"dir": path(&dir), "read_only": true}));

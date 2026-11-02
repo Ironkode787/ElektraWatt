@@ -71,6 +71,20 @@
       "label_key": "action-file-export-pdf"
     },
     {
+      "action": "file.print",
+      "bindings": {
+        "ew": [
+          "Ctrl+P"
+        ],
+        "kicad": [
+          "Ctrl+P"
+        ]
+      },
+      "context": "global",
+      "label": "Print…",
+      "label_key": "action-file-print"
+    },
+    {
       "action": "file.close",
       "bindings": {
         "ew": [

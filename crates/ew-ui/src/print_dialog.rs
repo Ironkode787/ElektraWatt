@@ -181,12 +181,11 @@ fn options(ui: &mut Ui, d: &PrintDialog, just_opened: bool, events: &mut Vec<Eve
     ui.spacing_mut().item_spacing.y = t.space_3;
     // The label column of §6.12, at most half the column (a narrower column keeps its fields).
     let label_width = t.size_dialog_label.min(ui.available_width() / 2.0).floor() - t.space_6;
-    row(ui, label_width, strings::text(key!("print-range")), |ui, label| {
+    // The radio buttons are named by their own words; the row's label names the group.
+    row(ui, label_width, strings::text(key!("print-range")), |ui, _| {
         ui.spacing_mut().item_spacing.y = t.space_2;
         for range in PrintRange::ALL {
-            let r = ui
-                .radio(d.range == range, strings::text(range.label_key()))
-                .labelled_by(label);
+            let r = ui.radio(d.range == range, strings::text(range.label_key()));
             if just_opened && d.range == range {
                 r.request_focus();
             }
@@ -237,25 +236,31 @@ fn options(ui: &mut Ui, d: &PrintDialog, just_opened: bool, events: &mut Vec<Eve
 fn sections(ui: &mut Ui, d: &PrintDialog, events: &mut Vec<Event>) {
     let t = theme::current(ui.ctx());
     let enabled = d.range == PrintRange::Sections;
+    let mut list = |ui: &mut Ui| {
+        for s in &d.sections {
+            let mut ticked = s.ticked;
+            let check = ui.add_enabled(enabled, egui::Checkbox::new(&mut ticked, s.label()));
+            if check.changed() {
+                let numbers: Vec<String> = d
+                    .sections
+                    .iter()
+                    .filter(|o| if o.number == s.number { ticked } else { o.ticked })
+                    .map(|o| o.number.to_string())
+                    .collect();
+                set(events, json!({ "sections": numbers.join(",") }));
+            }
+        }
+    };
     ui.indent("print-sections", |ui| {
-        egui::ScrollArea::vertical()
-            .id_salt("print-sections-list")
-            .max_height(t.size_row * SECTION_ROWS)
-            .show(ui, |ui| {
-                for s in &d.sections {
-                    let mut ticked = s.ticked;
-                    let check = ui.add_enabled(enabled, egui::Checkbox::new(&mut ticked, s.label()));
-                    if check.changed() {
-                        let numbers: Vec<String> = d
-                            .sections
-                            .iter()
-                            .filter(|o| if o.number == s.number { ticked } else { o.ticked })
-                            .map(|o| o.number.to_string())
-                            .collect();
-                        set(events, json!({ "sections": numbers.join(",") }));
-                    }
-                }
-            });
+        // A short list shows whole; a long one scrolls after `SECTION_ROWS` rows.
+        if d.sections.len() as f32 <= SECTION_ROWS {
+            list(ui);
+        } else {
+            egui::ScrollArea::vertical()
+                .id_salt("print-sections-list")
+                .max_height(t.size_row * SECTION_ROWS)
+                .show(ui, list);
+        }
     });
 }
 
@@ -333,6 +338,7 @@ fn preview(ui: &mut Ui, shell: &ShellModel, d: &PrintDialog, events: &mut Vec<Ev
                     .layout(Layout::top_down(Align::Center)),
             );
             progress(&mut inner, shell);
+            keep_navigation_room(ui);
         }
         (PrintBuild::Failed(cause), _) => {
             let mut inner = ui.new_child(
@@ -341,6 +347,7 @@ fn preview(ui: &mut Ui, shell: &ShellModel, d: &PrintDialog, events: &mut Vec<Ev
                     .layout(Layout::top_down(Align::Center)),
             );
             components::live_line(&mut inner, &strings::format(key!("print-failed"), &[cause]), true);
+            keep_navigation_room(ui);
         }
         _ => {
             let mut inner = ui.new_child(
@@ -348,6 +355,9 @@ fn preview(ui: &mut Ui, shell: &ShellModel, d: &PrintDialog, events: &mut Vec<Ev
                     .max_rect(rect.shrink(t.space_5))
                     .layout(Layout::top_down(Align::Center)),
             );
+            // Centred in the preview's place, as the progress line.
+            let room = (inner.available_height() / 2.0 - 2.0 * t.size_control).max(0.0);
+            inner.add_space(room);
             components::empty_state(
                 &mut inner,
                 IconId::printer,
@@ -355,8 +365,15 @@ fn preview(ui: &mut Ui, shell: &ShellModel, d: &PrintDialog, events: &mut Vec<Ev
                 strings::text(key!("print-empty-text")),
                 None,
             );
+            keep_navigation_room(ui);
         }
     }
+}
+
+/// The room of the navigation row under a preview that shows none, so the dialog keeps its height between states.
+fn keep_navigation_room(ui: &mut Ui) {
+    let t = theme::current(ui.ctx());
+    ui.add_space(t.space_2 + t.size_control);
 }
 
 /// §6.19's progress line in the preview's place: the text with its percentage over a 2-px accent line, or the
@@ -366,21 +383,19 @@ fn progress(ui: &mut Ui, shell: &ShellModel) {
     let p = shell.print_progress().unwrap_or_default();
     let text = shell.print_progress_text().unwrap_or_default();
     ui.add_space((ui.available_height() / 2.0 - t.size_control).max(0.0));
-    ui.horizontal(|ui| {
-        if p.total == 0 && !crate::clock::on_frame_clock() {
-            ui.add(egui::Spinner::new().size(12.0));
-        }
-        components::live_line(ui, &text, false);
-    });
+    if p.total == 0 && !crate::clock::on_frame_clock() {
+        ui.add(egui::Spinner::new().size(12.0));
+    }
+    components::live_line(ui, &text, false);
     if p.total > 0 {
         let width = (ui.available_width() * 0.6).floor();
         let (line, _) = ui.allocate_exact_size(Vec2::new(width, 2.0), Sense::hover());
-        ui.painter().rect_filled(line, 0.0, t.border_default.color32());
+        ui.painter().rect_filled(line, egui::CornerRadius::ZERO, t.border_default.color32());
         let done = egui::Rect::from_min_size(
             line.min,
             Vec2::new(line.width() * p.done as f32 / p.total as f32, 2.0),
         );
-        ui.painter().rect_filled(done, 0.0, t.accent.color32());
+        ui.painter().rect_filled(done, egui::CornerRadius::ZERO, t.accent.color32());
     }
 }
 
