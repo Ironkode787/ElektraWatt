@@ -1083,9 +1083,9 @@ fn a4_with_the_fit_has_no_stamp_and_a_set_on_its_sheets_is_the_export() {
     );
 }
 
-/// D6's stop (ID-1114, the brief): on every page of section 1 printed on A5 with the fit, the stamp's box, taken back
-/// to the sheet, touches no drawn item: no glyph run's box, no image, and no point of a path (each segment sampled
-/// densely, widened by half its stroke). The clearance to the nearest drawn point is printed.
+/// D6's stop (ID-1114, ID-1144): on every page of section 1 printed on A5 with the fit, the stamp's box, taken back to
+/// the sheet, covers no drawn item, tested exactly ([`stamp_clearance`]). The clearance to the nearest drawn item is
+/// printed.
 #[test]
 fn the_stamp_covers_no_drawn_item_of_section_1() {
     let s = golden_session(None);
@@ -1104,41 +1104,191 @@ fn the_stamp_covers_no_drawn_item_of_section_1() {
             )
         };
         let stamp = box_of(&run.layout_quad().map(to_sheet));
-        let (mut points, mut boxes) = (Vec::new(), Vec::new());
-        drawn_points(&page.content.items, &[], &mut points, &mut boxes);
-        for b in boxes {
-            let apart = b.2 < stamp.0 || b.0 > stamp.2 || b.3 < stamp.1 || b.1 > stamp.3;
-            assert!(
-                apart,
-                "folio {}: the stamp {stamp:?} overlaps the box {b:?}",
-                page.label
-            );
-            // A box's corners measure its clearance.
-            points.extend([(b.0, b.1, 0.0), (b.2, b.3, 0.0), (b.0, b.3, 0.0), (b.2, b.1, 0.0)]);
-        }
-        for (x, y, pad) in points {
-            let dx = (stamp.0 - x).max(x - stamp.2).max(0.0);
-            let dy = (stamp.1 - y).max(y - stamp.3).max(0.0);
-            let d = dx.hypot(dy) - pad;
-            assert!(
-                d > 0.0,
-                "folio {}: the stamp {stamp:?} covers a drawn point ({x}, {y})",
-                page.label
-            );
-            nearest = nearest.min(d);
+        match stamp_clearance(&page.content.items, stamp) {
+            Ok(d) => nearest = nearest.min(d),
+            Err(item) => panic!("folio {}: the stamp {stamp:?} covers {item}", page.label),
         }
     }
-    eprintln!("the stamp's clearance on the sheet: {:.2} mm", nearest / 1e6);
+    eprintln!("the stamp's clearance on the sheet: {:.3} mm", nearest / 1e6);
 }
 
-/// The drawn points of `items` on the sheet in nm, each with its half stroke width (every path segment sampled at
-/// 64 points), and the boxes of every glyph run and image (min x, min y, max x, max y).
-fn drawn_points(
-    items: &[ew_dl::Item],
-    stack: &[ew_dl::Transform],
-    out: &mut Vec<(f64, f64, f64)>,
-    boxes: &mut Vec<(f64, f64, f64, f64)>,
-) {
+/// The check behind D6's stop on items made to meet a 10 × 10 box between the points a sampling check looks at, or
+/// under it: a long thin line touching a corner, a stroke reaching it by its width, a fill holding the box, a fill
+/// whose closing edge crosses it, a curve whose control hull meets it; and the exact clearance of items that miss it.
+#[test]
+fn the_stamp_check_finds_every_item_covering_the_box_exactly() {
+    use ew_dl::{Brush, Item, Path, PathEl, Stroke};
+    use ew_units::{Nm, Pt2};
+    let p = |x: i64, y: i64| Pt2::new(Nm(x), Nm(y));
+    let stamp = (0.0, 0.0, 10.0, 10.0);
+    let line = |a, b, width| {
+        let els = vec![PathEl::MoveTo(a), PathEl::LineTo(b)];
+        Item::path(Path { els }, Some(Stroke::solid(Nm(width))), None)
+    };
+    let fill = |els: Vec<PathEl>| Item::path(Path { els }, None, Some(Brush::BLACK));
+    // A 2.8 mm line touching the corner (10, 10) only, far between the points of a dense sampling.
+    let corner = line(p(-1_000_000, 1_000_020), p(1_000_020, -1_000_000), 0);
+    assert_eq!(
+        stamp_clearance(&[corner], stamp),
+        Err("the stroked segment (-1000000, 1000020) to (1000020, -1000000)".to_owned())
+    );
+    // The line 7.07 nm off the corner, stroked 20 nm wide: its half width reaches the box.
+    let off = line(p(-1_000_000, 1_000_030), p(1_000_030, -1_000_000), 20);
+    assert_eq!(
+        stamp_clearance(&[off], stamp),
+        Err("the stroked segment (-1000000, 1000030) to (1000030, -1000000)".to_owned())
+    );
+    // A filled triangle around the box, every edge apart from it: its winding holds the corners.
+    let around = vec![
+        PathEl::MoveTo(p(-100, -100)),
+        PathEl::LineTo(p(200, -100)),
+        PathEl::LineTo(p(-100, 200)),
+    ];
+    assert_eq!(
+        stamp_clearance(&[fill(around)], stamp),
+        Err("the fill holding the corner (0, 0)".to_owned())
+    );
+    // An open fill whose closing edge, back to its start, crosses the box.
+    let open = vec![
+        PathEl::MoveTo(p(5, -50)),
+        PathEl::LineTo(p(100, -50)),
+        PathEl::LineTo(p(5, 60)),
+    ];
+    assert_eq!(
+        stamp_clearance(&[fill(open)], stamp),
+        Err("the fill's edge (5, 60) to (5, -50)".to_owned())
+    );
+    // A curve passing beside the box with its control point over it: the hull counts as covering.
+    let els = vec![PathEl::MoveTo(p(-20, 5)), PathEl::QuadTo(p(5, 5), p(-20, 6))];
+    let curve = Item::path(Path { els }, Some(Stroke::solid(Nm(0))), None);
+    assert_eq!(
+        stamp_clearance(&[curve], stamp),
+        Err("the stroked curve (-20, 5) to (-20, 6)".to_owned())
+    );
+    // Items that miss it: the clearance is the exact distance, less a stroke's half width.
+    let beside = line(p(13, -100), p(13, 100), 2);
+    assert_eq!(stamp_clearance(&[beside], stamp), Ok(2.0));
+    let diagonal = line(p(20, 10), p(10, 20), 0);
+    let d = stamp_clearance(&[diagonal], stamp).unwrap();
+    assert!((d - 50f64.sqrt()).abs() < 1e-9, "{d}");
+    let ring = vec![
+        PathEl::MoveTo(p(-100, -100)),
+        PathEl::LineTo(p(100, -100)),
+        PathEl::LineTo(p(100, 100)),
+        PathEl::LineTo(p(-100, 100)),
+        PathEl::ClosePath,
+        PathEl::MoveTo(p(-50, -50)),
+        PathEl::LineTo(p(-50, 50)),
+        PathEl::LineTo(p(50, 50)),
+        PathEl::LineTo(p(50, -50)),
+        PathEl::ClosePath,
+    ];
+    assert_eq!(stamp_clearance(&[fill(ring)], stamp), Ok(40.0));
+}
+
+/// A point on the sheet in nm.
+type Pt = (f64, f64);
+/// An axis-aligned box on the sheet in nm: (min x, min y, max x, max y).
+type Box2 = (f64, f64, f64, f64);
+
+/// How far the drawn `items` keep from `stamp` (the shortest distance in nm on the sheet, a stroke's less its half
+/// width), or the first item covering it, in words. Exact, no sampling:
+/// - a stroked line segment covers the box when it meets the box grown by half the stroke width (endpoints inside
+///   included); a curve (`QuadTo`, `CubicTo`) by the convex hull of its control points, which holds it, so a hull
+///   meeting the grown box covers it (conservative);
+/// - a filled path (non-zero winding, each open subpath closed) covers it when a corner of the box lies inside it or
+///   one of its edges meets the box (a curved edge by its hull; outside every hull a curve winds as its chord does);
+/// - a glyph run or an image covers it when its box meets the box.
+fn stamp_clearance(items: &[ew_dl::Item], stamp: Box2) -> Result<f64, String> {
+    let mut drawn = Drawn::default();
+    drawn_items(items, &[], &mut drawn);
+    let mut nearest = f64::MAX;
+    for (seg, pad) in &drawn.strokes {
+        let d = hull_box_distance(&seg.hull, stamp) - pad;
+        if d <= 0.0 {
+            return Err(format!("the stroked {}", seg.words()));
+        }
+        nearest = nearest.min(d);
+    }
+    let corners = [
+        (stamp.0, stamp.1),
+        (stamp.2, stamp.1),
+        (stamp.2, stamp.3),
+        (stamp.0, stamp.3),
+    ];
+    for fill in &drawn.fills {
+        for seg in fill {
+            let d = hull_box_distance(&seg.hull, stamp);
+            if d <= 0.0 {
+                return Err(format!("the fill's edge {} to {}", pt(seg.from), pt(seg.to)));
+            }
+            nearest = nearest.min(d);
+        }
+        if let Some(&c) = corners.iter().find(|&&c| winding(c, fill) != 0) {
+            return Err(format!("the fill holding the corner {}", pt(c)));
+        }
+    }
+    for &b in &drawn.boxes {
+        let d = box_box_distance(b, stamp);
+        if d <= 0.0 {
+            return Err(format!("the box {b:?}"));
+        }
+        nearest = nearest.min(d);
+    }
+    Ok(nearest)
+}
+
+/// A point in words, `(x, y)` in nm.
+fn pt(p: Pt) -> String {
+    format!("({}, {})", p.0, p.1)
+}
+
+/// One segment of a path on the sheet: a line, a curve, or a subpath's lone start point.
+struct Seg {
+    /// Where it starts.
+    from: Pt,
+    /// Where it ends.
+    to: Pt,
+    /// The convex hull of its start, control points and end.
+    hull: Vec<Pt>,
+    /// Whether it is a curve.
+    curve: bool,
+}
+
+impl Seg {
+    /// The segment from `from` over the control points `ctrl` to `to`.
+    fn new(from: Pt, ctrl: &[Pt], to: Pt) -> Seg {
+        let mut points = vec![from];
+        points.extend(ctrl);
+        points.push(to);
+        Seg {
+            from,
+            to,
+            hull: convex_hull(&points),
+            curve: !ctrl.is_empty(),
+        }
+    }
+
+    /// The segment in words.
+    fn words(&self) -> String {
+        let kind = if self.curve { "curve" } else { "segment" };
+        format!("{kind} {} to {}", pt(self.from), pt(self.to))
+    }
+}
+
+/// The drawn items of a list on the sheet.
+#[derive(Default)]
+struct Drawn {
+    /// Each stroked segment, with its half stroke width.
+    strokes: Vec<(Seg, f64)>,
+    /// Each filled path's edges, each subpath closed.
+    fills: Vec<Vec<Seg>>,
+    /// The boxes of every glyph run and image.
+    boxes: Vec<Box2>,
+}
+
+/// The drawn items of `items` under the transforms `stack`, on the sheet in nm.
+fn drawn_items(items: &[ew_dl::Item], stack: &[ew_dl::Transform], out: &mut Drawn) {
     use ew_dl::PathEl;
     let on_sheet = |p: ew_units::Pt2| {
         let q = stack.iter().rev().fold(p, |q, t| t.apply(q));
@@ -1147,54 +1297,183 @@ fn drawn_points(
     for item in items {
         match &item.kind {
             ItemKind::Path(p) => {
-                let pad = p.stroke.as_ref().map_or(0.0, |s| s.width.0 as f64 / 2.0);
-                let mut start = None;
-                let mut at = None;
+                let pad = p.stroke.as_ref().map(|s| s.width.0 as f64 / 2.0);
+                let mut fill = Vec::new();
+                let mut start: Option<Pt> = None;
+                let mut at: Option<Pt> = None;
+                // The fill closes an open subpath: its last point back to its first.
+                let close = |fill: &mut Vec<Seg>, start: Option<Pt>, at: Option<Pt>| match (start, at) {
+                    (Some(s), Some(a)) if s != a => fill.push(Seg::new(a, &[], s)),
+                    _ => {}
+                };
                 for el in &p.path.els {
-                    let (to, ctrl): (ew_units::Pt2, Vec<ew_units::Pt2>) = match *el {
+                    let (to, ctrl): (Pt, Vec<Pt>) = match *el {
                         PathEl::MoveTo(q) => {
-                            start = Some(q);
-                            at = Some(q);
-                            out.push((on_sheet(q).0, on_sheet(q).1, pad));
+                            close(&mut fill, start, at);
+                            let q = on_sheet(q);
+                            (start, at) = (Some(q), Some(q));
+                            if let Some(pad) = pad {
+                                out.strokes.push((Seg::new(q, &[], q), pad));
+                            }
                             continue;
                         }
-                        PathEl::LineTo(q) => (q, vec![]),
-                        PathEl::QuadTo(c, q) => (q, vec![c]),
-                        PathEl::CubicTo(c1, c2, q) => (q, vec![c1, c2]),
+                        PathEl::LineTo(q) => (on_sheet(q), vec![]),
+                        PathEl::QuadTo(c, q) => (on_sheet(q), vec![on_sheet(c)]),
+                        PathEl::CubicTo(c1, c2, q) => (on_sheet(q), vec![on_sheet(c1), on_sheet(c2)]),
                         PathEl::ClosePath => match start {
                             Some(q) => (q, vec![]),
                             None => continue,
                         },
                     };
                     let from = at.unwrap_or(to);
-                    // The polygon through the control points bounds the curve: sample it.
-                    let mut poly = vec![from];
-                    poly.extend(ctrl);
-                    poly.push(to);
-                    for w in poly.windows(2) {
-                        let (a, b) = (on_sheet(w[0]), on_sheet(w[1]));
-                        for k in 0..=64 {
-                            let t = f64::from(k) / 64.0;
-                            out.push((a.0 + (b.0 - a.0) * t, a.1 + (b.1 - a.1) * t, pad));
-                        }
+                    if let Some(pad) = pad {
+                        out.strokes.push((Seg::new(from, &ctrl, to), pad));
                     }
+                    fill.push(Seg::new(from, &ctrl, to));
                     at = Some(to);
                 }
+                close(&mut fill, start, at);
+                if p.fill.is_some() {
+                    out.fills.push(fill);
+                }
             }
-            ItemKind::Glyphs(run) => boxes.push(box_of(&run.layout_quad().map(on_sheet))),
+            ItemKind::Glyphs(run) => out.boxes.push(box_of(&run.layout_quad().map(on_sheet))),
             ItemKind::Image(img) => {
                 let (a, b) = (img.rect.min(), img.rect.max());
                 let corners = [a, ew_units::Pt2::new(a.x, b.y), b, ew_units::Pt2::new(b.x, a.y)];
-                boxes.push(box_of(&corners.map(on_sheet)));
+                out.boxes.push(box_of(&corners.map(on_sheet)));
             }
             ItemKind::Group(g) => {
                 let mut inner = stack.to_vec();
                 inner.push(g.transform.unwrap_or(ew_dl::Transform::IDENTITY));
-                drawn_points(&g.items, &inner, out, boxes);
+                drawn_items(&g.items, &inner, out);
             }
             ItemKind::Instance(_) => panic!("a sheet list has its instances inlined"),
         }
     }
+}
+
+/// `(b − a) × (c − a)`: positive when `c` lies left of `a → b`.
+fn cross(a: Pt, b: Pt, c: Pt) -> f64 {
+    (b.0 - a.0) * (c.1 - a.1) - (b.1 - a.1) * (c.0 - a.0)
+}
+
+/// The convex hull of `points` (Andrew's monotone chain), counter-clockwise; one point, or a segment's two ends, when
+/// they lie on a line.
+fn convex_hull(points: &[Pt]) -> Vec<Pt> {
+    let mut ps = points.to_vec();
+    ps.sort_by(|a, b| a.partial_cmp(b).unwrap());
+    ps.dedup();
+    if ps.len() <= 2 {
+        return ps;
+    }
+    let mut hull: Vec<Pt> = Vec::new();
+    let chain = |hull: &mut Vec<Pt>, p: Pt, base: usize| {
+        while hull.len() >= base + 2 && cross(hull[hull.len() - 2], hull[hull.len() - 1], p) <= 0.0 {
+            hull.pop();
+        }
+        hull.push(p);
+    };
+    for &p in &ps {
+        chain(&mut hull, p, 0);
+    }
+    let base = hull.len() - 1;
+    for &p in ps.iter().rev().skip(1) {
+        chain(&mut hull, p, base);
+    }
+    hull.pop();
+    hull
+}
+
+/// The distance from the convex polygon `hull` (one point, a segment's two ends, or counter-clockwise) to the box `r`,
+/// 0 when they meet.
+fn hull_box_distance(hull: &[Pt], r: Box2) -> f64 {
+    let n = hull.len();
+    if n == 1 {
+        return point_box_distance(hull[0], r);
+    }
+    if n == 2 {
+        return segment_box_distance(hull[0], hull[1], r);
+    }
+    let corners = [(r.0, r.1), (r.2, r.1), (r.2, r.3), (r.0, r.3)];
+    let holds = |c: Pt| (0..n).all(|i| cross(hull[i], hull[(i + 1) % n], c) >= 0.0);
+    if corners.into_iter().any(holds) {
+        return 0.0;
+    }
+    (0..n)
+        .map(|i| segment_box_distance(hull[i], hull[(i + 1) % n], r))
+        .fold(f64::MAX, f64::min)
+}
+
+/// The distance between two boxes, 0 when they meet.
+fn box_box_distance(a: Box2, b: Box2) -> f64 {
+    let dx = (b.0 - a.2).max(a.0 - b.2).max(0.0);
+    let dy = (b.1 - a.3).max(a.1 - b.3).max(0.0);
+    dx.hypot(dy)
+}
+
+/// The distance from `p` to the box `r`, 0 inside it.
+fn point_box_distance(p: Pt, r: Box2) -> f64 {
+    box_box_distance((p.0, p.1, p.0, p.1), r)
+}
+
+/// The distance from `p` to the segment `a`–`b`.
+fn point_segment_distance(p: Pt, a: Pt, b: Pt) -> f64 {
+    let (dx, dy) = (b.0 - a.0, b.1 - a.1);
+    let len2 = dx * dx + dy * dy;
+    let t = if len2 == 0.0 {
+        0.0
+    } else {
+        (((p.0 - a.0) * dx + (p.1 - a.1) * dy) / len2).clamp(0.0, 1.0)
+    };
+    (p.0 - a.0 - t * dx).hypot(p.1 - a.1 - t * dy)
+}
+
+/// Whether the segments `a`–`b` and `c`–`d` meet, touching included.
+fn segments_meet(a: Pt, b: Pt, c: Pt, d: Pt) -> bool {
+    let (d1, d2) = (cross(c, d, a), cross(c, d, b));
+    let (d3, d4) = (cross(a, b, c), cross(a, b, d));
+    if d1 * d2 < 0.0 && d3 * d4 < 0.0 {
+        return true;
+    }
+    let within = |p: Pt, q: Pt, r: Pt| {
+        r.0 >= p.0.min(q.0) && r.0 <= p.0.max(q.0) && r.1 >= p.1.min(q.1) && r.1 <= p.1.max(q.1)
+    };
+    (d1 == 0.0 && within(c, d, a))
+        || (d2 == 0.0 && within(c, d, b))
+        || (d3 == 0.0 && within(a, b, c))
+        || (d4 == 0.0 && within(a, b, d))
+}
+
+/// The distance from the segment `a`–`b` to the box `r`, 0 when it meets the box (an end inside included). Apart, the
+/// nearest pair is an end of the segment and the box, or a corner of the box and the segment.
+fn segment_box_distance(a: Pt, b: Pt, r: Box2) -> f64 {
+    let corners = [(r.0, r.1), (r.2, r.1), (r.2, r.3), (r.0, r.3)];
+    let inside = |p: Pt| p.0 >= r.0 && p.0 <= r.2 && p.1 >= r.1 && p.1 <= r.3;
+    if inside(a) || inside(b) || (0..4).any(|i| segments_meet(a, b, corners[i], corners[(i + 1) % 4])) {
+        return 0.0;
+    }
+    corners
+        .iter()
+        .map(|&c| point_segment_distance(c, a, b))
+        .chain([point_box_distance(a, r), point_box_distance(b, r)])
+        .fold(f64::MAX, f64::min)
+}
+
+/// The winding number of the closed path of `edges` around `p`, each edge by its chord (a point on an edge counts as
+/// outside; the caller tests the edges first, and outside every curve's hull a curve winds as its chord does).
+fn winding(p: Pt, edges: &[Seg]) -> i32 {
+    edges
+        .iter()
+        .map(|e| {
+            let (a, b) = (e.from, e.to);
+            if a.1 <= p.1 {
+                i32::from(b.1 > p.1 && cross(a, b, p) > 0.0)
+            } else {
+                -i32::from(b.1 <= p.1 && cross(a, b, p) < 0.0)
+            }
+        })
+        .sum()
 }
 
 /// The bounding box of points: (min x, min y, max x, max y).

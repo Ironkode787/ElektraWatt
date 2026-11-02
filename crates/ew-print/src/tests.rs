@@ -152,41 +152,157 @@ fn a_missing_or_failing_lp_is_refused_and_leaves_no_file() {
     );
 }
 
-/// PR-4: the viewer writes `<dir>/<project>-print.pdf` and runs the opener on it; a printer is refused before
-/// anything is written.
-#[test]
-fn the_viewer_writes_the_file_and_opens_it() {
-    let dir = Dir::new();
-    let viewer = Viewer {
+/// The viewer on `dir` with the stand-in as its opener.
+fn stand_in_viewer(dir: &Dir) -> Viewer {
+    Viewer {
         opener: stand_in_program(),
         dir: dir.0.clone(),
         project: "J-E-2416".to_owned(),
+    }
+}
+
+/// The file the viewer's set goes to with the counter at `n`.
+fn viewer_file(dir: &Dir, n: u32) -> PathBuf {
+    dir.0
+        .join(format!("J-E-2416-print-{}-{n}.pdf", std::process::id()))
+}
+
+/// The counter in an opened file's name.
+fn counter_of(outcome: &PrintOutcome) -> u32 {
+    let PrintOutcome::Opened { file } = outcome else {
+        panic!("opened: {outcome:?}")
     };
+    let name = file.file_name().unwrap().to_string_lossy();
+    let prefix = format!("J-E-2416-print-{}-", std::process::id());
+    name.strip_prefix(&prefix)
+        .and_then(|n| n.strip_suffix(".pdf"))
+        .and_then(|n| n.parse().ok())
+        .unwrap_or_else(|| panic!("a fresh viewer file: {name}"))
+}
+
+/// A set's PDF with its own bytes.
+fn job_with(pdf: &[u8]) -> PrintJob {
+    PrintJob {
+        pdf: pdf.to_vec(),
+        ..job("t", None)
+    }
+}
+
+/// PR-4 and D9 (ID-1144): the viewer writes each set to a fresh file `<dir>/<project>-print-<process>-<n>.pdf` and runs
+/// the opener on it, the file left for the viewer; a second print goes to a second file and leaves the first as it
+/// was; a printer is refused before anything is written.
+#[test]
+fn the_viewer_writes_each_set_to_a_fresh_file_and_opens_it() {
+    let dir = Dir::new();
+    let viewer = stand_in_viewer(&dir);
     assert_eq!(viewer.name(), "viewer");
     let e = viewer.print(&job("t", Some("office"))).unwrap_err();
     assert_eq!(
         e.to_string(),
-        "`--printer` needs `--via lp` or `--via windows`; the viewer asks"
+        "`--printer` needs `--via lp`; with the viewer, choose the printer in its print dialog"
     );
     assert!(dir.names().is_empty());
-    let file = dir.0.join("J-E-2416-print.pdf");
+    let first = viewer.print(&job_with(b"%PDF-1.7 the first set")).unwrap();
+    let n = counter_of(&first);
+    let one = viewer_file(&dir, n);
+    assert_eq!(first, PrintOutcome::Opened { file: one.clone() });
+    let (_, args) = recorded(&dir);
+    assert_eq!(args, [one.display().to_string(), "exists true".to_owned()]);
+    let second = viewer.print(&job_with(b"%PDF-1.7 the second set")).unwrap();
+    let two = viewer_file(&dir, counter_of(&second));
+    assert_ne!(one, two);
+    assert_eq!(second, PrintOutcome::Opened { file: two.clone() });
+    assert_eq!(std::fs::read(&one).unwrap(), b"%PDF-1.7 the first set");
+    assert_eq!(std::fs::read(&two).unwrap(), b"%PDF-1.7 the second set");
+    let name = |p: &Path| p.file_name().unwrap().to_string_lossy().into_owned();
+    let mut want = vec![
+        name(&one),
+        format!("{}.args", name(&one)),
+        name(&two),
+        format!("{}.args", name(&two)),
+    ];
+    want.sort();
+    assert_eq!(dir.names(), want, "both files stay for the viewer");
+}
+
+/// D9 (ID-1144): a file already at the next name is left as it is and the set goes to the one after; when every
+/// attempt finds its name taken, the set is refused with the last name and the system's reason.
+#[test]
+fn the_viewer_never_writes_over_a_file_at_its_next_name() {
+    let dir = Dir::new();
+    let viewer = stand_in_viewer(&dir);
+    let n = counter_of(&viewer.print(&job("t", None)).unwrap());
+    let planted = viewer_file(&dir, n + 1);
+    std::fs::write(&planted, b"another file").unwrap();
+    let after = viewer.print(&job("t", None)).unwrap();
+    assert_eq!(
+        after,
+        PrintOutcome::Opened {
+            file: viewer_file(&dir, n + 2)
+        }
+    );
+    assert_eq!(std::fs::read(&planted).unwrap(), b"another file");
+    assert_eq!(
+        std::fs::read(viewer_file(&dir, n + 2)).unwrap(),
+        job("t", None).pdf
+    );
+    // Every name of the next attempts taken: the set is refused, and nothing is written over.
+    let from = n + 3;
+    for k in from..from + NAME_ATTEMPTS {
+        std::fs::write(viewer_file(&dir, k), b"another file").unwrap();
+    }
+    let before = dir.names();
+    let last = viewer_file(&dir, from + NAME_ATTEMPTS - 1);
+    let reason = std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&last)
+        .unwrap_err()
+        .to_string();
+    assert_eq!(
+        viewer.print(&job("t", None)).unwrap_err(),
+        PrintError::Io { path: last, reason }
+    );
+    assert_eq!(dir.names(), before);
+    for k in from..from + NAME_ATTEMPTS {
+        assert_eq!(std::fs::read(viewer_file(&dir, k)).unwrap(), b"another file");
+    }
+}
+
+/// D9 (ID-1144), Unix: a symbolic link at the viewer's next name is not followed (its target keeps its bytes, the
+/// link stays a link) and the set goes to the name after; the viewer's file and the shared fresh file `lp` prints
+/// are readable by their owner only (mode `0o600`).
+#[cfg(unix)]
+#[test]
+fn the_print_files_follow_no_link_and_are_the_owners_alone() {
+    use std::os::unix::fs::PermissionsExt as _;
+    let dir = Dir::new();
+    let viewer = stand_in_viewer(&dir);
+    let n = counter_of(&viewer.print(&job("t", None)).unwrap());
+    let target = dir.0.join("target.pdf");
+    std::fs::write(&target, b"the target").unwrap();
+    let link = viewer_file(&dir, n + 1);
+    std::os::unix::fs::symlink(&target, &link).unwrap();
+    let file = viewer_file(&dir, n + 2);
     assert_eq!(
         viewer.print(&job("t", None)).unwrap(),
         PrintOutcome::Opened { file: file.clone() }
     );
-    assert_eq!(std::fs::read(&file).unwrap(), job("t", None).pdf);
-    let (_, args) = recorded(&dir);
-    assert_eq!(args, [file.display().to_string(), "exists true".to_owned()]);
-    assert_eq!(dir.names(), ["J-E-2416-print.pdf", "J-E-2416-print.pdf.args"]);
+    assert_eq!(std::fs::read(&target).unwrap(), b"the target");
+    assert!(std::fs::symlink_metadata(&link).unwrap().file_type().is_symlink());
+    let mode = |p: &Path| std::fs::metadata(p).unwrap().permissions().mode() & 0o777;
+    assert_eq!(mode(&file), 0o600);
+    let lp_file = fresh_file(&dir.0, "ew-print", b"%PDF").unwrap();
+    assert_eq!(mode(&lp_file), 0o600);
 }
 
-/// The viewer's file name keeps the project's name inside the directory.
+/// The viewer's file names keep the project's name inside the directory.
 #[test]
 fn the_viewer_file_name_never_leaves_its_directory() {
-    let viewer = |project: &str| Viewer::new(PathBuf::from("d"), project).file();
-    assert_eq!(viewer("J-E-2416"), Path::new("d").join("J-E-2416-print.pdf"));
-    assert_eq!(viewer("../x y"), Path::new("d").join("_x_y-print.pdf"));
-    assert_eq!(viewer(""), Path::new("d").join("project-print.pdf"));
+    let viewer = |project: &str| Viewer::new(PathBuf::from("d"), project).stem();
+    assert_eq!(viewer("J-E-2416"), "J-E-2416-print");
+    assert_eq!(viewer("../x y"), "_x_y-print");
+    assert_eq!(viewer(""), "project-print");
 }
 
 /// Every refusal of the adapters, whole.

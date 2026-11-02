@@ -9,8 +9,11 @@
 //!
 //! - [`Lp`] (Linux, CUPS): `lp [-d <printer>] -t <title> <file>`, the set written to a fresh file in the temporary
 //!   directory first and removed after `lp` returns, whatever it returns;
-//! - [`Viewer`] (every platform): the set written to `<dir>/<project>-print.pdf` and opened with the default PDF
-//!   application ([`Program::opener`]), so the person prints from it; it chooses no printer.
+//! - [`Viewer`] (every platform): the set written to a fresh file `<dir>/<project>-print-<process>-<n>.pdf` and opened
+//!   with the default PDF application ([`Program::opener`]), so the person prints from it; it chooses no printer, and
+//!   the file stays for the viewer to read (the system's temporary-file clean-up removes it).
+//!
+//! Both write their file only as a new one (`create_new`, mode `0o600` on Unix), never through a name already taken.
 //!
 //! Each adapter takes the program it runs as a [`Program`], so a test runs a stand-in that records its arguments.
 
@@ -21,7 +24,9 @@ mod viewer;
 
 use std::ffi::OsString;
 use std::fmt;
+use std::io::Write as _;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU32, Ordering};
 
 pub use ew_export::PdfPage;
 pub use lp::Lp;
@@ -101,12 +106,10 @@ impl fmt::Display for PrintError {
                 f,
                 "printing needs the CUPS command `lp`; install cups-client or print from the window"
             ),
-            PrintError::PrinterWithViewer => {
-                write!(
-                    f,
-                    "`--printer` needs `--via lp` or `--via windows`; the viewer asks"
-                )
-            }
+            PrintError::PrinterWithViewer => write!(
+                f,
+                "`--printer` needs `--via lp`; with the viewer, choose the printer in its print dialog"
+            ),
             PrintError::Spawn { program, reason } => write!(f, "`{program}` could not be started: {reason}"),
             PrintError::Failed {
                 program,
@@ -222,21 +225,53 @@ fn bounded(bytes: &[u8]) -> String {
         .collect()
 }
 
-/// Writes `bytes` to `path` through `<path>.tmp` and a rename, so a failure leaves the old file and no temporary one.
-fn write_atomically(path: &Path, bytes: &[u8]) -> Result<(), PrintError> {
-    let mut tmp = path.as_os_str().to_owned();
-    tmp.push(".tmp");
-    let tmp = PathBuf::from(tmp);
-    let io = |p: &Path, e: std::io::Error| PrintError::Io {
-        path: p.to_path_buf(),
+/// The most attempts at a fresh print-file name before giving up.
+const NAME_ATTEMPTS: u32 = 64;
+
+/// A fresh file `<stem>-<process>-<n>.pdf` in `dir` holding `bytes` (WP-S3.07 D9): created only if nothing is at
+/// that name, so no other file or link is ever written through, with mode `0o600` on Unix; removed again when the
+/// write fails. A name taken already moves on to the next `n`, at most [`NAME_ATTEMPTS`] times.
+fn fresh_file(dir: &Path, stem: &str, bytes: &[u8]) -> Result<PathBuf, PrintError> {
+    static NEXT: AtomicU32 = AtomicU32::new(0);
+    let mut last = None;
+    for _ in 0..NAME_ATTEMPTS {
+        let n = NEXT.fetch_add(1, Ordering::Relaxed);
+        let path = dir.join(format!("{stem}-{}-{n}.pdf", std::process::id()));
+        let mut options = std::fs::OpenOptions::new();
+        options.write(true).create_new(true);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::OpenOptionsExt as _;
+            options.mode(0o600);
+        }
+        match options.open(&path) {
+            Ok(mut f) => {
+                return f
+                    .write_all(bytes)
+                    .and_then(|()| f.sync_all())
+                    .map(|()| path.clone())
+                    .map_err(|e| {
+                        let _ = std::fs::remove_file(&path);
+                        PrintError::Io {
+                            path,
+                            reason: e.to_string(),
+                        }
+                    });
+            }
+            Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => last = Some((path, e)),
+            Err(e) => {
+                return Err(PrintError::Io {
+                    path,
+                    reason: e.to_string(),
+                });
+            }
+        }
+    }
+    let (path, e) = last.unwrap_or_else(|| (dir.to_path_buf(), std::io::Error::other("no free file name")));
+    Err(PrintError::Io {
+        path,
         reason: e.to_string(),
-    };
-    std::fs::write(&tmp, bytes)
-        .map_err(|e| io(&tmp, e))
-        .and_then(|()| std::fs::rename(&tmp, path).map_err(|e| io(path, e)))
-        .inspect_err(|_| {
-            let _ = std::fs::remove_file(&tmp);
-        })
+    })
 }
 
 #[cfg(test)]

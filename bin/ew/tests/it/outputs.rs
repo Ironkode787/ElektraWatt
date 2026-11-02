@@ -888,7 +888,7 @@ fn print_refusals_are_whole_texts() {
         (
             args([&"print", &p, &"--via", &"viewer", &"--printer", &"office"]),
             usage(
-                "`--printer` needs `--via lp` or `--via windows`; the viewer asks",
+                "`--printer` needs `--via lp`; with the viewer, choose the printer in its print dialog",
                 "ew print [OPTIONS] [project-dir]",
             ),
         ),

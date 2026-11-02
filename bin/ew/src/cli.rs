@@ -3621,7 +3621,7 @@ mod tests {
             assert_eq!(
                 printer,
                 usage_error(
-                    "`--printer` needs `--via lp` or `--via windows`; the viewer asks",
+                    "`--printer` needs `--via lp`; with the viewer, choose the printer in its print dialog",
                     "ew print [OPTIONS] [project-dir]"
                 )
             );
