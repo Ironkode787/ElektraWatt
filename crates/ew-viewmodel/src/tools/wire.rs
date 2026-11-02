@@ -6,8 +6,9 @@
 //! `connection.draw` with the route the ghost showed.
 //!
 //! **Targets** in priority order within 8 screen points of the pointer or the grid cursor: a connection point of the
-//! page tables, a junction, a point on a connection segment (the grid point of the segment nearest to the pointer;
-//! a coordinate of the segment that is off the grid is the segment's own, the CP-exact coordinate
+//! page tables, a junction, a point on a connection segment (the grid point of the segment nearest to the pointer
+//! that is not its connection's end, so a press beside a rail's end joins the rail at the next grid point along it
+//! rather than fixing a bend, FT-1084; a coordinate of the segment that is off the grid is the segment's own, the CP-exact coordinate
 //! `require_split_point` accepts), else the grid point. Alt suppresses the object snaps. Ties by the smaller
 //! distance, then for a CP the first in the page tables' order (natural label, its bytes, (y, x), ID; FT-439), for a
 //! junction by the smaller ID (two junctions are never at one point); for a segment the larger connection ID,
@@ -305,14 +306,17 @@ pub fn resolve_target(cx: &ToolCx<'_>, at: (i64, i64), alt: bool) -> WireTarget 
             if d > limit {
                 continue;
             }
+            // FT-1084 (ID-1181): the nearest grid point that is not the connection's end, so a press beside a rail's
+            // end joins it at the next grid point along it rather than fixing a bend there.
+            let end = |p: (i64, i64)| p == first || p == last;
             let point = if a.1 == b.1 && a.0 != b.0 {
-                on_axis(grid, page.0, a.0.min(b.0), a.0.max(b.0)).map(|x| (x, a.1))
+                on_axis_except(grid, page.0, a.0.min(b.0), a.0.max(b.0), |x| end((x, a.1))).map(|x| (x, a.1))
             } else if a.0 == b.0 && a.1 != b.1 {
-                on_axis(grid, page.1, a.1.min(b.1), a.1.max(b.1)).map(|y| (a.0, y))
+                on_axis_except(grid, page.1, a.1.min(b.1), a.1.max(b.1), |y| end((a.0, y))).map(|y| (a.0, y))
             } else {
                 None
             };
-            let Some(p) = point.filter(|p| *p != first && *p != last) else {
+            let Some(p) = point else {
                 continue;
             };
             let id = EntityRef(c.id);
@@ -328,12 +332,19 @@ pub fn resolve_target(cx: &ToolCx<'_>, at: (i64, i64), alt: bool) -> WireTarget 
 }
 
 /// The grid coordinate nearest to `v` inside `[lo, hi]`; `None` when no grid coordinate lies inside.
+#[cfg(test)]
 fn on_axis(grid: PageGridMap, v: i64, lo: i64, hi: i64) -> Option<i64> {
+    on_axis_except(grid, v, lo, hi, |_| false)
+}
+
+/// The grid coordinate nearest to `v` inside `[lo, hi]` that `skip` does not refuse; `None` when there is none. A
+/// skipped coordinate is an end of the range, so the next one along is at most one step further (FT-1084).
+fn on_axis_except(grid: PageGridMap, v: i64, lo: i64, hi: i64, skip: impl Fn(i64) -> bool) -> Option<i64> {
     let k = grid.index(v.clamp(lo, hi));
-    [k, k - 1, k + 1]
+    [k, k - 1, k + 1, k - 2, k + 2]
         .into_iter()
         .map(|k| grid.coord(k))
-        .filter(|c| (lo..=hi).contains(c))
+        .filter(|c| (lo..=hi).contains(c) && !skip(*c))
         .min_by_key(|c| ((*c - v).abs(), *c))
 }
 
@@ -1402,6 +1413,23 @@ mod tests {
         assert_eq!(on_axis(g, 2_400_000, 0, 10_000_000), Some(2_000_000));
         assert_eq!(on_axis(g, -5_000_000, 0, 10_000_000), Some(0));
         assert_eq!(on_axis(g, 500_000, 100_000, 900_000), None);
+    }
+
+    /// FT-1084: a refused end gives way to the next grid coordinate along; a range of its two ends alone has none.
+    #[test]
+    fn on_axis_except_takes_the_next_coordinate_past_a_refused_end() {
+        let g = PageGridMap::new((1_000_000, 1));
+        let ends = |c: i64| c == 0 || c == 10_000_000;
+        assert_eq!(on_axis_except(g, 400_000, 0, 10_000_000, ends), Some(1_000_000));
+        assert_eq!(
+            on_axis_except(g, -5_000_000, 0, 10_000_000, ends),
+            Some(1_000_000)
+        );
+        assert_eq!(on_axis_except(g, 9_700_000, 0, 10_000_000, ends), Some(9_000_000));
+        assert_eq!(
+            on_axis_except(g, 400_000, 0, 1_000_000, |c| c == 0 || c == 1_000_000),
+            None
+        );
     }
 
     #[test]
