@@ -1080,3 +1080,44 @@ fn ft670_a_templated_function_shows_its_part_function() {
         "no Part function row without the member"
     );
 }
+
+/// FT-1076 (ID-1182): an external interruption point's External row reads as the IP tool prints the reference,
+/// `<device>:<connection>`, not the record kind's internal name; a reference without a connection reads its device
+/// alone.
+#[test]
+fn ft1076_an_external_points_row_names_its_reference() {
+    let s = golden();
+    let q = s.query();
+    let (point, reference) = q
+        .functions()
+        .iter()
+        .find_map(|(id, f)| {
+            let v = serde_json::to_value(&**f).ok()?;
+            let external = v["kind"]["ip"]["external"].as_str()?.to_owned();
+            Some((id.as_uuid(), external))
+        })
+        .expect("an external interruption point in Golden A");
+    let x = q
+        .external_refs()
+        .iter()
+        .find(|(id, _)| id.to_string() == reference)
+        .map(|(_, x)| x.clone())
+        .expect("its reference");
+    assert_eq!(
+        (x.device.as_str(), x.connection.as_ref().map(|c| c.as_str())),
+        ("JE-N1000-03", Some("PE"))
+    );
+    let text = |s: &Session| match &s
+        .property_sheet(&[point])
+        .sections
+        .iter()
+        .flat_map(|s| &s.rows)
+        .find(|r| r.key == "function/kind.ip.external")
+        .expect("the External row")
+        .value
+    {
+        RowValue::One { text, .. } => text.clone(),
+        other => format!("{other:?}"),
+    };
+    assert_eq!(text(&s), "JE-N1000-03:PE");
+}

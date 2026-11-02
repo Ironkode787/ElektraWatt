@@ -574,6 +574,16 @@ pub(super) fn record_title(q: &Q, id: Uuid, source: Option<&str>) -> Option<Stri
         Kind::Connection => wire_number_text(q, Id::from_uuid(id)),
         // WP-S4.02 part 4 (D12): a layout record by its device's tag, its label or its words.
         k if super::layout_edit::LAYOUT_KINDS.contains(&k) => super::layout_edit::layout_title(q, k, id)?,
+        // FT-1076 (ID-1182): an external reference has no name; it reads as the IP tool prints it, `<device>:<connection>`
+        // (the device alone without a connection).
+        Kind::ExternalRef => {
+            let part = |member: &str| json.get(member).and_then(Value::as_str).filter(|s| !s.is_empty());
+            match (part("device"), part("connection")) {
+                (Some(device), Some(connection)) => format!("{device}:{connection}"),
+                (Some(device), None) => device.to_owned(),
+                _ => kind.name().to_owned(),
+            }
+        }
         // G-PP triage row 12: a page item is named by its kind in words (`wire marker`, `free text`), not `page_item`.
         Kind::PageItem => json
             .get("kind")
