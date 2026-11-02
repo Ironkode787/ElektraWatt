@@ -667,9 +667,10 @@ impl Tool for PlaceTool {
                 self.tag = None;
                 self.transient(cx)
             }
-            // FT-751: no preview of a stacked twin, which a commit refuses.
+            // FT-751, FT-1062: no preview of a stacked twin or of a drop on an off-sheet stretch, which a commit
+            // refuses.
             CanvasEvent::Dwell { ms } if *ms >= super::PREVIEW_DWELL_MS => match self.command(cx, false) {
-                Some(_) if self.on_twin(cx) => ToolOutput::None,
+                Some(_) if self.on_twin(cx) || self.on_off_sheet(cx) => ToolOutput::None,
                 Some(cmd) => ToolOutput::Preview(cmd),
                 None => ToolOutput::None,
             },

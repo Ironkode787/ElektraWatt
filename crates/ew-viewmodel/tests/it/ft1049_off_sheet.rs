@@ -124,6 +124,10 @@ fn ft1049_the_place_tool_refuses_a_drop_on_the_edge_stretch_and_proposes_no_spli
     );
     cursor(&mut s, mid);
     assert!(s.tool().name() == "place", "the Place tool floats the contact");
+    // FT-1062: a dwell previews nothing there, as the click places nothing.
+    let calls = s.session_calls();
+    done(&mut s, "canvas.dwell", json!({"ms": 80}));
+    assert_eq!(s.session_calls().preview_with, calls.preview_with, "no preview");
     let rev = s.revision();
     assert_eq!(
         refused(&mut s, "canvas.activate", json!({})),
