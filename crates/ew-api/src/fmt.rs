@@ -19,11 +19,13 @@
 //! [`repair`] (WP-S1.17, decision log ID-1185) discards exactly the broken lines, EW-CORE-005 at line level (a line
 //! that is not one JSON value, or not UTF-8, doc 05 §6.3), from a session opened with
 //! [`StoreOptions::repair`](crate::StoreOptions): the integrity demotion let those lines through, and only those. In
-//! order, before anything is written: a store `pack_store` refuses refuses (no manifest, an incomplete save, a file
-//! that no longer matches the manifest, as after an edit outside ElektraWatt since the last save, a pending hash);
-//! without a broken line nothing is written; the content check runs over the repair's rewrite set
-//! with the broken lines left out (only form may change elsewhere). Then the backup: the generation on disk, broken
-//! lines included, packed as an `.ewz` ([`ewz::pack_store`]) and written into the project folder's parent as
+//! order, before anything is written: a store whose files cannot be packed as found refuses (no manifest, an
+//! incomplete save, a listed file that cannot be read, a file changed on disk since the repair opened it, the entry
+//! cap); without a broken line nothing is written; the content check runs over the repair's rewrite set with the
+//! broken lines left out (only form may change elsewhere). Then the backup: the generation's files as found (decision
+//! log ID-1186), broken lines and edits outside ElektraWatt since the last save included, packed as an `.ewz` whose
+//! manifest is the loaded one hashed to those bytes ([`ewz::pack_as_found`]; [`Backup::edited`] counts the files that
+//! differ from the generation as saved) and written into the project folder's parent as
 //! `<project folder>.before-repair-g<generation>.ewz` ([`backup_path`]), to a temporary name beside it, read back,
 //! synced, moved there without replacing anything ([`Vfs::rename_noreplace`], else a new file on a file system without
 //! hard links) and the folder synced; a file already at that name is reused when it holds this generation's pack byte
@@ -371,6 +373,10 @@ pub struct Backup {
     pub generation: u64,
     /// Whether it was there already, holding this generation's pack byte for byte, and was reused.
     pub reused: bool,
+    /// How many of its files differ from the generation as ElektraWatt saved it: edited outside ElektraWatt since the
+    /// last save (their bytes do not have the manifest's hash, or it is pending). The backup holds them as found, its
+    /// manifest hashed to them ([`ewz::AsFound::edited`]).
+    pub edited: usize,
 }
 
 /// What [`repair`] did.
@@ -397,8 +403,10 @@ pub enum RepairError {
     /// The session is read-only (a repair opens through [`StoreOptions::repair`](crate::StoreOptions), which the CLI
     /// refuses for every other forcing reason first).
     ReadOnly(ReadOnlyReason),
-    /// The generation on disk cannot be packed as the backup ([`ewz::pack_store`]): no manifest, an incomplete save, a
-    /// file changed on disk, an archive the reader would refuse. Nothing was written.
+    /// The generation's files cannot be packed as found for the backup ([`ewz::pack_as_found`]): no manifest, an
+    /// incomplete save, a listed file that cannot be read, a file changed on disk since the repair opened it
+    /// ([`PackError::ChangedSinceOpen`]: run the repair again), an archive the reader would refuse (the entry cap).
+    /// Nothing was written.
     Pack(PackError),
     /// The project folder has no name or no parent folder to hold the backup. Nothing was written.
     NoFolder(PathBuf),
@@ -458,16 +466,15 @@ fn pack_words(e: &PackError) -> String {
     match e {
         PackError::Generation(GenerationError::NoManifest) => "the project has no manifest.json".to_owned(),
         PackError::Generation(GenerationError::Incomplete) => "a save is incomplete".to_owned(),
-        PackError::Generation(GenerationError::Changed { path }) => {
-            format!("{path} does not match the manifest (changed outside ElektraWatt since the last save)")
-        }
-        PackError::Generation(GenerationError::Pending { path }) => {
-            format!("the manifest's hash of {path} is pending (a merged project)")
+        PackError::ChangedSinceOpen { path } => {
+            format!("{path} changed on disk since the repair opened the project; run the repair again")
         }
         PackError::Generation(GenerationError::Io { path, error }) | PackError::Io { path, error } => {
             format!("{}: {error}", path.display())
         }
         PackError::Refused(why) => format!("an .ewz cannot hold it ({why})"),
+        // Not `pack_as_found`'s: a pack as found takes a changed or pending file as it is.
+        PackError::Generation(e @ (GenerationError::Changed { .. } | GenerationError::Pending { .. })) => e.to_string(),
     }
 }
 
@@ -640,8 +647,9 @@ pub fn repair(session: &mut Session) -> Result<Repaired, RepairError> {
     if session.is_dirty() {
         return Err(RepairError::Dirty);
     }
-    // Ruling 3: a store that `pack_store` refuses refuses, before the answer that nothing is to be repaired.
-    let packed = ewz::pack_store(store).map_err(RepairError::Pack)?;
+    // ID-1185 ruling 3, ID-1186 ruling 4: a store whose files cannot be packed as found refuses, before the answer that
+    // nothing is to be repaired.
+    let found = ewz::pack_as_found(store).map_err(RepairError::Pack)?;
     let discarded: Vec<DiscardedLine> = store
         .broken_lines()
         .into_iter()
@@ -666,12 +674,13 @@ pub fn repair(session: &mut Session) -> Result<Repaired, RepairError> {
     };
     let lines: BTreeSet<(String, u32)> = discarded.iter().map(|d| (d.file.clone(), d.line)).collect();
     verify_content_except(session, &plan, &lines).map_err(RepairError::Format)?;
-    let target = backup_path(&**store.vfs(), store.root(), packed.generation)?;
-    let reused = write_backup(&**store.vfs(), &target, &packed.bytes)?;
+    let target = backup_path(&**store.vfs(), store.root(), found.packed.generation)?;
+    let reused = write_backup(&**store.vfs(), &target, &found.packed.bytes)?;
     let backup = Backup {
         path: target,
-        generation: packed.generation,
+        generation: found.packed.generation,
         reused,
+        edited: found.edited,
     };
     let Some(persistence) = session.persistence.as_mut() else {
         return Err(RepairError::NoProject);

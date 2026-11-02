@@ -2,13 +2,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! WP-S1.17 part 2, `.ewz` transport (D8, D9; decision log ID-1175): EZ-1 (a deterministic pack of one verified
-//! generation that extracts to its source), EZ-3 (the extract, all or nothing) and EZ-4 (the reader's refusals).
+//! generation that extracts to its source), EZ-3 (the extract, all or nothing) and EZ-4 (the reader's refusals); and the
+//! repair's pack of the files as found (decision log ID-1186).
 
 use std::collections::BTreeMap;
 use std::io;
 use std::path::{Path, PathBuf};
 
-use ew_store::ewz::{self, Ewz, EwzError, ExtractError, PackError};
+use ew_store::ew_format::{hash_text, sha256};
+use ew_store::ewz::{self, AsFound, Ewz, EwzError, ExtractError, PackError};
 use ew_store::mem::{DirSync, Fault, MemVfs};
 use ew_store::zip::{self, Method, ZipLimits};
 use ew_store::{OpenMode, OsVfs, Store, StoreOptions, Vfs};
@@ -154,6 +156,56 @@ fn ez1_golden_a_packs_deterministically_and_extracts_to_its_source() {
         std::fs::read_dir(target.parent().unwrap()).unwrap().count(),
         1,
         "no staging directory is left"
+    );
+    let _ = std::fs::remove_dir_all(&base);
+}
+
+/// The repair's pack as found (WP-S1.17, decision log ID-1186): on a copy of Golden A with git files, whose files match
+/// its manifest, it is `pack_store`'s archive byte for byte and counts no edited file; after a file is edited outside
+/// ElektraWatt, `pack_store` still refuses the generation, and the pack as found holds the file as it is, the manifest
+/// hashed to it, the other files and the git files as they are, and counts it.
+#[test]
+fn the_pack_as_found_is_the_verified_pack_until_a_file_is_edited() {
+    let base = ew_testdir::fresh_dir("ew-ewz-as-found");
+    let source = base.join("J-E-2416.ew");
+    copy_dir(Path::new(GOLDEN_A), &source);
+    for (name, data) in git_files() {
+        std::fs::write(source.join(name), data).unwrap();
+    }
+    let store = open_read_only(&source);
+    let verified = ewz::pack_store(&store).expect("Golden A packs");
+    assert_eq!(
+        ewz::pack_as_found(&store).expect("Golden A packs as found"),
+        AsFound {
+            packed: verified,
+            edited: 0
+        }
+    );
+
+    let rel = "devices/02.jsonl";
+    let before = std::fs::read(source.join(rel)).unwrap();
+    let mut edited = before.clone();
+    edited.push(b'\n');
+    std::fs::write(source.join(rel), &edited).unwrap();
+    let store = open_read_only(&source);
+    assert_eq!(
+        ewz::pack_store(&store).unwrap_err().to_string(),
+        "devices/02.jsonl changed on disk since it was saved (an external change)"
+    );
+    let found = ewz::pack_as_found(&store).expect("Golden A packs as found after the edit");
+    let mut expected = tree(&source);
+    let manifest = String::from_utf8(expected["manifest.json"].clone())
+        .unwrap()
+        .replace(&hash_text(&sha256(&before)), &hash_text(&sha256(&edited)));
+    expected.insert("manifest.json".to_owned(), manifest.into_bytes());
+    assert_eq!(
+        (found.packed.generation, found.packed.files, found.edited),
+        (1, expected.len(), 1)
+    );
+    let read = ewz::read(&found.packed.bytes).expect("the pack as found verifies");
+    assert_eq!(
+        read.entries, expected,
+        "the files as found, the manifest hashed to them"
     );
     let _ = std::fs::remove_dir_all(&base);
 }

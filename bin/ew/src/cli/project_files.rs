@@ -245,25 +245,24 @@ fn run_repair(a: &FmtArgs) -> i32 {
 }
 
 /// What `ew fmt --repair` prints when it repaired: each discarded line (`file:line` and its text as shown, cut after 80
-/// characters, control characters escaped), then the backup's path (ID-1185 ruling 7).
+/// characters, control characters escaped), then the backup's path (ID-1185 ruling 7) with, when the backup holds files
+/// edited outside EW since the last save, how many (ID-1186 ruling 3: "as found: N files edited outside EW").
 fn repair_report(discarded: &[DiscardedLine], backup: &Backup) -> Vec<String> {
     let mut lines: Vec<String> = discarded
         .iter()
         .map(|d| format!("discarded {}:{}: {}", d.file, d.line, printable(&d.shown())))
         .collect();
-    lines.push(if backup.reused {
-        format!(
-            "backup {} (generation {}, already there and reused)",
-            backup.path.display(),
-            backup.generation
-        )
-    } else {
-        format!(
-            "backup {} (generation {})",
-            backup.path.display(),
-            backup.generation
-        )
-    });
+    let mut about = format!("generation {}", backup.generation);
+    if backup.edited > 0 {
+        about.push_str(&format!(
+            ", as found: {} edited outside EW",
+            plural(backup.edited, "file", "files")
+        ));
+    }
+    if backup.reused {
+        about.push_str(", already there and reused");
+    }
+    lines.push(format!("backup {} ({about})", backup.path.display()));
     lines
 }
 
@@ -284,6 +283,7 @@ fn repair_result(repaired: &Repaired, kept: &[KeptLine]) -> results::FmtRepairRe
             path: b.path.display().to_string(),
             generation: b.generation,
             reused: b.reused,
+            edited: b.edited,
         }),
         files: repaired
             .files
@@ -350,6 +350,12 @@ fn beyond_repair_refusal(dir: &Path, report: &ew_api::OpenReport) -> String {
 fn repair_refusal(dir: &Path, e: &RepairError) -> String {
     let d = dir.display();
     match e {
+        // A file changed between the repair's open and its backup (ID-1186 ruling 4): the project is as it was, and a
+        // new run finds it as it is now.
+        RepairError::Pack(ew_api::ewz::PackError::ChangedSinceOpen { path }) => format!(
+            "error: {d}: the backup cannot be packed: {path} changed on disk since the repair opened the project; \
+             nothing was written; run `ew fmt --repair` again"
+        ),
         RepairError::Pack(_) => format!(
             "error: {d}: {e}; nothing was written; keep a copy of the project folder and correct the broken lines by \
              hand"

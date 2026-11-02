@@ -2581,6 +2581,17 @@ impl Store {
         self.manifest.as_ref()
     }
 
+    /// The SHA-256 of the bytes of the project file `path` as this store loaded or last wrote them: a writer-owned
+    /// file's raw hash (`Held::hash`) or an opaque file's; `None` for a file it holds no bytes of (not read at open).
+    /// The repair's backup compares the bytes on disk with it ([`crate::ewz::pack_as_found`], WP-S1.17 ID-1186).
+    pub(crate) fn loaded_hash(&self, path: &FilePath) -> Option<[u8; 32]> {
+        match (self.disk.get(path), self.opaque.get(path)) {
+            (Some(held), _) => Some(held.hash),
+            (None, Some(FileHash::Sha256(hash))) => Some(*hash),
+            (None, Some(FileHash::Pending) | None) => None,
+        }
+    }
+
     /// The project directory.
     pub fn root(&self) -> &Path {
         &self.root

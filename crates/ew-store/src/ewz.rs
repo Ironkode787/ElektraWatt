@@ -12,6 +12,13 @@
 //! bytes. At most 65,535 entries (the container has no ZIP64). Before it hands the bytes out, [`pack`] reads them back
 //! through [`read`] and refuses an archive the reader would refuse ([`PackError::Refused`]).
 //!
+//! **As found** ([`pack_as_found`], WP-S1.17 decision log ID-1186), the one exception, used by `ew fmt --repair` alone
+//! for its backup: the generation's files as the store loaded them, a file edited outside ElektraWatt since the last
+//! save included, with `manifest.json` the loaded manifest whose hash of each listed file is that of its bytes (a
+//! pending hash too). It reads every listed file again and refuses one whose bytes are not those the store loaded, so
+//! the backup is the project as the repair found it. It shares [`pack`] and the git files with [`pack_store`], which
+//! stays strict: an export hands over a verified generation only.
+//!
 //! **The reader** ([`read`]) accepts only that shape, under [`ZipLimits::default`] (2 GiB expanded, 512 MiB per entry,
 //! 200 : 1 per entry above 64 KiB): the container's own rules first (names, duplicates ignoring case, sizes, CRC-32),
 //! then `mimetype` with its value, `manifest.json` that parses, and from the third entry on each entry deflated, in
@@ -338,6 +345,12 @@ pub enum PackError {
     },
     /// The archive would not be one the reader opens (it says why): too many entries, a name, a bound.
     Refused(String),
+    /// A listed file's bytes are not those the store loaded: it changed on disk since the project was opened
+    /// ([`pack_as_found`]).
+    ChangedSinceOpen {
+        /// The project-relative path.
+        path: String,
+    },
 }
 
 impl fmt::Display for PackError {
@@ -345,6 +358,9 @@ impl fmt::Display for PackError {
         match self {
             PackError::Generation(e) => e.fmt(f),
             PackError::Io { path, error } => write!(f, "{}: {error}", path.display()),
+            PackError::ChangedSinceOpen { path } => {
+                write!(f, "{path} changed on disk since the project was opened")
+            }
             PackError::Refused(why) => write!(
                 f,
                 "this project cannot be packed into an .ewz ({why}); share the project folder instead"
@@ -409,6 +425,23 @@ pub fn pack(
 /// [`PackError`]: the generation, a git file, the archive.
 pub fn pack_store(store: &Store) -> Result<Packed, PackError> {
     let generation = store.read_generation().map_err(PackError::Generation)?;
+    let git = git_files(store)?;
+    let files: BTreeMap<String, Vec<u8>> = generation
+        .files
+        .into_iter()
+        .map(|(p, d)| (p.as_str().to_owned(), d))
+        .collect();
+    let bytes = pack(&generation.manifest_bytes, &files, &git)?;
+    Ok(Packed {
+        bytes,
+        generation: generation.generation,
+        files: 1 + files.len() + git.len(),
+    })
+}
+
+/// The git files present in the store's directory, read through its seam: a regular file only (a link or a directory
+/// of that name is not packed), what [`pack_store`] and [`pack_as_found`] pack beside the listed files.
+fn git_files(store: &Store) -> Result<BTreeMap<String, Vec<u8>>, PackError> {
     let vfs = &**store.vfs();
     let mut git = BTreeMap::new();
     for name in GIT_FILES {
@@ -426,16 +459,70 @@ pub fn pack_store(store: &Store) -> Result<Packed, PackError> {
             Err(error) => return Err(PackError::Io { path, error }),
         }
     }
-    let files: BTreeMap<String, Vec<u8>> = generation
-        .files
-        .into_iter()
-        .map(|(p, d)| (p.as_str().to_owned(), d))
-        .collect();
-    let bytes = pack(&generation.manifest_bytes, &files, &git)?;
-    Ok(Packed {
-        bytes,
-        generation: generation.generation,
-        files: 1 + files.len() + git.len(),
+    Ok(git)
+}
+
+/// The backup of `ew fmt --repair` ([`pack_as_found`]): the store's generation with its files as found.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct AsFound {
+    /// The archive: the store's generation, its files counted as [`pack_store`] counts them.
+    pub packed: Packed,
+    /// How many listed files differ from the generation as ElektraWatt saved it (their bytes do not have the
+    /// manifest's hash, or that hash is pending): the files edited outside ElektraWatt since the last save.
+    pub edited: usize,
+}
+
+/// Packs the store's generation as found (WP-S1.17 decision log ID-1186; the module documentation): every file the
+/// loaded manifest lists, read again through the store's seam and each refused unless its bytes are those the store
+/// loaded, and the git files present ([`pack_store`]'s); `manifest.json` is the loaded manifest ([`Store::manifest`],
+/// [`Manifest::to_text`]) with each listed file's hash set to that of its bytes (a pending hash too), its generation
+/// and every other member as they are. Unlisted files are neither read nor packed. For `ew fmt --repair`'s backup
+/// alone: an export packs a verified generation ([`pack_store`]).
+///
+/// # Errors
+///
+/// [`PackError::Generation`] for no manifest ([`GenerationError::NoManifest`]), an incomplete save
+/// ([`GenerationError::Incomplete`]) and a listed file that cannot be read ([`GenerationError::Io`]);
+/// [`PackError::ChangedSinceOpen`] for a listed file whose bytes are not those the store loaded;
+/// [`PackError::Io`] for a git file; [`PackError::Refused`] for an archive the reader would refuse (the entry cap
+/// among them).
+pub fn pack_as_found(store: &Store) -> Result<AsFound, PackError> {
+    let loaded = store
+        .manifest()
+        .ok_or(PackError::Generation(GenerationError::NoManifest))?;
+    if store.is_incomplete() {
+        return Err(PackError::Generation(GenerationError::Incomplete));
+    }
+    let vfs = &**store.vfs();
+    let mut manifest = loaded.clone();
+    let mut files = BTreeMap::new();
+    let mut edited = 0;
+    for (path, listed) in &loaded.files {
+        let full = join(store.root(), path.as_str());
+        let bytes = vfs.read(&full).map_err(|error| {
+            PackError::Generation(GenerationError::Io { path: full, error })
+        })?;
+        let hash = sha256(&bytes);
+        if store.loaded_hash(path) != Some(hash) {
+            return Err(PackError::ChangedSinceOpen {
+                path: path.to_string(),
+            });
+        }
+        if *listed != FileHash::Sha256(hash) {
+            edited += 1;
+        }
+        manifest.files.insert(path.clone(), FileHash::Sha256(hash));
+        files.insert(path.as_str().to_owned(), bytes);
+    }
+    let git = git_files(store)?;
+    let bytes = pack(manifest.to_text().as_bytes(), &files, &git)?;
+    Ok(AsFound {
+        packed: Packed {
+            bytes,
+            generation: store.generation(),
+            files: 1 + files.len() + git.len(),
+        },
+        edited,
     })
 }
 

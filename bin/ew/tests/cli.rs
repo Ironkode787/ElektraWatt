@@ -2752,11 +2752,154 @@ fn fmt_repair_discards_a_broken_line_after_a_backup() {
     assert!(journal_files(&home).is_empty(), "the repair's journal is closed");
 }
 
+/// EZ-5 on a hand-edited copy of Golden A (WP-S1.17, decision log ID-1186 ruling 5): the broken line written by hand,
+/// the manifest untouched (an edit outside ElektraWatt since the last save), and the same with the page file's hash
+/// pending in a merged manifest. `ew export ewz` refuses the project, which is no verified generation; `ew fmt
+/// --repair` writes the backup of the files as found, saying how many differ from the generation as saved, then the
+/// project without the line, which opens editable and canonical; `ew extract` makes a project of the backup, its
+/// manifest verified and hashed to the files, every listed file as it was before the repair.
+#[test]
+fn fmt_repair_backs_up_a_hand_edited_project_as_found() {
+    use sha2::Digest;
+    const NOT_JSON: &[u8] = br#"{"$k":"page","id":"#;
+    let hash = |b: &[u8]| {
+        let hex: String = sha2::Sha256::digest(b)
+            .iter()
+            .map(|x| format!("{x:02x}"))
+            .collect();
+        format!("sha256:{hex}")
+    };
+    let run = |o: &Output| (o.status.code(), stdout(o), stderr(o));
+    for merged in [false, true] {
+        let t = Tmp::new();
+        let home = t.0.join("home");
+        let project = golden_copy(&t);
+        let rel = first_page_file(&project);
+        let original = std::fs::read(project.join(&rel)).unwrap();
+        let bytes = after_the_first_line(&original, &[NOT_JSON]);
+        std::fs::write(project.join(&rel), &bytes).unwrap();
+        let listed = if merged {
+            let manifest = std::fs::read_to_string(project.join("manifest.json")).unwrap();
+            assert_eq!(manifest.matches(&hash(&original)).count(), 1);
+            let pending = manifest
+                .replace(&hash(&original), "sha256:pending")
+                .replacen("\n  }\n}\n", "\n  },\n  \"merged\": true\n}\n", 1);
+            assert!(pending.ends_with("\"merged\": true\n}\n"));
+            std::fs::write(project.join("manifest.json"), pending).unwrap();
+            "sha256:pending".to_owned()
+        } else {
+            hash(&original)
+        };
+        let before = tree(&project);
+        let mut found = before.clone();
+        let manifest = String::from_utf8(before["manifest.json"].clone()).unwrap();
+        found.insert(
+            "manifest.json".to_owned(),
+            manifest.replace(&listed, &hash(&bytes)).into_bytes(),
+        );
+
+        let out = t.0.join("export.ewz");
+        let export = ew_in(
+            &home,
+            &[
+                "export".as_ref(),
+                "ewz".as_ref(),
+                project.as_os_str(),
+                "--out".as_ref(),
+                out.as_os_str(),
+            ],
+            &[],
+        );
+        let why = if merged {
+            format!("the manifest's hash of {rel} is pending (a merged project); save it first")
+        } else {
+            format!("{rel} changed on disk since it was saved (an external change)")
+        };
+        assert_eq!(
+            run(&export),
+            (
+                Some(2),
+                String::new(),
+                format!("error: {}: {why}\n", project.display())
+            )
+        );
+        assert!(!out.exists(), "the export writes nothing");
+
+        let backup = backup_of(&project, 1);
+        let repair = ew_in(
+            &home,
+            &["fmt".as_ref(), project.as_os_str(), "--repair".as_ref()],
+            &[],
+        );
+        assert_eq!(
+            run(&repair),
+            (
+                Some(0),
+                format!(
+                    "discarded {rel}:2: {}\nbackup {} (generation 1, as found: 1 file edited outside EW)\n",
+                    String::from_utf8_lossy(NOT_JSON),
+                    backup.display()
+                ),
+                "Repaired: discarded 1 line; saved generation 2\n".to_owned()
+            ),
+            "merged: {merged}"
+        );
+        let after = tree(&project);
+        assert_eq!(after[&rel], original, "the page file without the line");
+        let changed: Vec<&String> = after.keys().filter(|k| after.get(*k) != before.get(*k)).collect();
+        assert_eq!(
+            changed,
+            ["manifest.json", &rel],
+            "only the manifest and the page file"
+        );
+        assert_eq!(
+            run(&ew_in(
+                &home,
+                &["fmt".as_ref(), project.as_os_str(), "--check".as_ref()],
+                &[]
+            )),
+            (
+                Some(0),
+                String::new(),
+                "fmt: every file is in canonical form\n".to_owned()
+            )
+        );
+
+        let restored = t.0.join("restored.ew");
+        let extract = ew_in(
+            &home,
+            &[
+                "extract".as_ref(),
+                backup.as_os_str(),
+                "--into".as_ref(),
+                restored.as_os_str(),
+            ],
+            &[],
+        );
+        assert_eq!(
+            run(&extract),
+            (
+                Some(0),
+                format!(
+                    "extracted into {}: generation 1, {} files\n",
+                    restored.display(),
+                    found.len()
+                ),
+                String::new()
+            )
+        );
+        assert!(
+            tree(&restored) == found,
+            "every listed file as it was before the repair, the manifest hashed to them"
+        );
+    }
+}
+
 /// ID-1185 ruling 3: the refusals come before anything is written, each named, exit 2, in this order: an `.ewz`; a
 /// crashed session's journal (here before a conflict marker the repair cannot discard); a finding other than a broken
 /// line that forces read-only (EW-CORE-006), also one beyond the findings cap; a project whose backup cannot be packed
-/// (a page file edited outside ElektraWatt since the last save); a backup name holding another file. And `--repair`
-/// with `--check` is refused by the parser.
+/// (no manifest; a page file edited outside ElektraWatt since the last save is packed as found, ID-1186); a backup name
+/// holding another file. And `--repair` with `--check` is refused by the parser.
 #[test]
 fn fmt_repair_refusals_come_first_and_write_nothing() {
     const NOT_JSON: &[u8] = br#"{"$k":"page","id":"#;
@@ -2862,8 +3005,9 @@ fn fmt_repair_refusals_come_first_and_write_nothing() {
     );
     assert!(tree(&p) == before, "nothing is written");
 
-    // A page file edited outside ElektraWatt since the last save: the generation on disk cannot be packed.
-    let (t, p, rel) = project(&[NOT_JSON], false);
+    // A project without a manifest: its files cannot be packed as found (ID-1186 ruling 4).
+    let (t, p, _) = project(&[NOT_JSON], false);
+    std::fs::remove_file(p.join("manifest.json")).unwrap();
     let home = t.0.join("home");
     let before = tree(&p);
     assert_eq!(
@@ -2872,9 +3016,8 @@ fn fmt_repair_refusals_come_first_and_write_nothing() {
             Some(2),
             String::new(),
             format!(
-                "error: {}: the backup cannot be packed: {rel} does not match the manifest (changed outside \
-                 ElektraWatt since the last save); nothing was written; keep a copy of the project folder and correct \
-                 the broken lines by hand\n",
+                "error: {}: the backup cannot be packed: the project has no manifest.json; nothing was written; keep a \
+                 copy of the project folder and correct the broken lines by hand\n",
                 p.display()
             )
         )

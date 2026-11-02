@@ -145,9 +145,10 @@ fn copy_dir(from: &Path, to: &Path) {
     }
 }
 
-/// A line that is not JSON after the first line of the project's first page file, with the file's hash in the manifest
-/// as a save of those bytes writes it (`ew fmt --repair`'s case, WP-S1.17 ID-1185).
-fn with_a_broken_line(project: &Path) {
+/// A line that is not JSON after the first line of the project's first page file (`ew fmt --repair`'s case, WP-S1.17
+/// ID-1185), with the file's hash in the manifest as a save of those bytes writes it (`saved`), or written by hand, the
+/// manifest untouched (ID-1186).
+fn with_a_broken_line(project: &Path, saved: bool) {
     use sha2::Digest;
     let hash = |b: &[u8]| {
         let hex: String = sha2::Sha256::digest(b)
@@ -164,13 +165,15 @@ fn with_a_broken_line(project: &Path) {
     let old = std::fs::read(&file).unwrap();
     let at = old.iter().position(|b| *b == b'\n').expect("a first line") + 1;
     let new = [&old[..at], &b"{\"$k\":\"page\",\n"[..], &old[at..]].concat();
-    let manifest = std::fs::read_to_string(project.join("manifest.json")).unwrap();
-    assert_eq!(manifest.matches(&hash(&old)).count(), 1);
-    std::fs::write(
-        project.join("manifest.json"),
-        manifest.replace(&hash(&old), &hash(&new)),
-    )
-    .unwrap();
+    if saved {
+        let manifest = std::fs::read_to_string(project.join("manifest.json")).unwrap();
+        assert_eq!(manifest.matches(&hash(&old)).count(), 1);
+        std::fs::write(
+            project.join("manifest.json"),
+            manifest.replace(&hash(&old), &hash(&new)),
+        )
+        .unwrap();
+    }
     std::fs::write(&file, new).unwrap();
 }
 
@@ -872,11 +875,12 @@ fn every_writing_json_result_validates_and_round_trips() {
     }
     assert_eq!(outs[0], outs[1]);
     // `fmt --repair` on two copies with the same broken line (WP-S1.17, ID-1185): the same bytes but for the backup's
-    // path; then again on one, with nothing to repair.
+    // path; then again on one, with nothing to repair. On a third copy the line is written by hand: the backup counts
+    // the page file as edited outside EW (ID-1186).
     let mut outs = Vec::new();
-    for name in ["r1.ew", "r2.ew"] {
+    for (name, saved) in [("r1.ew", true), ("r2.ew", true), ("r3.ew", false)] {
         let p = t.golden(name);
-        with_a_broken_line(&p);
+        with_a_broken_line(&p, saved);
         let o = t.ew(&args([&"fmt", &p, &"--repair", &"--json"]));
         assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
         let r: results::FmtRepairResult = assert_result(&stdout(&o), results::FMT_REPAIR);
@@ -886,7 +890,10 @@ fn every_writing_json_result_validates_and_round_trips() {
             "{r:?}"
         );
         let backup = r.backup.expect("a backup");
-        assert_eq!((backup.generation, backup.reused), (1, false));
+        assert_eq!(
+            (backup.generation, backup.reused, backup.edited),
+            (1, false, usize::from(!saved))
+        );
         let path = serde_json::to_string(&backup.path).unwrap();
         outs.push(stdout(&o).replace(&path, "\"<backup>\""));
     }

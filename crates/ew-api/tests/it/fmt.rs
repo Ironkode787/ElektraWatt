@@ -487,6 +487,7 @@ fn a_repair_discards_the_broken_line_after_a_backup() {
                 path: backup(),
                 generation: 1,
                 reused: false,
+                edited: 0,
             }),
         }
     );
@@ -582,20 +583,176 @@ fn a_repair_keeps_a_schema_violation_byte_for_byte() {
     s.close();
 }
 
-/// ID-1185 ruling 3: a store that `pack_store` refuses refuses the repair before anything is written: here a page file
-/// edited outside ElektraWatt, whose bytes no longer match the manifest's hash.
+/// The manifest of `disk` made a merged one (`"merged": true`) with the hash of `name`, which was the hash of `before`,
+/// pending, as the merge driver writes it where both sides changed the file (doc 05 §11.3).
+fn pend(disk: &mut BTreeMap<String, Vec<u8>>, name: &str, before: &[u8]) {
+    let old = hash_text(&sha256(before));
+    let manifest = String::from_utf8(disk["manifest.json"].clone()).unwrap();
+    assert_eq!(
+        manifest.matches(&old).count(),
+        1,
+        "the manifest lists {name} once"
+    );
+    let merged = manifest
+        .replace(&old, "sha256:pending")
+        .replacen("\n  }\n}\n", "\n  },\n  \"merged\": true\n}\n", 1);
+    assert!(merged.ends_with("\"merged\": true\n}\n"), "{merged}");
+    disk.insert("manifest.json".to_owned(), merged.into_bytes());
+}
+
+/// EZ-5 on a hand-edited project (decision log ID-1186 rulings 2, 3 and 5): the broken line written by hand with the
+/// manifest untouched (an edit outside ElektraWatt since the last save, the case a repair exists for), and the same
+/// with the page file's hash pending in a merged manifest. The backup holds the files as found, its manifest the loaded
+/// one with the page file's hash that of its bytes, and counts the page file as edited; it verifies, opens read-only
+/// from memory and extracts to every listed file as it was; then the project without the line opens editable. The
+/// export's pack still refuses the project as it was.
+#[test]
+fn a_hand_edited_project_is_repaired_after_a_backup_of_its_files_as_found() {
+    for merged in [false, true] {
+        let (mut disk, page, canonical) = page_with(&[BROKEN], false);
+        let listed = if merged {
+            pend(&mut disk, &page, &canonical);
+            "sha256:pending".to_owned()
+        } else {
+            hash_text(&sha256(&canonical))
+        };
+        let mut found = disk.clone();
+        let manifest = String::from_utf8(disk["manifest.json"].clone()).unwrap();
+        found.insert(
+            "manifest.json".to_owned(),
+            manifest
+                .replace(&listed, &hash_text(&sha256(&disk[&page])))
+                .into_bytes(),
+        );
+        let vfs = mem(&disk);
+        let (mut s, report) = open_repair(&vfs, 2);
+        assert_eq!(report.access, Access::Edit, "merged: {merged}");
+        let refusal = match s.export_ewz() {
+            Err(e) => e.to_string(),
+            Ok(_) => panic!("a hand-edited project exports"),
+        };
+        assert_eq!(
+            refusal,
+            if merged {
+                format!("the manifest's hash of {page} is pending (a merged project); save it first")
+            } else {
+                format!("{page} changed on disk since it was saved (an external change)")
+            }
+        );
+        let done = fmt::repair(&mut s).unwrap();
+        s.close();
+        assert_eq!(
+            done,
+            Repaired {
+                generation: 2,
+                discarded: vec![DiscardedLine {
+                    file: page.clone(),
+                    line: 2,
+                    text: BROKEN.to_vec(),
+                }],
+                files: vec![Rewrite {
+                    file: page.clone(),
+                    removed: false,
+                }],
+                backup: Some(Backup {
+                    path: backup(),
+                    generation: 1,
+                    reused: false,
+                    edited: 1,
+                }),
+            },
+            "merged: {merged}"
+        );
+        let after = files(&vfs);
+        assert_eq!(after[&page], canonical, "the page file without the line");
+        for (name, bytes) in disk.iter().filter(|(n, _)| **n != page && *n != "manifest.json") {
+            assert_eq!(&after[name], bytes, "{name} is not written");
+        }
+        let bytes = vfs.read(&backup()).unwrap();
+        let packed = ewz::read(&bytes).expect("the backup verifies");
+        assert_eq!(
+            (packed.generation(), packed.manifest.merged),
+            (1, merged)
+        );
+        assert_eq!(
+            packed.entries, found,
+            "the files as found, the manifest hashed to them"
+        );
+        ewz::extract(&*vfs, &packed, Path::new("/restored")).unwrap();
+        assert_eq!(
+            vfs.files(Path::new("/restored")),
+            found,
+            "every listed file as it was"
+        );
+        let dir = ew_testdir::fresh_dir("ew-api-fmt-as-found");
+        let archive = dir.join("p.before-repair-g1.ewz");
+        std::fs::write(&archive, &bytes).unwrap();
+        let (opened, report) = Session::open_ewz(&archive, "ElektraWatt test").unwrap();
+        opened.close();
+        let _ = std::fs::remove_dir_all(&dir);
+        assert_eq!(
+            (report.access, report.generation),
+            (Access::ReadOnly(ReadOnlyReason::Requested), 1)
+        );
+        let codes: Vec<(Option<&str>, Option<String>, Option<u32>)> = report
+            .findings
+            .iter()
+            .map(|f| (f.code(), f.file.as_ref().map(|p| p.as_str().to_owned()), f.line))
+            .collect();
+        assert_eq!(
+            codes,
+            [(Some("EW-CORE-005"), Some(page.clone()), Some(2))],
+            "the broken line, and no file that differs from the backup's manifest"
+        );
+        let s = open(&vfs, 3);
+        s.close();
+    }
+}
+
+/// ID-1185 ruling 3 and ID-1186 ruling 4: a store whose files cannot be packed as found refuses the repair before
+/// anything is written: a listed file that cannot be read (a fault of the `Vfs` at its read, after a page file edited
+/// outside ElektraWatt that the backup takes as found), and a project without a manifest.
 #[test]
 fn a_repair_that_cannot_pack_the_backup_writes_nothing() {
     let (disk, page, _) = page_with(&[BROKEN], false);
+    let last = disk
+        .keys()
+        .filter(|n| *n != "manifest.json")
+        .next_back()
+        .cloned()
+        .expect("a listed file");
+    assert!(last > page, "{last} is listed after {page}");
+    let read = format!("read {}", ew_store::join(&root(), &last).display());
+    // The number of the call that reads it, traced in a repair of the same project.
+    let at = {
+        let vfs = mem(&disk);
+        let (mut s, _) = open_repair(&vfs, 2);
+        vfs.reset_calls();
+        vfs.set_trace(true);
+        fmt::repair(&mut s).unwrap();
+        s.close();
+        vfs.trace()
+            .iter()
+            .find_map(|line| {
+                let (n, call) = line.split_once(": ")?;
+                (call == read).then(|| n.parse::<u64>().unwrap())
+            })
+            .expect("the backup reads every listed file")
+    };
     let vfs = mem(&disk);
     let (mut s, report) = open_repair(&vfs, 2);
     assert_eq!(report.access, Access::Edit);
+    vfs.reset_calls();
+    vfs.set_fault(Fault::Error {
+        at,
+        kind: std::io::ErrorKind::Other,
+    });
     match fmt::repair(&mut s) {
         Err(e @ RepairError::Pack(_)) => assert_eq!(
             e.to_string(),
             format!(
-                "the backup cannot be packed: {page} does not match the manifest (changed outside ElektraWatt since \
-                 the last save)"
+                "the backup cannot be packed: {}: injected error",
+                ew_store::join(&root(), &last).display()
             )
         ),
         other => panic!("expected the pack's refusal, got {other:?}"),
@@ -603,13 +760,69 @@ fn a_repair_that_cannot_pack_the_backup_writes_nothing() {
     s.close();
     assert_eq!(files(&vfs), disk);
     assert_eq!(beside(&vfs), Vec::<String>::new());
+
+    let mut bare = disk.clone();
+    bare.remove("manifest.json");
+    let vfs = mem(&bare);
+    let (mut s, report) = open_repair(&vfs, 2);
+    assert_eq!(report.access, Access::Edit);
+    match fmt::repair(&mut s) {
+        Err(e @ RepairError::Pack(_)) => assert_eq!(
+            e.to_string(),
+            "the backup cannot be packed: the project has no manifest.json"
+        ),
+        other => panic!("expected the pack's refusal, got {other:?}"),
+    }
+    s.close();
+    assert_eq!(files(&vfs), bare);
+    assert_eq!(beside(&vfs), Vec::<String>::new());
+}
+
+/// ID-1186 rulings 2 and 4: a listed file that changes on disk between the repair's open and its backup refuses the
+/// repair, with nothing written and the text saying to run it again; the rerun, in a new session, backs the file up as
+/// it is then.
+#[test]
+fn a_file_changed_since_the_open_refuses_the_backup() {
+    let (disk, page, canonical) = page_with(&[BROKEN], false);
+    let vfs = mem(&disk);
+    let (mut s, _) = open_repair(&vfs, 2);
+    let mut bytes = disk[&page].clone();
+    bytes.extend_from_slice(BROKEN);
+    bytes.push(b'\n');
+    let mut changed = disk.clone();
+    changed.insert(page.clone(), bytes.clone());
+    vfs.put(&ew_store::join(&root(), &page), &bytes);
+    match fmt::repair(&mut s) {
+        Err(e @ RepairError::Pack(ewz::PackError::ChangedSinceOpen { .. })) => assert_eq!(
+            e.to_string(),
+            format!(
+                "the backup cannot be packed: {page} changed on disk since the repair opened the project; run the \
+                 repair again"
+            )
+        ),
+        other => panic!("expected the changed file's refusal, got {other:?}"),
+    }
+    s.close();
+    assert_eq!(files(&vfs), changed, "nothing was written");
+    assert_eq!(beside(&vfs), Vec::<String>::new());
+
+    let (mut s, _) = open_repair(&vfs, 3);
+    let done = fmt::repair(&mut s).unwrap();
+    s.close();
+    let discarded: Vec<(String, u32)> = done.discarded.iter().map(|d| (d.file.clone(), d.line)).collect();
+    let last = u32::try_from(bytes.iter().filter(|b| **b == b'\n').count()).unwrap();
+    assert_eq!(discarded, [(page.clone(), 2), (page.clone(), last)]);
+    assert_eq!(files(&vfs)[&page], canonical);
+    let packed = ewz::read(&vfs.read(&backup()).unwrap()).unwrap();
+    assert_eq!(packed.entries[&page], bytes, "the file as the rerun found it");
 }
 
 /// ID-1185 rulings 5 and 8: a file at the backup's name that does not hold this generation's pack refuses the repair
-/// and stays; one that holds it byte for byte is reused.
+/// and stays; one that holds it byte for byte is reused. The project is edited by hand, so the pack is the one of its
+/// files as found (ID-1186 ruling 5).
 #[test]
 fn a_backup_name_holding_another_file_refuses_and_this_generations_pack_is_reused() {
-    let (disk, page, canonical) = page_with(&[BROKEN], true);
+    let (disk, page, canonical) = page_with(&[BROKEN], false);
     let vfs = mem(&disk);
     vfs.put(&backup(), b"another file");
     let (mut s, _) = open_repair(&vfs, 2);
@@ -623,7 +836,7 @@ fn a_backup_name_holding_another_file_refuses_and_this_generations_pack_is_reuse
     assert_eq!(files(&vfs), disk);
     assert_eq!(vfs.read(&backup()).unwrap(), b"another file");
 
-    let packed = ewz::pack_store(s.store().unwrap()).unwrap();
+    let packed = ewz::pack_as_found(s.store().unwrap()).unwrap().packed;
     vfs.put(&backup(), &packed.bytes);
     let done = fmt::repair(&mut s).unwrap();
     s.close();
@@ -633,6 +846,7 @@ fn a_backup_name_holding_another_file_refuses_and_this_generations_pack_is_reuse
             path: backup(),
             generation: 1,
             reused: true,
+            edited: 1,
         })
     );
     assert_eq!(files(&vfs)[&page], canonical);
@@ -717,10 +931,18 @@ fn after_repair_fault(
 /// and nothing else; between the backup and the save, and inside the save before its commit point, the project is
 /// unchanged; after the commit point the next open completes generation 2, which never comes without the backup. A
 /// failed save keeps the broken lines, so the same session repairs again; and a rerun after every fault succeeds,
-/// reusing the backup it finds.
+/// reusing the backup it finds. Both on a project whose broken line came with the generation and on one edited by hand,
+/// whose backup holds its files as found (ID-1186): the faults reach the backup's reads of every listed file too.
 #[test]
 fn a_fault_at_every_call_of_a_repair_leaves_the_old_or_the_new_generation_and_a_rerun_succeeds() {
-    let (disk, page, canonical) = page_with(&[BROKEN], true);
+    repair_fault_sweep(true);
+    repair_fault_sweep(false);
+}
+
+/// The sweep of the test above on the page file with a broken line, its hash in the manifest as a save writes it
+/// (`hashed`) or not (edited by hand).
+fn repair_fault_sweep(hashed: bool) {
+    let (disk, page, canonical) = page_with(&[BROKEN], hashed);
     let (calls, backup_bytes) = {
         let vfs = mem(&disk);
         let (mut s, _) = open_repair(&vfs, 2);
@@ -732,7 +954,7 @@ fn a_fault_at_every_call_of_a_repair_leaves_the_old_or_the_new_generation_and_a_
     };
     assert!(calls > 10, "{calls} calls");
     let mut failures = Vec::new();
-    let mut seen = [false; 5];
+    let mut seen = [false; 6];
     let faults = (1..=calls + 1).flat_map(|at| {
         [
             Fault::Error {
@@ -755,6 +977,7 @@ fn a_fault_at_every_call_of_a_repair_leaves_the_old_or_the_new_generation_and_a_
             match &result {
                 Err(RepairError::Backup { .. } | RepairError::Pack(_) | RepairError::Format(_)) => {
                     seen[0] |= matches!(result, Err(RepairError::Backup { .. }));
+                    seen[5] |= matches!(result, Err(RepairError::Pack(_)));
                     if files(&vfs) != disk || !beside(&vfs).is_empty() {
                         failures.push(format!("{fault:?}: {result:?} left {:?}", beside(&vfs)));
                     }
@@ -830,12 +1053,13 @@ fn a_fault_at_every_call_of_a_repair_leaves_the_old_or_the_new_generation_and_a_
     }
     assert!(
         failures.is_empty(),
-        "{} failures:\n{}",
+        "hashed: {hashed}: {} failures:\n{}",
         failures.len(),
         failures.join("\n")
     );
     assert_eq!(
-        seen, [true; 5],
-        "the sweep reaches a failed backup, both sides of the save's commit point and both generations"
+        seen, [true; 6],
+        "hashed: {hashed}: the sweep reaches a failed backup, both sides of the save's commit point, both \
+         generations and a failed read of the backup's files"
     );
 }

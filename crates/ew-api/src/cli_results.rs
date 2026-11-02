@@ -1236,6 +1236,9 @@ pub struct BackupRow {
     pub generation: u64,
     /// Whether it was there already, holding this generation's pack byte for byte, and was reused.
     pub reused: bool,
+    /// How many of its files were edited outside EW since the generation was saved: the backup holds the files as
+    /// found, its manifest hashed to them (decision log ID-1186). 0 when every file is as saved.
+    pub edited: usize,
 }
 
 /// `ew recover --json` ([`RECOVER`]): the crashed session's journal that was summarised, and whether it was replayed.
