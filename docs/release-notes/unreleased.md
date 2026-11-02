@@ -33,6 +33,15 @@ SPDX-License-Identifier: CC-BY-4.0
 - api-add: cli ew export cables|bom|wires|terminals|report and ew sql --preset ew|excel-nl|excel-en|rfc4180
   [--bom on|off] [--line-end crlf|lf] (the CSV dialect; `ew`, the golden dialect, stays the default; the Excel presets
   put an apostrophe before a text that starts with `=`, `+`, `-`, `@`, a tab or a carriage return)
+- api-add: cli ew export table <navigator> [<project-dir>] [--strip <tag>] [--format csv|xlsx] [--preset …]
+  [--out <file>] [--json] (writes a navigator's table unfiltered for a round trip; an XLSX also holds a hidden
+  `_ew_base` sheet with the editable cells as exported; result `ew.export-table-result/1`; WP-S3.08 part 2)
+- api-add: cli ew import table <file> [<project-dir>] [--table <key>] [--preset excel-nl|excel-en|rfc4180]
+  [--take-file] [--apply] [--json] (previews the changed cells of a round-trip table with EW-IMP-301 to -305 and with
+  `--apply` applies them as one `fields.set_many`, one undo step; result `ew.import-table-result/1`; WP-S3.08 part 2)
+- text-change: cli ew export cables|bom|wires|terminals|report and ew sql --format xlsx (a number of more than 15
+  significant digits is written as text, so it stays exact; the workbook writer's refusals end with what to do;
+  WP-S3.08 part 2)
 - api-add: cli ew export cables|bom|wires|terminals|report --json (the results `ew.export-*-result/1` gain `format`,
   `preset` and `rev`)
 - api-add: cli ew export ewz [<project-dir>] --out <file.ewz> [--json] and ew extract <file.ewz> [--into <dir>]
@@ -42,7 +51,7 @@ SPDX-License-Identifier: CC-BY-4.0
   .ewz opens read-only; extract it first" (WP-S1.17 part 2)
 - text-change: cli ew export and ew sql `--format xlsx` (no longer refused as not built; without `--out` it is refused
   with "`--format xlsx` writes a file: give `--out <file.xlsx>`"; `--preset`, `--bom` or `--line-end` with it with
-  "`--preset` applies to CSV: `--format xlsx` takes none"; `--format pdf` on a row export names CSV or XLSX)
+  "`--preset` applies to CSV only; drop it, or give `--format csv`"; `--format pdf` on a row export names CSV or XLSX)
 - text-change: cli ew import csv, the window's import (a table refused for a stray quote, a stray carriage return or
   an unterminated quoted field names the column too: "table refused: line 2, column 3: stray quote"; FT-880)
 - text-change: reports parts_summary, parts_list, part_data, enclosure_legend (a manufacturer whose copy is missing

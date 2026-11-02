@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`ew export table --json` ([`EXPORT_TABLE`], WP-S3.08 D7, D8).",
+  "properties": {
+    "$schema": {
+      "const": "ew.export-table-result/1",
+      "description": "The name of this schema."
+    },
+    "csv": {
+      "description": "The CSV text when it goes to stdout; else `null`.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "editable": {
+      "description": "The keys of the editable columns, in column order.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "format": {
+      "description": "`csv` or `xlsx`.",
+      "type": "string"
+    },
+    "out": {
+      "description": "The file written (`--out`); `null` for CSV on stdout.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "preset": {
+      "description": "The CSV preset; `null` for XLSX.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "rev": {
+      "description": "The session revision the table was read at.",
+      "format": "uint64",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "rows": {
+      "description": "The rows written (the header excluded).",
+      "format": "uint",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "table": {
+      "description": "The table's key (`nav:strips/<uuid>`), as `_ew` names it.",
+      "type": "string"
+    }
+  },
+  "required": [
+    "$schema",
+    "table",
+    "format",
+    "rows",
+    "editable",
+    "rev"
+  ],
+  "title": "ew.export-table-result/1",
+  "type": "object"
+}

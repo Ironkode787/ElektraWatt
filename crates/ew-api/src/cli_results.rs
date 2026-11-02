@@ -103,6 +103,10 @@ pub const EXPORT_WIRES: &str = "ew.export-wires-result/1";
 pub const EXPORT_TERMINALS: &str = "ew.export-terminals-result/1";
 /// `ew export report --json`.
 pub const EXPORT_REPORT: &str = "ew.export-report-result/1";
+/// `ew export table --json` (WP-S3.08 D7).
+pub const EXPORT_TABLE: &str = "ew.export-table-result/1";
+/// `ew import table --json` (WP-S3.08 D7).
+pub const IMPORT_TABLE: &str = "ew.import-table-result/1";
 /// `ew render --json`.
 pub const RENDER: &str = "ew.render-result/1";
 /// `ew print --json`.
@@ -181,6 +185,11 @@ pub const RESULTS: &[ResultSchema] = &[
         schema: schema_of::<ExportSvgResult>,
     },
     ResultSchema {
+        name: EXPORT_TABLE,
+        command: "export table",
+        schema: schema_of::<ExportTableResult>,
+    },
+    ResultSchema {
         name: EXPORT_TERMINALS,
         command: "export terminals",
         schema: schema_of::<ExportTerminalsResult>,
@@ -214,6 +223,11 @@ pub const RESULTS: &[ResultSchema] = &[
         name: IMPORT_QET,
         command: "import qet",
         schema: schema_of::<ImportQetResult>,
+    },
+    ResultSchema {
+        name: IMPORT_TABLE,
+        command: "import table",
+        schema: schema_of::<ImportTableResult>,
     },
     ResultSchema {
         name: LIB_CREATE,
@@ -604,6 +618,106 @@ pub struct ExportReportResult {
     pub preset: Option<String>,
     /// The session revision the rows or pages were read at.
     pub rev: Option<u64>,
+}
+
+/// `ew export table --json` ([`EXPORT_TABLE`], WP-S3.08 D7, D8).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct ExportTableResult {
+    /// [`EXPORT_TABLE`].
+    #[serde(rename = "$schema")]
+    pub schema: String,
+    /// The table's key (`nav:strips/<uuid>`), as `_ew` names it.
+    pub table: String,
+    /// `csv` or `xlsx`.
+    pub format: String,
+    /// The CSV preset; `null` for XLSX.
+    pub preset: Option<String>,
+    /// The rows written (the header excluded).
+    pub rows: usize,
+    /// The keys of the editable columns, in column order.
+    pub editable: Vec<String>,
+    /// The file written (`--out`); `null` for CSV on stdout.
+    pub out: Option<String>,
+    /// The CSV text when it goes to stdout; else `null`.
+    pub csv: Option<String>,
+    /// The session revision the table was read at.
+    pub rev: u64,
+}
+
+/// One cell of `ew import table --json` ([`ImportTableResult::cells`]).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct ImportTableCell {
+    /// The row's ID.
+    pub row: String,
+    /// The row's label (`-X1031:3`).
+    pub label: String,
+    /// The column's key.
+    pub column: String,
+    /// The column's label.
+    pub column_label: String,
+    /// The value as exported; `null` without an intact `_ew_base`.
+    pub base: Option<String>,
+    /// The project's value.
+    pub ew: String,
+    /// The file's value.
+    pub file: String,
+    /// `applied`, `kept`, `conflict`, `taken`, `read-only` or `refused`.
+    pub outcome: String,
+    /// Why a read-only or refused cell is not applied; else `null`.
+    pub reason: Option<String>,
+}
+
+/// One finding of `ew import table --json` ([`ImportTableResult::findings`]).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct ImportTableFinding {
+    /// The rule (`EW-IMP-301` to `EW-IMP-305`).
+    pub rule: String,
+    /// The row's ID.
+    pub row: String,
+    /// The column's key, for a cell's finding.
+    pub column: Option<String>,
+    /// The finding as a sentence.
+    pub message: String,
+}
+
+/// `ew import table --json` ([`IMPORT_TABLE`], WP-S3.08 D11): the preview, and whether it was applied.
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct ImportTableResult {
+    /// [`IMPORT_TABLE`].
+    #[serde(rename = "$schema")]
+    pub schema: String,
+    /// The table's key.
+    pub table: String,
+    /// Whether the cells were compared three-way (an intact `_ew_base`).
+    pub three_way: bool,
+    /// Sentences about the file as a whole.
+    pub notices: Vec<String>,
+    /// Cells applied (a conflict taken from the file included).
+    pub changed: usize,
+    /// Cells kept because only the project changed them.
+    pub kept: usize,
+    /// Cells changed in both.
+    pub conflicts: usize,
+    /// Cells refused (read-only, unparsable or clashing).
+    pub refused: usize,
+    /// Rows of the file with an unknown ID.
+    pub unknown: usize,
+    /// The changed cells.
+    pub cells: Vec<ImportTableCell>,
+    /// The findings.
+    pub findings: Vec<ImportTableFinding>,
+    /// The labels of the table's rows that the file does not have.
+    pub missing: Vec<String>,
+    /// The command (`fields.set_many`) the applied cells compile to: `{"cmd": …, "params": …}`; `null` when none.
+    pub command: Option<Value>,
+    /// Whether the command was committed (`--apply`) and the project saved.
+    pub applied: bool,
+    /// The session revision the file was read against.
+    pub rev: u64,
 }
 
 /// `ew export png --json` ([`EXPORT_PNG`]).

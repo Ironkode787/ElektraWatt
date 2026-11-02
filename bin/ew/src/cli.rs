@@ -29,6 +29,8 @@ pub enum Command {
     ImportParts(ImportPartsArgs),
     /// `ew import csv`: golden-dialect tables as a new project (WP-S1.22 part 3, FT-27).
     ImportCsv(ImportCsvArgs),
+    /// `ew import table`: a round-trip table read back and its changed cells applied (WP-S3.08 D11).
+    ImportTable(ImportTableArgs),
     /// Check a project.
     Check(CheckArgs),
     /// Run a read-only query on the SQL projection.
@@ -39,6 +41,8 @@ pub enum Command {
     SqlSchema,
     /// Write a report's rows as CSV.
     Export(ExportArgs),
+    /// `ew export table`: a navigator's table as CSV or XLSX for a round trip (WP-S3.08 D7, D8).
+    ExportTable(ExportTableArgs),
     /// Compare the memoised derived data with a cold recomputation.
     VerifyDerived(VerifyArgs),
     /// Write the pages as PDF, SVG or PNG.
@@ -404,6 +408,42 @@ pub struct ExportArgs {
     pub format: RowFormat,
 }
 
+/// The arguments of `ew export table` (WP-S3.08 D7, D8).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct ExportTableArgs {
+    /// The navigator's word (`strips`).
+    pub navigator: String,
+    /// One strip of `strips`, by its tag (`--strip`).
+    pub strip: Option<String>,
+    /// The project directory; `None`: found from the current directory.
+    pub project: Option<PathBuf>,
+    /// The output file (`--out`); `None`: stdout.
+    pub out: Option<PathBuf>,
+    /// Print the result as JSON (`--json`).
+    pub json: bool,
+    /// How the table is written (`--format`, `--preset`, `--bom`, `--line-end`).
+    pub format: RowFormat,
+}
+
+/// The arguments of `ew import table` (WP-S3.08 D7, D11).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct ImportTableArgs {
+    /// The round-trip file.
+    pub file: PathBuf,
+    /// The project directory; `None`: found from the current directory.
+    pub project: Option<PathBuf>,
+    /// The table's key (`--table`).
+    pub table: Option<String>,
+    /// The CSV's preset (`--preset`); `None`: from its separator.
+    pub preset: Option<Preset>,
+    /// `--take-file`.
+    pub take_file: bool,
+    /// `--apply`: commit and save.
+    pub apply: bool,
+    /// Print the result as JSON (`--json`).
+    pub json: bool,
+}
+
 /// How a row export writes its rows (WP-S3.08 D7).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum RowFormat {
@@ -595,10 +635,12 @@ pub fn run(cmd: Command) -> i32 {
         Command::ImportQet(a) => run_import_qet(&a),
         Command::ImportParts(a) => run_import_parts(&a),
         Command::ImportCsv(a) => run_import_csv(&a),
+        Command::ImportTable(a) => run_import_table(&a),
         Command::Check(a) => run_check(&a),
         Command::Sql(a) => run_sql(&a),
         Command::SqlDump(a) => run_sql_dump(&a),
         Command::Export(a) => run_export(&a),
+        Command::ExportTable(a) => run_export_nav_table(&a),
         Command::VerifyDerived(a) => run_verify_derived(&a),
         Command::ExportPages(a) => run_export_pages(&a),
         Command::Print(a) => run_print(&a),
@@ -1026,6 +1068,279 @@ fn run_export_table(a: &ExportArgs, session: &ew_api::Session) -> i32 {
         print!("{json}");
     }
     0
+}
+
+/// `ew export table` (WP-S3.08 D7, D8): a navigator's table unfiltered, as CSV in a preset or as a workbook with the
+/// round-trip sheets (`_ew`, and `_ew_base` with its digest), the file written atomically.
+fn run_export_nav_table(a: &ExportTableArgs) -> i32 {
+    let Some(dir) = project_dir(a.project.as_ref()) else {
+        return 2;
+    };
+    let (session, _) = match ew_api::Session::open_reader(&dir, env!("CARGO_PKG_VERSION"), "export") {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("error: {}: {e}", dir.display());
+            return 2;
+        }
+    };
+    let table = match session
+        .navigator_table_key(&a.navigator, a.strip.as_deref())
+        .and_then(|key| session.table_export(&key))
+    {
+        Ok(t) => t,
+        Err(e) => {
+            eprintln!("error: {e}");
+            return 2;
+        }
+    };
+    let (bytes, text, format, preset) = match a.format {
+        RowFormat::Csv(options) => {
+            let csv = ew_api::output::table_csv(&table, &options);
+            (
+                csv.clone().into_bytes(),
+                Some(csv),
+                "csv",
+                Some(options.preset.name()),
+            )
+        }
+        RowFormat::Xlsx => {
+            let date = match source_date() {
+                Ok(d) => d,
+                Err(e) => {
+                    eprintln!("error: {e}");
+                    return 2;
+                }
+            };
+            let tables = std::slice::from_ref(&table);
+            let meta = ew_api::output::with_base_digest(&session.workbook_meta(date), tables);
+            match ew_api::output::xlsx(tables, &meta) {
+                Ok(b) => (b, None, "xlsx", None),
+                Err(e) => {
+                    eprintln!("error: {e}");
+                    return 2;
+                }
+            }
+        }
+    };
+    match (&a.out, &text) {
+        (Some(path), _) => {
+            if let Err(e) = write_atomically(path, &bytes) {
+                eprintln!("error: {}: {e}", path.display());
+                return 2;
+            }
+            if !a.json {
+                println!("export written to {}", path.display());
+            }
+        }
+        (None, Some(csv)) if !a.json => {
+            print!("{csv}");
+            eprintln!("{} rows", table.rows.len());
+        }
+        (None, Some(_)) => {}
+        // The lowering refuses `--format xlsx` without `--out`.
+        (None, None) => {
+            eprintln!("error: {XLSX_NEEDS_OUT}");
+            return 2;
+        }
+    }
+    if a.json {
+        print!(
+            "{}",
+            results::to_text(&results::ExportTableResult {
+                schema: results::EXPORT_TABLE.to_owned(),
+                table: table.key.clone(),
+                format: format.to_owned(),
+                preset: preset.map(str::to_owned),
+                rows: table.rows.len(),
+                editable: table
+                    .columns
+                    .iter()
+                    .filter(|c| c.editable)
+                    .map(|c| c.key.clone())
+                    .collect(),
+                out: a.out.as_ref().map(|p| p.display().to_string()),
+                csv: if a.out.is_none() { text } else { None },
+                rev: session.world().rev.0,
+            })
+        );
+    }
+    0
+}
+
+/// Reads at most `limit + 1` bytes of `path`, so a file over the reader's limit is refused by the reader's own text
+/// without being read whole.
+fn read_bounded(path: &Path, limit: u64) -> std::io::Result<Vec<u8>> {
+    use std::io::Read as _;
+    let mut bytes = Vec::new();
+    std::fs::File::open(path)?
+        .take(limit.saturating_add(1))
+        .read_to_end(&mut bytes)?;
+    Ok(bytes)
+}
+
+/// `ew import table` (WP-S3.08 D11): the preview of a round-trip file against the project, and with `--apply` its one
+/// `fields.set_many` committed and the project saved.
+fn run_import_table(a: &ImportTableArgs) -> i32 {
+    let Some(dir) = project_dir(a.project.as_ref()) else {
+        return 2;
+    };
+    let bytes = match read_bounded(&a.file, ew_api::catalog::table_limits().max_input_bytes) {
+        Ok(b) => b,
+        Err(e) => {
+            eprintln!("error: {}: {e}", a.file.display());
+            return 2;
+        }
+    };
+    let options = ew_api::output::ImportTableOptions {
+        table: a.table.clone(),
+        preset: a.preset,
+        take_file: a.take_file,
+    };
+    let origin = ew_api::Origin::Cli {
+        subcommand: "import table".to_owned(),
+        confirmed: false,
+    };
+    let mut session = if a.apply {
+        match open_for_writing(&dir, origin.clone()) {
+            Ok(s) => s,
+            Err(code) => return code,
+        }
+    } else {
+        match ew_api::Session::open_reader(&dir, env!("CARGO_PKG_VERSION"), "import table") {
+            Ok((s, _)) => s,
+            Err(e) => {
+                eprintln!("error: {}: {e}", dir.display());
+                return 2;
+            }
+        }
+    };
+    let import = match session.table_import(&bytes, &options) {
+        Ok(i) => i,
+        Err(e) => {
+            eprintln!("error: {e}");
+            session.close();
+            return 2;
+        }
+    };
+    let mut applied = false;
+    if a.apply && import.command.is_some() {
+        if let Err(e) = session.apply_table_import(&import, ew_api::Submit::from(origin)) {
+            eprintln!("error: {e}");
+            session.close();
+            return 2;
+        }
+        if let Err(e) = session.save() {
+            eprintln!("error: the save failed: {e:?}");
+            session.close();
+            return 2;
+        }
+        applied = true;
+    }
+    session.close();
+    if a.json {
+        print!("{}", import_table_json(&import, applied));
+    } else {
+        print!("{}", import_table_text(&import, a.apply, applied));
+    }
+    0
+}
+
+/// The text preview of `ew import table`: one line per changed cell, the notices, the findings, the missing rows and
+/// the counts.
+fn import_table_text(import: &ew_api::output::TableImport, apply: bool, applied: bool) -> String {
+    use std::fmt::Write as _;
+    let mut out = String::new();
+    for notice in &import.notices {
+        let _ = writeln!(out, "{notice}");
+    }
+    for cell in &import.cells {
+        let base = cell
+            .base
+            .as_ref()
+            .map_or_else(String::new, |b| format!("exported \"{b}\", "));
+        let reason = cell
+            .reason
+            .as_ref()
+            .map_or_else(String::new, |r| format!(" ({r})"));
+        let _ = writeln!(
+            out,
+            "{}, {}: {base}project \"{}\", file \"{}\": {}{reason}",
+            cell.row_label,
+            cell.column_label,
+            cell.ew,
+            cell.file,
+            cell.outcome.word()
+        );
+    }
+    for finding in &import.findings {
+        let _ = writeln!(out, "{}: {}", finding.rule, finding.message);
+    }
+    if !import.missing.is_empty() {
+        let _ = writeln!(out, "not in the file (kept): {}", import.missing.join(", "));
+    }
+    let c = import.counts();
+    let end = match (apply, applied) {
+        (_, true) => "applied in one step; saved",
+        (true, false) => "nothing to apply",
+        (false, false) if import.command.is_some() => {
+            "a preview: nothing changed (give `--apply` to apply it)"
+        }
+        (false, false) => "a preview: nothing to apply",
+    };
+    let _ = writeln!(
+        out,
+        "{} changed, {} kept, {} conflicts, {} refused, {} unknown, {} missing; {end}",
+        c.changed, c.kept, c.conflicts, c.refused, c.unknown, c.missing
+    );
+    out
+}
+
+/// The `--json` result of `ew import table` ([`results::ImportTableResult`]).
+fn import_table_json(import: &ew_api::output::TableImport, applied: bool) -> String {
+    let c = import.counts();
+    results::to_text(&results::ImportTableResult {
+        schema: results::IMPORT_TABLE.to_owned(),
+        table: import.table.clone(),
+        three_way: import.three_way,
+        notices: import.notices.clone(),
+        changed: c.changed,
+        kept: c.kept,
+        conflicts: c.conflicts,
+        refused: c.refused,
+        unknown: c.unknown,
+        cells: import
+            .cells
+            .iter()
+            .map(|cell| results::ImportTableCell {
+                row: cell.row.clone(),
+                label: cell.row_label.clone(),
+                column: cell.column.clone(),
+                column_label: cell.column_label.clone(),
+                base: cell.base.clone(),
+                ew: cell.ew.clone(),
+                file: cell.file.clone(),
+                outcome: cell.outcome.word().to_owned(),
+                reason: cell.reason.clone(),
+            })
+            .collect(),
+        findings: import
+            .findings
+            .iter()
+            .map(|f| results::ImportTableFinding {
+                rule: f.rule.to_owned(),
+                row: f.row.clone(),
+                column: f.column.clone(),
+                message: f.message.clone(),
+            })
+            .collect(),
+        missing: import.missing.clone(),
+        command: import
+            .command
+            .as_ref()
+            .map(|cmd| serde_json::json!({"cmd": cmd.name, "params": cmd.params})),
+        applied,
+        rev: import.rev,
+    })
 }
 
 /// Writes the CSV of a row export to `--out` or stdout (nothing on stdout with `--json`): 0, or 2 on a write error.
@@ -4513,7 +4828,7 @@ mod tests {
         assert_eq!(
             p(&["sql", "SELECT 1", "--json", "--preset", "excel-nl"]),
             usage_error(
-                "`--preset` applies to CSV: `--format json` takes none",
+                "`--preset` applies to CSV only; drop it, or give `--format csv`",
                 "ew sql [OPTIONS] [project-dir] <select>\n       ew sql [OPTIONS] [project-dir] --file <query.sql>\n       \
                  ew sql <COMMAND>"
             )
@@ -4530,7 +4845,7 @@ mod tests {
                 "lf"
             ]),
             usage_error(
-                "`--line-end` applies to CSV: `--format xlsx` takes none",
+                "`--line-end` applies to CSV only; drop it, or give `--format csv`",
                 "ew sql [OPTIONS] [project-dir] <select>\n       ew sql [OPTIONS] [project-dir] --file <query.sql>\n       \
                  ew sql <COMMAND>"
             )
@@ -4790,13 +5105,19 @@ SELECT 1"
                 p(&[
                     "export", what, "--format", "xlsx", "--out", "x.xlsx", "--preset", "excel-nl"
                 ]),
-                usage_error("`--preset` applies to CSV: `--format xlsx` takes none", &usage)
+                usage_error(
+                    "`--preset` applies to CSV only; drop it, or give `--format csv`",
+                    &usage
+                )
             );
             assert_eq!(
                 p(&[
                     "export", what, "--format", "xlsx", "--out", "x.xlsx", "--bom", "on"
                 ]),
-                usage_error("`--bom` applies to CSV: `--format xlsx` takes none", &usage)
+                usage_error(
+                    "`--bom` applies to CSV only; drop it, or give `--format csv`",
+                    &usage
+                )
             );
             assert_eq!(
                 p(&["export", what, "--preset", "excel"]),
@@ -4833,7 +5154,10 @@ SELECT 1"
                 "export", "report", "--block", "908", "--format", "pdf", "--out", "r.pdf", "--preset",
                 "rfc4180",
             ]),
-            usage_error("`--preset` applies to CSV: `--format pdf` takes none", report)
+            usage_error(
+                "`--preset` applies to CSV only; drop it, or give `--format csv`",
+                report
+            )
         );
         assert_eq!(
             p(&["export", "report", "--block", "908", "--format", "svg"]),

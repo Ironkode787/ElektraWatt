@@ -168,6 +168,11 @@ fn separator(text: &str) -> char {
 /// Reads CSV text: UTF-8, an optional byte-order mark, `,` or `;`, fields quoted with `"` (a doubled `""` inside a
 /// quoted field is one quote; a quoted field may span lines), lines ended by LF or CR LF.
 pub(crate) fn read_csv(bytes: &[u8], limits: &Limits) -> Result<Sheet, ImportError> {
+    sheet_of(csv_records(bytes)?, limits)
+}
+
+/// The records of CSV text as [`read_csv`] reads them (line, cells), before the header is found.
+fn csv_records(bytes: &[u8]) -> Result<Vec<(u32, Vec<Cell>)>, ImportError> {
     let text = std::str::from_utf8(bytes).map_err(|e| {
         let line = bytes[..e.valid_up_to()].iter().filter(|b| **b == b'\n').count() + 1;
         malformed("the table is not UTF-8 text", u32::try_from(line).ok())
@@ -245,7 +250,7 @@ pub(crate) fn read_csv(bytes: &[u8], limits: &Limits) -> Result<Sheet, ImportErr
         cells.push(Cell::Text(field));
         records.push((record_line, cells));
     }
-    sheet_of(records, limits)
+    Ok(records)
 }
 
 // -------------------------------------------------------------------------------------------------------------------
@@ -329,9 +334,61 @@ fn check_size(bytes: &[u8], limits: &Limits) -> Result<(), ImportError> {
     Ok(())
 }
 
+/// The records of a table in `format` (line or row number, cells) as both readers read them: CSV, or the XLSX sheet
+/// named `sheet` (the first when `None`), the input size checked first.
+fn records_of(
+    bytes: &[u8],
+    format: SourceFormat,
+    sheet: Option<&str>,
+    limits: &Limits,
+) -> Result<Vec<(u32, Vec<Cell>)>, ImportError> {
+    check_size(bytes, limits)?;
+    match format {
+        SourceFormat::Csv => csv_records(bytes),
+        SourceFormat::Xlsx => crate::xlsx::read(bytes, sheet, limits),
+    }
+}
+
+/// A cell text of the sheet module: a workbook's `_xHHHH_` escapes decoded (WP-S3.08, ID-1174 ruling 5: `_x000D_` is a
+/// carriage return, `_x005F_` a literal `_`), a CSV's text as it is. The parts import reads its cells raw.
+fn sheet_text(text: &str, format: SourceFormat) -> String {
+    match format {
+        SourceFormat::Csv => text.to_owned(),
+        SourceFormat::Xlsx => decode_escapes(text),
+    }
+}
+
+/// `text` with every `_xHHHH_` (four hex digits naming a character) replaced by that character, left to right, so
+/// `_x005F_x0041_` is the literal `_x0041_` (ECMA-376 Part 1, §22.9.2.19).
+fn decode_escapes(text: &str) -> String {
+    let mut out = String::with_capacity(text.len());
+    let mut rest = text;
+    while let Some(at) = rest.find("_x") {
+        out.push_str(&rest[..at]);
+        let tail = &rest[at..];
+        let b = tail.as_bytes();
+        let decoded = (b.len() >= 7 && b[2..6].iter().all(u8::is_ascii_hexdigit) && b[6] == b'_')
+            .then(|| u32::from_str_radix(&tail[2..6], 16).ok().and_then(char::from_u32))
+            .flatten();
+        match decoded {
+            Some(c) => {
+                out.push(c);
+                rest = &tail[7..];
+            }
+            None => {
+                out.push('_');
+                rest = &tail[1..];
+            }
+        }
+    }
+    out.push_str(rest);
+    out
+}
+
 /// Reads a table in `format` (WP-S3.08 D12) with the parts import's readers: CSV, or the XLSX sheet named `sheet`
 /// (the first when `None`; CSV has one table and takes no name). Cells are their displayed text as
-/// [`crate::parse_parts`] reads them: a number in its shortest form (`1.10` reads `1.1`), a date as its serial number.
+/// [`crate::parse_parts`] reads them: a number in its shortest form (`1.10` reads `1.1`), a date as its serial number;
+/// a workbook's `_xHHHH_` escapes are decoded (`_x000D_` a carriage return, `_x005F_` a `_`).
 ///
 /// # Errors
 ///
@@ -344,19 +401,61 @@ pub fn read_sheet(
     sheet: Option<&str>,
     limits: &Limits,
 ) -> Result<SheetTable, ImportError> {
-    check_size(bytes, limits)?;
-    let read = match format {
-        SourceFormat::Csv => read_csv(bytes, limits)?,
-        SourceFormat::Xlsx => read_xlsx(bytes, sheet, limits)?,
-    };
+    let read = sheet_of(records_of(bytes, format, sheet, limits)?, limits)?;
     Ok(SheetTable {
-        headers: read.headers,
+        headers: read.headers.iter().map(|h| sheet_text(h, format)).collect(),
         rows: read
             .rows
             .into_iter()
-            .map(|r| r.cells.iter().map(|c| c.text().to_owned()).collect())
+            .map(|r| r.cells.iter().map(|c| sheet_text(c.text(), format)).collect())
             .collect(),
     })
+}
+
+/// Reads every record of a table in `format` whole (WP-S3.08, ID-1174 ruling 2): no header row and no cut to a header's
+/// width, so the round trip's key/value sheets (`_ew`, `_ew_base`) read with every cell. CSV, or the XLSX sheet named
+/// `sheet` (CSV has one table and ignores the name). Records without any text are left out as [`read_sheet`] leaves
+/// them out; a record has its cells as read (a workbook row ends at its last cell), each as [`read_sheet`] gives it.
+///
+/// # Errors
+///
+/// As [`read_sheet`], under the same limits: [`ImportError::LimitExceeded`] for an input above
+/// `limits.max_input_bytes`, more than [`MAX_ROWS`] records, more than [`MAX_COLUMNS`] cells in one or too long a cell;
+/// [`ImportError::Malformed`] for a table that is not UTF-8, not a workbook or without the named sheet;
+/// [`ImportError::Unsupported`] for a ZIP64 or encrypted workbook.
+pub fn read_rows(
+    bytes: &[u8],
+    format: SourceFormat,
+    sheet: &str,
+    limits: &Limits,
+) -> Result<Vec<Vec<String>>, ImportError> {
+    let records = records_of(bytes, format, Some(sheet), limits)?;
+    let mut out = Vec::new();
+    for (line, cells) in records {
+        let any = cells
+            .iter()
+            .any(|c| !c.text().trim().is_empty() || matches!(c, Cell::Error(_)));
+        if !any {
+            continue;
+        }
+        if out.len() > MAX_ROWS {
+            return Err(too_many("row count", MAX_ROWS));
+        }
+        if cells.len() > MAX_COLUMNS {
+            return Err(too_many("column count", MAX_COLUMNS));
+        }
+        if cells
+            .iter()
+            .any(|c| c.text().len() > limits.max_text_bytes as usize)
+        {
+            return Err(ImportError::LimitExceeded {
+                what: format!("cell size at line {line}"),
+                limit: u64::from(limits.max_text_bytes),
+            });
+        }
+        out.push(cells.iter().map(|c| sheet_text(c.text(), format)).collect());
+    }
+    Ok(out)
 }
 
 /// The names of the sheets of an XLSX workbook in workbook order, hidden sheets included (WP-S3.08 D12).
@@ -373,6 +472,47 @@ pub fn sheet_names(bytes: &[u8], limits: &Limits) -> Result<Vec<String>, ImportE
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// ID-1174 ruling 2: `read_rows` gives every record whole (no header, no cut to its width), text-free records
+    /// left out, under the same limits.
+    #[test]
+    fn read_rows_gives_every_record_whole() {
+        let rows = read_rows(
+            b"a,b\n\n1,2,3,4\n,\n5\n",
+            SourceFormat::Csv,
+            "",
+            &Limits::default(),
+        )
+        .unwrap();
+        assert_eq!(
+            rows,
+            vec![
+                vec!["a".to_owned(), "b".to_owned()],
+                vec!["1".to_owned(), "2".to_owned(), "3".to_owned(), "4".to_owned()],
+                vec!["5".to_owned()],
+            ]
+        );
+        let small = Limits {
+            max_text_bytes: 2,
+            ..Limits::default()
+        };
+        assert_eq!(
+            read_rows(b"a\n123\n", SourceFormat::Csv, "", &small),
+            Err(ImportError::LimitExceeded {
+                what: "cell size at line 2".into(),
+                limit: 2
+            })
+        );
+    }
+
+    /// ID-1174 ruling 5: the workbook escapes decode left to right; a CSV keeps them.
+    #[test]
+    fn workbook_escapes_decode() {
+        assert_eq!(decode_escapes("a_x000D_\nb"), "a\r\nb");
+        assert_eq!(decode_escapes("_x005F_x0041_ and _x"), "_x0041_ and _x");
+        assert_eq!(decode_escapes("_x00zz_ _x0041"), "_x00zz_ _x0041");
+        assert_eq!(sheet_text("_x000D_", SourceFormat::Csv), "_x000D_");
+    }
 
     /// D12: a CSV reads as its header and its rows; an error value of a workbook reads empty (the `Cell` rule).
     #[test]

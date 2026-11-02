@@ -81,6 +81,10 @@ mod revisions;
 mod scale_fit;
 // WP-S2.07 part 1: the strip editor's gestures (§4.2).
 mod strip_edit;
+// WP-S3.08 part 2 (D10; ID-1174 ruling 3): table mode's pure rule, moved down from the view model.
+pub mod table_edit;
+// WP-S3.08 part 2 (D8, D9, D11): the table round trip.
+mod table_io;
 mod view;
 
 use std::collections::BTreeMap;
@@ -161,7 +165,7 @@ pub use ew_import_catalog::sheet;
 /// table model, the workbook's metadata and writer.
 pub use ew_reports::csv::{CsvOptions, LineEnd, Preset, restyle, table_csv};
 pub use ew_reports::table::{Table, TableCell, TableColumn, TableRow};
-pub use ew_reports::xlsx::{WorkbookMeta, XlsxError, xlsx};
+pub use ew_reports::xlsx::{WorkbookMeta, XlsxError, base_text, xlsx};
 pub use raster::{
     DEFAULT_DPI, DPI_RANGE, MAX_PAGE_PIXELS, MAX_PIXELS_IN_FLIGHT, PngExport, PngFile, check_page_pixels,
     export_png_with, page_png, png_file_name, raster_workers,
@@ -169,7 +173,13 @@ pub use raster::{
 pub use revisions::{PageDigest, changed_now, changed_pages, last_changed_in, page_digest, page_digests};
 pub use rows::{
     RowExport, RowsCsv, RowsError, RowsFile, RowsFormat, RowsOutput, block_kind, find_block, report_folios,
-    report_kinds, row_export, row_output, sql_table, workbook_dump,
+    report_kinds, row_export, row_output, sql_table, with_base_digest, workbook_dump,
+};
+// WP-S3.08 part 2: the table round trip.
+pub use table_io::{
+    CellOutcome, IO_LIST_ROUTES, ImportCell, ImportCounts, ImportFinding, ImportTableOptions,
+    MAX_IMPORT_CELLS, REASON_KEYS, TABLE_NAVIGATORS, TableApplyError, TableError, TableImport,
+    TableImportError, reason_words,
 };
 // WP-S2.07 part 1
 pub use strip_edit::{

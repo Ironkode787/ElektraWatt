@@ -23,10 +23,10 @@ use ew_api::output::{CsvOptions, LineEnd, PageSelection, Preset};
 use super::query::QueryArgs;
 use super::{
     ApplyArgs, AssetsPurgeArgs, CheckArgs, CheckFormat, ChecksSetArgs, Command, ExportArgs, ExportEwzArgs,
-    ExportKind, ExportPagesArgs, ExtractArgs, FmtArgs, ImportCsvArgs, ImportPartsArgs, ImportQetArgs,
-    LibAction, LibArgs, PageFormat, PrintArgs, PrintVia, RecoverAction, RecoverArgs, RenderArgs,
-    RevisionAction, RevisionArgs, RowFormat, SqlArgs, SqlDumpArgs, SqlFormat, SqlSource, VerifyArgs,
-    XLSX_NEEDS_OUT,
+    ExportKind, ExportPagesArgs, ExportTableArgs, ExtractArgs, FmtArgs, ImportCsvArgs, ImportPartsArgs,
+    ImportQetArgs, ImportTableArgs, LibAction, LibArgs, PageFormat, PrintArgs, PrintVia, RecoverAction,
+    RecoverArgs, RenderArgs, RevisionAction, RevisionArgs, RowFormat, SqlArgs, SqlDumpArgs, SqlFormat,
+    SqlSource, VerifyArgs, XLSX_NEEDS_OUT,
 };
 
 /// The ElektraWatt command-line interface.
@@ -228,6 +228,56 @@ enum Import {
     /// make a project, 2 on usage, starter content, an unreadable table (with its line, and its column where the
     /// reader names one), an `--out` that holds something, and write errors.
     Csv(ImportCsvArgs),
+    /// Read a round-trip table back and apply its changed cells.
+    ///
+    /// Reads a table that `ew export table` or `ew export report` wrote (XLSX, or CSV with `--table <key>`), matches its
+    /// rows to the project's by the `id` column (an I/O list's also by station, slot and channel) and previews every
+    /// changed cell: changed only in the file, applied; changed only in the project since the export, kept; changed in
+    /// both, the project's value kept unless `--take-file`; a read-only cell, a row whose ID the project no longer has
+    /// and a number a spreadsheet changed are reported. `--apply` commits the applied cells as one `fields.set_many`
+    /// (one undo step) and saves; without it nothing changes. `--preset` names a CSV's preset (`rfc4180` keeps a
+    /// leading apostrophe). Exit 0 with the preview (and with `--apply` once saved), 2 on usage, open, read and save
+    /// errors and a file of another project.
+    Table(ImportTableCli),
+}
+
+/// `ew import table` (WP-S3.08 D7, D11).
+#[derive(Args, Debug)]
+struct ImportTableCli {
+    /// The round-trip file: an XLSX workbook or a CSV.
+    #[arg(value_name = "file", value_parser = path_word)]
+    file: PathBuf,
+    /// The project directory.
+    #[arg(value_name = "project-dir")]
+    project_dir: Option<PathBuf>,
+    /// The project directory (instead of the positional one).
+    #[arg(
+        long,
+        value_name = "dir",
+        allow_hyphen_values = true,
+        conflicts_with = "project_dir"
+    )]
+    project: Option<PathBuf>,
+    /// The table's key (`nav:strips/<uuid>`, `kind:io_list`): needed for a CSV.
+    #[arg(
+        long,
+        value_name = "key",
+        allow_hyphen_values = true,
+        overrides_with = "table"
+    )]
+    table: Option<String>,
+    /// The CSV's preset: excel-nl, excel-en or rfc4180 (default: from its separator).
+    #[arg(long, value_name = "preset", allow_hyphen_values = true, overrides_with = "preset", value_parser = import_preset)]
+    preset: Option<Preset>,
+    /// Take the file's value of a cell changed in both.
+    #[arg(long, overrides_with = "take_file")]
+    take_file: bool,
+    /// Commit the applied cells and save.
+    #[arg(long, overrides_with = "apply")]
+    apply: bool,
+    /// Print the result as JSON.
+    #[arg(long, overrides_with = "json")]
+    json: bool,
 }
 
 /// `ew check`.
@@ -399,6 +449,15 @@ enum ExportCli {
     /// (`device_list`, `terminal_overview`, ...) in the kind's default order, as CSV or XLSX, with no block.
     /// `--preset`, `--bom` and `--line-end` as for `export cables`. Exit 0 on success, 2 on everything else.
     Report(ReportCli),
+    /// Write a navigator's table as CSV or XLSX for a round trip.
+    ///
+    /// Writes the table of a navigator (pages, devices, connections, strips, cables, plc, potentials, ips,
+    /// structure, parts, blocks, unplaced) unfiltered: its table rows in node order with every column, each row with
+    /// its ID. `--strip <tag>` writes one strip's rows of `export table strips`. `--format xlsx` writes a workbook to
+    /// `--out` with the hidden round-trip sheets (`_ew`, and `_ew_base` with the editable cells as exported), which
+    /// `ew import table` reads back; `--preset`, `--bom` and `--line-end` as for `export cables`. Exit 0 on success, 2
+    /// on everything else (usage, open errors, an unknown navigator or strip).
+    Table(TableCli),
     /// Write the pages as one PDF/A-2b.
     ///
     /// Writes the project's pages as one PDF/A-2b (outline, page labels, links) through the session's export job
@@ -660,6 +719,45 @@ struct ReportCli {
     json: bool,
 }
 
+/// `ew export table` (WP-S3.08 D7, D8).
+#[derive(Args, Debug)]
+struct TableCli {
+    /// The navigator.
+    #[arg(value_name = "navigator", value_parser = word)]
+    navigator: String,
+    /// The project directory.
+    #[arg(value_name = "project-dir")]
+    project_dir: Option<PathBuf>,
+    /// The project directory (instead of the positional one).
+    #[arg(
+        long,
+        value_name = "dir",
+        allow_hyphen_values = true,
+        conflicts_with = "project_dir"
+    )]
+    project: Option<PathBuf>,
+    /// One strip of `export table strips`, by its tag (`-X1031`).
+    #[arg(
+        long,
+        value_name = "tag",
+        allow_hyphen_values = true,
+        overrides_with = "strip"
+    )]
+    strip: Option<String>,
+    /// The format: csv (default) or xlsx (with `--out`).
+    #[arg(long, value_name = "format", allow_hyphen_values = true, overrides_with = "format", value_parser = table_format)]
+    format: Option<ReportPages>,
+    /// The CSV options.
+    #[command(flatten)]
+    csv: CsvCli,
+    /// The output file (default: stdout).
+    #[arg(long, value_name = "file", allow_hyphen_values = true, overrides_with = "out")]
+    out: Option<PathBuf>,
+    /// Print the result as JSON.
+    #[arg(long, overrides_with = "json")]
+    json: bool,
+}
+
 /// What `ew export report --format` writes.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum ReportPages {
@@ -697,7 +795,7 @@ impl CsvCli {
             if let Some((flag, _)) = given.into_iter().find(|(_, g)| *g) {
                 return Err(usage_error(
                     path,
-                    format!("`--{flag}` applies to CSV: `--format {format}` takes none"),
+                    format!("`--{flag}` applies to CSV only; drop it, or give `--format csv`"),
                 ));
             }
         }
@@ -1522,6 +1620,27 @@ fn row_format(v: &str) -> Result<ReportPages, String> {
     }
 }
 
+/// The `--format` of `export table`: CSV or XLSX.
+fn table_format(v: &str) -> Result<ReportPages, String> {
+    match v {
+        "csv" => Ok(ReportPages::Csv),
+        "xlsx" => Ok(ReportPages::Xlsx),
+        other => Err(format!("unknown format `{other}` (csv, xlsx)")),
+    }
+}
+
+/// The `--preset` of `import table` (WP-S3.08 D11): a preset of the round trip, not the golden dialect.
+fn import_preset(v: &str) -> Result<Preset, String> {
+    Preset::parse(v).filter(|p| *p != Preset::Ew).ok_or_else(|| {
+        let names: Vec<&str> = Preset::ALL
+            .iter()
+            .filter(|p| **p != Preset::Ew)
+            .map(|p| p.name())
+            .collect();
+        format!("unknown preset `{v}` ({})", names.join(", "))
+    })
+}
+
 /// A `--preset` (WP-S3.08 D6).
 fn preset(v: &str) -> Result<Preset, String> {
     Preset::parse(v).ok_or_else(|| {
@@ -1666,6 +1785,24 @@ impl Cli {
             }
             Top::Import(Import::Parts(a)) => Command::ImportParts(a),
             Top::Import(Import::Csv(a)) => Command::ImportCsv(a),
+            Top::Import(Import::Table(ImportTableCli {
+                file,
+                project_dir,
+                project: flag,
+                table,
+                preset,
+                take_file,
+                apply,
+                json,
+            })) => Command::ImportTable(ImportTableArgs {
+                file,
+                project: project(flag, project_dir),
+                table,
+                preset,
+                take_file,
+                apply,
+                json,
+            }),
             Top::Check(CheckCli {
                 project_dir,
                 project: flag,
@@ -2139,6 +2276,38 @@ fn export(e: ExportCli) -> Result<Command, clap::Error> {
                 return Err(usage_error(&["export", "ewz"], EWZ_NEEDS_OUT));
             };
             Command::ExportEwz(ExportEwzArgs {
+                project: project(flag, project_dir),
+                out,
+                json,
+            })
+        }
+        ExportCli::Table(TableCli {
+            navigator,
+            project_dir,
+            project: flag,
+            strip,
+            format,
+            csv,
+            out,
+            json,
+        }) => {
+            let path = &["export", "table"];
+            // D8: the refusals are the round trip's texts; the navigator's first.
+            if ew_api::output::NavKind::from_word(&navigator)
+                .is_none_or(|k| !ew_api::output::TABLE_NAVIGATORS.contains(&k))
+            {
+                return Err(usage_error(
+                    path,
+                    ew_api::output::TableError::UnknownNavigator(navigator),
+                ));
+            }
+            if strip.is_some() && navigator != "strips" {
+                return Err(usage_error(path, ew_api::output::TableError::StripElsewhere));
+            }
+            Command::ExportTable(ExportTableArgs {
+                format: rows_format(path, format, csv, out.as_ref())?,
+                navigator,
+                strip,
                 project: project(flag, project_dir),
                 out,
                 json,

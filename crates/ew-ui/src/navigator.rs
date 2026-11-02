@@ -33,6 +33,7 @@ use std::rc::Rc;
 
 use egui::{Key, Modifiers, PointerButton, Sense, Ui};
 use ew_viewmodel::key;
+use ew_viewmodel::navigators::table::GestureCellText;
 use ew_viewmodel::navigators::{NavKind, NavStamp};
 use ew_viewmodel::properties::CardOrigin;
 use ew_viewmodel::shell::{DragSource, Focus, ShellModel, ShownRow};

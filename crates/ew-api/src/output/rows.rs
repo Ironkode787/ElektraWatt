@@ -556,7 +556,7 @@ fn gather_strips(blocks: &[(String, &RowSet)]) -> GatheredStrips {
 /// # Errors
 ///
 /// [`RowsError::AmbiguousStrip`] when two strips print the tag (their full tags).
-fn pick_strip(tag: &str, tags: &[(String, String)]) -> Result<Option<usize>, RowsError> {
+pub(super) fn pick_strip(tag: &str, tags: &[(String, String)]) -> Result<Option<usize>, RowsError> {
     if let Some(i) = tags.iter().position(|(_, full)| full == tag) {
         return Ok(Some(i));
     }
@@ -721,7 +721,8 @@ pub fn row_output(
         RowsFormat::Xlsx(meta) => {
             let tables = sheets(q, &chosen);
             let rows = tables.iter().map(|t| t.rows.len()).sum();
-            let bytes = xlsx(&tables, meta).map_err(|e| RowsError::Xlsx(e.to_string()))?;
+            let bytes = xlsx(&tables, &with_base_digest(meta, &tables))
+                .map_err(|e| RowsError::Xlsx(e.to_string()))?;
             (RowsOutput::Xlsx(bytes), rows)
         }
     };
@@ -736,16 +737,75 @@ pub fn row_output(
     })
 }
 
+/// `meta` with the digest of the first table's `_ew_base` sheet when it has an editable column (D5; ID-1174 ruling 1:
+/// the writer takes no hash), on a clone.
+pub fn with_base_digest(meta: &WorkbookMeta, tables: &[Table]) -> WorkbookMeta {
+    let mut meta = meta.clone();
+    meta.base_sha256 = tables
+        .first()
+        .filter(|t| t.columns.iter().any(|c| c.editable))
+        .map(|t| sha256_hex(ew_reports::xlsx::base_text(t).as_bytes()));
+    meta
+}
+
+/// The lowercase-hex SHA-256 of `bytes`.
+pub(crate) fn sha256_hex(bytes: &[u8]) -> String {
+    use sha2::Digest;
+    let digest = sha2::Sha256::digest(bytes);
+    digest.iter().map(|b| format!("{b:02x}")).collect()
+}
+
+/// The table of a row set of `kind` (D4), its editable columns marked: `io_list`'s round-trip columns (D9), every other
+/// kind's columns read-only.
+fn kind_table(q: &Q, set: &RowSet, name: &str, key: &str, kind: &str) -> Table {
+    let mut table = Table::from_rowset(q, set, name, key);
+    if kind == "io_list" {
+        for c in &mut table.columns {
+            c.editable = super::table_io::IO_LIST_ROUTES
+                .iter()
+                .any(|(k, _, _)| *k == c.key);
+        }
+    }
+    table
+}
+
 /// The sheets of a choice: one table, or one per strip named by its printed tag.
 fn sheets(q: &Q, chosen: &Chosen) -> Vec<Table> {
     match &chosen.body {
-        Body::Whole(set) => vec![Table::from_rowset(q, set, &chosen.kind, &chosen.key)],
+        Body::Whole(set) => vec![kind_table(q, set, &chosen.kind, &chosen.key, &chosen.kind)],
         Body::Strip(set, tag) => vec![Table::from_rowset(q, set, tag, &chosen.key)],
         Body::Strips(template, strips) => strips
             .iter()
             .map(|(tag, rows)| Table::from_rowset(q, &with_rows(template, rows.clone()), tag, &chosen.key))
             .collect(),
     }
+}
+
+/// The report table of a key as `ew export` writes it (WP-S3.08 D8, the round trip's current table): `block:<uuid>` a
+/// block's rows, `kind:parts_summary/<mode>` the bill of materials of the default block, `kind:terminal_diagram` every
+/// strip, `kind:<name>` a kind's whole-project rows; one table as a preset CSV holds it.
+///
+/// # Errors
+///
+/// As [`row_output`] for the key's rows; [`RowsError::UnknownBlock`] for a key of another form.
+pub(super) fn report_table(q: &Q, key: &str) -> Result<Table, RowsError> {
+    let (what, block) = if let Some(block) = key.strip_prefix("block:") {
+        (RowExport::Report, Some(block))
+    } else if let Some(mode) = key.strip_prefix("kind:parts_summary/") {
+        let mode = if mode == "assembly" {
+            BomMode::Assembly
+        } else {
+            BomMode::Component
+        };
+        (RowExport::Bom(mode), None)
+    } else if key == "kind:terminal_diagram" {
+        (RowExport::Terminals { strip: None }, None)
+    } else if let Some(kind) = key.strip_prefix("kind:") {
+        (RowExport::Kind(kind.to_owned()), None)
+    } else {
+        return Err(RowsError::UnknownBlock(key.to_owned()));
+    };
+    Ok(one_table(q, &choose(q, &what, block)?))
 }
 
 /// The one table of a choice's CSV: every strip's rows after a heading row whose first cell is the strip's tag.
@@ -842,20 +902,22 @@ impl Session {
             rev: self.world().rev.0,
             generation: self.store().map(ew_store::Store::generation),
             version: env!("CARGO_PKG_VERSION").to_owned(),
+            base_sha256: None,
         }
     }
 }
 
 /// A workbook as text, through the round trip's reader (WP-S3.08 D12, D16): for each sheet in workbook order (hidden
 /// ones included) a line `[<name>]`, then its rows as the reader gives them, the header row first, each row's cell
-/// texts joined by tabs (`\`, tab, LF and CR in a cell written `\\`, `\t`, `\n`, `\r`), LF line ends.
+/// texts joined by tabs (`\`, tab, LF and CR in a cell written `\\`, `\t`, `\n`, `\r`), LF line ends. The round trip's
+/// sheets `_ew` and `_ew_base` are read whole ([`ew_import_catalog::sheet::read_rows`], ID-1174 ruling 2).
 ///
 /// # Errors
 ///
 /// The reader's [`ImportError`](ew_import_catalog::ew_interop_api::ImportError) for bytes that are not a workbook or
 /// beyond its limits.
 pub fn workbook_dump(bytes: &[u8]) -> Result<String, ew_import_catalog::ew_interop_api::ImportError> {
-    use ew_import_catalog::sheet::{read_sheet, sheet_names};
+    use ew_import_catalog::sheet::{read_rows, read_sheet, sheet_names};
     let limits = ew_import_catalog::table_limits();
     let escape = |t: &str| {
         t.replace('\\', "\\\\")
@@ -868,8 +930,15 @@ pub fn workbook_dump(bytes: &[u8]) -> Result<String, ew_import_catalog::ew_inter
         out.push('[');
         out.push_str(&name);
         out.push_str("]\n");
-        let table = read_sheet(bytes, ew_import_catalog::SourceFormat::Xlsx, Some(&name), &limits)?;
-        for row in std::iter::once(&table.headers).chain(&table.rows) {
+        let format = ew_import_catalog::SourceFormat::Xlsx;
+        let rows: Vec<Vec<String>> =
+            if name == ew_reports::xlsx::EW_SHEET || name == ew_reports::xlsx::BASE_SHEET {
+                read_rows(bytes, format, &name, &limits)?
+            } else {
+                let table = read_sheet(bytes, format, Some(&name), &limits)?;
+                std::iter::once(table.headers).chain(table.rows).collect()
+            };
+        for row in &rows {
             let cells: Vec<String> = row.iter().map(|c| escape(c)).collect();
             out.push_str(&cells.join("\t"));
             out.push('\n');

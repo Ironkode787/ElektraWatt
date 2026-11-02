@@ -16,21 +16,29 @@
 //! `max(header, longest cell)` characters wide, clamped to [`MIN_WIDTH`]..=[`MAX_WIDTH`] (a rule, not a fit);
 //! [`TableCell::Number`] cells are numeric cells, [`TableCell::Date`] cells date serials with the style `yyyy-mm-dd`
 //! (a date before 1900-03-01, where Excel's serials are not the calendar's, stays text), every other cell an inline
-//! string. The sheet's name is the table's with `[]:*?/\` and control characters replaced by `_`, cut to 31
-//! characters; a name a sheet already has (ignoring ASCII case, `_ew` included) gets " (2)", " (3)", ….
+//! string. A number is a numeric cell only when it has at most [`MAX_NUMBER_DIGITS`] significant digits, which a
+//! spreadsheet's double holds exactly; a longer one (`9007199254740993`) stays text (ID-1174). The sheet's name is the
+//! table's with `[]:*?/\`, control characters and an apostrophe at either end replaced by `_`, cut to 31 characters; a
+//! name a sheet already has (ignoring case, `_ew` and `_ew_base` included) gets " (2)", " (3)", ….
 //!
 //! **The `_ew` sheet** (D5), hidden: key/value rows `format` `ew-table/1`, `project`, `table` (the first table's key),
 //! `rev`, `generation` (empty without a store), `locale` `neutral`, `ew` (the program version), then one row per column
-//! of the first table: `column`, key, label, type ([`CellType`] name), editable (`true`/`false`). The `_ew_base` sheet
-//! of an editable table is the round trip's (part 2): no table of part 1 has an editable column.
+//! of the first table: `column`, key, label, type ([`CellType`] name), editable (`true`/`false`).
+//!
+//! **The `_ew_base` sheet** (D5; ID-1174 ruling 1), hidden, after `_ew`, exactly when the first table has an editable
+//! column: a header row `id` and the editable columns' keys, then each row with an ID as exported (its ID, then its
+//! editable cells), then a last row `sha256` and [`WorkbookMeta::base_sha256`], the lowercase-hex SHA-256 of
+//! [`base_text`]. The writer takes no hash: the caller computes the digest, and the writer refuses a workbook with an
+//! editable column and no digest ([`XlsxError::NoBaseDigest`]).
 //!
 //! **Metadata** (doc 09 §4.3 rule 1): `docProps/core.xml` carries [`WorkbookMeta::date`] as its created and modified
 //! date (the caller's `SOURCE_DATE_EPOCH`, else the model's edited date, as the PDF; never the wall clock);
 //! `docProps/app.xml` names "ElektraWatt" and no version.
 //!
-//! **Text in XML.** `&`, `<`, `>` and `"` are escaped as entities; a character XML 1.0 cannot hold (a control character
-//! other than tab, LF and CR, U+FFFE, U+FFFF) is written `_xHHHH_`, and a literal `_` that would read as such an escape
-//! is written `_x005F_`, the workbook's own escape (ECMA-376 Part 1, §22.9.2.19).
+//! **Text in XML.** `&`, `<`, `>` and `"` are escaped as entities; a character XML 1.0 cannot hold or does not keep (a
+//! control character other than tab and LF, CR included, which a parser turns into LF; U+FFFE, U+FFFF) is written
+//! `_xHHHH_`, and a literal `_` that would read as such an escape is written `_x005F_`, the workbook's own escape
+//! (ECMA-376 Part 1, §22.9.2.19).
 
 use std::fmt;
 use std::fmt::Write as _;
@@ -57,6 +65,15 @@ const MAX_SHEET_NAME: usize = 31;
 
 /// The name of the hidden sheet of the round trip (D5).
 pub const EW_SHEET: &str = "_ew";
+
+/// The name of the hidden sheet of an editable table's cells as exported (D5).
+pub const BASE_SHEET: &str = "_ew_base";
+
+/// The first cell of the last row of `_ew_base`, the digest's row.
+pub const BASE_DIGEST_ROW: &str = "sha256";
+
+/// The most significant digits of a number written as a numeric cell (a double holds 15 exactly).
+pub const MAX_NUMBER_DIGITS: usize = 15;
 
 /// The `format` value of the `_ew` sheet.
 pub const EW_FORMAT: &str = "ew-table/1";
@@ -91,6 +108,9 @@ pub struct WorkbookMeta {
     pub generation: Option<u64>,
     /// The program version (`_ew`'s `ew`).
     pub version: String,
+    /// The lowercase-hex SHA-256 of the first table's [`base_text`] (`_ew_base`'s last row): needed exactly when the
+    /// table has an editable column, and made by the caller (the writer takes no hash).
+    pub base_sha256: Option<String>,
 }
 
 /// Why a workbook was not written.
@@ -102,6 +122,8 @@ pub enum XlsxError {
     TooManyColumns(String, usize),
     /// The container refused the entries (a part beyond the sizes of a ZIP without ZIP64).
     Zip(ZipError),
+    /// The first table has an editable column and the metadata no digest of its `_ew_base` sheet (the table's name).
+    NoBaseDigest(String),
 }
 
 impl fmt::Display for XlsxError {
@@ -109,13 +131,23 @@ impl fmt::Display for XlsxError {
         match self {
             XlsxError::TooManyRows(sheet, n) => write!(
                 f,
-                "the sheet `{sheet}` would have {n} rows; a sheet holds at most {MAX_SHEET_ROWS}"
+                "the sheet `{sheet}` would have {n} rows; a sheet holds at most {MAX_SHEET_ROWS}: export fewer rows, \
+                 or as CSV"
             ),
             XlsxError::TooManyColumns(sheet, n) => write!(
                 f,
-                "the sheet `{sheet}` would have {n} columns; a sheet holds at most {MAX_SHEET_COLUMNS}"
+                "the sheet `{sheet}` would have {n} columns; a sheet holds at most {MAX_SHEET_COLUMNS}: export fewer \
+                 columns, or as CSV"
             ),
-            XlsxError::Zip(e) => write!(f, "the workbook cannot be written: {e}"),
+            XlsxError::Zip(e) => write!(
+                f,
+                "the workbook cannot be written: {e}; export fewer rows, or as CSV"
+            ),
+            XlsxError::NoBaseDigest(table) => write!(
+                f,
+                "the table `{table}` has editable columns but no digest of its exported cells; this is a bug in the \
+                 program: report it, and export as CSV meanwhile"
+            ),
         }
     }
 }
@@ -134,7 +166,8 @@ impl From<ZipError> for XlsxError {
 /// # Errors
 ///
 /// [`XlsxError::TooManyRows`] or [`XlsxError::TooManyColumns`] for a table larger than a sheet; [`XlsxError::Zip`]
-/// for a part beyond the sizes of a ZIP without ZIP64.
+/// for a part beyond the sizes of a ZIP without ZIP64; [`XlsxError::NoBaseDigest`] for a first table with an editable
+/// column and no [`WorkbookMeta::base_sha256`].
 pub fn xlsx(tables: &[Table], meta: &WorkbookMeta) -> Result<Vec<u8>, XlsxError> {
     let empty;
     let tables = if tables.is_empty() {
@@ -164,6 +197,13 @@ pub fn xlsx(tables: &[Table], meta: &WorkbookMeta) -> Result<Vec<u8>, XlsxError>
     sheets.push(ew_sheet(&tables[0], meta));
     let mut all_names: Vec<&str> = names.iter().map(String::as_str).collect();
     all_names.push(EW_SHEET);
+    if tables[0].columns.iter().any(|c| c.editable) {
+        let Some(digest) = meta.base_sha256.as_deref() else {
+            return Err(XlsxError::NoBaseDigest(tables[0].name.clone()));
+        };
+        sheets.push(base_sheet(&tables[0], digest));
+        all_names.push(BASE_SHEET);
+    }
 
     let paths: Vec<String> = (1..=sheets.len())
         .map(|n| format!("xl/worksheets/sheet{n}.xml"))
@@ -282,7 +322,7 @@ fn workbook_xml(tables: &[Table], names: &[&str]) -> String {
     s.push_str("<bookViews><workbookView activeTab=\"0\"/></bookViews><sheets>");
     for (i, name) in names.iter().enumerate() {
         let n = i + 1;
-        let hidden = if i == tables.len() {
+        let hidden = if i >= tables.len() {
             " state=\"hidden\""
         } else {
             ""
@@ -379,7 +419,7 @@ fn table_sheet(table: &Table, first: bool) -> String {
             let at = format!("{}{n}", column_name(i + 1));
             match cell {
                 TableCell::Text(t) if t.is_empty() => {}
-                TableCell::Number(t) if is_number(t) => {
+                TableCell::Number(t) if is_number(t) && significant_digits(t) <= MAX_NUMBER_DIGITS => {
                     let _ = write!(s, "<c r=\"{at}\"><v>{t}</v></c>");
                 }
                 TableCell::Date(t) => match date_serial(t) {
@@ -422,6 +462,63 @@ fn ew_sheet(first: &Table, meta: &WorkbookMeta) -> String {
             if c.editable { "true" } else { "false" }.into(),
         ]);
     }
+    text_sheet(&rows)
+}
+
+/// The rows of the `_ew_base` sheet of `table` without its digest row: the header `id` and the editable columns' keys,
+/// then each row with an ID, its ID and its editable cells.
+fn base_rows(table: &Table) -> Vec<Vec<String>> {
+    let editable: Vec<usize> = (0..table.columns.len())
+        .filter(|&i| table.columns[i].editable)
+        .collect();
+    let header: Vec<String> = std::iter::once("id".to_owned())
+        .chain(editable.iter().map(|&i| table.columns[i].key.clone()))
+        .collect();
+    let mut rows = vec![header];
+    for row in &table.rows {
+        let Some(id) = row.id.as_deref().filter(|id| !id.is_empty()) else {
+            continue;
+        };
+        rows.push(
+            std::iter::once(id.to_owned())
+                .chain(
+                    editable
+                        .iter()
+                        .map(|&i| row.cells.get(i).map_or("", TableCell::text).to_owned()),
+                )
+                .collect(),
+        );
+    }
+    rows
+}
+
+/// The text the digest of the `_ew_base` sheet is made over (D5; ID-1174 ruling 1): its rows without the digest row,
+/// each row's cell texts joined by tabs and ended by LF (the header first, then each row with an ID: its ID and its
+/// editable cells). The round trip reads the sheet back, makes the same text ([`rows_text`]) and compares the digests,
+/// so an edited base is detected.
+pub fn base_text(table: &Table) -> String {
+    rows_text(&base_rows(table))
+}
+
+/// `rows` as tab-separated cell texts, each row ended by LF.
+pub fn rows_text(rows: &[Vec<String>]) -> String {
+    let mut out = String::new();
+    for row in rows {
+        out.push_str(&row.join("\t"));
+        out.push('\n');
+    }
+    out
+}
+
+/// The hidden `_ew_base` sheet of `table` with its digest row.
+fn base_sheet(table: &Table, digest: &str) -> String {
+    let mut rows = base_rows(table);
+    rows.push(vec![BASE_DIGEST_ROW.to_owned(), digest.to_owned()]);
+    text_sheet(&rows)
+}
+
+/// A sheet of inline-string cells (an empty text is no cell).
+fn text_sheet(rows: &[Vec<String>]) -> String {
     let mut s = String::from(XML_DECL);
     let _ = write!(
         s,
@@ -488,6 +585,13 @@ pub fn column_name(i: usize) -> String {
     String::from_utf8(out).unwrap_or_default()
 }
 
+/// The significant digits of a number text as [`is_number`] takes it: its digits without the leading and trailing
+/// zeros (`0.0015` has 2, `1500` 2, `9007199254740993` 16; zero has 1).
+fn significant_digits(t: &str) -> usize {
+    let digits: String = t.chars().filter(char::is_ascii_digit).collect();
+    digits.trim_start_matches('0').trim_end_matches('0').len().max(1)
+}
+
 /// Whether `t` is a number as [`TableCell::Number`] holds it: an optional `-`, digits, and an optional `.` with digits.
 fn is_number(t: &str) -> bool {
     let body = t.strip_prefix('-').unwrap_or(t);
@@ -529,17 +633,24 @@ fn days_from_civil(y: i64, m: i64, d: i64) -> i64 {
     era * 146_097 + doe - 719_468
 }
 
-/// The valid sheet names of `tables`, in order: forbidden characters replaced, cut to 31 characters, and made unique
-/// (ignoring ASCII case, with `_ew` taken) by " (2)", " (3)", ….
+/// The valid sheet names of `tables`, in order: forbidden characters and an apostrophe at either end replaced, cut to
+/// 31 characters, and made unique (ignoring case by `str::to_lowercase`, with `_ew` and `_ew_base` taken) by " (2)",
+/// " (3)", ….
 fn sheet_names(tables: &[Table]) -> Vec<String> {
-    let mut taken: Vec<String> = vec![EW_SHEET.to_ascii_lowercase()];
+    let mut taken: Vec<String> = vec![EW_SHEET.to_lowercase(), BASE_SHEET.to_lowercase()];
     let mut out = Vec::with_capacity(tables.len());
     for t in tables {
+        let count = t.name.chars().count();
         let clean: String = t
             .name
             .chars()
-            .map(|c| {
-                if matches!(c, '[' | ']' | ':' | '*' | '?' | '/' | '\\') || c.is_control() {
+            .enumerate()
+            .map(|(i, c)| {
+                let end = i == 0 || i + 1 == count;
+                if matches!(c, '[' | ']' | ':' | '*' | '?' | '/' | '\\')
+                    || c.is_control()
+                    || (end && c == '\'')
+                {
                     '_'
                 } else {
                     c
@@ -551,15 +662,24 @@ fn sheet_names(tables: &[Table]) -> Vec<String> {
         } else {
             clean
         };
-        let mut name: String = clean.chars().take(MAX_SHEET_NAME).collect();
+        // A cut may leave an apostrophe at the end, which a sheet name cannot have.
+        let cut = |keep: usize| -> String {
+            let mut name: String = clean.chars().take(keep).collect();
+            if name.ends_with('\'') {
+                name.pop();
+                name.push('_');
+            }
+            name
+        };
+        let mut name = cut(MAX_SHEET_NAME);
         let mut n = 2;
-        while taken.contains(&name.to_ascii_lowercase()) {
+        while taken.contains(&name.to_lowercase()) {
             let suffix = format!(" ({n})");
             let keep = MAX_SHEET_NAME - suffix.chars().count();
-            name = clean.chars().take(keep).collect::<String>() + &suffix;
+            name = cut(keep) + &suffix;
             n += 1;
         }
-        taken.push(name.to_ascii_lowercase());
+        taken.push(name.to_lowercase());
         out.push(name);
     }
     out
@@ -575,7 +695,7 @@ fn escape(text: &str) -> String {
             '<' => out.push_str("&lt;"),
             '>' => out.push_str("&gt;"),
             '"' => out.push_str("&quot;"),
-            '\t' | '\n' | '\r' => out.push(c),
+            '\t' | '\n' => out.push(c),
             c if c.is_control() || c == '\u{FFFE}' || c == '\u{FFFF}' => {
                 let _ = write!(out, "_x{:04X}_", u32::from(c));
             }
@@ -654,6 +774,153 @@ mod tests {
         assert_eq!(escape("bell\u{7}"), "bell_x0007_");
         assert_eq!(escape("_x0041_ and _x"), "_x005F_x0041_ and _x");
         assert_eq!(escape("tab\tline\n"), "tab\tline\n");
+        // ID-1174 ruling 5 (C46-p2#3): a carriage return is the workbook's escape, which a parser keeps.
+        assert_eq!(escape("a\r\nb"), "a_x000D_\nb");
+    }
+
+    /// ID-1174 ruling 5 (C46-p2#10): names are unique ignoring case as `str::to_lowercase` folds it, and an apostrophe
+    /// at either end is replaced (also one a cut leaves at the end).
+    #[test]
+    fn sheet_names_fold_case_fully_and_drop_end_apostrophes() {
+        let names = sheet_names(&[
+            table("ÄRGER"),
+            table("ärger"),
+            table("'quoted'"),
+            table("it's"),
+            table("_EW_BASE"),
+            table("abcdefghijklmnopqrstuvwxyz0123'xyz"),
+        ]);
+        assert_eq!(
+            names,
+            vec![
+                "ÄRGER".to_owned(),
+                "ärger (2)".to_owned(),
+                "_quoted_".to_owned(),
+                "it's".to_owned(),
+                "_EW_BASE (2)".to_owned(),
+                "abcdefghijklmnopqrstuvwxyz0123_".to_owned(),
+            ]
+        );
+    }
+
+    /// ID-1174 ruling 5 (C46-p2#1): a number of more than 15 significant digits stays text, a shorter one is numeric.
+    #[test]
+    fn a_long_number_stays_text() {
+        let mut t = table("n");
+        t.columns[0].cell = CellType::Number;
+        t.rows[0].cells[0] = TableCell::Number("9007199254740993".into());
+        t.rows.push(TableRow {
+            id: None,
+            heading: false,
+            cells: vec![TableCell::Number("123456789012345".into())],
+        });
+        t.rows.push(TableRow {
+            id: None,
+            heading: false,
+            cells: vec![TableCell::Number("-0.001500".into())],
+        });
+        let sheet = table_sheet(&t, true);
+        assert!(
+            sheet.contains("<c r=\"B2\" t=\"inlineStr\"><is><t>9007199254740993</t></is></c>"),
+            "{sheet}"
+        );
+        assert!(
+            sheet.contains("<c r=\"B3\"><v>123456789012345</v></c>"),
+            "{sheet}"
+        );
+        assert!(sheet.contains("<c r=\"B4\"><v>-0.001500</v></c>"), "{sheet}");
+        assert_eq!(significant_digits("0"), 1);
+        assert_eq!(significant_digits("1500"), 2);
+    }
+
+    /// ID-1174 ruling 5 (C46-p2#4): every refusal is whole and ends with what to do.
+    #[test]
+    fn every_refusal_says_what_to_do() {
+        assert_eq!(
+            XlsxError::TooManyRows("wire_list".into(), 1_048_577).to_string(),
+            "the sheet `wire_list` would have 1048577 rows; a sheet holds at most 1048576: export fewer rows, or as CSV"
+        );
+        assert_eq!(
+            XlsxError::TooManyColumns("sql".into(), 16_385).to_string(),
+            "the sheet `sql` would have 16385 columns; a sheet holds at most 16384: export fewer columns, or as CSV"
+        );
+        assert_eq!(
+            XlsxError::Zip(ZipError::TooLarge).to_string(),
+            format!(
+                "the workbook cannot be written: {}; export fewer rows, or as CSV",
+                ZipError::TooLarge
+            )
+        );
+        assert_eq!(
+            XlsxError::NoBaseDigest("-X1031".into()).to_string(),
+            "the table `-X1031` has editable columns but no digest of its exported cells; this is a bug in the \
+             program: report it, and export as CSV meanwhile"
+        );
+    }
+
+    fn meta(base: Option<&str>) -> WorkbookMeta {
+        WorkbookMeta {
+            date: DateTime {
+                year: 2026,
+                month: 1,
+                day: 1,
+                hour: 0,
+                minute: 0,
+                second: 0,
+            },
+            project: "p".into(),
+            rev: 1,
+            generation: None,
+            version: "0".into(),
+            base_sha256: base.map(str::to_owned),
+        }
+    }
+
+    /// D5 (ID-1174 ruling 1): an editable table carries `_ew_base` after `_ew`, hidden, with the rows of
+    /// [`base_text`] and the digest row; without a digest the writer refuses; a table without an editable column has
+    /// no `_ew_base`.
+    #[test]
+    fn an_editable_table_carries_its_base() {
+        let mut t = table("T");
+        t.columns.push(TableColumn {
+            key: "b".into(),
+            label: "B".into(),
+            cell: CellType::Text,
+            editable: true,
+        });
+        t.rows[0].id = Some("e:1".into());
+        t.rows[0].cells.push(TableCell::Text("old".into()));
+        t.rows.push(TableRow {
+            id: None,
+            heading: true,
+            cells: vec![TableCell::Text("head".into()), TableCell::Text(String::new())],
+        });
+        assert_eq!(base_text(&t), "id\tb\ne:1\told\n");
+        assert_eq!(
+            xlsx(std::slice::from_ref(&t), &meta(None)),
+            Err(XlsxError::NoBaseDigest("T".into()))
+        );
+        let bytes = xlsx(std::slice::from_ref(&t), &meta(Some("abc"))).unwrap();
+        let entries = ew_zip::read(&bytes, &ew_zip::ZipLimits::default()).unwrap();
+        let text = |name: &str| {
+            String::from_utf8(entries.iter().find(|e| e.name == name).unwrap().data.clone()).unwrap()
+        };
+        let book = text("xl/workbook.xml");
+        assert!(book.contains("<sheet name=\"_ew\" sheetId=\"2\" state=\"hidden\" r:id=\"rId2\"/>"));
+        assert!(book.contains("<sheet name=\"_ew_base\" sheetId=\"3\" state=\"hidden\" r:id=\"rId3\"/>"));
+        let base = text("xl/worksheets/sheet3.xml");
+        assert!(
+            base.contains("<c r=\"A3\" t=\"inlineStr\"><is><t>sha256</t></is></c>"),
+            "{base}"
+        );
+        assert!(
+            base.contains("<c r=\"B3\" t=\"inlineStr\"><is><t>abc</t></is></c>"),
+            "{base}"
+        );
+        t.columns[1].editable = false;
+        let plain = xlsx(&[t], &meta(None)).unwrap();
+        let entries = ew_zip::read(&plain, &ew_zip::ZipLimits::default()).unwrap();
+        assert!(!entries.iter().any(|e| e.name == "xl/worksheets/sheet3.xml"));
     }
 
     #[test]

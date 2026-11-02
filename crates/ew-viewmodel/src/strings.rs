@@ -2433,6 +2433,52 @@ pub const TEXTS: &[(&str, &str)] = &[
     ("table-reason-no-command", "no command yet"),
     ("table-reason-property-grid", "edit in the property grid"),
     ("table-not-clearable", "cannot be cleared"),
+    // WP-S3.08 D9 (ID-1174): a strip-editor or a potential's defining cell in a table round trip.
+    ("table-reason-window", "edit in the window"),
+    // ID-1174 ruling 3: the texts of table mode's pure rule, which `ew-api` hands as keys (`output::table_edit`).
+    ("table-same-record", "same record as row {0}"),
+    ("table-same-bridge", "same bridge as row {0}"),
+    ("table-gesture-edit", "edit"),
+    ("table-gesture-fill-down", "fill down"),
+    ("table-gesture-pattern-fill", "pattern fill"),
+    ("table-gesture-paste", "paste"),
+    ("table-gesture-clear", "clear"),
+    // The card's title of a gesture: "Preview: paste 12 cells on 12 terminals · 2 invalid".
+    ("table-preview-title", "Preview: {0} {1} {2} on {3} {4}"),
+    ("table-preview-invalid", "{0} · {1} invalid"),
+    ("table-cell", "cell"),
+    ("table-cells", "cells"),
+    // The word of a navigator's table rows, singular and plural (the Messages pane's rows are findings).
+    ("table-row-pages", "page"),
+    ("table-rows-pages", "pages"),
+    ("table-row-devices", "device"),
+    ("table-rows-devices", "devices"),
+    ("table-row-connections", "connection"),
+    ("table-rows-connections", "connections"),
+    ("table-row-strips", "terminal"),
+    ("table-rows-strips", "terminals"),
+    ("table-row-cables", "conductor"),
+    ("table-rows-cables", "conductors"),
+    ("table-row-plc", "channel"),
+    ("table-rows-plc", "channels"),
+    ("table-row-potentials", "potential"),
+    ("table-rows-potentials", "potentials"),
+    ("table-row-ips", "interruption point"),
+    ("table-rows-ips", "interruption points"),
+    ("table-row-structure", "structure node"),
+    ("table-rows-structure", "structure nodes"),
+    ("table-row-parts", "part"),
+    ("table-rows-parts", "parts"),
+    ("table-row-blocks", "report block"),
+    ("table-rows-blocks", "report blocks"),
+    ("table-row-unplaced", "unplaced device"),
+    ("table-rows-unplaced", "unplaced devices"),
+    ("table-row-macros", "macro"),
+    ("table-rows-macros", "macros"),
+    ("table-row-libraries", "library item"),
+    ("table-rows-libraries", "library items"),
+    ("table-row-messages", "finding"),
+    ("table-rows-messages", "findings"),
     ("card-table-drop", "Drop"),
     // WP-S2.06 part 3: the table widget (§8.1).
     ("table-toggle", "Table"),
@@ -4253,5 +4299,13 @@ mod tests {
     fn an_unknown_key_has_no_text() {
         assert_eq!(lookup("no-such-key"), None);
         assert_eq!(text(Key::run_time("no-such-key")), "?");
+    }
+
+    /// WP-S3.08 D9: the CLI's words of a round trip's read-only reasons are the window's texts.
+    #[test]
+    fn the_round_trip_reasons_are_the_window_texts() {
+        for key in ew_api::output::REASON_KEYS {
+            assert_eq!(lookup(key), Some(ew_api::output::reason_words(key)), "{key}");
+        }
     }
 }

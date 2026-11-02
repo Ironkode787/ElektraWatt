@@ -27,6 +27,7 @@ use crate::key;
 use crate::navigators::Navigator;
 use crate::navigators::paste::{parse_tsv, write_tsv};
 use crate::navigators::pattern::Template;
+use crate::navigators::table::TableGesture;
 use crate::navigators::table::{
     CellEdit, CellValue, Compiled, Gesture, GestureCell, GestureKind, MemberBase, STRIP_ROUTE, TableMode,
     cell_reason, cell_text, compile, define_point, gesture_rows, mark_conflicts, pattern_texts,
@@ -593,7 +594,9 @@ impl ShellModel {
             targets,
             changes,
             reason,
-            origin: CardOrigin::Table { gesture },
+            origin: CardOrigin::Table {
+                gesture: TableGesture(gesture),
+            },
         });
     }
 
@@ -686,12 +689,12 @@ impl ShellModel {
                 targets,
                 identifier: false,
             };
-            return self.commit_gesture(preview, &c, &gesture);
+            return self.commit_gesture(preview, &c, &gesture.0);
         }
         let CardOrigin::Table { gesture } = card.origin else {
             return Outcome::Done;
         };
-        let gesture = self.retarget(gesture);
+        let gesture = self.retarget(gesture.0);
         self.run_gesture(gesture, Some(key!("reason-rebuilt")))
     }
 
@@ -1440,7 +1443,7 @@ impl ShellModel {
     }
 
     /// The table card's gesture.
-    fn table_card(&self) -> Option<&Gesture> {
+    fn table_card(&self) -> Option<&TableGesture> {
         match &self.props.card()?.origin {
             CardOrigin::Table { gesture } => Some(gesture),
             _ => None,
@@ -1451,7 +1454,7 @@ impl ShellModel {
     fn take_table_card(&mut self) -> Option<Gesture> {
         self.table_card()?;
         match self.props.card.take()?.origin {
-            CardOrigin::Table { gesture } => Some(gesture),
+            CardOrigin::Table { gesture } => Some(gesture.0),
             _ => None,
         }
     }
@@ -1524,7 +1527,7 @@ impl ShellModel {
     }
 
     /// The table card's gesture (the card in the navigator's pane), for the window and the describe text.
-    pub fn table_gesture(&self) -> Option<&Gesture> {
+    pub fn table_gesture(&self) -> Option<&TableGesture> {
         self.table_card()
     }
 

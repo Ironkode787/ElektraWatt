@@ -118,6 +118,18 @@ pub const TABLE: &[Row] = &[
         stability: Stability::Preview,
     },
     Row {
+        path: &["import", "table"],
+        exits: &[
+            exit(0, "previewed, and with `--apply` applied and saved"),
+            exit(
+                2,
+                "usage, open, read and save errors, a file without a table or of another project",
+            ),
+        ],
+        result: Some(ew_api::cli_results::IMPORT_TABLE),
+        stability: Stability::Preview,
+    },
+    Row {
         path: &["check"],
         exits: &[
             exit(0, "no unwaived error"),
@@ -185,6 +197,18 @@ pub const TABLE: &[Row] = &[
             ),
         ],
         result: Some(ew_api::cli_results::EXPORT_REPORT),
+        stability: Stability::Preview,
+    },
+    Row {
+        path: &["export", "table"],
+        exits: &[
+            OK,
+            exit(
+                2,
+                "usage, open, I/O and writer errors, an unknown navigator or strip",
+            ),
+        ],
+        result: Some(ew_api::cli_results::EXPORT_TABLE),
         stability: Stability::Preview,
     },
     Row {

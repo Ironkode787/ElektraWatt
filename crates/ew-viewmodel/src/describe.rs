@@ -24,6 +24,7 @@ use crate::canvas::{CanvasPage, mm3, round_tenth};
 use crate::first_run::FirstRunStep;
 use crate::key;
 use crate::navigator::RowKind;
+use crate::navigators::table::GestureCellText;
 use crate::properties::{Provenance, RowValue};
 use crate::settings::{KEYMAPS, LANGUAGES, THEMES};
 use crate::shell::{Dialog, Focus, ShellModel};

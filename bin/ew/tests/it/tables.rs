@@ -1,15 +1,15 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S3.08 part 1 through the `ew` binary: the table writers behind every row export (TX-1 to TX-5, TX-7) and the
-//! golden files of D16's part 1.
+//! WP-S3.08 through the `ew` binary: the table writers behind every row export (part 1: TX-1 to TX-5, TX-7) and the
+//! golden files of D16 (the round trip's tests, part 2, are `round_trip`, with the helpers here).
 //!
 //! The golden files (D16): `golden/J-E-2416/expected/xlsx/sha256.txt` (one line `<sha256>  <file>` per workbook) and
 //! one cell dump per workbook, `expected/xlsx/<name>.cells.txt` (each sheet read back through the round trip's reader,
-//! [`ew_api::output::workbook_dump`]), for `bom_parts.xlsx`, `wires.xlsx` and `block_908.xlsx`; and the CSV presets of
-//! the bill of materials, `expected/csv/presets/bom_parts.<preset>.csv`. They are new files beside the eight CSVs,
-//! whose bytes do not move. `EW_BLESS=1 cargo nextest run -p ew --all-features --test it -E 'test(/^tables::/)'`
-//! rewrites them.
+//! [`ew_api::output::workbook_dump`]), for `bom_parts.xlsx`, `wires.xlsx`, `block_908.xlsx` (part 1),
+//! `strips_X1031.xlsx` and `io_list.xlsx` (part 2); and the CSV presets, `expected/csv/presets/bom_parts.<preset>.csv`
+//! and `io_list.excel-nl.csv` (`round_trip`). They are new files beside the eight CSVs, whose bytes do not move.
+//! `EW_BLESS=1 cargo nextest run -p ew --all-features --test it -E 'test(/^(tables|round_trip)::/)'` rewrites them.
 
 use std::ffi::{OsStr, OsString};
 use std::path::{Path, PathBuf};
@@ -21,19 +21,19 @@ use ew_api::zip::{ZipLimits, read as unzip};
 use sha2::{Digest, Sha256};
 
 const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
-const EXPECTED: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416/expected");
+pub(crate) const EXPECTED: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416/expected");
 
 /// A fresh temporary directory with its own user directories, removed on drop.
-struct Tmp(PathBuf);
+pub(crate) struct Tmp(pub(crate) PathBuf);
 
 impl Tmp {
-    fn new() -> Tmp {
+    pub(crate) fn new() -> Tmp {
         Tmp(ew_testdir::fresh_dir("ew-tables"))
     }
 
     /// `ew` in this directory with its user directories inside it, no starter content, no display and
     /// `SOURCE_DATE_EPOCH` as given (unset by default).
-    fn ew_at(&self, args: &[OsString], epoch: Option<&str>) -> Output {
+    pub(crate) fn ew_at(&self, args: &[OsString], epoch: Option<&str>) -> Output {
         let mut cmd = Command::new(bin_exe());
         cmd.args(args)
             .current_dir(&self.0)
@@ -62,19 +62,24 @@ impl Tmp {
         cmd.output().unwrap()
     }
 
-    fn ew(&self, args: &[OsString]) -> Output {
+    pub(crate) fn ew(&self, args: &[OsString]) -> Output {
         self.ew_at(args, None)
     }
 
     /// A copy of Golden A.
-    fn golden(&self) -> PathBuf {
-        let copy = self.0.join("J-E-2416.ew");
+    pub(crate) fn golden(&self) -> PathBuf {
+        self.golden_as("J-E-2416.ew")
+    }
+
+    /// A copy of Golden A named `name`.
+    pub(crate) fn golden_as(&self, name: &str) -> PathBuf {
+        let copy = self.0.join(name);
         copy_dir(Path::new(GOLDEN_A), &copy);
         copy
     }
 
     /// Runs `ew <args> --out <dir>/<file>` and returns the file's bytes, after a successful run.
-    fn written(&self, args: &[OsString], file: &str) -> Vec<u8> {
+    pub(crate) fn written(&self, args: &[OsString], file: &str) -> Vec<u8> {
         let out = self.0.join(file);
         let mut all: Vec<OsString> = args.to_vec();
         all.push("--out".into());
@@ -118,15 +123,15 @@ fn copy_dir(from: &Path, to: &Path) {
     }
 }
 
-fn args<const N: usize>(items: [&dyn AsRef<OsStr>; N]) -> Vec<OsString> {
+pub(crate) fn args<const N: usize>(items: [&dyn AsRef<OsStr>; N]) -> Vec<OsString> {
     items.iter().map(|a| a.as_ref().to_owned()).collect()
 }
 
-fn stdout(o: &Output) -> String {
+pub(crate) fn stdout(o: &Output) -> String {
     String::from_utf8_lossy(&o.stdout).into_owned()
 }
 
-fn stderr(o: &Output) -> String {
+pub(crate) fn stderr(o: &Output) -> String {
     String::from_utf8_lossy(&o.stderr).into_owned()
 }
 
@@ -137,7 +142,7 @@ fn bless() -> bool {
 }
 
 /// Compares `bytes` with the committed file `rel` below `expected/`, or writes it under `EW_BLESS=1`.
-fn golden_file(rel: &str, bytes: &[u8]) {
+pub(crate) fn golden_file(rel: &str, bytes: &[u8]) {
     let path = Path::new(EXPECTED).join(rel);
     if bless() {
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
@@ -164,7 +169,7 @@ fn block_id(first_folio: u32) -> String {
 }
 
 /// The sheet `name` of a workbook (the first when `None`), read back through the round trip's reader.
-fn sheet(bytes: &[u8], name: Option<&str>) -> SheetTable {
+pub(crate) fn sheet(bytes: &[u8], name: Option<&str>) -> SheetTable {
     read_sheet(bytes, SourceFormat::Xlsx, name, &table_limits()).unwrap()
 }
 
@@ -175,7 +180,7 @@ fn csv_table(text: &str) -> SheetTable {
 
 /// The text of the entry `name` of a workbook (the strict reader of `ew-zip` refuses another date, version or flag
 /// than the writer's, so a successful read also proves every entry's 1980-01-01 00:00).
-fn part(bytes: &[u8], name: &str) -> String {
+pub(crate) fn part(bytes: &[u8], name: &str) -> String {
     let entries = unzip(bytes, &ZipLimits::default()).unwrap();
     let entry = entries
         .iter()
@@ -184,18 +189,44 @@ fn part(bytes: &[u8], name: &str) -> String {
     String::from_utf8(entry.data.clone()).unwrap()
 }
 
-/// D16: the part-1 workbooks of Golden A (`bom_parts`, `wires`, `block_908`) are the committed digests and cell
-/// dumps, and each export twice gives the same bytes (TX-5).
+/// D16: the workbooks of Golden A, part 1's (`bom_parts`, `wires`, `block_908`) and part 2's (`strips_X1031` of `ew
+/// export table`, `io_list` of `ew export report --kind`), are the committed digests and cell dumps, and each export
+/// twice gives the same bytes (TX-5, RT-6).
 #[test]
-fn the_part_1_workbooks_are_the_committed_digests_and_dumps() {
+fn the_workbooks_are_the_committed_digests_and_dumps() {
     let t = Tmp::new();
     let p = t.golden();
-    let runs: [(&str, Vec<OsString>); 3] = [
+    let runs: [(&str, Vec<OsString>); 5] = [
         ("bom_parts", args([&"export", &"bom", &p, &"--format", &"xlsx"])),
         ("wires", args([&"export", &"wires", &p, &"--format", &"xlsx"])),
         (
             "block_908",
             args([&"export", &"report", &p, &"--block", &"908", &"--format", &"xlsx"]),
+        ),
+        (
+            "strips_X1031",
+            args([
+                &"export",
+                &"table",
+                &"strips",
+                &p,
+                &"--strip",
+                &"-X1031",
+                &"--format",
+                &"xlsx",
+            ]),
+        ),
+        (
+            "io_list",
+            args([
+                &"export",
+                &"report",
+                &p,
+                &"--kind",
+                &"io_list",
+                &"--format",
+                &"xlsx",
+            ]),
         ),
     ];
     let mut digests = String::new();
@@ -404,7 +435,7 @@ fn the_bom_presets_are_the_committed_files() {
     assert_eq!(o.status.code(), Some(2));
     assert_eq!(
         stderr(&o),
-        "error: `--preset` applies to CSV: `--format xlsx` takes none\n\nUsage: ew export bom [OPTIONS] \
+        "error: `--preset` applies to CSV only; drop it, or give `--format csv`\n\nUsage: ew export bom [OPTIONS] \
          [project-dir]\n\nFor more information, try '--help'.\n"
     );
     let o = t.ew(&args([&"export", &"bom", &p, &"--preset", &"excel"]));

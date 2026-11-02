@@ -1,0 +1,199 @@
+{
+  "$defs": {
+    "ImportTableCell": {
+      "additionalProperties": false,
+      "description": "One cell of `ew import table --json` ([`ImportTableResult::cells`]).",
+      "properties": {
+        "base": {
+          "description": "The value as exported; `null` without an intact `_ew_base`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "column": {
+          "description": "The column's key.",
+          "type": "string"
+        },
+        "column_label": {
+          "description": "The column's label.",
+          "type": "string"
+        },
+        "ew": {
+          "description": "The project's value.",
+          "type": "string"
+        },
+        "file": {
+          "description": "The file's value.",
+          "type": "string"
+        },
+        "label": {
+          "description": "The row's label (`-X1031:3`).",
+          "type": "string"
+        },
+        "outcome": {
+          "description": "`applied`, `kept`, `conflict`, `taken`, `read-only` or `refused`.",
+          "type": "string"
+        },
+        "reason": {
+          "description": "Why a read-only or refused cell is not applied; else `null`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "row": {
+          "description": "The row's ID.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "row",
+        "label",
+        "column",
+        "column_label",
+        "ew",
+        "file",
+        "outcome"
+      ],
+      "type": "object"
+    },
+    "ImportTableFinding": {
+      "additionalProperties": false,
+      "description": "One finding of `ew import table --json` ([`ImportTableResult::findings`]).",
+      "properties": {
+        "column": {
+          "description": "The column's key, for a cell's finding.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "message": {
+          "description": "The finding as a sentence.",
+          "type": "string"
+        },
+        "row": {
+          "description": "The row's ID.",
+          "type": "string"
+        },
+        "rule": {
+          "description": "The rule (`EW-IMP-301` to `EW-IMP-305`).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "rule",
+        "row",
+        "message"
+      ],
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`ew import table --json` ([`IMPORT_TABLE`], WP-S3.08 D11): the preview, and whether it was applied.",
+  "properties": {
+    "$schema": {
+      "const": "ew.import-table-result/1",
+      "description": "The name of this schema."
+    },
+    "applied": {
+      "description": "Whether the command was committed (`--apply`) and the project saved.",
+      "type": "boolean"
+    },
+    "cells": {
+      "description": "The changed cells.",
+      "items": {
+        "$ref": "#/$defs/ImportTableCell"
+      },
+      "type": "array"
+    },
+    "changed": {
+      "description": "Cells applied (a conflict taken from the file included).",
+      "format": "uint",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "command": {
+      "description": "The command (`fields.set_many`) the applied cells compile to: `{\"cmd\": …, \"params\": …}`; `null` when none."
+    },
+    "conflicts": {
+      "description": "Cells changed in both.",
+      "format": "uint",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "findings": {
+      "description": "The findings.",
+      "items": {
+        "$ref": "#/$defs/ImportTableFinding"
+      },
+      "type": "array"
+    },
+    "kept": {
+      "description": "Cells kept because only the project changed them.",
+      "format": "uint",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "missing": {
+      "description": "The labels of the table's rows that the file does not have.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "notices": {
+      "description": "Sentences about the file as a whole.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "refused": {
+      "description": "Cells refused (read-only, unparsable or clashing).",
+      "format": "uint",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "rev": {
+      "description": "The session revision the file was read against.",
+      "format": "uint64",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "table": {
+      "description": "The table's key.",
+      "type": "string"
+    },
+    "three_way": {
+      "description": "Whether the cells were compared three-way (an intact `_ew_base`).",
+      "type": "boolean"
+    },
+    "unknown": {
+      "description": "Rows of the file with an unknown ID.",
+      "format": "uint",
+      "minimum": 0,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "$schema",
+    "table",
+    "three_way",
+    "notices",
+    "changed",
+    "kept",
+    "conflicts",
+    "refused",
+    "unknown",
+    "cells",
+    "findings",
+    "missing",
+    "applied",
+    "rev"
+  ],
+  "title": "ew.import-table-result/1",
+  "type": "object"
+}

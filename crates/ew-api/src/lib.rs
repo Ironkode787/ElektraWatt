@@ -122,7 +122,8 @@ pub use part_offers::{Fit, OfferView, PartOffer, PartOfferQuery, PartPick, PartT
 // map: api-text-keys: a new text key that ew-api hands the shell (a refusal reason, a message or a label) goes in TEXT_KEYS.
 /// Every text key that ew-api hands a front-end, which shows its text: the reasons of
 /// [`output::StripEditError::Refused`] and [`PartDraftError::Refused`], the keys of a [`DraftMessage`], the refusals
-/// of [`Session::swap_cores`] and the field labels of a find hit. The shell's table has a text for each (its test).
+/// of [`Session::swap_cores`], the field labels of a find hit, and the texts of table mode's pure rule
+/// ([`output::table_edit`]) and of the table round trip. The shell's table has a text for each (its test).
 pub const TEXT_KEYS: &[&str] = &[
     // StripEditError::Refused.
     "reason-no-accessory-part",
@@ -153,6 +154,57 @@ pub const TEXT_KEYS: &[&str] = &[
     "find-field-part-number",
     "find-field-title",
     "find-field-description",
+    // Table mode's pure rule (`output::table_edit`, WP-S3.08 D10; ID-1174 ruling 3): the read-only reasons of
+    // `cell_reason_key` (with `table-no-bridge` above), the reasons of `GestureCell::reason_text`, the words of
+    // `GestureKind::word_key` and `rows_word_key`.
+    "table-accessory-row",
+    "table-pos-move",
+    "table-reason-derived",
+    "table-reason-generated",
+    "table-reason-no-command",
+    "table-no-record",
+    "table-reason-property-grid",
+    "table-define-alone",
+    "table-define-name-first",
+    "table-same-record",
+    "table-same-bridge",
+    "table-gesture-edit",
+    "table-gesture-fill-down",
+    "table-gesture-pattern-fill",
+    "table-gesture-paste",
+    "table-gesture-clear",
+    "table-row-pages",
+    "table-rows-pages",
+    "table-row-devices",
+    "table-rows-devices",
+    "table-row-connections",
+    "table-rows-connections",
+    "table-row-strips",
+    "table-rows-strips",
+    "table-row-cables",
+    "table-rows-cables",
+    "table-row-plc",
+    "table-rows-plc",
+    "table-row-potentials",
+    "table-rows-potentials",
+    "table-row-ips",
+    "table-rows-ips",
+    "table-row-structure",
+    "table-rows-structure",
+    "table-row-parts",
+    "table-rows-parts",
+    "table-row-blocks",
+    "table-rows-blocks",
+    "table-row-unplaced",
+    "table-rows-unplaced",
+    "table-row-macros",
+    "table-rows-macros",
+    "table-row-libraries",
+    "table-rows-libraries",
+    "table-row-messages",
+    "table-rows-messages",
+    // The table round trip (`output::table_io`, WP-S3.08 D9, D11): a cell read-only in a round trip only.
+    "table-reason-window",
 ];
 /// The reference of an image file as the asset store makes it ([`sniff_asset`] and the SHA-256 of the bytes): what a
 /// front-end reads from a file the user picked or dropped before it asks `item.place` to store it (WP-S2.04 part 5).

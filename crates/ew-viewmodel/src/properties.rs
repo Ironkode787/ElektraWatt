@@ -222,8 +222,8 @@ pub enum CardOrigin {
     /// A gesture of a navigator's table (§8.7): the card in the navigator's pane, with the gesture's cells, so that
     /// `table.resolve` and `table.drop` rebuild the command and a stale card retargets its rows.
     Table {
-        /// The gesture.
-        gesture: crate::navigators::table::Gesture,
+        /// The gesture, with its title (WP-S3.08 D10).
+        gesture: crate::navigators::table::TableGesture,
     },
     // WP-S1.19 part 6
     /// A macro's insertion from the Macros navigator (`macro.insert`, §11, FR-MAC-005): the card in the Preview tab
@@ -900,88 +900,9 @@ pub fn member_path(route: &EditRoute) -> Option<String> {
     }
 }
 
-/// One segment of a row path below its member.
-#[derive(Clone, PartialEq, Eq, Debug)]
-enum Seg {
-    Member(String),
-    Index(usize),
-}
-
-/// The segments of a row path (`[0].qty` → index 0, member `qty`).
-fn segments(path: &str) -> Vec<Seg> {
-    let mut out = Vec::new();
-    let mut cur = String::new();
-    let mut chars = path.chars().peekable();
-    while let Some(c) = chars.next() {
-        match c {
-            '.' => {
-                if !cur.is_empty() {
-                    out.push(Seg::Member(std::mem::take(&mut cur)));
-                }
-            }
-            '[' => {
-                if !cur.is_empty() {
-                    out.push(Seg::Member(std::mem::take(&mut cur)));
-                }
-                let mut inner = String::new();
-                for d in chars.by_ref() {
-                    if d == ']' {
-                        break;
-                    }
-                    inner.push(d);
-                }
-                match inner.parse::<usize>() {
-                    Ok(i) => out.push(Seg::Index(i)),
-                    Err(_) => out.push(Seg::Member(inner)),
-                }
-            }
-            other => cur.push(other),
-        }
-    }
-    if !cur.is_empty() {
-        out.push(Seg::Member(cur));
-    }
-    out
-}
-
-/// The settable member's new value with the leaf at `row_path` (a path below `member`) replaced by `leaf` (§6.6):
-/// `base` is the member's current value (`None`: absent, starts from an empty object). A `null` leaf removes the
-/// member. `None` when the path does not lie below the member or crosses a value that is not an object or list.
-pub fn compose(member: &str, row_path: &str, base: Option<&Value>, leaf: &Value) -> Option<Value> {
-    if row_path == member {
-        return Some(leaf.clone());
-    }
-    let rest = row_path.strip_prefix(member)?;
-    if !(rest.starts_with('.') || rest.starts_with('[')) {
-        return None;
-    }
-    let mut root = base.cloned().unwrap_or_else(|| Value::Object(Default::default()));
-    let segs = segments(rest);
-    let (last, parents) = segs.split_last()?;
-    let mut cur = &mut root;
-    for s in parents {
-        cur = match s {
-            Seg::Member(m) => {
-                let obj = cur.as_object_mut()?;
-                obj.entry(m.clone())
-                    .or_insert_with(|| Value::Object(Default::default()))
-            }
-            Seg::Index(i) => cur.as_array_mut()?.get_mut(*i)?,
-        };
-    }
-    match last {
-        Seg::Member(m) => {
-            let obj = cur.as_object_mut()?;
-            if leaf.is_null() {
-                obj.remove(m);
-            } else {
-                obj.insert(m.clone(), leaf.clone());
-            }
-        }
-        Seg::Index(i) => *cur.as_array_mut()?.get_mut(*i)? = leaf.clone(),
-    }
-    Some(root)
-}
+/// The settable member's new value with a leaf replaced (§6.6), moved down to `ew-api` with table mode's pure rule
+/// (WP-S3.08 D10; ID-1174 ruling 3), re-exported under its old path.
+pub use ew_api::output::table_edit::compose;
 
 /// The kind's plural for the card and the toast (`devices`).
 pub fn kind_plural(kind: &str, n: usize) -> String {
