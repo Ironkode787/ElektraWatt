@@ -15,6 +15,10 @@ the `records` step of `cargo xtask settle --merge` runs it at the merge point.
 
 Every ID of [decisions.md](decisions.md) and every ID a `Decision:` or `Golden:` trailer cites, newest first, with the commits that cite it, newest first.
 
+- **ID-1136** (cycle 45): BK45a applied ID-1108's house rule for refusal texts beyond the sites its brief listed, accepted as built (project owner (delegated)): the PLC module refusals name the device by its tag, and `rep.move`'s wire and structure-box texts name a wire by its printed number, in words, with no record ID. ID-1108; ID-1134.
+- **ID-1135** (cycle 45): BK45a's FT-867 as built (project owner (delegated)): FT-867 covers a black box's half turn only (a turn by two quarter turns, no mirror); its texts take position and angle overrides, so after a half turn the cross-reference and data texts keep their place relative to the box but lose their automatic dodge. ID-1108; ID-1134.
+- **ID-1134** (cycle 45): BK45a as built (the backlog's command rows under ID-1108; 4b8ca6a7 to cb1b4bf9, ten commits) (project owner (delegated)): FT-848, FT-863, FT-864, FT-867, FT-882, FT-909, FT-952, FT-953, FT-955 and FT-973 are closed by its trailers, each with a test, so it leaves none of its rows open and ID-1128's FT batch gains no row from it; refusals name a position, and a wire by its printed number, through shared word helpers; the requirement IDs leave the revision, company, library, structure and PLC texts; a refused command shows its reason alone in the shell; `ui.describe` names a surface view "item surface view" (the vocabulary snapshot re-blessed for "surface"); the `off_grid` and `require_on_grid` refusals do not yet end with what the user can do (FT-1054), and the route refusal by connection point has no test (FT-1055). ID-1108; ID-1128.
+- **ID-1133** (cycle 45): FIX45 part b as built (C44-p6#4 and #5; e26bcbb0) (project owner (delegated)): C44-p6#5, the Surface row parses the trimmed text once as a UUID, so an existing surface's ID in upper case, in braces, in the simple form or padded with spaces is accepted, and an ID of no surface keeps "That surface no longer exists; choose one of the list."; C44-p6#4, a window test in `layout_setup_window.rs` pins the focused editor taking the new selection's value across `select.set` and `props.edit` with no frame between; no text, snapshot or golden file moved. ID-1078; ID-1098.
 - **ID-1132** (cycle 45): Corrects ID-1095's criteria (C44-p6#7): rv-vis-6's checker met eleven criteria by reading (A1 to A8, A11, A13 and A14) and took A10 "by protocol" (the PDF exported, the project clean); A9 was not checkable and A12 not met, as ID-1095 says. ID-1095.
   - `9ad38a20cd` docs(plan): the cycle-45 design pass
 - **ID-1131** (cycle 45): FT-856 is placed in "Cycle 46 (viewmodel batch)", the backlog lane of `ew-viewmodel`, its row unedited (C44-p6#6) (project owner (delegated)): its due is "To be placed", a feature row (the bus port fields in Properties), not an expired one, so this placement replaces ID-1102's move of it to cycle 45's FT batch. ID-1102.
@@ -212,7 +216,7 @@ Every ID of [decisions.md](decisions.md) and every ID a `Decision:` or `Golden:`
 
 ## Open follow-up tasks
 
-559 open: 15 scheduled, 78 expired, 466 other. The entries of [follow-ups.md](follow-ups.md) and the open rows of the frozen [Appendix B](02-work-packages.md#appendix-b-follow-up-tasks-from-the-implementation-cycles), minus every ID an `FT-Closes:` trailer names; by number.
+561 open: 17 scheduled, 78 expired, 466 other. The entries of [follow-ups.md](follow-ups.md) and the open rows of the frozen [Appendix B](02-work-packages.md#appendix-b-follow-up-tasks-from-the-implementation-cycles), minus every ID an `FT-Closes:` trailer names; by number.
 
 ### Scheduled (due in cycle 46 or later)
 
@@ -231,6 +235,8 @@ Every ID of [decisions.md](decisions.md) and every ID a `Decision:` or `Golden:`
 - FT-1051 (cycle 45, Low, ew-viewmodel; due: cycle 46 (polish lane)): a read-only row's refusal wraps the grid's short fragment ("This row cannot be edited: identity."), which reads poorly as a sentence; give each read-only reason a sentence form, asserted whole. Source: ID-1127
 - FT-1052 (cycle 45, Low, ew-viewmodel; due: cycle 46 (polish lane)): `props-ro-command` names a command ID ("changed by assembly.attach"); name the command in words, by its title. Source: ID-1127
 - FT-1053 (cycle 45, Low, ew-api; due: cycle 46 (FT batch)): the device chooser offers an end bracket to every device with `aspects.strip`, terminals not checked (ID-1113), and no fixture has a strip without terminals; add one and pin what its chooser offers. Source: ID-1121; ID-1113
+- FT-1054 (cycle 45, Low, ew-commands; due: cycle 46 (backlog lanes by crate)): the `off_grid` and `require_on_grid` refusals (`crates/ew-commands/src/geometry.rs`) do not end with what the user can do (ID-1108's house rule); end each with its next step, asserted whole. Source: ID-1134; ID-1108
+- FT-1055 (cycle 45, Low, ew-commands; due: cycle 46 (backlog lanes by crate)): the route refusal by connection point in `crates/ew-commands/src/commands/connection.rs` (BK45a's FT-864 site) has no test, being hard to reach; build a case that reaches it and assert the text whole. Source: ID-1134; FT-864
 
 ### Expired (not scheduled, opened in cycle 42 or earlier)
 
