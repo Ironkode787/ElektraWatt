@@ -1,6 +1,6 @@
 # ADR-0015: One display-list IR; wgpu canvas plus an always-built CPU renderer; krilla PDF/A-2b; PDF as print master
 
-**Status:** Accepted · amended 2026-10-18, 2026-10-19, 2026-10-20, 2026-10-22, 2026-10-30 (no macOS print adapter, decision log ID-880) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+**Status:** Accepted · amended 2026-10-18, 2026-10-19, 2026-10-20, 2026-10-22, 2026-10-30 (no macOS print adapter, decision log ID-880), 2026-11-02 (amendment 7: the `ew-scene` → `ew-derive` edge as built, decision log ID-1111) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
 
 ## Context
 
@@ -129,6 +129,12 @@ Amendments 1 to 4 were accepted on 2026-10-18, amendments 5 to 7 on 2026-10-19, 
    `page_display_list(page, layer, lang)` family of amendment 2 is built by the export job in the crate that fills
    the view, with one view and one query per layer that reads only that layer's inputs, so a wire edit never
    rebuilds the title block in practice; until then the CPU renderer and the PDF writer take the layers directly.
+   *Amended 2026-11-02 (cycle 45, as built; decision log ID-1111, ID-1137):* `ew-scene` has a direct edge to
+   `ew-derive`, so that the page, normaliser 7 and EW-TERM-006 share one drawn path: the scene's provisional route
+   builds on `ew_derive::provisional_path`, and a half-turned black box's slot texts take their frame from
+   `ew_derive::text_frame`. The substance of this amendment stands: `ew-scene` calls only pure functions of
+   `ew-derive` and never reads the model through `Q`; the layers stay pure functions of the caller-filled
+   `PageView`.
 8. **A text line may be a group of runs, one per font** (2026-10-20, project owner, delegated; decision log ID-239;
    [ADR-0028](0028-default-drawing-fonts.md) amendment 1). `ShapedRun` keeps one font per run and is unchanged.
    A line whose characters come from more than one face (the style's face and the symbol fallback) is lowered by
