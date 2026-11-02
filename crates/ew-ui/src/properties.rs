@@ -70,6 +70,15 @@ pub struct PropertiesPane {
     /// The shell's filter text as last seen: a change made elsewhere (`props.filter`, Clear filter) shows in the field
     /// even while a text field has the focus.
     filter_seen: String,
+    /// The keys of the rows drawn in this frame (cycle 46, W46.4 F1: a refusal shown under a drawn row raises no
+    /// banner; the filter, a collapsed group and the advanced toggle hide rows).
+    drawn: Vec<String>,
+    /// Whether an editor field (no popup, no choices but its options) was drawn in this frame, and in the last one:
+    /// Escape is then the field's (W46.4 i3: egui drops a field's focus on Escape before the frame starts).
+    field_now: bool,
+    field_last: bool,
+    /// The row error last brought into view, (row key, message) (W46.4 F2): a new error scrolls its line into view once.
+    error_shown: Option<(String, String)>,
 }
 
 /// `text` ellipsised in the middle at [`MAX_SHOWN`] characters.
@@ -89,6 +98,22 @@ impl PropertiesPane {
         PropertiesPane::default()
     }
 
+    /// Starts a frame (before the keys are routed): the last frame's drawn rows and editor are forgotten.
+    pub(crate) fn begin_frame(&mut self) {
+        self.field_last = std::mem::take(&mut self.field_now);
+        self.drawn.clear();
+    }
+
+    /// Whether the last frame drew an open editor field, whose Escape cancels the edit (`props.cancel`).
+    pub(crate) fn field_open(&self) -> bool {
+        self.field_last
+    }
+
+    /// Whether this frame drew the row `key` (with its error line, when it has one).
+    pub(crate) fn drew_row(&self, key: &str) -> bool {
+        self.drawn.iter().any(|k| k == key)
+    }
+
     /// Paints the grid of `shell` into `ui`.
     pub(crate) fn show(&mut self, ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         let props = shell.properties();
@@ -96,6 +121,9 @@ impl PropertiesPane {
         // editor takes the shell's buffer afresh (W44.4 F-h).
         if props.edit().is_none() {
             self.editing = None;
+        }
+        if props.error().is_none() {
+            self.error_shown = None;
         }
         // The pane's own focusable node: the grid's keys while it has the shell's focus.
         let rect = ui.available_rect_before_wrap();
@@ -609,6 +637,7 @@ impl PropertiesPane {
         events: &mut Vec<Event>,
     ) {
         let props = shell.properties();
+        self.drawn.push(row.key.clone());
         let label = row_label(section, row);
         let header = is_header(section, row);
         let value = row_value(section, row);
@@ -946,7 +975,8 @@ impl PropertiesPane {
         // notes of the last commit, the popups.
         // M39: the message wraps inside the panel (never cut at its edge), its icon at the first line.
         if let Some(e) = error {
-            ui.horizontal_top(|ui| {
+            let shown = Some((row.key.clone(), e.clone()));
+            let line = ui.horizontal_top(|ui| {
                 ui.add_space(t.space_4);
                 let (r, _) = ui.allocate_exact_size(Vec2::splat(t.icon_sm), Sense::hover());
                 crate::icons::paint(
@@ -965,6 +995,12 @@ impl PropertiesPane {
                     .wrap(),
                 );
             });
+            // W46.4 F2: a new error brings its row and its line into view (at the 1280 × 800 floor it lay below the
+            // pane's edge); the pane's scrolling is the user's again after that.
+            if self.error_shown != shown {
+                ui.scroll_to_rect(rect.union(line.response.rect), None);
+                self.error_shown = shown;
+            }
             // FR-NUM-029: a refused tag-letter edit offers its proposal as one button (cycle 33, G-PP row 6).
             if let Some(p) = props.tag_proposal().filter(|p| p.row == row.key) {
                 ui.horizontal(|ui| {
@@ -1110,8 +1146,8 @@ impl PropertiesPane {
         self.choices_rect = Some((key.to_owned(), area.response.rect));
     }
 
-    /// The row's editor: a text input labelled by the field. Enter, Tab and leaving it commit; Escape reverts;
-    /// Shift+Enter opens the multi-language popup.
+    /// The row's editor: a text input labelled by the field. Enter, Tab and leaving it commit; Escape cancels the edit
+    /// (`props.cancel`); Shift+Enter opens the multi-language popup.
     fn editor(
         &mut self,
         ui: &mut Ui,
@@ -1194,6 +1230,24 @@ impl PropertiesPane {
         );
         let name = label.to_owned();
         response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, true, &name));
+        // W46.4 i3: Escape in an open field cancels the edit, whether or not the field still holds the focus (egui drops
+        // it on Escape before the frame, and a refused Enter leaves the field without it until it is focused again);
+        // the window's keys leave Escape to the field (`App::route_keys`). A popup's or an ambiguity's Escape is the
+        // shell's `ui.dismiss`, which closes them first.
+        let open_field = shell.properties().popup().is_none()
+            && shell
+                .properties()
+                .choices()
+                .is_none_or(|c| c.kind == ChoiceKind::Options);
+        if open_field {
+            self.field_now = true;
+            if escape {
+                self.editing = None;
+                response.surrender_focus();
+                events.push(Event::Action("props.cancel", json!({})));
+                return;
+            }
+        }
         if fresh {
             response.request_focus();
             // An editor opened on a row out of view (F2, `props.edit`) brings its row into view first, so the field

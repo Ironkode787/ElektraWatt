@@ -182,6 +182,9 @@ pub struct App {
     navigators: std::collections::BTreeMap<ew_viewmodel::navigators::NavKind, NavigatorPane>,
     /// The property grid pane (WP-S2.05).
     properties: PropertiesPane,
+    /// The banner text [`App::report`] raised for a failure, while it stands: the next failure replaces it, where a
+    /// banner the shell raised itself keeps precedence (W46.4 F1).
+    reported: Option<String>,
     /// The find pane (WP-S2.05 part 2).
     find: FindPane,
     /// The visible toasts by serial and the frame time (egui's `input.time`, seconds) of the frame that first painted
@@ -287,6 +290,7 @@ impl App {
             navigator: NavigatorPane::new(),
             navigators: std::collections::BTreeMap::new(),
             properties: PropertiesPane::new(),
+            reported: None,
             find: FindPane::new(),
             toast_since: std::collections::BTreeMap::new(),
             toast_opacity: std::collections::BTreeMap::new(),
@@ -334,6 +338,12 @@ impl App {
     #[doc(hidden)]
     pub fn dispatched(&self) -> Vec<&'static str> {
         self.dispatch_log.iter().map(|(a, _)| *a).collect()
+    }
+
+    /// Dispatches `action` as a gesture of the window does, its failure reported as a banner (tests: W46.4 F1).
+    #[doc(hidden)]
+    pub fn dispatch_from_window(&mut self, action: &'static str, params: &Value) {
+        self.dispatch(action, params);
     }
 
     /// The actions the frame dispatched with their parameters, oldest first (the last 256; tests: DK9).
@@ -512,14 +522,26 @@ impl App {
             self.dispatch_log.pop_front();
         }
         self.dispatch_log.push_back((action, params.clone()));
-        let outcome = self.shell.dispatch(action, params);
-        self.report(outcome);
+        self.run(Some(action), |shell| shell.dispatch(action, params));
     }
 
-    /// A failure or incomplete Cut refusal becomes a banner when the shell has not shown one of its own. A refusal the
-    /// navigator's inline field shows under itself (an F2 tag's, FT-633) is not made a banner as well (cycle 37, window
-    /// check W37: one fact in one place, doc 16a P3).
-    fn report(&mut self, outcome: Outcome) {
+    /// Runs `step` on the shell and reports its outcome. A banner that changed across the step was the shell's own
+    /// (raised, replaced or cleared for its own reason): the banner [`App::report`] raised is then forgotten.
+    fn run(&mut self, action: Option<&str>, step: impl FnOnce(&mut ShellModel) -> Outcome) {
+        let before = self.shell.banner().map(str::to_owned);
+        let outcome = step(&mut self.shell);
+        if self.shell.banner() != before.as_deref() {
+            self.reported = None;
+        }
+        self.report(outcome, action);
+    }
+
+    /// A failure or incomplete Cut refusal becomes a banner when the shell shows none of its own; a banner this raised
+    /// before is replaced by the new failure (W46.4 F1: a second refusal kept the first's banner, which named the wrong
+    /// point). One fact in one place (doc 16a P3): a refusal the navigator's inline field shows under itself (an F2
+    /// tag's, FT-633; cycle 37, window check W37) or that the Properties pane shows under a drawn row (`action` a
+    /// `props.*` one whose dispatch set the row's error; W46.4 F1) is not made a banner as well.
+    fn report(&mut self, outcome: Outcome, action: Option<&str>) {
         if self.shell.nav_rename_error().is_some() {
             return;
         }
@@ -530,8 +552,19 @@ impl App {
             }
             _ => return,
         };
-        if self.shell.banner().is_none() {
+        let under_row = action.is_some_and(|a| a.starts_with("props."))
+            && self
+                .shell
+                .properties()
+                .error()
+                .is_some_and(|(row, shown)| shown == message && self.properties.drew_row(row));
+        if under_row {
+            return;
+        }
+        let ours = self.reported.is_some() && self.shell.banner() == self.reported.as_deref();
+        if self.shell.banner().is_none() || ours {
             self.shell.show_banner(&message);
+            self.reported = Some(message);
         }
     }
 
@@ -723,6 +756,7 @@ impl App {
         self.shell.wizard_prepare_preview();
 
         let mut events: Vec<Event> = Vec::new();
+        self.properties.begin_frame();
         self.route_keys(&ctx, &mut events);
         // Cycle 38 (window check W38): while the picker is open it owns the keyboard. The panes paint before it and
         // a focused one (the navigator's type-ahead, a Properties row, the canvas) would take the frame's keys and
@@ -1121,6 +1155,12 @@ impl App {
         if dialog_open || picker_open || (ctx.text_edit_focused() && !palette_open) {
             return;
         }
+        // W46.4 i3: Escape with a Properties editor open is the editor's (`props.cancel`), whether or not its field
+        // still holds the focus: egui drops the focus on Escape before the frame, so `ui.dismiss` took it and the field
+        // then committed on the lost focus (refused: nothing was being edited).
+        if self.properties.field_open() && ctx.input(|i| i.key_pressed(Key::Escape)) {
+            return;
+        }
         if !palette_open
             && self.shell.has_project()
             && ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape))
@@ -1488,22 +1528,15 @@ impl App {
     fn apply(&mut self, event: Event) {
         match event {
             Event::Action(action, params) => self.dispatch(action, &params),
-            Event::PaletteRun => {
-                let outcome = self.shell.run_palette_selection();
-                self.report(outcome);
-            }
+            Event::PaletteRun => self.run(None, ShellModel::run_palette_selection),
             Event::PaletteClick(i) => {
                 self.shell.select_palette_entry(i);
-                let outcome = self.shell.run_palette_selection();
-                self.report(outcome);
+                self.run(None, ShellModel::run_palette_selection);
             }
             Event::PaletteQuery(query) => self.shell.set_palette_query(&query),
             Event::PaletteMove(delta) => self.shell.move_palette_selection(delta),
             Event::PaletteField(i, text) => self.shell.set_palette_field(i, &text),
-            Event::Confirm(answer) => {
-                let outcome = self.shell.answer_confirm(answer);
-                self.report(outcome);
-            }
+            Event::Confirm(answer) => self.run(None, |shell| shell.answer_confirm(answer)),
             Event::GotoText(text) => self.shell.set_goto_text(&text),
             Event::GotoGo(text) => self.dispatch("nav.goto", &json!({ "text": text })),
             Event::WorkspaceText(text) => self.shell.set_workspace_text(&text),
