@@ -5,7 +5,7 @@
 D9), part 3 printing from the window with the print preview and the Linux portal (0.8 pw, D10, D11), part 4 the
 native Windows adapter (0.7 pw, D12); 0.3 pw reserve; part 1 at any time, part 2 before parts 3 and 4, parts 3 and 4
 in any order · **Date:** 2026-10-31 · **Work package:**
-[WP-S3.07](../02-work-packages.md#wp-s307-svg-export-and-printing) · **Decision log:** ID-1017; O3 answered by ID-1030; part 1 as built ID-1122; part 2 ruled by ID-1114, as built ID-1153, ID-1155 · **Part of:** ElektraWatt plan, specifications
+[WP-S3.07](../02-work-packages.md#wp-s307-svg-export-and-printing) · **Decision log:** ID-1017; O3 answered by ID-1030; part 1 as built ID-1122; part 2 ruled by ID-1114, as built ID-1153, ID-1155; part 3 ruled by ID-1180 · **Part of:** ElektraWatt plan, specifications
 
 **Purpose.** The SVG writer was built ahead of this package (cycle 14, `ew_export::svg`; `ew export svg` since cycle 15):
 text as text, stable order, links, one file per page, byte-identical serial and parallel output (AC-14). Its fonts are
@@ -233,6 +233,65 @@ boxes (`ew-api`'s `the_stamp_covers_no_drawn_item_of_section_1`, ID-1144).
   Linux desktop.
 - **PW-5** Targeted checks for `ew-viewmodel`, `ew-ui`, `ew-print`, `elektrawatt`; the snapshot gate; `cargo deny check`
   with ashpd's packages listed in the lane's report.
+
+**Rulings at dispatch (ID-1180, cycle 47; facts at `702aa4b0`, re-read at `5b9be0f3`).** They amend D7, D10 and §10's
+files where they say so.
+1. **D7's rule in `ew-render-cpu`.** `PagePlacement` moves from `ew-export` (`pdf.rs:94-124`) to `ew-render-cpu`,
+   naming its units through `ew_dl::ew_units` as `render.rs` does (no new edge), re-exported by `ew-export` so
+   `ew-api`'s `pub use` stands. `ew-render-cpu` gains `render_placed`: the content painted through the device
+   transform times the placement's scale at its offset (the composed scale passed on purpose, since glyph sizing reads
+   it), then the overlay in a second pass at the paper's resolution, as `ew-export`'s PDF does (`pdf.rs:400-446`).
+   An identity placement renders exactly as `render`.
+2. **The print job.** `JobKind::Print` (its `word` and `label_key` arms, key `job-kind-print`), built like the PDF
+   export's job on the snapshot by `ew-api` beside `export_job`; its result is the `PrintSet`, which already keeps
+   each page's lists and placement for the preview and the PDF bytes. PW-1's digest is `expected/print/sha256.txt` at
+   the lane's base; cancel leaves nothing. "Current page" is `PageSelection::Folios` of that page's folio.
+3. **How the window prints** (no new edge, D5): `ew-ui`'s `Platform` gains a defaulted `print` method (the PDF bytes,
+   the title, and Print or Open in PDF viewer), whose default refuses: "printing is not available in this window;
+   export a PDF and print it from your PDF viewer". `bin/elektrawatt` implements it with `ew-print` (its existing
+   edge) on a worker thread, and the window polls the outcome as it polls jobs, with one toast (printed, a fallback
+   notice, or the failure's text). `ew-print` gains the fallback chain over `Box<dyn PrintAdapter + Send>`: adapters
+   tried in order, a failure giving way to the next with D11's one notice; Linux portal, `lp`, viewer; other systems
+   the viewer until part 4. PW-3's double is an adapter in `ew-print`'s tests.
+4. **The pre-dialog** (D10 amended; doc 16a has no print section, so it follows §6.12 and the design pass writes the
+   section from the as-built):
+   - **Modal**, as every dialog (§6.12 as built). The set builds as a job, so the window never waits on it; D10's
+     "never blocks editing" reads "the build never blocks the window".
+   - **Title** "Print". **Width** a new component token `size.dialog.preview`, 1040 px in both densities (a raw
+     size, as `size.dialog.label`), growing with the window as form dialogs do (`dialog::grown` at a share of 0.65,
+     1248 px at 1920): the lane adds it to `theme/tokens.rs`, doc 16a §4.15's table and §6.12's width sentence,
+     re-blesses `crates/ew-ui/tests/expected/tokens.txt` (the one expected file that moves) and adds a case to
+     `tests/it/grows_with_window.rs`. Truncation at the 1280 × 800 floor is a stop, reported with a render.
+   - **Options** on the left, on §6.12's form rows: Range, a radio group (All, Current page, Sections, Pages) with
+     the sections' check list enabled under Sections and a text field under Pages; Paper, a choice field (Sheet or a
+     size); Scale to fit and Monochrome, check boxes named by their labels.
+   - **Preview** on the right at the page's aspect ratio, "<n> of <m>" with Previous and Next under it, the stamp
+     visible. While the set builds, §6.19's progress line with its percentage stands in the preview's place; an
+     option changed while it builds cancels that build and starts one for the new options. With no page chosen
+     (no section ticked, an empty Pages field) the preview shows §6.17's empty state, "No pages to print" and "Tick a
+     section or type the pages to print"; a Pages field the parser refuses shows the parser's text under the field.
+   - **Footer** right-aligned in the platform's order (§6.12): Print… the Primary (Enter), Open in PDF viewer and
+     Cancel Secondaries; both print buttons disabled until the set is built. Cancel and Escape cancel a running build
+     and close the dialog, printing nothing.
+   - Every text by key in `strings.rs` (`action-file-print`, `print-*`), asserted whole; it scales at 1920 × 1080.
+5. **The action.** `file.print` (Ctrl+P, `Menu::Output`) takes the command bar's place `Group::Pdf, 2`, replacing the
+   `PENDING` placeholder (`crates/ew-viewmodel/src/command_bar.rs:295`; the test loop in
+   `crates/ew-viewmodel/tests/it/command_bar.rs:129-134` and CB8 :260-270 still pass); the keymaps
+   `crates/ew-viewmodel/keymaps/{ew.toml,kicad.toml,sheet.json}` gain Ctrl+P by their header's command (`EW_BLESS=1
+   cargo nextest run -p ew-viewmodel --test keymaps`). The new `Dialog` variant joins every exhaustive match
+   (`crates/ew-viewmodel/src/{dialogs.rs:121,describe.rs:2459,help.rs:158}`, `crates/ew-ui/src/about.rs:135`) and
+   `crates/ew-viewmodel/tests/it/part4_dialogs.rs`'s `every_dialog`.
+   FT-813's row (`docs/plan/02-work-packages.md`) drops Ctrl+P and stays open for its other bindings.
+6. **The portal (D11).** ashpd 0.13.13 with D11's stops (not in the lock today; `zbus` 5.13.2 has no tokio feature);
+   checked by `cargo check -p ew-print --target x86_64-unknown-linux-gnu --all-features` (the lane may install the
+   target) and `cargo deny check`, the new packages listed; Linux tests run in CI at the delivery.
+7. **Files** (§10 amended for part 3): besides its list, `crates/ew-render-cpu/src/{render.rs,lib.rs}`,
+   `crates/ew-export/src/{pdf.rs,lib.rs}` (the move and re-export), `crates/ew-api/src/output/{job.rs,print.rs}`,
+   `crates/ew-print/src/{lib.rs,portal.rs}`, `crates/ew-ui/src/{app.rs,about.rs}` (`Platform`, the match),
+   `crates/ew-ui/src/{theme/tokens.rs,dialog.rs}` and `crates/ew-ui/tests/expected/tokens.txt` (the token), doc 16a
+   §4.15 and §6.12 (the width),
+   `crates/ew-viewmodel/src/{dialogs.rs,describe.rs,help.rs}` (the matches), `bin/elektrawatt/src/main.rs` (the
+   `Platform` implementation), the keymaps, FT-813's row.
 
 ## 8. Part 4: the Windows adapter
 
