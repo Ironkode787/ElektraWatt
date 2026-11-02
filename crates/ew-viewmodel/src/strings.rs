@@ -3937,25 +3937,64 @@ mod tests {
         })
     }
 
+    /// Whether the key word `word` stands in `text` in a key's context (FT-1072, ID-1179): after "press" ("press
+    /// Delete", "press" in any case) or before a word ending in "s" ("Delete deletes"), the word itself exact.
+    fn names_key_in_context(text: &str, word: &str) -> bool {
+        let part = |c: char| c.is_alphanumeric() || matches!(c, '+' | '-' | '_' | '{' | '}');
+        text.match_indices(word).any(|(i, _)| {
+            let (before, after) = (&text[..i], &text[i + word.len()..]);
+            if before.chars().next_back().is_some_and(part) || after.chars().next().is_some_and(part) {
+                return false;
+            }
+            let pressed = before.strip_suffix(' ').is_some_and(|b| {
+                b.len()
+                    .checked_sub(5)
+                    .filter(|n| b.is_char_boundary(*n))
+                    .is_some_and(|n| {
+                        b[n..].eq_ignore_ascii_case("press") && !b[..n].chars().next_back().is_some_and(part)
+                    })
+            });
+            let verb = after.strip_prefix(' ').is_some_and(|a| {
+                let w: String = a.chars().take_while(|c| c.is_alphabetic()).collect();
+                w.len() > 1 && w.ends_with('s') && !a[w.len()..].chars().next().is_some_and(part)
+            });
+            pressed || verb
+        })
+    }
+
     /// FT-964 (ID-1150): "a test scans the table for a bound key's literal name outside the kept list". The names are
     /// every chord the EW preset binds, in full and in the HUD's short form; the key names that are also everyday
-    /// words of the labels ("Delete wire", "Insert symbol", "Home", "Space", "End") are left out.
+    /// words of the labels ("Delete wire", "Insert symbol", "Home", "Space", "End") are left out, and are caught only
+    /// in a key's context ("press Delete", "Delete deletes"; FT-1072) in the hint, HUD, toast, notice and reason
+    /// texts (an `action-` label names a command, as "Delete rows").
+    ///
+    /// FT-1072 (ID-1179): "the arrow keys" and "arrows" are not listed and match no name: they name the cursor
+    /// actions (`cursor.left` and its kin, which the nudges ride on), which every shipped keymap binds to the arrows.
     #[test]
     fn ft964_no_text_names_a_bound_key_outside_the_kept_list() {
         const WORDS: &[&str] = &[
             "Delete", "Insert", "Home", "End", "Space", "Plus", "Minus", "Equals",
         ];
+        const CONTEXT: &[&str] = &["hint-", "hud-", "toast-", "notice-", "reason-"];
         let mut names: Vec<String> = Vec::new();
+        let mut words: Vec<String> = Vec::new();
         for meta in crate::actions::ACTIONS {
             for s in crate::keymap::Preset::Ew.shortcuts(meta) {
                 for n in [crate::keymap::display(s), crate::keymap::short_display(s)] {
-                    if !WORDS.contains(&n.as_str()) && !names.contains(&n) {
-                        names.push(n);
+                    let list = if WORDS.contains(&n.as_str()) {
+                        &mut words
+                    } else {
+                        &mut names
+                    };
+                    if !list.contains(&n) {
+                        list.push(n);
                     }
                 }
             }
         }
         assert!(names.iter().any(|n| n == "Enter") && names.iter().any(|n| n == "Esc"));
+        assert!(words.iter().any(|w| w == "Delete"), "the skipped words are bound");
+        let in_context = |key: &str| CONTEXT.iter().any(|p| key.starts_with(p));
         let mut found = Vec::new();
         for (key, text) in TEXTS {
             if KEPT_KEYS.iter().any(|(k, _)| k == key) {
@@ -3966,16 +4005,45 @@ mod tests {
                     found.push(format!("{key}: {name}"));
                 }
             }
+            if in_context(key) {
+                for word in &words {
+                    if names_key_in_context(text, word) {
+                        found.push(format!("{key}: {word}"));
+                    }
+                }
+            }
         }
         assert_eq!(found, Vec::<String>::new());
         // The kept list holds only keys of the table that still name a key.
         for (key, why) in KEPT_KEYS {
             let text = lookup(key).unwrap_or_else(|| panic!("{key} is not in the table"));
             assert!(
-                names.iter().any(|n| names_key(text, n)),
+                names.iter().any(|n| names_key(text, n))
+                    || (in_context(key) && words.iter().any(|w| names_key_in_context(text, w))),
                 "{key} ({why}) names no key"
             );
         }
+    }
+
+    /// FT-1072 (ID-1179): a skipped key word counts only in a key's context, the word exact and "press" in any case.
+    #[test]
+    fn ft1072_a_skipped_key_word_counts_in_a_keys_context() {
+        assert!(names_key_in_context("press Delete to remove it", "Delete"));
+        assert!(names_key_in_context("Press Space to pan", "Space"));
+        assert!(names_key_in_context("PRESS Home", "Home"));
+        assert!(names_key_in_context("1 selected \u{b7} Delete deletes", "Delete"));
+        assert!(
+            names_key_in_context("Delete rows", "Delete"),
+            "why labels are not scanned"
+        );
+        assert!(!names_key_in_context("Delete wire", "Delete"));
+        assert!(!names_key_in_context("Delete", "Delete"));
+        assert!(!names_key_in_context("Delete, then", "Delete"));
+        assert!(!names_key_in_context("express Delete", "Delete"));
+        assert!(!names_key_in_context("press Deleted rows", "Delete"));
+        assert!(!names_key_in_context("press delete", "Delete"));
+        assert!(!names_key_in_context("Ends the route", "End"));
+        assert!(!names_key_in_context("{1} deletes", "Delete"));
     }
 
     /// The scan's word test: a name inside a word, a chord or a tag is no key's name.
