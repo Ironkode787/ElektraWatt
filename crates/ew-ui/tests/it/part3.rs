@@ -311,7 +311,9 @@ fn ft1086_a_click_on_the_free_area_of_the_tool_options_card_reaches_the_sheet() 
         fn walk(shape: &egui::Shape, fill: egui::Color32, found: &mut bool) {
             match shape {
                 egui::Shape::Vec(v) => v.iter().for_each(|s| walk(s, fill, found)),
-                egui::Shape::Rect(r) => *found |= r.fill == fill && r.rect.width() > 100.0 && r.rect.width() < 600.0,
+                egui::Shape::Rect(r) => {
+                    *found |= r.fill == fill && r.rect.width() > 100.0 && r.rect.width() < 600.0
+                }
                 _ => {}
             }
         }
@@ -407,4 +409,3 @@ fn ft1077_a_row_with_no_value_lets_its_label_run_across_the_value_column() {
         empty.width()
     );
 }
-

@@ -1542,43 +1542,42 @@ impl App {
             .order(egui::Order::Middle)
             .show(ctx, |ui| {
                 ui.set_opacity(opacity);
-            ui.horizontal(|ui| {
-                // WP-S2.04 §9.1: the IP tool's name field and external-reference field.
-                if ip {
-                    crate::tool_view::ip_fields(
-                        ui,
-                        ip_name,
-                        ip_typed.as_deref(),
-                        ip_proposal.as_deref(),
-                        &externals,
-                        events,
-                    );
-                }
-                // WP-S2.04 §10.5: the Text tool's binding.
-                if text {
-                    crate::tool_view::text_fields(ui, text_bind.as_deref(), events);
-                }
-                // WP-S2.04 §10.5: the Wire marker's fields and the Structure box's style and fields.
-                if marker {
-                    crate::tool_view::marker_fields(ui, marker_csa, marker_colours, events);
-                }
-                if structure_box {
-                    crate::tool_view::structure_box_fields(
-                        ui,
-                        &externals,
-                        structure_caption,
-                        structure_location,
-                        events,
-                    );
-                }
-                if let Some(options) = layout {
-                    crate::tool_view::layout_fields(ui, options, events);
-                }
-                if let Some((card, grid_mm)) = &draw {
-                    crate::tool_view::draw_fields(ui, card, *grid_mm, events);
-                }
-            });
-
+                ui.horizontal(|ui| {
+                    // WP-S2.04 §9.1: the IP tool's name field and external-reference field.
+                    if ip {
+                        crate::tool_view::ip_fields(
+                            ui,
+                            ip_name,
+                            ip_typed.as_deref(),
+                            ip_proposal.as_deref(),
+                            &externals,
+                            events,
+                        );
+                    }
+                    // WP-S2.04 §10.5: the Text tool's binding.
+                    if text {
+                        crate::tool_view::text_fields(ui, text_bind.as_deref(), events);
+                    }
+                    // WP-S2.04 §10.5: the Wire marker's fields and the Structure box's style and fields.
+                    if marker {
+                        crate::tool_view::marker_fields(ui, marker_csa, marker_colours, events);
+                    }
+                    if structure_box {
+                        crate::tool_view::structure_box_fields(
+                            ui,
+                            &externals,
+                            structure_caption,
+                            structure_location,
+                            events,
+                        );
+                    }
+                    if let Some(options) = layout {
+                        crate::tool_view::layout_fields(ui, options, events);
+                    }
+                    if let Some((card, grid_mm)) = &draw {
+                        crate::tool_view::draw_fields(ui, card, *grid_mm, events);
+                    }
+                });
             });
         let band_size = band.response.rect.size();
         let card = egui::Area::new(id)

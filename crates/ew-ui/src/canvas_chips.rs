@@ -117,14 +117,18 @@ fn caption_semibold(t: &Tokens) -> TypeToken {
 
 /// `texts` without the entries that read the same as an earlier one (the first keeps its place).
 fn drop_repeats<T>(texts: &mut Vec<(String, T)>) {
-    let mut seen = std::collections::HashSet::new();
+    let mut seen = std::collections::BTreeSet::new();
     texts.retain(|(text, _)| seen.insert(text.clone()));
 }
 
 /// `chip` moved the least that puts it inside `bounds`; when it is larger than `bounds`, its top left stays in.
 fn clamp_inside(chip: Rect, bounds: Rect) -> Rect {
-    let dx = (bounds.right() - chip.right()).min(0.0).max(bounds.left() - chip.left());
-    let dy = (bounds.bottom() - chip.bottom()).min(0.0).max(bounds.top() - chip.top());
+    let dx = (bounds.right() - chip.right())
+        .min(0.0)
+        .max(bounds.left() - chip.left());
+    let dy = (bounds.bottom() - chip.bottom())
+        .min(0.0)
+        .max(bounds.top() - chip.top());
     chip.translate(Vec2::new(dx, dy))
 }
 
@@ -450,7 +454,7 @@ pub fn paint_popup_frame(ui: &Ui, clip: Rect, rect: Rect, folio: &str) {
 mod tests {
     use egui::{Rect, pos2, vec2};
 
-    use super::{OFFSET, clear_corner, clamp_inside, drop_repeats};
+    use super::{OFFSET, clamp_inside, clear_corner, drop_repeats};
 
     /// FT-1079 (ID-1183): a chip no candidate was free for is moved inside the canvas: off its left and top edges
     /// by the least, off its right and bottom edges by the least, and in a canvas too small it keeps its top left.
@@ -458,11 +462,27 @@ mod tests {
     fn a_chip_with_no_free_candidate_is_clamped_inside_the_canvas() {
         let canvas = Rect::from_min_max(pos2(100.0, 50.0), pos2(500.0, 300.0));
         let chip = |x: f32, y: f32| Rect::from_min_size(pos2(x, y), vec2(120.0, 20.0));
-        assert_eq!(clamp_inside(chip(150.0, 80.0), canvas), chip(150.0, 80.0), "inside: untouched");
-        assert_eq!(clamp_inside(chip(60.0, 30.0), canvas), chip(100.0, 50.0), "off the top left");
-        assert_eq!(clamp_inside(chip(450.0, 290.0), canvas), chip(380.0, 280.0), "off the bottom right");
+        assert_eq!(
+            clamp_inside(chip(150.0, 80.0), canvas),
+            chip(150.0, 80.0),
+            "inside: untouched"
+        );
+        assert_eq!(
+            clamp_inside(chip(60.0, 30.0), canvas),
+            chip(100.0, 50.0),
+            "off the top left"
+        );
+        assert_eq!(
+            clamp_inside(chip(450.0, 290.0), canvas),
+            chip(380.0, 280.0),
+            "off the bottom right"
+        );
         let small = Rect::from_min_size(pos2(100.0, 50.0), vec2(80.0, 10.0));
-        assert_eq!(clamp_inside(chip(60.0, 30.0), small), chip(100.0, 50.0), "larger than the canvas");
+        assert_eq!(
+            clamp_inside(chip(60.0, 30.0), small),
+            chip(100.0, 50.0),
+            "larger than the canvas"
+        );
     }
 
     /// FT-1079 at the floor's canvas: the placer puts a chip whose every candidate is taken (the whole canvas is an
@@ -487,7 +507,11 @@ mod tests {
                 out: Vec::new(),
             };
             let at = super::point(canvas.min + vec2(2.0, 2.0));
-            let frame = placer.put(super::ChipKind::PreviewHeader, "Preview of Place device".to_owned(), at);
+            let frame = placer.put(
+                super::ChipKind::PreviewHeader,
+                "Preview of Place device".to_owned(),
+                at,
+            );
             assert!(placer.out[0].faded);
             assert!(canvas.contains_rect(frame), "{frame:?} inside {canvas:?}");
             checked = true;

@@ -736,7 +736,11 @@ impl PropertiesPane {
         if valueless {
             let natural = child
                 .painter()
-                .layout_no_wrap(label.clone(), crate::theme::font(&t.type_small), crate::theme::NONE)
+                .layout_no_wrap(
+                    label.clone(),
+                    crate::theme::font(&t.type_small),
+                    crate::theme::NONE,
+                )
                 .size()
                 .x;
             let room = child.available_width() - t.space_3 - t.size_control_inline;

@@ -441,7 +441,11 @@ fn ft1088_a_toast_under_a_still_pointer_fades_on_time() {
     );
     h.input_mut().events.push(egui::Event::PointerMoved(rest));
     h.step();
-    dispatch(&mut h, "select.set", json!({"refs": ["tag:-101F1", "tag:-102F1"]}));
+    dispatch(
+        &mut h,
+        "select.set",
+        json!({"refs": ["tag:-101F1", "tag:-102F1"]}),
+    );
     dispatch(
         &mut h,
         "props.set",
@@ -456,9 +460,16 @@ fn ft1088_a_toast_under_a_still_pointer_fades_on_time() {
         .find(|n| n.accesskit_node().label().as_deref() == Some("Notification"))
         .expect("the toast's node")
         .rect();
-    assert!(toast.contains(rest), "the toast {toast:?} stands under the pointer at {rest:?}");
+    assert!(
+        toast.contains(rest),
+        "the toast {toast:?} stands under the pointer at {rest:?}"
+    );
     assert_eq!(opacity_at(&mut h, shown, 4.0), Some(1.0), "standing");
-    assert_eq!(opacity_at(&mut h, shown, 8.0), None, "gone at 8 s under a still pointer");
+    assert_eq!(
+        opacity_at(&mut h, shown, 8.0),
+        None,
+        "gone at 8 s under a still pointer"
+    );
     h.state_mut().shell_mut().shutdown();
 }
 
