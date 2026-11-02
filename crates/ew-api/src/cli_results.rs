@@ -1210,16 +1210,18 @@ pub struct FmtRepairResult {
     /// The lines (or files) the open kept verbatim that stay: the other quarantined lines, malformed values, unknown
     /// kinds, members or files.
     pub kept: Vec<KeptRow>,
-    /// The generation on disk afterwards (after a failed save, the one before; after a save incomplete at its commit
-    /// point, the decided one, which completes at the next open).
+    /// The generation on disk afterwards (after a save that failed before its commit point, the one before; after a
+    /// save incomplete after it, the decided one, which completes at the next open).
     pub generation: u64,
     /// What was still wrong when the project was opened again after the repair, in words: a finding (`still has
     /// EW-CORE-005 at <file>:<line>`), a read-only open or an open error (exit 2; the new generation and the backup
     /// stay). Absent when the project opened editable.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub reopen_finding: Option<String>,
-    /// Why the save after the backup failed, in words (exit 2; `discarded` and `files` are then empty, the broken lines
-    /// stay and the backup is in place). Absent when there was no such failure.
+    /// Why the save after the backup failed, in words (exit 2). Before the save's commit point the broken lines stay,
+    /// and `discarded` and `files` are empty. When the save is incomplete after it, the decided generation completes at
+    /// the next open without those lines, and `discarded` and `files` say what the repair did. The backup is in place
+    /// either way. Absent when there was no such failure.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub save_error: Option<String>,
 }

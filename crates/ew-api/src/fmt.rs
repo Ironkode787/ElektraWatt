@@ -430,7 +430,21 @@ pub enum RepairError {
         error: SaveError,
         /// The backup.
         backup: Backup,
+        /// What the repair decided: present only with [`SaveError::Incomplete`] of the new generation, whose next open
+        /// completes it without the broken lines (C47-p3#1); `None` for a failure before the save's commit point, which
+        /// left the generation and its broken lines as they were.
+        decided: Option<Box<Decided>>,
     },
+}
+
+/// What a repair whose save is incomplete after its commit point decided ([`RepairError::Save`]): as [`Repaired`]
+/// gives it on success.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct Decided {
+    /// The lines discarded, in file and line order.
+    pub discarded: Vec<DiscardedLine>,
+    /// The files the save rewrites or removes, in path order.
+    pub files: Vec<Rewrite>,
 }
 
 impl fmt::Display for RepairError {
@@ -645,7 +659,8 @@ fn write_backup(vfs: &dyn Vfs, target: &Path, bytes: &[u8]) -> Result<bool, Repa
 ///
 /// # Errors
 ///
-/// [`RepairError`]: every variant but [`RepairError::Save`] wrote nothing; with it the backup is in place.
+/// [`RepairError`]: every variant but [`RepairError::Save`] wrote nothing; with it the backup is in place, and a save
+/// incomplete after its commit point carries what the repair decided ([`Decided`]).
 pub fn repair(session: &mut Session) -> Result<Repaired, RepairError> {
     let store = session.store().ok_or(RepairError::NoProject)?;
     if let Access::ReadOnly(reason) = store.access() {
@@ -699,7 +714,22 @@ pub fn repair(session: &mut Session) -> Result<Repaired, RepairError> {
             files: plan.files(),
             backup: Some(backup),
         }),
-        Err(error) => Err(RepairError::Save { error, backup }),
+        Err(error) => {
+            // Past the commit point of this save (a generation above the backup's), the repair has taken effect.
+            let decided =
+                matches!(&error, SaveError::Incomplete { generation, .. } if *generation > backup.generation)
+                    .then(|| {
+                        Box::new(Decided {
+                            discarded,
+                            files: plan.files(),
+                        })
+                    });
+            Err(RepairError::Save {
+                error,
+                backup,
+                decided,
+            })
+        }
     }
 }
 

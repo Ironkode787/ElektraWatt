@@ -10,7 +10,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::{Duration, UNIX_EPOCH};
 
-use ew_api::fmt::{self, Backup, DiscardedLine, FmtError, RepairError, Repaired, Rewrite};
+use ew_api::fmt::{self, Backup, Decided, DiscardedLine, FmtError, RepairError, Repaired, Rewrite};
 use ew_api::{AnyCommand, Recovery, Session, SessionOptions};
 use ew_store::ew_format::{hash_text, sha256};
 use ew_store::ewz;
@@ -923,6 +923,83 @@ fn after_repair_fault(
     }
 }
 
+/// What a repair of `page_with(&[BROKEN], _)` decides: its broken line discarded and its page file rewritten.
+fn decided_repair(page: &str) -> Decided {
+    Decided {
+        discarded: vec![DiscardedLine {
+            file: page.to_owned(),
+            line: 2,
+            text: BROKEN.to_vec(),
+        }],
+        files: vec![Rewrite {
+            file: page.to_owned(),
+            removed: false,
+        }],
+    }
+}
+
+/// C47-p3#1: at the fault sweep's injection points, an error after the save's commit point (the save incomplete, its
+/// generation decided) yields `RepairError::Save` with what the repair decided, as `Repaired` gives it on success; an
+/// error inside the save before it yields none, and the generation stays as it was.
+#[test]
+fn a_save_incomplete_after_its_commit_point_carries_what_the_repair_decided() {
+    let (disk, page, _) = page_with(&[BROKEN], false);
+    let calls = {
+        let vfs = mem(&disk);
+        let (mut s, _) = open_repair(&vfs, 2);
+        vfs.reset_calls();
+        fmt::repair(&mut s).unwrap();
+        s.close();
+        vfs.calls()
+    };
+    let (mut before, mut after) = (None, None);
+    for at in 1..=calls {
+        let vfs = mem(&disk);
+        let (mut s, _) = open_repair(&vfs, 2);
+        vfs.reset_calls();
+        vfs.set_fault(Fault::Error {
+            at,
+            kind: std::io::ErrorKind::Other,
+        });
+        let result = fmt::repair(&mut s);
+        s.close();
+        match result {
+            Err(RepairError::Save {
+                error: ew_api::SaveError::Incomplete { generation, .. },
+                backup,
+                decided,
+            }) => {
+                after.get_or_insert((generation, backup, decided));
+            }
+            Err(RepairError::Save {
+                error,
+                backup,
+                decided,
+            }) => {
+                before.get_or_insert((error.to_string(), backup, decided, files(&vfs)[&page].clone()));
+            }
+            _ => {}
+        }
+    }
+    let backup = Backup {
+        path: backup(),
+        generation: 1,
+        reused: false,
+        edited: 1,
+    };
+    let (generation, at_backup, decided) = after.expect("a fault after the commit point");
+    assert_eq!(
+        (generation, at_backup, decided),
+        (2, backup.clone(), Some(Box::new(decided_repair(&page))))
+    );
+    let (error, at_backup, decided, bytes) = before.expect("a fault inside the save before its commit point");
+    assert_eq!(
+        (at_backup, decided, bytes),
+        (backup, None, disk[&page].clone()),
+        "{error}"
+    );
+}
+
 /// ID-1185 ruling 8: a fault at every file-system call of a repair: an error of that one call (the process lives on), a
 /// process kill and a power loss keeping 0, 1 or all pending name changes. During the backup an error leaves no backup
 /// and nothing else; between the backup and the save, and inside the save before its commit point, the project is
@@ -991,10 +1068,22 @@ fn repair_fault_sweep(hashed: bool, no_links: bool) {
                 }
                 Err(RepairError::Save {
                     error: ew_api::SaveError::Incomplete { .. },
+                    decided,
                     ..
-                }) => seen[1] = true,
-                Err(RepairError::Save { .. }) => {
+                }) => {
+                    seen[1] = true;
+                    // Past the commit point the repair took effect, and the error says what it decided (C47-p3#1).
+                    if decided.as_deref() != Some(&decided_repair(&page)) {
+                        failures.push(format!("{fault:?}: an incomplete save decided {decided:?}"));
+                    }
+                }
+                Err(RepairError::Save { decided, .. }) => {
                     seen[2] = true;
+                    if decided.is_some() {
+                        failures.push(format!(
+                            "{fault:?}: a save failed before its commit point decided {decided:?}"
+                        ));
+                    }
                     // Nothing was lost: the same session repairs again, reusing the backup.
                     match fmt::repair(&mut s) {
                         Ok(again) if again.backup.as_ref().is_some_and(|b| b.reused) => {}

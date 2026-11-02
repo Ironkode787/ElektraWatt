@@ -146,7 +146,7 @@
       "type": "array"
     },
     "generation": {
-      "description": "The generation on disk afterwards (after a failed save, the one before; after a save incomplete at its commit\npoint, the decided one, which completes at the next open).",
+      "description": "The generation on disk afterwards (after a save that failed before its commit point, the one before; after a\nsave incomplete after it, the decided one, which completes at the next open).",
       "format": "uint64",
       "minimum": 0,
       "type": "integer"
@@ -166,7 +166,7 @@
       ]
     },
     "save_error": {
-      "description": "Why the save after the backup failed, in words (exit 2; `discarded` and `files` are then empty, the broken lines\nstay and the backup is in place). Absent when there was no such failure.",
+      "description": "Why the save after the backup failed, in words (exit 2). Before the save's commit point the broken lines stay,\nand `discarded` and `files` are empty. When the save is incomplete after it, the decided generation completes at\nthe next open without those lines, and `discarded` and `files` say what the repair did. The backup is in place\neither way. Absent when there was no such failure.",
       "type": [
         "string",
         "null"

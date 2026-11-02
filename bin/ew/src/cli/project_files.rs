@@ -204,9 +204,11 @@ fn run_repair(a: &FmtArgs) -> i32 {
 
 /// What `ew fmt --repair` prints after `ew_api::fmt::repair`, and its exit code: `(code, stdout, stderr)`. `reopen`
 /// opens the repaired project again (ID-1185 ruling 6) and runs only after a save. Once the backup exists, `--json`
-/// prints the result on every way out (C47-p2#2): after a failed save with `save_error` (`discarded` and `files`
-/// empty), after a re-open that found something wrong with `reopen_finding`, each with exit 2; a refusal before
-/// anything is written prints no result. The human text goes to stderr with `--json`.
+/// prints the result on every way out (C47-p2#2): after a failed save with `save_error` (exit 2), after a re-open that
+/// found something wrong with `reopen_finding` (exit 2); a refusal before anything is written prints no result. A save
+/// that failed before its commit point leaves `discarded` and `files` empty and the generation before; one incomplete
+/// after it has taken effect, so they say what the repair decided, beside the decided generation (C47-p3#1). The human
+/// text goes to stderr with `--json`.
 fn repair_outcome(
     dir: &Path,
     json: bool,
@@ -219,16 +221,30 @@ fn repair_outcome(
         Ok(r) => r,
         Err(e) => {
             err.push_str(&format!("{}\n", repair_refusal(dir, &e)));
-            if json && let RepairError::Save { error, backup } = &e {
-                // A save incomplete after its commit point has decided the repaired generation; any other failure
-                // left the one before.
-                let generation = match error {
-                    ew_api::SaveError::Incomplete { generation, .. } => *generation,
-                    _ => backup.generation,
+            if json
+                && let RepairError::Save {
+                    error,
+                    backup,
+                    decided,
+                } = &e
+            {
+                let result = match (error, decided) {
+                    // Incomplete after its commit point: the decided generation completes at the next open.
+                    (ew_api::SaveError::Incomplete { generation, .. }, Some(decided)) => repair_result(
+                        &Repaired {
+                            generation: *generation,
+                            discarded: decided.discarded.clone(),
+                            files: decided.files.clone(),
+                            backup: Some(backup.clone()),
+                        },
+                        kept,
+                    ),
+                    // Before it: the generation and its broken lines as they were.
+                    _ => backup_result(Some(backup), backup.generation, kept),
                 };
                 out.push_str(&results::to_text(&results::FmtRepairResult {
                     save_error: Some(error.to_string()),
-                    ..backup_result(Some(backup), generation, kept)
+                    ..result
                 }));
             }
             return (2, out, err);
@@ -422,12 +438,13 @@ fn repair_refusal(dir: &Path, e: &RepairError) -> String {
         RepairError::Save {
             error: error @ ew_api::SaveError::Incomplete { .. },
             backup,
+            ..
         } => format!(
             "error: {d}: the repair's save is incomplete: {error}; the repaired generation is decided and completes at \
              the next open; the backup is {}",
             backup.path.display()
         ),
-        RepairError::Save { error, backup } => format!(
+        RepairError::Save { error, backup, .. } => format!(
             "error: {d}: the repair's save failed: {error}; the backup {} stays; run `ew fmt --repair` again",
             backup.path.display()
         ),
@@ -1002,8 +1019,9 @@ mod tests {
 
     /// C47-p2#2: once the backup exists, `--json` prints the result on every way out, with exit 2 where it is a failure,
     /// and the human text goes to stderr: a re-open that still finds something wrong (with `reopen_finding`), a save
-    /// incomplete after its commit point and a save that failed before it (with `save_error`, `discarded` and `files`
-    /// empty), each with and without `--json` (the faults the binary's tests cannot place).
+    /// incomplete after its commit point (with `save_error`, and `discarded` and `files` as the repair decided them,
+    /// C47-p3#1) and a save that failed before it (with `save_error`, `discarded` and `files` empty), each with and
+    /// without `--json` (the faults the binary's tests cannot place).
     #[test]
     fn a_repair_with_a_backup_prints_its_result_on_every_way_out() {
         let dir = Path::new("p.ew");
@@ -1049,29 +1067,37 @@ mod tests {
             repair_outcome(dir, false, &kept, Ok(repaired.clone()), reopen),
             (2, report.to_owned(), failed.to_owned())
         );
+        // The result of the repair as it took effect, with `tail` (`"<member>": <value>`) after the kept lines.
+        let repaired_json = |tail: &str| {
+            format!(
+                "{{\n  \"$schema\": \"ew.fmt-repair-result/1\",\n{backup_json}  \"discarded\": [\n    {{\n      \
+                 \"file\": \"pages/1.jsonl\",\n      \"line\": 2,\n      \"text\": \"not json\"\n    }}\n  ],\n  \
+                 \"files\": [\n    {{\n      \"file\": \"pages/1.jsonl\",\n      \"removed\": false\n    }}\n  ],\n  \
+                 \"generation\": 2,\n{kept_json}  {tail}\n}}\n"
+            )
+        };
         assert_eq!(
             repair_outcome(dir, true, &kept, Ok(repaired.clone()), reopen),
             (
                 2,
-                format!(
-                    "{{\n  \"$schema\": \"ew.fmt-repair-result/1\",\n{backup_json}  \"discarded\": [\n    {{\n      \
-                     \"file\": \"pages/1.jsonl\",\n      \"line\": 2,\n      \"text\": \"not json\"\n    }}\n  ],\n  \
-                     \"files\": [\n    {{\n      \"file\": \"pages/1.jsonl\",\n      \"removed\": false\n    }}\n  ],\n  \
-                     \"generation\": 2,\n{kept_json}  \"reopen_finding\": \"still has EW-CORE-005 at \
-                     pages/1.jsonl:3\"\n}}\n"
-                ),
+                repaired_json("\"reopen_finding\": \"still has EW-CORE-005 at pages/1.jsonl:3\""),
                 format!("{report}{failed}")
             )
         );
 
-        // The save after the backup: incomplete after its commit point, and failed before it.
-        let incomplete = RepairError::Save {
+        // The save after the backup: incomplete after its commit point, which took effect and carries what the repair
+        // decided (C47-p3#1), and failed before it, which left the generation as it was.
+        let incomplete = || RepairError::Save {
             error: ew_api::SaveError::Incomplete {
                 generation: 2,
                 step: ew_api::SaveStep::Renames,
                 error: std::io::Error::other("injected error"),
             },
             backup: backup.clone(),
+            decided: Some(Box::new(ew_api::fmt::Decided {
+                discarded: repaired.discarded.clone(),
+                files: repaired.files.clone(),
+            })),
         };
         let incomplete_text = "error: p.ew: the repair's save is incomplete: save incomplete at Renames (generation 2): \
                                injected error; the repaired generation is decided and completes at the next open; the \
@@ -1083,6 +1109,7 @@ mod tests {
                 error: std::io::Error::other("disk full"),
             },
             backup: backup.clone(),
+            decided: None,
         };
         let failed_text = "error: p.ew: the repair's save failed: save failed at Temps (pages/1.jsonl.tmp-2): disk full; \
                            nothing changed on disk; the backup p.ew.before-repair-g1.ewz stays; run `ew fmt --repair` \
@@ -1092,38 +1119,29 @@ mod tests {
             repair_outcome(dir, false, &kept, Err(save_failed()), never),
             (2, String::new(), failed_text.to_owned())
         );
-        let saved_json = |generation: u64, error: &str| {
-            format!(
-                "{{\n  \"$schema\": \"ew.fmt-repair-result/1\",\n{backup_json}  \"discarded\": [],\n  \"files\": [],\n  \
-                 \"generation\": {generation},\n{kept_json}  \"save_error\": \"{error}\"\n}}\n"
-            )
-        };
         assert_eq!(
             repair_outcome(dir, true, &kept, Err(save_failed()), never),
             (
                 2,
-                saved_json(
-                    1,
-                    "save failed at Temps (pages/1.jsonl.tmp-2): disk full; nothing changed on disk"
+                format!(
+                    "{{\n  \"$schema\": \"ew.fmt-repair-result/1\",\n{backup_json}  \"discarded\": [],\n  \"files\": \
+                     [],\n  \"generation\": 1,\n{kept_json}  \"save_error\": \"save failed at Temps \
+                     (pages/1.jsonl.tmp-2): disk full; nothing changed on disk\"\n}}\n"
                 ),
                 failed_text.to_owned()
             )
         );
-        let (code, out, err) = repair_outcome(dir, false, &kept, Err(incomplete), never);
-        assert_eq!((code, out, err), (2, String::new(), incomplete_text.to_owned()));
-        let incomplete = RepairError::Save {
-            error: ew_api::SaveError::Incomplete {
-                generation: 2,
-                step: ew_api::SaveStep::Renames,
-                error: std::io::Error::other("injected error"),
-            },
-            backup: backup.clone(),
-        };
         assert_eq!(
-            repair_outcome(dir, true, &kept, Err(incomplete), never),
+            repair_outcome(dir, false, &kept, Err(incomplete()), never),
+            (2, String::new(), incomplete_text.to_owned())
+        );
+        assert_eq!(
+            repair_outcome(dir, true, &kept, Err(incomplete()), never),
             (
                 2,
-                saved_json(2, "save incomplete at Renames (generation 2): injected error"),
+                repaired_json(
+                    "\"save_error\": \"save incomplete at Renames (generation 2): injected error\""
+                ),
                 incomplete_text.to_owned()
             )
         );
