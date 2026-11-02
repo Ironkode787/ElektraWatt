@@ -604,3 +604,103 @@ fn ft950_after_a_connecting_drop_the_next_name_goes_on_from_the_name_placed() {
     let ip = reps[0].ip.clone().expect("the end's interruption point");
     assert_eq!((ip.name.as_str(), ip.direction.as_str()), ("FT950-1", "target"));
 }
+
+/// FT-1074 (ID-1179): a pin on a junction wins (FT-948): a free contact moved so that its pin lies on a junction of
+/// 102, the point dropped there connects to the pin as on any pin.
+#[test]
+fn ft1074_a_pin_on_a_junction_wins() {
+    let tmp = Tmp::new("ip-pin-junction");
+    let mut s = shell(&tmp, "102");
+    let t = tables(&s);
+    let junction = t
+        .junctions
+        .iter()
+        .map(|j| j.at)
+        .filter(|at| !t.cps.iter().any(|c| c.at == *at))
+        .find(|at| {
+            arm_on(&mut s, "J1074", *at);
+            ghost_cp(&s) == *at
+        })
+        .expect("a junction on 102 off the pins where the ghost's CP can lie");
+    done(&mut s, "tool.select", json!({}));
+    // A contact placed free (Alt), then moved by a command so that its first pin lies on the junction.
+    done(
+        &mut s,
+        "place.pick",
+        json!({"symbol": "ew.iec.contact-no@qet10", "letter": "S"}),
+    );
+    let free = grid_point(&s, (40, 40));
+    cursor(&mut s, free);
+    done(&mut s, "canvas.activate_alt", json!({}));
+    done(&mut s, "tool.select", json!({}));
+    let (reps, conns) = added(&t, &s);
+    assert_eq!((reps.len(), conns.len()), (1, 0), "a contact, unconnected");
+    let pin = tables(&s)
+        .cps
+        .iter()
+        .find(|c| c.rep == reps[0].id)
+        .expect("the contact's pin")
+        .clone();
+    let steps = {
+        let sn = &s.canvas().unwrap().page().snapper;
+        [
+            sn.grid_index_of(junction.0) - sn.grid_index_of(pin.at.0),
+            sn.grid_index_of(junction.1) - sn.grid_index_of(pin.at.1),
+        ]
+    };
+    done(
+        &mut s,
+        "command.run",
+        json!({"cmd": "rep.move", "params": {"reps": [pin.rep.to_string()], "steps": steps}}),
+    );
+    let pin = cp(&s, &pin.label);
+    assert_eq!(pin.at, junction, "the pin lies on the junction");
+    assert!(
+        tables(&s).junctions.iter().any(|j| j.at == junction),
+        "the junction stays"
+    );
+    arm_on(&mut s, "J1074", junction);
+    assert_eq!(ghost_cp(&s), junction, "the ghost's CP on the junction");
+    assert_eq!(
+        ghost(&s)["connects"].as_str(),
+        Some(pin.label.as_str()),
+        "the pin wins"
+    );
+    let before = tables(&s);
+    done(&mut s, "canvas.activate", json!({}));
+    assert_connects(&s, &before, &pin, "J1074");
+}
+
+/// FT-1074 (ID-1179): a wire's bare end is no wire's inside (FT-948): on FT-1049's page, where the scene draws a wire
+/// whose coil lies off the sheet along the sheet's edge, the drawn end on the edge has no pin and no junction, and a
+/// point dropped there places free.
+#[test]
+fn ft1074_a_wires_bare_end_places_the_point_free() {
+    let tmp = Tmp::new("ip-bare-end");
+    let mut s = crate::ft1049_off_sheet::fixture(&tmp);
+    let t = tables(&s);
+    let bare: Vec<(i64, i64)> = t
+        .connections
+        .iter()
+        .flat_map(|w| [w.polyline[0], w.polyline[w.polyline.len() - 1]])
+        .filter(|p| !t.cps.iter().any(|c| c.at == *p) && !t.junctions.iter().any(|j| j.at == *p))
+        .collect();
+    assert_eq!(bare.len(), 1, "one bare end: {bare:?}");
+    let end = bare[0];
+    arm_on(&mut s, "E1074", end);
+    assert_eq!(ghost_cp(&s), end, "the ghost's CP on the bare end");
+    assert_eq!(ghost(&s)["connects"], Value::Null, "no connection offered");
+    let before = tables(&s);
+    let rev = s.revision();
+    done(&mut s, "canvas.activate", json!({}));
+    assert_eq!(s.revision(), rev.map(|r| r + 1), "one commit");
+    let (reps, conns) = added(&before, &s);
+    assert_eq!(
+        reps.iter()
+            .map(|r| r.ip.as_ref().map(|ip| ip.name.as_str()))
+            .collect::<Vec<_>>(),
+        [Some("E1074")],
+        "the point is placed"
+    );
+    assert!(conns.is_empty(), "free: no connection");
+}

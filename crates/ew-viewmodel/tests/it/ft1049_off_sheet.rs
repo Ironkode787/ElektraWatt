@@ -59,8 +59,8 @@ fn coil_wire(t: &PageTables) -> TableConnection {
 }
 
 /// Page 103 with a switch at grid (60, 20), a coil autoconnected under it, the coil then moved off the sheet's left
-/// edge by a command: the wire keeps no route and the scene draws it along the edge.
-fn fixture(tmp: &Tmp) -> ShellModel {
+/// edge by a command: the wire keeps no route and the scene draws it along the edge (also FT-1074's bare end).
+pub(crate) fn fixture(tmp: &Tmp) -> ShellModel {
     let mut s = tmp.shell_in(Mode::Headless, true, "103");
     done(&mut s, "view.zoom_actual", json!({}));
     for (pick, k, activate) in [
