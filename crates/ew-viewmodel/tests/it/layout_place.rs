@@ -1050,10 +1050,6 @@ fn ft992_the_arrows_stop_a_floating_ghost_at_the_rail_end_and_at_a_neighbour() {
 fn ft993_escape_drops_the_layout_ghost_and_returns_to_select() {
     let tmp = Tmp::new("layout-ft993");
     let mut shell = writable(&tmp);
-    assert_eq!(
-        ew_viewmodel::strings::format(key!("hint-layout-place"), &["Escape"]),
-        "Click or release to place; Escape ends"
-    );
     let f55 = unplaced(&shell, "F55");
     done(
         &mut shell,
@@ -1070,6 +1066,11 @@ fn ft993_escape_drops_the_layout_ghost_and_returns_to_select() {
     assert!(shell.tool_overlay().items.is_empty());
     assert_eq!(shell.revision(), revision, "nothing placed");
     assert_eq!(unplaced(&shell, "F55"), f55);
+    // The text after the behaviour (FT-1066), so a changed hint does not hide it.
+    assert_eq!(
+        ew_viewmodel::strings::format(key!("hint-layout-place"), &["Escape"]),
+        "Click or release to place; Escape ends"
+    );
     shell.shutdown();
 }
 
@@ -1224,17 +1225,21 @@ fn ft997_blocked_by_clears_on_lock_unlock_and_enter() {
         assert_eq!(shell.tool_notice(), Some("Blocked by T55"));
         assert_eq!(hud(shell).prompt, "Blocked by T55");
     };
-    blocked(&mut shell);
-    done(&mut shell, "layout.lock_selection", json!({}));
-    assert_eq!(shell.tool_notice(), None);
-    assert_eq!(hud(&shell).prompt, selected);
-    blocked(&mut shell);
-    done(&mut shell, "layout.unlock_selection", json!({}));
-    assert_eq!(shell.tool_notice(), None);
-    assert_eq!(hud(&shell).prompt, selected);
-    blocked(&mut shell);
-    done(&mut shell, "canvas.activate", json!({}));
-    assert_eq!(shell.tool_notice(), None);
-    assert_eq!(hud(&shell).prompt, selected);
+    // The behaviour first: each action clears the notice and the HUD's "Blocked by"; the HUD's text after it
+    // (FT-1066), so a changed HUD text does not hide it.
+    let mut prompts = Vec::new();
+    for cmd in [
+        "layout.lock_selection",
+        "layout.unlock_selection",
+        "canvas.activate",
+    ] {
+        blocked(&mut shell);
+        done(&mut shell, cmd, json!({}));
+        assert_eq!(shell.tool_notice(), None, "{cmd}");
+        let prompt = hud(&shell).prompt;
+        assert_ne!(prompt, "Blocked by T55", "{cmd}");
+        prompts.push(prompt);
+    }
+    assert_eq!(prompts, [selected; 3]);
     shell.shutdown();
 }
