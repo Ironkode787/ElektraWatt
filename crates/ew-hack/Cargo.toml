@@ -26,7 +26,6 @@ float-cmp = { version = "0.9", features = ["std"] }
 foldhash = { version = "0.2", default-features = false, features = ["std"] }
 font-types = { version = "0.12", default-features = false, features = ["bytemuck", "serde", "std"] }
 getrandom = { version = "0.4", default-features = false, features = ["std", "sys_rng"] }
-harfrust = { version = "0.12" }
 hashbrown = { version = "0.17", default-features = false, features = ["default-hasher", "inline-more", "raw-entry"] }
 indexmap = { version = "2" }
 kurbo = { version = "0.13" }
@@ -38,7 +37,6 @@ miniz_oxide = { version = "0.8", features = ["simd"] }
 num-traits = { version = "0.2", default-features = false, features = ["libm", "std"] }
 once_cell = { version = "1" }
 read-fonts = { version = "0.41", default-features = false, features = ["experimental_font_api", "std"] }
-regex = { version = "1" }
 regex-automata = { version = "0.4", default-features = false, features = ["dfa-onepass", "hybrid", "meta", "nfa-backtrack", "perf-inline", "perf-literal", "std", "unicode"] }
 regex-syntax = { version = "0.8" }
 roxmltree = { version = "0.21" }
@@ -46,7 +44,6 @@ serde = { version = "1", features = ["alloc", "derive", "rc"] }
 serde_core = { version = "1", features = ["alloc", "rc"] }
 serde_json = { version = "1", features = ["alloc", "unbounded_depth"] }
 simd-adler32 = { version = "0.3" }
-skrifa = { version = "0.44", default-features = false, features = ["autohint_shaping", "std"] }
 smallvec = { version = "1", default-features = false, features = ["const_new", "serde", "union", "write"] }
 strict-num = { version = "0.1" }
 thiserror = { version = "2" }
@@ -66,7 +63,6 @@ syn-7b89eefb6aaa9bf3 = { package = "syn", version = "3", features = ["extra-trai
 num-traits = { version = "0.2" }
 tracing = { version = "0.1", default-features = false, features = ["std"] }
 tracing-core = { version = "0.1", default-features = false, features = ["std"] }
-windows = { version = "0.62", features = ["Win32_Devices_DeviceAndDriverInstallation", "Win32_Devices_Display", "Win32_Globalization", "Win32_Graphics_Direct3D12", "Win32_Graphics_Direct3D_Dxc", "Win32_Graphics_Direct3D_Fxc", "Win32_Graphics_DirectComposition", "Win32_Graphics_Dxgi_Common", "Win32_Graphics_Gdi", "Win32_Security", "Win32_System_Com", "Win32_System_Diagnostics_Debug", "Win32_System_Kernel", "Win32_System_LibraryLoader", "Win32_System_Ole", "Win32_System_Performance", "Win32_System_Threading", "Win32_System_Variant", "Win32_UI_Accessibility", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_WindowsAndMessaging"] }
 windows-core = { version = "0.62" }
 windows-sys = { version = "0.61", features = ["Win32_Graphics_Dwm", "Win32_Graphics_Gdi", "Win32_Storage_FileSystem", "Win32_System_Com", "Win32_System_DataExchange", "Win32_System_Memory", "Win32_System_Ole", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_Shell_Common", "Win32_UI_WindowsAndMessaging"] }
 zerocopy = { version = "0.8", default-features = false, features = ["derive", "simd"] }

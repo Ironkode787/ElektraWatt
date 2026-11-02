@@ -797,7 +797,8 @@ the GPL members share, with the union of the features any member's build enables
 building one package set after another then reuses those crates instead of recompiling them with other features. The
 permissive crates and `xtask` are excluded (they must build and publish without it), the importers too (ARCH §3
 rule 4: an importer depends on permissive workspace crates only), and so are the crates only their
-owners may name (`[[external_owner]]` in `dep-rules.toml`). Do not edit the hack's section by hand: `cargo xtask settle`
+owners may name (`[[external_owner]]` in `dep-rules.toml`) and the crates only the text stack or one platform reaches
+(`windows`, `harfrust`, `skrifa`, `regex`): unifying them widened every narrow GPL build, FT-1000. Do not edit the hack's section by hand: `cargo xtask settle`
 runs `cargo hakari generate` and `cargo hakari manage-deps` (the step `hakari`) after any manifest or lockfile change,
 and the `supply-chain` job checks that both are current (`cargo hakari generate --diff`, `cargo hakari manage-deps
 --dry-run`). `cargo hakari verify` is not run: the excluded crates keep feature sets of their own, which it reports.

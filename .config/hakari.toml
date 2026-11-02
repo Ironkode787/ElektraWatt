@@ -47,4 +47,9 @@ third-party = [
   { name = "naga-types" },
   { name = "rusqlite" },
   { name = "libsqlite3-sys" },
+  # Crates only the text stack or one platform reaches: unifying them widened every narrow GPL build, FT-1000.
+  { name = "windows" },
+  { name = "harfrust" },
+  { name = "skrifa" },
+  { name = "regex" },
 ]
