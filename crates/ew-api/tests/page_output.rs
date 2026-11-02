@@ -523,6 +523,7 @@ fn the_display_list_of_folio_101_is_stable() {
         labels glyphs de795e26 "PE" origin=(207036459,99492593) size=1322917 angle=0
         labels glyphs f4fdc202 "J-E-206-L" origin=(5779161,135562710) size=2381250 angle=0
         labels glyphs f4fdc202 "+J-E-206 / JE-N1000-03" origin=(-1701535,141451806) size=2381250 angle=0
+        labels glyphs 66c620c1 "1X1" origin=(31752646,75721369) size=3439583 angle=0
         labels instance 09ed5beb sym=04b0176e variant=D translate=(44979167,63500000)
         labels glyphs 09ed5beb "2.5" origin=(45451448,64433979) size=1322917 angle=90000
         labels instance 17b31bbc sym=04b0176e variant=A translate=(97895833,31750000)
