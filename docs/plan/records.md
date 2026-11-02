@@ -149,6 +149,7 @@ Every ID of [decisions.md](decisions.md) and every ID a `Decision:` or `Golden:`
   - `0b8dd9cabf` chore(plan): WP-S3.06 part 3's records
   - `c8f7b4a26b` test(golden): re-bless the PDF for the drawn report back-links
 - **ID-1078** (cycle 44): WP-S4.02 part 4's rulings (project owner (delegated)), written into the spec's §8 at the base `d9f50aa5`: Draw's new group is `Group::PanelLayout` labelled "Layout" beside View's; CB8 stays strict and the mockup's Draw row gains the group; a layout record's property row commits through `EditRoute::Command` and `Session::layout_edit`, which compiles its text into one D5 to D7 command; the rail ghost is a new `Ghost::Line`; the draw tools snap within D4's 15 px; PS-1 runs on fixtures until part 6 builds the starter enclosure; and the files beyond §11.1 are named per item. WP-S4.02 §8; ID-317.
+  - `e26bcbb088` fix(layout): surface IDs compared as UUIDs; the focused editor's case
   - `827a99ea2b` fix(layout): review part 4 and window check W44.4 items
   - `cf0ef4d46e` fix(layout): close WP-S4.02 part 4's review items and window findings
   - `f951c9c0cc` feat(layout): set-up tools, the Layout group and layout rows in Properties (WP-S4.02 part 4)
