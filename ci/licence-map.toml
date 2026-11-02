@@ -98,6 +98,11 @@ allowed = ["GPL-3.0-or-later"]
 crate = true
 
 [[path]]
+glob = "crates/ew-zip/**"
+allowed = ["GPL-3.0-or-later"]
+crate = true
+
+[[path]]
 glob = "crates/ew-plc/**"
 allowed = ["GPL-3.0-or-later"]
 crate = true

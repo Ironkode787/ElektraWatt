@@ -42,6 +42,9 @@
 /// The format layer, re-exported so that the crates above (`ew-api`) name its types without an edge of
 /// their own (ARCH §3); it re-exports `ew-schema` in turn.
 pub use ew_format;
+/// The own deterministic ZIP writer and its strict reader (`ew-zip`), re-exported under the path the archive's users
+/// name (decision log ID-1145).
+pub use ew_zip as zip;
 
 pub mod archive;
 pub mod clock;
@@ -52,7 +55,6 @@ pub mod mem;
 mod rows;
 mod store;
 mod vfs;
-pub mod zip;
 
 pub use clock::{Clock, ManualClock, SystemClock};
 pub use lock::{HEARTBEAT, Identity, LockInfo, LockRecord, OsProbe, ProcessProbe, ProcessState, STALE_AFTER};

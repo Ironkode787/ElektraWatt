@@ -1868,7 +1868,7 @@ dependencies = [
  "ew-hack",
  "ew-model",
  "ew-testdir",
- "miniz_oxide 0.8.9",
+ "ew-zip",
  "proptest",
  "serde_json",
  "sha2",
@@ -1969,6 +1969,15 @@ dependencies = [
  "ew-viewmodel",
  "serde_json",
  "toml",
+]
+
+[[package]]
+name = "ew-zip"
+version = "0.0.0"
+dependencies = [
+ "ew-hack",
+ "miniz_oxide 0.8.9",
+ "proptest",
 ]
 
 [[package]]

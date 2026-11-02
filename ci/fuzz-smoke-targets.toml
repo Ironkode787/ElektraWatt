@@ -26,7 +26,18 @@ closure = ["ew-format", "ew-ids", "ew-mltext", "ew-rds", "ew-schema", "ew-units"
 [targets.migration_chain]
 max_len = 65
 roots = ["ew-format", "ew-model", "ew-store"]
-closure = ["ew-format", "ew-hack", "ew-ids", "ew-mltext", "ew-model", "ew-rds", "ew-schema", "ew-store", "ew-units"]
+closure = [
+    "ew-format",
+    "ew-hack",
+    "ew-ids",
+    "ew-mltext",
+    "ew-model",
+    "ew-rds",
+    "ew-schema",
+    "ew-store",
+    "ew-units",
+    "ew-zip",
+]
 
 [targets.command_sequence]
 max_len = 512
@@ -86,6 +97,7 @@ closure = [
     "ew-testkit",
     "ew-text",
     "ew-units",
+    "ew-zip",
 ]
 
 [targets.png_pdf]

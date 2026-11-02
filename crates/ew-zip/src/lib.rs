@@ -33,6 +33,9 @@
 //! bounded by [`ZipLimits`] before anything is inflated, and a deflated entry may expand at most
 //! [`ZipLimits::max_ratio`] to 1 (doc 05 §12: 200 : 1), so a compression bomb is refused unread.
 
+#![forbid(unsafe_code)]
+#![deny(missing_docs)]
+
 use std::collections::BTreeSet;
 use std::fmt;
 
@@ -174,8 +177,8 @@ impl std::error::Error for ZipError {}
 /// The CRC-32 of ZIP (IEEE 802.3, reflected polynomial `0xEDB88320`).
 ///
 /// ```
-/// assert_eq!(ew_store::zip::crc32(b"123456789"), 0xCBF4_3926);
-/// assert_eq!(ew_store::zip::crc32(b""), 0);
+/// assert_eq!(ew_zip::crc32(b"123456789"), 0xCBF4_3926);
+/// assert_eq!(ew_zip::crc32(b""), 0);
 /// ```
 pub fn crc32(data: &[u8]) -> u32 {
     const TABLE: [u32; 256] = {
@@ -286,7 +289,7 @@ fn u32_of(n: usize) -> Result<u32, ZipError> {
 /// sizes of a ZIP without ZIP64.
 ///
 /// ```
-/// use ew_store::zip::{Method, ZipLimits, read, write};
+/// use ew_zip::{Method, ZipLimits, read, write};
 ///
 /// let bytes = write(&[("mimetype", Method::Stored, b"text/plain".as_slice()), ("a/b.txt", Method::Deflated, b"hi")])
 ///     .unwrap();

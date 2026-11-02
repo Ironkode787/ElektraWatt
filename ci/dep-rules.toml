@@ -42,7 +42,7 @@ permissive = [
 # GPL-3.0-or-later application layer, including the binaries.
 gpl = [
   "ew-model", "ew-rhai", "ew-derive", "ew-commands", "ew-checks", "ew-sqlview", "ew-library", "ew-store",
-  "ew-text", "ew-reports", "ew-scene", "ew-render2d", "ew-render-cpu", "ew-export", "ew-print", "ew-plc",
+  "ew-zip", "ew-text", "ew-reports", "ew-scene", "ew-render2d", "ew-render-cpu", "ew-export", "ew-print", "ew-plc",
   "ew-panel", "ew-render3d", "ew-mfg", "ew-import-qet", "ew-import-eplan", "ew-import-dxf",
   "ew-import-catalog", "ew-import-tables", "ew-script", "ew-plugin-host", "ew-jobs", "ew-api",
   "ew-viewmodel", "ew-ui", "ew-testkit", "elektrawatt", "ew", "ew-step-worker",
@@ -83,10 +83,13 @@ planned = ["ew-viewer", "ew-wiring-viewer", "ew-plugin-wit", "ew-plugin-sdk", "e
 "ew-checks" = ["ew-derive", "ew-rhai", "ew-hack"]
 "ew-sqlview" = ["ew-derive", "ew-checks", "ew-hack"]
 "ew-library" = ["ew-schema", "ew-format", "ew-ids", "ew-hack"]
-"ew-store" = ["ew-format", "ew-model", "ew-hack"]
+# The as-built archive's ZIP moved into `ew-zip` (decision log ID-1145); `ew-store` re-exports it as `zip`.
+"ew-store" = ["ew-format", "ew-model", "ew-zip", "ew-hack"]
+"ew-zip" = ["ew-hack"]
 "ew-text" = ["ew-dl", "ew-units", "ew-hack"]
 # The open-items kind reads `ew_checks::open_items` (WP-S3.06 D8); `ew-checks` was already in the graph through `ew-sqlview`.
-"ew-reports" = ["ew-derive", "ew-sqlview", "ew-text", "ew-checks", "ew-hack"]
+# The XLSX writer's container (WP-S3.08 D3, decision log ID-1145): the own ZIP of `ew-zip`.
+"ew-reports" = ["ew-derive", "ew-sqlview", "ew-text", "ew-checks", "ew-zip", "ew-hack"]
 # The drawn path of a connection (decision log ID-1111): `ew-derive` was already in the graph through `ew-reports`.
 "ew-scene" = ["ew-reports", "ew-derive", "ew-dl", "ew-text", "ew-schema", "ew-units", "ew-ids", "ew-mltext", "ew-hack"]
 "ew-render2d" = ["ew-dl", "ew-render-cpu", "ew-hack"]
@@ -515,7 +518,11 @@ key_deps = 'ew-schema, ew-format, ew-ids (since cycle 35, a permissive leaf); ru
 
 [crates."ew-store"]
 responsibility = 'Save protocol, `.~ew.lock`, journal, recovery, watcher, external-change diff, `.ewz` transport, as-built archive, git commits and tags; v0 (WP-S1.09) has the save protocol with roll-forward, the lock, the journal and the `Vfs` seam ([05](05-project-format-and-persistence.md) §5 to §8, ADR-0010 amendment 3)'
-key_deps = 'ew-format (and, through its re-export, ew-schema; rule 7), ew-model (enables `raw-read`), serde_json; later: notify 8.2.0, zip 9.0.4, gix 0.89.0, etcetera or directories **(verify)**, ew-sysprobe on Windows and macOS (FT-89); dev: ew-testdir (FT-569)'
+key_deps = 'ew-format (and, through its re-export, ew-schema; rule 7), ew-model (enables `raw-read`), ew-zip (the as-built archive ZIP, re-exported as `zip`; decision log ID-1145), serde_json; later: notify 8.2.0, gix 0.89.0, etcetera or directories **(verify)**, ew-sysprobe on Windows and macOS (FT-89); dev: ew-testdir (FT-569)'
+
+[crates."ew-zip"]
+responsibility = '*As built (cycle 46, WP-S3.08 part 1; decision log ID-1145).* The own deterministic ZIP writer and its strict reader, moved out of `ew-store` unchanged: entries in the given order, raw deflate at level 6, the DOS date 1980-01-01 00:00, its own CRC-32, no extra fields, no data descriptor and no ZIP64; the reader takes exactly that shape under size and ratio limits ([05](05-project-format-and-persistence.md) §12). The container of the as-built archive (`ew-store` re-exports it as `zip`) and of the XLSX writer of `ew-reports`; no ZIP crate (decision log ID-827)'
+key_deps = 'miniz_oxide 0.8.9 (the workspace pin, `with-alloc`); dev: proptest'
 
 [crates."ew-sysprobe"]
 crate_note = '(FT-89)'
@@ -528,8 +535,8 @@ responsibility = 'Fonts and the memoised `shaped_text` query: one text stack for
 key_deps = 'ew-dl, ew-units; parley 0.12.0, fontique 0.12.0, skrifa 0.44.0, harfrust 0.12.0 (through parley), sha2 0.10.9'
 
 [crates."ew-reports"]
-responsibility = 'Report-kind registry and row queries (`report_rows`), arrangement (manual selection, typed filters, natural sort, grouping), pagination into generated pages (`report_block_pages`), the report engine that `page_order` calls through `ReportPagesProvider` (decision log ID-126), value rendering; user SQL reports through the sandboxed query API of `ew-sqlview` (1.0, never links rusqlite); XLSX and CSV tables (FT-61)'
-key_deps = "ew-derive (and through its re-exports ew-schema, ew-ids, ew-mltext, ew-units; rule 7), ew-sqlview, ew-text, ew-checks (the edge since cycle 42: `open_items` lists the open-item rules' findings, WP-S3.06 D8, decision log ID-1039); serde_json (the provisional profile members of the project settings, read by `profile_tables`); dev: ew-model (snapshots for the row-query tests, no `raw-read`), proptest; later: rust_xlsxwriter 0.100.0, csv 1.4.0"
+responsibility = 'Report-kind registry and row queries (`report_rows`), arrangement (manual selection, typed filters, natural sort, grouping), pagination into generated pages (`report_block_pages`), the report engine that `page_order` calls through `ReportPagesProvider` (decision log ID-126), value rendering; user SQL reports through the sandboxed query API of `ew-sqlview` (1.0, never links rusqlite); the table writers (WP-S3.08 part 1, decision log ID-1145): one table model for report rows and the `ew sql` result, the CSV presets with the formula guard and the own XLSX writer over `ew-zip` (inline strings, the hidden `id` column and `_ew` sheet), so no ZIP or XLSX crate (FT-61)'
+key_deps = "ew-derive (and through its re-exports ew-schema, ew-ids, ew-mltext, ew-units; rule 7), ew-sqlview, ew-text, ew-checks (the edge since cycle 42: `open_items` lists the open-item rules' findings, WP-S3.06 D8, decision log ID-1039); serde_json (the provisional profile members of the project settings, read by `profile_tables`); ew-zip (the XLSX writer's container, decision log ID-1145); dev: ew-model (snapshots for the row-query tests, no `raw-read`), proptest"
 
 [crates."ew-scene"]
 responsibility = 'Model to display lists per page and layer, forms engine (frames, title blocks, report forms), text through `ew-text`, spatial index, hit-testing; PDF underlays (1.0); page layers as pure functions of a caller-filled `PageView` (rule 7) and the provisional orthogonal router `route` (decision log ID-137)'
