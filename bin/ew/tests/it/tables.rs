@@ -89,7 +89,10 @@ impl Tmp {
         let o = self.ew(&all);
         assert_eq!(o.status.code(), Some(0), "{args:?}: {}", stderr(&o));
         assert_eq!(stdout(&o), format!("export written to {}\n", out.display()));
-        assert!(!self.0.join(format!("{file}.tmp")).exists(), "no temporary file is left");
+        assert!(
+            !self.0.join(format!("{file}.tmp")).exists(),
+            "no temporary file is left"
+        );
         std::fs::read(&out).unwrap()
     }
 }
@@ -148,8 +151,8 @@ fn golden_file(rel: &str, bytes: &[u8]) {
         std::fs::write(&path, bytes).unwrap();
         return;
     }
-    let committed = std::fs::read(&path)
-        .unwrap_or_else(|e| panic!("{}: {e} (EW_BLESS=1 generates it)", path.display()));
+    let committed =
+        std::fs::read(&path).unwrap_or_else(|e| panic!("{}: {e} (EW_BLESS=1 generates it)", path.display()));
     assert!(
         committed == bytes,
         "{} differs from the export (EW_BLESS=1 rewrites it)",
@@ -206,7 +209,10 @@ fn the_part_1_workbooks_are_the_committed_digests_and_dumps() {
     for (name, run) in &runs {
         let file = format!("{name}.xlsx");
         let bytes = t.written(run, &file);
-        assert!(t.written(run, &file) == bytes, "{name}: a second run gives other bytes");
+        assert!(
+            t.written(run, &file) == bytes,
+            "{name}: a second run gives other bytes"
+        );
         digests.push_str(&format!("{:x}  {file}\n", Sha256::digest(&bytes)));
         let dump = ew_api::output::workbook_dump(&bytes).unwrap();
         golden_file(&format!("xlsx/{name}.cells.txt"), dump.as_bytes());
@@ -232,7 +238,12 @@ fn the_wire_list_workbook_reads_back_as_the_golden_wire_list() {
     assert_eq!(data, 50);
     for (i, (g, w)) in got.rows.iter().zip(&want.rows).enumerate() {
         assert_eq!(g[1..], w[1..], "row {}", i + 1);
-        assert_eq!(g[0].is_empty(), w[0] == "heading", "row {}: the id of a heading row is empty", i + 1);
+        assert_eq!(
+            g[0].is_empty(),
+            w[0] == "heading",
+            "row {}: the id of a heading row is empty",
+            i + 1
+        );
     }
     assert_eq!(
         sheet_names(&bytes, &table_limits()).unwrap(),
@@ -267,7 +278,10 @@ fn the_row_exports_and_sql_write_workbooks() {
         assert_eq!(g[1..], w[1..]);
     }
     let xml = part(&bom, "xl/worksheets/sheet1.xml");
-    assert!(xml.contains("<c r=\"C2\"><v>1</v></c>"), "row 2's quantity is a number");
+    assert!(
+        xml.contains("<c r=\"C2\"><v>1</v></c>"),
+        "row 2's quantity is a number"
+    );
     assert!(xml.contains("<v>1.71</v>") && xml.contains("<v>3.17</v>"));
 
     let block = t.written(
@@ -276,13 +290,17 @@ fn the_row_exports_and_sql_write_workbooks() {
     );
     assert_eq!(sheet(&block, None).rows.len(), 56);
 
-    let terminals = t.written(&args([&"export", &"terminals", &p, &"--format", &"xlsx"]), "t.xlsx");
+    let terminals = t.written(
+        &args([&"export", &"terminals", &p, &"--format", &"xlsx"]),
+        "t.xlsx",
+    );
     assert_eq!(
         sheet_names(&terminals, &table_limits()).unwrap(),
         ["1X1", "-X1031", "-X1032", "_ew"]
     );
     let x1031 = sheet(&terminals, Some("-X1031"));
-    let want = csv_table(&std::fs::read_to_string(Path::new(EXPECTED).join("csv/terminals_X1031.csv")).unwrap());
+    let want =
+        csv_table(&std::fs::read_to_string(Path::new(EXPECTED).join("csv/terminals_X1031.csv")).unwrap());
     assert_eq!(x1031.rows.len(), want.rows.len());
     for (g, w) in x1031.rows.iter().zip(&want.rows) {
         assert_eq!(g[1..], w[1..]);
@@ -343,7 +361,11 @@ fn the_bom_presets_are_the_committed_files() {
         assert_eq!(o.status.code(), Some(0), "{preset}: {}", stderr(&o));
         let text = stdout(&o);
         // Every line ends in CRLF; the committed file keeps LF (the repository's `eol=lf`).
-        assert_eq!(text.matches('\n').count(), text.matches("\r\n").count(), "{preset}");
+        assert_eq!(
+            text.matches('\n').count(),
+            text.matches("\r\n").count(),
+            "{preset}"
+        );
         golden_file(
             &format!("csv/presets/bom_parts.{preset}.csv"),
             text.replace("\r\n", "\n").as_bytes(),
@@ -376,7 +398,15 @@ fn the_bom_presets_are_the_committed_files() {
     );
     // The two refusals of D6, whole.
     let o = t.ew(&args([
-        &"export", &"bom", &p, &"--format", &"xlsx", &"--out", &"x.xlsx", &"--preset", &"excel-nl",
+        &"export",
+        &"bom",
+        &p,
+        &"--format",
+        &"xlsx",
+        &"--out",
+        &"x.xlsx",
+        &"--preset",
+        &"excel-nl",
     ]));
     assert_eq!(o.status.code(), Some(2));
     assert_eq!(
@@ -467,7 +497,16 @@ fn the_json_results_name_format_preset_and_revision() {
         serde_json::from_str(&stdout(&o)).unwrap()
     };
     let out = t.0.join("j.xlsx");
-    let v = json(args([&"export", &"bom", &p, &"--format", &"xlsx", &"--out", &out, &"--json"]));
+    let v = json(args([
+        &"export",
+        &"bom",
+        &p,
+        &"--format",
+        &"xlsx",
+        &"--out",
+        &out,
+        &"--json",
+    ]));
     assert_eq!(
         (&v["format"], &v["preset"], v["rev"].is_u64(), &v["csv"]),
         (
@@ -477,15 +516,44 @@ fn the_json_results_name_format_preset_and_revision() {
             &serde_json::Value::Null
         )
     );
-    let v = json(args([&"export", &"terminals", &p, &"--preset", &"rfc4180", &"--json"]));
-    assert_eq!((&v["format"], &v["preset"]), (&serde_json::json!("csv"), &serde_json::json!("rfc4180")));
+    let v = json(args([
+        &"export",
+        &"terminals",
+        &p,
+        &"--preset",
+        &"rfc4180",
+        &"--json",
+    ]));
+    assert_eq!(
+        (&v["format"], &v["preset"]),
+        (&serde_json::json!("csv"), &serde_json::json!("rfc4180"))
+    );
     assert_eq!(v["strips"], serde_json::json!(["1X1", "-X1031", "-X1032"]));
     assert!(v["csv"].as_str().unwrap().starts_with("id,Terminal,"));
     let v = json(args([&"export", &"wires", &p, &"--json"]));
-    assert_eq!((&v["format"], &v["preset"]), (&serde_json::json!("csv"), &serde_json::json!("ew")));
+    assert_eq!(
+        (&v["format"], &v["preset"]),
+        (&serde_json::json!("csv"), &serde_json::json!("ew"))
+    );
     let v = json(args([
-        &"export", &"report", &p, &"--kind", &"io_list", &"--format", &"xlsx", &"--out", &out, &"--json",
+        &"export",
+        &"report",
+        &p,
+        &"--kind",
+        &"io_list",
+        &"--format",
+        &"xlsx",
+        &"--out",
+        &out,
+        &"--json",
     ]));
-    assert_eq!((&v["format"], &v["kind"], &v["block"]), (&serde_json::json!("xlsx"), &serde_json::json!("io_list"), &serde_json::json!("")));
+    assert_eq!(
+        (&v["format"], &v["kind"], &v["block"]),
+        (
+            &serde_json::json!("xlsx"),
+            &serde_json::json!("io_list"),
+            &serde_json::json!("")
+        )
+    );
     assert!(v["rev"].is_u64());
 }

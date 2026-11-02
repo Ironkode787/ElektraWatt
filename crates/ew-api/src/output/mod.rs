@@ -150,13 +150,13 @@ pub use properties::{
     FindingChip, PropRow, PropertySheet, Provenance, RowAction, RowValue, SheetHeader, SheetSection,
 };
 // WP-S1.22 part 2
+/// The round trip's reader (WP-S3.08 D12): a workbook or CSV read back as header and cell texts.
+pub use ew_import_catalog::sheet;
 /// The table writers of `ew-reports` the row exports name (WP-S3.08 part 1): the CSV presets and their options, the
 /// table model, the workbook's metadata and writer.
 pub use ew_reports::csv::{CsvOptions, LineEnd, Preset, restyle, table_csv};
 pub use ew_reports::table::{Table, TableCell, TableColumn, TableRow};
 pub use ew_reports::xlsx::{WorkbookMeta, XlsxError, xlsx};
-/// The round trip's reader (WP-S3.08 D12): a workbook or CSV read back as header and cell texts.
-pub use ew_import_catalog::sheet;
 pub use raster::{
     DEFAULT_DPI, DPI_RANGE, MAX_PAGE_PIXELS, MAX_PIXELS_IN_FLIGHT, PngExport, PngFile, check_page_pixels,
     export_png_with, page_png, png_file_name, raster_workers,

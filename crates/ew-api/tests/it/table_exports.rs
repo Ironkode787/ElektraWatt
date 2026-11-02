@@ -61,7 +61,10 @@ fn the_workbooks_do_not_depend_on_record_order() {
         RowExport::Kind("device_list".to_owned()),
     ] {
         let a = workbook(&plain, &what);
-        assert!(a == workbook(&shuffled, &what), "{what:?}: the shuffled model's workbook differs");
+        assert!(
+            a == workbook(&shuffled, &what),
+            "{what:?}: the shuffled model's workbook differs"
+        );
         assert!(a == workbook(&plain, &what), "{what:?}: a second export differs");
     }
 }
@@ -142,14 +145,10 @@ fn the_ew_preset_is_the_golden_dialect() {
     for what in [RowExport::Wires, RowExport::Bom(ew_api::BomMode::Component)] {
         let golden = row_export(&q, &what, None).unwrap().csv;
         assert_eq!(csv(&session, &what, Preset::Ew), golden);
-        let RowsOutput::Xlsx(bytes) = row_output(
-            &q,
-            &what,
-            None,
-            &RowsFormat::Xlsx(session.workbook_meta(None)),
-        )
-        .unwrap()
-        .output
+        let RowsOutput::Xlsx(bytes) =
+            row_output(&q, &what, None, &RowsFormat::Xlsx(session.workbook_meta(None)))
+                .unwrap()
+                .output
         else {
             panic!("not a workbook");
         };
@@ -163,5 +162,10 @@ fn the_ew_preset_is_the_golden_dialect() {
     );
     // The quantities are numbers in their neutral form, the positions too.
     let qty = set.column("qty").unwrap();
-    assert!(table.rows.iter().all(|r| matches!(r.cells[qty], TableCell::Number(_))));
+    assert!(
+        table
+            .rows
+            .iter()
+            .all(|r| matches!(r.cells[qty], TableCell::Number(_)))
+    );
 }
