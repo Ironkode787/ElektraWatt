@@ -1188,6 +1188,46 @@ fn the_stamp_check_finds_every_item_covering_the_box_exactly() {
     assert_eq!(stamp_clearance(&[fill(ring)], stamp), Ok(40.0));
 }
 
+/// FT-1059: the check reaches a miter join's point and a square cap's corners, beyond the half-width disc of a vertex
+/// or an end, 1 nm outside and 1 nm inside the 10 × 10 box; a corner past the miter limit is bevelled and keeps to the
+/// disc.
+#[test]
+fn ft1059_the_stamp_check_reaches_a_miter_point_and_a_square_cap() {
+    use ew_dl::{Cap, Item, Path, PathEl, Stroke};
+    use ew_units::{Nm, Pt2};
+    let p = |x: i64, y: i64| Pt2::new(Nm(x), Nm(y));
+    let stamp = (0.0, 0.0, 10.0, 10.0);
+    let path = |pts: &[(i64, i64)], stroke: Stroke| {
+        let mut els = vec![PathEl::MoveTo(p(pts[0].0, pts[0].1))];
+        els.extend(pts[1..].iter().map(|&(x, y)| PathEl::LineTo(p(x, y))));
+        Item::path(Path { els }, Some(stroke), None)
+    };
+    // A 90° corner stroked 20 nm wide, its vertex (15, y) above and right of the box: the miter point lies at
+    // (5, y − 10), 1 nm above the box, while the vertex's disc keeps 2.08 nm off.
+    let corner = |y: i64| path(&[(15, 1_000), (15, y), (1_000, y)], Stroke::solid(Nm(20)));
+    let d = stamp_clearance(&[corner(21)], stamp).unwrap();
+    assert!((d - 1.0).abs() < 1e-9, "{d}");
+    assert_eq!(
+        stamp_clearance(&[corner(19)], stamp),
+        Err("the stroke's miter join at (15, 19)".to_owned())
+    );
+    // A line ending at (20, y) above the box, square-capped 20 nm wide: the cap's corner lies at (10, y − 10).
+    let square = Stroke {
+        cap: Cap::Square,
+        ..Stroke::solid(Nm(20))
+    };
+    let capped = |x: i64, y: i64| path(&[(x, 1_000), (x, y)], square.clone());
+    assert_eq!(stamp_clearance(&[capped(20, 21)], stamp), Ok(1.0));
+    assert_eq!(
+        stamp_clearance(&[capped(19, 19)], stamp),
+        Err("the stroke's square cap at (19, 19)".to_owned())
+    );
+    // A corner of about 20°, past the miter limit, its vertex 30 nm right of the box: the miter point would lie inside
+    // the box, the bevel keeps to the vertex's disc.
+    let sharp = path(&[(1_025, 179), (40, 5), (1_025, -169)], Stroke::solid(Nm(20)));
+    assert_eq!(stamp_clearance(&[sharp], stamp), Ok(20.0));
+}
+
 /// A point on the sheet in nm.
 type Pt = (f64, f64);
 /// An axis-aligned box on the sheet in nm: (min x, min y, max x, max y).
@@ -1197,7 +1237,8 @@ type Box2 = (f64, f64, f64, f64);
 /// width), or the first item covering it, in words. Exact, no sampling:
 /// - a stroked line segment covers the box when it meets the box grown by half the stroke width (endpoints inside
 ///   included); a curve (`QuadTo`, `CubicTo`) by the convex hull of its control points, which holds it, so a hull
-///   meeting the grown box covers it (conservative);
+///   meeting the grown box covers it (conservative); a miter join or a square cap covers it when it meets the box, by
+///   its real reach ([`stroke_reach`]);
 /// - a filled path (non-zero winding, each open subpath closed) covers it when a corner of the box lies inside it or
 ///   one of its edges meets the box (a curved edge by its hull; outside every hull a curve winds as its chord does);
 /// - a glyph run or an image covers it when its box meets the box.
@@ -1229,6 +1270,13 @@ fn stamp_clearance(items: &[ew_dl::Item], stamp: Box2) -> Result<f64, String> {
         if let Some(&c) = corners.iter().find(|&&c| winding(c, fill) != 0) {
             return Err(format!("the fill holding the corner {}", pt(c)));
         }
+    }
+    for (hull, pad, words) in &drawn.reaches {
+        let d = hull_box_distance(hull, stamp) - pad;
+        if d <= 0.0 {
+            return Err(format!("the stroke's {words}"));
+        }
+        nearest = nearest.min(d);
     }
     for &b in &drawn.boxes {
         let d = box_box_distance(b, stamp);
@@ -1287,6 +1335,111 @@ struct Drawn {
     fills: Vec<Vec<Seg>>,
     /// The boxes of every glyph run and image.
     boxes: Vec<Box2>,
+    /// What strokes cover beyond their grown segments ([`stroke_reach`]): a convex hull, the distance it is grown by,
+    /// and the shape in words.
+    reaches: Vec<(Vec<Pt>, f64, String)>,
+}
+
+/// What a stroked subpath `sub` (closed by `ClosePath` when `closed`, starting at `start`) covers beyond its segments
+/// grown by half the stroke width, into `out` (FT-1059):
+/// - a miter join's point, while the miter stays within [`ew_dl::MITER_LIMIT`] (past it the join is bevelled, which
+///   stays within the half-width disc around the vertex): the kite of the vertex, the two outer corners of the
+///   segments and the miter point, a curve by its tangent there;
+/// - a square cap's half square beyond each open end, along the segment's direction there;
+/// - under a dash, every dash takes the caps: a square cap is put at both ends of every segment, and a curve, whose
+///   dashes may end anywhere along it, is grown by its half width times √2 (a bound); a subpath of one point under
+///   square caps is grown so too.
+///
+/// Round joins and caps, bevel joins and butt caps stay within the grown segments.
+fn stroke_reach(
+    sub: &[(Pt, Vec<Pt>, Pt)],
+    closed: bool,
+    start: Option<Pt>,
+    stroke: &ew_dl::Stroke,
+    out: &mut Drawn,
+) {
+    use ew_dl::{Cap, Join, MITER_LIMIT};
+    let h = stroke.width.0 as f64 / 2.0;
+    if h <= 0.0 {
+        return;
+    }
+    let along = |p: Pt, d: Pt, k: f64| (p.0 + d.0 * k, p.1 + d.1 * k);
+    let unit = |d: Pt| {
+        let l = d.0.hypot(d.1);
+        (d.0 / l, d.1 / l)
+    };
+    // Each segment of some length: its start and end, and its unit directions there.
+    let segs: Vec<(Pt, Pt, Pt, Pt)> = sub
+        .iter()
+        .filter_map(|(from, ctrl, to)| {
+            let first = *ctrl.iter().chain([to]).find(|&&q| q != *from)?;
+            let last = *ctrl.iter().rev().chain([from]).find(|&&q| q != *to)?;
+            let d0 = unit((first.0 - from.0, first.1 - from.1));
+            let d1 = unit((to.0 - last.0, to.1 - last.1));
+            Some((*from, *to, d0, d1))
+        })
+        .collect();
+    if stroke.cap == Cap::Square {
+        // The half square beyond `end`, `u` pointing out of the stroke.
+        let mut cap = |end: Pt, u: Pt| {
+            let n = (-u.1, u.0);
+            let beyond = along(end, u, h);
+            let corners = [
+                along(end, n, h),
+                along(beyond, n, h),
+                along(beyond, n, -h),
+                along(end, n, -h),
+            ];
+            out.reaches
+                .push((convex_hull(&corners), 0.0, format!("square cap at {}", pt(end))));
+        };
+        let back = |u: Pt| (-u.0, -u.1);
+        if segs.is_empty() {
+            if let Some(p) = start {
+                let words = format!("square cap at {}", pt(p));
+                out.reaches.push((vec![p], h * std::f64::consts::SQRT_2, words));
+            }
+        } else if stroke.dash.is_some() {
+            for &(from, to, d0, d1) in &segs {
+                cap(from, back(d0));
+                cap(to, d1);
+            }
+            for (from, ctrl, to) in sub.iter().filter(|s| !s.1.is_empty()) {
+                let seg = Seg::new(*from, ctrl, *to);
+                let words = format!("square-capped dashes along the {}", seg.words());
+                out.reaches.push((seg.hull, h * std::f64::consts::SQRT_2, words));
+            }
+        } else if !closed {
+            let (first, last) = (segs[0], segs[segs.len() - 1]);
+            cap(first.0, back(first.2));
+            cap(last.1, last.3);
+        }
+    }
+    if stroke.join == Join::Miter {
+        let n = segs.len();
+        let closing = (closed && n >= 1).then(|| (n - 1, 0));
+        for (a, b) in (1..n).map(|i| (i - 1, i)).chain(closing) {
+            let (v, u1, u2) = (segs[a].1, segs[a].3, segs[b].2);
+            // The sine of half the corner's angle: the miter point lies half the width over it from the vertex.
+            let sin = ((1.0 + u1.0 * u2.0 + u1.1 * u2.1) / 2.0).max(0.0).sqrt();
+            let w = (u1.0 - u2.0, u1.1 - u2.1);
+            if w.0.hypot(w.1) < 1e-12 || sin * MITER_LIMIT < 1.0 {
+                continue; // straight on, or bevelled
+            }
+            let w = unit(w);
+            let outer = |n: Pt| {
+                if n.0 * w.0 + n.1 * w.1 < 0.0 {
+                    (-n.0, -n.1)
+                } else {
+                    n
+                }
+            };
+            let (n1, n2) = (outer((-u1.1, u1.0)), outer((-u2.1, u2.0)));
+            let kite = [v, along(v, n1, h), along(v, w, h / sin), along(v, n2, h)];
+            out.reaches
+                .push((convex_hull(&kite), 0.0, format!("miter join at {}", pt(v))));
+        }
+    }
 }
 
 /// The drawn items of `items` under the transforms `stack`, on the sheet in nm.
@@ -1301,8 +1454,18 @@ fn drawn_items(items: &[ew_dl::Item], stack: &[ew_dl::Transform], out: &mut Draw
             ItemKind::Path(p) => {
                 let pad = p.stroke.as_ref().map(|s| s.width.0 as f64 / 2.0);
                 let mut fill = Vec::new();
+                // The stroked subpath so far: where it starts, and each segment's start, control points and end.
+                let mut sub_start: Option<Pt> = None;
+                let mut sub: Vec<(Pt, Vec<Pt>, Pt)> = Vec::new();
                 let mut start: Option<Pt> = None;
                 let mut at: Option<Pt> = None;
+                let end_sub =
+                    |sub: &mut Vec<(Pt, Vec<Pt>, Pt)>, closed: bool, start: Option<Pt>, out: &mut Drawn| {
+                        if let Some(stroke) = &p.stroke {
+                            stroke_reach(sub, closed, start, stroke, out);
+                        }
+                        sub.clear();
+                    };
                 // The fill closes an open subpath: its last point back to its first.
                 let close = |fill: &mut Vec<Seg>, start: Option<Pt>, at: Option<Pt>| match (start, at) {
                     (Some(s), Some(a)) if s != a => fill.push(Seg::new(a, &[], s)),
@@ -1312,7 +1475,9 @@ fn drawn_items(items: &[ew_dl::Item], stack: &[ew_dl::Transform], out: &mut Draw
                     let (to, ctrl): (Pt, Vec<Pt>) = match *el {
                         PathEl::MoveTo(q) => {
                             close(&mut fill, start, at);
+                            end_sub(&mut sub, false, sub_start.take(), out);
                             let q = on_sheet(q);
+                            sub_start = Some(q);
                             (start, at) = (Some(q), Some(q));
                             if let Some(pad) = pad {
                                 out.strokes.push((Seg::new(q, &[], q), pad));
@@ -1332,9 +1497,15 @@ fn drawn_items(items: &[ew_dl::Item], stack: &[ew_dl::Transform], out: &mut Draw
                         out.strokes.push((Seg::new(from, &ctrl, to), pad));
                     }
                     fill.push(Seg::new(from, &ctrl, to));
+                    sub_start.get_or_insert(from);
+                    sub.push((from, ctrl, to));
+                    if matches!(el, PathEl::ClosePath) {
+                        end_sub(&mut sub, true, sub_start.take(), out);
+                    }
                     at = Some(to);
                 }
                 close(&mut fill, start, at);
+                end_sub(&mut sub, false, sub_start.take(), out);
                 if p.fill.is_some() {
                     out.fills.push(fill);
                 }
