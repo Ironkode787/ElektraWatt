@@ -1,6 +1,6 @@
 # ADR-0030: Legal steward, CRA role, support period and signing identity
 
-**Status:** Proposed · amended 2026-10-30 (no Apple signing identity, decision log ID-880) · **Date:** 2026-10-17 · **Deciders:** project owner, with legal advice
+**Status:** Proposed · amended 2026-10-22 (the legal and licensing items are no longer gate items, decision log ID-450 to ID-455), 2026-10-30 (no Apple signing identity, decision log ID-880), 2026-11-02 (the pilot release 0.1.0 is unsigned; the steward's CRA processes and the signing identity are 1.0's, decision log ID-1187, ID-1188) · **Date:** 2026-10-17 · **Deciders:** project owner, with legal advice
 
 ## Context
 
@@ -45,6 +45,18 @@
 - no tagged or signed binary release is published, only nightlies labelled "unsigned development build";
 - nothing is sold under the ElektraWatt name (NFR-COMP-02);
 - `SECURITY.md` with private reporting is set up anyway.
+
+**Amended 2026-11-02 (ID-1187).** Two notes on the Decision and the Recommendation.
+- **The retirement of 2026-10-22 (decision log ID-450 to ID-455).** The owner ruled that the legal and licensing items
+  are no longer relevant (ID-454): this ADR, with counsel's CRA opinion, is no longer a gate item and stays Proposed,
+  and the steward as a legal person, LG-3 and LG-4 as legal gates are not pursued. The text below is kept as the
+  record of the design.
+- **The pilot release 0.1.0 (ID-1187, ID-1188).** 0.1.0 is a tagged release without a signature, so the Decision's
+  "no tagged or signed binary release" does not stop it, and it needs no signing identity. The steward's CRA processes
+  (the cybersecurity policy, the runbook of Recommendation 4, the contact for authorities) and the signing identity
+  (Recommendation 1; Consequences, "in time for the MVP") apply from 1.0, or the identity earlier when the owner holds
+  one. That placement of the processes is ID-1188's; ID-1187 says they leave the gate of the MVP. The statements of
+  dates and roles in the Context stand as written.
 
 ## Recommendation
 

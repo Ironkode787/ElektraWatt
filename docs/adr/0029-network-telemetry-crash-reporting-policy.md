@@ -1,6 +1,6 @@
 # ADR-0029: Network, telemetry and crash-reporting policy
 
-**Status:** Proposed · amended 2026-10-30 (macOS not supported, decision log ID-880) · **Date:** 2026-10-17 · **Deciders:** project owner
+**Status:** Proposed · amended 2026-10-30 (macOS not supported, decision log ID-880), 2026-11-02 (the pilot release 0.1.0 holds no network code; the update check and the crash upload are 1.0's, decision log ID-1187, ID-1188) · **Date:** 2026-10-17 · **Deciders:** project owner
 
 ## Context
 
@@ -33,6 +33,15 @@
 - crash reports are local only;
 - the network-sandbox CI job already enforces this.
 
+**Amended 2026-11-02 (ID-1187).** The interim rule now covers the pilot release 0.1.0 as well as development builds:
+0.1.0 holds no network code, so it has no update check and no crash upload, and its crash evidence is a local log with
+the panic's message and backtrace (NFR-REL-13). The update check (Recommendation 2, NFR-PRIV-03, NFR-SEC-15), the
+local minidump and the upload (Recommendation 3, NFR-PRIV-04) are 1.0's, and so are the first-run choice and the
+policy keys that go with them. `PRIVACY.md`'s flow rows for the update check and the crash upload read "From 1.0";
+this note is the ADR that NFR-PRIV-07 asks for. 0.1.0 still opens no connection without an explicit user action
+(NFR-PRIV-01): help links, `ew mcp` on loopback and plugins granted network access stay allowed, as they are in that
+requirement.
+
 ## Recommendation
 
 **"Offline-first, zero by default":**
@@ -53,7 +62,7 @@
    - It is opt-in at first run, and off by default in MSI installs (policy key). A policy key can point it at an
      internal mirror.
    - The manifest signature is verified with the embedded release key before anything is shown.
-   - At MVP it shows a notice only. From 1.0 a click downloads the installer, which is verified (manifest SHA-256 and
+   - At MVP it shows a notice only (amended 2026-11-02: from 1.0; 0.1.0 has no update check). From 1.0 a click downloads the installer, which is verified (manifest SHA-256 and
      OS signature) and never installed silently (NFR-SEC-15).
 3. **Crash reports.**
    - **Local by default.** A local minidump plus a log tail is written to the per-user state directory with
@@ -120,7 +129,7 @@ If the recommendation is accepted:
 
 **Decision needed from:** the project owner (PQ-33).
 - The policy must be accepted before the first binary release (MVP), because the first-run prompt and `PRIVACY.md`
-  ship with it.
+  ship with it. *Amended 2026-11-02 (ID-1187):* before 1.0; the release 0.1.0 follows the interim rule of the Decision.
 - The crash-endpoint question is due by 1.0.
 
 ## Related

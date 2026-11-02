@@ -38,8 +38,8 @@ application does not remove such content for you. Exported files (PDF, reports) 
 
 | Flow | Trigger | Content | Endpoint | Default | In this version |
 |---|---|---|---|---|---|
-| Update check | Opt-in, at most once a day | `GET` of a signed manifest; the product version, the operating system and the architecture | Project site or a mirror you configure | Off; off in managed installations | Not implemented; the setting is stored and nothing is sent |
-| Crash upload | Per report, after you preview the payload | A reduced stack trace without project text | None decided | Off; the button is hidden while no endpoint exists | Not implemented |
+| Update check | Opt-in, at most once a day | `GET` of a signed manifest; the product version, the operating system and the architecture | Project site or a mirror you configure | Off; off in managed installations | From 1.0 (ADR-0029, amended 2026-11-02). Not implemented; the setting is stored and nothing is sent |
+| Crash upload | Per report, after you preview the payload | A reduced stack trace without project text | None decided | Off; the button is hidden while no endpoint exists | From 1.0 (ADR-0029, amended 2026-11-02). Not implemented |
 | Help and community links | You click one | A URL opened in your system browser; the application itself sends nothing. The About dialog and the first-run privacy step link to this document in the repository | The documentation site and the repository's pages | Offline user guide shipped with the application | The browser is started by you; the browser then talks to the site |
 | Plugin network | Capability granted at install (1.x) | Plugin-defined | Plugin-defined | Denied | Not implemented |
 | `ew mcp` | You start it | MCP over standard input and output, or `127.0.0.1` with a token | Local | Off | Not implemented |

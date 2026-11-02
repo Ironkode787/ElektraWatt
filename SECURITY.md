@@ -43,5 +43,5 @@ Before 1.0 only the latest 0.x release is supported, and there is no long-term-s
 ## Scope of this stub
 
 This file is a stub for milestone M0. The full policy follows by the first binary release (WP-S6.04): the CVE
-process in detail, the notification procedure of the EU Cyber Resilience Act that the steward runs, and the
-disclosure tabletop exercise before 1.0. The requirements are NFR-SEC-14 and NFR-COMP-03.
+process in detail. The notification procedure of the EU Cyber Resilience Act that the steward runs and the
+disclosure tabletop exercise follow by 1.0 (WP-S6.10). The requirements are NFR-SEC-14 and NFR-COMP-03.
