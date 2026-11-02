@@ -796,3 +796,63 @@ fn a_library_enclosure_part_is_offered_with_its_plate_and_creates_the_enclosure(
         "one plate more"
     );
 }
+
+/// The scale of the drawn page `page`.
+fn scale_of(s: &Session, page: Uuid) -> ew_schema::Scale {
+    s.query()
+        .pages()
+        .get(Id::from_uuid(page))
+        .expect("the page")
+        .scale
+        .clone()
+}
+
+/// FT-1016 (ID-1148): the Surface row of a new panel page (drawn not to scale) sends the fitting scale with the view
+/// and the datum centred at that scale, in one command; the page then keeps it. 902's own 1:10 is kept.
+#[test]
+fn ft1016_a_new_panel_page_takes_the_fitting_scale_with_its_surface() {
+    let mut s = golden_common::session(&golden_common::batch());
+    let p902 = s
+        .page_rows()
+        .into_iter()
+        .find(|r| r.folio == "902")
+        .expect("902")
+        .id;
+    let plate = uuid::<MountingSurface>("mounting_surfaces", "-UC1");
+    assert_eq!(scale_of(&s, p902), ew_schema::Scale::OneTo(10));
+    let keep = edit(&s, "page", p902, "surface", "-UC1 plate").unwrap();
+    assert_eq!(keep.params.get("scale"), None, "a chosen scale is kept");
+
+    let before: Vec<Uuid> = s.page_rows().into_iter().map(|r| r.id).collect();
+    run(
+        &mut s,
+        &AnyCommand {
+            name: "page.create".into(),
+            params: json!({"after": p902.to_string(), "kind": "panel_layout"}),
+        },
+    );
+    let new = s
+        .page_rows()
+        .into_iter()
+        .find(|r| !before.contains(&r.id))
+        .expect("the new page")
+        .id;
+    assert_eq!(scale_of(&s, new), ew_schema::Scale::NotToScale);
+    let n = s.fitting_scale(new, plate).expect("the plate fits a scale");
+    assert_eq!(n, 10, "-UC1's plate on the page frame's drawing area");
+    let datum = s.centred_surface_datum(new, plate).expect("a centred datum");
+    let cmd = edit(&s, "page", new, "surface", "-UC1 plate").unwrap();
+    assert_eq!(cmd.name, "page.surface_view.set");
+    assert_eq!(
+        cmd.params,
+        json!({"page": new.to_string(), "surface": plate.to_string(), "datum_at": [datum.0, datum.1],
+            "label_mode": "abbreviated", "scale": {"one_to": n}})
+    );
+    run(&mut s, &cmd);
+    assert_eq!(scale_of(&s, new), ew_schema::Scale::OneTo(n));
+    // The page now has its scale: a later edit sends none.
+    let again = edit(&s, "page", new, "label_mode", "Full").unwrap();
+    assert_eq!(again.params.get("scale"), None);
+    let again = edit(&s, "page", new, "surface", "-UC1 plate").unwrap();
+    assert_eq!(again.params.get("scale"), None);
+}

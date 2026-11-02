@@ -23,18 +23,17 @@ use ew_derive::layout::{
     free_length, mount_label, path_length, rail_items,
 };
 use ew_derive::{DeviceTag, DrawnPageOrder, PageRef, Q, StructurePath};
-use ew_scene::forms::{FrameGeometry, SheetMap};
 use ew_scene::panel::Projection;
 use ew_schema::{
     Carrier, CarrierKind, CarrierParams, CarrierRef, Device, Enclosure, Kind, LayoutSpace, LibCopy,
-    LibDocument, MountingSurface, Page, PageType, Part, PartKind, Placement, StructureNode,
+    LibDocument, MountingSurface, Page, PageType, Part, PartKind, Placement, Scale, StructureNode,
 };
 use serde_json::{Value, json};
 
 use super::fields::{Category, EditRoute, FieldReadOnly, FieldType};
 use super::panel::PageSurfaceView;
 use super::properties::{PropRow, Provenance, RowAction, RowValue};
-use super::view::PageFrameOf;
+use super::scale_fit::{drawing_area, page_fitting_scale};
 use crate::{AnyCommand, Session};
 
 /// One row's edit (ruling 3): the text typed into row `row` (`derived.position`) of the record `target` of `kind`
@@ -831,21 +830,30 @@ fn surfaces_in_order(q: &Q) -> Vec<(Id<MountingSurface>, String)> {
     out
 }
 
-/// The datum that centres the enclosure of `surface` (its outer rectangle, else the usable polygon's bounds) in the
-/// drawing area of `page`'s frame at the page's scale (D12); `None` without a frame: no centred datum is offered, and
-/// a page without a view then keeps the datum (0, 0), one with a view its own.
-pub(crate) fn centred_datum(q: &Q, page: Id<Page>, surface: Id<MountingSurface>) -> Option<(i64, i64)> {
+/// The scale a surface view set of `surface` on `page` sends (FT-1016, ID-1148): the fitting scale when the page is
+/// still drawn not to scale (a new page's) and one fits; `None`, the page's scale kept, otherwise.
+fn scale_to_send(q: &Q, page: Id<Page>, surface: Id<MountingSurface>) -> Option<Scale> {
     let pg = q.pages().get(page)?;
+    if pg.scale != Scale::NotToScale {
+        return None;
+    }
+    page_fitting_scale(q, page, surface).map(Scale::OneTo)
+}
+
+/// The datum that centres the enclosure of `surface` (its outer rectangle, else the usable polygon's bounds) in the
+/// drawing area of `page`'s frame grid at `scale` (D12; the page's, or the one sent with the view, ID-1148; the grid
+/// the page's cells read, the built-in default one on a page without a frame form, FT-1016); `None` without a frame
+/// grid: no centred datum is offered, and a page without a view then keeps the datum (0, 0), one with a view its own.
+pub(crate) fn centred_datum(
+    q: &Q,
+    page: Id<Page>,
+    surface: Id<MountingSurface>,
+    scale: &Scale,
+) -> Option<(i64, i64)> {
+    q.pages().get(page)?;
     let s = q.table::<MountingSurface>().get(surface)?;
-    let frame = q.get::<PageFrameOf>(PageRef::Drawn(page)).as_ref().clone();
-    let map = frame
-        .as_ref()
-        .map_or(SheetMap::IDENTITY, |f| SheetMap::of(&f.form));
     // The drawing area's centre on the page (the frame's geometry is on the sheet).
-    let area = frame
-        .as_ref()
-        .and_then(|f| FrameGeometry::of(&f.form, f.title_block.as_deref()))
-        .map(|g| g.drawing_area)?;
+    let (area, map) = drawing_area(q, page)?;
     let mid_sheet = ew_derive::ew_units::Pt2::new(
         ew_derive::ew_units::Nm((area.min().x.0 + area.max().x.0) / 2),
         ew_derive::ew_units::Nm((area.min().y.0 + area.max().y.0) / 2),
@@ -874,7 +882,7 @@ pub(crate) fn centred_datum(q: &Q, page: Id<Page>, surface: Id<MountingSurface>)
         Some((us.clone().min()?, vs.clone().min()?, us.max()?, vs.max()?))
     })?;
     let (uc, vc) = ((bounds.0 + bounds.2) / 2, (bounds.1 + bounds.3) / 2);
-    let projection = Projection::on_sheet(ew_derive::ew_units::Pt2::ORIGIN, &pg.scale, map.scale_ppb);
+    let projection = Projection::on_sheet(ew_derive::ew_units::Pt2::ORIGIN, scale, map.scale_ppb);
     let x = i128::from(mid.x.0) - projection.length(uc);
     let y = i128::from(mid.y.0) + projection.length(vc);
     Some((i64::try_from(x).ok()?, i64::try_from(y).ok()?))
@@ -1120,6 +1128,7 @@ impl Session {
                     return invalid("The page is no longer in the project.");
                 }
                 let view = q.get::<PageSurfaceView>(page).as_ref().clone();
+                let mut scale = None;
                 let (mut surface, mut datum, mut mode) = match &view {
                     Some(v) => (
                         Some(v.surface),
@@ -1162,9 +1171,15 @@ impl Session {
                                 )));
                             }
                         };
-                        // A page without a view centres the enclosure in the frame (D12).
-                        if datum.is_none() || surface != Some(id) {
-                            datum = centred_datum(&q, page, id).or(datum);
+                        // A page still drawn not to scale takes the fitting scale with the view (FT-1016, ID-1148).
+                        scale = scale_to_send(&q, page, id);
+                        // A page without a view, or one that takes a scale, centres the enclosure in the frame
+                        // (D12) at the scale it draws at.
+                        if datum.is_none() || surface != Some(id) || scale.is_some() {
+                            let at = scale.clone().unwrap_or_else(|| {
+                                q.pages().get(page).map(|p| p.scale.clone()).unwrap_or_default()
+                            });
+                            datum = centred_datum(&q, page, id, &at).or(datum);
                         }
                         surface = Some(id);
                     }
@@ -1189,11 +1204,12 @@ impl Session {
                     return invalid("Choose the surface first.");
                 };
                 let (x, y) = datum.unwrap_or((0, 0));
-                command(
-                    "page.surface_view.set",
-                    json!({"page": edit.target.to_string(), "surface": surface.as_uuid().to_string(),
-                        "datum_at": [x, y], "label_mode": mode}),
-                )
+                let mut params = json!({"page": edit.target.to_string(), "surface": surface.as_uuid().to_string(),
+                    "datum_at": [x, y], "label_mode": mode});
+                if let Some(Scale::OneTo(n)) = scale {
+                    params["scale"] = json!({"one_to": n});
+                }
+                command("page.surface_view.set", params)
             }
             _ => invalid("This row cannot be changed here."),
         }
@@ -1312,10 +1328,15 @@ impl Session {
     }
 
     /// The datum `page.surface_view.set` takes to show `surface` centred on the panel page `page` (D12; PS-1):
-    /// the enclosure's rectangle centred in the frame's drawing area at the page's scale. `None` for a page without a
-    /// frame grid or an unknown page or surface.
+    /// the enclosure's rectangle centred in the frame's drawing area at the scale the page draws the view at (its
+    /// own, or the fitting scale a page still drawn not to scale takes with the view, ID-1148). `None` for a page
+    /// without a frame grid or an unknown page or surface.
     pub fn centred_surface_datum(&self, page: Uuid, surface: Uuid) -> Option<(i64, i64)> {
-        centred_datum(&self.query(), Id::from_uuid(page), Id::from_uuid(surface))
+        let q = self.query();
+        let (page, surface) = (Id::from_uuid(page), Id::from_uuid(surface));
+        let scale =
+            scale_to_send(&q, page, surface).or_else(|| q.pages().get(page).map(|p| p.scale.clone()))?;
+        centred_datum(&q, page, surface, &scale)
     }
 }
 

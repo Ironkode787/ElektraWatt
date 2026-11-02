@@ -19,7 +19,7 @@ use ew_ids::{Id, v5};
 use ew_model::{AnyKey, Model};
 use ew_schema::{
     Device, EnclosureSection, Kind, LibCopy, LibDocument, MountingSurface, Page, PageItem, PageItemKind,
-    PageType, Part, PartRef, PartUse, PlateSection, Record,
+    PageType, Part, PartRef, PartUse, PlateSection, Record, Scale,
 };
 use ew_units::{Dec3, Nm, Pt2};
 use serde_json::{Value, json};
@@ -126,6 +126,7 @@ fn fx() -> (Engine, AnyKey) {
             surface,
             datum_at: Pt2::new(Nm(25 * MM), Nm(167 * MM)),
             label_mode: LabelModeParam::Abbreviated,
+            scale: None,
         })
         .unwrap()
         .outcome
@@ -313,4 +314,97 @@ fn ft882_a_move_of_a_selection_with_the_surface_view_names_it() {
         ),
         other => panic!("expected a rejection, got {other:?}"),
     }
+}
+
+/// The plate surface of the fixture.
+fn the_surface(m: &Model) -> Id<MountingSurface> {
+    *m.table::<MountingSurface>()
+        .iter()
+        .next()
+        .expect("the plate surface")
+        .0
+}
+
+fn scale_of(m: &Model, page: Id<Page>) -> Scale {
+    m.table::<Page>().get(&page).expect("the page").scale.clone()
+}
+
+/// FT-1016 (ID-1148): `page.surface_view.set` with a scale sets the page's scale and the view in one undo step.
+#[test]
+fn ft1016_a_surface_view_with_a_scale_sets_the_page_scale_in_one_step() {
+    let (mut e, _) = fx();
+    assert_eq!(scale_of(e.model(), PAGE_902), Scale::NotToScale);
+    let before = lines(e.model());
+    let surface = the_surface(e.model());
+    run(
+        &mut e,
+        "page.surface_view.set",
+        json!({"page": PAGE_902.to_string(), "surface": surface.to_string(),
+            "datum_at": [40_000_000, 150_000_000], "scale": {"one_to": 10}}),
+    );
+    assert_eq!(scale_of(e.model(), PAGE_902), Scale::OneTo(10));
+    e.undo(&Origin::Gui).unwrap();
+    assert_eq!(
+        lines(e.model()),
+        before,
+        "one undo restores the page's scale and the view"
+    );
+}
+
+/// FT-1016 (ID-1148): without a scale the page keeps the one it has (a script's view set changes no scale).
+#[test]
+fn ft1016_a_surface_view_without_a_scale_keeps_the_page_scale() {
+    let (mut e, _) = fx();
+    let surface = the_surface(e.model());
+    e.execute(&SetFields {
+        path: "scale".into(),
+        value: json!({"one_to": 5}),
+        ..set_kind(PAGE_902, "")
+    })
+    .unwrap();
+    run(
+        &mut e,
+        "page.surface_view.set",
+        json!({"page": PAGE_902.to_string(), "surface": surface.to_string(),
+            "datum_at": [40_000_000, 150_000_000]}),
+    );
+    assert_eq!(scale_of(e.model(), PAGE_902), Scale::OneTo(5));
+    // The same scale given again writes no page record.
+    let preview = e
+        .preview(&SetSurfaceView {
+            page: PAGE_902,
+            surface,
+            datum_at: Pt2::new(Nm(40 * MM), Nm(150 * MM)),
+            label_mode: LabelModeParam::Full,
+            scale: Some(Scale::OneTo(5)),
+        })
+        .unwrap();
+    assert!(
+        preview.ops().iter().all(|op| match op {
+            ew_model::Op::Put { key, .. } => *key != page_key(PAGE_902),
+        }),
+        "the page is not written"
+    );
+}
+
+/// FT-1016 (ID-1148): a scale of 1:0 is refused, and nothing changes.
+#[test]
+fn ft1016_a_scale_of_one_to_zero_is_refused() {
+    let (mut e, _) = fx();
+    let before = lines(e.model());
+    let surface = the_surface(e.model());
+    let refused = e
+        .execute(&SetSurfaceView {
+            page: PAGE_902,
+            surface,
+            datum_at: Pt2::new(Nm(40 * MM), Nm(150 * MM)),
+            label_mode: LabelModeParam::Abbreviated,
+            scale: Some(Scale::OneTo(0)),
+        })
+        .unwrap_err();
+    assert_eq!(
+        refused.to_string(),
+        "page.surface_view.set: invalid parameters at `/scale`: a scale is 1:n with n at least 1"
+    );
+    assert_eq!(lines(e.model()), before);
 }

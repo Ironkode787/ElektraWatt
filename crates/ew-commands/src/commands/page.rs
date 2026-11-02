@@ -732,10 +732,12 @@ pub enum LabelModeParam {
 /// panel-layout page: the surface, where its origin lands on the page (`datum_at`, page nm) and the label mode
 /// (default abbreviated). A page holds at most one view: a page that has one keeps it, with its ID, and takes the new
 /// values (members this build keeps verbatim stay); a page without one gets a new page item. What the view draws is
-/// derived from the layout records at the page's scale, never stored.
+/// derived from the layout records at the page's scale, never stored. With `scale` the page takes that scale in the
+/// same undo step (FT-1016, ID-1148: the window sends the fitting scale to a page still drawn not to scale); without
+/// it the page keeps its scale.
 ///
 /// Rejected: a missing page (not found); a page that is not a panel-layout page; a surface that is not in the project
-/// (`/surface`). Interactive. Outcome: the surface view's page item.
+/// (`/surface`); a scale of 1:0 (`/scale`). Interactive. Outcome: the surface view's page item.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct SetSurfaceView {
@@ -751,6 +753,10 @@ pub struct SetSurfaceView {
     /// How placements are labelled; default abbreviated.
     #[serde(default)]
     pub label_mode: LabelModeParam,
+    /// The scale the page takes in the same step (`"not_to_scale"` or `{"one_to": n}`, n at least 1); absent keeps
+    /// the page's scale.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scale: Option<Scale>,
 }
 
 impl Command for SetSurfaceView {
@@ -774,6 +780,16 @@ impl Command for SetSurfaceView {
                 "/surface",
                 "the mounting surface is not in the project",
             ));
+        }
+        if matches!(self.scale, Some(Scale::OneTo(0))) {
+            return Err(CmdError::invalid_params(
+                Self::NAME,
+                "/scale",
+                "a scale is 1:n with n at least 1",
+            ));
+        }
+        if let Some(scale) = self.scale.as_ref().filter(|s| **s != page.scale) {
+            tx.update::<Page>(self.page, |p| p.scale = scale.clone())?;
         }
         let label_mode = match self.label_mode {
             LabelModeParam::Abbreviated => SurfaceLabelMode::Abbreviated,

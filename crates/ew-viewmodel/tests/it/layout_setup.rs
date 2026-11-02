@@ -331,21 +331,107 @@ fn ps1_create_enclosure_on_a_new_location_and_its_refusal_on_one_with_an_enclosu
     let (xs, ys): (Vec<i64>, Vec<i64>) = corners.iter().copied().unzip();
     let (x0, x1) = (*xs.iter().min().unwrap(), *xs.iter().max().unwrap());
     let (y0, y1) = (*ys.iter().min().unwrap(), *ys.iter().max().unwrap());
-    // The new page keeps its own scale (1:1 here, so the plate overhangs the sheet); its centre is the sheet's, less
-    // the title block's share of the drawing area.
+    // FT-1016 (ID-1148): the new page, drawn not to scale, takes the fitting scale with its view, so the plate lies
+    // inside the frame's drawing area; its centre is the sheet's, less the title block's share of the drawing area.
+    assert_eq!(row_text(&s, "page/scale"), PS1_SCALE);
+    let [a0, b0, a1, b1] =
+        ew_viewmodel::tools::ip::drawing_area(s.canvas().unwrap().page()).expect("the frame's drawing area");
+    assert!(
+        a0 <= x0 && x1 <= a1 && b0 <= y0 && y1 <= b1,
+        "the plate ({x0}, {y0})–({x1}, {y1}) inside the drawing area ({a0}, {b0})–({a1}, {b1})"
+    );
     let (cx, cy) = ((x0 + x1) / 2, (y0 + y1) / 2);
     assert!(
         (cx - sheet.0 / 2).abs() < sheet.0 / 10 && (cy - sheet.1 / 2).abs() < sheet.1 / 10,
         "centred: ({cx}, {cy}) on {sheet:?}"
     );
-    // C44-p2#5: the datum exactly, the one D12 computes for this frame and plate.
+    // C44-p2#5: the datum exactly, the one D12 computes for this frame and plate at the fitting scale.
     assert_eq!(row_text(&s, "page/derived.datum"), PS1_DATUM);
     s.shutdown();
 }
 
-/// PS-1's centred datum of the new plate on folio 950 (1:1): the frame's drawing-area centre on the page, less the
-/// enclosure rectangle's centre in the plate's frame (x), plus it (y, the page's y grows downwards).
-const PS1_DATUM: &str = "-192.746658, 531.283331 mm";
+/// FT-1016 (ID-1148) on a new project: the starter's enclosure on a new location, a new panel page and its Surface
+/// row: the page takes the fitting scale in the same undo step as its view, and the plate lies inside the frame's
+/// drawing area. A second Surface edit keeps the scale.
+#[test]
+fn ft1016_a_new_projects_panel_page_takes_the_fitting_scale() {
+    let tmp = Tmp::new("ft1016");
+    let mut s = new_project(&tmp);
+    done(
+        &mut s,
+        "structure.new",
+        json!({"kind": "location", "designation": "CAB1"}),
+    );
+    done(&mut s, "layout.enclosure_new", json!({}));
+    assert!(
+        matches!(s.submit_form(), Outcome::Done),
+        "the starter's enclosure"
+    );
+    done(
+        &mut s,
+        "page.new",
+        json!({"folio": "2", "type": "panel_layout", "title": "Panel"}),
+    );
+    assert_eq!(s.current_folio(), Some("2"));
+    done(&mut s, "select.set", json!({"ids": []}));
+    assert_eq!(row_text(&s, "page/scale"), "Absent", "drawn not to scale");
+    let plate = surfaces(&s).into_iter().next().expect("the starter's plate");
+    let rev = s.revision();
+    done(
+        &mut s,
+        "props.set",
+        json!({"row": "page/derived.surface", "value": plate}),
+    );
+    // The starter's plate (520 × 720 mm) on the default frame's drawing area (about 270 × 169 mm): 1:5.
+    assert_eq!(row_text(&s, "page/scale"), "1:5");
+    assert_eq!(row_text(&s, "page/derived.datum"), NEW_PROJECT_DATUM);
+    let t = panel(&s);
+    let page = s.canvas().unwrap().page();
+    let corners: Vec<(i64, i64)> = t
+        .usable
+        .iter()
+        .map(|p| {
+            page.snapper
+                .page_to_sheet(t.to_page((i128::from(p.0), i128::from(p.1))))
+        })
+        .collect();
+    let (xs, ys): (Vec<i64>, Vec<i64>) = corners.iter().copied().unzip();
+    let (x0, x1) = (*xs.iter().min().unwrap(), *xs.iter().max().unwrap());
+    let (y0, y1) = (*ys.iter().min().unwrap(), *ys.iter().max().unwrap());
+    let [a0, b0, a1, b1] = ew_viewmodel::tools::ip::drawing_area(page).expect("the frame's drawing area");
+    assert!(
+        a0 <= x0 && x1 <= a1 && b0 <= y0 && y1 <= b1,
+        "the plate ({x0}, {y0})–({x1}, {y1}) inside the drawing area ({a0}, {b0})–({a1}, {b1})"
+    );
+    // One undo step takes the view and the scale back.
+    done(&mut s, "edit.undo", json!({}));
+    assert_eq!(row_text(&s, "page/scale"), "Absent", "drawn not to scale");
+    assert!(s.panel_tables().is_none(), "no surface view");
+    assert_ne!(s.revision(), rev);
+    done(&mut s, "edit.redo", json!({}));
+    // A scale chosen by hand is kept by the next Surface edit.
+    done(&mut s, "props.set", json!({"row": "page/scale", "value": "1:20"}));
+    done(
+        &mut s,
+        "props.set",
+        json!({"row": "page/derived.surface", "value": plate}),
+    );
+    assert_eq!(row_text(&s, "page/scale"), "1:20");
+    s.shutdown();
+}
+
+/// The centred datum of the starter's plate on a new project's panel page at 1:5 (FT-1016): the default frame's
+/// drawing-area centre (140.229167, 89.958333 mm) less the 600 × 800 mm enclosure's centre in the plate's frame
+/// (offset 40 mm) at 1:5 (52 mm) in x, plus it (72 mm) in y.
+const NEW_PROJECT_DATUM: &str = "88.229167, 161.958333 mm";
+
+/// PS-1's fitting scale of the new plate on folio 950 (FT-1016, ID-1148).
+const PS1_SCALE: &str = "1:10";
+
+/// PS-1's centred datum of the new plate on folio 950 at [`PS1_SCALE`]: the frame's drawing-area centre on the page,
+/// less the enclosure rectangle's centre in the plate's frame (x), plus it (y, the page's y grows downwards), both
+/// drawn at the scale.
+const PS1_DATUM: &str = "99.301325, 126.9092 mm";
 
 /// The Surface view row's choices on the page shown (the project's plates by their words).
 fn surfaces(s: &ShellModel) -> Vec<String> {

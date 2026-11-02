@@ -77,6 +77,8 @@ mod raster;
 mod rows;
 // WP-S1.18 part 2: page digests and the page change status (D6, D7).
 mod revisions;
+// FT-1016 (ID-1148): the scale a panel page is fitted at.
+mod scale_fit;
 // WP-S2.07 part 1: the strip editor's gestures (§4.2).
 mod strip_edit;
 mod view;
@@ -125,10 +127,12 @@ pub use layers::{
 };
 // WP-S4.01 part 3
 pub use layout_edit::{LayoutEdit, LayoutEditError, LayoutPartOffer, parse_mm};
+// FT-1016 (ID-1148)
 pub use navigation::{
     CellLabel, GotoError, GotoTarget, LinkTarget, PageCells, PageCp, PageListRow, PageListTable, PageRow,
 };
 pub use panel::{PageSurfaceView, ShapedText, SurfaceViewOf};
+pub use scale_fit::{FIT_SCALES, fitting_scale};
 // WP-S4.02 part 3 (D9): the panel tables and the pure items of `ew_derive::layout` the layout tool runs, so that
 // `ew-viewmodel` keeps its one dependency.
 pub use ew_derive::layout::{

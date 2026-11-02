@@ -40,11 +40,36 @@
           "type": "string"
         }
       ]
+    },
+    "Scale": {
+      "description": "The scale of a page (doc 03 §6): `\"not_to_scale\"` (the default, omitted) or `{\"one_to\": n}` for 1:n.",
+      "oneOf": [
+        {
+          "const": "not_to_scale",
+          "description": "Not to scale (schematics).",
+          "type": "string"
+        },
+        {
+          "additionalProperties": false,
+          "description": "1:n (layout pages: \"1:10\" on 902).",
+          "properties": {
+            "one_to": {
+              "format": "uint32",
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "one_to"
+          ],
+          "type": "object"
+        }
+      ]
     }
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
-  "description": "`page.surface_view.set` (`SetSurfaceView`, WP-S4.01 D9; FR-LAY-010): sets the view of one mounting surface on a\npanel-layout page: the surface, where its origin lands on the page (`datum_at`, page nm) and the label mode\n(default abbreviated). A page holds at most one view: a page that has one keeps it, with its ID, and takes the new\nvalues (members this build keeps verbatim stay); a page without one gets a new page item. What the view draws is\nderived from the layout records at the page's scale, never stored.\n\nRejected: a missing page (not found); a page that is not a panel-layout page; a surface that is not in the project\n(`/surface`). Interactive. Outcome: the surface view's page item.",
+  "description": "`page.surface_view.set` (`SetSurfaceView`, WP-S4.01 D9; FR-LAY-010): sets the view of one mounting surface on a\npanel-layout page: the surface, where its origin lands on the page (`datum_at`, page nm) and the label mode\n(default abbreviated). A page holds at most one view: a page that has one keeps it, with its ID, and takes the new\nvalues (members this build keeps verbatim stay); a page without one gets a new page item. What the view draws is\nderived from the layout records at the page's scale, never stored. With `scale` the page takes that scale in the\nsame undo step (FT-1016, ID-1148: the window sends the fitting scale to a page still drawn not to scale); without\nit the page keeps its scale.\n\nRejected: a missing page (not found); a page that is not a panel-layout page; a surface that is not in the project\n(`/surface`); a scale of 1:0 (`/scale`). Interactive. Outcome: the surface view's page item.",
   "properties": {
     "datum_at": {
       "$ref": "#/$defs/CmdPt2",
@@ -58,6 +83,17 @@
     "page": {
       "$ref": "#/$defs/CmdUuid",
       "description": "The panel-layout page."
+    },
+    "scale": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Scale"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The scale the page takes in the same step (`\"not_to_scale\"` or `{\"one_to\": n}`, n at least 1); absent keeps\nthe page's scale."
     },
     "surface": {
       "$ref": "#/$defs/CmdUuid",
