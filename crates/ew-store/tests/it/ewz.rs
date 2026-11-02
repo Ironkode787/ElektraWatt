@@ -20,7 +20,10 @@ const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-24
 /// The git files EZ-1 adds to its copy of Golden A (Golden A has none, ID-1175 ruling 8).
 fn git_files() -> BTreeMap<String, Vec<u8>> {
     BTreeMap::from([
-        (".gitattributes".to_owned(), b"*.jsonl merge=elektrawatt\n".to_vec()),
+        (
+            ".gitattributes".to_owned(),
+            b"*.jsonl merge=elektrawatt\n".to_vec(),
+        ),
         (".gitignore".to_owned(), b".~ew.lock\n.ew/\n".to_vec()),
     ])
 }
@@ -46,7 +49,11 @@ fn tree(dir: &Path) -> BTreeMap<String, Vec<u8>> {
             if path.is_dir() {
                 walk(&path, base, out);
             } else {
-                let rel = path.strip_prefix(base).unwrap().to_string_lossy().replace('\\', "/");
+                let rel = path
+                    .strip_prefix(base)
+                    .unwrap()
+                    .to_string_lossy()
+                    .replace('\\', "/");
                 out.insert(rel, std::fs::read(&path).unwrap());
             }
         }
@@ -85,7 +92,10 @@ fn ez1_golden_a_packs_deterministically_and_extracts_to_its_source() {
     let expected = tree(&source);
     let first = ewz::pack_store(&open_read_only(&source)).expect("Golden A packs");
     let second = ewz::pack_store(&open_read_only(&source)).expect("Golden A packs again");
-    assert_eq!(first, second, "two packs of the same generation are byte-identical");
+    assert_eq!(
+        first, second,
+        "two packs of the same generation are byte-identical"
+    );
     assert_eq!(first.generation, 1);
     assert_eq!(first.files, expected.len());
 
@@ -99,18 +109,29 @@ fn ez1_golden_a_packs_deterministically_and_extracts_to_its_source() {
     std::fs::write(source.join("project.jsonl.tmp-9"), b"a temp").unwrap();
     std::fs::write(source.join(".~ew.lock.stale-1"), b"a stale lock").unwrap();
     let third = ewz::pack_store(&open_read_only(&source)).expect("Golden A packs with clutter");
-    assert_eq!(third, first, "strays, foreign files, .ew/, temps, locks and .git/ never enter");
+    assert_eq!(
+        third, first,
+        "strays, foreign files, .ew/, temps, locks and .git/ never enter"
+    );
 
     let entries = zip::read(&first.bytes, &ZipLimits::default()).unwrap();
     assert_eq!(
-        (entries[0].name.as_str(), entries[0].method, entries[0].data.as_slice()),
+        (
+            entries[0].name.as_str(),
+            entries[0].method,
+            entries[0].data.as_slice()
+        ),
         (
             "mimetype",
             Method::Stored,
             b"application/vnd.elektrawatt.project+zip".as_slice()
         )
     );
-    assert_eq!(&first.bytes[30..38], b"mimetype", "the first local header names mimetype");
+    assert_eq!(
+        &first.bytes[30..38],
+        b"mimetype",
+        "the first local header names mimetype"
+    );
     assert_eq!(entries[1].name, "manifest.json");
     let rest: Vec<&str> = entries[2..].iter().map(|e| e.name.as_str()).collect();
     let mut sorted = rest.clone();
@@ -124,7 +145,11 @@ fn ez1_golden_a_packs_deterministically_and_extracts_to_its_source() {
     std::fs::write(&archive, &first.bytes).unwrap();
     let read = ewz::read_file(&OsVfs, &archive).expect("the archive reads");
     ewz::extract(&OsVfs, &read, &target).expect("the archive extracts");
-    assert_eq!(tree(&target), expected, "the extracted directory is byte-equal to the source");
+    assert_eq!(
+        tree(&target),
+        expected,
+        "the extracted directory is byte-equal to the source"
+    );
     assert_eq!(
         std::fs::read_dir(target.parent().unwrap()).unwrap().count(),
         1,
@@ -172,7 +197,11 @@ fn workdir() -> MemVfs {
 
 /// The names directly in `/w`.
 fn names(vfs: &MemVfs) -> Vec<String> {
-    vfs.list(Path::new("/w")).unwrap().into_iter().map(|(n, _)| n).collect()
+    vfs.list(Path::new("/w"))
+        .unwrap()
+        .into_iter()
+        .map(|(n, _)| n)
+        .collect()
 }
 
 /// EZ-3: extracting onto an existing directory or file is refused before anything is written; an existing staging
@@ -197,8 +226,14 @@ fn ez3_an_existing_target_is_refused_and_nothing_is_written() {
 
     let vfs = workdir();
     vfs.put(target, b"a file");
-    assert!(matches!(ewz::extract(&vfs, &archive, target), Err(ExtractError::Exists(_))));
-    assert_eq!(vfs.files(Path::new("/w")), BTreeMap::from([("p.ew".to_owned(), b"a file".to_vec())]));
+    assert!(matches!(
+        ewz::extract(&vfs, &archive, target),
+        Err(ExtractError::Exists(_))
+    ));
+    assert_eq!(
+        vfs.files(Path::new("/w")),
+        BTreeMap::from([("p.ew".to_owned(), b"a file".to_vec())])
+    );
 
     let vfs = workdir();
     vfs.put(Path::new("/w/p.ew.tmp-ewz/mine"), b"another extract's");
@@ -228,10 +263,17 @@ fn ez3_a_failure_at_each_call_leaves_no_target_and_no_staging() {
     let total = vfs.calls();
     assert_eq!(vfs.files(target), archive.entries);
     assert_eq!(names(&vfs), ["p.ew"]);
-    vfs.set_fault(Fault::PowerLoss { at: total + 1, keep: 0 });
+    vfs.set_fault(Fault::PowerLoss {
+        at: total + 1,
+        keep: 0,
+    });
     assert!(vfs.stat(target).is_err());
     vfs.restart();
-    assert_eq!(vfs.files(target), archive.entries, "durable when the extract returns");
+    assert_eq!(
+        vfs.files(target),
+        archive.entries,
+        "durable when the extract returns"
+    );
 
     let mut kinds = std::collections::BTreeSet::new();
     for at in 1..=total {
@@ -252,7 +294,15 @@ fn ez3_a_failure_at_each_call_leaves_no_target_and_no_staging() {
     }
     assert_eq!(
         kinds.into_iter().collect::<Vec<_>>(),
-        ["create_dir", "create_new", "read", "rename", "stat", "sync", "sync_dir"],
+        [
+            "create_dir",
+            "create_new",
+            "read",
+            "rename",
+            "stat",
+            "sync",
+            "sync_dir"
+        ],
         "every kind of call of the extract was failed once"
     );
 
@@ -294,25 +344,36 @@ fn a_directory_rename_moves_its_subtree() {
     assert_eq!(names(&vfs), ["c"]);
     vfs.put(Path::new("/w/d/f"), b"f");
     assert_eq!(
-        vfs.rename(Path::new("/w/c"), Path::new("/w/d")).unwrap_err().kind(),
+        vfs.rename(Path::new("/w/c"), Path::new("/w/d"))
+            .unwrap_err()
+            .kind(),
         io::ErrorKind::DirectoryNotEmpty
     );
     assert_eq!(
-        vfs.rename(Path::new("/w/c"), Path::new("/w/d/f")).unwrap_err().kind(),
+        vfs.rename(Path::new("/w/c"), Path::new("/w/d/f"))
+            .unwrap_err()
+            .kind(),
         io::ErrorKind::NotADirectory
     );
     assert_eq!(
-        vfs.rename(Path::new("/w/c"), Path::new("/w/c/x/y")).unwrap_err().kind(),
+        vfs.rename(Path::new("/w/c"), Path::new("/w/c/x/y"))
+            .unwrap_err()
+            .kind(),
         io::ErrorKind::InvalidInput
     );
     assert_eq!(
-        vfs.rename_noreplace(Path::new("/w/c"), Path::new("/w/e")).unwrap_err().kind(),
+        vfs.rename_noreplace(Path::new("/w/c"), Path::new("/w/e"))
+            .unwrap_err()
+            .kind(),
         io::ErrorKind::InvalidInput,
         "a rename without replacement moves files only"
     );
     // A rename is durable through its parent's sync.
     vfs.sync_dir(Path::new("/w")).unwrap();
-    vfs.set_fault(Fault::PowerLoss { at: vfs.calls() + 1, keep: 0 });
+    vfs.set_fault(Fault::PowerLoss {
+        at: vfs.calls() + 1,
+        keep: 0,
+    });
     assert!(vfs.stat(Path::new("/w")).is_err());
     vfs.restart();
     assert_eq!(names(&vfs), ["c", "d"]);
@@ -374,7 +435,11 @@ fn small_list(extra: &[(&str, &[u8])]) -> Vec<(String, Method, Vec<u8>)> {
         files.insert((*n).to_owned(), d.to_vec());
     }
     let mut list = vec![
-        ("mimetype".to_owned(), Method::Stored, ewz::MIMETYPE.as_bytes().to_vec()),
+        (
+            "mimetype".to_owned(),
+            Method::Stored,
+            ewz::MIMETYPE.as_bytes().to_vec(),
+        ),
         ("manifest.json".to_owned(), Method::Deflated, manifest),
     ];
     list.extend(files.into_iter().map(|(n, d)| (n, Method::Deflated, d)));
@@ -382,7 +447,10 @@ fn small_list(extra: &[(&str, &[u8])]) -> Vec<(String, Method, Vec<u8>)> {
 }
 
 fn written(list: &[(String, Method, Vec<u8>)]) -> Vec<u8> {
-    let entries: Vec<(&str, Method, &[u8])> = list.iter().map(|(n, m, d)| (n.as_str(), *m, d.as_slice())).collect();
+    let entries: Vec<(&str, Method, &[u8])> = list
+        .iter()
+        .map(|(n, m, d)| (n.as_str(), *m, d.as_slice()))
+        .collect();
     zip::write(&entries).unwrap()
 }
 
@@ -531,7 +599,10 @@ fn a_file_that_is_no_archive_is_refused() {
         "not an archive of the expected form: shorter than an end record"
     );
     assert!(ewz::is_ewz(&vfs, Path::new("/w/x.ewz")));
-    assert!(ewz::is_ewz(&vfs, Path::new("/w/X.EWZ")), "a missing file of that name is an .ewz too");
+    assert!(
+        ewz::is_ewz(&vfs, Path::new("/w/X.EWZ")),
+        "a missing file of that name is an .ewz too"
+    );
     vfs.put_dir(Path::new("/w/d.ewz"));
     assert!(!ewz::is_ewz(&vfs, Path::new("/w/d.ewz")), "a directory is not");
     assert!(!ewz::is_ewz(&vfs, Path::new("/w/p.ew")));

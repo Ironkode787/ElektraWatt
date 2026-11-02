@@ -198,8 +198,8 @@ pub use ew_sqlview as sql;
 /// ([`Session::recovery_refusal`]): the CLI's `ew recover` and the shell name them through `ew-api`.
 pub use ew_store::journal::{Collision, RecoveryInfo, ReplayError};
 pub use ew_store::{
-    Access, Clock, OpenError, OpenReport, OsVfs, PurgeError, PurgeFile, PurgePlan, ReadOnlyReason, RecoverError,
-    SaveError, StoreOptions, SystemClock, Vfs,
+    Access, Clock, OpenError, OpenReport, OsVfs, PurgeError, PurgeFile, PurgePlan, ReadOnlyReason,
+    RecoverError, SaveError, StoreOptions, SystemClock, Vfs,
 };
 /// The as-built archive's layout and atomic write, and the git port of a release (doc 05 §14; WP-S1.18 D11 to D13):
 /// the CLI and the shell name them through `ew-api` (no workspace edge of their own); likewise `.ewz` transport
@@ -207,11 +207,11 @@ pub use ew_store::{
 pub use ew_store::{archive, ewz, git, zip};
 pub use new_project::{NewProjectKind, ProjectTemplate, SaveAsBasicError};
 pub use release::{Approval, ApproveError, FOUR_EYES_RULE, Gate, GateError, role_name};
-pub use transport::{EwzExport, ExportEwzError};
 pub use release_run::{
     ArchiveOpenError, Discarded, IncompleteRelease, OpenedArchive, ReleaseContext, ReleaseError,
     ReleaseOptions, ReleasePlan, ReleaseTrouble, Released, TroubleKind,
 };
+pub use transport::{EwzExport, ExportEwzError};
 
 pub use ew_commands::{
     AnyCommand, Change, ChangeKind, CmdError, CommandRegistry, DerivedChange, DerivedDiff, DynCommand,

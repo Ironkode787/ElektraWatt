@@ -94,13 +94,29 @@ struct Ns {
 /// One namespace change, with the inode it moves where that matters.
 #[derive(Clone, Debug)]
 enum NsOp {
-    Create { path: String, node: Node },
-    Rename { from: String, to: String, node: Node },
+    Create {
+        path: String,
+        node: Node,
+    },
+    Rename {
+        from: String,
+        to: String,
+        node: Node,
+    },
     /// A directory moved with everything below it (an empty directory at `to` replaced).
-    RenameDir { from: String, to: String },
-    Remove { path: String },
-    MkDir { path: String },
-    RmDir { path: String },
+    RenameDir {
+        from: String,
+        to: String,
+    },
+    Remove {
+        path: String,
+    },
+    MkDir {
+        path: String,
+    },
+    RmDir {
+        path: String,
+    },
 }
 
 impl NsOp {

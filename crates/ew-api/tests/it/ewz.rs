@@ -20,8 +20,13 @@ fn page(number: u32) -> AnyCommand {
 
 /// A saved project of one page at `dir`, and its editing session.
 fn saved(dir: &Path) -> Session {
-    let mut session =
-        Session::from_records(serde_json::from_str(PROJECT).unwrap(), [], [], SessionOptions::default()).unwrap();
+    let mut session = Session::from_records(
+        serde_json::from_str(PROJECT).unwrap(),
+        [],
+        [],
+        SessionOptions::default(),
+    )
+    .unwrap();
     session.execute(&page(1)).unwrap();
     let mut store = StoreOptions::new("ElektraWatt test");
     store.state_dir = None;
@@ -39,7 +44,10 @@ fn a_dirty_session_exports_its_saved_generation_and_says_so() {
     session.execute(&page(2)).unwrap();
     let dirty = session.export_ewz().unwrap();
     assert!(dirty.unsaved, "the session holds an unsaved page");
-    assert_eq!(dirty.bytes, clean.bytes, "the saved generation, not the model in memory");
+    assert_eq!(
+        dirty.bytes, clean.bytes,
+        "the saved generation, not the model in memory"
+    );
     assert_eq!((dirty.generation, dirty.files), (1, clean.files));
     session.close();
 

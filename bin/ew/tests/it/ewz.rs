@@ -11,7 +11,10 @@ use std::process::{Command, Output};
 
 const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
 const VARIANTS: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416/variants");
-const GOLDEN_PARTS: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416/tables/parts.csv");
+const GOLDEN_PARTS: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../../golden/J-E-2416/tables/parts.csv"
+);
 
 /// A fresh temporary directory with its own user directories, removed on drop.
 struct Tmp(PathBuf);
@@ -130,7 +133,11 @@ fn tree(dir: &Path) -> BTreeMap<String, Vec<u8>> {
             if path.is_dir() {
                 walk(&path, base, out);
             } else {
-                let rel = path.strip_prefix(base).unwrap().to_string_lossy().replace('\\', "/");
+                let rel = path
+                    .strip_prefix(base)
+                    .unwrap()
+                    .to_string_lossy()
+                    .replace('\\', "/");
                 out.insert(rel, std::fs::read(&path).unwrap());
             }
         }
@@ -239,7 +246,14 @@ fn ez2_every_reader_gives_the_same_output_on_the_ewz() {
     }
     assert_eq!(
         names(&t.0),
-        ["J-E-2416.ew", "J-E-2416.ewz", "home", "outs", "tiny.ew", "tiny.ewz"],
+        [
+            "J-E-2416.ew",
+            "J-E-2416.ewz",
+            "home",
+            "outs",
+            "tiny.ew",
+            "tiny.ewz"
+        ],
         "nothing written beside the archive"
     );
 }
@@ -296,7 +310,15 @@ fn export_ewz_needs_out_and_is_deterministic() {
     let second = std::fs::read(t.packed(&dir)).unwrap();
     assert_eq!(first, second, "the same project gives the same bytes");
     let json = t.0.join("j.ewz");
-    let o = t.ew(&args([&"export", &"ewz", &"--project", &dir, &"--out", &json, &"--json"]));
+    let o = t.ew(&args([
+        &"export",
+        &"ewz",
+        &"--project",
+        &dir,
+        &"--out",
+        &json,
+        &"--json",
+    ]));
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
     assert_eq!(
         stdout(&o),
@@ -360,7 +382,11 @@ fn ez3_extract_into_a_new_folder_and_never_into_an_existing_one() {
         )
     );
     assert_eq!(tree(&target), source);
-    assert_eq!(names(&sub), ["J-E-2416.ew", "J-E-2416.ewz"], "no staging folder is left");
+    assert_eq!(
+        names(&sub),
+        ["J-E-2416.ew", "J-E-2416.ewz"],
+        "no staging folder is left"
+    );
 
     // The extracted project opens and saves as a project directory: a writer takes it.
     let log = Path::new(VARIANTS).join("b2-renumber-pages.ewcmd");
@@ -415,8 +441,5 @@ fn ez4_a_refused_archive_is_named_and_nothing_is_written() {
     assert!(!into.exists());
     let o = t.ew(&args([&"extract", &t.0.join("missing.ewz")]));
     assert_eq!(o.status.code(), Some(2));
-    assert_eq!(
-        names(&t.0),
-        ["J-E-2416.ew", "J-E-2416.ewz", "bad.ewz", "home"]
-    );
+    assert_eq!(names(&t.0), ["J-E-2416.ew", "J-E-2416.ewz", "bad.ewz", "home"]);
 }

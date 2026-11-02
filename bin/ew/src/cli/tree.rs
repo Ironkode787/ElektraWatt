@@ -23,9 +23,10 @@ use ew_api::output::{CsvOptions, LineEnd, PageSelection, Preset};
 use super::query::QueryArgs;
 use super::{
     ApplyArgs, AssetsPurgeArgs, CheckArgs, CheckFormat, ChecksSetArgs, Command, ExportArgs, ExportEwzArgs,
-    ExportKind, ExportPagesArgs, ExtractArgs, FmtArgs, ImportCsvArgs, ImportPartsArgs, ImportQetArgs, LibAction, LibArgs, PageFormat,
-    PrintArgs, PrintVia, RecoverAction, RecoverArgs, RenderArgs, RevisionAction, RevisionArgs, RowFormat,
-    SqlArgs, SqlDumpArgs, SqlFormat, SqlSource, VerifyArgs, XLSX_NEEDS_OUT,
+    ExportKind, ExportPagesArgs, ExtractArgs, FmtArgs, ImportCsvArgs, ImportPartsArgs, ImportQetArgs,
+    LibAction, LibArgs, PageFormat, PrintArgs, PrintVia, RecoverAction, RecoverArgs, RenderArgs,
+    RevisionAction, RevisionArgs, RowFormat, SqlArgs, SqlDumpArgs, SqlFormat, SqlSource, VerifyArgs,
+    XLSX_NEEDS_OUT,
 };
 
 /// The ElektraWatt command-line interface.
@@ -1699,7 +1700,9 @@ impl Cli {
             }
             Top::Sql(a) => sql(a)?,
             Top::Export(e) => export(e)?,
-            Top::Extract(ExtractCli { file, into, json }) => Command::Extract(ExtractArgs { file, into, json }),
+            Top::Extract(ExtractCli { file, into, json }) => {
+                Command::Extract(ExtractArgs { file, into, json })
+            }
             Top::Print(PrintCli {
                 project_dir,
                 project: flag,

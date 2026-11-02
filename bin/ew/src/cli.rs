@@ -1256,7 +1256,10 @@ fn run_extract(a: &ExtractArgs) -> i32 {
     let archive = match ew_api::ewz::read_file(&vfs, &a.file) {
         Ok(r) => r,
         Err(e) => {
-            eprintln!("error: {}: the .ewz is refused: {e}; nothing was written", a.file.display());
+            eprintln!(
+                "error: {}: the .ewz is refused: {e}; nothing was written",
+                a.file.display()
+            );
             return 2;
         }
     };

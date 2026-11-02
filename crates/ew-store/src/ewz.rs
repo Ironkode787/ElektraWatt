@@ -222,7 +222,10 @@ fn is_project_file(path: &str) -> bool {
 /// with a dot or a space, or one of the characters `<>"|?*`.
 fn unportable(name: &str) -> Option<&'static str> {
     for segment in name.split('/') {
-        if segment.chars().any(|c| matches!(c, '<' | '>' | '"' | '|' | '?' | '*')) {
+        if segment
+            .chars()
+            .any(|c| matches!(c, '<' | '>' | '"' | '|' | '?' | '*'))
+        {
             return Some("a character Windows does not allow in a file name");
         }
         if segment.ends_with('.') || segment.ends_with(' ') {
@@ -250,15 +253,16 @@ pub fn read(bytes: &[u8]) -> Result<Ewz, EwzError> {
     let entries = zip::read(bytes, &ZipLimits::default())?;
     let mut entries = entries.into_iter();
     match entries.next() {
-        Some(e) if e.name == MIMETYPE_ENTRY && e.method == Method::Stored && e.data == MIMETYPE.as_bytes() => {}
+        Some(e)
+            if e.name == MIMETYPE_ENTRY && e.method == Method::Stored && e.data == MIMETYPE.as_bytes() => {}
         _ => return Err(EwzError::NoMimetype),
     }
     let manifest_bytes = match entries.next() {
         Some(e) if e.name == MANIFEST && e.method == Method::Deflated => e.data,
         _ => return Err(EwzError::NoManifest),
     };
-    let manifest =
-        Manifest::parse(&manifest_bytes, &Limits::default()).map_err(|e| EwzError::Manifest(e.to_string()))?;
+    let manifest = Manifest::parse(&manifest_bytes, &Limits::default())
+        .map_err(|e| EwzError::Manifest(e.to_string()))?;
     if let Some(path) = manifest.files.keys().find(|p| !is_project_file(p.as_str())) {
         return Err(EwzError::NotProjectFile {
             path: path.to_string(),
@@ -573,10 +577,7 @@ pub fn extract(vfs: &dyn Vfs, ewz: &Ewz, target: &Path) -> Result<(), ExtractErr
             return Err(ExtractError::StagingExists(staging));
         }
         Err(error) => {
-            return Err(ExtractError::Io {
-                path: staging,
-                error,
-            });
+            return Err(ExtractError::Io { path: staging, error });
         }
     }
     let mut made = Made {
@@ -620,8 +621,14 @@ mod tests {
         assert_eq!(unportable("rules/Com1.txt"), Some("a Windows device name"));
         assert_eq!(unportable("rules/com0"), None);
         assert_eq!(unportable("rules/console"), None);
-        assert_eq!(unportable("rules/a./b"), Some("a name that ends with a dot or a space"));
-        assert_eq!(unportable("rules/a "), Some("a name that ends with a dot or a space"));
+        assert_eq!(
+            unportable("rules/a./b"),
+            Some("a name that ends with a dot or a space")
+        );
+        assert_eq!(
+            unportable("rules/a "),
+            Some("a name that ends with a dot or a space")
+        );
         assert_eq!(
             unportable("rules/a?b"),
             Some("a character Windows does not allow in a file name")
