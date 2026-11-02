@@ -123,6 +123,90 @@ mod tests {
         assert_eq!(name, "Noto Sans SemiBold");
     }
 
+    /// Every string of a JSON value, keys left out.
+    fn strings_of(v: &serde_json::Value, out: &mut Vec<String>) {
+        match v {
+            serde_json::Value::String(s) => out.push(s.clone()),
+            serde_json::Value::Array(a) => a.iter().for_each(|x| strings_of(x, out)),
+            serde_json::Value::Object(o) => o.values().for_each(|x| strings_of(x, out)),
+            _ => {}
+        }
+    }
+
+    /// The `.json` and `.jsonl` files under `dir`, in path order.
+    fn json_files(dir: &std::path::Path, out: &mut Vec<std::path::PathBuf>) {
+        let mut entries: Vec<_> = std::fs::read_dir(dir)
+            .unwrap()
+            .map(|e| e.unwrap().path())
+            .collect();
+        entries.sort();
+        for path in entries {
+            if path.is_dir() {
+                json_files(&path, out);
+            } else if matches!(path.extension().and_then(|e| e.to_str()), Some("json" | "jsonl")) {
+                out.push(path);
+            }
+        }
+    }
+
+    /// FT-1095 (ID-1184; play-test rv-vis-7, t0044): a part cell showed a replacement character. Every character of
+    /// every text of the shipped content (`content/`: the starter library's symbols and function definitions, the
+    /// starter parts and their manufacturer, the frames and the profiles) has a glyph in the bundled faces the UI
+    /// draws with (Noto Sans, then Noto Sans Math, [`definitions`]), and none is U+FFFD, the character a lossy decoding
+    /// leaves. The library reader and the CSV reader decode strictly (an invalid byte is an error), so no source of
+    /// the character was found in the code; this test keeps it so.
+    #[test]
+    fn every_character_of_the_shipped_content_has_a_glyph_in_the_bundled_fonts() {
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../content");
+        let mut files = Vec::new();
+        json_files(&root, &mut files);
+        assert!(files.len() > 100, "the shipped content is found: {}", files.len());
+        let mut chars: std::collections::BTreeMap<char, String> = std::collections::BTreeMap::new();
+        for path in &files {
+            let text = std::fs::read_to_string(path).unwrap();
+            let name = path.file_name().unwrap().to_string_lossy().into_owned();
+            let mut texts = Vec::new();
+            if path.extension().is_some_and(|e| e == "jsonl") {
+                for line in text.lines().filter(|l| !l.is_empty()) {
+                    strings_of(&serde_json::from_str(line).unwrap(), &mut texts);
+                }
+            } else {
+                strings_of(&serde_json::from_str(&text).unwrap(), &mut texts);
+            }
+            for c in texts.iter().flat_map(|t| t.chars()).filter(|c| !c.is_control()) {
+                chars.entry(c).or_insert_with(|| name.clone());
+            }
+        }
+        assert!(
+            chars.contains_key(&'\u{d7}'),
+            "the starter parts' multiplication sign is among the characters"
+        );
+        assert!(
+            !chars.contains_key(&'\u{fffd}'),
+            "a shipped text holds U+FFFD, the mark of a lossy decoding: {:?}",
+            chars.get(&'\u{fffd}')
+        );
+        let defs = definitions();
+        let faces: Vec<FontRef<'_>> = [REGULAR, SYMBOLS]
+            .iter()
+            .map(|name| {
+                let data = &defs.font_data[*name];
+                FontRef::from_index(data.bytes(), data.index).unwrap()
+            })
+            .collect();
+        let has_glyph = |c: char| faces.iter().any(|f| f.charmap().map(c).is_some());
+        assert!(
+            has_glyph('\u{d7}') && has_glyph('\u{3a9}') && !has_glyph('\u{1f600}'),
+            "the probe tells a glyph from none"
+        );
+        let missing: Vec<String> = chars
+            .iter()
+            .filter(|(c, _)| !has_glyph(**c))
+            .map(|(c, file)| format!("U+{:04X} in {file}", u32::from(*c)))
+            .collect();
+        assert_eq!(missing, Vec::<String>::new(), "characters without a glyph");
+    }
+
     /// The SemiBold file is the one of `NOTICE` (ADR-0028 recommendation 6: bundled fonts are pinned by SHA-256).
     #[test]
     fn the_semibold_file_is_the_pinned_one() {
