@@ -814,6 +814,73 @@ fn the_pickers_black_box_rows_arm_the_black_box_tool() {
     );
 }
 
+/// FT-1093 (ID-1182): every way of arming the black box tool ends with the hint that names both corner clicks, its key
+/// from the keymap (the keycap form, FT-1081): the picker `tool.black_box` opens, `tool.black_box` with a part, and
+/// `place.pick` of a black-box symbol (which the Symbol tool's picker sends).
+fn assert_armed_hint(s: &ShellModel) {
+    assert_eq!(s.tool().name(), "black_box");
+    assert_eq!(s.tool().state(), "armed");
+    let esc = ew_viewmodel::keymap::short_display(
+        &s.shortcut_text(ew_viewmodel::actions::find("ui.dismiss").expect("the dismiss action")),
+    );
+    assert_eq!(
+        s.tool_hint(),
+        format!("Click the box's first corner, then its opposite corner; {esc} ends")
+    );
+    assert_eq!(esc, "Esc", "the default keymap's key");
+}
+
+#[test]
+fn ft1093_the_black_box_picker_arms_the_tool_with_the_two_corner_hint() {
+    let tmp = Tmp::new("box-hint-picker");
+    let mut s = shell(&tmp, "102");
+    done(&mut s, "tool.black_box", json!({}));
+    let row = s
+        .picker()
+        .expect("the picker")
+        .rows
+        .iter()
+        .position(|r| matches!(r, ew_viewmodel::tools::PickerRow::PartFn(..)))
+        .expect("a part row");
+    done(&mut s, "picker.row", json!({"to": row}));
+    done(&mut s, "picker.choose", json!({}));
+    assert_armed_hint(&s);
+}
+
+#[test]
+fn ft1093_the_black_box_tool_with_a_part_arms_with_the_two_corner_hint() {
+    let tmp = Tmp::new("box-hint-part");
+    let mut s = shell(&tmp, "102");
+    done(
+        &mut s,
+        "tool.black_box",
+        json!({"part": "MICO 4.10", "template": 0}),
+    );
+    assert_armed_hint(&s);
+}
+
+#[test]
+fn ft1093_place_pick_of_a_black_box_symbol_arms_with_the_two_corner_hint() {
+    let tmp = Tmp::new("box-hint-pick");
+    let mut s = shell(&tmp, "102");
+    done(&mut s, "tool.place", json!({}));
+    done(&mut s, "picker.filter", json!({"text": "blackbox"}));
+    let row = s
+        .picker()
+        .unwrap()
+        .rows
+        .iter()
+        .position(|r| matches!(r, ew_viewmodel::tools::PickerRow::Symbol(_)))
+        .expect("the black-box symbol row");
+    done(&mut s, "picker.row", json!({"to": row}));
+    done(&mut s, "picker.choose", json!({}));
+    assert_armed_hint(&s);
+    // The same through `place.pick` itself, the action the Symbol tool's picker sends.
+    done(&mut s, "ui.dismiss", json!({}));
+    done(&mut s, "place.pick", json!({"symbol": "ew.gen.blackbox@qet10"}));
+    assert_armed_hint(&s);
+}
+
 /// The structural tokens of a describe line: quoted text, numbers, aliases and punctuation out.
 fn structural_tokens(line: &str) -> Vec<String> {
     let mut out = Vec::new();
