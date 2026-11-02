@@ -272,7 +272,14 @@ fn a_face_without_usable_bytes_is_named_and_reported() {
         page(1, vec![text("Named", &regular, 20)]),
         page(2, vec![text("Again", &regular, 20)]),
     ];
-    for data in [None, Some(Arc::<[u8]>::from(&b"not a font"[..]))] {
+    // FT-1046 (coverage, ID-1138: "FT-1046's two cases are coverage tests that pass before the change"): a face of
+    // a collection (`ttcf`) is refused by the subsetter like any other unusable bytes.
+    let collection = Arc::<[u8]>::from(&b"ttcf\x00\x02\x00\x00\x00\x00\x00\x01\x00\x00\x00\x10"[..]);
+    for data in [
+        None,
+        Some(Arc::<[u8]>::from(&b"not a font"[..])),
+        Some(collection),
+    ] {
         let mut opts = options();
         let face: &mut SvgFace = opts.faces.get_mut(&key).unwrap();
         face.data = data.clone();
@@ -288,6 +295,55 @@ fn a_face_without_usable_bytes_is_named_and_reported() {
             assert!(f.text.contains("font-family=\"Noto Sans, sans-serif\""));
         }
     }
+    // FT-1046 (coverage): a run glyph ID above 65535 is not a glyph of a TrueType face, so the subsetter refuses
+    // the face, which is named only, though its bytes are the bundled face's.
+    let mut run = (*bundled().shape("Named", &regular, None).run).clone();
+    run.origin = Pt2::new(Nm::from_mm(20), Nm::from_mm(20));
+    run.glyphs[0].id = 70_000;
+    let out = svg(
+        &[page(1, vec![Item::glyphs(Arc::new(run))])],
+        &options(),
+        None,
+        Parallelism::Serial,
+    )
+    .unwrap();
+    assert_eq!(out.report.named_fonts, vec![key]);
+    assert_eq!(out.report.texts, 1);
+    assert!(declared(&out.files[0].text).is_empty());
+    assert!(
+        out.files[0]
+            .text
+            .contains("<style>text{white-space:pre}</style>\n")
+    );
     let faces: BTreeMap<FontKey, SvgFace> = faces();
     assert!(faces.values().all(|f| f.data.is_some()));
+}
+
+/// FT-1047, ID-1138: "the subset's characters are those written after escaping". A run whose text holds a control
+/// character is written with U+FFFD in its place, and the page's subset holds U+FFFD's outline, so a browser that
+/// maps the characters itself draws what the page shows.
+#[test]
+fn a_control_character_is_written_as_u_fffd_and_its_outline_is_embedded() {
+    let regular = style(Family::Default, Weight::Regular);
+    let face = face_bytes("Noto Sans", 400, false);
+    assert!(
+        glyph_of(face, '\u{FFFD}').is_some(),
+        "the bundled face maps U+FFFD"
+    );
+    let mut run = (*bundled().shape("AxB", &regular, None).run).clone();
+    run.origin = Pt2::new(Nm::from_mm(20), Nm::from_mm(20));
+    run.text = "A\u{1}B".to_owned();
+    let out = svg(
+        &[page(1, vec![Item::glyphs(Arc::new(run))])],
+        &options(),
+        None,
+        Parallelism::Serial,
+    )
+    .unwrap();
+    assert!(out.report.named_fonts.is_empty(), "{:?}", out.report);
+    let doc = &out.files[0].text;
+    let bodies: Vec<String> = texts(doc).into_iter().map(|t| t.3).collect();
+    assert_eq!(bodies, ["A\u{FFFD}B"]);
+    // Every written character maps through the subset to the face's glyph and outline bytes, U+FFFD's included.
+    check_page(doc);
 }

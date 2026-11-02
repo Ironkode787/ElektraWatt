@@ -15,6 +15,7 @@
 //! | `head` | as in the face, `checkSumAdjustment` recomputed over the subset |
 //! | `post` | version 3.0 (no glyph names), the face's other fields |
 //! | `cmap`, `hhea`, `hmtx`, `maxp`, `OS/2`, `name` | as in the face (`OS/2`, `name` and `post` when the face has them) |
+//! | `cvt `, `fpgm`, `prep` | as in the face, when the face has them: the kept glyphs keep their instructions (FT-1045) |
 //! | `GSUB`, `GPOS`, `GDEF`, `kern`, `MATH`, every other table | dropped: the text is shaped already and placed per character |
 //!
 //! The tables are written in tag order, 4-byte aligned, each with its checksum. The parser uses the standard
@@ -398,7 +399,11 @@ impl<'a> Face<'a> {
         head[8..12].fill(0);
         head[50..52].copy_from_slice(&1i16.to_be_bytes());
         let mut out: BTreeMap<[u8; 4], Vec<u8>> = BTreeMap::new();
-        for tag in [b"cmap", b"hhea", b"hmtx", b"maxp", b"OS/2", b"name"] {
+        // The hinting tables stay byte for byte when the face has them: the kept glyphs keep their instructions in
+        // `glyf`, which call into `fpgm` and read `cvt ` (FT-1045).
+        for tag in [
+            b"cmap", b"hhea", b"hmtx", b"maxp", b"OS/2", b"name", b"cvt ", b"fpgm", b"prep",
+        ] {
             if let Some(t) = self.tables.get(tag) {
                 out.insert(*tag, t.to_vec());
             }

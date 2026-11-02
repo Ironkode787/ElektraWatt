@@ -186,15 +186,40 @@ fn schema_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("schemas")
 }
 
+/// The committed schemas by file name. Only `*.json` names are read, so the bless writer's temporary files are not
+/// listed, and a file gone between listing and reading (removed by a concurrent bless) is skipped (FT-1050, ID-1138:
+/// "the reader of the committed schemas reads only `*.json` names and skips a file gone between listing and
+/// reading").
 fn committed() -> BTreeMap<String, String> {
     let mut files = BTreeMap::new();
     if let Ok(entries) = std::fs::read_dir(schema_dir()) {
         for entry in entries.flatten() {
             let name = entry.file_name().to_string_lossy().into_owned();
-            files.insert(name, std::fs::read_to_string(entry.path()).unwrap());
+            if !name.ends_with(".json") {
+                continue;
+            }
+            match std::fs::read_to_string(entry.path()) {
+                Ok(text) => {
+                    files.insert(name, text);
+                }
+                Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+                Err(e) => panic!("{name} is unreadable: {e}"),
+            }
         }
     }
     files
+}
+
+/// Writes `text` to `dir/name` through a temporary file in the same folder renamed over the old one, so a concurrent
+/// reader sees the old schema or the new one, never a partial file (FT-1050, ID-1138: "the bless writer writes each
+/// schema to a temporary file and renames it").
+fn write_atomically(dir: &std::path::Path, name: &str, text: &str) {
+    let tmp = dir.join(format!(".{name}.{}.tmp", std::process::id()));
+    std::fs::write(&tmp, text).unwrap();
+    if let Err(e) = std::fs::rename(&tmp, dir.join(name)) {
+        let _ = std::fs::remove_file(&tmp);
+        panic!("{name} could not replace the committed schema: {e}");
+    }
 }
 
 /// Whether `EW_CLI_BLESS` asks for the committed schemas to be rewritten.
@@ -220,7 +245,7 @@ fn committed_result_schemas_match_the_generated_ones() {
             }
         }
         for (name, text) in &generated {
-            std::fs::write(dir.join(name), text).unwrap();
+            write_atomically(&dir, name, text);
         }
         return;
     }

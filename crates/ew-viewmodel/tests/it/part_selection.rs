@@ -9,6 +9,7 @@
 use crate::common;
 
 use common::{Tmp, done, refused};
+use ew_testkit::library::starter_version;
 use ew_viewmodel::navigators::NavKind;
 use ew_viewmodel::properties::{RowValue, find_row};
 use ew_viewmodel::shell::{Dialog, Mode, Outcome, ShellConfig, ShellModel};
@@ -83,27 +84,6 @@ fn last(s: &ShellModel) -> (String, Value) {
 
 fn select(s: &mut ShellModel, tag: &str) {
     done(s, "select.set", json!({ "refs": [format!("tag:{tag}")] }));
-}
-
-/// The version of starter part `number` in the shipped library `content/libraries/ew-starter-parts.ewlib`, from which
-/// the starter is compiled in: a test reads the version there, so a version bump changes no assertion (ID-1109).
-fn starter_version(number: &str) -> String {
-    let dir = std::path::Path::new(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/../../content/libraries/ew-starter-parts.ewlib/parts"
-    ));
-    let mut found = Vec::new();
-    for entry in std::fs::read_dir(dir).unwrap() {
-        let text = std::fs::read_to_string(entry.unwrap().path()).unwrap();
-        for line in text.lines().filter(|l| !l.trim().is_empty()) {
-            let rec: Value = serde_json::from_str(line).unwrap();
-            if rec["part_number"] == number {
-                found.push(rec["version"].as_str().unwrap().to_owned());
-            }
-        }
-    }
-    assert_eq!(found.len(), 1, "{number} is in the shipped library once");
-    found.remove(0)
 }
 
 /// PS1 in the shell: F55's dialog lists the starter's 1P+N MCB (`same-fndef`), then its 1P MCB (`same-category`),

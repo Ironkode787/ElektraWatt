@@ -40,3 +40,5 @@ ew-viewmodel = { path = ".", features = ["testkit"] }
 ew-commands = { path = "../ew-commands", features = ["testkit"] }
 # The fresh temporary directory of the tests (FT-586; dev-only edge, `[allowed_dev_edges]`).
 ew-testdir = { path = "../ew-testdir" }
+# The starter part versions of the tests (`ew_testkit::library::starter_version`, FT-1041; dev-only edge).
+ew-testkit = { path = "../ew-testkit" }

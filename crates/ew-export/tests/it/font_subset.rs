@@ -360,6 +360,35 @@ fn the_synthetic_font_subsets() {
     assert_eq!(checksum(&subset), 0xB1B0_AFBA);
 }
 
+/// FT-1045, ID-1138: "the subset keeps `cvt `, `fpgm` and `prep` byte for byte when the face has them". A hinted
+/// face's kept glyphs keep their instructions, so the subset keeps the tables they call into; a face without the
+/// three gains none of them.
+#[test]
+fn a_hinted_face_keeps_its_hinting_tables_byte_for_byte() {
+    let mut t = tables(&[simple(), simple(), simple()]);
+    let plain = subset_glyf(&sfnt(&t), &BTreeSet::from([1])).unwrap();
+    for tag in [b"cvt ", b"fpgm", b"prep"] {
+        assert_eq!(table(&plain, tag), None, "{}", String::from_utf8_lossy(tag));
+    }
+    let hinting = [
+        (*b"cvt ", vec![0, 10, 0, 20, 0xff, 0xf6]),
+        (*b"fpgm", vec![0xb0, 0x00, 0x2c, 0x01, 0x2d]),
+        (*b"prep", vec![0xb8, 0x01, 0xff, 0x85, 0x00]),
+    ];
+    t.extend(hinting.clone());
+    let font = sfnt(&t);
+    let subset = subset_glyf(&font, &BTreeSet::from([1])).unwrap();
+    assert!(FontRef::new(&subset).is_ok());
+    for (tag, bytes) in &hinting {
+        assert_eq!(
+            table(&subset, tag),
+            Some(&bytes[..]),
+            "{}",
+            String::from_utf8_lossy(tag)
+        );
+    }
+}
+
 /// SV-2: a `loca` that points past the end of `glyf` is refused.
 #[test]
 fn a_loca_past_glyf_is_refused() {

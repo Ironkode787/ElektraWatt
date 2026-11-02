@@ -135,8 +135,8 @@ planned = ["ew-viewer", "ew-wiring-viewer", "ew-plugin-wit", "ew-plugin-sdk", "e
 # Additional edges allowed for dev-dependencies only (for example a test helper crate).
 [allowed_dev_edges]
 # The G-PP wiring regression reverses new IDs through the viewmodel's test-only source hook; the ew-commands edge
-# only carries its `testkit` ([[uniform_test_features]]).
-"elektrawatt" = ["ew-viewmodel", "ew-commands"]
+# only carries its `testkit` ([[uniform_test_features]]); ew-testkit gives the starter part versions (FT-1041).
+"elektrawatt" = ["ew-viewmodel", "ew-commands", "ew-testkit"]
 # ew-commands' own integration tests enable its `testkit` feature (row dumps, `Preview::ops`, history ops),
 # which is crate-private otherwise (ARCH §3 rule 1); the seeded IDs come from ew-testids.
 "ew-commands" = ["ew-commands", "ew-testids"]
@@ -170,8 +170,8 @@ planned = ["ew-viewer", "ew-wiring-viewer", "ew-plugin-wit", "ew-plugin-sdk", "e
 # dev edge, and every package whose test build reaches ew-viewmodel requests its `testkit` (ew-viewmodel itself too:
 # its `probe`, `replay_order` and `jobs` tests use the hooks), so neither crate compiles twice between package sets.
 # The `ew-commands` and self entries below are such edges: the package has no normal edge to the crate. (ew-viewmodel
-# and ew-ui also take ew-testdir, FT-586.)
-"ew-viewmodel" = ["ew-testdir", "ew-commands", "ew-viewmodel"]
+# and ew-ui also take ew-testdir, FT-586; ew-viewmodel takes ew-testkit's starter part versions, FT-1041.)
+"ew-viewmodel" = ["ew-testdir", "ew-commands", "ew-viewmodel", "ew-testkit"]
 "ew-ui" = ["ew-testdir", "ew-commands"]
 "ew-mfg" = ["ew-commands"]
 "ew-render3d" = ["ew-commands"]

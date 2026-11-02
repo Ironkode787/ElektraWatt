@@ -615,7 +615,8 @@ impl PageWriter<'_> {
             kept.iter()
                 .map(|&i| u16::try_from(run.glyphs[i].id).unwrap_or(u16::MAX)),
         );
-        written.extend(text.chars());
+        // The characters as written: `escape` shows a character XML does not allow as U+FFFD (FT-1047).
+        written.extend(text.chars().map(shown));
         true
     }
 }
@@ -793,12 +794,20 @@ fn escape(s: &str) -> String {
             '>' => out.push_str("&gt;"),
             '"' => out.push_str("&quot;"),
             '\'' => out.push_str("&apos;"),
-            // Characters XML 1.0 does not allow: replaced, never written raw.
-            c if (c as u32) < 0x20 && !matches!(c, '\t' | '\n' | '\r') => out.push('\u{FFFD}'),
-            c => out.push(c),
+            c => out.push(shown(c)),
         }
     }
     out
+}
+
+/// The character [`escape`] shows for `c`: U+FFFD for a character XML 1.0 does not allow (replaced, never written
+/// raw), `c` itself otherwise.
+fn shown(c: char) -> char {
+    if (c as u32) < 0x20 && !matches!(c, '\t' | '\n' | '\r') {
+        '\u{FFFD}'
+    } else {
+        c
+    }
 }
 
 #[cfg(test)]

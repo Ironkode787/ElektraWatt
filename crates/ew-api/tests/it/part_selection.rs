@@ -924,3 +924,78 @@ fn ps8_the_paste_choice_below_the_shell() {
         Ok(_) => panic!("a major adapt is refused"),
     }
 }
+
+/// The golden builder DSL's sink over a session: every command runs directly.
+struct Sink<'s>(&'s mut Session);
+
+impl ew_testkit::golden::dsl::CommandSink for Sink<'_> {
+    fn run(&mut self, name: &str, params: Value) -> Result<ew_testkit::golden::dsl::Done, String> {
+        self.0
+            .execute(&AnyCommand {
+                name: name.to_owned(),
+                params,
+            })
+            .map(|r| ew_testkit::golden::dsl::Done {
+                primary: r.outcome.primary,
+                created: r.created,
+            })
+            .map_err(|e| format!("{e:?}"))
+    }
+}
+
+/// FT-1053, ID-1138: "a strip device without terminals in the golden builder, whose chooser offers the end bracket
+/// (ID-1113)". A strip made by the builder's `device` verb, with the strip aspect and the main function of 1X1 and no
+/// `terminals` step, is offered the end bracket and no other layout kind; its part dialog's offers, kept as the shell
+/// keeps them, list EW-GEN-EB-1.
+#[test]
+fn a_strip_without_terminals_is_offered_the_end_bracket() {
+    let mut s = golden(None);
+    let template = device(&s, "1X1");
+    let (main, _) = s.main_function(template).unwrap();
+    let (mut strip, main) = {
+        let q = s.query();
+        let strip = q
+            .devices()
+            .get(Id::<Device>::from_uuid(template))
+            .map(|d| Device::clone(d))
+            .unwrap();
+        let main = q
+            .functions()
+            .get(Id::from_uuid(main))
+            .map(|f| ew_schema::Function::clone(f))
+            .unwrap();
+        (strip, main)
+    };
+    assert!(strip.aspects.strip.is_some(), "1X1 is a strip");
+    strip.tag.counter = Some(99);
+    strip.parts.clear();
+    let made = {
+        let mut sink = Sink(&mut s);
+        let mut b = ew_testkit::golden::dsl::Builder::new(&mut sink);
+        b.device(&strip, Some(&main)).unwrap().0
+    };
+    {
+        let q = s.query();
+        let made_strip = q.devices().get(made).cloned().unwrap();
+        assert!(made_strip.aspects.strip.is_some(), "the made device is a strip");
+        assert!(
+            q.devices()
+                .iter()
+                .all(|(_, d)| d.aspects.terminal.as_ref().is_none_or(|t| t.strip != made)),
+            "the made strip has no terminals"
+        );
+    }
+    let kinds = s.chooser_layout_kinds(&[made.as_uuid()]);
+    assert_eq!(kinds, ["end_bracket"]);
+    let mut offers = s.part_offers(&PartOfferQuery {
+        text: "EW-GEN-EB-1".into(),
+        ..PartOfferQuery::default()
+    });
+    let layout = ["end_bracket", "enclosure", "mounting_plate", "rail", "duct"];
+    offers.retain(|o| !layout.contains(&o.kind.as_str()) || kinds.contains(&o.kind));
+    assert!(
+        numbers(&offers).contains(&"EW-GEN-EB-1"),
+        "{:?}",
+        numbers(&offers)
+    );
+}

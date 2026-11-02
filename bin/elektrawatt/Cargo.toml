@@ -47,6 +47,8 @@ automod.workspace = true
 ew-viewmodel = { path = "../../crates/ew-viewmodel", features = ["testkit"] }
 # Only carries the test-only feature to every test build (ci/dep-rules.toml, `[[uniform_test_features]]`).
 ew-commands = { path = "../../crates/ew-commands", features = ["testkit"] }
+# The starter part versions of the tests (`ew_testkit::library::starter_version`, FT-1041; dev-only edge).
+ew-testkit = { path = "../../crates/ew-testkit" }
 serde_json = "1.0.154"
 # tests/headless.rs: the 150 dpi snapshot against golden/J-E-2416/expected/png and the exported PDF's digest.
 png = "0.18.1"

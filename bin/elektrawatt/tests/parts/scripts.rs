@@ -15,6 +15,7 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};
 use std::sync::atomic::{AtomicU32, Ordering};
 
+use ew_testkit::library::starter_version;
 use ew_ui::ew_viewmodel::ew_api::{CmdLog, Session};
 use serde_json::{Value, json};
 
@@ -103,27 +104,6 @@ fn describe(step: &Value) -> &str {
 
 fn has_line(d: &str, line: &str) -> bool {
     d.lines().any(|l| l.trim_start() == line)
-}
-
-/// The version of starter part `number` in the shipped library `content/libraries/ew-starter-parts.ewlib`, from which
-/// the starter is compiled in: a version bump changes no assertion (ID-1109).
-fn starter_version(number: &str) -> String {
-    let dir = Path::new(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/../../content/libraries/ew-starter-parts.ewlib/parts"
-    ));
-    let mut found = Vec::new();
-    for entry in std::fs::read_dir(dir).unwrap() {
-        let text = std::fs::read_to_string(entry.unwrap().path()).unwrap();
-        for line in text.lines().filter(|l| !l.trim().is_empty()) {
-            let rec: Value = serde_json::from_str(line).unwrap();
-            if rec["part_number"] == number {
-                found.push(rec["version"].as_str().unwrap().to_owned());
-            }
-        }
-    }
-    assert_eq!(found.len(), 1, "{number} is in the shipped library once");
-    found.remove(0)
 }
 
 /// Runs `steps` once, or twice when `twice`, each run on its own copy of Golden A at `<side>/g.ew`; checks that every

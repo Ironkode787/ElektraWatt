@@ -101,6 +101,35 @@ pub fn generated_parts(n: usize, library: Uuid) -> Vec<LibDocument> {
     docs
 }
 
+/// The version of starter part `number` in the shipped library `content/libraries/ew-starter-parts.ewlib`, from which
+/// the starter is compiled in: a test reads the version there, so a version bump changes no assertion (ID-1109). One
+/// helper for every test crate (FT-1041). Panics when the library cannot be read or holds `number` other than once.
+pub fn starter_version(number: &str) -> String {
+    let dir = std::path::Path::new(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../content/libraries/ew-starter-parts.ewlib/parts"
+    ));
+    let mut found = Vec::new();
+    for entry in std::fs::read_dir(dir).expect("the shipped starter library is readable") {
+        let path = entry.expect("a starter library entry").path();
+        let text = std::fs::read_to_string(&path).expect("a starter library file is readable");
+        for line in text.lines().filter(|l| !l.trim().is_empty()) {
+            let rec: serde_json::Value =
+                serde_json::from_str(line).expect("a starter library record is JSON");
+            if rec["part_number"] == number {
+                found.push(
+                    rec["version"]
+                        .as_str()
+                        .expect("a starter part has a version")
+                        .to_owned(),
+                );
+            }
+        }
+    }
+    assert_eq!(found.len(), 1, "{number} is in the shipped library once");
+    found.remove(0)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
