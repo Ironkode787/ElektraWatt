@@ -13,6 +13,7 @@ is small, and the longer design of its governance is in the
 
 The project has one maintainer. The maintainer decides what is built, what is merged and what is released. There is no
 board and no vote. Reviews and decisions are recorded in the open, so that anyone can see why a choice was made.
+Nothing is sold under the ElektraWatt name.
 
 ## Where decisions are written down
 

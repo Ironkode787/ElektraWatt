@@ -1,7 +1,7 @@
 wp_id,stream,title,milestone,milestone_lean,lever,release,effort_opt_pw,effort_likely_pw,effort_pess_pw,depends_on,lagged_deps,requirements,acceptance,owner_role
 WP-S0.01,S0,"Repository, workspace and CI bootstrap",M0,M0,,MVP,2,3,5,,,NFR-MAINT-01 NFR-MAINT-03 NFR-MAINT-05 NFR-MAINT-08 NFR-MAINT-13 NFR-SEC-10 NFR-SEC-19,NFR-MAINT-05,Release engineer
 WP-S0.02,S0,"Licensing, REUSE, DCO and licence-boundary check",M0,M0,,MVP,1,2,3,WP-S0.01,,NFR-LIC-01..NFR-LIC-05 NFR-LIC-08 NFR-LIC-09 NFR-LIC-10 NFR-MAINT-02,NFR-LIC-01 NFR-LIC-04,Project lead
-WP-S0.03,S0,Governance files and contribution process,M2,M2,,MVP,0.5,1,1.5,WP-S0.01,,NFR-DOC-08 NFR-DOC-09 NFR-COMP-03,NFR-DOC-08,Project lead
+WP-S0.03,S0,Governance files and contribution process,M2,M2,,MVP,0.5,1,1.5,WP-S0.01,,NFR-DOC-08 NFR-DOC-09 NFR-COMP-03 NFR-COMP-02,NFR-DOC-08,Project lead
 WP-S0.04,S0,"Legal gates for contributions: LG-1, LG-2, LG-5",M1,M1,,MVP,1,1.5,3,WP-S0.02,,NFR-LIC-11 NFR-LIC-12,NFR-LIC-12,Steward liaison
 WP-S0.05a,S0,"Signing enrolment and trademark search: LG-3, LG-4 start",M0,M0,,MVP,0.5,1,1.5,WP-S0.08,,NFR-LIC-13,NFR-LIC-13,Steward liaison
 WP-S0.05,S0,"Steward, signing identities and trademark: LG-3, LG-4 close",M6,M6,,1.0,1,1.5,2.5,WP-S0.04 WP-S0.05a,WP-S0.05a+12,NFR-COMP-01 NFR-COMP-02 NFR-COMP-08 NFR-DOC-08,NFR-COMP-08,Steward liaison

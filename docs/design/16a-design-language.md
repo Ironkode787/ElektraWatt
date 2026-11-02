@@ -1,6 +1,6 @@
 # Design language
 
-**Status:** v1.3, accepted 2026-10-28; amended 2026-10-31, cycle-40 design pass, part 3: §2's keyboard-shortcuts list, §6.8's label column and §6.10's toast width and wrapping as built (FIX40e, decision log ID-940); amended 2026-10-31, cycle-40 design pass, part 2: §2's macro-card value columns and §6.11's one refusal of the interruption point tool as built (decision log ID-934); amended 2026-10-31, cycle-40 design pass, part 1: §2's widths at the typical size as built, the size tokens of §4.9 and §5.6's right column (decision log ID-922); amended 2026-10-31, cycle-39 design pass, part 2: §6.23, the Preview tab a card opened closes with its last card (decision log ID-916); amended 2026-10-31, cycle-39 design pass, part 1: the owner's two-size rule in §2's Screens (decision log ID-908); amended 2026-10-30, cycle-38 design pass, part 3: the bottom dock's close control, the Messages toggle and Escape, the zoom kept across docks and the clamp at half the client height (§5.7), the last check's counts in the findings field (§5.8), a failed card's lead in words (§6.23), a shared pin by its ordinal (§8), decision log ID-889; amended 2026-10-30, cycle-38 design pass, part 2: the open-CP marker's value (§4.6), the double-click rule and the canvas context menu (§5.5), the one-toast import outcome (§6.10), a terminal in a sentence (§8), decision log ID-883, ID-884; amended 2026-10-30: the macOS notes of the app button, the dialog button order and the key notation kept for portability only (decision log ID-880); amended 2026-10-30, cycle 38: the open-CP marker and its neutral-ink ruling and the black-box pin texts (§4.6), the picker rows (§5.6), one finding count for the toast, the status bar and the chip (§5.8, §6.10), the delete toast (§6.10), decision log ID-872, ID-875, ID-876, ID-879; amended 2026-10-29, cycle 35: the chooser list's two uses as built (§6.22, decision log ID-782, ID-817) and FT-595's ruling on a merged 0 V/PE potential's colour (§7.5, ID-828); amended 2026-10-29, cycle 34: the component tokens `size.dialog.label` and `color.badge.on_chrome` (§4.15, §6.12, §6.16), the dark dialog backdrop black at 40 % (§6.12, FT-557) and FT-581's ruling on the disabled Primary (§6.1), as built; amended 2026-10-29, cycle 33: the data grid's cursor bar, scroll handle and editor baseline (§6.21) and the disabled Primary (§6.1) as built (decision log ID-764, ID-775); v1.3: WP-S2.17 parts 2 to 5 as built, the deliberate departures noted in §5.2, §5.4, §5.5, §5.8, §6.8, §6.10, §6.12, §6.14, §6.16, §7.1, §7.2 and §9.2, the Project tab's Import group and the search placeholder in §5.2 and §5.3 (decision log ID-747 to ID-757); v1.2: the bottom dock's height as built, `size.dock.bottom_min` (decision log ID-743); v1.1 adds the built widgets (§4.15, §6.21 to §6.25); cycle-31 design pass: the
+**Status:** v1.3, accepted 2026-10-28; amended 2026-11-02, cycle-47 design pass: §6.26, the print pre-dialog as built (WP-S3.07 part 3, decision log ID-1197), and §8 item 7, the keycap form of a key's name without an exception, three surfaces and the editor still to follow (ID-1199, FT-1112); amended 2026-10-31, cycle-40 design pass, part 3: §2's keyboard-shortcuts list, §6.8's label column and §6.10's toast width and wrapping as built (FIX40e, decision log ID-940); amended 2026-10-31, cycle-40 design pass, part 2: §2's macro-card value columns and §6.11's one refusal of the interruption point tool as built (decision log ID-934); amended 2026-10-31, cycle-40 design pass, part 1: §2's widths at the typical size as built, the size tokens of §4.9 and §5.6's right column (decision log ID-922); amended 2026-10-31, cycle-39 design pass, part 2: §6.23, the Preview tab a card opened closes with its last card (decision log ID-916); amended 2026-10-31, cycle-39 design pass, part 1: the owner's two-size rule in §2's Screens (decision log ID-908); amended 2026-10-30, cycle-38 design pass, part 3: the bottom dock's close control, the Messages toggle and Escape, the zoom kept across docks and the clamp at half the client height (§5.7), the last check's counts in the findings field (§5.8), a failed card's lead in words (§6.23), a shared pin by its ordinal (§8), decision log ID-889; amended 2026-10-30, cycle-38 design pass, part 2: the open-CP marker's value (§4.6), the double-click rule and the canvas context menu (§5.5), the one-toast import outcome (§6.10), a terminal in a sentence (§8), decision log ID-883, ID-884; amended 2026-10-30: the macOS notes of the app button, the dialog button order and the key notation kept for portability only (decision log ID-880); amended 2026-10-30, cycle 38: the open-CP marker and its neutral-ink ruling and the black-box pin texts (§4.6), the picker rows (§5.6), one finding count for the toast, the status bar and the chip (§5.8, §6.10), the delete toast (§6.10), decision log ID-872, ID-875, ID-876, ID-879; amended 2026-10-29, cycle 35: the chooser list's two uses as built (§6.22, decision log ID-782, ID-817) and FT-595's ruling on a merged 0 V/PE potential's colour (§7.5, ID-828); amended 2026-10-29, cycle 34: the component tokens `size.dialog.label` and `color.badge.on_chrome` (§4.15, §6.12, §6.16), the dark dialog backdrop black at 40 % (§6.12, FT-557) and FT-581's ruling on the disabled Primary (§6.1), as built; amended 2026-10-29, cycle 33: the data grid's cursor bar, scroll handle and editor baseline (§6.21) and the disabled Primary (§6.1) as built (decision log ID-764, ID-775); v1.3: WP-S2.17 parts 2 to 5 as built, the deliberate departures noted in §5.2, §5.4, §5.5, §5.8, §6.8, §6.10, §6.12, §6.14, §6.16, §7.1, §7.2 and §9.2, the Project tab's Import group and the search placeholder in §5.2 and §5.3 (decision log ID-747 to ID-757); v1.2: the bottom dock's height as built, `size.dock.bottom_min` (decision log ID-743); v1.1 adds the built widgets (§4.15, §6.21 to §6.25); cycle-31 design pass: the
 Messages pane has no table mode as built, the History keys as built, the follow-ups numbered (decision log ID-727, ID-732) · **Date:** 2026-10-28 · **Decision:** [ADR-0031](../adr/0031-design-language-and-task-ordered-command-bar.md)
 (Accepted) · **Visual reference:** [the mockup](assets/design-language-mockup.html) (approved by the owner) · **Work package:**
 [WP-S2.17](../plan/specs/WP-S2.17-design-language-and-ui-polish.md) · **Part of:** ElektraWatt design document set
@@ -1211,6 +1211,39 @@ cycle-31 design pass, decision log ID-727: 1 is FT-520, 2 FT-521, 3 FT-522, 4 FT
 5. **History row actions on demand.** Undo to here and Show changes appear on the cursor row, on hover and on focus
    only, as the property row's "…" button (§6.8), instead of on every row.
 
+### 6.26 The print pre-dialog
+
+*As built (cycle 47; WP-S3.07 part 3, decision log ID-1180, ID-1197).* A modal dialog (§6.12) opened by Output ▸
+Print… (`file.print`, Ctrl+P, enabled with pages) and by the command bar's Print button. It is titled "Print"
+(`print-title`), `size.dialog.preview` wide (1040 px, growing with the window at 0.65 of its width, 1248 px at 1920) and
+holds two columns: the options on the left, 36 % of the body, on §6.12's form rows, and the preview on the right, at
+most 56 % of the window's height.
+- **Options.** *Range*, a radio group: All, Current page, Sections (a check list, "Section {n}: {title}", six rows
+  before it scrolls) and Pages (a text field under the radio, enabled only for it; a text the parser refuses shows the
+  parser's words under the field); *Paper*, a choice field: "Sheet size" or a paper size; *Scale to fit* and
+  *Monochrome*, check boxes named by their labels. An option changed while the set builds cancels that build and starts
+  one for the new options: the build is a job on the snapshot, so the window never waits for it, and the set prints the
+  revision it was built at.
+- **Preview.** The set's page at the page's aspect ratio, drawn by the placed render of `ew-render-cpu` (the print's
+  own rule, WP-S3.07 D7) at the resolution that fills the preview's pixels (24 to 200 dpi) on a thread of its own, with
+  the stamp ("scaled 70 %") visible when the fit scaled the page; an image that no longer matches the build, the page,
+  the resolution or the colour mode is dropped. Under it "{n} of {m}" (`print-page-of`) between Previous and Next
+  (Secondary buttons). While the set builds, §6.19's progress line, "Building the print set… {n} %", stands in the
+  preview's place, and "Writing the print set…" in the build's writing phase; a failed build shows "The print set
+  could not be built: {reason}" as a live line; with no page chosen (no section ticked, an empty Pages field) §6.17's
+  empty state stands there: "No pages to print", "Tick a section or type the pages to print".
+- **Footer**, right-aligned in the platform's order (§6.12): **Print…** the Primary (Enter), *Open in PDF viewer* and
+  *Cancel* the Secondaries; both print buttons are disabled until the set is built. Escape and Cancel close the dialog
+  and cancel a running build, and nothing prints.
+- **After the button.** One toast ends the job: "Sent {0} to the printer", "Opened {0} in your PDF viewer", the
+  fallback notice of WP-S3.07 D11 or the failure's text (FT-1110); it names no page count. On Linux the portal is called
+  without a parent window and falls back to `lp`, then to the viewer, with one notice; a cancel in the portal ends the
+  chain silently. The dialog's own steps are the hidden actions `print.set`, `print.page` and `print.send`, which the
+  palette does not list.
+- **Known gaps** (the window check W47.1, ID-1212): the Pages error shows twice and lacks the field's error border and
+  icon (FT-1124); the first focus lands on the chosen Range radio and not on the Primary (FT-1125); an A3 preview
+  without a fit draws no paper edge (FT-1126).
+
 ## 7. Canvas overlays
 
 All overlays follow FT-391's scale rule (`s = max(1, ⌊ppp⌋)`), live in the session-only overlay layers (never in the
@@ -1297,7 +1330,9 @@ HUD; chips avoid it (§7.4).
    *As built (cycle 47; decision log ID-1182, FT-1081):* a key has one name in every text, the form on its keycap
    (`keymap::short_display`: "Esc", "Del", "Up", with its modifiers, "Ctrl+Z"), in the HUDs, the hints, toasts,
    notices, reasons and tooltips alike ("Esc ends", "Del deletes"); the full names ("Escape", "Delete") are not used.
-   The chips, the menus and the keymap editor show the registry's own text.
+   The rule has no exception: the menus, the key chips, the palette and the keymap editor name a key in the same form
+   too. *Not yet built (cycle 47 design pass, ID-1199):* those four surfaces still show the registry's own text
+   ("Escape", "Delete") until FT-1112 moves them to `short_display`.
 8. **Abbreviations** only where the user's documents use them (PE, N, L1, IP for interruption point in EPLAN usage);
    tooltips spell them out the first time ("IP: interruption point").
    *As built (cycle 38; decision log ID-883, FT-716):* a sentence names a terminal by strip and number in words,

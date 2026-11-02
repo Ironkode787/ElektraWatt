@@ -113,4 +113,20 @@ SPDX-License-Identifier: CC-BY-4.0
   for "a newer file format"; FT-943)
 - text-change: title block of a page drawn to scale (a Dutch title prints "Schaal", such as "Kastindeling · Schaal
   1:10", every other language "Scale"; a stored scale of 0 prints the plain title and no scale; FT-881)
+- api-add: window Output ▸ Print… (Ctrl+P, `file.print`; the print pre-dialog: Range, Paper, Scale to fit and
+  Monochrome beside a preview of the print set, which is built as a job; Print… hands the set to the system's printer,
+  on Linux through the desktop portal, then `lp`, and Open in PDF viewer to the viewer; WP-S3.07 part 3)
+- text-change: window Interruption point tool (an external point connected on a pin says "Placed the external point
+  <name> at <cell> and connected it to <pin>. Alt+Click or <key> places it without connecting", where it said
+  "interruption point"; FT-1067)
+- text-change: window Place tool (the next terminal designation of a strip is the lowest number free in it, again after
+  an Undo or a Redo, so a strip keeps no gap; FT-1083)
+- api-add: command device.create (an optional `frozen_tag` sets a new device's tag in the creating commit, one undo step;
+  the window's New terminal strip form uses it; FT-1090)
+- text-change: sheets, PDFs and prints (a part of the starter library no longer prints "Generic" as its maker, so a
+  black box of a generic part prints its tag and its part number; FT-1094)
+- text-change: window part chooser and Parts row (a library part's maker shows by the record's name, not its key, and
+  the parts keep one order whether the project holds them or not; FT-1087)
+- text-change: window canvas HUD (on a page that takes no symbols it gives the page type's reason while no tool is
+  armed; FT-1089)
 - dependency: async-executor 1.14.0 → 1.14.1 (a use-after-free fixed upstream; 1.14.0 yanked)

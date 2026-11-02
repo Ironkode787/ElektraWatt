@@ -8,7 +8,7 @@
 
 ## Summary for decision makers
 
-**Result in one paragraph.** The catalogues hold 1081 requirements (934 FR, 147 NFR). The 126 WPs cover 1058 of them (97.9 %). No MVP or 1.0 Must or Should requirement that the plan promises lacks a WP (§3). In the full scope, 1 MVP Must/Should requirement is covered only by WPs after M2; in the lean scope of record, 25 such requirements, because the scope levers move their WPs until the catalogues are re-labelled (§4). No WP cites a token that is not a requirement ID or that names no requirement (§5).
+**Result in one paragraph.** The catalogues hold 1081 requirements (934 FR, 147 NFR). The 126 WPs cover 1058 of them (97.9 %). No MVP or 1.0 Must or Should requirement that the plan promises lacks a WP (§3). In the full scope, no MVP Must/Should requirements are covered only by WPs after M2; in the lean scope of record, 24 such requirements, because the scope levers move their WPs until the catalogues are re-labelled (§4). No WP cites a token that is not a requirement ID or that names no requirement (§5).
 
 **What is asked of the plan owner.** (1) Treat the gap lists of §3 as input to the next WP revision: each listed ID either joins an existing WP, gets a new WP, or is re-labelled in the catalogue (release or priority) with a decision record. (2) Fix the invalid citations of §5, which are typing errors, not scope decisions. (3) Re-run `python3 -I docs/plan/tools/trace.py` after every change of the CSV or the catalogues; the gate reviews of [gates](03-gates.md) use this document as their scope check.
 
@@ -102,7 +102,7 @@ Cells show *covered / total*. Release bucket by §1. The last column pools 1.x a
 
 | Release | Priority | Rows | Covered in time, full scope | Covered in time, lean scope | Moved by the levers |
 |---|---|---|---|---|---|
-| MVP | Must | 556 | 555 | 538 | 17 |
+| MVP | Must | 556 | 556 | 539 | 17 |
 | MVP | Should | 136 | 136 | 129 | 7 |
 | MVP | Could | 6 | 6 | 4 | 2 |
 | 1.0 | Must | 138 | 138 | 111 | 27 |
@@ -169,15 +169,13 @@ Not gaps: the plan does not promise them. Listed compactly by area so that none 
 
 Requirements covered on paper whose earliest covering WP comes after the release that owes them. They cannot be delivered at that gate unless the WP is pulled forward or the requirement is re-labelled. Each list is computed for the full scope (`milestone`) and for the lean scope of record (`milestone_lean`).
 
-### 4.1 MVP rows after M2, full scope (1)
+### 4.1 MVP rows after M2, full scope (0)
 
-| ID | Prio | Requirement (abridged) | Earliest WP | WP milestone | Lever |
-|---|---|---|---|---|---|
-| NFR-COMP-02 | Must | No paid offering (support, LTS build) shall be sold under t… | WP-S0.05 | M6 | – |
+None.
 
-### 4.2 MVP rows after M2, lean scope (25)
+### 4.2 MVP rows after M2, lean scope (24)
 
-These rows are moved by the levers (lever (a): 8, lever (b): 16, lever (–): 1). They are owed by the MVP in the catalogues today; the catalogue edits that follow PD-1 re-label them to the release of the lever, after which this list is empty.
+These rows are moved by the levers (lever (a): 8, lever (b): 16). They are owed by the MVP in the catalogues today; the catalogue edits that follow PD-1 re-label them to the release of the lever, after which this list is empty.
 
 | ID | Prio | Requirement (abridged) | Earliest WP | WP milestone | Lever |
 |---|---|---|---|---|---|
@@ -203,7 +201,6 @@ These rows are moved by the levers (lever (a): 8, lever (b): 16, lever (–): 1)
 | FR-IMP-043 | Must | Conductors without stored segments shall receive the path Q… | WP-S3.10 | M3 | b |
 | FR-IMP-044 | Must | Foreign colour notations (BR, SW, BL, RT, GE, WS, GR, GNGE)… | WP-S3.10 | M3 | b |
 | FR-SYM-017 | Should | provide a symbol editor to draw graphics, place CPs, assign… | WP-S2.10 | M5 | a |
-| NFR-COMP-02 | Must | No paid offering (support, LTS build) shall be sold under t… | WP-S0.05 | M6 | – |
 | NFR-PERF-25 | Should | On BM, importing a reference-size `.qet` shall reach the im… | WP-S3.10 | M3 | b |
 | NFR-SEC-08 | Must | `ew mcp` shall never start implicitly. It listens on stdio… | WP-S1.23 | M5 | a |
 
@@ -564,7 +561,7 @@ Computed counts are in the sections above; this section states what follows from
 
 1. **Gaps.** No owed (Must or Should, MVP or 1.0) requirement lacks a WP; areas with gaps: none.
 2. **Invalid citations.** None: no invalid token and no range with missing members (§5).
-3. **Late coverage.** Full scope: 1 MVP requirement covered only after M2. Lean scope of record: 25 MVP requirements and 72 1.0 requirements, all moved by the scope levers; the catalogue edits that follow PD-1 re-label them (§4).
+3. **Late coverage.** Full scope: no MVP requirements covered only after M2. Lean scope of record: 24 MVP requirements and 72 1.0 requirements, all moved by the scope levers; the catalogue edits that follow PD-1 re-label them (§4).
 4. **Acceptance ownership.** ACs without a WP that names them: none. Each gate AC should have one owner WP so the gate review has a person to ask.
 5. **Regeneration.** The script is the only source of the tables; change the CSV or the catalogues, re-run, review the diff. The CI check (`--check`) keeps the document honest.
 

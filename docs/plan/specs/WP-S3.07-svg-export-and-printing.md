@@ -5,7 +5,7 @@
 D9), part 3 printing from the window with the print preview and the Linux portal (0.8 pw, D10, D11), part 4 the
 native Windows adapter (0.7 pw, D12); 0.3 pw reserve; part 1 at any time, part 2 before parts 3 and 4, parts 3 and 4
 in any order · **Date:** 2026-10-31 · **Work package:**
-[WP-S3.07](../02-work-packages.md#wp-s307-svg-export-and-printing) · **Decision log:** ID-1017; O3 answered by ID-1030; part 1 as built ID-1122; part 2 ruled by ID-1114, as built ID-1153, ID-1155; part 3 ruled by ID-1180 · **Part of:** ElektraWatt plan, specifications
+[WP-S3.07](../02-work-packages.md#wp-s307-svg-export-and-printing) · **Decision log:** ID-1017; O3 answered by ID-1030; part 1 as built ID-1122; part 2 ruled by ID-1114, as built ID-1153, ID-1155; part 3 ruled by ID-1180, as built ID-1197 · **Part of:** ElektraWatt plan, specifications
 
 **Purpose.** The SVG writer was built ahead of this package (cycle 14, `ew_export::svg`; `ew export svg` since cycle 15):
 text as text, stable order, links, one file per page, byte-identical serial and parallel output (AC-14). Its fonts are
@@ -292,6 +292,19 @@ files where they say so.
    §4.15 and §6.12 (the width),
    `crates/ew-viewmodel/src/{dialogs.rs,describe.rs,help.rs}` (the matches), `bin/elektrawatt/src/main.rs` (the
    `Platform` implementation), the keymaps, FT-813's row.
+
+*As built (cycle 47, P47; decision log ID-1197):* `PagePlacement` and `render_placed` live in `ew-render-cpu` (re-exported
+by `ew-export`); PW-1's digest is the export's, `print_set_hooked` with `NoHooks` equalling `print_set_with`;
+`Session::print_set_job` builds the set as `JobKind::Print` on a snapshot; `ew-print` holds the `Chain` (portal, `lp`,
+viewer on Linux; the viewer elsewhere until part 4), one fallback notice, and a guard that removes the portal's print
+file on every way out; `Platform::print` (its default refuses) is implemented by `bin/elektrawatt` on a worker thread.
+`file.print` (Ctrl+P, the command bar's place beside Export PDF) opens the modal pre-dialog of [doc 16a
+§6.26](../../design/16a-design-language.md), 1040 px wide (`size.dialog.preview`) and growing at 0.65 of the window's
+width. Rows the lane records: the set's build is owned by the dialog and is not listed in Jobs; the portal is called
+without a parent window (D11); toasts name no page count; `print.set`, `print.page` and `print.send` are hidden actions,
+guarded by `print_dialog_open`; Paper offers "Sheet size"; a cancel in the portal ends the chain silently; the
+"building" frame comes from the visual driver held at a test gate. The portal adapter has no test of its own
+(FT-1111), and its texts' gaps are FT-1110.
 
 ## 8. Part 4: the Windows adapter
 

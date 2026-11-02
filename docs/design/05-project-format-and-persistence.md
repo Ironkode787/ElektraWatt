@@ -1401,30 +1401,53 @@ read-only project. The user's own repository is never touched.
 ```text
 J-E-2416.ewz
   mimetype        "application/vnd.elektrawatt.project+zip": first entry, stored, no extra field
-  …               all other entries sorted byte-wise by path, Deflate; never .ew/, the lock files,
-                  .~ew.requests/, temps or .git/
+  manifest.json   second entry
+  …               the files the manifest lists, and .gitattributes and .gitignore when present, sorted byte-wise
+                  by path, Deflate; never .ew/, the lock files, .~ew.requests/, temps, strays or .git/
 ```
 
-- **Determinism.** Every entry has DOS time 1980-01-01 00:00:00, or the date rule of
-  [09](09-reports-forms-output.md) §4.3 when `SOURCE_DATE_EPOCH` or an export date is set; mode 0644 and the UTF-8
-  flag. No extended timestamps, no comments. The Deflate level is fixed and the compressor is pinned through
-  `Cargo.lock`, so bytes are identical for the same project, date setting and EW version.
+*As built (cycle 47, WP-S1.17 part 2; decision log ID-1175, ID-1191):* the file is one verified generation, the one
+`Store::read_generation` reads back from the disk, never a model in memory; `pack` reads its bytes back through the
+reader before it hands them out and refuses an archive the reader would refuse.
+
+- **Determinism.** Every entry has DOS time 1980-01-01 00:00:00 (as built: always, the date rule of
+  [09](09-reports-forms-output.md) §4.3 is not used); mode 0644 and the UTF-8 flag. No extended timestamps, no
+  comments. The Deflate level is fixed and the compressor is pinned through `Cargo.lock`, so bytes are identical for
+  the same project and EW version.
 - **Opening.**
   - "Extract and open" unpacks into `<name>.ew/` beside the file or into a chosen folder, and never into an
-    existing one.
-  - "Open read-only" extracts to `<cache>/ewz/<sha256>/`; editing then requires Save As.
-  - Every CLI command that takes a project path also accepts an `.ewz`, opened read-only.
+    existing one. As built (`ew extract <file.ewz> [--into <dir>]`): the default is `<stem>.ew` beside the archive; the
+    target must not exist; the extract is all or nothing: it writes through the `Vfs` seam into a staging directory
+    `<target>.tmp-ewz` that it creates exclusively, creates, syncs and reads back every file, checks the target's
+    absence again and renames the directory, so no half project ever stands under the target's name and a failure
+    removes what the call created (if the parent folder cannot be synced after the rename, the target is moved back
+    first). The race that is left, an empty directory made at the target between the check and the rename on Linux or
+    macOS, is accepted: nothing of anyone's is lost.
+  - "Open read-only" extracts to `<cache>/ewz/<sha256>/`; editing then requires Save As. As built:
+    `Session::open_ewz` opens the archive from memory, with no cache directory, no lock and no journal.
+  - Every CLI command that takes a project path also accepts an `.ewz`, opened read-only. As built: the readers
+    (`check`, `sql` and `sql dump`, the row and page exports, `export table`, `print`, `render`, `verify-derived`,
+    `query`, `fmt --check`) accept it, and every other subcommand, `apply --preview`, `assets purge --preview` and
+    `import table` included, refuses it: "an .ewz opens read-only; extract it first".
+  - A path is an `.ewz` by its extension (`ewz`, any case) when it is not a directory.
 - **Limits** (FR-IMP-005, NFR-SEC-02).
   - At most 100,000 entries, 2 GiB expanded and 512 MiB per entry, with a compression-ratio cap of 200 : 1 per
-    entry, as for every archive reader ([14](14-interop.md) §11).
+    entry, as for every archive reader ([14](14-interop.md) §11). As built: the writer has no ZIP64 and writes at
+    most 65,535 entries; the reader takes `ZipLimits::default()` (the ratio applies above a 64 KiB floor).
   - The extractor rejects `..`, absolute paths, drive letters, backslashes, `:` and NUL in names, duplicate names
-    (exact or case-insensitive), symbolic-link and encrypted entries, and paths outside the layout of §2.1.
+    (exact or case-insensitive), symbolic-link and encrypted entries, and paths outside the layout of §2.1. As built,
+    the reader also refuses names that Windows cannot hold, a manifest that lists a path that is not a project file (a
+    lock, a temporary, `.git/…`, `.ew/…`, a stray or a foreign name), a first entry that is not `mimetype` with its
+    value, stored, an entry that is not deflated, entries not in strictly increasing byte order from the third on, a
+    file or git file the manifest does not list, a listed file that is missing and a hash that does not match.
   - The extracted manifest must verify.
 - **Uses.**
   - Hand-over by e-mail (the golden `.ewz` is estimated at about 200 KB).
   - The format-upgrade backup (§10.1).
   - `ew export ewz [--omit-personal-data]`. With the flag it replaces the fields marked as personal data with
-    placeholders on a fork before packing (FR-OUT-025, MVP).
+    placeholders on a fork before packing (FR-OUT-025, MVP). As built: `ew export ewz [<project>] --out <file.ewz>`,
+    `--out` required, and no `--omit-personal-data` yet; it packs the saved generation (a dirty session's export packs
+    the saved state and says so) and refuses a file that differs from the manifest and a pending hash.
   - The repair's backup (§6.3, `ew fmt --repair`): the generation's files as found, a file edited outside EW since the
     last save included, with its manifest the loaded one and each listed file's hash set to those bytes, so that it
     verifies and extracts to the project as the repair found it. It is the one `.ewz` that is not a verified

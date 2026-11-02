@@ -5,7 +5,7 @@ the CSV presets, the formula guard) behind every row export (1.0 pw, D2 to D7), 
 tables, `ew import table`, the I/O list, 1.0 pw, D8 to D13), part 3 the window (export and import from a navigator's
 table, the export as a job, 0.5 pw, D14); 0.3 pw reserve; part 1 first, part 2 after it, part 3 after part 2 ·
 **Date:** 2026-10-31 · **Work package:**
-[WP-S3.08](../02-work-packages.md#wp-s308-table-exports-and-excel-round-trip) · **Decision log:** ID-1016, ID-1145 (part 1's rulings), ID-1174 (part 2's rulings); part 1 as built ID-1157 · **Part of:** ElektraWatt plan, specifications
+[WP-S3.08](../02-work-packages.md#wp-s308-table-exports-and-excel-round-trip) · **Decision log:** ID-1016, ID-1145 (part 1's rulings), ID-1174 (part 2's rulings); part 1 as built ID-1157, part 2 as built ID-1193, ID-1195 · **Part of:** ElektraWatt plan, specifications
 
 **Purpose.** WP-S3.08's CSV half was built ahead of it: every row export writes the rows of a report block, as its
 folios print them, in the golden CSV dialect (WP-S3.03, cycle 14; WP-S1.22 part 2, cycle 40), and an own bounded XLSX
@@ -309,6 +309,19 @@ item 2 where they say so.
    only), `crates/ew-api/src/{lib.rs,output/rows.rs}`, `crates/ew-viewmodel/src/strings.rs` (the new keys),
    `golden/J-E-2416/README.md` and the three part-1 dumps.
 7. RT-5 uses `ew export report --kind io_list`, in since WP-S3.06 part 1; build item 2 was done in part 1 (ID-1145).
+
+*As built (cycle 47, R47 and FIXR47; decision log ID-1193, ID-1195):* `ew export table <navigator>` and `ew import table`
+are built as D8 to D13 rule; the base digest is made in `ew-api` (`with_base_digest`, `ew-reports` takes no hash), D10's
+rule is `ew_api::output::table_edit` returning text keys, with the view model's re-exports and wrappers keeping its
+old texts, and `sheet::read_rows` reads `_ew` and `_ew_base` whole. Rows the lane records: `TableGesture` is a newtype
+(the table-mode test's `.title()` is unchanged); the CLI's reason words come from `reason_words`; a value the parser
+refuses is a cell outcome, not a finding; EW-IMP-305 applies the value with a warning; the navigator's columns are typed
+Text; `export table` CSV defaults to the `ew` preset, which has no `id` column, so the refusal names the presets that do;
+an import's preset is inferred from the separator; `--strip` on another navigator is refused in `ew-api` too
+(`StripElsewhere`); in three-way mode a read-only column has no base, so a project-side change there shows as 301.
+`unplaced` is a table navigator and `io_list` the one editable report table. `ew export table` opens an `.ewz` as a
+reader (FIXR47), `ew import table` stays a writer. The part-1 dumps show `_ew`'s rows whole (digests unchanged) and
+`strips_X1031.cells.txt`, `io_list.cells.txt` and `io_list.excel-nl.csv` are new (`Golden: ID-1174`).
 
 ## 7. Part 3: the window
 

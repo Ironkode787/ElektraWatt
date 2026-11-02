@@ -8,7 +8,7 @@ external change in the store and the session (1.1 pw, D20 to D23), part 7 the wi
 status (0.8 pw, D24, D25), part 8 `ew diff`, `ew git setup`, the post-merge integrity and AC-41 (0.9 pw, D26 to D29).
 The parts sum to **7.4 pw plus 0.3 pw reserve** against a 6.8 pw PERT (O1) · **Amended in cycle 42** (decision log ID-1029, the owner's format decision): part 3, D4 and D3's `unstable` marker move to the wave before the first release, beside WP-S6.08; the PERT is 6.9 pw; format parts route at `high`, a save, a journal, recovery or a merge at `xhigh` (§16) · **Date:** 2026-10-31 · **Work package:**
 [WP-S1.17](../02-work-packages.md#wp-s117-collaboration-external-change-migrations-integrity-merge-driver) ·
-**Decision log:** ID-1015; amended by ID-1029; part 1 ruled by ID-1115, its fixes by ID-1144; part 2 ruled by ID-1175; `fmt --repair` ruled by ID-1185, its backup by ID-1186; as built ID-1152, ID-1156 · **Part of:** ElektraWatt plan, specifications
+**Decision log:** ID-1015; amended by ID-1029; part 1 ruled by ID-1115, its fixes by ID-1144; part 2 ruled by ID-1175; `fmt --repair` ruled by ID-1185, its backup by ID-1186; as built ID-1152, ID-1156 (part 1), ID-1191, ID-1195 (part 2), ID-1196, ID-1200 (`fmt --repair`) · **Part of:** ElektraWatt plan, specifications
 
 **Purpose.** WP-S1.09 built the canonical format, the save protocol, the lock, the journal and recovery, and left to
 this package everything that happens when a project changes outside the running session or between builds: a pull
@@ -440,6 +440,26 @@ amends D8 and ID-1185's rulings 3 and 5 where it says so, and traces the backup 
    - ID-1185's ruling 5 and EZ-5 as built;
    - §3's trace, FR-COL-004;
    - the release note.
+
+*As built (cycle 47, E47, FIXR47, FR47 and FIXF47; decision log ID-1191, ID-1195, ID-1196, ID-1200):* **The transport**
+(`ew_store::ewz`): `pack` and `pack_store` write `mimetype` stored, `manifest.json`, then the manifest's files and the
+two git files in strictly increasing byte order, deflated, at most 65,535 entries, and read the bytes back through the
+strict reader before they hand them out; the reader takes `ZipLimits::default()` and refuses a manifest that lists a
+path that is not a project file and every entry name that Windows cannot hold; `is_ewz` is the extension `ewz` (any
+case) on a path that is not a directory; `extract` stages in `<target>.tmp-ewz` and, if the parent's sync fails after
+the rename, moves the target back first (the double fault, when the move back fails too, is FT-1108); `Vfs::create_dir`
+is new and `MemVfs` moves a subtree. `Session::open_ewz` opens read-only from memory; `ew export ewz --out`, `ew extract
+[--into]` and the readers of ruling 5 (`export table` too, after FIXR47, through `reader_dir`) are built, every other
+subcommand refusing with D9's text; the fuzz target `ewz_read` has its table entry by hand; doc 05 §12 and doc 17 §3.3
+carry the transport as built. The `fuzz/` loader's replay test that fails (FT-1102) predates the part. **`ew fmt
+--repair`** (FR47, then FIXF47): ID-1196's rows as read against ID-1186: the hand-edit refusal built first is
+superseded by `ewz::pack_as_found`; the report's clause ("as found: N files edited outside EW", "1 file" in the
+singular), `backup.edited` (required in the backup row), the optional `save_error` and `reopen_finding` of the result,
+which is printed on every way out once the backup exists, the `fmt` row's two exit meanings (api-break lines in the
+release notes) and `write_backup` without hard links (a rename of the checked temporary file, the fault sweep run with
+`set_noreplace_unsupported` too) are as ID-1200 records; the result's `generation` is the decided one after a save
+incomplete at its commit point, and `discarded` and `files` then say what the repair decided (`RepairError::Save`'s
+`decided`, FIXF47b, C47-p3#1; ID-1200).
 
 ## 8. Part 3: format migrations and the upgrade backup
 
