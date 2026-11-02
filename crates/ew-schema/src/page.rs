@@ -137,7 +137,8 @@ pub enum Scale {
     #[default]
     NotToScale,
     /// 1:n (layout pages: "1:10" on 902).
-    OneTo(u32),
+    // n is at least 1 in the schema (FT-1065); the reader still takes a 1:0, which is drawn 1:1.
+    OneTo(#[schemars(range(min = 1))] u32),
     /// A value of a newer format, kept verbatim.
     #[serde(skip)]
     Unknown(Value),

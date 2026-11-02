@@ -398,7 +398,12 @@ impl SetFields {
                         refuse_unknown_direction(tx, *t)?;
                     }
                 }
-                KindName::Page => set_one::<Page>(tx, *t, path, value)?,
+                KindName::Page => {
+                    set_one::<Page>(tx, *t, path, value)?;
+                    if path == "scale" {
+                        refuse_bad_scale(tx, *t)?;
+                    }
+                }
                 KindName::Representation => set_one::<Representation>(tx, *t, path, value)?,
                 KindName::Connection => {
                     set_one::<Connection>(tx, *t, path, value)?;
@@ -550,6 +555,16 @@ fn refuse_unknown_colour(tx: &TxBuilder<'_>, conn: ew_ids::Id<Connection>) -> Re
         }
     }
     Ok(())
+}
+
+/// `fields.set` on a page's `scale` (FT-1065): the scale as read back must be one `page.surface_view.set` takes, with
+/// its text ([`crate::commands::page::scale_problem`]); refused at `/value`.
+fn refuse_bad_scale(tx: &TxBuilder<'_>, page: AnyId) -> Result<(), CmdError> {
+    let p = tx.require::<Page>(page.cast())?;
+    match crate::commands::page::scale_problem(&p.scale) {
+        Some(problem) => Err(CmdError::invalid_params(SetFields::NAME, "/value", problem)),
+        None => Ok(()),
+    }
 }
 
 /// [`refuse_unknown_colour`] for a conductor's `colour` (FT-476): the same check and text, refused at `/value`.

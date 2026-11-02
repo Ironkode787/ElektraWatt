@@ -828,19 +828,70 @@ fn lp4_the_title_block_reads_the_scale_and_a_new_scale_writes_no_layout_record()
         "130 mm printed"
     );
     drop(q);
-    // FT-881: a stored scale of 0 draws at 1:1 and prints the plain title, with neither the suffix nor the scale.
-    run(
-        &mut s,
+    // FT-1065: `fields.set` refuses a scale of 1:0 with `page.surface_view.set`'s text (a stored one is read and drawn
+    // 1:1: `ft1065_a_file_with_a_scale_of_one_to_zero_opens_and_draws_one_to_one`).
+    let zero = cmd(
         "fields.set",
         json!({"kind": "page", "path": "scale", "targets": [id_json(page("902"))], "value": {"one_to": 0}}),
     );
-    let q = s.query();
-    let frame = texts(&layer(&q, "902", Layer::Frame));
+    assert_eq!(
+        s.execute(&zero).unwrap_err().to_string(),
+        "fields.set: invalid parameters at `/value`: a scale is 1:n with n at least 1"
+    );
+    assert!(
+        texts(&layer(&s.query(), "902", Layer::Frame)).contains(&"Cabinet Layout · Scale 1:5".to_owned()),
+        "the scale stays"
+    );
+}
+
+/// FT-1065, FT-881: the reader stays tolerant. A copy of Golden A whose 902 line says `one_to: 0` opens; 902 draws the
+/// surface at 1:1 on the page, as a page drawn not to scale, and its title block prints the plain title, with neither
+/// the suffix nor the scale.
+#[test]
+fn ft1065_a_file_with_a_scale_of_one_to_zero_opens_and_draws_one_to_one() {
+    let dir = ew_testdir::fresh_dir("ew-panel-scale-0");
+    copy_dir(&golden_common::repo().join("golden/J-E-2416.ew"), &dir);
+    let pages = dir.join("pages");
+    let mut edited = 0;
+    for e in std::fs::read_dir(&pages).expect("the pages folder") {
+        let path = e.expect("an entry").path();
+        let text = std::fs::read_to_string(&path).expect("a page file");
+        if text.contains(r#""scale":{"one_to":10}"#) {
+            let text = text.replace(r#""scale":{"one_to":10}"#, r#""scale":{"one_to":0}"#);
+            std::fs::write(&path, text).expect("the edited page file");
+            edited += 1;
+        }
+    }
+    assert_eq!(edited, 1, "902's line is the one with a scale");
+    let mut options = StoreOptions::new("panel-scale-0");
+    options.state_dir = Some(ew_testdir::fresh_dir("ew-panel-scale-0-state"));
+    let (mut s, _) = Session::open(&dir, options, SessionOptions::default(), Recovery::Discard)
+        .expect("the edited copy opens");
+    let surface = |s: &Session| -> Vec<Rect> {
+        layer(&s.query(), "902", Layer::Surface)
+            .items
+            .iter()
+            .filter_map(item_bounds)
+            .collect()
+    };
+    let frame = texts(&layer(&s.query(), "902", Layer::Frame));
     assert!(frame.contains(&"Cabinet Layout".to_owned()), "{frame:?}");
     assert!(
         !frame.iter().any(|t| t.contains("Scale") || t.contains("1:0")),
         "{frame:?}"
     );
+    let at_zero = surface(&s);
+    // The plate's 650 × 900 mm from (25, 167) mm: the surface at 1:1 on the page, as a page drawn not to scale.
+    assert!(
+        at_zero.contains(&Rect::from_points(mm(25.0, -733.0), mm(675.0, 167.0))),
+        "{at_zero:?}"
+    );
+    run(
+        &mut s,
+        "fields.set",
+        json!({"kind": "page", "path": "scale", "targets": [id_json(page("902"))], "value": "not_to_scale"}),
+    );
+    assert_eq!(surface(&s), at_zero, "1:0 draws as a page not to scale");
 }
 
 /// The re-executions of the layer families in the statistics of the last commit.

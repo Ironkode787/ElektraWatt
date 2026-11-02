@@ -160,6 +160,13 @@ pub(super) fn propose_folio(tx: &TxBuilder<'_>, after: &Page) -> Result<(u32, Op
 }
 
 /// The printed folio of a drawn page: its label, else its number (`ew_derive::folio_label`).
+/// What is wrong with a page scale a command writes, in words (FT-1016, FT-1065): a 1:0, which the schema's minimum
+/// refuses too. `page.surface_view.set` and `fields.set` on a page's scale give this text; the reader still takes a
+/// 1:0 from a file, which is drawn 1:1.
+pub(crate) fn scale_problem(scale: &Scale) -> Option<&'static str> {
+    matches!(scale, Scale::OneTo(0)).then_some("a scale is 1:n with n at least 1")
+}
+
 fn printed_folio(number: u32, label: Option<&Ident>) -> String {
     label.map_or_else(|| number.to_string(), |l| l.as_str().to_owned())
 }
@@ -781,12 +788,8 @@ impl Command for SetSurfaceView {
                 "the mounting surface is not in the project",
             ));
         }
-        if matches!(self.scale, Some(Scale::OneTo(0))) {
-            return Err(CmdError::invalid_params(
-                Self::NAME,
-                "/scale",
-                "a scale is 1:n with n at least 1",
-            ));
+        if let Some(problem) = self.scale.as_ref().and_then(scale_problem) {
+            return Err(CmdError::invalid_params(Self::NAME, "/scale", problem));
         }
         if let Some(scale) = self.scale.as_ref().filter(|s| **s != page.scale) {
             tx.update::<Page>(self.page, |p| p.scale = scale.clone())?;

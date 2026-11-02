@@ -408,3 +408,42 @@ fn ft1016_a_scale_of_one_to_zero_is_refused() {
     );
     assert_eq!(lines(e.model()), before);
 }
+
+/// FT-1065 (ID-1178): the schema's minimum refuses a JSON `page.surface_view.set` with 1:0 before it runs, and
+/// `fields.set` and `fields.set_many` refuse a page scale of 1:0 at the value with the command's text; nothing changes.
+#[test]
+fn ft1065_a_scale_of_one_to_zero_is_refused_by_the_schema_and_by_fields_set() {
+    let (mut e, _) = fx();
+    let before = lines(e.model());
+    let surface = the_surface(e.model());
+    let refused = CommandRegistry::builtin()
+        .resolve(&AnyCommand {
+            name: "page.surface_view.set".into(),
+            params: json!({"page": PAGE_902.to_string(), "surface": surface.to_string(),
+                "datum_at": [40_000_000, 150_000_000], "scale": {"one_to": 0}}),
+        })
+        .err()
+        .expect("refused by the schema");
+    assert_eq!(
+        refused.to_string(),
+        "page.surface_view.set: invalid parameters at `/scale`: no variant of the object matches the value"
+    );
+    let set_scale = || SetFields {
+        path: "scale".into(),
+        value: json!({"one_to": 0}),
+        ..set_kind(PAGE_902, "")
+    };
+    assert_eq!(
+        e.execute(&set_scale()).unwrap_err().to_string(),
+        "fields.set: invalid parameters at `/value`: a scale is 1:n with n at least 1"
+    );
+    let many = SetManyFields {
+        edits: vec![set_title(PAGE_902), set_scale()],
+        copies: Vec::new(),
+    };
+    assert_eq!(
+        e.execute(&many).unwrap_err().to_string(),
+        "fields.set_many: invalid parameters at `/edits/1/value`: a scale is 1:n with n at least 1"
+    );
+    assert_eq!(lines(e.model()), before);
+}
