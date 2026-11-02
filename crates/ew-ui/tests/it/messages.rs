@@ -13,6 +13,7 @@ use egui::Modifiers;
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
+use ew_ui::ew_viewmodel::ew_api::output::TableEnd;
 use ew_ui::ew_viewmodel::navigators::{NavKind, NavNode, NavRole};
 use ew_ui::ew_viewmodel::shell::{Focus, Mode, Outcome, Resources, ShellModel};
 use serde_json::{Value, json};
@@ -578,6 +579,192 @@ fn ft915_the_lay_001_detail_shows_its_message_whole_at_the_floor_and_at_1920() {
             text.right() <= list.right() + 0.5,
             "{w}×{hgt}: the message {text:?} wrapped inside the pane {list:?}"
         );
+        h.state_mut().shell_mut().shutdown();
+    }
+}
+
+/// The texts the last frame painted, each with its galley's rectangle and whether it was cut with an ellipsis.
+fn painted_texts(h: &Harness<'_, App>) -> Vec<(String, egui::Rect, bool)> {
+    fn walk(shape: &egui::Shape, out: &mut Vec<(String, egui::Rect, bool)>) {
+        match shape {
+            egui::Shape::Vec(v) => v.iter().for_each(|s| walk(s, out)),
+            egui::Shape::Text(t) => out.push((
+                t.galley.text().to_owned(),
+                t.galley.rect.translate(t.pos.to_vec2()),
+                t.galley.elided,
+            )),
+            _ => {}
+        }
+    }
+    let mut out = Vec::new();
+    for c in &h.output().shapes {
+        walk(&c.shape, &mut out);
+    }
+    out
+}
+
+/// Golden A's folio 101 with its two junctions joined by a wire and both wiring orders listing that wire first: each
+/// junction takes it for its feed, so EW-POT-011 stands on the merged potential, named `24VDC`.
+fn ambiguous_junction_feed(h: &mut Harness<'_, App>) {
+    dispatch(h, "page.goto", json!({"folio": "101"}));
+    settle(h);
+    let page = h
+        .state()
+        .shell()
+        .page_rows()
+        .iter()
+        .find(|r| r.folio == "101")
+        .expect("folio 101")
+        .id;
+    let junctions: Vec<_> = h
+        .state()
+        .shell()
+        .canvas()
+        .unwrap()
+        .page()
+        .tables
+        .junctions
+        .iter()
+        .map(|j| j.id)
+        .collect();
+    let [j1, j2] = junctions[..] else {
+        panic!("folio 101 has two junctions: {junctions:?}")
+    };
+    fn junction(id: impl ToString) -> Value {
+        json!({"junction": {"junction": id.to_string()}})
+    }
+    dispatch(
+        h,
+        "command.run",
+        json!({"cmd": "connection.draw", "params": {"page": page.to_string(), "a": junction(j1), "b": junction(j2)}}),
+    );
+    settle(h);
+    let tables = h.state().shell().canvas().unwrap().page().tables.clone();
+    let link = tables
+        .connections
+        .iter()
+        .find(|c| {
+            matches!(
+                (c.a, c.b),
+                (TableEnd::Junction { id: a }, TableEnd::Junction { id: b }) if (a, b) == (j1, j2) || (a, b) == (j2, j1)
+            )
+        })
+        .expect("the wire between the junctions")
+        .id;
+    for j in [j1, j2] {
+        let mut sequence: Vec<String> = tables
+            .junctions
+            .iter()
+            .find(|x| x.id == j)
+            .expect("the junction")
+            .sequence
+            .iter()
+            .filter(|c| **c != link)
+            .map(ToString::to_string)
+            .collect();
+        sequence.insert(0, link.to_string());
+        dispatch(
+            h,
+            "command.run",
+            json!({"cmd": "junction.edit", "params": {"junction": j.to_string(), "sequence": sequence}}),
+        );
+    }
+    dispatch(
+        h,
+        "command.run",
+        json!({"cmd": "potential.define", "params": {"at": junction(j1), "name": "24VDC"}}),
+    );
+    settle(h);
+}
+
+/// FT-1097 (ID-1184; play-test rv-vis-7, t0084): EW-POT-011's message is cut at the panel's edge. At the 1280 × 800
+/// floor the surface that cuts it is the finding's list row, which keeps one line (cut with an ellipsis, the whole
+/// text in its tooltip). The detail block shows the rule's title and the message whole, wrapped to the pane's width
+/// and between the list and the footer, at the floor and at 1920 × 1080.
+#[test]
+fn ft1097_the_pot_011_detail_shows_its_title_and_message_whole_at_the_floor_and_at_1920() {
+    const TITLE: &str = "EW-POT-011 Junction feed ambiguous";
+    const MESSAGE: &str = "on 24VDC it is unclear which wire feeds a junction or a group of interruption points; \
+                           draw one wire into it from the supply side";
+    for (w, hgt) in [(1280.0, 800.0), (1920.0, 1080.0)] {
+        let tmp = Tmp::new();
+        let mut h = on_golden(&tmp, Scripted::default());
+        h.set_size(egui::Vec2::new(w, hgt));
+        settle(&mut h);
+        ambiguous_junction_feed(&mut h);
+        dispatch(&mut h, "messages.show", json!({"on": true}));
+        dispatch(&mut h, "messages.check", json!({}));
+        settle(&mut h);
+        let row = table_nodes(&h)
+            .into_iter()
+            .find(|n| n.role == NavRole::Finding && n.cells[1] == "EW-POT-011")
+            .expect("an EW-POT-011 finding on the joined junctions");
+        dispatch(
+            &mut h,
+            "navigator.row",
+            json!({"kind": "messages", "key": row.key}),
+        );
+        settle(&mut h);
+        settle(&mut h);
+        settle(&mut h);
+        let detail = h.state().shell().messages_detail().expect("the detail");
+        assert_eq!(
+            (
+                format!("{} {}", detail.rule, detail.title),
+                detail.message.as_str()
+            ),
+            (TITLE.to_owned(), MESSAGE),
+            "{w}×{hgt}"
+        );
+        let list = h.get_by_label("Messages navigator").rect();
+        let footer = h
+            .get_by_label("Checks support, but do not replace, engineering verification.")
+            .rect();
+        let painted = painted_texts(&h);
+        // The detail block: the title and the message, each painted whole (no ellipsis), inside the pane, between the
+        // list and the footer.
+        for text in [TITLE, MESSAGE] {
+            let shown: Vec<_> = painted
+                .iter()
+                .filter(|(t, r, _)| t == text && r.top() >= list.bottom() - 0.5)
+                .collect();
+            let [(_, rect, elided)] = shown[..] else {
+                panic!("{w}×{hgt}: {text:?} painted once below the list: {shown:?}")
+            };
+            assert!(!elided, "{w}×{hgt}: {text:?} is not cut");
+            assert!(
+                rect.right() <= list.right() + 0.5 && rect.bottom() <= footer.top() + 0.5,
+                "{w}×{hgt}: {text:?} {rect:?} inside the pane {list:?} above the footer {footer:?}"
+            );
+        }
+        // The list row keeps one line: at the floor it is cut, with the whole text in its tooltip; at 1920 it fits.
+        let cut = painted
+            .iter()
+            .filter(|(t, r, _)| t == &row.label && r.bottom() <= list.bottom() + 0.5)
+            .map(|(_, _, elided)| *elided)
+            .collect::<Vec<_>>();
+        assert_eq!(
+            cut,
+            [w < 1500.0],
+            "{w}×{hgt}: the row {:?} is cut at the floor only",
+            row.label
+        );
+        if w < 1500.0 {
+            let item = h
+                .get_all_by_role(egui::Role::TreeItem)
+                .find(|n| {
+                    n.accesskit_node()
+                        .label()
+                        .is_some_and(|l| l.starts_with(&row.label))
+                })
+                .expect("the row's tree item");
+            item.hover();
+            h.run_steps(40);
+            assert!(
+                h.query_by_label(&row.label).is_some(),
+                "{w}×{hgt}: the cut row says its whole text in its tooltip"
+            );
+        }
         h.state_mut().shell_mut().shutdown();
     }
 }
