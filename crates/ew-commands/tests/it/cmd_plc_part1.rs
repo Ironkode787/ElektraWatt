@@ -84,6 +84,7 @@ fn create(letter: &str, counter: u32, part: Id<Part>) -> CreateDevice {
         structure: Default::default(),
         strip: None,
         main_fndef: None,
+        frozen_tag: None,
     }
 }
 

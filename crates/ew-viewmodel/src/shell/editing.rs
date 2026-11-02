@@ -19,7 +19,7 @@ use ew_api::output::{CatalogueSymbol, PageTables, PlaceCatalogue, SymbolShape, U
 use ew_api::{AnyCommand, Session};
 use serde_json::{Map, Value, json};
 
-use super::{Outcome, ShellModel, failed, string_param};
+use super::{Outcome, ShellModel, failed, flag, string_param};
 use crate::key;
 use crate::strings;
 use crate::strings::Key;
@@ -932,24 +932,63 @@ impl ShellModel {
         self.arm(cat, pick, p)
     }
 
-    /// `strip.new {letter}` (§7.6): a host commit of `device.create` with the strip aspect. While the picker's strip
-    /// chooser is open it lists the new strip, which becomes its current row (FT-421).
+    /// `strip.new {letter?, tag?, dialog?}` (§7.6): a host commit of `device.create` with the strip aspect. While the
+    /// picker's strip chooser is open it lists the new strip, which becomes its current row (FT-421).
+    ///
+    /// FT-1090 (ID-1181): with `dialog` (the picker's New row) the New terminal strip form opens instead, its Tag field
+    /// holding the tag the strip would take from a terminal on the page on show (empty without one); Create sends
+    /// `strip.new {tag}`. A `tag` other than that example is frozen in the creating commit (one Undo step), as the
+    /// Properties Tag row freezes a typed tag (`-X5` with the sign shown, `X5` without); the example left as it is, or
+    /// no tag, keeps the tag derived.
     pub(crate) fn act_strip_new(&mut self, p: &Map<String, Value>) -> Outcome {
         let letter = match string_param(p, "letter") {
             Ok(v) => v.unwrap_or("X").to_owned(),
             Err(e) => return e,
         };
-        let out = self.host_commit("device.create", json!({"letter": letter, "strip": {}}));
+        let tag = match string_param(p, "tag") {
+            Ok(v) => v.unwrap_or_default().trim().to_owned(),
+            Err(e) => return e,
+        };
+        let example = self.strip_tag_example(&letter);
+        if flag(p, "dialog") {
+            return self.open_strip_form(example.as_deref().unwrap_or_default());
+        }
+        let mut params = json!({"letter": letter, "strip": {}});
+        let frozen = !tag.is_empty() && example.as_deref() != Some(tag.as_str());
+        if frozen {
+            let Some(project) = &self.project else {
+                return Outcome::Refused {
+                    reason_key: key!("reason-no-project"),
+                };
+            };
+            match project.session.parse_field_input("device", "tag.frozen", &tag) {
+                Ok(parsed) if !parsed.value.is_null() => params["frozen_tag"] = parsed.value,
+                // A sign alone, a line break: refused in words, the form kept open with the text as typed.
+                _ => {
+                    let such_as = example.clone().unwrap_or_else(|| format!("-{letter}1"));
+                    return self.strip_form_done(failed(key!("error-strip-tag"), &[&tag, &such_as]));
+                }
+            }
+        }
+        let out = self.host_commit("device.create", params);
+        let out = self.strip_form_done(out);
         if out != Outcome::Done {
             return out;
         }
         // FT-485 item 1: the strip draws nothing until a terminal is placed, so the toast says where it shows. FT-893:
         // its tag (`-X??` until then) is not shown; the toast says when it takes one, with the tag it would take from a
-        // terminal on the page on show as the example.
+        // terminal on the page on show as the example. FT-1090: a frozen tag is its own from the start.
         self.sync_views();
-        let text = match self.strip_tag_example(&letter) {
-            Some(tag) => strings::format(key!("toast-strip-new"), &[&tag]),
-            None => strings::text(key!("toast-strip-new-no-example")).to_owned(),
+        let given = frozen
+            .then(|| {
+                let id = Uuid::parse_str(self.tools.last_primary.as_deref()?).ok()?;
+                self.project.as_ref()?.session.device_tag(id)
+            })
+            .flatten();
+        let text = match (given, self.strip_tag_example(&letter)) {
+            (Some(tag), _) => strings::format(key!("toast-strip-new-tagged"), &[&tag]),
+            (None, Some(tag)) => strings::format(key!("toast-strip-new"), &[&tag]),
+            (None, None) => strings::text(key!("toast-strip-new-no-example")).to_owned(),
         };
         self.notify(text, true);
         let pending = self

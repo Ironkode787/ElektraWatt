@@ -11,9 +11,9 @@ use ew_ids::Id;
 use ew_mltext::{Ident, MlText};
 use ew_schema::{
     AnchorPolicy, AnyId, BoxSpec, Connection, ConnectionKind, ContactKind, Device, DeviceAspects, DeviceKind,
-    Endpoint, Extra, FnDef, FnRole, Function, FunctionKind, Junction, JunctionStyle, Kind, LibCopy,
-    NumberSpec, Page, PageItem, PageItemKind, PageType, Part, PartRef, PartUse, RepType, Representation,
-    Strip, StructureAssignment, StructureBox, SymbolDef, TagSpec,
+    Endpoint, Extra, FnDef, FnRole, FrozenTag, Function, FunctionKind, Junction, JunctionStyle, Kind,
+    LibCopy, NumberSpec, Page, PageItem, PageItemKind, PageType, Part, PartRef, PartUse, RepType,
+    Representation, Strip, StructureAssignment, StructureBox, SymbolDef, TagSpec,
 };
 use ew_units::{Dec3, Grid, Nm, Orient2, Pt2};
 use schemars::JsonSchema;
@@ -68,6 +68,9 @@ pub struct CreateDevice {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "Option<UuidS>")]
     pub main_fndef: Option<Id<FnDef>>,
+    /// A frozen product designation, set in the creating commit (FT-1090: a new strip's tag typed in its form).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub frozen_tag: Option<FrozenTag>,
 }
 
 impl Command for CreateDevice {
@@ -88,7 +91,10 @@ impl Command for CreateDevice {
         tx.insert(Device {
             id,
             v: 1,
-            tag: TagSpec::new(self.letter.clone(), self.counter),
+            tag: TagSpec {
+                frozen: self.frozen_tag.clone(),
+                ..TagSpec::new(self.letter.clone(), self.counter)
+            },
             kind: self.kind.clone(),
             parent: None,
             position: None,

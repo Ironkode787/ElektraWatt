@@ -179,6 +179,13 @@ static EXTERNAL_REF_NEW: Spec = Spec {
     ],
 };
 
+/// FT-1090 (ID-1181): the picker's New terminal strip form (`strip.new {dialog: true}`), its tag proposed.
+static STRIP_NEW: Spec = Spec {
+    action: "strip.new",
+    title_key: key!("new-strip-title"),
+    fields: &[field("tag", key!("form-tag"))],
+};
+
 /// One field of an open creation dialog.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct FormField {
@@ -445,6 +452,19 @@ impl ShellModel {
             f.error = Some(message.clone());
         }
         Outcome::Failed { message }
+    }
+
+    /// FT-1090: the New terminal strip form, its Tag field holding `tag` (in the window and headless alike: the
+    /// action asks for it by its `dialog` flag).
+    pub(super) fn open_strip_form(&mut self, tag: &str) -> Outcome {
+        let mut p = Map::new();
+        p.insert("tag".into(), Value::String(tag.to_owned()));
+        self.open_dialog(Dialog::Form(STRIP_NEW.dialog(&p)))
+    }
+
+    /// The end of a `strip.new`: a failure stays in its form when the form is open, a success closes it.
+    pub(super) fn strip_form_done(&mut self, out: Outcome) -> Outcome {
+        self.form_done(&STRIP_NEW, out)
     }
 
     /// The end of a creation: a failure stays in the dialog, a success closes it.

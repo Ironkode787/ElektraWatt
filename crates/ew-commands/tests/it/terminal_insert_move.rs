@@ -170,6 +170,7 @@ fn new_strip(e: &mut Engine) -> Id<Device> {
             structure: Default::default(),
             strip: Some(serde_json::from_value(json!({})).expect("an empty strip aspect")),
             main_fndef: None,
+            frozen_tag: None,
         })
         .expect("the strip is created");
     r.outcome.primary.expect("the strip").1.cast()

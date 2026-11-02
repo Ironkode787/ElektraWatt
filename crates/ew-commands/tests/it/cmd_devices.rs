@@ -75,6 +75,7 @@ fn create(letter: &str) -> CreateDevice {
         structure: Default::default(),
         strip: None,
         main_fndef: None,
+        frozen_tag: None,
     }
 }
 
@@ -185,6 +186,28 @@ fn create_device_with_main_function_and_explicit_counter() {
         *row(&e, fns[0]),
         function(fns[0], id, FNDEF_MCB, ew_schema::FnRole::Main)
     );
+}
+
+/// FT-1090 (ID-1181): a frozen tag given to `device.create` is the new device's, in the creating commit; by JSON too.
+#[test]
+fn create_device_with_a_frozen_tag_freezes_it_in_the_same_commit() {
+    let mut e = engine(golden_model());
+    let r = e
+        .execute(&AnyCommand {
+            name: "device.create".into(),
+            params: serde_json::json!({"letter": "X", "strip": {}, "frozen_tag": {"text": "X90"}}),
+        })
+        .expect("device.create");
+    let id: ew_ids::Id<Device> = primary(&r);
+    assert_eq!(r.created.len(), 1);
+    let frozen = row(&e, id).tag.frozen.clone().expect("frozen");
+    assert_eq!(
+        (frozen.text.as_str(), frozen.sign),
+        ("X90", ew_schema::TagSign::Shown)
+    );
+    // Without one the tag stays derived.
+    let r = e.execute(&create("F")).expect("device.create");
+    assert_eq!(row(&e, primary::<Device>(&r)).tag.frozen, None);
 }
 
 #[test]

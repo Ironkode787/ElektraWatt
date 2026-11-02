@@ -105,6 +105,7 @@ fn new_device(loc: Id<StructureNode>, letter: &str, counter: u32, main: Id<FnDef
         structure: at_loc(loc),
         strip: None,
         main_fndef: Some(main),
+        frozen_tag: None,
     }
 }
 

@@ -21,16 +21,21 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
     let Some(picker) = shell.picker() else {
         return;
     };
-    // The list's keys are consumed before the filter field sees them.
-    let (down, up, home, end, enter) = ctx.input_mut(|i| {
-        (
-            i.consume_key(Modifiers::NONE, Key::ArrowDown),
-            i.consume_key(Modifiers::NONE, Key::ArrowUp),
-            i.consume_key(Modifiers::NONE, Key::Home),
-            i.consume_key(Modifiers::NONE, Key::End),
-            i.consume_key(Modifiers::NONE, Key::Enter),
-        )
-    });
+    // The list's keys are consumed before the filter field sees them; not while a dialog over the picker has them
+    // (FT-1090: Enter in the New terminal strip form creates the strip).
+    let (down, up, home, end, enter) = if shell.dialog().is_some() {
+        (false, false, false, false, false)
+    } else {
+        ctx.input_mut(|i| {
+            (
+                i.consume_key(Modifiers::NONE, Key::ArrowDown),
+                i.consume_key(Modifiers::NONE, Key::ArrowUp),
+                i.consume_key(Modifiers::NONE, Key::Home),
+                i.consume_key(Modifiers::NONE, Key::End),
+                i.consume_key(Modifiers::NONE, Key::Enter),
+            )
+        })
+    };
     for (hit, params) in [
         (down, json!({"step": 1})),
         (up, json!({"step": -1})),
@@ -92,8 +97,8 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
                 events.push(Event::Action("picker.filter", json!({ "text": filter })));
             }
             // FT-605: a terminal chosen in a project without strips opens the strip chooser on an empty state that
-            // says why and offers New terminal strip (doc 16a §6.17); `strip.new` lists the new strip as the current
-            // row.
+            // says why and offers New terminal strip (doc 16a §6.17), whose form offers the tag (FT-1090, ID-1181:
+            // `strip.new {dialog}`); its Create lists the new strip as the current row.
             if picker.mode == PickerMode::Strip && picker.empty_text() == Some(key!("picker-empty-strips")) {
                 let new = crate::components::empty_state(
                     ui,
@@ -103,7 +108,7 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
                     Some(strings::text(key!("picker-new-strip"))),
                 );
                 if new.is_some_and(|r| r.clicked()) {
-                    events.push(Event::Action("strip.new", json!({})));
+                    events.push(Event::Action("strip.new", json!({"dialog": true})));
                 }
             } else if let Some(empty) = picker.empty_text() {
                 ui.add_space(t.space_3);

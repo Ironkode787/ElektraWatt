@@ -2137,7 +2137,7 @@ pub static ACTIONS: &[ActionMeta] = &[
         ),
     ))),
     keeps_banner(with_params(
-        "letter?:text",
+        "letter?:text, tag?:text, dialog?:bool",
         act(
             "strip.new",
             Command,

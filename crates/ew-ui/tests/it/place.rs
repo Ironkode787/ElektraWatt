@@ -403,6 +403,19 @@ fn ft605_a_terminal_without_strips_says_why_and_offers_a_new_strip() {
     h.get_by_label("New terminal strip…").click();
     settle(&mut h);
     settle(&mut h);
+    // FT-1090 (ID-1181): the New terminal strip form offers the tag; Enter there creates the strip (the chooser
+    // under it does not take the key).
+    assert!(
+        matches!(h.state().shell().dialog(), Some(ew_ui::ew_viewmodel::shell::Dialog::Form(f)) if f.action == "strip.new"),
+        "the New terminal strip form"
+    );
+    h.key_press(Key::Enter);
+    settle(&mut h);
+    settle(&mut h);
+    assert!(
+        h.state().shell().dialog().is_none(),
+        "Enter creates and closes the form"
+    );
     let picker = h.state().shell().picker().expect("the chooser stays open");
     assert_eq!(picker.mode, PickerMode::Strip);
     assert_eq!(picker.rows.len(), 1, "the new strip is listed");

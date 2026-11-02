@@ -359,6 +359,7 @@ fn a_prevent_rule_rejection_carries_its_rule_id() {
             structure: Default::default(),
             strip: None,
             main_fndef: None,
+            frozen_tag: None,
         })
         .unwrap_err();
     match &err {

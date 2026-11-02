@@ -89,6 +89,24 @@
         }
       ]
     },
+    "FrozenTag": {
+      "additionalProperties": true,
+      "description": "A frozen product designation (doc 03 §8.5): \"S51\" printed without the product sign.",
+      "properties": {
+        "sign": {
+          "$ref": "#/$defs/TagSign",
+          "description": "Whether pages print the \"-\" sign; full designations always carry it."
+        },
+        "text": {
+          "$ref": "#/$defs/Ident",
+          "description": "The product designation text."
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "type": "object"
+    },
     "Ident": {
       "description": "An identifier: non-empty, one line (no control character U+0000 to U+001F or U+007F to U+009F), without leading or trailing white space (the Unicode White_Space set); interior spaces are allowed (doc 05 §3.2). JSON Schema cannot express Unicode Normalization Form C; the reader rejects non-NFC text.",
       "minLength": 1,
@@ -369,6 +387,21 @@
         }
       ]
     },
+    "TagSign": {
+      "description": "Whether a frozen tag prints its product sign on pages.",
+      "oneOf": [
+        {
+          "const": "shown",
+          "description": "\"-S51\" (the default).",
+          "type": "string"
+        },
+        {
+          "const": "hidden",
+          "description": "\"S51\".",
+          "type": "string"
+        }
+      ]
+    },
     "TerminalGroup": {
       "additionalProperties": true,
       "description": "A caption over a range of terminals.",
@@ -417,6 +450,17 @@
         "integer",
         "null"
       ]
+    },
+    "frozen_tag": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/FrozenTag"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "A frozen product designation, set in the creating commit (FT-1090: a new strip's tag typed in its form)."
     },
     "function_text": {
       "$ref": "#/$defs/CmdMlText",

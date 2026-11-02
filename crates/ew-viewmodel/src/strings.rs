@@ -1532,6 +1532,11 @@ pub const TEXTS: &[(&str, &str)] = &[
         "toast-strip-new",
         "Created a terminal strip. It takes its tag, such as {0}, when its first terminal is placed: Draw ▸ Symbol… and the terminal symbol, whose strip picker lists it.",
     ),
+    // FT-1090: a tag given in the New terminal strip form is the strip's from the start.
+    (
+        "toast-strip-new-tagged",
+        "Created terminal strip {0}. Place its terminals with Draw ▸ Symbol… and the terminal symbol, whose strip picker lists it.",
+    ),
     (
         "toast-strip-new-no-example",
         "Created a terminal strip. It takes its tag when its first terminal is placed: Draw ▸ Symbol… and the terminal symbol, whose strip picker lists it.",
@@ -2704,6 +2709,13 @@ pub const TEXTS: &[(&str, &str)] = &[
     ("form-device", "Device"),
     ("form-connection", "Connection"),
     ("form-project", "Other project"),
+    // FT-1090 (ID-1181): the picker's New terminal strip form.
+    ("new-strip-title", "New terminal strip"),
+    ("form-tag", "Tag"),
+    (
+        "error-strip-tag",
+        "\"{0}\" is not a tag. Type the tag as the page is to print it, such as {1}.",
+    ),
     (
         "error-folio-number",
         "A folio starts with its number: \"{0}\" does not.",
