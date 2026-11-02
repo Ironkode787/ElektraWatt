@@ -9,7 +9,6 @@
 
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};
-use std::sync::atomic::{AtomicU32, Ordering};
 
 use ew_ui::ew_viewmodel::ew_api::{CmdLog, Session};
 use serde_json::{Value, json};
@@ -18,17 +17,12 @@ use sha2::{Digest, Sha256};
 const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
 const EXPECTED: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416/expected");
 
-static COUNTER: AtomicU32 = AtomicU32::new(0);
-
 /// A fresh temporary directory, removed on drop.
 struct Tmp(PathBuf);
 
 impl Tmp {
     fn new() -> Tmp {
-        let n = COUNTER.fetch_add(1, Ordering::Relaxed);
-        let dir = std::env::temp_dir().join(format!("ew-jobs-script-{}-{n}", std::process::id()));
-        std::fs::create_dir_all(&dir).unwrap();
-        Tmp(dir)
+        Tmp(ew_testdir::fresh_dir("ew-jobs-script"))
     }
 }
 

@@ -12,23 +12,16 @@ use std::collections::BTreeMap;
 use std::ffi::{OsStr, OsString};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
-use std::sync::atomic::{AtomicU32, Ordering};
 
 const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
 const EXPECTED: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416/expected");
-
-static COUNTER: AtomicU32 = AtomicU32::new(0);
 
 /// A fresh temporary directory with its own user directories, removed on drop.
 struct Tmp(PathBuf);
 
 impl Tmp {
     fn new() -> Tmp {
-        let n = COUNTER.fetch_add(1, Ordering::Relaxed);
-        let dir = std::env::temp_dir().join(format!("ew-outputs-{}-{n}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&dir);
-        std::fs::create_dir_all(&dir).unwrap();
-        Tmp(dir)
+        Tmp(ew_testdir::fresh_dir("ew-outputs"))
     }
 
     /// `ew` in this directory with its user directories inside it, no starter content, no display and no

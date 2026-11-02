@@ -8,7 +8,6 @@ use std::collections::BTreeMap;
 use std::ffi::{OsStr, OsString};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
-use std::sync::atomic::{AtomicU32, Ordering};
 
 use ew_api::cli_results as results;
 use serde_json::{Value, json};
@@ -19,18 +18,12 @@ const QUERIES_JSON: &str = concat!(
     "/../../crates/ew-api/api/queries.json"
 );
 
-static COUNTER: AtomicU32 = AtomicU32::new(0);
-
 /// A fresh temporary directory with its own user directories, removed on drop.
 struct Tmp(PathBuf);
 
 impl Tmp {
     fn new() -> Tmp {
-        let n = COUNTER.fetch_add(1, Ordering::Relaxed);
-        let dir = std::env::temp_dir().join(format!("ew-query-{}-{n}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&dir);
-        std::fs::create_dir_all(&dir).unwrap();
-        Tmp(dir)
+        Tmp(ew_testdir::fresh_dir("ew-query"))
     }
 
     /// `ew` in this directory with its user directories inside it, no starter content, no display and no

@@ -10,7 +10,6 @@
 
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};
-use std::sync::atomic::{AtomicU32, Ordering};
 
 use ew_ui::ew_viewmodel::ew_api::{CmdLog, Session};
 use serde_json::{Value, json};
@@ -29,17 +28,12 @@ const IP_PE_1_2: &str = "6198cbd3-a6a2-569c-8284-2d39ba05bfae";
 /// `tests/grid/pilot_log.rs`, which `bin/ew/tests/cli.rs` includes and replays through `ew apply`.
 const PILOT_LOG_FILE: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/grid/pilot_log.rs");
 
-static COUNTER: AtomicU32 = AtomicU32::new(0);
-
 /// A fresh temporary directory, removed on drop.
 struct Tmp(PathBuf);
 
 impl Tmp {
     fn new() -> Tmp {
-        let n = COUNTER.fetch_add(1, Ordering::Relaxed);
-        let dir = std::env::temp_dir().join(format!("ew-props-test-{}-{n}", std::process::id()));
-        std::fs::create_dir_all(&dir).unwrap();
-        Tmp(dir)
+        Tmp(ew_testdir::fresh_dir("ew-props-test"))
     }
 
     fn path(&self, name: &str) -> PathBuf {

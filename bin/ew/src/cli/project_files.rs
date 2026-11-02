@@ -386,9 +386,8 @@ mod tests {
 
     /// A fresh directory with a saved project (`p.ew`, pages 1 and 2) and an empty state directory (`state`).
     fn setup(tag: &str) -> PathBuf {
-        let dir = std::env::temp_dir().join(format!("ew-cli-recover-{tag}-{}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&dir);
-        std::fs::create_dir_all(dir.join("state")).unwrap();
+        let dir = ew_testdir::fresh_dir(&format!("ew-cli-recover-{tag}"));
+        std::fs::create_dir(dir.join("state")).unwrap();
         let mut s =
             ew_api::Session::from_records(serde_json::from_str(PROJECT).unwrap(), [], [], Default::default())
                 .unwrap();

@@ -10,24 +10,18 @@
 
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};
-use std::sync::atomic::{AtomicU32, Ordering};
 
 use ew_ui::ew_viewmodel::ew_api::{CmdLog, Session};
 use serde_json::{Value, json};
 
 pub(crate) const CONTENT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../content");
 
-static COUNTER: AtomicU32 = AtomicU32::new(0);
-
 /// A fresh temporary directory, removed on drop.
 pub(crate) struct Tmp(pub(crate) PathBuf);
 
 impl Tmp {
     pub(crate) fn new() -> Tmp {
-        let n = COUNTER.fetch_add(1, Ordering::Relaxed);
-        let dir = std::env::temp_dir().join(format!("ew-create-test-{}-{n}", std::process::id()));
-        std::fs::create_dir_all(&dir).unwrap();
-        Tmp(dir)
+        Tmp(ew_testdir::fresh_dir("ew-create-test"))
     }
 
     pub(crate) fn path(&self, name: &str) -> PathBuf {

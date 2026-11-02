@@ -15,7 +15,6 @@ use std::collections::BTreeMap;
 use std::ffi::{OsStr, OsString};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
-use std::sync::atomic::{AtomicU32, Ordering};
 
 use ew_api::cli_results as results;
 use serde::Serialize;
@@ -31,18 +30,12 @@ const GOLDEN_TABLES: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J
 const CONTENT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../content");
 const QET: &str = r#"<project version="0.100" title="T"><diagram order="1" folio="1" title="P"><elements/><conductors/></diagram></project>"#;
 
-static COUNTER: AtomicU32 = AtomicU32::new(0);
-
 /// A fresh temporary directory with its own user, data and cache directories, removed on drop.
 struct Tmp(PathBuf);
 
 impl Tmp {
     fn new() -> Tmp {
-        let n = COUNTER.fetch_add(1, Ordering::Relaxed);
-        let dir = std::env::temp_dir().join(format!("ew-conventions-{}-{n}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&dir);
-        std::fs::create_dir_all(&dir).unwrap();
-        Tmp(dir)
+        Tmp(ew_testdir::fresh_dir("ew-conventions"))
     }
 
     /// `ew` with the user directories, `EW_DATA_DIR` and `EW_CACHE_DIR` inside this directory, no starter content
@@ -222,6 +215,28 @@ fn write_atomically(dir: &std::path::Path, name: &str, text: &str) {
     }
 }
 
+/// Removes the committed schema `file` that no result generates any more. A file already gone (a second bless running
+/// at the same time removed it) counts as removed; any other error fails (C46-p1#7, FT-1050).
+fn remove_stale(file: &std::path::Path) {
+    match std::fs::remove_file(file) {
+        Ok(()) => {}
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+        Err(e) => panic!("the stale schema {} could not be removed: {e}", file.display()),
+    }
+}
+
+/// C46-p1#7: a stale schema is removed, and one that a concurrent bless already removed counts as removed.
+#[test]
+fn a_stale_schema_already_gone_counts_as_removed() {
+    let t = Tmp::new();
+    let file = t.0.join("stale.schema.json");
+    std::fs::write(&file, "{}\n").unwrap();
+    remove_stale(&file);
+    assert!(!file.exists());
+    remove_stale(&file);
+    assert!(!file.exists());
+}
+
 /// Whether `EW_CLI_BLESS` asks for the committed schemas to be rewritten.
 // The flag only chooses whether the committed files are rewritten; the compared results never depend on it.
 #[allow(clippy::disallowed_methods)]
@@ -241,7 +256,7 @@ fn committed_result_schemas_match_the_generated_ones() {
         std::fs::create_dir_all(&dir).unwrap();
         for name in committed().keys() {
             if !generated.contains_key(name) {
-                std::fs::remove_file(dir.join(name)).unwrap();
+                remove_stale(&dir.join(name));
             }
         }
         for (name, text) in &generated {

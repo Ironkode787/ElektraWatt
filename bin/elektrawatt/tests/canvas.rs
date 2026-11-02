@@ -15,7 +15,6 @@ mod folio_cases;
 
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};
-use std::sync::atomic::{AtomicU32, Ordering};
 
 use ew_ui::ew_viewmodel::canvas::{HOVER_SLOP_PT, pick, rect_centre};
 use ew_ui::ew_viewmodel::ew_api::Session;
@@ -27,17 +26,12 @@ use serde_json::{Value, json};
 const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
 const EXPECTED: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416/expected");
 
-static COUNTER: AtomicU32 = AtomicU32::new(0);
-
 /// A fresh temporary directory, removed on drop.
 struct Tmp(PathBuf);
 
 impl Tmp {
     fn new() -> Tmp {
-        let n = COUNTER.fetch_add(1, Ordering::Relaxed);
-        let dir = std::env::temp_dir().join(format!("ew-canvas-test-{}-{n}", std::process::id()));
-        std::fs::create_dir_all(&dir).unwrap();
-        Tmp(dir)
+        Tmp(ew_testdir::fresh_dir("ew-canvas-test"))
     }
 
     fn path(&self, name: &str) -> PathBuf {
@@ -516,11 +510,7 @@ const ACCENT: [u8; 3] = [0x0B, 0x63, 0xCE];
 /// Points of `folio` read through an in-process shell as the viewer reads them: a point with no entity and no link,
 /// and the centre of a link to another page.
 fn points(dir: &Path, folio: &str) -> ((f64, f64), (f64, f64)) {
-    let config = std::env::temp_dir().join(format!(
-        "ew-tools-points-{}-{}",
-        std::process::id(),
-        COUNTER.fetch_add(1, Ordering::Relaxed)
-    ));
+    let config = ew_testdir::fresh_dir("ew-tools-points");
     let mut shell = ShellModel::new(Mode::Headless, ShellConfig::in_dir(&config, "0.0.0-test"));
     let open = json!({"dir": dir.to_string_lossy(), "read_only": true});
     assert_eq!(shell.dispatch("file.open", &open), Outcome::Done);

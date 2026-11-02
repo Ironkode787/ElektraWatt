@@ -915,8 +915,7 @@ mod tests {
     fn the_portal_needs_a_session_bus() {
         assert!(session_bus_present(Some(PathBuf::from("unix:path=/x")), None));
         assert!(!session_bus_present(None, None));
-        let dir = std::env::temp_dir().join(format!("ew-bus-test-{}", std::process::id()));
-        std::fs::create_dir_all(&dir).unwrap();
+        let dir = ew_testdir::fresh_dir("ew-bus-test");
         assert!(!session_bus_present(None, Some(dir.clone())));
         std::fs::write(dir.join("bus"), b"").unwrap();
         assert!(session_bus_present(None, Some(dir.clone())));

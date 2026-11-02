@@ -5,7 +5,6 @@
 
 use std::path::PathBuf;
 use std::process::{Command, Output};
-use std::sync::atomic::{AtomicU32, Ordering};
 
 /// The property grid pilot's command log (WP-S2.05 part 1), recorded by `bin/elektrawatt/tests/grid/properties.rs`.
 #[path = "../../elektrawatt/tests/grid/pilot_log.rs"]
@@ -19,17 +18,12 @@ const CONTENT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../content");
 const LOST: &str = r#"<project version="0.100" title="T"><diagram order="1" folio="1" title="P"><elements/><conductors><conductor terminal1="999" terminal2="998"/></conductors></diagram></project>"#;
 const PROJECT: &str = r#"<project version="0.100" title="T"><diagram order="1" folio="1" title="P"><elements/><conductors/></diagram></project>"#;
 
-static COUNTER: AtomicU32 = AtomicU32::new(0);
-
 /// A fresh temporary directory, removed on drop.
 struct Tmp(PathBuf);
 
 impl Tmp {
     fn new() -> Tmp {
-        let n = COUNTER.fetch_add(1, Ordering::Relaxed);
-        let dir = std::env::temp_dir().join(format!("ew-cli-test-{}-{n}", std::process::id()));
-        std::fs::create_dir_all(&dir).unwrap();
-        Tmp(dir)
+        Tmp(ew_testdir::fresh_dir("ew-cli-test"))
     }
 
     fn project(&self) -> PathBuf {

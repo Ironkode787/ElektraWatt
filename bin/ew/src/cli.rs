@@ -5127,9 +5127,7 @@ mod assets_purge_tests {
     /// A saved project in a fresh directory whose first logo's asset file nothing names any more (the logo was
     /// replaced and saved, and the session that did it is closed).
     fn project_with_an_unnamed_asset(tag: &str) -> PathBuf {
-        let n = std::process::id();
-        let dir = std::env::temp_dir().join(format!("ew-cli-purge-{tag}-{n}"));
-        let _ = std::fs::remove_dir_all(&dir);
+        let dir = ew_testdir::fresh_dir(&format!("ew-cli-purge-{tag}"));
         let project = serde_json::from_str(
             r#"{"id":"7f0c2a91-5d3e-7b48-9a61-0e2f4c8d1b37","derivation_profile":"2027.1"}"#,
         )
@@ -5328,8 +5326,7 @@ mod revision_tests {
 
     /// A copy of Golden A in a fresh directory.
     fn golden_copy(tag: &str) -> PathBuf {
-        let dir = std::env::temp_dir().join(format!("ew-cli-revision-{tag}-{}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&dir);
+        let dir = ew_testdir::fresh_dir(&format!("ew-cli-revision-{tag}"));
         copy_dir(&golden(), &dir);
         dir
     }
@@ -5622,8 +5619,7 @@ mod revision_tests {
         waive_the_gate(&a);
         let (code, shown) = run(&a, approve("checker"), true, "V2.0\n");
         assert_eq!(code, 0, "{shown}");
-        let b = a.with_file_name(format!("ew-cli-revision-incomplete-b-{}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&b);
+        let b = ew_testdir::fresh_dir("ew-cli-revision-incomplete-b");
         copy_dir(&a, &b);
         let root_a = a.with_extension("archives");
         let root_b = b.with_extension("archives");
@@ -5692,8 +5688,7 @@ mod revision_tests {
         );
 
         // A damaged archive names no project: neither completed nor discarded, but kept, and nothing is offered.
-        let c = a.with_file_name(format!("ew-cli-revision-incomplete-c-{}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&c);
+        let c = ew_testdir::fresh_dir("ew-cli-revision-incomplete-c");
         copy_dir(&golden(), &c);
         let root_c = c.with_extension("archives");
         let _ = std::fs::remove_dir_all(&root_c);

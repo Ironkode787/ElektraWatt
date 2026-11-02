@@ -20,24 +20,18 @@
 
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
-use std::sync::atomic::{AtomicU32, Ordering};
 
 use serde_json::Value;
 
 const RECORDINGS: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../tools/blind/recordings");
 const CONTENT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../content");
 
-static COUNTER: AtomicU32 = AtomicU32::new(0);
-
 /// A fresh temporary folder, removed on drop.
 struct Tmp(PathBuf);
 
 impl Tmp {
     fn new() -> Tmp {
-        let n = COUNTER.fetch_add(1, Ordering::Relaxed);
-        let dir = std::env::temp_dir().join(format!("ew-blind-replay-test-{}-{n}", std::process::id()));
-        std::fs::create_dir_all(&dir).unwrap();
-        Tmp(dir)
+        Tmp(ew_testdir::fresh_dir("ew-blind-replay-test"))
     }
 }
 

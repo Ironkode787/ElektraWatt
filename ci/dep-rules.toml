@@ -138,8 +138,9 @@ planned = ["ew-viewer", "ew-wiring-viewer", "ew-plugin-wit", "ew-plugin-sdk", "e
 # Additional edges allowed for dev-dependencies only (for example a test helper crate).
 [allowed_dev_edges]
 # The G-PP wiring regression reverses new IDs through the viewmodel's test-only source hook; the ew-commands edge
-# only carries its `testkit` ([[uniform_test_features]]); ew-testkit gives the starter part versions (FT-1041).
-"elektrawatt" = ["ew-viewmodel", "ew-commands", "ew-testkit"]
+# only carries its `testkit` ([[uniform_test_features]]); ew-testkit gives the starter part versions (FT-1041); the
+# tests take their fresh temporary directory from ew-testdir (FT-1039).
+"elektrawatt" = ["ew-viewmodel", "ew-commands", "ew-testkit", "ew-testdir"]
 # ew-commands' own integration tests enable its `testkit` feature (row dumps, `Preview::ops`, history ops),
 # which is crate-private otherwise (ARCH §3 rule 1); the seeded IDs come from ew-testids.
 "ew-commands" = ["ew-commands", "ew-testids"]
@@ -178,7 +179,8 @@ planned = ["ew-viewer", "ew-wiring-viewer", "ew-plugin-wit", "ew-plugin-sdk", "e
 "ew-ui" = ["ew-testdir", "ew-commands"]
 "ew-mfg" = ["ew-commands"]
 "ew-render3d" = ["ew-commands"]
-"ew" = ["ew-commands"]
+# ew's tests take their fresh temporary directory from ew-testdir (FT-1039).
+"ew" = ["ew-commands", "ew-testdir"]
 
 # ARCH §3 Rule 2: only ew-sqlview and ew-library link rusqlite.
 [[external_owner]]
@@ -482,7 +484,7 @@ row = "ew-plugin-wit"
 
 [crates."ew-testdir"]
 responsibility = "*As built (cycle 34, FT-569, FT-586).* The tests' fresh temporary directory: `fresh_dir(stem)` creates a new, empty `<temp>/<stem>-<pid>-<n>` with `create_dir` and takes the next number when a killed run left that directory behind, so a test never adopts a leftover lock, journal or settings file. It replaced three copies of the helper (`ew-viewmodel` source and tests, `ew-ui` tests) and the PID-only folders of the `ew-api`, `ew-store`, `ew-testkit` and `ew-sqlview` tests. Dev-only (`publish = false`): every edge to it is listed under `[allowed_dev_edges]`, and it is in the licence map and the MSRV job. It is a crate of its own because hosting it in `ew-testkit` (FT-586's suggestion) did not pass `cargo xtask check-deps` under ADR-0024's confinement rules"
-key_deps = 'none; the dev-dependency of `ew-store`, `ew-sqlview`, `ew-api`, `ew-testkit`, `ew-viewmodel` and `ew-ui`'
+key_deps = 'none; the dev-dependency of `ew-store`, `ew-sqlview`, `ew-api`, `ew-testkit`, `ew-viewmodel`, `ew-ui`, `elektrawatt` and `ew` (FT-1039)'
 
 [crates."ew-testids"]
 responsibility = '*As built (cycle 43, RD43 T1).* The seeded UUIDv7 source of the tests: `SeededSource` (a counter clock from 2026-01-01T00:00:00Z and a ChaCha20 stream seeded per test) and `seeded_ids(seed)`, the boxed form that `SessionOptions` takes. It was the `testkit` feature of `ew-ids`; as a crate of its own it changes no feature of `ew-ids`, so no package set compiles `ew-ids` and the crates above it a second way. Dev-only (`publish = false`): every edge to it is listed under `[allowed_dev_edges]`, `banned_crates` in `ci/dep-rules.toml` fails a normal or build edge, and it is in the licence map and the MSRV job'
@@ -624,12 +626,12 @@ key_deps = 'ew-ewpp, ew-ui, ew-render-cpu, hayro 0.8.0 (after the fidelity check
 [crates."elektrawatt"]
 crate_note = '(bin)'
 responsibility = 'eframe shell, the app menu drawn with egui on Windows and Linux (ADR-0031), dialogs, clipboard, crash handler; as built in cycle 19: the window, the rfd dialogs, `--headless`, `--smoke` and the exit codes, with the egui menu bar on every OS (ID-446, ID-473)'
-key_deps = 'eframe 0.37.0, egui-wgpu 0.37.0, muda 0.21.2, rfd 0.17.2, arboard 3.7.0, ew-print (in cycle 19: eframe 0.37.0 on wgpu and rfd 0.17.2 only; `rust-version` 1.95, ID-477); dev: ew-viewmodel/testkit (the G-PP wiring regression under both new-ID orders)'
+key_deps = 'eframe 0.37.0, egui-wgpu 0.37.0, muda 0.21.2, rfd 0.17.2, arboard 3.7.0, ew-print (in cycle 19: eframe 0.37.0 on wgpu and rfd 0.17.2 only; `rust-version` 1.95, ID-477); dev: ew-viewmodel/testkit (the G-PP wiring regression under both new-ID orders), ew-testdir (FT-1039)'
 
 [crates."ew"]
 crate_note = '(bin)'
 responsibility = 'CLI, `ew mcp`, merge driver, textconv, migration verifier'
-key_deps = "clap 4.6.7 (as built in cycle 43: the CLI is one derive tree, `default-features = false`), rmcp 3.5.1 **(verify)**, ew-print, hayro 0.8.0 (`ew verify-migration`), serde_json (a normal dependency since cycle 22, for the `HumanOnly` subcommand's command value; decision log ID-546)"
+key_deps = "clap 4.6.7 (as built in cycle 43: the CLI is one derive tree, `default-features = false`), rmcp 3.5.1 **(verify)**, ew-print, hayro 0.8.0 (`ew verify-migration`), serde_json (a normal dependency since cycle 22, for the `HumanOnly` subcommand's command value; decision log ID-546); dev: ew-testdir (FT-1039)"
 
 [crates."ew-wiring-viewer"]
 crate_note = '(bin, 1.0)'

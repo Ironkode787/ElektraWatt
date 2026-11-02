@@ -30,7 +30,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};
-use std::sync::atomic::{AtomicU32, Ordering};
 
 use ew_ui::ew_viewmodel::ew_api::{AnyCommand, Session};
 use serde_json::{Value, json};
@@ -738,18 +737,13 @@ pub fn golden_wiring(folio: u32) -> WiringOracle {
 /// The content tree of the source repository (the starter library of `file.new` and the wizard).
 pub const CONTENT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../content");
 
-static COUNTER: AtomicU32 = AtomicU32::new(0);
-
 /// A fresh temporary directory, removed on drop.
 pub struct Tmp(PathBuf);
 
 impl Tmp {
     /// A new directory under the system temporary directory.
     pub fn new() -> Tmp {
-        let n = COUNTER.fetch_add(1, Ordering::Relaxed);
-        let dir = std::env::temp_dir().join(format!("ew-place-test-{}-{n}", std::process::id()));
-        std::fs::create_dir_all(&dir).unwrap();
-        Tmp(dir)
+        Tmp(ew_testdir::fresh_dir("ew-place-test"))
     }
 
     /// A path inside the directory.
@@ -798,6 +792,19 @@ pub fn script_text(steps: &[(String, Value)]) -> String {
     text
 }
 
+/// The environment variables of the user directories a child run might write to (`ew_store::default_state_dir`, the
+/// library tiers' data and cache, the settings), as `ew`'s tests isolate them.
+const USER_DIRS: [&str; 8] = [
+    "HOME",
+    "USERPROFILE",
+    "LOCALAPPDATA",
+    "APPDATA",
+    "XDG_STATE_HOME",
+    "XDG_DATA_HOME",
+    "XDG_CONFIG_HOME",
+    "XDG_CACHE_HOME",
+];
+
 /// Runs a script headless through the binary at `exe` (with the content of the source tree), optionally recording
 /// the committed commands.
 pub fn run(exe: &Path, tmp: &Tmp, name: &str, steps: &[(String, Value)], record: Option<&Path>) -> Output {
@@ -815,6 +822,14 @@ pub fn run(exe: &Path, tmp: &Tmp, name: &str, steps: &[(String, Value)], record:
     } else {
         tmp.path("config")
     };
+    // The user directories (home, application data, state, data and config) point inside the scratch folder, so a
+    // journal, a library index or a settings file never lands in the user's own folders, and no two tests (nor a
+    // killed earlier run) share one (FT-1039).
+    for d in USER_DIRS {
+        let dir = tmp.path("home").join(d.to_ascii_lowercase());
+        std::fs::create_dir_all(&dir).unwrap();
+        cmd.env(d, dir);
+    }
     cmd.env("EW_CONFIG_DIR", config)
         .env("EW_CONTENT_DIR", CONTENT)
         .env_remove("EW_SAMPLE_DIR")
