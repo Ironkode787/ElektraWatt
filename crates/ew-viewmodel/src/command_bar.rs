@@ -292,7 +292,6 @@ pub const PENDING: &[(Group, u16, &str)] = &[
     (Group::Run, 2, "Check scheme"),
     (Group::Numbering, 1, "Freeze tag"),
     (Group::Numbering, 2, "Unfreeze tag"),
-    (Group::Pdf, 2, "Print"),
     (Group::Reports, 1, "Report blocks"),
     (Group::Reports, 2, "Open generated page"),
     (Group::Lists, 2, "Wire list"),

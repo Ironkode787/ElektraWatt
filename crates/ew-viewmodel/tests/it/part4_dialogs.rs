@@ -62,9 +62,11 @@ fn every_dialog(tmp: &Tmp) -> (ShellModel, Vec<Dialog>) {
         ("external_ref.new", json!({})),
         ("pages.renumber", json!({})),
         ("devices.renumber", json!({})),
+        // WP-S3.07 part 3: the print pre-dialog (no build waits in the window's mode; the set is not built yet).
+        ("file.print", json!({ "wait": false })),
     ] {
         let _ = shell.dispatch(action, &params);
-        if let Some(d @ Dialog::Form(_)) = shell.dialog() {
+        if let Some(d @ (Dialog::Form(_) | Dialog::Print(_))) = shell.dialog() {
             dialogs.push(d.clone());
         }
         let _ = shell.dispatch("ui.dismiss", &Value::Null);
@@ -238,6 +240,7 @@ const OPENS_INPUT: &[&str] = &[
     "parts.import",
     "file.discard_journal",
     "file.export_pdf",
+    "file.print",
     "find.open",
     "find.open_replace",
     "page.new",

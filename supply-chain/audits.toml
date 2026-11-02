@@ -13,6 +13,12 @@ criteria = "safe-to-deploy"
 version = "0.35.0"
 notes = "AI-performed, owner-delegated (2026-10-22), cycle 20 lead audit. Library read fully: UIA COM providers (refcounts, VARIANT/SAFEARRAY/BSTR, free-threaded), window subclassing. Discretion: as_impl assumes in-process text ranges are AccessKit's; UIA client input can abort (same session)."
 
+[[audits.ashpd]]
+who = "Ironkode787"
+criteria = "safe-to-deploy"
+version = "0.13.13"
+notes = "AI-performed, owner-delegated (2026-10-22), cycle 47 lane P47 targeted audit (WP-S3.07 part 3, D11); pending the cycle review's confirmation. Used on Linux only with default features off and async-io + print: the gtk4, wayland and raw-handle modules (all of the crate's unsafe blocks) are not compiled. Read the compiled paths: the Print portal proxy (prepare_print, print with a borrowed fd), Request/Response handling, the handle token (getrandom), the helpers (is_flatpak reads /.flatpak-info's existence, is_snap reads /proc/<pid>/cgroup) and WindowIdentifier, whose unsafe impl Send/Sync is sound with only its string variants compiled. No build.rs, no subprocess, no network beyond the session D-Bus through zbus (already audited in the graph). Caveat: request.rs can panic on a malformed portal reply; ElektraWatt calls it under catch_unwind (ew-print's chain)."
+
 [[audits.clipboard-win]]
 who = "Ironkode787"
 criteria = "safe-to-deploy"

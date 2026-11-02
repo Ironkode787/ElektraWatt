@@ -262,6 +262,26 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
                 )
             }
         }
+        // WP-S3.07 part 3 (ruling 4 of ID-1180): Print… the Primary (Enter), Open in PDF viewer and Cancel; both print
+        // buttons disabled, with the reason, until the set is built.
+        Dialog::Print(_) => {
+            let reason = model.print_disabled_reason();
+            let mut print = DialogButton::new(
+                key!("print-button"),
+                DialogAnswer::Action("print.send", json!({ "via": "printer" })),
+            );
+            let mut viewer = DialogButton::new(
+                key!("print-viewer-button"),
+                DialogAnswer::Action("print.send", json!({ "via": "viewer" })),
+            );
+            print.disabled.clone_from(&reason);
+            viewer.disabled = reason;
+            DialogSpec {
+                secondary: vec![viewer, cancel()],
+                form: true,
+                ..small(strings::text(key!("print-title")).to_owned(), Vec::new(), print)
+            }
+        }
         // Recover, Open read-only (also Escape), Discard… apart; after a failed recovery Open read-only leads.
         Dialog::Recovery {
             name,

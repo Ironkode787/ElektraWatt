@@ -2540,6 +2540,9 @@ fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
         // detail.
         Dialog::PartChoose(c) => part_choose_lines(model, c, lines),
         Dialog::PartEdit(e) => part_edit_lines(e, lines),
+        // WP-S3.07 part 3: the options, then the preview: its page and stamp, the progress, the empty state or the
+        // failure.
+        Dialog::Print(d) => print_lines(model, d, lines),
         // FT-408 and FT-409: a creation dialog, one `field` line per field in order; the refusal of the last attempt
         // follows the fields as an `error:` line.
         Dialog::Form(form) => {
@@ -2577,6 +2580,70 @@ fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
             Some(reason) => lines.push(format!("  button \"{}\" disabled: {reason}", b.label)),
             None => lines.push(format!("  button \"{}\"", b.label)),
         }
+    }
+}
+
+/// The print pre-dialog's lines (WP-S3.07 part 3): `range`, the section rows or the Pages field with its refusal,
+/// `paper`, the two check boxes, then the preview.
+fn print_lines(model: &ShellModel, d: &crate::shell::print::PrintDialog, lines: &mut Vec<String>) {
+    use crate::shell::print::{PrintBuild, PrintDialog, PrintRange};
+    lines.push(format!(
+        "  field \"{}\": \"{}\"",
+        strings::text(key!("print-range")),
+        strings::text(d.range.label_key())
+    ));
+    if d.range == PrintRange::Sections {
+        for s in &d.sections {
+            let tick = if s.ticked { "ticked" } else { "not ticked" };
+            lines.push(format!("  check \"{}\" {tick}", user(&s.label())));
+        }
+    }
+    if d.range == PrintRange::Pages {
+        lines.push(format!(
+            "  field \"{}\": \"{}\"",
+            strings::text(key!("print-range-pages")),
+            user(&d.pages)
+        ));
+        if let Some(e) = &d.pages_error {
+            lines.push(format!("  error: {}", user(e)));
+        }
+    }
+    lines.push(format!(
+        "  field \"{}\": \"{}\"",
+        strings::text(key!("print-paper")),
+        PrintDialog::paper_text(d.paper)
+    ));
+    for (key, on) in [(key!("print-fit"), d.fit), (key!("print-mono"), d.monochrome)] {
+        let tick = if on { "ticked" } else { "not ticked" };
+        lines.push(format!("  check \"{}\" {tick}", strings::text(key)));
+    }
+    match &d.build {
+        PrintBuild::Built { .. } => {
+            if let (Some(set), Some(caption)) = (model.print_set(), model.print_page_text()) {
+                let folio = set.pages.get(d.page).map_or("", |p| p.label.as_str());
+                let mut line = format!("  preview \"{caption}\" page {}", user(folio));
+                if let Some(Some(stamp)) = set.stamps.get(d.page) {
+                    line.push_str(&format!(" stamp \"{stamp}\""));
+                }
+                lines.push(line);
+            }
+        }
+        PrintBuild::Building => {
+            let text = model.print_progress_text().unwrap_or_default();
+            lines.push(format!(
+                "  preview {} \"{text}\"",
+                crate::jobs::JobKind::Print.word()
+            ));
+        }
+        PrintBuild::Empty => lines.push(format!(
+            "  preview \"{}\" \"{}\"",
+            strings::text(key!("print-empty-title")),
+            strings::text(key!("print-empty-text"))
+        )),
+        PrintBuild::Failed(cause) => lines.push(format!(
+            "  preview error: {}",
+            user(&strings::format(key!("print-failed"), &[cause]))
+        )),
     }
 }
 

@@ -1234,6 +1234,60 @@ pub static ACTIONS: &[ActionMeta] = &[
             ),
         ),
     ),
+    // WP-S3.07 part 3 (D10, ruling 5 of ID-1180): the print pre-dialog, its options settable at once; it builds its
+    // print set as a job (`wait`, headless: return at once).
+    with_params(
+        "range?:enum(all|current|sections|pages), sections?:text, pages?:text, paper?:text, fit?:bool, mono?:bool, wait?:bool",
+        placed(
+            place(Group::Pdf, 2, CommandSize::Small, None),
+            "printer",
+            act(
+                "file.print",
+                View,
+                Menu::Output,
+                &["Ctrl+P"],
+                has_pages,
+                None,
+                |s, p| s.act_file_print(p),
+            ),
+        ),
+    ),
+    with_params(
+        "range?:enum(all|current|sections|pages), sections?:text, pages?:text, paper?:text, fit?:bool, mono?:bool, wait?:bool",
+        hidden(act(
+            "print.set",
+            View,
+            Menu::Output,
+            &[],
+            print_dialog_open,
+            None,
+            |s, p| s.act_print_set(p),
+        )),
+    ),
+    with_params(
+        "to?:enum(next|previous), page?:uint",
+        hidden(act(
+            "print.page",
+            View,
+            Menu::Output,
+            &[],
+            print_dialog_open,
+            None,
+            |s, p| s.act_print_page(p),
+        )),
+    ),
+    with_params(
+        "via?:enum(printer|viewer)",
+        hidden(act(
+            "print.send",
+            View,
+            Menu::Output,
+            &[],
+            print_dialog_open,
+            None,
+            |s, p| s.act_print_send(p),
+        )),
+    ),
     with_params(
         "discard?:bool",
         act(
@@ -4978,6 +5032,16 @@ fn paste_choice_open(m: &ShellModel) -> Result<(), Key<'static>> {
 
 // WP-S2.07 part 4a
 /// The part selection dialog's own actions need the dialog.
+/// The print pre-dialog's own steps (WP-S3.07 part 3).
+fn print_dialog_open(m: &ShellModel) -> Result<(), Key<'static>> {
+    project_open(m)?;
+    if m.print_dialog().is_some() {
+        Ok(())
+    } else {
+        Err(key!("reason-no-print-dialog"))
+    }
+}
+
 fn part_dialog_open(m: &ShellModel) -> Result<(), Key<'static>> {
     project_open(m)?;
     if matches!(m.dialog(), Some(crate::shell::Dialog::PartChoose(_))) {

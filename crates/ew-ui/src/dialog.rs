@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The one dialog frame of the shell (WP-S2.17 part 4, §8 item 1; doc 16a §6.12): every modal dialog is drawn from
-//! its [`DialogSpec`]. `color.surface.raised`, `elevation.2`, `radius.lg`, 440 px wide (small) or 640 px (forms, growing with the window),
+//! its [`DialogSpec`]. `color.surface.raised`, `elevation.2`, `radius.lg`, 440 px wide (small) or 640 px (forms, growing with the window;
+//! the print pre-dialog 1040 px, growing too),
 //! `space.5` padding, over a backdrop of `color.backdrop` (slate-900 at 24 %); the title in `type.title`, left-aligned;
 //! the body in `type.body`; the dialog's own content (fields, lists); the footer with the buttons right-aligned in the
 //! platform's order (Windows: Primary then the others; macOS and Linux: the others then the Primary), the destructive
@@ -34,6 +35,16 @@ pub(crate) fn small_width(t: &crate::theme::Tokens, window: f32) -> f32 {
     grown(t.size_dialog_small, SMALL_SHARE, window)
 }
 
+/// The share of the window the print pre-dialog takes once that is wider than `size.dialog.preview` (WP-S3.07 part
+/// 3, ruling 4 of ID-1180: 1248 px at 1920).
+pub(crate) const PREVIEW_SHARE: f32 = 0.65;
+
+/// The print pre-dialog's width in a window `window` wide: `size.dialog.preview`, growing with the window
+/// ([`PREVIEW_SHARE`]).
+pub(crate) fn preview_width(t: &crate::theme::Tokens, window: f32) -> f32 {
+    grown(t.size_dialog_preview, PREVIEW_SHARE, window)
+}
+
 /// A width that grows with the window: `share` of `window`, never under `base` (today's layout at the floor) and
 /// never wider than the window.
 pub(crate) fn grown(base: f32, share: f32, window: f32) -> f32 {
@@ -43,20 +54,22 @@ pub(crate) fn grown(base: f32, share: f32, window: f32) -> f32 {
 /// The answer of a click on one of the dialog's buttons.
 pub(crate) type Clicked = Option<DialogAnswer>;
 
-/// Paints the dialog of `spec` with `content` between the body and the footer. `focus_primary` gives the Primary the
+/// Paints the dialog of `spec` with `content` between the body and the footer, at `width` when given (the print
+/// pre-dialog's [`preview_width`]), else at the width of the spec's kind. `focus_primary` gives the Primary the
 /// keyboard focus (the frame the dialog opens, when it has no field). Returns the answer of a clicked button.
-pub(crate) fn show(
+pub(crate) fn show_sized(
     ctx: &egui::Context,
     spec: &DialogSpec,
+    width: Option<f32>,
     focus_primary: bool,
     content: impl FnOnce(&mut Ui),
 ) -> Clicked {
     let t = theme::current(ctx);
     // C39 (doc 16a §2, ID-908): a form grows with the window, its fields and lists take the gain.
-    let width = if spec.form {
-        form_width(&t, ctx.content_rect().width())
-    } else {
-        t.size_dialog_small
+    let width = match width {
+        Some(w) => w,
+        None if spec.form => form_width(&t, ctx.content_rect().width()),
+        None => t.size_dialog_small,
     };
     let frame = egui::Frame::new()
         .fill(t.surface_raised.color32())
@@ -232,6 +245,7 @@ mod tests {
                 t.size_dialog_form,
             ),
             ("small", super::small_width, t.size_dialog_small),
+            ("preview", super::preview_width, t.size_dialog_preview),
         ] {
             let (floor, typical) = (f(&t, 1280.0), f(&t, 1920.0));
             assert_eq!(floor, base, "{name} at the floor");

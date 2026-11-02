@@ -355,6 +355,8 @@ impl ShellModel {
     /// Takes the ends of the jobs that have finished (the window every frame, the script runner before every step).
     /// Makes no `Session` call.
     pub fn poll_jobs(&mut self) {
+        // WP-S3.07 part 3: the print pre-dialog's build too.
+        self.poll_print();
         let ended: Vec<(u64, JobEnd<ExportDone>)> = self
             .jobs
             .entries

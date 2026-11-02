@@ -120,7 +120,13 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
             | Dialog::PartChoose(_)
             | Dialog::PartEdit(_)
             | Dialog::Shortcuts
+            | Dialog::Print(_)
     );
+    // WP-S3.07 part 3 (ruling 4 of ID-1180): the print pre-dialog is `size.dialog.preview` wide, growing with the
+    // window.
+    let width = matches!(d, Dialog::Print(_)).then(|| {
+        crate::dialog::preview_width(&crate::theme::current(ctx), ctx.content_rect().width())
+    });
     // WP-S2.07 part 4a: Choose picks the list's active row, which the window keeps.
     if matches!(d, Dialog::PartChoose(_)) {
         spec.primary.answer = DialogAnswer::Action(
@@ -131,7 +137,7 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
     // What Submit sends (the field's text as typed this frame) and whether Enter in a field submitted.
     let mut submit_text: Option<String> = None;
     let mut submit = false;
-    let clicked = crate::dialog::show(ctx, &spec, just_opened && !has_field, |ui| match d {
+    let clicked = crate::dialog::show_sized(ctx, &spec, width, just_opened && !has_field, |ui| match d {
         Dialog::About => {
             ui.horizontal_wrapped(|ui| {
                 ui.spacing_mut().item_spacing.x = crate::theme::current(ui.ctx()).space_4;
@@ -241,6 +247,7 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
         }
         Dialog::PartChoose(c) => crate::part_dialog::chooser(ui, shell, c, just_opened, events),
         Dialog::PartEdit(e) => crate::part_dialog::editor(ui, e, just_opened, events),
+        Dialog::Print(p) => crate::print_dialog::body(ui, shell, p, just_opened, events),
         Dialog::ConfirmDiscard { .. } | Dialog::ConfirmCheckScheme { .. } | Dialog::ConfirmJournalDiscard => {
         }
     });

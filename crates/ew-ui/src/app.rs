@@ -18,6 +18,7 @@ use egui::{CentralPanel, Key, Modifiers, Panel, Ui, ViewportCommand};
 use ew_viewmodel::actions::Context;
 use ew_viewmodel::key;
 use ew_viewmodel::layout::PaneKind;
+use ew_viewmodel::shell::print::{PrintEnd, PrintRequest};
 use ew_viewmodel::shell::{ConfirmAnswer, Focus, Outcome, Prompt, PromptRequest, ShellModel};
 use ew_viewmodel::strings;
 use serde_json::{Value, json};
@@ -149,6 +150,24 @@ pub trait Platform {
     fn open_url(&mut self, _url: &str) -> bool {
         false
     }
+
+    /// Prints a built print set (WP-S3.07 part 3, ruling 3 of ID-1180): `request` holds the PDF, the title and
+    /// whether Print… or Open in PDF viewer asked. The application binary prints with `ew-print` on a worker thread
+    /// and answers later; `ctx` is the context to repaint when the end is there. The default refuses: printing is not
+    /// available in this window.
+    fn print(&mut self, request: PrintRequest, ctx: &egui::Context) -> PrintReply {
+        let _ = (request, ctx);
+        PrintReply::Now(PrintEnd::Unavailable)
+    }
+}
+
+/// How the end of a print comes to the frame (WP-S3.07 part 3).
+#[derive(Debug)]
+pub enum PrintReply {
+    /// At once: the platform's default, or a print that could not start.
+    Now(PrintEnd),
+    /// From the print's own thread: the frame reads the receiver at the start of every frame.
+    Later(Receiver<PrintEnd>),
 }
 
 /// A platform whose dialogs are always cancelled.
@@ -221,6 +240,8 @@ pub struct App {
     dialog_was_open: bool,
     /// The file dialog that is open off the window's thread, with the request it answers (FT-467).
     pending_pick: Option<(PromptRequest, Receiver<Pick>)>,
+    /// The prints running off the window's thread (WP-S3.07 part 3), each with the receiver of its end.
+    pending_prints: Vec<Receiver<PrintEnd>>,
     /// The `ui_scale` last given to egui: the zoom is set when the setting changes, not every frame, so that
     /// egui's own zoom keys keep working in between.
     applied_scale: Option<f32>,
@@ -311,6 +332,7 @@ impl App {
             chooser_typing: crate::chooser::TypeAhead::default(),
             dialog_was_open: false,
             pending_pick: None,
+            pending_prints: Vec::new(),
             applied_scale: None,
             window_zoom: None,
             applied_theme: None,
@@ -1096,6 +1118,7 @@ impl App {
         }
         self.open_documentation();
         self.open_results();
+        self.print_requests(&ctx);
 
         // The layout the user made is the shell's; it is written a second after the last change.
         let now = ctx.input(|i| i.time);
@@ -1630,6 +1653,35 @@ impl App {
         while let Some(url) = self.shell.take_open_request() {
             if !self.platform.open_url(&url) {
                 self.shell.show_banner(strings::text(key!("open-failed")));
+            }
+        }
+    }
+
+    /// The print pre-dialog's Print… and Open in PDF viewer (WP-S3.07 part 3, ruling 3): the ends that are in, each
+    /// with its one toast, then the new requests handed to the platform.
+    fn print_requests(&mut self, ctx: &egui::Context) {
+        let mut ended = Vec::new();
+        self.pending_prints.retain(|rx| match rx.try_recv() {
+            Ok(end) => {
+                ended.push(end);
+                false
+            }
+            Err(TryRecvError::Empty) => true,
+            // The print's thread ended without an answer (it panicked).
+            Err(TryRecvError::Disconnected) => {
+                ended.push(PrintEnd::Failed(
+                    strings::text(key!("job-cause-internal")).to_owned(),
+                ));
+                false
+            }
+        });
+        for end in ended {
+            self.shell.print_done(end);
+        }
+        while let Some(request) = self.shell.take_print_request() {
+            match self.platform.print(request, ctx) {
+                PrintReply::Now(end) => self.shell.print_done(end),
+                PrintReply::Later(rx) => self.pending_prints.push(rx),
             }
         }
     }

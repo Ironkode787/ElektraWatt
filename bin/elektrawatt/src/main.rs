@@ -30,7 +30,8 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use eframe::egui;
-use ew_ui::app::{App, Pick, PickReply, Platform, setup, spawn_pick};
+use ew_ui::app::{App, Pick, PickReply, Platform, PrintReply, setup, spawn_pick};
+use ew_ui::ew_viewmodel::shell::print::{PrintEnd, PrintRequest, PrintVia};
 use ew_ui::ew_viewmodel::key;
 use ew_ui::ew_viewmodel::shell::{Mode, Prompt, Resources, ShellConfig, ShellModel};
 use ew_ui::ew_viewmodel::strings;
@@ -286,6 +287,60 @@ impl Platform for RfdPlatform {
 
     fn open_url(&mut self, url: &str) -> bool {
         open_in_browser(url)
+    }
+
+    /// The print set goes through `ew-print`'s chain on a thread of its own (WP-S3.07 part 3, D11): Print… through the
+    /// system's chain (on Linux the portal, then `lp`, then the viewer), Open in PDF viewer through the viewer alone.
+    /// The window keeps painting; the end comes back as a toast.
+    fn print(&mut self, request: PrintRequest, ctx: &egui::Context) -> PrintReply {
+        let (tx, rx) = std::sync::mpsc::channel();
+        let ctx = ctx.clone();
+        let spawned = std::thread::Builder::new()
+            .name("ew-print".to_owned())
+            .spawn(move || {
+                let end = print_end(run_print(&request));
+                // The window may have closed meanwhile; then nobody waits for the answer.
+                let _ = tx.send(end);
+                ctx.request_repaint();
+            });
+        match spawned {
+            Ok(_) => PrintReply::Later(rx),
+            Err(e) => PrintReply::Now(PrintEnd::Failed(e.to_string())),
+        }
+    }
+}
+
+/// Runs `request` through the chain its way names.
+fn run_print(request: &PrintRequest) -> Result<ew_print::Printed, Vec<(&'static str, ew_print::PrintError)>> {
+    let temp = std::env::temp_dir();
+    let chain = match request.via {
+        PrintVia::Printer => ew_print::Chain::system(temp, &request.title),
+        PrintVia::Viewer => ew_print::Chain::viewer(temp, &request.title),
+    };
+    chain.print(&ew_print::PrintJob {
+        title: request.title.clone(),
+        pdf: request.set.pdf.clone(),
+        pages: request.set.pages.clone(),
+        printer: None,
+        monochrome: request.monochrome,
+    })
+}
+
+/// What the window says of a chain's result: a print or an opened viewer, with D11's notice when an earlier way
+/// failed; nothing when the person cancelled the system's dialog; the last cause when every way failed.
+fn print_end(result: Result<ew_print::Printed, Vec<(&'static str, ew_print::PrintError)>>) -> PrintEnd {
+    match result {
+        Ok(printed) => match (&printed.outcome, printed.fallback.is_some()) {
+            (ew_print::PrintOutcome::Opened { .. }, false) => PrintEnd::Opened,
+            (ew_print::PrintOutcome::Opened { .. }, true) => PrintEnd::FellBackToViewer,
+            (ew_print::PrintOutcome::Spooled { .. }, false) => PrintEnd::Printed,
+            (ew_print::PrintOutcome::Spooled { .. }, true) => PrintEnd::FellBackToPrinter,
+        },
+        Err(failed) => match failed.last() {
+            Some((_, ew_print::PrintError::Cancelled)) => PrintEnd::Cancelled,
+            Some((_, e)) => PrintEnd::Failed(e.to_string()),
+            None => PrintEnd::Unavailable,
+        },
     }
 }
 
@@ -920,5 +975,50 @@ mod tests {
         std::fs::write(dir.join("bus"), b"").unwrap();
         assert!(session_bus_present(None, Some(dir.clone())));
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// WP-S3.07 part 3 (D11): the chain's result reads as the window's end of a print: the notice when an earlier
+    /// way failed, nothing on a cancel, the last cause when every way failed.
+    #[test]
+    fn the_chain_result_reads_as_the_print_end() {
+        let spooled = ew_print::PrintOutcome::Spooled {
+            printer: None,
+            message: String::new(),
+        };
+        let opened = ew_print::PrintOutcome::Opened {
+            file: PathBuf::from("set.pdf"),
+        };
+        let printed = |adapter, outcome: &ew_print::PrintOutcome, fallback: bool| ew_print::Printed {
+            adapter,
+            outcome: outcome.clone(),
+            fallback: fallback.then(|| ew_print::Fallback {
+                failed: vec![("portal", ew_print::PrintError::LpMissing)],
+                used: adapter,
+            }),
+        };
+        assert_eq!(print_end(Ok(printed("portal", &spooled, false))), PrintEnd::Printed);
+        assert_eq!(
+            print_end(Ok(printed("lp", &spooled, true))),
+            PrintEnd::FellBackToPrinter
+        );
+        assert_eq!(print_end(Ok(printed("viewer", &opened, false))), PrintEnd::Opened);
+        assert_eq!(
+            print_end(Ok(printed("viewer", &opened, true))),
+            PrintEnd::FellBackToViewer
+        );
+        assert_eq!(
+            print_end(Err(vec![("portal", ew_print::PrintError::Cancelled)])),
+            PrintEnd::Cancelled
+        );
+        assert_eq!(
+            print_end(Err(vec![
+                ("portal", ew_print::PrintError::Cancelled),
+                ("lp", ew_print::PrintError::LpMissing),
+            ])),
+            PrintEnd::Failed(
+                "printing needs the CUPS command `lp`; install cups-client or print from the window".to_owned()
+            )
+        );
+        assert_eq!(print_end(Err(Vec::new())), PrintEnd::Unavailable);
     }
 }

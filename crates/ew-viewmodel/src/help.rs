@@ -166,7 +166,8 @@ pub fn context_topic(model: &ShellModel) -> &'static str {
             | Dialog::Form(_)
             | Dialog::ConfirmPurge { .. }
             | Dialog::PartChoose(_)
-            | Dialog::PartEdit(_),
+            | Dialog::PartEdit(_)
+            | Dialog::Print(_),
         )
         | None => {}
     }

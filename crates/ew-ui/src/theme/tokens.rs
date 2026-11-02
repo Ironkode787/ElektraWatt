@@ -375,6 +375,9 @@ pub struct Tokens {
     /// FT-566: the label column of a form dialog's label-and-field rows, the same in every form dialog (a small
     /// dialog's one field has no label and fills the body).
     pub size_dialog_label: f32,
+    /// WP-S3.07 part 3 (ruling 4 of ID-1180): the print pre-dialog with its preview, a raw size like
+    /// `size.dialog.label`, growing with the window as form dialogs do.
+    pub size_dialog_preview: f32,
     pub size_palette: f32,
     pub size_palette_row: f32,
     pub size_toast: f32,
@@ -682,6 +685,7 @@ impl Tokens {
             ("size.dialog.small", Px(self.size_dialog_small)),
             ("size.dialog.form", Px(self.size_dialog_form)),
             ("size.dialog.label", Px(self.size_dialog_label)),
+            ("size.dialog.preview", Px(self.size_dialog_preview)),
             ("size.palette", Px(self.size_palette)),
             ("size.palette.row", Px(self.size_palette_row)),
             ("size.toast", Px(self.size_toast)),
@@ -1077,6 +1081,7 @@ pub fn tokens(theme: Theme, density: Density) -> Tokens {
         size_dialog_small: 440.0,
         size_dialog_form: 640.0,
         size_dialog_label: 160.0,
+        size_dialog_preview: 1040.0,
         size_palette: 560.0,
         size_palette_row: 32.0,
         size_toast: 300.0,

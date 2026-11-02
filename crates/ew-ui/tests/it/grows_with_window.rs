@@ -185,6 +185,24 @@ fn the_parts_mapping_card_grows_with_the_window() {
     );
 }
 
+/// WP-S3.07 part 3 (ruling 4 of ID-1180): the print pre-dialog is `size.dialog.preview` (1040) wide at the floor and
+/// 0.65 of the window at 1920 (1248).
+#[test]
+fn the_print_dialog_grows_with_the_window() {
+    let (floor, typical) = at_both_sizes(
+        |h| dispatch(h, "file.print", json!({"range": "current"})),
+        |h| {
+            h.ctx
+                .memory(|m| m.area_rect(egui::Id::unique("ew-dialog")))
+                .expect("the print dialog")
+                .width()
+        },
+    );
+    assert!((floor - tokens().size_dialog_preview).abs() < 1.0, "{floor} at the floor");
+    assert!((typical - 0.65 * 1920.0).abs() < 1.0, "{typical} at 1920");
+    assert_grows_from("the print dialog", tokens().size_dialog_preview, floor, typical);
+}
+
 /// A page title long enough that its change line needs more than `size.dialog.small`.
 const LONG_TITLE: &str =
     "Power Supply 1 - Main Current with a deliberately long title that no small dialog can hold on one line";

@@ -911,6 +911,11 @@ impl Driver {
             let _ = app.shell_mut().wait_jobs();
             self.last_delay = Some(std::time::Duration::ZERO);
         }
+        // So is the print pre-dialog's build (WP-S3.07 part 3), unless a test gate holds it.
+        if app.shell().print_waits() {
+            app.shell_mut().wait_print();
+            self.last_delay = Some(std::time::Duration::ZERO);
+        }
         if app.shell().should_quit() {
             self.close();
         }

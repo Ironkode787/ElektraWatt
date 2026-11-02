@@ -32,6 +32,9 @@ pub const MAX_JOBS: usize = 20;
 pub enum JobKind {
     /// The PDF export (`file.export_pdf`).
     Pdf,
+    /// The print set of the print pre-dialog (`file.print`, WP-S3.07 ruling 2 of ID-1180): it writes no file, and
+    /// the dialog shows its progress in the preview's place rather than the Jobs pane.
+    Print,
 }
 
 impl JobKind {
@@ -39,6 +42,7 @@ impl JobKind {
     pub fn word(self) -> &'static str {
         match self {
             JobKind::Pdf => "pdf",
+            JobKind::Print => "print",
         }
     }
 
@@ -46,6 +50,7 @@ impl JobKind {
     pub fn label_key(self) -> Key<'static> {
         match self {
             JobKind::Pdf => key!("job-kind-pdf"),
+            JobKind::Print => key!("job-kind-print"),
         }
     }
 }
@@ -148,7 +153,7 @@ pub(crate) struct TestHooks {
 #[cfg(feature = "testkit")]
 impl TestHooks {
     /// The gate a new job gets.
-    fn gate(&self) -> Option<Gate> {
+    pub(crate) fn gate(&self) -> Option<Gate> {
         self.gate.clone()
     }
 
@@ -166,7 +171,7 @@ impl TestHooks {
 #[cfg(not(feature = "testkit"))]
 impl TestHooks {
     /// No gate.
-    fn gate(&self) -> Option<Gate> {
+    pub(crate) fn gate(&self) -> Option<Gate> {
         None
     }
 

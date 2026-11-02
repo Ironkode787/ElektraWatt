@@ -84,6 +84,8 @@ mod workspaces;
 mod macros;
 // WP-S2.07 part 4a
 pub mod part_dialog;
+// WP-S3.07 part 3: the print pre-dialog.
+pub mod print;
 // WP-S2.08 part 2: the user's keymap and the keymap editor.
 mod keymaps;
 // WP-S1.18 part 5
@@ -310,6 +312,10 @@ pub enum Dialog {
     PartChoose(Box<part_dialog::PartChooser>),
     /// Edit part… (D20, D21): the part editor, a 640-px form with the editable members, the read-only ones and Save.
     PartEdit(Box<part_dialog::PartEditor>),
+    // WP-S3.07 part 3
+    /// Output ▸ Print… (D10, ruling 4 of ID-1180): the print pre-dialog, its options beside the preview of the print
+    /// set, which builds as a job; Print… and Open in PDF viewer hand the built set to the window's platform.
+    Print(Box<print::PrintDialog>),
 }
 
 /// A marker line of the history (WP-S2.09 D13, view state, never a `History` entry): an export, a recovery.
@@ -529,6 +535,9 @@ pub struct ShellModel {
     // WP-S2.09 part 1
     /// The jobs (the PDF export) and the Jobs pane's entries.
     jobs: crate::jobs::JobsState,
+    // WP-S3.07 part 3
+    /// The print pre-dialog's build, its built set and the print request for the window.
+    print: print::PrintState,
     /// The visible toasts and the notifications log.
     notes: crate::notifications::NotificationLog,
     /// The history's marker lines of the open project session (exports, recoveries), by revision.
@@ -815,6 +824,7 @@ impl ShellModel {
             aliases: std::cell::RefCell::new(crate::alias::AliasTable::new()),
             id_source: None,
             jobs: crate::jobs::JobsState::default(),
+            print: print::PrintState::default(),
             notes: crate::notifications::NotificationLog::default(),
             markers: Vec::new(),
             recovery_stash: None,
@@ -1693,6 +1703,8 @@ impl ShellModel {
         for (number, end) in self.jobs.stop_all() {
             let _ = self.finish_job(number, end);
         }
+        // WP-S3.07 part 3: a print set still building is cancelled and waited for; it wrote no file.
+        self.stop_print();
         match self.project.take() {
             Some(p) if p.session.is_dirty() => drop(p),
             Some(p) => p.session.close(),
@@ -1919,6 +1931,11 @@ impl ShellModel {
         // WP-S2.08 D8: Escape while the keymap editor records ends the recording and leaves the dialog open.
         if matches!(self.dialog, Some(Dialog::Shortcuts)) && self.keymap_editor.recording.take().is_some() {
             return Outcome::Done;
+        }
+        // WP-S3.07 part 3 (ruling 4 of ID-1180): Escape and Cancel in the print pre-dialog cancel its build and print
+        // nothing.
+        if self.palette.is_none() && matches!(self.dialog, Some(Dialog::Print(_))) {
+            self.drop_print();
         }
         if self.palette.take().is_some()
             || self.dialog.take().is_some()

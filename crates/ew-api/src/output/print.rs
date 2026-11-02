@@ -341,6 +341,19 @@ pub fn print_set_with(q: &Q, options: &PrintOptions, assets: &ExportAssets) -> R
     })
 }
 
+/// The sections a print set may name ([`PageSelection::Sections`], the window's Range ▸ Sections list): each
+/// section's number and neutral title, by number, each number once.
+pub fn sections(q: &Q) -> Vec<(u16, String)> {
+    let mut all: Vec<(u16, String)> = q
+        .sections()
+        .iter()
+        .map(|(_, s)| (s.number, super::view::neutral(&s.title)))
+        .collect();
+    all.sort();
+    all.dedup_by_key(|s| s.0);
+    all
+}
+
 /// [`print_set_with`] with `hooks` (the print job, ID-1180 ruling 2): the export's phases with their reports and
 /// checkpoints, then `report(0, 0, "writing")` before the placement and the writer.
 pub(crate) fn print_set_hooked<H: Hooks>(

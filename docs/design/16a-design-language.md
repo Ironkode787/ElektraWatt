@@ -495,7 +495,7 @@ none of it reads raw egui defaults.
 
 Added 2026-10-28 for the widgets that WP-S2.06 part 3, WP-S2.09 parts 2 and 3 and FT-500 built alongside this
 document (§6.21 to §6.25). Each is a component token (§4.1, layer 3) defined by an alias or an existing size; none
-adds a raw value, so the token test of WP-S2.17 part 1 checks them through their aliases. *As built (cycle 34):* `size.dialog.label` is the one exception, a raw 160 px in both densities; `color.badge.on_chrome` is checked as a background of `color.text.secondary` in the token dump.
+adds a raw value, so the token test of WP-S2.17 part 1 checks them through their aliases. *As built (cycle 34):* `size.dialog.label` and `size.dialog.preview` (cycle 47) are the exceptions, raw 160 px and 1040 px in both densities; `color.badge.on_chrome` is checked as a background of `color.text.secondary` in the token dump.
 
 | Token | Comfortable | Compact | Defined as | Use |
 |---|---|---|---|---|
@@ -511,6 +511,7 @@ adds a raw value, so the token test of WP-S2.17 part 1 checks them through their
 | `color.history.undone` | = `color.text.tertiary` | = `color.text.tertiary` | alias | Undone History entries, always with their state icon (§6.24) |
 | `color.card.strip` | = `color.surface.sunken` | = `color.surface.sunken` | alias | The fill of the "Preview open" strip |
 | `size.dialog.label` | 160 | 160 | raw size (cycle 34, FT-566) | The fixed label column of every form dialog, followed by `space.3` (§6.12) |
+| `size.dialog.preview` | 1040 | 1040 | raw size (cycle 47, WP-S3.07 part 3) | The print pre-dialog's width at the floor, growing with the window at 0.65 of its width (1248 at 1920; §6.12) |
 | `color.badge.on_chrome` | = `color.border.subtle` | = `color.border.subtle` | alias (high-contrast themes: `color.surface.sunken`, outlined with `color.border.default`) | A count badge on the chrome, such as the dock tab row's count chip (§6.16; FT-561); secondary text on it is 5.40:1 (light) and 5.19:1 (dark) |
 
 `color.border.control` is not used for the idle cursor: on `color.accent.subtle` it falls to 2.88:1, under 3:1.
@@ -939,7 +940,7 @@ state queues behind it with a count ("1 more").
 ### 6.12 Dialogs
 
 Modal only when the work cannot continue without the answer (doc 16 §4.1). `color.surface.raised`, `elevation.2`,
-`radius.lg`, width 440 px (small) or 640 px (forms), `space.5` padding, a backdrop of `slate-900` at 24 %. Anatomy:
+`radius.lg`, width 440 px (small), 640 px (forms) or `size.dialog.preview`, 1040 px (the print pre-dialog, growing with the window at 0.65 of its width, 1248 px at 1920; cycle 47), `space.5` padding, a backdrop of `slate-900` at 24 %. Anatomy:
 **title** in `type.title`, left-aligned, phrased as the question or the task ("Recover unsaved changes?"); **body** in
 `type.body`, at most three short paragraphs, facts as a two-column label and value list; **footer** with buttons
 right-aligned in the platform's order (Windows: Primary then Secondary; Linux: Secondary then Primary), a
