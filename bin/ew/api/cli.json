@@ -235,6 +235,38 @@
       "stability": "preview"
     },
     {
+      "path": "export ewz",
+      "flags": [
+        {
+          "name": "--project",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--out",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--json",
+          "value": false,
+          "repeatable": false
+        }
+      ],
+      "exits": [
+        {
+          "code": 0,
+          "meaning": "written"
+        },
+        {
+          "code": 2,
+          "meaning": "usage, open and write errors, a project changed on disk or one that cannot be packed"
+        }
+      ],
+      "result": "ew.export-ewz-result/1",
+      "stability": "preview"
+    },
+    {
       "path": "export pdf",
       "flags": [
         {
@@ -559,6 +591,33 @@
         }
       ],
       "result": "ew.export-wires-result/1",
+      "stability": "preview"
+    },
+    {
+      "path": "extract",
+      "flags": [
+        {
+          "name": "--into",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--json",
+          "value": false,
+          "repeatable": false
+        }
+      ],
+      "exits": [
+        {
+          "code": 0,
+          "meaning": "extracted"
+        },
+        {
+          "code": 2,
+          "meaning": "usage, an unreadable or refused archive, an existing folder, write errors"
+        }
+      ],
+      "result": "ew.extract-result/1",
       "stability": "preview"
     },
     {

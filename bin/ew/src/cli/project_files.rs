@@ -9,7 +9,7 @@ use ew_api::fmt::{FmtError, KeptLine, Rewrite};
 
 use super::{
     FmtArgs, RecoverAction, RecoverArgs, journal_refusal, open_editing, plural, printable, project_dir,
-    typed_word,
+    reader_dir, typed_word,
 };
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -21,7 +21,13 @@ const DISCARD_WORD: &str = "discard";
 /// lock, nothing written) or rewritten through the save protocol after the content check (`ew_api::fmt`). The lines the
 /// open kept verbatim are listed on stderr in both modes.
 pub(super) fn run_fmt(a: &FmtArgs) -> i32 {
-    let Some(dir) = project_dir(a.project.as_ref()) else {
+    // `--check` is a reader and takes an `.ewz` (WP-S1.17 D9); `fmt` writes and refuses one.
+    let dir = if a.check {
+        reader_dir(a.project.as_ref())
+    } else {
+        project_dir(a.project.as_ref())
+    };
+    let Some(dir) = dir else {
         return 2;
     };
     let opened = if a.check {

@@ -93,6 +93,8 @@ mod release;
 mod release_run;
 // WP-S2.04 part 2: the router the canvas tools call (§4.3, §8.1).
 pub mod routing;
+// WP-S1.17 part 2: `.ewz` opened read-only and the export of the saved generation (D8, D9).
+mod transport;
 pub mod verify;
 
 use std::collections::BTreeSet;
@@ -196,14 +198,16 @@ pub use ew_sqlview as sql;
 /// ([`Session::recovery_refusal`]): the CLI's `ew recover` and the shell name them through `ew-api`.
 pub use ew_store::journal::{Collision, RecoveryInfo, ReplayError};
 pub use ew_store::{
-    Access, Clock, OpenError, OpenReport, PurgeError, PurgeFile, PurgePlan, ReadOnlyReason, RecoverError,
+    Access, Clock, OpenError, OpenReport, OsVfs, PurgeError, PurgeFile, PurgePlan, ReadOnlyReason, RecoverError,
     SaveError, StoreOptions, SystemClock, Vfs,
 };
 /// The as-built archive's layout and atomic write, and the git port of a release (doc 05 §14; WP-S1.18 D11 to D13):
-/// the CLI and the shell name them through `ew-api` (no workspace edge of their own).
-pub use ew_store::{archive, git, zip};
+/// the CLI and the shell name them through `ew-api` (no workspace edge of their own); likewise `.ewz` transport
+/// (doc 05 §12; WP-S1.17 D8, D9).
+pub use ew_store::{archive, ewz, git, zip};
 pub use new_project::{NewProjectKind, ProjectTemplate, SaveAsBasicError};
 pub use release::{Approval, ApproveError, FOUR_EYES_RULE, Gate, GateError, role_name};
+pub use transport::{EwzExport, ExportEwzError};
 pub use release_run::{
     ArchiveOpenError, Discarded, IncompleteRelease, OpenedArchive, ReleaseContext, ReleaseError,
     ReleaseOptions, ReleasePlan, ReleaseTrouble, Released, TroubleKind,
@@ -882,8 +886,8 @@ impl Session {
     }
 
     /// Opens a project directory read-only for a reader such as `ew check` (doc 17 §3.1: readers take no
-    /// lock and read one generation): no lock, no roll-forward, no journal. `app_version` names the program
-    /// in the store's diagnostics.
+    /// lock and read one generation): no lock, no roll-forward, no journal; an `.ewz` given as `dir` opens from memory
+    /// ([`Session::open_ewz`], WP-S1.17 D9). `app_version` names the program in the store's diagnostics.
     ///
     /// # Errors
     ///
@@ -907,17 +911,22 @@ impl Session {
     }
 
     /// [`Session::open_reader`] with the memo mode of the session (`ew verify-derived` opens with
-    /// [`MemoMode::Oracle`]).
+    /// [`MemoMode::Oracle`]). A path that names an `.ewz` ([`ewz::is_ewz`]: the extension `ewz`, not a directory) opens
+    /// through [`Session::open_ewz_with`], so every reader takes one as its project.
     ///
     /// # Errors
     ///
-    /// [`OpenError`] when the project cannot be opened; integrity findings are in the report.
+    /// [`OpenError`] when the project cannot be opened ([`OpenError::Ewz`] for a refused `.ewz`); integrity findings
+    /// are in the report.
     pub fn open_reader_with(
         dir: &Path,
         app_version: &str,
         subcommand: &str,
         memo: MemoMode,
     ) -> Result<(Session, OpenReport), OpenError> {
+        if ewz::is_ewz(&ew_store::OsVfs, dir) {
+            return Session::open_ewz_with(dir, app_version, subcommand, memo);
+        }
         let mut store = StoreOptions::new(app_version);
         store.mode = ew_store::OpenMode::ReadOnly;
         store.state_dir = None;

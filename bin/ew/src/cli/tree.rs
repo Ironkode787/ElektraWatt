@@ -22,8 +22,8 @@ use ew_api::output::{CsvOptions, LineEnd, PageSelection, Preset};
 
 use super::query::QueryArgs;
 use super::{
-    ApplyArgs, AssetsPurgeArgs, CheckArgs, CheckFormat, ChecksSetArgs, Command, ExportArgs, ExportKind,
-    ExportPagesArgs, FmtArgs, ImportCsvArgs, ImportPartsArgs, ImportQetArgs, LibAction, LibArgs, PageFormat,
+    ApplyArgs, AssetsPurgeArgs, CheckArgs, CheckFormat, ChecksSetArgs, Command, ExportArgs, ExportEwzArgs,
+    ExportKind, ExportPagesArgs, ExtractArgs, FmtArgs, ImportCsvArgs, ImportPartsArgs, ImportQetArgs, LibAction, LibArgs, PageFormat,
     PrintArgs, PrintVia, RecoverAction, RecoverArgs, RenderArgs, RevisionAction, RevisionArgs, RowFormat,
     SqlArgs, SqlDumpArgs, SqlFormat, SqlSource, VerifyArgs, XLSX_NEEDS_OUT,
 };
@@ -70,9 +70,18 @@ enum Top {
     /// `--line-end` override the preset. `--timeout` sets a deadline in seconds. `sql` exits 0 on success and 2 on
     /// everything else (usage, open and SQL errors, denials, limits).
     Sql(SqlCli),
-    /// Write a report's rows as CSV, or the pages as PDF, SVG or PNG.
+    /// Write a report's rows as CSV, the pages as PDF, SVG or PNG, or the project as an .ewz.
     #[command(subcommand)]
     Export(ExportCli),
+    /// Unpack an .ewz into a new project folder.
+    ///
+    /// Reads the `.ewz` whole and checks it before anything is written (its layout, the archive bounds, every file
+    /// against the manifest's hash; a hostile name, an entry the manifest does not list or a compression bomb refuses
+    /// it), then writes it into `--into <dir>` (default: `<name>.ew` beside the archive), which must not exist: the files
+    /// go into the sibling folder `<dir>.tmp-ewz` first, are synced and read back, and that folder is then renamed to
+    /// `<dir>`, so `<dir>` never holds a part of a project and a failure leaves neither folder. Exit 0 when extracted, 2
+    /// on everything else (usage, an unreadable or refused archive, an existing folder, write errors).
+    Extract(ExtractCli),
     /// Print the pages through the OS, or write the print set as a PDF.
     ///
     /// Builds the print set of the pages (`--pages` folio labels and ranges, or `--sections` section numbers, a
@@ -403,6 +412,16 @@ enum ExportCli {
     /// only) through the session's export job with the bundled fonts only. `--pages`, `--sections` and `--threads`
     /// as for `export pdf`. Exit 0 on success, 2 on everything else.
     Svg(PagesCli),
+    /// Pack the project's saved generation into an .ewz.
+    ///
+    /// Packs the project's saved generation into `--out <file.ewz>` (required), a deterministic ZIP (doc 05 §12):
+    /// `mimetype` first, `manifest.json`, then every file the manifest lists and `.gitattributes` and `.gitignore` when
+    /// present, read back from the disk and checked against the manifest; strays, foreign files, `.ew/`, the lock files,
+    /// temps and `.git/` never enter, and the same project gives the same bytes. Every reader (`check`, `sql`, the row
+    /// and page exports, `print`, `render`, `verify-derived`, `query`, `fmt --check`) takes an `.ewz` as its project and
+    /// opens it read-only; every other subcommand refuses one; `ew extract` unpacks one. Exit 0 when written, 2 on
+    /// everything else (usage, open errors, a project changed on disk or one that cannot be packed, write errors).
+    Ewz(EwzCli),
     /// Write one PNG file per page.
     ///
     /// Writes one `<folio>.png` per page into the directory `--out` (replaced as a whole; it may hold PNG files
@@ -410,6 +429,47 @@ enum ExportCli {
     /// resolution). `--pages` and `--sections` as for `export pdf`. Exit 0 on success, 2 on everything else (usage,
     /// open errors, an unknown folio or section, write errors).
     Png(PngCli),
+}
+
+/// `ew export ewz`.
+#[derive(Args, Debug)]
+struct EwzCli {
+    /// The project directory.
+    #[arg(value_name = "project-dir")]
+    project_dir: Option<PathBuf>,
+    /// The project directory (instead of the positional one).
+    #[arg(
+        long,
+        value_name = "dir",
+        allow_hyphen_values = true,
+        conflicts_with = "project_dir"
+    )]
+    project: Option<PathBuf>,
+    /// The .ewz file to write (required).
+    #[arg(
+        long,
+        value_name = "file.ewz",
+        allow_hyphen_values = true,
+        overrides_with = "out"
+    )]
+    out: Option<PathBuf>,
+    /// Print the result as JSON.
+    #[arg(long, overrides_with = "json")]
+    json: bool,
+}
+
+/// `ew extract`.
+#[derive(Args, Debug)]
+struct ExtractCli {
+    /// The .ewz file.
+    #[arg(value_name = "file.ewz")]
+    file: PathBuf,
+    /// The new project folder (default: `<name>.ew` beside the archive); it must not exist.
+    #[arg(long, value_name = "dir", allow_hyphen_values = true, overrides_with = "into")]
+    into: Option<PathBuf>,
+    /// Print the result as JSON.
+    #[arg(long, overrides_with = "json")]
+    json: bool,
 }
 
 /// `ew export cables|wires`.
@@ -1639,6 +1699,7 @@ impl Cli {
             }
             Top::Sql(a) => sql(a)?,
             Top::Export(e) => export(e)?,
+            Top::Extract(ExtractCli { file, into, json }) => Command::Extract(ExtractArgs { file, into, json }),
             Top::Print(PrintCli {
                 project_dir,
                 project: flag,
@@ -1950,6 +2011,9 @@ fn sql(a: SqlCli) -> Result<Command, clap::Error> {
     }))
 }
 
+/// The refusal of `ew export ewz` without `--out` (ID-1175 ruling 5).
+pub(super) const EWZ_NEEDS_OUT: &str = "`ew export ewz` writes a file: give `--out <file.ewz>`";
+
 /// `ew export` and its subjects.
 fn export(e: ExportCli) -> Result<Command, clap::Error> {
     let rows = |kind, block, flag, dir, out, json, format| {
@@ -2061,6 +2125,21 @@ fn export(e: ExportCli) -> Result<Command, clap::Error> {
             };
             let format = rows_format(&["export", "report"], format, csv, out.as_ref())?;
             rows(kind, block, flag, project_dir, out, json, format)
+        }
+        ExportCli::Ewz(EwzCli {
+            project_dir,
+            project: flag,
+            out,
+            json,
+        }) => {
+            let Some(out) = out else {
+                return Err(usage_error(&["export", "ewz"], EWZ_NEEDS_OUT));
+            };
+            Command::ExportEwz(ExportEwzArgs {
+                project: project(flag, project_dir),
+                out,
+                json,
+            })
         }
         ExportCli::Pdf(a) => pages_command(PageFormat::Pdf, a)?,
         ExportCli::Svg(a) => pages_command(PageFormat::Svg, a)?,

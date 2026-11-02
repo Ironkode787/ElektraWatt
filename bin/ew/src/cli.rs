@@ -47,6 +47,10 @@ pub enum Command {
     Print(PrintArgs),
     /// `ew render --page <folio> --png`: one page as PNG (WP-S1.22 D7).
     Render(RenderArgs),
+    /// `ew export ewz`: the project's saved generation as an `.ewz` (WP-S1.17 D8).
+    ExportEwz(ExportEwzArgs),
+    /// `ew extract`: an `.ewz` into a new project directory (WP-S1.17 D9).
+    Extract(ExtractArgs),
     /// Replay a command log.
     Apply(ApplyArgs),
     /// `ew fmt`: the project files in canonical form (WP-S1.22 D9).
@@ -271,6 +275,28 @@ pub struct RenderArgs {
     pub dpi: u32,
     /// The PNG file (`--out`); `None`: `<folio>.png` in the current directory.
     pub out: Option<PathBuf>,
+    /// Print the result as JSON (`--json`).
+    pub json: bool,
+}
+
+/// The arguments of `ew export ewz` (WP-S1.17 D8).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct ExportEwzArgs {
+    /// The project directory; `None`: found from the current directory.
+    pub project: Option<PathBuf>,
+    /// The `.ewz` file (`--out`).
+    pub out: PathBuf,
+    /// Print the result as JSON (`--json`).
+    pub json: bool,
+}
+
+/// The arguments of `ew extract` (WP-S1.17 D9).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct ExtractArgs {
+    /// The `.ewz` file.
+    pub file: PathBuf,
+    /// The new project directory (`--into`); `None`: `<stem>.ew` beside the archive (doc 05 §12).
+    pub into: Option<PathBuf>,
     /// Print the result as JSON (`--json`).
     pub json: bool,
 }
@@ -577,6 +603,8 @@ pub fn run(cmd: Command) -> i32 {
         Command::ExportPages(a) => run_export_pages(&a),
         Command::Print(a) => run_print(&a),
         Command::Render(a) => run_render(&a),
+        Command::ExportEwz(a) => run_export_ewz(&a),
+        Command::Extract(a) => run_extract(&a),
         Command::Apply(a) => run_apply(&a),
         Command::Fmt(a) => project_files::run_fmt(&a),
         Command::Recover(a) => project_files::run_recover(&a),
@@ -603,8 +631,26 @@ fn find_project(start: &Path) -> Option<PathBuf> {
         .map(Path::to_path_buf)
 }
 
-/// The explicit project directory, else the one found from the current directory.
+/// The explicit project directory, else the one found from the current directory, for every subcommand but the readers
+/// ([`reader_dir`]): an `.ewz` is refused with D9's text (WP-S1.17; it opens read-only).
 fn project_dir(explicit: Option<&PathBuf>) -> Option<PathBuf> {
+    let dir = reader_dir(explicit)?;
+    if ew_api::ewz::is_ewz(&ew_api::OsVfs, &dir) {
+        eprintln!("{}", ewz_refusal(&dir));
+        return None;
+    }
+    Some(dir)
+}
+
+/// The refusal of a subcommand that is not a reader, given an `.ewz` as its project (WP-S1.17 D9).
+fn ewz_refusal(path: &Path) -> String {
+    format!("error: {}: {}", path.display(), ew_api::ewz::READ_ONLY)
+}
+
+/// The explicit project, else the directory found from the current directory, for a reader (`check`, `sql`, the row
+/// and page exports, `print`, `render`, `verify-derived`, `query`, `fmt --check`): an `.ewz` is taken as it is and
+/// opened read-only from memory by `Session::open_reader` (WP-S1.17 D9, ID-1175 ruling 5).
+fn reader_dir(explicit: Option<&PathBuf>) -> Option<PathBuf> {
     match explicit {
         Some(d) => Some(d.clone()),
         None => {
@@ -626,7 +672,7 @@ fn open_projection(project: Option<&PathBuf>) -> Result<ew_api::sql::Projection,
 fn open_projection_and_session(
     project: Option<&PathBuf>,
 ) -> Result<(ew_api::sql::Projection, ew_api::Session), i32> {
-    let dir = project_dir(project).ok_or(2)?;
+    let dir = reader_dir(project).ok_or(2)?;
     let (session, opened) = match ew_api::Session::open_reader(&dir, env!("CARGO_PKG_VERSION"), "sql") {
         Ok(r) => r,
         Err(e) => {
@@ -750,7 +796,7 @@ fn export_refusal(what: Export, e: &ew_api::ExportError) -> String {
 }
 
 fn run_export(a: &ExportArgs) -> i32 {
-    let Some(dir) = project_dir(a.project.as_ref()) else {
+    let Some(dir) = reader_dir(a.project.as_ref()) else {
         return 2;
     };
     let (session, _) = match ew_api::Session::open_reader(&dir, env!("CARGO_PKG_VERSION"), "export") {
@@ -1155,6 +1201,95 @@ fn source_date() -> Result<Option<ew_api::output::PdfDate>, String> {
         .ok_or_else(|| format!("SOURCE_DATE_EPOCH is not a date in seconds since 1970: `{text}`"))
 }
 
+/// `ew export ewz` (WP-S1.17 D8, ID-1175 ruling 5): the project's saved generation, read back from the disk and
+/// verified, packed into `--out` ([`write_atomically`]). The project opens as a reader (no lock); an `.ewz` given as
+/// the project is refused ([`project_dir`]).
+fn run_export_ewz(a: &ExportEwzArgs) -> i32 {
+    let Some(dir) = project_dir(a.project.as_ref()) else {
+        return 2;
+    };
+    let (session, _) = match ew_api::Session::open_reader(&dir, env!("CARGO_PKG_VERSION"), "export ewz") {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("error: {}: {e}", dir.display());
+            return 2;
+        }
+    };
+    let packed = match session.export_ewz() {
+        Ok(p) => p,
+        Err(e) => {
+            eprintln!("error: {}: {e}", dir.display());
+            return 2;
+        }
+    };
+    if let Err(e) = write_atomically(&a.out, &packed.bytes) {
+        eprintln!("error: {}: {e}", a.out.display());
+        return 2;
+    }
+    if a.json {
+        print!(
+            "{}",
+            results::to_text(&results::ExportEwzResult {
+                schema: results::EXPORT_EWZ.to_owned(),
+                out: a.out.display().to_string(),
+                generation: packed.generation,
+                files: packed.files,
+                bytes: packed.bytes.len() as u64,
+            })
+        );
+    } else {
+        println!(
+            ".ewz written to {}: generation {}, {}",
+            a.out.display(),
+            packed.generation,
+            plural(packed.files, "file", "files")
+        );
+    }
+    0
+}
+
+/// `ew extract <file.ewz> [--into <dir>]` (WP-S1.17 D9, ID-1175 ruling 4): the archive read whole and checked before
+/// anything is written, then extracted into a new directory, all or nothing (`ew_api::ewz::extract`); without `--into`
+/// the directory is `<stem>.ew` beside the archive.
+fn run_extract(a: &ExtractArgs) -> i32 {
+    let vfs = ew_api::OsVfs;
+    let archive = match ew_api::ewz::read_file(&vfs, &a.file) {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("error: {}: the .ewz is refused: {e}; nothing was written", a.file.display());
+            return 2;
+        }
+    };
+    let Some(into) = a.into.clone().or_else(|| ew_api::ewz::default_target(&a.file)) else {
+        eprintln!("error: {}: not an .ewz file name", a.file.display());
+        return 2;
+    };
+    if let Err(e) = ew_api::ewz::extract(&vfs, &archive, &into) {
+        eprintln!("error: {e}");
+        return 2;
+    }
+    let files = archive.entries.len();
+    if a.json {
+        print!(
+            "{}",
+            results::to_text(&results::ExtractResult {
+                schema: results::EXTRACT.to_owned(),
+                into: into.display().to_string(),
+                generation: archive.generation(),
+                files,
+            })
+        );
+    } else {
+        println!(
+            "extracted into {}: generation {}, {}",
+            into.display(),
+            archive.generation(),
+            plural(files, "file", "files")
+        );
+    }
+    0
+}
+
 /// Writes `bytes` to `<path>.tmp` and renames it to `path`, so a failed export leaves no partial file (doc 09
 /// section 4.3).
 fn write_atomically(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
@@ -1246,7 +1381,7 @@ fn write_file_set(out: &Path, ext: &str, a_file: &str, files: &[(&str, &[u8])]) 
 /// `ew print` (WP-S3.07 D9): the print set of the selection, written to `--out` or handed to the adapter.
 fn run_print(a: &PrintArgs) -> i32 {
     use ew_api::output::print::{Fit, PrintOptions};
-    let Some(dir) = project_dir(a.project.as_ref()) else {
+    let Some(dir) = reader_dir(a.project.as_ref()) else {
         return 2;
     };
     let date = match source_date() {
@@ -1359,7 +1494,7 @@ fn run_print(a: &PrintArgs) -> i32 {
 }
 
 fn run_export_pages(a: &ExportPagesArgs) -> i32 {
-    let Some(dir) = project_dir(a.project.as_ref()) else {
+    let Some(dir) = reader_dir(a.project.as_ref()) else {
         return 2;
     };
     let date = match source_date() {
@@ -1500,7 +1635,7 @@ fn run_export_pages(a: &ExportPagesArgs) -> i32 {
 /// `ew render --page <folio> --png` (WP-S1.22 D7, FR-EXT-004): one page as PNG, to `--out` or `<folio>.png` in the
 /// current directory, never to stdout.
 fn run_render(a: &RenderArgs) -> i32 {
-    let Some(dir) = project_dir(a.project.as_ref()) else {
+    let Some(dir) = reader_dir(a.project.as_ref()) else {
         return 2;
     };
     let (session, _) = match ew_api::Session::open_reader(&dir, env!("CARGO_PKG_VERSION"), "render") {
@@ -2611,7 +2746,7 @@ fn run_apply_preview(dir: &Path, log: &CmdLog, file: &str, json: bool) -> i32 {
 }
 
 fn run_verify_derived(a: &VerifyArgs) -> i32 {
-    let Some(dir) = project_dir(a.project.as_ref()) else {
+    let Some(dir) = reader_dir(a.project.as_ref()) else {
         return 2;
     };
     let (session, _) = match ew_api::Session::open_reader_with(

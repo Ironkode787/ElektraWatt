@@ -206,6 +206,30 @@ pub const TABLE: &[Row] = &[
         stability: Stability::Preview,
     },
     Row {
+        path: &["export", "ewz"],
+        exits: &[
+            exit(0, "written"),
+            exit(
+                2,
+                "usage, open and write errors, a project changed on disk or one that cannot be packed",
+            ),
+        ],
+        result: Some(ew_api::cli_results::EXPORT_EWZ),
+        stability: Stability::Preview,
+    },
+    Row {
+        path: &["extract"],
+        exits: &[
+            exit(0, "extracted"),
+            exit(
+                2,
+                "usage, an unreadable or refused archive, an existing folder, write errors",
+            ),
+        ],
+        result: Some(ew_api::cli_results::EXTRACT),
+        stability: Stability::Preview,
+    },
+    Row {
         path: &["print"],
         exits: &[
             exit(0, "printed, opened in the viewer or written"),

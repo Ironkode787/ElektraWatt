@@ -89,6 +89,10 @@ pub const EXPORT_CABLES: &str = "ew.export-cables-result/1";
 pub const EXPORT_BOM: &str = "ew.export-bom-result/1";
 /// `ew export pdf --json`.
 pub const EXPORT_PDF: &str = "ew.export-pdf-result/1";
+/// `ew export ewz --json` (WP-S1.17 part 2).
+pub const EXPORT_EWZ: &str = "ew.export-ewz-result/1";
+/// `ew extract --json` (WP-S1.17 part 2).
+pub const EXTRACT: &str = "ew.extract-result/1";
 /// `ew export svg --json`.
 pub const EXPORT_SVG: &str = "ew.export-svg-result/1";
 /// `ew export png --json`.
@@ -152,6 +156,11 @@ pub const RESULTS: &[ResultSchema] = &[
         schema: schema_of::<ExportRowsResult>,
     },
     ResultSchema {
+        name: EXPORT_EWZ,
+        command: "export ewz",
+        schema: schema_of::<ExportEwzResult>,
+    },
+    ResultSchema {
         name: EXPORT_PDF,
         command: "export pdf",
         schema: schema_of::<ExportPdfResult>,
@@ -180,6 +189,11 @@ pub const RESULTS: &[ResultSchema] = &[
         name: EXPORT_WIRES,
         command: "export wires",
         schema: schema_of::<ExportRowsResult>,
+    },
+    ResultSchema {
+        name: EXTRACT,
+        command: "extract",
+        schema: schema_of::<ExtractResult>,
     },
     ResultSchema {
         name: FMT,
@@ -453,6 +467,38 @@ pub struct ExportRowsResult {
     pub preset: Option<String>,
     /// The session revision the rows were read at.
     pub rev: Option<u64>,
+}
+
+/// `ew export ewz --json` ([`EXPORT_EWZ`]; WP-S1.17 D8).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct ExportEwzResult {
+    /// [`EXPORT_EWZ`].
+    #[serde(rename = "$schema")]
+    pub schema: String,
+    /// The `.ewz` file written.
+    pub out: String,
+    /// The generation packed.
+    pub generation: u64,
+    /// The files packed: `manifest.json`, the files it lists and the git files present.
+    pub files: usize,
+    /// The size of the file in bytes.
+    pub bytes: u64,
+}
+
+/// `ew extract --json` ([`EXTRACT`]; WP-S1.17 D9).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct ExtractResult {
+    /// [`EXTRACT`].
+    #[serde(rename = "$schema")]
+    pub schema: String,
+    /// The new project directory.
+    pub into: String,
+    /// The generation extracted.
+    pub generation: u64,
+    /// The files written: `manifest.json`, the files it lists and the git files the archive holds.
+    pub files: usize,
 }
 
 /// `ew export pdf --json` ([`EXPORT_PDF`]).
