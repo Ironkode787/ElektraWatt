@@ -403,7 +403,11 @@ fn a_failing_portal_falls_back_to_lp_with_one_notice() {
     assert_eq!(chain.names(), ["portal", "lp", "viewer"]);
     let set = job("J-E-2416", None);
     let printed = chain.print(&set).unwrap();
-    assert_eq!(*portal_calls.lock().unwrap(), std::slice::from_ref(&set), "the portal got the set");
+    assert_eq!(
+        *portal_calls.lock().unwrap(),
+        std::slice::from_ref(&set),
+        "the portal got the set"
+    );
     assert_eq!(printed.adapter, "lp");
     assert_eq!(
         printed.fallback,
@@ -419,7 +423,11 @@ fn a_failing_portal_falls_back_to_lp_with_one_notice() {
     );
     let (name, args) = recorded(&dir);
     assert_eq!(args[..2], ["-t".to_owned(), "J-E-2416".to_owned()]);
-    assert_eq!(dir.names(), [name], "lp's print file is removed; the viewer wrote none");
+    assert_eq!(
+        dir.names(),
+        [name],
+        "lp's print file is removed; the viewer wrote none"
+    );
 }
 
 /// A portal that prints needs no notice; a cancel in the print dialog ends the chain with nothing printed; a
@@ -428,7 +436,10 @@ fn a_failing_portal_falls_back_to_lp_with_one_notice() {
 fn the_chain_stops_at_the_first_print_and_at_a_cancel() {
     let after = Double::new("lp", Ok(spooled()));
     let after_calls = after.calls();
-    let chain = Chain::new(vec![Box::new(Double::new("portal", Ok(spooled()))), Box::new(after)]);
+    let chain = Chain::new(vec![
+        Box::new(Double::new("portal", Ok(spooled()))),
+        Box::new(after),
+    ]);
     let printed = chain.print(&job("t", None)).unwrap();
     assert_eq!((printed.adapter, printed.fallback), ("portal", None));
     assert!(after_calls.lock().unwrap().is_empty());
@@ -454,7 +465,10 @@ fn the_chain_stops_at_the_first_print_and_at_a_cancel() {
         program: program.to_owned(),
         reason: "it stopped unexpectedly".to_owned(),
     };
-    assert_eq!(failed, [("portal", stopped("portal")), ("viewer", stopped("viewer"))]);
+    assert_eq!(
+        failed,
+        [("portal", stopped("portal")), ("viewer", stopped("viewer"))]
+    );
     assert_eq!(
         failed[0].1.to_string(),
         "`portal` could not be started: it stopped unexpectedly"

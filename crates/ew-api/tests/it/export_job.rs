@@ -169,10 +169,7 @@ fn section_1_on_a5() -> ew_api::output::print::PrintOptions {
     }
 }
 
-fn print_job(
-    gate: Option<Gate>,
-    job: ew_api::output::PrintSetJob,
-) -> Job<ew_api::output::print::PrintSet> {
+fn print_job(gate: Option<Gate>, job: ew_api::output::PrintSetJob) -> Job<ew_api::output::print::PrintSet> {
     Job::spawn(
         JobOptions {
             name: "print".to_owned(),
@@ -203,7 +200,11 @@ fn pw1_the_print_job_builds_the_committed_print_set_of_its_revision() {
     let expected = std::fs::read_to_string(PRINT_DIGEST).unwrap();
     assert_eq!(sha256_hex(&set.pdf), expected.trim());
     let labels: Vec<&str> = set.pages.iter().map(|p| p.label.as_str()).collect();
-    assert_eq!(labels, ["100", "101", "102", "103", "106"], "the snapshot's section 1");
+    assert_eq!(
+        labels,
+        ["100", "101", "102", "103", "106"],
+        "the snapshot's section 1"
+    );
     assert!(set == sync, "the job's set is the synchronous set");
     s.close();
 }

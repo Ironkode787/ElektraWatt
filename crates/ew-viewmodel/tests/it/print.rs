@@ -73,10 +73,7 @@ fn pw2_an_edit_while_the_set_builds_is_applied_and_the_set_keeps_its_revision() 
         s.print_disabled_reason().as_deref(),
         Some("The print set is still being built")
     );
-    assert_eq!(
-        refused(&mut s, "print.send", json!({})),
-        "reason-print-not-built"
-    );
+    assert_eq!(refused(&mut s, "print.send", json!({})), "reason-print-not-built");
     // The build never blocks the window: an edit runs at once.
     done(
         &mut s,
@@ -86,7 +83,11 @@ fn pw2_an_edit_while_the_set_builds_is_applied_and_the_set_keeps_its_revision() 
     assert!(s.page_rows().iter().any(|r| r.folio == "107"), "applied at once");
     gate.release();
     s.wait_print();
-    assert_eq!(labels(&s), ["100", "101", "102", "103", "106"], "the revision it started from");
+    assert_eq!(
+        labels(&s),
+        ["100", "101", "102", "103", "106"],
+        "the revision it started from"
+    );
     s.shutdown();
 }
 
@@ -144,7 +145,11 @@ fn the_dialog_reads_its_options_and_the_empty_state() {
     let lines = dialog_lines(&s);
     assert_eq!(lines[0], "field \"Range\": \"Sections\"");
     assert!(
-        lines[1..].iter().take_while(|l| l.starts_with("check \"Section")).count() >= 2,
+        lines[1..]
+            .iter()
+            .take_while(|l| l.starts_with("check \"Section"))
+            .count()
+            >= 2,
         "{lines:?}"
     );
     assert_eq!(
@@ -175,7 +180,11 @@ fn the_dialog_reads_its_options_and_the_empty_state() {
 fn the_pages_field_shows_the_parsers_and_the_page_orders_refusal() {
     let tmp = Tmp::new("print-pages");
     let mut s = tmp.shell("100");
-    done(&mut s, "file.print", json!({"range": "pages", "pages": "100,,101"}));
+    done(
+        &mut s,
+        "file.print",
+        json!({"range": "pages", "pages": "100,,101"}),
+    );
     assert_eq!(
         dialog_lines(&s)[1..3],
         [
@@ -202,7 +211,11 @@ fn the_pages_field_shows_the_parsers_and_the_page_orders_refusal() {
     done(&mut s, "print.page", json!({"to": "next"}));
     assert_eq!(s.print_page_text().as_deref(), Some("2 of 2"), "clamped");
     assert_eq!(
-        failed(&mut s, "print.set", json!({"range": "sections", "sections": "99"})),
+        failed(
+            &mut s,
+            "print.set",
+            json!({"range": "sections", "sections": "99"})
+        ),
         "no section `99` (the sections are 1, 2, 9)"
     );
     s.shutdown();

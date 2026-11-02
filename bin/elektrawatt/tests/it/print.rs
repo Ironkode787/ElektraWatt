@@ -35,12 +35,18 @@ fn pw1_the_print_dialog_builds_pr1s_set_and_escape_prints_nothing() {
         json!({"range": "sections", "sections": "1", "paper": "A5", "fit": true}),
     );
     let set = s.print_set().expect("the set is built").clone();
-    let digest: String = Sha256::digest(&set.pdf).iter().map(|b| format!("{b:02x}")).collect();
+    let digest: String = Sha256::digest(&set.pdf)
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect();
     let expected = std::fs::read_to_string(Path::new(EXPECTED).join("print/sha256.txt")).unwrap();
     assert_eq!(digest, expected.trim(), "PR-1's print set");
     assert_eq!(s.print_page_text().as_deref(), Some("1 of 5"));
     let d = s.describe();
-    let preview: Vec<&str> = d.lines().filter(|l| l.trim_start().starts_with("preview ")).collect();
+    let preview: Vec<&str> = d
+        .lines()
+        .filter(|l| l.trim_start().starts_with("preview "))
+        .collect();
     assert_eq!(preview, ["  preview \"1 of 5\" page 100 stamp \"scaled 70 %\""]);
     run(&mut s, "ui.dismiss", json!({}));
     assert!(s.print_dialog().is_none(), "Escape closes the dialog");

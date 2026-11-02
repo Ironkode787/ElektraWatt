@@ -31,8 +31,8 @@ use std::path::{Path, PathBuf};
 
 use eframe::egui;
 use ew_ui::app::{App, Pick, PickReply, Platform, PrintReply, setup, spawn_pick};
-use ew_ui::ew_viewmodel::shell::print::{PrintEnd, PrintRequest, PrintVia};
 use ew_ui::ew_viewmodel::key;
+use ew_ui::ew_viewmodel::shell::print::{PrintEnd, PrintRequest, PrintVia};
 use ew_ui::ew_viewmodel::shell::{Mode, Prompt, Resources, ShellConfig, ShellModel};
 use ew_ui::ew_viewmodel::strings;
 use ew_ui::ew_viewmodel::window::{MonitorArea, WindowGeometry};
@@ -996,7 +996,10 @@ mod tests {
                 used: adapter,
             }),
         };
-        assert_eq!(print_end(Ok(printed("portal", &spooled, false))), PrintEnd::Printed);
+        assert_eq!(
+            print_end(Ok(printed("portal", &spooled, false))),
+            PrintEnd::Printed
+        );
         assert_eq!(
             print_end(Ok(printed("lp", &spooled, true))),
             PrintEnd::FellBackToPrinter
@@ -1016,7 +1019,8 @@ mod tests {
                 ("lp", ew_print::PrintError::LpMissing),
             ])),
             PrintEnd::Failed(
-                "printing needs the CUPS command `lp`; install cups-client or print from the window".to_owned()
+                "printing needs the CUPS command `lp`; install cups-client or print from the window"
+                    .to_owned()
             )
         );
         assert_eq!(print_end(Err(Vec::new())), PrintEnd::Unavailable);

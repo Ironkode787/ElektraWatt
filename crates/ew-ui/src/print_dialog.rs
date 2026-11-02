@@ -118,7 +118,13 @@ fn fit_dpi(paper_w_nm: f32, px: f32) -> u32 {
 
 /// Paints the pre-dialog's body: the options beside the preview. Its option changes, page moves and Enter (Print…,
 /// once the set is built) go to `events`.
-pub(crate) fn body(ui: &mut Ui, shell: &ShellModel, d: &PrintDialog, just_opened: bool, events: &mut Vec<Event>) {
+pub(crate) fn body(
+    ui: &mut Ui,
+    shell: &ShellModel,
+    d: &PrintDialog,
+    just_opened: bool,
+    events: &mut Vec<Event>,
+) {
     let t = theme::current(ui.ctx());
     let body = ui.available_width();
     let options_width = (body * OPTIONS_SHARE).floor();
@@ -199,21 +205,26 @@ fn options(ui: &mut Ui, d: &PrintDialog, just_opened: bool, events: &mut Vec<Eve
             }
         }
     });
-    row(ui, label_width, strings::text(key!("print-paper")), |ui, label| {
-        let combo = egui::ComboBox::from_id_salt("print-paper")
-            .selected_text(PrintDialog::paper_text(d.paper))
-            .width(ui.available_width())
-            .icon(components::combo_chevron)
-            .show_ui(ui, |ui| {
-                for paper in Paper::ALL {
-                    let words = PrintDialog::paper_text(paper);
-                    if ui.selectable_label(d.paper == paper, words).clicked() && d.paper != paper {
-                        set(events, json!({ "paper": paper.name() }));
+    row(
+        ui,
+        label_width,
+        strings::text(key!("print-paper")),
+        |ui, label| {
+            let combo = egui::ComboBox::from_id_salt("print-paper")
+                .selected_text(PrintDialog::paper_text(d.paper))
+                .width(ui.available_width())
+                .icon(components::combo_chevron)
+                .show_ui(ui, |ui| {
+                    for paper in Paper::ALL {
+                        let words = PrintDialog::paper_text(paper);
+                        if ui.selectable_label(d.paper == paper, words).clicked() && d.paper != paper {
+                            set(events, json!({ "paper": paper.name() }));
+                        }
                     }
-                }
-            });
-        combo.response.labelled_by(label);
-    });
+                });
+            combo.response.labelled_by(label);
+        },
+    );
     for (key, name, on) in [
         (key!("print-fit"), "fit", d.fit),
         (key!("print-mono"), "mono", d.monochrome),
@@ -390,12 +401,14 @@ fn progress(ui: &mut Ui, shell: &ShellModel) {
     if p.total > 0 {
         let width = (ui.available_width() * 0.6).floor();
         let (line, _) = ui.allocate_exact_size(Vec2::new(width, 2.0), Sense::hover());
-        ui.painter().rect_filled(line, egui::CornerRadius::ZERO, t.border_default.color32());
+        ui.painter()
+            .rect_filled(line, egui::CornerRadius::ZERO, t.border_default.color32());
         let done = egui::Rect::from_min_size(
             line.min,
             Vec2::new(line.width() * p.done as f32 / p.total as f32, 2.0),
         );
-        ui.painter().rect_filled(done, egui::CornerRadius::ZERO, t.accent.color32());
+        ui.painter()
+            .rect_filled(done, egui::CornerRadius::ZERO, t.accent.color32());
     }
 }
 
@@ -410,13 +423,9 @@ fn navigation(ui: &mut Ui, shell: &ShellModel, d: &PrintDialog, pages: usize, ev
         let caption = shell.print_page_text().unwrap_or_default();
         // Centred: the row's own width is the two buttons and the caption.
         let caption_width = ui.fonts_mut(|f| {
-            f.layout_no_wrap(
-                caption.clone(),
-                theme::font(&t.type_body),
-                theme::NONE,
-            )
-            .size()
-            .x
+            f.layout_no_wrap(caption.clone(), theme::font(&t.type_body), theme::NONE)
+                .size()
+                .x
         });
         let buttons = 2.0 * t.size_button_min_width.max(0.0) + caption_width + 2.0 * t.space_3;
         ui.add_space(((ui.available_width() - buttons) / 2.0).max(0.0));
@@ -428,7 +437,15 @@ fn navigation(ui: &mut Ui, shell: &ShellModel, d: &PrintDialog, pages: usize, ev
                 .font(theme::font(&t.type_body))
                 .color(t.text_secondary.color32()),
         );
-        if components::button(ui, Kind::Secondary, next, d.page + 1 < pages, t.size_button_min_width).clicked() {
+        if components::button(
+            ui,
+            Kind::Secondary,
+            next,
+            d.page + 1 < pages,
+            t.size_button_min_width,
+        )
+        .clicked()
+        {
             events.push(Event::Action("print.page", json!({ "to": "next" })));
         }
     });

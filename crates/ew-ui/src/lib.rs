@@ -66,9 +66,9 @@ mod rail;
 // FT-410: the parts table import card.
 mod part_dialog;
 // WP-S3.07 part 3: the print pre-dialog and its preview.
-mod print_dialog;
 mod parts_card;
 mod parts_map;
+mod print_dialog;
 // WP-S2.04 part 2: the junction sequence editor popup.
 mod junction;
 mod picker;

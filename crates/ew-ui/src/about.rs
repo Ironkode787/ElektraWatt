@@ -124,9 +124,8 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
     );
     // WP-S3.07 part 3 (ruling 4 of ID-1180): the print pre-dialog is `size.dialog.preview` wide, growing with the
     // window.
-    let width = matches!(d, Dialog::Print(_)).then(|| {
-        crate::dialog::preview_width(&crate::theme::current(ctx), ctx.content_rect().width())
-    });
+    let width = matches!(d, Dialog::Print(_))
+        .then(|| crate::dialog::preview_width(&crate::theme::current(ctx), ctx.content_rect().width()));
     // WP-S2.07 part 4a: Choose picks the list's active row, which the window keeps.
     if matches!(d, Dialog::PartChoose(_)) {
         spec.primary.answer = DialogAnswer::Action(

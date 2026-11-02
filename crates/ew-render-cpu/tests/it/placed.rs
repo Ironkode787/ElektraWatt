@@ -96,11 +96,17 @@ fn the_content_is_scaled_at_the_offset_and_the_overlay_is_not() {
     };
     let dpi = 100;
     let (img, _) = render_placed(&sheet(), &half, &options(dpi), &bundled_fonts(), None).unwrap();
-    assert_eq!((u64::from(img.width), u64::from(img.height)), pixel_size(paper, dpi));
+    assert_eq!(
+        (u64::from(img.width), u64::from(img.height)),
+        pixel_size(paper, dpi)
+    );
     assert_eq!(half.place(mm(20, 70)), mm(60, 55));
     assert_eq!(half.place(mm(80, 110)), mm(90, 75));
     assert!(is_dark(at(&img, (75.0, 65.0), dpi)), "the block, placed");
-    assert!(!is_dark(at(&img, (30.0, 100.0), dpi)), "the block's sheet place stays white");
+    assert!(
+        !is_dark(at(&img, (30.0, 100.0), dpi)),
+        "the block's sheet place stays white"
+    );
     assert!(!is_dark(at(&img, (95.0, 65.0), dpi)), "beyond the placed block");
     // The overlay at 150..200 × 120..140 mm of the paper, unscaled and unshifted.
     assert!(is_dark(at(&img, (155.0, 125.0), dpi)), "the overlay");

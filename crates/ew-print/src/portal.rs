@@ -76,9 +76,7 @@ impl PrintAdapter for Portal {
                             None,
                             &job.title,
                             &file.as_fd(),
-                            PrintOptions::default()
-                                .set_token(prepared.token)
-                                .set_modal(true),
+                            PrintOptions::default().set_token(prepared.token).set_modal(true),
                         )
                         .await
                         .map_err(portal_error)?

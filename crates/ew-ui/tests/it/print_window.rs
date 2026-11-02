@@ -62,7 +62,10 @@ fn the_print_dialog_shows_every_text_inside_it_at_both_sizes() {
         // The first section's row, "Section 1: <its title>".
         let section = h.state().shell().print_dialog().unwrap().sections[0].label();
         assert!(section.starts_with("Section 1: "), "{section}");
-        assert!(area.bottom() <= size.y && area.top() >= 0.0, "{area:?} in {size:?}");
+        assert!(
+            area.bottom() <= size.y && area.top() >= 0.0,
+            "{area:?} in {size:?}"
+        );
         for text in [
             "Print",
             "Range",
@@ -126,7 +129,11 @@ fn the_progress_line_stands_in_the_previews_place_and_cancel_ends_the_build() {
     let mut h = harness_with(shell, Scripted::default(), Some(tmp.golden("g.ew")));
     h.set_size(egui::Vec2::new(1280.0, 800.0));
     settle(&mut h);
-    dispatch(&mut h, "file.print", json!({"range": "sections", "sections": "1"}));
+    dispatch(
+        &mut h,
+        "file.print",
+        json!({"range": "sections", "sections": "1"}),
+    );
     gate.wait_reached("page");
     settle(&mut h);
     assert!(h.query_by_label("Building the print set… 0 %").is_some());
@@ -134,7 +141,10 @@ fn the_progress_line_stands_in_the_previews_place_and_cancel_ends_the_build() {
     settle(&mut h);
     gate.release();
     assert!(h.state().shell().print_dialog().is_none());
-    assert!(h.state().shell().print_progress().is_none(), "the build is cancelled");
+    assert!(
+        h.state().shell().print_progress().is_none(),
+        "the build is cancelled"
+    );
     h.state_mut().shell_mut().shutdown();
 }
 

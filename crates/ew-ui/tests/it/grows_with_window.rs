@@ -198,7 +198,10 @@ fn the_print_dialog_grows_with_the_window() {
                 .width()
         },
     );
-    assert!((floor - tokens().size_dialog_preview).abs() < 1.0, "{floor} at the floor");
+    assert!(
+        (floor - tokens().size_dialog_preview).abs() < 1.0,
+        "{floor} at the floor"
+    );
     assert!((typical - 0.65 * 1920.0).abs() < 1.0, "{typical} at 1920");
     assert_grows_from("the print dialog", tokens().size_dialog_preview, floor, typical);
 }
