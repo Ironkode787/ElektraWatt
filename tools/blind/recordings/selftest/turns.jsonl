@@ -9,7 +9,7 @@
 {"n":8,"kind":"look","steps":[7,7],"folio":"101"}
 {"n":9,"kind":"do","turn":4,"steps":[8,9],"folio":"101"}
 {"n":10,"kind":"note","turn":4,"patience":9,"flow":8}
-{"n":11,"kind":"do","turn":5,"steps":[10,10],"folio":"101","first_not_done":{"action":"edit.redo","params":"{}","outcome":"refused","reason":"reason-nothing-to-redo"}}
+{"n":11,"kind":"do","turn":5,"steps":[10,10],"folio":"101","first_not_done":{"action":"edit.redo","params":"{}","outcome":"refused","reason":"reason-nothing-to-redo","selection":"51bc9924d9e3"}}
 {"n":12,"kind":"note","turn":5,"patience":8,"flow":7}
 {"n":13,"kind":"do","turn":6,"refusal":"harness: help.tutorials is not available to the drafter"}
 {"n":14,"kind":"note","turn":6,"patience":8,"flow":7}
