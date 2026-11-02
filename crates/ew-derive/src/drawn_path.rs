@@ -1,10 +1,11 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The path a connection is drawn along on its page (doc 06 §5.4): the rules of the page scene (`ew-scene`, modules
-//! `route` and `page`), restated so that what lies on a wire can be found as the page shows it (FT-1020, decision log
-//! ID-1104): normaliser 7 of `ew-commands` splits a connection under a dropped symbol along it, and EW-TERM-006 names a
-//! terminal lying on a wire it does not join.
+//! The path a connection is drawn along on its page (doc 06 §5.4), one rule for the page and the model (FT-1020,
+//! decision log ID-1104, ID-1110): the page scene (`ew-scene`, `route::provisional_route`) draws a connection without a
+//! route along [`provisional_path`], normaliser 7 of `ew-commands` splits a connection under a dropped symbol along it
+//! (its ends placed by [`rep_cp_end`](crate::rep_cp_end)), and EW-TERM-006 names a terminal lying on a wire it does not
+//! join.
 //!
 //! - A connection with a stored route is drawn through its ends' points and the stored vertices,
 //!   `[a] ++ route ++ [b]`.
@@ -12,8 +13,9 @@
 //! - An end at a CP is the CP's point and leaving direction on the page ([`cp_end`]); an end at a junction is the
 //!   junction's point, without a direction. A connection one of whose ends is not drawn on the page is not drawn.
 //!
-//! The scene also pulls a vertex that lies off the sheet onto the sheet's edge; these paths keep every vertex where it
-//! is, so they differ from the drawing only next to an end off the sheet.
+//! The scene then pulls a vertex that lies off the sheet onto the sheet's edge (the sheet is the frame's, which only
+//! the scene knows); these paths keep every vertex where it is, so they differ from the drawing only next to an end
+//! off the sheet.
 
 use ew_ids::Id;
 use ew_schema::{Connection, Dir4, Endpoint, Page};
@@ -53,8 +55,9 @@ pub fn oriented_dir(d: &Dir4, o: Orient2) -> Option<Dir4> {
 }
 
 /// The provisional path of a connection without a stored route, from end `a` to end `b`, each with whether a wire
-/// leaves it along y ([`dir_vertical`]; `None` for a junction or an unknown direction): the page scene's rule
-/// (`ew-scene`, `route::provisional_route`), which the router of `ew-commands` also falls back to.
+/// leaves it along y ([`dir_vertical`]; `None` for a junction or an unknown direction). The page scene draws it
+/// (`ew-scene`, `route::provisional_route`, which then clamps it into the sheet), and the router of `ew-commands` falls
+/// back to it.
 ///
 /// 1. `a == b` gives `[a]` (a single point; nothing is drawn).
 /// 2. Ends on one x or one y give the straight segment `[a, b]`.

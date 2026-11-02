@@ -1324,6 +1324,7 @@ dependencies = [
  "flate2",
  "insta",
  "png",
+ "proptest",
  "regex",
  "schemars",
  "serde",
@@ -1786,6 +1787,7 @@ name = "ew-scene"
 version = "0.0.0"
 dependencies = [
  "automod",
+ "ew-derive",
  "ew-dl",
  "ew-hack",
  "ew-ids",

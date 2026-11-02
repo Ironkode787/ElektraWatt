@@ -14,6 +14,9 @@
 //!
 //! # Rules ([`provisional_route`])
 //!
+//! The path is `ew_derive::provisional_path`, the one rule that normaliser 7 of `ew-commands` splits a wire along
+//! and EW-TERM-006 reads (decision log ID-1110):
+//!
 //! 1. Both ends at the same position: a single point (callers draw nothing for it).
 //! 2. Same x or same y: a straight segment.
 //! 3. Otherwise an L with one corner, taken from the ends' own coordinates (so ends on the connection grid
@@ -23,9 +26,12 @@
 //!    `Up`/`Down` gives `(b.x, a.y)`, `Left`/`Right` gives `(a.x, b.y)`. With neither direction the corner is
 //!    `(b.x, a.y)`.
 //!
-//! Afterwards the provisional polyline is cleaned: consecutive duplicate points and interior vertices
-//! collinear with their neighbours on an axis are removed; the first and last vertex always stay. A stored
-//! route is drawn as stored (see [`connection_polyline`]): it is clamped into the page but never cleaned.
+//! Then the scene alone clamps every vertex into the page and cleans the polyline: consecutive duplicate points
+//! and interior vertices collinear with their neighbours on an axis are removed; the first and last vertex always
+//! stay. On the page the clamp and the clean change nothing (the path's vertices are distinct and turn at its
+//! corner), so the page draws the path the model's rules read; next to an end off the page, the drawn wire runs
+//! along the page's edge, where those rules do not see it. A stored route is drawn as stored (see
+//! [`connection_polyline`]): it is clamped into the page but never cleaned.
 //!
 //! # Junctions
 //!
@@ -69,25 +75,11 @@ pub fn connection_polyline(a: &RouteEnd, b: &RouteEnd, stored: &[Pt2], page: Rec
 ///    `Left`/`Right`; with no (or an unknown) `a.dir`, `b.dir` decides so the wire arrives along `b`'s
 ///    axis (`Up`/`Down` gives `(b.x, a.y)`, `Left`/`Right` gives `(a.x, b.y)`); with neither, `(b.x, a.y)`.
 ///
-/// Every vertex is clamped into `page`, then the polyline is cleaned (see the module docs).
+/// `ew_derive::provisional_path` between the ends, every vertex clamped into `page`, then the polyline cleaned (see
+/// the module docs).
 pub fn provisional_route(a: &RouteEnd, b: &RouteEnd, page: Rect) -> Vec<Pt2> {
-    let (pa, pb) = (a.pos, b.pos);
-    let pts = if pa == pb {
-        vec![pa]
-    } else if pa.x == pb.x || pa.y == pb.y {
-        vec![pa, pb]
-    } else {
-        let vertical_first = Pt2::new(pa.x, pb.y);
-        let horizontal_first = Pt2::new(pb.x, pa.y);
-        let corner = match (&a.dir, &b.dir) {
-            (Some(Dir4::Up | Dir4::Down), _) => vertical_first,
-            (Some(Dir4::Left | Dir4::Right), _) => horizontal_first,
-            (_, Some(Dir4::Up | Dir4::Down)) => horizontal_first,
-            (_, Some(Dir4::Left | Dir4::Right)) => vertical_first,
-            _ => horizontal_first,
-        };
-        vec![pa, corner, pb]
-    };
+    let vertical = |d: &Option<Dir4>| d.as_ref().and_then(ew_derive::dir_vertical);
+    let pts = ew_derive::provisional_path(a.pos, vertical(&a.dir), b.pos, vertical(&b.dir));
     clean(pts.into_iter().map(|p| clamp(p, page)).collect())
 }
 

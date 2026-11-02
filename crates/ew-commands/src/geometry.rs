@@ -175,18 +175,30 @@ pub fn drawn_cp(tx: &TxBuilder<'_>, function: Id<Function>, idx: u16, page: Id<P
     })
 }
 
-/// The path the page draws connection `c` along when it has no stored route (FT-1020, decision log ID-1104):
-/// [`ew_derive::provisional_path`] between its ends on its page, an end at a CP at the CP's [`drawn_cp`] point and
-/// leaving direction, an end at a junction at the junction's point without a direction. `None` when `c` has a stored
-/// route (that route is its path) or no page, or an end is not drawn on its page (a strip segment's terminal point,
-/// whose geometry `ew-derive` holds, included: such a connection is not located).
+/// The path the page draws connection `c` along when it has no stored route (FT-1020, decision log ID-1104, ID-1110):
+/// [`ew_derive::provisional_path`] between its ends on its page, the path `ew_derive::drawn_path` gives and the page
+/// scene draws, read from the transaction's records. An end at a CP is placed by [`ew_derive::rep_cp_end`] (the
+/// representation on the page with the smallest ID that draws it, as `ew_derive::cp_end` takes it); an end at a
+/// junction is the junction's point without a direction. `None` when `c` has a stored route (that route is its path) or
+/// no page, or an end is not drawn on its page by a representation: a strip segment's terminal point, which
+/// `ew_derive::cp_end` places from derived queries, is not read, so such a connection is not located.
 pub fn provisional_path_of(tx: &TxBuilder<'_>, c: &Connection) -> Option<Vec<Pt2>> {
     let page = c.page?;
     if !c.route.is_empty() {
         return None;
     }
+    let cp_end = |function: Id<Function>, idx: u16| {
+        let mut reps = tx.reps_of_function(function);
+        reps.sort();
+        reps.into_iter().find_map(|rid| {
+            let rep = tx.get::<Representation>(rid).filter(|r| r.page == page)?;
+            let symbol = tx.get::<LibCopy<SymbolDef>>(rep.symbol)?;
+            let (at, dir) = ew_derive::rep_cp_end(&rep, &symbol.item, function, idx)?;
+            Some((at, dir.as_ref().and_then(ew_derive::dir_vertical)))
+        })
+    };
     let end = |e: &Endpoint| match e {
-        Endpoint::Cp(function, idx) => drawn_cp(tx, *function, *idx, page).map(|cp| (cp.pos, cp.vertical)),
+        Endpoint::Cp(function, idx) => cp_end(*function, *idx),
         Endpoint::Junction(j) => tx
             .get::<Junction>(*j)
             .filter(|j| j.page == page)

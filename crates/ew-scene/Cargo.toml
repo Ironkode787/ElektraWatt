@@ -16,6 +16,9 @@ workspace = true
 
 [dependencies]
 ew-reports = { path = "../ew-reports" }
+# The drawn path of a connection (`route::provisional_route` builds on `ew_derive::provisional_path`), one rule for
+# the page, normaliser 7 and EW-TERM-006 (decision log ID-1110, ID-1111); already in the graph through `ew-reports`.
+ew-derive = { path = "../ew-derive" }
 ew-dl = { path = "../ew-dl" }
 ew-text = { path = "../ew-text" }
 ew-schema = { path = "../ew-schema" }

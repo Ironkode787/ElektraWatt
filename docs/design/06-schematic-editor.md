@@ -528,8 +528,12 @@ command that routes. **Normaliser 7 (connection split) works on routes**, so it 
 route, which every connection drawn with the Wire tool has; a route-less connection has no route to test, and the
 route editor's first edit stores its drawn polyline (WP-S2.04 §8.4). The as-built text follows each part's delivery.
 *Amended by decision log ID-1104 (FT-1020, cycle 45):* normaliser 7 tests a route-less connection on the provisional
-path `ew-scene` draws it along (`ew_derive::provisional_path`), so a symbol dropped on the wire of a `connect` hint is
-split into it; the two parts stay route-less, and a routed connection drawn on the same line is split first.
+path between its ends, so a symbol dropped on the wire of a `connect` hint is split into it; the two parts stay
+route-less, and a routed connection drawn on the same line is split first. *As built (ID-1110, ID-1111):* one rule,
+`ew_derive::provisional_path`; `ew-scene` draws it and then pulls a vertex off the sheet onto the sheet's edge, and
+normaliser 7 places its ends by `ew_derive::rep_cp_end`. Next to an end off the sheet the drawn wire runs along the
+edge, where neither normaliser 7 nor EW-TERM-006 sees it; a wire ending at a strip segment's terminal point is not
+split.
 
 ### 3.3 Placing symbols and assigning devices
 

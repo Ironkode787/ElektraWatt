@@ -633,18 +633,74 @@ pub const TERMINAL_ON_UNJOINED_WIRE: RuleMeta = RuleMeta {
     release: Release::Mvp,
 };
 
-/// The axis-parallel segments of the page's wires on one line: `(start, end, wire)` along the line, `start ≤ end`.
-type LineSegments = Vec<(i64, i64, Id<Connection>)>;
+/// The axis-parallel segments of the page's wires on one line (the y of a horizontal one, the x of a vertical one):
+/// `(start, end, wire)` along the line, `start ≤ end`, sorted, read as a balanced search tree over the sorted order
+/// (the node of a range is its middle element) with the largest end of each node's subtree.
+#[derive(Default)]
+struct Line {
+    segments: Vec<(i64, i64, Id<Connection>)>,
+    reach: Vec<i64>,
+}
 
-/// EW-TERM-006 (FT-1020, decision log ID-1104): a connection point of a terminal, drawn on the page by the terminal's
-/// own symbol, lies on the path a wire or cable core of the page is drawn along (`ew_derive::drawn_path`: its stored
-/// route, else the provisional path between its ends), and that wire does not end at the terminal: the page shows the
-/// terminal in the wire, but it is not connected. One finding per terminal and wire: targets the terminal and the wire,
-/// no discriminator, shown on the page. The points a strip segment draws for its strip's terminals are not read.
+impl Line {
+    /// Sorts the segments and computes each subtree's largest end.
+    fn seal(&mut self) {
+        self.segments.sort_unstable();
+        self.reach = vec![i64::MIN; self.segments.len()];
+        self.build(0, self.segments.len());
+    }
+
+    fn build(&mut self, lo: usize, hi: usize) -> i64 {
+        if lo >= hi {
+            return i64::MIN;
+        }
+        let mid = lo + (hi - lo) / 2;
+        let reach = self.segments[mid]
+            .1
+            .max(self.build(lo, mid))
+            .max(self.build(mid + 1, hi));
+        self.reach[mid] = reach;
+        reach
+    }
+
+    /// The wires of the segments that hold `v` (`start ≤ v ≤ end`), pushed onto `out`: a search down the tree that
+    /// enters a subtree only when one of its segments reaches `v`, and its right half only when the node starts at or
+    /// before `v`, so it visits the segments that hold `v` and the tree's depth above each, not every segment starting
+    /// before `v`.
+    fn holding(&self, v: i64, out: &mut Vec<Id<Connection>>) {
+        self.search(0, self.segments.len(), v, out);
+    }
+
+    fn search(&self, lo: usize, hi: usize, v: i64, out: &mut Vec<Id<Connection>>) {
+        if lo >= hi {
+            return;
+        }
+        let mid = lo + (hi - lo) / 2;
+        if self.reach[mid] < v {
+            return;
+        }
+        self.search(lo, mid, v, out);
+        let (start, end, wire) = self.segments[mid];
+        if start <= v {
+            if v <= end {
+                out.push(wire);
+            }
+            self.search(mid + 1, hi, v, out);
+        }
+    }
+}
+
+/// EW-TERM-006 (FT-1020, decision log ID-1104, ID-1110): a connection point of a terminal, drawn on the page by the
+/// terminal's own symbol, lies on the path a wire or cable core of the page is drawn along (`ew_derive::drawn_path`:
+/// its stored route, else the provisional path between its ends), and that wire does not join the terminal: the page
+/// shows the terminal in the wire, but it is not connected. A wire joins the terminal when an end is a CP of any
+/// function of the terminal's device, or a junction standing on one of the terminal's CP points on the page that a
+/// connection joins to a CP of the terminal's device. One finding per terminal and wire: targets the terminal and the
+/// wire, no discriminator, shown on the page; the message leads with the subject, so a list that prints the subject
+/// before a message names the terminal once. The points a strip segment draws for its strip's terminals are not read.
 ///
-/// Bounded work: the wires' horizontal and vertical segments are kept by their line (the y of a horizontal one, the x
-/// of a vertical one), so a CP is compared only with the segments on its own two lines; other segments are tested one
-/// by one.
+/// Bounded work: the wires' horizontal and vertical segments are kept by their line (`Line`), so a CP is looked up
+/// only among the segments on its own two lines; other segments are tested one by one.
 #[derive(Clone, Copy, Debug)]
 pub struct TerminalOnUnjoinedWire;
 
@@ -685,9 +741,14 @@ impl Rule for TerminalOnUnjoinedWire {
         if points.is_empty() {
             return Vec::new();
         }
+        // Each terminal's CP points on the page, for a junction standing on one.
+        let mut cp_points: BTreeMap<Id<Device>, BTreeSet<(i64, i64)>> = BTreeMap::new();
+        for (at, terminal) in &points {
+            cp_points.entry(*terminal).or_default().insert((at.x.0, at.y.0));
+        }
         // The drawn segments of the page's wires and cores, by line.
-        let mut vertical: BTreeMap<i64, LineSegments> = BTreeMap::new();
-        let mut horizontal: BTreeMap<i64, LineSegments> = BTreeMap::new();
+        let mut vertical: BTreeMap<i64, Line> = BTreeMap::new();
+        let mut horizontal: BTreeMap<i64, Line> = BTreeMap::new();
         let mut other: Vec<(Pt2, Pt2, Id<Connection>)> = Vec::new();
         for id in q.idx().connections_by_page(page) {
             let Some(c) = q.connections().get(id) else {
@@ -705,52 +766,62 @@ impl Rule for TerminalOnUnjoinedWire {
                     continue;
                 }
                 if a.x == b.x {
-                    vertical
-                        .entry(a.x.0)
-                        .or_default()
-                        .push((a.y.0.min(b.y.0), a.y.0.max(b.y.0), id));
+                    vertical.entry(a.x.0).or_default().segments.push((
+                        a.y.0.min(b.y.0),
+                        a.y.0.max(b.y.0),
+                        id,
+                    ));
                 } else if a.y == b.y {
-                    horizontal
-                        .entry(a.y.0)
-                        .or_default()
-                        .push((a.x.0.min(b.x.0), a.x.0.max(b.x.0), id));
+                    horizontal.entry(a.y.0).or_default().segments.push((
+                        a.x.0.min(b.x.0),
+                        a.x.0.max(b.x.0),
+                        id,
+                    ));
                 } else {
                     other.push((a, b, id));
                 }
             }
         }
         for line in vertical.values_mut().chain(horizontal.values_mut()) {
-            line.sort_unstable();
+            line.seal();
         }
-        // The segments of one line that hold coordinate `v`: those starting at or before it and ending at or after it.
-        let holding = |line: Option<&LineSegments>, v: i64| -> Vec<Id<Connection>> {
-            line.map(|segments| {
-                segments
-                    .iter()
-                    .take_while(|s| s.0 <= v)
-                    .filter(|s| v <= s.1)
-                    .map(|s| s.2)
-                    .collect()
+        // Whether an endpoint is a CP of a function of `terminal`'s device.
+        let of_terminal = |e: &Endpoint, terminal: Id<Device>| matches!(e, Endpoint::Cp(f, _) if q.functions().get(*f).and_then(|f| f.device) == Some(terminal));
+        // Whether connection `c` joins `terminal`: an end at its CP, or at a junction standing on one of its CP points
+        // that a connection joins to its CP (decision log ID-1110).
+        let joins = |c: &Connection, terminal: Id<Device>| {
+            [&c.a, &c.b].into_iter().any(|e| match e {
+                Endpoint::Junction(j) => {
+                    q.junctions().get(*j).is_some_and(|j| {
+                        j.page == page
+                            && cp_points
+                                .get(&terminal)
+                                .is_some_and(|p| p.contains(&(j.at.x.0, j.at.y.0)))
+                    }) && q
+                        .idx()
+                        .connections_at(EndpointKey::Junction(*j))
+                        .filter_map(|other| q.connections().get(other))
+                        .any(|other| [&other.a, &other.b].into_iter().any(|e| of_terminal(e, terminal)))
+                }
+                e => of_terminal(e, terminal),
             })
-            .unwrap_or_default()
         };
         let mut hits: BTreeSet<(Id<Device>, Id<Connection>)> = BTreeSet::new();
+        let mut on: Vec<Id<Connection>> = Vec::new();
         for (at, terminal) in points {
-            let mut on = holding(vertical.get(&at.x.0), at.y.0);
-            on.extend(holding(horizontal.get(&at.y.0), at.x.0));
+            on.clear();
+            if let Some(line) = vertical.get(&at.x.0) {
+                line.holding(at.y.0, &mut on);
+            }
+            if let Some(line) = horizontal.get(&at.y.0) {
+                line.holding(at.x.0, &mut on);
+            }
             on.extend(other.iter().filter(|s| on_segment(at, s.0, s.1)).map(|s| s.2));
-            for id in on {
+            for &id in &on {
                 if hits.contains(&(terminal, id)) {
                     continue;
                 }
-                let Some(c) = q.connections().get(id) else {
-                    continue;
-                };
-                let joins = [&c.a, &c.b].into_iter().any(|e| {
-                    matches!(e, Endpoint::Cp(f, _)
-                        if q.functions().get(*f).and_then(|f| f.device) == Some(terminal))
-                });
-                if !joins {
+                if q.connections().get(id).is_some_and(|c| !joins(c, terminal)) {
                     hits.insert((terminal, id));
                 }
             }
@@ -774,7 +845,7 @@ impl Rule for TerminalOnUnjoinedWire {
                         "",
                         subject.clone(),
                         format!(
-                            "terminal {subject} lies on wire {wire} without joining it; connect it to the wire or move it"
+                            "{subject} lies on wire {wire} without joining it; connect it to the wire or move it"
                         ),
                     )
                     .on_page(page),
@@ -826,5 +897,48 @@ mod tests {
         );
         assert_eq!(next_free_number(["PE", "N"].into_iter()), Some(1));
         assert_eq!(next_free_number(std::iter::empty()), Some(1));
+    }
+
+    /// C45-p1#5: a line's search finds exactly the segments holding a coordinate, ends included, with a long segment
+    /// over short ones, nested and touching segments and empty lines; every coordinate from before the first start to
+    /// after the last end, against a scan of every segment.
+    #[test]
+    fn a_line_finds_the_segments_holding_a_coordinate() {
+        let wire = |n: u128| Id::<Connection>::from_uuid(ew_derive::ew_ids::Uuid::from_u128(n));
+        let mut line = Line::default();
+        for (start, end, n) in [
+            (0, 100, 1),
+            (10, 20, 2),
+            (30, 40, 3),
+            (50, 60, 4),
+            (55, 70, 5),
+            (60, 60, 6),
+            (70, 90, 7),
+            (95, 120, 8),
+        ] {
+            line.segments.push((start, end, wire(n)));
+        }
+        line.seal();
+        for v in -2..=122 {
+            let mut got = Vec::new();
+            line.holding(v, &mut got);
+            got.sort();
+            let mut want: Vec<Id<Connection>> = line
+                .segments
+                .iter()
+                .filter(|s| s.0 <= v && v <= s.1)
+                .map(|s| s.2)
+                .collect();
+            want.sort();
+            assert_eq!(got, want, "at {v}");
+        }
+        let mut got = Vec::new();
+        line.holding(60, &mut got);
+        got.sort();
+        assert_eq!(got, [wire(1), wire(4), wire(5), wire(6)]);
+        let mut empty = Line::default();
+        empty.seal();
+        empty.holding(0, &mut got);
+        assert_eq!(got.len(), 4, "an empty line adds nothing");
     }
 }

@@ -413,16 +413,12 @@ fn term006_fx(terminal_at: [i64; 2], wires: &[(u128, Ep, Ep, Vec<[i64; 2]>)]) ->
     fx
 }
 
-/// FT-1020 (decision log ID-1104): a terminal whose connection points lie on a wire it does not join is one warning,
-/// on a wire without a route (drawn straight between its ends) as on a routed one; once the wire is split at the
-/// terminal, or with the terminal beside it, there is none.
-#[test]
-fn term006_a_terminal_lying_on_a_wire_it_does_not_join() {
-    let k1 = Ep::Cp(TERM_K1, 1);
-    let k2 = Ep::Cp(TERM_K2, 0);
-    let over = |route: Vec<[i64; 2]>| term006_fx([0, 32_000_000], &[(TERM_WIRE, k1, k2, route)]);
-    let reported = |c: &str, f: &[ew_checks::Finding]| {
+/// The check of a case that reports terminal -1X1:5 once, on wire `wire` printed as `number`: the whole finding.
+fn term006_reports(wire: u128, number: &'static str) -> impl Fn(&str, &[ew_checks::Finding]) + 'static {
+    move |c: &str, f: &[ew_checks::Finding]| {
         assert_eq!(f.len(), 1, "case {c}: {f:#?}");
+        let message =
+            format!("-1X1:5 lies on wire {number} without joining it; connect it to the wire or move it");
         assert_eq!(
             (
                 f[0].code,
@@ -430,22 +426,28 @@ fn term006_a_terminal_lying_on_a_wire_it_does_not_join() {
                 f[0].subject.as_str(),
                 f[0].message.as_str()
             ),
-            (
-                "001006",
-                ew_checks::Severity::Warning,
-                "-1X1:5",
-                "terminal -1X1:5 lies on wire 1.1 without joining it; connect it to the wire or move it"
-            ),
+            ("001006", ew_checks::Severity::Warning, "-1X1:5", message.as_str()),
             "case {c}"
         );
         let mut targets: Vec<(Kind, AnyId)> = f[0].targets.iter().map(|t| (t.kind, t.id)).collect();
         targets.sort();
         assert_eq!(
             targets,
-            [(Kind::Device, uid(TERM_T)), (Kind::Connection, uid(TERM_WIRE))],
+            [(Kind::Device, uid(TERM_T)), (Kind::Connection, uid(wire))],
             "case {c}"
         );
-    };
+    }
+}
+
+/// FT-1020 (decision log ID-1104): a terminal whose connection points lie on a wire it does not join is one warning,
+/// on a wire without a route (drawn straight between its ends) as on a routed one; once the wire is split at the
+/// terminal, or with the terminal beside it, there is none. The message leads with the terminal (ID-1110), so the
+/// Messages row, which prints the subject before a message that does not lead with it, names it once.
+#[test]
+fn term006_a_terminal_lying_on_a_wire_it_does_not_join() {
+    let k1 = Ep::Cp(TERM_K1, 1);
+    let k2 = Ep::Cp(TERM_K2, 0);
+    let over = |route: Vec<[i64; 2]>| term006_fx([0, 32_000_000], &[(TERM_WIRE, k1, k2, route)]);
     let split = term006_fx(
         [0, 32_000_000],
         &[
@@ -457,11 +459,15 @@ fn term006_a_terminal_lying_on_a_wire_it_does_not_join() {
     rule_table(
         "EW-TERM-006",
         vec![
-            Case::reports("a wire without a route", over(Vec::new()).build(), reported),
+            Case::reports(
+                "a wire without a route",
+                over(Vec::new()).build(),
+                term006_reports(TERM_WIRE, "1.1"),
+            ),
             Case::reports(
                 "a routed wire",
                 over(vec![[0, 17_000_000], [0, 64_000_000]]).build(),
-                reported,
+                term006_reports(TERM_WIRE, "1.1"),
             ),
             Case::silent("the wire split at the terminal", split.build()),
             Case::silent("the terminal beside the wire", beside.build()),
@@ -475,5 +481,120 @@ fn term006_a_terminal_lying_on_a_wire_it_does_not_join() {
         1,
         "{:#?}",
         report.findings
+    );
+}
+
+/// C45-p1#3 and #4 (decision log ID-1110): each branch of EW-TERM-006, with the whole finding. A horizontal wire (the
+/// horizontal lines), a slanted route segment (tested one by one), an L-shaped path without a route (its corner from
+/// the leaving direction: a wrong corner misses the terminal), a cable core (no wire number: "?"); silent when the wire
+/// ends at another function of the terminal's device, or at a junction standing on the terminal's CP that a connection
+/// joins to the terminal; a junction on the CP that is not joined to it, or one joined to it beside its CPs, does not
+/// join the wire.
+#[test]
+fn term006_every_branch() {
+    const MM: i64 = 1_000_000;
+    const H1: u128 = 0x50;
+    const H2: u128 = 0x60;
+    const L: u128 = 0x70;
+    const FN2: u128 = 0x321;
+    const W2: u128 = 0x901;
+    const W3: u128 = 0x902;
+    const J: u128 = 0x950;
+    let k1 = Ep::Cp(TERM_K1, 1);
+    let k2 = Ep::Cp(TERM_K2, 0);
+    let on_cp = [0, 32 * MM];
+    let junction = |fx: &mut Fx, at: [i64; 2], sequence: &[u128]| {
+        let sequence: Vec<String> = sequence.iter().map(|c| us(*c)).collect();
+        fx.push(json!({
+            "$k": "junction", "id": us(J), "page": us(P1), "at": at, "style": "dot", "sequence": sequence,
+        }));
+    };
+
+    let mut horizontal = term006_fx(
+        [20 * MM, 80 * MM],
+        &[(TERM_WIRE, Ep::Cp(H1, 0), Ep::Cp(H2, 0), Vec::new())],
+    );
+    horizontal.func_at(H1, P1, [0, 80 * MM]);
+    horizontal.func_at(H2, P1, [40 * MM, 80 * MM]);
+    let slanted = term006_fx(
+        on_cp,
+        &[(TERM_WIRE, k1, k2, vec![[-8 * MM, 24 * MM], [8 * MM, 40 * MM]])],
+    );
+    let mut l_shaped = term006_fx([20 * MM, 48 * MM], &[(TERM_WIRE, k1, Ep::Cp(L, 0), Vec::new())]);
+    l_shaped.func_at(L, P1, [40 * MM, 48 * MM]);
+    let mut core = term006_fx(on_cp, &[]);
+    core.push(json!({"$k": "device", "id": us(0x6000), "tag": {"letter": "W", "counter": 1}, "cable": {}}));
+    core.push(json!({"$k": "conductor", "id": us(0x6001), "cable": us(0x6000), "core": "1"}));
+    core.conn(TERM_WIRE, P1, k1, k2, &json!({"kind": {"core": us(0x6001)}}));
+    let mut other_function = term006_fx(on_cp, &[(TERM_WIRE, k1, Ep::Cp(FN2, 0), Vec::new())]);
+    other_function.drawn_function(FN2, TERM_T, P1, [0, 96 * MM]);
+    for r in &mut other_function.records {
+        if r["$k"] == "function" && r["id"] == json!(us(FN2)) {
+            r["role"] = json!("aux");
+        }
+    }
+    let mut joined_junction = term006_fx(
+        on_cp,
+        &[
+            (TERM_WIRE, k1, Ep::J(J), Vec::new()),
+            (W2, Ep::J(J), Ep::Cp(TERM_FN, 0), Vec::new()),
+            (W3, Ep::J(J), k2, Vec::new()),
+        ],
+    );
+    junction(&mut joined_junction, on_cp, &[TERM_WIRE, W2, W3]);
+    let mut lone_junction = term006_fx(on_cp, &[(TERM_WIRE, k1, Ep::J(J), Vec::new())]);
+    junction(&mut lone_junction, on_cp, &[TERM_WIRE]);
+    let mut junction_beside = term006_fx(
+        on_cp,
+        &[
+            (TERM_WIRE, k1, Ep::J(J), Vec::new()),
+            (W2, Ep::J(J), Ep::Cp(TERM_FN, 0), Vec::new()),
+        ],
+    );
+    junction(&mut junction_beside, [4 * MM, 32 * MM], &[TERM_WIRE, W2]);
+
+    rule_table(
+        "EW-TERM-006",
+        vec![
+            Case::reports(
+                "a horizontal wire",
+                horizontal.build(),
+                term006_reports(TERM_WIRE, "1.1"),
+            ),
+            Case::reports(
+                "a slanted route segment",
+                slanted.build(),
+                term006_reports(TERM_WIRE, "1.1"),
+            ),
+            Case::reports(
+                "an L-shaped path without a route",
+                l_shaped.build(),
+                term006_reports(TERM_WIRE, "1.1"),
+            ),
+            Case::reports(
+                "a cable core, without a wire number",
+                core.build(),
+                term006_reports(TERM_WIRE, "?"),
+            ),
+            Case::silent(
+                "a wire ending at another function of the terminal's device",
+                other_function.build(),
+            ),
+            Case::silent(
+                "a junction on the terminal's CP, joined to the terminal",
+                joined_junction.build(),
+            ),
+            // The wire ends at a junction no other connection meets; the wire numbering gives it no number.
+            Case::reports(
+                "a junction on the terminal's CP, not joined to it",
+                lone_junction.build(),
+                term006_reports(TERM_WIRE, "?"),
+            ),
+            Case::reports(
+                "a junction joined to the terminal beside its CPs",
+                junction_beside.build(),
+                term006_reports(TERM_WIRE, "1.1"),
+            ),
+        ],
     );
 }

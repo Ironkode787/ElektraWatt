@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Where a function CP is drawn: `cp_point`, `cp_end` and `cp_cell` (doc 06 §5.1, doc 08 §6.7).
+//! Where a function CP is drawn: `cp_point`, `cp_end`, `rep_cp_end` and `cp_cell` (doc 06 §5.1, doc 08 §6.7).
 //!
 //! The position rules are those of the page scene (`ew-scene`, module `page`), restated over `Q` so that a
 //! derived query (the wire numbers) can order wires by the frame cell of their ends:
@@ -49,7 +49,7 @@ pub fn cp_end(q: &Q, function: Id<Function>, idx: u16, page: Id<Page>) -> Option
     reps.into_iter()
         .find_map(|rid| {
             let rep = q.reps().get(rid)?;
-            rep_cp_end(q, rep, function, idx)
+            rep_cp_end(rep, &q.symbols().get(rep.symbol)?.item, function, idx)
         })
         .or_else(|| segment_cp_end(q, function, idx, page))
 }
@@ -61,15 +61,21 @@ pub fn cp_cell(q: &Q, function: Id<Function>, idx: u16, page: Id<Page>) -> Optio
     q.get::<CellOf>((page, point)).as_ref().clone()
 }
 
-/// The point at which `rep` draws `(function, idx)` by its symbol's CPs or its black box, and the direction a wire
-/// leaves it in.
-fn rep_cp_end(q: &Q, rep: &Representation, function: Id<Function>, idx: u16) -> Option<(Pt2, Option<Dir4>)> {
-    let symbol = q.symbols().get(rep.symbol)?;
+/// The point at which `rep`, drawn with `symbol` (its symbol copy's item), draws `(function, idx)` by the symbol's CPs
+/// or its black box, and the direction a wire leaves it in (see the module documentation); `None` when `rep` does not
+/// draw it or the point would overflow. The part of [`cp_end`] that reads no index: a caller that holds the records
+/// another way (a transaction of `ew-commands`) places a CP by the same rule.
+pub fn rep_cp_end(
+    rep: &Representation,
+    symbol: &SymbolDef,
+    function: Id<Function>,
+    idx: u16,
+) -> Option<(Pt2, Option<Dir4>)> {
     let placed = |local: Pt2, dir: &Dir4| {
         let point = rep.pos.checked_add(rep.orient.checked_apply(local)?)?;
         Some((point, oriented_dir(dir, rep.orient)))
     };
-    let by_symbol = symbol.item.cps.as_slice().iter().find_map(|cp| {
+    let by_symbol = symbol.cps.as_slice().iter().find_map(|cp| {
         let (f, i) = match rep.pin_map.as_slice().iter().find(|p| p.symbol_cp == cp.idx) {
             Some(p) => (p.function, p.idx),
             None => (*rep.functions.first()?, cp.fn_cp),
@@ -78,7 +84,7 @@ fn rep_cp_end(q: &Q, rep: &Representation, function: Id<Function>, idx: u16) -> 
             .then(|| placed(cp.pos, &cp.dir))
             .flatten()
     });
-    if by_symbol.is_some() || !symbol.item.cps.is_empty() {
+    if by_symbol.is_some() || !symbol.cps.is_empty() {
         return by_symbol;
     }
     let b = rep.box_.as_ref()?;

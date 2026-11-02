@@ -87,7 +87,8 @@ planned = ["ew-viewer", "ew-wiring-viewer", "ew-plugin-wit", "ew-plugin-sdk", "e
 "ew-text" = ["ew-dl", "ew-units", "ew-hack"]
 # The open-items kind reads `ew_checks::open_items` (WP-S3.06 D8); `ew-checks` was already in the graph through `ew-sqlview`.
 "ew-reports" = ["ew-derive", "ew-sqlview", "ew-text", "ew-checks", "ew-hack"]
-"ew-scene" = ["ew-reports", "ew-dl", "ew-text", "ew-schema", "ew-units", "ew-ids", "ew-mltext", "ew-hack"]
+# The drawn path of a connection (decision log ID-1111): `ew-derive` was already in the graph through `ew-reports`.
+"ew-scene" = ["ew-reports", "ew-derive", "ew-dl", "ew-text", "ew-schema", "ew-units", "ew-ids", "ew-mltext", "ew-hack"]
 "ew-render2d" = ["ew-dl", "ew-render-cpu", "ew-hack"]
 "ew-render-cpu" = ["ew-dl", "ew-hack"]
 "ew-export" = ["ew-dl", "ew-render-cpu", "ew-hack"]

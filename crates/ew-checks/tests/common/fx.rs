@@ -362,6 +362,22 @@ impl Fx {
         }));
     }
 
+    /// A function `n` with its own device (tag `-K<n>`), drawn on `page` at `pos` (the two-CP symbol: CP 0 at `pos`,
+    /// CP 1 1 mm below it, both leaving upwards).
+    pub fn func_at(&mut self, n: u128, page: u128, pos: [i64; 2]) {
+        self.device(n + 0x20_000, "K", Some(n as u32));
+        self.drawn_function(n, n + 0x20_000, page, pos);
+    }
+
+    /// A function `n` of device `device`, drawn on `page` at `pos` as [`Fx::func_at`] draws it.
+    pub fn drawn_function(&mut self, n: u128, device: u128, page: u128, pos: [i64; 2]) {
+        self.push(json!({"$k": "function", "id": us(n), "device": us(device), "def": us(FNDEF)}));
+        self.push(json!({
+            "$k": "representation", "id": us(n + 0x10_000), "functions": [us(n)], "page": us(page),
+            "symbol": us(SYM), "pos": pos,
+        }));
+    }
+
     /// A connection `n` between `a` and `b` on `page`; `extra` members (kind, core, overrides) are merged.
     pub fn conn(&mut self, n: u128, page: u128, a: Ep, b: Ep, extra: &Value) {
         let mut r = json!({"$k": "connection", "id": us(n), "page": us(page), "a": a.json(), "b": b.json()});

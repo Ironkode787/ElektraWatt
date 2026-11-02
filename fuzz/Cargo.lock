@@ -685,6 +685,7 @@ dependencies = [
 name = "ew-scene"
 version = "0.0.0"
 dependencies = [
+ "ew-derive",
  "ew-dl",
  "ew-hack",
  "ew-ids",
