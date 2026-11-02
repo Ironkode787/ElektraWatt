@@ -454,8 +454,8 @@ impl ShellModel {
         strings::format(
             key!("layout-wrong-turn"),
             &[
-                &crate::command_bar::key_of(self, "tool.rotate_cw"),
-                &crate::command_bar::key_of(self, "tool.mirror_x"),
+                &crate::command_bar::key_name(self, "tool.rotate_cw"),
+                &crate::command_bar::key_name(self, "tool.mirror_x"),
             ],
         )
     }

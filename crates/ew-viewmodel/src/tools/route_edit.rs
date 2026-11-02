@@ -16,7 +16,6 @@
 //! The first and last segments never move, so the route's ends stay on their connection points.
 
 use crate::key;
-use crate::strings::Key;
 use ew_api::AnyCommand;
 use ew_api::output::TableConnection;
 use ew_api::output::ew_dl::EntityRef;
@@ -252,8 +251,11 @@ impl Tool for RouteEditTool {
         }
     }
 
-    fn status_hint(&self) -> Key<'static> {
-        key!("hint-route-edit")
+    fn status_hint(&self) -> super::Hint {
+        super::Hint::new(
+            key!("hint-route-edit"),
+            &["tool.next_proposal", super::ENTER, super::ESCAPE],
+        )
     }
 
     fn wants_hover(&self) -> bool {

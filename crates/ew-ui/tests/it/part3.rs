@@ -195,8 +195,48 @@ fn a_typed_name_left_by_a_click_on_the_canvas_names_the_placed_point() {
     assert_eq!(h.state().shell().tool().name(), "ip");
     type_in_name_field(&mut h, "0V");
     assert_eq!(click_canvas_centre(&mut h), vec!["0V".to_owned()]);
-    // The field emptied when it lost the focus.
+    // The point took the typed name, so the field is empty again (FT-851).
     assert_eq!(name_field_text(&h).unwrap_or_default(), "");
+}
+
+/// FT-851 (ID-1150): the field shows the typed name after the focus leaves it, until a point takes it; empty, it shows
+/// the HUD's proposal as its hint.
+#[test]
+fn ft851_the_ip_name_field_keeps_the_typed_name_until_a_point_takes_it() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "103");
+    press(&mut h, Key::P);
+    assert_eq!(h.state().shell().tool().name(), "ip");
+    let proposal = ghost_name(&h);
+    assert!(!proposal.is_empty());
+    assert_eq!(name_field_text(&h).unwrap_or_default(), "");
+    assert_eq!(name_field_placeholder(&h).as_deref(), Some(proposal.as_str()));
+    type_in_name_field(&mut h, "X1");
+    press(&mut h, Key::Tab);
+    assert!(!h.ctx.text_edit_focused(), "Tab ends the field's focus");
+    assert_eq!(
+        name_field_text(&h).as_deref(),
+        Some("X1"),
+        "the field keeps the typed name"
+    );
+    assert_eq!(h.state().shell().ip_typed_name(), Some("X1"));
+    assert_eq!(click_canvas_centre(&mut h), vec!["X1".to_owned()]);
+    assert_eq!(h.state().shell().ip_typed_name(), None);
+    assert_eq!(
+        name_field_text(&h).unwrap_or_default(),
+        "",
+        "a point took the name"
+    );
+}
+
+/// The hint text of the IP name field.
+fn name_field_placeholder(h: &Harness<'_, App>) -> Option<String> {
+    h.get_all_by_role(egui::Role::TextInput)
+        .find(|n| n.accesskit_node().label().as_deref() == Some("Interruption point name"))
+        .expect("the IP name field")
+        .accesskit_node()
+        .placeholder()
+        .map(|v| v.to_string())
 }
 
 /// The cycle-41 review (finding 3): a name typed and then erased is cancelled, so the point the next click places

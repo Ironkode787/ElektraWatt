@@ -28,7 +28,6 @@ use super::{
 };
 use crate::key;
 use crate::strings;
-use crate::strings::Key;
 
 /// The duct size the tool options start with: 40 × 60 mm (D11).
 pub const DEFAULT_DUCT_SIZE: (i128, i128) = (40_000_000, 60_000_000);
@@ -247,11 +246,11 @@ impl Tool for DuctDrawTool {
         }
     }
 
-    fn status_hint(&self) -> Key<'static> {
+    fn status_hint(&self) -> super::Hint {
         if self.points.is_empty() {
-            key!("hint-duct-draw")
+            super::Hint::new(key!("hint-duct-draw"), &[super::ESCAPE])
         } else {
-            key!("hint-duct-draw-next")
+            super::Hint::new(key!("hint-duct-draw-next"), &[super::ENTER, super::BACK])
         }
     }
 

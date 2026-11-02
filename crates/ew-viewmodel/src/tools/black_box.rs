@@ -350,11 +350,15 @@ impl Tool for BlackBoxTool {
         }
     }
 
-    fn status_hint(&self) -> Key<'static> {
+    fn status_hint(&self) -> super::Hint {
         match self.state {
-            State::Armed { .. } if self.dropped => key!("hint-box-dropped"),
-            State::Armed { .. } => key!("hint-box-armed"),
-            State::Outline { .. } => key!("hint-box-outline"),
+            State::Armed { .. } if self.dropped => {
+                super::Hint::new(key!("hint-box-dropped"), &[super::ENTER, super::ESCAPE])
+            }
+            State::Armed { .. } => super::Hint::new(key!("hint-box-armed"), &[super::ESCAPE]),
+            State::Outline { .. } => {
+                super::Hint::new(key!("hint-box-outline"), &[super::ENTER, super::ESCAPE])
+            }
         }
     }
 

@@ -1051,7 +1051,7 @@ fn ft993_escape_drops_the_layout_ghost_and_returns_to_select() {
     let tmp = Tmp::new("layout-ft993");
     let mut shell = writable(&tmp);
     assert_eq!(
-        ew_viewmodel::strings::text(key!("hint-layout-place")),
+        ew_viewmodel::strings::format(key!("hint-layout-place"), &["Escape"]),
         "Click or release to place; Escape ends"
     );
     let f55 = unplaced(&shell, "F55");

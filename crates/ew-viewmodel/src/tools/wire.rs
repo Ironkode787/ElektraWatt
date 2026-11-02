@@ -1337,13 +1337,15 @@ impl Tool for WireTool {
 
     /// FT-706: while the ghost is the router's fallback, and after a wire drawn so until the next one starts, the
     /// hint says that no clear route was found and the wire is drawn direct (not a refusal).
-    fn status_hint(&self) -> Key<'static> {
+    fn status_hint(&self) -> super::Hint {
         if self.direct {
-            return key!("hint-wire-direct");
+            return super::Hint::plain(key!("hint-wire-direct"));
         }
         match self.state {
-            State::Armed { .. } => key!("hint-wire-armed"),
-            State::Routing { .. } => key!("hint-wire-routing"),
+            State::Armed { .. } => super::Hint::new(key!("hint-wire-armed"), &[super::ENTER]),
+            State::Routing { .. } => {
+                super::Hint::new(key!("hint-wire-routing"), &[super::BACK, super::ESCAPE])
+            }
         }
     }
 

@@ -443,8 +443,8 @@ fn ms2_run_checks_ends_pending_and_a_conflict_is_never_pending() {
     assert_eq!(
         notice,
         format!(
-            "Not placed: {source} already has a source on page 102. Press D for a target, or mark one source as the \
-             star."
+            "Not placed: {source} already has a source on page 102; press D for a target, or mark one source as the \
+             star"
         )
     );
     // Cycle-40 review: the notice names the key the user has bound to `tool.ip_direction`.
@@ -462,8 +462,8 @@ fn ms2_run_checks_ends_pending_and_a_conflict_is_never_pending() {
     assert_eq!(
         shell.tool_notice().unwrap_or_default(),
         format!(
-            "Not placed: {source} already has a source on page 102. Press Shift+Q for a target, or mark one source as \
-             the star."
+            "Not placed: {source} already has a source on page 102; press Shift+Q for a target, or mark one source as \
+             the star"
         )
     );
     assert_eq!(shell.revision(), rev, "nothing committed");

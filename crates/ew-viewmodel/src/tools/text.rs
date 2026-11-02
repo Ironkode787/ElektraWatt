@@ -27,7 +27,6 @@
 //! commit nothing (the first finishes the edit). A dwell previews a changed, non-blank text.
 
 use crate::key;
-use crate::strings::Key;
 use ew_api::AnyCommand;
 use serde_json::json;
 
@@ -233,10 +232,10 @@ impl Tool for TextTool {
         }
     }
 
-    fn status_hint(&self) -> Key<'static> {
+    fn status_hint(&self) -> super::Hint {
         match self.state {
-            State::Armed { .. } => key!("hint-text-armed"),
-            State::Typing { .. } => key!("hint-text-typing"),
+            State::Armed { .. } => super::Hint::new(key!("hint-text-armed"), &[super::ENTER, super::ESCAPE]),
+            State::Typing { .. } => super::Hint::plain(key!("hint-text-typing")),
         }
     }
 
@@ -352,8 +351,8 @@ impl Tool for TextEditTool {
         }
     }
 
-    fn status_hint(&self) -> Key<'static> {
-        key!("hint-text-edit")
+    fn status_hint(&self) -> super::Hint {
+        super::Hint::plain(key!("hint-text-edit"))
     }
 
     fn wants_hover(&self) -> bool {

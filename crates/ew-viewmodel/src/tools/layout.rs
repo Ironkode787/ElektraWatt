@@ -45,7 +45,6 @@ use super::{
 };
 use crate::key;
 use crate::strings;
-use crate::strings::Key;
 
 /// How near a rail or a snap target the pointer must come, in screen points (D4).
 pub const LAYOUT_SNAP_PT: f64 = 15.0;
@@ -1265,10 +1264,10 @@ impl Tool for LayoutPlaceTool {
         }
     }
 
-    fn status_hint(&self) -> Key<'static> {
+    fn status_hint(&self) -> super::Hint {
         match self.device {
-            Some(_) => key!("hint-layout-place"),
-            None => key!("hint-layout-idle"),
+            Some(_) => super::Hint::new(key!("hint-layout-place"), &[super::ESCAPE]),
+            None => super::Hint::plain(key!("hint-layout-idle")),
         }
     }
 

@@ -1034,14 +1034,16 @@ impl Tool for SelectTool {
         }
     }
 
-    fn status_hint(&self) -> Key<'static> {
+    fn status_hint(&self) -> super::Hint {
         match self.state {
             State::Dragging { .. }
             | State::Moving { .. }
             | State::Segment { .. }
             | State::Grip { .. }
-            | State::BoxCp { .. } => key!("hint-select-move"),
-            _ => key!("hint-select"),
+            | State::BoxCp { .. } => {
+                super::Hint::new(key!("hint-select-move"), &[super::ENTER, super::ESCAPE])
+            }
+            _ => super::Hint::plain(key!("hint-select")),
         }
     }
 

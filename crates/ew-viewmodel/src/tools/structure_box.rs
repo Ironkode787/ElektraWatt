@@ -29,7 +29,6 @@
 //! | armed | `Escape` | — | `None` (the host returns to Select) |
 
 use crate::key;
-use crate::strings::Key;
 use ew_api::AnyCommand;
 use serde_json::{Map, Value, json};
 
@@ -348,11 +347,17 @@ impl Tool for StructureBoxTool {
         }
     }
 
-    fn status_hint(&self) -> Key<'static> {
+    fn status_hint(&self) -> super::Hint {
         match self.state {
-            State::Armed { .. } => key!("hint-structure-box-armed"),
-            State::Outline { .. } => key!("hint-structure-box-outline"),
-            State::Typing { .. } => key!("hint-structure-box-typing"),
+            State::Armed { .. } => {
+                super::Hint::new(key!("hint-structure-box-armed"), &[super::ENTER, super::ESCAPE])
+            }
+            State::Outline { .. } => {
+                super::Hint::new(key!("hint-structure-box-outline"), &[super::ENTER, super::FINISH])
+            }
+            State::Typing { .. } => {
+                super::Hint::new(key!("hint-structure-box-typing"), &[super::ENTER, super::ESCAPE])
+            }
         }
     }
 

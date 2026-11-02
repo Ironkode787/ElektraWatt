@@ -217,21 +217,35 @@ pub(crate) fn structure_box_fields(
 
 /// The IP tool's fields in the tool strip (WP-S2.04 §9.1): the name (every change sends `ip.name`) and the external
 /// reference, offered by printed text (a choice sends `ip.external` with its ID, "none" with `null`).
+///
+/// FT-851 (ID-1150): while it does not have the focus the field shows `typed`, the name typed for the next point
+/// that no point has taken yet ([`ShellModel::ip_typed_name`](ew_viewmodel::shell::ShellModel::ip_typed_name)), so it
+/// keeps the name after the focus leaves it and empties once a point takes it. Empty, it shows `proposal` (the
+/// HUD's name of the ghost) as its hint; with no proposal, no hint.
 pub(crate) fn ip_fields(
     ui: &mut Ui,
     name: &mut String,
+    typed: Option<&str>,
+    proposal: Option<&str>,
     externals: &[(String, String)],
     events: &mut Vec<crate::app::Event>,
 ) {
     ui.label(strings::text(key!("action-ip-name")));
+    let id = ui.make_persistent_id("ip-name-field");
+    if !ui.memory(|m| m.has_focus(id)) {
+        typed.unwrap_or_default().clone_into(name);
+    }
     // `lock_focus(true)` keeps Tab from moving the focus to the next widget in the strip (a single-line field inserts no
     // tab): Tab, like Enter, ends the name and gives the keys back to the tool (FT-1022, ID-1107).
+    let mut field = egui::TextEdit::singleline(name)
+        .id(id)
+        .desired_width(120.0)
+        .lock_focus(true);
+    if let Some(proposal) = proposal {
+        field = field.hint_text(proposal);
+    }
     let edit = ui
-        .add(
-            egui::TextEdit::singleline(name)
-                .desired_width(120.0)
-                .lock_focus(true),
-        )
+        .add(field)
         .on_hover_text(strings::text(key!("action-ip-name-hint")));
     // Named for assistive technology (and the tests); while it has the focus the canvas keys (P, D, B …) stay with it
     // (`app.rs`, the `text_edit_focused` gate of the key routing).
@@ -245,16 +259,12 @@ pub(crate) fn ip_fields(
     // Every change reaches the tool at once, so the name is the next point's however the field is left: by Enter, or
     // by a click on the canvas, whose press the window dispatches before this card's events and before the field
     // reports the lost focus (the play-test of cycle 40). Erasing the field sends the empty text, which cancels the
-    // typed name (cycle 41 review). The field empties when it loses the focus without sending anything: the tool
-    // holds the name (its ghost shows it) until a point takes it.
+    // typed name (cycle 41 review). Out of the focus the field follows the tool's typed name (FT-851).
     if edit.changed() {
         events.push(crate::app::Event::Action(
             "ip.name",
             serde_json::json!({ "text": name.trim() }),
         ));
-    }
-    if edit.lost_focus() {
-        name.clear();
     }
     if !externals.is_empty() {
         egui::ComboBox::from_label(strings::text(key!("action-ip-external")))

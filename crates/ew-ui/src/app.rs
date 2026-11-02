@@ -1410,6 +1410,12 @@ impl App {
             Vec::new()
         };
         let text_bind = if text { self.shell.text_bind() } else { None };
+        // FT-851: the IP name field shows the typed name, else the ghost's proposal as its hint.
+        let ip_typed = self.shell.ip_typed_name().map(str::to_owned);
+        let ip_proposal = match self.shell.tool_ghost() {
+            Some(ew_viewmodel::tools::Ghost::Ip { name, .. }) if ip && !name.is_empty() => Some(name),
+            _ => None,
+        };
         let at = egui::pos2(
             pane.left() + t.space_4,
             pane.top() + t.size_dock_tab_bar + t.space_4,
@@ -1441,7 +1447,14 @@ impl App {
                         ui.horizontal(|ui| {
                             // WP-S2.04 §9.1: the IP tool's name field and external-reference field.
                             if ip {
-                                crate::tool_view::ip_fields(ui, ip_name, &externals, events);
+                                crate::tool_view::ip_fields(
+                                    ui,
+                                    ip_name,
+                                    ip_typed.as_deref(),
+                                    ip_proposal.as_deref(),
+                                    &externals,
+                                    events,
+                                );
                             }
                             // WP-S2.04 §10.5: the Text tool's binding.
                             if text {

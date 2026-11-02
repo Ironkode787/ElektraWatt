@@ -36,7 +36,6 @@
 //! ghost says them (`2.5 BK BU`). The angle is 90° when every crossed segment is horizontal, else 0.
 
 use crate::key;
-use crate::strings::Key;
 use ew_api::AnyCommand;
 use ew_api::output::PageTables;
 use ew_api::output::ew_dl::EntityRef;
@@ -528,11 +527,15 @@ impl Tool for MarkerTool {
         }
     }
 
-    fn status_hint(&self) -> Key<'static> {
+    fn status_hint(&self) -> super::Hint {
         match self.state {
-            State::Armed { .. } => key!("hint-marker-armed"),
-            State::Crossing { .. } => key!("hint-marker-crossing"),
-            State::Typing { .. } => key!("hint-marker-typing"),
+            State::Armed { .. } => {
+                super::Hint::new(key!("hint-marker-armed"), &[super::ENTER, super::ESCAPE])
+            }
+            State::Crossing { .. } => super::Hint::new(key!("hint-marker-crossing"), &[super::ENTER]),
+            State::Typing { .. } => {
+                super::Hint::new(key!("hint-marker-typing"), &[super::ENTER, super::ESCAPE])
+            }
         }
     }
 

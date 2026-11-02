@@ -30,7 +30,6 @@ use super::{
 };
 use crate::key;
 use crate::strings;
-use crate::strings::Key;
 
 /// What the tool options card shows while Draw rail or Draw duct runs (D11).
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -349,11 +348,11 @@ impl Tool for RailDrawTool {
         }
     }
 
-    fn status_hint(&self) -> Key<'static> {
+    fn status_hint(&self) -> super::Hint {
         if self.start.is_some() {
-            key!("hint-rail-draw-end")
+            super::Hint::new(key!("hint-rail-draw-end"), &[super::BACK, super::ESCAPE])
         } else {
-            key!("hint-rail-draw")
+            super::Hint::new(key!("hint-rail-draw"), &[super::ESCAPE])
         }
     }
 

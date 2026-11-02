@@ -461,6 +461,38 @@ impl std::fmt::Debug for ToolOutput {
     }
 }
 
+/// A tool's status hint (FT-964, ID-1150): the key of its text and the actions whose first keys, from the keymap, fill
+/// its `{0}`, `{1}`, … ([`crate::shell::ShellModel::tool_hint`]), so a rebound key shows. A key no action binds (a
+/// mouse chord, a modifier held during a drag, a key inside a text field) stays in the text.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct Hint {
+    /// The text's key.
+    pub key: Key<'static>,
+    /// The action IDs whose keys fill `{0}`, `{1}`, …, in order.
+    pub keys: &'static [&'static str],
+}
+
+impl Hint {
+    /// The hint of text `key` filled with the keys of `keys`.
+    pub const fn new(key: Key<'static>, keys: &'static [&'static str]) -> Self {
+        Self { key, keys }
+    }
+
+    /// A hint that names no key.
+    pub const fn plain(key: Key<'static>) -> Self {
+        Self { key, keys: &[] }
+    }
+}
+
+/// The action of Enter on the canvas (a click at the grid cursor).
+pub(crate) const ENTER: &str = "canvas.activate";
+/// The action of Escape (the tool's cancel, then its end).
+pub(crate) const ESCAPE: &str = "ui.dismiss";
+/// The action of Backspace (the tool's step back).
+pub(crate) const BACK: &str = "tool.back";
+/// The action of Shift+Enter (the tool's finish).
+pub(crate) const FINISH: &str = "tool.finish";
+
 /// A canvas tool: a state machine over [`CanvasEvent`]s (spec §7.1).
 pub trait Tool {
     /// The tool's name (`select`, `measure`): the transcript's word and the key of its label (`tool-<name>`).
@@ -472,8 +504,8 @@ pub trait Tool {
     /// Handles one event: one output.
     fn on_event(&mut self, ev: &CanvasEvent, cx: &ToolCx<'_>) -> ToolOutput;
 
-    /// The key of the status hint in [`crate::strings`].
-    fn status_hint(&self) -> Key<'static>;
+    /// The status hint: its text's key in [`crate::strings`] and the actions whose keys fill it (FT-964).
+    fn status_hint(&self) -> Hint;
 
     /// Whether the hover, the link hover and the link preview are shown while the tool is active.
     fn wants_hover(&self) -> bool;

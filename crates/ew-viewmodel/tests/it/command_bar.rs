@@ -232,10 +232,6 @@ fn mockup_draw() -> (Vec<MockupCommand>, String, Vec<String>, String) {
     (commands, next, tabs, format!("{name}|{title}"))
 }
 
-/// CB8: the Draw tab's buttons parsed from the mockup's command row (group, label, Large or Small, in order) equal
-/// `command_bar` for Draw, a mockup command whose action is not in the registry listed by name in `PENDING` and
-/// skipped; the next step reads "Check project"; the six tab labels equal the mockup's; the app button is named
-/// "ElektraWatt" and its accessible name is "Menu".
 /// W42b (doc 16a P7, one name per thing): the Wire tool is "Wire" on its button, in its tooltip ("Wire (W)", the
 /// registry label, which the menus and the palette carry too, and the key from the keymap).
 #[test]
@@ -256,6 +252,10 @@ fn w42b_the_wire_tool_is_called_wire_on_its_button_and_in_its_tooltip() {
     );
 }
 
+/// CB8: the Draw tab's buttons parsed from the mockup's command row (group, label, Large or Small, in order) equal
+/// `command_bar` for Draw, a mockup command whose action is not in the registry listed by name in `PENDING` and
+/// skipped; the next step reads "Check project"; the six tab labels equal the mockup's; the app button is named
+/// "ElektraWatt" and its accessible name is "Menu".
 #[test]
 fn cb8_the_draw_tab_equals_the_mockups_command_row() {
     let (mockup, next, tabs, app) = mockup_draw();

@@ -113,14 +113,15 @@ pub fn canvas_node(model: &ShellModel, group: usize) -> Option<CanvasNodeText> {
 fn hint_of(model: &ShellModel, c: &crate::canvas::CanvasModel) -> String {
     match c.hovered_link().filter(|_| model.tool().wants_hover()) {
         Some(link) => match link.label() {
-            Some(label) => strings::format(key!("status-hint-link"), &[&label]),
+            Some(label) => strings::format(
+                key!("status-hint-follow"),
+                &[&label, &crate::command_bar::key_name(model, "nav.follow")],
+            ),
             None => strings::text(key!("status-hint-link-external")).to_owned(),
         },
         None => match model.tool_notice() {
             Some(notice) => notice.to_owned(),
-            None => model
-                .card_prompt()
-                .unwrap_or_else(|| model.tool_hint().to_owned()),
+            None => model.card_prompt().unwrap_or_else(|| model.tool_hint()),
         },
     }
 }
@@ -130,7 +131,7 @@ fn hint_of(model: &ShellModel, c: &crate::canvas::CanvasModel) -> String {
 pub fn hint(model: &ShellModel) -> String {
     match model.canvas() {
         Some(c) => hint_of(model, c),
-        None => model.tool_hint().to_owned(),
+        None => model.tool_hint(),
     }
 }
 

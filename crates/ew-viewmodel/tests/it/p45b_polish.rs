@@ -83,7 +83,7 @@ fn ft1023_a_renamed_point_says_its_base_is_taken_in_the_hud_and_the_toast() {
 
 /// The IP tool's refusal of a point dropped on the interruption point Q9, as the canvas hint shows it.
 const ON_IP: &str =
-    "Not placed: the point would cover the interruption point Q9; place it on a free grid point or on a pin";
+    "Not placed: the interruption point Q9 is already here; place it on a pin or a free grid point";
 
 /// Places the interruption point Q9 at the grid cursor, then drops another on it: the refusal stands in the hint.
 fn refuse_ip_on_ip(s: &mut ShellModel) {

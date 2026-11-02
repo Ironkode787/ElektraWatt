@@ -200,7 +200,13 @@ impl ShellModel {
             })
             .flatten();
         if let Some(label) = label {
-            self.tools.announcement = Some(strings::format(key!("announce-wire-routing"), &[&label]));
+            // FT-964: the keys from the keymap, as the routing hint names them.
+            let back = crate::command_bar::key_name(self, crate::tools::BACK);
+            let escape = crate::command_bar::key_name(self, crate::tools::ESCAPE);
+            self.tools.announcement = Some(strings::format(
+                key!("announce-wire-routing"),
+                &[&label, &back, &escape],
+            ));
         }
     }
 

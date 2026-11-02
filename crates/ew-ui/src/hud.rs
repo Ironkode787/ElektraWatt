@@ -85,6 +85,14 @@ pub(crate) fn show(ctx: &egui::Context, shell: &ShellModel, pane: Rect, events: 
     let width = natural.min(max_width(&t, pane)).max(natural - prompt_size.x);
     let prompt_room = prompt_size.x - (natural - width);
     let elided = width < natural;
+    // FT-972 (ID-1150): a wrapped prompt takes the narrowest room that keeps its two rows, and the pill narrows with it:
+    // egui's wrap is greedy, so at the widest room the second row can be a single word.
+    let (width, prompt_room) = if elided {
+        let room = balanced_room(ctx, &t, &h.prompt, prompt_room);
+        (width - (prompt_room - room), room)
+    } else {
+        (width, prompt_room)
+    };
     let lower = hud_rect(&t, pane, width, false);
     let raised = ctx
         .pointer_hover_pos()
@@ -208,6 +216,38 @@ pub(crate) fn max_width(t: &Tokens, pane: Rect) -> f32 {
 /// The most lines the HUD's prompt takes: two `type.small` lines stand within the pill's height.
 const PROMPT_LINES: usize = 2;
 
+/// The rows of `prompt` in `type.small` wrapped at `room` points, with no bound on their number.
+fn prompt_rows(ctx: &egui::Context, t: &Tokens, prompt: &str, room: f32) -> usize {
+    let mut job =
+        egui::text::LayoutJob::simple_singleline(prompt.to_owned(), theme::font(&t.type_small), theme::NONE);
+    job.wrap.max_width = room.max(0.0);
+    ctx.fonts_mut(|f| f.layout_job(job)).rows.len()
+}
+
+/// The narrowest room, at most `room`, at which `prompt` still takes no more rows than at `room` (FT-972): the rows
+/// balance instead of leaving a last row of one word. A prompt longer than [`PROMPT_LINES`] rows at `room` keeps
+/// `room` (it elides there). A bisection of a bounded number of steps.
+pub(crate) fn balanced_room(ctx: &egui::Context, t: &Tokens, prompt: &str, room: f32) -> f32 {
+    let rows = prompt_rows(ctx, t, prompt, room);
+    if rows > PROMPT_LINES || rows < 2 {
+        return room;
+    }
+    // The rows cannot fit below half the room each.
+    let (mut lo, mut hi) = (room / rows as f32, room);
+    for _ in 0..16 {
+        if hi - lo < 0.5 {
+            break;
+        }
+        let mid = (lo + hi) / 2.0;
+        if prompt_rows(ctx, t, prompt, mid) <= rows {
+            hi = mid;
+        } else {
+            lo = mid;
+        }
+    }
+    hi.ceil().min(room)
+}
+
 /// The HUD's prompt: on one line when it fits, else wrapped at `room` points onto at most [`PROMPT_LINES`] lines,
 /// the last ending in "…" when it is still longer.
 fn prompt_galley(
@@ -322,8 +362,78 @@ pub(crate) fn show_zoom(ctx: &egui::Context, shell: &ShellModel, pane: Rect, eve
 mod tests {
     use egui::{Rect, pos2};
 
-    use super::{hud_rect, max_width, zoom_rect};
-    use crate::theme::{self, Density};
+    use super::{balanced_room, hud_rect, max_width, zoom_rect};
+    use crate::theme::{self, Density, Tokens};
+
+    /// The rows of `prompt` in `type.small` wrapped at `room`, as text.
+    fn rows(ctx: &egui::Context, t: &Tokens, prompt: &str, room: f32) -> Vec<String> {
+        let mut job = egui::text::LayoutJob::simple_singleline(
+            prompt.to_owned(),
+            theme::font(&t.type_small),
+            theme::NONE,
+        );
+        job.wrap.max_width = room;
+        let galley = ctx.fonts_mut(|f| f.layout_job(job));
+        galley
+            .rows
+            .iter()
+            .map(|r| {
+                r.glyphs
+                    .iter()
+                    .map(|g| g.chr)
+                    .collect::<String>()
+                    .trim()
+                    .to_owned()
+            })
+            .collect()
+    }
+
+    /// FT-972 (ID-1150): at the room where egui's greedy wrap leaves one word on the second row, the HUD's prompt takes
+    /// a narrower room that keeps two rows, neither a single word; a prompt on one row keeps its room.
+    #[test]
+    fn ft972_a_wrapped_prompt_balances_its_two_rows() {
+        let t = theme::tokens(theme::Theme::Light, Density::Comfortable);
+        let ctx = egui::Context::default();
+        let prompt = "Not placed: 0V already has a source on page 102; press D for a target, or mark one source as the star";
+        let mut seen = None;
+        let mut out = ctx.run_ui(egui::RawInput::default(), |ui| {
+            let ctx = ui.ctx();
+            let width = |s: &str| {
+                ctx.fonts_mut(|f| {
+                    f.layout_no_wrap(s.to_owned(), theme::font(&t.type_small), theme::NONE)
+                        .size()
+                        .x
+                })
+            };
+            // The widest room at which egui's greedy wrap takes two rows: the second is the last word alone.
+            let mut room = width(prompt).ceil();
+            while rows(ctx, &t, prompt, room).len() < 2 {
+                room -= 1.0;
+            }
+            let greedy = rows(ctx, &t, prompt, room);
+            let balanced = balanced_room(ctx, &t, prompt, room);
+            let wide = width(prompt) + 10.0;
+            seen = Some((
+                greedy,
+                room,
+                balanced,
+                rows(ctx, &t, prompt, balanced),
+                balanced_room(ctx, &t, prompt, wide) == wide,
+            ));
+        });
+        // The font atlas the pass built is never uploaded here.
+        out.textures_delta.clear();
+        let (greedy, room, balanced, after, one_row_kept) = seen.expect("a pass ran");
+        assert_eq!(greedy.len(), 2, "{greedy:?}");
+        assert_eq!(greedy[1], "star", "egui's greedy wrap: {greedy:?}");
+        assert!(balanced < room, "{balanced} < {room}");
+        assert_eq!(after.len(), 2, "{after:?}");
+        assert!(
+            after.iter().all(|r| r.split_whitespace().count() > 1),
+            "no row is a single word: {after:?}"
+        );
+        assert!(one_row_kept);
+    }
 
     /// Cycle 39 (FIX39b-1): the widest HUD stays clear of the zoom column at any page view width; the room grows
     /// with the page view (no cap chosen for the floor).

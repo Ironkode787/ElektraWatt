@@ -239,6 +239,23 @@ pub fn display(text: &str) -> String {
     }
 }
 
+/// A binding text as the HUD's compact texts name it (FT-964, ID-1150): [`display`] with the long key names short
+/// (`Escape` "Esc", `Delete` "Del", `Arrow Up` "Up"), so "Esc done" and "Del deletes" read as before.
+pub fn short_display(text: &str) -> String {
+    let full = display(text);
+    let (modifiers, key) = match full.rfind('+') {
+        // A chord ending in `+` (none does today) keeps its last part.
+        Some(i) if i + 1 < full.len() => full.split_at(i + 1),
+        _ => ("", full.as_str()),
+    };
+    let key = match key {
+        "Escape" => "Esc",
+        "Delete" => "Del",
+        other => other.strip_prefix("Arrow ").unwrap_or(other),
+    };
+    format!("{modifiers}{key}")
+}
+
 /// The key of a binding text's last part; `None` for an unknown key.
 fn parse_key(key: &str) -> Option<ChordKey> {
     if let Some(code) = key.strip_prefix("phys:") {
@@ -1284,6 +1301,21 @@ mod tests {
                 assert_eq!(chord(s).text(), *s, "{}", meta.id);
             }
         }
+    }
+
+    /// FT-964 (ID-1150): the HUD's short names; a key without one, and a chord's modifiers, as `display` shows them.
+    #[test]
+    fn ft964_the_short_form_shortens_only_the_long_key_names() {
+        let ctrl = if cfg!(target_os = "macos") { "Cmd" } else { "Ctrl" };
+        assert_eq!(short_display("Escape"), "Esc");
+        assert_eq!(short_display("Delete"), "Del");
+        assert_eq!(short_display("Arrow Up"), "Up");
+        assert_eq!(short_display("Alt+Arrow Down"), "Alt+Down");
+        assert_eq!(short_display("Ctrl+Delete"), format!("{ctrl}+Del"));
+        assert_eq!(short_display("Ctrl+Plus"), format!("{ctrl}+Plus"));
+        assert_eq!(short_display("Enter"), "Enter");
+        assert_eq!(short_display("R"), "R");
+        assert_eq!(short_display("phys:KeyA"), "A");
     }
 
     #[test]

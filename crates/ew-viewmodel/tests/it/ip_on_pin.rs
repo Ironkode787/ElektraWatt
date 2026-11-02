@@ -314,13 +314,97 @@ fn a_point_on_another_point_is_refused() {
         refused(&mut s, "canvas.activate", json!({})),
         "reason-ip-not-placed"
     );
-    let words = "Not placed: the point would cover the interruption point 0V; place it on a free grid point or on a pin";
+    let words =
+        "Not placed: the interruption point 0V is already here; place it on a pin or a free grid point";
     assert_eq!(s.revision(), rev, "nothing committed");
     assert_eq!(*tables(&s), *before);
     assert_eq!(s.tool().name(), "ip");
     assert_eq!(s.tool_overlay().items.len(), items, "the ghost stays");
     assert_eq!(s.tool_notice(), Some(words));
     assert_eq!(toast(&s), words);
+}
+
+/// The page point of the armed IP tool's ghost CP marker.
+fn ghost_cp(s: &ShellModel) -> (i64, i64) {
+    let marker = s
+        .tool_overlay()
+        .items
+        .iter()
+        .find_map(|i| match i {
+            OverlayItem::Marker {
+                at,
+                kind: MarkerKind::Cp,
+            } => Some(*at),
+            _ => None,
+        })
+        .expect("the ghost's CP marker");
+    s.canvas().unwrap().page().snapper.sheet_to_page(marker)
+}
+
+/// FT-948 (ID-1150): a point whose connection point lies on a junction, or strictly inside a wire, would sit on it
+/// without joining it: refused in words, nothing committed, the ghost kept; the HUD offers no connection there.
+#[test]
+fn ft948_a_point_on_a_junction_or_inside_a_wire_is_refused() {
+    const WORDS: &str = "Not placed: the point would sit on a wire without joining it; place it on a pin or a free grid point";
+    let tmp = Tmp::new("ip-on-wire");
+    let mut s = shell(&tmp, "102");
+    let t = tables(&s);
+    // A junction on no pin (on a pin, the pin wins and the point connects to it) where the ghost's CP can lie (the
+    // insertion point is on the grid).
+    let junction = t
+        .junctions
+        .iter()
+        .map(|j| j.at)
+        .filter(|at| !t.cps.iter().any(|c| c.at == *at))
+        .find(|at| {
+            arm_on(&mut s, "W948", *at);
+            ghost_cp(&s) == *at
+        })
+        .expect("a junction on 102 off the pins");
+    // A grid point strictly inside a horizontal segment of a wire, on no connection point.
+    let inside = {
+        let sn = &s.canvas().unwrap().page().snapper;
+        let on_grid = |v: i64| sn.page_of_index(sn.grid_index_of(v)) == v;
+        t.connections
+            .iter()
+            .flat_map(|c| {
+                let line = c.polyline.clone();
+                let ends = (line[0], line[line.len() - 1]);
+                line.windows(2)
+                    .filter(|w| w[0].1 == w[1].1 && on_grid(w[0].1))
+                    .flat_map(|w| {
+                        let (a, b) = (sn.grid_index_of(w[0].0), sn.grid_index_of(w[1].0));
+                        (a.min(b) + 1..a.max(b)).map(|k| (sn.page_of_index(k), w[0].1))
+                    })
+                    .filter(move |p| *p != ends.0 && *p != ends.1)
+                    .collect::<Vec<_>>()
+            })
+            .find(|p| !t.cps.iter().any(|c| c.at == *p) && !t.junctions.iter().any(|j| j.at == *p))
+            .expect("a grid point inside a wire on 102")
+    };
+    for (name, target) in [("W948A", junction), ("W948B", inside)] {
+        arm_on(&mut s, name, target);
+        assert_eq!(ghost_cp(&s), target, "{name}: the ghost's CP on the target");
+        assert_eq!(
+            ghost(&s)["connects"],
+            Value::Null,
+            "{name}: no connection offered"
+        );
+        let before = tables(&s);
+        let rev = s.revision();
+        assert_eq!(
+            refused(&mut s, "canvas.activate", json!({})),
+            "reason-ip-not-placed",
+            "{name}"
+        );
+        assert_eq!(s.revision(), rev, "{name}: nothing committed");
+        assert_eq!(*tables(&s), *before);
+        assert_eq!(s.tool().name(), "ip");
+        assert_eq!(s.tool_notice(), Some(WORDS), "{name}");
+        assert_eq!(toast(&s), WORDS, "{name}");
+        done(&mut s, "ui.dismiss", json!({}));
+        done(&mut s, "ui.dismiss", json!({}));
+    }
 }
 
 /// FT-946 (ID-1146, ID-1019's ruling 3 b): an external connection point dropped on a pin connects to it as any point
@@ -402,7 +486,7 @@ fn a_second_source_on_a_pin_keeps_ft822s_refusal() {
         "reason-ip-not-placed"
     );
     let words = format!(
-        "Not placed: {source} already has a source on page 102. Press D for a target, or mark one source as the star."
+        "Not placed: {source} already has a source on page 102; press D for a target, or mark one source as the star"
     );
     assert_eq!(*tables(&s), *before, "nothing committed");
     assert_eq!(s.tool_overlay().items.len(), items, "the ghost stays");

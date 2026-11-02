@@ -13,7 +13,6 @@
 use super::{Anchor, Button, CanvasEvent, HostStep, Overlay, OverlayItem, Tool, ToolCx, ToolOutput, rect_of};
 use crate::key;
 use crate::strings;
-use crate::strings::Key;
 
 /// The macro tool.
 pub struct MacroTool {
@@ -110,8 +109,8 @@ impl Tool for MacroTool {
         }
     }
 
-    fn status_hint(&self) -> Key<'static> {
-        key!("hint-macro")
+    fn status_hint(&self) -> super::Hint {
+        super::Hint::new(key!("hint-macro"), &[super::ENTER, super::ESCAPE])
     }
 
     fn wants_hover(&self) -> bool {

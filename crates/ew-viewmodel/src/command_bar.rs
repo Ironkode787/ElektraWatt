@@ -600,6 +600,30 @@ pub(crate) fn key_of(model: &ShellModel, id: &str) -> String {
         .unwrap_or_default()
 }
 
+/// The key a hint, a HUD prompt or a toast names for action `id` (FT-964, ID-1150): its first shortcut by its full
+/// name ("Enter", "Escape"), or "(no key)" when the keymap binds it to none.
+pub(crate) fn key_name(model: &ShellModel, id: &str) -> String {
+    or_no_key(key_of(model, id))
+}
+
+/// As [`key_name`], in the short form of the HUD's compact texts ("Esc", "Del", "Up"; [`crate::keymap::short_display`]).
+pub(crate) fn key_short(model: &ShellModel, id: &str) -> String {
+    or_no_key(
+        actions::find(id)
+            .map(|m| crate::keymap::short_display(&model.shortcut_text(m)))
+            .unwrap_or_default(),
+    )
+}
+
+/// `key`, or "(no key)" when it is empty.
+fn or_no_key(key: String) -> String {
+    if key.is_empty() {
+        strings::text(key!("key-none")).to_owned()
+    } else {
+        key
+    }
+}
+
 /// The key of the HUD's text for an interruption point's role (FT-899).
 fn ip_role_key(d: crate::tools::IpDir) -> Key<'static> {
     match d {
@@ -630,25 +654,29 @@ pub fn hud(model: &ShellModel) -> HudModel {
             } else if selected > 0 && model.selected_placements() > 0 {
                 // WP-S4.02 part 3 (doc 16a §5.5): a placement selected on a panel page, its keys from the keymap.
                 // FT-996: only the keys the selected placement takes: R on the plate, X on a rail, Delete always.
-                let delete = key_of(model, "edit.delete_selection");
+                let delete = key_name(model, "edit.delete_selection");
                 let on_rail = model
                     .selected_placement()
                     .map(|(panel, row)| row.carrier.and_then(|c| panel.carrier(c)).is_some());
                 match on_rail {
                     Some(true) => strings::format(
                         key!("hud-layout-selected-rail"),
-                        &[&selected.to_string(), &key_of(model, "tool.mirror_x"), &delete],
+                        &[&selected.to_string(), &key_name(model, "tool.mirror_x"), &delete],
                     ),
                     Some(false) => strings::format(
                         key!("hud-layout-selected-plate"),
-                        &[&selected.to_string(), &key_of(model, "tool.rotate_cw"), &delete],
+                        &[&selected.to_string(), &key_name(model, "tool.rotate_cw"), &delete],
                     ),
                     None => strings::format(key!("hud-layout-selected"), &[&selected.to_string(), &delete]),
                 }
             } else if selected > 0 {
                 strings::format(
                     key!("hud-selected"),
-                    &[&selected.to_string(), &key_of(model, "tool.rotate_cw")],
+                    &[
+                        &selected.to_string(),
+                        &key_short(model, "tool.rotate_cw"),
+                        &key_short(model, "edit.delete_selection"),
+                    ],
                 )
             } else {
                 hint()
@@ -688,7 +716,7 @@ pub fn hud(model: &ShellModel) -> HudModel {
                     "{what} \u{b7} {}",
                     strings::format(
                         key!("hud-place-wires"),
-                        &[&count, &key_of(model, "canvas.activate_alt")]
+                        &[&count, &key_short(model, "canvas.activate_alt")]
                     )
                 );
             }
@@ -697,17 +725,19 @@ pub fn hud(model: &ShellModel) -> HudModel {
                 strings::format(
                     key!("hud-keys-place-join"),
                     &[
-                        &key_of(model, "tool.rotate_cw"),
-                        &key_of(model, "tool.next_variant"),
-                        &key_of(model, "place.join"),
+                        &key_short(model, "tool.rotate_cw"),
+                        &key_short(model, "tool.next_variant"),
+                        &key_short(model, "place.join"),
+                        &key_short(model, crate::tools::ESCAPE),
                     ],
                 )
             } else {
                 strings::format(
                     key!("hud-keys-place"),
                     &[
-                        &key_of(model, "tool.rotate_cw"),
-                        &key_of(model, "tool.next_variant"),
+                        &key_short(model, "tool.rotate_cw"),
+                        &key_short(model, "tool.next_variant"),
+                        &key_short(model, crate::tools::ESCAPE),
                     ],
                 )
             };
@@ -744,7 +774,7 @@ pub fn hud(model: &ShellModel) -> HudModel {
                 parts.push(strings::text(role).to_owned());
                 parts.push(format!(
                     "{}: {}",
-                    key_of(model, "tool.ip_direction"),
+                    key_short(model, "tool.ip_direction"),
                     d.next().word()
                 ));
             } else {
@@ -807,7 +837,10 @@ pub fn hud(model: &ShellModel) -> HudModel {
             format!("{} \u{b7} {}", asset.unwrap_or_else(|| "-".to_owned()), hint())
         }
         // WP-S4.02 part 3 (doc 16a §5.5): the placing prompt; a refused drop's text stands in its chip.
-        Some(Ghost::Layout { device, .. }) => strings::format(key!("hud-layout-place"), &[&device]),
+        Some(Ghost::Layout { device, .. }) => strings::format(
+            key!("hud-layout-place"),
+            &[&device, &key_short(model, crate::tools::ESCAPE)],
+        ),
         // WP-S4.02 part 4 (D11): the draw tools' line; the length stands at the line.
         Some(Ghost::Line { .. }) => hint(),
     };

@@ -613,21 +613,30 @@ pub(crate) fn copy_aside_as(path: &Path, file_name: &str) -> Option<String> {
 
 /// As [`copy_aside_as`], but a copy with the same bytes that is already there is named instead of copying again: a
 /// refused `keymap.toml` (WP-S2.08 part 2), which is read and refused on every start while the user's file stays, is
-/// copied aside once (FIX40d).
+/// copied aside once (FIX40d). Every existing `.bad-<n>` is looked through for the same bytes before the first free
+/// name is written, so a gap in the numbers (a copy the user deleted) never copies the same file twice (FT-849).
 pub(crate) fn copy_aside_once_as(path: &Path, file_name: &str) -> Option<String> {
     let dir = path.parent()?;
     let bytes = std::fs::read(path).ok()?;
-    for n in 1..=999 {
-        let name = format!("{file_name}.bad-{n}");
-        let target: PathBuf = dir.join(&name);
-        if !target.exists() {
-            return std::fs::write(&target, &bytes).ok().map(|()| name);
-        }
-        if std::fs::read(&target).is_ok_and(|held| held == bytes) {
-            return Some(name);
-        }
+    let names = (1..=999).map(|n| format!("{file_name}.bad-{n}"));
+    // Only a copy of the same length is read, so the look stays bounded by the file's own size.
+    let same = names.clone().find(|name| {
+        let target = dir.join(name);
+        std::fs::metadata(&target).is_ok_and(|m| m.is_file() && m.len() == bytes.len() as u64)
+            && std::fs::read(&target).is_ok_and(|held| held == bytes)
+    });
+    if same.is_some() {
+        return same;
     }
-    None
+    let free = names.into_iter().find(|name| !dir.join(name).exists())?;
+    // Through a temporary file and a rename: a failed copy leaves no half-written `.bad-<n>` that a later look would
+    // take for a different file.
+    let tmp = dir.join(format!("{free}.tmp"));
+    let written = std::fs::write(&tmp, &bytes).and_then(|()| std::fs::rename(&tmp, dir.join(&free)));
+    if written.is_err() {
+        let _ = std::fs::remove_file(&tmp);
+    }
+    written.ok().map(|()| free)
 }
 
 /// An environment variable as a path, `None` when unset or empty.
@@ -694,6 +703,39 @@ mod tests {
 
     fn temp_dir(tag: &str) -> PathBuf {
         crate::shell::fresh_test_dir(&format!("ew-settings-{tag}"))
+    }
+
+    /// FT-849 (ID-1150): with `.bad-1` another file, `.bad-2` missing and `.bad-3` the same bytes, the file is named as
+    /// `.bad-3` and not copied again into the gap; a new file takes the gap, the first free name.
+    #[test]
+    fn ft849_a_copy_aside_once_finds_the_same_bytes_past_a_gap() {
+        let dir = temp_dir("bad-gap");
+        let file = dir.join("keymap.toml");
+        std::fs::write(&file, "bad = [").unwrap();
+        std::fs::write(dir.join("keymap.toml.bad-1"), "other").unwrap();
+        std::fs::write(dir.join("keymap.toml.bad-3"), "bad = [").unwrap();
+        assert_eq!(
+            copy_aside_once_as(&file, "keymap.toml").as_deref(),
+            Some("keymap.toml.bad-3")
+        );
+        assert!(
+            !dir.join("keymap.toml.bad-2").exists(),
+            "no second copy in the gap"
+        );
+        std::fs::write(&file, "new = [").unwrap();
+        assert_eq!(
+            copy_aside_once_as(&file, "keymap.toml").as_deref(),
+            Some("keymap.toml.bad-2")
+        );
+        assert_eq!(
+            std::fs::read_to_string(dir.join("keymap.toml.bad-2")).unwrap(),
+            "new = ["
+        );
+        assert!(
+            !dir.join("keymap.toml.bad-2.tmp").exists(),
+            "no temporary file left"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]

@@ -116,6 +116,21 @@ impl HistoryPane {
         self.changes.as_ref().map(|(i, v)| (*i, v.as_slice()))
     }
 
+    /// The panel's header line: "`n` steps · cursor at `c`", "1 step · cursor at `c`" for one (FT-986); `None` without
+    /// a view.
+    pub fn header(&self) -> Option<String> {
+        let view = self.view()?;
+        let key = if view.rows.len() == 1 {
+            crate::key!("history-header-one")
+        } else {
+            crate::key!("history-header")
+        };
+        Some(crate::strings::format(
+            key,
+            &[&view.rows.len().to_string(), &view.cursor.to_string()],
+        ))
+    }
+
     /// The origin text of `row`: the shell's annotation for its revision, else its own.
     pub fn origin_of<'a>(&'a self, row: &'a HistoryRow) -> &'a str {
         self.origins
@@ -186,6 +201,32 @@ mod tests {
             rev,
             pages: Vec::new(),
         }
+    }
+
+    /// FT-986 (ID-1150): one row reads "1 step", two "2 steps"; no view, no header.
+    #[test]
+    fn ft986_the_header_counts_one_step_in_the_singular() {
+        let pane = |rows: Vec<HistoryRow>, cursor: usize| HistoryPane {
+            view: Some((
+                1,
+                9,
+                HistoryView {
+                    rows,
+                    cursor,
+                    ..HistoryView::default()
+                },
+            )),
+            ..HistoryPane::default()
+        };
+        assert_eq!(
+            pane(vec![row(0, 2)], 1).header().as_deref(),
+            Some("1 step \u{b7} cursor at 1")
+        );
+        assert_eq!(
+            pane(vec![row(0, 2), row(1, 4)], 1).header().as_deref(),
+            Some("2 steps \u{b7} cursor at 1")
+        );
+        assert_eq!(HistoryPane::default().header(), None);
     }
 
     #[test]

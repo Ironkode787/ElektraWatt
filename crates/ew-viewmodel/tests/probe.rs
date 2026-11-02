@@ -21,9 +21,8 @@ use ew_viewmodel::ew_api::output::ew_dl::ew_units::Rect;
 use ew_viewmodel::ew_api::output::ew_dl::{Destination, EntityRef};
 use ew_viewmodel::key;
 use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
-use ew_viewmodel::strings::Key;
 use ew_viewmodel::tools::{
-    Button, CanvasEvent, Overlay, OverlayItem, SelectionChange, Style, Token, Tool, ToolCx, ToolOutput,
+    Button, CanvasEvent, Hint, Overlay, OverlayItem, SelectionChange, Style, Token, Tool, ToolCx, ToolOutput,
 };
 use serde_json::{Value, json};
 
@@ -156,8 +155,8 @@ impl Tool for Probe {
         }
     }
 
-    fn status_hint(&self) -> Key<'static> {
-        key!("hint-select")
+    fn status_hint(&self) -> Hint {
+        Hint::plain(key!("hint-select"))
     }
 
     fn wants_hover(&self) -> bool {
@@ -196,8 +195,8 @@ impl Tool for Scripted {
         }
     }
 
-    fn status_hint(&self) -> Key<'static> {
-        key!("hint-select")
+    fn status_hint(&self) -> Hint {
+        Hint::plain(key!("hint-select"))
     }
 
     fn wants_hover(&self) -> bool {

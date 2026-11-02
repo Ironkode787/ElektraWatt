@@ -33,7 +33,6 @@
 //! while the tool's toggle (D) is set or Shift is held on the end press; the tool strip and the ghost say which.
 
 use crate::key;
-use crate::strings::Key;
 use ew_api::AnyCommand;
 use serde_json::{Value, json};
 
@@ -496,10 +495,15 @@ impl Tool for GraphicTool {
         }
     }
 
-    fn status_hint(&self) -> Key<'static> {
+    fn status_hint(&self) -> super::Hint {
         match self.state {
-            State::Armed { .. } => key!("hint-graphic-armed"),
-            State::Drawing { .. } => key!("hint-graphic-drawing"),
+            State::Armed { .. } => {
+                super::Hint::new(key!("hint-graphic-armed"), &[super::ENTER, super::ESCAPE])
+            }
+            State::Drawing { .. } => super::Hint::new(
+                key!("hint-graphic-drawing"),
+                &[super::ENTER, super::FINISH, super::BACK],
+            ),
         }
     }
 

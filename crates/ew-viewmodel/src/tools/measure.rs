@@ -19,7 +19,6 @@ use super::{
 use crate::canvas::mm3;
 use crate::key;
 use crate::strings;
-use crate::strings::Key;
 use crate::tools::MarkerKind;
 
 /// The Measure tool's state.
@@ -175,10 +174,12 @@ impl Tool for MeasureTool {
         }
     }
 
-    fn status_hint(&self) -> Key<'static> {
+    fn status_hint(&self) -> super::Hint {
         match self.state {
-            State::Armed => key!("hint-measure-armed"),
-            State::Measuring { .. } => key!("hint-measure-measuring"),
+            State::Armed => super::Hint::new(key!("hint-measure-armed"), &[super::ENTER]),
+            State::Measuring { .. } => {
+                super::Hint::new(key!("hint-measure-measuring"), &[super::ENTER, super::ESCAPE])
+            }
         }
     }
 

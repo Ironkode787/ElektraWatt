@@ -24,7 +24,6 @@ use super::{
 };
 use crate::key;
 use crate::strings;
-use crate::strings::Key;
 
 /// The paste tool.
 pub struct PasteTool {
@@ -180,8 +179,8 @@ impl Tool for PasteTool {
         }
     }
 
-    fn status_hint(&self) -> Key<'static> {
-        key!("hint-paste")
+    fn status_hint(&self) -> super::Hint {
+        super::Hint::new(key!("hint-paste"), &[super::ENTER, super::ESCAPE])
     }
 
     fn wants_hover(&self) -> bool {

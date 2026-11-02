@@ -35,7 +35,6 @@
 //! point; an unfinished rectangle is dropped.
 
 use crate::key;
-use crate::strings::Key;
 use ew_api::AnyCommand;
 use serde_json::json;
 
@@ -261,11 +260,14 @@ impl Tool for ImageTool {
         }
     }
 
-    fn status_hint(&self) -> Key<'static> {
+    fn status_hint(&self) -> super::Hint {
         match self.state {
-            State::Picking { .. } => key!("hint-image-picking"),
-            State::Armed { .. } => key!("hint-image-armed"),
-            State::Placing { .. } => key!("hint-image-placing"),
+            State::Picking { .. } => super::Hint::plain(key!("hint-image-picking")),
+            State::Armed { .. } => super::Hint::new(key!("hint-image-armed"), &[super::ENTER, super::ESCAPE]),
+            State::Placing { .. } => super::Hint::new(
+                key!("hint-image-placing"),
+                &[super::ENTER, super::BACK, super::ESCAPE],
+            ),
         }
     }
 

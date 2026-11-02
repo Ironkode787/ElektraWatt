@@ -392,7 +392,7 @@ fn without_a_clear_route_the_wire_is_drawn_direct_and_the_tool_says_so() {
     assert_eq!(line, vec![from, (from.0, to.1), to]);
     // The hint stays with the drawn wire until the next one starts.
     assert_eq!(
-        (p.s.tool().state(), p.s.tool_hint()),
+        (p.s.tool().state(), p.s.tool_hint().as_str()),
         ("armed", "No clear route; drawn direct")
     );
     click(&mut p.s, p.bottom[1].at, false);

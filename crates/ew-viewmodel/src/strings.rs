@@ -306,7 +306,7 @@ pub const TEXTS: &[(&str, &str)] = &[
     ("tool-exchange", "Change symbol"),
     (
         "hint-place",
-        "Click or Enter to place; R, X, Y and V turn it; Escape ends",
+        "Click or {0} to place; {1}, {2}, {3} and {4} turn it; {5} ends",
     ),
     (
         "hint-choose-strip",
@@ -314,16 +314,10 @@ pub const TEXTS: &[(&str, &str)] = &[
     ),
     (
         "hint-place-proposals",
-        "Click or Enter to place and connect the proposed wires; Alt+Click or Ctrl+Enter places without them; Tab tries the next target; Escape ends",
+        "Click or {0} to place and connect the proposed wires; Alt+Click or {1} places without them; {2} tries the next target; {3} ends",
     ),
-    (
-        "hint-select-move",
-        "Release, click or Enter to move; Escape cancels",
-    ),
-    (
-        "hint-exchange",
-        "Click or Enter to change the symbol; Escape cancels",
-    ),
+    ("hint-select-move", "Release, click or {0} to move; {1} cancels"),
+    ("hint-exchange", "Click or {0} to change the symbol; {1} cancels"),
     ("move-readout", "dx {0} dy {1} mm"),
     ("place-target-new", "new {0}"),
     ("place-target-join", "join {0}"),
@@ -392,7 +386,7 @@ pub const TEXTS: &[(&str, &str)] = &[
     ("chooser-kind-auxiliary", "auxiliary"),
     (
         "hud-keys-place-join",
-        "{0} rotates \u{b7} {1} variant \u{b7} {2} Join device\u{2026} \u{b7} Esc done",
+        "{0} rotates \u{b7} {1} variant \u{b7} {2} Join device\u{2026} \u{b7} {3} done",
     ),
     ("error-join-device", "Cannot join {0}: {1}"),
     ("error-join-not-device", "{0} is not a device"),
@@ -496,20 +490,20 @@ pub const TEXTS: &[(&str, &str)] = &[
     ("tool-route_edit", "Edit route"),
     (
         "hint-wire-armed",
-        "Click or Enter on a connection point, a junction or a wire to start",
+        "Click or {0} on a connection point, a junction or a wire to start",
     ),
     (
         "hint-wire-routing",
-        "Click a connection point; Backspace removes the last bend; Escape cancels",
+        "Click a connection point; {0} removes the last bend; {1} cancels",
     ),
     ("hint-wire-direct", "No clear route; drawn direct"),
     (
         "hint-route-edit",
-        "Tab picks the segment, the arrow keys move it, Enter commits; Escape cancels",
+        "{0} picks the segment, the arrow keys move it, {1} commits; {2} cancels",
     ),
     (
         "announce-wire-routing",
-        "Wire: routing from {0}. Click a connection point; Backspace removes the last bend; Escape cancels",
+        "Wire: routing from {0}. Click a connection point; {1} removes the last bend; {2} cancels",
     ),
     ("wire-readout", "{0} mm"),
     (
@@ -560,24 +554,24 @@ pub const TEXTS: &[(&str, &str)] = &[
     ("tool-black_box", "Black box"),
     (
         "hint-ip",
-        "Click or Enter to place; D changes the direction; type a name; Escape ends",
+        "Click or {0} to place; {1} changes the direction; type a name; {2} ends",
     ),
     (
         "hint-ip-external",
-        "Click or Enter to place the external connection point; type a name; Escape ends",
+        "Click or {0} to place the external connection point; type a name; {1} ends",
     ),
     // FT-896: the Black box tool takes two corners; the armed hint says so before the first click.
     (
         "hint-box-armed",
-        "Click the box's first corner, then its opposite corner; Escape ends",
+        "Click the box's first corner, then its opposite corner; {0} ends",
     ),
     (
         "hint-box-outline",
-        "Click or Enter at the opposite corner; Escape starts again",
+        "Click or {0} at the opposite corner; {1} starts again",
     ),
     (
         "hint-box-dropped",
-        "Click or Enter at the first corner; Escape again leaves the tool",
+        "Click or {0} at the first corner; {1} again leaves the tool",
     ),
     (
         "reason-no-ip-symbol",
@@ -590,17 +584,22 @@ pub const TEXTS: &[(&str, &str)] = &[
     // FIXPT41: the drop on a connection point the IP tool cannot honour (FT-946: an external point on a pin connects).
     (
         "notice-ip-on-ip",
-        "Not placed: the point would cover the interruption point {0}; place it on a free grid point or on a pin",
+        "Not placed: the interruption point {0} is already here; place it on a pin or a free grid point",
+    ),
+    // FT-948 (ID-1150): a drop whose connection point lies on a junction or inside a wire, which it would not join.
+    (
+        "notice-ip-on-wire",
+        "Not placed: the point would sit on a wire without joining it; place it on a pin or a free grid point",
     ),
     // H40 item 6: EW-CORE-052 in words: what is in the way (the existing source's page) and the way out.
     (
         "notice-ip-second-source",
-        "Not placed: {0} already has a source on page {1}. Press {2} for a target, or mark one source as the star.",
+        "Not placed: {0} already has a source on page {1}; press {2} for a target, or mark one source as the star",
     ),
     // Cycle-40 review: the same, when `tool.ip_direction` has no key: the action by its title.
     (
         "notice-ip-second-source-unbound",
-        "Not placed: {0} already has a source on page {1}. Use {2} for a target, or mark one source as the star.",
+        "Not placed: {0} already has a source on page {1}; use {2} for a target, or mark one source as the star",
     ),
     (
         "reason-external-never-pairs",
@@ -672,10 +671,7 @@ pub const TEXTS: &[(&str, &str)] = &[
     ("tool-text", "Text"),
     ("tool-text_edit", "Edit text"),
     ("tool-graphic", "Graphic"),
-    (
-        "hint-text-armed",
-        "Click or Enter where the text goes; Escape ends",
-    ),
+    ("hint-text-armed", "Click or {0} where the text goes; {1} ends"),
     (
         "hint-text-typing",
         "Type the text; Enter places it; Escape cancels",
@@ -684,13 +680,10 @@ pub const TEXTS: &[(&str, &str)] = &[
         "hint-text-edit",
         "Type the new text; Enter changes it; Escape cancels",
     ),
-    (
-        "hint-graphic-armed",
-        "Click or Enter at the first point; Escape ends",
-    ),
+    ("hint-graphic-armed", "Click or {0} at the first point; {1} ends"),
     (
         "hint-graphic-drawing",
-        "Click or Enter at the next point; Shift+Enter or a double click finishes a polyline or a polygon; Backspace removes the last point",
+        "Click or {0} at the next point; {1} or a double click finishes a polyline or a polygon; {2} removes the last point",
     ),
     ("reason-text-tool-only", "Choose the Text tool first"),
     (
@@ -819,13 +812,10 @@ pub const TEXTS: &[(&str, &str)] = &[
     ("error-image-refused", "The image {0} is not accepted: {1}."),
     ("tool-image", "Image"),
     ("hint-image-picking", "Choose an image asset of the project first"),
-    (
-        "hint-image-armed",
-        "Click or Enter at the first corner; Escape ends",
-    ),
+    ("hint-image-armed", "Click or {0} at the first corner; {1} ends"),
     (
         "hint-image-placing",
-        "Click or Enter at the opposite corner; Backspace or Escape drops the first corner",
+        "Click or {0} at the opposite corner; {1} or {2} drops the first corner",
     ),
     ("reason-image-tool-only", "Choose the Image tool first"),
     (
@@ -856,27 +846,27 @@ pub const TEXTS: &[(&str, &str)] = &[
     ("marker-crossed", "{0} crossed"),
     (
         "hint-marker-armed",
-        "Press and drag (or Enter, move, Enter) across the wires to mark; Escape ends",
+        "Press and drag (or {0}, move, {0}) across the wires to mark; {1} ends",
     ),
     (
         "hint-marker-crossing",
-        "Release (or Enter) to take the crossed wires",
+        "Release (or {0}) to take the crossed wires",
     ),
     (
         "hint-marker-typing",
-        "Set the cross-section and colours if wanted; Enter places the marker; Escape cancels",
+        "Set the cross-section and colours if wanted; {0} places the marker; {1} cancels",
     ),
     (
         "hint-structure-box-armed",
-        "Click or Enter at the first corner; Escape ends",
+        "Click or {0} at the first corner; {1} ends",
     ),
     (
         "hint-structure-box-outline",
-        "Click or Enter at the next corner; Shift+Enter or a double click closes the box (two corners: a rectangle)",
+        "Click or {0} at the next corner; {1} or a double click closes the box (two corners: a rectangle)",
     ),
     (
         "hint-structure-box-typing",
-        "Set the style, caption, location and external point; Enter places the box; Escape cancels",
+        "Set the style, caption, location and external point; {0} places the box; {1} cancels",
     ),
     ("reason-marker-tool-only", "Choose the Wire marker tool first"),
     (
@@ -887,10 +877,10 @@ pub const TEXTS: &[(&str, &str)] = &[
     ("tool-select", "Select"),
     ("tool-measure", "Measure"),
     ("hint-select", "Click to select; drag for a rubber band"),
-    ("hint-measure-armed", "Click or Enter at the first point"),
+    ("hint-measure-armed", "Click or {0} at the first point"),
     (
         "hint-measure-measuring",
-        "Click or Enter at the second point; Escape starts again",
+        "Click or {0} at the second point; {1} starts again",
     ),
     ("measure-label", "dx {0} dy {1} mm, {2} mm"),
     ("announce-tool", "{0}: {1}"),
@@ -1036,6 +1026,8 @@ pub const TEXTS: &[(&str, &str)] = &[
     ("commandbar-next", "Next step"),
     ("commandbar-variants", "Variants"),
     ("hud-name", "Tool"),
+    // FT-964 (ID-1150): the place of a key in a hint, a HUD prompt or a toast when the keymap binds its action to none.
+    ("key-none", "(no key)"),
     // FT-894: the pick stack in words.
     (
         "hud-stack",
@@ -1043,9 +1035,9 @@ pub const TEXTS: &[(&str, &str)] = &[
     ),
     (
         "hud-selected",
-        "{0} selected \u{b7} Del deletes \u{b7} {1} rotates",
+        "{0} selected \u{b7} {2} deletes \u{b7} {1} rotates",
     ),
-    ("hud-keys-place", "{0} rotates \u{b7} {1} variant \u{b7} Esc done"),
+    ("hud-keys-place", "{0} rotates \u{b7} {1} variant \u{b7} {2} done"),
     ("hud-place-wires", "connects {0}; Alt+Click or {1} places without"),
     // FIXPT41: the IP tool's ghost on a pin.
     ("hud-ip-connects", "connects to {0}"),
@@ -1583,7 +1575,7 @@ pub const TEXTS: &[(&str, &str)] = &[
     ("toast-device-retagged", "{0} (now {1})"),
     (
         "toast-autoconnect",
-        "{0} and connected {1}: {2}. Alt+Click or Ctrl+Enter places without connecting",
+        "{0} and connected {1}: {2}. Alt+Click or {3} places without connecting",
     ),
     ("toast-placed", "Placed {0} at {1}"),
     ("toast-placed-no-cell", "Placed {0}"),
@@ -1945,7 +1937,7 @@ pub const TEXTS: &[(&str, &str)] = &[
     ("reason-paste-page-kind", "Nothing can be pasted on a {0} page"),
     ("reason-no-tags", "No device is selected"),
     ("tool-paste", "Paste"),
-    ("hint-paste", "Click or Enter to paste; Escape ends"),
+    ("hint-paste", "Click or {0} to paste; {1} ends"),
     ("label-paste", "paste {0} records"),
     ("label-paste-dropped", ", {0} connections dropped"),
     ("announce-copied", "Copied {0} records"),
@@ -2582,6 +2574,8 @@ pub const TEXTS: &[(&str, &str)] = &[
     ("error-goto-no-cell", "Page {0} has no cell {1}."),
     ("status-cursor-cell", "{0} · x {1} y {2} mm"),
     ("status-hint-link", "Click or F: go to {0}"),
+    // FT-964 (ID-1150): the status bar's link hint, with the key of `nav.follow` from the keymap.
+    ("status-hint-follow", "Click or {1}: go to {0}"),
     ("status-hint-link-external", "Link to another project"),
     ("canvas-cursor-description", ", cursor {0} x {1} y {2} mm"),
     ("canvas-cursor-description-no-cell", ", cursor x {0} y {1} mm"),
@@ -2672,6 +2666,8 @@ pub const TEXTS: &[(&str, &str)] = &[
     ("preview-apply", "Apply"),
     ("preview-cancel", "Cancel"),
     ("history-header", "{0} steps · cursor at {1}"),
+    // FT-986 (ID-1150): one step in the singular.
+    ("history-header-one", "{0} step · cursor at {1}"),
     ("history-empty", "Nothing to undo yet"),
     ("history-not-undoable", "not undoable"),
     ("history-merged", "merged {0}"),
@@ -2771,7 +2767,7 @@ pub const TEXTS: &[(&str, &str)] = &[
     ("action-libraries-update", "Update\u{2026}"),
     ("action-props-make-variable", "Make variable"),
     ("tool-macro", "Macro"),
-    ("hint-macro", "Click or Enter to insert the macro; Escape ends"),
+    ("hint-macro", "Click or {0} to insert the macro; {1} ends"),
     ("label-macro", "Insert {0}"),
     ("reason-macro-insert", "A macro is inserted"),
     (
@@ -3460,7 +3456,7 @@ pub const TEXTS: &[(&str, &str)] = &[
     ),
     ("reason-layout-refused", "The drop is refused; nothing changed"),
     ("tool-layout_place", "Place device"),
-    ("hint-layout-place", "Click or release to place; Escape ends"),
+    ("hint-layout-place", "Click or release to place; {0} ends"),
     (
         "hint-layout-idle",
         "Drag a device from Unplaced devices onto the page",
@@ -3479,7 +3475,7 @@ pub const TEXTS: &[(&str, &str)] = &[
     ("layout-findings-none", "no findings"),
     (
         "hud-layout-place",
-        "Place {0} \u{b7} Ctrl pushes \u{b7} Alt swaps \u{b7} Shift no snap \u{b7} Esc done",
+        "Place {0} \u{b7} Ctrl pushes \u{b7} Alt swaps \u{b7} Shift no snap \u{b7} {1} done",
     ),
     // FT-996: each key only where the selected placement takes it.
     (
@@ -3524,15 +3520,15 @@ pub const TEXTS: &[(&str, &str)] = &[
     ("action-layout-enclosure-new", "Enclosure\u{2026}"),
     ("tool-rail_draw", "Rail"),
     ("tool-duct_draw", "Duct"),
-    ("hint-rail-draw", "Click the rail's start; Escape cancels"),
+    ("hint-rail-draw", "Click the rail's start; {0} cancels"),
     (
         "hint-rail-draw-end",
-        "Click the rail's end; Backspace drops the start; Escape cancels",
+        "Click the rail's end; {0} drops the start; {1} cancels",
     ),
-    ("hint-duct-draw", "Click the duct's first point; Escape cancels"),
+    ("hint-duct-draw", "Click the duct's first point; {0} cancels"),
     (
         "hint-duct-draw-next",
-        "Click the next point; a double click or Enter finishes; Backspace removes the last point",
+        "Click the next point; a double click or {0} finishes; {1} removes the last point",
     ),
     ("reason-no-draw-tool", "Choose Rail or Duct first"),
     ("reason-no-rail-part", "Add a rail part to the project first"),
@@ -3843,6 +3839,102 @@ mod tests {
     use super::*;
 
     const NOW: u64 = 1_793_000_000_000;
+
+    /// FT-964 (ID-1150): the texts that name a key the default keymap binds by its literal name, each with why it stays:
+    /// a key no keymap action reaches there (a popup's or a text field's own key), or a letter that is no key.
+    // map: kept-key-texts: a new text that names a bound key literally goes in strings.rs's KEPT_KEYS with why no keymap action reaches it there.
+    const KEPT_KEYS: &[(&str, &str)] = &[
+        // Letters that are no key.
+        ("error-no-external", "L is the connection's name in the example"),
+        ("bond-kind-pelv_0v_pe", "V is the volt"),
+        ("choice-colour-sample", "V is the volt"),
+        ("firstrun-step-origin", "I is the pronoun"),
+        ("wizard-error-revision", "V is the revision label's letter"),
+        ("messages-header", "E, W and I are the severities"),
+        // Open: `props.follow`'s F in the Properties pane's link (ew-ui `properties.rs`, a later row); the status bar's
+        // link hint is `status-hint-follow`.
+        ("status-hint-link", "props.follow's F, not yet from the keymap"),
+        // Keys no keymap action reaches there.
+        ("hint-choose-strip", "Escape closes the picker popup (app.rs)"),
+        ("reason-choose-strip", "Escape closes the picker popup (app.rs)"),
+        (
+            "hint-text-typing",
+            "Enter and Escape inside the text popup's field",
+        ),
+        ("hint-text-edit", "Enter and Escape inside the text popup's field"),
+        ("action-ip-name-hint", "Enter and Tab inside the IP name field"),
+        (
+            "junction-sequence",
+            "Alt+Up and Alt+Down inside the junction popup",
+        ),
+        ("junction-orient", "R inside the junction popup"),
+        ("table-pos-move", "Alt+Up and Alt+Down inside the table editor"),
+        ("palette-form-hint", "Enter and Escape inside the palette's form"),
+        ("tooltip-learn-more", "F1 on a hovered menu item (menu.rs)"),
+    ];
+
+    /// Whether `name` stands in `text` as a key's name: not inside a word, a chord (`+`), a tag (`-X1`) or a key.
+    fn names_key(text: &str, name: &str) -> bool {
+        let part = |c: char| c.is_alphanumeric() || matches!(c, '+' | '-' | '_' | '{' | '}');
+        text.match_indices(name).any(|(i, _)| {
+            let before = text[..i].chars().next_back();
+            let after = text[i + name.len()..].chars().next();
+            !before.is_some_and(part) && !after.is_some_and(part)
+        })
+    }
+
+    /// FT-964 (ID-1150): "a test scans the table for a bound key's literal name outside the kept list". The names are
+    /// every chord the EW preset binds, in full and in the HUD's short form; the key names that are also everyday
+    /// words of the labels ("Delete wire", "Insert symbol", "Home", "Space", "End") are left out.
+    #[test]
+    fn ft964_no_text_names_a_bound_key_outside_the_kept_list() {
+        const WORDS: &[&str] = &[
+            "Delete", "Insert", "Home", "End", "Space", "Plus", "Minus", "Equals",
+        ];
+        let mut names: Vec<String> = Vec::new();
+        for meta in crate::actions::ACTIONS {
+            for s in crate::keymap::Preset::Ew.shortcuts(meta) {
+                for n in [crate::keymap::display(s), crate::keymap::short_display(s)] {
+                    if !WORDS.contains(&n.as_str()) && !names.contains(&n) {
+                        names.push(n);
+                    }
+                }
+            }
+        }
+        assert!(names.iter().any(|n| n == "Enter") && names.iter().any(|n| n == "Esc"));
+        let mut found = Vec::new();
+        for (key, text) in TEXTS {
+            if KEPT_KEYS.iter().any(|(k, _)| k == key) {
+                continue;
+            }
+            for name in &names {
+                if names_key(text, name) {
+                    found.push(format!("{key}: {name}"));
+                }
+            }
+        }
+        assert_eq!(found, Vec::<String>::new());
+        // The kept list holds only keys of the table that still name a key.
+        for (key, why) in KEPT_KEYS {
+            let text = lookup(key).unwrap_or_else(|| panic!("{key} is not in the table"));
+            assert!(
+                names.iter().any(|n| names_key(text, n)),
+                "{key} ({why}) names no key"
+            );
+        }
+    }
+
+    /// The scan's word test: a name inside a word, a chord or a tag is no key's name.
+    #[test]
+    fn ft964_the_scan_finds_a_key_name_only_as_a_word() {
+        assert!(names_key("Click or Enter to place", "Enter"));
+        assert!(names_key("Esc done", "Esc"));
+        assert!(names_key("(R)", "R"));
+        assert!(!names_key("Escape", "Esc"));
+        assert!(!names_key("Shift+Enter", "Enter"));
+        assert!(!names_key("-X1031:21", "X"));
+        assert!(!names_key("Click or {0} to place", "0"));
+    }
 
     /// Cycle 35 play-test: the preview card and chip name the command by its title, not its ID.
     #[test]

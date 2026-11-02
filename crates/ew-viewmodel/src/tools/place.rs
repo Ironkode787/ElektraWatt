@@ -44,7 +44,6 @@ use super::{
 };
 use crate::key;
 use crate::strings;
-use crate::strings::Key;
 
 /// The JSON spellings of the orientations A to H.
 pub const ORIENT_NAMES: [&str; 8] = ["r0", "r90", "r180", "r270", "m0", "m90", "m180", "m270"];
@@ -703,12 +702,30 @@ impl Tool for PlaceTool {
         }
     }
 
-    fn status_hint(&self) -> Key<'static> {
+    fn status_hint(&self) -> super::Hint {
         if self.proposals.list.is_empty() {
-            key!("hint-place")
+            super::Hint::new(
+                key!("hint-place"),
+                &[
+                    super::ENTER,
+                    "tool.rotate_cw",
+                    "tool.mirror_x",
+                    "tool.mirror_y",
+                    "tool.next_variant",
+                    super::ESCAPE,
+                ],
+            )
         } else {
             // FT-485 item 3: the proposals connect on commit unless Alt is held.
-            key!("hint-place-proposals")
+            super::Hint::new(
+                key!("hint-place-proposals"),
+                &[
+                    super::ENTER,
+                    "canvas.activate_alt",
+                    "tool.next_proposal",
+                    super::ESCAPE,
+                ],
+            )
         }
     }
 

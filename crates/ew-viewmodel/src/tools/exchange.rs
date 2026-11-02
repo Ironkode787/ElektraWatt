@@ -12,7 +12,6 @@
 //! returns to Select).
 
 use crate::key;
-use crate::strings::Key;
 use std::sync::Arc;
 
 use ew_api::AnyCommand;
@@ -166,8 +165,8 @@ impl Tool for ExchangeTool {
         }
     }
 
-    fn status_hint(&self) -> Key<'static> {
-        key!("hint-exchange")
+    fn status_hint(&self) -> super::Hint {
+        super::Hint::new(key!("hint-exchange"), &[super::ENTER, super::ESCAPE])
     }
 
     fn wants_hover(&self) -> bool {

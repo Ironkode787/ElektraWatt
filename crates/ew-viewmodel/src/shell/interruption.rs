@@ -371,6 +371,12 @@ impl ShellModel {
         Outcome::Done
     }
 
+    /// The name typed in the IP tool's name field (`ip.name`) that no interruption point has taken yet, which the field
+    /// shows (FT-851); `None` when none is typed or a point took it.
+    pub fn ip_typed_name(&self) -> Option<&str> {
+        self.tools.ip_memory.typed.as_deref()
+    }
+
     /// `ip.name {text}`: the IP tool's name field. An empty or blank `text` (the field erased) cancels the typed name,
     /// so the next point takes its automatic name (cycle 41 review); a missing `text` is `error-missing-param`.
     pub(crate) fn act_ip_name(&mut self, p: &Map<String, Value>) -> Outcome {
@@ -970,12 +976,12 @@ mod tests {
     fn the_second_source_notice_names_the_key_or_the_title() {
         assert_eq!(
             second_source_text("0V", "101", "D"),
-            "Not placed: 0V already has a source on page 101. Press D for a target, or mark one source as the star."
+            "Not placed: 0V already has a source on page 101; press D for a target, or mark one source as the star"
         );
         assert_eq!(
             second_source_text("0V", "101", ""),
-            "Not placed: 0V already has a source on page 101. Use Interruption point direction for a target, or mark \
-             one source as the star."
+            "Not placed: 0V already has a source on page 101; use Interruption point direction for a target, or mark \
+             one source as the star"
         );
     }
 

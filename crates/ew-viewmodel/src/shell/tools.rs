@@ -116,12 +116,25 @@ impl ShellModel {
     }
 
     /// The active tool's status hint; while the picker's strip chooser is open (FT-421), what it waits for instead
-    /// (cycle 36, play-test rv-txt-2: the switch to the strip list was silent).
-    pub fn tool_hint(&self) -> &'static str {
+    /// (cycle 36, play-test rv-txt-2: the switch to the strip list was silent). The keys it names are the keymap's
+    /// (FT-964, ID-1150).
+    pub fn tool_hint(&self) -> String {
         if self.strip_chooser_open() {
-            return strings::text(key!("hint-choose-strip"));
+            return strings::text(key!("hint-choose-strip")).to_owned();
         }
-        strings::text(self.tools.tool.status_hint())
+        self.hint_text(self.tools.tool.status_hint())
+    }
+
+    /// The text of hint `hint` with the keys of its actions from the keymap, by their full names ("Enter", "Escape";
+    /// "(no key)" for an action the keymap binds to none).
+    pub(crate) fn hint_text(&self, hint: crate::tools::Hint) -> String {
+        let keys: Vec<String> = hint
+            .keys
+            .iter()
+            .map(|id| crate::command_bar::key_name(self, id))
+            .collect();
+        let args: Vec<&str> = keys.iter().map(String::as_str).collect();
+        strings::format(hint.key, &args)
     }
 
     /// Whether the picker is open as the strip chooser of a terminal placement (FT-421).
@@ -329,7 +342,7 @@ impl ShellModel {
         let label = tool_label(self.tools.tool.name());
         self.tools.announcement = Some(strings::format(
             key!("announce-tool"),
-            &[&label, strings::text(self.tools.tool.status_hint())],
+            &[&label, &self.hint_text(self.tools.tool.status_hint())],
         ));
     }
 

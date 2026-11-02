@@ -55,7 +55,6 @@ use super::{
 };
 use crate::canvas::CanvasPage;
 use crate::key;
-use crate::strings::Key;
 
 /// The direction of an interruption point.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
@@ -124,6 +123,31 @@ pub fn next_in_series(name: &str) -> String {
         return format!("{head}-{n:0width$}", width = tail.len());
     }
     format!("{name}-1")
+}
+
+/// Whether the page point `c` lies on a junction of `tables` or strictly inside a connection's polyline: on one of its
+/// segments, a bend included, but at neither of its ends (FT-948). As the Wire tool's `resolve_target` looks, after
+/// the connection points: the junctions, then the segments.
+fn on_wire(tables: &PageTables, c: (i64, i64)) -> bool {
+    if tables.junctions.iter().any(|j| j.at == c) {
+        return true;
+    }
+    tables.connections.iter().any(|w| inside_polyline(&w.polyline, c))
+}
+
+/// Whether `c` lies on the polyline `line` but at neither of its ends: on a segment or at a bend.
+fn inside_polyline(line: &[(i64, i64)], c: (i64, i64)) -> bool {
+    let (Some(first), Some(last)) = (line.first(), line.last()) else {
+        return false;
+    };
+    c != *first && c != *last && line.windows(2).any(|s| on_segment(s[0], s[1], c))
+}
+
+/// Whether `p` lies on the segment from `a` to `b`, its ends included (exact, in `i128`).
+fn on_segment(a: (i64, i64), b: (i64, i64), p: (i64, i64)) -> bool {
+    let w = |v: i64| i128::from(v);
+    let cross = (w(b.0) - w(a.0)) * (w(p.1) - w(a.1)) - (w(b.1) - w(a.1)) * (w(p.0) - w(a.0));
+    cross == 0 && (a.0.min(b.0)..=a.0.max(b.0)).contains(&p.0) && (a.1.min(b.1)..=a.1.max(b.1)).contains(&p.1)
 }
 
 /// `base`, or the first name of its series that no interruption point of `direction` on the page of `tables` has.
@@ -580,7 +604,12 @@ impl IpTool {
         if let Some(name) = ip_name {
             return DropOn::Refused(crate::strings::format(key!("notice-ip-on-ip"), &[&name]));
         }
+        // A pin always wins; without one, a point on a junction or strictly inside a wire would sit on it without
+        // joining it, so it is refused (FT-948, ID-1150). A wire's bare end is no wire's inside: the point places free.
         let Some(pin) = under.first() else {
+            if on_wire(tables, c) {
+                return DropOn::Refused(crate::strings::text(key!("notice-ip-on-wire")).to_owned());
+            }
             return DropOn::Free;
         };
         if self.suppressed {
@@ -803,11 +832,14 @@ impl Tool for IpTool {
         }
     }
 
-    fn status_hint(&self) -> Key<'static> {
+    fn status_hint(&self) -> super::Hint {
         if self.external.is_some() {
-            key!("hint-ip-external")
+            super::Hint::new(key!("hint-ip-external"), &[super::ENTER, super::ESCAPE])
         } else {
-            key!("hint-ip")
+            super::Hint::new(
+                key!("hint-ip"),
+                &[super::ENTER, "tool.ip_direction", super::ESCAPE],
+            )
         }
     }
 
@@ -839,6 +871,21 @@ impl Tool for IpTool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// FT-948 (ID-1150): a point strictly inside a wire (on a segment, at a bend, on a slanted segment) is on it; its
+    /// ends, a point beside it and a point past its end are not.
+    #[test]
+    fn ft948_a_point_inside_a_wire_is_on_it_its_ends_are_not() {
+        let line = [(0, 0), (100, 0), (100, 50), (200, 150)];
+        assert!(inside_polyline(&line, (40, 0)), "on a segment");
+        assert!(inside_polyline(&line, (100, 0)), "at a bend");
+        assert!(inside_polyline(&line, (150, 100)), "on a slanted segment");
+        assert!(!inside_polyline(&line, (0, 0)), "the first end");
+        assert!(!inside_polyline(&line, (200, 150)), "the last end");
+        assert!(!inside_polyline(&line, (40, 1)), "beside it");
+        assert!(!inside_polyline(&line, (-10, 0)), "past its end");
+        assert!(!inside_polyline(&[], (0, 0)));
+    }
 
     #[test]
     fn the_series_increments_the_trailing_number_or_starts_one() {

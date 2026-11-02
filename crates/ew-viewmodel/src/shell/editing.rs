@@ -160,9 +160,17 @@ impl ShellModel {
                     .iter()
                     .any(|c| ends_on_rep(&c.a) || ends_on_rep(&c.b));
                 let text = match wires {
-                    Some((count, list)) => {
-                        strings::format(key!("toast-autoconnect"), &[&placed, &count, &list])
-                    }
+                    // FT-949 (ID-1150): the way to place without the wires takes its key from the keymap, as the
+                    // interruption point's toast does.
+                    Some((count, list)) => strings::format(
+                        key!("toast-autoconnect"),
+                        &[
+                            &placed,
+                            &count,
+                            &list,
+                            &crate::command_bar::key_name(self, "canvas.activate_alt"),
+                        ],
+                    ),
                     None if in_wire => strings::format(key!("toast-placed-in-wire"), &[&placed]),
                     None => placed,
                 };
@@ -180,7 +188,7 @@ impl ShellModel {
                     let page = c.page();
                     page.cell_text(page.snapper.page_to_sheet(pos))
                 });
-                let key = crate::command_bar::key_of(self, "canvas.activate_alt");
+                let key = crate::command_bar::key_name(self, "canvas.activate_alt");
                 let text = match cell {
                     Some(cell) => strings::format(key!("toast-ip-connected"), &[&name, &cell, &pin, &key]),
                     None => strings::format(key!("toast-ip-connected-no-cell"), &[&name, "", &pin, &key]),

@@ -270,7 +270,7 @@ fn ft822_a_refused_arrow_keeps_its_ghost_and_says_why() {
     );
     assert_eq!(s.tool().name(), "ip", "the tool stays armed");
     // H40 item 6: what is in the way and the way out, in words: not the rule's ID tie-break.
-    let words = "Not placed: 0V already has a source on page 101. Press D for a target, or mark one source as the star.";
+    let words = "Not placed: 0V already has a source on page 101; press D for a target, or mark one source as the star";
     let notice = s.tool_notice().expect("the reason in the HUD").to_owned();
     assert_eq!(notice, words);
     assert_eq!(
