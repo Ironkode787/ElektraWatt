@@ -148,7 +148,7 @@ impl Model {
             .filter_map(|r| match AnyRow::from_record(r) {
                 Ok(row) => Some(row),
                 Err(other) => {
-                    unknown.push(other);
+                    unknown.push(*other);
                     None
                 }
             })
@@ -534,9 +534,9 @@ impl Model {
 }
 
 impl AnyRow {
-    /// The row of a record of a kind with a table, or the project row; the record itself back for a record of a kind
-    /// without one ([`Record::Unknown`]), which a model keeps aside.
-    pub fn from_record(record: Record) -> Result<AnyRow, Record> {
+    /// The row of a record of a kind with a table, or the project row; the record itself back, boxed, for a record of a
+    /// kind without one ([`Record::Unknown`]), which a model keeps aside.
+    pub fn from_record(record: Record) -> Result<AnyRow, Box<Record>> {
         Ok(match record {
             Record::Project(p) => AnyRow::Project(Arc::new(p)),
             Record::PlcConfigProject(r) => AnyRow::of(r),
@@ -569,7 +569,7 @@ impl AnyRow {
             Record::Revision(r) => AnyRow::of(r),
             Record::Waiver(r) => AnyRow::of(r),
             Record::Conflict(r) => AnyRow::of(r),
-            other => return Err(other),
+            other => return Err(Box::new(other)),
         })
     }
 }

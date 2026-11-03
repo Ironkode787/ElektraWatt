@@ -350,8 +350,8 @@ fn unmark(body: &[u8], limits: &Limits) -> Option<Vec<(usize, Vec<u8>)>> {
     }
     let mut out = Vec::new();
     let (mut state, mut start) = (Hunk::Outside, 0);
-    let (mut ours, mut base, mut theirs): (Vec<&[u8]>, Option<Vec<&[u8]>>, Vec<&[u8]>) =
-        (Vec::new(), None, Vec::new());
+    let (mut ours, mut theirs): (Vec<&[u8]>, Vec<&[u8]>) = (Vec::new(), Vec::new());
+    let mut base: Option<Vec<&[u8]>> = None;
     for (i, raw) in lines.into_iter().enumerate() {
         let n = i + 1;
         let line = raw.strip_suffix(b"\r").unwrap_or(raw);
