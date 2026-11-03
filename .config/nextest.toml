@@ -19,13 +19,11 @@ path = "junit.xml"
 #     that run in parallel since cycle 32, the derived-CSV test and their helper tests; FT-268);
 #   - the command fuzzer (crates/ew-testkit/tests/command_fuzz: `fuzz_smoke`, 15 to 19 s in a debug build, and the
 #     binary's other tests; FT-306).
-# The rule:
-#   - the first nextest run of the Linux job test-linux-default (default features) skips them with the filterset
-#       -E 'not (package(ew-api) and binary(acceptance)) and not (package(ew-testkit) and binary(command_fuzz))'
-#     (the constant ONCE_PER_JOB_FILTER of xtask/src/main.rs; a test of xtask keeps it equal to the filter in
-#     .github/workflows/ci.yml and to the line above);
-#   - the all-features run (`--all-features`, a superset of the default run) runs everything, so they run there;
-#     the Windows job has only this run (FT-330, decision log ID-482).
+# The rule (FT-1132, decision log ID-1217):
+#   - the default-features run of the Linux job test-linux-default runs the whole workspace, so they run there;
+#   - the all-features run of test-linux covers only the packages with a feature that the default run leaves off
+#     (`cargo xtask all-features-set`), which hold neither of them; the Windows job has only an all-features run
+#     (FT-330, decision log ID-482), whole, in which they run in part 1 of the three (a test of xtask keeps it so).
 # `cargo xtask ci` follows the same rule locally. A single crate is not affected: `cargo nextest run -p ew-api`
 # still runs the acceptance tests and `cargo nextest run -p ew-testkit` the fuzzer. `cargo xtask acceptance` runs
 # the full gate (`gate`, the raster comparison) on its own.

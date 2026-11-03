@@ -12,6 +12,7 @@
 #![allow(clippy::disallowed_methods)]
 
 mod affected;
+mod all_features;
 mod anonymise;
 mod api_guard;
 mod blind;
@@ -38,6 +39,7 @@ mod trailers;
 mod vet_imports;
 mod workflows;
 
+use std::collections::BTreeSet;
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitCode, Stdio};
@@ -123,8 +125,13 @@ commands:
                        the workspace crates changed since the merge base of <rev> (default main) and HEAD,
                        uncommitted and untracked files included, with their reverse dependencies (cargo
                        metadata), and the targeted `cargo nextest run -p ...` (with the features the crates'
-                       tests require) and `cargo clippy -p ...` commands for them; for between-wave and
-                       fix-round verifies only, a gate runs the full suite
+                       tests require), the all-features `cargo nextest run -p ... --all-features` for those of
+                       them in the all-features set (none when no one is), and `cargo clippy -p ...` commands for
+                       them; for between-wave and fix-round verifies only, a gate runs the full suite
+  all-features-set     the workspace packages with a feature that the default run leaves off (computed from the
+                       manifests' features and the edges that switch them on) as `-p <package>` arguments on one
+                       line, nothing when there is none: the packages of CI's all-features test run and of
+                       `ci`'s all-features nextest and doctest steps
   settle [--check] [--merge] [--all] [--base <rev>]
                        the mechanical upkeep of a change, one table of steps in one order (xtask/src/settle.rs):
                        rustfmt on the changed .rs files, the command and CLI schemas, the rule catalogue, the
@@ -191,10 +198,9 @@ commands:
                        help | start | do | look | note | handback | stop | report | resume | compose | bless |
                        replay | selftest | bless-oracle | check-task (`cargo xtask blind help` lists them with their
                        arguments)
-  ci                   fmt, clippy and nextest (default and all features), doctests and the repository checks
-                       above (except check-dco, check-trailers and records), with a summary; the default-features
-                       nextest step is labelled 'nextest (no acceptance, no fuzzer)' (the headless acceptance tests
-                       and the command fuzzer run in nextest-all-features)
+  ci                   fmt, clippy, nextest (the default run whole; then, for the all-features set, an all-features
+                       run), doctests and the repository checks above (except check-dco, check-trailers and
+                       records), with a summary
   help                 this text
 ";
 
@@ -350,6 +356,7 @@ fn main() -> ExitCode {
             }
         },
         "affected" => affected::run(&args[1..], &workspace_root()),
+        "all-features-set" => all_features::run(),
         "settle" => settle::run(&args[1..], &workspace_root()),
         "lane-check" => lane_check::run(&args[1..], &workspace_root()),
         "map" => map::run(&args[1..], &workspace_root()),
@@ -724,19 +731,11 @@ fn run_echoing_stderr(command: &mut Command) -> Result<(std::process::ExitStatus
     Ok((child.wait()?, captured))
 }
 
-/// The nextest filterset of the first (default-features) run of a CI test job: the two slow test binaries run in
-/// the all-features run only, so once per job. They are the headless acceptance tests of
-/// `crates/ew-api/tests/acceptance.rs` (about 2 min; FT-268, decision log ID-381) and the command fuzzer of
-/// `crates/ew-testkit/tests/command_fuzz` (`fuzz_smoke`, 15 to 19 s in a debug build; FT-306, ID-437).
-/// `.config/nextest.toml` documents the rule and `.github/workflows/ci.yml` repeats the filter; a test below keeps
-/// the three equal.
-const ONCE_PER_JOB_FILTER: &str =
-    "not (package(ew-api) and binary(acceptance)) and not (package(ew-testkit) and binary(command_fuzz))";
-
-/// Runs the local mirror of the per-PR CI set and prints a summary. Every step runs, even after a failure,
-/// so one invocation shows everything that needs fixing.
-fn ci() -> Result<bool> {
-    let cargo_steps: [(&str, &[&str]); 10] = [
+/// The cargo steps of `ci()`, in order, as `(label, arguments)`. The default nextest run takes the whole workspace
+/// (the headless acceptance tests and the command fuzzer run in it, once); an all-features nextest run and doctest run
+/// follow it for the packages of `all_features` alone, and not at all when it is empty (FT-1132, ID-1217).
+fn ci_cargo_steps(all_features: &BTreeSet<String>) -> Vec<(&'static str, Vec<String>)> {
+    let fixed: &[(&'static str, &[&str])] = &[
         ("fmt", &["fmt", "--all", "--check"]),
         (
             "clippy",
@@ -792,30 +791,33 @@ fn ci() -> Result<bool> {
                 "warnings",
             ],
         ),
-        // The headless acceptance tests and the command fuzzer run once, in the all-features run below (FT-268,
-        // FT-306).
-        (
-            "nextest (no acceptance, no fuzzer)",
-            &[
-                "nextest",
-                "run",
-                "--workspace",
-                "--locked",
-                "-E",
-                ONCE_PER_JOB_FILTER,
-            ],
-        ),
-        (
-            "nextest-all-features",
-            &["nextest", "run", "--workspace", "--all-features", "--locked"],
-        ),
+        // The headless acceptance tests and the command fuzzer run here, once (FT-268, FT-306).
+        ("nextest", &["nextest", "run", "--workspace", "--locked"]),
         // nextest does not run doctests.
         ("doctests", &["test", "--doc", "--workspace", "--locked"]),
-        (
-            "doctests-all-features",
-            &["test", "--doc", "--workspace", "--all-features", "--locked"],
-        ),
     ];
+    let mut steps = Vec::new();
+    for (name, args) in fixed {
+        steps.push((*name, args.iter().map(ToString::to_string).collect::<Vec<_>>()));
+        let after = match *name {
+            "nextest" => Some(("nextest-all-features", &["nextest", "run"][..])),
+            "doctests" => Some(("doctests-all-features", &["test", "--doc"][..])),
+            _ => None,
+        };
+        if let (Some((label, head)), false) = (after, all_features.is_empty()) {
+            let mut args: Vec<String> = head.iter().map(ToString::to_string).collect();
+            args.extend(all_features::argument_list(all_features));
+            args.extend(["--all-features".to_owned(), "--locked".to_owned()]);
+            steps.push((label, args));
+        }
+    }
+    steps
+}
+
+/// Runs the local mirror of the per-PR CI set and prints a summary. Every step runs, even after a failure,
+/// so one invocation shows everything that needs fixing.
+fn ci() -> Result<bool> {
+    let cargo_steps = ci_cargo_steps(&all_features::workspace_set()?);
     let checks: [Check; 15] = [
         ("check-deps", check_deps),
         ("check-features", check_features),
@@ -838,7 +840,7 @@ fn ci() -> Result<bool> {
     for (name, args) in cargo_steps {
         println!("==> cargo {}", args.join(" "));
         let mut command = Command::new(cargo());
-        command.args(args).current_dir(workspace_root());
+        command.args(&args).current_dir(workspace_root());
         let passed = if args[0] == "clippy" {
             let (status, stderr) = run_echoing_stderr(&mut command)
                 .with_context(|| format!("running `cargo {}`", args.join(" ")))?;
@@ -880,7 +882,7 @@ fn ci() -> Result<bool> {
 
 #[cfg(test)]
 mod tests {
-    use super::{ONCE_PER_JOB_FILTER, unresolved_clippy_paths, workspace_root};
+    use super::{BTreeSet, ci_cargo_steps, unresolved_clippy_paths, workspace_root};
 
     /// The heavy test binaries of the all-features run, balanced by measured time (FT-387): `test-windows-1` runs
     /// exactly `WINDOWS_PART1_BINARIES`, `test-windows-2` exactly `WINDOWS_PART2_BINARIES`, and `test-windows-3` the
@@ -910,12 +912,12 @@ mod tests {
         "ew-viewmodel::part2",
     ];
 
-    /// FT-268, FT-306, FT-330, FT-353, FT-387: the acceptance tests and the command fuzzer run once per job. The filtered
-    /// default-features run is in test-linux-default; the unfiltered all-features run is in test-linux (the macOS jobs
-    /// were removed by ID-880); test-windows-1, test-windows-2 and test-windows-3 run the all-features archive in three
-    /// disjoint parts that together cover every test: part 1 is `WINDOWS_PART1_BINARIES` (which contains the
-    /// acceptance tests and the fuzzer), part 2 is `WINDOWS_PART2_BINARIES`, part 3 is the complement of both.
-    /// The nextest config documents the same filter.
+    /// FT-268, FT-306, FT-330, FT-353, FT-387, FT-1132: the acceptance tests and the command fuzzer run once per job.
+    /// The default-features run is whole and is in test-linux-default, so they run there; the all-features run of
+    /// test-linux covers the packages of `cargo xtask all-features-set` alone (the macOS jobs were removed by ID-880);
+    /// test-windows-1, test-windows-2 and test-windows-3 run the all-features archive in three disjoint parts that
+    /// together cover every test: part 1 is `WINDOWS_PART1_BINARIES` (which contains the acceptance tests and the
+    /// fuzzer), part 2 is `WINDOWS_PART2_BINARIES`, part 3 is the complement of both.
     #[test]
     fn the_acceptance_tests_and_the_fuzzer_run_once_per_ci_job() {
         let ci = std::fs::read_to_string(workspace_root().join(".github/workflows/ci.yml")).unwrap();
@@ -926,20 +928,23 @@ mod tests {
             .collect();
         let (archive, direct): (Vec<&str>, Vec<&str>) =
             nextest_runs.iter().partition(|l| l.contains("--archive-file"));
-        let (all_features, default): (Vec<&str>, Vec<&str>) =
-            direct.iter().partition(|l| l.contains("--all-features"));
+        let (set_runs, default): (Vec<&str>, Vec<&str>) =
+            direct.iter().partition(|l| l.contains("$ALL_FEATURES_PACKAGES"));
         assert_eq!(
-            (default.len(), all_features.len(), archive.len()),
+            (default.len(), set_runs.len(), archive.len()),
             (1, 1, 3),
-            "the filtered default-features run in test-linux-default, the unfiltered all-features run in test-linux, the three partitions of the Windows archive: {nextest_runs:#?}"
+            "the whole default-features run in test-linux-default, the all-features run of the set in test-linux, the three partitions of the Windows archive: {nextest_runs:#?}"
         );
         for line in default {
-            assert!(line.contains(&format!("-E '{ONCE_PER_JOB_FILTER}'")), "{line}");
-        }
-        for line in all_features {
             assert!(
-                !line.contains(" -E "),
-                "the all-features run runs everything: {line}"
+                line.contains("--workspace") && !line.contains(" -E ") && !line.contains("--all-features"),
+                "the default-features run runs everything, the acceptance tests and the fuzzer included: {line}"
+            );
+        }
+        for line in set_runs {
+            assert!(
+                line.contains("--all-features") && !line.contains("--workspace") && !line.contains(" -E "),
+                "the all-features run takes the packages of the set, whole: {line}"
             );
         }
         // FT-387: parts 1 and 2 are the two explicit lists, part 3 is the complement of both; together a complete and
@@ -999,17 +1004,81 @@ mod tests {
             .map(str::trim)
             .filter(|l| l.starts_with("run: cargo test --doc"))
             .collect();
-        let doc_all_features = doc_runs.iter().filter(|l| l.contains("--all-features")).count();
+        let (doc_set, doc_default): (Vec<&str>, Vec<&str>) = doc_runs
+            .iter()
+            .partition(|l| l.contains("$ALL_FEATURES_PACKAGES"));
         assert_eq!(
-            (doc_runs.len() - doc_all_features, doc_all_features),
+            (doc_default.len(), doc_set.len()),
             (1, 1),
             "doctests: test-linux only, not test-windows (FT-353, ID-880): {doc_runs:#?}"
         );
-        let config = std::fs::read_to_string(workspace_root().join(".config/nextest.toml")).unwrap();
         assert!(
-            config.contains(&format!("-E '{ONCE_PER_JOB_FILTER}'")),
-            "the nextest config documents the filter"
+            doc_default[0].contains("--workspace") && !doc_default[0].contains("--all-features"),
+            "{doc_default:?}"
         );
+        assert!(
+            doc_set[0].contains("--all-features") && !doc_set[0].contains("--workspace"),
+            "{doc_set:?}"
+        );
+    }
+
+    /// FT-1132: `ci()`'s cargo steps. fmt runs first; the default nextest and doctest runs take the whole workspace,
+    /// and the acceptance tests and the fuzzer are not filtered out of the default run; the all-features nextest and
+    /// doctest runs follow them for the packages of the set alone; an empty set has neither.
+    #[test]
+    fn ci_runs_the_all_features_tests_for_the_set_alone() {
+        let set: BTreeSet<String> = ["ew-ui", "a-lib"].into_iter().map(str::to_owned).collect();
+        let steps = ci_cargo_steps(&set);
+        let args = |label: &str| -> Vec<&str> {
+            steps
+                .iter()
+                .find(|(name, _)| *name == label)
+                .unwrap_or_else(|| panic!("no step {label}"))
+                .1
+                .iter()
+                .map(String::as_str)
+                .collect()
+        };
+        assert_eq!(steps[0].0, "fmt");
+        assert_eq!(args("nextest"), ["nextest", "run", "--workspace", "--locked"]);
+        assert_eq!(
+            args("nextest-all-features"),
+            [
+                "nextest",
+                "run",
+                "-p",
+                "a-lib",
+                "-p",
+                "ew-ui",
+                "--all-features",
+                "--locked"
+            ]
+        );
+        assert_eq!(args("doctests"), ["test", "--doc", "--workspace", "--locked"]);
+        assert_eq!(
+            args("doctests-all-features"),
+            [
+                "test",
+                "--doc",
+                "-p",
+                "a-lib",
+                "-p",
+                "ew-ui",
+                "--all-features",
+                "--locked"
+            ]
+        );
+        let position = |label: &str| steps.iter().position(|(name, _)| *name == label).unwrap();
+        assert!(position("nextest") < position("nextest-all-features"));
+        assert!(position("doctests") < position("doctests-all-features"));
+        let none = ci_cargo_steps(&BTreeSet::new());
+        let labels: Vec<&str> = none.iter().map(|(name, _)| *name).collect();
+        assert!(
+            labels.contains(&"nextest") && labels.contains(&"doctests"),
+            "{labels:?}"
+        );
+        assert!(!labels.contains(&"nextest-all-features"), "{labels:?}");
+        assert!(!labels.contains(&"doctests-all-features"), "{labels:?}");
     }
 
     /// FT-353: the Windows tests run from a nextest archive, unpacked elsewhere than the compile-time path of

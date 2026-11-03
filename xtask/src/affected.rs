@@ -130,8 +130,14 @@ pub(crate) fn select(files: &[String], members: &Members) -> Selection {
     selection
 }
 
-/// The verify commands for the selection: nextest with the test features, and clippy as CLAUDE.md runs it.
-pub(crate) fn commands(selection: &Selection, members: &Members) -> Vec<String> {
+/// The verify commands for the selection: nextest with the test features, then the all-features nextest run for the
+/// part of the selection that is in `all_features` (the packages whose all-features run covers more than the default
+/// run: [`crate::all_features`]; no command when none is), and clippy as CLAUDE.md runs it.
+pub(crate) fn commands(
+    selection: &Selection,
+    members: &Members,
+    all_features: &BTreeSet<String>,
+) -> Vec<String> {
     if selection.affected.is_empty() {
         return Vec::new();
     }
@@ -156,10 +162,18 @@ pub(crate) fn commands(selection: &Selection, members: &Members) -> Vec<String> 
     } else {
         format!(" --features {}", features.join(","))
     };
-    vec![
-        format!("cargo nextest run {packages}{features}"),
-        format!("cargo clippy {packages} --all-targets --all-features -- -D warnings"),
-    ]
+    let in_set: BTreeSet<String> = selection.affected.intersection(all_features).cloned().collect();
+    let mut out = vec![format!("cargo nextest run {packages}{features}")];
+    if !in_set.is_empty() {
+        out.push(format!(
+            "cargo nextest run {} --all-features",
+            crate::all_features::arguments(&in_set)
+        ));
+    }
+    out.push(format!(
+        "cargo clippy {packages} --all-targets --all-features -- -D warnings"
+    ));
+    out
 }
 
 /// The members of the workspace at `root`, from `cargo metadata --all-features`.
@@ -322,7 +336,7 @@ pub(crate) fn run(args: &[String], root: &Path) -> Result<bool> {
             join_or_none(&selection.affected)
         );
     }
-    for command in commands(&selection, &members) {
+    for command in commands(&selection, &members, &crate::all_features::workspace_set()?) {
         println!("{command}");
     }
     Ok(true)
@@ -386,10 +400,32 @@ mod tests {
         assert_eq!(s.affected, set(&["ew-viewmodel"]));
         assert!(s.workspace_wide.is_empty());
         assert_eq!(
-            commands(&s, &members()),
+            commands(&s, &members(), &set(&[])),
             [
                 "cargo nextest run -p ew-viewmodel --features ew-viewmodel/testkit",
                 "cargo clippy -p ew-viewmodel --all-targets --all-features -- -D warnings",
+            ]
+        );
+    }
+
+    /// FT-1132: the all-features command takes the selection's part of the set, and there is none when no package of
+    /// the selection is in it.
+    #[test]
+    fn the_all_features_command_takes_the_selections_part_of_the_set() {
+        let s = select(&files(&["crates/ew-model/src/table.rs"]), &members());
+        let all = commands(&s, &members(), &set(&["ew-viewmodel", "ew-api", "ew-leaf"]));
+        assert_eq!(
+            all[1], "cargo nextest run -p ew-api -p ew-viewmodel --all-features",
+            "ew-leaf is not affected: {all:?}"
+        );
+        assert_eq!(all.len(), 3, "nextest, the all-features nextest, clippy: {all:?}");
+        let s = select(&files(&["crates/ew-leaf/src/lib.rs"]), &members());
+        let none = commands(&s, &members(), &set(&["ew-viewmodel"]));
+        assert_eq!(
+            none,
+            [
+                "cargo nextest run -p ew-leaf",
+                "cargo clippy -p ew-leaf --all-targets --all-features -- -D warnings",
             ]
         );
     }
@@ -412,7 +448,7 @@ mod tests {
             ])
         );
         assert_eq!(
-            commands(&s, &members())[0],
+            commands(&s, &members(), &set(&[]))[0],
             "cargo nextest run -p ew-api -p ew-commands -p ew-derive -p ew-model -p ew-testkit -p ew-viewmodel \
              --features ew-viewmodel/testkit"
         );
@@ -437,7 +473,7 @@ mod tests {
             &members(),
         );
         assert!(s.affected.is_empty() && s.workspace_wide.is_empty(), "{s:?}");
-        assert!(commands(&s, &members()).is_empty());
+        assert!(commands(&s, &members(), &set(&[])).is_empty());
         let s = select(&files(&["ci/dep-rules.toml"]), &members());
         assert_eq!(s.affected, set(&["xtask"]));
     }
@@ -455,7 +491,7 @@ mod tests {
         assert_eq!(s.workspace_wide, files(&["Cargo.lock", "golden/J-E-2416/x.csv"]));
         assert_eq!(s.affected.len(), members().len());
         assert_eq!(
-            commands(&s, &members()),
+            commands(&s, &members(), &set(&[])),
             [
                 "cargo nextest run --workspace --features ew-viewmodel/testkit",
                 "cargo clippy --workspace --all-targets --all-features -- -D warnings",

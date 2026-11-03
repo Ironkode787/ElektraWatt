@@ -197,9 +197,10 @@ jobs:
         run: cargo build --workspace --locked
       # FT-353 (decision log ID-527): the default-features run moved to the job test-linux-default, so that the two
       # runs, which compile separately anyway, take about 15 and 17 minutes in parallel instead of 30 in sequence.
-      # The headless acceptance tests (about 2 min) and the command fuzzer's `fuzz_smoke` (15 to 19 s) run once per
-      # job, here, in the all-features run: the filter that the other jobs use is the rule of .config/nextest.toml
-      # and is kept equal to xtask's ONCE_PER_JOB_FILTER by a test (FT-268, FT-306).
+      # FT-1132 (ID-1217): this job's all-features run covers only the packages with a feature that the default run
+      # leaves off (`cargo xtask all-features-set` computes them from the manifests and prints them as `-p` arguments,
+      # nothing when there is none: the steps below are then skipped); the rest of the workspace is tested whole in
+      # test-linux-default, the headless acceptance tests and the command fuzzer included.
       # Feature-gated code (for example ew-ui/snapshots) is only compiled and tested with its feature on.
       # The cycle-39 delivery run 41169864175 passed the usual 18 to 20 minutes of the nextest step and was cancelled at
       # the job timeout, with no log (the job log needs admin rights to read). So the tests are compiled in a step of
@@ -209,10 +210,18 @@ jobs:
       - name: sample free disk and memory
         shell: bash
         run: nohup bash -c 'while sleep 30; do echo "$(date -u +%H:%M:%S) disk $(df -BG --output=avail / | tail -1 | tr -d " ") mem $(free -g | awk "/^Mem:/{print \$7}")G" >> "$RUNNER_TEMP/samples.txt"; done' > /dev/null 2>&1 &
+      # A failure of the command fails the step: the assignment is its own command under `-e`.
+      - name: packages of the all-features run
+        shell: bash
+        run: |
+          packages="$(cargo xtask all-features-set)"
+          echo "ALL_FEATURES_PACKAGES=$packages" >> "$GITHUB_ENV"
       - name: compile the tests (all features)
-        run: cargo test --workspace --all-features --locked --no-run
-      - name: cargo nextest (all features, with the acceptance tests and the fuzzer)
-        run: cargo nextest run --workspace --all-features --locked --profile ci
+        if: env.ALL_FEATURES_PACKAGES != ''
+        run: cargo test $ALL_FEATURES_PACKAGES --all-features --locked --no-run
+      - name: cargo nextest (all features, the packages with a feature that the default run leaves off)
+        if: env.ALL_FEATURES_PACKAGES != ''
+        run: cargo nextest run $ALL_FEATURES_PACKAGES --all-features --locked --profile ci
       # Names every failed nextest case as a check-run annotation (the job log needs admin rights to read).
       - name: failed tests as annotations
         if: failure()
@@ -261,7 +270,8 @@ jobs:
       - name: cargo test --doc
         run: cargo test --doc --workspace --locked
       - name: cargo test --doc (all features)
-        run: cargo test --doc --workspace --all-features --locked
+        if: env.ALL_FEATURES_PACKAGES != ''
+        run: cargo test --doc $ALL_FEATURES_PACKAGES --all-features --locked
 
   test-linux-default:
     name: test-linux-default
@@ -299,11 +309,11 @@ jobs:
         run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache /usr/share/swift /usr/local/share/boost /usr/local/share/powershell /usr/local/lib/node_modules /usr/lib/jvm /opt/microsoft /opt/google /opt/az && sudo docker image prune --all --force > /dev/null && df -h /
       - name: cargo build
         run: cargo build --workspace --locked
-      # The default-features run of the Linux test (FT-353, decision log ID-527), without the headless acceptance
-      # tests and the command fuzzer, which run once per job in the all-features run of test-linux (the filter is
-      # xtask's ONCE_PER_JOB_FILTER, kept equal by a test: FT-268, FT-306).
-      - name: cargo nextest (without the acceptance tests and the fuzzer)
-        run: cargo nextest run --workspace --locked --profile ci -E 'not (package(ew-api) and binary(acceptance)) and not (package(ew-testkit) and binary(command_fuzz))'
+      # The default-features run of the Linux test (FT-353, decision log ID-527), whole: the headless acceptance tests
+      # and the command fuzzer run once per job, here (FT-268, FT-306), since the all-features run of test-linux covers
+      # only the packages with a feature that the default run leaves off (FT-1132, ID-1217).
+      - name: cargo nextest (with the acceptance tests and the fuzzer)
+        run: cargo nextest run --workspace --locked --profile ci
       # Names every failed nextest case as a check-run annotation (the job log needs admin rights to read).
       - name: failed tests as annotations
         if: failure()
