@@ -345,8 +345,20 @@ fn the_windows_potential_names_are_the_reports_names() {
     let report: Vec<String> = (0..set.rows.len())
         .map(|i| texts(&q, &set, i)[pot].clone())
         .collect();
-    // The table entries of the connection points that carry a wire: their potentials' names.
-    let mut named = std::collections::BTreeSet::new();
+    // Each connection point that carries a wire: its potential's name against the Potential cell of the wire-list
+    // row of each of its connections. The row of a wire has the ID of its carrier connection, so a connection that
+    // is the carrier of its wire is found by that ID; one that is another constituent of its wire (through a
+    // junction or an interruption point) has no row of its own ID and is found by the row's From/To cells, which
+    // read the connection point's label (`<tag>:<designation>`). A connection point whose label no row's end
+    // reads (an interruption point, a numbered pin) is not compared.
+    let (from, from_cp, to, to_cp) = (
+        col(&set, "from"),
+        col(&set, "from_cp"),
+        col(&set, "to"),
+        col(&set, "to_cp"),
+    );
+    let reads = |cell: &str, name: &str| cell == name || cell.split(" \u{21C4} ").any(|side| side == name);
+    let mut compared = std::collections::BTreeMap::<String, usize>::new();
     let mut unnamed = std::collections::BTreeSet::new();
     for folio in ["101", "102", "103", "104", "105", "106"] {
         // The pages that are not drawn (generated ones) have no tables.
@@ -357,35 +369,49 @@ fn the_windows_potential_names_are_the_reports_names() {
             let Some(p) = &cp.potential else { continue };
             if p.fallback {
                 unnamed.insert(p.name.clone());
-            } else {
-                named.insert(p.name.clone());
+            }
+            for c in &cp.connections {
+                let by_id: Vec<usize> = (0..set.rows.len())
+                    .filter(|i| set.rows[*i].id.0 == [ew_reports::RowKey::Entity(*c)])
+                    .collect();
+                let rows = if by_id.is_empty() {
+                    (0..set.rows.len())
+                        .filter(|i| {
+                            let x = texts(&q, &set, *i);
+                            format!("{}:{}", x[from], x[from_cp]) == cp.label
+                                || format!("{}:{}", x[to], x[to_cp]) == cp.label
+                        })
+                        .collect()
+                } else {
+                    by_id
+                };
+                for i in rows {
+                    assert!(
+                        reads(&report[i], &p.name),
+                        "the window names {} at {} {}, the wire list row {i} reads {}",
+                        p.name,
+                        folio,
+                        cp.label,
+                        report[i]
+                    );
+                    *compared.entry(p.name.clone()).or_default() += 1;
+                }
             }
         }
     }
-    // A bond wire's cell reads `A ⇄ B`: its sides are names too.
-    let in_report = |name: &str| {
-        report
-            .iter()
-            .any(|cell| cell == name || cell.split(" \u{21C4} ").any(|side| side == name))
-    };
-    assert!(named.contains("L") && named.contains("24VDC-1"), "{named:?}");
-    for name in &named {
+    for name in ["L", "24VDC-1", "PE"] {
         assert!(
-            in_report(name),
-            "the window names {name}, the wire list does not: {report:?}"
+            compared.contains_key(name),
+            "{name} was not compared: {compared:?}"
         );
     }
+    // The potential only a pin names: the fallback `<tag>:<designation>` of a member pin, whole.
     assert_eq!(
-        unnamed.len(),
-        1,
-        "the one potential only a pin names: {unnamed:?}"
+        unnamed.into_iter().collect::<Vec<_>>(),
+        ["-103K1:A2".to_owned()],
+        "the one potential only a pin names"
     );
-    for name in &unnamed {
-        assert!(
-            in_report(name),
-            "the window names {name}, the wire list does not: {report:?}"
-        );
-    }
+    assert!(compared.contains_key("-103K1:A2"), "{compared:?}");
 }
 
 #[test]

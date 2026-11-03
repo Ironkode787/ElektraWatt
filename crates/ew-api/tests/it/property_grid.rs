@@ -1120,4 +1120,12 @@ fn ft1076_an_external_points_row_names_its_reference() {
         other => format!("{other:?}"),
     };
     assert_eq!(text(&s), "JE-N1000-03:PE");
+    // The reference without a connection reads its device alone.
+    let mut s = s;
+    s.execute(&AnyCommand {
+        name: "fields.set".into(),
+        params: json!({"kind": "external_ref", "targets": [reference], "path": "connection", "value": null}),
+    })
+    .expect("the connection is cleared");
+    assert_eq!(text(&s), "JE-N1000-03");
 }
