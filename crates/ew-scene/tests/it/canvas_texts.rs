@@ -450,3 +450,112 @@ fn a_cable_tag_stands_clear_of_its_mark() {
     assert!(t.rect.min().x >= mark.max().x, "beside the mark on the right");
     assert!(upright(t));
 }
+
+/// A black box `n` (function `n + 0x1000`) at grid `(x, y)` with a `w` × `h`-step outline, the given box CPs and pin
+/// texts and, when `caption` is set, its tag, part number and manufacturer.
+fn boxed(
+    n: u128,
+    (x, y): (i64, i64),
+    (w, h): (i64, i64),
+    cps: &[(u16, (i64, i64), &str)],
+    pins: &[(u16, &str)],
+    caption: Option<[&str; 3]>,
+) -> RepView {
+    let s = symbol(BLACKBOX);
+    let cps: Vec<serde_json::Value> = cps
+        .iter()
+        .map(|(idx, (x, y), dir)| json!({"idx": idx, "pos": [g(*x), g(*y)], "dir": dir}))
+        .collect();
+    RepView {
+        rep: rep(
+            n,
+            s.id,
+            x,
+            y,
+            json!({"box": {"outline": [[0, 0], [g(w), 0], [g(w), g(h)], [0, g(h)]], "cps": cps}}),
+        ),
+        symbol: Some(s.def.clone()),
+        slots: caption.map_or_else(Vec::new, |[tag, part, maker]| {
+            vec![
+                value(slot(&s, &SlotKind::Tag), tag),
+                value(slot(&s, &SlotKind::PartNumber), part),
+                value(slot(&s, &SlotKind::Manufacturer), maker),
+            ]
+        }),
+        terminals: Vec::new(),
+        pins: pins
+            .iter()
+            .map(|(idx, text)| PinText {
+                idx: *idx,
+                text: (*text).to_owned(),
+            })
+            .collect(),
+    }
+}
+
+/// The caption of `black_box` (0x11, no top CP) and a neighbour 0x12 at grid (32, 26), 12 × 4 steps, whose top pin at
+/// grid (34, 26) leaves up, its text "Q1.0" over that caption.
+fn caption_under_a_pin() -> Vec<RepView> {
+    vec![
+        black_box(&[(0, (0, 6), "left")], &[]),
+        boxed(
+            0x12,
+            (32, 26),
+            (12, 4),
+            &[(0, (2, 0), "up")],
+            &[(0, "Q1.0")],
+            None,
+        ),
+    ]
+}
+
+/// The caption of `black_box`.
+const CAPTION: [&str; 3] = ["-101A1", "EW-GEN-PSU-1", "Generic"];
+
+/// ID-1250 (FT-1138): a risen caption is judged by the tag rule's free test. The neighbour's pin wire runs up from
+/// grid (34, 26) to a box above, through the place the caption would rise to: the caption never lies across it; with
+/// no free place within three rises it stays in its slot.
+#[test]
+fn a_risen_caption_never_lies_across_a_wire() {
+    let mut reps = caption_under_a_pin();
+    reps.push(boxed(0x13, (30, 2), (12, 8), &[(0, (4, 8), "down")], &[], None));
+    let wired = view(reps.clone(), vec![connection(0x41, (0x1012, 0), (0x1013, 0))]);
+    let unwired = view(reps, Vec::new());
+    let wire_x = g(34);
+    let across = |t: Rect| t.min().x.0 < wire_x && wire_x < t.max().x.0 && t.min().y.0 < g(26);
+    let r = runs(&unwired);
+    assert!(
+        CAPTION.iter().any(|c| across(run(&r, 0x11, c).rect)),
+        "the case: without the wire the caption rises to where the wire runs"
+    );
+    let mut slot = caption_under_a_pin();
+    slot[1].pins.clear();
+    let alone = runs(&view(slot, Vec::new()));
+    let r = runs(&wired);
+    for c in CAPTION {
+        let t = run(&r, 0x11, c).rect;
+        assert!(!across(t), "{c} {t:?} across the wire");
+        assert_eq!(t, run(&alone, 0x11, c).rect, "{c} stays in its slot");
+    }
+}
+
+/// ID-1250 (FT-1138): another box's caption stands where the caption would rise to; the caption rises past it, never
+/// onto it.
+#[test]
+fn a_risen_caption_clears_another_caption() {
+    let other = ["-101A2", "MICO 4.10", "Murrelektronik"];
+    let mut reps = caption_under_a_pin();
+    reps.push(boxed(0x14, (30, 25), (4, 4), &[], &[], Some(other)));
+    let r = runs(&view(reps, Vec::new()));
+    let pin = run(&r, 0x12, "Q1.0").rect;
+    let other: Vec<Rect> = other.iter().map(|c| run(&r, 0x14, c).rect).collect();
+    let top = other.iter().map(|o| o.min().y.0).min().unwrap();
+    for c in CAPTION {
+        let t = run(&r, 0x11, c).rect;
+        assert!(!run_into(t, pin), "{c} {t:?} over the pin text {pin:?}");
+        for o in &other {
+            assert!(!run_into(t, *o), "{c} {t:?} onto the other caption {o:?}");
+        }
+        assert!(t.max().y.0 <= top - SLOT_TEXT_GAP.0 + 1_000, "{c} {t:?} above it");
+    }
+}

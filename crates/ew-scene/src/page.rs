@@ -98,8 +98,10 @@
 //!   CP on the top edge they are left-aligned on the outline's left edge (the tag where the symbol puts it); else
 //!   right-aligned one grid step left of the leftmost top CP, so no caption text stands over a CP, its pin text or
 //!   its wire. A text with an override stays where it says. A stack that collides with another representation's pin
-//!   text (FT-1138) rises [`SLOT_TEXT_GAP`] above the pin texts in its way, at most three times, as a raised device
-//!   tag does; without a free place it stays.
+//!   text (FT-1138) rises [`SLOT_TEXT_GAP`] above what is in its way, at most three times, as a raised device tag
+//!   does, to the first place the device-tag rule judges free (ID-1250: no wire runs through it, it collides with no
+//!   text or pin text of another representation; a movable device tag yields to it in its turn); without a free place
+//!   it stays.
 //! - **Device tags** (FT-758). A device tag of a symbol that is no black box, without a position or angle override
 //!   and printing horizontally, moves when a wire runs through it, or when it collides (as in rule 2 above) with a
 //!   fixed text of another representation (a black-box caption, a CP designation, a pin text) or with the tag of a
@@ -1127,8 +1129,9 @@ impl Builder<'_> {
     /// the box's top edge in that order, [`SLOT_TEXT_GAP`] apart, the tag's anchor [`BLACK_BOX_CAPTION_GAP`] above
     /// the outline. Left-aligned on the outline's left edge when the top edge has no CP; else right-aligned one grid
     /// step left of the leftmost top CP, so that no caption text stands over a CP, its pin text or its wire. A stack
-    /// that collides with another representation's pin text (`pins`, FT-1138) rises [`SLOT_TEXT_GAP`] above the pin
-    /// texts in its way, at most [`SLOT_TEXT_DROPS`] times, as a raised device tag does; without a free place it stays.
+    /// that collides with another representation's pin text (`pins`, FT-1138) rises [`SLOT_TEXT_GAP`] above what is in
+    /// its way, at most [`SLOT_TEXT_DROPS`] times, as a raised device tag does, to the first place the tag rule's free
+    /// test ([`in_the_way`], ID-1250) passes; without a free place it stays. The stacks rise after all are stacked.
     fn place_black_box_captions(
         &self,
         view: &PageView,
@@ -1136,6 +1139,7 @@ impl Builder<'_> {
         pins: &[(EntityRef, Rect)],
     ) {
         let step = view.grid.at(1).unwrap_or(Nm::ZERO);
+        let mut stacks: Vec<(EntityRef, Vec<usize>, Rect)> = Vec::new();
         for rv in sorted_reps(view) {
             let rep = &rv.rep;
             let (Some(def), Some(b)) = (&rv.symbol, &rep.box_) else {
@@ -1199,28 +1203,58 @@ impl Builder<'_> {
                     }));
                 }
             }
-            // FT-1138 (ID-1228 item 6): the stack rises above another representation's pin texts in its way.
-            let Some(own) = stack else { continue };
+            if let Some(own) = stack {
+                stacks.push((entity, lines.iter().map(|&(_, i)| i).collect(), own));
+            }
+        }
+        // FT-1138 (ID-1228 item 6, ID-1250): a stack over another representation's pin text rises to the first place
+        // the tag rule judges free. A movable device tag does not count: it yields to the caption in its turn.
+        if stacks.is_empty() {
+            return;
+        }
+        let wires = page_wires(view);
+        let entities: Vec<EntityRef> = texts.iter().map(|t| t.entity).collect();
+        let movable: Vec<bool> = texts
+            .iter()
+            .map(|t| t.movable_tag && t.angle == Angle2::ZERO)
+            .collect();
+        for (entity, lines, own) in stacks {
+            if !pins.iter().any(|(e, o)| *e != entity && collides(own, *o)) {
+                continue;
+            }
+            let boxes: Vec<Option<Rect>> = texts
+                .iter()
+                .map(|t| self.text_box(&t.spec(false), t.xref))
+                .collect();
             let in_way = |b: Rect| {
-                pins.iter()
-                    .filter(|(e, o)| *e != entity && collides(b, *o))
-                    .map(|(_, o)| o.min().y)
-                    .min()
+                in_the_way(
+                    b,
+                    entity,
+                    (&boxes, &entities),
+                    |k| movable[k] || lines.contains(&k),
+                    pins,
+                    &wires,
+                )
             };
             let mut b = own;
-            let mut free = true;
+            let mut found = false;
             for _ in 0..SLOT_TEXT_DROPS {
-                let Some(top) = in_way(b) else { break };
+                let Some(top) = in_way(b).and_then(|w| w.iter().map(|w| w.0).min()) else {
+                    break;
+                };
                 let dy = Nm(top.0 - SLOT_TEXT_GAP.0 - b.max().y.0);
                 b = Rect::from_points(
                     Pt2::new(b.min().x, b.min().y + dy),
                     Pt2::new(b.max().x, b.max().y + dy),
                 );
-                free = in_way(b).is_none();
+                if in_way(b).is_some_and(|w| w.is_empty()) {
+                    found = true;
+                    break;
+                }
             }
-            let dy = b.min().y - own.min().y;
-            if free && dy != Nm::ZERO {
-                for &(_, i) in &lines {
+            if found {
+                let dy = b.min().y - own.min().y;
+                for &i in &lines {
                     texts[i].at = texts[i].at + Pt2::new(Nm::ZERO, dy);
                 }
             }
@@ -1286,14 +1320,7 @@ impl Builder<'_> {
         if !texts.iter().any(|t| t.movable_tag) {
             return;
         }
-        let cps = cp_map(view);
-        let page = page_rect(view);
-        let mut wires: Vec<(Pt2, Pt2)> = Vec::new();
-        for cv in sorted_connections(view) {
-            if let Some(pts) = polyline_of(view, &cps, &cv.connection, page) {
-                wires.extend(pts.windows(2).map(|w| (w[0], w[1])));
-            }
-        }
+        let wires = page_wires(view);
         let mut boxes: Vec<Option<Rect>> = texts
             .iter()
             .map(|t| self.text_box(&t.spec(false), t.xref))
@@ -1321,44 +1348,16 @@ impl Builder<'_> {
             if !yields {
                 continue;
             }
-            // What is in the way of a place `b`: the vertical extent of each text and horizontal wire there; `None`
-            // when another wire runs through it. Empty: the place is free.
-            let in_way = |b: Rect, boxes: &[Option<Rect>]| -> Option<Vec<(Nm, Nm)>> {
-                let mut out: Vec<(Nm, Nm)> = Vec::new();
-                for (k, o) in boxes.iter().enumerate() {
-                    // A movable tag printed later yields to this one in its turn.
-                    if k == i || (k > i && movable[k]) {
-                        continue;
-                    }
-                    let Some(o) = *o else { continue };
-                    let hit = if entities[k] == entity {
-                        overlaps(b, o)
-                    } else {
-                        collides(b, o)
-                    };
-                    if hit {
-                        out.push((o.min().y, o.max().y));
-                    }
-                }
-                for (e, o) in pins {
-                    let hit = if *e == entity {
-                        overlaps(b, *o)
-                    } else {
-                        collides(b, *o)
-                    };
-                    if hit {
-                        out.push((o.min().y, o.max().y));
-                    }
-                }
-                for &(a, c) in &wires {
-                    if wire_through(b, (a, c)) {
-                        if a.y != c.y {
-                            return None;
-                        }
-                        out.push((a.y, a.y));
-                    }
-                }
-                Some(out)
+            // A movable tag printed later yields to this one in its turn.
+            let in_way = |b: Rect, boxes: &[Option<Rect>]| {
+                in_the_way(
+                    b,
+                    entity,
+                    (boxes, &entities),
+                    |k| k == i || (k > i && movable[k]),
+                    pins,
+                    &wires,
+                )
             };
             let free = |b: Rect, boxes: &[Option<Rect>]| in_way(b, boxes).is_some_and(|v| v.is_empty());
             let Some(rv) = view.reps.iter().find(|r| EntityRef(r.rep.id.as_uuid()) == entity) else {
@@ -1998,6 +1997,68 @@ fn turned_align(align: &Align) -> Option<Align> {
         Align::MiddleLeft => Some(Align::TopCentre),
         _ => None,
     }
+}
+
+/// The page's wire segments, connections in ID order (FT-758): the obstacles of the tag rule.
+fn page_wires(view: &PageView) -> Vec<(Pt2, Pt2)> {
+    let cps = cp_map(view);
+    let page = page_rect(view);
+    let mut wires: Vec<(Pt2, Pt2)> = Vec::new();
+    for cv in sorted_connections(view) {
+        if let Some(pts) = polyline_of(view, &cps, &cv.connection, page) {
+            wires.extend(pts.windows(2).map(|w| (w[0], w[1])));
+        }
+    }
+    wires
+}
+
+/// The tag rule's free test (FT-758, module documentation, "Device tags"; FT-1138's risen caption, ID-1250): what is
+/// in the way of a place `b` of a text of `entity`, as the vertical extent of each text (`texts`: the boxes and their
+/// entities, but those `skip` names) and pin text there, and of each horizontal wire through it; `None` when another
+/// wire runs through it. Empty: the place is free. A text or pin text of `entity` is in the way when it overlaps the
+/// place; another representation's when it collides with it.
+fn in_the_way(
+    b: Rect,
+    entity: EntityRef,
+    (boxes, entities): (&[Option<Rect>], &[EntityRef]),
+    skip: impl Fn(usize) -> bool,
+    pins: &[(EntityRef, Rect)],
+    wires: &[(Pt2, Pt2)],
+) -> Option<Vec<(Nm, Nm)>> {
+    let mut out: Vec<(Nm, Nm)> = Vec::new();
+    for (k, o) in boxes.iter().enumerate() {
+        if skip(k) {
+            continue;
+        }
+        let Some(o) = *o else { continue };
+        let hit = if entities[k] == entity {
+            overlaps(b, o)
+        } else {
+            collides(b, o)
+        };
+        if hit {
+            out.push((o.min().y, o.max().y));
+        }
+    }
+    for (e, o) in pins {
+        let hit = if *e == entity {
+            overlaps(b, *o)
+        } else {
+            collides(b, *o)
+        };
+        if hit {
+            out.push((o.min().y, o.max().y));
+        }
+    }
+    for &(a, c) in wires {
+        if wire_through(b, (a, c)) {
+            if a.y != c.y {
+                return None;
+            }
+            out.push((a.y, a.y));
+        }
+    }
+    Some(out)
 }
 
 /// Whether a wire segment `(a, b)` meets the open inside of `r` (FT-758).
