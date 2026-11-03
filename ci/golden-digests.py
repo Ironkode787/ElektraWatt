@@ -6,7 +6,7 @@
 
   python3 -I ci/golden-digests.py <ew> <project> <out-dir>
   python3 -I ci/golden-digests.py --compare <a> <b> --expected <dir>
-  python3 -I ci/golden-digests.py --test
+  python3 -I ci/golden-digests.py --test                                 # its offline unit test
 
 The first form runs <ew> (a release build, D5 and D6) on <project> and writes <out-dir>/digests.txt: `<sha256>  <name>`
 of every output, sorted by name, then the line `fmt-check clean`:

@@ -17,6 +17,11 @@ count = 8
 
 [[allow]]
 crate = "elektrawatt"
+item = "fn bless"
+count = 1
+
+[[allow]]
+crate = "elektrawatt"
 item = "fn env_path"
 count = 1
 

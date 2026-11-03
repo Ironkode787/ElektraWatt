@@ -5,7 +5,7 @@
 """The UI stack's lag behind its newest releases (WP-S6.06 D17; NFR-MAINT-04; doc 18 §6.3, CI-W-03's lag half).
 
   python3 -I ci/ui-stack-lag.py [--lock Cargo.lock]
-  python3 -I ci/ui-stack-lag.py --test
+  python3 -I ci/ui-stack-lag.py --test                    # its offline unit test
 
 Reads the locked versions of the UI stack (CRATES) from Cargo.lock and, from the crates.io sparse index
 (https://index.crates.io), the newest release of each that is not yanked and not a pre-release, and prints a Markdown
