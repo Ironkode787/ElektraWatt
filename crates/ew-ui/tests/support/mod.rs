@@ -6,6 +6,8 @@
 
 #![allow(dead_code, missing_docs)]
 
+pub mod colour;
+
 use std::cell::RefCell;
 use std::collections::VecDeque;
 use std::path::{Path, PathBuf};
