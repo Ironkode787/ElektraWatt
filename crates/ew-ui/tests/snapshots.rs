@@ -178,9 +178,10 @@ fn the_main_window_in_light_and_dark_at_both_densities() {
 }
 
 /// DK7's 300 % variant: the main window, light and Comfortable, at 1280 × 800 points on a 300 % display (3840 × 2400
-/// pixels). The setting `ui_scale` stops at 200 % (`UI_SCALES`), so 300 % is the system's scale (egui's native pixels
-/// per point), which is how a 300 % display reaches the window. Gated since FT-537 (the orchestrator's ruling) and
-/// re-blessed with the main-window images; the test keeps its name from before the ruling.
+/// pixels). The setting `ui_scale` reaches 300 % too (`UI_SCALES`, WP-S2.08 D14); this variant takes 300 % as the
+/// system's scale (egui's native pixels per point), which is how a 300 % display reaches the window. Gated since
+/// FT-537 (the orchestrator's ruling) and re-blessed with the main-window images; the test keeps its name from before
+/// the ruling.
 #[test]
 fn the_main_window_at_300_percent_for_review() {
     let dev = device();

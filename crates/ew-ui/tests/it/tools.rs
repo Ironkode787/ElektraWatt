@@ -180,7 +180,11 @@ fn t6_t10_select_and_measure_from_the_keyboard_alone() {
         "Enter clicked at the cursor"
     );
     if !shell.selection().is_empty() {
-        assert!(live(&h).ends_with(" selected"), "{}", live(&h));
+        // WP-S2.08 D13: the one selected device in words.
+        assert_eq!(
+            live(&h),
+            "-102F2, Black box, folio 102, 10 connection points, 8 wires"
+        );
         press(&mut h, Key::Escape);
         assert!(h.state().shell().selection().is_empty());
     }
