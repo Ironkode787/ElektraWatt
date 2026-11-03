@@ -22,7 +22,7 @@ use super::{
     AccessMode, Dialog, HistoryMarker, Mode, Outcome, Project, Prompt, Record, ShellModel, dir_name, failed,
     open_error_key, string_param,
 };
-use crate::jobs::{ExportDone, JobStatus, JobsState};
+use crate::jobs::{ExportDone, JobKind, JobStatus, JobsState};
 use crate::layout::PaneKind;
 use crate::notifications::{NoteAction, NoteTone, Notification, NotificationLog, Validity};
 use crate::strings;
@@ -75,13 +75,13 @@ fn file_url_of(path: &Path) -> String {
 /// The export target made absolute when the job starts (against the working directory), so the entry's path and
 /// Open PDF's `file://` URL name the written file even when a script passed a relative path (review finding 6 of
 /// cycle 30). A path `std::path::absolute` cannot handle (an empty one) stays as it is.
-fn absolute_target(path: PathBuf) -> PathBuf {
+pub(super) fn absolute_target(path: PathBuf) -> PathBuf {
     std::path::absolute(&path).unwrap_or(path)
 }
 
 /// Whether `target` lies inside the project directory `dir`: compared on the canonical paths when both exist, else on
 /// the absolute ones (component by component, so `p.ew2` is not inside `p.ew`).
-fn inside(dir: &Path, target: &Path) -> bool {
+pub(super) fn inside(dir: &Path, target: &Path) -> bool {
     let folder = target.parent().unwrap_or(target);
     match (std::fs::canonicalize(dir), std::fs::canonicalize(folder)) {
         (Ok(d), Ok(f)) => f.starts_with(d),
@@ -402,7 +402,7 @@ impl ShellModel {
     /// Waits for job `number` and takes its end; the step's outcome by the end (§6.3 item 5). The waiting step sees
     /// the end, so it is not an unseen failure, also when a poll took the end before this step (R1-2 of cycle 31); the
     /// entry is marked as waited for, whatever its end (R2-1).
-    fn wait_job(&mut self, number: u64) -> Outcome {
+    pub(super) fn wait_job(&mut self, number: u64) -> Outcome {
         let Some(handle) = self.jobs.get_mut(number).and_then(|e| e.handle.take()) else {
             if let Some(entry) = self.jobs.get_mut(number) {
                 entry.unseen_failure = None;
@@ -441,14 +441,22 @@ impl ShellModel {
                     n.key == "export"
                         && matches!(&n.action, Some((NoteAction::Open, Validity::Open { path })) if *path == entry.path)
                 });
-                let text = strings::format(
-                    if again {
-                        key!("toast-export-pdf-again")
-                    } else {
-                        key!("toast-export-pdf")
-                    },
-                    &[&entry.name, &done.pages.to_string(), &kib.to_string()],
-                );
+                // WP-S3.08 ruling 4 of ID-1224: a table has no pages; its end says the size only.
+                let table = entry.kind == JobKind::Table;
+                let text = match (table, again) {
+                    (false, false) => strings::format(
+                        key!("toast-export-pdf"),
+                        &[&entry.name, &done.pages.to_string(), &kib.to_string()],
+                    ),
+                    (false, true) => strings::format(
+                        key!("toast-export-pdf-again"),
+                        &[&entry.name, &done.pages.to_string(), &kib.to_string()],
+                    ),
+                    (true, false) => strings::format(key!("toast-export-table"), &[&entry.name, &kib.to_string()]),
+                    (true, true) => {
+                        strings::format(key!("toast-export-table-again"), &[&entry.name, &kib.to_string()])
+                    }
+                };
                 let open = (
                     NoteAction::Open,
                     Validity::Open {
@@ -457,7 +465,7 @@ impl ShellModel {
                 );
                 (
                     JobStatus::Done {
-                        pages: done.pages,
+                        pages: (!table).then_some(done.pages),
                         kib,
                         now,
                     },
@@ -495,8 +503,13 @@ impl ShellModel {
                 )
             }
         };
+        let marker_key = if entry.kind == JobKind::Table {
+            key!("marker-export-table")
+        } else {
+            key!("marker-export")
+        };
         let marker = matches!(status, JobStatus::Done { .. })
-            .then(|| strings::format(key!("marker-export"), &[&entry.name]))
+            .then(|| strings::format(marker_key, &[&entry.name]))
             .filter(|_| same_session)
             .map(|text| HistoryMarker { rev: entry.rev, text });
         entry.status = status;

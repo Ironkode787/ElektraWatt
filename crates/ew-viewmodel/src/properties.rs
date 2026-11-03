@@ -244,6 +244,67 @@ pub enum CardOrigin {
         /// The clipboard text of the pending paste.
         text: String,
     },
+    // WP-S3.08 part 3
+    /// A table round trip's file read against a navigator's table (`navigator.import_table`, D14, ruling 6 of
+    /// ID-1224): the card in the Preview tab with the counts and the per-cell list; Apply commits the import's one
+    /// `fields.set_many`.
+    TableImport(Box<TableImportCard>),
+}
+
+/// What a table import card shows and commits (WP-S3.08 D14).
+#[derive(Clone, PartialEq, Debug)]
+pub struct TableImportCard {
+    /// The file's base name (`strips.xlsx`).
+    pub source: String,
+    /// The file read against the project: the cells, the findings, the missing rows and the command.
+    pub import: ew_api::output::TableImport,
+}
+
+// The import holds its command's parameters as JSON, which has no NaN: equality is total.
+impl Eq for TableImportCard {}
+
+impl TableImportCard {
+    /// The card's counts line: "5 changed, 0 kept, 1 conflict: the project's value is kept, …".
+    pub fn counts_line(&self) -> String {
+        let c = self.import.counts();
+        let conflicts = match c.conflicts {
+            0 => strings::format(key!("table-import-conflicts"), &["0"]),
+            1 => strings::text(key!("table-import-conflict-kept")).to_owned(),
+            n => strings::format(key!("table-import-conflicts-kept"), &[&n.to_string()]),
+        };
+        strings::format(
+            key!("table-import-counts"),
+            &[
+                &c.changed.to_string(),
+                &c.kept.to_string(),
+                &conflicts,
+                &c.refused.to_string(),
+                &c.unknown.to_string(),
+                &c.missing.to_string(),
+            ],
+        )
+    }
+
+    /// One cell's line of the per-cell list: `-X1031:1 · Function text · "Valve" → "Valve 1" · applied`, with the
+    /// reason of a read-only or refused cell.
+    pub fn cell_line(cell: &ew_api::output::ImportCell) -> String {
+        use ew_api::output::CellOutcome;
+        let outcome = match cell.outcome {
+            CellOutcome::Applied | CellOutcome::Conflict { taken: true } => key!("table-import-cell-applied"),
+            CellOutcome::Kept => key!("table-import-cell-kept"),
+            CellOutcome::Conflict { taken: false } => key!("table-import-cell-conflict"),
+            CellOutcome::ReadOnly => key!("table-import-cell-read-only"),
+            CellOutcome::Refused => key!("table-import-cell-refused"),
+        };
+        let outcome = match &cell.reason {
+            Some(reason) => format!("{}: {reason}", strings::text(outcome)),
+            None => strings::text(outcome).to_owned(),
+        };
+        strings::format(
+            key!("table-import-cell"),
+            &[&cell.row_label, &cell.column_label, &cell.ew, &cell.file, &outcome],
+        )
+    }
 }
 
 /// What the paste choice card shows and keeps (WP-S2.07 D22).
@@ -370,6 +431,7 @@ impl CardOrigin {
             CardOrigin::Part(_) => "part",
             CardOrigin::PasteVersions(_) => "paste",
             CardOrigin::PasteUpdate { .. } => "update",
+            CardOrigin::TableImport(_) => "table-import",
         }
     }
 }

@@ -505,6 +505,28 @@ pub(crate) fn chooser(ui: &mut Ui, nav: &Navigator, events: &mut Vec<Event>) {
                 }
             });
         }
+        // WP-S3.08 part 3 (ruling 2 of ID-1224): the table to a file and back, a separated block after the columns;
+        // each runs on this navigator, which takes the focus first.
+        ui.separator();
+        for (action, label) in [
+            (
+                "navigator.export_table",
+                key!("action-navigator-export-table"),
+            ),
+            (
+                "navigator.import_table",
+                key!("action-navigator-import-table"),
+            ),
+        ] {
+            if ui.button(strings::text(label)).clicked() {
+                events.push(Event::Action(
+                    "ui.focus",
+                    json!({"area": "navigator", "kind": word}),
+                ));
+                events.push(Event::Action(action, json!({})));
+                ui.close();
+            }
+        }
     });
     crate::command_bar::state_overlay(ui, &t, &response, true, t.radius_sm);
 }

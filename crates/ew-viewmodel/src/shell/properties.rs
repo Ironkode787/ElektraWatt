@@ -2136,6 +2136,10 @@ impl ShellModel {
                 reason_key: key!("reason-no-card"),
             };
         };
+        // WP-S3.08 part 3: a table import card commits the import's own command (ruling 6 of ID-1224).
+        if matches!(card.origin, CardOrigin::TableImport(_)) {
+            return self.apply_table_import_card(card);
+        }
         // WP-S2.05 part 2: a replace card is the find pane's (§7.4).
         if matches!(card.origin, CardOrigin::Find { .. }) {
             return self.apply_find_card(card);

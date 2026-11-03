@@ -331,6 +331,24 @@ fn has_pages(m: &ShellModel) -> Result<(), Key<'static>> {
     }
 }
 
+// WP-S3.08 part 3
+/// Export table… and Import table… (ruling 2 of ID-1224): a project with the focused navigator shown as its table; the
+/// Messages pane passes, and its action refuses as `navigator.table` does.
+fn table_shown(m: &ShellModel) -> Result<(), Key<'static>> {
+    project_open(m)?;
+    match m.focused_navigator() {
+        Some(crate::navigators::NavKind::Messages) => Ok(()),
+        Some(k) if m.nav(k).is_some_and(|n| n.table_mode().is_some()) => {
+            if ew_api::output::TABLE_NAVIGATORS.contains(&k) {
+                Ok(())
+            } else {
+                Err(key!("reason-table-no-file"))
+            }
+        }
+        _ => Err(key!("reason-table-off")),
+    }
+}
+
 // WP-S2.09 part 3
 /// The history panel's row moves and Show changes: a project with the panel open.
 fn history_open(m: &ShellModel) -> Result<(), Key<'static>> {
@@ -4076,6 +4094,32 @@ pub static ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_navigator_table(p),
         )),
     )),
+    // WP-S3.08 part 3 (D14, ruling 2 of ID-1224): the table on show to a file as a job, and a round trip's file back
+    // through the Preview tab; in the table's Columns menu and the Output menu.
+    with_params(
+        "path?:path, format?:enum(xlsx|csv), preset?:text, replace?:bool, wait?:bool",
+        act(
+            "navigator.export_table",
+            Command,
+            Menu::Output,
+            &[],
+            table_shown,
+            grp(Group::Lists),
+            |s, p| s.act_export_table(p),
+        ),
+    ),
+    with_params(
+        "path?:path",
+        act(
+            "navigator.import_table",
+            Command,
+            Menu::Output,
+            &[],
+            table_shown,
+            grp(Group::Lists),
+            |s, p| s.act_import_table(p),
+        ),
+    ),
     keeps_banner(with_params(
         "kind:text, show?:list(text), hide?:list(text), order?:list(text)",
         hidden(act(
@@ -5920,6 +5964,8 @@ mod tests {
             ("file.open", "dir"),
             ("file.save_as", "dir"),
             ("file.export_pdf", "path"),
+            ("navigator.export_table", "path"),
+            ("navigator.import_table", "path"),
             ("file.import_qet", "file"),
             ("help.tutorials", "dir"),
             ("wizard.finish", "dir"),

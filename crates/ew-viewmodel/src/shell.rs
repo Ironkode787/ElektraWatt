@@ -69,6 +69,8 @@ mod row_ops;
 // WP-S2.07 part 1: the strip editor's row gestures (§6.4, §6.5).
 mod strip_editor;
 mod table;
+// WP-S3.08 part 3: a navigator table's export and import.
+mod table_file;
 // FT-410
 mod palette;
 mod parts;
@@ -346,6 +348,10 @@ pub enum Prompt {
     OpenKeymap,
     /// A keymap file name (the keymap editor's Export…).
     SaveKeymap,
+    /// A table file name, XLSX or CSV (a navigator table's Export table…, WP-S3.08 part 3).
+    SaveTable,
+    /// An existing table file, XLSX or CSV (Import table…).
+    OpenTable,
 }
 
 /// A request to the window to open a page of the user guide in the system browser (F1).
@@ -1968,13 +1974,15 @@ impl ShellModel {
         {
             return outcome;
         }
-        // WP-S2.06 part 1: Escape in a navigator cancels the reorder card (WP-S2.09 part 2: and the quick-fix card).
+        // WP-S2.06 part 1: Escape in a navigator cancels the reorder card (WP-S2.09 part 2: and the quick-fix card;
+        // WP-S3.08 part 3: and the table import card).
         if matches!(self.focus, Some(Focus::Navigator(_)))
             && self.props.card().is_some_and(|c| {
                 matches!(
                     c.origin,
                     crate::properties::CardOrigin::Reorder { .. }
                         | crate::properties::CardOrigin::QuickFix { .. }
+                        | crate::properties::CardOrigin::TableImport(_)
                 )
             })
         {

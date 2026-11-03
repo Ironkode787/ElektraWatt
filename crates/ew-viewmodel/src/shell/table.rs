@@ -249,7 +249,7 @@ impl ShellModel {
     // State
 
     /// The navigator of `kind` in table mode, or the refusal "switch to the table first".
-    fn table_nav(&self, kind: NavKind) -> Result<&Navigator, Outcome> {
+    pub(super) fn table_nav(&self, kind: NavKind) -> Result<&Navigator, Outcome> {
         match self.generic(kind) {
             Some(n) if n.table_mode.is_some() => Ok(n),
             Some(_) => Err(Outcome::Refused {

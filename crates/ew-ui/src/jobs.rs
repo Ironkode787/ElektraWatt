@@ -106,10 +106,11 @@ fn entry(ui: &mut Ui, e: &JobEntry, elapsed: Option<std::time::Duration>, events
         JobStatus::Done { pages, kib, now } => {
             ui.horizontal_wrapped(|ui| {
                 crate::components::status_badge(ui, crate::components::Badge::Done);
-                ui.label(strings::format(
-                    key!("job-done"),
-                    &[&pages.to_string(), &kib.to_string()],
-                ));
+                // WP-S3.08 ruling 4 of ID-1224: a table's end names its size only.
+                ui.label(match pages {
+                    Some(pages) => strings::format(key!("job-done"), &[&pages.to_string(), &kib.to_string()]),
+                    None => strings::format(key!("job-done-table"), &[&kib.to_string()]),
+                });
                 if let Some(m) = now {
                     ui.label(strings::format(
                         key!("job-now"),

@@ -755,6 +755,9 @@ pub(crate) fn card_status(shell: &ShellModel) -> CardStatus {
         return CardStatus::Fresh;
     };
     match (&card.preview.result, card.preview.status(rev)) {
+        // WP-S3.08 part 3: a table import with no cell to apply has not failed: its Apply keeps the project's values.
+        (Err(_), PreviewStatus::Stale) if nothing_to_apply(card) => CardStatus::Stale,
+        (Err(_), _) if nothing_to_apply(card) => CardStatus::Fresh,
         (Err(m), _) => CardStatus::Failed(m.clone()),
         (_, PreviewStatus::Stale) => CardStatus::Stale,
         _ => CardStatus::Fresh,
@@ -836,7 +839,14 @@ pub(crate) fn apply_blocked(shell: &ShellModel) -> Option<String> {
     shell
         .properties()
         .card()
+        .filter(|c| !nothing_to_apply(c))
         .and_then(|c| c.preview.result.as_ref().err().cloned())
+}
+
+/// Whether `card` is a table import whose file changes no cell it can apply (WP-S3.08 part 3, ruling 7 of ID-1224):
+/// it previews no command, and its Apply only closes it.
+pub(crate) fn nothing_to_apply(card: &ew_viewmodel::properties::Card) -> bool {
+    matches!(&card.origin, CardOrigin::TableImport(c) if c.import.command.is_none())
 }
 
 /// Apply (Primary) and Cancel (Secondary), right-aligned in the platform's order (doc 16a §6.12: Windows Apply then

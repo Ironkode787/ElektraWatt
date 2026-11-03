@@ -18,7 +18,7 @@ use std::io::Write as _;
 use std::path::{Path, PathBuf};
 
 use ew_api::ew_jobs::{Gate, Job, JobCtl, JobEnd, JobError, JobOptions, Progress, Waker};
-use ew_api::output::ExportJob;
+use ew_api::output::{CsvOptions, ExportJob, Table, WorkbookMeta};
 
 use crate::key;
 use crate::strings;
@@ -35,6 +35,8 @@ pub enum JobKind {
     /// The print set of the print pre-dialog (`file.print`, WP-S3.07 ruling 2 of ID-1180): it writes no file, and
     /// the dialog shows its progress in the preview's place rather than the Jobs pane.
     Print,
+    /// A navigator's table as XLSX or CSV (`navigator.export_table`, WP-S3.08 ruling 4 of ID-1224).
+    Table,
 }
 
 impl JobKind {
@@ -43,6 +45,7 @@ impl JobKind {
         match self {
             JobKind::Pdf => "pdf",
             JobKind::Print => "print",
+            JobKind::Table => "table",
         }
     }
 
@@ -51,6 +54,7 @@ impl JobKind {
         match self {
             JobKind::Pdf => key!("job-kind-pdf"),
             JobKind::Print => key!("job-kind-print"),
+            JobKind::Table => key!("job-kind-table"),
         }
     }
 }
@@ -62,8 +66,8 @@ pub enum JobStatus {
     Running,
     /// The file is written.
     Done {
-        /// The pages of the PDF.
-        pages: usize,
+        /// The pages of the PDF; `None` for a table, which has none.
+        pages: Option<usize>,
         /// Its size in KiB, rounded up.
         kib: usize,
         /// The model's revision when the end arrived, when it had moved from the job's (`now <m>`).
@@ -231,20 +235,48 @@ impl JobsState {
         rev: u64,
         epoch: u64,
     ) -> std::io::Result<u64> {
+        let produce = move |ctl: &JobCtl| job.run(ctl).map(|e| (e.bytes, e.pages));
+        self.start(JobKind::Pdf, produce, target, name, rev, epoch)
+    }
+
+    /// Starts the table export job (WP-S3.08 ruling 4 of ID-1224): `file` encoded on the job's thread and written to
+    /// `target` by the same file rule; returns its number.
+    pub(crate) fn start_table(
+        &mut self,
+        file: TableFile,
+        target: PathBuf,
+        name: String,
+        rev: u64,
+        epoch: u64,
+    ) -> std::io::Result<u64> {
+        let produce = move |_: &JobCtl| file.encode().map(|bytes| (bytes, 0));
+        self.start(JobKind::Table, produce, target, name, rev, epoch)
+    }
+
+    /// Starts a job of `kind` whose body produces the bytes (and pages) with `produce`, then writes them to `target`.
+    fn start(
+        &mut self,
+        kind: JobKind,
+        produce: impl FnOnce(&JobCtl) -> Result<(Vec<u8>, usize), JobError> + Send + 'static,
+        target: PathBuf,
+        name: String,
+        rev: u64,
+        epoch: u64,
+    ) -> std::io::Result<u64> {
         let sibling = sibling_of(&target, &name);
         let options = JobOptions {
-            name: JobKind::Pdf.word().to_owned(),
+            name: kind.word().to_owned(),
             waker: self.waker.clone(),
             gate: self.hooks.gate(),
         };
         let hooks = self.hooks.clone();
         let to = target.clone();
-        let handle = Job::spawn(options, move |ctl| export_body(job, ctl, &to, &sibling, &hooks))?;
+        let handle = Job::spawn(options, move |ctl| export_body(produce, ctl, &to, &sibling, &hooks))?;
         self.next += 1;
         let number = self.next;
         self.entries.push_back(JobEntry {
             number,
-            kind: JobKind::Pdf,
+            kind,
             name,
             rev,
             status: JobStatus::Running,
@@ -287,6 +319,36 @@ impl JobsState {
     }
 }
 
+/// What a table export job encodes (WP-S3.08 ruling 4 of ID-1224): the restricted table as a workbook with its
+/// metadata, or as CSV in a preset.
+pub(crate) enum TableFile {
+    /// A workbook (`ew_api::output::xlsx`).
+    Xlsx {
+        /// The table.
+        table: Table,
+        /// The workbook's metadata, with the base digest of the table.
+        meta: WorkbookMeta,
+    },
+    /// A CSV (`ew_api::output::table_csv`).
+    Csv {
+        /// The table.
+        table: Table,
+        /// The preset and its options.
+        options: CsvOptions,
+    },
+}
+
+impl TableFile {
+    /// The file's bytes; a workbook the writer refuses fails with the writer's sentence.
+    fn encode(self) -> Result<Vec<u8>, JobError> {
+        match self {
+            TableFile::Xlsx { table, meta } => ew_api::output::xlsx(std::slice::from_ref(&table), &meta)
+                .map_err(|e| JobError::Failed(e.to_string())),
+            TableFile::Csv { table, options } => Ok(ew_api::output::table_csv(&table, &options).into_bytes()),
+        }
+    }
+}
+
 /// The hidden sibling of `target` (whose base name is `name`): `.<name>.ew-part` in the same folder.
 pub fn sibling_of(target: &Path, name: &str) -> PathBuf {
     target.with_file_name(format!(".{name}.ew-part"))
@@ -321,23 +383,23 @@ pub(crate) fn io_cause(e: &std::io::Error) -> String {
     }
 }
 
-/// The export job's body (§6.3 step 3): the export, then the sibling written and synced, the checkpoint `rename`, the
-/// rename over the target.
+/// The export job's body (§6.3 step 3): the export (`produce`: the bytes and the pages), then the sibling written and
+/// synced, the checkpoint `rename`, the rename over the target.
 fn export_body(
-    job: ExportJob,
+    produce: impl FnOnce(&JobCtl) -> Result<(Vec<u8>, usize), JobError>,
     ctl: &JobCtl,
     target: &Path,
     sibling: &Path,
     hooks: &TestHooks,
 ) -> Result<ExportDone, JobError> {
-    let export = job.run(ctl)?;
+    let (bytes, pages) = produce(ctl)?;
     let mut guard = Sibling {
         path: sibling,
         armed: true,
     };
     let failed = |e: std::io::Error| JobError::Failed(io_cause(&e));
     let mut file = std::fs::File::create(sibling).map_err(failed)?;
-    file.write_all(&export.bytes).map_err(failed)?;
+    file.write_all(&bytes).map_err(failed)?;
     file.sync_all().map_err(failed)?;
     drop(file);
     // A test fault (feature `testkit` only): a panic with the sibling on disk.
@@ -346,8 +408,8 @@ fn export_body(
     std::fs::rename(sibling, target).map_err(failed)?;
     guard.armed = false;
     Ok(ExportDone {
-        pages: export.pages,
-        bytes: export.bytes.len(),
+        pages,
+        bytes: bytes.len(),
     })
 }
 

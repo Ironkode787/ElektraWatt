@@ -940,6 +940,16 @@ pub fn card_summary(shell: &ShellModel) -> Option<String> {
             rows.join("; ")
         ));
     }
+    // WP-S3.08 part 3: a table import card's line is its title and its counts, also when no cell applies.
+    if let CardOrigin::TableImport(c) = &card.origin
+        && (c.import.command.is_none() || card.preview.result.is_ok())
+    {
+        return Some(format!(
+            "{} · {}",
+            strings::format(key!("table-import-title"), &[&c.source]),
+            c.counts_line()
+        ));
+    }
     if let Err(message) = &card.preview.result {
         return Some(strings::format(key!("card-failed"), &[message]));
     }
@@ -983,7 +993,8 @@ pub fn card_summary(shell: &ShellModel) -> Option<String> {
         | CardOrigin::Macro(_)
         | CardOrigin::Part(_)
         | CardOrigin::PasteVersions(_)
-        | CardOrigin::PasteUpdate { .. } => format!(
+        | CardOrigin::PasteUpdate { .. }
+        | CardOrigin::TableImport(_) => format!(
             "{} · {}",
             shell.table_gesture().map_or_else(
                 || strings::format(

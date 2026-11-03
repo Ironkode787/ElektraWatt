@@ -1678,6 +1678,45 @@ table-preview-invalid = { $p0 } · { $p1 } invalid
 table-cell = cell
 table-cells = cells
 
+# WP-S3.08 part 3 (D14, ID-1224): a navigator table's export to a file and the round trip's import.
+action-navigator-export-table = Export table…
+action-navigator-import-table = Import table…
+reason-table-no-file = This table cannot be written to a file
+reason-table-import = An imported table is always previewed
+reason-table-import-stale = The project changed since the file was read; import the file again
+error-nav-no-export = The { $p0 } pane's table cannot be exported.
+error-table-preset-csv = A preset applies to CSV only; drop it, or choose the format csv.
+error-table-preset = There is no CSV preset { $p0 }; the presets are ew, excel-nl, excel-en and rfc4180.
+error-table-import-open = { $p0 } cannot be opened: { $p1 }.
+error-table-import-read = The file cannot be read: { $p0 }
+error-table-import-format = The workbook is not a table that ElektraWatt exported; export the table again.
+error-table-import-project = The file was exported from another project.
+error-table-import-table = The file is not a table of this project; export the table again.
+error-table-import-id = The file has no id column, by which its rows are matched; export the table again and keep the column.
+error-table-import-many = { $p0 } changed cells are more than the 10,000 one import applies; split the file.
+prompt-export-table-title = Export table
+prompt-table-name = table.xlsx
+prompt-open-table-title = Import table
+job-kind-table = Table export
+job-done-table = { $p0 } KiB
+toast-export-table = Exported { $p0 }: { $p1 } KiB
+toast-export-table-again = Exported { $p0 } again: { $p1 } KiB
+marker-export-table = Exported the table to { $p0 }
+toast-table-imported = Imported { $p0 } changed cells from { $p1 }
+table-import-title = Import { $p0 }
+table-import-counts = { $p0 } changed, { $p1 } kept, { $p2 }, { $p3 } refused, { $p4 } unknown, { $p5 } missing
+table-import-conflicts = { $p0 } conflicts
+table-import-conflict-kept = 1 conflict: the project's value is kept
+table-import-conflicts-kept = { $p0 } conflicts: the project's values are kept
+table-import-cell = { $p0 } · { $p1 } · "{ $p2 }" → "{ $p3 }" · { $p4 }
+table-import-cell-applied = applied
+table-import-cell-kept = kept: changed in the project only
+table-import-cell-conflict = conflict: the project's value is kept
+table-import-cell-read-only = read-only
+table-import-cell-refused = refused
+table-import-cells = Cells
+table-import-missing-rows = Rows not in the file
+
 # The word of a navigator's table rows, singular and plural (the Messages pane's rows are findings).
 table-row-pages = page
 table-rows-pages = pages

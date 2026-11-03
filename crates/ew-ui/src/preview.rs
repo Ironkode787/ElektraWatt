@@ -413,6 +413,47 @@ fn value_columns(t: &Tokens, widest: f32, window: f32, available: f32) -> (f32, 
     (label, (body - label - t.space_3).max(0.0))
 }
 
+// WP-S3.08 part 3
+/// The table import card in the Preview tab (D14, ruling 6 of ID-1224): the inline card titled "Import `<file>`" with
+/// the counts as its summary ("5 changed, 0 kept, 1 conflict: the project's value is kept, …"), then the file's cells
+/// ("-X1031:1 · Function text · "Valve" → "Valve 1" · applied") and the table's rows the file lacks, each a list of
+/// its own; Apply commits the import's one command, Cancel drops it.
+fn table_import(
+    ui: &mut Ui,
+    shell: &ShellModel,
+    c: &ew_viewmodel::properties::TableImportCard,
+    events: &mut Vec<Event>,
+) {
+    let t = components::tokens(ui);
+    let title = strings::format(key!("table-import-title"), &[&c.source]);
+    let summary = c.counts_line();
+    let row = |text: String| vec![(text, t.text_primary)];
+    let cells: Vec<Row> = c
+        .import
+        .cells
+        .iter()
+        .map(|cell| row(ew_viewmodel::properties::TableImportCard::cell_line(cell)))
+        .collect();
+    let missing: Vec<Row> = c.import.missing.iter().map(|m| row(m.clone())).collect();
+    let card = components::InlineCard {
+        title: &title,
+        summary: &summary,
+        apply: "preview.apply",
+        strip: false,
+    };
+    ui.add_space(t.space_3);
+    ui.horizontal(|ui| {
+        ui.add_space(t.space_4);
+        ui.vertical(|ui| {
+            ui.set_max_width(ui.available_width() - t.space_4);
+            components::inline_card(ui, shell, card, events, |ui, _| {
+                list(ui, strings::text(key!("table-import-cells")), &cells, true);
+                list(ui, strings::text(key!("table-import-missing-rows")), &missing, false);
+            });
+        });
+    });
+}
+
 /// Paints the Preview tab of `shell`.
 pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
     let rect = ui.available_rect_before_wrap();
@@ -433,6 +474,11 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             );
             return;
         };
+        // WP-S3.08 part 3 (ruling 6 of ID-1224): a table import is the inline card with its counts and its cells.
+        if let CardOrigin::TableImport(c) = &card.origin {
+            table_import(ui, shell, c, events);
+            return;
+        }
         let status = components::card_status(shell);
         let choice = matches!(card.origin, CardOrigin::PasteVersions(_));
 

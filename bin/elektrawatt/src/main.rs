@@ -248,6 +248,20 @@ impl RfdPlatform {
                     .add_filter("TOML", &["toml"]),
                 DialogKind::Save,
             ),
+            // WP-S3.08 part 3: a navigator table's Export table… and Import table….
+            Prompt::SaveTable => (
+                base.set_title(strings::text(key!("prompt-export-table-title")))
+                    .set_file_name(strings::text(key!("prompt-table-name")))
+                    .add_filter("XLSX", &["xlsx"])
+                    .add_filter("CSV", &["csv"]),
+                DialogKind::Save,
+            ),
+            Prompt::OpenTable => (
+                base.set_title(strings::text(key!("prompt-open-table-title")))
+                    .add_filter("XLSX", &["xlsx"])
+                    .add_filter("CSV", &["csv"]),
+                DialogKind::File,
+            ),
         }
     }
 

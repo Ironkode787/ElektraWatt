@@ -59,6 +59,8 @@ pub enum Reach {
     Preview,
     /// WP-S2.06 part 3: table mode (§8.8); `tests/it/navigators_table.rs`.
     Table,
+    /// WP-S3.08 part 3: a navigator table's export and import card; `tests/it/table_file.rs`.
+    TableFile,
     /// WP-S2.09 part 1: jobs, the notifications log and recovery (§6.8); `tests/jobs.rs`, `tests/it/notifications.rs`.
     Job,
     /// WP-S2.06 part 2: the further navigators and highlighting (§7.4); `tests/it/navigators_part2.rs`.
@@ -513,6 +515,13 @@ const WORDS: &[(&str, &[Reach])] = &[
     ("ambiguous", &[Reach::Table]),
     ("pattern", &[Reach::Table]),
     ("values", &[Reach::Table]),
+    // A navigator table's import card (WP-S3.08 part 3, ruling 9 of ID-1224): the 3 words of `Reach::TableFile`, a
+    // reviewed vocabulary change; `taken` is the outcome of a conflict taken from the file, which the window's import
+    // never asks for (FT-1149).
+    ("table-import", &[Reach::TableFile]),
+    ("conflicts", &[Reach::TableFile]),
+    ("applied", &[Reach::TableFile]),
+    ("taken", &[Reach::Unreached]),
     // The command bar and the HUD (WP-S2.17 part 2, D15; ID-474 extended): the 4 words of `Reach::CommandBar`, a
     // reviewed vocabulary change (`tab`, `collapsed`, `group`, `step`, `tool` and `target` are older).
     ("commandbar", &[Reach::CommandBar]),
@@ -1414,12 +1423,60 @@ fn parts_map_lines(model: &ShellModel, lines: &mut Vec<String>) {
     }
 }
 
+// WP-S3.08 part 3
+/// The table import card (ruling 9 of ID-1224): `card <status> "<command>" table-import "<file>" changed <n> kept <n>
+/// conflicts <n> refused <n> unknown <n> missing <n>` (status `failed` when the import's command does not preview),
+/// then one `cell` line per cell of the file that differs and one `missing` line per table row the file lacks.
+fn table_import_lines(card: &crate::properties::Card, rev: u64, lines: &mut Vec<String>) {
+    let crate::properties::CardOrigin::TableImport(c) = &card.origin else {
+        return;
+    };
+    let n = c.import.counts();
+    let status = match &card.preview.result {
+        Err(_) if c.import.command.is_some() => "failed",
+        _ => card.preview.status(rev).word(),
+    };
+    lines.push(format!(
+        "card {status} \"{}\" table-import \"{}\" changed {} kept {} conflicts {} refused {} unknown {} missing {}",
+        user(&card.preview.name),
+        user(&c.source),
+        n.changed,
+        n.kept,
+        n.conflicts,
+        n.refused,
+        n.unknown,
+        n.missing
+    ));
+    for cell in &c.import.cells {
+        let mut line = format!(
+            "  cell \"{}\" \"{}\" \"{}\" \"{}\" {}",
+            user(&cell.row_label),
+            user(&cell.column_label),
+            user(&cell.ew),
+            user(&cell.file),
+            cell.outcome.word()
+        );
+        if let Some(reason) = &cell.reason {
+            line.push_str(&format!(" \"{}\"", user(reason)));
+        }
+        lines.push(line);
+    }
+    for row in &c.import.missing {
+        lines.push(format!("  missing \"{}\"", user(row)));
+    }
+}
+
 /// The inline preview card and the toast (WP-S2.05 §6.11), after the panes' lines: the card of the property grid or of
 /// the find pane's replace.
 fn card_and_toast_lines(model: &ShellModel, lines: &mut Vec<String>) {
     let props = model.properties();
     if let (Some(card), Some(rev)) = (props.card(), model.revision()) {
         match &card.preview.result {
+            // WP-S3.08 part 3: the table import card prints its counts, its cells and its missing rows, also when no
+            // cell applies.
+            _ if matches!(card.origin, crate::properties::CardOrigin::TableImport(_)) => {
+                table_import_lines(card, rev, lines);
+            }
             Err(message) => {
                 lines.push(format!(
                     "card failed \"{}\" \"{}\"",
@@ -1576,7 +1633,9 @@ fn jobs_lines(model: &ShellModel, lines: &mut Vec<String>) {
         lines.push(match &e.status {
             crate::jobs::JobStatus::Running => format!("{head} running"),
             crate::jobs::JobStatus::Done { pages, kib, now } => {
-                let mut line = format!("{head} done pages {pages} kib {kib} rev {}", e.rev);
+                // WP-S3.08 ruling 4 of ID-1224: a table's end has no page count.
+                let pages = pages.map(|n| format!(" pages {n}")).unwrap_or_default();
+                let mut line = format!("{head} done{pages} kib {kib} rev {}", e.rev);
                 if let Some(m) = now {
                     line.push_str(&format!(" now {m}"));
                 }
