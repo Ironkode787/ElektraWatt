@@ -470,6 +470,14 @@ impl ShellModel {
                 let out = self.run_commit(cmd.as_ref());
                 // FT-822: a refused interruption point keeps its ghost where it was and says why.
                 let (out, keep_ghost) = self.ip_commit_refused(out);
+                // WP-S2.08 part 6 (D17): tip 1, a Line segment of the Graphic tool ending on a connection point.
+                if out == Outcome::Done
+                    && self.tools.tool.name() == "graphic"
+                    && let Ok(json) = cmd.to_json()
+                    && super::tips::line_ends_on_cp(&json, self.tools.before_commit.as_deref())
+                {
+                    self.offer_tip(super::Tip::LineOnCp, Vec::new());
+                }
                 // FT-546: every placement answers with its result line (the tag and the cell, and the wires it drew),
                 // said at the end of the dispatch, once the page tables show it.
                 if out == Outcome::Done

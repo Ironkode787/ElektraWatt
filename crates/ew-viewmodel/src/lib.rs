@@ -64,5 +64,7 @@ pub mod tools;
 // WP-S2.09 part 3
 pub mod undo_history;
 pub mod window;
+// WP-S2.08 part 6 (D18)
+pub mod wire_colours;
 pub mod wizard;
 mod wizard_data;

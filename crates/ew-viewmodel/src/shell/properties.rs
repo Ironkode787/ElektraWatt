@@ -652,6 +652,8 @@ impl ShellModel {
             return failed(key!("error-no-row"), &[key]);
         };
         if let Some(out) = self.props_refusal(&section, &row, action) {
+            // WP-S2.08 part 6 (D17): tips 2 and 3.
+            self.tip_for_refused_row(&section, &row);
             return out;
         }
         let shown = buffer.is_none();
@@ -1862,6 +1864,8 @@ impl ShellModel {
             return failed(key!("error-no-row"), &[key]);
         };
         if let Some(out) = self.props_refusal(&section, &row, action) {
+            // WP-S2.08 part 6 (D17): tips 2 and 3.
+            self.tip_for_refused_row(&section, &row);
             return out;
         }
         self.props.row = Some(key.to_owned());

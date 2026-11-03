@@ -1829,6 +1829,19 @@ pub static ACTIONS: &[ActionMeta] = &[
         grp(Group::Show),
         |s, _| s.act_cpu_canvas(),
     ),
+    // WP-S2.08 part 6 (D18): View ▸ Wire colours, a view toggle of the session.
+    keeps_banner(with_params(
+        "on?:bool",
+        act(
+            "view.wire_colours",
+            View,
+            Menu::View,
+            &[],
+            has_pages,
+            slot(Menu::View),
+            |s, p| s.act_wire_colours(p),
+        ),
+    )),
     // The property grid (WP-S2.05 part 1, spec §6.10).
     keeps_banner(with_params(
         "on?:bool",
@@ -3446,6 +3459,31 @@ pub static ACTIONS: &[ActionMeta] = &[
         always,
         slot(Menu::Help),
         |s, p| s.act_help_shortcuts(p),
+    )),
+    // WP-S2.08 part 6 (D16): Help ▸ Glossary, the glossary pane in the bottom dock, and its search text.
+    keeps_banner(with_params(
+        "on?:bool",
+        act(
+            "help.glossary",
+            View,
+            Menu::Help,
+            &[],
+            project_open,
+            slot(Menu::Help),
+            |s, p| s.act_help_glossary(p),
+        ),
+    )),
+    keeps_banner(with_params(
+        "text:text",
+        hidden(act(
+            "glossary.filter",
+            View,
+            Menu::Help,
+            &[],
+            project_open,
+            None,
+            |s, p| s.act_glossary_filter(p),
+        )),
     )),
     keeps_banner(act(
         "help.notices",
@@ -5393,6 +5431,9 @@ pub(crate) fn item_of(meta: &ActionMeta, model: &ShellModel) -> ActionItem {
             "history.show" => model.history_shown(),
             "preview.show" => model.preview_shown(),
             "view.bottom_dock" => model.bottom_dock_shown(),
+            // WP-S2.08 part 6.
+            "help.glossary" => model.glossary_shown(),
+            "view.wire_colours" => model.wire_colours_on(),
             "tool.select" | "tool.measure" => meta.id.strip_prefix("tool.") == Some(model.tool().name()),
             // WP-S2.04 part 2.
             "tool.wire" => model.tool().name() == "wire",

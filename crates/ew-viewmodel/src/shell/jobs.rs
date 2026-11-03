@@ -131,6 +131,10 @@ impl ShellModel {
                         .and_then(|i| h.entries().get(i))
                         .is_some_and(|e| e.rev().0 == *rev)
             }),
+            // WP-S2.08 part 6: a tip's action without a step, while its project session is open.
+            Some((_, Validity::Session { epoch, .. })) => {
+                self.project.as_ref().is_some_and(|p| p.epoch == *epoch)
+            }
         }
     }
 
@@ -260,6 +264,10 @@ impl ShellModel {
                     reason_key: key!("reason-action-expired"),
                 },
             },
+            // WP-S2.08 part 6 (D17): the tips' actions.
+            Some(NoteAction::Convert | NoteAction::Renumber | NoteAction::ShowBlock) => {
+                self.run_tip_action(entry)
+            }
             None => Outcome::Refused {
                 reason_key: key!("reason-no-toast"),
             },

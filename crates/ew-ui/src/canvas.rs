@@ -476,6 +476,94 @@ fn paint_highlights(
     }
 }
 
+// WP-S2.08 part 6
+/// Paints the wire-colour view of canvas group `group` (D18): the strokes ([`wire_colour_shapes`]), then each code as a
+/// canvas chip (doc 16a §7.4's look: `canvas.chip` at 94 % with `canvas.chip_text` in `type.caption`, `radius.sm`,
+/// `space.1` padding) centred at the middle of its path, over every stroke.
+fn paint_wire_colours(
+    ui: &egui::Ui,
+    rect: Rect,
+    ppp: f32,
+    t: &DrawTransform,
+    shell: &ShellModel,
+    group: usize,
+) {
+    let strokes = shell.wire_colour_overlay(group);
+    if strokes.is_empty() {
+        return;
+    }
+    let painter = ui.painter_at(rect);
+    painter.extend(wire_colour_shapes(&strokes, rect.min, ppp, t));
+    let tokens = crate::theme::current(ui.ctx());
+    for s in &strokes {
+        let Some(mid) = s.midpoint() else { continue };
+        let (x, y) = t.to_screen(mid);
+        let at = rect.min + egui::Vec2::new(x as f32, y as f32) / ppp;
+        let galley = painter.layout_no_wrap(
+            s.code.clone(),
+            crate::theme::font(&tokens.type_caption),
+            tokens.canvas_chip_text.color32(),
+        );
+        let chip = Rect::from_center_size(at, galley.size() + egui::Vec2::splat(2.0 * tokens.space_1));
+        painter.rect_filled(
+            chip,
+            crate::theme::radius(tokens.radius_sm),
+            tokens.canvas_chip.color32(),
+        );
+        painter.galley(
+            chip.center() - galley.size() / 2.0,
+            galley,
+            tokens.canvas_chip_text.color32(),
+        );
+    }
+}
+
+/// The wire-colour view's strokes (D18) over a pane whose top-left is `origin`, at `ppp`: per connection a dark casing
+/// `CASING_PX` physical pixel wider on each side for a cased one, then its stroke (`STROKE_PT` points) in its colour or
+/// its two colours' alternating 2-mm dashes.
+pub fn wire_colour_shapes(
+    strokes: &[ew_viewmodel::wire_colours::WireStroke],
+    origin: Pos2,
+    ppp: f32,
+    t: &DrawTransform,
+) -> Vec<egui::Shape> {
+    use ew_viewmodel::wire_colours::{CASING_PX, CASING_RGB, STROKE_PT};
+    let to_pt = |p: (f64, f64)| {
+        let (x, y) = t.to_screen(p);
+        origin + egui::Vec2::new(x as f32, y as f32) / ppp
+    };
+    let rgb = |(r, g, b): (u8, u8, u8)| crate::theme::rgba(r, g, b, u8::MAX);
+    let width = STROKE_PT as f32;
+    let mut out = Vec::new();
+    for s in strokes {
+        let path: Vec<Pos2> = s
+            .polyline
+            .iter()
+            .map(|p| to_pt((p.0 as f64, p.1 as f64)))
+            .collect();
+        if s.cased {
+            out.push(egui::Shape::line(
+                path.clone(),
+                egui::Stroke::new(width + 2.0 * CASING_PX as f32 / ppp, rgb(CASING_RGB)),
+            ));
+        }
+        if s.colours.len() == 1 {
+            out.push(egui::Shape::line(
+                path,
+                egui::Stroke::new(width, rgb(s.colours[0])),
+            ));
+        } else {
+            for (a, b, c) in s.pieces() {
+                out.push(egui::Shape::line_segment(
+                    [to_pt(a), to_pt(b)],
+                    egui::Stroke::new(width, rgb(s.colours[c])),
+                ));
+            }
+        }
+    }
+    out
+}
+
 /// `canvas.preview_snapshot` (WP-S2.03 §7.8): the link preview's pane as the popup shows it, by the same rule as
 /// [`snapshot_image`]: the target page's region around the target at the jump view's zoom, the page bounds and a
 /// cursor crosshair at the target.
@@ -1115,6 +1203,8 @@ impl CanvasHost {
             }
             (None, None) => {}
         }
+        // WP-S2.08 part 6 (D18): the wire-colour view, under the conflicts and the highlights.
+        paint_wire_colours(ui, rect, ppp, &transform, shell, group);
         // FT-675: the conflict overlay, under the highlights.
         paint_conflicts(ui, rect, ppp, &transform, shell, group);
         // WP-S2.06 part 2: the window's highlights on this page (§7.3).

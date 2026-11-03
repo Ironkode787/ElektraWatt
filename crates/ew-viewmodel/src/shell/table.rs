@@ -976,6 +976,8 @@ impl ShellModel {
         };
         let i = view.rows[r];
         if let Err(reason) = self.cell_route(&view, i, col) {
+            // WP-S2.08 part 6 (D17): tips 2 and 3.
+            self.tip_for_refused_cell(kind, &view.table, i, col);
             return failed(
                 key!("error-table-read-only"),
                 &[&view.table.columns[col].label, &reason],

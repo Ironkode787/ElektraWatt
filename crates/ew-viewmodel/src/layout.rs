@@ -70,11 +70,14 @@ pub enum PaneKind {
     Preview,
     /// The history panel (§8.4): the undo steps and the marker lines, in the bottom dock (D13, D14).
     History,
+    // WP-S2.08 part 6
+    /// The glossary pane (D16, FR-UI-045): the EW terms with their EPLAN and QET terms, in the bottom dock.
+    Glossary,
 }
 
 impl PaneKind {
     /// Every pane kind but the navigators.
-    pub const ALL: [PaneKind; 7] = [
+    pub const ALL: [PaneKind; 8] = [
         PaneKind::Pages,
         PaneKind::PageView,
         PaneKind::Properties,
@@ -82,16 +85,19 @@ impl PaneKind {
         PaneKind::Jobs,
         PaneKind::Preview,
         PaneKind::History,
+        PaneKind::Glossary,
     ];
 
     /// The panes of the bottom dock (D14): they share one tab group below the page view (WP-S2.09 part 2: the
-    /// Messages navigator is one of them; part 3: the Preview tab and the history panel).
-    pub const BOTTOM: [PaneKind; 5] = [
+    /// Messages navigator is one of them; part 3: the Preview tab and the history panel; WP-S2.08 part 6: the
+    /// glossary pane).
+    pub const BOTTOM: [PaneKind; 6] = [
         PaneKind::Find,
         PaneKind::Jobs,
         PaneKind::Navigator(NavKind::Messages),
         PaneKind::Preview,
         PaneKind::History,
+        PaneKind::Glossary,
     ];
 
     /// The name in a workspace file.
@@ -105,6 +111,7 @@ impl PaneKind {
             PaneKind::Jobs => "jobs",
             PaneKind::Preview => "preview",
             PaneKind::History => "history",
+            PaneKind::Glossary => "glossary",
         }
     }
 
@@ -128,6 +135,7 @@ impl PaneKind {
             PaneKind::Jobs => key!("pane-jobs"),
             PaneKind::Preview => key!("pane-preview"),
             PaneKind::History => key!("pane-history"),
+            PaneKind::Glossary => key!("pane-glossary"),
         }
     }
 }

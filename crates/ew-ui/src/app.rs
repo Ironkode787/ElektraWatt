@@ -965,6 +965,8 @@ impl App {
                     // WP-S2.09 part 3
                     PaneKind::Preview => crate::preview::show(ui, shell, &mut events),
                     PaneKind::History => crate::history::show(ui, shell, &mut events),
+                    // WP-S2.08 part 6
+                    PaneKind::Glossary => crate::glossary::show(ui, shell, &mut events),
                     PaneKind::PageView => {
                         // WP-S2.17 part 2: the HUD and the zoom control stand on the page view pane.
                         page_pane = Some(ui.max_rect());

@@ -93,6 +93,9 @@ pub enum Reach {
     Join,
     /// WP-S1.21 part 2: the printed PLC address of the hovered connection point (D7); `tests/it/plc_hover.rs`.
     PlcHover,
+    /// WP-S2.08 part 6: the glossary pane, the tips' actions and the wire-colour view (D16 to D18);
+    /// `tests/it/glossary_tips.rs`.
+    Guide,
     /// The property grid's section kind of a record no test's describe state selects; the unit test
     /// `every_kind_a_section_can_have_is_in_the_vocabulary` checks that every such kind is a word.
     Kind,
@@ -583,6 +586,16 @@ const WORDS: &[(&str, &[Reach])] = &[
     // FT-882 (ID-1108): a panel page's surface view is an "item surface view" line; 1 word, a reviewed vocabulary
     // change (`view` is older).
     ("surface", &[Reach::Layout]),
+    // WP-S2.08 part 6 (D16 to D18): the glossary pane's lines, the tips' three actions and the wire-colour view's
+    // canvas line; 8 words, a reviewed vocabulary change.
+    ("glossary", &[Reach::Guide]),
+    ("term", &[Reach::Guide]),
+    ("eplan", &[Reach::Guide]),
+    ("qet", &[Reach::Guide]),
+    ("convert", &[Reach::Guide]),
+    ("renumber", &[Reach::Guide]),
+    ("show_block", &[Reach::Guide]),
+    ("colours", &[Reach::Guide]),
 ];
 
 /// Every structural word of the describe text, in the order of `WORDS` (the blind reference's `vocabulary.txt`
@@ -1721,6 +1734,36 @@ fn preview_lines(model: &ShellModel, lines: &mut Vec<String>) {
     listed(lines, pane.pages(), "page", |f| format!("  page \"{}\"", user(f)));
 }
 
+// WP-S2.08 part 6
+/// The glossary pane while it is open (D16): `glossary filter "<text>" rows <n>`, then one line per row on show,
+/// `  term "<term>" eplan "<terms>" qet "<terms>"` and the actions it offers.
+fn glossary_lines(model: &ShellModel, lines: &mut Vec<String>) {
+    if !model.glossary_shown() {
+        return;
+    }
+    let rows = model.glossary_rows();
+    lines.push(format!(
+        "glossary filter \"{}\" rows {}",
+        user(model.glossary_filter()),
+        rows.len()
+    ));
+    for r in rows {
+        let mut line = format!(
+            "  term \"{}\" eplan \"{}\" qet \"{}\"",
+            user(&r.term),
+            user(&r.eplan),
+            user(&r.qet)
+        );
+        if !r.actions.is_empty() {
+            line.push_str(" actions");
+            for a in &r.actions {
+                line.push_str(&format!(" {a}"));
+            }
+        }
+        lines.push(line);
+    }
+}
+
 /// The history panel while it is open (§8.7): `history entries <n> cursor <c>`, then its lines newest first (entries
 /// numbered from 1, the markers after their revision's entry); the row cursor's entry ends with `cursor`. Show changes
 /// follows as `  changes entry <n> records <k>` and at most [`crate::undo_history::MAX_CHANGES`] entity lines.
@@ -1843,6 +1886,8 @@ fn project_view(model: &ShellModel, lines: &mut Vec<String>) {
     // WP-S2.09 part 3
     preview_lines(model, lines);
     history_lines(model, lines);
+    // WP-S2.08 part 6
+    glossary_lines(model, lines);
     // FT-649: the parts import's column mapping step.
     parts_map_lines(model, lines);
     card_and_toast_lines(model, lines);
@@ -1948,6 +1993,15 @@ fn canvas_lines(model: &ShellModel, lines: &mut Vec<String>) {
         lines.push(format!("canvas grid on \"{}\"", crate::status::grid_text(model)));
     } else {
         lines.push("canvas grid off".to_owned());
+    }
+    // WP-S2.08 part 6 (D18): only while the view is on, so a transcript without it keeps its lines.
+    if model.wire_colours_on() {
+        lines.push(format!(
+            "canvas wire colours {}",
+            model
+                .wire_colour_overlay(model.area().map_or(0, |a| a.focused))
+                .len()
+        ));
     }
     let cell = |p: (i64, i64)| {
         c.page()

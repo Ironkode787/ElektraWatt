@@ -31,6 +31,13 @@ pub enum NoteAction {
     Undo,
     /// Open the file the job wrote (Open PDF).
     Open,
+    // WP-S2.08 part 6 (D17): the actions of the one-time tips.
+    /// Tip 1's Convert to connection: undo the line the tip reports and arm the Wire tool.
+    Convert,
+    /// Tip 2's Renumber devices….
+    Renumber,
+    /// Tip 3's Show report block: the block selected, in Properties.
+    ShowBlock,
 }
 
 impl NoteAction {
@@ -39,6 +46,9 @@ impl NoteAction {
         match self {
             NoteAction::Undo => "undo",
             NoteAction::Open => "open",
+            NoteAction::Convert => "convert",
+            NoteAction::Renumber => "renumber",
+            NoteAction::ShowBlock => "show_block",
         }
     }
 
@@ -47,6 +57,9 @@ impl NoteAction {
         match word {
             "undo" => Some(NoteAction::Undo),
             "open" => Some(NoteAction::Open),
+            "convert" => Some(NoteAction::Convert),
+            "renumber" => Some(NoteAction::Renumber),
+            "show_block" => Some(NoteAction::ShowBlock),
             _ => None,
         }
     }
@@ -56,6 +69,9 @@ impl NoteAction {
         match self {
             NoteAction::Undo => key!("toast-undo"),
             NoteAction::Open => key!("toast-open"),
+            NoteAction::Convert => key!("toast-convert"),
+            NoteAction::Renumber => key!("action-devices-renumber"),
+            NoteAction::ShowBlock => key!("toast-show-block"),
         }
     }
 }
@@ -90,6 +106,15 @@ pub(crate) enum Validity {
     Open {
         /// The written file (never printed).
         path: PathBuf,
+    },
+    // WP-S2.08 part 6 (D17)
+    /// A tip's action that needs no step: while project session `epoch` is open; `select` the records it selects
+    /// (Show report block's block; never printed).
+    Session {
+        /// The project session.
+        epoch: u64,
+        /// The records the action selects.
+        select: Vec<ew_api::output::Uuid>,
     },
 }
 
@@ -139,6 +164,14 @@ impl Notification {
         match &self.action {
             Some((_, Validity::Open { path })) => Some(path),
             _ => None,
+        }
+    }
+
+    /// The records a tip's action selects (Show report block's block, WP-S2.08 part 6); empty for the others.
+    pub(crate) fn selects(&self) -> &[ew_api::output::Uuid] {
+        match &self.action {
+            Some((_, Validity::Session { select, .. })) => select,
+            _ => &[],
         }
     }
 }

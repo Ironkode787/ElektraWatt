@@ -11,7 +11,8 @@
 //! author name `author_name` of the Waive prompt (FT-674; written only once set) and, since WP-S2.07 part 4a (D18), the
 //! part dialog's `[parts] favourites` (sorted) and `recent` (most recent first, at most [`MAX_RECENT_PARTS`]), each a
 //! list of `<library ID>/<item ID>` texts, written only once set, and, since WP-S2.08 part 5 (D14), the minimum text size
-//! `min_font_pt` and `reduce_motion`, each written only once set. Unknown keys are kept
+//! `min_font_pt` and `reduce_motion`, each written only once set, and, since part 6 (D17), the tips' switch `tips`
+//! (written only when off) and `tips_seen` (the tips shown once, written only once one was). Unknown keys are kept
 //! and written back; a `toml::Table` holds them sorted, so the file is deterministic. An unreadable file yields
 //! the defaults and is copied to `settings.toml.bad-<n>`.
 
@@ -118,6 +119,12 @@ pub struct Settings {
     /// Reduce motion (`reduce_motion`, WP-S2.08 D14, NFR-A11Y-04); `None` while unset, which is on with the CPU canvas
     /// and off otherwise (`ShellModel::reduce_motion`). Written only when set.
     pub reduce_motion: Option<bool>,
+    // WP-S2.08 part 6 (D17)
+    /// Whether the one-time tips may be shown (`tips`; on unless the file says `tips = false`).
+    pub tips: bool,
+    /// The tips already shown, by their word ([`crate::shell::Tip::word`]), in the order they were shown
+    /// (`tips_seen`).
+    pub tips_seen: Vec<String>,
     /// Keys this version does not know, kept and written back.
     extra: toml::Table,
 }
@@ -145,6 +152,8 @@ impl Default for Settings {
             parts_recent: Vec::new(),
             min_font_pt: 0,
             reduce_motion: None,
+            tips: true,
+            tips_seen: Vec::new(),
             extra: toml::Table::new(),
         }
     }
@@ -246,6 +255,26 @@ impl Settings {
             Some(toml::Value::Boolean(on)) => Some(on),
             Some(_) => return None,
         };
+        // WP-S2.08 part 6 (D17): `tips` a bool (absent is on), `tips_seen` a list of texts.
+        let tips = match table.remove("tips") {
+            None => true,
+            Some(toml::Value::Boolean(on)) => on,
+            Some(_) => return None,
+        };
+        let mut tips_seen: Vec<String> = Vec::new();
+        match table.remove("tips_seen") {
+            None => {}
+            Some(toml::Value::Array(items)) => {
+                for v in items {
+                    match v {
+                        toml::Value::String(s) if !tips_seen.contains(&s) => tips_seen.push(s),
+                        toml::Value::String(_) => {}
+                        _ => return None,
+                    }
+                }
+            }
+            Some(_) => return None,
+        }
         let comes_from = match take_string(&mut table, "comes_from")? {
             Some(v) if ORIGINS.contains(&v.as_str()) => v,
             _ => String::new(),
@@ -357,6 +386,8 @@ impl Settings {
             parts_recent,
             min_font_pt,
             reduce_motion,
+            tips,
+            tips_seen,
             extra: table,
         };
         // The list is normalised on read: no duplicates, at most MAX_RECENT, first occurrence wins.
@@ -451,6 +482,21 @@ impl Settings {
         }
         if let Some(on) = self.reduce_motion {
             table.insert("reduce_motion".to_owned(), toml::Value::Boolean(on));
+        }
+        // WP-S2.08 part 6 (D17): written only when set, likewise.
+        if !self.tips {
+            table.insert("tips".to_owned(), toml::Value::Boolean(false));
+        }
+        if !self.tips_seen.is_empty() {
+            table.insert(
+                "tips_seen".to_owned(),
+                toml::Value::Array(
+                    self.tips_seen
+                        .iter()
+                        .map(|t| toml::Value::String(t.clone()))
+                        .collect(),
+                ),
+            );
         }
         // Written only when a category is collapsed or Advanced is shown, so an untouched settings file keeps its
         // bytes.

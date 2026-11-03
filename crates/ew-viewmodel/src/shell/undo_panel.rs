@@ -140,6 +140,7 @@ impl ShellModel {
                 PaneKind::Navigator(crate::navigators::NavKind::Messages) => Some(("messages.show", flag)),
                 PaneKind::Preview => Some(("preview.show", flag)),
                 PaneKind::History => Some(("history.show", flag)),
+                PaneKind::Glossary => Some(("help.glossary", flag)),
                 _ => None,
             }
         };

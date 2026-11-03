@@ -92,7 +92,13 @@ pub mod print;
 mod keymaps;
 // WP-S1.18 part 5
 mod revision;
+// WP-S2.08 part 6: the one-time tips (D17), the glossary pane (D16) and the wire-colour view (D18).
+mod glossary;
+mod tips;
+mod wire_colours;
+pub use glossary::GlossaryRow;
 pub use macros::MacroVariable;
+pub use tips::Tip;
 
 pub use creation::{FormDialog, FormField, FormRow, FormTable, PAGE_TYPES, STRUCTURE_KINDS};
 pub use drawing::TextPopup;
@@ -581,6 +587,13 @@ pub struct ShellModel {
     /// The revision dialogs' view state (the gate's lines of the open dialog) and the integrity items of the opened
     /// project they run the gate with.
     revision: revision::RevisionState,
+    // WP-S2.08 part 6
+    /// The glossary pane's search text (D16).
+    glossary_filter: String,
+    /// Whether the wire-colour view is on (View ▸ Wire colours, D18): view state of the session, off at start.
+    wire_colours: bool,
+    /// The wire-colour view's Connections table and the (session epoch, revision) it was fetched at.
+    wire_colour_cache: std::cell::RefCell<Option<wire_colours::Cached>>,
 }
 
 /// One `dispatch` in the dispatch log (WP-S6.13 part 4 §4.3): the action as given, the outcome's word (`done`,
@@ -922,6 +935,9 @@ impl ShellModel {
             dispatch_log: None,
             person: mode == Mode::Gui,
             revision: revision::RevisionState::default(),
+            glossary_filter: String::new(),
+            wire_colours: false,
+            wire_colour_cache: std::cell::RefCell::new(None),
         };
         model.load_active_workspace();
         model
