@@ -1,0 +1,9 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+[Desktop Entry]
+Type=Application
+Name=ElektraWatt
+Exec=elektrawatt %F
+Icon=elektrawatt
+Categories=Engineering;
+Terminal=false

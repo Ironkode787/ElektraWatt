@@ -2,13 +2,17 @@
 # SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
-"""The staging script of the installed tree and the CLI archives (WP-S6.06 D3, D4, D13, D18; standard library only).
+"""The staging script of the installed tree, the CLI archives and the AppImage (WP-S6.06 D3, D4, D10, D13, D18;
+standard library only).
 
   python3 -I packaging/stage.py tree --bin <dir> --book <dir> --version <v> --out <root>
+  python3 -I packaging/stage.py tree --cli --bin <dir> --version <v> --out <root>   # ew alone, for a CLI archive
   python3 -I packaging/stage.py archive --tree <root> --kind zip|tar.gz --out <dir>/ew-<v>-<target>.<kind>
   python3 -I packaging/stage.py pin <name> [--field version|url|sha256]   # a component of packaging/components.toml
   python3 -I packaging/stage.py snapshot              # the Ubuntu archive snapshot of the Linux container (FT-1222)
-  python3 -I packaging/stage.py debs <dir>            # the downloaded .deb files against components.toml (FT-1223)
+  python3 -I packaging/stage.py debs [--arch amd64|arm64] <dir>   # the downloaded .deb files against components.toml
+  python3 -I packaging/stage.py appdir --tree <root> --out <AppDir>  # D10's AppDir around a staged Linux tree
+  python3 -I packaging/stage.py appimage --runtime <file> --image <squashfs> --out <dir>/ElektraWatt-<v>-x86_64.AppImage
   python3 -I packaging/stage.py listing <root>        # `<sha256>  <path>` of every file under <root>
   python3 -I packaging/stage.py resources --tree <root> --work <dir>   # D13's installed-resources runs
   python3 -I packaging/stage.py version [--sha <sha>] # the workspace version, or D8's <version>-dev.<short sha>
@@ -26,7 +30,9 @@
   README.txt                            what the tree is, its version, "unsigned" and where to verify it
 
 The Windows layout is chosen when --bin holds `ew.exe`. Every input is checked before anything is written, and a
-missing one is refused with "missing input: <path>", never skipped; the output directory must not exist.
+missing one is refused with "missing input: <path>", never skipped; the output directory must not exist. `--cli`
+stages the tree of a CLI archive alone (D16's aarch64 archives): `ew[.exe]` (and `ew.pdb` on Windows) and the rest of
+D3's tree without `elektrawatt`, its `.pdb` and `docs/`, so --book is not read.
 
 `archive` writes a CLI archive of D3 from a staged tree: under the one root folder `ew-<v>-<target>/` (the archive's
 file name without its extension) exactly `ew[.exe]`, `content/`, `samples/`, `THIRD-PARTY-NOTICES.txt`, `NOTICE`,
@@ -36,8 +42,14 @@ executable and 0644 for the rest, owner 0, and a fixed time (1980-01-01), so two
 is written beside its final name and renamed into place.
 
 `debs` compares the `.deb` files that the Linux container's apt downloaded into <dir> with packaging/components.toml
-before they are installed: every file is a listed package (`<name>_<version>_amd64.deb`, `:` written `%3a` as apt
-names it) with its SHA-256, and every listed package was downloaded; anything else is refused, naming each file.
+before they are installed: every file is a listed package (`<name>_<version>_<arch>.deb`, `:` written `%3a` as apt
+names it) with its SHA-256, and every listed package was downloaded; anything else is refused, naming each file. The
+amd64 list is the `.deb` components and `[[apt.deb]]`; the arm64 list (D16) is `[[apt.arm64]]`.
+
+`appdir` assembles D10's AppDir from a staged Linux tree: `AppRun` (packaging/linux/AppRun, mode 0755),
+`elektrawatt.desktop` (packaging/linux/), the icon `elektrawatt.png` (assets/icons/app/, §13 O5) at its root, and the
+tree under `usr/lib/elektrawatt/`. `appimage` writes the AppImage: the type-2 runtime, then the squashfs image of the
+AppDir, mode 0755, beside its final name and renamed into place.
 
 `resources` proves D13 from the installed executable: `elektrawatt --headless --script
 packaging/tests/installed.uiscript --config-dir <fresh> --keep-going`, run in a fresh directory of <work> on the tree
@@ -72,6 +84,9 @@ EXECUTABLES = ("elektrawatt", "ew", "elektrawatt.exe", "ew.exe")
 NOTICES = "THIRD-PARTY-NOTICES.txt"
 # The licences that the tree's files carry (ci/licence-map.toml); LICENSES/ holds every text of the repository.
 LICENCES = ("GPL-3.0-or-later", "CC-BY-SA-4.0", "CC0-1.0", "OFL-1.1", "MIT", "CC-BY-4.0")
+# The CLI archive's tree alone (--cli), per OS.
+LINUX_CLI_BINARIES = ("ew",)
+WINDOWS_CLI_BINARIES = ("ew.exe", "ew.pdb")
 SAMPLE = "J-E-2416.ew"
 CLI_README = os.path.join("ci", "cli-artefact-README.md")
 # The CLI archive's entries at the root of a tree, besides the executable (D3).
@@ -85,6 +100,14 @@ FIELDS = ("version", "url", "sha256")
 # A snapshot of snapshot.ubuntu.com: a UTC timestamp to the second.
 SNAPSHOT = re.compile(r"[0-9]{8}T[0-9]{6}Z")
 UISCRIPT = os.path.join("packaging", "tests", "installed.uiscript")
+# D10's AppDir: the files at its root (name, source in the repository, mode) and where the tree goes.
+APPDIR_FILES = (
+    ("AppRun", os.path.join("packaging", "linux", "AppRun"), 0o755),
+    ("elektrawatt.desktop", os.path.join("packaging", "linux", "elektrawatt.desktop"), 0o644),
+    ("elektrawatt.png", os.path.join("assets", "icons", "app", "elektrawatt.png"), 0o644),
+)
+APPDIR_TREE = os.path.join("usr", "lib", "elektrawatt")
+ARCHES = ("amd64", "arm64")
 # D13: each resource of the tree that a step of the installed-resources script proves, by the step's action, and the
 # word for the run without it. The guide has no step: no action of the headless mode shows whether it was found (F1's
 # request goes to the window only).
@@ -133,22 +156,26 @@ def readme(version):
     )
 
 
-def stage_tree(repo, bin_dir, book, version, out):
-    """Assembles D3's tree at `out` (see the module's description)."""
+def stage_tree(repo, bin_dir, book, version, out, cli=False):
+    """Assembles D3's tree at `out`, or with `cli` the CLI archive's tree alone (see the module's description)."""
     windows = os.path.exists(os.path.join(bin_dir, "ew.exe"))
-    binaries = WINDOWS_BINARIES if windows else LINUX_BINARIES
+    if cli:
+        binaries = WINDOWS_CLI_BINARIES if windows else LINUX_CLI_BINARIES
+    else:
+        binaries = WINDOWS_BINARIES if windows else LINUX_BINARIES
     files = [(need(os.path.join(bin_dir, name)), name) for name in binaries + (NOTICES,)]
     files += [(need(os.path.join(repo, name)), name) for name in ("NOTICE", "PRIVACY.md", "SECURITY.md")]
     licences = need(os.path.join(repo, "LICENSES"))
     for licence in LICENCES:
         need(os.path.join(licences, f"{licence}.txt"))
-    need(os.path.join(book, "index.html"))
     dirs = [
         (need(os.path.join(repo, "content")), "content"),
         (need(os.path.join(repo, "golden", SAMPLE)), os.path.join("samples", SAMPLE)),
-        (book, "docs"),
         (licences, "LICENSES"),
     ]
+    if not cli:
+        need(os.path.join(book, "index.html"))
+        dirs.insert(2, (book, "docs"))
     if os.path.exists(out):
         raise Refusal(f"output exists: {out}")
     os.makedirs(out)
@@ -158,6 +185,54 @@ def stage_tree(repo, bin_dir, book, version, out):
         shutil.copytree(source, os.path.join(out, name))
     with open(os.path.join(out, "README.txt"), "w", encoding="utf-8", newline="\n") as f:
         f.write(readme(version))
+
+
+def stage_appdir(repo, tree, out):
+    """Assembles D10's AppDir at `out` around the staged Linux tree `tree` (see the module's description)."""
+    for name in LINUX_BINARIES:
+        need(os.path.join(tree, name))
+    files = [(need(os.path.join(repo, source)), name, mode) for name, source, mode in APPDIR_FILES]
+    if os.path.exists(out):
+        raise Refusal(f"output exists: {out}")
+    os.makedirs(out)
+    for source, name, mode in files:
+        shutil.copyfile(source, os.path.join(out, name))
+        os.chmod(os.path.join(out, name), mode)
+    shutil.copytree(tree, os.path.join(out, APPDIR_TREE))
+
+
+def desktop_entry(path):
+    """The keys and values of the `[Desktop Entry]` group of the desktop file at `path`, in file order."""
+    entry, group = [], None
+    with open(path, encoding="utf-8") as f:
+        for line in f.read().splitlines():
+            if not line.strip() or line.startswith("#"):
+                continue
+            if line.startswith("["):
+                group = line
+            elif group == "[Desktop Entry]":
+                key, _, value = line.partition("=")
+                entry.append((key, value))
+    return entry
+
+
+def write_appimage(runtime, image, out):
+    """Writes the AppImage `out`: the bytes of `runtime`, then those of the squashfs `image`, mode 0755; its SHA-256."""
+    if not os.path.basename(out).endswith(".AppImage"):
+        raise Refusal(f"the AppImage's name must end in .AppImage: {out}")
+    parts = [need(runtime), need(image)]
+    partial = out + ".partial"
+    try:
+        with open(partial, "wb") as f:
+            for part in parts:
+                with open(part, "rb") as source:
+                    shutil.copyfileobj(source, f)
+        os.chmod(partial, 0o755)
+        os.replace(partial, out)
+    finally:
+        if os.path.exists(partial):
+            os.remove(partial)
+    return sha256(out)
 
 
 def walk(path, arc):
@@ -250,9 +325,9 @@ def snapshot(repo):
     return value
 
 
-def deb_file(name, version):
-    """The file name that apt gives the amd64 package `name` at `version` in its archive cache."""
-    return f"{name}_{version.replace(':', '%3a')}_amd64.deb"
+def deb_file(name, version, arch="amd64"):
+    """The file name that apt gives the `arch` package `name` at `version` in its archive cache."""
+    return f"{name}_{version.replace(':', '%3a')}_{arch}.deb"
 
 
 def sha256(path):
@@ -264,13 +339,16 @@ def sha256(path):
     return digest.hexdigest()
 
 
-def check_debs(repo, directory):
+def check_debs(repo, directory, arch="amd64"):
     """`<sha256>  <file>` of each package in `directory`, refused unless the `.deb` files there are exactly the
-    packages of packaging/components.toml (the components whose URL is a `.deb`, and `[[apt.deb]]`) with their
-    SHA-256 (FT-1223)."""
+    packages of packaging/components.toml for `arch` (amd64: the components whose URL is a `.deb`, and `[[apt.deb]]`;
+    arm64: `[[apt.arm64]]`) with their SHA-256 (FT-1223)."""
     table = components(repo)
-    listed = [c for c in table["component"] if c["url"].endswith(".deb")] + table.get("apt", {}).get("deb", [])
-    want = {deb_file(p["name"], p["version"]): p["sha256"] for p in listed}
+    if arch == "amd64":
+        listed = [c for c in table["component"] if c["url"].endswith(".deb")] + table.get("apt", {}).get("deb", [])
+    else:
+        listed = table.get("apt", {}).get(arch, [])
+    want = {deb_file(p["name"], p["version"], arch): p["sha256"] for p in listed}
     got = {n: sha256(os.path.join(directory, n)) for n in os.listdir(need(directory)) if n.endswith(".deb")}
     problems = []
     for name in sorted(set(want) | set(got)):
@@ -387,8 +465,10 @@ def main(argv):
     parser.add_argument("--repo", default=REPO, help=argparse.SUPPRESS)
     sub = parser.add_subparsers(dest="command")
     p = sub.add_parser("tree", help="stage the installed tree")
-    for flag in ("--bin", "--book", "--version", "--out"):
+    for flag in ("--bin", "--version", "--out"):
         p.add_argument(flag, required=True)
+    p.add_argument("--book")
+    p.add_argument("--cli", action="store_true", help="the CLI archive's tree alone: ew, without the book")
     p = sub.add_parser("archive", help="write a CLI archive from a staged tree")
     p.add_argument("--tree", required=True)
     p.add_argument("--kind", required=True, choices=sorted(KINDS))
@@ -398,7 +478,14 @@ def main(argv):
     p.add_argument("--field", default="version", choices=FIELDS)
     sub.add_parser("snapshot", help="print the Ubuntu archive snapshot of the Linux container")
     p = sub.add_parser("debs", help="check the downloaded .deb files against components.toml")
+    p.add_argument("--arch", default="amd64", choices=ARCHES)
     p.add_argument("dir")
+    p = sub.add_parser("appdir", help="assemble the AppDir around a staged Linux tree")
+    p.add_argument("--tree", required=True)
+    p.add_argument("--out", required=True)
+    p = sub.add_parser("appimage", help="write the AppImage: the runtime, then the squashfs image")
+    for flag in ("--runtime", "--image", "--out"):
+        p.add_argument(flag, required=True)
     p = sub.add_parser("listing", help="print the SHA-256 and path of every file under a directory")
     p.add_argument("root")
     p = sub.add_parser("resources", help="run D13's installed-resources script on a tree and on copies without each")
@@ -412,7 +499,9 @@ def main(argv):
         return 0 if unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful() else 1
     try:
         if args.command == "tree":
-            stage_tree(args.repo, args.bin, args.book, args.version, args.out)
+            if not args.cli and not args.book:
+                parser.error("tree needs --book, or --cli")
+            stage_tree(args.repo, args.bin, args.book, args.version, args.out, args.cli)
         elif args.command == "archive":
             for arc in write_archive(args.repo, args.tree, args.kind, args.out):
                 print(arc)
@@ -421,7 +510,11 @@ def main(argv):
         elif args.command == "snapshot":
             print(snapshot(args.repo))
         elif args.command == "debs":
-            print("\n".join(check_debs(args.repo, args.dir)))
+            print("\n".join(check_debs(args.repo, args.dir, args.arch)))
+        elif args.command == "appdir":
+            stage_appdir(args.repo, args.tree, args.out)
+        elif args.command == "appimage":
+            print(f"{write_appimage(args.runtime, args.image, args.out)}  {os.path.basename(args.out)}")
         elif args.command == "listing":
             print("\n".join(listing(args.root)))
         elif args.command == "resources":
@@ -471,13 +564,21 @@ class StageTest(unittest.TestCase):
             "LICENSES/Apache-2.0.txt": "text\n",
         }
         files.update({f"LICENSES/{licence}.txt": "text\n" for licence in LICENCES})
+        # D10: the repository's own AppRun and desktop file, and an icon.
+        for name in ("AppRun", "elektrawatt.desktop"):
+            with open(os.path.join(REPO, "packaging", "linux", name), encoding="utf-8") as f:
+                files[f"packaging/linux/{name}"] = f.read()
+        files["assets/icons/app/elektrawatt.png"] = "png\n"
         files.update({f"book/{name}": "<html>\n" for name in ("index.html", "css/a.css")})
         for name in LINUX_BINARIES + (NOTICES, "ew.d"):
             files[f"linux/{name}"] = name
+        files["runtime"] = "runtime\n"
+        files["image.squashfs"] = "squashfs\n"
         for name in WINDOWS_BINARIES + (NOTICES,):
             files[f"windows/{name}"] = name
         for name, text in files.items():
-            path = os.path.join(self.repo if not name.startswith(("book/", "linux/", "windows/")) else self.dir, name)
+            outside = name.startswith(("book/", "linux/", "windows/")) or name in ("runtime", "image.squashfs")
+            path = os.path.join(self.dir if outside else self.repo, name)
             os.makedirs(os.path.dirname(path), exist_ok=True)
             with open(path, "w", encoding="utf-8", newline="\n") as f:
                 f.write(text)
@@ -649,23 +750,36 @@ class StageTest(unittest.TestCase):
             self.assertTrue(sha == "" or hexdigest.fullmatch(sha), sha)
         for name in ("gcc", "libc6-dev", "cargo-about", "python", "setup-python", "mdbook", "nsis"):
             self.assertTrue(pin(REPO, name))
+        for name in ("squashfs-tools", "appimage-type2-runtime"):
+            self.assertTrue(hexdigest.fullmatch(pin(REPO, name, "sha256")), name)
         # FT-1222, FT-1223: the packages come from the one snapshot, each with its version and SHA-256.
         pool = f"https://snapshot.ubuntu.com/ubuntu/{snapshot(REPO)}/pool/"
         for component in table["component"]:
             if component["url"].endswith(".deb"):
                 self.assertTrue(component["url"].startswith(pool), component["url"])
                 self.assertTrue(hexdigest.fullmatch(component["sha256"]), component["name"])
-        for deb in table["apt"]["deb"]:
+        for deb in table["apt"]["deb"] + table["apt"]["arm64"]:
             self.assertEqual(set(deb), {"name", "version", "sha256"}, deb.get("name"))
             self.assertTrue(hexdigest.fullmatch(deb["sha256"]), deb["name"])
+        # D16: the arm64 container fetches the build's packages of the amd64 one at the same versions, with the two
+        # architecture-specific ones swapped (not squashfs-tools and liblzo2-2, which only the AppImage needs).
+        amd64 = {(c["name"], c["version"]) for c in table["component"] if c["url"].endswith(".deb")}
+        amd64 |= {(d["name"], d["version"]) for d in table["apt"]["deb"]}
+        swapped = {"binutils-x86-64-linux-gnu": "binutils-aarch64-linux-gnu", "libquadmath0": "libhwasan0"}
+        arm64 = {(swapped.get(n, n), v) for n, v in amd64 if n not in ("squashfs-tools", "liblzo2-2")}
+        self.assertEqual({(d["name"], d["version"]) for d in table["apt"]["arm64"]}, arm64)
 
     def test_the_workflow_pins_follow_the_components(self):
         # FT-1225: the Windows job's setup-python is the version of components.toml, and so is its Python.
         with open(os.path.join(REPO, ".github", "workflows", "package.yml"), encoding="utf-8") as f:
             workflow = f.read()
+        # Every job that sets Python up (windows, and D16's windows-11-arm).
         uses = re.findall(r"uses: actions/setup-python@[0-9a-f]{40} # v(\S+)", workflow)
-        self.assertEqual(uses, [pin(REPO, "setup-python")])
-        self.assertEqual(re.findall(r'python-version: "([^"]+)"', workflow), [pin(REPO, "python")])
+        self.assertTrue(uses)
+        self.assertEqual(set(uses), {pin(REPO, "setup-python")})
+        versions = re.findall(r'python-version: "([^"]+)"', workflow)
+        self.assertEqual(len(versions), len(uses))
+        self.assertEqual(set(versions), {pin(REPO, "python")})
 
     def test_downloaded_packages_are_compared_with_the_list(self):
         debs = os.path.join(self.dir, "archives")
@@ -782,6 +896,130 @@ class StageTest(unittest.TestCase):
         removed = re.findall(r'^\s*(?:Delete|RMDir /r) "\$INSTDIR\\([^"\\]+)"$', uninstall, re.MULTILINE)
         tree = self.stage("windows")
         self.assertEqual(sorted(removed), sorted(os.listdir(tree) + ["uninstall.exe"]))
+
+    def test_a_cli_tree_holds_the_archives_entries_alone(self):
+        linux = os.path.join(self.dir, "cli-linux")
+        stage_tree(self.repo, os.path.join(self.dir, "linux"), None, self.VERSION, linux, cli=True)
+        common = [n for n in self.COMMON if not n.startswith("docs/")]
+        self.assertEqual(self.listing(linux), sorted(f"./{n}" for n in common + ["ew"]))
+        windows = os.path.join(self.dir, "cli-windows")
+        stage_tree(self.repo, os.path.join(self.dir, "windows"), None, self.VERSION, windows, cli=True)
+        self.assertEqual(self.listing(windows), sorted(f"./{n}" for n in common + ["ew.exe", "ew.pdb"]))
+        out = os.path.join(self.dir, f"ew-{self.VERSION}-target.tar.gz")
+        write_archive(self.repo, linux, "tar.gz", out)
+        self.assertTrue(os.path.exists(out))
+
+    def test_the_appdir_is_d10s_layout(self):
+        tree = self.stage("linux")
+        appdir = os.path.join(self.dir, "AppDir")
+        stage_appdir(self.repo, tree, appdir)
+        inner = sorted(f"./usr/lib/elektrawatt/{n}" for n in self.COMMON + ["elektrawatt", "ew"])
+        self.assertEqual(self.listing(appdir), sorted(["./AppRun", "./elektrawatt.desktop", "./elektrawatt.png"] + inner))
+        self.assertEqual(
+            [line.split("  ", 1)[1] for line in listing(os.path.join(appdir, APPDIR_TREE))],
+            [line.split("  ", 1)[1] for line in listing(tree)],
+        )
+        if os.name == "posix":
+            self.assertEqual(os.stat(os.path.join(appdir, "AppRun")).st_mode & 0o777, 0o755)
+            self.assertEqual(os.stat(os.path.join(appdir, "elektrawatt.desktop")).st_mode & 0o777, 0o644)
+        with self.assertRaises(Refusal) as refused:
+            stage_appdir(self.repo, tree, appdir)
+        self.assertEqual(str(refused.exception), f"output exists: {appdir}")
+        icon = os.path.join(self.repo, "assets", "icons", "app", "elektrawatt.png")
+        os.remove(icon)
+        with self.assertRaises(Refusal) as refused:
+            stage_appdir(self.repo, tree, os.path.join(self.dir, "AppDir2"))
+        self.assertEqual(str(refused.exception), f"missing input: {icon}")
+        self.assertFalse(os.path.exists(os.path.join(self.dir, "AppDir2")))
+
+    def test_the_desktop_file_holds_d10s_keys(self):
+        path = os.path.join(REPO, "packaging", "linux", "elektrawatt.desktop")
+        self.assertEqual(
+            desktop_entry(path),
+            [
+                ("Type", "Application"),
+                ("Name", "ElektraWatt"),
+                ("Exec", "elektrawatt %F"),
+                ("Icon", "elektrawatt"),
+                ("Categories", "Engineering;"),
+                ("Terminal", "false"),
+            ],
+        )
+        with open(path, encoding="utf-8") as f:
+            lines = [line for line in f.read().splitlines() if line and not line.startswith("#")]
+        self.assertEqual(lines[0], "[Desktop Entry]")
+
+    @unittest.skipUnless(os.name == "posix" and shutil.which("sh"), "AppRun runs under a POSIX sh")
+    def test_appruns_dispatch(self):
+        tree = self.stage("linux")
+        appdir = os.path.join(self.dir, "AppDir")
+        stage_appdir(self.repo, tree, appdir)
+        for name in LINUX_BINARIES:
+            stub = os.path.join(appdir, APPDIR_TREE, name)
+            with open(stub, "w", encoding="utf-8", newline="\n") as f:
+                f.write(f'#!/bin/sh\nprintf "%s|" {name} "$@"\n')
+            os.chmod(stub, 0o755)
+        env = {k: v for k, v in os.environ.items() if k != "APPDIR"}
+
+        def run(*args, appdir_env=None):
+            run_env = dict(env, APPDIR=appdir_env) if appdir_env else env
+            done = subprocess.run(
+                ["sh", os.path.join(appdir, "AppRun"), *args], env=run_env, capture_output=True, check=True
+            )
+            return done.stdout.decode("utf-8")
+
+        self.assertEqual(run("ew", "--version"), "ew|--version|")
+        self.assertEqual(run("ew", "export", "pdf", "a b.ew"), "ew|export|pdf|a b.ew|")
+        self.assertEqual(run("ew"), "ew|")
+        self.assertEqual(run("--smoke", "s.ew"), "elektrawatt|--smoke|s.ew|")
+        self.assertEqual(run("ewx", "ew"), "elektrawatt|ewx|ew|")
+        self.assertEqual(run(), "elektrawatt|")
+        # The runtime's APPDIR wins over the script's own folder.
+        moved = os.path.join(self.dir, "Moved")
+        shutil.copytree(appdir, moved)
+        shutil.rmtree(os.path.join(appdir, "usr"))
+        self.assertEqual(run("ew", "-V", appdir_env=moved), "ew|-V|")
+
+    def test_the_appimage_is_the_runtime_then_the_image(self):
+        out = os.path.join(self.dir, "ElektraWatt-1.2.3-x86_64.AppImage")
+        runtime, image = os.path.join(self.dir, "runtime"), os.path.join(self.dir, "image.squashfs")
+        digest = write_appimage(runtime, image, out)
+        with open(out, "rb") as f:
+            data = f.read()
+        self.assertEqual(data, b"runtime\nsquashfs\n")
+        self.assertEqual(digest, hashlib.sha256(data).hexdigest())
+        if os.name == "posix":
+            self.assertEqual(os.stat(out).st_mode & 0o777, 0o755)
+        self.assertFalse(os.path.exists(out + ".partial"))
+        with self.assertRaises(Refusal) as refused:
+            write_appimage(runtime, image, os.path.join(self.dir, "ElektraWatt.img"))
+        self.assertEqual(
+            str(refused.exception), f"the AppImage's name must end in .AppImage: {os.path.join(self.dir, 'ElektraWatt.img')}"
+        )
+        os.remove(runtime)
+        with self.assertRaises(Refusal) as refused:
+            write_appimage(runtime, image, out)
+        self.assertEqual(str(refused.exception), f"missing input: {runtime}")
+
+    def test_arm64_packages_are_compared_with_their_own_list(self):
+        path = os.path.join(self.repo, COMPONENTS)
+        crypt = hashlib.sha256(self.CRYPT).hexdigest()
+        with open(path, "a", encoding="utf-8", newline="\n") as f:
+            f.write(f'[[apt.arm64]]\nname = "libcrypt-dev"\nversion = "1:4.4.27-1"\nsha256 = "{crypt}"\n')
+        debs = os.path.join(self.dir, "arm64")
+        os.makedirs(debs)
+        with open(os.path.join(debs, "libcrypt-dev_1%3a4.4.27-1_arm64.deb"), "wb") as f:
+            f.write(self.CRYPT)
+        self.assertEqual(check_debs(self.repo, debs, "arm64"), [f"{crypt}  libcrypt-dev_1%3a4.4.27-1_arm64.deb"])
+        with self.assertRaises(Refusal) as refused:
+            check_debs(self.repo, debs)
+        self.assertEqual(
+            str(refused.exception),
+            "the downloaded packages are not those of packaging/components.toml:\n"
+            "gcc_4%3a11_amd64.deb is listed in packaging/components.toml but was not downloaded\n"
+            "libcrypt-dev_1%3a4.4.27-1_amd64.deb is listed in packaging/components.toml but was not downloaded\n"
+            "libcrypt-dev_1%3a4.4.27-1_arm64.deb was downloaded but is not listed in packaging/components.toml",
+        )
 
 
 if __name__ == "__main__":

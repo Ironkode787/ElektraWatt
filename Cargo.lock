@@ -1146,6 +1146,8 @@ dependencies = [
  "ew-commands",
  "ew-hack",
  "ew-print",
+ "ew-render-cpu",
+ "ew-scene",
  "ew-testdir",
  "ew-testkit",
  "ew-ui",

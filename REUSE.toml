@@ -150,6 +150,32 @@ precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 The ElektraWatt contributors"
 SPDX-License-Identifier = "GPL-3.0-or-later"
 
+# L1: the application icon (WP-S6.06 §13 O5, ID-1280), the project's own work under the application's licence: the
+# SVG comment-free like the glyphs above, and the PNG rendered from it, which cannot carry a header.
+[[annotations]]
+path = "assets/icons/app/**"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 The ElektraWatt contributors"
+SPDX-License-Identifier = "GPL-3.0-or-later"
+
+# L14: the licence file and notices of the AppImage's type-2 runtime (WP-S6.06 D2, ID-1275), which the AppImage
+# aggregates; the runtime itself is downloaded by the Linux job, never committed. The file quotes the runtime's MIT
+# licence and the notices of the libraries linked into it, whose texts are in LICENSES/; provenance in NOTICE.
+[[annotations]]
+path = "packaging/linux/type2-runtime-notices.txt"
+precedence = "aggregate"
+SPDX-FileCopyrightText = [
+  "2004-23 probonopd",
+  "2005-2020 Rich Felker, et al.",
+  "2001-2007 Miklos Szeredi",
+  "2012 Dave Vasilevsky, Phillip Lougher",
+  "Meta Platforms, Inc. and affiliates",
+  "Jean-loup Gailly and Mark Adler",
+  "2018-2025 Microsoft Corporation, Daan Leijen",
+  "2026 The ElektraWatt contributors",
+]
+SPDX-License-Identifier = "MIT AND LGPL-2.1-only AND BSD-2-Clause AND BSD-3-Clause AND Zlib"
+
 # L8: the golden fixture (19 §2.1 L8, doc 20 §3.1): CSV tables and generated outputs cannot carry a header.
 [[annotations]]
 path = "golden/**"

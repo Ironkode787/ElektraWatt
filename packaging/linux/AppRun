@@ -1,0 +1,14 @@
+#!/bin/sh
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+# The AppImage's entry point (WP-S6.06 D10): `ew` as the first argument runs the command-line program with the rest,
+# anything else runs the window's program with every argument. The runtime sets APPDIR (also under
+# --appimage-extract-and-run); an extracted AppDir run directly finds itself beside this script.
+set -eu
+here="${APPDIR:-$(dirname "$(readlink -f "$0")")}"
+if [ "${1-}" = ew ]; then
+  shift
+  exec "$here/usr/lib/elektrawatt/ew" "$@"
+fi
+exec "$here/usr/lib/elektrawatt/elektrawatt" "$@"

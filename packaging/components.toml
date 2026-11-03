@@ -78,15 +78,34 @@ sha256 = "ba63dffc4410ee89193e1cb5a41989991bd77c61068da17e3156d136b7b0b3d8"
 checked_by = "package.yml, sha256sum before the archive is unpacked (its MD5 matched the 530e3623c077cba879ed2ae6e13be362 that SourceForge lists); makensis -VERSION must print v<version>"
 used_for = "makensis, which compiles packaging/windows/elektrawatt.nsi into the per-user setup (D2, D9), since windows-2025 has no NSIS (image 20261030.317.1); the setup's stub and uninstaller are its zlib-licensed code (zlib compression; the bzip2 and CPL-1.0 LZMA modules are not used)"
 
+[[component]]
+name = "squashfs-tools"
+version = "1:4.5-3build1"
+licence = "GPL-2.0-or-later"
+url = "https://snapshot.ubuntu.com/ubuntu/20261102T000000Z/pool/main/s/squashfs-tools/squashfs-tools_4.5-3build1_amd64.deb"
+sha256 = "96a92cd6f2784d87007b0d057b162df85941a2b42351bbb964ea4d94c72b841e"
+checked_by = "apt, against the signed index of jammy at the snapshot of [apt]; then stage.py debs; the job's report records mksquashfs -version"
+used_for = "mksquashfs, which writes the AppImage's squashfs image of the AppDir in the Linux build container (D2, D10); a build tool, none of its code reaches the AppImage"
+
+[[component]]
+name = "appimage-type2-runtime"
+version = "20251108"
+licence = "MIT AND LGPL-2.1-only AND BSD-2-Clause AND BSD-3-Clause AND Zlib"
+url = "https://github.com/AppImage/type2-runtime/releases/download/20251108/runtime-x86_64"
+sha256 = "2fca8b443c92510f1483a883f60061ad09b46b978b2631c807cd873a47ec260d"
+checked_by = "package.yml, sha256sum of the download before it is used (the dated release's asset; its GitHub digest matched)"
+used_for = "the AppImage's runtime (D2, D10, ID-1275): the static type-2 runtime of tag 20251108 (commit dd6cebedcbddde9c82f89b011e8e1d40b6e43868), prepended to the squashfs image, aggregated with the payload and never linked into ElektraWatt. Its LICENSE file names MIT for the runtime and the libraries it links statically: musl libc (MIT), libfuse 3.15.0 (LGPL-2.1), squashfuse 0.5.2 (BSD-2-Clause), libzstd (BSD-3-Clause, of its BSD-3-Clause OR GPL-2.0-only) and zlib (Zlib); its Makefile also links mimalloc (MIT). NOTICE and packaging/linux/type2-runtime-notices.txt carry the notices"
+
 # FT-1222: the Linux container's apt reads the Ubuntu archive at this snapshot,
 # https://snapshot.ubuntu.com/ubuntu/<snapshot> (jammy and jammy-updates, main), in package.yml's linux job and in
-# ci.yml's c-only alike (ci/linux-container.sh). It serves gcc and libc6-dev at the versions above.
+# ci.yml's c-only alike (ci/linux-container.sh). It serves gcc, libc6-dev and squashfs-tools at the versions above.
 [apt]
 snapshot = "20261102T000000Z"
 
-# FT-1223: the other packages that `apt-get install --download-only` of gcc and libc6-dev fetches into the pinned image
-# at that snapshot (the image holds the rest), each at the version and the SHA-256 of the snapshot's index; stage.py
-# debs refuses a downloaded file that is not one of them, gcc or libc6-dev.
+# FT-1223: the other packages that `apt-get install --download-only` of gcc, libc6-dev and (package.yml's linux job
+# only) squashfs-tools fetches into the pinned image at that snapshot (the image holds the rest), each at the version
+# and the SHA-256 of the snapshot's index; stage.py debs refuses a downloaded file that is not one of them, gcc,
+# libc6-dev or squashfs-tools.
 # map: packaging-debs: a new package that the container's apt fetches goes here with its name, version and SHA-256.
 [[apt.deb]]
 name = "binutils"
@@ -189,6 +208,11 @@ version = "12.3.0-1ubuntu1~22.04.3"
 sha256 = "c308b0e39678a00b3ad3a9653119af4a29156e2c385111bdbd4890c96d376fa4"
 
 [[apt.deb]]
+name = "liblzo2-2"
+version = "2.10-2build3"
+sha256 = "98f621d5eb3052a2468473dc3f00ac3ee451a62b85d85480575f694a5205117d"
+
+[[apt.deb]]
 name = "libmpc3"
 version = "1.2.1-2build1"
 sha256 = "6cd43b60ac14890737a3402a35350d6696bc1521de8731cdecc9e7ef10041446"
@@ -232,3 +256,164 @@ sha256 = "3af9a45f616e3676827c31a9b7c43b78ea5c92f37af23d1c09db2a8f5ce294b2"
 name = "rpcsvc-proto"
 version = "1.4.2-0ubuntu6"
 sha256 = "447c6d8f7624a3d728a12232440d3f10e6e53bbf60cc202b7beb8a3bc9f7acc9"
+
+# D16: the arm64 build container (the arm64 image of LINUX_BUILD_IMAGE, `ubuntu-24.04-arm`) fetches gcc and libc6-dev
+# from the same snapshot at the same versions, with these packages: those of [[apt.deb]] for arm64, with
+# binutils-aarch64-linux-gnu and libhwasan0 in place of binutils-x86-64-linux-gnu and libquadmath0 (no squashfs-tools,
+# no liblzo2-2: no AppImage for arm64), each with the SHA-256 of the snapshot's arm64 index; stage.py debs --arch arm64
+# compares the download with this list alone.
+# map: packaging-arm64-debs: a new package that the arm64 container's apt fetches goes here with its name, version and SHA-256.
+[[apt.arm64]]
+name = "binutils"
+version = "2.38-4ubuntu2.12"
+sha256 = "610ecebee108eea384fc9cfe9a569957b60d8d6b31fb91137e298fe79dd0dc6b"
+
+[[apt.arm64]]
+name = "binutils-aarch64-linux-gnu"
+version = "2.38-4ubuntu2.12"
+sha256 = "469f40f9c0f489836fe996d4cfa1dc072c4cef4f10cd3fea02fd26c47910ac28"
+
+[[apt.arm64]]
+name = "binutils-common"
+version = "2.38-4ubuntu2.12"
+sha256 = "e27872f3a5bc8021e007b491d3395b7a4886c2c523765663379e39c64b9188d7"
+
+[[apt.arm64]]
+name = "cpp"
+version = "4:11.2.0-1ubuntu1"
+sha256 = "6be683387ebdfe8dfc7c7a983d3d4458ff0c9d02c7ee7247d0252afc87bffd1b"
+
+[[apt.arm64]]
+name = "cpp-11"
+version = "11.4.0-1ubuntu1~22.04.3"
+sha256 = "9e84375f6e800e36ac2982cb01434f0911dd1bfdf69def555340cb48676df709"
+
+[[apt.arm64]]
+name = "gcc"
+version = "4:11.2.0-1ubuntu1"
+sha256 = "426deed543cc32f388ad8336354e312fb76a47450194d2d775d855ad5878f82e"
+
+[[apt.arm64]]
+name = "gcc-11"
+version = "11.4.0-1ubuntu1~22.04.3"
+sha256 = "bf80a479611a7cbd554ebf4d33d404666e1a3fd26fd08c497cab91b47990d3f0"
+
+[[apt.arm64]]
+name = "gcc-11-base"
+version = "11.4.0-1ubuntu1~22.04.3"
+sha256 = "69d03f54155fedab6c941e63149cf6ddadaa3638a005bbc66ef0d8445c3e5af3"
+
+[[apt.arm64]]
+name = "libasan6"
+version = "11.4.0-1ubuntu1~22.04.3"
+sha256 = "c32dad7b409a6275c6af8a9bf5fe6e40acf15aad33d9a6c0d0b16c539bf77927"
+
+[[apt.arm64]]
+name = "libatomic1"
+version = "12.3.0-1ubuntu1~22.04.3"
+sha256 = "936154d57c566aebc0842cf0451b694539e61ca65617d707aa89b4db07285eb1"
+
+[[apt.arm64]]
+name = "libbinutils"
+version = "2.38-4ubuntu2.12"
+sha256 = "cccc7cf1b728838f51054a44316a04e520b936dfec48de944ebace8c171e2773"
+
+[[apt.arm64]]
+name = "libc-dev-bin"
+version = "2.35-0ubuntu3.15"
+sha256 = "6f4f3c47038f561d345c577d14d905472df8cbb9bcf710346c271d78c4a0c728"
+
+[[apt.arm64]]
+name = "libc6-dev"
+version = "2.35-0ubuntu3.15"
+sha256 = "e1da77e87451ca8f41b2757fe274bca357fd5f7498afe47c05360681d0727bae"
+
+[[apt.arm64]]
+name = "libcc1-0"
+version = "12.3.0-1ubuntu1~22.04.3"
+sha256 = "bdbfa92037d98d1f5d13cdb8de2387dbc69c34fa7635d951af7df41fdb4d06fb"
+
+[[apt.arm64]]
+name = "libcrypt-dev"
+version = "1:4.4.27-1"
+sha256 = "17805b64d386655edca4aafbf01e6b89bd3b9a35cde7a31da964dd766ad9c5b6"
+
+[[apt.arm64]]
+name = "libctf-nobfd0"
+version = "2.38-4ubuntu2.12"
+sha256 = "5bf301b309977b4bfa75c92b84ab1461ac6954c73872efb19f3766051010bf63"
+
+[[apt.arm64]]
+name = "libctf0"
+version = "2.38-4ubuntu2.12"
+sha256 = "423c4a9bd007178f838d35caedf1fe7d1a447ea4d96a8a2949ad116b6f50da0f"
+
+[[apt.arm64]]
+name = "libgcc-11-dev"
+version = "11.4.0-1ubuntu1~22.04.3"
+sha256 = "8f65b96e09a0c0f9dace290d8e91ba9209ac991ef1c57803ff6ae8a0e8402527"
+
+[[apt.arm64]]
+name = "libgomp1"
+version = "12.3.0-1ubuntu1~22.04.3"
+sha256 = "9a1038bc9b4305ba4dfbc2c4c77a1a173a8a4e8801d32d7642a5d9a4e5fb1da7"
+
+[[apt.arm64]]
+name = "libhwasan0"
+version = "12.3.0-1ubuntu1~22.04.3"
+sha256 = "64fe35ce16542512e927df55e40079599b1bbe31ddd260c5dbc15f7f458896fc"
+
+[[apt.arm64]]
+name = "libisl23"
+version = "0.24-2build1"
+sha256 = "1e6e12c1ec8aa83839fe9451b533bfe5bf63b44b0e66a71c1e41706c481fb6e9"
+
+[[apt.arm64]]
+name = "libitm1"
+version = "12.3.0-1ubuntu1~22.04.3"
+sha256 = "5a84f22d2589c37d8521e70ec261f6eca060b89faaca27bab6fc245a3b0abb70"
+
+[[apt.arm64]]
+name = "liblsan0"
+version = "12.3.0-1ubuntu1~22.04.3"
+sha256 = "142cd8186e587d538e2b9b01fbe2c573c8e68e173d089bd0fbfe21fd4d0db99b"
+
+[[apt.arm64]]
+name = "libmpc3"
+version = "1.2.1-2build1"
+sha256 = "7f6fc0fdb744474a5f49077c37bc848af64392eb970fddf447092f190a3fe635"
+
+[[apt.arm64]]
+name = "libmpfr6"
+version = "4.1.0-3build3"
+sha256 = "cef55f2fe8a149d8d460140a10b8e8539ada9f7fbfa3a44f77ac2a049b3baaa2"
+
+[[apt.arm64]]
+name = "libnsl-dev"
+version = "1.3.0-2build2"
+sha256 = "4a111ee814455ebf4db3be9caec555752315048cb5ec9c4c076fe3f00da22ec9"
+
+[[apt.arm64]]
+name = "libtirpc-dev"
+version = "1.3.2-2ubuntu0.1"
+sha256 = "844036d62c2c0c97f6801bf585de068bd3753351122384d6b5830a070d781aa0"
+
+[[apt.arm64]]
+name = "libtsan0"
+version = "11.4.0-1ubuntu1~22.04.3"
+sha256 = "cf9d812f8ac20f0fe04f275e921a38ec018268ca476f1cc895b59b5904a70104"
+
+[[apt.arm64]]
+name = "libubsan1"
+version = "12.3.0-1ubuntu1~22.04.3"
+sha256 = "36e0ac611cc5900b2bdc58a2d4b3ba1c0f5341f39c168f59533316394e51c168"
+
+[[apt.arm64]]
+name = "linux-libc-dev"
+version = "5.15.0-202.212"
+sha256 = "4e495110557d627b9fc09ca93eeab3935f627d8563af8a6ee299b9f942923436"
+
+[[apt.arm64]]
+name = "rpcsvc-proto"
+version = "1.4.2-0ubuntu6"
+sha256 = "07e79aa5de920bbb123d9590cdb2add2a8ec366864d7403794741db604698376"

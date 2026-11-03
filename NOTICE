@@ -81,3 +81,23 @@ crates/ew-ui/src/icons/generated.rs.
   WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 The project's own glyphs (assets/icons/ew/) are part of ElektraWatt (GPL-3.0-or-later).
+
+The AppImage's runtime (packaging/components.toml `appimage-type2-runtime`, WP-S6.06 D2, D10)
+-----------------------------------------------------------------------------------------------
+
+The Linux AppImage begins with the static type-2 runtime of the AppImage project, release 20251108 (file
+runtime-x86_64, SHA-256 2fca8b443c92510f1483a883f60061ad09b46b978b2631c807cd873a47ec260d): a separate program
+aggregated with ElektraWatt's files, not linked into ElektraWatt (decision log ID-1275). It is not committed to this
+repository; packaging/linux/type2-runtime-notices.txt holds its licence file verbatim and these notices in full.
+
+  Source:    https://github.com/AppImage/type2-runtime, tag 20251108 (commit dd6cebedcbddde9c82f89b011e8e1d40b6e43868)
+  Runtime:   Copyright (c) 2004-23 probonopd; MIT (LICENSES/MIT.txt)
+  Linked statically into the runtime:
+    musl libc        Copyright © 2005-2020 Rich Felker, et al.; MIT (LICENSES/MIT.txt)
+    libfuse 3.15.0   Copyright (C) 2001-2007 Miklos Szeredi; LGPL-2.1-only (LICENSES/LGPL-2.1-only.txt); source
+                     https://github.com/libfuse/libfuse/releases/tag/fuse-3.15.0 with the runtime's
+                     patches/libfuse/mount.c.diff
+    squashfuse 0.5.2 Copyright (c) 2012 Dave Vasilevsky, Phillip Lougher; BSD-2-Clause (LICENSES/BSD-2-Clause.txt)
+    libzstd          Copyright (c) Meta Platforms, Inc. and affiliates; BSD-3-Clause (LICENSES/BSD-3-Clause.txt)
+    zlib             Copyright (C) Jean-loup Gailly and Mark Adler; Zlib (LICENSES/Zlib.txt)
+    mimalloc         Copyright (c) 2018-2025 Microsoft Corporation, Daan Leijen; MIT (LICENSES/MIT.txt)

@@ -371,6 +371,11 @@ allowed = ["MIT"]
 glob = "assets/icons/ew/**"
 allowed = ["GPL-3.0-or-later"]
 
+# L1: the application icon (WP-S6.06 §13 O5, ID-1280), the project's own work; REUSE.toml annotation.
+[[path]]
+glob = "assets/icons/app/**"
+allowed = ["GPL-3.0-or-later"]
+
 # ---------------------------------------------------------------------------------------------------------------
 # L9: documentation and the root prose files (CC-BY-4.0). LICENSE.md is L11 (below).
 [[path]]
@@ -551,6 +556,12 @@ allowed = ["CC-BY-4.0"]
 glob = "packaging/**"
 allowed = ["MIT OR Apache-2.0"]
 
+# L14: the licence file and notices of the AppImage's type-2 runtime (WP-S6.06 D2, ID-1275), quoted from upstream;
+# the runtime is aggregated with the AppImage, never committed. REUSE.toml annotation, provenance in NOTICE.
+[[path]]
+glob = "packaging/linux/type2-runtime-notices.txt"
+allowed = ["MIT AND LGPL-2.1-only AND BSD-2-Clause AND BSD-3-Clause AND Zlib"]
+
 [[path]]
 glob = "xtask/**"
 allowed = ["MIT OR Apache-2.0"]
@@ -574,6 +585,7 @@ third_party = [
   "crates/ew-import-qet/src/qet_port/**",
   "assets/fonts/**",
   "assets/icons/tabler/**",
+  "packaging/linux/type2-runtime-notices.txt",
   "crates/ew-ui/src/icons/generated.rs",
   "crates/ew-schema/tests/fixtures/svg-exporters/**",
   "crates/ew-export/tests/fixtures/raster-exporters/**",

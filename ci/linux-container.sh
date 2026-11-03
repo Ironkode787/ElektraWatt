@@ -3,17 +3,20 @@
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
 # The Linux builds in the digest-pinned `ubuntu:22.04` container (WP-S6.06 D6; NFR-MAINT-09, doc 18 §5.3): the
-# `c-only` job of ci.yml and the Linux job of package.yml. Runs inside the container as root, from the checkout
-# (mounted at its path on the runner, so the path remaps and the release check see the runner's paths):
+# `c-only` job of ci.yml and the Linux jobs of package.yml (x86_64, and D16's aarch64 in the arm64 image). Runs inside
+# the container as root, from the checkout (mounted at its path on the runner, so the path remaps and the release
+# check see the runner's paths):
 #
 #   linux-container.sh download
 #       With network. `apt-get update`, then downloads `gcc=$EW_GCC_VERSION` and `libc6-dev=$EW_LIBC6_DEV_VERSION`
-#       (packaging/components.toml) into the mounted /var/cache/apt/archives and /var/lib/apt/lists, which apt checks
-#       against its signed index. The archive is Ubuntu's at the time EW_APT_SNAPSHOT (`[apt]` of
+#       (packaging/components.toml), and `squashfs-tools=$EW_SQUASHFS_TOOLS_VERSION` when that is set (the x86_64 job
+#       of package.yml, for the AppImage), into the mounted /var/cache/apt/archives and /var/lib/apt/lists, which apt
+#       checks against its signed index. The snapshot's index holds every architecture, so the arm64 image reads the
+#       same source. The archive is Ubuntu's at the time EW_APT_SNAPSHOT (`[apt]` of
 #       packaging/components.toml, FT-1222) on snapshot.ubuntu.com, so it holds the pinned versions for good. The
 #       snapshot is served over HTTPS only, and the image has no CA certificates: the runner's bundle is mounted at
 #       /etc/ssl/certs/ca-certificates.crt. `packaging/stage.py debs` then compares the downloaded files with the list.
-#   linux-container.sh check | release
+#   linux-container.sh check | release | cli
 #       With no network (`docker run --network none`). Installs the two packages from the downloaded files
 #       (`--no-download`), asserts that no C++ compiler is there (`g++`, `c++`, `clang++`), and runs as the runner's
 #       uid and gid (EW_UID, EW_GID, through `setpriv`) with the host's toolchain (EW_TOOLCHAIN_BIN, mounted) on PATH:
@@ -22,8 +25,15 @@
 #       - release: `ci/release-check.sh env`, `cargo build --release --locked --offline -p elektrawatt -p ew`,
 #         `ci/release-check.sh scan` on both binaries (reports `release-check-<binary>.md`), and the highest `GLIBC_`
 #         symbol version of both, which must be at most 2.35 (glibc of Ubuntu 22.04, the oldest Supported Linux); it
-#         writes the container's `dpkg-query --show` to `container-packages.txt` for the job summary (FT-1223).
+#         writes the container's `dpkg-query --show` to `container-packages.txt` for the job summary (FT-1223);
+#       - cli: the same for `ew` alone (D16's aarch64 CLI archive).
 #       The dependencies are fetched on the runner first (`cargo fetch --locked`), into the mounted cargo home.
+#   linux-container.sh appimage
+#       With no network. Installs squashfs-tools from the downloaded files, writes `mksquashfs -version`'s first line
+#       to `squashfs-tools-version.txt` for the job's report, and as the runner's uid and gid writes the squashfs image
+#       of the AppDir EW_APPDIR to EW_SQUASHFS: `mksquashfs <AppDir> <image> -root-owned -noappend -comp zstd`. zstd:
+#       the pinned runtime links libzstd and zlib into its squashfuse (its Makefile), so it reads zstd, which
+#       decompresses faster than gzip at a smaller size (D10).
 #   Every mode reads the same apt source, the snapshot, since the downloaded lists are named after it.
 set -euo pipefail
 
@@ -51,13 +61,26 @@ if [ "$mode" = download ]; then
   [ -s "$ca" ] || fail "no CA bundle at $ca: mount the runner's, read-only (the snapshot is served over HTTPS only)"
   apt-get "${apt_options[@]:0:4}" -o Acquire::https::CaInfo="$ca" update
   DEBIAN_FRONTEND=noninteractive apt-get "${apt_options[@]}" -o Acquire::https::CaInfo="$ca" \
-    install --download-only "${packages[@]}"
+    install --download-only "${packages[@]}" ${EW_SQUASHFS_TOOLS_VERSION:+"squashfs-tools=$EW_SQUASHFS_TOOLS_VERSION"}
   exit 0
 fi
 
+as_runner() {
+  setpriv --reuid "$EW_UID" --regid "$EW_GID" --clear-groups \
+    env HOME=/tmp PATH="${EW_TOOLCHAIN_BIN:+$EW_TOOLCHAIN_BIN:}$PATH" "$@"
+}
+
 case "$mode" in
-  check | release) ;;
-  *) fail "usage: linux-container.sh download | check | release" ;;
+  check | release | cli) ;;
+  appimage)
+    : "${EW_UID:?}" "${EW_GID:?}" "${EW_SQUASHFS_TOOLS_VERSION:?}" "${EW_APPDIR:?}" "${EW_SQUASHFS:?}"
+    DEBIAN_FRONTEND=noninteractive apt-get "${apt_options[@]}" install --no-download \
+      "squashfs-tools=$EW_SQUASHFS_TOOLS_VERSION"
+    mksquashfs -version | sed -n 1p | as_runner tee squashfs-tools-version.txt
+    as_runner mksquashfs "$EW_APPDIR" "$EW_SQUASHFS" -root-owned -noappend -comp zstd
+    exit 0
+    ;;
+  *) fail "usage: linux-container.sh download | check | release | cli | appimage" ;;
 esac
 : "${EW_UID:?}" "${EW_GID:?}" "${EW_TOOLCHAIN_BIN:?}"
 
@@ -70,25 +93,22 @@ done
 echo "linux-container: no g++, c++ or clang++; C compiler: $(cc --version | sed -n 1p)"
 dpkg-query --show gcc libc6-dev libc6
 
-as_runner() {
-  setpriv --reuid "$EW_UID" --regid "$EW_GID" --clear-groups \
-    env HOME=/tmp PATH="$EW_TOOLCHAIN_BIN:$PATH" "$@"
-}
-
 if [ "$mode" = check ]; then
   as_runner cargo check --locked --offline -p elektrawatt -p ew
   exit 0
 fi
 
+binaries=(elektrawatt ew)
+[ "$mode" = cli ] && binaries=(ew)
 # The release check's environment step runs in the shell that starts the build, so it sees what cargo inherits.
 as_runner bash -c '
   set -euo pipefail
   bash ci/release-check.sh env
-  cargo build --release --locked --offline -p elektrawatt -p ew
-'
+  cargo build --release --locked --offline "${@/#/--package=}"
+' build "${binaries[@]}"
 dpkg-query --show | as_runner tee container-packages.txt > /dev/null
 failed=0
-for binary in elektrawatt ew; do
+for binary in "${binaries[@]}"; do
   as_runner bash ci/release-check.sh scan "target/release/$binary" target "release-check-$binary.md" || failed=1
   newest="$(objdump -T "target/release/$binary" | { grep -o 'GLIBC_[0-9.]*' || true; } | sed 's/GLIBC_//' | sort -uV | tail -n 1)"
   highest="$(printf '%s\n%s\n' "$newest" 2.35 | sort -V | tail -n 1)"

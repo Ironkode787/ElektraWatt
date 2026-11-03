@@ -1,0 +1,66 @@
+The AppImage type-2 runtime: its licence and notices
+=====================================================
+
+Every ElektraWatt AppImage (ElektraWatt-<version>-x86_64.AppImage) begins with the static type-2 runtime of the
+AppImage project, a separate program aggregated with ElektraWatt's files and never linked into ElektraWatt (WP-S6.06
+D2, D10; decision log ID-1275). The runtime mounts or extracts the image and starts AppRun. packaging/components.toml
+pins it (`appimage-type2-runtime`): release 20251108, file runtime-x86_64, SHA-256
+2fca8b443c92510f1483a883f60061ad09b46b978b2631c807cd873a47ec260d.
+
+Source: https://github.com/AppImage/type2-runtime, tag 20251108 (commit dd6cebedcbddde9c82f89b011e8e1d40b6e43868),
+built by its scripts/ in an Alpine Linux chroot, which also name the sources of the libraries below.
+
+The runtime's own licence file (LICENSE at that tag), verbatim:
+
+  MIT License
+
+  Copyright (c) 2004-23 probonopd
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+
+  The AppImage runtime executable contains statically linked code from
+  the following third party libraries, which are licensed under
+  the following terms:
+
+  * musl libc, licensed under the terms of
+    https://git.musl-libc.org/cgit/musl/tree/COPYRIGHT
+  * libfuse, licensed under the terms of
+    https://github.com/libfuse/libfuse/blob/master/LGPL2.txt
+  * squashfuse, licensed under the terms of
+    https://github.com/vasi/squashfuse/blob/master/LICENSE
+  * libzstd, licensed under the terms of
+    https://github.com/facebook/zstd/blob/dev/LICENSE
+  * zlib, licensed under the terms of
+    https://zlib.net/zlib_license.html
+
+The statically linked libraries, their notices and licences (the texts are in LICENSES/):
+
+- musl libc: Copyright © 2005-2020 Rich Felker, et al. MIT (LICENSES/MIT.txt).
+- libfuse 3.15.0 (its library, patched by the runtime's patches/libfuse/mount.c.diff): Copyright (C) 2001-2007 Miklos
+  Szeredi. "This program can be distributed under the terms of the GNU LGPLv2": LGPL-2.1-only
+  (LICENSES/LGPL-2.1-only.txt). Its source: https://github.com/libfuse/libfuse/releases/tag/fuse-3.15.0 and the
+  patch at the runtime's tag. The runtime's source and build scripts above let a user relink it with a modified
+  libfuse (LGPL-2.1 section 6).
+- squashfuse 0.5.2: Copyright (c) 2012 Dave Vasilevsky, Phillip Lougher. All rights reserved. BSD-2-Clause
+  (LICENSES/BSD-2-Clause.txt). Its source: https://github.com/vasi/squashfuse/releases/tag/0.5.2.
+- libzstd: Copyright (c) Meta Platforms, Inc. and affiliates. All rights reserved. BSD-3-Clause, of its
+  BSD-3-Clause OR GPL-2.0-only (LICENSES/BSD-3-Clause.txt).
+- zlib: Copyright (C) Jean-loup Gailly and Mark Adler. Zlib (LICENSES/Zlib.txt).
+- mimalloc, which the runtime's Makefile links though its licence file does not list it: Copyright (c) 2018-2025
+  Microsoft Corporation, Daan Leijen. MIT (LICENSES/MIT.txt).

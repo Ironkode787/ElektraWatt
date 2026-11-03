@@ -3,10 +3,9 @@
 
 # The pilot release's packaging (WP-S6.06 D8; doc 18 §5.2 CI-N-12, CI-R-03, CI-R-05): one workflow builds, from one
 # commit, the release binaries on Windows and Linux, stages the installed tree of D3 and writes the CLI archives. It
-# replaces cli-artefact.yml (its nightly `ew` artefact, G-M1-22, and its release check, FT-333). Parts 1 and 2a of the
-# package: the book, the two builds up to the staged tree and the CLI archives, their smoke steps and the nightly CLI
-# upload (part 1); the Windows setup and its install tests, and the installed checks on Linux's staged tree (part 2a).
-# The AppImage and its tests (part 2b) and the cross-platform digests (part 3) come later.
+# replaces cli-artefact.yml (its nightly `ew` artefact, G-M1-22, and its release check, FT-333): the book, the two
+# builds up to the staged tree and the CLI archives, their smoke steps and the nightly CLI upload; the Windows setup and
+# the Linux AppImage with their install tests.
 #
 # - `book` runs packaging/stage.py's own tests (IN-1, FT-1228) and builds the user guide once (ci/build-book.sh, D7),
 #   which it hands to the OS jobs as an artifact (HTML, no binary).
@@ -26,14 +25,18 @@
 #   run, the installed-resources script and its runs without each resource (D13, IN-11), AC-40's acceptance
 #   (ci/installed-acceptance.sh, D12, IN-12) and the unchanged listing (IN-10); then the setup once more over the
 #   installation and the uninstall (IN-13).
-# - `linux`: the same checks of IN-10 to IN-12 on the staged tree, which the AppImage will carry as
-#   `usr/lib/elektrawatt/`, with `chmod -R a-w`; part 2b moves them to the tree extracted from the AppImage.
+# - `linux` (D2, D10, D11): the AppDir around the staged tree (packaging/stage.py appdir: packaging/linux/AppRun, its
+#   desktop file and the icon of assets/icons/app/), its squashfs image written by mksquashfs in the build container
+#   (squashfs-tools from the same snapshot, zstd), and the pinned type-2 runtime before it:
+#   `ElektraWatt-<v>-x86_64.AppImage`. packaging/linux/install-test.sh runs it in `ubuntu:22.04` and `debian:12` with
+#   no network through `--appimage-extract-and-run` (IN-14) and on its extraction with `chmod -R a-w` (IN-10, IN-12),
+#   then on the runner the same on its extraction with D13's resource runs (IN-10 to IN-12), as Python is there.
 #
 # ID-476's hold: no binary that links the UI graph leaves its job. With `upload: false` (the nightly, a dispatch, and
 # every call but WP-S6.07's release) a job uploads only its CLI archive, as the nightly artefact
 # `ew-<os>-<arch>-unsigned-dev-<short sha>` for 90 days, and its reports. `upload: true` uploads the CLI archives under
-# their release names for one day; the installers join it once the hold lifts (§13 O1), so the setup is built and
-# tested but never leaves its job yet.
+# their release names for one day; the installers join it once the hold lifts (§13 O1), so the setup and the AppImage
+# are built and tested but never leave their jobs yet.
 #
 # `<v>`: the `version` input, or `<workspace version>-dev.<short sha>` (D8; a schedule has no inputs, so its version is
 # always the default). It names the archives, the setup, the staged README and the archive's root folder. The programs
@@ -82,6 +85,9 @@ env:
   # its multi-arch image index (Docker Hub, resolved 2026-11-03). Its libc6 is the version of packaging/components.toml's
   # libc6-dev; update the tag, the digest and those versions together. The c-only job of ci.yml uses the same image.
   LINUX_BUILD_IMAGE: ubuntu@sha256:076e7bf82319619f28dd0aa9c02ab34b055ad37100395b4f49a2ffba04fb5e11
+  # D11: the AppImage's install tests also run in debian:12 (glibc 2.36), pinned by the digest of its multi-arch image
+  # index (Docker Hub, resolved 2026-11-03).
+  DEBIAN_IMAGE: debian@sha256:d74df7598108a173a621eda4d58a2adbf850b2d9a9d81bc2cca1a6c21174a880
 
 jobs:
   book:
@@ -380,6 +386,7 @@ jobs:
             echo "gcc=$(python3 -I packaging/stage.py pin gcc)"
             echo "libc6_dev=$(python3 -I packaging/stage.py pin libc6-dev)"
             echo "apt_snapshot=$(python3 -I packaging/stage.py snapshot)"
+            echo "squashfs_tools=$(python3 -I packaging/stage.py pin squashfs-tools)"
           } >> "$GITHUB_OUTPUT"
       - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
@@ -405,16 +412,18 @@ jobs:
           echo "::error::docker pull of $LINUX_BUILD_IMAGE failed three times: the job has no release build without the image"
           exit 1
       # FT-1222: the archive of Ubuntu at the snapshot of packaging/components.toml, over HTTPS with the runner's CA
-      # bundle (the image has none).
-      - name: download gcc and libc6-dev in the container
+      # bundle (the image has none); squashfs-tools for the AppImage (D2).
+      - name: download gcc, libc6-dev and squashfs-tools in the container
         env:
           EW_GCC_VERSION: ${{ steps.pins.outputs.gcc }}
           EW_LIBC6_DEV_VERSION: ${{ steps.pins.outputs.libc6_dev }}
           EW_APT_SNAPSHOT: ${{ steps.pins.outputs.apt_snapshot }}
+          EW_SQUASHFS_TOOLS_VERSION: ${{ steps.pins.outputs.squashfs_tools }}
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/apt/archives/partial" "$RUNNER_TEMP/apt/lists/partial"
           docker run --rm --env EW_GCC_VERSION --env EW_LIBC6_DEV_VERSION --env EW_APT_SNAPSHOT \
+            --env EW_SQUASHFS_TOOLS_VERSION \
             --volume /etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro \
             --volume "$RUNNER_TEMP/apt/archives:/var/cache/apt/archives" \
             --volume "$RUNNER_TEMP/apt/lists:/var/lib/apt/lists" \
@@ -487,24 +496,65 @@ jobs:
           got="$(sha256sum < "$out/golden.pdf" | cut -d' ' -f1)"
           echo "the archive's PDF: $got (committed: $want)"
           test "$got" = "$want" || { echo "::error::the PDF of the Linux CLI archive is not the committed digest of golden/J-E-2416/expected/pdf/sha256.txt"; exit 1; }
-      # IN-10 to IN-12 on Linux's staged tree, the AppImage's future `usr/lib/elektrawatt/`, with `chmod -R a-w`: the
-      # smoke run, the installed-resources script and its runs on copies without each resource (D13), AC-40's
-      # acceptance (D12), then the same listing and SHA-256 of every file. Part 2b moves this step to the tree
-      # extracted from the AppImage, with the `ew` of its dispatch.
-      - name: the staged usr/lib/elektrawatt/ tree, read-only (IN-10 to IN-12; part 2b moves it to the extraction)
+      # D2, ID-1275: the static type-2 runtime, pinned by URL and SHA-256 in packaging/components.toml and checked
+      # before it is used, so an upstream asset that changes fails here.
+      - name: the AppImage runtime (pinned)
         run: |
           set -euo pipefail
-          root="$RUNNER_TEMP/tree"
-          python3 -I packaging/stage.py listing "$root" > "$RUNNER_TEMP/listing-before.txt"
-          chmod -R a-w "$root"
-          if touch "$root/write-probe" 2> /dev/null; then echo "::error::the runner's user can still write in $root"; exit 1; fi
-          "$root/elektrawatt" --smoke "$root/samples/J-E-2416.ew"
-          python3 -I packaging/stage.py resources --tree "$root" --work "$RUNNER_TEMP/resources"
-          bash ci/installed-acceptance.sh "$root/ew" "$root/samples/J-E-2416.ew" golden/J-E-2416/expected "$RUNNER_TEMP/acceptance"
-          python3 -I packaging/stage.py listing "$root" > "$RUNNER_TEMP/listing-after.txt"
-          chmod -R u+w "$root"
-          diff "$RUNNER_TEMP/listing-before.txt" "$RUNNER_TEMP/listing-after.txt" || { echo "::error::the programs changed the staged tree (IN-10)"; exit 1; }
-          echo "the staged tree is unchanged: $(wc -l < "$RUNNER_TEMP/listing-before.txt") files"
+          url="$(python3 -I packaging/stage.py pin appimage-type2-runtime --field url)"
+          sha256="$(python3 -I packaging/stage.py pin appimage-type2-runtime --field sha256)"
+          mkdir -p "$RUNNER_TEMP/runtime"
+          curl --fail --silent --show-error --location --proto '=https' --tlsv1.2 --retry 3 --output "$RUNNER_TEMP/runtime/runtime" "$url"
+          echo "$sha256  $RUNNER_TEMP/runtime/runtime" | sha256sum --check --strict -
+      # D10: the AppDir around the staged tree; its squashfs image in the container with no network (mksquashfs
+      # -root-owned -noappend -comp zstd, ci/linux-container.sh); then the runtime and the image, mode 0755.
+      - name: build the AppImage (D10)
+        env:
+          VERSION: ${{ steps.pins.outputs.version }}
+          EW_GCC_VERSION: ${{ steps.pins.outputs.gcc }}
+          EW_LIBC6_DEV_VERSION: ${{ steps.pins.outputs.libc6_dev }}
+          EW_APT_SNAPSHOT: ${{ steps.pins.outputs.apt_snapshot }}
+          EW_SQUASHFS_TOOLS_VERSION: ${{ steps.pins.outputs.squashfs_tools }}
+        run: |
+          set -euo pipefail
+          python3 -I packaging/stage.py appdir --tree "$RUNNER_TEMP/tree" --out "$RUNNER_TEMP/AppDir"
+          export EW_UID="$(id -u)" EW_GID="$(id -g)" EW_APPDIR="$RUNNER_TEMP/AppDir" EW_SQUASHFS="$RUNNER_TEMP/AppDir.squashfs"
+          docker run --rm --network none \
+            --env EW_GCC_VERSION --env EW_LIBC6_DEV_VERSION --env EW_APT_SNAPSHOT --env EW_SQUASHFS_TOOLS_VERSION \
+            --env EW_UID --env EW_GID --env EW_APPDIR --env EW_SQUASHFS \
+            --volume "$RUNNER_TEMP/apt/archives:/var/cache/apt/archives" \
+            --volume "$RUNNER_TEMP/apt/lists:/var/lib/apt/lists" \
+            --volume "$RUNNER_TEMP:$RUNNER_TEMP" \
+            --volume "$GITHUB_WORKSPACE:$GITHUB_WORKSPACE" --workdir "$GITHUB_WORKSPACE" \
+            "$LINUX_BUILD_IMAGE" bash ci/linux-container.sh appimage
+          appimage="ElektraWatt-$VERSION-x86_64.AppImage"
+          mkdir -p "$RUNNER_TEMP/appimage"
+          python3 -I packaging/stage.py appimage --runtime "$RUNNER_TEMP/runtime/runtime" --image "$RUNNER_TEMP/AppDir.squashfs" --out "$RUNNER_TEMP/appimage/$appimage"
+          echo "APPIMAGE=$appimage" >> "$GITHUB_ENV"
+      # IN-14, IN-10, IN-12 (D11): in ubuntu:22.04 and debian:12, with no network and as the runner's user, the
+      # AppImage through --appimage-extract-and-run, then its extraction read-only: the smoke run and AC-40 with its
+      # `ew` dispatch, where no system font exists. D3's listing is stage.py's of the staged tree.
+      - name: the AppImage in ubuntu:22.04 and debian:12 (IN-14, IN-10, IN-12)
+        env:
+          WORKSPACE_VERSION: ${{ steps.pins.outputs.workspace }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/listing"
+          python3 -I packaging/stage.py listing "$RUNNER_TEMP/tree" > "$RUNNER_TEMP/listing/tree.txt"
+          for image in LINUX_BUILD_IMAGE DEBIAN_IMAGE; do
+            echo "install-test: in ${!image}"
+            bash packaging/linux/install-test.sh container "${!image}" "$RUNNER_TEMP/appimage/$APPIMAGE" \
+              "$WORKSPACE_VERSION" "$RUNNER_TEMP/listing/tree.txt" "$RUNNER_TEMP/install-tests/$image"
+          done
+      # IN-10 to IN-12 on the runner, on the AppImage's extraction with `chmod -R a-w`: the smoke run, the
+      # installed-resources script and its runs on copies without each resource (D13, which needs Python), AC-40 with
+      # the `ew` dispatch (D12), then the same listing and SHA-256 of every file.
+      - name: the AppImage's extraction, read-only (IN-10 to IN-12)
+        env:
+          WORKSPACE_VERSION: ${{ steps.pins.outputs.workspace }}
+        run: |
+          bash packaging/linux/install-test.sh inside "$RUNNER_TEMP/appimage/$APPIMAGE" "$WORKSPACE_VERSION" \
+            "$RUNNER_TEMP/listing/tree.txt" "$RUNNER_TEMP/install-tests/runner" resources
       - name: name the upload
         env:
           VERSION: ${{ steps.pins.outputs.version }}
@@ -543,6 +593,12 @@ jobs:
               fi
               echo
             done
+            if [ -n "${APPIMAGE:-}" ]; then
+              echo "Built \`$APPIMAGE\` with the type-2 runtime $(python3 -I packaging/stage.py pin appimage-type2-runtime) and $(cat squashfs-tools-version.txt 2> /dev/null || echo 'mksquashfs') (zstd); it never leaves the job (ID-476)."
+            else
+              echo "No AppImage was built (see the log)."
+            fi
+            echo
             if [ -n "${UPLOAD_NAME:-}" ]; then
               echo "Built \`${ARCHIVE}\`, uploaded as \`$UPLOAD_NAME\`: an unsigned build, not a release unless WP-S6.07's release uploads it."
             else
