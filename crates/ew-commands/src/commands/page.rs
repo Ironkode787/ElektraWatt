@@ -159,7 +159,6 @@ pub(super) fn propose_folio(tx: &TxBuilder<'_>, after: &Page) -> Result<(u32, Op
     Err(CmdError::internal("no free sub-page label"))
 }
 
-/// The printed folio of a drawn page: its label, else its number (`ew_derive::folio_label`).
 /// What is wrong with a page scale a command writes, in words (FT-1016, FT-1065): a 1:0, which the schema's minimum
 /// refuses too. `page.surface_view.set` and `fields.set` on a page's scale give this text; the reader still takes a
 /// 1:0 from a file, which is drawn 1:1.
@@ -167,6 +166,7 @@ pub(crate) fn scale_problem(scale: &Scale) -> Option<&'static str> {
     matches!(scale, Scale::OneTo(0)).then_some("a scale is 1:n with n at least 1")
 }
 
+/// The printed folio of a drawn page: its label, else its number (`ew_derive::folio_label`).
 fn printed_folio(number: u32, label: Option<&Ident>) -> String {
     label.map_or_else(|| number.to_string(), |l| l.as_str().to_owned())
 }
