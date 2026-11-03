@@ -1508,6 +1508,7 @@ pub const KEYS: &[&str] = &[
     "error-nav-no-export",
     "error-table-preset-csv",
     "error-table-preset",
+    "reason-table-preset-ew",
     "error-table-import-open",
     "error-table-import-missing",
     "error-table-import-read",

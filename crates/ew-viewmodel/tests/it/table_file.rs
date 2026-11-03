@@ -461,6 +461,39 @@ fn the_refusals_in_words_and_a_csv() {
     shell.shutdown();
 }
 
+/// ID-1252: a CSV export with no preset takes `excel-en`, which keeps the `id` column, so the file re-imports with
+/// nothing changed and no refusal; the preset `ew`, which writes no `id` column, is refused in words.
+#[test]
+fn a_csv_export_keeps_its_id_column_and_ew_is_refused() {
+    let tmp = Tmp::new("tfe");
+    let mut shell = strips(&tmp);
+    let csv = tmp.0.join("x.csv");
+    done(&mut shell, "navigator.export_table", json!({"path": text(&csv)}));
+    let written = std::fs::read(&csv).unwrap();
+    assert!(written.starts_with(b"\xEF\xBB\xBFid,"), "excel-en: a BOM, then `id` and `,`");
+    done(&mut shell, "navigator.import_table", json!({"path": text(&csv)}));
+    assert_eq!(
+        card_summary(&shell).unwrap(),
+        "Import x.csv · 0 changed, 0 kept, 0 conflicts, 0 refused, 0 unknown, 0 missing"
+    );
+    done(&mut shell, "preview.cancel", json!({}));
+    let other = tmp.0.join("y.csv");
+    assert_eq!(
+        refused(
+            &mut shell,
+            "navigator.export_table",
+            json!({"path": text(&other), "preset": "ew"})
+        ),
+        "reason-table-preset-ew"
+    );
+    assert_eq!(
+        ew_viewmodel::strings::text(ew_viewmodel::key!("reason-table-preset-ew")),
+        "The preset ew writes no id column, so the file cannot be imported again; choose excel-nl, excel-en or rfc4180"
+    );
+    assert!(!other.exists(), "no file");
+    shell.shutdown();
+}
+
 /// The import card's describe line reaches the words of `Reach::TableFile` (ruling 9).
 #[test]
 fn the_import_card_reaches_its_words() {

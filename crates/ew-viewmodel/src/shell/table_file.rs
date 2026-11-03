@@ -169,7 +169,8 @@ impl ShellModel {
     }
 
     /// `navigator.export_table {path?, format?, preset?, replace?, wait?}`: the focused navigator's table on show as a
-    /// job writing `path` (XLSX, or CSV with `format: csv` or a `.csv` name) through its hidden sibling.
+    /// job writing `path` (XLSX, or CSV with `format: csv` or a `.csv` name) through its hidden sibling. A CSV takes
+    /// the preset `excel-en` unless `preset` names another; `ew` writes no `id` column and is refused (ID-1252).
     pub(crate) fn act_export_table(&mut self, p: &Map<String, Value>) -> Outcome {
         let kind = match self.file_table_kind() {
             Ok(k) => k,
@@ -199,6 +200,11 @@ impl ShellModel {
             Ok(None) => None,
             Ok(Some(_)) if !csv => return failed(key!("error-table-preset-csv"), &[]),
             Ok(Some(name)) => match Preset::parse(name) {
+                Some(Preset::Ew) => {
+                    return Outcome::Refused {
+                        reason_key: key!("reason-table-preset-ew"),
+                    };
+                }
                 Some(preset) => Some(preset),
                 None => return failed(key!("error-table-preset"), &[name]),
             },
@@ -238,7 +244,7 @@ impl ShellModel {
         let file = if csv {
             TableFile::Csv {
                 table,
-                options: preset.map_or_else(CsvOptions::default, CsvOptions::preset),
+                options: CsvOptions::preset(preset.unwrap_or(Preset::ExcelEn)),
             }
         } else {
             // No creation date, as `ew export table` without `SOURCE_DATE_EPOCH`; `_ew`'s `rev` is this revision.

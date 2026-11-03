@@ -1690,6 +1690,8 @@ reason-table-import-stale = The project changed since the file was read; import 
 error-nav-no-export = The { $p0 } pane's table cannot be exported.
 error-table-preset-csv = A preset applies to CSV only; drop it, or choose the format csv.
 error-table-preset = There is no CSV preset { $p0 }; the presets are ew, excel-nl, excel-en and rfc4180.
+# ID-1252: the preset ew writes no id column, so its file does not import again in the window.
+reason-table-preset-ew = The preset ew writes no id column, so the file cannot be imported again; choose excel-nl, excel-en or rfc4180
 error-table-import-open = { $p0 } cannot be opened: { $p1 }.
 error-table-import-missing = There is no file { $p0 }.
 error-table-import-read = The file cannot be read: { $p0 }.
