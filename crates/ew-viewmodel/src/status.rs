@@ -17,11 +17,13 @@
 //! the findings, the job, the selection, the cursor, the grid, the zoom, the save state, the renderer and the
 //! notifications, each with its emphasis.
 
+use ew_api::output::SelectionWords;
+
 use crate::canvas::{GridLabel, grid_label, mm1, zoom_percent_text};
-use crate::key;
 use crate::shell::{AccessMode, ShellModel};
 use crate::strings;
 use crate::strings::Key;
+use crate::{count_key, key};
 
 /// The grid field of `model`'s canvas: the label, or "Grid off" when it is off or the page has none.
 pub fn grid_text(model: &ShellModel) -> String {
@@ -47,6 +49,90 @@ pub fn grid_words(num_nm: i64, den: i64) -> String {
     match grid_label(&grid) {
         GridLabel::Qet10 => strings::text(key!("status-grid-qet")).to_owned(),
         GridLabel::Mm(n) => strings::format(key!("status-grid-mm"), &[&n]),
+    }
+}
+
+/// What the canvas's live region says of the selection (WP-S2.08 D13, NFR-A11Y-02), and `ui.describe`'s `canvas live`
+/// line: a placement selected on a panel page with where it is (doc 12 §12.4), else the one selected device, wire or
+/// page item in words, else `<n> selected`. A selection change sets it as the tool announcement, which
+/// [`canvas_node`] gives the live region until the cursor moves.
+pub fn selection_text(model: &ShellModel) -> String {
+    if let Some(text) = model.layout_live_text() {
+        return text;
+    }
+    match model.selection_words() {
+        Some(words) => words_text(&words),
+        None => strings::format(
+            key!("announce-selected"),
+            &[&model.selection().items.len().to_string()],
+        ),
+    }
+}
+
+/// One record's live description (D13): `<tag>, <kind>, folio <folio>` with `, <n> connection points, <m> wires` for
+/// a device with connection points; `<number>, <potential>, <from> to <to>` for a wire; a page item's kind and text.
+fn words_text(words: &SelectionWords) -> String {
+    match words {
+        SelectionWords::Device {
+            tag,
+            kind,
+            folio,
+            cps,
+            wires,
+        } => {
+            let kind = kind
+                .as_deref()
+                .unwrap_or_else(|| strings::text(key!("announce-device-kind")));
+            let head = match folio {
+                Some(folio) => strings::format(key!("announce-device"), &[tag, kind, folio]),
+                None => strings::format(key!("announce-device-unplaced"), &[tag, kind]),
+            };
+            if *cps == 0 {
+                return head;
+            }
+            strings::format(
+                key!("announce-device-connected"),
+                &[
+                    &head,
+                    &strings::format_count(count_key!("announce-cps"), *cps),
+                    &strings::format_count(count_key!("announce-wires"), *wires),
+                ],
+            )
+        }
+        SelectionWords::Wire {
+            number,
+            potential,
+            from,
+            to,
+        } => {
+            let number = number
+                .as_deref()
+                .unwrap_or_else(|| strings::text(key!("announce-wire-unnumbered")));
+            let end = |e: &Option<String>| {
+                e.as_deref()
+                    .unwrap_or_else(|| strings::text(key!("announce-end-junction")))
+                    .to_owned()
+            };
+            let (from, to) = (end(from), end(to));
+            match potential {
+                Some(p) => strings::format(key!("announce-wire"), &[number, p, &from, &to]),
+                None => strings::format(key!("announce-wire-no-potential"), &[number, &from, &to]),
+            }
+        }
+        SelectionWords::PageItem { kind, text } => {
+            let label = strings::text(match kind.as_str() {
+                "graphic" => key!("announce-item-graphic"),
+                "free_text" => key!("announce-item-free_text"),
+                "wire_marker" => key!("announce-item-wire_marker"),
+                "image" => key!("announce-item-image"),
+                "surface_view" => key!("announce-item-surface_view"),
+                _ => key!("announce-item-unknown"),
+            });
+            match text.as_deref().filter(|t| !t.trim().is_empty()) {
+                Some(text) => strings::format(key!("announce-item"), &[label, text]),
+                None => label.to_owned(),
+            }
+        }
     }
 }
 

@@ -706,17 +706,19 @@ impl ShellModel {
         self.tools.quiet_stack_at.is_some()
     }
 
-    /// Announces the selection's size through the live region.
+    /// Announces the selection through the live region: [`crate::status::selection_text`].
     pub(super) fn announce_selection(&mut self) {
-        // WP-S4.02 part 3 (doc 12 §12.4): a placement selected on a panel page is announced with where it is.
-        if let Some(text) = self.layout_live_text() {
-            self.tools.announcement = Some(text);
-            return;
-        }
-        self.tools.announcement = Some(strings::format(
-            key!("announce-selected"),
-            &[&self.tools.selection.items.len().to_string()],
-        ));
+        self.tools.announcement = Some(crate::status::selection_text(self));
+    }
+
+    /// The live description's values of the one selected record (WP-S2.08 D13), from the session; `None` unless
+    /// exactly one record is selected and it is a device (or one of its functions or representations), a connection or
+    /// a page item.
+    pub fn selection_words(&self) -> Option<ew_api::output::SelectionWords> {
+        let [one] = self.tools.selection.items.as_slice() else {
+            return None;
+        };
+        self.project.as_ref()?.session.selection_words(one.0)
     }
 
     /// Follows the focused canvas's link to `dest` (the first in reading order).

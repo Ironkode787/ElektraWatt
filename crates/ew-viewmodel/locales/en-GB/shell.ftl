@@ -21,11 +21,16 @@ submenu-open-recent = Open recent
 submenu-ui-scale = UI scale
 submenu-theme = Theme
 submenu-density = Density
+submenu-min-font = Minimum text size
 menu-no-recent = (none)
 scale-100 = 100 %
 scale-125 = 125 %
 scale-150 = 150 %
 scale-200 = 200 %
+scale-250 = 250 %
+scale-300 = 300 %
+min-font-off = Off
+min-font-pt = { $p0 } pt
 
 # The human titles of the commands (cycle 35 play-test): what the window says for a command it previews
 # ("Preview of Place device"), verb first, sentence case; the key is `command-<name>` with every `.` of the
@@ -505,6 +510,27 @@ hint-measure-measuring = Click or { $p0 } at the second point; { $p1 } starts ag
 measure-label = dx { $p0 } dy { $p1 } mm, { $p2 } mm
 announce-tool = { $p0 }: { $p1 }
 announce-selected = { $p0 } selected
+# WP-S2.08 D13: one selected record's live description (tag, kind, folio; a wire's number, potential and ends; a page
+# item's kind and text).
+announce-device = { $p0 }, { $p1 }, folio { $p2 }
+announce-device-unplaced = { $p0 }, { $p1 }
+announce-device-connected = { $p0 }, { $p1 }, { $p2 }
+announce-device-kind = Device
+announce-cps = { $p0 } connection points
+announce-cps-one = 1 connection point
+announce-wires = { $p0 } wires
+announce-wires-one = 1 wire
+announce-wire = { $p0 }, { $p1 }, { $p2 } to { $p3 }
+announce-wire-no-potential = { $p0 }, { $p1 } to { $p2 }
+announce-wire-unnumbered = Unnumbered wire
+announce-end-junction = a junction
+announce-item = { $p0 }, { $p1 }
+announce-item-graphic = Graphic
+announce-item-free_text = Text
+announce-item-wire_marker = Wire marker
+announce-item-image = Image
+announce-item-surface_view = Surface view
+announce-item-unknown = Page item
 preview-chip = Preview of { $p0 }
 preview-chip-stale = Preview of { $p0 } (stale)
 preview-chip-failed = Preview of { $p0 } failed: { $p1 }
@@ -584,6 +610,8 @@ message-no-canvas = The page cannot be shown: { $p0 }
 action-view-ui-scale = UI scale
 action-view-theme = Theme
 action-view-density = Density
+action-view-min-font = Minimum text size
+action-view-reduce-motion = Reduce motion
 
 # WP-S2.17 part 2: the command bar (doc 16a §5).
 action-view-command-tab = Command tab

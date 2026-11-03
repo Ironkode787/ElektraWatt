@@ -14,7 +14,7 @@ use serde_json::{Map, Value};
 use super::{Outcome, ShellModel, failed};
 use crate::canvas::{CanvasBackend, CanvasModel, nm_of_mm, pane_out_of_bounds};
 use crate::key;
-use crate::settings::CANVAS_BACKENDS;
+use crate::settings::{CANVAS_BACKENDS, MIN_FONT_RANGE};
 
 /// A positive finite number parameter.
 fn positive(p: &Map<String, Value>, name: &str) -> Result<f64, Outcome> {
@@ -97,6 +97,14 @@ impl ShellModel {
     /// canvas).
     pub fn cpu_canvas_setting(&self) -> bool {
         self.settings.canvas_backend == CANVAS_BACKENDS[1]
+    }
+
+    /// Whether motion is reduced (WP-S2.08 D14, NFR-A11Y-04; View, Reduce motion): the `reduce_motion` setting, and
+    /// while it is unset whether the setting asks for the CPU canvas ([`ShellModel::cpu_canvas_setting`]).
+    pub fn reduce_motion(&self) -> bool {
+        self.settings
+            .reduce_motion
+            .unwrap_or_else(|| self.cpu_canvas_setting())
     }
 
     /// Where the canvas draws.
@@ -346,6 +354,42 @@ impl ShellModel {
         };
         self.settings.canvas_backend = next.to_owned();
         self.save_settings();
+        Outcome::Done
+    }
+
+    /// View, Minimum text size (WP-S2.08 D14): `pt` 0 turns it off, 8 to 16 sets it; another value is refused.
+    pub(crate) fn act_min_font(&mut self, p: &Map<String, Value>) -> Outcome {
+        let Some(pt) = p.get("pt") else {
+            return failed(key!("error-missing-param"), &["pt"]);
+        };
+        let Some(pt) = pt
+            .as_u64()
+            .and_then(|pt| u8::try_from(pt).ok())
+            .filter(|pt| *pt == 0 || MIN_FONT_RANGE.contains(pt))
+        else {
+            return failed(key!("error-bad-param"), &["pt"]);
+        };
+        if pt != self.settings.min_font_pt {
+            self.settings.min_font_pt = pt;
+            self.save_settings();
+        }
+        Outcome::Done
+    }
+
+    /// View, Reduce motion (WP-S2.08 D14): `on`, else the opposite of [`ShellModel::reduce_motion`]; the setting is set
+    /// from then on.
+    pub(crate) fn act_reduce_motion(&mut self, p: &Map<String, Value>) -> Outcome {
+        let on = match p.get("on") {
+            None => !self.reduce_motion(),
+            Some(v) => match v.as_bool() {
+                Some(b) => b,
+                None => return failed(key!("error-bad-param"), &["on"]),
+            },
+        };
+        if self.settings.reduce_motion != Some(on) {
+            self.settings.reduce_motion = Some(on);
+            self.save_settings();
+        }
         Outcome::Done
     }
 }

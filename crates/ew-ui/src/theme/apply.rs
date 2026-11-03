@@ -124,16 +124,49 @@ pub fn apply(tokens: &Tokens, ctx: &egui::Context) {
 }
 
 /// Installs the `theme` and `density` settings (`settings.toml`): both egui slots, then the preference, so that
-/// `system` follows the operating system (D5).
-pub fn apply_setting(theme: &str, density: &str, ctx: &egui::Context) {
+/// `system` follows the operating system (D5). WP-S2.08 D14 (ID-1272 ruling 5): the settings `min_font_pt` and
+/// `reduce_motion` (as `ShellModel::reduce_motion` resolves it) come as two more arguments; `min_font_pt` raises every
+/// text token below it to it, and reduced motion sets the motion tokens, egui's animation time with them,
+/// to zero and scrolls to a target without animation.
+pub fn apply_setting(theme: &str, density: &str, min_font_pt: u8, reduce_motion: bool, ctx: &egui::Context) {
     let density = Density::of_setting(density);
     let (light, dark, preference) = themes_of_setting(theme);
     for th in [light, dark] {
-        let t = tokens(th, density);
-        ctx.set_style_of(th.egui(), Arc::new(style_of(&t)));
+        let mut t = tokens(th, density);
+        raise_text(&mut t, min_font_pt);
+        if reduce_motion {
+            t.motion_fast = 0;
+            t.motion_base = 0;
+        }
+        let mut style = style_of(&t);
+        if reduce_motion {
+            style.scroll_animation = egui::style::ScrollAnimation::none();
+        }
+        ctx.set_style_of(th.egui(), Arc::new(style));
         install(ctx, &t);
     }
     ctx.set_theme(preference);
+}
+
+/// Raises every text token of `t` whose size is below `min_pt` points to that size, its line height by as much (the
+/// setting `min_font_pt`, WP-S2.08 D14); 0 leaves the tokens as they are.
+fn raise_text(t: &mut Tokens, min_pt: u8) {
+    let min = f32::from(min_pt);
+    for token in [
+        &mut t.type_caption,
+        &mut t.type_small,
+        &mut t.type_label,
+        &mut t.type_body,
+        &mut t.type_body_strong,
+        &mut t.type_title,
+        &mut t.type_display,
+        &mut t.type_mono,
+    ] {
+        if token.size < min {
+            token.line += min - token.size;
+            token.size = min;
+        }
+    }
 }
 
 #[cfg(test)]
@@ -144,11 +177,11 @@ mod tests {
     #[test]
     fn a_setting_installs_both_slots_and_its_preference() {
         let ctx = egui::Context::default();
-        apply_setting("hc-dark", "compact", &ctx);
+        apply_setting("hc-dark", "compact", 0, false, &ctx);
         assert_eq!(ctx.options(|o| o.theme_preference), egui::ThemePreference::Dark);
         assert_eq!(super::super::current(&ctx).theme, Theme::HighContrastDark);
         assert_eq!(super::super::current(&ctx).density, Density::Compact);
-        apply_setting("system", "comfortable", &ctx);
+        apply_setting("system", "comfortable", 0, false, &ctx);
         assert_eq!(ctx.options(|o| o.theme_preference), egui::ThemePreference::System);
     }
 }

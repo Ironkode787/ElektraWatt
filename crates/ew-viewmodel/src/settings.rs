@@ -10,7 +10,8 @@
 //! the canvas renderer `canvas_backend` (`auto`, or `cpu` for View, Use the CPU renderer) and, since cycle 37, the
 //! author name `author_name` of the Waive prompt (FT-674; written only once set) and, since WP-S2.07 part 4a (D18), the
 //! part dialog's `[parts] favourites` (sorted) and `recent` (most recent first, at most [`MAX_RECENT_PARTS`]), each a
-//! list of `<library ID>/<item ID>` texts, written only once set. Unknown keys are kept
+//! list of `<library ID>/<item ID>` texts, written only once set, and, since WP-S2.08 part 5 (D14), the minimum text size
+//! `min_font_pt` and `reduce_motion`, each written only once set. Unknown keys are kept
 //! and written back; a `toml::Table` holds them sorted, so the file is deterministic. An unreadable file yields
 //! the defaults and is copied to `settings.toml.bad-<n>`.
 
@@ -22,8 +23,23 @@ pub const MAX_RECENT: usize = 10;
 /// The recently used parts list holds at most this many library items (WP-S2.07 D18).
 pub const MAX_RECENT_PARTS: usize = 20;
 
-/// The UI scales the user can choose, as factors on the native scale.
-pub const UI_SCALES: [f32; 4] = [1.0, 1.25, 1.5, 2.0];
+/// The UI scales the user can choose, as factors on the native scale (to 300 %, FR-UI-027, WP-S2.08 D14).
+pub const UI_SCALES: [f32; 6] = [1.0, 1.25, 1.5, 2.0, 2.5, 3.0];
+
+/// The label of the UI scale `scale` (`100 %`): the text of `scale-<per cent>`, one key per scale of [`UI_SCALES`], so
+/// that every list of scales (View ▸ UI scale, the first run) takes its labels from the one list of scales.
+pub fn scale_label(scale: f32) -> &'static str {
+    crate::strings::text(crate::strings::Key::run_time(&format!(
+        "scale-{}",
+        (scale * 100.0).round()
+    )))
+}
+
+/// The choices of View ▸ Minimum text size (WP-S2.08 D14, ID-1272 ruling 5): off, then 12, 14 and 16 pt.
+pub const MIN_FONT_CHOICES: [u8; 4] = [0, 12, 14, 16];
+
+/// The values of `min_font_pt` besides 0 (off): 8 to 16 pt.
+pub const MIN_FONT_RANGE: std::ops::RangeInclusive<u8> = 8..=16;
 
 /// The file name inside the settings directory.
 pub const FILE_NAME: &str = "settings.toml";
@@ -96,6 +112,12 @@ pub struct Settings {
     /// The recently used parts, `<library ID>/<item ID>`, most recent first, at most [`MAX_RECENT_PARTS`] (`[parts]
     /// recent`).
     pub parts_recent: Vec<String>,
+    /// The minimum text size in points (`min_font_pt`, WP-S2.08 D14): 0 is off, else one of [`MIN_FONT_RANGE`]; a value
+    /// out of range loads as 0. Written only when set.
+    pub min_font_pt: u8,
+    /// Reduce motion (`reduce_motion`, WP-S2.08 D14, NFR-A11Y-04); `None` while unset, which is on with the CPU canvas
+    /// and off otherwise (`ShellModel::reduce_motion`). Written only when set.
+    pub reduce_motion: Option<bool>,
     /// Keys this version does not know, kept and written back.
     extra: toml::Table,
 }
@@ -121,6 +143,8 @@ impl Default for Settings {
             window: None,
             parts_favourites: Vec::new(),
             parts_recent: Vec::new(),
+            min_font_pt: 0,
+            reduce_motion: None,
             extra: toml::Table::new(),
         }
     }
@@ -202,6 +226,20 @@ impl Settings {
         let theme = take_choice(&mut table, "theme", &THEMES)?;
         let density = take_choice(&mut table, "density", &DENSITIES)?;
         let canvas_backend = take_choice(&mut table, "canvas_backend", &CANVAS_BACKENDS)?;
+        // WP-S2.08 D14: an integer; a value out of range loads as off.
+        let min_font_pt = match table.remove("min_font_pt") {
+            None => 0,
+            Some(toml::Value::Integer(i)) => u8::try_from(i)
+                .ok()
+                .filter(|pt| MIN_FONT_RANGE.contains(pt))
+                .unwrap_or(0),
+            Some(_) => return None,
+        };
+        let reduce_motion = match table.remove("reduce_motion") {
+            None => None,
+            Some(toml::Value::Boolean(on)) => Some(on),
+            Some(_) => return None,
+        };
         let comes_from = match take_string(&mut table, "comes_from")? {
             Some(v) if ORIGINS.contains(&v.as_str()) => v,
             _ => String::new(),
@@ -311,6 +349,8 @@ impl Settings {
             window,
             parts_favourites,
             parts_recent,
+            min_font_pt,
+            reduce_motion,
             extra: table,
         };
         // The list is normalised on read: no duplicates, at most MAX_RECENT, first occurrence wins.
@@ -395,6 +435,16 @@ impl Settings {
             None => {
                 table.remove("author_name");
             }
+        }
+        // WP-S2.08 D14: written only when set, so an untouched settings file keeps its bytes.
+        if self.min_font_pt != 0 {
+            table.insert(
+                "min_font_pt".to_owned(),
+                toml::Value::Integer(i64::from(self.min_font_pt)),
+            );
+        }
+        if let Some(on) = self.reduce_motion {
+            table.insert("reduce_motion".to_owned(), toml::Value::Boolean(on));
         }
         // Written only when a category is collapsed or Advanced is shown, so an untouched settings file keeps its
         // bytes.
@@ -1021,6 +1071,63 @@ mod tests {
         assert_eq!(s.ui_scale, 1.0);
         let s = Settings::parse("ui_scale = 2\n").unwrap();
         assert_eq!(s.ui_scale, 2.0);
+    }
+
+    /// AX-2 (WP-S2.08 D14): 250 % and 300 % are scales, each with its label, and `settings.toml` round-trips both.
+    #[test]
+    fn ax2_the_scales_reach_300_percent_and_round_trip() {
+        for scale in [2.5, 3.0] {
+            assert!(scale_index(scale).is_some(), "{scale}");
+            let s = Settings {
+                ui_scale: scale,
+                ..Settings::default()
+            };
+            assert_eq!(Settings::parse(&s.to_toml()).unwrap().ui_scale, scale);
+        }
+        let labels: Vec<&str> = UI_SCALES.iter().map(|s| scale_label(*s)).collect();
+        assert_eq!(labels, ["100 %", "125 %", "150 %", "200 %", "250 %", "300 %"]);
+    }
+
+    /// WP-S2.08 D14: `min_font_pt` (0 off, else 8 to 16; out of range loads as 0) and `reduce_motion` (unset, on or
+    /// off) round-trip and are written only once set.
+    #[test]
+    fn the_minimum_text_size_and_reduce_motion_round_trip() {
+        let text = Settings::default().to_toml();
+        assert!(
+            !text.contains("min_font_pt") && !text.contains("reduce_motion"),
+            "{text}"
+        );
+        for (pt, motion) in [(8, Some(true)), (14, Some(false)), (16, None)] {
+            let s = Settings {
+                min_font_pt: pt,
+                reduce_motion: motion,
+                ..Settings::default()
+            };
+            let back = Settings::parse(&s.to_toml()).unwrap();
+            assert_eq!((back.min_font_pt, back.reduce_motion), (pt, motion));
+        }
+        for out_of_range in [
+            "min_font_pt = 7\n",
+            "min_font_pt = 17\n",
+            "min_font_pt = -1\n",
+            "min_font_pt = 300\n",
+        ] {
+            assert_eq!(
+                Settings::parse(out_of_range).unwrap().min_font_pt,
+                0,
+                "{out_of_range}"
+            );
+        }
+        assert_eq!(
+            Settings::parse("min_font_pt = \"14\"\n"),
+            None,
+            "a known key of the wrong type"
+        );
+        assert_eq!(
+            Settings::parse("reduce_motion = 1\n"),
+            None,
+            "a known key of the wrong type"
+        );
     }
 
     /// DK6 (FT-348): `[window]` is written only once a window recorded it, read back equal, and a table this version

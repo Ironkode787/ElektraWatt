@@ -247,10 +247,7 @@ impl ShellModel {
         };
         let change = crate::tools::SelectionChange::Replace(vec![EntityRef(hit.record)]);
         if self.tools.selection.apply(&change) {
-            self.tools.announcement = Some(strings::format(
-                key!("announce-selected"),
-                &[&self.tools.selection.items.len().to_string()],
-            ));
+            self.announce_selection();
         }
         let focus = self.focus;
         let outcome = match hit.cell.as_deref().or(hit.folio.as_deref()) {

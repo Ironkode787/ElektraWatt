@@ -986,10 +986,7 @@ impl ShellModel {
             .selection
             .apply(&crate::tools::SelectionChange::Replace(items))
         {
-            self.tools.announcement = Some(strings::format(
-                key!("announce-selected"),
-                &[&self.tools.selection.items.len().to_string()],
-            ));
+            self.announce_selection();
         }
         Outcome::Done
     }

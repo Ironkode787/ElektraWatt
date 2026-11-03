@@ -250,8 +250,8 @@ pub struct App {
     applied_scale: Option<f32>,
     /// The zoom factor of the previous frame, for the window memory (its report of a frame uses that zoom).
     window_zoom: Option<f32>,
-    /// The theme and density settings last given to egui.
-    applied_theme: Option<(String, String)>,
+    /// The theme, density, minimum text size and reduce-motion settings last given to egui.
+    applied_theme: Option<(String, String, u8, bool)>,
     // WP-S2.05 part 3
     /// Edit ▸ Paste (or the palette) asked for the system clipboard: the frame sends `ViewportCommand::RequestPaste`,
     /// and the platform answers with a paste event, which runs `edit.paste_clip` with its text like Ctrl+V.
@@ -698,12 +698,15 @@ impl App {
         }
         // WP-S2.17 part 1: the theme and the density as tokens (doc 16a §4.14), applied when either setting changes;
         // `system` lets egui follow the operating system between Light and Dark (D5).
+        // WP-S2.08 D14: the minimum text size and reduced motion with them.
         let appearance = (
             self.shell.settings().theme.clone(),
             self.shell.settings().density.clone(),
+            self.shell.settings().min_font_pt,
+            self.shell.reduce_motion(),
         );
         if self.applied_theme.as_ref() != Some(&appearance) {
-            crate::theme::apply_setting(&appearance.0, &appearance.1, &ctx);
+            crate::theme::apply_setting(&appearance.0, &appearance.1, appearance.2, appearance.3, &ctx);
             // A visual run draws the caret always (WP-S6.13 part 4 §3.1), so a frame never catches it off.
             if crate::clock::on_frame_clock() {
                 ctx.all_styles_mut(|s| s.visuals.text_cursor.blink = false);

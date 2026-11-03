@@ -825,10 +825,7 @@ impl ShellModel {
             .map(|u| EntityRef(*u))
             .collect();
         if self.tools.selection.apply(&SelectionChange::Replace(items)) {
-            self.tools.announcement = Some(strings::format(
-                key!("announce-selected"),
-                &[&self.tools.selection.items.len().to_string()],
-            ));
+            self.announce_selection();
         }
         let generation = self.tools.selection.generation;
         self.chips = if here.is_empty() && !recs.is_empty() {
@@ -1273,10 +1270,7 @@ impl ShellModel {
         }
         let items: Vec<EntityRef> = open.select.iter().map(|u| EntityRef(*u)).collect();
         if self.tools.selection.apply(&SelectionChange::Replace(items)) {
-            self.tools.announcement = Some(strings::format(
-                key!("announce-selected"),
-                &[&self.tools.selection.items.len().to_string()],
-            ));
+            self.announce_selection();
         }
         let generation = self.tools.selection.generation;
         if let Some(n) = self.generic_mut(kind) {

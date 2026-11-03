@@ -707,6 +707,136 @@ pub(super) fn device_tag_text(q: &Q, device: Id<Device>) -> String {
     }
 }
 
+// ---------------------------------------------------------------------------------------------------------------
+// The selection's live description (WP-S2.08 D13)
+
+/// What the canvas's live region says of one selected record (WP-S2.08 D13, NFR-A11Y-02), as values: the shell words
+/// them in the UI language.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum SelectionWords {
+    /// A device, or a function or representation of one device.
+    Device {
+        /// The printed tag: as displayed on its main page, else the short tag.
+        tag: String,
+        /// The kind of its main function as the navigators print it (the FnDef's category, FT-670); `None` without a
+        /// main function or without a copy of its FnDef.
+        kind: Option<String>,
+        /// The folio of its main representation; `None` while the device is not placed.
+        folio: Option<String>,
+        /// The connection points of its functions.
+        cps: usize,
+        /// The connections that end at those connection points, each once.
+        wires: usize,
+    },
+    /// A connection.
+    Wire {
+        /// Its printed wire number (the property sheet's title); `None` while it has none.
+        number: Option<String>,
+        /// The name of its potential, if it has one.
+        potential: Option<String>,
+        /// The connection point label of its first end (`-102F1:2`); `None` for a junction.
+        from: Option<String>,
+        /// The connection point label of its second end; `None` for a junction.
+        to: Option<String>,
+    },
+    /// A page item.
+    PageItem {
+        /// Its variant: `graphic`, `free_text`, `wire_marker`, `image`, `surface_view`, or `unknown`.
+        kind: String,
+        /// The printed text of a free text or a wire marker.
+        text: Option<String>,
+    },
+}
+
+impl Session {
+    /// The live description's values of the record `id` in the current snapshot (WP-S2.08 D13): a device (or a
+    /// function or representation of exactly one device), a connection or a page item; `None` for any other record
+    /// and for an unknown ID.
+    pub fn selection_words(&self, id: Uuid) -> Option<SelectionWords> {
+        selection_words(&self.query(), id)
+    }
+}
+
+fn selection_words(q: &Q, id: Uuid) -> Option<SelectionWords> {
+    if let Some(conn) = q.connections().get(Id::from_uuid(id)) {
+        let end = |e: &ew_schema::Endpoint| match e {
+            ew_schema::Endpoint::Cp(function, idx) => Some(cp_label(
+                q,
+                ew_derive::CpRef {
+                    function: *function,
+                    idx: *idx,
+                },
+            ))
+            .filter(|l| !l.is_empty()),
+            _ => None,
+        };
+        return Some(SelectionWords::Wire {
+            number: wire_number(q, conn.id),
+            potential: potential_of(q, conn).map(|p| q.get::<PotentialNameOf>(p).name.text.clone()),
+            from: end(&conn.a),
+            to: end(&conn.b),
+        });
+    }
+    if let Some(item) = q.page_items().get(Id::from_uuid(id)) {
+        use ew_schema::PageItemKind as K;
+        let (kind, text) = match &item.kind {
+            K::Graphic(_) => ("graphic", None),
+            K::FreeText(t) => ("free_text", Some(ew_derive::free_text(q, item.page, t))),
+            K::WireMarker(_) => ("wire_marker", ew_derive::group_marker(q, item).map(|g| g.text)),
+            K::Image(_) => ("image", None),
+            K::SurfaceView(_) => ("surface_view", None),
+            K::Unknown(_) => ("unknown", None),
+        };
+        return Some(SelectionWords::PageItem {
+            kind: kind.to_owned(),
+            text,
+        });
+    }
+    let device = selected_device(q, id)?;
+    let kind = (*q.get::<ew_derive::MainFunction>(device))
+        .and_then(|f| q.functions().get(f))
+        .filter(|f| q.fndefs().get(f.def).is_some() || super::editing::starter_fndef(f.def).is_some())
+        .map(|f| super::navigators::function_kind_text(q, f));
+    let folio = (*q.get::<MainRep>(device))
+        .and_then(|r| q.reps().get(r).map(|rep| rep.page))
+        .and_then(|page| folio_of(q, page));
+    let (mut cps, mut wires) = (0, BTreeSet::new());
+    for f in q.idx().functions_of_device(device) {
+        for cp in q.get::<ew_derive::FunctionCps>(f).iter() {
+            cps += 1;
+            wires.extend(q.idx().connections_at_cp(f, cp.idx));
+        }
+    }
+    Some(SelectionWords::Device {
+        tag: device_tag_text(q, device),
+        kind,
+        folio,
+        cps,
+        wires: wires.len(),
+    })
+}
+
+/// The device a selected record names: the device itself, a function's device, or the one device whose functions a
+/// representation draws.
+fn selected_device(q: &Q, id: Uuid) -> Option<Id<Device>> {
+    if q.devices().get(Id::from_uuid(id)).is_some() {
+        return Some(Id::from_uuid(id));
+    }
+    if let Some(f) = q.functions().get(Id::from_uuid(id)) {
+        return f.device;
+    }
+    let rep = q.reps().get(Id::from_uuid(id))?;
+    let devices: BTreeSet<Id<Device>> = rep
+        .functions
+        .iter()
+        .filter_map(|f| q.functions().get(*f).and_then(|f| f.device))
+        .collect();
+    match devices.len() {
+        1 => devices.into_iter().next(),
+        _ => None,
+    }
+}
+
 /// A physical wire: its carrier connection and its effective properties.
 type Wire = (Id<Connection>, ew_derive::EffectiveProps);
 
@@ -734,12 +864,16 @@ fn number_order(a: Option<&str>, b: Option<&str>) -> std::cmp::Ordering {
 
 /// The printed wire number of a connection (its first wire's), `?` when unassigned.
 fn wire_number_text(q: &Q, conn: Id<Connection>) -> String {
+    wire_number(q, conn).unwrap_or_else(|| "?".to_owned())
+}
+
+/// The printed wire number of a connection (its first wire's), `None` when unassigned.
+fn wire_number(q: &Q, conn: Id<Connection>) -> Option<String> {
     let numbers = q.get::<WireNumbers>(());
     wires_of(q, conn)
         .first()
         .and_then(|(w, _)| numbers.number(*w).map(|n| n.label.clone()))
         .or_else(|| numbers.number(conn).map(|n| n.label.clone()))
-        .unwrap_or_else(|| "?".to_owned())
 }
 
 // ---------------------------------------------------------------------------------------------------------------

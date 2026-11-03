@@ -8,7 +8,7 @@
 use egui::Ui;
 use ew_viewmodel::first_run::FirstRunStep;
 use ew_viewmodel::key;
-use ew_viewmodel::settings::{LANGUAGES, ORIGINS, THEMES, UI_SCALES};
+use ew_viewmodel::settings::{LANGUAGES, ORIGINS, THEMES, UI_SCALES, scale_label};
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::strings;
 use serde_json::{Value, json};
@@ -76,17 +76,9 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                     });
                     ui.horizontal(|ui| {
                         ui.label(strings::text(key!("firstrun-scale")));
-                        for (key, scale) in [
-                            key!("scale-100"),
-                            key!("scale-125"),
-                            key!("scale-150"),
-                            key!("scale-200"),
-                        ]
-                        .iter()
-                        .zip(UI_SCALES)
-                        {
+                        for scale in UI_SCALES {
                             let current = (settings.ui_scale - scale).abs() < 1e-3;
-                            if ui.selectable_label(current, strings::text(*key)).clicked() && !current {
+                            if ui.selectable_label(current, scale_label(scale)).clicked() && !current {
                                 set(events, "ui_scale", json!(scale));
                             }
                         }

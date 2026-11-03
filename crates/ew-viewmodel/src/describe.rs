@@ -220,6 +220,8 @@ const WORDS: &[(&str, &[Reach])] = &[
     ("cp", &[]),
     ("at", &[]),
     ("selection", &[]),
+    // WP-S2.08 D13: the selection's live description (`canvas live "…"`).
+    ("live", &[]),
     ("stale", &[]),
     // A failed preview (`PreviewStatus::Failed`); `tests/part2.rs` checks the word, no state prints it.
     ("failed", &[Reach::Unreached]),
@@ -2044,8 +2046,8 @@ fn canvas_lines(model: &ShellModel, lines: &mut Vec<String>) {
     hud_line(model, lines);
 }
 
-/// The tool lines after the canvas lines (WP-S2.03 §7.9): the active tool, the snap indicator, the selection, the
-/// kept preview, the overlay with its labels and the link preview while shown. The tool's label and hint, a failed
+/// The tool lines after the canvas lines (WP-S2.03 §7.9): the active tool, the snap indicator, the selection and its
+/// live description (WP-S2.08 D13), the kept preview, the overlay with its labels and the link preview while shown. The tool's label and hint, a failed
 /// preview's message and the labels are quoted user text.
 fn tool_lines(model: &ShellModel, lines: &mut Vec<String>) {
     let tool = model.tool();
@@ -2085,6 +2087,11 @@ fn tool_lines(model: &ShellModel, lines: &mut Vec<String>) {
             "canvas selection {} {}",
             selection.items.len(),
             ids.join(" ")
+        ));
+        // WP-S2.08 D13: what the live region says of the selection, quoted as user text.
+        lines.push(format!(
+            "canvas live \"{}\"",
+            crate::status::selection_text(model)
         ));
     }
     match (model.preview_state(), model.preview_status()) {

@@ -18,7 +18,7 @@ use serde_json::{Map, Value, json};
 
 use crate::command_bar::{CommandSize, Group, Placement, Tab, place};
 use crate::key;
-use crate::settings::{DENSITIES, THEMES, UI_SCALES};
+use crate::settings::{DENSITIES, MIN_FONT_CHOICES, THEMES, UI_SCALES, scale_label};
 use crate::shell::{Outcome, ShellModel};
 use crate::strings;
 use crate::strings::Key;
@@ -130,6 +130,8 @@ pub enum Submenu {
     Revision,
     /// View, Language: one item per UI language, under its own name (WP-S2.08 part 3).
     Language,
+    /// View, Minimum text size: off, then one item per size of `MIN_FONT_CHOICES` (WP-S2.08 D14).
+    MinFont,
 }
 
 impl Submenu {
@@ -150,6 +152,7 @@ impl Submenu {
             Submenu::CommandTab => key!("submenu-command-tab"),
             Submenu::Revision => key!("submenu-revision"),
             Submenu::Language => key!("submenu-language"),
+            Submenu::MinFont => key!("submenu-min-font"),
         }
     }
 }
@@ -2005,6 +2008,32 @@ pub static ACTIONS: &[ActionMeta] = &[
                 |s, p| s.act_ui_scale(p),
             ),
         )),
+    ),
+    // WP-S2.08 D14 (ID-1272 ruling 5): View ▸ Minimum text size (`pt` 0 is off, else 8 to 16) and View ▸ Reduce motion,
+    // the settings `min_font_pt` and `reduce_motion`.
+    with_params(
+        "pt:uint",
+        needs_parameters(act(
+            "view.min_font",
+            View,
+            Menu::View,
+            &[],
+            always,
+            sub(Menu::View, Submenu::MinFont, true),
+            |s, p| s.act_min_font(p),
+        )),
+    ),
+    with_params(
+        "on?:bool",
+        act(
+            "view.reduce_motion",
+            View,
+            Menu::View,
+            &[],
+            always,
+            slot(Menu::View),
+            |s, p| s.act_reduce_motion(p),
+        ),
     ),
     // WP-S2.17 part 1: View ▸ Theme and View ▸ Density (doc 16a §4.13, D5, D6). The theme words of the spec
     // (`hc-dark`, `hc-light`) are not words of the signature grammar, so `value` is text, checked against `THEMES`.
@@ -5349,6 +5378,7 @@ pub(crate) fn item_of(meta: &ActionMeta, model: &ShellModel) -> ActionItem {
             "view.grid" => model.grid_on(),
             "view.frame_stats" => model.frame_stats_shown(),
             "view.cpu_canvas" => model.cpu_canvas_setting(),
+            "view.reduce_motion" => model.reduce_motion(),
             "view.side_by_side" => model.area().is_some_and(crate::area::CanvasArea::side_by_side),
             "props.show" => model
                 .layout()
@@ -5505,23 +5535,34 @@ fn submenu_items(submenu: Submenu, metas: &[&ActionMeta], model: &ShellModel) ->
         }
         Submenu::UiScale => {
             let current = model.settings().ui_scale;
-            [
-                key!("scale-100"),
-                key!("scale-125"),
-                key!("scale-150"),
-                key!("scale-200"),
-            ]
-            .iter()
-            .zip(UI_SCALES)
-            .map(|(key, scale)| {
-                let mut item = item_of(meta, model);
-                item.label = strings::text(*key).to_owned();
-                item.params = json!({ "scale": scale });
-                item.shortcut = String::new();
-                item.checked = (current - scale).abs() < 1e-3;
-                item
-            })
-            .collect()
+            UI_SCALES
+                .iter()
+                .map(|&scale| {
+                    let mut item = item_of(meta, model);
+                    item.label = scale_label(scale).to_owned();
+                    item.params = json!({ "scale": scale });
+                    item.shortcut = String::new();
+                    item.checked = (current - scale).abs() < 1e-3;
+                    item
+                })
+                .collect()
+        }
+        Submenu::MinFont => {
+            let current = model.settings().min_font_pt;
+            MIN_FONT_CHOICES
+                .iter()
+                .map(|&pt| {
+                    let mut item = item_of(meta, model);
+                    item.label = match pt {
+                        0 => strings::text(key!("min-font-off")).to_owned(),
+                        pt => strings::format(key!("min-font-pt"), &[&pt.to_string()]),
+                    };
+                    item.params = json!({ "pt": pt });
+                    item.shortcut = String::new();
+                    item.checked = pt == current;
+                    item
+                })
+                .collect()
         }
         Submenu::Theme | Submenu::Density => {
             let (prefix, choices, current): (&str, &[&str], &str) = if submenu == Submenu::Theme {
@@ -5820,6 +5861,7 @@ mod tests {
             Submenu::Bond,
             Submenu::Revision,
             Submenu::Language,
+            Submenu::MinFont,
         ] {
             assert!(strings::lookup(s.label_key().as_str()).is_some());
         }

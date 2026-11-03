@@ -1019,7 +1019,16 @@ impl CanvasHost {
             return;
         };
         let finishes = shell.tool().finishes_on_double_click();
-        self.map_input(ui, &response, rect, canvas, group, finishes, events);
+        self.map_input(
+            ui,
+            &response,
+            rect,
+            canvas,
+            group,
+            finishes,
+            shell.reduce_motion(),
+            events,
+        );
         self.context_menu(&response, shell, canvas, group, events);
         // FT-512's tooltip half (doc 16a §7.2, §6.18): the connection point under the pointer names its printed label,
         // its kind and its potential in a tooltip in the inverse style.
@@ -1470,6 +1479,7 @@ impl CanvasHost {
         canvas: &CanvasModel,
         group: usize,
         finishes: bool,
+        reduce_motion: bool,
         events: &mut Vec<Event>,
     ) {
         let mm = |p: (i64, i64)| (p.0 as f64 / 1e6, p.1 as f64 / 1e6);
@@ -1666,10 +1676,16 @@ impl CanvasHost {
             )
         };
         // FT-895: a wheel line that pans moves the view as far as egui scrolls a line.
-        let line_pts = ui.ctx().options(|o| o.input_options.line_scroll_speed);
-        let (wheel, pan) = ui.input(|i| {
+        let (line_pts, zoom_speed) = ui.ctx().options(|o| {
+            (
+                o.input_options.line_scroll_speed,
+                o.input_options.scroll_zoom_speed,
+            )
+        });
+        let (wheel, pan, ctrl_pts) = ui.input(|i| {
             let mut lines = 0.0f32;
             let mut pan = Vec2::ZERO;
+            let mut ctrl_pts = 0.0f32;
             for e in &i.events {
                 if let EguiEvent::MouseWheel {
                     unit,
@@ -1678,8 +1694,14 @@ impl CanvasHost {
                     ..
                 } = e
                 {
-                    // Ctrl/Cmd with the wheel is egui's zoom gesture (below), not a step or a pan.
+                    // Ctrl/Cmd with the wheel is egui's zoom gesture (below), not a step or a pan; its points are kept
+                    // for reduced motion, which zooms by them in this frame.
                     if modifiers.command || modifiers.ctrl {
+                        ctrl_pts += match unit {
+                            MouseWheelUnit::Point => delta.x + delta.y,
+                            MouseWheelUnit::Line => (delta.x + delta.y) * line_pts,
+                            MouseWheelUnit::Page => (delta.x + delta.y) * i.viewport_rect().height(),
+                        };
                         continue;
                     }
                     match unit {
@@ -1696,7 +1718,7 @@ impl CanvasHost {
                     }
                 }
             }
-            (lines, pan)
+            (lines, pan, ctrl_pts)
         });
         // One ladder step per whole line, accumulated, about the pointer.
         let view = &mut self.views[group];
@@ -1713,8 +1735,28 @@ impl CanvasHost {
             view.wheel_lines += 1.0;
             stepped = true;
         }
-        // Pinch (and egui's Ctrl+wheel zoom): continuous, about the pointer.
-        let factor = ui.input(|i| i.zoom_delta());
+        // Pinch (and egui's Ctrl+wheel zoom): continuous, about the pointer. egui spreads a Ctrl+wheel step over several
+        // frames (its wheel smoothing, the canvas's animated zoom); with reduced motion (WP-S2.08 D14) the step's whole
+        // factor, egui's `exp(scroll_zoom_speed × points)`, applies in this frame, and a pinch as egui reports it.
+        let factor = if reduce_motion {
+            ui.input(|i| {
+                let pinch = i.multi_touch().map_or_else(
+                    || {
+                        i.events
+                            .iter()
+                            .map(|e| match e {
+                                EguiEvent::Zoom(f) => *f,
+                                _ => 1.0,
+                            })
+                            .product()
+                    },
+                    |t| t.zoom_delta,
+                );
+                pinch * (zoom_speed * ctrl_pts).exp()
+            })
+        } else {
+            ui.input(|i| i.zoom_delta())
+        };
         if (factor - 1.0).abs() > f32::EPSILON {
             zoom *= f64::from(factor);
             stepped = true;
