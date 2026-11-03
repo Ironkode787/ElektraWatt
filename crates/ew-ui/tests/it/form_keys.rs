@@ -111,6 +111,67 @@ fn ctrl_enter_submits_a_form_from_any_focus_before_the_keys_under_it() {
     h.state_mut().shell_mut().shutdown();
 }
 
+/// `key` with `modifiers` as one event, so one frame: kittest runs a frame per queued event, and
+/// `key_press_modifiers` queues the modifier keys too.
+fn chord_in_one_frame(h: &mut Harness<'_, App>, modifiers: Modifiers, key: Key) {
+    h.event(egui::Event::Key {
+        key,
+        physical_key: Some(key),
+        pressed: true,
+        repeat: false,
+        modifiers,
+    });
+    h.step();
+}
+
+/// The find pane, focused, under the frame that opens a form (Ctrl+Shift+N) and the next one (Ctrl+Enter): on the
+/// form's first frame no modal layer stands yet, so the pane still holds egui's focus and reads its own keys; only
+/// the frame's consume keeps Ctrl+Enter with the form (C49-p5b#2).
+#[track_caller]
+fn open_the_form_and_ctrl_enter_in_one_frame(h: &mut Harness<'_, App>, scope: Option<&str>) {
+    let pane = ew_ui::ew_viewmodel::strings::text(ew_ui::ew_viewmodel::key!("pane-find"));
+    assert_eq!(h.state().shell().focus(), Some(Focus::Find));
+    assert!(h.get_by_role_and_label(egui::Role::Group, pane).is_focused());
+    chord_in_one_frame(h, Modifiers::COMMAND | Modifiers::SHIFT, Key::N);
+    assert_eq!(form(h), Some(("devices.renumber", None)));
+    if let Some(scope) = scope {
+        h.state_mut().shell_mut().set_form_field("scope", scope);
+    }
+    chord_in_one_frame(h, Modifiers::COMMAND, Key::Enter);
+    settle(h);
+}
+
+#[test]
+fn ctrl_enter_on_the_forms_first_frame_stays_with_the_form() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "204");
+    h.key_press_modifiers(Modifiers::COMMAND, Key::H);
+    settle(&mut h);
+    type_keys(&mut h, "Spare");
+    h.key_press(Key::Tab);
+    settle(&mut h);
+    type_keys(&mut h, "Reserve");
+    h.key_press(Key::Enter);
+    settle(&mut h);
+    // A refused submit makes no card: the find pane's Ctrl+Enter would have built its replace card.
+    open_the_form_and_ctrl_enter_in_one_frame(&mut h, Some("selection"));
+    refused_in_the_form(&h, "Ctrl+Enter on the form's first frame");
+    assert!(
+        h.state().shell().properties().card().is_none(),
+        "no find card: {:?}",
+        h.state().shell().properties().card().map(|c| &c.origin)
+    );
+    h.key_press(Key::Escape);
+    settle(&mut h);
+    assert_eq!(form(&h), None);
+    // An accepted submit on the form's first frame: the form's card.
+    open_the_form_and_ctrl_enter_in_one_frame(&mut h, None);
+    assert_eq!(form(&h), None, "Ctrl+Enter submitted the form");
+    let card = h.state().shell().properties().card().expect("the renumber card");
+    assert!(matches!(card.origin, CardOrigin::Bulk), "{:?}", card.origin);
+    h.state_mut().shell_mut().shutdown();
+}
+
 /// Sets the open form's scope to Selection (which clears its last refusal) with nothing selected.
 fn scope_selection(h: &mut Harness<'_, App>) {
     h.state_mut().shell_mut().set_form_field("scope", "selection");
