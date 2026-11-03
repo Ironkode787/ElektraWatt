@@ -73,19 +73,13 @@ fn ax1_selecting_102f1_says_its_tag_kind_folio_connection_points_and_wires() {
         })
         .map(|n| n.label.clone())
         .expect("its main function");
-    let header = session
-        .property_sheet(&devices.nodes[device].records)
-        .header;
+    let header = session.property_sheet(&devices.nodes[device].records).header;
     assert_eq!(header.title, "-102F1");
     let location = header.location.expect("a main location");
     let (folio, _cell) = location.split_once('-').expect("<folio>-<cell>");
     assert_eq!(folio, "102");
     let t = tables(&shell);
-    let cps: Vec<_> = t
-        .cps
-        .iter()
-        .filter(|c| c.label.starts_with("-102F1:"))
-        .collect();
+    let cps: Vec<_> = t.cps.iter().filter(|c| c.label.starts_with("-102F1:")).collect();
     let mut wires: Vec<_> = cps.iter().flat_map(|c| c.connections.iter().copied()).collect();
     wires.sort();
     wires.dedup();
@@ -96,10 +90,7 @@ fn ax1_selecting_102f1_says_its_tag_kind_folio_connection_points_and_wires() {
         wires.len()
     );
     assert_eq!(live(&shell), expected);
-    assert_eq!(
-        live_line(&shell),
-        Some(format!("canvas live \"{expected}\""))
-    );
+    assert_eq!(live_line(&shell), Some(format!("canvas live \"{expected}\"")));
     shell.shutdown();
 }
 
@@ -129,10 +120,7 @@ fn ax1_a_wire_says_its_number_potential_and_ends() {
     done(&mut shell, "select.set", json!({"ids": [conn.to_string()]}));
     let expected = format!("{number}, {potential}, {from} to {to}");
     assert_eq!(live(&shell), expected);
-    assert_eq!(
-        live_line(&shell),
-        Some(format!("canvas live \"{expected}\""))
-    );
+    assert_eq!(live_line(&shell), Some(format!("canvas live \"{expected}\"")));
     shell.shutdown();
 }
 
@@ -158,10 +146,7 @@ fn ax1_a_page_item_says_its_kind_and_text_and_two_records_say_how_many() {
     done(&mut shell, "select.set", json!({"ids": [text.id.to_string()]}));
     let expected = "Text, Spare";
     assert_eq!(live(&shell), expected);
-    assert_eq!(
-        live_line(&shell),
-        Some(format!("canvas live \"{expected}\""))
-    );
+    assert_eq!(live_line(&shell), Some(format!("canvas live \"{expected}\"")));
     // Two or more records keep "<n> selected".
     done(
         &mut shell,
@@ -169,10 +154,7 @@ fn ax1_a_page_item_says_its_kind_and_text_and_two_records_say_how_many() {
         json!({"refs": ["tag:-102F1", "tag:-102F2"]}),
     );
     assert_eq!(live(&shell), "2 selected");
-    assert_eq!(
-        live_line(&shell),
-        Some("canvas live \"2 selected\"".to_owned())
-    );
+    assert_eq!(live_line(&shell), Some("canvas live \"2 selected\"".to_owned()));
     // Nothing selected: no line.
     done(&mut shell, "select.set", json!({"ids": []}));
     assert_eq!(live_line(&shell), None);

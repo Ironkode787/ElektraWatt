@@ -206,8 +206,7 @@ fn first_run(size: Size) {
         h.get_by_label(strings::text(key!("firstrun-next"))).click();
         step(&mut h);
     }
-    h.get_by_label(strings::text(key!("firstrun-start-none")))
-        .click();
+    h.get_by_label(strings::text(key!("firstrun-start-none"))).click();
     step(&mut h);
     assert!(h.state().shell().first_run().is_none());
     h.state_mut().shell_mut().shutdown();
@@ -431,14 +430,20 @@ fn ax4_reduced_motion_stops_animation_and_the_zoom_jumps() {
     let mut h = harness(&tmp, Scripted::default(), Some(tmp.golden("g.ew")));
     settle(&mut h);
     wait_for_page(&mut h);
-    assert!(!h.state().shell().reduce_motion(), "unset, with the GPU-or-CPU switch: off");
+    assert!(
+        !h.state().shell().reduce_motion(),
+        "unset, with the GPU-or-CPU switch: off"
+    );
     assert!(animation_time(&h) > 0.0);
     let (before, smoothed) = ctrl_wheel_one_frame(&mut h);
-    let factor = h.ctx.options(|o| {
-        f64::from(o.input_options.scroll_zoom_speed * o.input_options.line_scroll_speed).exp()
-    });
+    let factor = h
+        .ctx
+        .options(|o| f64::from(o.input_options.scroll_zoom_speed * o.input_options.line_scroll_speed).exp());
     let target = before * factor;
-    assert!(smoothed < target - 1e-3, "egui's smoothing: {smoothed} of {target}");
+    assert!(
+        smoothed < target - 1e-3,
+        "egui's smoothing: {smoothed} of {target}"
+    );
     dispatch(&mut h, "view.reduce_motion", json!({}));
     settle(&mut h);
     assert!(h.state().shell().reduce_motion());
