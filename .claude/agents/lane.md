@@ -32,6 +32,9 @@ how every lane works.
 - **No new dependency to save a few lines.** Write the few lines.
 - **Only what the brief asks.** Add no abstraction, option, setting or "for later" code that the brief and the spec do
   not ask for, and leave out nothing they do ask for. Name what you chose not to build as a proposed FT row.
+- **The smallest diff.** Within what the brief asks, change as few lines as you can: every changed line traces to the
+  brief. Leave neighbouring code and comments as they are, even where you would write them differently, and report an
+  unrelated flaw as a proposed FT row instead of fixing it.
 - **Moved code keeps its checks.** Code you move or merge keeps its error handling and its validation.
 
 ## The edit loop
