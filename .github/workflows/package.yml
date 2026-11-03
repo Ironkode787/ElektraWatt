@@ -162,7 +162,7 @@ jobs:
       - name: cargo build (release, static C runtime)
         run: |
           set -euo pipefail
-          export RUSTFLAGS="-D warnings -C target-feature=+crt-static --remap-path-prefix=${CARGO_HOME:?}=/cargo --remap-path-prefix=${RUSTUP_HOME:?}=/rustup --remap-path-prefix=$GITHUB_WORKSPACE=/build"
+          export RUSTFLAGS="-D warnings -C target-feature=+crt-static --remap-path-prefix=${CARGO_HOME:?}=/cargo --remap-path-prefix=${RUSTUP_HOME:-$(rustup show home)}=/rustup --remap-path-prefix=$GITHUB_WORKSPACE=/build"
           cargo build --release --locked -p elektrawatt -p ew
       # IN-4: neither program imports the C runtime, which the hosted image has and a clean PC may not.
       - name: no C runtime import
