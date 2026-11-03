@@ -313,8 +313,10 @@ fn owner() -> HWND {
 /// the block's start).
 fn device_name(bytes: &[u8]) -> Option<String> {
     let units: Vec<u16> = bytes
-        .chunks_exact(2)
-        .map(|c| u16::from_ne_bytes([c[0], c[1]]))
+        .as_chunks::<2>()
+        .0
+        .iter()
+        .map(|&c| u16::from_ne_bytes(c))
         .collect();
     let at = usize::from(*units.get(offset_of!(DEVNAMES, wDeviceOffset) / 2)?);
     let name = units.get(at..)?;
