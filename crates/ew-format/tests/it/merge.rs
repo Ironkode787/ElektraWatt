@@ -294,6 +294,35 @@ fn md1_a_keyed_conflict_holds_ours_and_theirs_lists_as_merged() {
 }
 
 #[test]
+fn md1_a_keyed_list_whose_keys_mix_integers_and_other_numbers_merges_atomically() {
+    // 40 elements, more than a sort orders by insertion alone: `idx` 1 to 20 and 1.5 to 20.5, which no order sorts both
+    // as numbers and as text (10 < 2.5 by text, 2.5 < 3 by number). The keys are neither all unsigned integers nor
+    // all strings, so the list merges as one value (decision log ID-1273).
+    let list = |changed: (usize, &str)| {
+        let mut items = Vec::new();
+        for i in 1..=20u32 {
+            items.push(json!({"idx": i, "alias": "A"}));
+            items.push(json!({"idx": f64::from(i) + 0.5, "alias": "B"}));
+        }
+        items[changed.0]["alias"] = json!(changed.1);
+        Value::Array(items)
+    };
+    let (lo, la, lb) = (list((0, "A")), list((0, "A2")), list((2, "A3")));
+    let o = rec("function", json!({"cp_overrides": lo}));
+    let a = rec("function", json!({"cp_overrides": la}));
+    let b = rec("function", json!({"cp_overrides": lb}));
+    let m = std::panic::catch_unwind(|| merge_record(Some(&o), Some(&a), Some(&b))).expect("no panic");
+    assert_eq!(m.merged, Some(a));
+    assert_eq!(
+        m.conflict,
+        Some(json!({
+            "$k": "conflict", "id": ID, "kind": "function",
+            "base": {"cp_overrides": lo}, "ours": {"cp_overrides": la}, "theirs": {"cp_overrides": lb}
+        }))
+    );
+}
+
+#[test]
 fn md1_keyed_tech_data_merges_by_key_in_byte_order() {
     let o = rec(
         "device",
@@ -730,6 +759,8 @@ fn unordered(value: Option<Value>) -> Option<Value> {
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(512))]
 
+    /// MD-2 on `merge_record`. Not on `merge_file`'s one loss, where a merged file would pass a reader limit and ours is
+    /// kept as it is (`a_merge_that_would_pass_a_reader_limit_keeps_ours_as_it_is`, decision log ID-1273).
     #[test]
     fn md2_merge_properties((o, a, b) in sides()) {
         let (o, a, b) = (o.as_ref(), a.as_ref(), b.as_ref());
@@ -950,7 +981,8 @@ fn ac41_w20_conflict_variant_writes_one_conflict_record_and_keeps_bu() {
     let (base, ours) = page_with(r#""overrides":{"csa":"1.5","colour":["BU"],"show_marker":true}"#);
     let (_, theirs) = page_with(r#""overrides":{"csa":"2.5","colour":["WH"],"show_marker":true}"#);
     let (_, kept) = page_with(r#""overrides":{"csa":"2.5","colour":["BU"],"show_marker":true}"#);
-    let conflict = r#"{"$k":"conflict","base":{"overrides":{}},"id":"1c5963b7-6c34-53d6-8fa6-9d02d4629711","kind":"connection","ours":{"overrides":{"colour":["BU"]}},"theirs":{"overrides":{"colour":["WH"]}}}"#;
+    // D14's member order: `$k`, `id`, `kind`, `base`, `ours`, `theirs` (decision log ID-1273).
+    let conflict = r#"{"$k":"conflict","id":"1c5963b7-6c34-53d6-8fa6-9d02d4629711","kind":"connection","base":{"overrides":{}},"ours":{"overrides":{"colour":["BU"]}},"theirs":{"overrides":{"colour":["WH"]}}}"#;
     let (merged, conflicts) = merge_page(&base, &ours, &theirs);
     assert_eq!(merged, format!("{kept}{conflict}\n"));
     assert_eq!(conflicts, 1);
@@ -970,11 +1002,11 @@ fn ac41_w20_conflict_variant_writes_one_conflict_record_and_keeps_bu() {
     }
 }
 
-/// The file-level conflict line of PAGE holding `side`'s `text` (D14), members in key order.
+/// The file-level conflict line of PAGE holding `side`'s `text` (D14), members in D14's order (decision log ID-1273).
 fn file_conflict(side: &str, text: &str) -> String {
     let lines: Vec<&str> = text.strip_suffix('\n').unwrap_or(text).split('\n').collect();
     format!(
-        r#"{{"$k":"conflict","id":"{PAGE_CONFLICT}","kind":"file","lines":{},"path":"{PAGE}","side":"{side}"}}"#,
+        r#"{{"$k":"conflict","id":"{PAGE_CONFLICT}","kind":"file","path":"{PAGE}","side":"{side}","lines":{}}}"#,
         serde_json::to_string(&lines).expect("JSON")
     )
 }
@@ -1049,11 +1081,11 @@ fn md4_a_side_above_a_reader_limit_keeps_the_other_side() {
         &limits,
         &MIGRATIONS,
     );
-    // Both sides are above the line limit: ours stays as it is, theirs is held by the conflict.
-    let held = file_conflict("theirs", "{\"$k\":\"page\"}\n");
+    // Neither side reads (ours is above the line limit, theirs has no ID): ours stays as it is, and the file-level
+    // record that would hold theirs is above the line limit too, so it is not written (decision log ID-1273).
     assert_eq!(
         (String::from_utf8(m.bytes).expect("UTF-8"), m.conflicts),
-        (format!("{ours}{held}\n"), 1)
+        (ours, 1)
     );
 }
 
@@ -1074,6 +1106,190 @@ fn neither_side_parsing_keeps_ours_and_holds_theirs() {
             1
         )
     );
+}
+
+/// A bond record's line with the ID `0190d8a4-6d3e-7c41-8f00-00000000000<n>` and `members`, as compact JSON.
+fn bond(n: u8, members: Value) -> String {
+    let mut out = json!({"$k": "bond", "id": format!("0190d8a4-6d3e-7c41-8f00-00000000000{n}")});
+    if let (Value::Object(out), Value::Object(members)) = (&mut out, members) {
+        out.extend(members);
+    }
+    out.to_string()
+}
+
+#[test]
+fn a_base_that_does_not_read_follows_the_no_base_rule() {
+    // A committed marker line makes the base unreadable (doc 05 §11.4). D18's no-base rule holds, never an empty base
+    // (decision log ID-1273): a record equal on both sides is kept; one that differs keeps ours with a conflict of
+    // every member that differs; one on one side only is kept with a conflict whose other side is deleted.
+    let base = "<<<<<<< ours\n";
+    let ours = [
+        bond(1, json!({"number": 1})),
+        bond(2, json!({"number": 1, "page": "p"})),
+    ];
+    let theirs = [
+        bond(1, json!({"number": 1})),
+        bond(2, json!({"number": 2})),
+        bond(3, json!({"number": 3})),
+    ];
+    let m = merge_file(
+        "waivers.jsonl",
+        MergeSide::current(base.as_bytes()),
+        MergeSide::current(format!("{}\n", ours.join("\n")).as_bytes()),
+        MergeSide::current(format!("{}\n", theirs.join("\n")).as_bytes()),
+        &Limits::default(),
+        &MIGRATIONS,
+    );
+    let conflict = |n: u8, ours: &str, theirs: &str| {
+        format!(
+            r#"{{"$k":"conflict","id":"0190d8a4-6d3e-7c41-8f00-00000000000{n}","kind":"bond","base":{{}},"ours":{ours},"theirs":{theirs}}}"#
+        )
+    };
+    let expected = [
+        bond(1, json!({"number": 1})),
+        bond(2, json!({"number": 1, "page": "p"})),
+        bond(3, json!({"number": 3})),
+        conflict(2, r#"{"number":1,"page":"p"}"#, r#"{"number":2}"#),
+        conflict(3, r#""deleted""#, r#"{"number":3}"#),
+    ];
+    assert_eq!(
+        (String::from_utf8(m.bytes).expect("UTF-8"), m.conflicts),
+        (format!("{}\n", expected.join("\n")), 2)
+    );
+
+    // A library document: theirs deleted a member that ours holds; with no base to tell, ours is kept and `$conflict`
+    // holds theirs' document.
+    let path = "lib/manufacturers/221fd06e-3263-5cab-bbb9-27aee71c8d79.json";
+    let mut a: Value = serde_json::from_slice(&golden()[path]).expect("JSON");
+    a["aliases"] = json!(["Schneider"]);
+    let mut b = a.clone();
+    b.as_object_mut().expect("an object").remove("aliases");
+    let doc = |v: &Value| ew_format::pretty(&v.to_string());
+    let m = merge_file(
+        path,
+        MergeSide::current(base.as_bytes()),
+        MergeSide::current(doc(&a).as_bytes()),
+        MergeSide::current(doc(&b).as_bytes()),
+        &Limits::default(),
+        &MIGRATIONS,
+    );
+    assert_eq!(m.conflicts, 1);
+    let mut merged: Value = serde_json::from_slice(&m.bytes).expect("JSON");
+    let held = merged
+        .as_object_mut()
+        .and_then(|m| m.remove("$conflict"))
+        .expect("$conflict");
+    assert_eq!((merged, held), (a, b));
+}
+
+#[test]
+fn a_library_document_neither_side_reads_keeps_ours_and_holds_theirs() {
+    // D14's `$conflict` needs a readable ours: theirs goes in the file-level record, as for other files (decision log
+    // ID-1273).
+    let path = "lib/manufacturers/221fd06e-3263-5cab-bbb9-27aee71c8d79.json";
+    let id = ew_format::ew_schema::conflict_file_id::<()>(path);
+    let ours = "{\n  \"$k\": \"manufacturer\",\n<<<<<<< ours\n";
+    let merge = |ours: &str| {
+        merge_file(
+            path,
+            MergeSide::current(b"{}\n"),
+            MergeSide::current(ours.as_bytes()),
+            MergeSide::current(b"not json\n"),
+            &Limits::default(),
+            &MIGRATIONS,
+        )
+    };
+    let m = merge(ours);
+    assert_eq!(
+        (String::from_utf8(m.bytes).expect("UTF-8"), m.conflicts),
+        (
+            format!(
+                r#"{ours}{{"$k":"conflict","id":"{id}","kind":"file","path":"{path}","side":"theirs","lines":["not json"]}}
+"#
+            ),
+            1
+        )
+    );
+    // An ours that opens (JSON, but no document this reader merges) stays as it is: a line after it would make it a
+    // syntax error.
+    let m = merge("[]\n");
+    assert_eq!((m.bytes, m.conflicts), (b"[]\n".to_vec(), 1));
+}
+
+#[test]
+fn a_record_unchanged_on_its_side_is_written_as_that_side_s_own_line() {
+    // FR-COL-010, doc 05 §10.3 (decision log ID-1273): J5.feed's line with `page` before `a` (out of schema order),
+    // untouched on every side, and a record of an unknown kind with its members out of byte order are written as
+    // ours' lines; W11, changed on theirs only (a member of a newer minor, first), as theirs' line.
+    let (base, ours) = page_with(r#""overrides":{"csa":"1.5","colour":["BU"],"show_marker":true}"#);
+    let (_, theirs) = page_with(r#""overrides":{"csa":"2.5","show_marker":true}"#);
+    let (_, expected) = page_with(r#""overrides":{"csa":"2.5","colour":["BU"],"show_marker":true}"#);
+    let line = |key: &str| {
+        base.lines()
+            .find(|l| l.contains(key))
+            .unwrap_or_else(|| panic!("{key}"))
+            .to_owned()
+    };
+    let (j5, w11) = (line("connections|J5.feed"), line("connections|W11\""));
+    let page = r#","page":"4aa43308-d0d3-57ee-be0c-d9383f429f50""#;
+    let at = j5.find(r#","a":"#).expect("a");
+    let j5_moved = format!("{}{page}{}", &j5[..at], &j5[at..].replacen(page, "", 1));
+    let w11_newer = w11.replacen(r#","a":"#, r#","zz_newer":1,"a":"#, 1);
+    let unknown = r#"{"$k":"frobnicator","id":"0190d8a4-6d3e-7c41-8f00-000000000001","z":1,"a":2}"#;
+    let side = |text: &str, w11: &str| format!("{}{unknown}\n", text.replace(&j5, &j5_moved).replace(&line("connections|W11\""), w11));
+    let m = merge_page(
+        &side(&base, &w11),
+        &side(&ours, &w11),
+        &side(&theirs, &w11_newer),
+    );
+    assert_eq!(m, (side(&expected, &w11_newer), 0));
+}
+
+#[test]
+fn a_merge_that_would_pass_a_reader_limit_keeps_ours_as_it_is() {
+    // D14's loadable file over its "nothing lost" (decision log ID-1273): the result is ours as it is, with 1 conflict.
+    let merge = |path: &str, sides: [&str; 3], limits: &Limits| {
+        let m = merge_file(
+            path,
+            MergeSide::current(sides[0].as_bytes()),
+            MergeSide::current(sides[1].as_bytes()),
+            MergeSide::current(sides[2].as_bytes()),
+            limits,
+            &MIGRATIONS,
+        );
+        (String::from_utf8(m.bytes).expect("UTF-8"), m.conflicts)
+    };
+    // Theirs, a 100-byte line that does not parse, under a 64-byte line limit: the file-level record holding it would
+    // be one line above the limit.
+    let lines = Limits {
+        max_line_bytes: 64,
+        ..Limits::default()
+    };
+    let ours = format!("{}\n", bond(1, json!({})));
+    let theirs = format!("{}\n", "x".repeat(100));
+    assert_eq!(
+        merge("waivers.jsonl", ["", &ours, &theirs], &lines),
+        (ours.clone(), 1)
+    );
+    // A record 4 deep under a depth limit of 4, changed at its leaf on both sides: its conflict record nests the leaf
+    // one level deeper.
+    let depth = Limits {
+        max_depth: 4,
+        ..Limits::default()
+    };
+    let leaf = |n: u8| bond(1, json!({"x": {"y": {"z": [n]}}}));
+    let [o, a, b] = [1, 2, 3].map(|n| format!("{}\n", leaf(n)));
+    assert_eq!(merge("waivers.jsonl", [&o, &a, &b], &depth), (a.clone(), 1));
+    // A library document 4 deep: `$conflict` holds theirs' document one level below ours'.
+    let path = "lib/manufacturers/221fd06e-3263-5cab-bbb9-27aee71c8d79.json";
+    let doc = |n: u8| {
+        ew_format::pretty(
+            &json!({"$k": "manufacturer", "id": "221fd06e-3263-5cab-bbb9-27aee71c8d79", "x": {"y": {"z": [n]}}})
+                .to_string(),
+        )
+    };
+    let [o, a, b] = [1, 2, 3].map(doc);
+    assert_eq!(merge(path, [&o, &a, &b], &depth), (a.clone(), 1));
 }
 
 fn same(value: Value) -> Result<Value, MigrationError> {
