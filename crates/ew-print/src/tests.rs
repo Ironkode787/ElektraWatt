@@ -502,3 +502,63 @@ fn the_system_chain_is_portal_lp_viewer_on_linux_windows_viewer_on_windows_and_t
     }
     assert_eq!(Chain::viewer(dir.0.clone(), "J-E-2416").names(), ["viewer"]);
 }
+
+/// FT-1111's child: run by [`a_portal_without_a_session_bus_fails_and_leaves_no_file`] (its one argument, the
+/// temporary folder, follows a `--`), it prints through the real portal adapter and asserts
+/// [`PrintError::Portal`]; run by the harness (no `--`), it does nothing. The session bus is the parent's to set.
+#[cfg(target_os = "linux")]
+#[test]
+fn portal_child() {
+    let args: Vec<String> = std::env::args().collect();
+    let Some(at) = args.iter().position(|a| a == "--") else {
+        return;
+    };
+    let portal = Portal::new(PathBuf::from(&args[at + 1]));
+    let result = portal.print(&job("J-E-2416", None));
+    assert!(matches!(result, Err(PrintError::Portal { .. })), "{result:?}");
+}
+
+/// FT-1111 (ID-1228 item 3): the real portal adapter with `DBUS_SESSION_BUS_ADDRESS` at a missing socket fails with
+/// [`PrintError::Portal`] and leaves its temporary folder empty: the print file is removed on that way out too. The
+/// child runs in its own process, so the variable reaches no other test; it is bounded in time, since how soon a
+/// connect to a missing socket fails is not known.
+#[cfg(target_os = "linux")]
+#[test]
+fn a_portal_without_a_session_bus_fails_and_leaves_no_file() {
+    let dir = Dir::new();
+    let temp = dir.0.join("temp");
+    std::fs::create_dir_all(&temp).unwrap();
+    let mut child = std::process::Command::new(std::env::current_exe().unwrap())
+        .args(["--exact", "tests::portal_child", "--nocapture", "--"])
+        .arg(&temp)
+        .env(
+            "DBUS_SESSION_BUS_ADDRESS",
+            format!("unix:path={}", dir.0.join("no-bus").display()),
+        )
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .unwrap();
+    // At most a minute, in tenths of a second (a bound, not a timing assertion).
+    let mut status = None;
+    for _ in 0..600 {
+        status = child.try_wait().unwrap();
+        if status.is_some() {
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(100));
+    }
+    if status.is_none() {
+        let _ = child.kill();
+    }
+    let output = child.wait_with_output().unwrap();
+    let said = format!(
+        "{}{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(status.is_some(), "the child ended within a minute: {said}");
+    assert!(output.status.success(), "{said}");
+    assert!(said.contains("1 passed"), "the child ran: {said}");
+    assert_eq!(std::fs::read_dir(&temp).unwrap().count(), 0, "the print file is removed");
+}
