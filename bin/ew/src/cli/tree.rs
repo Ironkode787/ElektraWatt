@@ -20,6 +20,7 @@ use ew_api::import::migration::ReportFormat;
 use ew_api::output::print::Paper;
 use ew_api::output::{CsvOptions, LineEnd, PageSelection, Preset};
 
+use super::merge_driver::MergeDriverArgs;
 use super::query::QueryArgs;
 use super::{
     ApplyArgs, AssetsPurgeArgs, CheckArgs, CheckFormat, ChecksSetArgs, Command, ExportArgs, ExportEwzArgs,
@@ -214,6 +215,23 @@ enum Top {
     /// Prints the JSON Schema of a command's parameters (a name or alias of `ew commands`) or of a result
     /// (`ew.<command>-result/<n>`). Exit 0, 2 for an unknown name.
     Schema(SchemaCli),
+    /// Merge one project file three-way: git's merge driver (plumbing).
+    ///
+    /// Git runs it for a file changed on both sides, with `%O` (the ancestor), `%A` (ours, where the result goes),
+    /// `%B` (theirs), `%L` (the marker size, unused: conflicts are written as records, not markers) and `%P` (the
+    /// file's path in the repository); the older form `%O %A %B %P` gives the same result. `%P` is taken relative to
+    /// the deepest folder above it that holds a `manifest.json` in the current directory, the working tree, and
+    /// selects the merge: a record file per record, a library document, `manifest.json`; any other file keeps ours.
+    /// The three files are read under the reader's limits, and `%A` is replaced whole through a temporary file beside
+    /// it. Git takes a driver only from its own configuration, so it is registered by two lines,
+    /// `git config merge.elektrawatt.name "ElektraWatt record merge"` and
+    /// `git config merge.elektrawatt.driver "ew merge-driver %O %A %B %L %P"`, and selected by three lines of the
+    /// project's `.gitattributes`, `*.jsonl merge=elektrawatt`, `lib/**/*.json merge=elektrawatt` and
+    /// `manifest.json merge=elektrawatt`. Exit 0 when merged cleanly, 1 when conflict records were written or a side is larger than the reader's limit
+    /// (`%A` then as it was), 129 on an internal error (a file that cannot be read or written, a failure in the
+    /// merge) with `%A` as it was; 2 on usage errors.
+    #[command(override_usage = "ew merge-driver <O> <A> <B> [L] <P>")]
+    MergeDriver(MergeDriverCli),
 }
 
 /// `ew import`.
@@ -1400,6 +1418,26 @@ struct SchemaCli {
     name: String,
 }
 
+/// `ew merge-driver`.
+#[derive(Args, Debug)]
+struct MergeDriverCli {
+    /// `%O`: the ancestor's version of the file.
+    #[arg(value_name = "O")]
+    base: PathBuf,
+    /// `%A`: ours; the merged file is written here.
+    #[arg(value_name = "A")]
+    ours: PathBuf,
+    /// `%B`: theirs.
+    #[arg(value_name = "B")]
+    theirs: PathBuf,
+    /// `%L` (unused) followed by `%P`, or `%P` alone.
+    #[arg(value_name = "L")]
+    fourth: PathBuf,
+    /// `%P`: the file's path in the repository.
+    #[arg(value_name = "P")]
+    path: Option<PathBuf>,
+}
+
 /// `ew lib`.
 #[derive(Args, Debug)]
 struct LibCli {
@@ -2144,6 +2182,19 @@ impl Cli {
             }),
             Top::Commands(JsonCli { json }) => Command::Commands { json },
             Top::Schema(SchemaCli { name }) => Command::Schema(name),
+            Top::MergeDriver(MergeDriverCli {
+                base,
+                ours,
+                theirs,
+                fourth,
+                path,
+            }) => Command::MergeDriver(MergeDriverArgs {
+                base,
+                ours,
+                theirs,
+                // `%O %A %B %L %P`, or the older `%O %A %B %P`: `%L` is unused.
+                path: path.unwrap_or(fourth).to_string_lossy().into_owned(),
+            }),
         })
     }
 }

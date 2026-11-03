@@ -1090,6 +1090,30 @@
       "stability": "preview"
     },
     {
+      "path": "merge-driver",
+      "flags": [],
+      "exits": [
+        {
+          "code": 0,
+          "meaning": "merged cleanly into `%A`"
+        },
+        {
+          "code": 1,
+          "meaning": "conflict records written, or a side above the reader's limit (`%A` as it was)"
+        },
+        {
+          "code": 2,
+          "meaning": "usage"
+        },
+        {
+          "code": 129,
+          "meaning": "an internal error: a file that cannot be read or written, a failure in the merge (`%A` as it was)"
+        }
+      ],
+      "result": null,
+      "stability": "preview"
+    },
+    {
       "path": "print",
       "flags": [
         {

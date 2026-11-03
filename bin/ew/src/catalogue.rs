@@ -432,6 +432,23 @@ pub const TABLE: &[Row] = &[
         result: None,
         stability: Stability::Preview,
     },
+    Row {
+        path: &["merge-driver"],
+        exits: &[
+            exit(0, "merged cleanly into `%A`"),
+            exit(
+                1,
+                "conflict records written, or a side above the reader's limit (`%A` as it was)",
+            ),
+            exit(2, "usage"),
+            exit(
+                129,
+                "an internal error: a file that cannot be read or written, a failure in the merge (`%A` as it was)",
+            ),
+        ],
+        result: None,
+        stability: Stability::Preview,
+    },
 ];
 
 /// The subcommand paths of `cmd` (a built command) with their flags: a command is a path when it has no subcommands

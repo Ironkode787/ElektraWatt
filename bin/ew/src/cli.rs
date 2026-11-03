@@ -16,6 +16,7 @@ use ew_api::output::{
 };
 use ew_api::{BomMode, CmdLog, Export};
 
+mod merge_driver;
 mod project_files;
 mod query;
 mod tree;
@@ -85,6 +86,8 @@ pub enum Command {
         /// Print the result as JSON (`--json`).
         json: bool,
     },
+    /// `ew merge-driver %O %A %B %L %P`: the merge driver for project files (WP-S1.17 D15).
+    MergeDriver(merge_driver::MergeDriverArgs),
 }
 
 /// What `ew revision` does.
@@ -678,6 +681,7 @@ pub fn run(cmd: Command) -> i32 {
         Command::Schema(name) => run_schema(&name),
         Command::Query(a) => query::run_query(&a),
         Command::Queries { json } => query::run_queries(json),
+        Command::MergeDriver(a) => merge_driver::run_merge_driver(&a),
         Command::SqlSchema => {
             print!("{}", ew_api::sql::schema::schema_text());
             0
