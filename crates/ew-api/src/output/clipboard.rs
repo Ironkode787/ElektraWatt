@@ -44,7 +44,7 @@ use ew_schema::{
     PageItem, PageItemKind, PotentialDef, Record, Representation, Slot, StructureAssignment, StructureBox,
     StructureNode,
 };
-use ew_store::ew_format::{MIGRATIONS, Migration, Migrations};
+use ew_store::ew_format::{MIGRATIONS, Migration, Migrations, rehash_migrated_copy};
 use serde_json::{Value, json};
 
 use crate::Session;
@@ -200,7 +200,8 @@ const OLDER_FORMAT: &str =
 /// line and a nesting of 64; every line strict JSON (repeated member names refused). Within v1 a header member this
 /// version does not know is ignored; a newer `format` or a record of a newer schema version is refused
 /// ([`FragmentError::Newer`]); an older `format`'s records and library copies, and a record of an older schema version,
-/// migrate through the shipped chain ([`MIGRATIONS`], FT-403, WP-S1.17 D12), and what it does not reach is refused as
+/// migrate through the shipped chain ([`MIGRATIONS`], FT-403, WP-S1.17 D12; a copy whose item a step changed takes its
+/// migrated item's hash, as the loader does: [`rehash_migrated_copy`]), and what it does not reach is refused as
 /// [`FragmentError::Invalid`]; the parameters carry this version's format. A record must be of a pasted kind and read
 /// as a record; a library copy as a library document; IDs are distinct. Line ends may be CRLF (a clipboard may convert
 /// them); empty lines are skipped. A leading byte-order mark is skipped. No semantic check: that is `edit.paste`'s.
@@ -276,7 +277,9 @@ pub fn parse_fragment_with(text: &str, chain: &Migrations) -> Result<ParsedFragm
                 .map_err(|_| invalid(line_no, OLDER_FORMAT))
         };
         if obj.len() == 1 && obj.contains_key("$lib") {
-            let doc = migrate(&obj["$lib"])?;
+            let mut doc = migrate(&obj["$lib"])?;
+            // A step that changed the copy's item is no edit: its hash follows the item, as the loader's does.
+            rehash_migrated_copy(&obj["$lib"], &mut doc);
             LibDocument::from_value(doc.clone()).map_err(|e| invalid(line_no, &e.to_string()))?;
             copies.push(doc);
         } else if obj.len() == 1 && obj.contains_key("$node") {

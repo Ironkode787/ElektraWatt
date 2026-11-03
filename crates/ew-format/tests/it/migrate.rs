@@ -333,7 +333,7 @@ fn fndef_v0_item_text() -> String {
     let mut value: Value = serde_json::from_str(&fndef_v0_text()).unwrap();
     value = renamed(value, "contact_kind", "kind");
     let mut item = value.as_object().unwrap().clone();
-    for envelope in ["$v", "id", "library_id", "item_id", "revision", "sha256"] {
+    for envelope in ["$v", "id", "library_id", "item_id", "version", "sha256"] {
         item.remove(envelope);
     }
     let old = Sha256(sha256(serde_json::to_string(&item).unwrap().as_bytes()));
@@ -366,6 +366,37 @@ fn a_step_that_changes_a_copys_item_rehashes_it() {
     assert!(loaded.findings.is_empty(), "{:?}", loaded.findings);
     assert_eq!(loaded.lib, [fndef()]);
     assert_eq!(loaded.migrated, BTreeSet::from([lib]));
+}
+
+fn fndef_same(value: Value) -> Result<Value, MigrationError> {
+    Ok(value)
+}
+
+/// Decision log ID-1250: a step that changes a library copy's `$v` only leaves its item and its hash alone, so a
+/// stale hash on the copy still raises EW-CORE-014.
+#[test]
+fn a_stale_hash_on_an_item_no_step_changed_still_raises_ew_core_014() {
+    static ENVELOPE_STEP: Migrations = Migrations {
+        kinds: &[KindStep {
+            kind: Kind::Fndef,
+            from: 0,
+            step: fndef_same,
+        }],
+        formats: &[],
+    };
+    let mut value: Value = serde_json::from_str(&lib_document_text(&fndef()).unwrap()).unwrap();
+    value["$v"] = json!(0);
+    value["sha256"] = json!(Sha256([0; 32]).to_string());
+    let lib = lib_file(&fndef()).unwrap();
+    let files = Files::from([(
+        lib.clone(),
+        serde_json::to_string_pretty(&value).unwrap().into_bytes(),
+    )]);
+    let way = ENVELOPE_STEP.towards("0.1", "0.1").unwrap();
+    let loaded = load_migrated(None, &files, &Limits::default(), &way).unwrap();
+    assert_eq!(loaded.migrated, BTreeSet::from([lib]));
+    let codes: Vec<Option<&str>> = loaded.findings.iter().map(|f| f.code()).collect();
+    assert_eq!(codes, [Some("EW-CORE-014")], "{:?}", loaded.findings);
 }
 
 fn fndef_unknown(value: Value) -> Result<Value, MigrationError> {
@@ -425,8 +456,8 @@ fn a_migrated_library_document_that_ends_opaque_refuses_the_load() {
     assert_eq!(
         refusal(&CHAIN, &twice),
         format!(
-            "{second}: a migration step gave fndef:5d1ab4de-706a-5b85-b463-8b15311c4f39, which duplicates the \
-             document of {lib}"
+            "{second}: once migrated, fndef:5d1ab4de-706a-5b85-b463-8b15311c4f39 duplicates the document of {lib}; \
+             remove one of the two files and open the project again"
         )
     );
 }

@@ -1400,3 +1400,69 @@ fn mg6_ft403_an_older_fragment_pastes_through_the_test_chain() {
     let receipt = paste(&mut s, "102", at_steps(&frag, (0, 6)), &frag).unwrap();
     assert_eq!(created(&receipt, Kind::Device).len(), 1);
 }
+
+fn part_v0(value: Value) -> Result<Value, ew_store::ew_format::MigrationError> {
+    Ok(renamed(value, "catalogue_number", "part_number"))
+}
+
+/// A test chain whose step changes a library copy's item: the part's kind step from `$v` 0 renames an item member.
+static ITEM_CHAIN: ew_store::ew_format::Migrations = ew_store::ew_format::Migrations {
+    kinds: &[ew_store::ew_format::KindStep {
+        kind: Kind::Part,
+        from: 0,
+        step: part_v0,
+    }],
+    formats: &[],
+};
+
+/// ID-1250 (C48-p4#2): a fragment's part copy at `$v` 0, its item under an old member name and its `sha256` that of
+/// the old item, reads through a chain whose step changes the item. Its hash follows the migrated item, as the
+/// loader's does: the copy equals the project's, reads without EW-CORE-014's mismatch, and the paste reuses the held
+/// copy (one copy).
+#[test]
+fn a_migrated_copy_takes_its_migrated_items_hash_and_pastes_as_the_held_copy() {
+    use ew_api::output::parse_fragment_with;
+    use ew_store::ew_format::{library_copy_hash, sha256};
+    const ENVELOPE: [&str; 6] = ["$v", "id", "library_id", "item_id", "version", "sha256"];
+    let text = valid_text();
+    let current = parse_fragment(&text).unwrap();
+    let older: String = text
+        .lines()
+        .map(|line| {
+            let mut value: Value = serde_json::from_str(line).unwrap_or(Value::Null);
+            if value["$lib"]["$k"] != "part" {
+                return line.to_owned();
+            }
+            let mut doc = renamed(value["$lib"].take(), "part_number", "catalogue_number");
+            doc["$v"] = json!(0);
+            let item: serde_json::Map<String, Value> = doc
+                .as_object()
+                .unwrap()
+                .iter()
+                .filter(|(k, _)| !ENVELOPE.contains(&k.as_str()))
+                .map(|(k, v)| (k.clone(), v.clone()))
+                .collect();
+            let old = sha256(serde_json::to_string(&item).unwrap().as_bytes());
+            doc["sha256"] = json!(ew_schema::Sha256(old).to_string());
+            value["$lib"] = doc;
+            value.to_string()
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+        + "\n";
+    assert_ne!(older, text, "the case: the fragment holds a part copy");
+    let migrated = parse_fragment_with(&older, &ITEM_CHAIN).unwrap();
+    assert_eq!(migrated.params, current.params);
+    for copy in migrated.params["copies"].as_array().unwrap() {
+        let doc = ew_schema::LibDocument::from_value(copy.clone()).unwrap();
+        let claimed = copy["sha256"].as_str().unwrap();
+        let hash = ew_schema::Sha256(library_copy_hash(&doc).unwrap()).to_string();
+        assert_eq!(claimed, hash, "{}", copy["$k"]);
+    }
+    let mut s = golden();
+    let frag = migrated.params;
+    let parts = s.query().parts().len();
+    let receipt = paste(&mut s, "102", at_steps(&frag, (12, 0)), &frag).unwrap();
+    assert!(created(&receipt, Kind::Part).is_empty());
+    assert_eq!(s.query().parts().len(), parts, "the held part copy is reused");
+}

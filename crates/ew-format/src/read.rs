@@ -907,24 +907,15 @@ impl<'a> Loader<'a> {
                 return;
             }
         };
-        let item_before = self.migration.is_some().then(|| copy_item(&value));
+        let before = self.migration.is_some().then(|| value.clone());
         let Some((mut value, migrated)) = self.migrate(path, None, value) else {
             return;
         };
-        let rehash = migrated && item_before.is_some_and(|before| before != copy_item(&value));
-        let normalised = ew_schema::normalize_nfc(&mut value);
         // A step that changed a copy's item is not an edit: its hash follows the migrated item (ID-1230 ruling 3).
-        if rehash {
-            let hash = LibDocument::load(value.clone())
-                .ok()
-                .and_then(|(doc, _)| library_copy_hash(&doc));
-            if let (Some(hash), Some(members)) = (hash, value.as_object_mut()) {
-                members.insert(
-                    "sha256".to_owned(),
-                    Value::from(ew_schema::Sha256(hash).to_string()),
-                );
-            }
+        if let Some(before) = &before {
+            rehash_migrated_copy(before, &mut value);
         }
+        let normalised = ew_schema::normalize_nfc(&mut value);
         // A document kept verbatim keeps its migrated value's text (ID-1221 ruling 2), never its old one.
         let migrated_text = migrated.then(|| crate::pretty(&value.to_string()).into_bytes());
         let (doc, malformed) = match LibDocument::load(value) {
@@ -986,7 +977,8 @@ impl<'a> Loader<'a> {
                 self.refuse_opaque(
                     path,
                     format!(
-                        "a migration step gave {}:{id}, which duplicates the document of {first_file}",
+                        "once migrated, {}:{id} duplicates the document of {first_file}; remove one of the two files \
+                         and open the project again",
                         kind.name()
                     ),
                 );
@@ -1118,6 +1110,30 @@ pub fn library_copy_hash(doc: &LibDocument) -> Option<[u8; 32]> {
         LibDocument::Macro(c) => hash(&c.item),
         LibDocument::Manufacturer(c) => hash(&c.item),
         LibDocument::Unknown(_) => None,
+    }
+}
+
+/// A library copy's `sha256` after its migration (doc 05 §10.2, WP-S1.17 D10; ID-1230 ruling 3, ID-1250): a step
+/// that changed the copy's item is not an edit, so when the item of `migrated` (its members without the copy envelope)
+/// differs from that of `before`, the same document before the chain, `migrated`'s `sha256` becomes
+/// [`library_copy_hash`] of its item after NFC normalisation, as the loader reads it. Else, or when `migrated` does not
+/// read as a library document of a known kind, `migrated` stays as it is. The loader ([`load_migrated`]) and a pasted
+/// fragment's library copies (`ew-api`'s `parse_fragment_with`) both call it, so a copy migrated in either reads with
+/// the same hash.
+pub fn rehash_migrated_copy(before: &Value, migrated: &mut Value) {
+    if copy_item(before) == copy_item(migrated) {
+        return;
+    }
+    let mut normalised = migrated.clone();
+    ew_schema::normalize_nfc(&mut normalised);
+    let hash = LibDocument::load(normalised)
+        .ok()
+        .and_then(|(doc, _)| library_copy_hash(&doc));
+    if let (Some(hash), Some(members)) = (hash, migrated.as_object_mut()) {
+        members.insert(
+            "sha256".to_owned(),
+            Value::from(ew_schema::Sha256(hash).to_string()),
+        );
     }
 }
 

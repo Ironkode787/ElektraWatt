@@ -32,7 +32,9 @@
 //!   ([`Finding`]), under the hostile-input [`Limits`] of §3.6.
 //! - **Migrating** ([`Migrations`], [`load_migrated`]): the chain of steps on `serde_json::Value` that an older
 //!   format's project runs through before its typed reading (§10.2, WP-S1.17 D10), empty as shipped
-//!   ([`MIGRATIONS`]), and the steward's check of a released format ([`steward_problems`]).
+//!   ([`MIGRATIONS`]), and the steward's check of a released format ([`steward_problems`]). A library copy whose item a
+//!   step changed takes the hash of its migrated item ([`rehash_migrated_copy`]): the loader and a pasted fragment's
+//!   copies share it, so a copy reads with one hash wherever it was migrated.
 //! - **Writing a whole project** ([`render_records`], [`project_files`]): the path of an importer's batch
 //!   and of the golden fixture (doc 20 §3.2 path (c)).
 //!
@@ -116,7 +118,7 @@ pub use path::{
 };
 pub use read::{
     EntryKind, Kept, KeptDocument, KeptLine, Loaded, ReadPlan, crlf_to_lf, library_copy_hash, load,
-    load_migrated, plan,
+    load_migrated, plan, rehash_migrated_copy,
 };
 pub use since::{SINCE, SinceTables, file_since, min_reader};
 pub use version::{Access, reader_access};

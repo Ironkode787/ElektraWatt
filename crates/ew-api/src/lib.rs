@@ -1046,7 +1046,7 @@ impl Session {
         memo: MemoMode,
     ) -> Result<(Session, OpenReport), OpenError> {
         if ewz::is_ewz(&ew_store::OsVfs, dir) {
-            return Session::open_ewz_with(dir, app_version, subcommand, memo);
+            return Session::open_ewz_with(dir, StoreOptions::new(app_version), subcommand, memo);
         }
         let mut store = StoreOptions::new(app_version);
         store.mode = ew_store::OpenMode::ReadOnly;

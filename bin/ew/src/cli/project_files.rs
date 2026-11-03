@@ -678,7 +678,7 @@ fn run_upgrade_with(
             ..ew_api::SessionOptions::default()
         };
         let opened = if ew_api::ewz::is_ewz(&ew_api::OsVfs, &dir) {
-            ew_api::Session::open_ewz_with(&dir, VERSION, "upgrade", ew_api::MemoMode::default())
+            ew_api::Session::open_ewz_with(&dir, store, "upgrade", ew_api::MemoMode::default())
         } else {
             ew_api::Session::open(&dir, store, options, ew_api::Recovery::Keep)
         };
@@ -1581,6 +1581,31 @@ mod tests {
             none
         );
         assert_eq!(upgrade_files(&dir), after);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// ID-1250 (C48-p4#5): `--check` on an `.ewz` of an older format opens it through the injected chain and exits 1;
+    /// the backup the upgrade wrote holds the project in format 0.0. Nothing is written.
+    #[test]
+    fn upgrade_check_exits_1_on_an_older_ewz() {
+        let dir = setup_v0("upgrade-check-ewz");
+        assert_eq!(
+            upgrade(&dir.join("p.ew"), upgrade_store(&dir), (false, true), false, "").0,
+            0
+        );
+        let before = upgrade_files(&dir);
+        assert_eq!(
+            upgrade(&backup_of(&dir), upgrade_store(&dir), (true, false), false, ""),
+            (
+                1,
+                format!(
+                    "the project is in the older format 0.0: `ew upgrade` converts it to format {} after a backup\n",
+                    ew_api::FORMAT
+                ),
+                String::new()
+            )
+        );
+        assert_eq!(upgrade_files(&dir), before);
         let _ = std::fs::remove_dir_all(&dir);
     }
 }

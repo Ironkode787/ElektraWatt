@@ -69,18 +69,19 @@ impl Session {
     ///
     /// [`OpenError::Ewz`] for a file that is not a readable `.ewz`, else the open's [`OpenError`].
     pub fn open_ewz(path: &Path, app_version: &str) -> Result<(Session, OpenReport), OpenError> {
-        Session::open_ewz_with(path, app_version, "ewz", MemoMode::default())
+        Session::open_ewz_with(path, StoreOptions::new(app_version), "ewz", MemoMode::default())
     }
 
     /// [`Session::open_ewz`] for the reader subcommand `subcommand`, which names the origin of the session, with the
-    /// memo mode `memo`.
+    /// memo mode `memo` and the store options `store` (a test's migration chain among them); the open sets their mode,
+    /// state folder and file system to the read-only in-memory ones.
     ///
     /// # Errors
     ///
     /// As [`Session::open_ewz`].
     pub fn open_ewz_with(
         path: &Path,
-        app_version: &str,
+        mut store: StoreOptions,
         subcommand: &str,
         memo: MemoMode,
     ) -> Result<(Session, OpenReport), OpenError> {
@@ -91,7 +92,6 @@ impl Session {
         for (rel, data) in &archive.entries {
             vfs.put(&ew_store::join(root, rel), data);
         }
-        let mut store = StoreOptions::new(app_version);
         store.mode = ew_store::OpenMode::ReadOnly;
         store.state_dir = None;
         store.vfs = vfs;
