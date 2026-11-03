@@ -243,12 +243,12 @@ pub use ew_schema::FORMAT;
 pub use ew_schema::LabelFormat;
 /// The party roles of a revision's author and checker (doc 03 `Party`): `ew revision approve --as <role>` names one.
 pub use ew_schema::PartyRole;
-/// The conflict records a merge leaves (doc 05 §11.2; WP-S1.17 D17): `ew merge resolve` selects them by kind and member.
-pub use ew_schema::{Conflict, ConflictBody, FILE_CONFLICT_KIND};
 /// Assets (doc 05 §13.3): the reference a record stores, the sniffer and the base64 form of command parameters.
 pub use ew_schema::{
     AssetError, AssetFormat, AssetRef, MAX_LOGO_BYTES, Sha256, SvgHazard, base64_encode, sniff as sniff_asset,
 };
+/// The conflict records a merge leaves (doc 05 §11.2; WP-S1.17 D17): `ew merge resolve` selects them by kind and member.
+pub use ew_schema::{Conflict, ConflictBody, FILE_CONFLICT_KIND};
 /// The read-only SQL projection (`ew sql`, the acceptance SQL, ADR-0017): views, sandbox, results.
 pub use ew_sqlview as sql;
 /// The three-way merge of one project file that `ew merge-driver` runs (WP-S1.17 D15), with the reader's limits, the

@@ -10,9 +10,9 @@ use std::sync::Arc;
 
 use ew_ids::Id;
 use ew_schema::{
-    AnyId, Bond, Carrier, Channel, Conductor, Conflict, Connection, Device, DeviceLink, Enclosure, ExternalRef, FnDef,
-    FormDef, Function, ImportLineage, Junction, Kind, LayoutSpace, LibCopy, LogicalNet, MacroDef,
-    MacroInstance, Manufacturer, MountingSurface, Page, PageItem, Part, PhysicalNet, Placement,
+    AnyId, Bond, Carrier, Channel, Conductor, Conflict, Connection, Device, DeviceLink, Enclosure,
+    ExternalRef, FnDef, FormDef, Function, ImportLineage, Junction, Kind, LayoutSpace, LibCopy, LogicalNet,
+    MacroDef, MacroInstance, Manufacturer, MountingSurface, Page, PageItem, Part, PhysicalNet, Placement,
     PlcConfigProject, PotentialDef, Project, ReportBlock, Representation, Revision, Section, StructureBox,
     StructureNode, SymbolDef, Waiver,
 };

@@ -862,8 +862,14 @@ fn merge_records_file(
             }
             (lines, conflicts)
         }
-        (Some(a), None) => (with_failed(&a, file_conflict(path, ConflictSide::Theirs, theirs.bytes)), 1),
-        (None, Some(b)) => (with_failed(&b, file_conflict(path, ConflictSide::Ours, ours.bytes)), 1),
+        (Some(a), None) => (
+            with_failed(&a, file_conflict(path, ConflictSide::Theirs, theirs.bytes)),
+            1,
+        ),
+        (None, Some(b)) => (
+            with_failed(&b, file_conflict(path, ConflictSide::Ours, ours.bytes)),
+            1,
+        ),
         (None, None) => return hold_theirs(path, ours, theirs, limits),
     };
     if !lines.iter().all(|(_, line)| within_limits(line, limits)) {

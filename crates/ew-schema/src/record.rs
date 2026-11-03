@@ -10,6 +10,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::{Map, Value};
 
 use crate::MalformedVariant;
+use crate::conflict::Conflict;
 use crate::kind::{FileRule, Kind};
 use crate::library::{FnDef, FormDef, LibCopy, MacroDef, MacroInstance, Manufacturer, Part, SymbolDef};
 use crate::track::{buffer_strict, check_value_at, de_here, parse_value, raise, with_context};
@@ -20,7 +21,6 @@ use crate::{
     Placement, PlcConfigProject, PotentialDef, Project, ReportBlock, Representation, Revision, SchemaError,
     Section, StructureBox, StructureNode, Waiver,
 };
-use crate::conflict::Conflict;
 
 /// `$k` first, then the record's own members in declaration order.
 #[derive(Serialize)]

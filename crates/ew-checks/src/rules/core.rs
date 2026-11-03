@@ -861,8 +861,12 @@ impl Rule for ConflictRecords {
                     let target = conflict_target(q, kind, id.cast());
                     let members = conflict.member_paths().join(", ");
                     let message = match (ours.as_str(), theirs.as_str()) {
-                        (Some(DELETED_SIDE), _) => format!("{target}: ours deleted it and theirs changed {members}"),
-                        (_, Some(DELETED_SIDE)) => format!("{target}: theirs deleted it and ours changed {members}"),
+                        (Some(DELETED_SIDE), _) => {
+                            format!("{target}: ours deleted it and theirs changed {members}")
+                        }
+                        (_, Some(DELETED_SIDE)) => {
+                            format!("{target}: theirs deleted it and ours changed {members}")
+                        }
                         _ => format!("{target}: ours and theirs differ in {members}"),
                     };
                     let targets = Kind::from_name(kind).map(|k| Target::new(k, id));
@@ -874,8 +878,9 @@ impl Rule for ConflictRecords {
                         ConflictSide::Theirs => "theirs",
                         ConflictSide::Unknown(_) => "one side",
                     };
-                    let message =
-                        format!("{path}: the merge could not read {held}; its lines are held in a conflict record");
+                    let message = format!(
+                        "{path}: the merge could not read {held}; its lines are held in a conflict record"
+                    );
                     Finding::new(&CONFLICT_RECORDS, [], "file", path.clone(), message)
                 }
             });
@@ -1030,7 +1035,10 @@ mod tests {
             assert_eq!(m.code, format!("100{n:03}"));
             assert!(!m.waivable(), "{}", m.id);
         }
-        assert_eq!((CONFLICT_RECORDS.id, CONFLICT_RECORDS.code), ("EW-CORE-011", "100011"));
+        assert_eq!(
+            (CONFLICT_RECORDS.id, CONFLICT_RECORDS.code),
+            ("EW-CORE-011", "100011")
+        );
         assert!(!CONFLICT_RECORDS.waivable());
     }
 }

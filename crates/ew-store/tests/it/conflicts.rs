@@ -59,7 +59,10 @@ fn cr1_a_conflict_record_opens_editable_in_its_table_and_saves_back_byte_identic
         .collect();
     assert_eq!(
         conflicts,
-        [("1c5963b7-6c34-53d6-8fa6-9d02d4629711".to_owned(), "connection".to_owned())]
+        [(
+            "1c5963b7-6c34-53d6-8fa6-9d02d4629711".to_owned(),
+            "connection".to_owned()
+        )]
     );
     let model = opened.model.clone();
     opened.store.save(&model, Changes::All).expect("the save");

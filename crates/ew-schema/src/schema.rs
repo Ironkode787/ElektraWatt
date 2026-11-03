@@ -12,6 +12,7 @@ use schemars::JsonSchema;
 use schemars::generate::SchemaSettings;
 use serde_json::{Map, Value, json};
 
+use crate::conflict::Conflict;
 use crate::kind::{FORMAT, Kind, KindStatus};
 use crate::library::{FnDef, FormDef, LibCopy, MacroDef, MacroInstance, Manufacturer, Part, SymbolDef};
 use crate::{
@@ -20,7 +21,6 @@ use crate::{
     Placement, PlcConfigProject, PotentialDef, Project, ReportBlock, Representation, Revision, Section,
     StructureBox, StructureNode, Waiver,
 };
-use crate::conflict::Conflict;
 
 /// The schema of `T`, titled and tagged as `kind`.
 fn generate<T: JsonSchema>(kind: Kind) -> Value {

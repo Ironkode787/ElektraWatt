@@ -43,7 +43,11 @@ impl Copy {
         let root = ew_testdir::fresh_dir("ew-merge-resolve");
         let project = root.join("J-E-2416.ew");
         super::conventions::copy_dir(Path::new(GOLDEN_A), &project);
-        std::fs::write(project.join(PAGE), format!("{}{CONFLICT}\n", page_with(&colour("BU")))).unwrap();
+        std::fs::write(
+            project.join(PAGE),
+            format!("{}{CONFLICT}\n", page_with(&colour("BU"))),
+        )
+        .unwrap();
         Copy(root)
     }
 
@@ -102,7 +106,8 @@ fn cr1_cr4_ew_check_release_reports_ew_core_011_once_as_an_open_error() {
         [(
             "error".to_owned(),
             "open".to_owned(),
-            "connection a junction → -102F1:1 on folio 102: ours and theirs differ in overrides.colour".to_owned()
+            "connection a junction → -102F1:1 on folio 102: ours and theirs differ in overrides.colour"
+                .to_owned()
         )]
     );
     assert_eq!(o.status.code(), Some(1));
@@ -143,7 +148,11 @@ fn cr3_merge_resolve_theirs_writes_wh_and_saves_the_page_canonically() {
     ]);
     assert_eq!(
         result(&o),
-        (Some(0), "1 conflict resolved, theirs taken; saved\n".to_owned(), String::new())
+        (
+            Some(0),
+            "1 conflict resolved, theirs taken; saved\n".to_owned(),
+            String::new()
+        )
     );
     assert_eq!(c.page(), page_with(&colour("WH")));
 }
@@ -155,7 +164,11 @@ fn cr3_merge_resolve_ours_keeps_bu() {
     let o = c.ew(&["merge", "resolve", "--take", "ours"]);
     assert_eq!(
         result(&o),
-        (Some(0), "1 conflict resolved, ours taken; saved\n".to_owned(), String::new())
+        (
+            Some(0),
+            "1 conflict resolved, ours taken; saved\n".to_owned(),
+            String::new()
+        )
     );
     assert_eq!(c.page(), page_with(&colour("BU")));
 }
@@ -167,7 +180,10 @@ fn merge_resolve_without_a_match_exits_2_with_the_reason() {
     let before = c.page();
     let cases: [(&[&str], &str); 3] = [
         (&["--kind", "device"], "no conflict record of the kind `device`"),
-        (&["--field", "overrides.csa"], "no conflict record on the member `overrides.csa`"),
+        (
+            &["--field", "overrides.csa"],
+            "no conflict record on the member `overrides.csa`",
+        ),
         (
             &["--kind", "file", "--field", "overrides.colour"],
             "no conflict record of the kind `file` on the member `overrides.colour`",
@@ -178,7 +194,11 @@ fn merge_resolve_without_a_match_exits_2_with_the_reason() {
         args.extend(flags);
         assert_eq!(
             result(&c.ew(&args)),
-            (Some(2), String::new(), format!("error: {reason}; nothing was changed\n"))
+            (
+                Some(2),
+                String::new(),
+                format!("error: {reason}; nothing was changed\n")
+            )
         );
     }
     assert_eq!(c.page(), before);
@@ -208,6 +228,9 @@ fn cr3_merge_resolve_in_a_session_is_one_undo_step() {
     assert_eq!(conflicts(&session), 0);
     session.undo(&ew_api::Origin::Gui).expect("one undo step");
     assert_eq!(conflicts(&session), 1);
-    assert!(session.undo(&ew_api::Origin::Gui).is_err(), "nothing more to undo");
+    assert!(
+        session.undo(&ew_api::Origin::Gui).is_err(),
+        "nothing more to undo"
+    );
     session.close();
 }

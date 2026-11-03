@@ -9,8 +9,8 @@ use std::collections::BTreeSet;
 use ew_ids::Id;
 use ew_model::{AnyKey, AnyRow};
 use ew_schema::{
-    AnchorRef, AnyId, CarrierRef, Carrier, Conflict, ConflictBody, ConflictSide, DELETED_SIDE, Enclosure, Function,
-    Junction, Kind, KindStatus, MountingSurface, Record, Representation,
+    AnchorRef, AnyId, Carrier, CarrierRef, Conflict, ConflictBody, ConflictSide, DELETED_SIDE, Enclosure,
+    Function, Junction, Kind, KindStatus, MountingSurface, Record, Representation,
 };
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -317,8 +317,7 @@ fn file_of(tx: &TxBuilder<'_>, record: &Record, depth: u8) -> Option<String> {
         tx.get::<Junction>(j.cast())
             .map_or_else(|| shard(j), |j| page(j.page.cast()))
     };
-    let space_of_enclosure =
-        |e: AnyId| tx.get::<Enclosure>(e.cast()).map_or(e, |e| e.space.cast());
+    let space_of_enclosure = |e: AnyId| tx.get::<Enclosure>(e.cast()).map_or(e, |e| e.space.cast());
     let space_of_surface = |s: AnyId| {
         tx.get::<MountingSurface>(s.cast())
             .map_or(s, |s| space_of_enclosure(s.enclosure.cast()))
@@ -339,7 +338,9 @@ fn file_of(tx: &TxBuilder<'_>, record: &Record, depth: u8) -> Option<String> {
         | Record::LogicalNet(_)
         | Record::PhysicalNet(_)
         | Record::ImportLineage(_) => "project.jsonl".to_owned(),
-        Record::StructureNode(_) | Record::Section(_) | Record::ExternalRef(_) => "structure.jsonl".to_owned(),
+        Record::StructureNode(_) | Record::Section(_) | Record::ExternalRef(_) => {
+            "structure.jsonl".to_owned()
+        }
         Record::Page(r) => page(r.id.cast()),
         Record::Device(r) => shard(r.id.cast()),
         Record::Function(r) => match r.device {
@@ -364,7 +365,9 @@ fn file_of(tx: &TxBuilder<'_>, record: &Record, depth: u8) -> Option<String> {
             Some(p) => page(p.cast()),
             None => endpoint(record.anchor_ref()).or_else(|| own().map(shard))?,
         },
-        Record::PotentialDef(_) | Record::Bond(_) => endpoint(record.anchor_ref()).or_else(|| own().map(shard))?,
+        Record::PotentialDef(_) | Record::Bond(_) => {
+            endpoint(record.anchor_ref()).or_else(|| own().map(shard))?
+        }
         Record::LayoutSpace(r) => layout(r.id.cast()),
         Record::Enclosure(r) => layout(r.space.cast()),
         Record::MountingSurface(r) => layout(space_of_enclosure(r.enclosure.cast())),

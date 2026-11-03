@@ -10,8 +10,8 @@ use std::path::Path;
 
 use ew_format::ew_schema::{FORMAT, Kind, KindStatus, LibDocument, Record};
 use ew_format::{
-    FilePath, FormatStep, Limits, MANIFEST, MIGRATIONS, Manifest, MergeSide, MigrationError,
-    Migrations, PathClass, classify, load, merge_file, merge_record,
+    FilePath, FormatStep, Limits, MANIFEST, MIGRATIONS, Manifest, MergeSide, MigrationError, Migrations,
+    PathClass, classify, load, merge_file, merge_record,
 };
 use proptest::prelude::*;
 use serde_json::{Map, Value, json};
@@ -1106,7 +1106,10 @@ fn cr2_diff3_markers_on_w20_merge_to_one_conflict_record_and_the_clean_parts() {
     assert!(loaded.kept.is_empty());
     assert!(loaded.rewrite.contains(&FilePath::new(PAGE).expect("a path")));
     let conflict = r#"{"$k":"conflict","id":"1c5963b7-6c34-53d6-8fa6-9d02d4629711","kind":"connection","base":{"overrides":{}},"ours":{"overrides":{"colour":["BU"]}},"theirs":{"overrides":{"colour":["WH"]}}}"#;
-    assert_eq!(conflicts_and_w20(&loaded), (vec![conflict.to_owned()], kept_w20.to_owned()));
+    assert_eq!(
+        conflicts_and_w20(&loaded),
+        (vec![conflict.to_owned()], kept_w20.to_owned())
+    );
 }
 
 /// A record-level conflict whose target is not in the project is kept verbatim and reported (EW-CORE-007), the file
@@ -1138,14 +1141,21 @@ fn a_conflict_record_without_its_target_is_kept_verbatim_and_reported() {
 #[test]
 fn cr2_markers_without_a_base_keep_ours_with_a_conflict_of_every_differing_member() {
     let ours = r#""overrides":{"csa":"1.5","colour":["BU"],"show_marker":true}"#;
-    let file = page_with_hunk(ours, None, r#""overrides":{"csa":"2.5","colour":["WH"],"show_marker":true}"#);
+    let file = page_with_hunk(
+        ours,
+        None,
+        r#""overrides":{"csa":"2.5","colour":["WH"],"show_marker":true}"#,
+    );
     let (_, kept) = page_with(ours);
     let kept_w20 = kept.lines().find(|l| l.contains("connections|W20")).expect("W20");
     let loaded = load_page(&file);
     assert_eq!(loaded.findings, [rewritten()]);
     assert!(!loaded.read_only);
     let conflict = r#"{"$k":"conflict","id":"1c5963b7-6c34-53d6-8fa6-9d02d4629711","kind":"connection","base":{},"ours":{"overrides":{"colour":["BU"],"csa":"1.5","show_marker":true}},"theirs":{"overrides":{"colour":["WH"],"csa":"2.5","show_marker":true}}}"#;
-    assert_eq!(conflicts_and_w20(&loaded), (vec![conflict.to_owned()], kept_w20.to_owned()));
+    assert_eq!(
+        conflicts_and_w20(&loaded),
+        (vec![conflict.to_owned()], kept_w20.to_owned())
+    );
 }
 
 /// CR-2: a side line that does not parse (torn) leaves the markers as they are: EW-CORE-006 on each marker line, the

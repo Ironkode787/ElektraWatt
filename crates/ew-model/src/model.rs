@@ -8,10 +8,11 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
 use ew_schema::{
-    Bond, Carrier, Channel, Conductor, Conflict, Connection, Device, DeviceLink, Enclosure, ExternalRef, Function,
-    FunctionKind, ImportLineage, Junction, Kind, KindRegistry, LayoutSpace, LibDocument, LogicalNet,
-    MacroInstance, MountingSurface, Page, PageItem, PhysicalNet, Placement, PlcConfigProject, PotentialDef,
-    Project, Record, ReportBlock, Representation, Revision, Section, StructureBox, StructureNode, Waiver,
+    Bond, Carrier, Channel, Conductor, Conflict, Connection, Device, DeviceLink, Enclosure, ExternalRef,
+    Function, FunctionKind, ImportLineage, Junction, Kind, KindRegistry, LayoutSpace, LibDocument,
+    LogicalNet, MacroInstance, MountingSurface, Page, PageItem, PhysicalNet, Placement, PlcConfigProject,
+    PotentialDef, Project, Record, ReportBlock, Representation, Revision, Section, StructureBox,
+    StructureNode, Waiver,
 };
 
 use crate::asset::Asset;

@@ -28,7 +28,11 @@ fn selects(a: &MergeResolveArgs, conflict: &Conflict) -> bool {
         ConflictBody::Record { kind, .. } => kind.as_str(),
         ConflictBody::File { .. } => ew_api::FILE_CONFLICT_KIND,
     };
-    let below = |outer: &str, inner: &str| inner.strip_prefix(outer).is_some_and(|rest| rest.starts_with('.'));
+    let below = |outer: &str, inner: &str| {
+        inner
+            .strip_prefix(outer)
+            .is_some_and(|rest| rest.starts_with('.'))
+    };
     a.kind.as_deref().is_none_or(|k| k == kind)
         && a.field.as_deref().is_none_or(|f| {
             conflict

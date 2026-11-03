@@ -106,8 +106,12 @@ impl Conflict {
         let mut out = Vec::new();
         if let ConflictBody::Record { ours, theirs, .. } = &self.body {
             match (ours.as_str(), theirs.as_str()) {
-                (Some(DELETED_SIDE), _) => out.extend(theirs.as_object().into_iter().flat_map(|m| m.keys().cloned())),
-                (_, Some(DELETED_SIDE)) => out.extend(ours.as_object().into_iter().flat_map(|m| m.keys().cloned())),
+                (Some(DELETED_SIDE), _) => {
+                    out.extend(theirs.as_object().into_iter().flat_map(|m| m.keys().cloned()))
+                }
+                (_, Some(DELETED_SIDE)) => {
+                    out.extend(ours.as_object().into_iter().flat_map(|m| m.keys().cloned()))
+                }
                 _ => differing(&mut out, String::new(), ours, theirs),
             }
         }

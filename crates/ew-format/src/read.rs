@@ -341,12 +341,17 @@ enum Hunk {
 /// EW-CORE-006 as well.
 fn unmark(body: &[u8], limits: &Limits) -> Option<Vec<(usize, Vec<u8>)>> {
     let lines: Vec<&[u8]> = body.split(|b| *b == b'\n').collect();
-    if lines.len() > limits.max_lines_per_file || !lines.iter().any(|l| LINE_MARKERS.iter().any(|m| l.starts_with(m))) {
+    if lines.len() > limits.max_lines_per_file
+        || !lines
+            .iter()
+            .any(|l| LINE_MARKERS.iter().any(|m| l.starts_with(m)))
+    {
         return None;
     }
     let mut out = Vec::new();
     let (mut state, mut start) = (Hunk::Outside, 0);
-    let (mut ours, mut base, mut theirs): (Vec<&[u8]>, Option<Vec<&[u8]>>, Vec<&[u8]>) = (Vec::new(), None, Vec::new());
+    let (mut ours, mut base, mut theirs): (Vec<&[u8]>, Option<Vec<&[u8]>>, Vec<&[u8]>) =
+        (Vec::new(), None, Vec::new());
     for (i, raw) in lines.into_iter().enumerate() {
         let n = i + 1;
         let line = raw.strip_suffix(b"\r").unwrap_or(raw);
@@ -405,13 +410,23 @@ fn hunk_side(lines: &[&[u8]], limits: &Limits) -> Option<BTreeMap<(String, Strin
 }
 
 /// One hunk's merged records and conflict records as compact JSON lines ([`unmark`]).
-fn merge_hunk(base: Option<&[&[u8]]>, ours: &[&[u8]], theirs: &[&[u8]], limits: &Limits) -> Option<Vec<String>> {
+fn merge_hunk(
+    base: Option<&[&[u8]]>,
+    ours: &[&[u8]],
+    theirs: &[&[u8]],
+    limits: &Limits,
+) -> Option<Vec<String>> {
     let o = match base {
         Some(lines) => Some(hunk_side(lines, limits)?),
         None => None,
     };
     let (a, b) = (hunk_side(ours, limits)?, hunk_side(theirs, limits)?);
-    let keys: BTreeSet<&(String, String)> = o.iter().flat_map(BTreeMap::keys).chain(a.keys()).chain(b.keys()).collect();
+    let keys: BTreeSet<&(String, String)> = o
+        .iter()
+        .flat_map(BTreeMap::keys)
+        .chain(a.keys())
+        .chain(b.keys())
+        .collect();
     let mut out = Vec::new();
     for key in keys {
         let merged = match &o {
@@ -1192,9 +1207,8 @@ impl<'a> Loader<'a> {
     fn hold_conflicts(&mut self) {
         for held in std::mem::take(&mut self.conflicts) {
             let kind = &held.target.0;
-            let typed = Kind::from_name(kind).filter(|k| {
-                k.status() == KindStatus::Implemented && !k.is_library() && *k != Kind::Conflict
-            });
+            let typed = Kind::from_name(kind)
+                .filter(|k| k.status() == KindStatus::Implemented && !k.is_library() && *k != Kind::Conflict);
             if typed.is_some() && self.seen.contains_key(&held.target) {
                 self.placed.push(Placed {
                     file: held.file,
@@ -1205,9 +1219,13 @@ impl<'a> Loader<'a> {
                 continue;
             }
             let what = if typed.is_some() {
-                format!("a conflict record whose target, a record of the kind \"{kind}\", is not in the project")
+                format!(
+                    "a conflict record whose target, a record of the kind \"{kind}\", is not in the project"
+                )
             } else {
-                format!("a conflict record whose target is of the kind \"{kind}\", which this reader keeps unchanged")
+                format!(
+                    "a conflict record whose target is of the kind \"{kind}\", which this reader keeps unchanged"
+                )
             };
             self.find(
                 FindingKind::SchemaViolation,

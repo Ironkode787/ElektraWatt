@@ -5,7 +5,9 @@
 
 use std::collections::BTreeMap;
 
-use ew_schema::{AnchorRef, AnyId, CarrierRef, Conflict, ConflictBody, FileRule, Function, Kind, LibDocument, Record};
+use ew_schema::{
+    AnchorRef, AnyId, CarrierRef, Conflict, ConflictBody, FileRule, Function, Kind, LibDocument, Record,
+};
 use serde_json::Value;
 
 use crate::error::FormatError;

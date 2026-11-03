@@ -140,7 +140,11 @@ fn resolve_refuses_no_choice_an_unknown_conflict_and_a_repeated_one() {
     let unknown = CON_W27.to_string();
     let w29 = CON_W29.to_string();
     let cases = [
-        (json!({"choices": []}), "/choices", "no conflict chosen; name at least one"),
+        (
+            json!({"choices": []}),
+            "/choices",
+            "no conflict chosen; name at least one",
+        ),
         (
             json!({"choices": [{"conflict": unknown, "take": "ours"}]}),
             "/choices/0/conflict",
@@ -210,7 +214,12 @@ fn a_file_level_conflict_taken_replaces_the_records_of_its_file() {
         "$k": "conflict", "id": conflict_id, "kind": "file", "path": path, "side": "theirs", "lines": held
     })));
     let model = Model::from_records(p, records, library()).expect("the model is valid");
-    let choose = |take: &str| any("merge.resolve", json!({"choices": [{"conflict": conflict_id, "take": take}]}));
+    let choose = |take: &str| {
+        any(
+            "merge.resolve",
+            json!({"choices": [{"conflict": conflict_id, "take": take}]}),
+        )
+    };
 
     let mut e = engine(model.clone());
     e.execute(&choose("ours")).expect("ours is taken");
