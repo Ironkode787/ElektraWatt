@@ -7,7 +7,8 @@
 //! It reads the three files under the reader's limits (doc 05 §3.6), makes `%P` project-relative, merges once through
 //! [`ew_api::merge_file`] and writes the result to `%A` all-or-nothing (a temporary file beside it, then a rename). It
 //! never runs git and takes no project lock: `%A` is git's temporary file, not a project file. Exit 0 clean, 1 with
-//! conflict records, 129 on a caught internal error (I/O, a panic in the merge) with `%A` as it was.
+//! conflict records, 129 on a caught internal error (I/O, a panic in the merge) with `%A` as it was; a usage error
+//! exits 129 too, with clap's text (decision log ID-1273).
 
 use std::io::Read as _;
 use std::panic::{AssertUnwindSafe, catch_unwind};
@@ -32,8 +33,8 @@ pub struct MergeDriverArgs {
 const CLEAN: i32 = 0;
 /// Exit: conflicts written (git reads any code up to 128 so).
 const CONFLICTS: i32 = 1;
-/// Exit: a caught internal error, `%A` as it was (ADR-0012 amendment 2).
-const INTERNAL: i32 = 129;
+/// Exit: a caught internal error or a usage error, `%A` as it was (ADR-0012 amendment 2).
+pub(super) const INTERNAL: i32 = 129;
 
 /// The merge the driver runs: the project-relative path and the three sides.
 type Merge<'m> = &'m dyn Fn(&str, MergeSide<'_>, MergeSide<'_>, MergeSide<'_>) -> FileMerge;

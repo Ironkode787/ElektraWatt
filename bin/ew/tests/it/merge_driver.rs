@@ -211,8 +211,9 @@ fn md5_a_side_that_cannot_be_read_exits_129() {
     assert_eq!(merged, "a\n");
 }
 
-/// The arguments are `%O %A %B %L %P` or `%O %A %B %P`: three are a usage error (exit 2) naming `<P>`, as the usage
-/// line shows it (decision log ID-1273), and nothing is written.
+/// The arguments are `%O %A %B %L %P` or `%O %A %B %P`: three are a usage error naming `<P>`, as the usage line shows
+/// it, that exits 129 (git reads 2 as conflicts written; ADR-0012 amendment 2, decision log ID-1273), and nothing is
+/// written.
 #[test]
 fn three_arguments_are_a_usage_error() {
     let t = Tree::new();
@@ -220,7 +221,7 @@ fn three_arguments_are_a_usage_error() {
     assert_eq!(
         result(&out),
         (
-            Some(2),
+            Some(129),
             String::new(),
             "error: the following required arguments were not provided:\n  <P>\n\nUsage: ew merge-driver <O> <A> <B> [L] <P>\n\nFor more information, try '--help'.\n".to_owned()
         )

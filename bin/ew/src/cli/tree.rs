@@ -37,7 +37,8 @@ use super::{
 /// result takes `--json`: stdout is then one JSON object whose first member `$schema` names its published schema
 /// (`ew.<command>-result/1`; `ew schema <name>` prints it), diagnostics stay on stderr and the exit codes are
 /// unchanged. For `check` and `sql`, `--json` is `--format json`. The human-only subcommands (`project`,
-/// `revision`, `recover --discard`) print a dialogue, not a result, and take no `--json`. A usage error exits 2.
+/// `revision`, `recover --discard`) print a dialogue, not a result, and take no `--json`. A usage error exits 2, of
+/// `merge-driver` 129.
 #[derive(Parser, Debug)]
 #[command(name = "ew", bin_name = "ew", version)]
 pub(super) struct Cli {
@@ -229,8 +230,9 @@ enum Top {
     /// project's `.gitattributes`, `*.jsonl text eol=lf merge=elektrawatt diff=elektrawatt`,
     /// `lib/**/*.json text eol=lf merge=elektrawatt diff=elektrawatt` and `manifest.json text eol=lf merge=elektrawatt`
     /// (`eol=lf` keeps the manifest's hashes true under `core.autocrlf`). Exit 0 when merged cleanly, 1 when conflict
-    /// records were written or a side is larger than the reader's limit (`%A` then as it was), 129 on an internal
-    /// error (a file that cannot be read or written, a failure in the merge) with `%A` as it was; 2 on usage errors.
+    /// records were written or a side or the merged file is larger than the reader's limits (`%A` then as it was),
+    /// 129 on an internal error (a file that cannot be read or written, a failure in the merge) or a usage error, with
+    /// `%A` as it was: git reads every code up to 128 as conflicts written.
     #[command(override_usage = "ew merge-driver <O> <A> <B> [L] <P>")]
     MergeDriver(MergeDriverCli),
 }

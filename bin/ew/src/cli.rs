@@ -643,6 +643,17 @@ where
     tree::Cli::try_parse_from(line)?.into_command()
 }
 
+/// The exit code of [`parse`]'s error `e` for the arguments `args` after the program name: clap's (2 for a usage
+/// error, 0 for the help and the version), but 129 for a usage error of `merge-driver`, since git reads any code up to
+/// 128 from a merge driver as "conflicts written" (ADR-0012 amendment 2; decision log ID-1273).
+pub fn error_exit_code(args: &[std::ffi::OsString], e: &clap::Error) -> i32 {
+    if e.use_stderr() && args.first().is_some_and(|word| word == "merge-driver") {
+        merge_driver::INTERNAL
+    } else {
+        e.exit_code()
+    }
+}
+
 /// The clap command of the derive tree: the source of the CLI catalogue's paths and flags.
 #[cfg_attr(not(test), allow(dead_code))]
 pub fn command() -> clap::Command {
@@ -4542,11 +4553,29 @@ mod tests {
                  project's `.gitattributes`, `*.jsonl text eol=lf merge=elektrawatt diff=elektrawatt`, \
                  `lib/**/*.json text eol=lf merge=elektrawatt diff=elektrawatt` and `manifest.json text eol=lf \
                  merge=elektrawatt` (`eol=lf` keeps the manifest's hashes true under `core.autocrlf`). Exit 0 when \
-                 merged cleanly, 1 when conflict records were written or a side is larger than the reader's limit \
-                 (`%A` then as it was), 129 on an internal error (a file that cannot be read or written, a failure in \
-                 the merge) with `%A` as it was; 2 on usage errors."
+                 merged cleanly, 1 when conflict records were written or a side or the merged file is larger than \
+                 the reader's limits (`%A` then as it was), 129 on an internal error (a file that cannot be read or \
+                 written, a failure in the merge) or a usage error, with `%A` as it was: git reads every code up to \
+                 128 as conflicts written."
             )
         );
+    }
+
+    /// Decision log ID-1273 (ADR-0012 amendment 2): a usage error of `merge-driver` exits 129, which git reads as a
+    /// failure rather than as conflicts written; a usage error of every other command keeps 2, the help 0.
+    #[test]
+    fn a_usage_error_of_merge_driver_exits_129_and_of_another_command_2() {
+        let code = |args: &[&str]| {
+            let args: Vec<std::ffi::OsString> = args.iter().map(Into::into).collect();
+            let e = parse(args.iter().cloned()).expect_err("a usage error or the help");
+            error_exit_code(&args, &e)
+        };
+        assert_eq!(code(&["merge-driver", "o", "a", "b"]), 129);
+        assert_eq!(code(&["merge-driver"]), 129);
+        assert_eq!(code(&["merge-driver", "--help"]), 0);
+        assert_eq!(code(&["schema"]), 2);
+        assert_eq!(code(&["check", "--frob"]), 2);
+        assert_eq!(code(&["frobnicate", "merge-driver"]), 2);
     }
 
     /// Decision log ID-1273: `merge-driver`'s positionals take a leading `-` (a `%P` under a folder such as `-old.ew`),

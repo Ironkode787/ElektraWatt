@@ -1099,15 +1099,11 @@
         },
         {
           "code": 1,
-          "meaning": "conflict records written, or a side above the reader's limit (`%A` as it was)"
-        },
-        {
-          "code": 2,
-          "meaning": "usage"
+          "meaning": "conflict records written, or a side or the merged file above the reader's limits (`%A` as it was)"
         },
         {
           "code": 129,
-          "meaning": "an internal error: a file that cannot be read or written, a failure in the merge (`%A` as it was)"
+          "meaning": "an internal error or a usage error: a file that cannot be read or written, a failure in the merge, clap's usage text (`%A` as it was)"
         }
       ],
       "result": null,

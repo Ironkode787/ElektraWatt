@@ -438,12 +438,12 @@ pub const TABLE: &[Row] = &[
             exit(0, "merged cleanly into `%A`"),
             exit(
                 1,
-                "conflict records written, or a side above the reader's limit (`%A` as it was)",
+                "conflict records written, or a side or the merged file above the reader's limits (`%A` as it was)",
             ),
-            exit(2, "usage"),
             exit(
                 129,
-                "an internal error: a file that cannot be read or written, a failure in the merge (`%A` as it was)",
+                "an internal error or a usage error: a file that cannot be read or written, a failure in the merge, \
+                 clap's usage text (`%A` as it was)",
             ),
         ],
         result: None,
