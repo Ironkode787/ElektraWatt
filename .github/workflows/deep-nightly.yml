@@ -35,7 +35,7 @@
 # asan-command-fuzz builds in about 15 minutes, starts no seed after 55 minutes and a seed in flight finishes within
 # about 16 (a seed of 100 steps takes about 15 minutes under ASan, 7.7 times the plain 2 minutes); its step is bounded at
 # 100 minutes and the job at 115. Slot: 06:07 UTC, after perf (02:17), fuzz (03:47,
-# done by about 05:15) and cli-artefact (04:37).
+# done by about 05:15) and package (04:37).
 #
 # RED only for a real finding (a failed test or oracle, a crash, an out-of-memory, a timeout of one input, a leak, an
 # AddressSanitizer report), a failed build, and a hang: a run that ended without its verdict (an input or a seed still

@@ -3,7 +3,7 @@
 
 # Per-PR CI set of gate G-M0 (docs/design/18-quality-security-release.md §5.2): CI-PR-01 lint,
 # CI-PR-02/03 tests on Linux and Windows (CI-PR-04, macOS, was removed by ID-880), CI-PR-05 headless (the
-# evidence job of G-M1-01), CI-PR-08
+# evidence job of G-M1-01), CI-PR-02's C-compiler-only container check c-only (NFR-MAINT-09), CI-PR-08
 # fuzz-smoke (path-filtered, 60 s per affected cargo-fuzz target on the pinned nightly; G-M1-13), CI-N-09
 # verapdf (the evidence job of G-M1-02; a nightly in the catalogue, per push here), CI-PR-09 supply-chain. Job
 # names are the required status checks (ci/README.md). Hardening per §5.4 and NFR-SEC-19: actions pinned by
@@ -41,6 +41,10 @@ env:
   # resolved 2026-10-22). The image has no fonts, no fontconfig, no display or GPU libraries and a glibc (2.39) as
   # new as the one of the runner that builds `ew`. Update the tag and the digest together.
   HEADLESS_IMAGE: ubuntu@sha256:68ee22004a9109b44973313b02ff7b1de250f1de0f5ecb628d73f579aaff33ac
+  # The container of c-only (NFR-MAINT-09, WP-S6.06 D6): ubuntu:22.04, pinned by the digest of its multi-arch image
+  # index (Docker Hub, resolved 2026-11-03); the LINUX_BUILD_IMAGE of package.yml, kept in step with it and with the
+  # gcc and libc6-dev versions of packaging/components.toml.
+  LINUX_BUILD_IMAGE: ubuntu@sha256:076e7bf82319619f28dd0aa9c02ab34b055ad37100395b4f49a2ffba04fb5e11
   # veraPDF 1.30.3: the CLI image `verapdf/cli` of the veraPDF project on Docker Hub (a self-contained Java CLI),
   # pinned by the digest of its image manifest (resolved 2026-10-22 from the Docker Hub tag `v1.30.3`). The image is
   # only run here, with no network, never distributed. Update the version and the digest together.
@@ -669,6 +673,86 @@ jobs:
           path: ${{ runner.temp }}/headless
           if-no-files-found: warn
           retention-days: 14
+
+  # CI-PR-02's Linux container with a C compiler only (NFR-MAINT-09, WP-S6.06 D6): `cargo check --locked -p elektrawatt
+  # -p ew` in the digest-pinned ubuntu:22.04 container of the Linux release build (package.yml), with `gcc` and
+  # `libc6-dev` at the exact versions of packaging/components.toml and no C++ compiler (asserted), the runner's
+  # toolchain mounted and no network, so every build script's C compilation is proven without a C++ compiler on each
+  # pull request. ci/linux-container.sh does the work inside the container. Not a required check until the owner
+  # makes it one (ci/README.md).
+  c-only:
+    name: c-only
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          shared-key: c-only
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      # NFR-REL-07: ICU4X_DATA_DIR swaps the ICU segmentation data at build time and changes line breaks.
+      - name: assert ICU4X_DATA_DIR is unset
+        shell: bash
+        run: test -z "${ICU4X_DATA_DIR:-}"
+      - name: the pins
+        id: pins
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo "gcc=$(python3 -I packaging/stage.py pin gcc)"
+            echo "libc6_dev=$(python3 -I packaging/stage.py pin libc6-dev)"
+          } >> "$GITHUB_OUTPUT"
+      # With network, on the runner: the crates into the cargo home that the container mounts (the check has none).
+      - name: cargo fetch
+        run: cargo fetch --locked
+      - name: pull the container image
+        shell: bash
+        run: |
+          for attempt in 1 2 3; do
+            docker pull "$LINUX_BUILD_IMAGE" && exit 0
+            echo "docker pull failed (attempt $attempt of 3)"
+            sleep $((attempt * 15))
+          done
+          echo "::error::docker pull of $LINUX_BUILD_IMAGE failed three times: the job has no evidence without the image"
+          exit 1
+      - name: download gcc and libc6-dev in the container
+        shell: bash
+        env:
+          EW_GCC_VERSION: ${{ steps.pins.outputs.gcc }}
+          EW_LIBC6_DEV_VERSION: ${{ steps.pins.outputs.libc6_dev }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/apt/archives/partial" "$RUNNER_TEMP/apt/lists/partial"
+          docker run --rm --env EW_GCC_VERSION --env EW_LIBC6_DEV_VERSION \
+            --volume "$RUNNER_TEMP/apt/archives:/var/cache/apt/archives" \
+            --volume "$RUNNER_TEMP/apt/lists:/var/lib/apt/lists" \
+            --volume "$PWD/ci/linux-container.sh:/linux-container.sh:ro" \
+            "$LINUX_BUILD_IMAGE" bash /linux-container.sh download
+      - name: cargo check in the container (C compiler only, no network)
+        shell: bash
+        env:
+          EW_GCC_VERSION: ${{ steps.pins.outputs.gcc }}
+          EW_LIBC6_DEV_VERSION: ${{ steps.pins.outputs.libc6_dev }}
+        run: |
+          set -euo pipefail
+          export CARGO_HOME="${CARGO_HOME:-$HOME/.cargo}"
+          toolchain="$(dirname "$(dirname "$(rustup which --toolchain "$RUST_TOOLCHAIN" cargo)")")"
+          export EW_TOOLCHAIN_BIN="$toolchain/bin" EW_UID="$(id -u)" EW_GID="$(id -g)" PKG_CONFIG=false
+          docker run --rm --network none \
+            --env EW_GCC_VERSION --env EW_LIBC6_DEV_VERSION --env EW_TOOLCHAIN_BIN --env EW_UID --env EW_GID \
+            --env PKG_CONFIG --env RUSTFLAGS --env CARGO_HOME --env CARGO_TERM_COLOR --env CARGO_INCREMENTAL \
+            --volume "$RUNNER_TEMP/apt/archives:/var/cache/apt/archives" \
+            --volume "$RUNNER_TEMP/apt/lists:/var/lib/apt/lists" \
+            --volume "$toolchain:$toolchain:ro" \
+            --volume "$CARGO_HOME:$CARGO_HOME" \
+            --volume "$GITHUB_WORKSPACE:$GITHUB_WORKSPACE" --workdir "$GITHUB_WORKSPACE" \
+            "$LINUX_BUILD_IMAGE" bash ci/linux-container.sh check
 
   # CI-N-09, FT-294. The doc 18 catalogue lists CI-N-09 as a nightly; it runs here, on every pull request and push to
   # main, so that a PDF/A regression is caught where it is made, and so that its time enters the CI-time trend

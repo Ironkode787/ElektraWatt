@@ -1,0 +1,51 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+# The non-Rust components that the packaging downloads or takes from an image (WP-S6.06 D18): name, version, licence,
+# URL and SHA-256 of each. `.github/workflows/package.yml` and the `c-only` job of `ci.yml` read their pins from here
+# (`python3 -I packaging/stage.py pin <name>`), and WP-S6.07's SBOM reads its components from here. None of them is
+# shipped in an artefact: they build, stage or check it. The container images stay in the workflows as `*_IMAGE`
+# variables, pinned by digest (`cargo xtask check-workflows`).
+#
+# `checked_by` says what verifies the bytes. The Debian packages come from the archive of the digest-pinned
+# `ubuntu:22.04` image (`LINUX_BUILD_IMAGE`): apt checks each against the SHA-256 of the archive's signed index, which is the
+# SHA-256 below. The index lists only the newest version of a package per pocket, so when
+# the archive moves `libc6-dev` past the version below, the job fails closed: the image digest and these versions are
+# then updated together, in a commit of their own (doc 18 §5.3's rule for images).
+
+# map: packaging-components: a new downloaded or image-provided packaging tool or runtime goes here with its version, licence, URL and SHA-256.
+[[component]]
+name = "gcc"
+version = "4:11.2.0-1ubuntu1"
+licence = "GPL-3.0-or-later WITH GCC-exception-3.1"
+url = "http://archive.ubuntu.com/ubuntu/pool/main/g/gcc-defaults/gcc_11.2.0-1ubuntu1_amd64.deb"
+sha256 = "be895c1a9611905254f818c41092f147f5f2a566f87f1817b5c36d977020bea7"
+checked_by = "apt, against the signed index of jammy"
+used_for = "the C compiler of the build scripts in the Linux release build and the c-only job (NFR-MAINT-09)"
+
+[[component]]
+name = "libc6-dev"
+version = "2.35-0ubuntu3.15"
+licence = "LGPL-2.1-or-later"
+url = "http://archive.ubuntu.com/ubuntu/pool/main/g/glibc/libc6-dev_2.35-0ubuntu3.15_amd64.deb"
+sha256 = "ce51ae233a9f800a040de2d0cd5983ef86f558c623b342c80942301d7f453f48"
+checked_by = "apt, against the signed index of jammy-updates"
+used_for = "the C headers and start files of the Linux release build and the c-only job; the version of the image's libc6"
+
+[[component]]
+name = "cargo-about"
+version = "0.9.2"
+licence = "MIT OR Apache-2.0"
+url = "https://github.com/EmbarkStudios/cargo-about/releases/tag/0.9.2"
+sha256 = ""
+checked_by = "taiki-e/install-action, which checks the release asset against the SHA-256 of its own manifest"
+used_for = "THIRD-PARTY-NOTICES.txt of the installed tree and the CLI archives (NFR-LIC-08)"
+
+[[component]]
+name = "python"
+version = ">=3.11"
+licence = "PSF-2.0"
+url = "https://www.python.org/"
+sha256 = ""
+checked_by = "the hosted runner image (ubuntu-24.04, windows-2025); stage.py refuses an older Python, and the job summary records the exact version"
+used_for = "packaging/stage.py, which stages the tree and writes the CLI archives"

@@ -546,6 +546,11 @@ allowed = ["MIT OR Apache-2.0"]
 glob = "ci/**.md"
 allowed = ["CC-BY-4.0"]
 
+# The packaging scripts and their component list (WP-S6.06), like ci/.
+[[path]]
+glob = "packaging/**"
+allowed = ["MIT OR Apache-2.0"]
+
 [[path]]
 glob = "xtask/**"
 allowed = ["MIT OR Apache-2.0"]

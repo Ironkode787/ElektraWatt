@@ -39,12 +39,7 @@ env:
   # reuse-tool, installed into a virtual environment with a pinned encoding detector.
   REUSE_VERSION: "6.2.0"
   CHARSET_NORMALIZER_VERSION: "3.5.2"
-  # mdBook, the prebuilt Linux release archive of github.com/rust-lang/mdBook, pinned by version and by the SHA-256
-  # that the release publishes for the archive (checked before anything is unpacked; resolved 2026-10-22).
-  # Update the version and the digest together. (The variables are not named MDBOOK_*: mdBook reads that prefix as
-  # configuration overrides.)
-  DOCS_MDBOOK_VERSION: "0.5.4"
-  DOCS_MDBOOK_SHA256: "3f28de05dafca9d0f2eab99c662116b0e37b89b1d96a08f8f430b9eeae958cd7"
+  # mdBook's pin (version and SHA-256) is in ci/build-book.sh (WP-S6.06 D7).
 
 jobs:
   # CI-PR-10
@@ -155,34 +150,14 @@ jobs:
       # WP-S2.17 part 6 (D9): the icon table of ew-ui is current with the vendored and the project's SVGs.
       - name: generated icon table is current
         run: cargo xtask gen-icons --check
-      - name: build the reference pages (not committed)
-        run: cargo xtask docs-gen
+      # D7 of WP-S6.06: the reference pages (not committed), the pinned mdBook (version and SHA-256) and the build in
+      # an empty network namespace are one script, which package.yml's `book` job calls too.
+      - name: build the book offline
+        run: bash ci/build-book.sh "$RUNNER_TEMP/book"
       # C43-p7#1: with the built pages present, a link from outside the book into one (design, plan, ADR, README) is
       # checked, its anchor included; before docs-gen such a target is missing and git-ignored, so doccheck skips it.
       - name: document links into the built pages
         run: python3 -I docs/plan/tools/doccheck.py
-      - name: install mdBook (pinned release, checksum verified)
-        run: |
-          archive="mdbook-v${DOCS_MDBOOK_VERSION}-x86_64-unknown-linux-gnu.tar.gz"
-          curl --fail --silent --show-error --location --proto '=https' --tlsv1.2 \
-            --output "$RUNNER_TEMP/$archive" \
-            "https://github.com/rust-lang/mdBook/releases/download/v${DOCS_MDBOOK_VERSION}/${archive}"
-          echo "${DOCS_MDBOOK_SHA256}  $RUNNER_TEMP/$archive" | sha256sum --check --strict -
-          mkdir "$RUNNER_TEMP/mdbook"
-          tar -xzf "$RUNNER_TEMP/$archive" -C "$RUNNER_TEMP/mdbook"
-          "$RUNNER_TEMP/mdbook/mdbook" --version
-      - name: check that the offline sandbox is available
-        # ubuntu-24.04 restricts unprivileged user namespaces, so the sandbox needs `unshare` and passwordless sudo.
-        # Fail here with the reason instead of as a documentation failure of the build step.
-        run: |
-          command -v unshare >/dev/null || { echo "::error::unshare (util-linux) is not installed on this runner: the offline book build needs it"; exit 1; }
-          sudo -n true || { echo "::error::passwordless sudo is not available on this runner: the offline book build needs it for unshare --net"; exit 1; }
-          sudo unshare --net --setuid "$(id -u)" --setgid "$(id -g)" -- true || { echo "::error::unshare --net failed on this runner: the offline book build needs a network namespace"; exit 1; }
-      - name: build the book offline
-        # The namespace has no network; the build itself runs as the runner user, not as root.
-        run: |
-          sudo unshare --net --setuid "$(id -u)" --setgid "$(id -g)" -- \
-            "$RUNNER_TEMP/mdbook/mdbook" build docs/book --dest-dir "$RUNNER_TEMP/book"
       - name: link check of the built book
         run: python3 -I ci/check-book-links.py "$RUNNER_TEMP/book"
       - name: upload the built book

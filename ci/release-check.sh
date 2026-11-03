@@ -2,9 +2,9 @@
 # SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
-# The release-build assertions of CI-R-03 for the Linux build of `elektrawatt` (FT-333; doc 18 §3.5, §5.2, §5.4;
-# NFR-REL-07, NFR-SEC-20), run by the job `release-check` of `.github/workflows/cli-artefact.yml` before the release
-# pipeline of WP-S6.07 exists. Two modes:
+# The release-build assertions of CI-R-03 for the Linux build of `elektrawatt` and `ew` (FT-333; doc 18 §3.5, §5.2,
+# §5.4; NFR-REL-07, NFR-SEC-20), run inside the build container by the `linux` job of `.github/workflows/package.yml`
+# (ci/linux-container.sh, WP-S6.06 D6). Two modes:
 #
 #   release-check.sh env
 #       Run in the shell that starts the release build, right before `cargo build`. Fails unless PKG_CONFIG is

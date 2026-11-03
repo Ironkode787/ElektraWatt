@@ -21,14 +21,15 @@ The job names are the GitHub status-check names to mark as required.
 | CI-PR-03 | `ci.yml` / `test-windows-build`, `test-windows-1`, `test-windows-2`, `test-windows-3` (windows-2025) | all-features run only (FT-330, ID-482), split since FT-353 (ID-527), in three run jobs since FT-387 (the cycle-24 delivery run's chain was 20:01 + 10:00 = 30:01, ID-582's reading; the cycle-25 run's 16:20 + 14:54 = 31:14, which balanced the parts by time instead of by test count): `test-windows-build` runs `cargo nextest archive --workspace --all-features --locked --archive-file "$RUNNER_TEMP/nextest-archive.tar.zst"` (the archive lives outside the checkout, which the licence-map walk would otherwise flag), saves the rust-cache and uploads the archive (`actions/upload-artifact`); `test-windows-1`, `test-windows-2` and `test-windows-3` download it (`actions/download-artifact`, no cache save) and run `cargo nextest run --archive-file "$RUNNER_TEMP/nextest-archive/nextest-archive.tar.zst" --workspace-remap .` with `--profile ci` and these filters: part 1 `-E 'binary_id(=elektrawatt::canvas) or binary_id(=ew-api::acceptance) or binary_id(=ew-derive::incremental_partition) or binary_id(=ew-import-qet::hostile_input) or binary_id(=ew-store::incremental) or binary_id(=ew-store::purge) or binary_id(=ew-testkit::command_fuzz) or binary_id(=ew::cli)'`, part 2 `-E 'binary_id(=elektrawatt::headless) or binary_id(=elektrawatt::part2) or binary_id(=ew-api::checks) or binary_id(=ew-api::memo_oracle) or binary_id(=ew-api::page_output) or binary_id(=ew-store::fault_injection) or binary_id(=ew-testkit::golden_dsl) or binary_id(=ew-testkit::spike_memo) or binary_id(=ew-ui::canvas) or binary_id(=ew-viewmodel::part2)'`, part 3 `-E 'not (` both lists `)'` (eight heavy binaries in part 1, ten in part 2, every other binary in part 3: a complete, disjoint cover; re-balanced in cycle 27, see the Windows chain section; the split was `count:1/2` and `count:2/2` of the complement of six binaries before). The acceptance tests and the command fuzzer are in part 1, so they run once in total. No default-features build or nextest run, no doctest run (doctests run in `test-linux` and `cargo xtask ci`) | `cargo nextest run --workspace --all-features --locked` (the three parts together) |
 | CI-PR-04 | removed (ID-880) | The macOS jobs `test-macos` and `test-macos-all-features` were removed when macOS stopped being a supported platform (decision log ID-880); everything they ran (the filtered default-features nextest run, the unfiltered all-features run, both doctest runs) also runs in `test-linux` and `test-linux-default` (CI-PR-02) | none |
 | CI-PR-05 | `ci.yml` / `headless` (ubuntu-24.04) | `cargo build -p ew --locked`; `ew export pdf golden/J-E-2416.ew` inside a bare `ubuntu:24.04` container (image pinned by digest; no network, no display, no GPU, no font file, empty user directories), on one thread and on four; both PDFs must be the committed digest of `golden/J-E-2416/expected/pdf/sha256.txt` (FT-295, G-M1-01); the PDFs uploaded as the artifact `headless-pdf`. Details: [Headless container job](#headless-container-job-ci-pr-05) | `cargo build -p ew --locked` and `docker run` as in the job (Linux and docker), or `cargo nextest run -p ew --test cli -E 'test(export_pdf_of_golden_a)'` for the same check without the container |
+| CI-PR-02 (C compiler only) | `ci.yml` / `c-only` (ubuntu-24.04 and the `ubuntu:22.04` container) | `cargo check --locked --offline -p elektrawatt -p ew` in the digest-pinned `ubuntu:22.04` container of the Linux release build, with `gcc` and `libc6-dev` at the exact versions of `packaging/components.toml` and no C++ compiler (`g++`, `c++` and `clang++` asserted absent), the runner's toolchain mounted and no network, so every build script's C compilation runs without a C++ compiler (NFR-MAINT-09, WP-S6.06 D6; [`linux-container.sh`](linux-container.sh)). Not a required check: making it one is the owner's | On Linux with docker, the steps of the job |
 | CI-PR-08 | `ci.yml` / `fuzz-smoke` (ubuntu-24.04) | 60 s of each cargo-fuzz target of [`fuzz/`](../fuzz) that the change can reach, on the pinned nightly, the committed corpus as seeds; the path filter [`fuzz-smoke-targets.py`](fuzz-smoke-targets.py) maps the changed paths to targets through the dependency closure of each target ([`fuzz-smoke-targets.toml`](fuzz-smoke-targets.toml); FT-335, G-M1-13). Red for a finding (the `::error::` annotation names the target and the class: `crash`, `oom`, `timeout` or `leak`, FT-370), a failed build or a run without a verdict (a target that outlives its time bound included). Details: [Fuzz smoke](#fuzz-smoke-ci-pr-08) | `python3 -I ci/fuzz-smoke-targets.py --selftest`; `git diff --name-only origin/main HEAD \| python3 -I ci/fuzz-smoke-targets.py` names the targets; then, in `fuzz/`, `cargo fuzz run <target> target/corpus/<target> corpus/<target> -- -max_total_time=60 -max_len=<n>` |
 | CI-PR-09 | `ci.yml` / `supply-chain` (ubuntu-24.04) | `cargo deny check`; `cargo audit`; `cargo vet`; `cargo xtask check-deps`, `check-features`, `check-build-scripts`, `check-vet-imports`, `check-workflows`; third-party notices with cargo-about 0.9.2 (NFR-LIC-08); MSRV check of the permissive crates with Rust 1.85.0 | `cargo deny --locked check`, `cargo audit`, `cargo vet --locked`, the five `cargo xtask` checks, `cargo about generate -o target/THIRD-PARTY-NOTICES.txt ci/third-party-notices.hbs`, and the MSRV commands below |
 | CI-PR-10 | `docs.yml` / `legal-docs` (ubuntu-24.04) | `docs/plan/tools/{totals,schedule,trace}.py --check` and `doccheck.py` (its `--test` first; a link target that git ignores, a built reference page, is no missing target); `reuse lint` (reuse-tool 6.2.0; NFR-LIC-01, NFR-LIC-02); `cargo xtask check-licence-map` (licence map, collective notice, crate licences and the licence boundary of the permissive layer: 19 §5.1, NFR-LIC-10, NFR-MAINT-02); `cargo xtask check-anonymisation` (NFR-PRIV-09); `cargo xtask check-governance-files` (NFR-DOC-08); rustdoc build with `-D warnings` (NFR-MAINT-08). On pull requests only: `cargo xtask check-dco` over the PR's commits (NFR-LIC-03); and the RFC reference, which fails a PR labelled `format-major`, `api-break` or `licence` whose description does not mention `rfcs/` (NFR-DOC-09) | `python3 -I docs/plan/tools/totals.py --check` (and the other three); `python -m reuse lint`; `cargo xtask check-licence-map`, `check-anonymisation`, `check-governance-files`, `check-dco origin/main..HEAD`; `RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --locked` |
 | CI-PR-15 | `docs.yml` / `docs-diagrams` (ubuntu-24.04) | Renders every Mermaid block under `docs/` and in the root Markdown with mermaid-cli 12.0.0 (container image pinned by digest) and fails on any error | `python3 -I ci/render-mermaid.py --image <image@sha256:…>` (needs docker); `--extract-only` lists the blocks without docker |
-| CI-PR-10 (book) | `docs.yml` / `docs-book` (ubuntu-24.04) | The user-documentation book of `docs/book` (WP-S0.06, NFR-DOC-01, NFR-DOC-06): `cargo xtask docs-gen --check` (the committed `SUMMARY.md` is current with the generated reference pages), then `cargo xtask docs-gen` (the reference pages are built, not committed); mdBook 0.5.4, installed from its pinned release archive (SHA-256 checked); `mdbook build docs/book` in an empty network namespace (the build is offline); `ci/check-book-links.py` over the built pages (relative links, anchors, and links into the repository); the built book uploaded as the artifact `user-guide`. A separate job, so that `legal-docs` stays fast | `cargo xtask docs-gen --check`; `cargo xtask docs-gen`, then `mdbook build docs/book` (mdBook 0.5.4); `python3 -I ci/check-book-links.py target/book` |
+| CI-PR-10 (book) | `docs.yml` / `docs-book` (ubuntu-24.04) | The user-documentation book of `docs/book` (WP-S0.06, NFR-DOC-01, NFR-DOC-06): `cargo xtask docs-gen --check` (the committed `SUMMARY.md` is current with the generated reference pages); then [`build-book.sh`](build-book.sh) (WP-S6.06 D7, also run by `package.yml`'s `book` job): `cargo xtask docs-gen` (the reference pages are built, not committed), mdBook 0.5.4 installed from its pinned release archive (SHA-256 checked) and `mdbook build docs/book` in an empty network namespace (the build is offline); `ci/check-book-links.py` over the built pages (relative links, anchors, and links into the repository); the built book uploaded as the artifact `user-guide`. A separate job, so that `legal-docs` stays fast | `cargo xtask docs-gen --check`; `bash ci/build-book.sh target/book` (Linux, with sudo for the network namespace), or `cargo xtask docs-gen` and `mdbook build docs/book` (mdBook 0.5.4); `python3 -I ci/check-book-links.py target/book` |
 | CI-N-09 | `ci.yml` / `verapdf` (ubuntu-24.04) | Builds `ew`, exports the golden PDF in three variants (all pages; dated by `SOURCE_DATE_EPOCH`; `--pages 101-106,901`) and validates each against PDF/A-2b with veraPDF 1.30.3 (the project's `verapdf/cli` image pinned by digest, run with no network); `ci/verapdf-check.py` turns the XML report into the verdict (FT-294, G-M1-02); the report uploaded as the artifact `verapdf-report`. Details: [veraPDF job](#verapdf-job-ci-n-09) | `python3 -I ci/verapdf-check.py --selftest`; with docker: `docker run --rm -v "$PWD/out:/data:ro" verapdf/cli@sha256:… --flavour 2b --format xml /data/golden-all.pdf > out/verapdf-report.xml`, then `python3 -I ci/verapdf-check.py out/verapdf-report.xml` |
-| CI-N-12 | `cli-artefact.yml` / `cli-artefact` (ubuntu-24.04, windows-2025; nightly and `workflow_dispatch`) | `cargo build -p ew --release --locked` and a smoke test (`ew --version`, `ew --help`) per platform; uploads `ew-<os>-<arch>-unsigned-dev-<short sha>` (the program, `LICENSE.md` and a README that says "unsigned development build, not a release") with 90-day retention; no signing, no release, no secret (FT-299, G-M1-22). Details: [CLI artefact](#nightly-cli-artefact-cli-artefactyml-ci-n-12) | `cargo build -p ew --release --locked`; `target/release/ew --version` |
-| CI-R-03 (before WP-S6.07) | `cli-artefact.yml` / `release-check` (ubuntu-24.04; nightly and `workflow_dispatch`) | `cargo build -p elektrawatt --release --locked` with `PKG_CONFIG=false` and path remapping; asserts no pkg-config override, no `ICU4X_DATA_DIR`, no `CARGO_ENCODED_RUSTFLAGS` and no cargo `[env]` table in the build environment, then fails on any build-host path in the binary (outside a reviewed exception list), any hard link to libwayland, libxkbcommon, libX11, libxcb, libEGL, libGL or libvulkan, and any library directory in x11-dl's generated config; uploads the report only, never the binary (FT-333, ID-476); report-only. Details: [Release check](#release-check-cli-artefactyml--release-check-ci-r-03-before-wp-s607) | `bash ci/release-check.sh env`, the build and `bash ci/release-check.sh scan …` with `PKG_CONFIG=false` and the `RUSTFLAGS` remap, as in the section below (Linux) |
+| CI-N-12, CI-R-05 (part 1) | `package.yml` / `book`, `windows (x86_64)` (windows-2025), `linux (x86_64)` (ubuntu-24.04 and the `ubuntu:22.04` container; nightly at 04:37 UTC, `workflow_dispatch` and `workflow_call`) | The release builds of `elektrawatt` and `ew` (Windows: static C runtime, `dumpbin /dependents` without a C runtime import; Linux: in the container with a C compiler only and no network, the release check of CI-R-03 and glibc 2.35 at most), the installed tree of WP-S6.06 D3 staged by `packaging/stage.py`, `--version` and `elektrawatt --smoke` on the staged tree, and the CLI archives `ew-<v>-x86_64-pc-windows-msvc.zip` and `ew-<v>-x86_64-unknown-linux-gnu.tar.gz`, checked extracted (`ew --version`, `ew export pdf` of the archive's sample against the committed digest); uploads only the CLI archive, as `ew-<os>-<arch>-unsigned-dev-<short sha>` for 90 days, and the release-check reports; no signing, no release, no secret (FT-299, G-M1-22, ID-476). Details: [Packaging](#packaging-packageyml-ci-n-12-and-ci-r-03) | `python3 -I packaging/stage.py --test`; on Linux with docker, the steps of the `linux` job |
+| CI-R-03 (before WP-S6.07) | `package.yml` / `linux (x86_64)` (in the `ubuntu:22.04` container) | `cargo build --release --locked --offline -p elektrawatt -p ew` with `PKG_CONFIG=false` and path remapping; asserts no pkg-config override, no `ICU4X_DATA_DIR`, no `CARGO_ENCODED_RUSTFLAGS` and no cargo `[env]` table in the build environment, then fails on any build-host path in either binary (outside a reviewed exception list), any hard link to libwayland, libxkbcommon, libX11, libxcb, libEGL, libGL or libvulkan, and any library directory in x11-dl's generated config; uploads the reports only, never a binary (FT-333, ID-476). Details: [Release check](#release-check-ci-r-03-before-wp-s607) | `bash ci/release-check.sh env`, the build and `bash ci/release-check.sh scan …` with `PKG_CONFIG=false` and the `RUSTFLAGS` remap, as in the section below (Linux) |
 | CI-N-02, CI-N-03 | `deep-nightly.yml` / `full-oracle`, `proptest`, `fuzz (<target>)` (one job per target), `asan-command-fuzz`, `gpu-parity` (ubuntu-24.04; nightly at 06:07 UTC and `workflow_dispatch`) | The memo oracle on every read over Golden A and Golden B (release profile, debug assertions on); the tests of the core crates with `PROPTEST_CASES=20000`; every cargo-fuzz target of [`fuzz/`](../fuzz) (the matrix of the workflow), 30 minutes each, AddressSanitizer, on the nightly pinned by date; the seeded command fuzzer `fuzz_long` under `-Zsanitizer=address` (FT-297, FT-304, FT-272). Red only for a finding, a failed build or a hang. Details: [Deep nightly](#deep-nightly-deep-nightlyyml-ci-n-02-and-ci-n-03) | `cd fuzz && cargo fuzz run <target> -- -max_total_time=60`; `PROPTEST_CASES=2000 cargo nextest run --release -p ew-model -p ew-commands -p ew-store -p ew-zip -p ew-format -p ew-memo -p ew-derive -p ew-schema`; `cargo nextest run --release -p ew-api -p ew-testkit -p elektrawatt --all-features -E 'binary(memo_oracle) or binary(golden_b) or test(/(^|::)nightly_/)' --run-ignored all` |
 | CI-PR-13 | `coverage.yml` / `coverage` (ubuntu-24.04; weekly and `workflow_dispatch`, not per PR) | cargo-llvm-cov 0.9.1 over the workspace tests (all features, nextest), the line coverage of `ew-model`, `ew-commands`, `ew-memo`, `ew-derive`, `ew-format`, `ew-store` and `ew-zip` against 80 % (NFR-MAINT-06); **report-only** (FT-296, G-M1-15). Details: [Coverage job](#coverage-job-ci-pr-13) | `cargo llvm-cov nextest --workspace --all-features --locked --no-report`, `cargo llvm-cov report --json --summary-only --output-path summary.json`, `python3 -I ci/coverage-summary.py summary.json` |
 
@@ -354,7 +355,7 @@ slower); the cadences of the costly oracles are `EW_FUZZ_SAMPLE_EVERY`, `EW_FUZZ
 
 FT-297, FT-304 and FT-272, WP-S6.02, gate criterion G-M1-13 (doc 18 §3.6, §3.12, §5.2). The workflow
 [`deep-nightly.yml`](../.github/workflows/deep-nightly.yml) (schedule 06:07 UTC, after `perf.yml` at 02:17, `fuzz.yml`
-at 03:47 and `cli-artefact.yml` at 04:37, and `workflow_dispatch` with the inputs `fuzz_minutes`, `proptest_cases`,
+at 03:47 and `package.yml` at 04:37, and `workflow_dispatch` with the inputs `fuzz_minutes`, `proptest_cases`,
 `asan_seeds`, `asan_steps`, `asan_budget_minutes` and `asan_odr_level1`) has five kinds of job, which run in parallel on ubuntu-24.04, so
 the workflow takes as long as the longest, below two hours:
 
@@ -472,36 +473,69 @@ a separate change. Same hardening as the other jobs: pinned actions, read-only t
 (the checkout takes the whole history, `fetch-depth: 0`, so that the base revision is there), event data through the
 environment. The job is not a required check yet (FT-325 and FT-284, owner).
 
-## Nightly CLI artefact (`cli-artefact.yml`, CI-N-12)
+## Packaging (`package.yml`, CI-N-12 and CI-R-03)
 
-FT-299, WP-S6.02, gate criterion G-M1-22 (doc 18 §5.2). The nightly workflow
-[`cli-artefact.yml`](../.github/workflows/cli-artefact.yml) (schedule and `workflow_dispatch`) builds the `ew`
-command-line program with `cargo build -p ew --release --locked` on ubuntu-24.04 (x86_64) and windows-2025 (x86_64)
-(macOS is not a supported platform, decision log ID-880), runs `ew --version` and `ew --help` as a smoke test and
-uploads one artefact per platform, named `ew-<os>-<arch>-unsigned-dev-<short sha>`. An artefact is a distribution of the GPL program, so it holds the program, the licence texts
-(`LICENSES/GPL-3.0-or-later.txt`, `CC-BY-SA-4.0.txt`, `OFL-1.1.txt`), `NOTICE`, the third-party notices
-(`THIRD-PARTY-NOTICES.txt`, `cargo about generate` with the pinned cargo-about 0.9.2 as in the supply-chain job)
-and a `README.md` copied from [`cli-artefact-README.md`](cli-artefact-README.md) (it states that the archive is an
-`unsigned development build, not a release`) with the commit, runner, toolchain and the SHA-256 of the program
-appended. Retention is 90 days.
+WP-S6.06 part 1 (D3 to D8, D18; FT-299, FT-333, gate criterion G-M1-22; doc 18 §5.2, §5.3, §8). The workflow
+[`package.yml`](../.github/workflows/package.yml) replaced `cli-artefact.yml`. It runs nightly at 04:37 UTC, on
+`workflow_dispatch` (input `version`) and on `workflow_call` (inputs `version` and `upload`, for WP-S6.07's release
+workflow). `<v>` is the `version` input or, by default and always on the schedule, `<workspace version>-dev.<short
+sha>`; it names the archives, the staged README and the archive's root folder. The programs print the workspace
+version, and each job asserts that `--version` prints the version of `Cargo.toml` and that `<v>` begins with it.
 
-What it deliberately does not do: sign anything, create a tag or a release, or use a secret; the
-artefacts are kept as CI-run artefacts for 90 days and are not a release. Publishing and signing are WP-S6.07
-release items (the signing identities are the owner's). The two platform jobs do not stop each other (`fail-fast: false`). The upload is not `if: always()`:
-a failed build leaves no artefact to keep, and the job summary step, which is, says so. The first scheduled run is
-the evidence for G-M1-22's nightly part; the `m1` release-notes skeleton is
-[`docs/release-notes/m1-draft.md`](../docs/release-notes/m1-draft.md).
+- `book` builds the user guide once with [`build-book.sh`](build-book.sh), checks its links and hands it to the OS
+  jobs as the artifact `package-book` (HTML, one day).
+- `windows (x86_64)` on windows-2025: `cargo build --release --locked -p elektrawatt -p ew` with `RUSTFLAGS="-D warnings
+  -C target-feature=+crt-static"` and the three path remaps (link.exe, the static C runtime; the `.pdb` files that
+  link.exe writes ship in the tree); `dumpbin /dependents` (found through `vswhere`) must list no `VCRUNTIME*`,
+  `MSVCP*`, `ucrtbase` or `api-ms-win-crt-*` library for either program (IN-4).
+- `linux (x86_64)` on ubuntu-24.04: the crates are fetched on the runner (`cargo fetch --locked`); then, in the
+  `ubuntu:22.04` container pinned by digest (`LINUX_BUILD_IMAGE`), [`linux-container.sh`](linux-container.sh)
+  downloads `gcc` and `libc6-dev` at the exact versions of
+  [`packaging/components.toml`](../packaging/components.toml) from the image's own archive (apt checks them against
+  the archive's signed index), and, in a second container run with `--network none`, installs them from the
+  downloaded files, asserts that `g++`, `c++` and `clang++` are absent, and runs as the runner's user, with the
+  runner's toolchain mounted: `ci/release-check.sh env`, `cargo build --release --locked --offline -p elektrawatt
+  -p ew` with `PKG_CONFIG=false` and the remaps, `ci/release-check.sh scan` on both binaries (the [release
+  check](#release-check-ci-r-03-before-wp-s607)), and the highest `GLIBC_` version of both, at most 2.35 (IN-3). The
+  checkout, the cargo home and the toolchain are mounted at their runner paths, so the remaps and the scan see the
+  same paths as on the runner.
+- Each OS job writes the third-party notices beside the binaries (`cargo about generate`, cargo-about at the version
+  of `components.toml`), stages the installed tree with [`packaging/stage.py`](../packaging/stage.py) `tree`, runs
+  `elektrawatt --version`, `ew --version` and `elektrawatt --smoke samples/J-E-2416.ew` from the staged tree (IN-6),
+  writes its CLI archive with `stage.py archive` (`ew-<v>-x86_64-pc-windows-msvc.zip`,
+  `ew-<v>-x86_64-unknown-linux-gnu.tar.gz`), and extracts it to check `ew --version` and `ew export pdf` of the
+  archive's sample against `golden/J-E-2416/expected/pdf/sha256.txt` (IN-5).
 
-## Release check (`cli-artefact.yml` / `release-check`, CI-R-03 before WP-S6.07)
+The installed tree (D3) is flat, every resource beside the executables: `elektrawatt[.exe]`, `ew[.exe]`, on Windows
+`elektrawatt.pdb` and `ew.pdb`, `content/`, `samples/J-E-2416.ew/`, `docs/` (the built book),
+`THIRD-PARTY-NOTICES.txt`, `NOTICE`, `LICENSES/`, `PRIVACY.md`, `SECURITY.md` and `README.txt`. A CLI archive holds,
+under its root folder `ew-<v>-<target>/`, exactly `ew[.exe]`, `content/`, `samples/`, `THIRD-PARTY-NOTICES.txt`,
+`NOTICE`, `LICENSES/`, `PRIVACY.md`, `SECURITY.md` and `README.md` (from [`cli-artefact-README.md`](cli-artefact-README.md),
+which names `EW_CONTENT_DIR`), its entries in byte order with the modes 0755 for the program and 0644 for the rest, so
+that two runs give identical archives. `stage.py` refuses a missing input with `missing input: <path>`;
+`python3 -I packaging/stage.py --test` is its offline test (IN-1).
 
-FT-333 (doc 18 §3.5, §5.2, §5.4; NFR-REL-07, NFR-SEC-20). The second job of
-[`cli-artefact.yml`](../.github/workflows/cli-artefact.yml) runs the release-build assertions of CI-R-03 every night
-before the release pipeline of WP-S6.07 exists, so that the release recipe is known to hold when the pipeline is
-built. It is a job of the CLI-artefact workflow rather than a workflow of its own because that workflow is already
-the nightly release-profile build on the same runner, with the same toolchain pin and hardening; the job runs in
-parallel with the `ew` artefact jobs and does not hold them up.
+What it uploads (ID-476's hold: no binary that links the UI graph leaves its job): with `upload: false`, the nightly,
+a dispatch and every call but the release, only the CLI archive, as `ew-<os>-<arch>-unsigned-dev-<short sha>` for 90
+days (G-M1-22, as before), and the release-check reports as `release-check-report` (30 days); with `upload: true`, the
+CLI archives under their release names for one day. It signs nothing, creates no tag or release and uses no secret;
+publishing and signing are WP-S6.07's. The setup, the AppImage and the install tests come with part 2, the
+cross-platform digests and the aarch64 archives with part 3.
 
-What it does, on ubuntu-24.04 with `PKG_CONFIG=false` set for the job:
+`packaging/components.toml` is the hand-kept list of every non-Rust component the packaging downloads or takes from an
+image (gcc, libc6-dev, cargo-about and the runner image's Python today), with its version, licence, URL and SHA-256;
+the workflows read their pins from it (`stage.py pin <name>`). The Ubuntu archive's index lists only the newest version
+of a package per pocket, so when it moves `libc6-dev` past the pinned version the download step fails closed; the
+image digest (`LINUX_BUILD_IMAGE` in `package.yml` and `ci.yml`) and the two versions are then updated together.
+
+## Release check (CI-R-03 before WP-S6.07)
+
+FT-333 (doc 18 §3.5, §5.2, §5.4; NFR-REL-07, NFR-SEC-20). The `linux (x86_64)` job of
+[`package.yml`](../.github/workflows/package.yml) runs the release-build assertions of CI-R-03 every night, inside the
+build container on the release binaries themselves, before the release pipeline of WP-S6.07 exists, so that the
+release recipe is known to hold when the pipeline is built.
+
+What it does, in the container with `PKG_CONFIG=false`:
 
 1. `bash ci/release-check.sh env`, in the same shell as the build: fails unless `PKG_CONFIG` is `false` and no
    `PKG_CONFIG_*`, `HOST_PKG_CONFIG*` or `TARGET_PKG_CONFIG*` variable is exported (the pkg-config crate prefers
@@ -510,11 +544,11 @@ What it does, on ubuntu-24.04 with `PKG_CONFIG=false` set for the job:
    of the checkout or the cargo home has an `[env]` table or `env.` key (cargo hands those to the build scripts; there
    is none today). The names come from the environment the shell passes on, so a name such as
    `PKG_CONFIG_x86_64-unknown-linux-gnu` is caught too.
-2. `cargo build -p elektrawatt --release --locked` with `RUSTFLAGS` remapping the cargo home to `/cargo`, the rustup
+2. `cargo build --release --locked --offline -p elektrawatt -p ew` with `RUSTFLAGS` remapping the cargo home to `/cargo`, the rustup
    home to `/rustup` and the checkout to `/build`: without it the panic locations of registry crates carry
    `/home/runner/.cargo/registry/…`. Cargo's `trim-paths` would do the same but is not stable on Rust 1.99.0.
-3. `bash ci/release-check.sh scan target/release/elektrawatt target release-check-report.md`: fails on any build-host
-   path in the binary (`strings -a`: `/home/`, `/usr/lib/x86_64-linux-gnu`, `/opt/`, and the checkout, cargo home,
+3. `bash ci/release-check.sh scan target/release/<binary> target release-check-<binary>.md` for `elektrawatt` and
+   `ew`: fails on any build-host path in the binary (`strings -a`: `/home/`, `/usr/lib/x86_64-linux-gnu`, `/opt/`, and the checkout, cargo home,
    rustup home and runner temp directory), on a `NEEDED` entry for `libwayland*`, `libxkbcommon*`, `libX11*`,
    `libxcb*`, `libEGL*`, `libGL*` or `libvulkan*` (`readelf -d`; all are loaded with `dlopen`, and a hard link to any
    of them breaks NFR-PLAT-03's fallback chain; the `required_features` guard of `check-features` keeps
@@ -522,12 +556,12 @@ What it does, on ubuntu-24.04 with `PKG_CONFIG=false` set for the job:
    file). A legitimate run-time search-path string that a crate hard-codes can only pass through the script's reviewed
    exception list `ALLOWED_STRINGS` (exact whole lines, each with a comment naming the crate, the reason and the FT or
    decision-log ID; empty today). The report lists each pattern's hit count with the first hits, the `NEEDED` entries,
-   `ldd` for information, and the verdict; it goes to the job summary and the artifact `release-check-report`
+   `ldd` for information, and the verdict; both reports go to the job summary and the artifact `release-check-report`
    (30 days).
 
-It uploads the report only, never the binary: no binary that links the UI graph is distributed before decision log
-ID-476's hold lifts. Report-only: no branch rule requires it; it is red on any hit, a failed build or a missing
-x11-dl config. No secret, actions pinned by SHA, `permissions: contents: read`, `persist-credentials: false`
+It uploads the reports only, never a binary: no binary that links the UI graph is distributed before decision log
+ID-476's hold lifts. No branch rule requires it; it is red on any hit, a failed build or a missing x11-dl config, and
+since it runs on the shipped binaries, a red check fails the Linux job, which then uploads no CLI archive. No secret, actions pinned by SHA, `permissions: contents: read`, `persist-credentials: false`
 (`check-workflows`).
 
 What the first run must settle: whether the hosted image exports any `PKG_CONFIG_*` variable (the environment step
@@ -535,7 +569,7 @@ fails then, and the release build must unset it); whether the remap leaves any `
 build script that embeds an absolute path through `include!` or `env!`); whether any crate hard-codes
 `/usr/lib/x86_64-linux-gnu` or an `/opt/` path as a run-time search path (a legitimate hit would need a reviewed
 exception in `ALLOWED_STRINGS`, not a weaker pattern); that no `NEEDED` entry names a library of the deny-list;
-and the job's cold build time against its 90-minute limit.
+and the job's cold build time against its 120-minute limit.
 
 Locally (Linux; the script is not executable, so it runs through `bash`; without the remap the scan fails on the
 registry paths under `/home/`):
@@ -861,7 +895,8 @@ These settings cannot be committed; a repository owner applies them under Settin
 - Require status checks to pass before merging, with these required checks: `lint`, `test-linux`,
   `test-linux-default`, `test-windows-build`, `test-windows-1`, `test-windows-2`, `test-windows-3`, `supply-chain`, `legal-docs`, `docs-diagrams`, `docs-book`. Require branches to be up to
   date before merging. `headless` and `verapdf` (cycle 18) are not on the list until three runs on `main` are
-  green; then add them (the owner decides, because they pull images from Docker Hub; decision log ID-460, FT-325). `coverage` is a weekly
+  green; then add them (the owner decides, because they pull images from Docker Hub; decision log ID-460, FT-325). `c-only` (WP-S6.06, cycle 49) is not on the list either: making it a
+  required check is the owner's (ID-1251). `coverage` is a weekly
   report and is never a required check.
 - Block force pushes and deletions; no direct pushes (changes land through pull requests only, administrators
   included).
