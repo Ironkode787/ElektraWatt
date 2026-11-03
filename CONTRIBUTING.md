@@ -109,7 +109,8 @@ Beside these, a commit may carry `Co-Authored-By:`, `Signed-off-by:` and `Assist
 below). Any other key is unknown; `Claude-Session:` is one of them and is refused.
 
 No trailer is required otherwise. `cargo xtask check-trailers --range <a>..<b>` refuses an unknown key, a malformed
-value, an ID or path that does not exist at that commit and a change of `golden/**` without `Golden:`; CI runs it on
+value, an ID or path that does not exist at that commit, a change of `golden/**` without `Golden:` and a record line
+above a blank line, outside the trailer block (git then drops it from the trailers); CI runs it on
 pull requests. `cargo xtask records` generates [`docs/plan/records.md`](docs/plan/records.md), the decision index and
 the open follow-up tasks, from the two files and the trailers.
 

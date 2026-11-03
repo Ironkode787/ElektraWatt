@@ -8,8 +8,10 @@
 //! `docs/plan/decisions.md` and `docs/plan/follow-ups.md`; `cargo xtask records` generates the lists from them. This
 //! check refuses an unknown trailer key, a malformed value, a decision ID that neither the decision log nor
 //! `decisions.md` holds, an `FT-Opens` ID that `follow-ups.md` lacks, an `FT-Closes` ID that neither FT source holds,
-//! a `Spec` path that does not exist and a commit that changes `golden/**` without `Golden:`. Every file is read at
-//! the commit itself, not at the range's tip. No trailer is required otherwise. It only reads the history.
+//! a `Spec` path that does not exist, a commit that changes `golden/**` without `Golden:`, and a record line in the
+//! body outside git's parsed trailer block (a blank line above the last trailers splits the block, so the records
+//! lose the link; FT-1104). Every file is read at the commit itself, not at the range's tip. No trailer is required
+//! otherwise. It only reads the history.
 
 use std::collections::BTreeSet;
 use std::fmt;
@@ -44,13 +46,15 @@ pub(crate) struct Commit {
     pub sha: String,
     /// First line of the message.
     pub subject: String,
+    /// The whole message (`%B`), the subject included.
+    pub body: String,
     /// `(key, value)` per trailer line, in order, both trimmed.
     pub trailers: Vec<(String, String)>,
 }
 
 /// The non-merge commits of `range` in `repo`, newest first, with their trailers.
 pub(crate) fn commits(repo: &Path, range: &str) -> Result<Vec<Commit>> {
-    let fields = ["%H", "%s", "%(trailers:only,unfold)"];
+    let fields = ["%H", "%s", "%B", "%(trailers:only,unfold)"];
     Ok(crate::dco::log_fields(repo, range, &fields)?
         .into_iter()
         .map(|mut f| {
@@ -64,11 +68,58 @@ pub(crate) fn commits(repo: &Path, range: &str) -> Result<Vec<Commit>> {
                 .collect();
             Commit {
                 trailers,
+                body: f.pop().unwrap_or_default(),
                 subject: f.pop().unwrap_or_default(),
                 sha: f.pop().unwrap_or_default(),
             }
         })
         .collect())
+}
+
+/// The lines of the message that start with a record key and a colon (`Decision:` ...) but stand outside the trailer
+/// block git parsed: all of them when git found no block, else those above the last paragraph (the block is the last
+/// paragraph of the message).
+fn outside_block_lines(c: &Commit) -> Vec<&str> {
+    let lines: Vec<&str> = c.body.lines().collect();
+    let end = lines
+        .iter()
+        .rposition(|l| !l.trim().is_empty())
+        .map_or(0, |i| i + 1);
+    let block = if c.trailers.is_empty() {
+        end
+    } else {
+        lines[..end]
+            .iter()
+            .rposition(|l| l.trim().is_empty())
+            .map_or(0, |i| i + 1)
+    };
+    lines[..block]
+        .iter()
+        .copied()
+        .filter(|l| l.split_once(':').is_some_and(|(k, _)| record_key(k).is_some()))
+        .collect()
+}
+
+/// The refusal of a record line outside the trailer block.
+fn outside_block_problem(line: &str) -> String {
+    format!(
+        "`{}` stands outside the commit's trailer block (keep every trailer in the last paragraph, with no blank line \
+         between them)",
+        line.trim_end()
+    )
+}
+
+/// One line per record line outside the trailer block in `commits`, worded as [`check`] words its problems.
+pub(crate) fn outside_block(commits: &[Commit]) -> Vec<String> {
+    commits
+        .iter()
+        .flat_map(|c| {
+            let s = short(&c.sha);
+            outside_block_lines(c)
+                .into_iter()
+                .map(move |l| format!("{s} {}: {} (at {s})", c.subject, outside_block_problem(l)))
+        })
+        .collect()
 }
 
 /// The canonical spelling of a record key (case-insensitive), or `None`.
@@ -260,6 +311,7 @@ fn check_commit(repo: &Path, c: &Commit) -> Result<Vec<String>> {
     let mut problems = Vec::new();
     let mut facts: Option<Facts> = None;
     let mut golden = false;
+    problems.extend(outside_block_lines(c).into_iter().map(outside_block_problem));
     for (key, value) in &c.trailers {
         if OTHER_KEYS.iter().any(|k| k.eq_ignore_ascii_case(key)) {
             continue;
@@ -466,6 +518,54 @@ pub(crate) mod tests {
         assert_eq!(parse_ref("ID-1234567890"), None);
         assert_eq!(Ref { kind: Kind::Ft, n: 1 }.to_string(), "FT-01");
         assert_eq!(record_key("ft-closes"), Some(FT_CLOSES));
+    }
+
+    /// FT-1104: a record line above a blank line stands outside git's trailer block and is refused (a trailer line of
+    /// the block, or a prose line that is no record key, is not); lane-check's trailers step reads the same lines.
+    #[test]
+    fn a_record_line_outside_the_trailer_block_is_refused() {
+        let r = TempRepo::new("trailers-outside");
+        let base = r.commit(
+            &[
+                (
+                    records::DECISION_LOG,
+                    "# Log\n\n| # | Decision |\n|---|---|\n| ID-1 | One. |\n",
+                ),
+                (records::DECISIONS, "# Decisions\n\n- ID-2 (cycle 4): Two.\n"),
+            ],
+            "docs: base",
+        );
+        let inside = r.commit(
+            &[("a.txt", "1\n")],
+            "feat: inside\n\nA note: not a record.\n\nDecision: ID-1\nDecision: ID-2",
+        );
+        let split = r.commit(
+            &[("a.txt", "2\n")],
+            "feat: split\n\nDecision: ID-1\n\nCo-Authored-By: X <x>",
+        );
+        let none = r.commit(
+            &[("a.txt", "3\n")],
+            "feat: none\n\nFT-Closes: FT-1\n\nand some prose",
+        );
+        let all = commits(&r.dir, &format!("{base}..HEAD")).unwrap();
+        let (split, none) = (short(&split).to_owned(), short(&none).to_owned());
+        let expected = vec![
+            format!(
+                "{none} feat: none: `FT-Closes: FT-1` stands outside the commit's trailer block (keep every trailer in \
+                 the last paragraph, with no blank line between them) (at {none})"
+            ),
+            format!(
+                "{split} feat: split: `Decision: ID-1` stands outside the commit's trailer block (keep every trailer in \
+                 the last paragraph, with no blank line between them) (at {split})"
+            ),
+        ];
+        assert_eq!(outside_block(&all), expected);
+        assert_eq!(check(&r.dir, &all).unwrap(), expected);
+        // The same line inside the block passes.
+        assert_eq!(
+            check(&r.dir, &commits(&r.dir, &format!("{base}..{inside}")).unwrap()).unwrap(),
+            Vec::<String>::new()
+        );
     }
 
     /// Every refusal, each in its own commit; the IDs are read at the commit, not at the tip.

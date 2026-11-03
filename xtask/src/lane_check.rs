@@ -41,12 +41,13 @@
 //!      directory and on any changed file that mentions `--test`; `map --check` (the shared-list markers) on any
 //!      changed `.rs` file, `Cargo.toml` or `ci/dep-rules.toml`; `api-guard --base <rev>` when one of
 //!      [`API_SNAPSHOTS`] changed (FT-1007).
-//!   7. `trailers`: with `--trailers "<Key>: <items>"` (repeatable; the items separated by commas), in-process over
-//!      the non-merge commits of `<merge base>..HEAD` ([`trailers::commits`]): it passes when every item appears among
-//!      the comma-separated items of a trailer of its key (in any case) in some commit of the range, whole or as the
-//!      first word of one (`Golden: ID-n <reason>`), and else fails naming each missing pair once, in the order
-//!      given: `FAILED (missing: Decision: ID-1083; FT-Closes: FT-231)` ([`missing_trailers`]). Without
-//!      `--trailers` it is `skipped (no --trailers)`.
+//!   7. `trailers`: in-process over the non-merge commits of `<merge base>..HEAD` ([`trailers::commits`]). It fails
+//!      on each record line of a commit's message that stands outside git's trailer block ([`trailers::outside_block`],
+//!      FT-1104), with or without `--trailers`. With `--trailers "<Key>: <items>"` (repeatable; the items separated by
+//!      commas) it also passes only when every item appears among the comma-separated items of a trailer of its key
+//!      (in any case) in some commit of the range, whole or as the first word of one (`Golden: ID-n <reason>`), and
+//!      else fails naming each missing pair once, in the order given: `FAILED (missing: Decision: ID-1083;
+//!      FT-Closes: FT-231)` ([`missing_trailers`]).
 //!   8. `fuzz`: `cargo check` of the fuzz workspace, when `crates/ew-testkit/tests/command_fuzz/**`, `fuzz/**` or the
 //!      `Cargo.toml` of a crate in a fuzz target's closure (`ci/fuzz-smoke-targets.toml`) changed.
 //! - **A rewrite stops the run** (ID-1103, [`run_steps`]). Once fmt or settle changed the worktree, whether it passed
@@ -177,19 +178,28 @@ pub(crate) fn missing_trailers(wanted: &[Wanted], commits: &[Commit]) -> Vec<Str
     out
 }
 
-/// The trailers step's status and reason from the pairs it found missing ([`missing_trailers`]).
-fn trailers_status(missing: &[String]) -> (&'static str, Option<String>) {
-    if missing.is_empty() {
+/// The trailers step's status and reason from the record lines it found outside a trailer block
+/// ([`trailers::outside_block`]) and the pairs it found missing ([`missing_trailers`]).
+fn trailers_status(outside: &[String], missing: &[String]) -> (&'static str, Option<String>) {
+    let mut why: Vec<String> = outside.to_vec();
+    if !missing.is_empty() {
+        why.push(format!("missing: {}", missing.join("; ")));
+    }
+    if why.is_empty() {
         ("ok", None)
     } else {
-        ("FAILED", Some(format!("missing: {}", missing.join("; "))))
+        ("FAILED", Some(why.join("; ")))
     }
 }
 
 /// What the trailers step checks, as the plan prints it.
 fn trailers_text(wanted: &[Wanted]) -> String {
-    let wanted: Vec<String> = wanted.iter().map(ToString::to_string).collect();
-    format!("the commits since the merge base carry {}", wanted.join("; "))
+    let mut text = "the commits since the merge base keep their record lines in the trailer block".to_owned();
+    if !wanted.is_empty() {
+        let wanted: Vec<String> = wanted.iter().map(ToString::to_string).collect();
+        text.push_str(&format!(" and carry {}", wanted.join("; ")));
+    }
+    text
 }
 
 /// The table of the fuzz targets and their path-dependency closures.
@@ -778,11 +788,8 @@ pub(crate) fn plan(
         },
         StepPlan {
             name: "trailers",
-            run: if wanted.is_empty() {
-                StepRun::Skip("no --trailers".to_owned())
-            } else {
-                StepRun::Trailers(wanted.to_vec())
-            },
+            // FT-1104: runs without `--trailers` too, for the record lines outside the trailer block.
+            run: StepRun::Trailers(wanted.to_vec()),
         },
         StepPlan {
             name: "fuzz",
@@ -1652,7 +1659,10 @@ pub(crate) fn run(args: &[String], root: &Path) -> Result<bool> {
             StepRun::Trailers(wanted) => {
                 let start = Instant::now();
                 let (status, why) = match trailers::commits(root, &format!("{merge_base}..HEAD")) {
-                    Ok(commits) => trailers_status(&missing_trailers(wanted, &commits)),
+                    Ok(commits) => trailers_status(
+                        &trailers::outside_block(&commits),
+                        &missing_trailers(wanted, &commits),
+                    ),
                     Err(e) => (
                         "FAILED",
                         Some(format!("could not read the commits since the merge base: {e:#}")),
@@ -1850,7 +1860,7 @@ mod tests {
                 "doc: skipped (no crate in the diff)",
                 "nextest: skipped (no crate in the diff)",
                 "policy: skipped (no trigger)",
-                "trailers: skipped (no --trailers)",
+                "trailers: the commits since the merge base keep their record lines in the trailer block",
                 "fuzz: skipped (no trigger)",
             ]
         );
@@ -1876,7 +1886,7 @@ mod tests {
                 "policy: cargo xtask check-raw-read",
                 "policy: cargo xtask check-disallowed-methods",
                 "policy: cargo xtask map --check",
-                "trailers: skipped (no --trailers)",
+                "trailers: the commits since the merge base keep their record lines in the trailer block",
                 "fuzz: skipped (no trigger)",
             ]
         );
@@ -1938,7 +1948,7 @@ mod tests {
                 "policy: cargo xtask map --check",
                 "policy: cargo deny --locked check",
                 "policy: cargo vet --locked",
-                "trailers: skipped (no --trailers)",
+                "trailers: the commits since the merge base keep their record lines in the trailer block",
                 "fuzz: skipped (no trigger)",
             ]
         );
@@ -1968,7 +1978,7 @@ mod tests {
                 "policy: cargo xtask check-disallowed-methods",
                 "policy: cargo xtask check-test-layout",
                 "policy: cargo xtask map --check",
-                "trailers: skipped (no --trailers)",
+                "trailers: the commits since the merge base keep their record lines in the trailer block",
                 "fuzz: skipped (no trigger)",
             ]
         );
@@ -1996,7 +2006,7 @@ mod tests {
                 "policy: cargo xtask check-disallowed-methods",
                 "policy: cargo xtask check-test-layout",
                 "policy: cargo xtask map --check",
-                "trailers: skipped (no --trailers)",
+                "trailers: the commits since the merge base keep their record lines in the trailer block",
                 "fuzz: cargo check --manifest-path fuzz/Cargo.toml --all-targets --locked",
             ]
         );
@@ -2014,7 +2024,7 @@ mod tests {
                 "nextest: FAILED (workspace-wide files changed: Cargo.lock; name the packages they reach with -p)",
                 "policy: cargo deny --locked check",
                 "policy: cargo vet --locked",
-                "trailers: skipped (no --trailers)",
+                "trailers: the commits since the merge base keep their record lines in the trailer block",
                 "fuzz: skipped (no trigger)",
             ]
         );
@@ -2559,6 +2569,7 @@ mod tests {
         Commit {
             sha: sha.to_owned(),
             subject: "feat: x".to_owned(),
+            body: String::new(),
             trailers: trailers
                 .iter()
                 .map(|(k, v)| ((*k).to_owned(), (*v).to_owned()))
@@ -2610,7 +2621,7 @@ mod tests {
         );
         assert_eq!(missing, ["Decision: FT-230", "FT-Closes: FT-231"]);
         let failed = |missing: &[String]| {
-            let (status, why) = trailers_status(missing);
+            let (status, why) = trailers_status(&[], missing);
             Outcome {
                 why,
                 ..outcome("trailers", status)
@@ -2624,6 +2635,12 @@ mod tests {
             "lane-check: trailers: FAILED (missing: Decision: ID-1083; FT-Closes: FT-231)"
         );
         assert_eq!(summary_line(&failed(&[])), "lane-check: trailers: ok");
+        // FT-1104: a record line outside the trailer block fails the step, with or without wanted items.
+        let (status, why) = trailers_status(&["a1 feat: x: `Decision: ID-1` stands outside".to_owned()], &[]);
+        assert_eq!(
+            (status, why.as_deref()),
+            ("FAILED", Some("a1 feat: x: `Decision: ID-1` stands outside"))
+        );
         // No commit in the range: every item is missing.
         assert_eq!(
             missing_trailers(&[wanted("Decision", &["ID-1103"])], &[]),
@@ -2631,11 +2648,15 @@ mod tests {
         );
     }
 
-    /// ID-1103: the trailers step's plan lines: skipped without `--trailers`, else what it checks.
+    /// ID-1103, FT-1104: the trailers step's plan lines: the record-line check without `--trailers`, else it and what the
+    /// commits must carry.
     #[test]
     fn the_trailers_step_in_the_plan() {
         let d = diff(&["docs/x.md"], &[]);
-        assert_eq!(lines(&d)[6], "trailers: skipped (no --trailers)");
+        assert_eq!(
+            lines(&d)[6],
+            "trailers: the commits since the merge base keep their record lines in the trailer block"
+        );
         let wanted = [
             Wanted {
                 key: "Decision".to_owned(),
@@ -2649,7 +2670,8 @@ mod tests {
         let p = plan(&d, &members(), &BTreeSet::new(), BASE, &BTreeSet::new(), &wanted);
         assert_eq!(
             p.lines()[6],
-            "trailers: the commits since the merge base carry Decision: ID-1103, ID-1104; FT-Closes: FT-231"
+            "trailers: the commits since the merge base keep their record lines in the trailer block and carry Decision: \
+             ID-1103, ID-1104; FT-Closes: FT-231"
         );
     }
 
