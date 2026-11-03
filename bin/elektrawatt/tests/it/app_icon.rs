@@ -10,8 +10,14 @@ use ew_render_cpu::ew_dl::ew_units::{Nm, Pt2, Rect};
 use ew_render_cpu::ew_dl::{Color, DisplayList, FontKey};
 use ew_render_cpu::{FontBytes, RenderOptions, SheetSize};
 
-const SVG: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../assets/icons/app/elektrawatt.svg");
-const PNG: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../assets/icons/app/elektrawatt.png");
+const SVG: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../../assets/icons/app/elektrawatt.svg"
+);
+const PNG: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../../assets/icons/app/elektrawatt.png"
+);
 
 /// The icon's side: 256 pixels at 254 dpi, one pixel 0.1 mm.
 const SIDE: Nm = Nm(25_600_000);
@@ -47,7 +53,8 @@ fn render() -> Vec<u8> {
         width: SIDE,
         height: SIDE,
     };
-    let (image, report) = ew_render_cpu::render(&list, sheet, &options, &NoFonts, None).expect("256 × 256 pixels");
+    let (image, report) =
+        ew_render_cpu::render(&list, sheet, &options, &NoFonts, None).expect("256 × 256 pixels");
     assert_eq!((image.width, image.height), (256, 256));
     assert_eq!(report, ew_render_cpu::RenderReport::default());
     // The rounded square leaves the corners transparent; its middle is the accent, volt-600.
