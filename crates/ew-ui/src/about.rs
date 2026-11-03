@@ -97,8 +97,15 @@ fn name_field(
 }
 
 /// Paints the open dialog, if any, in the dialog frame of WP-S2.17 part 4 ([`crate::dialog`]): the specification's
-/// title, body and buttons, with each dialog's own content between the body and the footer.
-pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: &mut Vec<Event>) {
+/// title, body and buttons, with each dialog's own content between the body and the footer. `form_key`: the frame
+/// took Ctrl+Enter for a form dialog, which submits it as Enter in its text field does (ID-1276 ruling 2).
+pub fn show(
+    ctx: &egui::Context,
+    shell: &ShellModel,
+    just_opened: bool,
+    form_key: bool,
+    events: &mut Vec<Event>,
+) {
     let Some(d) = shell.dialog() else {
         return;
     };
@@ -258,6 +265,7 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
         }
     });
     let mut clicked = clicked.or(link_clicked);
+    submit |= form_key && matches!(d, Dialog::Form(_));
     // WP-S1.18 part 5: Enter in a revision dialog presses its Primary (Approve, Set author, Withdraw; Cancel in
     // Release, whose step is the destructive button), never a plain form submit.
     if submit

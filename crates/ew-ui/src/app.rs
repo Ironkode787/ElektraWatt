@@ -791,6 +791,11 @@ impl App {
 
         let mut events: Vec<Event> = Vec::new();
         self.properties.begin_frame();
+        // ID-1276 ruling 2: Ctrl+Enter submits a form dialog from any focus. The form takes the key before the keymap
+        // and the panes under it, so their Ctrl+Enter (`canvas.activate_alt`, `preview.apply`, `find.replace_all`)
+        // does not fire.
+        let form_key = matches!(self.shell.dialog(), Some(ew_viewmodel::shell::Dialog::Form(_)))
+            && ctx.input_mut(|i| i.consume_key(Modifiers::COMMAND, Key::Enter));
         self.route_keys(&ctx, &mut events);
         // Cycle 38 (window check W38): while the picker is open it owns the keyboard. The panes paint before it and
         // a focused one (the navigator's type-ahead, a Properties row, the canvas) would take the frame's keys and
@@ -1067,6 +1072,7 @@ impl App {
             &ctx,
             &self.shell,
             dialog_open && !self.dialog_was_open,
+            form_key,
             &mut events,
         );
         self.dialog_was_open = dialog_open;

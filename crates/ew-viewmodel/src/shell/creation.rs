@@ -404,7 +404,8 @@ impl ShellModel {
     }
 
     /// Enter in the creation dialog (or its Create button): the dialog's action with its non-empty fields as parameters
-    /// (and its table's rows, FT-786). A refusal stays in the dialog; success closes it.
+    /// (and its table's rows, FT-786). A refusal stays in the dialog, its reason shown in the form (ID-1276 ruling 7);
+    /// success closes it.
     pub fn submit_form(&mut self) -> Outcome {
         let Some(Dialog::Form(form)) = &self.dialog else {
             return Outcome::Done;
@@ -420,6 +421,13 @@ impl ShellModel {
             params.insert(table.name.to_owned(), table.param());
         }
         let out = self.dispatch(action, &Value::Object(params));
+        // W49.1-A: a refused submit says why under the fields, as a failed one does.
+        if let Outcome::Refused { reason_key } = &out
+            && let Some(Dialog::Form(f)) = &mut self.dialog
+            && f.action == action
+        {
+            f.error = Some(strings::text(*reason_key).to_owned());
+        }
         // The project closed under the open dialog: nothing is left to create in.
         if matches!(out, Outcome::Refused { .. }) && !self.has_project() {
             self.dialog = None;
