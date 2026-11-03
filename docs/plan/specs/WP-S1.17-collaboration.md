@@ -8,7 +8,7 @@ external change in the store and the session (1.1 pw, D20 to D23), part 7 the wi
 status (0.8 pw, D24, D25), part 8 `ew diff`, `ew git setup`, the post-merge integrity and AC-41 (0.9 pw, D26 to D29).
 The parts sum to **7.4 pw plus 0.3 pw reserve** against a 6.8 pw PERT (O1) · **Amended in cycle 42** (decision log ID-1029, the owner's format decision): part 3, D4 and D3's `unstable` marker move to the wave before the first release, beside WP-S6.08; the PERT is 6.9 pw; format parts route at `high`, a save, a journal, recovery or a merge at `xhigh` (§16) · **Date:** 2026-10-31 · **Work package:**
 [WP-S1.17](../02-work-packages.md#wp-s117-collaboration-external-change-migrations-integrity-merge-driver) ·
-**Decision log:** ID-1015; amended by ID-1029; part 1 ruled by ID-1115, its fixes by ID-1144; part 2 ruled by ID-1175; `fmt --repair` ruled by ID-1185, its backup by ID-1186; as built ID-1152, ID-1156 (part 1), ID-1191, ID-1195 (part 2), ID-1196, ID-1200 (`fmt --repair`) · **Part of:** ElektraWatt plan, specifications
+**Decision log:** ID-1015; amended by ID-1029; part 1 ruled by ID-1115, its fixes by ID-1144; part 2 ruled by ID-1175; part 3 ruled by ID-1221; `fmt --repair` ruled by ID-1185, its backup by ID-1186; as built ID-1152, ID-1156 (part 1), ID-1191, ID-1195 (part 2), ID-1196, ID-1200 (`fmt --repair`) · **Part of:** ElektraWatt plan, specifications
 
 **Purpose.** WP-S1.09 built the canonical format, the save protocol, the lock, the journal and recovery, and left to
 this package everything that happens when a project changes outside the running session or between builds: a pull
@@ -482,6 +482,79 @@ incomplete at its commit point, and `discarded` and `files` then say what the re
 - **MG-6** `cargo xtask check-format` passes at the base and fails on an injected released list without a step; a
   fragment of the test format pastes through the test chain (FT-403).
 - **MG-7** Targeted checks for `ew-format`, `ew-store`, `ew-api`, `ew-commands`, `ew`, `xtask`.
+
+**Rulings at dispatch (ID-1221, cycle 48; facts at `9d5150ba`).** They amend D10 to D12, MG-1, MG-5, MG-6 and §14.1
+for this part.
+1. **Scope.** D10 to D12, FT-403 and FT-95's `unstable` marker; D4 (FT-96) gets its own lane. No window change: D11's
+   banner, the consent dialog and the `openerr-migration` text ("it needs a migration", which now means a step
+   failed) are part 7's, and the lane opens that row. `SaveError::UpgradeConsent` reaches the window's existing
+   `saveerr-other` (`crates/ew-viewmodel/src/shell.rs:658`); no shipped build gets there while the shipped chain is
+   empty.
+2. **The chain** (`crates/ew-format/src/migrate.rs`, new). `Migrations` holds kind steps (a kind, its `$v` n, a step on
+   the `Value` to n + 1) and format steps (from one format to the next: a step on the manifest's `Value` and one on
+   each record's), as D10 and ADR-0011 say; the shipped `Migrations` is empty; steps are never deleted. A step's error
+   carries the file's path and the JSON Pointer. The loader gains an entry point that takes the source format and the
+   chain; `load` (`crates/ew-format/src/read.rs:279`) and its callers stay. Steps run between the `Value` and the
+   typed parse (`read.rs:637-643` for records, `:804-814` for library documents), only on an `Access::Migrate` open
+   (ADR-0011 decision 3: a `$v` bump comes only with a major). A record or library document whose `$v` is below its
+   kind's with no step, or a format with no step towards `FORMAT`, refuses the open with `OpenError::Migration`
+   (MG-2), never a quarantine. A migrated record kept whole (`Kept::Untouched`, `Kept::Quarantined`, `KeptDocument`,
+   `read.rs:657`, `:705`, `:734-739`, `:899-903`) is written from its migrated `Value`, never from its old text.
+3. **The test chain's numbers.** Every shipped kind is at `$v` 1 (`crates/ew-schema/src/kind.rs:390-427`), so MG-1's
+   kind step goes from `$v` 0 to 1: the `"0.0"` fixture writes `"$v": 0` under the member's old name, and the migrated
+   record is written without `$v`. The format step from `"0.0"` to `"0.1"` changes a manifest member. `"0.0"` opens
+   through `Access::Migrate`, since `same_major` treats each `0.x` as its own major
+   (`crates/ew-format/src/version.rs:39-41`, `:97-98`); the fixture's `min_reader` is at most `"0.1"`.
+4. **Open and save.** `StoreOptions` gains `migrations: &'static Migrations` and `released: &'static [&'static str]`
+   (`StoreOptions::new` sets the shipped chain and `RELEASED_FORMATS`, `crates/ew-store/src/store.rs:100-114`;
+   `Migrations` derives `Debug`). The refusal at `store.rs:1044` becomes the migration; `OpenError::Migration` carries
+   the step's error and its text names the file and the pointer. MG-1's "every migrated file" reads: every file whose
+   records' or document's `Value` a step changed, compared value by value; the loader names those files apart from
+   its rewrite set, with no `NonCanonical` finding for them. The store keeps the manifest as found (`store.rs:1227`,
+   for the backup and for `manifest_same`, `:1840-1853`); the save applies the manifest step to the manifest it
+   writes, its `extra` included (`:1824`), and a migrated store saves its manifest even when no record file changed.
+   `OpenReport` gains `migrated_from: Option<String>`.
+5. **Consent and the backup.** `ew-store`: `save_inner` returns `SaveError::UpgradeConsent { from }` while the store was
+   migrated and not confirmed, so every writer meets it (purge, release, `ew fmt --repair`, the CLI's writers);
+   `Store::confirm_upgrade()` lifts it; its text names `ew upgrade`. `ew-api`: `Session::confirm_upgrade()` records
+   the consent in memory; the next `Session::save` writes the backup, then confirms the store, then saves; a session
+   closed before that writes nothing and the next open asks again (MG-4). The backup is `ewz::pack_as_found`
+   (`crates/ew-store/src/ewz.rs:489`), which packs the manifest's bytes as read (kept by the store) instead of
+   `to_text()` (`ewz.rs:517`), so it extracts byte-equal (MG-3). It is written by `ew_api::fmt`'s `write_backup`
+   (`crates/ew-api/src/fmt.rs:560`, made `pub(crate)`) as `<dir name>.pre-<from>.ewz` beside the project; the caller
+   moves on to `-2`, `-3`, and so on, past a name that holds other bytes (`RepairError::BackupTaken`, `:568-572`), and
+   reuses one that holds the same. A failed backup refuses the save as `SaveError::Failed` with a new
+   `SaveStep::Backup` (`store.rs:321-332`), nothing of the project written. `ew fmt --repair` behaves as before.
+6. **`ew upgrade <project> [--check] [--yes]`**, no `--json` in this part. `--check` is a reader (no lock; Golden A is
+   read only): exit 1 when a migration is needed, 0 when not, 2 on errors. Without `--check`: nothing to do exits 0;
+   otherwise `--yes`, or the word `upgrade` typed on a controlling terminal through `typed_word`
+   (`bin/ew/src/cli.rs:2349`) as `recover` asks (`bin/ew/src/cli/project_files.rs:20`, `:491-497`), confirms, saves
+   and prints the backup's path; not confirmed exits 1 ("not confirmed; nothing was changed"); no terminal and no
+   `--yes` exits 2 with a refusal naming `ew upgrade`. `--yes` exists on this command alone: the backup makes the
+   step undoable, while `recover` and `checks set` keep nothing (`bin/ew/src/cli/tree.rs:147`). The catalogue gets
+   its row; `bin/ew/api/cli.json` is blessed as `catalogue.rs:638-639` says. The other CLI writers print the save
+   error as they do today; the row of ruling 1 covers their text.
+7. **`unstable` (FT-95).** A save writes `unstable: true` when `released` is not empty and does not hold the format it
+   writes (`FORMAT`, or the old one under `keep_format`, `store.rs:1813-1822`); with `RELEASED_FORMATS` empty nothing
+   changes. Tests inject `released`.
+8. **The steward check is a test, not `cargo xtask check-format`** (amends D12 and MG-6): xtask builds against no
+   product crate (`xtask/Cargo.toml`), its policy checks build nothing (ID-1217), and the rule needs the chain.
+   `ew-format` gains a function returning D12's problems for a released list, a format, a chain and the corpus root
+   (a missing corpus folder for a released format among them); unit tests inject the lists, and a test in `ew-store`
+   runs it on the shipped constants and the repository. `schemas/<FORMAT>/` stays guarded by
+   `crates/ew-schema/tests/it/schemas.rs:16-63`. The corpus job is a test that opens, saves and compares each
+   `fixtures/format/<format>/<project>/` with `<project>.expected/`, passing while the folder is absent; WP-S6.08 adds
+   the folder with its `REUSE.toml` and licence-map lines.
+9. **FT-403** is `ew-api`'s (`parse_fragment`, `crates/ew-api/src/output/clipboard.rs:199`, not `ew-commands`): an
+   older header format (`:350-362`), an older record `$v` (`:271-286`) and the `$lib` copies (`:255-258`) migrate
+   through the shipped chain; the migrated header carries `FORMAT`, which the paste command checks
+   (`crates/ew-commands/src/commands/paste.rs:1001`); a variant taking a chain serves the test; what the chain cannot
+   reach keeps its refusal text (`clipboard.rs:360`).
+10. **Files** (amends §14.1 for this part): the new `migrate.rs`; `ew-format`'s `read.rs`, `lib.rs` and the manifest
+    code it needs; `ew-store`'s `store.rs` and `ewz.rs`; `ew-api`'s `lib.rs`, `fmt.rs` and `output/clipboard.rs`;
+    `bin/ew`'s `cli/tree.rs`, `cli.rs`, `cli/project_files.rs`, `catalogue.rs` and the blessed `bin/ew/api/cli.json`;
+    tests and fixtures under `crates/*/tests/` and `bin/ew/tests/`. No xtask file, no golden file, no string, no
+    `ew-viewmodel` file.
 
 ## 9. Part 4: the three-way merge core and `ew merge-driver`
 
