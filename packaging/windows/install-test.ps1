@@ -18,7 +18,8 @@
 #   install-test.ps1 again-and-uninstall -Setup <setup.exe> -Tree <staged tree> -Version <v>
 #       IN-13: a settings file and a keymap file in the user's settings folder (%APPDATA%\ElektraWatt, where the
 #       shell reads them), then the setup once more with `/S` over the installation (D9's upgrade: the old
-#       uninstaller first), the checks of IN-8 again, then the uninstall as Windows runs it (QuietUninstallString):
+#       uninstaller first), IN-8's checks of the installation (the folder, the shortcut and the entry; not the
+#       machine listing, which IN-13 does not ask for), then the uninstall as Windows runs it (QuietUninstallString):
 #       the folder, the shortcut and the entry are gone, the two files are the same bytes, and the firewall rules
 #       are still in force (IN-9: for the whole test).
 param(
@@ -73,15 +74,53 @@ function Assert-FirewallBlock {
     Write-Host "install-test: outbound blocked for $($programs -join ', ')"
 }
 
-# IN-8: the key names under HKLM\SOFTWARE and the file names under the Program Files folders.
+# IN-8: the key names under HKLM\SOFTWARE and the file names under the Program Files folders, each walked with an
+# explicit stack. Not `Get-ChildItem -Recurse -Name`: for `-Name` the engine recurses itself, one set of frames per
+# level, and asks the provider only whether a child is a container, so it can enter junctions and symbolic links; on
+# the hosted runner it ended in "call depth overflow" after 24 minutes (package.yml run 4). A reparse point is listed
+# but not entered. A key that refuses to open is listed without its subkeys, and the skipped keys are counted.
 function Get-MachineListing {
-    $keys = Get-ChildItem -LiteralPath 'HKLM:\SOFTWARE' -Recurse -Name -ErrorAction SilentlyContinue |
-        ForEach-Object { "HKLM\SOFTWARE\$_" }
-    $files = foreach ($folder in @($env:ProgramFiles, ${env:ProgramFiles(x86)})) {
-        Get-ChildItem -LiteralPath $folder -Recurse -Force -Name -ErrorAction SilentlyContinue |
-            ForEach-Object { Join-Path $folder $_ }
+    $names = [Collections.Generic.List[string]]::new()
+    $skippedKeys = 0
+    $hive = [Microsoft.Win32.RegistryKey]::OpenBaseKey('LocalMachine', 'Registry64')
+    $keys = [Collections.Generic.Stack[string]]::new()
+    $keys.Push('SOFTWARE')
+    while ($keys.Count -gt 0) {
+        $path = $keys.Pop()
+        $key = $null
+        try { $key = $hive.OpenSubKey($path) } catch { $key = $null }
+        if ($null -eq $key) { $skippedKeys++; continue }
+        try {
+            foreach ($child in $key.GetSubKeyNames()) {
+                $names.Add("HKLM\$path\$child")
+                $keys.Push("$path\$child")
+            }
+        } catch { $skippedKeys++ } finally { $key.Dispose() }
     }
-    @(@($keys) + @($files))
+    $hive.Dispose()
+    # Hidden and system entries count too, as `-Force` did; a folder that refuses to open reads as empty.
+    $options = [IO.EnumerationOptions]::new()
+    $options.AttributesToSkip = [IO.FileAttributes]0
+    $options.IgnoreInaccessible = $true
+    $skippedFolders = 0
+    $folders = [Collections.Generic.Stack[IO.DirectoryInfo]]::new()
+    foreach ($folder in @($env:ProgramFiles, ${env:ProgramFiles(x86)})) {
+        $folders.Push([IO.DirectoryInfo]::new($folder))
+    }
+    while ($folders.Count -gt 0) {
+        $folder = $folders.Pop()
+        try {
+            foreach ($entry in $folder.EnumerateFileSystemInfos('*', $options)) {
+                $names.Add($entry.FullName)
+                $link = $entry.Attributes.HasFlag([IO.FileAttributes]::ReparsePoint)
+                if ($entry -is [IO.DirectoryInfo] -and -not $link) {
+                    $folders.Push($entry)
+                }
+            }
+        } catch { $skippedFolders++ }
+    }
+    Write-Host "install-test: the listing skipped $skippedKeys keys and $skippedFolders folders that refused to open"
+    , $names.ToArray()
 }
 
 function Assert-SameListing([string[]]$Before, [string[]]$After) {
