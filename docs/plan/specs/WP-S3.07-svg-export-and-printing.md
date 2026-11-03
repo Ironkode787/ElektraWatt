@@ -326,6 +326,55 @@ dependency), `unsafe-allowlist.toml` (new), `xtask/src/` (the `check-unsafe` lin
   "scaled 71 %".
 - **WN-4** Targeted checks for `ew-print` on Windows, `xtask`; the Linux build unchanged (`cfg`).
 
+**Rulings at dispatch (ID-1218, cycle 48; facts at `55794b3f`).** They amend D12, WN-2, WN-3 and §10.1's part-4 files
+where they say so.
+1. **The bands.** `ew-render-cpu` gains `render_placed_band`: the device rows `y0 .. y0 + rows` of `render_placed`'s
+   image at the same options (the same transform translated by `-y0` rows, the full paper width), so D7's rule stays in
+   one crate and `render_placed` is unchanged; `render_region` (its width capped at 4096) does not serve. The overlay
+   pass takes the same translation. WN-2 is its test in `ew-render-cpu` at 300 dpi on a placed page with a fit below
+   100 % and an overlay: the bands of 256 rows stacked equal `render_placed`'s image, every pixel within one level per
+   channel (a translated coordinate can round an edge's coverage differently; `render_region`'s doc says as much), and
+   the report gives the count of pixels that differ at all. A larger difference is a stop, reported with its probe.
+   The part-4 files gain `crates/ew-render-cpu/src/render.rs` (the one function) and its test.
+2. **Monochrome** (D6): with `PrintJob::monochrome` the bands are rendered from the lists `ew_render_cpu::monochrome`
+   gives, the greying the PDF uses; the driver's colour setting is left as it is.
+3. **The device.** The bands render at the lower of `GetDeviceCaps`' `LOGPIXELSX` and `LOGPIXELSY`, their rows counted
+   at that DPI, and `StretchDIBits` stretches each band to its device rectangle. The placement's offset is from the
+   paper's corner, so the adapter subtracts `PHYSICALOFFSETX` and `PHYSICALOFFSETY`. Each page asks for its paper and
+   orientation by `ResetDCW` before `StartPage` (DEVMODE's `dmPaperSize` for D6's named sizes, else `dmPaperWidth` and
+   `dmPaperLength` in 0.1 mm); what a driver makes of the request is the driver's.
+4. **Choosing the adapter.** `Chain::system()` on Windows is the Windows adapter, then the viewer, with D11's one notice
+   on a fallback. In `ew print`, `--via windows` is built and is the default on Windows; `--printer` works with it
+   (`CreateDCW`, no dialog), and without `--printer` it shows the dialog; a cancelled dialog is
+   `PrintError::Cancelled`; on other systems `--via windows` is refused in words. `PrintError::PrinterWithViewer` reads
+   "`--printer` needs `--via lp` or `--via windows`; with the viewer, choose the printer in its print dialog", with
+   `--printer`'s help. The part-4 files gain these lines of `bin/ew/src/cli.rs`, `bin/ew/src/cli/tree.rs`,
+   `crates/ew-print/src/lib.rs`, `bin/elektrawatt/src/main.rs` and the tests that assert the old texts or defaults.
+5. **The dialog's owner.** `PrintDlgExW` needs a window handle, and eframe gives none without a new crate (a stop,
+   §10.2 item 1). The adapter takes the foreground window, which is the window the user just chose Print… in or the
+   terminal that ran `ew print`, else the desktop window. D12's `windows` features gain
+   `Win32_UI_WindowsAndMessaging`, and `Win32_System_Com` if the dialog needs COM on its thread.
+6. **The lint** (`cargo xtask check-unsafe`, doc 18 §11.2). A crate complies when its root has `#![forbid(unsafe_code)]`
+   or its `[lints]` is `workspace = true` (the workspace forbids it, which covers `ew-hack`, `ew-testdir` and
+   `ew-testids`); any other crate must be listed in `unsafe-allowlist.toml`, and the `unsafe` keyword (a block, fn, impl
+   or trait) may stand only in a listed file; comments and strings do not count. `ew-print`'s root becomes
+   `#![deny(unsafe_code)]`, and its `Cargo.toml` copies the workspace's lint set with `unsafe_code = "deny"`. The lint
+   runs in `cargo xtask ci`'s checks, in lane-check's policy step when a `.rs` file or a `Cargo.toml` changes, and in
+   CI's lint job. This amends doc 18 §11.2's default: the workspace's lint counts as the crate's `forbid`. The `SAFETY:`
+   comments are clippy's `undocumented_unsafe_blocks` (an error under `-D warnings`), which the lint does not repeat; the
+   second maintainer's review is the cycle reviewer's (owner, 2026-10-31).
+7. **WN-3 automated where it can be.** A Windows-only test in `ew-print` prints four placed test pages through the
+   adapter to "Microsoft Print to PDF" with DOCINFO's output file set (a crate-private constructor), so no dialog
+   opens, and finds four pages in the written PDF; when that printer's device context cannot be created, it prints a
+   skip line naming the reason and passes. The dialog paths, from `ew print` and from the window, stay manual and are
+   reported as not proven.
+8. **The fonts.** `render_placed` needs a font resolver, which `PrintJob` lacks and `ew-print` may not reach (no edge to
+   `ew-text`). `PrintJob` gains the font map, `ew-render-cpu`'s `BTreeMap<FontKey, FontBytes>` (it implements
+   `FontResolver`), filled by its callers from `ew_api::output::font_bytes()`; the geometry resolver is `None`, since a
+   print page's instances are inlined. `FontBytes` may gain `Debug` for `PrintJob`'s derive.
+9. **No cancel between bands in part 4.** `PrintAdapter::print` carries no cancel signal; the dialog's Cancel is the
+   cancel. D12's "cancel between bands" becomes a proposed row.
+
 ## 9. Neighbours and who owns what
 
 | Neighbour | It owns | This package |

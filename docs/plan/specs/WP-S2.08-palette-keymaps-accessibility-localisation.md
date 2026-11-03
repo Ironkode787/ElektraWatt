@@ -245,6 +245,37 @@ the tree and fails on a fixture with `ui.label("Save")`. **LO-7** `fluent-bundle
 versions already in `Cargo.lock` (`cargo xtask check-deps`, `cargo deny` unchanged); targeted checks for
 `ew-viewmodel`, `ew-ui`, `xtask`.
 
+**Rulings at dispatch (ID-1219, cycle 48; facts at `55794b3f`).** They amend D9, D10 and LO-1 to LO-6 where they say
+so.
+1. **A table, not a `match`.** The texts are `strings.rs`'s `TEXTS` table (2,212 entries, read through `lookup`'s map);
+   D9's "match" means it. The table goes; `text`, `format` and `format_count` keep their signatures, so no call site
+   changes.
+2. **The snapshot is taken at the lane's base.** No key-text snapshot exists at `4772bf49`, and rulings since have
+   changed texts. The lane's first commit writes every key with its text from `TEXTS` to
+   `crates/ew-viewmodel/tests/expected/en-GB-texts.txt` before the table moves; LO-1's test compares each key's en-GB
+   text from the bundle with it. A difference is a stop (§11.2 item 2).
+3. **Keys stay checked at compile time.** `key!` and `count_key!` check against a key list that `cargo xtask settle`
+   generates from the en-GB `shell.ftl` (a new settle step with its `--check`); no build script. The kept-key list keeps
+   its meaning.
+4. **Arguments are strings.** `{0}` and `{1}` become `{ $p0 }` and `{ $p1 }`, and every argument is passed as a Fluent
+   string, never a number, so nothing is reformatted. A literal brace is written as a string literal
+   (`wizard-error-format`'s `{page}` as `{ "{" }page{ "}" }`); a leading `*`, `#` or `[` on the message's own line
+   (`status-unsaved`, `chip-frozen`, `chip-library`) needs nothing. `text` returns strings interned once per locale; a
+   caller that reads a placeholder key through `text` and fills it itself moves to `format`, each reported.
+5. **The Language submenu lists the shipped locales.** Until part 4's nl-NL file lands, `LANGUAGES` stays `["en"]` and
+   the submenu has one item; its action takes the locale. A `testkit` hook registers a two-key nl-NL test bundle and
+   its `nl` entry in the submenu, so LO-2 drives View ▸ Language ▸ Nederlands and LO-4 runs with the UI in Dutch;
+   shipped builds list English alone. D10's `["en", "nl"]` and first run's two offers come with part 4.
+6. **Rule messages (LO-4)** are localised through `ew_api::checks` (`ew-api` re-exports `ew-checks`), with
+   `report::localise`'s rule and no new edge: the Messages detail finds its finding in the check report by its
+   fingerprint and shows the localised message. The navigator's rows and the Properties chip are built in `ew-api`,
+   which part 3 does not own: they stay en-GB until part 4, and the lane opens that row. LO-4 is the detail.
+7. **The lint's reach (LO-6).** The key names of `ew-ui`'s `keys.rs` are keycap names, which FR-I18N-002 leaves
+   untranslated: they go to `ci/ui-strings-allow.txt` or to the strings, the lane's choice, reported. The messages of
+   the test tool in `visual.rs` reach no egui text call.
+8. **The en-XA flows (LO-5)** reuse the setups of the existing kittest tests of each flow. A fix that would change a
+   component of doc 16a is a proposed FT row, not a change (§11.2 item 4).
+
 ## 8. Part 4: the Dutch UI
 
 **Scope.** D12. **0.2 pw.**
