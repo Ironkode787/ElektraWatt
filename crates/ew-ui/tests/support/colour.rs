@@ -5,7 +5,7 @@
 //! back (IEC 61966-2-1), the dichromacy simulations of Machado, Oliveira and Fernandes 2009 at severity 1.0 in linear
 //! RGB, CIELAB against D65 and the CIEDE2000 colour difference (Sharma, Wu and Dalal 2005).
 
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 /// A dichromacy that the test simulates.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -62,8 +62,8 @@ impl Simulation {
 
     /// Applies the simulation to every pixel of RGBA bytes (alpha unchanged).
     pub fn apply(self, rgba: &mut [u8]) {
-        let mut seen: HashMap<[u8; 3], [u8; 3]> = HashMap::new();
-        for p in rgba.chunks_exact_mut(4) {
+        let mut seen: BTreeMap<[u8; 3], [u8; 3]> = BTreeMap::new();
+        for p in rgba.as_chunks_mut::<4>().0 {
             let rgb = [p[0], p[1], p[2]];
             let out = *seen
                 .entry(rgb)
