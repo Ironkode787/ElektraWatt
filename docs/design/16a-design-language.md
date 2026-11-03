@@ -1139,7 +1139,9 @@ scrolls, as built. Without a card a tab the user opened by hand shows the empty 
 `alert-triangle` in the warning icon colour (§4.4), info `info-circle` in `color.accent` (as built: a filled circle,
 triangle and square of 10 px; the three shapes stay distinct). Severity group rows ("Errors", "Warnings", "Infos")
 are group rows with the severity icon in place of the folder and their count in the meta column; rule rows show the
-rule ID in the meta column. Severity never rests on colour: the shape differs, the group row names it, and the
+rule ID in the meta column. *Cycle 48 (design pass, ID-1246; FT-1147, built by FT-1186):* a group or rule row's count stands right after the
+row's name, `space.2` from it, not in the meta column at the row's far end, so the name and its count read together
+at any width. Severity never rests on colour: the shape differs, the group row names it, and the
 accessible name of every finding row carries the severity word, as built. A **pending** finding draws its icon and
 title in `color.text.tertiary` and carries a "Pending" status badge in the neutral style (`color.surface.sunken`,
 `color.text.secondary`), as built in the badge list. Enter and the double click jump to the object, as built.
@@ -1288,6 +1290,12 @@ all four fail, the chip takes the nearest position stacked inward from the prefe
 is it drawn at the preferred anchor with 80 % opacity. Chips never cover the target's own printed text when an
 alternative exists. Highlight name chips are the exception to the inverse fill: they take their slot's hue with a black
 label (§4.6).
+
+**Labels on the sheet** (cycle 48 design pass, ID-1244; FT-1080, FT-1128, built by FT-1185). The same aim holds
+for the drawing's own texts, which the scene places and the print carries: a terminal's label or an external point's
+label never overlaps another symbol's graphics, connection points or tags. The scene tries the label's slot, then
+steps the label outward along the slot's axis by `SLOT_TEXT_GAP`, at most three times, as a black box's caption moves
+(ID-1228), and otherwise keeps the slot.
 
 ### 7.5 Highlights
 
