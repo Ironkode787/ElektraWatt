@@ -290,7 +290,8 @@ impl Platform for RfdPlatform {
     }
 
     /// The print set goes through `ew-print`'s chain on a thread of its own (WP-S3.07 part 3, D11): Print… through the
-    /// system's chain (on Linux the portal, then `lp`, then the viewer), Open in PDF viewer through the viewer alone.
+    /// system's chain (on Linux the portal, then `lp`, then the viewer; on Windows the Windows print dialog, then the
+    /// viewer), Open in PDF viewer through the viewer alone.
     /// The window keeps painting; the end comes back as a toast.
     fn print(&mut self, request: PrintRequest, ctx: &egui::Context) -> PrintReply {
         let (tx, rx) = std::sync::mpsc::channel();
@@ -321,6 +322,7 @@ fn run_print(request: &PrintRequest) -> Result<ew_print::Printed, Vec<(&'static 
         title: request.title.clone(),
         pdf: request.set.pdf.clone(),
         pages: request.set.pages.clone(),
+        fonts: ew_ui::ew_viewmodel::ew_api::output::font_bytes().clone(),
         printer: None,
         monochrome: request.monochrome,
     })

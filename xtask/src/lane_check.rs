@@ -38,7 +38,8 @@
 //!   6. `policy`: the checks of lane.md step 6, each by its trigger (see [`policy_commands`]). The cheap static
 //!      checks `check-raw-read` and `check-disallowed-methods` run on any changed `.rs` file, since an allow attribute
 //!      or a raw-model read is not visible in a path; `check-test-layout` runs on any changed path under a `tests/`
-//!      directory and on any changed file that mentions `--test`; `map --check` (the shared-list markers) on any
+//!      directory and on any changed file that mentions `--test`; `check-unsafe` on any changed `.rs` file,
+//!      `Cargo.toml` or `ci/unsafe-allowlist.toml`; `map --check` (the shared-list markers) on any
 //!      changed `.rs` file, `Cargo.toml` or `ci/dep-rules.toml`; `api-guard --base <rev>` when one of
 //!      [`API_SNAPSHOTS`] changed (FT-1007).
 //!   7. `trailers`: in-process over the non-merge commits of `<merge base>..HEAD` ([`trailers::commits`]). It fails
@@ -596,6 +597,9 @@ pub(crate) fn policy_commands(diff: &Diff, base: &str) -> Vec<Cmd> {
     if rust {
         cmds.push(Cmd::xtask(&["check-raw-read"]));
         cmds.push(Cmd::xtask(&["check-disallowed-methods"]));
+    }
+    if any(&|f| f.ends_with(".rs") || manifest(f) || f == "ci/unsafe-allowlist.toml") {
+        cmds.push(Cmd::xtask(&["check-unsafe"]));
     }
     if tests {
         cmds.push(Cmd::xtask(&["check-test-layout"]));
@@ -1885,6 +1889,7 @@ mod tests {
                 "nextest: cargo nextest run --profile lane --cargo-quiet -p ew-leaf --all-features",
                 "policy: cargo xtask check-raw-read",
                 "policy: cargo xtask check-disallowed-methods",
+                "policy: cargo xtask check-unsafe",
                 "policy: cargo xtask map --check",
                 "trailers: the commits since the merge base keep their record lines in the trailer block",
                 "fuzz: skipped (no trigger)",
@@ -1945,6 +1950,7 @@ mod tests {
                 "nextest: cargo nextest run --profile lane --cargo-quiet -p ew-leaf --all-features",
                 "policy: cargo xtask check-deps",
                 "policy: cargo xtask check-features",
+                "policy: cargo xtask check-unsafe",
                 "policy: cargo xtask map --check",
                 "policy: cargo deny --locked check",
                 "policy: cargo vet --locked",
@@ -1976,6 +1982,7 @@ mod tests {
                 "policy: cargo xtask check-licence-map",
                 "policy: cargo xtask check-raw-read",
                 "policy: cargo xtask check-disallowed-methods",
+                "policy: cargo xtask check-unsafe",
                 "policy: cargo xtask check-test-layout",
                 "policy: cargo xtask map --check",
                 "trailers: the commits since the merge base keep their record lines in the trailer block",
@@ -2004,6 +2011,7 @@ mod tests {
                 "nextest: cargo nextest run --profile lane --cargo-quiet -p ew-api -p ew-testkit --all-features",
                 "policy: cargo xtask check-raw-read",
                 "policy: cargo xtask check-disallowed-methods",
+                "policy: cargo xtask check-unsafe",
                 "policy: cargo xtask check-test-layout",
                 "policy: cargo xtask map --check",
                 "trailers: the commits since the merge base keep their record lines in the trailer block",
@@ -2138,6 +2146,27 @@ mod tests {
         assert_eq!(
             lines(&diff(&["docs/design/04-architecture.md"], &[]))[5],
             "policy: skipped (no trigger)"
+        );
+    }
+
+    /// Ruling 6 of ID-1218: `check-unsafe` runs when the diff has a Rust file, a `Cargo.toml` or the allowlist, and
+    /// not for documents alone.
+    #[test]
+    fn the_unsafe_check_runs_with_rust_files_a_manifest_or_its_allowlist() {
+        let check = Cmd::xtask(&["check-unsafe"]);
+        for files in [
+            &["crates/ew-leaf/src/lib.rs"][..],
+            &["crates/ew-leaf/Cargo.toml"],
+            &["ci/unsafe-allowlist.toml"],
+        ] {
+            assert!(
+                policy_commands(&diff(files, &[]), BASE).contains(&check),
+                "{files:?}"
+            );
+        }
+        assert!(
+            !policy_commands(&diff(&["docs/design/18-quality-security-release.md"], &[]), BASE)
+                .contains(&check)
         );
     }
 

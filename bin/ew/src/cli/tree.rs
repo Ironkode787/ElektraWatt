@@ -87,13 +87,14 @@ enum Top {
     ///
     /// Builds the print set of the pages (`--pages` folio labels and ranges, or `--sections` section numbers, a
     /// section with its divider; not both; default every page) and hands it to the OS: `--via lp` runs the CUPS
-    /// command `lp` (the default on Linux; `--printer` names the printer, else the default one), `--via viewer`
-    /// opens it in the default PDF application, which asks for the printer (the default elsewhere). `--paper` prints
-    /// on a paper size (sheet, the default, or A5, A4, A3, A2, A1, A0, Letter, Legal, Tabloid, turned like each
-    /// page); `--fit` scales each page to the whole paper, never enlarged, and stamps a scaled page `scaled <n> %`
-    /// in its bottom margin; without it a larger page is clipped and named in a notice. `--mono` prints in black and
-    /// grey. `--out <file.pdf>` writes the print set instead and prints nothing. The date is `SOURCE_DATE_EPOCH`
-    /// when set, else the model's. Exit 0 when printed or written, 2 on everything else (usage, open errors, an
+    /// command `lp` (the default on Linux; `--printer` names the printer, else the default one), `--via windows`
+    /// shows the Windows print dialog, or prints to the printer `--printer` names without it (the default on
+    /// Windows), `--via viewer` opens it in the default PDF application, which asks for the printer (the default
+    /// elsewhere). `--paper` prints on a paper size (sheet, the default, or A5, A4, A3, A2, A1, A0, Letter, Legal,
+    /// Tabloid, turned like each page); `--fit` scales each page to the whole paper, never enlarged, and stamps a
+    /// scaled page `scaled <n> %` in its bottom margin; without it a larger page is clipped and named in a notice.
+    /// `--mono` prints in black and grey. `--out <file.pdf>` writes the print set instead and prints nothing. The
+    /// date is `SOURCE_DATE_EPOCH` when set, else the model's. Exit 0 when printed or written, 2 on everything else (usage, open errors, an
     /// unknown folio or section, a refusal of the adapter, write errors).
     Print(PrintCli),
     /// Render one page as PNG.
@@ -910,7 +911,8 @@ struct PrintCli {
     /// Print in black and grey.
     #[arg(long, overrides_with = "mono")]
     mono: bool,
-    /// The printer (with `--via lp`; default: the default printer).
+    /// The printer (with `--via lp` or `--via windows`; default: `lp`'s default printer, or the one chosen in the
+    /// Windows print dialog).
     #[arg(
         long,
         value_name = "name",
@@ -919,7 +921,7 @@ struct PrintCli {
         conflicts_with = "out"
     )]
     printer: Option<String>,
-    /// How the set reaches the printer (default: `lp` on Linux, else `viewer`).
+    /// How the set reaches the printer (default: `lp` on Linux, `windows` on Windows, else `viewer`).
     #[arg(
         long,
         value_name = "adapter",
@@ -943,7 +945,7 @@ enum ViaArg {
     Lp,
     /// The default PDF application.
     Viewer,
-    /// The Windows print dialog (not built yet).
+    /// The Windows print dialog, or the printer `--printer` names (Windows only).
     Windows,
 }
 
@@ -1874,10 +1876,15 @@ impl Cli {
                 let via = match via {
                     Some(ViaArg::Lp) => PrintVia::Lp,
                     Some(ViaArg::Viewer) => PrintVia::Viewer,
+                    #[cfg(windows)]
+                    Some(ViaArg::Windows) | None => PrintVia::Windows,
+                    #[cfg(not(windows))]
                     Some(ViaArg::Windows) => {
-                        return Err(usage_error(&["print"], "`--via windows` is not built yet"));
+                        return Err(usage_error(&["print"], "`--via windows` prints on Windows only"));
                     }
+                    #[cfg(not(windows))]
                     None if cfg!(target_os = "linux") => PrintVia::Lp,
+                    #[cfg(not(windows))]
                     None => PrintVia::Viewer,
                 };
                 if via == PrintVia::Viewer && printer.is_some() {

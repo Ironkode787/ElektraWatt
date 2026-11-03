@@ -334,6 +334,9 @@ pub enum PrintVia {
     Lp,
     /// The default PDF application.
     Viewer,
+    /// The Windows print dialog, or the printer `--printer` names, through GDI (Windows only).
+    #[cfg(windows)]
+    Windows,
 }
 
 /// The arguments of `ew print`.
@@ -1773,12 +1776,15 @@ fn run_print(a: &PrintArgs) -> i32 {
         title: title.clone(),
         pdf: set.pdf,
         pages: set.pages,
+        fonts: ew_api::output::font_bytes().clone(),
         printer: a.printer.clone(),
         monochrome: a.mono,
     };
     let adapter: Box<dyn ew_print::PrintAdapter> = match a.via {
         PrintVia::Lp => Box::new(ew_print::Lp::new(std::env::temp_dir())),
         PrintVia::Viewer => Box::new(ew_print::Viewer::new(std::env::temp_dir(), &title)),
+        #[cfg(windows)]
+        PrintVia::Windows => Box::new(ew_print::Windows::new()),
     };
     let outcome = match adapter.print(&job) {
         Ok(o) => o,
@@ -1796,10 +1802,10 @@ fn run_print(a: &PrintArgs) -> i32 {
     } else {
         match &outcome {
             ew_print::PrintOutcome::Spooled { printer, message } => {
-                let to = printer
-                    .as_deref()
-                    .map_or_else(|| "the default printer".to_owned(), |p| format!("printer {p}"));
-                println!("{} pages sent to {to} through `lp`", folios.len());
+                println!(
+                    "{}",
+                    spooled_line(folios.len(), printer.as_deref(), adapter.name())
+                );
                 if !message.is_empty() {
                     println!("{message}");
                 }
@@ -1812,6 +1818,18 @@ fn run_print(a: &PrintArgs) -> i32 {
         }
     }
     0
+}
+
+/// What `ew print` says when a spooler took `pages` pages: the printer (`None`: the default one) and the way, `lp` or
+/// the Windows print spooler (`--via windows`).
+fn spooled_line(pages: usize, printer: Option<&str>, adapter: &str) -> String {
+    let to = printer.map_or_else(|| "the default printer".to_owned(), |p| format!("printer {p}"));
+    let through = if adapter == "lp" {
+        "`lp`"
+    } else {
+        "the Windows print spooler"
+    };
+    format!("{pages} pages sent to {to} through {through}")
 }
 
 fn run_export_pages(a: &ExportPagesArgs) -> i32 {
@@ -4260,11 +4278,15 @@ mod tests {
         ))
     }
 
-    /// WP-S3.07 D9: `ew print` lowers its flags, the platform's default adapter resolved (`lp` on Linux, else the
-    /// viewer); `--out` excludes `--via` and `--printer`; `--sections` reaches `export png` too.
+    /// WP-S3.07 D9: `ew print` lowers its flags, the platform's default adapter resolved (`lp` on Linux, `windows` on
+    /// Windows, else the viewer; ruling 4 of ID-1218); `--out` excludes `--via` and `--printer`; `--sections` reaches
+    /// `export png` too.
     #[test]
     fn print_lowers_its_flags_and_resolves_the_adapter() {
         use ew_api::output::print::Paper;
+        #[cfg(windows)]
+        let default = PrintVia::Windows;
+        #[cfg(not(windows))]
         let default = if cfg!(target_os = "linux") {
             PrintVia::Lp
         } else {
@@ -4303,17 +4325,43 @@ mod tests {
             (PrintVia::Lp, Some("office"), Paper::Sheet, PageSelection::All)
         );
         let printer = p(&["print", "--printer", "office"]);
-        if cfg!(target_os = "linux") {
+        if cfg!(any(target_os = "linux", windows)) {
             assert!(matches!(printer, Ok(Command::Print(_))));
         } else {
             assert_eq!(
                 printer,
                 usage_error(
-                    "`--printer` needs `--via lp`; with the viewer, choose the printer in its print dialog",
+                    "`--printer` needs `--via lp` or `--via windows`; with the viewer, choose the printer in its print \
+                     dialog",
                     "ew print [OPTIONS] [project-dir]"
                 )
             );
         }
+        assert_eq!(
+            p(&["print", "--via", "viewer", "--printer", "office"]),
+            usage_error(
+                "`--printer` needs `--via lp` or `--via windows`; with the viewer, choose the printer in its print \
+                 dialog",
+                "ew print [OPTIONS] [project-dir]"
+            )
+        );
+        // Ruling 4 of ID-1218: `--via windows` with or without a printer on Windows, refused in words elsewhere.
+        let windows = p(&["print", "--via", "windows", "--printer", "office"]);
+        #[cfg(windows)]
+        {
+            let Ok(Command::Print(a)) = windows else {
+                panic!("`--via windows --printer`: {windows:?}");
+            };
+            assert_eq!((a.via, a.printer.as_deref()), (PrintVia::Windows, Some("office")));
+        }
+        #[cfg(not(windows))]
+        assert_eq!(
+            windows,
+            usage_error(
+                "`--via windows` prints on Windows only",
+                "ew print [OPTIONS] [project-dir]"
+            )
+        );
         assert_eq!(
             p(&["print", "--out", "p.pdf", "--via", "lp"]),
             usage_error(
@@ -4332,6 +4380,20 @@ mod tests {
                 "--sections <numbers>",
                 "page selection: `1,,2` has an empty item (section numbers separated by `,`)"
             )
+        );
+    }
+
+    /// What `ew print` says when a spooler took the set: through `lp`, or the Windows print spooler (ruling 4 of
+    /// ID-1218), to the printer named or the default one.
+    #[test]
+    fn a_spooled_print_names_its_printer_and_its_way() {
+        assert_eq!(
+            super::spooled_line(4, None, "lp"),
+            "4 pages sent to the default printer through `lp`"
+        );
+        assert_eq!(
+            super::spooled_line(5, Some("Microsoft Print to PDF"), "windows"),
+            "5 pages sent to printer Microsoft Print to PDF through the Windows print spooler"
         );
     }
 

@@ -11,8 +11,19 @@ description = "OS print adapters with per-OS features."
 repository.workspace = true
 publish = false
 
-[lints]
-workspace = true
+# WP-S3.07 D12, ruling 6 of ID-1218: the workspace's lint set with `unsafe_code` at `deny` instead of `forbid`, so that
+# the Windows adapter's module alone may allow it (a `forbid` cannot be lifted); the crate and that file are listed in
+# ci/unsafe-allowlist.toml (`cargo xtask check-unsafe`). Keep the rest equal to the root Cargo.toml's lints.
+[lints.rust]
+unsafe_code = "deny"
+missing_docs = "warn"
+
+[lints.clippy]
+dbg_macro = "warn"
+todo = "warn"
+unimplemented = "warn"
+undocumented_unsafe_blocks = "warn"
+mem_forget = "warn"
 
 [dependencies]
 ew-export = { path = "../ew-export" }
@@ -23,3 +34,18 @@ ew-hack = { version = "0.0.0", path = "../ew-hack" }
 # tokio): the async-io executor the graph's zbus 5 already runs on for accessibility, and the print portal only.
 [target.'cfg(target_os = "linux")'.dependencies]
 ashpd = { version = "=0.13.13", default-features = false, features = ["async-io", "print"] }
+
+# WP-S3.07 D12 (ruling 5 of ID-1218): the Windows print adapter over GDI, at the version the graph holds (through
+# accesskit_windows, gpu-allocator and wgpu-hal; no new package). Its features: the device context, its printing calls
+# and the print dialog; the dialog's owner window; COM on the dialog's thread; and the global memory of the dialog's
+# printer settings (GlobalLock).
+[target.'cfg(windows)'.dependencies]
+windows = { version = "=0.62.2", features = [
+  "Win32_Foundation",
+  "Win32_Graphics_Gdi",
+  "Win32_Storage_Xps",
+  "Win32_System_Com",
+  "Win32_System_Memory",
+  "Win32_UI_Controls_Dialogs",
+  "Win32_UI_WindowsAndMessaging",
+] }

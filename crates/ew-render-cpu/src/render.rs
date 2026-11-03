@@ -253,14 +253,85 @@ pub fn render_placed(
     fonts: &dyn FontResolver,
     geometry: Option<&dyn GeometryResolver>,
 ) -> Result<(RgbaImage, RenderReport), RenderError> {
-    let paper = placement.paper();
-    let (w, h) = pixel_size(paper, options.dpi);
-    let degenerate = paper.width.0 <= 0 || paper.height.0 <= 0 || options.dpi == 0;
-    let side = |v: u64| u16::try_from(v).ok().filter(|&v| v > 0);
-    let (Some(pw), Some(ph), false) = (side(w), side(h), degenerate) else {
-        return Err(degenerate_error(paper, options.dpi, w, h));
+    let (pw, ph) = paper_pixels(placement, options.dpi)?;
+    let k = f64::from(options.dpi) / NM_PER_INCH as f64;
+    Ok(paint(
+        &placed_passes(content, placement, k, Affine::IDENTITY),
+        Canvas {
+            width: pw,
+            height: ph,
+            background: options.background,
+        },
+        fonts,
+        geometry,
+    ))
+}
+
+/// Renders the device rows `first_row .. first_row + rows` of [`render_placed`]'s image at the same options (WP-S3.07
+/// D12, ruling 1 of ID-1218: the bands a printer is sent): the paper's full width, the same passes under the same
+/// transforms translated up by `first_row` rows, the overlay's too. A band that would run past the paper's last row
+/// ends with it, so the band has `min(rows, paper rows − first_row)` rows and its memory is bounded by `rows`.
+///
+/// A translated coordinate can round an edge's coverage differently, so a band's pixels match the rows of the whole
+/// image within anti-aliasing noise, not necessarily byte for byte (as [`render_region`]'s do).
+///
+/// # Errors
+///
+/// As [`render_placed`] for the paper's size; [`RenderError::Size`] with the paper's pixel width and a height of 0
+/// when the band holds no row of the paper (`rows == 0`, or `first_row` at or past the paper's last row).
+pub fn render_placed_band(
+    content: &DisplayList,
+    placement: &PagePlacement,
+    options: &RenderOptions,
+    first_row: u32,
+    rows: u32,
+    fonts: &dyn FontResolver,
+    geometry: Option<&dyn GeometryResolver>,
+) -> Result<(RgbaImage, RenderReport), RenderError> {
+    let (pw, ph) = paper_pixels(placement, options.dpi)?;
+    let band = u32::from(ph).saturating_sub(first_row).min(rows);
+    let Some(band) = u16::try_from(band).ok().filter(|&b| b > 0) else {
+        return Err(RenderError::Size {
+            width: u64::from(pw),
+            height: 0,
+        });
     };
     let k = f64::from(options.dpi) / NM_PER_INCH as f64;
+    let shift = Affine::translate((0.0, -f64::from(first_row)));
+    Ok(paint(
+        &placed_passes(content, placement, k, shift),
+        Canvas {
+            width: pw,
+            height: band,
+            background: options.background,
+        },
+        fonts,
+        geometry,
+    ))
+}
+
+/// The pixel size of `placement`'s paper at `dpi`, or [`render_placed`]'s error: a paper with no positive extent,
+/// `dpi == 0`, or more than `u16::MAX` pixels on a side.
+fn paper_pixels(placement: &PagePlacement, dpi: u32) -> Result<(u16, u16), RenderError> {
+    let paper = placement.paper();
+    let (w, h) = pixel_size(paper, dpi);
+    let degenerate = paper.width.0 <= 0 || paper.height.0 <= 0 || dpi == 0;
+    let side = |v: u64| u16::try_from(v).ok().filter(|&v| v > 0);
+    let (Some(pw), Some(ph), false) = (side(w), side(h), degenerate) else {
+        return Err(degenerate_error(paper, dpi, w, h));
+    };
+    Ok((pw, ph))
+}
+
+/// The passes of a placed page (WP-S3.07 D7) at `k` pixels per nm, each device transform preceded by `shift` (the
+/// identity for the whole paper, a translation up for a band): the content times the placement's scale at its
+/// offset, then the overlay, when it has items, at the paper's resolution.
+fn placed_passes<'a>(
+    content: &'a DisplayList,
+    placement: &'a PagePlacement,
+    k: f64,
+    shift: Affine,
+) -> Vec<Pass<'a>> {
     // The device transform times the placement: pixel = (offset + p × factor) × k. For an identity placement the
     // coefficients are exactly those of `render`'s `Affine::scale(k)`.
     let composed = k * placement.factor();
@@ -275,27 +346,18 @@ pub fn render_placed(
     let mut passes = vec![Pass {
         list: content,
         visible: None,
-        device: content_device,
+        device: shift * content_device,
         scale: composed,
     }];
     if !placement.overlay.items.is_empty() {
         passes.push(Pass {
             list: &placement.overlay,
             visible: None,
-            device: Affine::scale(k),
+            device: shift * Affine::scale(k),
             scale: k,
         });
     }
-    Ok(paint(
-        &passes,
-        Canvas {
-            width: pw,
-            height: ph,
-            background: options.background,
-        },
-        fonts,
-        geometry,
-    ))
+    passes
 }
 
 /// The [`RenderError::Size`] of a sheet without extent or of `dpi == 0` (0 for such an axis), else of the pixel

@@ -881,18 +881,26 @@ fn print_refusals_are_whole_texts() {
         (
             args([&"print", &p, &"--via", &"viewer", &"--printer", &"office"]),
             usage(
-                "`--printer` needs `--via lp`; with the viewer, choose the printer in its print dialog",
-                "ew print [OPTIONS] [project-dir]",
-            ),
-        ),
-        (
-            args([&"print", &p, &"--via", &"windows"]),
-            usage(
-                "`--via windows` is not built yet",
+                "`--printer` needs `--via lp` or `--via windows`; with the viewer, choose the printer in its print \
+                 dialog",
                 "ew print [OPTIONS] [project-dir]",
             ),
         ),
     ];
+    // Ruling 4 of ID-1218: refused in words on other systems; on Windows it would open the print dialog, so the
+    // adapter's own tests cover it there.
+    #[cfg(not(windows))]
+    let cases = {
+        let mut cases = cases;
+        cases.push((
+            args([&"print", &p, &"--via", &"windows"]),
+            usage(
+                "`--via windows` prints on Windows only",
+                "ew print [OPTIONS] [project-dir]",
+            ),
+        ));
+        cases
+    };
     for (line, want) in cases {
         let o = t.ew(&line);
         assert_eq!(o.status.code(), Some(2), "{line:?}");

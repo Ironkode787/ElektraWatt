@@ -36,6 +36,7 @@ mod settle;
 mod symbols;
 mod test_layout;
 mod trailers;
+mod unsafe_code;
 mod vet_imports;
 mod workflows;
 
@@ -79,6 +80,10 @@ commands:
                        top-level file under tests/ is only for a separate binary that a workflow, xtask or
                        nextest names (the list in xtask/src/test_layout.rs); every `--test <name>` in a text file
                        names a test binary of its `-p` package (of any package without `-p`)
+  check-unsafe         every crate forbids `unsafe_code` (its crate roots' `#![forbid(unsafe_code)]`, or
+                       `[lints] workspace = true` under the workspace's forbid) or is listed in
+                       ci/unsafe-allowlist.toml, and the `unsafe` keyword stands only in the files listed there
+                       (doc 18 §11.2, NFR-SEC-04)
   check-workflows      actions pinned by commit SHA, read-only default token, no pull_request_target,
                        credential-free checkouts, secrets only in `release` (.github/workflows/)
   check-licence-map    path licences, collective notice, crate licences, permissive-layer licence boundary
@@ -271,6 +276,7 @@ fn main() -> ExitCode {
             }
         },
         "check-test-layout" => run_check("check-test-layout", check_test_layout),
+        "check-unsafe" => run_check("check-unsafe", check_unsafe),
         "check-workflows" => run_check("check-workflows", check_workflows),
         "check-licence-map" => run_check("check-licence-map", check_licence_map),
         "check-anonymisation" => match args.get(1).map(String::as_str) {
@@ -514,6 +520,10 @@ fn check_api_guard() -> Result<Violations> {
         println!("{line}");
     }
     Ok(report.failure)
+}
+
+fn check_unsafe() -> Result<Violations> {
+    unsafe_code::violations(&workspace_root())
 }
 
 fn check_workflows() -> Result<Violations> {
@@ -850,7 +860,7 @@ fn run_checks_beside<T>(checks: &[Check], beside: impl FnOnce() -> T) -> (T, Vec
 /// so one invocation shows everything that needs fixing.
 fn ci() -> Result<bool> {
     let cargo_steps = ci_cargo_steps(&all_features::workspace_set()?);
-    let checks: [Check; 15] = [
+    let checks: [Check; 16] = [
         ("check-deps", check_deps),
         ("check-features", check_features),
         ("check-raw-read", check_raw_read),
@@ -865,6 +875,7 @@ fn ci() -> Result<bool> {
         ("docs-gen-check", check_docs_gen),
         ("gen-icons-check", check_gen_icons),
         ("check-test-layout", check_test_layout),
+        ("check-unsafe", check_unsafe),
         ("api-guard", check_api_guard),
     ];
 

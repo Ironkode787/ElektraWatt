@@ -17,7 +17,8 @@
 //!
 //! [`render_region`] rasterises one rectangle of that full-sheet image (the canvas tiles and the headless canvas
 //! snapshot of WP-S2.02), skipping top-level items whose [`ItemBounds`] miss it; its full rectangle is
-//! [`render`]'s bytes.
+//! [`render`]'s bytes. [`render_placed_band`] renders rows of a placed print page, the bands a printer is sent
+//! (WP-S3.07 D12).
 //!
 //! [`decode_image`] decodes the PNG and JPEG bytes of image items within [`MAX_IMAGE_PIXELS`] (the PDF writer checks
 //! with it too). [`encode_png`] writes deterministic PNG bytes; [`monochrome`] and [`render_monochrome`] give the
@@ -33,10 +34,13 @@ mod png_chunks;
 mod render;
 
 pub use crate::png::encode_png;
+/// The display lists this crate renders, so a crate that does not reach `ew-dl` itself can name their types (WP-S3.07
+/// ruling 8 of ID-1218: `ew-print`'s print jobs carry a font map by [`ew_dl::FontKey`]).
+pub use ew_dl;
 pub use fonts::{FontBytes, FontResolver};
 pub use image::{DecodedImage, MAX_IMAGE_PIXELS, decode_image, jpeg_is_cmyk};
 pub use mono::{monochrome, render_monochrome};
 pub use render::{
     ItemBounds, PagePlacement, RegionOptions, RenderError, RenderOptions, RenderReport, RgbaImage, SheetSize,
-    pixel_size, render, render_placed, render_region,
+    pixel_size, render, render_placed, render_placed_band, render_region,
 };

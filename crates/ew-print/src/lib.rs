@@ -17,24 +17,37 @@
 //!
 //! Part 3 adds the Linux portal adapter (`Portal`, D11: xdg-desktop-portal Print through `ashpd`, Linux only) and the
 //! [`Chain`] the window prints through (ID-1180 ruling 3): the adapters tried in order, a failure giving way to the
-//! next with one [`Fallback`] notice; on Linux the portal, `lp`, then the viewer; elsewhere the viewer.
+//! next with one [`Fallback`] notice; on Linux the portal, `lp`, then the viewer; on Windows the Windows adapter,
+//! then the viewer; elsewhere the viewer.
+//!
+//! Part 4 adds the Windows adapter (`Windows`, D12, ruling 4 of ID-1218, Windows only): the Windows print dialog, or
+//! the printer [`PrintJob::printer`] names, then each placed page rendered in bands and sent through GDI. Its module
+//! is the product's one place of `unsafe` (doc 18 §11.2): the crate denies `unsafe_code`, and `cargo xtask
+//! check-unsafe` keeps the keyword in that file.
 //!
 //! Each adapter takes the program it runs as a [`Program`], so a test runs a stand-in that records its arguments.
 
-#![forbid(unsafe_code)]
+#![deny(unsafe_code)]
 
 mod lp;
 #[cfg(target_os = "linux")]
 mod portal;
 mod viewer;
+#[cfg(windows)]
+mod windows;
 
+use std::collections::BTreeMap;
 use std::ffi::OsString;
 use std::fmt;
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU32, Ordering};
 
+#[cfg(windows)]
+pub use crate::windows::Windows;
 pub use ew_export::PdfPage;
+use ew_render_cpu::FontBytes;
+use ew_render_cpu::ew_dl::FontKey;
 pub use lp::Lp;
 #[cfg(target_os = "linux")]
 pub use portal::Portal;
@@ -49,6 +62,9 @@ pub struct PrintJob {
     pub pdf: Vec<u8>,
     /// The print set's pages (each with its placement), for the adapters that render (part 4).
     pub pages: Vec<PdfPage>,
+    /// The font files of the pages' glyph runs, for the adapters that render (ruling 8 of ID-1218: the binaries fill
+    /// it from `ew_api::output::font_bytes()`).
+    pub fonts: BTreeMap<FontKey, FontBytes>,
     /// The printer; `None`: the default printer, or the one the dialog or viewer asks for.
     pub printer: Option<String>,
     /// Whether the set is drawn in black and grey.
@@ -102,12 +118,19 @@ pub enum PrintError {
         /// The system's reason.
         reason: String,
     },
-    /// The person cancelled the system's print dialog (the portal); nothing was printed and no other adapter is
-    /// tried.
+    /// The person cancelled the system's print dialog (the portal or the Windows print dialog); nothing was printed
+    /// and no other adapter is tried.
     Cancelled,
     /// The system's print dialog (the portal) could not be used.
     Portal {
         /// The portal's reason.
+        reason: String,
+    },
+    /// Printing through Windows failed (the Windows adapter, part 4).
+    Windows {
+        /// What failed, in words ("the printer `office` could not be opened").
+        what: String,
+        /// The system's reason; empty when it gave none.
         reason: String,
     },
 }
@@ -124,7 +147,8 @@ impl fmt::Display for PrintError {
             ),
             PrintError::PrinterWithViewer => write!(
                 f,
-                "`--printer` needs `--via lp`; with the viewer, choose the printer in its print dialog"
+                "`--printer` needs `--via lp` or `--via windows`; with the viewer, choose the printer in its print \
+                 dialog"
             ),
             PrintError::Spawn { program, reason } => write!(f, "`{program}` could not be started: {reason}"),
             PrintError::Failed {
@@ -140,6 +164,8 @@ impl fmt::Display for PrintError {
             PrintError::Io { path, reason } => write!(f, "{}: {reason}", path.display()),
             PrintError::Cancelled => write!(f, "printing was cancelled"),
             PrintError::Portal { reason } => write!(f, "the system print dialog could not be used: {reason}"),
+            PrintError::Windows { what, reason } if reason.is_empty() => write!(f, "{what}"),
+            PrintError::Windows { what, reason } => write!(f, "{what}: {reason}"),
         }
     }
 }
@@ -148,7 +174,7 @@ impl std::error::Error for PrintError {}
 
 /// One way to print: the OS's spooler, its PDF viewer, or (part 3 and 4) a dialog.
 pub trait PrintAdapter {
-    /// The adapter's name as `--via` takes it (`lp`, `viewer`).
+    /// The adapter's name as `--via` takes it (`lp`, `viewer`, `windows`).
     fn name(&self) -> &'static str;
 
     /// Hands `job` to the OS.
@@ -194,9 +220,9 @@ impl Chain {
         Chain { adapters }
     }
 
-    /// The window's Print… on this system (ID-1180 ruling 3): on Linux the portal, then `lp`, then the viewer; on
-    /// other systems the viewer (until the Windows adapter, part 4). Print files go to `temp_dir`; `project` names the
-    /// viewer's file.
+    /// The window's Print… on this system (ID-1180 ruling 3, ruling 4 of ID-1218): on Linux the portal, then `lp`,
+    /// then the viewer; on Windows the Windows adapter (its print dialog), then the viewer; on other systems the
+    /// viewer. Print files go to `temp_dir`; `project` names the viewer's file.
     pub fn system(temp_dir: PathBuf, project: &str) -> Chain {
         #[cfg(target_os = "linux")]
         let adapters: Vec<Box<dyn PrintAdapter + Send>> = vec![
@@ -204,7 +230,10 @@ impl Chain {
             Box::new(Lp::new(temp_dir.clone())),
             Box::new(Viewer::new(temp_dir, project)),
         ];
-        #[cfg(not(target_os = "linux"))]
+        #[cfg(windows)]
+        let adapters: Vec<Box<dyn PrintAdapter + Send>> =
+            vec![Box::new(Windows::new()), Box::new(Viewer::new(temp_dir, project))];
+        #[cfg(not(any(target_os = "linux", windows)))]
         let adapters: Vec<Box<dyn PrintAdapter + Send>> = vec![Box::new(Viewer::new(temp_dir, project))];
         Chain::new(adapters)
     }

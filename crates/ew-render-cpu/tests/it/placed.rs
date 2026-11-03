@@ -3,15 +3,17 @@
 
 //! `render_placed` (WP-S3.07 D7, ruling 1 of ID-1180): the content at the target resolution times the placement's
 //! scale at its offset, then the overlay at the paper's resolution; an identity placement renders as `render`.
+//! `render_placed_band` (D12, ruling 1 of ID-1218): its rows in bands, as a printer is sent them.
 
 use crate::common;
 
 use std::sync::Arc;
 
 use common::{a4, bundled_fonts, is_dark, mm, pixel, text_run};
-use ew_dl::{Brush, DisplayList, Item, Path, Pen, Stroke};
+use ew_dl::{Brush, Color, DisplayList, Item, Path, Pen, Stroke};
 use ew_render_cpu::{
     PagePlacement, RenderError, RenderOptions, RgbaImage, SheetSize, pixel_size, render, render_placed,
+    render_placed_band,
 };
 use ew_units::{Nm, Pt2, Rect};
 
@@ -154,4 +156,114 @@ fn a_paper_without_extent_is_a_size_error() {
             height: 583
         }
     );
+}
+
+/// The rows a printer band holds (WP-S3.07 D12).
+const BAND: u32 = 256;
+
+/// WN-2 (ruling 1 of ID-1218): an A4 sheet fitted to A5 (148/210, centred) with an overlay, at 300 dpi, rendered in
+/// bands of 256 rows: each band is the paper's width and at most 256 rows, and the bands stacked equal
+/// `render_placed`'s image within one level per channel. Text, a curve, a diagonal and a filled block cross the band
+/// edges. The count of pixels that differ at all is printed.
+#[test]
+fn the_bands_of_a_placed_page_stack_to_its_image() {
+    let mut content = sheet();
+    content.items.extend([
+        Item::path(
+            Path::line(mm(5, 5), mm(290, 205)),
+            Some(Stroke::pen(Pen::P018)),
+            None,
+        ),
+        Item::path(
+            Path::circle(mm(150, 95), Nm::from_mm(60)),
+            Some(Stroke::pen(Pen::P130)),
+            Some(Brush::Solid(Color::from_rgba8(200, 40, 30, 255))),
+        ),
+        // Baselines near the band edges at 30.8 and 61.6 mm of the sheet (256 rows at 300 dpi, scaled 148/210).
+        Item::glyphs(Arc::new(text_run("Band edge 1", mm(200, 32)))),
+        Item::glyphs(Arc::new(text_run("Band edge 2", mm(200, 62)))),
+    ]);
+    let paper = SheetSize {
+        width: Nm::from_mm(210),
+        height: Nm::from_mm(148),
+    };
+    let placed = PagePlacement {
+        width: paper.width,
+        height: paper.height,
+        scale: (148, 210),
+        // (210 mm − 297 mm × 148 / 210) / 2, centred across; the height fills the paper.
+        offset: Pt2::new(Nm(342_857), Nm(0)),
+        overlay: DisplayList {
+            items: vec![
+                Item::glyphs(Arc::new(text_run("scaled 70 %", mm(180, 144)))),
+                Item::path(
+                    Path::rect(Rect::from_points(mm(150, 130), mm(205, 146))),
+                    Some(Stroke::pen(Pen::P026)),
+                    None,
+                ),
+            ],
+        },
+    };
+    let fonts = bundled_fonts();
+    let options = options(300);
+    let (whole, _) = render_placed(&content, &placed, &options, &fonts, None).unwrap();
+    let mut stacked: Vec<u8> = Vec::with_capacity(whole.pixels.len());
+    let mut first_row = 0;
+    while first_row < whole.height {
+        let (band, _) =
+            render_placed_band(&content, &placed, &options, first_row, BAND, &fonts, None).unwrap();
+        let rows = BAND.min(whole.height - first_row);
+        assert_eq!(
+            (band.width, band.height),
+            (whole.width, rows),
+            "the band at row {first_row}"
+        );
+        assert_eq!(band.pixels.len(), (band.width * rows * 4) as usize);
+        stacked.extend_from_slice(&band.pixels);
+        first_row += rows;
+    }
+    assert_eq!(stacked.len(), whole.pixels.len());
+    let mut differing = 0usize;
+    for (i, (a, b)) in stacked
+        .as_chunks::<4>()
+        .0
+        .iter()
+        .zip(whole.pixels.as_chunks::<4>().0)
+        .enumerate()
+    {
+        let off = a.iter().zip(b).map(|(x, y)| x.abs_diff(*y)).max().unwrap_or(0);
+        assert!(
+            off <= 1,
+            "pixel ({}, {}): {a:?} in the bands, {b:?} in the image",
+            i as u32 % whole.width,
+            i as u32 / whole.width
+        );
+        differing += usize::from(off > 0);
+    }
+    println!(
+        "bands of {BAND} rows at 300 dpi: {differing} of {} pixels differ, by one level at most",
+        whole.pixels.len() / 4
+    );
+}
+
+/// A band with no row of the paper is a size error naming the paper's width; a band past the last row ends with it.
+#[test]
+fn a_band_outside_the_paper_is_a_size_error() {
+    let identity = PagePlacement {
+        width: a4().width,
+        height: a4().height,
+        scale: (1, 1),
+        offset: Pt2::ORIGIN,
+        overlay: DisplayList::default(),
+    };
+    let fonts = bundled_fonts();
+    let (w, h) = pixel_size(a4(), 100);
+    let band = |first_row: u32, rows: u32| {
+        render_placed_band(&sheet(), &identity, &options(100), first_row, rows, &fonts, None)
+    };
+    let none = RenderError::Size { width: w, height: 0 };
+    assert_eq!(band(0, 0).unwrap_err(), none);
+    assert_eq!(band(h as u32, BAND).unwrap_err(), none);
+    let (last, _) = band(h as u32 - 10, BAND).unwrap();
+    assert_eq!((u64::from(last.width), last.height), (w, 10));
 }

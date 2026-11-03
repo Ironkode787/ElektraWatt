@@ -4,6 +4,7 @@
 //! The adapters with a stand-in program (WP-S3.07 PR-4): this test binary itself, run with `--exact
 //! tests::stand_in --nocapture --` before the adapter's arguments, records them in `<last argument>.args`.
 
+use std::collections::BTreeMap;
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -74,6 +75,7 @@ fn job(title: &str, printer: Option<&str>) -> PrintJob {
         title: title.to_owned(),
         pdf: b"%PDF-1.7 a print set".to_vec(),
         pages: Vec::new(),
+        fonts: BTreeMap::new(),
         printer: printer.map(str::to_owned),
         monochrome: false,
     }
@@ -199,7 +201,7 @@ fn the_viewer_writes_each_set_to_a_fresh_file_and_opens_it() {
     let e = viewer.print(&job("t", Some("office"))).unwrap_err();
     assert_eq!(
         e.to_string(),
-        "`--printer` needs `--via lp`; with the viewer, choose the printer in its print dialog"
+        "`--printer` needs `--via lp` or `--via windows`; with the viewer, choose the printer in its print dialog"
     );
     assert!(dir.names().is_empty());
     let first = viewer.print(&job_with(b"%PDF-1.7 the first set")).unwrap();
@@ -328,6 +330,15 @@ fn the_errors_read_as_words() {
     );
     assert_eq!(bounded(&[b'x'; 5000]).len(), MAX_MESSAGE);
     assert_eq!(PrintError::Cancelled.to_string(), "printing was cancelled");
+    let windows = |reason: &str| PrintError::Windows {
+        what: "the printer did not finish page 103".to_owned(),
+        reason: reason.to_owned(),
+    };
+    assert_eq!(
+        windows("The device is not ready.").to_string(),
+        "the printer did not finish page 103: The device is not ready."
+    );
+    assert_eq!(windows("").to_string(), "the printer did not finish page 103");
     assert_eq!(
         portal_down().to_string(),
         "the system print dialog could not be used: org.freedesktop.portal.Desktop was not provided by any .service files"
@@ -476,14 +487,16 @@ fn the_chain_stops_at_the_first_print_and_at_a_cancel() {
     assert_eq!(Chain::new(Vec::new()).print(&job("t", None)), Err(Vec::new()));
 }
 
-/// The window's chains: on Linux the portal, `lp`, then the viewer; elsewhere the viewer; Open in PDF viewer is the
-/// viewer alone.
+/// The window's chains: on Linux the portal, `lp`, then the viewer; on Windows the Windows adapter, then the viewer
+/// (ruling 4 of ID-1218); elsewhere the viewer; Open in PDF viewer is the viewer alone.
 #[test]
-fn the_system_chain_is_portal_lp_viewer_on_linux_and_the_viewer_elsewhere() {
+fn the_system_chain_is_portal_lp_viewer_on_linux_windows_viewer_on_windows_and_the_viewer_elsewhere() {
     let dir = Dir::new();
     let system = Chain::system(dir.0.clone(), "J-E-2416");
     if cfg!(target_os = "linux") {
         assert_eq!(system.names(), ["portal", "lp", "viewer"]);
+    } else if cfg!(windows) {
+        assert_eq!(system.names(), ["windows", "viewer"]);
     } else {
         assert_eq!(system.names(), ["viewer"]);
     }

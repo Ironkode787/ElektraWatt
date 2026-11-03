@@ -110,6 +110,10 @@ jobs:
       # are listed in ci/disallowed-methods-allow.toml.
       - name: wall clock, environment and randomness
         run: cargo xtask check-disallowed-methods
+      # NFR-SEC-04 (doc 18 §11.2, WP-S3.07 ruling 6 of ID-1218): every crate forbids `unsafe_code` or is listed in
+      # ci/unsafe-allowlist.toml, and `unsafe` stands only in the files listed there.
+      - name: unsafe allowlist
+        run: cargo xtask check-unsafe
 
   # CI-PR-14 (NFR-MAINT-10, WP-S1.22 D14): the API stability guard. `cargo xtask api-guard` compares the committed
   # snapshots of the published surfaces (the command schemas, bin/ew/api/cli.json, the result schemas, the query
