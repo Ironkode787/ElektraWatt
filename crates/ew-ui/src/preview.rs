@@ -441,17 +441,25 @@ fn table_import(
         apply: "preview.apply",
         strip: false,
     };
+    // The card keeps its Apply and Cancel in view; the lists under it scroll, as the other cards' lists do.
     ui.add_space(t.space_3);
-    ui.horizontal(|ui| {
-        ui.add_space(t.space_4);
-        ui.vertical(|ui| {
-            ui.set_max_width(ui.available_width() - t.space_4);
-            components::inline_card(ui, shell, card, events, |ui, _| {
-                list(ui, strings::text(key!("table-import-cells")), &cells, true);
-                list(ui, strings::text(key!("table-import-missing-rows")), &missing, false);
-            });
+    let pad = theme::margin_px(t.space_4);
+    egui::Frame::new()
+        .inner_margin(egui::Margin {
+            left: pad,
+            right: pad,
+            top: 0,
+            bottom: 0,
+        })
+        .show(ui, |ui| components::inline_card(ui, shell, card, events, |_, _| {}));
+    ui.add_space(t.space_2);
+    egui::ScrollArea::vertical()
+        .id_salt("table-import-lists")
+        .auto_shrink([false, false])
+        .show(ui, |ui| {
+            list(ui, strings::text(key!("table-import-cells")), &cells, true);
+            list(ui, strings::text(key!("table-import-missing-rows")), &missing, false);
         });
-    });
 }
 
 /// Paints the Preview tab of `shell`.

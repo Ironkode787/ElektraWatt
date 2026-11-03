@@ -262,6 +262,9 @@ impl ShellModel {
         };
         let input = match ew_api::catalog::read_input(&path, &ew_api::catalog::table_limits()) {
             Ok(i) => i,
+            Err(ew_api::catalog::CatalogError::Io(name, e)) if e.kind() == std::io::ErrorKind::NotFound => {
+                return failed(key!("error-table-import-missing"), &[&name]);
+            }
             Err(ew_api::catalog::CatalogError::Io(name, e)) => {
                 return failed(key!("error-table-import-open"), &[&name, &crate::jobs::io_cause(&e)]);
             }

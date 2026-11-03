@@ -425,11 +425,14 @@ fn the_refusals_in_words_and_a_csv() {
     done(&mut shell, "preview.cancel", json!({}));
     let missing = tmp.0.join("none.xlsx");
     let message = failed(&mut shell, "navigator.import_table", json!({"path": text(&missing)}));
-    assert_eq!(message, "none.xlsx cannot be opened: the folder does not exist.");
+    assert_eq!(message, "There is no file none.xlsx.");
     let junk = tmp.0.join("junk.xlsx");
     std::fs::write(&junk, b"PK\x03\x04 not a workbook").unwrap();
     let message = failed(&mut shell, "navigator.import_table", json!({"path": text(&junk)}));
-    assert!(message.starts_with("The file cannot be read: "), "{message}");
+    assert_eq!(
+        message,
+        "The file cannot be read: malformed input: not a readable XLSX workbook: no ZIP central directory"
+    );
     shell.shutdown();
 }
 
