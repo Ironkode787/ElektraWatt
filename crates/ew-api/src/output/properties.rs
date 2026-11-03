@@ -2013,7 +2013,21 @@ impl Session {
             ([one], None) if one.page_title.is_some() => one.page_title.clone().unwrap_or_default(),
             ([one], None) => {
                 let id = one.reach.get(&one.kind).and_then(|s| s.iter().next()).copied();
-                id.and_then(|id| record_title(q, id, source))
+                // FT-1127 (ID-1229 item 5): a representation without a device (an interruption point's) is named by
+                // its function's kind in the navigators' words ("Interruption point"), not by the raw kind word.
+                let words = match one.reach.get(&Kind::Function) {
+                    Some(fs) if one.kind == Kind::Representation && fs.len() == 1 => {
+                        fs.iter().next().and_then(|f| {
+                            q.functions()
+                                .get(Id::from_uuid(*f))
+                                .and_then(|f| super::navigators::function_kind_words(q, f))
+                        })
+                    }
+                    _ => None,
+                };
+                words
+                    .map(str::to_owned)
+                    .or_else(|| id.and_then(|id| record_title(q, id, source)))
                     .unwrap_or_else(|| one.kind.name().to_owned())
             }
             _ => match sections.first() {

@@ -50,7 +50,7 @@ fn the_start_page_has_every_entry_of_doc_16_section_3_7() {
         "English",
         "EW",
         "KiCad-like",
-        "Update check: off",
+        "This version has no update check",
         "change",
     ] {
         assert!(h.query_by_label(label).is_some(), "{label}");
@@ -124,14 +124,18 @@ fn the_quick_switches_and_the_privacy_link_change_settings() {
     h.get_by_label("EW").click();
     settle(&mut h);
     assert_eq!(h.state().shell().settings().keymap, "ew");
-    // "change" leads to the privacy step of the first-run flow.
+    // "change" leads to the privacy step of the first-run flow. FT-1117 (ID-1229 item 3): the step says this version
+    // has no update check and sends no crash reports, with no box for one; the Privacy button stays.
     h.get_by_label("change").click();
     settle(&mut h);
     assert!(h.state().shell().first_run().is_some());
-    assert!(h.query_by_label("Check for updates (off by default)").is_some());
-    h.get_by_label("Check for updates (off by default)").click();
-    settle(&mut h);
-    assert!(h.state().shell().settings().update_check);
+    let _ = h.get_by_label(
+        "ElektraWatt makes no network connection by itself. This version has no update check and sends no crash \
+         reports.",
+    );
+    assert!(h.query_by_role(egui::Role::CheckBox).is_none());
+    let _ = h.get_by_label("Privacy (PRIVACY.md)");
+    assert!(!h.state().shell().settings().update_check);
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -451,7 +455,7 @@ fn f1_opens_the_page_of_the_context_in_the_system_browser() {
     settle(&mut h);
     support::open_menu(&mut h, &["File"]);
     settle(&mut h);
-    let item = format!("New project… {}", ew_ui::keys::display("Ctrl+N"));
+    let item = format!("New project… {}", ew_ui::keys::short_display("Ctrl+N"));
     h.get_by_label(&item).hover();
     h.run_ok();
     h.key_press(Key::F1);
@@ -487,7 +491,7 @@ fn the_about_dialog_is_complete_and_leads_to_the_notices() {
     settle(&mut h);
     for label in [
         "Page view: CPU renderer",
-        "Update check: off. Crash reports: none",
+        "This version has no update check and sends no crash reports.",
         "Licence: GPL-3.0-or-later",
         "ElektraWatt's checks do not replace engineering verification by a competent person.",
         "Support: pre-release build; only the latest 0.x release is supported.",

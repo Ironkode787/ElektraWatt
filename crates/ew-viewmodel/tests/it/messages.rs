@@ -899,3 +899,29 @@ fn a_finding_row_shows_its_subject_once() {
     }
     shell.shutdown();
 }
+
+/// FT-1140 (ID-1229 item 9): the detail block's message stands on its own line, so it starts with a capital (ID-1182,
+/// `strings::sentence_start`); the row keeps the rule's lowercase text.
+#[test]
+fn ft1140_the_detail_message_starts_with_a_capital() {
+    let tmp = Tmp::new("msg-ft1140");
+    let mut shell = tmp.shell("102");
+    done(&mut shell, "messages.show", json!({"on": true}));
+    let row = finding(&shell, "EW-CORE-034", "1X1");
+    assert_eq!(
+        row.cells[2],
+        "the external connection +J-E-206 → 1X1 has no cable: wires 101.1, 101.2, 101.3 are not a cable core; add the \
+         cable and assign its cores"
+    );
+    done(
+        &mut shell,
+        "navigator.row",
+        json!({"kind": "messages", "key": row.key}),
+    );
+    assert_eq!(
+        shell.messages_detail().expect("the detail").message,
+        "The external connection +J-E-206 → 1X1 has no cable: wires 101.1, 101.2, 101.3 are not a cable core; add the \
+         cable and assign its cores"
+    );
+    shell.shutdown();
+}

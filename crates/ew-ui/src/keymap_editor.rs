@@ -145,7 +145,7 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, just_opened: bool, events: &
         let what = if refusal.chord.is_empty() {
             label.to_owned()
         } else {
-            format!("{} ({label})", crate::keys::display(&refusal.chord))
+            format!("{} ({label})", crate::keys::short_display(&refusal.chord))
         };
         components::live_line(ui, &strings::format(key!("keymap-refused"), &[&what]), true);
         for e in &refusal.errors {
@@ -176,7 +176,8 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, just_opened: bool, events: &
                 .chords
                 .iter()
                 .map(|c| {
-                    measure(crate::keys::display(c).replace('+', " "), &t.type_caption) + 2.0 * t.space_2
+                    measure(crate::keys::short_display(c).replace('+', " "), &t.type_caption)
+                        + 2.0 * t.space_2
                 })
                 .sum::<f32>()
                 + t.space_1 * row.chords.len().saturating_sub(1) as f32;

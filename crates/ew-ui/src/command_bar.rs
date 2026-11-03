@@ -339,7 +339,7 @@ pub(crate) fn button_response(ui: &Ui, id: Id, rect: Rect, spec: Spec<'_>) -> Re
         None => egui::WidgetInfo::labeled(egui::Role::Button, enabled, &name),
     });
     if !shortcut.is_empty() {
-        let shortcut = crate::keys::display(shortcut);
+        let shortcut = crate::keys::short_display(shortcut);
         ui.ctx().accesskit_node_builder(id, |n| {
             n.set_keyboard_shortcut(shortcut);
         });
@@ -860,7 +860,7 @@ impl CommandBarHost {
         response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::SearchInput, true, &placeholder));
         ui.ctx().accesskit_node_builder(response.id, |n| {
             n.set_placeholder(placeholder.clone());
-            n.set_keyboard_shortcut(crate::keys::display(&palette_key));
+            n.set_keyboard_shortcut(crate::keys::short_display(&palette_key));
         });
         let open = shell.palette().is_some();
         if (response.clicked() || response.gained_focus()) && !open {

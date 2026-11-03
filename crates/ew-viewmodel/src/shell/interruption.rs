@@ -441,7 +441,13 @@ impl ShellModel {
                 let mut labels: Vec<&str> = choices.iter().map(|(_, l)| l.as_str()).collect();
                 labels.dedup();
                 let known = if labels.is_empty() {
-                    strings::text(key!("external-none")).to_owned()
+                    // FT-1131 (ID-1229 item 7): the command by its menu path, and its key only when one is bound.
+                    let key = crate::command_bar::key_of(self, "external_ref.new");
+                    if key.is_empty() {
+                        strings::text(key!("external-none")).to_owned()
+                    } else {
+                        strings::format(key!("external-none-key"), &[&key])
+                    }
                 } else {
                     labels.join(", ")
                 };

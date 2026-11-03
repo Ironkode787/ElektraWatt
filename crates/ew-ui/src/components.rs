@@ -549,7 +549,7 @@ pub(crate) fn caption_badge(ui: &mut Ui, text: &str) -> Response {
 /// item 7): `radius.sm`, a 1-px `color.border.default`, `type.caption` in `color.text.tertiary`, `space.2` padding.
 pub(crate) fn key_chip(ui: &mut Ui, shortcut: &str) -> Response {
     let t = tokens(ui);
-    let text = crate::keys::display(shortcut).replace('+', " ");
+    let text = crate::keys::short_display(shortcut).replace('+', " ");
     let galley = ui
         .painter()
         .layout_no_wrap(text, theme::font(&t.type_caption), t.text_tertiary.color32());

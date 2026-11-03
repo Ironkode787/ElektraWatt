@@ -20,7 +20,7 @@ fn the_start_page_offers_open_and_names_no_project() {
     let mut h = harness(&tmp, Scripted::default(), None);
     settle(&mut h);
     assert!(h.query_by_label("Open…").is_some());
-    assert!(h.query_by_label("Update check: off").is_some());
+    assert!(h.query_by_label("This version has no update check").is_some());
     // WP-S2.17 part 3 (D12): the status bar's state field; the start page's hint left the bar.
     assert!(h.query_by_label("Ready").is_some());
     // The app menu is there on every operating system (WP-S2.17 part 2: one button opens the whole tree, in doc
@@ -161,7 +161,7 @@ fn help_about_opens_and_closes() {
     assert!(h.query_by_label_contains("Version 0.0.0-test").is_some());
     assert!(h.query_by_label("Page view: CPU renderer").is_some());
     assert!(
-        h.query_by_label("Update check: off. Crash reports: none")
+        h.query_by_label("This version has no update check and sends no crash reports.")
             .is_some()
     );
     assert!(h.query_by_label("Licence: GPL-3.0-or-later").is_some());
@@ -308,13 +308,26 @@ fn the_file_menu_greys_out_what_needs_a_project() {
     support::open_menu(&mut h, &["File"]);
     settle(&mut h);
     // A menu entry is named by its label and its accelerator.
-    let open = format!("Open… {}", ew_ui::keys::display("Ctrl+O"));
+    let open = format!("Open… {}", ew_ui::keys::short_display("Ctrl+O"));
     assert!(!h.get_by_label(&open).accesskit_node().is_disabled());
-    let save = format!("Save {}", ew_ui::keys::display("Ctrl+S"));
+    let save = format!("Save {}", ew_ui::keys::short_display("Ctrl+S"));
     assert!(
         h.get_by_label(&save).accesskit_node().is_disabled(),
         "Save is disabled without a project"
     );
+}
+
+/// FT-1112 (ID-1229 item 1): a menu names a key by its keycap form, as the tooltips do: Edit ▸ Delete reads "Del", not
+/// "Delete".
+#[test]
+fn ft1112_a_menu_names_its_key_by_the_keycap() {
+    let tmp = Tmp::new();
+    let mut h = harness(&tmp, Scripted::default(), None);
+    settle(&mut h);
+    support::open_menu(&mut h, &["Edit"]);
+    settle(&mut h);
+    let _ = h.get_by_label("Delete Del");
+    assert!(h.query_by_label("Delete Delete").is_none());
 }
 
 #[test]

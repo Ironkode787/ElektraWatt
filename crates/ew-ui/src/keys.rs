@@ -165,11 +165,12 @@ pub fn chord_text(key: Key, physical: Option<Key>, modifiers: Modifiers) -> Opti
 
 /// The text of a binding for display: `Ctrl` reads `Cmd` on macOS, and a physical key reads as its key cap
 /// (`Ctrl+phys:Digit0` is "Ctrl+0", `phys:Minus` "-", KM-4 ruling): the window never prints the `phys:` grammar. The
-/// view-model's one display function, so the chips, the menus and the keymap editor's texts agree.
+/// view-model's one display function, under [`short_display`]; only the keymap's findings show it as it is.
 pub use ew_viewmodel::keymap::display;
 
-/// A binding for a tooltip or a hint: the keycap form ("Esc", "Del", "Up", "Ctrl+Z"), the one form every text names a key by
-/// (FT-1081, ID-1182, doc 16a §8 item 7).
+/// A binding as every surface names it: the keycap form ("Esc", "Del", "Up", "Ctrl+Z") of the menus, the key chips,
+/// the palette, the keymap editor, the command bar, the tooltips and the hints (FT-1081, FT-1112, ID-1182, ID-1229,
+/// doc 16a §8 item 7).
 pub use ew_viewmodel::keymap::short_display;
 
 #[cfg(test)]

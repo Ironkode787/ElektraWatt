@@ -359,6 +359,36 @@ fn item8_ip_external_takes_the_printed_location_and_lists_the_labels_when_nothin
     );
 }
 
+/// FT-1131 (ID-1229 item 7): with no external reference the message names the command by its menu path, never its
+/// action ID, and its key only once the user binds one.
+#[test]
+fn ft1131_no_external_reference_names_the_menu_path_and_a_bound_key() {
+    let tmp = Tmp::new("ft1131");
+    let mut s = new_project(&tmp);
+    done(&mut s, "tool.ip", json!({}));
+    assert_eq!(
+        failed(&mut s, "ip.external", json!({"external": "X:L"})),
+        "No external reference is \"X:L\"; name one as device:connection, optionally after its location and \" / \" \
+         (+J-E-206 / JE-N1000-03:L). The project's: none (create one with Project ▸ External reference…)"
+    );
+    done(&mut s, "help.shortcuts", json!({}));
+    done(
+        &mut s,
+        "keymap.record",
+        json!({"action": "external_ref.new", "keys": "Ctrl+Shift+F7"}),
+    );
+    done(&mut s, "ui.dismiss", json!({}));
+    let key = ew_viewmodel::keymap::short_display("Ctrl+Shift+F7");
+    assert_eq!(
+        failed(&mut s, "ip.external", json!({"external": "X:L"})),
+        format!(
+            "No external reference is \"X:L\"; name one as device:connection, optionally after its location and \
+             \" / \" (+J-E-206 / JE-N1000-03:L). The project's: none (create one with Project ▸ External \
+             reference…, {key})"
+        )
+    );
+}
+
 // ---------------------------------------------------------------------------------------------------------------
 // Item 2: a frozen tag typed as it prints.
 

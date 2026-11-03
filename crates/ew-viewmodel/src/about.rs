@@ -44,11 +44,8 @@ pub fn support_line(end: Option<&str>, today: Option<&str>) -> String {
 
 /// The lines of the About dialog, in order (the title is the dialog's).
 pub fn about_lines(model: &ShellModel) -> Vec<String> {
-    let privacy = if model.settings().update_check {
-        strings::text(key!("about-privacy-on"))
-    } else {
-        strings::text(key!("about-privacy"))
-    };
+    // FT-1117 (ID-1229 item 3, ID-1187): this version has no update check, whatever the stored setting says.
+    let privacy = strings::text(key!("about-privacy"));
     vec![
         strings::format(key!("about-version"), &[&model.config().app_version]),
         strings::text(key!("about-page-view")).to_owned(),

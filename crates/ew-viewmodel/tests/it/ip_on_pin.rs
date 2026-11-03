@@ -428,7 +428,7 @@ fn an_external_point_on_a_pin_connects_to_it() {
     assert_eq!(s.revision(), rev.map(|r| r + 1), "one commit");
     let name = added(&before, &s).0[0].ip.as_ref().unwrap().name.clone();
     assert_connects(&s, &before, &pin, &name);
-    // FT-1067: the toast names the external point so.
+    // FT-1067: the toast names the external point so; FT-1129 (ID-1229 item 6): both sentences end with a full stop.
     let cell = {
         let (reps, _) = added(&before, &s);
         let page = s.canvas().unwrap().page();
@@ -438,7 +438,7 @@ fn an_external_point_on_a_pin_connects_to_it() {
         toast(&s),
         format!(
             "Placed the external point {name} at {cell} and connected it to -102F2:13. Alt+Click or Ctrl+Enter \
-             places it without connecting"
+             places it without connecting."
         )
     );
     let function = added(&before, &s).0[0].functions[0];

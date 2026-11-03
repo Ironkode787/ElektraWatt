@@ -114,6 +114,8 @@ impl ShellModel {
                 d.message = ew_api::checks::messages::render(f, lang);
             }
         }
+        // FT-1140 (ID-1229 item 9): the message stands on its own line, so it starts with a capital (ID-1182).
+        d.message = strings::sentence_start(&d.message).into_owned();
         if d.waived {
             d.waiver = self
                 .with_online(|o| o.waivers.get(&d.fingerprint).cloned())

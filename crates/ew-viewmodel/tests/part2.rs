@@ -1517,12 +1517,18 @@ fn quick_switches_validate_and_persist() {
     assert_eq!(again.settings().keymap, "kicad");
     assert_eq!(again.settings().theme, "light");
     assert!(again.settings().update_check);
-    // The describe text shows the quick switches and the privacy line of the start page.
+    // The describe text shows the quick switches and the privacy line of the start page. FT-1117 (ID-1229 item 3):
+    // the stored setting stays, unused: this version has no update check.
     let text = again.describe();
     assert!(text.contains("quick \"Keymap\": \"KiCad-like\""), "{text}");
     assert!(
-        text.contains("label \"Update check: on (this version has none)\""),
+        text.lines()
+            .any(|l| l == "  label \"This version has no update check\""),
         "{text}"
+    );
+    assert_eq!(
+        ew_viewmodel::about::about_lines(&again)[2],
+        "This version has no update check and sends no crash reports."
     );
 }
 

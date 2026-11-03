@@ -406,12 +406,13 @@ fn pot011_cases() {
                         "case {c}"
                     );
                     assert!(!f[0].discriminator.is_empty(), "case {c}");
-                    // FT-711: plain words from the Fluent pattern, never the derivation's arm-and-root text.
+                    // FT-711: plain words from the Fluent pattern, never the derivation's arm-and-root text; FT-1146
+                    // (ID-1229 item 10): the potential once, first.
                     let p = &f[0].subject;
                     assert_eq!(
                         f[0].message,
                         format!(
-                            "on {p} it is unclear which wire feeds a junction or a group of interruption points; \
+                            "{p} has a junction or a group of interruption points whose feed is unclear; \
                              draw one wire into it from the supply side"
                         ),
                         "case {c}"
@@ -422,9 +423,13 @@ fn pot011_cases() {
                         "case {c}: the en-GB pattern renders the message"
                     );
                     let nl = ew_checks::messages::render(&f[0], "nl-NL");
-                    assert!(
-                        nl.starts_with(&format!("op {p} is niet duidelijk welke draad")),
-                        "case {c}: {nl}"
+                    assert_eq!(
+                        nl,
+                        format!(
+                            "{p} heeft een knooppunt of een groep onderbrekingspunten waarvan de voeding niet \
+                             duidelijk is; teken één draad ernaartoe vanaf de voedingszijde"
+                        ),
+                        "case {c}"
                     );
                 },
             ),

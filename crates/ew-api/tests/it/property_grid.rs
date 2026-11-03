@@ -477,6 +477,22 @@ fn pg2_mixed_and_missing_selections() {
     assert_eq!(sheet.header.title, "2 devices");
 }
 
+/// FT-1127 (ID-1229 item 5): an interruption point's Properties header names its kind in the navigators' words, not
+/// the raw kind word "representation".
+#[test]
+fn ft1127_an_interruption_points_header_names_its_kind_in_words() {
+    let s = golden();
+    let tables = s.page_tables("102").unwrap();
+    let ip = tables
+        .reps
+        .iter()
+        .find(|r| r.ip.is_some() && r.device.is_none())
+        .expect("an interruption point on 102");
+    let sheet = s.property_sheet(&[ip.id]);
+    assert_eq!(sheet.header.title, "Interruption point");
+    assert_eq!(sheet.header.kinds, [("representation".to_owned(), 1)]);
+}
+
 /// FT-439 (decision log ID-640): a section lists its targets in label order (devices by tag, representations by their
 /// first CP's label, then place), never by ID alone, and a `‹varies›` value lists its texts in natural text order.
 #[test]

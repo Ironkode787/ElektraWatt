@@ -70,7 +70,7 @@ pub(crate) fn item(ui: &mut Ui, item: &ActionItem, events: &mut Vec<Event>) {
         .min_size(egui::vec2(0.0, t.size_row));
     if !item.shortcut.is_empty() {
         button = button.shortcut_text(
-            egui::RichText::new(keys::display(&item.shortcut))
+            egui::RichText::new(keys::short_display(&item.shortcut))
                 .font(crate::theme::font(&t.type_small))
                 .color(t.text_secondary.color32()),
         );

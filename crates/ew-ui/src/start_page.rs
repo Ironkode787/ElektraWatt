@@ -118,11 +118,8 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             );
             ui.add_space(16.0);
             ui.horizontal(|ui| {
-                ui.weak(if settings.update_check {
-                    strings::text(key!("start-update-check-on"))
-                } else {
-                    strings::text(key!("start-update-check"))
-                });
+                // FT-1117 (ID-1229 item 3, ID-1187): this version has no update check.
+                ui.weak(strings::text(key!("start-update-check")));
                 if ui
                     .small_button(strings::text(key!("start-privacy-change")))
                     .clicked()

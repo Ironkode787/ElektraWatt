@@ -1006,6 +1006,27 @@ fn kind_words(before: &str, last: &str) -> Option<(&'static str, bool)> {
         .map(|(_, _, words, with_cps)| (*words, *with_cps))
 }
 
+/// A function's kind in the navigators' own words, without its CP designations ("Interruption point"; FT-1127,
+/// ID-1229 item 5): the [`KIND_WORDS`] entry of its FnDef's category; `None` for a category the table does not name
+/// or a missing FnDef copy.
+pub(crate) fn function_kind_words(q: &Q, f: &Function) -> Option<&'static str> {
+    let fndefs = q.fndefs();
+    let def = fndefs
+        .get(f.def)
+        .map(|c| &c.item)
+        .or_else(|| super::editing::starter_fndef(f.def).map(|c| &c.item))?;
+    let (a, b, c) = &def.category;
+    let cat: Vec<&str> = [a, b, c]
+        .iter()
+        .map(|i| i.as_str())
+        .filter(|s| !s.is_empty())
+        .collect();
+    let [.., before, last] = cat.as_slice() else {
+        return None;
+    };
+    kind_words(before, last).map(|(words, _)| words)
+}
+
 /// The Properties grid's "Part function" text of a function (FT-670): [`function_kind_text`] when the function
 /// records `template_entry` and that entry resolves among its device's part uses (`ew_schema::template_entry_of`);
 /// `None` otherwise (the row is hidden).

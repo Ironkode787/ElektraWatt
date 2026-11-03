@@ -451,6 +451,10 @@ standard** (§9.2), Tutorials, quick switches for language and keymap, and one p
 change"; 0.1.0 has no update check, ID-1187). It contains no news feed and opens no connection (NFR-PRIV-01). It must appear within 1.5 s
 (NFR-PERF-02).
 
+*As built (cycle 48; decision log ID-1229, FT-1117).* The privacy line reads "This version has no update check ·
+change", whatever the stored `update_check` setting says (it stays, unused, until 1.0); "change" opens step 3 of the
+first run. The About dialog's line reads "This version has no update check and sends no crash reports."
+
 ### 3.8 Projects, instances and windows
 
 - **One project per `Session` and window.** File ▸ Open while a project is open offers "Close and open" or "Open
@@ -1289,6 +1293,11 @@ platform's `open_url`; when that fails a banner shows the address. This is the d
 `file://`-only rule (§3.9, §13), which holds until FT-386 bundles `PRIVACY.md` with the build and the button opens the
 local copy. `ui.describe` lists `button "Privacy (PRIVACY.md)"` under the step's update-check choice. The step opens no
 connection by itself: the click is the user's action and the application sends nothing (NFR-PRIV-01).
+
+*As built (cycle 48; decision log ID-1229, FT-1117).* Step 3 says "ElektraWatt makes no network connection by itself.
+This version has no update check and sends no crash reports." and has no update-check box: the **Privacy
+(PRIVACY.md)** button is its one control, and `ui.describe` lists it under the step's text. The `update_check` setting
+stays stored and unused until 1.0; `first_run.set` still takes it.
 
 ### 9.2 Company-standard wizard
 

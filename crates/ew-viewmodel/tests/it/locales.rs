@@ -187,7 +187,8 @@ fn lo2_view_language_switches_the_menus_and_back() {
 }
 
 /// LO-4: with the UI in Dutch the Messages detail shows the nl-NL text of a Golden A rule that has one (EW-POT-013)
-/// and the en-GB text of a rule without one; in English it is the finding's own message.
+/// and the en-GB text of a rule without one (starting with a capital, FT-1140); in English it is the finding's own
+/// message.
 #[test]
 fn lo4_the_messages_detail_follows_the_ui_language() {
     let tmp = Tmp::new("lo4");
@@ -228,7 +229,10 @@ fn lo4_the_messages_detail_follows_the_ui_language() {
         detail(&mut shell, &pot.key),
         "S56 schakelt de nulleider N-55 → N-55S; belasting E56 blijft verbonden met L-55."
     );
-    assert_eq!(detail(&mut shell, &other.key), other.cells[2]);
+    assert_eq!(
+        detail(&mut shell, &other.key),
+        strings::sentence_start(&other.cells[2])
+    );
     done(&mut shell, "view.language", json!({"value": "en"}));
     assert_eq!(detail(&mut shell, &pot.key), pot.cells[2]);
     shell.shutdown();

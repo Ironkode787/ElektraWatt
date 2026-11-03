@@ -211,7 +211,18 @@ pub(crate) fn severity_count_chip(ui: &mut Ui, severity: &str, findings: &[(&str
         .map(|(rule, message)| strings::format(key!("props-finding-tip"), &[rule, message]))
         .collect();
     let name = strings::format(key!("props-findings-chip"), &[&word, &lines.join("; ")]);
-    paint_severity_chip(ui, severity, &word, &name, &lines.join("\n"))
+    paint_severity_chip(ui, severity, &word, &name, &chip_tip(severity, &lines))
+}
+
+/// A severity chip's tooltip: its findings, one "<rule>: <message>" line each; the Pending chip says first what it
+/// counts (FT-1092, ID-1184), then lists them (FT-1139, ID-1229 item 8).
+pub(crate) fn chip_tip(severity: &str, lines: &[String]) -> String {
+    let list = lines.join("\n");
+    if severity == "pending" {
+        format!("{}\n{list}", strings::text(key!("tip-pending")))
+    } else {
+        list
+    }
 }
 
 /// Paints a severity chip with `word`, its node named `name`, `tip` as the tooltip.
@@ -258,12 +269,7 @@ fn paint_severity_chip(ui: &mut Ui, severity: &str, word: &str, name: &str, tip:
         galley,
         text.color32(),
     );
-    // FT-1092 (ID-1184): the Pending chip says what it counts; the others list their findings.
-    if severity == "pending" {
-        response.tip(strings::text(key!("tip-pending")))
-    } else {
-        response.tip(tip)
-    }
+    response.tip(tip)
 }
 
 /// The header (doc 16a §6.24): the scheme in `type.small` `color.text.secondary`, one count badge per severity, then
@@ -551,5 +557,24 @@ mod tests {
         assert_eq!(finding_badge("pending"), Some(Badge::Pending));
         assert_eq!(finding_badge("fix"), Some(Badge::Fix));
         assert_eq!(finding_badge("error"), None);
+    }
+
+    /// FT-1139 (ID-1229 item 8): the Pending chip's tooltip says what it counts, then lists its findings; another
+    /// chip's lists them only.
+    #[test]
+    fn ft1139_the_pending_tip_defines_then_lists() {
+        let lines = [
+            "EW-CORE-041: -K1 has no part".to_owned(),
+            "EW-CORE-033: -3W1 has no length".to_owned(),
+        ];
+        assert_eq!(
+            chip_tip("pending", &lines),
+            "Findings on the page you are editing that wait until you leave it or run a check\n\
+             EW-CORE-041: -K1 has no part\nEW-CORE-033: -3W1 has no length"
+        );
+        assert_eq!(
+            chip_tip("warning", &lines),
+            "EW-CORE-041: -K1 has no part\nEW-CORE-033: -3W1 has no length"
+        );
     }
 }

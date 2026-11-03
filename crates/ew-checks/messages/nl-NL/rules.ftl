@@ -219,7 +219,7 @@ rule-ew-pot-009 = { $cp_shared ->
     .title = Niet-aangesloten aansluitpunt
     .hint = Sluit het aansluitpunt aan of markeer het als ongebruikt.
 
-rule-ew-pot-011 = op { $potential } is niet duidelijk welke draad een knooppunt of een groep onderbrekingspunten voedt; teken één draad ernaartoe vanaf de voedingszijde
+rule-ew-pot-011 = { $potential } heeft een knooppunt of een groep onderbrekingspunten waarvan de voeding niet duidelijk is; teken één draad ernaartoe vanaf de voedingszijde
     .title = Voeding van knooppunt onduidelijk
     .hint = Teken het knooppunt zo dat één draad het voedt, of stel de bedradingsvolgorde in.
 

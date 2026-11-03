@@ -1845,18 +1845,13 @@ pub(crate) fn choices(cx: &dyn ParseCx, ty: &FieldType, member: &str, filter: &s
     all.into_iter().filter(keep).collect()
 }
 
-/// The project's part copies as options, `<part number> (<manufacturer>)` in natural order, each writing `value(id)`.
-///
-/// The system libraries' parts the project does not hold follow, in the same order (WP-S2.18 D6: embedded first).
+/// The project's part copies and the system libraries' parts the project does not hold (WP-S2.18 D6) as options,
+/// `<part number> (<manufacturer>)`, each writing `value(id)`; in the place chooser's one order, (maker, part number,
+/// copy), embedded and library parts alike, so that embedding a part does not move it (FT-1122, ID-1229 item 4).
 fn part_choices(cx: &dyn ParseCx, value: impl Fn(&str) -> Value) -> Vec<FieldChoice> {
-    let order = |a: &PartCopyText, b: &PartCopyText| {
-        ew_mltext::natural_cmp(&a.number, &b.number).then_with(|| a.id.cmp(&b.id))
-    };
     let mut copies = cx.part_copies();
-    copies.sort_by(order);
-    let mut library = cx.library_parts();
-    library.sort_by(order);
-    copies.extend(library);
+    copies.extend(cx.library_parts());
+    copies.sort_by(|a, b| (&a.manufacturer, &a.number, &a.id).cmp(&(&b.manufacturer, &b.number, &b.id)));
     copies
         .into_iter()
         .map(|c| FieldChoice {
@@ -2248,6 +2243,52 @@ mod tests {
         let c = choices(&Cx, &FieldType::Colour, "", "b");
         assert!(c.iter().all(|x| x.text.to_lowercase().contains('b')));
         assert!(choices(&Cx, &FieldType::Text, "", "").is_empty());
+    }
+
+    /// A project that holds Schneider parts, with the libraries' ABB and Schneider parts it does not hold.
+    struct LibCx;
+
+    impl ParseCx for LibCx {
+        fn company_codes(&self) -> Vec<(String, String)> {
+            Vec::new()
+        }
+        fn part_copies(&self) -> Vec<PartCopyText> {
+            Cx.part_copies()
+        }
+        fn library_parts(&self) -> Vec<PartCopyText> {
+            let part = |id: &str, number: &str, manufacturer: &str| PartCopyText {
+                id: id.into(),
+                number: number.into(),
+                manufacturer: manufacturer.into(),
+                kind: "device".into(),
+                description: String::new(),
+            };
+            vec![part("l1", "A9F79116", "Schneider"), part("l2", "S201-B16", "ABB")]
+        }
+        fn slot_nodes(&self, _member: &str) -> Vec<(String, String, Vec<String>)> {
+            Vec::new()
+        }
+    }
+
+    /// FT-1122 (ID-1229 item 4): the Parts row's choices take the place chooser's order, (maker, part number, copy),
+    /// embedded and library parts alike: a library part sorts among the embedded ones, not after them.
+    #[test]
+    fn ft1122_the_parts_row_takes_the_choosers_order() {
+        let texts: Vec<String> = choices(&LibCx, &part_uses(), "", "")
+            .into_iter()
+            .map(|c| c.text)
+            .collect();
+        assert_eq!(
+            texts,
+            [
+                "S201-B16 (ABB)",
+                "A9F78116 (Schneider)",
+                "A9F79116 (Schneider)",
+                "A9P52610 (Schneider)",
+                "TBD (Schneider)",
+                "TBD (Schneider)",
+            ]
+        );
     }
 
     fn part_uses() -> FieldType {

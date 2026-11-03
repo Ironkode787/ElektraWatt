@@ -132,11 +132,18 @@ fn ft1092_the_pending_chips_and_the_messages_header_say_what_they_count() {
             glyph,
             "the glyph chip is the narrow one: {w} by {hgt}"
         );
-        assert!(h.query_by_label(TIP).is_none(), "no tooltip before the hover");
+        // FT-1139 (ID-1229 item 8): the definition first, then the pending finding, "<rule>: <message>".
+        let finding = chip
+            .accesskit_node()
+            .label()
+            .and_then(|l| l.strip_prefix("1 Pending: ").map(str::to_owned))
+            .expect("the chip names its finding");
+        let tip = format!("{TIP}\n{finding}");
+        assert!(h.query_by_label(&tip).is_none(), "no tooltip before the hover");
         chip.hover();
         h.run_steps(40);
         assert!(
-            h.query_by_label(TIP).is_some(),
+            h.query_by_label(&tip).is_some(),
             "the Pending chip's tooltip at {width}: {:?}",
             h.query_all_by_label_contains("Findings")
                 .map(|n| n.accesskit_node().label())
@@ -144,7 +151,7 @@ fn ft1092_the_pending_chips_and_the_messages_header_say_what_they_count() {
         );
         away(&mut h);
         assert!(
-            h.query_by_label(TIP).is_none(),
+            h.query_by_label(&tip).is_none(),
             "the tooltip goes with the pointer"
         );
     }

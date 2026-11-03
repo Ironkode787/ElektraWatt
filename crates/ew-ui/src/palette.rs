@@ -70,7 +70,7 @@ fn row(ui: &mut egui::Ui, t: &Tokens, entry: &PaletteEntry, query: &str, selecte
     };
     response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, entry.enabled, &name));
     if !entry.shortcut.is_empty() {
-        let shortcut = crate::keys::display(&entry.shortcut);
+        let shortcut = crate::keys::short_display(&entry.shortcut);
         ui.ctx()
             .accesskit_node_builder(response.id, |n| n.set_keyboard_shortcut(shortcut));
     }

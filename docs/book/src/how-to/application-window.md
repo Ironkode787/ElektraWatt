@@ -16,8 +16,8 @@ With no project open the window shows the start page. It has no news feed and op
 - **Import QElectroTech project** reads a `.qet` file into a new project directory.
 - **Create company standard** starts the [company-standard wizard](#company-standard-wizard).
 - **Tutorials** opens the tutorials and a fresh copy of the sample project.
-- The quick switches set the language and the keymap preset. The privacy line says whether the update check is on; it
-  is off until you switch it on in the [first-run setup](#first-run-setup).
+- The quick switches set the language and the keymap preset. The privacy line says that this version has no update
+  check; **change** opens the privacy step of the [first-run setup](#first-run-setup).
 
 ## Project view
 
@@ -69,9 +69,10 @@ configuration directory; the layout is saved a second after its last change.
 
 ## First-run setup
 
-On the first start the application asks for the language, what you come from (EPLAN, QElectroTech, KiCad or other),
-the privacy choice (the update check, off by default) and the appearance (theme and scale), and then what to do first.
-Every step can be skipped. **Help, First-run setup** runs it again. Nothing in it makes a network connection.
+On the first start the application asks for the language and what you come from (EPLAN, QElectroTech, KiCad or other),
+says what it does with your data (this version has no update check and sends no crash reports; **Privacy
+(PRIVACY.md)** opens the full statement), asks for the appearance (theme and scale), and then what to do first. Every
+step can be skipped. **Help, First-run setup** runs it again. Nothing in it makes a network connection.
 
 ## Company-standard wizard
 

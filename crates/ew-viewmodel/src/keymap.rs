@@ -228,9 +228,8 @@ fn physical_cap(code: &str) -> String {
         .to_owned()
 }
 
-/// A binding text as a person reads it ([`Chord::display`]): the window's chips and menus and every keymap text of
-/// the view-model show chords through this one function. A text that is no chord stays as it is, with `Ctrl` read
-/// as `Cmd` on macOS.
+/// A binding text as a person reads it ([`Chord::display`]), the long form [`short_display`] shortens; the keymap's
+/// findings name chords in this form. A text that is no chord stays as it is, with `Ctrl` read as `Cmd` on macOS.
 pub fn display(text: &str) -> String {
     match Chord::parse(text) {
         Ok(chord) => chord.display(),
@@ -239,8 +238,9 @@ pub fn display(text: &str) -> String {
     }
 }
 
-/// A binding text as the HUD's compact texts name it (FT-964, ID-1150): [`display`] with the long key names short
-/// (`Escape` "Esc", `Delete` "Del", `Arrow Up` "Up"), so "Esc done" and "Del deletes" read as before.
+/// A binding text as every surface names a key (FT-964, ID-1150, FT-1112, ID-1229, doc 16a §8 item 7): [`display`]
+/// with the long key names short (`Escape` "Esc", `Delete` "Del", `Arrow Up` "Up"), in the menus, the key chips, the
+/// palette, the keymap editor, the command bar, the tooltips and the HUD's texts ("Esc done", "Del deletes").
 pub fn short_display(text: &str) -> String {
     let full = display(text);
     let (modifiers, key) = match full.rfind('+') {

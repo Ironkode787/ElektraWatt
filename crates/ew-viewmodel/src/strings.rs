@@ -602,27 +602,35 @@ pub fn in_sentence(label: &str) -> String {
 /// ") is left as it is and the words after it start with the capital; a designation, a code or a digit first ("-K1
 /// exists", "W464: …", "4 errors": no lowercase letter first, or a first word that holds a digit) is left as it is.
 pub fn sentence_start(part: &str) -> Cow<'_, str> {
+    /// A rule code with its colon, `EW-[A-Z]+-[0-9]+:` (FT-1113, ID-1229 item 2): a designation ("-K1:") is none.
     fn is_code(word: &str) -> bool {
-        word.strip_suffix(':').is_some_and(|c| {
-            c.len() > 1
-                && c.contains('-')
-                && c.chars()
-                    .all(|ch| ch.is_ascii_uppercase() || ch.is_ascii_digit() || ch == '-')
-        })
+        word.strip_prefix("EW-")
+            .and_then(|w| w.strip_suffix(':'))
+            .and_then(|w| w.split_once('-'))
+            .is_some_and(|(area, number)| {
+                !area.is_empty()
+                    && area.chars().all(|ch| ch.is_ascii_uppercase())
+                    && !number.is_empty()
+                    && number.chars().all(|ch| ch.is_ascii_digit())
+            })
     }
-    if let Some((code, rest)) = part.split_once(' ')
+    // The leading codes, however many, stay as they are.
+    let mut start = 0;
+    while let Some((code, _)) = part[start..].split_once(' ')
         && is_code(code)
     {
-        return match sentence_start(rest) {
-            Cow::Borrowed(_) => Cow::Borrowed(part),
-            Cow::Owned(rest) => Cow::Owned(format!("{code} {rest}")),
-        };
+        start += code.len() + 1;
     }
-    let first_word = part.split(char::is_whitespace).next().unwrap_or_default();
-    match part.chars().next() {
-        Some(first) if first.is_lowercase() && !first_word.chars().any(|c| c.is_ascii_digit()) => {
-            Cow::Owned(first.to_uppercase().chain(part.chars().skip(1)).collect())
-        }
+    let (codes, rest) = part.split_at(start);
+    let first_word = rest.split(char::is_whitespace).next().unwrap_or_default();
+    match rest.chars().next() {
+        Some(first) if first.is_lowercase() && !first_word.chars().any(|c| c.is_ascii_digit()) => Cow::Owned(
+            codes
+                .chars()
+                .chain(first.to_uppercase())
+                .chain(rest.chars().skip(1))
+                .collect(),
+        ),
         _ => Cow::Borrowed(part),
     }
 }
@@ -687,6 +695,12 @@ mod tests {
                 "EW-CORE-052: A second source of 0V",
             ),
             ("W464: a star source", "W464: a star source"),
+            // FT-1113 (ID-1229 item 2): a designation with a colon is no rule code, and a chain of codes is skipped.
+            ("-K1: the coil of the relay", "-K1: the coil of the relay"),
+            (
+                "EW-CORE-052: EW-POT-011: a second source",
+                "EW-CORE-052: EW-POT-011: A second source",
+            ),
             ("-K1 exists", "-K1 exists"),
             ("k1 exists", "k1 exists"),
             ("4 errors, 25 warnings", "4 errors, 25 warnings"),

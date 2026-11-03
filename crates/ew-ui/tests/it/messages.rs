@@ -677,15 +677,16 @@ fn ambiguous_junction_feed(h: &mut Harness<'_, App>) {
     settle(h);
 }
 
-/// FT-1097 (ID-1184; play-test rv-vis-7, t0084): EW-POT-011's message is cut at the panel's edge. At the 1280 × 800
-/// floor the surface that cuts it is the finding's list row, which keeps one line (cut with an ellipsis, the whole
-/// text in its tooltip). The detail block shows the rule's title and the message whole, wrapped to the pane's width
+/// FT-1097 (ID-1184; play-test rv-vis-7, t0084): EW-POT-011's message is cut at the panel's edge. The finding's list
+/// row keeps one line (a cut row has an ellipsis and its whole text in its tooltip). The detail block shows the rule's title and the message whole, wrapped to the pane's width
 /// and between the list and the footer, at the floor and at 1920 × 1080.
 #[test]
 fn ft1097_the_pot_011_detail_shows_its_title_and_message_whole_at_the_floor_and_at_1920() {
     const TITLE: &str = "EW-POT-011 Junction feed ambiguous";
-    const MESSAGE: &str = "on 24VDC it is unclear which wire feeds a junction or a group of interruption points; \
-                           draw one wire into it from the supply side";
+    // FT-1146 (ID-1229 item 10): the potential once, first; the row shows the message alone (it leads with its
+    // subject).
+    const MESSAGE: &str = "24VDC has a junction or a group of interruption points whose feed is unclear; draw one \
+                           wire into it from the supply side";
     for (w, hgt) in [(1280.0, 800.0), (1920.0, 1080.0)] {
         let tmp = Tmp::new();
         let mut h = on_golden(&tmp, Scripted::default());
@@ -699,6 +700,7 @@ fn ft1097_the_pot_011_detail_shows_its_title_and_message_whole_at_the_floor_and_
             .into_iter()
             .find(|n| n.role == NavRole::Finding && n.cells[1] == "EW-POT-011")
             .expect("an EW-POT-011 finding on the joined junctions");
+        assert_eq!(row.label, MESSAGE, "{w}×{hgt}: the row names 24VDC once");
         dispatch(
             &mut h,
             "navigator.row",
@@ -737,7 +739,8 @@ fn ft1097_the_pot_011_detail_shows_its_title_and_message_whole_at_the_floor_and_
                 "{w}×{hgt}: {text:?} {rect:?} inside the pane {list:?} above the footer {footer:?}"
             );
         }
-        // The list row keeps one line: at the floor it is cut, with the whole text in its tooltip; at 1920 it fits.
+        // The list row keeps one line. FT-1146 (ID-1229 item 10): with the potential named once it fits at the floor
+        // too (it was cut there, its whole text in its tooltip).
         let cut = painted
             .iter()
             .filter(|(t, r, _)| t == &row.label && r.bottom() <= list.bottom() + 0.5)
@@ -745,26 +748,10 @@ fn ft1097_the_pot_011_detail_shows_its_title_and_message_whole_at_the_floor_and_
             .collect::<Vec<_>>();
         assert_eq!(
             cut,
-            [w < 1500.0],
-            "{w}×{hgt}: the row {:?} is cut at the floor only",
+            [false],
+            "{w}×{hgt}: the row {:?} is painted once, whole",
             row.label
         );
-        if w < 1500.0 {
-            let item = h
-                .get_all_by_role(egui::Role::TreeItem)
-                .find(|n| {
-                    n.accesskit_node()
-                        .label()
-                        .is_some_and(|l| l.starts_with(&row.label))
-                })
-                .expect("the row's tree item");
-            item.hover();
-            h.run_steps(40);
-            assert!(
-                h.query_by_label(&row.label).is_some(),
-                "{w}×{hgt}: the cut row says its whole text in its tooltip"
-            );
-        }
         h.state_mut().shell_mut().shutdown();
     }
 }

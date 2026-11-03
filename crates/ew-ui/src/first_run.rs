@@ -62,14 +62,8 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                     });
                 }
                 FirstRunStep::Privacy => {
+                    // FT-1117 (ID-1229 item 3, ID-1187): this version has no update check, so no box for one.
                     ui.label(strings::text(key!("firstrun-text-privacy")));
-                    let mut on = settings.update_check;
-                    if ui
-                        .checkbox(&mut on, strings::text(key!("firstrun-update-check")))
-                        .changed()
-                    {
-                        set(events, "update_check", json!(on));
-                    }
                     if ui.button(strings::text(key!("about-privacy-button"))).clicked() {
                         events.push(Event::OpenPrivacy);
                     }

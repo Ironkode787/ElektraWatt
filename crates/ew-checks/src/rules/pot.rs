@@ -266,10 +266,11 @@ fn wire_note_findings(q: &Q, meta: &'static RuleMeta, p: PotentialId) -> Vec<Fin
                 detail,
             } if *code == meta.id && note_owner(q, p, &wires.wires, subject) == Some(p) => {
                 // FT-711: EW-POT-011's message in plain words, from its Fluent pattern; the note's detail stays the
-                // derivation's own text.
+                // derivation's own text. FT-1146 (ID-1229 item 10): the message leads with the potential, so the
+                // Messages row, which shows a subject the message leads with once, names it once.
                 if meta.id == JUNCTION_FEED_AMBIGUOUS.id {
                     let message = format!(
-                        "on {name} it is unclear which wire feeds a junction or a group of interruption points; \
+                        "{name} has a junction or a group of interruption points whose feed is unclear; \
                          draw one wire into it from the supply side"
                     );
                     return Some(
