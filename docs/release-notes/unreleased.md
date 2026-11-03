@@ -14,6 +14,12 @@ SPDX-License-Identifier: CC-BY-4.0
 - api-break: cli fmt exit 2 (its meaning gains `--repair`'s outcomes: "a repair refused before writing, its save
   failed, or its re-open found a finding (the new generation and the backup stay)"; a Preview surface, WP-S1.17
   ID-1185 ruling 7)
+- api-break: cli merge-driver exit 1 (its meaning gains a merged file that would pass the reader's limits: `%A` is
+  left as ours and theirs stays in Git's index; WP-S1.17 ID-1273 ruling 6)
+- api-break: cli merge-driver exit 129 (its meaning gains a usage error, with clap's usage text, as ADR-0012
+  amendment 2 has it; WP-S1.17 ID-1273 ruling 9)
+- api-break: cli merge-driver exit 2 (removed: a usage error of `merge-driver` exits 129, every other command keeps 2;
+  WP-S1.17 ID-1273 ruling 9)
 - api-add: cli elektrawatt --headless --visual --window <W>x<H> --ppp <n> (a visual run chooses its window in points
   and its scale; the default 1280x800 at 1.2 and every earlier frame and transcript are unchanged; `xtask blind start
   --senses visual` takes the same flags)
