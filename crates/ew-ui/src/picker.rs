@@ -182,13 +182,21 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
                                     .atom_align(egui::Align2::LEFT_CENTER),
                             );
                         }
+                        // FT-1143 (ID-1225): the function column cuts its text with an ellipsis at its width (the
+                        // name is the row's one shrinking atom), whole in the row's tooltip.
                         atoms.push_right(
                             egui::RichText::new(&meta)
                                 .font(crate::theme::font(&t.type_small))
                                 .color(meta_colour.color32())
                                 .atom_size(egui::vec2(meta_w, small_h))
+                                .atom_max_width(meta_w)
                                 .atom_align(egui::Align2::RIGHT_CENTER),
                         );
+                        let tooltip = if matches!(row, PickerRow::PartFn(..)) {
+                            format!("{tooltip}\n{meta}")
+                        } else {
+                            tooltip
+                        };
                         let button = Button::new(atoms)
                             .wrap_mode(egui::TextWrapMode::Truncate)
                             .selected(i == picker.row)

@@ -100,6 +100,70 @@ fn the_part_picker_grows_with_the_window() {
     assert_grows("the picker's filter", floor, typical);
 }
 
+/// FT-1143 (ID-1225) at the floor: a part row's function text that does not fit its column is cut with an ellipsis
+/// inside the row, never cut hard at the popup's edge, and the row's tooltip ends with the whole text.
+#[test]
+fn ft1143_a_part_rows_function_is_cut_with_an_ellipsis_and_whole_in_its_tooltip() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, egui::Vec2::new(1280.0, 800.0));
+    dispatch(&mut h, "page.goto", json!({"folio": "101"}));
+    dispatch(&mut h, "tool.place_part", json!({}));
+    // The rows with the longest function texts ("1 of 1 NO position switch 13-14 main").
+    dispatch(&mut h, "picker.filter", json!({"text": "switch"}));
+    settle(&mut h);
+    settle(&mut h);
+    settle(&mut h);
+    // Each painted text, its rectangle and whether it is cut with an ellipsis.
+    fn walk(shape: &egui::Shape, out: &mut Vec<(String, egui::Rect, bool)>) {
+        match shape {
+            egui::Shape::Vec(v) => v.iter().for_each(|s| walk(s, out)),
+            egui::Shape::Text(t) => out.push((
+                t.galley.text().to_owned(),
+                t.visual_bounding_rect(),
+                t.galley.elided,
+            )),
+            _ => {}
+        }
+    }
+    let mut texts = Vec::new();
+    for c in &h.output().shapes {
+        walk(&c.shape, &mut texts);
+    }
+    // The rows of part functions: their tooltip (the description) ends with "<n> of <m> <function>".
+    let rows: Vec<(egui::Rect, String)> = h
+        .get_all_by_role(egui::Role::Button)
+        .filter_map(|n| {
+            let tip = n.accesskit_node().description()?.to_owned();
+            let meta = tip.lines().last()?.to_owned();
+            let mut words = meta.split(' ');
+            let numbered = words.next()?.parse::<usize>().is_ok() && words.next()? == "of";
+            numbered.then(|| (n.rect(), meta))
+        })
+        .collect();
+    assert!(!rows.is_empty(), "part rows");
+    let mut cut = 0;
+    for (row, meta) in &rows {
+        // The row's function text as painted.
+        for (text, at, elided) in texts
+            .iter()
+            .filter(|(text, at, _)| row.contains(at.left_center()) && text == meta)
+        {
+            assert!(
+                at.right() <= row.right() + 0.5,
+                "{text:?} at {at:?} inside the row {row:?}"
+            );
+            if *elided {
+                cut += 1;
+            }
+        }
+    }
+    assert!(
+        cut > 0,
+        "a function text cut with an ellipsis at the floor: {rows:?}"
+    );
+    h.state_mut().shell_mut().shutdown();
+}
+
 #[test]
 fn the_command_palette_grows_with_the_window() {
     let (floor, typical) = at_both_sizes(
