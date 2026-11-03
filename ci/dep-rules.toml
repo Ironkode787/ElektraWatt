@@ -611,7 +611,7 @@ key_deps = "v0: ew-commands, ew-checks (the shipped prevent hook, `Session::chec
 
 [crates."ew-viewmodel"]
 responsibility = 'Toolkit-agnostic panel models: navigator trees, table rows with edit→command mapping, property-grid rows with provenance, message lists, each with a revision stamp; the toolkit-neutral action definitions and the shell model that the GUI and the headless mode `elektrawatt --headless` both dispatch on (decision log ID-443, ID-444); as built in cycle 19: the registry, `ShellModel`, the settings file, the UI-script runner and the `ui.describe` text (ID-473, ID-474)'
-key_deps = 'ew-api; dev: ew-testdir (FT-586)'
+key_deps = 'ew-api; fluent-bundle 0.16.0 and unic-langid 0.9.6 (the shell texts in Fluent, WP-S2.08 part 3; default features off, at the lockfile versions ew-checks uses); dev: ew-testdir (FT-586)'
 
 [crates."ew-ui"]
 responsibility = "egui widgets, canvas host, tools (state machines; specified for WP-S2.03: the tool host and the tools in `ew-viewmodel`, `ew-ui` maps input and paints, decision log ID-536), command palette, keymaps, the action registry behind every menu, the 3D transform gizmo over `ew-render3d`'s camera and pick API; as built in cycle 19: the shell frame, the CPU page view with its render worker, the palette, the bundled UI fonts and the headless runner (ID-473)"
