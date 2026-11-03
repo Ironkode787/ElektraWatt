@@ -128,6 +128,9 @@ struct GateState {
     releases: u64,
 }
 
+/// How many waits of a second `Gate::wait_reached` makes before it panics.
+const WAIT_REACHED_ROUNDS: u32 = 60;
+
 /// A test hook (never passed by product code): a job reaching a held checkpoint blocks there until [`Gate::release`];
 /// [`Gate::wait_reached`] blocks the caller until a job is blocked at a checkpoint.
 ///
@@ -163,12 +166,28 @@ impl Gate {
         cv.notify_all();
     }
 
-    /// Blocks until a job is blocked at checkpoint `at`.
+    /// Blocks until a job is blocked at checkpoint `at`; panics, naming `at`, when none is after
+    /// `WAIT_REACHED_ROUNDS` waits of a second each (FT-1120: a job that never arrives fails its test, which a
+    /// nextest profile without a bound would let hang). No clock is read: the waits are counted.
     pub fn wait_reached(&self, at: &'static str) {
+        self.wait_reached_within(at, WAIT_REACHED_ROUNDS, std::time::Duration::from_secs(1));
+    }
+
+    /// [`Gate::wait_reached`] with `rounds` waits of `period`.
+    fn wait_reached_within(&self, at: &'static str, rounds: u32, period: std::time::Duration) {
         let (state, cv) = &*self.inner;
         let mut s = lock(state);
+        let mut waited = 0;
         while s.blocked.get(at).copied().unwrap_or(0) == 0 {
-            s = cv.wait(s).unwrap_or_else(PoisonError::into_inner);
+            let (guard, timeout) = cv.wait_timeout(s, period).unwrap_or_else(PoisonError::into_inner);
+            s = guard;
+            if timeout.timed_out() {
+                waited += 1;
+                assert!(
+                    waited < rounds,
+                    "no job reached the checkpoint `{at}` ({rounds} waits)"
+                );
+            }
         }
     }
 
@@ -543,6 +562,21 @@ mod tests {
         )
         .unwrap();
         assert_eq!(job.wait(), JobEnd::Done(2));
+    }
+
+    /// FT-1120: a checkpoint that no job reaches fails the wait, naming the checkpoint, instead of hanging.
+    #[test]
+    fn jb1_waiting_for_a_checkpoint_that_nothing_reaches_fails_naming_it() {
+        let gate = Gate::new();
+        gate.hold("written");
+        let failure = catch_unwind(AssertUnwindSafe(|| {
+            gate.wait_reached_within("written", 3, Duration::from_millis(5));
+        }))
+        .unwrap_err();
+        assert_eq!(
+            failure.downcast_ref::<String>().map(String::as_str),
+            Some("no job reached the checkpoint `written` (3 waits)")
+        );
     }
 
     #[test]

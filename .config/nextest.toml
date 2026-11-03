@@ -41,6 +41,15 @@ failure-output = "final"
 success-output = "never"
 # As in local-dev: no performance measurements during development (ID-664).
 default-filter = 'not binary(perf) and not test(/(^|::)perf_/)'
+# FT-1120: a test that runs longer than 2 minutes is ended and fails under its name, instead of holding the lane for
+# as long as the lane's own timeout (cycle 47: one test of ew-viewmodel hung for 1,441 s).
+slow-timeout = { period = "60s", terminate-after = 2 }
+
+# The lane's longer tests keep the `ci` profile's bound (10 minutes): the acceptance tests and the command fuzzer take
+# about 2 minutes (ID-1217), and the memo oracle and the page output tests of ew-api a similar time under load.
+[[profile.lane.overrides]]
+filter = 'binary(acceptance) or binary(command_fuzz) or binary(memo_oracle) or binary(page_output)'
+slow-timeout = { period = "60s", terminate-after = 10 }
 
 # Used by the CI test jobs: same behaviour, plus a JUnit report at target/nextest/ci/junit.xml.
 [profile.ci]

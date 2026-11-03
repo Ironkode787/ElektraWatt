@@ -55,6 +55,20 @@ fn labels(s: &ShellModel) -> Vec<String> {
         .collect()
 }
 
+/// Waits for the running build to end, as `wait_print` does, but polling a bounded number of times (FT-1120: a join
+/// that never returns would hold the run): fails, naming `step`, when the build is still running after 600 polls of
+/// 100 ms.
+fn wait_print_bounded(s: &mut ShellModel, step: &str) {
+    for _ in 0..600 {
+        s.poll_jobs();
+        if s.print_progress().is_none() {
+            return;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(100));
+    }
+    panic!("the print set build did not end: {step}");
+}
+
 #[test]
 fn pw2_an_edit_while_the_set_builds_is_applied_and_the_set_keeps_its_revision() {
     let tmp = Tmp::new("pw2");
@@ -82,7 +96,7 @@ fn pw2_an_edit_while_the_set_builds_is_applied_and_the_set_keeps_its_revision() 
     );
     assert!(s.page_rows().iter().any(|r| r.folio == "107"), "applied at once");
     gate.release();
-    s.wait_print();
+    wait_print_bounded(&mut s, "after the release at `written`");
     assert_eq!(
         labels(&s),
         ["100", "101", "102", "103", "106"],
