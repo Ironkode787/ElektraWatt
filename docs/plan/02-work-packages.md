@@ -2919,6 +2919,8 @@ S6 implements the test layers, gates, packaging, signing and CRA processes of [q
 
 *Status (2026-11-02, ID-1187, ID-1188).* **Re-estimated** from 5 · 7 · 10.5 (PERT 7.3): 0.1.0 ships the per-user Windows setup, the AppImage and the CLI archives, with Golden A and the offline documentation inside (AC-40); the MSI, its policy keys and the `.deb` move to WP-S6.10 at 1.0.
 
+*Status (2026-11-03, cycle 48).* **Specified in cycle 48** ([closed specification](specs/WP-S6.06-pilot-installers-and-platform-matrix.md); decision log ID-1210): 0.1.0's part in three parts filling 2.2 pw plus 0.3 pw reserve against the PERT of 2.6 pw, which stays; part 1 the installed tree, the release builds and the CLI archives (0.8 pw, Opus/medium), part 2 the per-user setup, the AppImage and the install tests with AC-40 (0.9 pw, Opus/medium), part 3 the golden digests, the best-effort ARM CLI archives and the upgrade train (0.5 pw, Sonnet/medium). Open: ID-476's distribution hold against FT-331, the clean installs, the AppImage runtime's licence and the application icon.
+
 #### WP-S6.07 Release pipeline: sums, provenance, SBOM
 
 | Field | Value |
@@ -2939,6 +2941,8 @@ the signing identities of WP-S0.05 as a later release item: they are needed to s
 gate. Its release checklist drops the LG items.
 
 *Note (2026-11-02, ID-1187, ID-1188).* **Re-estimated** from 2.5 · 3.5 · 5.5 (PERT 3.7): 0.1.0 is built from an unsigned tag with `SHA256SUMS` and provenance, and ships unsigned until the owner holds a signing identity. The signing items move to WP-S6.10 (1.0, or earlier with a signing identity), and the package no longer depends on WP-S0.05.
+
+*Status (2026-11-03, cycle 48).* **Specified in cycle 48** ([closed specification](specs/WP-S6.07-release-pipeline.md); decision log ID-1210): two parts filling 1.0 pw plus 0.1 pw reserve against the PERT of 1.1 pw, which stays; part 1 the release workflow from a candidate tag, with its checks, `SHA256SUMS`, provenance, the draft and the promote, and the release checklist (0.6 pw, Opus/high), part 2 the SBOM with its notices, the advisory gate and the canary assertions (0.4 pw, Sonnet/medium); both after WP-S6.06 parts 1 and 2. Open for the owner: the GitHub settings, ID-723 at 0.1.0, LG-1 and who cuts and promotes.
 
 #### WP-S6.08 MVP release stabilisation and the first release
 
