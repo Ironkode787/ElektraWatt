@@ -1900,7 +1900,10 @@ impl Store {
         // The computed stamp (doc 05 §4, WP-S1.17 D3): the greatest `since` of the files the new generation lists.
         let since: Vec<&str> = plan.disk.values().filter_map(|h| h.since).collect();
         manifest.min_reader = min_reader(FORMAT, since.iter().copied());
-        manifest.unstable = unstable_flag(self.manifest.as_ref().filter(|_| self.keep_format), self.opts.released);
+        manifest.unstable = unstable_flag(
+            self.manifest.as_ref().filter(|_| self.keep_format),
+            self.opts.released,
+        );
         if self.keep_format {
             if let Some(old) = &self.manifest {
                 // A newer minor keeps its stamps; its `min_reader` rises when our records need more.

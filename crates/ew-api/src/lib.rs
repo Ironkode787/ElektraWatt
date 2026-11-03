@@ -882,8 +882,7 @@ impl Session {
     pub fn is_dirty(&self) -> bool {
         self.engine.is_dirty()
             || self.persistence.as_ref().is_some_and(|p| {
-                p.recovered
-                    || (p.store.migrated_from().is_some() && *p.store.access() == Access::Edit)
+                p.recovered || (p.store.migrated_from().is_some() && *p.store.access() == Access::Edit)
             })
     }
 

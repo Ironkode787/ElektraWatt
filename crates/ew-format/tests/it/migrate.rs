@@ -410,9 +410,7 @@ fn a_migrated_library_document_that_ends_opaque_refuses_the_load() {
     };
     assert_eq!(
         refusal(&UNKNOWN, &files),
-        format!(
-            "{lib}: a migration step changed a library document of a kind this version keeps unchanged"
-        )
+        format!("{lib}: a migration step changed a library document of a kind this version keeps unchanged")
     );
     assert_eq!(
         refusal(&UNTYPED, &files),
