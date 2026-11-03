@@ -1219,8 +1219,9 @@ Print… (`file.print`, Ctrl+P, enabled with pages) and by the command bar's Pri
 holds two columns: the options on the left, 36 % of the body, on §6.12's form rows, and the preview on the right, at
 most 56 % of the window's height.
 - **Options.** *Range*, a radio group: All, Current page, Sections (a check list, "Section {n}: {title}", six rows
-  before it scrolls) and Pages (a text field under the radio, enabled only for it; a text the parser refuses shows the
-  parser's words under the field); *Paper*, a choice field: "Sheet size" or a paper size; *Scale to fit* and
+  before it scrolls) and Pages (a text field under the radio, enabled only for it; a text the parser refuses shows one
+  sentence in words under the field only, with the field's error border and §6.1's error icon, and the preview shows
+  §6.17's empty state; FT-1124, ID-1225); *Paper*, a choice field: "Sheet size" or a paper size; *Scale to fit* and
   *Monochrome*, check boxes named by their labels. An option changed while the set builds cancels that build and starts
   one for the new options: the build is a job on the snapshot, so the window never waits for it, and the set prints the
   revision it was built at.
@@ -1279,12 +1280,14 @@ chip with the tag it will get (FT-507: one label per tag), placed by the rule of
 ### 7.4 Chips and labels on the canvas
 
 Canvas chips (preview chips, ghost labels, highlight name chips, measurement readouts) are `canvas.chip`: inverse
-surface at 94 %, `type.small`, `radius.sm`, `space.2` by `space.1` padding, `elevation.1`. **Placement rule**, in
-order: the preferred anchor (above right of the target, 8 px off), then below right, above left, below left; a
-position is rejected if it overlaps another chip, the tool HUD, the frame-statistics panel or the pointer's 16-px
-box (FT-508); if all four fail, the chip is drawn at the preferred anchor with 80 % opacity. Chips never cover the
-target's own printed text when an alternative exists. Highlight name chips are the exception to the inverse fill:
-they take their slot's hue with a black label (§4.6).
+surface at 94 %, `type.small`, `radius.sm`, `space.2` by `space.1` padding, `elevation.1`. **Placement rule**, in order:
+the preferred anchor (above right of the target, 8 px off), then below right, above left, below left; a position is
+rejected if it overlaps another chip, the tool HUD, the frame-statistics panel or the pointer's 16-px box (FT-508); if
+all four fail, the chip takes the nearest position stacked inward from the preferred anchor (by its height and
+`space.1`) that overlaps no chip already placed and stays inside the canvas (FT-1142, ID-1225); only when there is none
+is it drawn at the preferred anchor with 80 % opacity. Chips never cover the target's own printed text when an
+alternative exists. Highlight name chips are the exception to the inverse fill: they take their slot's hue with a black
+label (§4.6).
 
 ### 7.5 Highlights
 
