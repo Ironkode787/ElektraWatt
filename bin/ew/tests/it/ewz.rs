@@ -166,8 +166,8 @@ fn stderr(o: &Output) -> String {
 type Run = (Option<i32>, String, String, BTreeMap<String, Vec<u8>>);
 
 /// EZ-2: every reader (`check`, `sql`, `sql dump`, the row and page exports, `export table`, `print`, `render`,
-/// `verify-derived`, `query`, `fmt --check`) gives the same exit code, stdout, stderr and output bytes on Golden A's `.ewz` as on its
-/// directory; nothing is written beside the archive. The runs go in parallel, each with its own output path.
+/// `verify-derived`, `query`, `fmt --check`, `upgrade --check` as decision log ID-1230 ruling 5 adds it) gives the same
+/// exit code, stdout, stderr and output bytes on Golden A's `.ewz` as on its directory; nothing is written beside the archive. The runs go in parallel, each with its own output path.
 #[test]
 fn ez2_every_reader_gives_the_same_output_on_the_ewz() {
     let t = Tmp::new();
@@ -201,6 +201,7 @@ fn ez2_every_reader_gives_the_same_output_on_the_ewz() {
         &["verify-derived", "{tiny}", "--json"],
         &["query", "{p}", "device_tag", "tag:-101F1", "--explain"],
         &["fmt", "{p}", "--check"],
+        &["upgrade", "{p}", "--check"],
     ];
     let run = |case: usize, (project, small): (&Path, &Path), side: &str| -> Run {
         let out = outs.join(format!("{case}-{side}"));
@@ -284,7 +285,6 @@ fn ez2_every_other_subcommand_refuses_the_ewz() {
         args([&"recover", &ewz]),
         args([&"recover", &ewz, &"--replay"]),
         args([&"upgrade", &ewz]),
-        args([&"upgrade", &ewz, &"--check"]),
         args([&"project", &"assets", &"purge", &ewz, &"--preview"]),
         args([&"import", &"parts", &GOLDEN_PARTS, &"--project", &ewz]),
         args([&"import", &"table", &table, &ewz]),

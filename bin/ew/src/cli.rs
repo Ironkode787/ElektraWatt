@@ -710,8 +710,9 @@ fn ewz_refusal(path: &Path) -> String {
 }
 
 /// The explicit project, else the directory found from the current directory, for a reader (`check`, `sql`, the row
-/// and page exports, `export table`, `print`, `render`, `verify-derived`, `query`, `fmt --check`): an `.ewz` is taken
-/// as it is and opened read-only from memory by `Session::open_reader` (WP-S1.17 D9, ID-1175 ruling 5).
+/// and page exports, `export table`, `print`, `render`, `verify-derived`, `query`, `fmt --check`, `upgrade --check`):
+/// an `.ewz` is taken as it is and opened read-only from memory by `Session::open_reader` (WP-S1.17 D9, ID-1175 ruling
+/// 5, ID-1230 ruling 5).
 fn reader_dir(explicit: Option<&PathBuf>) -> Option<PathBuf> {
     match explicit {
         Some(d) => Some(d.clone()),

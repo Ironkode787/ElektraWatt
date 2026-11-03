@@ -632,31 +632,38 @@ fn run_recover_with(
 
 /// `ew upgrade [--check] [--yes]` (WP-S1.17 D11, decision log ID-1221 ruling 6): a project of an older format, which
 /// opens migrated in memory, converted after the typed word or `--yes`: the session's consent, then its save, which
-/// writes the backup beside the project folder first. `--check` is a reader: no lock, nothing written.
+/// writes the backup beside the project folder first. `--check` is a reader: no lock, nothing written, and it takes an
+/// `.ewz` (WP-S1.17 D9, decision log ID-1230 ruling 5), which the upgrade itself refuses as every writer does.
 pub(super) fn run_upgrade(a: &UpgradeArgs) -> i32 {
     use std::io::IsTerminal;
     let terminal = std::io::stdin().is_terminal() && std::io::stdout().is_terminal();
     let mut input = std::io::stdin().lock();
     let mut output = std::io::stdout().lock();
+    let mut errors = std::io::stderr().lock();
     run_upgrade_with(
         a,
         terminal,
         &mut input,
-        &mut output,
+        (&mut output, &mut errors),
         ew_api::StoreOptions::new(VERSION),
     )
 }
 
-/// [`run_upgrade`] with the terminal test, the reader, the writer (everything `ew upgrade` prints on stdout) and the
-/// store options (a test's migration chain among them) injected.
+/// [`run_upgrade`] with the terminal test, the reader, the writers (everything `ew upgrade` prints on stdout, and its
+/// own errors on stderr) and the store options (a test's migration chain among them) injected.
 fn run_upgrade_with(
     a: &UpgradeArgs,
     terminal: bool,
     input: &mut dyn std::io::BufRead,
-    output: &mut dyn std::io::Write,
+    (output, errors): (&mut dyn std::io::Write, &mut dyn std::io::Write),
     mut store: ew_api::StoreOptions,
 ) -> i32 {
-    let Some(dir) = project_dir(a.project.as_ref()) else {
+    let dir = if a.check {
+        reader_dir(a.project.as_ref())
+    } else {
+        project_dir(a.project.as_ref())
+    };
+    let Some(dir) = dir else {
         return 2;
     };
     let format = ew_api::FORMAT;
@@ -670,13 +677,18 @@ fn run_upgrade_with(
             },
             ..ew_api::SessionOptions::default()
         };
-        let opened = match ew_api::Session::open(&dir, store, options, ew_api::Recovery::Keep) {
+        let opened = if ew_api::ewz::is_ewz(&ew_api::OsVfs, &dir) {
+            ew_api::Session::open_ewz_with(&dir, VERSION, "upgrade", ew_api::MemoMode::default())
+        } else {
+            ew_api::Session::open(&dir, store, options, ew_api::Recovery::Keep)
+        };
+        let opened = match opened {
             Ok((session, opened)) => {
                 session.close();
                 opened
             }
             Err(e) => {
-                eprintln!("error: {}: {e}", dir.display());
+                let _ = writeln!(errors, "error: {}: {e}", dir.display());
                 return 2;
             }
         };
@@ -709,13 +721,14 @@ fn run_upgrade_with(
         return 0;
     };
     if opened.recovery.is_some() {
-        eprintln!("{}", journal_refusal(&dir));
+        let _ = writeln!(errors, "{}", journal_refusal(&dir));
         session.close();
         return 2;
     }
     if !a.yes {
         if !terminal {
-            eprintln!(
+            let _ = writeln!(
+                errors,
                 "error: the project is in the older format {from}: confirming its upgrade needs an interactive \
                  terminal (type `{UPGRADE_WORD}` there) or `ew upgrade --yes`; nothing was changed"
             );
@@ -728,7 +741,7 @@ fn run_upgrade_with(
              upgrade it, anything else to abort: "
         );
         if !typed_word(input, output, &prompt, UPGRADE_WORD) {
-            eprintln!("error: not confirmed; nothing was changed");
+            let _ = writeln!(errors, "error: not confirmed; nothing was changed");
             session.close();
             return 1;
         }
@@ -750,9 +763,9 @@ fn run_upgrade_with(
             0
         }
         Err(e) => {
-            eprintln!("error: the save failed: {e}");
+            let _ = writeln!(errors, "error: the save failed: {e}");
             if let Some(backup) = backup {
-                eprintln!("the backup stays at {}", backup.display());
+                let _ = writeln!(errors, "the backup stays at {}", backup.display());
             }
             session.close();
             2
@@ -1368,23 +1381,27 @@ mod tests {
         o
     }
 
-    /// Runs `ew upgrade` on `project` with `terminal` and the typed `answer`: the exit code and its stdout.
+    /// Runs `ew upgrade` on `project` with `terminal` and the typed `answer`: the exit code, its stdout and its stderr.
     fn upgrade(
         project: &Path,
         store: ew_api::StoreOptions,
         flags: (bool, bool),
         terminal: bool,
         answer: &str,
-    ) -> (i32, String) {
+    ) -> (i32, String, String) {
         let args = UpgradeArgs {
             project: Some(project.to_path_buf()),
             check: flags.0,
             yes: flags.1,
         };
         let mut input = std::io::Cursor::new(answer.as_bytes().to_vec());
-        let mut output = Vec::new();
-        let code = run_upgrade_with(&args, terminal, &mut input, &mut output, store);
-        (code, String::from_utf8(output).unwrap())
+        let (mut output, mut errors) = (Vec::new(), Vec::new());
+        let code = run_upgrade_with(&args, terminal, &mut input, (&mut output, &mut errors), store);
+        (
+            code,
+            String::from_utf8(output).unwrap(),
+            String::from_utf8(errors).unwrap(),
+        )
     }
 
     /// Every file of the project folder and beside it (the backups), by name, without the lock.
@@ -1464,7 +1481,8 @@ mod tests {
                 format!(
                     "the project is in the older format 0.0: `ew upgrade` converts it to format {} after a backup\n",
                     ew_api::FORMAT
-                )
+                ),
+                String::new()
             )
         );
         assert_eq!(upgrade_files(&dir), before);
@@ -1473,7 +1491,8 @@ mod tests {
             upgrade(&golden, upgrade_store(&dir), (true, false), false, ""),
             (
                 0,
-                format!("the project needs no upgrade to format {}\n", ew_api::FORMAT)
+                format!("the project needs no upgrade to format {}\n", ew_api::FORMAT),
+                String::new()
             )
         );
         let _ = std::fs::remove_dir_all(&dir);
@@ -1488,12 +1507,22 @@ mod tests {
         let project = dir.join("p.ew");
         assert_eq!(
             upgrade(&project, upgrade_store(&dir), (false, false), false, ""),
-            (2, String::new())
+            (
+                2,
+                String::new(),
+                "error: the project is in the older format 0.0: confirming its upgrade needs an interactive terminal \
+                 (type `upgrade` there) or `ew upgrade --yes`; nothing was changed\n"
+                    .to_owned()
+            )
         );
         assert_eq!(upgrade_files(&dir), before);
         assert_eq!(
             upgrade(&project, upgrade_store(&dir), (false, false), true, "yes\n"),
-            (1, prompt())
+            (
+                1,
+                prompt(),
+                "error: not confirmed; nothing was changed\n".to_owned()
+            )
         );
         assert_eq!(upgrade_files(&dir), before);
         assert_eq!(
@@ -1505,7 +1534,8 @@ mod tests {
                     prompt(),
                     ew_api::FORMAT,
                     backup_of(&dir).display()
-                )
+                ),
+                String::new()
             )
         );
         assert!(backup_of(&dir).is_file());
@@ -1526,7 +1556,8 @@ mod tests {
                     "upgraded the project from format 0.0 to format {}; saved generation 2\nbackup: {}\n",
                     ew_api::FORMAT,
                     backup_of(&dir).display()
-                )
+                ),
+                String::new()
             )
         );
         let after = upgrade_files(&dir);
@@ -1539,6 +1570,7 @@ mod tests {
         let none = (
             0,
             format!("the project needs no upgrade to format {}\n", ew_api::FORMAT),
+            String::new(),
         );
         assert_eq!(
             upgrade(&project, upgrade_store(&dir), (true, false), false, ""),
