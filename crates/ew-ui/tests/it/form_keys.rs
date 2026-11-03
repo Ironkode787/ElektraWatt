@@ -70,9 +70,38 @@ fn ctrl_enter_submits_a_form_from_any_focus_before_the_keys_under_it() {
     h.key_press_modifiers(Modifiers::COMMAND | Modifiers::SHIFT, Key::N);
     settle(&mut h);
     assert_eq!(form(&h), Some(("devices.renumber", None)));
+    // C49-p5#2: a refused submit makes no card, so the find pane's Ctrl+Enter, had it run, would leave its own.
+    scope_selection(&mut h);
+    h.key_press_modifiers(Modifiers::COMMAND, Key::Enter);
+    settle(&mut h);
+    refused_in_the_form(&h, "Ctrl+Enter over the find pane");
+    assert!(
+        h.state().shell().properties().card().is_none(),
+        "no find card: {:?}",
+        h.state().shell().properties().card().map(|c| &c.origin)
+    );
+    h.key_press(Key::Escape);
+    settle(&mut h);
+    assert_eq!(form(&h), None);
+    // With the find pane's replace card open, its Ctrl+Enter would apply it: the form takes the key, nothing applied.
+    dispatch(&mut h, "find.replace_all", json!({}));
+    settle(&mut h);
+    assert!(matches!(
+        h.state().shell().properties().card().map(|c| &c.origin),
+        Some(CardOrigin::Find { .. })
+    ));
+    let recorded = h.state().shell().recorded_commands().len();
+    h.key_press_modifiers(Modifiers::COMMAND | Modifiers::SHIFT, Key::N);
+    settle(&mut h);
+    assert_eq!(form(&h), Some(("devices.renumber", None)));
     h.key_press_modifiers(Modifiers::COMMAND, Key::Enter);
     settle(&mut h);
     assert_eq!(form(&h), None, "Ctrl+Enter submitted the form");
+    assert_eq!(
+        h.state().shell().recorded_commands().len(),
+        recorded,
+        "the find card not applied"
+    );
     let card = h.state().shell().properties().card().expect("the renumber card");
     assert!(
         matches!(card.origin, CardOrigin::Bulk),
