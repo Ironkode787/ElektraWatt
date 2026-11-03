@@ -307,7 +307,11 @@ impl Session {
         let input = checks::GateInput {
             content_digest: Some(digest),
         };
-        let report = checks::gate(&q, scheme, &input).with_integrity(integrity.iter().cloned());
+        let mut report = checks::gate(&q, scheme, &input).with_integrity(integrity.iter().cloned());
+        // EW-CORE-013 after a merge blocks the gate as `ew check` reports it (WP-S1.17 D29).
+        if self.merge_evidence() {
+            report = report.with_merge_evidence(&q);
+        }
         let packs = checks::pack_versions(&report);
         let safety_waivers = checks::safety_waivers(&report)
             .iter()

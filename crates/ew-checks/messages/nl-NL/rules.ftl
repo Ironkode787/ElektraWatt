@@ -247,3 +247,9 @@ rule-ew-rds-003 = { $device }: de lettercode { $letter } past niet bij de functi
     }
     .title = Lettercode tegen functie
     .hint = Gebruik de voorgestelde lettercode, of behoud het kenmerk als de classificatie bedoeld is.
+
+## WP-S1.17 part 8 (COL49): botsingen na samenvoegen
+
+rule-ew-core-013 =
+    .title = Botsing na samenvoegen
+    .hint = Hernummer het nieuwere apparaat met de snelle oplossing, of geef een van de records een ander nummer.

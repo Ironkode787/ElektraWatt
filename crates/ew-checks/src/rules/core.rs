@@ -890,6 +890,137 @@ impl Rule for ConflictRecords {
     }
 }
 
+/// EW-CORE-013 "Collision after a merge" (doc 15 §4.2, §6.4): integrity, n r, error, project. A registered rule over
+/// the model (WP-S1.17 D29, decision log ID-1284 ruling 5), no longer a row of [`INTEGRITY`].
+pub const MERGE_COLLISION: RuleMeta = integrity(
+    "EW-CORE-013",
+    "100013",
+    "Collision after a merge",
+    "r",
+    Severity::Error,
+);
+
+/// The six uniqueness rules whose groups EW-CORE-013 reports after a merge (doc 15 §6.4): device tags, terminal
+/// designations, wire numbers, interruption-point star sources, PLC addresses and PLC symbols.
+pub const UNIQUENESS_RULES: [&str; 6] = [
+    "EW-RDS-004",
+    "EW-TERM-002",
+    "EW-POT-015",
+    "EW-CORE-052",
+    "EW-PLC-001",
+    "EW-PLC-007",
+];
+
+/// EW-CORE-013: after a merge, each group of records that one of the six [`UNIQUENESS_RULES`] finds sharing its key
+/// (doc 15 §6.4; WP-S1.17 D29). The rule reports only when the model carries merge evidence, its conflict records; the
+/// session joins the groups for the evidence the model does not hold (a merged manifest, a merge or rebase in
+/// progress, `ew check --integrity --after-merge`) through [`merge_collisions`]. One finding per group, its targets the
+/// group's records, its discriminator the uniqueness rule's ID, its subject that rule's; the keeper is the record a
+/// frozen tag holds, else the oldest ([`keeper_order`]). A group of device tags carries the fix "Renumber the newer"
+/// ([`renumber_newer`]); the five other rules report without a fix (FP-1).
+#[derive(Clone, Copy, Debug)]
+pub struct MergeCollisions;
+
+impl Rule for MergeCollisions {
+    fn meta(&self) -> &'static RuleMeta {
+        &MERGE_COLLISION
+    }
+
+    fn run(&self, q: &Q, scope: &Scope) -> Vec<Finding> {
+        if *scope != Scope::Project || q.table::<Conflict>().is_empty() {
+            return Vec::new();
+        }
+        merge_collisions(q)
+    }
+}
+
+/// The findings of EW-CORE-013 over the snapshot of `q`, merge evidence assumed ([`MergeCollisions`]): every group of
+/// the six uniqueness rules, in their order.
+pub fn merge_collisions(q: &Q) -> Vec<Finding> {
+    let mut out = Vec::new();
+    for id in UNIQUENESS_RULES {
+        let Some(rule) = crate::registry::rule(id) else {
+            continue;
+        };
+        for scope in crate::engine::scopes(q, rule.meta().scope) {
+            for f in rule.run(q, &scope) {
+                if f.targets.len() < 2 {
+                    continue;
+                }
+                let mut group = f.targets.clone();
+                group.sort_by(|a, b| keeper_order(q, a, b));
+                let message = format!(
+                    "{} after a merge; {} keeps it, and the other{} must change",
+                    f.message,
+                    if frozen(q, &group[0]) {
+                        "the record with the frozen tag"
+                    } else {
+                        "the oldest record"
+                    },
+                    if group.len() > 2 { "s" } else { "" }
+                );
+                let mut finding =
+                    Finding::new(&MERGE_COLLISION, group.iter().copied(), id, f.subject.clone(), message);
+                if id == crate::rules::rds::DUPLICATE_DESIGNATION.id {
+                    if let Some(fix) = renumber_newer(q, &group) {
+                        finding = finding.with_fix(fix);
+                    }
+                }
+                out.push(finding);
+            }
+        }
+    }
+    out
+}
+
+/// Whether the target is a device whose tag is frozen (doc 15 §6.4 keeper step 1).
+fn frozen(q: &Q, t: &Target) -> bool {
+    t.kind == Kind::Device
+        && q.devices()
+            .get(t.id.cast::<Device>())
+            .is_some_and(|d| d.tag.frozen.is_some())
+}
+
+/// The keeper order of a group (doc 15 §6.4, WP-S1.17 D29): (1) a device with a frozen tag first; (3) then the older
+/// ID by its UUIDv7 time, bytes 0 to 5 of the ID (RFC 9562's 48-bit Unix milliseconds), an ID that is not a UUIDv7
+/// (an imported or generated record's UUIDv5) counting as the oldest, then the full ID. Step (2), the merge base, is
+/// FP-2; a number published in the last release is not modelled yet.
+pub fn keeper_order(q: &Q, a: &Target, b: &Target) -> std::cmp::Ordering {
+    let time = |t: &Target| {
+        let uuid = t.id.as_uuid();
+        let bytes = uuid.as_bytes();
+        if uuid.get_version_num() == 7 {
+            u64::from_be_bytes([0, 0, bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5]])
+        } else {
+            0
+        }
+    };
+    frozen(q, b)
+        .cmp(&frozen(q, a))
+        .then_with(|| time(a).cmp(&time(b)))
+        .then_with(|| a.id.cmp(&b.id))
+}
+
+/// "Renumber the newer" (doc 15 §6.4; WP-S1.17 D29, decision log ID-1284 ruling 6): `numbering.renumber` scoped to the
+/// devices of a duplicated tag after the keeper (`group` in keeper order), each given the lowest counter its page and
+/// letter leave free, as one previewed command. `None` when the group holds fewer than two devices.
+pub fn renumber_newer(q: &Q, group: &[Target]) -> Option<QuickFix> {
+    let devices: Vec<&Target> = group.iter().filter(|t| t.kind == Kind::Device).collect();
+    let (keeper, newer) = devices.split_first()?;
+    if newer.is_empty() || q.devices().get(keeper.id.cast::<Device>()).is_none() {
+        return None;
+    }
+    let ids: Vec<String> = newer.iter().map(|t| t.id.to_string()).collect();
+    Some(QuickFix {
+        label: "Renumber the newer".to_owned(),
+        command: "numbering.renumber".to_owned(),
+        params: serde_json::json!({
+            "scope": {"selection": ids},
+            "options": {"only_nonconforming": true, "close_gaps": false},
+        }),
+    })
+}
+
 /// The file of a file-level conflict, in words: a page's file by its folio, a layout file by its space's name; any
 /// other file (a root file, a device shard) by its path, which names no record.
 fn conflict_file(q: &Q, path: &str) -> String {
@@ -957,8 +1088,9 @@ fn conflict_target(q: &Q, kind: &str, id: Id<()>) -> String {
     }
 }
 
-/// The integrity rules EW-CORE-001 … 019 but 011 (doc 15 §4.2; detection in the store, doc 05 §6.3), which is the
-/// registered [`ConflictRecords`] since WP-S1.17 part 5 (decision log ID-1279). They run on open (mode n, not
+/// The integrity rules EW-CORE-001 … 019 but 011 and 013 (doc 15 §4.2; detection in the store, doc 05 §6.3), which are
+/// the registered [`ConflictRecords`] since WP-S1.17 part 5 (decision log ID-1279) and [`MergeCollisions`] since part 8
+/// (ID-1284). They run on open (mode n, not
 /// modelled) and, where the catalogue lists `r`, in release mode; the engine does not run them:
 /// [`CheckReport::with_integrity`](crate::CheckReport::with_integrity) joins the store's findings.
 pub const INTEGRITY: &[RuleMeta] = &[
@@ -1000,13 +1132,6 @@ pub const INTEGRITY: &[RuleMeta] = &[
         "EW-CORE-012",
         "100012",
         "Structural invariant violated",
-        "r",
-        Severity::Error,
-    ),
-    integrity(
-        "EW-CORE-013",
-        "100013",
-        "Collision after a merge",
         "r",
         Severity::Error,
     ),
@@ -1053,10 +1178,10 @@ mod tests {
     use super::*;
 
     /// The rows are EW-CORE-001 to 019 in order, without 011, which moved to the registered `ConflictRecords`
-    /// (decision log ID-1279).
+    /// (decision log ID-1279), and 013, which moved to the registered `MergeCollisions` (ID-1284).
     #[test]
     fn integrity_rules_are_numbered_in_class_100() {
-        let numbers: Vec<usize> = (1..=19).filter(|n| *n != 11).collect();
+        let numbers: Vec<usize> = (1..=19).filter(|n| *n != 11 && *n != 13).collect();
         assert_eq!(INTEGRITY.len(), numbers.len());
         for (m, n) in INTEGRITY.iter().zip(numbers) {
             assert_eq!(m.id, format!("EW-CORE-{n:03}"));
@@ -1068,5 +1193,10 @@ mod tests {
             ("EW-CORE-011", "100011")
         );
         assert!(!CONFLICT_RECORDS.waivable());
+        assert_eq!(
+            (MERGE_COLLISION.id, MERGE_COLLISION.code),
+            ("EW-CORE-013", "100013")
+        );
+        assert!(!MERGE_COLLISION.waivable());
     }
 }

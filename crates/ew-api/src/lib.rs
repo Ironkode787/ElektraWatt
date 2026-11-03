@@ -1114,9 +1114,67 @@ impl Session {
     }
 
     /// Runs the check scheme `scheme` in `mode` over the current snapshot through the session's memo store
-    /// (doc 15 §3): the findings, the totals and `ew check`'s exit code ([`checks::CheckReport`]).
+    /// (doc 15 §3): the findings, the totals and `ew check`'s exit code ([`checks::CheckReport`]). With merge evidence the
+    /// model does not hold ([`Session::merge_evidence`]), EW-CORE-013's groups join a release run (WP-S1.17 D29).
     pub fn check(&self, scheme: &checks::Scheme, mode: checks::CheckMode) -> checks::CheckReport {
-        checks::run(&self.query(), scheme, mode)
+        let q = self.query();
+        let report = checks::run(&q, scheme, mode);
+        if self.merge_evidence() {
+            report.with_merge_evidence(&q)
+        } else {
+            report
+        }
+    }
+
+    /// The project-integrity check of `ew check --integrity` (FR-CHK-012; WP-S1.17 D29, decision log ID-1284 ruling 5):
+    /// the store's integrity findings of opening it (`opened`) and every registered rule whose ID lies in EW-CORE-001
+    /// to -019 (EW-CORE-011's conflict records and EW-CORE-013's collisions after a merge), in release mode, with merge
+    /// evidence as [`Session::check`] takes it. Its exit code is 1 on any error.
+    pub fn check_integrity(&self, opened: &OpenReport) -> checks::CheckReport {
+        let q = self.query();
+        let integrity: Vec<&'static dyn checks::Rule> = checks::rules()
+            .iter()
+            .copied()
+            .filter(|r| {
+                r.meta()
+                    .id
+                    .strip_prefix("EW-CORE-")
+                    .and_then(|n| n.parse::<u32>().ok())
+                    .is_some_and(|n| (1..=19).contains(&n))
+            })
+            .collect();
+        let full = checks::scheme("full").expect("the full scheme ships");
+        let report = match checks::run_table_rules(&q, full, checks::CheckMode::Release, &integrity) {
+            Ok(report) => report,
+            Err(cycle) => panic!("{cycle}"),
+        };
+        let report = if self.merge_evidence() {
+            report.with_merge_evidence(&q)
+        } else {
+            report
+        };
+        report.with_integrity(integrity_items(opened))
+    }
+
+    /// Whether the project carries merge evidence the model does not hold (WP-S1.17 D29): its manifest is a merged one
+    /// (`merged: true`), a merge or rebase is in progress in its git worktree, or [`Session::assume_merged`] was called
+    /// (`ew check --integrity --after-merge`, the post-merge hook). Conflict records, the model's own evidence, are
+    /// EW-CORE-013's rule's.
+    pub fn merge_evidence(&self) -> bool {
+        let Some(p) = self.persistence.as_ref() else {
+            return false;
+        };
+        p.watch.after_merge
+            || p.store.manifest().is_some_and(|m| m.merged)
+            || git::merging(&**p.store.vfs(), p.store.root()).unwrap_or(false)
+    }
+
+    /// Counts the project as just merged for EW-CORE-013 ([`Session::merge_evidence`]): `ew check --integrity
+    /// --after-merge`, which the post-merge hook runs.
+    pub fn assume_merged(&mut self) {
+        if let Some(p) = self.persistence.as_mut() {
+            p.watch.after_merge = true;
+        }
     }
 
     /// The CSV text of an export over the current snapshot (`ew export cables|bom`, doc 17 §3.3): the rows

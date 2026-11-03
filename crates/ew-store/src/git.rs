@@ -204,10 +204,25 @@ fn lexical(path: &Path) -> PathBuf {
 ///
 /// An I/O error other than an absent entry.
 pub fn busy(vfs: &dyn Vfs, dir: &Path) -> io::Result<bool> {
+    any_of(vfs, dir, &["index.lock", "MERGE_HEAD", "rebase-merge", "rebase-apply"])
+}
+
+/// Whether a merge or a rebase is in progress in the worktree `dir` lies in (`MERGE_HEAD`, `rebase-merge/`,
+/// `rebase-apply/` in its git directory): merge evidence for EW-CORE-013 (WP-S1.17 D29). `false` outside a worktree.
+///
+/// # Errors
+///
+/// An I/O error other than an absent entry.
+pub fn merging(vfs: &dyn Vfs, dir: &Path) -> io::Result<bool> {
+    any_of(vfs, dir, &["MERGE_HEAD", "rebase-merge", "rebase-apply"])
+}
+
+/// Whether the git directory of the worktree `dir` lies in holds one of `names`.
+fn any_of(vfs: &dyn Vfs, dir: &Path, names: &[&str]) -> io::Result<bool> {
     let Some(git) = git_dir(vfs, dir)? else {
         return Ok(false);
     };
-    for name in ["index.lock", "MERGE_HEAD", "rebase-merge", "rebase-apply"] {
+    for name in names {
         match vfs.stat(&git.join(name)) {
             Ok(_) => return Ok(true),
             Err(e) if matches!(e.kind(), io::ErrorKind::NotFound | io::ErrorKind::NotADirectory) => {}

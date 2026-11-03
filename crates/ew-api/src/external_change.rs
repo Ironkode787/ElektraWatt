@@ -100,6 +100,8 @@ pub(crate) struct Watch {
     last: Option<std::time::SystemTime>,
     /// The cloud service of the project folder, read at open.
     pub(crate) cloud: Option<CloudService>,
+    /// Merge evidence given by the caller ([`Session::assume_merged`], WP-S1.17 D29).
+    pub(crate) after_merge: bool,
 }
 
 impl Watch {

@@ -472,3 +472,9 @@ rule-ew-term-005 =
 rule-ew-term-006 =
     .title = Terminal on a wire it does not join
     .hint = Connect the terminal into the wire, or move it off the wire.
+
+## WP-S1.17 part 8 (COL49): collisions after a merge
+
+rule-ew-core-013 =
+    .title = Collision after a merge
+    .hint = Renumber the newer device with the quick fix, or give one of the records another number.

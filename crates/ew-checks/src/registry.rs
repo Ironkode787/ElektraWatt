@@ -13,6 +13,7 @@ static RULES: &[&dyn Rule] = &[
     &shipped::bus::Termination,
     &shipped::device::DanglingReference,
     &shipped::core::ConflictRecords,
+    &shipped::core::MergeCollisions,
     &shipped::page::FolioOutsideSection,
     &shipped::page::FolioCollision,
     &shipped::core::TitleBlockOverride,

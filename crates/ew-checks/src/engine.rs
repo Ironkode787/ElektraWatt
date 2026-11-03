@@ -189,6 +189,26 @@ impl CheckReport {
     }
 }
 
+impl CheckReport {
+    /// The report with EW-CORE-013's groups joined for merge evidence that the model does not hold (WP-S1.17 D29,
+    /// decision log ID-1284): a merged manifest, a merge or rebase in progress, `ew check --integrity --after-merge`.
+    /// In release mode, when the run evaluated EW-CORE-013 without findings (the model holds no conflict record), every
+    /// group of [`merge_collisions`](crate::rules::core::merge_collisions) joins the findings, the counts and the exit
+    /// code; in online mode, or when the scheme switched the rule off, nothing changes.
+    #[must_use]
+    pub fn with_merge_evidence(mut self, q: &Q) -> CheckReport {
+        let meta = &crate::rules::core::MERGE_COLLISION;
+        let evaluated = self.rules.iter().any(|m| m.id == meta.id);
+        if !self.mode.runs(meta) || !evaluated || self.findings.iter().any(|f| f.rule == meta.id) {
+            return self;
+        }
+        self.findings.extend(crate::rules::core::merge_collisions(q));
+        sort_findings(&mut self.findings);
+        self.counts = count(&self.findings);
+        self
+    }
+}
+
 /// One integrity finding of opening a project (the store's findings, doc 05 §6.3), for
 /// [`CheckReport::with_integrity`].
 #[derive(Clone, PartialEq, Eq, Debug)]

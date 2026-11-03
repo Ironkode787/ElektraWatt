@@ -23,6 +23,7 @@ use ew_derive::{DeviceTag, MainFunction, Q};
 use crate::engine::touched_ids;
 use crate::finding::{Finding, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind, Touched};
+use crate::rules::core::{keeper_order, renumber_newer};
 use crate::rules::term::{case_setting, full_tag};
 
 /// EW-RDS-004 "Duplicate designation" (doc 15 §4.3): conflict, o r, error, project (the catalogue's p is
@@ -45,7 +46,9 @@ pub const DUPLICATE_DESIGNATION: RuleMeta = RuleMeta {
 /// designation is unique per strip (EW-TERM-002). Designations compare under the project's case setting;
 /// an unnumbered designation (it still contains `?`, EW-IMP-122) is skipped.
 ///
-/// One finding per duplicated designation, targets every device of the group, no discriminator.
+/// One finding per duplicated designation, targets every device of the group, no discriminator, with the fix "Renumber
+/// the newer": the devices after the keeper of doc 15 §6.4 renumbered to free counters (WP-S1.17 D29, decision log
+/// ID-1284 ruling 6).
 ///
 /// Deviations: the catalogue lists the scope as device, but the grouping is project-wide, so the rule is
 /// evaluated once in the project scope. Prevent mode is not declared at MVP (owner ruling; ADR-0009
@@ -91,13 +94,13 @@ impl Rule for DuplicateDesignation {
             .filter(|(_, members)| members.len() > 1)
             .map(|(full, members)| {
                 let message = format!("`{full}` is printed by {} devices", members.len());
-                Finding::new(
-                    &DUPLICATE_DESIGNATION,
-                    members.iter().map(|m| Target::new(Kind::Device, *m)),
-                    "",
-                    full,
-                    message,
-                )
+                let mut group: Vec<Target> = members.iter().map(|m| Target::new(Kind::Device, *m)).collect();
+                group.sort_by(|a, b| keeper_order(q, a, b));
+                let finding = Finding::new(&DUPLICATE_DESIGNATION, group.iter().copied(), "", full, message);
+                match renumber_newer(q, &group) {
+                    Some(fix) => finding.with_fix(fix),
+                    None => finding,
+                }
             })
             .collect()
     }
