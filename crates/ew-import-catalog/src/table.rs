@@ -438,7 +438,7 @@ pub fn read_rows(
         if !any {
             continue;
         }
-        if out.len() > MAX_ROWS {
+        if out.len() >= MAX_ROWS {
             return Err(too_many("row count", MAX_ROWS));
         }
         if cells.len() > MAX_COLUMNS {
@@ -501,6 +501,37 @@ mod tests {
             Err(ImportError::LimitExceeded {
                 what: "cell size at line 2".into(),
                 limit: 2
+            })
+        );
+    }
+
+    /// FT-1107: `MAX_ROWS` records pass (there is no header row), the next one is refused.
+    #[test]
+    fn read_rows_takes_max_rows_records_and_refuses_one_more() {
+        let rows = read_rows(
+            "x
+"
+            .repeat(MAX_ROWS)
+            .as_bytes(),
+            SourceFormat::Csv,
+            "",
+            &Limits::default(),
+        )
+        .unwrap();
+        assert_eq!(rows.len(), MAX_ROWS);
+        assert_eq!(
+            read_rows(
+                "x
+"
+                .repeat(MAX_ROWS + 1)
+                .as_bytes(),
+                SourceFormat::Csv,
+                "",
+                &Limits::default()
+            ),
+            Err(ImportError::LimitExceeded {
+                what: "row count".into(),
+                limit: 1_000_000
             })
         );
     }
