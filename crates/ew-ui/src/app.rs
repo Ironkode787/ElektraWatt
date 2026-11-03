@@ -1041,7 +1041,7 @@ impl App {
                 )
             })
             .collect();
-        let hovered = crate::notifications::show_toasts(
+        let (hovered, focused) = crate::notifications::show_toasts(
             &ctx,
             &self.shell,
             anchor,
@@ -1051,11 +1051,13 @@ impl App {
         );
         // FT-1088 (ID-1183; doc 16a §6.10): a hover pauses a toast only once the pointer has moved onto it (a
         // pointer-moved event in this frame) and keeps it paused while the pointer stays; a toast that appears under a
-        // pointer at rest is not paused, so it fades on time.
+        // pointer at rest is not paused, so it fades on time. FT-1137 (ID-1225): a toast that holds the keyboard focus
+        // is paused too.
         let pointer_moved = ctx.input(|i| i.events.iter().any(|e| matches!(e, egui::Event::PointerMoved(_))));
         self.toast_hovered = hovered
             .into_iter()
             .filter(|serial| pointer_moved || was_paused.contains(serial))
+            .chain(focused)
             .collect();
         crate::notifications::show_log(&ctx, &self.shell, &mut events);
         about::show(

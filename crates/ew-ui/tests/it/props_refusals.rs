@@ -221,6 +221,69 @@ fn escape_in_an_editor_holding_an_error_cancels_the_edit() {
     h.state_mut().shell_mut().shutdown();
 }
 
+/// FT-1144 (ID-1225; ID-940): a toast whose line is cut (a point with a long name refuses a second point on its
+/// spot) shows its whole text under the pointer in doc 16a §6.18's tooltip, `color.surface.inverse`.
+#[test]
+fn ft1144_a_toast_with_a_cut_line_shows_its_whole_text_in_the_inverse_tooltip() {
+    use egui_kittest::kittest::{NodeT as _, Queryable as _};
+    let tmp = Tmp::new();
+    let dir = tmp.golden("g.ew");
+    let mut h = harness(&tmp, Scripted::default(), Some(dir));
+    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    settle(&mut h);
+    wait_for_page(&mut h);
+    dispatch(&mut h, "page.goto", json!({"folio": "102"}));
+    dispatch(&mut h, "tool.ip", json!({}));
+    let name = format!("W464{}", "0".repeat(120));
+    dispatch(&mut h, "ip.name", json!({"text": name}));
+    dispatch(&mut h, "cursor.set", json!({"x_mm": 60.0, "y_mm": 160.0}));
+    dispatch(&mut h, "canvas.activate", json!({}));
+    dispatch(&mut h, "ip.name", json!({"text": "W465"}));
+    assert_eq!(
+        h.state_mut().shell_mut().dispatch("canvas.activate", &json!({})),
+        Outcome::Refused {
+            reason_key: key!("reason-ip-not-placed")
+        }
+    );
+    settle(&mut h);
+    let whole = format!(
+        "Not placed: the interruption point {name} is already here; place it on a pin or a free grid point"
+    );
+    let toast = h
+        .get_all_by_role(egui::Role::Group)
+        .find(|n| n.accesskit_node().label().as_deref() == Some("Notification"))
+        .expect("the toast's node")
+        .rect();
+    let inverse = ew_ui::theme::current(&h.ctx).surface_inverse.color32();
+    let mut shown = false;
+    h.hover_at(toast.center());
+    for _ in 0..120 {
+        h.step();
+        // The tooltip's label outside the toast (whose title carries the whole text as its live value), on the
+        // inverse surface.
+        let tip = h
+            .get_all_by_role(egui::Role::Label)
+            .filter(|n| n.accesskit_node().value().as_deref() == Some(whole.as_str()))
+            .map(|n| n.rect())
+            .find(|r| !toast.contains_rect(*r));
+        // Its first frame is a sizing pass, which paints nothing.
+        fn on(shape: &egui::Shape, fill: egui::Color32, tip: egui::Rect) -> bool {
+            match shape {
+                egui::Shape::Vec(v) => v.iter().any(|s| on(s, fill, tip)),
+                egui::Shape::Rect(r) => r.fill == fill && r.rect.contains_rect(tip),
+                _ => false,
+            }
+        }
+        if tip.is_some_and(|tip| h.output().shapes.iter().any(|c| on(&c.shape, inverse, tip))) {
+            shown = true;
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
+    assert!(shown, "the whole text in the inverse tooltip");
+    h.state_mut().shell_mut().shutdown();
+}
+
 /// FT-1075 (ID-1182): a toast's line stands under its title with a capital, as the window draws it: "Not placed" over
 /// "The interruption point W464 is already here; ...". The toast's own text (its tooltip, the log) keeps the
 /// command's lowercase.

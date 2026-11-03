@@ -27,7 +27,7 @@ use ew_viewmodel::strings;
 use serde_json::json;
 
 use crate::app::Event;
-use crate::components;
+use crate::components::{self, Tip as _};
 use crate::icons::{self, IconId};
 use crate::theme::{self, Tokens};
 
@@ -112,8 +112,22 @@ fn line_job(line: &str, font: egui::FontId, colour: egui::Color32, rows: usize) 
     job
 }
 
-/// One toast (doc 16a §6.10); returns whether the pointer is over it (hovering pauses it).
-fn toast(ui: &mut Ui, t: &Tokens, shell: &ShellModel, n: &Notification, events: &mut Vec<Event>) -> bool {
+/// Whether `text`, laid out as [`line_job`] in `width`, is cut.
+fn is_cut(ui: &Ui, text: &str, font: egui::FontId, rows: usize, width: f32) -> bool {
+    let mut job = line_job(text, font, egui::Color32::WHITE, rows);
+    job.wrap.max_width = width;
+    ui.ctx().fonts_mut(|f| f.layout_job(job)).elided
+}
+
+/// One toast (doc 16a §6.10); returns whether the pointer is over it and whether it holds the keyboard focus (either
+/// pauses it).
+fn toast(
+    ui: &mut Ui,
+    t: &Tokens,
+    shell: &ShellModel,
+    n: &Notification,
+    events: &mut Vec<Event>,
+) -> (bool, bool) {
     let width = toast_width(t, ui.ctx().content_rect().width());
     let frame = egui::Frame::new()
         .fill(t.surface_raised.color32())
@@ -177,19 +191,35 @@ fn toast(ui: &mut Ui, t: &Tokens, shell: &ShellModel, n: &Notification, events: 
                 }
             });
         });
-    // A `Group` node over the card, named "Notification" (its text is the live region inside). Hovering it shows the
-    // whole text (ID-940, ID-1139), unless a control inside shows its own tooltip.
-    let node = ui
-        .interact(
-            frame.response.rect,
-            ui.scope_id().with(("toast", n.serial)),
-            egui::Sense::hover(),
-        )
-        .on_hover_text(n.text.clone());
+    // A `Group` node over the card, named "Notification" (its text is the live region inside). FT-1144 (ID-1225):
+    // hovering it shows the whole text in doc 16a §6.18's tooltip only when the title or the line is cut (ID-940,
+    // ID-1139), unless a control inside shows its own tooltip.
+    let text_w = text_width(t, width);
+    let cut = match n.lines() {
+        (title, Some(line)) => {
+            is_cut(ui, title, theme::font(&t.type_body_strong), TITLE_ROWS, text_w)
+                || is_cut(ui, &line, theme::font(&t.type_small), LINE_ROWS, text_w)
+        }
+        (_, None) => false,
+    };
+    let mut node = ui.interact(
+        frame.response.rect,
+        ui.scope_id().with(("toast", n.serial)),
+        egui::Sense::hover(),
+    );
+    if cut {
+        node = node.tip(n.text.clone());
+    }
     node.widget_info(|| {
         egui::WidgetInfo::labeled(egui::Role::Group, true, strings::text(key!("toast-name")))
     });
-    ui.rect_contains_pointer(frame.response.rect)
+    // FT-1137 (ID-1225): a control of the toast (its action, Dismiss) that holds the keyboard focus.
+    let focused = ui.memory(|m| m.focused()).is_some_and(|id| {
+        ui.ctx()
+            .read_response(id)
+            .is_some_and(|r| r.layer_id == ui.layer_id() && frame.response.rect.contains_rect(r.rect))
+    });
+    (ui.rect_contains_pointer(frame.response.rect), focused)
 }
 
 /// Where the toasts stand: the canvas's top right under its tabs, else the window's under the command bar.
@@ -218,7 +248,8 @@ pub(crate) fn toast_opacity(age: f64, life: f64, fade: f64) -> f32 {
 
 /// The visible toasts of `shell`, the newest at the top, anchored at `anchor` (their top-right corner), each painted
 /// at its opacity in `opacity` (1 when absent); `under_modal` puts them in the middle order, below a modal dialog's
-/// backdrop (doc 16a §6.12), so the dialog is the only focus. Returns the serials of the toasts under the pointer.
+/// backdrop (doc 16a §6.12), so the dialog is the only focus. Returns the serials of the toasts under the pointer and
+/// those of the toasts that hold the keyboard focus (FT-1137).
 pub(crate) fn show_toasts(
     ctx: &Context,
     shell: &ShellModel,
@@ -226,11 +257,11 @@ pub(crate) fn show_toasts(
     under_modal: bool,
     opacity: &std::collections::BTreeMap<u64, f32>,
     events: &mut Vec<Event>,
-) -> Vec<u64> {
+) -> (Vec<u64>, Vec<u64>) {
     let visible = shell.notifications().visible();
-    let mut hovered = Vec::new();
+    let (mut hovered, mut focused) = (Vec::new(), Vec::new());
     if visible.is_empty() {
-        return hovered;
+        return (hovered, focused);
     }
     let t = theme::current(ctx);
     let order = if under_modal {
@@ -249,7 +280,7 @@ pub(crate) fn show_toasts(
             ui.spacing_mut().item_spacing.y = t.space_3;
             for n in visible.into_iter().rev() {
                 let alpha = opacity.get(&n.serial).copied().unwrap_or(1.0);
-                let over = ui
+                let (over, focus) = ui
                     .scope(|ui| {
                         ui.multiply_opacity(alpha);
                         toast(ui, &t, shell, n, events)
@@ -258,9 +289,12 @@ pub(crate) fn show_toasts(
                 if over {
                     hovered.push(n.serial);
                 }
+                if focus {
+                    focused.push(n.serial);
+                }
             }
         });
-    hovered
+    (hovered, focused)
 }
 
 /// The notifications log while its popover is open.

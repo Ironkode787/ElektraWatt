@@ -421,6 +421,63 @@ fn ft1027_hovering_a_toast_pauses_its_fade() {
     h.state_mut().shell_mut().shutdown();
 }
 
+/// FT-1137 (ID-1225; doc 16a §6.10, "hovering or focusing one pauses it"): a toast whose Dismiss button holds the
+/// keyboard focus is paused for as long as it holds it, the pointer away from it.
+#[test]
+fn ft1137_a_toast_that_holds_the_keyboard_focus_is_paused() {
+    let tmp = Tmp::new();
+    let dir = tmp.golden("g.ew");
+    let mut h = harness(&tmp, Scripted::default(), Some(dir));
+    let shown = one_toast(&mut h);
+    assert_eq!(opacity_at(&mut h, shown, 1.0), Some(1.0));
+    let toast = h
+        .get_all_by_role(egui::Role::Group)
+        .find(|n| n.accesskit_node().label().as_deref() == Some("Notification"))
+        .expect("the toast's node")
+        .rect();
+    // The window's focus leaves the canvas (which takes the keyboard focus back while it has it).
+    dispatch(&mut h, "ui.focus", json!({"area": "commandbar"}));
+    h.step();
+    h.get_all_by_role(egui::Role::Button)
+        .find(|n| n.accesskit_node().label().as_deref() == Some("Dismiss") && toast.contains_rect(n.rect()))
+        .expect("the toast's Dismiss button")
+        .focus();
+    h.step();
+    for t in [2.0, 7.95, 20.0] {
+        assert_eq!(opacity_at(&mut h, shown, t), Some(1.0), "focused at {t} s");
+    }
+    h.state_mut().shell_mut().shutdown();
+}
+
+/// FT-1144 (ID-1225; ID-940): a toast whose text is whole shows no tooltip under the pointer (it would only repeat
+/// the text); its accessible name stays "Notification".
+#[test]
+fn ft1144_a_toast_with_its_whole_text_shows_no_tooltip() {
+    let tmp = Tmp::new();
+    let dir = tmp.golden("g.ew");
+    let mut h = harness(&tmp, Scripted::default(), Some(dir));
+    let shown = one_toast(&mut h);
+    assert_eq!(opacity_at(&mut h, shown, 1.0), Some(1.0));
+    let text = "Set function text on 2 devices";
+    let toast = h
+        .get_all_by_role(egui::Role::Group)
+        .find(|n| n.accesskit_node().label().as_deref() == Some("Notification"))
+        .expect("the toast's node")
+        .rect();
+    // Two seconds on the frame clock under a still pointer (a tooltip waits half a second).
+    h.hover_at(toast.center());
+    for i in 0..40 {
+        h.input_mut().time = Some(shown + 1.0 + f64::from(i) * 0.05);
+        h.step();
+        let labels = h
+            .get_all_by_role(egui::Role::Label)
+            .filter(|n| n.accesskit_node().value().as_deref() == Some(text))
+            .count();
+        assert_eq!(labels, 1, "the toast's own text only");
+    }
+    h.state_mut().shell_mut().shutdown();
+}
+
 /// FT-1088, ID-1183: a toast that appears under a pointer that does not move fades on time (the hover pauses a toast
 /// only after the pointer moved onto it); once the pointer moves onto it, it is paused and stays paused while the
 /// pointer is still.
