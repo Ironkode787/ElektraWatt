@@ -128,6 +128,8 @@ pub enum Submenu {
     Bond,
     /// Check, Revision: Approve, Release, Withdraw, Set author and the incomplete release (WP-S1.18 part 5).
     Revision,
+    /// View, Language: one item per UI language, under its own name (WP-S2.08 part 3).
+    Language,
 }
 
 impl Submenu {
@@ -147,6 +149,7 @@ impl Submenu {
             Submenu::Bond => key!("submenu-bond"),
             Submenu::CommandTab => key!("submenu-command-tab"),
             Submenu::Revision => key!("submenu-revision"),
+            Submenu::Language => key!("submenu-language"),
         }
     }
 }
@@ -2020,6 +2023,20 @@ pub static ACTIONS: &[ActionMeta] = &[
                 sub(Menu::View, Submenu::Density, false),
                 |s, p| s.act_view_setting("density", p),
             ),
+        )),
+    ),
+    // WP-S2.08 part 3 (D10, ID-1219 ruling 5): View ▸ Language switches the UI language at run time; `value` is a
+    // value of the `language` setting.
+    with_params(
+        "value:text",
+        needs_parameters(act(
+            "view.language",
+            View,
+            Menu::View,
+            &[],
+            always,
+            sub(Menu::View, Submenu::Language, true),
+            |s, p| s.act_view_setting("language", p),
         )),
     ),
     // WP-S2.17 part 2 (§4.3): the command bar's tab and its collapse (Ctrl+F1, a tab's double click), view actions.
@@ -5382,6 +5399,17 @@ fn submenu_items(submenu: Submenu, metas: &[&ActionMeta], model: &ShellModel) ->
             items
         }
         Submenu::Pan | Submenu::Revision => metas.iter().map(|m| item_of(m, model)).collect(),
+        // WP-S2.08 part 3: one item per UI language, under its own name.
+        Submenu::Language => strings::languages()
+            .into_iter()
+            .map(|(value, name)| {
+                let mut item = item_of(meta, model);
+                item.label = name.to_owned();
+                item.params = json!({ "value": value });
+                item.checked = model.settings().language == value;
+                item
+            })
+            .collect(),
         Submenu::Workspace => {
             let active = model.workspace();
             let mut items = Vec::new();
@@ -5736,6 +5764,7 @@ mod tests {
             Submenu::WireMarkers,
             Submenu::Bond,
             Submenu::Revision,
+            Submenu::Language,
         ] {
             assert!(strings::lookup(s.label_key().as_str()).is_some());
         }

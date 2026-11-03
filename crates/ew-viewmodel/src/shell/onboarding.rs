@@ -20,7 +20,7 @@ use super::{
 use crate::first_run::{self, FirstRun, FirstRunStep, START_CHOICES};
 use crate::help;
 use crate::key;
-use crate::settings::{CANVAS_BACKENDS, DENSITIES, KEYMAPS, LANGUAGES, ORIGINS, THEMES};
+use crate::settings::{CANVAS_BACKENDS, DENSITIES, KEYMAPS, ORIGINS, THEMES};
 use crate::strings;
 use crate::wizard::{CHECK_SCHEME_FIELD, DRAFT_FILE, Draft, Step, Wizard, run_commands};
 
@@ -46,7 +46,12 @@ impl ShellModel {
                 .ok_or_else(|| failed(key!("error-bad-param"), &["value"]))
         };
         match key {
-            "language" => self.settings.language = choice(&LANGUAGES)?,
+            // WP-S2.08 part 3 (D10): the languages View ▸ Language offers; the texts follow at once.
+            "language" => {
+                let tags: Vec<&str> = strings::languages().into_iter().map(|(tag, _)| tag).collect();
+                self.settings.language = choice(&tags)?;
+                strings::set_locale(&self.settings.language);
+            }
             "keymap" => self.settings.keymap = choice(&KEYMAPS)?,
             "theme" => self.settings.theme = choice(&THEMES)?,
             "density" => self.settings.density = choice(&DENSITIES)?,

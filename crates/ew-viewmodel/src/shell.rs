@@ -751,6 +751,8 @@ impl ShellModel {
             }
             None => Settings::default(),
         };
+        // WP-S2.08 part 3 (D10): the texts in the UI language of the settings.
+        strings::set_locale(&settings.language);
         // WP-S2.08 D8 (KM-2): a refused keymap file is kept aside with a banner, and the preset applies.
         let mut keymap_keep_file = false;
         let user_keymap = match &config.config_dir {

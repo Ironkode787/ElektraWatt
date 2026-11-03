@@ -33,6 +33,7 @@ mod raw_read;
 mod records;
 mod repo;
 mod settle;
+mod shell_keys;
 mod symbols;
 mod test_layout;
 mod trailers;
@@ -139,7 +140,7 @@ commands:
                        `ci`'s all-features nextest and doctest steps
   settle [--check] [--merge] [--all] [--base <rev>]
                        the mechanical upkeep of a change, one table of steps in one order (xtask/src/settle.rs):
-                       rustfmt on the changed .rs files, the command and CLI schemas, the rule catalogue, the
+                       rustfmt on the changed .rs files, the shell's text keys, the command and CLI schemas, the rule catalogue, the
                        keymaps, the blind reference, the CLI, api_v1 and query snapshots, docs-gen, gen-icons, check-raw-read --bless, fuzz-smoke-table,
                        golden_changes.py --write and the blind self-tests, each only when a file it reads changed
                        since the merge base of <rev> (default main) and HEAD (--all: every step); then the checks

@@ -215,11 +215,11 @@ fn case_breaks(text: &str) -> Vec<String> {
     out
 }
 
-/// Every text of `strings::TEXTS`.
+/// Every text of `strings::KEYS`.
 fn ui_strings() -> Vec<String> {
-    strings::TEXTS
+    strings::KEYS
         .iter()
-        .map(|(_, text)| (*text).to_owned())
+        .map(|key| strings::text(strings::Key::run_time(key)).to_owned())
         .collect()
 }
 

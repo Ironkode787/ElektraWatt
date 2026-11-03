@@ -1981,8 +1981,10 @@ dependencies = [
  "ew-testdir",
  "ew-testkit",
  "ew-viewmodel",
+ "fluent-bundle",
  "serde_json",
  "toml",
+ "unic-langid",
 ]
 
 [[package]]

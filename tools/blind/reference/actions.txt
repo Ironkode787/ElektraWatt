@@ -71,6 +71,7 @@ messages.unwaive Command "Unwaive finding" menu none shortcut none context navig
 view.ui_scale View "UI scale" menu "View ▸ UI scale" shortcut none context global needs-parameters params "scale:json"
 view.theme View "Theme" menu "View ▸ Theme" shortcut none context global needs-parameters params "value:text"
 view.density View "Density" menu "View ▸ Density" shortcut none context global needs-parameters params "value:enum(comfortable|compact)"
+view.language View "Language" menu "View ▸ Language" shortcut none context global needs-parameters params "value:text"
 view.command_tab View "Command tab" menu "View ▸ Command tab" shortcut none context global needs-parameters params "tab:enum(project|page|draw|check|output|view)"
 view.command_bar View "Collapse command bar" menu "View" shortcut "Ctrl+F1" context global params "collapsed?:bool"
 view.workspace_load View "Load workspace" menu "View ▸ Workspace" shortcut none context global needs-parameters params "name:text"

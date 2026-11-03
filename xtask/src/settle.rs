@@ -190,6 +190,8 @@ const BOOK_SUMMARY: &str = "docs/book/src/SUMMARY.md";
 /// The architecture document whose crate table docs-gen writes from `ci/dep-rules.toml` (RD43 R18a).
 const ARCHITECTURE: &str = "docs/design/04-architecture.md";
 const ICONS: &str = "crates/ew-ui/src/icons/generated.rs";
+const SHELL_FTL: &str = crate::shell_keys::SOURCE;
+const SHELL_KEYS: &str = crate::shell_keys::OUTPUT;
 const CLIPPY_TOML: &str = "clippy.toml";
 const FUZZ_TABLE: &str = crate::workflows::FUZZ_TABLE;
 const GOLDEN_LIST: &str = "docs/plan/gate-records/golden-change-list.md";
@@ -199,7 +201,7 @@ const RECORDS: &str = crate::records::RECORDS;
 const GLOBAL_PLAN: &str = crate::records::GLOBAL_PLAN;
 
 // map: settle-steps: a new generated file or upkeep step goes in this table, in order, with triggers and outputs.
-/// The steps in their order: rustfmt, the workspace-hack crate, the command schemas, the CLI schemas, the rule catalogue, the keymaps, the
+/// The steps in their order: rustfmt, the workspace-hack crate, the shell's text keys, the command schemas, the CLI schemas, the rule catalogue, the keymaps, the
 /// blind reference, the CLI, `api_v1` and query snapshots, `docs-gen`, `gen-icons`, the clippy list, the fuzz table, the golden change list and the two
 /// self-tests; then the checks; then the review gates of `--merge`.
 pub(crate) const STEPS: &[Step] = &[
@@ -225,6 +227,19 @@ pub(crate) const STEPS: &[Step] = &[
         partial: &["**/Cargo.toml", "Cargo.lock"],
         reads: &[],
         action: Action::Hakari,
+    },
+    // WP-S2.08 part 3 (ID-1219 ruling 3): the key list that `key!` checks, from the en-GB shell texts; before every
+    // step that builds `ew-viewmodel`.
+    Step {
+        name: "shell-keys",
+        phase: Phase::Regen,
+        triggers: &[SHELL_FTL, "xtask/src/shell_keys.rs", SHELL_KEYS],
+        deps_of: &[],
+        merge_reaches: &[],
+        outputs: &[SHELL_KEYS],
+        partial: &[],
+        reads: &[],
+        action: Action::Xtask(crate::shell_keys::run),
     },
     Step {
         name: "command-schemas",
@@ -1923,6 +1938,7 @@ mod tests {
             [
                 "rustfmt",
                 "hakari",
+                "shell-keys",
                 "command-schemas",
                 "cli-schemas",
                 "rule-catalogue",
@@ -1998,6 +2014,7 @@ mod tests {
     fn each_steps_triggers_select_it() {
         let cases: &[(&str, &str)] = &[
             ("rustfmt", "crates/ew-model/src/lib.rs"),
+            ("shell-keys", "crates/ew-viewmodel/locales/en-GB/shell.ftl"),
             ("command-schemas", "crates/ew-commands/schemas/index.json"),
             ("cli-schemas", "bin/ew/schemas/ew.apply-result-1.schema.json"),
             ("rule-catalogue", "crates/ew-checks/catalogue/rules.json"),

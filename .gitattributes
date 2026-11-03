@@ -11,6 +11,7 @@ crates/*/tests/fixtures/*-exporters/** -text
 # (the step table in xtask/src/settle.rs; a test of xtask keeps this list equal to it, in its order). With the driver
 # configured (`git config merge.regen.driver true`, which keeps one side) a merge or cherry-pick never stops on them,
 # and `cargo xtask settle` then regenerates them. Without the driver git merges them as text.
+crates/ew-viewmodel/src/strings/keys.rs merge=regen
 crates/ew-commands/schemas/** merge=regen
 bin/ew/schemas/** merge=regen
 crates/ew-checks/catalogue/rules.json merge=regen
