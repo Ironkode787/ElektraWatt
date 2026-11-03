@@ -2785,3 +2785,6 @@ toast-convert = Convert to connection
 toast-show-block = Show report block
 glossary-row-description = EPLAN: { $p0 }; QET: { $p1 }; { $p2 }
 glossary-none = none
+
+# WP-S1.17 parts 6 to 8 (COL49): external change, cloud folders, .ewz, the upgrade, the merge driver.
+command-external-apply = External change

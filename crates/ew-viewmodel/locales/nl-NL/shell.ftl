@@ -2553,3 +2553,6 @@ toast-convert = Omzetten in verbinding
 toast-show-block = Rapportblok tonen
 glossary-row-description = EPLAN: { $p0 }; QET: { $p1 }; { $p2 }
 glossary-none = geen
+
+# WP-S1.17 parts 6 to 8 (COL49): externe wijziging, cloudmappen, .ewz, de upgrade, de samenvoegdriver.
+command-external-apply = Externe wijziging

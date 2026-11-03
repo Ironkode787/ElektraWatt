@@ -262,6 +262,8 @@ fn examples() -> Vec<(&'static str, Value)> {
             "check.unwaive",
             json!({"waiver": "6c1d0a37-92e4-5f8b-a0d6-3e7b9c2f4a18"}),
         ),
+        // Its rows are not parameters: the example writes nothing (WP-S1.17 D22).
+        ("external.apply", json!({"generation": 2, "commit": "a1b2c3d"})),
         (
             "merge.resolve",
             json!({"choices": [{"conflict": "5a8f1e3c-0d72-5b49-9e16-c3a7f0b8d254", "take": "theirs"}]}),

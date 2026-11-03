@@ -237,6 +237,17 @@
       "aliases": [],
       "confirmation": "none",
       "cost": "interactive",
+      "exposure": "internal",
+      "name": "external.apply",
+      "params_version": 1,
+      "schema": "external.apply.schema.json",
+      "stability": "internal",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "interactive",
       "exposure": "edit",
       "name": "external_ref.create",
       "params_version": 1,

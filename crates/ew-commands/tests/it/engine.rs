@@ -203,6 +203,9 @@ fn every_v0_command_is_an_edit_command_but_the_check_schemes() {
                 | "revision.release"
         ) {
             Exposure::HumanOnly
+        } else if c.meta().name == "external.apply" {
+            // WP-S1.17 D22: submitted only by the session's external-change apply (decision log ID-1284 ruling 1).
+            Exposure::Internal
         } else {
             Exposure::Edit
         };
@@ -228,6 +231,10 @@ fn every_v0_command_is_an_edit_command_but_the_check_schemes() {
     assert!(!Exposure::HumanOnly.allows(&cli(false)));
     assert!(Exposure::Import.allows(&cli(false)));
     assert!(Exposure::Edit.allows(&cli(false)));
+    // Ruling 1 of ID-1284: `Internal` admits the external-change apply's origin only.
+    assert!(Exposure::Internal.allows(&Origin::External));
+    assert!(!Exposure::Internal.allows(&Origin::Gui));
+    assert!(!Exposure::Internal.allows(&cli(true)));
     let json = serde_json::to_value(cli(false)).expect("serialisable");
     let back: Origin = serde_json::from_value(serde_json::json!({"cli": {"subcommand": "purge"}}))
         .expect("`confirmed` defaults to false");
