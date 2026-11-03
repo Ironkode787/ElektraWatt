@@ -678,8 +678,9 @@ jobs:
   # -p ew` in the digest-pinned ubuntu:22.04 container of the Linux release build (package.yml), with `gcc` and
   # `libc6-dev` at the exact versions of packaging/components.toml and no C++ compiler (asserted), the runner's
   # toolchain mounted and no network, so every build script's C compilation is proven without a C++ compiler on each
-  # pull request. ci/linux-container.sh does the work inside the container. Not a required check until the owner
-  # makes it one (ci/README.md).
+  # pull request. apt reads Ubuntu's archive at the snapshot of packaging/components.toml (FT-1222), so an update of
+  # jammy-updates never fails the job. ci/linux-container.sh does the work inside the container. Not a required check
+  # until the owner makes it one (ci/README.md).
   c-only:
     name: c-only
     runs-on: ubuntu-24.04
@@ -707,6 +708,7 @@ jobs:
           {
             echo "gcc=$(python3 -I packaging/stage.py pin gcc)"
             echo "libc6_dev=$(python3 -I packaging/stage.py pin libc6-dev)"
+            echo "apt_snapshot=$(python3 -I packaging/stage.py snapshot)"
           } >> "$GITHUB_OUTPUT"
       # With network, on the runner: the crates into the cargo home that the container mounts (the check has none).
       - name: cargo fetch
@@ -726,10 +728,12 @@ jobs:
         env:
           EW_GCC_VERSION: ${{ steps.pins.outputs.gcc }}
           EW_LIBC6_DEV_VERSION: ${{ steps.pins.outputs.libc6_dev }}
+          EW_APT_SNAPSHOT: ${{ steps.pins.outputs.apt_snapshot }}
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/apt/archives/partial" "$RUNNER_TEMP/apt/lists/partial"
-          docker run --rm --env EW_GCC_VERSION --env EW_LIBC6_DEV_VERSION \
+          docker run --rm --env EW_GCC_VERSION --env EW_LIBC6_DEV_VERSION --env EW_APT_SNAPSHOT \
+            --volume /etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro \
             --volume "$RUNNER_TEMP/apt/archives:/var/cache/apt/archives" \
             --volume "$RUNNER_TEMP/apt/lists:/var/lib/apt/lists" \
             --volume "$PWD/ci/linux-container.sh:/linux-container.sh:ro" \
@@ -739,13 +743,15 @@ jobs:
         env:
           EW_GCC_VERSION: ${{ steps.pins.outputs.gcc }}
           EW_LIBC6_DEV_VERSION: ${{ steps.pins.outputs.libc6_dev }}
+          EW_APT_SNAPSHOT: ${{ steps.pins.outputs.apt_snapshot }}
         run: |
           set -euo pipefail
           export CARGO_HOME="${CARGO_HOME:-$HOME/.cargo}"
           toolchain="$(dirname "$(dirname "$(rustup which --toolchain "$RUST_TOOLCHAIN" cargo)")")"
           export EW_TOOLCHAIN_BIN="$toolchain/bin" EW_UID="$(id -u)" EW_GID="$(id -g)" PKG_CONFIG=false
           docker run --rm --network none \
-            --env EW_GCC_VERSION --env EW_LIBC6_DEV_VERSION --env EW_TOOLCHAIN_BIN --env EW_UID --env EW_GID \
+            --env EW_GCC_VERSION --env EW_LIBC6_DEV_VERSION --env EW_APT_SNAPSHOT --env EW_TOOLCHAIN_BIN \
+            --env EW_UID --env EW_GID \
             --env PKG_CONFIG --env RUSTFLAGS --env CARGO_HOME --env CARGO_TERM_COLOR --env CARGO_INCREMENTAL \
             --volume "$RUNNER_TEMP/apt/archives:/var/cache/apt/archives" \
             --volume "$RUNNER_TEMP/apt/lists:/var/lib/apt/lists" \

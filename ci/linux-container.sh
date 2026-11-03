@@ -8,8 +8,11 @@
 #
 #   linux-container.sh download
 #       With network. `apt-get update`, then downloads `gcc=$EW_GCC_VERSION` and `libc6-dev=$EW_LIBC6_DEV_VERSION`
-#       (packaging/components.toml) from the image's own archive, which apt checks against its signed index, into the
-#       mounted /var/cache/apt/archives and /var/lib/apt/lists. A version the archive no longer holds fails here.
+#       (packaging/components.toml) into the mounted /var/cache/apt/archives and /var/lib/apt/lists, which apt checks
+#       against its signed index. The archive is Ubuntu's at the time EW_APT_SNAPSHOT (`[apt]` of
+#       packaging/components.toml, FT-1222) on snapshot.ubuntu.com, so it holds the pinned versions for good. The
+#       snapshot is served over HTTPS only, and the image has no CA certificates: the runner's bundle is mounted at
+#       /etc/ssl/certs/ca-certificates.crt. `packaging/stage.py debs` then compares the downloaded files with the list.
 #   linux-container.sh check | release
 #       With no network (`docker run --network none`). Installs the two packages from the downloaded files
 #       (`--no-download`), asserts that no C++ compiler is there (`g++`, `c++`, `clang++`), and runs as the runner's
@@ -18,8 +21,10 @@
 #         compilation with a C compiler only);
 #       - release: `ci/release-check.sh env`, `cargo build --release --locked --offline -p elektrawatt -p ew`,
 #         `ci/release-check.sh scan` on both binaries (reports `release-check-<binary>.md`), and the highest `GLIBC_`
-#         symbol version of both, which must be at most 2.35 (glibc of Ubuntu 22.04, the oldest Supported Linux).
+#         symbol version of both, which must be at most 2.35 (glibc of Ubuntu 22.04, the oldest Supported Linux); it
+#         writes the container's `dpkg-query --show` to `container-packages.txt` for the job summary (FT-1223).
 #       The dependencies are fetched on the runner first (`cargo fetch --locked`), into the mounted cargo home.
+#   Every mode reads the same apt source, the snapshot, since the downloaded lists are named after it.
 set -euo pipefail
 
 fail() {
@@ -29,13 +34,24 @@ fail() {
 
 [ "$#" -eq 1 ] || fail "usage: linux-container.sh download | check | release"
 mode="$1"
-: "${EW_GCC_VERSION:?}" "${EW_LIBC6_DEV_VERSION:?}"
+: "${EW_GCC_VERSION:?}" "${EW_LIBC6_DEV_VERSION:?}" "${EW_APT_SNAPSHOT:?}"
+[[ "$EW_APT_SNAPSHOT" =~ ^[0-9]{8}T[0-9]{6}Z$ ]] \
+  || fail "EW_APT_SNAPSHOT is not a time such as 20261102T000000Z: $EW_APT_SNAPSHOT"
 packages=("gcc=$EW_GCC_VERSION" "libc6-dev=$EW_LIBC6_DEV_VERSION")
 apt_options=(-o Acquire::Retries=3 -o Acquire::http::Timeout=20 --no-install-recommends --yes)
 
+rm -f /etc/apt/sources.list.d/*
+{
+  echo "deb https://snapshot.ubuntu.com/ubuntu/$EW_APT_SNAPSHOT jammy main"
+  echo "deb https://snapshot.ubuntu.com/ubuntu/$EW_APT_SNAPSHOT jammy-updates main"
+} > /etc/apt/sources.list
+
 if [ "$mode" = download ]; then
-  apt-get "${apt_options[@]:0:4}" update
-  DEBIAN_FRONTEND=noninteractive apt-get "${apt_options[@]}" install --download-only "${packages[@]}"
+  ca=/etc/ssl/certs/ca-certificates.crt
+  [ -s "$ca" ] || fail "no CA bundle at $ca: mount the runner's, read-only (the snapshot is served over HTTPS only)"
+  apt-get "${apt_options[@]:0:4}" -o Acquire::https::CaInfo="$ca" update
+  DEBIAN_FRONTEND=noninteractive apt-get "${apt_options[@]}" -o Acquire::https::CaInfo="$ca" \
+    install --download-only "${packages[@]}"
   exit 0
 fi
 
@@ -70,6 +86,7 @@ as_runner bash -c '
   bash ci/release-check.sh env
   cargo build --release --locked --offline -p elektrawatt -p ew
 '
+dpkg-query --show | as_runner tee container-packages.txt > /dev/null
 failed=0
 for binary in elektrawatt ew; do
   as_runner bash ci/release-check.sh scan "target/release/$binary" target "release-check-$binary.md" || failed=1

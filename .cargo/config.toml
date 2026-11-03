@@ -13,7 +13,7 @@ xtask = "run --quiet --package xtask --"
 #
 # These are config rustflags, so the RUSTFLAGS environment variable replaces them. The workflows that build on
 # Windows set RUSTFLAGS: `ci.yml` workflow-wide (`-D warnings`) and `package.yml` in its `windows` job (`-D warnings`,
-# the static C runtime and the path remaps). So CI and the Windows release build keep link.exe. A local build with RUSTFLAGS set links with link.exe too (and rebuilds everything when
-# RUSTFLAGS changes).
+# the static C runtime and the path remaps). So CI and the Windows release build keep link.exe. A local build with
+# RUSTFLAGS set links with link.exe too (and rebuilds everything when RUSTFLAGS changes).
 [target.x86_64-pc-windows-msvc]
 rustflags = ["-Clinker=rust-lld.exe"]
