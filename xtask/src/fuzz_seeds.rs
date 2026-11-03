@@ -7,8 +7,9 @@
 //! project gains or loses a file. `fuzz/src/bin/seed_corpus.rs` makes the seeds from the project, deterministically;
 //! this runs it into a temporary folder under `target/` (stable toolchain, dev profile, from the repository root,
 //! as `fuzz-build` builds `fuzz/`) and makes the three generated folders equal to what it wrote. In check mode it
-//! changes nothing and names each seed that differs, is missing or is no longer made. The hand-made `png_pdf` and
-//! `ewz_read` seeds are not touched.
+//! changes nothing in the corpus and names each seed that differs, is missing or is no longer made; it still builds
+//! `seed_corpus` into `fuzz/target/`, the fuzz workspace's own target folder. The hand-made `png_pdf` and `ewz_read`
+//! seeds are not touched.
 
 use std::collections::BTreeMap;
 use std::path::Path;
@@ -98,7 +99,7 @@ pub(crate) fn run(root: &Path, check: bool) -> Result<bool> {
     if scratch.exists() {
         std::fs::remove_dir_all(&scratch).with_context(|| format!("removing {}", scratch.display()))?;
     }
-    let output = Command::new("cargo")
+    let output = Command::new(crate::cargo())
         .args([
             "run",
             "--manifest-path",
