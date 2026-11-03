@@ -1537,10 +1537,17 @@ impl App {
         // ID-1139: the areas are named per tool, so a tool's card sizes itself on a sizing pass rather than inheriting
         // the last tool's size as its bound.
         let id = egui::Id::unique(("tool-options", tool));
+        // FT-1115 (ID-1225): the band takes the pointer only on its controls. A container's hit rectangle is its clip
+        // rectangle cut to its extent, so the band's area (constrained to nothing, and not moved by it) and its row
+        // leave a clip of nothing behind them as they end: a click in a gap between the controls reaches the sheet.
+        let screen = ctx.content_rect();
         let band = egui::Area::new(id.with("controls"))
             .fixed_pos(band_at)
             .order(egui::Order::Middle)
+            .constrain_to(egui::Rect::NOTHING)
+            .constrain(false)
             .show(ctx, |ui| {
+                ui.set_clip_rect(screen);
                 ui.set_opacity(opacity);
                 ui.horizontal(|ui| {
                     // WP-S2.04 §9.1: the IP tool's name field and external-reference field.
@@ -1577,7 +1584,9 @@ impl App {
                     if let Some((card, grid_mm)) = &draw {
                         crate::tool_view::draw_fields(ui, card, *grid_mm, events);
                     }
+                    ui.set_clip_rect(egui::Rect::NOTHING);
                 });
+                ui.set_clip_rect(egui::Rect::NOTHING);
             });
         let band_size = band.response.rect.size();
         let card = egui::Area::new(id)

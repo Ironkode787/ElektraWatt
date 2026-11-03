@@ -356,6 +356,50 @@ fn ft1086_a_click_on_the_free_area_of_the_tool_options_card_reaches_the_sheet() 
     h.state_mut().shell_mut().shutdown();
 }
 
+/// FT-1115 (ID-1225) at the floor: the Tool options card's band takes the pointer only on its controls. A click in the
+/// gap between the IP name's label and its field places a point on the sheet beneath; a click on the field does not.
+#[test]
+fn ft1115_a_click_in_a_gap_of_the_tool_options_band_reaches_the_sheet() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "103");
+    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    settle(&mut h);
+    press(&mut h, Key::P);
+    assert_eq!(h.state().shell().tool().name(), "ip");
+    settle(&mut h);
+    let field = h
+        .get_all_by_role(egui::Role::TextInput)
+        .find(|n| n.accesskit_node().label().as_deref() == Some("Interruption point name"))
+        .expect("the IP name field")
+        .rect();
+    let label = h
+        .get_all_by_role(egui::Role::Label)
+        .find(|n| n.accesskit_node().value().as_deref() == Some("Interruption point name"))
+        .expect("the IP name's label")
+        .rect();
+    assert!(label.right() < field.left(), "a gap between {label:?} and {field:?}");
+    let click = |h: &mut Harness<'_, App>, at: egui::Pos2| {
+        h.event(egui::Event::PointerMoved(at));
+        settle(h);
+        settle(h);
+        let before = ips(h).len();
+        for pressed in [true, false] {
+            h.event(egui::Event::PointerButton {
+                pos: at,
+                button: egui::PointerButton::Primary,
+                pressed,
+                modifiers: egui::Modifiers::NONE,
+            });
+        }
+        settle(h);
+        ips(h).len() - before
+    };
+    let gap = egui::pos2((label.right() + field.left()) / 2.0, field.center().y);
+    assert_eq!(click(&mut h, gap), 1, "the click in the gap reached the sheet");
+    assert_eq!(click(&mut h, field.center()), 0, "the field takes its click");
+    h.state_mut().shell_mut().shutdown();
+}
+
 /// FT-1077 (ID-1183) at the floor: the Interruption point row of a placed point's function has no value, so its label
 /// runs across the value column and is whole; a row with a value keeps the label column (M39).
 #[test]
