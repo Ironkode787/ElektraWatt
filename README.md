@@ -1,9 +1,25 @@
 # ElektraWatt
 
+> **Funded by TWE-O B.V.** All funding for ElektraWatt comes from TWE-O B.V.; the project has no other funders or
+> sponsors.
+
 ElektraWatt (EW) is an open-source, offline-first desktop application for electrical control-cabinet design, written
 in Rust. It aims at the functionality of EPLAN Electric P8 class tools: schematics, devices and parts, terminals and
 cables, PLC and fluid power, panel layout, reports, manufacturing outputs and checks, in a plain-text project format
 that works with Git.
+
+![The ElektraWatt window with the reference project open: the page list and the properties on the left, a
+main-current schematic on the canvas, and the findings of a project check in the Messages panel below
+it](docs/images/screenshot-schematic-checks.png)
+
+## Screenshots
+
+| The panel layout | The dark theme |
+|---|---|
+| ![The cabinet layout page of the reference project: the mounting plate with its rails, ducts and devices, and the parts legend beside it](docs/images/screenshot-panel-layout.png) | ![A fluid-power page of the reference project in the dark theme: a valve manifold with its solenoid valves and cylinders](docs/images/screenshot-dark-theme.png) |
+
+The screenshots show the reference project `golden/J-E-2416.ew` at 1920 × 1080. The application drew them itself,
+with its offscreen renderer (`elektrawatt --headless --visual`), the same one its window checks use.
 
 ## Status
 
@@ -116,6 +132,11 @@ checked on every build. All 32 architecture decision records are listed in the [
 Work happens on a working branch. At a delivery, `main` is fast-forwarded to it after the full gate on Windows and
 Linux, and both are pushed; at a checkpoint only the working branch is pushed. The branch of the running cycle is
 named in the [decision log](docs/plan/06-decision-log.md); lanes work in their own worktrees and never push.
+
+## Funding
+
+ElektraWatt is funded entirely by **TWE-O B.V.** All funding for the project comes from TWE-O B.V.; there are no
+other funders, sponsors or grants.
 
 ## Contributing
 

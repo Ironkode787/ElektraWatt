@@ -40,10 +40,10 @@ precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 The ElektraWatt contributors"
 SPDX-License-Identifier = "GPL-3.0-or-later"
 
-# L9: documentation without headers (Markdown and CSV under docs/) and the root prose files README.md and
-# CLAUDE.md (CC-BY-4.0).
+# L9: documentation without headers (Markdown and CSV under docs/, and the README's screenshots under docs/images/)
+# and the root prose files README.md and CLAUDE.md (CC-BY-4.0).
 [[annotations]]
-path = ["docs/**.md", "docs/**.csv", "README.md", "CLAUDE.md"]
+path = ["docs/**.md", "docs/**.csv", "docs/images/**", "README.md", "CLAUDE.md"]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 The ElektraWatt contributors"
 SPDX-License-Identifier = "CC-BY-4.0"
