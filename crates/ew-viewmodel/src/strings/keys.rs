@@ -782,6 +782,7 @@ pub const KEYS: &[&str] = &[
     "start-quick-keymap",
     "start-privacy-change",
     "language-en",
+    "language-nl",
     "keymap-ew",
     "keymap-kicad",
     "theme-system",

@@ -4,7 +4,8 @@
 //! WP-S2.08 part 3 (D9 to D11, ID-1219): the shell's texts through Fluent. LO-1 every key's en-GB text equals the
 //! committed snapshot `tests/expected/en-GB-texts.txt` (one `key = text` line per key, a backslash, a line feed and a
 //! tab escaped as `\\`, `\n` and `\t`), taken at the base of part 3 before the table moved to Fluent; a difference is
-//! a stop, never a re-bless. LO-3 the completeness gate; the pseudo-locale en-XA; the run-time switch.
+//! a stop, never a re-bless. LO-3 the completeness gate; the pseudo-locale en-XA; the run-time switch. Part 4 (D12,
+//! ID-1269): NL-1 the arguments of every Dutch message, NL-2 the terminology table.
 
 use crate::common::{Tmp, done};
 use ew_viewmodel::actions::{self, Menu, Submenu};
@@ -69,8 +70,7 @@ fn arguments_are_strings() {
     );
 }
 
-/// LO-3: the completeness gate lists every en-GB key a shipped locale lacks. en-GB is the only shipped file until
-/// part 4's nl-NL; the gate reports and passes for a locale that is not shipped yet.
+/// LO-3 and NL-1: the completeness gate lists every en-GB key a shipped locale (en-GB, nl-NL) lacks.
 #[test]
 fn every_shipped_locale_has_every_key() {
     let locales = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("locales");
@@ -114,27 +114,207 @@ fn the_pseudo_locale_accents_pads_and_brackets() {
     assert_eq!(strings::text(key!("menu-file")), "File");
 }
 
-/// ID-1219 ruling 5: a test language is offered with its own name, switched at run time, and falls back to en-GB
-/// per message; the pseudo-locale is never offered.
+/// ID-1219 ruling 5, ID-1269 ruling 5: the shipped Dutch and a test language are offered with their own names and
+/// switched at run time; a test language falls back to en-GB per message and never replaces a shipped one; the
+/// pseudo-locale is never offered.
 #[test]
 fn a_test_language_switches_and_falls_back() {
-    strings::register_locale_for_tests("nl", "language-name = Nederlands\nmenu-view = Beeld\n");
+    strings::register_locale_for_tests("fy", "language-name = Frysk\nmenu-view = Byld\n");
+    strings::register_locale_for_tests("nl", "language-name = Test\nmenu-view = Test\n");
     assert!(strings::set_locale(strings::PSEUDO));
     let languages = strings::languages();
-    assert!(languages.contains(&("en", "English")), "{languages:?}");
-    assert!(languages.contains(&("nl", "Nederlands")), "{languages:?}");
-    assert!(!languages.iter().any(|(tag, _)| *tag == strings::PSEUDO));
-    assert!(strings::set_locale("nl"));
-    assert_eq!(strings::text(key!("menu-view")), "Beeld");
+    assert_eq!(
+        languages,
+        [("en", "English"), ("nl", "Nederlands"), ("fy", "Frysk")]
+    );
+    assert!(strings::set_locale("fy"));
+    assert_eq!(strings::text(key!("menu-view")), "Byld");
     assert_eq!(strings::text(key!("menu-file")), "File");
+    assert_eq!(strings::rule_language(), "en-GB");
+    assert!(strings::set_locale("nl"));
+    assert_eq!(strings::locale(), "nl");
+    assert_eq!(strings::text(key!("menu-view")), "Beeld");
+    assert_eq!(strings::text(key!("menu-file")), "Bestand");
     assert_eq!(strings::rule_language(), "nl-NL");
     assert!(strings::set_locale("en"));
     assert_eq!(strings::text(key!("menu-view")), "View");
     assert_eq!(strings::rule_language(), "en-GB");
 }
 
-/// The two-key Dutch test file of ID-1219 ruling 5 (part 4 ships the real one).
-const NL_TEST: &str = "language-name = Nederlands\nmenu-view = Beeld\n";
+/// The `{ $pN }` arguments of each message of the Fluent file `ftl`, by key.
+fn arguments(ftl: &str) -> std::collections::BTreeMap<String, std::collections::BTreeSet<String>> {
+    ftl.lines()
+        .filter(|l| !l.starts_with('#'))
+        .filter_map(|l| l.split_once(" = "))
+        .map(|(key, text)| {
+            let args = text
+                .split("{ $")
+                .skip(1)
+                .filter_map(|rest| rest.split_once(" }").map(|(arg, _)| arg.to_owned()))
+                .collect();
+            (key.to_owned(), args)
+        })
+        .collect()
+}
+
+/// The shell file of the shipped locale `locale`.
+fn shipped_file(locale: &str) -> String {
+    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("locales")
+        .join(locale)
+        .join("shell.ftl");
+    std::fs::read_to_string(path).unwrap().replace("\r\n", "\n")
+}
+
+/// NL-1 (ID-1269 ruling 3): every key of every shipped locale takes the arguments of its en-GB message, no more and
+/// no fewer, and a locale has no key en-GB lacks.
+#[test]
+fn nl1_every_message_takes_the_arguments_of_en_gb() {
+    let en = arguments(&shipped_file("en-GB"));
+    let locales = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("locales");
+    let mut differ = Vec::new();
+    for entry in std::fs::read_dir(&locales).unwrap() {
+        let locale = entry.unwrap().file_name().to_string_lossy().into_owned();
+        for (key, args) in arguments(&shipped_file(&locale)) {
+            match en.get(&key) {
+                None => differ.push(format!("{locale}: {key} is not an en-GB key")),
+                Some(want) if *want != args => {
+                    differ.push(format!("{locale}: {key} takes {args:?}, en-GB {want:?}"))
+                }
+                Some(_) => {}
+            }
+        }
+    }
+    assert_eq!(differ, Vec::<String>::new());
+}
+
+/// A row of the terminology table: the en-GB term, the nl-NL term and the rejected alternatives.
+struct Term {
+    en: String,
+    nl: String,
+    not: Vec<String>,
+}
+
+/// The terminology table at the head of the nl-NL file: its `# term: <en-GB> = <nl-NL> (not: <alt>, <alt>)` lines.
+fn terms(ftl: &str) -> Vec<Term> {
+    ftl.lines()
+        .filter_map(|l| l.strip_prefix("# term: "))
+        .map(|row| {
+            let (en, rest) = row.split_once(" = ").expect("a row has en-GB = nl-NL");
+            let (nl, not) = match rest.split_once(" (not: ") {
+                Some((nl, not)) => (
+                    nl,
+                    not.strip_suffix(')')
+                        .expect("a closing parenthesis")
+                        .split(", ")
+                        .map(str::to_owned)
+                        .collect(),
+                ),
+                None => (rest, Vec::new()),
+            };
+            Term {
+                en: en.to_owned(),
+                nl: nl.to_owned(),
+                not,
+            }
+        })
+        .collect()
+}
+
+/// The stem of a one-word term: the word without its last consonant and one vowel of a doubled vowel before it,
+/// so that a Dutch plural or compound counts ("klemmenstrook" → "klemmenstro", which "klemmenstroken" starts with).
+fn stem(word: &str) -> String {
+    let mut s: Vec<char> = word.chars().collect();
+    if s.len() > 3 && s.last().is_some_and(|c| !"aeiou".contains(*c)) {
+        s.pop();
+        let n = s.len();
+        if n >= 2 && s[n - 1] == s[n - 2] && "aeiou".contains(s[n - 1]) {
+            s.pop();
+        }
+    }
+    s.into_iter().collect()
+}
+
+/// Whether `term` is used in `texts` (lower case), case-insensitive and by whole words: a one-word term as the
+/// start of a word, by its stem; a term of several words (or with a hyphen) as a phrase that starts a word.
+fn uses(texts: &str, term: &str) -> bool {
+    let term = term.to_lowercase();
+    let starts_word = |i: usize| i == 0 || !texts[..i].chars().next_back().is_some_and(char::is_alphanumeric);
+    if term.chars().all(char::is_alphanumeric) {
+        let stem = stem(&term);
+        texts
+            .split(|c: char| !c.is_alphanumeric())
+            .any(|word| word.starts_with(&stem))
+    } else {
+        texts.match_indices(&term).any(|(i, _)| starts_word(i))
+    }
+}
+
+/// The message texts of the Fluent file `ftl` in lower case, one per line.
+fn texts(ftl: &str) -> String {
+    ftl.lines()
+        .filter(|l| !l.starts_with('#'))
+        .filter_map(|l| l.split_once(" = ").map(|(_, text)| text.to_lowercase()))
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+/// NL-2 (ID-1269 rulings 1 and 2): the terminology table heads the nl-NL file with the ruling's rows; over the
+/// messages, each Dutch term is used where its en-GB term is, and no rejected alternative is (one that is the Dutch
+/// term of another row, "kabel" for a cable, is that row's).
+#[test]
+fn nl2_the_terminology_table_is_followed() {
+    let nl = shipped_file("nl-NL");
+    let table = terms(&nl);
+    let rows: Vec<String> = table.iter().map(|t| format!("{} = {}", t.en, t.nl)).collect();
+    for fixed in [
+        "device = apparaat",
+        "function = functie",
+        "terminal = klem",
+        "connection point = aansluitpunt",
+        "connection = verbinding",
+        "wire = draad",
+        "wire colour = aderkleur",
+        "wire marker = adermarkering",
+        "interruption point = onderbrekingspunt",
+        "terminal strip = klemmenstrook",
+        "potential = potentiaal",
+        "part = artikel",
+        "messages = meldingen",
+        "tag = kenmerk",
+        "structure node = structuurknooppunt",
+        "basic project = basisproject",
+        "title block = titelblok",
+        "page = pagina",
+        "cross-section = doorsnede",
+    ] {
+        assert!(rows.iter().any(|r| r == fixed), "the row {fixed}");
+    }
+    let header_ends = nl.find("\nmenu-file = ").unwrap();
+    assert!(nl[..header_ends].contains("# term: device = apparaat (not: toestel, component)\n"));
+    let dutch = texts(&nl);
+    let english = texts(&shipped_file("en-GB"));
+    let mut wrong = Vec::new();
+    for term in &table {
+        if uses(&english, &term.en) && !uses(&dutch, &term.nl) {
+            wrong.push(format!("{} is never {}", term.en, term.nl));
+        }
+        for alt in &term.not {
+            if table.iter().any(|t| t.nl == *alt) {
+                continue;
+            }
+            if uses(&dutch, alt) {
+                wrong.push(format!("{} is {alt} somewhere, not {}", term.en, term.nl));
+            }
+        }
+    }
+    assert_eq!(wrong, Vec::<String>::new());
+    // The checks themselves: a plural counts for its stem, a rejected word is found.
+    assert!(uses("twee klemmenstroken", "klemmenstrook"));
+    assert!(uses("de apparaten", "apparaat"));
+    assert!(!uses("een klemmenblok", "klemmenstrook"));
+    assert!(uses("het toestel", "toestel"));
+}
 
 /// The items of View ▸ Language: (label, parameters, checked).
 fn language_items(shell: &ShellModel) -> Vec<(String, Value, bool)> {
@@ -154,13 +334,12 @@ fn lo2_view_language_switches_the_menus_and_back() {
     let tmp = Tmp::new("lo2");
     let mut shell = tmp.shell("102");
     let english = ("English".to_owned(), json!({"value": "en"}), true);
-    assert!(language_items(&shell).contains(&english));
-    strings::register_locale_for_tests("nl", NL_TEST);
-    let items = language_items(&shell);
-    assert!(items.contains(&english), "{items:?}");
-    assert!(
-        items.contains(&("Nederlands".to_owned(), json!({"value": "nl"}), false)),
-        "{items:?}"
+    assert_eq!(
+        language_items(&shell),
+        [
+            english.clone(),
+            ("Nederlands".to_owned(), json!({"value": "nl"}), false)
+        ]
     );
     done(&mut shell, "view.language", json!({"value": "nl"}));
     assert_eq!(strings::locale(), "nl");
@@ -177,7 +356,7 @@ fn lo2_view_language_switches_the_menus_and_back() {
     assert_eq!(
         shell.dispatch("view.language", &json!({"value": "xx"})),
         Outcome::Failed {
-            message: "Parameter `value` is not valid.".to_owned()
+            message: "Parameter `value` is niet geldig.".to_owned()
         }
     );
     done(&mut shell, "view.language", json!({"value": "en"}));
@@ -223,7 +402,6 @@ fn lo4_the_messages_detail_follows_the_ui_language() {
         .expect("a finding of a rule without a Dutch message")
         .clone();
     assert_eq!(detail(&mut shell, &pot.key), pot.cells[2]);
-    strings::register_locale_for_tests("nl", NL_TEST);
     done(&mut shell, "view.language", json!({"value": "nl"}));
     assert_eq!(
         detail(&mut shell, &pot.key),

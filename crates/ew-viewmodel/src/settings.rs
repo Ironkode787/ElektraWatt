@@ -28,8 +28,8 @@ pub const UI_SCALES: [f32; 4] = [1.0, 1.25, 1.5, 2.0];
 /// The file name inside the settings directory.
 pub const FILE_NAME: &str = "settings.toml";
 
-/// The UI languages of this version (WP-S2.08 adds the others).
-pub const LANGUAGES: [&str; 1] = ["en"];
+/// The UI languages of this version: English (en-GB) and Dutch (nl-NL, WP-S2.08 D10).
+pub const LANGUAGES: [&str; 2] = ["en", "nl"];
 
 /// The keymap presets the settings can name (WP-S2.08 part 2, D6): EW and KiCad-like (`keymap::Preset`); the user's
 /// `keymap.toml` beside `settings.toml` replaces bindings of either.

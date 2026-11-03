@@ -887,6 +887,7 @@ start-quick-language = Language
 start-quick-keymap = Keymap
 start-privacy-change = change
 language-en = English
+language-nl = Nederlands
 keymap-ew = EW
 keymap-kicad = KiCad-like
 theme-system = Follow the system

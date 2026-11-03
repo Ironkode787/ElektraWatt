@@ -229,19 +229,15 @@ fn lo5_export_pdf_in_the_pseudo_locale() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// LO-2: with the Dutch test file (the language's name and two texts), View ▸ Language ▸ Nederlands renames the View
-/// menu and the command bar's View tab ("Beeld") and the open preview card's Apply ("Toepassen") without a restart,
-/// keeps every other text in English, and View ▸ Language ▸ English brings them back.
+/// LO-2: with the shipped nl-NL (ID-1269 ruling 5), View ▸ Language ▸ Nederlands renames the View menu and the
+/// command bar's tabs ("Beeld", "Pagina") and the open preview card's Apply ("Toepassen") without a restart, and
+/// View ▸ Taal ▸ English brings them back.
 #[test]
 fn lo2_view_language_nederlands_and_back_in_the_window() {
     let tmp = Tmp::new();
     let dir = tmp.golden("g.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
-    strings::register_locale_for_tests(
-        "nl",
-        "language-name = Nederlands\nmenu-view = Beeld\ncard-apply = Toepassen\n",
-    );
     // An open card: the renumber preview of `preview_history.rs`.
     dispatch(
         &mut h,
@@ -263,8 +259,9 @@ fn lo2_view_language_nederlands_and_back_in_the_window() {
     assert!(h.query_by_label("Toepassen").is_some(), "the open card in Dutch");
     assert!(h.query_by_label("Apply").is_none());
     assert!(bar_tab(&h, "Beeld"), "the command bar's View tab");
-    assert!(bar_tab(&h, "Page"), "a text the file lacks stays English");
-    support::open_menu(&mut h, &["Beeld", "Language"]);
+    assert!(bar_tab(&h, "Pagina"), "the command bar's Page tab");
+    assert!(!bar_tab(&h, "Page"));
+    support::open_menu(&mut h, &["Beeld", "Taal"]);
     support::menu_node(&h, "English").click();
     settle(&mut h);
     assert_eq!(h.state().shell().settings().language, "en");

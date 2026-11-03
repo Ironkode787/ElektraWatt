@@ -149,6 +149,9 @@ macro_rules! count_key {
 /// The en-GB Fluent source of the shell's texts: the source language, and the fallback of every other message.
 const EN_GB: &str = include_str!("../locales/en-GB/shell.ftl");
 
+/// The nl-NL Fluent source of the shell's texts (D12): the settings value `nl`.
+const NL_NL: &str = include_str!("../locales/nl-NL/shell.ftl");
+
 /// The tag of the pseudo-locale of the tests (D11).
 pub const PSEUDO: &str = "en-XA";
 
@@ -274,6 +277,12 @@ fn en_gb() -> &'static Locale {
     EN.get_or_init(|| Locale::from_source("en-GB", EN_GB))
 }
 
+/// nl-NL, loaded once on its first use; its tag is the settings value `nl`.
+fn nl_nl() -> &'static Locale {
+    static NL: OnceLock<Locale> = OnceLock::new();
+    NL.get_or_init(|| Locale::from_source("nl", NL_NL))
+}
+
 /// The languages loaded besides en-GB: the pseudo-locale once selected, and the test languages of `testkit`.
 static LOADED: RwLock<Vec<&'static Locale>> = RwLock::new(Vec::new());
 
@@ -298,11 +307,12 @@ fn loaded(tag: &str) -> Option<&'static Locale> {
         .find(|l| l.tag == tag)
 }
 
-/// Makes `tag` the UI language of the process: `en` (en-GB), `en-XA` (the pseudo-locale, generated on its first
-/// selection) or a language a test registered. Returns whether `tag` is one; another tag changes nothing.
+/// Makes `tag` the UI language of the process: `en` (en-GB), `nl` (nl-NL), `en-XA` (the pseudo-locale, generated on
+/// its first selection) or a language a test registered. Returns whether `tag` is one; another tag changes nothing.
 pub fn set_locale(tag: &str) -> bool {
     let locale = match tag {
         "en" | "en-GB" => None,
+        "nl" | "nl-NL" => Some(nl_nl()),
         PSEUDO => Some(loaded(PSEUDO).unwrap_or_else(|| {
             let pseudo: &'static Locale = Box::leak(Box::new(Locale::pseudo(en_gb())));
             LOADED
@@ -320,7 +330,7 @@ pub fn set_locale(tag: &str) -> bool {
     true
 }
 
-/// The tag of the UI language now: `en`, `en-XA` or a test language's tag.
+/// The tag of the UI language now: `en`, `nl`, `en-XA` or a test language's tag.
 pub fn locale() -> &'static str {
     match *CURRENT.read().unwrap_or_else(PoisonError::into_inner) {
         Some(l) => &l.tag,
@@ -329,19 +339,21 @@ pub fn locale() -> &'static str {
 }
 
 /// The languages View ▸ Language offers, as (settings value, the language's own name): the shipped ones
-/// ([`crate::settings::LANGUAGES`]), then the test languages of `testkit`. The pseudo-locale is never offered.
+/// ([`crate::settings::LANGUAGES`]), then the test languages of `testkit` under another tag. The pseudo-locale is never
+/// offered.
 pub fn languages() -> Vec<(&'static str, &'static str)> {
     let name = |l: &'static Locale| l.texts.get("language-name").copied().unwrap_or("?");
-    let mut out: Vec<(&'static str, &'static str)> = crate::settings::LANGUAGES
+    let shipped = crate::settings::LANGUAGES;
+    let mut out: Vec<(&'static str, &'static str)> = shipped
         .iter()
-        .map(|tag| (*tag, name(en_gb())))
+        .map(|tag| (*tag, name(if *tag == "nl" { nl_nl() } else { en_gb() })))
         .collect();
     out.extend(
         LOADED
             .read()
             .unwrap_or_else(PoisonError::into_inner)
             .iter()
-            .filter(|l| l.tag != PSEUDO)
+            .filter(|l| l.tag != PSEUDO && !shipped.contains(&l.tag.as_str()))
             .map(|l| (l.tag.as_str(), name(l))),
     );
     out
@@ -1075,6 +1087,21 @@ mod tests {
             .filter(|k| !en_gb().texts.contains_key(k))
             .collect();
         assert_eq!(missing, Vec::<&str>::new());
+    }
+
+    /// D12: the nl-NL file parses, has a message for every key and a Dutch name.
+    #[test]
+    fn the_dutch_file_parses_with_every_key() {
+        if let Err((_, errors)) = FluentResource::try_new(NL_NL.to_owned()) {
+            panic!("{errors:?}");
+        }
+        let missing: Vec<&str> = KEYS
+            .iter()
+            .copied()
+            .filter(|k| !nl_nl().texts.contains_key(k))
+            .collect();
+        assert_eq!(missing, Vec::<&str>::new());
+        assert_eq!(nl_nl().texts["language-name"], "Nederlands");
     }
 
     /// RD43 §5: a key built at run time looks up the same text as the literal key, and a miss shows `?`.
