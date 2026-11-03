@@ -1145,7 +1145,13 @@ mod tests {
         for case in ["layouts", "environment"] {
             let mut child = std::process::Command::new(std::env::current_exe().unwrap());
             child
-                .args(["--exact", "tests::locate_resources_child", "--nocapture", "--", case])
+                .args([
+                    "--exact",
+                    "tests::locate_resources_child",
+                    "--nocapture",
+                    "--",
+                    case,
+                ])
                 .arg(&fixture.0);
             for (var, rel) in vars {
                 if case == "environment" {
