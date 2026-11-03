@@ -173,8 +173,8 @@ pub fn hit_label(hit: &FindHit) -> String {
     strings::text(Key::run_time(&hit.label_key)).to_owned()
 }
 
-/// `before` with each matched range marked as `[[…]]` (the window marks them bold and underlined; the describe text
-/// and the accessible names use the brackets, never colour alone).
+/// `before` with each matched range marked as `[[…]]` (the window marks them bold and underlined; a result's accessible
+/// description uses the brackets, never colour alone, while its accessible name is the plain text, FT-433).
 pub fn marked(hit: &FindHit) -> String {
     let mut out = String::new();
     let mut at = 0;

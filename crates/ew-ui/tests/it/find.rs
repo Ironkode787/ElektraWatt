@@ -101,10 +101,18 @@ fn fr3_find_and_replace_from_the_keyboard() {
         .filter_map(|n| n.accesskit_node().label())
         .filter(|l| l.contains("Function text"))
         .collect();
-    assert_eq!(options.len(), 20, "{options:?}");
+    // FT-433: the list box holds the 20; only the rows on show are built.
     assert!(
-        options.iter().all(|o| o.contains("[[Spare]] -> Reserve")),
-        "the matches are marked in the names: {options:?}"
+        h.get_all_by_role(egui::Role::ListBox)
+            .any(|n| n.accesskit_node().label().as_deref() == Some("20 results")),
+        "the list box of the 20 results"
+    );
+    assert!((1..=20).contains(&options.len()), "{options:?}");
+    assert!(
+        options
+            .iter()
+            .all(|o| o.contains("Spare -> Reserve") && !o.contains("[[")),
+        "the names are plain text (FT-433): {options:?}"
     );
     // Down moves the cursor (no call).
     h.key_press(Key::ArrowDown);
@@ -256,4 +264,106 @@ fn fr3_tab_after_a_click_into_the_field_stays_in_the_pane() {
     let f = h.state().shell().find_state();
     assert_eq!(f.text(), "Spare");
     assert_eq!(f.replacement(), "Reserve");
+}
+
+/// The result options of the list (the built rows).
+fn options<'t>(h: &'t Harness<'_, App>) -> Vec<egui_kittest::Node<'t>> {
+    h.get_all_by_role(egui::Role::ListBoxOption).collect()
+}
+
+/// AX-7 (FT-433): a result's accessible name is its line in plain text and its description the same line with the
+/// matches marked; a long list builds only the rows on show, and the cursor's row is built wherever it moves.
+#[test]
+fn ax7_results_are_named_in_plain_text_and_only_the_rows_on_show_are_built() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "204");
+    h.key_press_modifiers(Modifiers::COMMAND, Key::F);
+    settle(&mut h);
+    dispatch(&mut h, "find.fields", json!({"fields": ["function_text"]}));
+    dispatch(&mut h, "find.folios", json!({"folios": ["204", "205", "206"]}));
+    dispatch(&mut h, "find.text", json!({"text": "Spare"}));
+    dispatch(&mut h, "find.run", json!({}));
+    settle(&mut h);
+    let hit = h.state().shell().find_state().results().unwrap().hits[0].clone();
+    let marked = ew_ui::ew_viewmodel::find::marked(&hit);
+    assert!(!hit.before.contains("[[") && marked.contains("[["), "{marked}");
+    let lead = format!(
+        "{} · {} · Function text · ",
+        hit.cell.as_deref().or(hit.folio.as_deref()).unwrap(),
+        hit.subject
+    );
+    let first = &options(&h)[0];
+    assert_eq!(
+        first.accesskit_node().label().as_deref(),
+        Some(format!("{lead}{}", hit.before).as_str())
+    );
+    assert_eq!(
+        first.accesskit_node().description().as_deref(),
+        Some(format!("{lead}{marked}").as_str())
+    );
+    // Every field, every folio: more results than rows on show.
+    dispatch(
+        &mut h,
+        "find.fields",
+        json!({"fields": ["function_text", "tag", "property", "text", "part_number"]}),
+    );
+    dispatch(&mut h, "find.folios", json!({"folios": []}));
+    dispatch(&mut h, "find.text", json!({"text": "-"}));
+    dispatch(&mut h, "find.run", json!({}));
+    settle(&mut h);
+    let n = results(&h);
+    let built = options(&h).len();
+    assert!(built > 0 && built < n, "{built} rows built of {n}");
+    // The cursor on the last result: the list scrolls to it and builds its row, the last one.
+    dispatch(&mut h, "find.row", json!({ "to": n }));
+    settle(&mut h);
+    let last = h.state().shell().find_state().results().unwrap().hits[n - 1].clone();
+    let built: Vec<String> = options(&h)
+        .iter()
+        .filter_map(|o| o.accesskit_node().label())
+        .collect();
+    assert_eq!(
+        built.last(),
+        Some(&ew_ui::find::result_line(&last, false)),
+        "{built:#?}"
+    );
+    assert!(built.len() < n);
+}
+
+/// W49.1-J: the folio filter takes the rest of its row, so its placeholder shows whole in Dutch at the 1280 × 800 floor
+/// and at 1920 × 1080, where the field grows with the window; every node fits at both sizes.
+#[test]
+fn the_folio_filter_takes_the_width_it_has_at_both_sizes() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "204");
+    dispatch(&mut h, "view.language", json!({ "value": "nl" }));
+    h.key_press_modifiers(Modifiers::COMMAND, Key::H);
+    settle(&mut h);
+    let name = ew_ui::ew_viewmodel::strings::text(ew_ui::ew_viewmodel::key!("find-folios")).to_owned();
+    let mut widths = Vec::new();
+    for size in [egui::Vec2::new(1280.0, 800.0), egui::Vec2::new(1920.0, 1080.0)] {
+        h.set_size(size);
+        settle(&mut h);
+        settle(&mut h);
+        support::assert_fits(&h);
+        let field = h
+            .get_all_by_role(egui::Role::TextInput)
+            .find(|n| n.accesskit_node().label().as_deref() == Some(name.as_str()))
+            .expect("the folio field")
+            .rect();
+        let font = egui::TextStyle::Body.resolve(&h.ctx.style_of(h.ctx.theme()));
+        let hint = h
+            .ctx
+            .fonts_mut(|f| f.layout_no_wrap(name.clone(), font, egui::Color32::BLACK).size().x);
+        assert!(
+            field.width() > hint,
+            "{size:?}: a field of {} for a placeholder of {hint}",
+            field.width()
+        );
+        widths.push(field.width());
+    }
+    assert!(
+        widths[1] > widths[0] + 300.0,
+        "the field grows with the window: {widths:?}"
+    );
 }

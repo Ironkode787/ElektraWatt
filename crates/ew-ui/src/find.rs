@@ -11,9 +11,10 @@
 //! Ctrl+Enter replaces or applies, Escape goes back to the canvas (closing the card first).
 //!
 //! **Accessibility.** The pane is a `Group` named "Find and replace"; the fields are text inputs and the toggles check
-//! boxes labelled by their names; the results are a list box whose options are named by the result's line, the
-//! matches in `[[…]]` (never colour alone: the window also draws them bold and underlined); the card and the pane's
-//! note are polite live regions.
+//! boxes labelled by their names; the results are a list box whose options are named by the result's line in plain
+//! text, so that a screen reader reads it plainly, and described by the same line with the matches in `[[…]]` (never
+//! colour alone: the window also draws them bold and underlined; FT-433); only the rows on show are built. The card and
+//! the pane's note are polite live regions.
 
 use egui::text::{LayoutJob, TextFormat};
 use egui::{Key, Modifiers, Sense, TextEdit, Ui};
@@ -36,15 +37,16 @@ pub struct FindPane {
     was_ours: bool,
 }
 
-/// The text of a result line: folio and cell, subject, field, the string with its matches marked, the replacement or
-/// why it is not replaced.
-pub fn result_line(hit: &FindHit) -> String {
+/// The text of a result line: folio and cell, subject, field, the string (with its matches marked as `[[…]]` when
+/// `marks`), the replacement or why it is not replaced.
+pub fn result_line(hit: &FindHit, marks: bool) -> String {
     let mut line = String::new();
     if let Some(cell) = hit.cell.as_deref().or(hit.folio.as_deref()) {
         line.push_str(cell);
         line.push_str(" · ");
     }
-    line.push_str(&format!("{} · {} · {}", hit.subject, hit_label(hit), marked(hit)));
+    let text = if marks { marked(hit) } else { hit.before.clone() };
+    line.push_str(&format!("{} · {} · {text}", hit.subject, hit_label(hit)));
     match (&hit.after, &hit.replaceable) {
         (Some(after), _) => line.push_str(&format!(" -> {after}")),
         (None, Err(why)) => line.push_str(&format!(
@@ -174,9 +176,21 @@ impl FindPane {
                 }
                 ui.separator();
                 let name = strings::text(key!("find-folios")).to_owned();
+                // W49.1-J: the field takes the rest of its row; where the rest cannot show the whole placeholder
+                // (with a button's padding each side), it wraps to a row of its own and takes all of that.
+                let font = egui::TextStyle::Body.resolve(ui.style());
+                let hint =
+                    ui.fonts_mut(|fonts| fonts.layout_no_wrap(name.clone(), font, crate::theme::NONE).size().x);
+                let least = hint.ceil() + 2.0 * ui.spacing().button_padding.x;
+                let rest = ui.available_width();
+                let width = if rest >= least {
+                    rest
+                } else {
+                    ui.max_rect().width().max(least)
+                };
                 let response = ui.add(
                     TextEdit::singleline(&mut self.folios)
-                        .desired_width(140.0)
+                        .desired_width(width)
                         .hint_text(&name),
                 );
                 response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, true, &name));
@@ -371,21 +385,38 @@ impl FindPane {
         let list_name = strings::format(key!("find-results"), &[&r.hits.len().to_string()]);
         list.widget_info(|| egui::WidgetInfo::labeled(egui::Role::ListBox, true, &list_name));
         let row = f.row();
+        // FT-433: one line of body text in a button's padding per result; only the rows on show are built.
+        let height = (ui.text_style_height(&egui::TextStyle::Body) + 2.0 * ui.spacing().button_padding.y)
+            .max(ui.spacing().interact_size.y);
+        let pitch = height + ui.spacing().item_spacing.y;
         ui.scope_builder(egui::UiBuilder::new().accessibility_parent(list_id), |ui| {
             egui::ScrollArea::vertical()
                 .id_salt("find-results-scroll")
                 .auto_shrink([false, false])
-                .show(ui, |ui| {
-                    for (i, hit) in r.hits.iter().enumerate() {
+                .show_rows(ui, height, r.hits.len(), |ui, range| {
+                    // The cursor's row stays on show, built or not (the closure starts at row `range.start`).
+                    if let Some(i) = row {
+                        let top = ui.max_rect().top() + (i as f32 - range.start as f32) * pitch;
+                        let target = egui::Rect::from_min_size(
+                            egui::pos2(ui.max_rect().left(), top),
+                            egui::vec2(1.0, height),
+                        );
+                        ui.scroll_to_rect(target, None);
+                        // Off the built rows: the next frame builds it where the scroll has brought it.
+                        if !range.contains(&i) {
+                            ui.ctx().request_repaint();
+                        }
+                    }
+                    for (i, hit) in r.hits.iter().enumerate().take(range.end).skip(range.start) {
                         let selected = row == Some(i);
                         let response = ui.add(egui::Button::selectable(selected, Self::job(ui, hit)));
-                        let name = result_line(hit);
+                        let name = result_line(hit, false);
                         response.widget_info(|| {
                             egui::WidgetInfo::selected(egui::Role::ListBoxOption, true, selected, &name)
                         });
-                        if selected {
-                            response.scroll_to_me(None);
-                        }
+                        let marked = result_line(hit, true);
+                        ui.ctx()
+                            .accesskit_node_builder(response.id, |n| n.set_description(marked));
                         if response.double_clicked() {
                             events.push(Event::Action("ui.focus", json!({"area": "find"})));
                             events.push(Event::Action("find.row", json!({ "to": i + 1 })));
