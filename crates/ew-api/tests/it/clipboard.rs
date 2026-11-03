@@ -1287,3 +1287,116 @@ fn copy_fragment_reports_incomplete_page_items() {
         assert_eq!(s.copy_fragment(&[selected]).unwrap().incomplete_page_items, 0);
     }
 }
+
+// ---------------------------------------------------------------------------------------------------------------------
+// FT-403: an older fragment through the migration chain (WP-S1.17 D12, decision log ID-1221 ruling 9)
+
+/// `value` with its top-level member `from` named `to`.
+fn renamed(mut value: Value, from: &str, to: &str) -> Value {
+    if let Some(members) = value.as_object_mut() {
+        if let Some(v) = members.remove(from) {
+            members.insert(to.to_owned(), v);
+        }
+    }
+    value
+}
+
+fn device_v0(value: Value) -> Result<Value, ew_store::ew_format::MigrationError> {
+    Ok(renamed(value, "device_tag", "tag"))
+}
+
+fn fndef_v0(value: Value) -> Result<Value, ew_store::ew_format::MigrationError> {
+    Ok(renamed(value, "revision", "version"))
+}
+
+fn unchanged(value: Value) -> Result<Value, ew_store::ew_format::MigrationError> {
+    Ok(value)
+}
+
+/// The test chain of the fragment: the device's and the FnDef's kind steps from `$v` 0, the format step from "0.0".
+static FRAGMENT_CHAIN: ew_store::ew_format::Migrations = ew_store::ew_format::Migrations {
+    kinds: &[
+        ew_store::ew_format::KindStep {
+            kind: Kind::Device,
+            from: 0,
+            step: device_v0,
+        },
+        ew_store::ew_format::KindStep {
+            kind: Kind::Fndef,
+            from: 0,
+            step: fndef_v0,
+        },
+    ],
+    formats: &[ew_store::ew_format::FormatStep {
+        from: "0.0",
+        to: "0.1",
+        manifest: unchanged,
+        record: unchanged,
+    }],
+};
+
+/// The fragment's device record and its FnDef copy at `$v` 0 under their members' old names.
+fn at_v0(text: &str) -> String {
+    let lines: Vec<String> = text
+        .lines()
+        .enumerate()
+        .map(|(i, line)| {
+            if i < 2 {
+                return line.to_owned();
+            }
+            let mut value: Value = serde_json::from_str(line).unwrap();
+            if value["$k"] == "device" {
+                value = renamed(value, "tag", "device_tag");
+                value["$v"] = json!(0);
+            } else if value["$lib"]["$k"] == "fndef" {
+                let mut doc = renamed(value["$lib"].take(), "version", "revision");
+                doc["$v"] = json!(0);
+                value["$lib"] = doc;
+            }
+            value.to_string()
+        })
+        .collect();
+    lines.join("\n") + "\n"
+}
+
+/// MG-6's fragment half (FT-403): a fragment of the test format "0.0", its device and FnDef copy at `$v` 0, reads
+/// through the test chain to the current fragment's parameters and pastes; the shipped chain, which reaches no older
+/// format, refuses it with the text it always had, as it refuses an older record of the current format.
+#[test]
+fn mg6_ft403_an_older_fragment_pastes_through_the_test_chain() {
+    use ew_api::output::parse_fragment_with;
+    let older_text =
+        "copied from an older ElektraWatt format; open and save that project with this version first";
+    let text = valid_text();
+    let current = parse_fragment(&text).unwrap();
+    let older = at_v0(&header_with(&text, |h| h["format"] = json!("0.0")));
+    assert_eq!(
+        parse_fragment(&older),
+        Err(FragmentError::Invalid {
+            line: 2,
+            message: older_text.into()
+        })
+    );
+    let migrated = parse_fragment_with(&older, &FRAGMENT_CHAIN).unwrap();
+    assert_eq!(migrated.params, current.params);
+    assert_eq!(migrated.params["format"], json!("0.1"));
+    assert_eq!(migrated.records, current.records);
+    // An older `$v` in a fragment of this format.
+    let older_v = at_v0(&text);
+    assert_eq!(
+        parse_fragment(&older_v),
+        Err(FragmentError::Invalid {
+            line: 3,
+            message: older_text.into()
+        })
+    );
+    assert_eq!(
+        parse_fragment_with(&older_v, &FRAGMENT_CHAIN).unwrap().params,
+        current.params
+    );
+    // It pastes.
+    let mut s = golden();
+    let frag = migrated.params;
+    let receipt = paste(&mut s, "102", at_steps(&frag, (0, 6)), &frag).unwrap();
+    assert_eq!(created(&receipt, Kind::Device).len(), 1);
+}
