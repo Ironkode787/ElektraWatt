@@ -114,7 +114,7 @@ fn line_job(line: &str, font: egui::FontId, colour: egui::Color32, rows: usize) 
 
 /// Whether `text`, laid out as [`line_job`] in `width`, is cut.
 fn is_cut(ui: &Ui, text: &str, font: egui::FontId, rows: usize, width: f32) -> bool {
-    let mut job = line_job(text, font, egui::Color32::WHITE, rows);
+    let mut job = line_job(text, font, theme::NONE, rows);
     job.wrap.max_width = width;
     ui.ctx().fonts_mut(|f| f.layout_job(job)).elided
 }
