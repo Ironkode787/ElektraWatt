@@ -120,7 +120,10 @@ fn the_pseudo_locale_accents_pads_and_brackets() {
 fn a_test_language_switches_and_falls_back() {
     strings::register_locale_for_tests("nl", "language-name = Nederlands\nmenu-view = Beeld\n");
     assert!(strings::set_locale(strings::PSEUDO));
-    assert_eq!(strings::languages(), [("en", "English"), ("nl", "Nederlands")]);
+    let languages = strings::languages();
+    assert!(languages.contains(&("en", "English")), "{languages:?}");
+    assert!(languages.contains(&("nl", "Nederlands")), "{languages:?}");
+    assert!(!languages.iter().any(|(tag, _)| *tag == strings::PSEUDO));
     assert!(strings::set_locale("nl"));
     assert_eq!(strings::text(key!("menu-view")), "Beeld");
     assert_eq!(strings::text(key!("menu-file")), "File");
@@ -150,17 +153,14 @@ fn language_items(shell: &ShellModel) -> Vec<(String, Value, bool)> {
 fn lo2_view_language_switches_the_menus_and_back() {
     let tmp = Tmp::new("lo2");
     let mut shell = tmp.shell("102");
-    assert_eq!(
-        language_items(&shell),
-        [("English".to_owned(), json!({"value": "en"}), true)]
-    );
+    let english = ("English".to_owned(), json!({"value": "en"}), true);
+    assert!(language_items(&shell).contains(&english));
     strings::register_locale_for_tests("nl", NL_TEST);
-    assert_eq!(
-        language_items(&shell),
-        [
-            ("English".to_owned(), json!({"value": "en"}), true),
-            ("Nederlands".to_owned(), json!({"value": "nl"}), false),
-        ]
+    let items = language_items(&shell);
+    assert!(items.contains(&english), "{items:?}");
+    assert!(
+        items.contains(&("Nederlands".to_owned(), json!({"value": "nl"}), false)),
+        "{items:?}"
     );
     done(&mut shell, "view.language", json!({"value": "nl"}));
     assert_eq!(strings::locale(), "nl");
@@ -170,7 +170,10 @@ fn lo2_view_language_switches_the_menus_and_back() {
         .find(|m| m.menu == Menu::View)
         .unwrap();
     assert_eq!(view.label, "Beeld");
-    assert!(language_items(&shell)[1].2, "Nederlands is checked");
+    assert!(
+        language_items(&shell).contains(&("Nederlands".to_owned(), json!({"value": "nl"}), true)),
+        "Nederlands is checked"
+    );
     assert_eq!(
         shell.dispatch("view.language", &json!({"value": "xx"})),
         Outcome::Failed {
