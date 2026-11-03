@@ -102,7 +102,7 @@ use sha2::{Digest, Sha256};
 // WP-S2.05 part 3
 pub use clipboard::{
     CopiedFragment, CopyError, FRAGMENT_HEADER, FRAGMENT_MAX_BYTES, FRAGMENT_MAX_DEPTH, FRAGMENT_MAX_LINE,
-    FragmentError, ParsedFragment, parse_fragment,
+    FragmentError, ParsedFragment, parse_fragment, parse_fragment_with,
 };
 pub use editing::{
     CataloguePart, CatalogueStrip, CatalogueSymbol, CatalogueTemplateFn, ExchangeMap, JunctionWire,

@@ -44,6 +44,7 @@ use ew_schema::{
     PageItem, PageItemKind, PotentialDef, Record, Representation, Slot, StructureAssignment, StructureBox,
     StructureNode,
 };
+use ew_store::ew_format::{MIGRATIONS, Migration, Migrations};
 use serde_json::{Value, json};
 
 use crate::Session;
@@ -190,13 +191,25 @@ fn pair(v: &Value) -> Option<(i64, i64)> {
     }
 }
 
+/// The refusal of a fragment of an older format, or a record of an older schema version, that the migration chain does
+/// not reach.
+const OLDER_FORMAT: &str =
+    "copied from an older ElektraWatt format; open and save that project with this version first";
+
 /// Reads clipboard text as a fragment (§8.3). The text is untrusted: at most 4 MiB, 10,000 record lines, 1 MiB per
 /// line and a nesting of 64; every line strict JSON (repeated member names refused). Within v1 a header member this
-/// version does not know is ignored; another `format` or a record of another schema version is refused (newer as
-/// [`FragmentError::Newer`], older as [`FragmentError::Invalid`]). A record must be of a pasted kind and read as a
-/// record; a library copy as a library document; IDs are distinct. Line ends may be CRLF (a clipboard may convert
+/// version does not know is ignored; a newer `format` or a record of a newer schema version is refused
+/// ([`FragmentError::Newer`]); an older `format`'s records and library copies, and a record of an older schema version,
+/// migrate through the shipped chain ([`MIGRATIONS`], FT-403, WP-S1.17 D12), and what it does not reach is refused as
+/// [`FragmentError::Invalid`]; the parameters carry this version's format. A record must be of a pasted kind and read
+/// as a record; a library copy as a library document; IDs are distinct. Line ends may be CRLF (a clipboard may convert
 /// them); empty lines are skipped. A leading byte-order mark is skipped. No semantic check: that is `edit.paste`'s.
 pub fn parse_fragment(text: &str) -> Result<ParsedFragment, FragmentError> {
+    parse_fragment_with(text, &MIGRATIONS)
+}
+
+/// [`parse_fragment`] through the migration chain `chain` (a test's).
+pub fn parse_fragment_with(text: &str, chain: &Migrations) -> Result<ParsedFragment, FragmentError> {
     let text = text.strip_prefix('\u{feff}').unwrap_or(text);
     let mut lines = text.split('\n').map(|l| l.strip_suffix('\r').unwrap_or(l));
     let first = lines.next().unwrap_or_default();
@@ -221,6 +234,7 @@ pub fn parse_fragment(text: &str) -> Result<ParsedFragment, FragmentError> {
         message: message.to_owned(),
     };
     let mut header: Option<Value> = None;
+    let mut migration: Option<Migration<'_>> = None;
     let mut records: Vec<Value> = Vec::new();
     let mut copies: Vec<Value> = Vec::new();
     let mut nodes: Vec<Value> = Vec::new();
@@ -249,13 +263,22 @@ pub fn parse_fragment(text: &str) -> Result<ParsedFragment, FragmentError> {
             let Some(h) = obj.get("$fragment").filter(|_| obj.len() == 1) else {
                 return Err(invalid(line_no, "line 2 is the `$fragment` header"));
             };
-            header = Some(read_header(h, line_no)?);
+            let (h, way) = read_header(h, line_no, chain)?;
+            header = Some(h);
+            migration = Some(way);
             continue;
         }
+        // A record or library copy of an older format, or of an older `$v`, through the chain (FT-403).
+        let migrate = |value: &Value| {
+            migration
+                .as_ref()
+                .map_or_else(|| Ok(value.clone()), |way| way.record(value.clone()))
+                .map_err(|_| invalid(line_no, OLDER_FORMAT))
+        };
         if obj.len() == 1 && obj.contains_key("$lib") {
-            let doc = &obj["$lib"];
+            let doc = migrate(&obj["$lib"])?;
             LibDocument::from_value(doc.clone()).map_err(|e| invalid(line_no, &e.to_string()))?;
-            copies.push(doc.clone());
+            copies.push(doc);
         } else if obj.len() == 1 && obj.contains_key("$node") {
             nodes.push(read_node(&obj["$node"], line_no)?);
         } else if let Some(k) = obj.get("$k").and_then(Value::as_str) {
@@ -270,20 +293,12 @@ pub fn parse_fragment(text: &str) -> Result<ParsedFragment, FragmentError> {
             };
             let v = obj.get("$v").and_then(Value::as_u64).unwrap_or(1);
             let ours = u64::from(kind.schema_version());
-            match v.cmp(&ours) {
-                Ordering::Greater => {
-                    return Err(FragmentError::Newer {
-                        version: format!("{k} $v {v}"),
-                    });
-                }
-                Ordering::Less => {
-                    return Err(invalid(
-                        line_no,
-                        "copied from an older ElektraWatt format; open and save that project with this version first",
-                    ));
-                }
-                Ordering::Equal => {}
+            if v > ours {
+                return Err(FragmentError::Newer {
+                    version: format!("{k} $v {v}"),
+                });
             }
+            let value = migrate(&value)?;
             let record = Record::from_value(value.clone()).map_err(|e| invalid(line_no, &e.to_string()))?;
             if let Some(id) = record.id()
                 && !ids.insert(id)
@@ -317,7 +332,7 @@ pub fn parse_fragment(text: &str) -> Result<ParsedFragment, FragmentError> {
         .collect();
     let count = records.len();
     let params = json!({
-        "format": header["format"],
+        "format": ew_schema::FORMAT,
         "project": header["project"],
         "grid": header["grid"],
         "page_kind": header["page_kind"],
@@ -334,8 +349,13 @@ pub fn parse_fragment(text: &str) -> Result<ParsedFragment, FragmentError> {
     })
 }
 
-/// The `$fragment` header: its known members checked, the others ignored (§8.3).
-fn read_header(h: &Value, line: usize) -> Result<Value, FragmentError> {
+/// The `$fragment` header: its known members checked, the others ignored (§8.3); with the way of its records through
+/// `chain` (none for this version's format).
+fn read_header<'c>(
+    h: &Value,
+    line: usize,
+    chain: &'c Migrations,
+) -> Result<(Value, Migration<'c>), FragmentError> {
     let invalid = |message: String| FragmentError::Invalid { line, message };
     let Some(obj) = h.as_object() else {
         return Err(invalid("the `$fragment` header is an object".into()));
@@ -349,20 +369,19 @@ fn read_header(h: &Value, line: usize) -> Result<Value, FragmentError> {
         .ok_or_else(|| invalid("`format` is a text".into()))?;
     let theirs = format_version(format).ok_or_else(|| invalid(format!("`format` {format} is no version")))?;
     let ours = format_version(ew_schema::FORMAT).expect("the format version reads");
-    match theirs.cmp(&ours) {
+    let from = match theirs.cmp(&ours) {
         Ordering::Greater => {
             return Err(FragmentError::Newer {
                 version: format.to_owned(),
             });
         }
-        Ordering::Less => {
-            return Err(invalid(
-                "copied from an older ElektraWatt format; open and save that project with this version first"
-                    .into(),
-            ));
-        }
-        Ordering::Equal => {}
-    }
+        Ordering::Less => format,
+        Ordering::Equal => ew_schema::FORMAT,
+    };
+    // An older format migrates through the chain (FT-403); what it does not reach is refused as before.
+    let migration = chain
+        .towards(from, ew_schema::FORMAT)
+        .map_err(|_| invalid(OLDER_FORMAT.into()))?;
     if member("project")?
         .as_str()
         .and_then(|s| s.parse::<Id<()>>().ok())
@@ -388,7 +407,7 @@ fn read_header(h: &Value, line: usize) -> Result<Value, FragmentError> {
     if !rects_ok {
         return Err(invalid("`ghost` is a list of [x0, y0, x1, y1]".into()));
     }
-    Ok(h.clone())
+    Ok((h.clone(), migration))
 }
 
 /// A `$node` line's value: `{"id", "aspect", "path", "aliases"}`.

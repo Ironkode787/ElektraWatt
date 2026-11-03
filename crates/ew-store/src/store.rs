@@ -11,12 +11,12 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
 
-use ew_format::ew_schema::{AnyId, FORMAT};
+use ew_format::ew_schema::{AnyId, FORMAT, RELEASED_FORMATS};
 use ew_format::ew_schema::{AssetFormat, AssetRef, Sha256};
 use ew_format::{
     Access as FormatAccess, FileHash, FilePath, Finding, FindingKind, Kept, Limits, LineKey, MANIFEST,
-    Manifest, OpaqueKind, PathClass, SINCE, classify, crlf_to_lf, file_since, hash_text, jsonl_file,
-    min_reader, sha256, unknown_record_file,
+    Manifest, MigrationError, Migrations, OpaqueKind, PathClass, SINCE, classify, crlf_to_lf, file_since,
+    hash_text, jsonl_file, min_reader, sha256, unknown_record_file,
 };
 use ew_model::{AnyKey, AnyRow, Asset, Model, ModelError};
 
@@ -82,8 +82,15 @@ pub struct StoreOptions {
     pub stale_after: Duration,
     /// The reader limits (doc 05 §3.6).
     pub limits: Limits,
-    /// Whether this is a release build (doc 05 §10.1: `unstable` projects open read-only).
+    /// Whether this is a release build (doc 05 §10.1: `unstable` projects open read-only): [`FORMAT`] is among the
+    /// released formats (WP-S1.17 D3).
     pub release_build: bool,
+    /// The migration chain an older format's project runs through at open (WP-S1.17 D10, decision log ID-1221):
+    /// [`ew_format::MIGRATIONS`]; a test passes its own.
+    pub migrations: &'static Migrations,
+    /// The formats released so far ([`RELEASED_FORMATS`]): a save marks its manifest `unstable` when the list is not
+    /// empty and does not hold the format it writes (WP-S1.17 D3). A test passes its own.
+    pub released: &'static [&'static str],
     /// How long a read-only opener waits for a save in progress.
     pub read_only_wait: Duration,
     /// An open for `ew fmt --repair` only (WP-S1.17, decision log ID-1185): with [`OpenMode::Edit`] the store takes the
@@ -107,7 +114,9 @@ impl StoreOptions {
             state_dir: default_state_dir(),
             stale_after: STALE_AFTER,
             limits: Limits::default(),
-            release_build: !cfg!(debug_assertions),
+            release_build: RELEASED_FORMATS.contains(&FORMAT),
+            migrations: &ew_format::MIGRATIONS,
+            released: RELEASED_FORMATS,
             read_only_wait: READ_ONLY_WAIT,
             repair: false,
         }
@@ -176,6 +185,9 @@ pub struct OpenReport {
     pub recovery: Option<RecoveryInfo>,
     /// Whether unsaved changes are crash-protected (a journal is open).
     pub journaled: bool,
+    /// The older format the project was migrated from in memory ([`FormatAccess::Migrate`], WP-S1.17 D11); its first
+    /// save needs [`Store::confirm_upgrade`].
+    pub migrated_from: Option<String>,
 }
 
 /// Why a project does not open.
@@ -192,8 +204,9 @@ pub enum OpenError {
     NotADirectory(PathBuf),
     /// The format refuses (doc 05 §10.1: `min_reader` above this reader, unreadable stamps).
     Format(String),
-    /// An older major needs the migration chain (WP-S1.17).
-    Migration(String),
+    /// An older major's migration failed (WP-S1.17 D10): a step's error, or no step where one is needed, with the
+    /// file and the JSON Pointer.
+    Migration(MigrationError),
     /// A read-only opener met a save in progress for longer than the wait (doc 05 §6.4: exit code 2).
     ///
     /// Not returned by [`Store::open`] since review cycle 8: after [`StoreOptions::read_only_wait`] a
@@ -224,7 +237,7 @@ impl fmt::Display for OpenError {
             OpenError::Io { path, error } => write!(f, "{}: {error}", path.display()),
             OpenError::NotADirectory(p) => write!(f, "{} is not a project directory", p.display()),
             OpenError::Format(m) => write!(f, "the project cannot be opened: {m}"),
-            OpenError::Migration(m) => write!(f, "the project needs a format migration: {m}"),
+            OpenError::Migration(e) => write!(f, "the project cannot be migrated from its older format: {e}"),
             OpenError::SaveInProgress => f.write_str("a save is in progress; try again"),
             OpenError::NoProject(_) => f.write_str("the project holds no project record"),
             OpenError::Model { error, .. } => write!(f, "the project does not load: {error}"),
@@ -329,6 +342,9 @@ pub enum SaveStep {
     Renames,
     /// Step 7: renaming the intent over `manifest.json`.
     Manifest,
+    /// The backup of a project of an older format, written before its first save (WP-S1.17 D11, decision log
+    /// ID-1221 ruling 5): nothing of the project was written.
+    Backup,
 }
 
 /// Why a save did not complete.
@@ -380,6 +396,12 @@ pub enum SaveError {
     /// The next generation would pass [`ew_format::MAX_GENERATION`], which the manifest's reader refuses: nothing
     /// was written (ID-1144). A copy in a new folder ([`Store::create`]) starts again at generation 0.
     GenerationLimit,
+    /// The project was migrated from the older format `from` and its first save converts it, which needs the user's
+    /// consent first ([`Store::confirm_upgrade`], WP-S1.17 D11): nothing was written.
+    UpgradeConsent {
+        /// The older format.
+        from: String,
+    },
 }
 
 impl fmt::Display for SaveError {
@@ -426,6 +448,11 @@ impl fmt::Display for SaveError {
             SaveError::GenerationLimit => f.write_str(
                 "this project has been saved the greatest number of times its format allows; save it to a new \
                  folder (Save as\u{2026}), which starts the count again",
+            ),
+            SaveError::UpgradeConsent { from } => write!(
+                f,
+                "the project is in the older format {from}, and saving converts it to format {FORMAT}, which older \
+                 versions of ElektraWatt cannot open; upgrade it first with `ew upgrade`, which keeps a backup"
             ),
         }
     }
@@ -679,6 +706,22 @@ pub struct Store {
     leftovers: Vec<Segment>,
     recovery: Option<RecoveryInfo>,
     closed: bool,
+    /// The bytes of `manifest.json` as read at open (`None`: absent, unreadable or an intent's): the backup of an
+    /// upgrade packs them ([`crate::ewz::pack_as_found`]).
+    manifest_bytes: Option<Vec<u8>>,
+    /// A project of an older format migrated in memory, until its first save passes its commit point (WP-S1.17 D11).
+    migrated: Option<Migrated>,
+}
+
+/// A store migrated from an older format ([`OpenReport::migrated_from`]).
+#[derive(Clone, Debug)]
+struct Migrated {
+    /// The older format.
+    from: String,
+    /// The manifest as found, through the manifest steps of the chain: the save writes its `extra`.
+    manifest: Manifest,
+    /// Whether the user consented to the conversion ([`Store::confirm_upgrade`]).
+    confirmed: bool,
 }
 
 /// A writer-owned file as the store holds it: the SHA-256 of its bytes as loaded or written, the SHA-256 of their
@@ -845,6 +888,8 @@ impl Store {
             leftovers: Vec::new(),
             recovery: None,
             closed: false,
+            manifest_bytes: None,
+            migrated: None,
         };
         // From here on, an error drops `store`, which releases the lock.
         let result = store.load();
@@ -1002,11 +1047,14 @@ impl Store {
         let mut conflicted = None;
         let manifest = match intent
             .clone()
-            .map(|m| Ok(Some((m, [0u8; 32]))))
-            .unwrap_or_else(|| self.read_manifest())
-        {
-            Ok(Some((m, hash))) => {
+            .map(|m| Ok(Some((m, [0u8; 32], None))))
+            .unwrap_or_else(|| {
+                self.read_manifest_bytes()
+                    .map(|found| found.map(|(m, hash, bytes)| (m, hash, Some(bytes))))
+            }) {
+            Ok(Some((m, hash, bytes))) => {
                 self.manifest_hash = Some(hash);
+                self.manifest_bytes = bytes;
                 Some(m)
             }
             Ok(None) => None,
@@ -1037,11 +1085,25 @@ impl Store {
                 "manifest.json is missing; it is rebuilt at the next save",
             ));
         }
+        // The way from an older major's format to this one (WP-S1.17 D10, D11): the open migrates in memory.
+        let mut migration = None;
         if let Some(m) = &manifest {
             format = ew_format::reader_access(m, FORMAT, self.opts.release_build);
             match &format {
                 FormatAccess::Refuse(why) => return Err(OpenError::Format(why.clone())),
-                FormatAccess::Migrate => return Err(OpenError::Migration(m.format.clone())),
+                FormatAccess::Migrate => {
+                    let way = self
+                        .opts
+                        .migrations
+                        .towards(&m.format, FORMAT)
+                        .map_err(OpenError::Migration)?;
+                    self.migrated = Some(Migrated {
+                        from: m.format.clone(),
+                        manifest: way.manifest(m, &self.opts.limits).map_err(OpenError::Migration)?,
+                        confirmed: false,
+                    });
+                    migration = Some(way);
+                }
                 FormatAccess::ReadOnly(why) => self.demote(ReadOnlyReason::Format(why)),
                 FormatAccess::ReadWriteNewer => self.keep_format = true,
                 FormatAccess::ReadWrite => {}
@@ -1122,7 +1184,11 @@ impl Store {
                 )),
             }
         }
-        let loaded = ew_format::load(manifest.as_ref(), &files, &limits);
+        let loaded = match &migration {
+            Some(way) => ew_format::load_migrated(manifest.as_ref(), &files, &limits, way)
+                .map_err(OpenError::Migration)?,
+            None => ew_format::load(manifest.as_ref(), &files, &limits),
+        };
         // The loader's list is capped at `max_findings`; its flag also counts the findings it dropped
         // (review cycle 8, major 2: a thousand duplicates must not hide a line the writer would lose).
         // A repair open (WP-S1.17 ID-1185 ruling 4) lets broken lines through, which the repair discards, and nothing
@@ -1219,6 +1285,8 @@ impl Store {
             }
         }
         self.rewrite = loaded.rewrite;
+        // Every file a step changed is written from its migrated values at the first save (WP-S1.17 D11).
+        self.rewrite.extend(loaded.migrated);
         for key in all_keys(&model) {
             if let Some(file) = file_of(&model, &key).map_err(|e| OpenError::Format(e.to_string()))? {
                 self.contents.entry(file).or_default().insert(key);
@@ -1278,6 +1346,7 @@ impl Store {
             removed,
             recovery: self.recovery.clone(),
             journaled: self.journal.is_some(),
+            migrated_from: self.migrated_from().map(str::to_owned),
         };
         Ok((model, report))
     }
@@ -1334,10 +1403,19 @@ impl Store {
 
     /// Reads and parses `manifest.json`: `Ok(None)` when absent, `Err(message)` when unusable.
     fn read_manifest(&self) -> Result<Option<(Manifest, [u8; 32])>, String> {
+        self.read_manifest_bytes()
+            .map(|found| found.map(|(m, hash, _)| (m, hash)))
+    }
+
+    /// [`Store::read_manifest`] with the bytes read.
+    fn read_manifest_bytes(&self) -> Result<Option<(Manifest, [u8; 32], Vec<u8>)>, String> {
         let path = join(&self.root, MANIFEST);
         match self.opts.vfs.read(&path) {
             Ok(bytes) => Manifest::parse(&bytes, &self.opts.limits)
-                .map(|m| Some((m, sha256(&bytes))))
+                .map(|m| {
+                    let hash = sha256(&bytes);
+                    Some((m, hash, bytes))
+                })
                 .map_err(|e| e.to_string()),
             Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(None),
             Err(e) => Err(e.to_string()),
@@ -1678,6 +1756,8 @@ impl Store {
             leftovers: Vec::new(),
             recovery: None,
             closed: false,
+            manifest_bytes: None,
+            migrated: None,
         };
         if let Access::ReadOnly(reason) = access {
             return Err(OpenError::Format(format!("cannot create: {reason:?}")));
@@ -1695,6 +1775,7 @@ impl Store {
                 removed: Vec::new(),
                 recovery: None,
                 journaled: false,
+                migrated_from: None,
             },
         })
     }
@@ -1740,6 +1821,12 @@ impl Store {
     ) -> Result<SaveReport, SaveError> {
         if let Access::ReadOnly(reason) = &self.access {
             return Err(SaveError::ReadOnly(reason.clone()));
+        }
+        // The first save of a migrated project converts it: only with the user's consent (WP-S1.17 D11), whoever saves.
+        if let Some(migrated) = self.migrated.as_ref().filter(|m| !m.confirmed) {
+            return Err(SaveError::UpgradeConsent {
+                from: migrated.from.clone(),
+            });
         }
         // An earlier save that is still incomplete must complete first; when it cannot, this save writes
         // nothing and says so with its own error, never with the earlier save's `Incomplete` (review cycle
@@ -1820,7 +1907,15 @@ impl Store {
                 );
             }
         }
-        if let Some(old) = &self.manifest {
+        // A format not yet released is marked (WP-S1.17 D3, decision log ID-1221 ruling 7).
+        manifest.unstable =
+            !self.opts.released.is_empty() && !self.opts.released.contains(&manifest.format.as_str());
+        // A migrated project's members other than the stamps and the files are the manifest steps' (WP-S1.17 D11).
+        let old_manifest = match &self.migrated {
+            Some(migrated) => Some(&migrated.manifest),
+            None => self.manifest.as_ref(),
+        };
+        if let Some(old) = old_manifest {
             manifest.extra.clone_from(&old.extra);
             // The base of the previous save; this save records its own below.
             manifest.extra.remove(BASE_MEMBER);
@@ -1961,6 +2056,8 @@ impl Store {
         self.adopt(model, plan.contents, plan.disk, discard);
         self.manifest = Some(manifest);
         self.manifest_hash = Some(manifest_hash);
+        self.manifest_bytes = Some(manifest_text.into_bytes());
+        self.migrated = None;
         self.generation = g1;
         self.pending = Some(g1);
         self.pending_removes.clone_from(&removes);
@@ -2589,6 +2686,25 @@ impl Store {
             (Some(held), _) => Some(held.hash),
             (None, Some(FileHash::Sha256(hash))) => Some(*hash),
             (None, Some(FileHash::Pending) | None) => None,
+        }
+    }
+
+    /// The bytes of `manifest.json` as read at open or as the last save wrote them (`None`: none read).
+    pub(crate) fn manifest_bytes(&self) -> Option<&[u8]> {
+        self.manifest_bytes.as_deref()
+    }
+
+    /// The older format this project was migrated from in memory, until its first save passes its commit point
+    /// (WP-S1.17 D11): that save needs [`Store::confirm_upgrade`] first.
+    pub fn migrated_from(&self) -> Option<&str> {
+        self.migrated.as_ref().map(|m| m.from.as_str())
+    }
+
+    /// The user's consent to the conversion of a migrated project (WP-S1.17 D11): its next save no longer refuses with
+    /// [`SaveError::UpgradeConsent`]. The caller writes the backup first. Nothing for a project that was not migrated.
+    pub fn confirm_upgrade(&mut self) {
+        if let Some(migrated) = &mut self.migrated {
+            migrated.confirmed = true;
         }
     }
 

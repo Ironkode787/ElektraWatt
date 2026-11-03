@@ -14,6 +14,7 @@ use crate::layout::RecordAnchors;
 use crate::limits::Limits;
 use crate::line::jsonl_file;
 use crate::manifest::{FileHash, Manifest, sha256};
+use crate::migrate::{Migration, MigrationError};
 use crate::order::LineKey;
 use crate::path::{FilePath, OpaqueKind, PathClass, classify};
 
@@ -247,6 +248,10 @@ pub struct Loaded {
     /// CRLF, blank lines, a missing final LF, non-NFC text, a member out of order, lines out of order) and
     /// the source and target files of a record or document in the wrong file (EW-CORE-010).
     pub rewrite: BTreeSet<FilePath>,
+    /// The record files and library documents in which a migration step changed a value ([`load_migrated`]), compared
+    /// value by value: rewritten at the next save like [`Loaded::rewrite`], but kept apart from it and given no
+    /// `NonCanonical` finding. Empty for [`load`].
+    pub migrated: BTreeSet<FilePath>,
     /// The findings, sorted, capped at [`Limits::max_findings`].
     pub findings: Vec<Finding>,
     /// Whether a finding forces a read-only session.
@@ -277,20 +282,39 @@ pub struct Loaded {
 ///   [`RecordAnchors`](crate::RecordAnchors) of all loaded records) is not the file it was read from is
 ///   EW-CORE-010, and both files are added to [`Loaded::rewrite`].
 pub fn load(manifest: Option<&Manifest>, files: &BTreeMap<FilePath, Vec<u8>>, limits: &Limits) -> Loaded {
-    let mut loader = Loader {
-        manifest,
-        limits,
-        findings: Findings::new(limits.max_findings),
-        out: Loaded::default(),
-        seen: BTreeMap::new(),
-        project_at: None,
-        placed: Vec::new(),
-    };
+    let mut loader = Loader::new(manifest, limits, None);
     for (path, bytes) in files {
         loader.file(path, bytes);
     }
     loader.place();
     loader.finish()
+}
+
+/// [`load`] of a project of an older format (doc 05 §10.2, WP-S1.17 D10): every record and library document runs
+/// through `migration` ([`Migration::record`]) after its parse and before its typed reading, and is read, placed and
+/// checked as migrated. The files in which a step changed a value are in [`Loaded::migrated`]; a line or document kept
+/// verbatim there (an unknown kind, a malformed variant, a quarantined record) keeps its migrated value's text, never
+/// its old one.
+///
+/// # Errors
+///
+/// The first [`MigrationError`], with its file and line: a step that fails, a kind step that is missing, or a library
+/// document of a kind this reader keeps unchanged whose value a step changed. Nothing is loaded then.
+pub fn load_migrated(
+    manifest: Option<&Manifest>,
+    files: &BTreeMap<FilePath, Vec<u8>>,
+    limits: &Limits,
+    migration: &Migration<'_>,
+) -> Result<Loaded, MigrationError> {
+    let mut loader = Loader::new(manifest, limits, Some(migration));
+    for (path, bytes) in files {
+        loader.file(path, bytes);
+        if let Some(e) = loader.failed.take() {
+            return Err(e);
+        }
+    }
+    loader.place();
+    Ok(loader.finish())
 }
 
 /// The Git conflict-marker prefixes of a JSON Lines file (`|||||||` is the diff3 base marker).
@@ -319,6 +343,8 @@ struct FileState {
     /// The unknown `$k` values already reported for this file (one EW-CORE-016 each).
     unknown_kinds: BTreeSet<String>,
     non_canonical: bool,
+    /// Whether a migration step changed a value of the file.
+    migrated: bool,
 }
 
 struct Loader<'a> {
@@ -329,6 +355,10 @@ struct Loader<'a> {
     seen: BTreeMap<(String, AnyId), Origin>,
     project_at: Option<Origin>,
     placed: Vec<Placed>,
+    /// The migration of [`load_migrated`].
+    migration: Option<&'a Migration<'a>>,
+    /// Its first error: nothing more is read.
+    failed: Option<MigrationError>,
 }
 
 /// `bytes` with every `\r\n` replaced by `\n`, a lone `\r` kept: the line-end normalisation under which a file equals
@@ -395,7 +425,44 @@ fn parse_failure(e: SchemaError) -> (FindingKind, String) {
     }
 }
 
-impl Loader<'_> {
+impl<'a> Loader<'a> {
+    fn new(
+        manifest: Option<&'a Manifest>,
+        limits: &'a Limits,
+        migration: Option<&'a Migration<'a>>,
+    ) -> Loader<'a> {
+        Loader {
+            manifest,
+            limits,
+            findings: Findings::new(limits.max_findings),
+            out: Loaded::default(),
+            seen: BTreeMap::new(),
+            project_at: None,
+            placed: Vec::new(),
+            migration,
+            failed: None,
+        }
+    }
+
+    /// `value` through the migration of [`load_migrated`], and whether a step changed it (compared value by value);
+    /// unchanged without one. A step's error is kept with its file and line (`failed`) and gives `None`.
+    fn migrate(&mut self, path: &FilePath, line: Option<u32>, value: Value) -> Option<(Value, bool)> {
+        let Some(migration) = self.migration else {
+            return Some((value, false));
+        };
+        let before = value.clone();
+        match migration.record(value) {
+            Ok(value) => {
+                let changed = value != before;
+                Some((value, changed))
+            }
+            Err(e) => {
+                self.failed.get_or_insert(e.in_file(path, line));
+                None
+            }
+        }
+    }
+
     fn find(&mut self, kind: FindingKind, file: &FilePath, line: Option<u32>, message: impl Into<String>) {
         self.findings
             .push(Finding::new(kind, Some(file.clone()), line, message));
@@ -489,6 +556,7 @@ impl Loader<'_> {
             lines: Vec::new(),
             unknown_kinds: BTreeSet::new(),
             non_canonical: bytes.is_empty(),
+            migrated: false,
         };
         let mut data = bytes;
         if let Some(rest) = data.strip_prefix(&[0xEF, 0xBB, 0xBF]) {
@@ -520,9 +588,15 @@ impl Loader<'_> {
                     return;
                 }
                 self.line(path, n, raw, &mut st);
+                if self.failed.is_some() {
+                    return;
+                }
             }
         }
-        if st.non_canonical || jsonl_file(st.lines) != bytes {
+        // A migrated file is rewritten from its migrated values: no `NonCanonical` finding (ID-1221 ruling 4).
+        if st.migrated {
+            self.out.migrated.insert(path.clone());
+        } else if st.non_canonical || jsonl_file(st.lines) != bytes {
             self.out.rewrite.insert(path.clone());
             self.find(
                 FindingKind::NonCanonical,
@@ -630,13 +704,25 @@ impl Loader<'_> {
         }
     }
 
-    fn record(&mut self, path: &FilePath, n: usize, text: &str, mut value: Value, st: &mut FileState) {
+    fn record(&mut self, path: &FilePath, n: usize, text: &str, value: Value, st: &mut FileState) {
         let ln = line_number(n);
+        let Some((mut value, migrated)) = self.migrate(path, Some(ln), value) else {
+            return;
+        };
+        st.migrated |= migrated;
         let base_key = LineKey::of_value(&value);
         let quarantine_key = base_key.clone().with_seq(n as u64);
         if ew_schema::normalize_nfc(&mut value) {
             st.non_canonical = true;
         }
+        // A line kept verbatim keeps its migrated value's text (ID-1221 ruling 2), never its old one.
+        let migrated_text;
+        let text = if migrated {
+            migrated_text = value.to_string();
+            migrated_text.as_str()
+        } else {
+            text
+        };
         // A waiver that fails its typing (no `reason`, a timestamp in `date`) waives nothing: the finding names it so
         // the dead waiver is seen (doc 15 §2.5, EW-CORE-081 cannot report a waiver it never reads).
         let waiver = value.get("$k").and_then(Value::as_str) == Some("waiver");
@@ -801,7 +887,7 @@ impl Loader<'_> {
             self.opaque(path, hash);
             return;
         }
-        let mut value = match ew_schema::parse_value(text) {
+        let value = match ew_schema::parse_value(text) {
             Ok(value) => value,
             Err(e) => {
                 let (kind, message) = parse_failure(e);
@@ -810,7 +896,12 @@ impl Loader<'_> {
                 return;
             }
         };
+        let Some((mut value, migrated)) = self.migrate(path, None, value) else {
+            return;
+        };
         let normalised = ew_schema::normalize_nfc(&mut value);
+        // A document kept verbatim keeps its migrated value's text (ID-1221 ruling 2), never its old one.
+        let migrated_text = migrated.then(|| crate::pretty(&value.to_string()).into_bytes());
         let (doc, malformed) = match LibDocument::load(value) {
             Ok(loaded) => loaded,
             Err(e) => {
@@ -820,6 +911,18 @@ impl Loader<'_> {
             }
         };
         if let LibDocument::Unknown(unknown) = &doc {
+            if migrated {
+                // Kept by its hash only, it is never written: the step's change would be lost.
+                self.failed.get_or_insert(MigrationError {
+                    file: Some(path.clone()),
+                    line: None,
+                    pointer: String::new(),
+                    message:
+                        "a migration step changed a library document of a kind this version keeps unchanged"
+                            .to_owned(),
+                });
+                return;
+            }
             let k = unknown.get("$k").and_then(Value::as_str).unwrap_or("");
             if Kind::from_name(k).is_none() {
                 let message = format!(
@@ -831,9 +934,10 @@ impl Loader<'_> {
             self.out.lib.push(doc);
             return;
         }
-        self.known_lib_document(path, bytes, hash, doc, &malformed, normalised);
+        self.known_lib_document(path, bytes, hash, doc, &malformed, normalised, migrated_text);
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn known_lib_document(
         &mut self,
         path: &FilePath,
@@ -842,6 +946,7 @@ impl Loader<'_> {
         doc: LibDocument,
         malformed: &[MalformedVariant],
         normalised: bool,
+        migrated_text: Option<Vec<u8>>,
     ) {
         let Some((kind, id)) = crate::lib_key(&doc) else {
             self.opaque(path, hash);
@@ -880,10 +985,13 @@ impl Loader<'_> {
                 "the library copy's content does not match its sha256",
             );
         }
+        if migrated_text.is_some() {
+            self.out.migrated.insert(path.clone());
+        }
         if malformed.is_empty() {
             let canonical =
                 !normalised && crate::lib_document_text(&doc).is_ok_and(|text| text.as_bytes() == bytes);
-            if !canonical {
+            if migrated_text.is_none() && !canonical {
                 self.out.rewrite.insert(path.clone());
                 self.find(
                     FindingKind::NonCanonical,
@@ -898,7 +1006,7 @@ impl Loader<'_> {
             }
             self.out.kept_docs.push(KeptDocument {
                 file: path.clone(),
-                text: bytes.to_vec(),
+                text: migrated_text.unwrap_or_else(|| bytes.to_vec()),
                 original: Box::new(doc.clone()),
             });
         }

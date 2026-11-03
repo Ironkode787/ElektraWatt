@@ -17,7 +17,7 @@ pub enum Access {
     ReadWriteNewer,
     /// Read only, with the reason.
     ReadOnly(&'static str),
-    /// Migrate in memory first (an older major); the migration chain is WP-S1.17.
+    /// Migrate in memory first (an older major) through the migration chain ([`crate::Migrations`]).
     Migrate,
     /// Do not open: nothing may be written, nothing is read.
     Refuse(String),
@@ -45,7 +45,7 @@ fn same_major(a: (u32, u32), b: (u32, u32)) -> bool {
 /// | Condition | Access |
 /// |---|---|
 /// | unparseable `format` or `min_reader`, or `min_reader` > reader | [`Access::Refuse`] |
-/// | `unstable: true` and `release_build` | [`Access::ReadOnly`] |
+/// | `unstable: true`, and `release_build` or a `format` other than `reader` | [`Access::ReadOnly`] |
 /// | same major, file ≤ reader | [`Access::ReadWrite`] |
 /// | same major, file > reader | [`Access::ReadWriteNewer`] |
 /// | newer major | [`Access::ReadOnly`] |
@@ -83,7 +83,8 @@ pub fn reader_access(manifest: &Manifest, reader: &str, release_build: bool) -> 
             manifest.min_reader
         ));
     }
-    if manifest.unstable && release_build {
+    // An unreleased format opens read-write only in a development build of that very format (WP-S1.17 D3).
+    if manifest.unstable && (release_build || manifest.format != reader) {
         return Access::ReadOnly("written by a development build with an unreleased format");
     }
     if same_major(f, r) {
@@ -129,5 +130,25 @@ mod tests {
         m.unstable = true;
         assert!(matches!(reader_access(&m, "0.1", true), Access::ReadOnly(_)));
         assert_eq!(reader_access(&m, "0.1", false), Access::ReadWrite);
+    }
+
+    /// SG-1's read side (WP-S1.17 D3): an unstable file opens read-write only in an unreleased reader of its format.
+    #[test]
+    fn an_unstable_file_is_read_only_in_a_released_or_other_format_reader() {
+        let mut m = Manifest::new(
+            "1.3",
+            "t",
+            "8e41c0d2-1b7f-5a39-a6c4-0f5e2d913b7a".parse().unwrap(),
+            1,
+        );
+        m.min_reader = "1.0".into();
+        m.unstable = true;
+        let unreleased = "written by a development build with an unreleased format";
+        assert_eq!(reader_access(&m, "1.3", false), Access::ReadWrite);
+        assert_eq!(reader_access(&m, "1.3", true), Access::ReadOnly(unreleased));
+        assert_eq!(reader_access(&m, "1.4", false), Access::ReadOnly(unreleased));
+        assert_eq!(reader_access(&m, "1.2", false), Access::ReadOnly(unreleased));
+        m.unstable = false;
+        assert_eq!(reader_access(&m, "1.4", false), Access::ReadWrite);
     }
 }

@@ -522,12 +522,22 @@ pub fn beyond_repair(report: &OpenReport) -> Option<&Finding> {
 ///
 /// [`RepairError::NoFolder`] when the project folder has no name or no parent.
 pub fn backup_path(vfs: &dyn Vfs, root: &Path, generation: u64) -> Result<PathBuf, RepairError> {
+    beside(vfs, root, &format!("{BACKUP_INFIX}{generation}"))
+}
+
+/// `<project folder><infix>.ewz` in the parent folder of the project folder at `root`, as the file system names it:
+/// [`backup_path`]'s, and an upgrade's backup's (WP-S1.17 D11).
+///
+/// # Errors
+///
+/// [`RepairError::NoFolder`] when the project folder has no name or no parent.
+pub(crate) fn beside(vfs: &dyn Vfs, root: &Path, infix: &str) -> Result<PathBuf, RepairError> {
     let root = vfs.canonicalize(root).unwrap_or_else(|_| root.to_path_buf());
     let (Some(name), Some(parent)) = (root.file_name(), root.parent()) else {
         return Err(RepairError::NoFolder(root.clone()));
     };
     let mut file = name.to_owned();
-    file.push(format!("{BACKUP_INFIX}{generation}.{}", ewz::EXTENSION));
+    file.push(format!("{infix}.{}", ewz::EXTENSION));
     Ok(parent.join(file))
 }
 
@@ -557,7 +567,7 @@ fn holds(vfs: &dyn Vfs, path: &Path, bytes: &[u8]) -> io::Result<bool> {
 /// synced, moved to `target` by [`Vfs::rename_noreplace`] (on a file system without hard links, by [`Vfs::rename`]
 /// after `target` is checked absent again, the race between the two accepted as for the extract, C47-p2#3) and the
 /// folder synced. Any failure removes what this call created; a power loss leaves at most the temporary file.
-fn write_backup(vfs: &dyn Vfs, target: &Path, bytes: &[u8]) -> Result<bool, RepairError> {
+pub(crate) fn write_backup(vfs: &dyn Vfs, target: &Path, bytes: &[u8]) -> Result<bool, RepairError> {
     let failed = |error: io::Error| RepairError::Backup {
         path: target.to_path_buf(),
         error,

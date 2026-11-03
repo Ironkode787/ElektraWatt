@@ -30,11 +30,13 @@
 //! - **Reading** ([`plan`], [`load`]): which files to read, then records, lines kept verbatim (unknown kinds,
 //!   malformed variants, quarantined lines), the rewrite set and the integrity findings of §6.2 and §6.3
 //!   ([`Finding`]), under the hostile-input [`Limits`] of §3.6.
+//! - **Migrating** ([`Migrations`], [`load_migrated`]): the chain of steps on `serde_json::Value` that an older
+//!   format's project runs through before its typed reading (§10.2, WP-S1.17 D10), empty as shipped
+//!   ([`MIGRATIONS`]), and the steward's check of a released format ([`steward_problems`]).
 //! - **Writing a whole project** ([`render_records`], [`project_files`]): the path of an importer's batch
 //!   and of the golden fixture (doc 20 §3.2 path (c)).
 //!
-//! Not in v0: migrations (the upgrade chain on `serde_json::Value`, WP-S1.17), the 3-way merge core and
-//! conflict records (the merge driver, FR-COL-014).
+//! Not in v0: the 3-way merge core and conflict records (the merge driver, FR-COL-014).
 //!
 //! # Determinism
 //!
@@ -79,6 +81,7 @@ mod layout;
 mod limits;
 mod line;
 mod manifest;
+mod migrate;
 mod order;
 mod path;
 mod read;
@@ -102,13 +105,18 @@ pub use line::{
     INLINE_LIMIT, jsonl_file, lib_document_text, pretty, record_line, tagged_document, tagged_line,
 };
 pub use manifest::{FileHash, MAX_GENERATION, Manifest, ManifestError, hash_text, sha256};
+pub use migrate::{
+    FormatStep, KindStep, MIGRATIONS, Migration, MigrationError, Migrations, Step, StewardProblem,
+    steward_problems,
+};
 pub use order::LineKey;
 pub use path::{
     FilePath, LIB_JSON_DIRS, LOCK, MANIFEST, MAX_INTERNAL_PATH, MAX_PATH, OpaqueKind, PathClass, PathError,
     ROOT_FILES, RecordFile, STALE_LOCK_PREFIX, TEMP_INFIX, classify,
 };
 pub use read::{
-    EntryKind, Kept, KeptDocument, KeptLine, Loaded, ReadPlan, crlf_to_lf, library_copy_hash, load, plan,
+    EntryKind, Kept, KeptDocument, KeptLine, Loaded, ReadPlan, crlf_to_lf, library_copy_hash, load,
+    load_migrated, plan,
 };
 pub use since::{SINCE, SinceTables, file_since, min_reader};
 pub use version::{Access, reader_access};

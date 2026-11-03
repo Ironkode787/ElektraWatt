@@ -316,6 +316,23 @@ pub const TABLE: &[Row] = &[
         stability: Stability::Preview,
     },
     Row {
+        path: &["upgrade"],
+        exits: &[
+            exit(0, "upgraded, backed up and saved, or nothing to upgrade"),
+            exit(
+                1,
+                "`--check` found an upgrade needed, or the upgrade not confirmed",
+            ),
+            exit(
+                2,
+                "usage, no controlling terminal without `--yes`, lock, a crashed session's journal, open, backup and \
+                 save errors",
+            ),
+        ],
+        result: None,
+        stability: Stability::Preview,
+    },
+    Row {
         path: &["project", "checks", "set"],
         exits: HUMAN_EXITS,
         result: None,

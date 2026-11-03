@@ -61,6 +61,8 @@ pub enum Command {
     Fmt(FmtArgs),
     /// `ew recover`: a crashed session's journal (WP-S1.22 D10, FT-252).
     Recover(RecoverArgs),
+    /// `ew upgrade`: a project of an older format converted after a backup (WP-S1.17 D11).
+    Upgrade(UpgradeArgs),
     /// Name the project's check schemes (`project checks set`, a human-only command).
     ChecksSet(ChecksSetArgs),
     /// Delete the asset files nothing names (`project assets purge`).
@@ -210,6 +212,17 @@ pub struct RecoverArgs {
     pub action: RecoverAction,
     /// Print the result as JSON (`--json`; not with `--discard`).
     pub json: bool,
+}
+
+/// The arguments of `ew upgrade` (WP-S1.17 D11, decision log ID-1221 ruling 6).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct UpgradeArgs {
+    /// The project directory; `None`: found from the current directory.
+    pub project: Option<PathBuf>,
+    /// `--check`: say whether an upgrade is needed and write nothing.
+    pub check: bool,
+    /// `--yes`: confirm without the typed word.
+    pub yes: bool,
 }
 
 /// The arguments of `ew import csv`.
@@ -656,6 +669,7 @@ pub fn run(cmd: Command) -> i32 {
         Command::Apply(a) => run_apply(&a),
         Command::Fmt(a) => project_files::run_fmt(&a),
         Command::Recover(a) => project_files::run_recover(&a),
+        Command::Upgrade(a) => project_files::run_upgrade(&a),
         Command::ChecksSet(a) => run_checks_set(&a),
         Command::AssetsPurge(a) => run_assets_purge(&a),
         Command::Lib(a) => run_lib(&a),

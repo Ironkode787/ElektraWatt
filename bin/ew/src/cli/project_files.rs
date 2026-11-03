@@ -1,8 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `ew fmt` and `ew recover` (WP-S1.22 part 3, D9 and D10), and `ew fmt --repair` (WP-S1.17, decision log ID-1185):
-//! the subcommands that work on the project's files and journals as the store keeps them.
+//! `ew fmt` and `ew recover` (WP-S1.22 part 3, D9 and D10), `ew fmt --repair` (WP-S1.17, decision log ID-1185) and
+//! `ew upgrade` (WP-S1.17 D11, decision log ID-1221): the subcommands that work on the project's files and journals as
+//! the store keeps them.
 
 use std::path::Path;
 
@@ -10,14 +11,17 @@ use ew_api::cli_results as results;
 use ew_api::fmt::{Backup, DiscardedLine, FmtError, KeptLine, RepairError, Repaired, Rewrite};
 
 use super::{
-    FmtArgs, RecoverAction, RecoverArgs, journal_refusal, open_editing, plural, printable, project_dir,
-    read_only_words, reader_dir, typed_word,
+    FmtArgs, RecoverAction, RecoverArgs, UpgradeArgs, journal_refusal, open_editing, plural, printable,
+    project_dir, read_only_words, reader_dir, typed_word,
 };
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// The word that confirms `ew recover --discard`.
 const DISCARD_WORD: &str = "discard";
+
+/// The word that confirms `ew upgrade` on a terminal.
+const UPGRADE_WORD: &str = "upgrade";
 
 /// `ew fmt [--check]` (D9, FR-EXT-008): the files that are not in canonical form, listed (`--check`, a reader: no
 /// lock, nothing written) or rewritten through the save protocol after the content check (`ew_api::fmt`). The lines the
@@ -622,6 +626,136 @@ fn run_recover_with(
             let _ = output.write_all(further(info.further).as_bytes());
             session.close();
             0
+        }
+    }
+}
+
+/// `ew upgrade [--check] [--yes]` (WP-S1.17 D11, decision log ID-1221 ruling 6): a project of an older format, which
+/// opens migrated in memory, converted after the typed word or `--yes`: the session's consent, then its save, which
+/// writes the backup beside the project folder first. `--check` is a reader: no lock, nothing written.
+pub(super) fn run_upgrade(a: &UpgradeArgs) -> i32 {
+    use std::io::IsTerminal;
+    let terminal = std::io::stdin().is_terminal() && std::io::stdout().is_terminal();
+    let mut input = std::io::stdin().lock();
+    let mut output = std::io::stdout().lock();
+    run_upgrade_with(
+        a,
+        terminal,
+        &mut input,
+        &mut output,
+        ew_api::StoreOptions::new(VERSION),
+    )
+}
+
+/// [`run_upgrade`] with the terminal test, the reader, the writer (everything `ew upgrade` prints on stdout) and the
+/// store options (a test's migration chain among them) injected.
+fn run_upgrade_with(
+    a: &UpgradeArgs,
+    terminal: bool,
+    input: &mut dyn std::io::BufRead,
+    output: &mut dyn std::io::Write,
+    mut store: ew_api::StoreOptions,
+) -> i32 {
+    let Some(dir) = project_dir(a.project.as_ref()) else {
+        return 2;
+    };
+    let format = ew_api::FORMAT;
+    if a.check {
+        store.mode = ew_api::OpenMode::ReadOnly;
+        store.state_dir = None;
+        let options = ew_api::SessionOptions {
+            origin: ew_api::Origin::Cli {
+                subcommand: "upgrade".to_owned(),
+                confirmed: false,
+            },
+            ..ew_api::SessionOptions::default()
+        };
+        let opened = match ew_api::Session::open(&dir, store, options, ew_api::Recovery::Keep) {
+            Ok((session, opened)) => {
+                session.close();
+                opened
+            }
+            Err(e) => {
+                eprintln!("error: {}: {e}", dir.display());
+                return 2;
+            }
+        };
+        return match opened.migrated_from {
+            Some(from) => {
+                let _ = writeln!(
+                    output,
+                    "the project is in the older format {from}: `ew upgrade` converts it to format {format} after a \
+                     backup"
+                );
+                1
+            }
+            None => {
+                let _ = writeln!(output, "the project needs no upgrade to format {format}");
+                0
+            }
+        };
+    }
+    let origin = ew_api::Origin::Cli {
+        subcommand: "upgrade".to_owned(),
+        confirmed: false,
+    };
+    let (mut session, opened) = match open_editing(&dir, origin, store, ew_api::Recovery::Keep) {
+        Ok(r) => r,
+        Err(code) => return code,
+    };
+    let Some(from) = opened.migrated_from else {
+        let _ = writeln!(output, "the project needs no upgrade to format {format}");
+        session.close();
+        return 0;
+    };
+    if opened.recovery.is_some() {
+        eprintln!("{}", journal_refusal(&dir));
+        session.close();
+        return 2;
+    }
+    if !a.yes {
+        if !terminal {
+            eprintln!(
+                "error: the project is in the older format {from}: confirming its upgrade needs an interactive \
+                 terminal (type `{UPGRADE_WORD}` there) or `ew upgrade --yes`; nothing was changed"
+            );
+            session.close();
+            return 2;
+        }
+        let prompt = format!(
+            "The project is in the older format {from}. Upgrading converts it to format {format}, which older \
+             versions of ElektraWatt cannot open, after a backup beside the project folder. Type `{UPGRADE_WORD}` to \
+             upgrade it, anything else to abort: "
+        );
+        if !typed_word(input, output, &prompt, UPGRADE_WORD) {
+            eprintln!("error: not confirmed; nothing was changed");
+            session.close();
+            return 1;
+        }
+    }
+    session.confirm_upgrade();
+    let result = session.save();
+    let backup = session.upgrade_backup().map(Path::to_path_buf);
+    match result {
+        Ok(saved) => {
+            let _ = writeln!(
+                output,
+                "upgraded the project from format {from} to format {format}; saved generation {}",
+                saved.generation
+            );
+            if let Some(backup) = backup {
+                let _ = writeln!(output, "backup: {}", backup.display());
+            }
+            session.close();
+            0
+        }
+        Err(e) => {
+            eprintln!("error: the save failed: {e}");
+            if let Some(backup) = backup {
+                eprintln!("the backup stays at {}", backup.display());
+            }
+            session.close();
+            2
         }
     }
 }

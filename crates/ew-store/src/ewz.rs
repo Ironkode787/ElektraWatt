@@ -476,10 +476,11 @@ pub struct AsFound {
 
 /// Packs the store's generation as found (WP-S1.17 decision log ID-1186; the module documentation): every file the
 /// loaded manifest lists, read again through the store's seam and each refused unless its bytes are those the store
-/// loaded, and the git files present ([`pack_store`]'s); `manifest.json` is the loaded manifest ([`Store::manifest`],
-/// [`Manifest::to_text`]) with each listed file's hash set to that of its bytes (a pending hash too), its generation
-/// and every other member as they are. Unlisted files are neither read nor packed. For `ew fmt --repair`'s backup
-/// alone: an export packs a verified generation ([`pack_store`]).
+/// loaded, and the git files present ([`pack_store`]'s); `manifest.json` is its bytes as read when no listed file was
+/// edited, else the loaded manifest ([`Store::manifest`], [`Manifest::to_text`]) with each listed file's hash set to
+/// that of its bytes (a pending hash too), its generation and every other member as they are. Unlisted files are
+/// neither read nor packed. For the backups of `ew fmt --repair` and of an upgrade (WP-S1.17 D11) alone: an export
+/// packs a verified generation ([`pack_store`]).
 ///
 /// # Errors
 ///
@@ -517,7 +518,13 @@ pub fn pack_as_found(store: &Store) -> Result<AsFound, PackError> {
         files.insert(path.as_str().to_owned(), bytes);
     }
     let git = git_files(store)?;
-    let bytes = pack(manifest.to_text().as_bytes(), &files, &git)?;
+    // With no file edited the manifest's bytes are packed as read, so that the archive extracts byte-equal to the
+    // folder (an upgrade's backup, WP-S1.17 D11); else its hashes are set to the files' as above.
+    let manifest_text = match store.manifest_bytes() {
+        Some(read) if edited == 0 => read.to_vec(),
+        _ => manifest.to_text().into_bytes(),
+    };
+    let bytes = pack(&manifest_text, &files, &git)?;
     Ok(AsFound {
         packed: Packed {
             bytes,

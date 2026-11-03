@@ -26,7 +26,7 @@ use super::{
     ExportKind, ExportPagesArgs, ExportTableArgs, ExtractArgs, FmtArgs, ImportCsvArgs, ImportPartsArgs,
     ImportQetArgs, ImportTableArgs, LibAction, LibArgs, PageFormat, PrintArgs, PrintVia, RecoverAction,
     RecoverArgs, RenderArgs, RevisionAction, RevisionArgs, RowFormat, SqlArgs, SqlDumpArgs, SqlFormat,
-    SqlSource, VerifyArgs, XLSX_NEEDS_OUT,
+    SqlSource, UpgradeArgs, VerifyArgs, XLSX_NEEDS_OUT,
 };
 
 /// The ElektraWatt command-line interface.
@@ -151,6 +151,19 @@ enum Top {
     /// saved, discarded, or there is no journal; 1 when the replay is refused or the discard not confirmed; 2 on
     /// usage, terminal, lock, open and save errors.
     Recover(RecoverCli),
+    /// Convert a project of an older format to this version's, after a backup.
+    ///
+    /// A project written in an older format opens converted in memory; saving it writes this version's format, which
+    /// older versions of ElektraWatt cannot open. `upgrade` asks first: type `upgrade` on a controlling terminal, or
+    /// pass `--yes`; without either it exits 2 and changes nothing. Once confirmed it packs the project's files as
+    /// found, as an `.ewz` backup beside the project folder (`<project folder>.pre-<format>.ewz`, or `-2`, `-3` and so
+    /// on when a file there holds something else; one that holds this backup is reused), reads it back, and only
+    /// then saves the project in this version's format; it prints the backup's path. `--check` writes nothing and
+    /// takes no lock: it says whether an upgrade is needed. `upgrade` needs the project's lock: a project another
+    /// session holds, one that opens read-only and a crashed session's journal are refused (exit 2). Exit 0 when
+    /// upgraded and saved, or nothing is to be upgraded; 1 when `--check` finds an upgrade needed, or it is not
+    /// confirmed; 2 on usage, terminal, lock, open, backup and save errors.
+    Upgrade(UpgradeCli),
     /// The project's check schemes and asset files (human-only).
     #[command(subcommand)]
     Project(ProjectCli),
@@ -1078,6 +1091,28 @@ struct FmtCli {
     json: bool,
 }
 
+/// `ew upgrade`.
+#[derive(Args, Debug)]
+struct UpgradeCli {
+    /// The project directory.
+    #[arg(value_name = "project-dir")]
+    project_dir: Option<PathBuf>,
+    /// The project directory (instead of the positional one).
+    #[arg(
+        long,
+        value_name = "dir",
+        allow_hyphen_values = true,
+        conflicts_with = "project_dir"
+    )]
+    project: Option<PathBuf>,
+    /// Say whether the project needs an upgrade and write nothing.
+    #[arg(long, overrides_with = "check")]
+    check: bool,
+    /// Confirm the upgrade without typing `upgrade` (the backup keeps the project as it was).
+    #[arg(long, overrides_with = "yes", conflicts_with = "check")]
+    yes: bool,
+}
+
 /// `ew recover`.
 #[derive(Args, Debug)]
 struct RecoverCli {
@@ -1974,6 +2009,16 @@ impl Cli {
                     json,
                 })
             }
+            Top::Upgrade(UpgradeCli {
+                project_dir,
+                project: flag,
+                check,
+                yes,
+            }) => Command::Upgrade(UpgradeArgs {
+                project: project(flag, project_dir),
+                check,
+                yes,
+            }),
             Top::Project(ProjectCli::Checks(ChecksCli::Set(ChecksSetCli {
                 project_dir,
                 project: flag,

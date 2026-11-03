@@ -235,6 +235,9 @@ pub use ew_library as library;
 pub use ew_mltext::to_nfc;
 /// The row sources of `ew export cables|bom` (doc 17 §3.3): what to export and why it could not.
 pub use ew_reports::export::{Export, ExportError, Exported};
+/// The format this version writes, and the migration chain a project of an older format runs through at open
+/// (WP-S1.17 D10, D11): `ew upgrade` names the format, and a test passes its own chain in [`StoreOptions`].
+pub use ew_schema::FORMAT;
 /// The project's revision label format (doc 15 §5.2, FR-REV-002): the new-project wizard checks the first label
 /// against it, as `revision.create` does (EW-REL-004).
 pub use ew_schema::LabelFormat;
@@ -246,11 +249,12 @@ pub use ew_schema::{
 };
 /// The read-only SQL projection (`ew sql`, the acceptance SQL, ADR-0017): views, sandbox, results.
 pub use ew_sqlview as sql;
+pub use ew_store::ew_format::{FormatStep, MigrationError, Migrations};
 /// The summary of a crashed session's journal ([`OpenReport::recovery`]) and why a replay was refused
 /// ([`Session::recovery_refusal`]): the CLI's `ew recover` and the shell name them through `ew-api`.
 pub use ew_store::journal::{Collision, RecoveryInfo, ReplayError};
 pub use ew_store::{
-    Access, Clock, OpenError, OpenReport, OsVfs, PurgeError, PurgeFile, PurgePlan, ReadOnlyReason,
+    Access, Clock, OpenError, OpenMode, OpenReport, OsVfs, PurgeError, PurgeFile, PurgePlan, ReadOnlyReason,
     RecoverError, SaveError, SaveStep, StoreOptions, SystemClock, Vfs,
 };
 /// The as-built archive's layout and atomic write, and the git port of a release (doc 05 §14; WP-S1.18 D11 to D13):
@@ -461,6 +465,65 @@ struct Persistence {
     /// Why [`Recovery::Apply`] did not replay the crashed session's journal (collisions, an unreadable journal); the
     /// journal is kept and the disk state is open.
     refusal: Option<RecoverError>,
+    /// Whether the user consented to converting a project migrated from an older format ([`Session::confirm_upgrade`]):
+    /// in memory only, so a session closed before its save leaves the next open asking again (WP-S1.17 D11).
+    consented: bool,
+    /// The upgrade's backup, once written ([`Session::upgrade_backup`]).
+    backup: Option<std::path::PathBuf>,
+}
+
+/// The most names an upgrade's backup tries: `.pre-<format>`, then `-2` up to this.
+const UPGRADE_BACKUP_NAMES: u32 = 1_000;
+
+/// Writes the backup of a project migrated from the older format `from` (WP-S1.17 D11, decision log ID-1221 ruling 5):
+/// the generation as found ([`ewz::pack_as_found`], its manifest's bytes as read) at `<project folder>.pre-<from>.ewz`
+/// beside the project folder, read back and verified ([`fmt::write_backup`]); past a name that holds another file,
+/// at `.pre-<from>-2.ewz`, `-3` and so on; a name that holds these bytes is reused. Its path.
+///
+/// # Errors
+///
+/// [`SaveError::Failed`] at [`SaveStep::Backup`]: the generation cannot be packed, the backup cannot be written, or
+/// every name is taken. Nothing of the project was written, and no backup is left.
+fn write_upgrade_backup(store: &Store, from: &str) -> Result<std::path::PathBuf, SaveError> {
+    let failed = |path: std::path::PathBuf, error: std::io::Error| SaveError::Failed {
+        step: SaveStep::Backup,
+        path,
+        error,
+    };
+    let other = |path: &Path, e: &dyn std::fmt::Display| {
+        failed(path.to_path_buf(), std::io::Error::other(e.to_string()))
+    };
+    let found = ewz::pack_as_found(store).map_err(|e| match e {
+        ewz::PackError::Generation(ew_store::GenerationError::Io { path, error })
+        | ewz::PackError::Io { path, error } => failed(path, error),
+        e => other(store.root(), &e),
+    })?;
+    let vfs = &**store.vfs();
+    let mut first = None;
+    for n in 1..=UPGRADE_BACKUP_NAMES {
+        let infix = if n == 1 {
+            format!(".pre-{from}")
+        } else {
+            format!(".pre-{from}-{n}")
+        };
+        let target = fmt::beside(vfs, store.root(), &infix).map_err(|e| other(store.root(), &e))?;
+        match fmt::write_backup(vfs, &target, &found.packed.bytes) {
+            Ok(_) => return Ok(target),
+            Err(fmt::RepairError::BackupTaken(_)) => {
+                first.get_or_insert(target);
+            }
+            Err(fmt::RepairError::Backup { path, error }) => return Err(failed(path, error)),
+            Err(e) => return Err(other(&target, &e)),
+        }
+    }
+    let path = first.unwrap_or_else(|| store.root().to_path_buf());
+    Err(failed(
+        path,
+        std::io::Error::new(
+            std::io::ErrorKind::AlreadyExists,
+            format!("the first {UPGRADE_BACKUP_NAMES} names of the backup hold other files"),
+        ),
+    ))
 }
 
 /// One open project: the facade every front-end (GUI, `ew` CLI, scripts, MCP) talks to.
@@ -814,9 +877,14 @@ impl Session {
         self.engine.mark_saved();
     }
 
-    /// Whether the model differs from the last saved state.
+    /// Whether the model differs from the last saved state: a project migrated from an older format differs until its
+    /// first save (WP-S1.17 D11).
     pub fn is_dirty(&self) -> bool {
-        self.engine.is_dirty() || self.persistence.as_ref().is_some_and(|p| p.recovered)
+        self.engine.is_dirty()
+            || self
+                .persistence
+                .as_ref()
+                .is_some_and(|p| p.recovered || p.store.migrated_from().is_some())
     }
 
     /// The project-level derivation findings of the model the session opened with, in canonical order:
@@ -931,6 +999,8 @@ impl Session {
             unsaved,
             recovered,
             refusal,
+            consented: false,
+            backup: None,
         });
         // FT-814: this directory's stale release-run records (archive gone or released) go now.
         session.remove_stale_run_records();
@@ -1075,6 +1145,8 @@ impl Session {
             unsaved: BTreeSet::new(),
             recovered: false,
             refusal: None,
+            consented: false,
+            backup: None,
         });
         if let Some(p) = previous {
             p.store.close();
@@ -1100,6 +1172,14 @@ impl Session {
         let Some(p) = &mut self.persistence else {
             return Err(SaveError::ReadOnly(ew_store::ReadOnlyReason::Requested));
         };
+        // The first save of a migrated project after the consent: the backup, verified, before any project byte
+        // (WP-S1.17 D11, decision log ID-1221 ruling 5); a read-only session writes neither.
+        if p.consented && p.backup.is_none() && *p.store.access() == Access::Edit {
+            if let Some(from) = p.store.migrated_from() {
+                p.backup = Some(write_upgrade_backup(&p.store, from)?);
+                p.store.confirm_upgrade();
+            }
+        }
         let before = p.store.generation();
         let result = p.store.save(&model, Changes::Keys(&p.unsaved));
         // Only edits that are on disk, or decided and durable in an intent, leave the dirty set (review
@@ -1127,6 +1207,22 @@ impl Session {
             Some(p) => p.store.retry_pending(),
             None => Ok(None),
         }
+    }
+
+    /// The user's consent to converting a project that opened migrated from an older format
+    /// ([`OpenReport::migrated_from`], WP-S1.17 D11), kept in memory: the next [`Session::save`] first writes the
+    /// backup `<project folder>.pre-<format>.ewz` beside the project folder (`-2`, `-3` and so on past a name that holds
+    /// another file), read back and verified, and then saves in this version's format. A session closed before that
+    /// save writes nothing, and the next open asks again. Nothing for a project that was not migrated.
+    pub fn confirm_upgrade(&mut self) {
+        if let Some(p) = &mut self.persistence {
+            p.consented = true;
+        }
+    }
+
+    /// The backup the first save after [`Session::confirm_upgrade`] wrote (or reused), once written.
+    pub fn upgrade_backup(&self) -> Option<&Path> {
+        self.persistence.as_ref().and_then(|p| p.backup.as_deref())
     }
 
     /// The lock heartbeat (doc 05 §7.2); call it every [`ew_store::HEARTBEAT`].
