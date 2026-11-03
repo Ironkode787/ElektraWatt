@@ -132,6 +132,26 @@ fn clamp_inside(chip: Rect, bounds: Rect) -> Rect {
     chip.translate(Vec2::new(dx, dy))
 }
 
+/// The nearest place for a chip whose candidates are all taken (FT-1142, ID-1225; doc 16a §7.4): stacked inward from
+/// its first candidate `first` (moved inside `bounds`) by its height and `gap`, towards the canvas's vertical middle,
+/// the first that overlaps none of the `chips` already placed and stays inside `bounds`; `None` when there is none.
+fn stack_inward(first: Rect, chips: &[Rect], bounds: Rect, gap: f32) -> Option<Rect> {
+    let mut at = clamp_inside(first, bounds);
+    let step = (at.height() + gap).max(1.0);
+    let step = if at.center().y <= bounds.center().y {
+        step
+    } else {
+        -step
+    };
+    while bounds.contains_rect(at) {
+        if !chips.iter().any(|c| to_vm(*c).overlaps(&to_vm(at))) {
+            return Some(at);
+        }
+        at = at.translate(Vec2::new(0.0, step));
+    }
+    None
+}
+
 /// The places taken so far and the pointer.
 struct Placer<'u> {
     ui: &'u Ui,
@@ -173,12 +193,19 @@ impl Placer<'_> {
             &self.obstacles,
             self.pointer,
         );
-        // FT-1079 (ID-1183): where no candidate is free the chip stands at the rule's first one, faded; that one may
-        // lie off the canvas, so the chip is moved in (its top left wins in a canvas too small for it).
-        let rect = if p.faded {
-            clamp_inside(from_vm(p.rect), self.bounds)
-        } else {
-            from_vm(p.rect)
+        // FT-1142 (ID-1225; doc 16a §7.4): where no candidate is free the chip stacks inward clear of the chips placed
+        // so far; FT-1079 (ID-1183): where that finds no place it stands at the rule's first candidate, faded; that one
+        // may lie off the canvas, so the chip is moved in (its top left wins in a canvas too small for it).
+        let placed: Vec<Rect> = self.out.iter().map(|c| c.rect).collect();
+        let stacked = p
+            .faded
+            .then(|| stack_inward(from_vm(p.rect), &placed, self.bounds, t.space_1))
+            .flatten();
+        let faded = p.faded && stacked.is_none();
+        let rect = match stacked {
+            Some(rect) => rect,
+            None if p.faded => clamp_inside(from_vm(p.rect), self.bounds),
+            None => from_vm(p.rect),
         };
         self.obstacles.push(to_vm(rect));
         let (fill, text_colour) = match kind {
@@ -192,7 +219,7 @@ impl Placer<'_> {
             kind,
             text,
             rect,
-            faded: p.faded,
+            faded,
             fill,
             text_colour,
             radius: t.radius_sm,
@@ -498,7 +525,9 @@ mod tests {
     }
 
     /// FT-1079 at the floor's canvas: the placer puts a chip whose every candidate is taken (the whole canvas is an
-    /// obstacle) inside the canvas, faded, though its first candidate lies above the canvas's top left corner.
+    /// obstacle) inside the canvas, though its first candidate lies above the canvas's top left corner. FT-1142
+    /// (ID-1225): the chips that follow it at the same target stack inward (down from the top corner), clear of one
+    /// another and whole; where the canvas has no such place left the chip is faded, inside the canvas.
     #[test]
     fn the_placer_clamps_a_chip_with_no_free_candidate() {
         use crate::theme::{Density, Theme, tokens};
@@ -519,13 +548,35 @@ mod tests {
                 out: Vec::new(),
             };
             let at = super::point(canvas.min + vec2(2.0, 2.0));
-            let frame = placer.put(
-                super::ChipKind::PreviewHeader,
-                "Preview of Place device".to_owned(),
-                at,
+            let mut frames = Vec::new();
+            for text in ["Preview of Place device", "-K1 → -K2", "-X1 → -X2"] {
+                frames.push(placer.put(super::ChipKind::PreviewChange, text.to_owned(), at));
+            }
+            for (k, frame) in frames.iter().enumerate() {
+                assert!(!placer.out[k].faded, "{k}: placed, not faded");
+                assert!(canvas.contains_rect(*frame), "{frame:?} inside {canvas:?}");
+                for other in &frames[..k] {
+                    assert!(!frame.intersects(*other), "{frame:?} clear of {other:?}");
+                }
+            }
+            assert!(
+                frames[1].top() > frames[0].top(),
+                "stacked down from the top corner"
             );
-            assert!(placer.out[0].faded);
-            assert!(canvas.contains_rect(frame), "{frame:?} inside {canvas:?}");
+            // A canvas two chips high: the third chip finds no place and is faded, inside it.
+            let short = Rect::from_min_size(
+                canvas.min,
+                vec2(canvas.width(), 2.0 * frames[0].height() + t.space_1),
+            );
+            placer.bounds = short;
+            placer.out.clear();
+            let mut faded = Vec::new();
+            for text in ["a", "b", "c"] {
+                let frame = placer.put(super::ChipKind::PreviewChange, text.to_owned(), at);
+                assert!(short.contains_rect(frame), "{frame:?} inside {short:?}");
+                faded.push(placer.out.last().unwrap().faded);
+            }
+            assert_eq!(faded, [false, false, true]);
             checked = true;
         });
         // The font atlas the pass built is never uploaded here.
