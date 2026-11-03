@@ -675,6 +675,8 @@ impl ShellModel {
         if out == Outcome::Done
             && let Some(id) = self.tools.last_primary.clone()
         {
+            // FT-1116: the new page holds none of the old page's selection (ID-1228 item 4: here, not in `show`).
+            self.tools.selection.clear();
             self.show_page_by_id(&id);
         }
         out

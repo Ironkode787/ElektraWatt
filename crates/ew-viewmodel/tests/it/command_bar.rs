@@ -403,6 +403,23 @@ fn cb6_the_command_tab_and_the_collapse_reach_the_describe_text() {
     s.shutdown();
 }
 
+/// FT-1116: a new page shows with nothing selected, so its HUD does not read "1 selected".
+#[test]
+fn page_new_shows_the_new_page_with_nothing_selected() {
+    let tmp = Tmp::new("ft1116");
+    let mut s = tmp.shell_in(Mode::Headless, true, "101");
+    let empty = empty_point(s.canvas().unwrap());
+    let (_, p) = common::entity_points(s.canvas().unwrap())[0];
+    click(&mut s, empty, json!({}));
+    click(&mut s, p, json!({}));
+    assert_eq!(s.selection().items.len(), 1);
+    done(&mut s, "page.new", json!({"folio": "199"}));
+    assert_eq!(s.current_folio(), Some("199"));
+    assert!(s.selection().items.is_empty());
+    assert_eq!(hud(&s).prompt, s.tool_hint());
+    s.shutdown();
+}
+
 /// CB5's model side and FT-521: with Select and one selected object the prompt is "1 selected · Del deletes · R
 /// rotates"; with the pointer over a pick stack of n objects it is "n objects overlap here · click again to select the
 /// next" (FT-894's words).
