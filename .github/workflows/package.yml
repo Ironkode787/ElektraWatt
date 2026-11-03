@@ -217,7 +217,7 @@ jobs:
           test "$("$root/ew.exe" --version | tr -d '\r')" = "ew $WORKSPACE_VERSION"
           "$root/ew.exe" export pdf "$root/samples/J-E-2416.ew" --out "$out/golden.pdf"
           want="$(tr -d '\r\n' < golden/J-E-2416/expected/pdf/sha256.txt)"
-          got="$(sha256sum "$out/golden.pdf" | cut -d' ' -f1)"
+          got="$(sha256sum < "$out/golden.pdf" | cut -d' ' -f1)"
           echo "the archive's PDF: $got (committed: $want)"
           test "$got" = "$want" || { echo "::error::the PDF of the Windows CLI archive is not the committed digest of golden/J-E-2416/expected/pdf/sha256.txt"; exit 1; }
       - name: name the upload
@@ -387,7 +387,7 @@ jobs:
           test "$("$root/ew" --version)" = "ew $WORKSPACE_VERSION"
           "$root/ew" export pdf "$root/samples/J-E-2416.ew" --out "$out/golden.pdf"
           want="$(tr -d '\n' < golden/J-E-2416/expected/pdf/sha256.txt)"
-          got="$(sha256sum "$out/golden.pdf" | cut -d' ' -f1)"
+          got="$(sha256sum < "$out/golden.pdf" | cut -d' ' -f1)"
           echo "the archive's PDF: $got (committed: $want)"
           test "$got" = "$want" || { echo "::error::the PDF of the Linux CLI archive is not the committed digest of golden/J-E-2416/expected/pdf/sha256.txt"; exit 1; }
       - name: name the upload
