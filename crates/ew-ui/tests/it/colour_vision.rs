@@ -21,8 +21,11 @@ use serde_json::{Value, json};
 use support::Tmp;
 use support::colour::{Simulation, ciede2000, from_linear, lab, to_linear};
 
-/// `canvas.selection`, `volt-600` (`ew-render2d`'s overlay accent, copied as `overlays.rs` does).
-const SELECTION: [u8; 3] = [0x0B, 0x63, 0xCE];
+/// `canvas.selection`, read from the renderer's light theme (C49-p5#3), so that a change to it runs D15 again.
+const SELECTION: [u8; 3] = {
+    let c = ew_render2d::overlay::LIGHT.selection;
+    [c.r, c.g, c.b]
+};
 
 /// The threshold of doc 16 §15.6 between any two colours shown together.
 const LEAST_DELTA_E: f64 = 10.0;
@@ -97,7 +100,7 @@ fn colours() -> Vec<(String, [u8; 3])> {
         .iter()
         .enumerate()
         .map(|(i, &(r, g, b))| (format!("slot {} #{r:02X}{g:02X}{b:02X}", i + 1), [r, g, b]))
-        .chain([("selection #0B63CE".to_owned(), SELECTION)])
+        .chain([(format!("selection #{:02X}{:02X}{:02X}", SELECTION[0], SELECTION[1], SELECTION[2]), SELECTION)])
         .collect()
 }
 
