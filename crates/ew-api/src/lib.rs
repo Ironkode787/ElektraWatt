@@ -878,13 +878,13 @@ impl Session {
     }
 
     /// Whether the model differs from the last saved state: a project migrated from an older format differs until its
-    /// first save (WP-S1.17 D11).
+    /// first save in an editing session (WP-S1.17 D11, decision log ID-1230 ruling 4); a read-only one never saves it.
     pub fn is_dirty(&self) -> bool {
         self.engine.is_dirty()
-            || self
-                .persistence
-                .as_ref()
-                .is_some_and(|p| p.recovered || p.store.migrated_from().is_some())
+            || self.persistence.as_ref().is_some_and(|p| {
+                p.recovered
+                    || (p.store.migrated_from().is_some() && *p.store.access() == Access::Edit)
+            })
     }
 
     /// The project-level derivation findings of the model the session opened with, in canonical order:

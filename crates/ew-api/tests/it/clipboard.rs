@@ -1379,7 +1379,7 @@ fn mg6_ft403_an_older_fragment_pastes_through_the_test_chain() {
     );
     let migrated = parse_fragment_with(&older, &FRAGMENT_CHAIN).unwrap();
     assert_eq!(migrated.params, current.params);
-    assert_eq!(migrated.params["format"], json!("0.1"));
+    assert_eq!(migrated.params["format"], json!(ew_api::FORMAT));
     assert_eq!(migrated.records, current.records);
     // An older `$v` in a fragment of this format.
     let older_v = at_v0(&text);

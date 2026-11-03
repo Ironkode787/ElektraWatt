@@ -176,7 +176,11 @@ fn files_v0() -> (BTreeMap<String, Vec<u8>>, Vec<u8>) {
     let current = files
         .insert("project.jsonl".to_owned(), project)
         .expect("a project file");
-    files.insert(MANIFEST.to_owned(), manifest.to_text().into_bytes());
+    // Compact, unlike `Manifest::to_text`'s, and read all the same: the backup keeps these bytes (ID-1230 ruling 6).
+    let compact: Value = serde_json::from_str(&manifest.to_text()).unwrap();
+    let compact = format!("{compact}\n");
+    assert_ne!(compact, manifest.to_text());
+    files.insert(MANIFEST.to_owned(), compact.into_bytes());
     assert_ne!(files["project.jsonl"], current);
     (files, current)
 }
@@ -365,4 +369,35 @@ fn the_backup_moves_past_a_taken_name_reuses_its_own_and_refuses_when_unwritable
     s.save().unwrap();
     s.close();
     assert_eq!(beside(&vfs), ["p.pre-0.0.ewz"]);
+}
+
+/// Decision log ID-1230 ruling 4: an unsaved migration makes only an editing session dirty. A read-only migrated
+/// session is not, so the purge's preview (a reader) lists instead of refusing as unsaved; an editing one is, and
+/// `ew fmt`'s format refuses it as unsaved before the store's consent gate (its words are FT-1148's).
+#[test]
+fn only_an_editing_migrated_session_is_dirty() {
+    let (disk, _) = files_v0();
+    let vfs = mem(&disk);
+    let mut o = options(&vfs, 2);
+    o.mode = ew_store::OpenMode::ReadOnly;
+    o.state_dir = None;
+    let (s, report) = Session::open(&root(), o, SessionOptions::default(), Recovery::Keep).unwrap();
+    assert_eq!(report.migrated_from.as_deref(), Some("0.0"));
+    assert!(
+        matches!(report.access, ew_api::Access::ReadOnly(_)),
+        "{:?}",
+        report.access
+    );
+    assert!(!s.is_dirty());
+    assert!(s.purge_preview().is_ok());
+    s.close();
+
+    let mut s = open(&vfs, 3);
+    assert!(s.is_dirty());
+    assert_eq!(
+        ew_api::fmt::format(&mut s).unwrap_err().to_string(),
+        "the session has unsaved changes; a format writes only the saved project"
+    );
+    s.close();
+    assert_eq!(files(&vfs), disk);
 }
