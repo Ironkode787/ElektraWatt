@@ -7,7 +7,7 @@ use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::MlText;
 use ew_derive::ew_schema::{
     Conflict, ConflictBody, ConflictSide, Connection, DELETED_SIDE, Device, Endpoint, Function, FunctionKind,
-    IpDirection, Kind, LengthSource, Primitive, RepType, Representation,
+    IpDirection, Kind, LayoutSpace, LengthSource, Primitive, RepType, Representation,
 };
 use ew_derive::ew_units::{Nm, Pt2};
 use ew_derive::{CellOf, CpRef, IpPairingQ, PairMode, Q, XrefRelationOf, XrefTextOf, folio_label};
@@ -878,14 +878,42 @@ impl Rule for ConflictRecords {
                         ConflictSide::Theirs => "theirs",
                         ConflictSide::Unknown(_) => "one side",
                     };
+                    let file = conflict_file(q, path);
                     let message = format!(
-                        "{path}: the merge could not read {held}; its lines are held in a conflict record"
+                        "{file}: the merge could not read {held}; its lines are held in a conflict record"
                     );
-                    Finding::new(&CONFLICT_RECORDS, [], "file", path.clone(), message)
+                    Finding::new(&CONFLICT_RECORDS, [], "file", file, message)
                 }
             });
         }
         out
+    }
+}
+
+/// The file of a file-level conflict, in words: a page's file by its folio, a layout file by its space's name; any
+/// other file (a root file, a device shard) by its path, which names no record.
+fn conflict_file(q: &Q, path: &str) -> String {
+    let id = |dir: &str| {
+        path.strip_prefix(dir)?
+            .strip_suffix(".jsonl")?
+            .parse::<ew_derive::ew_ids::Uuid>()
+            .ok()
+            .map(Id::<()>::from_uuid)
+    };
+    if let Some(page) = id("pages/").and_then(|p| q.pages().get(p.cast())) {
+        return format!("the file of folio {}", folio_label(page));
+    }
+    if let Some(space) = id("layout/").and_then(|s| q.table::<LayoutSpace>().get(s.cast())) {
+        if let Some(name) = &space.name {
+            return format!("the layout file of {name}");
+        }
+        return "a layout file".to_owned();
+    }
+    match path.split_once('/') {
+        Some(("pages", _)) => "a page file".to_owned(),
+        Some(("layout", _)) => "a layout file".to_owned(),
+        Some(("imports", _)) => "an import's file".to_owned(),
+        _ => path.to_owned(),
     }
 }
 

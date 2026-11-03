@@ -234,9 +234,9 @@ fn resolve_file(
         ConflictSide::Ours => Take::Ours,
         ConflictSide::Theirs => Take::Theirs,
         ConflictSide::Unknown(_) => {
-            return tx.reject(format!(
-                "the conflict of {path} holds a side this version does not know; open the project in a newer version"
-            ));
+            return tx.reject(
+                "the conflict of a file holds a side this version does not know; open the project in a newer version",
+            );
         }
     };
     if take != held {
@@ -253,7 +253,7 @@ fn resolve_file(
             Some(r) => records.push(r),
             None => {
                 return tx.reject(format!(
-                    "line {} of the {path} the merge could not read is not a record this version reads; take the \
+                    "line {} of the file the merge could not read is not a record this version reads; take the \
                      other side, or fix the file",
                     n + 1
                 ));

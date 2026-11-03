@@ -622,3 +622,13 @@ waiver reason mltext other read-only:no-command
 waiver rule ident other read-only:no-command
 waiver target group other read-only:no-command
 waiver target.finding text? other read-only:no-command
+conflict $v int[0..65535] identity read-only:identity
+conflict base json other read-only:no-command
+conflict id uuid identity read-only:identity
+conflict kind text identity read-only:no-command
+conflict lines list<text> other read-only:no-command
+conflict lines[] text other read-only:no-command
+conflict ours json other read-only:no-command
+conflict path text other read-only:no-command
+conflict side enum(ours|theirs) other read-only:no-command
+conflict theirs json other read-only:no-command

@@ -239,3 +239,29 @@ fn a_file_level_conflict_taken_replaces_the_records_of_its_file() {
         .expect("W29 deletes");
     assert_eq!(lines(e.model()), lines(expected.model()));
 }
+
+/// A held line that does not read as a record refuses the side it is on, in words; nothing changes.
+#[test]
+fn a_file_level_conflict_whose_line_does_not_read_is_refused() {
+    let conflict_id = "00000000-0000-7000-8000-00000000c0f1";
+    let (p, mut records, _) = mini_golden_parts();
+    records.push(record(json!({
+        "$k": "conflict", "id": conflict_id, "kind": "file", "path": format!("pages/{PAGE_102}.jsonl"),
+        "side": "theirs", "lines": [r#"{"$k":"connection","#]
+    })));
+    let mut e = engine(Model::from_records(p, records, library()).expect("the model is valid"));
+    let before = lines(e.model());
+    let take = any(
+        "merge.resolve",
+        json!({"choices": [{"conflict": conflict_id, "take": "theirs"}]}),
+    );
+    assert_eq!(
+        e.execute(&take).unwrap_err(),
+        CmdError::rejected(
+            "merge.resolve",
+            "line 1 of the file the merge could not read is not a record this version reads; take the other side, \
+             or fix the file"
+        )
+    );
+    assert_eq!(lines(e.model()), before);
+}
