@@ -276,6 +276,15 @@ so.
 8. **The en-XA flows (LO-5)** reuse the setups of the existing kittest tests of each flow. A fix that would change a
    component of doc 16a is a proposed FT row, not a change (§11.2 item 4).
 
+**As built and the review's rulings (ID-1226, cycle 48).** D11 gives way twice. `assert_fits` checks the sideways
+half only (a node leaving the window or its parent sideways, and interactive siblings overlapping), skips table and grid
+contents, allows a control wholly inside another and exempts splitters, since AccessKit carries no clip rectangle for
+the vertical half; two fixtures, one for "leaves its parent" and one for "overlaps", assert the whole problem text.
+`check-ui-strings` reads every egui text call: D11's list and `heading`, `selectable_label`, `checkbox`, `small_button`,
+`menu_button`, `collapsing`, `hint_text`, `Button::new`, `Label::new` and `painter().text`; a literal bound to a
+variable before the call stays out of its reach, as its doc says. It runs in `cargo xtask ci`, in lane-check's policy
+step when `crates/ew-ui/src/**` or `ci/ui-strings-allow.txt` changed, and in CI's lint job.
+
 ## 8. Part 4: the Dutch UI
 
 **Scope.** D12. **0.2 pw.**
