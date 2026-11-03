@@ -398,30 +398,45 @@ impl FindPane {
             egui::ScrollArea::vertical()
                 .id_salt("find-results-scroll")
                 .auto_shrink([false, false])
+                // A target taken by the pitch holds for the offset it was taken at: an animated scroll ran past the
+                // cursor's row (C49-p5#1).
+                .animated(false)
                 .show_rows(ui, height, r.hits.len(), |ui, range| {
-                    // The cursor's row stays on show, built or not (the closure starts at row `range.start`).
-                    if let Some(i) = row {
+                    // The cursor's row off the built rows: scrolled to by the pitch (the closure starts at row
+                    // `range.start`), and the next frame builds it where the scroll has brought it.
+                    if let Some(i) = row
+                        && !range.contains(&i)
+                    {
                         let top = ui.max_rect().top() + (i as f32 - range.start as f32) * pitch;
                         let target = egui::Rect::from_min_size(
                             egui::pos2(ui.max_rect().left(), top),
                             egui::vec2(1.0, height),
                         );
                         ui.scroll_to_rect(target, None);
-                        // Off the built rows: the next frame builds it where the scroll has brought it.
-                        if !range.contains(&i) {
-                            ui.ctx().request_repaint();
-                        }
+                        ui.ctx().request_repaint();
                     }
                     for (i, hit) in r.hits.iter().enumerate().take(range.end).skip(range.start) {
                         let selected = row == Some(i);
-                        let response = ui.add(egui::Button::selectable(selected, Self::job(ui, hit)));
+                        // C49-p5#1: one line per row, so the rows keep the pitch; the name and the description
+                        // carry the whole line.
+                        let response = ui.add(
+                            egui::Button::selectable(selected, Self::job(ui, hit))
+                                .wrap_mode(egui::TextWrapMode::Truncate),
+                        );
+                        if selected {
+                            response.scroll_to_me(None);
+                        }
                         let name = result_line(hit, false);
                         response.widget_info(|| {
                             egui::WidgetInfo::selected(egui::Role::ListBoxOption, true, selected, &name)
                         });
                         let marked = result_line(hit, true);
-                        ui.ctx()
-                            .accesskit_node_builder(response.id, |n| n.set_description(marked));
+                        // egui gives `WidgetInfo::selected` to AccessKit as toggled only: the option says it is
+                        // selected itself.
+                        ui.ctx().accesskit_node_builder(response.id, |n| {
+                            n.set_description(marked);
+                            n.set_selected(selected);
+                        });
                         if response.double_clicked() {
                             events.push(Event::Action("ui.focus", json!({"area": "find"})));
                             events.push(Event::Action("find.row", json!({ "to": i + 1 })));
