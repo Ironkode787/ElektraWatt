@@ -32,12 +32,19 @@ fn step(h: &mut Harness<'_, App>) {
     support::assert_fits(h);
 }
 
-/// The UI in Dutch at the UI scale `scale` (1.0 or 2.0, as `switch.rs` sets it).
+/// The window of the harness (1000 × 700 points) on a display of `scale` times its pixels.
+fn display(h: &mut Harness<'_, App>, scale: f32) {
+    h.set_size(egui::Vec2::new(1000.0, 700.0) * scale);
+}
+
+/// The UI in Dutch (View ▸ Language) at the UI scale `scale` (1.0 or 2.0, as `switch.rs` sets it), on a display
+/// whose window is 1000 × 700 points at that scale.
 #[track_caller]
 fn dutch_at(h: &mut Harness<'_, App>, scale: f32) {
-    assert!(strings::set_locale("nl"));
+    dispatch(h, "view.language", json!({ "value": "nl" }));
     assert_eq!(strings::text(key!("menu-file")), "Bestand");
     dispatch(h, "view.ui_scale", json!({ "scale": scale }));
+    display(h, scale);
     settle(h);
     step(h);
     assert!((h.ctx.pixels_per_point() - scale).abs() < 1e-6);
@@ -66,8 +73,10 @@ fn first_run(scale: f32) {
     );
     shell.start_first_run_if_needed();
     let mut h = harness_with(shell, Scripted::default(), None);
+    display(&mut h, scale);
     settle(&mut h);
-    settle(&mut h);
+    step(&mut h);
+    assert!((h.ctx.pixels_per_point() - scale).abs() < 1e-6);
     h.get_by_label(strings::text(key!("language-nl"))).click();
     step(&mut h);
     assert_eq!(h.state().shell().settings().language, "nl");

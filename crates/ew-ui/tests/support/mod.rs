@@ -252,7 +252,8 @@ pub fn fit_problems<S>(harness: &Harness<'_, S>) -> Vec<String> {
     let overlap = |a: &Rect, b: &Rect| {
         a.x1.min(b.x1) - a.x0.max(b.x0) > SLACK && a.y1.min(b.y1) - a.y0.max(b.y0) > SLACK
     };
-    let screen = harness.ctx.content_rect();
+    // AccessKit's bounds are in physical pixels, the content rectangle in points (ID-1269 ruling 6: 200 %).
+    let screen = harness.ctx.content_rect() * harness.ctx.pixels_per_point();
     let window = Rect {
         x0: f64::from(screen.min.x),
         y0: f64::from(screen.min.y),

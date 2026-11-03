@@ -965,6 +965,9 @@ mod tests {
         assert_eq!(loose.density, "comfortable");
         let dense = Settings::parse("density = \"dense\"\n").unwrap();
         assert_eq!(dense.density, "comfortable");
+        // WP-S2.08 D10: Dutch is kept; a language this version does not ship loads as English.
+        assert_eq!(Settings::parse("language = \"nl\"\n").unwrap().language, "nl");
+        assert_eq!(Settings::parse("language = \"de\"\n").unwrap().language, "en");
         assert!(Settings::parse("canvas_backend = 1\n").is_none());
         // A key of the wrong type makes the file bad, like the older keys.
         for text in [
