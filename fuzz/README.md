@@ -30,6 +30,7 @@ workspace's, so the shared dependencies have the versions of the tested build; t
 | `command_sequence` | A seed, a step count (1 to 8) and a tape of bytes through the seeded command generator of the nightly command fuzzer (`crates/ew-testkit/tests/command_fuzz`, included as modules) over Golden A | The oracles of the nightly test with a cheap cadence: the structural check after every changing step, the validity oracle of every command, the save-and-reload round trip, the closing undo-all (the undo law). The memo oracle belongs to `fuzz_long` and to the full oracle run |
 | `png_pdf` | PNG bytes through `ew-render-cpu`'s `decode_image` and, when it accepts them, a one-page PDF/A-2b through `ew-export`'s writer (krilla) | No panic; an accepted PNG is written and drawn (`Ok`, one image, none skipped) |
 | `ewz_read` | Arbitrary bytes through `ew-store`'s strict `.ewz` reader (`ew_store::ewz::read`, WP-S1.17 part 2) under the default `ZipLimits` | No panic; when an accepted archive's entries pack again (`ewz::pack`), the new archive reads to the same entries and manifest |
+| `merge_file` | Three sides (base, ours, theirs) and a path selector (a page, the root file, a device shard, a library document, `manifest.json`, a file of no project class) through `ew_format::merge_file`, the core of `ew merge-driver` (WP-S1.17 part 4b), under the default limits and the shipped chain | No panic; a merge without conflicts of two sides that each reload editable (alone at their path through `ew_format::load`, the manifest through `Manifest::parse`) reloads editable |
 
 **The migration chain.** The format's upgrade chain on `serde_json::Value` (WP-S1.17) is not built. What exists is the
 open path that takes a project written by an older build within the same format (the typed revisions, ADR-0011
@@ -53,7 +54,7 @@ cargo fuzz run -a jsonl_loader target/corpus/jsonl_loader corpus/jsonl_loader --
 
 The first corpus directory is the working one (libFuzzer writes the inputs that add coverage there; `target/` is ignored);
 the committed seeds under `corpus/<target>/` stay as they are. Useful `max_len` values: `jsonl_loader` 65536,
-`migration_chain` 65, `command_sequence` 512, `png_pdf` 16384, `ewz_read` 16384. Run it from `fuzz/`: from the repository root rustup would choose the stable
+`migration_chain` 65, `command_sequence` 512, `png_pdf` 16384, `ewz_read` 16384, `merge_file` 65536. Run it from `fuzz/`: from the repository root rustup would choose the stable
 toolchain of the workspace and cargo-fuzz would refuse. AddressSanitizer is cargo-fuzz's default. A sanitized binary that
 links the bundled SQLite reports an ODR violation for `aiOff` at start-up unless `ASAN_OPTIONS=detect_odr_violation=0`
 (cargo-fuzz sets it for `cargo fuzz run`; export it to run a built binary by hand). This is a false positive of the C code,
@@ -88,6 +89,9 @@ its files by their index in Golden A's sorted file list, so a file added to or r
 written by hand (an 8-bit RGBA image with translucent pixels, an 8-bit grey-and-alpha image, a palette image with `tRNS`, a
 16-bit RGB image), not made by `seed_corpus`. The seeds of `ewz_read` are two `.ewz` files that `ew export ewz` wrote
 from `golden/fixtures/release-min`, one with a `.gitattributes` and a `.gitignore` beside it, not made by `seed_corpus`.
+The seeds of `merge_file` are AC-41's data, made by hand from Golden A: page 102 with W20's `colour` BU added on ours and
+`csa` "2.5" on theirs (`w20-clean`), with `colour` WH on theirs too (`w20-conflict`), and the manifest changed on both
+sides (`manifest`); not made by `seed_corpus`.
 `artifacts/` (what libFuzzer writes for a crash, an out-of-memory, a timeout or a slow input) and `coverage/` are ignored.
 
 **A finding is reported, not fixed in the change that finds it.** Copy the crash input to `regressions/<target>/` (a

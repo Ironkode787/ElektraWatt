@@ -157,6 +157,35 @@ fn the_ewz_read_seeds_are_accepted() {
     );
 }
 
+/// The merge seeds (hand-made from W20 of Golden A's page 102 and its manifest, AC-41's data) reach the reload
+/// property where they merge cleanly and the conflict where they do not; the input decodes as documented.
+#[test]
+fn the_merge_file_seeds_reach_the_reload_and_the_conflict() {
+    use ew_fuzz::merge_file::{Outcome, check, decode, encode};
+    let seeds = inputs("corpus/merge_file");
+    for (_, bytes) in &seeds {
+        check(bytes);
+    }
+    let clean = Outcome {
+        conflicts: 0,
+        reloaded: true,
+    };
+    let conflict = Outcome {
+        conflicts: 1,
+        reloaded: false,
+    };
+    for (name, outcome) in [("manifest", clean), ("w20-clean", clean), ("w20-conflict", conflict)] {
+        assert_eq!(check(&inputs_named(&seeds, name)), outcome, "{name}");
+    }
+    let input = encode(10, b"o", b"aa", b"bbb");
+    let case = decode(&input);
+    assert_eq!(
+        (case.path, case.base, case.ours, case.theirs),
+        ("manifest.json", &b"o"[..], &b"aa"[..], &b"bbb"[..])
+    );
+    assert_eq!(decode(&[1, 9]).path, "project.jsonl");
+}
+
 /// The fuzz finding of CI run 40897313649 (`regressions/png_pdf/plte-length-not-a-multiple-of-3`, 93 bytes): a 2 × 2
 /// palette PNG whose `PLTE` is 14 bytes long, which made `png` 0.18.1 panic in its palette code (`range end index 3
 /// out of range for slice of length 2`). Fixed by the chunk check of `ew_render_cpu`: the target's entry point refuses
@@ -195,6 +224,9 @@ fn the_regressions_are_replayed_and_reported() {
         }),
         ("regressions/ewz_read", |b| {
             let _ = ew_fuzz::ewz_read::check(b);
+        }),
+        ("regressions/merge_file", |b| {
+            let _ = ew_fuzz::merge_file::check(b);
         }),
     ];
     for &(dir, check) in targets {

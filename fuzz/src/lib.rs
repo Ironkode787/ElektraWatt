@@ -10,7 +10,8 @@
 //! - [`open_path`]: the golden project with old-shape records, opened by `ew-store`;
 //! - [`command`]: the seeded command generator of the nightly command fuzzer over the fuzzer's input;
 //! - [`png_pdf`]: a PNG through `ew-render-cpu`'s `decode_image` and, when it accepts it, the PDF writer of `ew-export`;
-//! - [`ewz_read`]: arbitrary bytes through `ew-store`'s strict `.ewz` reader (WP-S1.17 part 2).
+//! - [`ewz_read`]: arbitrary bytes through `ew-store`'s strict `.ewz` reader (WP-S1.17 part 2);
+//! - [`merge_file`]: three sides and a path through `ew-format`'s three-way merge (WP-S1.17 part 4b).
 //!
 //! The crate is outside the cargo workspace and builds on the nightly toolchain of `rust-toolchain.toml`.
 //! `unsafe`: none in this crate; the `unsafe` of cargo-fuzz's `fuzz_target!` macro lives in `libfuzzer-sys`.
@@ -21,6 +22,7 @@ pub mod command;
 pub mod ewz_read;
 pub mod golden;
 pub mod loader;
+pub mod merge_file;
 pub mod open_path;
 pub mod png_pdf;
 

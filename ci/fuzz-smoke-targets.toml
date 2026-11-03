@@ -17,7 +17,8 @@
 # (crates/ew-testkit/tests/command_fuzz, included as modules) through the `ew-api` facade, so it reaches the
 # whole command, derivation, import and export stack. `png_pdf` feeds PNG bytes to `ew-render-cpu`'s decoder and the PDF
 # writer of `ew-export` (src/png_pdf.rs). `ewz_read` feeds bytes to the strict `.ewz` reader of `ew-store`
-# (src/ewz_read.rs).
+# (src/ewz_read.rs). `merge_file` feeds three sides and a path to the three-way merge of `ew-format`
+# (src/merge_file.rs).
 
 [targets.jsonl_loader]
 max_len = 65536
@@ -121,3 +122,8 @@ closure = [
     "ew-units",
     "ew-zip",
 ]
+
+[targets.merge_file]
+max_len = 65536
+roots = ["ew-format"]
+closure = ["ew-format", "ew-ids", "ew-mltext", "ew-rds", "ew-schema", "ew-units"]

@@ -84,19 +84,19 @@ def selftest():
         return " ".join(select(paths))
 
     every = " ".join(f"{t}:{n}" for t, n in MAX_LEN.items())
-    assert {"jsonl_loader", "migration_chain", "command_sequence", "png_pdf", "ewz_read"} <= set(MAX_LEN), list(MAX_LEN)
+    assert {"jsonl_loader", "migration_chain", "command_sequence", "png_pdf", "ewz_read", "merge_file"} <= set(MAX_LEN), list(MAX_LEN)
     loader, chain, command = "jsonl_loader:65536", "migration_chain:65", "command_sequence:512"
-    ewz = "ewz_read:16384"
+    ewz, merge = "ewz_read:16384", "merge_file:65536"
     # nothing relevant
     assert run() == ""
     assert run("README.md", "docs/design/10-plc-and-bus.md", "crates/ew-ui/src/lib.rs") == ""
     assert run("fuzz/README.md", "fuzz/deny.toml", "fuzz/target/corpus/x", "fuzz/artifacts/y/crash-1") == ""
     # a crate's tests, benches, examples and Markdown are not built into a target
     assert run("crates/ew-format/tests/roundtrip.rs", "crates/ew-store/benches/b.rs", "crates/ew-derive/README.md") == ""
-    # the closure of each target: the format crate is in four (the command target saves through ew-store, the
-    # .ewz reader parses the manifest)
-    assert run("crates/ew-format/src/lib.rs") == f"{loader} {chain} {command} {ewz}"
-    assert run("crates/ew-schema/src/plc.rs") == f"{loader} {chain} {command} {ewz}"
+    # the closure of each target: the format crate is in five (the command target saves through ew-store, the
+    # .ewz reader parses the manifest, the merge target merges and reloads)
+    assert run("crates/ew-format/src/lib.rs") == f"{loader} {chain} {command} {ewz} {merge}"
+    assert run("crates/ew-schema/src/plc.rs") == f"{loader} {chain} {command} {ewz} {merge}"
     assert run("crates/ew-store/src/open.rs") == f"{chain} {command} {ewz}"
     assert run("crates/ew-model/src/index.rs") == f"{chain} {command} {ewz}"
     assert run("crates/ew-zip/src/lib.rs") == f"{chain} {command} {ewz}"
@@ -113,6 +113,7 @@ def selftest():
     assert run("fuzz/corpus/migration_chain/seed-1") == chain
     assert run("fuzz/regressions/command_sequence/crash-x") == command
     assert run("fuzz/corpus/ewz_read/release-min.ewz") == ewz
+    assert run("fuzz/corpus/merge_file/w20-clean") == merge
     assert run("fuzz/src/loader.rs") == every
     assert run("fuzz/Cargo.lock") == every
     assert run("fuzz/rust-toolchain.toml") == every
