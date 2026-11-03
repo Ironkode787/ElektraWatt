@@ -1174,11 +1174,13 @@ impl Session {
         };
         // The first save of a migrated project after the consent: the backup, verified, before any project byte
         // (WP-S1.17 D11, decision log ID-1221 ruling 5); a read-only session writes neither.
-        if p.consented && p.backup.is_none() && *p.store.access() == Access::Edit {
-            if let Some(from) = p.store.migrated_from() {
-                p.backup = Some(write_upgrade_backup(&p.store, from)?);
-                p.store.confirm_upgrade();
-            }
+        if p.consented
+            && p.backup.is_none()
+            && *p.store.access() == Access::Edit
+            && let Some(from) = p.store.migrated_from()
+        {
+            p.backup = Some(write_upgrade_backup(&p.store, from)?);
+            p.store.confirm_upgrade();
         }
         let before = p.store.generation();
         let result = p.store.save(&model, Changes::Keys(&p.unsaved));
