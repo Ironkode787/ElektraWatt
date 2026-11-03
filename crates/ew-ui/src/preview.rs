@@ -451,14 +451,21 @@ fn table_import(
             top: 0,
             bottom: 0,
         })
-        .show(ui, |ui| components::inline_card(ui, shell, card, events, |_, _| {}));
+        .show(ui, |ui| {
+            components::inline_card(ui, shell, card, events, |_, _| {})
+        });
     ui.add_space(t.space_2);
     egui::ScrollArea::vertical()
         .id_salt("table-import-lists")
         .auto_shrink([false, false])
         .show(ui, |ui| {
             list(ui, strings::text(key!("table-import-cells")), &cells, true);
-            list(ui, strings::text(key!("table-import-missing-rows")), &missing, false);
+            list(
+                ui,
+                strings::text(key!("table-import-missing-rows")),
+                &missing,
+                false,
+            );
         });
 }
 

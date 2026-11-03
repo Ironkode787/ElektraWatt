@@ -37,8 +37,7 @@ const COMMAND: &str = "fields.set_many";
 
 /// Whether `path` names a CSV file (its extension, any case).
 fn is_csv(path: &std::path::Path) -> bool {
-    path.extension()
-        .is_some_and(|e| e.eq_ignore_ascii_case("csv"))
+    path.extension().is_some_and(|e| e.eq_ignore_ascii_case("csv"))
 }
 
 /// A whole-file refusal of an import in words (no ID, no option name).
@@ -99,7 +98,10 @@ impl ShellModel {
             Some(id) => format!("nav:strips/{id}"),
             None => format!("nav:{}", kind.word()),
         };
-        let row_keys = rows.iter().map(|i| table.nodes[*i as usize].key.clone()).collect();
+        let row_keys = rows
+            .iter()
+            .map(|i| table.nodes[*i as usize].key.clone())
+            .collect();
         let columns = mode
             .shown_columns(table)
             .into_iter()
@@ -266,7 +268,10 @@ impl ShellModel {
                 return failed(key!("error-table-import-missing"), &[&name]);
             }
             Err(ew_api::catalog::CatalogError::Io(name, e)) => {
-                return failed(key!("error-table-import-open"), &[&name, &crate::jobs::io_cause(&e)]);
+                return failed(
+                    key!("error-table-import-open"),
+                    &[&name, &crate::jobs::io_cause(&e)],
+                );
             }
             Err(e) => return failed(key!("error-table-import-read"), &[&e.to_string()]),
         };

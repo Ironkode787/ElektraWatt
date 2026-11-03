@@ -241,9 +241,7 @@ impl Platform for VisualPlatform {
             | Prompt::OpenPartsTable
             | Prompt::OpenImage
             | Prompt::OpenKeymap
-            | Prompt::OpenTable => {
-                Pick::Cancelled
-            }
+            | Prompt::OpenTable => Pick::Cancelled,
         }
     }
 }

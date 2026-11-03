@@ -509,14 +509,8 @@ pub(crate) fn chooser(ui: &mut Ui, nav: &Navigator, events: &mut Vec<Event>) {
         // each runs on this navigator, which takes the focus first.
         ui.separator();
         for (action, label) in [
-            (
-                "navigator.export_table",
-                key!("action-navigator-export-table"),
-            ),
-            (
-                "navigator.import_table",
-                key!("action-navigator-import-table"),
-            ),
+            ("navigator.export_table", key!("action-navigator-export-table")),
+            ("navigator.import_table", key!("action-navigator-import-table")),
         ] {
             if ui.button(strings::text(label)).clicked() {
                 events.push(Event::Action(

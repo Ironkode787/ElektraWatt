@@ -271,7 +271,9 @@ impl JobsState {
         };
         let hooks = self.hooks.clone();
         let to = target.clone();
-        let handle = Job::spawn(options, move |ctl| export_body(produce, ctl, &to, &sibling, &hooks))?;
+        let handle = Job::spawn(options, move |ctl| {
+            export_body(produce, ctl, &to, &sibling, &hooks)
+        })?;
         self.next += 1;
         let number = self.next;
         self.entries.push_back(JobEntry {

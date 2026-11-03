@@ -302,7 +302,13 @@ impl TableImportCard {
         };
         strings::format(
             key!("table-import-cell"),
-            &[&cell.row_label, &cell.column_label, &cell.ew, &cell.file, &outcome],
+            &[
+                &cell.row_label,
+                &cell.column_label,
+                &cell.ew,
+                &cell.file,
+                &outcome,
+            ],
         )
     }
 }

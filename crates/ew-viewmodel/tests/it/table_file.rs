@@ -87,7 +87,11 @@ fn first_difference(a: &[u8], b: &[u8]) -> Option<String> {
                 .zip(other.bytes())
                 .position(|(x, y)| x != y)
                 .unwrap_or(text.len().min(other.len()));
-            let near = |t: &str| t.get(at.saturating_sub(40)..(at + 80).min(t.len())).unwrap_or("").to_owned();
+            let near = |t: &str| {
+                t.get(at.saturating_sub(40)..(at + 80).min(t.len()))
+                    .unwrap_or("")
+                    .to_owned()
+            };
             return Some(format!(
                 "part {name} / {other_name} at byte {at}: window {:?}, cli {:?}",
                 near(text),
@@ -101,7 +105,8 @@ fn first_difference(a: &[u8], b: &[u8]) -> Option<String> {
 /// The cell reference letters of the first sheet's column headed `header`.
 fn column_letter(bytes: &[u8], header: &str) -> char {
     let limits = ew_api::catalog::table_limits();
-    let sheet = ew_api::output::sheet::read_sheet(bytes, ew_api::catalog::SourceFormat::Xlsx, None, &limits).unwrap();
+    let sheet =
+        ew_api::output::sheet::read_sheet(bytes, ew_api::catalog::SourceFormat::Xlsx, None, &limits).unwrap();
     let c = sheet
         .headers
         .iter()
@@ -113,9 +118,14 @@ fn column_letter(bytes: &[u8], header: &str) -> char {
 /// The first data rows of the first sheet: the cells of `header`, in sheet order.
 fn column_cells(bytes: &[u8], header: &str) -> Vec<String> {
     let limits = ew_api::catalog::table_limits();
-    let sheet = ew_api::output::sheet::read_sheet(bytes, ew_api::catalog::SourceFormat::Xlsx, None, &limits).unwrap();
+    let sheet =
+        ew_api::output::sheet::read_sheet(bytes, ew_api::catalog::SourceFormat::Xlsx, None, &limits).unwrap();
     let c = sheet.headers.iter().position(|h| h == header).unwrap();
-    sheet.rows.iter().map(|r| r.get(c).cloned().unwrap_or_default()).collect()
+    sheet
+        .rows
+        .iter()
+        .map(|r| r.get(c).cloned().unwrap_or_default())
+        .collect()
 }
 
 /// The sheet XML `sheet` with cell `<col><row>` set to the inline string `value` (replaced, or inserted in column
@@ -206,7 +216,10 @@ fn tw1_the_export_is_the_clis_and_an_accepted_import_is_one_undo_step() {
     let bytes = std::fs::read(&out).unwrap();
     let cli = cli_workbook(&tmp.golden_copy());
     assert_eq!(first_difference(&bytes, &cli), None);
-    assert_eq!(bytes, cli, "byte-equal to `ew export table strips --strip -X1031`");
+    assert_eq!(
+        bytes, cli,
+        "byte-equal to `ew export table strips --strip -X1031`"
+    );
     done(&mut shell, "jobs.show", json!({}));
     let kib = bytes.len().div_ceil(1024);
     let rev = shell.revision().unwrap();
@@ -215,10 +228,7 @@ fn tw1_the_export_is_the_clis_and_an_accepted_import_is_one_undo_step() {
         d.contains(&format!("  job 1 table \"x.xlsx\" done kib {kib} rev {rev}\n")),
         "the job's end names no pages: {d}"
     );
-    assert_eq!(
-        shell.toast().unwrap().text,
-        format!("Exported x.xlsx: {kib} KiB")
-    );
+    assert_eq!(shell.toast().unwrap().text, format!("Exported x.xlsx: {kib} KiB"));
 
     // Five labels changed in the file.
     let labels = ["Valve 1", "Valve 2", "Valve 3", "Valve 4", "Valve 5"];
@@ -256,7 +266,11 @@ fn tw1_the_export_is_the_clis_and_an_accepted_import_is_one_undo_step() {
         "Imported 5 changed cells from y.xlsx"
     );
     let again = tmp.0.join("x2.xlsx");
-    done(&mut shell, "navigator.export_table", json!({"path": text(&again)}));
+    done(
+        &mut shell,
+        "navigator.export_table",
+        json!({"path": text(&again)}),
+    );
     assert_eq!(
         column_cells(&std::fs::read(&again).unwrap(), "Function text")[..5],
         labels
@@ -265,8 +279,15 @@ fn tw1_the_export_is_the_clis_and_an_accepted_import_is_one_undo_step() {
     let old = column_cells(&bytes, "Function text");
     done(&mut shell, "edit.undo", json!({}));
     let undone = tmp.0.join("x3.xlsx");
-    done(&mut shell, "navigator.export_table", json!({"path": text(&undone)}));
-    assert_eq!(column_cells(&std::fs::read(&undone).unwrap(), "Function text"), old);
+    done(
+        &mut shell,
+        "navigator.export_table",
+        json!({"path": text(&undone)}),
+    );
+    assert_eq!(
+        column_cells(&std::fs::read(&undone).unwrap(), "Function text"),
+        old
+    );
     shell.shutdown();
 }
 
@@ -424,7 +445,11 @@ fn the_refusals_in_words_and_a_csv() {
     );
     done(&mut shell, "preview.cancel", json!({}));
     let missing = tmp.0.join("none.xlsx");
-    let message = failed(&mut shell, "navigator.import_table", json!({"path": text(&missing)}));
+    let message = failed(
+        &mut shell,
+        "navigator.import_table",
+        json!({"path": text(&missing)}),
+    );
     assert_eq!(message, "There is no file none.xlsx.");
     let junk = tmp.0.join("junk.xlsx");
     std::fs::write(&junk, b"PK\x03\x04 not a workbook").unwrap();

@@ -452,7 +452,9 @@ impl ShellModel {
                         key!("toast-export-pdf-again"),
                         &[&entry.name, &done.pages.to_string(), &kib.to_string()],
                     ),
-                    (true, false) => strings::format(key!("toast-export-table"), &[&entry.name, &kib.to_string()]),
+                    (true, false) => {
+                        strings::format(key!("toast-export-table"), &[&entry.name, &kib.to_string()])
+                    }
                     (true, true) => {
                         strings::format(key!("toast-export-table-again"), &[&entry.name, &kib.to_string()])
                     }
