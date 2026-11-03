@@ -159,9 +159,10 @@ pub(super) fn propose_folio(tx: &TxBuilder<'_>, after: &Page) -> Result<(u32, Op
     Err(CmdError::internal("no free sub-page label"))
 }
 
-/// What is wrong with a page scale a command writes, in words (FT-1016, FT-1065): a 1:0, which the schema's minimum
-/// refuses too. `page.surface_view.set` and `fields.set` on a page's scale give this text; the reader still takes a
-/// 1:0 from a file, which is drawn 1:1.
+/// What is wrong with a page scale a command writes, in words (FT-1016, FT-1065): a 1:0. A JSON command is refused
+/// first by the schema's minimum, at `/scale/one_to` ("0 is below the minimum 1"); a typed `page.surface_view.set`
+/// gives this text at `/scale`, and `fields.set` on a page's scale at `/value`. The reader still takes a 1:0 from a
+/// file, which is drawn 1:1.
 pub(crate) fn scale_problem(scale: &Scale) -> Option<&'static str> {
     matches!(scale, Scale::OneTo(0)).then_some("a scale is 1:n with n at least 1")
 }
@@ -744,7 +745,8 @@ pub enum LabelModeParam {
 /// it the page keeps its scale.
 ///
 /// Rejected: a missing page (not found); a page that is not a panel-layout page; a surface that is not in the project
-/// (`/surface`); a scale of 1:0 (`/scale`). Interactive. Outcome: the surface view's page item.
+/// (`/surface`); a scale of 1:0 (`/scale`; a JSON command is refused first by the schema, at `/scale/one_to`).
+/// Interactive. Outcome: the surface view's page item.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct SetSurfaceView {

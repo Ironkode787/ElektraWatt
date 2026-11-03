@@ -15,8 +15,9 @@
 //!
 //! When no branch of an `anyOf`/`oneOf` matches, the error of the branch the value names is reported: the
 //! only branch whose `required` members are all present (an externally tagged variant) or, failing that,
-//! the only branch whose `type` accepts the value (`Option<Struct>`). Otherwise the error is "no variant
-//! matches" at the value.
+//! the only branch whose `type` accepts the value (`Option<Struct>`); a branch that is itself a `oneOf`/`anyOf`
+//! (behind a `$ref`) is the one when one of its own branches is, so `Option<Enum>` reports the variant too.
+//! Otherwise the error is "no variant matches" at the value.
 //!
 //! The validator itself is limit-free; [`check_limits`] bounds the size of an untrusted parameter document
 //! (bytes, nesting, array length, string length) and runs before validation. Messages quote at most
@@ -454,10 +455,10 @@ impl Validator<'_> {
         }
         // No branch matches: report the branch the instance names, if exactly one.
         let named: Vec<usize> = (0..branches.len())
-            .filter(|i| self.selects(&branches[*i], inst))
+            .filter(|i| self.selects(&branches[*i], inst, depth + 1))
             .collect();
         let by_type: Vec<usize> = (0..branches.len())
-            .filter(|i| self.accepts_type(&branches[*i], inst))
+            .filter(|i| self.accepts_type(&branches[*i], inst, depth + 1))
             .collect();
         if let ([i], _) | ([], [i]) = (named.as_slice(), by_type.as_slice())
             && let Err(e) = self.check(&branches[*i], inst, path, depth + 1)
@@ -470,8 +471,9 @@ impl Validator<'_> {
     }
 
     /// Whether a branch is the one the instance names: an object with all `required` members of the
-    /// branch (an externally tagged variant), or a value equal to the branch's `const`/`enum`.
-    fn selects(&self, branch: &Value, inst: &Value) -> bool {
+    /// branch (an externally tagged variant), or a value equal to the branch's `const`/`enum`; or a branch that
+    /// is itself a `oneOf`/`anyOf` (through its `$ref`) of which one branch is (within [`MAX_DEPTH`]).
+    fn selects(&self, branch: &Value, inst: &Value, depth: usize) -> bool {
         let b = self.deref(branch);
         if let Some(c) = b.get("const") {
             return c == inst;
@@ -479,19 +481,33 @@ impl Validator<'_> {
         if let Some(Value::Array(options)) = b.get("enum") {
             return options.contains(inst);
         }
-        match (inst, b.get("required")) {
+        let named = match (inst, b.get("required")) {
             (Value::Object(members), Some(Value::Array(req))) if !req.is_empty() => req
                 .iter()
                 .all(|r| r.as_str().is_some_and(|r| members.contains_key(r))),
             _ => false,
-        }
+        };
+        named || Self::some_inner(b, depth, |inner| self.selects(inner, inst, depth + 1))
     }
 
-    /// Whether a branch declares a `type` that the instance has.
-    fn accepts_type(&self, branch: &Value, inst: &Value) -> bool {
-        self.deref(branch)
-            .get("type")
+    /// Whether a branch declares a `type` that the instance has, or is itself a `oneOf`/`anyOf` (through its
+    /// `$ref`) of which one branch does (within [`MAX_DEPTH`]).
+    fn accepts_type(&self, branch: &Value, inst: &Value, depth: usize) -> bool {
+        let b = self.deref(branch);
+        b.get("type")
             .is_some_and(|t| type_names(t).iter().any(|n| type_matches(n, inst)))
+            || Self::some_inner(b, depth, |inner| self.accepts_type(inner, inst, depth + 1))
+    }
+
+    /// Whether `test` holds for one of the `oneOf`/`anyOf` branches of the schema `b`; none is tried from
+    /// [`MAX_DEPTH`] on (a guard against `$ref` cycles).
+    fn some_inner(b: &Value, depth: usize, test: impl Fn(&Value) -> bool) -> bool {
+        depth < MAX_DEPTH
+            && ["oneOf", "anyOf"]
+                .iter()
+                .filter_map(|k| b.get(*k).and_then(Value::as_array))
+                .flatten()
+                .any(test)
     }
 
     fn check_object(
@@ -896,6 +912,56 @@ mod tests {
         ]});
         ok(s.clone(), json!(null));
         assert_eq!(err(s, json!({"a": "x"})).0, "/a");
+    }
+
+    /// `Option<Enum>`: the branch behind a `$ref` is itself a `oneOf`, and is the one the value names when one of
+    /// its own branches is.
+    fn optional_enum() -> Value {
+        json!({
+            "$defs": {"E": {"oneOf": [
+                {"type": "string", "const": "none"},
+                {"type": "object", "properties": {"n": {"type": "integer", "minimum": 1}},
+                    "required": ["n"], "additionalProperties": false}
+            ]}},
+            "anyOf": [{"$ref": "#/$defs/E"}, {"type": "null"}]
+        })
+    }
+
+    #[test]
+    fn a_branch_that_is_itself_a_one_of_is_the_one_its_own_branch_names() {
+        let s = optional_enum();
+        ok(s.clone(), json!({"n": 1}));
+        ok(s.clone(), json!(null));
+        assert_eq!(
+            err(s.clone(), json!({"n": 0})),
+            ("/n".into(), "0 is below the minimum 1".into())
+        );
+        // By type: the object variant is the only one that takes a value with other members.
+        assert_eq!(
+            err(s, json!({"m": 0})),
+            ("".into(), "missing required member `n`".into())
+        );
+    }
+
+    #[test]
+    fn a_value_whose_type_no_nested_branch_has_keeps_the_generic_text() {
+        assert_eq!(
+            err(optional_enum(), json!(7)),
+            ("".into(), "no variant of the integer matches the value".into())
+        );
+    }
+
+    /// A `$ref` cycle of `oneOf` branches ends at the depth limit, with the generic text.
+    #[test]
+    fn a_cycle_of_one_of_branches_ends_at_the_depth_limit() {
+        let s = json!({
+            "$defs": {"A": {"oneOf": [{"$ref": "#/$defs/A"}, {"type": "null"}]}},
+            "$ref": "#/$defs/A"
+        });
+        assert_eq!(
+            err(s, json!(1)),
+            ("".into(), "no variant of the integer matches the value".into())
+        );
     }
 
     #[test]

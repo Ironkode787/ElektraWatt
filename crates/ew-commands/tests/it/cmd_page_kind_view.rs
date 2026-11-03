@@ -426,7 +426,7 @@ fn ft1065_a_scale_of_one_to_zero_is_refused_by_the_schema_and_by_fields_set() {
         .expect("refused by the schema");
     assert_eq!(
         refused.to_string(),
-        "page.surface_view.set: invalid parameters at `/scale`: no variant of the object matches the value"
+        "page.surface_view.set: invalid parameters at `/scale/one_to`: 0 is below the minimum 1"
     );
     let set_scale = || SetFields {
         path: "scale".into(),

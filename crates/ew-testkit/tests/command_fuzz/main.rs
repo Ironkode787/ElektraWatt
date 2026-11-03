@@ -1381,7 +1381,7 @@ fn ft1064_the_star_and_scale_arms_reach_their_refusals() {
             false,
         ),
         (
-            "page.surface_view.set: invalid parameters at `/scale`: no variant of the object matches the value",
+            "page.surface_view.set: invalid parameters at `/scale/one_to`: 0 is below the minimum 1",
             true,
         ),
     ] {
