@@ -42,16 +42,16 @@ canvas.hover #0B63CE on canvas.sheet 5.69
 canvas.ghost #0B63CE99
 canvas.snap #0B63CE on canvas.sheet 5.69
 canvas.open_cp #868E99 on canvas.sheet 3.31
-canvas.highlight.1 #D55E00 on canvas.sheet 3.87
-canvas.highlight.2 #009E73 on canvas.sheet 3.42
-canvas.highlight.3 #CC79A7 on canvas.sheet 3.06
-canvas.highlight.4 #A86F00 on canvas.sheet 4.25
+canvas.highlight.1 #9878FC on canvas.sheet 3.27
+canvas.highlight.2 #CC79A7 on canvas.sheet 3.06
+canvas.highlight.3 #009E73 on canvas.sheet 3.42
+canvas.highlight.4 #D55E00 on canvas.sheet 3.87
 canvas.measure #1A1D21 on canvas.sheet 16.91
 canvas.conflict #C42B3C on canvas.sheet 5.59
 canvas.stale #868E994D
 canvas.chip #1A1D21F0
 canvas.chip_text #ECEEF1
-canvas.highlight.label #000000 on canvas.highlight.1 5.43 on canvas.highlight.2 6.14 on canvas.highlight.3 6.86 on canvas.highlight.4 4.94
+canvas.highlight.label #000000 on canvas.highlight.1 6.43 on canvas.highlight.2 6.86 on canvas.highlight.3 6.14 on canvas.highlight.4 5.43
 elevation.1 0 1 2 0 #1018281A, 0 0 0 1 #1018280A
 elevation.2 0 8 24 0 #10182829, 0 2 6 0 #10182814
 border.raised 0px
@@ -181,16 +181,16 @@ canvas.hover #0B63CE on canvas.sheet 5.69
 canvas.ghost #0B63CE99
 canvas.snap #0B63CE on canvas.sheet 5.69
 canvas.open_cp #868E99 on canvas.sheet 3.31
-canvas.highlight.1 #D55E00 on canvas.sheet 3.87
-canvas.highlight.2 #009E73 on canvas.sheet 3.42
-canvas.highlight.3 #CC79A7 on canvas.sheet 3.06
-canvas.highlight.4 #A86F00 on canvas.sheet 4.25
+canvas.highlight.1 #9878FC on canvas.sheet 3.27
+canvas.highlight.2 #CC79A7 on canvas.sheet 3.06
+canvas.highlight.3 #009E73 on canvas.sheet 3.42
+canvas.highlight.4 #D55E00 on canvas.sheet 3.87
 canvas.measure #1A1D21 on canvas.sheet 16.91
 canvas.conflict #C42B3C on canvas.sheet 5.59
 canvas.stale #868E994D
 canvas.chip #1A1D21F0
 canvas.chip_text #ECEEF1
-canvas.highlight.label #000000 on canvas.highlight.1 5.43 on canvas.highlight.2 6.14 on canvas.highlight.3 6.86 on canvas.highlight.4 4.94
+canvas.highlight.label #000000 on canvas.highlight.1 6.43 on canvas.highlight.2 6.86 on canvas.highlight.3 6.14 on canvas.highlight.4 5.43
 elevation.1 0 1 2 0 #1018281A, 0 0 0 1 #1018280A
 elevation.2 0 8 24 0 #10182829, 0 2 6 0 #10182814
 border.raised 0px
@@ -320,16 +320,16 @@ canvas.hover #0B63CE on canvas.sheet 5.69
 canvas.ghost #0B63CE99
 canvas.snap #0B63CE on canvas.sheet 5.69
 canvas.open_cp #868E99 on canvas.sheet 3.31
-canvas.highlight.1 #D55E00 on canvas.sheet 3.87
-canvas.highlight.2 #009E73 on canvas.sheet 3.42
-canvas.highlight.3 #CC79A7 on canvas.sheet 3.06
-canvas.highlight.4 #A86F00 on canvas.sheet 4.25
+canvas.highlight.1 #9878FC on canvas.sheet 3.27
+canvas.highlight.2 #CC79A7 on canvas.sheet 3.06
+canvas.highlight.3 #009E73 on canvas.sheet 3.42
+canvas.highlight.4 #D55E00 on canvas.sheet 3.87
 canvas.measure #1A1D21 on canvas.sheet 16.91
 canvas.conflict #C42B3C on canvas.sheet 5.59
 canvas.stale #868E994D
 canvas.chip #ECEEF1F0
 canvas.chip_text #1A1D21
-canvas.highlight.label #000000 on canvas.highlight.1 5.43 on canvas.highlight.2 6.14 on canvas.highlight.3 6.86 on canvas.highlight.4 4.94
+canvas.highlight.label #000000 on canvas.highlight.1 6.43 on canvas.highlight.2 6.86 on canvas.highlight.3 6.14 on canvas.highlight.4 5.43
 elevation.1 0 1 2 0 #00000066, 0 0 0 1 #FFFFFF0A
 elevation.2 0 8 24 0 #00000080, 0 2 6 0 #0000004D
 border.raised 0px
@@ -459,16 +459,16 @@ canvas.hover #0B63CE on canvas.sheet 5.69
 canvas.ghost #0B63CE99
 canvas.snap #0B63CE on canvas.sheet 5.69
 canvas.open_cp #868E99 on canvas.sheet 3.31
-canvas.highlight.1 #D55E00 on canvas.sheet 3.87
-canvas.highlight.2 #009E73 on canvas.sheet 3.42
-canvas.highlight.3 #CC79A7 on canvas.sheet 3.06
-canvas.highlight.4 #A86F00 on canvas.sheet 4.25
+canvas.highlight.1 #9878FC on canvas.sheet 3.27
+canvas.highlight.2 #CC79A7 on canvas.sheet 3.06
+canvas.highlight.3 #009E73 on canvas.sheet 3.42
+canvas.highlight.4 #D55E00 on canvas.sheet 3.87
 canvas.measure #1A1D21 on canvas.sheet 16.91
 canvas.conflict #C42B3C on canvas.sheet 5.59
 canvas.stale #868E994D
 canvas.chip #ECEEF1F0
 canvas.chip_text #1A1D21
-canvas.highlight.label #000000 on canvas.highlight.1 5.43 on canvas.highlight.2 6.14 on canvas.highlight.3 6.86 on canvas.highlight.4 4.94
+canvas.highlight.label #000000 on canvas.highlight.1 6.43 on canvas.highlight.2 6.86 on canvas.highlight.3 6.14 on canvas.highlight.4 5.43
 elevation.1 0 1 2 0 #00000066, 0 0 0 1 #FFFFFF0A
 elevation.2 0 8 24 0 #00000080, 0 2 6 0 #0000004D
 border.raised 0px
@@ -598,16 +598,16 @@ canvas.hover #0B63CE on canvas.sheet 5.69
 canvas.ghost #0B63CE99
 canvas.snap #0B63CE on canvas.sheet 5.69
 canvas.open_cp #868E99 on canvas.sheet 3.31
-canvas.highlight.1 #D55E00 on canvas.sheet 3.87
-canvas.highlight.2 #009E73 on canvas.sheet 3.42
-canvas.highlight.3 #CC79A7 on canvas.sheet 3.06
-canvas.highlight.4 #A86F00 on canvas.sheet 4.25
+canvas.highlight.1 #9878FC on canvas.sheet 3.27
+canvas.highlight.2 #CC79A7 on canvas.sheet 3.06
+canvas.highlight.3 #009E73 on canvas.sheet 3.42
+canvas.highlight.4 #D55E00 on canvas.sheet 3.87
 canvas.measure #1A1D21 on canvas.sheet 16.91
 canvas.conflict #C42B3C on canvas.sheet 5.59
 canvas.stale #868E994D
 canvas.chip #FFFFFFF0
 canvas.chip_text #000000
-canvas.highlight.label #000000 on canvas.highlight.1 5.43 on canvas.highlight.2 6.14 on canvas.highlight.3 6.86 on canvas.highlight.4 4.94
+canvas.highlight.label #000000 on canvas.highlight.1 6.43 on canvas.highlight.2 6.86 on canvas.highlight.3 6.14 on canvas.highlight.4 5.43
 elevation.1 0 0 0 0 #00000000, 0 0 0 0 #00000000
 elevation.2 0 0 0 0 #00000000, 0 0 0 0 #00000000
 border.raised 1px
@@ -737,16 +737,16 @@ canvas.hover #0B63CE on canvas.sheet 5.69
 canvas.ghost #0B63CE99
 canvas.snap #0B63CE on canvas.sheet 5.69
 canvas.open_cp #868E99 on canvas.sheet 3.31
-canvas.highlight.1 #D55E00 on canvas.sheet 3.87
-canvas.highlight.2 #009E73 on canvas.sheet 3.42
-canvas.highlight.3 #CC79A7 on canvas.sheet 3.06
-canvas.highlight.4 #A86F00 on canvas.sheet 4.25
+canvas.highlight.1 #9878FC on canvas.sheet 3.27
+canvas.highlight.2 #CC79A7 on canvas.sheet 3.06
+canvas.highlight.3 #009E73 on canvas.sheet 3.42
+canvas.highlight.4 #D55E00 on canvas.sheet 3.87
 canvas.measure #1A1D21 on canvas.sheet 16.91
 canvas.conflict #C42B3C on canvas.sheet 5.59
 canvas.stale #868E994D
 canvas.chip #FFFFFFF0
 canvas.chip_text #000000
-canvas.highlight.label #000000 on canvas.highlight.1 5.43 on canvas.highlight.2 6.14 on canvas.highlight.3 6.86 on canvas.highlight.4 4.94
+canvas.highlight.label #000000 on canvas.highlight.1 6.43 on canvas.highlight.2 6.86 on canvas.highlight.3 6.14 on canvas.highlight.4 5.43
 elevation.1 0 0 0 0 #00000000, 0 0 0 0 #00000000
 elevation.2 0 0 0 0 #00000000, 0 0 0 0 #00000000
 border.raised 1px
@@ -876,16 +876,16 @@ canvas.hover #0B63CE on canvas.sheet 5.69
 canvas.ghost #0B63CE99
 canvas.snap #0B63CE on canvas.sheet 5.69
 canvas.open_cp #868E99 on canvas.sheet 3.31
-canvas.highlight.1 #D55E00 on canvas.sheet 3.87
-canvas.highlight.2 #009E73 on canvas.sheet 3.42
-canvas.highlight.3 #CC79A7 on canvas.sheet 3.06
-canvas.highlight.4 #A86F00 on canvas.sheet 4.25
+canvas.highlight.1 #9878FC on canvas.sheet 3.27
+canvas.highlight.2 #CC79A7 on canvas.sheet 3.06
+canvas.highlight.3 #009E73 on canvas.sheet 3.42
+canvas.highlight.4 #D55E00 on canvas.sheet 3.87
 canvas.measure #1A1D21 on canvas.sheet 16.91
 canvas.conflict #C42B3C on canvas.sheet 5.59
 canvas.stale #868E994D
 canvas.chip #000000F0
 canvas.chip_text #FFFFFF
-canvas.highlight.label #000000 on canvas.highlight.1 5.43 on canvas.highlight.2 6.14 on canvas.highlight.3 6.86 on canvas.highlight.4 4.94
+canvas.highlight.label #000000 on canvas.highlight.1 6.43 on canvas.highlight.2 6.86 on canvas.highlight.3 6.14 on canvas.highlight.4 5.43
 elevation.1 0 0 0 0 #00000000, 0 0 0 0 #00000000
 elevation.2 0 0 0 0 #00000000, 0 0 0 0 #00000000
 border.raised 1px
@@ -1015,16 +1015,16 @@ canvas.hover #0B63CE on canvas.sheet 5.69
 canvas.ghost #0B63CE99
 canvas.snap #0B63CE on canvas.sheet 5.69
 canvas.open_cp #868E99 on canvas.sheet 3.31
-canvas.highlight.1 #D55E00 on canvas.sheet 3.87
-canvas.highlight.2 #009E73 on canvas.sheet 3.42
-canvas.highlight.3 #CC79A7 on canvas.sheet 3.06
-canvas.highlight.4 #A86F00 on canvas.sheet 4.25
+canvas.highlight.1 #9878FC on canvas.sheet 3.27
+canvas.highlight.2 #CC79A7 on canvas.sheet 3.06
+canvas.highlight.3 #009E73 on canvas.sheet 3.42
+canvas.highlight.4 #D55E00 on canvas.sheet 3.87
 canvas.measure #1A1D21 on canvas.sheet 16.91
 canvas.conflict #C42B3C on canvas.sheet 5.59
 canvas.stale #868E994D
 canvas.chip #000000F0
 canvas.chip_text #FFFFFF
-canvas.highlight.label #000000 on canvas.highlight.1 5.43 on canvas.highlight.2 6.14 on canvas.highlight.3 6.86 on canvas.highlight.4 4.94
+canvas.highlight.label #000000 on canvas.highlight.1 6.43 on canvas.highlight.2 6.86 on canvas.highlight.3 6.14 on canvas.highlight.4 5.43
 elevation.1 0 0 0 0 #00000000, 0 0 0 0 #00000000
 elevation.2 0 0 0 0 #00000000, 0 0 0 0 #00000000
 border.raised 1px

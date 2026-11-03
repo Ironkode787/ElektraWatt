@@ -25,10 +25,11 @@ use ew_api::output::Uuid;
 /// The most highlights a window shows.
 pub const MAX_HIGHLIGHTS: usize = 4;
 
-/// The slot colours, each at least 3:1 on the white sheet (NFR-A11Y-03, doc 16 §10.3; FT-506): dark orange #A86F00
-/// (4.25:1), reddish purple #CC79A7 (3.06:1), bluish green #009E73 (3.42:1) and vermillion #D55E00 (3.87:1).
+/// The slot colours, each at least 3:1 on the white sheet (NFR-A11Y-03, doc 16 §10.3; FT-506): violet #9878FC
+/// (3.27:1; ID-1277: the dark orange #A86F00 before it met vermillion for protanopes), reddish purple #CC79A7 (3.06:1),
+/// bluish green #009E73 (3.42:1) and vermillion #D55E00 (3.87:1).
 pub const SLOT_COLOURS: [(u8, u8, u8); MAX_HIGHLIGHTS] = [
-    (0xA8, 0x6F, 0x00),
+    (0x98, 0x78, 0xFC),
     (0xCC, 0x79, 0xA7),
     (0x00, 0x9E, 0x73),
     (0xD5, 0x5E, 0x00),

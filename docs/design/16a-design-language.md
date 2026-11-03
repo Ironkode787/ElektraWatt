@@ -312,15 +312,15 @@ lines of the drawing.
 | `canvas.ghost` | `volt-600` at 60 % | — | The placed symbol's strokes, its label chip (§7.3) |
 | `canvas.snap` | `volt-600` | 5.69 | Crosshair with a 6-px gap; CP ring 8s + 1 px |
 | `canvas.open_cp` | `slate-400` #868E99 (as built, ID-884; `volt-600` before) | 3.31 | A (4s + 1)-px hollow square with an s-px rim on each connection point without a connection on the page (screen only; drawn while a grid step is at least 4 points on screen; FT-705). *Ruled in cycle 38 (decision log ID-879):* a subdued neutral ink, not the accent, so the squares on a valve page do not read as selection handles; fluid ports keep the marker; built in the cycle-38 fix round as `slate-400`, 3.31:1 on the sheet, never an accent shade (FT-745, ID-884) |
-| `canvas.highlight.1` | vermillion #D55E00 | 3.87 | 45° hatch halo, name chip filled with the hue |
-| `canvas.highlight.2` | bluish green #009E73 | 3.42 | 135° hatch halo, name chip filled with the hue |
-| `canvas.highlight.3` | reddish purple #CC79A7 | 3.06 | 0° hatch halo, name chip filled with the hue |
-| `canvas.highlight.4` | dark orange #A86F00 | 4.25 | 90° hatch halo, name chip filled with the hue |
+| `canvas.highlight.1` | violet #9878FC (ID-1277; dark orange #A86F00 before) | 3.27 | 45° hatch halo, name chip filled with the hue |
+| `canvas.highlight.2` | reddish purple #CC79A7 | 3.06 | 135° hatch halo, name chip filled with the hue |
+| `canvas.highlight.3` | bluish green #009E73 | 3.42 | 0° hatch halo, name chip filled with the hue |
+| `canvas.highlight.4` | vermillion #D55E00 | 3.87 | 90° hatch halo, name chip filled with the hue |
 | `canvas.measure` | `color.text.primary` (light value) | 16.9 | 1-px line with end ticks; readout chip |
 | `canvas.conflict` | `color.error` (light value) #C42B3C | 5.59 | A 2s-px line over each wire of a potential whose EW-POT-001 finding stands (screen only, under the highlights; FT-675) |
 | `canvas.stale` | `slate-400` at 30 % | — | Diagonal hatch |
 | `canvas.chip` | `color.surface.inverse` at 94 % | — | Rounded `radius.sm`, `type.small` |
-| `canvas.highlight.label` | #000000 | 5.43, 6.14, 6.86, 4.94 on the four hues | `type.caption` SemiBold on a highlight name chip |
+| `canvas.highlight.label` | #000000 | 6.43, 6.86, 6.14, 5.43 on the four hues | `type.caption` SemiBold on a highlight name chip |
 
 `s` is FT-391's integer scale factor `max(1, ⌊ppp⌋)`. **This settles FT-506**: the highlight slots take doc 16 §10.3's
 hues (the as-built Okabe–Ito orange and sky blue are 2.25:1 and 2.31:1 on white), and the slot geometry (an 8-pt band,

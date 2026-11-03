@@ -97,8 +97,8 @@ fn dl1_the_ratios_of_doc_16a_section_4_5_are_recomputed() {
     assert_eq!(r(&light, "color.border.control", "color.surface.panel"), 3.31);
     assert_eq!(r(&dark, "color.text.on_accent", "color.accent"), 6.65);
     // Canvas slots on white (§4.6).
-    assert_eq!(r(&light, "canvas.highlight.1", "canvas.sheet"), 3.87);
-    assert_eq!(r(&light, "canvas.highlight.3", "canvas.sheet"), 3.06);
+    assert_eq!(r(&light, "canvas.highlight.1", "canvas.sheet"), 3.27);
+    assert_eq!(r(&light, "canvas.highlight.2", "canvas.sheet"), 3.06);
     // The high-contrast themes add the boundary rule and the 7:1 text floor.
     let hc = tokens(Theme::HighContrastDark, Density::Comfortable);
     assert!(hc.pairs().iter().any(|p| p.fg == "color.border.default"));
@@ -624,8 +624,9 @@ fn token_name(property: &str) -> Option<String> {
         "sheet-line" => "canvas.sheet_line".to_owned(),
         "grid-dot" => "canvas.grid_dot".to_owned(),
         "selection" => "canvas.selection".to_owned(),
-        "hl1" => "canvas.highlight.1".to_owned(),
-        "hl2" => "canvas.highlight.2".to_owned(),
+        // ID-1277: the tokens take the slots' order; the mockup's two highlights are vermillion and bluish green.
+        "hl1" => "canvas.highlight.4".to_owned(),
+        "hl2" => "canvas.highlight.3".to_owned(),
         "shadow-1" => "elevation.1".to_owned(),
         "shadow-2" => "elevation.2".to_owned(),
         "row" => "size.row".to_owned(),

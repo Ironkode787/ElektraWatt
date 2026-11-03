@@ -213,12 +213,6 @@ pub(crate) mod ramp {
     pub const BLACK: Rgba = Rgba::hex(0x000000);
     pub const WHITE: Rgba = Rgba::hex(0xFFFFFF);
 
-    /// Doc 16 §10.3's highlight hues (doc 16a §4.6, D14).
-    pub const VERMILLION: Rgba = Rgba::hex(0xD55E00);
-    pub const BLUISH_GREEN: Rgba = Rgba::hex(0x009E73);
-    pub const REDDISH_PURPLE: Rgba = Rgba::hex(0xCC79A7);
-    pub const DARK_ORANGE: Rgba = Rgba::hex(0xA86F00);
-
     pub const GRID_DOT: Rgba = Rgba::hex(0xB8BEC7);
     pub const SURROUND_DARK: Rgba = Rgba::hex(0x2E3238);
 
@@ -1015,7 +1009,8 @@ pub fn tokens(theme: Theme, density: Density) -> Tokens {
         // FT-705: the open marker of a connection point without a connection (screen only). FX38a: slate-400, a
         // subdued neutral ink (3.3:1 on the white sheet), never an accent shade, so it does not read as a handle.
         canvas_open_cp: SLATE_400,
-        canvas_highlight: [VERMILLION, BLUISH_GREEN, REDDISH_PURPLE, DARK_ORANGE],
+        // ID-1277: the highlight slots' own colours in their order (doc 16a §4.6), one source with the canvas.
+        canvas_highlight: ew_viewmodel::highlight::SLOT_COLOURS.map(|(r, g, b)| Rgba { r, g, b, a: 255 }),
         // `color.text.primary`'s light value in every theme (the sheet is white).
         canvas_measure: SLATE_900,
         // FT-675: `color.error`'s light value in every theme (the sheet is white): the wires of a potential whose

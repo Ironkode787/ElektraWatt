@@ -267,7 +267,7 @@ fn np3_highlighting_24vdc_1_from_the_potentials_navigator() {
         json!({"kind": "connections", "key": group}),
     );
     assert_eq!(m, "Only potentials and connections can be highlighted.");
-    assert_eq!(SLOT_COLOURS[0], (0xA8, 0x6F, 0x00), "FT-506: dark orange");
+    assert_eq!(SLOT_COLOURS[0], (0x98, 0x78, 0xFC), "ID-1277: violet");
     shell.shutdown();
 }
 

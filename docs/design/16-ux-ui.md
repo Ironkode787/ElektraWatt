@@ -1491,13 +1491,17 @@ Okabe–Ito orange #E69F00 (2.25:1), sky blue #56B4E9 (2.31:1) and yellow #F0E44
 are used only on dark chrome surfaces, where they reach 7.4:1, 7.2:1 and 12.6:1 against #1E1E1E; on the sheet the
 darkened orange #A86F00 (not an Okabe–Ito value) replaces them.
 
-*As built (cycle 30, WP-S2.06 part 2; decision log ID-687, ID-712, ID-713; colours amended in cycle 31, FT-506).* Highlights are view state, never a model
-edit, composited into `canvas.snapshot` and listed by `ui.describe`. The four slots use the table's four colours,
-dark orange #A86F00, reddish purple #CC79A7, bluish green #009E73 and vermillion #D55E00 (cycle 31, FT-506: every one at
+*As built (cycle 30, WP-S2.06 part 2; decision log ID-687, ID-712, ID-713; colours amended in cycle 31, FT-506, and in
+cycle 49, ID-1277).* Highlights are view state, never a model
+edit, composited into `canvas.snapshot` and listed by `ui.describe`. The four slots use violet #9878FC, reddish purple
+#CC79A7, bluish green #009E73 and vermillion #D55E00 (cycle 31, FT-506: every one at
 least 3:1 on white, checked by a unit test), with the hatch angles 45°, 135°, 0° and 90°: a band 8 pt wide with a
 translucent fill at alpha 77 and hatch lines 2 pt wide at a 6 pt pitch (points × ppp, square caps); a fifth highlight
 replaces the oldest; they are painted above the overlays and below the statistics panel and the preview chips. The
-slot order and the hatch shapes differ from the table above: slot 1 keeps the orange family (darkened), slot 2 takes
+slot order and the hatch shapes differ from the table above: slot 1 takes violet (not an Okabe–Ito value; ID-1277: the
+dark orange #A86F00 it had since FT-506 met vermillion for protanopes, ΔE00 0.74 under WP-S2.08 D15's simulation, and
+4.47 and 9.77 for deuteranopes and tritanopes; violet keeps every pair of the four slots and the selection at ΔE00 10
+or more under all three), slot 2 takes
 reddish purple in place of sky blue (a darker blue would be the selection's #0072B2), slots 3 and 4 keep bluish green
 and vermillion, and every slot is a hatch at its own angle rather than a cross-hatch or dots.
 
