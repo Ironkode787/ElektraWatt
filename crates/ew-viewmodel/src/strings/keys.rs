@@ -40,6 +40,7 @@ pub const KEYS: &[&str] = &[
     "command-cable-create",
     "command-check-unwaive",
     "command-check-waive",
+    "command-merge-resolve",
     "command-conductor-add",
     "command-connection-delete",
     "command-connection-draw",
