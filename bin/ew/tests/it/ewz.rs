@@ -283,6 +283,8 @@ fn ez2_every_other_subcommand_refuses_the_ewz() {
         args([&"fmt", &ewz]),
         args([&"recover", &ewz]),
         args([&"recover", &ewz, &"--replay"]),
+        args([&"upgrade", &ewz]),
+        args([&"upgrade", &ewz, &"--check"]),
         args([&"project", &"assets", &"purge", &ewz, &"--preview"]),
         args([&"import", &"parts", &GOLDEN_PARTS, &"--project", &ewz]),
         args([&"import", &"table", &table, &ewz]),

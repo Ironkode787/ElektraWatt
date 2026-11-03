@@ -1327,4 +1327,228 @@ mod tests {
              project; nothing was written; run `ew fmt --repair` again"
         );
     }
+
+    // ---- `ew upgrade` (WP-S1.17 D11, decision log ID-1221 ruling 6) -------------------------------------------------
+
+    fn unchanged(value: serde_json::Value) -> Result<serde_json::Value, ew_api::MigrationError> {
+        Ok(value)
+    }
+
+    /// The test chain: the format step from "0.0", which changes no value.
+    static UPGRADE_CHAIN: ew_api::Migrations = ew_api::Migrations {
+        kinds: &[],
+        formats: &[ew_api::FormatStep {
+            from: "0.0",
+            to: "0.1",
+            manifest: unchanged,
+            record: unchanged,
+        }],
+    };
+
+    /// [`setup`]'s project with the stamps of the test format "0.0".
+    fn setup_v0(tag: &str) -> PathBuf {
+        let dir = setup(tag);
+        let path = dir.join("p.ew").join("manifest.json");
+        let text = std::fs::read_to_string(&path).unwrap();
+        let format = ew_api::FORMAT;
+        let older = text
+            .replace(&format!("\"format\": \"{format}\""), "\"format\": \"0.0\"")
+            .replace(
+                &format!("\"min_reader\": \"{format}\""),
+                "\"min_reader\": \"0.0\"",
+            );
+        assert_ne!(older, text);
+        std::fs::write(&path, older).unwrap();
+        dir
+    }
+
+    fn upgrade_store(dir: &Path) -> ew_api::StoreOptions {
+        let mut o = store(dir);
+        o.migrations = &UPGRADE_CHAIN;
+        o
+    }
+
+    /// Runs `ew upgrade` on `project` with `terminal` and the typed `answer`: the exit code and its stdout.
+    fn upgrade(
+        project: &Path,
+        store: ew_api::StoreOptions,
+        flags: (bool, bool),
+        terminal: bool,
+        answer: &str,
+    ) -> (i32, String) {
+        let args = UpgradeArgs {
+            project: Some(project.to_path_buf()),
+            check: flags.0,
+            yes: flags.1,
+        };
+        let mut input = std::io::Cursor::new(answer.as_bytes().to_vec());
+        let mut output = Vec::new();
+        let code = run_upgrade_with(&args, terminal, &mut input, &mut output, store);
+        (code, String::from_utf8(output).unwrap())
+    }
+
+    /// Every file of the project folder and beside it (the backups), by name, without the lock.
+    fn upgrade_files(dir: &Path) -> std::collections::BTreeMap<String, Vec<u8>> {
+        fn go(d: &Path, base: &Path, out: &mut std::collections::BTreeMap<String, Vec<u8>>) {
+            for e in std::fs::read_dir(d).into_iter().flatten().flatten() {
+                let p = e.path();
+                let name = p.strip_prefix(base).unwrap().to_string_lossy().replace('\\', "/");
+                if p.is_dir() {
+                    if name != "state" {
+                        go(&p, base, out);
+                    }
+                } else if !name.ends_with(".~ew.lock") {
+                    out.insert(name, std::fs::read(&p).unwrap());
+                }
+            }
+        }
+        let mut out = std::collections::BTreeMap::new();
+        go(dir, dir, &mut out);
+        out
+    }
+
+    /// The backup's path as the upgrade names it: beside the project folder, as the file system names that folder.
+    fn backup_of(dir: &Path) -> PathBuf {
+        ew_api::fmt::backup_path(&ew_api::OsVfs, &dir.join("p.ew"), 0)
+            .unwrap()
+            .with_file_name("p.ew.pre-0.0.ewz")
+    }
+
+    fn prompt() -> String {
+        format!(
+            "The project is in the older format 0.0. Upgrading converts it to format {}, which older versions of \
+             ElektraWatt cannot open, after a backup beside the project folder. Type `upgrade` to upgrade it, anything \
+             else to abort: ",
+            ew_api::FORMAT
+        )
+    }
+
+    #[test]
+    fn upgrade_parses_its_flags() {
+        let parse = |a: &[&str]| parse(a.iter().map(|s| (*s).to_owned())).map_err(|e| e.render().to_string());
+        let upgrade = |project: Option<&str>, check, yes| {
+            Ok(Command::Upgrade(UpgradeArgs {
+                project: project.map(PathBuf::from),
+                check,
+                yes,
+            }))
+        };
+        assert_eq!(parse(&["upgrade"]), upgrade(None, false, false));
+        assert_eq!(
+            parse(&["upgrade", "p.ew", "--check"]),
+            upgrade(Some("p.ew"), true, false)
+        );
+        assert_eq!(
+            parse(&["upgrade", "--yes", "--project", "p.ew"]),
+            upgrade(Some("p.ew"), false, true)
+        );
+        assert_eq!(
+            parse(&["upgrade", "--check", "--yes"]),
+            Err(
+                "error: the argument '--check' cannot be used with '--yes'\n\nUsage: ew upgrade --check \
+                 [project-dir]\n\nFor more information, try '--help'.\n"
+                    .to_owned()
+            )
+        );
+    }
+
+    /// MG-5: `--check` writes nothing and exits 1 on the test fixture and 0 on Golden A (read only, no lock).
+    #[test]
+    fn mg5_upgrade_check_exits_1_on_an_older_project_and_0_on_golden_a() {
+        let dir = setup_v0("upgrade-check");
+        let before = upgrade_files(&dir);
+        assert_eq!(
+            upgrade(&dir.join("p.ew"), upgrade_store(&dir), (true, false), false, ""),
+            (
+                1,
+                format!(
+                    "the project is in the older format 0.0: `ew upgrade` converts it to format {} after a backup\n",
+                    ew_api::FORMAT
+                )
+            )
+        );
+        assert_eq!(upgrade_files(&dir), before);
+        let golden = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../golden/J-E-2416.ew");
+        assert_eq!(
+            upgrade(&golden, upgrade_store(&dir), (true, false), false, ""),
+            (
+                0,
+                format!("the project needs no upgrade to format {}\n", ew_api::FORMAT)
+            )
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// MG-5: without a terminal or `--yes` it exits 2, and a word other than `upgrade` exits 1: nothing changed either
+    /// way; the typed word upgrades.
+    #[test]
+    fn mg5_upgrade_asks_on_a_terminal_and_refuses_without_one() {
+        let dir = setup_v0("upgrade-ask");
+        let before = upgrade_files(&dir);
+        let project = dir.join("p.ew");
+        assert_eq!(
+            upgrade(&project, upgrade_store(&dir), (false, false), false, ""),
+            (2, String::new())
+        );
+        assert_eq!(upgrade_files(&dir), before);
+        assert_eq!(
+            upgrade(&project, upgrade_store(&dir), (false, false), true, "yes\n"),
+            (1, prompt())
+        );
+        assert_eq!(upgrade_files(&dir), before);
+        assert_eq!(
+            upgrade(&project, upgrade_store(&dir), (false, false), true, "upgrade\n"),
+            (
+                0,
+                format!(
+                    "{}upgraded the project from format 0.0 to format {}; saved generation 2\nbackup: {}\n",
+                    prompt(),
+                    ew_api::FORMAT,
+                    backup_of(&dir).display()
+                )
+            )
+        );
+        assert!(backup_of(&dir).is_file());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// MG-5: `--yes` writes the backup and saves; afterwards, and on a current project, there is nothing to upgrade.
+    #[test]
+    fn mg5_upgrade_yes_backs_up_and_saves() {
+        let dir = setup_v0("upgrade-yes");
+        let project = dir.join("p.ew");
+        let before = upgrade_files(&dir);
+        assert_eq!(
+            upgrade(&project, upgrade_store(&dir), (false, true), false, ""),
+            (
+                0,
+                format!(
+                    "upgraded the project from format 0.0 to format {}; saved generation 2\nbackup: {}\n",
+                    ew_api::FORMAT,
+                    backup_of(&dir).display()
+                )
+            )
+        );
+        let after = upgrade_files(&dir);
+        let changed: Vec<&str> = after
+            .iter()
+            .filter(|(name, bytes)| before.get(*name) != Some(*bytes))
+            .map(|(name, _)| name.as_str())
+            .collect();
+        assert_eq!(changed, ["p.ew.pre-0.0.ewz", "p.ew/manifest.json"]);
+        let none = (
+            0,
+            format!("the project needs no upgrade to format {}\n", ew_api::FORMAT),
+        );
+        assert_eq!(
+            upgrade(&project, upgrade_store(&dir), (true, false), false, ""),
+            none
+        );
+        assert_eq!(
+            upgrade(&project, upgrade_store(&dir), (false, true), false, ""),
+            none
+        );
+        assert_eq!(upgrade_files(&dir), after);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 }

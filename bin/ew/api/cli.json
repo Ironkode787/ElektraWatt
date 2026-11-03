@@ -1572,6 +1572,42 @@
       "stability": "preview"
     },
     {
+      "path": "upgrade",
+      "flags": [
+        {
+          "name": "--project",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--check",
+          "value": false,
+          "repeatable": false
+        },
+        {
+          "name": "--yes",
+          "value": false,
+          "repeatable": false
+        }
+      ],
+      "exits": [
+        {
+          "code": 0,
+          "meaning": "upgraded, backed up and saved, or nothing to upgrade"
+        },
+        {
+          "code": 1,
+          "meaning": "`--check` found an upgrade needed, or the upgrade not confirmed"
+        },
+        {
+          "code": 2,
+          "meaning": "usage, no controlling terminal without `--yes`, lock, a crashed session's journal, open, backup and save errors"
+        }
+      ],
+      "result": null,
+      "stability": "preview"
+    },
+    {
       "path": "verify-derived",
       "flags": [
         {
