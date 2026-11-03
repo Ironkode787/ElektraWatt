@@ -4,9 +4,12 @@
 //! `check-ui-strings` (WP-S2.08 D11, NFR-I18N-02): no string literal reaches an egui text call in `crates/ew-ui/src`
 //! except the allowlist `ci/ui-strings-allow.txt`. Every shell text comes from a Fluent key (`strings::text`).
 //!
-//! The scan is lexical. A text call is `label(`, `button(`, `on_hover_text(`, `RichText::new(` or a `WidgetInfo`
-//! name (`WidgetInfo::labeled(`, `WidgetInfo::selected(`); every string literal inside its parentheses is checked,
-//! except the key of `key!`, `count_key!` and `Key::run_time`. A literal that holds only `format!` placeholders
+//! The scan is lexical. A text call is a method `label(`, `button(`, `small_button(`, `selectable_label(`,
+//! `checkbox(`, `heading(`, `menu_button(`, `collapsing(`, `hint_text(` or `on_hover_text(`, a painter's `text(`
+//! (`painter().text(`, `painter.text(`), a constructor `RichText::new(`, `Button::new(` or `Label::new(`, or a
+//! `WidgetInfo` name (`WidgetInfo::labeled(`, `WidgetInfo::selected(`); every string literal inside its parentheses
+//! is checked, except the key of `key!`, `count_key!` and `Key::run_time`. A literal bound to a variable first and
+//! passed by name is out of its reach. A literal that holds only `format!` placeholders
 //! (`"{}"`, `"{a}{b}"`) passes; another passes when the allowlist holds it exactly as written in the source (one per
 //! line in its quotes, `#` comments). A `#[cfg(test)]` module, comments and the test tool's own files are not scanned.
 
@@ -20,10 +23,23 @@ pub(crate) const ALLOW: &str = "ci/ui-strings-allow.txt";
 const SCANNED: &str = "crates/ew-ui/src";
 
 /// The calls whose arguments reach a text of the window.
-const TEXT_CALLS: &[&str] = &["label", "button", "on_hover_text"];
+const TEXT_CALLS: &[&str] = &[
+    "label",
+    "button",
+    "small_button",
+    "selectable_label",
+    "checkbox",
+    "heading",
+    "menu_button",
+    "collapsing",
+    "hint_text",
+    "on_hover_text",
+];
 /// The constructors `<type>::<fn>` whose arguments reach a text of the window.
 const TEXT_PATHS: &[(&str, &str)] = &[
     ("RichText", "new"),
+    ("Button", "new"),
+    ("Label", "new"),
     ("WidgetInfo", "labeled"),
     ("WidgetInfo", "selected"),
 ];
@@ -165,7 +181,17 @@ fn findings<'s>(src: &'s str, allow: &[String]) -> Vec<(usize, &'s str)> {
                 && toks[i - 2] == Tok::Punct(':')
                 && toks[i - 3] == Tok::Ident(ty)
         };
-        let is_call = (TEXT_CALLS.contains(name) && i > 0 && toks[i - 1] == Tok::Punct('.'))
+        let method = i > 0 && toks[i - 1] == Tok::Punct('.');
+        // A painter's `text(`: `painter().text(` or `painter.text(`.
+        let painter = *name == "text"
+            && method
+            && (toks.get(i.wrapping_sub(2)) == Some(&Tok::Ident("painter"))
+                || (i >= 4
+                    && toks[i - 2] == Tok::Punct(')')
+                    && toks[i - 3] == Tok::Punct('(')
+                    && toks[i - 4] == Tok::Ident("painter")));
+        let is_call = (TEXT_CALLS.contains(name) && method)
+            || painter
             || TEXT_PATHS.iter().any(|(ty, f)| f == name && path(ty));
         if !is_call {
             continue;
@@ -310,6 +336,45 @@ mod tests { fn t(ui: &mut Ui) { ui.label("Test"); } }
                 (5, "Big"),
                 (6, "Name"),
                 (7, r#"Raw "x""#),
+            ]
+        );
+    }
+
+    /// ID-1226: each call of the widened list is read; a painter's `text(` only on a painter, and another `.text(`
+    /// or a `new(` of another type not.
+    #[test]
+    fn the_widened_calls() {
+        let src = r##"
+fn f(ui: &mut Ui) {
+    ui.heading("Heading");
+    ui.selectable_label(on, "Selectable");
+    ui.checkbox(&mut on, "Check");
+    ui.small_button("Small");
+    ui.menu_button("Menu", |ui| {});
+    ui.collapsing("Collapsing", |ui| {});
+    TextEdit::singleline(&mut s).hint_text("Hint");
+    Button::new("Button");
+    egui::Label::new("Label");
+    ui.painter().text(pos, align, "Painted", font, colour);
+    painter.text(pos, align, "Painter", font, colour);
+    chord.text("Not a text call");
+    Id::new("not a text");
+}
+"##;
+        assert_eq!(
+            found(src),
+            [
+                (3, "Heading"),
+                (4, "Selectable"),
+                (5, "Check"),
+                (6, "Small"),
+                (7, "Menu"),
+                (8, "Collapsing"),
+                (9, "Hint"),
+                (10, "Button"),
+                (11, "Label"),
+                (12, "Painted"),
+                (13, "Painter"),
             ]
         );
     }

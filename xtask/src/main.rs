@@ -79,8 +79,9 @@ commands:
                        `disallowed-methods`, FT-317), and the calls in the reader crates, which opt out of the
                        lint: prints them per crate and compares them with ci/disallowed-methods-allow.toml;
                        --bless (or --write) rewrites the list
-  check-ui-strings     no string literal reaches an egui text call in crates/ew-ui/src (label, button,
-                       on_hover_text, RichText::new, WidgetInfo names) outside ci/ui-strings-allow.txt
+  check-ui-strings     no string literal reaches an egui text call in crates/ew-ui/src (labels, buttons,
+                       headings, check boxes, menus, hints, tooltips, painted texts, RichText::new, WidgetInfo
+                       names) outside ci/ui-strings-allow.txt
   check-test-layout    each package's integration tests are modules of one test binary (tests/it/main.rs); a
                        top-level file under tests/ is only for a separate binary that a workflow, xtask or
                        nextest names (the list in xtask/src/test_layout.rs); every `--test <name>` in a text file

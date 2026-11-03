@@ -13,3 +13,12 @@
 ", "
 # A data-grid cell's row, column, value and reason (navigator.rs).
 "{} · {} · {} · {what}"
+# The "unbound" choice of a text field's binding list (tool_view.rs).
+"-"
+# A part's favourite star, filled and empty (part_dialog.rs).
+"\u{2605}"
+"\u{2606}"
+# A junction pattern row's number and its label (junction.rs).
+"{}  {}"
+# A wizard step's number and its title (wizard.rs).
+"{}. {}"
