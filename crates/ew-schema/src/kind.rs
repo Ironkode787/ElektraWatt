@@ -483,6 +483,115 @@ pub const MEMBER_SINCE: &[MemberSince] = &[];
 /// 0.1. A variant added by a later format gets a row here in the same change.
 pub const VARIANT_SINCE: &[VariantSince] = &[];
 
+/// How the three-way merge core merges one member (WP-S1.17 D13; ADR-0012 decision 2's "ew-schema annotation"). A
+/// member without a row in [`MERGE_STRATEGIES`] is atomic: one value, taken from the side that changed it, a
+/// conflict when both changed it differently.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+pub enum MergeStrategy {
+    /// Member by member, each atomic unless it has a row of its own.
+    Object,
+    /// A list of objects merged as a map by the member `key`, each element atomic.
+    Keyed {
+        /// The key member (`idx`, `key`, `role`).
+        key: &'static str,
+        /// The order of the merged list.
+        order: MergeOrder,
+    },
+    /// A set: the elements of the base both sides keep, and the additions of either side.
+    Set {
+        /// The order of the merged list.
+        order: MergeOrder,
+    },
+    /// The greater of the two sides' dates.
+    Max,
+}
+
+/// The order of a merged [`MergeStrategy::Keyed`] or [`MergeStrategy::Set`] list (decision log ID-1268).
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+pub enum MergeOrder {
+    /// The container's canonical order: a [`KeyedList`](crate::KeyedList) by its key, a [`Set`](crate::Set) by the
+    /// compact JSON text of its elements.
+    Canonical,
+    /// Ours' order, then theirs' additions in theirs' order (a plain `Vec`).
+    OursFirst,
+}
+
+/// One row of [`MERGE_STRATEGIES`].
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+pub struct MergeRule {
+    /// The kind.
+    pub kind: Kind,
+    /// The member, as a path into the kind's JSON: `a.b` descends into an object member (the form of
+    /// [`PERSONAL_DATA_FIELDS`] without `[]`). A member above a listed path merges as an [`MergeStrategy::Object`].
+    pub path: &'static str,
+    /// How it merges.
+    pub strategy: MergeStrategy,
+}
+
+// map: merge-strategies: a new merge strategy goes in MERGE_STRATEGIES as a MergeRule (kind, member path, strategy).
+/// The merge strategies of WP-S1.17 D13 (decision log ID-1268): every other member merges atomically, and a record of
+/// an unknown kind as a whole. A row applies where the member exists at the base.
+pub const MERGE_STRATEGIES: &[MergeRule] = &[
+    MergeRule {
+        kind: Kind::Connection,
+        path: "overrides",
+        strategy: MergeStrategy::Object,
+    },
+    MergeRule {
+        kind: Kind::Device,
+        path: "tag",
+        strategy: MergeStrategy::Object,
+    },
+    MergeRule {
+        kind: Kind::Project,
+        path: "settings",
+        strategy: MergeStrategy::Object,
+    },
+    MergeRule {
+        kind: Kind::Function,
+        path: "cp_overrides",
+        strategy: MergeStrategy::Keyed {
+            key: "idx",
+            order: MergeOrder::Canonical,
+        },
+    },
+    MergeRule {
+        kind: Kind::Device,
+        path: "tech_data",
+        strategy: MergeStrategy::Keyed {
+            key: "key",
+            order: MergeOrder::Canonical,
+        },
+    },
+    MergeRule {
+        kind: Kind::Project,
+        path: "parties",
+        strategy: MergeStrategy::Keyed {
+            key: "role",
+            order: MergeOrder::OursFirst,
+        },
+    },
+    MergeRule {
+        kind: Kind::StructureNode,
+        path: "aliases",
+        strategy: MergeStrategy::Set {
+            order: MergeOrder::Canonical,
+        },
+    },
+    MergeRule {
+        kind: Kind::Manufacturer,
+        path: "aliases",
+        strategy: MergeStrategy::Set {
+            order: MergeOrder::OursFirst,
+        },
+    },
+    MergeRule {
+        kind: Kind::Project,
+        path: "master.edited",
+        strategy: MergeStrategy::Max,
+    },
+];
+
 /// The formats released so far, oldest first (doc 05 §10.4). Empty until the first release, when WP-S6.08 adds
 /// `"0.1"`; from then on a build whose [`FORMAT`] is not in it writes `unstable: true` (WP-S1.17 part 3).
 pub const RELEASED_FORMATS: &[&str] = &[];

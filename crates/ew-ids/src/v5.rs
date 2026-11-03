@@ -32,10 +32,11 @@
 //! | [`plc_config_project_id`] | `v5(station, "plc_config_project")` | `"plc_config_project"` |
 //! | [`revision_next_id`] | `v5(latest released revision, "next")` | `"next"` |
 //! | [`revision_withdrawal_id`] | `v5(revision, "withdrawal")` | `"withdrawal"` |
+//! | [`conflict_file_id`] | `v5(NS_CONFLICT, path)` | `"pages/<id>.jsonl"` |
 //!
 //! U+001F cannot occur in a UUID or a decimal integer, so the joined name is unambiguous. The module's
-//! constants are [`NS_LIBCOPY`] and [`NS_IMPORT`]; [`LineageAnchor`] and [`LineageNameError`] belong to
-//! [`lineage_namespace`].
+//! constants are [`NS_LIBCOPY`], [`NS_IMPORT`] and [`NS_CONFLICT`]; [`LineageAnchor`] and [`LineageNameError`]
+//! belong to [`lineage_namespace`].
 //!
 //! ```
 //! use ew_ids::{Id, Uuid, v5};
@@ -61,6 +62,11 @@ pub const NS_LIBCOPY: Uuid = Uuid::from_u128(0x04c1640f_8857_4dfc_9bff_e9baad47f
 /// The namespace of import-lineage namespaces (ADR-0004 amendment 4, doc 05 §3.2a). A random v4 UUID
 /// minted once for this purpose; **fixed forever**, since every imported record's ID derives from it.
 pub const NS_IMPORT: Uuid = Uuid::from_u128(0x7b75186c_f28e_49ce_b7f7_26b137095a65);
+
+/// The namespace of the file-level conflict records of the merge core (WP-S1.17 D14, decision log
+/// ID-1268). A random v4 UUID minted once for this purpose; **fixed forever**, since a file's conflict
+/// record is found by its ID.
+pub const NS_CONFLICT: Uuid = Uuid::from_u128(0x62f02f37_42d2_48ec_8f0d_692fb85254a0);
 
 /// The component separator, U+001F UNIT SEPARATOR.
 const SEP: char = '\u{1F}';
@@ -236,6 +242,13 @@ pub fn revision_withdrawal_id<R>(revision: Id<R>) -> Id<R> {
     v5(revision.as_uuid(), "withdrawal")
 }
 
+/// The ID of the file-level conflict record of the project file at `path` (project-relative, `/`
+/// separators): `v5(NS_CONFLICT, path)` (WP-S1.17 D14). One per file, so two merges that conflict on
+/// the same file name the same record.
+pub fn conflict_file_id<T>(path: &str) -> Id<T> {
+    v5(NS_CONFLICT, path)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -320,6 +333,11 @@ mod tests {
         assert_eq!(
             s(revision_withdrawal_id(id(REVISION))),
             "c5147bfd-2854-507d-92aa-c18d958f88a0"
+        );
+        assert_eq!(NS_CONFLICT.to_string(), "62f02f37-42d2-48ec-8f0d-692fb85254a0");
+        assert_eq!(
+            s(conflict_file_id("pages/4aa43308-d0d3-57ee-be0c-d9383f429f50.jsonl")),
+            "c801da2a-0f8c-5452-8203-791712d85dcd"
         );
     }
 

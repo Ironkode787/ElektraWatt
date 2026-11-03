@@ -36,7 +36,7 @@ pub(crate) fn parse(format: &str) -> Option<(u32, u32)> {
 
 /// Whether two formats are compatible as "same major" (doc 05 §10.1: before 1.0 every step counts as
 /// breaking, so `0.x` and `0.y` are different majors).
-fn same_major(a: (u32, u32), b: (u32, u32)) -> bool {
+pub(crate) fn same_major(a: (u32, u32), b: (u32, u32)) -> bool {
     a.0 == b.0 && (a.0 > 0 || a.1 == b.1)
 }
 

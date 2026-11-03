@@ -412,6 +412,72 @@ pub(crate) fn exceeds_depth(text: &[u8], max: usize) -> bool {
     false
 }
 
+/// Why a line or a library document was not read as a JSON value: the kind of its finding and the finding's text.
+pub(crate) struct Fault {
+    pub(crate) kind: FindingKind,
+    pub(crate) message: String,
+}
+
+/// One line of a JSON Lines file (without its line end and CR) as the loader reads it (doc 05 §3.6), in this order: the
+/// line-length limit, a conflict marker (EW-CORE-006), UTF-8, the nesting depth, and JSON syntax with duplicate members
+/// rejected. The merge core reads its three inputs with it (decision log ID-1268 ruling 5).
+pub(crate) fn parse_line<'b>(bytes: &'b [u8], limits: &Limits) -> Result<(&'b str, Value), Fault> {
+    if bytes.len() > limits.max_line_bytes {
+        return Err(Fault {
+            kind: FindingKind::LimitExceeded,
+            message: format!(
+                "line of {} bytes, more than the limit of {}",
+                bytes.len(),
+                limits.max_line_bytes
+            ),
+        });
+    }
+    if LINE_MARKERS.iter().any(|m| bytes.starts_with(m)) {
+        return Err(Fault {
+            kind: FindingKind::ConflictMarkers,
+            message: "a git conflict marker line".to_owned(),
+        });
+    }
+    let text = std::str::from_utf8(bytes).map_err(|e| Fault {
+        kind: FindingKind::JsonSyntax,
+        message: format!("the line is not UTF-8: {e}"),
+    })?;
+    if exceeds_depth(bytes, limits.max_depth) {
+        return Err(Fault {
+            kind: FindingKind::LimitExceeded,
+            message: format!("nesting deeper than {}", limits.max_depth),
+        });
+    }
+    match ew_schema::parse_value(text) {
+        Ok(value) => Ok((text, value)),
+        Err(e) => {
+            let (kind, message) = parse_failure(e);
+            Err(Fault { kind, message })
+        }
+    }
+}
+
+/// A library document's bytes as the loader reads them (doc 05 §3.6): a leading BOM skipped, then UTF-8, the nesting
+/// depth, and JSON syntax with duplicate members rejected. The merge core reads its three inputs with it (decision log
+/// ID-1268 ruling 5).
+pub(crate) fn parse_document(bytes: &[u8], limits: &Limits) -> Result<Value, Fault> {
+    let body = bytes.strip_prefix(&[0xEF, 0xBB, 0xBF]).unwrap_or(bytes);
+    let text = std::str::from_utf8(body).map_err(|e| Fault {
+        kind: FindingKind::JsonSyntax,
+        message: format!("the document is not UTF-8: {e}"),
+    })?;
+    if exceeds_depth(bytes, limits.max_depth) {
+        return Err(Fault {
+            kind: FindingKind::LimitExceeded,
+            message: format!("nesting deeper than {}", limits.max_depth),
+        });
+    }
+    ew_schema::parse_value(text).map_err(|e| {
+        let (kind, message) = parse_failure(e);
+        Fault { kind, message }
+    })
+}
+
 fn line_number(n: usize) -> u32 {
     u32::try_from(n).unwrap_or(u32::MAX)
 }
@@ -650,67 +716,12 @@ impl<'a> Loader<'a> {
             st.non_canonical = true;
             return;
         }
-        let keyless = LineKey::keyless().with_seq(n as u64);
-        if bytes.len() > self.limits.max_line_bytes {
-            self.find(
-                FindingKind::LimitExceeded,
-                path,
-                Some(ln),
-                format!(
-                    "line of {} bytes, more than the limit of {}",
-                    bytes.len(),
-                    self.limits.max_line_bytes
-                ),
-            );
-            self.quarantine(path, ln, FindingKind::LimitExceeded, keyless, bytes.to_vec(), st);
-            return;
-        }
-        if LINE_MARKERS.iter().any(|m| bytes.starts_with(m)) {
-            self.find(
-                FindingKind::ConflictMarkers,
-                path,
-                Some(ln),
-                "a git conflict marker line",
-            );
-            self.quarantine(
-                path,
-                ln,
-                FindingKind::ConflictMarkers,
-                keyless,
-                bytes.to_vec(),
-                st,
-            );
-            return;
-        }
-        let text = match std::str::from_utf8(bytes) {
-            Ok(text) => text,
-            Err(e) => {
-                self.find(
-                    FindingKind::JsonSyntax,
-                    path,
-                    Some(ln),
-                    format!("the line is not UTF-8: {e}"),
-                );
-                self.quarantine(path, ln, FindingKind::JsonSyntax, keyless, bytes.to_vec(), st);
-                return;
-            }
-        };
-        if exceeds_depth(bytes, self.limits.max_depth) {
-            self.find(
-                FindingKind::LimitExceeded,
-                path,
-                Some(ln),
-                format!("nesting deeper than {}", self.limits.max_depth),
-            );
-            self.quarantine(path, ln, FindingKind::LimitExceeded, keyless, bytes.to_vec(), st);
-            return;
-        }
-        match ew_schema::parse_value(text) {
-            Ok(value) => self.record(path, n, text, value, st),
-            Err(e) => {
-                let (kind, message) = parse_failure(e);
-                self.find(kind, path, Some(ln), message);
-                self.quarantine(path, ln, kind, keyless, bytes.to_vec(), st);
+        match parse_line(bytes, self.limits) {
+            Ok((text, value)) => self.record(path, n, text, value, st),
+            Err(fault) => {
+                let keyless = LineKey::keyless().with_seq(n as u64);
+                self.find(fault.kind, path, Some(ln), fault.message);
+                self.quarantine(path, ln, fault.kind, keyless, bytes.to_vec(), st);
             }
         }
     }
@@ -874,35 +885,10 @@ impl<'a> Loader<'a> {
         // Lines file: the document is read without it and, being unlike its canonical text, rewritten at the
         // next save. JSON has no BOM, so without this the document would be a syntax error, opaque, and every
         // record naming it a dangling reference that refuses the whole project (fuzz finding, cycle 22).
-        let body = bytes.strip_prefix(&[0xEF, 0xBB, 0xBF]).unwrap_or(bytes);
-        let text = match std::str::from_utf8(body) {
-            Ok(text) => text,
-            Err(e) => {
-                self.find(
-                    FindingKind::JsonSyntax,
-                    path,
-                    None,
-                    format!("the document is not UTF-8: {e}"),
-                );
-                self.opaque(path, hash);
-                return;
-            }
-        };
-        if exceeds_depth(bytes, self.limits.max_depth) {
-            self.find(
-                FindingKind::LimitExceeded,
-                path,
-                None,
-                format!("nesting deeper than {}", self.limits.max_depth),
-            );
-            self.opaque(path, hash);
-            return;
-        }
-        let value = match ew_schema::parse_value(text) {
+        let value = match parse_document(bytes, self.limits) {
             Ok(value) => value,
-            Err(e) => {
-                let (kind, message) = parse_failure(e);
-                self.find(kind, path, None, message);
+            Err(fault) => {
+                self.find(fault.kind, path, None, fault.message);
                 self.opaque(path, hash);
                 return;
             }
