@@ -17,8 +17,8 @@
 #                      `ew-derive` read it through `contextualize_config`); the failing inputs proptest persists are
 #                      uploaded;
 #   fuzz               (debug assertions and overflow checks come from the CARGO_PROFILE_RELEASE_* variables below, not
-#                      from cargo-fuzz: its release build adds them only with `-a`) the three cargo-fuzz targets of `fuzz/` (the JSONL loader, the migration chain, the command
-#                      sequence), 30 minutes each in parallel jobs, on the nightly toolchain pinned below and in
+#                      from cargo-fuzz: its release build adds them only with `-a`) every cargo-fuzz target of `fuzz/` (one entry of the matrix below each: the
+#                      JSONL loader, the migration chain, the command sequence, ...), 30 minutes each in parallel jobs, on the nightly toolchain pinned below and in
 #                      `fuzz/rust-toolchain.toml`, under AddressSanitizer (cargo-fuzz's default); the crash inputs and
 #                      the grown corpus are uploaded;
 #   fuzz-deny          `cargo deny check licenses advisories` over the fuzz crate's own dependency graph with the

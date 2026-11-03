@@ -84,7 +84,7 @@ def selftest():
         return " ".join(select(paths))
 
     every = " ".join(f"{t}:{n}" for t, n in MAX_LEN.items())
-    assert list(MAX_LEN) == ["jsonl_loader", "migration_chain", "command_sequence", "png_pdf", "ewz_read"], list(MAX_LEN)
+    assert {"jsonl_loader", "migration_chain", "command_sequence", "png_pdf", "ewz_read"} <= set(MAX_LEN), list(MAX_LEN)
     loader, chain, command = "jsonl_loader:65536", "migration_chain:65", "command_sequence:512"
     ewz = "ewz_read:16384"
     # nothing relevant
