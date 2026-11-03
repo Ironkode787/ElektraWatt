@@ -6,7 +6,8 @@ per-user Windows setup, the AppImage and the install tests (0.9 pw, D2, D9 to D1
 digests, the best-effort artefacts and the upgrade train (0.5 pw, D14 to D17); 0.3 pw reserve; part 1 first, then
 parts 2 and 3 in any order · **Date:** 2026-11-03 · **Work package:**
 [WP-S6.06](../02-work-packages.md#wp-s606-the-pilot-releases-installers-and-the-platform-ci-matrix) · **Decision
-log:** ID-1187, ID-1188, ID-1210 · **Part of:** ElektraWatt plan, specifications
+log:** ID-1187, ID-1188, ID-1210; part 1 ruled by ID-1251, built in cycle 49's first lane I49 and folded into cycle
+48's delivery (as built ID-1265, the review's part 6 ID-1266; the as-built notes in §5) · **Part of:** ElektraWatt plan, specifications
 
 **Purpose.** ElektraWatt has a nightly `ew` archive and a report-only release check of the window's binary, and no
 installer of any kind. 0.1.0, the first binary release, ships a per-user Windows setup, a Linux AppImage and the CLI
@@ -204,6 +205,24 @@ their recommendations (§13).
   --version` and `ew --version` print `<v>` (CI run).
 - **IN-7** `cargo xtask check-workflows` passes with `package.yml` and without `cli-artefact.yml`; `docs-book` stays
   green through `ci/build-book.sh`; targeted checks for `elektrawatt` and `xtask`; `doccheck.py` for `ci/README.md`.
+
+*As built (part 1, lane I49, folded into cycle 48's delivery; decision log ID-1251, ID-1265, ID-1266):*
+`packaging/stage.py` (standard library; `tree`, `archive`, and the helpers `pin`, which prints a component's version
+from `components.toml`, and `version`, which prints the workspace version or D8's default; `--test` asserts whole
+lists) and `packaging/components.toml` (`gcc` and `libc6-dev` at exact versions, cargo-about 0.9.2 and the runner's
+Python); `.github/workflows/package.yml` (the `book` job, the Windows and Linux jobs to the staged tree and the CLI
+archives, their smoke steps, the nightly CLI upload under the old artefact name) with `cli-artefact.yml` removed;
+`ci/build-book.sh`, which `docs.yml`'s `docs-book` calls; `ci/linux-container.sh`, which the Linux job and `c-only` run
+inside the container (not in the build list; the code stands on it); the job `c-only` in `ci.yml`, which runs on every
+push and pull request (making it a required check is the owner's); and `locate_resources`' test in
+`bin/elektrawatt`, which reaches the environment variable through a child process. IN-1, IN-2 and IN-7 are met by
+tests; IN-3 to IN-6 by the delivery's dispatch of `package.yml`, recorded by cycle 49's first design pass. The spec
+gives way on four points (the review's part 6, ID-1266): D18's marker is `packaging-components`, since the map check
+refuses a name with a space; §5 item 6's `REUSE.toml` row is not written, since every file of `packaging/` carries its
+own SPDX header; "the image's Python" (ID-1251) reads as the runner's, since `stage.py` runs on the host after the
+container's build; and stamping `<v>` into the binaries is WP-S6.07's (ID-1251): the programs print the workspace
+version, and the jobs assert that `<v>` begins with it. Part 2's rows from the review are FT-1222 to FT-1230, the
+stamping FT-1231.
 
 ## 6. Part 2: the setup, the AppImage and the install tests
 

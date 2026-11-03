@@ -9,7 +9,8 @@ SPDX-License-Identifier: CC-BY-4.0
 ElektraWatt release notes. Lines marked TODO are for the lead to complete; nothing else here is final.
 
 > **This is a source tag, not a binary release.** The tag `m1` marks the source of the M1 spine exit. The nightly
-> `ew` command-line builds of the workflow `cli-artefact.yml` are labelled "unsigned development build, not a
+> `ew` command-line builds of the workflow `cli-artefact.yml` (since cycle 48 `package.yml`, under the same artefact
+> name) are labelled "unsigned development build, not a
 > release": they carry no version tag and no signature, are kept as CI-run artefacts for 90 days and
 > are not a release. No installer, no signed binary and no download page exist for m1.
 

@@ -94,7 +94,7 @@ reports it.
 | `ew` declares no `test-confirm` feature: doc 18 §3.15's hook is an injected terminal, and the ban stays as a guard (ID-1082) | `ci/dep-rules.toml:263-268`; `bin/ew/src/cli.rs:2364-2366` | D12 |
 | `NOTICE` lists every bundled font file with its family, version, source and SHA-256, and the Tabler icons with their version and licence; the crates' notices are generated per release by cargo-about with `ci/third-party-notices.hbs` (one section per licence, each crate by name and version) | `NOTICE:10-83`; `ci/third-party-notices.hbs` | D9 |
 | The workspace version `0.0.0`; release notes in `docs/release-notes/` (`unreleased.md`, `m1-draft.md`) | `Cargo.toml:15`; `docs/release-notes/` | D5 |
-| `actions/upload-artifact` v7.0.1 and `actions/download-artifact` v7.0.0 pinned by SHA | `.github/workflows/cli-artefact.yml:151`; `ci.yml:400` | Part 1 |
+| `actions/upload-artifact` v7.0.1 and `actions/download-artifact` v7.0.0 pinned by SHA | `.github/workflows/package.yml` (since cycle 48, which removed `cli-artefact.yml`; ID-1265); `ci.yml:400` | Part 1 |
 | ID-476's distribution hold (WP-S6.06 §13 O1) | `docs/plan/06-decision-log.md` ID-476 | D3's upload |
 
 ## 3. Requirements traced
