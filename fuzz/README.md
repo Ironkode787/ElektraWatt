@@ -80,8 +80,11 @@ for.
 
 ## Seed corpora and regressions
 
-`corpus/<target>/` holds small seeds made from the golden project (anonymised, CC0) by `src/bin/seed_corpus.rs`; regenerate
-with `cargo run --release --bin seed_corpus` from `fuzz/` (deterministic). The seeds of `png_pdf` are four small PNGs
+`corpus/<target>/` holds small seeds made from the golden project (anonymised, CC0) by `src/bin/seed_corpus.rs`; `cargo xtask settle`
+regenerates the folders of `jsonl_loader`, `migration_chain` and `command_sequence` (the step `fuzz-seeds`, triggered by Golden A's
+files and `fuzz/src/`; it runs `cargo run --manifest-path fuzz/Cargo.toml --locked --bin seed_corpus -- <dir>` from the repository
+root, which is deterministic, and in `--check` names each seed that differs, is missing or is no longer made). A loader seed names
+its files by their index in Golden A's sorted file list, so a file added to or removed from Golden A makes the seeds stale. The seeds of `png_pdf` are four small PNGs
 written by hand (an 8-bit RGBA image with translucent pixels, an 8-bit grey-and-alpha image, a palette image with `tRNS`, a
 16-bit RGB image), not made by `seed_corpus`. The seeds of `ewz_read` are two `.ewz` files that `ew export ewz` wrote
 from `golden/fixtures/release-min`, one with a `.gitattributes` and a `.gitignore` beside it, not made by `seed_corpus`.

@@ -3,8 +3,9 @@
 
 //! Writes the seed corpora of the three targets into `fuzz/corpus/<target>/` (FT-297): small inputs made from
 //! the golden project (no private data: the golden project is anonymised), deterministic, so a rerun gives the
-//! same files. Run it from the `fuzz/` directory: `cargo run --release --bin seed_corpus`; an argument names
-//! another output directory.
+//! same files. `cargo xtask settle` runs it (the step `fuzz-seeds`, from the repository root): `cargo run
+//! --manifest-path fuzz/Cargo.toml --locked --bin seed_corpus -- <dir>`; an argument names the output directory
+//! (without one, `fuzz/corpus`).
 
 use std::path::{Path, PathBuf};
 

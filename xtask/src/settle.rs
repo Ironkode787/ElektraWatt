@@ -202,7 +202,7 @@ const GLOBAL_PLAN: &str = crate::records::GLOBAL_PLAN;
 
 // map: settle-steps: a new generated file or upkeep step goes in this table, in order, with triggers and outputs.
 /// The steps in their order: rustfmt, the workspace-hack crate, the shell's text keys, the command schemas, the CLI schemas, the rule catalogue, the keymaps, the
-/// blind reference, the CLI, `api_v1` and query snapshots, `docs-gen`, `gen-icons`, the clippy list, the fuzz table, the golden change list and the two
+/// blind reference, the CLI, `api_v1` and query snapshots, `docs-gen`, `gen-icons`, the clippy list, the fuzz table, the fuzz seeds, the golden change list and the two
 /// self-tests; then the checks; then the review gates of `--merge`.
 pub(crate) const STEPS: &[Step] = &[
     Step {
@@ -447,6 +447,21 @@ pub(crate) const STEPS: &[Step] = &[
         partial: &[FUZZ_TABLE],
         reads: &[],
         action: Action::FuzzTable,
+    },
+    Step {
+        name: "fuzz-seeds",
+        phase: Phase::Regen,
+        triggers: &["golden/J-E-2416.ew/**", "fuzz/src/**"],
+        deps_of: &[],
+        merge_reaches: &[],
+        outputs: &[
+            "fuzz/corpus/jsonl_loader/**",
+            "fuzz/corpus/migration_chain/**",
+            "fuzz/corpus/command_sequence/**",
+        ],
+        partial: &[],
+        reads: &[],
+        action: Action::Xtask(crate::fuzz_seeds::run),
     },
     Step {
         name: "golden-change-list",
@@ -1951,6 +1966,7 @@ mod tests {
                 "gen-icons",
                 "clippy-list",
                 "fuzz-table",
+                "fuzz-seeds",
                 "golden-change-list",
                 "selftest",
                 "selftest-visual",
@@ -2034,6 +2050,8 @@ mod tests {
             ("clippy-list", "crates/ew-model/Cargo.toml"),
             ("fuzz-table", "crates/ew-format/Cargo.toml"),
             ("fuzz-table", "fuzz/Cargo.toml"),
+            ("fuzz-seeds", "fuzz/src/golden.rs"),
+            ("fuzz-seeds", "golden/J-E-2416.ew/manifest.json"),
             ("golden-change-list", "golden/J-E-2416/tables/parts.csv"),
             ("golden-change-list", "docs/plan/06-decision-log.md"),
             ("selftest", "tools/blind/tasks/selftest/agent.jsonl"),

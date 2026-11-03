@@ -21,6 +21,7 @@ mod dco;
 mod deps;
 mod docs_gen;
 mod features;
+mod fuzz_seeds;
 mod governance;
 mod icons;
 mod lane_check;
