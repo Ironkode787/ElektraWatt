@@ -14,25 +14,24 @@ The main session orchestrates. It plans each cycle, briefs Claude subagents, int
   records them as "project owner (delegated)" in the decision log.
 - Real-world owner actions stay the owner's: legal matters, GitHub settings, funding, the pilot (2026-10-18, -27, -28).
 
-## Models, agents and briefs (owner, 2026-10-27; amended 2026-11-01, 2026-11-02)
+## Models, agents and briefs (owner, 2026-10-27; amended 2026-11-01, 2026-11-02, 2026-11-03)
 
-0. **Three classes** (owner, 2026-11-02, lifting the 2026-10-28 exclusion: "Reintroduce Sonnet into the fold, please.
-   Do not underestimate it."). Route each task to the class that does it well, and give Sonnet real work, not only
-   small tasks.
+0. **Two classes, no Sonnet** (owner, 2026-11-03: "Let's scrap sonnet from the lineup again."; this withdraws the
+   2026-11-02 reintroduction). Choose Opus or Haiku.
    - **Opus:** open design and new work-package parts, the file format, saves and data loss, core crates with subtle
-     invariants, hard debugging, rulings reads, the review and window checks.
-   - **Sonnet:** decided work with tests to run, across several files: FT batches, polish lanes, fix rounds, docs and
-     design-pass lanes, upkeep with judgment, and the feasibility read.
-   - **Haiku:** the facts and other lookups, mechanical edits, fixtures, regeneration, well-specified small code.
+     invariants, hard debugging, decided work with tests to run (FT batches, polish lanes, fix rounds, docs and
+     design-pass lanes), rulings reads, the review and window checks.
+   - **Haiku:** the facts and other lookups, the feasibility read, mechanical edits, fixtures, regeneration,
+     well-specified small code.
 1. **Agent types** (2026-11-01). Pass the model and the effort on every Agent call. Each definition carries its
    standing rules, so a brief never repeats them.
 
    | Type | Tools | Used for |
    |---|---|---|
-   | `lane` | Read, Edit, Write, Grep, Glob, Bash | Every editing task: work-package parts, fixes, FT batches, docs and design-pass lanes, upkeep (Opus, Sonnet or Haiku) |
+   | `lane` | Read, Edit, Write, Grep, Glob, Bash | Every editing task: work-package parts, fixes, FT batches, docs and design-pass lanes, upkeep (Opus or Haiku) |
    | `reviewer` | Read, Grep, Glob, Bash, Write (the ledger) | Review parts (Opus `high`) |
    | `checker` | Read, Grep, Glob, Bash, Write (its folder) | Window checks |
-   | `scout` | Read, Grep, Glob, Bash | Lookups (Haiku) and feasibility reads (Sonnet) |
+   | `scout` | Read, Grep, Glob, Bash | Lookups and feasibility reads (Haiku), rulings reads (Opus `low`) |
 
    - A narrow tool set keeps a call's base context near 14k tokens instead of 55k.
    - `general-purpose` is only for a task that needs a tool outside these sets.
@@ -45,10 +44,10 @@ The main session orchestrates. It plans each cycle, briefs Claude subagents, int
    - Before the first release the format may change freely (owner, 2026-10-31): no migrations or compatibility
      readers. Re-bless Golden A and the fixtures. Format work routes at `high`; data loss inside a session still at
      `xhigh`.
-3. **Ambiguity goes up a class, not up in effort:** Sonnet at `medium` rather than Haiku at `high`, Opus at `medium`
-   rather than Sonnet at `high`. Effort buys depth, not judgment.
-4. **Do not underestimate Sonnet 5.5 or Haiku 5.5** (rule 0 says what each takes). A decided ruling with tests to
-   run is Sonnet's even when it spans several crates; Opus is for what is still open or costly to get wrong.
+3. **Ambiguity goes up a class, not up in effort:** Opus at `medium` rather than Haiku at `high`. Effort buys depth,
+   not judgment.
+4. **Do not underestimate Haiku 5.5** (rule 0 says what it takes): lookups, mechanical edits, fixtures, regeneration,
+   well-specified small code. Opus takes everything that needs judgment, at the effort rule 2 gives.
 5. **Briefs** (amended 2026-11-01; the facts, 2026-11-01, cycle-43 retro): at most 800 words, written from the brief
    template in the orchestrator's private notes.
    - **Sections:**
@@ -150,7 +149,7 @@ The main session orchestrates. It plans each cycle, briefs Claude subagents, int
 13. **Back to the author.**
     - Findings go verbatim, with the orchestrator's rulings, to the authoring lane.
     - Resume that lane with SendMessage while its context is under about 250k tokens. Otherwise use a fresh `lane`
-      fixer (Sonnet `high`) with the findings and the lane's hand-off note (2026-11-01).
+      fixer (Opus `medium`) with the findings and the lane's hand-off note (2026-11-01).
     - The lane's worktree is kept until its part is accepted.
     - A lane resumed after it has handed back may not be able to hand back again. Its message asks it to write its
       report to a file in the orchestrator's notes and to end with one line naming that file (cycle-46 retro).
@@ -190,7 +189,7 @@ The main session orchestrates. It plans each cycle, briefs Claude subagents, int
     - **Every fix ruling gets the read too** (cycle-45 retro), for a resumed author as for a fresh lane, sent by
       message or by brief: its premises at the lane's base (the items exist, the edges and callers it assumes, the
       behaviour it changes), beside the Opus `low` read of the ruling.
-    - **The read:** a `scout` (Sonnet `medium`) checks with a checklist: the named items exist, a claimed bug reproduces,
+    - **The read:** a `scout` (Haiku `high`) checks with a checklist: the named items exist, a claimed bug reproduces,
       the files and the format touched, the consumers of a changed behaviour, an item's version already on `main`,
       each expectation against its cited source.
     - **Rulings:** the orchestrator writes its rulings into the spec, and an Opus `low` read checks them.
