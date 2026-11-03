@@ -218,3 +218,61 @@ fn a_cross_reference_drops_below_a_pin_text_it_would_overlap() {
     let (ya, _) = find(&runs(&v), "(201-E1)");
     assert!(ya.1 < pb.1, "{ya:?}");
 }
+
+/// FT-1138 (ID-1228 item 6): a black box's caption that would stand over a neighbour box's pin text rises
+/// `SLOT_TEXT_GAP` above it; the pin text stays 1 mm from its pin. The neighbour stands on the box's top edge, its
+/// one pin leaving down one grid step right of the box's left edge, where the caption starts.
+#[test]
+fn a_black_box_caption_rises_above_a_neighbours_pin_text() {
+    let mut v = view("r0");
+    let tag = v.reps[0]
+        .symbol
+        .as_ref()
+        .unwrap()
+        .text_slots
+        .iter()
+        .position(|s| matches!(s.kind, SlotKind::Tag))
+        .unwrap();
+    {
+        let r = Arc::make_mut(&mut v.reps[0].rep);
+        r.box_.as_mut().unwrap().cps.clear();
+    }
+    v.reps[0].pins.clear();
+    v.reps[0].slots = vec![SlotValue {
+        slot: u16::try_from(tag).unwrap(),
+        text: "-A1".to_owned(),
+        link: None,
+        item_links: Vec::new(),
+    }];
+    let mut neighbour = v.reps[0].clone();
+    {
+        let r = Arc::make_mut(&mut neighbour.rep);
+        r.id = Id::from_uuid(Uuid::from_u128(0x12));
+        r.pos = Pt2::new(Nm(g(30)), Nm(g(18)));
+        r.box_.as_mut().unwrap().cps = serde_json::from_value(json!([{"idx": 1, "pos": [g(1), g(12)], "dir": "down"}]))
+            .unwrap();
+    }
+    neighbour.slots.clear();
+    neighbour.pins = vec![PinText {
+        idx: 1,
+        text: "Q1.0".to_owned(),
+    }];
+    v.reps.push(neighbour);
+    let r = runs(&v);
+    let find = |t: &str| {
+        r.iter()
+            .find(|(x, _, _)| x == t)
+            .map(|(_, a, b)| (*a, *b))
+            .unwrap()
+    };
+    let (pa, pb) = find("Q1.0");
+    let (ca, cb) = find("-A1");
+    // the pin text has not moved: 1 mm above its pin on the box's top edge
+    assert!(near(pb.1, g(30) - MM), "{pa:?} {pb:?}");
+    let overlap = ca.0 < pb.0 && pa.0 < cb.0 && ca.1 < pb.1 && pa.1 < cb.1;
+    assert!(!overlap, "pin {pa:?} {pb:?}, caption {ca:?} {cb:?}");
+    assert!(
+        near(pa.1 - cb.1, SLOT_TEXT_GAP.0),
+        "pin {pa:?} {pb:?}, caption {ca:?} {cb:?}"
+    );
+}

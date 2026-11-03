@@ -97,7 +97,9 @@
 //!   [`SLOT_TEXT_GAP`] above the one before, the tag's anchor [`BLACK_BOX_CAPTION_GAP`] above the outline. Without a
 //!   CP on the top edge they are left-aligned on the outline's left edge (the tag where the symbol puts it); else
 //!   right-aligned one grid step left of the leftmost top CP, so no caption text stands over a CP, its pin text or
-//!   its wire. A text with an override stays where it says.
+//!   its wire. A text with an override stays where it says. A stack that collides with another representation's pin
+//!   text (FT-1138) rises [`SLOT_TEXT_GAP`] above the pin texts in its way, at most three times, as a raised device
+//!   tag does; without a free place it stays.
 //! - **Device tags** (FT-758). A device tag of a symbol that is no black box, without a position or angle override
 //!   and printing horizontally, moves when a wire runs through it, or when it collides (as in rule 2 above) with a
 //!   fixed text of another representation (a black-box caption, a CP designation, a pin text) or with the tag of a
@@ -1021,7 +1023,6 @@ impl Builder<'_> {
                 });
             }
         }
-        self.place_black_box_captions(view, &mut texts);
         let pins = pin_texts(view);
         // FT-707: the pin texts never move; they are fixed obstacles of the cross-reference texts.
         let pin_boxes: Vec<(EntityRef, Rect)> = pins
@@ -1040,6 +1041,7 @@ impl Builder<'_> {
                 self.text_box(&spec, false).map(|b| (*entity, b))
             })
             .collect();
+        self.place_black_box_captions(view, &mut texts, &pin_boxes);
         self.place_tags_off_own_mark(view, &mut texts);
         self.place_tags(view, &mut texts, &pin_boxes);
         self.place_slot_texts(&mut texts, &pin_boxes);
@@ -1124,8 +1126,10 @@ impl Builder<'_> {
     /// manufacturer texts, each without a position or angle override and printing horizontally, stacked outward from
     /// the box's top edge in that order, [`SLOT_TEXT_GAP`] apart, the tag's anchor [`BLACK_BOX_CAPTION_GAP`] above
     /// the outline. Left-aligned on the outline's left edge when the top edge has no CP; else right-aligned one grid
-    /// step left of the leftmost top CP, so that no caption text stands over a CP, its pin text or its wire.
-    fn place_black_box_captions(&self, view: &PageView, texts: &mut [SlotText<'_>]) {
+    /// step left of the leftmost top CP, so that no caption text stands over a CP, its pin text or its wire. A stack
+    /// that collides with another representation's pin text (`pins`, FT-1138) rises [`SLOT_TEXT_GAP`] above the pin
+    /// texts in its way, at most [`SLOT_TEXT_DROPS`] times, as a raised device tag does; without a free place it stays.
+    fn place_black_box_captions(&self, view: &PageView, texts: &mut [SlotText<'_>], pins: &[(EntityRef, Rect)]) {
         let step = view.grid.at(1).unwrap_or(Nm::ZERO);
         for rv in sorted_reps(view) {
             let rep = &rv.rep;
@@ -1166,7 +1170,8 @@ impl Builder<'_> {
             // The first line's anchor; each further line's box ends `SLOT_TEXT_GAP` above the previous one's.
             let mut anchor = top - BLACK_BOX_CAPTION_GAP;
             let mut above: Option<Nm> = None;
-            for (_, i) in lines {
+            let mut stack: Option<Rect> = None;
+            for &(_, i) in &lines {
                 texts[i].align = align.clone();
                 texts[i].at = Pt2::new(x, anchor);
                 let Some(bx) = self.text_box(&texts[i].spec(false), false) else {
@@ -1180,6 +1185,39 @@ impl Builder<'_> {
                     above = Some(bx.min().y);
                 }
                 anchor = texts[i].at.y;
+                if let Some(bx) = self.text_box(&texts[i].spec(false), false) {
+                    stack = Some(stack.map_or(bx, |s| {
+                        Rect::from_points(
+                            Pt2::new(s.min().x.min(bx.min().x), s.min().y.min(bx.min().y)),
+                            Pt2::new(s.max().x.max(bx.max().x), s.max().y.max(bx.max().y)),
+                        )
+                    }));
+                }
+            }
+            // FT-1138 (ID-1228 item 6): the stack rises above another representation's pin texts in its way.
+            let Some(own) = stack else { continue };
+            let in_way = |b: Rect| {
+                pins.iter()
+                    .filter(|(e, o)| *e != entity && collides(b, *o))
+                    .map(|(_, o)| o.min().y)
+                    .min()
+            };
+            let mut b = own;
+            let mut free = true;
+            for _ in 0..SLOT_TEXT_DROPS {
+                let Some(top) = in_way(b) else { break };
+                let dy = Nm(top.0 - SLOT_TEXT_GAP.0 - b.max().y.0);
+                b = Rect::from_points(
+                    Pt2::new(b.min().x, b.min().y + dy),
+                    Pt2::new(b.max().x, b.max().y + dy),
+                );
+                free = in_way(b).is_none();
+            }
+            let dy = b.min().y - own.min().y;
+            if free && dy != Nm::ZERO {
+                for &(_, i) in &lines {
+                    texts[i].at = texts[i].at + Pt2::new(Nm::ZERO, dy);
+                }
             }
         }
     }
