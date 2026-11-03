@@ -123,11 +123,35 @@ function Get-MachineListing {
     , $names.ToArray()
 }
 
+# IN-8: the subtrees that Windows' own diagnostics write while the test runs (ID-1283). The listing's changes in them
+# are printed as ignored, not failed. A subtree joins only when a run shows the operating system writing it.
+$IgnoredSubtrees = @(
+    # Windows Error Reporting records why a process ended, under TermReason\<process ID> (package.yml run 5).
+    'HKLM\SOFTWARE\Microsoft\Windows\Windows Error Reporting'
+    # RADAR, the heap-leak diagnosis, records the applications it diagnosed: run 5's was the test's own pwsh.exe.
+    'HKLM\SOFTWARE\Microsoft\RADAR'
+    # WMI's tracing registers and drops its providers: run 5 dropped wfascim, the CIM provider of the firewall cmdlets.
+    'HKLM\SOFTWARE\Microsoft\Wbem\Tracing'
+)
+
+# True, after printing it as ignored, for a change in one of the ignored subtrees (its prefix at a path-segment
+# boundary, ignoring case) whose name holds none of the setup's names: ElektraWatt, the setup's file, the install
+# folder.
+function Test-Ignored([string]$Change, [string]$Name) {
+    $ignoreCase = [StringComparison]::OrdinalIgnoreCase
+    $subtree = @($IgnoredSubtrees.Where({ $Name.Equals($_, $ignoreCase) -or $Name.StartsWith("$_\", $ignoreCase) }))
+    if ($subtree.Count -eq 0) { return $false }
+    $marks = @('ElektraWatt', (Split-Path -Leaf $Setup), $Root).Where({ $_ })
+    if (@($marks.Where({ $Name.IndexOf($_, $ignoreCase) -ge 0 })).Count -gt 0) { return $false }
+    Write-Host "install-test: ignored $Change $Name (under $($subtree[0]), which Windows writes)"
+    $true
+}
+
 function Assert-SameListing([string[]]$Before, [string[]]$After) {
     $old = [Collections.Generic.HashSet[string]]::new($Before, [StringComparer]::OrdinalIgnoreCase)
     $new = [Collections.Generic.HashSet[string]]::new($After, [StringComparer]::OrdinalIgnoreCase)
-    $added = @($After.Where({ -not $old.Contains($_) }))
-    $removed = @($Before.Where({ -not $new.Contains($_) }))
+    $added = @($After.Where({ -not $old.Contains($_) -and -not (Test-Ignored 'added' $_) }))
+    $removed = @($Before.Where({ -not $new.Contains($_) -and -not (Test-Ignored 'removed' $_) }))
     foreach ($line in $added) { Write-Host "install-test: added $line" }
     foreach ($line in $removed) { Write-Host "install-test: removed $line" }
     if ($added.Count + $removed.Count -gt 0) {
