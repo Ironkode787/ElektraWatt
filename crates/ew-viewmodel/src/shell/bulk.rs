@@ -40,10 +40,10 @@ use crate::{count_key, key};
 pub(super) const BOOL_CHOICES: &[&str] = &["false", "true"];
 
 /// The scopes of Renumber devices.
-const DEVICE_SCOPES: &[&str] = &["project", "page", "selection"];
+pub(super) const DEVICE_SCOPES: &[&str] = &["project", "page", "selection"];
 
 /// The schemes of `numbering.renumber` (its `scheme` schema).
-const SCHEMES: &[&str] = &["page_based"];
+pub(super) const SCHEMES: &[&str] = &["page_based"];
 
 /// The most file names the purge confirmation lists before "and `<n>` more" (§8.6).
 pub const PURGE_LISTED: usize = 20;

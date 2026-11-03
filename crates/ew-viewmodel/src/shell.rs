@@ -686,37 +686,54 @@ mod save_error_tests {
 
 #[cfg(test)]
 mod choice_word_tests {
-    use crate::palette::{FormPlan, form_plan};
     use crate::strings::{self, choice_text, choice_words};
 
-    /// ID-1278 ruling 2 (W49.1 D): every value of the closed sets the window shows through `choice_text` has its
-    /// `choice-<value>` in en-GB and nl-NL: the palette forms' `enum(…)` and `bool`, the form dialogs' choices (New
-    /// page's types, New structure node's aspects, the yes-or-no fields, Save as macro's kinds, the revision forms'
-    /// roles) and the part editor's kinds. The en-GB words are the ones derived before; the Dutch ones their own.
+    /// ID-1278 ruling 2 (W49.1 D; C49-p6#1): every value of the closed sets the window shows through `choice_text` has
+    /// its `choice-<value>` in en-GB and nl-NL: every `enum(…)` and `bool` of an `ACTIONS` signature, whatever its
+    /// form plan, the form dialogs' choices (New page's types, New structure node's aspects, the yes-or-no fields,
+    /// Renumber devices…' scopes and schemes, Save as macro's kinds, the revision forms' roles), the part editor's
+    /// kinds and every page type of the format (the Properties pane's Kind). The en-GB words are the ones derived
+    /// before; the Dutch ones their own.
     #[test]
     fn every_closed_choice_has_its_words_in_both_locales() {
-        let mut values: Vec<&str> = Vec::new();
-        let specs: Vec<_> = crate::actions::ACTIONS
-            .iter()
-            .filter_map(|m| match form_plan(m) {
-                FormPlan::Form(specs) => Some(specs),
-                _ => None,
-            })
-            .flatten()
-            .collect();
-        for p in &specs {
-            if p.ty == "bool" {
-                values.extend(["false", "true"]);
-            } else if let Some(list) = p.ty.strip_prefix("enum(").and_then(|t| t.strip_suffix(')')) {
-                values.extend(list.split('|'));
+        let mut values: Vec<String> = Vec::new();
+        for meta in crate::actions::ACTIONS {
+            for p in crate::actions::parse_signature(meta.params).unwrap_or_default() {
+                if p.ty == "bool" {
+                    values.extend(["false".to_owned(), "true".to_owned()]);
+                } else if let Some(list) = p.ty.strip_prefix("enum(").and_then(|t| t.strip_suffix(')')) {
+                    values.extend(list.split('|').map(str::to_owned));
+                }
             }
         }
-        values.extend(super::PAGE_TYPES);
-        values.extend(super::STRUCTURE_KINDS);
-        values.extend(super::bulk::BOOL_CHOICES);
-        values.extend(super::macros::MACRO_KINDS);
-        values.extend(super::revision::ROLES);
-        values.extend(super::part_dialog::PART_KINDS);
+        // The page types of the format, from its committed schema (`report` included: generated pages show it).
+        let page: serde_json::Value = serde_json::from_str(
+            &std::fs::read_to_string(
+                std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../schemas/0.1/page.schema.json"),
+            )
+            .unwrap(),
+        )
+        .unwrap();
+        let types: Vec<String> = page["$defs"]["PageType"]["oneOf"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter_map(|t| t["const"].as_str().map(str::to_owned))
+            .collect();
+        assert!(types.iter().any(|t| t == "report"), "{types:?}");
+        values.extend(types);
+        for set in [
+            super::PAGE_TYPES,
+            super::STRUCTURE_KINDS,
+            super::bulk::BOOL_CHOICES,
+            super::bulk::DEVICE_SCOPES,
+            super::bulk::SCHEMES,
+            &super::macros::MACRO_KINDS,
+            super::revision::ROLES,
+            &super::part_dialog::PART_KINDS,
+        ] {
+            values.extend(set.iter().map(|v| (*v).to_owned()));
+        }
         let nl: std::collections::BTreeSet<&str> = include_str!("../locales/nl-NL/shell.ftl")
             .lines()
             .filter_map(|l| l.split_once(" = ").map(|(k, _)| k))
@@ -1591,10 +1608,10 @@ impl ShellModel {
             .count();
         self.banner = match (banner, findings) {
             (b, 0) => b,
-            (None, n) => Some(strings::format(key!("banner-findings"), &[&n.to_string()])),
+            (None, n) => Some(strings::format_count(crate::count_key!("banner-findings"), n)),
             (Some(b), n) => Some(format!(
                 "{b} {}",
-                strings::format(key!("banner-findings"), &[&n.to_string()])
+                strings::format_count(crate::count_key!("banner-findings"), n)
             )),
         };
         let labels = session.page_labels();

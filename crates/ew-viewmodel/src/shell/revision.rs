@@ -737,9 +737,9 @@ impl ShellModel {
                         &[label, &role_words(author)],
                     ));
                     if !gate.safety_waivers.is_empty() {
-                        body.push(strings::format(
-                            key!("revision-waivers"),
-                            &[&gate.safety_waivers.len().to_string()],
+                        body.push(strings::format_count(
+                            crate::count_key!("revision-waivers"),
+                            gate.safety_waivers.len(),
                         ));
                     }
                 } else {

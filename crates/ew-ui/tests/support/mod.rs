@@ -318,33 +318,87 @@ pub fn fit_problems<S>(harness: &Harness<'_, S>) -> Vec<String> {
     problems
 }
 
-/// ID-1278 ruling 13 (C49-p3#3, FR-UI-027): the open dialog's buttons, its Primary and Cancel among them, lie inside
-/// the window down as well as across ([`fit_problems`] checks across only: a dialog grows down). A button no node of
-/// the window shows is reported too. Empty without a dialog.
+/// ID-1278 ruling 13 (C49-p3#3, C49-p6#3; FR-UI-027): the buttons of the open dialog (its Primary and Cancel among
+/// them) or of the first run's step on show lie inside the window down as well as across ([`fit_problems`] checks
+/// across only: a dialog grows down). A button is looked for in its own window only: under the nearest ancestor of
+/// the dialog's title (the first run's heading) that holds a button of that name, so a toolbar button of the same name
+/// never stands in for it. A button not shown there is reported too. Empty without a dialog or a first run.
 pub fn footer_problems(harness: &Harness<'_, App>) -> Vec<String> {
     use egui::accesskit::Role;
+    use ew_ui::ew_viewmodel::first_run::FirstRunStep;
     const SLACK: f64 = 1.0;
     let shell = harness.state().shell();
-    let Some(dialog) = shell.dialog() else {
+    let (title, labels): (String, Vec<String>) = if let Some(dialog) = shell.dialog() {
+        let spec = ew_ui::ew_viewmodel::dialogs::spec(dialog, shell);
+        let labels = spec.buttons().iter().map(|b| b.label.clone()).collect();
+        (spec.title, labels)
+    } else if let Some(run) = shell.first_run() {
+        let text = |k| strings::text(k).to_owned();
+        let mut labels = Vec::new();
+        if run.step != FirstRunStep::Language {
+            labels.push(text(key!("firstrun-back")));
+        }
+        if run.step == FirstRunStep::Start {
+            for k in [
+                key!("firstrun-start-wizard"),
+                key!("firstrun-start-sample"),
+                key!("firstrun-start-qet"),
+                key!("firstrun-start-new"),
+                key!("firstrun-start-none"),
+            ] {
+                labels.push(text(k));
+            }
+        } else {
+            labels.extend([text(key!("firstrun-skip")), text(key!("firstrun-next"))]);
+        }
+        (text(key!("firstrun-title")), labels)
+    } else {
         return Vec::new();
     };
-    let spec = ew_ui::ew_viewmodel::dialogs::spec(dialog, shell);
     let screen = harness.ctx.content_rect() * harness.ctx.pixels_per_point();
     let (x0, y0) = (f64::from(screen.min.x) - SLACK, f64::from(screen.min.y) - SLACK);
     let (x1, y1) = (f64::from(screen.max.x) + SLACK, f64::from(screen.max.y) + SLACK);
+    let root = harness.root();
+    let Some(heading) = root.children_recursive().find(|n| {
+        let n = n.accesskit_node();
+        n.label().or_else(|| n.value()).as_deref() == Some(title.as_str())
+    }) else {
+        return vec![format!("the title {title:?} is not shown")];
+    };
+    /// The bounds of the buttons named `label` under `node`.
+    fn buttons(
+        node: &egui_kittest::kittest::AccessKitNode<'_>,
+        label: &str,
+        out: &mut Vec<egui::accesskit::Rect>,
+    ) {
+        for child in node.children() {
+            if child.role() == Role::Button
+                && child.label().as_deref() == Some(label)
+                && let Some(b) = child.bounding_box()
+            {
+                out.push(b);
+            }
+            buttons(&child, label, out);
+        }
+    }
     let mut problems = Vec::new();
-    for button in spec.buttons() {
-        let bounds: Vec<_> = harness
-            .query_all_by_role_and_label(Role::Button, &button.label)
-            .filter_map(|n| n.accesskit_node().bounding_box())
-            .collect();
+    for label in &labels {
+        let mut bounds = Vec::new();
+        let mut ancestor = heading.accesskit_node().parent();
+        while let Some(a) = ancestor {
+            buttons(&a, label, &mut bounds);
+            if !bounds.is_empty() {
+                break;
+            }
+            ancestor = a.parent();
+        }
         if bounds.is_empty() {
-            problems.push(format!("{:?} is not shown", button.label));
+            problems.push(format!("{label:?} is not shown"));
         } else if !bounds
             .iter()
             .any(|b| b.x0 >= x0 && b.x1 <= x1 && b.y0 >= y0 && b.y1 <= y1)
         {
-            problems.push(format!("{:?} at {bounds:?} leaves the window", button.label));
+            problems.push(format!("{label:?} at {bounds:?} leaves the window"));
         }
     }
     problems

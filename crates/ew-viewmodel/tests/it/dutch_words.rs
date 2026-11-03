@@ -13,7 +13,7 @@ use ew_viewmodel::navigators::NavKind;
 use ew_viewmodel::navigators::messages::FindingDetail;
 use ew_viewmodel::palette::{FormPlan, PaletteField, form_plan};
 use ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
-use ew_viewmodel::{count_key, strings};
+use ew_viewmodel::{count_key, key, strings};
 use serde_json::json;
 
 /// The keys of the shipped Fluent file of `locale`.
@@ -160,6 +160,25 @@ fn a_count_of_one_reads_in_the_singular() {
             "Voorbeeld bijgewerkt: 1 resultaat meer",
             "Preview updated: 2 more results",
         ),
+        // C49-p6#2: the paste ghost's dropped connections, the open banner's findings, the approval's waivers.
+        (
+            count_key!("label-paste-dropped"),
+            ", 1 connection dropped",
+            ", 1 verbinding weggelaten",
+            ", 2 connections dropped",
+        ),
+        (
+            count_key!("banner-findings"),
+            "1 integrity finding was found when the project was opened.",
+            "Bij het openen van het project is 1 integriteitsbevinding gevonden.",
+            "2 integrity findings were found when the project was opened.",
+        ),
+        (
+            count_key!("revision-waivers"),
+            "Approving also acknowledges 1 safety waiver in force.",
+            "Goedkeuren erkent ook 1 geldende veiligheidsvrijstelling.",
+            "Approving also acknowledges 2 safety waivers in force.",
+        ),
     ];
     for (key, one, een, two) in cases {
         assert_eq!(strings::format_count(key, 1), one);
@@ -232,4 +251,22 @@ fn a_new_strip_without_a_terminal_reads_in_words() {
     );
     assert_eq!(ew_viewmodel::navigators::strip_label("-X1"), "-X1");
     shell.shutdown();
+}
+
+/// C49-p6#4 (ID-1278 ruling 9): Dutch puts the action's name mid-sentence through the Fluent function `IN_SENTENCE`;
+/// en-GB keeps the title as it is.
+#[test]
+fn the_preview_chip_puts_the_action_mid_sentence_in_dutch() {
+    let chip = || strings::format(key!("preview-chip"), &[strings::command_title("device.place")]);
+    assert_eq!(chip(), "Preview of Place device");
+    assert!(strings::set_locale("nl"));
+    assert_eq!(chip(), "Voorbeeld: apparaat plaatsen");
+    assert_eq!(
+        strings::format(
+            key!("preview-chip-failed"),
+            &[strings::command_title("device.place"), "x"]
+        ),
+        "Voorbeeld: apparaat plaatsen mislukt: x"
+    );
+    assert!(strings::set_locale("en"));
 }

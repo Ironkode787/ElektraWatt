@@ -118,11 +118,11 @@ impl PasteTool {
 
     /// The label: `paste <n> records`, the dropped connections, the predicted tags.
     fn label(&self) -> String {
-        let mut text = strings::format(key!("label-paste"), &[&self.fragment.records.to_string()]);
+        let mut text = strings::format_count(crate::count_key!("label-paste"), self.fragment.records);
         if self.dropped > 0 {
-            text.push_str(&strings::format(
-                key!("label-paste-dropped"),
-                &[&self.dropped.to_string()],
+            text.push_str(&strings::format_count(
+                crate::count_key!("label-paste-dropped"),
+                self.dropped,
             ));
         }
         if !self.tags.is_empty() {

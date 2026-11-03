@@ -236,9 +236,9 @@ fn stem(word: &str) -> String {
     s.into_iter().collect()
 }
 
-/// Whether `term` is used in `texts` (lower case), case-insensitive and by whole words: a one-word term as the
-/// start of a word, by its stem (by the whole term when its stem is shorter than four letters: "goot" is no stem of
-/// "goed"); a term of several words (or with a hyphen) as a phrase that starts a word.
+/// Whether `term` is used in `texts` (lower case), case-insensitive and at the start of a word: a one-word term as a
+/// word that starts with its stem, or with the whole term when its stem is shorter than four letters ("goot" is no
+/// stem of "goed"); a term of several words (or with a hyphen) as a phrase that starts a word.
 fn uses(texts: &str, term: &str) -> bool {
     let term = term.to_lowercase();
     let starts_word = |i: usize| i == 0 || !texts[..i].chars().next_back().is_some_and(char::is_alphanumeric);

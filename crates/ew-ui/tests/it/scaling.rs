@@ -287,6 +287,30 @@ fn ax3_a_footer_below_the_window_is_reported() {
     h.state_mut().shell_mut().shutdown();
 }
 
+/// C49-p6#3: the first run's steps are checked too. Its first step fits at 300 %; in a window too short for it, its
+/// Skip and Next are reported as leaving the window.
+#[test]
+fn ax3_a_first_run_footer_below_the_window_is_reported() {
+    let tmp = Tmp::new();
+    let mut shell = ShellModel::new(Mode::Gui, tmp.config_with_resources());
+    shell.start_first_run_if_needed();
+    let mut h = harness_with(shell, Scripted::default(), None);
+    settle(&mut h);
+    apply(&mut h, Size::At300);
+    step(&mut h);
+    h.set_size(Vec2::new(WINDOW.x * 3.0, 60.0));
+    settle(&mut h);
+    let problems = support::footer_problems(&h);
+    for key in [key!("firstrun-skip"), key!("firstrun-next")] {
+        let quoted = format!("{:?}", strings::text(key));
+        assert!(
+            problems.iter().any(|p| p.starts_with(&quoted)),
+            "{quoted} in {problems:?}"
+        );
+    }
+    h.state_mut().shell_mut().shutdown();
+}
+
 #[test]
 fn ax3_new_project_at_300() {
     new_project(Size::At300);

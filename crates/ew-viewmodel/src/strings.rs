@@ -764,6 +764,10 @@ mod tests {
         ("error-potential-type", "L, N and M are potential types"),
         ("error-potential-voltage", "V is the volt"),
         ("param-tab", "the command bar's tab view.command_tab chooses"),
+        ("choice-left", "the rail's side rail.show chooses"),
+        ("choice-right", "the rail's side rail.show chooses"),
+        ("choice-up", "a list item's move props.list makes"),
+        ("choice-down", "a list item's move props.list makes"),
         // Open: `props.follow`'s F in the Properties pane's link (ew-ui `properties.rs`, a later row); the status bar's
         // link hint is `status-hint-follow`.
         ("status-hint-link", "props.follow's F, not yet from the keymap"),
