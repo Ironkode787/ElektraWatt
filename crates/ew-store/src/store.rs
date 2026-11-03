@@ -713,6 +713,9 @@ pub struct Store {
     migrated: Option<Migrated>,
 }
 
+/// `manifest.json` as read: the manifest, the SHA-256 of its bytes and the bytes.
+type FoundManifest = (Manifest, [u8; 32], Vec<u8>);
+
 /// A store migrated from an older format ([`OpenReport::migrated_from`]).
 #[derive(Clone, Debug)]
 struct Migrated {
@@ -1408,7 +1411,7 @@ impl Store {
     }
 
     /// [`Store::read_manifest`] with the bytes read.
-    fn read_manifest_bytes(&self) -> Result<Option<(Manifest, [u8; 32], Vec<u8>)>, String> {
+    fn read_manifest_bytes(&self) -> Result<Option<FoundManifest>, String> {
         let path = join(&self.root, MANIFEST);
         match self.opts.vfs.read(&path) {
             Ok(bytes) => Manifest::parse(&bytes, &self.opts.limits)
