@@ -9,7 +9,8 @@ status (0.8 pw, D24, D25), part 8 `ew diff`, `ew git setup`, the post-merge inte
 The parts sum to **7.4 pw plus 0.3 pw reserve** against a 6.8 pw PERT (O1) · **Amended in cycle 42** (decision log ID-1029, the owner's format decision): part 3, D4 and D3's `unstable` marker move to the wave before the first release, beside WP-S6.08; the PERT is 6.9 pw; format parts route at `high`, a save, a journal, recovery or a merge at `xhigh` (§16) · **Date:** 2026-10-31 · **Work package:**
 [WP-S1.17](../02-work-packages.md#wp-s117-collaboration-external-change-migrations-integrity-merge-driver) ·
 **Decision log:** ID-1015; amended by ID-1029; part 1 ruled by ID-1115, its fixes by ID-1144; part 2 ruled by ID-1175; part 3 ruled by ID-1221; `fmt --repair` ruled by ID-1185, its backup by ID-1186; as built ID-1152, ID-1156 (part 1), ID-1191, ID-1195 (part 2), ID-1196, ID-1200 (`fmt --repair`); part 3 built in cycle 48 (lane M48, its deviations and the review's rulings
-in §8 and ID-1230, built by the fixer FM48; the window's half is FT-1148, part 7) · **Part of:** ElektraWatt plan, specifications
+in §8 and ID-1230, built by the fixer FM48, ID-1254; review part 4's amendments in §8, ID-1257; the window's half is
+FT-1148, part 7) · **Part of:** ElektraWatt plan, specifications
 
 **Purpose.** WP-S1.09 built the canonical format, the save protocol, the lock, the journal and recovery, and left to
 this package everything that happens when a project changes outside the running session or between builds: a pull
@@ -583,6 +584,23 @@ say so, and accept the lane's deviations.
    edited outside ElektraWatt, the backup's manifest is the re-hashed `to_text`, since raw bytes would fail the
    archive's hash check. ADR-0011 decision 5's warning on every save in an unreleased format is FT-1154.
    `crates/ew-store/src/lib.rs`'s module doc stops calling migrations later work.
+
+**Amended by review part 4 (ID-1250, ID-1257, cycle 48): the spec gives way to the code.**
+- **D10 and ruling 3.** The recompute of a migrated library copy's `sha256` also covers an edit made to the copy before
+  the upgrade: when a step changes a copy's `item`, the loader cannot tell the step's change from an earlier edit, so
+  the copy takes the hash of its migrated item and EW-CORE-014 does not report that edit. A stale hash on an item that
+  no step changed still raises EW-CORE-014.
+- **Ruling 4.** Its sentence "so the CLI writers meet the store's consent gate, not 'unsaved changes'" gives way: the
+  CLI writers (`ew fmt`, `ew fmt --repair`, the purge, the release) open editing sessions, which an unsaved migration
+  makes dirty, so they refuse a migrated project as unsaved changes before the store's consent gate; FT-1148 carries
+  their texts. Only `ew project assets purge --preview`, a reader, changed: it lists.
+- **Ruling 1's test.** The store-level test of `keep_format` (a newer minor opened, saved, its stamp and its own
+  `unstable` flag kept) waits for the first 1.x format, since a store of a `0.x` format cannot open a newer minor;
+  ruling 1 is tested on `unstable_flag` alone, and the store-level test is FT-1191, due with the first format step.
+
+*As built (cycle 48, FM48; decision log ID-1254):* `Session::is_dirty` holds for an unsaved migration only with
+`Access::Edit`; the steward check stays gated on `FORMAT` being unreleased (D12); the refusal of a migrated duplicate
+names the document as `<kind>:<id>` (`fndef:<id>`), as the existing duplicate finding does.
 
 ## 9. Part 4: the three-way merge core and `ew merge-driver`
 

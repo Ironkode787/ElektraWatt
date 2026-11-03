@@ -1342,8 +1342,9 @@ HUD; chips avoid it (§7.4).
    (`keymap::short_display`: "Esc", "Del", "Up", with its modifiers, "Ctrl+Z"), in the HUDs, the hints, toasts,
    notices, reasons and tooltips alike ("Esc ends", "Del deletes"); the full names ("Escape", "Delete") are not used.
    The rule has no exception: the menus, the key chips, the palette and the keymap editor name a key in the same form
-   too. *Not yet built (cycle 47 design pass, ID-1199):* those four surfaces still show the registry's own text
-   ("Escape", "Delete") until FT-1112 moves them to `short_display`.
+   too. *As built (cycle 48, PL48a; decision log ID-1229, ID-1238, ID-1256; FT-1112):* the menus, the key chips, the
+   palette, the keymap editor (a chord being typed too) and the command bar name a key by `short_display`; the keymap
+   findings and the keymap editor's list of unused bindings keep `Chord::display`.
 8. **Abbreviations** only where the user's documents use them (PE, N, L1, IP for interruption point in EPLAN usage);
    tooltips spell them out the first time ("IP: interruption point").
    *As built (cycle 38; decision log ID-883, FT-716):* a sentence names a terminal by strip and number in words,
