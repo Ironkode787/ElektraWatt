@@ -195,7 +195,7 @@ fn both_sides(base: Option<&Value>, a: &Value, b: &Value) -> RecordMerge {
                 } else {
                     merge_value(
                         kind,
-                        &[name.clone()],
+                        std::slice::from_ref(name),
                         om.and_then(|m| m.get(name)),
                         am.get(name),
                         bm.get(name),
