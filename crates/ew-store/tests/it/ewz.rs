@@ -373,6 +373,32 @@ fn ez3_a_failure_at_each_call_leaves_no_target_and_no_staging() {
     );
 }
 
+/// FT-1108: the parent's sync fails and the move back fails too (the process is killed at the sync): the complete
+/// target stays, and the error says so instead of "nothing was extracted".
+#[test]
+fn ez3_a_failed_sync_and_a_failed_move_back_report_the_target_that_stays() {
+    let archive = small_ewz();
+    let target = Path::new("/w/p.ew");
+    let vfs = workdir();
+    ewz::extract(&vfs, &archive, target).expect("the extract succeeds");
+    let total = vfs.calls();
+    let vfs = workdir();
+    vfs.set_fault(Fault::Kill { at: total });
+    let e = ewz::extract(&vfs, &archive, target).unwrap_err();
+    assert!(matches!(e, ExtractError::NotDurable { .. }), "{e:?}");
+    assert_eq!(
+        e.to_string(),
+        format!(
+            "{}: killed; {} was extracted whole and stays, but it may not survive a power failure",
+            Path::new("/w").display(),
+            target.display()
+        )
+    );
+    vfs.restart();
+    assert_eq!(vfs.files(target), archive.entries);
+    assert_eq!(names(&vfs), ["p.ew"]);
+}
+
 /// The `MemVfs` learnt directory renames (ID-1175 ruling 4): the subtree moves, an empty target directory is replaced,
 /// a non-empty one or a file is refused, and a rename into itself is refused.
 #[test]

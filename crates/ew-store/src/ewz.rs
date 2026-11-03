@@ -33,7 +33,9 @@
 //! verified entry; then the target's absence is checked again and the staging directory renamed to the target
 //! ([`Vfs::rename`]) and the parent synced. Any failure removes what the call created (the files, then the
 //! directories), and a failure of the parent's sync moves the target back first, so the target is never half a
-//! project and no staging directory is left behind. A staging directory that exists already is never touched.
+//! project and no staging directory is left behind. A staging directory that exists already is never touched. The one
+//! exception: when the parent's sync fails and the move back fails too, the complete target stays and the error is
+//! [`ExtractError::NotDurable`], which names it.
 //!
 //! **The residual race.** Between the second absence check and the rename, another process can make the target. On
 //! Windows the rename then fails and nothing is left; on Linux and macOS `rename` replaces an empty directory made in
@@ -542,6 +544,16 @@ pub enum ExtractError {
     },
     /// A file did not read back as it was written; what the call created is removed.
     Verify(PathBuf),
+    /// The parent folder did not sync, and the target could not be renamed back: the complete target stays, but
+    /// it may not survive a power failure. The one error after which something of the call is left.
+    NotDurable {
+        /// The parent folder that did not sync.
+        parent: PathBuf,
+        /// The extracted target that stays.
+        target: PathBuf,
+        /// The sync's error.
+        error: io::Error,
+    },
 }
 
 impl fmt::Display for ExtractError {
@@ -564,6 +576,16 @@ impl fmt::Display for ExtractError {
                 f,
                 "{} did not read back as it was written; nothing was extracted",
                 p.display()
+            ),
+            ExtractError::NotDurable {
+                parent,
+                target,
+                error,
+            } => write!(
+                f,
+                "{}: {error}; {} was extracted whole and stays, but it may not survive a power failure",
+                parent.display(),
+                target.display()
             ),
         }
     }
@@ -648,7 +670,8 @@ fn fill(vfs: &dyn Vfs, ewz: &Ewz, staging: &Path, made: &mut Made) -> Result<(),
 /// # Errors
 ///
 /// [`ExtractError`]: the target or the staging directory exists, a file operation failed, a file did not read back;
-/// in every case nothing of this call is left under either name.
+/// in every case nothing of this call is left under either name, except for [`ExtractError::NotDurable`]: the parent's
+/// sync failed and the target could not be moved back, so the complete target stays.
 pub fn extract(vfs: &dyn Vfs, ewz: &Ewz, target: &Path) -> Result<(), ExtractError> {
     if target.file_name().is_none() {
         return Err(ExtractError::Io {
@@ -686,9 +709,14 @@ pub fn extract(vfs: &dyn Vfs, ewz: &Ewz, target: &Path) -> Result<(), ExtractErr
         .unwrap_or(Path::new("."));
     if let Err(error) = vfs.sync_dir(parent) {
         // Not durable: take it back, so that a failed extract leaves no target.
-        if vfs.rename(target, &staging).is_ok() {
-            made.undo(vfs);
+        if vfs.rename(target, &staging).is_err() {
+            return Err(ExtractError::NotDurable {
+                parent: parent.to_path_buf(),
+                target: target.to_path_buf(),
+                error,
+            });
         }
+        made.undo(vfs);
         return Err(ExtractError::Io {
             path: parent.to_path_buf(),
             error,
