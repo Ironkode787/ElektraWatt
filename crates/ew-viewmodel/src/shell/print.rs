@@ -319,7 +319,10 @@ impl ShellModel {
             PrintEnd::Cancelled => return,
             PrintEnd::Failed(cause) => {
                 // The text ends its own sentence: a cause's closing full stop would double it.
-                strings::format(key!("toast-print-failed"), &[cause.strip_suffix('.').unwrap_or(&cause)])
+                strings::format(
+                    key!("toast-print-failed"),
+                    &[cause.strip_suffix('.').unwrap_or(&cause)],
+                )
             }
             PrintEnd::Unavailable => strings::text(key!("print-unavailable")).to_owned(),
         };

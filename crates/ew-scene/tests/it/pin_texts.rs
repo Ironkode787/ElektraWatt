@@ -249,8 +249,8 @@ fn a_black_box_caption_rises_above_a_neighbours_pin_text() {
         let r = Arc::make_mut(&mut neighbour.rep);
         r.id = Id::from_uuid(Uuid::from_u128(0x12));
         r.pos = Pt2::new(Nm(g(30)), Nm(g(18)));
-        r.box_.as_mut().unwrap().cps = serde_json::from_value(json!([{"idx": 1, "pos": [g(1), g(12)], "dir": "down"}]))
-            .unwrap();
+        r.box_.as_mut().unwrap().cps =
+            serde_json::from_value(json!([{"idx": 1, "pos": [g(1), g(12)], "dir": "down"}])).unwrap();
     }
     neighbour.slots.clear();
     neighbour.pins = vec![PinText {

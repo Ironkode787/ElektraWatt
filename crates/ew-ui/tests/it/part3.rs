@@ -334,8 +334,14 @@ fn ft1086_a_click_on_the_free_area_of_the_tool_options_card_reaches_the_sheet() 
     let zoom_corner = egui::pos2(pane.right() - t.space_4 - 1.0, pane.bottom() - t.space_5 - 1.0);
     let obstacles = h.state_mut().canvas_host().chrome_obstacles(0).to_vec();
     assert!(obstacles.contains(&hud), "the HUD: {obstacles:?}");
-    assert!(obstacles.iter().any(|r| r.contains(zoom_corner)), "the zoom control: {obstacles:?}");
-    assert!(obstacles.iter().any(|r| r.contains(title.center())), "the card: {obstacles:?}");
+    assert!(
+        obstacles.iter().any(|r| r.contains(zoom_corner)),
+        "the zoom control: {obstacles:?}"
+    );
+    assert!(
+        obstacles.iter().any(|r| r.contains(title.center())),
+        "the card: {obstacles:?}"
+    );
     assert!(painted(&h, card_fill), "the card whole");
     assert!(!painted(&h, faded_fill));
     // The pointer on the card's title: the ghost is under it.
@@ -345,7 +351,10 @@ fn ft1086_a_click_on_the_free_area_of_the_tool_options_card_reaches_the_sheet() 
     let (_, hud, _) = h.state().command_surface_rects();
     let obstacles = h.state_mut().canvas_host().chrome_obstacles(0).to_vec();
     assert!(obstacles.contains(&hud.unwrap()), "the HUD: {obstacles:?}");
-    assert!(obstacles.iter().any(|r| r.contains(zoom_corner)), "the zoom control: {obstacles:?}");
+    assert!(
+        obstacles.iter().any(|r| r.contains(zoom_corner)),
+        "the zoom control: {obstacles:?}"
+    );
     assert!(
         !obstacles.iter().any(|r| r.contains(title.center())),
         "no obstacle for a ghost under the card: {obstacles:?}"

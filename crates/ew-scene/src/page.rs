@@ -1129,7 +1129,12 @@ impl Builder<'_> {
     /// step left of the leftmost top CP, so that no caption text stands over a CP, its pin text or its wire. A stack
     /// that collides with another representation's pin text (`pins`, FT-1138) rises [`SLOT_TEXT_GAP`] above the pin
     /// texts in its way, at most [`SLOT_TEXT_DROPS`] times, as a raised device tag does; without a free place it stays.
-    fn place_black_box_captions(&self, view: &PageView, texts: &mut [SlotText<'_>], pins: &[(EntityRef, Rect)]) {
+    fn place_black_box_captions(
+        &self,
+        view: &PageView,
+        texts: &mut [SlotText<'_>],
+        pins: &[(EntityRef, Rect)],
+    ) {
         let step = view.grid.at(1).unwrap_or(Nm::ZERO);
         for rv in sorted_reps(view) {
             let rep = &rv.rep;

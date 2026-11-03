@@ -560,5 +560,9 @@ fn a_portal_without_a_session_bus_fails_and_leaves_no_file() {
     assert!(status.is_some(), "the child ended within a minute: {said}");
     assert!(output.status.success(), "{said}");
     assert!(said.contains("1 passed"), "the child ran: {said}");
-    assert_eq!(std::fs::read_dir(&temp).unwrap().count(), 0, "the print file is removed");
+    assert_eq!(
+        std::fs::read_dir(&temp).unwrap().count(),
+        0,
+        "the print file is removed"
+    );
 }

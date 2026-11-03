@@ -196,9 +196,15 @@ fn ui_dismiss_with_the_app_menu_open_closes_only_the_menu() {
     assert_eq!(h.state().shell().banner(), None);
     h.key_press(Key::F10);
     settle(&mut h);
-    assert!(support::off_chrome(&h, "File").is_some(), "F10 opens the app menu");
+    assert!(
+        support::off_chrome(&h, "File").is_some(),
+        "F10 opens the app menu"
+    );
     let log = actions_of(&mut h, Modifiers::NONE, Key::Backslash);
-    assert!(support::off_chrome(&h, "File").is_none(), "the menu closed: {log:?}");
+    assert!(
+        support::off_chrome(&h, "File").is_none(),
+        "the menu closed: {log:?}"
+    );
     assert!(log.is_empty(), "nothing else ran: {log:?}");
     let log = actions_of(&mut h, Modifiers::NONE, Key::Backslash);
     assert_eq!(log.first().map(String::as_str), Some("ui.dismiss"), "{log:?}");
