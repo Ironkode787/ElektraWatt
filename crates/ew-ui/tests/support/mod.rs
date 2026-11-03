@@ -19,6 +19,7 @@ use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable as _};
 use ew_ui::app::{App, Pick, Platform, setup};
 use ew_ui::ew_viewmodel::shell::{Mode, Prompt, Resources, ShellConfig, ShellModel};
+use ew_ui::ew_viewmodel::{key, strings};
 
 const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
 const CONTENT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../content");
@@ -184,6 +185,10 @@ pub fn wait_for_preview(harness: &mut Harness<'_, App>) {
 pub fn assert_named(harness: &Harness<'_, App>) {
     let mut unnamed = Vec::new();
     let mut splitters = 0;
+    // "Resize {0} and {1}": the text before the first argument and the one between the two.
+    let splitter_name = strings::text(key!("splitter-name"));
+    let (splitter_lead, rest) = splitter_name.split_once("{0}").unwrap_or_default();
+    let splitter_join = rest.split_once("{1}").map_or(rest, |(join, _)| join);
     for node in harness.root().children_recursive() {
         let node = node.accesskit_node();
         if node.is_hidden() || node.data().is_read_only() {
@@ -196,11 +201,11 @@ pub fn assert_named(harness: &Harness<'_, App>) {
         }
         // FT-338: the dock's and the canvas area's handles are named `Splitter` nodes ("Resize Pages and Page view")
         // like every other input; no unnamed node is let through any more. (A table's column handles and egui's
-        // panel handle are splitters with other names.)
+        // panel handle are splitters with other names.) WP-S2.08 part 3: the name's form in the UI language.
         if node.role() == egui::accesskit::Role::Splitter
             && node
                 .label()
-                .is_some_and(|l| l.starts_with("Resize ") && l.contains(" and "))
+                .is_some_and(|l| l.starts_with(splitter_lead) && l.contains(splitter_join))
         {
             splitters += 1;
         }
@@ -221,12 +226,101 @@ pub fn assert_named(harness: &Harness<'_, App>) {
     );
 }
 
+/// The fit check of WP-S2.08 D11 (NFR-I18N-02), beside [`assert_named`]: every visible labelled AccessKit node lies
+/// inside the window and inside its nearest bounded ancestor across (1 px slack), and no two interactive siblings
+/// overlap.
+///
+/// What egui's AccessKit tree cannot tell is left out: it carries no clip rectangle, so a node wholly outside the
+/// window or its ancestor is scrolled out of view and not checked, and a node cut at the top or the bottom is a row
+/// of a scrolled list (the pseudo-locale lengthens texts across, never down); a control inside another (a tab's
+/// close button, a row's actions) is placed there, and splitter handles cross where the docks meet.
+#[track_caller]
+pub fn assert_fits(harness: &Harness<'_, App>) {
+    let problems = fit_problems(harness);
+    assert!(problems.is_empty(), "nodes that do not fit: {problems:#?}");
+}
+
+/// The problems [`assert_fits`] reports, each as `<role> "<label>" <what>`.
+pub fn fit_problems(harness: &Harness<'_, App>) -> Vec<String> {
+    use egui::accesskit::{Action, Rect, Role};
+    const SLACK: f64 = 1.0;
+    let inside = |a: &Rect, b: &Rect| a.x0 >= b.x0 - SLACK && a.x1 <= b.x1 + SLACK;
+    let contains = |a: &Rect, b: &Rect| {
+        a.x0 <= b.x0 + SLACK && a.y0 <= b.y0 + SLACK && a.x1 >= b.x1 - SLACK && a.y1 >= b.y1 - SLACK
+    };
+    let apart = |a: &Rect, b: &Rect| a.x1 <= b.x0 || b.x1 <= a.x0 || a.y1 <= b.y0 || b.y1 <= a.y0;
+    let overlap = |a: &Rect, b: &Rect| {
+        a.x1.min(b.x1) - a.x0.max(b.x0) > SLACK && a.y1.min(b.y1) - a.y0.max(b.y0) > SLACK
+    };
+    let screen = harness.ctx.content_rect();
+    let window = Rect {
+        x0: f64::from(screen.min.x),
+        y0: f64::from(screen.min.y),
+        x1: f64::from(screen.max.x),
+        y1: f64::from(screen.max.y),
+    };
+    let mut problems = Vec::new();
+    // (the parent node's ID, bounds, role and label) of the shown interactive nodes.
+    let mut interactive: Vec<(String, Rect, String)> = Vec::new();
+    for node in harness.root().children_recursive() {
+        let node = node.accesskit_node();
+        let Some(label) = node.label().filter(|l| !l.trim().is_empty()) else {
+            continue;
+        };
+        let Some(bounds) = node.bounding_box().filter(|b| b.x1 > b.x0 && b.y1 > b.y0) else {
+            continue;
+        };
+        if node.is_hidden() || apart(&bounds, &window) {
+            continue;
+        }
+        // A table's columns and rows scroll in both directions: its cells and header are not cut, only scrolled.
+        let mut ancestor = node.parent();
+        let mut in_table = false;
+        while let Some(a) = ancestor {
+            in_table |= matches!(a.role(), Role::Table | Role::Grid | Role::TreeGrid);
+            ancestor = a.parent();
+        }
+        let name = format!("{:?} {label:?} at {bounds:?}", node.role());
+        let mut parent = node.parent();
+        while let Some(p) = parent.filter(|p| p.bounding_box().is_none()) {
+            parent = p.parent();
+        }
+        let parent_bounds = parent.and_then(|p| p.bounding_box());
+        if parent_bounds.is_some_and(|p| apart(&bounds, &p)) {
+            continue;
+        }
+        if !in_table && !inside(&bounds, &window) {
+            problems.push(format!("{name} leaves the window"));
+        }
+        if let Some(p) = parent_bounds.filter(|p| !in_table && !inside(&bounds, p)) {
+            problems.push(format!("{name} leaves its parent at {p:?}"));
+        }
+        let data = node.data();
+        if node.role() != Role::Splitter
+            && (data.supports_action(Action::Click) || data.supports_action(Action::Focus))
+        {
+            let parent_id = node.parent().map(|p| format!("{:?}", p.id())).unwrap_or_default();
+            for (other_parent, other, other_name) in &interactive {
+                if *other_parent == parent_id
+                    && overlap(&bounds, other)
+                    && !contains(&bounds, other)
+                    && !contains(other, &bounds)
+                {
+                    problems.push(format!("{name} overlaps {other_name}"));
+                }
+            }
+            interactive.push((parent_id, bounds, name));
+        }
+    }
+    problems
+}
+
 // WP-S2.17 part 2: the app menu replaced the menu bar, the HUD the tool strip.
 
 /// The value of the tool HUD's `Status` node ("Select · Click to select …"); empty without a HUD.
 pub fn hud_value(harness: &Harness<'_, App>) -> String {
     harness
-        .query_all_by_role_and_label(egui::accesskit::Role::Status, "Tool")
+        .query_all_by_role_and_label(egui::accesskit::Role::Status, strings::text(key!("hud-name")))
         .next()
         .and_then(|n| n.accesskit_node().value())
         .unwrap_or_default()
@@ -250,8 +344,8 @@ fn in_chrome(node: &egui_kittest::Node<'_>) -> bool {
         if role == egui::accesskit::Role::Menu {
             return false;
         }
-        if (role == egui::accesskit::Role::Toolbar && label == "Command bar")
-            || (role == egui::accesskit::Role::Status && label == "Tool")
+        if (role == egui::accesskit::Role::Toolbar && label == strings::text(key!("commandbar-name")))
+            || (role == egui::accesskit::Role::Status && label == strings::text(key!("hud-name")))
         {
             return true;
         }
@@ -297,7 +391,9 @@ pub fn view_tabs<'t>(harness: &'t Harness<'_, App>) -> Vec<egui_kittest::Node<'t
 
 /// Opens the app menu (its button "Menu") and then each submenu of `path` in turn ("File", "Import").
 pub fn open_menu(harness: &mut Harness<'_, App>, path: &[&str]) {
-    harness.get_by_label("Menu").click();
+    harness
+        .get_by_label(strings::text(key!("commandbar-menu")))
+        .click();
     harness.run_ok();
     for label in path {
         menu_node(harness, label).click();
@@ -311,9 +407,9 @@ pub fn bar_button<'t>(harness: &'t Harness<'_, App>, label: &'t str) -> egui_kit
         .query_all_by_label(label)
         .find(|n| {
             in_chrome(n)
-                && ancestors(n)
-                    .iter()
-                    .any(|(role, l)| *role == egui::accesskit::Role::Toolbar && l == "Command bar")
+                && ancestors(n).iter().any(|(role, l)| {
+                    *role == egui::accesskit::Role::Toolbar && l == strings::text(key!("commandbar-name"))
+                })
         })
         .unwrap_or_else(|| panic!("no command-bar button {label:?}"))
 }
