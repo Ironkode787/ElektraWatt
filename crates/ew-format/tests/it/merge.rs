@@ -1040,6 +1040,143 @@ fn md4_a_side_that_does_not_parse_keeps_the_other_with_one_file_level_conflict()
     assert_eq!(held, [file_conflict("theirs", &broken)]);
 }
 
+// ---- conflict markers, D18 (WP-S1.17 part 5, decision log ID-1279) ---------------------------------------------------
+
+/// Golden A's page-102 file with W20's line replaced by a marker hunk: ours, the diff3 base when `base` is given,
+/// theirs; each side `W20_OVERRIDES` replaced by its own.
+fn page_with_hunk(ours: &str, base: Option<&str>, theirs: &str) -> String {
+    let (page, _) = page_with(W20_OVERRIDES);
+    let w20 = page
+        .lines()
+        .find(|l| l.contains("connections|W20"))
+        .expect("W20")
+        .to_owned();
+    let side = |overrides: &str| w20.replace(W20_OVERRIDES, overrides);
+    let mut hunk = format!("<<<<<<< ours\n{}\n", side(ours));
+    if let Some(b) = base {
+        hunk.push_str(&format!("||||||| base\n{}\n", side(b)));
+    }
+    hunk.push_str(&format!("=======\n{}\n>>>>>>> theirs", side(theirs)));
+    page.replace(&w20, &hunk)
+}
+
+/// The record lines of the loaded page that are conflict records, and the line of W20.
+fn conflicts_and_w20(loaded: &ew_format::Loaded) -> (Vec<String>, String) {
+    let line = |r: &Record| ew_format::record_line(r).expect("a line");
+    let conflicts = loaded
+        .records
+        .iter()
+        .filter(|r| matches!(r, Record::Conflict(_)))
+        .map(line)
+        .collect();
+    let w20 = loaded
+        .records
+        .iter()
+        .map(line)
+        .find(|l| l.contains("connections|W20"))
+        .expect("W20");
+    (conflicts, w20)
+}
+
+/// The finding of a file the reader rewrites at the next save.
+fn rewritten() -> ew_format::Finding {
+    ew_format::Finding::new(
+        ew_format::FindingKind::NonCanonical,
+        Some(FilePath::new(PAGE).expect("a path")),
+        None,
+        "not in canonical form; rewritten at the next save",
+    )
+}
+
+/// CR-2: a diff3 hunk whose sides are whole record lines merges through `merge_record`: `csa` (theirs only) merges
+/// cleanly, `colour` (both) keeps ours with one conflict record, the same as the merge driver's (MD-6); the file opens
+/// editable and is rewritten canonically.
+#[test]
+fn cr2_diff3_markers_on_w20_merge_to_one_conflict_record_and_the_clean_parts() {
+    let file = page_with_hunk(
+        r#""overrides":{"csa":"1.5","colour":["BU"],"show_marker":true}"#,
+        Some(W20_OVERRIDES),
+        r#""overrides":{"csa":"2.5","colour":["WH"],"show_marker":true}"#,
+    );
+    let (_, kept) = page_with(r#""overrides":{"csa":"2.5","colour":["BU"],"show_marker":true}"#);
+    let kept_w20 = kept.lines().find(|l| l.contains("connections|W20")).expect("W20");
+    let loaded = load_page(&file);
+    assert_eq!(loaded.findings, [rewritten()]);
+    assert!(!loaded.read_only);
+    assert!(loaded.kept.is_empty());
+    assert!(loaded.rewrite.contains(&FilePath::new(PAGE).expect("a path")));
+    let conflict = r#"{"$k":"conflict","id":"1c5963b7-6c34-53d6-8fa6-9d02d4629711","kind":"connection","base":{"overrides":{}},"ours":{"overrides":{"colour":["BU"]}},"theirs":{"overrides":{"colour":["WH"]}}}"#;
+    assert_eq!(conflicts_and_w20(&loaded), (vec![conflict.to_owned()], kept_w20.to_owned()));
+}
+
+/// A record-level conflict whose target is not in the project is kept verbatim and reported (EW-CORE-007), the file
+/// editable.
+#[test]
+fn a_conflict_record_without_its_target_is_kept_verbatim_and_reported() {
+    let (page, _) = page_with(W20_OVERRIDES);
+    let conflict = r#"{"$k":"conflict","id":"00000000-0000-7000-8000-00000000c0f1","kind":"connection","base":{},"ours":{"overrides":{"colour":["BU"]}},"theirs":{"overrides":{"colour":["WH"]}}}"#;
+    let file = format!("{page}{conflict}\n");
+    let loaded = load_page(&file);
+    let line = u32::try_from(file.lines().count()).expect("a line number");
+    assert_eq!(
+        loaded.findings,
+        [ew_format::Finding::new(
+            ew_format::FindingKind::SchemaViolation,
+            Some(FilePath::new(PAGE).expect("a path")),
+            Some(line),
+            "a conflict record whose target, a record of the kind \"connection\", is not in the project; kept verbatim",
+        )]
+    );
+    assert!(!loaded.read_only);
+    let kept: Vec<(u32, &[u8])> = loaded.kept.iter().map(|k| (k.line, k.text.as_slice())).collect();
+    assert_eq!(kept, [(line, conflict.as_bytes())]);
+    assert!(!loaded.records.iter().any(|r| matches!(r, Record::Conflict(_))));
+}
+
+/// CR-2: without a base the hunk takes D18's no-base rule: ours kept, one conflict holding each member that differs
+/// whole, base `{}`.
+#[test]
+fn cr2_markers_without_a_base_keep_ours_with_a_conflict_of_every_differing_member() {
+    let ours = r#""overrides":{"csa":"1.5","colour":["BU"],"show_marker":true}"#;
+    let file = page_with_hunk(ours, None, r#""overrides":{"csa":"2.5","colour":["WH"],"show_marker":true}"#);
+    let (_, kept) = page_with(ours);
+    let kept_w20 = kept.lines().find(|l| l.contains("connections|W20")).expect("W20");
+    let loaded = load_page(&file);
+    assert_eq!(loaded.findings, [rewritten()]);
+    assert!(!loaded.read_only);
+    let conflict = r#"{"$k":"conflict","id":"1c5963b7-6c34-53d6-8fa6-9d02d4629711","kind":"connection","base":{},"ours":{"overrides":{"colour":["BU"],"csa":"1.5","show_marker":true}},"theirs":{"overrides":{"colour":["WH"],"csa":"2.5","show_marker":true}}}"#;
+    assert_eq!(conflicts_and_w20(&loaded), (vec![conflict.to_owned()], kept_w20.to_owned()));
+}
+
+/// CR-2: a side line that does not parse (torn) leaves the markers as they are: EW-CORE-006 on each marker line, the
+/// lines read as before (the torn one EW-CORE-005, W20 of both sides EW-CORE-009), read-only.
+#[test]
+fn cr2_a_torn_line_in_a_hunk_keeps_the_file_ew_core_006_and_read_only() {
+    let file = page_with_hunk(
+        r#""overrides":{"csa":"1.5","colour":["BU"],"show_marker":true}"#,
+        Some(W20_OVERRIDES),
+        r#""overrides":{"csa":"2.5","colour":["WH"],"show_marker":true}"#,
+    )
+    .replace(">>>>>>> theirs", "{\"$k\":\"connection\",\n>>>>>>> theirs");
+    let loaded = load_page(&file);
+    assert!(loaded.read_only);
+    let codes: Vec<Option<&str>> = loaded.findings.iter().map(ew_format::Finding::code).collect();
+    assert_eq!(
+        codes,
+        [
+            Some("EW-CORE-005"),
+            Some("EW-CORE-006"),
+            Some("EW-CORE-006"),
+            Some("EW-CORE-006"),
+            Some("EW-CORE-006"),
+            Some("EW-CORE-009"),
+            Some("EW-CORE-009"),
+            None
+        ]
+    );
+    assert!(!loaded.records.iter().any(|r| matches!(r, Record::Conflict(_))));
+}
+
 #[test]
 fn md4_a_side_with_a_newer_record_or_format_keeps_the_other_side() {
     let (base, ours) = page_with(r#""overrides":{"csa":"1.5","colour":["BU"],"show_marker":true}"#);
