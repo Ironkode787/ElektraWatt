@@ -328,6 +328,111 @@ fn a_failing_or_missing_step_refuses_the_load_with_its_file_line_and_pointer() {
     );
 }
 
+/// The `"0.0"` fndef with its item's `contact_kind` named `kind`, hashed as the old format wrote it: over its old item.
+fn fndef_v0_item_text() -> String {
+    let mut value: Value = serde_json::from_str(&fndef_v0_text()).unwrap();
+    value = renamed(value, "contact_kind", "kind");
+    let mut item = value.as_object().unwrap().clone();
+    for envelope in ["$v", "id", "library_id", "item_id", "revision", "sha256"] {
+        item.remove(envelope);
+    }
+    let old = Sha256(sha256(serde_json::to_string(&item).unwrap().as_bytes()));
+    value["sha256"] = json!(old.to_string());
+    serde_json::to_string_pretty(&value).unwrap()
+}
+
+fn fndef_item_v0(value: Value) -> Result<Value, MigrationError> {
+    Ok(renamed(fndef_v0(value)?, "kind", "contact_kind"))
+}
+
+/// A test chain whose fndef step changes the item.
+static ITEM_STEP: Migrations = Migrations {
+    kinds: &[KindStep {
+        kind: Kind::Fndef,
+        from: 0,
+        step: fndef_item_v0,
+    }],
+    formats: &[],
+};
+
+/// Decision log ID-1230 ruling 3: a step that changes a library copy's item is not an edit; the loader hashes the
+/// migrated item, so no EW-CORE-014 follows.
+#[test]
+fn a_step_that_changes_a_copys_item_rehashes_it() {
+    let lib = lib_file(&fndef()).unwrap();
+    let files = Files::from([(lib.clone(), fndef_v0_item_text().into_bytes())]);
+    let way = ITEM_STEP.towards("0.1", "0.1").unwrap();
+    let loaded = load_migrated(None, &files, &Limits::default(), &way).unwrap();
+    assert!(loaded.findings.is_empty(), "{:?}", loaded.findings);
+    assert_eq!(loaded.lib, [fndef()]);
+    assert_eq!(loaded.migrated, BTreeSet::from([lib]));
+}
+
+fn fndef_unknown(value: Value) -> Result<Value, MigrationError> {
+    let mut value = fndef_v0(value)?;
+    value["$k"] = json!("frobnicator");
+    Ok(value)
+}
+
+fn fndef_untyped(value: Value) -> Result<Value, MigrationError> {
+    let mut value = fndef_v0(value)?;
+    value.as_object_mut().unwrap().remove("item_id");
+    Ok(value)
+}
+
+/// Decision log ID-1230 ruling 2: a library document a step changed that would end opaque (of an unknown kind, with
+/// no typed reading, or a duplicate) refuses the load, since its old bytes would stay under the new format.
+#[test]
+fn a_migrated_library_document_that_ends_opaque_refuses_the_load() {
+    static UNKNOWN: Migrations = Migrations {
+        kinds: &[KindStep {
+            kind: Kind::Fndef,
+            from: 0,
+            step: fndef_unknown,
+        }],
+        formats: &[],
+    };
+    static UNTYPED: Migrations = Migrations {
+        kinds: &[KindStep {
+            kind: Kind::Fndef,
+            from: 0,
+            step: fndef_untyped,
+        }],
+        formats: &[],
+    };
+    let lib = lib_file(&fndef()).unwrap();
+    let files = Files::from([(lib.clone(), fndef_v0_text().into_bytes())]);
+    let refusal = |chain: &Migrations, files: &Files| {
+        let way = chain.towards("0.1", "0.1").unwrap();
+        load_migrated(None, files, &Limits::default(), &way)
+            .unwrap_err()
+            .to_string()
+    };
+    assert_eq!(
+        refusal(&UNKNOWN, &files),
+        format!(
+            "{lib}: a migration step changed a library document of a kind this version keeps unchanged"
+        )
+    );
+    assert_eq!(
+        refusal(&UNTYPED, &files),
+        format!(
+            "{lib}: a migration step gave a library document this version cannot read: missing field `item_id` at \"\""
+        )
+    );
+    // The same document under a second name: the second in path order is the duplicate.
+    let second = p("lib/fndefs/ffffffff-ffff-7fff-bfff-ffffffffffff.json");
+    let mut twice = files.clone();
+    twice.insert(second.clone(), fndef_v0_text().into_bytes());
+    assert_eq!(
+        refusal(&CHAIN, &twice),
+        format!(
+            "{second}: a migration step gave fndef:5d1ab4de-706a-5b85-b463-8b15311c4f39, which duplicates the \
+             document of {lib}"
+        )
+    );
+}
+
 /// A test chain from 0.1 to 0.2.
 static TOWARDS_0_2: Migrations = Migrations {
     kinds: &[],
@@ -360,10 +465,11 @@ impl Drop for Corpus {
     }
 }
 
-/// MG-6 as ruling 8 amends it: the steward's check on injected lists.
+/// MG-6 as ruling 8 amends it: the steward's check on injected lists; with two released formats, a way from each
+/// (decision log ID-1230 ruling 7).
 #[test]
 fn the_steward_check_bites_at_the_first_format_change() {
-    let corpus = Corpus::with(&["0.1"]);
+    let corpus = Corpus::with(&["0.0", "0.1"]);
     let root = corpus.0.as_path();
     // Nothing released: nothing to check.
     assert_eq!(steward_problems(&[], "0.1", &MIGRATIONS, root), []);
@@ -392,4 +498,13 @@ fn the_steward_check_bites_at_the_first_format_change() {
         problems[0].to_string(),
         "the released format 0.2 has no fixture folder fixtures/format/0.2/: add its fixtures"
     );
+    // Two released formats: the last one has a way, the first one none.
+    assert_eq!(
+        steward_problems(&["0.0", "0.1"], "0.2", &TOWARDS_0_2, root),
+        [StewardProblem::NoStep {
+            from: "0.0".into(),
+            to: "0.2".into()
+        }]
+    );
+    assert_eq!(steward_problems(&["0.0", "0.1"], "0.1", &TOWARDS_0_2, root), []);
 }

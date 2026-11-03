@@ -261,9 +261,10 @@ impl Migration<'_> {
 /// A problem the steward's check finds (WP-S1.17 D12, decision log ID-1221 ruling 8).
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum StewardProblem {
-    /// The format a build writes is not released, and the chain has no way to it from the last released format.
+    /// The format a build writes is not released, and the chain has no way to it from a released format (decision
+    /// log ID-1230 ruling 7: from each, not from the last one only).
     NoStep {
-        /// The last released format.
+        /// The released format.
         from: String,
         /// The format the build writes.
         to: String,
@@ -294,8 +295,8 @@ impl fmt::Display for StewardProblem {
 /// The steward's check (WP-S1.17 D12 as ruling 8 of decision log ID-1221 amends it): for the formats `released` so far
 /// (oldest first), the format `format` a build writes, its migration `chain` and the fixture corpus at `corpus`
 /// (`fixtures/format/`): every released format without its folder `<corpus>/<format>/`, and, when `format` is not
-/// released while some format is, the missing way from the last released format to `format`. Empty while nothing is
-/// released.
+/// released, the missing way from each released format to `format` (decision log ID-1230 ruling 7). Empty while
+/// nothing is released.
 ///
 /// ```
 /// use std::path::Path;
@@ -325,13 +326,16 @@ pub fn steward_problems(
             format: (*f).to_owned(),
         })
         .collect();
-    if let Some(last) = released.last() {
-        if !released.contains(&format) && chain.towards(last, format).is_err() {
-            problems.push(StewardProblem::NoStep {
-                from: (*last).to_owned(),
-                to: format.to_owned(),
-            });
-        }
+    if !released.contains(&format) {
+        problems.extend(
+            released
+                .iter()
+                .filter(|from| chain.towards(from, format).is_err())
+                .map(|from| StewardProblem::NoStep {
+                    from: (*from).to_owned(),
+                    to: format.to_owned(),
+                }),
+        );
     }
     problems
 }

@@ -468,6 +468,17 @@ impl<'a> Loader<'a> {
             .push(Finding::new(kind, Some(file.clone()), line, message));
     }
 
+    /// A library document a migration step changed that would end opaque refuses the open (ID-1221 ruling 2, ID-1230
+    /// ruling 2): kept by its hash only, it would never be written, and the step's change would be lost.
+    fn refuse_opaque(&mut self, path: &FilePath, message: String) {
+        self.failed.get_or_insert(MigrationError {
+            file: Some(path.clone()),
+            line: None,
+            pointer: String::new(),
+            message,
+        });
+    }
+
     fn opaque(&mut self, path: &FilePath, hash: [u8; 32]) {
         self.out.opaque.insert(path.clone(), hash);
     }
@@ -896,15 +907,36 @@ impl<'a> Loader<'a> {
                 return;
             }
         };
+        let item_before = self.migration.is_some().then(|| copy_item(&value));
         let Some((mut value, migrated)) = self.migrate(path, None, value) else {
             return;
         };
+        let rehash = migrated && item_before.is_some_and(|before| before != copy_item(&value));
         let normalised = ew_schema::normalize_nfc(&mut value);
+        // A step that changed a copy's item is not an edit: its hash follows the migrated item (ID-1230 ruling 3).
+        if rehash {
+            let hash = LibDocument::load(value.clone())
+                .ok()
+                .and_then(|(doc, _)| library_copy_hash(&doc));
+            if let (Some(hash), Some(members)) = (hash, value.as_object_mut()) {
+                members.insert(
+                    "sha256".to_owned(),
+                    Value::from(ew_schema::Sha256(hash).to_string()),
+                );
+            }
+        }
         // A document kept verbatim keeps its migrated value's text (ID-1221 ruling 2), never its old one.
         let migrated_text = migrated.then(|| crate::pretty(&value.to_string()).into_bytes());
         let (doc, malformed) = match LibDocument::load(value) {
             Ok(loaded) => loaded,
             Err(e) => {
+                if migrated {
+                    self.refuse_opaque(
+                        path,
+                        format!("a migration step gave a library document this version cannot read: {e}"),
+                    );
+                    return;
+                }
                 self.find(FindingKind::SchemaViolation, path, None, e.to_string());
                 self.opaque(path, hash);
                 return;
@@ -912,15 +944,11 @@ impl<'a> Loader<'a> {
         };
         if let LibDocument::Unknown(unknown) = &doc {
             if migrated {
-                // Kept by its hash only, it is never written: the step's change would be lost.
-                self.failed.get_or_insert(MigrationError {
-                    file: Some(path.clone()),
-                    line: None,
-                    pointer: String::new(),
-                    message:
-                        "a migration step changed a library document of a kind this version keeps unchanged"
-                            .to_owned(),
-                });
+                self.refuse_opaque(
+                    path,
+                    "a migration step changed a library document of a kind this version keeps unchanged"
+                        .to_owned(),
+                );
                 return;
             }
             let k = unknown.get("$k").and_then(Value::as_str).unwrap_or("");
@@ -954,6 +982,16 @@ impl<'a> Loader<'a> {
         };
         let identity = (kind.name().to_owned(), id);
         if let Some((first_file, _)) = self.seen.get(&identity).cloned() {
+            if migrated_text.is_some() {
+                self.refuse_opaque(
+                    path,
+                    format!(
+                        "a migration step gave {}:{id}, which duplicates the document of {first_file}",
+                        kind.name()
+                    ),
+                );
+                return;
+            }
             self.find(
                 FindingKind::DuplicateRecord,
                 path,
@@ -1081,6 +1119,19 @@ pub fn library_copy_hash(doc: &LibDocument) -> Option<[u8; 32]> {
         LibDocument::Manufacturer(c) => hash(&c.item),
         LibDocument::Unknown(_) => None,
     }
+}
+
+/// A library copy's own item members: the document's members without the copy envelope of
+/// [`LibCopy`](ew_schema::LibCopy) (`$v`, `id`, `library_id`, `item_id`, `version`, `sha256`).
+fn copy_item(value: &Value) -> Option<serde_json::Map<String, Value>> {
+    const ENVELOPE: [&str; 6] = ["$v", "id", "library_id", "item_id", "version", "sha256"];
+    value.as_object().map(|members| {
+        members
+            .iter()
+            .filter(|(k, _)| !ENVELOPE.contains(&k.as_str()))
+            .map(|(k, v)| (k.clone(), v.clone()))
+            .collect()
+    })
 }
 
 /// EW-CORE-014: the `sha256` of a library copy is the hash of its item's compact JSON.
