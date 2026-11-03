@@ -100,8 +100,11 @@ fn t4_select_clicks_shift_and_ctrl() {
         .map(|(_, r)| *r)
         .collect();
     assert_eq!(shell.selected_rects(0), rects);
-    // The live region announces the change.
-    assert_eq!(shell.tool_announcement(), Some("1 selected"));
+    // The live region announces the change: one selected record in words (WP-S2.08 D13).
+    assert_eq!(
+        shell.tool_announcement(),
+        Some("-X1032, Terminal strip segment, folio 103")
+    );
     click(&mut shell, empty, json!({}));
     assert!(shell.selection().is_empty());
     assert!(shell.selected_rects(0).is_empty());
