@@ -336,7 +336,9 @@ mod tests {
         );
         assert_eq!(NS_CONFLICT.to_string(), "62f02f37-42d2-48ec-8f0d-692fb85254a0");
         assert_eq!(
-            s(conflict_file_id("pages/4aa43308-d0d3-57ee-be0c-d9383f429f50.jsonl")),
+            s(conflict_file_id(
+                "pages/4aa43308-d0d3-57ee-be0c-d9383f429f50.jsonl"
+            )),
             "c801da2a-0f8c-5452-8203-791712d85dcd"
         );
     }

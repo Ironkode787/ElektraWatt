@@ -11,7 +11,8 @@ use std::collections::BTreeSet;
 use common::fill;
 use ew_schema::{
     AnchorRef, FORMAT, FileRule, KIND_SINCE, Kind, KindRegistry, KindStatus, MEMBER_SINCE, MERGE_STRATEGIES,
-    MergeStrategy, PERSONAL_DATA_FIELDS, RELEASED_FORMATS, Record, SCHEMA_VERSIONS, VARIANT_SINCE, kind_schema,
+    MergeStrategy, PERSONAL_DATA_FIELDS, RELEASED_FORMATS, Record, SCHEMA_VERSIONS, VARIANT_SINCE,
+    kind_schema,
 };
 use serde_json::Value;
 
@@ -264,12 +265,26 @@ fn every_merge_strategy_names_a_member_of_its_kind_once() {
     let mut seen = BTreeSet::new();
     for row in MERGE_STRATEGIES {
         let schema = kind_schema(row.kind).unwrap_or_else(|| panic!("{}: not implemented", row.kind));
-        assert!(schema_has_path(&schema, row.path), "{}: {} does not exist", row.kind, row.path);
+        assert!(
+            schema_has_path(&schema, row.path),
+            "{}: {} does not exist",
+            row.kind,
+            row.path
+        );
         if let MergeStrategy::Keyed { key, .. } = row.strategy {
             let element = format!("{}[].{key}", row.path);
-            assert!(schema_has_path(&schema, &element), "{}: {element} does not exist", row.kind);
+            assert!(
+                schema_has_path(&schema, &element),
+                "{}: {element} does not exist",
+                row.kind
+            );
         }
-        assert!(seen.insert((row.kind, row.path)), "{}: {} has two rows", row.kind, row.path);
+        assert!(
+            seen.insert((row.kind, row.path)),
+            "{}: {} has two rows",
+            row.kind,
+            row.path
+        );
     }
 }
 

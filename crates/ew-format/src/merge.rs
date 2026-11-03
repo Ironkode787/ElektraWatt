@@ -274,10 +274,7 @@ fn insert_at(out: &mut Map<String, Value>, path: &[String], value: Option<&Value
 fn conflict_record(target: &Value, base: Value, ours: Value, theirs: Value) -> Value {
     let mut out = Map::new();
     out.insert("$k".to_owned(), Value::from("conflict"));
-    out.insert(
-        "id".to_owned(),
-        target.get("id").cloned().unwrap_or(Value::Null),
-    );
+    out.insert("id".to_owned(), target.get("id").cloned().unwrap_or(Value::Null));
     out.insert(
         "kind".to_owned(),
         target.get("$k").cloned().unwrap_or(Value::Null),
@@ -500,7 +497,12 @@ fn merge_keyed(
 
 /// `set`: (o ∩ a ∩ b) ∪ (a ∖ o) ∪ (b ∖ o), in ours' order then theirs' additions, or sorted by the elements' compact
 /// JSON text (decision log ID-1268 ruling 2).
-fn merge_set(order: MergeOrder, o: Option<&Value>, a: Option<&Value>, b: Option<&Value>) -> Option<Option<Value>> {
+fn merge_set(
+    order: MergeOrder,
+    o: Option<&Value>,
+    a: Option<&Value>,
+    b: Option<&Value>,
+) -> Option<Option<Value>> {
     let ol = o?.as_array()?;
     let al = list_or_absent(a)?;
     let bl = list_or_absent(b)?;
@@ -599,11 +601,7 @@ fn newer_record(value: &Value) -> bool {
 /// The `($k, id)` key of a record value.
 fn record_key(value: &Value) -> Option<(String, String)> {
     let k = value.get("$k")?.as_str()?;
-    let id = value
-        .get("id")?
-        .as_str()?
-        .parse::<ew_schema::AnyId>()
-        .ok()?;
+    let id = value.get("id")?.as_str()?.parse::<ew_schema::AnyId>().ok()?;
     Some((k.to_owned(), id.to_string()))
 }
 
@@ -619,10 +617,7 @@ fn read_records(
         return None;
     }
     let migration = migration(side.format, chain)?;
-    let data = side
-        .bytes
-        .strip_prefix(&[0xEF, 0xBB, 0xBF])
-        .unwrap_or(side.bytes);
+    let data = side.bytes.strip_prefix(&[0xEF, 0xBB, 0xBF]).unwrap_or(side.bytes);
     let body = data.strip_suffix(b"\n").unwrap_or(data);
     let mut out = BTreeMap::new();
     for (i, raw) in body.split(|b| *b == b'\n').enumerate() {
@@ -687,7 +682,10 @@ fn merge_records_file(
 ) -> FileMerge {
     // A base that cannot be read merges as no base: nothing of either side is lost.
     let o = read_records(base, limits, chain).unwrap_or_default();
-    let (kept, failed) = match (read_records(ours, limits, chain), read_records(theirs, limits, chain)) {
+    let (kept, failed) = match (
+        read_records(ours, limits, chain),
+        read_records(theirs, limits, chain),
+    ) {
         (Some(a), Some(b)) => {
             let keys: BTreeSet<&(String, String)> = o.keys().chain(a.keys()).chain(b.keys()).collect();
             let mut lines = Vec::new();
@@ -715,10 +713,7 @@ fn merge_records_file(
             }
             bytes.extend(line_of(&file_conflict(path, "theirs", theirs.bytes)).1.bytes());
             bytes.push(b'\n');
-            return FileMerge {
-                bytes,
-                conflicts: 1,
-            };
+            return FileMerge { bytes, conflicts: 1 };
         }
     };
     let mut lines: Vec<(LineKey, String)> = kept.values().map(line_of).collect();
@@ -771,7 +766,10 @@ fn merge_document(
 ) -> FileMerge {
     let o = read_document(base, limits, chain);
     let text = |side: MergeSide<'_>| Value::from(String::from_utf8_lossy(side.bytes).into_owned());
-    let bytes = match (read_document(ours, limits, chain), read_document(theirs, limits, chain)) {
+    let bytes = match (
+        read_document(ours, limits, chain),
+        read_document(theirs, limits, chain),
+    ) {
         (Some(a), Some(b)) => {
             let merged = merge_record(o.as_ref(), Some(&a), Some(&b));
             let doc = merged.merged.unwrap_or(a);
@@ -814,7 +812,12 @@ fn later_format(a: &str, b: &str) -> String {
 }
 
 /// Three-way on one entry: the side that changed it, else `both` (ours for a member, pending for a hash).
-fn three_way<T: PartialEq + Clone>(o: Option<&T>, a: Option<&T>, b: Option<&T>, both: Option<T>) -> Option<T> {
+fn three_way<T: PartialEq + Clone>(
+    o: Option<&T>,
+    a: Option<&T>,
+    b: Option<&T>,
+    both: Option<T>,
+) -> Option<T> {
     if a == b || b == o {
         a.cloned()
     } else if a == o {
@@ -856,7 +859,8 @@ fn merge_manifest(
                 .into_iter()
                 .filter_map(|p| {
                     let ho = o.as_ref().and_then(|m| m.files.get(p));
-                    three_way(ho, a.files.get(p), b.files.get(p), Some(FileHash::Pending)).map(|h| (p.clone(), h))
+                    three_way(ho, a.files.get(p), b.files.get(p), Some(FileHash::Pending))
+                        .map(|h| (p.clone(), h))
                 })
                 .collect();
             m.unstable = a.unstable || b.unstable;

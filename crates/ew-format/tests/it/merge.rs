@@ -10,8 +10,8 @@ use std::path::Path;
 
 use ew_format::ew_schema::{FORMAT, Kind, KindStatus, LibDocument, Record};
 use ew_format::{
-    FilePath, FormatStep, Kept, Limits, MANIFEST, MIGRATIONS, Manifest, MergeSide, MigrationError, Migrations,
-    PathClass, classify, load, merge_file, merge_record,
+    FilePath, FormatStep, Kept, Limits, MANIFEST, MIGRATIONS, Manifest, MergeSide, MigrationError,
+    Migrations, PathClass, classify, load, merge_file, merge_record,
 };
 use proptest::prelude::*;
 use serde_json::{Map, Value, json};
@@ -31,10 +31,7 @@ fn rec(kind: &str, members: Value) -> Value {
 /// The merge as compact texts: the merged record and the conflict record.
 fn merged(o: Option<&Value>, a: Option<&Value>, b: Option<&Value>) -> (Option<String>, Option<String>) {
     let m = merge_record(o, a, b);
-    (
-        m.merged.map(|v| v.to_string()),
-        m.conflict.map(|v| v.to_string()),
-    )
+    (m.merged.map(|v| v.to_string()), m.conflict.map(|v| v.to_string()))
 }
 
 fn text(v: &Value) -> Option<String> {
@@ -58,11 +55,15 @@ fn md1_a_record_added_differently_on_both_sides_merges_per_member_with_an_empty_
     let (merged, conflict) = merged(None, Some(&a), Some(&b));
     assert_eq!(
         merged.as_deref(),
-        Some(r#"{"$k":"connection","id":"5e07c3b9-1a4d-7f82-a6c3-90d8e2b71f4c","number":7,"overrides":{"csa":"1.5"},"page":"p"}"#)
+        Some(
+            r#"{"$k":"connection","id":"5e07c3b9-1a4d-7f82-a6c3-90d8e2b71f4c","number":7,"overrides":{"csa":"1.5"},"page":"p"}"#
+        )
     );
     assert_eq!(
         conflict.as_deref(),
-        Some(r#"{"$k":"conflict","base":{},"id":"5e07c3b9-1a4d-7f82-a6c3-90d8e2b71f4c","kind":"connection","ours":{"overrides":{"csa":"1.5"}},"theirs":{"overrides":{"csa":"2.5"}}}"#)
+        Some(
+            r#"{"$k":"conflict","base":{},"id":"5e07c3b9-1a4d-7f82-a6c3-90d8e2b71f4c","kind":"connection","ours":{"overrides":{"csa":"1.5"}},"theirs":{"overrides":{"csa":"2.5"}}}"#
+        )
     );
 }
 
@@ -77,7 +78,10 @@ fn md1_a_record_deleted_on_one_side_and_unchanged_on_the_other_is_deleted() {
 #[test]
 fn md1_delete_modify_keeps_the_modified_side_with_a_conflict_of_its_changes() {
     let o = rec("connection", json!({"page": "p", "overrides": {"csa": "1.5"}}));
-    let b = rec("connection", json!({"page": "p", "overrides": {"csa": "2.5"}, "number": 3}));
+    let b = rec(
+        "connection",
+        json!({"page": "p", "overrides": {"csa": "2.5"}, "number": 3}),
+    );
     assert_eq!(
         merged(Some(&o), None, Some(&b)),
         (
@@ -124,13 +128,25 @@ fn md1_an_atomic_member_changed_on_both_sides_conflicts_and_keeps_ours() {
 #[test]
 fn md1_object_merges_the_overrides_member_by_member() {
     // AC-41's clean variant (D29): A adds colour BU, B sets csa 2.5.
-    let o = rec("connection", json!({"overrides": {"csa": "1.5", "show_marker": true}}));
-    let a = rec("connection", json!({"overrides": {"csa": "1.5", "colour": ["BU"], "show_marker": true}}));
-    let b = rec("connection", json!({"overrides": {"csa": "2.5", "show_marker": true}}));
+    let o = rec(
+        "connection",
+        json!({"overrides": {"csa": "1.5", "show_marker": true}}),
+    );
+    let a = rec(
+        "connection",
+        json!({"overrides": {"csa": "1.5", "colour": ["BU"], "show_marker": true}}),
+    );
+    let b = rec(
+        "connection",
+        json!({"overrides": {"csa": "2.5", "show_marker": true}}),
+    );
     assert_eq!(
         merged(Some(&o), Some(&a), Some(&b)),
         (
-            text(&rec("connection", json!({"overrides": {"csa": "2.5", "colour": ["BU"], "show_marker": true}}))),
+            text(&rec(
+                "connection",
+                json!({"overrides": {"csa": "2.5", "colour": ["BU"], "show_marker": true}})
+            )),
             None
         )
     );
@@ -139,9 +155,18 @@ fn md1_object_merges_the_overrides_member_by_member() {
 #[test]
 fn md1_object_conflict_holds_only_the_conflicting_member() {
     // AC-41's conflict variant: B also adds colour WH.
-    let o = rec("connection", json!({"overrides": {"csa": "1.5", "show_marker": true}}));
-    let a = rec("connection", json!({"overrides": {"csa": "1.5", "colour": ["BU"], "show_marker": true}}));
-    let b = rec("connection", json!({"overrides": {"csa": "2.5", "colour": ["WH"], "show_marker": true}}));
+    let o = rec(
+        "connection",
+        json!({"overrides": {"csa": "1.5", "show_marker": true}}),
+    );
+    let a = rec(
+        "connection",
+        json!({"overrides": {"csa": "1.5", "colour": ["BU"], "show_marker": true}}),
+    );
+    let b = rec(
+        "connection",
+        json!({"overrides": {"csa": "2.5", "colour": ["WH"], "show_marker": true}}),
+    );
     assert_eq!(
         merged(Some(&o), Some(&a), Some(&b)),
         (
@@ -155,10 +180,16 @@ fn md1_object_conflict_holds_only_the_conflicting_member() {
 fn md1_an_object_absent_on_one_side_counts_as_empty() {
     let o = rec("connection", json!({"overrides": {"csa": "1.5"}}));
     let a = rec("connection", json!({}));
-    let b = rec("connection", json!({"overrides": {"csa": "1.5", "colour": ["BU"]}}));
+    let b = rec(
+        "connection",
+        json!({"overrides": {"csa": "1.5", "colour": ["BU"]}}),
+    );
     assert_eq!(
         merged(Some(&o), Some(&a), Some(&b)),
-        (text(&rec("connection", json!({"overrides": {"colour": ["BU"]}}))), None)
+        (
+            text(&rec("connection", json!({"overrides": {"colour": ["BU"]}}))),
+            None
+        )
     );
 }
 
@@ -179,7 +210,10 @@ fn md1_an_object_strategy_needs_the_member_at_the_base() {
 #[test]
 fn md1_below_an_object_members_are_atomic() {
     let o = rec("connection", json!({"overrides": {"flags": {"shielded": true}}}));
-    let a = rec("connection", json!({"overrides": {"flags": {"shielded": true, "twisted": true}}}));
+    let a = rec(
+        "connection",
+        json!({"overrides": {"flags": {"shielded": true, "twisted": true}}}),
+    );
     let b = rec("connection", json!({"overrides": {"flags": {}}}));
     assert_eq!(
         merged(Some(&o), Some(&a), Some(&b)),
@@ -193,7 +227,10 @@ fn md1_below_an_object_members_are_atomic() {
 #[test]
 fn md1_an_enum_changed_to_different_variants_is_one_conflict_without_a_union() {
     let o = rec("connection", json!({"kind": {"bridge": {"group": 1}}}));
-    let a = rec("connection", json!({"kind": {"core": "0192f3a4-5b6c-7d8e-9f01-23456789abcd"}}));
+    let a = rec(
+        "connection",
+        json!({"kind": {"core": "0192f3a4-5b6c-7d8e-9f01-23456789abcd"}}),
+    );
     let b = rec("connection", json!({"kind": {"bridge": {"group": 2}}}));
     assert_eq!(
         merged(Some(&o), Some(&a), Some(&b)),
@@ -206,13 +243,25 @@ fn md1_an_enum_changed_to_different_variants_is_one_conflict_without_a_union() {
 
 #[test]
 fn md1_keyed_cp_overrides_merge_by_idx_in_numeric_order() {
-    let o = rec("function", json!({"cp_overrides": [{"idx": 1, "alias": "A"}, {"idx": 9, "alias": "B"}]}));
-    let a = rec("function", json!({"cp_overrides": [{"idx": 1, "alias": "A2"}, {"idx": 9, "alias": "B"}]}));
-    let b = rec("function", json!({"cp_overrides": [{"idx": 1, "alias": "A"}, {"idx": 10, "alias": "C"}]}));
+    let o = rec(
+        "function",
+        json!({"cp_overrides": [{"idx": 1, "alias": "A"}, {"idx": 9, "alias": "B"}]}),
+    );
+    let a = rec(
+        "function",
+        json!({"cp_overrides": [{"idx": 1, "alias": "A2"}, {"idx": 9, "alias": "B"}]}),
+    );
+    let b = rec(
+        "function",
+        json!({"cp_overrides": [{"idx": 1, "alias": "A"}, {"idx": 10, "alias": "C"}]}),
+    );
     assert_eq!(
         merged(Some(&o), Some(&a), Some(&b)),
         (
-            text(&rec("function", json!({"cp_overrides": [{"idx": 1, "alias": "A2"}, {"idx": 10, "alias": "C"}]}))),
+            text(&rec(
+                "function",
+                json!({"cp_overrides": [{"idx": 1, "alias": "A2"}, {"idx": 10, "alias": "C"}]})
+            )),
             None
         )
     );
@@ -220,8 +269,14 @@ fn md1_keyed_cp_overrides_merge_by_idx_in_numeric_order() {
 
 #[test]
 fn md1_a_keyed_conflict_holds_ours_and_theirs_lists_as_merged() {
-    let o = rec("function", json!({"cp_overrides": [{"idx": 1, "alias": "A"}, {"idx": 9, "alias": "B"}]}));
-    let a = rec("function", json!({"cp_overrides": [{"idx": 1, "alias": "A2"}, {"idx": 9, "alias": "B"}]}));
+    let o = rec(
+        "function",
+        json!({"cp_overrides": [{"idx": 1, "alias": "A"}, {"idx": 9, "alias": "B"}]}),
+    );
+    let a = rec(
+        "function",
+        json!({"cp_overrides": [{"idx": 1, "alias": "A2"}, {"idx": 9, "alias": "B"}]}),
+    );
     let b = rec(
         "function",
         json!({"cp_overrides": [{"idx": 1, "alias": "A3"}, {"idx": 9, "alias": "B"}, {"idx": 10, "alias": "C"}]}),
@@ -240,12 +295,18 @@ fn md1_a_keyed_conflict_holds_ours_and_theirs_lists_as_merged() {
 
 #[test]
 fn md1_keyed_tech_data_merges_by_key_in_byte_order() {
-    let o = rec("device", json!({"tech_data": [{"key": "curve", "value": "B"}, {"key": "i_out", "value": "6 A"}]}));
+    let o = rec(
+        "device",
+        json!({"tech_data": [{"key": "curve", "value": "B"}, {"key": "i_out", "value": "6 A"}]}),
+    );
     let a = rec(
         "device",
         json!({"tech_data": [{"key": "curve", "value": "B"}, {"key": "i_out", "value": "6 A"}, {"key": "u_n", "value": "230 V"}]}),
     );
-    let b = rec("device", json!({"tech_data": [{"key": "Z", "value": "1"}, {"key": "curve", "value": "C"}, {"key": "i_out", "value": "6 A"}]}));
+    let b = rec(
+        "device",
+        json!({"tech_data": [{"key": "Z", "value": "1"}, {"key": "curve", "value": "C"}, {"key": "i_out", "value": "6 A"}]}),
+    );
     assert_eq!(
         merged(Some(&o), Some(&a), Some(&b)),
         (
@@ -261,8 +322,14 @@ fn md1_keyed_tech_data_merges_by_key_in_byte_order() {
 #[test]
 fn md1_keyed_parties_merge_by_role_in_ours_order_then_theirs_additions() {
     let o = rec("project", json!({"parties": [{"role": "customer", "name": "c"}]}));
-    let a = rec("project", json!({"parties": [{"role": "engineer", "name": "e"}, {"role": "customer", "name": "c2"}]}));
-    let b = rec("project", json!({"parties": [{"role": "customer", "name": "c"}, {"role": "author", "name": "w"}]}));
+    let a = rec(
+        "project",
+        json!({"parties": [{"role": "engineer", "name": "e"}, {"role": "customer", "name": "c2"}]}),
+    );
+    let b = rec(
+        "project",
+        json!({"parties": [{"role": "customer", "name": "c"}, {"role": "author", "name": "w"}]}),
+    );
     assert_eq!(
         merged(Some(&o), Some(&a), Some(&b)),
         (
@@ -278,8 +345,14 @@ fn md1_keyed_parties_merge_by_role_in_ours_order_then_theirs_additions() {
 #[test]
 fn md1_two_parties_of_one_role_merge_the_member_atomically() {
     let o = rec("project", json!({"parties": [{"role": "customer", "name": "c"}]}));
-    let a = rec("project", json!({"parties": [{"role": "customer", "name": "c"}, {"role": "customer", "name": "d"}]}));
-    let b = rec("project", json!({"parties": [{"role": "customer", "name": "c"}, {"role": "author", "name": "w"}]}));
+    let a = rec(
+        "project",
+        json!({"parties": [{"role": "customer", "name": "c"}, {"role": "customer", "name": "d"}]}),
+    );
+    let b = rec(
+        "project",
+        json!({"parties": [{"role": "customer", "name": "c"}, {"role": "author", "name": "w"}]}),
+    );
     assert_eq!(
         merged(Some(&o), Some(&a), Some(&b)),
         (
@@ -296,7 +369,10 @@ fn md1_a_set_keeps_both_sides_additions_less_either_sides_removals_sorted() {
     let b = rec("structure_node", json!({"aliases": ["AA", "M"]}));
     assert_eq!(
         merged(Some(&o), Some(&a), Some(&b)),
-        (text(&rec("structure_node", json!({"aliases": ["AA", "M", "ZZ"]}))), None)
+        (
+            text(&rec("structure_node", json!({"aliases": ["AA", "M", "ZZ"]}))),
+            None
+        )
     );
 }
 
@@ -308,7 +384,10 @@ fn md1_a_set_of_a_plain_list_keeps_ours_order_then_theirs_additions() {
     assert_eq!(
         merged(Some(&o), Some(&a), Some(&b)),
         (
-            text(&rec("manufacturer", json!({"aliases": ["Schneider", "SE", "Telemecanique"]}))),
+            text(&rec(
+                "manufacturer",
+                json!({"aliases": ["Schneider", "SE", "Telemecanique"]})
+            )),
             None
         )
     );
@@ -316,25 +395,43 @@ fn md1_a_set_of_a_plain_list_keeps_ours_order_then_theirs_additions() {
 
 #[test]
 fn md1_max_takes_the_later_edited_date_and_its_object_merges_beside_it() {
-    let o = rec("project", json!({"master": {"description": "x", "edited": "2025-04-14"}}));
-    let a = rec("project", json!({"master": {"description": "x", "edited": "2025-06-01"}}));
-    let b = rec("project", json!({"master": {"description": "y", "edited": "2025-05-02"}}));
+    let o = rec(
+        "project",
+        json!({"master": {"description": "x", "edited": "2025-04-14"}}),
+    );
+    let a = rec(
+        "project",
+        json!({"master": {"description": "x", "edited": "2025-06-01"}}),
+    );
+    let b = rec(
+        "project",
+        json!({"master": {"description": "y", "edited": "2025-05-02"}}),
+    );
     assert_eq!(
         merged(Some(&o), Some(&a), Some(&b)),
         (
-            text(&rec("project", json!({"master": {"description": "y", "edited": "2025-06-01"}}))),
+            text(&rec(
+                "project",
+                json!({"master": {"description": "y", "edited": "2025-06-01"}})
+            )),
             None
         )
     );
     assert_eq!(
         merged(Some(&o), Some(&b), Some(&a)),
         (
-            text(&rec("project", json!({"master": {"description": "y", "edited": "2025-06-01"}}))),
+            text(&rec(
+                "project",
+                json!({"master": {"description": "y", "edited": "2025-06-01"}})
+            )),
             None
         )
     );
     // A value that is not a date merges atomically.
-    let c = rec("project", json!({"master": {"description": "x", "edited": "soon"}}));
+    let c = rec(
+        "project",
+        json!({"master": {"description": "x", "edited": "soon"}}),
+    );
     assert_eq!(
         merged(Some(&o), Some(&a), Some(&c)),
         (
@@ -380,7 +477,10 @@ fn connection() -> BoxedStrategy<Value> {
         member(&[json!("1.5"), json!("2.5")]),
         member(&[json!(["BU"]), json!(["WH"])]),
         member(&[json!(true)]),
-        member(&[json!({"shielded": true}), json!({"shielded": true, "twisted": true})]),
+        member(&[
+            json!({"shielded": true}),
+            json!({"shielded": true, "twisted": true}),
+        ]),
     ));
     (member(&[json!(1), json!(2)]), overrides)
         .prop_map(|(number, overrides)| {
@@ -725,7 +825,10 @@ fn md3_typed_records_and_documents_of_golden_a_merge_typed() {
     for (path, bytes) in golden() {
         let text = String::from_utf8(bytes).expect("UTF-8");
         let values: Vec<Value> = match classify(&path) {
-            PathClass::Records(_) => text.lines().map(|l| serde_json::from_str(l).expect("JSON")).collect(),
+            PathClass::Records(_) => text
+                .lines()
+                .map(|l| serde_json::from_str(l).expect("JSON"))
+                .collect(),
             PathClass::LibDocument { .. } => vec![serde_json::from_str(&text).expect("JSON")],
             _ => continue,
         };
@@ -762,7 +865,11 @@ fn md3_typed_records_and_documents_of_golden_a_merge_typed() {
         }
     }
     assert!(merges > 0);
-    assert_eq!(failures, BTreeSet::new(), "kinds whose merged record does not read typed");
+    assert_eq!(
+        failures,
+        BTreeSet::new(),
+        "kinds whose merged record does not read typed"
+    );
 }
 
 #[test]
@@ -923,7 +1030,9 @@ fn md4_a_side_with_a_newer_record_or_format_keeps_the_other_side() {
 fn md4_a_side_above_a_reader_limit_keeps_the_other_side() {
     let (base, ours) = page_with(r#""overrides":{"csa":"1.5","colour":["BU"],"show_marker":true}"#);
     let deep = format!("{}1{}", "[".repeat(80), "]".repeat(80));
-    let (_, theirs) = page_with(&format!(r#""overrides":{{"csa":"2.5","show_marker":true}},"x":{deep}"#));
+    let (_, theirs) = page_with(&format!(
+        r#""overrides":{{"csa":"2.5","show_marker":true}},"x":{deep}"#
+    ));
     assert_eq!(
         merge_page(&base, &ours, &theirs),
         (format!("{ours}{}\n", file_conflict("theirs", &theirs)), 1)
@@ -960,7 +1069,10 @@ fn neither_side_parsing_keeps_ours_and_holds_theirs() {
     );
     assert_eq!(
         (String::from_utf8(m.bytes).expect("UTF-8"), m.conflicts),
-        (format!("<<<<<<< ours\n{}\n", file_conflict("theirs", "not json\n")), 1)
+        (
+            format!("<<<<<<< ours\n{}\n", file_conflict("theirs", "not json\n")),
+            1
+        )
     );
 }
 
@@ -1109,10 +1221,20 @@ fn merge_manifests(o: &str, a: &str, b: &str) -> (String, usize) {
 #[test]
 fn the_manifest_merges_by_max_plus_one_with_pending_where_both_changed() {
     let base_member = |n: u8| format!(",\n  \"base\": \"{}\"", hash(n));
-    let o = manifest(3, &[("a.jsonl", 1), ("b.jsonl", 2), ("c.jsonl", 3), ("d.jsonl", 4)], "");
+    let o = manifest(
+        3,
+        &[("a.jsonl", 1), ("b.jsonl", 2), ("c.jsonl", 3), ("d.jsonl", 4)],
+        "",
+    );
     let a = manifest(
         5,
-        &[("a.jsonl", 11), ("b.jsonl", 2), ("c.jsonl", 3), ("d.jsonl", 4), ("e.jsonl", 5)],
+        &[
+            ("a.jsonl", 11),
+            ("b.jsonl", 2),
+            ("c.jsonl", 3),
+            ("d.jsonl", 4),
+            ("e.jsonl", 5),
+        ],
         &base_member(9),
     );
     let b = manifest(
@@ -1128,7 +1250,8 @@ fn the_manifest_merges_by_max_plus_one_with_pending_where_both_changed() {
     );
     assert_eq!(merge_manifests(&o, &a, &b), (expected, 0));
     // The result reads as a merged manifest.
-    let merged = Manifest::parse(merge_manifests(&o, &a, &b).0.as_bytes(), &Limits::default()).expect("readable");
+    let merged =
+        Manifest::parse(merge_manifests(&o, &a, &b).0.as_bytes(), &Limits::default()).expect("readable");
     assert!(merged.merged);
     assert_eq!(merged.extra.get("base"), None);
 }
@@ -1141,7 +1264,12 @@ fn the_manifest_takes_the_later_format_and_min_reader() {
     let (merged, conflicts) = merge_manifests(&o, &a, &b);
     let merged = Manifest::parse(merged.as_bytes(), &Limits::default()).expect("readable");
     assert_eq!(
-        (merged.format.as_str(), merged.min_reader.as_str(), merged.generation, conflicts),
+        (
+            merged.format.as_str(),
+            merged.min_reader.as_str(),
+            merged.generation,
+            conflicts
+        ),
         ("0.2", "0.2", 4, 0)
     );
 }

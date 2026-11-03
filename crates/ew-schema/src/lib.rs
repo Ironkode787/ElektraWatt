@@ -124,13 +124,13 @@ pub use device::{
     Terminal, TerminalGroup,
 };
 pub use error::{MalformedVariant, SchemaError};
-pub use json::{Extra, MAX_SAFE_INTEGER, Open, check_value, normalize_nfc};
 /// The namespace and ID of a file-level conflict record (WP-S1.17 D14), for `ew-format`'s merge core.
 pub use ew_ids::v5::{NS_CONFLICT, conflict_file_id};
+pub use json::{Extra, MAX_SAFE_INTEGER, Open, check_value, normalize_nfc};
 pub use kind::{
-    FORMAT, FileRule, KIND_SINCE, Kind, KindRegistry, KindStatus, MEMBER_SINCE, MERGE_STRATEGIES, MemberSince,
-    MergeOrder, MergeRule, MergeStrategy, PERSONAL_DATA_FIELDS, RELEASED_FORMATS, SCHEMA_VERSIONS, VARIANT_SINCE,
-    VariantSince,
+    FORMAT, FileRule, KIND_SINCE, Kind, KindRegistry, KindStatus, MEMBER_SINCE, MERGE_STRATEGIES,
+    MemberSince, MergeOrder, MergeRule, MergeStrategy, PERSONAL_DATA_FIELDS, RELEASED_FORMATS,
+    SCHEMA_VERSIONS, VARIANT_SINCE, VariantSince,
 };
 pub use layout::{
     Carrier, CarrierKind, CarrierParams, CarrierRef, DuctParams, Enclosure, LayoutSpace, MountingSurface,
