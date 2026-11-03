@@ -4,9 +4,9 @@
 //! `check-governance-files`: the governance files of NFR-DOC-08 and docs/design/19-open-source-governance.md
 //! §2.4 exist and are not empty.
 //!
-//! This is the M0 set of WP-S0.03. From the first binary release (M2) the check also requires `GOVERNANCE.md`,
-//! `TRADEMARKS.md`, `ROADMAP.md` and `.github/FUNDING.yml`; add them to [`REQUIRED_FILES`] in the
-//! work package that writes them.
+//! This is the set of WP-S0.03, which closes on the file check (ID-1188, FT-1118): the files below, `GOVERNANCE.md` and
+//! `ROADMAP.md` among them. A governance file that a later work package writes is added to [`REQUIRED_FILES`] in that
+//! work package.
 
 use std::path::Path;
 
@@ -17,6 +17,8 @@ pub const REQUIRED_FILES: &[&str] = &[
     "CODE_OF_CONDUCT.md",
     "SECURITY.md",
     "PRIVACY.md",
+    "GOVERNANCE.md",
+    "ROADMAP.md",
     ".github/CODEOWNERS",
     ".github/PULL_REQUEST_TEMPLATE.md",
 ];
@@ -75,12 +77,15 @@ mod tests {
         std::fs::write(dir.join(".github/ISSUE_TEMPLATE/bug.yml"), "x\n").unwrap();
         std::fs::write(dir.join("SECURITY.md"), "").unwrap();
         std::fs::remove_file(dir.join("LICENSE.md")).unwrap();
+        // FT-1118: the governance and roadmap files are required.
+        std::fs::remove_file(dir.join("ROADMAP.md")).unwrap();
         let v = check(&dir);
         assert_eq!(
             v,
             [
                 "LICENSE.md: missing (NFR-DOC-08)",
-                "SECURITY.md: empty (NFR-DOC-08)"
+                "SECURITY.md: empty (NFR-DOC-08)",
+                "ROADMAP.md: missing (NFR-DOC-08)"
             ]
         );
         std::fs::remove_dir_all(&dir).ok();
