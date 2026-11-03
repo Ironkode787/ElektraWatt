@@ -1900,6 +1900,7 @@ impl Store {
         // The computed stamp (doc 05 §4, WP-S1.17 D3): the greatest `since` of the files the new generation lists.
         let since: Vec<&str> = plan.disk.values().filter_map(|h| h.since).collect();
         manifest.min_reader = min_reader(FORMAT, since.iter().copied());
+        manifest.unstable = unstable_flag(self.manifest.as_ref().filter(|_| self.keep_format), self.opts.released);
         if self.keep_format {
             if let Some(old) = &self.manifest {
                 // A newer minor keeps its stamps; its `min_reader` rises when our records need more.
@@ -1910,9 +1911,6 @@ impl Store {
                 );
             }
         }
-        // A format not yet released is marked (WP-S1.17 D3, decision log ID-1221 ruling 7).
-        manifest.unstable =
-            !self.opts.released.is_empty() && !self.opts.released.contains(&manifest.format.as_str());
         // A migrated project's members other than the stamps and the files are the manifest steps' (WP-S1.17 D11).
         let old_manifest = match &self.migrated {
             Some(migrated) => Some(&migrated.manifest),
@@ -2900,6 +2898,16 @@ fn same_bytes(vfs: &dyn Vfs, a: &Path, b: &Path) -> io::Result<bool> {
     }
 }
 
+/// The `unstable` flag a save writes (WP-S1.17 D3, decision log ID-1221 ruling 7 and ID-1230 ruling 1): a save that
+/// keeps the file's own format (`kept`, a newer minor) keeps the file's own flag, since `released` cannot know a newer
+/// minor; a save that writes [`FORMAT`] marks it when `released` is not empty and does not hold it.
+fn unstable_flag(kept: Option<&Manifest>, released: &[&str]) -> bool {
+    match kept {
+        Some(old) => old.unstable,
+        None => !released.is_empty() && !released.contains(&FORMAT),
+    }
+}
+
 /// The project row of an empty baseline (never written: a save writes the model's project).
 fn placeholder_project() -> ew_format::ew_schema::Project {
     serde_json::from_value(serde_json::json!({
@@ -3008,5 +3016,26 @@ mod tests {
         );
         assert_eq!(same_bytes(&vfs, pa, pd).ok(), Some(false), "the lengths differ");
         assert!(same_bytes(&vfs, pa, Path::new("/p/e")).is_err(), "an absent file");
+    }
+
+    /// ID-1230 ruling 1: a save that keeps a newer minor's stamp keeps its `unstable` flag, whatever this build's
+    /// released list says; a save that writes [`FORMAT`] marks it by the list. (A store of [`FORMAT`] `0.x` cannot
+    /// open a newer minor, every `0.y` being its own major, so the file is the manifest the save keeps.)
+    #[test]
+    fn a_kept_newer_minor_keeps_its_own_unstable_flag() {
+        let released: &[&str] = &[FORMAT];
+        let mut newer = Manifest::new(
+            "1.3",
+            "newer",
+            "8e41c0d2-1b7f-5a39-a6c4-0f5e2d913b7a".parse().expect("a UUID"),
+            4,
+        );
+        assert!(!unstable_flag(Some(&newer), released), "a released newer minor");
+        newer.unstable = true;
+        assert!(unstable_flag(Some(&newer), released));
+        assert!(unstable_flag(Some(&newer), &[]));
+        assert!(!unstable_flag(None, released));
+        assert!(unstable_flag(None, &["0.0"]));
+        assert!(!unstable_flag(None, &[]));
     }
 }

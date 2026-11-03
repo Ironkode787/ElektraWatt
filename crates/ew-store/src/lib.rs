@@ -30,8 +30,12 @@
 //! - **Git** ([`git`]): the release's commit and tag through the `git` executable, never a shell (doc 05 §11.6;
 //!   WP-S1.18 D12).
 //!
-//! Not in v0: the watcher and the external-change merge (§9), the rest of git integration (§11),
-//! journal snapshot slots (§8.1) and migrations (§10.2), which are later work packages.
+//! - **Migrations** (§10.2): a project of an older format opens migrated in memory through the chain of
+//!   [`StoreOptions::migrations`], and its first save waits for the user's consent ([`Store::confirm_upgrade`];
+//!   WP-S1.17 D10, D11).
+//!
+//! Not in v0: the watcher and the external-change merge (§9), the rest of git integration (§11) and
+//! journal snapshot slots (§8.1), which are later work packages.
 //!
 //! The save is synchronous and takes an immutable snapshot (`&Model`), so it can move to a writer thread
 //! unchanged (NFR-PERF-12; budgets are measured at milestones).
