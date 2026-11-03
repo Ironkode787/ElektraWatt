@@ -1113,6 +1113,17 @@ In the table, R is the reader's format, F the file's format and M its `min_reade
 | F.major < R.major | Migrate in memory. The first save asks first and writes `<name>.ew.pre-<F>.ewz` beside the project (NFR-REL-06) |
 | `unstable: true` in a release build | Read-only with a warning |
 
+*As built (cycle 48, WP-S1.17 part 3; decision log ID-1221, ID-1230; written in this cycle, ID-1248).* An
+older-major project (each `0.x` is its own major) opens migrated in memory through the loader's `Access::Migrate`,
+and a missing step refuses the open. The consent gate stands in the store's save, so every writer meets it: `ew
+upgrade` asks for the word `upgrade` on a terminal or takes `--yes`; the window's banner and consent dialog are
+WP-S1.17 part 7's (FT-1148). Once confirmed, `Session::save` first packs the project's files and the manifest's
+bytes as found as `<project folder>.pre-<from>.ewz` beside the project folder (`-2`, `-3` and so on past a name that
+holds other bytes, a name holding the same bytes reused), reads it back, and then saves in this build's format,
+rewriting only the files a step changed; a failed backup refuses the save with nothing written. Review part 2's
+rulings (ID-1230: the file's `unstable` flag kept under `keep_format`, a migrated library document that ends opaque
+refused, a migrated copy's hash recomputed) are built by its fixer.
+
 **Unknown derivation profile** (ADR-0003 amendment 1; decision log ID-72). A project whose `derivation_profile`
 this build does not ship (a newer file or a hand edit) opens under the rules above, but the pin is never silently
 replaced: it stays as stored, EW-CORE-018 reports it as an error and blocks release, and the newest shipped profile is used for
@@ -1134,6 +1145,14 @@ upgrade) is refused until the opt-in, previewed profile upgrade resolves the pin
 - **Small upgrade diffs.** A major that changes only connections rewrites only connection records, so `ew upgrade`
   yields a small git diff (FR-EXT-008).
 - **Same chain everywhere.** Macros, catalogue items and archives carry `$v` and use the same chain.
+
+*As built (cycle 48, WP-S1.17 part 3; decision log ID-1221, ID-1230).* The chain is `ew_format::migrate`: kind steps
+(`$v` n to n + 1, the chain setting `$v`) and format steps (one on the manifest's `Value`, one on each record's and
+library document's), run on the `Value` between a line's parse and its typed reading, only on an older-major open;
+the format record steps run before the kind steps, which FT-1153 interleaves before a second format step ships. The
+shipped chain (`MIGRATIONS`) is empty while 0.1 is the first format, and tests pass their own. A step's error
+carries its JSON Pointer and the loader adds the file and the line. A clipboard fragment of an older format
+migrates through the same chain (`ew-api`'s `parse_fragment`, FT-403).
 
 ### 10.3 Additive change rules and preservation
 
@@ -1214,6 +1233,12 @@ reads it (`Q::logo_asset`), so a bare hash that names an SVG file prints as SVG.
   output (NFR-REL-05).
 - **Development builds** with an unreleased schema write `"unstable": true` and warn on every save. Release builds
   open such projects read-only, because an unreleased member may still be renamed.
+
+*As built (cycle 48, WP-S1.17 part 3; decision log ID-1221).* A save writes `unstable: true` when the released list
+(`RELEASED_FORMATS`) is not empty and lacks the format it writes, so with the list empty nothing changes (FT-95);
+the warning on every such save is FT-1154. D12's steward check is `ew_format::migrate::steward_problems`, run as a
+test in `ew-format` and `ew-store` rather than as an xtask check; the corpus test opens, saves and compares each
+`fixtures/format/<format>/<project>/` and passes while the folder is absent (WP-S6.08 adds it).
 
 ---
 

@@ -25,6 +25,25 @@ behind the order are in the [global plan](docs/plan/01-global-plan.md).
 | M6 | 1.0 release | The format freeze and external acceptance. What the first release leaves for 1.0 comes in here: signed releases, the per-machine installer and the `.deb` package, the update check and the crash report with minidump, and the CRA processes |
 | 1.x | Backlog | Work that follows 1.0 and is not yet split into packages |
 
+## Where it stands
+
+Development runs in short AI-assisted cycles. A cycle ends as a checkpoint, which pushes the working branch, or as a
+delivery, which runs the full continuous-integration gate on Windows and Linux and then fast-forwards `main`; a
+delivery comes every second cycle. Measured by content, not by date:
+
+| Milestone | State |
+|---|---|
+| M0 | Technical part delivered: the workspace, CI on Linux and Windows, licensing and the licence-boundary check. The remaining gate items are the project owner's |
+| M1 | Delivered with follow-up tasks: the model, the commands, the derived data, the checks, the reports and the PDF of the reference project are produced headlessly |
+| M-PP | Closed: the pilot-preview gate was recorded as Go |
+| M2 | In progress, toward the pilot release 0.1.0 on Windows and Linux, unsigned and with no network code |
+| M3 to M6, 1.x | Not started |
+
+What works today, in short: the desktop window opens, edits and checks a project, with navigators, table mode, a
+history, the 2D panel layout and printing; the `ew` command-line tool imports QElectroTech projects, checks, exports
+PDF/A-2b, SVG and tables (with the Excel round trip), prints and upgrades a project of an older format. The
+[README](README.md#status) lists it in full, and the [global plan](docs/plan/01-global-plan.md) records each cycle.
+
 ## What is not on the roadmap
 
 The non-goals of the project are in the [vision](docs/design/00-vision-and-scope.md#4-non-goals).

@@ -8,7 +8,8 @@ external change in the store and the session (1.1 pw, D20 to D23), part 7 the wi
 status (0.8 pw, D24, D25), part 8 `ew diff`, `ew git setup`, the post-merge integrity and AC-41 (0.9 pw, D26 to D29).
 The parts sum to **7.4 pw plus 0.3 pw reserve** against a 6.8 pw PERT (O1) · **Amended in cycle 42** (decision log ID-1029, the owner's format decision): part 3, D4 and D3's `unstable` marker move to the wave before the first release, beside WP-S6.08; the PERT is 6.9 pw; format parts route at `high`, a save, a journal, recovery or a merge at `xhigh` (§16) · **Date:** 2026-10-31 · **Work package:**
 [WP-S1.17](../02-work-packages.md#wp-s117-collaboration-external-change-migrations-integrity-merge-driver) ·
-**Decision log:** ID-1015; amended by ID-1029; part 1 ruled by ID-1115, its fixes by ID-1144; part 2 ruled by ID-1175; part 3 ruled by ID-1221; `fmt --repair` ruled by ID-1185, its backup by ID-1186; as built ID-1152, ID-1156 (part 1), ID-1191, ID-1195 (part 2), ID-1196, ID-1200 (`fmt --repair`) · **Part of:** ElektraWatt plan, specifications
+**Decision log:** ID-1015; amended by ID-1029; part 1 ruled by ID-1115, its fixes by ID-1144; part 2 ruled by ID-1175; part 3 ruled by ID-1221; `fmt --repair` ruled by ID-1185, its backup by ID-1186; as built ID-1152, ID-1156 (part 1), ID-1191, ID-1195 (part 2), ID-1196, ID-1200 (`fmt --repair`); part 3 built in cycle 48 (lane M48, its deviations and the review's rulings
+in §8 and ID-1230, built by the fixer FM48; the window's half is FT-1148, part 7) · **Part of:** ElektraWatt plan, specifications
 
 **Purpose.** WP-S1.09 built the canonical format, the save protocol, the lock, the journal and recovery, and left to
 this package everything that happens when a project changes outside the running session or between builds: a pull

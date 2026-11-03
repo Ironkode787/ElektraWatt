@@ -300,6 +300,12 @@ stays open", "The tab group has one tab", "Only one tab group is shown", "No pag
 
 *As built (cycle 25, WP-S2.04 part 1 and WP-S2.05 part 1; decision log ID-625, ID-626).* The menu bar has eight menus: File, Edit, View, **Insert**, Page, Tools, Window and Help, Insert standing between View and Page as in the table. **Insert** holds Symbol… (I), Device from part… (Shift+I) and, after a separator, Terminal strip…; the rest of its row arrives with WP-S2.04's later parts. **Edit** gains Properties of selection (E, Alt+Enter) and Project properties (`props.project`; there is no Project menu yet, so it sits in Edit, ruling 4), and, after a separator, Rotate clockwise (R), Rotate counter-clockwise (Shift+R), Mirror left to right (X), Mirror top to bottom (Y), Next variant (V), Next representation type (Shift+V), Move (M), Delete (Delete) and Change symbol…. **View** gains Properties, which shows the property grid in the Schematic workspace. The Project menu's "Drawing" item of WP-S2.04 part 2 needs that menu first; until it exists the crossings setting is reached through `project.drawing.set`.
 
+*As built (cycles 47 and 48, WP-S3.07 part 3 and WP-S3.08 part 3; decision log ID-1197, ID-1237; written in cycle 48,
+ID-1248).* The Output menu holds Print… (Ctrl+P, `file.print`) beside Export PDF…, opening the print pre-dialog
+([16a](16a-design-language.md) §6.26), and, in its Lists group, Export table… and Import table…
+(`navigator.export_table`, `navigator.import_table`), which also stand as a separated block in a navigator table's
+Columns menu; each has a predicate and gives its reason while no table navigator is shown in table mode.
+
 **Platform behaviour.**
 - **macOS:** not built; macOS is not a supported platform (decision log ID-880). (The plan was a muda 0.21.2 global menu bar with the
   standard application menu and the system Window and Help menus.)
@@ -1086,7 +1092,7 @@ and tube table are table models with domain commands for insert, delete and move
 | Clear cells (Delete) | `fields.set` to empty, which removes overrides | 1 | no |
 | Insert, delete, move rows | the table's domain commands (strip editor: insert, delete, move, re-designate; as built in cycle 34: `terminal.insert`, `edit.delete` of the terminal devices, `terminal.move`, the Terminal cell for re-designation as built, and `fields.set` of `strip.accessories` for accessory rows) | 1 each | ghost of prevent-rule violations (08 §9); as built, a terminal-row delete always opens the table card, the other row gestures commit directly with a toast and an undo step |
 | Sort, filter, resize, reorder columns | none | 0 | — |
-| Excel round-trip import | `table.apply_changes` ([14](14-interop.md) §8.2) | 1 | always |
+| Excel round-trip import | `table.apply_changes` ([14](14-interop.md) §8.2); as built (cycle 47, ID-1193): one `fields.set_many` | 1 | always |
 
 ### 7.3 Pattern fill
 
@@ -1158,6 +1164,13 @@ later session. The UI side is the preview tab of §7.6 with a per-cell diff grid
 conflicts, defaulting to "keep EW" with "take file" per cell or per column; edits in derived columns (tag, xref,
 effective colour) are refused with the hint of [14](14-interop.md) §8.2; unknown and missing rows are listed, never
 deleted. Applying is one `table.apply_changes` command (FR-EXP-004).
+
+*As built (cycle 48, WP-S3.08 part 3; decision log ID-1224, ID-1237; written in this cycle, ID-1248).* Import table…
+reads the file and opens the import card in the Preview tab (`CardOrigin::TableImport`): the counts (changed, kept,
+conflicts, refused, unknown, missing) and the per-cell list. Accept applies through `preview.apply` as one
+`fields.set_many`, one undo step; a stale import is refused in words and the card stays; Escape commits nothing. A
+conflict keeps EW's value, as the card says beside the count: the switch "Take the file's values" is FT-1149, and
+the per-cell and per-column choice is WP-S3.08's FP-2.
 
 ---
 

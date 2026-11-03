@@ -3,10 +3,13 @@
 ElektraWatt (EW) is an open-source, cross-platform desktop application for designing the electrical schematics of
 control cabinets. This guide is its user documentation.
 
-> **Status.** EW is in its foundations phase. What exists today is the project model, the command layer, the check
-> engine and a command-line program, `ew`, that works on a project from the terminal ("headless"). The desktop
-> application is not built yet, so this guide documents what you can do with `ew` now and grows with the product.
-> Where a page describes something that is not built, it says so.
+> **Status.** EW is working toward its first release, the pilot release 0.1.0 for Windows and Linux. Two programs
+> exist today: the desktop application, `elektrawatt`, which opens, edits, checks and prints a project, with
+> navigators, table mode, a history and the 2D panel layout; and the command-line program, `ew`, which works on a
+> project from the terminal ("headless"): it imports QElectroTech projects, checks, exports PDF/A-2b, SVG and tables,
+> and prints. This guide grows with the product; where a page describes something that is not built, it says so. The
+> milestones and where each stands are in the repository's
+> [roadmap](https://github.com/Ironkode787/ElektraWatt/blob/main/ROADMAP.md).
 
 ## How this guide is organised
 

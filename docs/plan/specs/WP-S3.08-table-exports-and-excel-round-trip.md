@@ -5,7 +5,8 @@ the CSV presets, the formula guard) behind every row export (1.0 pw, D2 to D7), 
 tables, `ew import table`, the I/O list, 1.0 pw, D8 to D13), part 3 the window (export and import from a navigator's
 table, the export as a job, 0.5 pw, D14); 0.3 pw reserve; part 1 first, part 2 after it, part 3 after part 2 ·
 **Date:** 2026-10-31 · **Work package:**
-[WP-S3.08](../02-work-packages.md#wp-s308-table-exports-and-excel-round-trip) · **Decision log:** ID-1016, ID-1145 (part 1's rulings), ID-1174 (part 2's rulings); part 1 as built ID-1157, part 2 as built ID-1193, ID-1195 · **Part of:** ElektraWatt plan, specifications
+[WP-S3.08](../02-work-packages.md#wp-s308-table-exports-and-excel-round-trip) · **Decision log:** ID-1016, ID-1145 (part 1's rulings), ID-1174 (part 2's rulings); part 1 as built ID-1157, part 2 as built ID-1193, ID-1195; part 3 ruled by ID-1224, built in cycle 48 (lane X48; as built ID-1237; the conflict
+switch de-scoped to FT-1149), so all three parts are built · **Part of:** ElektraWatt plan, specifications
 
 **Purpose.** WP-S3.08's CSV half was built ahead of it: every row export writes the rows of a report block, as its
 folios print them, in the golden CSV dialect (WP-S3.03, cycle 14; WP-S1.22 part 2, cycle 40), and an own bounded XLSX

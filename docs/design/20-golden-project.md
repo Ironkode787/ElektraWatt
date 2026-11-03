@@ -229,7 +229,10 @@ golden/
                                #   acceptance_headless.md (the committed headless runner report, §22);
                                #   c-migration-report.csv (Golden C's counts per code, §20.1);
                                #   mfg/*.csv (Komax and Rittal WT rows, manual.csv with finishing tasks, consumables);
-                               #   geometry/frame.json; text/<folio>.csv; png/<folio>.png
+                               #   geometry/frame.json; text/<folio>.csv; png/<folio>.png;
+                               #   print/sha256.txt, print/structure.json (the print set, ID-1153);
+                               #   xlsx/<table>.cells.txt, xlsx/sha256.txt; csv/presets/<table>.<preset>.csv
+                               #   (the table writers and the round trip, ID-1157, ID-1193)
     acceptance/*.sql           # queries over the api_v1 views producing expected/*.csv (ADR-0017)
     variants/                  # b1-page-based-tags.ewcmd, b2-renumber-pages.ewcmd, b2019-identifier-set.ewcmd,
                                #   c-fix.ewcmd, gp-ut.ewcmd

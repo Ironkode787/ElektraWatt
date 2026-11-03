@@ -5,7 +5,8 @@
 D9), part 3 printing from the window with the print preview and the Linux portal (0.8 pw, D10, D11), part 4 the
 native Windows adapter (0.7 pw, D12); 0.3 pw reserve; part 1 at any time, part 2 before parts 3 and 4, parts 3 and 4
 in any order · **Date:** 2026-10-31 · **Work package:**
-[WP-S3.07](../02-work-packages.md#wp-s307-svg-export-and-printing) · **Decision log:** ID-1017; O3 answered by ID-1030; part 1 as built ID-1122; part 2 ruled by ID-1114, as built ID-1153, ID-1155; part 3 ruled by ID-1180, as built ID-1197 · **Part of:** ElektraWatt plan, specifications
+[WP-S3.07](../02-work-packages.md#wp-s307-svg-export-and-printing) · **Decision log:** ID-1017; O3 answered by ID-1030; part 1 as built ID-1122; part 2 ruled by ID-1114, as built ID-1153, ID-1155; part 3 ruled by ID-1180, as built ID-1197; part 4 ruled by ID-1218, built in cycle 48 (lane P48; as built ID-1233,
+the review's fixes ID-1226), so all four parts are built · **Part of:** ElektraWatt plan, specifications
 
 **Purpose.** The SVG writer was built ahead of this package (cycle 14, `ew_export::svg`; `ew export svg` since cycle 15):
 text as text, stable order, links, one file per page, byte-identical serial and parallel output (AC-14). Its fonts are

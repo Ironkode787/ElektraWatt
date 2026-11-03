@@ -1728,6 +1728,14 @@ flowchart LR
   has a `SAFETY:` comment, and CODEOWNERS requires a second maintainer's review (NFR-SEC-04).
 - **Native code.** It is limited to bundled SQLite in process and OCCT out of process.
 
+*As built (cycle 48, WP-S3.07 part 4; decision log ID-1218, ID-1226, ID-1233).* The allowlist is
+`ci/unsafe-allowlist.toml`: `[crates]` names each crate that may use `unsafe` with the files where it may stand,
+today `ew-print` with `src/windows.rs` (17 blocks, each with its `SAFETY:` comment, reviewed by the cycle's
+independent reviewer, NFR-SEC-04). `cargo xtask check-unsafe` accepts a crate whose root forbids `unsafe_code` or
+whose lints are the workspace's (amending the default above) and finds the keyword in no file outside the list; it
+runs in `cargo xtask ci`, in lane-check's policy step and in CI's lint job. A listed crate's manifest copies the
+workspace's lints with `unsafe_code = "deny"`, and the listed module allows it.
+
 ### 11.3 Vulnerability handling
 
 | Stage | Action | Deadline |

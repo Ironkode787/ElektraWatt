@@ -1244,6 +1244,14 @@ Tags and locations are string cells, so Excel never evaluates "-101F1" or "+J-E-
 (semicolon, decimal comma, UTF-8 BOM, CRLF), `excel-en` and `rfc4180` (FR-EXP-003); the formula-injection guard for
 the Excel presets is [09](09-reports-forms-output.md) OQ 8.
 
+*As built (cycles 46 to 48, WP-S3.08 parts 1 to 3; decision log ID-1157, ID-1193, ID-1237; written in cycle 48,
+ID-1248).* The workbook comes from `ew-reports`' own writer over `ew-zip` (inline strings), its `id` column always
+written; `_ew_base`'s SHA-256 is made in `ew-api` (`with_base_digest`), since `ew-reports` takes no hash. `ew export
+table <navigator>` writes a navigator's table unfiltered (`--strip` for one strip, the key `nav:strips/<uuid>`); its
+CSV defaults to the `ew` preset, which has no `id` column, so a round-trip CSV takes `excel-nl`, `excel-en` or
+`rfc4180`; every preset is UTF-8. The window's Export table… (cycle 48) writes the shown rows and columns of a
+navigator in table mode as a job, the `id` column and the `_ew` sheets always kept, so the file re-imports.
+
 ### 8.2 Re-import
 
 1. **Read** with calamine (formulas never evaluated; cached values only) or csv; locate `_ew`. A CSV, or an XLSX
@@ -1267,6 +1275,16 @@ the Excel presets is [09](09-reports-forms-output.md) OQ 8.
 
 Acceptance (FR-EXP-004): editing five function texts of -X1031 in the exported table and re-importing changes
 exactly five fields in one undo step; editing a row whose terminal was deleted in EW meanwhile is reported.
+
+*As built (cycles 47 and 48, WP-S3.08 parts 2 and 3; decision log ID-1193, ID-1237; written in cycle 48, ID-1248).*
+Step 1 reads an XLSX with WP-S3.08's own bounded reader (`ew_import_catalog::sheet`, `_ew` and `_ew_base` read whole),
+not calamine, and a CSV with its table named (`--table`, or the window's view key) and its preset inferred from the
+separator. Rows match by ID, the I/O list's also by station, slot and channel; an unknown ID is reported
+(EW-IMP-303), never created. A value the column's parser refuses is a cell outcome, not a finding; EW-IMP-305
+applies the value with a warning; in three-way mode a read-only column has no base. Step 6 is one `fields.set_many`
+of the applied cells, not `table.apply_changes`: `ew import table` previews, and commits with `--apply`. The window's
+Import table… opens the import card in the Preview tab ([16](16-ux-ui.md) §7.7); a conflict keeps EW's value until
+the switch "Take the file's values" lands (FT-1149).
 
 ### 8.3 BOM for purchasing
 

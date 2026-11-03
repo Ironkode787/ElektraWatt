@@ -5,7 +5,10 @@ viewer (WP-S2.03), the editors (WP-S2.04, WP-S2.05) and the design language (WP-
 part 1 the palette (0.5 pw, D2 to D5), part 2 keymaps (0.5 pw, D6 to D8), part 3 Fluent for the shell and the
 pseudo-locale (0.4 pw, D9 to D11), part 4 the Dutch UI (0.2 pw, D12), part 5 accessibility and scaling (0.4 pw, D13 to
 D15), part 6 the glossary panel, tips and the wire-colour view (0.4 pw, D16 to D18); part 1 first; parts 2, 3 and 5
-after it in any order or side by side; part 4 after part 3; part 6 last · **Part 1 built in cycle 39** (lane K39, decision log ID-907; PL-1 to PL-7; enabled entries before disabled ones ahead of D2's rank; the glossary file with 17 terms; O1 open, so D2's code-point order stays) · **Part 2 built in cycle 40** (lane D40, decision log ID-923; KM-1, KM-2, KM-3, KM-5 and KM-6 met, KM-4 in part with the orchestrator's ruling on the needs-Shift bindings; the editor is Help ▸ Keyboard shortcuts as D8 says; D7's waiting bindings stay FT-813) · **Part 2 complete in cycle 40** (lane H40, decision log ID-934): KM-4 met by the ruling recorded in D8 (`Ctrl+phys:Digit0`; a covered needs-Shift binding is an info), `PENDING_D8` empty; the editor's Changed state against the preset, the Menu-key note only while recording; the editor shows conflicts only, so the infos are not shown (FT-846) · **As built, cycle-40 design pass, part 3** (FIX40d, decision log ID-939): D8's key display and refused-file handling (key caps in every keymap text, the refused file copied aside once) · **Date:** 2026-10-30 · **Work package:**
+after it in any order or side by side; part 4 after part 3; part 6 last · **Part 1 built in cycle 39** (lane K39, decision log ID-907; PL-1 to PL-7; enabled entries before disabled ones ahead of D2's rank; the glossary file with 17 terms; O1 open, so D2's code-point order stays) · **Part 2 built in cycle 40** (lane D40, decision log ID-923; KM-1, KM-2, KM-3, KM-5 and KM-6 met, KM-4 in part with the orchestrator's ruling on the needs-Shift bindings; the editor is Help ▸ Keyboard shortcuts as D8 says; D7's waiting bindings stay FT-813) · **Part 2 complete in cycle 40** (lane H40, decision log ID-934): KM-4 met by the ruling recorded in D8 (`Ctrl+phys:Digit0`; a covered needs-Shift binding is an info), `PENDING_D8` empty; the editor's Changed state against the preset, the Menu-key note only while recording; the editor shows conflicts only, so the infos are not shown (FT-846) · **As built, cycle-40 design pass, part 3** (FIX40d, decision log ID-939): D8's key display and refused-file handling (key caps in every keymap text, the refused file copied aside once) · **Part 3 built in cycle 48** (lane L48,
+decision log ID-1219 at dispatch, ID-1226 for the review's fixes, ID-1234 as built; the shell's texts in
+`locales/en-GB/shell.ftl`, View ▸ Language, en-XA, `check-ui-strings`; the Messages rows and chip wait for part 4,
+FT-1162) · **Date:** 2026-10-30 · **Work package:**
 [WP-S2.08](../02-work-packages.md#wp-s208-command-palette-keymaps-accessibility-and-ui-localisation) · **Decision
 log:** ID-895 · **Part of:** ElektraWatt plan, specifications
 
@@ -281,7 +284,8 @@ half only (a node leaving the window or its parent sideways, and interactive sib
 contents, allows a control wholly inside another and exempts splitters, since AccessKit carries no clip rectangle for
 the vertical half; two fixtures, one for "leaves its parent" and one for "overlaps", assert the whole problem text.
 `check-ui-strings` reads every egui text call: D11's list and `heading`, `selectable_label`, `checkbox`, `small_button`,
-`menu_button`, `collapsing`, `hint_text`, `Button::new`, `Label::new` and `painter().text`; a literal bound to a
+`menu_button`, `collapsing`, `hint_text`, `Button::new`, `Label::new` and a painter's `text` (`painter().text` and
+`painter.text`); a literal bound to a
 variable before the call stays out of its reach, as its doc says. It runs in `cargo xtask ci`, in lane-check's policy
 step when `crates/ew-ui/src/**` or `ci/ui-strings-allow.txt` changed, and in CI's lint job.
 

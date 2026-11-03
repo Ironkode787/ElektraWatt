@@ -918,6 +918,21 @@ link:
 - **Print preview** renders the print PDF's display lists in the app. There is no macOS adapter: macOS is not a supported platform (decision log ID-880).
 - `ew print --pages 101-106 --printer <name>` uses the same adapters without a dialog (FR-EXT-009).
 
+*As built (cycles 46 to 48, WP-S3.07 parts 2 to 4; decision log ID-1153, ID-1155, ID-1197, ID-1233; written in
+cycle 48, ID-1248).* The print set (`ew_api::output::print`: `Paper`, `Fit::{Actual, ToPaper}`, `PrintOptions`,
+`Session::print_set`) places each page on its paper (`PagePlacement`, in `ew-render-cpu`); a set with no placement
+change is the export's PDF byte for byte. Fit stamps "scaled <n> %" in the bottom margin (Golden A's section 1 on
+A5 reads "scaled 70 %", `expected/print/`); without it a larger page is clipped and named in a notice. Ranges are
+folio labels and ranges (`--pages`) or section numbers (`--sections`). `ew-print`'s adapters form a chain with one
+fallback notice: on Linux the portal (ashpd 0.13.13 with `async-io`, no tokio), then `lp`, then the viewer; on
+Windows the Windows adapter, then the viewer; elsewhere the viewer. The Windows adapter shows `PrintDlgExW`
+(print-to-file hidden, copies and collation left in the printer's settings) or prints to `--printer` without it,
+asks for each page's paper by `ResetDCW` (A1 and A0 by their sides, having no Windows paper size), and sends the
+page rendered by `ew_render_cpu::render_placed_band` in bands of 256 device rows with `StretchDIBits`; its `unsafe`
+stands in `ew-print`'s `windows.rs` alone ([18](18-quality-security-release.md) §11.2). The window prints through
+Print… (Ctrl+P) in the Output menu, whose pre-dialog previews the print set, built as a job
+([16a](16a-design-language.md) §6.26).
+
 ### 4.6 XLSX and CSV
 
 Every report block and navigator table exports from its `RowSet` with exactly the rows and order of its pages
@@ -936,6 +951,12 @@ Every report block and navigator table exports from its `RowSet` with exactly th
 - *As built (cycle 14; decision log ID-356):* the shipped `ew export cables|bom` write the golden dialect only (`ew_reports::csv`: LF line ends, no BOM, header `row,<column labels>`), not the presets above; the presets and the FR-EXP-005 gaps are FT-242.
 - `ew export bom|wires|terminals|cables` (FR-EXT-003) and a generic `ew export report --block <name>` (FR-EXT-027,
   listed in [17](17-extensibility.md) §3.3) use the same code.
+- *As built (cycles 46 and 47, WP-S3.08 parts 1 and 2; decision log ID-1157, ID-1193; written in cycle 48,
+  ID-1248):* the XLSX writer is `ew-reports`' own (`xlsx()`, over `ew-zip`, inline strings), not rust_xlsxwriter; a
+  sheet is named after its kind; the `id` column is always written; a quantity with a unit, and a number past 15
+  significant digits, stay text. `ew export cables|bom|wires|terminals|report` and `ew sql` take `--format xlsx`,
+  `--preset ew|excel-nl|excel-en|rfc4180` (`ew`, the golden dialect, the default), `--bom` and `--line-end`; the
+  formula guard covers the header labels; every preset is UTF-8 (FR-EXP-003); FT-242's preset half is built.
 
 ### 4.7 Multi-language output
 
