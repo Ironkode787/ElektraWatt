@@ -1060,10 +1060,13 @@ impl ShellModel {
                 if let Some(at) = target.at_nm {
                     view.jump_view(at, zoom);
                 }
-                let go = strings::format(
-                    key!("link-preview-go"),
-                    &[&crate::command_bar::key_name(self, "nav.follow")],
-                );
+                // ID-1231: with no key, the command by its menu path, as FT-1131's `external-none` names one.
+                let key = crate::command_bar::key_of(self, "nav.follow");
+                let go = if key.is_empty() {
+                    strings::text(key!("link-preview-go-none")).to_owned()
+                } else {
+                    strings::format(key!("link-preview-go"), &[&key])
+                };
                 self.tools.link_preview = Some(LinkPreview {
                     target,
                     canvas: view,

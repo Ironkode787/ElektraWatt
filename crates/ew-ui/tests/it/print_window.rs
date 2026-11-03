@@ -280,8 +280,10 @@ fn ft1126_the_preview_draws_the_papers_whole_edge() {
         .collect();
     assert_eq!(sheets.len(), 1, "one paper edge: {sheets:?}");
     let (sheet, clip) = sheets[0];
+    // ID-1231: the edge with its anti-aliasing feather, which the old clip (the paper grown by 1 point) cut.
+    let feather = h.ctx.tessellation_options(|o| o.feathering_size_in_pixels) / h.ctx.pixels_per_point();
     assert!(
-        clip.contains_rect(sheet.expand(t.border_width)),
+        clip.contains_rect(sheet.expand(t.border_width + feather)),
         "the edge {sheet:?} whole in the clip {clip:?}"
     );
     assert!(dialog(&h).contains_rect(sheet.expand(t.border_width)));

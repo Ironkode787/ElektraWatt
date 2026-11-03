@@ -332,21 +332,12 @@ fn has_pages(m: &ShellModel) -> Result<(), Key<'static>> {
 }
 
 // WP-S3.08 part 3
-/// Export table… and Import table… (ruling 2 of ID-1224): a project with the focused navigator shown as its table; the
-/// Messages pane passes, and its action refuses as `navigator.table` does.
+/// Export table… and Import table… (ruling 2 of ID-1224, ID-1231): a project with a navigator shown as its table, the
+/// one the actions read (`ShellModel::table_file_nav`); the Messages pane passes, and its action refuses as
+/// `navigator.table` does.
 fn table_shown(m: &ShellModel) -> Result<(), Key<'static>> {
     project_open(m)?;
-    match m.focused_navigator() {
-        Some(crate::navigators::NavKind::Messages) => Ok(()),
-        Some(k) if m.nav(k).is_some_and(|n| n.table_mode().is_some()) => {
-            if ew_api::output::TABLE_NAVIGATORS.contains(&k) {
-                Ok(())
-            } else {
-                Err(key!("reason-table-no-file"))
-            }
-        }
-        _ => Err(key!("reason-table-off")),
-    }
+    m.table_file_nav().map(|_| ())
 }
 
 // WP-S2.09 part 3

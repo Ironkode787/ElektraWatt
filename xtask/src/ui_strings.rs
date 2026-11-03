@@ -8,7 +8,8 @@
 //! `checkbox(`, `heading(`, `menu_button(`, `collapsing(`, `hint_text(` or `on_hover_text(`, a painter's `text(`
 //! (`painter().text(`, `painter.text(`), a constructor `RichText::new(`, `Button::new(` or `Label::new(`, or a
 //! `WidgetInfo` name (`WidgetInfo::labeled(`, `WidgetInfo::selected(`); every string literal inside its parentheses
-//! is checked, except the key of `key!`, `count_key!` and `Key::run_time`. A literal bound to a variable first and
+//! is checked (of `menu_button(` and `collapsing(` only the first argument, the title, not the closure: ID-1231),
+//! except the key of `key!`, `count_key!` and `Key::run_time`. A literal bound to a variable first and
 //! passed by name is out of its reach. A literal that holds only `format!` placeholders
 //! (`"{}"`, `"{a}{b}"`) passes; another passes when the allowlist holds it exactly as written in the source (one per
 //! line in its quotes, `#` comments). A `#[cfg(test)]` module, comments and the test tool's own files are not scanned.
@@ -196,7 +197,9 @@ fn findings<'s>(src: &'s str, allow: &[String]) -> Vec<(usize, &'s str)> {
         if !is_call {
             continue;
         }
-        // The arguments: up to the matching `)`; the keys inside `key!(…)` and `run_time(…)` are skipped.
+        // The arguments: up to the matching `)`; the keys inside `key!(…)` and `run_time(…)` are skipped. Of
+        // `menu_button(` and `collapsing(` only the title, up to the first comma: the closure's calls are their own.
+        let title_only = method && matches!(*name, "menu_button" | "collapsing");
         let mut depth = 0usize;
         let mut key_depth: Option<usize> = None;
         let mut j = i + 1;
@@ -212,6 +215,7 @@ fn findings<'s>(src: &'s str, allow: &[String]) -> Vec<(usize, &'s str)> {
                         break;
                     }
                 }
+                Tok::Punct(',') if title_only && depth == 1 => break,
                 Tok::Ident(k) if key_depth.is_none() && KEY_CALLS.contains(k) => {
                     let opens = |n: usize| matches!(toks.get(n), Some(Tok::Punct('(')));
                     if opens(j + 1) || (toks.get(j + 1) == Some(&Tok::Punct('!')) && opens(j + 2)) {
@@ -376,6 +380,42 @@ fn f(ui: &mut Ui) {
                 (12, "Painted"),
                 (13, "Painter"),
             ]
+        );
+    }
+
+    /// ID-1231: of `menu_button(` and `collapsing(` only the title is read, so a literal in the closure that reaches
+    /// no text (`Id::new`) is not found.
+    #[test]
+    fn a_menu_closure_literal_is_not_a_text() {
+        let src = r##"
+fn f(ui: &mut Ui) {
+    ui.menu_button("Menu", |ui| {
+        ui.push_id(Id::new("menu id"), |ui| {});
+    });
+    ui.collapsing(title, |ui| {
+        let _ = egui::Id::new("collapsing id");
+    });
+}
+"##;
+        assert_eq!(found(src), [(3, "Menu")]);
+    }
+
+    /// ID-1231: a text call nested in the closure of `menu_button(` or `collapsing(` is found once, by its own call.
+    #[test]
+    fn a_nested_label_is_found_once() {
+        let src = r##"
+fn f(ui: &mut Ui) {
+    ui.menu_button(title, |ui| {
+        ui.label("In the menu");
+    });
+    ui.collapsing("Section", |ui| {
+        ui.label("In the section");
+    });
+}
+"##;
+        assert_eq!(
+            found(src),
+            [(4, "In the menu"), (6, "Section"), (7, "In the section")]
         );
     }
 

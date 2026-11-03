@@ -164,3 +164,23 @@ fn ft850_a_keymap_file_that_is_not_toml_is_refused_in_words() {
         }
     );
 }
+
+/// ID-1231: the link preview's line without a key for `nav.follow` names the command by its menu path and label as the
+/// menu table holds them (no keymap of this build unbinds an action, so the words are pinned to the table here).
+#[test]
+fn the_link_previews_line_without_a_key_names_the_menu_path() {
+    use ew_viewmodel::strings::{Key, text};
+    let meta = ew_viewmodel::actions::find("nav.follow").unwrap();
+    let slot = meta.menu.as_ref().expect("in a menu");
+    assert!(slot.submenu.is_none(), "no submenu between the menu and the item");
+    let path = format!(
+        "{} ▸ {}",
+        text(slot.menu.label_key()),
+        text(Key::run_time(&meta.label_key()))
+    );
+    assert_eq!(
+        text(ew_viewmodel::key!("link-preview-go-none")),
+        format!("Click the link or use {path} to go there")
+    );
+    assert_eq!(path, "Page ▸ Follow cross-reference");
+}

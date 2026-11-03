@@ -1684,7 +1684,7 @@ table-cells = cells
 # WP-S3.08 part 3 (D14, ID-1224): a navigator table's export to a file and the round trip's import.
 action-navigator-export-table = Export table…
 action-navigator-import-table = Import table…
-reason-table-no-file = This table cannot be written to a file
+reason-table-no-file = This table cannot be written to a file; copy its cells instead
 reason-table-import = An imported table is always previewed
 reason-table-import-stale = The project changed since the file was read; import the file again
 error-nav-no-export = The { $p0 } pane's table cannot be exported.
@@ -1692,9 +1692,9 @@ error-table-preset-csv = A preset applies to CSV only; drop it, or choose the fo
 error-table-preset = There is no CSV preset { $p0 }; the presets are ew, excel-nl, excel-en and rfc4180.
 error-table-import-open = { $p0 } cannot be opened: { $p1 }.
 error-table-import-missing = There is no file { $p0 }.
-error-table-import-read = The file cannot be read: { $p0 }
+error-table-import-read = The file cannot be read: { $p0 }.
 error-table-import-format = The workbook is not a table that ElektraWatt exported; export the table again.
-error-table-import-project = The file was exported from another project.
+error-table-import-project = The file was exported from another project; export the table from this project again.
 error-table-import-table = The file is not a table of this project; export the table again.
 error-table-import-id = The file has no id column, by which its rows are matched; export the table again and keep the column.
 error-table-import-many = { $p0 } changed cells are more than the 10,000 one import applies; split the file.
@@ -1708,6 +1708,11 @@ toast-export-table-again = Exported { $p0 } again: { $p1 } KiB
 marker-export-table = Exported the table to { $p0 }
 toast-table-imported = Imported { $p0 } changed cells from { $p1 }
 table-import-title = Import { $p0 }
+# ID-1231: the toast of one cell, the refusal with several tables shown and none focused, and the link preview's line
+# when `nav.follow` has no key (the command by its menu path, as the menu table holds it).
+toast-table-imported-one = Imported 1 changed cell from { $p1 }
+reason-table-which = Several tables are shown; click in the one to export or import.
+link-preview-go-none = Click the link or use Page ▸ Follow cross-reference to go there
 table-import-counts = { $p0 } changed, { $p1 } kept, { $p2 }, { $p3 } refused, { $p4 } unknown, { $p5 } missing
 table-import-conflicts = { $p0 } conflicts
 table-import-conflict-kept = 1 conflict: the project's value is kept

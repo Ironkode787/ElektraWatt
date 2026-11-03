@@ -257,7 +257,10 @@ fn ft1144_a_toast_with_a_cut_line_shows_its_whole_text_in_the_inverse_tooltip() 
     let inverse = ew_ui::theme::current(&h.ctx).surface_inverse.color32();
     let mut shown = false;
     h.hover_at(toast.center());
-    for _ in 0..120 {
+    // Two seconds on the frame clock under a still pointer (a tooltip waits half a second), as the sibling FT-1144 test.
+    let start = h.ctx.input(|i| i.time);
+    for i in 0..40 {
+        h.input_mut().time = Some(start + f64::from(i) * 0.05);
         h.step();
         // The tooltip's label outside the toast (whose title carries the whole text as its live value), on the
         // inverse surface.
@@ -278,7 +281,6 @@ fn ft1144_a_toast_with_a_cut_line_shows_its_whole_text_in_the_inverse_tooltip() 
             shown = true;
             break;
         }
-        std::thread::sleep(std::time::Duration::from_millis(10));
     }
     assert!(shown, "the whole text in the inverse tooltip");
     h.state_mut().shell_mut().shutdown();

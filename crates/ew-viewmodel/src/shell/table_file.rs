@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! WP-S3.08 part 3 (D14, ruling of ID-1224): a navigator table's export to a file and the round trip's import from one,
-//! in the focused navigator's table mode.
+//! in the table mode of the focused navigator, or of the one navigator shown in it (ID-1231).
 //!
 //! **The table** (ruling 3): `Session::table_export` of the view's key, cut to the rows on show (matched by row ID, in
 //! the order on show) and the columns on show (matched by column key, in their order); the writer keeps the hidden `id`
@@ -30,6 +30,7 @@ use crate::jobs::TableFile;
 use crate::key;
 use crate::properties::{Card, CardOrigin, EditRoute, FieldReadOnly, PendingEdit, TableImportCard};
 use crate::strings;
+use crate::strings::Key;
 use crate::tools::PreviewState;
 
 /// The command a round trip commits.
@@ -57,22 +58,42 @@ fn import_error(e: &TableImportError) -> String {
 }
 
 impl ShellModel {
-    /// The navigator whose table the two actions read: the focused one, in table mode, a round trip's (the Messages
-    /// pane refuses as `navigator.table` does).
-    fn file_table_kind(&self) -> Result<NavKind, Outcome> {
-        let Some(kind) = self.focused_navigator() else {
-            return Err(Outcome::Refused {
-                reason_key: key!("reason-table-off"),
-            });
+    /// The navigator Export table… and Import table… read, for their predicate and their actions alike (ID-1224 ruling
+    /// 2, ID-1231): the focused one when it is in table mode (the Messages pane, focused, too: its action refuses as
+    /// `navigator.table` does), else the one navigator shown in table mode; with several shown and none of them
+    /// focused, the reason says to click one. A table without a file form is refused.
+    pub(crate) fn table_file_nav(&self) -> Result<NavKind, Key<'static>> {
+        let in_table = |k: NavKind| self.generic(k).is_some_and(|n| n.table_mode().is_some());
+        let kind = match self.focused_navigator() {
+            Some(k) if k == NavKind::Messages || in_table(k) => k,
+            _ => {
+                let pages = self.pages_table.is_some().then_some(NavKind::Pages);
+                let shown: Vec<NavKind> = pages
+                    .into_iter()
+                    .chain(self.open_navigators())
+                    .filter(|k| in_table(*k))
+                    .collect();
+                match shown.as_slice() {
+                    [k] => *k,
+                    [] => return Err(key!("reason-table-off")),
+                    _ => return Err(key!("reason-table-which")),
+                }
+            }
         };
+        if kind != NavKind::Messages && !TABLE_NAVIGATORS.contains(&kind) {
+            return Err(key!("reason-table-no-file"));
+        }
+        Ok(kind)
+    }
+
+    /// The navigator whose table the two actions read ([`ShellModel::table_file_nav`]); the Messages pane refuses as
+    /// `navigator.table` does.
+    fn file_table_kind(&self) -> Result<NavKind, Outcome> {
+        let kind = self
+            .table_file_nav()
+            .map_err(|reason_key| Outcome::Refused { reason_key })?;
         if kind == NavKind::Messages {
             return Err(failed(key!("error-nav-no-table"), &[kind.word()]));
-        }
-        self.table_nav(kind)?;
-        if !TABLE_NAVIGATORS.contains(&kind) {
-            return Err(Outcome::Refused {
-                reason_key: key!("reason-table-no-file"),
-            });
         }
         Ok(kind)
     }
@@ -359,10 +380,12 @@ impl ShellModel {
                     self.record.steps.push(RecordedCommand { cmd: name, params });
                 }
                 self.refresh();
-                self.notify(
-                    strings::format(key!("toast-table-imported"), &[&changed.to_string(), &c.source]),
-                    true,
-                );
+                let toast = if changed == 1 {
+                    key!("toast-table-imported-one")
+                } else {
+                    key!("toast-table-imported")
+                };
+                self.notify(strings::format(toast, &[&changed.to_string(), &c.source]), true);
                 Outcome::Done
             }
             Err(TableApplyError::Stale(..)) => {

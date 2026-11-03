@@ -456,7 +456,7 @@ fn the_refusals_in_words_and_a_csv() {
     let message = failed(&mut shell, "navigator.import_table", json!({"path": text(&junk)}));
     assert_eq!(
         message,
-        "The file cannot be read: malformed input: not a readable XLSX workbook: no ZIP central directory"
+        "The file cannot be read: malformed input: not a readable XLSX workbook: no ZIP central directory."
     );
     shell.shutdown();
 }
@@ -480,5 +480,166 @@ fn the_import_card_reaches_its_words() {
     for w in ew_viewmodel::describe::words(ew_viewmodel::describe::Reach::TableFile) {
         assert!(tokens.iter().any(|t| t == w), "{w}");
     }
+    shell.shutdown();
+}
+
+/// The node keys of the Terminal strips rows on show, in the order on show.
+fn shown_rows(shell: &ShellModel) -> Vec<String> {
+    let n = shell.nav(NavKind::Strips).unwrap();
+    let table = n.table().unwrap();
+    n.visible()
+        .iter()
+        .map(|r| table.nodes[r.node as usize].key.clone())
+        .collect()
+}
+
+/// The first sheet's column headers of workbook `bytes`.
+fn headers(bytes: &[u8]) -> Vec<String> {
+    let limits = ew_api::catalog::table_limits();
+    ew_api::output::sheet::read_sheet(bytes, ew_api::catalog::SourceFormat::Xlsx, None, &limits)
+        .unwrap()
+        .headers
+}
+
+/// ID-1224 ruling 3 (ID-1231): the export is cut to the rows and columns on show: a hidden column is not in the
+/// header, `id` is kept, only the rows on show are written, in the order on show; the cut file re-imports three-way
+/// with no notice, and one changed cell is the toast's "1 changed cell".
+#[test]
+fn the_export_is_cut_to_the_rows_and_columns_on_show() {
+    let tmp = Tmp::new("tfc");
+    let mut shell = strips(&tmp);
+    let all = shown_rows(&shell);
+    // The Pneumatics terminals of -X1031 (1 to 4 and 11 to 14), the last first.
+    done(
+        &mut shell,
+        "navigator.filter",
+        json!({"kind": "strips", "text": "-X1031 Pneumatics"}),
+    );
+    done(
+        &mut shell,
+        "navigator.sort",
+        json!({"kind": "strips", "by": "order", "descending": true}),
+    );
+    let bridge = {
+        let t = shell.nav(NavKind::Strips).unwrap().table().unwrap();
+        t.columns
+            .iter()
+            .find(|c| c.label == "Bridge")
+            .unwrap()
+            .key
+            .clone()
+    };
+    done(
+        &mut shell,
+        "table.columns",
+        json!({"kind": "strips", "hide": [bridge]}),
+    );
+    let rows = shown_rows(&shell);
+    assert_eq!(rows.len(), 8, "the filter shows a subset: {rows:?}");
+    let mut in_table_order: Vec<String> = all.iter().filter(|k| rows.contains(k)).cloned().collect();
+    in_table_order.reverse();
+    assert_eq!(rows, in_table_order, "the order on show is the table's, reversed");
+    let out = tmp.0.join("cut.xlsx");
+    done(&mut shell, "navigator.export_table", json!({"path": text(&out)}));
+    let bytes = std::fs::read(&out).unwrap();
+    let header = headers(&bytes);
+    assert!(!header.iter().any(|h| h == "Bridge"), "{header:?}");
+    assert!(header.iter().any(|h| h == "Function text"), "{header:?}");
+    assert_eq!(header[0], "id");
+    assert_eq!(
+        column_cells(&bytes, "id"),
+        rows,
+        "the rows on show, in the order on show"
+    );
+
+    let file = tmp.0.join("one.xlsx");
+    std::fs::write(&file, edited(&bytes, "Function text", &[(2, "Valve")])).unwrap();
+    done(&mut shell, "navigator.import_table", json!({"path": text(&file)}));
+    let card = shell.properties().card().unwrap();
+    let ew_viewmodel::properties::CardOrigin::TableImport(c) = &card.origin else {
+        panic!("a table import card");
+    };
+    assert!(c.import.three_way, "three-way against the cut's base");
+    assert_eq!(c.import.notices, Vec::<String>::new());
+    assert_eq!(c.import.counts().changed, 1);
+    done(&mut shell, "preview.apply", json!({}));
+    assert_eq!(
+        shell.toast().unwrap().text,
+        "Imported 1 changed cell from one.xlsx"
+    );
+    shell.shutdown();
+}
+
+/// Ruling 6 (ID-1231): a project changed after the import's preview refuses its Apply in words, and the card stays.
+#[test]
+fn a_stale_import_is_refused_and_the_card_stays() {
+    let tmp = Tmp::new("tfs");
+    let mut shell = strips(&tmp);
+    let out = tmp.0.join("x.xlsx");
+    done(&mut shell, "navigator.export_table", json!({"path": text(&out)}));
+    let file = tmp.0.join("y.xlsx");
+    let bytes = std::fs::read(&out).unwrap();
+    std::fs::write(&file, edited(&bytes, "Function text", &[(2, "Valve")])).unwrap();
+    done(&mut shell, "navigator.import_table", json!({"path": text(&file)}));
+    let before = steps(&shell);
+    done(
+        &mut shell,
+        "page.new",
+        json!({"folio": "999", "type": "multi_line", "title": "Meanwhile"}),
+    );
+    assert_eq!(
+        refused(&mut shell, "preview.apply", json!({})),
+        "reason-table-import-stale"
+    );
+    assert!(shell.properties().card().is_some(), "the card stays");
+    assert_eq!(steps(&shell), before + 1, "only the new page");
+    shell.shutdown();
+}
+
+/// ID-1231 (ID-1224 ruling 2's "shown in table mode"): with the canvas focused, the one navigator shown in table mode
+/// is the one exported; with two shown and none focused, the refusal says to click one; the focused one decides.
+#[test]
+fn the_table_shown_decides_without_the_focus() {
+    let tmp = Tmp::new("tfn");
+    let mut shell = strips(&tmp);
+    done(&mut shell, "ui.focus", json!({"area": "canvas"}));
+    assert_eq!(shell.focused_navigator(), None);
+    let out = tmp.0.join("x.xlsx");
+    done(&mut shell, "navigator.export_table", json!({"path": text(&out)}));
+    assert_eq!(
+        column_cells(&std::fs::read(&out).unwrap(), "id"),
+        shown_rows(&shell),
+        "the Terminal strips table"
+    );
+
+    done(&mut shell, "navigator.show", json!({"kind": "devices"}));
+    done(
+        &mut shell,
+        "navigator.table",
+        json!({"kind": "devices", "on": true}),
+    );
+    done(&mut shell, "ui.focus", json!({"area": "canvas"}));
+    let other = tmp.0.join("y.xlsx");
+    for action in ["navigator.export_table", "navigator.import_table"] {
+        assert_eq!(
+            refused(&mut shell, action, json!({"path": text(&other)})),
+            "reason-table-which"
+        );
+    }
+    assert_eq!(
+        ew_viewmodel::strings::text(ew_viewmodel::key!("reason-table-which")),
+        "Several tables are shown; click in the one to export or import."
+    );
+    done(
+        &mut shell,
+        "ui.focus",
+        json!({"area": "navigator", "kind": "strips"}),
+    );
+    done(
+        &mut shell,
+        "navigator.export_table",
+        json!({"path": text(&other)}),
+    );
+    assert!(other.exists());
     shell.shutdown();
 }
