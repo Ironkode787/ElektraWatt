@@ -242,6 +242,8 @@ pages.move_down Command "Move page down" menu "Page" shortcut "Alt+Arrow Down" c
 navigator.highlight View "Highlight" menu "Check" shortcut "Ctrl+Shift+H" context navigator params "kind?:text, key?:text, off?:bool"
 view.clear_highlights View "Clear highlights" menu "Check" shortcut none context global params ""
 navigator.table View "Table" menu none shortcut none context global hidden params "kind:text, on?:bool"
+navigator.export_table Command "Export table…" menu "Output" shortcut none context global params "path?:path, format?:enum(xlsx|csv), preset?:text, replace?:bool, wait?:bool"
+navigator.import_table Command "Import table…" menu "Output" shortcut none context global params "path?:path"
 table.columns View "Columns" menu none shortcut none context global hidden params "kind:text, show?:list(text), hide?:list(text), order?:list(text)"
 table.cell View "Move the cell cursor" menu none shortcut none context navigator hidden params "kind?:text, row?:text, column?:text, step?:int, across?:int"
 table.edit View "Edit cell" menu none shortcut "F2" context navigator hidden params "kind?:text, row?:text, column?:text"

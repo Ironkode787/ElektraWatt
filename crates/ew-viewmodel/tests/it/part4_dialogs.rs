@@ -234,6 +234,9 @@ const OPENS_INPUT: &[&str] = &[
     // WP-S2.08 part 2: the keymap editor's Import… and Export… ask for a file.
     "keymap.import",
     "keymap.export",
+    // WP-S3.08 part 3: Export table… and Import table… ask for a file.
+    "navigator.export_table",
+    "navigator.import_table",
     "file.open",
     "file.save_as",
     "file.import_qet",
