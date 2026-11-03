@@ -700,7 +700,10 @@ fn read_records<'b>(
             return None;
         }
         let line = (!normalised && value == parsed).then_some(text);
-        if out.insert(record_key(&value)?, ReadRecord { value, line }).is_some() {
+        if out
+            .insert(record_key(&value)?, ReadRecord { value, line })
+            .is_some()
+        {
             return None;
         }
     }
@@ -806,7 +809,10 @@ fn ours_as_it_is(ours: MergeSide<'_>) -> FileMerge {
 
 /// The records of the side that reads, each by its own line where it has one, and the file-level conflict holding the
 /// other side.
-fn with_failed(kept: &BTreeMap<(String, String), ReadRecord<'_>>, failed: (LineKey, String)) -> Vec<(LineKey, String)> {
+fn with_failed(
+    kept: &BTreeMap<(String, String), ReadRecord<'_>>,
+    failed: (LineKey, String),
+) -> Vec<(LineKey, String)> {
     let mut lines: Vec<(LineKey, String)> = kept
         .values()
         .map(|r| merged_line(&r.value, [Some(r), None]))

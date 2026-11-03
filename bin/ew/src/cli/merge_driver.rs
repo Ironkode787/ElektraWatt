@@ -192,9 +192,12 @@ mod tests {
     #[test]
     fn a_panic_in_the_merge_exits_129_and_leaves_a_as_it_was() {
         let (dir, args) = setup("0.1");
-        let code = drive(&args, &tree(&dir, &Limits::default()), &Limits::default(), &|_, _, _, _| {
-            panic!("an injected failure")
-        });
+        let code = drive(
+            &args,
+            &tree(&dir, &Limits::default()),
+            &Limits::default(),
+            &|_, _, _, _| panic!("an injected failure"),
+        );
         assert_eq!(code, INTERNAL);
         assert_eq!(std::fs::read(&args.ours).unwrap(), b"ours\n");
         assert!(!dir.join("a.tmp").exists());
@@ -233,7 +236,9 @@ mod tests {
         let (dir, mut args) = setup("0.1");
         // A record file (a page needs a UUID name).
         args.path = "p.ew/waivers.jsonl".to_owned();
-        let bond = |members: &str| format!(r#"{{"$k":"bond","id":"0190d8a4-6d3e-7c41-8f00-000000000001"{members}}}"#);
+        let bond = |members: &str| {
+            format!(r#"{{"$k":"bond","id":"0190d8a4-6d3e-7c41-8f00-000000000001"{members}}}"#)
+        };
         let cases = [
             (
                 Limits {
@@ -298,14 +303,19 @@ mod tests {
     fn the_merge_sees_the_project_path_and_the_sides_formats() {
         let (dir, args) = setup("0.0");
         let seen = std::cell::RefCell::new(Vec::new());
-        let code = drive(&args, &tree(&dir, &Limits::default()), &Limits::default(), &|path, o, a, b| {
-            seen.borrow_mut()
-                .push(format!("{path} {} {} {}", o.format, a.format, b.format));
-            FileMerge {
-                bytes: b"merged\n".to_vec(),
-                conflicts: 2,
-            }
-        });
+        let code = drive(
+            &args,
+            &tree(&dir, &Limits::default()),
+            &Limits::default(),
+            &|path, o, a, b| {
+                seen.borrow_mut()
+                    .push(format!("{path} {} {} {}", o.format, a.format, b.format));
+                FileMerge {
+                    bytes: b"merged\n".to_vec(),
+                    conflicts: 2,
+                }
+            },
+        );
         assert_eq!(code, CONFLICTS);
         assert_eq!(
             seen.into_inner(),

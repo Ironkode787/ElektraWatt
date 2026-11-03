@@ -1233,15 +1233,17 @@ fn a_record_unchanged_on_its_side_is_written_as_that_side_s_own_line() {
     let (j5, w11) = (line("connections|J5.feed"), line("connections|W11\""));
     let page = r#","page":"4aa43308-d0d3-57ee-be0c-d9383f429f50""#;
     let at = j5.find(r#","a":"#).expect("a");
-    let j5_moved = format!("{}{page}{}", &j5[..at], &j5[at..].replacen(page, "", 1));
+    let j5_moved = format!("{}{page}{}", &j5[..at], j5[at..].replacen(page, "", 1));
     let w11_newer = w11.replacen(r#","a":"#, r#","zz_newer":1,"a":"#, 1);
     let unknown = r#"{"$k":"frobnicator","id":"0190d8a4-6d3e-7c41-8f00-000000000001","z":1,"a":2}"#;
-    let side = |text: &str, w11: &str| format!("{}{unknown}\n", text.replace(&j5, &j5_moved).replace(&line("connections|W11\""), w11));
-    let m = merge_page(
-        &side(&base, &w11),
-        &side(&ours, &w11),
-        &side(&theirs, &w11_newer),
-    );
+    let side = |text: &str, w11: &str| {
+        format!(
+            "{}{unknown}\n",
+            text.replace(&j5, &j5_moved)
+                .replace(&line("connections|W11\""), w11)
+        )
+    };
+    let m = merge_page(&side(&base, &w11), &side(&ours, &w11), &side(&theirs, &w11_newer));
     assert_eq!(m, (side(&expected, &w11_newer), 0));
 }
 
