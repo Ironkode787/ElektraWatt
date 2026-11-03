@@ -15,6 +15,8 @@
 //! - Every container image reference is pinned by `@sha256:<64 hex>` digest: the value of an `image:` key and of
 //!   an environment variable named `*_IMAGE`, and every `docker run`, `docker pull` or `docker create` command
 //!   (continuation lines joined), which must name a digest or a `$..._IMAGE` variable (checked at its definition).
+//! - A `*_IMAGE` variable defined in several places (`LINUX_BUILD_IMAGE` of `ci.yml` and `package.yml`) has one
+//!   value in all of them (FT-1230).
 //!
 //! The parser is deliberately line-based (no YAML dependency): it understands block mappings, `- uses:` list
 //! items, comments and block scalars (`run: |`), which is all a workflow file needs here.
@@ -35,6 +37,7 @@ pub fn check_dir(dir: &Path) -> Result<Vec<String>> {
     if files.is_empty() {
         violations.push(format!("no workflow files in {}", dir.display()));
     }
+    let mut texts = Vec::new();
     for path in files {
         let text = std::fs::read_to_string(&path).with_context(|| format!("reading {}", path.display()))?;
         let name = path
@@ -42,8 +45,38 @@ pub fn check_dir(dir: &Path) -> Result<Vec<String>> {
             .map(|n| n.to_string_lossy().into_owned())
             .unwrap_or_default();
         violations.extend(check_text(&name, &text));
+        texts.push((name, text));
     }
+    violations.extend(check_shared_images(&texts));
     Ok(violations)
+}
+
+/// A `*_IMAGE` variable holds one value wherever it is defined, in every workflow of `files` (name, text): one
+/// variable names one image (FT-1230). An `${{ … }}` value refers to a definition, which is checked itself.
+fn check_shared_images(files: &[(String, String)]) -> Vec<String> {
+    let mut defined: std::collections::BTreeMap<&str, Vec<(String, &str)>> = std::collections::BTreeMap::new();
+    for (file, text) in files {
+        for (i, raw) in text.lines().enumerate() {
+            if let Some((key, value)) = key_value(split_comment(raw.trim()).0)
+                && key.ends_with("_IMAGE")
+                && !value.is_empty()
+                && !value.starts_with("${{")
+            {
+                defined.entry(key).or_default().push((format!("{file}:{}", i + 1), value));
+            }
+        }
+    }
+    defined
+        .into_iter()
+        .filter(|(_, at)| at.iter().any(|(_, value)| *value != at[0].1))
+        .map(|(key, at)| {
+            let values: Vec<String> = at.iter().map(|(at, value)| format!("{at} `{value}`")).collect();
+            format!(
+                "`{key}` has different values: {}; give it the same image in every workflow",
+                values.join(", ")
+            )
+        })
+        .collect()
 }
 
 /// One meaningful line of a workflow: its number, indentation and content without the trailing comment.
@@ -819,6 +852,40 @@ mod tests {
         let text = "on: [push]\npermissions:\n  contents: read\njobs:\n  b:\n    steps:\n      - run: |\n          docker run --rm \\\n            alpine true\n";
         let v = check_text("ci.yml", text);
         assert!(v[0].starts_with("ci.yml:8:"), "{v:?}");
+    }
+
+    /// FT-1230: `LINUX_BUILD_IMAGE` of `ci.yml` and `package.yml` is one digest.
+    #[test]
+    fn an_image_variable_has_one_value_in_every_workflow() {
+        let (a, b) = ("a".repeat(64), "b".repeat(64));
+        let workflow = |name: &str, digest: &str| {
+            let text = format!(
+                "env:\n  # LINUX_BUILD_IMAGE: ubuntu:22.04\n  LINUX_BUILD_IMAGE: ubuntu@sha256:{digest} # 22.04\njobs:\n  b:\n    env:\n      LINUX_BUILD_IMAGE: ${{{{ env.LINUX_BUILD_IMAGE }}}}\n"
+            );
+            (name.to_owned(), text)
+        };
+        let alone = ("docs.yml".to_owned(), format!("env:\n  OTHER_IMAGE: x@sha256:{b}\n"));
+        let same = [workflow("ci.yml", &a), workflow("package.yml", &a), alone.clone()];
+        assert_eq!(check_shared_images(&same), Vec::<String>::new());
+
+        let different = [workflow("ci.yml", &a), workflow("package.yml", &b), alone];
+        assert_eq!(
+            check_shared_images(&different),
+            vec![format!(
+                "`LINUX_BUILD_IMAGE` has different values: ci.yml:3 `ubuntu@sha256:{a}`, package.yml:3 \
+                 `ubuntu@sha256:{b}`; give it the same image in every workflow"
+            )]
+        );
+
+        // The repository's two definitions are the ones the rule compares.
+        let root = crate::workspace_root();
+        for file in ["ci.yml", "package.yml"] {
+            let text = std::fs::read_to_string(root.join(".github/workflows").join(file)).unwrap();
+            assert!(
+                text.lines().any(|l| l.trim().starts_with("LINUX_BUILD_IMAGE: ubuntu@sha256:")),
+                "{file} defines no LINUX_BUILD_IMAGE"
+            );
+        }
     }
 
     /// The value of the first `key: value` line of `text` (quotes removed).
