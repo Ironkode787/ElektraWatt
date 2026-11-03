@@ -54,7 +54,8 @@ pub fn check_dir(dir: &Path) -> Result<Vec<String>> {
 /// A `*_IMAGE` variable holds one value wherever it is defined, in every workflow of `files` (name, text): one
 /// variable names one image (FT-1230). An `${{ … }}` value refers to a definition, which is checked itself.
 fn check_shared_images(files: &[(String, String)]) -> Vec<String> {
-    let mut defined: std::collections::BTreeMap<&str, Vec<(String, &str)>> = std::collections::BTreeMap::new();
+    let mut defined: std::collections::BTreeMap<&str, Vec<(String, &str)>> =
+        std::collections::BTreeMap::new();
     for (file, text) in files {
         for (i, raw) in text.lines().enumerate() {
             if let Some((key, value)) = key_value(split_comment(raw.trim()).0)
@@ -62,7 +63,10 @@ fn check_shared_images(files: &[(String, String)]) -> Vec<String> {
                 && !value.is_empty()
                 && !value.starts_with("${{")
             {
-                defined.entry(key).or_default().push((format!("{file}:{}", i + 1), value));
+                defined
+                    .entry(key)
+                    .or_default()
+                    .push((format!("{file}:{}", i + 1), value));
             }
         }
     }
@@ -864,7 +868,10 @@ mod tests {
             );
             (name.to_owned(), text)
         };
-        let alone = ("docs.yml".to_owned(), format!("env:\n  OTHER_IMAGE: x@sha256:{b}\n"));
+        let alone = (
+            "docs.yml".to_owned(),
+            format!("env:\n  OTHER_IMAGE: x@sha256:{b}\n"),
+        );
         let same = [workflow("ci.yml", &a), workflow("package.yml", &a), alone.clone()];
         assert_eq!(check_shared_images(&same), Vec::<String>::new());
 
@@ -882,7 +889,8 @@ mod tests {
         for file in ["ci.yml", "package.yml"] {
             let text = std::fs::read_to_string(root.join(".github/workflows").join(file)).unwrap();
             assert!(
-                text.lines().any(|l| l.trim().starts_with("LINUX_BUILD_IMAGE: ubuntu@sha256:")),
+                text.lines()
+                    .any(|l| l.trim().starts_with("LINUX_BUILD_IMAGE: ubuntu@sha256:")),
                 "{file} defines no LINUX_BUILD_IMAGE"
             );
         }
