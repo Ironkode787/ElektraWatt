@@ -509,10 +509,7 @@ mod tests {
     #[test]
     fn read_rows_takes_max_rows_records_and_refuses_one_more() {
         let rows = read_rows(
-            "x
-"
-            .repeat(MAX_ROWS)
-            .as_bytes(),
+            "x\n".repeat(MAX_ROWS).as_bytes(),
             SourceFormat::Csv,
             "",
             &Limits::default(),
@@ -521,10 +518,7 @@ mod tests {
         assert_eq!(rows.len(), MAX_ROWS);
         assert_eq!(
             read_rows(
-                "x
-"
-                .repeat(MAX_ROWS + 1)
-                .as_bytes(),
+                "x\n".repeat(MAX_ROWS + 1).as_bytes(),
                 SourceFormat::Csv,
                 "",
                 &Limits::default()
