@@ -1383,6 +1383,7 @@ impl ShellModel {
                     },
                 };
                 self.focus = Some(Focus::Navigator(kind));
+                self.bring_navigator_to_front(kind);
                 Outcome::Done
             }
             "properties" => {
@@ -1447,6 +1448,22 @@ impl ShellModel {
             a.focused = g;
         }
         self.focus = Some(next);
+        if let Focus::Navigator(kind) = next {
+            self.bring_navigator_to_front(kind);
+        }
         Outcome::Done
+    }
+
+    /// FT-1219 (ID-1270): a navigator given the focus is the shown one: behind another tab of its pane, its tab comes
+    /// to the front, as the Messages pane does (FT-916).
+    fn bring_navigator_to_front(&mut self, kind: crate::navigators::NavKind) {
+        let pane = match kind {
+            crate::navigators::NavKind::Pages => crate::layout::PaneKind::Pages,
+            k => crate::layout::PaneKind::Navigator(k),
+        };
+        let layout = self.layout().showing(pane);
+        if layout != *self.layout() {
+            self.replace_layout(layout);
+        }
     }
 }

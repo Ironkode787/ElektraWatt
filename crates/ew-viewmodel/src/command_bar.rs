@@ -481,8 +481,9 @@ pub const SELECTION_GROUPS: [Group; 1] = [Group::Arrange];
 
 /// The canvas context menu (FT-715): over an object, the commands the command bar offers for the selection (the
 /// buttons of [`SELECTION_GROUPS`], in the bar's order and as a collapsed group lists them: a split button, then its
-/// other variants), then Delete; over nothing, Paste when it is enabled. Empty when there is nothing to offer: the
-/// window then opens no menu. A disabled entry carries its reason, as the bar's button does. No action of its own.
+/// other variants), then Define potential… over a wire, a junction or a terminal (FT-1202), then Delete; over nothing,
+/// Paste when it is enabled. Empty when there is nothing to offer: the window then opens no menu. A disabled entry
+/// carries its reason, as the bar's button does. No action of its own.
 pub fn canvas_menu(model: &ShellModel, over_object: bool) -> Vec<ActionItem> {
     if !over_object {
         return actions::find("edit.paste_clip")
@@ -525,6 +526,10 @@ pub fn canvas_menu(model: &ShellModel, over_object: bool) -> Vec<ActionItem> {
             });
             items.extend(variants.iter().filter(|v| v.id != b.id).cloned());
         }
+    }
+    // FT-1202 (ID-1270): over a wire, a junction or a terminal, Define potential… at its point.
+    if model.potential_point().is_ok() {
+        items.extend(actions::find("potential.draw").map(|meta| actions::item_of(meta, model)));
     }
     items.extend(actions::find("edit.delete_selection").map(|meta| actions::item_of(meta, model)));
     items

@@ -444,6 +444,11 @@ reason-bond = A bond is previewed first
 error-bond-end = No connection point of the page shown is printed "{ $p0 }"; name it as the page text does
 error-bond-end-ambiguous = Several connection points of the page shown are printed "{ $p0 }"
 error-bond-same-end = Both ends of the bond are "{ $p0 }"; name two different connection points
+# FT-1202 (ID-1270): Draw ▸ Define potential…, beside Bond.
+action-potential-draw = Define potential…
+reason-potential-point = Select one wire, junction or terminal
+error-potential-type = "{ $p0 }" is not a potential type; type L1, L2, L3, L, N, PE, PEN, FE, L+, L-, M or signal.
+error-potential-voltage = "{ $p0 }" is not a voltage; type it as 24 V DC, 230 V AC or 24.
 
 # WP-S2.04 part 5 (images, §11).
 action-tool-image = Image…
@@ -1692,7 +1697,7 @@ error-nav-no-export = The { $p0 } pane's table cannot be exported.
 error-table-preset-csv = A preset applies to CSV only; drop it, or choose the format csv.
 error-table-preset = There is no CSV preset { $p0 }; the presets are ew, excel-nl, excel-en and rfc4180.
 # ID-1252: the preset ew writes no id column, so its file does not import again in the window.
-reason-table-preset-ew = The preset ew writes no id column, so the file cannot be imported again; choose excel-nl, excel-en or rfc4180
+reason-table-preset-ew = The preset ew writes no id column, so the file cannot be imported again; choose excel-nl or excel-en
 error-table-import-open = { $p0 } cannot be opened: { $p1 }.
 error-table-import-missing = There is no file { $p0 }.
 error-table-import-read = The file cannot be read: { $p0 }.

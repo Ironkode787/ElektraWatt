@@ -13,6 +13,7 @@
 use crate::common;
 
 use common::{Tmp, done};
+use ew_viewmodel::ew_api::output::PageTables;
 use ew_viewmodel::navigators::{NavKind, NavRole};
 use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use serde_json::{Value, json};
@@ -356,5 +357,148 @@ fn the_cells_that_stay_read_only_and_one_row_per_gesture() {
     failed(&mut shell, "preview.apply", json!({}));
     done(&mut shell, "preview.cancel", json!({}));
     assert_eq!(shell.recorded_commands().len(), steps);
+    shell.shutdown();
+}
+
+/// The record ID of the item of the page shown that `pick` finds, as `select.set` takes it.
+fn pick_id(shell: &ShellModel, pick: impl Fn(&PageTables) -> Option<String>) -> String {
+    pick(&shell.canvas().unwrap().page().tables).expect("the item")
+}
+
+/// Fills the open parameter form of Define potential… with `fields` (name, type, voltage) and runs it.
+fn fill_form(shell: &mut ShellModel, fields: [&str; 3]) {
+    let form = shell.palette().and_then(|p| p.form.clone()).expect("the form");
+    assert_eq!(form.action, "potential.draw");
+    let labels: Vec<String> = form.fields.iter().map(|f| f.label()).collect();
+    assert_eq!(labels, ["Name", "Type", "Voltage"]);
+    for (i, text) in fields.iter().enumerate() {
+        shell.set_palette_field(i, text);
+    }
+    assert_eq!(shell.run_palette_selection(), Outcome::Done);
+    assert!(shell.palette().is_none(), "the form closes");
+}
+
+/// FT-1202 (ID-1270): Define potential… defines a supply potential from each of its surfaces, the Draw menu beside
+/// Bond on a selected wire (at its `from` end), the canvas context menu over a junction and the palette found by
+/// "supply" on a terminal, each in one step through its parameter form; its name is then the Potentials row's. With no
+/// one point selected the action is disabled with its reason, whole; an empty name is refused; the context menu does
+/// not offer it over a symbol with several connection points.
+#[test]
+fn define_potential_from_the_menu_the_context_menu_and_the_palette() {
+    let tmp = Tmp::new("potdef-action");
+    let mut shell = undefined(&tmp);
+    done(&mut shell, "navigator.show", json!({"kind": "potentials"}));
+
+    // Nothing selected: disabled with its reason, whole.
+    done(&mut shell, "page.goto", json!({"folio": "102"}));
+    let reason = common::refused(&mut shell, "potential.draw", json!({}));
+    assert_eq!(
+        ew_viewmodel::strings::text(ew_viewmodel::strings::Key::run_time(reason)),
+        "Select one wire, junction or terminal"
+    );
+
+    // The Draw menu, beside Bond, on a selected wire.
+    let draw = ew_viewmodel::actions::menu_model(&shell)
+        .into_iter()
+        .find(|m| m.menu == ew_viewmodel::actions::Menu::Draw)
+        .unwrap();
+    let ids: Vec<&str> = draw
+        .entries
+        .iter()
+        .flat_map(|e| e.items())
+        .map(|i| i.id)
+        .collect();
+    let bond = ids.iter().rposition(|i| *i == "bond.draw").expect("Bond");
+    assert_eq!(ids.get(bond + 1), Some(&"potential.draw"), "{ids:?}");
+    let wire = pick_id(&shell, |t| t.connections.first().map(|c| c.id.to_string()));
+    done(&mut shell, "select.set", json!({"ids": [wire]}));
+    done(&mut shell, "potential.draw", json!({}));
+    let steps = shell.recorded_commands().len();
+    shell.set_palette_field(0, " ");
+    assert!(matches!(shell.run_palette_selection(), Outcome::Refused { .. }));
+    assert_eq!(
+        shell
+            .palette()
+            .and_then(|p| p.form.as_ref())
+            .and_then(|f| f.error.clone()),
+        Some("Name the potential first".to_owned())
+    );
+    shell.set_palette_field(0, "FEED-A");
+    shell.set_palette_field(1, "XX");
+    assert_eq!(
+        shell.run_palette_selection(),
+        Outcome::Failed {
+            message:
+                "\"XX\" is not a potential type; type L1, L2, L3, L, N, PE, PEN, FE, L+, L-, M or signal."
+                    .to_owned()
+        }
+    );
+    shell.set_palette_field(1, "");
+    shell.set_palette_field(2, "lots");
+    assert_eq!(
+        shell.run_palette_selection(),
+        Outcome::Failed {
+            message: "\"lots\" is not a voltage; type it as 24 V DC, 230 V AC or 24.".to_owned()
+        }
+    );
+    assert_eq!(shell.recorded_commands().len(), steps, "nothing commits");
+    fill_form(&mut shell, ["FEED-A", "L+", "24 V DC"]);
+    let last = shell.recorded_commands().last().unwrap();
+    assert_eq!(last.cmd, "potential.define");
+    assert_eq!(last.params["ptype"], "l_plus", "{}", last.params);
+    assert_eq!(last.params["env"]["ac_dc"], "dc", "{}", last.params);
+    assert_eq!(row(&shell, "FEED-A", "Type").1, "potential_def");
+
+    // The canvas context menu over a junction.
+    let junction = pick_id(&shell, |t| t.junctions.last().map(|j| j.id.to_string()));
+    done(&mut shell, "select.set", json!({"ids": [junction]}));
+    let item = ew_viewmodel::command_bar::canvas_menu(&shell, true)
+        .into_iter()
+        .find(|i| i.id == "potential.draw")
+        .expect("Define potential… over a junction");
+    assert_eq!(item.label, "Define potential…");
+    assert!(item.enabled, "{:?}", item.reason);
+    done(&mut shell, item.id, item.params);
+    fill_form(&mut shell, ["FEED-B", "PE", ""]);
+    assert_eq!(row(&shell, "FEED-B", "Type").1, "potential_def");
+
+    // The palette, by "supply", on a terminal.
+    done(&mut shell, "page.goto", json!({"folio": "101"}));
+    let terminal = pick_id(&shell, |t| {
+        t.reps.iter().find(|r| r.terminal).map(|r| r.id.to_string())
+    });
+    done(&mut shell, "select.set", json!({"ids": [terminal]}));
+    done(&mut shell, "tools.palette", json!({}));
+    shell.set_palette_query("supply");
+    let at = shell
+        .palette_entries()
+        .iter()
+        .position(|e| e.id == "potential.draw")
+        .expect("found by supply");
+    shell.select_palette_entry(at);
+    assert_eq!(shell.run_palette_selection(), Outcome::Done);
+    fill_form(&mut shell, ["FEED-C", "L1", "230 V AC"]);
+    assert_eq!(row(&shell, "FEED-C", "Type").1, "potential_def");
+
+    // Over a symbol with several connection points, not a terminal, the context menu does not offer it.
+    let coil = pick_id(&shell, |t| {
+        t.reps
+            .iter()
+            .find(|r| {
+                !r.terminal
+                    && t.cps
+                        .iter()
+                        .filter(|c| r.functions.first() == Some(&c.function))
+                        .count()
+                        > 1
+            })
+            .map(|r| r.id.to_string())
+    });
+    done(&mut shell, "select.set", json!({"ids": [coil]}));
+    assert!(
+        !ew_viewmodel::command_bar::canvas_menu(&shell, true)
+            .iter()
+            .any(|i| i.id == "potential.draw")
+    );
     shell.shutdown();
 }

@@ -734,6 +734,8 @@ mod tests {
         ("firstrun-step-origin", "I is the pronoun"),
         ("wizard-error-revision", "V is the revision label's letter"),
         ("messages-header", "E, W and I are the severities"),
+        ("error-potential-type", "L, N and M are potential types"),
+        ("error-potential-voltage", "V is the volt"),
         // Open: `props.follow`'s F in the Properties pane's link (ew-ui `properties.rs`, a later row); the status bar's
         // link hint is `status-hint-follow`.
         ("status-hint-link", "props.follow's F, not yet from the keymap"),

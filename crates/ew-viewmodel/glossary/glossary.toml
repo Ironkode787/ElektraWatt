@@ -201,13 +201,25 @@ nl-NL = "Een gegenereerde tabel (stuklijst, klemmenplan, inhoudsopgave); rapport
 ew = "Potential"
 eplan = ["Potential", "Potential definition point"]
 qet = []
-actions = []
+actions = ["potential.draw"]
 [term.labels]
 en-GB = "Potential"
 nl-NL = "Potentiaal"
 [term.definition]
 en-GB = "The electrical net a connection belongs to (24VDC-1, PE); it is derived, and its wire colour follows from it."
 nl-NL = "Het elektrische net waartoe een verbinding behoort (24VDC-1, PE); het wordt afgeleid, en de aderkleur volgt eruit."
+
+[[term]]
+ew = "Supply voltage"
+eplan = []
+qet = []
+actions = ["potential.draw"]
+[term.labels]
+en-GB = "Supply voltage"
+nl-NL = "Voedingsspanning"
+[term.definition]
+en-GB = "The type and voltage of a supply potential (L+ at 24 V DC); they are given where the potential is defined."
+nl-NL = "Het type en de spanning van een voedingspotentiaal (L+ op 24 V DC); ze worden opgegeven waar de potentiaal is gedefinieerd."
 
 [[term]]
 ew = "Cross-reference"

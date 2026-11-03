@@ -581,6 +581,12 @@ fn bond_ends(m: &ShellModel) -> Result<(), Key<'static>> {
     }
 }
 
+/// An editable page whose selection names one point a potential is defined at (Draw ▸ Define potential…, FT-1202).
+fn potential_point(m: &ShellModel) -> Result<(), Key<'static>> {
+    editable_page(m)?;
+    m.potential_point().map(|_| ())
+}
+
 /// Whether the action `meta` can run now with the parameters `p`: its predicate, except where the parameters supply
 /// what the predicate reads from the selection (`bond.draw` with `a` or `b` names its two ends itself, FT-578). The
 /// menus and the palette, which send no such parameters, read the predicate alone.
@@ -3082,6 +3088,20 @@ pub static ACTIONS: &[ActionMeta] = &[
             bond_ends,
             grp_sub(Group::Connect, Submenu::Bond),
             |s, p| s.act_bond_draw(p),
+        )),
+    )),
+    // FT-1202 (ID-1270): Draw ▸ Define potential…, beside Bond: `potential.define` at the selection's point, through
+    // its parameter form.
+    keeps_banner(with_params(
+        "name?:text, type?:text, voltage?:text",
+        in_canvas(act(
+            "potential.draw",
+            Command,
+            Menu::Draw,
+            &[],
+            potential_point,
+            grp(Group::Connect),
+            |s, p| s.act_potential_draw(p),
         )),
     )),
     // WP-S2.04 part 4b: the Wire marker and Structure box tools, their fields and the marker mode.

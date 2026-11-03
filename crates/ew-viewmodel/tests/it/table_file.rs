@@ -492,7 +492,7 @@ fn a_csv_export_keeps_its_id_column_and_ew_is_refused() {
     );
     assert_eq!(
         ew_viewmodel::strings::text(ew_viewmodel::key!("reason-table-preset-ew")),
-        "The preset ew writes no id column, so the file cannot be imported again; choose excel-nl, excel-en or rfc4180"
+        "The preset ew writes no id column, so the file cannot be imported again; choose excel-nl or excel-en"
     );
     assert!(!other.exists(), "no file");
     shell.shutdown();
@@ -683,13 +683,17 @@ fn the_table_shown_decides_without_the_focus() {
         "navigator.export_table",
         json!({"path": text(&other)}),
     );
-    assert!(other.exists());
+    // FT-1220: the focused Terminal strips table is the one written.
+    assert_eq!(
+        column_cells(&std::fs::read(&other).unwrap(), "id"),
+        shown_rows(&shell),
+        "the focused Terminal strips table"
+    );
     shell.shutdown();
 }
 
 /// ID-1231 (C48-p5#1): a table-mode navigator behind another tab is not shown and does not count; with the canvas
-/// focused, the one table shown is exported. The refusals of a table without a file form and of another project's
-/// file, whole.
+/// focused, the one table shown is exported.
 #[test]
 fn a_table_behind_another_tab_does_not_count() {
     let tmp = Tmp::new("tfb");
@@ -721,13 +725,117 @@ fn a_table_behind_another_tab_does_not_count() {
         devices,
         "the Devices table"
     );
+    shell.shutdown();
+}
+
+/// FT-1219 (ID-1270): F6 onto a navigator behind another tab brings its tab to the front of its pane, so the focused
+/// table is the shown one, and Export table writes its rows; `ui.focus` does the same.
+#[test]
+fn focus_brings_a_navigator_behind_another_tab_forward() {
+    let tmp = Tmp::new("tff");
+    let mut shell = strips(&tmp);
+    done(&mut shell, "navigator.show", json!({"kind": "devices"}));
+    done(
+        &mut shell,
+        "navigator.table",
+        json!({"kind": "devices", "on": true}),
+    );
+    let strips_pane = PaneKind::Navigator(NavKind::Strips);
+    let devices_pane = PaneKind::Navigator(NavKind::Devices);
     assert_eq!(
-        ew_viewmodel::strings::text(ew_viewmodel::key!("reason-table-no-file")),
-        "This table cannot be written to a file; copy its cells instead"
+        shell.layout().shown_in_place_of(strips_pane),
+        Some(devices_pane),
+        "Terminal strips is behind the Devices tab"
+    );
+    done(&mut shell, "ui.focus", json!({"area": "commandbar"}));
+    while shell.focused_navigator() != Some(NavKind::Strips) {
+        done(&mut shell, "ui.focus_next", json!({}));
+    }
+    assert_eq!(
+        shell.layout().shown_in_place_of(strips_pane),
+        Some(strips_pane),
+        "F6 brought Terminal strips forward"
+    );
+    let out = tmp.0.join("f6.xlsx");
+    done(&mut shell, "navigator.export_table", json!({"path": text(&out)}));
+    assert_eq!(
+        column_cells(&std::fs::read(&out).unwrap(), "id"),
+        shown_rows(&shell),
+        "the Terminal strips table"
+    );
+
+    done(
+        &mut shell,
+        "ui.focus",
+        json!({"area": "navigator", "kind": "devices"}),
+    );
+    assert_eq!(shell.layout().shown_in_place_of(strips_pane), Some(devices_pane));
+    done(
+        &mut shell,
+        "ui.focus",
+        json!({"area": "navigator", "kind": "strips"}),
     );
     assert_eq!(
-        ew_viewmodel::strings::text(ew_viewmodel::key!("error-table-import-project")),
-        "The file was exported from another project; export the table from this project again."
+        shell.layout().shown_in_place_of(strips_pane),
+        Some(strips_pane),
+        "ui.focus brought Terminal strips forward"
     );
     shell.shutdown();
+}
+
+/// FT-1217 (ID-1270): the Macros navigator in table mode, focused, refuses Export table with its reason, whole.
+#[test]
+fn a_table_without_a_file_form_refuses_its_export() {
+    let tmp = Tmp::new("tfm");
+    let mut shell = tmp.shell_in(Mode::Headless, true, "102");
+    done(&mut shell, "navigator.show", json!({"kind": "macros"}));
+    done(
+        &mut shell,
+        "navigator.table",
+        json!({"kind": "macros", "on": true}),
+    );
+    done(
+        &mut shell,
+        "ui.focus",
+        json!({"area": "navigator", "kind": "macros"}),
+    );
+    let out = tmp.0.join("m.xlsx");
+    let reason = refused(&mut shell, "navigator.export_table", json!({"path": text(&out)}));
+    assert_eq!(
+        ew_viewmodel::strings::text(ew_viewmodel::strings::Key::run_time(reason)),
+        "This table cannot be written to a file; copy its cells instead"
+    );
+    assert!(!out.exists(), "no file");
+    shell.shutdown();
+}
+
+/// FT-1217 (ID-1270): an XLSX exported from Golden A, imported into a new project's Terminal strips table, fails with
+/// the other project's error, whole.
+#[test]
+fn a_file_of_another_project_is_refused() {
+    let tmp = Tmp::new("tfo");
+    let mut shell = strips(&tmp);
+    let out = tmp.0.join("a.xlsx");
+    done(&mut shell, "navigator.export_table", json!({"path": text(&out)}));
+    shell.shutdown();
+    let mut other = ShellModel::new(
+        Mode::Headless,
+        ew_viewmodel::shell::ShellConfig::in_dir(&tmp.0.join("config-new"), "0.0.0-test"),
+    );
+    done(
+        &mut other,
+        "file.new",
+        json!({"dir": tmp.0.join("new.ew").to_string_lossy(), "template": "builtin"}),
+    );
+    done(&mut other, "navigator.show", json!({"kind": "strips"}));
+    done(
+        &mut other,
+        "navigator.table",
+        json!({"kind": "strips", "on": true}),
+    );
+    assert_eq!(
+        failed(&mut other, "navigator.import_table", json!({"path": text(&out)})),
+        "The file was exported from another project; export the table from this project again."
+    );
+    other.shutdown();
 }

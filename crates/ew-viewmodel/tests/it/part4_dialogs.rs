@@ -285,6 +285,8 @@ const OPENS_INPUT: &[&str] = &[
     "revision.withdraw",
     "revision.set_author",
     "revision.incomplete",
+    // FT-1202 (ID-1270): Draw ▸ Define potential… opens its parameter form.
+    "potential.draw",
 ];
 
 #[test]
