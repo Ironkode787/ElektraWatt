@@ -6,10 +6,12 @@
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::MlText;
 use ew_derive::ew_schema::{
-    Function, FunctionKind, IpDirection, Kind, LengthSource, Primitive, RepType, Representation,
+    Conflict, ConflictBody, ConflictSide, Connection, DELETED_SIDE, Device, Endpoint, Function, FunctionKind,
+    IpDirection, Kind, LengthSource, Primitive, RepType, Representation,
 };
+use serde_json::Value;
 use ew_derive::ew_units::{Nm, Pt2};
-use ew_derive::{CellOf, IpPairingQ, PairMode, Q, XrefRelationOf, XrefTextOf, folio_label};
+use ew_derive::{CellOf, CpRef, IpPairingQ, PairMode, Q, XrefRelationOf, XrefTextOf, folio_label};
 
 use crate::finding::{Finding, Fingerprint, QuickFix, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind, Touched};
@@ -824,9 +826,145 @@ pub const DANGLING_REFERENCE: RuleMeta = integrity(
     Severity::Error,
 );
 
-/// The integrity rules EW-CORE-001 … 019 (doc 15 §4.2; detection in the store, doc 05 §6.3). They run on
-/// open (mode n, not modelled) and, where the catalogue lists `r`, in release mode; the engine does not run
-/// them: [`CheckReport::with_integrity`](crate::CheckReport::with_integrity) joins the store's findings.
+/// EW-CORE-011 "Conflict records present" (doc 15 §4.2): integrity, n r, error, project. A registered rule over the
+/// model's conflict table ([`ConflictRecords`], WP-S1.17 D17), no longer a row of [`INTEGRITY`] (decision log ID-1279).
+pub const CONFLICT_RECORDS: RuleMeta = integrity(
+    "EW-CORE-011",
+    "100011",
+    "Conflict records present",
+    "r",
+    Severity::Error,
+);
+
+/// EW-CORE-011: one finding per conflict record a merge left (doc 05 §11.2, §11.4; WP-S1.17 D17), an error of release
+/// mode, so the release gate blocks while one is left. A record-level conflict targets its record and names it in
+/// words (its kind and tag, folio or ends, never its ID) with the members ours and theirs changed differently, or
+/// the side that deleted it; a file-level one names its file and the side whose lines it holds. Discriminator
+/// `record` or `file`. The conflict is resolved by `merge.resolve` (`ew merge resolve`) or by deleting the record.
+#[derive(Clone, Copy, Debug)]
+pub struct ConflictRecords;
+
+impl Rule for ConflictRecords {
+    fn meta(&self) -> &'static RuleMeta {
+        &CONFLICT_RECORDS
+    }
+
+    fn run(&self, q: &Q, scope: &Scope) -> Vec<Finding> {
+        if *scope != Scope::Project {
+            return Vec::new();
+        }
+        let mut out = Vec::new();
+        for (id, conflict) in q.table::<Conflict>().iter() {
+            out.push(match &conflict.body {
+                ConflictBody::Record {
+                    kind, ours, theirs, ..
+                } => {
+                    let target = conflict_target(q, kind, id.cast());
+                    // A delete/modify conflict holds the changed members whole: their names.
+                    let names = |side: &Value| {
+                        let names: Vec<&str> = side.as_object().into_iter().flat_map(|m| m.keys()).map(String::as_str).collect();
+                        names.join(", ")
+                    };
+                    let message = match (ours.as_str(), theirs.as_str()) {
+                        (Some(DELETED_SIDE), _) => {
+                            format!("{target}: ours deleted it and theirs changed {}", names(theirs))
+                        }
+                        (_, Some(DELETED_SIDE)) => {
+                            format!("{target}: theirs deleted it and ours changed {}", names(ours))
+                        }
+                        _ => {
+                            let mut paths = Vec::new();
+                            member_paths(&mut paths, String::new(), ours, theirs);
+                            format!("{target}: ours and theirs differ in {}", paths.join(", "))
+                        }
+                    };
+                    let targets = Kind::from_name(kind).map(|k| Target::new(k, id));
+                    Finding::new(&CONFLICT_RECORDS, targets, "record", target, message)
+                }
+                ConflictBody::File { path, side, .. } => {
+                    let held = match side {
+                        ConflictSide::Ours => "ours",
+                        ConflictSide::Theirs => "theirs",
+                        ConflictSide::Unknown(_) => "one side",
+                    };
+                    let message =
+                        format!("{path}: the merge could not read {held}; its lines are held in a conflict record");
+                    Finding::new(&CONFLICT_RECORDS, [], "file", path.clone(), message)
+                }
+            });
+        }
+        out
+    }
+}
+
+/// The record a conflict targets, in words: the project, a device by its tag, a page by its folio, a connection by its
+/// ends and folio, a function by its device; any other record by its kind.
+fn conflict_target(q: &Q, kind: &str, id: Id<()>) -> String {
+    let device = |d: Id<Device>| format!("device {}", full_tag(q, d, "without a tag"));
+    let end = |e: &Endpoint| match e {
+        Endpoint::Cp(f, idx) => ew_derive::cp_label(
+            q,
+            CpRef {
+                function: *f,
+                idx: *idx,
+            },
+        ),
+        _ => "a junction".to_owned(),
+    };
+    match Kind::from_name(kind) {
+        Some(Kind::Project) => "the project".to_owned(),
+        Some(Kind::Device) => device(id.cast()),
+        Some(Kind::Page) => q
+            .pages()
+            .get(id.cast())
+            .map_or_else(|| "a page".to_owned(), |p| format!("folio {}", folio_label(p))),
+        Some(Kind::Function) => match q.functions().get(id.cast()).and_then(|f| f.device) {
+            Some(d) => format!("a function of {}", device(d)),
+            None => "a function".to_owned(),
+        },
+        Some(Kind::Connection) => match q.table::<Connection>().get(id.cast()) {
+            Some(c) => {
+                let page = c
+                    .page
+                    .and_then(|p| q.pages().get(p))
+                    .map(|p| format!(" on folio {}", folio_label(p)))
+                    .unwrap_or_default();
+                format!("connection {} → {}{page}", end(&c.a), end(&c.b))
+            }
+            None => "a connection".to_owned(),
+        },
+        _ => format!("a {}", kind.replace('_', " ")),
+    }
+}
+
+/// The dotted paths of the members in which the partial objects `a` and `b` differ, in name order; a path ends at a
+/// member that is not an object on both sides (an absent member included).
+fn member_paths(out: &mut Vec<String>, at: String, a: &Value, b: &Value) {
+    let (Value::Object(x), Value::Object(y)) = (a, b) else {
+        if !at.is_empty() {
+            out.push(at);
+        }
+        return;
+    };
+    let names: std::collections::BTreeSet<&String> = x.keys().chain(y.keys()).collect();
+    for name in names {
+        let (vx, vy) = (x.get(name), y.get(name));
+        if vx == vy {
+            continue;
+        }
+        let path = if at.is_empty() {
+            name.clone()
+        } else {
+            format!("{at}.{name}")
+        };
+        member_paths(out, path, vx.unwrap_or(&Value::Null), vy.unwrap_or(&Value::Null));
+    }
+}
+
+/// The integrity rules EW-CORE-001 … 019 but 011 (doc 15 §4.2; detection in the store, doc 05 §6.3), which is the
+/// registered [`ConflictRecords`] since WP-S1.17 part 5 (decision log ID-1279). They run on open (mode n, not
+/// modelled) and, where the catalogue lists `r`, in release mode; the engine does not run them:
+/// [`CheckReport::with_integrity`](crate::CheckReport::with_integrity) joins the store's findings.
 pub const INTEGRITY: &[RuleMeta] = &[
     integrity("EW-CORE-001", "100001", "Manifest damaged", "", Severity::Warning),
     integrity("EW-CORE-002", "100002", "Mixed generation", "r", Severity::Error),
@@ -861,13 +999,6 @@ pub const INTEGRITY: &[RuleMeta] = &[
         "Record in the wrong file",
         "",
         Severity::Info,
-    ),
-    integrity(
-        "EW-CORE-011",
-        "100011",
-        "Conflict records present",
-        "r",
-        Severity::Error,
     ),
     integrity(
         "EW-CORE-012",
@@ -925,13 +1056,18 @@ pub const INTEGRITY: &[RuleMeta] = &[
 mod tests {
     use super::*;
 
+    /// The rows are EW-CORE-001 to 019 in order, without 011, which moved to the registered `ConflictRecords`
+    /// (decision log ID-1279).
     #[test]
     fn integrity_rules_are_numbered_in_class_100() {
-        for (i, m) in INTEGRITY.iter().enumerate() {
-            let n = i + 1;
+        let numbers: Vec<usize> = (1..=19).filter(|n| *n != 11).collect();
+        assert_eq!(INTEGRITY.len(), numbers.len());
+        for (m, n) in INTEGRITY.iter().zip(numbers) {
             assert_eq!(m.id, format!("EW-CORE-{n:03}"));
             assert_eq!(m.code, format!("100{n:03}"));
             assert!(!m.waivable(), "{}", m.id);
         }
+        assert_eq!((CONFLICT_RECORDS.id, CONFLICT_RECORDS.code), ("EW-CORE-011", "100011"));
+        assert!(!CONFLICT_RECORDS.waivable());
     }
 }

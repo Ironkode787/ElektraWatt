@@ -263,6 +263,10 @@ fn examples() -> Vec<(&'static str, Value)> {
             json!({"waiver": "6c1d0a37-92e4-5f8b-a0d6-3e7b9c2f4a18"}),
         ),
         (
+            "merge.resolve",
+            json!({"choices": [{"conflict": "5a8f1e3c-0d72-5b49-9e16-c3a7f0b8d254", "take": "theirs"}]}),
+        ),
+        (
             "project.assets.purge",
             json!({"assets": [format!("sha256:{}", "ab".repeat(32))]}),
         ),

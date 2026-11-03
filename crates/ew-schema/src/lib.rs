@@ -55,6 +55,7 @@
 //! | Bus | `logical_net` (12), `physical_net` (13), the function's `bus_port` aspect |
 //! | Panel layout | `layout_space` (50), `enclosure` (51), `mounting_surface` (52), `carrier` (53), `placement` (54) |
 //! | Revisions and checks | `revision` (60), `waiver` (61) |
+//! | Merges | `conflict` (255), in the file of its target |
 //! | Library documents | `part`, `symbol`, `fndef`, `form`, each a [`LibCopy`] |
 //!
 //! Every other kind of doc 05 §2.2 is in the registry as [`KindStatus::Reserved`]: its rank is taken, and
@@ -79,6 +80,7 @@
 mod anchor;
 mod asset;
 mod bus;
+mod conflict;
 mod connect;
 mod device;
 mod error;
@@ -112,6 +114,7 @@ pub use bus::{
     AddrValue, BusMedium, BusPort, BusRate, BusSection, BusSystem, LogicalNet, NetAddress, OnOff,
     PartBusPort, PhysicalNet, PortRole,
 };
+pub use conflict::{Conflict, ConflictBody, ConflictSide, DELETED_SIDE, FILE_CONFLICT_KIND};
 pub use connect::{
     AcDc, AssignedNumber, BevelSpec, Bond, BondKind, BridgeKind, BridgeSpec, BusLine, CircuitClass,
     Conductor, Connection, ConnectionKind, Junction, JunctionStyle, JunctionWiring, NumberSpec, PotentialDef,

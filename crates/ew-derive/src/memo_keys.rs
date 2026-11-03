@@ -137,6 +137,7 @@ macro_rules! by_kind {
             Kind::Placement => $f::<ew_schema::Placement>($($arg),*),
             Kind::Revision => $f::<ew_schema::Revision>($($arg),*),
             Kind::Waiver => $f::<ew_schema::Waiver>($($arg),*),
+            Kind::Conflict => $f::<ew_schema::Conflict>($($arg),*),
             Kind::Part => $f::<LibCopy<Part>>($($arg),*),
             Kind::Symbol => $f::<LibCopy<SymbolDef>>($($arg),*),
             Kind::Fndef => $f::<LibCopy<FnDef>>($($arg),*),

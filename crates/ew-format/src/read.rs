@@ -6,7 +6,7 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use ew_schema::{AnyId, Kind, LibDocument, MalformedVariant, Project, Record, SchemaError};
+use ew_schema::{AnyId, Kind, KindStatus, LibDocument, MalformedVariant, Project, Record, SchemaError};
 use serde_json::Value;
 
 use crate::finding::{Finding, FindingKind, Findings};
@@ -14,6 +14,7 @@ use crate::layout::RecordAnchors;
 use crate::limits::Limits;
 use crate::line::jsonl_file;
 use crate::manifest::{FileHash, Manifest, sha256};
+use crate::merge::{merge_record, no_base, record_key, within_limits};
 use crate::migrate::{Migration, MigrationError};
 use crate::order::LineKey;
 use crate::path::{FilePath, OpaqueKind, PathClass, classify};
@@ -320,6 +321,114 @@ pub fn load_migrated(
 /// The Git conflict-marker prefixes of a JSON Lines file (`|||||||` is the diff3 base marker).
 const LINE_MARKERS: [&[u8]; 4] = [b"<<<<<<<", b"=======", b">>>>>>>", b"|||||||"];
 
+/// Where [`unmark`] is in a file.
+enum Hunk {
+    Outside,
+    Ours,
+    Base,
+    Theirs,
+}
+
+/// The lines of a JSON Lines `body` with its conflict markers resolved (WP-S1.17 D18, FR-COL-025; doc 05 §11.4), each
+/// with its line number in the file (a hunk's lines take the number of its `<<<<<<<` line); `None` when the body
+/// holds no marker, or when a hunk is not whole (a marker out of place, an open hunk) or a side holds a line that is
+/// not a record with a `$k` and an `id`, a key twice, or more lines than the limit: the file then stays EW-CORE-006.
+///
+/// Per hunk, by `($k, id)`: with a diff3 base (`|||||||`), [`merge_record`] merges the three sides (clean parts merge,
+/// true conflicts become conflict records); without one, D18's no-base rule ([`no_base`]): records equal on both sides
+/// are kept, records that differ keep ours with a conflict of every differing member, and a record on one side only is
+/// kept with a conflict whose other side is `"deleted"`. A merged line that would pass a line limit leaves the file
+/// EW-CORE-006 as well.
+fn unmark(body: &[u8], limits: &Limits) -> Option<Vec<(usize, Vec<u8>)>> {
+    let lines: Vec<&[u8]> = body.split(|b| *b == b'\n').collect();
+    if lines.len() > limits.max_lines_per_file || !lines.iter().any(|l| LINE_MARKERS.iter().any(|m| l.starts_with(m))) {
+        return None;
+    }
+    let mut out = Vec::new();
+    let (mut state, mut start) = (Hunk::Outside, 0);
+    let (mut ours, mut base, mut theirs): (Vec<&[u8]>, Option<Vec<&[u8]>>, Vec<&[u8]>) = (Vec::new(), None, Vec::new());
+    for (i, raw) in lines.into_iter().enumerate() {
+        let n = i + 1;
+        let line = raw.strip_suffix(b"\r").unwrap_or(raw);
+        let marker = LINE_MARKERS.iter().position(|m| line.starts_with(m));
+        state = match (state, marker) {
+            (Hunk::Outside, None) => {
+                out.push((n, raw.to_vec()));
+                Hunk::Outside
+            }
+            (Hunk::Outside, Some(0)) => {
+                start = n;
+                (ours, base, theirs) = (Vec::new(), None, Vec::new());
+                Hunk::Ours
+            }
+            (Hunk::Ours, Some(3)) => {
+                base = Some(Vec::new());
+                Hunk::Base
+            }
+            (Hunk::Ours | Hunk::Base, Some(1)) => Hunk::Theirs,
+            (Hunk::Theirs, Some(2)) => {
+                for value in merge_hunk(base.as_deref(), &ours, &theirs, limits)? {
+                    out.push((start, value.into_bytes()));
+                }
+                Hunk::Outside
+            }
+            (Hunk::Ours, None) => {
+                ours.push(line);
+                Hunk::Ours
+            }
+            (Hunk::Base, None) => {
+                base.get_or_insert_with(Vec::new).push(line);
+                Hunk::Base
+            }
+            (Hunk::Theirs, None) => {
+                theirs.push(line);
+                Hunk::Theirs
+            }
+            _ => return None,
+        };
+    }
+    matches!(state, Hunk::Outside).then_some(out)
+}
+
+/// The records of one hunk side by `($k, id)`, read as the loader reads a line and NFC-normalised; blank lines are
+/// skipped. `None` when a line is not a record with a key, or a key is there twice.
+fn hunk_side(lines: &[&[u8]], limits: &Limits) -> Option<BTreeMap<(String, String), Value>> {
+    let mut out = BTreeMap::new();
+    for line in lines.iter().filter(|l| !l.is_empty()) {
+        let (_, mut value) = parse_line(line, limits).ok()?;
+        ew_schema::normalize_nfc(&mut value);
+        if out.insert(record_key(&value)?, value).is_some() {
+            return None;
+        }
+    }
+    Some(out)
+}
+
+/// One hunk's merged records and conflict records as compact JSON lines ([`unmark`]).
+fn merge_hunk(base: Option<&[&[u8]]>, ours: &[&[u8]], theirs: &[&[u8]], limits: &Limits) -> Option<Vec<String>> {
+    let o = match base {
+        Some(lines) => Some(hunk_side(lines, limits)?),
+        None => None,
+    };
+    let (a, b) = (hunk_side(ours, limits)?, hunk_side(theirs, limits)?);
+    let keys: BTreeSet<&(String, String)> = o.iter().flat_map(BTreeMap::keys).chain(a.keys()).chain(b.keys()).collect();
+    let mut out = Vec::new();
+    for key in keys {
+        let merged = match &o {
+            Some(o) => merge_record(o.get(key), a.get(key), b.get(key)),
+            None => no_base(a.get(key), b.get(key)),
+        };
+        for value in merged.merged.iter().chain(merged.conflict.iter()) {
+            let line = value.to_string();
+            if !within_limits(&line, limits) {
+                return None;
+            }
+            out.push(line);
+        }
+    }
+    Some(out)
+}
+
 /// The file and line a `($k, id)` was first read from (no line for a library document).
 type Origin = (FilePath, Option<u32>);
 
@@ -359,6 +468,19 @@ struct Loader<'a> {
     migration: Option<&'a Migration<'a>>,
     /// Its first error: nothing more is read.
     failed: Option<MigrationError>,
+    /// The record-level conflict records read, held until every file is read: one whose target is not a record of
+    /// the project is kept verbatim (WP-S1.17 D17).
+    conflicts: Vec<HeldConflict>,
+}
+
+/// A record-level conflict record waiting for its target ([`Loader::conflicts`]).
+struct HeldConflict {
+    file: FilePath,
+    line: u32,
+    key: LineKey,
+    text: Vec<u8>,
+    target: (String, AnyId),
+    record: Record,
 }
 
 /// `bytes` with every `\r\n` replaced by `\n`, a lone `\r` kept: the line-end normalisation under which a file equals
@@ -507,6 +629,7 @@ impl<'a> Loader<'a> {
             placed: Vec::new(),
             migration,
             failed: None,
+            conflicts: Vec::new(),
         }
     }
 
@@ -648,6 +771,19 @@ impl<'a> Loader<'a> {
                     data
                 }
             };
+            // Conflict markers whose hunks hold whole records load as conflict records (D18, FR-COL-025); the file is
+            // rewritten at the next save. Any other marker stays EW-CORE-006 below.
+            if let Some(lines) = unmark(body, self.limits) {
+                st.non_canonical = true;
+                for (n, raw) in lines {
+                    self.line(path, n, &raw, &mut st);
+                    if self.failed.is_some() {
+                        return;
+                    }
+                }
+                self.finish_record_file(path, bytes, st);
+                return;
+            }
             for (i, raw) in body.split(|b| *b == b'\n').enumerate() {
                 let n = i + 1;
                 if n > self.limits.max_lines_per_file {
@@ -670,6 +806,11 @@ impl<'a> Loader<'a> {
                 }
             }
         }
+        self.finish_record_file(path, bytes, st);
+    }
+
+    /// The canonical check of a record file read whole.
+    fn finish_record_file(&mut self, path: &FilePath, bytes: &[u8], st: FileState) {
         // A migrated file is rewritten from its migrated values: no `NonCanonical` finding (ID-1221 ruling 4).
         if st.migrated {
             self.out.migrated.insert(path.clone());
@@ -855,6 +996,20 @@ impl<'a> Loader<'a> {
             },
         }
         let known = record.kind().is_some();
+        if let Record::Conflict(conflict) = &record {
+            if let Some(kind) = conflict.target_kind() {
+                let target = (kind.to_owned(), id);
+                self.conflicts.push(HeldConflict {
+                    file: path.clone(),
+                    line: ln,
+                    key: quarantine_key,
+                    text: text.as_bytes().to_vec(),
+                    target,
+                    record,
+                });
+                return;
+            }
+        }
         match record {
             Record::Project(project) => {
                 self.out.project = Some(project);
@@ -1031,8 +1186,52 @@ impl<'a> Loader<'a> {
 
     // ---- placement and result ---------------------------------------------------------------------------
 
+    /// The held record-level conflicts (WP-S1.17 D17): one whose target is a record of an implemented kind joins the
+    /// records; one whose target the project does not hold, or holds only as a record of a kind this reader keeps
+    /// verbatim, is kept verbatim and reported (EW-CORE-007, the line quarantined).
+    fn hold_conflicts(&mut self) {
+        for held in std::mem::take(&mut self.conflicts) {
+            let kind = &held.target.0;
+            let typed = Kind::from_name(kind).filter(|k| {
+                k.status() == KindStatus::Implemented && !k.is_library() && *k != Kind::Conflict
+            });
+            if typed.is_some() && self.seen.contains_key(&held.target) {
+                self.placed.push(Placed {
+                    file: held.file,
+                    line: held.line,
+                    target: Target::Record(self.out.records.len()),
+                });
+                self.out.records.push(held.record);
+                continue;
+            }
+            let what = if typed.is_some() {
+                format!("a conflict record whose target, a record of the kind \"{kind}\", is not in the project")
+            } else {
+                format!("a conflict record whose target is of the kind \"{kind}\", which this reader keeps unchanged")
+            };
+            self.find(
+                FindingKind::SchemaViolation,
+                &held.file,
+                Some(held.line),
+                format!("{what}; kept verbatim"),
+            );
+            self.out.kept.push(KeptLine {
+                file: held.file,
+                line: held.line,
+                key: held.key,
+                text: held.text,
+                kept: Kept::Quarantined,
+                kind: Some(FindingKind::SchemaViolation),
+            });
+        }
+        self.out
+            .kept
+            .sort_by(|a, b| (&a.file, a.line).cmp(&(&b.file, b.line)));
+    }
+
     /// EW-CORE-010 for every record whose file is not the one it was read from.
     fn place(&mut self) {
+        self.hold_conflicts();
         let anchors = RecordAnchors::new(&self.out.records);
         let mut moves: Vec<(FilePath, u32, FilePath, String)> = Vec::new();
         for placed in &self.placed {

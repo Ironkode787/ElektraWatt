@@ -10,7 +10,7 @@ use std::path::Path;
 
 use ew_format::ew_schema::{FORMAT, Kind, KindStatus, LibDocument, Record};
 use ew_format::{
-    FilePath, FormatStep, Kept, Limits, MANIFEST, MIGRATIONS, Manifest, MergeSide, MigrationError,
+    FilePath, FormatStep, Limits, MANIFEST, MIGRATIONS, Manifest, MergeSide, MigrationError,
     Migrations, PathClass, classify, load, merge_file, merge_record,
 };
 use proptest::prelude::*;
@@ -986,16 +986,19 @@ fn ac41_w20_conflict_variant_writes_one_conflict_record_and_keeps_bu() {
     let (merged, conflicts) = merge_page(&base, &ours, &theirs);
     assert_eq!(merged, format!("{kept}{conflict}\n"));
     assert_eq!(conflicts, 1);
-    // The file still opens as today: the reserved kind's line is kept verbatim, nothing else is reported.
+    // The file opens editable with nothing reported: the conflict is a typed record now, written back as it was read
+    // (WP-S1.17 part 5, decision log ID-1279).
     let loaded = load_page(&merged);
     assert_eq!(loaded.findings, []);
     assert!(!loaded.read_only);
-    let kept_lines: Vec<(Kept, String)> = loaded
-        .kept
+    assert!(loaded.kept.is_empty());
+    let conflicts: Vec<String> = loaded
+        .records
         .iter()
-        .map(|k| (k.kept.clone(), k.text_lossy().into_owned()))
+        .filter(|r| matches!(r, Record::Conflict(_)))
+        .map(|r| ew_format::record_line(r).expect("a line"))
         .collect();
-    assert_eq!(kept_lines, [(Kept::UnknownKind, conflict.to_owned())]);
+    assert_eq!(conflicts, [conflict.to_owned()]);
     // MD-3: every merged record reads typed.
     for line in merged.lines().filter(|l| !l.starts_with(r#"{"$k":"conflict""#)) {
         assert!(typed(&serde_json::from_str(line).expect("JSON")), "{line}");
@@ -1023,11 +1026,18 @@ fn md4_a_side_that_does_not_parse_keeps_the_other_with_one_file_level_conflict()
         merge_page(&base, &broken, &ours),
         (format!("{ours}{}\n", file_conflict("ours", &broken)), 1)
     );
-    // The result opens: the file-level record is a kept line of the reserved kind.
+    // The result opens: the file-level record is a typed conflict record (decision log ID-1279).
     let (merged, _) = merge_page(&base, &ours, &broken);
     let loaded = load_page(&merged);
     assert_eq!(loaded.findings, []);
-    assert_eq!(loaded.kept.len(), 1);
+    assert!(loaded.kept.is_empty());
+    let held: Vec<String> = loaded
+        .records
+        .iter()
+        .filter(|r| matches!(r, Record::Conflict(_)))
+        .map(|r| ew_format::record_line(r).expect("a line"))
+        .collect();
+    assert_eq!(held, [file_conflict("theirs", &broken)]);
 }
 
 #[test]

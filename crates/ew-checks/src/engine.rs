@@ -160,7 +160,8 @@ impl CheckReport {
     }
 
     /// The report with the integrity findings of opening the project joined (doc 15 §4.2: the integrity
-    /// rules EW-CORE-001 … 019 run on open and, where the catalogue lists `r`, in release mode). In release
+    /// rules EW-CORE-001 … 019 run on open and, where the catalogue lists `r`, in release mode; EW-CORE-011 is a
+    /// registered rule over the model, decision log ID-1279). In release
     /// mode every item of a rule whose modes include release joins the findings, the counts and the exit
     /// code at the item's severity; items of other rules, of unknown IDs, and every item in online mode are
     /// left out. Integrity findings are never waivable. The findings are re-sorted.

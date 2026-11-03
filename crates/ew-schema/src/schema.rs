@@ -20,6 +20,7 @@ use crate::{
     Placement, PlcConfigProject, PotentialDef, Project, ReportBlock, Representation, Revision, Section,
     StructureBox, StructureNode, Waiver,
 };
+use crate::conflict::Conflict;
 
 /// The schema of `T`, titled and tagged as `kind`.
 fn generate<T: JsonSchema>(kind: Kind) -> Value {
@@ -86,6 +87,7 @@ pub fn kind_schema(kind: Kind) -> Option<Value> {
         Kind::Placement => generate::<Placement>(kind),
         Kind::Revision => generate::<Revision>(kind),
         Kind::Waiver => generate::<Waiver>(kind),
+        Kind::Conflict => generate::<Conflict>(kind),
         Kind::Part => generate::<LibCopy<Part>>(kind),
         Kind::Symbol => generate::<LibCopy<SymbolDef>>(kind),
         Kind::Fndef => generate::<LibCopy<FnDef>>(kind),

@@ -555,6 +555,17 @@
     {
       "aliases": [],
       "confirmation": "none",
+      "cost": "interactive",
+      "exposure": "edit",
+      "name": "merge.resolve",
+      "params_version": 1,
+      "schema": "merge.resolve.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
       "cost": "bulk",
       "exposure": "edit",
       "name": "numbering.renumber",

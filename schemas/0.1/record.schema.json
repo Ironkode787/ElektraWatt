@@ -91,6 +91,9 @@
     },
     {
       "$ref": "waiver.schema.json"
+    },
+    {
+      "$ref": "conflict.schema.json"
     }
   ],
   "required": [

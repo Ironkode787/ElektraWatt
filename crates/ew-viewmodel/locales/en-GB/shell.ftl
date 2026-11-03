@@ -45,6 +45,7 @@ command-box-structure = Draw structure box
 command-cable-create = Create cable
 command-check-unwaive = Remove waiver
 command-check-waive = Waive finding
+command-merge-resolve = Resolve merge conflicts
 command-conductor-add = Add conductor
 command-connection-delete = Delete wire
 command-connection-draw = Draw wire

@@ -102,6 +102,7 @@ pub fn row_bytes(row: &AnyRow) -> usize {
         AnyRow::Placement(r) => of(&**r),
         AnyRow::Revision(r) => of(&**r),
         AnyRow::Waiver(r) => of(&**r),
+        AnyRow::Conflict(r) => of(&**r),
         AnyRow::Part(r) => of(&**r),
         AnyRow::Symbol(r) => of(&**r),
         AnyRow::Fndef(r) => of(&**r),
@@ -347,6 +348,23 @@ impl HeapSize for ew_schema::ReleaseRecord {
             + self.page_digests.heap_size()
             + self.rule_packs.heap_size()
             + self.extra.heap_size()
+    }
+}
+
+// ---- conflict records (WP-S1.17 D17) ----
+
+impl HeapSize for ew_schema::Conflict {
+    fn heap_size(&self) -> usize {
+        let body = match &self.body {
+            ew_schema::ConflictBody::Record {
+                kind,
+                base,
+                ours,
+                theirs,
+            } => kind.heap_size() + base.heap_size() + ours.heap_size() + theirs.heap_size(),
+            ew_schema::ConflictBody::File { path, lines, .. } => path.heap_size() + lines.heap_size(),
+        };
+        body + self.extra.heap_size()
     }
 }
 

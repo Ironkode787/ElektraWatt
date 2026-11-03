@@ -11,6 +11,10 @@ rule-ew-core-008 =
     .title = Dangling reference
     .hint = Restore the referenced record, or remove the reference with the quick fix.
 
+rule-ew-core-011 =
+    .title = Conflict records present
+    .hint = Take ours or theirs for each conflict with ew merge resolve, or delete the record that conflicts.
+
 rule-ew-core-021 =
     .title = Folio outside its section
     .hint = Renumber the page into its section's folio range, or move it to the section that owns the range.

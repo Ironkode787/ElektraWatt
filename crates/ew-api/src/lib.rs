@@ -417,8 +417,9 @@ impl PreventHook for ShippedPrevent {
 }
 
 /// The integrity findings of opening a project as items for [`checks::CheckReport::with_integrity`]: every
-/// store finding with a catalogue ID (EW-CORE-001 … 019, doc 05 §6.3) at its severity, located by its
-/// project-relative file and line. Notices without an ID (line endings, foreign edits) are left out.
+/// store finding with a catalogue ID (EW-CORE-001 … 019 but 011, a registered rule over the model; doc 05 §6.3) at its
+/// severity, located by its project-relative file and line. Notices without an ID (line endings, foreign edits) are
+/// left out.
 pub fn integrity_items(report: &OpenReport) -> Vec<checks::IntegrityItem> {
     use ew_store::ew_format::Severity as S;
     report

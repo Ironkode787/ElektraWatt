@@ -141,6 +141,10 @@ macro_rules! with_row {
                 let $kind = Kind::Waiver;
                 $body
             }
+            AnyRow::Conflict($r) => {
+                let $kind = Kind::Conflict;
+                $body
+            }
             AnyRow::Part($r) => {
                 let $kind = Kind::Part;
                 $body
@@ -202,6 +206,7 @@ pub(crate) fn row_record(row: &AnyRow) -> Option<Record> {
         AnyRow::Placement(r) => Record::Placement((**r).clone()),
         AnyRow::Revision(r) => Record::Revision((**r).clone()),
         AnyRow::Waiver(r) => Record::Waiver((**r).clone()),
+        AnyRow::Conflict(r) => Record::Conflict((**r).clone()),
         AnyRow::Part(_)
         | AnyRow::Symbol(_)
         | AnyRow::Fndef(_)
@@ -244,6 +249,7 @@ pub(crate) fn record_row(record: Record) -> Option<AnyRow> {
         Record::Placement(r) => AnyRow::of(r),
         Record::Revision(r) => AnyRow::of(r),
         Record::Waiver(r) => AnyRow::of(r),
+        Record::Conflict(r) => AnyRow::of(r),
         Record::Unknown(_) => return None,
     })
 }
@@ -343,6 +349,10 @@ impl Anchors for ModelAnchors<'_> {
     fn enclosure_space(&self, e: AnyId) -> Option<AnyId> {
         self.0.table::<Enclosure>().get(&e.cast()).map(|r| r.space.cast())
     }
+
+    fn target_file(&self, kind: Kind, id: AnyId) -> Option<FilePath> {
+        file_of(self.0, &(kind, id)).ok().flatten()
+    }
 }
 
 /// The file a row of `model` lives in (doc 05 §2.2), `None` when the key has no row.
@@ -379,7 +389,8 @@ pub(crate) fn all_keys(model: &Model) -> BTreeSet<AnyKey> {
 /// - a representation's page decides the file of the interruption-point functions it represents;
 /// - a junction's page decides the file of page-less connections, definitions and bonds at it;
 /// - an enclosure's space decides the layout file of its surfaces, a surface's enclosure that of its carriers
-///   and of the placements on the surface itself, and a carrier's surface that of its placements (WP-S4.01).
+///   and of the placements on the surface itself, and a carrier's surface that of its placements (WP-S4.01);
+/// - a record's file decides the file of its conflict record, which shares its ID (WP-S1.17 D17).
 pub(crate) fn follow_closure(keys: &BTreeSet<AnyKey>, base: &Model, next: &Model) -> BTreeSet<AnyKey> {
     let mut closure = BTreeSet::new();
     let mut work: Vec<AnyKey> = keys.iter().copied().collect();
@@ -425,6 +436,14 @@ pub(crate) fn follow_closure(keys: &BTreeSet<AnyKey>, base: &Model, next: &Model
                 }
             }
             _ => {}
+        }
+        // A record's conflict lives in the record's file (WP-S1.17 D17), and follows it.
+        let conflict = (Kind::Conflict, key.1);
+        if key.0 != Kind::Conflict
+            && !closure.contains(&conflict)
+            && (base.contains(&conflict) || next.contains(&conflict))
+        {
+            work.push(conflict);
         }
     }
     closure

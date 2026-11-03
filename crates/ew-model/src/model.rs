@@ -8,7 +8,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
 use ew_schema::{
-    Bond, Carrier, Channel, Conductor, Connection, Device, DeviceLink, Enclosure, ExternalRef, Function,
+    Bond, Carrier, Channel, Conductor, Conflict, Connection, Device, DeviceLink, Enclosure, ExternalRef, Function,
     FunctionKind, ImportLineage, Junction, Kind, KindRegistry, LayoutSpace, LibDocument, LogicalNet,
     MacroInstance, MountingSurface, Page, PageItem, PhysicalNet, Placement, PlcConfigProject, PotentialDef,
     Project, Record, ReportBlock, Representation, Revision, Section, StructureBox, StructureNode, Waiver,
@@ -63,6 +63,9 @@ pub struct Model {
     pub(crate) placements: Table<Placement>,
     pub(crate) revisions: Table<Revision>,
     pub(crate) waivers: Table<Waiver>,
+    /// The conflict records of a merge (WP-S1.17 D17), by ID: a record-level conflict shares its target's ID, so this
+    /// is the one table whose IDs repeat another table's.
+    pub(crate) conflicts: Table<Conflict>,
     pub(crate) lib: LibraryCopies,
     /// Records of unknown or reserved kinds, kept for the writer in the line order of doc 05 §3.3; they
     /// take part in nothing else.
@@ -109,6 +112,7 @@ impl Model {
             placements: Table::default(),
             revisions: Table::default(),
             waivers: Table::default(),
+            conflicts: Table::default(),
             lib: LibraryCopies::default(),
             unknown: Arc::new(Vec::new()),
             unknown_lib: Arc::new(Vec::new()),
@@ -140,38 +144,9 @@ impl Model {
         let mut unknown_lib = Vec::new();
         let rows = records
             .into_iter()
-            .filter_map(|r| match r {
-                Record::Project(p) => Some(AnyRow::Project(Arc::new(p))),
-                Record::PlcConfigProject(r) => Some(AnyRow::of(r)),
-                Record::LogicalNet(r) => Some(AnyRow::of(r)),
-                Record::PhysicalNet(r) => Some(AnyRow::of(r)),
-                Record::ImportLineage(r) => Some(AnyRow::of(r)),
-                Record::StructureNode(r) => Some(AnyRow::of(r)),
-                Record::Section(r) => Some(AnyRow::of(r)),
-                Record::ExternalRef(r) => Some(AnyRow::of(r)),
-                Record::Page(r) => Some(AnyRow::of(r)),
-                Record::Device(r) => Some(AnyRow::of(r)),
-                Record::Function(r) => Some(AnyRow::of(r)),
-                Record::Representation(r) => Some(AnyRow::of(r)),
-                Record::Connection(r) => Some(AnyRow::of(r)),
-                Record::Junction(r) => Some(AnyRow::of(r)),
-                Record::Conductor(r) => Some(AnyRow::of(r)),
-                Record::Channel(r) => Some(AnyRow::of(r)),
-                Record::PotentialDef(r) => Some(AnyRow::of(r)),
-                Record::Bond(r) => Some(AnyRow::of(r)),
-                Record::DeviceLink(r) => Some(AnyRow::of(r)),
-                Record::PageItem(r) => Some(AnyRow::of(r)),
-                Record::StructureBox(r) => Some(AnyRow::of(r)),
-                Record::ReportBlock(r) => Some(AnyRow::of(r)),
-                Record::MacroInstance(r) => Some(AnyRow::of(r)),
-                Record::LayoutSpace(r) => Some(AnyRow::of(r)),
-                Record::Enclosure(r) => Some(AnyRow::of(r)),
-                Record::MountingSurface(r) => Some(AnyRow::of(r)),
-                Record::Carrier(r) => Some(AnyRow::of(r)),
-                Record::Placement(r) => Some(AnyRow::of(r)),
-                Record::Revision(r) => Some(AnyRow::of(r)),
-                Record::Waiver(r) => Some(AnyRow::of(r)),
-                other => {
+            .filter_map(|r| match AnyRow::from_record(r) {
+                Ok(row) => Some(row),
+                Err(other) => {
                     unknown.push(other);
                     None
                 }
@@ -403,7 +378,8 @@ impl Model {
         /// Besides the link policies, the plan applies one ownership rule (doc 05 §2.2 row 32, EW-INV-013): an
         /// interruption-point function is owned by its representation, so removing its last representation
         /// removes the function as well, and with it the connections at its CPs (`connection.a`/`b` cascade)
-        /// and the definitions and bonds there (unlink, dropped).
+        /// and the definitions and bonds there (unlink, dropped). And a removed record's conflict record (the
+        /// conflict with its ID whose target is of its kind, WP-S1.17 D17) is removed with it.
         ///
         /// A referrer through a `forbid` link that the plan does not remove itself is
         /// [`ModelError::Referenced`]. The plan covers link policies only: other invariants (one main function
@@ -478,6 +454,19 @@ impl Model {
                     work.push(f);
                 }
             }
+            // A record's conflict goes with it (WP-S1.17 D17): it shares the record's ID, and its target's kind varies,
+            // so this is a rule of the plan, not a link.
+            let conflicts: Vec<AnyKey> = deleted
+                .iter()
+                .filter(|key| key.0 != Kind::Conflict)
+                .filter(|key| {
+                    self.conflicts
+                        .get(&key.1.cast())
+                        .is_some_and(|c| c.target_kind() == Some(key.0.name()))
+                })
+                .map(|key| (Kind::Conflict, key.1))
+                .collect();
+            deleted.extend(conflicts);
             if let Some((referrer, lid, target)) = blockers.iter().find(|(r, _, _)| !deleted.contains(r)) {
                 return Err(ModelError::Referenced {
                     link: LINKS[*lid].path(),
@@ -540,6 +529,47 @@ impl Model {
             }
         }
         out
+    }
+}
+
+impl AnyRow {
+    /// The row of a record of a kind with a table, or the project row; the record itself back for a record of a kind
+    /// without one ([`Record::Unknown`]), which a model keeps aside.
+    pub fn from_record(record: Record) -> Result<AnyRow, Record> {
+        Ok(match record {
+            Record::Project(p) => AnyRow::Project(Arc::new(p)),
+            Record::PlcConfigProject(r) => AnyRow::of(r),
+            Record::LogicalNet(r) => AnyRow::of(r),
+            Record::PhysicalNet(r) => AnyRow::of(r),
+            Record::ImportLineage(r) => AnyRow::of(r),
+            Record::StructureNode(r) => AnyRow::of(r),
+            Record::Section(r) => AnyRow::of(r),
+            Record::ExternalRef(r) => AnyRow::of(r),
+            Record::Page(r) => AnyRow::of(r),
+            Record::Device(r) => AnyRow::of(r),
+            Record::Function(r) => AnyRow::of(r),
+            Record::Representation(r) => AnyRow::of(r),
+            Record::Connection(r) => AnyRow::of(r),
+            Record::Junction(r) => AnyRow::of(r),
+            Record::Conductor(r) => AnyRow::of(r),
+            Record::Channel(r) => AnyRow::of(r),
+            Record::PotentialDef(r) => AnyRow::of(r),
+            Record::Bond(r) => AnyRow::of(r),
+            Record::DeviceLink(r) => AnyRow::of(r),
+            Record::PageItem(r) => AnyRow::of(r),
+            Record::StructureBox(r) => AnyRow::of(r),
+            Record::ReportBlock(r) => AnyRow::of(r),
+            Record::MacroInstance(r) => AnyRow::of(r),
+            Record::LayoutSpace(r) => AnyRow::of(r),
+            Record::Enclosure(r) => AnyRow::of(r),
+            Record::MountingSurface(r) => AnyRow::of(r),
+            Record::Carrier(r) => AnyRow::of(r),
+            Record::Placement(r) => AnyRow::of(r),
+            Record::Revision(r) => AnyRow::of(r),
+            Record::Waiver(r) => AnyRow::of(r),
+            Record::Conflict(r) => AnyRow::of(r),
+            other => return Err(other),
+        })
     }
 }
 

@@ -349,9 +349,9 @@
       "file": "file of its target",
       "kind": "conflict",
       "rank": 255,
-      "schema": null,
-      "status": "reserved",
-      "v": null
+      "schema": "conflict.schema.json",
+      "status": "implemented",
+      "v": 1
     },
     {
       "file": "lib/parts/<id>.json",

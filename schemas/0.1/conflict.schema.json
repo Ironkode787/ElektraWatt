@@ -1,0 +1,117 @@
+{
+  "$defs": {
+    "ConflictSide": {
+      "description": "The side whose lines a file-level conflict holds.",
+      "oneOf": [
+        {
+          "const": "ours",
+          "description": "Ours (`%A`).",
+          "type": "string"
+        },
+        {
+          "const": "theirs",
+          "description": "Theirs (`%B`).",
+          "type": "string"
+        }
+      ]
+    },
+    "Uuid": {
+      "description": "A lower-case hyphenated UUID (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": true,
+  "description": "One conflict record (doc 05 §11.2; WP-S1.17 D14, D17): rank 255, in the file of its target. A record-level conflict shares its target's ID and holds the conflicting members of each side; a file-level one (`kind` \"file\") holds the lines of the side that could not be merged.",
+  "oneOf": [
+    {
+      "required": [
+        "base",
+        "ours",
+        "theirs"
+      ]
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "file"
+        }
+      },
+      "required": [
+        "path",
+        "side",
+        "lines"
+      ]
+    }
+  ],
+  "properties": {
+    "$k": {
+      "const": "conflict",
+      "description": "The kind name; always the first member."
+    },
+    "$v": {
+      "description": "Per-kind schema version `$v`, omitted when 1.",
+      "format": "uint16",
+      "maximum": 65535,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "base": {
+      "description": "The conflicting members at the merge base, as a partial object; `{}` without a base.",
+      "type": "object"
+    },
+    "id": {
+      "$ref": "#/$defs/Uuid"
+    },
+    "kind": {
+      "description": "The target's `$k`, or \"file\" for a file-level conflict.",
+      "type": "string"
+    },
+    "lines": {
+      "description": "The lines of that side, verbatim.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "ours": {
+      "anyOf": [
+        {
+          "type": "object"
+        },
+        {
+          "const": "deleted"
+        }
+      ],
+      "description": "The conflicting members of this side as a partial object, or \"deleted\"."
+    },
+    "path": {
+      "description": "The project-relative path of the file, `/` separators.",
+      "type": "string"
+    },
+    "side": {
+      "$ref": "#/$defs/ConflictSide"
+    },
+    "theirs": {
+      "anyOf": [
+        {
+          "type": "object"
+        },
+        {
+          "const": "deleted"
+        }
+      ],
+      "description": "The conflicting members of this side as a partial object, or \"deleted\"."
+    }
+  },
+  "required": [
+    "$k",
+    "id",
+    "kind"
+  ],
+  "title": "conflict",
+  "type": "object"
+}

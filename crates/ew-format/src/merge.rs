@@ -33,10 +33,9 @@ use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet};
 
 use ew_schema::{
-    AnyId, Date, FORMAT, Kind, KindStatus, LibDocument, MERGE_STRATEGIES, MergeOrder, MergeStrategy, Record,
-    conflict_file_id,
+    ConflictBody, ConflictSide, Date, FORMAT, Kind, KindStatus, LibDocument, MERGE_STRATEGIES, MergeOrder,
+    MergeStrategy, Record, conflict_file_id,
 };
-use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::limits::Limits;
@@ -183,7 +182,7 @@ fn members(value: Option<&Value>) -> impl Iterator<Item = &String> {
 /// both sides it is kept; different, ours is kept with a conflict of every top-level member that differs; on one side
 /// only, it is kept with a conflict whose other side is `"deleted"`, since the other side may have deleted it. The
 /// base of such a conflict is empty.
-fn no_base(ours: Option<&Value>, theirs: Option<&Value>) -> RecordMerge {
+pub(crate) fn no_base(ours: Option<&Value>, theirs: Option<&Value>) -> RecordMerge {
     let (kept, other) = match (ours, theirs) {
         (None, None) => return RecordMerge::default(),
         (Some(a), Some(b)) if a == b => {
@@ -227,7 +226,8 @@ fn both_sides(base: Option<&Value>, a: &Value, b: &Value) -> RecordMerge {
         .get("$k")
         .and_then(Value::as_str)
         .and_then(Kind::from_name)
-        .filter(|k| k.status() == KindStatus::Implemented);
+        // A conflict record merges as a whole, as it did while its kind was reserved (decision log ID-1279).
+        .filter(|k| k.status() == KindStatus::Implemented && *k != Kind::Conflict);
     let mut conflicts = Vec::new();
     let merged = match (kind, a.as_object(), b.as_object()) {
         (Some(kind), Some(am), Some(bm)) => {
@@ -588,14 +588,18 @@ fn merge_set(
 /// `($k, id)` ([`merge_record`]), a library document as one record, `manifest.json` by doc 05 §11.3; a file of any
 /// other class keeps ours with one conflict when both sides changed it. `chain` migrates an older side ([`MIGRATIONS`]
 /// in production). The result is the merged file's bytes and the number of conflicts written; it never fails, and a
-/// side that cannot be merged is kept verbatim in a conflict record.
+/// side that cannot be merged is kept verbatim in a conflict record, but for the two cases below.
 ///
 /// **The one loss.** The result never holds a record line longer than `limits.max_line_bytes` or nested deeper than
 /// `limits.max_depth` (a library document: the document), which the loader would refuse (D14: "the file stays
 /// loadable"). A conflict record nests its partial objects one level below its target, `$conflict` holds theirs'
 /// document one level below ours', and a file-level record holds a side's lines in one line, so a merge can pass a
 /// limit that neither side passes. Then ours is returned as it is with 1 conflict, and theirs survives only in git's
-/// index (stage 3): D14's "nothing of either side is lost" and MD-2 give way for this one case (decision log ID-1273).
+/// index (stage 3): D14's "nothing of either side is lost" and MD-2 give way for this case (decision log ID-1273).
+///
+/// **The second case.** A library document that neither side reads while ours still parses (a newer `$v`, no `$k`, a
+/// failed step) is kept as ours is with 1 conflict: a file-level record after it would make it a syntax error, so
+/// theirs again survives only in git's stage 3 (decision log ID-1273, ID-1279).
 ///
 /// [`MIGRATIONS`]: crate::MIGRATIONS
 pub fn merge_file(
@@ -657,7 +661,7 @@ fn newer_record(value: &Value) -> bool {
 }
 
 /// The `($k, id)` key of a record value.
-fn record_key(value: &Value) -> Option<(String, String)> {
+pub(crate) fn record_key(value: &Value) -> Option<(String, String)> {
     let k = value.get("$k")?.as_str()?;
     let id = value.get("id")?.as_str()?.parse::<ew_schema::AnyId>().ok()?;
     Some((k.to_owned(), id.to_string()))
@@ -733,69 +737,48 @@ fn merged_line(merged: &Value, sides: [Option<&ReadRecord<'_>>; 2]) -> (LineKey,
     }
 }
 
-/// A record-level conflict's line (D14): its members in that order, `$k` and `id` first (doc 05 §3.1 rule 1).
-#[derive(Serialize)]
-struct RecordConflictLine<'a> {
-    #[serde(rename = "$k")]
-    k: &'a Value,
-    id: &'a Value,
-    kind: &'a Value,
-    base: &'a Value,
-    ours: &'a Value,
-    theirs: &'a Value,
-}
-
-/// The line of a record-level conflict record ([`conflict_record`]), its members in D14's order: the `Value` sorts them.
+/// The line of a record-level conflict record ([`conflict_record`]), written through `ew-schema`'s [`Conflict`] so that
+/// its members are in D14's order (the `Value` sorts them) and the reader reads what the writer writes (decision log
+/// ID-1279); its compact JSON if it is not one.
+///
+/// [`Conflict`]: ew_schema::Conflict
 fn conflict_line(conflict: &Value) -> (LineKey, String) {
-    let line = RecordConflictLine {
-        k: &conflict["$k"],
-        id: &conflict["id"],
-        kind: &conflict["kind"],
-        base: &conflict["base"],
-        ours: &conflict["ours"],
-        theirs: &conflict["theirs"],
-    };
-    let text = serde_json::to_string(&line).unwrap_or_else(|_| conflict.to_string());
+    let text = Record::from_value(conflict.clone())
+        .ok()
+        .filter(|record| matches!(record, Record::Conflict(_)))
+        .and_then(|record| record_line(&record).ok())
+        .unwrap_or_else(|| conflict.to_string());
     (LineKey::of_value(conflict), text)
 }
 
-/// The file-level conflict record's line (D14): its members in that order, `$k` and `id` first.
-#[derive(Serialize)]
-struct FileConflictLine<'a> {
-    #[serde(rename = "$k")]
-    k: &'a str,
-    id: String,
-    kind: &'a str,
-    path: &'a str,
-    side: &'a str,
-    lines: Vec<&'a str>,
-}
-
-/// The line of the file-level conflict record of `path` holding `side`'s lines verbatim (D14).
-fn file_conflict(path: &str, side: &str, bytes: &[u8]) -> (LineKey, String) {
+/// The line of the file-level conflict record of `path` holding `side`'s lines verbatim (D14), written through
+/// `ew-schema`'s [`Conflict`](ew_schema::Conflict).
+fn file_conflict(path: &str, side: ConflictSide, bytes: &[u8]) -> (LineKey, String) {
     let text = String::from_utf8_lossy(bytes);
     let body = text.strip_suffix('\n').unwrap_or(&text);
-    let lines: Vec<&str> = if bytes.is_empty() {
+    let lines: Vec<String> = if bytes.is_empty() {
         Vec::new()
     } else {
-        body.split('\n').collect()
+        body.split('\n').map(str::to_owned).collect()
     };
-    let id = conflict_file_id::<()>(path);
-    let line = FileConflictLine {
-        k: "conflict",
-        id: id.to_string(),
-        kind: "file",
-        path,
-        side,
-        lines,
-    };
-    let key = LineKey::new("conflict", Some(AnyId::from_uuid(id.into())));
+    let id = conflict_file_id::<ew_schema::Conflict>(path);
+    let record = Record::Conflict(ew_schema::Conflict {
+        id,
+        v: 1,
+        body: ConflictBody::File {
+            path: path.to_owned(),
+            side,
+            lines,
+        },
+        extra: Default::default(),
+    });
+    let key = LineKey::new("conflict", Some(id.cast()));
     // Strings and a list of strings always serialise.
-    (key, serde_json::to_string(&line).unwrap_or_default())
+    (key, serde_json::to_string(&record).unwrap_or_default())
 }
 
 /// Whether a line is within the loader's line limits (doc 05 §3.6): its length and its nesting.
-fn within_limits(line: &str, limits: &Limits) -> bool {
+pub(crate) fn within_limits(line: &str, limits: &Limits) -> bool {
     line.len() <= limits.max_line_bytes && !exceeds_depth(line.as_bytes(), limits.max_depth)
 }
 
@@ -824,7 +807,7 @@ fn with_failed(
 /// Neither side reads: ours as it is, theirs in the file-level conflict record appended to it, unless that record's
 /// line would pass a reader limit.
 fn hold_theirs(path: &str, ours: MergeSide<'_>, theirs: MergeSide<'_>, limits: &Limits) -> FileMerge {
-    let (_, held) = file_conflict(path, "theirs", theirs.bytes);
+    let (_, held) = file_conflict(path, ConflictSide::Theirs, theirs.bytes);
     if !within_limits(&held, limits) {
         return ours_as_it_is(ours);
     }
@@ -879,8 +862,8 @@ fn merge_records_file(
             }
             (lines, conflicts)
         }
-        (Some(a), None) => (with_failed(&a, file_conflict(path, "theirs", theirs.bytes)), 1),
-        (None, Some(b)) => (with_failed(&b, file_conflict(path, "ours", ours.bytes)), 1),
+        (Some(a), None) => (with_failed(&a, file_conflict(path, ConflictSide::Theirs, theirs.bytes)), 1),
+        (None, Some(b)) => (with_failed(&b, file_conflict(path, ConflictSide::Ours, ours.bytes)), 1),
         (None, None) => return hold_theirs(path, ours, theirs, limits),
     };
     if !lines.iter().all(|(_, line)| within_limits(line, limits)) {

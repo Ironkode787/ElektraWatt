@@ -20,6 +20,7 @@ use crate::{
     Placement, PlcConfigProject, PotentialDef, Project, ReportBlock, Representation, Revision, SchemaError,
     Section, StructureBox, StructureNode, Waiver,
 };
+use crate::conflict::Conflict;
 
 /// `$k` first, then the record's own members in declaration order.
 #[derive(Serialize)]
@@ -188,6 +189,8 @@ pub enum Record {
     Revision(Revision),
     /// `waiver` (61).
     Waiver(Waiver),
+    /// `conflict` (255).
+    Conflict(Conflict),
     /// A record of a kind this reader does not implement, with its `$k`, kept verbatim.
     Unknown(Value),
 }
@@ -229,6 +232,7 @@ impl Record {
             Record::Placement(_) => Kind::Placement,
             Record::Revision(_) => Kind::Revision,
             Record::Waiver(_) => Kind::Waiver,
+            Record::Conflict(_) => Kind::Conflict,
             Record::Unknown(_) => return None,
         })
     }
@@ -274,6 +278,7 @@ impl Record {
             Record::Placement(r) => r.id.as_uuid(),
             Record::Revision(r) => r.id.as_uuid(),
             Record::Waiver(r) => r.id.as_uuid(),
+            Record::Conflict(r) => r.id.as_uuid(),
             Record::Unknown(v) => {
                 return v
                     .get("id")
@@ -330,7 +335,8 @@ impl Record {
                 CarrierRef::Surface(s) => AnchorRef::SpaceOfSurface(*s),
                 CarrierRef::Unknown(_) => AnchorRef::Unknown,
             },
-            Record::Unknown(_) => AnchorRef::Unknown,
+            // The file of its target (or its `path`), which `ew-format` resolves.
+            Record::Conflict(_) | Record::Unknown(_) => AnchorRef::Unknown,
         }
     }
 
@@ -398,6 +404,7 @@ impl Serialize for Record {
             Record::Placement(r) => tagged(Kind::Placement, r, serializer),
             Record::Revision(r) => tagged(Kind::Revision, r, serializer),
             Record::Waiver(r) => tagged(Kind::Waiver, r, serializer),
+            Record::Conflict(r) => tagged(Kind::Conflict, r, serializer),
             Record::Unknown(v) => v.serialize(serializer),
         }
     }
@@ -491,6 +498,7 @@ impl Record {
             Kind::Placement => Record::Placement(typed(kind, map, |r: &Placement| r.v)?),
             Kind::Revision => Record::Revision(typed(kind, map, |r: &Revision| r.v)?),
             Kind::Waiver => Record::Waiver(typed(kind, map, |r: &Waiver| r.v)?),
+            Kind::Conflict => Record::Conflict(typed(kind, map, |r: &Conflict| r.v)?),
             k => return Err(SchemaError::UnknownKind(k.name().into())),
         })
     }

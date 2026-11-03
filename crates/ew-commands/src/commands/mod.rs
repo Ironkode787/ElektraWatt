@@ -41,6 +41,8 @@ pub(crate) mod library;
 mod library_update;
 // WP-S1.19 part 5
 mod macro_insert;
+// WP-S1.17 part 5
+mod merge;
 mod page;
 // WP-S2.07 part 4a
 mod part_edit;
@@ -80,6 +82,7 @@ pub use macro_insert::{
     InstantiateError, Instantiated, MACRO_FIELDS, MACRO_KINDS, binding_field_ok, coerce_value, instantiate,
     pick_variant,
 };
+pub use merge::{ConflictChoice, Take};
 pub use page::{LabelModeParam, PageScope};
 pub use part_edit::PART_EDITABLE;
 pub use parts::import_counts;
@@ -180,6 +183,8 @@ commands! {
     // WP-S1.16 part 5: waiver recording (D7, FT-494)
     checks::WaiveFinding,
     checks::UnwaiveFinding,
+    // WP-S1.17 part 5: conflict records (D19)
+    merge::ResolveConflicts,
     assets::PurgeAssets,
     exchange::ExchangeSymbol,
     drawing::SetDrawing,

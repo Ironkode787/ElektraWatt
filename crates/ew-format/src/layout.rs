@@ -5,11 +5,11 @@
 
 use std::collections::BTreeMap;
 
-use ew_schema::{AnchorRef, AnyId, CarrierRef, FileRule, Function, Kind, LibDocument, Record};
+use ew_schema::{AnchorRef, AnyId, CarrierRef, Conflict, ConflictBody, FileRule, Function, Kind, LibDocument, Record};
 use serde_json::Value;
 
 use crate::error::FormatError;
-use crate::path::FilePath;
+use crate::path::{FilePath, PathClass, classify};
 
 /// The facts about other records that an indirect anchor needs (doc 05 §2.2, anchor column). `ew-store`
 /// answers them from the model; [`RecordAnchors`] from a set of records.
@@ -28,6 +28,9 @@ pub trait Anchors {
     fn surface_enclosure(&self, s: AnyId) -> Option<AnyId>;
     /// The layout space of enclosure `e`, `None` when no enclosure `e` exists.
     fn enclosure_space(&self, e: AnyId) -> Option<AnyId>;
+    /// The file of the record `(kind, id)`, the target of a conflict record (WP-S1.17 D17); `None` when no such record
+    /// exists.
+    fn target_file(&self, kind: Kind, id: AnyId) -> Option<FilePath>;
 }
 
 /// The file of an interruption-point function: the page of its representation; without one (a broken
@@ -94,6 +97,7 @@ fn space_of_carrier(c: AnyId, anchors: &dyn Anchors) -> AnyId {
 /// | `revision` | `revisions.jsonl` |
 /// | `waiver` | `waivers.jsonl` |
 /// | `layout_space` | `layout/<own id>.jsonl` |
+/// | `conflict` | the file of its target; a file-level conflict the record file its `path` names |
 /// | `enclosure`, `mounting_surface`, `carrier`, `placement` | `layout/<space>.jsonl`, the space reached through carrier → surface → enclosure |
 ///
 /// The anchor of a connection-point endpoint is the shard of the function's device, or for a function
@@ -162,9 +166,26 @@ pub fn record_file(record: &Record, anchors: &dyn Anchors) -> Result<FilePath, F
             CarrierRef::Surface(s) => space_of_surface(s.cast(), anchors),
             CarrierRef::Unknown(_) => r.id.cast(),
         }),
+        Record::Conflict(c) => conflict_file(c, anchors),
         Record::Unknown(value) => unknown_record_file(value).ok_or_else(|| no_file(record))?,
     };
     Ok(file)
+}
+
+/// The file of a conflict record (doc 05 §2.2 `TargetFile`; WP-S1.17 D17): its target's, or for a file-level conflict
+/// the record file its `path` names. A conflict whose target cannot be found, or whose `path` names no record file,
+/// lives in the shard of its own ID, so that it is still written somewhere deterministic.
+fn conflict_file(conflict: &Conflict, anchors: &dyn Anchors) -> FilePath {
+    let own: AnyId = conflict.id.cast();
+    let file = match &conflict.body {
+        ConflictBody::File { path, .. } => FilePath::new(path.clone())
+            .ok()
+            .filter(|p| matches!(classify(p.as_str()), PathClass::Records(_))),
+        ConflictBody::Record { kind, .. } => Kind::from_name(kind)
+            .filter(|k| *k != Kind::Conflict)
+            .and_then(|k| anchors.target_file(k, own)),
+    };
+    file.unwrap_or_else(|| FilePath::shard(own))
 }
 
 fn no_file(record: &Record) -> FormatError {
@@ -230,13 +251,31 @@ pub struct RecordAnchors {
     carrier_surface: BTreeMap<AnyId, AnyId>,
     surface_enclosure: BTreeMap<AnyId, AnyId>,
     enclosure_space: BTreeMap<AnyId, AnyId>,
+    /// The targets of the conflict records among the records, by kind and ID.
+    targets: BTreeMap<(Kind, AnyId), Record>,
 }
 
 impl RecordAnchors {
     /// The anchors of `records`.
     pub fn new<'a>(records: impl IntoIterator<Item = &'a Record>) -> RecordAnchors {
         let mut a = RecordAnchors::default();
+        let records: Vec<&Record> = records.into_iter().collect();
+        let targets: std::collections::BTreeSet<(Kind, AnyId)> = records
+            .iter()
+            .filter_map(|r| match r {
+                Record::Conflict(c) => Some((Kind::from_name(c.target_kind()?)?, c.id.cast())),
+                _ => None,
+            })
+            .collect();
         for record in records {
+            if !targets.is_empty() {
+                if let (Some(kind), Some(id)) = (record.kind(), record.id()) {
+                    let key = (kind, AnyId::from_uuid(id));
+                    if targets.contains(&key) {
+                        a.targets.entry(key).or_insert_with(|| record.clone());
+                    }
+                }
+            }
             match record {
                 Record::Function(Function { id, device, .. }) => {
                     a.function_device.insert(id.cast(), device.map(|d| d.cast()));
@@ -292,5 +331,9 @@ impl Anchors for RecordAnchors {
 
     fn enclosure_space(&self, e: AnyId) -> Option<AnyId> {
         self.enclosure_space.get(&e).copied()
+    }
+
+    fn target_file(&self, kind: Kind, id: AnyId) -> Option<FilePath> {
+        record_file(self.targets.get(&(kind, id))?, self).ok()
     }
 }

@@ -85,6 +85,7 @@ command-box-structure = Structuurkader tekenen
 command-cable-create = Kabel maken
 command-check-unwaive = Vrijstelling opheffen
 command-check-waive = Bevinding vrijstellen
+command-merge-resolve = Samenvoegconflicten oplossen
 command-conductor-add = Ader toevoegen
 command-connection-delete = Draad verwijderen
 command-connection-draw = Draad tekenen

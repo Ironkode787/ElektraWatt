@@ -10,7 +10,7 @@ use std::sync::Arc;
 
 use ew_ids::Id;
 use ew_schema::{
-    AnyId, Bond, Carrier, Channel, Conductor, Connection, Device, DeviceLink, Enclosure, ExternalRef, FnDef,
+    AnyId, Bond, Carrier, Channel, Conductor, Conflict, Connection, Device, DeviceLink, Enclosure, ExternalRef, FnDef,
     FormDef, Function, ImportLineage, Junction, Kind, LayoutSpace, LibCopy, LogicalNet, MacroDef,
     MacroInstance, Manufacturer, MountingSurface, Page, PageItem, Part, PhysicalNet, Placement,
     PlcConfigProject, PotentialDef, Project, ReportBlock, Representation, Revision, Section, StructureBox,
@@ -283,6 +283,7 @@ entities! {
     Placement: Placement, Placement, placements;
     Revision: Revision, Revision, revisions;
     Waiver: Waiver, Waiver, waivers;
+    Conflict: Conflict, Conflict, conflicts;
     Part: LibCopy<Part>, Part, lib.parts;
     Symbol: LibCopy<SymbolDef>, SymbolDef, lib.symbols;
     Fndef: LibCopy<FnDef>, FnDef, lib.fndefs;

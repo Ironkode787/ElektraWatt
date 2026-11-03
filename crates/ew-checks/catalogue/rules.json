@@ -125,6 +125,45 @@
       "waivable": false
     },
     {
+      "code": "100011",
+      "id": "EW-CORE-011",
+      "kind": "integrity",
+      "modes": [
+        "release"
+      ],
+      "open_item": null,
+      "pack": "EW-CORE",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": false,
+          "release": true
+        }
+      ],
+      "scope": "project",
+      "severity": "error",
+      "supersedes": [],
+      "title": "Conflict records present",
+      "waivable": false
+    },
+    {
       "code": "101021",
       "id": "EW-CORE-021",
       "kind": "conflict",

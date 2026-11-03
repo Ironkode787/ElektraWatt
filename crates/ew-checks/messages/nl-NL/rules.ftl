@@ -5,6 +5,10 @@
 # 1.0 the message test lists the missing ones as warnings. Shipped first for the rules that report on Golden A
 # (doc 20 §18.1); the other texts follow (the de-scope order of WP-S1.16 §13.1).
 
+rule-ew-core-011 =
+    .title = Conflictrecords aanwezig
+    .hint = Kies voor elk conflict onze of hun versie met ew merge resolve, of verwijder het record dat conflicteert.
+
 rule-ew-core-033 = { $cable } heeft geen gerouteerde, handmatige of artikellengte
     .title = Kabel zonder lengte
     .hint = Voer een handmatige lengte in, routeer de kabel in de layout of wijs een artikel met een vaste lengte toe.
