@@ -69,6 +69,8 @@ messages.fix Command "Apply quick fix…" menu none shortcut none context naviga
 messages.waive Command "Waive finding…" menu none shortcut none context navigator hidden params "key?:text, reason?:text, author?:text, date?:text"
 messages.unwaive Command "Unwaive finding" menu none shortcut none context navigator hidden params "key?:text"
 view.ui_scale View "UI scale" menu "View ▸ UI scale" shortcut none context global needs-parameters params "scale:json"
+view.min_font View "Minimum text size" menu "View ▸ Minimum text size" shortcut none context global needs-parameters params "pt:uint"
+view.reduce_motion View "Reduce motion" menu "View" shortcut none context global params "on?:bool"
 view.theme View "Theme" menu "View ▸ Theme" shortcut none context global needs-parameters params "value:text"
 view.density View "Density" menu "View ▸ Density" shortcut none context global needs-parameters params "value:enum(comfortable|compact)"
 view.language View "Language" menu "View ▸ Language" shortcut none context global needs-parameters params "value:text"
