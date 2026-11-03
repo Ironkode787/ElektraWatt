@@ -41,10 +41,10 @@ impl ProcessProbe for Alive {
 }
 
 fn project_v0(mut value: Value) -> Result<Value, MigrationError> {
-    if let Some(members) = value.as_object_mut() {
-        if let Some(profile) = members.remove("profile") {
-            members.insert("derivation_profile".to_owned(), profile);
-        }
+    if let Some(members) = value.as_object_mut()
+        && let Some(profile) = members.remove("profile")
+    {
+        members.insert("derivation_profile".to_owned(), profile);
     }
     Ok(value)
 }

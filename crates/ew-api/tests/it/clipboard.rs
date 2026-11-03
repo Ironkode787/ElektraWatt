@@ -1293,10 +1293,10 @@ fn copy_fragment_reports_incomplete_page_items() {
 
 /// `value` with its top-level member `from` named `to`.
 fn renamed(mut value: Value, from: &str, to: &str) -> Value {
-    if let Some(members) = value.as_object_mut() {
-        if let Some(v) = members.remove(from) {
-            members.insert(to.to_owned(), v);
-        }
+    if let Some(members) = value.as_object_mut()
+        && let Some(v) = members.remove(from)
+    {
+        members.insert(to.to_owned(), v);
     }
     value
 }
