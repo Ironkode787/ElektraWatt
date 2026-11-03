@@ -600,7 +600,11 @@ say so, and accept the lane's deviations.
 
 *As built (cycle 48, FM48; decision log ID-1254):* `Session::is_dirty` holds for an unsaved migration only with
 `Access::Edit`; the steward check stays gated on `FORMAT` being unreleased (D12); the refusal of a migrated duplicate
-names the document as `<kind>:<id>` (`fndef:<id>`), as the existing duplicate finding does.
+names the document as `<kind>:<id>` (`fndef:<id>`), as the existing duplicate finding does. *As built (cycle 48,
+FIX48c; decision log ID-1261):* the recompute is one public function, `ew_format::rehash_migrated_copy`, which the
+loader and a pasted fragment (`ew-api`'s clipboard) both call; `Session::open_ewz_with` takes `StoreOptions`, so
+`ew upgrade --check` on an `.ewz` keeps an injected chain; the duplicate refusal holds whether a step made the
+duplicate or found it, and names the next step (remove one of the two files and open the project again).
 
 ## 9. Part 4: the three-way merge core and `ew merge-driver`
 
