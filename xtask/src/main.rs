@@ -200,7 +200,7 @@ commands:
                        arguments)
   ci                   fmt, clippy, nextest (the default run whole; then, for the all-features set, an all-features
                        run), doctests and the repository checks above (except check-dco, check-trailers and
-                       records), with a summary
+                       records), the checks on a second thread beside the cargo steps, with a summary
   help                 this text
 ";
 
@@ -814,6 +814,38 @@ fn ci_cargo_steps(all_features: &BTreeSet<String>) -> Vec<(&'static str, Vec<Str
     steps
 }
 
+/// Runs `checks` one after the other on a second thread while `beside` runs on this one, and gives what `beside`
+/// returned and each check's outcome (`true`: it passed), in the order of `checks`. A check that fails to run or
+/// panics counts as failed, with its error on stderr.
+fn run_checks_beside<T>(checks: &[Check], beside: impl FnOnce() -> T) -> (T, Vec<(&'static str, bool)>) {
+    std::thread::scope(|scope| {
+        let thread = scope.spawn(|| {
+            checks
+                .iter()
+                .map(|&(name, check)| {
+                    println!("==> {name}");
+                    let ran = std::panic::catch_unwind(|| run_check(name, check));
+                    let passed = match ran {
+                        Ok(Ok(passed)) => passed,
+                        Ok(Err(err)) => {
+                            eprintln!("{name}: error: {err:#}");
+                            false
+                        }
+                        Err(_) => {
+                            eprintln!("{name}: panicked");
+                            false
+                        }
+                    };
+                    (name, passed)
+                })
+                .collect::<Vec<_>>()
+        });
+        let result = beside();
+        let outcomes = thread.join().expect("the checks' thread catches their panics");
+        (result, outcomes)
+    })
+}
+
 /// Runs the local mirror of the per-PR CI set and prints a summary. Every step runs, even after a failure,
 /// so one invocation shows everything that needs fixing.
 fn ci() -> Result<bool> {
@@ -836,38 +868,34 @@ fn ci() -> Result<bool> {
         ("api-guard", check_api_guard),
     ];
 
-    let mut summary: Vec<(&str, bool)> = Vec::new();
-    for (name, args) in cargo_steps {
-        println!("==> cargo {}", args.join(" "));
-        let mut command = Command::new(cargo());
-        command.args(&args).current_dir(workspace_root());
-        let passed = if args[0] == "clippy" {
-            let (status, stderr) = run_echoing_stderr(&mut command)
-                .with_context(|| format!("running `cargo {}`", args.join(" ")))?;
-            let unresolved = unresolved_clippy_paths(&stderr);
-            for line in &unresolved {
-                eprintln!("{name}: unresolvable disallowed path (ADR-0001 amendment 2): {line}");
-            }
-            status.success() && unresolved.is_empty()
-        } else {
-            command
-                .status()
-                .with_context(|| format!("starting `cargo {}`", args.join(" ")))?
-                .success()
-        };
-        summary.push((name, passed));
-    }
-    for (name, check) in checks {
-        println!("==> {name}");
-        let passed = match run_check(name, check) {
-            Ok(passed) => passed,
-            Err(err) => {
-                eprintln!("{name}: error: {err:#}");
-                false
-            }
-        };
-        summary.push((name, passed));
-    }
+    // FT-1133 (ID-1217): the policy checks only read files, git, `cargo metadata` and `cargo tree`, none of which builds
+    // or takes the build lock, so they run on a second thread beside the cargo steps.
+    let (cargo_summary, check_summary) = run_checks_beside(&checks, || -> Result<Vec<(&str, bool)>> {
+        let mut summary = Vec::new();
+        for (name, args) in cargo_steps {
+            println!("==> cargo {}", args.join(" "));
+            let mut command = Command::new(cargo());
+            command.args(&args).current_dir(workspace_root());
+            let passed = if args[0] == "clippy" {
+                let (status, stderr) = run_echoing_stderr(&mut command)
+                    .with_context(|| format!("running `cargo {}`", args.join(" ")))?;
+                let unresolved = unresolved_clippy_paths(&stderr);
+                for line in &unresolved {
+                    eprintln!("{name}: unresolvable disallowed path (ADR-0001 amendment 2): {line}");
+                }
+                status.success() && unresolved.is_empty()
+            } else {
+                command
+                    .status()
+                    .with_context(|| format!("starting `cargo {}`", args.join(" ")))?
+                    .success()
+            };
+            summary.push((name, passed));
+        }
+        Ok(summary)
+    });
+    let mut summary = cargo_summary?;
+    summary.extend(check_summary);
 
     println!("\nsummary:");
     for (name, passed) in &summary {
@@ -1019,6 +1047,60 @@ mod tests {
         assert!(
             doc_set[0].contains("--all-features") && !doc_set[0].contains("--workspace"),
             "{doc_set:?}"
+        );
+    }
+
+    static CHECK_RAN: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+    fn check_that_passes() -> anyhow::Result<Vec<String>> {
+        CHECK_RAN.store(true, std::sync::atomic::Ordering::SeqCst);
+        Ok(Vec::new())
+    }
+
+    fn check_that_finds() -> anyhow::Result<Vec<String>> {
+        Ok(vec!["a violation".to_owned()])
+    }
+
+    fn check_that_errs() -> anyhow::Result<Vec<String>> {
+        anyhow::bail!("could not read a file")
+    }
+
+    fn check_that_panics() -> anyhow::Result<Vec<String>> {
+        panic!("a check's bug")
+    }
+
+    /// FT-1133: `ci()` runs its policy checks on a second thread beside its cargo steps, in order, and a check that
+    /// finds a violation, fails to run or panics is reported failed without stopping the others. The cargo side is a
+    /// closure that waits (a bounded number of polls) for the first check to have run: it would not see that if the
+    /// checks ran only after it.
+    #[test]
+    fn the_policy_checks_run_beside_the_cargo_steps() {
+        let checks: [super::Check; 5] = [
+            ("passes", check_that_passes),
+            ("finds", check_that_finds),
+            ("errs", check_that_errs),
+            ("panics", check_that_panics),
+            ("passes-again", check_that_passes),
+        ];
+        let (saw_a_check, outcomes) = super::run_checks_beside(&checks, || {
+            for _ in 0..1000 {
+                if CHECK_RAN.load(std::sync::atomic::Ordering::SeqCst) {
+                    return true;
+                }
+                std::thread::sleep(std::time::Duration::from_millis(10));
+            }
+            false
+        });
+        assert!(saw_a_check, "a check ran while the cargo side was still running");
+        assert_eq!(
+            outcomes,
+            [
+                ("passes", true),
+                ("finds", false),
+                ("errs", false),
+                ("panics", false),
+                ("passes-again", true)
+            ]
         );
     }
 

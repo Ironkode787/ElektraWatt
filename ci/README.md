@@ -196,7 +196,7 @@ check the free disk first.
 fuzzer in it; then, for the packages of `cargo xtask all-features-set`, an all-features nextest run and doctest run, as
 in the jobs: FT-1132, ID-1217) and the twelve repository checks (`check-deps`,
 `check-features`, `check-raw-read`, `check-ordered-collections`, `check-disallowed-methods`, `check-build-scripts`, `check-vet-imports`, `check-workflows`, `check-licence-map`,
-`check-anonymisation`, `check-governance-files`, `docs-gen --check`) in sequence and prints a summary: the local
+`check-anonymisation`, `check-governance-files`, `docs-gen --check`) one after the other on a second thread, beside the cargo steps (they only read files, git, `cargo metadata` and `cargo tree`: FT-1133, ID-1217), and prints a summary: the local
 mirror of the Rust part of the PR set. `check-dco` needs a revision range and is run on its own. `docs-gen --check`
 compares only the committed `docs/book/src/SUMMARY.md`: the book's reference pages are built, not committed, so to
 build the book run `cargo xtask docs-gen`, then `mdbook build docs/book`.
