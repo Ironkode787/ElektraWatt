@@ -346,7 +346,7 @@ fn compile(name: &str) -> (boon::Schemas, boon::SchemaIndex) {
 
 /// CL-2: the output is one JSON object whose first member is `$schema`, naming `name`, a file of the index; it
 /// validates against that file, deserialises into `T` with `deny_unknown_fields` and re-serialises byte-equal.
-fn assert_result<T: Serialize + DeserializeOwned>(out: &str, name: &str) -> T {
+pub(super) fn assert_result<T: Serialize + DeserializeOwned>(out: &str, name: &str) -> T {
     assert!(
         out.starts_with(&format!("{{\n  \"$schema\": \"{name}\"")),
         "the first member names {name}: {out}"

@@ -466,3 +466,123 @@ fn only_the_external_change_apply_reaches_external_apply() {
     }
     assert!(Exposure::Internal.allows(&Origin::External));
 }
+
+/// The open findings of `rule` of a release check of the session.
+fn findings(s: &Session, rule: &str) -> Vec<ew_api::checks::Finding> {
+    s.check(&ew_api::checks::PRE_DELIVERY, ew_api::checks::CheckMode::Release)
+        .findings
+        .into_iter()
+        .filter(|f| f.rule == rule)
+        .collect()
+}
+
+/// DG-5 (FR-CHK-012's acceptance; D29, decision log ID-1284 rulings 5 and 6): two branches each added a device on
+/// folio 102 that numbers as -102F3. Without merge evidence only EW-RDS-004 reports; in a merged copy (`merged: true`)
+/// EW-CORE-013 reports the group with the older UUIDv7 as keeper and the fix "Renumber the newer", which gives the
+/// other the next free counter, -102F4, in one undo step.
+#[test]
+fn dg5_ew_core_013_renumbers_the_newer_after_a_merge() {
+    let vfs = project();
+    let c = clock();
+    let mut s = open(&vfs, &c, 1);
+    let page = s.page_tables("102").expect("folio 102").page.to_string();
+    let key = "ew.iec.coil@qet10";
+    if let Some(embed) = s.starter_embed(key) {
+        s.execute(&AnyCommand {
+            name: "library.embed".into(),
+            params: embed,
+        })
+        .expect("the symbol embeds");
+    }
+    let symbol = s.starter_symbol_copy(key).expect("a starter symbol").to_string();
+    let mut devices = Vec::new();
+    // Grid points (60, 20) and (60, 40) of the QET grid (7 937 500 / 3 nm, rounded to the nm).
+    for y in [(20 * 7_937_500 + 1) / 3, (40 * 7_937_500 + 1) / 3] {
+        let receipt = s
+            .execute(&AnyCommand {
+                name: "device.place".into(),
+                params: json!({"page": page, "symbol": symbol, "pos": [158_750_000_i64, y],
+                    "target": {"new_device": {"letter": "F"}}}),
+            })
+            .expect("the device is placed");
+        let device = receipt
+            .created
+            .iter()
+            .find(|k| k.0 == ew_schema::Kind::Device)
+            .expect("a new device")
+            .1;
+        devices.push(device.to_string());
+    }
+    let (older, newer) = (devices[0].clone(), devices[1].clone());
+    assert!(older < newer, "minted in time order");
+    s.save().expect("saves");
+    s.close();
+
+    // The other branch numbered its device -102F3 too: its device line with counter 3, as a merge leaves it, and the
+    // manifest's hash of that file; `merged` as `merged` says.
+    let shard = format!("devices/{}.jsonl", &newer[newer.len() - 2..]);
+    let shard_path = ew_store::join(&root(), &shard);
+    let text = String::from_utf8(vfs.read(&shard_path).unwrap()).unwrap();
+    let line = text.lines().find(|l| l.contains(&newer)).expect("the newer device's line").to_owned();
+    let three = line.replace("\"counter\":4", "\"counter\":3");
+    assert_ne!(three, line);
+    let bytes = text.replace(&line, &three).into_bytes();
+    vfs.put(&shard_path, &bytes);
+    let manifest_path = ew_store::join(&root(), "manifest.json");
+    let mut manifest: Value = serde_json::from_slice(&vfs.read(&manifest_path).unwrap()).unwrap();
+    manifest["files"][&shard] = json!(ew_store::ew_format::hash_text(&ew_store::ew_format::sha256(&bytes)));
+    let mut merged = |m: bool| {
+        manifest["merged"] = json!(m);
+        vfs.put(&manifest_path, serde_json::to_string_pretty(&manifest).unwrap().as_bytes());
+    };
+    merged(false);
+    let s = open(&vfs, &c, 1);
+    assert!(!s.merge_evidence());
+    let rds = findings(&s, "EW-RDS-004");
+    assert_eq!(rds.len(), 1);
+    assert_eq!(rds[0].message, "`=P01+J-E-2416-102F3` is printed by 2 devices");
+    assert!(findings(&s, "EW-CORE-013").is_empty(), "no merge evidence");
+    s.close();
+
+    // The merged copy: the driver's manifest says so.
+    merged(true);
+    let mut s = open(&vfs, &c, 1);
+    assert!(s.merge_evidence());
+    let collisions = findings(&s, "EW-CORE-013");
+    assert_eq!(collisions.len(), 1);
+    let f = &collisions[0];
+    assert_eq!(
+        f.message,
+        "`=P01+J-E-2416-102F3` is printed by 2 devices after a merge; the oldest record keeps it, and the other must \
+         change"
+    );
+    let fix = f.fix.clone().expect("renumber the newer");
+    assert_eq!(fix.label, "Renumber the newer");
+    assert_eq!(
+        (fix.command.as_str(), fix.params.clone()),
+        (
+            "numbering.renumber",
+            json!({"scope": {"selection": [newer]}, "options": {"only_nonconforming": true, "close_gaps": false}})
+        )
+    );
+    assert_eq!(findings(&s, "EW-RDS-004")[0].fix, Some(fix.clone()), "the same fix on EW-RDS-004");
+    let entries = s.history().entries().len();
+    let preview = s
+        .preview(&AnyCommand {
+            name: fix.command,
+            params: fix.params,
+        })
+        .expect("the fix previews");
+    s.commit(preview).expect("the fix commits");
+    assert_eq!(s.history().entries().len(), entries + 1, "one undo step");
+    let tags: Vec<String> = [older.as_str(), newer.as_str()]
+        .iter()
+        .map(|d| {
+            let id: ew_schema::AnyId = d.parse().expect("an ID");
+            let tag = s.query().get::<ew_derive::DeviceTag>(id.cast());
+            tag.as_ref().as_ref().expect("a tag").full.clone()
+        })
+        .collect();
+    assert_eq!(tags, ["=P01+J-E-2416-102F3", "=P01+J-E-2416-102F4"]);
+    assert!(findings(&s, "EW-CORE-013").is_empty());
+}
