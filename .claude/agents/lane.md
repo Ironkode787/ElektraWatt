@@ -84,8 +84,9 @@ commands:
 6. `policy`: the policy checks the diff touches (dependencies, new files, `.rs` files, tests), and `api-guard --base
    <base>` when `bin/ew/api/cli.json` or `crates/ew-sqlview/api/api_v1.json` changed (a breaking change is a stop).
    An exemption for `cargo deny` or `cargo vet` needs a ruling: stop.
-7. `trailers`: each `--trailers` item must sit under its key in a commit since the merge base; a missing one is
-   named. Skipped without the option.
+7. `trailers`: a record line (`Decision:`, `FT-Opens:`, `Golden:`, ...) of a commit since the merge base that stands
+   outside git's trailer block fails, with or without the option; with `--trailers`, each item must also sit under
+   its key in one of those commits, and a missing one is named.
 8. `fuzz`: the fuzz workspace's `cargo check`, when `command_fuzz`, `fuzz/` or a fuzzed crate's `Cargo.toml` changed.
 
 A failed step's log is printed whole and kept in `target/lane-check/<step>.log`. At the start of a lane,
