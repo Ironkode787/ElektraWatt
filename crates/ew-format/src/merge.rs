@@ -12,8 +12,9 @@
 //! - **One member** merges as one value (`atomic`: the side that changed it wins, both changed it differently is a
 //!   conflict that keeps ours) unless `ew-schema`'s [`MERGE_STRATEGIES`] names its path and the member exists at the
 //!   base: `object` (member by member, each atomic unless listed), `keyed` (a map by the key member, each element
-//!   atomic), `set` and `max`. A member above a listed path merges as an `object`. A record of a kind this reader does
-//!   not implement merges as a whole.
+//!   atomic), `set` and `max`; a strategy settles a member that both sides changed, the side that changed it alone
+//!   winning as for an atomic one. A member above a listed path merges as an `object`. A record of a kind this reader
+//!   does not implement merges as a whole.
 //! - **Conflict records** (D14): one per target, `{"$k":"conflict","id":<target id>,"kind":<target $k>,"base":…,
 //!   "ours":…,"theirs":…}`, holding only the conflicting members as partial objects, `"deleted"` for a deleted side.
 //!   A conflict inside a keyed list holds the whole list: ours as merged, theirs as merged with theirs' elements.
@@ -313,27 +314,19 @@ fn merge_value(
     b: Option<&Value>,
     out: &mut Vec<Conflict>,
 ) -> Option<Value> {
-    if a == b {
+    if a == b || b == o {
         return a.cloned();
-    }
-    // A strategy applies where the member exists at the base (D13).
-    let strategy = o.and_then(|_| strategy_at(kind, path));
-    if strategy == Some(MergeStrategy::Max) {
-        if let Some(merged) = merge_max(a, b) {
-            return merged;
-        }
     }
     if a == o {
         return b.cloned();
     }
-    if b == o {
-        return a.cloned();
-    }
-    let merged = match strategy {
+    // Both sides changed it: a strategy applies where the member exists at the base (D13).
+    let merged = match o.and_then(|_| strategy_at(kind, path)) {
         Some(MergeStrategy::Object) => merge_object(kind, path, o, a, b, out),
         Some(MergeStrategy::Keyed { key, order }) => merge_keyed(path, key, order, o, a, b, out),
         Some(MergeStrategy::Set { order }) => merge_set(order, o, a, b),
-        Some(MergeStrategy::Max) | None => None,
+        Some(MergeStrategy::Max) => merge_max(a, b),
+        None => None,
     };
     if let Some(merged) = merged {
         return merged;

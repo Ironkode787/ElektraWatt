@@ -530,7 +530,7 @@ pub struct MergeRule {
 
 // map: merge-strategies: a new merge strategy goes in MERGE_STRATEGIES as a MergeRule (kind, member path, strategy).
 /// The merge strategies of WP-S1.17 D13 (decision log ID-1268): every other member merges atomically, and a record of
-/// an unknown kind as a whole. A row applies where the member exists at the base.
+/// an unknown kind as a whole. A row applies where the member exists at the base and both sides changed it.
 pub const MERGE_STRATEGIES: &[MergeRule] = &[
     MergeRule {
         kind: Kind::Connection,

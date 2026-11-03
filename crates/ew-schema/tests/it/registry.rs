@@ -10,8 +10,8 @@ use std::collections::BTreeSet;
 
 use common::fill;
 use ew_schema::{
-    AnchorRef, FORMAT, FileRule, KIND_SINCE, Kind, KindRegistry, KindStatus, MEMBER_SINCE,
-    PERSONAL_DATA_FIELDS, RELEASED_FORMATS, Record, SCHEMA_VERSIONS, VARIANT_SINCE, kind_schema,
+    AnchorRef, FORMAT, FileRule, KIND_SINCE, Kind, KindRegistry, KindStatus, MEMBER_SINCE, MERGE_STRATEGIES,
+    MergeStrategy, PERSONAL_DATA_FIELDS, RELEASED_FORMATS, Record, SCHEMA_VERSIONS, VARIANT_SINCE, kind_schema,
 };
 use serde_json::Value;
 
@@ -255,6 +255,22 @@ fn every_personal_data_path_exists() {
         &kind_schema(Kind::Project).unwrap(),
         "parties[].nickname"
     ));
+}
+
+#[test]
+fn every_merge_strategy_names_a_member_of_its_kind_once() {
+    // WP-S1.17 D13 (decision log ID-1268): each row's path, and a keyed row's key in the list's elements, exists in the
+    // kind's schema; a (kind, path) has one row.
+    let mut seen = BTreeSet::new();
+    for row in MERGE_STRATEGIES {
+        let schema = kind_schema(row.kind).unwrap_or_else(|| panic!("{}: not implemented", row.kind));
+        assert!(schema_has_path(&schema, row.path), "{}: {} does not exist", row.kind, row.path);
+        if let MergeStrategy::Keyed { key, .. } = row.strategy {
+            let element = format!("{}[].{key}", row.path);
+            assert!(schema_has_path(&schema, &element), "{}: {element} does not exist", row.kind);
+        }
+        assert!(seen.insert((row.kind, row.path)), "{}: {} has two rows", row.kind, row.path);
+    }
 }
 
 /// A `major.minor` format as numbers (doc 05 §10.1: no leading zeros, no third part).
