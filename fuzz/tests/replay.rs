@@ -174,7 +174,11 @@ fn the_merge_file_seeds_reach_the_reload_and_the_conflict() {
         conflicts: 1,
         reloaded: false,
     };
-    for (name, outcome) in [("manifest", clean), ("w20-clean", clean), ("w20-conflict", conflict)] {
+    for (name, outcome) in [
+        ("manifest", clean),
+        ("w20-clean", clean),
+        ("w20-conflict", conflict),
+    ] {
         assert_eq!(check(&inputs_named(&seeds, name)), outcome, "{name}");
     }
     let input = encode(10, b"o", b"aa", b"bbb");

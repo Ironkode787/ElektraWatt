@@ -67,7 +67,10 @@ fn drive(a: &MergeDriverArgs, worktree: &Path, limits: &Limits, merge: Merge<'_>
     };
     // A side above the file limit cannot be held by a conflict record that loads: the file stays ours, conflicted.
     // An oversized base merges as no base, as one that does not read (its bytes are past the limit, so unread).
-    if [&ours, &theirs].iter().any(|b| b.len() as u64 > limits.max_file_bytes) {
+    if [&ours, &theirs]
+        .iter()
+        .any(|b| b.len() as u64 > limits.max_file_bytes)
+    {
         eprintln!(
             "ew merge-driver: {} is larger than {} MiB on one side; it is left as ours, to merge by hand",
             a.path,
@@ -213,10 +216,8 @@ mod tests {
         let (dir, args) = setup("0.0");
         let seen = std::cell::RefCell::new(Vec::new());
         let code = drive(&args, &dir, &Limits::default(), &|path, o, a, b| {
-            seen.borrow_mut().push(format!(
-                "{path} {} {} {}",
-                o.format, a.format, b.format
-            ));
+            seen.borrow_mut()
+                .push(format!("{path} {} {} {}", o.format, a.format, b.format));
             FileMerge {
                 bytes: b"merged\n".to_vec(),
                 conflicts: 2,

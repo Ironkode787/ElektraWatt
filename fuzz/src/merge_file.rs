@@ -109,8 +109,7 @@ pub fn check(input: &[u8]) -> Outcome {
         &Limits::default(),
         &MIGRATIONS,
     );
-    let reloaded =
-        merged.conflicts == 0 && reloads(case.path, case.ours) && reloads(case.path, case.theirs);
+    let reloaded = merged.conflicts == 0 && reloads(case.path, case.ours) && reloads(case.path, case.theirs);
     if reloaded {
         assert!(
             reloads(case.path, &merged.bytes),

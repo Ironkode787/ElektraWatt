@@ -26,7 +26,11 @@ impl Tree {
     }
 
     /// Writes the three sides as git's temporary files and runs `ew merge-driver` with `args_for`'s arguments.
-    fn merge(&self, sides: [&str; 3], args_for: impl Fn(&Path, &Path, &Path) -> Vec<String>) -> (Output, String) {
+    fn merge(
+        &self,
+        sides: [&str; 3],
+        args_for: impl Fn(&Path, &Path, &Path) -> Vec<String>,
+    ) -> (Output, String) {
         let [o, a, b] = ["o", "a", "b"].map(|n| self.0.join(format!(".merge_file_{n}")));
         for (path, text) in [(&o, sides[0]), (&a, sides[1]), (&b, sides[2])] {
             std::fs::write(path, text).unwrap();

@@ -249,10 +249,10 @@ pub use ew_schema::{
 };
 /// The read-only SQL projection (`ew sql`, the acceptance SQL, ADR-0017): views, sandbox, results.
 pub use ew_sqlview as sql;
-pub use ew_store::ew_format::{FormatStep, MigrationError, Migrations};
 /// The three-way merge of one project file that `ew merge-driver` runs (WP-S1.17 D15), with the reader's limits, the
 /// shipped migration chain and the manifest reader that gives ours its format.
 pub use ew_store::ew_format::{FileMerge, Limits, MIGRATIONS, Manifest, MergeSide, merge_file};
+pub use ew_store::ew_format::{FormatStep, MigrationError, Migrations};
 /// The summary of a crashed session's journal ([`OpenReport::recovery`]) and why a replay was refused
 /// ([`Session::recovery_refusal`]): the CLI's `ew recover` and the shell name them through `ew-api`.
 pub use ew_store::journal::{Collision, RecoveryInfo, ReplayError};
