@@ -424,8 +424,9 @@ pub fn paint(ui: &Ui, clip: Rect, chips: &[CanvasChip]) {
 }
 
 /// The frame of the link preview popup (WP-S2.03 §7.8): a popover (doc 16a §6.13's surface: `elevation.1`, a 1-px
-/// `color.border.default` outline) around `rect` and the target's folio as a canvas chip above it.
-pub fn paint_popup_frame(ui: &Ui, clip: Rect, rect: Rect, folio: &str) {
+/// `color.border.default` outline) around `rect` and the target's folio as a canvas chip above it, with `go` (how to go
+/// there, FT-1123) on a line under the folio.
+pub fn paint_popup_frame(ui: &Ui, clip: Rect, rect: Rect, folio: &str, go: &str) {
     let t = crate::theme::current(ui.ctx());
     let painter = ui.painter_at(clip);
     painter.add(crate::theme::shadow(&t.elevation_1).as_shape(rect, crate::theme::SQUARE));
@@ -441,13 +442,24 @@ pub fn paint_popup_frame(ui: &Ui, clip: Rect, rect: Rect, folio: &str) {
         crate::theme::font(&t.type_small),
         t.canvas_chip_text.color32(),
     );
+    let go = painter.layout_no_wrap(
+        go.to_owned(),
+        crate::theme::font(&t.type_small),
+        t.canvas_chip_text.color32(),
+    );
     let pad = Vec2::new(t.space_2, t.space_1);
+    let size = Vec2::new(
+        galley.size().x.max(go.size().x),
+        galley.size().y + t.space_1 + go.size().y,
+    );
     let frame = Rect::from_min_size(
-        rect.left_top() - Vec2::new(0.0, t.space_2 + galley.size().y + 2.0 * pad.y),
-        galley.size() + 2.0 * pad,
+        rect.left_top() - Vec2::new(0.0, t.space_2 + size.y + 2.0 * pad.y),
+        size + 2.0 * pad,
     );
     painter.rect_filled(frame, crate::theme::radius(t.radius_sm), t.canvas_chip.color32());
+    let go_at = frame.min + pad + Vec2::new(0.0, galley.size().y + t.space_1);
     painter.galley(frame.min + pad, galley, t.canvas_chip_text.color32());
+    painter.galley(go_at, go, t.canvas_chip_text.color32());
 }
 
 #[cfg(test)]

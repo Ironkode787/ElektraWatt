@@ -1060,7 +1060,15 @@ impl ShellModel {
                 if let Some(at) = target.at_nm {
                     view.jump_view(at, zoom);
                 }
-                self.tools.link_preview = Some(LinkPreview { target, canvas: view });
+                let go = strings::format(
+                    key!("link-preview-go"),
+                    &[&crate::command_bar::key_name(self, "nav.follow")],
+                );
+                self.tools.link_preview = Some(LinkPreview {
+                    target,
+                    canvas: view,
+                    go,
+                });
             }
         }
         self.send_tool(&CanvasEvent::Dwell { ms })

@@ -505,6 +505,8 @@ preview-chip-stale = Preview of { $p0 } (stale)
 preview-chip-failed = Preview of { $p0 } failed: { $p1 }
 preview-chip-change = { $p0 } → { $p1 }
 link-preview-title = { $p0 }
+# FT-1123 (ID-1225): the line under the link preview's title, with the key of `nav.follow`.
+link-preview-go = Click the link or press { $p0 } to go there
 
 # WP-S2.17 part 5 (FT-390): the link preview's accessible node.
 link-preview-node = Link preview: page { $p0 }, cell { $p1 }

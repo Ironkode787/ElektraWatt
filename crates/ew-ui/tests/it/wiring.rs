@@ -373,6 +373,7 @@ fn c_shows_why_it_does_not_connect_while_moving() {
 /// FT-902: the pointer over a cross-reference label of folio 101 that leads to another page shows the pointing hand and
 /// the tooltip "Go to <its target's cell or folio>"; over empty sheet the cursor is the default one. FT-1091 (ID-1184):
 /// the tooltip waits while the link preview shows (the rest opens the preview first) and shows once it is dismissed.
+/// FT-1123 (ID-1225): the preview says, under its title, how to go there.
 #[test]
 fn ft902_a_page_link_shows_the_pointing_hand_and_its_target_in_a_tooltip() {
     use egui_kittest::kittest::{NodeT as _, Queryable as _};
@@ -423,6 +424,22 @@ fn ft902_a_page_link_shows_the_pointing_hand_and_its_target_in_a_tooltip() {
         std::thread::sleep(std::time::Duration::from_millis(10));
     }
     assert!(preview, "the rest over the link shows its preview");
+    // FT-1123 (ID-1225): the popup says how to go there, on a line under its title, with `nav.follow`'s key.
+    let go = "Click the link or press F to go there";
+    assert_eq!(h.state().shell().link_preview().unwrap().go, go);
+    h.step();
+    fn walk(shape: &egui::Shape, texts: &mut Vec<String>) {
+        match shape {
+            egui::Shape::Vec(v) => v.iter().for_each(|s| walk(s, texts)),
+            egui::Shape::Text(t) => texts.push(t.galley.text().to_owned()),
+            _ => {}
+        }
+    }
+    let mut texts = Vec::new();
+    for c in &h.output().shapes {
+        walk(&c.shape, &mut texts);
+    }
+    assert!(texts.iter().any(|t| t == go), "the popup's line in {texts:?}");
     for _ in 0..30 {
         h.hover_at(at);
         h.step();

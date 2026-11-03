@@ -377,7 +377,10 @@ fn ft1115_a_click_in_a_gap_of_the_tool_options_band_reaches_the_sheet() {
         .find(|n| n.accesskit_node().value().as_deref() == Some("Interruption point name"))
         .expect("the IP name's label")
         .rect();
-    assert!(label.right() < field.left(), "a gap between {label:?} and {field:?}");
+    assert!(
+        label.right() < field.left(),
+        "a gap between {label:?} and {field:?}"
+    );
     let click = |h: &mut Harness<'_, App>, at: egui::Pos2| {
         h.event(egui::Event::PointerMoved(at));
         settle(h);

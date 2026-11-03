@@ -85,6 +85,8 @@ pub struct LinkPreview {
     pub target: LinkTarget,
     /// The target page's view in the preview's pane (its content read through the page-content cache).
     pub canvas: CanvasModel,
+    /// The line under the popup's title that says how to go there, with `nav.follow`'s key (FT-1123, ID-1225).
+    pub go: String,
 }
 
 /// The state of the tool host.

@@ -1824,7 +1824,7 @@ impl CanvasHost {
             tool: &[],
             open_cps: OpenCps::default(),
         });
-        crate::canvas_chips::paint_popup_frame(ui, rect, popup, &lp.target.folio);
+        crate::canvas_chips::paint_popup_frame(ui, rect, popup, &lp.target.folio, &lp.go);
         // FT-390: a named, non-focusable image region for the popup, so that a screen reader can tell that it is open
         // and where it leads (a 1-point node at its corner, away from the pointer, which stands 16 points off).
         let node = response.id.with("link-preview");
