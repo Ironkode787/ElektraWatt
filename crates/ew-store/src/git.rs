@@ -214,7 +214,11 @@ fn lexical(path: &Path) -> PathBuf {
 ///
 /// An I/O error other than an absent entry.
 pub fn busy(vfs: &dyn Vfs, dir: &Path) -> io::Result<bool> {
-    any_of(vfs, dir, &["index.lock", "MERGE_HEAD", "rebase-merge", "rebase-apply"])
+    any_of(
+        vfs,
+        dir,
+        &["index.lock", "MERGE_HEAD", "rebase-merge", "rebase-apply"],
+    )
 }
 
 /// Whether a merge or a rebase is in progress in the worktree `dir` lies in (`MERGE_HEAD`, `rebase-merge/`,
@@ -388,7 +392,8 @@ impl GitExe {
             Err(e) => return Err(e),
         };
         let text = String::from_utf8_lossy(&out).trim().to_owned();
-        let hex = (4..=64).contains(&text.len()) && text.bytes().all(|b| matches!(b, b'0'..=b'9' | b'a'..=b'f'));
+        let hex =
+            (4..=64).contains(&text.len()) && text.bytes().all(|b| matches!(b, b'0'..=b'9' | b'a'..=b'f'));
         Ok(hex.then_some(text))
     }
 
@@ -506,7 +511,10 @@ impl GitExe {
         match status.code() {
             Some(0) => Ok(true),
             Some(1) => Ok(false),
-            code => Err(GitError::Failed { step: "config --get", code }),
+            code => Err(GitError::Failed {
+                step: "config --get",
+                code,
+            }),
         }
     }
 
@@ -554,11 +562,7 @@ impl GitExe {
         let stdin = child.stdin.take();
         let stdout = child.stdout.take().map(io::BufReader::new);
         match (stdin, stdout) {
-            (Some(stdin), Some(stdout)) => Ok(CatFile {
-                child,
-                stdin,
-                stdout,
-            }),
+            (Some(stdin), Some(stdout)) => Ok(CatFile { child, stdin, stdout }),
             _ => {
                 let _ = child.kill();
                 let _ = child.wait();
@@ -591,7 +595,10 @@ impl CatFile {
     pub fn get(&mut self, name: &str, max: u64) -> io::Result<Option<Vec<u8>>> {
         use std::io::{BufRead, Read, Write};
         if name.contains(['\n', '\r']) {
-            return Err(io::Error::new(io::ErrorKind::InvalidInput, "a git object name with a line end"));
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "a git object name with a line end",
+            ));
         }
         self.stdin.write_all(name.as_bytes())?;
         self.stdin.write_all(b"\n")?;
@@ -601,7 +608,10 @@ impl CatFile {
             .take(CAT_FILE_HEADER_MAX as u64)
             .read_until(b'\n', &mut header)?;
         if header.last() != Some(&b'\n') {
-            return Err(io::Error::new(io::ErrorKind::InvalidData, "git cat-file: a header without its end"));
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "git cat-file: a header without its end",
+            ));
         }
         let header = String::from_utf8_lossy(&header[..header.len() - 1]).into_owned();
         if header.ends_with(" missing") || header.ends_with(" ambiguous") {
@@ -609,7 +619,10 @@ impl CatFile {
         }
         let mut words = header.rsplitn(3, ' ');
         let (Some(size), Some(kind)) = (words.next(), words.next()) else {
-            return Err(io::Error::new(io::ErrorKind::InvalidData, "git cat-file: a malformed header"));
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "git cat-file: a malformed header",
+            ));
         };
         let size: u64 = size
             .parse()
@@ -653,7 +666,13 @@ pub const ATTRIBUTES: &[&str] = &[
 
 /// The lines of the managed `.gitignore` block (doc 05 §11.1): the session state, the lock, its stale records, the
 /// request folder and every temporary file of a save.
-pub const IGNORES: &[&str] = &[".ew/", ".~ew.lock", ".~ew.lock.stale-*", ".~ew.requests/", "*.tmp-*"];
+pub const IGNORES: &[&str] = &[
+    ".ew/",
+    ".~ew.lock",
+    ".~ew.lock.stale-*",
+    ".~ew.requests/",
+    "*.tmp-*",
+];
 
 /// `text` with its managed block (between [`BLOCK_BEGIN`] and [`BLOCK_END`]) holding `lines`: the block replaced in
 /// place, or added at the end; every line outside it kept as it was.
@@ -670,7 +689,12 @@ pub fn with_block(text: &str, lines: &[&str]) -> String {
     let all: Vec<&str> = text.split_inclusive('\n').collect();
     let trimmed = |l: &str| l.trim_end_matches(['\n', '\r']).trim().to_owned();
     let begin = all.iter().position(|l| trimmed(l) == BLOCK_BEGIN);
-    let end = begin.and_then(|b| all[b..].iter().position(|l| trimmed(l) == BLOCK_END).map(|e| b + e));
+    let end = begin.and_then(|b| {
+        all[b..]
+            .iter()
+            .position(|l| trimmed(l) == BLOCK_END)
+            .map(|e| b + e)
+    });
     match (begin, end) {
         (Some(b), Some(e)) => {
             let mut out: String = all[..b].concat();
@@ -813,7 +837,9 @@ impl std::error::Error for HookError {}
 ///
 /// [`HookError`].
 pub fn install_hook(vfs: &dyn Vfs, dir: &Path, text: &str) -> Result<Hook, HookError> {
-    let git = git_dir(vfs, dir).map_err(HookError::Io)?.ok_or(HookError::NotAWorktree)?;
+    let git = git_dir(vfs, dir)
+        .map_err(HookError::Io)?
+        .ok_or(HookError::NotAWorktree)?;
     let common = match vfs.read(&git.join("commondir")) {
         Ok(b) => lexical(&git.join(String::from_utf8_lossy(&b).trim())),
         Err(_) => git,
@@ -928,10 +954,16 @@ mod tests {
         vfs.put_dir(Path::new("/r/.git"));
         vfs.put(Path::new("/r/p.ew/.gitignore"), b"notes.txt\n");
         let dir = Path::new("/r/p.ew");
-        assert_eq!(write_blocks(&vfs, dir).unwrap(), vec![".gitattributes", ".gitignore"]);
+        assert_eq!(
+            write_blocks(&vfs, dir).unwrap(),
+            vec![".gitattributes", ".gitignore"]
+        );
         assert_eq!(write_blocks(&vfs, dir).unwrap(), Vec::<&str>::new());
         let ignore = String::from_utf8(vfs.read(&dir.join(".gitignore")).unwrap()).unwrap();
-        assert!(ignore.starts_with("notes.txt\n# >>> ElektraWatt (managed) >>>\n.ew/\n"), "{ignore}");
+        assert!(
+            ignore.starts_with("notes.txt\n# >>> ElektraWatt (managed) >>>\n.ew/\n"),
+            "{ignore}"
+        );
         let text = hook_text(Path::new("C:\\ew\\ew.exe"), &["p.ew".to_owned()]);
         assert_eq!(
             text,
@@ -939,8 +971,14 @@ mod tests {
              check --integrity --after-merge 'p.ew' || status=1\nexit $status\n"
         );
         let hook = PathBuf::from("/r/.git/hooks/post-merge");
-        assert_eq!(install_hook(&vfs, dir, &text).unwrap(), Hook::Installed(hook.clone()));
-        assert_eq!(install_hook(&vfs, dir, &text).unwrap(), Hook::Unchanged(hook.clone()));
+        assert_eq!(
+            install_hook(&vfs, dir, &text).unwrap(),
+            Hook::Installed(hook.clone())
+        );
+        assert_eq!(
+            install_hook(&vfs, dir, &text).unwrap(),
+            Hook::Unchanged(hook.clone())
+        );
         vfs.put(&hook, b"#!/bin/sh\necho mine\n");
         assert!(matches!(install_hook(&vfs, dir, &text), Err(HookError::Foreign(p)) if p == hook));
         assert_eq!(vfs.read(&hook).unwrap(), b"#!/bin/sh\necho mine\n");

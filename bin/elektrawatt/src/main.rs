@@ -262,6 +262,18 @@ impl RfdPlatform {
                     .add_filter("CSV", &["csv"]),
                 DialogKind::File,
             ),
+            // WP-S1.17 part 7 (D24): File ▸ Export .ewz… and Open .ewz….
+            Prompt::SaveEwz => (
+                base.set_title(strings::text(key!("prompt-export-ewz-title")))
+                    .set_file_name(strings::text(key!("prompt-ewz-name")))
+                    .add_filter("EWZ", &["ewz"]),
+                DialogKind::Save,
+            ),
+            Prompt::OpenEwz => (
+                base.set_title(strings::text(key!("prompt-open-ewz-title")))
+                    .add_filter("EWZ", &["ewz"]),
+                DialogKind::File,
+            ),
         }
     }
 

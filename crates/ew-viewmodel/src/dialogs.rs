@@ -262,6 +262,82 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
                 )
             }
         }
+        // WP-S1.17 part 7 (D24): Apply (the choices, Enter), All mine, All theirs, Decide later (Escape); the list of
+        // fields with base, mine and theirs is the dialog's.
+        Dialog::ExternalChange { rows } => DialogSpec {
+            secondary: vec![
+                DialogButton::new(
+                    key!("external-all-mine"),
+                    DialogAnswer::Action("external.apply", json!({ "take": "mine" })),
+                ),
+                DialogButton::new(
+                    key!("external-all-theirs"),
+                    DialogAnswer::Action("external.apply", json!({ "take": "theirs" })),
+                ),
+                DialogButton::new(key!("external-later"), DialogAnswer::Dismiss),
+            ],
+            asks: true,
+            form: true,
+            ..small(
+                strings::text(key!("external-title")).to_owned(),
+                vec![strings::format_count(
+                    crate::count_key!("external-text"),
+                    rows.len(),
+                )],
+                DialogButton::new(
+                    key!("external-apply"),
+                    DialogAnswer::Action("external.apply", Value::Null),
+                ),
+            )
+        },
+        // D11: Upgrade and save (Enter) or Cancel.
+        Dialog::ConfirmUpgrade { from } => DialogSpec {
+            secondary: vec![cancel()],
+            asks: true,
+            ..small(
+                strings::text(key!("upgrade-title")).to_owned(),
+                vec![
+                    strings::format(key!("upgrade-text"), &[from, ew_api::FORMAT]),
+                    strings::text(key!("upgrade-backup")).to_owned(),
+                ],
+                DialogButton::new(
+                    key!("upgrade-button"),
+                    DialogAnswer::Action("file.upgrade", Value::Null),
+                ),
+            )
+        },
+        // D24: Extract and open (Enter), Open read-only, Cancel.
+        Dialog::OpenEwz { path, name } => DialogSpec {
+            secondary: vec![
+                DialogButton::new(
+                    key!("ewz-read-only"),
+                    DialogAnswer::Action("file.open_ewz", json!({ "path": path, "how": "read_only" })),
+                ),
+                cancel(),
+            ],
+            asks: true,
+            ..small(
+                strings::text(key!("ewz-title")).to_owned(),
+                vec![strings::format(key!("ewz-text"), &[name])],
+                DialogButton::new(
+                    key!("ewz-extract"),
+                    DialogAnswer::Action("file.open_ewz", json!({ "path": path, "how": "extract" })),
+                ),
+            )
+        },
+        // D28: Set up (Enter) or Cancel.
+        Dialog::ConfirmGitSetup => DialogSpec {
+            secondary: vec![cancel()],
+            asks: true,
+            ..small(
+                strings::text(key!("git-setup-title")).to_owned(),
+                vec![strings::text(key!("git-setup-text")).to_owned()],
+                DialogButton::new(
+                    key!("git-setup-button"),
+                    DialogAnswer::Action("git.setup", json!({ "confirm": true })),
+                ),
+            )
+        },
         // WP-S3.07 part 3 (ruling 4 of ID-1180): Print… the Primary (Enter), Open in PDF viewer and Cancel; both print
         // buttons disabled, with the reason, until the set is built.
         Dialog::Print(_) => {

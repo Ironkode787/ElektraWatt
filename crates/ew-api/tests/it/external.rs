@@ -53,7 +53,11 @@ fn golden() -> BTreeMap<String, Vec<u8>> {
             if path.is_dir() {
                 walk(&path, base, out);
             } else {
-                let rel = path.strip_prefix(base).expect("below").to_string_lossy().replace('\\', "/");
+                let rel = path
+                    .strip_prefix(base)
+                    .expect("below")
+                    .to_string_lossy()
+                    .replace('\\', "/");
                 out.insert(rel, std::fs::read(&path).expect("a golden file"));
             }
         }
@@ -96,8 +100,13 @@ fn clock() -> Arc<ManualClock> {
 }
 
 fn open(vfs: &Arc<MemVfs>, clock: &Arc<ManualClock>, pid: u32) -> Session {
-    let (s, _) = Session::open(&root(), options(vfs, clock, pid), SessionOptions::default(), Recovery::Keep)
-        .expect("the copy opens");
+    let (s, _) = Session::open(
+        &root(),
+        options(vfs, clock, pid),
+        SessionOptions::default(),
+        Recovery::Keep,
+    )
+    .expect("the copy opens");
     s
 }
 
@@ -126,7 +135,12 @@ fn w20() -> String {
     let line = files
         .iter()
         .filter(|(p, _)| p.starts_with("pages/"))
-        .flat_map(|(_, b)| String::from_utf8_lossy(b).lines().map(str::to_owned).collect::<Vec<_>>())
+        .flat_map(|(_, b)| {
+            String::from_utf8_lossy(b)
+                .lines()
+                .map(str::to_owned)
+                .collect::<Vec<_>>()
+        })
         .find(|l| l.contains("connections|W20"))
         .expect("W20's line");
     let v: Value = serde_json::from_str(&line).expect("a record");
@@ -211,8 +225,15 @@ fn xc1_a_colleague_s_save_is_applied_as_one_undoable_step() {
     let before = lines(&s);
     let wire = wire_on(&s, "106", 0);
     let entries = s.history().entries().len();
-    let written = colleague(&vfs, |o| drop(o.execute(&colour(&wire, json!(["RD"]))).expect("the edit")), true);
-    let page_file = written.first().expect("the colleague wrote the page file").clone();
+    let written = colleague(
+        &vfs,
+        |o| drop(o.execute(&colour(&wire, json!(["RD"]))).expect("the edit")),
+        true,
+    );
+    let page_file = written
+        .first()
+        .expect("the colleague wrote the page file")
+        .clone();
     let original = golden()[&page_file].clone();
 
     assert_eq!(s.poll_disk(), DiskPoll::Settling, "a change waits for quiescence");
@@ -235,10 +256,18 @@ fn xc1_a_colleague_s_save_is_applied_as_one_undoable_step() {
     assert!(s.is_dirty());
     let report = s.save().expect("the save after the undo passes D5");
     assert_eq!(
-        report.written.iter().map(|p| p.as_str().to_owned()).collect::<Vec<_>>(),
+        report
+            .written
+            .iter()
+            .map(|p| p.as_str().to_owned())
+            .collect::<Vec<_>>(),
         vec![page_file.clone()]
     );
-    assert_eq!(vfs.files(&root())[&page_file], original, "the earlier state is written");
+    assert_eq!(
+        vfs.files(&root())[&page_file],
+        original,
+        "the earlier state is written"
+    );
 }
 
 /// XC-2: a local unsaved edit on folio 101 stays through the external change on 106, the project stays dirty, and the
@@ -251,13 +280,26 @@ fn xc2_a_local_edit_survives_and_saves_alone() {
     let mine = wire_on(&s, "101", 0);
     let theirs = wire_on(&s, "106", 0);
     s.execute(&colour(&mine, json!(["BU"]))).expect("the local edit");
-    let written = colleague(&vfs, |o| drop(o.execute(&colour(&theirs, json!(["RD"]))).expect("the edit")), true);
+    let written = colleague(
+        &vfs,
+        |o| drop(o.execute(&colour(&theirs, json!(["RD"]))).expect("the edit")),
+        true,
+    );
     applied(settle(&mut s, &c));
     assert_eq!(overrides(&s, &mine)["colour"], json!(["BU"]), "the edit is kept");
-    assert_eq!(overrides(&s, &theirs)["colour"], json!(["RD"]), "the change is applied");
+    assert_eq!(
+        overrides(&s, &theirs)["colour"],
+        json!(["RD"]),
+        "the change is applied"
+    );
     assert!(s.is_dirty(), "the local edit is unsaved");
     let report = s.save().expect("the save passes D5");
-    assert_eq!(report.written.len(), 1, "only the edit's page file: {:?}", report.written);
+    assert_eq!(
+        report.written.len(),
+        1,
+        "only the edit's page file: {:?}",
+        report.written
+    );
     assert!(!written.contains(&report.written[0].as_str().to_owned()));
     let reopened = {
         drop(s);
@@ -274,7 +316,11 @@ fn collided() -> (Arc<MemVfs>, Arc<ManualClock>, Session, String) {
     let mut s = open(&vfs, &c, 1);
     let w = w20();
     s.execute(&colour(&w, json!(["BU"]))).expect("the local edit");
-    colleague(&vfs, |o| drop(o.execute(&colour(&w, json!(["WH"]))).expect("the edit")), true);
+    colleague(
+        &vfs,
+        |o| drop(o.execute(&colour(&w, json!(["WH"]))).expect("the edit")),
+        true,
+    );
     assert_eq!(settle(&mut s, &c), DiskPoll::Collisions);
     (vfs, c, s, w)
 }
@@ -290,7 +336,11 @@ fn xc3_a_collision_is_held_until_mine_or_theirs_is_chosen() {
     assert_eq!(collisions[0].key.1.to_string(), w);
     assert_eq!(collisions[0].path, "overrides.colour");
     assert_eq!(
-        (collisions[0].base.clone(), collisions[0].mine.clone(), collisions[0].theirs.clone()),
+        (
+            collisions[0].base.clone(),
+            collisions[0].mine.clone(),
+            collisions[0].theirs.clone()
+        ),
         (None, Some(json!(["BU"])), Some(json!(["WH"])))
     );
     let disk = vfs.files(&root());
@@ -303,7 +353,10 @@ fn xc3_a_collision_is_held_until_mine_or_theirs_is_chosen() {
     );
     assert_eq!(vfs.files(&root()), disk, "nothing written");
     let entries = s.history().entries().len();
-    assert!(matches!(s.apply_external(&[]), Err(ew_api::ExternalError::Choices(_))));
+    assert!(matches!(
+        s.apply_external(&[]),
+        Err(ew_api::ExternalError::Choices(_))
+    ));
     s.apply_external(&[Take::Theirs]).expect("theirs applies");
     assert_eq!(overrides(&s, &w)["colour"], json!(["WH"]));
     assert_eq!(s.history().entries().len(), entries + 1, "one step");
@@ -314,7 +367,11 @@ fn xc3_a_collision_is_held_until_mine_or_theirs_is_chosen() {
     let entries = s.history().entries().len();
     s.apply_external(&[Take::Mine]).expect("mine applies");
     assert_eq!(overrides(&s, &w)["colour"], json!(["BU"]));
-    assert_eq!(s.history().entries().len(), entries, "mine changes nothing in the model: no step");
+    assert_eq!(
+        s.history().entries().len(),
+        entries,
+        "mine changes nothing in the model: no step"
+    );
     assert!(s.is_dirty(), "mine is not on disk");
     let report = s.save().expect("the save passes D5 over the adopted generation");
     assert_eq!(report.written.len(), 1);
@@ -330,19 +387,28 @@ fn xc4_a_git_operation_defers_detection_and_an_own_save_is_no_change() {
     let own = wire_on(&s, "101", 0);
     s.execute(&colour(&own, json!(["BU"]))).expect("the local edit");
     s.save().expect("the own save");
-    assert_eq!(s.poll_disk(), DiskPoll::Unchanged, "the own save is no external change");
+    assert_eq!(
+        s.poll_disk(),
+        DiskPoll::Unchanged,
+        "the own save is no external change"
+    );
     c.advance(QUIESCENCE);
     assert_eq!(s.poll_disk(), DiskPoll::Unchanged);
 
     vfs.put_dir(Path::new("/r/.git"));
     vfs.put(Path::new("/r/.git/index.lock"), b"");
     let theirs = wire_on(&s, "106", 0);
-    colleague(&vfs, |o| drop(o.execute(&colour(&theirs, json!(["RD"]))).expect("the edit")), true);
+    colleague(
+        &vfs,
+        |o| drop(o.execute(&colour(&theirs, json!(["RD"]))).expect("the edit")),
+        true,
+    );
     for _ in 0..3 {
         assert_eq!(s.poll_disk(), DiskPoll::GitBusy);
         c.advance(QUIESCENCE);
     }
-    vfs.remove_file(Path::new("/r/.git/index.lock")).expect("the lock goes");
+    vfs.remove_file(Path::new("/r/.git/index.lock"))
+        .expect("the lock goes");
     assert!(matches!(settle(&mut s, &c), DiskPoll::Applied(_)));
     assert_eq!(overrides(&s, &theirs)["colour"], json!(["RD"]));
 }
@@ -357,13 +423,21 @@ fn xc5_an_unreadable_generation_holds_saves_until_it_reads() {
     let mine = wire_on(&s, "101", 0);
     let theirs = wire_on(&s, "106", 0);
     s.execute(&colour(&mine, json!(["BU"]))).expect("the local edit");
-    let written = colleague(&vfs, |o| drop(o.execute(&colour(&theirs, json!(["RD"]))).expect("the edit")), true);
+    let written = colleague(
+        &vfs,
+        |o| drop(o.execute(&colour(&theirs, json!(["RD"]))).expect("the edit")),
+        true,
+    );
     let file = ew_store::join(&root(), &written[0]);
     let late = vfs.read(&file).expect("the copied file");
     vfs.remove_file(&file).expect("the file is not there yet");
     assert_eq!(settle(&mut s, &c), DiskPoll::Unreadable { retrying: false });
     assert!(s.external_unreadable());
-    assert_eq!(overrides(&s, &mine)["colour"], json!(["BU"]), "the edits are kept");
+    assert_eq!(
+        overrides(&s, &mine)["colour"],
+        json!(["BU"]),
+        "the edits are kept"
+    );
     assert_eq!(overrides(&s, &theirs).get("colour"), None, "nothing applied");
     let disk = vfs.files(&root());
     let refused = s.save().expect_err("saves are held");
@@ -391,7 +465,11 @@ fn xc6_a_crash_after_an_apply_recovers_the_live_model() {
     let mine = wire_on(&s, "101", 0);
     let theirs = wire_on(&s, "106", 0);
     s.execute(&colour(&mine, json!(["BU"]))).expect("the local edit");
-    colleague(&vfs, |o| drop(o.execute(&colour(&theirs, json!(["RD"]))).expect("the edit")), true);
+    colleague(
+        &vfs,
+        |o| drop(o.execute(&colour(&theirs, json!(["RD"]))).expect("the edit")),
+        true,
+    );
     let a = applied(settle(&mut s, &c));
     s.execute(&colour(&mine, json!(["GN"]))).expect("a later edit");
     let live = lines(&s);
@@ -401,13 +479,24 @@ fn xc6_a_crash_after_an_apply_recovers_the_live_model() {
         .filter(|n| n.ends_with(".jsonl"))
         .collect();
     assert_eq!(segments.len(), 1, "the old segment is gone: {segments:?}");
-    assert!(segments[0].ends_with(&format!("-{}.jsonl", a.generation)), "{segments:?}");
+    assert!(
+        segments[0].ends_with(&format!("-{}.jsonl", a.generation)),
+        "{segments:?}"
+    );
     drop(s); // the crash: no save and no clean close; the lock goes, the journal stays.
-    let (r, report) = Session::open(&root(), options(&vfs, &c, 4), SessionOptions::default(), Recovery::Apply)
-        .expect("the project reopens");
+    let (r, report) = Session::open(
+        &root(),
+        options(&vfs, &c, 4),
+        SessionOptions::default(),
+        Recovery::Apply,
+    )
+    .expect("the project reopens");
     let info = report.recovery.expect("the journal is offered");
     assert!(info.base_matches, "its base is the generation on disk");
-    assert_eq!(info.labels, vec!["external.rebase".to_owned(), "fields.set".to_owned()]);
+    assert_eq!(
+        info.labels,
+        vec!["external.rebase".to_owned(), "fields.set".to_owned()]
+    );
     assert_eq!(lines(&r), live, "the recovery equals the live model");
 }
 
@@ -417,12 +506,19 @@ fn xc7_a_read_only_follower_reloads_and_writes_nothing() {
     let vfs = project();
     let c = clock();
     let mut holder = open(&vfs, &c, 1);
-    let (mut follower, report) =
-        Session::open(&root(), options(&vfs, &c, 1), SessionOptions::default(), Recovery::Keep).expect("opens");
+    let (mut follower, report) = Session::open(
+        &root(),
+        options(&vfs, &c, 1),
+        SessionOptions::default(),
+        Recovery::Keep,
+    )
+    .expect("opens");
     assert!(matches!(report.access, ew_api::Access::ReadOnly(_)));
     let wire = wire_on(&holder, "106", 0);
     for (n, value) in [json!(["RD"]), json!(["GN"])].into_iter().enumerate() {
-        holder.execute(&colour(&wire, value.clone())).expect("the holder's edit");
+        holder
+            .execute(&colour(&wire, value.clone()))
+            .expect("the holder's edit");
         holder.save().expect("the holder saves");
         let disk = vfs.files(&root());
         let state = vfs.files(Path::new("/state"));
@@ -441,16 +537,27 @@ fn only_the_external_change_apply_reaches_external_apply() {
     let vfs = project();
     let c = clock();
     let mut s = open(&vfs, &c, 1);
-    assert_eq!(s.command_meta("external.apply").map(|m| m.exposure), Some(Exposure::Internal));
+    assert_eq!(
+        s.command_meta("external.apply").map(|m| m.exposure),
+        Some(Exposure::Internal)
+    );
     let cmd = AnyCommand {
         name: "external.apply".into(),
         params: json!({"generation": 9}),
     };
     let origins = [
         Origin::Gui,
-        Origin::Cli { subcommand: "apply".into(), confirmed: true },
-        Origin::Cli { subcommand: "apply".into(), confirmed: false },
-        Origin::CmdLog { file: "x.ewcmd".into() },
+        Origin::Cli {
+            subcommand: "apply".into(),
+            confirmed: true,
+        },
+        Origin::Cli {
+            subcommand: "apply".into(),
+            confirmed: false,
+        },
+        Origin::CmdLog {
+            file: "x.ewcmd".into(),
+        },
         Origin::Script { name: "s".into() },
         Origin::Mcp { client: "c".into() },
         Origin::Plugin { id: "p".into() },
@@ -460,7 +567,10 @@ fn only_the_external_change_apply_reaches_external_apply() {
     ];
     for origin in origins {
         let refused = s.execute_with(&cmd, Submit::from(origin.clone()));
-        assert!(matches!(refused, Err(CmdError::Exposure { .. })), "{origin:?}: {refused:?}");
+        assert!(
+            matches!(refused, Err(CmdError::Exposure { .. })),
+            "{origin:?}: {refused:?}"
+        );
         let preview = s.preview_with(&cmd, Submit::from(origin.clone()));
         assert!(matches!(preview, Err(CmdError::Exposure { .. })), "{origin:?}");
     }
@@ -523,17 +633,26 @@ fn dg5_ew_core_013_renumbers_the_newer_after_a_merge() {
     let shard = format!("devices/{}.jsonl", &newer[newer.len() - 2..]);
     let shard_path = ew_store::join(&root(), &shard);
     let text = String::from_utf8(vfs.read(&shard_path).unwrap()).unwrap();
-    let line = text.lines().find(|l| l.contains(&newer)).expect("the newer device's line").to_owned();
+    let line = text
+        .lines()
+        .find(|l| l.contains(&newer))
+        .expect("the newer device's line")
+        .to_owned();
     let three = line.replace("\"counter\":4", "\"counter\":3");
     assert_ne!(three, line);
     let bytes = text.replace(&line, &three).into_bytes();
     vfs.put(&shard_path, &bytes);
     let manifest_path = ew_store::join(&root(), "manifest.json");
     let mut manifest: Value = serde_json::from_slice(&vfs.read(&manifest_path).unwrap()).unwrap();
-    manifest["files"][&shard] = json!(ew_store::ew_format::hash_text(&ew_store::ew_format::sha256(&bytes)));
+    manifest["files"][&shard] = json!(ew_store::ew_format::hash_text(&ew_store::ew_format::sha256(
+        &bytes
+    )));
     let mut merged = |m: bool| {
         manifest["merged"] = json!(m);
-        vfs.put(&manifest_path, serde_json::to_string_pretty(&manifest).unwrap().as_bytes());
+        vfs.put(
+            &manifest_path,
+            serde_json::to_string_pretty(&manifest).unwrap().as_bytes(),
+        );
     };
     merged(false);
     let s = open(&vfs, &c, 1);
@@ -565,7 +684,11 @@ fn dg5_ew_core_013_renumbers_the_newer_after_a_merge() {
             json!({"scope": {"selection": [newer]}, "options": {"only_nonconforming": true, "close_gaps": false}})
         )
     );
-    assert_eq!(findings(&s, "EW-RDS-004")[0].fix, Some(fix.clone()), "the same fix on EW-RDS-004");
+    assert_eq!(
+        findings(&s, "EW-RDS-004")[0].fix,
+        Some(fix.clone()),
+        "the same fix on EW-RDS-004"
+    );
     let entries = s.history().entries().len();
     let preview = s
         .preview(&AnyCommand {

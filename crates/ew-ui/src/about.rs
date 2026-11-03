@@ -191,6 +191,48 @@ pub fn show(
         }
         // WP-S2.08 part 2: the keymap editor.
         Dialog::Shortcuts => crate::keymap_editor::show(ui, shell, just_opened, events),
+        // WP-S1.17 part 7 (D24): one block per colliding field: the record and the field in `type.body.strong`, then
+        // base, mine and theirs in `type.small`, and the choice of mine or theirs.
+        Dialog::ExternalChange { rows } => {
+            let t = crate::theme::current(ui.ctx());
+            ScrollArea::vertical()
+                .max_height(t.size_row * 10.0)
+                .show(ui, |ui| {
+                    for (i, r) in rows.iter().enumerate() {
+                        if i > 0 {
+                            ui.add_space(t.space_3);
+                        }
+                        ui.label(
+                            egui::RichText::new(format!("{} · {}", r.record, r.field))
+                                .font(crate::theme::font(&t.type_body_strong))
+                                .color(t.text_primary.color32()),
+                        );
+                        let small = |ui: &mut Ui, name: ew_viewmodel::strings::Key<'_>, value: &str| {
+                            ui.label(
+                                egui::RichText::new(format!("{}: {value}", strings::text(name)))
+                                    .font(crate::theme::font(&t.type_small))
+                                    .color(t.text_secondary.color32()),
+                            );
+                        };
+                        small(ui, key!("external-base"), &r.base);
+                        ui.horizontal(|ui| {
+                            for (take, word, name, value) in [
+                                (ew_viewmodel::ew_api::external::Take::Mine, "mine", key!("external-mine"), &r.mine),
+                                (ew_viewmodel::ew_api::external::Take::Theirs, "theirs", key!("external-theirs"), &r.theirs),
+                            ] {
+                                let label = format!("{}: {value}", strings::text(name));
+                                if ui.radio(r.take == take, label).clicked() {
+                                    events.push(Event::Action(
+                                        "external.choose",
+                                        json!({ "row": i + 1, "take": word }),
+                                    ));
+                                }
+                            }
+                        });
+                    }
+                });
+        }
+        Dialog::ConfirmUpgrade { .. } | Dialog::OpenEwz { .. } | Dialog::ConfirmGitSetup => {}
         Dialog::ConfirmPurge { files, .. } => {
             let t = crate::theme::current(ui.ctx());
             for f in files.iter().take(ew_viewmodel::shell::PURGE_LISTED) {

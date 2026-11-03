@@ -468,7 +468,10 @@ pub const TABLE: &[Row] = &[
     Row {
         path: &["diff"],
         exits: &[
-            exit(0, "the sides are equal, or differ without `--exit-code`; `--textconv` printed"),
+            exit(
+                0,
+                "the sides are equal, or differ without `--exit-code`; `--textconv` printed",
+            ),
             exit(1, "the sides differ, with `--exit-code`"),
             exit(2, "usage and open errors, a git side that cannot be read"),
         ],

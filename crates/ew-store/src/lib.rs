@@ -71,9 +71,9 @@ mod vfs;
 pub use clock::{Clock, ManualClock, SystemClock};
 pub use lock::{HEARTBEAT, Identity, LockInfo, LockRecord, OsProbe, ProcessProbe, ProcessState, STALE_AFTER};
 pub use store::{
-    Access, BASE_MEMBER, BrokenLine, Changes, Generation, GenerationError, Incoming, LockState, OpenError, OpenMode,
-    OpenReport, Opened, PurgeError, PurgeFile, PurgePlan, READ_ONLY_POLL, READ_ONLY_WAIT, RENAME_BACKOFF,
-    ReadOnlyReason, RecoverError, Recovered, SaveError, SaveReport, SaveStep, Store, StoreOptions,
-    default_state_dir,
+    Access, BASE_MEMBER, BrokenLine, Changes, Generation, GenerationError, Incoming, LockState, OpenError,
+    OpenMode, OpenReport, Opened, PurgeError, PurgeFile, PurgePlan, READ_ONLY_POLL, READ_ONLY_WAIT,
+    RENAME_BACKOFF, ReadOnlyReason, RecoverError, Recovered, SaveError, SaveReport, SaveStep, Store,
+    StoreOptions, default_state_dir,
 };
 pub use vfs::{EntryKind, OsVfs, Stat, Vfs, is_transient, join};

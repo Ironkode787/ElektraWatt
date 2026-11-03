@@ -237,11 +237,13 @@ impl Platform for VisualPlatform {
             Prompt::SavePdf => Pick::Path(self.base.join("project.pdf")),
             Prompt::SaveKeymap => Pick::Path(self.base.join("keymap.toml")),
             Prompt::SaveTable => Pick::Path(self.base.join("table.xlsx")),
+            Prompt::SaveEwz => Pick::Path(self.base.join("project.ewz")),
             Prompt::OpenQet
             | Prompt::OpenPartsTable
             | Prompt::OpenImage
             | Prompt::OpenKeymap
-            | Prompt::OpenTable => Pick::Cancelled,
+            | Prompt::OpenTable
+            | Prompt::OpenEwz => Pick::Cancelled,
         }
     }
 }

@@ -68,7 +68,12 @@ pub fn detect(vfs: &dyn Vfs, env: &dyn Fn(&str) -> Option<OsString>, path: &Path
     }
     if let Some(home) = var("HOME") {
         if let Ok(rest) = path.strip_prefix(home.join("Library").join("CloudStorage")) {
-            let folder = rest.components().next()?.as_os_str().to_string_lossy().into_owned();
+            let folder = rest
+                .components()
+                .next()?
+                .as_os_str()
+                .to_string_lossy()
+                .into_owned();
             let provider = folder.split('-').next().unwrap_or_default();
             return Some(match provider {
                 "OneDrive" => CloudService::OneDrive,
@@ -89,7 +94,10 @@ pub fn detect(vfs: &dyn Vfs, env: &dyn Fn(&str) -> Option<OsString>, path: &Path
         var("HOME").map(|d| d.join(".dropbox").join("info.json")),
     ];
     for info in infos.into_iter().flatten() {
-        if dropbox_roots(vfs, &info).iter().any(|root| path.starts_with(root)) {
+        if dropbox_roots(vfs, &info)
+            .iter()
+            .any(|root| path.starts_with(root))
+        {
             return Some(CloudService::Dropbox);
         }
     }
@@ -158,6 +166,9 @@ mod tests {
         );
         assert_eq!(found("/box/Dropbox/work/p.ew"), Some(CloudService::Dropbox));
         assert_eq!(found("/home/u/projects/p.ew"), None);
-        assert_eq!(detect(&vfs, &env_of(&[]), Path::new("/users/u/OneDrive/p.ew")), None);
+        assert_eq!(
+            detect(&vfs, &env_of(&[]), Path::new("/users/u/OneDrive/p.ew")),
+            None
+        );
     }
 }

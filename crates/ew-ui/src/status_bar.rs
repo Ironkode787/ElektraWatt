@@ -25,6 +25,8 @@ fn click(kind: StatusKind) -> Option<Event> {
         StatusKind::Findings => Some(Event::Action("messages.show", json!({ "on": true }))),
         StatusKind::Job => Some(Event::Action("jobs.show", json!({ "on": true }))),
         StatusKind::Notifications => Some(Event::Action("notifications.show", json!({}))),
+        // WP-S1.17 part 7: Set up merge driver.
+        StatusKind::Driver => Some(Event::Action("git.setup", json!({}))),
         _ => None,
     }
 }
@@ -41,6 +43,7 @@ fn icon(field: &StatusField) -> Option<&'static str> {
         (StatusKind::Save, Tone::Strong) => Some("circle-dot"),
         (StatusKind::Save, Tone::Warning) => Some("lock"),
         (StatusKind::Notifications, _) => Some("bell"),
+        (StatusKind::Driver, _) => Some("alert-triangle"),
         _ => None,
     }
 }

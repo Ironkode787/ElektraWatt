@@ -167,7 +167,11 @@ pub fn context_topic(model: &ShellModel) -> &'static str {
             | Dialog::ConfirmPurge { .. }
             | Dialog::PartChoose(_)
             | Dialog::PartEdit(_)
-            | Dialog::Print(_),
+            | Dialog::Print(_)
+            | Dialog::ExternalChange { .. }
+            | Dialog::ConfirmUpgrade { .. }
+            | Dialog::OpenEwz { .. }
+            | Dialog::ConfirmGitSetup,
         )
         | None => {}
     }

@@ -98,7 +98,10 @@ fn open_side(spec: &str, other: Option<&str>) -> Result<Session, String> {
         return git_side(&format!("refs/tags/{tag}"), spec, other);
     }
     let path = Path::new(spec);
-    if path.extension().is_some_and(|e| e.eq_ignore_ascii_case("ewarchive")) {
+    if path
+        .extension()
+        .is_some_and(|e| e.eq_ignore_ascii_case("ewarchive"))
+    {
         return Session::open_archive(path, env!("CARGO_PKG_VERSION"))
             .map(|a| a.session)
             .map_err(|e| format!("{spec}: {e}"));
@@ -115,7 +118,11 @@ fn git_project(other: Option<&str>) -> Option<PathBuf> {
         .filter(|o| !o.starts_with("git:") && !o.starts_with("rev:"))
         .map(PathBuf::from)
         .filter(|p| p.is_dir());
-    dir.or_else(|| std::env::current_dir().ok().and_then(|cwd| super::find_project(&cwd)))
+    dir.or_else(|| {
+        std::env::current_dir()
+            .ok()
+            .and_then(|cwd| super::find_project(&cwd))
+    })
 }
 
 /// The project's files at the revision `rev` (D26): `manifest.json`, the files it lists and the two git files, read
@@ -155,7 +162,11 @@ fn git_side(rev: &str, spec: &str, other: Option<&str>) -> Result<Session, Strin
     let mut files = BTreeMap::new();
     files.insert(MANIFEST.to_owned(), manifest);
     let listed: Vec<String> = parsed.files.keys().map(|p| p.as_str().to_owned()).collect();
-    for file in listed.iter().map(String::as_str).chain([".gitattributes", ".gitignore"]) {
+    for file in listed
+        .iter()
+        .map(String::as_str)
+        .chain([".gitattributes", ".gitignore"])
+    {
         if let Some(bytes) = read(&mut cat, file)? {
             files.insert(file.to_owned(), bytes);
         }

@@ -31,12 +31,24 @@ use crate::components::{self, Tip as _};
 use crate::icons::{self, IconId};
 use crate::theme::{self, Tokens};
 
-/// The action of `n` as a text link in `type.small` SemiBold `color.accent`, disabled while it is not valid.
+/// The actions of `n` as text links in `type.small` SemiBold `color.accent`, each disabled while it is not valid (an
+/// external change offers Undo and Show changes, WP-S1.17 D24).
 fn action_link(ui: &mut Ui, t: &Tokens, shell: &ShellModel, n: &Notification, events: &mut Vec<Event>) {
-    let Some(action) = n.action() else {
-        return;
-    };
-    let valid = shell.notification_valid(n);
+    for action in n.actions() {
+        one_link(ui, t, shell, n, action, events);
+    }
+}
+
+/// One action link of `n`.
+fn one_link(
+    ui: &mut Ui,
+    t: &Tokens,
+    shell: &ShellModel,
+    n: &Notification,
+    action: ew_viewmodel::notifications::NoteAction,
+    events: &mut Vec<Event>,
+) {
+    let valid = shell.note_action_valid(n, action);
     let colour = if valid { t.accent } else { t.text_disabled };
     let font = theme::font(&theme::TypeToken {
         semibold: true,

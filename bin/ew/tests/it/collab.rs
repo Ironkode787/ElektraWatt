@@ -44,8 +44,13 @@ fn set(kind: &str, id: &str, path: &str, value: Value) -> ew_api::AnyCommand {
 fn edit(dir: &Path, cmds: &[ew_api::AnyCommand]) {
     let mut store = ew_api::StoreOptions::new("ElektraWatt test");
     store.state_dir = None;
-    let (mut s, _) = ew_api::Session::open(dir, store, ew_api::SessionOptions::default(), ew_api::Recovery::Keep)
-        .expect("the copy opens for editing");
+    let (mut s, _) = ew_api::Session::open(
+        dir,
+        store,
+        ew_api::SessionOptions::default(),
+        ew_api::Recovery::Keep,
+    )
+    .expect("the copy opens for editing");
     for c in cmds {
         s.execute(c).unwrap_or_else(|e| panic!("{c:?}: {e}"));
     }
@@ -117,7 +122,11 @@ impl Repo {
     fn commit(&self, message: &str) {
         assert!(self.git(&["add", "--all"]).status.success());
         let o = self.git(&["commit", "--quiet", "-m", message]);
-        assert!(o.status.success(), "commit: {}", String::from_utf8_lossy(&o.stderr));
+        assert!(
+            o.status.success(),
+            "commit: {}",
+            String::from_utf8_lossy(&o.stderr)
+        );
     }
 
     fn config(&self, key: &str) -> Option<String> {
@@ -164,9 +173,19 @@ fn dg1_ew_diff_prints_the_changed_part_with_the_tags_of_each_side() {
     let golden = Path::new(GOLDEN_A);
     let plain = r.ew(&[OsStr::new("diff"), golden.as_os_str(), copy.as_os_str()]);
     assert_eq!(result(&plain), (Some(0), PART_LINE.to_owned(), String::new()));
-    let exit = r.ew(&[OsStr::new("diff"), golden.as_os_str(), copy.as_os_str(), OsStr::new("--exit-code")]);
+    let exit = r.ew(&[
+        OsStr::new("diff"),
+        golden.as_os_str(),
+        copy.as_os_str(),
+        OsStr::new("--exit-code"),
+    ]);
     assert_eq!(result(&exit), (Some(1), PART_LINE.to_owned(), String::new()));
-    let json = r.ew(&[OsStr::new("diff"), golden.as_os_str(), copy.as_os_str(), OsStr::new("--json")]);
+    let json = r.ew(&[
+        OsStr::new("diff"),
+        golden.as_os_str(),
+        copy.as_os_str(),
+        OsStr::new("--json"),
+    ]);
     let typed: ew_api::cli_results::DiffResult =
         super::conventions::assert_result(&String::from_utf8_lossy(&json.stdout), ew_api::cli_results::DIFF);
     assert!(!typed.equal);
@@ -175,9 +194,25 @@ fn dg1_ew_diff_prints_the_changed_part_with_the_tags_of_each_side() {
 
     // A directory and its `.ewz` hold the same records.
     let ewz = r.0.join("copy.ewz");
-    let packed = r.ew(&[OsStr::new("export"), OsStr::new("ewz"), copy.as_os_str(), OsStr::new("--out"), ewz.as_os_str()]);
-    assert_eq!(packed.status.code(), Some(0), "{}", String::from_utf8_lossy(&packed.stderr));
-    let same = r.ew(&[OsStr::new("diff"), copy.as_os_str(), ewz.as_os_str(), OsStr::new("--exit-code")]);
+    let packed = r.ew(&[
+        OsStr::new("export"),
+        OsStr::new("ewz"),
+        copy.as_os_str(),
+        OsStr::new("--out"),
+        ewz.as_os_str(),
+    ]);
+    assert_eq!(
+        packed.status.code(),
+        Some(0),
+        "{}",
+        String::from_utf8_lossy(&packed.stderr)
+    );
+    let same = r.ew(&[
+        OsStr::new("diff"),
+        copy.as_os_str(),
+        ewz.as_os_str(),
+        OsStr::new("--exit-code"),
+    ]);
     assert_eq!(result(&same), (Some(0), String::new(), String::new()));
 
     // `git:HEAD` against the working copy.
@@ -190,7 +225,8 @@ fn dg1_ew_diff_prints_the_changed_part_with_the_tags_of_each_side() {
         (
             Some(2),
             String::new(),
-            "error: git:no-such-revision: the revision holds no no-such-revision:J-E-2416.ew/manifest.json\n".to_owned()
+            "error: git:no-such-revision: the revision holds no no-such-revision:J-E-2416.ew/manifest.json\n"
+                .to_owned()
         )
     );
 }
@@ -200,7 +236,10 @@ fn expected_config() -> Vec<(&'static str, String)> {
     let exe = super::conventions::bin_exe().to_string_lossy().replace('\\', "/");
     vec![
         ("merge.elektrawatt.name", "ElektraWatt record merge".to_owned()),
-        ("merge.elektrawatt.driver", format!("\"{exe}\" merge-driver %O %A %B %L %P")),
+        (
+            "merge.elektrawatt.driver",
+            format!("\"{exe}\" merge-driver %O %A %B %L %P"),
+        ),
         ("diff.elektrawatt.textconv", format!("\"{exe}\" diff --textconv")),
         ("diff.elektrawatt.cachetextconv", "true".to_owned()),
     ]
@@ -229,8 +268,14 @@ fn dg3_git_setup_asks_writes_the_keys_and_the_blocks_and_is_idempotent() {
                 .to_owned()
         )
     );
-    assert_eq!(std::fs::read(r.repo().join(".git/config")).unwrap(), config_before);
-    assert_eq!(std::fs::read_to_string(r.project().join(".gitattributes")).unwrap(), "*.png binary\n");
+    assert_eq!(
+        std::fs::read(r.repo().join(".git/config")).unwrap(),
+        config_before
+    );
+    assert_eq!(
+        std::fs::read_to_string(r.project().join(".gitattributes")).unwrap(),
+        "*.png binary\n"
+    );
     assert!(!r.project().join(".gitignore").exists());
 
     let done = r.ew(&["git", "setup", "--yes"]);
@@ -247,7 +292,10 @@ fn dg3_git_setup_asks_writes_the_keys_and_the_blocks_and_is_idempotent() {
     for (key, value) in expected_config() {
         assert_eq!(r.config(key), Some(value), "{key}");
     }
-    assert_eq!(std::fs::read_to_string(r.project().join(".gitattributes")).unwrap(), ATTRIBUTES);
+    assert_eq!(
+        std::fs::read_to_string(r.project().join(".gitattributes")).unwrap(),
+        ATTRIBUTES
+    );
     assert_eq!(
         std::fs::read_to_string(r.project().join(".gitignore")).unwrap(),
         "# >>> ElektraWatt (managed) >>>\n.ew/\n.~ew.lock\n.~ew.lock.stale-*\n.~ew.requests/\n*.tmp-*\n# <<< ElektraWatt \
@@ -265,8 +313,15 @@ fn dg3_git_setup_asks_writes_the_keys_and_the_blocks_and_is_idempotent() {
             String::new()
         )
     );
-    assert_eq!(std::fs::read(r.repo().join(".git/config")).unwrap(), config, "idempotent");
-    assert_eq!(std::fs::read_to_string(r.project().join(".gitattributes")).unwrap(), ATTRIBUTES);
+    assert_eq!(
+        std::fs::read(r.repo().join(".git/config")).unwrap(),
+        config,
+        "idempotent"
+    );
+    assert_eq!(
+        std::fs::read_to_string(r.project().join(".gitattributes")).unwrap(),
+        ATTRIBUTES
+    );
 }
 
 /// DG-4: `--hooks` installs the hook and refuses to replace a foreign one, writing nothing then.
@@ -276,7 +331,12 @@ fn dg4_the_hook_is_installed_and_a_foreign_one_is_kept() {
     let hook = r.repo().join(".git/hooks/post-merge");
     let _ = std::fs::remove_file(&hook);
     let done = r.ew(&["git", "setup", "--yes", "--hooks"]);
-    assert_eq!(done.status.code(), Some(0), "{}", String::from_utf8_lossy(&done.stderr));
+    assert_eq!(
+        done.status.code(),
+        Some(0),
+        "{}",
+        String::from_utf8_lossy(&done.stderr)
+    );
     let exe = super::conventions::bin_exe().to_string_lossy().replace('\\', "/");
     assert_eq!(
         std::fs::read_to_string(&hook).unwrap(),
@@ -310,8 +370,15 @@ fn cr1_project(dir: &Path) {
     const CONFLICT: &str = r#"{"$k":"conflict","id":"1c5963b7-6c34-53d6-8fa6-9d02d4629711","kind":"connection","base":{"overrides":{}},"ours":{"overrides":{"colour":["BU"]}},"theirs":{"overrides":{"colour":["WH"]}}}"#;
     super::conventions::copy_dir(Path::new(GOLDEN_A), dir);
     let page = std::fs::read_to_string(dir.join(PAGE)).unwrap();
-    let w20 = page.lines().find(|l| l.contains("connections|W20")).unwrap().to_owned();
-    let bu = w20.replace(OVERRIDES, r#""overrides":{"csa":"2.5","colour":["BU"],"show_marker":true}"#);
+    let w20 = page
+        .lines()
+        .find(|l| l.contains("connections|W20"))
+        .unwrap()
+        .to_owned();
+    let bu = w20.replace(
+        OVERRIDES,
+        r#""overrides":{"csa":"2.5","colour":["BU"],"show_marker":true}"#,
+    );
     std::fs::write(dir.join(PAGE), format!("{}{CONFLICT}\n", page.replace(&w20, &bu))).unwrap();
 }
 
@@ -359,7 +426,11 @@ fn w20_line(page: &str) -> Value {
 #[test]
 fn dg7_ac41_merges_through_git_with_the_driver() {
     let Some(r) = Repo::new("ew-dg7") else { return };
-    assert_eq!(r.config("merge.elektrawatt.driver"), None, "merge driver not configured");
+    assert_eq!(
+        r.config("merge.elektrawatt.driver"),
+        None,
+        "merge driver not configured"
+    );
     assert_eq!(r.ew(&["git", "setup", "--yes"]).status.code(), Some(0));
     r.commit("ew git setup");
     let (w20, f2) = (golden_id("connections|W20"), golden_id("devices|-102F2"));
@@ -376,7 +447,11 @@ fn dg7_ac41_merges_through_git_with_the_driver() {
             set("connection", &w20, "overrides.colour", json!(["BU"])),
         ],
     );
-    branch("b", "main", &[set("connection", &w20, "overrides.csa", json!("2.5"))]);
+    branch(
+        "b",
+        "main",
+        &[set("connection", &w20, "overrides.csa", json!("2.5"))],
+    );
     branch(
         "b-wh",
         "main",
@@ -398,34 +473,84 @@ fn dg7_ac41_merges_through_git_with_the_driver() {
         .find(|l| l.contains("overrides.colour=[\"BU\"]"))
         .expect("W20's textconv line");
     assert!(known > 0 && !line.contains(&w20[..8]), "a derived label: {line}");
-    assert!(log.lines().any(|l| l == format!("+{line}")), "git log -p shows {line}:\n{log}");
+    assert!(
+        log.lines().any(|l| l == format!("+{line}")),
+        "git log -p shows {line}:\n{log}"
+    );
 
     // DG-7: the clean merge.
-    assert!(r.git(&["checkout", "--quiet", "-B", "merged", "a"]).status.success());
+    assert!(
+        r.git(&["checkout", "--quiet", "-B", "merged", "a"])
+            .status
+            .success()
+    );
     let merged = r.git(&["merge", "--no-edit", "b"]);
-    assert_eq!(merged.status.code(), Some(0), "{}", String::from_utf8_lossy(&merged.stderr));
+    assert_eq!(
+        merged.status.code(),
+        Some(0),
+        "{}",
+        String::from_utf8_lossy(&merged.stderr)
+    );
     let v = w20_line(&page_102(&r.project()));
-    assert_eq!(v["overrides"], json!({"csa": "2.5", "colour": ["BU"], "show_marker": true}));
-    let manifest: Value = serde_json::from_slice(&std::fs::read(r.project().join("manifest.json")).unwrap()).unwrap();
+    assert_eq!(
+        v["overrides"],
+        json!({"csa": "2.5", "colour": ["BU"], "show_marker": true})
+    );
+    let manifest: Value =
+        serde_json::from_slice(&std::fs::read(r.project().join("manifest.json")).unwrap()).unwrap();
     assert_eq!(manifest["merged"], json!(true));
     let integrity = r.ew(&["check", "--integrity", "J-E-2416.ew"]);
-    assert_eq!(integrity.status.code(), Some(0), "{}", String::from_utf8_lossy(&integrity.stdout));
+    assert_eq!(
+        integrity.status.code(),
+        Some(0),
+        "{}",
+        String::from_utf8_lossy(&integrity.stdout)
+    );
 
     // The conflict variant.
-    assert!(r.git(&["checkout", "--quiet", "-B", "conflict", "a"]).status.success());
+    assert!(
+        r.git(&["checkout", "--quiet", "-B", "conflict", "a"])
+            .status
+            .success()
+    );
     let conflicted = r.git(&["merge", "--no-edit", "b-wh"]);
-    assert_eq!(conflicted.status.code(), Some(1), "git merge reports the conflict");
+    assert_eq!(
+        conflicted.status.code(),
+        Some(1),
+        "git merge reports the conflict"
+    );
     let page = page_102(&r.project());
-    assert_eq!(page.matches("\"$k\":\"conflict\"").count(), 1, "one conflict record");
-    assert_eq!(w20_line(&page)["overrides"]["colour"], json!(["BU"]), "ours in place");
+    assert_eq!(
+        page.matches("\"$k\":\"conflict\"").count(),
+        1,
+        "one conflict record"
+    );
+    assert_eq!(
+        w20_line(&page)["overrides"]["colour"],
+        json!(["BU"]),
+        "ours in place"
+    );
     let opened = r.ew(&["check", "--integrity", "J-E-2416.ew"]);
-    assert_eq!(opened.status.code(), Some(1), "the project opens and reports the conflict");
+    assert_eq!(
+        opened.status.code(),
+        Some(1),
+        "the project opens and reports the conflict"
+    );
     let resolved = r.ew(&["merge", "resolve", "--take", "ours", "J-E-2416.ew"]);
     assert_eq!(
         result(&resolved),
-        (Some(0), "1 conflict resolved, ours taken; saved\n".to_owned(), String::new())
+        (
+            Some(0),
+            "1 conflict resolved, ours taken; saved\n".to_owned(),
+            String::new()
+        )
     );
     assert!(!page_102(&r.project()).contains("\"$k\":\"conflict\""));
     let clean = r.ew(&["check", "--integrity", "J-E-2416.ew"]);
-    assert_eq!(clean.status.code(), Some(0), "{}", String::from_utf8_lossy(&clean.stdout));
+    assert_eq!(
+        clean.status.code(),
+        Some(0),
+        "{}",
+        String::from_utf8_lossy(&clean.stdout)
+    );
 }

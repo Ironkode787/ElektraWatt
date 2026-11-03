@@ -297,6 +297,9 @@ pub enum StatusKind {
     Zoom,
     /// Saved, unsaved changes or read-only.
     Save,
+    /// "Merge driver not configured" for a project in a git worktree without the driver (doc 05 §16; WP-S1.17 part
+    /// 7); a click sets it up.
+    Driver,
     /// The canvas renderer.
     Renderer,
     /// The notifications log's size, when not empty; a click opens the log.
@@ -315,6 +318,7 @@ impl StatusKind {
             StatusKind::Grid => "grid",
             StatusKind::Zoom => "zoom",
             StatusKind::Save => "save",
+            StatusKind::Driver => "driver",
             StatusKind::Renderer => "renderer",
             StatusKind::Notifications => "notifications",
         }
@@ -471,6 +475,16 @@ pub fn bar(model: &ShellModel, hide_job: bool) -> Vec<StatusField> {
                 Tone::Success,
             ),
         });
+        if model.merge_driver_missing() {
+            out.push(StatusField {
+                tip: strings::text(key!("status-driver-tip")).to_owned(),
+                ..field(
+                    StatusKind::Driver,
+                    strings::text(key!("status-driver-missing")).to_owned(),
+                    Tone::Warning,
+                )
+            });
+        }
     }
     let renderer = model.canvas_backend().label();
     let tone = if renderer.starts_with("GPU") {

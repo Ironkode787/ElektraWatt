@@ -959,8 +959,13 @@ pub fn merge_collisions(q: &Q) -> Vec<Finding> {
                     },
                     if group.len() > 2 { "s" } else { "" }
                 );
-                let mut finding =
-                    Finding::new(&MERGE_COLLISION, group.iter().copied(), id, f.subject.clone(), message);
+                let mut finding = Finding::new(
+                    &MERGE_COLLISION,
+                    group.iter().copied(),
+                    id,
+                    f.subject.clone(),
+                    message,
+                );
                 if id == crate::rules::rds::DUPLICATE_DESIGNATION.id {
                     if let Some(fix) = renumber_newer(q, &group) {
                         finding = finding.with_fix(fix);

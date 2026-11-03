@@ -284,6 +284,9 @@ pub struct App {
     window_focused: Option<bool>,
     /// How many times the window regained the focus and asked for the frames that repaint it (FT-514; tests).
     focus_repaints: u64,
+    /// When the project on disk was last polled for an external change (WP-S1.17 D20), on the window's clock, and the
+    /// time to the next poll in seconds.
+    disk_polled: (f64, f64),
     /// Alt is down and nothing else was pressed since: its release opens the app menu (doc 16a §5.2).
     alt_alone: bool,
     /// Whether Alt was down in the last frame.
@@ -359,6 +362,7 @@ impl App {
             options_rect: None,
             window_focused: None,
             focus_repaints: 0,
+            disk_polled: (0.0, ew_viewmodel::ew_api::external::POLL_EVERY.as_secs_f64()),
             alt_alone: false,
             alt_down: false,
             bar_had_focus: false,
@@ -757,6 +761,7 @@ impl App {
         // without a pointer move, and the status hint it shows may be stale. The frame that sees the focus come back
         // repaints now and twice shortly after (a dialog may still be closing while the first frame paints).
         let focused = ctx.input(|i| i.viewport().focused);
+        let regained = focused == Some(true) && self.window_focused == Some(false);
         if focused == Some(true) && self.window_focused == Some(false) {
             ctx.request_repaint();
             ctx.request_repaint_after(Duration::from_millis(100));
@@ -780,6 +785,23 @@ impl App {
         }
         self.shell.poll_jobs();
         let now = ctx.input(|i| i.time);
+        // WP-S1.17 part 7 (D20, D22): the project on disk is polled every 3 s, 750 ms later again while a change settles,
+        // and when the window regains the focus; never while a pointer button is held (a gesture) or on the frame clock
+        // (a visual run polls through `project.check_disk`).
+        if self.shell.has_project() && !crate::clock::on_frame_clock() {
+            let (last, every) = self.disk_polled;
+            let gesture = ctx.input(|i| i.pointer.any_down());
+            if (regained || now - last >= every) && !gesture {
+                let settling = self.shell.poll_disk();
+                let next = if settling {
+                    ew_viewmodel::ew_api::external::QUIESCENCE
+                } else {
+                    ew_viewmodel::ew_api::external::POLL_EVERY
+                };
+                self.disk_polled = (now, next.as_secs_f64());
+            }
+            ctx.request_repaint_after(Duration::from_secs_f64(self.disk_polled.1));
+        }
         let running: Vec<u64> = self
             .shell
             .jobs()

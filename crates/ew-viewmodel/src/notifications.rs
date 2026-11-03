@@ -38,6 +38,9 @@ pub enum NoteAction {
     Renumber,
     /// Tip 3's Show report block: the block selected, in Properties.
     ShowBlock,
+    /// Open the history at the step the notification reports, with its changes (an external change's Show changes,
+    /// WP-S1.17 D24, decision log ID-1284 ruling 3).
+    ShowChanges,
 }
 
 impl NoteAction {
@@ -49,6 +52,7 @@ impl NoteAction {
             NoteAction::Convert => "convert",
             NoteAction::Renumber => "renumber",
             NoteAction::ShowBlock => "show_block",
+            NoteAction::ShowChanges => "show_changes",
         }
     }
 
@@ -60,6 +64,7 @@ impl NoteAction {
             "convert" => Some(NoteAction::Convert),
             "renumber" => Some(NoteAction::Renumber),
             "show_block" => Some(NoteAction::ShowBlock),
+            "show_changes" => Some(NoteAction::ShowChanges),
             _ => None,
         }
     }
@@ -72,6 +77,7 @@ impl NoteAction {
             NoteAction::Convert => key!("toast-convert"),
             NoteAction::Renumber => key!("action-devices-renumber"),
             NoteAction::ShowBlock => key!("toast-show-block"),
+            NoteAction::ShowChanges => key!("toast-show-changes"),
         }
     }
 }
@@ -116,6 +122,15 @@ pub(crate) enum Validity {
         /// The records the action selects.
         select: Vec<ew_api::output::Uuid>,
     },
+    /// Show changes: while project session `epoch` is open and its history entry `entry` has `rev`.
+    History {
+        /// The project session.
+        epoch: u64,
+        /// The history entry's index.
+        entry: usize,
+        /// Its revision.
+        rev: u64,
+    },
 }
 
 /// One notification: a toast while visible, an entry of the log always.
@@ -128,6 +143,8 @@ pub struct Notification {
     /// The key: a toast of a key that is visible replaces that one (`edit`, `export`, `recovery`).
     pub key: &'static str,
     pub(crate) action: Option<(NoteAction, Validity)>,
+    /// A second action (an external change's Show changes beside its Undo, WP-S1.17 D24).
+    pub(crate) second: Option<(NoteAction, Validity)>,
     /// The tone a result set (the check's worst severity); `None` for every other notification.
     pub(crate) tone: Option<NoteTone>,
 }
@@ -136,6 +153,20 @@ impl Notification {
     /// The action it offers, valid or not.
     pub fn action(&self) -> Option<NoteAction> {
         self.action.as_ref().map(|(a, _)| *a)
+    }
+
+    /// Every action it offers, in their order (the first is [`Notification::action`]).
+    pub fn actions(&self) -> Vec<NoteAction> {
+        self.action.iter().chain(&self.second).map(|(a, _)| *a).collect()
+    }
+
+    /// The validity of its action `action`.
+    pub(crate) fn validity(&self, action: NoteAction) -> Option<&Validity> {
+        self.action
+            .iter()
+            .chain(&self.second)
+            .find(|(a, _)| *a == action)
+            .map(|(_, v)| v)
     }
 
     /// The tone of its icon: the tone the result set, else success for a toast with an action, else info.
@@ -225,12 +256,29 @@ impl NotificationLog {
             text,
             key,
             action,
+            second: None,
             tone,
         });
         while self.entries.len() > MAX_LOG {
             if let Some(gone) = self.entries.pop_front() {
                 self.visible.retain(|s| *s != gone.serial);
             }
+        }
+        serial
+    }
+
+    /// Adds a notification with two actions (an external change's Undo and Show changes, WP-S1.17 D24); returns its
+    /// serial.
+    pub(crate) fn push_two(
+        &mut self,
+        text: String,
+        key: &'static str,
+        first: Option<(NoteAction, Validity)>,
+        second: Option<(NoteAction, Validity)>,
+    ) -> u64 {
+        let serial = self.push(text, key, first);
+        if let Some(n) = self.entries.iter_mut().rev().find(|n| n.serial == serial) {
+            n.second = second;
         }
         serial
     }

@@ -40,6 +40,8 @@ mod creation;
 mod clipboard;
 // WP-S2.04 part 4b: the text and graphic tools' host duties.
 mod drawing;
+// WP-S1.17 part 7: external change, cloud folders, .ewz, the upgrade, the merge driver
+mod external;
 // WP-S2.04 part 4b: FT-411, Edit ▸ Bridge terminals.
 mod bridge;
 // G-PP triage row 7: Draw ▸ Bond.
@@ -324,6 +326,30 @@ pub enum Dialog {
     /// Output ▸ Print… (D10, ruling 4 of ID-1180): the print pre-dialog, its options beside the preview of the print
     /// set, which builds as a job; Print… and Open in PDF viewer hand the built set to the window's platform.
     Print(Box<print::PrintDialog>),
+    // WP-S1.17 part 7 (D24)
+    /// The project changed on disk and the change collides with unsaved edits: each colliding field with its record
+    /// in words, its base, mine and theirs, and the side chosen; Apply (the choices), All mine, All theirs, and Decide
+    /// later (Escape: saves stay held, the banner says why).
+    ExternalChange {
+        /// The colliding fields.
+        rows: Vec<external::CollisionRow>,
+    },
+    /// The first save of a project of an older format converts it (D11): Upgrade and save writes the backup first, or
+    /// Cancel.
+    ConfirmUpgrade {
+        /// The older format.
+        from: String,
+    },
+    /// File ▸ Open .ewz…: Extract and open (into a new folder beside it), Open read-only, or Cancel.
+    OpenEwz {
+        /// The `.ewz` (never printed).
+        path: String,
+        /// Its file name.
+        name: String,
+    },
+    /// Set up merge driver: the repository's git configuration and the project's managed blocks, after the consent
+    /// (D28); Set up or Cancel.
+    ConfirmGitSetup,
 }
 
 /// A marker line of the history (WP-S2.09 D13, view state, never a `History` entry): an export, a recovery.
@@ -358,6 +384,10 @@ pub enum Prompt {
     SaveTable,
     /// An existing table file, XLSX or CSV (Import table…).
     OpenTable,
+    /// An `.ewz` file name (File ▸ Export .ewz…, WP-S1.17 D24).
+    SaveEwz,
+    /// An existing `.ewz` (File ▸ Open .ewz…).
+    OpenEwz,
 }
 
 /// A request to the window to open a page of the user guide in the system browser (F1).
@@ -594,6 +624,8 @@ pub struct ShellModel {
     wire_colours: bool,
     /// The wire-colour view's Connections table and the (session epoch, revision) it was fetched at.
     wire_colour_cache: std::cell::RefCell<Option<wire_colours::Cached>>,
+    /// WP-S1.17 part 7: the cloud environment, the `ew` executable, the merge driver's status, a held change's banner.
+    collab: external::CollabState,
 }
 
 /// One `dispatch` in the dispatch log (WP-S6.13 part 4 §4.3): the action as given, the outcome's word (`done`,
@@ -674,6 +706,9 @@ fn save_error_key(e: &SaveError) -> Key<'static> {
         SaveError::Incomplete { .. } => key!("saveerr-incomplete"),
         SaveError::PendingIncomplete { .. } => key!("saveerr-pending"),
         SaveError::GenerationLimit => key!("saveerr-generation-limit"),
+        // WP-S1.17 D21, D22: a held external change.
+        SaveError::ExternalCollisions => key!("saveerr-external-collisions"),
+        SaveError::ExternalUnreadable => key!("saveerr-external-unreadable"),
         _ => key!("saveerr-other"),
     }
 }
@@ -938,6 +973,7 @@ impl ShellModel {
             glossary_filter: String::new(),
             wire_colours: false,
             wire_colour_cache: std::cell::RefCell::new(None),
+            collab: external::CollabState::default(),
         };
         model.load_active_workspace();
         model
@@ -1658,6 +1694,13 @@ impl ShellModel {
             labels,
             rows: Vec::new(),
         });
+        // WP-S1.17 part 7: the cloud-synced folder and the older format say so; the merge driver's status is read.
+        if let Some(extra) = self.opened_extras(dir, report.migrated_from.as_deref()) {
+            self.banner = Some(match self.banner.take() {
+                Some(b) => format!("{b} {extra}"),
+                None => extra,
+            });
+        }
         self.install_view();
         self.settings.push_recent(&path_text);
         self.save_settings();
@@ -1851,6 +1894,8 @@ impl ShellModel {
                 });
                 Outcome::Done
             }
+            // WP-S1.17 D11, D24: the first save of a project of an older format asks once.
+            Err(SaveError::UpgradeConsent { from }) => self.ask_upgrade(&from),
             Err(e) => {
                 let message = strings::format(key!("error-save"), &[strings::text(save_error_key(&e))]);
                 self.banner = Some(message.clone());

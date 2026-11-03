@@ -119,10 +119,24 @@ impl ShellModel {
     /// Whether `n`'s action is valid now (§6.5): Undo while the step it reports is the next undo step of the same
     /// project session; Open while the file it names was written in this session. `false` without an action.
     pub fn notification_valid(&self, n: &Notification) -> bool {
-        match &n.action {
+        n.action().is_some_and(|a| self.note_action_valid(n, a))
+    }
+
+    /// Whether the action `action` of `n` is valid: Undo while its step is the next undo step, Open always, Show changes
+    /// while its history entry is still there.
+    pub fn note_action_valid(&self, n: &Notification, action: NoteAction) -> bool {
+        match n.validity(action) {
             None => false,
-            Some((_, Validity::Open { .. })) => true,
-            Some((_, Validity::Undo { epoch, cursor, rev })) => self.project.as_ref().is_some_and(|p| {
+            Some(Validity::Open { .. }) => true,
+            Some(Validity::History { epoch, entry, rev }) => self.project.as_ref().is_some_and(|p| {
+                p.epoch == *epoch
+                    && p.session
+                        .history()
+                        .entries()
+                        .get(*entry)
+                        .is_some_and(|e| e.rev().0 == *rev)
+            }),
+            Some(Validity::Undo { epoch, cursor, rev }) => self.project.as_ref().is_some_and(|p| {
                 let h = p.session.history();
                 p.epoch == *epoch
                     && h.cursor() == *cursor
@@ -233,20 +247,30 @@ impl ShellModel {
                 &[&serial.to_string(), &number_list(&self.notes.serials())],
             );
         };
-        if entry.action() != Some(action) {
+        if !entry.actions().contains(&action) {
             return failed(key!("error-no-such-action"), &[action.word()]);
         }
-        self.run_note_action(&entry)
+        self.run_action_of(&entry, action)
     }
 
-    /// Runs `entry`'s action: refused `reason-action-expired` when it is no longer valid.
+    /// Runs `entry`'s first action: refused `reason-action-expired` when it is no longer valid.
     fn run_note_action(&mut self, entry: &Notification) -> Outcome {
-        if !self.notification_valid(entry) {
+        match entry.action() {
+            Some(action) => self.run_action_of(entry, action),
+            None => Outcome::Refused {
+                reason_key: key!("reason-no-toast"),
+            },
+        }
+    }
+
+    /// Runs `entry`'s action `action`: refused `reason-action-expired` when it is no longer valid.
+    fn run_action_of(&mut self, entry: &Notification, action: NoteAction) -> Outcome {
+        if !self.note_action_valid(entry, action) {
             return Outcome::Refused {
                 reason_key: key!("reason-action-expired"),
             };
         }
-        match entry.action() {
+        match Some(action) {
             Some(NoteAction::Undo) => {
                 // The toast's Undo is spent: it goes from the screen.
                 self.notes.dismiss(entry.serial);
@@ -267,6 +291,21 @@ impl ShellModel {
             // WP-S2.08 part 6 (D17): the tips' actions.
             Some(NoteAction::Convert | NoteAction::Renumber | NoteAction::ShowBlock) => {
                 self.run_tip_action(entry)
+            }
+            // WP-S1.17 D24: the history opens with the step's changes.
+            Some(NoteAction::ShowChanges) => {
+                let Some(Validity::History { entry: index, .. }) =
+                    entry.validity(NoteAction::ShowChanges).cloned()
+                else {
+                    return Outcome::Refused {
+                        reason_key: key!("reason-action-expired"),
+                    };
+                };
+                let shown = self.dispatch("history.show", &serde_json::json!({ "on": true }));
+                if shown != Outcome::Done {
+                    return shown;
+                }
+                self.dispatch("history.changes", &serde_json::json!({ "entry": index + 1 }))
             }
             None => Outcome::Refused {
                 reason_key: key!("reason-no-toast"),

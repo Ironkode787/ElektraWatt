@@ -214,10 +214,7 @@ pub fn merge(base: &Model, ours: &Model, theirs: &Model) -> Result<ExternalMerge
             }
         }
         // With one side deleted, the core keeps the changed side in place; mine is the session's record.
-        let merged = if collisions
-            .iter()
-            .any(|&i| out.collisions[i].path.is_empty())
-        {
+        let merged = if collisions.iter().any(|&i| out.collisions[i].path.is_empty()) {
             o.clone()
         } else {
             merged

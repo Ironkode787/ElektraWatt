@@ -1618,13 +1618,18 @@ fn toast_lines(model: &ShellModel, lines: &mut Vec<String>) {
     }
 }
 
-/// ` undo`, ` open expired`, or nothing: a notification's action and whether it is still valid.
+/// ` undo`, ` open expired`, ` undo show_changes`, or nothing: a notification's actions and whether each is still valid.
 fn action_words(model: &ShellModel, n: &crate::notifications::Notification) -> String {
-    match n.action() {
-        None => String::new(),
-        Some(a) if model.notification_valid(n) => format!(" {}", a.word()),
-        Some(a) => format!(" {} expired", a.word()),
-    }
+    n.actions()
+        .into_iter()
+        .map(|a| {
+            if model.note_action_valid(n, a) {
+                format!(" {}", a.word())
+            } else {
+                format!(" {} expired", a.word())
+            }
+        })
+        .collect()
 }
 
 /// The Jobs pane while it is open (§6.8): `jobs running <k>`, then one line per entry, oldest first. A running job
@@ -2599,6 +2604,35 @@ fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
         Dialog::ConfirmCheckScheme { .. } | Dialog::ConfirmJournalDiscard => {
             for line in &spec.body {
                 lines.push(format!("  label \"{line}\""));
+            }
+        }
+        // WP-S1.17 part 7 (D24): the paragraphs; the collision dialog's rows with base, mine, theirs and the side chosen.
+        Dialog::ConfirmUpgrade { .. } | Dialog::OpenEwz { .. } | Dialog::ConfirmGitSetup => {
+            for line in &spec.body {
+                lines.push(format!("  label \"{}\"", user(line)));
+            }
+        }
+        Dialog::ExternalChange { rows } => {
+            for line in &spec.body {
+                lines.push(format!("  label \"{}\"", user(line)));
+            }
+            for (i, r) in rows.iter().enumerate() {
+                let take = match r.take {
+                    ew_api::external::Take::Mine => strings::text(key!("external-mine")),
+                    ew_api::external::Take::Theirs => strings::text(key!("external-theirs")),
+                };
+                lines.push(format!(
+                    "  row {} \"{} · {}\" {} \"{}\" {} \"{}\" {} \"{}\" chosen \"{take}\"",
+                    i + 1,
+                    user(&r.record),
+                    user(&r.field),
+                    strings::text(key!("external-base")),
+                    user(&r.base),
+                    strings::text(key!("external-mine")),
+                    user(&r.mine),
+                    strings::text(key!("external-theirs")),
+                    user(&r.theirs),
+                ));
             }
         }
         // WP-S2.09 part 1 (§6.6): the time of the last change is the window's only (never in the transcript).

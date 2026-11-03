@@ -58,7 +58,14 @@ impl DiffEntry {
                 let parts: Vec<String> = self
                     .fields
                     .iter()
-                    .map(|f| format!("{} {} → {}", f.path, leaf(f.before.as_ref()), leaf(f.after.as_ref())))
+                    .map(|f| {
+                        format!(
+                            "{} {} → {}",
+                            f.path,
+                            leaf(f.before.as_ref()),
+                            leaf(f.after.as_ref())
+                        )
+                    })
                     .collect();
                 format!("{name}: {}", parts.join("; "))
             }
@@ -147,6 +154,22 @@ fn at(value: Option<&Value>, path: &str) -> Option<Value> {
 }
 
 impl Session {
+    /// The label of the record `(kind, id)` by the property grid's rule (a device's tag, a page's folio and title, a
+    /// connection by its ends), or a library copy's name; `None` for a record without one (the collision dialog's
+    /// records, WP-S1.17 D24).
+    pub fn record_label(&self, kind: ew_derive::ew_schema::Kind, id: Uuid) -> Option<String> {
+        label_of(&self.query(), kind, id)
+    }
+
+    /// Whether the current model holds a record with the ID `id`, of any kind (a reloaded window's selection, WP-S1.17
+    /// D24).
+    pub fn record_exists(&self, id: Uuid) -> bool {
+        let q = self.query();
+        ew_derive::ew_schema::Kind::ALL
+            .iter()
+            .any(|k| record_json(&q, *k, id).is_some())
+    }
+
     /// The records that differ from this session to `to` (WP-S1.17 D26), each labelled with the tags of its own side
     /// (the module documentation), in key order.
     ///
@@ -193,7 +216,6 @@ impl Session {
         }
         Ok(out)
     }
-
 }
 
 /// The textconv of one project file (WP-S1.17 D27; doc 05 §11.6): one line per record in file order, `<kind> <label>
@@ -218,7 +240,10 @@ pub fn textconv(session: Option<&Session>, bytes: &[u8]) -> (String, usize) {
         let line = match record {
             Ok(Value::Object(m)) => {
                 let kind = m.get("$k").and_then(Value::as_str).unwrap_or("record").to_owned();
-                let id = m.get("id").and_then(Value::as_str).and_then(|s| s.parse::<Uuid>().ok());
+                let id = m
+                    .get("id")
+                    .and_then(Value::as_str)
+                    .and_then(|s| s.parse::<Uuid>().ok());
                 let named = id.and_then(|id| {
                     let k = ew_derive::ew_schema::Kind::from_name(&kind)?;
                     label_of(q.as_ref()?, k, id)

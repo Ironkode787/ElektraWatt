@@ -1153,7 +1153,8 @@ impl Session {
                     .is_some_and(|n| (1..=19).contains(&n))
             })
             .collect();
-        let report = match checks::run_table_rules(&q, &INTEGRITY_RUN, checks::CheckMode::Release, &integrity) {
+        let report = match checks::run_table_rules(&q, &INTEGRITY_RUN, checks::CheckMode::Release, &integrity)
+        {
             Ok(report) => report,
             Err(cycle) => panic!("{cycle}"),
         };

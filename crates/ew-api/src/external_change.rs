@@ -235,7 +235,8 @@ impl Session {
         let _ = p.store.adopt_incoming(incoming, &model);
         self.engine.reload(model);
         if let Some(memo) = &mut self.memo {
-            *memo = crate::MemoStore::new(self.engine.model()).with_report_pages(std::sync::Arc::clone(&self.reports));
+            *memo = crate::MemoStore::new(self.engine.model())
+                .with_report_pages(std::sync::Arc::clone(&self.reports));
         }
         Ok(report)
     }

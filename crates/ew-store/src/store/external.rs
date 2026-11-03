@@ -10,7 +10,7 @@ use std::time::Duration;
 use ew_format::{Access as FormatAccess, MANIFEST, sha256};
 use ew_model::{AnyKey, Model};
 
-use super::{OpenMode, Opened, OpenReport, Store, asset_on_disk};
+use super::{OpenMode, OpenReport, Opened, Store, asset_on_disk};
 use crate::external::{Poll, QUIESCENCE, Unreadable};
 use crate::rows::{all_keys, row_value};
 use crate::vfs::join;
@@ -104,7 +104,11 @@ impl Store {
     }
 
     /// The keys among `keys` whose rows in `model` differ from the baseline's: what the next save must write.
-    pub fn changed_keys(&self, model: &Model, keys: impl IntoIterator<Item = AnyKey>) -> std::collections::BTreeSet<AnyKey> {
+    pub fn changed_keys(
+        &self,
+        model: &Model,
+        keys: impl IntoIterator<Item = AnyKey>,
+    ) -> std::collections::BTreeSet<AnyKey> {
         keys.into_iter()
             .filter(|k| {
                 let v = |m: &Model| m.row(k).map(|r| row_value(&r).ok());

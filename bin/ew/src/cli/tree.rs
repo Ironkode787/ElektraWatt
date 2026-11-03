@@ -262,10 +262,18 @@ enum Top {
 #[derive(Args, Debug)]
 struct DiffCli {
     /// The first side: a directory, an `.ewz`, an `.ewarchive`, `git:<rev>` or `rev:<label>`.
-    #[arg(value_name = "from", required_unless_present = "textconv", conflicts_with = "textconv")]
+    #[arg(
+        value_name = "from",
+        required_unless_present = "textconv",
+        conflicts_with = "textconv"
+    )]
     from: Option<String>,
     /// The second side.
-    #[arg(value_name = "to", required_unless_present = "textconv", conflicts_with = "textconv")]
+    #[arg(
+        value_name = "to",
+        required_unless_present = "textconv",
+        conflicts_with = "textconv"
+    )]
     to: Option<String>,
     /// Print one project file as text lines (git's textconv) instead.
     #[arg(long, value_name = "file", allow_hyphen_values = true)]

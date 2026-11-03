@@ -57,7 +57,10 @@ fn run_git_setup_with(
     let root = match git::worktree_root(&vfs, cwd) {
         Ok(Some(root)) => root,
         Ok(None) => {
-            eprintln!("error: {} is not in a git worktree; nothing was changed", cwd.display());
+            eprintln!(
+                "error: {} is not in a git worktree; nothing was changed",
+                cwd.display()
+            );
             return 2;
         }
         Err(e) => {
@@ -122,7 +125,11 @@ fn run_git_setup_with(
             return 2;
         }
     }
-    let _ = writeln!(output, "the merge driver and the textconv are configured ({} keys)", config.len());
+    let _ = writeln!(
+        output,
+        "the merge driver and the textconv are configured ({} keys)",
+        config.len()
+    );
     for (dir, rel) in projects.iter().zip(&relative) {
         match git::write_blocks(&vfs, dir) {
             Ok(written) if written.is_empty() => {
@@ -164,7 +171,10 @@ fn probe_hook(vfs: &ew_api::OsVfs, root: &Path, text: &str) -> Result<(), git::H
         .unwrap_or(dir);
     let path = common.join("hooks").join("post-merge");
     match std::fs::read(&path) {
-        Ok(old) if old != text.as_bytes() && !String::from_utf8_lossy(&old).lines().any(|l| l == git::HOOK_MARK) => {
+        Ok(old)
+            if old != text.as_bytes()
+                && !String::from_utf8_lossy(&old).lines().any(|l| l == git::HOOK_MARK) =>
+        {
             Err(git::HookError::Foreign(path))
         }
         _ => Ok(()),
@@ -218,11 +228,21 @@ mod tests {
         };
         let mut input = std::io::Cursor::new(b"y\n".to_vec());
         let mut output = Vec::new();
-        assert_eq!(run_git_setup_with(&a, &dir, Path::new("/ew"), false, &mut input, &mut output), 2);
+        assert_eq!(
+            run_git_setup_with(&a, &dir, Path::new("/ew"), false, &mut input, &mut output),
+            2
+        );
         assert!(output.is_empty());
         let mut declined = std::io::Cursor::new(b"n\n".to_vec());
-        assert_eq!(run_git_setup_with(&a, &dir, Path::new("/ew"), true, &mut declined, &mut output), 2);
-        let listed: Vec<_> = std::fs::read_dir(&dir).unwrap().filter_map(Result::ok).map(|e| e.file_name()).collect();
+        assert_eq!(
+            run_git_setup_with(&a, &dir, Path::new("/ew"), true, &mut declined, &mut output),
+            2
+        );
+        let listed: Vec<_> = std::fs::read_dir(&dir)
+            .unwrap()
+            .filter_map(Result::ok)
+            .map(|e| e.file_name())
+            .collect();
         assert_eq!(listed, vec![std::ffi::OsString::from(".git")], "nothing written");
         assert!(std::fs::read_dir(dir.join(".git")).unwrap().next().is_none());
         let _ = std::fs::remove_dir_all(&dir);

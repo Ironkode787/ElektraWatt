@@ -1123,6 +1123,19 @@ pub static ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_open(p),
         ),
     ),
+    // WP-S1.17 part 7 (D24): File ▸ Open .ewz…, asking Extract and open or Open read-only.
+    with_params(
+        "path?:path, how?:enum(extract|read_only), discard?:bool",
+        act(
+            "file.open_ewz",
+            Command,
+            Menu::File,
+            &[],
+            always,
+            slot(Menu::File),
+            |s, p| s.act_open_ewz(p),
+        ),
+    ),
     with_params(
         "index:uint, discard?:bool",
         needs_parameters(act(
@@ -1261,6 +1274,75 @@ pub static ACTIONS: &[ActionMeta] = &[
                 None,
                 |s, p| s.act_export_pdf(p),
             ),
+        ),
+    ),
+    // WP-S1.17 part 7 (D24): File ▸ Export .ewz…, the saved generation as one file.
+    with_params(
+        "path?:path, replace?:bool",
+        act(
+            "file.export_ewz",
+            Command,
+            Menu::File,
+            &[],
+            project_open,
+            slot(Menu::File),
+            |s, p| s.act_export_ewz(p),
+        ),
+    ),
+    // WP-S1.17 part 7 (D20, D24): an external change now, as the window's poll finds it; the upgrade dialog's Upgrade
+    // and save; the collision dialog's buttons and choices; Set up merge driver.
+    keeps_banner(parameterless(act(
+        "project.check_disk",
+        Command,
+        Menu::File,
+        &[],
+        project_open,
+        slot(Menu::File),
+        |s, _| s.act_check_disk(),
+    ))),
+    hidden(parameterless(act(
+        "file.upgrade",
+        Command,
+        Menu::File,
+        &[],
+        project_open,
+        None,
+        |s, _| s.act_upgrade(),
+    ))),
+    keeps_banner(with_params(
+        "take?:enum(mine|theirs)",
+        hidden(act(
+            "external.apply",
+            Command,
+            Menu::File,
+            &[],
+            project_open,
+            None,
+            |s, p| s.act_external_apply(p),
+        )),
+    )),
+    keeps_banner(with_params(
+        "row:uint, take:enum(mine|theirs)",
+        hidden(act(
+            "external.choose",
+            View,
+            Menu::File,
+            &[],
+            project_open,
+            None,
+            |s, p| s.act_external_choose(p),
+        )),
+    )),
+    with_params(
+        "confirm?:bool",
+        act(
+            "git.setup",
+            Command,
+            Menu::Project,
+            &[],
+            project_open,
+            None,
+            |s, p| s.act_git_setup(p),
         ),
     ),
     // WP-S3.07 part 3 (D10, ruling 5 of ID-1180): the print pre-dialog, its options settable at once; it builds its
