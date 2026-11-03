@@ -114,6 +114,10 @@ jobs:
       # ci/unsafe-allowlist.toml, and `unsafe` stands only in the files listed there.
       - name: unsafe allowlist
         run: cargo xtask check-unsafe
+      # NFR-I18N-02 (WP-S2.08 D11, ID-1226): no string literal reaches an egui text call in crates/ew-ui/src except
+      # the symbols listed in ci/ui-strings-allow.txt.
+      - name: window texts
+        run: cargo xtask check-ui-strings
 
   # CI-PR-14 (NFR-MAINT-10, WP-S1.22 D14): the API stability guard. `cargo xtask api-guard` compares the committed
   # snapshots of the published surfaces (the command schemas, bin/ew/api/cli.json, the result schemas, the query

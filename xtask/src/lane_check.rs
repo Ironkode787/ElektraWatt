@@ -39,7 +39,8 @@
 //!      checks `check-raw-read` and `check-disallowed-methods` run on any changed `.rs` file, since an allow attribute
 //!      or a raw-model read is not visible in a path; `check-test-layout` runs on any changed path under a `tests/`
 //!      directory and on any changed file that mentions `--test`; `check-unsafe` on any changed `.rs` file,
-//!      `Cargo.toml` or `ci/unsafe-allowlist.toml`; `map --check` (the shared-list markers) on any
+//!      `Cargo.toml` or `ci/unsafe-allowlist.toml`; `check-ui-strings` on any changed file of `crates/ew-ui/src` or
+//!      `ci/ui-strings-allow.txt`; `map --check` (the shared-list markers) on any
 //!      changed `.rs` file, `Cargo.toml` or `ci/dep-rules.toml`; `api-guard --base <rev>` when one of
 //!      [`API_SNAPSHOTS`] changed (FT-1007).
 //!   7. `trailers`: in-process over the non-merge commits of `<merge base>..HEAD` ([`trailers::commits`]). It fails
@@ -600,6 +601,9 @@ pub(crate) fn policy_commands(diff: &Diff, base: &str) -> Vec<Cmd> {
     }
     if any(&|f| f.ends_with(".rs") || manifest(f) || f == "ci/unsafe-allowlist.toml") {
         cmds.push(Cmd::xtask(&["check-unsafe"]));
+    }
+    if any(&|f| f.starts_with("crates/ew-ui/src/") || f == crate::ui_strings::ALLOW) {
+        cmds.push(Cmd::xtask(&["check-ui-strings"]));
     }
     if tests {
         cmds.push(Cmd::xtask(&["check-test-layout"]));
@@ -2168,6 +2172,29 @@ mod tests {
             !policy_commands(&diff(&["docs/design/18-quality-security-release.md"], &[]), BASE)
                 .contains(&check)
         );
+    }
+
+    /// ID-1226: `check-ui-strings` runs when the diff has a file of `crates/ew-ui/src` or the allowlist, and not for
+    /// another crate's file or documents alone.
+    #[test]
+    fn the_ui_strings_check_runs_with_the_window_sources_or_its_allowlist() {
+        let check = Cmd::xtask(&["check-ui-strings"]);
+        for files in [&["crates/ew-ui/src/dock.rs"][..], &["ci/ui-strings-allow.txt"]] {
+            assert!(
+                policy_commands(&diff(files, &[]), BASE).contains(&check),
+                "{files:?}"
+            );
+        }
+        for files in [
+            &["crates/ew-leaf/src/lib.rs"][..],
+            &["crates/ew-ui/tests/it/main.rs"],
+            &["docs/design/04-architecture.md"],
+        ] {
+            assert!(
+                !policy_commands(&diff(files, &[]), BASE).contains(&check),
+                "{files:?}"
+            );
+        }
     }
 
     /// Ruling 5: the fmt step runs settle's per-file rustfmt over the diff's `.rs` files, which reaches a test module
