@@ -1041,4 +1041,128 @@ mod tests {
         );
         assert_eq!(print_end(Err(Vec::new())), PrintEnd::Unavailable);
     }
+
+    /// The fixture of IN-2 (WP-S6.06 D3, D13) under the system's temporary directory, removed on drop: the flat tree
+    /// of D3 beside an executable at `x/flat`, the `share/elektrawatt` tree for an executable at `inst/bin`, an
+    /// executable directory with nothing near it at `x/empty`, and the directories the environment names at `env/`.
+    /// Each executable sits two levels below the root, so the source-tree fallback (`<exe dir>/../..`) lands on the
+    /// root, which holds none of the resources.
+    struct Layouts(PathBuf);
+
+    impl Layouts {
+        fn new() -> Layouts {
+            let root = std::env::temp_dir().join(format!("ew-locate-resources-{}", std::process::id()));
+            let _ = std::fs::remove_dir_all(&root);
+            for base in ["x/flat", "inst/share/elektrawatt"] {
+                for dir in ["samples/J-E-2416.ew", "content", "docs"] {
+                    std::fs::create_dir_all(root.join(base).join(dir)).unwrap();
+                }
+                std::fs::write(root.join(base).join("THIRD-PARTY-NOTICES.txt"), "notices").unwrap();
+            }
+            for dir in ["inst/bin", "x/empty", "env/sample", "env/content", "env/docs"] {
+                std::fs::create_dir_all(root.join(dir)).unwrap();
+            }
+            Layouts(root)
+        }
+    }
+
+    impl Drop for Layouts {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.0);
+        }
+    }
+
+    /// IN-2's child: run by [`locate_resources_finds_the_installed_layouts`] with `-- <case> <root>` and the
+    /// environment of the case set on the parent's side; run by the harness (no `--`), it does nothing.
+    #[test]
+    fn locate_resources_child() {
+        let args: Vec<String> = std::env::args().collect();
+        let Some(at) = args.iter().position(|a| a == "--") else {
+            return;
+        };
+        let root = PathBuf::from(&args[at + 2]);
+        let found = |dir: &str| locate_resources(Some(&root.join(dir).join("elektrawatt")));
+        let dir = |rel: &str| Some(root.join(rel).canonicalize().unwrap());
+        let notices = Some(root.join("x/flat/THIRD-PARTY-NOTICES.txt"));
+        match args[at + 1].as_str() {
+            "layouts" => {
+                // The flat tree: all four beside the executable.
+                assert_eq!(
+                    found("x/flat"),
+                    Resources {
+                        sample_dir: dir("x/flat/samples/J-E-2416.ew"),
+                        content_dir: dir("x/flat/content"),
+                        docs_dir: dir("x/flat/docs"),
+                        notices_file: notices,
+                    }
+                );
+                // `share/elektrawatt` one level up: the three directories; the notices are looked for beside the
+                // executable only, so the ones in that tree are not found.
+                assert_eq!(
+                    found("inst/bin"),
+                    Resources {
+                        sample_dir: dir("inst/share/elektrawatt/samples/J-E-2416.ew"),
+                        content_dir: dir("inst/share/elektrawatt/content"),
+                        docs_dir: dir("inst/share/elektrawatt/docs"),
+                        notices_file: None,
+                    }
+                );
+                // Nothing near the executable, and no executable path at all: every resource is absent.
+                assert_eq!(found("x/empty"), Resources::default());
+                assert_eq!(locate_resources(None), Resources::default());
+            }
+            "environment" => {
+                // The variables win over the flat tree; the notices have none and stay the ones beside the executable.
+                assert_eq!(
+                    found("x/flat"),
+                    Resources {
+                        sample_dir: dir("env/sample"),
+                        content_dir: dir("env/content"),
+                        docs_dir: dir("env/docs"),
+                        notices_file: notices,
+                    }
+                );
+                // The share layout's directories lose to the variables as well.
+                assert_eq!(found("inst/bin").content_dir, dir("env/content"));
+            }
+            other => panic!("unknown case {other}"),
+        }
+    }
+
+    /// IN-2 (WP-S6.06 D13): `locate_resources` over the flat layout of D3 and the `share/elektrawatt` layout, an
+    /// environment variable winning over both, and an absent resource `None`. Each case runs in a child process (this
+    /// test binary, `--exact tests::locate_resources_child`) with the variables set or removed by `Command::env`, so
+    /// that no variable of this process changes (`set_var` is `unsafe` in edition 2024, and this binary forbids
+    /// `unsafe`) and none of the caller's reaches the layout case.
+    #[test]
+    fn locate_resources_finds_the_installed_layouts() {
+        let fixture = Layouts::new();
+        let vars = [
+            ("EW_SAMPLE_DIR", "env/sample"),
+            ("EW_CONTENT_DIR", "env/content"),
+            ("EW_DOCS_DIR", "env/docs"),
+        ];
+        for case in ["layouts", "environment"] {
+            let mut child = std::process::Command::new(std::env::current_exe().unwrap());
+            child
+                .args(["--exact", "tests::locate_resources_child", "--nocapture", "--", case])
+                .arg(&fixture.0);
+            for (var, rel) in vars {
+                if case == "environment" {
+                    child.env(var, fixture.0.join(rel));
+                } else {
+                    child.env_remove(var);
+                }
+            }
+            let output = child.output().unwrap();
+            let said = format!(
+                "{}{}",
+                String::from_utf8_lossy(&output.stdout),
+                String::from_utf8_lossy(&output.stderr)
+            );
+            assert!(output.status.success(), "case {case}: {said}");
+            // The child ran the one test, not an empty filter.
+            assert!(said.contains("test result: ok. 1 passed"), "case {case}: {said}");
+        }
+    }
 }
