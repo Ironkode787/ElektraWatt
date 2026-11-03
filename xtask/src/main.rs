@@ -90,7 +90,8 @@ commands:
   check-trailers --range <a>..<b>
                        the record trailers of every non-merge commit in the range (CONTRIBUTING.md, \"Records:
                        commit trailers\"): no unknown key or malformed value; each cited ID, FT and Spec path
-                       exists at that commit; a commit that changes golden/** carries Golden:
+                       exists at that commit; a commit that changes golden/** carries Golden:; no record line
+                       stands outside the commit's trailer block
   records [--write|--check]
                        docs/plan/records.md (the decision index and the open follow-up tasks) and the status block
                        of doc 01 §3.8, from docs/plan/decisions.md, docs/plan/follow-ups.md, the frozen tables and
@@ -146,9 +147,10 @@ commands:
                        (api-guard when an API snapshot changed), the trailers check and the fuzz workspace check,
                        each by its trigger. Workspace-wide files without -p fail the nextest step. A rewrite by
                        fmt or settle stops the run: each later step is not run (commit the rewrites and run
-                       again), and the run fails; a failed step does not stop it. --trailers \"Decision: ID-n, ...\"
-                       (repeatable) fails the trailers step naming each item that no commit since the merge base
-                       carries under its key; without it the step is skipped. Prints the failed steps' logs whole
+                       again), and the run fails; a failed step does not stop it. The trailers step fails naming each
+                       record line of a commit since the merge base that stands outside git's trailer block, and with
+                       --trailers \"Decision: ID-n, ...\" (repeatable) each item that no such commit carries under
+                       its key. Prints the failed steps' logs whole
                        and one line per step (ok | ok (from memory; ...) | rewrote <files> | FAILED | skipped
                        (<why>) | not run (<why>)); logs in target/lane-check/, a summary and the records of the
                        passed steps in target/lane-check.json. On a clean worktree a step that passed on the same
