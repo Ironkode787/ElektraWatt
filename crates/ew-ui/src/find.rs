@@ -26,6 +26,7 @@ use ew_viewmodel::strings;
 use serde_json::json;
 
 use crate::app::Event;
+use crate::components::Tip as _;
 
 /// The find pane's state between frames.
 #[derive(Default)]
@@ -437,6 +438,8 @@ impl FindPane {
                             n.set_description(marked);
                             n.set_selected(selected);
                         });
+                        // C49-p5b#1: a cut row shows its whole line in its tooltip (doc 16a §6.6).
+                        let response = response.tip(name);
                         if response.double_clicked() {
                             events.push(Event::Action("ui.focus", json!({"area": "find"})));
                             events.push(Event::Action("find.row", json!({ "to": i + 1 })));

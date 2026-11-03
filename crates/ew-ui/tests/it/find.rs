@@ -339,13 +339,13 @@ fn ax7_results_are_named_in_plain_text_and_only_the_rows_on_show_are_built() {
 }
 
 /// C49-p5#1: a result longer than the pane and a result with a line break keep one line's height (the row truncates),
-/// so the cursor, moved past them, sits inside the list; its name and description keep the whole line, and it alone
-/// is selected for AccessKit.
+/// so the cursor, moved past them, sits inside the list at the 1280 × 800 floor and at 1920 × 1080; its name and
+/// description keep the whole line with the replacement, its tooltip shows that line (C49-p5b#1), and it alone is
+/// selected for AccessKit.
 #[test]
 fn long_and_two_line_results_keep_the_cursor_inside_the_list() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "204");
-    h.set_size(egui::Vec2::new(1280.0, 800.0));
     h.key_press_modifiers(Modifiers::COMMAND, Key::H);
     settle(&mut h);
     let pane_name = ew_ui::ew_viewmodel::strings::text(ew_ui::ew_viewmodel::key!("pane-find")).to_owned();
@@ -356,55 +356,73 @@ fn long_and_two_line_results_keep_the_cursor_inside_the_list() {
         .fonts_mut(|f| f.row_height(&egui::TextStyle::Body.resolve(&style)));
     let one_line = (line + 2.0 * style.spacing.button_padding.y).max(style.spacing.interact_size.y);
     let long = "a replacement that runs past the right edge of the pane ".repeat(6);
-    for replacement in [long.trim_end(), "first line\nsecond line"] {
-        dispatch(&mut h, "find.fields", json!({"fields": ["function_text"]}));
-        dispatch(&mut h, "find.folios", json!({"folios": []}));
-        dispatch(&mut h, "find.text", json!({"text": "e"}));
-        dispatch(&mut h, "find.replacement", json!({ "text": replacement }));
-        dispatch(&mut h, "find.run", json!({}));
+    for size in [egui::Vec2::new(1280.0, 800.0), egui::Vec2::new(1920.0, 1080.0)] {
+        h.set_size(size);
         settle(&mut h);
-        let hits = h.state().shell().find_state().results().unwrap().hits.clone();
-        let replaced = hits.iter().filter(|hit| hit.after.is_some()).count();
-        assert!(replaced > 12, "{replaced} of {} results replaced", hits.len());
-        for to in [12, hits.len()] {
-            dispatch(&mut h, "find.row", json!({ "to": to }));
+        for replacement in [long.trim_end(), "first line\nsecond line"] {
+            dispatch(&mut h, "find.fields", json!({"fields": ["function_text"]}));
+            dispatch(&mut h, "find.folios", json!({"folios": []}));
+            dispatch(&mut h, "find.text", json!({"text": "e"}));
+            dispatch(&mut h, "find.replacement", json!({ "text": replacement }));
+            dispatch(&mut h, "find.run", json!({}));
             settle(&mut h);
-            let options = options(&h);
-            let cursor: Vec<_> = options
-                .iter()
-                .filter(|o| o.accesskit_node().is_selected() == Some(true))
-                .collect();
-            assert_eq!(cursor.len(), 1, "{replacement:?}, row {to}");
-            assert!(options.iter().all(|o| o.accesskit_node().is_selected().is_some()));
-            let heights: Vec<f32> = options.iter().map(|o| o.rect().height()).collect();
-            assert!(
-                heights.iter().all(|&height| height <= one_line + 0.5),
-                "{replacement:?}, row {to}: rows of {heights:?} for one line of {one_line}"
-            );
-            let hit = &hits[to - 1];
-            let node = cursor[0].accesskit_node();
-            assert_eq!(node.label(), Some(ew_ui::find::result_line(hit, false)));
-            assert_eq!(node.description(), Some(ew_ui::find::result_line(hit, true)));
-            let mut list = cursor[0].parent();
-            while let Some(n) = &list
-                && n.accesskit_node().role() != egui::Role::ListBox
-            {
-                list = n.parent();
+            let hits = h.state().shell().find_state().results().unwrap().hits.clone();
+            let replaced = hits.iter().filter(|hit| hit.after.is_some()).count();
+            assert!(replaced > 12, "{replaced} of {} results replaced", hits.len());
+            for to in [12, hits.len()] {
+                let at = format!("{size:?}, {replacement:?}, row {to}");
+                dispatch(&mut h, "find.row", json!({ "to": to }));
+                settle(&mut h);
+                let options = options(&h);
+                let cursor: Vec<_> = options
+                    .iter()
+                    .filter(|o| o.accesskit_node().is_selected() == Some(true))
+                    .collect();
+                assert_eq!(cursor.len(), 1, "{at}");
+                assert!(options.iter().all(|o| o.accesskit_node().is_selected().is_some()));
+                let heights: Vec<f32> = options.iter().map(|o| o.rect().height()).collect();
+                assert!(
+                    heights.iter().all(|&height| height <= one_line + 0.5),
+                    "{at}: rows of {heights:?} for one line of {one_line}"
+                );
+                // A replaced hit, cut on screen: its name and description carry the whole line and the replacement.
+                let hit = &hits[to - 1];
+                assert!(hit.after.is_some(), "{at}: a replaced hit");
+                let whole = ew_ui::find::result_line(hit, false);
+                assert!(whole.contains(replacement), "{at}: {whole}");
+                let node = cursor[0].accesskit_node();
+                assert_eq!(node.label().as_deref(), Some(whole.as_str()));
+                assert_eq!(node.description(), Some(ew_ui::find::result_line(hit, true)));
+                let mut list = cursor[0].parent();
+                while let Some(n) = &list
+                    && n.accesskit_node().role() != egui::Role::ListBox
+                {
+                    list = n.parent();
+                }
+                let list = list.expect("the result list").rect();
+                let pane = h
+                    .get_all_by_role(egui::Role::Group)
+                    .find(|n| n.accesskit_node().label().as_deref() == Some(pane_name.as_str()))
+                    .expect("the find pane")
+                    .rect();
+                // The list runs from its top to the pane's bottom.
+                let row = cursor[0].rect();
+                assert!(
+                    row.top() >= list.top() && row.bottom() <= pane.bottom(),
+                    "{at}: the cursor's row {row:?} outside the list from {} to {}",
+                    list.top(),
+                    pane.bottom()
+                );
+                // Its tooltip: the whole line.
+                cursor[0].hover();
+                settle(&mut h);
+                settle(&mut h);
+                assert!(
+                    h.query_all_by_label(&whole)
+                        .any(|n| n.accesskit_node().role() == egui::Role::Label),
+                    "{at}: the tooltip with the whole line"
+                );
             }
-            let list = list.expect("the result list").rect();
-            let pane = h
-                .get_all_by_role(egui::Role::Group)
-                .find(|n| n.accesskit_node().label().as_deref() == Some(pane_name.as_str()))
-                .expect("the find pane")
-                .rect();
-            // The list runs from its top to the pane's bottom.
-            let row = cursor[0].rect();
-            assert!(
-                row.top() >= list.top() && row.bottom() <= pane.bottom(),
-                "{replacement:?}, row {to}: the cursor's row {row:?} outside the list from {} to {}",
-                list.top(),
-                pane.bottom()
-            );
         }
     }
 }
