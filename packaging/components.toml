@@ -57,7 +57,7 @@ version = "7.1.0"
 licence = "MIT"
 url = "https://github.com/actions/setup-python/tree/6d4fd22b20465ccc0f7354476588e8df7c9ca0e0"
 sha256 = ""
-checked_by = "pinned by its commit SHA in package.yml (cargo xtask check-workflows); stage.py --test compares its version comment and python-version with this list"
+checked_by = "pinned by its commit SHA in package.yml (cargo xtask check-workflows); stage.py's own tests compare its version comment and python-version with this list"
 used_for = "the Python of package.yml's windows job (FT-1225)"
 
 [[component]]
