@@ -471,7 +471,10 @@ fn a_csv_export_keeps_its_id_column_and_ew_is_refused() {
     let csv = tmp.0.join("x.csv");
     done(&mut shell, "navigator.export_table", json!({"path": text(&csv)}));
     let written = std::fs::read(&csv).unwrap();
-    assert!(written.starts_with(b"\xEF\xBB\xBFid,"), "excel-en: a BOM, then `id` and `,`");
+    assert!(
+        written.starts_with(b"\xEF\xBB\xBFid,"),
+        "excel-en: a BOM, then `id` and `,`"
+    );
     done(&mut shell, "navigator.import_table", json!({"path": text(&csv)}));
     assert_eq!(
         card_summary(&shell).unwrap(),
