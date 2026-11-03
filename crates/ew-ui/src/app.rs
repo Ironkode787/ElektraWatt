@@ -1113,6 +1113,14 @@ impl App {
         // shortly after, when the page's new tiles have had time to arrive.
         let marks_before = (self.shell.revision(), self.shell.tool_overlay().len());
         for event in events {
+            // FT-1130 (ID-1228 item 5): `ui.dismiss` while the app menu is open closes the menu and nothing else, as
+            // Escape does.
+            if matches!(event, Event::Action("ui.dismiss", _))
+                && egui::Popup::is_id_open(&ctx, crate::command_bar::app_menu_id())
+            {
+                egui::Popup::close_all(&ctx);
+                continue;
+            }
             self.apply(event);
         }
         // WP-S2.05 part 3: what a copy wrote goes to the system clipboard (egui's `copy_text`).

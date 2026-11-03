@@ -178,3 +178,28 @@ fn km3_the_editor_records_a_pressed_chord_and_shows_conflicts_and_shadowing() {
             .is_some()
     );
 }
+
+/// FT-1130 (ID-1228 item 5): `ui.dismiss` from a key while the app menu is open closes the menu and nothing else, as
+/// Escape does; with the menu closed the same key dismisses as before. A physical key of the user's keymap reaches the
+/// window's event loop with `ui.dismiss` (the logical keys leave it to Escape's own path).
+#[test]
+fn ui_dismiss_with_the_app_menu_open_closes_only_the_menu() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(
+        &tmp,
+        FIRST_RUN_DONE,
+        Some(
+            "[meta]\nname = \"Mine\"\nversion = 1\n\n[[bind]]\nkeys = \"phys:Backslash\"\naction = \"ui.dismiss\"\n\
+             context = \"global\"\n",
+        ),
+    );
+    assert_eq!(h.state().shell().banner(), None);
+    h.key_press(Key::F10);
+    settle(&mut h);
+    assert!(support::off_chrome(&h, "File").is_some(), "F10 opens the app menu");
+    let log = actions_of(&mut h, Modifiers::NONE, Key::Backslash);
+    assert!(support::off_chrome(&h, "File").is_none(), "the menu closed: {log:?}");
+    assert!(log.is_empty(), "nothing else ran: {log:?}");
+    let log = actions_of(&mut h, Modifiers::NONE, Key::Backslash);
+    assert_eq!(log.first().map(String::as_str), Some("ui.dismiss"), "{log:?}");
+}
