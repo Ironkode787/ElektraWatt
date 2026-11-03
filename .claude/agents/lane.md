@@ -25,6 +25,15 @@ how every lane works.
 3. Commit on your worktree's branch only. Never touch `claude/m0-foundations` or `main`, and never push.
 4. Never check out, switch, reset, stash or build in the main checkout.
 
+## The code you write
+
+- **Reuse before you write.** Look for what you need first in the workspace (the code map lists each crate's files),
+  then in the standard library, then in a dependency the workspace already has.
+- **No new dependency to save a few lines.** Write the few lines.
+- **Only what the brief asks.** Add no abstraction, option, setting or "for later" code that the brief and the spec do
+  not ask for, and leave out nothing they do ask for. Name what you chose not to build as a proposed FT row.
+- **Moved code keeps its checks.** Code you move or merge keeps its error handling and its validation.
+
 ## The edit loop
 
 - **One package set.** Choose it at the start: the crates you edit, plus the crates whose tests your brief names. Use
