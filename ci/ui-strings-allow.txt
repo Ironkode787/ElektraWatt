@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
-# SPDX-License-Identifier: CC0-1.0
+# SPDX-License-Identifier: MIT OR Apache-2.0
 
 # The string literals that may reach an egui text call in crates/ew-ui/src (`cargo xtask check-ui-strings`, WP-S2.08
 # D11): symbols, separators and digits only, never a word. One literal per line in its quotes, exactly as written in
