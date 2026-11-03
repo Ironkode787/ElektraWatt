@@ -51,6 +51,11 @@ packages=("gcc=$EW_GCC_VERSION" "libc6-dev=$EW_LIBC6_DEV_VERSION")
 apt_options=(-o Acquire::Retries=3 -o Acquire::http::Timeout=20 --no-install-recommends --yes)
 
 rm -f /etc/apt/sources.list.d/*
+# The image's /etc/apt/apt.conf.d/docker-clean deletes /var/cache/apt/archives/*.deb after every dpkg run (and after
+# `apt-get update`). The archives are the runner's folder, mounted into each run, and checked once by `stage.py debs`:
+# with the hook, the release run's install of gcc emptied it, and the AppImage run found no squashfs-tools or liblzo2-2
+# to install offline (package.yml run 6). Each run is a fresh container, so dropping the hook touches nothing else.
+rm -f /etc/apt/apt.conf.d/docker-clean
 {
   echo "deb https://snapshot.ubuntu.com/ubuntu/$EW_APT_SNAPSHOT jammy main"
   echo "deb https://snapshot.ubuntu.com/ubuntu/$EW_APT_SNAPSHOT jammy-updates main"
@@ -99,7 +104,11 @@ if [ "$mode" = check ]; then
 fi
 
 binaries=(elektrawatt ew)
-[ "$mode" = cli ] && binaries=(ew)
+cli_scan=""
+if [ "$mode" = cli ]; then
+  binaries=(ew)
+  cli_scan=--cli
+fi
 # The release check's environment step runs in the shell that starts the build, so it sees what cargo inherits.
 as_runner bash -c '
   set -euo pipefail
@@ -109,7 +118,9 @@ as_runner bash -c '
 dpkg-query --show | as_runner tee container-packages.txt > /dev/null
 failed=0
 for binary in "${binaries[@]}"; do
-  as_runner bash ci/release-check.sh scan "target/release/$binary" target "release-check-$binary.md" || failed=1
+  # `ew` alone (cli) has no x11-dl, which only the window's program pulls in: the scan's section 3 does not apply.
+  as_runner bash ci/release-check.sh scan ${cli_scan:+"$cli_scan"} "target/release/$binary" target \
+    "release-check-$binary.md" || failed=1
   newest="$(objdump -T "target/release/$binary" | { grep -o 'GLIBC_[0-9.]*' || true; } | sed 's/GLIBC_//' | sort -uV | tail -n 1)"
   highest="$(printf '%s\n%s\n' "$newest" 2.35 | sort -V | tail -n 1)"
   echo "linux-container: the highest GLIBC_ version of $binary is $newest (at most 2.35)"

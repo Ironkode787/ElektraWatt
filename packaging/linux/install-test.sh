@@ -72,7 +72,7 @@ inside() {
   tree_listing "$root" > "$out/listing-after.txt"
   chmod -R u+w "$appdir"
   diff "$out/listing-before.txt" "$out/listing-after.txt" || fail "the programs changed the extracted tree (IN-10)"
-  echo "install-test: IN-10 to IN-12 on the extraction, read-only${resources:+, with D13's resource runs}: passed"
+  echo "install-test: IN-10 to IN-12 on the extraction, read-only${resources:+, with the resource runs of D13}: passed"
 }
 
 container() {

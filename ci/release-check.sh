@@ -17,15 +17,18 @@
 #       The names are read from the environment this shell passes to its children, which is what cargo and the build
 #       scripts see, so a name that is no valid shell identifier (`PKG_CONFIG_x86_64-unknown-linux-gnu`) is caught too.
 #
-#   release-check.sh scan <binary> <target-dir> <report.md>
+#   release-check.sh scan [--cli] <binary> <target-dir> <report.md>
 #       After the build. Fails on any hit of
-#       1. a build-host path in the binary (`strings -a`): `/home/`, `/usr/lib/x86_64-linux-gnu`, `/opt/`, and the
+#       1. a build-host path in the binary (`strings -a`): `/home/`, `/usr/lib/x86_64-linux-gnu`,
+#          `/usr/lib/aarch64-linux-gnu` (WP-S6.06 D16's arm64 build), `/opt/`, and the
 #          values of GITHUB_WORKSPACE, CARGO_HOME, RUSTUP_HOME and RUNNER_TEMP when set;
 #       2. a hard link (`readelf -d` NEEDED) to libwayland*, libxkbcommon*, libX11*, libxcb*, libEGL*, libGL* or
 #          libvulkan*: these are dlopen'ed at run time, and a hard link to any of them breaks NFR-PLAT-03's fallback
 #          chain (the program must start, and fall back, where the library is missing);
 #       3. a `Some(..)` library directory in x11-dl's generated `config.rs` under <target-dir>/release/build (with
 #          PKG_CONFIG=false every entry is `None`), or no such file at all (the layout changed under the check).
+#          With `--cli` (a build of `ew` alone, WP-S6.06 D16) section 3 reads "not applicable": x11-dl is a dependency
+#          of the window's program only, so that build has no such file; sections 1 and 2 run as always.
 #       Writes a Markdown report to <report.md> in every case, `ldd` output included for information. Strings listed
 #       in ALLOWED_STRINGS below are not counted as build-host paths.
 #
@@ -91,7 +94,12 @@ mode_env() {
 }
 
 mode_scan() {
-  [ "$#" -eq 3 ] || die "usage: release-check.sh scan <binary> <target-dir> <report.md>"
+  local cli=0
+  if [ "${1-}" = --cli ]; then
+    cli=1
+    shift
+  fi
+  [ "$#" -eq 3 ] || die "usage: release-check.sh scan [--cli] <binary> <target-dir> <report.md>"
   local binary="$1" target_dir="$2" report="$3"
   [ -f "$binary" ] || die "no binary at $binary"
   for tool in strings readelf ldd; do
@@ -114,7 +122,7 @@ mode_scan() {
     strings -a "$binary" > "$strings_file"
   fi
 
-  local -a patterns=("/home/" "/usr/lib/x86_64-linux-gnu" "/opt/")
+  local -a patterns=("/home/" "/usr/lib/x86_64-linux-gnu" "/usr/lib/aarch64-linux-gnu" "/opt/")
   local var
   for var in GITHUB_WORKSPACE CARGO_HOME RUSTUP_HOME RUNNER_TEMP; do
     if [ -n "${!var-}" ]; then
@@ -184,7 +192,9 @@ mode_scan() {
   } >> "$report"
   local -a configs
   mapfile -t configs < <(find "$target_dir/release/build" -path '*/x11-dl-*/out/config.rs' -type f 2> /dev/null | sort)
-  if [ "${#configs[@]}" -eq 0 ]; then
+  if [ "$cli" -eq 1 ]; then
+    echo "Not applicable (\`--cli\`): \`ew\` alone was built, and x11-dl belongs to the window's program." >> "$report"
+  elif [ "${#configs[@]}" -eq 0 ]; then
     failed=1
     echo "**Fail:** no \`x11-dl-*/out/config.rs\` under \`$target_dir/release/build\`." >> "$report"
   else
@@ -220,5 +230,5 @@ mode_scan() {
 case "${1-}" in
   env) shift; [ "$#" -eq 0 ] || die "usage: release-check.sh env"; mode_env ;;
   scan) shift; mode_scan "$@" ;;
-  *) die "usage: release-check.sh env | scan <binary> <target-dir> <report.md>" ;;
+  *) die "usage: release-check.sh env | scan [--cli] <binary> <target-dir> <report.md>" ;;
 esac

@@ -278,8 +278,10 @@ switch ($Mode) {
         if ($run.ExitCode -ne 0) { Fail "the uninstaller exited with $($run.ExitCode)" }
         # NSIS's uninstaller copies itself to %TEMP% and returns; the copy removes the installation.
         $deadline = (Get-Date).AddMinutes(2)
+        # `@()` around the call: a script block that outputs nothing gives $null, which has no Count under
+        # Set-StrictMode (package.yml run 6), and one path left would be a bare string.
         $left = { @($Root, $EntryKey, $Shortcut).Where({ Test-Path -LiteralPath $_ }) }
-        while ((& $left).Count -gt 0) {
+        while (@(& $left).Count -gt 0) {
             if ((Get-Date) -gt $deadline) {
                 Fail "two minutes after the uninstall, still there: $((& $left) -join ', ')"
             }

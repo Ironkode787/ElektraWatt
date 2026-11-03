@@ -597,12 +597,13 @@ What it does, in the container with `PKG_CONFIG=false`:
    home to `/rustup` and the checkout to `/build`: without it the panic locations of registry crates carry
    `/home/runner/.cargo/registry/…`. Cargo's `trim-paths` would do the same but is not stable on Rust 1.99.0.
 3. `bash ci/release-check.sh scan target/release/<binary> target release-check-<binary>.md` for `elektrawatt` and
-   `ew`: fails on any build-host path in the binary (`strings -a`: `/home/`, `/usr/lib/x86_64-linux-gnu`, `/opt/`, and the checkout, cargo home,
+   `ew`: fails on any build-host path in the binary (`strings -a`: `/home/`, `/usr/lib/x86_64-linux-gnu`, `/usr/lib/aarch64-linux-gnu`, `/opt/`, and the checkout, cargo home,
    rustup home and runner temp directory), on a `NEEDED` entry for `libwayland*`, `libxkbcommon*`, `libX11*`,
    `libxcb*`, `libEGL*`, `libGL*` or `libvulkan*` (`readelf -d`; all are loaded with `dlopen`, and a hard link to any
    of them breaks NFR-PLAT-03's fallback chain; the `required_features` guard of `check-features` keeps
    `wayland-sys/dlopen` on), and on any `Some(..)` library directory in x11-dl's generated `config.rs` (or no such
-   file). A legitimate run-time search-path string that a crate hard-codes can only pass through the script's reviewed
+   file; with `scan --cli`, the aarch64 build of `ew` alone, WP-S6.06 D16, this part does not apply: x11-dl
+   belongs to the window's program). A legitimate run-time search-path string that a crate hard-codes can only pass through the script's reviewed
    exception list `ALLOWED_STRINGS` (exact whole lines, each with a comment naming the crate, the reason and the FT or
    decision-log ID; empty today). The report lists each pattern's hit count with the first hits, the `NEEDED` entries,
    `ldd` for information, and the verdict; both reports go to the job summary and the artifact `release-check-report`
