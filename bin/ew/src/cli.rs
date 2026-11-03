@@ -4517,6 +4517,67 @@ mod tests {
         assert_eq!(text, "-X1");
     }
 
+    /// Decision log ID-1273: `merge-driver`'s help quotes doc 05 §11.1's three `.gitattributes` lines in full, as
+    /// `ew git setup` will write them, and says its exits.
+    #[test]
+    fn merge_driver_s_help_quotes_the_attribute_lines_and_its_exits() {
+        let cmd = command();
+        let help = cmd
+            .find_subcommand("merge-driver")
+            .and_then(clap::Command::get_long_about)
+            .map(ToString::to_string);
+        assert_eq!(
+            help.as_deref(),
+            Some(
+                "Merge one project file three-way: git's merge driver (plumbing).\n\nGit runs it for a file changed on \
+                 both sides, with `%O` (the ancestor), `%A` (ours, where the result goes), `%B` (theirs), `%L` (the \
+                 marker size, unused: conflicts are written as records, not markers) and `%P` (the file's path in the \
+                 repository); the older form `%O %A %B %P` gives the same result. `%P` is taken relative to the \
+                 deepest folder above it that holds a `manifest.json` in the current directory, the working tree, and \
+                 selects the merge: a record file per record, a library document, `manifest.json`; any other file \
+                 keeps ours. The three files are read under the reader's limits, and `%A` is replaced whole through a \
+                 temporary file beside it. Git takes a driver only from its own configuration, so it is registered by \
+                 two lines, `git config merge.elektrawatt.name \"ElektraWatt record merge\"` and `git config \
+                 merge.elektrawatt.driver \"ew merge-driver %O %A %B %L %P\"`, and selected by three lines of the \
+                 project's `.gitattributes`, `*.jsonl text eol=lf merge=elektrawatt diff=elektrawatt`, \
+                 `lib/**/*.json text eol=lf merge=elektrawatt diff=elektrawatt` and `manifest.json text eol=lf \
+                 merge=elektrawatt` (`eol=lf` keeps the manifest's hashes true under `core.autocrlf`). Exit 0 when \
+                 merged cleanly, 1 when conflict records were written or a side is larger than the reader's limit \
+                 (`%A` then as it was), 129 on an internal error (a file that cannot be read or written, a failure in \
+                 the merge) with `%A` as it was; 2 on usage errors."
+            )
+        );
+    }
+
+    /// Decision log ID-1273: `merge-driver`'s positionals take a leading `-` (a `%P` under a folder such as `-old.ew`),
+    /// in both forms; three arguments are refused naming `<P>`, the argument the usage line shows as required.
+    #[test]
+    fn merge_driver_takes_a_leading_hyphen_and_names_a_missing_p() {
+        let driver = |path: &str| {
+            Ok(Command::MergeDriver(merge_driver::MergeDriverArgs {
+                base: PathBuf::from("-o"),
+                ours: PathBuf::from("-a"),
+                theirs: PathBuf::from("-b"),
+                path: path.to_owned(),
+            }))
+        };
+        assert_eq!(
+            p(&["merge-driver", "-o", "-a", "-b", "7", "-old.ew/pages/x.jsonl"]),
+            driver("-old.ew/pages/x.jsonl")
+        );
+        assert_eq!(
+            p(&["merge-driver", "-o", "-a", "-b", "-old.ew/manifest.json"]),
+            driver("-old.ew/manifest.json")
+        );
+        assert_eq!(
+            p(&["merge-driver", "o", "a", "b"]),
+            usage_error(
+                "the following required arguments were not provided:\n  <P>",
+                "ew merge-driver <O> <A> <B> [L] <P>"
+            )
+        );
+    }
+
     /// Cycle 43, ruling 3: a valued flag takes the next word even when it starts with `-`; a second `--project` is an
     /// error, `--company` accumulates, another flag is last-wins; a bare `--` ends the options.
     #[test]

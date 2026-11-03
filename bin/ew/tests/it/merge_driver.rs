@@ -118,7 +118,8 @@ fn md6_the_w20_conflict_variant_writes_one_conflict_record_and_exits_1() {
     let ours = page_with(r#""overrides":{"csa":"1.5","colour":["BU"],"show_marker":true}"#);
     let theirs = page_with(r#""overrides":{"csa":"2.5","colour":["WH"],"show_marker":true}"#);
     let kept = page_with(r#""overrides":{"csa":"2.5","colour":["BU"],"show_marker":true}"#);
-    let conflict = r#"{"$k":"conflict","base":{"overrides":{}},"id":"1c5963b7-6c34-53d6-8fa6-9d02d4629711","kind":"connection","ours":{"overrides":{"colour":["BU"]}},"theirs":{"overrides":{"colour":["WH"]}}}"#;
+    // D14's member order (decision log ID-1273).
+    let conflict = r#"{"$k":"conflict","id":"1c5963b7-6c34-53d6-8fa6-9d02d4629711","kind":"connection","base":{"overrides":{}},"ours":{"overrides":{"colour":["BU"]}},"theirs":{"overrides":{"colour":["WH"]}}}"#;
     for five in [true, false] {
         let (out, merged) = t.merge([&base, &ours, &theirs], form(five, REPO_PAGE));
         assert_eq!(result(&out), (Some(1), String::new(), String::new()));
@@ -210,7 +211,8 @@ fn md5_a_side_that_cannot_be_read_exits_129() {
     assert_eq!(merged, "a\n");
 }
 
-/// The arguments are `%O %A %B %L %P` or `%O %A %B %P`: three are a usage error (exit 2), and nothing is written.
+/// The arguments are `%O %A %B %L %P` or `%O %A %B %P`: three are a usage error (exit 2) naming `<P>`, as the usage
+/// line shows it (decision log ID-1273), and nothing is written.
 #[test]
 fn three_arguments_are_a_usage_error() {
     let t = Tree::new();
@@ -220,8 +222,24 @@ fn three_arguments_are_a_usage_error() {
         (
             Some(2),
             String::new(),
-            "error: the following required arguments were not provided:\n  <L>\n\nUsage: ew merge-driver <O> <A> <B> [L] <P>\n\nFor more information, try '--help'.\n".to_owned()
+            "error: the following required arguments were not provided:\n  <P>\n\nUsage: ew merge-driver <O> <A> <B> [L] <P>\n\nFor more information, try '--help'.\n".to_owned()
         )
     );
     assert_eq!(merged, "a\n");
+}
+
+/// Decision log ID-1273: a `%P` under a top-level folder whose name begins with `-` is a path, not an option: the
+/// project in `-proj/` merges as in `proj/`.
+#[test]
+fn a_path_beginning_with_a_hyphen_merges() {
+    let t = Tree::new();
+    std::fs::rename(t.0.join("proj"), t.0.join("-proj")).unwrap();
+    let base = page_with(W20_OVERRIDES);
+    let ours = page_with(r#""overrides":{"csa":"1.5","colour":["BU"],"show_marker":true}"#);
+    let theirs = page_with(r#""overrides":{"csa":"2.5","show_marker":true}"#);
+    let expected = page_with(r#""overrides":{"csa":"2.5","colour":["BU"],"show_marker":true}"#);
+    let path = "-proj/J-E-2416.ew/pages/4aa43308-d0d3-57ee-be0c-d9383f429f50.jsonl";
+    let (out, merged) = t.merge([&base, &ours, &theirs], form(true, path));
+    assert_eq!(result(&out), (Some(0), String::new(), String::new()));
+    assert_eq!(merged, expected);
 }

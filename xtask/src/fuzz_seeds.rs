@@ -8,8 +8,8 @@
 //! this runs it into a temporary folder under `target/` (stable toolchain, dev profile, from the repository root,
 //! as `fuzz-build` builds `fuzz/`) and makes the three generated folders equal to what it wrote. In check mode it
 //! changes nothing in the corpus and names each seed that differs, is missing or is no longer made; it still builds
-//! `seed_corpus` into `fuzz/target/`, the fuzz workspace's own target folder. The hand-made `png_pdf` and `ewz_read`
-//! seeds are not touched.
+//! `seed_corpus` into `fuzz/target/`, the fuzz workspace's own target folder. The hand-made `png_pdf`, `ewz_read`
+//! and `merge_file` seeds are not touched.
 
 use std::collections::BTreeMap;
 use std::path::Path;

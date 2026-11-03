@@ -158,7 +158,9 @@ fn the_ewz_read_seeds_are_accepted() {
 }
 
 /// The merge seeds (hand-made from W20 of Golden A's page 102 and its manifest, AC-41's data) reach the reload
-/// property where they merge cleanly and the conflict where they do not; the input decodes as documented.
+/// property, where they merge cleanly and where they conflict (decision log ID-1273); the input decodes as documented.
+/// A record at the depth limit that both sides change at its leaf reloads too: its conflict record would nest one level
+/// deeper, so ours is kept.
 #[test]
 fn the_merge_file_seeds_reach_the_reload_and_the_conflict() {
     use ew_fuzz::merge_file::{Outcome, check, decode, encode};
@@ -172,8 +174,18 @@ fn the_merge_file_seeds_reach_the_reload_and_the_conflict() {
     };
     let conflict = Outcome {
         conflicts: 1,
-        reloaded: false,
+        reloaded: true,
     };
+    // 64 levels, the loader's limit: the record and 63 arrays.
+    let deep = |n: u8| {
+        format!(
+            "{{\"$k\":\"bond\",\"id\":\"0190d8a4-6d3e-7c41-8f00-000000000001\",\"x\":{}{n}{}}}\n",
+            "[".repeat(63),
+            "]".repeat(63)
+        )
+    };
+    let input = encode(0, deep(1).as_bytes(), deep(2).as_bytes(), deep(3).as_bytes());
+    assert_eq!(check(&input), conflict);
     for (name, outcome) in [
         ("manifest", clean),
         ("w20-clean", clean),

@@ -3,9 +3,10 @@
 
 //! The three-way merge target (WP-S1.17 part 4b, D15; decision log ID-1271 ruling 8): three arbitrary sides and a path
 //! selector through `ew_format::merge_file`, the core of `ew merge-driver`, under the default limits and the shipped
-//! chain. Properties: whatever the bytes, nothing panics; and a merge without conflicts of two sides that each reload
-//! editable reloads editable too. A side reloads when it loads alone at its path through `ew_format::load` without
-//! read-only, `manifest.json` when `Manifest::parse` reads it (the loader takes the manifest apart from the files).
+//! chain. Properties: whatever the bytes, nothing panics; and a merge of two sides that each reload editable reloads
+//! editable too, with or without conflicts (D14: "the file stays loadable"; decision log ID-1273). A side reloads when
+//! it loads alone at its path through `ew_format::load` without read-only, `manifest.json` when `Manifest::parse`
+//! reads it (the loader takes the manifest apart from the files).
 //!
 //! The input: one selector byte (an index into [`PATHS`], modulo its length), the base and ours each as a 4-byte
 //! little-endian length and its bytes (a length past the end takes the rest), then theirs, the rest.
@@ -43,7 +44,7 @@ pub struct Case<'a> {
 pub struct Outcome {
     /// The conflicts the merge wrote.
     pub conflicts: usize,
-    /// Whether the reload property was checked (no conflict, both sides reload).
+    /// Whether the reload property was checked (both sides reload).
     pub reloaded: bool,
 }
 
@@ -98,7 +99,7 @@ fn reloads(path: &str, bytes: &[u8]) -> bool {
 ///
 /// # Panics
 ///
-/// When a merge without conflicts of two sides that reload editable does not reload editable.
+/// When a merge of two sides that reload editable does not reload editable.
 pub fn check(input: &[u8]) -> Outcome {
     let case = decode(input);
     let merged = merge_file(
@@ -109,12 +110,13 @@ pub fn check(input: &[u8]) -> Outcome {
         &Limits::default(),
         &MIGRATIONS,
     );
-    let reloaded = merged.conflicts == 0 && reloads(case.path, case.ours) && reloads(case.path, case.theirs);
+    let reloaded = reloads(case.path, case.ours) && reloads(case.path, case.theirs);
     if reloaded {
         assert!(
             reloads(case.path, &merged.bytes),
-            "a clean merge of {} does not reload editable:\n{}",
+            "a merge of {} with {} conflicts does not reload editable:\n{}",
             case.path,
+            merged.conflicts,
             String::from_utf8_lossy(&merged.bytes)
         );
     }

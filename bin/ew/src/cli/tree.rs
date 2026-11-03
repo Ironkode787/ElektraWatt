@@ -226,10 +226,11 @@ enum Top {
     /// it. Git takes a driver only from its own configuration, so it is registered by two lines,
     /// `git config merge.elektrawatt.name "ElektraWatt record merge"` and
     /// `git config merge.elektrawatt.driver "ew merge-driver %O %A %B %L %P"`, and selected by three lines of the
-    /// project's `.gitattributes`, `*.jsonl merge=elektrawatt`, `lib/**/*.json merge=elektrawatt` and
-    /// `manifest.json merge=elektrawatt`. Exit 0 when merged cleanly, 1 when conflict records were written or a side is larger than the reader's limit
-    /// (`%A` then as it was), 129 on an internal error (a file that cannot be read or written, a failure in the
-    /// merge) with `%A` as it was; 2 on usage errors.
+    /// project's `.gitattributes`, `*.jsonl text eol=lf merge=elektrawatt diff=elektrawatt`,
+    /// `lib/**/*.json text eol=lf merge=elektrawatt diff=elektrawatt` and `manifest.json text eol=lf merge=elektrawatt`
+    /// (`eol=lf` keeps the manifest's hashes true under `core.autocrlf`). Exit 0 when merged cleanly, 1 when conflict
+    /// records were written or a side is larger than the reader's limit (`%A` then as it was), 129 on an internal
+    /// error (a file that cannot be read or written, a failure in the merge) with `%A` as it was; 2 on usage errors.
     #[command(override_usage = "ew merge-driver <O> <A> <B> [L] <P>")]
     MergeDriver(MergeDriverCli),
 }
@@ -1418,23 +1419,24 @@ struct SchemaCli {
     name: String,
 }
 
-/// `ew merge-driver`.
+/// `ew merge-driver`. Every positional takes a leading `-`: `%P` may name a folder such as `-old.ew`. The fourth is
+/// named `P`, as the usage line shows the required one, so that three arguments are refused naming `<P>`.
 #[derive(Args, Debug)]
 struct MergeDriverCli {
     /// `%O`: the ancestor's version of the file.
-    #[arg(value_name = "O")]
+    #[arg(value_name = "O", allow_hyphen_values = true)]
     base: PathBuf,
     /// `%A`: ours; the merged file is written here.
-    #[arg(value_name = "A")]
+    #[arg(value_name = "A", allow_hyphen_values = true)]
     ours: PathBuf,
     /// `%B`: theirs.
-    #[arg(value_name = "B")]
+    #[arg(value_name = "B", allow_hyphen_values = true)]
     theirs: PathBuf,
-    /// `%L` (unused) followed by `%P`, or `%P` alone.
-    #[arg(value_name = "L")]
+    /// `%P` alone, or `%L` (unused) when `%P` follows it.
+    #[arg(value_name = "P", allow_hyphen_values = true)]
     fourth: PathBuf,
-    /// `%P`: the file's path in the repository.
-    #[arg(value_name = "P")]
+    /// `%P` after `%L`: the file's path in the repository.
+    #[arg(value_name = "P", allow_hyphen_values = true)]
     path: Option<PathBuf>,
 }
 
