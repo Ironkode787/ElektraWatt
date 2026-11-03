@@ -241,7 +241,7 @@ pub fn assert_fits(harness: &Harness<'_, App>) {
 }
 
 /// The problems [`assert_fits`] reports, each as `<role> "<label>" <what>`.
-pub fn fit_problems(harness: &Harness<'_, App>) -> Vec<String> {
+pub fn fit_problems<S>(harness: &Harness<'_, S>) -> Vec<String> {
     use egui::accesskit::{Action, Rect, Role};
     const SLACK: f64 = 1.0;
     let inside = |a: &Rect, b: &Rect| a.x0 >= b.x0 - SLACK && a.x1 <= b.x1 + SLACK;

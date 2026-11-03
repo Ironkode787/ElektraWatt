@@ -88,6 +88,56 @@ fn the_fit_check_finds_a_node_that_leaves_the_window() {
     );
 }
 
+/// A fixture: the buttons "One" and "Two", 45 × 25 each, side by side `gap` apart (negative: overlapping) in a parent
+/// bounded at 20, 20 (100 × 40), in a 400 × 300 window.
+fn side_by_side(gap: f32) -> Harness<'static> {
+    let mut h = Harness::builder()
+        .with_size(egui::vec2(400.0, 300.0))
+        .with_context_setup(ew_ui::fonts::install)
+        .build_ui(move |ui| {
+            let frame = egui::Rect::from_min_size(egui::pos2(20.0, 20.0), egui::vec2(100.0, 40.0));
+            let builder = egui::UiBuilder::new()
+                .max_rect(frame)
+                .layout(egui::Layout::left_to_right(egui::Align::Min));
+            ui.scope_builder(builder, |inner| {
+                let id = inner.unique_id();
+                inner.ctx().accesskit_node_builder(id, |n| {
+                    n.set_bounds(egui::accesskit::Rect::new(20.0, 20.0, 120.0, 60.0));
+                });
+                inner.spacing_mut().item_spacing.x = gap;
+                for name in ["One", "Two"] {
+                    inner.add(egui::Button::new(name).min_size(egui::vec2(45.0, 25.0)));
+                }
+            });
+        });
+    h.run();
+    h
+}
+
+/// The fit check finds a node cut across by its bounded parent, and only that.
+#[test]
+fn the_fit_check_finds_a_node_that_leaves_its_parent() {
+    assert_eq!(
+        support::fit_problems(&side_by_side(30.0)),
+        [
+            "Button \"Two\" at Rect { x0: 95.0, y0: 20.0, x1: 140.0, y1: 45.0 } leaves its parent at \
+             Rect { x0: 20.0, y0: 20.0, x1: 120.0, y1: 60.0 }"
+        ]
+    );
+}
+
+/// The fit check finds two interactive siblings that overlap, and only that.
+#[test]
+fn the_fit_check_finds_two_siblings_that_overlap() {
+    assert_eq!(
+        support::fit_problems(&side_by_side(-10.0)),
+        [
+            "Button \"Two\" at Rect { x0: 55.0, y0: 20.0, x1: 100.0, y1: 45.0 } overlaps \
+             Button \"One\" at Rect { x0: 20.0, y0: 20.0, x1: 65.0, y1: 45.0 }"
+        ]
+    );
+}
+
 /// The place and wire flows of `place.rs`: a symbol picked, its ghost, the placement; the Wire tool, its start, its
 /// finish.
 #[test]
