@@ -166,9 +166,7 @@ fn mg1_an_older_project_opens_migrated_with_its_changed_files_dirty() {
     store.close();
 
     let (vfs, root) = mem_of(files_v0());
-    let e = Store::open(&root, options(&vfs, 1))
-        .err()
-        .expect("the shipped chain refuses");
+    let e = Store::open(&root, options(&vfs, 1)).expect_err("the shipped chain refuses");
     assert!(matches!(e, OpenError::Migration(_)), "{e:?}");
     assert_eq!(
         e.to_string(),
@@ -182,9 +180,7 @@ fn mg1_an_older_project_opens_migrated_with_its_changed_files_dirty() {
 fn mg2_a_failing_step_refuses_the_open_and_changes_nothing() {
     let (vfs, root) = mem_of(files_v0());
     let before = vfs.files(&root);
-    let e = Store::open(&root, chain_options(&vfs, &FAILING))
-        .err()
-        .expect("refused");
+    let e = Store::open(&root, chain_options(&vfs, &FAILING)).expect_err("refused");
     assert_eq!(
         e.to_string(),
         "the project cannot be migrated from its older format: project.jsonl line 1 at /profile: the profile \
