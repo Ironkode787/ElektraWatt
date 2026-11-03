@@ -34,8 +34,11 @@
 //!   [`StoreOptions::migrations`], and its first save waits for the user's consent ([`Store::confirm_upgrade`];
 //!   WP-S1.17 D10, D11).
 //!
-//! Not in v0: the watcher and the external-change merge (§9), the rest of git integration (§11) and
-//! journal snapshot slots (§8.1), which are later work packages.
+//! - **Cloud folders** ([`cloud`]): whether a project lies in a folder a sync client keeps (doc 05 §15; WP-S1.17 D25).
+//! - **External change** ([`external`]): the manifest polled, the incoming generation read and merged three-way with
+//!   the session's model, adopted as the baseline with the journal following it (doc 05 §9; WP-S1.17 D20 to D23).
+//!
+//! Not in v0: journal snapshot slots (§8.1), a later work package.
 //!
 //! The save is synchronous and takes an immutable snapshot (`&Model`), so it can move to a writer thread
 //! unchanged (NFR-PERF-12; budgets are measured at milestones).
@@ -54,7 +57,9 @@ pub use ew_zip as zip;
 
 pub mod archive;
 pub mod clock;
+pub mod cloud;
 pub mod ewz;
+pub mod external;
 pub mod git;
 pub mod journal;
 pub mod lock;
@@ -66,7 +71,7 @@ mod vfs;
 pub use clock::{Clock, ManualClock, SystemClock};
 pub use lock::{HEARTBEAT, Identity, LockInfo, LockRecord, OsProbe, ProcessProbe, ProcessState, STALE_AFTER};
 pub use store::{
-    Access, BASE_MEMBER, BrokenLine, Changes, Generation, GenerationError, LockState, OpenError, OpenMode,
+    Access, BASE_MEMBER, BrokenLine, Changes, Generation, GenerationError, Incoming, LockState, OpenError, OpenMode,
     OpenReport, Opened, PurgeError, PurgeFile, PurgePlan, READ_ONLY_POLL, READ_ONLY_WAIT, RENAME_BACKOFF,
     ReadOnlyReason, RecoverError, Recovered, SaveError, SaveReport, SaveStep, Store, StoreOptions,
     default_state_dir,

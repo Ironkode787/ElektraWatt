@@ -30,8 +30,10 @@ use crate::rows::{
 };
 use crate::vfs::{EntryKind, OsVfs, Vfs, is_transient, join};
 
+mod external;
 mod purge;
 
+pub use external::Incoming;
 pub use purge::{PurgeError, PurgeFile, PurgePlan};
 
 /// How long a read-only opener waits for a save in progress (doc 05 §6.1, §6.4: 200 ms steps, 5 s).
@@ -402,6 +404,12 @@ pub enum SaveError {
         /// The older format.
         from: String,
     },
+    /// The project changed on disk, and the change collides with unsaved edits: the session holds it until a choice of
+    /// mine or theirs is made for each colliding field (WP-S1.17 D22). Nothing was written.
+    ExternalCollisions,
+    /// The project changed on disk and the change cannot be read (WP-S1.17 D21): the session keeps its model and its
+    /// edits. Nothing was written.
+    ExternalUnreadable,
 }
 
 impl fmt::Display for SaveError {
@@ -453,6 +461,14 @@ impl fmt::Display for SaveError {
                 f,
                 "the project is in the older format {from}, and saving converts it to format {FORMAT}, which older \
                  versions of ElektraWatt cannot open; upgrade it first with `ew upgrade`, which keeps a backup"
+            ),
+            SaveError::ExternalCollisions => f.write_str(
+                "the project changed on disk, and the change collides with your edits; choose yours or theirs for each \
+                 field first",
+            ),
+            SaveError::ExternalUnreadable => f.write_str(
+                "The project on disk changed and cannot be read; your edits are kept. Save a copy, or wait until the \
+                 disk is complete.",
             ),
         }
     }
@@ -711,6 +727,9 @@ pub struct Store {
     manifest_bytes: Option<Vec<u8>>,
     /// A project of an older format migrated in memory, until its first save passes its commit point (WP-S1.17 D11).
     migrated: Option<Migrated>,
+    /// The changed `manifest.json` a poll saw first, by the hash of its bytes (`None`: absent), and when
+    /// ([`Store::poll`], WP-S1.17 D20).
+    watch: Option<(Option<[u8; 32]>, std::time::SystemTime)>,
 }
 
 /// `manifest.json` as read: the manifest, the SHA-256 of its bytes and the bytes.
@@ -893,6 +912,7 @@ impl Store {
             closed: false,
             manifest_bytes: None,
             migrated: None,
+            watch: None,
         };
         // From here on, an error drops `store`, which releases the lock.
         let result = store.load();
@@ -1761,6 +1781,7 @@ impl Store {
             closed: false,
             manifest_bytes: None,
             migrated: None,
+            watch: None,
         };
         if let Access::ReadOnly(reason) = access {
             return Err(OpenError::Format(format!("cannot create: {reason:?}")));

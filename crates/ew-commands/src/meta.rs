@@ -29,7 +29,8 @@ pub enum Exposure {
     HumanOnly,
     /// The import wizard and `ew import`.
     Import,
-    /// Normalisers only; never submitted from outside.
+    /// Submitted only from [`Origin::External`]: the session's external-change apply (WP-S1.17 D22); never from the
+    /// GUI, the CLI, scripts, MCP, plugins or Python. Such a command runs no normaliser and no prevent rule.
     Internal,
 }
 
@@ -37,18 +38,20 @@ impl Exposure {
     /// Whether an origin may submit a command of this class. `HumanOnly` is accepted from the GUI and
     /// from a CLI subcommand that a human confirmed on a terminal (`Origin::Cli { confirmed: true }`, D7),
     /// and refused for an unconfirmed CLI submission, command logs, scripts, MCP, plugins and Python;
-    /// `Import` is accepted from the GUI, the CLI and an import origin; `Internal` from nobody.
+    /// `Import` is accepted from the GUI, the CLI and an import origin; `Internal` only from [`Origin::External`]
+    /// (decision log ID-1284 ruling 1).
     pub fn allows(self, origin: &Origin) -> bool {
         match self {
             Exposure::Edit => true,
             Exposure::HumanOnly => matches!(origin, Origin::Gui | Origin::Cli { confirmed: true, .. }),
             Exposure::Import => matches!(origin, Origin::Gui | Origin::Cli { .. } | Origin::Import { .. }),
-            Exposure::Internal => false,
+            Exposure::Internal => matches!(origin, Origin::External),
         }
     }
 
     /// The stricter of two classes, by the origins they admit: `Edit` (every origin) < `Import` < `HumanOnly`
-    /// (the GUI and a confirmed CLI subcommand, a subset of `Import`'s) < `Internal` (none). A history step records
+    /// (the GUI and a confirmed CLI subcommand, a subset of `Import`'s) < `Internal` (the external-change apply only). A
+    /// history step records
     /// the strictest class of the commands it holds (a coalesced step the strictest of its parts; ADR-0008
     /// amendment 3's note, FT-404).
     #[must_use]
@@ -65,7 +68,7 @@ impl Exposure {
     }
 
     /// Whether an origin may undo or redo a history step of this class (ADR-0008 amendment 3's note, FT-404): a
-    /// `HumanOnly` step (and an `Internal` one, which no origin submits) only from the GUI and a CLI subcommand a
+    /// `HumanOnly` step (and an `Internal` one, an external change) only from the GUI and a CLI subcommand a
     /// human confirmed on a terminal, as [`Exposure::allows`] admits `HumanOnly`; an `Edit` or `Import` step from
     /// every origin.
     pub fn allows_history(self, origin: &Origin) -> bool {

@@ -157,6 +157,66 @@ pub fn worktree_root(vfs: &dyn Vfs, dir: &Path) -> io::Result<Option<PathBuf>> {
     Ok(None)
 }
 
+/// The git directory of the worktree `dir` lies in ([`worktree_root`]): its `.git` directory, or for a `.git` file (a
+/// linked worktree, a submodule) the directory its `gitdir: <path>` line names, a relative path taken from the
+/// worktree's root (doc 05 §9 step 3; WP-S1.17 D20). `None` outside a worktree, or when a `.git` file names no
+/// directory.
+///
+/// # Errors
+///
+/// An I/O error other than an absent `.git`.
+pub fn git_dir(vfs: &dyn Vfs, dir: &Path) -> io::Result<Option<PathBuf>> {
+    let Some(root) = worktree_root(vfs, dir)? else {
+        return Ok(None);
+    };
+    let dot_git = root.join(".git");
+    if vfs.stat(&dot_git)?.kind == crate::vfs::EntryKind::Dir {
+        return Ok(Some(dot_git));
+    }
+    let text = vfs.read(&dot_git)?;
+    let named = String::from_utf8_lossy(&text)
+        .lines()
+        .find_map(|l| l.strip_prefix("gitdir:").map(|p| p.trim().to_owned()))
+        .filter(|p| !p.is_empty());
+    Ok(named.map(|p| lexical(&root.join(p))))
+}
+
+/// `path` with its `.` and `..` components resolved by text, as a `gitdir` line means them.
+fn lexical(path: &Path) -> PathBuf {
+    let mut out = PathBuf::new();
+    for c in path.components() {
+        match c {
+            std::path::Component::CurDir => {}
+            std::path::Component::ParentDir => {
+                out.pop();
+            }
+            c => out.push(c),
+        }
+    }
+    out
+}
+
+/// Whether a git operation is in progress in the worktree `dir` lies in: its git directory ([`git_dir`]) holds
+/// `index.lock`, `MERGE_HEAD`, `rebase-merge/` or `rebase-apply/` (doc 05 §9 step 3; WP-S1.17 D20). An external change
+/// waits until none is there. `false` outside a worktree.
+///
+/// # Errors
+///
+/// An I/O error other than an absent entry.
+pub fn busy(vfs: &dyn Vfs, dir: &Path) -> io::Result<bool> {
+    let Some(git) = git_dir(vfs, dir)? else {
+        return Ok(false);
+    };
+    for name in ["index.lock", "MERGE_HEAD", "rebase-merge", "rebase-apply"] {
+        match vfs.stat(&git.join(name)) {
+            Ok(_) => return Ok(true),
+            Err(e) if matches!(e.kind(), io::ErrorKind::NotFound | io::ErrorKind::NotADirectory) => {}
+            Err(e) => return Err(e),
+        }
+    }
+    Ok(false)
+}
+
 /// The release's git port (D12). Every method but [`Git::worktree`] runs in the project directory `dir`.
 pub trait Git {
     /// The worktree `dir` lies in ([`worktree_root`]).
@@ -289,6 +349,24 @@ impl GitExe {
         }
     }
 
+    /// The short hash of the commit checked out in the worktree of `dir` (`git rev-parse --short HEAD`), the label of an
+    /// external change (WP-S1.17 D22); `None` when git does not answer with one (no commit yet, not a worktree). Only
+    /// lower-case hexadecimal of 4 to 64 digits is taken.
+    ///
+    /// # Errors
+    ///
+    /// [`GitError::Missing`] or [`GitError::Spawn`] when git cannot run.
+    pub fn short_head(&self, dir: &Path) -> Result<Option<String>, GitError> {
+        let out = match self.output(dir, "rev-parse", &["rev-parse", "--short", "HEAD"]) {
+            Ok(out) => out,
+            Err(GitError::Failed { .. }) => return Ok(None),
+            Err(e) => return Err(e),
+        };
+        let text = String::from_utf8_lossy(&out).trim().to_owned();
+        let hex = (4..=64).contains(&text.len()) && text.bytes().all(|b| matches!(b, b'0'..=b'9' | b'a'..=b'f'));
+        Ok(hex.then_some(text))
+    }
+
     /// [`GitExe::run`] that must succeed.
     fn ok(&self, dir: &Path, step: &'static str, args: &[&str]) -> Result<(), GitError> {
         let status = self.run(Some(dir), args)?;
@@ -396,6 +474,31 @@ mod tests {
             Some(PathBuf::from("/l"))
         );
         assert_eq!(worktree_root(&vfs, Path::new("/s/p.ew")).unwrap(), None);
+    }
+
+    /// D20: a git operation in progress is seen in the git directory, a `.git` file resolved to its `gitdir`.
+    #[test]
+    fn a_git_operation_in_progress_is_seen_through_a_git_file_too() {
+        let vfs = MemVfs::new(DirSync::Implicit);
+        vfs.put_dir(Path::new("/r/.git/worktrees/l"));
+        vfs.put_dir(Path::new("/r/a/p.ew"));
+        vfs.put(Path::new("/l/.git"), b"gitdir: ../r/.git/worktrees/l\n");
+        vfs.put_dir(Path::new("/l/p.ew"));
+        vfs.put_dir(Path::new("/s/p.ew"));
+        assert_eq!(
+            git_dir(&vfs, Path::new("/l/p.ew")).unwrap(),
+            Some(PathBuf::from("/r/.git/worktrees/l"))
+        );
+        for p in ["/r/a/p.ew", "/l/p.ew", "/s/p.ew"] {
+            assert!(!busy(&vfs, Path::new(p)).unwrap(), "{p}");
+        }
+        vfs.put(Path::new("/r/.git/index.lock"), b"");
+        assert!(busy(&vfs, Path::new("/r/a/p.ew")).unwrap());
+        assert!(!busy(&vfs, Path::new("/l/p.ew")).unwrap());
+        vfs.put_dir(Path::new("/r/.git/worktrees/l/rebase-merge"));
+        assert!(busy(&vfs, Path::new("/l/p.ew")).unwrap());
+        vfs.put(Path::new("/r/.git/worktrees/l/MERGE_HEAD"), b"0\n");
+        assert!(busy(&vfs, Path::new("/l/p.ew")).unwrap());
     }
 
     #[test]

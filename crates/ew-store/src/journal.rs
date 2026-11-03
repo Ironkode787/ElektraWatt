@@ -405,8 +405,61 @@ impl Journal {
 
     /// Starts the segment of base generation `base` and deletes the session's previous segment.
     pub fn start(&mut self, base: u64, base_manifest: Option<&[u8; 32]>) -> io::Result<()> {
+        let old = self.begin(base, base_manifest)?;
+        self.end(old);
+        Ok(())
+    }
+
+    /// The journal after an applied external change (doc 05 §9; WP-S1.17 D23, decision log ID-1284 ruling 9): starts the
+    /// segment of the incoming generation `base`, journals the net local diff of `keys` from `incoming` to `current` as
+    /// one transaction `external.rebase` (with the assets [`Journal::tx`] carries), and only then deletes the session's
+    /// previous segment, as after a save. A crash at any point leaves a segment that recovers the live model.
+    ///
+    /// # Errors
+    ///
+    /// An I/O error of the journal; the previous segment is then kept.
+    #[allow(clippy::too_many_arguments)]
+    pub fn rebase(
+        &mut self,
+        base: u64,
+        base_manifest: Option<&[u8; 32]>,
+        t: SystemTime,
+        incoming: &Model,
+        current: &Model,
+        keys: &[AnyKey],
+        on_disk: &dyn Fn(&AssetRef) -> bool,
+    ) -> io::Result<()> {
+        let old = self.begin(base, base_manifest)?;
+        if let Err(e) = self.tx(t, "external.rebase", "external", incoming, current, keys, on_disk) {
+            // The new segment does not hold the local edits: the old one stays the one to recover.
+            if let Some(new) = self.segment.take() {
+                let _ = self.vfs.remove_file(&new);
+            }
+            self.segment = old;
+            return Err(e);
+        }
+        self.end(old);
+        Ok(())
+    }
+
+    /// Deletes the previous segment `old` once the current one is durable.
+    fn end(&mut self, old: Option<PathBuf>) {
+        if let Some(old) = old {
+            if Some(&old) != self.segment.as_ref() {
+                let _ = self.vfs.remove_file(&old);
+            }
+        }
+    }
+
+    /// Writes the `open` line of a new segment of base `base` and makes it the current one; the previous one, returned,
+    /// stays on disk. A segment of the same name as the current one (a rebase onto a generation of the same number) is
+    /// written under a second name, so the current one is never truncated first.
+    fn begin(&mut self, base: u64, base_manifest: Option<&[u8; 32]>) -> io::Result<Option<PathBuf>> {
         self.vfs.create_dir_all(&self.dir)?;
-        let path = self.dir.join(format!("{}-{base}.jsonl", self.session));
+        let mut path = self.dir.join(format!("{}-{base}.jsonl", self.session));
+        if Some(&path) == self.segment.as_ref() {
+            path = self.dir.join(format!("{}-{base}-rebased.jsonl", self.session));
+        }
         let text = line(&[
             ("j", "open".into()),
             ("v", 1.into()),
@@ -436,13 +489,7 @@ impl Journal {
         }
         self.journalled.clear();
         self.segment_txs = 0;
-        let old = self.segment.replace(path);
-        if let Some(old) = old {
-            if Some(&old) != self.segment.as_ref() {
-                let _ = self.vfs.remove_file(&old);
-            }
-        }
-        Ok(())
+        Ok(self.segment.replace(path))
     }
 
     /// Journals a committed transaction: the field-level diff of `keys` from `before` to `after`, and the assets

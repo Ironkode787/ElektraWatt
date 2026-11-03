@@ -15,6 +15,8 @@
 //! `revision.release`, which are `HumanOnly` because they decide the four-eyes sign-off and the release history
 //! (WP-S1.18 D4, D5, D9, D13),
 //! and `project.assets.purge`, which is `HumanOnly` because deleted files do not come back (owner ruling, 2026-10-23).
+//! `external.apply` is of exposure class `Internal` and stability `Internal`: only the session's external-change apply
+//! submits it, from the origin `external` (WP-S1.17 D22, decision log ID-1284).
 
 mod assembly;
 mod assets;
@@ -30,6 +32,8 @@ mod device;
 mod drawing;
 mod edit;
 mod exchange;
+// WP-S1.17 part 6 (D22)
+mod external;
 mod fields;
 mod frames;
 pub(crate) mod items;
@@ -185,6 +189,8 @@ commands! {
     checks::UnwaiveFinding,
     // WP-S1.17 part 5: conflict records (D19)
     merge::ResolveConflicts,
+    // WP-S1.17 part 6: an external change (D22)
+    external::ApplyExternal,
     assets::PurgeAssets,
     exchange::ExchangeSymbol,
     drawing::SetDrawing,

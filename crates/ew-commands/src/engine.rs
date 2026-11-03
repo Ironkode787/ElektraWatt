@@ -34,7 +34,7 @@ use crate::command::{DynCommand, Outcome};
 use crate::diff::ModelDiff;
 use crate::error::CmdError;
 use crate::history::{History, HistoryEntry, HistoryLimits};
-use crate::meta::{CommandMeta, Cost, Origin};
+use crate::meta::{CommandMeta, Cost, Exposure, Origin};
 use crate::normalise::{Normaliser, normalise};
 use crate::registry::{AnyCommand, CommandRegistry};
 use crate::transaction::{Submit, Transaction, TxContext};
@@ -247,8 +247,8 @@ struct Prepared {
 pub struct Engine {
     /// This engine's identity (from [`NEXT_ENGINE`]).
     id: u64,
-    /// Bumped whenever the model is replaced other than by applying a batch, so that a preview of the
-    /// old model is never committed as prepared. v0 has no such replacement yet (reload is WP-S1.09).
+    /// Bumped whenever the model is replaced other than by applying a batch ([`Engine::reload`]), so that a preview of
+    /// the old model is never committed as prepared.
     generation: u64,
     model: Model,
     history: History,
@@ -316,6 +316,16 @@ impl Engine {
         &self.history
     }
 
+    /// Replaces the model by one reopened from disk (a read-only session's reload, WP-S1.17 D23): the history starts
+    /// again, and a preview of the old model is never committed as prepared.
+    pub fn reload(&mut self, model: Model) {
+        self.generation += 1;
+        self.history = History::new(self.history.limits());
+        self.model = model;
+        self.changes.clear();
+        self.assets_unsaved = false;
+    }
+
     /// Replaces the prevent hook.
     pub fn set_prevent_hook(&mut self, hook: Box<dyn PreventHook>) {
         self.prevent = hook;
@@ -379,7 +389,14 @@ impl Engine {
         let mut tx = TxBuilder::new(base, &mut *self.ids);
         tx.set_source(meta.name);
         let mut outcome = cmd.run(&mut tx)?;
-        let passes = normalise(&mut tx, &self.normalisers)?;
+        // An `Internal` command (an external change, WP-S1.17 D22) takes a state another build saved as it is: no
+        // normaliser rewrites it and no prevent rule judges it; the structural invariants hold.
+        let internal = meta.exposure == Exposure::Internal;
+        let passes = if internal {
+            1
+        } else {
+            normalise(&mut tx, &self.normalisers)?
+        };
         // the normalisers' notices follow the command's own
         for notice in tx.take_notices() {
             if !outcome.notices.contains(&notice) {
@@ -394,7 +411,7 @@ impl Engine {
                 &ops,
                 base.rev().next(),
                 &ApplyOptions {
-                    prevent: Some(&*self.prevent),
+                    prevent: (!internal).then_some(&*self.prevent),
                 },
             )?
         };

@@ -76,6 +76,8 @@ pub mod catalog;
 // WP-S1.22 part 1: the JSON results of the `ew` subcommands and their published schemas (D3, D5).
 pub mod cli_results;
 mod cmdlog;
+// WP-S1.17 part 6: external change (D20 to D23)
+mod external_change;
 pub mod fmt;
 pub mod geometry;
 pub mod import;
@@ -265,7 +267,8 @@ pub use ew_store::{
 /// The as-built archive's layout and atomic write, and the git port of a release (doc 05 §14; WP-S1.18 D11 to D13):
 /// the CLI and the shell name them through `ew-api` (no workspace edge of their own); likewise `.ewz` transport
 /// (doc 05 §12; WP-S1.17 D8, D9).
-pub use ew_store::{archive, ewz, git, zip};
+pub use ew_store::{archive, cloud, ewz, external, git, zip};
+pub use external_change::{DiskPoll, ExternalApplied, ExternalError};
 pub use new_project::{NewProjectKind, ProjectTemplate, SaveAsBasicError};
 pub use release::{Approval, ApproveError, FOUR_EYES_RULE, Gate, GateError, role_name};
 pub use release_run::{
@@ -476,6 +479,8 @@ struct Persistence {
     consented: bool,
     /// The upgrade's backup, once written ([`Session::upgrade_backup`]).
     backup: Option<std::path::PathBuf>,
+    /// The external-change state: the held change, the cloud rechecks (WP-S1.17 D20 to D22).
+    watch: external_change::Watch,
 }
 
 /// The most names an upgrade's backup tries: `.pre-<format>`, then `-2` up to this.
@@ -1006,6 +1011,7 @@ impl Session {
             refusal,
             consented: false,
             backup: None,
+            watch: external_change::Watch::new(dir),
         });
         // FT-814: this directory's stale release-run records (archive gone or released) go now.
         session.remove_stale_run_records();
@@ -1152,6 +1158,7 @@ impl Session {
             refusal: None,
             consented: false,
             backup: None,
+            watch: external_change::Watch::new(dir),
         });
         if let Some(p) = previous {
             p.store.close();
@@ -1177,6 +1184,8 @@ impl Session {
         let Some(p) = &mut self.persistence else {
             return Err(SaveError::ReadOnly(ew_store::ReadOnlyReason::Requested));
         };
+        // A held external change (WP-S1.17 D21, D22): nothing is written until it is applied or reads.
+        Session::external_hold(p)?;
         // The first save of a migrated project after the consent: the backup, verified, before any project byte
         // (WP-S1.17 D11, decision log ID-1221 ruling 5); a read-only session writes neither.
         if p.consented
