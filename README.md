@@ -1,7 +1,7 @@
 # ElektraWatt
 
-> **Funded by TWE-O B.V.** All funding for ElektraWatt comes from TWE-O B.V.; the project has no other funders or
-> sponsors.
+> **Funded by [TWE-O B.V.](https://www.twe-o.nl)** All funding for ElektraWatt comes from TWE-O B.V.; the project
+> has no other funders or sponsors.
 
 ElektraWatt (EW) is an open-source, offline-first desktop application for electrical control-cabinet design, written
 in Rust. It aims at the functionality of EPLAN Electric P8 class tools: schematics, devices and parts, terminals and
@@ -135,8 +135,8 @@ named in the [decision log](docs/plan/06-decision-log.md); lanes work in their o
 
 ## Funding
 
-ElektraWatt is funded entirely by **TWE-O B.V.** All funding for the project comes from TWE-O B.V.; there are no
-other funders, sponsors or grants.
+ElektraWatt is funded entirely by **[TWE-O B.V.](https://www.twe-o.nl)** All funding for the project comes from
+TWE-O B.V.; there are no other funders, sponsors or grants.
 
 ## Contributing
 
