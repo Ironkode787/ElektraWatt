@@ -100,7 +100,13 @@ fn colours() -> Vec<(String, [u8; 3])> {
         .iter()
         .enumerate()
         .map(|(i, &(r, g, b))| (format!("slot {} #{r:02X}{g:02X}{b:02X}", i + 1), [r, g, b]))
-        .chain([(format!("selection #{:02X}{:02X}{:02X}", SELECTION[0], SELECTION[1], SELECTION[2]), SELECTION)])
+        .chain([(
+            format!(
+                "selection #{:02X}{:02X}{:02X}",
+                SELECTION[0], SELECTION[1], SELECTION[2]
+            ),
+            SELECTION,
+        )])
         .collect()
 }
 

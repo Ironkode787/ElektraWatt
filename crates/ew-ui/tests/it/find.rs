@@ -329,7 +329,10 @@ fn ax7_results_are_named_in_plain_text_and_only_the_rows_on_show_are_built() {
     );
     assert!(built.len() < n);
     // The cursor's option is selected for AccessKit, the others are not.
-    let selected: Vec<Option<bool>> = options(&h).iter().map(|o| o.accesskit_node().is_selected()).collect();
+    let selected: Vec<Option<bool>> = options(&h)
+        .iter()
+        .map(|o| o.accesskit_node().is_selected())
+        .collect();
     let mut expected = vec![Some(false); selected.len()];
     *expected.last_mut().unwrap() = Some(true);
     assert_eq!(selected, expected);
@@ -372,11 +375,7 @@ fn long_and_two_line_results_keep_the_cursor_inside_the_list() {
                 .filter(|o| o.accesskit_node().is_selected() == Some(true))
                 .collect();
             assert_eq!(cursor.len(), 1, "{replacement:?}, row {to}");
-            assert!(
-                options
-                    .iter()
-                    .all(|o| o.accesskit_node().is_selected().is_some())
-            );
+            assert!(options.iter().all(|o| o.accesskit_node().is_selected().is_some()));
             let heights: Vec<f32> = options.iter().map(|o| o.rect().height()).collect();
             assert!(
                 heights.iter().all(|&height| height <= one_line + 0.5),
