@@ -23,7 +23,9 @@ get the code, not the orchestrator's conclusions.
 
    Look at, in order:
    1. format bytes and data loss;
-   2. determinism, panics, and unbounded work on hostile input;
+   2. determinism; panics on values the format or the UI allows; the limits at the trust boundaries (NFR-SEC-02,
+      NFR-SEC-06, NFR-REL-12). Slow work on large valid data is performance: no finding before the release (owner's
+      rule);
    3. spec gaps (what was built against what was specified);
    4. tests: does each fail without the change, does it assert the whole text, does it pin no total of a growing set;
    5. CI and the supply chain;

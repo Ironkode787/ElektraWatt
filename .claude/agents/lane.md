@@ -120,8 +120,10 @@ Report each item as "checked: `<place>`" or "not applicable".
 - **Every call site:** a changed behaviour reaches every path that shows or runs it. Grep for the old function and
   text.
 - **Keys from the keymap:** a text that names a key takes it from the keymap, never hard-coded.
-- **Hostile input:** memory and time stay bounded (sizes, counts, nesting), and bad input is refused in words, never
-  by an abort.
+- **Trust boundaries:** a change to a parser of external bytes, the SQL or rhai sandbox, or a worker keeps the limits
+  of NFR-SEC-02, NFR-SEC-06 and NFR-REL-12. Past the loader, data is trusted: add no caps of your own.
+- **Allowed values:** a value the format or the UI allows never panics, and bad input a user types is refused in
+  words.
 - **All or nothing:** a file write is atomic. A failure leaves the old file and no stray temporary file.
 - **Consumers:** importers, `library.update`, catalogues, briefs and the CLI follow the change.
 - **The spec:** the built behaviour matches the spec. Report a deviation as a proposed row; do not hide it.

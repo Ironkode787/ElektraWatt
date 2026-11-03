@@ -67,8 +67,8 @@ The main session orchestrates. It plans each cycle, briefs Claude subagents, int
      the fixture query that produced it (cycle-42 retro). An expectation with no source is left to the lane, with a
      stop.
    - **A ruling about existing behaviour quotes the old code line it rests on,** at the base (cycle-43 retro).
-   - **A fix that rewrites an algorithm gets an oracle over hostile inputs** (cycle-44 retro). Its ruling names the
-     input classes the code accepts (for text: kerned pairs, ligatures, combining marks, CJK, right-to-left runs,
+   - **A fix that rewrites an algorithm gets an oracle over the input classes** (cycle-44 retro; amended 2026-11-03).
+     Its ruling names the input classes the code accepts (for text: kerned pairs, ligatures, combining marks, CJK, right-to-left runs,
      line breaks), and the test compares the old and the new results over them, or the ruling says which results
      change and why.
    - **Banned:** restating the spec, describing the code as it is, registry lists, copies of standing rules.
