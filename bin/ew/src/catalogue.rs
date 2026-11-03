@@ -465,6 +465,29 @@ pub const TABLE: &[Row] = &[
         result: None,
         stability: Stability::Preview,
     },
+    Row {
+        path: &["diff"],
+        exits: &[
+            exit(0, "the sides are equal, or differ without `--exit-code`; `--textconv` printed"),
+            exit(1, "the sides differ, with `--exit-code`"),
+            exit(2, "usage and open errors, a git side that cannot be read"),
+        ],
+        result: Some(ew_api::cli_results::DIFF),
+        stability: Stability::Preview,
+    },
+    Row {
+        path: &["git", "setup"],
+        exits: &[
+            exit(0, "configured"),
+            exit(
+                2,
+                "no consent (no terminal and no `--yes`, or declined), not in a git worktree, git missing or refusing, \
+                 a post-merge hook ElektraWatt did not write, write errors",
+            ),
+        ],
+        result: None,
+        stability: Stability::Preview,
+    },
 ];
 
 /// The subcommand paths of `cmd` (a built command) with their flags: a command is a path when it has no subcommands

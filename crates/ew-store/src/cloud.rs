@@ -12,6 +12,8 @@
 //! - **Dropbox**: the `path` of each account in Dropbox's `info.json` (`%APPDATA%\Dropbox\`, `%LOCALAPPDATA%\Dropbox\`,
 //!   `~/.dropbox/`), read through the [`Vfs`] seam and capped at [`INFO_JSON_MAX`] bytes.
 //!
+//! The environment is the caller's: a program reads it at its boundary and passes it in (doc 18 §3.5).
+//!
 //! A path is inside a folder when it starts with it, component by component, as given (no link is resolved). Online-only
 //! placeholders (Files On-Demand, iCloud stubs) are not detected: de-scoped under WP-S1.17 §14.4.
 
@@ -92,11 +94,6 @@ pub fn detect(vfs: &dyn Vfs, env: &dyn Fn(&str) -> Option<OsString>, path: &Path
         }
     }
     None
-}
-
-/// [`detect`] with this process's environment and `std::fs`.
-pub fn detect_here(path: &Path) -> Option<CloudService> {
-    detect(&crate::vfs::OsVfs, &|name| std::env::var_os(name), path)
 }
 
 /// The account folders Dropbox's `info.json` at `info` names (`{"personal": {"path": …}, "business": {"path": …}}`);

@@ -16,6 +16,8 @@ use ew_api::output::{
 };
 use ew_api::{BomMode, CmdLog, Export};
 
+mod collab;
+mod diff;
 mod merge_driver;
 mod merge_resolve;
 mod project_files;
@@ -89,6 +91,10 @@ pub enum Command {
     },
     /// `ew merge resolve`: the conflict records a merge left, resolved (WP-S1.17 D19).
     MergeResolve(merge_resolve::MergeResolveArgs),
+    /// `ew diff` (WP-S1.17 D26, D27).
+    Diff(diff::DiffArgs),
+    /// `ew git setup` (WP-S1.17 D28).
+    GitSetup(collab::GitSetupArgs),
     /// `ew merge-driver %O %A %B %L %P`: the merge driver for project files (WP-S1.17 D15).
     MergeDriver(merge_driver::MergeDriverArgs),
 }
@@ -568,6 +574,10 @@ pub struct CheckArgs {
     pub out: Option<PathBuf>,
     /// The language of the messages (`--lang`, a shipped language; default en-GB).
     pub lang: String,
+    /// Only the project-integrity check (`--integrity`, FT-191; WP-S1.17 D29).
+    pub integrity: bool,
+    /// With `integrity`: the project counts as just merged (`--after-merge`).
+    pub after_merge: bool,
 }
 
 /// The arguments of `ew import qet`.
@@ -696,6 +706,8 @@ pub fn run(cmd: Command) -> i32 {
         Command::Query(a) => query::run_query(&a),
         Command::Queries { json } => query::run_queries(json),
         Command::MergeResolve(a) => merge_resolve::run_merge_resolve(&a),
+        Command::Diff(a) => diff::run_diff(&a),
+        Command::GitSetup(a) => collab::run_git_setup(&a),
         Command::MergeDriver(a) => merge_driver::run_merge_driver(&a),
         Command::SqlSchema => {
             print!("{}", ew_api::sql::schema::schema_text());
@@ -3227,13 +3239,20 @@ fn run_check(a: &CheckArgs) -> i32 {
             }
         }
     };
-    let (session, opened) = match ew_api::Session::open_read_only(&dir, env!("CARGO_PKG_VERSION")) {
+    let (mut session, opened) = match ew_api::Session::open_read_only(&dir, env!("CARGO_PKG_VERSION")) {
         Ok(r) => r,
         Err(e) => {
             eprintln!("error: {}: {e}", dir.display());
             return 2;
         }
     };
+    if a.integrity {
+        if a.after_merge {
+            session.assume_merged();
+        }
+        let result = report::localise(&session.check_integrity(&opened), &a.lang);
+        return print_check(a, &result);
+    }
     // `--scheme`, else the scheme the project names for the mode (FT-366), else the shipped default. A project naming a
     // scheme this build does not ship (a newer writer, a hand edit) gets the default and a notice; the exit status is
     // the check's (FT-405, decision log ID-602).
@@ -3272,6 +3291,12 @@ fn run_check(a: &CheckArgs) -> i32 {
             .with_integrity(ew_api::integrity_items(&opened)),
         &a.lang,
     );
+    print_check(a, &result)
+}
+
+/// Prints a check report as `ew check` does, to `--out` or stdout with the totals on stderr; its exit code.
+fn print_check(a: &CheckArgs, result: &ew_api::checks::CheckReport) -> i32 {
+    let result = result.clone();
     let text = match a.format {
         CheckFormat::Text => report::to_text(&result),
         CheckFormat::Markdown => report::to_markdown(&result),

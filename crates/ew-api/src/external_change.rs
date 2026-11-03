@@ -12,7 +12,7 @@ use std::collections::BTreeSet;
 use ew_commands::commands::ApplyExternal;
 use ew_commands::{Origin, Submit};
 use ew_model::AnyKey;
-use ew_store::cloud::{self, CloudService};
+use ew_store::cloud::CloudService;
 use ew_store::external::{
     self, CLOUD_RECHECK, CLOUD_RECHECKS, Collision, ExternalMerge, Poll, Take, Unreadable,
 };
@@ -98,19 +98,10 @@ pub(crate) struct Watch {
     /// The unreadable reads of the current change on a cloud path, and when the last was.
     rechecks: u32,
     last: Option<std::time::SystemTime>,
-    /// The cloud service of the project folder, read at open.
+    /// The cloud service of the project folder, as the front-end found it.
     pub(crate) cloud: Option<CloudService>,
     /// Merge evidence given by the caller ([`Session::assume_merged`], WP-S1.17 D29).
     pub(crate) after_merge: bool,
-}
-
-impl Watch {
-    pub(crate) fn new(dir: &std::path::Path) -> Watch {
-        Watch {
-            cloud: cloud::detect_here(dir),
-            ..Watch::default()
-        }
-    }
 }
 
 impl Session {
@@ -182,9 +173,19 @@ impl Session {
             .is_some_and(|p| matches!(p.watch.held, Some(Held::Unreadable)))
     }
 
-    /// The cloud service whose synced folder holds the project directory, read at open (D25); `None` elsewhere.
+    /// The cloud service whose synced folder holds the project directory (D25; [`Session::set_cloud_service`]); `None`
+    /// elsewhere.
     pub fn cloud_service(&self) -> Option<CloudService> {
         self.persistence.as_ref().and_then(|p| p.watch.cloud)
+    }
+
+    /// Records the cloud service whose synced folder holds the project directory, as the front-end found it with
+    /// [`ew_store::cloud::detect`] from its environment (D25): an unreadable external change is then read again after
+    /// [`CLOUD_RECHECK`] before saves are held (D21).
+    pub fn set_cloud_service(&mut self, service: Option<CloudService>) {
+        if let Some(p) = self.persistence.as_mut() {
+            p.watch.cloud = service;
+        }
     }
 
     /// Applies the held external change with `choices`, one per colliding field of [`Session::external_collisions`] in

@@ -74,6 +74,15 @@ SPDX-License-Identifier: CC-BY-4.0
   conflict records a merge left, those `--kind` and `--field` select, in one transaction of `merge.resolve`, and saves;
   WP-S1.17 part 5)
 - api-add: command merge.resolve (takes ours or theirs for each conflict record named, in one undo step; WP-S1.17 D19)
+- api-add: cli ew diff <from> <to> [--exit-code] [--json] and ew diff --textconv <file> (the records that differ
+  between a directory, an `.ewz`, an `.ewarchive`, `git:<rev>` or `rev:<label>`, labelled with each side's tags;
+  result `ew.diff-result/1`; git's textconv; WP-S1.17 D26, D27)
+- api-add: cli ew git setup [--global] [--hooks] [--yes] (the merge driver and textconv in git's configuration after
+  consent, the managed `.gitattributes` and `.gitignore` blocks, the `post-merge` hook; WP-S1.17 D28)
+- api-add: cli ew check --integrity [--after-merge] (the store's integrity findings and the rules EW-CORE-001 to -019,
+  exit 1 on any error; FT-191, WP-S1.17 D29)
+- api-add: command external.apply (exposure `Internal`: only the session's external-change apply submits it, as one
+  undo step "External change"; WP-S1.17 D22)
 - text-change: cli ew export and ew sql `--format xlsx` (no longer refused as not built; without `--out` it is refused
   with "`--format xlsx` writes a file: give `--out <file.xlsx>`"; `--preset`, `--bom` or `--line-end` with it with
   "`--preset` applies to CSV only; drop it, or give `--format csv`"; `--format pdf` on a row export names CSV or XLSX)

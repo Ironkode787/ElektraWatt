@@ -71,6 +71,8 @@ mod plc_bind;
 mod preview;
 // WP-S3.07 part 2: the print set (D5 to D7).
 pub mod print;
+// WP-S1.17 part 8: `ew diff` and its textconv (D26, D27)
+mod project_diff;
 mod properties;
 // WP-S1.22 part 2: page rasters (D7) and the row exports (D8); WP-S3.08 part 1: their XLSX and CSV presets.
 mod raster;
@@ -149,6 +151,7 @@ pub use panel::{
 // FT-753
 pub use plc_bind::{CardPin, OffCardBind};
 pub use preview::PreviewEntity;
+pub use project_diff::{DiffEntry, FieldDelta, textconv};
 // WP-S2.06 parts 1 and 2
 pub use navigators::{
     Drawable, HighlightTarget, LibraryCopyDetail, MacroDetail, MacroThumbnail, NaturalKey, NavColumn,

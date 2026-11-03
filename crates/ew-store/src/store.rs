@@ -1694,7 +1694,8 @@ impl Store {
     // Create
 
     /// Writes `model` as generation 1 into `root` (a new project, Save As), which must not hold a
-    /// manifest, and keeps it open for editing.
+    /// manifest, and keeps it open for editing. Inside a git worktree it also writes the managed `.gitattributes` and
+    /// `.gitignore` blocks ([`crate::git::write_blocks`], WP-S1.17 D28).
     ///
     /// # Errors
     ///
@@ -1726,6 +1727,11 @@ impl Store {
         let saved = store.save(model, Changes::All);
         store.all_assets = false;
         saved.map_err(|e| OpenError::Format(e.to_string()))?;
+        // Inside a git worktree the project gets the managed `.gitattributes` and `.gitignore` blocks (doc 05 §11.1,
+        // WP-S1.17 D28); they are not project data, so a failure to write them leaves the project as created.
+        if crate::git::worktree_root(&*vfs, root).is_ok_and(|w| w.is_some()) {
+            let _ = crate::git::write_blocks(&*vfs, root);
+        }
         store.prepare_journal_dir(Some(model.project().id.cast()));
         if let Some(j) = &mut store.journal {
             if j.start(store.generation, store.manifest_hash.as_ref()).is_err() {

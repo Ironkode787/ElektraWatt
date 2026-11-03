@@ -96,6 +96,8 @@ pub const EXPORT_BOM: &str = "ew.export-bom-result/1";
 pub const EXPORT_PDF: &str = "ew.export-pdf-result/1";
 /// `ew export ewz --json` (WP-S1.17 part 2).
 pub const EXPORT_EWZ: &str = "ew.export-ewz-result/1";
+/// `ew diff --json` (WP-S1.17 part 8).
+pub const DIFF: &str = "ew.diff-result/1";
 /// `ew extract --json` (WP-S1.17 part 2).
 pub const EXTRACT: &str = "ew.extract-result/1";
 /// `ew export svg --json`.
@@ -156,6 +158,12 @@ pub const RESULTS: &[ResultSchema] = &[
         command: "commands",
         flag: None,
         schema: schema_of::<CommandsResult>,
+    },
+    ResultSchema {
+        name: DIFF,
+        command: "diff",
+        flag: None,
+        schema: schema_of::<DiffResult>,
     },
     ResultSchema {
         name: EXPORT_BOM,
@@ -541,6 +549,49 @@ pub struct ExportEwzResult {
     pub files: usize,
     /// The size of the file in bytes.
     pub bytes: u64,
+}
+
+/// `ew diff --json` ([`DIFF`]; WP-S1.17 D26): the records that differ between the two sides.
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct DiffResult {
+    /// [`DIFF`].
+    #[serde(rename = "$schema")]
+    pub schema: String,
+    /// Whether the sides hold the same records.
+    pub equal: bool,
+    /// The records that differ, in kind and ID order.
+    pub changes: Vec<DiffChange>,
+}
+
+/// One record of [`DiffResult`].
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct DiffChange {
+    /// `added`, `removed` or `changed`.
+    pub change: String,
+    /// The record kind.
+    pub kind: String,
+    /// The record's ID.
+    pub id: String,
+    /// The record's label on its own side (a device's tag, a page's folio); empty without one.
+    pub label: String,
+    /// The changed members of a changed record, in path order.
+    pub fields: Vec<DiffField>,
+}
+
+/// One changed member of [`DiffChange`].
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct DiffField {
+    /// The member's dotted path.
+    pub path: String,
+    /// Its value on the first side, the IDs of named records as their labels; absent when the side lacks it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub before: Option<Value>,
+    /// Its value on the second side, likewise.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub after: Option<Value>,
 }
 
 /// `ew extract --json` ([`EXTRACT`]; WP-S1.17 D9).

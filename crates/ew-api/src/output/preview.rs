@@ -91,7 +91,7 @@ fn entity(change: &EntityChange, current: &Q, candidate: Option<&Q>) -> PreviewE
 }
 
 /// The name of a library copy in the project: a part's number, a manufacturer's name; `None` for any other kind.
-fn library_name(q: &Q, kind: ew_schema::Kind, id: Uuid, source: Option<&str>) -> Option<String> {
+pub(super) fn library_name(q: &Q, kind: ew_schema::Kind, id: Uuid, source: Option<&str>) -> Option<String> {
     match kind {
         ew_schema::Kind::Part => q
             .parts()

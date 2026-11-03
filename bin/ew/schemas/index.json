@@ -16,6 +16,11 @@
       "schema": "ew.commands-result-1.schema.json"
     },
     {
+      "command": "diff",
+      "name": "ew.diff-result/1",
+      "schema": "ew.diff-result-1.schema.json"
+    },
+    {
       "command": "export bom",
       "name": "ew.export-bom-result/1",
       "schema": "ew.export-bom-result-1.schema.json"

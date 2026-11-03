@@ -483,6 +483,16 @@ struct Persistence {
     watch: external_change::Watch,
 }
 
+/// The run of `ew check --integrity` ([`Session::check_integrity`]): every rule it is given, nothing switched off, the
+/// MVP content; its report names it `integrity`.
+const INTEGRITY_RUN: checks::Scheme = checks::Scheme {
+    name: "integrity",
+    purpose: "project integrity; ew check --integrity",
+    off: &[],
+    lenient: false,
+    content: checks::Release::Mvp,
+};
+
 /// The most names an upgrade's backup tries: `.pre-<format>`, then `-2` up to this.
 const UPGRADE_BACKUP_NAMES: u32 = 1_000;
 
@@ -1011,7 +1021,7 @@ impl Session {
             refusal,
             consented: false,
             backup: None,
-            watch: external_change::Watch::new(dir),
+            watch: external_change::Watch::default(),
         });
         // FT-814: this directory's stale release-run records (archive gone or released) go now.
         session.remove_stale_run_records();
@@ -1143,8 +1153,7 @@ impl Session {
                     .is_some_and(|n| (1..=19).contains(&n))
             })
             .collect();
-        let full = checks::scheme("full").expect("the full scheme ships");
-        let report = match checks::run_table_rules(&q, full, checks::CheckMode::Release, &integrity) {
+        let report = match checks::run_table_rules(&q, &INTEGRITY_RUN, checks::CheckMode::Release, &integrity) {
             Ok(report) => report,
             Err(cycle) => panic!("{cycle}"),
         };
@@ -1216,7 +1225,7 @@ impl Session {
             refusal: None,
             consented: false,
             backup: None,
-            watch: external_change::Watch::new(dir),
+            watch: external_change::Watch::default(),
         });
         if let Some(p) = previous {
             p.store.close();

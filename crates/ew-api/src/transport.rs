@@ -81,15 +81,31 @@ impl Session {
     /// As [`Session::open_ewz`].
     pub fn open_ewz_with(
         path: &Path,
-        mut store: StoreOptions,
+        store: StoreOptions,
         subcommand: &str,
         memo: MemoMode,
     ) -> Result<(Session, OpenReport), OpenError> {
         let archive = ewz::read_file(&OsVfs, path).map_err(OpenError::Ewz)?;
+        Session::open_in_memory(&archive.entries, store, subcommand, memo)
+    }
+
+    /// Opens a project from its files by relative path (`/` separators) read-only from memory, the
+    /// [`Session::open_ewz_with`] path without the archive: `ew diff`'s `git:<rev>` side, whose files are the blobs of a
+    /// revision (WP-S1.17 D26). No lock, no journal.
+    ///
+    /// # Errors
+    ///
+    /// [`OpenError`] when the project does not open; integrity findings are in the report.
+    pub fn open_in_memory(
+        files: &std::collections::BTreeMap<String, Vec<u8>>,
+        mut store: StoreOptions,
+        subcommand: &str,
+        memo: MemoMode,
+    ) -> Result<(Session, OpenReport), OpenError> {
         let root = Path::new(ROOT);
         let vfs = Arc::new(MemVfs::new(DirSync::Explicit));
         vfs.put_dir(root);
-        for (rel, data) in &archive.entries {
+        for (rel, data) in files {
             vfs.put(&ew_store::join(root, rel), data);
         }
         store.mode = ew_store::OpenMode::ReadOnly;

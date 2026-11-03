@@ -78,6 +78,16 @@
           "name": "--out",
           "value": true,
           "repeatable": false
+        },
+        {
+          "name": "--integrity",
+          "value": false,
+          "repeatable": false
+        },
+        {
+          "name": "--after-merge",
+          "value": false,
+          "repeatable": false
         }
       ],
       "exits": [
@@ -113,6 +123,42 @@
         }
       ],
       "result": "ew.commands-result/1",
+      "stability": "preview"
+    },
+    {
+      "path": "diff",
+      "flags": [
+        {
+          "name": "--textconv",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--exit-code",
+          "value": false,
+          "repeatable": false
+        },
+        {
+          "name": "--json",
+          "value": false,
+          "repeatable": false
+        }
+      ],
+      "exits": [
+        {
+          "code": 0,
+          "meaning": "the sides are equal, or differ without `--exit-code`; `--textconv` printed"
+        },
+        {
+          "code": 1,
+          "meaning": "the sides differ, with `--exit-code`"
+        },
+        {
+          "code": 2,
+          "meaning": "usage and open errors, a git side that cannot be read"
+        }
+      ],
+      "result": "ew.diff-result/1",
       "stability": "preview"
     },
     {
@@ -716,6 +762,38 @@
         }
       ],
       "result": "ew.fmt-result/1",
+      "stability": "preview"
+    },
+    {
+      "path": "git setup",
+      "flags": [
+        {
+          "name": "--global",
+          "value": false,
+          "repeatable": false
+        },
+        {
+          "name": "--hooks",
+          "value": false,
+          "repeatable": false
+        },
+        {
+          "name": "--yes",
+          "value": false,
+          "repeatable": false
+        }
+      ],
+      "exits": [
+        {
+          "code": 0,
+          "meaning": "configured"
+        },
+        {
+          "code": 2,
+          "meaning": "no consent (no terminal and no `--yes`, or declined), not in a git worktree, git missing or refusing, a post-merge hook ElektraWatt did not write, write errors"
+        }
+      ],
+      "result": null,
       "stability": "preview"
     },
     {

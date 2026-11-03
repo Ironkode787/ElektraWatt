@@ -20,6 +20,8 @@ use ew_api::import::migration::ReportFormat;
 use ew_api::output::print::Paper;
 use ew_api::output::{CsvOptions, LineEnd, PageSelection, Preset};
 
+use super::collab::GitSetupArgs;
+use super::diff::DiffArgs;
 use super::merge_driver::MergeDriverArgs;
 use super::merge_resolve::MergeResolveArgs;
 use super::query::QueryArgs;
@@ -239,6 +241,73 @@ enum Top {
     /// `%A` as it was: git reads every code up to 128 as conflicts written.
     #[command(override_usage = "ew merge-driver <O> <A> <B> [L] <P>")]
     MergeDriver(MergeDriverCli),
+    /// Print the records that differ between two versions of a project.
+    ///
+    /// Opens both sides read-only and prints one line per record that differs, labelled with the tags of its own side
+    /// (`-101F1: parts … → …`). A side is a project directory, an `.ewz`, an `.ewarchive`, `git:<rev>` (the project's
+    /// files at that git revision) or `rev:<label>` (the release tag `ew/rev/<label>`); the project of a git side is
+    /// the other side when that is a directory, else the project found from the current directory. `--json` prints
+    /// `ew.diff-result/1`. `--textconv <file>` prints one project file as one line per record (`<kind> <label>
+    /// <path>=<value> …`), labelled from the project in the current directory: git's textconv, which `ew git setup`
+    /// configures. Exit 0 when the sides are equal, or differ without `--exit-code`; 1 when they differ with
+    /// `--exit-code`; 2 on usage and open errors.
+    #[command(override_usage = "ew diff [OPTIONS] <from> <to>\n       ew diff --textconv <file>")]
+    Diff(DiffCli),
+    /// Git integration.
+    #[command(subcommand)]
+    Git(GitCli),
+}
+
+/// `ew diff`.
+#[derive(Args, Debug)]
+struct DiffCli {
+    /// The first side: a directory, an `.ewz`, an `.ewarchive`, `git:<rev>` or `rev:<label>`.
+    #[arg(value_name = "from", required_unless_present = "textconv", conflicts_with = "textconv")]
+    from: Option<String>,
+    /// The second side.
+    #[arg(value_name = "to", required_unless_present = "textconv", conflicts_with = "textconv")]
+    to: Option<String>,
+    /// Print one project file as text lines (git's textconv) instead.
+    #[arg(long, value_name = "file", allow_hyphen_values = true)]
+    textconv: Option<PathBuf>,
+    /// Exit 1 when the sides differ.
+    #[arg(long, overrides_with = "exit_code", conflicts_with = "textconv")]
+    exit_code: bool,
+    /// Print the result as JSON.
+    #[arg(long, overrides_with = "json", conflicts_with = "textconv")]
+    json: bool,
+}
+
+/// `ew git`.
+#[derive(Subcommand, Debug)]
+enum GitCli {
+    /// Configure git's merge driver and textconv for ElektraWatt projects.
+    ///
+    /// Writes four keys into the repository's git configuration (`--global`: the user's) after your consent, a y/N
+    /// question on a terminal or `--yes`: `merge.elektrawatt.name`, `merge.elektrawatt.driver` (this `ew`'s
+    /// `merge-driver %O %A %B %L %P`), `diff.elektrawatt.textconv` (this `ew`'s `diff --textconv`) and
+    /// `diff.elektrawatt.cachetextconv = true`. Git never takes a driver from a repository, so the configuration is
+    /// yours to give. It then writes the managed blocks of `.gitattributes` and `.gitignore` into each project folder of
+    /// the worktree, keeping the lines outside them. `--hooks` installs a `post-merge` hook that runs
+    /// `ew check --integrity --after-merge` on each project folder, and refuses to replace a hook it did not write. Run
+    /// it again after adding a project; it changes nothing that is up to date. Exit 0 when configured, 2 on everything
+    /// else (no terminal and no `--yes`, a declined question, not in a git worktree, git missing or refusing, a foreign
+    /// hook, write errors); nothing is written before the consent.
+    Setup(GitSetupCli),
+}
+
+/// `ew git setup`.
+#[derive(Args, Debug)]
+struct GitSetupCli {
+    /// Write the user's global git configuration instead of the repository's.
+    #[arg(long, overrides_with = "global")]
+    global: bool,
+    /// Install the `post-merge` hook that runs `ew check --integrity`.
+    #[arg(long, overrides_with = "hooks")]
+    hooks: bool,
+    /// Consent without the question.
+    #[arg(long, overrides_with = "yes")]
+    yes: bool,
 }
 
 /// `ew import`.
@@ -375,6 +444,15 @@ struct CheckCli {
     /// The output file (default: stdout).
     #[arg(long, value_name = "file", allow_hyphen_values = true, overrides_with = "out")]
     out: Option<PathBuf>,
+    /// Run only the project-integrity check: the integrity findings of opening the project and the rules EW-CORE-001
+    /// to EW-CORE-019, conflict records (EW-CORE-011) and collisions after a merge (EW-CORE-013) among them, in release
+    /// mode; exits 1 on any error.
+    #[arg(long, overrides_with = "integrity", conflicts_with_all = ["scheme", "mode"])]
+    integrity: bool,
+    /// With `--integrity`: count the project as just merged, so that collisions of numbers report as EW-CORE-013 (the
+    /// post-merge hook of `ew git setup --hooks` passes it).
+    #[arg(long, overrides_with = "after_merge", requires = "integrity")]
+    after_merge: bool,
 }
 
 /// The mode of `ew check --mode`.
@@ -1963,6 +2041,8 @@ impl Cli {
                 json,
                 lang,
                 out,
+                integrity,
+                after_merge,
             }) => {
                 let format_name = format.map(|f| match f {
                     CheckFormat::Text => "text",
@@ -1984,6 +2064,8 @@ impl Cli {
                     },
                     out,
                     lang,
+                    integrity,
+                    after_merge,
                 })
             }
             Top::Sql(a) => sql(a)?,
@@ -2266,6 +2348,22 @@ impl Cli {
                 // `%O %A %B %L %P`, or the older `%O %A %B %P`: `%L` is unused.
                 path: path.unwrap_or(fourth).to_string_lossy().into_owned(),
             }),
+            Top::Diff(DiffCli {
+                from,
+                to,
+                textconv,
+                exit_code,
+                json,
+            }) => Command::Diff(DiffArgs {
+                from,
+                to,
+                textconv,
+                json,
+                exit_code,
+            }),
+            Top::Git(GitCli::Setup(GitSetupCli { global, hooks, yes })) => {
+                Command::GitSetup(GitSetupArgs { global, hooks, yes })
+            }
         })
     }
 }
