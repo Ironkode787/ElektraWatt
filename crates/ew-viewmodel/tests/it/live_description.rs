@@ -114,7 +114,7 @@ fn ax1_a_wire_says_its_number_potential_and_ends() {
                 .and_then(|cp| cp.potential.as_ref())
                 .map(|p| p.name.clone())?;
             let number = session.property_sheet(&[c.id]).header.title;
-            (number != "?").then(|| (c.id, number, from, to, potential))
+            (number != "?").then_some((c.id, number, from, to, potential))
         })
         .expect("a numbered wire between two connection points on 102");
     done(&mut shell, "select.set", json!({"ids": [conn.to_string()]}));
