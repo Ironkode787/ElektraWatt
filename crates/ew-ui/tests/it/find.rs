@@ -330,8 +330,9 @@ fn ax7_results_are_named_in_plain_text_and_only_the_rows_on_show_are_built() {
     assert!(built.len() < n);
 }
 
-/// W49.1-J: the folio filter takes the rest of its row, so its placeholder shows whole in Dutch at the 1280 × 800 floor
-/// and at 1920 × 1080, where the field grows with the window; every node fits at both sizes.
+/// W49.1-J: the folio filter takes the rest of its row (a row of its own where the rest cannot show its placeholder),
+/// so its placeholder shows whole in Dutch at the 1280 × 800 floor and at 1920 × 1080 and the field reaches the pane's
+/// right edge; every node fits at both sizes.
 #[test]
 fn the_folio_filter_takes_the_width_it_has_at_both_sizes() {
     let tmp = Tmp::new();
@@ -340,7 +341,7 @@ fn the_folio_filter_takes_the_width_it_has_at_both_sizes() {
     h.key_press_modifiers(Modifiers::COMMAND, Key::H);
     settle(&mut h);
     let name = ew_ui::ew_viewmodel::strings::text(ew_ui::ew_viewmodel::key!("find-folios")).to_owned();
-    let mut widths = Vec::new();
+    let pane_name = ew_ui::ew_viewmodel::strings::text(ew_ui::ew_viewmodel::key!("pane-find")).to_owned();
     for size in [egui::Vec2::new(1280.0, 800.0), egui::Vec2::new(1920.0, 1080.0)] {
         h.set_size(size);
         settle(&mut h);
@@ -351,6 +352,11 @@ fn the_folio_filter_takes_the_width_it_has_at_both_sizes() {
             .find(|n| n.accesskit_node().label().as_deref() == Some(name.as_str()))
             .expect("the folio field")
             .rect();
+        let pane = h
+            .get_all_by_role(egui::Role::Group)
+            .find(|n| n.accesskit_node().label().as_deref() == Some(pane_name.as_str()))
+            .expect("the find pane")
+            .rect();
         let font = egui::TextStyle::Body.resolve(&h.ctx.style_of(h.ctx.theme()));
         let hint = h
             .ctx
@@ -360,10 +366,11 @@ fn the_folio_filter_takes_the_width_it_has_at_both_sizes() {
             "{size:?}: a field of {} for a placeholder of {hint}",
             field.width()
         );
-        widths.push(field.width());
+        assert!(
+            (pane.right() - field.right()).abs() <= 2.0,
+            "{size:?}: the field ends at {} in a pane ending at {}",
+            field.right(),
+            pane.right()
+        );
     }
-    assert!(
-        widths[1] > widths[0] + 300.0,
-        "the field grows with the window: {widths:?}"
-    );
 }

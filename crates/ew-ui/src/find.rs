@@ -182,11 +182,12 @@ impl FindPane {
                 let hint =
                     ui.fonts_mut(|fonts| fonts.layout_no_wrap(name.clone(), font, crate::theme::NONE).size().x);
                 let least = hint.ceil() + 2.0 * ui.spacing().button_padding.x;
-                let rest = ui.available_width();
+                // What is left of the current row (`available_width` is a whole row's in a wrapping layout).
+                let rest = (ui.max_rect().right() - ui.cursor().min.x).floor();
                 let width = if rest >= least {
                     rest
                 } else {
-                    ui.max_rect().width().max(least)
+                    ui.max_rect().width()
                 };
                 let response = ui.add(
                     TextEdit::singleline(&mut self.folios)
