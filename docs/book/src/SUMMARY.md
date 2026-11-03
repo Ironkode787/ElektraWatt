@@ -127,6 +127,7 @@
     - [`ew fmt`](reference/cli/fmt.md)
     - [`ew import`](reference/cli/import.md)
     - [`ew lib`](reference/cli/lib.md)
+    - [`ew merge-driver`](reference/cli/merge-driver.md)
     - [`ew print`](reference/cli/print.md)
     - [`ew project`](reference/cli/project.md)
     - [`ew queries`](reference/cli/queries.md)
