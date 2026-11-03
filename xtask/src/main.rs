@@ -37,6 +37,7 @@ mod shell_keys;
 mod symbols;
 mod test_layout;
 mod trailers;
+mod ui_strings;
 mod unsafe_code;
 mod vet_imports;
 mod workflows;
@@ -77,6 +78,8 @@ commands:
                        `disallowed-methods`, FT-317), and the calls in the reader crates, which opt out of the
                        lint: prints them per crate and compares them with ci/disallowed-methods-allow.toml;
                        --bless (or --write) rewrites the list
+  check-ui-strings     no string literal reaches an egui text call in crates/ew-ui/src (label, button,
+                       on_hover_text, RichText::new, WidgetInfo names) outside ci/ui-strings-allow.txt
   check-test-layout    each package's integration tests are modules of one test binary (tests/it/main.rs); a
                        top-level file under tests/ is only for a separate binary that a workflow, xtask or
                        nextest names (the list in xtask/src/test_layout.rs); every `--test <name>` in a text file
@@ -276,6 +279,7 @@ fn main() -> ExitCode {
                 Ok(false)
             }
         },
+        "check-ui-strings" => run_check("check-ui-strings", check_ui_strings),
         "check-test-layout" => run_check("check-test-layout", check_test_layout),
         "check-unsafe" => run_check("check-unsafe", check_unsafe),
         "check-workflows" => run_check("check-workflows", check_workflows),
@@ -619,6 +623,11 @@ fn check_test_layout() -> Result<Violations> {
     Ok(violations)
 }
 
+/// WP-S2.08 D11 (NFR-I18N-02): no string literal reaches an egui text call outside the allowlist.
+fn check_ui_strings() -> Result<Violations> {
+    ui_strings::check(&workspace_root())
+}
+
 fn check_governance_files() -> Result<Violations> {
     Ok(governance::check(&workspace_root()))
 }
@@ -861,7 +870,7 @@ fn run_checks_beside<T>(checks: &[Check], beside: impl FnOnce() -> T) -> (T, Vec
 /// so one invocation shows everything that needs fixing.
 fn ci() -> Result<bool> {
     let cargo_steps = ci_cargo_steps(&all_features::workspace_set()?);
-    let checks: [Check; 16] = [
+    let checks: [Check; 17] = [
         ("check-deps", check_deps),
         ("check-features", check_features),
         ("check-raw-read", check_raw_read),
@@ -876,6 +885,7 @@ fn ci() -> Result<bool> {
         ("docs-gen-check", check_docs_gen),
         ("gen-icons-check", check_gen_icons),
         ("check-test-layout", check_test_layout),
+        ("check-ui-strings", check_ui_strings),
         ("check-unsafe", check_unsafe),
         ("api-guard", check_api_guard),
     ];
