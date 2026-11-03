@@ -30,7 +30,7 @@ use std::path::{Path, PathBuf};
 
 use ::windows::Win32::Foundation::{ERROR_CANCELLED, ERROR_SUCCESS, GlobalFree, HGLOBAL, HWND, SetLastError};
 use ::windows::Win32::Graphics::Gdi::{
-    BI_RGB, BITMAPINFO, BITMAPINFOHEADER, CreateDCW, DEVMODEW, DIB_RGB_COLORS, DM_ORIENTATION,
+    BI_RGB, BITMAPINFO, BITMAPINFOHEADER, CreateDCW, DEVMODEW, DIB_RGB_COLORS, DM_FORMNAME, DM_ORIENTATION,
     DM_PAPERLENGTH, DM_PAPERSIZE, DM_PAPERWIDTH, DM_SPECVERSION, DMORIENT_LANDSCAPE, DMORIENT_PORTRAIT,
     DMPAPER_A2, DMPAPER_A3, DMPAPER_A4, DMPAPER_A5, DMPAPER_LEGAL, DMPAPER_LETTER, DMPAPER_TABLOID, DeleteDC,
     GDI_ERROR, GET_DEVICE_CAPS_INDEX, GetDeviceCaps, HDC, LOGPIXELSX, LOGPIXELSY, PHYSICALHEIGHT,
@@ -442,7 +442,8 @@ impl DevMode {
 
     /// Asks for a paper of `width` × `height` nm (ruling 3 of ID-1218): D6's named sizes as `dmPaperSize` where
     /// Windows has one, else `dmPaperWidth` and `dmPaperLength` in 0.1 mm (the short and the long side); landscape
-    /// when wider than high.
+    /// when wider than high. The form name the dialog may have set is cleared, so a driver that ranks it first never
+    /// prints on the dialog's form (ID-1226).
     fn ask_paper(&mut self, width: i64, height: i64) {
         let (short, long) = (width.min(height), width.max(height));
         let tenths = |nm: i64| i16::try_from((nm + 50_000) / 100_000).unwrap_or(i16::MAX);
@@ -457,6 +458,8 @@ impl DevMode {
             DMORIENT_PORTRAIT
         };
         dm.Anonymous1.Anonymous1.dmOrientation = orientation as i16;
+        dm.dmFields &= !DM_FORMNAME;
+        dm.dmFormName = [0; 32];
         match named {
             Some(size) => {
                 dm.dmFields =

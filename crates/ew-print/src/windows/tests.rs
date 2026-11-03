@@ -76,9 +76,15 @@ fn the_steps_read_as_words() {
     );
 }
 
-/// A printer that does not exist is refused in words with the system's reason, before anything is spooled.
+/// A printer that does not exist is refused in words with the system's reason, before anything is spooled. When the
+/// spooler cannot be reached (the PDF printer cannot be opened either), a skip line names the reason and the test
+/// passes, as WN-3's does.
 #[test]
 fn a_printer_that_does_not_exist_is_refused_in_words() {
+    if let Err(PrintError::Windows { what, reason }) = Dc::open(PDF_PRINTER) {
+        println!("skipped: {what}: {reason}");
+        return;
+    }
     let name = "ew-print-test-no-such-printer";
     assert_eq!(
         Windows::new().print(&job(name, Vec::new())),
@@ -151,6 +157,18 @@ fn the_paper_request_names_a_known_size_or_gives_its_sides() {
             [DMORIENT_PORTRAIT as i16, 0, 8410, 5940]
         )
     );
+    // A dialog's block that names a form: the form leaves the request, its name zeroed, both for a named size and
+    // for one given by its sides.
+    for (width, height) in [(210_000_000, 297_000_000), (594_000_000, 841_000_000)] {
+        let dm = mode.public();
+        dm.dmFields |= DM_FORMNAME;
+        dm.dmFormName = [0; 32];
+        dm.dmFormName[..2].copy_from_slice(&[u16::from(b'A'), u16::from(b'3')]);
+        mode.ask_paper(width, height);
+        let dm = mode.public();
+        assert_eq!(dm.dmFields & DM_FORMNAME, DEVMODE_FIELD_FLAGS(0));
+        assert_eq!(dm.dmFormName, [0; 32]);
+    }
     // The dialog's block: read back whole; shorter than its own size, refused.
     let block = bytes(&mode);
     assert_eq!(DevMode::from_bytes(&block).map(|m| paper(&m)), Some(paper(&mode)));
