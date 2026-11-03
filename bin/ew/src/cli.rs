@@ -17,6 +17,7 @@ use ew_api::output::{
 use ew_api::{BomMode, CmdLog, Export};
 
 mod merge_driver;
+mod merge_resolve;
 mod project_files;
 mod query;
 mod tree;
@@ -86,6 +87,8 @@ pub enum Command {
         /// Print the result as JSON (`--json`).
         json: bool,
     },
+    /// `ew merge resolve`: the conflict records a merge left, resolved (WP-S1.17 D19).
+    MergeResolve(merge_resolve::MergeResolveArgs),
     /// `ew merge-driver %O %A %B %L %P`: the merge driver for project files (WP-S1.17 D15).
     MergeDriver(merge_driver::MergeDriverArgs),
 }
@@ -692,6 +695,7 @@ pub fn run(cmd: Command) -> i32 {
         Command::Schema(name) => run_schema(&name),
         Command::Query(a) => query::run_query(&a),
         Command::Queries { json } => query::run_queries(json),
+        Command::MergeResolve(a) => merge_resolve::run_merge_resolve(&a),
         Command::MergeDriver(a) => merge_driver::run_merge_driver(&a),
         Command::SqlSchema => {
             print!("{}", ew_api::sql::schema::schema_text());

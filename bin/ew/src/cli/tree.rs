@@ -21,6 +21,7 @@ use ew_api::output::print::Paper;
 use ew_api::output::{CsvOptions, LineEnd, PageSelection, Preset};
 
 use super::merge_driver::MergeDriverArgs;
+use super::merge_resolve::MergeResolveArgs;
 use super::query::QueryArgs;
 use super::{
     ApplyArgs, AssetsPurgeArgs, CheckArgs, CheckFormat, ChecksSetArgs, Command, ExportArgs, ExportEwzArgs,
@@ -37,8 +38,8 @@ use super::{
 /// result takes `--json`: stdout is then one JSON object whose first member `$schema` names its published schema
 /// (`ew.<command>-result/1`; `ew schema <name>` prints it), diagnostics stay on stderr and the exit codes are
 /// unchanged. For `check` and `sql`, `--json` is `--format json`. The human-only subcommands (`project`,
-/// `revision`, `recover --discard`) print a dialogue, not a result, and take no `--json`. A usage error exits 2, of
-/// `merge-driver` 129.
+/// `revision`, `recover --discard`) print a dialogue, not a result, and take no `--json`. A usage error exits 2 (129
+/// for `merge-driver`).
 #[derive(Parser, Debug)]
 #[command(name = "ew", bin_name = "ew", version)]
 pub(super) struct Cli {
@@ -216,6 +217,9 @@ enum Top {
     /// Prints the JSON Schema of a command's parameters (a name or alias of `ew commands`) or of a result
     /// (`ew.<command>-result/<n>`). Exit 0, 2 for an unknown name.
     Schema(SchemaCli),
+    /// The conflict records a merge left.
+    #[command(subcommand)]
+    Merge(MergeCli),
     /// Merge one project file three-way: git's merge driver (plumbing).
     ///
     /// Git runs it for a file changed on both sides, with `%O` (the ancestor), `%A` (ours, where the result goes),
@@ -1421,6 +1425,57 @@ struct SchemaCli {
     name: String,
 }
 
+/// `ew merge`.
+#[derive(Subcommand, Debug)]
+enum MergeCli {
+    /// Resolve the conflict records a merge left, taking ours or theirs, and save.
+    ///
+    /// Resolves every conflict record of the project that `--kind` and `--field` select (both optional) in one
+    /// transaction of `merge.resolve`, and saves. `--kind` is the kind of the record a conflict is on (`connection`),
+    /// or `file` for a file a merge could not read; `--field` selects the record-level conflicts on that member
+    /// (`overrides.colour`), or on a member below or above it. `--take ours` keeps the record as the merge left it;
+    /// `--take theirs` writes theirs' conflicting members into it (deletes it when theirs deleted it, makes it again
+    /// when ours did), and for a file takes the lines theirs holds. A project with unsaved changes of a crashed
+    /// session, or one that opens read-only, is refused (exit 2). Exit 0 when resolved and saved, 1 when
+    /// `merge.resolve` refuses (theirs does not make a valid record, a file's lines do not read), 2 on usage (no
+    /// conflict record selected), open, lock and save errors.
+    Resolve(MergeResolveCli),
+}
+
+/// `ew merge resolve`.
+#[derive(Args, Debug)]
+struct MergeResolveCli {
+    /// The project directory.
+    #[arg(value_name = "project-dir")]
+    project_dir: Option<PathBuf>,
+    /// The project directory (instead of the positional one).
+    #[arg(
+        long,
+        value_name = "dir",
+        allow_hyphen_values = true,
+        conflicts_with = "project_dir"
+    )]
+    project: Option<PathBuf>,
+    /// The side to take.
+    #[arg(long, value_enum, value_name = "side")]
+    take: TakeArg,
+    /// Only the conflicts on records of this kind (`connection`), or `file`.
+    #[arg(long, value_name = "kind")]
+    kind: Option<String>,
+    /// Only the conflicts on this member (`overrides.colour`).
+    #[arg(long, value_name = "path")]
+    field: Option<String>,
+}
+
+/// `ew merge resolve --take`.
+#[derive(ValueEnum, Clone, Copy, PartialEq, Eq, Debug)]
+enum TakeArg {
+    /// Ours: the record as the merge left it.
+    Ours,
+    /// Theirs: the other side.
+    Theirs,
+}
+
 /// `ew merge-driver`. Every positional takes a leading `-`: `%P` may name a folder such as `-old.ew`. The fourth is
 /// named `P`, as the usage line shows the required one, so that three arguments are refused naming `<P>`.
 #[derive(Args, Debug)]
@@ -2186,6 +2241,18 @@ impl Cli {
             }),
             Top::Commands(JsonCli { json }) => Command::Commands { json },
             Top::Schema(SchemaCli { name }) => Command::Schema(name),
+            Top::Merge(MergeCli::Resolve(MergeResolveCli {
+                project_dir,
+                project: flag,
+                take,
+                kind,
+                field,
+            })) => Command::MergeResolve(MergeResolveArgs {
+                project: project(flag, project_dir),
+                theirs: take == TakeArg::Theirs,
+                kind,
+                field,
+            }),
             Top::MergeDriver(MergeDriverCli {
                 base,
                 ours,

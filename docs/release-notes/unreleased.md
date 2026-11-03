@@ -68,6 +68,12 @@ SPDX-License-Identifier: CC-BY-4.0
   results `ew.export-ewz-result/1` and `ew.extract-result/1`); check, sql, sql dump, the row and page exports, export
   table, print, render, verify-derived, query and fmt --check open an `.ewz` read-only, every other subcommand
   (import table included) refuses it with "an .ewz opens read-only; extract it first" (WP-S1.17 part 2)
+- api-add: cli ew merge-driver <O> <A> <B> [L] <P> (Git's merge driver for project files: merges one file three-way,
+  record by record, and writes conflict records instead of markers; WP-S1.17 part 4)
+- api-add: cli ew merge resolve [<project-dir>] --take ours|theirs [--kind <kind>] [--field <path>] (resolves the
+  conflict records a merge left, those `--kind` and `--field` select, in one transaction of `merge.resolve`, and saves;
+  WP-S1.17 part 5)
+- api-add: command merge.resolve (takes ours or theirs for each conflict record named, in one undo step; WP-S1.17 D19)
 - text-change: cli ew export and ew sql `--format xlsx` (no longer refused as not built; without `--out` it is refused
   with "`--format xlsx` writes a file: give `--out <file.xlsx>`"; `--preset`, `--bom` or `--line-end` with it with
   "`--preset` applies to CSV only; drop it, or give `--format csv`"; `--format pdf` on a row export names CSV or XLSX)

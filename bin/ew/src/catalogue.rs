@@ -433,6 +433,19 @@ pub const TABLE: &[Row] = &[
         stability: Stability::Preview,
     },
     Row {
+        path: &["merge", "resolve"],
+        exits: &[
+            exit(0, "resolved and saved"),
+            exit(1, "`merge.resolve` refused: theirs does not make a valid record, a file's lines do not read"),
+            exit(
+                2,
+                "usage (no conflict record selected), open, lock, a crashed session's journal and save errors",
+            ),
+        ],
+        result: None,
+        stability: Stability::Preview,
+    },
+    Row {
         path: &["merge-driver"],
         exits: &[
             exit(0, "merged cleanly into `%A`"),

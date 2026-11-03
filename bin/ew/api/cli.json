@@ -1090,6 +1090,47 @@
       "stability": "preview"
     },
     {
+      "path": "merge resolve",
+      "flags": [
+        {
+          "name": "--project",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--take",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--kind",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--field",
+          "value": true,
+          "repeatable": false
+        }
+      ],
+      "exits": [
+        {
+          "code": 0,
+          "meaning": "resolved and saved"
+        },
+        {
+          "code": 1,
+          "meaning": "`merge.resolve` refused: theirs does not make a valid record, a file's lines do not read"
+        },
+        {
+          "code": 2,
+          "meaning": "usage (no conflict record selected), open, lock, a crashed session's journal and save errors"
+        }
+      ],
+      "result": null,
+      "stability": "preview"
+    },
+    {
       "path": "merge-driver",
       "flags": [],
       "exits": [

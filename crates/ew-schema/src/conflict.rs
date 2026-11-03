@@ -98,6 +98,44 @@ impl Conflict {
             ConflictBody::File { .. } => None,
         }
     }
+
+    /// The members a record-level conflict holds, in name order: the dotted paths in which ours and theirs differ
+    /// (`overrides.colour`), a path ending at a member that is not an object on both sides; when one side deleted the
+    /// record, the names of the members the other side changed, which it holds whole. Empty for a file-level conflict.
+    pub fn member_paths(&self) -> Vec<String> {
+        let mut out = Vec::new();
+        if let ConflictBody::Record { ours, theirs, .. } = &self.body {
+            match (ours.as_str(), theirs.as_str()) {
+                (Some(DELETED_SIDE), _) => out.extend(theirs.as_object().into_iter().flat_map(|m| m.keys().cloned())),
+                (_, Some(DELETED_SIDE)) => out.extend(ours.as_object().into_iter().flat_map(|m| m.keys().cloned())),
+                _ => differing(&mut out, String::new(), ours, theirs),
+            }
+        }
+        out
+    }
+}
+
+/// [`Conflict::member_paths`]: the dotted paths of the members in which `a` and `b` differ.
+fn differing(out: &mut Vec<String>, at: String, a: &Value, b: &Value) {
+    let (Value::Object(x), Value::Object(y)) = (a, b) else {
+        if !at.is_empty() {
+            out.push(at);
+        }
+        return;
+    };
+    let names: std::collections::BTreeSet<&String> = x.keys().chain(y.keys()).collect();
+    for name in names {
+        let (vx, vy) = (x.get(name), y.get(name));
+        if vx == vy {
+            continue;
+        }
+        let path = if at.is_empty() {
+            name.clone()
+        } else {
+            format!("{at}.{name}")
+        };
+        differing(out, path, vx.unwrap_or(&Value::Null), vy.unwrap_or(&Value::Null));
+    }
 }
 
 /// `skip_serializing_if` of a borrowed `$v`.

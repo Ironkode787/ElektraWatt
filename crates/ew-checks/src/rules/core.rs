@@ -9,7 +9,6 @@ use ew_derive::ew_schema::{
     Conflict, ConflictBody, ConflictSide, Connection, DELETED_SIDE, Device, Endpoint, Function, FunctionKind,
     IpDirection, Kind, LengthSource, Primitive, RepType, Representation,
 };
-use serde_json::Value;
 use ew_derive::ew_units::{Nm, Pt2};
 use ew_derive::{CellOf, CpRef, IpPairingQ, PairMode, Q, XrefRelationOf, XrefTextOf, folio_label};
 
@@ -860,23 +859,11 @@ impl Rule for ConflictRecords {
                     kind, ours, theirs, ..
                 } => {
                     let target = conflict_target(q, kind, id.cast());
-                    // A delete/modify conflict holds the changed members whole: their names.
-                    let names = |side: &Value| {
-                        let names: Vec<&str> = side.as_object().into_iter().flat_map(|m| m.keys()).map(String::as_str).collect();
-                        names.join(", ")
-                    };
+                    let members = conflict.member_paths().join(", ");
                     let message = match (ours.as_str(), theirs.as_str()) {
-                        (Some(DELETED_SIDE), _) => {
-                            format!("{target}: ours deleted it and theirs changed {}", names(theirs))
-                        }
-                        (_, Some(DELETED_SIDE)) => {
-                            format!("{target}: theirs deleted it and ours changed {}", names(ours))
-                        }
-                        _ => {
-                            let mut paths = Vec::new();
-                            member_paths(&mut paths, String::new(), ours, theirs);
-                            format!("{target}: ours and theirs differ in {}", paths.join(", "))
-                        }
+                        (Some(DELETED_SIDE), _) => format!("{target}: ours deleted it and theirs changed {members}"),
+                        (_, Some(DELETED_SIDE)) => format!("{target}: theirs deleted it and ours changed {members}"),
+                        _ => format!("{target}: ours and theirs differ in {members}"),
                     };
                     let targets = Kind::from_name(kind).map(|k| Target::new(k, id));
                     Finding::new(&CONFLICT_RECORDS, targets, "record", target, message)
@@ -934,30 +921,6 @@ fn conflict_target(q: &Q, kind: &str, id: Id<()>) -> String {
             None => "a connection".to_owned(),
         },
         _ => format!("a {}", kind.replace('_', " ")),
-    }
-}
-
-/// The dotted paths of the members in which the partial objects `a` and `b` differ, in name order; a path ends at a
-/// member that is not an object on both sides (an absent member included).
-fn member_paths(out: &mut Vec<String>, at: String, a: &Value, b: &Value) {
-    let (Value::Object(x), Value::Object(y)) = (a, b) else {
-        if !at.is_empty() {
-            out.push(at);
-        }
-        return;
-    };
-    let names: std::collections::BTreeSet<&String> = x.keys().chain(y.keys()).collect();
-    for name in names {
-        let (vx, vy) = (x.get(name), y.get(name));
-        if vx == vy {
-            continue;
-        }
-        let path = if at.is_empty() {
-            name.clone()
-        } else {
-            format!("{at}.{name}")
-        };
-        member_paths(out, path, vx.unwrap_or(&Value::Null), vy.unwrap_or(&Value::Null));
     }
 }
 
