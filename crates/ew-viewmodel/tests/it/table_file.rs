@@ -16,6 +16,7 @@ use ew_viewmodel::ew_api;
 use ew_viewmodel::ew_api::ew_jobs::Gate;
 use ew_viewmodel::ew_api::output::{NavKind, NavRole};
 use ew_viewmodel::ew_api::zip::{Method, ZipLimits, read as unzip, write as zip};
+use ew_viewmodel::layout::PaneKind;
 use ew_viewmodel::script::card_summary;
 use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use serde_json::{Value, json};
@@ -630,7 +631,8 @@ fn a_stale_import_is_refused_and_the_card_stays() {
 }
 
 /// ID-1231 (ID-1224 ruling 2's "shown in table mode"): with the canvas focused, the one navigator shown in table mode
-/// is the one exported; with two shown and none focused, the refusal says to click one; the focused one decides.
+/// is the one exported; with two shown (Devices beside Pages, Terminal strips moved to the bottom dock) and none
+/// focused, the refusal says to click one; the focused one decides.
 #[test]
 fn the_table_shown_decides_without_the_focus() {
     let tmp = Tmp::new("tfn");
@@ -651,6 +653,11 @@ fn the_table_shown_decides_without_the_focus() {
         "navigator.table",
         json!({"kind": "devices", "on": true}),
     );
+    // Terminal strips behind the Devices tab moves to the bottom dock, so both tables are shown.
+    let strips_pane = PaneKind::Navigator(NavKind::Strips);
+    let moved = shell.layout().without(strips_pane).with_bottom(strips_pane);
+    shell.set_layout(moved, 1.0);
+    assert_eq!(shell.layout().shown_in_place_of(strips_pane), Some(strips_pane));
     done(&mut shell, "ui.focus", json!({"area": "canvas"}));
     let other = tmp.0.join("y.xlsx");
     for action in ["navigator.export_table", "navigator.import_table"] {
@@ -661,7 +668,7 @@ fn the_table_shown_decides_without_the_focus() {
     }
     assert_eq!(
         ew_viewmodel::strings::text(ew_viewmodel::key!("reason-table-which")),
-        "Several tables are shown; click in the one to export or import."
+        "Several tables are shown; click in the one to export or import"
     );
     done(
         &mut shell,
@@ -674,5 +681,50 @@ fn the_table_shown_decides_without_the_focus() {
         json!({"path": text(&other)}),
     );
     assert!(other.exists());
+    shell.shutdown();
+}
+
+/// ID-1231 (C48-p5#1): a table-mode navigator behind another tab is not shown and does not count; with the canvas
+/// focused, the one table shown is exported. The refusals of a table without a file form and of another project's
+/// file, whole.
+#[test]
+fn a_table_behind_another_tab_does_not_count() {
+    let tmp = Tmp::new("tfb");
+    let mut shell = strips(&tmp);
+    done(&mut shell, "navigator.show", json!({"kind": "devices"}));
+    done(
+        &mut shell,
+        "navigator.table",
+        json!({"kind": "devices", "on": true}),
+    );
+    let strips_pane = PaneKind::Navigator(NavKind::Strips);
+    assert_eq!(
+        shell.layout().shown_in_place_of(strips_pane),
+        Some(PaneKind::Navigator(NavKind::Devices)),
+        "Terminal strips is behind the Devices tab"
+    );
+    done(&mut shell, "ui.focus", json!({"area": "canvas"}));
+    let out = tmp.0.join("x.xlsx");
+    done(&mut shell, "navigator.export_table", json!({"path": text(&out)}));
+    let n = shell.nav(NavKind::Devices).unwrap();
+    let table = n.table().unwrap();
+    let devices: Vec<String> = n
+        .visible()
+        .iter()
+        .map(|r| table.nodes[r.node as usize].key.clone())
+        .collect();
+    assert_eq!(
+        column_cells(&std::fs::read(&out).unwrap(), "id"),
+        devices,
+        "the Devices table"
+    );
+    assert_eq!(
+        ew_viewmodel::strings::text(ew_viewmodel::key!("reason-table-no-file")),
+        "This table cannot be written to a file; copy its cells instead"
+    );
+    assert_eq!(
+        ew_viewmodel::strings::text(ew_viewmodel::key!("error-table-import-project")),
+        "The file was exported from another project; export the table from this project again."
+    );
     shell.shutdown();
 }

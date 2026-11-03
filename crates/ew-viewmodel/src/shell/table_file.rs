@@ -28,6 +28,7 @@ use super::navigation::bump;
 use super::{Mode, Outcome, Prompt, RecordedCommand, ShellModel, failed, string_param};
 use crate::jobs::TableFile;
 use crate::key;
+use crate::layout::PaneKind;
 use crate::properties::{Card, CardOrigin, EditRoute, FieldReadOnly, PendingEdit, TableImportCard};
 use crate::strings;
 use crate::strings::Key;
@@ -60,10 +61,18 @@ fn import_error(e: &TableImportError) -> String {
 impl ShellModel {
     /// The navigator Export table… and Import table… read, for their predicate and their actions alike (ID-1224 ruling
     /// 2, ID-1231): the focused one when it is in table mode (the Messages pane, focused, too: its action refuses as
-    /// `navigator.table` does), else the one navigator shown in table mode; with several shown and none of them
-    /// focused, the reason says to click one. A table without a file form is refused.
+    /// `navigator.table` does), else the one navigator shown in table mode (in front in its pane, not behind another
+    /// tab); with several shown and none of them focused, the reason says to click one. A table without a file form is
+    /// refused.
     pub(crate) fn table_file_nav(&self) -> Result<NavKind, Key<'static>> {
         let in_table = |k: NavKind| self.generic(k).is_some_and(|n| n.table_mode().is_some());
+        let in_front = |k: NavKind| {
+            let pane = match k {
+                NavKind::Pages => PaneKind::Pages,
+                k => PaneKind::Navigator(k),
+            };
+            self.layout().shown_in_place_of(pane) == Some(pane)
+        };
         let kind = match self.focused_navigator() {
             Some(k) if k == NavKind::Messages || in_table(k) => k,
             _ => {
@@ -71,7 +80,7 @@ impl ShellModel {
                 let shown: Vec<NavKind> = pages
                     .into_iter()
                     .chain(self.open_navigators())
-                    .filter(|k| in_table(*k))
+                    .filter(|k| in_table(*k) && in_front(*k))
                     .collect();
                 match shown.as_slice() {
                     [k] => *k,

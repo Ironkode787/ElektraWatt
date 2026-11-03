@@ -1713,7 +1713,7 @@ table-import-title = Import { $p0 }
 # ID-1231: the toast of one cell, the refusal with several tables shown and none focused, and the link preview's line
 # when `nav.follow` has no key (the command by its menu path, as the menu table holds it).
 toast-table-imported-one = Imported 1 changed cell from { $p1 }
-reason-table-which = Several tables are shown; click in the one to export or import.
+reason-table-which = Several tables are shown; click in the one to export or import
 link-preview-go-none = Click the link or use Page ▸ Follow cross-reference to go there
 table-import-counts = { $p0 } changed, { $p1 } kept, { $p2 }, { $p3 } refused, { $p4 } unknown, { $p5 } missing
 table-import-conflicts = { $p0 } conflicts
