@@ -5099,8 +5099,6 @@ fn paste_choice_open(m: &ShellModel) -> Result<(), Key<'static>> {
     }
 }
 
-// WP-S2.07 part 4a
-/// The part selection dialog's own actions need the dialog.
 /// The print pre-dialog's own steps (WP-S3.07 part 3).
 fn print_dialog_open(m: &ShellModel) -> Result<(), Key<'static>> {
     project_open(m)?;
@@ -5111,6 +5109,8 @@ fn print_dialog_open(m: &ShellModel) -> Result<(), Key<'static>> {
     }
 }
 
+// WP-S2.07 part 4a
+/// The part selection dialog's own actions need the dialog.
 fn part_dialog_open(m: &ShellModel) -> Result<(), Key<'static>> {
     project_open(m)?;
     if matches!(m.dialog(), Some(crate::shell::Dialog::PartChoose(_))) {

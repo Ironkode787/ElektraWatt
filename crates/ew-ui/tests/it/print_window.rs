@@ -111,7 +111,7 @@ fn print_on_a_platform_without_printing_says_so_in_one_toast() {
     assert!(h.state().shell().print_dialog().is_none(), "the dialog closes");
     assert!(
         h.query_by_label(
-            "printing is not available in this window; export a PDF and print it from your PDF viewer"
+            "Printing is not available in this window. Export a PDF and print it from your PDF viewer."
         )
         .is_some(),
         "the toast"

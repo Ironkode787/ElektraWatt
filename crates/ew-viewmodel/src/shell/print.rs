@@ -317,7 +317,10 @@ impl ShellModel {
             PrintEnd::FellBackToPrinter => strings::format(key!("toast-print-fallback-printer"), &[&title]),
             PrintEnd::FellBackToViewer => strings::format(key!("toast-print-fallback-viewer"), &[&title]),
             PrintEnd::Cancelled => return,
-            PrintEnd::Failed(cause) => strings::format(key!("toast-print-failed"), &[&cause]),
+            PrintEnd::Failed(cause) => {
+                // The text ends its own sentence: a cause's closing full stop would double it.
+                strings::format(key!("toast-print-failed"), &[cause.strip_suffix('.').unwrap_or(&cause)])
+            }
             PrintEnd::Unavailable => strings::text(key!("print-unavailable")).to_owned(),
         };
         self.notes.push(text, "print", None);

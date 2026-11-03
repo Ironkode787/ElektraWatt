@@ -1121,12 +1121,12 @@ print-writing = Writing the print set…
 print-failed = The print set could not be built: { $p0 }
 # FT-1124 (ID-1225): the refusal of the Pages text, under the field.
 print-pages-error = The pages could not be read. Type folio labels or ranges, separated by commas.
-print-unavailable = printing is not available in this window; export a PDF and print it from your PDF viewer
+print-unavailable = Printing is not available in this window. Export a PDF and print it from your PDF viewer.
 toast-print-printed = Sent { $p0 } to the printer
 toast-print-opened = Opened { $p0 } in your PDF viewer
-toast-print-fallback-printer = The print dialog could not open, so { $p0 } went to the default printer
+toast-print-fallback-printer = Printing through the print dialog failed, so { $p0 } went to the default printer.
 toast-print-fallback-viewer = Printing could not start, so { $p0 } opened in your PDF viewer to print from there
-toast-print-failed = Printing failed: { $p0 }
+toast-print-failed = Printing failed: { $p0 }. Export a PDF and print it from your PDF viewer.
 reason-no-print-dialog = Open the print dialog first
 reason-print-not-built = The print set is still being built
 reason-print-no-pages = No pages are chosen

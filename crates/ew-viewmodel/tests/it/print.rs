@@ -257,7 +257,7 @@ fn print_send_hands_the_set_to_the_window_and_each_end_has_one_toast() {
         (PrintEnd::Opened, "Opened J-E-2416 in your PDF viewer"),
         (
             PrintEnd::FellBackToPrinter,
-            "The print dialog could not open, so J-E-2416 went to the default printer",
+            "Printing through the print dialog failed, so J-E-2416 went to the default printer.",
         ),
         (
             PrintEnd::FellBackToViewer,
@@ -265,11 +265,15 @@ fn print_send_hands_the_set_to_the_window_and_each_end_has_one_toast() {
         ),
         (
             PrintEnd::Failed("`lp` failed with exit status: 1".to_owned()),
-            "Printing failed: `lp` failed with exit status: 1",
+            "Printing failed: `lp` failed with exit status: 1. Export a PDF and print it from your PDF viewer.",
+        ),
+        (
+            PrintEnd::Failed("`lp` said: no default destination.".to_owned()),
+            "Printing failed: `lp` said: no default destination. Export a PDF and print it from your PDF viewer.",
         ),
         (
             PrintEnd::Unavailable,
-            "printing is not available in this window; export a PDF and print it from your PDF viewer",
+            "Printing is not available in this window. Export a PDF and print it from your PDF viewer.",
         ),
     ];
     for (end, text) in cases {
