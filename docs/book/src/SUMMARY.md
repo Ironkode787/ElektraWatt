@@ -10,6 +10,7 @@
 # How-to guides
 
 - [How-to guides](how-to/index.md)
+  - [Install ElektraWatt](how-to/install.md)
   - [Use the application window](how-to/application-window.md)
   - [Draw a page from the text interface](how-to/text-interface.md)
   - [Define a supply potential](how-to/define-supply-potential.md)

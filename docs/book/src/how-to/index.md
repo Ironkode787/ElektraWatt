@@ -5,6 +5,8 @@ EW, start with a [tutorial](../tutorials/index.md) instead.
 
 ## Available now
 
+- [Install ElektraWatt](install.md): the Windows setup, silent installs, the CLI archives and `EW_CONTENT_DIR`,
+  upgrading and uninstalling.
 - [Use the application window](application-window.md): the start page, new, sample and imported projects, recovery,
   the command palette, workspaces, the first-run setup, the company-standard wizard and F1.
 - [Draw a page from the text interface](text-interface.md): reading a page as text, placing, autoconnect, frozen tags,
