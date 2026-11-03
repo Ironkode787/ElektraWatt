@@ -96,6 +96,24 @@ impl ShellModel {
         let nav = self.navs.get(&NavKind::Messages)?;
         let key = nav.cursor_key()?;
         let mut d = nav.node_of(&key).and_then(|(_, n)| messages::detail(n))?;
+        // WP-S2.08 part 3 (D10, ID-1219 ruling 6): the message in the UI language, by `report::localise`'s rule
+        // (the rule's pattern of that language where it has one, the en-GB message otherwise), for the finding of the
+        // online report with this fingerprint.
+        let lang = strings::rule_language();
+        if lang != "en-GB"
+            && let Some(project) = &self.project
+        {
+            let report = project
+                .session
+                .check(project.session.online_scheme(), CheckMode::Online);
+            if let Some(f) = report
+                .findings
+                .iter()
+                .find(|f| f.fingerprint.to_string() == d.fingerprint)
+            {
+                d.message = ew_api::checks::messages::render(f, lang);
+            }
+        }
         if d.waived {
             d.waiver = self
                 .with_online(|o| o.waivers.get(&d.fingerprint).cloned())

@@ -6,7 +6,12 @@
 //! tab escaped as `\\`, `\n` and `\t`), taken at the base of part 3 before the table moved to Fluent; a difference is
 //! a stop, never a re-bless. LO-3 the completeness gate; the pseudo-locale en-XA; the run-time switch.
 
+use crate::common::{Tmp, done};
+use ew_viewmodel::actions::{self, Menu, Submenu};
+use ew_viewmodel::navigators::{NavKind, NavRole};
+use ew_viewmodel::shell::{Outcome, ShellModel};
 use ew_viewmodel::{key, strings};
+use serde_json::{Value, json};
 
 const SNAPSHOT: &str = include_str!("../expected/en-GB-texts.txt");
 
@@ -123,4 +128,105 @@ fn a_test_language_switches_and_falls_back() {
     assert!(strings::set_locale("en"));
     assert_eq!(strings::text(key!("menu-view")), "View");
     assert_eq!(strings::rule_language(), "en-GB");
+}
+
+/// The two-key Dutch test file of ID-1219 ruling 5 (part 4 ships the real one).
+const NL_TEST: &str = "language-name = Nederlands\nmenu-view = Beeld\n";
+
+/// The items of View ▸ Language: (label, parameters, checked).
+fn language_items(shell: &ShellModel) -> Vec<(String, Value, bool)> {
+    let menus = actions::menu_model(shell);
+    let view = menus.iter().find(|m| m.menu == Menu::View).unwrap();
+    view.submenu(Submenu::Language)
+        .unwrap()
+        .iter()
+        .map(|i| (i.label.clone(), i.params.clone(), i.checked))
+        .collect()
+}
+
+/// LO-2's model half: View ▸ Language lists the languages under their own names with the current one checked, and
+/// `view.language` switches the menus at run time and back; an unknown value is refused in words.
+#[test]
+fn lo2_view_language_switches_the_menus_and_back() {
+    let tmp = Tmp::new("lo2");
+    let mut shell = tmp.shell("102");
+    assert_eq!(
+        language_items(&shell),
+        [("English".to_owned(), json!({"value": "en"}), true)]
+    );
+    strings::register_locale_for_tests("nl", NL_TEST);
+    assert_eq!(
+        language_items(&shell),
+        [
+            ("English".to_owned(), json!({"value": "en"}), true),
+            ("Nederlands".to_owned(), json!({"value": "nl"}), false),
+        ]
+    );
+    done(&mut shell, "view.language", json!({"value": "nl"}));
+    assert_eq!(strings::locale(), "nl");
+    assert_eq!(shell.settings().language, "nl");
+    let view = actions::menu_model(&shell)
+        .into_iter()
+        .find(|m| m.menu == Menu::View)
+        .unwrap();
+    assert_eq!(view.label, "Beeld");
+    assert!(language_items(&shell)[1].2, "Nederlands is checked");
+    assert_eq!(
+        shell.dispatch("view.language", &json!({"value": "xx"})),
+        Outcome::Failed {
+            message: "Parameter `value` is not valid.".to_owned()
+        }
+    );
+    done(&mut shell, "view.language", json!({"value": "en"}));
+    assert_eq!(strings::locale(), "en");
+    assert_eq!(strings::text(key!("menu-view")), "View");
+    shell.shutdown();
+}
+
+/// LO-4: with the UI in Dutch the Messages detail shows the nl-NL text of a Golden A rule that has one (EW-POT-013)
+/// and the en-GB text of a rule without one; in English it is the finding's own message.
+#[test]
+fn lo4_the_messages_detail_follows_the_ui_language() {
+    let tmp = Tmp::new("lo4");
+    let mut shell = tmp.shell("102");
+    done(&mut shell, "messages.show", json!({"on": true}));
+    let table = shell
+        .nav(NavKind::Messages)
+        .and_then(|n| n.table())
+        .cloned()
+        .unwrap();
+    let first = |rule: &str| {
+        table
+            .nodes
+            .iter()
+            .find(|n| n.role == NavRole::Finding && n.cells[1] == rule)
+            .unwrap_or_else(|| panic!("a {rule} finding"))
+            .clone()
+    };
+    let detail = |shell: &mut ShellModel, key: &str| {
+        done(shell, "navigator.row", json!({"kind": "messages", "key": key}));
+        shell.messages_detail().unwrap().message
+    };
+    let pot = first("EW-POT-013");
+    // A finding whose rule has no nl-NL message (FT-680: the rules beyond the twelve of Golden A).
+    let other = table
+        .nodes
+        .iter()
+        .find(|n| {
+            n.role == NavRole::Finding
+                && !ew_viewmodel::ew_api::checks::messages::has(&n.cells[1], Some("value"), "nl-NL")
+        })
+        .expect("a finding of a rule without a Dutch message")
+        .clone();
+    assert_eq!(detail(&mut shell, &pot.key), pot.cells[2]);
+    strings::register_locale_for_tests("nl", NL_TEST);
+    done(&mut shell, "view.language", json!({"value": "nl"}));
+    assert_eq!(
+        detail(&mut shell, &pot.key),
+        "S56 schakelt de nulleider N-55 → N-55S; belasting E56 blijft verbonden met L-55."
+    );
+    assert_eq!(detail(&mut shell, &other.key), other.cells[2]);
+    done(&mut shell, "view.language", json!({"value": "en"}));
+    assert_eq!(detail(&mut shell, &pot.key), pot.cells[2]);
+    shell.shutdown();
 }
