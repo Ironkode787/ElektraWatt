@@ -556,6 +556,33 @@ for this part.
     tests and fixtures under `crates/*/tests/` and `bin/ew/tests/`. No xtask file, no golden file, no string, no
     `ew-viewmodel` file.
 
+**The review's rulings (ID-1230, cycle 48; review part 2 of M48's branch).** They amend ruling 7, D9 and D10 where they
+say so, and accept the lane's deviations.
+1. **`unstable` under `keep_format`** (amends ruling 7, as D3 has it): a save that keeps the file's own format keeps the
+   file's own `unstable` flag, since this build's released list cannot know a newer minor; only a save that writes
+   `FORMAT` sets the flag by `released`. A test injects a released list and a newer-minor file.
+2. **A migrated library document that ends opaque** (no typed reading, a duplicate or no key) refuses the open as the
+   unknown-kind case does, so no step's change is ever dropped under the new format.
+3. **A library copy's `sha256`** (amends D10): when a kind step changes a copy's `item`, the loader recomputes the
+   copy's hash over the migrated item, since a format change is not an edit; EW-CORE-014 stays for real edits. A test
+   whose step changes `item`.
+4. **`Session::is_dirty`** is true for an unsaved migration only in an editing session (`Access::Edit`); a read-only
+   migrated session is not dirty, so the CLI writers meet the store's consent gate, not "unsaved changes". FT-1148
+   widens to the CLI writers' refusal texts on a migrated project and to `ew fmt --check`'s words on an older one.
+5. **`ew upgrade --check` reads an `.ewz`** (D9: every CLI reader does); `ew upgrade` without `--check` refuses one as
+   every writer does.
+6. **Tests:** MG-3 gains a fixture whose manifest bytes differ from `Manifest::to_text`, so it fails without
+   `pack_as_found`; the no-terminal and not-confirmed refusals of `ew upgrade` are asserted whole; FT-403's test pins
+   `FORMAT`, not `"0.1"`.
+7. **The steward check** looks for a way from every released format to `FORMAT`, not from the last one only.
+8. **Accepted as built:** the format record steps run before the kind steps, which is right for one hop (FT-1153 makes
+   them interleave before a second format step ships); the manifest step runs at open and the save writes its `extra`;
+   the backup names stop at `-1000` and a name holding the same bytes is reused; `version.rs` and `output/mod.rs` were
+   edited beyond ruling 10; `pack_as_found` also packs the repair backup's manifest as read; when a listed file was
+   edited outside ElektraWatt, the backup's manifest is the re-hashed `to_text`, since raw bytes would fail the
+   archive's hash check. ADR-0011 decision 5's warning on every save in an unreleased format is FT-1154.
+   `crates/ew-store/src/lib.rs`'s module doc stops calling migrations later work.
+
 ## 9. Part 4: the three-way merge core and `ew merge-driver`
 
 **Scope.** D2, D13 to D16. **1.2 pw.** `ew-schema` (the strategy table, `CONFLICT_NS`), `ew-format` (`merge.rs`:
