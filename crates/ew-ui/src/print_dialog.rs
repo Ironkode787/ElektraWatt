@@ -118,13 +118,7 @@ fn fit_dpi(paper_w_nm: f32, px: f32) -> u32 {
 
 /// Paints the pre-dialog's body: the options beside the preview. Its option changes, page moves and Enter (Print…,
 /// once the set is built) go to `events`.
-pub(crate) fn body(
-    ui: &mut Ui,
-    shell: &ShellModel,
-    d: &PrintDialog,
-    just_opened: bool,
-    events: &mut Vec<Event>,
-) {
+pub(crate) fn body(ui: &mut Ui, shell: &ShellModel, d: &PrintDialog, events: &mut Vec<Event>) {
     let t = theme::current(ui.ctx());
     let body = ui.available_width();
     let options_width = (body * OPTIONS_SHARE).floor();
@@ -136,7 +130,7 @@ pub(crate) fn body(
             Layout::top_down(Align::Min),
             |ui| {
                 ui.set_width(options_width);
-                options(ui, d, just_opened, events);
+                options(ui, d, events);
             },
         );
         ui.allocate_ui_with_layout(
@@ -182,7 +176,7 @@ fn row<R>(ui: &mut Ui, label_width: f32, label: &str, field: impl FnOnce(&mut Ui
 }
 
 /// The options column: Range, Paper, Scale to fit, Monochrome.
-fn options(ui: &mut Ui, d: &PrintDialog, just_opened: bool, events: &mut Vec<Event>) {
+fn options(ui: &mut Ui, d: &PrintDialog, events: &mut Vec<Event>) {
     let t = theme::current(ui.ctx());
     ui.spacing_mut().item_spacing.y = t.space_3;
     // The label column of §6.12, at most half the column (a narrower column keeps its fields).
@@ -192,9 +186,6 @@ fn options(ui: &mut Ui, d: &PrintDialog, just_opened: bool, events: &mut Vec<Eve
         ui.spacing_mut().item_spacing.y = t.space_2;
         for range in PrintRange::ALL {
             let r = ui.radio(d.range == range, strings::text(range.label_key()));
-            if just_opened && d.range == range {
-                r.request_focus();
-            }
             if r.clicked() && d.range != range {
                 set(events, json!({ "range": range.word() }));
             }
@@ -292,8 +283,27 @@ fn pages_field(ui: &mut Ui, d: &PrintDialog, events: &mut Vec<Event>) {
         if text != d.pages {
             set(events, json!({ "pages": text }));
         }
+        // FT-1124 (ID-1225): a refused text is shown once, here, in doc 16a §6.1's Error state: the field's boundary in
+        // `color.error` and the sentence under it after the error icon.
         if let Some(e) = &d.pages_error {
-            components::live_line(ui, e, true);
+            ui.painter().rect_stroke(
+                edit.rect,
+                ui.visuals().widgets.inactive.corner_radius,
+                theme::stroke(t.border_width, t.error),
+                egui::StrokeKind::Inside,
+            );
+            ui.horizontal_top(|ui| {
+                ui.spacing_mut().item_spacing.x = t.space_icon;
+                let (r, _) = ui.allocate_exact_size(Vec2::splat(t.icon_sm), Sense::hover());
+                crate::icons::paint(
+                    ui.painter(),
+                    IconId::circle_x,
+                    r,
+                    t.error.color32(),
+                    t.icon_stroke,
+                );
+                components::live_line(ui, e, true);
+            });
         }
     });
 }
@@ -315,7 +325,8 @@ fn preview(ui: &mut Ui, shell: &ShellModel, d: &PrintDialog, events: &mut Vec<Ev
         size = Vec2::new(max_height * paper_w / paper_h, max_height);
     }
     let (rect, _) = ui.allocate_exact_size(size, Sense::hover());
-    let painter = ui.painter_at(rect.expand(1.0));
+    // FT-1126 (ID-1225): the column's clip, so that the paper's edge and shadow outside `rect` are drawn whole.
+    let painter = ui.painter().clone();
     painter.rect_filled(rect, theme::radius(t.radius_sm), t.surface_sunken.color32());
     match (&d.build, shell.print_set()) {
         (PrintBuild::Built { .. }, Some(set)) => {
@@ -326,6 +337,9 @@ fn preview(ui: &mut Ui, shell: &ShellModel, d: &PrintDialog, events: &mut Vec<Ev
                 dpi: fit_dpi(paper_w, rect.width() * ppp),
                 mono: d.monochrome,
             };
+            // FT-1126 (ID-1225): the paper as a sheet: `elevation.1` under it and its whole edge in
+            // `color.border.control`, the border that meets the non-text contrast on the dialog's surface.
+            painter.add(theme::shadow(&t.elevation_1).as_shape(rect, theme::SQUARE));
             if let Some(texture) = image(ui.ctx(), set, tag) {
                 painter.image(
                     texture.id(),
@@ -336,8 +350,8 @@ fn preview(ui: &mut Ui, shell: &ShellModel, d: &PrintDialog, events: &mut Vec<Ev
             }
             painter.rect_stroke(
                 rect,
-                theme::radius(t.radius_sm),
-                theme::stroke(1.0, t.border_default),
+                theme::SQUARE,
+                theme::stroke(t.border_width, t.border_control),
                 egui::StrokeKind::Outside,
             );
             navigation(ui, shell, d, set.pages.len(), events);

@@ -534,6 +534,8 @@ pub const PAIRS: &[Pair] = &[
     pair("color.success", "color.surface.panel", PairKind::Text),
     pair("color.warning", "color.warning.subtle", PairKind::Text),
     pair("color.border.control", "color.surface.panel", PairKind::NonText),
+    // FT-1126 (ID-1225): the print preview's paper edge on the dialog.
+    pair("color.border.control", "color.surface.raised", PairKind::NonText),
     pair("color.focus", "color.surface.panel", PairKind::NonText),
     pair("color.warning.icon", "color.surface.panel", PairKind::NonText),
     pair("canvas.selection", "canvas.sheet", PairKind::Canvas),

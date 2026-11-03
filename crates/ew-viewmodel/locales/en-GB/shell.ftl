@@ -1119,6 +1119,8 @@ print-empty-text = Tick a section or type the pages to print
 print-building = Building the print set… { $p0 } %
 print-writing = Writing the print set…
 print-failed = The print set could not be built: { $p0 }
+# FT-1124 (ID-1225): the refusal of the Pages text, under the field.
+print-pages-error = The pages could not be read. Type folio labels or ranges, separated by commas.
 print-unavailable = printing is not available in this window; export a PDF and print it from your PDF viewer
 toast-print-printed = Sent { $p0 } to the printer
 toast-print-opened = Opened { $p0 } in your PDF viewer

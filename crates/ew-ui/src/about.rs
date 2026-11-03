@@ -136,7 +136,14 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
     // What Submit sends (the field's text as typed this frame) and whether Enter in a field submitted.
     let mut submit_text: Option<String> = None;
     let mut submit = false;
-    let clicked = crate::dialog::show_sized(ctx, &spec, width, just_opened && !has_field, |ui| match d {
+    // FT-1125 (ID-1225): the print pre-dialog's first focus is its Primary, Print… (doc 16a §6.12), which is disabled
+    // until the set is built: it takes the focus once it can, while no other widget holds it.
+    let focus_primary = if matches!(d, Dialog::Print(_)) {
+        ctx.memory(|m| m.focused().is_none())
+    } else {
+        just_opened && !has_field
+    };
+    let clicked = crate::dialog::show_sized(ctx, &spec, width, focus_primary, |ui| match d {
         Dialog::About => {
             ui.horizontal_wrapped(|ui| {
                 ui.spacing_mut().item_spacing.x = crate::theme::current(ui.ctx()).space_4;
@@ -246,7 +253,7 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
         }
         Dialog::PartChoose(c) => crate::part_dialog::chooser(ui, shell, c, just_opened, events),
         Dialog::PartEdit(e) => crate::part_dialog::editor(ui, e, just_opened, events),
-        Dialog::Print(p) => crate::print_dialog::body(ui, shell, p, just_opened, events),
+        Dialog::Print(p) => crate::print_dialog::body(ui, shell, p, events),
         Dialog::ConfirmDiscard { .. } | Dialog::ConfirmCheckScheme { .. } | Dialog::ConfirmJournalDiscard => {
         }
     });

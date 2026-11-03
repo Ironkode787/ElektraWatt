@@ -531,9 +531,10 @@ impl ShellModel {
         let Some(d) = self.print_dialog() else { return };
         let selection = d.selection();
         let parse_error = match (d.range, &selection) {
-            (PrintRange::Pages, None) if !d.pages.trim().is_empty() => {
-                PageSelection::parse(&d.pages).err().map(|e| e.to_string())
-            }
+            // FT-1124 (ID-1225): the refusal in words, not the engine's.
+            (PrintRange::Pages, None) if !d.pages.trim().is_empty() => PageSelection::parse(&d.pages)
+                .err()
+                .map(|_| strings::text(key!("print-pages-error")).to_owned()),
             _ => None,
         };
         let job = match (&self.project, selection) {
@@ -586,6 +587,11 @@ impl ShellModel {
 
     /// The end of build `generation`: the dialog's state, when it still shows that build.
     fn finish_print(&mut self, generation: u64, end: JobEnd<PrintSet>) {
+        // FT-1124 (ID-1225): a selection the page order refuses is the Pages text's refusal, shown once under the field
+        // in words while the preview shows the empty state; any other failure shows in the preview only. The engine
+        // words (the CLI's) are told by `OutputError::Selection`'s own prefix.
+        let selection = ew_api::output::OutputError::Selection(String::new()).to_string();
+        let pages = self.print_dialog().is_some_and(|d| d.range == PrintRange::Pages);
         let (build, set, field_error) = match end {
             JobEnd::Done(set) => (
                 PrintBuild::Built {
@@ -595,7 +601,12 @@ impl ShellModel {
                 None,
             ),
             JobEnd::Cancelled => (PrintBuild::Empty, None, None),
-            JobEnd::Failed(cause) => (PrintBuild::Failed(cause.clone()), None, Some(cause)),
+            JobEnd::Failed(cause) if pages && cause.starts_with(&selection) => (
+                PrintBuild::Empty,
+                None,
+                Some(strings::text(key!("print-pages-error")).to_owned()),
+            ),
+            JobEnd::Failed(cause) => (PrintBuild::Failed(cause), None, None),
             JobEnd::Panicked => (
                 PrintBuild::Failed(strings::text(key!("job-cause-internal")).to_owned()),
                 None,

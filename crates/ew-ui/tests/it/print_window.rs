@@ -166,6 +166,129 @@ fn no_page_chosen_shows_the_empty_state_and_disables_both_print_buttons() {
     h.state_mut().shell_mut().shutdown();
 }
 
+/// Every shape of the last frame with its clip rectangle.
+fn shapes(h: &Harness<'_, App>) -> Vec<(egui::Shape, egui::Rect)> {
+    fn walk(shape: &egui::Shape, clip: egui::Rect, out: &mut Vec<(egui::Shape, egui::Rect)>) {
+        match shape {
+            egui::Shape::Vec(v) => v.iter().for_each(|s| walk(s, clip, out)),
+            s => out.push((s.clone(), clip)),
+        }
+    }
+    let mut out = Vec::new();
+    for c in &h.output().shapes {
+        walk(&c.shape, c.clip_rect, &mut out);
+    }
+    out
+}
+
+/// FT-1124 (ID-1225): a Pages text the parser refuses shows one sentence in words, once, under the field, in doc 16a
+/// §6.1's Error state (the field's boundary in `color.error`, the error icon before the sentence); the preview shows
+/// the empty state.
+#[test]
+fn ft1124_a_refused_pages_text_shows_once_under_the_field_in_the_error_state() {
+    let tmp = Tmp::new();
+    let mut h = harness(&tmp, Scripted::default(), Some(tmp.golden("g.ew")));
+    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    settle(&mut h);
+    dispatch(
+        &mut h,
+        "file.print",
+        json!({"range": "pages", "pages": "101,,102"}),
+    );
+    settle(&mut h);
+    let sentence = "The pages could not be read. Type folio labels or ranges, separated by commas.";
+    let lines: Vec<egui::Rect> = h.get_all_by_label(sentence).map(|n| n.rect()).collect();
+    assert_eq!(lines.len(), 1, "the sentence once");
+    let line = lines[0];
+    assert!(
+        h.get_all_by_label("No pages to print").next().is_some(),
+        "the empty state"
+    );
+    let field = h
+        .get_all_by_role(egui::Role::TextInput)
+        .find(|n| n.accesskit_node().label().as_deref() == Some("Pages"))
+        .expect("the Pages field")
+        .rect();
+    assert!(line.top() >= field.bottom(), "{line:?} under {field:?}");
+    let t = ew_ui::theme::current(&h.ctx);
+    let error = t.error.color32();
+    let all = shapes(&h);
+    assert!(
+        all.iter().any(|(s, _)| matches!(s, egui::Shape::Rect(r)
+            if r.stroke.color == error && r.rect == field)),
+        "the field's error boundary"
+    );
+    assert!(
+        all.iter().any(|(s, _)| !matches!(s, egui::Shape::Text(_))
+            && s.visual_bounding_rect().right() <= line.left()
+            && s.visual_bounding_rect().left() >= field.left() - 1.0
+            && s.visual_bounding_rect().center().y >= line.top()
+            && s.visual_bounding_rect().center().y <= line.bottom()
+            && match s {
+                egui::Shape::Path(p) => p.stroke.color == egui::epaint::ColorMode::Solid(error),
+                egui::Shape::LineSegment { stroke, .. } => stroke.color == error,
+                egui::Shape::Circle(c) => c.stroke.color == error || c.fill == error,
+                _ => false,
+            }),
+        "the error icon before the sentence"
+    );
+    h.state_mut().shell_mut().shutdown();
+}
+
+/// FT-1125 (ID-1225; doc 16a §6.12): the pre-dialog's first focus is its Primary, Print…, once the set is built.
+#[test]
+fn ft1125_the_first_focus_is_print() {
+    let tmp = Tmp::new();
+    let mut h = harness(&tmp, Scripted::default(), Some(tmp.golden("g.ew")));
+    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    settle(&mut h);
+    dispatch(&mut h, "file.print", json!({"range": "current"}));
+    run_until_built(&mut h);
+    settle(&mut h);
+    let focused: Vec<String> = h
+        .get_all_by(|n| n.is_focused())
+        .map(|n| n.accesskit_node().label().unwrap_or_default())
+        .collect();
+    assert_eq!(focused, ["Print…"]);
+    h.state_mut().shell_mut().shutdown();
+}
+
+/// FT-1126 (ID-1225): with paper A3 and no fit the preview draws the paper as a sheet: its whole edge (no clip cuts
+/// it) in `color.border.control`, which meets the non-text contrast on the dialog's surface (the theme's pairs).
+#[test]
+fn ft1126_the_preview_draws_the_papers_whole_edge() {
+    let tmp = Tmp::new();
+    let mut h = harness(&tmp, Scripted::default(), Some(tmp.golden("g.ew")));
+    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    settle(&mut h);
+    dispatch(
+        &mut h,
+        "file.print",
+        json!({"range": "current", "paper": "A3", "fit": false}),
+    );
+    run_until_built(&mut h);
+    let t = ew_ui::theme::current(&h.ctx);
+    let edge = egui::Stroke::new(t.border_width, t.border_control.color32());
+    let sheets: Vec<(egui::Rect, egui::Rect)> = shapes(&h)
+        .into_iter()
+        .filter_map(|(s, clip)| match s {
+            egui::Shape::Rect(r) if r.stroke == edge && r.stroke_kind == egui::StrokeKind::Outside => {
+                Some((r.rect, clip))
+            }
+            _ => None,
+        })
+        .collect();
+    assert_eq!(sheets.len(), 1, "one paper edge: {sheets:?}");
+    let (sheet, clip) = sheets[0];
+    assert!(
+        clip.contains_rect(sheet.expand(t.border_width)),
+        "the edge {sheet:?} whole in the clip {clip:?}"
+    );
+    assert!(dialog(&h).contains_rect(sheet.expand(t.border_width)));
+    assert!(ew_ui::theme::contrast(t.border_control, t.surface_raised) >= 3.0);
+    h.state_mut().shell_mut().shutdown();
+}
+
 /// PW-4 (offscreen, the visual driver): the pre-dialog built, empty and building at the 1280 × 800 floor and at
 /// 1920 × 1080, painted to `target/ew-ui-snapshots/print/` for the window check (not gated: no expected image). The
 /// building frame holds the job at a test gate, which a script cannot (a visual run waits for the build).
@@ -210,6 +333,17 @@ fn pw4_the_visual_driver_paints_the_three_states_at_both_sizes() {
         );
         frame(&mut d, "built");
         assert!(d.shell_mut().print_set().is_some(), "built at {size}");
+        // FT-1126 (ID-1225): A3 with no fit, the paper's edge whole.
+        act(&mut d, "print.set", json!({"paper": "A3", "fit": false}));
+        frame(&mut d, "a3");
+        // FT-1124 (ID-1225): a refused Pages text, once, under the field.
+        act(
+            &mut d,
+            "print.set",
+            json!({"range": "pages", "pages": "101,,102"}),
+        );
+        frame(&mut d, "pages-error");
+        act(&mut d, "print.set", json!({"range": "sections"}));
         act(&mut d, "print.set", json!({"sections": ""}));
         frame(&mut d, "empty");
         let gate = Gate::new();

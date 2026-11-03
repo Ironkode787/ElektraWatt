@@ -19,7 +19,7 @@ color.accent.pressed #094C9F
 color.accent.subtle #E7F0FC
 color.border.subtle #E3E6EA
 color.border.default #D5D9DF
-color.border.control #868E99 on color.surface.panel 3.31
+color.border.control #868E99 on color.surface.panel 3.31 on color.surface.raised 3.31
 color.focus #0B63CE on color.surface.panel 5.69
 color.state.hover #1A1D210F
 color.state.pressed #1A1D211A
@@ -158,7 +158,7 @@ color.accent.pressed #094C9F
 color.accent.subtle #E7F0FC
 color.border.subtle #E3E6EA
 color.border.default #D5D9DF
-color.border.control #868E99 on color.surface.panel 3.31
+color.border.control #868E99 on color.surface.panel 3.31 on color.surface.raised 3.31
 color.focus #0B63CE on color.surface.panel 5.69
 color.state.hover #1A1D210F
 color.state.pressed #1A1D211A
@@ -297,7 +297,7 @@ color.accent.pressed #4A90EA
 color.accent.subtle #203754
 color.border.subtle #343941
 color.border.default #3F454D
-color.border.control #868E99 on color.surface.panel 4.70
+color.border.control #868E99 on color.surface.panel 4.70 on color.surface.raised 4.12
 color.focus #5AA2FF on color.surface.panel 5.96
 color.state.hover #FFFFFF12
 color.state.pressed #FFFFFF1F
@@ -436,7 +436,7 @@ color.accent.pressed #4A90EA
 color.accent.subtle #203754
 color.border.subtle #343941
 color.border.default #3F454D
-color.border.control #868E99 on color.surface.panel 4.70
+color.border.control #868E99 on color.surface.panel 4.70 on color.surface.raised 4.12
 color.focus #5AA2FF on color.surface.panel 5.96
 color.state.hover #FFFFFF12
 color.state.pressed #FFFFFF1F
@@ -575,7 +575,7 @@ color.accent.pressed #A3CEFF
 color.accent.subtle #001A33
 color.border.subtle #FFFFFF on color.surface.panel 21.00
 color.border.default #FFFFFF on color.surface.panel 21.00 on color.surface.chrome 21.00
-color.border.control #FFFFFF on color.surface.panel 21.00
+color.border.control #FFFFFF on color.surface.panel 21.00 on color.surface.raised 21.00
 color.focus #79B8FF on color.surface.panel 10.11
 color.state.hover #262626
 color.state.pressed #3A3A3A
@@ -714,7 +714,7 @@ color.accent.pressed #A3CEFF
 color.accent.subtle #001A33
 color.border.subtle #FFFFFF on color.surface.panel 21.00
 color.border.default #FFFFFF on color.surface.panel 21.00 on color.surface.chrome 21.00
-color.border.control #FFFFFF on color.surface.panel 21.00
+color.border.control #FFFFFF on color.surface.panel 21.00 on color.surface.raised 21.00
 color.focus #79B8FF on color.surface.panel 10.11
 color.state.hover #262626
 color.state.pressed #3A3A3A
@@ -853,7 +853,7 @@ color.accent.pressed #003A85
 color.accent.subtle #E6F0FF
 color.border.subtle #000000 on color.surface.panel 21.00
 color.border.default #000000 on color.surface.panel 21.00 on color.surface.chrome 21.00
-color.border.control #000000 on color.surface.panel 21.00
+color.border.control #000000 on color.surface.panel 21.00 on color.surface.raised 21.00
 color.focus #0047A3 on color.surface.panel 8.64
 color.state.hover #E6E6E6
 color.state.pressed #CCCCCC
@@ -992,7 +992,7 @@ color.accent.pressed #003A85
 color.accent.subtle #E6F0FF
 color.border.subtle #000000 on color.surface.panel 21.00
 color.border.default #000000 on color.surface.panel 21.00 on color.surface.chrome 21.00
-color.border.control #000000 on color.surface.panel 21.00
+color.border.control #000000 on color.surface.panel 21.00 on color.surface.raised 21.00
 color.focus #0047A3 on color.surface.panel 8.64
 color.state.hover #E6E6E6
 color.state.pressed #CCCCCC

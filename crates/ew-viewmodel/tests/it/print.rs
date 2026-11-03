@@ -203,21 +203,23 @@ fn the_pages_field_shows_the_parsers_and_the_page_orders_refusal() {
         dialog_lines(&s)[1..3],
         [
             "field \"Pages\": \"100,,101\"",
-            "error: page selection: `100,,101` has an empty item (folio labels and ranges separated by `,`)",
+            "error: The pages could not be read. Type folio labels or ranges, separated by commas.",
         ]
     );
+    // FT-1124 (ID-1225): the page order's refusal is the same sentence, once, under the field; the preview is empty.
     done(&mut s, "print.set", json!({"pages": "999"}));
     assert_eq!(
         dialog_lines(&s)[1..3],
         [
             "field \"Pages\": \"999\"",
-            "error: page selection: `999` is no folio label and no range of two folio labels",
+            "error: The pages could not be read. Type folio labels or ranges, separated by commas.",
         ]
     );
     assert_eq!(
-        s.print_disabled_reason().as_deref(),
-        Some("The print set could not be built")
+        s.print_dialog().map(|d| d.build.clone()),
+        Some(ew_viewmodel::shell::print::PrintBuild::Empty)
     );
+    assert_eq!(s.print_disabled_reason().as_deref(), Some("No pages are chosen"));
     done(&mut s, "print.set", json!({"pages": "101-102"}));
     assert_eq!(s.print_page_text().as_deref(), Some("1 of 2"));
     done(&mut s, "print.page", json!({"to": "next"}));
