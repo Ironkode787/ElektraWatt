@@ -135,6 +135,7 @@
     - [`ew revision`](reference/cli/revision.md)
     - [`ew schema`](reference/cli/schema.md)
     - [`ew sql`](reference/cli/sql.md)
+    - [`ew upgrade`](reference/cli/upgrade.md)
     - [`ew verify-derived`](reference/cli/verify-derived.md)
   - [Query reference](reference/queries.md)
   - [api_v1 reference](reference/api-v1.md)
