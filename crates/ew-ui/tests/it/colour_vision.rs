@@ -70,7 +70,12 @@ fn ciede2000_meets_the_test_pairs_of_sharma_wu_and_dalal() {
     let four = |v: f64| (v * 1e4).round() as i64;
     for (i, (one, two, expected)) in SHARMA.iter().enumerate() {
         assert_eq!(four(ciede2000(*one, *two)), four(*expected), "pair {}", i + 1);
-        assert_eq!(four(ciede2000(*two, *one)), four(*expected), "pair {} reversed", i + 1);
+        assert_eq!(
+            four(ciede2000(*two, *one)),
+            four(*expected),
+            "pair {} reversed",
+            i + 1
+        );
     }
 }
 
@@ -80,7 +85,10 @@ fn srgb_round_trips_through_linear_light_and_white_is_neutral() {
         assert_eq!(from_linear(to_linear(c)), c, "{c}");
     }
     let [l, a, b] = lab([1.0; 3]);
-    assert!((l - 100.0).abs() < 1e-9 && a.abs() < 1e-9 && b.abs() < 1e-9, "{l} {a} {b}");
+    assert!(
+        (l - 100.0).abs() < 1e-9 && a.abs() < 1e-9 && b.abs() < 1e-9,
+        "{l} {a} {b}"
+    );
 }
 
 /// The four slots and the selection, named as the report names them.
@@ -201,7 +209,12 @@ fn d15_the_highlight_renders_under_each_simulation_are_written_for_review() {
             .map(|h| (h.slot, h.name.as_str()))
             .collect();
         let expected: Vec<(u8, &str)> = (0..).zip(names.iter().copied()).collect();
-        assert_eq!(slots, expected, "{folio}: the potentials in slots 1 to {}", names.len());
+        assert_eq!(
+            slots,
+            expected,
+            "{folio}: the potentials in slots 1 to {}",
+            names.len()
+        );
         assert_eq!(
             shell.highlight_overlay(0).len(),
             names.len(),
@@ -215,7 +228,12 @@ fn d15_the_highlight_renders_under_each_simulation_are_written_for_review() {
         for sim in Simulation::ALL {
             let mut seen = image.clone();
             sim.apply(&mut seen.pixels);
-            assert_ne!(seen.pixels, image.pixels, "{folio} {}: the hues change", sim.word());
+            assert_ne!(
+                seen.pixels,
+                image.pixels,
+                "{folio} {}: the hues change",
+                sim.word()
+            );
             if bless() {
                 std::fs::create_dir_all(&dir).unwrap();
                 let path = dir.join(format!("{folio}-{}.png", sim.word()));

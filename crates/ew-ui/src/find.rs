@@ -179,8 +179,12 @@ impl FindPane {
                 // W49.1-J: the field takes the rest of its row; where the rest cannot show the whole placeholder
                 // (with a button's padding each side), it wraps to a row of its own and takes all of that.
                 let font = egui::TextStyle::Body.resolve(ui.style());
-                let hint =
-                    ui.fonts_mut(|fonts| fonts.layout_no_wrap(name.clone(), font, crate::theme::NONE).size().x);
+                let hint = ui.fonts_mut(|fonts| {
+                    fonts
+                        .layout_no_wrap(name.clone(), font, crate::theme::NONE)
+                        .size()
+                        .x
+                });
                 let least = hint.ceil() + 2.0 * ui.spacing().button_padding.x;
                 // What is left of the current row (`available_width` is a whole row's in a wrapping layout).
                 let rest = (ui.max_rect().right() - ui.cursor().min.x).floor();

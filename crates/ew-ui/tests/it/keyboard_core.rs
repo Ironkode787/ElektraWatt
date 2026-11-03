@@ -116,7 +116,11 @@ fn ax5_the_five_core_tasks_with_key_events_only() {
     wait_for_page(&mut h);
     settle(&mut h);
     assert_eq!(h.state().shell().current_folio(), Some("103"));
-    assert!(matches!(h.state().shell().focus(), Some(Focus::Canvas(_))), "{:?}", h.state().shell().focus());
+    assert!(
+        matches!(h.state().shell().focus(), Some(Focus::Canvas(_))),
+        "{:?}",
+        h.state().shell().focus()
+    );
 
     // 1. A symbol: I opens the picker, typing filters it, Down moves its row, Enter chooses; the arrows move the grid
     // cursor and Enter places the symbol there.
@@ -181,7 +185,11 @@ fn ax5_the_five_core_tasks_with_key_events_only() {
     };
     let before = terminals_of(&h, &strip);
     press(&mut h, Key::Insert);
-    assert_eq!(terminals_of(&h, &strip), before + 1, "a terminal inserted into {strip}");
+    assert_eq!(
+        terminals_of(&h, &strip),
+        before + 1,
+        "a terminal inserted into {strip}"
+    );
 
     // 4. Renumber devices…: Ctrl+K, "renum", Enter opens its form; Ctrl+Enter submits it (ID-1276 ruling 2) and opens
     // the renumber card, which F6 to Properties and Ctrl+Enter apply.
@@ -195,10 +203,10 @@ fn ax5_the_five_core_tasks_with_key_events_only() {
     );
     // Tab to "Only non-conforming", Space clears it: every device is renumbered.
     let mut tabs = 0;
-    while !h
-        .get_all_by_role(egui::Role::CheckBox)
-        .any(|n| n.accesskit_node().label().as_deref() == Some("Only non-conforming") && n.accesskit_node().is_focused())
-    {
+    while !h.get_all_by_role(egui::Role::CheckBox).any(|n| {
+        n.accesskit_node().label().as_deref() == Some("Only non-conforming")
+            && n.accesskit_node().is_focused()
+    }) {
         tabs += 1;
         assert!(tabs <= 8, "Tab reaches Only non-conforming");
         press(&mut h, Key::Tab);
@@ -210,7 +218,10 @@ fn ax5_the_five_core_tasks_with_key_events_only() {
         "Space cleared it"
     );
     chord(&mut h, Modifiers::COMMAND, Key::Enter);
-    assert!(h.state().shell().dialog().is_none(), "Ctrl+Enter submitted the form");
+    assert!(
+        h.state().shell().dialog().is_none(),
+        "Ctrl+Enter submitted the form"
+    );
     let card = h.state().shell().properties().card().expect("the renumber card");
     assert!(matches!(card.origin, CardOrigin::Bulk));
     assert_eq!(card.preview.name, "numbering.renumber");
@@ -227,7 +238,11 @@ fn ax5_the_five_core_tasks_with_key_events_only() {
     assert!(h.state().shell().properties().card().is_none(), "applied");
     assert_eq!(h.state().shell().recorded_commands().len(), steps + 1);
     assert_eq!(
-        h.state().shell().recorded_commands().last().map(|c| c.cmd.as_str()),
+        h.state()
+            .shell()
+            .recorded_commands()
+            .last()
+            .map(|c| c.cmd.as_str()),
         Some("numbering.renumber")
     );
 

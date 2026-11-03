@@ -73,12 +73,7 @@ fn ctrl_enter_submits_a_form_from_any_focus_before_the_keys_under_it() {
     h.key_press_modifiers(Modifiers::COMMAND, Key::Enter);
     settle(&mut h);
     assert_eq!(form(&h), None, "Ctrl+Enter submitted the form");
-    let card = h
-        .state()
-        .shell()
-        .properties()
-        .card()
-        .expect("the renumber card");
+    let card = h.state().shell().properties().card().expect("the renumber card");
     assert!(
         matches!(card.origin, CardOrigin::Bulk),
         "the form's card, not the find pane's replace: {:?}",
@@ -89,9 +84,7 @@ fn ctrl_enter_submits_a_form_from_any_focus_before_the_keys_under_it() {
 
 /// Sets the open form's scope to Selection (which clears its last refusal) with nothing selected.
 fn scope_selection(h: &mut Harness<'_, App>) {
-    h.state_mut()
-        .shell_mut()
-        .set_form_field("scope", "selection");
+    h.state_mut().shell_mut().set_form_field("scope", "selection");
     settle(h);
     assert_eq!(form(h), Some(("devices.renumber", None)));
 }
@@ -100,11 +93,7 @@ fn scope_selection(h: &mut Harness<'_, App>) {
 #[track_caller]
 fn refused_in_the_form(h: &Harness<'_, App>, how: &str) {
     const WHY: &str = "No device is selected";
-    assert_eq!(
-        form(h),
-        Some(("devices.renumber", Some(WHY.to_owned()))),
-        "{how}"
-    );
+    assert_eq!(form(h), Some(("devices.renumber", Some(WHY.to_owned()))), "{how}");
     assert!(h.query_by_label(WHY).is_some(), "{how}: shown in the form");
 }
 

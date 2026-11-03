@@ -358,9 +358,11 @@ fn the_folio_filter_takes_the_width_it_has_at_both_sizes() {
             .expect("the find pane")
             .rect();
         let font = egui::TextStyle::Body.resolve(&h.ctx.style_of(h.ctx.theme()));
-        let hint = h
-            .ctx
-            .fonts_mut(|f| f.layout_no_wrap(name.clone(), font, egui::Color32::BLACK).size().x);
+        let hint = h.ctx.fonts_mut(|f| {
+            f.layout_no_wrap(name.clone(), font, egui::Color32::BLACK)
+                .size()
+                .x
+        });
         assert!(
             field.width() > hint,
             "{size:?}: a field of {} for a placeholder of {hint}",
