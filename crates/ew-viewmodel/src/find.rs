@@ -196,10 +196,10 @@ pub fn marked(hit: &FindHit) -> String {
 pub fn updated_note(before: usize, after: usize) -> String {
     match after.cmp(&before) {
         std::cmp::Ordering::Less => {
-            strings::format(key!("find-updated-fewer"), &[&(before - after).to_string()])
+            strings::format_count(crate::count_key!("find-updated-fewer"), before - after)
         }
         std::cmp::Ordering::Greater => {
-            strings::format(key!("find-updated-more"), &[&(after - before).to_string()])
+            strings::format_count(crate::count_key!("find-updated-more"), after - before)
         }
         std::cmp::Ordering::Equal => strings::text(key!("find-updated-same")).to_owned(),
     }
@@ -234,7 +234,7 @@ mod tests {
         };
         assert_eq!(marked(&hit), "[[Spare]] [[spare]]");
         assert_eq!(updated_note(20, 18), "Preview updated: 2 fewer results");
-        assert_eq!(updated_note(2, 3), "Preview updated: 1 more results");
+        assert_eq!(updated_note(2, 3), "Preview updated: 1 more result");
         assert_eq!(updated_note(2, 2), "Preview updated: the same results");
     }
 }

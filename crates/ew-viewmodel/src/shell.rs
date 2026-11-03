@@ -684,6 +684,65 @@ mod save_error_tests {
     }
 }
 
+#[cfg(test)]
+mod choice_word_tests {
+    use crate::palette::{FormPlan, form_plan};
+    use crate::strings::{self, choice_text, choice_words};
+
+    /// ID-1278 ruling 2 (W49.1 D): every value of the closed sets the window shows through `choice_text` has its
+    /// `choice-<value>` in en-GB and nl-NL: the palette forms' `enum(…)` and `bool`, the form dialogs' choices (New
+    /// page's types, New structure node's aspects, the yes-or-no fields, Save as macro's kinds, the revision forms'
+    /// roles) and the part editor's kinds. The en-GB words are the ones derived before; the Dutch ones their own.
+    #[test]
+    fn every_closed_choice_has_its_words_in_both_locales() {
+        let mut values: Vec<&str> = Vec::new();
+        let specs: Vec<_> = crate::actions::ACTIONS
+            .iter()
+            .filter_map(|m| match form_plan(m) {
+                FormPlan::Form(specs) => Some(specs),
+                _ => None,
+            })
+            .flatten()
+            .collect();
+        for p in &specs {
+            if p.ty == "bool" {
+                values.extend(["false", "true"]);
+            } else if let Some(list) = p.ty.strip_prefix("enum(").and_then(|t| t.strip_suffix(')')) {
+                values.extend(list.split('|'));
+            }
+        }
+        values.extend(super::PAGE_TYPES);
+        values.extend(super::STRUCTURE_KINDS);
+        values.extend(super::bulk::BOOL_CHOICES);
+        values.extend(super::macros::MACRO_KINDS);
+        values.extend(super::revision::ROLES);
+        values.extend(super::part_dialog::PART_KINDS);
+        let nl: std::collections::BTreeSet<&str> = include_str!("../locales/nl-NL/shell.ftl")
+            .lines()
+            .filter_map(|l| l.split_once(" = ").map(|(k, _)| k))
+            .collect();
+        let mut missing = std::collections::BTreeSet::new();
+        for v in &values {
+            let key = format!("choice-{}", v.replace('_', "-"));
+            if !strings::has_key(&key) {
+                missing.insert(format!("en-GB: {key}"));
+            }
+            if !nl.contains(key.as_str()) {
+                missing.insert(format!("nl-NL: {key}"));
+            }
+            assert_eq!(choice_text(v), choice_words(v), "{v}");
+        }
+        assert_eq!(missing, std::collections::BTreeSet::new());
+        assert!(strings::set_locale("nl"));
+        assert_eq!(choice_text("multi_line"), "Meerlijnschema");
+        assert_eq!(choice_text("end_bracket"), "Eindsteun");
+        assert_eq!(choice_text("true"), "Ja");
+        // An open set's value (a symbol's name) keeps its derived words in any language.
+        assert_eq!(choice_words("contact_no"), "Contact no");
+        assert!(strings::set_locale("en"));
+    }
+}
+
 /// A new, empty directory `<temp>/<stem>-<pid>-<n>` for the unit tests of this crate: [`ew_testdir::fresh_dir`]
 /// (FT-524, FT-538, FT-586).
 #[cfg(test)]

@@ -7,7 +7,7 @@
 
 rule-ew-core-033 = { $cable } heeft geen gerouteerde, handmatige of artikellengte
     .title = Kabel zonder lengte
-    .hint = Voer een handmatige lengte in, routeer de kabel in de lay-out of wijs een artikel met een vaste lengte toe.
+    .hint = Voer een handmatige lengte in, routeer de kabel in de layout of wijs een artikel met een vaste lengte toe.
 
 rule-ew-core-034 = de externe verbinding { $connection } heeft geen kabel: { $count ->
         [one] draad { $wires } is
@@ -20,9 +20,9 @@ rule-ew-core-041 = { $device } heeft geen artikel; wijs er een toe of markeer he
     .title = Apparaat zonder artikel
     .hint = Wijs een artikel uit de bibliotheek toe of markeer het apparaat als geleverd door derden.
 
-rule-ew-core-043 = plaatsvervangend artikel "{ $part }" (artikelnummer TBD) wordt gebruikt door { $users }; kies het artikel vóór de vrijgave
-    .title = Plaatsvervangend artikel
-    .hint = Vervang het plaatsvervangende artikel vóór de vrijgave door het echte artikel.
+rule-ew-core-043 = tijdelijk artikel "{ $part }" (artikelnummer TBD) wordt gebruikt door { $users }; kies het artikel vóór de vrijgave
+    .title = Tijdelijk artikel
+    .hint = Vervang vóór de vrijgave elk tijdelijk artikel door het echte artikel.
 
 rule-ew-core-061 = tekststijl { $style } drukt af met een hoofdletterhoogte van { $height } mm, onder het minimum van { $minimum } mm
     .title = Tekst onder de minimale hoogte
@@ -47,14 +47,14 @@ rule-ew-lay-006 = { $form ->
         [placements] { $device } overlapt { $other }; verplaats een van beide
         [same] twee plaatsingen van { $device } overlappen; verplaats een van beide
         [limit] meer voetafdrukken overlappen op de montageplaat van { $enclosure }; de eerste { $listed } overlappingen staan vermeld
-        [duct] { $device } overlapt de goot bij { $duct }; verplaats het apparaat of de goot
-       *[rail] de rail bij { $rail } overlapt de goot bij { $duct }; verplaats de rail of de goot
+        [duct] { $device } overlapt de kabelgoot bij { $duct }; verplaats het apparaat of de kabelgoot
+       *[rail] de rail bij { $rail } overlapt de kabelgoot bij { $duct }; verplaats de rail of de kabelgoot
     }
     .title = Botsing
     .hint = Verplaats een van de overlappende objecten tot hun voetafdrukken niet meer overlappen.
 
 rule-ew-lay-010 = { $form ->
-        [on_duct] { $device } is geplaatst op de goot bij { $duct }, die geen apparaten draagt; plaats het op een rail
+        [on_duct] { $device } is geplaatst op de kabelgoot bij { $duct }, die geen apparaten draagt; plaats het op een rail
         [off_rail] { $device } is geplaatst op { $s } mm op de rail bij { $rail }, buiten 0.0 tot { $length } mm; verplaats het op de rail
         [rail_turn] { $device } is op de rail bij { $rail } gedraaid over een andere hoek dan 0° of 180°; draai het terug
         [off_axis] { $device } is naast de as van de rail bij { $rail } geplaatst; verplaats het op de rail
@@ -83,12 +83,12 @@ rule-ew-lay-010 = { $form ->
         } van { $rail }.
         [path] het pad van de { $carrier ->
             [rail] rail bij { $at } is geen twee punten op één horizontale of verticale lijn
-            [duct] goot bij { $at } is geen lijn van horizontale en verticale stukken
+            [duct] kabelgoot bij { $at } is geen lijn van horizontale en verticale stukken
            *[other] drager bij { $at } is geen lijn van horizontale en verticale stukken
         }; pas het pad aan
         [carrier_outside] de { $carrier ->
             [rail] rail
-            [duct] goot
+            [duct] kabelgoot
            *[other] drager
         } bij { $at } ligt buiten het bruikbare vlak van de montageplaat; verplaats die naar binnen
         [spaces] { $location } heeft een tweede layoutruimte; een locatie heeft één layoutruimte; verwijder deze
@@ -105,9 +105,9 @@ rule-ew-lay-016 = { $form ->
     .title = Montagevolgorde
     .hint = Plaats eerst de ouder van de samenstelling en de leden ernaast, in de volgorde van hun posities.
 
-rule-ew-num-001 = { $frozen }: bevroren, wijkt af van het schema (afgeleide waarde { $derived })
-    .title = Tag wijkt af van het schema
-    .hint = Ontdooi de tag om de afgeleide waarde over te nemen, of laat hem bevroren als de afwijking bedoeld is.
+rule-ew-num-001 = { $frozen }: vastgezet, wijkt af van het nummeringsschema (afgeleide waarde { $derived })
+    .title = Kenmerk wijkt af van het nummeringsschema
+    .hint = Maak het kenmerk los om de afgeleide waarde over te nemen, of laat het vastgezet als de afwijking bedoeld is.
 
 rule-ew-plc-001 = { $form ->
         [alignment] { $channel }: het adres { $address } begint niet op een veelvoud van { $align } bytes, de woorduitlijning van het profiel (een niet-geverifieerde conventie)
@@ -141,17 +141,17 @@ rule-ew-plc-007 = het symbool { $symbol } wordt gebruikt door { $count } kanalen
 rule-ew-plc-008 = { $channel } is in gebruik maar heeft geen adres: { $reason ->
         [station] de module hoort bij geen PLC-station; plaats eerst een CPU of koppel de module aan een station
         [excluded] het is uitgesloten van adressering; geef het een adres
-       *[other] er is geen adres voor af te leiden; controleer de start van de module en de PLC-sectie van het onderdeel
+       *[other] er is geen adres voor af te leiden; controleer de start van de module en de PLC-sectie van het artikel
     }
     .title = Gebruikt kanaal zonder adres
     .hint = Geef het kanaal een adres, of markeer het als ongebruikt.
 
 rule-ew-plc-012 = { $form ->
         [manual] { $channel }: het handmatige adres { $address } wijkt af van het afgeleide adres { $derived }; zet het adres op automatisch, of houd de afwijking bewust aan
-       *[binding] { $channel } ({ $address }) stuurt spoel { $solenoid } van { $valve } aan, die de positiekaart van onderdeel { $part } toewijst aan { $expected } ({ $expected_address }); koppel het kanaal van de kaart, of corrigeer de PLC-sectie van het onderdeel
+       *[binding] { $channel } ({ $address }) stuurt spoel { $solenoid } van { $valve } aan, die de positiekaart van artikel { $part } toewijst aan { $expected } ({ $expected_address }); koppel het kanaal van de kaart, of corrigeer de PLC-sectie van het artikel
     }
-    .title = Koppeling wijkt af van de onderdeelkaart
-    .hint = Koppel het kanaal dat de kaart van het onderdeel toewijst, of corrigeer de PLC-sectie van het onderdeel.
+    .title = Koppeling wijkt af van de artikelkaart
+    .hint = Koppel het kanaal dat de kaart van het artikel toewijst, of corrigeer de PLC-sectie van het artikel.
 
 rule-ew-plc-015 = { $subject }: { $what ->
         [input] de start van de ingangen
@@ -242,4 +242,4 @@ rule-ew-rds-003 = { $device }: de lettercode { $letter } past niet bij de functi
        *[no] {" "}(de set is niet getoetst aan de norm)
     }
     .title = Lettercode tegen functie
-    .hint = Gebruik de voorgestelde lettercode, of behoud de tag als de classificatie bedoeld is.
+    .hint = Gebruik de voorgestelde lettercode, of behoud het kenmerk als de classificatie bedoeld is.

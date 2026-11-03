@@ -226,13 +226,19 @@ impl Settings {
         let theme = take_choice(&mut table, "theme", &THEMES)?;
         let density = take_choice(&mut table, "density", &DENSITIES)?;
         let canvas_backend = take_choice(&mut table, "canvas_backend", &CANVAS_BACKENDS)?;
-        // WP-S2.08 D14: an integer; a value out of range loads as off.
-        let min_font_pt = match table.remove("min_font_pt") {
-            None => 0,
-            Some(toml::Value::Integer(i)) => u8::try_from(i)
+        // WP-S2.08 D14: an integer; a value out of range loads as off. ID-1278 ruling 14: a float of an integral value
+        // (`14.0`) loads as that size, any other float as off.
+        let in_range = |i: i64| {
+            u8::try_from(i)
                 .ok()
                 .filter(|pt| MIN_FONT_RANGE.contains(pt))
-                .unwrap_or(0),
+                .unwrap_or(0)
+        };
+        let min_font_pt = match table.remove("min_font_pt") {
+            None => 0,
+            Some(toml::Value::Integer(i)) => in_range(i),
+            Some(toml::Value::Float(f)) if f.fract() == 0.0 && f.abs() < 1e6 => in_range(f as i64),
+            Some(toml::Value::Float(_)) => 0,
             Some(_) => return None,
         };
         let reduce_motion = match table.remove("reduce_motion") {
@@ -1123,6 +1129,19 @@ mod tests {
             None,
             "a known key of the wrong type"
         );
+        // ID-1278 ruling 14 (C49-p3#6): a float of an integral value loads as that size, any other as off, and the
+        // file's other settings are kept.
+        for (text, pt) in [("14.0", 14), ("14.5", 0), ("17.0", 0), ("nan", 0), ("inf", 0)] {
+            let s = Settings::parse(&format!(
+                "min_font_pt = {text}\nlanguage = \"nl\"\nui_scale = 1.5\n"
+            ))
+            .unwrap_or_else(|| panic!("{text} refuses the file"));
+            assert_eq!(
+                (s.min_font_pt, s.language.as_str(), s.ui_scale),
+                (pt, "nl", 1.5),
+                "{text}"
+            );
+        }
         assert_eq!(
             Settings::parse("reduce_motion = 1\n"),
             None,

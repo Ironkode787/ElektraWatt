@@ -142,3 +142,82 @@ fn the_type_cell_of_an_undefined_potential_is_editable() {
     assert_eq!(last.params["name"], "24VDC-9", "{}", last.params);
     h.state_mut().shell_mut().shutdown();
 }
+
+/// ID-1278 ruling 8 (W49.1 M): Define potential… whose voltage does not read ("abc") shows its failure under the
+/// palette form's fields only, never as a banner as well; corrected and run again, it defines the potential with no
+/// banner either, and the form with its error is gone.
+#[test]
+fn a_failed_define_stays_in_its_form_and_no_banner_follows() {
+    let tmp = Tmp::new();
+    let dir = tmp.golden("g.ew");
+    let mut h: Harness<'static, App> = harness(&tmp, Scripted::default(), Some(dir));
+    settle(&mut h);
+    wait_for_page(&mut h);
+    let shell = h.state_mut().shell_mut();
+    // Golden A's definitions deleted, as the model's test of Define potential… does: its wires define anew.
+    done(shell, "navigator.show", json!({"kind": "potentials"}));
+    done(shell, "navigator.table", json!({"kind": "potentials"}));
+    let defs: Vec<Value> = {
+        let t = shell.nav(NavKind::Potentials).and_then(|n| n.table()).unwrap();
+        t.nodes
+            .iter()
+            .filter(|n| n.kinds == ["potential_def"])
+            .flat_map(|n| n.records.iter())
+            .map(|r| json!({"kind": "potential_def", "id": r.to_string()}))
+            .collect()
+    };
+    done(
+        shell,
+        "command.run",
+        json!({"cmd": "edit.delete", "params": {"targets": defs}}),
+    );
+    done(shell, "page.goto", json!({"folio": "102"}));
+    let wire = shell.canvas().unwrap().page().tables.connections[0]
+        .id
+        .to_string();
+    done(shell, "select.set", json!({"ids": [wire]}));
+    h.state_mut().dispatch_from_window("potential.draw", &json!({}));
+    settle(&mut h);
+    let error = |h: &Harness<'static, App>| {
+        h.state()
+            .shell()
+            .palette()
+            .and_then(|p| p.form.as_ref())
+            .and_then(|f| f.error.clone())
+    };
+    let shell = h.state_mut().shell_mut();
+    shell.set_palette_field(0, "FEED-A");
+    shell.set_palette_field(2, "abc");
+    h.key_press(egui::Key::Enter);
+    settle(&mut h);
+    assert_eq!(
+        error(&h).as_deref(),
+        Some("\"abc\" is not a voltage; type it as 24 V DC, 230 V AC or 24.")
+    );
+    assert_eq!(h.state().shell().banner(), None, "the form shows it");
+    h.state_mut().shell_mut().set_palette_field(2, "24 V DC");
+    h.key_press(egui::Key::Enter);
+    settle(&mut h);
+    assert!(h.state().shell().palette().is_none(), "the form closes");
+    assert_eq!(error(&h), None);
+    assert_eq!(h.state().shell().banner(), None);
+    let last = h.state().shell().recorded_commands().last().unwrap();
+    assert_eq!(last.cmd, "potential.define");
+    // Run with its parameters, no form open: the failure is a banner, and the action's next success clears it.
+    let wire = h.state().shell().canvas().unwrap().page().tables.connections[1]
+        .id
+        .to_string();
+    done(h.state_mut().shell_mut(), "select.set", json!({"ids": [wire]}));
+    let bad = json!({"name": "FEED-B", "voltage": "abc"});
+    h.state_mut().dispatch_from_window("potential.draw", &bad);
+    settle(&mut h);
+    assert_eq!(
+        h.state().shell().banner(),
+        Some("\"abc\" is not a voltage; type it as 24 V DC, 230 V AC or 24.")
+    );
+    let good = json!({"name": "FEED-B", "voltage": "24 V DC"});
+    h.state_mut().dispatch_from_window("potential.draw", &good);
+    settle(&mut h);
+    assert_eq!(h.state().shell().banner(), None, "its success clears it");
+    h.state_mut().shell_mut().shutdown();
+}

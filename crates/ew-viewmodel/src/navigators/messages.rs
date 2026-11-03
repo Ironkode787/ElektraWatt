@@ -119,6 +119,25 @@ pub struct FindingDetail {
     pub waiver: Option<String>,
 }
 
+impl FindingDetail {
+    /// The detail's line of kind and severity in the UI language (ID-1278 ruling 3), "Kind: completeness · severity:
+    /// error": the kind the text of `finding-kind-<kind>`, the severity of `severity-<severity>`, both mid-sentence;
+    /// a word without a key as it is.
+    pub fn kind_line(&self) -> String {
+        let word = |prefix: &str, value: &str| {
+            crate::strings::lookup(&format!("{prefix}-{value}"))
+                .map_or_else(|| value.to_owned(), crate::strings::in_sentence)
+        };
+        crate::strings::format(
+            key!("messages-detail-kind"),
+            &[
+                &word("finding-kind", &self.kind),
+                &word("severity", &self.severity),
+            ],
+        )
+    }
+}
+
 /// The value of a node's facet `name`.
 fn facet<'n>(node: &'n NavNode, name: &str) -> Option<&'n str> {
     node.facets

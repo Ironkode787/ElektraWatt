@@ -443,7 +443,17 @@ impl ShellModel {
                 });
                 // WP-S3.08 ruling 4 of ID-1224: a table has no pages; its end says the size only.
                 let table = entry.kind == JobKind::Table;
+                // ID-1278 ruling 6: one page in the singular.
+                let one = done.pages == 1;
                 let text = match (table, again) {
+                    (false, false) if one => strings::format(
+                        key!("toast-export-pdf-one"),
+                        &[&entry.name, &done.pages.to_string(), &kib.to_string()],
+                    ),
+                    (false, true) if one => strings::format(
+                        key!("toast-export-pdf-again-one"),
+                        &[&entry.name, &done.pages.to_string(), &kib.to_string()],
+                    ),
                     (false, false) => strings::format(
                         key!("toast-export-pdf"),
                         &[&entry.name, &done.pages.to_string(), &kib.to_string()],

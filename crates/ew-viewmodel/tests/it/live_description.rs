@@ -160,3 +160,31 @@ fn ax1_a_page_item_says_its_kind_and_text_and_two_records_say_how_many() {
     assert_eq!(live_line(&shell), None);
     shell.shutdown();
 }
+
+/// ID-1278 ruling 11 (C49-p3#1): a selected free text of two lines that holds a `"` is quoted on one `canvas live`
+/// line as the page items' texts are (a line break a space, a `"` a `'`); the live region keeps the text as it is.
+#[test]
+fn ax1_a_two_line_text_with_a_quote_stays_on_one_quoted_line() {
+    let tmp = Tmp::new("ax1-quote");
+    let mut shell = tmp.shell_in(Mode::Headless, true, "102");
+    let page = tables(&shell).page.to_string();
+    done(
+        &mut shell,
+        "command.run",
+        json!({"cmd": "item.place", "params": {"page": page,
+            "kind": {"free_text": {"text": "Spare \"A\"\nfeed", "at": [40_000_000, 30_000_000]}}}}),
+    );
+    let t = tables(&shell);
+    let text = t
+        .items
+        .iter()
+        .find(|i| i.kind == "free_text")
+        .expect("the free text on 102");
+    done(&mut shell, "select.set", json!({"ids": [text.id.to_string()]}));
+    assert_eq!(live(&shell), "Text, Spare \"A\"\nfeed");
+    assert_eq!(
+        live_line(&shell),
+        Some("canvas live \"Text, Spare 'A' feed\"".to_owned())
+    );
+    shell.shutdown();
+}

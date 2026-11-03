@@ -19,7 +19,7 @@ use std::collections::VecDeque;
 
 use crate::actions::{ActionMeta, ParamSpec, parse_signature};
 use crate::key;
-use crate::strings::Key;
+use crate::strings::{self, Key};
 
 /// The longest query the scorer aligns, in characters; the rest is ignored.
 pub const MAX_QUERY: usize = 64;
@@ -344,8 +344,12 @@ impl PaletteField {
             .unwrap_or_default()
     }
 
-    /// The row's label: the name with `_` as spaces and its first letter in upper case (`keep_gaps` → "Keep gaps").
+    /// The row's label (ID-1278 ruling 1): the text of `param-<name>` (`_` as `-`) in the UI language, else the name
+    /// with `_` as spaces and its first letter in upper case (`keep_gaps` → "Keep gaps").
     pub fn label(&self) -> String {
+        if let Some(text) = strings::lookup(&format!("param-{}", self.name.replace('_', "-"))) {
+            return text.to_owned();
+        }
         let text = self.name.replace('_', " ");
         let mut chars = text.chars();
         match chars.next() {

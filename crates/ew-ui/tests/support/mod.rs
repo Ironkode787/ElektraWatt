@@ -318,6 +318,38 @@ pub fn fit_problems<S>(harness: &Harness<'_, S>) -> Vec<String> {
     problems
 }
 
+/// ID-1278 ruling 13 (C49-p3#3, FR-UI-027): the open dialog's buttons, its Primary and Cancel among them, lie inside
+/// the window down as well as across ([`fit_problems`] checks across only: a dialog grows down). A button no node of
+/// the window shows is reported too. Empty without a dialog.
+pub fn footer_problems(harness: &Harness<'_, App>) -> Vec<String> {
+    use egui::accesskit::Role;
+    const SLACK: f64 = 1.0;
+    let shell = harness.state().shell();
+    let Some(dialog) = shell.dialog() else {
+        return Vec::new();
+    };
+    let spec = ew_ui::ew_viewmodel::dialogs::spec(dialog, shell);
+    let screen = harness.ctx.content_rect() * harness.ctx.pixels_per_point();
+    let (x0, y0) = (f64::from(screen.min.x) - SLACK, f64::from(screen.min.y) - SLACK);
+    let (x1, y1) = (f64::from(screen.max.x) + SLACK, f64::from(screen.max.y) + SLACK);
+    let mut problems = Vec::new();
+    for button in spec.buttons() {
+        let bounds: Vec<_> = harness
+            .query_all_by_role_and_label(Role::Button, &button.label)
+            .filter_map(|n| n.accesskit_node().bounding_box())
+            .collect();
+        if bounds.is_empty() {
+            problems.push(format!("{:?} is not shown", button.label));
+        } else if !bounds
+            .iter()
+            .any(|b| b.x0 >= x0 && b.x1 <= x1 && b.y0 >= y0 && b.y1 <= y1)
+        {
+            problems.push(format!("{:?} at {bounds:?} leaves the window", button.label));
+        }
+    }
+    problems
+}
+
 // WP-S2.17 part 2: the app menu replaced the menu bar, the HUD the tool strip.
 
 /// The value of the tool HUD's `Status` node ("Select · Click to select …"); empty without a HUD.

@@ -100,11 +100,13 @@ impl ShellModel {
     }
 
     /// Whether motion is reduced (WP-S2.08 D14, NFR-A11Y-04; View, Reduce motion): the `reduce_motion` setting, and
-    /// while it is unset whether the setting asks for the CPU canvas ([`ShellModel::cpu_canvas_setting`]).
+    /// while it is unset whether the canvas draws on the CPU, because the setting asks for it
+    /// ([`ShellModel::cpu_canvas_setting`]) or because the window's canvas is on the CPU path (FR-UI-028's fallback
+    /// after a GPU failure, headless, the tests' harness; ID-1278 ruling 12).
     pub fn reduce_motion(&self) -> bool {
         self.settings
             .reduce_motion
-            .unwrap_or_else(|| self.cpu_canvas_setting())
+            .unwrap_or_else(|| self.cpu_canvas_setting() || self.canvas_backend == CanvasBackend::Cpu)
     }
 
     /// Where the canvas draws.

@@ -615,6 +615,16 @@ pub fn visible_rows(
     out
 }
 
+/// A terminal strip's label as the window shows it (ID-1278 ruling 7): a tag with a part not derived yet (`-X??`, a
+/// new strip before its first terminal) reads "New terminal strip · no tag yet"; any other tag as it is.
+pub fn strip_label(tag: &str) -> String {
+    if tag.contains('?') {
+        crate::strings::text(crate::key!("strip-no-tag-yet")).to_owned()
+    } else {
+        tag.to_owned()
+    }
+}
+
 /// Whether a label starts with a type-ahead prefix (case-folded).
 pub fn starts_with_folded(label: &str, prefix: &str) -> bool {
     label.to_lowercase().starts_with(&prefix.to_lowercase())

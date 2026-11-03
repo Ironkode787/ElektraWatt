@@ -42,7 +42,7 @@ use crate::tools::{MacroTool, PreviewState};
 const SAVE: &str = "macros.save";
 
 /// The kinds Save as macro… offers (FT-754 (b)).
-const MACRO_KINDS: [&str; 2] = ["window", "page"];
+pub(super) const MACRO_KINDS: [&str; 2] = ["window", "page"];
 
 /// A variable Make variable remembered for the next Save as macro… (doc 07 §2.7 `VarDef` with one binding).
 #[derive(Clone, PartialEq, Eq, Debug)]

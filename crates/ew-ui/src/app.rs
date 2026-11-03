@@ -205,8 +205,11 @@ pub struct App {
     /// The property grid pane (WP-S2.05).
     properties: PropertiesPane,
     /// The banner text [`App::report`] raised for a failure, while it stands: the next failure replaces it, where a
-    /// banner the shell raised itself keeps precedence (W46.4 F1).
+    /// banner the shell raised itself keeps precedence (W46.4 F1); with the action that failed, whose next success
+    /// clears it (ID-1278 ruling 8).
     reported: Option<String>,
+    /// The action whose failure raised [`App::reported`]: the open palette form's when the form ran it.
+    reported_by: Option<String>,
     /// The find pane (WP-S2.05 part 2).
     find: FindPane,
     /// The visible toasts by serial and the frame time (egui's `input.time`, seconds) of the frame that first painted
@@ -317,6 +320,7 @@ impl App {
             navigators: std::collections::BTreeMap::new(),
             properties: PropertiesPane::new(),
             reported: None,
+            reported_by: None,
             find: FindPane::new(),
             toast_since: std::collections::BTreeMap::new(),
             toast_opacity: std::collections::BTreeMap::new(),
@@ -557,11 +561,17 @@ impl App {
     /// (raised, replaced or cleared for its own reason): the banner [`App::report`] raised is then forgotten.
     fn run(&mut self, action: Option<&str>, step: impl FnOnce(&mut ShellModel) -> Outcome) {
         let before = self.shell.banner().map(str::to_owned);
+        // The palette form's run is reported as its action (ID-1278 ruling 8).
+        let form = self
+            .shell
+            .palette()
+            .and_then(|p| p.form.as_ref())
+            .map(|f| f.action);
         let outcome = step(&mut self.shell);
         if self.shell.banner() != before.as_deref() {
             self.reported = None;
         }
-        self.report(outcome, action);
+        self.report(outcome, action.or(form));
     }
 
     /// A failure or incomplete Cut refusal becomes a banner when the shell shows none of its own; a banner this raised
@@ -569,17 +579,35 @@ impl App {
     /// point). One fact in one place (doc 16a P3): a refusal the navigator's inline field shows under itself (an F2
     /// tag's, FT-633; cycle 37, window check W37) or that the Properties pane shows under a drawn row (`action` a
     /// `props.*` one whose dispatch set the row's error; W46.4 F1) is not made a banner as well.
+    ///
+    /// ID-1278 ruling 8: a failure the open palette form shows under its fields is not made a banner either, and the
+    /// banner this raised for an action's failure clears when that action next succeeds.
     fn report(&mut self, outcome: Outcome, action: Option<&str>) {
         if self.shell.nav_rename_error().is_some() {
             return;
         }
+        let ours = self.reported.is_some() && self.shell.banner() == self.reported.as_deref();
         let message = match outcome {
             Outcome::Failed { message } => message,
             Outcome::Refused { reason_key } if reason_key == key!("reason-cut-incomplete-items") => {
                 strings::text(reason_key).to_owned()
             }
+            Outcome::Done if ours && action.is_some() && self.reported_by.as_deref() == action => {
+                self.shell.dismiss_banner();
+                self.reported = None;
+                self.reported_by = None;
+                return;
+            }
             _ => return,
         };
+        let in_form = self
+            .shell
+            .palette()
+            .and_then(|p| p.form.as_ref())
+            .is_some_and(|f| f.error.as_deref() == Some(message.as_str()));
+        if in_form {
+            return;
+        }
         let under_row = action.is_some_and(|a| a.starts_with("props."))
             && self
                 .shell
@@ -592,10 +620,10 @@ impl App {
         if under_row {
             return;
         }
-        let ours = self.reported.is_some() && self.shell.banner() == self.reported.as_deref();
         if self.shell.banner().is_none() || ours {
             self.shell.show_banner(&message);
             self.reported = Some(message);
+            self.reported_by = action.map(str::to_owned);
         }
     }
 

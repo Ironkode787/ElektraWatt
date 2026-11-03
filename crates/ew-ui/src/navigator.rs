@@ -75,7 +75,12 @@ pub struct MacroDrag(pub String);
 #[derive(Clone, Debug)]
 pub struct DeviceDrag(pub String);
 
-/// What the rows on show were built for.
+/// What the rows on show were built for, with the language generation they were translated in (ID-1278 ruling 5:
+/// View ▸ Language rebuilds them).
+#[derive(Clone, PartialEq, Debug)]
+struct Stamped(u64, Stamp);
+
+/// What the rows on show were built for, besides the language.
 #[derive(Clone, PartialEq, Debug)]
 enum Stamp {
     /// The Pages navigator: the page-row fetches, the revision, its state and the current page.
@@ -99,7 +104,7 @@ pub struct NavigatorPane {
     /// The row cursor last scrolled to.
     scrolled_to: Option<String>,
     /// The rows on show and what they were built for.
-    cache: Option<(Stamp, Rc<Vec<ShownRow>>)>,
+    cache: Option<(Stamped, Rc<Vec<ShownRow>>)>,
     /// How many times the rows were built (tests: a frame without a change builds none).
     rebuilds: u64,
     /// The type-ahead buffer and the time of its last character.
@@ -156,8 +161,8 @@ impl NavigatorPane {
         self.painted
     }
 
-    fn stamp(&self, shell: &ShellModel) -> Option<Stamp> {
-        match self.kind {
+    fn stamp(&self, shell: &ShellModel) -> Option<Stamped> {
+        let stamp = match self.kind {
             NavKind::Pages if shell.nav(NavKind::Pages).is_none() => Some(Stamp::Pages(
                 shell.session_calls().page_rows,
                 shell.revision(),
@@ -168,7 +173,8 @@ impl NavigatorPane {
                 let editing = (k == NavKind::Messages).then(|| shell.editing_folio()).flatten();
                 Stamp::Other(n.stamp(), editing)
             }),
-        }
+        };
+        stamp.map(|s| Stamped(strings::generation(), s))
     }
 
     /// The rows on show: the cached ones while what they depend on is unchanged, else built again.
@@ -575,6 +581,11 @@ impl NavigatorPane {
         if self.kind == NavKind::Unplaced {
             let (line, sentence) = shell.unplaced_empty();
             crate::components::empty_state(ui, IconId::layout_dashboard, &line, &sentence, None);
+            return;
+        }
+        // ID-1278 ruling 7: the Terminal strips table of a project with strips but no terminal says so.
+        if let Some((line, sentence)) = shell.strips_empty().filter(|_| self.kind == NavKind::Strips) {
+            crate::components::empty_state(ui, IconId::ew_terminal_strip, &line, &sentence, None);
             return;
         }
         let (icon, line, sentence) = empty_texts(self.kind);

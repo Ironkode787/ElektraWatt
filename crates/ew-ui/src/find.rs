@@ -326,7 +326,7 @@ impl FindPane {
             Some(r) if r.hits.is_empty() && r.error.is_none() => {
                 strings::text(key!("find-no-results")).to_owned()
             }
-            Some(r) => strings::format(key!("find-results"), &[&r.hits.len().to_string()]),
+            Some(r) => strings::format_count(ew_viewmodel::count_key!("find-results"), r.hits.len()),
         };
         if f.stale(shell.revision()) {
             line.push_str(&format!(" [{}]", strings::text(key!("find-stale"))));
@@ -387,7 +387,7 @@ impl FindPane {
             list_id,
             Sense::hover(),
         );
-        let list_name = strings::format(key!("find-results"), &[&r.hits.len().to_string()]);
+        let list_name = strings::format_count(ew_viewmodel::count_key!("find-results"), r.hits.len());
         list.widget_info(|| egui::WidgetInfo::labeled(egui::Role::ListBox, true, &list_name));
         let row = f.row();
         // FT-433: one line of body text in a button's padding per result; only the rows on show are built.

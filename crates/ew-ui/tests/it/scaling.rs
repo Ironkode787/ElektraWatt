@@ -69,11 +69,13 @@ fn apply(h: &mut Harness<'_, App>, size: Size) {
     }
 }
 
-/// One step of a dialog: the frame settles, every input is named and every node fits.
+/// One step of a dialog: the frame settles, every input is named and every node fits, and an open dialog's buttons lie
+/// inside the window down as well (ID-1278 ruling 13).
 #[track_caller]
 fn step(h: &mut Harness<'_, App>) {
     settle(h);
     support::assert_fits(h);
+    assert_eq!(support::footer_problems(h), Vec::<String>::new());
 }
 
 /// Golden A open in the window (folio 101), at `size`.
@@ -263,6 +265,28 @@ fn parts_import(size: Size) {
     h.state_mut().shell_mut().shutdown();
 }
 
+/// ID-1278 ruling 13: the check down bites. Renumber pages… fits the 1280 × 720-point window at 300 % with its Primary
+/// and Cancel; in a window too short for it, its buttons are reported as leaving the window.
+#[test]
+fn ax3_a_footer_below_the_window_is_reported() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, Size::At300);
+    dispatch(&mut h, "pages.renumber", json!({}));
+    step(&mut h);
+    h.set_size(Vec2::new(WINDOW.x * 3.0, 60.0));
+    settle(&mut h);
+    let problems = support::footer_problems(&h);
+    let spec = ew_ui::ew_viewmodel::dialogs::spec(h.state().shell().dialog().unwrap(), h.state().shell());
+    for button in spec.buttons() {
+        let quoted = format!("{:?}", button.label);
+        assert!(
+            problems.iter().any(|p| p.starts_with(&quoted)),
+            "{quoted} in {problems:?}"
+        );
+    }
+    h.state_mut().shell_mut().shutdown();
+}
+
 #[test]
 fn ax3_new_project_at_300() {
     new_project(Size::At300);
@@ -430,10 +454,10 @@ fn ax4_reduced_motion_stops_animation_and_the_zoom_jumps() {
     let mut h = harness(&tmp, Scripted::default(), Some(tmp.golden("g.ew")));
     settle(&mut h);
     wait_for_page(&mut h);
-    assert!(
-        !h.state().shell().reduce_motion(),
-        "unset, with the GPU-or-CPU switch: off"
-    );
+    // The harness draws on the CPU, which reduces motion while the setting is unset (ID-1278 ruling 12): motion on.
+    dispatch(&mut h, "view.reduce_motion", json!({"on": false}));
+    settle(&mut h);
+    assert!(!h.state().shell().reduce_motion());
     assert!(animation_time(&h) > 0.0);
     let (before, smoothed) = ctrl_wheel_one_frame(&mut h);
     let factor = h
@@ -456,6 +480,45 @@ fn ax4_reduced_motion_stops_animation_and_the_zoom_jumps() {
         "one frame to the target: {jumped} of {}",
         before * factor
     );
+    h.state_mut().shell_mut().shutdown();
+}
+
+/// ID-1278 ruling 12 (C49-p3#2; D14, doc 16 §10.4, doc 16a §4.12): with the setting unset, a canvas that draws on the
+/// GPU keeps motion, and a GPU start that fails (FR-UI-028's fallback to the CPU) leaves reduced motion on.
+#[test]
+fn ax4_a_failed_gpu_start_leaves_reduced_motion_on() {
+    use ew_ui::gpu::{AdapterSummary, DeviceKind, GpuApi, GpuError};
+    let vulkan = || AdapterSummary {
+        kind: DeviceKind::Discrete,
+        api: GpuApi::Vulkan,
+        name: "test GPU".into(),
+    };
+    let tmp = Tmp::new();
+    let mut h = harness(&tmp, Scripted::default(), Some(tmp.golden("g.ew")));
+    settle(&mut h);
+    wait_for_page(&mut h);
+    assert!(h.state().shell().reduce_motion(), "unset, on the CPU canvas");
+    h.state_mut().gpu_host_mut().simulate(vulkan(), Ok(()));
+    settle(&mut h);
+    // The appearance follows on the frame after the one whose switch rule chose the GPU.
+    h.step();
+    settle(&mut h);
+    assert_eq!(h.state().shell().canvas_backend().label(), "GPU Vulkan");
+    assert!(!h.state().shell().reduce_motion(), "unset, on the GPU");
+    assert!(animation_time(&h) > 0.0);
+    h.state_mut().shell_mut().shutdown();
+    let tmp = Tmp::new();
+    let mut h = harness(&tmp, Scripted::default(), Some(tmp.golden("g.ew")));
+    settle(&mut h);
+    wait_for_page(&mut h);
+    h.state_mut()
+        .gpu_host_mut()
+        .simulate(vulkan(), Err(GpuError::Init("pipeline creation failed".into())));
+    settle(&mut h);
+    assert_eq!(h.state().shell().canvas_backend().label(), "CPU");
+    assert_eq!(h.state().shell().settings().reduce_motion, None);
+    assert!(h.state().shell().reduce_motion());
+    assert_eq!(animation_time(&h), 0.0);
     h.state_mut().shell_mut().shutdown();
 }
 

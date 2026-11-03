@@ -294,7 +294,7 @@ fn pg7_a_stale_replace_card_runs_the_search_again() {
     let st = state(&shell);
     assert_eq!(st["card"]["state"], "ready");
     assert_eq!(st["card"]["changes"], 19);
-    assert_eq!(st["find"]["note"], "Preview updated: 1 fewer results");
+    assert_eq!(st["find"]["note"], "Preview updated: 1 fewer result");
     done(&mut shell, "preview.apply", json!({}));
     assert_ne!(shell.revision(), rev);
     shell.shutdown();

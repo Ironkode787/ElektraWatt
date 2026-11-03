@@ -440,7 +440,7 @@ fn check_lang_renders_the_messages_in_a_shipped_language() {
     );
     assert!(
         !nl_text.contains("placeholder part \"End bracket\"")
-            && nl_text.contains("plaatsvervangend artikel \"End bracket\" (artikelnummer TBD)"),
+            && nl_text.contains("tijdelijk artikel \"End bracket\" (artikelnummer TBD)"),
         "{nl_text}"
     );
     // The same lines in the same order, the totals line equal.

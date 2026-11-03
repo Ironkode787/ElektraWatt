@@ -442,12 +442,9 @@ pub(crate) fn detail(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         });
     });
     ui.label(
-        RichText::new(strings::format(
-            key!("messages-detail-kind"),
-            &[&d.kind, &d.severity],
-        ))
-        .font(theme::font(&t.type_small))
-        .color(t.text_secondary.color32()),
+        RichText::new(d.kind_line())
+            .font(theme::font(&t.type_small))
+            .color(t.text_secondary.color32()),
     );
     ui.add(
         egui::Label::new(

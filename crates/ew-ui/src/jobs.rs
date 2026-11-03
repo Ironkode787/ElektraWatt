@@ -108,6 +108,10 @@ fn entry(ui: &mut Ui, e: &JobEntry, elapsed: Option<std::time::Duration>, events
                 crate::components::status_badge(ui, crate::components::Badge::Done);
                 // WP-S3.08 ruling 4 of ID-1224: a table's end names its size only.
                 ui.label(match pages {
+                    // ID-1278 ruling 6: one page in the singular.
+                    Some(pages @ 1) => {
+                        strings::format(key!("job-done-one"), &[&pages.to_string(), &kib.to_string()])
+                    }
                     Some(pages) => strings::format(key!("job-done"), &[&pages.to_string(), &kib.to_string()]),
                     None => strings::format(key!("job-done-table"), &[&kib.to_string()]),
                 });

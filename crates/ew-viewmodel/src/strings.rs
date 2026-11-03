@@ -14,6 +14,7 @@
 
 use std::borrow::Cow;
 use std::collections::BTreeMap;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{OnceLock, PoisonError, RwLock};
 
 use fluent_bundle::concurrent::FluentBundle;
@@ -175,6 +176,13 @@ impl Locale {
         let id: unic_langid::LanguageIdentifier = tag.parse().unwrap_or_default();
         let mut bundle = Bundle::new_concurrent(vec![id]);
         bundle.set_use_isolating(false);
+        // ID-1278 ruling 9: `IN_SENTENCE($p0)` puts a label mid-sentence ([`in_sentence`]), for a language whose
+        // sentence lowers a name ("Voorbeeld: apparaat plaatsen") where en-GB keeps it.
+        let _ = bundle.add_function("IN_SENTENCE", |positional, _| match positional.first() {
+            Some(FluentValue::String(s)) => FluentValue::from(in_sentence(s)),
+            Some(other) => other.clone(),
+            None => FluentValue::None,
+        });
         let resource = FluentResource::try_new(source.to_owned()).unwrap_or_else(|(r, _)| r);
         // A duplicate entry keeps the first; the tests reject duplicates.
         let _ = bundle.add_resource(resource);
@@ -289,6 +297,15 @@ static LOADED: RwLock<Vec<&'static Locale>> = RwLock::new(Vec::new());
 /// The UI language now; `None` is en-GB.
 static CURRENT: RwLock<Option<&'static Locale>> = RwLock::new(None);
 
+/// Counted up by every [`set_locale`] that selects a language: a cache of translated text keeps it beside what else
+/// it was built for, so a language change rebuilds it (ID-1278 ruling 5).
+static GENERATION: AtomicU64 = AtomicU64::new(0);
+
+/// The language generation: it changes whenever [`set_locale`] selects a language.
+pub fn generation() -> u64 {
+    GENERATION.load(Ordering::Relaxed)
+}
+
 /// The UI language now.
 fn current() -> &'static Locale {
     CURRENT
@@ -327,6 +344,7 @@ pub fn set_locale(tag: &str) -> bool {
         },
     };
     *CURRENT.write().unwrap_or_else(PoisonError::into_inner) = locale;
+    GENERATION.fetch_add(1, Ordering::Relaxed);
     true
 }
 
@@ -532,10 +550,19 @@ pub fn var_type_word(ty: &str) -> String {
     word.to_owned()
 }
 
-/// A choice value of a form dialog in words (doc 16a §8, FT-558): the parameter's snake_case word in sentence case,
-/// with the hyphenated compounds of the standard's usage (`multi_line` is "Multi-line", `page_based` "Page-based").
-/// The parameter keeps the raw word; only the window shows this.
+/// A choice value of a form dialog in words (doc 16a §8, FT-558; ID-1278 ruling 2): the text of `choice-<value>`
+/// (`_` as `-`) in the UI language, else [`choice_words`]. The parameter keeps the raw word; only the window shows
+/// this.
 pub fn choice_text(value: &str) -> String {
+    match lookup(&format!("choice-{}", value.replace('_', "-"))) {
+        Some(text) if !value.is_empty() => text.to_owned(),
+        _ => choice_words(value),
+    }
+}
+
+/// A value's snake_case word in sentence case, with the hyphenated compounds of the standard's usage (`multi_line` is
+/// "Multi-line", `page_based` "Page-based"): the words of a value of an open set (a symbol's name), which has no key.
+pub fn choice_words(value: &str) -> String {
     let words = match value {
         "multi_line" => "multi-line".to_owned(),
         "single_line" => "single-line".to_owned(),
@@ -736,6 +763,7 @@ mod tests {
         ("messages-header", "E, W and I are the severities"),
         ("error-potential-type", "L, N and M are potential types"),
         ("error-potential-voltage", "V is the volt"),
+        ("param-tab", "the command bar's tab view.command_tab chooses"),
         // Open: `props.follow`'s F in the Properties pane's link (ew-ui `properties.rs`, a later row); the status bar's
         // link hint is `status-hint-follow`.
         ("status-hint-link", "props.follow's F, not yet from the keymap"),

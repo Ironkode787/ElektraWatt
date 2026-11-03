@@ -332,6 +332,8 @@ fn ft_524_a_toast_lives_8_seconds_of_the_frame_clock() {
 /// A harness on Golden A with one toast (an edit's) painted in its first frame; returns the frame time of that frame.
 fn one_toast(h: &mut Harness<'_, App>) -> f64 {
     settle(h);
+    // The harness draws on the CPU, which reduces motion while the setting is unset (ID-1278 ruling 12).
+    dispatch(h, "view.reduce_motion", json!({"on": false}));
     dispatch(h, "page.goto", json!({"folio": "101"}));
     dispatch(h, "select.set", json!({"refs": ["tag:-101F1", "tag:-102F1"]}));
     dispatch(

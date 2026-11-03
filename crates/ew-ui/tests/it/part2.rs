@@ -51,7 +51,7 @@ fn the_start_page_has_every_entry_of_doc_16_section_3_7() {
         "EW",
         "KiCad-like",
         "This version has no update check",
-        "change",
+        "Change",
     ] {
         assert!(h.query_by_label(label).is_some(), "{label}");
     }
@@ -124,9 +124,9 @@ fn the_quick_switches_and_the_privacy_link_change_settings() {
     h.get_by_label("EW").click();
     settle(&mut h);
     assert_eq!(h.state().shell().settings().keymap, "ew");
-    // "change" leads to the privacy step of the first-run flow. FT-1117 (ID-1229 item 3): the step says this version
+    // "Change" leads to the privacy step of the first-run flow. FT-1117 (ID-1229 item 3): the step says this version
     // has no update check and sends no crash reports, with no box for one; the Privacy button stays.
-    h.get_by_label("change").click();
+    h.get_by_label("Change").click();
     settle(&mut h);
     assert!(h.state().shell().first_run().is_some());
     let _ = h.get_by_label(

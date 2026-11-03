@@ -37,7 +37,7 @@ use crate::tools::PreviewState;
 use crate::{count_key, key};
 
 /// The words a boolean field of a renumber dialog offers.
-const BOOL_CHOICES: &[&str] = &["false", "true"];
+pub(super) const BOOL_CHOICES: &[&str] = &["false", "true"];
 
 /// The scopes of Renumber devices.
 const DEVICE_SCOPES: &[&str] = &["project", "page", "selection"];

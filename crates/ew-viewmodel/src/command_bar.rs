@@ -700,7 +700,7 @@ pub fn hud(model: &ShellModel) -> HudModel {
             // segment in sentence case (`Contact no`), never the key.
             let mut what = target.clone().unwrap_or_else(|| {
                 model.symbol_title(&symbol).unwrap_or_else(|| {
-                    strings::choice_text(&crate::tools::symbol_name(&symbol).replace('-', "_"))
+                    strings::choice_words(&crate::tools::symbol_name(&symbol).replace('-', "_"))
                 })
             });
             if hints > 0 {
@@ -746,7 +746,7 @@ pub fn hud(model: &ShellModel) -> HudModel {
         Some(Ghost::Move { readout, .. }) => readout,
         Some(Ghost::Paste { records, .. }) => format!(
             "{} \u{b7} {}",
-            strings::format(key!("label-paste"), &[&records.to_string()]),
+            strings::format_count(crate::count_key!("label-paste"), records),
             hint()
         ),
         Some(Ghost::Exchange { symbol, unmapped }) => {

@@ -50,7 +50,7 @@ const COMPLETE: &str = "complete";
 const DISCARD: &str = "discard";
 
 /// The party roles a role field offers (FR-PRJ-003), the checker's first.
-const ROLES: &[&str] = &[
+pub(super) const ROLES: &[&str] = &[
     "checker",
     "engineer",
     "author",

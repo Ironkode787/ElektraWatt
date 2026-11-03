@@ -201,6 +201,21 @@ impl ShellModel {
         }
     }
 
+    /// The line and sentence of the Terminal strips table's empty state when the project has strips but no terminal
+    /// (ID-1278 ruling 7: the table's rows are terminals), "No terminals yet" and how to place one; `None` otherwise.
+    pub fn strips_empty(&self) -> Option<(String, String)> {
+        let n = self.navs.get(&NavKind::Strips)?;
+        n.table_mode()?;
+        let t = n.table()?;
+        let has = |role| t.nodes.iter().any(|node| node.role == role);
+        (has(ew_api::output::NavRole::Strip) && !has(ew_api::output::NavRole::Terminal)).then(|| {
+            (
+                crate::strings::text(key!("empty-nav-terminals")).to_owned(),
+                crate::strings::text(key!("empty-nav-terminals-text")).to_owned(),
+            )
+        })
+    }
+
     /// [`ShellModel::generic`], mutable.
     pub(super) fn generic_mut(&mut self, kind: NavKind) -> Option<&mut Navigator> {
         match kind {
@@ -415,11 +430,17 @@ impl ShellModel {
                         if finding.is_some_and(|f| f.pending) {
                             badges.push("pending");
                         }
-                        let mut name = format!("{}, {}", node.label, node.role.word());
+                        // ID-1278 ruling 7: a strip without a tag yet reads in words, not by its underived tag.
+                        let label = if node.role == ew_api::output::NavRole::Strip {
+                            crate::navigators::strip_label(&node.label)
+                        } else {
+                            node.label.clone()
+                        };
+                        let mut name = format!("{label}, {}", node.role.word());
                         for b in &badges {
                             name.push_str(&format!(", {b}"));
                         }
-                        let mut text = node.label.clone();
+                        let mut text = label.clone();
                         for b in &badges {
                             text.push_str(&format!(" [{b}]"));
                         }
@@ -455,7 +476,7 @@ impl ShellModel {
                             level: v.level,
                             role: node.role.word(),
                             text,
-                            label: node.label.clone(),
+                            label,
                             badges,
                             name,
                             expanded: v.expanded,

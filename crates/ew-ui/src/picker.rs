@@ -291,11 +291,13 @@ fn row_texts(
         }
         PickerRow::Strip(k) => {
             let st = &picker.catalogue.strips[k];
+            // ID-1278 ruling 7: a strip without a tag yet in words.
+            let label = ew_viewmodel::navigators::strip_label(&st.tag);
             (
-                st.tag.clone(),
+                label.clone(),
                 None,
                 strings::format(key!("picker-strip-next"), &[&st.next_designation]),
-                st.tag.clone(),
+                label,
             )
         }
     }
@@ -303,13 +305,13 @@ fn row_texts(
 
 /// A template function in words (M39): its kind text, or, where that is only the FnDef key (a FnDef whose category
 /// has fewer than two entries, `ew.fn.blackbox`), the key's last segment as words (`Blackbox`, through
-/// `strings::choice_text`).
+/// `strings::choice_words`).
 fn function_words(kind_text: &str, fndef_key: &str) -> String {
     if kind_text != fndef_key {
         return kind_text.to_owned();
     }
     // The last fallback: the key's last segment through the shell's choice words.
-    strings::choice_text(&ew_viewmodel::tools::symbol_name(fndef_key).replace('-', "_"))
+    strings::choice_words(&ew_viewmodel::tools::symbol_name(fndef_key).replace('-', "_"))
 }
 
 #[cfg(test)]

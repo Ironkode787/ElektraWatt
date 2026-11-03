@@ -141,16 +141,17 @@ fn a_test_language_switches_and_falls_back() {
     assert_eq!(strings::rule_language(), "en-GB");
 }
 
-/// The `{ $pN }` arguments of each message of the Fluent file `ftl`, by key.
+/// The `$pN` arguments of each message of the Fluent file `ftl`, by key: in a placeable `{ $pN }` or a function's
+/// `{ IN_SENTENCE($pN) }` (ID-1278 ruling 9).
 fn arguments(ftl: &str) -> std::collections::BTreeMap<String, std::collections::BTreeSet<String>> {
     ftl.lines()
         .filter(|l| !l.starts_with('#'))
         .filter_map(|l| l.split_once(" = "))
         .map(|(key, text)| {
             let args = text
-                .split("{ $")
+                .split('$')
                 .skip(1)
-                .filter_map(|rest| rest.split_once(" }").map(|(arg, _)| arg.to_owned()))
+                .map(|rest| rest.chars().take_while(char::is_ascii_alphanumeric).collect())
                 .collect();
             (key.to_owned(), args)
         })
@@ -236,12 +237,15 @@ fn stem(word: &str) -> String {
 }
 
 /// Whether `term` is used in `texts` (lower case), case-insensitive and by whole words: a one-word term as the
-/// start of a word, by its stem; a term of several words (or with a hyphen) as a phrase that starts a word.
+/// start of a word, by its stem (by the whole term when its stem is shorter than four letters: "goot" is no stem of
+/// "goed"); a term of several words (or with a hyphen) as a phrase that starts a word.
 fn uses(texts: &str, term: &str) -> bool {
     let term = term.to_lowercase();
     let starts_word = |i: usize| i == 0 || !texts[..i].chars().next_back().is_some_and(char::is_alphanumeric);
     if term.chars().all(char::is_alphanumeric) {
-        let stem = stem(&term);
+        let stem = Some(stem(&term))
+            .filter(|s| s.chars().count() >= 4)
+            .unwrap_or_else(|| term.clone());
         texts
             .split(|c: char| !c.is_alphanumeric())
             .any(|word| word.starts_with(&stem))
@@ -250,13 +254,42 @@ fn uses(texts: &str, term: &str) -> bool {
     }
 }
 
-/// The message texts of the Fluent file `ftl` in lower case, one per line.
+/// The message texts of the Fluent file `ftl` in lower case, one per line: each message's value, its attributes
+/// (`.title = …`), the arms of its selectors (`[one] …`, `*[other] …`) and its continuation lines (ID-1278 ruling 4),
+/// with the placeables (`{ $cp_tag }`, a selector's head) left out: they are no words of the text.
 fn texts(ftl: &str) -> String {
     ftl.lines()
-        .filter(|l| !l.starts_with('#'))
-        .filter_map(|l| l.split_once(" = ").map(|(_, text)| text.to_lowercase()))
+        .filter(|l| !l.starts_with('#') && !l.trim().is_empty())
+        .map(|l| {
+            let text = match l.split_once(" = ") {
+                Some((_, text)) => text,
+                None => {
+                    let t = l.trim_start().trim_start_matches('*');
+                    t.strip_prefix('[')
+                        .and_then(|t| t.split_once(']'))
+                        .map_or(t, |(_, text)| text)
+                }
+            };
+            let mut words = String::new();
+            let mut depth = 0usize;
+            for c in text.chars() {
+                match c {
+                    '{' => depth += 1,
+                    '}' => depth = depth.saturating_sub(1),
+                    c if depth == 0 => words.push(c),
+                    _ => {}
+                }
+            }
+            words.to_lowercase()
+        })
         .collect::<Vec<_>>()
         .join("\n")
+}
+
+/// The checks' nl-NL rule messages (`ew-checks`), which the Messages pane shows in Dutch (D10).
+fn rule_messages_nl() -> String {
+    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../ew-checks/messages/nl-NL/rules.ftl");
+    std::fs::read_to_string(path).unwrap().replace("\r\n", "\n")
 }
 
 /// NL-2 (ID-1269 rulings 1 and 2): the terminology table heads the nl-NL file with the ruling's rows; over the
@@ -292,7 +325,9 @@ fn nl2_the_terminology_table_is_followed() {
     }
     let header_ends = nl.find("\nmenu-file = ").unwrap();
     assert!(nl[..header_ends].contains("# term: device = apparaat (not: toestel, component)\n"));
-    let dutch = texts(&nl);
+    // ID-1278 ruling 4: the checks' Dutch messages follow the table too, select arms and attributes included.
+    let rules = texts(&rule_messages_nl());
+    let dutch = format!("{}\n{rules}", texts(&nl));
     let english = texts(&shipped_file("en-GB"));
     let mut wrong = Vec::new();
     for term in &table {
@@ -308,12 +343,20 @@ fn nl2_the_terminology_table_is_followed() {
             }
         }
     }
+    // The checks never speak of Git: there the whole word "tag" is rejected for kenmerk (the shell's Git tags are tags).
+    if rules.split(|c: char| !c.is_alphanumeric()).any(|w| w == "tag") {
+        wrong.push("tag is tag somewhere in the checks' messages, not kenmerk".to_owned());
+    }
     assert_eq!(wrong, Vec::<String>::new());
     // The checks themselves: a plural counts for its stem, a rejected word is found.
     assert!(uses("twee klemmenstroken", "klemmenstrook"));
     assert!(uses("de apparaten", "apparaat"));
     assert!(!uses("een klemmenblok", "klemmenstrook"));
     assert!(uses("het toestel", "toestel"));
+    assert!(!uses("de goedkeuring", "goot") && uses("de goot", "goot") && !uses("de kabelgoot", "goot"));
+    let read =
+        texts("k = a { $x ->\n    [one] de lay-out\n   *[other] { $y } onderdeel\n}\n    .hint = een tag\n");
+    assert_eq!(read, "a \n de lay-out\n  onderdeel\n\neen tag");
 }
 
 /// The items of View ▸ Language: (label, parameters, checked).

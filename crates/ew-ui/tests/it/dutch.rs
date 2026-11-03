@@ -12,7 +12,7 @@ use std::time::Duration;
 use crate::support;
 
 use egui_kittest::Harness;
-use egui_kittest::kittest::Queryable;
+use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::{App, Pick};
 use ew_ui::ew_viewmodel::navigators::NavKind;
 use ew_ui::ew_viewmodel::shell::{Mode, Outcome, ShellModel};
@@ -321,4 +321,50 @@ fn nl3_the_settings_surfaces_in_dutch_at_100() {
 #[test]
 fn nl3_the_settings_surfaces_in_dutch_at_200() {
     settings(2.0);
+}
+
+/// Every AccessKit label of the window's last frame.
+fn labels(h: &Harness<'_, App>) -> Vec<String> {
+    h.root()
+        .children_recursive()
+        .filter_map(|n| n.accesskit_node().label())
+        .collect()
+}
+
+/// ID-1278 ruling 5 (W49.1 I): after View ▸ Language back to English, the very next frame's Pages navigator speaks
+/// English (its rows were kept from the Dutch frame until the next change): in tree mode its section row and the
+/// `generated` and `QET grid` badges, in table mode its cells' row positions.
+#[test]
+fn the_pages_navigator_follows_the_language_in_its_first_frame() {
+    let modes: [(bool, &[&str], &[&str]); 2] = [
+        (
+            false,
+            &["Sectie 1", "gegenereerd", "QET-raster"],
+            &["Section 1", "generated", "QET grid"],
+        ),
+        (true, &[", rij 1 van 36"], &[", row 1 of 36"]),
+    ];
+    for (table, dutch_words, english_words) in modes {
+        let tmp = Tmp::new();
+        let mut h = on_golden(&tmp, 1.0);
+        // Tall enough that every page row is painted, the generated report pages among them.
+        h.set_size(egui::Vec2::new(1000.0, 3000.0));
+        if table {
+            dispatch(&mut h, "navigator.table", json!({ "kind": "pages" }));
+        }
+        settle(&mut h);
+        let shows = |h: &Harness<'_, App>, word: &str| labels(h).iter().any(|l| l.contains(word));
+        for word in dutch_words {
+            assert!(shows(&h, word), "table {table}: {word} in {:?}", labels(&h));
+        }
+        dispatch(&mut h, "view.language", json!({ "value": "en" }));
+        h.step();
+        for word in english_words {
+            assert!(shows(&h, word), "table {table}: {word} in {:?}", labels(&h));
+        }
+        for word in dutch_words {
+            assert!(!shows(&h, word), "table {table}: {word} is gone");
+        }
+        h.state_mut().shell_mut().shutdown();
+    }
 }

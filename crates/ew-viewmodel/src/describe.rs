@@ -2088,10 +2088,11 @@ fn tool_lines(model: &ShellModel, lines: &mut Vec<String>) {
             selection.items.len(),
             ids.join(" ")
         ));
-        // WP-S2.08 D13: what the live region says of the selection, quoted as user text.
+        // WP-S2.08 D13: what the live region says of the selection, quoted as user text as the page items' texts are
+        // (ID-1278 ruling 11: a line break or a `"` in a free text never splits or ends the line).
         lines.push(format!(
-            "canvas live \"{}\"",
-            crate::status::selection_text(model)
+            "canvas live {}",
+            page_quoted(&crate::status::selection_text(model))
         ));
     }
     match (model.preview_state(), model.preview_status()) {
