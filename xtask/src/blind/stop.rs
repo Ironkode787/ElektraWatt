@@ -619,9 +619,13 @@ mod tests {
         f.run.update(|j| j.task = "brief-ut".to_owned()).unwrap();
         let mut steps = format!("{}\n", crate::blind::run::script_header("steps"));
         let mut transcript = String::from("{\"$schema\":\"ew.uitranscript/1\",\"version\":\"0\"}\n");
-        for (i, (action, outcome)) in [("nav.follow", "done"), ("edit.undo", "done"), ("nav.back", "refused")]
-            .iter()
-            .enumerate()
+        for (i, (action, outcome)) in [
+            ("nav.follow", "done"),
+            ("edit.undo", "done"),
+            ("nav.back", "refused"),
+        ]
+        .iter()
+        .enumerate()
         {
             steps.push_str(&format!("{}\n", step_line(action, &json!({}))));
             transcript.push_str(&format!(
@@ -654,17 +658,23 @@ mod tests {
         let fake = |args: &[&str]| -> Result<(Option<i32>, String)> {
             Ok((Some(0), if args[0] == "sql" { "n\n1\n" } else { "" }.to_owned()))
         };
-        let ev = crate::blind::score::evidence_of(&f.run, None, crate::blind::score::ExportFacts::default()).unwrap();
+        let ev = crate::blind::score::evidence_of(&f.run, None, crate::blind::score::ExportFacts::default())
+            .unwrap();
         let b = crate::blind::score::brief_score(&root, &f.run, &ev, &mut { fake }).unwrap();
         let acceptance: crate::blind::brief::Acceptance =
             crate::blind::score::read_toml(&root.join("tools/blind/tasks/brief-ut/acceptance.toml")).unwrap();
         let done = ["nav.follow".to_owned(), "edit.undo".to_owned()];
-        let check = crate::blind::brief::decide_items(&acceptance, &f.run.path("work"), &done, &mut { fake }).unwrap();
+        let check = crate::blind::brief::decide_items(&acceptance, &f.run.path("work"), &done, &mut { fake })
+            .unwrap();
         assert_eq!(
             b.items.iter().map(|i| i.met).collect::<Vec<_>>(),
             check.iter().map(Result::is_ok).collect::<Vec<_>>()
         );
-        let decisions: Vec<(&str, &str)> = b.items.iter().map(|i| (i.id.as_str(), i.decision.as_str())).collect();
+        let decisions: Vec<(&str, &str)> = b
+            .items
+            .iter()
+            .map(|i| (i.id.as_str(), i.decision.as_str()))
+            .collect();
         assert_eq!(
             decisions,
             [

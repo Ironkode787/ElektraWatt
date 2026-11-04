@@ -319,8 +319,16 @@ mod tests {
             ("tools/blind/personas/first-timer.md", "persona", "first-timer"),
             ("tools/blind/personas/qet-veteran.md", "persona", "qet-veteran"),
             ("tools/blind/personas/switcher.md", "persona", "switcher"),
-            ("tools/blind/personas/eplan-designer.md", "persona", "eplan-designer"),
-            ("tools/blind/personas/eplan-maintainer.md", "persona", "eplan-maintainer"),
+            (
+                "tools/blind/personas/eplan-designer.md",
+                "persona",
+                "eplan-designer",
+            ),
+            (
+                "tools/blind/personas/eplan-maintainer.md",
+                "persona",
+                "eplan-maintainer",
+            ),
             ("tools/blind/personas/qet-user.md", "persona", "qet-user"),
         ];
         for (rel, key, name) in cases {
@@ -446,11 +454,7 @@ mod tests {
             std::fs::write(dir.join("task.md"), "The task.\n").unwrap();
             std::fs::write(dir.join("task.toml"), toml(rounds)).unwrap();
         }
-        std::fs::write(
-            tmp.0.join("tools/blind/ROUND.md"),
-            "Ask: {blind} hint {run}.\n",
-        )
-        .unwrap();
+        std::fs::write(tmp.0.join("tools/blind/ROUND.md"), "Ask: {blind} hint {run}.\n").unwrap();
         std::fs::write(tmp.0.join("tools/blind/PLAYTESTER.md"), "You play.\n").unwrap();
         std::fs::write(tmp.0.join("tools/blind/HELP-VISUAL.md"), "Look.\n").unwrap();
         let rels = |c: &Composed| -> Vec<String> {
@@ -472,8 +476,15 @@ mod tests {
                 "tools/blind/HELP.md"
             ]
         );
-        assert!(a.text.contains("Ask: /r/bin/xtask blind hint gpp-r1."), "{}", a.text);
-        assert_eq!(a.files["tools/blind/ROUND.md"], sha256_hex(b"Ask: {blind} hint {run}.\n"));
+        assert!(
+            a.text.contains("Ask: /r/bin/xtask blind hint gpp-r1."),
+            "{}",
+            a.text
+        );
+        assert_eq!(
+            a.files["tools/blind/ROUND.md"],
+            sha256_hex(b"Ask: {blind} hint {run}.\n")
+        );
         assert_eq!(compose(&inp).unwrap(), a, "byte-deterministic");
         // A visual run of the round task reads it too, before the visual help.
         inp.senses = Senses::Visual;

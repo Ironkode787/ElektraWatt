@@ -1370,7 +1370,10 @@ fn apply_of_gp_ut_removes_102f1_and_its_four_wires_only() {
         .difference(&after)
         .find(|l| l.contains("\"$k\":\"placement\""))
         .unwrap();
-    assert!(placement.contains("\"device\":\"ff321999-9715-51d0-8eb6-9b93acae6158\""), "{placement}");
+    assert!(
+        placement.contains("\"device\":\"ff321999-9715-51d0-8eb6-9b93acae6158\""),
+        "{placement}"
+    );
 }
 
 /// `SOURCE_DATE_EPOCH` (doc 17 section 3.1) sets the creation date and with it the document ID: the PDF differs

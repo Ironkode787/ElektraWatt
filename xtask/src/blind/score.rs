@@ -703,12 +703,7 @@ pub fn attempt_of(end: Option<&str>, items: &[ItemDecision], hints: u32) -> &'st
 /// # Errors
 ///
 /// A task file or a file of the run that cannot be read.
-pub fn brief_score(
-    root: &Path,
-    run: &Run,
-    ev: &Evidence,
-    ew: &mut super::brief::EwFn,
-) -> Result<BriefScore> {
+pub fn brief_score(root: &Path, run: &Run, ev: &Evidence, ew: &mut super::brief::EwFn) -> Result<BriefScore> {
     let rj = &ev.rj;
     let dir = task_dir(root, &rj.task);
     let acceptance: super::brief::Acceptance = read_toml(&dir.join("acceptance.toml"))?;

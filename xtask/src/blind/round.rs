@@ -236,7 +236,11 @@ mod tests {
         assert_eq!(hint(&run).unwrap(), "hint 2 of 2: Look 2.\n");
         assert_eq!(hint(&run).unwrap(), "harness: no more hints for this task\n");
         let turns = run.turns().unwrap();
-        let hints: Vec<Option<u32>> = turns.iter().filter(|t| t.kind == "hint").map(|t| t.hint).collect();
+        let hints: Vec<Option<u32>> = turns
+            .iter()
+            .filter(|t| t.kind == "hint")
+            .map(|t| t.hint)
+            .collect();
         assert_eq!(hints, [Some(1), Some(2)]);
         // A hint is no `do` turn: no note is owed.
         assert_eq!(crate::blind::protocol::derive_state(&turns).pending_note, None);
@@ -254,7 +258,9 @@ mod tests {
         assert_eq!(hint(&none).unwrap(), "harness: this task has no hints\n");
         let ctmp = Tmp::new("round-hint-check");
         let check = test_run(&ctmp);
-        check.save(&crate::blind::testkit::new_run_json("c1", Kind::Check)).unwrap();
+        check
+            .save(&crate::blind::testkit::new_run_json("c1", Kind::Check))
+            .unwrap();
         hints_file(&check, 2);
         assert_eq!(hint(&check).unwrap(), "harness: this task has no hints\n");
         assert!(check.turns().unwrap().is_empty() && none.turns().unwrap().is_empty());

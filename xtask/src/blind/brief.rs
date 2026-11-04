@@ -443,7 +443,13 @@ pub fn check_files(root: &Path, task: &str) -> Result<(BriefCheck, Option<Accept
     if let Ok(text) = std::fs::read_to_string(&list) {
         let denylist = crate::anonymise::parse_denylist(&text)?;
         let mut files = Vec::new();
-        for f in ["task.md", "task.toml", "acceptance.toml", "solution.uiscript", "hints.toml"] {
+        for f in [
+            "task.md",
+            "task.toml",
+            "acceptance.toml",
+            "solution.uiscript",
+            "hints.toml",
+        ] {
             if !dir.join(f).is_file() {
                 continue;
             }
@@ -983,14 +989,24 @@ mod tests {
             .map(str::to_owned)
             .to_vec();
         let done = |list: &[&str]| list.iter().map(|s| (*s).to_owned()).collect::<Vec<_>>();
-        assert_eq!(actions_met(&want, &done(&["page.goto", "nav.follow", "ui.describe", "nav.back"])), Ok(()));
+        assert_eq!(
+            actions_met(
+                &want,
+                &done(&["page.goto", "nav.follow", "ui.describe", "nav.back"])
+            ),
+            Ok(())
+        );
         assert_eq!(actions_met(&want, &done(&["props.follow", "nav.back"])), Ok(()));
         let missing = Err(
             "`nav.back` was not done after the actions before it (in order: nav.follow or props.follow, nav.back)"
                 .to_owned(),
         );
         assert_eq!(actions_met(&want, &done(&["nav.follow"])), missing);
-        assert_eq!(actions_met(&want, &done(&["nav.back", "nav.follow"])), missing, "out of order");
+        assert_eq!(
+            actions_met(&want, &done(&["nav.back", "nav.follow"])),
+            missing,
+            "out of order"
+        );
         assert_eq!(
             actions_met(&want, &done(&[])),
             Err("`nav.follow or props.follow` was not done after the actions before it (in order: nav.follow or \
@@ -1004,7 +1020,11 @@ mod tests {
         ];
         let done_of = |lines: &[&str]| done_actions(&step_outcomes(lines.iter().copied()));
         assert_eq!(done_of(&text), ["nav.follow"]);
-        assert_eq!(actions_met(&want, &done_of(&text)), missing, "a refused step is not done");
+        assert_eq!(
+            actions_met(&want, &done_of(&text)),
+            missing,
+            "a refused step is not done"
+        );
         let visual = [
             r#"{"frame":"t0000.png","sha256":null,"dispatched":[]}"#,
             r#"{"step":1,"input":{"input":"key"},"dispatched":[{"action":"nav.follow","outcome":"done","reason":null}]}"#,

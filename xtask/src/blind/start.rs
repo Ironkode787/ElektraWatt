@@ -360,7 +360,12 @@ fn populate(
     // The start project (WP-S2.12 D5): made once from a copy of the golden project and kept in `.harness/`, where a
     // resume or a stateless call takes it from again; `work/project` is its copy, which the prelude opens.
     if let Some(start) = start {
-        make_start_project(root, start, &run.product_exe("ew"), &run.path(".harness/start-project"))?;
+        make_start_project(
+            root,
+            start,
+            &run.product_exe("ew"),
+            &run.path(".harness/start-project"),
+        )?;
         copy_dir(&run.path(".harness/start-project"), &run.path("work/project"))?;
     }
     // The task's hints (D8), which `hint` gives one at a time; a check run has none.
@@ -1074,7 +1079,10 @@ mod tests {
             "tools/blind/tasks/brief-ut/prelude.uiscript",
             "{\"$schema\":\"ew.uiscript/1\",\"label\":\"p\"}\n{\"action\":\"file.open\",\"params\":{\"dir\":\"project\"}}\n",
         );
-        w("tools/blind/tasks/brief-ut/hints.toml", "[[hint]]\ntext = \"Look.\"\n");
+        w(
+            "tools/blind/tasks/brief-ut/hints.toml",
+            "[[hint]]\ntext = \"Look.\"\n",
+        );
     }
 
     /// UR-1 (D5): a brief with `start = "golden-a"` starts on a copy of the golden project in `work/project`, kept in
@@ -1101,7 +1109,9 @@ mod tests {
             "[[hint]]\ntext = \"Look.\"\n"
         );
         assert!(
-            std::fs::read_to_string(run.path("prompt.md")).unwrap().contains("Ask with "),
+            std::fs::read_to_string(run.path("prompt.md"))
+                .unwrap()
+                .contains("Ask with "),
             "the round prompt is composed"
         );
         check_golden(&root, &rj).unwrap();
