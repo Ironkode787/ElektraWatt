@@ -94,6 +94,12 @@ The main session orchestrates. It plans each cycle, briefs Claude subagents, int
      dispatched.
 7. **A wave ends at a merge point.**
    - Integrate the lanes that are back and run `cargo xtask settle --merge` once.
+   - **The orchestrator's own merge work is tested like a lane's** (cycle-50 retro: a conflict resolution and a
+     re-bless of mine were both wrong, and review caught them).
+     - After a hand resolution, run the touched crates' tests before the commit.
+     - Re-bless an image only by comparing the old and new images side by side, never the diff image alone. A
+       conflicting re-bless goes back to the lane that owns the newer change when it can.
+     - After rewriting a file, `git diff --quiet` it, and restore it if it shows no change.
    - Run one merged-tip verify:
      - `cargo xtask affected`'s selection (every package the changes reach, bin crates included), with and without
        `--all-features`;
