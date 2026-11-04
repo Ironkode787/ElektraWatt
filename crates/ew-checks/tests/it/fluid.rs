@@ -167,6 +167,16 @@ fn messages(fx: &Fx, rule: &str) -> Vec<(Severity, String)> {
     out
 }
 
+/// The messages of `rule` rendered in nl-NL, sorted.
+fn dutch(fx: &Fx, rule: &str) -> Vec<String> {
+    let mut out: Vec<String> = findings_of(&fx.build(), rule)
+        .iter()
+        .map(|f| ew_checks::messages::render(f, "nl-NL"))
+        .collect();
+    out.sort();
+    out
+}
+
 const V1: u128 = 0x7001;
 const V2: u128 = 0x7002;
 const V3: u128 = 0x7003;
@@ -202,6 +212,19 @@ fn ew_fl_001_lists_the_open_working_ports() {
             ),
         ]
     );
+    // C50-p6#8: the closure choices' words, "blindstop" and "afgeblind".
+    assert_eq!(
+        dutch(&fx, "EW-FL-001"),
+        [
+            "-1Q1: werkpoorten 2 en 4 zijn open; sluit ze aan, zet er een blindstop op of blind ze af",
+            "-1Q2: werkpoort 4 is open; sluit hem aan, zet er een blindstop op of blind hem af",
+            "-1Q4: werkpoort 2 is open; sluit hem aan, zet er een blindstop op of blind hem af",
+        ]
+    );
+    assert_eq!(
+        ew_checks::messages::hint("EW-FL-001", "nl-NL").as_deref(),
+        Some("Teken de werkleiding, of sluit de poort af: met een blindstop, met een geluiddemper of afgeblind.")
+    );
 }
 
 /// EW-FL-002: a solenoid bound to two channels and a channel bound to an undeclared coil are errors; a used valve with
@@ -233,6 +256,10 @@ fn ew_fl_002_reports_excess_and_unbound_coils() {
             (Severity::Warning, "-1Q4: solenoid 14 has no channel".to_owned()),
         ]
     );
+    assert_eq!(
+        ew_checks::messages::title("EW-FL-002", "nl-NL").as_deref(),
+        Some("Kanalen en magneetspoelen komen niet overeen")
+    );
 }
 
 /// EW-FL-004 (EF-14's rule): one info per spare valve and per blanking plate.
@@ -257,6 +284,26 @@ fn ew_fl_004_lists_spare_valves_and_blanking_plates() {
                 "-1U3: position 3 holds a blanking plate, -?Q3".to_owned()
             ),
         ]
+    );
+    // C50-p6#8: "ventielplaats" for a valve slot.
+    assert_eq!(
+        dutch(&fx, "EW-FL-004"),
+        [
+            "-1U3: ventielplaats 2 bevat een reserveventiel, -1Q2",
+            "-1U3: ventielplaats 3 bevat een blindplaat, -?Q3",
+        ]
+    );
+    assert_eq!(
+        (
+            ew_checks::messages::title("EW-FL-004", "nl-NL").as_deref(),
+            ew_checks::messages::hint("EW-FL-004", "nl-NL").as_deref()
+        ),
+        (
+            Some("Ventielplaatsen in reserve"),
+            Some(
+                "Houd het reserveventiel of de blindplaat bewust, of plaats een gebruikt ventiel op de ventielplaats."
+            )
+        )
     );
 }
 
@@ -334,6 +381,21 @@ fn ew_fl_013_reports_the_occupancy_defects() {
             ),
         ]
     );
+    // C50-p6#8: "ventielplaats" for a valve slot; a module's place on the valve terminal stays a "positie".
+    assert_eq!(
+        dutch(&fx, "EW-FL-013"),
+        [
+            "-1U1: positie 1 bevat zowel -1U3 als -1U4",
+            "-1U3: ventielplaats 1 bevat zowel -1Q1 als -1Q2",
+            "-1U3: ventielplaats 2 is leeg; plaats een ventiel of een blindplaat",
+            "-1U3: ventielplaats 4 is leeg; plaats een ventiel of een blindplaat",
+            "-1U3: ventielplaats 5 ligt buiten de 4 ventielplaatsen",
+            "-1U4: ventielplaats 1 is leeg; plaats een ventiel of een blindplaat",
+            "-1U4: ventielplaats 2 is leeg; plaats een ventiel of een blindplaat",
+            "-1U4: ventielplaats 3 is leeg; plaats een ventiel of een blindplaat",
+            "-1U4: ventielplaats 4 is leeg; plaats een ventiel of een blindplaat",
+        ]
+    );
 }
 
 /// EW-FL-013's prevent half (FL-7): a batch that puts a valve outside its module's positions or at a held position is
@@ -356,6 +418,13 @@ fn ew_fl_013_prevents_a_valve_outside_or_at_a_held_position() {
     assert_eq!(
         messages(&moved),
         ["-1U3: position 6 is outside its 4 valve positions; free positions: 2, 3, 4"]
+    );
+    let nl = ew_checks::prevent(&Q::new(&before), &Q::new(&moved.build()), &touched);
+    assert_eq!(
+        nl.iter()
+            .map(|f| ew_checks::messages::render(f, "nl-NL"))
+            .collect::<Vec<_>>(),
+        ["-1U3: ventielplaats 6 ligt buiten de 4 ventielplaatsen; vrije ventielplaatsen: 2, 3, 4"]
     );
     let mut held = fx.clone();
     valve(&mut held, V2, 2, 1, None);

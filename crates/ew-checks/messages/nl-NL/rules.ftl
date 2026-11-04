@@ -33,38 +33,38 @@ rule-ew-core-061 = tekststijl { $style } drukt af met een hoofdletterhoogte van 
     .hint = Vergroot de tekststijl of geef de teksten een stijl die minstens op de minimale hoogte afdrukt.
 
 rule-ew-fl-001 = { $form ->
-        [many] { $valve }: werkpoorten { $ports_nl } zijn open; sluit ze aan, of sluit ze af met een plug of blindering
-       *[one] { $valve }: werkpoort { $port } is open; sluit hem aan, of sluit hem af met een plug of blindering
+        [many] { $valve }: werkpoorten { $ports_nl } zijn open; sluit ze aan, zet er een blindstop op of blind ze af
+       *[one] { $valve }: werkpoort { $port } is open; sluit hem aan, zet er een blindstop op of blind hem af
     }
     .title = Werkpoort open
-    .hint = Teken de werkleiding, of sluit de poort af met een plug, een geluiddemper of een blindering.
+    .hint = Teken de werkleiding, of sluit de poort af: met een blindstop, met een geluiddemper of afgeblind.
 
 rule-ew-fl-002 = { $form ->
         [excess] { $valve }: magneetspoel { $solenoid } is aan { $count } kanalen gebonden: { $channels_nl }
         [undeclared] { $valve }: { $channel_nl } stuurt een spoel aan die het artikel niet declareert
        *[unbound] { $valve }: magneetspoel { $solenoid } heeft geen kanaal
     }
-    .title = Spoelbindingen tegen magneetspoelen
+    .title = Kanalen en magneetspoelen komen niet overeen
     .hint = Bind elke magneetspoel die het ventielartikel declareert aan één kanaal, en geen kanaal aan een andere spoel.
 
 rule-ew-fl-004 = { $form ->
-        [blank] { $module }: positie { $position } bevat een blindplaat, { $device }
-       *[valve] { $module }: positie { $position } bevat een reserveventiel, { $device }
+        [blank] { $module }: ventielplaats { $position } bevat een blindplaat, { $device }
+       *[valve] { $module }: ventielplaats { $position } bevat een reserveventiel, { $device }
     }
-    .title = Reserveposities
-    .hint = Houd het reserveventiel of de blindplaat bewust, of plaats een gebruikt ventiel op de positie.
+    .title = Ventielplaatsen in reserve
+    .hint = Houd het reserveventiel of de blindplaat bewust, of plaats een gebruikt ventiel op de ventielplaats.
 
 rule-ew-fl-011 = { $valve } stuurt { $target } aan, maar de leidingen van zijn werkpoorten bereiken { $device }
     .title = Aangestuurd apparaat wijkt af
     .hint = Koppel het ventiel aan het apparaat dat zijn leidingen bereiken, of teken de leidingen naar het apparaat dat het aanstuurt.
 
 rule-ew-fl-013 = { $form ->
-        [both] { $parent }: positie { $position } bevat zowel { $a } als { $b }
+        [both] { $parent }: ventielplaats { $position } bevat zowel { $a } als { $b }
         [modules] { $parent }: positie { $position } bevat zowel { $a } als { $b }
-        [outside] { $module }: positie { $position } ligt buiten de { $count } ventielplaatsen
-        [outside_free] { $module }: positie { $position } ligt buiten de { $count } ventielplaatsen; vrije posities: { $free }
-        [outside_full] { $module }: positie { $position } ligt buiten de { $count } ventielplaatsen; elke positie is bezet
-       *[empty] { $module }: positie { $position } is leeg; plaats een ventiel of een blindplaat
+        [outside] { $module }: ventielplaats { $position } ligt buiten de { $count } ventielplaatsen
+        [outside_free] { $module }: ventielplaats { $position } ligt buiten de { $count } ventielplaatsen; vrije ventielplaatsen: { $free }
+        [outside_full] { $module }: ventielplaats { $position } ligt buiten de { $count } ventielplaatsen; elke ventielplaats is bezet
+       *[empty] { $module }: ventielplaats { $position } is leeg; plaats een ventiel of een blindplaat
     }
     .title = Bezetting
     .hint = Geef elke ventielplaats één ventiel of blindplaat, en elke module een eigen positie.
@@ -226,7 +226,7 @@ rule-ew-pot-001 = { $conflicts }{ $more ->
         [none] {""}
        *[other] ; en nog { $more } aansluitpunten
     }{ $hint ->
-        [bond] ; declareer de potentiaalverbinding met Draw ▸ Bond
+        [bond] ; declareer de potentiaalverbinding met Tekenen ▸ Potentiaalverbinding
        *[none] {""}
     }
     .title = Type- of spanningsconflict

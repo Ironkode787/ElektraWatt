@@ -588,6 +588,30 @@ fn a_fluid_line_kind_is_found_by_its_dutch_word() {
     shell.shutdown();
 }
 
+/// C50-p7#9 (ID-1320): the Dutch toasts of a new terminal strip each say, as `toast-strip-new` does, that the symbol's
+/// strip picker lists the strip.
+#[test]
+fn the_new_strip_toasts_name_the_strip_picker_in_dutch() {
+    let tmp = Tmp::new("strip-new-nl");
+    let mut shell = tmp.shell_in(Mode::Headless, true, "101");
+    done(&mut shell, "view.language", json!({"value": "nl"}));
+    assert_eq!(
+        (
+            strings::format(key!("toast-strip-new-tagged"), &["-X5"]),
+            strings::text(key!("toast-strip-new-no-example")).to_owned()
+        ),
+        (
+            "Klemmenstrook -X5 gemaakt. Plaats de klemmen met Tekenen ▸ Symbool… en het klemsymbool; de keuzelijst van \
+             het symbool toont haar."
+                .to_owned(),
+            "Klemmenstrook gemaakt. Het kenmerk volgt bij de eerste klem: Tekenen ▸ Symbool… en het klemsymbool; de \
+             keuzelijst van het symbool toont haar."
+                .to_owned()
+        )
+    );
+    shell.shutdown();
+}
+
 /// C50-p5#7 (FT-1287): every report kind of the format has its `report-kind-<kind>` text in en-GB and nl-NL, so no
 /// generated page's Source shows JSON.
 #[test]

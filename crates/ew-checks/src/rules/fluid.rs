@@ -500,7 +500,7 @@ fn both(q: &Q, parent: Id<Device>, p: u32, a: Id<Device>, b: Id<Device>, form: &
         full(q, b),
         format!("{parent_t}: position {p} holds both {a_t} and {b_t}"),
     )
-    .arg("form", "both")
+    .arg("form", form)
     .arg("parent", parent_t)
     .arg("position", p.to_string())
     .arg("a", a_t)

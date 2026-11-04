@@ -828,6 +828,12 @@ fn pot001_without_a_carrier_has_no_fix_and_names_draw_bond() {
         f[0].message,
         "member roles M meet Pe; the first in role order applies; declare the bond with Draw ▸ Bond"
     );
+    // C50-p7#5: the Dutch hint names the Dutch menu path.
+    assert_eq!(
+        ew_checks::messages::render(&f[0], "nl-NL"),
+        "member roles M meet Pe; the first in role order applies; declareer de potentiaalverbinding met Tekenen ▸ \
+         Potentiaalverbinding"
+    );
 }
 
 #[test]
