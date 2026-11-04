@@ -1272,7 +1272,8 @@ pub struct TableRep {
     pub body: [i64; 4],
     /// Where the printed tag text stands (FT-502): the anchor of the symbol's tag slot where the scene prints it
     /// (visible by the representation's override, else its arrangement, else the slot's default; at the override's
-    /// position or the slot's, under the orientation, translated to the insertion point), raised by the em height
+    /// position or the slot's, under the orientation, translated to the insertion point; FT-771: where the scene's tag
+    /// rule moved it, read from the page's labels layer), raised by the em height
     /// of the slot's text style, so that it is at or above the top of the text whatever its vertical alignment (for
     /// text that reads horizontally); `None` for a representation that prints no tag (no device, an interruption
     /// point, no visible tag slot). A preview chip stands above it.
@@ -1622,6 +1623,8 @@ impl Session {
         );
         let drawn = drawn_cps(&q, page_id);
         let styles = super::layers::text_style_table(&q);
+        // FT-771: the tags where the scene's tag rule placed them, from the labels layer the page draws.
+        let labels = super::layers::page_layer(&q, page_ref, ew_dl::Layer::Labels);
         let mut shapes: BTreeMap<Id<SymbolDef>, Option<SymbolShape>> = BTreeMap::new();
         let mut rep_ids: Vec<(i64, i64, Id<Representation>)> = q
             .idx()
@@ -1674,7 +1677,7 @@ impl Session {
                 })
                 .flatten()
                 .map(|(p, em)| {
-                    let (x, y) = pt(p);
+                    let (x, y) = pt(labels.tags.get(&rid.as_uuid()).copied().unwrap_or(p));
                     (x, y.saturating_sub(em))
                 });
             reps.push(TableRep {

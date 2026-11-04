@@ -35,7 +35,7 @@ use std::sync::Arc;
 
 use ew_api::output::ew_dl::ew_units::{Nm, Rect};
 use ew_api::output::ew_dl::{Destination, DisplayList, EntityRef};
-use ew_api::output::{LinkTarget, PageCells, PageCp, PageGrid, PageRow, PageTables};
+use ew_api::output::{LinkTarget, PageCells, PageCp, PageGrid, PageRow, PageTables, Uuid};
 
 use crate::shell::natural_cmp;
 use crate::tools::Snapper;
@@ -465,7 +465,51 @@ impl CanvasPage {
         let cells = self.cells.as_ref()?;
         cells.cell_at(p).map(|c| cells.text(&c))
     }
+
+    /// The conflict overlay's polylines on this page, in sheet coordinates (FT-675, FT-696; WP-S2.11 D9): the wires
+    /// among `members` (connection IDs, sorted), and for each connection point of `cps` (function, CP index; sorted)
+    /// the wires that end at it, in the page's connection order; a named point with none is a ring around it, a closed
+    /// polyline one grid step across, so the overlay draws it with its pen and colour.
+    pub fn conflict_lines(&self, members: &[Uuid], cps: &[(Uuid, u16)]) -> Vec<Vec<(i64, i64)>> {
+        let named: Vec<_> = self
+            .tables
+            .cps
+            .iter()
+            .filter(|cp| cps.binary_search(&(cp.function, cp.idx)).is_ok())
+            .collect();
+        let mut wires: Vec<Uuid> = members.to_vec();
+        wires.extend(named.iter().flat_map(|cp| cp.connections.iter().copied()));
+        wires.sort_unstable();
+        wires.dedup();
+        let mut lines: Vec<Vec<(i64, i64)>> = self
+            .tables
+            .connections
+            .iter()
+            .filter(|t| wires.binary_search(&t.id).is_ok())
+            .map(|t| t.polyline.iter().map(|p| self.snapper.page_to_sheet(*p)).collect())
+            .collect();
+        let (num, den) = self.tables.grid;
+        let radius = (num / den.max(1)).max(1) as f64 / 2.0;
+        for cp in named.iter().filter(|cp| cp.connections.is_empty()) {
+            let (x, y) = self.snapper.page_to_sheet(cp.at);
+            lines.push(
+                (0..=CONFLICT_RING_SEGMENTS)
+                    .map(|i| {
+                        let a = std::f64::consts::TAU * f64::from(i) / f64::from(CONFLICT_RING_SEGMENTS);
+                        (
+                            x + (radius * a.cos()).round() as i64,
+                            y + (radius * a.sin()).round() as i64,
+                        )
+                    })
+                    .collect(),
+            );
+        }
+        lines
+    }
 }
+
+/// The segments of the conflict overlay's ring around a connection point without connections (FT-696).
+const CONFLICT_RING_SEGMENTS: u32 = 24;
 
 /// The view of the page on show.
 #[derive(Clone, Debug)]

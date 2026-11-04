@@ -127,6 +127,8 @@ impl ShellModel {
     /// The polylines (sheet coordinates) of the wires of canvas group `group`'s page that belong to the potential of
     /// an open EW-POT-001 finding (FT-675, ID-828): the window draws them in the conflict colour over the page, a
     /// screen-only overlay like the selection; the page's display list, its print and its export do not change.
+    /// FT-696 (WP-S2.11 D9): a connection point a finding names adds the connections that end at it; a point with none
+    /// is a ring, a closed polyline one grid step across, so it is drawn with the overlay's pen and colour.
     pub fn conflict_overlay(&self, group: usize) -> Vec<Vec<(i64, i64)>> {
         let Some(c) = self.canvas_of(group) else {
             return Vec::new();
@@ -138,24 +140,10 @@ impl ShellModel {
                 return lines;
             }
         }
-        let page = c.page();
-        let Some(members) = self.with_online(|o| o.conflict.clone()) else {
+        let Some((members, cps)) = self.with_online(|o| (o.conflict.clone(), o.conflict_cps.clone())) else {
             return Vec::new();
         };
-        if members.is_empty() {
-            return Vec::new();
-        }
-        page.tables
-            .connections
-            .iter()
-            .filter(|t| members.binary_search(&t.id).is_ok())
-            .map(|t| {
-                t.polyline
-                    .iter()
-                    .map(|p| page.snapper.page_to_sheet(*p))
-                    .collect()
-            })
-            .collect()
+        c.page().conflict_lines(&members, &cps)
     }
 
     /// The connection IDs of the potentials of the open EW-POT-001 findings of the online report, sorted (FT-675).
@@ -191,12 +179,19 @@ impl ShellModel {
                             let target = ew_api::output::HighlightTarget::Potential(t.id.as_uuid());
                             facts.conflict.extend(project.session.highlight_members(&target));
                         }
+                        // FT-696: a potential without a definition is keyed by the member CP its discriminator
+                        // names (`attrs@<function>:<idx>`).
+                        if let Some(cp) = named_cp(&finding.discriminator) {
+                            facts.conflict_cps.push(cp);
+                        }
                     }
                     FindingState::Open => {}
                 }
             }
             facts.conflict.sort_unstable();
             facts.conflict.dedup();
+            facts.conflict_cps.sort_unstable();
+            facts.conflict_cps.dedup();
             *cache = Some(facts);
         }
         cache.as_ref().map(f)
@@ -753,6 +748,14 @@ const WAIVER_REASON_MIN_CHARS: usize = 10;
 /// The rule whose open findings colour their potential's wires on the canvas (FT-675).
 const CONFLICT_RULE: &str = "EW-POT-001";
 
+/// The connection point (function, CP index) a finding's discriminator names after its `@` (`attrs@<function>:<idx>`,
+/// the member CP that keys a potential without a definition), if it names one.
+fn named_cp(discriminator: &str) -> Option<(ew_api::output::Uuid, u16)> {
+    let (_, cp) = discriminator.rsplit_once('@')?;
+    let (function, idx) = cp.split_once(':')?;
+    Some((ew_api::output::Uuid::parse_str(function).ok()?, idx.parse().ok()?))
+}
+
 /// The toast of `messages.check` (FT-549): the errors and warnings always, the infos when there are any; the waived and
 /// pending findings, when there are any, qualify the title so the line of counts stays one line (FT-664):
 /// `Check: 1 error, 0 warnings`, `Check · 1 waived: 1 error, 0 warnings`.
@@ -804,6 +807,18 @@ pub(crate) fn check_tone(c: MessageCounts) -> NoteTone {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// FT-696: the member CP a CP-keyed EW-POT-001 finding's discriminator names; none for a definition's.
+    #[test]
+    fn the_discriminator_names_the_keying_connection_point() {
+        let f = "0190a5c4-1001-7000-8000-000000000001";
+        assert_eq!(
+            named_cp(&format!("attrs@{f}:2")),
+            Some((ew_api::output::Uuid::parse_str(f).unwrap(), 2))
+        );
+        assert_eq!(named_cp("attrs"), None);
+        assert_eq!(named_cp("attrs@not-an-id:2"), None);
+    }
 
     #[test]
     fn check_tone_follows_the_worst_severity_present() {

@@ -27,7 +27,8 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use ew_derive::ew_ids::Id;
+use ew_derive::ew_ids::{Id, Uuid};
+use ew_derive::ew_units::Pt2;
 use ew_derive::{DrawingSettingsQ, PageEntry, PageRef, Policy, Q, Query};
 use ew_dl::{DisplayList, Layer, SymbolGeomId};
 use ew_scene::forms::{PageBindings, SheetMap};
@@ -52,6 +53,9 @@ pub struct PageLayer {
     pub geometry: BTreeMap<SymbolGeomId, Arc<DisplayList>>,
     /// What to report, in paint order.
     pub findings: Vec<PageFinding>,
+    /// The labels layer's anchor of each representation's device tag after the tag rule (FT-771), by representation
+    /// ID (`ew_scene::page::LayerList::tags`).
+    pub tags: BTreeMap<Uuid, Pt2>,
 }
 
 /// An empty view of `page`: the parts a layer reads are filled by its family.
@@ -210,6 +214,7 @@ fn build(q: &Q, page: PageRef, layer: Layer) -> Arc<PageLayer> {
         list: Arc::new(l.list),
         geometry: l.geometry,
         findings: l.findings,
+        tags: l.tags,
     })
 }
 
@@ -243,6 +248,7 @@ fn layer_bytes(v: &PageLayer) -> usize {
         + items_bytes(&v.list.items)
         + v.geometry.values().map(|g| items_bytes(&g.items)).sum::<usize>()
         + v.findings.len() * std::mem::size_of::<PageFinding>()
+        + v.tags.len() * std::mem::size_of::<(Uuid, Pt2)>()
 }
 
 macro_rules! layer_family {

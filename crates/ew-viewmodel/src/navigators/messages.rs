@@ -68,6 +68,9 @@ pub(crate) struct OnlineFacts {
     pub(crate) waivers: BTreeMap<String, String>,
     /// The connections of the potentials of the open EW-POT-001 findings, sorted (the canvas's conflict overlay).
     pub(crate) conflict: Vec<ew_api::output::Uuid>,
+    /// FT-696 (WP-S2.11 D9): the connection points the open EW-POT-001 findings name, as (function, CP index), sorted:
+    /// a potential without a definition is keyed by a member CP, which the finding's discriminator names.
+    pub(crate) conflict_cps: Vec<(ew_api::output::Uuid, u16)>,
 }
 
 /// The counts of the pane's header line (§7.3): the open findings by severity less the pending ones, the waived

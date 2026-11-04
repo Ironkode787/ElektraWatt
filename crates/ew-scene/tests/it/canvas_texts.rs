@@ -421,6 +421,53 @@ fn a_tag_does_not_sit_on_a_wire() {
     assert!(tag.min().y.0 < g(34) && tag.max().y.0 > g(30));
 }
 
+/// FT-771 (WP-S2.11 D12): the labels layer reports each tag's anchor where it prints, after the tag rule. The valve's
+/// tag that the wire would run through moves off it (here it turns about its anchor), and the reported anchor stands
+/// on the moved text's rectangle; the coils print no tag and report none, and no other layer reports tags. Golden A's
+/// folio 3, where the rule moves an anchor, is `ew-api`'s `ft771_tag_at_is_where_the_labels_layer_prints_the_tag`.
+#[test]
+fn the_labels_layer_reports_a_moved_tag_where_it_prints() {
+    let (coil, valve) = (symbol(COIL), symbol(VALVE));
+    let k = |n: u128, y: i64| RepView {
+        rep: rep(n, coil.id, 40, y, json!({})),
+        symbol: Some(coil.def.clone()),
+        slots: Vec::new(),
+        terminals: Vec::new(),
+        pins: Vec::new(),
+    };
+    let m = RepView {
+        rep: rep(0x33, valve.id, 44, 30, json!({})),
+        symbol: Some(valve.def.clone()),
+        slots: vec![
+            value(slot(&valve, &SlotKind::Tag), "-101M1"),
+            value(slot(&valve, &SlotKind::TechData), "24 V"),
+        ],
+        terminals: Vec::new(),
+        pins: Vec::new(),
+    };
+    let wired = view(
+        vec![k(0x31, 10), k(0x32, 50), m.clone()],
+        vec![connection(0x41, (0x1031, 1), (0x1032, 0))],
+    );
+    let unwired = view(vec![k(0x31, 10), k(0x32, 50), m], Vec::new());
+    let tags = |v: &PageView| page_display_list(v, Layer::Labels, bundled(), builtin()).tags;
+    let moved = tags(&wired);
+    let id = Uuid::from_u128(0x33);
+    assert_eq!(moved.keys().collect::<Vec<_>>(), [&id], "the valve's tag alone");
+    let tag = run(&runs(&wired), 0x33, "-101M1").rect;
+    assert_ne!(tag, run(&runs(&unwired), 0x33, "-101M1").rect, "the case: the rule moves the tag");
+    let at = moved[&id];
+    assert!(
+        tag.min().x <= at.x && at.x <= tag.max().x && tag.min().y <= at.y && at.y <= tag.max().y,
+        "{at:?} on the printed tag {tag:?}"
+    );
+    assert_eq!(
+        page_display_list(&wired, Layer::Symbols, bundled(), builtin()).tags,
+        std::collections::BTreeMap::new(),
+        "only the labels layer reports tags"
+    );
+}
+
 /// Cycle 39 (window check): a cable marker's tag, wider than its mark, used to print centred on it with the mark's
 /// sides through the text ("-1[06W]1"); it stands clear of the mark, beside it on the right, reading horizontally.
 #[test]

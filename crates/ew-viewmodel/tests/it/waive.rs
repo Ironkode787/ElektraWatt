@@ -312,3 +312,39 @@ fn the_conflict_overlay_lists_the_merged_potentials_wires_until_the_bond_is_decl
     assert!(shell.conflict_overlay(0).is_empty());
     shell.shutdown();
 }
+
+/// FT-696 (WP-S2.11 D9, GT-6): a connection point an EW-POT-001 finding names (a potential without a definition is
+/// keyed by one) adds the wires that end at it to the overlay, in the page's connection order; a point without wires
+/// is a closed ring one grid step across, centred on the point; nothing named, nothing drawn.
+#[test]
+fn ft696_a_named_connection_point_draws_its_wires_or_its_ring() {
+    let tmp = Tmp::new("ft696");
+    let mut shell = tmp.shell_in(Mode::Gui, true, "103");
+    let page = std::sync::Arc::clone(shell.canvas().expect("folio 103").page());
+    let sheet = |p: &(i64, i64)| page.snapper.page_to_sheet(*p);
+    let wired = page.tables.cps.iter().find(|c| !c.connections.is_empty()).expect("a wired CP");
+    let lines = page.conflict_lines(&[], &[(wired.function, wired.idx)]);
+    let expected: Vec<Vec<(i64, i64)>> = page
+        .tables
+        .connections
+        .iter()
+        .filter(|t| wired.connections.contains(&t.id))
+        .map(|t| t.polyline.iter().map(sheet).collect())
+        .collect();
+    assert!(!expected.is_empty());
+    assert_eq!(lines, expected);
+    let lone = page.tables.cps.iter().find(|c| c.connections.is_empty()).expect("a CP without wires");
+    let ring = page.conflict_lines(&[], &[(lone.function, lone.idx)]);
+    assert_eq!(ring.len(), 1, "one ring");
+    let ring = &ring[0];
+    assert_eq!(ring.len(), 25);
+    assert_eq!(ring.first(), ring.last(), "closed");
+    let (cx, cy) = sheet(&lone.at);
+    let step = page.tables.grid.0 / page.tables.grid.1;
+    for &(x, y) in ring {
+        let r = (((x - cx) as f64).powi(2) + ((y - cy) as f64).powi(2)).sqrt();
+        assert!((r - step as f64 / 2.0).abs() <= 1.0, "{r} nm from the point, half of {step}");
+    }
+    assert_eq!(page.conflict_lines(&[], &[]), Vec::<Vec<(i64, i64)>>::new());
+    shell.shutdown();
+}

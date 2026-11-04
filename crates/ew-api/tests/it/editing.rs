@@ -396,6 +396,37 @@ fn the_page_tables_of_folios_101_to_103_match_the_golden_tables_and_the_scene() 
     assert!(s.page_tables("no such folio").is_none());
 }
 
+/// FT-771 (WP-S2.11 D12, GT-6): `TableRep::tag_at` stands where the scene prints the tag, after the tag rule (ID-898)
+/// moved it, never at the tag slot's default: on every drawn page of Golden A (the rule moves tags on 102 and 106),
+/// each reported tag is the labels layer's anchor of its representation's tag, raised by the one text height of the
+/// tag style.
+#[test]
+fn ft771_tag_at_is_where_the_labels_layer_prints_the_tag() {
+    let s = golden();
+    let q = s.query();
+    let order = q.get::<PageOrder>(());
+    let mut raised = std::collections::BTreeSet::new();
+    let mut reported = 0;
+    for entry in &order.entries {
+        let Some(t) = s.page_tables(&entry.folio) else {
+            continue;
+        };
+        let labels = page_layer(&q, entry.page, Layer::Labels);
+        for rep in &t.reps {
+            let Some(at) = rep.tag_at else { continue };
+            let drawn = labels
+                .tags
+                .get(&rep.id)
+                .unwrap_or_else(|| panic!("{}: the labels layer prints the tag of {}", entry.folio, rep.id));
+            assert_eq!(at.0, drawn.x.0, "{}: {}", entry.folio, rep.id);
+            raised.insert(drawn.y.0 - at.1);
+            reported += 1;
+        }
+    }
+    assert!(reported > 0);
+    assert_eq!(raised.len(), 1, "one raise, the tag style's text height: {raised:?}");
+}
+
 /// FT-421: the catalogue lists every terminal strip of the project by its printed tag, with the next free decimal
 /// designation and the next sequence number as `terminal.add` would take them; a new strip has none used.
 #[test]

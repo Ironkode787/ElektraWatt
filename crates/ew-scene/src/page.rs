@@ -507,6 +507,10 @@ pub struct LayerList {
     pub geometry: BTreeMap<SymbolGeomId, Arc<DisplayList>>,
     /// What to report, in paint order.
     pub findings: Vec<PageFinding>,
+    /// The labels layer's anchor of each representation's device tag where it prints, after the tag rule (ID-898)
+    /// moved it, by representation ID: what `TableRep::tag_at` reports (FT-771, WP-S2.11 D12). Empty in the other
+    /// layers.
+    pub tags: BTreeMap<Uuid, Pt2>,
 }
 
 /// `page_display_list(page, layer, lang)` for a drawn page (see the module documentation). The language is
@@ -1167,6 +1171,9 @@ impl Builder<'_> {
         self.place_tags_off_own_mark(view, &mut texts);
         self.place_tags(view, &mut texts, &pin_boxes);
         self.place_slot_texts(&mut texts, &pin_boxes);
+        for t in texts.iter().filter(|t| t.tag) {
+            self.out.tags.entry(t.entity.0).or_insert(t.at);
+        }
         for t in &texts {
             if let Some(name) = t.unknown {
                 self.out.findings.push(PageFinding::UnknownSlotStyle {
