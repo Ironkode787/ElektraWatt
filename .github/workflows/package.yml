@@ -761,7 +761,7 @@ jobs:
               echo
             done
             if [ -n "${APPIMAGE:-}" ]; then
-              echo "Built \`$APPIMAGE\` with the type-2 runtime $(python3 -I packaging/stage.py pin appimage-type2-runtime) and $(cat squashfs-tools-version.txt 2> /dev/null || echo 'mksquashfs') (zstd); it never leaves the job (ID-476)."
+              echo "Built \`$APPIMAGE\` with the type-2 runtime $(python3 -I packaging/stage.py pin appimage-type2-runtime) and $(cat target/squashfs-tools-version.txt 2> /dev/null || echo 'mksquashfs') (zstd); it never leaves the job (ID-476)."
             else
               echo "No AppImage was built (see the log)."
             fi

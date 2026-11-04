@@ -33,10 +33,10 @@
 #       The dependencies are fetched on the runner first (`cargo fetch --locked`), into the mounted cargo home.
 #   linux-container.sh appimage
 #       With no network. Installs squashfs-tools from the downloaded files, writes `mksquashfs -version`'s first line
-#       to `squashfs-tools-version.txt` for the job's report, and as the runner's uid and gid writes the squashfs image
-#       of the AppDir EW_APPDIR to EW_SQUASHFS: `mksquashfs <AppDir> <image> -root-owned -noappend -comp zstd`. zstd:
-#       the pinned runtime links libzstd and zlib into its squashfuse (its Makefile), so it reads zstd, which
-#       decompresses faster than gzip at a smaller size (D10).
+#       to `target/squashfs-tools-version.txt` for the job's report (under target/, so the checkout stays clean), and
+#       as the runner's uid and gid writes the squashfs image of the AppDir EW_APPDIR to EW_SQUASHFS: `mksquashfs
+#       <AppDir> <image> -root-owned -noappend -comp zstd`. zstd: the pinned runtime links libzstd and zlib into its
+#       squashfuse (its Makefile), so it reads zstd, which decompresses faster than gzip at a smaller size (D10).
 #   Every mode reads the same apt source, the snapshot, since the downloaded lists are named after it.
 set -euo pipefail
 
@@ -84,7 +84,7 @@ case "$mode" in
     : "${EW_UID:?}" "${EW_GID:?}" "${EW_SQUASHFS_TOOLS_VERSION:?}" "${EW_APPDIR:?}" "${EW_SQUASHFS:?}"
     DEBIAN_FRONTEND=noninteractive apt-get "${apt_options[@]}" install --no-download \
       "squashfs-tools=$EW_SQUASHFS_TOOLS_VERSION"
-    mksquashfs -version | sed -n 1p | as_runner tee squashfs-tools-version.txt
+    mksquashfs -version | sed -n 1p | as_runner tee target/squashfs-tools-version.txt
     as_runner mksquashfs "$EW_APPDIR" "$EW_SQUASHFS" -root-owned -noappend -comp zstd
     exit 0
     ;;
