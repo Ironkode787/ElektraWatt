@@ -1925,6 +1925,7 @@ fn lib_create_list_search_and_rebuild() {
     let list: serde_json::Value = serde_json::from_str(&stdout(&o)).unwrap();
     // CL-4 (WP-S1.22 D3 (d)): an object naming its schema, the libraries under `libraries`.
     assert_eq!(list["$schema"], "ew.lib-list-result/1");
+    // The content's other system libraries (WP-S7.03's sample parts) are listed too; that set grows.
     let rows: Vec<(String, String, bool)> = list["libraries"]
         .as_array()
         .unwrap()
@@ -1936,6 +1937,7 @@ fn lib_create_list_search_and_rebuild() {
                 l["writable"].as_bool().unwrap(),
             )
         })
+        .filter(|(k, t, _)| t != "system" || k.starts_with("ew-starter"))
         .collect();
     assert_eq!(
         rows,
@@ -1950,7 +1952,17 @@ fn lib_create_list_search_and_rebuild() {
     let o = run(&["lib", "search", "ew.fn.mcb-1pn", "--kind", "fndef"]);
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
     assert!(stdout(&o).starts_with("fndef\tew.fn.mcb-1pn\t"), "{}", stdout(&o));
+    // WP-S7.03 D3: the sample project's catalogue parts are a system library of the content.
     let o = run(&["lib", "search", "A9P52610"]);
+    assert_eq!(
+        (o.status.code(), stdout(&o).as_str()),
+        (
+            Some(0),
+            "part\tA9P52610\tSchneider Electric\tMiniature circuit breaker 1P+N\treleased\t\
+             ew-sample-parts/d882a316-b6fc-589f-85c1-a7b2ad9dcc77@0.1.0\n"
+        )
+    );
+    let o = run(&["lib", "search", "3209510"]);
     assert_eq!((o.status.code(), stdout(&o).as_str()), (Some(0), ""));
     assert_eq!(stderr(&o).trim(), "nothing found");
     let o = run(&["lib", "index", "--rebuild"]);

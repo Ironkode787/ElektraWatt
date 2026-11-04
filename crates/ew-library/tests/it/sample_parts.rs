@@ -294,6 +294,13 @@ fn documents() -> Vec<LibDocument> {
             v["function_template"] = d.template;
             sources.extend(d.sources.into_iter().map(Value::from));
         }
+        // A device made from a part needs exactly one main entry: Golden A's 550208 shares its device with 195740,
+        // whose function is the main one there, so as a part of its own its one entry is its main function.
+        if let Some(t) = v.get_mut("function_template").and_then(Value::as_array_mut)
+            && !t.iter().any(|t| t["main"] == true)
+        {
+            t[0]["main"] = json!(true);
+        }
         let confidence = confidence(&v);
         v["meta"] = json!({"key": key, "licence": LICENCE, "sources": sources, "confidence": confidence});
         docs.push(LibDocument::from_value(v).unwrap_or_else(|e| panic!("{key}: {e}")));
@@ -484,7 +491,7 @@ fn the_derived_templates_sections_and_marks_are_golden_as() {
         parts["195740"]["sections"]["bus"],
         json!({"ports": [{"interface": "DP", "bus": "profibus_dp", "role": "slave"}]})
     );
-    assert_eq!(template("550208"), [("ew.fn.blackbox", false)], "Golden A's own template");
+    assert_eq!(template("550208"), [("ew.fn.blackbox", true)], "Golden A's own template, its entry the main one");
     assert_eq!(parts["550208"]["meta"]["confidence"]["cp_pattern"], "test");
     assert_eq!(template("533361"), [("ew.fn.overview", true), ("ew.fn.blackbox", false)]);
     assert_eq!(parts["533361"]["meta"]["confidence"]["plc"], "test");

@@ -152,8 +152,8 @@ fn run_flow(
     (first.unwrap(), commands)
 }
 
-/// PS1: F55's part dialog lists the starter's 1P+N MCB (same FnDef), then its 1P MCB (same category), then the
-/// others; Only parts that fit keeps the two; Escape commits nothing.
+/// PS1: F55's part dialog lists the 1P+N MCBs of the sample parts and the starter (same FnDef), then the 1P MCBs
+/// (same category), then the others; Only parts that fit keeps the five; Escape commits nothing.
 #[test]
 fn ps1_the_part_dialog_script_is_deterministic() {
     ps1_the_part_dialog_script_is_deterministic_case(false);
@@ -177,13 +177,19 @@ pub(crate) fn ps1_the_part_dialog_script_is_deterministic_case(twice: bool) {
     assert!(has_line(d, "dialog \"Choose a part for F55\""), "{d}");
     assert!(
         d.contains(
-            "result 1 \"EW-GEN-MCB-2\" \"Generic\" \"Miniature circuit breaker, 1 pole and neutral\" library \"ElektraWatt starter parts\" compatible same-fndef cursor"
+            "result 1 \"5SY4204-7\" \"Siemens\" \"Miniature circuit breaker 1P+N\" library \"Sample project parts\" compatible same-fndef cursor"
         ),
         "{d}"
     );
-    assert!(d.contains("result 2 \"EW-GEN-MCB-1\" "), "{d}");
+    assert!(
+        d.contains(
+            "result 3 \"EW-GEN-MCB-2\" \"Generic\" \"Miniature circuit breaker, 1 pole and neutral\" library \"ElektraWatt starter parts\" compatible same-fndef"
+        ),
+        "{d}"
+    );
+    assert!(d.contains("result 5 \"EW-GEN-MCB-1\" "), "{d}");
     let d = describe(&lines[6]);
-    assert!(has_line(d, "results showing 1 to 2"), "{d}");
+    assert!(has_line(d, "results showing 1 to 5"), "{d}");
 }
 
 /// PS4: F55's first use → EW-GEN-MCB-2 (`part.assign` replace with `copies`), then Add part… with a held copy; the
@@ -200,9 +206,10 @@ pub(crate) fn ps4_the_choose_script_is_deterministic_and_replays_case(twice: boo
             ("page.goto", json!({"folio": "101"})),
             ("select.set", json!({"refs": ["tag:F55"]})),
             ("part.choose", json!({"use": 0})),
-            ("part.pick", json!({"index": 1})),
+            ("part.pick", json!({"part": "EW-GEN-MCB-2"})),
             ("part.choose", json!({"add": true})),
-            ("part.pick", json!({"part": "A9P52610"})),
+            // The held copy of A9P52610: the sample parts library offers its own (WP-S7.03), so the number names two.
+            ("part.pick", json!({"index": 20})),
             ("ui.describe", json!({})),
             ("file.save", json!({})),
         ]
