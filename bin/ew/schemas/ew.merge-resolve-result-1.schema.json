@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`ew merge resolve --json` ([`MERGE_RESOLVE`]; WP-S1.17 D19).",
+  "properties": {
+    "$schema": {
+      "const": "ew.merge-resolve-result/1",
+      "description": "The name of this schema."
+    },
+    "resolved": {
+      "description": "The conflict records resolved.",
+      "format": "uint",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "take": {
+      "description": "The side taken: `ours` or `theirs`.",
+      "type": "string"
+    }
+  },
+  "required": [
+    "$schema",
+    "resolved",
+    "take"
+  ],
+  "title": "ew.merge-resolve-result/1",
+  "type": "object"
+}

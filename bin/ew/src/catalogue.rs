@@ -445,7 +445,7 @@ pub const TABLE: &[Row] = &[
                 "usage (no conflict record selected), open, lock, a crashed session's journal and save errors",
             ),
         ],
-        result: None,
+        result: Some(ew_api::cli_results::MERGE_RESOLVE),
         stability: Stability::Preview,
     },
     Row {

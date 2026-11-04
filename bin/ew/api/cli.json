@@ -1189,6 +1189,11 @@
           "name": "--field",
           "value": true,
           "repeatable": false
+        },
+        {
+          "name": "--json",
+          "value": false,
+          "repeatable": false
         }
       ],
       "exits": [
@@ -1205,7 +1210,7 @@
           "meaning": "usage (no conflict record selected), open, lock, a crashed session's journal and save errors"
         }
       ],
-      "result": null,
+      "result": "ew.merge-resolve-result/1",
       "stability": "preview"
     },
     {

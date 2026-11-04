@@ -131,6 +131,11 @@
       "schema": "ew.lib-search-result-1.schema.json"
     },
     {
+      "command": "merge resolve",
+      "name": "ew.merge-resolve-result/1",
+      "schema": "ew.merge-resolve-result-1.schema.json"
+    },
+    {
       "command": "print",
       "name": "ew.print-result/1",
       "schema": "ew.print-result-1.schema.json"

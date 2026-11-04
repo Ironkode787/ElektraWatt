@@ -100,6 +100,8 @@ pub const EXPORT_EWZ: &str = "ew.export-ewz-result/1";
 pub const DIFF: &str = "ew.diff-result/1";
 /// `ew extract --json` (WP-S1.17 part 2).
 pub const EXTRACT: &str = "ew.extract-result/1";
+/// `ew merge resolve --json` (WP-S1.17 D19; decision log ID-1312).
+pub const MERGE_RESOLVE: &str = "ew.merge-resolve-result/1";
 /// `ew export svg --json`.
 pub const EXPORT_SVG: &str = "ew.export-svg-result/1";
 /// `ew export png --json`.
@@ -296,6 +298,12 @@ pub const RESULTS: &[ResultSchema] = &[
         command: "lib search",
         flag: None,
         schema: schema_of::<LibSearchResult>,
+    },
+    ResultSchema {
+        name: MERGE_RESOLVE,
+        command: "merge resolve",
+        flag: None,
+        schema: schema_of::<MergeResolveResult>,
     },
     ResultSchema {
         name: PRINT,
@@ -607,6 +615,19 @@ pub struct ExtractResult {
     pub generation: u64,
     /// The files written: `manifest.json`, the files it lists and the git files the archive holds.
     pub files: usize,
+}
+
+/// `ew merge resolve --json` ([`MERGE_RESOLVE`]; WP-S1.17 D19).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct MergeResolveResult {
+    /// [`MERGE_RESOLVE`].
+    #[serde(rename = "$schema")]
+    pub schema: String,
+    /// The conflict records resolved.
+    pub resolved: usize,
+    /// The side taken: `ours` or `theirs`.
+    pub take: String,
 }
 
 /// `ew export pdf --json` ([`EXPORT_PDF`]).

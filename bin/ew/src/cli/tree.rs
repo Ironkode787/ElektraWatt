@@ -1551,6 +1551,9 @@ struct MergeResolveCli {
     /// Only the conflicts on this member (`overrides.colour`).
     #[arg(long, value_name = "path")]
     field: Option<String>,
+    /// Print the result as JSON.
+    #[arg(long, overrides_with = "json")]
+    json: bool,
 }
 
 /// `ew merge resolve --take`.
@@ -2337,11 +2340,13 @@ impl Cli {
                 take,
                 kind,
                 field,
+                json,
             })) => Command::MergeResolve(MergeResolveArgs {
                 project: project(flag, project_dir),
                 theirs: take == TakeArg::Theirs,
                 kind,
                 field,
+                json,
             }),
             Top::MergeDriver(MergeDriverCli {
                 base,

@@ -173,6 +173,23 @@ fn cr3_merge_resolve_ours_keeps_bu() {
     assert_eq!(c.page(), page_with(&colour("BU")));
 }
 
+/// FT-1292 (decision log ID-1312): `--json` prints the result as the other commands do, `ew.merge-resolve-result/1`.
+#[test]
+fn merge_resolve_json_prints_its_result() {
+    let c = Copy::new();
+    let o = c.ew(&["merge", "resolve", "--take", "theirs", "--json"]);
+    assert_eq!(
+        result(&o),
+        (
+            Some(0),
+            "{\n  \"$schema\": \"ew.merge-resolve-result/1\",\n  \"resolved\": 1,\n  \"take\": \"theirs\"\n}\n"
+                .to_owned(),
+            String::new()
+        )
+    );
+    assert_eq!(c.page(), page_with(&colour("WH")));
+}
+
 /// A selection that matches no conflict is a usage error with its reason; nothing is written.
 #[test]
 fn merge_resolve_without_a_match_exits_2_with_the_reason() {

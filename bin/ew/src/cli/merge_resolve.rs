@@ -19,6 +19,8 @@ pub struct MergeResolveArgs {
     pub kind: Option<String>,
     /// Only the record-level conflicts whose members include this dotted path (`overrides.colour`).
     pub field: Option<String>,
+    /// Print the result as JSON (`ew.merge-resolve-result/1`).
+    pub json: bool,
 }
 
 /// Whether `conflict` is one `a` selects: its `kind` (a target's kind, or `file`) is `--kind`, and one of its members
@@ -90,6 +92,15 @@ pub(super) fn run_merge_resolve(a: &MergeResolveArgs) -> i32 {
         return 1;
     }
     let code = match session.save() {
+        Ok(_) if a.json => {
+            let result = ew_api::cli_results::MergeResolveResult {
+                schema: ew_api::cli_results::MERGE_RESOLVE.to_owned(),
+                resolved: count,
+                take: take.to_owned(),
+            };
+            print!("{}", ew_api::cli_results::to_text(&result));
+            0
+        }
         Ok(_) => {
             let noun = if count == 1 { "conflict" } else { "conflicts" };
             println!("{count} {noun} resolved, {take} taken; saved");
