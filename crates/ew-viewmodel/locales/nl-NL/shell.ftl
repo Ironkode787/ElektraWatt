@@ -1027,7 +1027,7 @@ refusal-revision-withdrawn = revisie { $p0 } ({ $p1 }) is al ingetrokken door he
 # The structure: structure.create_node, section.create, report_block.create and external_ref.create.
 refusal-structure-product-aspect = het productaspect is de apparatenboom, geen structuurknooppunt; kies een ander aspect
 refusal-structure-parent-aspect = de ouder hoort bij een ander aspect (EW-INV-011); kies een ouder van hetzelfde aspect
-refusal-structure-code-used = een zuster met code `{ $p0 }` bestaat al in dit aspect; kies een andere code
+refusal-structure-code-used = een knooppunt op hetzelfde niveau met code `{ $p0 }` bestaat al in dit aspect; kies een andere code
 refusal-section-range-order = `folio_range` begint na zijn einde; geef eerste <= laatste
 refusal-section-number-used = sectienummer { $p0 } bestaat al; kies een ander nummer
 refusal-section-range-overlap = foliobereik { $p0 }-{ $p1 } overlapt sectie { $p2 } ({ $p3 }-{ $p4 }); kies een vrij bereik
