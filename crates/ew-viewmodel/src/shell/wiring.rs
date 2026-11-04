@@ -129,13 +129,15 @@ impl ShellModel {
     // The Wire tool and the route editor
 
     /// The connection kind the Wire tool draws on the focused page (doc 06 §2.2): `Ok(None)` a wire on a multi-line
-    /// page, `Ok(Some("overview"))` on a single-line (the MVP kind), overview or assembly-overview page; refused on
-    /// a bus-topology or fluid page (their `Bus` and `Fluid` kinds are not drawn by this package) and on every page
-    /// type whose Wire tool creates nothing (fix round of WP-S2.04 part 2, item 1).
+    /// page, `Ok(Some("overview"))` on a single-line (the MVP kind), overview or assembly-overview page,
+    /// `Ok(Some("fluid"))` (a working line, `{"fluid": {}}`) on a fluid page (WP-S1.20 D18); refused on a bus-topology
+    /// page (its `Bus` kind is not drawn by this package) and on every page type whose Wire tool creates nothing (fix
+    /// round of WP-S2.04 part 2, item 1).
     pub fn wire_kind(&self) -> Result<Option<&'static str>, Key<'static>> {
         match self.page_rows().get(self.page_index()).map(|r| r.kind.as_str()) {
             Some("multi_line") => Ok(None),
             Some("single_line" | "overview" | "assembly_overview") => Ok(Some("overview")),
+            Some("fluid") => Ok(Some("fluid")),
             _ => Err(key!("reason-no-wire-kind")),
         }
     }

@@ -10,8 +10,9 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use ew_ids::Id;
 use ew_schema::{
-    Connection, ConnectionKind, Device, Discipline, Endpoint, FnDef, FnRole, Function, FunctionKind, Junction,
-    Kind, PageItem, PageItemKind, Representation, Revision, RevisionState, StructureNode, template_entry_of,
+    Connection, ConnectionKind, Device, Discipline, Endpoint, FnDef, FnRole, Function, FunctionKind,
+    Junction, Kind, PageItem, PageItemKind, Representation, Revision, RevisionState, StructureNode,
+    template_entry_of,
 };
 
 use crate::entity::{AnyKey, AnyRow, get_row, table_keys, typed};
@@ -1160,7 +1161,12 @@ pub enum FluidPortClass {
 /// `ew_schema::TemplateFn::function_cps`), except for a black box drawn from its device's part pattern (`parts`, the
 /// copies of its device's part uses in order), whose CPs are electrical. A missing FnDef copy is
 /// [`FluidPortClass::Other`] (EW-INV-001 judges the reference). One rule for EW-INV-024 and the commands' refusals.
-pub fn fluid_port_class(function: &Function, def: Option<&FnDef>, parts: &[&ew_schema::Part], idx: u16) -> FluidPortClass {
+pub fn fluid_port_class(
+    function: &Function,
+    def: Option<&FnDef>,
+    parts: &[&ew_schema::Part],
+    idx: u16,
+) -> FluidPortClass {
     let Some(def) = def else {
         return FluidPortClass::Other;
     };
@@ -1260,14 +1266,20 @@ fn fluid_line_ok(m: &Model, conn: &Connection) -> Result<(), ModelError> {
                 FluidPortClass::Fluid(_) => {
                     return Err(violation(
                         FLUID_LINES,
-                        format!("connection {} is no fluid line but ends at fluid port {f}:{idx}", conn.id),
+                        format!(
+                            "connection {} is no fluid line but ends at fluid port {f}:{idx}",
+                            conn.id
+                        ),
                         vec![key, key_of(Kind::Function, *f)],
                     ));
                 }
                 FluidPortClass::Other if fluid => {
                     return Err(violation(
                         FLUID_LINES,
-                        format!("fluid line {} ends at {f}:{idx}, which is not a fluid port", conn.id),
+                        format!(
+                            "fluid line {} ends at {f}:{idx}, which is not a fluid port",
+                            conn.id
+                        ),
                         vec![key, key_of(Kind::Function, *f)],
                     ));
                 }
@@ -1281,7 +1293,10 @@ fn fluid_line_ok(m: &Model, conn: &Connection) -> Result<(), ModelError> {
                     if !matches!(o.kind, ConnectionKind::Fluid(_) | ConnectionKind::Unknown(_)) {
                         return Err(violation(
                             FLUID_LINES,
-                            format!("fluid line {} ends at junction {j}, where connection {other} is no fluid line", conn.id),
+                            format!(
+                                "fluid line {} ends at junction {j}, where connection {other} is no fluid line",
+                                conn.id
+                            ),
                             vec![key, key_of(Kind::Junction, *j), key_of(Kind::Connection, *other)],
                         ));
                     }

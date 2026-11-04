@@ -36,8 +36,9 @@
 //! end is connected through on the direct route instead when nothing else is in its way (`through_route`, FT-705
 //! with FT-706). The connection kind is the page type's (doc 06 §2.2), given
 //! by the host ([`WireTool::with_kind`]): a wire on a multi-line page (`connection.draw`'s default, so no `kind` is
-//! sent), `overview` on single-line, overview and assembly-overview pages; on the other page types the host refuses
-//! `tool.wire` until their kinds are drawn (fix round of WP-S2.04 part 2, item 1).
+//! sent), `overview` on single-line, overview and assembly-overview pages, a working fluid line (`{"fluid": {}}`) on a
+//! fluid page (WP-S1.20 D18); on the other page types the host refuses `tool.wire` until their kinds are drawn (fix
+//! round of WP-S2.04 part 2, item 1).
 
 use ew_api::AnyCommand;
 use ew_api::geometry::Dir;
@@ -849,6 +850,16 @@ pub struct WireTool {
     kind: Option<&'static str>,
 }
 
+/// The JSON value of a connection kind name: `fluid` is a working fluid line (`{"fluid": {}}`), any other name its
+/// own string.
+fn kind_value(kind: &str) -> Value {
+    if kind == "fluid" {
+        json!({"fluid": {}})
+    } else {
+        Value::from(kind)
+    }
+}
+
 impl Default for WireTool {
     fn default() -> WireTool {
         WireTool::new()
@@ -868,7 +879,7 @@ impl WireTool {
         }
     }
 
-    /// The tool drawing connections of `kind` (`connection.draw`'s JSON value; `None` for a wire).
+    /// The tool drawing connections of `kind` (`connection.draw`'s kind name; `None` for a wire).
     pub fn with_kind(mut self, kind: Option<&'static str>) -> WireTool {
         self.kind = kind;
         self
@@ -1035,7 +1046,7 @@ impl WireTool {
                 "route": route.iter().map(|p| vec![p.0, p.1]).collect::<Vec<_>>(),
             });
             if let Some(kind) = self.kind {
-                params["kind"] = Value::from(kind);
+                params["kind"] = kind_value(kind);
             }
             params
         };
@@ -1231,7 +1242,7 @@ impl WireTool {
             },
         });
         if let Some(kind) = self.kind {
-            params["kind"] = Value::from(kind);
+            params["kind"] = kind_value(kind);
         }
         self.state = State::Armed { target: None };
         self.cache = None;

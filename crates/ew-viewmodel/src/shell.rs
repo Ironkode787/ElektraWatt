@@ -797,6 +797,7 @@ mod choice_word_tests {
             &super::macros::MACRO_KINDS,
             super::revision::ROLES,
             &super::part_dialog::PART_KINDS,
+            crate::strings::LINE_KINDS,
         ] {
             values.extend(set.iter().map(|v| (*v).to_owned()));
         }

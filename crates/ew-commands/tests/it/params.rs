@@ -147,6 +147,16 @@ fn examples() -> Vec<(&'static str, Value)> {
                 "part": {"part": {"copy": PART_MCB.to_string()}, "qty": "1"},
                 "letter": "Q", "fndef": FNDEF_MCB.to_string()}),
         ),
+        // WP-S1.20 D9, D10
+        (
+            "valve.set_occupancy",
+            json!({"module": DEV_102F2.to_string(), "position": 2,
+                "occupancy": {"valve": {"state": "spare", "part": PART_MCB.to_string()}}}),
+        ),
+        (
+            "fluid.port.close",
+            json!({"function": FN_102F2.to_string(), "idx": 1, "closure": {"kind": "plug"}}),
+        ),
         (
             "device.link",
             json!({"from": DEV_102F2.to_string(), "to": DEV_101F1.to_string(), "kind": "drives"}),

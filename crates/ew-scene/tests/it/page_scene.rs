@@ -702,7 +702,11 @@ fn fluid_pilot_and_drain_lines_are_dashed_and_working_lines_solid() {
         .collect();
     let dash_of = |n: u128| {
         let id = v.connections[n as usize].connection.id.as_uuid();
-        dashes.iter().find(|(e, _)| *e == id).map(|(_, d)| d.clone()).expect("drawn")
+        dashes
+            .iter()
+            .find(|(e, _)| *e == id)
+            .map(|(_, d)| d.clone())
+            .expect("drawn")
     };
     let dashed = ew_dl::Stroke::solid(ew_scene::page::QET_PEN_1PX)
         .dashed(ew_dl::DashPattern::Dash42)

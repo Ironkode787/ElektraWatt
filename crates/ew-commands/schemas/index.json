@@ -282,6 +282,17 @@
       "confirmation": "none",
       "cost": "interactive",
       "exposure": "edit",
+      "name": "fluid.port.close",
+      "params_version": 1,
+      "schema": "fluid.port.close.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "interactive",
+      "exposure": "edit",
       "name": "ip.arrange",
       "params_version": 1,
       "schema": "ip.arrange.schema.json",
@@ -1022,6 +1033,17 @@
       "name": "valve.add",
       "params_version": 1,
       "schema": "valve.add.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "interactive",
+      "exposure": "edit",
+      "name": "valve.set_occupancy",
+      "params_version": 1,
+      "schema": "valve.set_occupancy.schema.json",
       "stability": "preview",
       "undoable": true
     }

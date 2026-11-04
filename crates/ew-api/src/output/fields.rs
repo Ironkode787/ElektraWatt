@@ -832,7 +832,30 @@ fn walk_kind(kind: Kind, schema: &Value, exposure: &dyn Fn(&str) -> Option<Expos
             }
         }
     }
+    if name == "connection" {
+        // WP-S1.20 D18: a fluid line's line kind, `fields.set` path `line_kind` (`kind.fluid.line_kind`); the sheet
+        // shows it on fluid lines only.
+        out.push(spec(
+            name,
+            LINE_KIND,
+            line_kind_type(),
+            Category::Identity,
+            exposure,
+        ));
+    }
     out
+}
+
+/// The `fields.set` path of a fluid line's line kind (WP-S1.20 D18).
+pub(crate) const LINE_KIND: &str = "line_kind";
+
+/// The type of a fluid line's line kind (WP-S1.20 D18): the five line kinds in schema order.
+pub(crate) fn line_kind_type() -> FieldType {
+    FieldType::Enum {
+        options: ["working", "pilot", "exhaust", "drain", "flexible"]
+            .map(str::to_owned)
+            .to_vec(),
+    }
 }
 
 /// One catalogue entry.

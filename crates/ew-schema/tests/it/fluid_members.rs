@@ -8,9 +8,7 @@
 use crate::common;
 
 use common::fill;
-use ew_schema::{
-    ClosureKind, ConnectionKind, FluidPortRole, LibDocument, LineKind, Record, SlotFallback,
-};
+use ew_schema::{ClosureKind, ConnectionKind, FluidPortRole, LibDocument, LineKind, Record, SlotFallback};
 
 fn record(line: &str) -> Record {
     let r: Record = serde_json::from_str(line).unwrap_or_else(|e| panic!("parse failed: {e}\n{line}"));
@@ -42,7 +40,10 @@ fn line_kind(r: &Record) -> &LineKind {
 
 #[test]
 fn a_fluid_line_types_its_kind_and_omits_working() {
-    assert_eq!(line_kind(&record(&connection(r#"{"fluid":{}}"#))), &LineKind::Working);
+    assert_eq!(
+        line_kind(&record(&connection(r#"{"fluid":{}}"#))),
+        &LineKind::Working
+    );
     assert_eq!(
         line_kind(&record(&connection(r#"{"fluid":{"line_kind":"pilot"}}"#))),
         &LineKind::Pilot
@@ -63,11 +64,11 @@ fn a_fluid_line_types_its_kind_and_omits_working() {
 
 #[test]
 fn an_unknown_line_kind_and_the_tube_survive_verbatim() {
-    let r = record(&connection(r#"{"fluid":{"line_kind":"capillary","length":1000}}"#));
+    let r = record(&connection(
+        r#"{"fluid":{"line_kind":"capillary","length":1000}}"#,
+    ));
     assert_eq!(line_kind(&r), &LineKind::Unknown(serde_json::json!("capillary")));
-    let Record::Connection(c) = &r else {
-        unreachable!()
-    };
+    let Record::Connection(c) = &r else { unreachable!() };
     let ConnectionKind::Fluid(f) = &c.kind else {
         unreachable!()
     };
@@ -94,15 +95,31 @@ fn a_closure_types_its_kind_and_part_and_keeps_an_unknown_kind() {
     assert!(closures[0].part.is_some());
     assert_eq!(closures[1].kind, ClosureKind::Silencer);
     assert_eq!(closures[1].part, None);
-    assert_eq!(closures[2].kind, ClosureKind::Unknown(serde_json::json!("welded")));
-    assert_eq!(closures[2].extra.keys().map(String::as_str).collect::<Vec<_>>(), ["note"]);
+    assert_eq!(
+        closures[2].kind,
+        ClosureKind::Unknown(serde_json::json!("welded"))
+    );
+    assert_eq!(
+        closures[2].extra.keys().map(String::as_str).collect::<Vec<_>>(),
+        ["note"]
+    );
     let blanked = fill(
         r#"{"$k":"function","id":"@FN_S51","device":"@DEV_S51","def":"@FNDEF_MCB","cp_overrides":[{"idx":0,"closure":{"kind":"blanked"}}]}"#,
     );
     let Record::Function(f) = record(&blanked) else {
         panic!("a function");
     };
-    assert_eq!(f.cp_overrides.iter().next().unwrap().closure.as_ref().unwrap().kind, ClosureKind::Blanked);
+    assert_eq!(
+        f.cp_overrides
+            .iter()
+            .next()
+            .unwrap()
+            .closure
+            .as_ref()
+            .unwrap()
+            .kind,
+        ClosureKind::Blanked
+    );
 }
 
 #[test]
@@ -127,7 +144,9 @@ fn port_roles_are_typed_and_an_unknown_role_is_kept() {
     let cps: Vec<String> = words
         .iter()
         .enumerate()
-        .map(|(i, (w, _))| format!(r#"{{"idx":{i},"designation":"{i}","discipline":"pneumatic","port_role":"{w}"}}"#))
+        .map(|(i, (w, _))| {
+            format!(r#"{{"idx":{i},"designation":"{i}","discipline":"pneumatic","port_role":"{w}"}}"#)
+        })
         .collect();
     let line = fill(&format!(
         r#"{{"$k":"fndef","id":"@FNDEF_MCB","library_id":"@LIB","item_id":"@ITEM_FN","version":"1.0.0","sha256":"@HASH","category":["Valve","Directional","5/2"],"contact_kind":"valve","cps":[{}]}}"#,
@@ -151,8 +170,14 @@ fn a_fluid_section_types_its_solenoids_and_keeps_the_rest() {
         panic!("a part");
     };
     let fluid = p.item.sections.fluid.as_ref().expect("typed");
-    assert_eq!(fluid.solenoids.iter().map(|s| s.as_str()).collect::<Vec<_>>(), ["14", "12"]);
-    assert_eq!(fluid.extra.keys().map(String::as_str).collect::<Vec<_>>(), ["valve_model"]);
+    assert_eq!(
+        fluid.solenoids.iter().map(|s| s.as_str()).collect::<Vec<_>>(),
+        ["14", "12"]
+    );
+    assert_eq!(
+        fluid.extra.keys().map(String::as_str).collect::<Vec<_>>(),
+        ["valve_model"]
+    );
     // An empty solenoid list is omitted.
     let empty = line.replace(r#""solenoids":["14","12"],"#, "");
     let LibDocument::Part(p) = lib(&empty) else {

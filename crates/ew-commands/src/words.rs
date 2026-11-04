@@ -67,6 +67,14 @@ pub(crate) fn cp(tx: &TxBuilder<'_>, f: ew_ids::Id<Function>, idx: u16) -> Strin
     format!("{}:{designation}", function(tx, f))
 }
 
+/// A channel as "channel 3 of -201U3" (its number and its module's tag), or "a channel that is not in the project".
+pub(crate) fn channel(tx: &TxBuilder<'_>, id: ew_ids::Id<ew_schema::Channel>) -> String {
+    tx.get::<ew_schema::Channel>(id).map_or_else(
+        || "a channel that is not in the project".to_owned(),
+        |c| format!("channel {} of {}", c.number, device(tx, c.module)),
+    )
+}
+
 /// The printed folio of a page (its label, else its number), or `None` when the page does not exist.
 pub(crate) fn folio(tx: &TxBuilder<'_>, id: ew_ids::Id<Page>) -> Option<String> {
     tx.get::<Page>(id).map(|p| {

@@ -1328,7 +1328,11 @@ fn with_fluid_ports() -> Model {
         ins(fluid_fndef(nid(PNEU), ew_schema::Discipline::Pneumatic)),
         ins(fluid_fndef(nid(HYD), ew_schema::Discipline::Hydraulic)),
     ];
-    for (dev, f, def, counter) in [(0x24_101, FQ1, PNEU, 1), (0x24_102, FQ2, PNEU, 2), (0x24_103, FH, HYD, 3)] {
+    for (dev, f, def, counter) in [
+        (0x24_101, FQ1, PNEU, 1),
+        (0x24_102, FQ2, PNEU, 2),
+        (0x24_103, FH, HYD, 3),
+    ] {
         ops.push(ins(device(nid(dev), "Q", counter)));
         ops.push(ins(function(nid(f), nid(dev), nid(def), FnRole::Main)));
     }
@@ -1396,6 +1400,8 @@ fn inv024_junction_with_a_wire_and_a_fluid_line_rejected() {
     let line2 = fluid(0x24_302, cp(nid(FQ2), 0), at_junction(j));
     let fluid_only = super::fixture::junction(j, PAGE_102, vec![line.id, line2.id]);
     let m = edit(&m, &[ins(fluid_only), ins(line.clone()), ins(line2.clone())]).expect("fluid lines");
-    let seq = upd(&m, j, |x: &mut Junction| x.sequence = vec![line.id, line2.id, wire.id]);
+    let seq = upd(&m, j, |x: &mut Junction| {
+        x.sequence = vec![line.id, line2.id, wire.id]
+    });
     rejected_by(edit(&m, &[seq, ins(wire)]), crate::FLUID_LINES);
 }

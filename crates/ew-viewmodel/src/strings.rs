@@ -415,6 +415,10 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         .copied()
 }
 
+/// The line kinds of a fluid line (WP-S1.20 T25), in schema order: the Line kind row shows each as its
+/// `choice-<kind>` text.
+pub const LINE_KINDS: &[&str] = &["working", "pilot", "exhaust", "drain", "flexible"];
+
 /// The words the humanised labels replace (`csa` → "cross-section").
 const LABEL_WORDS: &[(&str, &str)] = &[
     ("csa", "cross-section"),

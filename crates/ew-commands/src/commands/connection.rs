@@ -250,7 +250,9 @@ fn refuse_fluid_mismatch(
     let ends: Vec<(Id<Function>, u16, FluidPortClass)> = [a, b]
         .into_iter()
         .filter_map(|e| match e {
-            EndpointParam::Cp { function, idx } => Some((*function, *idx, cp_fluid_class(tx, *function, *idx))),
+            EndpointParam::Cp { function, idx } => {
+                Some((*function, *idx, cp_fluid_class(tx, *function, *idx)))
+            }
             _ => None,
         })
         .collect();
@@ -263,7 +265,11 @@ fn refuse_fluid_mismatch(
                     crate::words::cp(tx, *f, *idx)
                 ));
             }
-            if let [(fa, ia, FluidPortClass::Fluid(ma)), (fb, ib, FluidPortClass::Fluid(mb))] = ends.as_slice() {
+            if let [
+                (fa, ia, FluidPortClass::Fluid(ma)),
+                (fb, ib, FluidPortClass::Fluid(mb)),
+            ] = ends.as_slice()
+            {
                 if ma != mb {
                     return tx.reject(format!(
                         "a fluid line does not join a hydraulic port to a pneumatic or vacuum port: {}, {}",

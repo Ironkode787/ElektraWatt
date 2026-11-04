@@ -35,6 +35,7 @@ mod exchange;
 // WP-S1.17 part 6 (D22)
 mod external;
 mod fields;
+mod fluid;
 mod frames;
 pub(crate) mod items;
 mod join;
@@ -73,6 +74,7 @@ pub use drawing::{Crossings, DRAWING_MEMBER, MarkerModeParam};
 pub use edit::BULK_ABOVE;
 pub use exchange::{ExchangePin, PinPairs, derive_pin_map};
 pub use fields::{ASPECTS, SET_MANY_MAX_EDITS, SETTABLE};
+pub use fluid::{ClosureKindParam, ClosureParam, OccupancyParam, ValveStateParam};
 pub use frames::{FRAMES_MEMBER, FrameForPageType};
 pub use items::{
     AlignParam, DashParam, FreeTextParam, GraphicParam, ImageParam, ItemKindParam, ShapeParam, StrokeParam,
@@ -163,6 +165,9 @@ commands! {
     assembly::AttachChildren,
     assembly::AddValve,
     assembly::LinkDevices,
+    // WP-S1.20 (D9, D10)
+    fluid::SetValveOccupancy,
+    fluid::ClosePort,
     plc::CreatePlcConfigProject,
     // WP-S1.21 part 4 (D11)
     plc::BindChannel,

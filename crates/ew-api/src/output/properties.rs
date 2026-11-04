@@ -1665,10 +1665,26 @@ impl Session {
         generated: Option<&str>,
     ) -> SheetSection {
         let name = kind.name();
-        let jsons: Vec<Value> = targets
+        let mut jsons: Vec<Value> = targets
             .iter()
             .filter_map(|id| lookup(q, *id).map(|(_, v)| v))
             .collect();
+        // WP-S1.20 D18: a fluid line's line kind is its row `line_kind` (`kind.fluid.line_kind`), shown when every
+        // target is a fluid line.
+        let fluid_lines = kind == Kind::Connection
+            && !jsons.is_empty()
+            && jsons
+                .iter()
+                .all(|j| j.get("kind").is_some_and(|k| k.get("fluid").is_some()));
+        if fluid_lines {
+            for j in &mut jsons {
+                let word = j["kind"]["fluid"]
+                    .get("line_kind")
+                    .cloned()
+                    .unwrap_or_else(|| Value::String("working".into()));
+                j[super::fields::LINE_KIND] = word;
+            }
+        }
         let catalogue = field_catalogue(name).unwrap_or_else(|| Vec::new().into());
         let closed = if kind == Kind::Revision {
             jsons
@@ -1720,6 +1736,12 @@ impl Session {
                 continue;
             }
             listed.push(spec.path.as_str());
+            // WP-S1.20 D18: the line kind is a row of fluid lines only, and on them it stands for the kind's JSON.
+            if kind == Kind::Connection
+                && ((spec.path == super::fields::LINE_KIND && !fluid_lines) || (spec.path == "kind" && fluid_lines))
+            {
+                continue;
+            }
             scx.emit(spec, &spec.path, 0, &mut built);
         }
         scx.emit_unlisted("", &listed, Category::Extra, 0, &mut built);

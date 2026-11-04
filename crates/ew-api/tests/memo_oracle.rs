@@ -165,7 +165,11 @@ fn cps_on(q: &Q, page: Id<Page>) -> Vec<CpEntry> {
         let Some(rep) = q.reps().get(rep) else { continue };
         for f in &rep.functions {
             let wireable = |c: &&ew_derive::Cp| {
-                c.physical && !matches!(c.discipline, Discipline::Pneumatic | Discipline::Vacuum | Discipline::Hydraulic)
+                c.physical
+                    && !matches!(
+                        c.discipline,
+                        Discipline::Pneumatic | Discipline::Vacuum | Discipline::Hydraulic
+                    )
             };
             for cp in q.get::<FunctionCps>(*f).iter().filter(wireable) {
                 let free = q.idx().connections_at_cp(*f, cp.idx).next().is_none();

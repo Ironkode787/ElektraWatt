@@ -295,7 +295,8 @@ fn backspace_after_two_collinear_bends_keeps_the_first() {
 
 /// Fix round item 1: the Wire tool draws the page type's connection kind (doc 06 §2.2): refused on a bus-topology
 /// page (folio 3), `overview` on an assembly overview (folio 201, whose overview symbols draw no connection points in
-/// Golden A, so the kind is read from the host), a wire (no `kind` sent) on a multi-line page.
+/// Golden A, so the kind is read from the host), a fluid line on a fluid page (folio 203, WP-S1.20 D18), a wire (no
+/// `kind` sent) on a multi-line page.
 #[test]
 fn the_wire_tool_draws_the_page_types_kind_or_is_refused() {
     let tmp = Tmp::new("kinds");
@@ -308,11 +309,10 @@ fn the_wire_tool_draws_the_page_types_kind_or_is_refused() {
     assert_eq!(s.tool().name(), "wire");
     done(&mut s, "ui.dismiss", json!({}));
     done(&mut s, "page.goto", json!({"folio": "203"}));
-    assert_eq!(
-        refused(&mut s, "tool.wire", json!({})),
-        "reason-no-wire-kind",
-        "a fluid page"
-    );
+    assert_eq!(s.wire_kind(), Ok(Some("fluid")), "a fluid page");
+    done(&mut s, "tool.wire", json!({}));
+    assert_eq!(s.tool().name(), "wire");
+    done(&mut s, "ui.dismiss", json!({}));
     done(&mut s, "page.goto", json!({"folio": "102"}));
     assert_eq!(s.wire_kind(), Ok(None));
     done(&mut s, "view.zoom_actual", json!({}));

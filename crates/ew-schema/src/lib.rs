@@ -117,15 +117,15 @@ pub use bus::{
 pub use conflict::{Conflict, ConflictBody, ConflictSide, DELETED_SIDE, FILE_CONFLICT_KIND};
 pub use connect::{
     AcDc, AssignedNumber, BevelSpec, Bond, BondKind, BridgeKind, BridgeSpec, BusLine, CircuitClass,
-    Conductor, Connection, ConnectionKind, FluidLine, Junction, JunctionStyle, JunctionWiring, LineKind, NumberSpec, PotentialDef,
-    PotentialEarthing, PotentialEnv, PotentialType, WireFlags, WireOverrides, WireProps,
+    Conductor, Connection, ConnectionKind, FluidLine, Junction, JunctionStyle, JunctionWiring, LineKind,
+    NumberSpec, PotentialDef, PotentialEarthing, PotentialEnv, PotentialType, WireFlags, WireOverrides,
+    WireProps,
 };
 pub use device::{
     AccessoryKind, Assembly, AssemblyConfig, BomBasis, Cable, ClosureKind, CoreIdMode, CpOverride, Device,
-    DeviceAspects,
-    DeviceKind, DeviceState, FnRole, FrozenTag, Function, FunctionKind, IpDirection, IpSpec, LabelMode,
-    LengthSource, LevelRole, LevelSpec, PortClosure, Strip, StripAccessory, TagPrint, TagScheme, TagSign, TagSpec,
-    Terminal, TerminalGroup,
+    DeviceAspects, DeviceKind, DeviceState, FnRole, FrozenTag, Function, FunctionKind, IpDirection, IpSpec,
+    LabelMode, LengthSource, LevelRole, LevelSpec, PortClosure, Strip, StripAccessory, TagPrint, TagScheme,
+    TagSign, TagSpec, Terminal, TerminalGroup,
 };
 pub use error::{MalformedVariant, SchemaError};
 /// The namespace and ID of a file-level conflict record (WP-S1.17 D14), for `ew-format`'s merge core.
@@ -144,14 +144,14 @@ pub use library::{
     Align, AlternativeKind, AlternativeRef, AnchorPolicy, ArcPrim, Arrangement, CableCore, CategoryKey,
     CirclePrim, ClampKey, ClampType, Clearance, Colour, Confidence, Configured, ConfiguredComponent,
     ContactData, ContactKind, CpData, CpDef, Dash, DataArea, Deprecation, Dir4, Discipline, DuctSection,
-    EllipsePrim, EnclosureSection, ExtraVariant, ExtraVariantKind, FluidPortRole, FluidSection, FnDef, FnFlags, FormCell, FormDef,
-    FormKind, FrameColumns, FrameGrid, FrameRows, FreeProp, ImagePrim, InternalKind, InternalLinkDef,
-    ItemMeta, ItemStatus, LibCopy, LibItem, Library, LinePrim, MacroDef, MacroInstance, MacroKind, MacroLink,
-    MacroVariant, Manufacturer, MechData, MountKind, NamedPoint, OrderUnit, Overflow, Part, PartCopy,
-    PartKind, PartSections, PassThroughSpec, Pen, PlaceholderGroup, PlateSection, PolygonPrim, PolylinePrim,
-    Primitive, RailSection, RectPrim, RepType, Rgb, RowTemplate, RowTemplates, SheetSpec, SheetTransform,
-    ShrinkSpec, Side, SlotFallback, SlotKind, Stroke, SymbolCp, SymbolDef, TableStyle, TemplateFn, TextPrim, TextSlot,
-    ValueSet, VarBinding, VarDef, VarType, WrapPolicy,
+    EllipsePrim, EnclosureSection, ExtraVariant, ExtraVariantKind, FluidPortRole, FluidSection, FnDef,
+    FnFlags, FormCell, FormDef, FormKind, FrameColumns, FrameGrid, FrameRows, FreeProp, ImagePrim,
+    InternalKind, InternalLinkDef, ItemMeta, ItemStatus, LibCopy, LibItem, Library, LinePrim, MacroDef,
+    MacroInstance, MacroKind, MacroLink, MacroVariant, Manufacturer, MechData, MountKind, NamedPoint,
+    OrderUnit, Overflow, Part, PartCopy, PartKind, PartSections, PassThroughSpec, Pen, PlaceholderGroup,
+    PlateSection, PolygonPrim, PolylinePrim, Primitive, RailSection, RectPrim, RepType, Rgb, RowTemplate,
+    RowTemplates, SheetSpec, SheetTransform, ShrinkSpec, Side, SlotFallback, SlotKind, Stroke, SymbolCp,
+    SymbolDef, TableStyle, TemplateFn, TextPrim, TextSlot, ValueSet, VarBinding, VarDef, VarType, WrapPolicy,
 };
 pub use page::{
     BoxCp, BoxSpec, ContinuationPolicy, EmbedSpec, EmptyPolicy, Folio, GroupBreak, GroupSpec,

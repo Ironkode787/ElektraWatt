@@ -1145,3 +1145,38 @@ fn ft1076_an_external_points_row_names_its_reference() {
     .expect("the connection is cleared");
     assert_eq!(text(&s), "JE-N1000-03");
 }
+
+/// WP-S1.20 D18 (FL-15): a fluid line's sheet has the row Line kind with its word and no Kind row of raw JSON; a wire
+/// has no Line kind row.
+#[test]
+fn a_fluid_line_shows_its_line_kind_row_and_a_wire_none() {
+    let mut s = golden();
+    let valves: Vec<ew_derive::ew_ids::Uuid> = {
+        let q = s.query();
+        let fndefs = q.fndefs();
+        q.functions()
+            .iter()
+            .filter(|(_, f)| {
+                fndefs
+                    .get(f.def)
+                    .is_some_and(|d| d.item.contact_kind == ew_schema::ContactKind::Valve)
+            })
+            .map(|(id, _)| id.as_uuid())
+            .take(2)
+            .collect()
+    };
+    let line = placed(
+        &mut s,
+        "connection.draw",
+        json!({"a": {"cp": {"function": valves[0].to_string(), "idx": 1}},
+            "b": {"cp": {"function": valves[1].to_string(), "idx": 1}}, "kind": {"fluid": {"line_kind": "drain"}}}),
+    );
+    let sheet = s.property_sheet(&[line]);
+    assert_eq!(one(row(&sheet, "connection/line_kind")), "drain");
+    let keys: Vec<&str> = sheet.sections.iter().flat_map(|x| &x.rows).map(|r| r.key.as_str()).collect();
+    assert!(!keys.contains(&"connection/kind"), "{keys:?}");
+    let w29 = wire(&s, "W29");
+    let sheet = s.property_sheet(&[w29]);
+    let keys: Vec<&str> = sheet.sections.iter().flat_map(|x| &x.rows).map(|r| r.key.as_str()).collect();
+    assert!(!keys.contains(&"connection/line_kind"), "{keys:?}");
+}

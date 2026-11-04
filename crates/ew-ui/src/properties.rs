@@ -1594,8 +1594,9 @@ pub(crate) fn label_column(t: &crate::theme::Tokens, row: f32, need: f32, values
 fn row_value(section: &SheetSection, row: &PropRow) -> String {
     if is_header(section, row) {
         String::new()
-    } else if is_page_kind(section, row) {
-        // M39 (doc 16a: words, not IDs): a page's Kind in the New page dialog's words ("Multi-line").
+    } else if is_page_kind(section, row) || is_line_kind(section, row) {
+        // M39 (doc 16a: words, not IDs): a page's Kind in the New page dialog's words ("Multi-line"); a fluid line's
+        // Line kind in its words ("Pilot", WP-S1.20 T25).
         ew_viewmodel::strings::choice_text(&value_text(row))
     } else {
         value_text(row)
@@ -1641,6 +1642,11 @@ fn value_need(ui: &Ui, t: &crate::theme::Tokens, section: &SheetSection, row: &P
 /// Whether `row` is a page's Kind (its page type, a raw word like `multi_line` that the grid shows in words).
 fn is_page_kind(section: &ew_viewmodel::ew_api::output::SheetSection, row: &PropRow) -> bool {
     section.kind == "page" && (row.key == "page/kind" || row.key == "page/type")
+}
+
+/// Whether `row` is a fluid line's Line kind (WP-S1.20 D18).
+fn is_line_kind(section: &ew_viewmodel::ew_api::output::SheetSection, row: &PropRow) -> bool {
+    section.kind == "connection" && row.key == "connection/line_kind"
 }
 
 /// A severity's glyph chip (FT-664): the severity's subtle fill, its icon, and the count in `type.caption` when more

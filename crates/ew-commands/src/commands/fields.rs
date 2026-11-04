@@ -159,6 +159,8 @@ pub const SETTABLE: &[(KindName, &[&str])] = &[
         KindName::Connection,
         &[
             "kind",
+            // WP-S1.20 D18: the line kind of a fluid line (`kind.fluid.line_kind`), refused on another connection.
+            "line_kind",
             "number",
             "overrides.csa",
             "overrides.colour",
@@ -405,6 +407,7 @@ impl SetFields {
                     }
                 }
                 KindName::Representation => set_one::<Representation>(tx, *t, path, value)?,
+                KindName::Connection if path == "line_kind" => set_line_kind(tx, t.cast(), value)?,
                 KindName::Connection => {
                     set_one::<Connection>(tx, *t, path, value)?;
                     if path == "overrides.colour" {
@@ -1033,6 +1036,30 @@ fn refuse_bad_stars(tx: &TxBuilder<'_>, edits: &[SetFields]) -> Result<(), CmdEr
 }
 
 /// Sets `value` at the dotted `path` of one record: serialise, edit the JSON, read it back, put.
+/// `fields.set` path `line_kind` of a connection (WP-S1.20 D18): the line kind of a fluid line, one of `working`,
+/// `pilot`, `exhaust`, `drain` and `flexible`. Refused on a connection that is no fluid line (§5 T11).
+fn set_line_kind(tx: &mut TxBuilder<'_>, id: ew_ids::Id<Connection>, value: &Value) -> Result<(), CmdError> {
+    let c = tx.require::<Connection>(id)?;
+    if !matches!(c.kind, ew_schema::ConnectionKind::Fluid(_)) {
+        return tx.reject(format!("{} is not a fluid line", crate::words::wire(tx, id)));
+    }
+    let kind = match serde_json::from_value::<ew_schema::LineKind>(value.clone()) {
+        Ok(ew_schema::LineKind::Unknown(_)) | Err(_) => {
+            return Err(CmdError::invalid_params(
+                SetFields::NAME,
+                "/value",
+                "a line kind is one of working, pilot, exhaust, drain and flexible",
+            ));
+        }
+        Ok(kind) => kind,
+    };
+    tx.update::<Connection>(id, |c| {
+        if let ew_schema::ConnectionKind::Fluid(f) = &mut c.kind {
+            f.line_kind = kind;
+        }
+    })
+}
+
 fn set_one<T: Entity + Serialize + DeserializeOwned>(
     tx: &mut TxBuilder<'_>,
     target: AnyId,

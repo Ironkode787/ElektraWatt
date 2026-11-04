@@ -332,6 +332,7 @@ connection route[] json other read-only:connection.route
 connection source_ref group? other read-only:no-command
 connection source_ref.key text other read-only:no-command
 connection source_ref.lineage uuid other read-only:no-command
+connection line_kind enum(working|pilot|exhaust|drain|flexible) identity fields.set:line_kind
 junction $v int[0..65535] identity read-only:identity
 junction at json placement read-only:junction.edit
 junction id uuid identity read-only:identity

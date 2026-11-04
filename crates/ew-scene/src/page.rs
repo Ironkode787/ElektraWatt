@@ -140,8 +140,8 @@ use ew_dl::{
 use ew_ids::{Id, Uuid};
 use ew_mltext::LangTag;
 use ew_schema::{
-    Align, Connection, ConnectionKind, Dir4, Endpoint, FormDef, Function, Junction, JunctionStyle, LineKind, Page,
-    Representation, SlotKind, SymbolDef,
+    Align, Connection, ConnectionKind, Dir4, Endpoint, FormDef, Function, Junction, JunctionStyle, LineKind,
+    Page, Representation, SlotKind, SymbolDef,
 };
 use ew_text::{DEFAULT_STYLE_KEY, FontSet, LineSpan, Shaped, TextStyle, TextStyleTable, VerticalMetrics};
 use ew_units::{Angle2, Grid, Nm, Orient2, Pt2, Rect};
