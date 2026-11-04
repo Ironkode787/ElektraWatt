@@ -575,6 +575,60 @@ fn parts_table_seeds(dir: &Path) {
     write(dir, "supplier-xlsx", &supplier_xlsx());
 }
 
+/// The `.ewlib` reader's seeds (WP-S6.04, ID-1354), from the sample parts library of `content/libraries/`: its
+/// manifest with the manufacturers and one parts shard, three shards under a computed manifest, the same with another
+/// session's lock, and a lock record alone.
+fn ewlib_read_seeds(dir: &Path) {
+    use ew_fuzz::ewlib_read::{
+        LOCK_SELECTOR, MANIFEST_SELECTOR, MODE_COMPUTED_MANIFEST, encode, selector_of,
+    };
+    let lib = golden::repo().join("content/libraries/ew-sample-parts.ewlib");
+    let read = |rel: &str| std::fs::read(lib.join(rel)).unwrap_or_else(|e| panic!("{rel}: {e}"));
+    let manifest = read("library.json");
+    let section = |rel: &str| -> (u8, Vec<u8>) {
+        let (selector, shard, generation) =
+            selector_of(rel).unwrap_or_else(|| panic!("{rel} is a records file"));
+        let mut bytes = vec![shard, generation];
+        bytes.extend_from_slice(&read(rel));
+        (selector, bytes)
+    };
+    let shards = ["manufacturers.2.jsonl", "parts/06.2.jsonl", "parts/07.2.jsonl"];
+    let records: Vec<(u8, Vec<u8>)> = shards.iter().map(|p| section(p)).collect();
+    let lock = b"{\"lock\":1,\"session\":\"0190f5e0-6c1d-7a42-8b00-00000000c0de\",\"user\":\"designer\",\"host\":\"cad-01\",\
+\"pid\":4242,\"pid_started\":\"2026-03-02T08:00:00Z\",\"app_version\":\"ElektraWatt 0.1.0\",\
+\"started_at\":\"2026-03-02T08:00:05Z\"}\n";
+    let refs = |extra: &[(u8, &[u8])]| -> Vec<(u8, Vec<u8>)> {
+        records
+            .iter()
+            .cloned()
+            .chain(extra.iter().map(|(s, b)| (*s, b.to_vec())))
+            .collect()
+    };
+    let enc = |mode: u8, sections: &[(u8, Vec<u8>)]| {
+        let sections: Vec<(u8, &[u8])> = sections.iter().map(|(s, b)| (*s, b.as_slice())).collect();
+        encode(mode, &sections)
+    };
+    write(
+        dir,
+        "sample-manifest",
+        &enc(
+            0,
+            &[
+                (MANIFEST_SELECTOR, manifest.clone()),
+                records[0].clone(),
+                records[1].clone(),
+            ],
+        ),
+    );
+    write(dir, "sample-computed", &enc(MODE_COMPUTED_MANIFEST, &refs(&[])));
+    write(
+        dir,
+        "sample-computed-locked",
+        &enc(MODE_COMPUTED_MANIFEST, &refs(&[(LOCK_SELECTOR, lock)])),
+    );
+    write(dir, "lock-only", &enc(0, &[(LOCK_SELECTOR, lock.to_vec())]));
+}
+
 fn main() {
     let out: PathBuf = std::env::args_os()
         .nth(1)
@@ -586,5 +640,6 @@ fn main() {
     qet_element_seeds(&out.join("qet_element"));
     golden_tables_seeds(&out.join("golden_tables"));
     parts_table_seeds(&out.join("parts_table"));
+    ewlib_read_seeds(&out.join("ewlib_read"));
     println!("seed corpora written to {}", out.display());
 }

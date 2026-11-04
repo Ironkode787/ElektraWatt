@@ -7,7 +7,7 @@
 //! project gains or loses a file. `fuzz/src/bin/seed_corpus.rs` makes the seeds from the project, deterministically;
 //! this runs it into a temporary folder under `target/` (stable toolchain, dev profile, from the repository root,
 //! as `fuzz-build` builds `fuzz/`) and makes the generated folders (with the four importer targets' of WP-S3.09
-//! D15) equal to what it wrote. In check mode it
+//! D15 and the `.ewlib` reader's of WP-S6.04) equal to what it wrote. In check mode it
 //! changes nothing in the corpus and names each seed that differs, is missing or is no longer made; it still builds
 //! `seed_corpus` into `fuzz/target/`, the fuzz workspace's own target folder. The hand-made `png_pdf`, `ewz_read`
 //! and `merge_file` seeds are not touched.
@@ -19,7 +19,7 @@ use std::process::Command;
 use anyhow::{Context, Result};
 
 /// The corpus folders `seed_corpus` writes, below [`CORPUS`].
-const TARGETS: [&str; 7] = [
+const TARGETS: [&str; 8] = [
     "jsonl_loader",
     "migration_chain",
     "command_sequence",
@@ -27,6 +27,7 @@ const TARGETS: [&str; 7] = [
     "qet_element",
     "golden_tables",
     "parts_table",
+    "ewlib_read",
 ];
 /// The corpus folder, relative to the workspace root.
 const CORPUS: &str = "fuzz/corpus";

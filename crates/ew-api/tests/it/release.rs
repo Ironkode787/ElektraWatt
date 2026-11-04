@@ -604,7 +604,11 @@ fn the_release_report_lists_the_waivers_in_force() {
         .collect::<BTreeSet<_>>()
         .into_iter()
         .collect();
-    assert!(!open.is_empty(), "the open loop gives a finding: {:#?}", gate.report.findings);
+    assert!(
+        !open.is_empty(),
+        "the open loop gives a finding: {:#?}",
+        gate.report.findings
+    );
     for (rule, fingerprint) in &open {
         run(
             &mut s,

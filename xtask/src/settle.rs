@@ -458,6 +458,8 @@ pub(crate) const STEPS: &[Step] = &[
             "golden/J-E-2416/tables/**",
             "crates/ew-import-qet/tests/fixtures/**",
             "crates/ew-api/tests/qet_synth/**",
+            // WP-S6.04 (ID-1354): the .ewlib reader's seeds' source.
+            "content/libraries/ew-sample-parts.ewlib/**",
         ],
         deps_of: &[],
         merge_reaches: &[],
@@ -469,6 +471,7 @@ pub(crate) const STEPS: &[Step] = &[
             "fuzz/corpus/qet_element/**",
             "fuzz/corpus/golden_tables/**",
             "fuzz/corpus/parts_table/**",
+            "fuzz/corpus/ewlib_read/**",
         ],
         partial: &[],
         reads: &[],

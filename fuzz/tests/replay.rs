@@ -358,6 +358,23 @@ fn the_importer_seeds_pass_and_import() {
     }
 }
 
+/// WP-S6.04 (ID-1354): the `.ewlib` reader's seeds pass; under the computed manifest the sample shards are listed and
+/// hand their documents out, and another session's lock is never taken.
+#[test]
+fn the_ewlib_read_seeds_pass_and_read_documents() {
+    use ew_fuzz::ewlib_read::check;
+    let seeds = inputs("corpus/ewlib_read");
+    assert!(seeds.len() >= 4, "the .ewlib reader's seeds are missing");
+    for (name, bytes) in &seeds {
+        eprintln!("ewlib_read/{name}: {:?}", check(bytes));
+    }
+    for name in ["sample-computed", "sample-computed-locked"] {
+        let o = check(&inputs_named(&seeds, name));
+        assert!(o.manifest && o.listed && o.documents >= 3, "{name}: {o:?}");
+    }
+    assert!(check(&inputs_named(&seeds, "sample-manifest")).manifest);
+}
+
 /// The reported findings: each input of `regressions/<target>/` is replayed in this ordinary test process, where a
 /// panic is caught and the generator's own failure text (the seed, the step, the oracle and the command log of
 /// `command_sequence`) is printed, which libFuzzer's aborting panic hook never lets the fuzz target do. Nothing is
@@ -415,6 +432,9 @@ fn the_regressions_are_replayed_and_reported() {
         }),
         ("regressions/parts_table", |b| {
             let _ = ew_fuzz::importers::parts_table(b);
+        }),
+        ("regressions/ewlib_read", |b| {
+            let _ = ew_fuzz::ewlib_read::check(b);
         }),
     ];
     for &(dir, check) in targets {

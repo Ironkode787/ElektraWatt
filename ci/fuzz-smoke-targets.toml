@@ -23,7 +23,8 @@
 # source); `svg_asset` feeds the asset sniff of `ew-schema` and the SVG path of `ew-scene`; `image_decode` feeds
 # `ew-render-cpu`'s decoder through `ew-export`.
 # `qet_project`, `qet_element`, `golden_tables` and `parts_table` feed the importers through the import front door of
-# `ew-api` (src/importers.rs, WP-S3.09 D15), so they reach the import and command stack.
+# `ew-api` (src/importers.rs, WP-S3.09 D15), so they reach the import and command stack. `ewlib_read` writes a `.ewlib`
+# directory and opens it with `ew-library`'s registry through `ew-api` (src/ewlib_read.rs, WP-S6.04, ID-1354).
 
 [targets.jsonl_loader]
 max_len = 65536
@@ -499,6 +500,53 @@ closure = [
 [targets.parts_table]
 max_len = 65536
 roots = ["ew-api", "ew-ids", "ew-import-qet", "ew-import-tables", "ew-schema"]
+closure = [
+    "ew-api",
+    "ew-caex",
+    "ew-checks",
+    "ew-commands",
+    "ew-derive",
+    "ew-devdesc",
+    "ew-dl",
+    "ew-ewpp",
+    "ew-export",
+    "ew-format",
+    "ew-hack",
+    "ew-ids",
+    "ew-import-catalog",
+    "ew-import-dxf",
+    "ew-import-eplan",
+    "ew-import-qet",
+    "ew-import-tables",
+    "ew-interop-api",
+    "ew-jobs",
+    "ew-library",
+    "ew-memo",
+    "ew-mfg",
+    "ew-mltext",
+    "ew-model",
+    "ew-panel",
+    "ew-plc",
+    "ew-plcaddr",
+    "ew-plugin-host",
+    "ew-rds",
+    "ew-render-cpu",
+    "ew-reports",
+    "ew-rhai",
+    "ew-scene",
+    "ew-schema",
+    "ew-script",
+    "ew-sqlview",
+    "ew-step-proto",
+    "ew-store",
+    "ew-text",
+    "ew-units",
+    "ew-zip",
+]
+
+[targets.ewlib_read]
+max_len = 65536
+roots = ["ew-api", "ew-format", "ew-ids", "ew-schema"]
 closure = [
     "ew-api",
     "ew-caex",

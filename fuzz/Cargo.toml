@@ -15,7 +15,7 @@ name = "ew-fuzz"
 version = "0.0.0"
 edition = "2024"
 license = "GPL-3.0-or-later"
-description = "cargo-fuzz targets: the JSONL loader, the open path with old-shape records, the command sequence, PNG to PDF, the .ewz reader, the merge, the SQL sandbox, SVG and raster assets, textconv, the table round trip, command logs and the importers."
+description = "cargo-fuzz targets: the JSONL loader, the open path with old-shape records, the command sequence, PNG to PDF, the .ewz reader, the merge, the SQL sandbox, SVG and raster assets, textconv, the table round trip, command logs, the importers and the .ewlib reader."
 repository = "https://github.com/Ironkode787/ElektraWatt"
 publish = false
 
@@ -172,6 +172,13 @@ bench = false
 [[bin]]
 name = "parts_table"
 path = "fuzz_targets/parts_table.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "ewlib_read"
+path = "fuzz_targets/ewlib_read.rs"
 test = false
 doc = false
 bench = false

@@ -717,7 +717,10 @@ fn sql_a_recursive_cte_bomb_stops_at_its_deadline_and_changes_nothing() {
         "1".as_ref(),
     ]);
     assert_eq!(o.status.code(), Some(2), "{}", stderr(&o));
-    assert_eq!(stderr(&o), "error: the statement passed its deadline of 1000 ms\n");
+    assert_eq!(
+        stderr(&o),
+        "error: the statement passed its deadline of 1000 ms\n"
+    );
     assert_eq!(stdout(&o), "");
     assert!(tree(&project) == before, "the copy's files changed");
 }
