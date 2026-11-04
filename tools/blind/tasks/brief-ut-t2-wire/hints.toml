@@ -1,0 +1,10 @@
+# The hints (WP-S2.12 D8), from where to look to what to do, in the user's words; `hint` gives them one at a time.
+
+[[hint]]
+text = "All four wires are on folio 102: the two + outputs at the bottom edge of -102G1, input 1 at the top of -102F1, output 2 at its bottom, and the two 24VDC inputs at the top edge of -102F2."
+
+[[hint]]
+text = "Draw them with the wire tool: a click on one connection point starts a wire and a click on the next one ends it; two wires may end on the same connection point."
+
+[[hint]]
+text = "Choose Wire in the Draw menu, then click in turn: the first + of -102G1 and input 1 of -102F1; the second + and input 1 again; output 2 of -102F1 and the first 24VDC of -102F2; output 2 and the second 24VDC."

@@ -1,0 +1,10 @@
+{"$schema":"ew.uiscript/1","label":"brief-ut-t1-place reference solution"}
+{"action":"nav.goto","params":{"text":"102-C7"}}
+{"action":"tool.place","params":{}}
+{"action":"place.pick","params":{"symbol":"ew.iec.mcb-1p@qet10"}}
+{"action":"canvas.activate","params":{"alt":true}}
+{"action":"ui.dismiss","params":{}}
+{"action":"part.choose","params":{}}
+{"action":"part.search","params":{"text":"A9F78116"}}
+{"action":"part.pick","params":{"index":1}}
+{"action":"file.save","params":{}}

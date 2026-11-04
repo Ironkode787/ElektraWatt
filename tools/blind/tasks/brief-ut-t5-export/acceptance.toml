@@ -1,0 +1,24 @@
+# The acceptance list (WP-S2.12 D7): doc 16 section 19.4's success criterion of T5 ("PDF written; the participant
+# follows a link to 103-A1") as items. A followed cross-reference in the program stands in for the PDF's link, which no
+# tester can click; a click on a cross-reference counts as `nav.follow` when it shows another page.
+
+[[item]]
+id = "A1"
+kind = "hard"
+what = "The tester exported the drawing set as a PDF."
+how = "pdf, outcomes"
+
+[[item]]
+id = "A2"
+kind = "hard"
+what = "A cross-reference was followed to show where a potential continues."
+how = "outcomes"
+actions = ["nav.follow"]
+
+[[item]]
+id = "A3"
+kind = "hard"
+what = "The drawing is unchanged: 24VDC-1 still runs on the folios 102, 103 and 106."
+how = "connections"
+query = "SELECT name FROM api_v1_potential WHERE name = '24VDC-1' AND pages = '[\"102\",\"103\",\"106\"]'"
+expect = "== 1"

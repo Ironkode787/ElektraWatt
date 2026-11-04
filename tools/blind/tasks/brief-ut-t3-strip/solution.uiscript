@@ -1,0 +1,6 @@
+{"$schema":"ew.uiscript/1","label":"brief-ut-t3-strip reference solution"}
+{"action":"strip.edit","params":{"strip":"-X1031"}}
+{"action":"navigator.row","params":{"kind":"strips","step":4}}
+{"action":"strip.insert","params":{"designation":"21"}}
+{"action":"table.set","params":{"kind":"strips","column":"label","value":"Reserve","rows":["-X1031:5","-X1031:6","-X1031:7","-X1031:8","-X1031:9","-X1031:10","-X1031:15","-X1031:16","-X1031:17","-X1031:18","-X1031:19","-X1031:20"]}}
+{"action":"file.save","params":{}}

@@ -1,0 +1,28 @@
+# The acceptance list (WP-S2.12 D7): doc 16 section 19.4's success criterion of T2 (the W20, W21, W24, W25 topology
+# through the new device, no unconnected-CP finding on it) as items. `stop` decides each item mechanically on the saved
+# project; `check-brief` decides them on the reference solution. The wire view names a connection point by its
+# designation (`+`, `24VDC`), so A1 and A2 count the wires and A3 proves that no + output and no 24VDC input is left.
+
+[[item]]
+id = "A1"
+kind = "hard"
+what = "Two wires join the + outputs of -102G1 to input 1 of the breaker -102F1."
+how = "connections"
+query = "SELECT number FROM api_v1_wire WHERE (from_tag = '-102G1' AND from_cp = '+' AND to_tag = '-102F1' AND to_cp = '1') OR (to_tag = '-102G1' AND to_cp = '+' AND from_tag = '-102F1' AND from_cp = '1')"
+expect = "== 2"
+
+[[item]]
+id = "A2"
+kind = "hard"
+what = "Two wires join output 2 of -102F1 to the 24VDC inputs of -102F2."
+how = "connections"
+query = "SELECT number FROM api_v1_wire WHERE (from_tag = '-102F1' AND from_cp = '2' AND to_tag = '-102F2' AND to_cp = '24VDC') OR (to_tag = '-102F1' AND to_cp = '2' AND from_tag = '-102F2' AND from_cp = '24VDC')"
+expect = "== 2"
+
+[[item]]
+id = "A3"
+kind = "hard"
+what = "No unconnected-connection-point finding on the + outputs of -102G1, on -102F1 or on the 24VDC inputs of -102F2."
+how = "check"
+query = "SELECT fingerprint FROM api_v1_message WHERE rule = 'EW-POT-009' AND (target_tags LIKE '-102G1:+%' OR target_tags LIKE '-102F1:%' OR target_tags LIKE '-102F2:24VDC%')"
+expect = "== 0"

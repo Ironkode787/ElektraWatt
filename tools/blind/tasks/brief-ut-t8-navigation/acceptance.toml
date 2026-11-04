@@ -1,0 +1,25 @@
+# The acceptance list (WP-S2.12 D7): doc 16 section 19.4's success criterion of T8 ("xref jump and Back used") as
+# items. `actions` items are decided from the run's outcomes: a click on a cross-reference is the Select tool's follow
+# and counts as `nav.follow` when it shows another page (xtask/src/blind/brief.rs, `step_outcomes`).
+
+[[item]]
+id = "A1"
+kind = "hard"
+what = "A cross-reference was followed (a jump to another folio by its link)."
+how = "outcomes"
+actions = ["nav.follow"]
+
+[[item]]
+id = "A2"
+kind = "hard"
+what = "After the jump, Back was used to return."
+how = "outcomes"
+actions = ["nav.follow", "nav.back"]
+
+[[item]]
+id = "A3"
+kind = "hard"
+what = "The drawing is unchanged: L-1 still continues from folio 101 to folio 102."
+how = "connections"
+query = "SELECT name FROM api_v1_potential WHERE name = 'L-1' AND pages = '[\"101\",\"102\"]'"
+expect = "== 1"

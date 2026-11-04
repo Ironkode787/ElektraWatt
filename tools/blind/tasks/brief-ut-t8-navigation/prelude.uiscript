@@ -1,0 +1,3 @@
+{"$schema":"ew.uiscript/1","label":"brief-ut-t8-navigation prelude"}
+{"action":"file.open","params":{"dir":"project"}}
+{"action":"page.goto","params":{"folio":"101"}}

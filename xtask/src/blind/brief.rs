@@ -637,7 +637,7 @@ fn prove(
     }
     let ew_exe = exe("ew");
     // The actions the reference solution did, after the prelude (an `actions` item reads them).
-    let done = done_actions(lines.iter().skip(prelude.len()).copied());
+    let done = done_actions(&agent_outcomes(&lines, prelude.len()));
     let decisions = decide_items(acceptance, &work, &done, &mut |args: &[&str]| {
         ew(root, &ew_exe, args, &work)
     })?;
@@ -658,10 +658,21 @@ fn prove(
     Ok(())
 }
 
+/// The canvas's clicks: a click on a cross-reference is the Select tool's follow (WP-S2.03 §7.6), which dispatches
+/// these and not `nav.follow`.
+const CLICKS: [&str; 4] = [
+    "canvas.activate",
+    "canvas.activate_alt",
+    "canvas.press",
+    "canvas.release",
+];
+
 /// The actions and their outcomes, in order, in the transcript `lines` (after their header): a text line's action, and
-/// each action that a visual input or frame line dispatched.
+/// each action that a visual input or frame line dispatched. A line whose canvas click was done and after which
+/// another page shows than before it is a followed cross-reference: a `nav.follow` done follows its actions.
 pub fn step_outcomes<'a>(lines: impl IntoIterator<Item = &'a str>) -> Vec<(String, String)> {
     let mut out = Vec::new();
+    let mut page: Option<String> = None;
     for line in lines {
         let Ok(v) = serde_json::from_str::<Value>(line) else {
             continue;
@@ -670,21 +681,40 @@ pub fn step_outcomes<'a>(lines: impl IntoIterator<Item = &'a str>) -> Vec<(Strin
             Some(d) => d.iter().collect(),
             None => vec![&v],
         };
+        let mut clicked = false;
         for s in steps {
             if let (Some(a), Some(o)) = (s["action"].as_str(), s["outcome"].as_str()) {
+                clicked |= o == "done" && CLICKS.contains(&a);
                 out.push((a.to_owned(), o.to_owned()));
             }
+        }
+        let now = v["state"]["page"].as_str().map(str::to_owned);
+        if clicked && page.is_some() && now.is_some() && now != page {
+            out.push(("nav.follow".to_owned(), "done".to_owned()));
+        }
+        if now.is_some() {
+            page = now;
         }
     }
     out
 }
 
-/// The actions done, in order, in the transcript `lines` ([`step_outcomes`] whose outcome is `done`).
-pub fn done_actions<'a>(lines: impl IntoIterator<Item = &'a str>) -> Vec<String> {
-    step_outcomes(lines)
+/// The outcomes of the steps after the first `prelude` lines of `lines` ([`step_outcomes`], read from the start so that
+/// the page before the first step is known).
+pub fn agent_outcomes(lines: &[&str], prelude: usize) -> Vec<(String, String)> {
+    let before = step_outcomes(lines.iter().take(prelude).copied()).len();
+    step_outcomes(lines.iter().copied())
         .into_iter()
+        .skip(before)
+        .collect()
+}
+
+/// The actions done, in order ([`step_outcomes`] whose outcome is `done`).
+pub fn done_actions(outcomes: &[(String, String)]) -> Vec<String> {
+    outcomes
+        .iter()
         .filter(|(_, o)| o == "done")
-        .map(|(a, _)| a)
+        .map(|(a, _)| a.clone())
         .collect()
 }
 
@@ -972,18 +1002,45 @@ mod tests {
             r#"{"step":1,"action":"nav.follow","outcome":"done","reason":null}"#,
             r#"{"step":2,"action":"nav.back","outcome":"refused","reason":"reason-x"}"#,
         ];
-        assert_eq!(done_actions(text), ["nav.follow"]);
-        assert_eq!(actions_met(&want, &done_actions(text)), missing, "a refused step is not done");
+        let done_of = |lines: &[&str]| done_actions(&step_outcomes(lines.iter().copied()));
+        assert_eq!(done_of(&text), ["nav.follow"]);
+        assert_eq!(actions_met(&want, &done_of(&text)), missing, "a refused step is not done");
         let visual = [
             r#"{"frame":"t0000.png","sha256":null,"dispatched":[]}"#,
-            r#"{"step":1,"input":{"input":"click"},"dispatched":[{"action":"nav.follow","outcome":"done","reason":null}]}"#,
+            r#"{"step":1,"input":{"input":"key"},"dispatched":[{"action":"nav.follow","outcome":"done","reason":null}]}"#,
             r#"{"step":2,"input":{"input":"key"},"dispatched":[{"action":"edit.undo","outcome":"refused","reason":"r"},{"action":"nav.back","outcome":"done","reason":null}]}"#,
         ];
-        assert_eq!(done_actions(visual), ["nav.follow", "nav.back"]);
-        assert_eq!(actions_met(&want, &done_actions(visual)), Ok(()));
+        assert_eq!(done_of(&visual), ["nav.follow", "nav.back"]);
+        assert_eq!(actions_met(&want, &done_of(&visual)), Ok(()));
         assert_eq!(
             step_outcomes(visual)[1],
             ("edit.undo".to_owned(), "refused".to_owned())
+        );
+    }
+
+    /// D7 as built: a click on a cross-reference is the Select tool's follow and dispatches the canvas's press and
+    /// release, so a canvas click done after which another page shows counts as `nav.follow`; a click that leaves the
+    /// page counts as nothing more; the prelude's lines give the page before the first step.
+    #[test]
+    fn a_canvas_click_that_changes_the_page_is_a_follow() {
+        let lines = [
+            r#"{"step":1,"action":"page.goto","outcome":"done","reason":null,"state":{"page":"101"}}"#,
+            r#"{"step":2,"input":{"input":"click"},"dispatched":[{"action":"canvas.press","outcome":"done","reason":null},{"action":"canvas.release","outcome":"done","reason":null}],"state":{"page":"102"}}"#,
+            r#"{"step":3,"input":{"input":"click"},"dispatched":[{"action":"canvas.release","outcome":"done","reason":null}],"state":{"page":"102"}}"#,
+            r#"{"step":4,"action":"nav.back","outcome":"done","reason":null,"state":{"page":"101"}}"#,
+            r#"{"step":5,"action":"canvas.activate","outcome":"done","reason":null,"state":{"page":"102"}}"#,
+        ];
+        assert_eq!(
+            done_actions(&agent_outcomes(&lines, 1)),
+            [
+                "canvas.press",
+                "canvas.release",
+                "nav.follow",
+                "canvas.release",
+                "nav.back",
+                "canvas.activate",
+                "nav.follow"
+            ]
         );
     }
 
@@ -1045,6 +1102,65 @@ mod tests {
             std::fs::write(dir.join("hints.toml"), "[[hint]]\ntext = \"Look at the page.\"\n").unwrap();
             let (c, _) = check_files(&tmp.0, "brief-valve-switch").unwrap();
             assert!(c.problems.is_empty(), "{start}: {:?}", c.problems);
+        }
+    }
+
+    /// The usability tasks of WP-S2.12 (`tools/blind/tasks/brief-ut-*`), however many there are.
+    fn usability_tasks(root: &Path) -> Vec<String> {
+        let mut out: Vec<String> = std::fs::read_dir(root.join("tools/blind/tasks"))
+            .unwrap()
+            .flatten()
+            .map(|e| e.file_name().to_string_lossy().into_owned())
+            .filter(|n| n.starts_with("brief-ut-"))
+            .collect();
+        out.sort();
+        out
+    }
+
+    /// UR-8: every committed usability task passes the checks that need no product, names its plan ID and its rounds,
+    /// and has one to three hints in the user's words.
+    #[test]
+    fn ur8_the_usability_tasks_have_valid_files_and_hints() {
+        let root = crate::workspace_root();
+        let tasks = usability_tasks(&root);
+        assert!(!tasks.is_empty());
+        for task in &tasks {
+            let (c, _) = check_files(&root, task).unwrap();
+            assert!(c.problems.is_empty(), "{task}: {:?}", c.problems);
+            let t = task_toml(&root, task).unwrap().unwrap();
+            assert!(t.task_id.is_some() && !t.rounds.is_empty(), "{task}");
+            let hints: crate::blind::round::Hints =
+                read_toml(&task_dir(&root, task).join("hints.toml")).unwrap();
+            assert!((1..=3).contains(&hints.hint.len()), "{task}");
+        }
+    }
+
+    /// UR-8 and §9.3 item 1: every committed usability task is runnable on the build, every hard item met by its
+    /// reference solution from its start project. Needs `elektrawatt` and `ew` built in `target/debug`; without them
+    /// the test says so and checks nothing.
+    #[test]
+    fn ur8_the_usability_tasks_replay_on_the_build() {
+        let root = crate::workspace_root();
+        let bin = root.join("target/debug");
+        let built = ["elektrawatt", "ew"]
+            .iter()
+            .all(|n| bin.join(format!("{n}{}", std::env::consts::EXE_SUFFIX)).is_file());
+        if !built {
+            eprintln!("ur8: elektrawatt and ew are not built in target/debug; the replay is not checked");
+            return;
+        }
+        let tmp = crate::blind::testkit::Tmp::new("ur8-check");
+        for task in usability_tasks(&root) {
+            let c = check_brief_in(&root, &task, &bin, &tmp.0).unwrap();
+            assert!(c.runnable(), "{}", c.text(&task));
+            assert!(
+                c.items
+                    .iter()
+                    .filter(|(_, k, _)| k == "hard")
+                    .all(|(_, _, d)| d == "met"),
+                "{}",
+                c.text(&task)
+            );
         }
     }
 

@@ -1,0 +1,2 @@
+{"$schema":"ew.uiscript/1","label":"brief-ut-t4-renumber prelude"}
+{"action":"file.open","params":{"dir":"project"}}

@@ -1,0 +1,10 @@
+# The hints (WP-S2.12 D8), from where to look to what to do, in the user's words; `hint` gives them one at a time.
+
+[[hint]]
+text = "The PDF export of the whole drawing set is in the Output menu. 24VDC-1 leaves folio 102 at an interruption point in its bottom right corner."
+
+[[hint]]
+text = "Export the PDF next to the project, then go to folio 102: the small text beside the interruption point 24VDC-1 is a link to where it continues."
+
+[[hint]]
+text = "Choose Export PDF... in the Output menu and save the file next to the project; then open folio 102 and click the cross-reference text beside 24VDC-1 in cell H15, which jumps to folio 103."

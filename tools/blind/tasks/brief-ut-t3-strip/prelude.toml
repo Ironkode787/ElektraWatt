@@ -1,0 +1,6 @@
+# The class of every step of `prelude.uiscript`, in order: setup only. The start project is a copy of Golden A
+# (`task.toml`: `start = "golden-a"`).
+
+[[step]]
+action = "file.open"
+class = "setup"

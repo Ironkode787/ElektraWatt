@@ -1,0 +1,17 @@
+# A usability task (WP-S2.12 section 5.1): doc 16 section 19.4's T1 as a brief. `check-brief brief-ut-t1-place` proves
+# it runnable by replaying `solution.uiscript` on a copy of GP-UT and deciding `acceptance.toml` on its exports.
+kind = "brief"
+grade = 1
+version = 1
+turn_budget = 5
+senses = ["text", "visual"]
+requires = [
+    "symbol: ew.iec.mcb-1p@qet10",
+    "part: A9F78116",
+    "action: tool.place",
+    "action: part.choose",
+]
+areas = ["symbol picker", "parts", "placement"]
+task_id = "T1"
+rounds = ["R0", "R1"]
+start = "gp-ut"

@@ -1,0 +1,10 @@
+# The class of every step of `prelude.uiscript`, in order: setup only. The start project is a copy of GP-UT
+# (`task.toml`: `start = "gp-ut"`), which the prelude opens in folio 102.
+
+[[step]]
+action = "file.open"
+class = "setup"
+
+[[step]]
+action = "page.goto"
+class = "setup"

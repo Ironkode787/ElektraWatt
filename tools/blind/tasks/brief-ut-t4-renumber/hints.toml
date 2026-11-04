@@ -1,0 +1,10 @@
+# The hints (WP-S2.12 D8), from where to look to what to do, in the user's words; `hint` gives them one at a time.
+
+[[hint]]
+text = "A folio's number is not typed into the folio: the program renumbers the folios of a section for you and shows what will change before it does."
+
+[[hint]]
+text = "Renumber section 1 from 101 in steps of 1 without keeping gaps: 101, 102 and 103 stay, and 106 becomes 104. The change opens a preview with its tags, cross-references and folios."
+
+[[hint]]
+text = "Choose Renumber pages... in the Page menu, section 1, start 101, step 1; read the Tags, Xrefs and Pages lists of the Preview tab, then press Apply."

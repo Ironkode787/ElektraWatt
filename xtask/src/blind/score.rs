@@ -724,13 +724,9 @@ pub fn brief_score(
         .and_then(|t| t.steps)
         .map(|[a, _]| usize::try_from(a).unwrap_or(usize::MAX).saturating_sub(1));
     let end = epilogue.map_or(transcript.len(), |n| (prelude + n).min(transcript.len()));
-    let agent = transcript.get(prelude.min(end)..end).unwrap_or_default();
-    let outcomes = super::brief::step_outcomes(agent.iter().map(String::as_str));
-    let done: Vec<String> = outcomes
-        .iter()
-        .filter(|(_, o)| o == "done")
-        .map(|(a, _)| a.clone())
-        .collect();
+    let lines: Vec<&str> = transcript[..end].iter().map(String::as_str).collect();
+    let outcomes = super::brief::agent_outcomes(&lines, prelude);
+    let done = super::brief::done_actions(&outcomes);
     let decisions = super::brief::decide_items(&acceptance, &ev.work, &done, ew)?;
     let items: Vec<ItemDecision> = acceptance
         .item

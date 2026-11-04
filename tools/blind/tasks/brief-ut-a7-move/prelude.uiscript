@@ -1,0 +1,6 @@
+{"$schema":"ew.uiscript/1","label":"brief-ut-a7-move prelude: E56 moved off its wire end"}
+{"action":"file.open","params":{"dir":"project"}}
+{"action":"command.run","params":{"cmd":"edit.delete","params":{"targets":[{"kind":"connection","id":"48f5a362-b1d2-5683-a1f9-2c89858f1c44"}]}}}
+{"action":"command.run","params":{"cmd":"rep.move","params":{"reps":["6112da7c-cc90-592a-916a-48bbda475c86"],"steps":[12,0]}}}
+{"action":"file.save","params":{}}
+{"action":"page.goto","params":{"folio":"101"}}

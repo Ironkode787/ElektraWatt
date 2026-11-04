@@ -1,0 +1,13 @@
+{"$schema":"ew.uiscript/1","label":"brief-ut-a7-move reference solution"}
+{"action":"cursor.set","params":{"x_mm":275.0,"y_mm":112.867}}
+{"action":"canvas.activate","params":{}}
+{"action":"tool.move","params":{}}
+{"action":"cursor.set","params":{"x_mm":244.648,"y_mm":114.172}}
+{"action":"canvas.activate","params":{}}
+{"action":"tool.wire","params":{}}
+{"action":"cursor.set","params":{"x_mm":242.039,"y_mm":95.905}}
+{"action":"canvas.activate","params":{}}
+{"action":"cursor.set","params":{"x_mm":242.039,"y_mm":108.952}}
+{"action":"canvas.activate","params":{}}
+{"action":"ui.dismiss","params":{}}
+{"action":"file.save","params":{}}

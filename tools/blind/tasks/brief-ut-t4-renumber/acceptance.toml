@@ -1,0 +1,33 @@
+# The acceptance list (WP-S2.12 D7): doc 16 section 19.4's success criterion of T4 as items. Opening a list of the
+# Preview tab (Tags, Xrefs, Pages) is the window's own state and dispatches nothing, so A3 decides that the renumber went
+# through its preview and was applied from it, and the soft A4 is the checker's.
+
+[[item]]
+id = "A1"
+kind = "hard"
+what = "Folio 104 exists and folio 106 does not."
+how = "pages"
+query = "SELECT folio FROM api_v1_page WHERE folio = '104' AND NOT EXISTS (SELECT 1 FROM api_v1_page WHERE folio = '106')"
+expect = "== 1"
+
+[[item]]
+id = "A2"
+kind = "hard"
+what = "The cables of the old folio 106 are -104W1 and -104W2."
+how = "connections"
+query = "SELECT tag FROM api_v1_cable WHERE tag IN ('-104W1', '-104W2')"
+expect = "== 2"
+
+[[item]]
+id = "A3"
+kind = "hard"
+what = "The renumber was previewed and then applied from its preview."
+how = "outcomes"
+actions = ["pages.renumber", "preview.apply"]
+
+[[item]]
+id = "A4"
+kind = "soft"
+what = "The tester opened the Tags, Xrefs or Pages list of the preview before applying it."
+how = "handback"
+infeasible = "not decidable by a query or an action: opening a list of the Preview tab dispatches nothing, so only the checker's reading of the run (notes, frames) decides it"

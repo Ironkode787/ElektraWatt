@@ -1,0 +1,16 @@
+# A usability task (WP-S2.12 section 5.1): doc 16 section 19.4's T3 as a brief, on a copy of Golden A.
+# `check-brief brief-ut-t3-strip` proves it runnable.
+kind = "brief"
+grade = 2
+version = 1
+turn_budget = 8
+senses = ["text", "visual"]
+requires = [
+    "action: strip.edit",
+    "action: strip.insert",
+    "action: table.set",
+]
+areas = ["terminal strips", "tables"]
+task_id = "T3"
+rounds = ["R1"]
+start = "golden-a"

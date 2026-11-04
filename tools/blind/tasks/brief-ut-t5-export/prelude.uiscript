@@ -1,0 +1,2 @@
+{"$schema":"ew.uiscript/1","label":"brief-ut-t5-export prelude"}
+{"action":"file.open","params":{"dir":"project"}}

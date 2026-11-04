@@ -1,0 +1,10 @@
+# The hints (WP-S2.12 D8), from where to look to what to do, in the user's words; `hint` gives them one at a time.
+
+[[hint]]
+text = "The lamp E56 stands in cell E16 of folio 101; its place is cell E14, straight below the position switch S56, so that X1 lines up under S56:14."
+
+[[hint]]
+text = "Select the lamp and move it back two columns to the left; moving it does not draw the lost wire, so draw the wire from S56:14 to E56:X1 again afterwards."
+
+[[hint]]
+text = "Click the lamp in E16, choose Move, put it in E14 under S56 and confirm; then choose Wire in the Draw menu and click S56:14 and then E56:X1."

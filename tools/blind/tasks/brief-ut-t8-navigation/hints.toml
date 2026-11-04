@@ -1,0 +1,10 @@
+# The hints (WP-S2.12 D8), from where to look to what to do, in the user's words; `hint` gives them one at a time.
+
+[[hint]]
+text = "L-1 is the interruption point in the bottom right corner of folio 101, cell H16; the small text beside it names the folio and cell where the potential continues."
+
+[[hint]]
+text = "That text is a link: following it jumps to the continuation, and Back in the Page menu returns you to the place you came from."
+
+[[hint]]
+text = "Click the cross-reference text beside L-1 in cell H16 of folio 101 to jump to folio 102, then choose Page, Back to return to folio 101."

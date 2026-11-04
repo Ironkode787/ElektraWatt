@@ -1,0 +1,15 @@
+# A usability task (WP-S2.12 section 5.1): doc 16 section 19.4's T5 as a brief, on a copy of Golden A.
+# `check-brief brief-ut-t5-export` proves it runnable.
+kind = "brief"
+grade = 1
+version = 1
+turn_budget = 5
+senses = ["text", "visual"]
+requires = [
+    "action: file.export_pdf",
+    "action: nav.follow",
+]
+areas = ["save and export", "cross-references"]
+task_id = "T5"
+rounds = ["R1"]
+start = "golden-a"

@@ -1,0 +1,35 @@
+# The acceptance list (WP-S2.12 D7): ADR-0007's probe A7 ("the device back in place with its connection points
+# connected to those ends") as items. `stop` decides each item mechanically on the saved project; `check-brief`
+# decides them on the reference solution.
+
+[[item]]
+id = "A1"
+kind = "hard"
+what = "The lamp E56 is back in its place, cell E14 of folio 101."
+how = "pages"
+query = "SELECT tag FROM api_v1_device WHERE tag = 'E56' AND main_folio = '101' AND main_cell = 'E14'"
+expect = "== 1"
+
+[[item]]
+id = "A2"
+kind = "hard"
+what = "Its connection X1 is wired to S56:14 again."
+how = "connections"
+query = "SELECT number FROM api_v1_wire WHERE (from_tag = 'S56' AND from_cp = '14' AND to_tag = 'E56' AND to_cp = 'X1') OR (to_tag = 'S56' AND to_cp = '14' AND from_tag = 'E56' AND from_cp = 'X1')"
+expect = "== 1"
+
+[[item]]
+id = "A3"
+kind = "hard"
+what = "Its connection X2 is still wired to its supply, F55:2 through junction J1."
+how = "connections"
+query = "SELECT number FROM api_v1_wire WHERE (from_tag = 'F55' AND from_cp = '2' AND to_tag = 'E56' AND to_cp = 'X2') OR (to_tag = 'F55' AND to_cp = '2' AND from_tag = 'E56' AND from_cp = 'X2')"
+expect = "== 1"
+
+[[item]]
+id = "A4"
+kind = "soft"
+what = "No connection point of E56 is left unconnected."
+how = "check"
+query = "SELECT fingerprint FROM api_v1_message WHERE rule = 'EW-POT-009' AND target_tags LIKE 'E56:%'"
+expect = "== 0"

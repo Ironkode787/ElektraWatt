@@ -1,0 +1,47 @@
+# The class of every step of `prelude.uiscript`, in order: setup only. The start project is a copy of GP-UT
+# (`task.toml`: `start = "gp-ut"`); the prelude opens it and does T1's reference steps (the breaker -102F1 placed in
+# 102-C7 with its part), which is T2's start state (WP-S2.12 D4).
+
+[[step]]
+action = "file.open"
+class = "setup"
+
+[[step]]
+action = "page.goto"
+class = "setup"
+
+[[step]]
+action = "nav.goto"
+class = "setup"
+
+[[step]]
+action = "tool.place"
+class = "setup"
+
+[[step]]
+action = "place.pick"
+class = "setup"
+
+[[step]]
+action = "canvas.activate"
+class = "setup"
+
+[[step]]
+action = "ui.dismiss"
+class = "setup"
+
+[[step]]
+action = "part.choose"
+class = "setup"
+
+[[step]]
+action = "part.search"
+class = "setup"
+
+[[step]]
+action = "part.pick"
+class = "setup"
+
+[[step]]
+action = "file.save"
+class = "setup"

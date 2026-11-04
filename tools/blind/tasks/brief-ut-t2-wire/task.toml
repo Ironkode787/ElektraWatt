@@ -1,0 +1,15 @@
+# A usability task (WP-S2.12 section 5.1): doc 16 section 19.4's T2 as a brief, on GP-UT with T1's reference steps in
+# the prelude. `check-brief brief-ut-t2-wire` proves it runnable.
+kind = "brief"
+grade = 1
+version = 1
+turn_budget = 6
+senses = ["text", "visual"]
+requires = [
+    "part: A9F78116",
+    "action: tool.wire",
+]
+areas = ["wiring"]
+task_id = "T2"
+rounds = ["R0", "R1"]
+start = "gp-ut"

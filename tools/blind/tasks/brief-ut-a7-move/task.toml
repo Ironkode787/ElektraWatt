@@ -1,0 +1,16 @@
+# A usability task (WP-S2.12 section 5.1): ADR-0007's probe of autoconnect on move as a brief, on a copy of Golden A
+# whose prelude moves E56 off its wire end. How the persona connected it is evidence for ADR-0007's record (D17), not
+# an item. `check-brief brief-ut-a7-move` proves it runnable.
+kind = "brief"
+grade = 1
+version = 1
+turn_budget = 5
+senses = ["text", "visual"]
+requires = [
+    "action: tool.move",
+    "action: tool.wire",
+]
+areas = ["move", "wiring"]
+task_id = "A7"
+rounds = ["R0", "R1"]
+start = "golden-a"

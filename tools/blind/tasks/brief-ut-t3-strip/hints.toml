@@ -1,0 +1,10 @@
+# The hints (WP-S2.12 D8), from where to look to what to do, in the user's words; `hint` gives them one at a time.
+
+[[hint]]
+text = "Terminal strips are edited in the strip editor, a table of the strip's terminals in the Terminal strips navigator; it is in the Edit menu."
+
+[[hint]]
+text = "In the strip editor a new terminal is inserted before the row the cursor is on, so put the cursor on terminal 5. The Function text column takes one value for many marked rows at once."
+
+[[hint]]
+text = "Open Strip editor for -X1031, put the cursor on terminal 5 and use Insert terminal with a free designation such as 21; then mark the twelve spare rows (state spare) and set their Function text to Reserve in one go."

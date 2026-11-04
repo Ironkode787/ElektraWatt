@@ -1,0 +1,10 @@
+# The hints (WP-S2.12 D8), from where to look to what to do, in the user's words; `hint` gives them one at a time.
+
+[[hint]]
+text = "The breaker belongs on folio 102 in the empty place below the power supply -102G1 and above the load distribution -102F2, around cell C7."
+
+[[hint]]
+text = "Place a 1-pole miniature circuit breaker symbol there first, then give the new device its part by searching the parts for A9F78116."
+
+[[hint]]
+text = "In the Draw menu choose Symbol..., pick the 1-pole miniature circuit breaker and put it in cell C7 of folio 102; then, with it selected, use Choose part... in the Edit menu, search for A9F78116 and choose it."
