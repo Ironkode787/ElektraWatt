@@ -224,6 +224,8 @@ pub struct RecoverArgs {
     pub action: RecoverAction,
     /// Print the result as JSON (`--json`; not with `--discard`).
     pub json: bool,
+    /// `--yes` (with `--replay`): confirm the upgrade of a project in an older format without the typed word (FT-1336).
+    pub yes: bool,
 }
 
 /// The arguments of `ew upgrade` (WP-S1.17 D11, decision log ID-1221 ruling 6).

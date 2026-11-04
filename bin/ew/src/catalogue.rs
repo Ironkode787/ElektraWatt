@@ -309,7 +309,10 @@ pub const TABLE: &[Row] = &[
         path: &["recover"],
         exits: &[
             exit(0, "summarised, replayed and saved, discarded, or no journal"),
-            exit(1, "the replay refused or the discard not confirmed"),
+            exit(
+                1,
+                "the replay refused, or the discard or an older project's upgrade not confirmed",
+            ),
             exit(2, "usage, no controlling terminal, lock, open and save errors"),
         ],
         result: Some(ew_api::cli_results::RECOVER),

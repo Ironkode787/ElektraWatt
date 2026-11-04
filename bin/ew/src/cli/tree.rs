@@ -1252,6 +1252,10 @@ struct RecoverCli {
     /// Print the result as JSON (not with `--discard`, which prints a dialogue).
     #[arg(long, overrides_with = "json")]
     json: bool,
+    /// With `--replay` on a project in an older format: confirm its upgrade without typing `upgrade` (the backup keeps
+    /// the project as it was).
+    #[arg(long, overrides_with = "yes", requires = "replay")]
+    yes: bool,
 }
 
 /// `ew project`.
@@ -2186,6 +2190,7 @@ impl Cli {
                 replay,
                 discard,
                 json,
+                yes,
             }) => {
                 let action = match (replay, discard) {
                     (true, _) => RecoverAction::Replay,
@@ -2202,6 +2207,7 @@ impl Cli {
                     project: project(flag, project_dir),
                     action,
                     json,
+                    yes,
                 })
             }
             Top::Upgrade(UpgradeCli {
