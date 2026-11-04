@@ -349,6 +349,40 @@ fn md1_keyed_tech_data_merges_by_key_in_byte_order() {
 }
 
 #[test]
+fn md1_a_part_s_keyed_tech_data_merges_by_key() {
+    // D13's `keyed(key)` names `tech_data` without a kind: a part's list merges as a device's does.
+    let o = rec("part", json!({"tech_data": [{"key": "curve", "value": "B"}]}));
+    let a = rec(
+        "part",
+        json!({"tech_data": [{"key": "curve", "value": "B"}, {"key": "u_n", "value": "230 V"}]}),
+    );
+    let b = rec("part", json!({"tech_data": [{"key": "curve", "value": "C"}]}));
+    assert_eq!(
+        merged(Some(&o), Some(&a), Some(&b)),
+        (
+            text(&rec(
+                "part",
+                json!({"tech_data": [{"key": "curve", "value": "C"}, {"key": "u_n", "value": "230 V"}]})
+            )),
+            None
+        )
+    );
+}
+
+#[test]
+fn md1_a_device_s_tag_and_the_project_s_settings_merge_member_by_member() {
+    // MD-1's "each row": without its row, either member would merge atomically and conflict here.
+    for (kind, member) in [("device", "tag"), ("project", "settings")] {
+        let side = |x: u8, y: u8| rec(kind, json!({member: {"x": x, "y": y}}));
+        assert_eq!(
+            merged(Some(&side(1, 1)), Some(&side(2, 1)), Some(&side(1, 3))),
+            (text(&side(2, 3)), None),
+            "{kind}.{member}"
+        );
+    }
+}
+
+#[test]
 fn md1_keyed_parties_merge_by_role_in_ours_order_then_theirs_additions() {
     let o = rec("project", json!({"parties": [{"role": "customer", "name": "c"}]}));
     let a = rec(

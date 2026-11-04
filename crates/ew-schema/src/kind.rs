@@ -565,6 +565,14 @@ pub const MERGE_STRATEGIES: &[MergeRule] = &[
         },
     },
     MergeRule {
+        kind: Kind::Part,
+        path: "tech_data",
+        strategy: MergeStrategy::Keyed {
+            key: "key",
+            order: MergeOrder::Canonical,
+        },
+    },
+    MergeRule {
         kind: Kind::Project,
         path: "parties",
         strategy: MergeStrategy::Keyed {
