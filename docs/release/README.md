@@ -34,8 +34,9 @@ These are the owner's (WP-S6.07 §13 O1). Check each before the first tag:
 
 1. The environment `release` exists, its deployment rule allows `v*` tags and `main` only, and it has no reviewer at
    0.1.0 (the second maintainer's approval comes with 1.0).
-2. A tag ruleset on `v*` lets only maintainers create tags, forbids updating and deleting them, and lets the
-   workflow's token create the final tag at the promote.
+2. A tag ruleset on `v*` forbids updating and deleting tags, with no bypass. It does not restrict their creation:
+   the promote creates the final tag with the workflow's own token, which a ruleset cannot list as a bypass actor, and
+   the repository's only writers are its maintainers.
 3. Immutable releases are on, if the repository offers them.
 4. The default workflow token is read-only.
 5. The required checks of `main` hold WP-S6.06's `c-only` job and FT-960's `api-guard`.
