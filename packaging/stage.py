@@ -15,6 +15,7 @@ standard library only).
   python3 -I packaging/stage.py appimage --runtime <file> --image <squashfs> --out <dir>/ElektraWatt-<v>-x86_64.AppImage
   python3 -I packaging/stage.py listing <root>        # `<sha256>  <path>` of every file under <root>
   python3 -I packaging/stage.py resources --tree <root> --work <dir>   # D13's installed-resources runs
+  python3 -I packaging/stage.py copies --work <dir> --program <name>   # the program of each copy that `resources` runs
   python3 -I packaging/stage.py version [--sha <sha>] # the workspace version, or D8's <version>-dev.<short sha>
   python3 -I packaging/stage.py --test                # the offline unit test, over a fixture repository
 
@@ -55,9 +56,11 @@ AppDir, mode 0755, beside its final name and renamed into place.
 packaging/tests/installed.uiscript --config-dir <fresh> --keep-going`, run in a fresh directory of <work> on the tree
 as it is, then once more on a copy of the tree without each resource of RESOURCES; every step of the first run is
 done, the sample opens read-only with its 36 pages, and each resource's step reads differently in the run without
-that resource. The tree itself is only read.
+that resource. The tree itself is only read. `copies` prints, one per line, where `resources --work <dir>` puts the
+program <name> of each copy, so that the Windows install test blocks each of them in the firewall.
 """
 import argparse
+import contextlib
 import gzip
 import hashlib
 import io
@@ -429,6 +432,11 @@ def resource_problems(runs):
     return problems
 
 
+def copy_programs(work, program):
+    """(resource, the program `program` of the copy without it) for each resource of RESOURCES, under `work`."""
+    return [(resource, os.path.join(work, f"without-{word}", "tree", program)) for resource, _, word in RESOURCES]
+
+
 def check_resources(repo, tree, work):
     """D13 over `tree` in the fresh directory `work`: the report lines, refused with the problems."""
     names = [n for n in ("elektrawatt.exe", "elektrawatt") if os.path.isfile(os.path.join(tree, n))]
@@ -438,10 +446,10 @@ def check_resources(repo, tree, work):
     if os.path.exists(work):
         raise Refusal(f"output exists: {work}")
     runs = {"installed": run_script(os.path.join(tree, names[0]), script, os.path.join(work, "installed"))}
-    for resource, _, word in RESOURCES:
-        run_dir = os.path.join(work, f"without-{word}")
-        copy_without(tree, os.path.join(run_dir, "tree"), resource)
-        runs[word] = run_script(os.path.join(run_dir, "tree", names[0]), script, run_dir)
+    for (resource, program), (_, _, word) in zip(copy_programs(work, names[0]), RESOURCES):
+        copy = os.path.dirname(program)
+        copy_without(tree, copy, resource)
+        runs[word] = run_script(program, script, os.path.dirname(copy))
     problems = resource_problems(runs)
     if problems:
         raise Refusal(f"the installed resources are not proven (transcripts in {work}):\n" + "\n".join(problems))
@@ -491,6 +499,9 @@ def main(argv):
     p = sub.add_parser("resources", help="run D13's installed-resources script on a tree and on copies without each")
     p.add_argument("--tree", required=True)
     p.add_argument("--work", required=True)
+    p = sub.add_parser("copies", help="print the program of each copy that `resources --work <dir>` runs")
+    p.add_argument("--work", required=True)
+    p.add_argument("--program", required=True)
     p = sub.add_parser("version", help="print the workspace version, or D8's default version")
     p.add_argument("--sha")
     args = parser.parse_args(argv)
@@ -519,6 +530,8 @@ def main(argv):
             print("\n".join(listing(args.root)))
         elif args.command == "resources":
             print("\n".join(check_resources(args.repo, args.tree, args.work)))
+        elif args.command == "copies":
+            print("\n".join(program for _, program in copy_programs(args.work, args.program)))
         elif args.command == "version":
             print(workspace_version(args.repo, args.sha))
         else:
@@ -902,13 +915,28 @@ class StageTest(unittest.TestCase):
         # the shell context, which `SetShellVarContext all` would make HKLM.
         with open(os.path.join(REPO, "packaging", "windows", "elektrawatt.nsi"), encoding="utf-8") as f:
             lines = [line.strip() for line in f if not line.lstrip().startswith((";", "#"))]
-        # A read names its variable first, then the root.
+        # A read names its variable first, then the root. makensis reads commands without case.
         instruction = r"^(?:WriteReg\w*|DeleteReg\w*|InstallDirRegKey|(?:ReadReg|EnumReg)\w*\s+\S+)\s+(\S+)"
-        roots = re.findall(instruction, "\n".join(lines), re.M)
+        roots = re.findall(instruction, "\n".join(lines), re.M | re.I)
         self.assertIn("HKCU", roots)
         self.assertEqual(sorted(set(roots)), ["HKCU"])
-        machine = [line for line in lines if re.search(r"\b(?:HKLM|HKEY_LOCAL_MACHINE|SHCTX|SHELL_CONTEXT)\b", line)]
-        self.assertEqual(machine, [])
+        machine = r"\b(?:HKLM|HKEY_LOCAL_MACHINE|SHCTX|SHELL_CONTEXT)\b"
+        self.assertEqual([line for line in lines if re.search(machine, line, re.I)], [])
+        # The Start menu and $APPDATA of the current user, never all users' (ProgramData).
+        contexts = [line.split()[1:] for line in lines if re.match(r"SetShellVarContext\b", line, re.I)]
+        self.assertTrue(contexts)
+        self.assertEqual([c for c in contexts if c != ["current"]], [])
+        # No program or plugin call (`reg`, `setx /M`, advapi32 through System::Call) but the old uninstaller's.
+        calls = [line for line in lines if re.match(r"(?:Exec\w*|\w+::\w+)\b", line, re.I)]
+        self.assertEqual(calls, ["ExecWait '\"$0\\uninstall.exe\" /S _?=$0' $1"])
+
+    def test_copies_names_the_program_of_each_copy_that_resources_runs(self):
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            self.assertEqual(main(["copies", "--work", "w", "--program", "elektrawatt.exe"]), 0)
+        want = [os.path.join("w", f"without-{word}", "tree", "elektrawatt.exe") for _, _, word in RESOURCES]
+        self.assertEqual(out.getvalue().splitlines(), want)
+        self.assertEqual([resource for resource, _ in copy_programs("w", "x")], [r for r, _, _ in RESOURCES])
 
     def test_a_cli_tree_holds_the_archives_entries_alone(self):
         linux = os.path.join(self.dir, "cli-linux")

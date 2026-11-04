@@ -520,10 +520,12 @@ version, alone or followed by `-` (FT-1227).
   entry under HKCU, the upgrade through the old uninstaller). Then
   [`packaging/windows/install-test.ps1`](../packaging/windows/install-test.ps1) (CI-R-10's CI half, D11):
   - `install`: outbound firewall rules block the setup, `elektrawatt.exe`, `ew.exe` and the `elektrawatt.exe` of D13's
-    three copies for the rest of the job (IN-9); the manifest asks for `asInvoker`, `/S /D=` refuses a folder holding
-    `docs\keep.txt` and keeps the file (D9), `/S` installs, the names under `HKLM\SOFTWARE` and both Program Files
-    folders are the same before and after, the folder is the staged tree and `uninstall.exe`, the shortcut and the
-    entry hold D9's values (IN-8);
+    three copies (named by `stage.py copies`) for the rest of the job (IN-9); the manifest asks for `asInvoker`, `/S
+    /D=` refuses a folder holding `docs\keep.txt`, and one holding another program's `uninstall.exe` beside it, with
+    exit code 2, and keeps the files; `/S /D=<elsewhere>` and then `/S` alone install into `<elsewhere>` and not the
+    default folder, and the uninstall follows (D9); `/S` installs, the names under `HKLM\SOFTWARE` and both Program
+    Files folders are the same before and after, the folder is the staged tree and `uninstall.exe`, the shortcut and
+    the entry hold D9's values (IN-8);
   - `deny`: an `icacls` deny of write and delete for the runner's user on the installed tree; with it, `elektrawatt
     --smoke`, `stage.py resources` (D13, IN-11: [`packaging/tests/installed.uiscript`](../packaging/tests/installed.uiscript)
     from the installed program, then once more on copies without the sample, the content and the notices, each of

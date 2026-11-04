@@ -8,7 +8,9 @@
 #
 #   install-test.ps1 install -Setup <setup.exe> -Tree <staged tree> -Version <v>
 #       IN-9: outbound firewall rules block the setup, elektrawatt.exe, ew.exe and the elektrawatt.exe of D13's three
-#       copies by program, the firewall on. D9: `/S /D=<folder>` refuses a folder holding docs\keep.txt.
+#       copies by program, the firewall on. D9: `/S /D=<folder>` refuses a folder holding docs\keep.txt, and one
+#       holding another program's uninstall.exe beside it; an installation by `/S /D=<elsewhere>` is upgraded there by
+#       `/S` alone, then uninstalled.
 #       IN-8: the setup's manifest asks for asInvoker; `/S` installs into %LOCALAPPDATA%\Programs\ElektraWatt; the
 #       key names under HKLM\SOFTWARE and the file names under both Program Files folders are the same before and
 #       after; the installed folder is the staged tree (every file's SHA-256) and the uninstaller; the Start-menu
@@ -39,15 +41,18 @@ $EntryKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\ElektraWa
 $Settings = Join-Path $env:APPDATA 'ElektraWatt'
 $RuleGroup = 'ElektraWatt install test'
 $Stage = Join-Path $PSScriptRoot '..\stage.py'
-# D13's copies of the installed tree, each without one resource: `stage.py resources --work $RUNNER_TEMP\resources`
-# in package.yml starts their elektrawatt.exe (stage.py's RESOURCES names the words).
-$Copies = @(foreach ($word in @('sample', 'content', 'notices')) {
-    Join-Path $env:RUNNER_TEMP "resources\without-$word\tree\elektrawatt.exe"
-})
-
 function Fail([string]$Message) {
     Write-Host "::error::install-test: $Message"
     exit 1
+}
+
+# D13's copies of the installed tree, each without one resource: package.yml runs `stage.py resources --work
+# $RUNNER_TEMP\resources`, and `stage.py copies` names the elektrawatt.exe of each copy it makes there.
+function Get-Copies {
+    $work = Join-Path $env:RUNNER_TEMP 'resources'
+    $lines = @(python -I $Stage copies --work $work --program elektrawatt.exe)
+    if ($LASTEXITCODE -ne 0 -or $lines.Count -eq 0) { Fail "stage.py copies --work $work failed" }
+    $lines
 }
 
 # IN-9: the rules (the setup, the two programs and D13's three copies), and the firewall on for every profile
@@ -59,10 +64,11 @@ function Add-FirewallBlock {
         Write-Host "install-test: the firewall was off for $names; turned on for the test"
         Set-NetFirewallProfile -Profile $off.Name -Enabled True
     }
+    $copies = @(Get-Copies)
     $copy = 0
-    foreach ($program in @($Setup, (Join-Path $Root 'elektrawatt.exe'), (Join-Path $Root 'ew.exe')) + $Copies) {
+    foreach ($program in @($Setup, (Join-Path $Root 'elektrawatt.exe'), (Join-Path $Root 'ew.exe')) + $copies) {
         $name = "$RuleGroup ($(Split-Path -Leaf $program))"
-        if ($Copies -contains $program) { $copy++; $name = "$RuleGroup (D13 copy $copy, elektrawatt.exe)" }
+        if ($copies -contains $program) { $copy++; $name = "$RuleGroup (D13 copy $copy, elektrawatt.exe)" }
         New-NetFirewallRule -DisplayName $name -Group $RuleGroup -Direction Outbound -Action Block -Program $program |
             Out-Null
     }
@@ -77,8 +83,9 @@ function Assert-FirewallBlock {
     $rules = @(Get-NetFirewallRule -Group $RuleGroup -PolicyStore ActiveStore |
         Where-Object { $_.Enabled -eq 'True' -and $_.Action -eq 'Block' -and $_.Direction -eq 'Outbound' })
     $programs = @($rules | Get-NetFirewallApplicationFilter | ForEach-Object { $_.Program })
-    if ($programs.Count -ne 3 + $Copies.Count) {
-        $want = "the setup, the two programs and D13's $($Copies.Count) copies"
+    $copies = @(Get-Copies)
+    if ($programs.Count -ne 3 + $copies.Count) {
+        $want = "the setup, the two programs and D13's $($copies.Count) copies"
         Fail "the outbound block rules in force name $($programs.Count) programs, not $want"
     }
     Write-Host "install-test: outbound blocked for $($programs -join ', ')"
@@ -178,55 +185,97 @@ function Get-Listing([string]$Folder) {
     $lines
 }
 
-# D9: the setup refuses a folder that holds files and no uninstall.exe, whose own `docs` or `content` its uninstall
-# would delete; `/S` exits non-zero there, and the folder keeps its file. Run before any installation.
-function Assert-RefusesForeignFolder {
-    $folder = Join-Path $env:RUNNER_TEMP 'foreign-folder'
-    $keep = Join-Path $folder 'docs\keep.txt'
-    $text = "the user's own file"
-    New-Item -ItemType Directory -Force -Path (Split-Path -Parent $keep) | Out-Null
-    [IO.File]::WriteAllText($keep, $text)
+# D9: the setup refuses a folder that holds files and is no installation of ElektraWatt (both uninstall.exe and
+# elektrawatt.exe, or the folder the entry names), whose own `docs` or uninstall.exe it would delete or overwrite;
+# `/S` exits with 2 there, and the folder keeps its files. Run before any installation. $Files maps each file, under
+# the folder, to its text.
+function Assert-RefusesForeignFolder([string]$Name, [Collections.Specialized.OrderedDictionary]$Files) {
+    $folder = Join-Path $env:RUNNER_TEMP $Name
+    foreach ($file in $Files.Keys) {
+        $path = Join-Path $folder $file
+        New-Item -ItemType Directory -Force -Path (Split-Path -Parent $path) | Out-Null
+        [IO.File]::WriteAllText($path, $Files[$file])
+    }
     $run = Start-Process -FilePath $Setup -ArgumentList '/S', "/D=$folder" -Wait -PassThru
-    if ($run.ExitCode -eq 0) { Fail "the setup /S installed into $folder, which holds a file and no uninstall.exe" }
-    $left = @(Get-ChildItem -LiteralPath $folder -Recurse -Force | ForEach-Object { $_.FullName })
-    $want = @((Split-Path -Parent $keep), $keep)
-    if (($left -join ', ') -ne ($want -join ', ') -or [IO.File]::ReadAllText($keep) -cne $text) {
+    if ($run.ExitCode -ne 2) { Fail "the setup /S /D=$folder exited with $($run.ExitCode), not 2 (refused)" }
+    $left = @(Get-ChildItem -LiteralPath $folder -Recurse -Force -File | ForEach-Object { $_.FullName } | Sort-Object)
+    $want = @($Files.Keys | ForEach-Object { Join-Path $folder $_ } | Sort-Object)
+    if (($left -join ', ') -ne ($want -join ', ')) {
         Fail "the refused setup changed $folder; it holds $($left -join ', ')"
+    }
+    foreach ($file in $Files.Keys) {
+        if ([IO.File]::ReadAllText((Join-Path $folder $file)) -cne $Files[$file]) {
+            Fail "the refused setup changed $(Join-Path $folder $file)"
+        }
     }
     foreach ($written in @($EntryKey, $Shortcut)) {
         if (Test-Path -LiteralPath $written) { Fail "the refused setup wrote $written" }
     }
-    Write-Host "install-test: the setup /S refused $folder (exit $($run.ExitCode)); docs\keep.txt is the same"
+    Write-Host "install-test: the setup /S refused $folder (exit 2); $($Files.Keys -join ' and ') are the same"
 }
 
-function Install-Setup {
-    $run = Start-Process -FilePath $Setup -ArgumentList '/S' -Wait -PassThru
-    if ($run.ExitCode -ne 0) { Fail "the setup /S exited with $($run.ExitCode)" }
+function Install-Setup([string[]]$Arguments = @('/S')) {
+    $run = Start-Process -FilePath $Setup -ArgumentList $Arguments -Wait -PassThru
+    if ($run.ExitCode -ne 0) { Fail "the setup $($Arguments -join ' ') exited with $($run.ExitCode)" }
 }
 
-# IN-8: the folder, the shortcut and the entry of an installation.
-function Assert-Installed {
-    $installed = @(Get-Listing $Root)
+# IN-13: the uninstall as Windows runs it (QuietUninstallString); the folder, the shortcut and the entry go.
+function Uninstall-Installation([string]$Folder) {
+    $quiet = (Get-ItemProperty -LiteralPath $EntryKey).QuietUninstallString
+    if ($quiet -notmatch '^"([^"]+)"\s+(.+)$') {
+        Fail "the QuietUninstallString '$quiet' is not a quoted program and its arguments"
+    }
+    $run = Start-Process -FilePath $Matches[1] -ArgumentList $Matches[2] -Wait -PassThru
+    if ($run.ExitCode -ne 0) { Fail "the uninstaller exited with $($run.ExitCode)" }
+    # NSIS's uninstaller copies itself to %TEMP% and returns; the copy removes the installation.
+    $deadline = (Get-Date).AddMinutes(2)
+    # `@()` around the call: a script block that outputs nothing gives $null, which has no Count under
+    # Set-StrictMode (package.yml run 6), and one path left would be a bare string.
+    $left = { @($Folder, $EntryKey, $Shortcut).Where({ Test-Path -LiteralPath $_ }) }
+    while (@(& $left).Count -gt 0) {
+        if ((Get-Date) -gt $deadline) {
+            Fail "two minutes after the uninstall, still there: $((& $left) -join ', ')"
+        }
+        Start-Sleep -Seconds 1
+    }
+    Write-Host 'install-test: the uninstall removed the folder, the shortcut and the entry'
+}
+
+# D9: an upgrade installs into the installed folder, not the default one: `/S /D=<elsewhere>`, then `/S` alone. Then
+# the uninstall, so that the install which follows starts as on a machine without ElektraWatt.
+function Assert-UpgradeKeepsFolder {
+    $elsewhere = Join-Path $env:RUNNER_TEMP 'elsewhere'
+    Install-Setup @('/S', "/D=$elsewhere")
+    Install-Setup
+    if (Test-Path -LiteralPath $Root) { Fail "the setup /S over the installation in $elsewhere installed into $Root" }
+    Assert-Installed $elsewhere
+    Write-Host "install-test: the setup /S over the installation in $elsewhere installed there, not into $Root"
+    Uninstall-Installation $elsewhere
+}
+
+# IN-8: the folder, the shortcut and the entry of an installation in $Folder.
+function Assert-Installed([string]$Folder = $Root) {
+    $installed = @(Get-Listing $Folder)
     $uninstaller = @($installed | Where-Object { $_ -clike '*  uninstall.exe' })
-    if ($uninstaller.Count -ne 1) { Fail "the installed folder $Root holds no uninstall.exe" }
+    if ($uninstaller.Count -ne 1) { Fail "the installed folder $Folder holds no uninstall.exe" }
     $rest = @($installed | Where-Object { $_ -cnotlike '*  uninstall.exe' })
     $diff = @(Compare-Object -CaseSensitive (Get-Listing $Tree) $rest)
     if ($diff.Count -gt 0) {
         $diff | ForEach-Object { Write-Host "install-test: $($_.SideIndicator) $($_.InputObject)" }
         Fail "the installed folder differs from the staged tree (<= staged only, => installed only)"
     }
-    Write-Host "install-test: $Root is the staged tree ($($rest.Count) files) and uninstall.exe"
+    Write-Host "install-test: $Folder is the staged tree ($($rest.Count) files) and uninstall.exe"
     if (-not (Test-Path -LiteralPath $Shortcut)) { Fail "no Start-menu shortcut $Shortcut" }
     $target = (New-Object -ComObject WScript.Shell).CreateShortcut($Shortcut).TargetPath
-    if ($target -ne (Join-Path $Root 'elektrawatt.exe')) { Fail "the Start-menu shortcut opens $target" }
+    if ($target -ne (Join-Path $Folder 'elektrawatt.exe')) { Fail "the Start-menu shortcut opens $target" }
     if (-not (Test-Path -LiteralPath $EntryKey)) { Fail "no uninstall entry $EntryKey" }
     $entry = Get-ItemProperty -LiteralPath $EntryKey
-    $uninstall = Join-Path $Root 'uninstall.exe'
+    $uninstall = Join-Path $Folder 'uninstall.exe'
     $want = [ordered]@{
         DisplayName          = 'ElektraWatt'
         DisplayVersion       = $Version
         Publisher            = 'The ElektraWatt contributors'
-        InstallLocation      = $Root
+        InstallLocation      = $Folder
         UninstallString      = "`"$uninstall`""
         QuietUninstallString = "`"$uninstall`" /S"
         NoModify             = '1'
@@ -268,7 +317,12 @@ switch ($Mode) {
         }
         Write-Host 'install-test: the setup asks for asInvoker'
         Add-FirewallBlock
-        Assert-RefusesForeignFolder
+        Assert-RefusesForeignFolder 'foreign-folder' ([ordered]@{ 'docs\keep.txt' = "the user's own file" })
+        Assert-RefusesForeignFolder 'foreign-uninstaller' ([ordered]@{
+            'uninstall.exe' = "another program's uninstaller"
+            'docs\keep.txt' = "that program's own file"
+        })
+        Assert-UpgradeKeepsFolder
         $before = Get-MachineListing
         Install-Setup
         Assert-SameListing $before (Get-MachineListing)
@@ -303,24 +357,7 @@ switch ($Mode) {
         Install-Setup
         Assert-Installed
         Assert-SameSettings $before 'after the setup ran over the installation'
-        $quiet = (Get-ItemProperty -LiteralPath $EntryKey).QuietUninstallString
-        if ($quiet -notmatch '^"([^"]+)"\s+(.+)$') {
-            Fail "the QuietUninstallString '$quiet' is not a quoted program and its arguments"
-        }
-        $run = Start-Process -FilePath $Matches[1] -ArgumentList $Matches[2] -Wait -PassThru
-        if ($run.ExitCode -ne 0) { Fail "the uninstaller exited with $($run.ExitCode)" }
-        # NSIS's uninstaller copies itself to %TEMP% and returns; the copy removes the installation.
-        $deadline = (Get-Date).AddMinutes(2)
-        # `@()` around the call: a script block that outputs nothing gives $null, which has no Count under
-        # Set-StrictMode (package.yml run 6), and one path left would be a bare string.
-        $left = { @($Root, $EntryKey, $Shortcut).Where({ Test-Path -LiteralPath $_ }) }
-        while (@(& $left).Count -gt 0) {
-            if ((Get-Date) -gt $deadline) {
-                Fail "two minutes after the uninstall, still there: $((& $left) -join ', ')"
-            }
-            Start-Sleep -Seconds 1
-        }
-        Write-Host 'install-test: the uninstall removed the folder, the shortcut and the entry'
+        Uninstall-Installation $Root
         Assert-SameSettings $before 'after the uninstall'
         Assert-FirewallBlock
     }

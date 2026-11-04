@@ -15,7 +15,8 @@
 ;   uninstall entry HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\ElektraWatt; nothing under HKLM.
 ; - Upgrade: a setup that finds the entry proposes its folder, runs the old uninstaller silently in its folder and
 ;   waits for it, then installs, so no file of an older version remains.
-; - A folder that holds files but no uninstall.exe is refused (the page keeps Next off; `/S` exits with 2).
+; - A folder that holds files is refused unless it holds both uninstall.exe and elektrawatt.exe, or is the folder
+;   that the entry names (the page keeps Next off; `/S` exits with 2).
 ; - The uninstall removes D3's entries by name, the uninstaller, the shortcut and the entry, then the folder when it is
 ;   empty: never another file of that folder, nor the user's settings, data or cache folders.
 ; - zlib compression, the default: NSIS's LZMA module is under CPL-1.0 (its COPYING), the zlib one under the zlib
@@ -57,12 +58,31 @@ InstallDirRegKey HKCU "${UNINSTALL_KEY}" "InstallLocation"
 !insertmacro MUI_LANGUAGE "English"
 !insertmacro MUI_LANGUAGE "Dutch"
 
-; A folder that holds files and no uninstall.exe is refused: the uninstall removes D3's folders `docs`, `content`,
-; `samples` and `LICENSES` whole, so it would delete the user's own. The folder page keeps Next off for it.
+; A folder that holds files is refused unless it is an installation of ElektraWatt: it holds both uninstall.exe and
+; elektrawatt.exe, or it is the folder that the uninstall entry names. The uninstall removes D3's folders `docs`,
+; `content`, `samples` and `LICENSES` whole, and the setup writes its own uninstall.exe, so in another program's or
+; the user's folder it would delete their files. Sets $R0 to "refused" or "accepted".
+!macro CheckFolder
+  StrCpy $R0 "accepted"
+  ${DirState} "$INSTDIR" $R1
+  ${If} $R1 == 1
+    StrCpy $R0 "refused"
+    ${If} ${FileExists} "$INSTDIR\uninstall.exe"
+    ${AndIf} ${FileExists} "$INSTDIR\elektrawatt.exe"
+      StrCpy $R0 "accepted"
+    ${EndIf}
+    ReadRegStr $R2 HKCU "${UNINSTALL_KEY}" "InstallLocation"
+    ${If} $R2 != ""
+    ${AndIf} $R2 == $INSTDIR
+      StrCpy $R0 "accepted"
+    ${EndIf}
+  ${EndIf}
+!macroend
+
+; The folder page keeps Next off for a refused folder.
 Function .onVerifyInstDir
-  ${DirState} "$INSTDIR" $R0
-  ${If} $R0 == 1
-  ${AndIfNot} ${FileExists} "$INSTDIR\uninstall.exe"
+  !insertmacro CheckFolder
+  ${If} $R0 == "refused"
     Abort
   ${EndIf}
 FunctionEnd
@@ -70,9 +90,8 @@ FunctionEnd
 Section "ElektraWatt"
   SetShellVarContext current
   ; The same refusal for `/S /D=<folder>`, which shows no folder page: the setup ends with exit code 2, writing nothing.
-  ${DirState} "$INSTDIR" $R0
-  ${If} $R0 == 1
-  ${AndIfNot} ${FileExists} "$INSTDIR\uninstall.exe"
+  !insertmacro CheckFolder
+  ${If} $R0 == "refused"
     SetErrorLevel 2
     Abort
   ${EndIf}

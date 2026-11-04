@@ -17,8 +17,10 @@ name, shown here as `<version>`.
 2. The setup is not signed yet, so Windows may stop it with **Windows protected your PC**. Choose **More info**, check
    that the file is the one you downloaded, then choose **Run anyway**.
 3. Keep the folder the setup proposes, `%LOCALAPPDATA%\Programs\ElektraWatt`, or choose another one of your own, then
-   choose **Install**. The folder must be new or empty, or hold an earlier installation: for a folder that holds
-   other files, **Install** stays off, so that removing ElektraWatt later never deletes them.
+   choose **Install**. The folder must be new or empty, hold both `elektrawatt.exe` and `uninstall.exe` of an earlier
+   installation, or be the folder of the installed version. For any other folder that holds files, **Install** stays
+   off, so that removing ElektraWatt later never deletes them: choose another folder, or, when it is an earlier
+   installation that lost one of those files, delete that folder and run the setup again.
 4. On the last page, leave **Run ElektraWatt** ticked to start it, and choose **Finish**.
 
 The setup installs for you alone: the program, the command-line program `ew.exe`, the starter content, the sample
@@ -32,8 +34,8 @@ argument, without quotes even when the folder has spaces, to install into anothe
 ElektraWatt-<version>-x64-user-setup.exe /S /D=C:\Tools\ElektraWatt
 ```
 
-A folder that holds other files and no earlier installation is refused here too: the setup installs nothing and ends
-with exit code 2.
+The same folders are refused here too: the setup installs nothing and ends with exit code 2. Give another folder, or
+delete the old one and run the setup again.
 
 ## Run the AppImage on Linux
 
