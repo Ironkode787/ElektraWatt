@@ -228,9 +228,12 @@ enum DialogKind {
     ConfirmUpgrade,
     OpenEwz,
     ConfirmGitSetup,
+    ImportQet,
+    ReimportMatch,
+    Reimport,
 }
 
-const DIALOGS: [DialogKind; 18] = [
+const DIALOGS: [DialogKind; 21] = [
     DialogKind::About,
     DialogKind::Shortcuts,
     DialogKind::ConfirmDiscard,
@@ -249,6 +252,9 @@ const DIALOGS: [DialogKind; 18] = [
     DialogKind::ConfirmUpgrade,
     DialogKind::OpenEwz,
     DialogKind::ConfirmGitSetup,
+    DialogKind::ImportQet,
+    DialogKind::ReimportMatch,
+    DialogKind::Reimport,
 ];
 
 fn kind(d: &Dialog) -> DialogKind {
@@ -271,6 +277,9 @@ fn kind(d: &Dialog) -> DialogKind {
         Dialog::ConfirmUpgrade { .. } => DialogKind::ConfirmUpgrade,
         Dialog::OpenEwz { .. } => DialogKind::OpenEwz,
         Dialog::ConfirmGitSetup { .. } => DialogKind::ConfirmGitSetup,
+        Dialog::ImportQet { .. } => DialogKind::ImportQet,
+        Dialog::ReimportMatch { .. } => DialogKind::ReimportMatch,
+        Dialog::Reimport { .. } => DialogKind::Reimport,
     }
 }
 
@@ -455,6 +464,28 @@ fn open_dialog(tmp: &Tmp, kind: DialogKind) -> Harness<'static, App> {
             h.set_size(egui::Vec2::new(1280.0, 800.0));
             h.run_ok();
             dispatch(&mut h, "git.setup", json!({}));
+            h
+        }
+        // WP-S3.09: a QElectroTech file's import card; then, once it is a project, a changed copy of the file matched
+        // to that import by its items (the proposal) and accepted (the re-import card).
+        DialogKind::ImportQet | DialogKind::ReimportMatch | DialogKind::Reimport => {
+            let qet = tmp.0.join("plant.qet");
+            let project = |title: &str| {
+                format!(
+                    r#"<project version="0.100" title="Plant"><diagram title="{title}" folio="1" order="1" cols="17" colsize="60" rows="8" rowsize="80" height="640"/></project>"#
+                )
+            };
+            std::fs::write(&qet, project("Supply")).unwrap();
+            let file = qet.to_string_lossy().into_owned();
+            let dir = tmp.0.join("plant.ew").to_string_lossy().into_owned();
+            let mut h = simple("file.import_qet", json!({ "file": file, "dir": dir }));
+            assert!(h.state_mut().shell_mut().wait_jobs().is_empty());
+            if kind != DialogKind::ImportQet {
+                dispatch(&mut h, "file.import_qet_apply", json!({ "confirm": true }));
+                std::fs::write(&qet, project("Main supply")).unwrap();
+                let accept = kind == DialogKind::Reimport;
+                dispatch(&mut h, "file.reimport_qet", json!({ "file": file, "accept": accept }));
+            }
             h
         }
     }
