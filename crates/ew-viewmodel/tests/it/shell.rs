@@ -513,12 +513,24 @@ fn command_run_refuses_what_a_script_may_not_run() {
         .filter(|c| format!("{:?}", c.meta().exposure) != "Edit")
         .map(|c| c.meta().name.to_owned())
         .collect();
-    for name in &refused_by_exposure {
+    // FT-1363: each refusal names the command by its title in words, by its exposure class.
+    for c in session
+        .registry()
+        .commands()
+        .filter(|c| refused_by_exposure.iter().any(|n| n == c.meta().name))
+    {
+        let name = c.meta().name;
+        let key = match format!("{:?}", c.meta().exposure).as_str() {
+            "Import" => "error-command-import-only",
+            "Internal" => "error-command-internal-only",
+            _ => "error-command-human-only",
+        };
+        let wanted = ew_viewmodel::strings::format(
+            ew_viewmodel::strings::Key::run_time(key),
+            &[ew_viewmodel::strings::command_title(name)],
+        );
         match shell.dispatch("command.run", &json!({"cmd": name, "params": {}})) {
-            Outcome::Failed { message } => assert!(
-                message.contains("Exposure") || message.contains("exposure"),
-                "{name}: {message}"
-            ),
+            Outcome::Failed { message } => assert_eq!(message, wanted, "{name}"),
             other => panic!("{name} must fail, got {other:?}"),
         }
     }

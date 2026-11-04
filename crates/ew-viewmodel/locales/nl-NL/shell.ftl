@@ -3466,13 +3466,11 @@ error-first-folio = De eerste folio is een nummer: "{ $p0 }" niet.
 toast-report-block-new = Rapportblok { $p0 } toegevoegd vanaf folio { $p1 }
 
 # FT-1337 en FT-1363 (ID-1359 uitspraak 1): een opdrachtfout in het venster, naar de reden.
-command-error-unknown = Er is geen opdracht { $p0 }
-command-error-not-found = Een record dat de opdracht noemt staat niet meer in het project; probeer het opnieuw op wat de pagina nu toont
-command-error-human-only = Alleen een persoon kan { $p0 } uitvoeren, in het venster; een script of een plug-in kan dat niet (ADR-0008)
-command-error-import-only = { $p0 } draait alleen vanuit een import
-command-error-internal-only = { $p0 } wordt alleen door ElektraWatt zelf uitgevoerd, als een bestand op schijf verandert
-command-error-needs-preview = { $p0 } wijzigt veel records: eerst volgt een voorbeeld, daarna toepassen
-command-error-prevented = { $p0 } verhindert de wijziging: { $p1 }
-command-error-model = De wijziging zou de gegevens van het project breken: { $p0 }
-command-error-history = Ongedaan maken of opnieuw uitvoeren lukt niet: { $p0 }
-command-error-internal = Een interne fout stopte de opdracht: { $p0 }
+error-command-unknown = Er is geen opdracht { $p0 }
+error-command-not-found = Een record dat de opdracht noemt staat niet meer in het project; probeer het opnieuw op wat de pagina nu toont
+error-command-human-only = Alleen een persoon kan { $p0 } uitvoeren, in het venster; een script of een plug-in kan dat niet (ADR-0008)
+error-command-import-only = { $p0 } draait alleen vanuit een import
+error-command-internal-only = { $p0 } wordt alleen door ElektraWatt zelf uitgevoerd, als een bestand op schijf verandert
+error-command-needs-preview = { $p0 } wijzigt veel records: eerst volgt een voorbeeld, daarna toepassen
+error-command-history = Ongedaan maken of opnieuw uitvoeren lukt niet: { $p0 }
+error-command-internal = Een interne fout stopte de opdracht: { $p0 }

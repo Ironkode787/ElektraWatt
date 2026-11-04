@@ -1267,43 +1267,39 @@ pub(super) fn command_failed(e: &CmdError, params: &Value) -> Outcome {
 /// text in both languages with the same arguments.
 #[cfg(test)]
 const COMMAND_ERROR_KEYS: &[&str] = &[
-    "command-error-unknown",
-    "command-error-not-found",
-    "command-error-human-only",
-    "command-error-import-only",
-    "command-error-internal-only",
-    "command-error-needs-preview",
-    "command-error-prevented",
-    "command-error-model",
-    "command-error-history",
-    "command-error-internal",
+    "error-command-unknown",
+    "error-command-not-found",
+    "error-command-human-only",
+    "error-command-import-only",
+    "error-command-internal-only",
+    "error-command-needs-preview",
+    "error-command-history",
+    "error-command-internal",
 ];
 
 /// The key and the arguments of a command error that is neither an invalid parameter nor a command's refusal
-/// (FT-1337, FT-1363): the command by its title, a prevent rule by its ID and finding, a model, history or internal
-/// error with its text. The match names every reason, so a new one does not build until it has its key.
+/// (FT-1337, FT-1363): the command by its title, a history or internal error with its text, a prevent rule or a model
+/// error as it prints after its rule code. The match names every reason, so a new one does not build until it has its key.
 fn command_error_text(e: &CmdError) -> (Key<'static>, Vec<String>) {
     let title = |c: &str| strings::command_title(c).to_owned();
     match e {
-        CmdError::UnknownCommand { name } => (key!("command-error-unknown"), vec![name.clone()]),
-        CmdError::NotFound { .. } => (key!("command-error-not-found"), Vec::new()),
+        CmdError::UnknownCommand { name } => (key!("error-command-unknown"), vec![name.clone()]),
+        CmdError::NotFound { .. } => (key!("error-command-not-found"), Vec::new()),
         CmdError::Exposure {
             command, exposure, ..
         } => match exposure {
-            ew_api::Exposure::Import => (key!("command-error-import-only"), vec![title(command)]),
-            ew_api::Exposure::Internal => (key!("command-error-internal-only"), vec![title(command)]),
+            ew_api::Exposure::Import => (key!("error-command-import-only"), vec![title(command)]),
+            ew_api::Exposure::Internal => (key!("error-command-internal-only"), vec![title(command)]),
             ew_api::Exposure::HumanOnly | ew_api::Exposure::Edit => {
-                (key!("command-error-human-only"), vec![title(command)])
+                (key!("error-command-human-only"), vec![title(command)])
             }
         },
-        CmdError::NeedsPreview { command } => (key!("command-error-needs-preview"), vec![title(command)]),
-        CmdError::Prevented { rule, finding, .. } => (
-            key!("command-error-prevented"),
-            vec![rule.clone(), finding.clone()],
-        ),
-        CmdError::Model(m) => (key!("command-error-model"), vec![m.to_string()]),
-        CmdError::History { reason } => (key!("command-error-history"), vec![reason.clone()]),
-        CmdError::Internal { reason } => (key!("command-error-internal"), vec![reason.clone()]),
+        CmdError::NeedsPreview { command } => (key!("error-command-needs-preview"), vec![title(command)]),
+        // A prevent rule's and the model's own words, after their rule code (`EW-CORE-052: …`), which the IP tool and
+        // the card read.
+        CmdError::Prevented { .. } | CmdError::Model(_) => (key!("error-command"), vec![e.to_string()]),
+        CmdError::History { reason } => (key!("error-command-history"), vec![reason.clone()]),
+        CmdError::Internal { reason } => (key!("error-command-internal"), vec![reason.clone()]),
         CmdError::InvalidParams { message, .. } | CmdError::Rejected { reason: message, .. } => {
             (key!("error-command"), vec![message.clone()])
         }
@@ -1412,11 +1408,6 @@ mod ft779 {
             },
             CmdError::History { reason: "r".into() },
             CmdError::Internal { reason: "r".into() },
-            CmdError::Prevented {
-                rule: "EW-TERM-002".into(),
-                finding: "f".into(),
-                keys: Vec::new(),
-            },
         ];
         for e in &errors {
             let (key, _) = command_error_text(e);

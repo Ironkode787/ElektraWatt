@@ -526,7 +526,14 @@ fn t2_a_human_only_command_is_refused_headless() {
     let Outcome::Failed { message } = out else {
         panic!("{out:?}")
     };
-    assert!(message.contains("project.checks.set"), "{message}");
+    // FT-1363: the refusal names the command by its title, in words.
+    assert_eq!(
+        message,
+        format!(
+            "Only a person can run {}, in the window; a script or a plugin cannot (ADR-0008)",
+            ew_viewmodel::strings::command_title("project.checks.set")
+        )
+    );
     assert_eq!(shell.revision(), rev);
     assert!(shell.recorded_commands().is_empty());
     shell.shutdown();
