@@ -427,7 +427,13 @@ fn tutorial_2_a_terminal_strip_and_a_cable_runs_as_its_page_says() {
     assert_eq!(
         lines_of(
             &describe,
-            &["row \"-1X1\"", "row level 1 cable", "row level 2 conductor", "toast", "title:"]
+            &[
+                "row \"-1X1\"",
+                "row level 1 cable",
+                "row level 2 conductor",
+                "toast",
+                "title:"
+            ]
         ),
         [
             "title: first-page.ew - ElektraWatt",
