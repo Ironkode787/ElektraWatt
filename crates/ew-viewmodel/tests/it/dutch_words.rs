@@ -743,3 +743,21 @@ fn every_report_kind_has_its_words_in_both_locales() {
         .collect();
     assert_eq!(missing(&wanted), Vec::<String>::new());
 }
+
+/// FT-1364 (W50-F14): View ▸ Language takes the toasts on show off the screen, so none mixes the languages; the log
+/// keeps them, and choosing the language already on show keeps them.
+#[test]
+fn ft1364_a_language_switch_drops_the_toasts_on_show() {
+    let tmp = Tmp::new("ft1364");
+    let mut shell = tmp.shell("102");
+    done(&mut shell, "messages.check", json!({}));
+    assert!(shell.toast().is_some(), "the check toast");
+    let logged = shell.notifications().len();
+    done(&mut shell, "view.language", json!({"value": "en"}));
+    assert!(shell.toast().is_some(), "the same language keeps it");
+    done(&mut shell, "view.language", json!({"value": "nl"}));
+    assert!(shell.toast().is_none());
+    assert_eq!(shell.notifications().len(), logged, "the log keeps it");
+    done(&mut shell, "view.language", json!({"value": "en"}));
+    shell.shutdown();
+}

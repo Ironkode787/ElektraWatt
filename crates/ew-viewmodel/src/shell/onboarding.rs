@@ -49,7 +49,13 @@ impl ShellModel {
             // WP-S2.08 part 3 (D10): the languages View ▸ Language offers; the texts follow at once.
             "language" => {
                 let tags: Vec<&str> = strings::languages().into_iter().map(|(tag, _)| tag).collect();
-                self.settings.language = choice(&tags)?;
+                let language = choice(&tags)?;
+                // FT-1364: a toast keeps the words of its language, so a switch takes the toasts on show off the
+                // screen (the log keeps them).
+                if language != self.settings.language {
+                    self.notes.clear_visible();
+                }
+                self.settings.language = language;
                 strings::set_locale(&self.settings.language);
                 self.refetch_for_language();
                 // FT-1297: the Place tool's label in the new language at once, not at the pointer's next move.
