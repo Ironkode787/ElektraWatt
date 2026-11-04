@@ -1,0 +1,7 @@
+{"$k":"manufacturer","id":"1e1c0a28-359d-5ba9-a2b5-792bfb7bb50c","version":"0.1.0","meta":{"licence":"CC0-1.0","sources":["golden.table:parts|2904602"]},"key":"Phoenix Contact","name":"Phoenix Contact"}
+{"$k":"manufacturer","id":"35b5dc34-a42b-5691-8d77-6ed6484c2d2b","version":"0.1.0","meta":{"licence":"CC0-1.0","sources":["golden.table:parts|MICO 4.10"]},"key":"Murrelektronik","name":"Murrelektronik"}
+{"$k":"manufacturer","id":"a59de755-eb2e-595f-a034-2786cddeee37","version":"0.1.0","meta":{"licence":"CC0-1.0","sources":["golden.table:parts|SK 3102.000"]},"key":"Rittal","name":"Rittal"}
+{"$k":"manufacturer","id":"ba0f8a87-5397-598f-95b1-21b1823bc225","version":"0.1.0","meta":{"licence":"CC0-1.0","sources":["golden.table:parts|533356"]},"key":"Eaton","name":"Eaton"}
+{"$k":"manufacturer","id":"cca6c8f7-530d-5aa1-a80f-8f615ee3aa7e","version":"0.1.0","meta":{"licence":"CC0-1.0","sources":["golden.table:parts|A9F78116"]},"key":"Schneider Electric","name":"Schneider Electric"}
+{"$k":"manufacturer","id":"cf2ec4de-3d78-5507-915d-d53dfa0fdce8","version":"0.1.0","meta":{"licence":"CC0-1.0","sources":["golden.table:parts|5SY4204-7"]},"key":"Siemens","name":"Siemens"}
+{"$k":"manufacturer","id":"e57439c1-7fa8-5128-987e-f32a35ec7daf","version":"0.1.0","meta":{"licence":"CC0-1.0","sources":["golden.table:parts|32P-VGL-R-MAHAHAHAHAHAHUL3LAHU-28MS"]},"key":"Festo","name":"Festo"}

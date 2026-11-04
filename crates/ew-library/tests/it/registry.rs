@@ -1128,10 +1128,12 @@ fn the_shipped_starter_parts_library_has_the_derived_id() {
         ..f.tiers.clone()
     })
     .unwrap();
+    // The other shipped system libraries (WP-S7.03's sample parts) are listed beside them; the set grows.
     let keys: Vec<(String, Tier, bool)> = reg
         .libraries()
         .into_iter()
         .map(|l| (l.key, l.tier, l.writable))
+        .filter(|(k, _, _)| k.starts_with("ew-starter"))
         .collect();
     assert_eq!(
         keys,
@@ -1141,8 +1143,13 @@ fn the_shipped_starter_parts_library_has_the_derived_id() {
         ]
     );
     assert!(reg.findings().is_empty(), "{:?}", reg.findings());
+    let starter_parts = reg
+        .libraries()
+        .into_iter()
+        .find(|l| l.key == ew_library::STARTER_PARTS_KEY)
+        .unwrap();
     assert_eq!(
-        reg.libraries()[1].path.as_deref(),
+        starter_parts.path.as_deref(),
         Some(libraries.join("ew-starter-parts.ewlib").as_path())
     );
     assert!(!reg.search(&PartQuery::default()).is_empty());
