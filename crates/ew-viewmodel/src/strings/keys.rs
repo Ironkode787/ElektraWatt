@@ -2529,6 +2529,7 @@ pub const KEYS: &[&str] = &[
     "external-present",
     "external-title",
     "external-text",
+    "external-text-one",
     "external-fields",
     "external-fields-one",
     "toast-external-kept",
