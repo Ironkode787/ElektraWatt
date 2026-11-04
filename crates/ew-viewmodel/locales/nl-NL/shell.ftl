@@ -2616,3 +2616,7 @@ action-file-upgrade = Omzetten en opslaan
 action-external-apply = De wijziging op schijf toepassen
 action-external-choose = Een kant kiezen
 action-git-setup = Samenvoegdriver instellen
+choice-extract = Uitpakken
+choice-read-only = Alleen-lezen
+choice-mine = Van mij
+choice-theirs = Van schijf

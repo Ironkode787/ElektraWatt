@@ -1069,6 +1069,10 @@ dialog; a failed Save As keeps the original's journal (FT-499, fixed in the cycl
 
 ## 9. External changes
 
+*As built (WP-S1.17 part 6, D20 to D23):* no `notify` watcher; the manifest is polled every 3 s and on focus, a change read
+after two equal reads 750 ms apart and no git operation in progress, applied through the merge core as one undoable
+`external.apply`, and the journal follows the new baseline (`external.rebase`). The steps below are the design.
+
 1. **Detection.**
    - `notify` 8.2.0 watches the project recursively, excluding `.ew/`, temps and the lock.
    - A `stat` of `manifest.json` runs on window focus.
@@ -1812,12 +1816,12 @@ Screens are specified in [UX and UI](16-ux-ui.md). Persistence provides:
 
 | Touchpoint | Behaviour |
 |---|---|
-| Status bar | Dirty dot, generation, badges (network share, cloud folder, read-only, merge driver missing), save progress and failures with cause and remedy (NFR-UX-07) |
+| Status bar | Dirty dot, generation, badges (network share, cloud folder, read-only, merge driver missing), save progress and failures with cause and remedy (NFR-UX-07). As built (WP-S1.17 part 7): "Merge driver not configured" in an editing window, a click sets it up after a question; the cloud folder is a banner at open |
 | File commands | Save, Save As, Save a Copy, Export `.ewz`, Open `.ewz`; all non-blocking |
 | Recovery dialog (§8.3) | At start-up and on open |
 | Lock banner and dialogs (§7) | Holder, "since", "last seen"; take over, notify when free, switch to editing; lock lost |
-| External-change toast | "External change applied: 12 records on folios 103 and 106 (git a1b2c3d)", with Undo and Show changes |
-| Merge panel | Base, ours and theirs per field, with derived tags. External-change collisions at MVP; conflict records at 1.0 (FR-COL-015) |
+| External-change toast | "External change applied: 12 records on folios 103 and 106 (git a1b2c3d)", with Undo and Show changes (the history at the step) |
+| Merge panel | Base, ours and theirs per field, with derived tags. External-change collisions at MVP as a form dialog (mine or theirs per field, All mine, All theirs, Decide later, which leaves a banner and held saves; WP-S1.17 D24); conflict records at 1.0 (FR-COL-015) |
 | Banners | Integrity (read-only on EW-CORE-005); newer minor, newer major, older major (with backup), unstable format; untrusted rules, reports or scripts |
 | Project settings → Storage | Save mode, lock stale age, archive roots, git status with "Set up merge driver", purge unused library copies; purge unused assets (the confirmed `HumanOnly` step with the preview in the `Destructive` dialog, FT-417) |
 

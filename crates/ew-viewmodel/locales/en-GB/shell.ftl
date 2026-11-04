@@ -2847,3 +2847,7 @@ action-file-upgrade = Upgrade and save
 action-external-apply = Apply the change on disk
 action-external-choose = Choose a side
 action-git-setup = Set up merge driver
+choice-extract = Extract
+choice-read-only = Read only
+choice-mine = Mine
+choice-theirs = Theirs

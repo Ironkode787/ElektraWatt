@@ -1220,7 +1220,16 @@ save budgets (milestone performance run).
 
 *Status (2026-11-02, cycle 47 design pass).* **Parts 1 and 2 built; `ew fmt --repair` built.** Part 1 (cycle 46: the stamps, the save's pre-check, ID-1152, ID-1156) and part 2 (cycle 47: the `.ewz` transport, `ew export ewz`, `ew extract`, the readers on an `.ewz`, the fuzz target `ewz_read`; ID-1191, ID-1195) are as built in [the specification](specs/WP-S1.17-collaboration.md) §6 and §7; `ew fmt --repair` and EZ-5 (0.1 pw moved out of part 2, ID-1175) are built with the backup of the files as found (ID-1185, ID-1186, ID-1196, ID-1200). Parts 3 to 8 remain, part 3 (migrations and the upgrade backup) before the first release (ID-1029). Open: FT-1102 (the `fuzz/` loader's replay test, which predates the part), FT-1108.
 
-*Status (2026-11-03, cycle 48 design pass, part 1).* **Parts 1 to 3 built.** Part 3 (lane M48: the migration chain on the `Value`, the migrated open, the consent gate in the store's save, the verified backup `<project folder>.pre-<format>.ewz`, `ew upgrade [--check] [--yes]`, the `unstable` marker and FT-403's fragments; FT-95 and FT-403 closed; ID-1221) is in [the specification](specs/WP-S1.17-collaboration.md) §8 with the review's rulings (ID-1230), which the fixer FM48 builds beside this pass, and in doc 05 §10.1, §10.2 and §10.4. Parts 4 to 8 remain. Open: FT-1148 (the window's half, part 7), FT-1153, FT-1154.
+*Status (2026-11-04, cycle 49, ID-1279, ID-1281, ID-1284).* **Parts 4 to 8 built.** Parts 4 and 5 in their lanes
+(the merge core and `ew merge-driver`; conflict records, markers and `merge.resolve`), parts 6 to 8 in one lane
+(COL49): the external change in the store and the session (the polled manifest, the incoming read, the three-way
+apply as `external.apply`, the journal rebase, the read-only reload), `ew diff` and its textconv, `ew git setup`,
+`ew check --integrity` (FT-191 closed), EW-CORE-013 with "Renumber the newer", AC-41 through git, and the window's half
+(the toast with Show changes, the collision dialog, the cloud banner, Export and Open `.ewz`, the upgrade dialog, the
+merge driver's status). As built in [the specification](specs/WP-S1.17-collaboration.md) §11 to §13; online-only
+placeholders de-scoped (§14.4).
+
+*Status (2026-11-03, cycle 48 design pass, part 1).* **Parts 1 to 3 built.** Part 3 (lane M48: the migration chain on the `Value`, the migrated open, the consent gate in the store's save, the verified backup `<project folder>.pre-<format>.ewz`, `ew upgrade [--check] [--yes]`, the `unstable` marker and FT-403's fragments; FT-95 and FT-403 closed; ID-1221) is in [the specification](specs/WP-S1.17-collaboration.md) §8 with the review's rulings (ID-1230), which the fixer FM48 builds beside this pass, and in doc 05 §10.1, §10.2 and §10.4. Parts 4 to 8 followed in cycle 49 (below). Open: FT-1148 (the window's half, part 7), FT-1153, FT-1154.
 
 *Status (2026-11-02, cycle 46, ID-1115, ID-1144, ID-1152, ID-1156).* **Part 1 built** (lane D46, Opus, with its fixer FIXD46): the `since` stamps and the computed `min_reader`, the save's pre-check of every target before its temps (a CRLF-only change, also held as CRLF and now LF, not refused), the generation after a conflicted manifest and a save past the generation ceiling refused, and stray duplicates removed inside the move-aside, so FT-97 and FT-98 are closed and FT-95's `min_reader` half is done. Part 2 and the later parts wait for the owner's hold to lift.
 

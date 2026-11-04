@@ -722,8 +722,13 @@ fn xw5_a_conflicted_copy_is_listed_as_an_orphan_file() {
     let copy = page.replace(".jsonl", " (conflicted copy).jsonl");
     vfs.put(&ew_store::join(&root(), &copy), &golden()[&page]);
     let c = clock();
-    let (s, report) = Session::open(&root(), options(&vfs, &c, 1), SessionOptions::default(), Recovery::Keep)
-        .expect("the copy opens");
+    let (s, report) = Session::open(
+        &root(),
+        options(&vfs, &c, 1),
+        SessionOptions::default(),
+        Recovery::Keep,
+    )
+    .expect("the copy opens");
     assert_eq!(report.access, ew_api::Access::Edit);
     let items = ew_api::integrity_items(&report);
     let orphans: Vec<_> = items.iter().filter(|i| i.rule == "EW-CORE-004").collect();

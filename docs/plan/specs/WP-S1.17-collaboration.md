@@ -6,7 +6,7 @@ format migrations and the upgrade backup (0.8 pw, D10 to D12), part 4 the three-
 (1.2 pw, D13 to D16), part 5 conflict records, conflict markers and their resolution (0.9 pw, D17 to D19), part 6
 external change in the store and the session (1.1 pw, D20 to D23), part 7 the window, cloud folders and the driver
 status (0.8 pw, D24, D25), part 8 `ew diff`, `ew git setup`, the post-merge integrity and AC-41 (0.9 pw, D26 to D29).
-The parts sum to **7.4 pw plus 0.3 pw reserve** against a 6.8 pw PERT (O1) · **Amended in cycle 42** (decision log ID-1029, the owner's format decision): part 3, D4 and D3's `unstable` marker move to the wave before the first release, beside WP-S6.08; the PERT is 6.9 pw; format parts route at `high`, a save, a journal, recovery or a merge at `xhigh` (§16) · **Date:** 2026-10-31 · **Work package:**
+The parts sum to **7.4 pw plus 0.3 pw reserve** against a 6.8 pw PERT (O1) · **Amended in cycle 42** (decision log ID-1029, the owner's format decision): part 3, D4 and D3's `unstable` marker move to the wave before the first release, beside WP-S6.08 (part 3 was then built in cycle 48 after all, ID-1221; §16); the PERT is 6.9 pw; format parts route at `high`, a save, a journal, recovery or a merge at `xhigh` (§16) · **Date:** 2026-10-31 · **Work package:**
 [WP-S1.17](../02-work-packages.md#wp-s117-collaboration-external-change-migrations-integrity-merge-driver) ·
 **Decision log:** ID-1015; amended by ID-1029; part 1 ruled by ID-1115, its fixes by ID-1144; part 2 ruled by ID-1175; part 3 ruled by ID-1221; `fmt --repair` ruled by ID-1185, its backup by ID-1186; as built ID-1152, ID-1156 (part 1), ID-1191, ID-1195 (part 2), ID-1196, ID-1200 (`fmt --repair`); part 3 built in cycle 48 (lane M48, its deviations and the review's rulings
 in §8 and ID-1230, built by the fixer FM48, ID-1254; review part 4's amendments in §8, ID-1257; the window's half is
@@ -665,6 +665,17 @@ are written here as lines; part 5 types them.
 - **XC-7** A read-only session reloads on each of the holder's saves and writes nothing.
 - **XC-8** Targeted checks for `ew-store`, `ew-commands`, `ew-api`.
 
+*As built (cycle 49, lane COL49; decision log ID-1284):* `Exposure::Internal` admits only `Origin::External`, and an
+`Internal` command runs no normaliser and no prevent rule; `external.apply` carries its rows and assets outside its
+parameters, so a submission from JSON writes nothing. The store polls with `Store::poll`, reads the incoming generation
+with `Store::read_incoming` (any finding that forces read-only, or a newer format, is unreadable), merges per record with
+`ew_store::external::merge` and adopts it with `Store::adopt_incoming`, whose `Journal::rebase` writes the new segment and
+`external.rebase` before it deletes the old one (a segment of the same name is written under a second name). A held change
+refuses saves with `SaveError::ExternalCollisions` or `SaveError::ExternalUnreadable` (D21's text); the D5 pre-check
+stays. The cloud recheck reads the service the front-end sets (`Session::set_cloud_service`), since the store reads no
+environment. A delete/modify collision is one row for the whole record. An external step is undone, as a `HumanOnly` one,
+from the GUI and a confirmed CLI only. The reload is one new revision of the old model, so views keep their place.
+
 ## 12. Part 7: the window, cloud folders and the driver status
 
 **Scope.** D24, D25, and the status-bar badge "Merge driver not configured" for a project in a git worktree whose
@@ -685,6 +696,13 @@ library call. **0.8 pw.** `ew-store` (`cloud.rs`), `ew-viewmodel` (dialogs, toas
 - **XW-7** The driver badge appears in a temporary repository without the configuration and disappears after setup;
   `ui.describe` words for every new control; the window check at 1920 × 1080 and the 1280 × 800 floor.
 - **XW-8** Targeted checks for `ew-store`, `ew-viewmodel`, `ew-ui`.
+
+*As built (cycle 49, lane COL49; ID-1284):* the window polls every 3 s, 750 ms later while a change settles, on focus
+regained, never while a pointer button is held; `project.check_disk` polls at once. The toast has two actions, Undo and
+Show changes (`NoteAction::ShowChanges`, the history opened at the step). The collision dialog names a record by the
+property grid's label (a connection by its wire label, not D24's ends). The driver badge shows in an editing window only.
+Online-only placeholders are **de-scoped** (§14.4); the cloud folder is a banner, not a status-bar badge. The upgrade
+dialog, Export .ewz… and Open .ewz… (Extract and open, Open read-only) are built (ruling 4).
 
 ## 13. Part 8: `ew diff`, `ew git setup`, post-merge integrity and AC-41
 
@@ -710,6 +728,15 @@ hook, managed blocks), `ew-api` (diff of two sessions), `ew-checks` (EW-CORE-013
   leaves one conflict record, the project opens, and `ew merge resolve --take ours` makes it clean. Without setup the
   status is "merge driver not configured" (XW-7).
 - **DG-8** Targeted checks for `ew-store`, `ew-api`, `ew-checks`, `ew`.
+
+*As built (cycle 49, lane COL49; ID-1284):* `git.rs` parses the four outputs its header names; `ew git setup` writes the
+repository's configuration (or the global one with `--global`), checks a foreign hook before it writes anything, and finds
+the project folders up to four levels down; `Store::create` writes the managed blocks inside a worktree. EW-CORE-013 is a
+registry rule (its INTEGRITY row moved) that reports on the model's own evidence, conflict records; the session joins its
+groups for a merged manifest, a merge or rebase in progress and `--after-merge` (`CheckReport::with_merge_evidence`).
+The keeper order compares the IDs' time bytes (bytes 0 to 5 of a UUIDv7; a non-v7 ID counts as the oldest); a released
+number is not modelled. "Renumber the newer" is `numbering.renumber` with `selection` and `only_nonconforming`, no new
+parameter, on EW-RDS-004 and EW-CORE-013. `ew check --integrity` reports as the scheme `integrity`.
 
 ## 14. Files owned, boundaries, risks, size and routing
 
@@ -804,12 +831,14 @@ to 6 (format, store, a core crate). **Unblocks:** WP-S6.08 after part 8; WP-S2.1
   6.8 by moving parts 3's consent and backup and part 8's textconv to the first format change and 1.0.
   *Recommendation:* (1); the Shoulds left are what AC-41 and the 0.1.0 pilot rely on.
 - **O2 (detection).** D20 polls the manifest instead of `notify`. *Options:* (1) polling; (2) `notify` 8.2.0 as doc
-  05 §9 names. *Recommendation:* (1): no dependency, the manifest is the commit point, and D5 covers hand edits.
+  05 §9 names. *Recommendation:* (1): no dependency, the manifest is the commit point, and D5 covers hand edits. *Ruled (ID-1015):*
+  (1), built by part 6.
 - **O3 (migrations at MVP).** No user file can need a step before 0.2. *Options:* (1) build part 3 now with an empty
   shipped chain; (2) defer part 3 to the package that first changes the format. *Recommendation:* (1): FR-COL-010
   is a Must and the first format change should not also build the machinery.
 - **O4 (EW-CORE-013).** *Options:* (1) report on merge evidence only (D29); (2) report on every duplicate group,
-  doubling the six rules' findings. *Recommendation:* (1), with FP-1 putting the fix on the rules' own findings later.
+  doubling the six rules' findings. *Recommendation:* (1), with FP-1 putting the fix on the rules' own findings later. *Ruled (ID-1015):* (1), built by
+  part 8.
 
 ---
 
@@ -819,6 +848,9 @@ The owner, 2026-10-31: "The app is not in use yet. Change the format however muc
 release (WP-S6.08 adds the first entry to `RELEASED_FORMATS`) a format change needs no migration, no reader for old
 files and no byte rule kept only for compatibility with other builds; Golden A and the fixtures are re-blessed instead.
 This section overrides §4 to §15 where they differ; the rulings on O1 to O4 are in decision log ID-1015.
+
+*As built (cycle 48, ID-1221, ID-1230, ID-1254):* part 3 was built in cycle 48 after all (§8), the migration chain
+shipped empty; D4 and FT-96 stay deferred as below.
 
 **Deferred to the wave before the first release, beside WP-S6.08** (one part, still called part 3, re-read and sized
 at its dispatch):

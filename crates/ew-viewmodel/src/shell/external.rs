@@ -130,8 +130,11 @@ impl ShellModel {
     /// Takes the banner of a held change away once it is no longer held, and a refused save's banner that named it.
     fn release_banner(&mut self) {
         let held = self.collab.held_banner.take();
-        let refusals = [key!("saveerr-external-collisions"), key!("saveerr-external-unreadable")]
-            .map(|k| strings::format(key!("error-save"), &[strings::text(k)]));
+        let refusals = [
+            key!("saveerr-external-collisions"),
+            key!("saveerr-external-unreadable"),
+        ]
+        .map(|k| strings::format(key!("error-save"), &[strings::text(k)]));
         if let Some(b) = self.banner.as_deref()
             && (held.as_deref() == Some(b) || refusals.iter().any(|r| r == b))
         {
@@ -337,7 +340,12 @@ impl ShellModel {
         if let Some(p) = self.project.as_mut() {
             p.session.set_cloud_service(cloud);
         }
-        self.collab.driver_missing = driver_missing(dir);
+        // Only a window that edits can commit a merge: a read-only one shows no driver status.
+        let edits = self
+            .project
+            .as_ref()
+            .is_some_and(|p| matches!(p.access, super::AccessMode::Edit));
+        self.collab.driver_missing = edits && driver_missing(dir);
         let mut banners = Vec::new();
         if migrated.is_some() {
             banners.push(strings::text(key!("banner-older-format")).to_owned());

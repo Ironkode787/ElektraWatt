@@ -1341,7 +1341,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             Menu::Project,
             &[],
             project_open,
-            None,
+            slot(Menu::Project),
             |s, p| s.act_git_setup(p),
         ),
     ),
