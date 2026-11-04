@@ -83,7 +83,10 @@ impl StartupOffer {
     /// The crash line (S3 with a project, S4 for a log alone), `None` without a log.
     pub fn crash_line(&self) -> Option<String> {
         let log = self.log.as_ref()?;
-        let folder = self.log_folder().map(|f| f.to_string_lossy().into_owned()).unwrap_or_default();
+        let folder = self
+            .log_folder()
+            .map(|f| f.to_string_lossy().into_owned())
+            .unwrap_or_default();
         let key = if self.projects.is_empty() {
             key!("startup-crash-alone")
         } else {
@@ -116,13 +119,25 @@ impl StartupOffer {
         } else {
             (
                 key!("startup-title-project"),
-                button(key!("startup-recover"), "startup.recover", json!({ "project": 1 })),
+                button(
+                    key!("startup-recover"),
+                    "startup.recover",
+                    json!({ "project": 1 }),
+                ),
                 vec![not_now],
             )
         };
         if self.log.is_some() {
-            secondary.push(button(key!("startup-open-log-folder"), "startup.open_log_folder", Value::Null));
-            secondary.push(button(key!("startup-delete-log"), "startup.delete_log", Value::Null));
+            secondary.push(button(
+                key!("startup-open-log-folder"),
+                "startup.open_log_folder",
+                Value::Null,
+            ));
+            secondary.push(button(
+                key!("startup-delete-log"),
+                "startup.delete_log",
+                Value::Null,
+            ));
         }
         DialogSpec {
             title: strings::text(title).to_owned(),
@@ -144,7 +159,10 @@ fn utc_minutes(ms: u64) -> String {
         .ok()
         .and_then(ew_api::output::date_from_epoch)
         .map_or_else(String::new, |d| {
-            format!("{:04}-{:02}-{:02} {:02}:{:02}", d.year, d.month, d.day, d.hour, d.minute)
+            format!(
+                "{:04}-{:02}-{:02} {:02}:{:02}",
+                d.year, d.month, d.day, d.hour, d.minute
+            )
         })
 }
 
@@ -268,7 +286,10 @@ impl ShellModel {
             None => return failed(key!("error-missing-param"), &["project"]),
             Some(v) => v.as_u64().and_then(|n| usize::try_from(n).ok()),
         };
-        let Some(project) = n.and_then(|n| n.checked_sub(1)).and_then(|i| offer.projects.get(i)) else {
+        let Some(project) = n
+            .and_then(|n| n.checked_sub(1))
+            .and_then(|i| offer.projects.get(i))
+        else {
             return failed(key!("error-bad-param"), &["project"]);
         };
         let path = project.path.clone();
@@ -284,7 +305,12 @@ impl ShellModel {
     /// `startup.open_log_folder`: the window opens the folder of the crash logs; the offer stays. The headless mode
     /// opens nothing.
     pub(crate) fn act_startup_open_log_folder(&mut self) -> Outcome {
-        let Some(folder) = self.startup.as_ref().and_then(StartupOffer::log_folder).map(Path::to_path_buf) else {
+        let Some(folder) = self
+            .startup
+            .as_ref()
+            .and_then(StartupOffer::log_folder)
+            .map(Path::to_path_buf)
+        else {
             return Outcome::Refused {
                 reason_key: key!("reason-no-crash-log"),
             };

@@ -1272,7 +1272,9 @@ mod tests {
         let graph = parse_tree("elektrawatt v0.1.0 (/w/bin/elektrawatt)|\nreqwest v0.12.0|default\n");
         assert_eq!(
             check_shipping(&rules, &graph, "elektrawatt, ew"),
-            ["shipping graph: `reqwest` is in the build of elektrawatt, ew; it may only be a dev-dependency (18 CI-R-09)"]
+            [
+                "shipping graph: `reqwest` is in the build of elektrawatt, ew; it may only be a dev-dependency (18 CI-R-09)"
+            ]
         );
     }
 

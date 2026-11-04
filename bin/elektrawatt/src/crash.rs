@@ -83,7 +83,14 @@ pub(crate) fn set_dir(dir: Option<PathBuf>) {
 }
 
 /// The text of one entry (L1 to L7, then the frames, then an empty line).
-pub(crate) fn entry(version: &str, time: &str, thread: &str, location: &str, message: &str, frames: &str) -> String {
+pub(crate) fn entry(
+    version: &str,
+    time: &str,
+    thread: &str,
+    location: &str,
+    message: &str,
+    frames: &str,
+) -> String {
     format!(
         "ElektraWatt {version} crash log\nOS: {} {}\nTime: {time}\nThread: {thread}\nLocation: {location}\n\
          Message: {message}\nBacktrace:\n{}\n\n",
@@ -110,9 +117,10 @@ fn record(version: &str, info: &PanicHookInfo<'_>) {
     }
     if let Some(path) = LOG.get() {
         let thread = std::thread::current();
-        let location = info
-            .location()
-            .map_or_else(|| "unknown".to_owned(), |l| format!("{}:{}:{}", l.file(), l.line(), l.column()));
+        let location = info.location().map_or_else(
+            || "unknown".to_owned(),
+            |l| format!("{}:{}:{}", l.file(), l.line(), l.column()),
+        );
         let frames = std::backtrace::Backtrace::force_capture().to_string();
         let text = entry(
             version,

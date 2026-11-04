@@ -105,7 +105,11 @@ fn a_crash_with_unsaved_work_is_offered_and_recovered() {
     let mut shell = started(&tmp);
     let offer = shell.startup_offer().expect("the offer").clone();
     assert_eq!(offer.projects.len(), 1);
-    assert!(offer.projects[0].path.ends_with("g.ew"), "{:?}", offer.projects[0].path);
+    assert!(
+        offer.projects[0].path.ends_with("g.ew"),
+        "{:?}",
+        offer.projects[0].path
+    );
     let folder = crashes(&tmp);
     assert_eq!(
         offer_lines(&shell),
@@ -133,7 +137,10 @@ fn a_crash_with_unsaved_work_is_offered_and_recovered() {
     assert_eq!(names(&folder), ["20261104T101500Z-42.offered.log"]);
     assert!(!log.exists());
     done(&mut shell, "journal.recover", json!({}));
-    assert!(shell.page_labels().iter().any(|l| l == "996"), "the journal replays");
+    assert!(
+        shell.page_labels().iter().any(|l| l == "996"),
+        "the journal replays"
+    );
     shell.shutdown();
 }
 
@@ -176,7 +183,12 @@ fn a_log_alone_is_offered_and_deleted() {
     let log = crash_log(&tmp, "20261104T101500Z-42.log", "2026-11-04T10:15:07Z", true);
     // A log whose panic was caught on its way (no end line) and an offered one are never offered.
     crash_log(&tmp, "20261104T111500Z-43.log", "2026-11-04T11:15:07Z", false);
-    crash_log(&tmp, "20261104T121500Z-44.offered.log", "2026-11-04T12:15:07Z", true);
+    crash_log(
+        &tmp,
+        "20261104T121500Z-44.offered.log",
+        "2026-11-04T12:15:07Z",
+        true,
+    );
     let mut shell = started(&tmp);
     assert_eq!(
         offer_lines(&shell),
@@ -223,10 +235,7 @@ fn a_project_that_is_gone_is_refused_in_words() {
             message: text.clone()
         }
     );
-    assert_eq!(
-        shell.startup_offer().and_then(|o| o.refusal.clone()),
-        Some(text)
-    );
+    assert_eq!(shell.startup_offer().and_then(|o| o.refusal.clone()), Some(text));
     assert!(offer_lines(&shell).contains(&format!(
         "  error: The project is no longer at {}.",
         path.to_string_lossy()
@@ -252,14 +261,22 @@ fn old_and_surplus_crash_logs_are_pruned_at_start() {
         .set_modified(month_ago)
         .unwrap();
     for n in 0..21 {
-        crash_log(&tmp, &format!("20261104T1000{n:02}Z-{n}.log"), "2026-11-04T10:00:00Z", false);
+        crash_log(
+            &tmp,
+            &format!("20261104T1000{n:02}Z-{n}.log"),
+            "2026-11-04T10:00:00Z",
+            false,
+        );
     }
     let shell = started(&tmp);
     assert!(shell.startup_offer().is_none(), "no log ended its session");
     let left = names(&crashes(&tmp));
     assert_eq!(left.len(), 20);
     assert!(!left.contains(&"20260901T000000Z-1.log".to_owned()));
-    assert!(!left.contains(&"20261104T100000Z-0.log".to_owned()), "the oldest of 21 goes");
+    assert!(
+        !left.contains(&"20261104T100000Z-0.log".to_owned()),
+        "the oldest of 21 goes"
+    );
 }
 
 /// The offer in Dutch (WP-S2.08 D12): the title, the crash line and the buttons.
@@ -268,7 +285,11 @@ fn the_offer_speaks_dutch() {
     let tmp = Tmp::new("startup-nl");
     crash_log(&tmp, "20261104T101500Z-42.log", "2026-11-04T10:15:07Z", true);
     let mut shell = started(&tmp);
-    done(&mut shell, "settings.set", json!({ "key": "language", "value": "nl" }));
+    done(
+        &mut shell,
+        "settings.set",
+        json!({ "key": "language", "value": "nl" }),
+    );
     let spec: StartupOffer = shell.startup_offer().unwrap().clone();
     assert_eq!(
         offer_lines(&shell),
@@ -285,5 +306,9 @@ fn the_offer_speaks_dutch() {
         ]
     );
     assert!(spec.projects.is_empty());
-    done(&mut shell, "settings.set", json!({ "key": "language", "value": "en" }));
+    done(
+        &mut shell,
+        "settings.set",
+        json!({ "key": "language", "value": "en" }),
+    );
 }

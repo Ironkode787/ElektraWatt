@@ -941,7 +941,11 @@ pub(crate) fn scan_projects(vfs: &dyn Vfs, state: &Path, now: SystemTime) -> Vec
         });
         out.extend(found.filter(|p| !p.path.as_os_str().is_empty()));
     }
-    out.sort_by(|a, b| b.last_change_ms.cmp(&a.last_change_ms).then_with(|| a.path.cmp(&b.path)));
+    out.sort_by(|a, b| {
+        b.last_change_ms
+            .cmp(&a.last_change_ms)
+            .then_with(|| a.path.cmp(&b.path))
+    });
     out
 }
 

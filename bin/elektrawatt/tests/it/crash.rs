@@ -200,14 +200,22 @@ fn the_state_and_configuration_directories_are_user_only() {
     let tmp = Tmp::new();
     let config = tmp.path("config");
     let state = config.join("state");
-    let dirs = [config.clone(), state.clone(), state.join("journal"), state.join("crashes")];
+    let dirs = [
+        config.clone(),
+        state.clone(),
+        state.join("journal"),
+        state.join("crashes"),
+    ];
     for dir in &dirs {
         std::fs::create_dir_all(dir).unwrap();
         std::fs::set_permissions(dir, std::fs::Permissions::from_mode(0o755)).unwrap();
     }
     let project = tmp.path("g.ew");
     copy_dir(Path::new(GOLDEN_A), &project);
-    assert_eq!(run(&tmp, "crash.uiscript", &edit(&project), true).status.code(), Some(101));
+    assert_eq!(
+        run(&tmp, "crash.uiscript", &edit(&project), true).status.code(),
+        Some(101)
+    );
     let mode = |p: &Path| std::fs::metadata(p).unwrap().permissions().mode() & 0o777;
     for dir in &dirs {
         assert_eq!(mode(dir), 0o700, "{}", dir.display());

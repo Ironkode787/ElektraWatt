@@ -701,12 +701,7 @@ fn run(cli: Result<Cli, String>) -> i32 {
         Ok(Cli::Smoke(dir)) => {
             let config = shell_config(false);
             crash::set_dir(crash_dir(&config));
-            let code = headless::smoke(
-                config,
-                &dir,
-                &mut std::io::stdout(),
-                &mut std::io::stderr(),
-            );
+            let code = headless::smoke(config, &dir, &mut std::io::stdout(), &mut std::io::stderr());
             let _ = std::io::stdout().flush();
             code
         }

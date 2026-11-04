@@ -86,7 +86,10 @@ fn the_privacy_buttons_open_the_bundled_privacy_md() {
     let config = tmp.config().with_resources(resources);
     let shell = ShellModel::new(Mode::Gui, config.clone());
     let target = ew_ui::ew_viewmodel::about::privacy_target(&shell);
-    assert!(target.starts_with("file://") && target.ends_with("/PRIVACY.md"), "{target}");
+    assert!(
+        target.starts_with("file://") && target.ends_with("/PRIVACY.md"),
+        "{target}"
+    );
     let platform = Scripted::default();
     let mut h = harness_with(shell, platform.clone(), None);
     settle(&mut h);

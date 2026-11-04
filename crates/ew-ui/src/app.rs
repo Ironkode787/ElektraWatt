@@ -1766,9 +1766,15 @@ impl App {
                 let target = ew_viewmodel::about::privacy_target(&self.shell);
                 if !self.platform.open_url(&target) {
                     // The file's path as Windows users read it: without the verbatim prefix `canonicalize` gives.
-                    let at = self.shell.config().resources.privacy_file.as_ref().map_or(target, |p| {
-                        p.to_string_lossy().trim_start_matches(r"\\?\").to_owned()
-                    });
+                    let at = self
+                        .shell
+                        .config()
+                        .resources
+                        .privacy_file
+                        .as_ref()
+                        .map_or(target, |p| {
+                            p.to_string_lossy().trim_start_matches(r"\\?\").to_owned()
+                        });
                     let text = strings::format(key!("privacy-open-failed"), &[&at]);
                     self.shell.show_banner(&text);
                 }
