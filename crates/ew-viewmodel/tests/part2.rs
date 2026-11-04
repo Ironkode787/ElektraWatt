@@ -344,6 +344,36 @@ fn the_window_imports_as_a_job() {
     assert!(!dir.exists(), "the card writes nothing");
 }
 
+/// WP-S3.09 IC-4 (NFR-REL-12): an import whose job panics shows T1 in the banner, writes nothing, and the session goes
+/// on: the next import opens its card.
+#[test]
+fn a_panicking_import_shows_t1_and_the_window_goes_on() {
+    let tmp = Tmp::new();
+    let qet = tmp.0.join("example.qet");
+    std::fs::write(&qet, QET).unwrap();
+    let dir = tmp.0.join("imported.ew");
+    let mut shell = tmp.shell();
+    shell.set_job_panic_for_tests(Some("import"));
+    let t1 = "The importer stopped on an internal error while reading example.qet; nothing was imported.";
+    match run(
+        &mut shell,
+        "file.import_qet",
+        json!({ "file": path(&qet), "dir": path(&dir) }),
+    ) {
+        Outcome::Failed { message } => assert_eq!(message, t1),
+        other => panic!("{other:?}"),
+    }
+    assert_eq!(shell.banner(), Some(t1));
+    assert!(shell.dialog().is_none() && !dir.exists());
+    shell.set_job_panic_for_tests(None);
+    done(
+        &mut shell,
+        "file.import_qet",
+        json!({ "file": path(&qet), "dir": path(&dir) }),
+    );
+    assert!(shell.dialog().is_some(), "the next import opens its card");
+}
+
 /// WP-S3.09 IC-13 (D10 to D12): a changed file without a project UUID asks T6; the re-import card shows T8 and its
 /// row; Cancel leaves the project as it was; Apply is one undo step; a file of another project is refused with T7.
 #[test]

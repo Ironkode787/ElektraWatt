@@ -301,7 +301,12 @@ impl ShellModel {
             gate: self.jobs.hooks.gate(),
         };
         let job_name = name.clone();
-        let job = Job::spawn(options, move |_| Ok(import_qet_batch(&job_name, bytes, &library)));
+        let hooks = self.jobs.hooks.clone();
+        let job = Job::spawn(options, move |_| {
+            // A test fault (feature `testkit` only): the job's body panics, as an importer's panic would end it.
+            hooks.fault("import");
+            Ok(import_qet_batch(&job_name, bytes, &library))
+        });
         let Ok(job) = job else {
             return failed(key!("error-import-read"), &[&name]);
         };

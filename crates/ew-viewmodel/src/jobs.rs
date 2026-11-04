@@ -167,7 +167,7 @@ impl TestHooks {
     }
 
     /// Panics when the test asked for a fault at `step`.
-    fn fault(&self, step: &'static str) {
+    pub(crate) fn fault(&self, step: &'static str) {
         assert!(self.panic_at != Some(step), "a test fault at {step}");
     }
 }
@@ -183,7 +183,7 @@ impl TestHooks {
     fn release(&mut self) {}
 
     /// No fault.
-    fn fault(&self, _step: &'static str) {}
+    pub(crate) fn fault(&self, _step: &'static str) {}
 }
 
 impl std::fmt::Debug for JobsState {
