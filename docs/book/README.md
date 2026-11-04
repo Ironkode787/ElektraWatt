@@ -14,9 +14,11 @@ belongs there.
 | `book.toml` | the mdBook configuration (title, language, offline HTML output) |
 | `src/SUMMARY.md` | the table of contents; the entries below `reference/commands/index.md` and `reference/rules/index.md` are generated |
 | `src/introduction.md` | what the guide is and how it is organised |
-| `src/tutorials/` | lessons: [a first headless run on the golden project](src/tutorials/headless-workflow.md) |
+| `src/tutorials/` | lessons, each run as a test of the build (WP-S7.05 D10, D11): [a first schematic page](src/tutorials/first-page.md) and [a first headless run on the golden project](src/tutorials/headless-workflow.md) |
+| `tutorial-scripts/` | the UI script of each window tutorial (`ew.uiscript/1`), run by `elektrawatt`'s `tutorials` test, which also checks the page's menu paths and keys against the window (T6) |
+| `rule-notes/` | the hand-written notes of every shipped rule, one file per rule ID with six headings; `docs-gen` joins them into the rule pages and fails without them (WP-S7.05 D5) |
 | `src/how-to/` | task guides: [using the application window](src/how-to/application-window.md), the target of F1 (no build bundles the built guide with the application yet; decision log ID-492) |
-| `src/reference/` | exact facts; `commands/` and `rules/` are **generated** |
+| `src/reference/` | exact facts; `commands/` and `rules/` are **generated**; `window/` holds the tools, dialogs and panels that F1 opens |
 | `src/explanation/` | background; links the design documents |
 
 ## Build
@@ -38,8 +40,9 @@ $ python3 -I ci/check-book-links.py target/book  # every link of the built pages
 ## Generated pages
 
 `cargo xtask docs-gen` writes `src/reference/commands/` (one page per command, from the parameter schemas in
-`crates/ew-commands/schemas/`) and `src/reference/rules/` (one page per rule pack, from the rule catalogue snapshot
-`crates/ew-checks/catalogue/rules.json`), the CLI, query, `api_v1`, format, glossary and keymap references, and
+`crates/ew-commands/schemas/`) and `src/reference/rules/` (one page per rule and an index page per rule pack, from the
+rule catalogue snapshot `crates/ew-checks/catalogue/rules.json` and the notes of `rule-notes/`), the CLI, query,
+`api_v1`, format, glossary and keymap references, and
 regenerates the matching entries of `src/SUMMARY.md`. The pages are built, not committed: the root `.gitignore` names
 them, and the contract files they render stay committed. `SUMMARY.md` is committed; `cargo xtask docs-gen --check`
 fails when it differs from the sources, and it also runs in `cargo xtask ci`.
