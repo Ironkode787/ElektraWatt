@@ -2809,6 +2809,7 @@ external-changed = changed
 external-present = present
 external-title = Keep your changes or the ones on disk?
 external-text = Changed here and on disk: { $p0 }. Choose yours or theirs for each; saving waits until you do.
+external-text-one = Changed here and on disk: { $p0 }. Choose yours or theirs; saving waits until you do.
 external-fields = { $p0 } fields
 external-fields-one = 1 field
 toast-external-kept = Your version was kept: { $p0 }

@@ -709,7 +709,9 @@ impl Session {
     /// The table of navigator `kind` at the current revision (WP-S2.06 §4.2, §6.1): a plain function over `Q`,
     /// deterministic, reading memoised queries and `ew_reports::project_rows` only, for every kind of [`NavKind`].
     /// The Macros and Libraries tables (WP-S1.19 §11) also read [`Session::libraries`] as it is now: a library write
-    /// changes them without a new revision, so the shell refetches them after one.
+    /// changes them without a new revision, so the shell refetches them after one. The Messages table also reads the
+    /// merge evidence (WP-S1.17 D29: the manifest's `merged`, a git merge or rebase in progress, `--after-merge`): a
+    /// change of that evidence without a new revision shows at the next revision.
     pub fn navigator_table(&self, kind: NavKind) -> NavTable {
         let rev = self.world().rev.0;
         let mut b = Builder { nodes: Vec::new() };

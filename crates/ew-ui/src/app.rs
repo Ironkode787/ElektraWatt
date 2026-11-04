@@ -243,9 +243,10 @@ pub struct App {
     picker_was_open: bool,
     /// The Join chooser's type-ahead text (WP-S2.18 D2).
     chooser_typing: crate::chooser::TypeAhead,
-    /// The kind of dialog the last frame showed: a dialog of another kind is a new one, which takes its first focus
-    /// (doc 16a §6.12), even when it replaced the last in one frame (W49.3-F1: the collision dialog after Renumber).
-    dialog_was: Option<std::mem::Discriminant<ew_viewmodel::shell::Dialog>>,
+    /// The opening of the dialog the last frame showed ([`ShellModel::dialog_generation`]): a dialog opened since is a
+    /// new one, which takes its first focus (doc 16a §6.12), even when it replaced the last in one frame (W49.3-F1: the
+    /// collision dialog after Renumber) or is of the same kind (C49-p10b#4: rebuilt by a second change).
+    dialog_was: Option<u64>,
     /// The file dialog that is open off the window's thread, with the request it answers (FT-467).
     pending_pick: Option<(PromptRequest, Receiver<Pick>)>,
     /// The prints running off the window's thread (WP-S3.07 part 3), each with the receiver of its end.
@@ -697,9 +698,9 @@ impl App {
                         {
                             events.push(Event::Action("file.discard_journal", Value::Null));
                         }
-                        // W49.3-F2 (doc 16a §6.11): the held-saves banner's one Primary reopens the choice.
-                        if self.shell.message_banner().is_none()
-                            && self.shell.external_choice_waiting()
+                        // W49.3-F2 (doc 16a §6.11): the held-saves banner's one Primary reopens the choice; a message over
+                        // it (a refused save) keeps it (W49.3b-N1).
+                        if self.shell.external_choice_waiting()
                             && crate::components::button(
                                 ui,
                                 crate::components::Kind::Primary,
@@ -1138,15 +1139,15 @@ impl App {
             .chain(focused)
             .collect();
         crate::notifications::show_log(&ctx, &self.shell, &mut events);
-        let dialog_kind = self.shell.dialog().map(std::mem::discriminant);
+        let opening = self.shell.dialog().map(|_| self.shell.dialog_generation());
         about::show(
             &ctx,
             &self.shell,
-            dialog_kind.is_some() && dialog_kind != self.dialog_was,
+            opening.is_some() && opening != self.dialog_was,
             form_key,
             &mut events,
         );
-        self.dialog_was = dialog_kind;
+        self.dialog_was = opening;
         // F1 resolves the context (a hovered menu item has taken the key already).
         if ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::F1)) {
             events.push(Event::Action("help.documentation", Value::Null));

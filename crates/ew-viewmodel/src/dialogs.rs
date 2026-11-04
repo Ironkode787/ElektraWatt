@@ -281,7 +281,11 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
             ..small(
                 strings::text(key!("external-title")).to_owned(),
                 vec![strings::format(
-                    key!("external-text"),
+                    if rows.len() == 1 {
+                        key!("external-text-one")
+                    } else {
+                        key!("external-text")
+                    },
                     &[&crate::shell::collision_count(rows)],
                 )],
                 DialogButton::new(

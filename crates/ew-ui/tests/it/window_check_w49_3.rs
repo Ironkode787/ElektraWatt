@@ -61,8 +61,8 @@ fn colour(wire: &str, value: Value) -> AnyCommand {
     }
 }
 
-/// A colleague's save of W20's colour WH on a copy of `live`: its written files copied into `live`, the manifest last.
-fn colleague(tmp: &Tmp, live: &Path) {
+/// A colleague's save of W20's colour `value` on a copy of `live`: its written files copied into `live`, the manifest last.
+fn colleague(tmp: &Tmp, live: &Path, value: &str) {
     let copy = tmp.0.join("colleague.ew");
     let _ = std::fs::remove_dir_all(&copy);
     copy_dir(live, &copy);
@@ -71,7 +71,7 @@ fn colleague(tmp: &Tmp, live: &Path) {
     store.state_dir = None;
     let (mut s, _) =
         Session::open(&copy, store, SessionOptions::default(), Recovery::Keep).expect("the copy opens");
-    s.execute(&colour(&w20(&copy), json!(["WH"])))
+    s.execute(&colour(&w20(&copy), json!([value])))
         .expect("the colleague's edit");
     let report = s.save().expect("the colleague saves");
     s.close();
@@ -93,7 +93,7 @@ fn collided(tmp: &Tmp) -> Harness<'static, App> {
         json!({"cmd": "fields.set", "params": {"kind": "connection", "targets": [w20(&dir)],
             "path": "overrides.colour", "value": ["BU"]}}),
     );
-    colleague(tmp, &dir);
+    colleague(tmp, &dir, "WH");
     settle(&mut h);
     h
 }
@@ -151,4 +151,30 @@ fn f1_every_opening_of_the_collision_dialog_focuses_apply() {
     settle(&mut h);
     let _ = h.state_mut().shell_mut().dispatch("file.save", &json!({}));
     enter_applies_mine(&mut h, "a refused save");
+}
+
+/// C49-p10b#4: a collision dialog rebuilt by a second change is opened again: the focus the user moved to All theirs
+/// does not stay, the rebuilt dialog's first focus is Apply, and Enter applies mine.
+#[test]
+fn f1b_a_rebuilt_collision_dialog_takes_its_first_focus_again() {
+    let tmp = Tmp::new();
+    let mut h = collided(&tmp);
+    dispatch(&mut h, "project.check_disk", json!({}));
+    settle(&mut h);
+    let theirs = strings::text(ew_ui::ew_viewmodel::key!("external-all-theirs"));
+    for _ in 0..12 {
+        if support::off_chrome(&h, theirs).is_some_and(|n| n.accesskit_node().is_focused()) {
+            break;
+        }
+        h.key_press(Key::Tab);
+        settle(&mut h);
+    }
+    assert!(
+        support::off_chrome(&h, theirs).is_some_and(|n| n.accesskit_node().is_focused()),
+        "All theirs has the focus"
+    );
+    let dir = tmp.0.join("g.ew");
+    colleague(&tmp, &dir, "RD");
+    dispatch(&mut h, "project.check_disk", json!({}));
+    enter_applies_mine(&mut h, "a rebuilt dialog");
 }

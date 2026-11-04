@@ -135,14 +135,21 @@ fn run_git_setup_with(
             Ok(hooks) => {
                 // A `core.hooksPath` outside the repository (a global one) serves other repositories too: the hook,
                 // with this repository's project paths, is not written there (C49-p10#4).
-                if !git::own_hooks(&vfs, &root, &hooks).unwrap_or(false) {
-                    eprintln!(
-                        "error: git runs the hooks of this repository from {}, outside it (core.hooksPath), so other \
-                         repositories run them too; add `ew check --integrity --after-merge` to its post-merge hook \
-                         by hand; nothing was changed",
-                        hooks.display()
-                    );
-                    return 2;
+                match git::own_hooks(&vfs, &root, &hooks) {
+                    Ok(true) => {}
+                    Ok(false) => {
+                        eprintln!(
+                            "error: git runs the hooks of this repository from {}, outside it (core.hooksPath), so \
+                             other repositories run them too; run `ew git setup` without --hooks, and add `ew check \
+                             --integrity --after-merge` to that post-merge hook by hand; nothing was changed",
+                            hooks.display()
+                        );
+                        return 2;
+                    }
+                    Err(e) => {
+                        eprintln!("error: {}: {e}; nothing was changed", root.display());
+                        return 2;
+                    }
                 }
                 if let Err(e) = probe_hook(&hooks, &hook) {
                     eprintln!("error: {e}; nothing was changed");

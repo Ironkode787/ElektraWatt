@@ -493,6 +493,9 @@ pub struct ShellModel {
     /// copied aside, at start-up (the editor's edits then apply without being written).
     keymap_keep_file: bool,
     dialog: Option<Dialog>,
+    /// Bumped on every opening of a dialog: the window gives a dialog opened again, even as the same kind, its first
+    /// focus (C49-p10b#4).
+    dialog_gen: u64,
     prompt: Option<PromptRequest>,
     record: Record,
     quit: bool,
@@ -914,6 +917,7 @@ impl ShellModel {
             keymap_editor: crate::keymap::EditorState::default(),
             keymap_keep_file,
             dialog: None,
+            dialog_gen: 0,
             prompt: None,
             record: Record::default(),
             quit: false,
@@ -1210,6 +1214,12 @@ impl ShellModel {
     /// The dialog that is open.
     pub fn dialog(&self) -> Option<&Dialog> {
         self.dialog.as_ref()
+    }
+
+    /// The generation of the dialog's opening: it changes whenever a dialog opens or is opened again (a collision dialog
+    /// rebuilt by a second change), never while one is answered.
+    pub fn dialog_generation(&self) -> u64 {
+        self.dialog_gen
     }
 
     /// Whether the application should end (after `app.quit`).
@@ -1553,6 +1563,7 @@ impl ShellModel {
 
     pub(crate) fn open_dialog(&mut self, dialog: Dialog) -> Outcome {
         self.palette = None;
+        self.dialog_gen += 1;
         self.dialog = Some(dialog);
         Outcome::Done
     }
@@ -1691,6 +1702,7 @@ impl ShellModel {
         // WP-S2.09 D7: the read-only project of a leftover journal comes with the recovery dialog.
         if let Some((transactions, base_matches, last_change_ms)) = recovery {
             self.palette = None;
+            self.dialog_gen += 1;
             self.dialog = Some(Dialog::Recovery {
                 name: name.clone(),
                 transactions,
@@ -2094,6 +2106,7 @@ impl ShellModel {
         if matches!(self.dialog, Some(Dialog::ConfirmJournalDiscard))
             && let Some(stashed) = self.recovery_stash.take()
         {
+            self.dialog_gen += 1;
             self.dialog = Some(stashed);
             return Outcome::Done;
         }
@@ -2162,6 +2175,16 @@ impl ShellModel {
         if let Some(outcome) = self.dismiss_find() {
             return outcome;
         }
+        // W49.3b-N1: Escape dismisses the banner its Dismiss would (a message, the cloud folder's), once a tool at work
+        // has had its Escape (the Select tool at rest).
+        if self.tools.tool.name() == "select"
+            && self.tools.tool.state() == "idle"
+            && self.banner().is_some()
+            && self.banner_dismissable()
+        {
+            self.dismiss_banner();
+            return Outcome::Done;
+        }
         // FX38d (doc 16a §5.7): Escape with the focus in the Messages pane closes it (the focus returns to the canvas),
         // once a tool at work has had its Escape (the Select tool at rest).
         if self.focus == Some(Focus::Navigator(crate::navigators::NavKind::Messages))
@@ -2191,6 +2214,7 @@ impl ShellModel {
             return match answer {
                 ConfirmAnswer::Discard => self.dispatch("file.discard_journal", &json!({ "confirm": true })),
                 ConfirmAnswer::Save | ConfirmAnswer::Cancel => {
+                    self.dialog_gen += 1;
                     self.dialog = stashed;
                     Outcome::Done
                 }

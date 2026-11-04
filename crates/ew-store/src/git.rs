@@ -200,8 +200,9 @@ pub fn git_dir(vfs: &dyn Vfs, dir: &Path) -> io::Result<Option<PathBuf>> {
 ///
 /// An I/O error reading the `.git` file.
 pub fn own_hooks(vfs: &dyn Vfs, root: &Path, hooks: &Path) -> io::Result<bool> {
-    let hooks = lexical(hooks);
-    if hooks.starts_with(lexical(root)) {
+    // Both sides canonical (C49-p10b#5): a path in another case (Windows) or through a link is the same folder.
+    let hooks = canonical(vfs, hooks);
+    if hooks.starts_with(canonical(vfs, root)) {
         return Ok(true);
     }
     let Some(git) = git_dir(vfs, root)? else {
@@ -209,9 +210,30 @@ pub fn own_hooks(vfs: &dyn Vfs, root: &Path, hooks: &Path) -> io::Result<bool> {
     };
     let common = match vfs.read(&git.join("commondir")) {
         Ok(b) => lexical(&git.join(String::from_utf8_lossy(&b).trim())),
-        Err(_) => git.clone(),
+        Err(e) if e.kind() == io::ErrorKind::NotFound => git.clone(),
+        Err(e) => return Err(e),
     };
-    Ok(hooks.starts_with(&git) || hooks.starts_with(&common))
+    Ok(hooks.starts_with(canonical(vfs, &git)) || hooks.starts_with(canonical(vfs, &common)))
+}
+
+/// `path` canonical through `vfs` (links resolved, the case of an existing folder on Windows), from its nearest
+/// existing ancestor, the rest appended by text; `path` by text when no part of it exists.
+fn canonical(vfs: &dyn Vfs, path: &Path) -> PathBuf {
+    let path = lexical(path);
+    let mut rest = Vec::new();
+    let mut at = path.as_path();
+    loop {
+        if let Ok(found) = vfs.canonicalize(at) {
+            return rest.iter().rev().fold(found, |p, c| p.join(c));
+        }
+        match (at.parent(), at.file_name()) {
+            (Some(parent), Some(name)) => {
+                rest.push(name.to_owned());
+                at = parent;
+            }
+            _ => return path,
+        }
+    }
 }
 
 /// `path` with its `.` and `..` components resolved by text, as a `gitdir` line means them.
@@ -813,8 +835,11 @@ pub const HOOKS_PATH_MAX: usize = 4096;
 /// runs from the AppImage only when it lies under `appdir`, the mount the same runtime names (`$APPIMAGE` and `$APPDIR`):
 /// a program started from another AppImage (an editor's terminal) inherits both, and its `ew` is not under that mount.
 pub fn ew_command(exe: &Path, appimage: Option<&Path>, appdir: Option<&Path>) -> String {
+    // Both sides canonical (C49-p10b#5): a mount reached through a link is the same mount.
+    let under =
+        |mount: &Path| canonical(&crate::vfs::OsVfs, exe).starts_with(canonical(&crate::vfs::OsVfs, mount));
     match (appimage, appdir) {
-        (Some(image), Some(mount)) if exe.starts_with(mount) => format!("{} ew", sh_quoted(image)),
+        (Some(image), Some(mount)) if under(mount) => format!("{} ew", sh_quoted(image)),
         _ => sh_quoted(exe),
     }
 }

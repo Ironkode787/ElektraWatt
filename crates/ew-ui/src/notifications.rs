@@ -44,6 +44,9 @@ fn action_link(ui: &mut Ui, t: &Tokens, shell: &ShellModel, n: &Notification, ev
     // W49.3-F6 (doc 16a §6.10): two actions share one row while they fit, else the second wraps under the first.
     ui.horizontal_wrapped(|ui| {
         ui.spacing_mut().item_spacing.x = t.space_4;
+        // W49.3b-N2: stacked, the links keep the text's row spacing, not a control's height.
+        ui.spacing_mut().item_spacing.y = t.space_1;
+        ui.spacing_mut().interact_size.y = 0.0;
         for action in actions {
             one_link(ui, t, shell, n, action, events);
         }

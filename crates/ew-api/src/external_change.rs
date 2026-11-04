@@ -51,8 +51,10 @@ pub enum DiskPoll {
 pub struct ExternalApplied {
     /// The generation it brought.
     pub generation: u64,
-    /// The records it changed.
+    /// The records it took from disk (W49.3b-N3: a colliding record whose every field kept mine is not one).
     pub records: usize,
+    /// The colliding records of which the session kept its own version, taking nothing of theirs.
+    pub kept: usize,
     /// The folios of the pages its step touches, in page order, at most 8 (the history's).
     pub folios: Vec<String>,
     /// The short hash of the git commit checked out, when the project is in a git worktree.
@@ -315,6 +317,15 @@ impl Session {
         let generation = incoming.generation();
         let mut entry = None;
         let mut applied_keys: Vec<AnyKey> = rows.iter().map(|(k, _)| *k).collect();
+        let taken: BTreeSet<AnyKey> = applied_keys.iter().copied().collect();
+        let records = taken.len();
+        let kept = merged
+            .collisions
+            .iter()
+            .map(|c| c.key)
+            .collect::<BTreeSet<_>>()
+            .difference(&taken)
+            .count();
         if !rows.is_empty() || !assets.is_empty() {
             let cmd = ApplyExternal {
                 generation,
@@ -346,7 +357,6 @@ impl Session {
             .and_then(|i| self.history_view().rows.into_iter().nth(i))
             .map(|row| row.pages)
             .unwrap_or_default();
-        let records = merged.changed.len();
         let model = self.engine.model().clone();
         let p = self.persistence.as_mut().ok_or(ExternalError::Nothing)?;
         // The journal follows the baseline; a journal failure leaves the session unprotected until its next save.
@@ -361,6 +371,7 @@ impl Session {
         Ok(ExternalApplied {
             generation,
             records,
+            kept,
             folios,
             commit,
             entry,

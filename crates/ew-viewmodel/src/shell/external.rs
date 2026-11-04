@@ -233,6 +233,12 @@ impl ShellModel {
                 reason_key: key!("reason-no-external-change"),
             };
         }
+        // D24: never over another dialog (C49-p10b#6).
+        if self.dialog.is_some() {
+            return Outcome::Refused {
+                reason_key: key!("reason-dialog-open"),
+            };
+        }
         self.open_collisions();
         Outcome::Done
     }
@@ -275,8 +281,9 @@ impl ShellModel {
         }
         let records = strings::format_count(crate::count_key!("external-records"), a.records);
         // W49.3-F5: nothing of theirs was taken (All mine): the window says it kept the user's version.
-        let mut text = if a.entry.is_none() && a.records > 0 {
-            strings::format(key!("toast-external-kept"), &[&records])
+        let mut text = if a.records == 0 && a.kept > 0 {
+            let kept = strings::format_count(crate::count_key!("external-records"), a.kept);
+            strings::format(key!("toast-external-kept"), &[&kept])
         } else if a.folios.is_empty() {
             strings::format(key!("toast-external"), &[&records])
         } else if let [folio] = a.folios.as_slice() {
@@ -347,6 +354,7 @@ impl ShellModel {
             .collect();
         self.palette = None;
         self.collab.collisions_shown = true;
+        self.dialog_gen += 1;
         self.dialog = Some(Dialog::ExternalChange { rows });
     }
 
@@ -540,6 +548,7 @@ impl ShellModel {
         };
         if !confirm {
             self.palette = None;
+            self.dialog_gen += 1;
             self.dialog = Some(Dialog::ConfirmGitSetup {
                 folder: super::dir_name(&dir),
             });
@@ -581,6 +590,7 @@ impl ShellModel {
     /// The first save of a project of an older format: the dialog that asks once (a save refused for the consent).
     pub(super) fn ask_upgrade(&mut self, from: &str) -> Outcome {
         self.palette = None;
+        self.dialog_gen += 1;
         self.dialog = Some(Dialog::ConfirmUpgrade {
             from: from.to_owned(),
         });
@@ -690,6 +700,7 @@ impl ShellModel {
             Err(e) => e,
             Ok(None) => {
                 self.palette = None;
+                self.dialog_gen += 1;
                 self.dialog = Some(Dialog::OpenEwz {
                     path: path.to_string_lossy().into_owned(),
                     name,

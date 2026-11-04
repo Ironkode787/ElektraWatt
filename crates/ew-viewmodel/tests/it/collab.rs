@@ -160,7 +160,7 @@ fn xw2_the_collision_dialog_holds_saves_until_a_side_is_chosen() {
         .collect();
     assert_eq!(dialog[0], "dialog \"Keep your changes or the ones on disk?\"");
     assert!(dialog.contains(
-        &"  label \"Changed here and on disk: 1 field. Choose yours or theirs for each; saving waits until you do.\""
+        &"  label \"Changed here and on disk: 1 field. Choose yours or theirs; saving waits until you do.\""
     ));
     assert!(dialog.contains(
         &"  row 1 \"Connection 102.1 · Colour override\" base \"(none)\" mine \"BU\" theirs \"WH\" chosen mine"
@@ -708,7 +708,72 @@ fn xw2f_the_dialog_reads_in_words_and_all_mine_says_it_kept_yours() {
     assert_eq!(
         lines(&s, "  label "),
         [
-            "  label \"Changed here and on disk: 1 record. Choose yours or theirs for each; saving waits until you do.\""
+            "  label \"Changed here and on disk: 1 record. Choose yours or theirs; saving waits until you do.\""
         ]
+    );
+}
+
+/// W49.3b-N3, N1, C49-p10b#6: a mixed choice's toast counts the records taken from disk; a save refused for the
+/// collisions keeps the way to the choice (Choose… stays on its banner) and Escape dismisses the refusal as Dismiss
+/// would; `external.review` never opens over another dialog.
+#[test]
+fn xw2g_a_mixed_choice_counts_what_came_from_disk() {
+    let tmp = Tmp::new("xw2g");
+    let dir = tmp.0.join("J-E-2416.ew");
+    copy_dir(Path::new(GOLDEN_A), &dir);
+    let mut s = shell(&tmp);
+    open(&mut s, &dir, false);
+    let (w20, w21) = (golden_id("connections|W20"), golden_id("connections|W21"));
+    for w in [&w20, &w21] {
+        done(
+            &mut s,
+            "command.run",
+            json!({"cmd": "fields.set", "params": {"kind": "connection", "targets": [w], "path": "overrides.colour",
+                "value": ["BU"]}}),
+        );
+    }
+    colleague(
+        &tmp,
+        &dir,
+        &[colour(&w20, json!(["RD"])), colour(&w21, json!(["RD"]))],
+    );
+    done(&mut s, "project.check_disk", json!({}));
+    // C49-p10b#6: not over another dialog.
+    done(&mut s, "ui.dismiss", json!({}));
+    done(&mut s, "help.about", json!({}));
+    assert_eq!(
+        s.dispatch("external.review", &json!({})),
+        Outcome::Refused {
+            reason_key: ew_viewmodel::key!("reason-dialog-open")
+        }
+    );
+    assert!(matches!(s.dialog(), Some(Dialog::About)));
+    done(&mut s, "ui.dismiss", json!({}));
+    // N1: the refused save's banner; Escape dismisses it, the held banner with its Choose… is back.
+    let refused = "Saving failed: the change on disk collides with your edits; choose yours or theirs first.";
+    assert_eq!(
+        s.dispatch("file.save", &json!({})),
+        Outcome::Failed {
+            message: refused.to_owned()
+        }
+    );
+    done(&mut s, "ui.dismiss", json!({}));
+    assert_eq!(s.banner(), Some(refused));
+    assert!(s.external_choice_waiting(), "Choose… stays");
+    done(&mut s, "ui.dismiss", json!({}));
+    assert_eq!(
+        s.banner(),
+        Some(
+            "The project changed on disk, and the change collides with your edits. Saving waits until you choose \
+             yours or theirs for each field."
+        )
+    );
+    // N3: theirs for one record, mine for the other: one record came from disk.
+    done(&mut s, "external.review", json!({}));
+    done(&mut s, "external.choose", json!({"row": 1, "take": "theirs"}));
+    done(&mut s, "external.apply", json!({}));
+    assert_eq!(
+        toasts(&s),
+        ["toast \"External change applied: 1 record on folio 102\" undo show_changes"]
     );
 }

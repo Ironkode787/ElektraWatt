@@ -392,6 +392,28 @@ fn dg4_the_hook_is_installed_and_a_foreign_one_is_kept() {
     );
     assert_eq!(std::fs::read_to_string(&hook).unwrap(), "#!/bin/sh\necho mine\n");
 
+    // C49-p10b#5: on Windows a `core.hooksPath` inside the repository, written in another case, is inside it.
+    if cfg!(windows) {
+        let upper = r
+            .repo()
+            .join("casehooks")
+            .to_string_lossy()
+            .to_uppercase()
+            .replace('\\', "/");
+        assert!(r.git(&["config", "core.hooksPath", &upper]).status.success());
+        let done = r.ew(&["git", "setup", "--yes", "--hooks"]);
+        assert_eq!(
+            done.status.code(),
+            Some(0),
+            "{}",
+            String::from_utf8_lossy(&done.stderr)
+        );
+        assert_eq!(
+            std::fs::read_to_string(r.repo().join("casehooks").join("post-merge")).unwrap(),
+            expected
+        );
+    }
+
     // C49-p10#4: a `core.hooksPath` outside the repository (as a global one is) serves other repositories too: refused.
     let shared = r.0.join("shared-hooks");
     let value = shared.to_string_lossy().replace('\\', "/");
@@ -404,8 +426,8 @@ fn dg4_the_hook_is_installed_and_a_foreign_one_is_kept() {
             String::new(),
             format!(
                 "error: git runs the hooks of this repository from {}, outside it (core.hooksPath), so other \
-                 repositories run them too; add `ew check --integrity --after-merge` to its post-merge hook by hand; \
-                 nothing was changed\n",
+                 repositories run them too; run `ew git setup` without --hooks, and add `ew check --integrity \
+                 --after-merge` to that post-merge hook by hand; nothing was changed\n",
                 shared.display()
             )
         )

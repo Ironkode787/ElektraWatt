@@ -359,6 +359,43 @@ fn nl2_the_terminology_table_is_followed() {
     assert_eq!(read, "a \n de lay-out\n  onderdeel\n\neen tag");
 }
 
+/// The messages of `ftl` whose key starts with `prefix`, by key: their lower-case texts.
+fn messages_with(ftl: &str, prefix: &str) -> std::collections::BTreeMap<String, String> {
+    ftl.lines()
+        .filter(|l| l.starts_with(prefix))
+        .filter_map(|l| l.split_once(" = "))
+        .map(|(k, v)| (k.to_owned(), v.to_lowercase()))
+        .collect()
+}
+
+/// C49-p10b#1 (ID-1269): the record kinds' and the fields' Dutch headings follow the terminology table message by
+/// message, so a right use elsewhere cannot hide a wrong one: each table term an en-GB heading holds (the longest
+/// first, a term inside a longer one not counted again) is its Dutch term in the nl-NL heading.
+#[test]
+fn nl2b_the_kind_and_field_headings_follow_the_table_each() {
+    let nl_file = shipped_file("nl-NL");
+    let mut table = terms(&nl_file);
+    table.sort_by_key(|t| std::cmp::Reverse(t.en.len()));
+    let en_file = shipped_file("en-GB");
+    let mut wrong = Vec::new();
+    for prefix in ["record-kind-", "field-"] {
+        let nl = messages_with(&nl_file, prefix);
+        for (key, en) in messages_with(&en_file, prefix) {
+            let dutch = nl.get(&key).unwrap_or_else(|| panic!("{key} has no Dutch text"));
+            let mut english = en.clone();
+            for term in &table {
+                if uses(&english, &term.en) {
+                    if !uses(dutch, &term.nl) {
+                        wrong.push(format!("{key}: {} is {}, not {dutch:?}", term.en, term.nl));
+                    }
+                    english = english.replace(&term.en.to_lowercase(), " ");
+                }
+            }
+        }
+    }
+    assert_eq!(wrong, Vec::<String>::new());
+}
+
 /// The items of View ▸ Language: (label, parameters, checked).
 fn language_items(shell: &ShellModel) -> Vec<(String, Value, bool)> {
     let menus = actions::menu_model(shell);

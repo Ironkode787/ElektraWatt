@@ -765,6 +765,7 @@ impl ShellModel {
                 },
             );
             self.banner = Some(strings::text(key!("banner-recovery")).to_owned());
+            self.dialog_gen += 1;
             self.dialog = Some(Dialog::Recovery {
                 name,
                 transactions,
