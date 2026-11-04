@@ -147,19 +147,19 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    Trade-off: one fragment version for clipboard and macros, so a fragment an older build cannot take is refused as a
    whole rather than read in part; against a v2 that would turn away also the clipboard fragments older builds read
    today.
-6. **Format 0.1 is locked** (2026-11-04, the project owner; decision log ID-1324). The owner's rule of 2026-10-31,
-   that the format changed freely with no migrations before the first release, is withdrawn. The format is locked at
-   0.1 from the commit "docs(plan): records after SP51" on, and this ADR applies in full from there.
-   - A change is either additive within 0.1 under this ADR's own rules, or a new format version.
-   - **Additive within 0.1:** an optional member without cascade semantics; a new variant caught by an
-     `Unknown(Value)` arm; a new record kind that older readers keep verbatim; unknown members kept in `extra`. It
-     re-blesses the published schemas of `schemas/0.1/`, and a test shows that a project of the lock point opens and
-     saves unchanged.
-   - **A new format version:** it adds a migration step from 0.1 to the chain, with the first save's backup and a
-     fixture (decision 6).
-   - Amendment 4's typing of a reserved kind "within an unreleased format" is possible from now on only where the
-     typing is additive by these rules.
-   - Golden A as committed at the lock point is format 0.1's fixture.
+6. **The format locks at the 0.1.0 release** (2026-11-04, the project owner; decision log ID-1324, corrected by
+   ID-1325). Until 0.1.0 is released, the owner's rule of 2026-10-31 stands: the format changes freely, with no
+   migrations. When WP-S6.08 tags 0.1.0, the format that release ships is locked, and this ADR applies in full from
+   there.
+   - After the lock, a change is either additive within the released format under this ADR's own rules, or a new
+     format version.
+   - **Additive:** an optional member without cascade semantics; a new variant caught by an `Unknown(Value)` arm; a
+     new record kind that older readers keep verbatim; unknown members kept in `extra`. It re-blesses the published
+     schemas, and a test shows that a project of the release opens and saves unchanged.
+   - **A new format version:** it adds a migration step from the released format to the chain, with the first save's
+     backup and a fixture (decision 6).
+   - Golden A as the 0.1.0 release ships it is the released format's fixture. WP-S6.08 adds the guard against
+     non-additive changes to the released schemas.
 
 ## Consequences
 
