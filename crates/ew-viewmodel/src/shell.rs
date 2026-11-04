@@ -545,6 +545,10 @@ pub struct ShellModel {
     import_job: Option<projects::ImportJob>,
     /// The previewed re-import the re-import card shows (WP-S3.09 D12).
     reimport_pending: Option<ew_api::import::Reimport>,
+    /// The re-import job running for the re-import card (C51-p2#10).
+    reimport_job: Option<projects::ReimportJob>,
+    /// The file and lineage of the re-import's proposal (T6) shown last: its Re-import imports into that lineage.
+    reimport_proposal: Option<(PathBuf, ew_api::import::LineageInfo)>,
     /// Bumped on every opening of a dialog: the window gives a dialog opened again, even as the same kind, its first
     /// focus (C49-p10b#4).
     dialog_gen: u64,
@@ -994,6 +998,8 @@ impl ShellModel {
             import_pending: None,
             import_job: None,
             reimport_pending: None,
+            reimport_job: None,
+            reimport_proposal: None,
             dialog_gen: 0,
             prompt: None,
             record: Record::default(),

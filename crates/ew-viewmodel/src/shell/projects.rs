@@ -13,8 +13,8 @@ use std::path::{Path, PathBuf};
 
 use ew_api::ew_jobs::{Job, JobEnd, JobOptions};
 use ew_api::import::{
-    Detected, Refusal, ReimportClass, ReimportError, Severity, StarterLibrary, import_qet_batch, imported_of,
-    migration_counts,
+    Detected, ImportBatch, LineageInfo, QetLineages, Refusal, ReimportClass, ReimportError, Severity,
+    StarterLibrary, detect_qet_reimport, import_qet_batch, imported_of, migration_counts, reimport_qet_batch,
 };
 use ew_api::{NewProjectKind, ProjectTemplate, Recovery, Session};
 use serde_json::{Map, Value};
@@ -51,6 +51,77 @@ pub(crate) struct ImportJob {
     pub(super) dir: PathBuf,
     /// The banner's note when there is no starter content.
     pub(super) library_note: Option<&'static str>,
+}
+
+/// A running re-import job of the window (C51-p2#10): the importer on its own thread, with what its end needs.
+#[derive(Debug)]
+pub(crate) struct ReimportJob {
+    /// The job: what it found, or why the re-import was refused.
+    pub(super) job: Job<Result<ReimportFound, ReimportError>>,
+    /// The source's file name.
+    pub(super) name: String,
+    /// The file's path, as the proposal's Re-import names it.
+    pub(super) path: PathBuf,
+    /// The epoch of the project the job reads.
+    pub(super) epoch: u64,
+}
+
+/// What a re-import job found (D10): a proposed lineage still to be accepted (T6), or the batch imported into the
+/// lineage it re-imports into.
+#[derive(Debug)]
+pub(crate) enum ReimportFound {
+    /// A lineage matched by its items, not accepted yet.
+    Proposed {
+        /// The lineage.
+        lineage: LineageInfo,
+        /// The source name of its earlier import.
+        source: String,
+        /// The share of the file's source keys it holds, in per cent.
+        percent: u32,
+    },
+    /// The file imported into the lineage.
+    Batch {
+        /// The lineage.
+        lineage: LineageInfo,
+        /// The batch.
+        batch: ImportBatch,
+    },
+}
+
+/// The body of a re-import job: the importer once, into the accepted proposal's lineage (`proposed`), else with the
+/// file's own lineage, which is the batch when the project holds that lineage. Only a file of a proposed lineage that
+/// `accept` takes without an earlier proposal is imported a second time, into that lineage.
+fn find_reimport(
+    lineages: &QetLineages,
+    name: &str,
+    bytes: Vec<u8>,
+    library: &StarterLibrary,
+    proposed: Option<LineageInfo>,
+    accept: bool,
+) -> Result<ReimportFound, ReimportError> {
+    let lineage = match proposed {
+        Some(l) => l,
+        None => match detect_qet_reimport(lineages, name, bytes.clone(), library)? {
+            (Detected::Lineage(lineage), Some(batch)) => return Ok(ReimportFound::Batch { lineage, batch }),
+            (
+                Detected::Proposed {
+                    lineage,
+                    source_name,
+                    percent,
+                },
+                _,
+            ) if !accept => {
+                return Ok(ReimportFound::Proposed {
+                    lineage,
+                    source: source_name,
+                    percent,
+                });
+            }
+            (detected, _) => *detected.lineage(),
+        },
+    };
+    let batch = reimport_qet_batch(lineages, name, bytes, library, &lineage)?;
+    Ok(ReimportFound::Batch { lineage, batch })
 }
 
 /// The banner text of a refused import (T1, T2 through their keys; an importer's refusal in its English words).
@@ -347,6 +418,16 @@ impl ShellModel {
         {
             let _ = self.finish_import(end, pending.name, pending.dir, pending.library_note);
         }
+        // C51-p2#10: and the re-import's.
+        let ended = self
+            .reimport_job
+            .as_mut()
+            .and_then(|pending| pending.job.try_end());
+        if let Some(end) = ended
+            && let Some(pending) = self.reimport_job.take()
+        {
+            let _ = self.finish_reimport(end, pending.name, pending.path, pending.epoch);
+        }
     }
 
     /// The end of an import job: a refusal (T1 for a panic, T2, the importer's words) in the banner, else the batch
@@ -519,6 +600,7 @@ impl ShellModel {
     /// `file.reimport_qet {file?, accept?}` (WP-S3.09 D10 to D12): the QElectroTech file re-imported into its earlier
     /// import in the open project. A file matched by its items asks T6 first (`accept: true` answers it); a file of
     /// another project is refused with T7; else the re-import card shows T8 and its rows. Nothing changes until Apply.
+    /// As the import, the importer runs as a job, once (D4, C51-p2#10); the plan and its preview follow on this thread.
     pub(crate) fn act_reimport_qet(&mut self, p: &Map<String, Value>) -> Outcome {
         let file = match string_param(p, "file") {
             Err(e) => return e,
@@ -538,47 +620,117 @@ impl ShellModel {
         };
         let (library, _) = self.import_library();
         let accept = flag(p, "accept");
-        let Some(project) = self.project.as_mut() else {
+        let Some(project) = self.project.as_ref() else {
             return Outcome::Refused {
                 reason_key: key!("reason-no-project"),
             };
         };
-        let refused = |e: &ReimportError| match e {
-            ReimportError::Refused(r) => refusal_text(&name, r),
-            ReimportError::NotAnImport { .. } => strings::format(key!("error-reimport-foreign"), &[&name]),
-            ReimportError::Apply(e) => strings::format(key!("error-import"), &[&name, &e.to_string()]),
+        let epoch = project.epoch;
+        let lineages = match project.session.qet_lineages() {
+            Ok(l) => l,
+            Err(e) => return self.reimport_refused(&name, &e),
         };
-        let detected = match project.session.detect_qet_lineage(&name, bytes.clone(), &library) {
-            Ok(d) => d,
-            Err(e) => {
-                let message = refused(&e);
-                self.banner = Some(message.clone());
-                return Outcome::Failed { message };
-            }
+        // The proposal this file was shown names its lineage: accepted, the job imports the file into it at once.
+        let proposed = self
+            .reimport_proposal
+            .take()
+            .filter(|(path, _)| accept && *path == file)
+            .map(|(_, lineage)| lineage);
+        let options = JobOptions {
+            name: "reimport".to_owned(),
+            waker: self.jobs.waker.clone(),
+            gate: self.jobs.hooks.gate(),
         };
-        if let Detected::Proposed {
-            source_name, percent, ..
-        } = &detected
-            && !accept
-        {
-            self.palette = None;
-            return self.open_dialog(Dialog::ReimportMatch {
-                path: file.to_string_lossy().into_owned(),
-                file: name,
-                source: source_name.clone(),
-                percent: *percent,
-            });
+        let job_name = name.clone();
+        let job = Job::spawn(options, move |_| {
+            Ok(find_reimport(
+                &lineages, &job_name, bytes, &library, proposed, accept,
+            ))
+        });
+        let Ok(job) = job else {
+            return failed(key!("error-import-read"), &[&name]);
+        };
+        let pending = ReimportJob {
+            job,
+            name,
+            path: file,
+            epoch,
+        };
+        // A script (headless or driving the window) waits for the job, so its next step finds the card.
+        if self.mode == Mode::Headless || !self.is_person() {
+            let ReimportJob {
+                job,
+                name,
+                path,
+                epoch,
+            } = pending;
+            return self.finish_reimport(job.wait(), name, path, epoch);
         }
-        let reimport = match project
-            .session
-            .reimport_qet(&name, bytes, &library, detected.lineage())
-        {
-            Ok(r) => r,
-            Err(e) => {
-                let message = refused(&e);
+        self.banner = Some(strings::format(key!("banner-importing"), &[&pending.name]));
+        self.reimport_job = Some(pending);
+        Outcome::Done
+    }
+
+    /// The banner and outcome of a refused re-import.
+    fn reimport_refused(&mut self, name: &str, e: &ReimportError) -> Outcome {
+        let message = match e {
+            ReimportError::Refused(r) => refusal_text(name, r),
+            ReimportError::NotAnImport { .. } => strings::format(key!("error-reimport-foreign"), &[name]),
+            ReimportError::Apply(e) => strings::format(key!("error-import"), &[name, &e.to_string()]),
+        };
+        self.banner = Some(message.clone());
+        Outcome::Failed { message }
+    }
+
+    /// The end of a re-import job: a refusal in the banner, T6 for a proposed lineage, else the plan and its preview
+    /// on this thread and the re-import card. A job of a project that closed meanwhile shows nothing.
+    pub(super) fn finish_reimport(
+        &mut self,
+        end: JobEnd<Result<ReimportFound, ReimportError>>,
+        name: String,
+        path: PathBuf,
+        epoch: u64,
+    ) -> Outcome {
+        let found = match end {
+            JobEnd::Done(Ok(found)) => found,
+            JobEnd::Done(Err(e)) => return self.reimport_refused(&name, &e),
+            JobEnd::Panicked | JobEnd::Failed(_) => {
+                return self.reimport_refused(
+                    &name,
+                    &ReimportError::Refused(Refusal::Panicked { file: name.clone() }),
+                );
+            }
+            JobEnd::Cancelled => {
+                let message = strings::format(key!("error-import-cancelled"), &[&name]);
                 self.banner = Some(message.clone());
                 return Outcome::Failed { message };
             }
+        };
+        let Some(project) = self.project.as_mut().filter(|p| p.epoch == epoch) else {
+            self.banner = None;
+            return Outcome::Done;
+        };
+        let (lineage, batch) = match found {
+            ReimportFound::Proposed {
+                lineage,
+                source,
+                percent,
+            } => {
+                self.palette = None;
+                let dialog = Dialog::ReimportMatch {
+                    path: path.to_string_lossy().into_owned(),
+                    file: name,
+                    source,
+                    percent,
+                };
+                self.reimport_proposal = Some((path, lineage));
+                return self.open_dialog(dialog);
+            }
+            ReimportFound::Batch { lineage, batch } => (lineage, batch),
+        };
+        let reimport = match project.session.plan_qet_reimport(&name, batch, &lineage) {
+            Ok(r) => r,
+            Err(e) => return self.reimport_refused(&name, &e),
         };
         let n = |c: ReimportClass| reimport.plan.count(c).to_string();
         let summary = strings::format(

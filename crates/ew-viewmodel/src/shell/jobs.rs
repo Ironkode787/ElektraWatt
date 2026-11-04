@@ -434,6 +434,11 @@ impl ShellModel {
             let end = pending.job.wait();
             let _ = self.finish_import(end, pending.name, pending.dir, pending.library_note);
         }
+        // C51-p2#10: so does a running re-import job.
+        if let Some(pending) = self.reimport_job.take() {
+            let end = pending.job.wait();
+            let _ = self.finish_reimport(end, pending.name, pending.path, pending.epoch);
+        }
         let running: Vec<u64> = self
             .jobs
             .entries()

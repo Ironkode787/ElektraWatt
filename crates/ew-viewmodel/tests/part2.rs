@@ -548,6 +548,44 @@ fn a_qelectrotech_file_is_re_imported_into_the_open_project() {
     shell.shutdown();
 }
 
+/// C51-p2#10: in the window the re-import's importer runs as a job: the step returns at once with the banner, the job's
+/// end shows the proposal (T6), and its Re-import ends in the card.
+#[test]
+fn the_window_re_imports_as_a_job() {
+    let tmp = Tmp::new();
+    let qet = tmp.0.join("example.qet");
+    std::fs::write(&qet, QET).unwrap();
+    let mut gui = tmp.gui();
+    done(
+        &mut gui,
+        "file.import_qet",
+        json!({ "file": path(&qet), "dir": path(&tmp.0.join("imported.ew")) }),
+    );
+    assert!(gui.wait_jobs().is_empty());
+    done(&mut gui, "file.import_qet_apply", json!({ "confirm": true }));
+    std::fs::write(&qet, QET.replace("First page", "Main page")).unwrap();
+    done(&mut gui, "file.reimport_qet", json!({ "file": path(&qet) }));
+    assert_eq!(gui.banner(), Some("Importing example.qet…"));
+    assert!(gui.dialog().is_none(), "the proposal waits for the job's end");
+    assert!(gui.wait_jobs().is_empty());
+    assert!(
+        matches!(gui.dialog(), Some(Dialog::ReimportMatch { .. })),
+        "{:?}",
+        gui.dialog()
+    );
+    done(
+        &mut gui,
+        "file.reimport_qet",
+        json!({ "file": path(&qet), "accept": true }),
+    );
+    assert!(gui.wait_jobs().is_empty());
+    let Some(Dialog::Reimport { rows, .. }) = gui.dialog() else {
+        panic!("the re-import card: {:?}", gui.dialog());
+    };
+    assert_eq!(rows, &["Changed in the source: page 1".to_owned()]);
+    gui.shutdown();
+}
+
 #[test]
 fn an_import_that_cannot_be_read_fails_without_a_path() {
     let tmp = Tmp::new();

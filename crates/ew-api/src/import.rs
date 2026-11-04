@@ -750,91 +750,166 @@ fn qet_batch(
     })
 }
 
+/// The lineages of an open project that a QET file may re-import into (D10), apart from the session: plain data, so
+/// that a job can detect a file's lineage and import it on a thread of its own (D4; a `Session` is not `Send`).
+#[derive(Clone, Debug)]
+pub struct QetLineages {
+    /// The project's ID: a re-imported batch carries it, so that the project keeps its own record.
+    project: ew_derive::ew_ids::Id<ew_schema::Project>,
+    /// Every lineage of the project, with the source keys of the records that name it.
+    lineages: Vec<(ew_schema::ImportLineage, std::collections::BTreeSet<String>)>,
+}
+
 impl Session {
-    /// The lineage of this project that the QET file `bytes` named `name` re-imports into (D10): the file's own lineage
-    /// when the project holds it (the same namespace), else a lineage of the same importer and source name that holds
-    /// at least half of the file's source keys, proposed (T6).
+    /// The lineages of this project a QET file may re-import into, for [`detect_qet_reimport`] and
+    /// [`reimport_qet_batch`].
     ///
     /// # Errors
     ///
-    /// [`ReimportError::Refused`] when the front door refuses the file, [`ReimportError::NotAnImport`] (T7) when no
-    /// lineage of this project matches it.
+    /// [`ReimportError::Apply`] for a record without a JSON form.
+    pub fn qet_lineages(&self) -> Result<QetLineages, ReimportError> {
+        let model = self.engine.model();
+        let q = self.query();
+        let mut lineages = Vec::new();
+        for (_, l) in q.table::<ew_schema::ImportLineage>().iter() {
+            let held = ew_commands::commands::lineage_keys(model, l.id)
+                .map_err(|e| ReimportError::Apply(ApplyError::Refused(e)))?;
+            lineages.push(((**l).clone(), held));
+        }
+        Ok(QetLineages {
+            project: q.project().id,
+            lineages,
+        })
+    }
+}
+
+/// The QET file `bytes` named `name` through the front door once, into the project's context with the file's own
+/// lineage, and the lineage of `lineages` it re-imports into (D10): the file's own lineage when the project holds it
+/// (the same namespace), else a lineage of the same importer and source name that holds at least half of the file's
+/// source keys, proposed (T6). For the file's own lineage the batch is the re-import's, as [`reimport_qet_batch`] makes
+/// it; for a proposed lineage, whose namespace differs, it is `None`.
+///
+/// # Errors
+///
+/// [`ReimportError::Refused`] when the front door refuses the file, [`ReimportError::NotAnImport`] (T7) when no
+/// lineage of the project matches it.
+pub fn detect_qet_reimport(
+    lineages: &QetLineages,
+    name: &str,
+    bytes: Vec<u8>,
+    library: &StarterLibrary,
+) -> Result<(Detected, Option<ImportBatch>), ReimportError> {
+    let mut ctx = ew_import_qet::project::new_project_context();
+    ctx.project = lineages.project;
+    let mut batch = qet_batch(name, bytes, library, &mut ctx).map_err(ReimportError::Refused)?;
+    let not_an_import = || ReimportError::NotAnImport {
+        file: name.to_owned(),
+    };
+    let Some(own) = batch.records.iter().find_map(|r| match r {
+        Record::ImportLineage(l) => Some(l.clone()),
+        _ => None,
+    }) else {
+        return Err(not_an_import());
+    };
+    let info = |l: &ew_schema::ImportLineage| LineageInfo {
+        id: l.id,
+        namespace: l.namespace.as_uuid(),
+    };
+    if let Some((l, _)) = lineages
+        .lineages
+        .iter()
+        .find(|(l, _)| l.namespace == own.namespace)
+    {
+        // The same namespace: the records are those of an import into the lineage, which emits no lineage record.
+        batch.records.retain(|r| !matches!(r, Record::ImportLineage(_)));
+        let kind = ew_schema::Kind::ImportLineage.name();
+        if let Some(n) = batch.report.stats.per_kind.get_mut(kind) {
+            *n = n.saturating_sub(1);
+            if *n == 0 {
+                batch.report.stats.per_kind.remove(kind);
+            }
+        }
+        return Ok((Detected::Lineage(info(l)), Some(batch)));
+    }
+    // The project record is not re-imported (the project keeps its own), so it is no item of the share.
+    let keys: std::collections::BTreeSet<String> = batch
+        .records
+        .iter()
+        .filter(|r| !matches!(r, Record::Project(_)))
+        .filter_map(|r| {
+            let v = serde_json::to_value(r).ok()?;
+            v.get("source_ref")?.get("key")?.as_str().map(str::to_owned)
+        })
+        .collect();
+    if keys.is_empty() {
+        return Err(not_an_import());
+    }
+    let mut best: Option<(u32, &ew_schema::ImportLineage)> = None;
+    for (l, held) in lineages
+        .lineages
+        .iter()
+        .filter(|(l, _)| l.importer == own.importer && l.source_name == own.source_name)
+    {
+        let shared = keys.iter().filter(|k| held.contains(*k)).count();
+        let percent = u32::try_from(shared * 100 / keys.len()).unwrap_or(100);
+        if percent >= 50 && best.is_none_or(|(p, _)| percent > p) {
+            best = Some((percent, l));
+        }
+    }
+    match best {
+        Some((percent, l)) => Ok((
+            Detected::Proposed {
+                lineage: info(l),
+                source_name: l.source_name.clone(),
+                percent,
+            },
+            None,
+        )),
+        None => Err(not_an_import()),
+    }
+}
+
+/// The QET file `bytes` named `name` through the front door into the lineage `lineage` of the project of `lineages`,
+/// with the lineage's namespace (D11): the batch of a re-import.
+///
+/// # Errors
+///
+/// [`ReimportError::Refused`] when the front door refuses the file.
+pub fn reimport_qet_batch(
+    lineages: &QetLineages,
+    name: &str,
+    bytes: Vec<u8>,
+    library: &StarterLibrary,
+    lineage: &LineageInfo,
+) -> Result<ImportBatch, ReimportError> {
+    let mut ctx = ew_import_qet::project::new_project_context();
+    ctx.project = lineages.project;
+    ctx.lineage = Some(*lineage);
+    qet_batch(name, bytes, library, &mut ctx).map_err(ReimportError::Refused)
+}
+
+impl Session {
+    /// The lineage of this project that the QET file `bytes` named `name` re-imports into (D10, [`detect_qet_reimport`]).
+    ///
+    /// # Errors
+    ///
+    /// As [`detect_qet_reimport`], and [`ReimportError::Apply`] for a record without a JSON form.
     pub fn detect_qet_lineage(
         &self,
         name: &str,
         bytes: Vec<u8>,
         library: &StarterLibrary,
     ) -> Result<Detected, ReimportError> {
-        let mut ctx = ew_import_qet::project::new_project_context();
-        let batch = qet_batch(name, bytes, library, &mut ctx).map_err(ReimportError::Refused)?;
-        let not_an_import = || ReimportError::NotAnImport {
-            file: name.to_owned(),
-        };
-        let Some(own) = batch.records.iter().find_map(|r| match r {
-            Record::ImportLineage(l) => Some(l.clone()),
-            _ => None,
-        }) else {
-            return Err(not_an_import());
-        };
-        let model = self.engine.model();
-        let q = self.query();
-        let lineages: Vec<std::sync::Arc<ew_schema::ImportLineage>> = q
-            .table::<ew_schema::ImportLineage>()
-            .iter()
-            .map(|(_, l)| l.clone())
-            .collect();
-        let info = |l: &ew_schema::ImportLineage| LineageInfo {
-            id: l.id,
-            namespace: l.namespace.as_uuid(),
-        };
-        if let Some(l) = lineages.iter().find(|l| l.namespace == own.namespace) {
-            return Ok(Detected::Lineage(info(l)));
-        }
-        // The project record is not re-imported (the project keeps its own), so it is no item of the share.
-        let keys: std::collections::BTreeSet<String> = batch
-            .records
-            .iter()
-            .filter(|r| !matches!(r, Record::Project(_)))
-            .filter_map(|r| {
-                let v = serde_json::to_value(r).ok()?;
-                v.get("source_ref")?.get("key")?.as_str().map(str::to_owned)
-            })
-            .collect();
-        if keys.is_empty() {
-            return Err(not_an_import());
-        }
-        let mut best: Option<(u32, &ew_schema::ImportLineage)> = None;
-        for l in lineages
-            .iter()
-            .filter(|l| l.importer == own.importer && l.source_name == own.source_name)
-        {
-            let held = ew_commands::commands::lineage_keys(model, l.id)
-                .map_err(|e| ReimportError::Apply(ApplyError::Refused(e)))?;
-            let shared = keys.iter().filter(|k| held.contains(*k)).count();
-            let percent = u32::try_from(shared * 100 / keys.len()).unwrap_or(100);
-            if percent >= 50 && best.is_none_or(|(p, _)| percent > p) {
-                best = Some((percent, l));
-            }
-        }
-        match best {
-            Some((percent, l)) => Ok(Detected::Proposed {
-                lineage: info(l),
-                source_name: l.source_name.clone(),
-                percent,
-            }),
-            None => Err(not_an_import()),
-        }
+        detect_qet_reimport(&self.qet_lineages()?, name, bytes, library).map(|(detected, _)| detected)
     }
 
     /// The re-import of the QET file `bytes` named `name` into the lineage `lineage` of this project (D11, D12): the
-    /// file imported with the lineage's namespace, every record classed against the lineage's last run and the
-    /// project as it is, and the preview of the `import.apply` of the records to apply. Nothing is changed until
-    /// [`Session::apply_reimport`].
+    /// file imported with the lineage's namespace ([`reimport_qet_batch`]), then [`Session::plan_qet_reimport`].
+    /// Nothing is changed until [`Session::apply_reimport`].
     ///
     /// # Errors
     ///
-    /// [`ReimportError::Refused`] when the front door refuses the file; [`ReimportError::Apply`] for a record without a
-    /// JSON form, a run too large (T3) or a transaction that breaks a structural invariant.
+    /// [`ReimportError::Refused`] when the front door refuses the file; else as [`Session::plan_qet_reimport`].
     pub fn reimport_qet(
         &mut self,
         name: &str,
@@ -842,10 +917,25 @@ impl Session {
         library: &StarterLibrary,
         lineage: &LineageInfo,
     ) -> Result<Reimport, ReimportError> {
-        let mut ctx = ew_import_qet::project::new_project_context();
-        ctx.project = self.query().project().id;
-        ctx.lineage = Some(*lineage);
-        let batch = qet_batch(name, bytes, library, &mut ctx).map_err(ReimportError::Refused)?;
+        let batch = reimport_qet_batch(&self.qet_lineages()?, name, bytes, library, lineage)?;
+        self.plan_qet_reimport(name, batch, lineage)
+    }
+
+    /// The re-import of `batch`, the QET file named `name` imported into the lineage `lineage` of this project (D12):
+    /// every record classed against the lineage's last run and the project as it is, and the preview of the
+    /// `import.apply` of the records to apply. Nothing is changed until [`Session::apply_reimport`].
+    ///
+    /// # Errors
+    ///
+    /// [`ReimportError::Apply`] for a record without a JSON form, a run too large (T3) or a transaction that breaks a
+    /// structural invariant.
+    pub fn plan_qet_reimport(
+        &mut self,
+        name: &str,
+        batch: ImportBatch,
+        lineage: &LineageInfo,
+    ) -> Result<Reimport, ReimportError> {
+        let ctx = ew_import_qet::project::new_project_context();
         let model = self.engine.model();
         let q = self.query();
         let base = q

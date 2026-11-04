@@ -140,6 +140,31 @@ fn the_same_file_again_is_unchanged_and_writes_nothing() {
     assert_eq!(s.world().rev, before_rev);
 }
 
+/// ID-1374 (C51-p2#10): a file of the project's own lineage is imported once: the batch the detection made is the
+/// batch of an import into the lineage, so a job runs the importer once; a proposed lineage gives no batch.
+#[test]
+fn the_detection_of_the_own_lineage_gives_the_re_import_batch() {
+    use ew_api::import::{detect_qet_reimport, reimport_qet_batch};
+    let s = imported(&base_text());
+    let lineages = s.qet_lineages().expect("the lineages");
+    let (detected, batch) =
+        detect_qet_reimport(&lineages, FILE, base_text().into_bytes(), &library()).expect("its own lineage");
+    assert!(matches!(detected, Detected::Lineage(_)), "{detected:?}");
+    let into = reimport_qet_batch(
+        &lineages,
+        FILE,
+        base_text().into_bytes(),
+        &library(),
+        detected.lineage(),
+    )
+    .expect("imported into the lineage");
+    assert_eq!(batch, Some(into));
+    let (proposed, none) =
+        detect_qet_reimport(&lineages, FILE, variant_text().into_bytes(), &library()).expect("proposed");
+    assert!(matches!(proposed, Detected::Proposed { .. }), "{proposed:?}");
+    assert_eq!(none, None);
+}
+
 #[test]
 fn a_variant_adds_its_terminal_and_keeps_the_edit_here() {
     let mut s = imported(&base_text());
