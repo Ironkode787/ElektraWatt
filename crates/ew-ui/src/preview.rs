@@ -261,6 +261,7 @@ fn macro_block(ui: &mut Ui, m: &ew_viewmodel::properties::MacroInsert, events: &
                         }
                     }
                 });
+            components::combo_expanded(ui, &combo.response);
             combo.response.labelled_by(label.id);
         });
     }

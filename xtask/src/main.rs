@@ -692,6 +692,13 @@ fn acceptance(report: &str, milestone: bool, m2: bool) -> Result<bool> {
     // results; a stale JUnit file is deleted first, so a test that did not run is `missing`.
     let map = if m2 {
         let map = requirements::read_map(&root)?;
+        let problems = requirements::check(&root, &map)?;
+        if !problems.is_empty() {
+            for p in &problems {
+                eprintln!("acceptance: {p}");
+            }
+            return Ok(false);
+        }
         let tests = requirements::mapped_tests(&map);
         match std::fs::remove_file(&junit) {
             Ok(()) => {}

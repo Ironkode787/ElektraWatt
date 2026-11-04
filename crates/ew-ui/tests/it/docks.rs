@@ -185,7 +185,7 @@ fn dk1_named_splitters_and_the_walker_without_a_skip() {
     ] {
         dispatch(&mut h, "navigator.show", json!({ "kind": k }));
     }
-    support::assert_named(&h);
+    support::assert_accessible(&h);
     // A rail button takes the keyboard focus.
     let node = h.get_by_role_and_label(egui::Role::Button, "Cables");
     assert!(
@@ -384,7 +384,7 @@ fn ft519_the_history_panel_from_the_keyboard() {
     h.key_press(Key::Enter);
     settle(&mut h);
     assert_eq!(cursor(&h), older.map(|i| i + 1), "Enter undid to the cursor row");
-    support::assert_named(&h);
+    support::assert_accessible(&h);
     h.state_mut().shell_mut().shutdown();
 }
 

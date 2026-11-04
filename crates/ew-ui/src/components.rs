@@ -149,6 +149,14 @@ pub(crate) fn icon_atom(id: IconId, size: f32, colour: Option<Rgba>, stroke: f32
     })
 }
 
+/// WP-S2.11 D3 (R3): a combo box's expanded state, which egui 0.37 does not give its node: open while its list
+/// shows. `combo` is the response `show_ui` returned (its ID is the combo button's).
+pub(crate) fn combo_expanded(ui: &Ui, combo: &Response) {
+    let open = egui::ComboBox::is_open(ui.ctx(), combo.id);
+    ui.ctx()
+        .accesskit_node_builder(combo.id, |n| n.set_expanded(open));
+}
+
 /// Paints doc 16a §6.13's `chevron-down` (16 px, `color.text.secondary`) as a combo box's icon, in place of egui's
 /// filled triangle (FT-563). The signature is `egui::ComboBox::icon`'s.
 pub(crate) fn combo_chevron(ui: &Ui, rect: egui::Rect, _visuals: &egui::style::WidgetVisuals, _open: bool) {

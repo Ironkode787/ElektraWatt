@@ -738,7 +738,7 @@ fn ft532_table_mode_without_rows_shows_the_empty_state() {
         h.query_by_label("Sort by Terminal, sorted ascending").is_some(),
         "the grid is back"
     );
-    support::assert_named(&h);
+    support::assert_accessible(&h);
     h.state_mut().shell_mut().shutdown();
 
     // A new project: no terminal strip at all.

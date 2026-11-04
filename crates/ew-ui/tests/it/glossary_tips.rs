@@ -16,7 +16,7 @@ use ew_ui::app::App;
 use ew_ui::ew_viewmodel::shell::Outcome;
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
-use support::{Scripted, Tmp, assert_named, harness, settle};
+use support::{Scripted, Tmp, assert_accessible, harness, settle};
 
 fn dispatch(h: &mut Harness<'_, App>, action: &str, params: Value) {
     assert_eq!(
@@ -98,7 +98,7 @@ fn gt1_gt5_the_glossary_pane_is_named_and_folio_reports_insert_arms_the_ip_tool_
     assert!(group(&h, "Onderbrekingspunt"), "every term again");
     dispatch(&mut h, "view.language", json!({"value": "en"}));
     settle(&mut h);
-    assert_named(&h);
+    assert_accessible(&h);
     h.state_mut().shell_mut().shutdown();
 }
 

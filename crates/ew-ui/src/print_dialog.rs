@@ -213,6 +213,7 @@ fn options(ui: &mut Ui, d: &PrintDialog, events: &mut Vec<Event>) {
                         }
                     }
                 });
+            components::combo_expanded(ui, &combo.response);
             combo.response.labelled_by(label);
         },
     );

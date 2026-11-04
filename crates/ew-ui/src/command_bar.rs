@@ -690,9 +690,12 @@ impl CommandBarHost {
             },
         )
         .tip(format!("{menu_name} (Alt)"));
+        // WP-S2.11 D3 (R3): the pop-up's expanded state with it.
+        let open = egui::Popup::is_id_open(ui.ctx(), app_menu_id());
         ui.ctx().accesskit_node_builder(response.id, |n| {
             n.set_description(name.to_owned());
             n.set_has_popup(egui::accesskit::HasPopup::Menu);
+            n.set_expanded(open);
         });
         state_overlay(ui, t, &response, true, t.radius_md);
         let mark = Rect::from_min_size(
@@ -861,6 +864,8 @@ impl CommandBarHost {
         ui.ctx().accesskit_node_builder(response.id, |n| {
             n.set_placeholder(placeholder.clone());
             n.set_keyboard_shortcut(crate::keys::short_display(&palette_key));
+            // WP-S2.11 D3 (R5): the field holds no text of its own (it opens the palette).
+            n.set_value("");
         });
         let open = shell.palette().is_some();
         if (response.clicked() || response.gained_focus()) && !open {

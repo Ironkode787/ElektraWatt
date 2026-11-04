@@ -88,7 +88,7 @@ pub fn marks_of(shell: &ShellModel, group: usize) -> Vec<ToolMark> {
 
 /// The Text tool's binding in the tool options (WP-S2.04 §10.5; the tool strip until WP-S2.17 part 2): one choice per [`BINDABLE`] name and "-" for none.
 pub(crate) fn text_fields(ui: &mut Ui, current_bind: Option<&str>, events: &mut Vec<crate::app::Event>) {
-    egui::ComboBox::from_label(strings::text(key!("action-text-bind")))
+    let combo = egui::ComboBox::from_label(strings::text(key!("action-text-bind")))
         .icon(crate::components::combo_chevron)
         .selected_text(current_bind.unwrap_or("-"))
         .show_ui(ui, |ui| {
@@ -107,6 +107,7 @@ pub(crate) fn text_fields(ui: &mut Ui, current_bind: Option<&str>, events: &mut 
                 }
             }
         });
+    crate::components::combo_expanded(ui, &combo.response);
 }
 
 /// The Wire marker tool's fields in the tool strip (WP-S2.04 §10.5): the cross-section and the colours, each sent by
@@ -146,7 +147,7 @@ pub(crate) fn structure_box_fields(
     location: &mut String,
     events: &mut Vec<crate::app::Event>,
 ) {
-    egui::ComboBox::from_label(strings::text(key!("action-structure-box-style")))
+    let combo = egui::ComboBox::from_label(strings::text(key!("action-structure-box-style")))
         .icon(crate::components::combo_chevron)
         .selected_text("…")
         .show_ui(ui, |ui| {
@@ -165,6 +166,7 @@ pub(crate) fn structure_box_fields(
                 }
             }
         });
+    crate::components::combo_expanded(ui, &combo.response);
     for (label_key, buffer, member, width) in [
         (
             key!("action-structure-box-caption"),
@@ -193,7 +195,7 @@ pub(crate) fn structure_box_fields(
         }
     }
     if !externals.is_empty() {
-        egui::ComboBox::from_label(strings::text(key!("action-ip-external")))
+        let combo = egui::ComboBox::from_label(strings::text(key!("action-ip-external")))
             .icon(crate::components::combo_chevron)
             .selected_text("…")
             .show_ui(ui, |ui| {
@@ -212,6 +214,7 @@ pub(crate) fn structure_box_fields(
                     }
                 }
             });
+        crate::components::combo_expanded(ui, &combo.response);
     }
 }
 
@@ -267,7 +270,7 @@ pub(crate) fn ip_fields(
         ));
     }
     if !externals.is_empty() {
-        egui::ComboBox::from_label(strings::text(key!("action-ip-external")))
+        let combo = egui::ComboBox::from_label(strings::text(key!("action-ip-external")))
             .icon(crate::components::combo_chevron)
             .selected_text("…")
             .show_ui(ui, |ui| {
@@ -286,6 +289,7 @@ pub(crate) fn ip_fields(
                     }
                 }
             });
+        crate::components::combo_expanded(ui, &combo.response);
     }
 }
 
@@ -348,6 +352,7 @@ pub(crate) fn draw_fields(
                 }
             }
         });
+    crate::components::combo_expanded(ui, &combo.response);
     combo.response.labelled_by(label.id);
     let grids = [(5_u8, key!("layout-grid-5")), (1, key!("layout-grid-1"))];
     let labels: Vec<(&str, bool)> = grids
@@ -433,6 +438,10 @@ fn segmented(ui: &mut Ui, name: &str, choices: &[(&str, bool)]) -> Option<usize>
         let response = ui.interact(rect, list.id.with(i), egui::Sense::click());
         let text = (*label).to_owned();
         response.widget_info(|| egui::WidgetInfo::selected(egui::Role::Tab, true, *chosen, &text));
+        // WP-S2.11 D3 (R4): a tab of the list says it is the chosen one.
+        let selected = *chosen;
+        ui.ctx()
+            .accesskit_node_builder(response.id, |n| n.set_selected(selected));
         if *chosen {
             ui.painter()
                 .rect_filled(rect, crate::theme::radius(t.radius_sm), t.surface_panel.color32());

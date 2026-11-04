@@ -374,6 +374,25 @@ pub(crate) fn render(root: &Path, map: &Map) -> Result<String> {
     Ok(out)
 }
 
+/// The map's problems ([`map_problems`]) and, when there is none, a committed table that differs from [`render`]'s.
+pub(crate) fn check(root: &Path, map: &Map) -> Result<Vec<String>> {
+    let problems = map_problems(root, map, &gp_rows(root)?);
+    if !problems.is_empty() {
+        return Ok(problems);
+    }
+    let committed = std::fs::read_to_string(root.join(TABLE))
+        .unwrap_or_default()
+        .replace("\r\n", "\n");
+    Ok(if committed == render(root, map)? {
+        Vec::new()
+    } else {
+        vec![format!(
+            "{TABLE} differs from the generated table; `EW_BLESS=1 cargo nextest run -p xtask -E \
+             'test(requirement_table)'` rewrites it"
+        )]
+    })
+}
+
 /// Reads the workspace's map.
 pub(crate) fn read_map(root: &Path) -> Result<Map> {
     let text = std::fs::read_to_string(root.join(MAP)).with_context(|| format!("reading {MAP}"))?;
@@ -539,17 +558,10 @@ mod tests {
         let map = read_map(&root).unwrap();
         let gp = gp_rows(&root).unwrap();
         assert_eq!(map_problems(&root, &map, &gp), Vec::<String>::new());
-        let text = render(&root, &map).unwrap();
-        let path = root.join(TABLE);
         if std::env::var_os("EW_BLESS").is_some() {
-            std::fs::write(&path, &text).unwrap();
+            std::fs::write(root.join(TABLE), render(&root, &map).unwrap()).unwrap();
         }
-        let committed = std::fs::read_to_string(&path).unwrap_or_default().replace("\r\n", "\n");
-        assert!(
-            committed == text,
-            "{TABLE} differs from the generated table; `EW_BLESS=1 cargo nextest run -p xtask -E \
-             'test(requirement_table)'` rewrites it"
-        );
+        assert_eq!(check(&root, &map).unwrap(), Vec::<String>::new());
     }
 
     #[test]

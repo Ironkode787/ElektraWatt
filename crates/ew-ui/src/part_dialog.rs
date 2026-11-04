@@ -280,7 +280,7 @@ fn kind_field(ui: &mut Ui, label_text: &str, value: &str, events: &mut Vec<Event
             .inner;
         ui.add_space(t.space_3);
         let mut picked = None;
-        egui::ComboBox::from_id_salt("part-edit-kind")
+        let combo = egui::ComboBox::from_id_salt("part-edit-kind")
             .selected_text(part_kind_word(value))
             .width(ui.available_width())
             .show_ui(ui, |ui| {
@@ -292,6 +292,7 @@ fn kind_field(ui: &mut Ui, label_text: &str, value: &str, events: &mut Vec<Event
             })
             .response
             .labelled_by(label.id);
+        crate::components::combo_expanded(ui, &combo);
         if let Some(k) = picked.filter(|k| *k != value) {
             events.push(Event::Action(
                 "part.field",

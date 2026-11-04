@@ -348,6 +348,7 @@ fn form_rows(ui: &mut egui::Ui, t: &Tokens, form: &PaletteForm, opened: bool, ev
                             }
                         }
                     });
+                crate::components::combo_expanded(ui, &combo.response);
                 combo.response.labelled_by(label.id)
             };
             if first {

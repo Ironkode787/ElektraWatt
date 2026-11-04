@@ -4,7 +4,7 @@
 //! WP-S2.08 part 5 in the window (D14; AX-2 to AX-4; FR-UI-027, NFR-A11Y-04; ID-1272 rulings 4 to 7): View ▸ UI scale
 //! and the first run offer 250 % and 300 % and `settings.toml` keeps them; the in-window core dialogs (New project,
 //! Renumber devices…, Renumber pages…, the print pre-dialog, the find and replace pane, the settings switches, the
-//! first-run steps, the recovery dialog, the parts import card) pass `assert_named` and `assert_fits` at 300 % on a
+//! first-run steps, the recovery dialog, the parts import card) pass `assert_accessible` and `assert_fits` at 300 % on a
 //! 1280 × 720-point window (a 3840 × 2160 display), and at 100 % with the minimum text size 14 pt, which raises the
 //! small text tokens to 14 pt; with reduced motion egui's animation time is zero and a Ctrl+wheel step zooms in its
 //! own frame, and the CPU canvas turns it on while the setting is unset. Open and Export PDF's file choosers are the
@@ -186,7 +186,7 @@ fn settings_switches(size: Size) {
             &mut h,
             &[strings::text(key!("menu-view")), strings::text(submenu)],
         );
-        support::assert_named(&h);
+        support::assert_accessible(&h);
         support::assert_fits(&h);
         h.key_press(egui::Key::Escape);
         h.key_press(egui::Key::Escape);

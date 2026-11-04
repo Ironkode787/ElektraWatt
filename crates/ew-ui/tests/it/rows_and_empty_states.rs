@@ -256,7 +256,7 @@ fn dk10_messages_rows_badges_and_header() {
             .any(|l| l == "error" || l == "warning"),
         "the severity word is the severity cell, not a badge chip"
     );
-    support::assert_named(&h);
+    support::assert_accessible(&h);
     h.state_mut().shell_mut().shutdown();
 }
 
@@ -373,7 +373,7 @@ fn dk11_history_rows_actions_marker_and_show_changes() {
         "Escape closes"
     );
     assert!(h.query_by_label("Changes of step 3").is_none());
-    support::assert_named(&h);
+    support::assert_accessible(&h);
     h.state_mut().shell_mut().shutdown();
 }
 
@@ -452,7 +452,7 @@ fn cp5_the_empty_states_of_messages_find_history_and_the_navigators() {
         group_named(&h, "Nothing matches \"zzqqk32\""),
         "Find's empty result"
     );
-    support::assert_named(&h);
+    support::assert_accessible(&h);
     h.state_mut().shell_mut().shutdown();
 }
 

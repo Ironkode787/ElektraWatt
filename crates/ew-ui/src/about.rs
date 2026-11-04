@@ -460,6 +460,7 @@ fn form_fields(
                         }
                     });
                 let combo = combo.response.labelled_by(label.id);
+                crate::components::combo_expanded(ui, &combo);
                 if std::mem::take(&mut first_control) {
                     combo.request_focus();
                 }
@@ -496,6 +497,7 @@ fn form_fields(
                         }
                     });
                 let combo = combo.response.labelled_by(label.id);
+                crate::components::combo_expanded(ui, &combo);
                 if std::mem::take(&mut first_control) {
                     combo.request_focus();
                 }

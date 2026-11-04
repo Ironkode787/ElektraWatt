@@ -225,12 +225,12 @@ fn se15_the_strip_editor_and_its_chooser_list() {
         done(shell, "table.cell", json!({"kind": "strips", "row": k20}));
     }
     settle(&mut h);
-    support::assert_named(&h);
+    support::assert_accessible(&h);
     // Add accessory: two parts fit, the chooser list opens at the row.
     let rev = h.state().shell().revision();
     done(h.state_mut().shell_mut(), "strip.add_accessory", json!({}));
     settle(&mut h);
-    support::assert_named(&h);
+    support::assert_accessible(&h);
     assert_eq!(h.state().shell().revision(), rev, "nothing committed yet");
     let items = h
         .state()
@@ -261,7 +261,7 @@ fn se15_the_strip_editor_and_its_chooser_list() {
     settle(&mut h);
     h.key_press(egui::Key::Enter);
     settle(&mut h);
-    support::assert_named(&h);
+    support::assert_accessible(&h);
     assert_eq!(h.state().shell().revision(), rev.map(|r| r + 1), "one step");
     let last = h
         .state()

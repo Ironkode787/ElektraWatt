@@ -237,6 +237,7 @@ fn columns(ui: &mut egui::Ui, map: &PartsMap, events: &mut Vec<Event>) {
                         let name = format!("{} {}", strings::text(key!("parts-map-member")), c.header);
                         ui.ctx()
                             .accesskit_node_builder(combo.response.id, |n| n.set_label(name));
+                        crate::components::combo_expanded(ui, &combo.response);
                         ui.end_row();
                     }
                 });

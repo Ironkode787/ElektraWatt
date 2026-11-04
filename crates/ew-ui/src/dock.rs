@@ -722,6 +722,9 @@ impl DockBehavior<'_> {
             let response = tabs.interact(rect, id, Sense::click());
             let label = strings::text(key).to_owned();
             response.widget_info(|| egui::WidgetInfo::selected(egui::Role::Tab, true, chosen, &label));
+            // WP-S2.11 D3 (R4): a tab of the list says it is the chosen one.
+            ui.ctx()
+                .accesskit_node_builder(response.id, |n| n.set_selected(chosen));
             if chosen {
                 ui.painter()
                     .add(egui::Shape::Rect(egui::epaint::RectShape::filled(

@@ -423,7 +423,7 @@ fn the_palette_opens_a_parameter_form_and_runs_it_with_enter() {
     let form = h.state().shell().palette().and_then(|p| p.form.clone());
     assert_eq!(form.map(|f| f.action), Some("pages.sort"));
     assert!(h.query_by_label("By").is_some(), "the form's row is named");
-    support::assert_named(&h);
+    support::assert_accessible(&h);
     // Escape returns to the list, the palette stays open.
     h.key_press(Key::Escape);
     settle(&mut h);

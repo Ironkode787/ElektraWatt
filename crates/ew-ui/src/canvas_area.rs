@@ -371,6 +371,9 @@ impl Behavior<TabPane> for AreaBehavior<'_> {
             name.push_str(b);
         }
         response.widget_info(|| egui::WidgetInfo::selected(egui::Role::Tab, true, selected, &name));
+        // WP-S2.11 D3 (R4): a tab of the list says it is the chosen one.
+        ui.ctx()
+            .accesskit_node_builder(response.id, |n| n.set_selected(selected));
         if !state.is_being_dragged {
             let painter = ui.painter();
             if selected {

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Test support of the shell tests: a temporary copy of Golden A, a harness around the application frame without
-//! rendering, a scripted file dialog, and the accessible-name walker (ADR-0014 amendment 2, NFR-A11Y-02).
+//! rendering, a scripted file dialog, and the accessibility walker (ADR-0014 amendment 2, NFR-A11Y-02).
 
 #![allow(dead_code, missing_docs)]
 
@@ -138,13 +138,14 @@ pub fn harness_with<'a>(shell: ShellModel, platform: Scripted, initial: Option<P
         .build_ui_state(|ui, app: &mut App| app.ui(ui), app)
 }
 
-/// Runs the frame until it settles, then checks that every input widget has a name. The walk costs about 1 ms
-/// against about 10 ms per frame of the window (debug build, measured 2026-10-29), and the tree a settle ends on is
-/// not the one of the settle before, so it runs on every settle.
+/// Runs the frame until it settles, then checks every interactive widget's name, role and state
+/// ([`assert_accessible`]). The walk costs about 1 ms against about 10 ms per frame of the window (debug build,
+/// measured 2026-10-29), and the tree a settle ends on is not the one of the settle before, so it runs on every
+/// settle.
 #[track_caller]
 pub fn settle(harness: &mut Harness<'_, App>) {
     harness.run_ok();
-    assert_named(harness);
+    assert_accessible(harness);
 }
 
 /// Waits (bounded) for the render worker's image of the page on show.
@@ -182,11 +183,145 @@ pub fn wait_for_preview(harness: &mut Harness<'_, App>) {
     panic!("the preview image did not arrive");
 }
 
-/// The accessible-name walker: every visible AccessKit node a user can reach (an input role, or one that takes the
-/// keyboard focus) has a name, a label or a placeholder. Read-only text is no input.
+/// The surface a settle checks, for [`assert_accessible`]'s lines: the open dialog's title, the first run, or the
+/// window.
+pub fn surface_name(harness: &Harness<'_, App>) -> String {
+    let shell = harness.state().shell();
+    if let Some(dialog) = shell.dialog() {
+        ew_ui::ew_viewmodel::dialogs::spec(dialog, shell).title
+    } else if shell.first_run().is_some() {
+        strings::text(key!("firstrun-title")).to_owned()
+    } else {
+        "window".to_owned()
+    }
+}
+
+/// The accessibility walker (ADR-0014 amendment 2, NFR-A11Y-02; WP-S2.11 D3): every visible, enabled AccessKit node a
+/// user can reach (an input role, or one that takes the keyboard focus) has (R1) a name, a label or a placeholder;
+/// (R2) a check box, switch or radio button its toggled state; (R3) a combo box, a node with a pop-up or a tree item
+/// with children its expanded state; (R4) an option, tab, row or tree item of a selectable container its selected
+/// state; (R5) a text input or spin button a value (empty allowed). Read-only text is no input. Every failing node
+/// is a line (§5 U1), so one run shows them all. R6 needs the action registry: [`availability_problems`].
+pub fn accessibility_problems<S>(harness: &Harness<'_, S>, surface: &str) -> Vec<String> {
+    use egui::accesskit::Role;
+    let mut problems = Vec::new();
+    for node in harness.root().children_recursive() {
+        let node = node.accesskit_node();
+        if node.is_hidden() || node.is_disabled() || node.data().is_read_only() {
+            continue;
+        }
+        let role = node.role();
+        let reachable =
+            egui::accessibility::is_input(role) || node.data().supports_action(egui::accesskit::Action::Focus);
+        if !reachable {
+            continue;
+        }
+        let name = node.label().filter(|l| !l.trim().is_empty()).or_else(|| {
+            node.data()
+                .placeholder()
+                .filter(|p| !p.trim().is_empty())
+                .map(str::to_owned)
+        });
+        let Some(name) = name else {
+            problems.push(format!(
+                "{surface}: {role:?} at {:?} has no accessible name",
+                node.raw_bounds()
+            ));
+            continue;
+        };
+        let mut states = Vec::new();
+        if matches!(role, Role::CheckBox | Role::Switch | Role::RadioButton) && node.toggled().is_none() {
+            states.push("toggled");
+        }
+        let has_children = node
+            .children()
+            .any(|c| c.role() == Role::TreeItem || c.data().is_expanded().is_some());
+        if (role == Role::ComboBox || node.has_popup().is_some() || (role == Role::TreeItem && has_children))
+            && node.data().is_expanded().is_none()
+        {
+            states.push("expanded");
+        }
+        let mut in_selectable = false;
+        let mut at = node.parent();
+        while let Some(a) = at {
+            in_selectable |= matches!(
+                a.role(),
+                Role::ListBox | Role::TabList | Role::Tree | Role::TreeGrid | Role::Grid | Role::ListGrid
+            );
+            at = a.parent();
+        }
+        if matches!(role, Role::ListBoxOption | Role::Tab | Role::Row | Role::TreeItem)
+            && in_selectable
+            && node.is_selected().is_none()
+        {
+            states.push("selected");
+        }
+        if (role == Role::SpinButton || node.is_text_input()) && node.value().is_none() && node.numeric_value().is_none()
+        {
+            states.push("value");
+        }
+        for state in states {
+            problems.push(format!("{surface}: {role:?} \"{name}\" has no {state} state"));
+        }
+    }
+    problems
+}
+
+/// R6 of the walker: a command-bar button or an entry of the open app menu whose action the registry reports
+/// unavailable is shown disabled, not enabled (§5 U1).
+pub fn availability_problems(harness: &Harness<'_, App>, surface: &str) -> Vec<String> {
+    use egui::accesskit::Role;
+    use ew_ui::ew_viewmodel::{actions, command_bar};
+    let shell = harness.state().shell();
+    let bar = command_bar::command_bar(shell);
+    let mut problems = Vec::new();
+    let menu_button = strings::text(key!("commandbar-menu"));
+    let mut check = |label: &str, in_menu: bool| {
+        for node in harness.query_all_by_label(label) {
+            // The app menu's entries are children of its button ("Menu"); a context menu's are not.
+            let at_place = if in_menu {
+                let up = ancestors(&node);
+                up.iter().any(|(r, _)| *r == Role::Menu)
+                    && up.iter().any(|(r, l)| *r == Role::Button && l == menu_button)
+            } else {
+                in_chrome(&node)
+            };
+            let n = node.accesskit_node();
+            if at_place && !n.is_hidden() && !n.is_disabled() && n.role() == Role::Button {
+                problems.push(format!(
+                    "{surface}: {:?} \"{label}\" is enabled, but its action is unavailable",
+                    n.role()
+                ));
+            }
+        }
+    };
+    let buttons = bar
+        .quick
+        .iter()
+        .chain(bar.groups.iter().flat_map(|g| &g.buttons))
+        .chain(&bar.next);
+    for b in buttons.filter(|b| !b.enabled) {
+        check(&b.bar_label, false);
+    }
+    for menu in actions::menu_model(shell) {
+        for item in menu.items().into_iter().filter(|i| !i.enabled) {
+            check(&item.label, true);
+        }
+    }
+    problems
+}
+
+/// The walker on the surface on show, R1 to R6, with WP-S2.08's splitter count: every splitter handle of the dock and
+/// the canvas area is a named `Splitter` node (FT-338).
 #[track_caller]
-pub fn assert_named(harness: &Harness<'_, App>) {
-    let mut unnamed = Vec::new();
+pub fn assert_accessible(harness: &Harness<'_, App>) {
+    let surface = surface_name(harness);
+    let mut problems = accessibility_problems(harness, &surface);
+    problems.extend(availability_problems(harness, &surface));
+    assert!(
+        problems.is_empty(),
+        "nodes that fail the accessibility rules: {problems:#?}"
+    );
     let mut splitters = 0;
     // "Resize {0} and {1}": the text before the first argument and the one between the two.
     let splitter_name = strings::text(key!("splitter-name"));
@@ -194,34 +329,22 @@ pub fn assert_named(harness: &Harness<'_, App>) {
     let splitter_join = rest.split_once("{1}").map_or(rest, |(join, _)| join);
     for node in harness.root().children_recursive() {
         let node = node.accesskit_node();
-        if node.is_hidden() || node.data().is_read_only() {
-            continue;
-        }
+        // FT-338: the dock's and the canvas area's handles are named `Splitter` nodes ("Resize Pages and Page view")
+        // like every other input. (A table's column handles and egui's panel handle are splitters with other names.)
+        // WP-S2.08 part 3: the name's form in the UI language.
         let reachable = egui::accessibility::is_input(node.role())
             || node.data().supports_action(egui::accesskit::Action::Focus);
-        if !reachable {
-            continue;
-        }
-        // FT-338: the dock's and the canvas area's handles are named `Splitter` nodes ("Resize Pages and Page view")
-        // like every other input; no unnamed node is let through any more. (A table's column handles and egui's
-        // panel handle are splitters with other names.) WP-S2.08 part 3: the name's form in the UI language.
-        if node.role() == egui::accesskit::Role::Splitter
+        if !node.is_hidden()
+            && !node.data().is_read_only()
+            && reachable
+            && node.role() == egui::accesskit::Role::Splitter
             && node
                 .label()
                 .is_some_and(|l| l.starts_with(splitter_lead) && l.contains(splitter_join))
         {
             splitters += 1;
         }
-        let named = node.label().is_some_and(|l| !l.trim().is_empty())
-            || node.data().placeholder().is_some_and(|p| !p.trim().is_empty());
-        if !named {
-            unnamed.push(format!("{:?} at {:?}", node.role(), node.raw_bounds()));
-        }
     }
-    assert!(
-        unnamed.is_empty(),
-        "widgets without an accessible name: {unnamed:#?}"
-    );
     assert_eq!(
         splitters,
         harness.state().splitter_count(),
@@ -229,7 +352,7 @@ pub fn assert_named(harness: &Harness<'_, App>) {
     );
 }
 
-/// The fit check of WP-S2.08 D11 (NFR-I18N-02), beside [`assert_named`]: every visible labelled AccessKit node lies
+/// The fit check of WP-S2.08 D11 (NFR-I18N-02), beside [`assert_accessible`]: every visible labelled AccessKit node lies
 /// inside the window and inside its nearest bounded ancestor across (1 px slack), and no two interactive siblings
 /// overlap.
 ///
