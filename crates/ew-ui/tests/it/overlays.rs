@@ -205,11 +205,12 @@ const TILE_PIXELS: usize = 16;
 
 /// FT-1254: the first 32 × 32 tile (x, y, count) of an image `w` pixels wide that holds more than [`TILE_PIXELS`]
 /// differing pixels: the differences may be scattered edge pixels, never a drawn thing, so a short tag that appears
-/// or goes (59 pixels of "1X1") fails although the whole image allows more.
+/// or goes (59 pixels of "1X1") fails although the whole image allows more. FT-1350: the tiles overlap by half (one
+/// every 16 pixels), so a tag up to 16 pixels across lies whole in one of them wherever it stands.
 fn crowded_tile(differs: &[bool], w: usize) -> Option<(usize, usize, usize)> {
     let h = differs.len() / w;
-    (0..h).step_by(32).find_map(|ty| {
-        (0..w).step_by(32).find_map(|tx| {
+    (0..h).step_by(16).find_map(|ty| {
+        (0..w).step_by(16).find_map(|tx| {
             let n = (ty..(ty + 32).min(h))
                 .flat_map(|y| (tx..(tx + 32).min(w)).map(move |x| y * w + x))
                 .filter(|i| differs[*i])
@@ -219,17 +220,22 @@ fn crowded_tile(differs: &[bool], w: usize) -> Option<(usize, usize, usize)> {
     })
 }
 
-/// FT-1254: an 8 × 8 block (a short tag) is a crowded tile, 16 scattered pixels are not.
+/// FT-1254: an 8 × 8 block (a short tag) is a crowded tile, 16 scattered pixels are not; FT-1350: so is one that
+/// straddles the corner of four tiles, 4 × 4 pixels in each.
 #[test]
 fn ov5_a_short_tag_is_a_crowded_tile() {
     let (w, h) = (640, 700);
-    let mut tag = vec![false; w * h];
-    for y in 100..108 {
-        for x in 200..208 {
-            tag[y * w + x] = true;
+    let block = |x0: usize, y0: usize| {
+        let mut tag = vec![false; w * h];
+        for y in y0..y0 + 8 {
+            for x in x0..x0 + 8 {
+                tag[y * w + x] = true;
+            }
         }
-    }
-    assert_eq!(crowded_tile(&tag, w), Some((192, 96, 64)));
+        tag
+    };
+    assert_eq!(crowded_tile(&block(200, 100), w), Some((176, 80, 64)));
+    assert_eq!(crowded_tile(&block(220, 92), w), Some((208, 64, 32)));
     let mut scattered = vec![false; w * h];
     for i in 0..16 {
         scattered[i * 40 * w + i * 37] = true;
