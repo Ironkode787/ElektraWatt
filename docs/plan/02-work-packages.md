@@ -1896,6 +1896,8 @@ Open: FT-1162 (texts built in `ew-api`), FT-1237, FT-1238, FT-1247 to FT-1265, F
 | Acceptance | NFR-UX-01, NFR-UX-02 |
 | Owner role | UX researcher |
 
+*Status (2026-11-04, cycle 50).* **Specified in cycle 50** ([closed specification](specs/WP-S2.12-usability-rounds.md); decision log ID-1331, ID-1333): R0 and R1 as blind-persona rounds, not sessions with people (ID-1331 (5)); one lane (Opus/high) in five build steps (the harness's start projects, `actions` items, decisions at `stop`, hints and questionnaire; GP-UT as `variants/gp-ut.ewcmd`; the personas `eplan-designer`, `eplan-maintainer` and `qet-user`; the task sheets of T1 to T11 and the ADR-0007 probe A7; R0 with its report and fix list), handing back for R0's runs and for the review, about 2.05 pw; R1 on WP-S6.08's first candidate with its report, ADR-0007's validation record and re-tests, about 0.65 pw, the PERT unchanged; NFR-UX-01's completion rate, NFR-UX-02's SUS score, NFR-UX-04's 30 minutes and NFR-UX-06 are not met by a proxy, NFR-PRIV-10 does not apply; open for the orchestrator: the package's shape, whether doc 16's 12-of-15 line binds, the run counts, the frame size, Golden C, the questionnaire's wording, the size and the checkers (the specification's O1 to O8).
+
 #### WP-S2.13 Automation workspaces: PLC, bus and fluid
 
 | Field | Value |
