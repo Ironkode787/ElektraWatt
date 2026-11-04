@@ -328,7 +328,7 @@ fn step_b2_keeps_the_topology_and_one_undo_restores_the_records_byte_for_byte() 
     };
     assert_eq!(
         connections.len(),
-        72 + 19 + 2,
+        72 + 19 + 2 + 16, // WP-S1.20 GA-2: the fluid lines F1 to F16
         "wires, bridges and the two bus connections"
     );
 

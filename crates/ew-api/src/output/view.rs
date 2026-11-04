@@ -564,7 +564,7 @@ pub fn page_break_marks(q: &Q, page: Id<Page>) -> Vec<BreakMarkView> {
 /// The valve glyphs of the module overviews on a drawn page (doc 11 §5.5 step 3, WP-S1.20 D19): for each overview
 /// representation of a module with valve positions, one glyph per position from `valve_slots`, in representation-ID
 /// order; a valve prints the part number of its first part use. A plain function of the tracked reads of `q`, like
-/// [`page_break_marks`].
+/// `page_break_marks`.
 pub fn page_valve_glyphs(q: &Q, page: Id<Page>) -> Vec<ValveGlyphsView> {
     let reps = q.reps();
     let functions = q.functions();

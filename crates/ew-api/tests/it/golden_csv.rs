@@ -109,7 +109,7 @@ fn the_golden_batch_loads_with_the_counts_of_doc_20() {
     // doc 20 §8.2: 44 physical wires drawn as 72 connections (22 through IP pairs as two parts, 6 junction
     // arms that carry no wire ID), plus the 19 bridge connections of BR1 … BR6 (§8.3) and the two `Bus`
     // connections of the DP line (§11.1: the cable -3W1 on folio 3 and the page-less plug-on mating).
-    assert_eq!(n("connection"), 72 + 19 + 2);
+    assert_eq!(n("connection"), 72 + 19 + 2 + 16); // WP-S1.20 GA-2: the fluid lines F1 to F16
     let wire_ids = batch
         .records
         .iter()
