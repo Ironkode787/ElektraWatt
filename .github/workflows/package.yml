@@ -718,7 +718,10 @@ jobs:
           strace --version | sed -n 1p
       # D12 (d), G-M2-15: no listening socket on the installed tree (the extraction the step above leaves).
       - name: no listening socket (D12 (d))
-        run: bash ci/no-listen.sh "$RUNNER_TEMP/install-tests/runner/squashfs-root" "$RUNNER_TEMP/no-listen"
+        run: |
+          set -euo pipefail
+          bash ci/no-listen.sh --test  # its check on fixture traces, one with a listen call
+          bash ci/no-listen.sh "$RUNNER_TEMP/install-tests/runner/squashfs-root" "$RUNNER_TEMP/no-listen"
       - name: name the upload
         env:
           VERSION: ${{ steps.pins.outputs.version }}

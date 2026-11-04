@@ -704,6 +704,7 @@ The per-artefact steps of `package.yml` (WP-S6.07 part 2), in `windows (x86_64)`
   `ignore` entry in `deny.toml` and in [`.cargo/audit.toml`](../.cargo/audit.toml), each with its reason, owner and
   expiry, checked by hand at RC-03); [`no-listen.sh`](no-listen.sh) (D12 (d)) runs `AppRun --smoke` and `AppRun ew
   export pdf` of the sample on the install test's extraction under `strace -f -e trace=listen` and fails on any
+  `listen` call; `no-listen.sh --test`, run first in the same step, checks that on fixture traces, one of them with a
   `listen` call. ubuntu-24.04 has no strace, so the step before installs noble's `strace_6.8-0ubuntu2_amd64.deb` from
   the Ubuntu archive snapshot of `components.toml`, pinned by SHA-256 in the step (a test tool; its one dependency,
   libunwind8, comes from the runner's archive through apt).
