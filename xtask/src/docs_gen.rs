@@ -124,7 +124,7 @@ struct Generated {
     packs: SummaryItems,
     cli: SummaryItems,
     format: SummaryItems,
-    /// The problems of the rule notes (T1 to T4).
+    /// The problems of the rule notes (T1 to T4) and of the glossary pages (T7).
     notes: Vec<String>,
 }
 
@@ -153,7 +153,7 @@ struct Plan {
     partial: Vec<(String, String)>,
     commands: usize,
     packs: usize,
-    /// The problems of the rule notes (T1 to T4), reported by both modes.
+    /// The problems of the rule notes (T1 to T4) and of the glossary pages (T7), reported by both modes.
     notes: Vec<String>,
 }
 
@@ -309,7 +309,7 @@ pub(crate) fn run(root: &Path, check: bool) -> Result<bool> {
         plan.partial.len()
     );
     if !plan.notes.is_empty() {
-        eprintln!("docs-gen: {} problem(s) in the rule notes", plan.notes.len());
+        eprintln!("docs-gen: {} problem(s) in the rule notes and the glossary pages", plan.notes.len());
         for v in &plan.notes {
             eprintln!("  - {v}");
         }
@@ -348,6 +348,8 @@ fn generate(root: &Path) -> Result<Generated> {
     let commands = command_pages(root, &mut files)?;
     let (packs, notes) = rule_pages(root, &mut files)?;
     files.insert(GLOSSARY_PAGE.to_owned(), glossary_page(root)?);
+    let mut notes = notes;
+    notes.extend(glossary_sections(root)?);
     files.insert(
         KEYMAPS_PAGE.to_owned(),
         keymaps_text(&read_json(root, KEYMAP_SHEET)?)?,
@@ -998,9 +1000,11 @@ fn glossary_text(file: &GlossaryFile) -> String {
             .map(|a| format!("`{a}`"))
             .collect::<Vec<_>>()
             .join(", ");
+        // WP-S7.05 D9: each row carries the anchor of its term, which the explanation pages link.
         let _ = writeln!(
             rows,
-            "| {} | {} | {} | {} | {} | {} |",
+            "| <a id=\"{}\"></a>{} | {} | {} | {} | {} | {} |",
+            anchor(&t.ew),
             cell(&t.ew),
             cell(t.labels.get("nl-NL").map_or("", String::as_str)),
             list(&t.eplan),
@@ -1028,6 +1032,60 @@ fn glossary_text(file: &GlossaryFile) -> String {
             Some("4-translation-table-eplan-qelectrotech-elektrawatt")
         ),
     )
+}
+
+/// The explanation pages that relate EPLAN's and QElectroTech's terms to EW's (WP-S7.05 D9), relative to
+/// [`BOOK_SRC`], with the other program's name.
+const GLOSSARY_PAGES: [(&str, &str); 2] = [
+    ("explanation/eplan-and-ew.md", "EPLAN"),
+    ("explanation/qet-and-ew.md", "QElectroTech"),
+];
+
+/// The T7 problems of the repository's glossary pages.
+fn glossary_sections(root: &Path) -> Result<Vec<String>> {
+    let text = read_lf(&root.join(GLOSSARY))?.with_context(|| format!("{GLOSSARY} is missing"))?;
+    let file: GlossaryFile = toml::from_str(&text).with_context(|| format!("parsing {GLOSSARY}"))?;
+    let mut pages = Vec::new();
+    for (page, _) in GLOSSARY_PAGES {
+        pages.push(read_lf(&root.join(BOOK_SRC).join(page))?.unwrap_or_default());
+    }
+    Ok(glossary_problems(&file, [&pages[0], &pages[1]]))
+}
+
+/// T7 (WP-S7.05 D9): an EPLAN or QElectroTech alias of the product glossary that no section of its page names, and a
+/// section whose `**EW term:**` line links no term of the glossary. A section is a `## ` heading naming the other
+/// program's terms, joined by ", ".
+fn glossary_problems(file: &GlossaryFile, pages: [&str; 2]) -> Vec<String> {
+    let terms: BTreeSet<&str> = file.term.iter().map(|t| t.ew.as_str()).collect();
+    let mut problems = Vec::new();
+    for (i, ((page, program), text)) in GLOSSARY_PAGES.iter().zip(pages).enumerate() {
+        let mut named = BTreeSet::new();
+        let mut sections: Vec<(&str, Option<&str>)> = Vec::new();
+        for line in text.lines() {
+            if let Some(heading) = line.strip_prefix("## ") {
+                named.extend(heading.split(", ").map(str::trim));
+                sections.push((heading, None));
+            } else if let (Some(rest), Some(last)) = (line.strip_prefix("**EW term:** ["), sections.last_mut()) {
+                last.1 = rest.split_once("](").map(|(term, _)| term);
+            }
+        }
+        for t in &file.term {
+            let aliases = if i == 0 { &t.eplan } else { &t.qet };
+            for alias in aliases.iter().filter(|a| !named.contains(a.as_str())) {
+                problems.push(format!(
+                    "{BOOK_SRC}/{page}: the {program} term \"{alias}\" of the product glossary has no section"
+                ));
+            }
+        }
+        for (heading, term) in sections {
+            if !term.is_some_and(|t| terms.contains(t)) {
+                problems.push(format!(
+                    "{BOOK_SRC}/{page}: the section \"## {heading}\" names no EW term of the product glossary"
+                ));
+            }
+        }
+    }
+    problems
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -2514,13 +2572,61 @@ mod tests {
         let page = glossary_text(&file);
         assert!(
             page.contains(
-                "| Interruption point | Onderbrekingspunt | Interruption point | Folio report | Where a \\| potential continues. | `tool.ip` |"
+                "| <a id=\"interruption-point\"></a>Interruption point | Onderbrekingspunt | Interruption point | Folio report | Where a \\| potential continues. | `tool.ip` |"
             ),
             "{page}"
         );
         assert!(
-            page.contains("| Report block |  |  |  | A table. | — |"),
+            page.contains("| <a id=\"report-block\"></a>Report block |  |  |  | A table. | — |"),
             "{page}"
+        );
+    }
+
+    /// T7 (WP-S7.05 D9, DC-5): every EPLAN and QElectroTech alias has a section in its page, and every section names
+    /// an EW term of the glossary; removing a section names its aliases. The repository's pages pass.
+    #[test]
+    fn the_glossary_pages_have_a_section_for_every_alias() {
+        let file: GlossaryFile = toml::from_str(
+            "[[term]]\new = \"Interruption point\"\neplan = [\"Interruption point\"]\nqet = [\"Folio report\"]\n\
+             [term.labels]\nen-GB = \"Interruption point\"\n[term.definition]\nen-GB = \"A point.\"\n\
+             [[term]]\new = \"Function\"\nqet = [\"Element\", \"Element instance\"]\n\
+             [term.labels]\nen-GB = \"Function\"\n[term.definition]\nen-GB = \"A function.\"\n",
+        )
+        .unwrap();
+        let link = |t: &str| format!("**EW term:** [{t}](../reference/glossary.md#{})\n", anchor(t));
+        let eplan = format!("# EPLAN and EW\n\n## Interruption point\n\n{}", link("Interruption point"));
+        let qet = format!(
+            "# QElectroTech and EW\n\n## Folio report\n\n{}\n## Element, Element instance\n\n{}",
+            link("Interruption point"),
+            link("Function")
+        );
+        assert_eq!(glossary_problems(&file, [&eplan, &qet]), Vec::<String>::new());
+        let without = qet.replace("## Element, Element instance", "## Element");
+        assert_eq!(
+            glossary_problems(&file, [&eplan, &without]),
+            [
+                "docs/book/src/explanation/qet-and-ew.md: the QElectroTech term \"Element instance\" of the product \
+                 glossary has no section"
+            ]
+        );
+        let unknown = eplan.replace("[Interruption point]", "[Folio report]");
+        assert_eq!(
+            glossary_problems(&file, [&unknown, &qet]),
+            [
+                "docs/book/src/explanation/eplan-and-ew.md: the section \"## Interruption point\" names no EW term of \
+                 the product glossary"
+            ]
+        );
+        assert_eq!(
+            glossary_problems(&file, ["", &qet]),
+            [
+                "docs/book/src/explanation/eplan-and-ew.md: the EPLAN term \"Interruption point\" of the product \
+                 glossary has no section"
+            ]
+        );
+        assert_eq!(
+            glossary_sections(&crate::workspace_root()).unwrap(),
+            Vec::<String>::new()
         );
     }
 

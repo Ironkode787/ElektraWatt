@@ -20,7 +20,7 @@ Golden A's 0V is PELV with the bond B1. In a copy, delete B1, or draw a second b
 
 ## How to fix
 
-Bonds are drawn with Draw ▸ Bond and deleted like any connection. There is no quick fix.
+Bonds are drawn with Draw ▸ Connect ▸ Bond and deleted like any connection. There is no quick fix.
 
 ## Waiving
 

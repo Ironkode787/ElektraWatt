@@ -18,7 +18,8 @@ To see it in a new project, connect a device's FE pin to the PE potential with a
 
 ## How to fix
 
-Declare an FE–PE bond at the connection point with Draw ▸ Bond, or connect the pin to a functional-earth potential.
+Declare an FE–PE bond at the connection point with Draw ▸ Connect ▸ Bond, or connect the pin to a functional-earth
+potential.
 
 ## Waiving
 

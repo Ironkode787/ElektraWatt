@@ -310,3 +310,5 @@
 # Explanation
 
 - [Explanation](explanation/index.md)
+  - [EPLAN and EW](explanation/eplan-and-ew.md)
+  - [QElectroTech and EW](explanation/qet-and-ew.md)

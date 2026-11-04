@@ -22,5 +22,9 @@ of record, and this section links to them instead of copying them, so that there
 The [documentation map](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/README.md) lists every design
 document with its purpose.
 
-Short explanation pages written for users (for example the glossaries that relate EPLAN and QElectroTech terms to EW,
-NFR-DOC-05) are planned and will be added here.
+## For users of other programs
+
+- [EPLAN and EW](eplan-and-ew.md): the EPLAN concepts, such as functions, device tags, CDPs and message management,
+  and what they are called and how they differ in EW.
+- [QElectroTech and EW](qet-and-ew.md): the QElectroTech concepts, such as elements, master and slave, folio reports
+  and conductors, and their EW counterparts.
