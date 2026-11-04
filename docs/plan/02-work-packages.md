@@ -1334,6 +1334,8 @@ FT-1236, FT-1245, FT-1246, FT-1290 to FT-1295.
 | Acceptance | AC-32 |
 | Owner role | Core developer |
 
+*Status (2026-11-04, cycle 50).* **Specified in cycle 50** ([closed specification](specs/WP-S1.20-fluid-power-model.md); decision log ID-1311): one lane (Opus/high) in seven build steps with a hand-back point after step 5, about 3.7 pw against the PERT of 3.1 pw, which stays until the orchestrator rules on the size (the specification's O1); it takes N-FL-1, `valve.set_occupancy` and FT-263's valve glyphs from WP-S1.13's status line and closes FT-322, FT-744 and FT-589's fluid rows with two golden changes; FT-273 stays with WP-S1.13.
+
 #### WP-S1.21 PLC and bus model with addressing (MVP)
 
 | Field | Value |
@@ -2932,6 +2934,8 @@ S6 implements the test layers, gates, packaging, signing and CRA processes of [q
 *Status note (2026-10-23, cycle 23 design pass).* `PRIVACY.md` is delivered (FT-342, decision log ID-579): the stored-data and network-flow inventory, linked from the About dialog and the first-run privacy step through the repository's web copy until FT-386 bundles it; NFR-PRIV-07 is met for this version's flows (all network flows unbuilt) and is re-checked whenever a flow is built. The rest of the package is open.
 
 *Status (2026-11-02, ID-1187, ID-1188).* **Re-estimated** from 1.9 · 2.9 · 4.4 (PERT 3.0): 0.1.0 holds no network code, so the update check (NFR-SEC-15, NFR-PRIV-03), the policy keys (NFR-PLAT-08), the local minidump and the upload (NFR-PRIV-04) move to WP-S6.10 at 1.0; the package keeps the sandbox, `PRIVACY.md` and the local crash log (NFR-REL-13).
+
+*Status (2026-11-04, cycle 50).* **Specified in cycle 50** ([closed specification](specs/WP-S6.05-privacy-and-crash-log.md); decision log ID-1311): one lane (Opus/medium) in six build steps at 0.6 pw, the PERT unchanged; 0.1.0 needs only ADR-0029's Decision as amended, so the ADR stays Proposed until before 1.0 (the owner's, the specification's O1); FR-UI-050's 0.1.0 part is the start-up offer with Recover, Open log folder and Delete log, Copy summary and Help ▸ Diagnostics staying 1.0's (O2); AC-39 stays G-M1-07's (O3).
 
 #### WP-S6.06 The pilot release's installers and the platform CI matrix
 
