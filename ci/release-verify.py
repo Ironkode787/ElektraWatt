@@ -305,7 +305,9 @@ class ReleaseVerifyTest(unittest.TestCase):
         return str(refused.exception)
 
     def test_a_matching_tag_with_notes_passes(self):
+        # REUSE-IgnoreStart: the fixture's notes header is test data, not this file's licence.
         self.notes("<!--\nSPDX-License-Identifier: CC-BY-4.0\n-->\n\n# ElektraWatt 0.1.0\n")
+        # REUSE-IgnoreEnd
         self.assertEqual(check_tag(self.repo, "v0.1.0-rc.1"), "0.1.0")
         self.assertEqual(check_tag(self.repo, "v0.1.0-rc.12"), "0.1.0")
 
