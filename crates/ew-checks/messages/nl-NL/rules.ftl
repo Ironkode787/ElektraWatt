@@ -303,3 +303,105 @@ rule-ew-core-013 = { $collision } na samenvoegen; { $keeper ->
     } wijzigen
     .title = Botsing na samenvoegen
     .hint = Hernummer het nieuwere apparaat met de snelle oplossing, of geef een van de records een ander nummer.
+
+## EW-IMP: de importbevindingen van het migratierapport (WP-S3.09 D9)
+
+rule-ew-imp-001 =
+    .title = Invoerlimiet overschreden; item of bestand geweigerd
+    .hint = Splits de bron in kleinere bestanden, of verwijder de items boven de limiet, en importeer opnieuw.
+
+rule-ew-imp-002 =
+    .title = Onleesbaar of geweigerd item overgeslagen
+    .hint = Corrigeer het item in de bron, of teken het opnieuw in dit project.
+
+rule-ew-imp-003 =
+    .title = Onoplosbare verwijzing weggelaten
+    .hint = Teken de ontbrekende verbinding of koppeling opnieuw in dit project.
+
+rule-ew-imp-004 =
+    .title = Inhoud bewust weggelaten
+    .hint = Niets te doen: deze inhoud heeft geen tegenhanger in een project; teken hem opnieuw als hij nodig is.
+
+rule-ew-imp-005 =
+    .title = Object afgeleid, controleren
+    .hint = Controleer het afgeleide object en bevestig of splits het.
+
+rule-ew-imp-006 =
+    .title = Lettertype vervangen
+    .hint = Niets te doen, of kies een andere tekststijl als de vervanger anders afdrukt.
+
+rule-ew-imp-007 =
+    .title = Waarde via een aliastabel omgezet
+    .hint = Controleer de omgezette waarde; zet hem terug of kies een andere als de alias niet klopt.
+
+rule-ew-imp-008 =
+    .title = Waarde als vreemde of ondoorzichtige tekst bewaard
+    .hint = Zet de waarde om naar een waarde die het project kent, met de snelle oplossing als die er is.
+
+rule-ew-imp-009 =
+    .title = Afwijking in de afdruk
+    .hint = Vergelijk de afgeleide tekst met de afgedrukte tekst van de bron en corrigeer de verkeerde.
+
+rule-ew-imp-010 =
+    .title = In de bron verwijderd, hier behouden
+    .hint = Verwijder het record als het niet meer nodig is; behoud het anders.
+
+rule-ew-imp-011 =
+    .title = In de bron en hier gewijzigd, hier behouden
+    .hint = Vergelijk de wijziging in de bron met die in dit project en neem met de hand over wat nodig is.
+
+rule-ew-imp-101 =
+    .title = Opgeslagen label wijkt af van het formuleresultaat
+    .hint = Gebruik de afgeleide aanduiding, of behoud het opgeslagen label als vaste aanduiding.
+
+rule-ew-imp-103 =
+    .title = Label als vaste aanduiding behouden
+    .hint = Zet de aanduiding om naar het schema waar die past, of houd hem vast.
+
+rule-ew-imp-104 =
+    .title = Conflict in een titelhoofdwaarde per blad
+    .hint = Maak de revisies die de bladen noemen en laat de waarden per pagina vallen.
+
+rule-ew-imp-109 =
+    .title = Strookdelen samengevoegd tot een strook
+    .hint = Niets te doen, of splits de strook als de delen aparte stroken zijn.
+
+rule-ew-imp-115 =
+    .title = Namen van een bladverwijzingspaar verschillen
+    .hint = Hernoem een kant van het paar, of zet de koppeling op ketenmodus.
+
+rule-ew-imp-116 =
+    .title = Slaaf zonder meester, of meester boven zijn slaven
+    .hint = Koppel de slaaf aan zijn meester, of verminder de koppelingen van de meester.
+
+rule-ew-imp-117 =
+    .title = Standaardformule voor de bladindex
+    .hint = Laat de bladverwijzingen het bladlabel gebruiken.
+
+rule-ew-imp-118 =
+    .title = Bedrading van een knooppunt aangenomen
+    .hint = Zet de bedrading van het knooppunt op Keten waar de bron het zo bedraadde.
+
+rule-ew-imp-119 =
+    .title = Element zonder functiebetekenis
+    .hint = Koppel het symbool aan een functiedefinitie, of behoud de algemene black box.
+
+rule-ew-imp-120 =
+    .title = Gedeelde element-UUID onderscheiden
+    .hint = Niets te doen: elke kopie kreeg een eigen record.
+
+rule-ew-imp-122 =
+    .title = Element zonder label, aanduiding gemaakt
+    .hint = Geef het apparaat een label; zijn aanduiding drukt tot dan "?" af.
+
+rule-ew-imp-102 =
+    .title = Spellingsvarianten van een structuurcode
+    .hint = Voeg de varianten samen tot een structuurcode en behoud de andere als aliassen.
+
+rule-ew-imp-105 =
+    .title = Beschrijving per blad als overschrijving behouden
+    .hint = Laat de overschrijving vallen om de projectbeschrijving weer af te drukken, of behoud hem.
+
+rule-ew-imp-114 =
+    .title = Geïmporteerde tekststijlen niet aan slotsoorten gebonden
+    .hint = Pas de tekststijl toe die de slotsoort noemt.

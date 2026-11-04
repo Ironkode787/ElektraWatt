@@ -336,9 +336,38 @@ impl Imported {
         c
     }
 
-    /// The migration report of the import (findings grouped by code, doc 14 §2.5).
+    /// The migration report of the import (findings grouped by code, doc 14 §2.5): the import run's entries and the
+    /// live findings of the `migration` scheme, one row per condition (WP-S3.09 D9 c: an entry its live counterpart
+    /// reports on the same records is left out, [`crate::checks::rules::imp::fold`]).
     pub fn migration_report(&self) -> migration::MigrationReport {
-        migration::MigrationReport::from_report(&self.batch.report).with_live(self.live.clone())
+        let mut report = self.batch.report.clone();
+        if let Ok(session) = &self.session {
+            let check = session.check(&crate::checks::MIGRATION, crate::checks::CheckMode::Release);
+            report.entries.retain(|e| {
+                let code = e.code.to_string();
+                let Some((_, live)) = crate::checks::rules::imp::FOLDED
+                    .iter()
+                    .find(|(imp, _)| *imp == code)
+                else {
+                    return true;
+                };
+                let mut targets: Vec<crate::checks::Target> = e
+                    .targets
+                    .iter()
+                    .map(|t| crate::checks::Target {
+                        kind: t.kind,
+                        id: ew_derive::ew_ids::Id::from_uuid(t.id),
+                    })
+                    .collect();
+                targets.sort();
+                targets.dedup();
+                !check
+                    .findings
+                    .iter()
+                    .any(|f| f.rule == *live && f.targets == targets)
+            });
+        }
+        migration::MigrationReport::from_report(&report).with_live(self.live.clone())
     }
 }
 
@@ -642,7 +671,12 @@ pub fn lenient_findings(session: &Session) -> Vec<migration::LiveGroup> {
     use std::collections::BTreeMap;
     let report = session.check(&crate::checks::MIGRATION, crate::checks::CheckMode::Release);
     let mut groups: BTreeMap<&'static str, migration::LiveGroup> = BTreeMap::new();
-    for f in report.findings.iter().filter(|f| f.is_open()) {
+    // The import run's own findings are the report's groups (WP-S3.09 D9); the live groups are the rules'.
+    for f in report
+        .findings
+        .iter()
+        .filter(|f| f.is_open() && !f.rule.starts_with("EW-IMP-"))
+    {
         let title = crate::checks::rule(f.rule).map_or(f.rule, |r| r.meta().title);
         let g = groups.entry(f.rule).or_insert_with(|| migration::LiveGroup {
             rule: f.rule.to_owned(),

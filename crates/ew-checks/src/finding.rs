@@ -156,6 +156,9 @@ pub struct Finding {
     /// Whether the rule read library data of a confidence other than `verified` (FR-PRT-031, FT-323's marker,
     /// [`ew_derive::part_confidence`]): the finding is then marked as resting on unverified data.
     pub unverified_data: bool,
+    /// The import code a live finding stands for in the migration report as well (WP-S3.09 D9: one row per
+    /// condition, [`crate::rules::imp::fold`]); `None` for every other finding.
+    pub origin: Option<&'static str>,
     /// The fingerprint.
     pub fingerprint: Fingerprint,
 }
@@ -189,6 +192,7 @@ impl Finding {
             args: Vec::new(),
             fix: None,
             unverified_data: false,
+            origin: None,
         }
     }
 

@@ -119,6 +119,7 @@
     - [EW-CORE](reference/rules/ew-core.md)
     - [EW-FL](reference/rules/ew-fl.md)
     - [EW-IEC81346](reference/rules/ew-iec81346.md)
+    - [EW-IMP](reference/rules/ew-imp.md)
     - [EW-LAYOUT](reference/rules/ew-layout.md)
     - [EW-PLC](reference/rules/ew-plc.md)
     - [EW-POT](reference/rules/ew-pot.md)

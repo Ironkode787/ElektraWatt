@@ -374,7 +374,7 @@ fn run_rules(
             findings.push(f);
         }
     }
-    let mut findings = supersede(findings);
+    let mut findings = crate::rules::imp::fold(supersede(findings));
 
     let waivers = waivers(q);
     let mut used: BTreeSet<usize> = BTreeSet::new();

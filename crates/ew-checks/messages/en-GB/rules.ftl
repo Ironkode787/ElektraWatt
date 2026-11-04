@@ -526,3 +526,105 @@ rule-ew-core-013 = { $collision } after a merge; { $keeper ->
     } must change
     .title = Collision after a merge
     .hint = Renumber the newer device with the quick fix, or give one of the records another number.
+
+## EW-IMP: the import findings of the migration report (WP-S3.09 D9)
+
+rule-ew-imp-001 =
+    .title = Input limit exceeded; item or file refused
+    .hint = Split the source into smaller files, or remove the items above the limit, and import again.
+
+rule-ew-imp-002 =
+    .title = Malformed or refused item skipped
+    .hint = Correct the item in the source, or draw it again in this project.
+
+rule-ew-imp-003 =
+    .title = Unresolvable reference dropped
+    .hint = Draw the missing connection or link again in this project.
+
+rule-ew-imp-004 =
+    .title = Content dropped by design
+    .hint = Nothing to do: this content has no counterpart in a project; redraw it if it is needed.
+
+rule-ew-imp-005 =
+    .title = Object inferred, review
+    .hint = Check the inferred object and confirm or split it.
+
+rule-ew-imp-006 =
+    .title = Font substituted
+    .hint = Nothing to do, or choose another text style if the substitute prints differently.
+
+rule-ew-imp-007 =
+    .title = Value mapped through an alias table
+    .hint = Check the mapped value; revert it or choose another where the alias is wrong.
+
+rule-ew-imp-008 =
+    .title = Value kept as foreign or opaque text
+    .hint = Map the value to one the project knows, with the quick fix where it offers one.
+
+rule-ew-imp-009 =
+    .title = Print-equivalence deviation
+    .hint = Compare the derived text with the source's printed text and correct the one that is wrong.
+
+rule-ew-imp-010 =
+    .title = Removed in the source, kept here
+    .hint = Delete the record if it is no longer needed; otherwise keep it.
+
+rule-ew-imp-011 =
+    .title = Changed in the source and here, kept here
+    .hint = Compare the source's change with this project's and take over what is needed by hand.
+
+rule-ew-imp-101 =
+    .title = Stored label differs from the formula result
+    .hint = Use the derived tag, or keep the stored label as a frozen tag.
+
+rule-ew-imp-103 =
+    .title = Label kept as a frozen tag
+    .hint = Convert the tag to the scheme where it conforms, or keep it frozen.
+
+rule-ew-imp-104 =
+    .title = Per-folio title-block value conflict
+    .hint = Create the revisions the folios name and drop the per-page values.
+
+rule-ew-imp-109 =
+    .title = Strip segments merged into one strip
+    .hint = Nothing to do, or split the strip if its segments are separate strips.
+
+rule-ew-imp-115 =
+    .title = Folio-report pair names differ
+    .hint = Rename one side of the pair, or set the pairing to chain mode.
+
+rule-ew-imp-116 =
+    .title = Slave without master, or master above its slaves
+    .hint = Link the slave to its master, or reduce the master's links.
+
+rule-ew-imp-117 =
+    .title = Default folio-index formula
+    .hint = Switch the folio references to the folio label.
+
+rule-ew-imp-118 =
+    .title = Junction wiring assumed
+    .hint = Set the junction's wiring to Chain where the source wired it so.
+
+rule-ew-imp-119 =
+    .title = Element without function semantics
+    .hint = Map the symbol to a function definition, or keep the generic black box.
+
+rule-ew-imp-120 =
+    .title = Shared element UUID disambiguated
+    .hint = Nothing to do: each copy got its own record.
+
+rule-ew-imp-122 =
+    .title = Unlabelled element, tag synthesised
+    .hint = Give the device a label; its tag prints "?" until then.
+
+rule-ew-imp-102 =
+    .title = Structure-code spelling variants
+    .hint = Merge the variants into one structure code and keep the others as aliases.
+
+rule-ew-imp-105 =
+    .title = Per-folio description kept as an override
+    .hint = Drop the override to print the project description again, or keep it.
+
+rule-ew-imp-114 =
+    .title = Imported text styles not bound to slot kinds
+    .hint = Apply the text style the slot kind names.

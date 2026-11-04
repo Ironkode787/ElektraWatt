@@ -100,22 +100,57 @@ pub const DRAFTING: Scheme = Scheme {
     content: Release::Mvp,
 };
 
+/// The rules `pre-delivery` switches off and `migration` keeps off.
+const PRE_DELIVERY_OFF: [&str; 4] = ["EW-RDS-002", "EW-CORE-055", "EW-FL-008", "EW-FL-014"];
+
 /// `pre-delivery`: the default release scheme; every rule whose modes include release (or prevent) at
-/// release severity, with EW-RDS-002, EW-CORE-055, EW-FL-008 and EW-FL-014 off. EW-REL runs in the gate only.
+/// release severity, with EW-RDS-002, EW-CORE-055, EW-FL-008 and EW-FL-014 off, and the import findings (EW-IMP, the
+/// migration report's, WP-S3.09 D9) off. EW-REL runs in the gate only.
 pub const PRE_DELIVERY: Scheme = Scheme {
     name: "pre-delivery",
     purpose: "release scheme; ew check --scheme pre-delivery",
-    off: &["EW-RDS-002", "EW-CORE-055", "EW-FL-008", "EW-FL-014"],
+    off: &[
+        PRE_DELIVERY_OFF[0],
+        PRE_DELIVERY_OFF[1],
+        PRE_DELIVERY_OFF[2],
+        PRE_DELIVERY_OFF[3],
+        "EW-IMP-001",
+        "EW-IMP-002",
+        "EW-IMP-003",
+        "EW-IMP-004",
+        "EW-IMP-005",
+        "EW-IMP-006",
+        "EW-IMP-007",
+        "EW-IMP-008",
+        "EW-IMP-009",
+        "EW-IMP-010",
+        "EW-IMP-011",
+        "EW-IMP-101",
+        "EW-IMP-102",
+        "EW-IMP-103",
+        "EW-IMP-104",
+        "EW-IMP-105",
+        "EW-IMP-109",
+        "EW-IMP-114",
+        "EW-IMP-115",
+        "EW-IMP-116",
+        "EW-IMP-117",
+        "EW-IMP-118",
+        "EW-IMP-119",
+        "EW-IMP-120",
+        "EW-IMP-122",
+    ],
     lenient: false,
     content: Release::Mvp,
 };
 
 /// `migration`: `extends = "pre-delivery"` at its severities, lenient, the run behind an import's
-/// migration report (doc 15 §10.2). The import run's EW-IMP findings are added by the importer's report.
+/// migration report (doc 15 §10.2), with the import runs' EW-IMP findings (WP-S3.09 D9), which `pre-delivery` switches
+/// off.
 pub const MIGRATION: Scheme = Scheme {
     name: "migration",
     purpose: "lenient run behind a migration report",
-    off: PRE_DELIVERY.off,
+    off: &PRE_DELIVERY_OFF,
     lenient: true,
     content: Release::Mvp,
 };

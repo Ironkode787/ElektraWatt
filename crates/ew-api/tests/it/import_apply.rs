@@ -94,6 +94,31 @@ fn an_import_is_written_with_its_run_and_reproducibly() {
     assert_eq!(run["source"]["name"], "synthetic.qet");
     assert!(run["record_hashes"].as_object().is_some_and(|h| !h.is_empty()));
 
+    // IC-9, IC-10 (WP-S3.09 D9): the migration scheme lists every entry of the run once, as an EW-IMP finding with the
+    // entry's severity and message, and lists the same after the project is reopened.
+    let import_findings = |s: &Session| -> Vec<(String, String, String)> {
+        let report = s.check(&ew_api::checks::MIGRATION, ew_api::checks::CheckMode::Release);
+        let mut v: Vec<(String, String, String)> = report
+            .findings
+            .iter()
+            .filter(|f| f.rule.starts_with("EW-IMP-"))
+            .map(|f| (f.rule.to_owned(), f.severity.name().to_owned(), f.message.clone()))
+            .collect();
+        v.sort();
+        v
+    };
+    let entries = run["entries"].as_array().map_or(0, Vec::len);
+    let (reopened_once, _) = Session::open(&b, store(), SessionOptions::default(), Recovery::Keep).unwrap();
+    let listed = import_findings(&reopened_once);
+    reopened_once.close();
+    assert!(entries > 0, "the synthetic import reports something");
+    assert_eq!(listed.len(), entries, "{listed:?}");
+    let pre = ew_api::checks::PRE_DELIVERY;
+    let (plain, _) = Session::open(&b, store(), SessionOptions::default(), Recovery::Keep).unwrap();
+    let release = plain.check(&pre, ew_api::checks::CheckMode::Release);
+    assert!(!release.findings.iter().any(|f| f.rule.starts_with("EW-IMP-")), "pre-delivery lists no import finding");
+    plain.close();
+
     // IC-8: reopened and saved again, the run's file is unchanged.
     let (mut reopened, _) = Session::open(&a, store(), SessionOptions::default(), Recovery::Keep).unwrap();
     reopened.save().unwrap();
