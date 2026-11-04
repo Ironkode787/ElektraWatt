@@ -315,9 +315,13 @@ mod tests {
             ("tools/blind/HELP.md", "prompt", "blind-help"),
             ("tools/blind/HELP-VISUAL.md", "prompt", "blind-help-visual"),
             ("tools/blind/PLAYTESTER.md", "prompt", "play-tester"),
+            ("tools/blind/ROUND.md", "prompt", "usability-round"),
             ("tools/blind/personas/first-timer.md", "persona", "first-timer"),
             ("tools/blind/personas/qet-veteran.md", "persona", "qet-veteran"),
             ("tools/blind/personas/switcher.md", "persona", "switcher"),
+            ("tools/blind/personas/eplan-designer.md", "persona", "eplan-designer"),
+            ("tools/blind/personas/eplan-maintainer.md", "persona", "eplan-maintainer"),
+            ("tools/blind/personas/qet-user.md", "persona", "qet-user"),
         ];
         for (rel, key, name) in cases {
             let text = read_text(&root, rel).unwrap();
@@ -340,6 +344,7 @@ mod tests {
             "tools/blind/BLIND_DRAFTER.md",
             "tools/blind/CHECKER.md",
             "tools/blind/HELP.md",
+            "tools/blind/ROUND.md",
         ] {
             let text = read_text(&root, rel).unwrap();
             let left = text
@@ -359,6 +364,21 @@ mod tests {
                 "{rel} has an unknown placeholder"
             );
         }
+    }
+
+    /// D10 and FP-1 (ID-1355): every persona is senses-independent: none tells the agent how it acts (the run's prompt
+    /// does), so none says it has no mouse.
+    #[test]
+    fn d10_the_personas_are_senses_independent() {
+        let root = crate::workspace_root();
+        let dir = root.join("tools/blind/personas");
+        let mut seen = 0;
+        for e in std::fs::read_dir(&dir).unwrap().flatten() {
+            let text = std::fs::read_to_string(e.path()).unwrap().to_lowercase();
+            assert!(!text.contains("no mouse"), "{}", e.path().display());
+            seen += 1;
+        }
+        assert!(seen >= 6, "the six personas of WP-S6.13 and WP-S2.12 at least");
     }
 
     /// BD9: `compose` is byte-deterministic, records each file's SHA-256 and substitutes the placeholders.

@@ -276,6 +276,19 @@ mod tests {
         assert_eq!(pq_figure(&[3; 10]), 50.0);
     }
 
+    /// The example of `ROUND.md` is a filled form, so the prompt and the parser agree; its figure is 67.5.
+    #[test]
+    fn the_round_prompts_example_is_a_filled_form() {
+        let text = std::fs::read_to_string(crate::workspace_root().join("tools/blind/ROUND.md"))
+            .unwrap()
+            .replace("\r\n", "\n");
+        let (_, rest) = text.split_once("For example:\n\n```\n").unwrap();
+        let (example, _) = rest.split_once("```").unwrap();
+        let (answers, b) = parse(example).expect("the example parses");
+        assert_eq!(pq_figure(&answers), 67.5);
+        assert_eq!(b["B4"].choice, "not-seen");
+    }
+
     /// UR-5: the form is filed once (K4) into `questionnaire.json` with its figure; a form not filled is refused with
     /// K5, a second filing with K6.
     #[test]

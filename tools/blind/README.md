@@ -16,6 +16,10 @@ live here. The specification is `docs/plan/specs/WP-S6.13-blind-drafter-harness.
 | `tasks/gpp-101-103/task.md` | The G-PP job sheet, an extract of doc 20 (the tables of folios 101 to 103); `<!-- folio N -->` blocks are left out of the composed prompt for folios not in `--folios` |
 | `tasks/free/` | The free task: no oracle, no score |
 | `recordings/<name>/` | A blessed run: the replay inputs and the evidence, never the full transcript |
+| `ROUND.md` | The usability rounds' prompt (WP-S2.12 D11, front matter `prompt`, `version`): the hint command and the proxy questionnaire; `compose` adds it after the task sheet of a brief whose `task.toml` names `rounds` |
+| `personas/eplan-designer.md`, `personas/eplan-maintainer.md`, `personas/qet-user.md` | The personas of the usability rounds (WP-S2.12 D10): R0 runs `qet-veteran` and `qet-user`, R1 `eplan-designer`, `eplan-maintainer` and `qet-user` (T6 also `qet-veteran`); every persona is senses-independent, the run's prompt says how it acts |
+| `tasks/brief-ut-<t>-<name>/` | A usability task of doc 16 §19.4 (WP-S2.12 §5.1) as a brief: `task.toml` adds `task_id`, `rounds` and `start` (`gp-ut` or `golden-a`: the run starts on a copy of Golden A, or of GP-UT made with `golden/J-E-2416/variants/gp-ut.ewcmd`), `acceptance.toml` may decide an item by `actions` done in order, and `hints.toml` holds one to three hints that `{blind} hint` gives one at a time |
+| `rounds/<round>/<run>/` | A round's evidence (WP-S2.12 D16): `run.json`, `drafter.md`, `handback.md`, `friction.jsonl`, `questionnaire.json`, `checker.md` when present, `out/score.json` and `out/report.md`, normalised; no frame, no transcript, no PDF; the reports are `docs/ux/` |
 
 `cargo xtask blind check-task <task>` checks a task folder without a product (files, prelude classes, gaps, and that every
 identifier of `task.md` is in doc 20); `cargo xtask blind bless-oracle <task>` makes the oracle from a temporary copy of
