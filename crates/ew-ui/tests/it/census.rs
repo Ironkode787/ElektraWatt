@@ -484,7 +484,11 @@ fn open_dialog(tmp: &Tmp, kind: DialogKind) -> Harness<'static, App> {
                 dispatch(&mut h, "file.import_qet_apply", json!({ "confirm": true }));
                 std::fs::write(&qet, project("Main supply")).unwrap();
                 let accept = kind == DialogKind::Reimport;
-                dispatch(&mut h, "file.reimport_qet", json!({ "file": file, "accept": accept }));
+                dispatch(
+                    &mut h,
+                    "file.reimport_qet",
+                    json!({ "file": file, "accept": accept }),
+                );
             }
             h
         }
