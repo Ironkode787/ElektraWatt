@@ -95,14 +95,21 @@ fn merge_resolve_routes_every_record_to_the_file_the_writer_writes_it_in() {
             "side": "theirs", "lines": []
         })));
     }
-    let anchors = RecordAnchors::new(&records);
+    // A conflict on the project record (C50-p4#7).
+    records.push(record(json!({
+        "$k": "conflict", "id": project.id.to_string(), "kind": "project", "base": {}, "ours": {}, "theirs": {}
+    })));
     // The macro instance names a macro the project does not hold: it stays out of the model, which its file (its
     // page's) does not read.
-    let in_model = records
+    let in_model: Vec<Record> = records
         .iter()
         .filter(|r| !matches!(r, Record::MacroInstance(_)))
-        .cloned();
-    let model = Model::from_records(project, in_model, loaded.lib.clone()).expect("the model is valid");
+        .cloned()
+        .collect();
+    let model = Model::from_records(project.clone(), in_model, loaded.lib.clone()).expect("the model is valid");
+    // The writer reads the project record among the others; the model holds it apart.
+    records.push(Record::Project(project));
+    let anchors = RecordAnchors::new(&records);
     let mut kinds = BTreeSet::new();
     for r in &records {
         let writer = record_file(r, &anchors).ok().map(|f| f.as_str().to_owned());
@@ -112,7 +119,7 @@ fn merge_resolve_routes_every_record_to_the_file_the_writer_writes_it_in() {
     // Every kind of record Golden A writes is compared.
     let missing: Vec<Kind> = Kind::ALL
         .into_iter()
-        .filter(|k| k.status() == KindStatus::Implemented && !k.is_library() && *k != Kind::Project)
+        .filter(|k| k.status() == KindStatus::Implemented && !k.is_library())
         .filter(|k| !kinds.contains(k))
         .collect();
     assert_eq!(missing, [], "kinds no record of the test holds");
