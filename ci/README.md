@@ -659,12 +659,14 @@ needs and the checklist are in [`docs/release/`](../docs/release/README.md). The
    `upload: true`; every per-artefact check below runs there, nightly too.
 3. `sums`: downloads the artifacts `ew-<X.Y.Z>-x86_64-*` (the x86_64 CLI archives with the SBOMs of their jobs; the
    aarch64 archives are no release files, ID-1313) and `release-verify.py sums` writes `SHA256SUMS` (`<hex>  <name>`,
-   sorted by name), refusing any file that is no release file and an archive without its SBOM.
+   sorted by name), refusing any file that is no release file and a missing one: both archives and the SBOMs of the
+   archives, the setup and the AppImage.
 4. `attest` (environment `release`; `id-token: write`, `attestations: write`): `actions/attest-build-provenance`
    v4.2.2 over every file, `SHA256SUMS` included.
 5. `release` (environment `release`; `contents: write`): `release-verify.py draft` creates the draft prerelease
    (`gh release create --draft --prerelease --verify-tag`, so no tag is created), downloads its files back and runs
-   `sha256sum --check --strict SHA256SUMS` and `gh attestation verify <file> --repo <owner>/<repo>` on each.
+   `sha256sum --check --strict SHA256SUMS` and `gh attestation verify <file> --repo <owner>/<repo> --signer-workflow
+   <owner>/<repo>/.github/workflows/release.yml` on each (the promote adds `--source-digest <the candidate's commit>`).
 
 On `workflow_dispatch` with `candidate` and `dry` (default `true`), `release` alone runs `release-verify.py promote`:
 it refuses when the tag `v<X.Y.Z>` exists ("v<X.Y.Z> exists already; promote a new candidate") or the candidate is

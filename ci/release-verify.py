@@ -19,7 +19,8 @@ Cargo.toml and docs/release-notes/<X.Y.Z>.md exists with text beyond its licence
 commit and refuses unless each has one concluded `success` (perf.yml is report-only and not asked). `clean` refuses
 when `git status --porcelain` lists anything. `sums` writes `SHA256SUMS` in sha256sum's format (`<hex>  <name>`, sorted
 by name) over the release files of 0.1.0 in <dir>: the CLI archives of x86_64 Windows and Linux and every artefact's
-SBOM (`<artefact>.cdx.json`); it refuses any other file, an archive without its SBOM and a missing archive.
+SBOM (`<artefact>.cdx.json`: the two archives', the setup's and the AppImage's); it refuses any other file and a
+missing one.
 
 `draft` creates the draft prerelease <tag> with the release notes of its version and every file of <dir>
 (`gh release create --draft --prerelease --verify-tag`, so no tag is created), downloads its files back and verifies
@@ -28,11 +29,14 @@ verifies them; with `--dry` it prints what it would publish and changes nothing;
 release v<X.Y.Z> (published, latest, not a prerelease) with the draft's notes and those files on the candidate's
 commit, which creates the tag there, and verifies the published files again. Verifying a release's files: the files
 are SHA256SUMS and exactly the files it lists, `sha256sum --check --strict SHA256SUMS` passes and `gh attestation
-verify <file> --repo <o/r>` passes for each file (D10). Standard library only; the GitHub CLI and sha256sum are the
-runner's.
+verify <file> --repo <o/r> --signer-workflow <o/r>/.github/workflows/release.yml` passes for each file (D10), at the
+promote also with `--source-digest <the candidate's commit>`, so the bytes are bound to the release workflow and to
+the commit they were built from (C50-p2#5). Standard library only; the GitHub CLI and sha256sum are the runner's.
 """
 import argparse
+import contextlib
 import hashlib
+import io
 import json
 import os
 import re
@@ -47,6 +51,7 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CANDIDATE = re.compile(r"v(\d+\.\d+\.\d+)-rc\.\d+")
 WORKFLOWS = ("ci.yml", "deep-nightly.yml")
 SUMS = "SHA256SUMS"
+SIGNER = ".github/workflows/release.yml"
 # ID-1313: the release files under ID-476's hold; the installers join when it lifts, the aarch64 archives never at 0.1.0.
 ARCHIVES = ("ew-{v}-x86_64-pc-windows-msvc.zip", "ew-{v}-x86_64-unknown-linux-gnu.tar.gz")
 SBOMS = ("ElektraWatt-{v}-x64-user-setup.exe.cdx.json", "ElektraWatt-{v}-x86_64.AppImage.cdx.json")
@@ -119,6 +124,9 @@ def release_files(directory, version):
         for name in (archive, f"{archive}.cdx.json"):
             if name not in names:
                 raise Refusal(f"{name} is missing from {directory}")
+    for sbom in SBOMS:
+        if sbom.format(v=version) not in names:
+            raise Refusal(f"{sbom.format(v=version)} is missing from {directory}")
     return names
 
 
@@ -136,9 +144,10 @@ def write_sums(directory, version, sha=None):
     return lines
 
 
-def verify_files(directory, repo, run=run):
+def verify_files(directory, repo, run=run, commit=None):
     """D10, D13: `directory` holds SHA256SUMS and exactly the files it lists, `sha256sum -c` passes and each file's
-    build provenance verifies. Returns the file names, SHA256SUMS last."""
+    build provenance verifies, signed by release.yml (and, given `commit`, built from it). Returns the file names,
+    SHA256SUMS last."""
     path = os.path.join(directory, SUMS)
     if not os.path.isfile(path):
         raise Refusal(f"no {SUMS} in {directory}")
@@ -153,7 +162,8 @@ def verify_files(directory, repo, run=run):
             raise Refusal(f"{name} of {SUMS} is missing")
     print(run(["sha256sum", "--check", "--strict", SUMS], cwd=directory), end="")
     for name in present + [SUMS]:
-        run(["gh", "attestation", "verify", os.path.join(directory, name), "--repo", repo])
+        run(["gh", "attestation", "verify", os.path.join(directory, name), "--repo", repo,
+             "--signer-workflow", f"{repo}/{SIGNER}", *(["--source-digest", commit] if commit else [])])
         print(f"release-verify: the build provenance of {name} verifies")
     return present + [SUMS]
 
@@ -183,7 +193,7 @@ def promote(candidate, directory, repo, publish, run=run):
         raise Refusal(f"the release {candidate} is not a draft; promote the draft of a candidate")
     commit = run(["gh", "api", f"repos/{repo}/commits/{candidate}", "--jq", ".sha"]).strip()
     run(["gh", "release", "download", candidate, "--repo", repo, "--dir", directory])
-    names = verify_files(directory, repo, run)
+    names = verify_files(directory, repo, run, commit)
     if not publish:
         print(f"release-verify: dry run: would create the tag {final} on {commit} and publish the release {final} "
               f"(latest) with the notes of {candidate} and its {len(names)} files:")
@@ -198,7 +208,7 @@ def promote(candidate, directory, repo, publish, run=run):
          "--notes-file", notes, "--latest", *[os.path.join(directory, n) for n in names]])
     back = tempfile.mkdtemp(prefix="release-back-")
     run(["gh", "release", "download", final, "--repo", repo, "--dir", back])
-    verify_files(back, repo, run)
+    verify_files(back, repo, run, commit)
     print(f"release-verify: published {final} on {commit} with the {len(names)} files of {candidate}")
 
 
@@ -368,6 +378,13 @@ class ReleaseVerifyTest(unittest.TestCase):
         self.assertEqual(self.refused(write_sums, directory, "0.1.0"),
                          f"ew-0.1.0-x86_64-pc-windows-msvc.zip.cdx.json is missing from {directory}")
 
+    def test_sums_require_the_sbom_of_every_artefact(self):
+        # C50-p2#4, ID-1313: the setup's and the AppImage's SBOMs are release files as the archives' are.
+        for sbom in ("ElektraWatt-0.1.0-x64-user-setup.exe.cdx.json", "ElektraWatt-0.1.0-x86_64.AppImage.cdx.json"):
+            directory = self.release_dir([f for f in self.FILES if f != sbom])
+            self.assertEqual(self.refused(write_sums, directory, "0.1.0"), f"{sbom} is missing from {directory}")
+            shutil.rmtree(directory)
+
     def test_verification_needs_exactly_the_listed_files_and_their_provenance(self):
         directory = self.release_dir(self.FILES)
         write_sums(directory, "0.1.0")
@@ -375,7 +392,7 @@ class ReleaseVerifyTest(unittest.TestCase):
         self.assertEqual(verify_files(directory, "o/r", fake), sorted(self.FILES) + [SUMS])
         self.assertEqual(fake.commands[0], ["sha256sum", "--check", "--strict", SUMS])
         self.assertEqual(fake.commands[-1], ["gh", "attestation", "verify", os.path.join(directory, SUMS),
-                                             "--repo", "o/r"])
+                                             "--repo", "o/r", "--signer-workflow", "o/r/.github/workflows/release.yml"])
         self.assertEqual(len(fake.commands), 1 + len(self.FILES) + 1)
         with open(os.path.join(directory, "extra.bin"), "wb") as f:
             f.write(b"x")
@@ -404,8 +421,27 @@ class ReleaseVerifyTest(unittest.TestCase):
 
     def test_a_dry_promote_changes_nothing(self):
         fake = self.promote_fake()
-        promote("v0.1.0-rc.2", os.path.join(self.dir, "files"), "o/r", publish=False, run=fake)
-        self.assertFalse(any(c[:3] == ["gh", "release", "create"] for c in fake.commands), fake.commands)
+        directory = os.path.join(self.dir, "files")
+        printed = io.StringIO()
+        with contextlib.redirect_stdout(printed):
+            promote("v0.1.0-rc.2", directory, "o/r", publish=False, run=fake)
+        names = sorted(self.FILES) + [SUMS]
+        verify = [["gh", "attestation", "verify", os.path.join(directory, n), "--repo", "o/r", "--signer-workflow",
+                   "o/r/.github/workflows/release.yml", "--source-digest", "c0ffee"] for n in names]
+        self.assertEqual(fake.commands, [
+            ["gh", "api", "repos/o/r/git/matching-refs/tags/v0.1.0"],
+            ["gh", "release", "view", "v0.1.0-rc.2", "--repo", "o/r", "--json", "isDraft,body"],
+            ["gh", "api", "repos/o/r/commits/v0.1.0-rc.2", "--jq", ".sha"],
+            ["gh", "release", "download", "v0.1.0-rc.2", "--repo", "o/r", "--dir", directory],
+            ["sha256sum", "--check", "--strict", SUMS],
+            *verify,
+        ])
+        self.assertEqual(printed.getvalue(), "".join(
+            [f"release-verify: the build provenance of {n} verifies\n" for n in names]
+            + ["release-verify: dry run: would create the tag v0.1.0 on c0ffee and publish the release v0.1.0 "
+               "(latest) with the notes of v0.1.0-rc.2 and its 7 files:\n"]
+            + [f"  {n}\n" for n in names]
+            + ["release-verify: dry run: nothing was changed\n"]))
 
     def test_a_promote_publishes_the_candidates_files_on_its_commit(self):
         fake = self.promote_fake()

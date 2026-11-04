@@ -28,10 +28,11 @@ download before you run it:
   `SHA256SUMS` lists before the file's name (PowerShell prints it in capitals).
 
 Each file also carries GitHub's build provenance: a signed statement that the release workflow of ElektraWatt's
-repository built it from the release's commit. With the GitHub CLI installed, check a file with
+repository built it from the release's commit. With the GitHub CLI installed, sign in to GitHub once with
+`gh auth login` (the CLI reads the statements through GitHub's API), then check a file with
 
 ```text
-gh attestation verify <file> --repo Ironkode787/ElektraWatt
+gh attestation verify <file> --repo Ironkode787/ElektraWatt --signer-workflow Ironkode787/ElektraWatt/.github/workflows/release.yml
 ```
 
 The releases are not signed yet; these two checks show that a file is the one the project built and published.

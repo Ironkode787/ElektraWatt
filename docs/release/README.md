@@ -108,12 +108,15 @@ the earlier candidate's tag and draft as they are: they record what was tested.
 ## 9. How a user verifies a download
 
 The guide's install page has the user's form ("Verify a download"). In short, with the downloaded files and
-`SHA256SUMS` in one folder:
+`SHA256SUMS` in one folder, and the GitHub CLI signed in once with `gh auth login`:
 
 ```text
 sha256sum --check --ignore-missing SHA256SUMS
-gh attestation verify <file> --repo Ironkode787/ElektraWatt
+gh attestation verify <file> --repo Ironkode787/ElektraWatt --signer-workflow Ironkode787/ElektraWatt/.github/workflows/release.yml
 ```
+
+`--signer-workflow` binds the file to `release.yml`, not only to the repository. The promote also passes
+`--source-digest <the candidate's commit>`, so the tag `v<X.Y.Z>` lands only on the commit the bytes were built from.
 
 ## 10. What the workflow proves
 
