@@ -592,7 +592,7 @@ fn paint_wire_codes(
     strokes: &[ew_viewmodel::wire_colours::WireStroke],
     obstacles: &[Rect],
     pointer: Option<Pos2>,
-) -> (Vec<(Rect, bool)>, Vec<Rect>) {
+) -> WireCodes {
     if strokes.is_empty() {
         return (Vec::new(), Vec::new());
     }
@@ -979,7 +979,7 @@ pub struct CanvasHost {
     locks: [Vec<Rect>; GROUPS],
     /// The wire-colour view's codes painted last per group, each frame (points) and whether it is faded, and the frames
     /// of the printed texts they kept clear of (FT-1345; tests).
-    wire_codes: [(Vec<(Rect, bool)>, Vec<Rect>); GROUPS],
+    wire_codes: [WireCodes; GROUPS],
 }
 
 impl Default for CanvasHost {
@@ -987,6 +987,10 @@ impl Default for CanvasHost {
         CanvasHost::new()
     }
 }
+
+/// The wire-colour view's codes painted last on a canvas, each frame (points) and whether it is faded, and the frames of
+/// the printed texts they kept clear of (FT-1345).
+type WireCodes = (Vec<(Rect, bool)>, Vec<Rect>);
 
 /// The overlay marks both backends share: the page bounds, the grid dots, the hover and selection outlines and the
 /// grid cursor (last, above everything).
