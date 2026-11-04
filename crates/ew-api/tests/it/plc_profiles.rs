@@ -220,3 +220,53 @@ fn a_library_profile_is_chosen_without_a_code_change_and_stays_with_the_project(
     let (reopened, _) = Session::open_read_only(&dir, "0.0.0-test").unwrap();
     assert_eq!(module_texts(&reopened), texts);
 }
+
+/// ID-1375 (WP-S7.03 D8): an embedded, edited copy of a built-in profile, with the built-in's own pin, is the
+/// project's profile both ways: the channels print in the copy's notation and `fields.set` parses in it.
+#[test]
+fn an_edited_copy_of_a_builtin_profile_prints_and_parses_in_its_own_notation() {
+    let root = Tmp(ew_testdir::fresh_dir("ew-api-plc-profiles-edited"));
+    let t = tiers(&root.0);
+    let mut reg = Registry::open(&t).unwrap();
+    let lib = reg
+        .create(&t.user.join("edited.ewlib"), "edited", "Edited TIA", "CC0-1.0")
+        .unwrap();
+    let edited = fixture_profile(lib, "siemens-tia-intl", |v| {
+        v["profile"] = json!({"id": "siemens-tia-intl", "version": "2027.1"});
+        v["render"]["drawing"] = json!("");
+        v["mnemonics"]["area"]["I"] = json!("E");
+        v["mnemonics"]["area"]["Q"] = json!("A");
+    });
+    reg.write(lib, &[edited]).unwrap();
+    let dir = root.0.join("J-E-2416.ew");
+    copy_dir(Path::new(GOLDEN_A), &dir);
+    let mut s = open(&dir, &root.0, Some(t));
+    assert_eq!(module_texts(&s)[1], "Q0.1", "the built-in before the embed");
+    let copy = s.libraries().documents(lib, ew_schema::Kind::PlcProfile);
+    s.execute(&AnyCommand {
+        name: "library.embed".into(),
+        params: json!({ "copies": copy }),
+    })
+    .unwrap();
+
+    assert_eq!(&module_texts(&s)[..2], ["A0.0", "A0.1"]);
+    let module = s.resolve_reference("tag:-201U3").unwrap();
+    let channel = s
+        .query()
+        .get::<ChannelAddresses>(Id::<Device>::from_uuid(module))[2]
+        .channel
+        .as_uuid();
+    let set = |s: &mut Session, text: &str| {
+        s.execute(&AnyCommand {
+            name: "fields.set".into(),
+            params: json!({"kind": "channel", "targets": [channel.to_string()], "path": "address", "value": text}),
+        })
+    };
+    set(&mut s, "A4.7").unwrap();
+    assert_eq!(module_texts(&s)[2], "A4.7");
+    let e = set(&mut s, "Q4.6").unwrap_err();
+    assert_eq!(
+        refusal(&e),
+        "`Q4.6` is not an address of profile siemens-tia-intl@2027.1: expected an address like A0.1"
+    );
+}

@@ -1607,8 +1607,9 @@ impl Builder<'_> {
     /// horizontal cross-reference text that overlaps another slot text on the page (its own symbol's or another
     /// representation's) drops below the lowest of those texts, [`SLOT_TEXT_GAP`] apart, when it overlaps no
     /// slot text there; texts are taken in print order, each seeing the earlier ones where they ended. The black
-    /// boxes' pin texts (`pins`, FT-707) are fixed obstacles of the cross-reference texts only: one that a
-    /// cross-reference text overlaps sends it down like a slot text of the same representation does.
+    /// boxes' pin texts (`pins`, FT-707) are fixed obstacles of the cross-reference texts and, since FT-701, of the
+    /// technical-data texts: one that such a text overlaps sends it down like a slot text of the same
+    /// representation does.
     fn place_slot_texts(&self, texts: &mut [SlotText<'_>], pins: &[(EntityRef, Rect)]) {
         let mut boxes: Vec<Option<Rect>> = texts
             .iter()

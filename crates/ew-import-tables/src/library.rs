@@ -187,7 +187,8 @@ impl BuiltinLibrary {
     }
 }
 
-/// The copy ID of a library document (`None` for an unknown kind).
+/// The copy ID of a library document (`None` for an address profile, which the import tables do not write, and for an
+/// unknown kind).
 pub(crate) fn doc_id(d: &LibDocument) -> Option<Uuid> {
     match d {
         LibDocument::Part(c) => Some(c.id.as_uuid()),

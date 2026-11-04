@@ -159,16 +159,27 @@ pub fn builtin_profiles() -> &'static [Arc<AddressProfile>] {
 }
 
 /// The address profiles at hand (WP-S7.03 D8): the built-ins, then the profiles of the project's `plc_profile`
-/// `copies` that render and whose pin no built-in has, in copy order. A copy that does not render is left out.
+/// `copies` that render and whose pin no built-in has, in copy order. A copy that does not render is left out. A
+/// copy that has a built-in's pin takes the built-in's place: the project's own copy comes first, as in
+/// [`profile_of`] (ID-1375), so a project prints and parses in one notation.
 pub fn profiles_at_hand<'a>(
     copies: impl IntoIterator<Item = &'a LibCopy<PlcProfileDef>>,
 ) -> Vec<Arc<AddressProfile>> {
-    let mut out: Vec<Arc<AddressProfile>> = builtin_profiles().to_vec();
+    let mut held: Vec<Arc<AddressProfile>> = Vec::new();
     for c in copies {
         if let Ok(p) = address_profile(&c.item)
-            && out.iter().all(|o| o.reference() != p.reference())
+            && held.iter().all(|o| o.reference() != p.reference())
         {
-            out.push(Arc::new(p));
+            held.push(Arc::new(p));
+        }
+    }
+    let mut out: Vec<Arc<AddressProfile>> = builtin_profiles()
+        .iter()
+        .map(|b| pinned_profile(&held, &b.reference()).unwrap_or_else(|| b.clone()))
+        .collect();
+    for p in held {
+        if out.iter().all(|o| o.reference() != p.reference()) {
+            out.push(p);
         }
     }
     out
