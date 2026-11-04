@@ -162,7 +162,8 @@ impl ShellModel {
         self.request_doc_target(help::html_target(anchor));
     }
 
-    /// Asks the window to open `target`, a page of the built book (`how-to/x.html#fragment`).
+    /// Asks the window to open `target`, a page of the built book (`how-to/x.html#fragment`): in a Dutch window the
+    /// Dutch book's page (`<docs_dir>/nl/<target>`, WP-S7.05 D14) when the book has it, else the English one.
     pub(super) fn request_doc_target(&mut self, target: String) {
         let url = self
             .config
@@ -170,7 +171,15 @@ impl ShellModel {
             .docs_dir
             .as_deref()
             .filter(|d| d.is_dir())
-            .map(|d| file_url(d, &target));
+            .map(|d| {
+                let page = target.split_once('#').map_or(target.as_str(), |(page, _)| page);
+                let nl = d.join("nl");
+                if strings::locale() == "nl" && nl.join(page).is_file() {
+                    file_url(&nl, &target)
+                } else {
+                    file_url(d, &target)
+                }
+            });
         self.last_help = Some(target.clone());
         self.doc_request = Some(DocRequest { target, url });
     }

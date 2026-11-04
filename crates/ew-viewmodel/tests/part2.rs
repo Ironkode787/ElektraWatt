@@ -1647,6 +1647,44 @@ fn the_documentation_url_points_into_the_installed_book() {
     );
 }
 
+/// WP-S7.05 D14, DC-11: in a Dutch window F1 opens the page of the Dutch book (`nl/` in the book) when the book has
+/// it, else the English page; an English window opens the English page either way.
+#[test]
+fn f1_in_a_dutch_window_opens_the_dutch_page_when_the_book_has_it() {
+    let tmp = Tmp::new();
+    let docs = tmp.0.join("book");
+    std::fs::create_dir_all(docs.join("tutorials")).unwrap();
+    std::fs::write(docs.join("tutorials/index.html"), "").unwrap();
+    let mut config = tmp.config();
+    config.resources.docs_dir = Some(docs.clone());
+    let mut shell = ShellModel::new(Mode::Headless, config);
+    let url = |shell: &mut ShellModel| {
+        done(shell, "help.documentation", json!({"topic": "tutorials"}));
+        shell.take_doc_request().unwrap().url.unwrap()
+    };
+    let english = url(&mut shell);
+    assert!(english.ends_with("/book/tutorials/index.html"), "{english}");
+    done(
+        &mut shell,
+        "settings.set",
+        json!({"key": "language", "value": "nl"}),
+    );
+    assert_eq!(url(&mut shell), english, "a book without nl/: the English page");
+    std::fs::create_dir_all(docs.join("nl/tutorials")).unwrap();
+    std::fs::write(docs.join("nl/tutorials/index.html"), "").unwrap();
+    assert_eq!(
+        url(&mut shell),
+        english.replace("/book/tutorials/", "/book/nl/tutorials/")
+    );
+    done(
+        &mut shell,
+        "settings.set",
+        json!({"key": "language", "value": "en"}),
+    );
+    assert_eq!(url(&mut shell), english, "an English window: the English page");
+    shell.shutdown();
+}
+
 #[test]
 fn quick_switches_validate_and_persist() {
     let tmp = Tmp::new();
