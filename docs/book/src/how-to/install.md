@@ -11,6 +11,31 @@ name, shown here as `<version>`.
   rights, no network connection and no other package are needed.
 - For a CLI archive: Windows or Linux (glibc 2.35 or newer, as on Ubuntu 22.04 and Debian 12) on x86-64.
 
+## Verify a download
+
+Every release lists the SHA-256 checksum of each of its files in `SHA256SUMS`, one of the release's files. Check a
+download before you run it:
+
+- Linux: put the downloaded files and `SHA256SUMS` in one folder and run, in that folder,
+
+  ```text
+  sha256sum --check --ignore-missing SHA256SUMS
+  ```
+
+  It prints `OK` after the name of each file you downloaded. Any other word means the file is not the released one:
+  delete it and download it again.
+- Windows (PowerShell): `Get-FileHash <file> -Algorithm SHA256` prints the file's checksum. It must be the one that
+  `SHA256SUMS` lists before the file's name (PowerShell prints it in capitals).
+
+Each file also carries GitHub's build provenance: a signed statement that the release workflow of ElektraWatt's
+repository built it from the release's commit. With the GitHub CLI installed, check a file with
+
+```text
+gh attestation verify <file> --repo Ironkode787/ElektraWatt
+```
+
+The releases are not signed yet; these two checks show that a file is the one the project built and published.
+
 ## Install with the setup on Windows
 
 1. Run `ElektraWatt-<version>-x64-user-setup.exe`.

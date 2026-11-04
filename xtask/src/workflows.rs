@@ -8,6 +8,8 @@
 //!   (`./…`) are exempt; `docker://` actions must be pinned by `@sha256:` digest.
 //! - The workflow declares a top-level `permissions:` block whose `contents` is `read` and which grants no
 //!   `write` scope; jobs that need more (release jobs) widen it per job.
+//! - A job that grants a `write` scope runs in the protected `release` environment (`environment: release`, or
+//!   `environment:` with `name: release`; WP-S6.07 D4).
 //! - No `permissions: write-all` anywhere.
 //! - No `pull_request_target` trigger (it runs fork code with a privileged token).
 //! - Every `actions/checkout` step sets `persist-credentials: false`, so later steps cannot reuse the token.
@@ -187,6 +189,7 @@ pub fn check_text(file: &str, text: &str) -> Vec<String> {
     }
 
     check_top_level_permissions(file, &lines, &mut v);
+    check_write_scopes(file, &lines, &mut v);
     check_checkout_credentials(file, &lines, &mut v);
     check_secrets(file, text, &mut v);
     check_images(file, text, &mut v);
@@ -402,6 +405,59 @@ fn check_top_level_permissions(file: &str, lines: &[Line<'_>], v: &mut Vec<Strin
             "{file}:{}: top-level permissions lack `contents: read`",
             head.number
         ));
+    }
+}
+
+/// WP-S6.07 D4 (NFR-SEC-19): a job whose `permissions:` block grants a `write` scope declares `environment:
+/// release`, the protected environment of the release jobs, inline or as the `name:` of an `environment:` block.
+fn check_write_scopes(file: &str, lines: &[Line<'_>], v: &mut Vec<String>) {
+    let Some(start) = lines
+        .iter()
+        .position(|l| l.indent == 0 && key_value(l.content) == Some(("jobs", "")))
+    else {
+        return;
+    };
+    let body: Vec<&Line<'_>> = lines[start + 1..].iter().take_while(|l| l.indent > 0).collect();
+    let Some(job_indent) = body.first().map(|l| l.indent) else {
+        return;
+    };
+    let heads: Vec<usize> = (0..body.len()).filter(|&i| body[i].indent == job_indent).collect();
+    for (k, &head) in heads.iter().enumerate() {
+        let job = key_value(body[head].content).map_or("", |(name, _)| name);
+        let inner = &body[head + 1..heads.get(k + 1).copied().unwrap_or(body.len())];
+        let Some(key_indent) = inner.first().map(|l| l.indent) else {
+            continue;
+        };
+        // The lines of the block under `inner[i]`, a key of the job.
+        let block = |i: usize| inner[i + 1..].iter().take_while(|l| l.indent > key_indent);
+        let mut environment = None;
+        let mut writes = Vec::new();
+        for (i, line) in inner.iter().enumerate() {
+            if line.indent != key_indent {
+                continue;
+            }
+            match key_value(line.content) {
+                Some(("environment", "")) => {
+                    environment = block(i).find_map(|l| match key_value(l.content) {
+                        Some(("name", name)) => Some(name),
+                        _ => None,
+                    });
+                }
+                Some(("environment", name)) => environment = Some(name),
+                Some(("permissions", "")) => writes.extend(block(i).filter_map(|l| match key_value(l.content) {
+                    Some((scope, "write")) => Some((l.number, scope)),
+                    _ => None,
+                })),
+                _ => {}
+            }
+        }
+        if environment != Some("release") {
+            for (number, scope) in writes {
+                v.push(format!(
+                    "{file}:{number}: job `{job}` grants `{scope}: write` outside the `release` environment"
+                ));
+            }
+        }
     }
 }
 
@@ -813,10 +869,37 @@ mod tests {
         assert!(v[0].contains("in job `publish`"), "{v:?}");
     }
 
+    /// WP-S6.07 D4, RP-1: a job may widen its permissions to a `write` scope in the `release` environment only.
     #[test]
-    fn job_level_write_scope_is_allowed() {
-        let text = "on: [push]\npermissions:\n  contents: read\njobs:\n  rel:\n    permissions:\n      id-token: write\n";
-        assert_eq!(check_text("ci.yml", text), Vec::<String>::new());
+    fn job_level_write_scope_needs_the_release_environment() {
+        let head = "on: [push]\npermissions:\n  contents: read\njobs:\n  build:\n    runs-on: x\n    permissions:\n      contents: read\n      actions: read\n";
+        for scope in ["contents", "id-token", "attestations"] {
+            let job = format!("  rel:\n    runs-on: x\n    permissions:\n      contents: read\n      {scope}: write\n");
+            assert_eq!(
+                check_text("release.yml", &format!("{head}{job}")),
+                vec![format!(
+                    "release.yml:14: job `rel` grants `{scope}: write` outside the `release` environment"
+                )]
+            );
+            for environment in ["    environment: release\n", "    environment:\n      name: \"release\"\n"] {
+                let text = format!("{head}{job}{environment}");
+                assert_eq!(check_text("release.yml", &text), Vec::<String>::new(), "{text}");
+            }
+        }
+        // Another environment does not count, and each write scope is named.
+        let text = format!(
+            "{head}  publish:\n    environment: pages\n    permissions:\n      pages: write\n      id-token: write\n"
+        );
+        assert_eq!(
+            check_text("release.yml", &text),
+            [
+                "release.yml:13: job `publish` grants `pages: write` outside the `release` environment",
+                "release.yml:14: job `publish` grants `id-token: write` outside the `release` environment",
+            ]
+        );
+        // Every workflow of the repository passes as it is.
+        let dir = crate::workspace_root().join(".github/workflows");
+        assert_eq!(check_dir(&dir).unwrap(), Vec::<String>::new());
     }
 
     #[test]
@@ -947,6 +1030,42 @@ mod tests {
                 "RUST_TOOLCHAIN of {file} is not the workspace's pinned stable"
             );
         }
+    }
+
+    /// WP-S6.07 D11: package.yml's pins of cargo-deny, cargo-audit and cargo-about (packaging/components.toml) are the
+    /// versions that ci.yml's supply-chain job installs.
+    #[test]
+    fn the_package_workflows_tools_are_the_supply_chain_jobs_versions() {
+        let root = crate::workspace_root();
+        let read = |p: &str| std::fs::read_to_string(root.join(p)).unwrap_or_else(|e| panic!("{p}: {e}"));
+        let ci = read(".github/workflows/ci.yml");
+        let tools = ci
+            .lines()
+            .find_map(|l| {
+                l.trim()
+                    .strip_prefix("tool: ")
+                    .filter(|t| t.starts_with("cargo-deny@"))
+            })
+            .expect("the supply-chain job's install-action tools");
+        let components: toml::Table = read("packaging/components.toml").parse().expect("components.toml");
+        let pinned = |name: &str| {
+            components["component"]
+                .as_array()
+                .expect("[[component]]")
+                .iter()
+                .find(|c| c["name"].as_str() == Some(name))
+                .and_then(|c| c["version"].as_str())
+                .map(str::to_owned)
+        };
+        let mut compared = Vec::new();
+        for pin in tools.split(',') {
+            let (name, version) = pin.split_once('@').expect("tool@version");
+            if let Some(ours) = pinned(name) {
+                assert_eq!(ours, version, "{name}: packaging/components.toml and ci.yml's supply-chain job");
+                compared.push(name);
+            }
+        }
+        assert_eq!(compared, ["cargo-deny", "cargo-audit", "cargo-about"]);
     }
 
     /// R1-2 (ID-746): every job that runs cargo on a Windows runner has an explicit `RUSTFLAGS`, set workflow-wide
