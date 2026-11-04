@@ -165,9 +165,9 @@ The main session orchestrates. It plans each cycle, briefs Claude subagents, int
     - A fix that lands after the cycle's review is accepted (a play-test blocker) opens the next cycle's first review
       part, named in its range.
 15. **Shift left.** Every lane runs the hand-back checks and the self-check of its agent definition, and reports them.
-    - One full lane-check per hand-back; after a failure, only the failed step and the steps after it. A second full
-      run needs a reason in the report (cycle-49 retro: 2.5 full runs per hand-back, 52 % of the cargo minutes on
-      unchanged trees).
+    - One full lane-check per hand-back; after a failure, only the failed step (`--only <step>`). A second full run
+      needs a reason in the report (cycle-49 retro; LC50 found that cycle 49's repeated runs followed real changes,
+      which the measure did not see, ID-1314).
     - **Scripts are parse-checked before CI runs them** (cycle-49 retro: four of eight package runs red on scripts no
       local step had run). Before any CI dispatch, the orchestrator parses every changed `.ps1`/`.psm1` with
       PowerShell's parser (`[System.Management.Automation.Language.Parser]::ParseFile`, parse only, never run), runs

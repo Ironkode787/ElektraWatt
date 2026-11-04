@@ -60,7 +60,8 @@ how every lane works.
 Commit, then run `cargo xtask lane-check --base <base> -p <A> -p <B> --trailers "<Key>: <items>"` with your package
 set and one `--trailers` per trailer key of your brief's Expected, **once, as your last test run**, and quote its
 summary. On a clean worktree it skips a step that passed on the same tree with the same commands (`ok (from memory;
-…)`); `--fresh` runs every step. The trailers step is never remembered.
+…)`), and names each step that still runs, with why, on the line `memory: not skipped: <steps> (<why>)`; `--fresh`
+runs every step. The trailers step is never remembered.
 - When `fmt` or `settle` reports `rewrote <files>`, the run stops and each later step reads `not run`: commit the
   rewrites and run again.
 - After a failure, fix it and re-run only the failed step (`--only <step>`). After an amend that only formats, run
