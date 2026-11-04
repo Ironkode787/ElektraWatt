@@ -341,9 +341,9 @@
       "file": "imports/<run>.jsonl",
       "kind": "import_run",
       "rank": 72,
-      "schema": null,
-      "status": "reserved",
-      "v": null
+      "schema": "import_run.schema.json",
+      "status": "implemented",
+      "v": 1
     },
     {
       "file": "file of its target",

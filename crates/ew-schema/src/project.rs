@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
 //! Project and structure records (doc 03 §5): `project` and `import_lineage` in `project.jsonl`;
-//! `structure_node`, `section` and `external_ref` in `structure.jsonl`.
+//! `structure_node`, `section` and `external_ref` in `structure.jsonl`; `import_run` in `imports/<run-uuid>.jsonl`.
 //!
 //! Strings are NFC (doc 05 §3.1): `MlText` and `Ident` members reject other text, and plain `String`
 //! members are normalised with every other string by the loader's [`normalize_nfc`](crate::normalize_nfc)
@@ -25,10 +25,6 @@ use crate::set::Set;
 use crate::text_style::TextStyleSpec;
 use crate::track::{invalid, malformed, open_enum};
 use crate::value::{AnyId, Date, Quantity, Sha256, SourceRef};
-
-/// The marker type of `import_run` IDs (rank 72, reserved in v0).
-#[derive(Debug)]
-pub enum ImportRun {}
 
 // ---------------------------------------------------------------------------------------------------------
 // Project
@@ -536,6 +532,224 @@ pub struct LineageCopy {
 }
 
 // ---------------------------------------------------------------------------------------------------------
+// Import run
+
+/// One import into a lineage (doc 03 §5, doc 14 §2.4, rank 72, `imports/<run-uuid>.jsonl`; FR-IMP-041): the import's
+/// findings, statistics and record hashes, written by the import transaction and never changed after it (WP-S3.09
+/// D6). Typed within the unreleased format 0.1 (ADR-0011 amendment 4); a member of a newer build stays in `extra`.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct ImportRun {
+    /// The record ID (UUIDv7).
+    #[schemars(with = "UuidS")]
+    pub id: Id<ImportRun>,
+    /// Per-kind schema version `$v`, omitted when 1.
+    #[serde(rename = "$v", default = "v1", skip_serializing_if = "is_v1")]
+    pub v: u16,
+    /// The lineage imported into.
+    #[schemars(with = "UuidS")]
+    pub lineage: Id<ImportLineage>,
+    /// The importer, lower case (`"qet"`).
+    #[schemars(with = "IdentS")]
+    pub importer: Ident,
+    /// The importer's version.
+    pub importer_version: String,
+    /// The imported source.
+    pub source: RunSource,
+    /// The import's `as_of` date.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub as_of: Option<Date>,
+    /// Strict or lenient.
+    pub mode: RunMode,
+    /// The import's findings, in the importer's order.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub entries: Vec<RunEntry>,
+    /// The import's counts.
+    #[serde(default, skip_serializing_if = "RunStats::is_empty")]
+    pub stats: RunStats,
+    /// Per imported record ID, its hashes (WP-S3.09 D11): the base of the next re-import.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    #[schemars(with = "BTreeMap<String, RecordHash>")]
+    pub record_hashes: BTreeMap<AnyId, RecordHash>,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// The source of an [`ImportRun`].
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct RunSource {
+    /// The file name, never a path.
+    pub name: String,
+    /// SHA-256 of the file.
+    pub sha256: Sha256,
+    /// Size in bytes.
+    pub size: u64,
+    /// The detected format, such as `"qet-project"`.
+    pub format: String,
+    /// The detected format version.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub format_version: Option<String>,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// The mode an import ran in.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "RunMode")]
+pub enum RunMode {
+    /// Strict: a forbidden value refuses its item.
+    Strict,
+    /// Lenient: a forbidden value is kept and reported.
+    Lenient,
+    /// A value of a newer format, kept verbatim.
+    #[serde(skip)]
+    Unknown(Value),
+}
+
+/// The severity of a [`RunEntry`].
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "RunSeverity")]
+pub enum RunSeverity {
+    /// For information.
+    Info,
+    /// Needs review.
+    Warning,
+    /// Content was lost or refused.
+    Error,
+    /// A value of a newer format, kept verbatim.
+    #[serde(skip)]
+    Unknown(Value),
+}
+
+/// One finding of an [`ImportRun`] (doc 14 §2.4), its text the importer's English.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct RunEntry {
+    /// The code, `EW-IMP-nnn`.
+    pub code: String,
+    /// The severity.
+    pub severity: RunSeverity,
+    /// The defect class, `D-nn`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub defect: Option<String>,
+    /// What happened, in English.
+    pub message: String,
+    /// Where in the source.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub location: Option<RunLocation>,
+    /// The imported records the finding is about.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub targets: Vec<RunTarget>,
+    /// The quick fix the finding offers.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fix: Option<RunFix>,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// Where in the source a [`RunEntry`] was made; never a filesystem path.
+#[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
+pub struct RunLocation {
+    /// The file name.
+    pub file: String,
+    /// An archive member or an embedded definition's path.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub member: Option<String>,
+    /// The folio.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub folio: Option<String>,
+    /// The frame cell.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cell: Option<String>,
+    /// The item.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub item: Option<String>,
+    /// 1-based line.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub line: Option<u32>,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// A record a [`RunEntry`] is about: its `$k` name and ID (not a link: the record may have been deleted since).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct RunTarget {
+    /// The record's `$k` name.
+    pub kind: String,
+    /// The record's ID.
+    #[schemars(with = "UuidS")]
+    pub id: AnyId,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// The quick fix of a [`RunEntry`]: a command of the catalogue with its parameters.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct RunFix {
+    /// The label, in English.
+    pub label: String,
+    /// The command name.
+    pub command: String,
+    /// The command's parameters.
+    #[serde(default)]
+    pub params: Value,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// The counts of an [`ImportRun`].
+#[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
+pub struct RunStats {
+    /// Emitted records and library documents per `$k`.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub per_kind: BTreeMap<String, u32>,
+    /// Items dropped.
+    #[serde(default, skip_serializing_if = "is_default")]
+    pub dropped: u32,
+    /// Objects inferred.
+    #[serde(default, skip_serializing_if = "is_default")]
+    pub inferred: u32,
+    /// Connections lost.
+    #[serde(default, skip_serializing_if = "is_default")]
+    pub lost_connections: u32,
+    /// Findings not listed because of the importer's report cap, per code.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub suppressed: BTreeMap<String, u32>,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+impl RunStats {
+    /// Whether every count is zero and nothing unknown is kept.
+    pub fn is_empty(&self) -> bool {
+        *self == RunStats::default()
+    }
+}
+
+/// The hashes of one imported record (WP-S3.09 D11): the first 128 bits of SHA-256, as 32 lower-case hex digits, over
+/// the record's canonical line without its `source_ref` member.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct RecordHash {
+    /// The record as the importer emitted it.
+    pub source: String,
+    /// The record as committed, when the normalisers changed it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ew: Option<String>,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+// ---------------------------------------------------------------------------------------------------------
 // Structure
 
 /// Reads [`StructureNode::aspect`]: an [`Open<Aspect>`] that refuses `product` (doc 03 §5).
@@ -661,4 +875,6 @@ open_enum!(
     TagCase,
     ProjectKind,
     LineageAnchor,
+    RunMode,
+    RunSeverity,
 );

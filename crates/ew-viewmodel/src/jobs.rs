@@ -346,15 +346,21 @@ impl TableFile {
         match self {
             TableFile::Xlsx { table, meta } => {
                 let rev = meta.rev;
-                ew_api::output::export_tables(&ew_api::output::XlsxExporter { meta }, rev, std::slice::from_ref(&table))
-                    .map(|(bytes, _)| bytes)
-                    .map_err(|e| JobError::Failed(e.to_string()))
+                ew_api::output::export_tables(
+                    &ew_api::output::XlsxExporter { meta },
+                    rev,
+                    std::slice::from_ref(&table),
+                )
+                .map(|(bytes, _)| bytes)
+                .map_err(|e| JobError::Failed(e.to_string()))
             }
-            TableFile::Csv { table, options } => {
-                ew_api::output::export_tables(&ew_api::output::CsvExporter { options }, 0, std::slice::from_ref(&table))
-                    .map(|(bytes, _)| bytes)
-                    .map_err(|e| JobError::Failed(e.to_string()))
-            }
+            TableFile::Csv { table, options } => ew_api::output::export_tables(
+                &ew_api::output::CsvExporter { options },
+                0,
+                std::slice::from_ref(&table),
+            )
+            .map(|(bytes, _)| bytes)
+            .map_err(|e| JobError::Failed(e.to_string())),
         }
     }
 }

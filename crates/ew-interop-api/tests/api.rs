@@ -289,8 +289,14 @@ fn archive_names_outside_the_archive_are_refused() {
         ("/x", "the archive entry name is an absolute path"),
         ("a\\b", "the archive entry name contains a backslash"),
         ("C:x", "the archive entry name contains ':' (a drive path)"),
-        ("a\0b", "the archive entry name contains NUL or a control character"),
-        ("a\nb", "the archive entry name contains NUL or a control character"),
+        (
+            "a\0b",
+            "the archive entry name contains NUL or a control character",
+        ),
+        (
+            "a\nb",
+            "the archive entry name contains NUL or a control character",
+        ),
     ];
     for (name, text) in cases {
         let err = check_archive_name(name).unwrap_err();
@@ -313,5 +319,9 @@ fn report_entries_name_their_targets() {
             id
         }]
     );
-    assert!(ReportEntry::new(Code::LIMIT, Severity::Info, "x").targets.is_empty());
+    assert!(
+        ReportEntry::new(Code::LIMIT, Severity::Info, "x")
+            .targets
+            .is_empty()
+    );
 }

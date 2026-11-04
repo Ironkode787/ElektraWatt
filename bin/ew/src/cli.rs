@@ -1148,7 +1148,11 @@ fn run_export_nav_table(a: &ExportTableArgs) -> i32 {
     let (bytes, text, format, preset) = match a.format {
         RowFormat::Csv(options) => {
             let exporter = ew_api::output::CsvExporter { options };
-            let csv = match ew_api::output::export_tables(&exporter, session.world().rev.0, std::slice::from_ref(&table)) {
+            let csv = match ew_api::output::export_tables(
+                &exporter,
+                session.world().rev.0,
+                std::slice::from_ref(&table),
+            ) {
                 Ok((bytes, _)) => String::from_utf8(bytes).unwrap_or_default(),
                 Err(e) => {
                     eprintln!("error: {e}");

@@ -322,6 +322,8 @@ const WORDS: &[(&str, &[Reach])] = &[
     ("structure_box", &[Reach::Kind]),
     // WP-S1.16 part 5: the typed waiver kind has a property sheet (read-only members); a reviewed vocabulary change.
     ("waiver", &[Reach::Kind]),
+    // WP-S3.09 D6: the typed import run has a property sheet (read-only members); a reviewed vocabulary change.
+    ("import_run", &[Reach::Kind]),
     // WP-S1.21 part 4 (D11): the typed bus nets have property sheets; a reviewed vocabulary change.
     ("logical_net", &[Reach::Kind]),
     ("physical_net", &[Reach::Kind]),

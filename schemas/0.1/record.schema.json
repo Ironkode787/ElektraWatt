@@ -93,6 +93,9 @@
       "$ref": "waiver.schema.json"
     },
     {
+      "$ref": "import_run.schema.json"
+    },
+    {
       "$ref": "conflict.schema.json"
     }
   ],

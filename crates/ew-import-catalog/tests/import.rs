@@ -749,8 +749,19 @@ fn a_shared_string_named_by_many_cells_is_refused_within_the_memory_budget() {
     // table preset (32 KiB cells, FT-665) the string is refused on its own.
     // The string packs at about 1,000 : 1, so the archive's ratio limit (200 : 1, doc 14 §11) refuses it first; with
     // the ratio lifted the cells' budget is what refuses it.
-    let err = import_bytes("bomb.xlsx", bomb.clone(), &CatalogTarget { limits: Limits::default(), ..target() }).unwrap_err();
-    assert_eq!(err.to_string(), "input exceeds the archive entry expansion ratio limit of 200");
+    let err = import_bytes(
+        "bomb.xlsx",
+        bomb.clone(),
+        &CatalogTarget {
+            limits: Limits::default(),
+            ..target()
+        },
+    )
+    .unwrap_err();
+    assert_eq!(
+        err.to_string(),
+        "input exceeds the archive entry expansion ratio limit of 200"
+    );
     let loose = CatalogTarget {
         limits: Limits {
             max_entry_ratio: u32::MAX,
@@ -950,11 +961,17 @@ fn a_cell_above_32_kib_refuses_the_table() {
 #[test]
 fn an_entry_name_outside_the_archive_refuses_the_workbook() {
     let cases = [
-        ("../x", "the archive entry name leads out of the archive (`..`): `../x`"),
+        (
+            "../x",
+            "the archive entry name leads out of the archive (`..`): `../x`",
+        ),
         ("/x", "the archive entry name is an absolute path: `/x`"),
         ("C:x", "the archive entry name contains ':' (a drive path): `C:x`"),
         ("a\\b", "the archive entry name contains a backslash: `a\\\\b`"),
-        ("a\0b", "the archive entry name contains NUL or a control character: `a\\0b`"),
+        (
+            "a\0b",
+            "the archive entry name contains NUL or a control character: `a\\0b`",
+        ),
     ];
     for (name, why) in cases {
         let bad = zip_with(&[(name, "x".to_owned())], false, &|_, s| s);

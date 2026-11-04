@@ -150,6 +150,7 @@ pub fn record_file(record: &Record, anchors: &dyn Anchors) -> Result<FilePath, F
         },
         Record::Revision(_) => FilePath::root("revisions.jsonl"),
         Record::Waiver(_) => FilePath::root("waivers.jsonl"),
+        Record::ImportRun(r) => FilePath::imports(r.id.cast()),
         Record::Connection(r) => match r.page {
             Some(p) => FilePath::page(p.cast()),
             None => endpoint_file(record.anchor_ref())

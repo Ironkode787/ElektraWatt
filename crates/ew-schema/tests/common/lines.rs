@@ -107,6 +107,8 @@ pub const GOLDEN: &[&str] = &[
     r#"{"$k":"macro_instance","id":"@MI_PSU","macro":"@MAC_PSU","variant":"A","value_set":"1","values":{"counter":1,"function_text":{"en-GB":"Power supply 1"}},"members":[["@LOCAL_G1","@DEV_G1"],["@LOCAL_F1","@FN_F1"]],"page":"@P102"}"#,
     // import lineage (doc 14 §2.3); its namespace is checked in its own test
     r#"{"$k":"import_lineage","id":"@LIN","importer":"csv","source_name":"tables","anchor":{"fixed":"golden"},"namespace":"@PRJ","last_source_sha256":"@HASH"}"#,
+    // import run (WP-S3.09 D6): one finding about a device, its hashes, and a member of a newer build kept in `extra`
+    r#"{"$k":"import_run","id":"019a4f00-0000-7000-8000-000000000001","lineage":"@LIN","importer":"qet","importer_version":"0.1.0","source":{"name":"plant.qet","sha256":"@HASH","size":12,"format":"qet-project"},"as_of":"2025-04-14","mode":"lenient","entries":[{"code":"EW-IMP-006","severity":"info","message":"font substituted","location":{"file":"plant.qet","folio":"101"},"targets":[{"kind":"device","id":"@DEV_G1"}]}],"stats":{"per_kind":{"device":1}},"record_hashes":{"@DEV_G1":{"source":"00112233445566778899aabbccddeeff"}},"acknowledged":[]}"#,
     // panel layout (doc 03 §16, WP-S4.01 D3): every typed member, and members of later packages kept in `extra`
     r#"{"$k":"layout_space","id":"@SPACE_JE2416","location":"@LOC_JE2416","name":"+J-E-2416","install":{"wall_behind":true}}"#,
     r#"{"$k":"enclosure","id":"@ENCL_UC1","space":"@SPACE_JE2416","device":"@DEV_UC1","pose":{"t":[0,0,0],"q":[1000000000,0,0,0]},"install_type":"wall"}"#,

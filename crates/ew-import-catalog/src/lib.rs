@@ -48,6 +48,4 @@ pub mod sheet {
     pub use crate::table::{SheetTable, read_rows, read_sheet, sheet_names};
 }
 
-pub use table::{
-    MAX_CELL_BYTES, SourceFormat, TableColumn, table_columns, table_limits,
-};
+pub use table::{MAX_CELL_BYTES, SourceFormat, TableColumn, table_columns, table_limits};

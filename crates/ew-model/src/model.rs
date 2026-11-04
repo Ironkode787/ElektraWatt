@@ -9,7 +9,7 @@ use std::sync::Arc;
 
 use ew_schema::{
     Bond, Carrier, Channel, Conductor, Conflict, Connection, Device, DeviceLink, Enclosure, ExternalRef,
-    Function, FunctionKind, ImportLineage, Junction, Kind, KindRegistry, LayoutSpace, LibDocument,
+    Function, FunctionKind, ImportLineage, ImportRun, Junction, Kind, KindRegistry, LayoutSpace, LibDocument,
     LogicalNet, MacroInstance, MountingSurface, Page, PageItem, PhysicalNet, Placement, PlcConfigProject,
     PotentialDef, Project, Record, ReportBlock, Representation, Revision, Section, StructureBox,
     StructureNode, Waiver,
@@ -64,6 +64,7 @@ pub struct Model {
     pub(crate) placements: Table<Placement>,
     pub(crate) revisions: Table<Revision>,
     pub(crate) waivers: Table<Waiver>,
+    pub(crate) import_runs: Table<ImportRun>,
     /// The conflict records of a merge (WP-S1.17 D17), by ID: a record-level conflict shares its target's ID, so this
     /// is the one table whose IDs repeat another table's.
     pub(crate) conflicts: Table<Conflict>,
@@ -113,6 +114,7 @@ impl Model {
             placements: Table::default(),
             revisions: Table::default(),
             waivers: Table::default(),
+            import_runs: Table::default(),
             conflicts: Table::default(),
             lib: LibraryCopies::default(),
             unknown: Arc::new(Vec::new()),
@@ -569,6 +571,7 @@ impl AnyRow {
             Record::Placement(r) => AnyRow::of(r),
             Record::Revision(r) => AnyRow::of(r),
             Record::Waiver(r) => AnyRow::of(r),
+            Record::ImportRun(r) => AnyRow::of(r),
             Record::Conflict(r) => AnyRow::of(r),
             other => return Err(Box::new(other)),
         })

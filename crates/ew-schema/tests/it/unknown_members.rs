@@ -216,9 +216,11 @@ fn run(texts: &[(String, bool)], tally: &mut Tally) {
 /// `profibus` form); their ports and nets keep unknown members. The layout lines (WP-S4.01 part 1) add four
 /// `Pose3` values (an enclosure's `pose`, a surface's `frame`, two placements' `pose`), which are atomic leaves
 /// of `ew-units` like a `Pt2` (doc 05 §3.2, the `atomic` row of §11), and four enum wrappers (two carriers'
-/// `params`, two placements' `carrier`); their records, rail and duct parameters keep unknown members.
+/// `params`, two placements' `carrier`); their records, rail and duct parameters keep unknown members. The import run
+/// line (WP-S3.09 D6) adds one map keyed by record IDs (`record_hashes`), which takes no other key; its run, source,
+/// entry, location, target and hash objects keep unknown members.
 const MIN_SURVIVORS: usize = 300;
-const MAX_REJECTED: usize = 106;
+const MAX_REJECTED: usize = 107;
 
 fn examples() -> Vec<(String, bool)> {
     let mut all: Vec<(String, bool)> = DOC05_LINES.iter().map(|l| (fill(l), false)).collect();

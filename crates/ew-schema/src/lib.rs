@@ -174,7 +174,8 @@ pub use plc::{
 pub use project::{
     Address, BasicProjectRef, DateFormat, DecimalSeparator, EarthingSystem, ExternalRef, Formatting,
     ImportLineage, ImportRun, IpPairing, IpPairingMode, IpPairingScope, LineageAnchor, LineageCopy,
-    MasterData, Party, PartyRole, Project, ProjectKind, ProjectLanguages, ProjectSettings, Section,
+    MasterData, Party, PartyRole, Project, ProjectKind, ProjectLanguages, ProjectSettings, RecordHash,
+    RunEntry, RunFix, RunLocation, RunMode, RunSeverity, RunSource, RunStats, RunTarget, Section,
     StructureNode, SupplyOrigin, SupplySpec, TagCase,
 };
 pub use record::{AnchorRef, AnyRecord, LibDocument, Record};

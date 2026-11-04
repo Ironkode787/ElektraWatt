@@ -102,6 +102,7 @@ pub fn row_bytes(row: &AnyRow) -> usize {
         AnyRow::Placement(r) => of(&**r),
         AnyRow::Revision(r) => of(&**r),
         AnyRow::Waiver(r) => of(&**r),
+        AnyRow::ImportRun(r) => of(&**r),
         AnyRow::Conflict(r) => of(&**r),
         AnyRow::Part(r) => of(&**r),
         AnyRow::Symbol(r) => of(&**r),
@@ -366,6 +367,68 @@ impl HeapSize for ew_schema::Conflict {
             ew_schema::ConflictBody::File { path, lines, .. } => path.heap_size() + lines.heap_size(),
         };
         body + self.extra.heap_size()
+    }
+}
+
+// ---- import runs (WP-S3.09 D6) ----
+
+impl HeapSize for ew_schema::ImportRun {
+    fn heap_size(&self) -> usize {
+        let entries: usize = self
+            .entries
+            .iter()
+            .map(|e| {
+                e.code.heap_size()
+                    + e.defect.heap_size()
+                    + e.message.heap_size()
+                    + e.location.as_ref().map_or(0, |l| {
+                        l.file.heap_size()
+                            + l.member.heap_size()
+                            + l.folio.heap_size()
+                            + l.cell.heap_size()
+                            + l.item.heap_size()
+                            + l.extra.heap_size()
+                    })
+                    + e.targets
+                        .iter()
+                        .map(|t| t.kind.heap_size() + t.extra.heap_size())
+                        .sum::<usize>()
+                    + e.fix.as_ref().map_or(0, |f| {
+                        f.label.heap_size()
+                            + f.command.heap_size()
+                            + f.params.to_string().len()
+                            + f.extra.heap_size()
+                    })
+                    + e.extra.heap_size()
+            })
+            .sum();
+        let hashes: usize = self
+            .record_hashes
+            .values()
+            .map(|h| 16 + h.source.heap_size() + h.ew.heap_size() + h.extra.heap_size())
+            .sum();
+        self.importer.heap_size()
+            + self.importer_version.heap_size()
+            + self.source.name.heap_size()
+            + self.source.format.heap_size()
+            + self.source.format_version.heap_size()
+            + self.source.extra.heap_size()
+            + entries
+            + self
+                .stats
+                .per_kind
+                .keys()
+                .map(|k| k.heap_size() + 4)
+                .sum::<usize>()
+            + self
+                .stats
+                .suppressed
+                .keys()
+                .map(|k| k.heap_size() + 4)
+                .sum::<usize>()
+            + self.stats.extra.heap_size()
+            + hashes
+            + self.extra.heap_size()
     }
 }
 

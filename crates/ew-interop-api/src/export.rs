@@ -26,7 +26,11 @@ pub trait Exporter: Send + Sync {
     /// # Errors
     ///
     /// [`ExportError`] when the view cannot be written in this format or the sink refuses the bytes.
-    fn export(&self, view: &ExportView<'_>, sink: &mut dyn std::io::Write) -> Result<ExportReport, ExportError>;
+    fn export(
+        &self,
+        view: &ExportView<'_>,
+        sink: &mut dyn std::io::Write,
+    ) -> Result<ExportReport, ExportError>;
 }
 
 /// What an exporter reads: one revision's records and its tables.

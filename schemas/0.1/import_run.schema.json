@@ -1,0 +1,397 @@
+{
+  "$defs": {
+    "Date": {
+      "description": "An authored date YYYY-MM-DD (doc 05 §3.2).",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+      "type": "string"
+    },
+    "Ident": {
+      "description": "An identifier: non-empty, one line (no control character U+0000 to U+001F or U+007F to U+009F), without leading or trailing white space (the Unicode White_Space set); interior spaces are allowed (doc 05 §3.2). JSON Schema cannot express Unicode Normalization Form C; the reader rejects non-NFC text.",
+      "minLength": 1,
+      "pattern": "^[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000](?:[^\\u0000-\\u001F\\u007F-\\u009F]*[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000])?$",
+      "type": "string"
+    },
+    "RecordHash": {
+      "additionalProperties": true,
+      "description": "The hashes of one imported record (WP-S3.09 D11): the first 128 bits of SHA-256, as 32 lower-case hex digits, over\nthe record's canonical line without its `source_ref` member.",
+      "properties": {
+        "ew": {
+          "description": "The record as committed, when the normalisers changed it.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source": {
+          "description": "The record as the importer emitted it.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source"
+      ],
+      "type": "object"
+    },
+    "RunEntry": {
+      "additionalProperties": true,
+      "description": "One finding of an [`ImportRun`] (doc 14 §2.4), its text the importer's English.",
+      "properties": {
+        "code": {
+          "description": "The code, `EW-IMP-nnn`.",
+          "type": "string"
+        },
+        "defect": {
+          "description": "The defect class, `D-nn`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "fix": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RunFix"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The quick fix the finding offers."
+        },
+        "location": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RunLocation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Where in the source."
+        },
+        "message": {
+          "description": "What happened, in English.",
+          "type": "string"
+        },
+        "severity": {
+          "$ref": "#/$defs/RunSeverity",
+          "description": "The severity."
+        },
+        "targets": {
+          "description": "The imported records the finding is about.",
+          "items": {
+            "$ref": "#/$defs/RunTarget"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "code",
+        "severity",
+        "message"
+      ],
+      "type": "object"
+    },
+    "RunFix": {
+      "additionalProperties": true,
+      "description": "The quick fix of a [`RunEntry`]: a command of the catalogue with its parameters.",
+      "properties": {
+        "command": {
+          "description": "The command name.",
+          "type": "string"
+        },
+        "label": {
+          "description": "The label, in English.",
+          "type": "string"
+        },
+        "params": {
+          "default": null,
+          "description": "The command's parameters."
+        }
+      },
+      "required": [
+        "label",
+        "command"
+      ],
+      "type": "object"
+    },
+    "RunLocation": {
+      "additionalProperties": true,
+      "description": "Where in the source a [`RunEntry`] was made; never a filesystem path.",
+      "properties": {
+        "cell": {
+          "description": "The frame cell.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "file": {
+          "description": "The file name.",
+          "type": "string"
+        },
+        "folio": {
+          "description": "The folio.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "item": {
+          "description": "The item.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "line": {
+          "description": "1-based line.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "member": {
+          "description": "An archive member or an embedded definition's path.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "file"
+      ],
+      "type": "object"
+    },
+    "RunMode": {
+      "description": "The mode an import ran in.",
+      "oneOf": [
+        {
+          "const": "strict",
+          "description": "Strict: a forbidden value refuses its item.",
+          "type": "string"
+        },
+        {
+          "const": "lenient",
+          "description": "Lenient: a forbidden value is kept and reported.",
+          "type": "string"
+        }
+      ]
+    },
+    "RunSeverity": {
+      "description": "The severity of a [`RunEntry`].",
+      "oneOf": [
+        {
+          "const": "info",
+          "description": "For information.",
+          "type": "string"
+        },
+        {
+          "const": "warning",
+          "description": "Needs review.",
+          "type": "string"
+        },
+        {
+          "const": "error",
+          "description": "Content was lost or refused.",
+          "type": "string"
+        }
+      ]
+    },
+    "RunSource": {
+      "additionalProperties": true,
+      "description": "The source of an [`ImportRun`].",
+      "properties": {
+        "format": {
+          "description": "The detected format, such as `\"qet-project\"`.",
+          "type": "string"
+        },
+        "format_version": {
+          "description": "The detected format version.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "name": {
+          "description": "The file name, never a path.",
+          "type": "string"
+        },
+        "sha256": {
+          "$ref": "#/$defs/Sha256",
+          "description": "SHA-256 of the file."
+        },
+        "size": {
+          "description": "Size in bytes.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "name",
+        "sha256",
+        "size",
+        "format"
+      ],
+      "type": "object"
+    },
+    "RunStats": {
+      "additionalProperties": true,
+      "description": "The counts of an [`ImportRun`].",
+      "properties": {
+        "dropped": {
+          "description": "Items dropped.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "inferred": {
+          "description": "Objects inferred.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "lost_connections": {
+          "description": "Connections lost.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "per_kind": {
+          "additionalProperties": {
+            "format": "uint32",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "description": "Emitted records and library documents per `$k`.",
+          "type": "object"
+        },
+        "suppressed": {
+          "additionalProperties": {
+            "format": "uint32",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "description": "Findings not listed because of the importer's report cap, per code.",
+          "type": "object"
+        }
+      },
+      "type": "object"
+    },
+    "RunTarget": {
+      "additionalProperties": true,
+      "description": "A record a [`RunEntry`] is about: its `$k` name and ID (not a link: the record may have been deleted since).",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Uuid",
+          "description": "The record's ID."
+        },
+        "kind": {
+          "description": "The record's `$k` name.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "id"
+      ],
+      "type": "object"
+    },
+    "Sha256": {
+      "description": "A SHA-256 digest sha256:<64 lower-case hex> (doc 05 §3.2).",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "Uuid": {
+      "description": "A lower-case hyphenated UUID (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": true,
+  "description": "One import into a lineage (doc 03 §5, doc 14 §2.4, rank 72, `imports/<run-uuid>.jsonl`; FR-IMP-041): the import's\nfindings, statistics and record hashes, written by the import transaction and never changed after it (WP-S3.09\nD6). Typed within the unreleased format 0.1 (ADR-0011 amendment 4); a member of a newer build stays in `extra`.",
+  "properties": {
+    "$k": {
+      "const": "import_run",
+      "description": "The kind name; always the first member."
+    },
+    "$v": {
+      "description": "Per-kind schema version `$v`, omitted when 1.",
+      "format": "uint16",
+      "maximum": 65535,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "as_of": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Date"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The import's `as_of` date."
+    },
+    "entries": {
+      "description": "The import's findings, in the importer's order.",
+      "items": {
+        "$ref": "#/$defs/RunEntry"
+      },
+      "type": "array"
+    },
+    "id": {
+      "$ref": "#/$defs/Uuid",
+      "description": "The record ID (UUIDv7)."
+    },
+    "importer": {
+      "$ref": "#/$defs/Ident",
+      "description": "The importer, lower case (`\"qet\"`)."
+    },
+    "importer_version": {
+      "description": "The importer's version.",
+      "type": "string"
+    },
+    "lineage": {
+      "$ref": "#/$defs/Uuid",
+      "description": "The lineage imported into."
+    },
+    "mode": {
+      "$ref": "#/$defs/RunMode",
+      "description": "Strict or lenient."
+    },
+    "record_hashes": {
+      "additionalProperties": {
+        "$ref": "#/$defs/RecordHash"
+      },
+      "description": "Per imported record ID, its hashes (WP-S3.09 D11): the base of the next re-import.",
+      "type": "object"
+    },
+    "source": {
+      "$ref": "#/$defs/RunSource",
+      "description": "The imported source."
+    },
+    "stats": {
+      "$ref": "#/$defs/RunStats",
+      "description": "The import's counts."
+    }
+  },
+  "required": [
+    "$k",
+    "id",
+    "lineage",
+    "importer",
+    "importer_version",
+    "source",
+    "mode"
+  ],
+  "title": "import_run",
+  "type": "object"
+}

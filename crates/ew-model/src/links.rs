@@ -809,6 +809,9 @@ pub static LINKS: &[LinkDecl] = &[
     }),
     // revision (`page_notes[].page` is not a link: NOT_LINKS)
     link!(Revision."withdraws" -> Revision, Forbid, None, |v, out| opt(v.withdraws, out)),
+    // import run (WP-S3.09 D6): the lineage and its last run name each other, neither cascades
+    link!(ImportRun."lineage" -> ImportLineage, Forbid, None, |v, out| id(v.lineage, out)),
+    link!(ImportLineage."last_run" -> ImportRun, Forbid, None, |v, out| opt(v.last_run, out)),
     lineage_link!(Revision),
     // waiver: no links (it names a finding by fingerprint, which an unmatched waiver keeps naming, EW-CORE-081)
     // library copies
@@ -841,9 +844,9 @@ pub static NOT_LINKS: &[(&str, &str, &str)] = &[
         "the namespace of the original lineage (`ImportLineage.namespace`), not a record ID",
     ),
     (
-        "import_lineage",
-        "last_run",
-        "import_run is a reserved kind without a table in v0",
+        "import_run",
+        "entries[].targets[].id",
+        "history: the records an import finding was about; a record deleted since names nothing",
     ),
     (
         "report_block",

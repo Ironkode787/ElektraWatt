@@ -375,9 +375,9 @@ pub fn read_parts_tables(
 // -------------------------------------------------------------------------------------------------------------------
 // Golden-dialect tables (`ew import csv`, FR-IMP-022, FT-27)
 
+pub use ew_import_tables::LibraryError;
 pub use ew_import_tables::csv::CsvError;
 pub use ew_import_tables::ew_interop_api::ImportMode;
-pub use ew_import_tables::LibraryError;
 
 /// Why `ew import csv` imports nothing.
 #[derive(Debug)]

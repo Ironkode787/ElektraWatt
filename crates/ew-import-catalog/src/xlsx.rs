@@ -121,7 +121,8 @@ impl<'a> Archive<'a> {
             }
             let name = bytes.get(at + 46..at + 46 + n).ok_or_else(broken)?;
             let name = String::from_utf8_lossy(name).into_owned();
-            ew_interop_api::check_archive_name(&name).map_err(|e| unreadable(format!("{e}: `{}`", name.escape_debug())))?;
+            ew_interop_api::check_archive_name(&name)
+                .map_err(|e| unreadable(format!("{e}: `{}`", name.escape_debug())))?;
             if u64::from(size) > limits.max_entry_bytes {
                 return Err(ImportError::LimitExceeded {
                     what: "archive entry size".into(),

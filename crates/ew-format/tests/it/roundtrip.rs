@@ -142,3 +142,43 @@ proptest! {
         prop_assert_eq!(loaded.hashes.len(), input.len());
     }
 }
+
+/// WP-S3.09 IC-8: a lineage and its import run are written to `project.jsonl` and `imports/<run>.jsonl`, and read back
+/// unchanged; a second write gives the same bytes.
+#[test]
+fn an_import_run_is_written_to_its_file_and_read_back() {
+    let lineage = r#"{"$k":"import_lineage","id":"5d0c51a4-7d8c-5b8e-9c1e-1f2a3b4c5d6e","importer":"qet","source_name":"plant.qet","anchor":{"qet_project_uuid":"6a1b2c3d-0000-5000-8000-000000000003"},"namespace":"6a1b2c3d-0000-5000-8000-000000000004","last_run":"019a4f00-0000-7000-8000-000000000001"}"#;
+    let run = r#"{"$k":"import_run","id":"019a4f00-0000-7000-8000-000000000001","lineage":"5d0c51a4-7d8c-5b8e-9c1e-1f2a3b4c5d6e","importer":"qet","importer_version":"0.1.0","source":{"name":"plant.qet","sha256":"sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855","size":0,"format":"qet-project"},"mode":"lenient","entries":[{"code":"EW-IMP-006","severity":"info","message":"font substituted"}],"zz_new":1}"#;
+    let records: Vec<Record> = [lineage, run]
+        .iter()
+        .map(|l| Record::from_json(l).unwrap())
+        .collect();
+    let project = project();
+    let files = project_files(&project, &records, &[], 1, "test").unwrap();
+    let path = FilePath::new("imports/019a4f00-0000-7000-8000-000000000001.jsonl").unwrap();
+    assert_eq!(files[&path], format!("{run}\n").into_bytes());
+    let manifest = Manifest::parse(
+        &files[&FilePath::new("manifest.json").unwrap()],
+        &Limits::default(),
+    )
+    .unwrap();
+    let present: BTreeMap<String, EntryKind> = files
+        .keys()
+        .map(|k| (k.as_str().to_owned(), EntryKind::File))
+        .collect();
+    let input: BTreeMap<FilePath, Vec<u8>> = plan(Some(&manifest), &present, &Limits::default())
+        .read
+        .iter()
+        .map(|path| (path.clone(), files[path].clone()))
+        .collect();
+    assert!(input.contains_key(&path));
+    let loaded = load(Some(&manifest), &input, &Limits::default());
+    assert!(loaded.findings.is_empty(), "{:?}", loaded.findings);
+    assert!(loaded.rewrite.is_empty(), "{:?}", loaded.rewrite);
+    assert_eq!(loaded.records.len(), records.len());
+    assert!(records.iter().all(|r| loaded.records.contains(r)));
+    assert_eq!(
+        project_files(&project, &loaded.records, &[], 1, "test").unwrap(),
+        files
+    );
+}

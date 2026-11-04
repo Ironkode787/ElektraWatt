@@ -9,8 +9,8 @@
 use std::collections::BTreeMap;
 
 use ew_interop_api::{
-    CellKind, ExportContext, ExportError, ExportReport, ExportView, Exporter, OutputMeta, RowCell, RowColumn, RowTable,
-    RowTableRow,
+    CellKind, ExportContext, ExportError, ExportReport, ExportView, Exporter, OutputMeta, RowCell, RowColumn,
+    RowTable, RowTableRow,
 };
 
 use crate::csv::{CsvOptions, table_csv};
@@ -37,7 +37,11 @@ impl Exporter for CsvExporter {
         "csv"
     }
 
-    fn export(&self, view: &ExportView<'_>, sink: &mut dyn std::io::Write) -> Result<ExportReport, ExportError> {
+    fn export(
+        &self,
+        view: &ExportView<'_>,
+        sink: &mut dyn std::io::Write,
+    ) -> Result<ExportReport, ExportError> {
         let mut tables = view.rows.values();
         let (Some(table), None) = (tables.next(), tables.next()) else {
             return Err(ExportError::Refused(format!(
@@ -60,7 +64,11 @@ impl Exporter for XlsxExporter {
         "xlsx"
     }
 
-    fn export(&self, view: &ExportView<'_>, sink: &mut dyn std::io::Write) -> Result<ExportReport, ExportError> {
+    fn export(
+        &self,
+        view: &ExportView<'_>,
+        sink: &mut dyn std::io::Write,
+    ) -> Result<ExportReport, ExportError> {
         let tables: Vec<Table> = view.rows.values().map(table_of).collect();
         let meta = WorkbookMeta {
             rev: view.rev,
@@ -83,7 +91,8 @@ impl Exporter for XlsxExporter {
 
 /// `bytes` written to `sink`.
 fn write(sink: &mut dyn std::io::Write, bytes: &[u8]) -> Result<(), ExportError> {
-    sink.write_all(bytes).map_err(|e| ExportError::Write(e.to_string()))
+    sink.write_all(bytes)
+        .map_err(|e| ExportError::Write(e.to_string()))
 }
 
 /// The output of `exporter` over `tables` (in order) at revision `rev`: its bytes and its report.
@@ -232,7 +241,11 @@ mod tests {
                 TableRow {
                     id: None,
                     heading: true,
-                    cells: vec![TableCell::Text("-X1".into()), TableCell::Text(String::new()), TableCell::Text(String::new())],
+                    cells: vec![
+                        TableCell::Text("-X1".into()),
+                        TableCell::Text(String::new()),
+                        TableCell::Text(String::new()),
+                    ],
                 },
                 TableRow {
                     id: Some("e:1".into()),
@@ -252,7 +265,10 @@ mod tests {
     fn a_table_converts_without_loss() {
         let t = table();
         assert_eq!(table_of(&row_table(&t)), t);
-        for name in ["Text", "Ident", "Number", "Tag", "Folio", "Folios", "CellRef", "Qty", "Colour", "Address", "Date", "Bool", "Range"] {
+        for name in [
+            "Text", "Ident", "Number", "Tag", "Folio", "Folios", "CellRef", "Qty", "Colour", "Address",
+            "Date", "Bool", "Range",
+        ] {
             assert_eq!(cell_type_name(cell_type(name)), name);
         }
     }
@@ -264,7 +280,8 @@ mod tests {
         let t = table();
         for preset in [Preset::ExcelNl, Preset::ExcelEn, Preset::Rfc4180, Preset::Ew] {
             let options = CsvOptions::preset(preset);
-            let (bytes, report) = export_tables(&CsvExporter { options }, 7, std::slice::from_ref(&t)).unwrap();
+            let (bytes, report) =
+                export_tables(&CsvExporter { options }, 7, std::slice::from_ref(&t)).unwrap();
             assert_eq!(bytes, table_csv(&t, &options).into_bytes());
             assert_eq!(report.rev, 7);
             assert_eq!(report.outputs, vec![OutputMeta::of("Wires", "text/csv", &bytes)]);
@@ -284,7 +301,13 @@ mod tests {
             version: "0.1.0".into(),
             base_sha256: Some("00".repeat(32)),
         };
-        let tables = [t.clone(), Table { name: "A".into(), ..t }];
+        let tables = [
+            t.clone(),
+            Table {
+                name: "A".into(),
+                ..t
+            },
+        ];
         let (bytes, report) = export_tables(&XlsxExporter { meta: meta.clone() }, 7, &tables).unwrap();
         assert_eq!(bytes, xlsx(&tables, &meta).unwrap());
         assert_eq!(report.rev, 7);
@@ -295,7 +318,14 @@ mod tests {
     #[test]
     fn a_csv_of_two_tables_is_refused() {
         let t = table();
-        let err = export_tables(&CsvExporter { options: CsvOptions::default() }, 1, &[t.clone(), t]).unwrap_err();
+        let err = export_tables(
+            &CsvExporter {
+                options: CsvOptions::default(),
+            },
+            1,
+            &[t.clone(), t],
+        )
+        .unwrap_err();
         assert_eq!(err.to_string(), "a CSV holds one table; the export has 2");
     }
 }

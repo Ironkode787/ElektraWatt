@@ -75,16 +75,16 @@ pub use ew_schema;
 /// The ID types and the UUIDv5 rules of imported identities (ADR-0004 amendment 4), re-exported for the same reason.
 pub use ew_ids;
 pub use export::{
-    CellKind, ExportContext, ExportError, ExportReport, ExportView, Exporter, OutputMeta, RowCell, RowColumn, RowTable,
-    RowTableRow,
+    CellKind, ExportContext, ExportError, ExportReport, ExportView, Exporter, OutputMeta, RowCell, RowColumn,
+    RowTable, RowTableRow,
 };
 pub use importer::{
     Detection, ImportBatch, ImportContext, ImportError, ImportMode, Importer, Limits, LineageInfo,
 };
 pub use input::{ArchiveNameError, ImportInput, InputNameError, check_archive_name, check_file_name};
 pub use report::{
-    Code, CodeParseError, DefectClass, ImportReport, ImportStats, QuickFixProposal, RecordKey, ReportEntry, Severity,
-    SourceInfo, SourceLocation,
+    Code, CodeParseError, DefectClass, ImportReport, ImportStats, QuickFixProposal, RecordKey, ReportEntry,
+    Severity, SourceInfo, SourceLocation,
 };
 
 /// The library ID of EW's system library: the compiled-in starter `ew-starter` (WP-S1.19 D4, FT-24), the
