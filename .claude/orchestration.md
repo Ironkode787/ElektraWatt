@@ -151,7 +151,7 @@ The main session orchestrates. It plans each cycle, briefs Claude subagents, int
       four re-review parts chained after the last wave).
 13. **Back to the author.**
     - Findings go verbatim, with the orchestrator's rulings, to the authoring lane.
-    - Resume that lane with SendMessage while its context is under about 600k tokens (ID-1282, the 800k window).
+    - Resume that lane with SendMessage while its context is under about 750k tokens (ID-1322, the 1M window).
       Otherwise use a fresh `lane` fixer (Opus `medium`) with the findings and the lane's hand-off note (2026-11-01;
       amended 2026-11-04).
     - The lane's worktree is kept until its part is accepted.
@@ -252,13 +252,14 @@ The main session orchestrates. It plans each cycle, briefs Claude subagents, int
 ## Lanes across parts (owner, 2026-11-01)
 
 24. **A work package is one lane** (owner, 2026-11-03: "do not split wps from now on, please", since reviewing
-    partial work costs time and tokens; ID-1281, ID-1282; amended 2026-11-04).
+    partial work costs time and tokens; ID-1281, ID-1282, ID-1322; amended 2026-11-04).
     - One brief, one lane, one review part per work package.
-    - A lane is sized to finish under about 550k tokens (the 800k auto-compact window). Near 650k it commits, writes
-      its hand-off note (at most 1,000 words, kept in the orchestrator's notes) and hands back; a fresh `lane`
-      continues from that note and the code map (`cargo xtask map --crates <set>`), within the same brief and review
-      part.
-    - An agent is resumed for fix rounds, rulings and questions while its context is under about 600k tokens.
+    - A lane is sized to finish under about 700k tokens (the 1M auto-compact window, the owner's maximum, ID-1322).
+      Near 800k it commits, writes its hand-off note (at most 1,000 words, kept in the orchestrator's notes) and
+      hands back; a fresh `lane` continues from that note and the code map (`cargo xtask map --crates <set>`),
+      within the same brief and review part.
+    - An agent is resumed for fix rounds, rulings and questions while its context is under about 750k tokens.
+    - The lane definition states these limits, so a brief names a smaller one only where its package needs it.
 
 ## Testing policy (owner, 2026-10-18; amended 2026-10-22, 2026-10-31, 2026-11-01)
 

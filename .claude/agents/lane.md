@@ -168,10 +168,16 @@ Report each item as "checked: `<place>`" or "not applicable".
   `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`, plus the trailers your brief asks for. Before you hand
   back, check that every trailer line of your brief's "Expected" is in `git log --format=%B <base>..HEAD`.
 
+## Your context
+
+The auto-compact window is 1M tokens (ID-1322). Plan to finish under about 700k. If your context nears 800k before
+the brief is done, commit what is done, write the hand-off note, and hand back with what is left; a fresh lane
+continues the same brief. A brief may name a smaller limit for its package: that one holds.
+
 ## Hand-off note
 
-When your brief says a later part continues the work, write at most 1,000 words, as your last step, to the path the
-brief names:
+When you hand back before your brief is done, or your brief asks for one, write at most 1,000 words, as your last
+step, to the path the brief names:
 - the files you changed, and why;
 - the invariants a successor must keep;
 - the traps you hit;
