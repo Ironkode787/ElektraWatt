@@ -3482,7 +3482,12 @@ fn run_lib(a: &LibArgs) -> i32 {
                         if l.writable { "rw" } else { "ro" },
                         index_state(&l.index)
                     );
-                    for f in l.findings.iter().cloned().chain(ew_api::unreadable_profiles(&reg, l.id)) {
+                    for f in l
+                        .findings
+                        .iter()
+                        .cloned()
+                        .chain(ew_api::unreadable_profiles(&reg, l.id))
+                    {
                         println!("  {f}");
                     }
                 }

@@ -188,6 +188,7 @@
     - [`form`](reference/format/form.md)
     - [`macro`](reference/format/macro.md)
     - [`manufacturer`](reference/format/manufacturer.md)
+    - [`plc_profile`](reference/format/plc_profile.md)
   - [Glossary](reference/glossary.md)
   - [Keymaps](reference/keymaps.md)
 

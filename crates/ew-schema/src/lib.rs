@@ -149,11 +149,11 @@ pub use library::{
     InternalKind, InternalLinkDef, ItemMeta, ItemStatus, LibCopy, LibItem, Library, LinePrim, MacroDef,
     MacroInstance, MacroKind, MacroLink, MacroVariant, Manufacturer, MechData, MountKind, NamedPoint,
     OrderUnit, Overflow, Part, PartCopy, PartKind, PartSections, PassThroughSpec, Pen, PlaceholderGroup,
-    PlcAllocation, PlcAllocationStart, PlcAreaMnemonics, PlcMnemonics, PlcParse, PlcProfileDef, PlcProfilePin,
-    PlcRender, PlcSizeMnemonics,
-    PlateSection, PolygonPrim, PolylinePrim, Primitive, RailSection, RectPrim, RepType, Rgb, RowTemplate,
-    RowTemplates, SheetSpec, SheetTransform, ShrinkSpec, Side, SlotFallback, SlotKind, Stroke, SymbolCp,
-    SymbolDef, TableStyle, TemplateFn, TextPrim, TextSlot, ValueSet, VarBinding, VarDef, VarType, WrapPolicy,
+    PlateSection, PlcAllocation, PlcAllocationStart, PlcAreaMnemonics, PlcMnemonics, PlcParse, PlcProfileDef,
+    PlcProfilePin, PlcRender, PlcSizeMnemonics, PolygonPrim, PolylinePrim, Primitive, RailSection, RectPrim,
+    RepType, Rgb, RowTemplate, RowTemplates, SheetSpec, SheetTransform, ShrinkSpec, Side, SlotFallback,
+    SlotKind, Stroke, SymbolCp, SymbolDef, TableStyle, TemplateFn, TextPrim, TextSlot, ValueSet, VarBinding,
+    VarDef, VarType, WrapPolicy,
 };
 pub use page::{
     BoxCp, BoxSpec, ContinuationPolicy, EmbedSpec, EmptyPolicy, Folio, GroupBreak, GroupSpec,

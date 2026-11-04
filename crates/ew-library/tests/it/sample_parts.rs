@@ -172,7 +172,10 @@ fn derived_template(
             continue;
         }
         for t in sibling["function_template"].as_array().into_iter().flatten() {
-            if let Some(i) = functions.iter().position(|(_, k)| t["fndef"]["key"] == k.as_str()) {
+            if let Some(i) = functions
+                .iter()
+                .position(|(_, k)| t["fndef"]["key"] == k.as_str())
+            {
                 functions.remove(i);
             }
         }
@@ -270,7 +273,8 @@ fn documents() -> Vec<LibDocument> {
         o.insert("version".into(), json!(VERSION));
         o.insert("sha256".into(), json!(ZERO));
         let maker = &makers[p["manufacturer"]["item"].as_str().unwrap()];
-        v["manufacturer"] = json!({"library": lib.to_string(), "item": maker["item_id"], "version_req": "^0.1"});
+        v["manufacturer"] =
+            json!({"library": lib.to_string(), "item": maker["item_id"], "version_req": "^0.1"});
         if v["sections"]["enclosure"].get("plate").is_some() {
             let plate = copies
                 .values()
@@ -352,11 +356,18 @@ fn files_of(dir: &Path) -> BTreeMap<String, String> {
         };
         for e in entries.flatten() {
             let name = e.file_name().to_string_lossy().into_owned();
-            let r = if rel.is_empty() { name } else { format!("{rel}/{name}") };
+            let r = if rel.is_empty() {
+                name
+            } else {
+                format!("{rel}/{name}")
+            };
             if e.file_type().unwrap().is_dir() {
                 stack.push((e.path(), r));
             } else {
-                out.insert(r, std::fs::read_to_string(e.path()).unwrap().replace("\r\n", "\n"));
+                out.insert(
+                    r,
+                    std::fs::read_to_string(e.path()).unwrap().replace("\r\n", "\n"),
+                );
             }
         }
     }
@@ -435,7 +446,11 @@ fn the_library_holds_golden_as_catalogue_parts_and_their_makers() {
     expected.sort();
     let (parts, makers) = shipped_records();
     assert_eq!(parts.keys().cloned().collect::<Vec<_>>(), expected);
-    assert_eq!(expected.len(), 23, "29 copies less 4 TBD test parts and 2 order codes");
+    assert_eq!(
+        expected.len(),
+        23,
+        "29 copies less 4 TBD test parts and 2 order codes"
+    );
     assert!(!parts.contains_key("TBD"));
     assert!(parts.values().all(|p| p["kind"] != "configured"));
     for p in parts.values() {
@@ -451,7 +466,11 @@ fn the_library_holds_golden_as_catalogue_parts_and_their_makers() {
     }
     // Every manufacturer is one a part names.
     for m in makers.values() {
-        assert!(parts.values().any(|p| p["manufacturer"]["item"] == m["id"]), "{}", m["key"]);
+        assert!(
+            parts.values().any(|p| p["manufacturer"]["item"] == m["id"]),
+            "{}",
+            m["key"]
+        );
     }
 }
 
@@ -485,29 +504,46 @@ fn the_derived_templates_sections_and_marks_are_golden_as() {
     );
     assert_eq!(designations("A9F78116"), ["L1", "T1"]);
     // -201U1 holds both part uses: 550208 keeps its black box, 195740 takes the overview and the DP port.
-    assert_eq!(template("195740"), [("ew.fn.overview", true), ("ew.fn.dp-port", false)]);
+    assert_eq!(
+        template("195740"),
+        [("ew.fn.overview", true), ("ew.fn.dp-port", false)]
+    );
     assert_eq!(designations("195740"), ["A", "B", "SH"]);
     assert_eq!(
         parts["195740"]["sections"]["bus"],
         json!({"ports": [{"interface": "DP", "bus": "profibus_dp", "role": "slave"}]})
     );
-    assert_eq!(template("550208"), [("ew.fn.blackbox", true)], "Golden A's own template, its entry the main one");
+    assert_eq!(
+        template("550208"),
+        [("ew.fn.blackbox", true)],
+        "Golden A's own template, its entry the main one"
+    );
     assert_eq!(parts["550208"]["meta"]["confidence"]["cp_pattern"], "test");
-    assert_eq!(template("533361"), [("ew.fn.overview", true), ("ew.fn.blackbox", false)]);
+    assert_eq!(
+        template("533361"),
+        [("ew.fn.overview", true), ("ew.fn.blackbox", false)]
+    );
     assert_eq!(parts["533361"]["meta"]["confidence"]["plc"], "test");
     assert_eq!(
         parts["533361"]["sections"]["plc"]["positions"],
         json!({"count": 4, "map": [{"solenoid": "14", "channel": "2p"}, {"solenoid": "12", "channel": "2p+1"}]})
     );
     assert_eq!(parts["SK 3102.000"]["meta"]["confidence"]["mech"], "test");
-    assert_eq!(parts["571334"]["meta"]["confidence"]["mech"], "unverified", "no dimensions");
+    assert_eq!(
+        parts["571334"]["meta"]["confidence"]["mech"], "unverified",
+        "no dimensions"
+    );
     // A cable's drawing is no function of the part; a layout part has no function.
-    for n in ["6XV1830-0EH10", "NEBU-G78W5-K-2-N-LE5", "NSYPLA1074G", "NSYPMM107"] {
+    for n in [
+        "6XV1830-0EH10",
+        "NEBU-G78W5-K-2-N-LE5",
+        "NSYPLA1074G",
+        "NSYPMM107",
+    ] {
         assert!(parts[n].get("function_template").is_none(), "{n}");
     }
     assert_eq!(
-        parts["NSYPLA1074G"]["sections"]["enclosure"]["plate"]["item"],
-        parts["NSYPMM107"]["id"],
+        parts["NSYPLA1074G"]["sections"]["enclosure"]["plate"]["item"], parts["NSYPMM107"]["id"],
         "the enclosure's plate is the library's"
     );
 }
@@ -524,7 +560,13 @@ fn the_system_tier_finds_the_library_and_resolves_its_parts() {
         .find(|l| l.key == KEY)
         .expect("the sample parts library in the system tier");
     assert_eq!(
-        (info.id, info.name.as_str(), info.tier, info.version.as_str(), info.licence.as_str()),
+        (
+            info.id,
+            info.name.as_str(),
+            info.tier,
+            info.version.as_str(),
+            info.licence.as_str()
+        ),
         (library(), NAME, Tier::System, VERSION, LICENCE)
     );
     assert_eq!(info.findings, Vec::<String>::new());

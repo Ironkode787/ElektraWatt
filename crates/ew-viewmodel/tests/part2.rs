@@ -805,14 +805,26 @@ fn every_choice_of_the_wizard_is_accepted_by_the_commands() {
 
 #[test]
 fn the_default_draft_reproduces_the_sample_projects_folio_102() {
-    // NFR-UX-08 in miniature: the defaults of the wizard are the sample project's conventions, so the settings
-    // commands of the default draft change nothing, and the preview page is the sample's own page.
+    // NFR-UX-08 in miniature: the defaults of the wizard with the pilot's text sizes ("As in the sample project",
+    // WP-S7.03 D11) are the sample project's conventions, so the settings commands of the draft change nothing, and
+    // the preview page is the sample's own page.
     let tmp = Tmp::new();
     let mut shell = tmp.shell();
     done(&mut shell, "file.open_sample", json!({}));
     let folio = "102".to_owned();
     let sample = shell.page_content(&folio).expect("the sample's folio 102");
     done(&mut shell, "tools.company_standard", json!({}));
+    let readable = shell.wizard_preview_content().expect("the preview");
+    assert_ne!(
+        format!("{:?}", readable.pages.iter().map(|p| &p.content).collect::<Vec<_>>()),
+        format!("{:?}", sample.pages.iter().map(|p| &p.content).collect::<Vec<_>>()),
+        "the readable text styles of a new project reach the page"
+    );
+    done(
+        &mut shell,
+        "wizard.set",
+        json!({"field": "text_styles", "value": "sample"}),
+    );
     let preview = shell.wizard_preview_content().expect("the preview");
     assert_eq!(
         format!(

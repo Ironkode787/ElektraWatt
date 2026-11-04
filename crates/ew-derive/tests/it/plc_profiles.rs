@@ -62,7 +62,12 @@ fn the_profile_files_are_canonical() {
             std::fs::write(&path, &want).unwrap();
             text.clone_from(&want);
         }
-        assert_eq!(text, want, "{} is not canonical (EW_BLESS=1 rewrites it)", path.display());
+        assert_eq!(
+            text,
+            want,
+            "{} is not canonical (EW_BLESS=1 rewrites it)",
+            path.display()
+        );
     }
 }
 
@@ -84,9 +89,18 @@ fn both_builtins_parse_and_round_trip_golden_as_addresses() {
             }
         }
     }
-    assert_eq!(tia.render(&PlcAddress::bit(Area::Q, 6, 7), Purpose::Drawing), "Q6.7");
-    assert_eq!(iec.render(&PlcAddress::bit(Area::Q, 6, 7), Purpose::Drawing), "%QX6.7");
-    assert_eq!(tia.render(&PlcAddress::unit(Area::I, Size::Word, 64), Purpose::Exchange), "%IW64");
+    assert_eq!(
+        tia.render(&PlcAddress::bit(Area::Q, 6, 7), Purpose::Drawing),
+        "Q6.7"
+    );
+    assert_eq!(
+        iec.render(&PlcAddress::bit(Area::Q, 6, 7), Purpose::Drawing),
+        "%QX6.7"
+    );
+    assert_eq!(
+        tia.render(&PlcAddress::unit(Area::I, Size::Word, 64), Purpose::Exchange),
+        "%IW64"
+    );
 }
 
 /// T2: a profile file whose data the engine does not render is refused whole, naming its pin and the reason.

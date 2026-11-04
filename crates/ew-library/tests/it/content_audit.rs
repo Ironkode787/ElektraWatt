@@ -95,7 +95,9 @@ fn rel(root: &Path, path: &Path) -> String {
 fn records(path: &Path) -> Vec<Value> {
     let text = std::fs::read_to_string(path).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
     let docs: Vec<Value> = match path.extension().and_then(|e| e.to_str()) {
-        Some("json") => vec![serde_json::from_str(&text).unwrap_or_else(|e| panic!("{}: {e}", path.display()))],
+        Some("json") => {
+            vec![serde_json::from_str(&text).unwrap_or_else(|e| panic!("{}: {e}", path.display()))]
+        }
         Some("jsonl") => text
             .lines()
             .filter(|l| !l.trim().is_empty())
@@ -226,8 +228,14 @@ fn audit(root: &Path) -> Vec<String> {
 fn fixture(stem: &str, files: &[(&str, &str)]) -> PathBuf {
     let root = ew_testdir::fresh_dir(stem);
     for (path, text) in [
-        ("ci/licence-map.toml", std::fs::read_to_string(repo().join("ci/licence-map.toml")).unwrap()),
-        ("content/README.md", std::fs::read_to_string(repo().join("content/README.md")).unwrap()),
+        (
+            "ci/licence-map.toml",
+            std::fs::read_to_string(repo().join("ci/licence-map.toml")).unwrap(),
+        ),
+        (
+            "content/README.md",
+            std::fs::read_to_string(repo().join("content/README.md")).unwrap(),
+        ),
     ]
     .into_iter()
     .chain(files.iter().map(|(p, t)| (*p, (*t).to_owned())))
@@ -293,8 +301,14 @@ fn the_audit_names_each_failure_whole() {
         "content-audit",
         &[
             ("content/libraries/ew-starter-parts.ewlib/parts/01.1.jsonl", part),
-            ("content/libraries/ew-starter-parts.ewlib/manufacturers.1.jsonl", unsourced),
-            ("content/libraries/ew-starter-parts.ewlib/parts/04.1.jsonl", mapped),
+            (
+                "content/libraries/ew-starter-parts.ewlib/manufacturers.1.jsonl",
+                unsourced,
+            ),
+            (
+                "content/libraries/ew-starter-parts.ewlib/parts/04.1.jsonl",
+                mapped,
+            ),
             ("content/forms/fx.form.json", form),
             ("content/unlisted/fx.json", "{}"),
         ],

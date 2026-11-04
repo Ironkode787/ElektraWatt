@@ -619,9 +619,7 @@ impl LibDocument {
             Kind::Manufacturer => {
                 LibDocument::Manufacturer(typed(kind, map, |d: &LibCopy<Manufacturer>| d.v)?)
             }
-            Kind::PlcProfile => {
-                LibDocument::PlcProfile(typed(kind, map, |d: &LibCopy<PlcProfileDef>| d.v)?)
-            }
+            Kind::PlcProfile => LibDocument::PlcProfile(typed(kind, map, |d: &LibCopy<PlcProfileDef>| d.v)?),
             k => return Err(SchemaError::UnknownKind(k.name().into())),
         })
     }

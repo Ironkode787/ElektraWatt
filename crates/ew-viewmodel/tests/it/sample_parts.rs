@@ -72,7 +72,11 @@ fn new_project(tmp: &Tmp) -> ShellModel {
         json!({"dir": tmp.0.join("new.ew").to_string_lossy(), "template": "builtin"}),
     );
     for (folio, ty) in [("101", MULTI), ("102", FLUID), ("103", OVERVIEW), ("104", BUS)] {
-        done(&mut s, "page.new", json!({"folio": folio, "type": ty, "title": ty}));
+        done(
+            &mut s,
+            "page.new",
+            json!({"folio": folio, "type": ty, "title": ty}),
+        );
     }
     done(&mut s, "strip.new", json!({"letter": "X"}));
     s
@@ -158,7 +162,10 @@ fn every_templated_sample_part_places_on_its_starter_symbol() {
             .iter()
             .find(|r| symbol_fndef(&r.symbol_key) == *fndef)
             .unwrap_or_else(|| panic!("{number}: no symbol of {fndef} placed: {new:?}"));
-        placed.push((number.clone(), rep.device.unwrap_or_else(|| panic!("{number}: a device"))));
+        placed.push((
+            number.clone(),
+            rep.device.unwrap_or_else(|| panic!("{number}: a device")),
+        ));
     }
     done(&mut s, "file.save", json!({}));
     let (session, _) = Session::open_read_only(&tmp.0.join("new.ew"), "test").unwrap();
@@ -196,7 +203,10 @@ fn the_picker_and_the_libraries_navigator_offer_the_sample_parts() {
         let p = s.picker().expect("the picker");
         p.rows.iter().map(|r| p.row_line(*r)).collect()
     };
-    assert_eq!(lines, ["row part \"A9P52610\" function 1 of 1 \"ew.fn.mcb-1pn\" main"]);
+    assert_eq!(
+        lines,
+        ["row part \"A9P52610\" function 1 of 1 \"ew.fn.mcb-1pn\" main"]
+    );
     done(&mut s, "ui.dismiss", json!({}));
     done(&mut s, "navigator.show", json!({"kind": "libraries"}));
     let t = s

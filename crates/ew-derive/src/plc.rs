@@ -49,8 +49,7 @@ use ew_plcaddr::{
 use ew_schema::{
     AddrSpec, Channel, ChannelKind, ChannelState, Device, DeviceLink, DeviceLinkKind, DeviceState, Endpoint,
     FnDef, Function, IoClass, IoDir, LibCopy, LibDocument, MapSpec, Part, PinMap, PlcArea, PlcConfigProject,
-    PlcProfileDef, PlcSection,
-    PlcSize, RepType, Representation, SlotPath, SolenoidChannel,
+    PlcProfileDef, PlcSection, PlcSize, RepType, Representation, SlotPath, SolenoidChannel,
 };
 
 use crate::Q;
@@ -161,7 +160,9 @@ pub fn builtin_profiles() -> &'static [Arc<AddressProfile>] {
 
 /// The address profiles at hand (WP-S7.03 D8): the built-ins, then the profiles of the project's `plc_profile`
 /// `copies` that render and whose pin no built-in has, in copy order. A copy that does not render is left out.
-pub fn profiles_at_hand<'a>(copies: impl IntoIterator<Item = &'a LibCopy<PlcProfileDef>>) -> Vec<Arc<AddressProfile>> {
+pub fn profiles_at_hand<'a>(
+    copies: impl IntoIterator<Item = &'a LibCopy<PlcProfileDef>>,
+) -> Vec<Arc<AddressProfile>> {
     let mut out: Vec<Arc<AddressProfile>> = builtin_profiles().to_vec();
     for c in copies {
         if let Ok(p) = address_profile(&c.item)

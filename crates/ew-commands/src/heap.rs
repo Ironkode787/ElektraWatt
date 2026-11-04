@@ -1267,8 +1267,14 @@ impl HeapSize for ew_schema::PlcProfileDef {
             + self.profile.id.heap_size()
             + self.profile.version.heap_size()
             + self.label.heap_size()
-            + [&a.i, &a.q, &a.m, &a.pi, &a.pq].iter().map(|m| m.heap_size()).sum::<usize>()
-            + [&s.bit, &s.byte, &s.word, &s.dword, &s.lword].iter().map(|m| m.heap_size()).sum::<usize>()
+            + [&a.i, &a.q, &a.m, &a.pi, &a.pq]
+                .iter()
+                .map(|m| m.heap_size())
+                .sum::<usize>()
+            + [&s.bit, &s.byte, &s.word, &s.dword, &s.lword]
+                .iter()
+                .map(|m| m.heap_size())
+                .sum::<usize>()
             + r.bit.heap_size()
             + r.unit.heap_size()
             + r.drawing.heap_size()

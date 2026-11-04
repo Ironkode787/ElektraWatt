@@ -229,6 +229,16 @@ pub static FIELDS: &[FieldMeta] = &[
         "qet-grid",
         true,
     ),
+    // WP-S7.03 D11: the readable text styles of a new project (ADR-0032 decision 3), or the base table the sample
+    // project prints.
+    field(
+        Step::Frame,
+        "text_styles",
+        key!("wizard-field-text-styles"),
+        Choice(&["readable", "sample"]),
+        "readable",
+        true,
+    ),
     field(
         Step::Colour,
         "colour",
@@ -891,7 +901,17 @@ impl Draft {
         if let Some(v) = self.xref_value() {
             out.push(set("xref_format", v));
         }
+        out.push(set("text_styles", self.text_styles_value()));
         out
+    }
+
+    /// The text styles (WP-S7.03 D11): the built-in basic project's readable ones, or none (`null` removes the
+    /// member), so that the base table prints as in the sample project.
+    fn text_styles_value(&self) -> Value {
+        match self.get("text_styles") {
+            "sample" => Value::Null,
+            _ => serde_json::to_value(ew_api::new_project_text_styles()).unwrap_or(Value::Null),
+        }
     }
 
     /// Every command that builds the basic project from the built-in one: the embedding of the shipped forms, the
@@ -1274,6 +1294,7 @@ mod tests {
                 "project.settings.set",
                 "project.settings.set",
                 "project.settings.set",
+                "project.settings.set",
                 "project.languages.set",
                 "structure.create_node",
                 "section.create",
@@ -1342,7 +1363,7 @@ mod tests {
             shipped_form_id(COVER_FRAME).unwrap()
         );
         assert_eq!(
-            cmds[5].1,
+            cmds[6].1,
             json!({"source": "en", "date": "dd_mm_yyyy", "decimal_separator": "point"})
         );
         let numbering = &cmds[4].1["value"];
@@ -1381,13 +1402,12 @@ mod tests {
         let cmds = d.commands().unwrap();
         let written: Vec<&Value> = cmds
             .iter()
-            .filter(|(n, p)| *n == "project.settings.set" && p["member"] != "numbering")
+            .filter(|(n, p)| {
+                *n == "project.settings.set" && p["member"] != "numbering" && p["member"] != "text_styles"
+            })
             .map(|(_, p)| &p["value"])
             .collect();
-        assert_eq!(
-            written,
-            [&settings["colour_profile"], &settings["size_profile"]]
-        );
+        assert_eq!(written, [&settings["colour_profile"], &settings["size_profile"]]);
     }
 
     #[test]
@@ -1403,7 +1423,7 @@ mod tests {
             .filter(|(n, _)| *n == "project.settings.set")
             .filter_map(|(_, p)| p["member"].as_str())
             .collect();
-        assert_eq!(members, ["numbering", "xref_format"]);
+        assert_eq!(members, ["numbering", "xref_format", "text_styles"]);
         assert_eq!(
             cmds.iter().filter(|(n, _)| *n == "structure.create_node").count(),
             2

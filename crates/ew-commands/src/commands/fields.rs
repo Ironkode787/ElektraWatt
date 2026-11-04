@@ -612,9 +612,7 @@ fn channel_address_value(
 }
 
 /// The address profiles at hand in the transaction's model (WP-S7.03 D8): the built-ins, then the project's copies.
-pub(crate) fn profiles_in(
-    tx: &TxBuilder<'_>,
-) -> Vec<std::sync::Arc<ew_derive::ew_plcaddr::AddressProfile>> {
+pub(crate) fn profiles_in(tx: &TxBuilder<'_>) -> Vec<std::sync::Arc<ew_derive::ew_plcaddr::AddressProfile>> {
     let copies = tx.iter::<ew_schema::LibCopy<ew_schema::PlcProfileDef>>();
     ew_derive::profiles_at_hand(copies.iter().map(|c| &**c))
 }

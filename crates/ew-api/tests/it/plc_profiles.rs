@@ -97,8 +97,14 @@ fn open(dir: &Path, root: &Path, libraries: Option<LibraryTiers>) -> Session {
 
 fn cfg(s: &Session) -> Uuid {
     let q = s.query();
-    let ids: Vec<Uuid> = q.table::<PlcConfigProject>().iter().map(|(id, _)| id.as_uuid()).collect();
-    let [one] = ids.as_slice() else { panic!("one configuration project: {ids:?}") };
+    let ids: Vec<Uuid> = q
+        .table::<PlcConfigProject>()
+        .iter()
+        .map(|(id, _)| id.as_uuid())
+        .collect();
+    let [one] = ids.as_slice() else {
+        panic!("one configuration project: {ids:?}")
+    };
     *one
 }
 
@@ -140,11 +146,19 @@ fn a_library_profile_is_chosen_without_a_code_change_and_stays_with_the_project(
     copy_dir(Path::new(GOLDEN_A), &dir);
     let mut s = open(&dir, &root.0, Some(t.clone()));
     let cfg = cfg(&s);
-    assert_eq!(module_texts(&s)[1], "Q0.1", "the built-in TIA profile Golden A pins");
+    assert_eq!(
+        module_texts(&s)[1],
+        "Q0.1",
+        "the built-in TIA profile Golden A pins"
+    );
 
     // T1: a name neither built in nor held, nor in a library.
-    let e = s.run_script(&line(cfg, "no-such-profile"), "profiles").unwrap_err();
-    let CmdLogError::Failed { error, .. } = &e else { panic!("{e:?}") };
+    let e = s
+        .run_script(&line(cfg, "no-such-profile"), "profiles")
+        .unwrap_err();
+    let CmdLogError::Failed { error, .. } = &e else {
+        panic!("{e:?}")
+    };
     assert_eq!(
         refusal(error),
         "`no-such-profile` is not an address profile of this build or of the project; the profiles at hand are \
@@ -156,7 +170,9 @@ fn a_library_profile_is_chosen_without_a_code_change_and_stays_with_the_project(
         ["the address profile fixture-hex@1 cannot be read: only base 10 is rendered"]
     );
     let e = s.run_script(&line(cfg, "fixture-hex"), "profiles").unwrap_err();
-    let CmdLogError::Failed { error, .. } = &e else { panic!("{e:?}") };
+    let CmdLogError::Failed { error, .. } = &e else {
+        panic!("{e:?}")
+    };
     assert_eq!(
         refusal(error),
         "`fixture-hex` is not an address profile of this build or of the project; the profiles at hand are \
@@ -182,9 +198,19 @@ fn a_library_profile_is_chosen_without_a_code_change_and_stays_with_the_project(
 
     // The library's third profile: the line embeds it, then pins it; the channels render in it.
     s.run_script(&line(cfg, "fixture-absolute"), "profiles").unwrap();
-    let pinned = s.query().table::<PlcConfigProject>().get(Id::from_uuid(cfg)).unwrap().profile.to_string();
+    let pinned = s
+        .query()
+        .table::<PlcConfigProject>()
+        .get(Id::from_uuid(cfg))
+        .unwrap()
+        .profile
+        .to_string();
     assert_eq!(pinned, "fixture-absolute@1");
-    assert_eq!(s.query().plc_profiles().iter().count(), 1, "the project holds its copy");
+    assert_eq!(
+        s.query().plc_profiles().iter().count(),
+        1,
+        "the project holds its copy"
+    );
     let texts = module_texts(&s);
     assert_eq!(&texts[..2], ["%Q0.0", "%Q0.1"]);
     s.save().unwrap();

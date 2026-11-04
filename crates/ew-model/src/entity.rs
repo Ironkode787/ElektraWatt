@@ -14,8 +14,7 @@ use ew_schema::{
     ExternalRef, FnDef, FormDef, Function, ImportLineage, Junction, Kind, LayoutSpace, LibCopy, LogicalNet,
     MacroDef, MacroInstance, Manufacturer, MountingSurface, Page, PageItem, Part, PhysicalNet, Placement,
     PlcConfigProject, PlcProfileDef, PotentialDef, Project, ReportBlock, Representation, Revision, Section,
-    StructureBox,
-    StructureNode, SymbolDef, Waiver,
+    StructureBox, StructureNode, SymbolDef, Waiver,
 };
 
 use crate::diff::Presence;

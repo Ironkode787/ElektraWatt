@@ -13,7 +13,8 @@
 //! layout of the report blocks (step 9, FT-341).
 
 /// The colour profile "DBU/WH 24 V" (IEC 60757 codes with the company code DBU; basis: company convention).
-pub const COLOUR_PROFILE_SAMPLE: &str = include_str!("../../../content/profiles/colour/company.dbu-wh-24v.json");
+pub const COLOUR_PROFILE_SAMPLE: &str =
+    include_str!("../../../content/profiles/colour/company.dbu-wh-24v.json");
 
 /// The size profile "0.75/1.5": control circuits 0.75 mm2, mains circuits 1.5 mm2.
 pub const SIZE_PROFILE_SAMPLE: &str = include_str!("../../../content/profiles/size/company.0.75-1.5.json");

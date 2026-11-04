@@ -13,8 +13,8 @@ use ew_ids::Id;
 use ew_model::{EndpointKey, Entity, IndexName, Model, Rev, RevIndex, RowId, Table};
 use ew_schema::{
     Bond, Conductor, Connection, Device, ExternalRef, FnDef, FormDef, Function, Junction, Kind, LibCopy,
-    Manufacturer, Page, PageItem, Part, PlcProfileDef, PotentialDef, Project, Record, ReportBlock, Representation, Section,
-    StructureBox, StructureNode, SymbolDef,
+    Manufacturer, Page, PageItem, Part, PlcProfileDef, PotentialDef, Project, Record, ReportBlock,
+    Representation, Section, StructureBox, StructureNode, SymbolDef,
 };
 
 use crate::memo_keys::{self, MemoInput, PartKey};

@@ -113,7 +113,10 @@ fn the_sample_valve_module_derives_q0_0_to_q0_7_in_a_new_project() {
             other => format!("{other:?}"),
         })
         .collect();
-    assert_eq!(texts, ["Q0.0", "Q0.1", "Q0.2", "Q0.3", "Q0.4", "Q0.5", "Q0.6", "Q0.7"]);
+    assert_eq!(
+        texts,
+        ["Q0.0", "Q0.1", "Q0.2", "Q0.3", "Q0.4", "Q0.5", "Q0.6", "Q0.7"]
+    );
     let copy = q
         .parts()
         .iter()
