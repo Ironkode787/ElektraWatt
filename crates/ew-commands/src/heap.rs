@@ -757,6 +757,7 @@ impl HeapSize for CpOverride {
         self.designation.heap_size()
             + self.alias.heap_size()
             + self.description.heap_size()
+            + self.closure.as_ref().map_or(0, |c| c.part.heap_size() + c.extra.heap_size())
             + self.extra.heap_size()
     }
 }
@@ -986,6 +987,7 @@ impl HeapSize for Connection {
         let kind = match &self.kind {
             ConnectionKind::Bridge(b) => b.extra.heap_size(),
             ConnectionKind::Bus(b) => b.extra.heap_size(),
+            ConnectionKind::Fluid(f) => f.extra.heap_size(),
             ConnectionKind::Unknown(v) => v.heap_size(),
             _ => 0,
         };
@@ -1207,6 +1209,7 @@ impl HeapSize for PartSections {
             + self.rail.heap_size()
             + self.mounting_plate.heap_size()
             + self.bus.heap_size()
+            + self.fluid.as_ref().map_or(0, |f| f.solenoids.heap_size() + f.extra.heap_size())
             + self.extra.heap_size()
     }
 }

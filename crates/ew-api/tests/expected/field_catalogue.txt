@@ -251,6 +251,9 @@ function bus_port.termination enum(on|off)? other fields.set:bus_port.terminatio
 function cp_overrides list<group> connection_points fields.set:cp_overrides
 function cp_overrides[] group connection_points fields.set:cp_overrides
 function cp_overrides[].alias ident? connection_points fields.set:cp_overrides
+function cp_overrides[].closure group? connection_points fields.set:cp_overrides
+function cp_overrides[].closure.kind enum(plug|silencer|blanked) connection_points fields.set:cp_overrides
+function cp_overrides[].closure.part link(part)? connection_points fields.set:cp_overrides
 function cp_overrides[].description mltext? connection_points fields.set:cp_overrides
 function cp_overrides[].designation ident? connection_points fields.set:cp_overrides
 function cp_overrides[].idx int[0..65535] connection_points fields.set:cp_overrides

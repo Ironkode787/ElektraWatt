@@ -187,6 +187,7 @@ Fields are written as `kind.path`. "referrers" means the generic referrer index.
 | function.device | device | cascade | functions_by_device |
 | function.def | fndef | forbid | referrers |
 | function.kind.ip.external | external_ref | unlink (cleared) | referrers |
+| function.cp_overrides[].closure.part.copy | part | forbid | referrers |
 | function.source_ref.lineage | import_lineage | forbid | referrers |
 | representation.functions[] | function | cascade (representation removed) | reps_by_function |
 | representation.pin_map[].function | function | cascade (representation removed) | reps_by_function |
@@ -266,7 +267,7 @@ state after it is right. Every forbid link stores its target's ID, except the tw
 | page.folio.section, report_block.section | section | structural | Stored IDs; folios and report placement derive from them |
 | device.parent, device.terminal.strip | device | structural | Stored IDs; the device and inheritance graphs (EW-INV-007, EW-INV-009, EW-INV-015) |
 | device.plc_station.config_project | plc_config_project | structural | A stored ID; the station's addressing derives from it |
-| device.parts[].part.copy, device.strip.accessories[].part.copy, device.assembly.configs[].part.copy, connection.overrides.wire_part.copy, potential_def.props.wire_part.copy, carrier.part.copy | part | structural | `PartRef.copy` stores the copy ID; the command that uses a part embeds it in the same transaction (FR-PRT-013), so a part use never names an item that is not embedded |
+| device.parts[].part.copy, device.strip.accessories[].part.copy, device.assembly.configs[].part.copy, connection.overrides.wire_part.copy, potential_def.props.wire_part.copy, carrier.part.copy, function.cp_overrides[].closure.part.copy | part | structural | `PartRef.copy` stores the copy ID; the command that uses a part embeds it in the same transaction (FR-PRT-013), so a part use never names an item that is not embedded |
 | function.def | fndef | structural | A stored copy ID; the function's CPs instantiate from it |
 | representation.symbol | symbol | structural | A stored copy ID; the representation draws it |
 | macro_instance.macro | macro | structural | A stored copy ID; the instance records which macro version was placed (WP-S1.19 part 1) |

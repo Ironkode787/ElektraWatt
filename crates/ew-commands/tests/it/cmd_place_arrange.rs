@@ -116,6 +116,7 @@ fn slot(kind: SlotKind) -> TextSlot {
         visible: true,
         max_width: None,
         style: None,
+        fallback: None,
         extra: Extra::new(),
     }
 }

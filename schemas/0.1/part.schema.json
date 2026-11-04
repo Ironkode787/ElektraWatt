@@ -814,6 +814,20 @@
       },
       "type": "object"
     },
+    "FluidSection": {
+      "additionalProperties": true,
+      "description": "The fluid section of a part (doc 11 §2.6). Typed: the solenoids of a valve part, the k-th being the k-th\ntemplate entry on a FnDef of contact kind `coil` (WP-S1.20 D4); the valve model and the other members of\n1.0 stay in `extra`.",
+      "properties": {
+        "solenoids": {
+          "description": "The solenoids the part declares (\"14\", \"12\").",
+          "items": {
+            "$ref": "#/$defs/Ident"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
     "FreeProp": {
       "additionalProperties": true,
       "description": "A free property (EPLAN free properties, user fields).",
@@ -1416,6 +1430,17 @@
             }
           ],
           "description": "The enclosure section: outer and wall dimensions and the mounting plate (doc 12 §2.5)."
+        },
+        "fluid": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FluidSection"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The fluid section: the solenoids a valve part declares (doc 11 §2.6, WP-S1.20 D4)."
         },
         "mounting_plate": {
           "anyOf": [

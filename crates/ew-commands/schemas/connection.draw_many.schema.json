@@ -142,7 +142,7 @@
       "type": "object"
     },
     "ConnectionKind": {
-      "description": "The kind of a connection (doc 08 §2.3). `Fluid(FluidLine)` (doc 11) and `SingleLine` (1.0) are additive\nvariants of their work packages; until then a file's value is kept as [`ConnectionKind::Unknown`], which\njoins no net (doc 05 §10.3 rule 3).",
+      "description": "The kind of a connection (doc 08 §2.3). `SingleLine` (1.0) is an additive variant of its work package; until\nthen a file's value is kept as [`ConnectionKind::Unknown`], which joins no net (doc 05 §10.3 rule 3). A\n[`ConnectionKind::Fluid`] line joins no electrical net either: it joins the fluid partition (doc 11 §5.1).",
       "oneOf": [
         {
           "const": "wire",
@@ -197,6 +197,19 @@
           "const": "internal",
           "description": "A link between CPs of two functions of one part that no FnDef declares.",
           "type": "string"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A fluid line between fluid ports (doc 11 §2.4, WP-S1.20 D2).",
+          "properties": {
+            "fluid": {
+              "$ref": "#/$defs/FluidLine"
+            }
+          },
+          "required": [
+            "fluid"
+          ],
+          "type": "object"
         }
       ]
     },
@@ -284,6 +297,47 @@
             "on_connection"
           ],
           "type": "object"
+        }
+      ]
+    },
+    "FluidLine": {
+      "additionalProperties": true,
+      "description": "A fluid line (doc 11 §2.4): its line kind. The tube specification and the length of 1.0 stay in `extra`.",
+      "properties": {
+        "line_kind": {
+          "$ref": "#/$defs/LineKind",
+          "description": "The line kind; default working."
+        }
+      },
+      "type": "object"
+    },
+    "LineKind": {
+      "description": "The kind of a fluid line (doc 11 §2.4): pilot and drain lines are drawn dashed.",
+      "oneOf": [
+        {
+          "const": "working",
+          "description": "A working line (the default).",
+          "type": "string"
+        },
+        {
+          "const": "pilot",
+          "description": "A pilot line.",
+          "type": "string"
+        },
+        {
+          "const": "exhaust",
+          "description": "An exhaust line.",
+          "type": "string"
+        },
+        {
+          "const": "drain",
+          "description": "A drain line.",
+          "type": "string"
+        },
+        {
+          "const": "flexible",
+          "description": "A flexible line.",
+          "type": "string"
         }
       ]
     },

@@ -214,6 +214,7 @@ fn fndef_copy(copy_id: Id<FnDef>, item_id: Id<FnDef>, kind: &DefKind) -> LibCopy
                     side: None,
                     clamp: None,
                     physical: true,
+                    port_role: None,
                     extra: Extra::new(),
                 })
                 .collect(),

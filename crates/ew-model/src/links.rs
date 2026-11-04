@@ -578,6 +578,14 @@ pub static LINKS: &[LinkDecl] = &[
         }
         Some(AnyRow::Function(Arc::new(f)))
     })),
+    // A fluid port's closure (WP-S1.20 D2): its part copy is kept alive like a part use.
+    link!(Function."cp_overrides[].closure.part.copy" -> Part, Forbid, None, |v, out| {
+        for o in &v.cp_overrides {
+            if let Some(p) = o.closure.as_ref().and_then(|c| c.part.as_ref()) {
+                id(p.copy, out);
+            }
+        }
+    }),
     lineage_link!(Function),
     // representation
     link!(Representation."functions[]" -> Function, Cascade, Some(I::RepsByFunction), |v, out| {

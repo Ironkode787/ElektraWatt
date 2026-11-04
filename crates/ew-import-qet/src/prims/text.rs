@@ -387,6 +387,7 @@ pub fn dynamic_text(node: Node<'_, '_>, ctx: &mut PrimCtx<'_>, out: &mut Parsed)
         visible: true,
         max_width,
         style: None,
+        fallback: None,
         extra,
     });
     Ok(())
@@ -434,6 +435,7 @@ pub fn input(node: Node<'_, '_>, ctx: &mut PrimCtx<'_>, out: &mut Parsed) -> Res
         visible: true,
         max_width: None,
         style: None,
+        fallback: None,
         extra,
     });
     Ok(())

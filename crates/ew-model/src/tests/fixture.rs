@@ -401,6 +401,7 @@ pub(crate) fn fndef(fndef_id: Id<FnDef>, cps: &[&str]) -> LibCopy<FnDef> {
                     side: None,
                     clamp: None,
                     physical: true,
+                    port_role: None,
                     extra: Extra::new(),
                 })
                 .collect(),

@@ -561,7 +561,6 @@ pub enum CoreIdMode {
 /// Its connection points are instantiated from the definition or the part's pattern; only overrides are
 /// stored. `device` is `None` if and only if the kind is `Ip` (ADR-0006 amendment 1).
 ///
-/// Not in v0: `CpOverride.closure` (fluid ports, doc 03 §15).
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct Function {
     /// The record ID: UUIDv7, or `v5(device, template_index)` from a part's function template.
@@ -701,12 +700,45 @@ pub struct CpOverride {
     /// Unused by design.
     #[serde(default, skip_serializing_if = "is_false")]
     pub unused: bool,
+    /// The closure of a fluid port: a plug, a silencer or a blanking (doc 03 §15, FR-FLU-028).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub closure: Option<PortClosure>,
     /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
 }
 
 keyed!(CpOverride, idx: u16);
+
+/// How a fluid port is closed (doc 11 §2.7, WP-S1.20 D2).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct PortClosure {
+    /// The closure kind.
+    pub kind: ClosureKind,
+    /// The plug's or silencer's part; optional (it enters the bill of materials at 1.0).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub part: Option<PartRef>,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// The kind of a fluid port's closure.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "ClosureKind")]
+pub enum ClosureKind {
+    /// A plug.
+    Plug,
+    /// A silencer.
+    Silencer,
+    /// Blanked.
+    Blanked,
+    /// A value of a newer format, kept verbatim.
+    #[serde(skip)]
+    Unknown(Value),
+}
 
 open_enum!(
     TagScheme,
@@ -723,4 +755,5 @@ open_enum!(
     FnRole,
     FunctionKind,
     IpDirection,
+    ClosureKind,
 );

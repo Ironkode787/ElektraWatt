@@ -9,7 +9,7 @@ use crate::common;
 use common::{Fx, LIBRARY, id, uid};
 use ew_derive::{Cp, FunctionCps, Q};
 use ew_ids::{Id, Uuid, v5::lib_copy_id};
-use ew_schema::{Discipline, FnDef, PotentialType, Side};
+use ew_schema::{Discipline, FluidPortRole, FnDef, PotentialType, Side};
 use serde_json::{Value, json};
 
 const FNDEF_MCB: u128 = 0x500;
@@ -205,7 +205,7 @@ fn with_terminals() -> Fx {
         json!([
             {"idx": 0, "designation": "a", "alias": "A", "discipline": "bus", "potential_role": "l_minus",
              "source_output": true, "optional": true, "level": 9, "side": "side2"},
-            {"idx": 1, "designation": "b", "discipline": "pneumatic", "physical": false},
+            {"idx": 1, "designation": "b", "discipline": "pneumatic", "physical": false, "port_role": "working2"},
             {"idx": 2, "designation": "c"},
             {"idx": 3, "designation": "d", "alias": "D"},
         ]),
@@ -290,6 +290,9 @@ fn terminal_function_from_part_template_uses_the_pattern() {
     assert!(out[0].source_output && out[0].optional && out[0].physical);
     assert_eq!(out[1].discipline, Discipline::Pneumatic);
     assert!(!out[1].physical);
+    // WP-S1.20 D3: the port role comes from the FnDef CP as the discipline does.
+    assert_eq!(out[1].port_role, Some(FluidPortRole::Working2));
+    assert_eq!(out[0].port_role, None);
     assert_eq!(out[2].discipline, Discipline::Electrical);
     assert_eq!(out[3].alias.as_deref(), Some("D"));
     // Overrides apply afterwards.

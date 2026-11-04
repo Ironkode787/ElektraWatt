@@ -214,7 +214,7 @@ where
 fn repointed_link(link: &LinkDecl) -> bool {
     matches!(
         link.from,
-        Kind::Device | Kind::Connection | Kind::PotentialDef | Kind::Carrier
+        Kind::Device | Kind::Connection | Kind::PotentialDef | Kind::Carrier | Kind::Function
     )
 }
 
@@ -320,6 +320,7 @@ impl Command for EditPartCopy {
                         Kind::Connection => repoint_kind::<Connection>(tx, link.field, self.copy, id)?,
                         Kind::PotentialDef => repoint_kind::<PotentialDef>(tx, link.field, self.copy, id)?,
                         Kind::Carrier => repoint_kind::<ew_schema::Carrier>(tx, link.field, self.copy, id)?,
+                        Kind::Function => repoint_kind::<ew_schema::Function>(tx, link.field, self.copy, id)?,
                         other => {
                             return Err(CmdError::internal(format!(
                                 "part.edit_copy does not re-point the part-copy link {other}.{}",

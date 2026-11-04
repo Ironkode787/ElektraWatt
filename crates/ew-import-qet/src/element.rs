@@ -350,6 +350,7 @@ pub(crate) fn read_on_stack(
                         side: None,
                         clamp: None,
                         physical: true,
+                        port_role: None,
                         extra,
                     })
                 })

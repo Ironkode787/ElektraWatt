@@ -15,8 +15,8 @@ use std::sync::Arc;
 use ew_ids::{Id, v5};
 use ew_mltext::MlText;
 use ew_schema::{
-    ClampKey, CpData, CpDef, Discipline, FnDef, Function, FunctionKind, PotentialType, Side, TemplateFn,
-    template_entry_of,
+    ClampKey, CpData, CpDef, Discipline, FluidPortRole, FnDef, Function, FunctionKind, PotentialType, Side,
+    TemplateFn, template_entry_of,
 };
 
 use crate::Q;
@@ -51,6 +51,8 @@ pub struct Cp {
     pub clamp: Option<ClampKey>,
     /// A drawn, wireable point.
     pub physical: bool,
+    /// The role of a fluid port, from its FnDef CP (WP-S1.20 D3).
+    pub port_role: Option<FluidPortRole>,
     /// Whether an override of the function changed this CP.
     pub overridden: bool,
 }
@@ -66,8 +68,8 @@ pub struct Cp {
 ///   many pattern entries as the FnDef has CPs, they pair with the FnDef's CPs by position and each function CP
 ///   keeps the FnDef CP's `idx`; otherwise they are taken in `idx` order with their own `idx` and pair with the
 ///   FnDef CP of the same `idx`. Each takes designation, level, side and clamp from the pattern, the potential
-///   role from the pattern else from its FnDef CP, and discipline, alias, source output, optional and physical
-///   from its FnDef CP if there is one, else the defaults of a black-box pattern CP. A template naming no
+///   role from the pattern else from its FnDef CP, and discipline, alias, source output, optional, physical and
+///   port role from its FnDef CP if there is one, else the defaults of a black-box pattern CP. A template naming no
 ///   pattern CP gives the CPs of the function definition.
 /// - Any other normal function or interruption point instantiates the CPs of its function-definition copy;
 ///   a missing copy gives none.
@@ -199,6 +201,7 @@ fn fndef_cps(q: &Q, function: &Function) -> Vec<Cp> {
                     side: c.side.clone(),
                     clamp: c.clamp.clone(),
                     physical: c.physical,
+                    port_role: c.port_role.clone(),
                     overridden: false,
                 })
                 .collect()
@@ -272,6 +275,7 @@ fn template_cps(q: &Q, function: &Function) -> Option<Vec<Cp>> {
             side: c.side.clone(),
             clamp: c.clamp.clone(),
             physical: def_cp.is_none_or(|f| f.physical),
+            port_role: def_cp.and_then(|f| f.port_role.clone()),
             overridden: false,
         })
         .collect();
@@ -302,6 +306,7 @@ fn pattern_cps(q: &Q, function: &Function) -> Option<Vec<Cp>> {
                     side: c.side.clone(),
                     clamp: c.clamp.clone(),
                     physical: true,
+                    port_role: None,
                     overridden: false,
                 })
                 .collect()

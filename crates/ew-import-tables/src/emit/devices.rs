@@ -571,6 +571,7 @@ pub(crate) fn emit_functions(cx: &mut Cx<'_>, table: Option<&Table>) {
                     alias: Some(alias),
                     description: None,
                     unused: false,
+                    closure: None,
                     extra: Default::default(),
                 }),
                 _ => r.fail(format!("column `cp_aliases`: `{item}` names no single CP")),

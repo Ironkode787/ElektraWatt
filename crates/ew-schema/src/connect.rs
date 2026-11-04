@@ -63,9 +63,9 @@ pub struct Connection {
     pub extra: Extra,
 }
 
-/// The kind of a connection (doc 08 §2.3). `Fluid(FluidLine)` (doc 11) and `SingleLine` (1.0) are additive
-/// variants of their work packages; until then a file's value is kept as [`ConnectionKind::Unknown`], which
-/// joins no net (doc 05 §10.3 rule 3).
+/// The kind of a connection (doc 08 §2.3). `SingleLine` (1.0) is an additive variant of its work package; until
+/// then a file's value is kept as [`ConnectionKind::Unknown`], which joins no net (doc 05 §10.3 rule 3). A
+/// [`ConnectionKind::Fluid`] line joins no electrical net either: it joins the fluid partition (doc 11 §5.1).
 #[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 #[serde(remote = "Self")]
@@ -84,6 +84,8 @@ pub enum ConnectionKind {
     Overview,
     /// A link between CPs of two functions of one part that no FnDef declares.
     Internal,
+    /// A fluid line between fluid ports (doc 11 §2.4, WP-S1.20 D2).
+    Fluid(FluidLine),
     /// A kind of a newer format, kept verbatim.
     #[serde(skip)]
     Unknown(Value),
@@ -132,6 +134,39 @@ pub struct BusLine {
     /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
+}
+
+/// A fluid line (doc 11 §2.4): its line kind. The tube specification and the length of 1.0 stay in `extra`.
+#[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
+pub struct FluidLine {
+    /// The line kind; default working.
+    #[serde(default, skip_serializing_if = "is_default")]
+    pub line_kind: LineKind,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// The kind of a fluid line (doc 11 §2.4): pilot and drain lines are drawn dashed.
+#[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "LineKind")]
+pub enum LineKind {
+    /// A working line (the default).
+    #[default]
+    Working,
+    /// A pilot line.
+    Pilot,
+    /// An exhaust line.
+    Exhaust,
+    /// A drain line.
+    Drain,
+    /// A flexible line.
+    Flexible,
+    /// A value of a newer format, kept verbatim.
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// Wire properties (doc 08 §4.1): the values one level of the inheritance chain may set.
@@ -598,6 +633,7 @@ pub enum BondKind {
 open_enum!(
     ConnectionKind,
     BridgeKind,
+    LineKind,
     NumberSpec,
     JunctionStyle,
     JunctionWiring,

@@ -1437,6 +1437,7 @@ mod tests {
                 "plc_station": {"config_project": F, "role": "cpu"}}),
             json!({"$k": "function", "id": A, "device": B, "def": D,
                 "kind": {"ip": {"name": "L-1", "direction": "source", "external": F}},
+                "cp_overrides": [{"idx": 0, "closure": {"kind": "plug", "part": {"copy": D}}}],
                 "source_ref": {"lineage": E, "key": "k"}}),
             json!({"$k": "representation", "id": A, "functions": [B], "page": C, "symbol": D, "pos": [0, 0],
                 "pin_map": [{"symbol_cp": 0, "function": B, "idx": 0}],
@@ -1498,6 +1499,8 @@ mod tests {
         ("function.device", Some(true)),
         ("function.def", Some(true)),
         ("function.kind.ip.external", Some(false)),
+        // WP-S1.20 D2: a closure's part is optional (the plug enters the bill of materials at 1.0).
+        ("function.cp_overrides[].closure.part.copy", Some(false)),
         // WP-S1.21 D11: a bus port's nets are optional (a port pasted where its net is missing is on no net).
         ("function.bus_port.logical_net", Some(false)),
         ("function.bus_port.physical_net", Some(false)),

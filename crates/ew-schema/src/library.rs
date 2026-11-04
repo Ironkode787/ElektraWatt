@@ -733,9 +733,25 @@ pub struct TextSlot {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "Option<IdentS>")]
     pub style: Option<Ident>,
+    /// What the slot prints when its own value is empty (doc 11 §3.1, WP-S1.20 D14); absent means nothing.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fallback: Option<SlotFallback>,
     /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
+}
+
+/// What a text slot prints when its own value is empty (WP-S1.20 D14).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "SlotFallback")]
+pub enum SlotFallback {
+    /// The process tag of the device the valve drives, else the valve's own (doc 11 §3.3).
+    ProcessTag,
+    /// A value of a newer format, kept verbatim.
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// What a text slot prints (doc 07 §2.3).
@@ -865,7 +881,7 @@ pub enum ExtraVariantKind {
 
 /// What a function is, independent of how it looks (doc 03 §7, doc 07 §2.4), library item kind `fndef`.
 ///
-/// Not in v0: `valve_model` (fluid power, doc 03 §15) and `CpDef.port_role`.
+/// Not in v0: `valve_model` (fluid power, doc 03 §15).
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct FnDef {
     /// Provenance.
@@ -957,9 +973,51 @@ pub struct CpDef {
     /// A drawn, wireable point; default true (false for an internal VMPA coil).
     #[serde(default = "r#true", skip_serializing_if = "is_true")]
     pub physical: bool,
+    /// The role of a fluid port (doc 11 §2.2); absent on an electrical CP.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub port_role: Option<FluidPortRole>,
     /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
+}
+
+/// The role of a fluid port (doc 11 §2.2), named by its ISO 5599 port number where it has one.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "FluidPortRole")]
+pub enum FluidPortRole {
+    /// Supply, port 1.
+    Supply1,
+    /// Working port 2.
+    Working2,
+    /// Working port 4.
+    Working4,
+    /// Exhaust port 3.
+    Exhaust3,
+    /// Exhaust port 5.
+    Exhaust5,
+    /// Pilot port 10.
+    Pilot10,
+    /// Pilot port 12.
+    Pilot12,
+    /// Pilot port 14.
+    Pilot14,
+    /// Pilot exhaust port 82.
+    PilotExhaust82,
+    /// Pilot exhaust port 84.
+    PilotExhaust84,
+    /// External pilot supply.
+    ExternalPilot,
+    /// A consumer's port (a cylinder's A or B).
+    Consumer,
+    /// A sensing port.
+    Sensing,
+    /// Any other fluid port.
+    Generic,
+    /// A value of a newer format, kept verbatim.
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// A terminal side (doc 08 §2.1: side 1 is internal and side 2 external unless `Strip.field_side` says
@@ -1511,7 +1569,24 @@ pub struct PartSections {
     /// The bus section: the part's bus interfaces (doc 10 §2.6, WP-S1.21 D15).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub bus: Option<crate::BusSection>,
+    /// The fluid section: the solenoids a valve part declares (doc 11 §2.6, WP-S1.20 D4).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fluid: Option<FluidSection>,
     /// Unknown members (other sections).
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// The fluid section of a part (doc 11 §2.6). Typed: the solenoids of a valve part, the k-th being the k-th
+/// template entry on a FnDef of contact kind `coil` (WP-S1.20 D4); the valve model and the other members of
+/// 1.0 stay in `extra`.
+#[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
+pub struct FluidSection {
+    /// The solenoids the part declares ("14", "12").
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[schemars(with = "Vec<IdentS>")]
+    pub solenoids: Vec<Ident>,
+    /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
 }
@@ -2183,9 +2258,11 @@ open_enum!(
     RepType,
     Discipline,
     SlotKind,
+    SlotFallback,
     AnchorPolicy,
     ExtraVariantKind,
     ContactKind,
+    FluidPortRole,
     Side,
     ClampKey,
     InternalKind,

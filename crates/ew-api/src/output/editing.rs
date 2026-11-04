@@ -171,7 +171,7 @@ fn rep_type_word(t: &RepType) -> String {
     .to_owned()
 }
 
-/// The JSON key of a connection kind (`wire`, `core`, `bridge`, `bus`, `overview`, `internal`).
+/// The JSON key of a connection kind (`wire`, `core`, `bridge`, `bus`, `overview`, `internal`, `fluid`).
 fn connection_kind_word(k: &ConnectionKind) -> String {
     match k {
         ConnectionKind::Wire => "wire",
@@ -180,6 +180,7 @@ fn connection_kind_word(k: &ConnectionKind) -> String {
         ConnectionKind::Bus(_) => "bus",
         ConnectionKind::Overview => "overview",
         ConnectionKind::Internal => "internal",
+        ConnectionKind::Fluid(_) => "fluid",
         ConnectionKind::Unknown(_) => "unknown",
     }
     .to_owned()

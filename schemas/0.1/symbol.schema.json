@@ -1046,6 +1046,16 @@
       "pattern": "^sha256:[0-9a-f]{64}$",
       "type": "string"
     },
+    "SlotFallback": {
+      "description": "What a text slot prints when its own value is empty (WP-S1.20 D14).",
+      "oneOf": [
+        {
+          "const": "process_tag",
+          "description": "The process tag of the device the valve drives, else the valve's own (doc 11 §3.3).",
+          "type": "string"
+        }
+      ]
+    },
     "SlotKind": {
       "description": "What a text slot prints (doc 07 §2.3).",
       "oneOf": [
@@ -1252,6 +1262,17 @@
         "align": {
           "$ref": "#/$defs/Align",
           "description": "Alignment at `pos`."
+        },
+        "fallback": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SlotFallback"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "What the slot prints when its own value is empty (doc 11 §3.1, WP-S1.20 D14); absent means nothing."
         },
         "kind": {
           "$ref": "#/$defs/SlotKind",
