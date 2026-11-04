@@ -1306,6 +1306,73 @@ fn apply_preview_of_golden_b1_prints_the_10_tag_changes() {
     assert!(tree(&project) == before);
 }
 
+/// GP-UT (doc 20 section 2, WP-S2.12 D6): `ew apply` of `variants/gp-ut.ewcmd` on a copy of Golden A removes -102F1
+/// (its device, function, representation, layout placement and the potential +24V-F defined at its terminal 2) and
+/// its four wires W20, W21, W24 and W25 (their six connection records, J3.1 and J4.1 being the junction segments, and
+/// the junctions J3 and J4), and nothing else: every other record line is byte for byte Golden A's.
+#[test]
+fn apply_of_gp_ut_removes_102f1_and_its_four_wires_only() {
+    let t = Tmp::new();
+    let project = golden_copy(&t);
+    let records = |dir: &std::path::Path| -> std::collections::BTreeSet<String> {
+        tree(dir)
+            .into_iter()
+            .filter(|(rel, _)| rel.ends_with(".jsonl"))
+            .flat_map(|(_, bytes)| {
+                String::from_utf8(bytes)
+                    .unwrap()
+                    .lines()
+                    .map(str::to_owned)
+                    .collect::<Vec<_>>()
+            })
+            .collect()
+    };
+    let before = records(&project);
+    let log = std::path::Path::new(VARIANTS).join("gp-ut.ewcmd");
+    let o = ew_isolated(
+        &t.0.join("home"),
+        &["apply".as_ref(), project.as_os_str(), log.as_os_str()],
+    );
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    assert_eq!(stdout(&o), "applied 1 of 1 lines; saved\n");
+    let after = records(&project);
+    assert!(after.is_subset(&before), "no record line is added or changed");
+    let removed: Vec<String> = before
+        .difference(&after)
+        .map(|line| {
+            let v: serde_json::Value = serde_json::from_str(line).unwrap();
+            let name = v["source_ref"]["key"].as_str().unwrap_or("no source");
+            format!("{} {name}", v["$k"].as_str().unwrap())
+        })
+        .collect::<std::collections::BTreeSet<_>>()
+        .into_iter()
+        .collect();
+    assert_eq!(
+        removed,
+        [
+            "connection connections|J3.1",
+            "connection connections|J4.1",
+            "connection connections|W20",
+            "connection connections|W21",
+            "connection connections|W24",
+            "connection connections|W25",
+            "device devices|-102F1",
+            "function functions|-102F1",
+            "junction junctions|J3",
+            "junction junctions|J4",
+            "placement no source",
+            "potential_def potentials|+24V-F",
+            "representation representations|-102F1",
+        ]
+    );
+    // The placement is -102F1's.
+    let placement = before
+        .difference(&after)
+        .find(|l| l.contains("\"$k\":\"placement\""))
+        .unwrap();
+    assert!(placement.contains("\"device\":\"ff321999-9715-51d0-8eb6-9b93acae6158\""), "{placement}");
+}
+
 /// `SOURCE_DATE_EPOCH` (doc 17 section 3.1) sets the creation date and with it the document ID: the PDF differs
 /// from the model-dated one, carries the date, and is the same bytes on one and four threads; an invalid value
 /// exits 2 and writes nothing.

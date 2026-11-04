@@ -1,0 +1,2 @@
+{"$schema":"ew.cmdlog/1","label":"GP-UT (doc 20 section 2, doc 16 section 19.3): Golden A without -102F1 and its wires W20, W21, W24 and W25, the start of the usability tasks T1 and T2"}
+{"cmd":"edit.delete","params":{"targets":[{"kind":"device","id":"ff321999-9715-51d0-8eb6-9b93acae6158"},{"kind":"connection","id":"8f31b054-1708-58c4-b180-661b2fce6646"},{"kind":"connection","id":"ca8251d3-ec7c-56ca-9fc5-4fa267b82f83"}]}}
