@@ -169,7 +169,7 @@ jobs:
         if: github.event_name == 'push'
         env:
           TAG: ${{ github.ref_name }}
-        run: python3 -I ci/release-verify.py draft "$TAG" "$RUNNER_TEMP/release" --repo "$GITHUB_REPOSITORY"
+        run: python3 -I ci/release-verify.py draft "$TAG" "$RUNNER_TEMP/release" --repo "$GITHUB_REPOSITORY" --sha "$GITHUB_SHA"
       - name: the promote of the candidate's draft
         if: github.event_name == 'workflow_dispatch'
         env:

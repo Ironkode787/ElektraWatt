@@ -9,7 +9,7 @@ CI-R-02, CI-R-06, CI-R-08, CI-R-11), run by .github/workflows/release.yml and, f
   python3 -I ci/release-verify.py runs <sha> --repo <o/r>    CI-R-02: green ci.yml and deep-nightly.yml runs
   python3 -I ci/release-verify.py clean                      no build step wrote into the checkout
   python3 -I ci/release-verify.py sums <dir> --version <v>   CI-R-06: writes <dir>/SHA256SUMS
-  python3 -I ci/release-verify.py draft <tag> <dir> --repo <o/r>
+  python3 -I ci/release-verify.py draft <tag> <dir> --repo <o/r> --sha <commit>
   python3 -I ci/release-verify.py promote <candidate> <dir> --repo <o/r> (--dry | --publish)
   python3 -I ci/release-verify.py --test                     # its offline unit test
 
@@ -29,9 +29,10 @@ verifies them; with `--dry` it prints what it would publish and changes nothing;
 release v<X.Y.Z> (published, latest, not a prerelease) with the draft's notes and those files on the candidate's
 commit, which creates the tag there, and verifies the published files again. Verifying a release's files: the files
 are SHA256SUMS and exactly the files it lists, `sha256sum --check --strict SHA256SUMS` passes and `gh attestation
-verify <file> --repo <o/r> --signer-workflow <o/r>/.github/workflows/release.yml` passes for each file (D10), at the
-promote also with `--source-digest <the candidate's commit>`, so the bytes are bound to the release workflow and to
-the commit they were built from (C50-p2#5). Standard library only; the GitHub CLI and sha256sum are the runner's.
+verify <file> --repo <o/r> --signer-workflow <o/r>/.github/workflows/release.yml --source-digest <commit>` passes
+for each file (D10), the commit being the tag's at the draft (`--sha`, the workflow's `$GITHUB_SHA`) and the
+candidate's at the promote, so the bytes are bound to the release workflow and to the commit they were built from
+(C50-p2#5, FT-1302). Standard library only; the GitHub CLI and sha256sum are the runner's.
 """
 import argparse
 import contextlib
@@ -168,8 +169,9 @@ def verify_files(directory, repo, run=run, commit=None):
     return present + [SUMS]
 
 
-def draft(repo_root, tag, directory, repo, run=run):
-    """D13: the draft prerelease `tag` with every file of `directory`, then its files downloaded back and verified."""
+def draft(repo_root, tag, directory, repo, commit, run=run):
+    """D13: the draft prerelease `tag` with every file of `directory`, then its files downloaded back and verified as
+    built from `commit` (FT-1302)."""
     version = candidate_version(tag)
     notes = os.path.join(repo_root, "docs", "release-notes", f"{version}.md")
     files = [os.path.join(directory, n) for n in sorted(os.listdir(directory))]
@@ -177,7 +179,7 @@ def draft(repo_root, tag, directory, repo, run=run):
          "--title", tag, "--notes-file", notes, *files])
     back = tempfile.mkdtemp(prefix="release-back-")
     run(["gh", "release", "download", tag, "--repo", repo, "--dir", back])
-    names = verify_files(back, repo, run)
+    names = verify_files(back, repo, run, commit)
     print(f"release-verify: the draft prerelease {tag} holds {len(names)} verified files; nothing is published")
 
 
@@ -229,6 +231,7 @@ def main(argv):
     p.add_argument("tag")
     p.add_argument("dir")
     p.add_argument("--repo", required=True)
+    p.add_argument("--sha", required=True)
     p = sub.add_parser("promote", help="CI-R-11: publish a verified candidate as v<X.Y.Z>")
     p.add_argument("candidate")
     p.add_argument("dir")
@@ -253,7 +256,7 @@ def main(argv):
             lines = write_sums(args.dir, args.version)
             print("".join(lines), end="")
         elif args.command == "draft":
-            draft(REPO, args.tag, args.dir, args.repo)
+            draft(REPO, args.tag, args.dir, args.repo, args.sha)
         elif args.command == "promote":
             promote(args.candidate, args.dir, args.repo, args.publish)
         else:
@@ -479,13 +482,17 @@ class ReleaseVerifyTest(unittest.TestCase):
         directory = self.release_dir(self.FILES)
         write_sums(directory, "0.1.0")
         fake = self.promote_fake()
-        draft(self.repo, "v0.1.0-rc.1", directory, "o/r", fake)
+        draft(self.repo, "v0.1.0-rc.1", directory, "o/r", "c0ffee", fake)
         create = fake.commands[0]
         self.assertEqual(create[:12], ["gh", "release", "create", "v0.1.0-rc.1", "--repo", "o/r", "--draft",
                                        "--prerelease", "--verify-tag", "--title", "v0.1.0-rc.1", "--notes-file"])
         self.assertEqual(len(create), 13 + len(self.FILES) + 1)
         self.assertEqual(fake.commands[1][:4], ["gh", "release", "download", "v0.1.0-rc.1"])
         self.assertTrue(any(c[:3] == ["sha256sum", "--check", "--strict"] for c in fake.commands))
+        # FT-1302: the draft binds each file to the tag's commit, as the promote does.
+        verifies = [c for c in fake.commands if c[:3] == ["gh", "attestation", "verify"]]
+        self.assertEqual(len(verifies), len(self.FILES) + 1)
+        self.assertTrue(all(c[-2:] == ["--source-digest", "c0ffee"] for c in verifies), verifies)
 
 
 if __name__ == "__main__":
