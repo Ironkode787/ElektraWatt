@@ -443,6 +443,17 @@ impl ShellModel {
                 }
             };
         }
+        // ID-1374: the project open now (it stayed editable while the importer ran) asks again before it closes; the
+        // question replaces the card, and Cancel returns to it.
+        if self.has_project() {
+            let card = self.dialog.clone();
+            if let Some(outcome) = self.guard_unsaved("file.import_qet_apply", p) {
+                if matches!(self.dialog, Some(Dialog::ConfirmDiscard { .. })) {
+                    self.recovery_stash = card;
+                }
+                return outcome;
+            }
+        }
         self.dialog = None;
         let Some(pending) = self.import_pending.take() else {
             return Outcome::Refused {

@@ -344,6 +344,59 @@ fn the_window_imports_as_a_job() {
     assert!(!dir.exists(), "the card writes nothing");
 }
 
+/// ID-1374 (C51-p2#1): the open project stays editable while the importer runs, so Apply asks the unsaved-changes
+/// question again; Cancel keeps the edit and the import card, Save writes the edit and then applies the import.
+#[test]
+fn apply_asks_again_about_changes_made_while_the_importer_ran() {
+    use ew_viewmodel::shell::ConfirmAnswer;
+    let tmp = Tmp::new();
+    let qet = tmp.0.join("example.qet");
+    std::fs::write(&qet, QET).unwrap();
+    let open = tmp.0.join("open.ew");
+    let dir = tmp.0.join("imported.ew");
+    let mut gui = tmp.gui();
+    done(&mut gui, "file.new", json!({ "dir": path(&open) }));
+    done(
+        &mut gui,
+        "file.import_qet",
+        json!({ "file": path(&qet), "dir": path(&dir) }),
+    );
+    // The job runs; the open project takes an edit meanwhile.
+    done(
+        &mut gui,
+        "command.run",
+        json!({"cmd": "page.create", "params": {"number": 2}}),
+    );
+    assert!(gui.is_dirty());
+    assert!(gui.wait_jobs().is_empty());
+    assert!(matches!(gui.dialog(), Some(Dialog::ImportQet { .. })));
+    done(&mut gui, "file.import_qet_apply", json!({}));
+    done(&mut gui, "file.import_qet_apply", json!({ "confirm": true }));
+    assert!(
+        matches!(gui.dialog(), Some(Dialog::ConfirmDiscard { .. })),
+        "{:?}",
+        gui.dialog()
+    );
+    assert_eq!(gui.answer_confirm(ConfirmAnswer::Cancel), Outcome::Done);
+    assert!(matches!(gui.dialog(), Some(Dialog::ImportQet { .. })));
+    assert_eq!(gui.project_name(), Some("open.ew"));
+    assert!(gui.is_dirty(), "the edit is kept");
+    assert_eq!(gui.page_labels(), ["1", "2"]);
+    assert!(!dir.exists());
+    // Escape in the question returns to the card too.
+    done(&mut gui, "file.import_qet_apply", json!({ "confirm": true }));
+    done(&mut gui, "ui.dismiss", json!({}));
+    assert!(matches!(gui.dialog(), Some(Dialog::ImportQet { .. })));
+    // Save, then the import applies.
+    done(&mut gui, "file.import_qet_apply", json!({ "confirm": true }));
+    assert_eq!(gui.answer_confirm(ConfirmAnswer::Save), Outcome::Done);
+    assert_eq!(gui.project_name(), Some("imported.ew"));
+    assert!(dir.join("manifest.json").is_file());
+    gui.shutdown();
+    let (saved, _) = Session::open_read_only(&open, VERSION).unwrap();
+    assert_eq!(saved.page_labels(), ["1", "2"], "the edit was saved");
+}
+
 /// WP-S3.09 IC-4 (NFR-REL-12): an import whose job panics shows T1 in the banner, writes nothing, and the session goes
 /// on: the next import opens its card.
 #[test]

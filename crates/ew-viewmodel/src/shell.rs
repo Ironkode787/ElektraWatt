@@ -648,7 +648,8 @@ pub struct ShellModel {
     notes: crate::notifications::NotificationLog,
     /// The history's marker lines of the open project session (exports, recoveries), by revision.
     markers: Vec<HistoryMarker>,
-    /// The recovery dialog that Discard… replaced with its confirmation: Cancel returns to it.
+    /// The recovery dialog that Discard… replaced with its confirmation, or the import card that the unsaved-changes
+    /// question of its Apply replaced (ID-1374): Cancel returns to it.
     recovery_stash: Option<Dialog>,
     // WP-S2.09 part 2
     /// The message panel's view state: the editing page, the scheme of its table, the quick fixes' origin annotations.
@@ -2196,8 +2197,11 @@ impl ShellModel {
     /// own, [`ShellModel::dismiss_banner`].
     pub(crate) fn act_dismiss(&mut self) -> Outcome {
         // WP-S2.09 §6.6: Escape in the confirmation that Discard… opened returns to the recovery dialog.
-        if matches!(self.dialog, Some(Dialog::ConfirmJournalDiscard))
-            && let Some(stashed) = self.recovery_stash.take()
+        // ID-1374: and Escape in the unsaved-changes question of the import card's Apply returns to the card.
+        if matches!(
+            self.dialog,
+            Some(Dialog::ConfirmJournalDiscard | Dialog::ConfirmDiscard { .. })
+        ) && let Some(stashed) = self.recovery_stash.take()
         {
             self.dialog_gen += 1;
             self.dialog = Some(stashed);
@@ -2307,6 +2311,11 @@ impl ShellModel {
             return Outcome::Done;
         };
         self.dialog = None;
+        // ID-1374: the import card that the question replaced comes back, for Cancel and for the Apply that follows.
+        if let Some(card) = self.recovery_stash.take() {
+            self.dialog_gen += 1;
+            self.dialog = Some(card);
+        }
         let mut params = pending.params.as_object().cloned().unwrap_or_default();
         match answer {
             ConfirmAnswer::Cancel => Outcome::Done,
