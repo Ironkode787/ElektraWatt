@@ -3005,6 +3005,8 @@ gate. Its release checklist drops the LG items.
 | Acceptance | AC-21, AC-23, AC-40, AC-41 |
 | Owner role | Release engineer |
 
+*Status (2026-11-04, cycle 50).* **Specified in cycle 50** ([closed specification](specs/WP-S6.08-release-stabilisation.md); decision log ID-1327): one lane (Opus/high) in six build steps at about 1.8 pw, with a hand-back point after step 4, dispatched when every other M2 package is merged, then the release cycle (the candidates, the checklist, the acceptance run over every G-M2 item, IN-15 and PV-13 by hand, the fix rounds, the go and the promote) at about 4.2 pw, the PERT unchanged; the lane builds FT-1154, FT-1235, FT-96's test and FT-1267, the format guard as a sixth `api-guard` surface based on the release tag, the 0.1.0 notes with FT-969, the release dossier, and the lock (version 0.1.0, `RELEASED_FORMATS`, the frozen copy in `fixtures/format/0.1/`, ID-1325); open for the owner before the first candidate: WP-S6.07's O1 to O4 and private vulnerability reporting switched on; open: ID-476's hold, the timing criteria at the release, the pilot-preview projects.
+
 #### WP-S6.09 Monthly 0.x releases and support from MVP to 1.0
 
 | Field | Value |
@@ -3211,6 +3213,8 @@ S7 produces the content that makes EW correct by default and learnable: the gold
 | Milestone · release | M2 MVP: pilot release · MVP |
 | Acceptance | NFR-DOC-02, NFR-DOC-03 |
 | Owner role | Docs maintainer |
+
+*Status (2026-11-04, cycle 50).* **Specified in cycle 50** ([closed specification](specs/WP-S7.05-user-documentation.md); decision log ID-1327): one lane (Opus/high) in eight build steps with a hand-back point after step 5, about 6.4 pw, the PERT unchanged, dispatched after WP-S7.03 and WP-S3.09; a page per shipped rule ID with its declared `docs` reference and hand-written notes, F1 anchors for every tool, dialog and panel, the EPLAN and QElectroTech concept pages, tutorials 1, 2, 4 and 6 as scripted tests with a page lint (FT-613), the parts how-to (FT-574), the release notes and the upgrade how-to in the book, and the Dutch guide through mdbook-i18n-helpers (FT-282) with a translation status report; open for the owner: the Weblate project (FT-281); open: mdbook-i18n-helpers' version against mdBook 0.5.4, the tutorials' licence.
 
 #### WP-S7.06 Golden 1.0 fixtures: A-R, 3D, thermal, exchange, manufacturing
 
