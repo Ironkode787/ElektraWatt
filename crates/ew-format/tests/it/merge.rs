@@ -1687,3 +1687,164 @@ fn a_file_of_another_class_keeps_ours_when_both_sides_changed_it() {
     );
     assert_eq!((m.bytes, m.conflicts), (b"b".to_vec(), 0));
 }
+
+// ---- cycle 50's FT batch (decision log ID-1312) ------------------------------------------------------------------
+
+/// `merge_file` on bytes: the merged bytes and the conflicts.
+fn merge_bytes(path: &str, sides: [&[u8]; 3], limits: &Limits) -> (Vec<u8>, usize) {
+    let m = merge_file(
+        path,
+        MergeSide::current(sides[0]),
+        MergeSide::current(sides[1]),
+        MergeSide::current(sides[2]),
+        limits,
+        &MIGRATIONS,
+    );
+    (m.bytes, m.conflicts)
+}
+
+#[test]
+fn a_side_that_is_not_utf8_is_a_binary_conflict_that_keeps_ours() {
+    // FT-1234: never held lossily; ours stays as it is and theirs in git's index, as for a binary file.
+    let ours = format!("{}\n", bond(1, json!({"number": 1})));
+    let not_utf8 = b"{\"$k\":\"bond\",\"name\":\"\xff\"}\n".as_slice();
+    let base = format!("{}\n", bond(1, json!({})));
+    let limits = Limits::default();
+    assert_eq!(
+        merge_bytes("waivers.jsonl", [base.as_bytes(), ours.as_bytes(), not_utf8], &limits),
+        (ours.clone().into_bytes(), 1)
+    );
+    assert_eq!(
+        merge_bytes("waivers.jsonl", [base.as_bytes(), not_utf8, ours.as_bytes()], &limits),
+        (not_utf8.to_vec(), 1)
+    );
+    let path = "lib/manufacturers/221fd06e-3263-5cab-bbb9-27aee71c8d79.json";
+    let doc = golden()[path].clone();
+    assert_eq!(merge_bytes(path, [b"{}\n", &doc, not_utf8], &limits), (doc.clone(), 1));
+}
+
+#[test]
+fn a_second_conflict_on_a_target_joins_its_conflict_record() {
+    // FT-1233: one conflict record per target (D14). Ours and theirs hold the record of an earlier conflict on
+    // `number`; both now change `page`: one record holds both, never a second line with the same ID.
+    let earlier = r#"{"$k":"conflict","id":"0190d8a4-6d3e-7c41-8f00-000000000001","kind":"bond","base":{"number":0},"ours":{"number":1},"theirs":{"number":2}}"#;
+    let side = |page: &str| format!("{}\n{earlier}\n", bond(1, json!({"number": 1, "page": page})));
+    let (o, a, b) = (side("p"), side("q"), side("r"));
+    let joined = r#"{"$k":"conflict","id":"0190d8a4-6d3e-7c41-8f00-000000000001","kind":"bond","base":{"number":0,"page":"p"},"ours":{"number":1,"page":"q"},"theirs":{"number":2,"page":"r"}}"#;
+    let (bytes, conflicts) = merge_bytes(
+        "waivers.jsonl",
+        [o.as_bytes(), a.as_bytes(), b.as_bytes()],
+        &Limits::default(),
+    );
+    assert_eq!(
+        (String::from_utf8(bytes).expect("UTF-8"), conflicts),
+        (format!("{}\n{joined}\n", bond(1, json!({"number": 1, "page": "q"}))), 1)
+    );
+    // The sides added different conflict records of one target: one record holds both, theirs' value where both hold
+    // a member.
+    let conflict = |ours: &str, theirs: &str| {
+        format!(
+            r#"{{"$k":"conflict","id":"0190d8a4-6d3e-7c41-8f00-000000000001","kind":"bond","base":{{}},"ours":{ours},"theirs":{theirs}}}"#
+        )
+    };
+    let o = format!("{}\n", bond(1, json!({})));
+    let a = format!("{o}{}\n", conflict(r#"{"number":1}"#, r#"{"number":2}"#));
+    let b = format!("{o}{}\n", conflict(r#"{"page":"q"}"#, r#"{"number":3,"page":"r"}"#));
+    let (bytes, conflicts) = merge_bytes(
+        "waivers.jsonl",
+        [o.as_bytes(), a.as_bytes(), b.as_bytes()],
+        &Limits::default(),
+    );
+    assert_eq!(
+        (String::from_utf8(bytes).expect("UTF-8"), conflicts),
+        (
+            format!(
+                "{o}{}\n",
+                conflict(r#"{"number":1,"page":"q"}"#, r#"{"number":3,"page":"r"}"#)
+            ),
+            1
+        )
+    );
+}
+
+#[test]
+fn a_library_document_conflict_keeps_the_earlier_conflict_below_theirs() {
+    // FT-1233: ours holds the `$conflict` of an earlier merge; both now change the name. `$conflict` holds theirs'
+    // document, and the earlier conflict at the end of its chain.
+    let path = "lib/manufacturers/221fd06e-3263-5cab-bbb9-27aee71c8d79.json";
+    let base: Value = serde_json::from_slice(&golden()[path]).expect("JSON");
+    let named = |name: &str| {
+        let mut v = base.clone();
+        v["name"] = json!(name);
+        v
+    };
+    let earlier = named("Siemens Old");
+    let mut a = named("Siemens Energy");
+    a["$conflict"] = earlier.clone();
+    let b = named("Siemens AG");
+    let doc = |v: &Value| ew_format::pretty(&v.to_string());
+    let (bytes, conflicts) = merge_bytes(
+        path,
+        [doc(&base).as_bytes(), doc(&a).as_bytes(), doc(&b).as_bytes()],
+        &Limits::default(),
+    );
+    assert_eq!(conflicts, 1);
+    let merged: Value = serde_json::from_slice(&bytes).expect("JSON");
+    let mut held = b.clone();
+    held["$conflict"] = earlier;
+    let mut expected = named("Siemens Energy");
+    expected["$conflict"] = held;
+    assert_eq!(merged, expected);
+    assert!(LibDocument::load(merged).is_ok());
+}
+
+#[test]
+fn a_manifest_base_that_does_not_read_makes_a_path_on_one_side_only_a_conflict() {
+    // FT-1245: markers a web merge committed (doc 05 §11.4) cannot tell theirs' delete from ours' add.
+    let o = "{\n<<<<<<< ours\n}\n";
+    let a = manifest(2, &[("a.jsonl", 1), ("b.jsonl", 2)], "");
+    let b = manifest(3, &[("a.jsonl", 3)], "");
+    let (merged, conflicts) = merge_manifests(o, &a, &b);
+    let merged = Manifest::parse(merged.as_bytes(), &Limits::default()).expect("readable");
+    let files: Vec<&str> = merged.files.keys().map(|p| p.as_str()).collect();
+    assert_eq!((files, conflicts), (vec!["a.jsonl", "b.jsonl"], 1));
+    // Both sides list the same paths: nothing is on one side only.
+    let b = manifest(3, &[("a.jsonl", 3), ("b.jsonl", 2)], "");
+    assert_eq!(merge_manifests(o, &a, &b).1, 0);
+}
+
+#[test]
+fn a_merge_that_would_pass_a_file_limit_keeps_ours_as_it_is() {
+    // FT-1246: the record file's size and line count, and the manifest's size and file count.
+    let o = format!("{}\n", bond(1, json!({})));
+    let a = format!("{o}{}\n", bond(2, json!({})));
+    let b = format!("{o}{}\n", bond(3, json!({})));
+    let sides = [o.as_bytes(), a.as_bytes(), b.as_bytes()];
+    let lines = Limits {
+        max_lines_per_file: 2,
+        ..Limits::default()
+    };
+    assert_eq!(merge_bytes("waivers.jsonl", sides, &lines), (a.clone().into_bytes(), 1));
+    let size = Limits {
+        max_file_bytes: a.len() as u64,
+        ..Limits::default()
+    };
+    assert_eq!(merge_bytes("waivers.jsonl", sides, &size), (a.clone().into_bytes(), 1));
+    assert_eq!(merge_bytes("waivers.jsonl", sides, &Limits::default()).1, 0);
+
+    let o = manifest(1, &[("a.jsonl", 1)], "");
+    let a = manifest(2, &[("a.jsonl", 1), ("b.jsonl", 2)], "");
+    let b = manifest(3, &[("a.jsonl", 1), ("c.jsonl", 3)], "");
+    let sides = [o.as_bytes(), a.as_bytes(), b.as_bytes()];
+    let files = Limits {
+        max_files: 2,
+        ..Limits::default()
+    };
+    assert_eq!(merge_bytes(MANIFEST, sides, &files), (a.clone().into_bytes(), 1));
+    let size = Limits {
+        max_manifest_bytes: b.len() as u64,
+        ..Limits::default()
+    };
+    assert_eq!(merge_bytes(MANIFEST, sides, &size), (a.clone().into_bytes(), 1));
+    assert_eq!(merge_bytes(MANIFEST, sides, &Limits::default()).1, 0);
+}

@@ -591,8 +591,9 @@ fn merge_set(
 /// side that cannot be merged is kept verbatim in a conflict record, but for the two cases below.
 ///
 /// **The one loss.** The result never holds a record line longer than `limits.max_line_bytes` or nested deeper than
-/// `limits.max_depth` (a library document: the document), which the loader would refuse (D14: "the file stays
-/// loadable"). A conflict record nests its partial objects one level below its target, `$conflict` holds theirs'
+/// `limits.max_depth` (a library document: the document), nor a file above `limits.max_file_bytes` or
+/// `limits.max_lines_per_file` (a manifest: `limits.max_manifest_bytes` or `limits.max_files`), which the loader would
+/// refuse (D14: "the file stays loadable"). A conflict record nests its partial objects one level below its target, `$conflict` holds theirs'
 /// document one level below ours', and a file-level record holds a side's lines in one line, so a merge can pass a
 /// limit that neither side passes. Then ours is returned as it is with 1 conflict, and theirs survives only in git's
 /// index (stage 3): D14's "nothing of either side is lost" and MD-2 give way for this case (decision log ID-1273).
@@ -600,6 +601,9 @@ fn merge_set(
 /// **The second case.** A library document that neither side reads while ours still parses (a newer `$v`, no `$k`, a
 /// failed step) is kept as ours is with 1 conflict: a file-level record after it would make it a syntax error, so
 /// theirs again survives only in git's stage 3 (decision log ID-1273, ID-1279).
+///
+/// **A side that is not UTF-8.** A record file or library document whose ours or theirs is not UTF-8 is kept as ours
+/// is with 1 conflict, as a binary file: its lines cannot be held verbatim as strings (decision log ID-1312).
 ///
 /// [`MIGRATIONS`]: crate::MIGRATIONS
 pub fn merge_file(
@@ -623,6 +627,13 @@ pub fn merge_file(
         };
     }
     match classify(path) {
+        // A side that is not UTF-8 has no lines to hold verbatim and is never held lossily: the file is a binary
+        // conflict, ours as it is and theirs in git's index (doc 05 §11.2; decision log ID-1312).
+        PathClass::Records(_) | PathClass::LibDocument { .. }
+            if std::str::from_utf8(ours.bytes).is_err() || std::str::from_utf8(theirs.bytes).is_err() =>
+        {
+            ours_as_it_is(ours)
+        }
         PathClass::Records(_) => merge_records_file(path, base, ours, theirs, limits, chain),
         PathClass::LibDocument { .. } => merge_document(path, base, ours, theirs, limits, chain),
         PathClass::Manifest => merge_manifest(base, ours, theirs, limits, chain),
@@ -751,12 +762,16 @@ fn conflict_line(conflict: &Value) -> (LineKey, String) {
     (LineKey::of_value(conflict), text)
 }
 
+/// The text of a side that [`merge_file`] has found to be UTF-8.
+fn utf8(bytes: &[u8]) -> &str {
+    std::str::from_utf8(bytes).unwrap_or_default()
+}
+
 /// The line of the file-level conflict record of `path` holding `side`'s lines verbatim (D14), written through
 /// `ew-schema`'s [`Conflict`](ew_schema::Conflict).
-fn file_conflict(path: &str, side: ConflictSide, bytes: &[u8]) -> (LineKey, String) {
-    let text = String::from_utf8_lossy(bytes);
-    let body = text.strip_suffix('\n').unwrap_or(&text);
-    let lines: Vec<String> = if bytes.is_empty() {
+fn file_conflict(path: &str, side: ConflictSide, text: &str) -> (LineKey, String) {
+    let body = text.strip_suffix('\n').unwrap_or(text);
+    let lines: Vec<String> = if text.is_empty() {
         Vec::new()
     } else {
         body.split('\n').map(str::to_owned).collect()
@@ -780,6 +795,12 @@ fn file_conflict(path: &str, side: ConflictSide, bytes: &[u8]) -> (LineKey, Stri
 /// Whether a line is within the loader's line limits (doc 05 §3.6): its length and its nesting.
 pub(crate) fn within_limits(line: &str, limits: &Limits) -> bool {
     line.len() <= limits.max_line_bytes && !exceeds_depth(line.as_bytes(), limits.max_depth)
+}
+
+/// Whether a record file is within the loader's file limits (doc 05 §3.6): its size and its line count.
+fn within_file_limits(bytes: &[u8], limits: &Limits) -> bool {
+    bytes.len() as u64 <= limits.max_file_bytes
+        && bytes.iter().filter(|b| **b == b'\n').count() <= limits.max_lines_per_file
 }
 
 /// Ours as it is: the merged file would pass a reader limit (decision log ID-1273). Theirs survives in git's index.
@@ -807,7 +828,7 @@ fn with_failed(
 /// Neither side reads: ours as it is, theirs in the file-level conflict record appended to it, unless that record's
 /// line would pass a reader limit.
 fn hold_theirs(path: &str, ours: MergeSide<'_>, theirs: MergeSide<'_>, limits: &Limits) -> FileMerge {
-    let (_, held) = file_conflict(path, ConflictSide::Theirs, theirs.bytes);
+    let (_, held) = file_conflict(path, ConflictSide::Theirs, utf8(theirs.bytes));
     if !within_limits(&held, limits) {
         return ours_as_it_is(ours);
     }
@@ -817,6 +838,9 @@ fn hold_theirs(path: &str, ours: MergeSide<'_>, theirs: MergeSide<'_>, limits: &
     }
     bytes.extend(held.bytes());
     bytes.push(b'\n');
+    if !within_file_limits(&bytes, limits) {
+        return ours_as_it_is(ours);
+    }
     FileMerge { bytes, conflicts: 1 }
 }
 
@@ -847,27 +871,53 @@ fn merge_records_file(
                 .collect();
             let mut lines = Vec::new();
             let mut conflicts = 0;
+            // The record-level conflict records by target, one per target (D14): the sides' record with its line, and
+            // the merge's own; a second conflict on a target joins the first.
+            let mut held: BTreeMap<&str, Held> = BTreeMap::new();
             for key in keys {
                 let (ra, rb) = (a.get(key), b.get(key));
                 let (va, vb) = (ra.map(|r| &r.value), rb.map(|r| &r.value));
-                let merged = match &o {
+                let mut merged = match &o {
                     Some(o) => merge_record(o.get(key).map(|r| &r.value), va, vb),
                     None => no_base(va, vb),
                 };
-                lines.extend(merged.merged.as_ref().map(|m| merged_line(m, [ra, rb])));
-                if let Some(conflict) = &merged.conflict {
+                // Both sides changed their conflict record of one target: one record holds both.
+                match (va, vb, &merged.conflict) {
+                    (Some(x), Some(y), Some(_)) if record_conflict(x) && record_conflict(y) => {
+                        conflicts += 1;
+                        merged = RecordMerge {
+                            merged: Some(combined(x, y)),
+                            conflict: None,
+                        };
+                    }
+                    _ => {}
+                }
+                match merged.merged {
+                    Some(m) if record_conflict(&m) => {
+                        let line = merged_line(&m, [ra, rb]);
+                        held.entry(&key.1).or_default().side = Some((m, line));
+                    }
+                    Some(m) => lines.push(merged_line(&m, [ra, rb])),
+                    None => {}
+                }
+                if let Some(conflict) = merged.conflict {
                     conflicts += 1;
-                    lines.push(conflict_line(conflict));
+                    held.entry(&key.1).or_default().own = Some(conflict);
                 }
             }
+            lines.extend(held.into_values().filter_map(|held| match (held.side, held.own) {
+                (Some((_, line)), None) => Some(line),
+                (Some((side, _)), Some(own)) => Some(conflict_line(&combined(&side, &own))),
+                (None, own) => own.as_ref().map(conflict_line),
+            }));
             (lines, conflicts)
         }
         (Some(a), None) => (
-            with_failed(&a, file_conflict(path, ConflictSide::Theirs, theirs.bytes)),
+            with_failed(&a, file_conflict(path, ConflictSide::Theirs, utf8(theirs.bytes))),
             1,
         ),
         (None, Some(b)) => (
-            with_failed(&b, file_conflict(path, ConflictSide::Ours, ours.bytes)),
+            with_failed(&b, file_conflict(path, ConflictSide::Ours, utf8(ours.bytes))),
             1,
         ),
         (None, None) => return hold_theirs(path, ours, theirs, limits),
@@ -875,9 +925,54 @@ fn merge_records_file(
     if !lines.iter().all(|(_, line)| within_limits(line, limits)) {
         return ours_as_it_is(ours);
     }
-    FileMerge {
-        bytes: jsonl_file(lines),
-        conflicts,
+    let bytes = jsonl_file(lines);
+    if !within_file_limits(&bytes, limits) {
+        return ours_as_it_is(ours);
+    }
+    FileMerge { bytes, conflicts }
+}
+
+/// A target's record-level conflict records in a record file merge: the one the sides hold, merged, with its line; the
+/// one the merge writes.
+#[derive(Default)]
+struct Held {
+    side: Option<(Value, (LineKey, String))>,
+    own: Option<Value>,
+}
+
+/// Whether a record value is a record-level conflict record (a file-level one is of `kind` `file`).
+fn record_conflict(value: &Value) -> bool {
+    value.get("$k").and_then(Value::as_str) == Some("conflict")
+        && value
+            .get("kind")
+            .and_then(Value::as_str)
+            .is_some_and(|kind| kind != "file")
+}
+
+/// One conflict record of a target holding two (D14's one record per target): `later`'s, with each of its `base`,
+/// `ours` and `theirs` partial objects laid over `earlier`'s; a side that is not an object on both (`"deleted"`) is
+/// `later`'s. Where both hold a member, `later`'s value is the one held.
+fn combined(earlier: &Value, later: &Value) -> Value {
+    let mut out = later.clone();
+    for side in ["base", "ours", "theirs"] {
+        if let (Some(Value::Object(e)), Some(Value::Object(l))) = (earlier.get(side), later.get(side)) {
+            let mut members = e.clone();
+            overlay(&mut members, l);
+            out[side] = Value::Object(members);
+        }
+    }
+    out
+}
+
+/// `over`'s members laid over `into`'s, object members member by member.
+fn overlay(into: &mut Map<String, Value>, over: &Map<String, Value>) {
+    for (name, value) in over {
+        match (into.get_mut(name), value) {
+            (Some(Value::Object(i)), Value::Object(o)) => overlay(i, o),
+            _ => {
+                into.insert(name.clone(), value.clone());
+            }
+        }
     }
 }
 
@@ -906,12 +1001,35 @@ fn document_text(value: &Value) -> Vec<u8> {
         .into_bytes()
 }
 
-/// `value` with the top-level member `$conflict` (D14).
-fn with_conflict(mut value: Value, other: Value) -> Vec<u8> {
+/// `value` with the top-level member `$conflict` holding `other` (D14). One conflict per document: a `$conflict` that
+/// `value` holds already is held at the end of the chain of `other`'s own `$conflict` members, unless that chain holds
+/// it; `None` when the chain ends in a value that is not a document.
+fn with_conflict(mut value: Value, mut other: Value) -> Option<Vec<u8>> {
     if let Value::Object(members) = &mut value {
+        if let Some(earlier) = members.remove("$conflict") {
+            if !hold_at_end(&mut other, earlier) {
+                return None;
+            }
+        }
         members.insert("$conflict".to_owned(), other);
     }
-    document_text(&value)
+    Some(document_text(&value))
+}
+
+/// Holds `earlier` at the end of the chain of `doc`'s `$conflict` members, unless the chain holds it; `false` when the
+/// chain ends in a value that is not a document.
+fn hold_at_end(doc: &mut Value, earlier: Value) -> bool {
+    let Value::Object(members) = doc else {
+        return false;
+    };
+    match members.get_mut("$conflict") {
+        Some(held) if *held == earlier => true,
+        Some(held) => hold_at_end(held, earlier),
+        None => {
+            members.insert("$conflict".to_owned(), earlier);
+            true
+        }
+    }
 }
 
 fn merge_document(
@@ -922,7 +1040,7 @@ fn merge_document(
     limits: &Limits,
     chain: &Migrations,
 ) -> FileMerge {
-    let text = |side: MergeSide<'_>| Value::from(String::from_utf8_lossy(side.bytes).into_owned());
+    let text = |side: MergeSide<'_>| Value::from(utf8(side.bytes));
     let (bytes, conflicts) = match (
         read_document(ours, limits, chain),
         read_document(theirs, limits, chain),
@@ -935,7 +1053,7 @@ fn merge_document(
             };
             let doc = merged.merged.unwrap_or(a);
             match merged.conflict {
-                None => (document_text(&doc), 0),
+                None => (Some(document_text(&doc)), 0),
                 Some(_) => (with_conflict(doc, b), 1),
             }
         }
@@ -951,8 +1069,11 @@ fn merge_document(
             };
         }
     };
+    let Some(bytes) = bytes else {
+        return ours_as_it_is(ours);
+    };
     // `$conflict` holds theirs' document one level below the merged one's root.
-    if exceeds_depth(&bytes, limits.max_depth) {
+    if exceeds_depth(&bytes, limits.max_depth) || bytes.len() as u64 > limits.max_file_bytes {
         return ours_as_it_is(ours);
     }
     FileMerge { bytes, conflicts }
@@ -1007,6 +1128,9 @@ fn merge_manifest(
     chain: &Migrations,
 ) -> FileMerge {
     let o = read_manifest(base.bytes, limits, chain);
+    // A base that is not empty but does not read (markers a web merge committed, doc 05 §11.4) cannot tell a path one
+    // side added from one the other deleted: a path on one side only is a conflict.
+    let unread_base = o.is_none() && !base.bytes.is_empty();
     let next = |g: u64| g.saturating_add(1).min(MAX_GENERATION);
     let (merged, conflicts) = match (
         read_manifest(ours.bytes, limits, chain),
@@ -1025,6 +1149,10 @@ fn merge_manifest(
                 .chain(a.files.keys())
                 .chain(b.files.keys())
                 .collect();
+            let one_sided = paths
+                .iter()
+                .filter(|p| unread_base && a.files.contains_key(**p) != b.files.contains_key(**p))
+                .count();
             m.files = paths
                 .into_iter()
                 .filter_map(|p| {
@@ -1051,7 +1179,7 @@ fn merge_manifest(
                 })
                 .collect();
             // Two projects under one path: ours is kept, and the merge is not clean.
-            let conflicts = usize::from(a.project != b.project);
+            let conflicts = usize::from(a.project != b.project) + one_sided;
             (m, conflicts)
         }
         (Some(mut m), None) | (None, Some(mut m)) => {
@@ -1068,8 +1196,9 @@ fn merge_manifest(
     let mut merged = merged;
     merged.merged = true;
     merged.extra.remove(BASE);
-    FileMerge {
-        bytes: merged.to_text().into_bytes(),
-        conflicts,
+    let bytes = merged.to_text().into_bytes();
+    if merged.files.len() > limits.max_files || bytes.len() as u64 > limits.max_manifest_bytes {
+        return ours_as_it_is(ours);
     }
+    FileMerge { bytes, conflicts }
 }
