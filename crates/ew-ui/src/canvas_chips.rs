@@ -423,17 +423,29 @@ pub fn clear_corner(canvas: Rect, corner: Pos2, size: Vec2, obstacles: &[Rect], 
 
 /// FT-1277 (ID-1315 ruling 3): the places of the wire-colour view's code chips in a canvas `bounds`, each code
 /// `(anchor, size)` by doc 16a §7.4's rule, in order: [`place_chip`] by its anchor (its stroke's middle in its lane)
-/// clear of the canvas's outside and of the codes placed before it; where every candidate is taken, the nearest place
-/// stacked inward (`gap` apart); only where there is none, the first candidate, faded (`true`).
-pub fn wire_code_chips(bounds: Rect, codes: &[(Pos2, Vec2)], gap: f32) -> Vec<(Rect, bool)> {
+/// clear of the canvas's outside, of the codes placed before it, of `obstacles` and of the `pointer`'s box; where every
+/// candidate is taken, the nearest place stacked inward (`gap` apart) clear of the same; only where there is none, the
+/// first candidate, faded (`true`). FT-1345 (ID-1358 ruling 5): `obstacles` are what §7.4 names besides: the HUD, the
+/// frame-statistics panel, the other chips and the drawing's printed texts.
+pub fn wire_code_chips(
+    bounds: Rect,
+    codes: &[(Pos2, Vec2)],
+    gap: f32,
+    obstacles: &[Rect],
+    pointer: Option<Pos2>,
+) -> Vec<(Rect, bool)> {
+    let mut taken: Vec<Rect> = obstacles.to_vec();
     let mut obstacles: Vec<vm::Rect> = vm::outside(to_vm(bounds)).to_vec();
-    let mut placed: Vec<Rect> = Vec::new();
+    obstacles.extend(taken.iter().copied().map(to_vm));
+    let pointer = pointer.map(|p| vm::Pos2::new(p.x, p.y));
+    // The stack keeps off the pointer's box as the rule's candidates do.
+    taken.extend(pointer.map(|p| from_vm(vm::pointer_box(p))));
     let mut out = Vec::new();
     for (anchor, size) in codes {
-        let p = place_chip(point(*anchor), vm::Vec2::new(size.x, size.y), &obstacles, None);
+        let p = place_chip(point(*anchor), vm::Vec2::new(size.x, size.y), &obstacles, pointer);
         let stacked = p
             .faded
-            .then(|| stack_inward(from_vm(p.rect), &placed, bounds, gap))
+            .then(|| stack_inward(from_vm(p.rect), &taken, bounds, gap))
             .flatten();
         let faded = p.faded && stacked.is_none();
         let rect = match stacked {
@@ -442,7 +454,7 @@ pub fn wire_code_chips(bounds: Rect, codes: &[(Pos2, Vec2)], gap: f32) -> Vec<(R
             None => from_vm(p.rect),
         };
         obstacles.push(to_vm(rect));
-        placed.push(rect);
+        taken.push(rect);
         out.push((rect, faded));
     }
     out

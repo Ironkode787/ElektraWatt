@@ -186,11 +186,14 @@ fn overlaps(a: (i64, i64), b: (i64, i64), c: (i64, i64), d: (i64, i64)) -> bool 
 /// strokes before it takes a lane none of them holds, so two wires drawn on one path stand side by side and each keeps
 /// its colour or stripes; a segment alone keeps lane 0, on its path. FT-1283: a run of such segments one after the
 /// other (a shared run that turns a corner) takes one lane, the lowest that none of the segments it shares with holds,
-/// so the wire keeps its lane over the run and its corner turns with it ([`WireStroke::in_lanes`]).
+/// so the wire keeps its lane over the run and its corner turns with it ([`WireStroke::in_lanes`]). FT-1344: a segment
+/// that shares only part of its stretch is first split where the shared part begins and ends, so only that part takes
+/// the lane and the rest stays on the path.
 pub fn assign_lanes(strokes: &mut [WireStroke]) {
     for j in 0..strokes.len() {
         let (earlier, rest) = strokes.split_at_mut(j);
         let stroke = &mut rest[0];
+        stroke.polyline = split_at_shared(&stroke.polyline, earlier);
         // Per segment, the lanes the earlier strokes' segments it shares a stretch with hold; `None` when it shares
         // none.
         let used: Vec<Option<Vec<u8>>> = stroke
@@ -227,6 +230,42 @@ pub fn assign_lanes(strokes: &mut [WireStroke]) {
         }
         stroke.lanes = lanes;
     }
+}
+
+/// `polyline` with a vertex added on each segment wherever a segment of `earlier` that shares a stretch with it ends
+/// inside it (FT-1344), in the segment's order: the drawn path is the same, and each piece is either shared along its
+/// whole length or not at all.
+fn split_at_shared(polyline: &[(i64, i64)], earlier: &[WireStroke]) -> Vec<(i64, i64)> {
+    let Some(&first) = polyline.first() else {
+        return Vec::new();
+    };
+    let mut out = vec![first];
+    for w in polyline.windows(2) {
+        let (a, b) = (w[0], w[1]);
+        // Along the segment's longer axis, from `a` towards `b`.
+        let along = |p: (i64, i64)| {
+            let (dx, dy) = (i128::from(b.0) - i128::from(a.0), i128::from(b.1) - i128::from(a.1));
+            if dx.abs() >= dy.abs() {
+                (i128::from(p.0) - i128::from(a.0)) * dx.signum()
+            } else {
+                (i128::from(p.1) - i128::from(a.1)) * dy.signum()
+            }
+        };
+        let length = along(b);
+        let mut cuts: Vec<(i128, (i64, i64))> = earlier
+            .iter()
+            .flat_map(|e| e.polyline.windows(2))
+            .filter(|x| overlaps(a, b, x[0], x[1]))
+            .flat_map(|x| [x[0], x[1]])
+            .map(|p| (along(p), p))
+            .filter(|(t, _)| *t > 0 && *t < length)
+            .collect();
+        cuts.sort_unstable();
+        cuts.dedup_by_key(|(t, _)| *t);
+        out.extend(cuts.into_iter().map(|(_, p)| p));
+        out.push(b);
+    }
+    out
 }
 
 /// The point where the lines through `a`–`b` and `c`–`d` cross; `None` for parallel lines.
@@ -599,14 +638,15 @@ mod tests {
         ];
         assign_lanes(&mut strokes);
         assert_eq!(strokes[0].lanes, [0]);
-        assert_eq!(strokes[1].lanes, [1, 0], "only the shared stretch moves");
+        // FT-1344: split where the WH wire ends, only the shared stretch moves.
+        assert_eq!(strokes[1].lanes, [0, 1, 0], "only the shared stretch moves");
         assert_eq!(strokes[2].lanes, [0], "alone on its path");
         assert!(!strokes[0].laned() && strokes[1].laned());
-        // Every piece of the stripes on the shared segment is in lane 1; both colours are there.
+        // Every piece of the stripes on the shared stretch is in lane 1; both colours are there.
         let shared: Vec<_> = strokes[1]
             .pieces()
             .into_iter()
-            .filter(|p| p.0.1 == p.1.1)
+            .filter(|p| p.0.1 == p.1.1 && p.0.0.max(p.1.0) <= 40_000_000.0)
             .collect();
         assert!(shared.iter().all(|p| p.3 == 1));
         assert!(shared.iter().any(|p| p.2 == 0) && shared.iter().any(|p| p.2 == 1));
@@ -699,6 +739,41 @@ mod tests {
         assert_eq!(two[1].lanes, [1, 1]);
         // An unlaned stroke is drawn as it is.
         assert_eq!(two[0].in_lanes(1_000.0), two[0]);
+    }
+
+    /// FT-1344 (ID-1358 ruling 4): a segment that shares only part of its stretch moves only that part into its lane;
+    /// the rest stays on its path, joined to the shared part by a step across.
+    #[test]
+    fn only_the_shared_part_of_a_segment_takes_its_lane() {
+        let mut strokes = vec![
+            stroke(&["BU"], vec![(40_000_000, 0), (60_000_000, 0)]),
+            stroke(&["RD"], vec![(100_000_000, 0), (0, 0)]),
+        ];
+        assign_lanes(&mut strokes);
+        assert_eq!(strokes[0].lanes, [0]);
+        assert_eq!(
+            strokes[1].polyline,
+            [
+                (100_000_000, 0),
+                (60_000_000, 0),
+                (40_000_000, 0),
+                (0, 0)
+            ],
+            "split where the shared part begins and ends"
+        );
+        assert_eq!(strokes[1].lanes, [0, 1, 0]);
+        let k = (lane_offset_pt(1) * 1_000.0) as i64;
+        assert_eq!(
+            strokes[1].in_lanes(1_000.0).polyline,
+            [
+                (100_000_000, 0),
+                (60_000_000, 0),
+                (60_000_000, k),
+                (40_000_000, k),
+                (40_000_000, 0),
+                (0, 0)
+            ]
+        );
     }
 
     /// C49-p8b#4: the lanes take ends anywhere in `i64`, without an overflow.

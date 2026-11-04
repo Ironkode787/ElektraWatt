@@ -532,10 +532,8 @@ fn paint_highlights(
 }
 
 // WP-S2.08 part 6
-/// Paints the wire-colour view of canvas group `group` (D18): the strokes ([`wire_colour_shapes`]), then each code as a
-/// canvas chip (`canvas.chip` at 94 % with `canvas.chip_text` in `type.caption`, `radius.sm`, `space.1` padding) over
-/// every stroke, placed by doc 16a §7.4's rule from the middle of its stroke in its lane, clear of the codes placed
-/// before it ([`crate::canvas_chips::wire_code_chips`], FT-1277); a code with no free place is drawn faded.
+/// Paints the wire-colour view's strokes of canvas group `group` (D18, [`wire_colour_shapes`]) and returns them for
+/// their codes ([`paint_wire_codes`]).
 fn paint_wire_colours(
     ui: &egui::Ui,
     rect: Rect,
@@ -543,17 +541,77 @@ fn paint_wire_colours(
     t: &DrawTransform,
     shell: &ShellModel,
     group: usize,
-) {
+) -> Vec<ew_viewmodel::wire_colours::WireStroke> {
     let strokes = shell.wire_colour_overlay(group);
+    if !strokes.is_empty() {
+        ui.painter_at(rect)
+            .extend(wire_colour_shapes(&strokes, rect.min, ppp, t));
+    }
+    strokes
+}
+
+/// The frames, in sheet nm, of the printed texts of `list` (FT-1345): each glyph run at any depth (a device's texts,
+/// the title block's), its layout box through the transforms of the groups that hold it. Symbol instances are not
+/// resolved.
+fn printed_texts(list: &ew_viewmodel::ew_api::output::ew_dl::DisplayList) -> Vec<SheetRect> {
+    use ew_viewmodel::ew_api::output::ew_dl::ew_units::Pt2;
+    use ew_viewmodel::ew_api::output::ew_dl::{Item, ItemKind, Transform};
+    fn walk(items: &[Item], map: &dyn Fn(Pt2) -> Pt2, out: &mut Vec<SheetRect>) {
+        for item in items {
+            match &item.kind {
+                ItemKind::Glyphs(run) => {
+                    let [a, b, c, d] = run.layout_quad().map(map);
+                    out.push(SheetRect::from_points(a, b).union(SheetRect::from_points(c, d)));
+                }
+                ItemKind::Group(g) => {
+                    let t = g.transform.unwrap_or(Transform::IDENTITY);
+                    walk(&g.items, &|q| map(t.apply(q)), out);
+                }
+                _ => {}
+            }
+        }
+    }
+    let mut out = Vec::new();
+    walk(&list.items, &|p| p, &mut out);
+    out
+}
+
+/// Paints the wire-colour view's codes of `strokes` (D18): each code as a canvas chip (`canvas.chip` at 94 % with
+/// `canvas.chip_text` in `type.caption`, `radius.sm`, `space.1` padding) over every stroke, placed by doc 16a §7.4's
+/// rule from the middle of its stroke in its lane, clear of the codes placed before it (FT-1277), of the chrome
+/// `obstacles` and the other chips, of the `pointer`'s box and of the page's printed texts (FT-1345,
+/// [`crate::canvas_chips::wire_code_chips`]); a code with no free place is drawn faded. Returns the codes' frames with
+/// whether each is faded, and the printed texts' frames.
+#[allow(clippy::too_many_arguments)]
+fn paint_wire_codes(
+    ui: &egui::Ui,
+    rect: Rect,
+    ppp: f32,
+    t: &DrawTransform,
+    canvas: &CanvasModel,
+    strokes: &[ew_viewmodel::wire_colours::WireStroke],
+    obstacles: &[Rect],
+    pointer: Option<Pos2>,
+) -> (Vec<(Rect, bool)>, Vec<Rect>) {
     if strokes.is_empty() {
-        return;
+        return (Vec::new(), Vec::new());
     }
     let painter = ui.painter_at(rect);
-    painter.extend(wire_colour_shapes(&strokes, rect.min, ppp, t));
     let tokens = crate::theme::current(ui.ctx());
+    let screen = |p: ew_viewmodel::ew_api::output::ew_dl::ew_units::Pt2| {
+        let (x, y) = t.to_screen((p.x.0 as f64, p.y.0 as f64));
+        rect.min + egui::Vec2::new(x as f32, y as f32) / ppp
+    };
+    let texts: Vec<Rect> = printed_texts(&canvas.page().list)
+        .into_iter()
+        .map(|r| Rect::from_two_pos(screen(r.min()), screen(r.max())))
+        .filter(|r| r.intersects(rect))
+        .collect();
+    let mut obstacles = obstacles.to_vec();
+    obstacles.extend(texts.iter().copied());
     let nm_per_pt = f64::from(ppp) / t.px_per_nm();
     let mut codes = Vec::new();
-    for s in &strokes {
+    for s in strokes {
         // W49.2 F9, FT-1283: on its own stroke, in its lane.
         let Some(mid) = s.in_lanes(nm_per_pt).midpoint() else {
             continue;
@@ -574,9 +632,9 @@ fn paint_wire_colours(
             c
         }
     };
-    let placed = crate::canvas_chips::wire_code_chips(rect, &codes, tokens.space_1);
+    let placed = crate::canvas_chips::wire_code_chips(rect, &codes, tokens.space_1, &obstacles, pointer);
     let painted = strokes.iter().filter(|s| s.midpoint().is_some());
-    for ((chip, faded), s) in placed.into_iter().zip(painted) {
+    for (&(chip, faded), s) in placed.iter().zip(painted) {
         painter.rect_filled(
             chip,
             crate::theme::radius(tokens.radius_sm),
@@ -586,6 +644,7 @@ fn paint_wire_colours(
         let galley = painter.layout_no_wrap(s.code.clone(), crate::theme::font(&tokens.type_caption), text);
         painter.galley(chip.center() - galley.size() / 2.0, galley, text);
     }
+    (placed, texts)
 }
 
 /// The wire-colour view's strokes (D18) over a pane whose top-left is `origin`, at `ppp`: per connection a dark casing
@@ -918,6 +977,9 @@ pub struct CanvasHost {
     drawn: [Option<(Rect, f32, DrawTransform)>; GROUPS],
     /// The lock icons painted last per group, points (FT-997; tests).
     locks: [Vec<Rect>; GROUPS],
+    /// The wire-colour view's codes painted last per group, each frame (points) and whether it is faded, and the frames
+    /// of the printed texts they kept clear of (FT-1345; tests).
+    wire_codes: [(Vec<(Rect, bool)>, Vec<Rect>); GROUPS],
 }
 
 impl Default for CanvasHost {
@@ -1012,6 +1074,7 @@ impl CanvasHost {
             chrome: Default::default(),
             drawn: Default::default(),
             locks: Default::default(),
+            wire_codes: Default::default(),
         }
     }
 
@@ -1025,6 +1088,14 @@ impl CanvasHost {
     /// the preview), in paint order.
     pub fn canvas_chips(&self, group: usize) -> &[CanvasChip] {
         self.chip_plans.get(group).map_or(&[], Vec::as_slice)
+    }
+
+    /// The wire-colour view's codes painted on the canvas of `group` in the last frame, each frame (points) and whether
+    /// it is faded, and the frames of the page's printed texts they kept clear of (FT-1345).
+    pub fn wire_codes(&self, group: usize) -> (&[(Rect, bool)], &[Rect]) {
+        self.wire_codes
+            .get(group)
+            .map_or((&[], &[]), |(codes, texts)| (codes.as_slice(), texts.as_slice()))
     }
 
     /// The frames (points) of the chrome drawn over the canvas of `group`: the tool HUD and the zoom control (doc 16a
@@ -1274,7 +1345,7 @@ impl CanvasHost {
             (None, None) => {}
         }
         // WP-S2.08 part 6 (D18): the wire-colour view, under the conflicts and the highlights.
-        paint_wire_colours(ui, rect, ppp, &transform, shell, group);
+        let wire_strokes = paint_wire_colours(ui, rect, ppp, &transform, shell, group);
         // FT-675: the conflict overlay, under the highlights.
         paint_conflicts(ui, rect, ppp, &transform, shell, group);
         // WP-S2.06 part 2: the window's highlights on this page (§7.3).
@@ -1303,6 +1374,18 @@ impl CanvasHost {
             shell,
         );
         crate::canvas_chips::paint(ui, rect, &chips);
+        // FT-1345: the wire codes after the other chips, clear of them and of the chrome.
+        obstacles.extend(chips.iter().map(|c| c.rect));
+        self.wire_codes[group] = paint_wire_codes(
+            ui,
+            rect,
+            ppp,
+            &transform,
+            canvas,
+            &wire_strokes,
+            &obstacles,
+            pointer,
+        );
         if focused {
             let preview = chips
                 .iter()

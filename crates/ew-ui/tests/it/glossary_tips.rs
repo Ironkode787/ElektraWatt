@@ -305,7 +305,7 @@ fn ft1277_the_wire_codes_stand_apart_by_the_chip_rule() {
     let canvas = Rect::from_min_size(Pos2::new(0.0, 0.0), Vec2::new(800.0, 600.0));
     let size = Vec2::new(36.0, 16.0);
     let codes = vec![(Pos2::new(400.0, 300.0), size); 6];
-    let placed = ew_ui::canvas_chips::wire_code_chips(canvas, &codes, 4.0);
+    let placed = ew_ui::canvas_chips::wire_code_chips(canvas, &codes, 4.0, &[], None);
     assert_eq!(placed.len(), 6);
     for (i, (a, faded)) in placed.iter().enumerate() {
         assert!(!faded, "{i} has a free place");
@@ -314,12 +314,48 @@ fn ft1277_the_wire_codes_stand_apart_by_the_chip_rule() {
             assert!(!a.intersects(b.shrink(0.5)), "{i}: {a:?} overlaps {b:?}");
         }
     }
-    let alone = ew_ui::canvas_chips::wire_code_chips(canvas, &codes[..1], 4.0);
+    let alone = ew_ui::canvas_chips::wire_code_chips(canvas, &codes[..1], 4.0, &[], None);
     let a = alone[0].0;
     assert!(
         a.left() > 400.0 && a.bottom() < 300.0,
         "above right of its anchor: {a:?}"
     );
+}
+
+/// FT-1345 (ID-1358 ruling 5; doc 16a §7.4): on folio 102 the wire codes keep clear of the drawing's printed texts
+/// (the device texts, the title block), of the HUD and the zoom control, of the other chips and of each other, at the
+/// floor and at 1920 × 1080; a code stands faded only where it has no free place.
+#[test]
+fn ft1345_the_wire_codes_keep_clear_of_the_printed_texts_and_the_chrome() {
+    let tmp = Tmp::new();
+    let dir = tmp.golden("g.ew");
+    let mut h = harness(&tmp, Scripted::default(), Some(dir));
+    settle(&mut h);
+    dispatch(&mut h, "page.goto", json!({"folio": "102"}));
+    dispatch(&mut h, "view.wire_colours", json!({ "on": true }));
+    for size in [egui::vec2(1280.0, 800.0), egui::vec2(1920.0, 1080.0)] {
+        h.set_size(size);
+        settle(&mut h);
+        settle(&mut h);
+        let host = h.state_mut().canvas_host();
+        let (codes, texts) = host.wire_codes(0);
+        let (codes, texts) = (codes.to_vec(), texts.to_vec());
+        let chrome = host.chrome_obstacles(0).to_vec();
+        let chips: Vec<egui::Rect> = host.canvas_chips(0).iter().map(|c| c.rect).collect();
+        assert!(!codes.is_empty() && !texts.is_empty(), "{size:?}");
+        for (i, (code, faded)) in codes.iter().enumerate() {
+            if *faded {
+                continue;
+            }
+            for other in texts.iter().chain(&chrome).chain(&chips) {
+                assert!(!code.intersects(other.shrink(0.5)), "{size:?}: code {i} {code:?} on {other:?}");
+            }
+            for (other, _) in &codes[..i] {
+                assert!(!code.intersects(other.shrink(0.5)), "{size:?}: code {i} {code:?} on {other:?}");
+            }
+        }
+    }
+    h.state_mut().shell_mut().shutdown();
 }
 
 /// The SHA-256 of `bytes` in hex.
