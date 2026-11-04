@@ -145,6 +145,14 @@ fn pg5_ac28_w29_colour_through_the_editor_and_undo() {
     assert_eq!(options.first().map(String::as_str), Some("BU"), "{options:?}");
     assert!(options.iter().all(|o| o.contains("BU")), "{options:?}");
     press(&mut h, Key::ArrowDown);
+    // FT-1255: the highlighted option alone is selected for AccessKit.
+    let selected: Vec<Option<bool>> = h
+        .get_all_by_role(egui::Role::ListBoxOption)
+        .map(|n| n.accesskit_node().is_selected())
+        .collect();
+    let mut expected = vec![Some(false); selected.len()];
+    expected[0] = Some(true);
+    assert_eq!(selected, expected);
     press(&mut h, Key::Enter);
     assert_eq!(
         row(&h, "connection/derived.colour"),

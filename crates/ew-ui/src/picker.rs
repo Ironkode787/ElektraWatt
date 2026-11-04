@@ -203,6 +203,9 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
                             .frame_when_inactive(false)
                             .min_size(egui::vec2(ui.available_width(), t.size_row));
                         let response = ui.add_enabled(enabled, button);
+                        // FT-1255: egui maps `selected` to `toggled` only; AccessKit's selected state.
+                        ui.ctx()
+                            .accesskit_node_builder(response.id, |n| n.set_selected(i == picker.row));
                         // A disabled row says its reason in its tooltip too (egui opens `.tip` on enabled widgets
                         // only).
                         let response = if enabled {

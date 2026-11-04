@@ -69,6 +69,9 @@ fn row(ui: &mut egui::Ui, t: &Tokens, entry: &PaletteEntry, query: &str, selecte
         _ => entry.label.clone(),
     };
     response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, entry.enabled, &name));
+    // FT-1255: the selected result is selected for AccessKit too.
+    ui.ctx()
+        .accesskit_node_builder(response.id, |n| n.set_selected(selected));
     if !entry.shortcut.is_empty() {
         let shortcut = crate::keys::short_display(&entry.shortcut);
         ui.ctx()

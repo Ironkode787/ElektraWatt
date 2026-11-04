@@ -164,6 +164,44 @@ fn ft1143_a_part_rows_function_is_cut_with_an_ellipsis_and_whole_in_its_tooltip(
     h.state_mut().shell_mut().shutdown();
 }
 
+/// The labels of the nodes AccessKit is told are selected, the command tab on show left out.
+fn selected_labels(h: &Harness<'_, App>) -> Vec<String> {
+    h.root()
+        .children_recursive()
+        .filter(|n| n.accesskit_node().is_selected() == Some(true) && n.accesskit_node().role() != egui::Role::Tab)
+        .map(|n| n.accesskit_node().label().unwrap_or_default())
+        .collect()
+}
+
+/// FT-1255 (ID-1315 ruling 4): the palette and the part picker tell AccessKit which row is selected, the cursor's
+/// row alone.
+#[test]
+fn ft1255_the_palette_and_the_picker_mark_their_selected_row() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, egui::Vec2::new(1280.0, 800.0));
+    dispatch(&mut h, "tools.palette", json!({}));
+    h.state_mut().shell_mut().set_palette_query("save");
+    settle(&mut h);
+    let entries = h.state().shell().palette_entries();
+    let at = h.state().shell().palette().unwrap().selected;
+    assert_eq!(selected_labels(&h), [entries[at].label.clone()]);
+    dispatch(&mut h, "ui.dismiss", json!({}));
+    settle(&mut h);
+    dispatch(&mut h, "page.goto", json!({"folio": "101"}));
+    dispatch(&mut h, "tool.place_part", json!({}));
+    dispatch(&mut h, "picker.filter", json!({"text": "switch"}));
+    settle(&mut h);
+    settle(&mut h);
+    let first = selected_labels(&h);
+    assert_eq!(first.len(), 1, "{first:?}");
+    dispatch(&mut h, "picker.row", json!({"to": 1}));
+    settle(&mut h);
+    let second = selected_labels(&h);
+    assert_eq!(second.len(), 1, "{second:?}");
+    assert_ne!(first, second, "the cursor's row moved");
+    h.state_mut().shell_mut().shutdown();
+}
+
 #[test]
 fn the_command_palette_grows_with_the_window() {
     let (floor, typical) = at_both_sizes(

@@ -1143,6 +1143,8 @@ impl PropertiesPane {
                                                 &name,
                                             )
                                         });
+                                        // FT-1255: egui maps `selected` to `toggled` only; AccessKit's selected state.
+                                        ui.ctx().accesskit_node_builder(response.id, |n| n.set_selected(selected));
                                         // The active row has the hover overlay (§6.22: as menus, never the accent).
                                         if selected || response.hovered() {
                                             ui.painter().rect_filled(
