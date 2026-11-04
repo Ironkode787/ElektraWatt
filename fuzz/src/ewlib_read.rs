@@ -8,11 +8,13 @@
 //! The input is a set of files with a mode byte ([`decode`]): `library.json`, `library.lock` and records files named by
 //! [`path_of`]. Mode bit 0 replaces the manifest by one computed from the files (a fixed identity, generation 1, every
 //! file's SHA-256), so the shards' lines get past the hash check. Each input is written to a fresh directory below the
-//! system's temporary folder (the reader reads files only) and removed afterwards. Properties, whatever the bytes:
+//! system's temporary folder (the reader reads files only) and removed afterwards; the registry's index lives in one
+//! cache folder per process, so the compiled-in libraries are indexed once and the input's library, at a new path each
+//! time, is indexed whole. One input runs at a time. Properties, whatever the bytes:
 //!
 //! - nothing panics: [`LibManifest::parse`], [`LockRecord::parse`], `Registry::open` over the directory as a company
-//!   library with a fresh index, every document of every kind it then hands out, and the writer's lock taken over the
-//!   input's `library.lock`;
+//!   library, every document of every kind it then hands out, and the writer's lock taken over the input's
+//!   `library.lock`;
 //! - a manifest that parses writes back to a text that parses to the same manifest, and a lock record likewise;
 //! - every document the registry hands out has a JSON form that reads again;
 //! - a `library.lock` of the input is another session's: taking the lock is refused (held or stale) and leaves the
@@ -21,6 +23,7 @@
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Mutex, OnceLock};
 
 use ew_api::library::lock::{self, Identity, LockRecord};
 use ew_api::library::{LibManifest, LibraryTiers, LockPolicy, MANIFEST, Registry};
@@ -150,6 +153,16 @@ fn fresh() -> PathBuf {
     dir
 }
 
+/// The process's data and cache folders of the registry, made empty once.
+fn shared() -> &'static PathBuf {
+    static SHARED: OnceLock<PathBuf> = OnceLock::new();
+    SHARED.get_or_init(|| {
+        let dir = std::env::temp_dir().join(format!("ew-fuzz-ewlib-{}-shared", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        dir
+    })
+}
+
 fn write(dir: &Path, rel: &str, bytes: &[u8]) {
     let path = rel.split('/').fold(dir.to_path_buf(), |p, s| p.join(s));
     std::fs::create_dir_all(path.parent().expect("a parent")).expect("a folder of the input");
@@ -162,6 +175,8 @@ fn write(dir: &Path, rel: &str, bytes: &[u8]) {
 ///
 /// When a property of the module documentation fails.
 pub fn check(input: &[u8]) -> Outcome {
+    static ONE: Mutex<()> = Mutex::new(());
+    let _one = ONE.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
     let case = decode(input);
     let manifest = if case.mode & MODE_COMPUTED_MANIFEST != 0 {
         Some(computed(&case.files))
@@ -198,8 +213,8 @@ pub fn check(input: &[u8]) -> Outcome {
         write(&dir, lock::LOCK, l);
     }
     let tiers = LibraryTiers::under(
-        &root.join("data"),
-        &root.join("cache"),
+        &shared().join("data"),
+        &shared().join("cache"),
         Vec::new(),
         vec![dir.clone()],
     );
