@@ -1856,7 +1856,10 @@ fn a_second_conflict_on_a_target_joins_its_conflict_record() {
         [o.as_bytes(), a.as_bytes(), b.as_bytes()],
         &Limits::default(),
     );
-    assert_eq!((String::from_utf8(bytes).expect("UTF-8"), conflicts), (a.clone(), 1));
+    assert_eq!(
+        (String::from_utf8(bytes).expect("UTF-8"), conflicts),
+        (a.clone(), 1)
+    );
 }
 
 /// C50-p4#1: ours holds an unresolved conflict on `number` (1 against 2); a later merge brings theirs' `number` to 3.

@@ -106,7 +106,8 @@ fn merge_resolve_routes_every_record_to_the_file_the_writer_writes_it_in() {
         .filter(|r| !matches!(r, Record::MacroInstance(_)))
         .cloned()
         .collect();
-    let model = Model::from_records(project.clone(), in_model, loaded.lib.clone()).expect("the model is valid");
+    let model =
+        Model::from_records(project.clone(), in_model, loaded.lib.clone()).expect("the model is valid");
     // The writer reads the project record among the others; the model holds it apart.
     records.push(Record::Project(project));
     let anchors = RecordAnchors::new(&records);

@@ -915,7 +915,11 @@ fn merge_records_file(
                 match merged.merged {
                     Some(m) if record_conflict(&m) => {
                         let line = merged_line(&m, [ra, rb]);
-                        let kind = m.get("kind").and_then(Value::as_str).unwrap_or_default().to_owned();
+                        let kind = m
+                            .get("kind")
+                            .and_then(Value::as_str)
+                            .unwrap_or_default()
+                            .to_owned();
                         held.entry((kind, &key.1)).or_default().side = Some((m, line));
                     }
                     Some(m) => lines.push(merged_line(&m, [ra, rb])),
@@ -931,7 +935,9 @@ fn merge_records_file(
             // (D14; C50-p4#1).
             lines.extend(held.into_values().filter_map(|held| match (held.side, held.own) {
                 (Some((_, line)), None) => Some(line),
-                (Some((side, line)), Some(own)) => Some(combined(&side, &own).map_or(line, |c| conflict_line(&c))),
+                (Some((side, line)), Some(own)) => {
+                    Some(combined(&side, &own).map_or(line, |c| conflict_line(&c)))
+                }
                 (None, own) => own.as_ref().map(conflict_line),
             }));
             (lines, conflicts)
