@@ -228,6 +228,35 @@ fn the_fluid_refusals_name_junction_and_connection_ends_in_words() {
     );
 }
 
+/// C51-p5#7: T3's walk over a ring of three junctions ends: a hydraulic port drawn to the ring, which a pneumatic
+/// port feeds, is refused in words; a pneumatic one is drawn.
+#[test]
+fn t3_walks_a_ring_of_three_junctions_to_its_end() {
+    let j: Vec<Id<ew_schema::Junction>> = (0..3).map(|n| id(0x7710 + n)).collect();
+    let l: Vec<Id<Connection>> = (0..4).map(|n| id(0x7720 + n)).collect();
+    let line = |id, a, b| {
+        let mut c = connection(id, Some(PAGE_102), a, b);
+        c.kind = fluid();
+        Record::Connection(c)
+    };
+    let mut e = engine(fluid_model_with(vec![
+        line(l[0], ew_schema::Endpoint::Cp(FN_Q1, 0), at_junction(j[0])),
+        line(l[1], at_junction(j[0]), at_junction(j[1])),
+        line(l[2], at_junction(j[1]), at_junction(j[2])),
+        line(l[3], at_junction(j[2]), at_junction(j[0])),
+        Record::Junction(junction(j[0], PAGE_102, vec![l[0], l[1], l[3]])),
+        Record::Junction(junction(j[1], PAGE_102, vec![l[1], l[2]])),
+        Record::Junction(junction(j[2], PAGE_102, vec![l[2], l[3]])),
+    ]));
+    let ring = EndpointParam::Junction { junction: j[1] };
+    assert_eq!(
+        refusal(&mut e, &draw(cp_param(FN_Q3, 1), ring.clone(), fluid())),
+        "a fluid line does not join a hydraulic port to a pneumatic or vacuum port: -?Q73:2, -?Q71:1"
+    );
+    e.execute(&draw(cp_param(FN_Q2, 1), ring, fluid()))
+        .expect("a pneumatic line to the ring");
+}
+
 // ---------------------------------------------------------------------------------------------------------
 // valve.set_occupancy (D9)
 

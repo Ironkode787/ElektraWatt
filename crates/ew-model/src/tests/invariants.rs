@@ -1434,3 +1434,34 @@ fn inv024_media_across_three_junctions_in_series() {
     rejected_by(edit(&m, &chain(FH)), crate::FLUID_LINES);
     assert!(edit(&m, &chain(FQ2)).is_ok());
 }
+
+/// C51-p5#7: the walk over a ring of three junctions ends: hydraulic to pneumatic across the ring is rejected;
+/// pneumatic to pneumatic across it is accepted.
+#[test]
+fn inv024_media_across_a_ring_of_three_junctions() {
+    let m = with_fluid_ports();
+    let j: Vec<Id<Junction>> = (0..3).map(|n| nid::<Junction>(0x24_420 + n)).collect();
+    let ring = |far: u128| {
+        let lines = [
+            fluid(0x24_320, cp(nid(FQ1), 0), at_junction(j[0])),
+            fluid(0x24_321, at_junction(j[0]), at_junction(j[1])),
+            fluid(0x24_322, at_junction(j[1]), at_junction(j[2])),
+            fluid(0x24_323, at_junction(j[2]), at_junction(j[0])),
+            fluid(0x24_324, at_junction(j[1]), cp(nid(far), 0)),
+        ];
+        let sequences = [
+            vec![lines[0].id, lines[1].id, lines[3].id],
+            vec![lines[1].id, lines[2].id, lines[4].id],
+            vec![lines[2].id, lines[3].id],
+        ];
+        let mut ops: Vec<_> = sequences
+            .into_iter()
+            .enumerate()
+            .map(|(n, seq)| ins(super::fixture::junction(j[n], PAGE_102, seq)))
+            .collect();
+        ops.extend(lines.into_iter().map(ins));
+        ops
+    };
+    rejected_by(edit(&m, &ring(FH)), crate::FLUID_LINES);
+    assert!(edit(&m, &ring(FQ2)).is_ok());
+}

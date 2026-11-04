@@ -307,7 +307,11 @@ impl ShellModel {
         let failed_text = strings::text(key!("wizard-error-draft-write")).to_owned();
         let written = path
             .parent()
-            .map_or(Ok(()), std::fs::create_dir_all)
+            .map_or(Ok(()), |dir| {
+                std::fs::create_dir_all(dir)?;
+                crate::settings::user_only_dir(dir);
+                Ok(())
+            })
             .and_then(|()| crate::settings::write_user_only(&path, text.as_bytes()));
         if written.is_err()
             && let Some(w) = &mut self.wizard

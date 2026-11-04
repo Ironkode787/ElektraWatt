@@ -17,8 +17,8 @@ use std::cell::Cell;
 use std::io::Write as _;
 use std::panic::PanicHookInfo;
 use std::path::{Path, PathBuf};
+use std::sync::OnceLock;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
-use std::sync::{Mutex, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use ew_ui::ew_viewmodel::settings::{user_only_dir, user_only_file, user_only_options};
@@ -44,13 +44,15 @@ pub(crate) const CAPPED_LINE: &str = "further panics not logged";
 static ENTRIES: AtomicUsize = AtomicUsize::new(0);
 static CAPPED: AtomicBool = AtomicBool::new(false);
 
-/// The hook's own slot past the cap: the newest panic's entry, which [`ended`] writes before the end line, so the
-/// panic that ends a session in a crash loop is still logged and its time is the one offered (FT-1311).
-static NEWEST: Mutex<Option<String>> = Mutex::new(None);
-
 thread_local! {
     /// Whether this thread is inside the hook: a panic there is not logged again.
     static IN_HOOK: Cell<bool> = const { Cell::new(false) };
+
+    /// The hook's own slot past the cap: this thread's newest panic's entry, which [`ended`] writes before the end
+    /// line, so the panic that ends a session in a crash loop is still logged and its time is the one offered
+    /// (FT-1311). It is kept per thread (C51-p5#6): `ended` runs on the thread whose panic ended the session, so a
+    /// job thread's later panic never takes its place.
+    static NEWEST: Cell<Option<String>> = const { Cell::new(None) };
 }
 
 /// The wall clock: the process start (the log's name) and the time of a panic (L3), from the clock the lock and the
@@ -144,7 +146,7 @@ fn record(version: &str, info: &PanicHookInfo<'_>) {
             append(path, &format!("{CAPPED_LINE}\n"));
         }
         let text = entry_of(version, info);
-        *NEWEST.lock().unwrap_or_else(std::sync::PoisonError::into_inner) = Some(text);
+        NEWEST.with(|slot| slot.set(Some(text)));
     } else if let Some(path) = LOG.get() {
         ENTRIES.fetch_add(1, Ordering::Relaxed);
         append(path, &entry_of(version, info));
@@ -191,11 +193,7 @@ fn append(path: &Path, text: &str) {
 /// entry, kept in [`NEWEST`], is written first.
 pub(crate) fn ended() {
     if let Some(path) = LOG.get().filter(|p| p.is_file()) {
-        let newest = NEWEST
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
-            .take();
-        if let Some(text) = newest {
+        if let Some(text) = NEWEST.with(Cell::take) {
             append(path, &text);
         }
         append(path, &format!("{ENDED_LINE}\n"));
@@ -251,6 +249,27 @@ mod tests {
         let own = last.lines().find_map(|l| l.strip_prefix("Time: "));
         assert!(own.is_some());
         assert_eq!(offered, own);
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    /// C51-p5#6: past the cap, a job thread's panic between the panic that ends the session and `ended()` never
+    /// becomes the final entry: the slot is kept per thread, and `ended()` runs on the thread that panicked.
+    #[test]
+    fn a_job_thread_s_later_panic_never_takes_the_final_entry() {
+        let dir = fresh("ew-crash-cap-thread");
+        for n in 0..MAX_ENTRIES {
+            assert!(std::panic::catch_unwind(move || panic!("caught {n}")).is_err());
+        }
+        assert!(std::panic::catch_unwind(|| panic!("the session's end")).is_err());
+        let job = std::thread::spawn(|| panic!("a job's panic"));
+        assert!(job.join().is_err());
+        ended();
+        let text = log_text();
+        let (_, last) = text.split_once(&format!("{CAPPED_LINE}\n")).unwrap();
+        assert_eq!(last.matches(" crash log\n").count(), 1);
+        assert!(last.ends_with(&format!("\n\n{ENDED_LINE}\n")));
+        let message = last.lines().find_map(|l| l.strip_prefix("Message: "));
+        assert_eq!(message, Some("the session's end"));
         let _ = std::fs::remove_dir_all(dir);
     }
 

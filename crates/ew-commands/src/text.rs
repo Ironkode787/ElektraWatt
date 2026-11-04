@@ -1173,6 +1173,18 @@ mod tests {
         assert_eq!(arity("no arguments"), 0);
     }
 
+    /// C51-p5#7: a hand-built text (the macro refuses both at compile time) writes `?` for a missing argument and for
+    /// a key that the table does not hold.
+    #[test]
+    fn a_hand_built_text_writes_a_question_mark_for_what_is_missing() {
+        let short = Text::checked_by_macro("refusal-connection-start-on-other-page", vec!["page 2".into()]);
+        assert_eq!(
+            short.to_string(),
+            "the wire's start is drawn on page 2, not on ?; start the wire on ?"
+        );
+        assert_eq!(Text::checked_by_macro("no-such-key", vec![]).to_string(), "?");
+    }
+
     /// The `.rs` files under `dir`, recursively.
     fn sources(dir: &std::path::Path, out: &mut Vec<std::path::PathBuf>) {
         for entry in std::fs::read_dir(dir).unwrap() {

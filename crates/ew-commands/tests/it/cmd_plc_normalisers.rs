@@ -470,6 +470,50 @@ fn n_fl_1_gives_a_new_coil_a_fresh_id_when_its_own_is_the_kept_valve_function() 
     assert_eq!(binding(&e, 2), Some(Endpoint::Cp(old_coil, 0)));
 }
 
+/// C51-p5#7 (FT-1313): when the new coil's own ID and the eight derived from it are all taken, the part change is
+/// refused in words, with no panic and no change.
+#[test]
+fn n_fl_1_refuses_in_words_when_no_derived_function_id_is_free() {
+    const GENERIC: Id<Part> = id(0x79);
+    const VALVE_COIL: ew_ids::Uuid = ew_ids::Uuid::from_u128(0x9304);
+    let documents = || {
+        let mut generic = solenoid_valve_part(GENERIC, "EW-GEN-VLV-1", &["14"]);
+        generic.item.function_template.reverse();
+        generic.item.function_template[0].fndef = lib_ref_to(LIBRARY_VALVE, VALVE_COIL);
+        let mut valve_coil = solenoid_fndef();
+        let other = fndef_copy_for(LIBRARY_VALVE, VALVE_COIL, &["14"]);
+        (valve_coil.id, valve_coil.item_id) = (other.id, other.item_id);
+        vec![LibDocument::Part(generic), LibDocument::Fndef(valve_coil)]
+    };
+    let mut probe = engine(model_with_documents(documents(), vec![]));
+    make_module(&mut probe, MODULE_H1);
+    let (_, v, _) = add_valve(&mut probe, 2, GENERIC);
+    // `v5(valve, 1)` is the kept valve function; the eight IDs derived from it are held by functions of another device.
+    let mut taken = Vec::new();
+    let mut id: Id<Function> = ew_ids::v5::template_function_id(v, 1);
+    for _ in 0..8 {
+        id = ew_ids::v5::template_function_id(id.cast::<Device>(), 1);
+        taken.push(Record::Function(function(
+            id,
+            DEV_101F1,
+            FNDEF_MCB,
+            ew_schema::FnRole::Aux,
+        )));
+    }
+    let mut e = engine(model_with_documents(documents(), taken));
+    make_module(&mut e, MODULE_H1);
+    let (_, again, _) = add_valve(&mut e, 2, GENERIC);
+    assert_eq!(again, v);
+    let before = functions_of(&e, v);
+    let err = e.execute(&replace_part(v, GENERIC, VALVE)).unwrap_err();
+    assert_eq!(
+        err.to_string(),
+        "valve_functions: -102F2-Q2 cannot take the functions of part 571334: no free function ID is left; replace \
+         the device"
+    );
+    assert_eq!(functions_of(&e, v), before);
+}
+
 /// FT-1316 (WP-S1.20 FL-8, T24 whole): emptying a valve's position removes it with its two fluid lines and unbinds
 /// the channel of its coil, each said in words; one undo step brings the valve, its lines and the binding back.
 #[test]

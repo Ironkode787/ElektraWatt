@@ -32,8 +32,10 @@ stores. Changing the list of network flows requires an architecture decision rec
 | The project (`.ew` directory: records, `assets/`, generated outputs) | Your work | Where you save it | Yours to keep | Delete the directory. Logos and other opaque files sit in `assets/` under their content hash |
 
 On Linux the configuration directory, the state directory and its `journal/` and `crashes/` are open to your user
-only (mode 0700), and the crash logs and journal files in them are readable by you only (0600); on Windows they
-inherit the per-user access rights of `%APPDATA%` and `%LOCALAPPDATA%`.
+only (mode 0700), and the files the application creates in them are readable by you only (0600): the settings, the
+keymap (`keymap.toml`), the workspace layouts, the first-run wizard's draft (`wizard-draft.json`), the copies set
+aside of a file that could not be read (`settings.toml.bad-<n>`, `keymap.toml.bad-<n>`), the crash logs and the
+journal files. On Windows they inherit the per-user access rights of `%APPDATA%` and `%LOCALAPPDATA%`.
 
 Project files are plain text and contain what you enter: company, project and drawing identifiers, the names you
 type, the logo you pick. Check a project before you share it (for example in an issue or a repository); the

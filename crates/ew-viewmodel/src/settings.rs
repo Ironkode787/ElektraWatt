@@ -729,17 +729,12 @@ fn copy_aside(path: &Path) -> Option<String> {
 }
 
 /// Copies the bad file `path` to `<file_name>.bad-<n>` beside it (the lowest free `n`); the name, or `None` when the
-/// copy failed.
+/// copy failed. The copy is written user-only through [`write_aside`], whatever the source's mode (FT-1309).
 pub(crate) fn copy_aside_as(path: &Path, file_name: &str) -> Option<String> {
     let dir = path.parent()?;
-    for n in 1..=999 {
-        let name = format!("{file_name}.bad-{n}");
-        let target: PathBuf = dir.join(&name);
-        if !target.exists() {
-            return std::fs::copy(path, &target).ok().map(|_| name);
-        }
-    }
-    None
+    let bytes = std::fs::read(path).ok()?;
+    let free = (1..=BAD_COPIES).find(|n| !dir.join(format!("{file_name}.bad-{n}")).exists())?;
+    write_aside(dir, file_name, free, &bytes)
 }
 
 /// As [`copy_aside_as`], but a copy with the same bytes that is already there is named instead of copying again: a

@@ -390,6 +390,16 @@ fn open_log_folder_asks_for_the_folder_and_names_it_when_it_fails() {
 #[test]
 fn the_files_of_the_configuration_directory_are_user_only() {
     let tmp = Tmp::new("config-files-user-only");
+    // A bad settings file that the user made readable by all: its copy aside is user-only all the same (FT-1309).
+    let dir = tmp.0.join("config");
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(dir.join("settings.toml"), "not = [toml").unwrap();
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt as _;
+        let open = std::fs::Permissions::from_mode(0o644);
+        std::fs::set_permissions(dir.join("settings.toml"), open).unwrap();
+    }
     let mut shell = ShellModel::new(Mode::Headless, config(&tmp));
     done(&mut shell, "help.shortcuts", json!({}));
     done(
@@ -405,7 +415,6 @@ fn the_files_of_the_configuration_directory_are_user_only() {
         "wizard.set",
         json!({"field": "text_styles", "value": "readable"}),
     );
-    let dir = tmp.0.join("config");
     fn files(d: &Path, base: &Path, out: &mut Vec<(String, PathBuf)>) {
         for e in std::fs::read_dir(d).unwrap().flatten() {
             let p = e.path();
@@ -426,6 +435,7 @@ fn the_files_of_the_configuration_directory_are_user_only() {
         [
             "keymap.toml",
             "settings.toml",
+            "settings.toml.bad-1",
             "wizard-draft.json",
             "workspaces/Mine.json"
         ]
