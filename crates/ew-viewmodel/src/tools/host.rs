@@ -104,6 +104,9 @@ pub(crate) struct ToolHost {
     /// What the canvas node's polite live region says instead of the cursor until the cursor moves again: a tool's
     /// state change or a selection change.
     pub announcement: Option<String>,
+    /// The revision, the language generation and the text of an announcement that holds the selection's words
+    /// (FT-1251): another revision or language words it again while the announcement is still that text.
+    pub selection_announced: Option<(Option<u64>, u64, String)>,
     /// The (group, tab ID, page) the active tool works on: a change escapes a busy tool and clears its overlay.
     pub context: Option<(usize, u32, crate::canvas::PageId)>,
     /// The connection point the last `cp.*` step put the cursor on: (session, revision, folio, index).
@@ -234,6 +237,7 @@ impl ToolHost {
             selection: Selection::default(),
             link_preview: None,
             announcement: None,
+            selection_announced: None,
             context: None,
             last_cp: None,
             picker: None,

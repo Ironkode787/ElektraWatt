@@ -188,3 +188,154 @@ fn ax1_a_two_line_text_with_a_quote_stays_on_one_quoted_line() {
     );
     shell.shutdown();
 }
+
+/// Switches the window's language (View ▸ Language).
+fn language(shell: &mut ShellModel, tag: &str) {
+    done(shell, "view.language", json!({ "value": tag }));
+}
+
+/// FT-1248 (ID-1315): a junction, an interruption point's representation and a structure box are described in words
+/// of their own, not as "1 selected", in en-GB and nl-NL. The values are the page tables' and the Interruption points
+/// navigator's.
+#[test]
+fn ft1248_a_junction_an_interruption_point_and_a_structure_box_say_what_they_are() {
+    let tmp = Tmp::new("ft1248");
+    let mut shell = tmp.shell_in(Mode::Headless, true, "102");
+    let t = tables(&shell);
+    let junction = t.junctions.first().expect("a junction on 102");
+    let wires = junction.sequence.len();
+    assert!(wires > 1);
+    // An interruption point drawn on 102: its name is its group's label in the navigator.
+    let (session, _) = Session::open_read_only(&tmp.golden_copy(), "0.0.0-test").unwrap();
+    let ips = session.navigator_table(NavKind::Ips);
+    let (name, rep) = ips
+        .nodes
+        .iter()
+        .find_map(|n| {
+            let d = n.drawables.iter().find(|d| d.folio == t.folio)?;
+            let parent = &ips.nodes[n.parent? as usize];
+            (parent.role == NavRole::Name).then(|| (parent.label.clone(), d.record))
+        })
+        .expect("an interruption point on 102");
+    let page = t.page.to_string();
+    done(
+        &mut shell,
+        "command.run",
+        json!({"cmd": "box.structure", "params": {"page": page,
+            "outline": [[10_000_000, 10_000_000], [60_000_000, 10_000_000], [60_000_000, 40_000_000]],
+            "style": "dotted", "caption": "Feed", "assigns": {}}}),
+    );
+    let structure_box = tables(&shell)
+        .structure_boxes
+        .iter()
+        .find(|b| b.caption == "Feed")
+        .map(|b| b.id)
+        .expect("the box");
+    let folio = t.folio.clone();
+    let mut said = Vec::new();
+    for lang in ["en", "nl"] {
+        language(&mut shell, lang);
+        for id in [junction.id, rep, structure_box] {
+            done(&mut shell, "select.set", json!({"ids": [id.to_string()]}));
+            said.push(live(&shell));
+        }
+    }
+    assert_eq!(
+        said,
+        [
+            format!("Junction, folio {folio}, {wires} wires"),
+            format!("Interruption point {name}, folio {folio}"),
+            format!("Structure box Feed, folio {folio}"),
+            format!("Aftakking, folio {folio}, {wires} draden"),
+            format!("Onderbrekingspunt {name}, folio {folio}"),
+            format!("Structuurkader Feed, folio {folio}"),
+        ]
+    );
+    shell.shutdown();
+}
+
+/// FT-1250 and FT-1252 (ID-1315 ruling 5): a wire that ends at a junction names that end "a junction", in en-GB and
+/// nl-NL; its other end is its connection point's label. A language switch words the live region again (FT-1251).
+#[test]
+fn ft1250_a_wire_to_a_junction_names_that_end_a_junction() {
+    let tmp = Tmp::new("ft1250");
+    let mut shell = tmp.shell("102");
+    let t = tables(&shell);
+    let (session, _) = Session::open_read_only(&tmp.golden_copy(), "0.0.0-test").unwrap();
+    let (conn, number, from, potential) = t
+        .connections
+        .iter()
+        .find_map(|c| {
+            let (TableEnd::Cp { .. }, TableEnd::Junction { .. }) = (&c.a, &c.b) else {
+                return None;
+            };
+            let from = end_label(&t, &c.a)?;
+            let potential = t
+                .cps
+                .iter()
+                .find(|cp| cp.label == from)
+                .and_then(|cp| cp.potential.as_ref())
+                .map(|p| p.name.clone())?;
+            let number = session.property_sheet(&[c.id]).header.title;
+            Some((c.id, number, from, potential))
+        })
+        .expect("a wire from a connection point to a junction on 102");
+    done(&mut shell, "select.set", json!({"ids": [conn.to_string()]}));
+    assert_eq!(live(&shell), format!("{number}, {potential}, {from} to a junction"));
+    language(&mut shell, "nl");
+    assert_eq!(live(&shell), format!("{number}, {potential}, {from} naar een aftakking"));
+    shell.shutdown();
+}
+
+/// FT-1249 and FT-1252 (ID-1315 ruling 4): a device that is not placed and has no kind (no function, so neither a
+/// category text nor a key) says its tag and "Device", in en-GB and, after a language switch, nl-NL.
+#[test]
+fn ft1252_an_unplaced_device_without_a_kind_says_device() {
+    use ew_viewmodel::ew_api::{AnyCommand, StoreOptions};
+    let tmp = Tmp::new("ft1252-device");
+    // A copy of Golden A with one device more, made through the session.
+    let (mut session, _) = Session::open_read_only(std::path::Path::new(common::GOLDEN_A), "test").unwrap();
+    let receipt = session
+        .execute(&AnyCommand {
+            name: "device.create".into(),
+            params: json!({"letter": "K"}),
+        })
+        .unwrap();
+    let id = receipt.created.first().expect("the new device").1.as_uuid().to_string();
+    let dir = tmp.0.join("one-more.ew");
+    let mut fresh = Session::new(session.world().model.clone(), Default::default());
+    fresh.create(&dir, StoreOptions::new("test")).unwrap();
+    fresh.close();
+    let mut shell = ShellModel::new(
+        Mode::Headless,
+        ew_viewmodel::shell::ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
+    );
+    done(&mut shell, "file.open", json!({ "dir": dir.to_string_lossy() }));
+    done(&mut shell, "page.goto", json!({ "folio": "102" }));
+    done(&mut shell, "select.set", json!({ "ids": [id] }));
+    let tag = shell.properties().sheet().expect("its sheet").header.title.clone();
+    assert_eq!(live(&shell), format!("{tag}, Device"));
+    language(&mut shell, "nl");
+    assert_eq!(live(&shell), format!("{tag}, Apparaat"));
+    shell.shutdown();
+}
+
+/// FT-1251: an edit that keeps the selection (a new tag typed in Properties) words the live region again, as the
+/// `canvas live` line is.
+#[test]
+fn ft1251_a_rename_that_keeps_the_selection_words_the_live_region_again() {
+    let tmp = Tmp::new("ft1251");
+    let mut shell = tmp.shell_in(Mode::Headless, true, "102");
+    done(&mut shell, "select.set", json!({"refs": ["tag:-102F1"]}));
+    let before = live(&shell);
+    assert!(before.starts_with("-102F1, "), "{before}");
+    done(
+        &mut shell,
+        "props.set",
+        json!({"row": "device/derived.tag", "value": "-102F9"}),
+    );
+    let after = before.replacen("-102F1", "-102F9", 1);
+    assert_eq!(live(&shell), after);
+    assert_eq!(live_line(&shell), Some(format!("canvas live \"{after}\"")));
+    shell.shutdown();
+}

@@ -17,7 +17,7 @@
 //! the findings, the job, the selection, the cursor, the grid, the zoom, the save state, the renderer and the
 //! notifications, each with its emphasis.
 
-use ew_api::output::SelectionWords;
+use ew_api::output::{SelectionWords, WireEnd};
 
 use crate::canvas::{GridLabel, grid_label, mm1, zoom_percent_text};
 use crate::shell::{AccessMode, ShellModel};
@@ -108,10 +108,12 @@ fn words_text(words: &SelectionWords) -> String {
             let number = number
                 .as_deref()
                 .unwrap_or_else(|| strings::text(key!("announce-wire-unnumbered")));
-            let end = |e: &Option<String>| {
-                e.as_deref()
-                    .unwrap_or_else(|| strings::text(key!("announce-end-junction")))
-                    .to_owned()
+            // FT-1250 (ID-1315 ruling 5): only a junction is "a junction".
+            let end = |e: &WireEnd| match e {
+                WireEnd::Point(label) => label.clone(),
+                WireEnd::UnnamedPoint => strings::text(key!("announce-end-point")).to_owned(),
+                WireEnd::Junction => strings::text(key!("announce-end-junction")).to_owned(),
+                WireEnd::Unknown => strings::text(key!("announce-end-unknown")).to_owned(),
             };
             let (from, to) = (end(from), end(to));
             match potential {
@@ -131,6 +133,28 @@ fn words_text(words: &SelectionWords) -> String {
             match text.as_deref().filter(|t| !t.trim().is_empty()) {
                 Some(text) => strings::format(key!("announce-item"), &[label, text]),
                 None => label.to_owned(),
+            }
+        }
+        // FT-1248: a junction, an interruption point and a structure box in words of their own.
+        SelectionWords::Junction { folio, wires } => {
+            let wires = strings::format_count(count_key!("announce-wires"), *wires);
+            match folio {
+                Some(folio) => strings::format(key!("announce-junction"), &[folio, &wires]),
+                None => strings::format(key!("announce-junction-unplaced"), &[&wires]),
+            }
+        }
+        SelectionWords::InterruptionPoint { name, folio } => match folio {
+            Some(folio) => strings::format(key!("announce-ip"), &[name, folio]),
+            None => strings::format(key!("announce-ip-unplaced"), &[name]),
+        },
+        SelectionWords::StructureBox { caption, folio } => {
+            let head = match caption {
+                Some(caption) => strings::format(key!("announce-structure-box"), &[caption]),
+                None => strings::text(key!("announce-structure-box-plain")).to_owned(),
+            };
+            match folio {
+                Some(folio) => strings::format(key!("announce-on-folio"), &[&head, folio]),
+                None => head,
             }
         }
     }
@@ -554,5 +578,84 @@ mod tests {
             ],
             ["QET 10 px", "4 mm", "2.5 mm"]
         );
+    }
+
+    /// FT-1252 (D13's cases without a test): the `-one` counts, a wire with no number and no potential, the ends that
+    /// are no labelled connection point (FT-1250), and the junction, interruption point and structure box without a
+    /// folio (FT-1248), whole, in en-GB and nl-NL.
+    #[test]
+    fn every_live_description_form_reads_whole_in_both_languages() {
+        use super::{SelectionWords, WireEnd, words_text};
+        use crate::strings;
+        let all = [
+            SelectionWords::Device {
+                tag: "-K1".into(),
+                kind: Some("Coil A1-A2".into()),
+                folio: Some("102".into()),
+                cps: 1,
+                wires: 1,
+            },
+            SelectionWords::Device {
+                tag: "-K2".into(),
+                kind: None,
+                folio: None,
+                cps: 0,
+                wires: 0,
+            },
+            SelectionWords::Wire {
+                number: None,
+                potential: None,
+                from: WireEnd::UnnamedPoint,
+                to: WireEnd::Unknown,
+            },
+            SelectionWords::Wire {
+                number: Some("7".into()),
+                potential: Some("L1".into()),
+                from: WireEnd::Point("-K1:A1".into()),
+                to: WireEnd::Junction,
+            },
+            SelectionWords::Junction { folio: None, wires: 1 },
+            SelectionWords::InterruptionPoint {
+                name: "L-1".into(),
+                folio: None,
+            },
+            SelectionWords::StructureBox {
+                caption: None,
+                folio: Some("103".into()),
+            },
+            SelectionWords::StructureBox {
+                caption: Some("Feed".into()),
+                folio: None,
+            },
+        ];
+        let read = || all.iter().map(words_text).collect::<Vec<_>>();
+        assert_eq!(
+            read(),
+            [
+                "-K1, Coil A1-A2, folio 102, 1 connection point, 1 wire",
+                "-K2, Device",
+                "Unnumbered wire, a connection point to an end of a newer format",
+                "7, L1, -K1:A1 to a junction",
+                "Junction, 1 wire",
+                "Interruption point L-1",
+                "Structure box, folio 103",
+                "Structure box Feed",
+            ]
+        );
+        assert!(strings::set_locale("nl"));
+        assert_eq!(
+            read(),
+            [
+                "-K1, Coil A1-A2, folio 102, 1 aansluitpunt, 1 draad",
+                "-K2, Apparaat",
+                "Ongenummerde draad, een aansluitpunt naar een uiteinde van een nieuwere indeling",
+                "7, L1, -K1:A1 naar een aftakking",
+                "Aftakking, 1 draad",
+                "Onderbrekingspunt L-1",
+                "Structuurkader, folio 103",
+                "Structuurkader Feed",
+            ]
+        );
+        assert!(strings::set_locale("en"));
     }
 }

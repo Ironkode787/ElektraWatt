@@ -716,7 +716,22 @@ impl ShellModel {
 
     /// Announces the selection through the live region: [`crate::status::selection_text`].
     pub(super) fn announce_selection(&mut self) {
-        self.tools.announcement = Some(crate::status::selection_text(self));
+        let text = crate::status::selection_text(self);
+        self.tools.selection_announced = Some((self.revision(), strings::generation(), text.clone()));
+        self.tools.announcement = Some(text);
+    }
+
+    /// Words the selection's announcement again at another revision or in another language while the live region
+    /// still holds it (FT-1251: a rename in Properties keeps the selection); the end of every dispatch.
+    pub(super) fn sync_selection_announcement(&mut self) {
+        let Some((rev, generation, text)) = &self.tools.selection_announced else {
+            return;
+        };
+        if self.tools.announcement.as_deref() != Some(text.as_str()) {
+            self.tools.selection_announced = None;
+        } else if *rev != self.revision() || *generation != strings::generation() {
+            self.announce_selection();
+        }
     }
 
     /// The live description's values of the one selected record (WP-S2.08 D13), from the session; `None` unless

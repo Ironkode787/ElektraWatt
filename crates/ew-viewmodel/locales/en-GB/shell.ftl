@@ -535,6 +535,16 @@ announce-item-wire_marker = Wire marker
 announce-item-image = Image
 announce-item-surface_view = Surface view
 announce-item-unknown = Page item
+# FT-1248 and FT-1250 (ID-1315): a junction, an interruption point and a structure box, and a wire end that is no junction.
+announce-junction = Junction, folio { $p0 }, { $p1 }
+announce-junction-unplaced = Junction, { $p0 }
+announce-ip = Interruption point { $p0 }, folio { $p1 }
+announce-ip-unplaced = Interruption point { $p0 }
+announce-structure-box = Structure box { $p0 }
+announce-structure-box-plain = Structure box
+announce-on-folio = { $p0 }, folio { $p1 }
+announce-end-point = a connection point
+announce-end-unknown = an end of a newer format
 preview-chip = Preview of { $p0 }
 preview-chip-stale = Preview of { $p0 } (stale)
 preview-chip-failed = Preview of { $p0 } failed: { $p1 }

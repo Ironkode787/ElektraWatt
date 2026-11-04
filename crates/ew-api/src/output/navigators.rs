@@ -878,6 +878,11 @@ fn rep_label(d: &Drawable) -> String {
 
 /// The name of a function's FnDef: its key, else the copy's UUID text.
 pub(crate) fn fndef_name(q: &Q, f: &Function) -> String {
+    fndef_key(q, f).unwrap_or_else(|| f.def.as_uuid().to_string())
+}
+
+/// The key of a function's FnDef (its copy's, else the starter FnDef's); `None` for a keyless or missing FnDef.
+fn fndef_key(q: &Q, f: &Function) -> Option<String> {
     q.fndefs()
         .get(f.def)
         .and_then(|c| c.item.meta.key.as_ref().map(|k| k.as_str().to_owned()))
@@ -885,7 +890,6 @@ pub(crate) fn fndef_name(q: &Q, f: &Function) -> String {
             super::editing::starter_fndef(f.def)
                 .and_then(|c| c.item.meta.key.as_ref().map(|k| k.as_str().to_owned()))
         })
-        .unwrap_or_else(|| f.def.as_uuid().to_string())
 }
 
 /// The human text of a function's kind (FT-670, FT-664): the FnDef's last category entry, then the one before it
@@ -897,20 +901,26 @@ pub(crate) fn fndef_name(q: &Q, f: &Function) -> String {
 /// than two non-empty entries, or a missing FnDef copy, gives [`fndef_name`]. The Properties grid's "Part function"
 /// row and the picker's meta line read it.
 pub(crate) fn function_kind_text(q: &Q, f: &Function) -> String {
+    function_kind_or_key(q, f).unwrap_or_else(|| fndef_name(q, f))
+}
+
+/// [`function_kind_text`] without its last fallback, the copy's UUID text: the category's text, else the FnDef's key,
+/// else `None` (the live description's `<kind>`, FT-1249).
+pub(crate) fn function_kind_or_key(q: &Q, f: &Function) -> Option<String> {
     let fndefs = q.fndefs();
     let def = fndefs
         .get(f.def)
         .map(|c| &c.item)
         .or_else(|| super::editing::starter_fndef(f.def).map(|c| &c.item));
     let Some(def) = def else {
-        return fndef_name(q, f);
+        return fndef_key(q, f);
     };
     let cps = template_cp_designations(q, f, def).unwrap_or_else(|| {
         let mut d: Vec<(u16, &str)> = def.cps.iter().map(|c| (c.idx, c.designation.as_str())).collect();
         d.sort_unstable();
         d.into_iter().map(|(_, s)| s.to_owned()).collect()
     });
-    kind_text(def, &cps).unwrap_or_else(|| fndef_name(q, f))
+    kind_text(def, &cps).or_else(|| fndef_key(q, f))
 }
 
 /// The kind text of a FnDef with the given CP designations (see [`function_kind_text`]): `None` when its category has

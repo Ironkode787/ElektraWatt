@@ -734,10 +734,10 @@ pub enum SelectionWords {
         number: Option<String>,
         /// The name of its potential, if it has one.
         potential: Option<String>,
-        /// The connection point label of its first end (`-102F1:2`); `None` for a junction.
-        from: Option<String>,
-        /// The connection point label of its second end; `None` for a junction.
-        to: Option<String>,
+        /// Its first end.
+        from: WireEnd,
+        /// Its second end.
+        to: WireEnd,
     },
     /// A page item.
     PageItem {
@@ -746,12 +746,46 @@ pub enum SelectionWords {
         /// The printed text of a free text or a wire marker.
         text: Option<String>,
     },
+    /// A junction (FT-1248).
+    Junction {
+        /// The folio of its page.
+        folio: Option<String>,
+        /// The connections that meet at it.
+        wires: usize,
+    },
+    /// A representation of an interruption point (FT-1248).
+    InterruptionPoint {
+        /// Its pairing name.
+        name: String,
+        /// The folio of its page.
+        folio: Option<String>,
+    },
+    /// A structure box (FT-1248).
+    StructureBox {
+        /// Its caption in the project's source language; `None` without one.
+        caption: Option<String>,
+        /// The folio of its page.
+        folio: Option<String>,
+    },
+}
+
+/// One end of a selected wire in the live description (FT-1250).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum WireEnd {
+    /// A connection point with its printed label (`-102F1:2`).
+    Point(String),
+    /// A connection point whose label is empty.
+    UnnamedPoint,
+    /// A junction.
+    Junction,
+    /// An end of a newer format, kept verbatim.
+    Unknown,
 }
 
 impl Session {
     /// The live description's values of the record `id` in the current snapshot (WP-S2.08 D13): a device (or a
-    /// function or representation of exactly one device), a connection or a page item; `None` for any other record
-    /// and for an unknown ID.
+    /// function or representation of exactly one device), a connection, a page item, a junction, an interruption
+    /// point's representation or a structure box (FT-1248); `None` for any other record and for an unknown ID.
     pub fn selection_words(&self, id: Uuid) -> Option<SelectionWords> {
         selection_words(&self.query(), id)
     }
@@ -760,15 +794,22 @@ impl Session {
 fn selection_words(q: &Q, id: Uuid) -> Option<SelectionWords> {
     if let Some(conn) = q.connections().get(Id::from_uuid(id)) {
         let end = |e: &ew_schema::Endpoint| match e {
-            ew_schema::Endpoint::Cp(function, idx) => Some(cp_label(
-                q,
-                ew_derive::CpRef {
-                    function: *function,
-                    idx: *idx,
-                },
-            ))
-            .filter(|l| !l.is_empty()),
-            _ => None,
+            ew_schema::Endpoint::Cp(function, idx) => {
+                let label = cp_label(
+                    q,
+                    ew_derive::CpRef {
+                        function: *function,
+                        idx: *idx,
+                    },
+                );
+                if label.is_empty() {
+                    WireEnd::UnnamedPoint
+                } else {
+                    WireEnd::Point(label)
+                }
+            }
+            ew_schema::Endpoint::Junction(_) => WireEnd::Junction,
+            ew_schema::Endpoint::Unknown(_) => WireEnd::Unknown,
         };
         return Some(SelectionWords::Wire {
             number: wire_number(q, conn.id),
@@ -792,11 +833,38 @@ fn selection_words(q: &Q, id: Uuid) -> Option<SelectionWords> {
             text,
         });
     }
+    if let Some(j) = q.junctions().get(Id::from_uuid(id)) {
+        return Some(SelectionWords::Junction {
+            folio: folio_of(q, j.page),
+            wires: j.sequence.len(),
+        });
+    }
+    if let Some(b) = q.structure_boxes().get(Id::from_uuid(id)) {
+        let source = SheetCx::new(q).source;
+        return Some(SelectionWords::StructureBox {
+            caption: b
+                .caption
+                .as_ref()
+                .and_then(|c| serde_json::to_value(c).ok())
+                .map(|c| ml_text(&c, source.as_deref()))
+                .filter(|c| !c.trim().is_empty()),
+            folio: folio_of(q, b.page),
+        });
+    }
+    if let Some(rep) = q.reps().get(Id::from_uuid(id)) {
+        let pairing = q.get::<ew_derive::IpPairingQ>(());
+        if let Some(ip) = rep.functions.iter().find_map(|f| pairing.ips.get(f)) {
+            return Some(SelectionWords::InterruptionPoint {
+                name: ip.name.clone(),
+                folio: folio_of(q, rep.page),
+            });
+        }
+    }
     let device = selected_device(q, id)?;
+    // FT-1249 (ID-1315 ruling 4): the category's text, else the FnDef's key; neither gives `None` ("Device").
     let kind = (*q.get::<ew_derive::MainFunction>(device))
         .and_then(|f| q.functions().get(f))
-        .filter(|f| q.fndefs().get(f.def).is_some() || super::editing::starter_fndef(f.def).is_some())
-        .map(|f| super::navigators::function_kind_text(q, f));
+        .and_then(|f| super::navigators::function_kind_or_key(q, f));
     let folio = (*q.get::<MainRep>(device))
         .and_then(|r| q.reps().get(r).map(|rep| rep.page))
         .and_then(|page| folio_of(q, page));

@@ -160,7 +160,7 @@ pub use navigators::{
 // WP-S1.18 part 2
 pub use properties::{
     CompanyColour, FindingChip, PropRow, PropertySheet, Provenance, RowAction, RowValue, SelectionWords,
-    SheetHeader, SheetSection, WireColours,
+    SheetHeader, SheetSection, WireColours, WireEnd,
 };
 // WP-S1.22 part 2
 /// The round trip's reader (WP-S3.08 D12): a workbook or CSV read back as header and cell texts.

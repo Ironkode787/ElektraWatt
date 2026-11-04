@@ -184,4 +184,29 @@ mod tests {
         apply_setting("system", "comfortable", 0, false, &ctx);
         assert_eq!(ctx.options(|o| o.theme_preference), egui::ThemePreference::System);
     }
+
+    /// FT-1252 (D14): `min_font_pt` raises a text token below it to the minimum and its line height by as much,
+    /// `type_body_strong` among them; a token at or above the minimum, and the setting 0, leave it as it is.
+    #[test]
+    fn raise_text_raises_the_size_and_the_line_height_by_as_much() {
+        let base = tokens(Theme::Light, Density::Comfortable);
+        let strong = base.type_body_strong.clone();
+        let display = base.type_display.clone();
+        let min = strong.size + 3.0;
+        assert!(display.size >= min, "the display token stays above the minimum");
+        let mut t = base.clone();
+        raise_text(&mut t, min as u8);
+        let min = f32::from(min as u8);
+        assert_eq!(
+            (t.type_body_strong.size, t.type_body_strong.line),
+            (min, strong.line + (min - strong.size))
+        );
+        assert_eq!((t.type_display.size, t.type_display.line), (display.size, display.line));
+        let mut unchanged = base.clone();
+        raise_text(&mut unchanged, 0);
+        assert_eq!(
+            (unchanged.type_body_strong.size, unchanged.type_body_strong.line),
+            (strong.size, strong.line)
+        );
+    }
 }

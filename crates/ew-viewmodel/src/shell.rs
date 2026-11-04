@@ -1436,6 +1436,8 @@ impl ShellModel {
         // WP-S1.19 part 6: the Macros navigator's detail follows its cursor.
         self.sync_macros();
         self.sync_library_copy();
+        // FT-1251: the live region's selection words follow the revision.
+        self.sync_selection_announcement();
         outcome
     }
 
