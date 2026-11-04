@@ -395,6 +395,11 @@
       },
       "type": "array"
     },
+    "copies": {
+      "description": "The library documents to embed first, in the same transaction (`lib/` JSON form; decision log ID-1376): the\ncable part and its closure; empty when the project holds them.",
+      "items": true,
+      "type": "array"
+    },
     "counter": {
       "description": "An explicit counter.",
       "format": "uint32",
