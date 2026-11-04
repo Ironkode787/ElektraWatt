@@ -17,7 +17,10 @@ use serde_json::{Value, json};
 
 /// The members the comparison leaves out, each with its reason (D10).
 const EXCLUDED: &[(&str, &str)] = &[
-    ("parties and master data", "the project's own: its customer, numbers and dates"),
+    (
+        "parties and master data",
+        "the project's own: its customer, numbers and dates",
+    ),
     (
         "report blocks 903 to 905, and the title of 908",
         "the per-strip and per-device blocks: their selection names project records (908's names its station)",
@@ -26,7 +29,10 @@ const EXCLUDED: &[(&str, &str)] = &[
         "the location nodes",
         "the project's own cabinets and process field (doc 20 §4.3); the wizard's location field is empty by default",
     ),
-    ("the title-block cell mapping", "FT-365: no command maps a form's cells yet"),
+    (
+        "the title-block cell mapping",
+        "FT-365: no command maps a form's cells yet",
+    ),
 ];
 
 /// Every JSON Lines record of `files` under `dir` (a file, or a directory of files).
@@ -35,7 +41,10 @@ fn records(dir: &Path, files: &[&str]) -> Vec<Value> {
     for f in files {
         let p = dir.join(f);
         let mut paths: Vec<PathBuf> = if p.is_dir() {
-            std::fs::read_dir(&p).unwrap().map(|e| e.unwrap().path()).collect()
+            std::fs::read_dir(&p)
+                .unwrap()
+                .map(|e| e.unwrap().path())
+                .collect()
         } else {
             vec![p]
         };
@@ -128,8 +137,17 @@ fn conventions(dir: &Path, page_types: &BTreeSet<String>) -> Vec<(String, Value)
         .filter(|b| b["$k"] == "report_block")
         .filter(|b| !(903..=905).contains(&b["first_folio"].as_u64().unwrap_or(0)))
         .map(|b| {
-            let title = if b["first_folio"] == 908 { Value::Null } else { b["title"].clone() };
-            json!([b["source"]["kind"], b["first_folio"], form_key(dir, &b["form"]), title])
+            let title = if b["first_folio"] == 908 {
+                Value::Null
+            } else {
+                b["title"].clone()
+            };
+            json!([
+                b["source"]["kind"],
+                b["first_folio"],
+                form_key(dir, &b["form"]),
+                title
+            ])
         })
         .collect();
     blocks.sort_by_key(|b| b[1].as_u64());

@@ -816,8 +816,14 @@ fn the_default_draft_reproduces_the_sample_projects_folio_102() {
     done(&mut shell, "tools.company_standard", json!({}));
     let readable = shell.wizard_preview_content().expect("the preview");
     assert_ne!(
-        format!("{:?}", readable.pages.iter().map(|p| &p.content).collect::<Vec<_>>()),
-        format!("{:?}", sample.pages.iter().map(|p| &p.content).collect::<Vec<_>>()),
+        format!(
+            "{:?}",
+            readable.pages.iter().map(|p| &p.content).collect::<Vec<_>>()
+        ),
+        format!(
+            "{:?}",
+            sample.pages.iter().map(|p| &p.content).collect::<Vec<_>>()
+        ),
         "the readable text styles of a new project reach the page"
     );
     done(
