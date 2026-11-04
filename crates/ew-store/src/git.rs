@@ -198,20 +198,22 @@ pub fn git_dir(vfs: &dyn Vfs, dir: &Path) -> io::Result<Option<PathBuf>> {
 ///
 /// # Errors
 ///
-/// An I/O error reading the `.git` file.
+/// An I/O error reading the `.git` file or the git directory's `commondir`, its text led by the path that failed.
 pub fn own_hooks(vfs: &dyn Vfs, root: &Path, hooks: &Path) -> io::Result<bool> {
+    let at = |path: &Path, e: io::Error| io::Error::new(e.kind(), format!("{}: {e}", path.display()));
     // Both sides canonical (C49-p10b#5): a path in another case (Windows) or through a link is the same folder.
     let hooks = canonical(vfs, hooks);
     if hooks.starts_with(canonical(vfs, root)) {
         return Ok(true);
     }
-    let Some(git) = git_dir(vfs, root)? else {
+    let Some(git) = git_dir(vfs, root).map_err(|e| at(&root.join(".git"), e))? else {
         return Ok(false);
     };
-    let common = match vfs.read(&git.join("commondir")) {
+    let commondir = git.join("commondir");
+    let common = match vfs.read(&commondir) {
         Ok(b) => lexical(&git.join(String::from_utf8_lossy(&b).trim())),
         Err(e) if e.kind() == io::ErrorKind::NotFound => git.clone(),
-        Err(e) => return Err(e),
+        Err(e) => return Err(at(&commondir, e)),
     };
     Ok(hooks.starts_with(canonical(vfs, &git)) || hooks.starts_with(canonical(vfs, &common)))
 }
@@ -1098,5 +1100,80 @@ mod tests {
             driver_config("'/a/ew'")[1].1,
             "'/a/ew' merge-driver %O %A %B %L %P"
         );
+    }
+
+    /// A symbolic link to the folder `target` at `link`.
+    #[cfg(unix)]
+    fn link_dir(target: &Path, link: &Path) -> io::Result<()> {
+        std::os::unix::fs::symlink(target, link)
+    }
+
+    /// A symbolic link to the folder `target` at `link`; the OS refuses it without the privilege.
+    #[cfg(windows)]
+    fn link_dir(target: &Path, link: &Path) -> io::Result<()> {
+        std::os::windows::fs::symlink_dir(target, link)
+    }
+
+    /// FT-1298: the AppImage mount compares canonical, so an `ew` under a mount reached through a symbolic link (or the
+    /// mount named through one) runs from that AppImage.
+    #[test]
+    fn the_appimage_mount_compares_through_a_symbolic_link() {
+        let dir = ew_testdir::fresh_dir("ew-store-appimage-link");
+        let mount = dir.join("mount");
+        std::fs::create_dir_all(mount.join("usr")).unwrap();
+        std::fs::write(mount.join("usr").join("ew"), b"").unwrap();
+        let link = dir.join("link");
+        if let Err(e) = link_dir(&mount, &link) {
+            eprintln!("skipped: the OS refuses a symbolic link here: {e}");
+            let _ = std::fs::remove_dir_all(&dir);
+            return;
+        }
+        let image = Some(Path::new("/home/u/Apps/ElektraWatt.AppImage"));
+        let appimage = "'/home/u/Apps/ElektraWatt.AppImage' ew";
+        let exe = mount.join("usr").join("ew");
+        assert_eq!(ew_command(&exe, image, Some(&link)), appimage);
+        assert_eq!(ew_command(&link.join("usr").join("ew"), image, Some(&mount)), appimage);
+        // A folder beside the mount is not under it, through the link or not.
+        let beside = dir.join("beside");
+        std::fs::create_dir_all(&beside).unwrap();
+        assert_eq!(
+            ew_command(&exe, image, Some(&beside)),
+            sh_quoted(&exe)
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// FT-1298: a hooks directory reached through a symbolic link into the repository is the repository's own.
+    #[test]
+    fn hooks_through_a_symbolic_link_into_the_repository_are_its_own() {
+        let dir = ew_testdir::fresh_dir("ew-store-hooks-link");
+        let repo = dir.join("repo");
+        std::fs::create_dir_all(repo.join(".git").join("hooks")).unwrap();
+        let link = dir.join("link");
+        if let Err(e) = link_dir(&repo, &link) {
+            eprintln!("skipped: the OS refuses a symbolic link here: {e}");
+            let _ = std::fs::remove_dir_all(&dir);
+            return;
+        }
+        let vfs = crate::vfs::OsVfs;
+        assert!(own_hooks(&vfs, &repo, &link.join("githooks")).unwrap());
+        assert!(own_hooks(&vfs, &repo, &link.join(".git").join("hooks")).unwrap());
+        assert!(!own_hooks(&vfs, &repo, &dir.join("shared-hooks")).unwrap());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// C50-p1#5: an I/O error reading the git directory's `commondir` (here a folder) names that path.
+    #[test]
+    fn an_io_error_of_own_hooks_names_the_path_that_failed() {
+        let dir = ew_testdir::fresh_dir("ew-store-hooks-commondir");
+        let repo = dir.join("repo");
+        let commondir = repo.join(".git").join("commondir");
+        std::fs::create_dir_all(&commondir).unwrap();
+        let e = own_hooks(&crate::vfs::OsVfs, &repo, &dir.join("shared-hooks")).unwrap_err();
+        assert_eq!(
+            e.to_string(),
+            format!("{}: not a regular file", commondir.display())
+        );
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

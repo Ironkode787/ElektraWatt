@@ -146,8 +146,9 @@ fn run_git_setup_with(
                         );
                         return 2;
                     }
+                    // The error names the path that failed (C50-p1#5).
                     Err(e) => {
-                        eprintln!("error: {}: {e}; nothing was changed", root.display());
+                        eprintln!("error: {e}; nothing was changed");
                         return 2;
                     }
                 }
