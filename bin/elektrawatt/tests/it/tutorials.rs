@@ -486,10 +486,7 @@ fn tutorial_4_reports_and_pdf_runs_as_its_page_says() {
     );
     // Step 2: the report pages of section 9, marked generated, from the parts list to the revision overview (ID-1376).
     assert_eq!(
-        lines_of(
-            &copied,
-            &["row level 2 page \"90", "row level 2 page \"91"]
-        ),
+        lines_of(&copied, &["row level 2 page \"90", "row level 2 page \"91"]),
         [
             "row level 2 page \"900\" \"=P01+J-E-2416 - Section 9 - Page 900 - 999 - Nomenclature\" changed \"V1.0\"",
             "row level 2 page \"901\" \"Partlist 1\" generated changed \"V1.0\"",

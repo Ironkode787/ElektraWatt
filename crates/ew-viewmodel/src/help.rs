@@ -372,9 +372,11 @@ pub fn rule_target(rule: &str) -> Option<String> {
 /// The data of a shipped rule: a registered rule, or an integrity rule of opening a project, whose findings reach the
 /// Messages pane too (decision log ID-1376).
 fn rule_meta(rule: &str) -> Option<&'static ew_api::checks::RuleMeta> {
-    ew_api::checks::rule(rule)
-        .map(|r| r.meta())
-        .or_else(|| ew_api::checks::rules::core::INTEGRITY.iter().find(|m| m.id == rule))
+    ew_api::checks::rule(rule).map(|r| r.meta()).or_else(|| {
+        ew_api::checks::rules::core::INTEGRITY
+            .iter()
+            .find(|m| m.id == rule)
+    })
 }
 
 /// The page of the built book for an anchor, relative to the book's output directory: `how-to/x.html#fragment`.

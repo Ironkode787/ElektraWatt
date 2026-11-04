@@ -421,7 +421,10 @@ fn connect_cores_tells_two_cables_with_one_tag_apart() {
     done(&mut s, "ui.dismiss", json!({}));
     for (language, refusal) in [
         ("en", "-?W? is the tag of 2 cables: choose one from the list."),
-        ("nl", "-?W? is het kenmerk van 2 kabels: kies er een uit de lijst."),
+        (
+            "nl",
+            "-?W? is het kenmerk van 2 kabels: kies er een uit de lijst.",
+        ),
     ] {
         done(&mut s, "view.language", json!({ "value": language }));
         let rev = s.revision();
