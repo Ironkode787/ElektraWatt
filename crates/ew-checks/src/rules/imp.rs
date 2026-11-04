@@ -282,8 +282,21 @@ mod tests {
             params: serde_json::json!({}),
         };
         let findings = vec![
-            Finding::new(meta("EW-IMP-114"), [page(1)], "r#0", "folio 1", "styles not bound").with_fix(fix.clone()),
-            Finding::new(meta("EW-IMP-114"), [page(2)], "r#1", "folio 2", "styles not bound"),
+            Finding::new(
+                meta("EW-IMP-114"),
+                [page(1)],
+                "r#0",
+                "folio 1",
+                "styles not bound",
+            )
+            .with_fix(fix.clone()),
+            Finding::new(
+                meta("EW-IMP-114"),
+                [page(2)],
+                "r#1",
+                "folio 2",
+                "styles not bound",
+            ),
             Finding::new(&UNSTYLED_TEXT_SIZE, [page(1)], "", "folio 1", "unstyled text"),
         ];
         let rows = fold(findings);

@@ -116,7 +116,10 @@ fn an_import_is_written_with_its_run_and_reproducibly() {
     let pre = ew_api::checks::PRE_DELIVERY;
     let (plain, _) = Session::open(&b, store(), SessionOptions::default(), Recovery::Keep).unwrap();
     let release = plain.check(&pre, ew_api::checks::CheckMode::Release);
-    assert!(!release.findings.iter().any(|f| f.rule.starts_with("EW-IMP-")), "pre-delivery lists no import finding");
+    assert!(
+        !release.findings.iter().any(|f| f.rule.starts_with("EW-IMP-")),
+        "pre-delivery lists no import finding"
+    );
     plain.close();
 
     // IC-8: reopened and saved again, the run's file is unchanged.
