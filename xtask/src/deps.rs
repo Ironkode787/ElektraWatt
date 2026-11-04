@@ -465,6 +465,97 @@ fn check_confined(policy: &Policy, graph: &Graph, v: &mut Vec<String>) {
     }
 }
 
+/// The names an importer's source may not use (NFR-SEC-18, WP-S3.09 D5 a): importers read only the bytes they are given,
+/// never a file, the network, a process or the environment.
+pub const IMPURE_NAMES: [&str; 7] = [
+    "std::fs",
+    "std::net",
+    "std::process",
+    "std::env",
+    "File::",
+    "TcpStream",
+    "Command::new",
+];
+
+/// The lines of `text` (the source file `file`) that name one of [`IMPURE_NAMES`], as violations. Comment lines and
+/// `#[cfg(test)]` items (to their closing brace) are skipped.
+pub fn impure_lines(file: &str, text: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    // Inside a `#[cfg(test)]` item: its brace depth, and whether its first brace was seen.
+    let mut skip: Option<(i64, bool)> = None;
+    for (n, line) in text.lines().enumerate() {
+        let code = line.trim_start();
+        if let Some((depth, opened)) = skip.as_mut() {
+            for c in code.chars() {
+                match c {
+                    '{' => (*depth, *opened) = (*depth + 1, true),
+                    '}' => *depth -= 1,
+                    _ => {}
+                }
+            }
+            if (*opened && *depth <= 0) || (!*opened && code.ends_with(';')) {
+                skip = None;
+            }
+            continue;
+        }
+        if code.starts_with("#[cfg(test)]") {
+            skip = Some((0, false));
+            continue;
+        }
+        if code.starts_with("//") {
+            continue;
+        }
+        if let Some(name) = IMPURE_NAMES.iter().find(|name| code.contains(*name)) {
+            out.push(format!(
+                "importer purity (NFR-SEC-18): {file}:{} names `{name}`; an importer reads only the bytes it is given",
+                n + 1
+            ));
+        }
+    }
+    out
+}
+
+/// [`impure_lines`] over every `.rs` file under `src/` of `ew-interop-api` and the `ew-import-*` crates of `root`.
+///
+/// # Errors
+///
+/// A directory or file that cannot be read.
+pub fn importer_purity(root: &Path) -> Result<Vec<String>> {
+    fn walk(dir: &Path, files: &mut Vec<std::path::PathBuf>) -> Result<()> {
+        for entry in std::fs::read_dir(dir).with_context(|| format!("reading {}", dir.display()))? {
+            let path = entry?.path();
+            if path.is_dir() {
+                walk(&path, files)?;
+            } else if path.extension().is_some_and(|e| e == "rs") {
+                files.push(path);
+            }
+        }
+        Ok(())
+    }
+    let mut crates: Vec<std::path::PathBuf> = std::fs::read_dir(root.join("crates"))
+        .context("reading crates/")?
+        .filter_map(|e| e.ok().map(|e| e.path()))
+        .filter(|p| {
+            p.file_name()
+                .and_then(|n| n.to_str())
+                .is_some_and(|n| n == "ew-interop-api" || n.starts_with("ew-import-"))
+        })
+        .collect();
+    crates.sort();
+    let mut out = Vec::new();
+    for krate in crates {
+        let mut files = Vec::new();
+        walk(&krate.join("src"), &mut files)?;
+        files.sort();
+        for file in files {
+            let text = std::fs::read_to_string(&file).with_context(|| format!("reading {}", file.display()))?;
+            let shown = file.strip_prefix(root).unwrap_or(&file).display().to_string().replace('\\', "/");
+            out.extend(impure_lines(&shown, &text));
+        }
+    }
+    Ok(out)
+}
+
 /// Breadth-first search for a path of workspace edges from `from` to `to`; deterministic (sorted adjacency).
 fn find_path(adjacency: &BTreeMap<&str, BTreeSet<&str>>, from: &str, to: &str) -> Option<Vec<String>> {
     let mut parent: BTreeMap<&str, &str> = BTreeMap::new();
@@ -850,6 +941,22 @@ mod tests {
         assert!(!wildcard_match("a*b*c", "a-x-c"));
         assert!(wildcard_match("rusqlite", "rusqlite"));
         assert!(!wildcard_match("rusqlite", "rusqlite2"));
+    }
+
+    /// WP-S3.09 IC-5: a fixture crate that names `std::fs` fails the purity check, in code but not in a comment or a test
+    /// module; the workspace's importers pass it.
+    #[test]
+    fn the_importer_purity_check_finds_file_access_and_passes_the_workspace() {
+        let fixture = "use std::fs;\n// std::net in a comment\nfn f() { let _ = File::open(\"x\"); }\n#[cfg(test)]\nmod tests {\n    use std::env;\n}\nfn g() {}\n";
+        assert_eq!(
+            impure_lines("crates/ew-import-x/src/lib.rs", fixture),
+            [
+                "importer purity (NFR-SEC-18): crates/ew-import-x/src/lib.rs:1 names `std::fs`; an importer reads only the bytes it is given",
+                "importer purity (NFR-SEC-18): crates/ew-import-x/src/lib.rs:3 names `File::`; an importer reads only the bytes it is given",
+            ]
+        );
+        let v = importer_purity(&crate::workspace_root()).expect("the importer sources read");
+        assert!(v.is_empty(), "{v:#?}");
     }
 
     /// The real policy rejects a GPL crate seeded into a permissive crate, as a dev-dependency too

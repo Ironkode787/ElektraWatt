@@ -21,6 +21,210 @@ pub use ew_import_qet::ew_interop_api::{
 };
 pub use ew_import_qet::migration;
 
+// -------------------------------------------------------------------------------------------------------------------
+// The front door (WP-S3.09 D3, D4)
+
+pub use ew_import_qet::ew_interop_api::{Limits, LineageInfo};
+
+/// Why a batch breaks the importer contract (WP-S3.09 D3, T2's reasons).
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum ContractBreach {
+    /// Two records share `(kind, id)`.
+    SharedIdentity,
+    /// A record's ID is not `v5(namespace, source_ref.key)`.
+    IdentityNotFromKey,
+    /// A record's `source_ref` names another lineage than the batch's.
+    OtherLineage,
+    /// The records are not sorted by kind rank, then ID.
+    OutOfOrder,
+}
+
+impl ContractBreach {
+    /// The reason in T2's words.
+    pub fn reason(self) -> &'static str {
+        match self {
+            ContractBreach::SharedIdentity => "two records share one identity",
+            ContractBreach::IdentityNotFromKey => "a record's identity does not follow from its source key",
+            ContractBreach::OtherLineage => "a record names another import",
+            ContractBreach::OutOfOrder => "the records are out of order",
+        }
+    }
+
+    /// The text key of the reason (the shell's words for it).
+    pub fn key(self) -> &'static str {
+        match self {
+            ContractBreach::SharedIdentity => "reason-import-shared-identity",
+            ContractBreach::IdentityNotFromKey => "reason-import-identity-key",
+            ContractBreach::OtherLineage => "reason-import-other-lineage",
+            ContractBreach::OutOfOrder => "reason-import-order",
+        }
+    }
+}
+
+/// Why the front door imported nothing (WP-S3.09 D4): the model is untouched in every case.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum Refusal {
+    /// The importer, or a limit checked before it ran, refused the input (the importer's English text).
+    Import(ImportError),
+    /// The importer panicked while reading `file` (T1).
+    Panicked {
+        /// The source's file name.
+        file: String,
+    },
+    /// The batch breaks the importer contract (T2).
+    Contract {
+        /// The source's file name.
+        file: String,
+        /// Which rule it breaks.
+        breach: ContractBreach,
+    },
+}
+
+impl From<ImportError> for Refusal {
+    fn from(e: ImportError) -> Refusal {
+        Refusal::Import(e)
+    }
+}
+
+impl std::fmt::Display for Refusal {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Refusal::Import(e) => write!(f, "{e}"),
+            Refusal::Panicked { file } => write!(
+                f,
+                "The importer stopped on an internal error while reading {file}; nothing was imported."
+            ),
+            Refusal::Contract { file, breach } => write!(
+                f,
+                "The import of {file} was refused because {}; nothing was imported.",
+                breach.reason()
+            ),
+        }
+    }
+}
+
+impl std::error::Error for Refusal {}
+
+/// What an importer returns through the front door: a batch is checked against the contract (D3), other results
+/// (library documents of the parts imports) are not batches of project records.
+pub trait FrontDoorOutput {
+    /// The contract check of the result, against the lineage the import ran in.
+    ///
+    /// # Errors
+    ///
+    /// The first [`ContractBreach`].
+    fn contract(&self, _lineage: Option<&LineageInfo>) -> Result<(), ContractBreach> {
+        Ok(())
+    }
+}
+
+impl FrontDoorOutput for ImportBatch {
+    fn contract(&self, lineage: Option<&LineageInfo>) -> Result<(), ContractBreach> {
+        check_contract(self, lineage)
+    }
+}
+
+impl FrontDoorOutput for ew_import_catalog::PartsImport {}
+
+impl FrontDoorOutput for ew_import_tables::PartsTables {}
+
+/// The one front door of every importer call (WP-S3.09 D4): refuses inputs above `limits.max_input_bytes`, a total
+/// above `limits.max_expanded_bytes` and more than `limits.max_input_files` inputs before `run` is called (`sizes` are
+/// the inputs' byte counts); runs `run` inside `catch_unwind`, a panic becoming [`Refusal::Panicked`]; and checks a
+/// batch against the contract ([`check_contract`], against `lineage` when the batch emits none). `file` names the
+/// source in the refusal.
+///
+/// # Errors
+///
+/// [`Refusal`]: nothing was imported.
+pub fn front_door<T: FrontDoorOutput>(
+    file: &str,
+    sizes: &[u64],
+    limits: &Limits,
+    lineage: Option<&LineageInfo>,
+    run: impl FnOnce() -> Result<T, ImportError>,
+) -> Result<T, Refusal> {
+    let limit = |what: &str, limit: u64| Refusal::Import(ImportError::LimitExceeded {
+        what: what.to_owned(),
+        limit,
+    });
+    if sizes.len() as u64 > u64::from(limits.max_input_files) {
+        return Err(limit("input file count", u64::from(limits.max_input_files)));
+    }
+    if sizes.iter().any(|&s| s > limits.max_input_bytes) {
+        return Err(limit("input size", limits.max_input_bytes));
+    }
+    if sizes.iter().fold(0u64, |a, &s| a.saturating_add(s)) > limits.max_expanded_bytes {
+        return Err(limit("expanded input size", limits.max_expanded_bytes));
+    }
+    let out = std::panic::catch_unwind(std::panic::AssertUnwindSafe(run))
+        .map_err(|_| Refusal::Panicked { file: file.to_owned() })??;
+    out.contract(lineage).map_err(|breach| Refusal::Contract {
+        file: file.to_owned(),
+        breach,
+    })?;
+    Ok(out)
+}
+
+/// The importer contract of a batch (WP-S3.09 D3): no two records share `(kind, id)`; every record with a `source_ref`
+/// names the batch's lineage (its `import_lineage` record, else `lineage`); a record's ID is
+/// `v5(namespace, source_ref.key)`, except the project record, channels and template functions (`v5(device, index)`,
+/// ADR-0004 amendment 2); and the records are sorted by kind rank, then ID. It never repairs a batch.
+///
+/// # Errors
+///
+/// The first [`ContractBreach`], checked in the order above per record.
+pub fn check_contract(batch: &ImportBatch, lineage: Option<&LineageInfo>) -> Result<(), ContractBreach> {
+    use ew_derive::ew_ids::v5;
+    let own = batch.records.iter().find_map(|r| match r {
+        Record::ImportLineage(l) => Some((l.id.as_uuid(), l.namespace.as_uuid())),
+        _ => None,
+    });
+    let lineage = own.or_else(|| lineage.map(|l| (l.id.as_uuid(), l.namespace)));
+    let mut seen = std::collections::BTreeSet::new();
+    let mut last: Option<(u8, ew_derive::ew_ids::Uuid)> = None;
+    for record in &batch.records {
+        let (Some(kind), Some(id)) = (record.kind(), record.id()) else {
+            continue;
+        };
+        if !seen.insert((kind, id)) {
+            return Err(ContractBreach::SharedIdentity);
+        }
+        let key = (kind.rank().unwrap_or(u8::MAX), id);
+        if last.is_some_and(|l| l > key) {
+            return Err(ContractBreach::OutOfOrder);
+        }
+        last = Some(key);
+        let Some((lineage_id, namespace)) = lineage else {
+            continue;
+        };
+        let value = serde_json::to_value(record).unwrap_or_default();
+        let Some(source) = value.get("source_ref") else {
+            continue;
+        };
+        let named = source.get("lineage").and_then(serde_json::Value::as_str);
+        if named != Some(lineage_id.to_string().as_str()) {
+            return Err(ContractBreach::OtherLineage);
+        }
+        let source_key = source.get("key").and_then(serde_json::Value::as_str).unwrap_or_default();
+        let derived: ew_derive::ew_ids::Id<()> = v5::imported_id(namespace, source_key);
+        let exempt = || match record {
+            Record::Project(_) | Record::Channel(_) => true,
+            Record::Function(f) => f.device.is_some_and(|d| {
+                (0..1024u32).any(|i| {
+                    let t: ew_derive::ew_ids::Id<()> = v5::template_function_id(d, i);
+                    t.as_uuid() == id
+                })
+            }),
+            _ => false,
+        };
+        if derived.as_uuid() != id && !exempt() {
+            return Err(ContractBreach::IdentityNotFromKey);
+        }
+    }
+    Ok(())
+}
+
 /// The built-in starter documents (symbols, FnDefs, forms) an import may reference.
 #[derive(Clone, Debug, Default)]
 pub struct StarterLibrary {
@@ -163,15 +367,17 @@ pub fn session_from_batch(batch: &ImportBatch, options: SessionOptions) -> Resul
 ///
 /// # Errors
 ///
-/// [`ImportError`] when the file as a whole cannot be read (a limit, malformed XML, not a project, a name
-/// that is a path). Item-level problems are report entries.
-pub fn import_qet(name: &str, bytes: Vec<u8>, library: &StarterLibrary) -> Result<Imported, ImportError> {
+/// [`Refusal`] when the file as a whole cannot be read (a limit, malformed XML, not a project, a name that is a path),
+/// the importer panicked or its batch breaks the contract ([`front_door`]). Item-level problems are report entries.
+pub fn import_qet(name: &str, bytes: Vec<u8>, library: &StarterLibrary) -> Result<Imported, Refusal> {
     let input = ImportInput::new(name, bytes).map_err(|e| ImportError::Unsupported {
         message: e.to_string(),
     })?;
     let importer = QetProjectImporter::with_library(library.docs.iter().cloned());
     let mut ctx = ew_import_qet::project::new_project_context();
-    let batch = importer.import(&input, &mut ctx)?;
+    let limits = ctx.limits;
+    let sizes = [input.bytes().len() as u64];
+    let batch = front_door(name, &sizes, &limits, None, || importer.import(&input, &mut ctx))?;
     let session = session_from_batch(&batch, SessionOptions::default());
     let live = session.as_ref().map(lenient_findings).unwrap_or_default();
     Ok(Imported { batch, session, live })
@@ -238,6 +444,17 @@ pub enum PartsReadError {
     Io(String, std::io::Error),
     /// The tables were refused (the first problem, with its pointer).
     Import(ImportError),
+    /// The front door refused the import: the importer panicked (WP-S3.09 D4).
+    Refused(Refusal),
+}
+
+impl From<Refusal> for PartsReadError {
+    fn from(r: Refusal) -> PartsReadError {
+        match r {
+            Refusal::Import(e) => PartsReadError::Import(e),
+            other => PartsReadError::Refused(other),
+        }
+    }
 }
 
 impl std::fmt::Display for PartsReadError {
@@ -245,6 +462,7 @@ impl std::fmt::Display for PartsReadError {
         match self {
             PartsReadError::Io(name, e) => write!(f, "{name}: {e}"),
             PartsReadError::Import(e) => write!(f, "{e}"),
+            PartsReadError::Refused(r) => write!(f, "{r}"),
         }
     }
 }
@@ -273,13 +491,13 @@ fn starter_fndefs() -> &'static ew_import_tables::BuiltinLibrary {
 ///
 /// # Errors
 ///
-/// The first problem of any table, with its pointer (strict).
+/// The first problem of any table, with its pointer (strict), or the front door's refusal ([`front_door`]).
 pub fn parse_parts_tables(
     parts_csv: &str,
     siblings: &SiblingTables<'_>,
     project: ew_derive::ew_ids::Uuid,
     source: &str,
-) -> Result<PartsImport, ImportError> {
+) -> Result<PartsImport, Refusal> {
     fn unmarked(t: &str) -> &str {
         t.strip_prefix('\u{feff}').unwrap_or(t)
     }
@@ -289,13 +507,21 @@ pub fn parse_parts_tables(
         cable_cores: siblings.cable_cores.map(unmarked),
         part_plc: siblings.part_plc.map(unmarked),
     };
-    let copies = ew_import_tables::parse_parts_tables(
-        unmarked(parts_csv),
-        siblings,
-        ew_derive::ew_ids::Id::from_uuid(project),
-        source,
-        starter_fndefs(),
-    )?;
+    let sizes: Vec<u64> = [Some(parts_csv), siblings.part_cps, siblings.part_templates, siblings.cable_cores, siblings.part_plc]
+        .into_iter()
+        .flatten()
+        .map(|t| t.len() as u64)
+        .collect();
+    let file = source.rsplit(['/', '\\']).next().unwrap_or(source);
+    let copies = front_door(file, &sizes, &Limits::default(), None, || {
+        ew_import_tables::parse_parts_tables(
+            unmarked(parts_csv),
+            siblings,
+            ew_derive::ew_ids::Id::from_uuid(project),
+            source,
+            starter_fndefs(),
+        )
+    })?;
     let source = source.rsplit(['/', '\\']).next().unwrap_or(source).to_owned();
     let siblings = SiblingTables::FILE_NAMES
         .iter()
@@ -369,7 +595,7 @@ pub fn read_parts_tables(
     for (file, text) in &texts {
         siblings.set(file, text);
     }
-    parse_parts_tables(&parts, &siblings, project, &name(path)).map_err(PartsReadError::Import)
+    parse_parts_tables(&parts, &siblings, project, &name(path)).map_err(PartsReadError::from)
 }
 
 // -------------------------------------------------------------------------------------------------------------------
@@ -411,6 +637,8 @@ pub enum TablesError {
     Library(LibraryError),
     /// The import as a whole is refused (a limit, no project table, a file name that is a path).
     Import(ImportError),
+    /// The front door refused the import: the importer panicked or its batch breaks the contract (WP-S3.09 D4).
+    Refused(Refusal),
 }
 
 impl std::fmt::Display for TablesError {
@@ -430,6 +658,7 @@ impl std::fmt::Display for TablesError {
             TablesError::Unreadable { file, error } => write!(f, "{file}: {error}; nothing was imported"),
             TablesError::Library(e) => write!(f, "starter content: {e}"),
             TablesError::Import(e) => write!(f, "{e}"),
+            TablesError::Refused(r) => write!(f, "{r}"),
         }
     }
 }
@@ -523,9 +752,14 @@ pub fn import_tables(
         ew_import_tables::BuiltinLibrary::new(library.docs.iter().cloned()).map_err(TablesError::Library)?;
     let mut ctx = ew_import_tables::bootstrap_context();
     ctx.mode = mode;
-    ew_import_tables::TablesImporter::new(builtin)
-        .import(inputs, &ctx)
-        .map_err(TablesError::Import)
+    let sizes: Vec<u64> = inputs.iter().map(|i| i.bytes().len() as u64).collect();
+    let importer = ew_import_tables::TablesImporter::new(builtin);
+    front_door("the tables", &sizes, &ctx.limits, ctx.lineage.as_ref(), || importer.import(inputs, &ctx)).map_err(
+        |r| match r {
+            Refusal::Import(e) => TablesError::Import(e),
+            other => TablesError::Refused(other),
+        },
+    )
 }
 
 /// Why a new project was not written.

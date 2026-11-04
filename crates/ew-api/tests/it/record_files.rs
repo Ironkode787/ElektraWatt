@@ -82,6 +82,19 @@ fn merge_resolve_routes_every_record_to_the_file_the_writer_writes_it_in() {
         "target": {"finding": "9c2e5a0b7d14f3e8a6c1b05d2e9f41ab"}, "reason": "a reason", "author": "engineer",
         "date": "2025-04-14", "expires": "never"
     })));
+    // WP-S3.09 D6: an import run of Golden A's lineage, in `imports/<run>.jsonl`.
+    let lineage = records
+        .iter()
+        .find_map(|r| match r {
+            Record::ImportLineage(l) => Some(l.id.to_string()),
+            _ => None,
+        })
+        .expect("Golden A's lineage");
+    records.push(record(json!({
+        "$k": "import_run", "id": "019a4f00-0000-7000-8000-000000000001", "lineage": lineage, "importer": "csv",
+        "importer_version": "1", "source": {"name": "tables", "sha256": format!("sha256:{}", "0".repeat(64)),
+        "size": 0, "format": "csv"}, "mode": "strict"
+    })));
     records.push(record(json!({
         "$k": "conflict", "id": connection, "kind": "connection", "base": {}, "ours": {}, "theirs": {}
     })));

@@ -43,6 +43,8 @@ pub enum CatalogError {
     Map(MapError),
     /// The table was refused as a whole.
     Import(ImportError),
+    /// The front door refused the import: the importer panicked (WP-S3.09 D4).
+    Refused(crate::import::Refusal),
     /// The library refused the write (read-only, locked, stale lock, other content under a published version, I/O).
     Library(library::LibraryError),
     /// Parts changed under their held version and the import does not bump: `line N: <part number> (<version>)`,
@@ -57,6 +59,7 @@ impl std::fmt::Display for CatalogError {
             CatalogError::SourceKey(m) => f.write_str(m),
             CatalogError::Map(e) => write!(f, "{e}"),
             CatalogError::Import(e) => write!(f, "{e}"),
+            CatalogError::Refused(r) => write!(f, "{r}"),
             CatalogError::Library(e) => write!(f, "{e}"),
             CatalogError::NeedsBump(rows) => write!(
                 f,
@@ -73,6 +76,15 @@ impl std::error::Error for CatalogError {}
 impl From<MapError> for CatalogError {
     fn from(e: MapError) -> CatalogError {
         CatalogError::Map(e)
+    }
+}
+
+impl From<crate::import::Refusal> for CatalogError {
+    fn from(r: crate::import::Refusal) -> CatalogError {
+        match r {
+            crate::import::Refusal::Import(e) => CatalogError::Import(e),
+            other => CatalogError::Refused(other),
+        }
     }
 }
 
@@ -291,7 +303,10 @@ pub fn import_into_library(
             local_manufacturers: true,
             shared: &shared,
         };
-        parse_parts(input, map, &master, &target)?
+        let sizes = [input.bytes().len() as u64];
+        crate::import::front_door(input.name(), &sizes, &target.limits, None, || {
+            parse_parts(input, map, &master, &target)
+        })?
     };
     let stale: Vec<String> = import
         .needs_bump()
@@ -338,14 +353,14 @@ impl Session {
     ///
     /// # Errors
     ///
-    /// [`ImportError`] for a table refused as a whole.
+    /// [`Refusal`](crate::import::Refusal) for a table refused as a whole or an importer that panicked.
     pub fn catalog_parts(
         &self,
         input: &ImportInput,
         map: &ColumnMap,
         master: &[LibCopy<Manufacturer>],
         as_of: Option<Date>,
-    ) -> Result<(PartsImport, Option<AnyCommand>), ImportError> {
+    ) -> Result<(PartsImport, Option<AnyCommand>), crate::import::Refusal> {
         let query = self.query();
         let project = query.project().id.as_uuid();
         let held: std::collections::BTreeMap<_, _> = query
@@ -364,7 +379,10 @@ impl Session {
             local_manufacturers: true,
             shared: &[],
         };
-        let import = parse_parts(input, map, master, &target)?;
+        let sizes = [input.bytes().len() as u64];
+        let import = crate::import::front_door(input.name(), &sizes, &target.limits, None, || {
+            parse_parts(input, map, master, &target)
+        })?;
         let new: std::collections::BTreeSet<_> = import
             .rows
             .iter()

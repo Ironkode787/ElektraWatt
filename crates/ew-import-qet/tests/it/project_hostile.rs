@@ -202,3 +202,36 @@ fn item_garbage_becomes_findings() {
         "{dropped:?}"
     );
 }
+
+/// WP-S3.09 IC-5 (D5 c): a `.qet` that declares an external entity is refused before any byte of it is resolved.
+#[test]
+fn an_external_entity_is_refused() {
+    let xml = "<?xml version=\"1.0\"?><!DOCTYPE project [<!ENTITY e SYSTEM \"file:///etc/passwd\">]>\
+               <project title=\"&e;\"/>";
+    let err = import(xml).unwrap_err();
+    assert_eq!(err.to_string(), "malformed input at line 1: a DOCTYPE is not accepted");
+}
+
+/// WP-S3.09 IC-5 (D5 c): an `xi:include` is never followed: it is unknown content, reported and dropped, and the
+/// rest of the folio imports.
+#[test]
+fn an_xinclude_is_reported_and_never_followed() {
+    let xml = r#"<project xmlns:xi="http://www.w3.org/2001/XInclude">
+<diagram folio="1" title="One">
+<xi:include href="file:///etc/passwd" parse="text"/>
+</diagram>
+</project>"#;
+    let batch = import(xml).unwrap();
+    let dropped: Vec<&str> = with_code(&batch, Code::DROPPED_BY_DESIGN)
+        .iter()
+        .map(|e| e.message.as_str())
+        .filter(|m| m.contains("include"))
+        .collect();
+    assert_eq!(dropped, ["unsupported include dropped"]);
+    assert!(
+        batch
+            .records
+            .iter()
+            .any(|r| matches!(r, ew_import_qet::ew_interop_api::ew_schema::Record::Page(_)))
+    );
+}

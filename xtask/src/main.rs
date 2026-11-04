@@ -487,7 +487,9 @@ fn check_deps() -> Result<Violations> {
     let root = workspace_root();
     let policy = deps::Policy::load(&root.join("ci/dep-rules.toml"))?;
     let graph = deps::Graph::from_metadata(&metadata()?);
-    Ok(deps::check(&policy, &graph))
+    let mut violations = deps::check(&policy, &graph);
+    violations.extend(deps::importer_purity(&root)?);
+    Ok(violations)
 }
 
 fn check_build_scripts() -> Result<Violations> {
