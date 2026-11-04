@@ -156,7 +156,7 @@ impl ShellModel {
                 let mut cps: Vec<(u16, TableEnd)> = tables
                     .cps
                     .iter()
-                    .filter(|c| rep.functions.first() == Some(&c.function))
+                    .filter(|c| rep.functions.contains(&c.function))
                     .map(|c| {
                         let end = TableEnd::Cp {
                             function: c.function,

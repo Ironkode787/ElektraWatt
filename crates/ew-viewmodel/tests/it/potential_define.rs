@@ -443,7 +443,17 @@ fn define_potential_from_the_menu_the_context_menu_and_the_palette() {
     );
     assert_eq!(shell.recorded_commands().len(), steps, "nothing commits");
     fill_form(&mut shell, ["FEED-A", "L+", "24 V DC"]);
+    // FT-1242: one undo step, at the wire's `from` end.
+    assert_eq!(shell.recorded_commands().len(), steps + 1, "one step");
+    let from = shell.canvas().unwrap().page().tables.connections.first().map(|c| c.a).unwrap();
+    let from = match from {
+        ew_viewmodel::ew_api::output::TableEnd::Cp { function, idx } => {
+            json!({"cp": {"function": function.to_string(), "idx": idx}})
+        }
+        ew_viewmodel::ew_api::output::TableEnd::Junction { id } => json!({"junction": {"junction": id.to_string()}}),
+    };
     let last = shell.recorded_commands().last().unwrap();
+    assert_eq!(last.params["at"], from, "{}", last.params);
     assert_eq!(last.cmd, "potential.define");
     assert_eq!(last.params["ptype"], "l_plus", "{}", last.params);
     assert_eq!(last.params["env"]["ac_dc"], "dc", "{}", last.params);
