@@ -86,10 +86,11 @@ precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 The ElektraWatt contributors"
 SPDX-License-Identifier = "MIT OR Apache-2.0"
 
-# The network sandbox's headless flow and its QElectroTech project (WP-S6.05 D4), JSON lines and the project as the
-# importer reads it, which carry no header (MIT OR Apache-2.0, like ci/).
+# The network sandbox's headless flow and its QElectroTech projects (WP-S6.05 D4; WP-S6.04 D14 the hostile one and the
+# sibling file it names), JSON lines and the projects as the importer reads them, which carry no header (MIT OR
+# Apache-2.0, like ci/).
 [[annotations]]
-path = ["ci/sandbox/flows.ewui", "ci/sandbox/fixture.qet"]
+path = ["ci/sandbox/flows.ewui", "ci/sandbox/fixture.qet", "ci/sandbox/fixture-hostile.qet", "ci/sandbox/sibling.txt"]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 The ElektraWatt contributors"
 SPDX-License-Identifier = "MIT OR Apache-2.0"

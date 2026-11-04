@@ -18,6 +18,13 @@
   inet-bind      a `bind` of AF_INET or AF_INET6
   lookup-file    an `openat` of /etc/resolv.conf, /etc/hosts or /etc/gai.conf (the files a name lookup reads, in
                  place of doc 18's LD_PRELOAD shim)
+  foreign-file   in an import flow, an `openat` of a path under the job's work folder other than the flow's source and
+                 the user directories, or under the repository other than `content/` (WP-S6.04 D14, NFR-SEC-18)
+
+A flow is an import flow when a file `<flow>.import` lies beside its trace, with the lines `source <path>`,
+`work <folder>`, `repo <folder>` and any number of `allow <folder>` (the user directories, which run.sh moved into the
+work folder); a relative path of an `openat` from AT_FDCWD is read against the work folder (the flows' working
+directory), one relative to another directory's descriptor is not checked.
 
 Other AF_UNIX traffic (D-Bus) and AF_NETLINK pass. There is no allowlist: 0.1.0 has no `ew mcp`. `canary` fails when a
 binary holds the bytes `EW_DEBUG_PANIC` (the forced panic of a debug build, WP-S6.05 D9) or `egui_mcp` (the test bridge,
@@ -25,6 +32,7 @@ CI-PR-09). Each failure prints the flow or file, the rule and the syscall line; 
 a usage error. Standard library only.
 """
 import os
+import posixpath
 import re
 import sys
 import tempfile
@@ -37,6 +45,7 @@ INET = re.compile(r"\bAF_INET6?\b")
 INET_ADDRESS = re.compile(r"sa_family=AF_INET6?\b")
 UNIX_PATH = re.compile(r'sun_path="([^"]*)"')
 OPENED = re.compile(r'openat\([^,]*,\s*"([^"]*)"')
+OPENED_AT = re.compile(r'openat\(([^,]*),\s*"([^"]*)"')
 
 RESOLVER_SOCKETS = ("/run/systemd/resolve/", "/run/nscd/", "/var/run/nscd/")
 LOOKUP_FILES = ("/etc/resolv.conf", "/etc/hosts", "/etc/gai.conf")
@@ -69,11 +78,53 @@ def findings(line):
     return rules
 
 
-def scan_text(flow, text):
-    """The failure lines of one flow's trace."""
+def under(path, folder):
+    """Whether `path` is `folder` or lies below it (both normalised POSIX paths)."""
+    return path == folder or path.startswith(folder.rstrip("/") + "/")
+
+
+def foreign(spec, line):
+    """Whether `line` is an `openat` that an import flow with `spec` (its `.import` file) may not make."""
+    m = CALL.match(line)
+    opened = OPENED_AT.search(line)
+    if not m or m.group(1) != "openat" or not opened:
+        return False
+    dirfd, path = opened.group(1).strip(), opened.group(2)
+    if not path.startswith("/"):
+        if dirfd != "AT_FDCWD":
+            return False
+        path = posixpath.join(spec["work"], path)
+    path = posixpath.normpath(path)
+    norm = posixpath.normpath
+    if path == norm(spec["source"]) or any(under(path, norm(a)) for a in spec["allow"]):
+        return False
+    repo = norm(spec["repo"])
+    return under(path, norm(spec["work"])) or (under(path, repo) and not under(path, posixpath.join(repo, "content")))
+
+
+def read_import(text):
+    """The `.import` file of an import flow: its source, work folder, repository and allowed folders."""
+    spec = {"allow": []}
+    for line in text.splitlines():
+        key, _, value = line.partition(" ")
+        if key == "allow":
+            spec["allow"].append(value)
+        elif key in ("source", "work", "repo"):
+            spec[key] = value
+    missing = [k for k in ("source", "work", "repo") if k not in spec]
+    if missing:
+        raise ValueError(f"the .import file names no {', '.join(missing)}")
+    return spec
+
+
+def scan_text(flow, text, spec=None):
+    """The failure lines of one flow's trace; `spec`, the flow's `.import` file, makes it an import flow."""
     out = []
     for line in text.splitlines():
-        for rule in findings(line):
+        rules = findings(line)
+        if spec is not None and foreign(spec, line):
+            rules.append("foreign-file")
+        for rule in rules:
             out.append(f"{flow}: {rule}: {line.strip()}")
     return out
 
@@ -84,8 +135,13 @@ def scan(paths):
         flow = os.path.basename(path)
         if flow.endswith(".strace"):
             flow = flow[: -len(".strace")]
+        spec = None
+        spec_path = os.path.join(os.path.dirname(path), flow + ".import")
+        if os.path.exists(spec_path):
+            with open(spec_path, encoding="utf-8") as f:
+                spec = read_import(f.read())
         with open(path, encoding="utf-8", errors="replace") as f:
-            out.extend(scan_text(flow, f.read()))
+            out.extend(scan_text(flow, f.read(), spec))
     return out
 
 
@@ -178,6 +234,51 @@ class Tests(unittest.TestCase):
                 f.write(b"\x7fELF\0\0EW_CONFIG_DIR\0EW_DEBUG\0")
             self.assertEqual(canary([debug]), [f"{debug}: canary: holds the bytes EW_DEBUG_PANIC"])
             self.assertEqual(canary([release]), [])
+
+    def test_an_import_flow_fails_on_a_foreign_file(self):
+        spec = read_import("source /w/fixture-hostile.qet\nwork /w\nrepo /r\nallow /w/home\n")
+        trace = "\n".join(
+            [
+                '5 openat(AT_FDCWD, "/w/fixture-hostile.qet", O_RDONLY|O_CLOEXEC) = 3',
+                '5 openat(AT_FDCWD, "/r/content/symbols/x.json", O_RDONLY|O_CLOEXEC) = 4',
+                '5 openat(AT_FDCWD, "/w/home/config/elektrawatt/settings.toml", O_RDONLY|O_CLOEXEC) = -1 ENOENT',
+                '5 openat(AT_FDCWD, "/usr/lib/x86_64-linux-gnu/libc.so.6", O_RDONLY|O_CLOEXEC) = 5',
+                '5 openat(AT_FDCWD, "/w/sibling.txt", O_RDONLY|O_CLOEXEC) = 6',
+                '5 openat(AT_FDCWD, "sibling.txt", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)',
+                '5 openat(AT_FDCWD, "/w/home/../cli.ew/manifest.json", O_RDONLY|O_CLOEXEC) = 7',
+                '5 openat(AT_FDCWD, "/r/golden/J-E-2416.ew/manifest.json", O_RDONLY|O_CLOEXEC) = 8',
+                '5 openat(AT_FDCWD, "/r/content-other/x", O_RDONLY|O_CLOEXEC) = 9',
+                '5 openat(7, "relative", O_RDONLY|O_CLOEXEC) = 10',
+            ]
+        )
+        self.assertEqual(
+            scan_text("ew-import-qet-hostile", trace, spec),
+            [
+                'ew-import-qet-hostile: foreign-file: 5 openat(AT_FDCWD, "/w/sibling.txt", O_RDONLY|O_CLOEXEC) = 6',
+                'ew-import-qet-hostile: foreign-file: 5 openat(AT_FDCWD, "sibling.txt", O_RDONLY|O_CLOEXEC) = -1 ENOENT '
+                "(No such file or directory)",
+                'ew-import-qet-hostile: foreign-file: 5 openat(AT_FDCWD, "/w/home/../cli.ew/manifest.json", '
+                "O_RDONLY|O_CLOEXEC) = 7",
+                'ew-import-qet-hostile: foreign-file: 5 openat(AT_FDCWD, "/r/golden/J-E-2416.ew/manifest.json", '
+                "O_RDONLY|O_CLOEXEC) = 8",
+                'ew-import-qet-hostile: foreign-file: 5 openat(AT_FDCWD, "/r/content-other/x", O_RDONLY|O_CLOEXEC) = 9',
+            ],
+        )
+        # Without its .import file a flow is no import flow: the same opens pass.
+        self.assertEqual(scan_text("ew-check", trace), [])
+
+    def test_the_import_file_beside_the_trace_makes_an_import_flow(self):
+        with tempfile.TemporaryDirectory() as d:
+            with open(os.path.join(d, "ew-import-qet.strace"), "w", encoding="utf-8") as f:
+                f.write('1 openat(AT_FDCWD, "/w/sibling.txt", O_RDONLY) = 3\n')
+            with open(os.path.join(d, "ew-import-qet.import"), "w", encoding="utf-8") as f:
+                f.write("source /w/fixture.qet\nwork /w\nrepo /r\n")
+            self.assertEqual(
+                scan([os.path.join(d, "ew-import-qet.strace")]),
+                ['ew-import-qet: foreign-file: 1 openat(AT_FDCWD, "/w/sibling.txt", O_RDONLY) = 3'],
+            )
+            with self.assertRaisesRegex(ValueError, "^the .import file names no repo$"):
+                read_import("source /w/x.qet\nwork /w\n")
 
     def test_the_flow_is_the_file_name(self):
         with tempfile.TemporaryDirectory() as d:

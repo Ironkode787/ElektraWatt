@@ -69,8 +69,17 @@ flow ew-export-svg "0" "$bin/ew" export svg "$cli" --out "$work/svg" --pages 101
 flow ew-export-bom "0" "$bin/ew" export bom "$cli" --out "$work/bom.csv"
 flow ew-render "0" "$bin/ew" render "$cli" --page 103 --png --out "$work/103.png"
 flow ew-sql "0" "$bin/ew" sql "$cli" "SELECT count(*) AS n FROM api_v1_device"
+# The import flows (WP-S6.04 D14, NFR-SEC-18): a sibling file beside each fixture, which the second fixture names by an
+# external entity and an `xi:include` (refused, exit 2). <out>/<flow>.import names the flow's source, the work folder,
+# the repository and the user directories for ci/sandbox-check.py's rule `foreign-file`.
 cp "$repo/ci/sandbox/fixture.qet" "$work/fixture.qet"
+cp "$repo/ci/sandbox/fixture-hostile.qet" "$work/fixture-hostile.qet"
+cp "$repo/ci/sandbox/sibling.txt" "$work/sibling.txt"
+printf 'source %s\nwork %s\nrepo %s\nallow %s\n' "$work/fixture.qet" "$work" "$repo" "$HOME" >"$out/ew-import-qet.import"
 flow ew-import-qet "0 1" "$bin/ew" import qet "$work/fixture.qet" --content "$repo/content"
+printf 'source %s\nwork %s\nrepo %s\nallow %s\n' "$work/fixture-hostile.qet" "$work" "$repo" "$HOME" \
+  >"$out/ew-import-qet-hostile.import"
+flow ew-import-qet-hostile "2" "$bin/ew" import qet "$work/fixture-hostile.qet" --content "$repo/content"
 flow ew-print "0" "$bin/ew" print "$cli" --out "$work/print.pdf" --pages 101-103
 flow ew-apply "0 1" "$bin/ew" apply "$cli" "$repo/golden/J-E-2416/variants/b2-renumber-pages.ewcmd"
 
