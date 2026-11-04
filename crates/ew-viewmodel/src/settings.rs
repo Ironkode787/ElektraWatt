@@ -815,9 +815,9 @@ pub(crate) fn env_path(name: &str) -> Option<PathBuf> {
         .map(PathBuf::from)
 }
 
-/// The settings directory: `EW_CONFIG_DIR` when set, else `%APPDATA%\ElektraWatt` on Windows,
-/// `~/Library/Application Support/ElektraWatt` on macOS and `$XDG_CONFIG_HOME/elektrawatt` (else
-/// `~/.config/elektrawatt`) elsewhere; `None` when the environment names none.
+/// The settings directory: `EW_CONFIG_DIR` when set, else `%APPDATA%\ElektraWatt` on Windows and
+/// `$XDG_CONFIG_HOME/elektrawatt` (else `~/.config/elektrawatt`) on Linux and any other system (macOS is not supported,
+/// ID-880); `None` when the environment names none.
 pub fn default_config_dir() -> Option<PathBuf> {
     let var = env_path;
     if let Some(dir) = var("EW_CONFIG_DIR") {
@@ -825,8 +825,6 @@ pub fn default_config_dir() -> Option<PathBuf> {
     }
     if cfg!(windows) {
         var("APPDATA").map(|p| p.join("ElektraWatt"))
-    } else if cfg!(target_os = "macos") {
-        var("HOME").map(|p| p.join("Library/Application Support/ElektraWatt"))
     } else {
         var("XDG_CONFIG_HOME")
             .map(|p| p.join("elektrawatt"))
