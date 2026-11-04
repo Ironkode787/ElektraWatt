@@ -298,10 +298,14 @@ The main session orchestrates. It plans each cycle, briefs Claude subagents, int
   - After a resource failure, run `cargo clean` before the re-run.
   - The Windows and WSL gates run one after the other.
 - **Targets.**
-  - Delete a lane's `target` when its part is accepted. If `rm -rf` fails, use `cmd //c "rmdir /s /q <path>"`.
+  - Delete a lane's `target` when its part is accepted, and at once when its last fix round is picked: "accepted with
+    fixes" counts as accepted once the fixes are in (cycle 50: a dozen 50-60 GB targets of picked lanes filled the
+    disk and stopped three builders). If `rm -rf` fails, use `cmd //c "rmdir /s /q <path>"`.
   - Clean the main checkout's `target` after every last verify and gate.
   - Incremental builds make targets larger: watch them at each merge point.
-- **Free space.** At least 150 GB before a gate. The orchestrator's guard is 250 GB before every dispatch and verify.
+- **Free space.** At least 150 GB before a gate. The orchestrator's guard is 250 GB before every dispatch and verify:
+  run `python ../ew-private/notes/tools/gate.py verify` (or `df`) in the same message as each builder's dispatch, a
+  resumed author's included.
   Agents delete nothing outside their own worktree; if the disk runs short, they stop and report.
 
 ## Notes outside the repository
