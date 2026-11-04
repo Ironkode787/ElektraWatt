@@ -332,6 +332,12 @@ pub fn all(r: &mut Runner) {
     defects(r);
     // WP-S1.18 part 5 (RU-4): AC-23 in two halves (D15).
     ac23(r);
+    // WP-S1.20 FL-13: AC-32's MVP part, at the end so that the earlier rows keep their shard.
+    r.entry(
+        "AC-32",
+        "MVP part: 28 valve children; 24 valve glyphs on 201 and 4 on -202U2 print 571334; 16 lines F1 to F16 reach 8 field devices; the 28 valves print their Q addresses",
+        ac32,
+    );
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -4180,6 +4186,91 @@ fn d15_bus(c: &Ctx) -> Outcome {
         return fail("folio 3 does not print \"Node TBD\"".to_owned());
     }
     pass(format!("{why}; folio 3 prints \"Node TBD\""))
+}
+
+/// AC-32, MVP part (WP-S1.20 FL-13, FL-11): the 28 valve children of the seven modules (`valve_slots`); folio 201 draws
+/// 24 valve glyphs and folio 202 four, on -202U2, each printing the part number 571334; the 16 fluid lines F1 to F16
+/// join the eight used valves to their field devices, the tracked target of each (8 distinct devices); every valve
+/// prints the Q address of its coil's channel (`plc_address_text`).
+fn ac32(c: &Ctx) -> Outcome {
+    let s = golden_common::session(&c.batch);
+    let q = s.query();
+    let mut valves: Vec<Id<Device>> = Vec::new();
+    for (module, _) in q.devices().iter() {
+        for slot in &q.get::<ew_derive::ValveSlots>(module).slots {
+            if let ew_derive::ValveSlot::Valve { device, .. } = slot {
+                valves.push(*device);
+            }
+        }
+    }
+    if valves.len() != 28 {
+        return fail(format!("{} valve children, not 28", valves.len()));
+    }
+    let glyphs = |folio: &str| -> Vec<String> {
+        let page: Id<ew_schema::Page> = id_of(c, &format!("pages|{folio}"));
+        ew_api::output::page_valve_glyphs(&q, page)
+            .into_iter()
+            .flat_map(|g| g.glyphs)
+            .map(|g| match g {
+                ew_scene::page::ValveGlyph::Valve { part_number, .. } => part_number,
+                other => format!("{other:?}"),
+            })
+            .collect()
+    };
+    let (g201, g202) = (glyphs("201"), glyphs("202"));
+    if g201.len() != 24 || g202.len() != 4 || g201.iter().chain(&g202).any(|t| t != "571334") {
+        return fail(format!("folio 201 draws {g201:?}, folio 202 {g202:?}"));
+    }
+    let lines: Vec<&str> = q
+        .connections()
+        .iter()
+        .filter(|(_, x)| matches!(x.kind, ew_schema::ConnectionKind::Fluid(_)))
+        .filter_map(|(id, _)| {
+            c.ids
+                .iter()
+                .find(|(_, v)| **v == id.to_string())
+                .map(|(k, _)| k.as_str())
+        })
+        .collect();
+    let mut keys: Vec<&str> = lines
+        .iter()
+        .filter_map(|k| k.strip_prefix("connections|"))
+        .collect();
+    keys.sort_by_key(|k| k[1..].parse::<u32>().unwrap_or(0));
+    let want: Vec<String> = (1..=16).map(|n| format!("F{n}")).collect();
+    if keys != want {
+        return fail(format!("the fluid lines are {keys:?}"));
+    }
+    let targets: BTreeSet<Id<Device>> = valves
+        .iter()
+        .filter_map(|v| ew_derive::reached_device(&q, *v))
+        .collect();
+    if targets.len() != 8 {
+        return fail(format!("the lines reach {} field devices, not 8", targets.len()));
+    }
+    let tracked = valves
+        .iter()
+        .filter(|v| ew_derive::reached_device(&q, **v).is_some())
+        .all(|v| ew_derive::tracked_target(&q, *v) == ew_derive::reached_device(&q, *v));
+    if !tracked {
+        return fail("a used valve's tracked target is not the field device its lines reach".to_owned());
+    }
+    let addresses: Vec<String> = valves
+        .iter()
+        .filter_map(|v| {
+            q.idx()
+                .functions_of_device(*v)
+                .find_map(|f| q.get::<ew_derive::PlcAddressText>(f).text.clone())
+        })
+        .filter(|t| t.starts_with('Q'))
+        .collect();
+    if addresses.len() != 28 {
+        return fail(format!("{} valves print a Q address, not 28", addresses.len()));
+    }
+    pass(format!(
+        "28 valve children; 24 glyphs on 201 and 4 on 202 print 571334; F1 to F16 reach {} field devices, each the tracked target of its valve; 28 Q addresses",
+        targets.len()
+    ))
 }
 
 /// The external end of the DP segment as EW-BUS-004 prints it.

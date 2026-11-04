@@ -195,6 +195,165 @@ fn fl6_a_full_module_refuses_a_valve_and_golden_a_has_no_occupancy_defect() {
     );
 }
 
+/// The open EW-FL-001 findings of the release run.
+fn open_ports(s: &Session) -> usize {
+    s.check(&ew_api::checks::PRE_DELIVERY, ew_api::checks::CheckMode::Release)
+        .findings
+        .iter()
+        .filter(|f| f.rule == "EW-FL-001")
+        .count()
+}
+
+/// The valve body function (contact kind `valve`) of a device.
+fn body(s: &Session, valve: Id<Device>) -> Id<ew_schema::Function> {
+    let q = s.query();
+    q.idx()
+        .functions_of_device(valve)
+        .find(|f| {
+            q.functions()
+                .get(*f)
+                .and_then(|f| q.fndefs().get(f.def))
+                .is_some_and(|d| d.item.contact_kind == ContactKind::Valve)
+        })
+        .expect("the valve body")
+}
+
+/// FL-9 (FR-FLU-028): with F1 to F16 drawn, EW-FL-001 reports the 20 spare valves; plugging -201U5-Q1:2 and :4
+/// leaves 19, clearing the closures gives 20 again; T9 and T10 whole.
+#[test]
+fn fl9_closed_ports_are_exempt_from_ew_fl_001() {
+    let mut s = golden_common::session(&golden_common::batch());
+    assert_eq!(open_ports(&s), 20);
+    let f = body(&s, device(&s, "-201U5-Q1"));
+    let close = |idx: u16, closure: Option<serde_json::Value>| {
+        let mut params = json!({"function": f.to_string(), "idx": idx});
+        if let Some(c) = closure {
+            params["closure"] = c;
+        }
+        AnyCommand {
+            name: "fluid.port.close".into(),
+            params,
+        }
+    };
+    for idx in [1, 3] {
+        s.execute(&close(idx, Some(json!({"kind": "plug"})))).unwrap();
+    }
+    assert_eq!(open_ports(&s), 19);
+    for idx in [1, 3] {
+        s.execute(&close(idx, None)).unwrap();
+    }
+    assert_eq!(open_ports(&s), 20);
+    // T9: the coil's CP 14 is no fluid port; T10: -201U3-Q1:2 has F1
+    let coil = {
+        let q = s.query();
+        q.idx()
+            .functions_of_device(device(&s, "-201U5-Q1"))
+            .find(|g| *g != f)
+            .expect("the coil")
+    };
+    let refusal = |s: &mut Session, cmd: &AnyCommand| s.execute(cmd).expect_err("refused").to_string();
+    let t9 = AnyCommand {
+        name: "fluid.port.close".into(),
+        params: json!({"function": coil.to_string(), "idx": 0, "closure": {"kind": "plug"}}),
+    };
+    assert_eq!(
+        refusal(&mut s, &t9),
+        "fluid.port.close: -201U5-Q1:14 is not a fluid port"
+    );
+    let used = body(&s, device(&s, "-201U3-Q1"));
+    let t10 = AnyCommand {
+        name: "fluid.port.close".into(),
+        params: json!({"function": used.to_string(), "idx": 1, "closure": {"kind": "plug"}}),
+    };
+    assert_eq!(
+        refusal(&mut s, &t10),
+        "fluid.port.close: -201U3-Q1:2 has a fluid line; delete the line before closing the port"
+    );
+}
+
+/// FL-10 (FR-FLU-029): on Golden A without -201U3-Q1's `drives` link and F1, F2, drawing F1 adds the link (T22) and
+/// folio 203 prints "TA05-V-15" at -201U3-Q1; drawing F2 adds no second link. A link to another actuator than the one
+/// the lines reach is EW-FL-011 (T18).
+#[test]
+fn fl10_the_first_working_line_links_the_valve() {
+    let batch = golden_common::batch();
+    let ids = golden_common::ids_by_key(&batch);
+    let valve_id = ids["devices|-201U3-Q1"].clone();
+    let mut s = golden_common::session_with(&batch, |_, records| {
+        records.retain(|r| match r {
+            ew_schema::Record::Connection(_) => !matches!(
+                golden_common::source_key(r),
+                Some("connections|F1" | "connections|F2")
+            ),
+            ew_schema::Record::DeviceLink(l) => l.from.to_string() != valve_id,
+            _ => true,
+        });
+    });
+    let valve = device(&s, "-201U3-Q1");
+    let actuator = device(&s, "-203Q1");
+    assert!(!slot_texts(&s, valve).iter().any(|t| t == "TA05-V-15"));
+    let f = body(&s, valve);
+    let cylinder = {
+        let q = s.query();
+        q.idx()
+            .functions_of_device(actuator)
+            .find(|g| {
+                q.functions()
+                    .get(*g)
+                    .and_then(|x| q.fndefs().get(x.def))
+                    .is_some_and(|d| d.item.contact_kind != ContactKind::Valve && d.item.cps.len() == 2)
+                    && q.get::<FunctionCps>(*g).iter().any(|c| c.designation == "A")
+            })
+            .expect("the actuator")
+    };
+    let draw = |port: u16, end: u16| AnyCommand {
+        name: "connection.draw".into(),
+        params: json!({
+            "a": {"cp": {"function": f.to_string(), "idx": port}},
+            "b": {"cp": {"function": cylinder.to_string(), "idx": end}},
+            "kind": {"fluid": {}},
+        }),
+    };
+    let links = |s: &Session| {
+        s.query()
+            .table::<ew_schema::DeviceLink>()
+            .iter()
+            .filter(|(_, l)| l.from == valve)
+            .map(|(_, l)| l.to)
+            .collect::<Vec<_>>()
+    };
+    let r = s.execute(&draw(1, 0)).unwrap();
+    assert_eq!(r.outcome.notices, ["-201U3-Q1 now drives -203Q1"]);
+    assert_eq!(links(&s), [actuator]);
+    assert!(slot_texts(&s, valve).iter().any(|t| t == "TA05-V-15"));
+    let r = s.execute(&draw(3, 1)).unwrap();
+    assert!(r.outcome.notices.is_empty(), "{:?}", r.outcome.notices);
+    assert_eq!(links(&s), [actuator]);
+    // T18: Golden A with the link of -201U3-Q1 pointing at -203Q2 while F1 and F2 reach -203Q1
+    let q2 = ids["devices|-203Q2"].clone();
+    let valve_id = ids["devices|-201U3-Q1"].clone();
+    let s = golden_common::session_with(&batch, |_, records| {
+        for r in records.iter_mut() {
+            if let ew_schema::Record::DeviceLink(l) = r
+                && l.from.to_string() == valve_id
+            {
+                l.to = q2.parse().expect("an ID");
+            }
+        }
+    });
+    let online = s.check(&ew_api::checks::DRAFTING, ew_api::checks::CheckMode::Online);
+    let t18: Vec<&str> = online
+        .findings
+        .iter()
+        .filter(|x| x.rule == "EW-FL-011")
+        .map(|x| x.message.as_str())
+        .collect();
+    assert_eq!(
+        t18,
+        ["-201U3-Q1 drives -203Q2, but its working-port lines reach -203Q1"]
+    );
+}
+
 /// D14 (FR-FLU-005): the function-text slot of the 5/2 valve falls back to the tracked process tag, so the eight used
 /// valves of folio 203 print their field device's tag; the spare valves keep their manual text "Spare".
 #[test]

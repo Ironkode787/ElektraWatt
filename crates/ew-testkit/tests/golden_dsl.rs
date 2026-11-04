@@ -334,11 +334,13 @@ fn path_b_equals_path_a_record_by_record_up_to_ids() {
         .iter()
         .map(|(k, n)| format!("{k}: {n}"))
         .collect();
+    // WP-S1.20 GA-2 (FL-14): the 16 fluid lines F1 to F16 are drawn, and normaliser N-FL-4 makes the eight `drives`
+    // links of the valves they join, so no `device.link` is issued; the links compare equal record by record below.
     assert_eq!(
         commands.join(", "),
         "assembly.attach: 2, bond.create: 1, box.black: 11, bus.logical_net.create: 1, \
-         bus.physical_net.create: 1, cable.create: 3, connection.draw: 87, \
-         device.create: 37, device.link: 8, device.place: 76, external_ref.create: 4, fields.set: 207, \
+         bus.physical_net.create: 1, cable.create: 3, connection.draw: 103, \
+         device.create: 37, device.place: 76, external_ref.create: 4, fields.set: 207, \
          ip.place: 48, junction.edit: 6, layout.carrier.add: 8, layout.enclosure.create: 1, layout.place: 20, \
          layout.space.create: 1, library.embed: 1, page.create: 13, page.surface_view.set: 1, plc.bind_channel: 28, \
          plc.config_project.create: 1, potential.define: 19, project.settings.set: 3, \

@@ -2139,7 +2139,7 @@ fn lib_import_parts_and_import_parts_with_a_map() {
 // AC-21 through the CLI (WP-S1.22 part 1, CL-6)
 
 /// The built packs of AC-21's subset, as the `ew-api` test `ac21_four_pack_subset_equals_findings_mvp_csv` names them.
-const AC21_PACKS: [&str; 7] = [
+const AC21_PACKS: [&str; 8] = [
     "EW-CORE",
     "EW-IEC81346",
     "EW-TERM",
@@ -2147,6 +2147,7 @@ const AC21_PACKS: [&str; 7] = [
     "EW-PLC",
     "EW-BUS",
     "EW-LAYOUT",
+    "EW-FL",
 ];
 
 /// The open findings of the built packs that doc 20 §18.1 does not list (FT-638: the process valves are supplied by

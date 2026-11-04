@@ -790,7 +790,28 @@ pub fn build<S: CommandSink + ?Sized>(batch: &ImportBatch, sink: &mut S) -> Resu
             }
         }
     }
+    // WP-S1.20 D15: a `drives` link whose valve has a fluid line to the driven device was made by normaliser N-FL-4
+    // when the line was drawn, with the ID `v5(valve, "drives" ␟ device)`.
+    let device_of = |f: Id<Function>| functions.iter().find(|x| x.id == f).and_then(|x| x.device);
+    let fluid_pairs: BTreeSet<(Id<Device>, Id<Device>)> = of!(Connection)
+        .filter(|c| matches!(c.kind, ConnectionKind::Fluid(_)))
+        .filter_map(|c| {
+            let a = endpoint_function(&c.a).and_then(device_of)?;
+            let b = endpoint_function(&c.b).and_then(device_of)?;
+            Some([(a, b), (b, a)])
+        })
+        .flatten()
+        .collect();
     for x in of!(DeviceLink) {
+        let drawn = x.kind == ew_schema::DeviceLinkKind::Drives && fluid_pairs.contains(&(x.from, x.to));
+        if let (true, Some(from), Some(to)) = (drawn, map.get(x.from), map.get(x.to)) {
+            let name = format!("drives\u{1F}{}", to.as_uuid().hyphenated());
+            map.insert(
+                x.id,
+                Id::from_uuid(ew_ids::Uuid::new_v5(&from.as_uuid(), name.as_bytes())),
+            );
+            continue;
+        }
         let id = b.device_link(&map.apply(x))?;
         map.insert(x.id, id);
     }

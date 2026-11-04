@@ -2444,6 +2444,34 @@ def build_bus_connections(rows):
     )  # fmt: skip
 
 
+def build_fluid_lines(rows):
+    """Doc 20 section 12 (WP-S1.20 D20, GA-2): the 16 working lines F1 ... F16, from ports 2 and 4 of the eight used
+    valves to A and B of the actuators of -203Q1 ... -203Q8, fluid lines on folio 203 (F17 is Golden A-R's)."""
+    keys = []
+    first = None
+    for r in table_dicts("## 12. Pneumatic functions", 1):
+        if "A-R only" in r["Lines"]:
+            continue
+        lines = [x.strip() for x in r["Lines"].split(",")]
+        frm = re.fullmatch(r"(-20[12]U\d-Q\d):2, :4", r["From"])
+        to = re.match(r"(-203Q\d) \(", r["To"])
+        check(len(lines) == 2 and frm and to, f"section 12: the line row {r!r}")
+        first = first or r["To"]
+        for key, port, end in zip(lines, ("2", "4"), ("A", "B")):
+            rows.append(
+                {"key": key, "wire": "", "page": "203", "a": f"{frm.group(1)}:{port}", "b": f"{to.group(1)}:{end}",
+                 "kind": "fluid"}
+            )  # fmt: skip
+            keys.append(key)
+    check(keys == [f"F{n}" for n in range(1, 17)], f"section 12: the lines are {keys}")
+    fixture(
+        "connections", "kind", keys, "fluid", "§12",
+        "ports 2 and 4 of each used valve join A and B of its actuator (the ▲ of the cell), as working fluid lines on "
+        "folio 203 without a route (WP-S1.20 D20)",
+        cell=first,
+    )  # fmt: skip
+
+
 def build_connections(ips, device_keys, conductor_keys, fkeys):
     wires = table_dicts("### 8.2 Wire table")
     check(len(wires) == 44, f"section 8.2: {len(wires)} wires, 44 expected")
@@ -2560,9 +2588,10 @@ def build_connections(ips, device_keys, conductor_keys, fkeys):
             bridges += 1
     check(bridges == 19, f"section 8.3: {bridges} bridge connections, 19 expected")
     build_bus_connections(rows)
+    build_fluid_lines(rows)
     n_wires = sum(1 for x in rows if x["wire"].startswith("W") and x["key"] == x["wire"])
     check(n_wires == 44, f"{n_wires} wire connections, 44 expected")
-    register("connections", CONN_COLS, rows, 72 + 19 + 2)
+    register("connections", CONN_COLS, rows, 72 + 19 + 2 + 16)
 
     # endpoint sanity: device or terminal exists, IP function exists
     for x in rows:

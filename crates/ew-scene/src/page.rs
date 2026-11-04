@@ -286,6 +286,41 @@ pub struct JunctionView {
     pub symbol: Option<SymbolRef>,
 }
 
+/// What one valve position of a module's overview glyph shows (doc 11 §5.5 step 3, WP-S1.20 D19).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum ValveGlyph {
+    /// A valve: a rectangle with a circle and the valve part's part number; the entity is `v5(rep, valve)`.
+    Valve {
+        /// The entity reference.
+        entity: Uuid,
+        /// The part number printed in the glyph.
+        part_number: String,
+    },
+    /// A blanking plate: the rectangle with both diagonals; the entity is `v5(rep, plate)`.
+    Blank {
+        /// The entity reference.
+        entity: Uuid,
+    },
+    /// An empty position: the rectangle dashed; the entity is `v5(rep, "position" ␟ p)`.
+    Empty {
+        /// The entity reference.
+        entity: Uuid,
+    },
+}
+
+/// The valve glyphs of one overview representation of a module (`valve_slots`, WP-S1.20 D19): one per position, the
+/// p-th from the left, in a band above the module glyph.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct ValveGlyphsView {
+    /// The module's overview representation.
+    pub rep: Id<Representation>,
+    /// The positions 1 … n in order.
+    pub glyphs: Vec<ValveGlyph>,
+}
+
+/// The text style of a valve glyph's part number: the CP-label style.
+pub const VALVE_GLYPH_STYLE: &str = "cp.small";
+
 /// The side of a representation a break mark closes (see [`BreakMarkView`]).
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum BreakSide {
@@ -359,6 +394,9 @@ pub struct PageView {
     pub embedded: Vec<EmbeddedView>,
     /// The break marks of assembly overviews on this page (doc 11 §5.5, D-41), drawn in [`Layer::Symbols`].
     pub break_marks: Vec<BreakMarkView>,
+    /// The valve glyphs of the module overviews on this page (WP-S1.20 D19), drawn in [`Layer::Symbols`] after the
+    /// break marks.
+    pub valve_glyphs: Vec<ValveGlyphsView>,
     /// The connection points of this page that a link of the export points at (a PLC overview row links to
     /// its coil, doc 10 §5): each gets a named destination ([`Destination::Cp`]) at its drawn position, else
     /// at its representation's position (a CP the symbol does not draw, such as the internal coil 14).
@@ -901,6 +939,80 @@ impl Builder<'_> {
                 Item::path(Path::polyline(&pts), Some(wire_stroke(view.grid)), None)
                     .with_entity(EntityRef(m.rep.as_uuid())),
             );
+        }
+        // The valve glyphs of the module overviews (WP-S1.20 D19): position p of n is the p-th of n equal cells of the
+        // module glyph's width w / n, twice as high, standing on the glyph's top edge.
+        for g in &view.valve_glyphs {
+            let Some(rv) = view.reps.iter().find(|r| r.rep.id == g.rep) else {
+                continue;
+            };
+            let Some(def) = &rv.symbol else { continue };
+            let n = i64::try_from(g.glyphs.len()).unwrap_or(0);
+            if n == 0 {
+                continue;
+            }
+            // the module glyph is the symbol's graphics, without its texts
+            let Some(b) = symbol::lower(def, rv.rep.orient).graphics.bounds() else {
+                continue;
+            };
+            let pos = rv.rep.pos;
+            let x0 = pos.x + b.min().x;
+            let top = pos.y + b.min().y;
+            let w = Nm((b.max().x.0 - b.min().x.0) / n);
+            let stroke = wire_stroke(view.grid);
+            for (i, glyph) in (0i64..).zip(&g.glyphs) {
+                let left = x0 + Nm(w.0 * i);
+                let cell = Rect::from_points(Pt2::new(left, top - Nm(2 * w.0)), Pt2::new(left + w, top));
+                let cx = left + Nm(w.0 / 2);
+                match glyph {
+                    ValveGlyph::Valve { entity, part_number } => {
+                        let entity = EntityRef(*entity);
+                        self.push(
+                            Item::path(Path::rect(cell), Some(stroke.clone()), None).with_entity(entity),
+                        );
+                        let centre = Pt2::new(cx, top - Nm(2 * w.0) + Nm(w.0 / 2));
+                        self.push(
+                            Item::path(Path::circle(centre, Nm(w.0 / 4)), Some(stroke.clone()), None)
+                                .with_entity(entity),
+                        );
+                        // the part number reads upwards in the cell below the circle
+                        self.text(&TextSpec {
+                            text: part_number,
+                            at: Pt2::new(cx, top - Nm(w.0 * 5 / 8)),
+                            angle: Angle2(90_000),
+                            align: &Align::Centre,
+                            style_key: VALVE_GLYPH_STYLE,
+                            entity,
+                            link: None,
+                            items: &[],
+                        });
+                    }
+                    ValveGlyph::Blank { entity } => {
+                        let entity = EntityRef(*entity);
+                        self.push(
+                            Item::path(Path::rect(cell), Some(stroke.clone()), None).with_entity(entity),
+                        );
+                        for (a, c) in [
+                            (cell.min(), cell.max()),
+                            (
+                                Pt2::new(cell.min().x, cell.max().y),
+                                Pt2::new(cell.max().x, cell.min().y),
+                            ),
+                        ] {
+                            self.push(
+                                Item::path(Path::polyline(&[a, c]), Some(stroke.clone()), None)
+                                    .with_entity(entity),
+                            );
+                        }
+                    }
+                    ValveGlyph::Empty { entity } => {
+                        let dashed = stroke.clone().dashed(DashPattern::Dash42);
+                        self.push(
+                            Item::path(Path::rect(cell), Some(dashed), None).with_entity(EntityRef(*entity)),
+                        );
+                    }
+                }
+            }
         }
         // The CP destinations of the page, after the symbols (an empty group at the CP: invisible).
         if !view.cp_targets.is_empty() {

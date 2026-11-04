@@ -9,8 +9,8 @@ use ew_ids::Id;
 use ew_interop_api::{Code, Severity};
 use ew_schema::{
     AcDc, BevelSpec, Bond, BondKind, BridgeKind, BridgeSpec, BusLine, CircuitClass, Conductor, Connection,
-    ConnectionKind, Endpoint, Junction, JunctionStyle, JunctionWiring, NumberSpec, Page, PotentialDef,
-    PotentialEarthing, PotentialEnv, Record, WireOverrides, WireProps,
+    ConnectionKind, Endpoint, FluidLine, Junction, JunctionStyle, JunctionWiring, NumberSpec, Page,
+    PotentialDef, PotentialEarthing, PotentialEnv, Record, WireOverrides, WireProps,
 };
 use ew_units::Pt2;
 
@@ -104,6 +104,8 @@ enum PendingKind<'t> {
     Bridge(BridgeSpec),
     /// A bus connection, with its cable device by `devices` key (doc 10 §2.7).
     Bus(Option<&'t str>),
+    /// A fluid line of kind working (WP-S1.20 D2, D20: Golden A's F1 to F16).
+    Fluid,
 }
 
 /// `connections.csv` → `connection`. The `wire` column is documentation and is not read.
@@ -121,6 +123,7 @@ pub(crate) fn emit_connections(cx: &mut Cx<'_>, table: Option<&Table>) {
         let kind = match r.text("kind") {
             None | Some("wire") => Some(PendingKind::Wire),
             Some("bus") => Some(PendingKind::Bus(cable)),
+            Some("fluid") => Some(PendingKind::Fluid),
             Some("core") => r.req("core").map(PendingKind::Core),
             Some("bridge") => {
                 let kind = r
@@ -199,6 +202,7 @@ pub(crate) fn emit_connections(cx: &mut Cx<'_>, table: Option<&Table>) {
         };
         let kind = match kind {
             PendingKind::Wire => ConnectionKind::Wire,
+            PendingKind::Fluid => ConnectionKind::Fluid(FluidLine::default()),
             PendingKind::Bridge(spec) => ConnectionKind::Bridge(spec),
             PendingKind::Bus(cable) => {
                 let cable = match cable {

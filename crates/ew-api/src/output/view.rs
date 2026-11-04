@@ -111,7 +111,7 @@ use ew_scene::embedded::{CoverTables, EmbeddedContent, EmbeddedTable, EmbeddedVi
 use ew_scene::forms::{AssetRef, BoundValue, PageBindings};
 use ew_scene::page::{
     BreakMarkView, BreakSide, ConnectionView, CpTarget, FrameView, ItemLink, JunctionView, PinText, RepView,
-    SegmentTerminal, SlotValue, StripTagView, SymbolRef,
+    SegmentTerminal, SlotValue, StripTagView, SymbolRef, ValveGlyph, ValveGlyphsView,
 };
 use ew_scene::table::{TableColumn, TableLink, TableRow, TableRowKind, TableView};
 use ew_schema::{
@@ -559,6 +559,63 @@ pub fn page_break_marks(q: &Q, page: Id<Page>) -> Vec<BreakMarkView> {
             },
         })
         .collect()
+}
+
+/// The valve glyphs of the module overviews on a drawn page (doc 11 §5.5 step 3, WP-S1.20 D19): for each overview
+/// representation of a module with valve positions, one glyph per position from `valve_slots`, in representation-ID
+/// order; a valve prints the part number of its first part use. A plain function of the tracked reads of `q`, like
+/// [`page_break_marks`].
+pub fn page_valve_glyphs(q: &Q, page: Id<Page>) -> Vec<ValveGlyphsView> {
+    let reps = q.reps();
+    let functions = q.functions();
+    let devices = q.devices();
+    let parts = q.parts();
+    let mut ids: Vec<Id<Representation>> = q.idx().reps_by_page(page).collect();
+    ids.sort();
+    let entity = |rep: Id<Representation>, name: &[u8]| ew_ids::Uuid::new_v5(&rep.as_uuid(), name);
+    let mut out = Vec::new();
+    for rid in ids {
+        let Some(rep) = reps.get(rid) else { continue };
+        if rep.rep_type != RepType::Overview {
+            continue;
+        }
+        let Some(module) = rep
+            .functions
+            .first()
+            .and_then(|f| functions.get(*f))
+            .and_then(|f| f.device)
+        else {
+            continue;
+        };
+        let slots = q.get::<ew_derive::ValveSlots>(module);
+        if slots.slots.is_empty() {
+            continue;
+        }
+        let glyphs = slots
+            .slots
+            .iter()
+            .enumerate()
+            .map(|(i, slot)| match slot {
+                ew_derive::ValveSlot::Valve { device, .. } => ValveGlyph::Valve {
+                    entity: entity(rid, device.as_uuid().as_bytes()),
+                    part_number: devices
+                        .get(*device)
+                        .and_then(|d| d.parts.first())
+                        .and_then(|u| parts.get(u.part.copy))
+                        .map(|c| c.item.part_number.as_str().to_owned())
+                        .unwrap_or_default(),
+                },
+                ew_derive::ValveSlot::Blank { device } => ValveGlyph::Blank {
+                    entity: entity(rid, device.as_uuid().as_bytes()),
+                },
+                ew_derive::ValveSlot::Empty => ValveGlyph::Empty {
+                    entity: entity(rid, format!("position\u{1F}{}", i + 1).as_bytes()),
+                },
+            })
+            .collect();
+        out.push(ValveGlyphsView { rep: rid, glyphs });
+    }
+    out
 }
 
 /// `page_cp_targets(page)`: the CPs of a drawn page that a report row links to, with the representation that

@@ -194,7 +194,7 @@ pub use view::{
     CpTargetsByPage, FrameForms, GENERIC_SYMBOL_SEALS, GENERIC_SYMBOLS_PROFILE, GenericSymbols, NOGRID_FRAME,
     PageBindingsOf, PageConnectionsOf, PageCpTargetsOf, PageEmbeddedOf, PageFrameOf, PageGridOf,
     PageJunctionsOf, PageRepsOf, PageSlotsOf, PageTableOf, generic_symbols, page_boxes, page_destination,
-    page_items, page_strip_tags, page_uuid,
+    page_items, page_strip_tags, page_uuid, page_valve_glyphs,
 };
 
 use crate::Session;

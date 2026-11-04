@@ -88,6 +88,7 @@ fn view(items: Vec<ItemView>, structure_boxes: Vec<StructureBoxView>) -> PageVie
         table: None,
         embedded: Vec::new(),
         break_marks: Vec::new(),
+        valve_glyphs: Vec::new(),
         cp_targets: Vec::new(),
         crossings: Default::default(),
         items,

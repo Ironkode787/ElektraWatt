@@ -104,7 +104,8 @@ const VERSION: &str = "0.1.0";
 /// §3.1 classifies the change): key (both editions) → version. WP-S1.21 part 2 (cycle 37): the `plc_address` slot, a
 /// minor change; FT-698 (cycle 38): the same slot on the lamp, the position switch and the 5/2 valve; WP-S1.20 (cycle
 /// 50): the 5/2 valve's solenoid CP leaves its FnDef (major) and its symbol's function text falls back to the process
-/// tag (minor), the cylinder's ports gain their role (minor).
+/// tag (minor), the cylinder's ports gain their role (minor), the module overview's tag moves above the valve glyphs
+/// (minor).
 const BUMPED: &[(&str, &str)] = &[
     ("ew.fn.cylinder-double-acting", "0.1.1"),
     ("ew.fn.valve-5-2-sol-spring", "0.2.0"),
@@ -115,6 +116,7 @@ const BUMPED: &[(&str, &str)] = &[
     ("ew.iec.selector-switch-no", "0.2.0"),
     ("ew.iec.valve-coil", "0.2.0"),
     ("ew.iso.valve-5-2-sol-spring", "0.3.0"),
+    ("ew.ovw.module", "0.2.0"),
 ];
 /// The FnDefs no symbol draws: the internal solenoid coil is drawn in its valve's symbol (WP-S1.20 D3, D5).
 const UNDRAWN_FNDEFS: &[&str] = &["ew.fn.valve-solenoid"];

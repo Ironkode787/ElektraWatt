@@ -44,6 +44,7 @@ fn view(table: Option<TableView>) -> PageView {
         table,
         embedded: Vec::new(),
         break_marks: Vec::new(),
+        valve_glyphs: Vec::new(),
         cp_targets: Vec::new(),
         crossings: Default::default(),
         items: Vec::new(),

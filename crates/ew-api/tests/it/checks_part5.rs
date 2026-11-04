@@ -19,8 +19,9 @@ use ew_store::StoreOptions;
 
 /// The built packs of AC-21's subset (doc 15 §4): WP-S1.16's EW-CORE, EW-IEC81346 (EW-RDS and EW-NUM), EW-TERM and
 /// EW-POT, WP-S1.21 part 3's EW-PLC (EF-02 joins the subset), part 4's EW-BUS (EF-03 and EF-16 join it, D12) and
-/// WP-S4.01 part 5's EW-LAYOUT (EF-05 joins it; LC-7, the orchestrator's ruling 3: "AC-21's subset admits EW-LAYOUT").
-const FOUR_PACKS: [&str; 7] = [
+/// WP-S4.01 part 5's EW-LAYOUT (EF-05 joins it; LC-7, the orchestrator's ruling 3: "AC-21's subset admits EW-LAYOUT")
+/// and WP-S1.20's EW-FL (EF-13 and EF-14 join it, FT-589's last rows: AC-21 compares the whole file).
+const FOUR_PACKS: [&str; 8] = [
     "EW-CORE",
     "EW-IEC81346",
     "EW-TERM",
@@ -28,6 +29,7 @@ const FOUR_PACKS: [&str; 7] = [
     "EW-PLC",
     "EW-BUS",
     "EW-LAYOUT",
+    "EW-FL",
 ];
 
 /// The findings of the four packs that doc 20 §18.1 does not list, each with the follow-up that removes it (FT-638): the
@@ -334,10 +336,8 @@ fn ac21_four_pack_subset_equals_findings_mvp_csv() {
             "{rule} on {subject} is gone: update KNOWN_EXCESS and {ft}"
         );
     }
-    assert_eq!(
-        pending,
-        ["EF-13 EW-FL-001 (WP-S1.20)", "EF-14 EW-FL-004 (WP-S1.20)"]
-    );
+    // WP-S1.20 (FT-589's last rows): no row is pending, AC-21 compares the whole file
+    assert!(pending.is_empty(), "{pending:?}");
     // The rule system is quiet (EW-CORE-083, -084 run and report nothing).
     for system in ["EW-CORE-083", "EW-CORE-084"] {
         assert!(report.rules.iter().any(|r| r.id == system), "{system} ran");

@@ -39,7 +39,7 @@ use super::panel::{Parts, panel_view};
 use super::view::{
     PageBindingsOf, PageConnectionsOf, PageCpTargetsOf, PageEmbeddedOf, PageFrameOf, PageJunctionsOf,
     PageRepsOf, PageSlotsOf, PageTableOf, generic_symbols, page_boxes, page_break_marks, page_grid,
-    page_items, page_strip_tags, page_uuid,
+    page_items, page_strip_tags, page_uuid, page_valve_glyphs,
 };
 
 /// One layer of one page: the display list in page coordinates, the symbol geometry its instances name and the
@@ -69,6 +69,7 @@ fn base_view(page: PageRef) -> PageView {
         table: None,
         embedded: Vec::new(),
         break_marks: Vec::new(),
+        valve_glyphs: Vec::new(),
         cp_targets: Vec::new(),
         crossings: Crossings::Plain,
         items: Vec::new(),
@@ -130,6 +131,7 @@ fn layer_view(q: &Q, page: PageRef, layer: Layer) -> Option<PageView> {
             v.reps = (*q.get::<PageRepsOf>(p)).clone();
             v.cp_targets = (*q.get::<PageCpTargetsOf>(p)).clone();
             v.break_marks = page_break_marks(q, p);
+            v.valve_glyphs = page_valve_glyphs(q, p);
             // The break marks and the graphics are stroked with the page's wire pen.
             v.grid = page_grid(q, page);
             v.items = page_items(q, p, false);
@@ -361,6 +363,7 @@ pub fn page_view(q: &Q, entry: &PageEntry) -> PageView {
             v.junctions = (*q.get::<PageJunctionsOf>(p)).clone();
             v.cp_targets = (*q.get::<PageCpTargetsOf>(p)).clone();
             v.break_marks = page_break_marks(q, p);
+            v.valve_glyphs = page_valve_glyphs(q, p);
             v.embedded = (*q.get::<PageEmbeddedOf>(p)).clone();
             v.crossings = crossings(q);
             v.items = page_items(q, p, true);

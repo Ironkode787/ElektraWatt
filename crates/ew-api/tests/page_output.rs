@@ -676,6 +676,7 @@ fn hostile_view() -> PageView {
         table: None,
         embedded: Vec::new(),
         break_marks: Vec::new(),
+        valve_glyphs: Vec::new(),
         cp_targets: Vec::new(),
         crossings: Default::default(),
         items: Vec::new(),
@@ -855,8 +856,9 @@ fn every_page_wire_of_the_golden_model_is_drawn() {
             total += drawn;
             assert_eq!(drawn, g.view.connections.len(), "folio {}", g.entry.folio);
         }
-        // 72 wire connections and the single-line bus cable -3W1 on folio 3 (DP.1; DP.2 is page-less).
-        assert_eq!(total, 72 + 1, "page connections of the golden model");
+        // 72 wire connections, the single-line bus cable -3W1 on folio 3 (DP.1; DP.2 is page-less) and the 16 fluid
+        // lines F1 to F16 on folio 203 (WP-S1.20 GA-2).
+        assert_eq!(total, 72 + 1 + 16, "page connections of the golden model");
     });
 }
 
