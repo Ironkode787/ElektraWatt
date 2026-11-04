@@ -593,17 +593,19 @@ fn merge_set(
 /// **The one loss.** The result never holds a record line longer than `limits.max_line_bytes` or nested deeper than
 /// `limits.max_depth` (a library document: the document), nor a file above `limits.max_file_bytes` or
 /// `limits.max_lines_per_file` (a manifest: `limits.max_manifest_bytes` or `limits.max_files`), which the loader would
-/// refuse (D14: "the file stays loadable"). A conflict record nests its partial objects one level below its target, `$conflict` holds theirs'
-/// document one level below ours', and a file-level record holds a side's lines in one line, so a merge can pass a
-/// limit that neither side passes. Then ours is returned as it is with 1 conflict, and theirs survives only in git's
-/// index (stage 3): D14's "nothing of either side is lost" and MD-2 give way for this case (decision log ID-1273).
+/// refuse (D14: "the file stays loadable"). A conflict record nests its partial objects one level below its target,
+/// `$conflict` holds theirs' document one level below ours', and a file-level record holds a side's lines in one line,
+/// so a merge can pass a limit that neither side passes. Then ours is returned as it is with 1 conflict, and theirs
+/// survives only in git's index (stage 3): D14's "nothing of either side is lost" and MD-2 give way for this case
+/// (decision log ID-1273).
 ///
 /// **The second case.** A library document that neither side reads while ours still parses (a newer `$v`, no `$k`, a
 /// failed step) is kept as ours is with 1 conflict: a file-level record after it would make it a syntax error, so
 /// theirs again survives only in git's stage 3 (decision log ID-1273, ID-1279).
 ///
-/// **A side that is not UTF-8.** A record file or library document whose ours or theirs is not UTF-8 is kept as ours
-/// is with 1 conflict, as a binary file: its lines cannot be held verbatim as strings (decision log ID-1312).
+/// **A side that is not UTF-8.** A record file or library document whose ours or theirs is not UTF-8 is a binary
+/// conflict with 1 conflict, its lines not held verbatim as strings: theirs is kept when ours is the side that is not
+/// UTF-8 and theirs reads, else ours as it is; the other side survives in git's index (decision log ID-1312).
 ///
 /// [`MIGRATIONS`]: crate::MIGRATIONS
 pub fn merge_file(
@@ -628,11 +630,23 @@ pub fn merge_file(
     }
     match classify(path) {
         // A side that is not UTF-8 has no lines to hold verbatim and is never held lossily: the file is a binary
-        // conflict, ours as it is and theirs in git's index (doc 05 §11.2; decision log ID-1312).
-        PathClass::Records(_) | PathClass::LibDocument { .. }
+        // conflict, the side that reads kept and the other in git's index (doc 05 §11.2; decision log ID-1312).
+        class @ (PathClass::Records(_) | PathClass::LibDocument { .. })
             if std::str::from_utf8(ours.bytes).is_err() || std::str::from_utf8(theirs.bytes).is_err() =>
         {
-            ours_as_it_is(ours)
+            let theirs_reads = std::str::from_utf8(ours.bytes).is_err()
+                && match class {
+                    PathClass::Records(_) => read_records(theirs, limits, chain).is_some(),
+                    _ => read_document(theirs, limits, chain).is_some(),
+                };
+            if theirs_reads {
+                FileMerge {
+                    bytes: theirs.bytes.to_vec(),
+                    conflicts: 1,
+                }
+            } else {
+                ours_as_it_is(ours)
+            }
         }
         PathClass::Records(_) => merge_records_file(path, base, ours, theirs, limits, chain),
         PathClass::LibDocument { .. } => merge_document(path, base, ours, theirs, limits, chain),
@@ -871,9 +885,9 @@ fn merge_records_file(
                 .collect();
             let mut lines = Vec::new();
             let mut conflicts = 0;
-            // The record-level conflict records by target, one per target (D14): the sides' record with its line, and
-            // the merge's own; a second conflict on a target joins the first.
-            let mut held: BTreeMap<&str, Held> = BTreeMap::new();
+            // The record-level conflict records by target (its kind and ID), one per target (D14): the sides' record
+            // with its line, and the merge's own; a second conflict on a target joins the first.
+            let mut held: BTreeMap<(String, &str), Held> = BTreeMap::new();
             for key in keys {
                 let (ra, rb) = (a.get(key), b.get(key));
                 let (va, vb) = (ra.map(|r| &r.value), rb.map(|r| &r.value));
@@ -881,33 +895,43 @@ fn merge_records_file(
                     Some(o) => merge_record(o.get(key).map(|r| &r.value), va, vb),
                     None => no_base(va, vb),
                 };
-                // Both sides changed their conflict record of one target: one record holds both.
                 match (va, vb, &merged.conflict) {
+                    // Both sides changed their conflict record of one target: one record holds both, or ours' as it
+                    // is where they differ on a member.
                     (Some(x), Some(y), Some(_)) if record_conflict(x) && record_conflict(y) => {
                         conflicts += 1;
                         merged = RecordMerge {
-                            merged: Some(combined(x, y)),
+                            merged: Some(combined(x, y).unwrap_or_else(|| x.clone())),
                             conflict: None,
                         };
+                    }
+                    // A conflict record deleted on one side (resolved) and changed on the other: the changed one is
+                    // kept, still unresolved, with no conflict of its own (C50-p4#2).
+                    (x, y, Some(_)) if key.0 == "conflict" && (x.is_none() || y.is_none()) => {
+                        merged.conflict = None;
                     }
                     _ => {}
                 }
                 match merged.merged {
                     Some(m) if record_conflict(&m) => {
                         let line = merged_line(&m, [ra, rb]);
-                        held.entry(&key.1).or_default().side = Some((m, line));
+                        let kind = m.get("kind").and_then(Value::as_str).unwrap_or_default().to_owned();
+                        held.entry((kind, &key.1)).or_default().side = Some((m, line));
                     }
                     Some(m) => lines.push(merged_line(&m, [ra, rb])),
                     None => {}
                 }
                 if let Some(conflict) = merged.conflict {
                     conflicts += 1;
-                    held.entry(&key.1).or_default().own = Some(conflict);
+                    held.entry((key.0.clone(), &key.1)).or_default().own = Some(conflict);
                 }
             }
+            // Where the new conflict would replace a member the held one names with another value, the held record
+            // stays as it is and the file is conflicted, so git keeps theirs in its index: nothing pending is dropped
+            // (D14; C50-p4#1).
             lines.extend(held.into_values().filter_map(|held| match (held.side, held.own) {
                 (Some((_, line)), None) => Some(line),
-                (Some((side, _)), Some(own)) => Some(conflict_line(&combined(&side, &own))),
+                (Some((side, line)), Some(own)) => Some(combined(&side, &own).map_or(line, |c| conflict_line(&c))),
                 (None, own) => own.as_ref().map(conflict_line),
             }));
             (lines, conflicts)
@@ -950,30 +974,42 @@ fn record_conflict(value: &Value) -> bool {
 }
 
 /// One conflict record of a target holding two (D14's one record per target): `later`'s, with each of its `base`,
-/// `ours` and `theirs` partial objects laid over `earlier`'s; a side that is not an object on both (`"deleted"`) is
-/// `later`'s. Where both hold a member, `later`'s value is the one held.
-fn combined(earlier: &Value, later: &Value) -> Value {
+/// `ours` and `theirs` partial objects laid over `earlier`'s. `None` where they cannot be held together without a loss:
+/// a member both name with different values, or a side that is not an object on both (`"deleted"`) and differs.
+fn combined(earlier: &Value, later: &Value) -> Option<Value> {
     let mut out = later.clone();
     for side in ["base", "ours", "theirs"] {
-        if let (Some(Value::Object(e)), Some(Value::Object(l))) = (earlier.get(side), later.get(side)) {
-            let mut members = e.clone();
-            overlay(&mut members, l);
-            out[side] = Value::Object(members);
+        match (earlier.get(side), later.get(side)) {
+            (Some(Value::Object(e)), Some(Value::Object(l))) => {
+                let mut members = e.clone();
+                if !overlay(&mut members, l) {
+                    return None;
+                }
+                out[side] = Value::Object(members);
+            }
+            (e, l) if e != l => return None,
+            _ => {}
         }
     }
-    out
+    Some(out)
 }
 
-/// `over`'s members laid over `into`'s, object members member by member.
-fn overlay(into: &mut Map<String, Value>, over: &Map<String, Value>) {
+/// `over`'s members laid over `into`'s, object members member by member; `false` where a member both hold differs.
+fn overlay(into: &mut Map<String, Value>, over: &Map<String, Value>) -> bool {
     for (name, value) in over {
         match (into.get_mut(name), value) {
-            (Some(Value::Object(i)), Value::Object(o)) => overlay(i, o),
+            (Some(Value::Object(i)), Value::Object(o)) => {
+                if !overlay(i, o) {
+                    return false;
+                }
+            }
+            (Some(held), _) if held != value => return false,
             _ => {
                 into.insert(name.clone(), value.clone());
             }
         }
     }
+    true
 }
 
 /// One side's library document, read as the loader reads it, migrated (its copy rehashed) and NFC-normalised; `None`
@@ -1003,15 +1039,26 @@ fn document_text(value: &Value) -> Vec<u8> {
 
 /// `value` with the top-level member `$conflict` holding `other` (D14). One conflict per document: a `$conflict` that
 /// `value` holds already is held at the end of the chain of `other`'s own `$conflict` members, unless that chain holds
-/// it; `None` when the chain ends in a value that is not a document.
+/// it; an `other` that is no document (the text of a side that does not read) is held at the end of that earlier chain
+/// instead (C50-p4#3). `None` when the chain ends in a value that is not a document.
 fn with_conflict(mut value: Value, mut other: Value) -> Option<Vec<u8>> {
     if let Value::Object(members) = &mut value {
-        if let Some(earlier) = members.remove("$conflict") {
-            if !hold_at_end(&mut other, earlier) {
-                return None;
+        let held = match members.remove("$conflict") {
+            None => other,
+            Some(earlier) if other.is_object() => {
+                if !hold_at_end(&mut other, earlier) {
+                    return None;
+                }
+                other
             }
-        }
-        members.insert("$conflict".to_owned(), other);
+            Some(mut earlier) => {
+                if !hold_at_end(&mut earlier, other) {
+                    return None;
+                }
+                earlier
+            }
+        };
+        members.insert("$conflict".to_owned(), held);
     }
     Some(document_text(&value))
 }

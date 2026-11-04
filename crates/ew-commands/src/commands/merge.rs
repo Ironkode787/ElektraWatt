@@ -297,8 +297,8 @@ fn record_of(row: &AnyRow) -> Result<Record, CmdError> {
     Record::from_value(value).map_err(|e| CmdError::internal(format!("a record does not read back: {e}")))
 }
 
-/// The file `merge.resolve` routes `record` to in `model` (its `file_of`), for the test in `ew-api` that pins it to `ew_format::record_file` record kind by record
-/// kind (FT-1290): the crate that sees both.
+/// The file `merge.resolve` routes `record` to in `model` (its `file_of`), for the test in `ew-api` that pins it to
+/// `ew_format::record_file` record kind by record kind (FT-1290): the crate that sees both.
 #[cfg(feature = "testkit")]
 pub fn record_file_of(model: &ew_model::Model, record: &Record) -> Option<String> {
     let mut ids = ew_ids::SystemSource;

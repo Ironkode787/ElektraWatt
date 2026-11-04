@@ -1738,8 +1738,9 @@ fn merge_bytes(path: &str, sides: [&[u8]; 3], limits: &Limits) -> (Vec<u8>, usiz
 }
 
 #[test]
-fn a_side_that_is_not_utf8_is_a_binary_conflict_that_keeps_ours() {
-    // FT-1234: never held lossily; ours stays as it is and theirs in git's index, as for a binary file.
+fn a_side_that_is_not_utf8_is_a_binary_conflict_that_keeps_the_side_that_reads() {
+    // FT-1234: never held lossily; the side that reads is kept and the other in git's index, as for a binary file
+    // (doc 05 §11.2: B when A is the failing side; C50-p4#3).
     let ours = format!("{}\n", bond(1, json!({"number": 1})));
     let not_utf8 = b"{\"$k\":\"bond\",\"name\":\"\xff\"}\n".as_slice();
     let base = format!("{}\n", bond(1, json!({})));
@@ -1758,6 +1759,11 @@ fn a_side_that_is_not_utf8_is_a_binary_conflict_that_keeps_ours() {
             [base.as_bytes(), not_utf8, ours.as_bytes()],
             &limits
         ),
+        (ours.clone().into_bytes(), 1)
+    );
+    // Neither reads: ours as it is.
+    assert_eq!(
+        merge_bytes("waivers.jsonl", [base.as_bytes(), not_utf8, b"x\n"], &limits),
         (not_utf8.to_vec(), 1)
     );
     let path = "lib/manufacturers/221fd06e-3263-5cab-bbb9-27aee71c8d79.json";
@@ -1766,6 +1772,36 @@ fn a_side_that_is_not_utf8_is_a_binary_conflict_that_keeps_ours() {
         merge_bytes(path, [b"{}\n", &doc, not_utf8], &limits),
         (doc.clone(), 1)
     );
+    assert_eq!(
+        merge_bytes(path, [b"{}\n", not_utf8, &doc], &limits),
+        (doc.clone(), 1)
+    );
+}
+
+/// C50-p4#3: ours does not read and theirs holds a `$conflict`: theirs is kept, ours' text held at the end of its
+/// `$conflict`'s chain.
+#[test]
+fn an_unreadable_ours_is_held_below_theirs_conflict() {
+    let path = "lib/manufacturers/221fd06e-3263-5cab-bbb9-27aee71c8d79.json";
+    let base: Value = serde_json::from_slice(&golden()[path]).expect("JSON");
+    let mut b = base.clone();
+    b["name"] = json!("Siemens AG");
+    let mut earlier = base.clone();
+    earlier["name"] = json!("Siemens Old");
+    b["$conflict"] = earlier.clone();
+    let doc = |v: &Value| ew_format::pretty(&v.to_string());
+    let ours = "not json\n";
+    let (bytes, conflicts) = merge_bytes(
+        path,
+        [doc(&base).as_bytes(), ours.as_bytes(), doc(&b).as_bytes()],
+        &Limits::default(),
+    );
+    assert_eq!(conflicts, 1);
+    let merged: Value = serde_json::from_slice(&bytes).expect("JSON");
+    let mut expected = b.clone();
+    earlier["$conflict"] = json!(ours);
+    expected["$conflict"] = earlier;
+    assert_eq!(merged, expected);
 }
 
 #[test]
@@ -1788,8 +1824,7 @@ fn a_second_conflict_on_a_target_joins_its_conflict_record() {
             1
         )
     );
-    // The sides added different conflict records of one target: one record holds both, theirs' value where both hold
-    // a member.
+    // The sides added different conflict records of one target, on different members: one record holds both.
     let conflict = |ours: &str, theirs: &str| {
         format!(
             r#"{{"$k":"conflict","id":"0190d8a4-6d3e-7c41-8f00-000000000001","kind":"bond","base":{{}},"ours":{ours},"theirs":{theirs}}}"#
@@ -1797,10 +1832,7 @@ fn a_second_conflict_on_a_target_joins_its_conflict_record() {
     };
     let o = format!("{}\n", bond(1, json!({})));
     let a = format!("{o}{}\n", conflict(r#"{"number":1}"#, r#"{"number":2}"#));
-    let b = format!(
-        "{o}{}\n",
-        conflict(r#"{"page":"q"}"#, r#"{"number":3,"page":"r"}"#)
-    );
+    let b = format!("{o}{}\n", conflict(r#"{"page":"q"}"#, r#"{"page":"r"}"#));
     let (bytes, conflicts) = merge_bytes(
         "waivers.jsonl",
         [o.as_bytes(), a.as_bytes(), b.as_bytes()],
@@ -1811,10 +1843,60 @@ fn a_second_conflict_on_a_target_joins_its_conflict_record() {
         (
             format!(
                 "{o}{}\n",
-                conflict(r#"{"number":1,"page":"q"}"#, r#"{"number":3,"page":"r"}"#)
+                conflict(r#"{"number":1,"page":"q"}"#, r#"{"number":2,"page":"r"}"#)
             ),
             1
         )
+    );
+    // On one member with different values: ours' record stays as it is and the file is conflicted, so that git keeps
+    // theirs in its index; nothing pending is dropped (D14; decision log ID-1312, C50-p4#1).
+    let b = format!("{o}{}\n", conflict(r#"{"number":1}"#, r#"{"number":3}"#));
+    let (bytes, conflicts) = merge_bytes(
+        "waivers.jsonl",
+        [o.as_bytes(), a.as_bytes(), b.as_bytes()],
+        &Limits::default(),
+    );
+    assert_eq!((String::from_utf8(bytes).expect("UTF-8"), conflicts), (a.clone(), 1));
+}
+
+/// C50-p4#1: ours holds an unresolved conflict on `number` (1 against 2); a later merge brings theirs' `number` to 3.
+/// The pending 2 is not replaced: ours' record stays as it is, W's ours value with it, and the file is conflicted.
+#[test]
+fn a_new_conflict_on_a_member_already_in_conflict_keeps_the_pending_one() {
+    let pending = r#"{"$k":"conflict","id":"0190d8a4-6d3e-7c41-8f00-000000000001","kind":"bond","base":{"number":0},"ours":{"number":1},"theirs":{"number":2}}"#;
+    let o = format!("{}\n", bond(1, json!({"number": 0})));
+    let a = format!("{}\n{pending}\n", bond(1, json!({"number": 1})));
+    let b = format!("{}\n", bond(1, json!({"number": 3})));
+    let (bytes, conflicts) = merge_bytes(
+        "waivers.jsonl",
+        [o.as_bytes(), a.as_bytes(), b.as_bytes()],
+        &Limits::default(),
+    );
+    assert_eq!((String::from_utf8(bytes).expect("UTF-8"), conflicts), (a, 1));
+}
+
+/// C50-p4#2: one side resolved and deleted the conflict record C of X, the other changed C; X conflicts in the same
+/// merge. C's own delete/modify keeps the changed C and raises no conflict of kind `conflict`, and X's new conflict
+/// joins it: one record of kind `bond`.
+#[test]
+fn a_conflict_record_deleted_on_one_side_keeps_the_changed_one_and_x_s_conflict() {
+    let record = |theirs: &str| {
+        format!(
+            r#"{{"$k":"conflict","id":"0190d8a4-6d3e-7c41-8f00-000000000001","kind":"bond","base":{{"page":"p"}},"ours":{{"page":"q"}},"theirs":{{"page":"{theirs}"}}}}"#
+        )
+    };
+    let o = format!("{}\n{}\n", bond(1, json!({"number": 1})), record("r"));
+    let a = format!("{}\n{}\n", bond(1, json!({"number": 5})), record("s"));
+    let b = format!("{}\n", bond(1, json!({"number": 2})));
+    let joined = r#"{"$k":"conflict","id":"0190d8a4-6d3e-7c41-8f00-000000000001","kind":"bond","base":{"number":1,"page":"p"},"ours":{"number":5,"page":"q"},"theirs":{"number":2,"page":"s"}}"#;
+    let (bytes, conflicts) = merge_bytes(
+        "waivers.jsonl",
+        [o.as_bytes(), a.as_bytes(), b.as_bytes()],
+        &Limits::default(),
+    );
+    assert_eq!(
+        (String::from_utf8(bytes).expect("UTF-8"), conflicts),
+        (format!("{}\n{joined}\n", bond(1, json!({"number": 5}))), 1)
     );
 }
 
