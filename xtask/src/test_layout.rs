@@ -260,6 +260,9 @@ const COMMAND_FILE_EXTENSIONS: &[&str] = &[
 /// This file: its tests hold stale commands on purpose.
 const SELF_PATH: &str = "xtask/src/test_layout.rs";
 
+/// The records `cargo xtask records` generates: they quote commit subjects verbatim, which may name a `--test`.
+const RECORDS_PATH: &str = "docs/plan/records.md";
+
 /// How far back from a `--test` the `cargo` of its command may start, in bytes.
 const COMMAND_WINDOW: usize = 400;
 
@@ -334,7 +337,7 @@ pub fn check_commands_in_repo(root: &Path) -> Result<Vec<String>> {
         let checked = path
             .rsplit_once('.')
             .is_some_and(|(_, ext)| COMMAND_FILE_EXTENSIONS.contains(&ext));
-        if !checked || path == SELF_PATH {
+        if !checked || path == SELF_PATH || path == RECORDS_PATH {
             continue;
         }
         let Ok(text) = std::fs::read_to_string(root.join(&path)) else {
