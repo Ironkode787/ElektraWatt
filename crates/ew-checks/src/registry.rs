@@ -42,6 +42,11 @@ static RULES: &[&dyn Rule] = &[
     &shipped::core::WaiverMatchesNothing,
     &shipped::system::RuleNotEvaluated,
     &shipped::system::PackNotEvaluated,
+    &shipped::fluid::WorkingPortOpen,
+    &shipped::fluid::CoilBindings,
+    &shipped::fluid::SparePositions,
+    &shipped::fluid::DrivesMismatch,
+    &shipped::fluid::Occupancy,
     &shipped::layout::UnplacedDevice,
     &shipped::layout::PartNotOnDevice,
     &shipped::layout::LocationMismatch,
@@ -116,6 +121,7 @@ mod tests {
         ("CORE", "EW-CORE", 0),
         ("REL", "EW-REL", 0),
         ("LAY", "EW-LAYOUT", 0),
+        ("FL", "EW-FL", 0),
     ];
 
     /// The class of an EW-CORE number block (doc 15 §2.2).
@@ -141,6 +147,7 @@ mod tests {
             "CORE" => core_class(n),
             "REL" => "190",
             "LAY" => "130",
+            "FL" => "120",
             _ => "???",
         }
     }

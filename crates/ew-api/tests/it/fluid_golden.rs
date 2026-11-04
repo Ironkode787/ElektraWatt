@@ -70,8 +70,16 @@ fn fl2_every_valve_has_its_port_roles_and_an_internal_coil() {
                 .and_then(|f| q.fndefs().get(f.def))
                 .map(|d| d.item.contact_kind.clone())
         };
-        let body: Vec<_> = fns.iter().copied().filter(|f| kind(*f) == Some(ContactKind::Valve)).collect();
-        let coil: Vec<_> = fns.iter().copied().filter(|f| kind(*f) == Some(ContactKind::Coil)).collect();
+        let body: Vec<_> = fns
+            .iter()
+            .copied()
+            .filter(|f| kind(*f) == Some(ContactKind::Valve))
+            .collect();
+        let coil: Vec<_> = fns
+            .iter()
+            .copied()
+            .filter(|f| kind(*f) == Some(ContactKind::Coil))
+            .collect();
         assert_eq!((body.len(), coil.len(), fns.len()), (1, 1, 2), "{tag}");
         let ports: Vec<(String, Option<FluidPortRole>)> = q
             .get::<FunctionCps>(body[0])
@@ -90,7 +98,10 @@ fn fl2_every_valve_has_its_port_roles_and_an_internal_coil() {
             "{tag}"
         );
         let cps = q.get::<FunctionCps>(coil[0]);
-        let coil_cps: Vec<(u16, &str, bool)> = cps.iter().map(|c| (c.idx, c.designation.as_str(), c.physical)).collect();
+        let coil_cps: Vec<(u16, &str, bool)> = cps
+            .iter()
+            .map(|c| (c.idx, c.designation.as_str(), c.physical))
+            .collect();
         assert_eq!(coil_cps, [(0, "14", false)], "{tag}");
         assert_eq!(
             ew_derive::solenoid_coil(&q, valve, &"14".parse().unwrap()),
@@ -141,6 +152,47 @@ fn fl5_the_valve_prints_the_address_of_its_coil_channel() {
     assert!(!texts.iter().any(|t| t == "Q0.1"), "{texts:?}");
     s.undo(&ew_api::Origin::Gui).unwrap();
     assert!(slot_texts(&s, valve).iter().any(|t| t == "Q0.1"));
+}
+
+/// FL-6 (FR-FLU-004, FR-FLU-027): `valve_slots(-202U2)` gives four valves; `valve.add` on -202U2, whose positions are
+/// all taken, is refused by EW-FL-013's prevent half with T12 and "every position is taken"; the release run reports
+/// no EW-FL-002 or EW-FL-013 finding on Golden A and EW-FL-004 its 20 spare valves (EF-14).
+#[test]
+fn fl6_a_full_module_refuses_a_valve_and_golden_a_has_no_occupancy_defect() {
+    let mut s = golden_common::session(&golden_common::batch());
+    let module = device(&s, "-202U2");
+    let q = s.query();
+    let slots = q.get::<ew_derive::ValveSlots>(module);
+    assert_eq!(slots.count, 4);
+    assert!(
+        slots
+            .slots
+            .iter()
+            .all(|v| matches!(v, ew_derive::ValveSlot::Valve { .. }))
+    );
+    assert!(slots.second.is_empty() && slots.outside.is_empty());
+    let part = q
+        .devices()
+        .get(device(&s, "-202U2-Q1"))
+        .and_then(|d| d.parts.first().map(|u| u.part.copy))
+        .expect("the valve part");
+    drop(q);
+    let refusal = s
+        .execute(&AnyCommand {
+            name: "valve.add".into(),
+            params: json!({"module": module.to_string(), "part": {"part": {"copy": part.to_string()}, "qty": "1"}}),
+        })
+        .expect_err("refused");
+    assert_eq!(
+        refusal.to_string(),
+        "EW-FL-013: -202U2: position 5 is outside its 4 valve positions; every position is taken"
+    );
+    let report = s.check(&ew_api::checks::PRE_DELIVERY, ew_api::checks::CheckMode::Release);
+    let count = |rule: &str| report.findings.iter().filter(|f| f.rule == rule).count();
+    assert_eq!(
+        (count("EW-FL-002"), count("EW-FL-004"), count("EW-FL-013")),
+        (0, 20, 0)
+    );
 }
 
 /// D14 (FR-FLU-005): the function-text slot of the 5/2 valve falls back to the tracked process tag, so the eight used

@@ -15,7 +15,7 @@ use std::sync::Arc;
 
 use ew_ids::Id;
 use ew_model::EndpointKey;
-use ew_schema::{Connection, ConnectionKind, Device, FluidPortRole};
+use ew_schema::{Connection, ConnectionKind, ContactKind, Device, DeviceKind, DeviceState, FluidPortRole};
 
 use crate::nets::{Dsu, NetId, ends};
 use crate::query::{Policy, Query};
@@ -153,6 +153,124 @@ pub fn reached_device(q: &Q, valve: Id<Device>) -> Option<Id<Device>> {
 /// ([`driven_device`]), else its [`reached_device`], else none.
 pub fn tracked_target(q: &Q, valve: Id<Device>) -> Option<Id<Device>> {
     driven_device(q, valve).or_else(|| reached_device(q, valve))
+}
+
+/// What one valve position of a module holds (doc 11 §5.6, WP-S1.20 D8).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum ValveSlot {
+    /// A child with a function on a FnDef of contact kind `valve`, in its state.
+    Valve {
+        /// The valve.
+        device: Id<Device>,
+        /// Its state.
+        state: DeviceState,
+    },
+    /// A child of kind `blanking_plate`.
+    Blank {
+        /// The plate.
+        device: Id<Device>,
+    },
+    /// Nothing.
+    Empty,
+}
+
+/// The value of [`ValveSlots`].
+#[derive(Clone, PartialEq, Eq, Debug, Default)]
+pub struct ValveSlotsV {
+    /// The position count n (`plc.positions.count`).
+    pub count: u16,
+    /// Position p is `slots[p - 1]`, for p in 1 … n.
+    pub slots: Vec<ValveSlot>,
+    /// The children at a position that another child (of lower ID) holds: (position, child), in that order.
+    pub second: Vec<(u32, Id<Device>)>,
+    /// The children at a position outside 1 … n: (position, child), in that order.
+    pub outside: Vec<(u32, Id<Device>)>,
+}
+
+/// The position count of a module (WP-S1.20 D8): `plc.positions.count` of the part named by `plc_module.part_use`,
+/// else of the first part use whose copy has `plc.positions`; `None` for a device without (no module).
+pub fn valve_positions(q: &Q, module: Id<Device>) -> Option<u16> {
+    let dev = q.devices().get(module)?;
+    let parts = q.parts();
+    let count = |i: usize| {
+        let copy = parts.get(dev.parts.get(i)?.part.copy)?;
+        Some(copy.item.sections.plc.as_ref()?.positions.as_ref()?.count)
+    };
+    match dev.aspects.plc_module.as_ref().and_then(|m| m.part_use) {
+        Some(i) => count(usize::from(i)),
+        None => (0..dev.parts.len()).find_map(count),
+    }
+}
+
+/// `valve_slots(module)` (doc 11 §5.6, WP-S1.20 D8): the occupancy of each position 1 … n of a module, n its
+/// [`valve_positions`]: a [`ValveSlot::Valve`] (of two valve or plate children at a position, the lower ID holds it), a
+/// [`ValveSlot::Blank`] or [`ValveSlot::Empty`]; a child that is neither a valve nor a plate leaves its position empty.
+/// The second children at a position and the children outside 1 … n are listed apart (EW-FL-013). Empty for a device
+/// that is no module. Policy Memo.
+#[derive(Debug)]
+pub struct ValveSlots;
+
+impl Query for ValveSlots {
+    type Key = Id<Device>;
+    type Value = ValveSlotsV;
+    const FAMILY: &'static str = "valve_slots";
+    const POLICY: Policy = Policy::Memo;
+
+    fn run(q: &Q, key: &Id<Device>) -> Arc<ValveSlotsV> {
+        let Some(count) = valve_positions(q, *key) else {
+            return Arc::new(ValveSlotsV::default());
+        };
+        let devices = q.devices();
+        let functions = q.functions();
+        let fndefs = q.fndefs();
+        let is_valve = |d: Id<Device>| {
+            q.idx().functions_of_device(d).any(|f| {
+                functions
+                    .get(f)
+                    .and_then(|f| fndefs.get(f.def))
+                    .is_some_and(|def| def.item.contact_kind == ContactKind::Valve)
+            })
+        };
+        let mut children: Vec<Id<Device>> = q.idx().device_children(*key).collect();
+        children.sort();
+        let mut out = ValveSlotsV {
+            count,
+            slots: vec![ValveSlot::Empty; usize::from(count)],
+            second: Vec::new(),
+            outside: Vec::new(),
+        };
+        let mut held = vec![false; usize::from(count)];
+        for c in children {
+            let Some(d) = devices.get(c) else { continue };
+            let Some(p) = d.position else { continue };
+            let Some(i) = usize::try_from(p)
+                .ok()
+                .filter(|i| (1..=usize::from(count)).contains(i))
+            else {
+                out.outside.push((p, c));
+                continue;
+            };
+            let slot = if d.kind == Some(DeviceKind::BlankingPlate) {
+                ValveSlot::Blank { device: c }
+            } else if is_valve(c) {
+                ValveSlot::Valve {
+                    device: c,
+                    state: d.state.clone(),
+                }
+            } else {
+                continue;
+            };
+            if held[i - 1] {
+                out.second.push((p, c));
+            } else {
+                held[i - 1] = true;
+                out.slots[i - 1] = slot;
+            }
+        }
+        out.second.sort();
+        out.outside.sort();
+        Arc::new(out)
+    }
 }
 
 /// `tracked_process_tag(valve)` (doc 11 §3.3, WP-S1.20 D13): the process tag of the [`tracked_target`], else the

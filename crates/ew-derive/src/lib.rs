@@ -142,7 +142,8 @@ pub use ew_model::EndpointKey;
 pub use flow::{Flow, FlowBfs, FlowConflict, FlowEntry, FlowNotes, Load, PotentialFlow, Upstream};
 pub use flow_distance::{CpFlowDistanceOf, CpFlowDistances};
 pub use fluid::{
-    FluidNet, FluidNets, FluidPartition, parent_chain, reached_device, tracked_process_tag, tracked_target,
+    FluidNet, FluidNets, FluidPartition, ValveSlot, ValveSlots, ValveSlotsV, parent_chain, reached_device,
+    tracked_process_tag, tracked_target, valve_positions,
 };
 pub use names::{
     PotentialAttrsOf, PotentialAttrsV, PotentialNameOf, PotentialNames, cp_text, def_text, potential_named,
@@ -329,6 +330,7 @@ pub const FAMILIES: &[(&str, Policy)] = &[
     (TitleBlockValues::FAMILY, TitleBlockValues::POLICY),
     (TocRows::FAMILY, TocRows::POLICY),
     (layout::Unplaced::FAMILY, layout::Unplaced::POLICY),
+    (ValveSlots::FAMILY, ValveSlots::POLICY),
     (WireDefaultProps::FAMILY, WireDefaultProps::POLICY),
     (WireNumbers::FAMILY, WireNumbers::POLICY),
     (WireProfileNotes::FAMILY, WireProfileNotes::POLICY),

@@ -1342,6 +1342,205 @@
       "waivable": false
     },
     {
+      "code": "120001",
+      "id": "EW-FL-001",
+      "kind": "completeness",
+      "modes": [
+        "online",
+        "release"
+      ],
+      "open_item": null,
+      "pack": "EW-FL",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "device",
+      "severity": "warning",
+      "supersedes": [],
+      "title": "Working port open",
+      "waivable": true
+    },
+    {
+      "code": "120002",
+      "id": "EW-FL-002",
+      "kind": "conflict",
+      "modes": [
+        "online",
+        "release"
+      ],
+      "open_item": null,
+      "pack": "EW-FL",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "device",
+      "severity": "error",
+      "supersedes": [],
+      "title": "Coil bindings against solenoids",
+      "waivable": true
+    },
+    {
+      "code": "120004",
+      "id": "EW-FL-004",
+      "kind": "hygiene",
+      "modes": [
+        "online",
+        "release"
+      ],
+      "open_item": null,
+      "pack": "EW-FL",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "device",
+      "severity": "info",
+      "supersedes": [],
+      "title": "Spare positions",
+      "waivable": true
+    },
+    {
+      "code": "120011",
+      "id": "EW-FL-011",
+      "kind": "conflict",
+      "modes": [
+        "online"
+      ],
+      "open_item": null,
+      "pack": "EW-FL",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": false
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": false
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": false
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": false
+        }
+      ],
+      "scope": "device",
+      "severity": "warning",
+      "supersedes": [],
+      "title": "Drives target mismatch",
+      "waivable": true
+    },
+    {
+      "code": "120013",
+      "id": "EW-FL-013",
+      "kind": "conflict",
+      "modes": [
+        "online",
+        "prevent"
+      ],
+      "open_item": null,
+      "pack": "EW-FL",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "device",
+      "severity": "error",
+      "supersedes": [],
+      "title": "Occupancy",
+      "waivable": true
+    },
+    {
       "code": "130001",
       "id": "EW-LAY-001",
       "kind": "completeness",

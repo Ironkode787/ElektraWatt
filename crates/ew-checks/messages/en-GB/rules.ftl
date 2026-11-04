@@ -130,6 +130,45 @@ rule-ew-core-084 =
     .title = Rule pack not evaluated
     .hint = Restore the pack's data file or trust the project, so that the pack can run.
 
+## EW-FL: fluid power (WP-S1.20 D16)
+
+rule-ew-fl-001 = { $form ->
+        [many] { $valve }: working ports { $ports } are open; connect, plug or blank them
+       *[one] { $valve }: working port { $port } is open; connect, plug or blank it
+    }
+    .title = Working port open
+    .hint = Draw the working line, or close the port with a plug, a silencer or a blanking.
+
+rule-ew-fl-002 = { $form ->
+        [excess] { $valve }: solenoid { $solenoid } is bound to { $count } channels: { $channels }
+        [undeclared] { $valve }: { $channel } drives a coil that the part does not declare
+       *[unbound] { $valve }: solenoid { $solenoid } has no channel
+    }
+    .title = Coil bindings against solenoids
+    .hint = Bind each solenoid the valve part declares to one channel, and no channel to another coil.
+
+rule-ew-fl-004 = { $form ->
+        [blank] { $module }: position { $position } holds a blanking plate, { $device }
+       *[valve] { $module }: position { $position } holds a spare valve, { $device }
+    }
+    .title = Spare positions
+    .hint = Keep the spare valve or blanking plate deliberately, or put a used valve at the position.
+
+rule-ew-fl-011 = { $valve } drives { $target }, but its working-port lines reach { $device }
+    .title = Drives target mismatch
+    .hint = Link the valve to the device its lines reach, or draw the lines to the device it drives.
+
+rule-ew-fl-013 = { $form ->
+        [both] { $parent }: position { $position } holds both { $a } and { $b }
+        [modules] { $parent }: position { $position } holds both { $a } and { $b }
+        [outside] { $module }: position { $position } is outside its { $count } valve positions
+        [outside_free] { $module }: position { $position } is outside its { $count } valve positions; free positions: { $free }
+        [outside_full] { $module }: position { $position } is outside its { $count } valve positions; every position is taken
+       *[empty] { $module }: position { $position } is empty; fit a valve or a blanking plate
+    }
+    .title = Occupancy
+    .hint = Give each valve position one valve or blanking plate, and each module its own position.
+
 ## EW-LAYOUT: panel layout (at the project scope until space and surface scope kinds exist)
 
 rule-ew-lay-001 = { $device } is not placed in the layout of { $location }; place it on a rail or on the mounting plate

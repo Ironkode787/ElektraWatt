@@ -584,7 +584,8 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
     }
 
     /// `fields.set` of a function's `cp_overrides`; its other members are written by the creating command.
-    /// [`Builder::function_rest`] of a function a command made from its part's template (a valve's coil, N-FL-1).
+    /// `fields.set` of the members a command did not write, for a function it made from its part's template (a
+    /// valve's coil, N-FL-1).
     ///
     /// # Errors
     ///

@@ -1190,13 +1190,24 @@ fn the_stand_alone_valve_declares_its_solenoid_on_its_physical_coil() {
     let fluid = valve.item.sections.fluid.as_ref().expect("a fluid section");
     let solenoids: Vec<&str> = fluid.solenoids.iter().map(|s| s.as_str()).collect();
     assert_eq!(solenoids, ["14"]);
-    let pattern: Vec<&str> = valve.item.cp_pattern.iter().map(|c| c.designation.as_str()).collect();
+    let pattern: Vec<&str> = valve
+        .item
+        .cp_pattern
+        .iter()
+        .map(|c| c.designation.as_str())
+        .collect();
     assert_eq!(pattern, ["A1", "A2", "1", "2", "3", "4", "5"]);
     let template: Vec<(Option<&str>, bool, Vec<u16>)> = valve
         .item
         .function_template
         .iter()
-        .map(|t| (t.fndef.extra.get("key").and_then(|k| k.as_str()), t.main, t.cps.clone()))
+        .map(|t| {
+            (
+                t.fndef.extra.get("key").and_then(|k| k.as_str()),
+                t.main,
+                t.cps.clone(),
+            )
+        })
         .collect();
     assert_eq!(
         template,
@@ -1210,5 +1221,8 @@ fn the_stand_alone_valve_declares_its_solenoid_on_its_physical_coil() {
     else {
         panic!("a FnDef")
     };
-    assert!(coil.item.cps.iter().all(|c| c.physical), "a physical coil: no internal coil CP");
+    assert!(
+        coil.item.cps.iter().all(|c| c.physical),
+        "a physical coil: no internal coil CP"
+    );
 }

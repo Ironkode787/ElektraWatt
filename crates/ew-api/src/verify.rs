@@ -128,6 +128,7 @@ pub const SWEPT: &[&str] = &[
     "title_block",
     "toc_rows",
     "unplaced",
+    "valve_slots",
     "wire_default_props",
     "wire_numbers",
     "wire_profile_notes",
@@ -271,6 +272,7 @@ pub fn sweep(memo: &Q, cold: Option<&Q>) -> Sweep {
     check::<RailTerminals>(memo, cold, [()], o);
     check::<FlowNotes>(memo, cold, [()], o);
     check::<ew_derive::FluidNets>(memo, cold, [()], o);
+    check::<ew_derive::ValveSlots>(memo, cold, keys.devices.iter().copied(), o);
     check::<IpNotes>(memo, cold, [()], o);
     check::<PotentialAttrsOf>(memo, cold, keys.potentials.iter().copied(), o);
     check::<PotentialNameOf>(memo, cold, keys.potentials.iter().copied(), o);
