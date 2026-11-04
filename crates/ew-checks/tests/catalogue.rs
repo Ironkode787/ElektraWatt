@@ -15,7 +15,8 @@
 
 use std::path::PathBuf;
 
-use ew_checks::{CheckMode, Modes, OPEN_ITEM_RULES, SCHEMES, rules};
+use ew_checks::rules::core::INTEGRITY;
+use ew_checks::{CheckMode, Modes, OPEN_ITEM_RULES, RuleKind, RuleMeta, SCHEMES, rules};
 use serde_json::{Value, json};
 
 fn path() -> PathBuf {
@@ -37,12 +38,17 @@ fn modes(m: Modes) -> Vec<&'static str> {
     .collect()
 }
 
-/// The catalogue text: two-space indentation, keys sorted, LF and a final newline.
+/// The catalogue text: two-space indentation, keys sorted, LF and a final newline. It lists the registered rules and
+/// the integrity rules of opening a project ([`INTEGRITY`]), which reach the Messages pane too, once each in rule-ID order, so
+/// that docs-gen writes the page every rule's `docs` names (WP-S7.05 D6; decision log ID-1376).
 fn generated() -> String {
-    let rules: Vec<Value> = rules()
-        .iter()
-        .map(|r| {
-            let m = r.meta();
+    let mut metas: Vec<&RuleMeta> = rules().iter().map(|r| r.meta()).chain(INTEGRITY).collect();
+    metas.sort_by_key(|m| m.id);
+    // EW-CORE-008 is both: a registered rule and a row of `INTEGRITY`.
+    metas.dedup_by_key(|m| m.id);
+    let rules: Vec<Value> = metas
+        .into_iter()
+        .map(|m| {
             let schemes: Vec<Value> = SCHEMES
                 .iter()
                 .map(|s| {
@@ -75,7 +81,9 @@ fn generated() -> String {
                 })),
                 // WP-S7.05 D4, D6: the rule's page reference and the en-GB hint, for the rule's page of the guide.
                 "docs": m.docs,
-                "hint": ew_checks::messages::hint(m.id, ew_checks::messages::DEFAULT_LANGUAGE),
+                // An integrity finding carries the reader's own text and has no Fluent message: its hint is empty.
+                "hint": ew_checks::messages::hint(m.id, ew_checks::messages::DEFAULT_LANGUAGE)
+                    .or_else(|| (m.kind == RuleKind::Integrity).then(String::new)),
             })
         })
         .collect();

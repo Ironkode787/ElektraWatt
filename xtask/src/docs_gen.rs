@@ -2126,7 +2126,7 @@ fn rule_page_text(r: &Rule, notes: &str, findings: &[&GoldenFinding]) -> String 
          ## Why\n\n{why}\n\n\
          ## Standard\n\n{standard}\n\n\
          ## In the golden project\n\n{golden}\n{example}\n\n\
-         ## How to fix\n\n{hint}\n\n{fix}\n\n\
+         ## How to fix\n\n{hint}{fix}\n\n\
          ## Waiving\n\n{waivable}\n\n{waiving}\n\n\
          ## Rule data\n\n\
          | Item | Value |\n|---|---|\n\
@@ -2153,7 +2153,12 @@ fn rule_page_text(r: &Rule, notes: &str, findings: &[&GoldenFinding]) -> String 
         why = section("Why"),
         standard = section("Standard"),
         example = section("Example"),
-        hint = clean(&r.hint),
+        // An integrity rule has no hint: its finding carries the reader's own text.
+        hint = if r.hint.is_empty() {
+            String::new()
+        } else {
+            format!("{}\n\n", clean(&r.hint))
+        },
         fix = section("How to fix"),
         waivable = if r.waivable {
             "This rule's findings can be waived."
@@ -2165,7 +2170,16 @@ fn rule_page_text(r: &Rule, notes: &str, findings: &[&GoldenFinding]) -> String 
         kind = r.kind,
         severity = r.severity,
         release_severity = r.release_severity.as_deref().unwrap_or("same as severity"),
-        modes = r.modes.join(", "),
+        // An integrity rule runs when the project is opened (doc 15 §4.2's mode n), which no mode word names.
+        modes = if r.kind == "integrity" {
+            ["on open"]
+                .into_iter()
+                .chain(r.modes.iter().map(String::as_str))
+                .collect::<Vec<_>>()
+                .join(", ")
+        } else {
+            r.modes.join(", ")
+        },
         scope = r.scope,
         waivable_cell = if r.waivable { "yes" } else { "no" },
         release = r.release,
@@ -2608,6 +2622,19 @@ mod tests {
             page.contains("## Waiving\n\nThis rule's findings cannot be waived.\n\nRarely."),
             "{page}"
         );
+        // An integrity rule of opening a project (decision log ID-1376): no hint, and its modes start with the open.
+        let on_open = Rule {
+            kind: "integrity".into(),
+            modes: vec!["release".into()],
+            hint: String::new(),
+            ..integrity.clone()
+        };
+        let page = rule_page_text(&on_open, &notes, &[]);
+        assert!(
+            page.contains("## How to fix\n\nRenumber.\n\n## Waiving"),
+            "{page}"
+        );
+        assert!(page.contains("| Modes | on open, release |"), "{page}");
         let bus = Rule {
             open_item: Some(OpenItem {
                 category: "TBD value".into(),

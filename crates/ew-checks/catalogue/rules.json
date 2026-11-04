@@ -90,6 +90,289 @@
       "waivable": true
     },
     {
+      "code": "100001",
+      "docs": "reference/rules/ew-core-001",
+      "hint": "",
+      "id": "EW-CORE-001",
+      "kind": "integrity",
+      "modes": [],
+      "open_item": null,
+      "pack": "EW-CORE",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": false,
+          "release": false
+        },
+        {
+          "name": "full",
+          "online": false,
+          "release": false
+        },
+        {
+          "name": "migration",
+          "online": false,
+          "release": false
+        },
+        {
+          "name": "pre-delivery",
+          "online": false,
+          "release": false
+        }
+      ],
+      "scope": "project",
+      "severity": "warning",
+      "supersedes": [],
+      "title": "Manifest damaged",
+      "waivable": false
+    },
+    {
+      "code": "100002",
+      "docs": "reference/rules/ew-core-002",
+      "hint": "",
+      "id": "EW-CORE-002",
+      "kind": "integrity",
+      "modes": [
+        "release"
+      ],
+      "open_item": null,
+      "pack": "EW-CORE",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": false,
+          "release": true
+        }
+      ],
+      "scope": "project",
+      "severity": "error",
+      "supersedes": [],
+      "title": "Mixed generation",
+      "waivable": false
+    },
+    {
+      "code": "100003",
+      "docs": "reference/rules/ew-core-003",
+      "hint": "",
+      "id": "EW-CORE-003",
+      "kind": "integrity",
+      "modes": [
+        "release"
+      ],
+      "open_item": null,
+      "pack": "EW-CORE",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": false,
+          "release": true
+        }
+      ],
+      "scope": "project",
+      "severity": "error",
+      "supersedes": [],
+      "title": "Listed file missing",
+      "waivable": false
+    },
+    {
+      "code": "100004",
+      "docs": "reference/rules/ew-core-004",
+      "hint": "",
+      "id": "EW-CORE-004",
+      "kind": "integrity",
+      "modes": [],
+      "open_item": null,
+      "pack": "EW-CORE",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": false,
+          "release": false
+        },
+        {
+          "name": "full",
+          "online": false,
+          "release": false
+        },
+        {
+          "name": "migration",
+          "online": false,
+          "release": false
+        },
+        {
+          "name": "pre-delivery",
+          "online": false,
+          "release": false
+        }
+      ],
+      "scope": "project",
+      "severity": "warning",
+      "supersedes": [],
+      "title": "Orphan file",
+      "waivable": false
+    },
+    {
+      "code": "100005",
+      "docs": "reference/rules/ew-core-005",
+      "hint": "",
+      "id": "EW-CORE-005",
+      "kind": "integrity",
+      "modes": [
+        "release"
+      ],
+      "open_item": null,
+      "pack": "EW-CORE",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": false,
+          "release": true
+        }
+      ],
+      "scope": "project",
+      "severity": "error",
+      "supersedes": [],
+      "title": "JSON syntax error",
+      "waivable": false
+    },
+    {
+      "code": "100006",
+      "docs": "reference/rules/ew-core-006",
+      "hint": "",
+      "id": "EW-CORE-006",
+      "kind": "integrity",
+      "modes": [
+        "release"
+      ],
+      "open_item": null,
+      "pack": "EW-CORE",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": false,
+          "release": true
+        }
+      ],
+      "scope": "project",
+      "severity": "error",
+      "supersedes": [],
+      "title": "Git conflict markers",
+      "waivable": false
+    },
+    {
+      "code": "100007",
+      "docs": "reference/rules/ew-core-007",
+      "hint": "",
+      "id": "EW-CORE-007",
+      "kind": "integrity",
+      "modes": [
+        "release"
+      ],
+      "open_item": null,
+      "pack": "EW-CORE",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": false,
+          "release": true
+        }
+      ],
+      "scope": "project",
+      "severity": "error",
+      "supersedes": [],
+      "title": "Schema violation",
+      "waivable": false
+    },
+    {
       "code": "100008",
       "docs": "reference/rules/ew-core-008",
       "hint": "Restore the referenced record, or remove the reference with the quick fix.",
@@ -128,6 +411,86 @@
       "severity": "error",
       "supersedes": [],
       "title": "Dangling reference",
+      "waivable": false
+    },
+    {
+      "code": "100009",
+      "docs": "reference/rules/ew-core-009",
+      "hint": "",
+      "id": "EW-CORE-009",
+      "kind": "integrity",
+      "modes": [
+        "release"
+      ],
+      "open_item": null,
+      "pack": "EW-CORE",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": false,
+          "release": true
+        }
+      ],
+      "scope": "project",
+      "severity": "error",
+      "supersedes": [],
+      "title": "Duplicate record ID",
+      "waivable": false
+    },
+    {
+      "code": "100010",
+      "docs": "reference/rules/ew-core-010",
+      "hint": "",
+      "id": "EW-CORE-010",
+      "kind": "integrity",
+      "modes": [],
+      "open_item": null,
+      "pack": "EW-CORE",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": false,
+          "release": false
+        },
+        {
+          "name": "full",
+          "online": false,
+          "release": false
+        },
+        {
+          "name": "migration",
+          "online": false,
+          "release": false
+        },
+        {
+          "name": "pre-delivery",
+          "online": false,
+          "release": false
+        }
+      ],
+      "scope": "project",
+      "severity": "info",
+      "supersedes": [],
+      "title": "Record in the wrong file",
       "waivable": false
     },
     {
@@ -172,6 +535,47 @@
       "waivable": false
     },
     {
+      "code": "100012",
+      "docs": "reference/rules/ew-core-012",
+      "hint": "",
+      "id": "EW-CORE-012",
+      "kind": "integrity",
+      "modes": [
+        "release"
+      ],
+      "open_item": null,
+      "pack": "EW-CORE",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": false,
+          "release": true
+        }
+      ],
+      "scope": "project",
+      "severity": "error",
+      "supersedes": [],
+      "title": "Structural invariant violated",
+      "waivable": false
+    },
+    {
       "code": "100013",
       "docs": "reference/rules/ew-core-013",
       "hint": "Renumber the newer device with the quick fix, or give one of the records another number.",
@@ -211,6 +615,250 @@
       "severity": "error",
       "supersedes": [],
       "title": "Collision after a merge",
+      "waivable": false
+    },
+    {
+      "code": "100014",
+      "docs": "reference/rules/ew-core-014",
+      "hint": "",
+      "id": "EW-CORE-014",
+      "kind": "integrity",
+      "modes": [],
+      "open_item": null,
+      "pack": "EW-CORE",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": false,
+          "release": false
+        },
+        {
+          "name": "full",
+          "online": false,
+          "release": false
+        },
+        {
+          "name": "migration",
+          "online": false,
+          "release": false
+        },
+        {
+          "name": "pre-delivery",
+          "online": false,
+          "release": false
+        }
+      ],
+      "scope": "project",
+      "severity": "warning",
+      "supersedes": [],
+      "title": "Library copy modified",
+      "waivable": false
+    },
+    {
+      "code": "100015",
+      "docs": "reference/rules/ew-core-015",
+      "hint": "",
+      "id": "EW-CORE-015",
+      "kind": "integrity",
+      "modes": [
+        "release"
+      ],
+      "open_item": null,
+      "pack": "EW-CORE",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": false,
+          "release": true
+        }
+      ],
+      "scope": "project",
+      "severity": "error",
+      "supersedes": [],
+      "title": "Asset missing",
+      "waivable": false
+    },
+    {
+      "code": "100016",
+      "docs": "reference/rules/ew-core-016",
+      "hint": "",
+      "id": "EW-CORE-016",
+      "kind": "integrity",
+      "modes": [
+        "release"
+      ],
+      "open_item": null,
+      "pack": "EW-CORE",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": false,
+          "release": true
+        }
+      ],
+      "scope": "project",
+      "severity": "info",
+      "supersedes": [],
+      "title": "Data from a newer format",
+      "waivable": false
+    },
+    {
+      "code": "100017",
+      "docs": "reference/rules/ew-core-017",
+      "hint": "",
+      "id": "EW-CORE-017",
+      "kind": "integrity",
+      "modes": [
+        "release"
+      ],
+      "open_item": null,
+      "pack": "EW-CORE",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": false,
+          "release": true
+        }
+      ],
+      "scope": "project",
+      "severity": "error",
+      "supersedes": [],
+      "title": "Malformed known variant",
+      "waivable": false
+    },
+    {
+      "code": "100018",
+      "docs": "reference/rules/ew-core-018",
+      "hint": "",
+      "id": "EW-CORE-018",
+      "kind": "integrity",
+      "modes": [
+        "release"
+      ],
+      "open_item": null,
+      "pack": "EW-CORE",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": false,
+          "release": true
+        }
+      ],
+      "scope": "project",
+      "severity": "error",
+      "supersedes": [],
+      "title": "Unknown derivation profile",
+      "waivable": false
+    },
+    {
+      "code": "100019",
+      "docs": "reference/rules/ew-core-019",
+      "hint": "",
+      "id": "EW-CORE-019",
+      "kind": "integrity",
+      "modes": [
+        "release"
+      ],
+      "open_item": null,
+      "pack": "EW-CORE",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": false,
+          "release": true
+        }
+      ],
+      "scope": "project",
+      "severity": "error",
+      "supersedes": [],
+      "title": "Reader limit exceeded",
       "waivable": false
     },
     {

@@ -231,11 +231,16 @@ mod tests {
         })
     }
 
-    /// FR-CHK-015: every shipped rule declares the reference of its page of the user guide, and a wrong one is
-    /// refused in words (T5).
+    /// FR-CHK-015: every shipped rule, the integrity rules of opening a project included, declares the reference of
+    /// its page of the user guide, and a wrong one is refused in words (T5).
     #[test]
     fn every_rule_declares_its_documentation_page() {
-        let refused: Vec<String> = RULES.iter().filter_map(|r| docs_refusal(r.meta())).collect();
+        let refused: Vec<String> = RULES
+            .iter()
+            .map(|r| r.meta())
+            .chain(crate::rules::core::INTEGRITY)
+            .filter_map(docs_refusal)
+            .collect();
         assert_eq!(refused, Vec::<String>::new());
         let wrong = crate::rule::RuleMeta {
             docs: "reference/rules/ew-core",

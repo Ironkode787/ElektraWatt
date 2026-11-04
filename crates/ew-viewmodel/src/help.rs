@@ -360,13 +360,21 @@ fn focus_topic(model: &ShellModel) -> Option<&'static str> {
 /// `reference/rules/<id in lower case>.md` (`reference/rules/ew-core-033.md`); `None` for a rule this build does not
 /// ship.
 pub fn rule_page(rule: &str) -> Option<String> {
-    Some(format!("{}.md", ew_api::checks::rule(rule)?.meta().docs))
+    Some(format!("{}.md", rule_meta(rule)?.docs))
 }
 
 /// The page of the built book for a shipped rule (F1 on a finding or rule row of the Messages pane):
 /// `reference/rules/ew-core-033.html`.
 pub fn rule_target(rule: &str) -> Option<String> {
-    Some(format!("{}.html", ew_api::checks::rule(rule)?.meta().docs))
+    Some(format!("{}.html", rule_meta(rule)?.docs))
+}
+
+/// The data of a shipped rule: a registered rule, or an integrity rule of opening a project, whose findings reach the
+/// Messages pane too (decision log ID-1376).
+fn rule_meta(rule: &str) -> Option<&'static ew_api::checks::RuleMeta> {
+    ew_api::checks::rule(rule)
+        .map(|r| r.meta())
+        .or_else(|| ew_api::checks::rules::core::INTEGRITY.iter().find(|m| m.id == rule))
 }
 
 /// The page of the built book for an anchor, relative to the book's output directory: `how-to/x.html#fragment`.
@@ -483,8 +491,9 @@ mod tests {
         }
     }
 
-    /// WP-S2.09 MS4, WP-S7.05 DC-1: every shipped rule has its page in `SUMMARY.md`, and the rule catalogue that the
-    /// built rule pages render holds the rule with the same `docs` reference, so docs-gen writes its page.
+    /// WP-S2.09 MS4, WP-S7.05 DC-1: every shipped rule, the integrity rules of opening a project included (decision
+    /// log ID-1376), has its page in `SUMMARY.md`, and the rule catalogue that the built rule pages render holds the
+    /// rule with the same `docs` reference, so docs-gen writes the page its `docs` declares.
     #[test]
     fn every_shipped_rule_has_its_anchor_in_the_book() {
         let summary = std::fs::read_to_string(Path::new(BOOK_SRC).join("SUMMARY.md")).expect("SUMMARY.md");
@@ -492,8 +501,8 @@ mod tests {
         let entries = catalogue["rules"].as_array().expect("a `rules` list");
         let rules = ew_api::checks::rules();
         assert!(!rules.is_empty());
-        for r in rules {
-            let meta = r.meta();
+        let integrity = ew_api::checks::rules::core::INTEGRITY;
+        for meta in rules.iter().map(|r| r.meta()).chain(integrity) {
             let page = rule_page(meta.id).expect("a shipped rule");
             assert!(summary.contains(&page), "{page} is not in SUMMARY.md");
             let entry = entries
@@ -509,6 +518,10 @@ mod tests {
         assert_eq!(
             rule_target("EW-CORE-033").as_deref(),
             Some("reference/rules/ew-core-033.html")
+        );
+        assert_eq!(
+            rule_target("EW-CORE-005").as_deref(),
+            Some("reference/rules/ew-core-005.html")
         );
         assert_eq!(rule_page("EW-NONE-001"), None);
     }
