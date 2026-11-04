@@ -218,17 +218,21 @@ jobs:
           set -euo pipefail
           export RUSTFLAGS="-D warnings -C target-feature=+crt-static --remap-path-prefix=${CARGO_HOME:?}=/cargo --remap-path-prefix=${RUSTUP_HOME:-$(rustup show home)}=/rustup --remap-path-prefix=$GITHUB_WORKSPACE=/build"
           export PKG_CONFIG=false
+          # actions/setup-python exports PKG_CONFIG_PATH (its Python's lib/pkgconfig); the release build reads none.
+          unset PKG_CONFIG_PATH
           bash ci/release-check.sh env
           cargo auditable build --release --locked -p elektrawatt -p ew
       # D5: no build step wrote into the checkout.
       - name: the checkout is clean after the build
         run: python -I ci/release-verify.py clean
       # D12 (b), D11: the embedded dependency lists, no test-only crate in them, and no advisory against them.
+      # `--max-binary-size`: cargo audit bin reads at most 100 MiB by default, and the release binaries are larger
+      # (package.yml run 10: 137 and 107 MB on Linux); 512 MiB keeps a bound.
       - name: the binaries' cargo-auditable data and advisories
         run: |
           set -euo pipefail
           python -I ci/audit-data.py target/release/elektrawatt.exe target/release/ew.exe
-          cargo audit bin target/release/elektrawatt.exe target/release/ew.exe
+          cargo audit bin --max-binary-size 536870912 target/release/elektrawatt.exe target/release/ew.exe
       # IN-4: neither program imports the C runtime, which the hosted image has and a clean PC may not.
       - name: no C runtime import
         shell: pwsh
@@ -548,12 +552,13 @@ jobs:
           set -euo pipefail
           cargo deny --locked check advisories
           cargo audit
-      # D12 (b), D11: the embedded dependency lists, no test-only crate in them, and no advisory against them.
+      # D12 (b), D11: the embedded dependency lists, no test-only crate in them, and no advisory against them (the
+      # size bound as in the windows job).
       - name: the binaries' cargo-auditable data and advisories
         run: |
           set -euo pipefail
           python3 -I ci/audit-data.py target/release/elektrawatt target/release/ew
-          cargo audit bin target/release/elektrawatt target/release/ew
+          cargo audit bin --max-binary-size 536870912 target/release/elektrawatt target/release/ew
       # D9 (CI-R-07, FT-04): the SBOM of the AppImage (both programs and the type-2 runtime) and of the CLI archive
       # (`ew`), each the shipped set of `cargo tree` (ID-1318) and complete against it and cargo metadata; then the
       # non-crate components in the notices the tree takes.
