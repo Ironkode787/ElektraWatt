@@ -23,6 +23,18 @@ SPDX-License-Identifier: CC-BY-4.0
 - api-add: cli elektrawatt --headless --visual --window <W>x<H> --ppp <n> (a visual run chooses its window in points
   and its scale; the default 1280x800 at 1.2 and every earlier frame and transcript are unchanged; `xtask blind start
   --senses visual` takes the same flags)
+- api-add: format plc_profile (the library kind of PLC address profiles: `lib/plc-profiles/<id>.json` in a project,
+  `plc-profiles/` in a library; the built-in TIA and IEC profiles ship as `content/plc-profiles/*.json`, their pins
+  unchanged; a profile file in a library is chosen by `plc.set_profile` and the project holds its copy; WP-S7.03 D7,
+  D8)
+- api-add: content ew-sample-parts (the sample project's 23 catalogue parts and their seven manufacturers as a system
+  library, CC0-1.0, with function templates, CP patterns, the PLC and bus sections and each section's confidence
+  `test` or `unverified`; WP-S7.03 D3, D4)
+- api-add: content profiles/colour/company.dbu-wh-24v.json, profiles/size/company.0.75-1.5.json (the sample project's
+  colour and size profiles as shipped data, byte for byte its values; WP-S7.03 D5, D6)
+- api-add: window company-standard wizard, step 2, "Pin numbers and markers" ("Readable (new projects)", the default,
+  writes the new project's readable text styles; "As in the sample project" writes none; WP-S7.03 D11)
+- api-add: cli ew apply (a `plc.set_profile` line naming a library's address profile embeds it first; WP-S7.03 D8)
 - api-add: cli ew fmt [--check] [--json] (lists or rewrites the files not in canonical form through the save
   protocol; result `ew.fmt-result/1`)
 - api-add: cli ew fmt --repair [--json] (discards the lines that are not JSON or not UTF-8, EW-CORE-005, in one save,
@@ -150,6 +162,12 @@ SPDX-License-Identifier: CC-BY-4.0
   the parts keep one order whether the project holds them or not; FT-1087)
 - text-change: window canvas HUD (on a page that takes no symbols it gives the page type's reason while no tool is
   armed; FT-1089)
+- text-change: command plc.set_profile (a name not at hand: "`<text>` is not an address profile of this build or of
+  the project; the profiles at hand are <list>"; WP-S7.03 T1)
+- text-change: cli ew lib list and command library.embed (an address profile that does not render: "the address
+  profile <id@version> cannot be read: <reason>"; WP-S7.03 T2)
+- text-change: window part chooser, place-tool picker, cli ew lib search (the sample project's catalogue parts are
+  listed from the system library "Sample project parts"; WP-S7.03 D3)
 - dependency: async-executor 1.14.0 → 1.14.1 (a use-after-free fixed upstream; 1.14.0 yanked)
 - dependency: the AppImage's runtime, the AppImage project's static type-2 runtime 20251108 (new; a separate program
   at the start of the Linux AppImage, not linked into ElektraWatt, ID-1275; MIT, and it links statically musl libc
