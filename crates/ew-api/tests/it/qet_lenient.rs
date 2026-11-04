@@ -29,8 +29,9 @@ const NEXT: usize = 1;
 const PREVIOUS: usize = 2;
 pub(crate) const TERMINAL: usize = 3;
 const THUMBNAIL: usize = 4;
+const SLAVE: usize = 5;
 
-const DEFS: [Def; 5] = [
+const DEFS: [Def; 6] = [
     Def {
         name: "simple",
         link_type: "simple",
@@ -59,6 +60,12 @@ const DEFS: [Def; 5] = [
         name: "thumb",
         link_type: "thumbnail",
         terminals: 1,
+        kind: None,
+    },
+    Def {
+        name: "slave",
+        link_type: "slave",
+        terminals: 2,
         kind: None,
     },
 ];
@@ -742,14 +749,22 @@ fn duplicate_printed_tags_are_lenient_findings() {
     assert_eq!(group.count, 1, "{:?}", group.messages);
 }
 
-/// WP-S3.09 D1: an entry about an emitted record names it as its target: a frozen tag its device, a repeated folio its
-/// page; an entry about dropped content names none.
+/// WP-S3.09 D1: an entry about an emitted record names it as its target: a frozen tag, a label kept as text and a slave
+/// without master their device, a repeated folio its page; an entry about dropped content names none.
 #[test]
 fn entries_about_emitted_records_name_them() {
     let text = qet(
         r#"version="0.100""#,
         &[
-            folio("1", "A", vec![el(SIMPLE, uuid(1), 100, 100).label("-K1")]),
+            folio(
+                "1",
+                "A",
+                vec![
+                    el(SIMPLE, uuid(1), 100, 100).label("-K1"),
+                    el(SIMPLE, uuid(2), 300, 100).label("K	1"),
+                    el(SLAVE, uuid(3), 500, 100),
+                ],
+            ),
             folio("1", "B", vec![]),
         ],
     );
@@ -780,7 +795,13 @@ fn entries_about_emitted_records_name_them() {
     );
     assert_eq!(
         targets("EW-IMP-008"),
-        [("page".to_owned(), true)],
+        [("page".to_owned(), true), ("device".to_owned(), true)],
+        "{}",
+        all_entries(&imported)
+    );
+    assert_eq!(
+        targets("EW-IMP-116"),
+        [("device".to_owned(), true)],
         "{}",
         all_entries(&imported)
     );
