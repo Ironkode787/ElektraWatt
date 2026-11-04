@@ -156,7 +156,8 @@ pub fn parse(text: &str) -> Option<([u8; 10], BTreeMap<String, Choice>)> {
             if a[n - 1].replace(v).is_some() {
                 return None;
             }
-        } else if let Some(n) = key.strip_prefix('B') {
+        } else {
+            let n = key.strip_prefix('B')?;
             let n: usize = n.parse().ok().filter(|n| (1..=4).contains(n))?;
             let (choice, sentence) = rest.split_once(char::is_whitespace)?;
             let sentence = sentence.trim();
@@ -170,8 +171,6 @@ pub fn parse(text: &str) -> Option<([u8; 10], BTreeMap<String, Choice>)> {
             if b.insert(format!("B{n}"), answer).is_some() {
                 return None;
             }
-        } else {
-            return None;
         }
     }
     let mut answers = [0u8; 10];
