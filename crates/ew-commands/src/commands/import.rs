@@ -348,7 +348,7 @@ pub fn plan_reimport(
             }
         }
     }
-    rows.sort_by(|a, b| (a.class, a.key).cmp(&(b.class, b.key)));
+    rows.sort_by_key(|a| (a.class, a.key));
     for row in &rows {
         let entry = match row.class {
             ReimportClass::Conflict => reimport_entry(
