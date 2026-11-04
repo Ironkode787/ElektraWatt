@@ -3954,6 +3954,7 @@ import-confirm-text = The import creates a new project in { $p0 } with { $p1 } p
 import-confirm-create = Create project
 error-import-confirm = Creating the project from { $p0 } cannot be undone and needs "confirm": true.
 error-import-panicked = The importer stopped on an internal error while reading { $p0 }; nothing was imported.
+error-import-cancelled = The import of { $p0 } was cancelled; nothing was imported.
 error-import-refused = The import of { $p0 } was refused because { $p1 }; nothing was imported.
 reason-import-shared-identity = two records share one identity
 reason-import-identity-key = a record's identity does not follow from its source key

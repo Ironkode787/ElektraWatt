@@ -36,6 +36,8 @@ pub(crate) struct PendingImport {
     dir: PathBuf,
     /// The banner of the opened project.
     banner: String,
+    /// The import card while another dialog is open: it opens when that dialog closes.
+    waiting: Option<Dialog>,
 }
 
 /// A running import job of the window (WP-S3.09 D4): the importer on its own thread, with what its end needs.
@@ -334,6 +336,11 @@ impl ShellModel {
     /// Takes the end of a running import job (the window every frame, through `poll_jobs`) and goes on with the import
     /// card.
     pub(super) fn poll_import(&mut self) {
+        if self.dialog.is_none()
+            && let Some(card) = self.import_pending.as_mut().and_then(|p| p.waiting.take())
+        {
+            let _ = self.open_dialog(card);
+        }
         let ended = self.import_job.as_mut().and_then(|pending| pending.job.try_end());
         if let Some(end) = ended
             && let Some(pending) = self.import_job.take()
@@ -354,8 +361,12 @@ impl ShellModel {
         let batch = match end {
             JobEnd::Done(Ok(batch)) => Ok(batch),
             JobEnd::Done(Err(refusal)) => Err(refusal),
-            JobEnd::Panicked | JobEnd::Failed(_) | JobEnd::Cancelled => {
-                Err(Refusal::Panicked { file: name.clone() })
+            JobEnd::Panicked | JobEnd::Failed(_) => Err(Refusal::Panicked { file: name.clone() }),
+            // C51-p2#10: a cancelled job is no internal error.
+            JobEnd::Cancelled => {
+                let message = strings::format(key!("error-import-cancelled"), &[&name]);
+                self.banner = Some(message.clone());
+                return Outcome::Failed { message };
             }
         };
         let imported = match batch {
@@ -410,17 +421,27 @@ impl ShellModel {
             ],
         );
         let pages = session.page_labels();
-        self.palette = None;
-        self.dialog_gen += 1;
-        self.dialog = Some(Dialog::ImportQet {
+        let card = Dialog::ImportQet {
             file: name.clone(),
             folder: dir_name(&dir),
             summary,
             pages,
             devices: counts.devices,
             confirm: false,
+        };
+        // C51-p2#10: a dialog open when the job ends stays; the card waits until it closes (`poll_import`).
+        let waiting = if self.dialog.is_some() {
+            Some(card)
+        } else {
+            let _ = self.open_dialog(card);
+            None
+        };
+        self.import_pending = Some(PendingImport {
+            session,
+            dir,
+            banner,
+            waiting,
         });
-        self.import_pending = Some(PendingImport { session, dir, banner });
         Outcome::Done
     }
 
@@ -606,6 +627,12 @@ impl ShellModel {
     /// `file.reimport_qet_apply` (the re-import card's Apply, WP-S3.09 D12): the previewed re-import committed as one
     /// undo step (nothing when it changes nothing). Without a re-import card it is refused.
     pub(crate) fn act_reimport_qet_apply(&mut self) -> Outcome {
+        // C51-p2#10: the card is checked before it is taken, so a refusal closes no other dialog.
+        if !matches!(self.dialog, Some(Dialog::Reimport { .. })) {
+            return Outcome::Refused {
+                reason_key: key!("reason-no-reimport"),
+            };
+        }
         let Some(Dialog::Reimport { file, .. }) = self.dialog.take() else {
             return Outcome::Refused {
                 reason_key: key!("reason-no-reimport"),
@@ -701,5 +728,33 @@ impl ShellModel {
                 Outcome::Failed { message }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::shell::ShellConfig;
+
+    /// C51-p2#10: a cancelled import job shows its own text, not T1's internal error.
+    #[test]
+    fn a_cancelled_import_job_shows_the_cancel_text() {
+        let dir = super::super::fresh_test_dir("ew-vm-import-cancelled");
+        let mut shell = ShellModel::new(Mode::Gui, ShellConfig::in_dir(&dir, "0.0.0-test"));
+        let text = "The import of example.qet was cancelled; nothing was imported.";
+        assert_eq!(
+            shell.finish_import(
+                JobEnd::Cancelled,
+                "example.qet".to_owned(),
+                dir.join("p.ew"),
+                None
+            ),
+            Outcome::Failed {
+                message: text.to_owned()
+            }
+        );
+        assert_eq!(shell.banner(), Some(text));
+        assert!(shell.dialog().is_none());
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

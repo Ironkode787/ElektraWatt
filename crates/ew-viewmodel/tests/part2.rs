@@ -397,6 +397,45 @@ fn apply_asks_again_about_changes_made_while_the_importer_ran() {
     assert_eq!(saved.page_labels(), ["1", "2"], "the edit was saved");
 }
 
+/// C51-p2#10: a dialog open when the import job ends stays open, and the import card opens when it closes; Apply of a
+/// re-import with another dialog open is refused and closes nothing.
+#[test]
+fn the_import_card_waits_for_an_open_dialog() {
+    let tmp = Tmp::new();
+    let qet = tmp.0.join("example.qet");
+    std::fs::write(&qet, QET).unwrap();
+    let dir = tmp.0.join("imported.ew");
+    let mut gui = tmp.gui();
+    done(
+        &mut gui,
+        "file.new",
+        json!({ "dir": path(&tmp.0.join("open.ew")) }),
+    );
+    done(
+        &mut gui,
+        "file.import_qet",
+        json!({ "file": path(&qet), "dir": path(&dir) }),
+    );
+    done(&mut gui, "help.about", json!({}));
+    assert!(gui.wait_jobs().is_empty());
+    assert_eq!(
+        gui.dialog(),
+        Some(&Dialog::About),
+        "the job's end replaces no dialog"
+    );
+    assert_eq!(
+        run(&mut gui, "file.reimport_qet_apply", json!({})),
+        Outcome::Refused {
+            reason_key: key!("reason-no-reimport")
+        }
+    );
+    assert_eq!(gui.dialog(), Some(&Dialog::About), "the refusal closes nothing");
+    done(&mut gui, "ui.dismiss", json!({}));
+    gui.poll_jobs();
+    let spec = ew_viewmodel::dialogs::spec(gui.dialog().expect("the import card"), &gui);
+    assert_eq!(spec.title, "Import example.qet");
+}
+
 /// WP-S3.09 IC-4 (NFR-REL-12): an import whose job panics shows T1 in the banner, writes nothing, and the session goes
 /// on: the next import opens its card.
 #[test]

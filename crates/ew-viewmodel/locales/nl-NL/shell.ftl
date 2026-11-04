@@ -3718,6 +3718,7 @@ import-confirm-text = De import maakt een nieuw project in { $p0 } met { $p1 } p
 import-confirm-create = Project maken
 error-import-confirm = Het project maken uit { $p0 } kan niet ongedaan worden gemaakt en vraagt "confirm": true.
 error-import-panicked = De importfunctie is gestopt door een interne fout bij het lezen van { $p0 }; er is niets geïmporteerd.
+error-import-cancelled = De import van { $p0 } is geannuleerd; er is niets geïmporteerd.
 error-import-refused = De import van { $p0 } is geweigerd omdat { $p1 }; er is niets geïmporteerd.
 reason-import-shared-identity = twee records dezelfde identiteit hebben
 reason-import-identity-key = de identiteit van een record niet volgt uit zijn bronsleutel
