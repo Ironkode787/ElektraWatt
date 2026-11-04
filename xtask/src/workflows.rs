@@ -9,7 +9,8 @@
 //! - The workflow declares a top-level `permissions:` block whose `contents` is `read` and which grants no
 //!   `write` scope; jobs that need more (release jobs) widen it per job.
 //! - A job that grants a `write` scope runs in the protected `release` environment (`environment: release`, or
-//!   `environment:` with `name: release`; WP-S6.07 D4).
+//!   `environment:` with `name: release`; WP-S6.07 D4), whether the grant is a block or an inline map; a job's
+//!   other inline `permissions:` forms are refused but `read-all`.
 //! - No `permissions: write-all` anywhere.
 //! - No `pull_request_target` trigger (it runs fork code with a privileged token).
 //! - Every `actions/checkout` step sets `persist-credentials: false`, so later steps cannot reuse the token.
@@ -408,8 +409,9 @@ fn check_top_level_permissions(file: &str, lines: &[Line<'_>], v: &mut Vec<Strin
     }
 }
 
-/// WP-S6.07 D4 (NFR-SEC-19): a job whose `permissions:` block grants a `write` scope declares `environment:
-/// release`, the protected environment of the release jobs, inline or as the `name:` of an `environment:` block.
+/// WP-S6.07 D4 (NFR-SEC-19): a job whose `permissions:` block or inline map grants a `write` scope declares
+/// `environment: release`, the protected environment of the release jobs, inline or as the `name:` of an
+/// `environment:` block. Any other inline form but `read-all` is refused.
 fn check_write_scopes(file: &str, lines: &[Line<'_>], v: &mut Vec<String>) {
     let Some(start) = lines
         .iter()
@@ -451,6 +453,40 @@ fn check_write_scopes(file: &str, lines: &[Line<'_>], v: &mut Vec<String>) {
                         Some((scope, "write")) => Some((l.number, scope)),
                         _ => None,
                     }))
+                }
+                // `write-all` is refused in every job by its own rule.
+                Some(("permissions", "read-all" | "write-all")) => {}
+                Some(("permissions", inline)) => {
+                    // The inline map `{ scope: access, ... }`; any other form is refused, since its scopes
+                    // cannot be read.
+                    let scopes = inline
+                        .strip_prefix('{')
+                        .and_then(|map| map.strip_suffix('}'))
+                        .map(|map| {
+                            map.split(',')
+                                .map(str::trim)
+                                .filter(|entry| !entry.is_empty())
+                                .map(key_value)
+                                .collect::<Option<Vec<_>>>()
+                        });
+                    match scopes.flatten() {
+                        Some(scopes)
+                            if scopes
+                                .iter()
+                                .all(|(_, access)| matches!(*access, "read" | "write" | "none")) =>
+                        {
+                            writes.extend(
+                                scopes
+                                    .into_iter()
+                                    .filter(|&(_, access)| access == "write")
+                                    .map(|(scope, _)| (line.number, scope)),
+                            )
+                        }
+                        _ => v.push(format!(
+                            "{file}:{}: job `{job}` sets `permissions: {inline}`, which this check cannot read; use a block or `read-all`",
+                            line.number
+                        )),
+                    }
                 }
                 _ => {}
             }
@@ -906,6 +942,42 @@ mod tests {
                 "release.yml:14: job `publish` grants `id-token: write` outside the `release` environment",
             ]
         );
+        // C50-p2#1: the inline map is read as the block is; `read-all` passes; any other inline form is refused.
+        let inline = |permissions: &str, environment: &str| {
+            check_text(
+                "release.yml",
+                &format!("{head}  rel:\n    runs-on: x\n{environment}    permissions: {permissions}\n"),
+            )
+        };
+        assert_eq!(
+            inline("{ contents: read, id-token: write }", ""),
+            ["release.yml:12: job `rel` grants `id-token: write` outside the `release` environment"]
+        );
+        assert_eq!(
+            inline("{ contents: write }", "    environment: pages\n"),
+            ["release.yml:13: job `rel` grants `contents: write` outside the `release` environment"]
+        );
+        for permissions in ["{ contents: write }", "{contents: read,attestations: write}"] {
+            assert_eq!(
+                inline(permissions, "    environment: release\n"),
+                Vec::<String>::new(),
+                "{permissions}"
+            );
+        }
+        for permissions in ["read-all", "{ contents: read }", "{}"] {
+            assert_eq!(inline(permissions, ""), Vec::<String>::new(), "{permissions}");
+        }
+        for permissions in ["${{ inputs.p }}", "{ contents: maybe }", "{ contents }"] {
+            for environment in ["", "    environment: release\n"] {
+                let line = if environment.is_empty() { 12 } else { 13 };
+                assert_eq!(
+                    inline(permissions, environment),
+                    [format!(
+                        "release.yml:{line}: job `rel` sets `permissions: {permissions}`, which this check cannot read; use a block or `read-all`"
+                    )]
+                );
+            }
+        }
         // Every workflow of the repository passes as it is.
         let dir = crate::workspace_root().join(".github/workflows");
         assert_eq!(check_dir(&dir).unwrap(), Vec::<String>::new());
