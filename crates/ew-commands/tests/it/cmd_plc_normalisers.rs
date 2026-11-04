@@ -87,6 +87,11 @@ fn model_with(extra: Vec<LibCopy<Part>>) -> Model {
 }
 
 fn model_with_records(extra: Vec<LibCopy<Part>>, more: Vec<Record>) -> Model {
+    model_with_documents(extra.into_iter().map(LibDocument::Part).collect(), more)
+}
+
+/// [`model_with_records`] with library documents of any kind as `extra`.
+fn model_with_documents(extra: Vec<LibDocument>, more: Vec<Record>) -> Model {
     let (p, mut records, mut lib) = mini_golden_parts();
     lib.push(LibDocument::Part(mapped_module(MODULE_H1, "2p", "2p+1")));
     lib.push(LibDocument::Part(mapped_module(MODULE_H2, "2p+1", "2p")));
@@ -104,7 +109,7 @@ fn model_with_records(extra: Vec<LibCopy<Part>>, more: Vec<Record>) -> Model {
         d.item.contact_kind = ew_schema::ContactKind::Valve;
         d
     }));
-    lib.extend(extra.into_iter().map(LibDocument::Part));
+    lib.extend(extra);
     records.extend(more);
     Model::from_records(p, records, lib).expect("plc model is valid")
 }
@@ -418,6 +423,51 @@ fn n_fl_1_makes_the_valve_and_coil_functions_from_the_part() {
     e.undo(&ew_commands::Origin::Gui).expect("undo");
     assert_eq!(functions_of(&e, v).len(), 2);
     assert_eq!(binding(&e, 3), None);
+}
+
+/// FT-1313: replacing a part shaped like `EW-GEN-VLV-1` (`[valve-coil, valve]`) by a `[valve, solenoid]` part keeps
+/// the valve function `v5(valve, 1)`, so the new coil of entry 1 takes `v5(v5(valve, 1), 1)`, deterministic and free,
+/// instead of failing on an existing record; N2 binds it, and undo restores the old coil.
+#[test]
+fn n_fl_1_gives_a_new_coil_a_fresh_id_when_its_own_is_the_kept_valve_function() {
+    const GENERIC: Id<Part> = id(0x79);
+    const VALVE_COIL: ew_ids::Uuid = ew_ids::Uuid::from_u128(0x9304);
+    let mut generic = solenoid_valve_part(GENERIC, "EW-GEN-VLV-1", &["14"]);
+    generic.item.function_template.reverse();
+    generic.item.function_template[0].fndef = lib_ref_to(LIBRARY_VALVE, VALVE_COIL);
+    let mut valve_coil = solenoid_fndef();
+    let other = fndef_copy_for(LIBRARY_VALVE, VALVE_COIL, &["14"]);
+    (valve_coil.id, valve_coil.item_id) = (other.id, other.item_id);
+    let mut e = engine(model_with_documents(
+        vec![LibDocument::Part(generic), LibDocument::Fndef(valve_coil)],
+        vec![],
+    ));
+    make_module(&mut e, MODULE_H1);
+    let (_, v, _) = add_valve(&mut e, 2, GENERIC);
+    let body = ew_ids::v5::template_function_id(v, 1);
+    let old_coil = ew_ids::v5::template_function_id(v, 0);
+    assert_eq!(functions_of(&e, v), {
+        let mut want = vec![(body, None), (old_coil, None)];
+        want.sort();
+        want
+    });
+    let r = e
+        .execute(&replace_part(v, GENERIC, VALVE))
+        .expect("the [valve, solenoid] part");
+    let fresh: Id<Function> = ew_ids::v5::template_function_id(body.cast::<Device>(), 1);
+    assert_eq!(functions_of(&e, v), {
+        let mut want = vec![(body, None), (fresh, None)];
+        want.sort();
+        want
+    });
+    assert_eq!(row(&e, fresh).template_entry, Some(1));
+    assert_eq!(binding(&e, 2), Some(Endpoint::Cp(fresh, 0)));
+    assert_eq!(
+        r.outcome.notices,
+        ["solenoid 14 of -102F2-Q2 went with the old part; channel 2 of -102F2 is unbound"]
+    );
+    e.undo(&ew_commands::Origin::Gui).expect("undo");
+    assert_eq!(binding(&e, 2), Some(Endpoint::Cp(old_coil, 0)));
 }
 
 /// D6 (d): a valve keeps its drawn valve function when its new valve part has another valve FnDef, with a notice.

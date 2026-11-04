@@ -13,7 +13,7 @@
 //!   part-first placement refuses it).
 //! - **Effect.** (a) A device without a function on a FnDef of contact kind `valve` gets one from the valve entry; (b)
 //!   each coil entry without its function gets one; a new function has the ID `v5(device, template_index)` (ADR-0004
-//!   amendment 2), the entry's role (auxiliary when the device already has a main function, EW-INV-002) and its index
+//!   amendment 2), or, when that ID is a kept record, `v5(that ID, template_index)` and so on (FT-1313), the entry's role (auxiliary when the device already has a main function, EW-INV-002) and its index
 //!   as `template_entry`; an internal coil whose solenoid differs from its FnDef CP's designation gets a designation
 //!   override on that CP. (c) A coil function of the device that is no entry of the valve part's template (the old
 //!   part's, after a part change) is removed; a channel bound to it is unbound with the notice `solenoid <s> of <valve>
@@ -39,6 +39,9 @@ use crate::error::CmdError;
 use crate::normalise::Normaliser;
 use crate::tx::TxBuilder;
 use crate::words;
+
+/// The most derived IDs a new function tries past `v5(device, entry)` before the transaction is refused (FT-1313).
+const FRESH_TRIES: usize = 8;
 
 /// Normaliser N-FL-1.
 #[derive(Clone, Copy, Debug, Default)]
@@ -239,8 +242,23 @@ fn follow_part(tx: &mut TxBuilder<'_>, dev: &Device, part: &LibCopy<Part>) -> Re
                 extra: Extra::new(),
             });
         }
+        // The ID `v5(device, entry)`; when that is a kept record (the old part's valve function at another entry,
+        // FT-1313), `v5` of it and the entry again, until a free one.
+        let index = u32::try_from(i).unwrap_or(u32::MAX);
+        let mut id: Id<Function> = ew_ids::v5::template_function_id(dev.id, index);
+        for _ in 0..FRESH_TRIES {
+            if !tx.exists::<Function>(id) {
+                break;
+            }
+            id = ew_ids::v5::template_function_id(id.cast::<Device>(), index);
+        }
+        if tx.exists::<Function>(id) {
+            return tx.reject(format!(
+                "{name} cannot take the functions of part {number}: no free function ID is left; replace the device"
+            ));
+        }
         tx.insert(Function {
-            id: ew_ids::v5::template_function_id(dev.id, u32::try_from(i).unwrap_or(u32::MAX)),
+            id,
             v: 1,
             device: Some(dev.id),
             def,
