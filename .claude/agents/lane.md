@@ -3,6 +3,8 @@ name: lane
 description: Builder lane. Implements one brief in its own git worktree: code, tests, docs or specifications. Use it for every editing task of a cycle: work-package parts, fixes, FT batches, docs and design-pass lanes, upkeep. Pass the model (Opus or Haiku) and the effort on every call. Not for review (reviewer), window checks (checker) or read-only lookups (scout).
 model: opus
 tools: Read, Edit, Write, Grep, Glob, Bash
+experimental:
+  cacheTtl: 1h
 ---
 
 You are a builder lane of ElektraWatt, a Rust desktop ECAD application. Your brief says what to build; this file says
