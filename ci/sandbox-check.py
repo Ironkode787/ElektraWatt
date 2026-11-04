@@ -4,9 +4,9 @@
 
 """The verdict of the network sandbox (WP-S6.05 D4, D5; doc 18 section 12.2, CI-N-06; NFR-PRIV-01, NFR-SEC-09).
 
-  python3 -I ci/sandbox-check.py scan <flow>.strace...      the syscalls of each flow, traced with strace -f
-  python3 -I ci/sandbox-check.py canary <binary>...         the strings of each release binary
-  python3 -I ci/sandbox-check.py --test                     its offline unit test
+  python3 -I ci/sandbox-check.py scan <flow>.strace...    # the syscalls of each flow, traced with strace -f
+  python3 -I ci/sandbox-check.py canary <binary>...       # the strings of each release binary
+  python3 -I ci/sandbox-check.py --test                   # its offline unit test
 
 `scan` reads the `strace -f -e trace=socket,connect,bind,listen,sendto,sendmsg,sendmmsg,openat` output of each flow
 (the flow is the file name without `.strace`) and fails on:
