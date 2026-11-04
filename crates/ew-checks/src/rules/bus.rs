@@ -71,6 +71,7 @@ pub const BUS_ADDRESS: RuleMeta = RuleMeta {
     scope: ScopeKind::Lnet,
     supersedes: &["EW-CORE-044"],
     release: Release::Mvp,
+    docs: "reference/rules/ew-bus-001",
 };
 
 /// EW-BUS-001: over the ports of the logical net (`net_members(lnet)`), one finding per port whose station address
@@ -174,6 +175,7 @@ pub const TERMINATION: RuleMeta = RuleMeta {
     scope: ScopeKind::Pnet,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-bus-004",
 };
 
 /// The terminating element an end claims, walking inward from it: the index into the segment's functions.

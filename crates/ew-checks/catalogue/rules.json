@@ -2,6 +2,8 @@
   "rules": [
     {
       "code": "111001",
+      "docs": "reference/rules/ew-bus-001",
+      "hint": "Enter a station address that is unique in the logical net before release.",
       "id": "EW-BUS-001",
       "kind": "completeness",
       "modes": [
@@ -47,6 +49,8 @@
     },
     {
       "code": "111004",
+      "docs": "reference/rules/ew-bus-004",
+      "hint": "Switch the termination on at both ends of the segment and off everywhere between them.",
       "id": "EW-BUS-004",
       "kind": "conflict",
       "modes": [
@@ -87,6 +91,8 @@
     },
     {
       "code": "100008",
+      "docs": "reference/rules/ew-core-008",
+      "hint": "Restore the referenced record, or remove the reference with the quick fix.",
       "id": "EW-CORE-008",
       "kind": "integrity",
       "modes": [
@@ -126,6 +132,8 @@
     },
     {
       "code": "100011",
+      "docs": "reference/rules/ew-core-011",
+      "hint": "Take ours or theirs for each conflict with ew merge resolve, or delete the record that conflicts.",
       "id": "EW-CORE-011",
       "kind": "integrity",
       "modes": [
@@ -165,6 +173,8 @@
     },
     {
       "code": "100013",
+      "docs": "reference/rules/ew-core-013",
+      "hint": "Renumber the newer device with the quick fix, or give one of the records another number.",
       "id": "EW-CORE-013",
       "kind": "integrity",
       "modes": [
@@ -205,6 +215,8 @@
     },
     {
       "code": "101021",
+      "docs": "reference/rules/ew-core-021",
+      "hint": "Renumber the page into its section's folio range, or move it to the section that owns the range.",
       "id": "EW-CORE-021",
       "kind": "conflict",
       "modes": [
@@ -245,6 +257,8 @@
     },
     {
       "code": "101022",
+      "docs": "reference/rules/ew-core-022",
+      "hint": "Give one of the pages another folio; two pages never share a folio.",
       "id": "EW-CORE-022",
       "kind": "conflict",
       "modes": [
@@ -286,6 +300,8 @@
     },
     {
       "code": "101023",
+      "docs": "reference/rules/ew-core-023",
+      "hint": "Remove the override to print the bound project value again, or keep it if the page needs its own text.",
       "id": "EW-CORE-023",
       "kind": "hygiene",
       "modes": [
@@ -326,6 +342,8 @@
     },
     {
       "code": "101025",
+      "docs": "reference/rules/ew-core-025",
+      "hint": "Shorten the generated table of contents or its page entries so that its page count settles.",
       "id": "EW-CORE-025",
       "kind": "hygiene",
       "modes": [
@@ -366,6 +384,8 @@
     },
     {
       "code": "101026",
+      "docs": "reference/rules/ew-core-026",
+      "hint": "Add a report block of that kind, or exclude the records from the report on purpose.",
       "id": "EW-CORE-026",
       "kind": "completeness",
       "modes": [
@@ -406,6 +426,8 @@
     },
     {
       "code": "003031",
+      "docs": "reference/rules/ew-core-031",
+      "hint": "Choose a colour code of the core colour standard, for example BN instead of BR.",
       "id": "EW-CORE-031",
       "kind": "conflict",
       "modes": [
@@ -447,6 +469,8 @@
     },
     {
       "code": "003032",
+      "docs": "reference/rules/ew-core-032",
+      "hint": "Use the core as the cable part defines it, or choose the part that has this core.",
       "id": "EW-CORE-032",
       "kind": "conflict",
       "modes": [
@@ -487,6 +511,8 @@
     },
     {
       "code": "003033",
+      "docs": "reference/rules/ew-core-033",
+      "hint": "Enter a manual length, route the cable in the layout, or assign a part with a fixed length.",
       "id": "EW-CORE-033",
       "kind": "completeness",
       "modes": [
@@ -530,6 +556,8 @@
     },
     {
       "code": "003034",
+      "docs": "reference/rules/ew-core-034",
+      "hint": "Add the cable that leaves the location and assign its cores to the wires.",
       "id": "EW-CORE-034",
       "kind": "completeness",
       "modes": [
@@ -570,6 +598,8 @@
     },
     {
       "code": "003036",
+      "docs": "reference/rules/ew-core-036",
+      "hint": "Assign the core to one connection only, or use another core of the cable.",
       "id": "EW-CORE-036",
       "kind": "conflict",
       "modes": [
@@ -610,6 +640,8 @@
     },
     {
       "code": "003037",
+      "docs": "reference/rules/ew-core-037",
+      "hint": "Connect the shield to an earthing point, or mark it as not connected on purpose.",
       "id": "EW-CORE-037",
       "kind": "completeness",
       "modes": [
@@ -649,6 +681,8 @@
     },
     {
       "code": "102041",
+      "docs": "reference/rules/ew-core-041",
+      "hint": "Assign a part from the library, or mark the device as supplied by others.",
       "id": "EW-CORE-041",
       "kind": "completeness",
       "modes": [
@@ -692,6 +726,8 @@
     },
     {
       "code": "102042",
+      "docs": "reference/rules/ew-core-042",
+      "hint": "Complete the part's data in the library and update the embedded copy.",
       "id": "EW-CORE-042",
       "kind": "completeness",
       "modes": [
@@ -732,6 +768,8 @@
     },
     {
       "code": "102043",
+      "docs": "reference/rules/ew-core-043",
+      "hint": "Replace the placeholder with the real part before the release.",
       "id": "EW-CORE-043",
       "kind": "completeness",
       "modes": [
@@ -775,6 +813,8 @@
     },
     {
       "code": "102044",
+      "docs": "reference/rules/ew-core-044",
+      "hint": "Enter the value that is still marked TBD before the release.",
       "id": "EW-CORE-044",
       "kind": "completeness",
       "modes": [
@@ -818,6 +858,8 @@
     },
     {
       "code": "102045",
+      "docs": "reference/rules/ew-core-045",
+      "hint": "Remove contacts from the drawing, or choose a part with enough main and auxiliary contacts.",
       "id": "EW-CORE-045",
       "kind": "conflict",
       "modes": [
@@ -858,6 +900,8 @@
     },
     {
       "code": "102047",
+      "docs": "reference/rules/ew-core-047",
+      "hint": "Place a representation of the device in the schematic, or delete the device.",
       "id": "EW-CORE-047",
       "kind": "completeness",
       "modes": [
@@ -898,6 +942,8 @@
     },
     {
       "code": "102048",
+      "docs": "reference/rules/ew-core-048",
+      "hint": "Add the missing children to an order code of the assembly, or remove them from the assembly.",
       "id": "EW-CORE-048",
       "kind": "conflict",
       "modes": [
@@ -938,6 +984,8 @@
     },
     {
       "code": "103051",
+      "docs": "reference/rules/ew-core-051",
+      "hint": "Place the matching interruption point with the same name, or remove this one.",
       "id": "EW-CORE-051",
       "kind": "completeness",
       "modes": [
@@ -978,6 +1026,8 @@
     },
     {
       "code": "103052",
+      "docs": "reference/rules/ew-core-052",
+      "hint": "Keep one source per name: set the other sources to target, or flag exactly one point as the star source.",
       "id": "EW-CORE-052",
       "kind": "conflict",
       "modes": [
@@ -1019,6 +1069,8 @@
     },
     {
       "code": "103053",
+      "docs": "reference/rules/ew-core-053",
+      "hint": "Restore the default anchor policy, or move the anchor into a cell that holds the graphics.",
       "id": "EW-CORE-053",
       "kind": "hygiene",
       "modes": [
@@ -1059,6 +1111,8 @@
     },
     {
       "code": "104061",
+      "docs": "reference/rules/ew-core-061",
+      "hint": "Enlarge the text style, or change the texts to a style that prints at least at the minimum height.",
       "id": "EW-CORE-061",
       "kind": "hygiene",
       "modes": [
@@ -1099,6 +1153,8 @@
     },
     {
       "code": "104063",
+      "docs": "reference/rules/ew-core-063",
+      "hint": "Give the text one of the project's text styles instead of a free size.",
       "id": "EW-CORE-063",
       "kind": "hygiene",
       "modes": [
@@ -1138,6 +1194,8 @@
     },
     {
       "code": "104065",
+      "docs": "reference/rules/ew-core-065",
+      "hint": "Move ratings and technical data out of the description into their typed fields.",
       "id": "EW-CORE-065",
       "kind": "hygiene",
       "modes": [
@@ -1178,6 +1236,8 @@
     },
     {
       "code": "104071",
+      "docs": "reference/rules/ew-core-071",
+      "hint": "Replace the graphic line by a connection, so that it takes part in the connectivity.",
       "id": "EW-CORE-071",
       "kind": "hygiene",
       "modes": [
@@ -1217,6 +1277,8 @@
     },
     {
       "code": "105081",
+      "docs": "reference/rules/ew-core-081",
+      "hint": "Remove the waiver, or correct its target to the finding it was meant for.",
       "id": "EW-CORE-081",
       "kind": "hygiene",
       "modes": [
@@ -1257,6 +1319,8 @@
     },
     {
       "code": "105083",
+      "docs": "reference/rules/ew-core-083",
+      "hint": "Report the defect; the rule's findings in that scope are missing until it is fixed.",
       "id": "EW-CORE-083",
       "kind": "integrity",
       "modes": [
@@ -1300,6 +1364,8 @@
     },
     {
       "code": "105084",
+      "docs": "reference/rules/ew-core-084",
+      "hint": "Restore the pack's data file or trust the project, so that the pack can run.",
       "id": "EW-CORE-084",
       "kind": "integrity",
       "modes": [
@@ -1343,6 +1409,8 @@
     },
     {
       "code": "120001",
+      "docs": "reference/rules/ew-fl-001",
+      "hint": "Draw the working line, or close the port with a plug, a silencer or a blanking.",
       "id": "EW-FL-001",
       "kind": "completeness",
       "modes": [
@@ -1383,6 +1451,8 @@
     },
     {
       "code": "120002",
+      "docs": "reference/rules/ew-fl-002",
+      "hint": "Bind each solenoid the valve part declares to one channel, and no channel to another coil.",
       "id": "EW-FL-002",
       "kind": "conflict",
       "modes": [
@@ -1423,6 +1493,8 @@
     },
     {
       "code": "120004",
+      "docs": "reference/rules/ew-fl-004",
+      "hint": "Keep the spare valve or blanking plate deliberately, or put a used valve at the position.",
       "id": "EW-FL-004",
       "kind": "hygiene",
       "modes": [
@@ -1463,6 +1535,8 @@
     },
     {
       "code": "120011",
+      "docs": "reference/rules/ew-fl-011",
+      "hint": "Link the valve to the device its lines reach, or draw the lines to the device it drives.",
       "id": "EW-FL-011",
       "kind": "conflict",
       "modes": [
@@ -1502,6 +1576,8 @@
     },
     {
       "code": "120013",
+      "docs": "reference/rules/ew-fl-013",
+      "hint": "Give each valve position one valve or blanking plate, and each module its own position.",
       "id": "EW-FL-013",
       "kind": "conflict",
       "modes": [
@@ -1542,6 +1618,8 @@
     },
     {
       "code": "160001",
+      "docs": "reference/rules/ew-imp-001",
+      "hint": "Split the source into smaller files, or remove the items above the limit, and import again.",
       "id": "EW-IMP-001",
       "kind": "completeness",
       "modes": [
@@ -1581,6 +1659,8 @@
     },
     {
       "code": "160002",
+      "docs": "reference/rules/ew-imp-002",
+      "hint": "Correct the item in the source, or draw it again in this project.",
       "id": "EW-IMP-002",
       "kind": "completeness",
       "modes": [
@@ -1620,6 +1700,8 @@
     },
     {
       "code": "160003",
+      "docs": "reference/rules/ew-imp-003",
+      "hint": "Draw the missing connection or link again in this project.",
       "id": "EW-IMP-003",
       "kind": "completeness",
       "modes": [
@@ -1659,6 +1741,8 @@
     },
     {
       "code": "160004",
+      "docs": "reference/rules/ew-imp-004",
+      "hint": "Nothing to do: this content has no counterpart in a project; redraw it if it is needed.",
       "id": "EW-IMP-004",
       "kind": "hygiene",
       "modes": [
@@ -1698,6 +1782,8 @@
     },
     {
       "code": "160005",
+      "docs": "reference/rules/ew-imp-005",
+      "hint": "Check the inferred object and confirm or split it.",
       "id": "EW-IMP-005",
       "kind": "completeness",
       "modes": [
@@ -1737,6 +1823,8 @@
     },
     {
       "code": "160006",
+      "docs": "reference/rules/ew-imp-006",
+      "hint": "Nothing to do, or choose another text style if the substitute prints differently.",
       "id": "EW-IMP-006",
       "kind": "hygiene",
       "modes": [
@@ -1776,6 +1864,8 @@
     },
     {
       "code": "160007",
+      "docs": "reference/rules/ew-imp-007",
+      "hint": "Check the mapped value; revert it or choose another where the alias is wrong.",
       "id": "EW-IMP-007",
       "kind": "hygiene",
       "modes": [
@@ -1815,6 +1905,8 @@
     },
     {
       "code": "160008",
+      "docs": "reference/rules/ew-imp-008",
+      "hint": "Map the value to one the project knows, with the quick fix where it offers one.",
       "id": "EW-IMP-008",
       "kind": "completeness",
       "modes": [
@@ -1854,6 +1946,8 @@
     },
     {
       "code": "160009",
+      "docs": "reference/rules/ew-imp-009",
+      "hint": "Compare the derived text with the source's printed text and correct the one that is wrong.",
       "id": "EW-IMP-009",
       "kind": "conflict",
       "modes": [
@@ -1893,6 +1987,8 @@
     },
     {
       "code": "160010",
+      "docs": "reference/rules/ew-imp-010",
+      "hint": "Delete the record if it is no longer needed; otherwise keep it.",
       "id": "EW-IMP-010",
       "kind": "conflict",
       "modes": [
@@ -1932,6 +2028,8 @@
     },
     {
       "code": "160011",
+      "docs": "reference/rules/ew-imp-011",
+      "hint": "Compare the source's change with this project's and take over what is needed by hand.",
       "id": "EW-IMP-011",
       "kind": "conflict",
       "modes": [
@@ -1971,6 +2069,8 @@
     },
     {
       "code": "160101",
+      "docs": "reference/rules/ew-imp-101",
+      "hint": "Use the derived tag, or keep the stored label as a frozen tag.",
       "id": "EW-IMP-101",
       "kind": "conflict",
       "modes": [
@@ -2010,6 +2110,8 @@
     },
     {
       "code": "160102",
+      "docs": "reference/rules/ew-imp-102",
+      "hint": "Merge the variants into one structure code and keep the others as aliases.",
       "id": "EW-IMP-102",
       "kind": "conflict",
       "modes": [
@@ -2049,6 +2151,8 @@
     },
     {
       "code": "160103",
+      "docs": "reference/rules/ew-imp-103",
+      "hint": "Convert the tag to the scheme where it conforms, or keep it frozen.",
       "id": "EW-IMP-103",
       "kind": "hygiene",
       "modes": [
@@ -2088,6 +2192,8 @@
     },
     {
       "code": "160104",
+      "docs": "reference/rules/ew-imp-104",
+      "hint": "Create the revisions the folios name and drop the per-page values.",
       "id": "EW-IMP-104",
       "kind": "conflict",
       "modes": [
@@ -2127,6 +2233,8 @@
     },
     {
       "code": "160105",
+      "docs": "reference/rules/ew-imp-105",
+      "hint": "Drop the override to print the project description again, or keep it.",
       "id": "EW-IMP-105",
       "kind": "hygiene",
       "modes": [
@@ -2166,6 +2274,8 @@
     },
     {
       "code": "160109",
+      "docs": "reference/rules/ew-imp-109",
+      "hint": "Nothing to do, or split the strip if its segments are separate strips.",
       "id": "EW-IMP-109",
       "kind": "hygiene",
       "modes": [
@@ -2205,6 +2315,8 @@
     },
     {
       "code": "160114",
+      "docs": "reference/rules/ew-imp-114",
+      "hint": "Apply the text style the slot kind names.",
       "id": "EW-IMP-114",
       "kind": "hygiene",
       "modes": [
@@ -2244,6 +2356,8 @@
     },
     {
       "code": "160115",
+      "docs": "reference/rules/ew-imp-115",
+      "hint": "Rename one side of the pair, or set the pairing to chain mode.",
       "id": "EW-IMP-115",
       "kind": "conflict",
       "modes": [
@@ -2283,6 +2397,8 @@
     },
     {
       "code": "160116",
+      "docs": "reference/rules/ew-imp-116",
+      "hint": "Link the slave to its master, or reduce the master's links.",
       "id": "EW-IMP-116",
       "kind": "completeness",
       "modes": [
@@ -2322,6 +2438,8 @@
     },
     {
       "code": "160117",
+      "docs": "reference/rules/ew-imp-117",
+      "hint": "Switch the folio references to the folio label.",
       "id": "EW-IMP-117",
       "kind": "hygiene",
       "modes": [
@@ -2361,6 +2479,8 @@
     },
     {
       "code": "160118",
+      "docs": "reference/rules/ew-imp-118",
+      "hint": "Set the junction's wiring to Chain where the source wired it so.",
       "id": "EW-IMP-118",
       "kind": "hygiene",
       "modes": [
@@ -2400,6 +2520,8 @@
     },
     {
       "code": "160119",
+      "docs": "reference/rules/ew-imp-119",
+      "hint": "Map the symbol to a function definition, or keep the generic black box.",
       "id": "EW-IMP-119",
       "kind": "completeness",
       "modes": [
@@ -2439,6 +2561,8 @@
     },
     {
       "code": "160120",
+      "docs": "reference/rules/ew-imp-120",
+      "hint": "Nothing to do: each copy got its own record.",
       "id": "EW-IMP-120",
       "kind": "hygiene",
       "modes": [
@@ -2478,6 +2602,8 @@
     },
     {
       "code": "160122",
+      "docs": "reference/rules/ew-imp-122",
+      "hint": "Give the device a label; its tag prints \"?\" until then.",
       "id": "EW-IMP-122",
       "kind": "completeness",
       "modes": [
@@ -2517,6 +2643,8 @@
     },
     {
       "code": "130001",
+      "docs": "reference/rules/ew-lay-001",
+      "hint": "Place the device on a rail or on the mounting plate of its location's layout.",
       "id": "EW-LAY-001",
       "kind": "completeness",
       "modes": [
@@ -2560,6 +2688,8 @@
     },
     {
       "code": "130003",
+      "docs": "reference/rules/ew-lay-003",
+      "hint": "Place the device again with one of its parts, or give it back the part its placement realises.",
       "id": "EW-LAY-003",
       "kind": "conflict",
       "modes": [
@@ -2600,6 +2730,8 @@
     },
     {
       "code": "130004",
+      "docs": "reference/rules/ew-lay-004",
+      "hint": "Move the device to the layout of its own location, or correct its location.",
       "id": "EW-LAY-004",
       "kind": "conflict",
       "modes": [
@@ -2640,6 +2772,8 @@
     },
     {
       "code": "130006",
+      "docs": "reference/rules/ew-lay-006",
+      "hint": "Move one of the overlapping objects until their footprints no longer overlap.",
       "id": "EW-LAY-006",
       "kind": "conflict",
       "modes": [
@@ -2680,6 +2814,8 @@
     },
     {
       "code": "130010",
+      "docs": "reference/rules/ew-lay-010",
+      "hint": "Place the device on a carrier it fits, within the carrier and the usable area of the plate.",
       "id": "EW-LAY-010",
       "kind": "conflict",
       "modes": [
@@ -2720,6 +2856,8 @@
     },
     {
       "code": "130016",
+      "docs": "reference/rules/ew-lay-016",
+      "hint": "Place the assembly's parent first and its members next to it, in the order of their positions.",
       "id": "EW-LAY-016",
       "kind": "hygiene",
       "modes": [
@@ -2760,6 +2898,8 @@
     },
     {
       "code": "017101",
+      "docs": "reference/rules/ew-num-001",
+      "hint": "Unfreeze the tag to take the derived value, or keep it frozen if the deviation is intended.",
       "id": "EW-NUM-001",
       "kind": "hygiene",
       "modes": [
@@ -2803,6 +2943,8 @@
     },
     {
       "code": "017102",
+      "docs": "reference/rules/ew-num-002",
+      "hint": "Unfreeze the value to take the derived one, or keep it frozen if the deviation is intended.",
       "id": "EW-NUM-002",
       "kind": "hygiene",
       "modes": [
@@ -2843,6 +2985,8 @@
     },
     {
       "code": "110001",
+      "docs": "reference/rules/ew-plc-001",
+      "hint": "Change the channels' addresses until none overlap, or let them take automatic addresses.",
       "id": "EW-PLC-001",
       "kind": "conflict",
       "modes": [
@@ -2883,6 +3027,8 @@
     },
     {
       "code": "110002",
+      "docs": "reference/rules/ew-plc-002",
+      "hint": "Give the channel an address inside its module's range, or correct the module's start.",
       "id": "EW-PLC-002",
       "kind": "conflict",
       "modes": [
@@ -2923,6 +3069,8 @@
     },
     {
       "code": "110003",
+      "docs": "reference/rules/ew-plc-003",
+      "hint": "Choose a bit inside the width of a unit.",
       "id": "EW-PLC-003",
       "kind": "conflict",
       "modes": [
@@ -2963,6 +3111,8 @@
     },
     {
       "code": "110007",
+      "docs": "reference/rules/ew-plc-007",
+      "hint": "Give each channel its own symbol.",
       "id": "EW-PLC-007",
       "kind": "conflict",
       "modes": [
@@ -3004,6 +3154,8 @@
     },
     {
       "code": "110008",
+      "docs": "reference/rules/ew-plc-008",
+      "hint": "Give the channel an address, or mark it unused.",
       "id": "EW-PLC-008",
       "kind": "completeness",
       "modes": [
@@ -3045,6 +3197,8 @@
     },
     {
       "code": "110012",
+      "docs": "reference/rules/ew-plc-012",
+      "hint": "Rebind the channel the part's map assigns, or correct the part's PLC section.",
       "id": "EW-PLC-012",
       "kind": "conflict",
       "modes": [
@@ -3087,6 +3241,8 @@
     },
     {
       "code": "110015",
+      "docs": "reference/rules/ew-plc-015",
+      "hint": "Enter the address before release.",
       "id": "EW-PLC-015",
       "kind": "completeness",
       "modes": [
@@ -3132,6 +3288,8 @@
     },
     {
       "code": "005001",
+      "docs": "reference/rules/ew-pot-001",
+      "hint": "Separate the potentials, correct the definition, or declare the bond that joins them.",
       "id": "EW-POT-001",
       "kind": "conflict",
       "modes": [
@@ -3172,6 +3330,8 @@
     },
     {
       "code": "005002",
+      "docs": "reference/rules/ew-pot-002",
+      "hint": "Declare exactly one 0 V–PE bond for a PELV potential, and none for a SELV potential.",
       "id": "EW-POT-002",
       "kind": "safety",
       "modes": [
@@ -3212,6 +3372,8 @@
     },
     {
       "code": "005003",
+      "docs": "reference/rules/ew-pot-003",
+      "hint": "Declare an FE–PE bond, or connect the pin to functional earth.",
       "id": "EW-POT-003",
       "kind": "conflict",
       "modes": [
@@ -3252,6 +3414,8 @@
     },
     {
       "code": "005004",
+      "docs": "reference/rules/ew-pot-004",
+      "hint": "Use green-yellow only for protective conductors; give the wire another colour.",
       "id": "EW-POT-004",
       "kind": "safety",
       "modes": [
@@ -3292,6 +3456,8 @@
     },
     {
       "code": "005005",
+      "docs": "reference/rules/ew-pot-005",
+      "hint": "Use another colour for the wire, or a cable whose blue core carries the neutral.",
       "id": "EW-POT-005",
       "kind": "conflict",
       "modes": [
@@ -3332,6 +3498,8 @@
     },
     {
       "code": "005006",
+      "docs": "reference/rules/ew-pot-006",
+      "hint": "Increase the protective conductor's cross-section to the required size.",
       "id": "EW-POT-006",
       "kind": "safety",
       "modes": [
@@ -3372,6 +3540,8 @@
     },
     {
       "code": "005008",
+      "docs": "reference/rules/ew-pot-008",
+      "hint": "Connect the PE potentials of the location, for example through the rail bonding of the terminals.",
       "id": "EW-POT-008",
       "kind": "conflict",
       "modes": [
@@ -3412,6 +3582,8 @@
     },
     {
       "code": "005009",
+      "docs": "reference/rules/ew-pot-009",
+      "hint": "Connect the connection point, or mark it unused.",
       "id": "EW-POT-009",
       "kind": "completeness",
       "modes": [
@@ -3455,6 +3627,8 @@
     },
     {
       "code": "005011",
+      "docs": "reference/rules/ew-pot-011",
+      "hint": "Draw the junction so that one end feeds it, or set its wiring order.",
       "id": "EW-POT-011",
       "kind": "conflict",
       "modes": [
@@ -3494,6 +3668,8 @@
     },
     {
       "code": "005012",
+      "docs": "reference/rules/ew-pot-012",
+      "hint": "Remove the wire that closes the ring, or confirm that the ring is intended.",
       "id": "EW-POT-012",
       "kind": "hygiene",
       "modes": [
@@ -3533,6 +3709,8 @@
     },
     {
       "code": "005013",
+      "docs": "reference/rules/ew-pot-013",
+      "hint": "Move the contact into the line conductor, or use a device that opens L and N together.",
       "id": "EW-POT-013",
       "kind": "safety",
       "modes": [
@@ -3573,6 +3751,8 @@
     },
     {
       "code": "005014",
+      "docs": "reference/rules/ew-pot-014",
+      "hint": "Give the physical wire one set of properties, or split it into separate wires.",
       "id": "EW-POT-014",
       "kind": "conflict",
       "modes": [
@@ -3613,6 +3793,8 @@
     },
     {
       "code": "005015",
+      "docs": "reference/rules/ew-pot-015",
+      "hint": "Give the wires of one potential the same wire number, or separate the potentials.",
       "id": "EW-POT-015",
       "kind": "conflict",
       "modes": [
@@ -3653,6 +3835,8 @@
     },
     {
       "code": "005016",
+      "docs": "reference/rules/ew-pot-016",
+      "hint": "Remove the override; it sets the value the wire takes anyway.",
       "id": "EW-POT-016",
       "kind": "hygiene",
       "modes": [
@@ -3692,6 +3876,8 @@
     },
     {
       "code": "005017",
+      "docs": "reference/rules/ew-pot-017",
+      "hint": "Keep one definition of the potential, or rename the interruption points to one name.",
       "id": "EW-POT-017",
       "kind": "hygiene",
       "modes": [
@@ -3732,6 +3918,8 @@
     },
     {
       "code": "005021",
+      "docs": "reference/rules/ew-pot-021",
+      "hint": "Wire the load's return side to the return conductor of its supply (0 V, N), or link it to the module's return pin.",
       "id": "EW-POT-021",
       "kind": "completeness",
       "modes": [
@@ -3772,6 +3960,8 @@
     },
     {
       "code": "017001",
+      "docs": "reference/rules/ew-rds-001",
+      "hint": "Correct the designation to the reference designation syntax of IEC 81346.",
       "id": "EW-RDS-001",
       "kind": "conflict",
       "modes": [
@@ -3812,6 +4002,8 @@
     },
     {
       "code": "017002",
+      "docs": "reference/rules/ew-rds-002",
+      "hint": "Remove the separator from the code, or use a structure level instead.",
       "id": "EW-RDS-002",
       "kind": "hygiene",
       "modes": [
@@ -3851,6 +4043,8 @@
     },
     {
       "code": "017003",
+      "docs": "reference/rules/ew-rds-003",
+      "hint": "Use the suggested letter code, or keep the tag if the classification is intended.",
       "id": "EW-RDS-003",
       "kind": "hygiene",
       "modes": [
@@ -3891,6 +4085,8 @@
     },
     {
       "code": "017004",
+      "docs": "reference/rules/ew-rds-004",
+      "hint": "Give one of the devices another designation.",
       "id": "EW-RDS-004",
       "kind": "conflict",
       "modes": [
@@ -3931,6 +4127,8 @@
     },
     {
       "code": "017007",
+      "docs": "reference/rules/ew-rds-007",
+      "hint": "Avoid the letters I and O in a letter code; choose another letter.",
       "id": "EW-RDS-007",
       "kind": "hygiene",
       "modes": [
@@ -3971,6 +4169,8 @@
     },
     {
       "code": "017009",
+      "docs": "reference/rules/ew-rds-009",
+      "hint": "Replace the character by its plain Latin form.",
       "id": "EW-RDS-009",
       "kind": "conflict",
       "modes": [
@@ -4012,6 +4212,8 @@
     },
     {
       "code": "017010",
+      "docs": "reference/rules/ew-rds-010",
+      "hint": "Merge the structure nodes whose codes differ only in spelling.",
       "id": "EW-RDS-010",
       "kind": "conflict",
       "modes": [
@@ -4052,6 +4254,8 @@
     },
     {
       "code": "190001",
+      "docs": "reference/rules/ew-rel-001",
+      "hint": "Set the author, then let another party approve the saved revision; approve again after a content edit.",
       "id": "EW-REL-001",
       "kind": "integrity",
       "modes": [
@@ -4091,6 +4295,8 @@
     },
     {
       "code": "190002",
+      "docs": "reference/rules/ew-rel-002",
+      "hint": "Recompute the stale result and commit it again before the release.",
       "id": "EW-REL-002",
       "kind": "integrity",
       "modes": [
@@ -4130,6 +4336,8 @@
     },
     {
       "code": "190004",
+      "docs": "reference/rules/ew-rel-004",
+      "hint": "Give the revision a label in the project's label format that follows every earlier label.",
       "id": "EW-REL-004",
       "kind": "integrity",
       "modes": [
@@ -4170,6 +4378,8 @@
     },
     {
       "code": "001001",
+      "docs": "reference/rules/ew-term-001",
+      "hint": "Give the terminal a designation.",
       "id": "EW-TERM-001",
       "kind": "conflict",
       "modes": [
@@ -4211,6 +4421,8 @@
     },
     {
       "code": "001002",
+      "docs": "reference/rules/ew-term-002",
+      "hint": "Renumber the strip, or give one of the terminals another designation.",
       "id": "EW-TERM-002",
       "kind": "conflict",
       "modes": [
@@ -4252,6 +4464,8 @@
     },
     {
       "code": "001003",
+      "docs": "reference/rules/ew-term-003",
+      "hint": "Remove the field-side wire, or make the terminal a used terminal.",
       "id": "EW-TERM-003",
       "kind": "conflict",
       "modes": [
@@ -4291,6 +4505,8 @@
     },
     {
       "code": "001004",
+      "docs": "reference/rules/ew-term-004",
+      "hint": "Bridge only neighbouring terminals of one strip, or move the terminals together.",
       "id": "EW-TERM-004",
       "kind": "conflict",
       "modes": [
@@ -4331,6 +4547,8 @@
     },
     {
       "code": "001005",
+      "docs": "reference/rules/ew-term-005",
+      "hint": "Clear the rail bonding, or make the terminal a PE terminal.",
       "id": "EW-TERM-005",
       "kind": "conflict",
       "modes": [
@@ -4370,6 +4588,8 @@
     },
     {
       "code": "001006",
+      "docs": "reference/rules/ew-term-006",
+      "hint": "Connect the terminal into the wire, or move it off the wire.",
       "id": "EW-TERM-006",
       "kind": "conflict",
       "modes": [

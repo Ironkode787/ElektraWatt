@@ -36,6 +36,7 @@ pub const RULE_NOT_EVALUATED: RuleMeta = RuleMeta {
     scope: ScopeKind::Project,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-core-083",
 };
 
 /// EW-CORE-083: a rule that could not be evaluated (FR-CHK-047). The shipped Rust rules have no operation limit, no
@@ -73,6 +74,7 @@ pub const PACK_NOT_EVALUATED: RuleMeta = RuleMeta {
     scope: ScopeKind::Project,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-core-084",
 };
 
 /// EW-CORE-084: a pack, or the part of it that needs a data table, did not run (FR-CHK-047). The shipped packs are

@@ -160,6 +160,8 @@ The [pull request template](.github/PULL_REQUEST_TEMPLATE.md) asks you to confir
 - AI assistance, disclosed;
 - whether the PR changes the file format, so the schema steward is requested;
 - documentation and rule pages updated where behaviour changes;
+- a new shipped rule has its notes, `docs/book/rule-notes/<id in lower case>.md` with the six headings, and declares
+  its page in `docs` (`cargo xtask docs-gen --check` fails without them; WP-S7.05 D5, D6);
 - a new parser of external bytes or a new extension point adds its row to the
   [threat model](docs/security/threat-model.md) in the same change (NFR-SEC-01);
 - no customer data, personal data, confidential drawings or local paths.

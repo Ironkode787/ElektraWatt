@@ -74,6 +74,7 @@ pub const TERMINAL_WITHOUT_DESIGNATION: RuleMeta = RuleMeta {
     scope: ScopeKind::Strip,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-term-001",
 };
 
 /// EW-TERM-001: a terminal of a strip whose designation is empty. `Ident` is non-empty, so a model built
@@ -139,6 +140,7 @@ pub const DUPLICATE_DESIGNATION: RuleMeta = RuleMeta {
     scope: ScopeKind::Strip,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-term-002",
 };
 
 /// EW-TERM-002: a designation used by more than one terminal of a strip (FR-TRM-002, D-12; doc 08 §6.8).
@@ -273,6 +275,7 @@ pub const RAIL_BONDING_ON_NON_PE: RuleMeta = RuleMeta {
     scope: ScopeKind::Strip,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-term-005",
 };
 
 /// EW-TERM-005: a terminal with `rail_bonded` set that has no PE connection point (doc 08 §6.8). The
@@ -337,6 +340,7 @@ pub const SPARE_WIRED_ON_FIELD_SIDE: RuleMeta = RuleMeta {
     scope: ScopeKind::Strip,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-term-003",
 };
 
 /// EW-TERM-003: a spare terminal (`Device.state = Spare`, FR-TRM-009) with a wire or a cable core at a CP of its
@@ -413,6 +417,7 @@ pub const BRIDGE_GROUP_INVALID: RuleMeta = RuleMeta {
     scope: ScopeKind::Strip,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-term-004",
 };
 
 /// The EW-TERM-004 findings of one strip (see [`BridgeGroupInvalid`]).
@@ -631,6 +636,7 @@ pub const TERMINAL_ON_UNJOINED_WIRE: RuleMeta = RuleMeta {
     scope: ScopeKind::Page,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-term-006",
 };
 
 /// The axis-parallel segments of the page's wires on one line (the y of a horizontal one, the x of a vertical one):

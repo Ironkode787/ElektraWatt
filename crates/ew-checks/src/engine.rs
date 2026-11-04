@@ -529,6 +529,7 @@ mod tests {
         scope: ScopeKind::Strip,
         supersedes: &[],
         release: Release::Mvp,
+        docs: "reference/rules/ew-term-099",
     };
 
     /// A rule that panics in every scope, in `run` and in `prevent`.

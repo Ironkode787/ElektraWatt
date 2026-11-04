@@ -51,7 +51,7 @@ impl Wbs {
 }
 
 /// Splits one CSV record (RFC 4180 quoting, no line breaks inside a field).
-fn csv_fields(line: &str) -> Vec<String> {
+pub(crate) fn csv_fields(line: &str) -> Vec<String> {
     let mut fields = Vec::new();
     let mut field = String::new();
     let mut quoted = false;

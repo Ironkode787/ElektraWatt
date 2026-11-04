@@ -55,6 +55,7 @@ pub const FOLIO_OUTSIDE_SECTION: RuleMeta = RuleMeta {
     scope: ScopeKind::Page,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-core-021",
 };
 
 /// EW-CORE-021: a drawn page whose folio number lies outside the folio range of its section (FR-CHK-038; doc 09
@@ -123,6 +124,7 @@ pub const FOLIO_COLLISION: RuleMeta = RuleMeta {
     scope: ScopeKind::Project,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-core-022",
 };
 
 /// One page of the page order as EW-CORE-022 reads it: the record it comes from and how it is printed.
@@ -253,6 +255,7 @@ pub const TOC_FIXPOINT: RuleMeta = RuleMeta {
     scope: ScopeKind::Project,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-core-025",
 };
 
 /// EW-CORE-025: the confirming round of the table of contents' page count needed more pages than the closed form
@@ -311,6 +314,7 @@ pub const REPORT_COVERAGE_GAP: RuleMeta = RuleMeta {
     scope: ScopeKind::Project,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-core-026",
 };
 
 /// The report families of EW-CORE-026: the entity, its report kind, the kind's name as printed and the
@@ -461,6 +465,7 @@ pub const TEXT_BELOW_MINIMUM: RuleMeta = RuleMeta {
     scope: ScopeKind::Project,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-core-061",
 };
 
 /// EW-CORE-061: a text style the project prints with ([`used_text_styles`]) whose cap height (the ISO 3098 nominal
@@ -643,6 +648,7 @@ pub const UNSTYLED_TEXT_SIZE: RuleMeta = RuleMeta {
     scope: ScopeKind::Page,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-core-063",
 };
 
 /// EW-CORE-063: a free text whose style is an explicit size that no text style binds (FR-SYM-013; D-29, MF-26): a key
@@ -710,6 +716,7 @@ pub const GRAPHIC_LINE_ON_CP: RuleMeta = RuleMeta {
     scope: ScopeKind::Page,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-core-071",
 };
 
 /// EW-CORE-071: a graphic line or polyline (a page item) whose first or last point lies exactly on a connection point

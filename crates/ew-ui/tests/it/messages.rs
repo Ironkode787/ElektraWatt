@@ -31,7 +31,7 @@ fn dispatch(h: &mut Harness<'_, App>, action: &str, params: Value) {
 fn on_golden(tmp: &Tmp, platform: Scripted) -> Harness<'static, App> {
     let docs = tmp.0.join("docs");
     std::fs::create_dir_all(docs.join("reference/rules")).unwrap();
-    std::fs::write(docs.join("reference/rules/ew-core.html"), "<html></html>").unwrap();
+    std::fs::write(docs.join("reference/rules/ew-core-033.html"), "<html></html>").unwrap();
     let config = tmp.config().with_resources(Resources {
         sample_dir: None,
         content_dir: None,
@@ -229,7 +229,7 @@ fn ms5_the_pane_in_the_window_named_rows_keyboard_detail_and_pending() {
     let urls = opened.borrow().clone();
     assert!(
         urls.last()
-            .is_some_and(|u| u.ends_with("reference/rules/ew-core.html#ew-core-033")),
+            .is_some_and(|u| u.ends_with("reference/rules/ew-core-033.html")),
         "{urls:?}"
     );
     // A new unpaired interruption point on 101 is a pending row: named `…, error, pending`.

@@ -52,5 +52,14 @@ sudo -n true || fail "passwordless sudo is not available on this runner: the off
 sudo unshare --net --setuid "$(id -u)" --setgid "$(id -g)" -- true \
   || fail "unshare --net failed on this runner: the offline book build needs a network namespace"
 
+# WP-S7.05 D2: the book is versioned per release; every page's title names the workspace version
+# (`[workspace.package].version` of Cargo.toml), through mdBook's own configuration override.
+docs_version="$(python3 -I -c 'import sys, tomllib; print(tomllib.load(open(sys.argv[1], "rb"))["workspace"]["package"]["version"])' Cargo.toml)"
+docs_title="ElektraWatt User Guide ${docs_version}"
+
 sudo unshare --net --setuid "$(id -u)" --setgid "$(id -g)" -- \
-  "$work/mdbook/mdbook" build docs/book --dest-dir "$dest"
+  env MDBOOK_BOOK__TITLE="$docs_title" "$work/mdbook/mdbook" build docs/book --dest-dir "$dest"
+
+# DC-4: the built book's index page carries the version in its title.
+grep -qF "${docs_title}</title>" "$dest/index.html" \
+  || fail "$dest/index.html does not carry the title '${docs_title}' (WP-S7.05 D2)"

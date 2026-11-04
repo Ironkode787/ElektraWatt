@@ -700,11 +700,11 @@ fn ms4_f8_walks_and_wraps_and_opens_the_pane_and_f1_opens_the_rule_page() {
     done(&mut shell, "help.documentation", json!({}));
     assert_eq!(
         line(&shell, "help: "),
-        "help: reference/rules/ew-core.html#ew-core-033"
+        "help: reference/rules/ew-core-033.html"
     );
     assert_eq!(
-        ew_viewmodel::help::rule_page("EW-CORE-033"),
-        Some(("reference/rules/ew-core.md".to_owned(), "ew-core-033".to_owned()))
+        ew_viewmodel::help::rule_page("EW-CORE-033").as_deref(),
+        Some("reference/rules/ew-core-033.md")
     );
     // On a severity group, F1 falls back to the context's topic.
     let group = t.nodes.iter().find(|n| n.role == NavRole::Severity).unwrap();
@@ -716,7 +716,7 @@ fn ms4_f8_walks_and_wraps_and_opens_the_pane_and_f1_opens_the_rule_page() {
     done(&mut shell, "help.documentation", json!({}));
     assert_ne!(
         line(&shell, "help: "),
-        "help: reference/rules/ew-core.html#ew-core-033"
+        "help: reference/rules/ew-core-033.html"
     );
     shell.shutdown();
 }

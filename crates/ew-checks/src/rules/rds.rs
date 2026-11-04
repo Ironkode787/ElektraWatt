@@ -40,6 +40,7 @@ pub const DUPLICATE_DESIGNATION: RuleMeta = RuleMeta {
     scope: ScopeKind::Project,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-rds-004",
 };
 
 /// EW-RDS-004: two devices print the same full designation (FR-NUM-016). Terminals are excluded: their
@@ -185,6 +186,7 @@ pub const DESIGNATION_DOES_NOT_PARSE: RuleMeta = RuleMeta {
     scope: ScopeKind::Device,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-rds-001",
 };
 
 /// EW-RDS-001: a device whose derived full designation does not parse under the strict IEC 81346 grammar
@@ -247,6 +249,7 @@ pub const SEPARATOR_IN_CODE: RuleMeta = RuleMeta {
     scope: ScopeKind::Project,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-rds-002",
 };
 
 /// EW-RDS-002: a structure node code that contains a prefix or separator character (`ew_rds::code_has_separators`),
@@ -311,6 +314,7 @@ pub const LETTER_AGAINST_FUNCTION: RuleMeta = RuleMeta {
     scope: ScopeKind::Device,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-rds-003",
 };
 
 /// EW-RDS-003's parameter `frozen_severity` (doc 15 §4.3, ADR-0026 decision 6): the severity for a frozen tag. The
@@ -411,6 +415,7 @@ pub const RESERVED_LETTERS: RuleMeta = RuleMeta {
     scope: ScopeKind::Device,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-rds-007",
 };
 
 /// EW-RDS-007: a device's letter code with `I` or `O` in it, or whose class letter the project's identifier set
@@ -483,6 +488,7 @@ pub const CONFUSABLE_CHARACTER: RuleMeta = RuleMeta {
     scope: ScopeKind::Device,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-rds-009",
 };
 
 /// The Latin letter a non-Latin character is drawn like, for the confusable skeleton of EW-RDS-009: the Cyrillic and
@@ -664,6 +670,7 @@ pub const STRUCTURE_CODE_VARIANTS: RuleMeta = RuleMeta {
     scope: ScopeKind::Project,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-rds-010",
 };
 
 /// EW-RDS-010: two or more structure nodes of one aspect whose codes differ only in separators or case

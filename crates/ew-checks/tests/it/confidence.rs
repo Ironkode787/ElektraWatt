@@ -25,6 +25,7 @@ const FIXTURE: RuleMeta = RuleMeta {
     scope: ScopeKind::Project,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-test-001",
 };
 
 /// Reports every part copy and reads its `plc` section's confidence.

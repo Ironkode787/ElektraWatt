@@ -110,6 +110,7 @@ pub const ADDRESS_OVERLAP: RuleMeta = RuleMeta {
     scope: ScopeKind::Cfg,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-plc-001",
 };
 
 /// EW-PLC-001: channel addresses of one configuration project whose bit ranges overlap in one area (`IW0` against
@@ -226,6 +227,7 @@ pub const OUTSIDE_MODULE: RuleMeta = RuleMeta {
     scope: ScopeKind::Module,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-plc-002",
 };
 
 /// EW-PLC-002: a channel address outside its module's I/O range in the channel's direction: another area, or bytes
@@ -327,6 +329,7 @@ pub const BIT_OUT_OF_RANGE: RuleMeta = RuleMeta {
     scope: ScopeKind::Module,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-plc-003",
 };
 
 /// EW-PLC-003: a stored manual address whose bit index is not below the profile's unit width (`I4.9` in an 8-bit
@@ -420,6 +423,7 @@ pub const DUPLICATE_SYMBOL: RuleMeta = RuleMeta {
     scope: ScopeKind::Cfg,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-plc-007",
 };
 
 /// EW-PLC-007: a determined symbol that two or more channels of one configuration project carry (symbols compare
@@ -505,6 +509,7 @@ pub const USED_WITHOUT_ADDRESS: RuleMeta = RuleMeta {
     scope: ScopeKind::Module,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-plc-008",
 };
 
 /// EW-PLC-008: a used channel (effective state `used`, A3) that resolves to no address: an excluded address or
@@ -583,6 +588,7 @@ pub const DIFFERS_FROM_MAP: RuleMeta = RuleMeta {
     scope: ScopeKind::Module,
     supersedes: &["EW-NUM-002"],
     release: Release::Mvp,
+    docs: "reference/rules/ew-plc-012",
 };
 
 /// EW-PLC-012 (doc 10 §3.10, D-26): a binding or an address that differs from the part's address map, by
@@ -750,6 +756,7 @@ pub const TBD_ADDRESS: RuleMeta = RuleMeta {
     scope: ScopeKind::Cfg,
     supersedes: &["EW-CORE-044"],
     release: Release::Mvp,
+    docs: "reference/rules/ew-plc-015",
 };
 
 /// EW-PLC-015: a `Tbd` module start or channel address of a module of the configuration project (D-15), one finding

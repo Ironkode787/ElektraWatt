@@ -91,6 +91,7 @@ pub const WORKING_PORT_OPEN: RuleMeta = RuleMeta {
     scope: ScopeKind::Device,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-fl-001",
 };
 
 /// EW-FL-001 (FR-FLU-018, WP-S1.20 D16): per placed valve function (a function on a FnDef of contact kind `valve`
@@ -194,6 +195,7 @@ pub const COIL_BINDINGS: RuleMeta = RuleMeta {
     scope: ScopeKind::Device,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-fl-002",
 };
 
 /// EW-FL-002 (FR-FLU-017, FI-03, WP-S1.20 D16): per valve whose valve part declares solenoids and that has internal
@@ -335,6 +337,7 @@ pub const SPARE_POSITIONS: RuleMeta = RuleMeta {
     scope: ScopeKind::Device,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-fl-004",
 };
 
 /// EW-FL-004 (FR-FLU-017, WP-S1.20 D16): one finding per position of a module that holds a spare valve or a blanking
@@ -409,6 +412,7 @@ pub const DRIVES_MISMATCH: RuleMeta = RuleMeta {
     scope: ScopeKind::Device,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-fl-011",
 };
 
 /// EW-FL-011 (FR-FLU-029, WP-S1.20 D16): a valve with a `drives` link whose target differs from the device its
@@ -463,6 +467,7 @@ pub const OCCUPANCY: RuleMeta = RuleMeta {
     scope: ScopeKind::Device,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-fl-013",
 };
 
 /// The modules among a device's children, by position: position → modules in ID order.

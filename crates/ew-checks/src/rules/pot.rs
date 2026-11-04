@@ -341,6 +341,7 @@ pub const TYPE_OR_VOLTAGE_CONFLICT: RuleMeta = RuleMeta {
     scope: ScopeKind::Potential,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-pot-001",
 };
 
 /// EW-POT-001: two definitions or member roles of one potential disagree on type, voltage, environment or
@@ -518,6 +519,7 @@ pub const PELV_SELV_BONDING: RuleMeta = RuleMeta {
     scope: ScopeKind::Potential,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-pot-002",
 };
 
 /// EW-POT-002: a PELV potential without exactly one 0 V–PE bond, a SELV potential with any (FR-CHK-028,
@@ -628,6 +630,7 @@ pub const FE_PIN_ON_PE: RuleMeta = RuleMeta {
     scope: ScopeKind::Potential,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-pot-003",
 };
 
 /// EW-POT-003: a connection point with the role FE on a PE (or PEN) potential without an FE–PE bond at it (doc 08
@@ -709,6 +712,7 @@ pub const GNYE_ON_NON_PE: RuleMeta = RuleMeta {
     scope: ScopeKind::Potential,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-pot-004",
 };
 
 /// Whether a colour is exactly the IEC code(s) `codes`.
@@ -799,6 +803,7 @@ pub const BU_ON_NON_N: RuleMeta = RuleMeta {
     scope: ScopeKind::Potential,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-pot-005",
 };
 
 /// EW-POT-005: a wire or core whose effective colour is exactly the IEC code BU (not a company code such as DBU) on a
@@ -891,6 +896,7 @@ pub const PE_UNDERSIZED: RuleMeta = RuleMeta {
     scope: ScopeKind::Potential,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-pot-006",
 };
 
 /// The rule data of EW-POT-006 (`data/pe_sizing.toml`, WP-S1.16 D5).
@@ -1192,6 +1198,7 @@ pub const PE_ISLAND: RuleMeta = RuleMeta {
     scope: ScopeKind::Project,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-pot-008",
 };
 
 /// EW-POT-008 (doc 08 §8.1, FR-CHK-055; decision log ID-185), both halves:
@@ -1329,6 +1336,7 @@ pub const UNCONNECTED_CP: RuleMeta = RuleMeta {
     scope: ScopeKind::Page,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-pot-009",
 };
 
 /// EW-POT-009: an electrical connection point of a placed function with no connection (doc 08 §8.2, FR-CHK-018,
@@ -1436,6 +1444,7 @@ pub const JUNCTION_FEED_AMBIGUOUS: RuleMeta = RuleMeta {
     scope: ScopeKind::Potential,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-pot-011",
 };
 
 /// EW-POT-011: the arm between two junctions feeds both or neither, or a source feeds a star without a
@@ -1470,6 +1479,7 @@ pub const RING_IN_DRAWING_GRAPH: RuleMeta = RuleMeta {
     scope: ScopeKind::Potential,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-pot-012",
 };
 
 /// EW-POT-012: the connections of a potential form a ring; the highest connection of the ring forms no
@@ -1506,6 +1516,7 @@ pub const N_SWITCHING: RuleMeta = RuleMeta {
     scope: ScopeKind::Potential,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-pot-013",
 };
 
 /// The line types of the N-switching rule (doc 08 §8.2).
@@ -1747,6 +1758,7 @@ pub const PHYSICAL_WIRE_CONFLICT: RuleMeta = RuleMeta {
     scope: ScopeKind::Potential,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-pot-014",
 };
 
 /// EW-POT-014: the constituents of one physical wire name different conductors or carry different
@@ -1784,6 +1796,7 @@ pub const WIRE_NUMBER_CONFLICT: RuleMeta = RuleMeta {
     scope: ScopeKind::Project,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-pot-015",
 };
 
 /// EW-POT-015: one printed wire number on two numbering units, or two numbers within one unit (doc 08 §5.3,
@@ -1854,6 +1867,7 @@ pub const REDUNDANT_OVERRIDE: RuleMeta = RuleMeta {
     scope: ScopeKind::Potential,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-pot-016",
 };
 
 /// EW-POT-016: a wire override (level 7, CDP) equal to the value below it in the inheritance chain (doc 08 §4.1,
@@ -1959,6 +1973,7 @@ pub const TWO_POTENTIAL_NAMES: RuleMeta = RuleMeta {
     scope: ScopeKind::Potential,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-pot-017",
 };
 
 /// EW-POT-017: definitions with different names in one potential (doc 08 §3.5, FR-CON-012, D-24); the first in
@@ -2022,6 +2037,7 @@ pub const LOAD_NOT_RETURNED: RuleMeta = RuleMeta {
     scope: ScopeKind::Potential,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-pot-021",
 };
 
 /// Whether a type is a protective or functional earth (PEN is a return conductor): an earth potential is never a

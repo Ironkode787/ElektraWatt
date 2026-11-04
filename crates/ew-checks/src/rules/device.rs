@@ -60,6 +60,7 @@ pub const DEVICE_WITHOUT_PART: RuleMeta = RuleMeta {
     scope: ScopeKind::Device,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-core-041",
 };
 
 /// EW-CORE-041: a device without a part use (FR-CHK-024; D-04, EF-04, EF-19). The device half only: a device that
@@ -120,6 +121,7 @@ pub const INCOMPLETE_PART_DATA: RuleMeta = RuleMeta {
     scope: ScopeKind::Device,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-core-042",
 };
 
 /// What a part copy lacks for EW-CORE-042, in a fixed order: `description`, `manufacturer`.
@@ -192,6 +194,7 @@ pub const PLACEHOLDER_PART: RuleMeta = RuleMeta {
     scope: ScopeKind::Device,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-core-043",
 };
 
 /// The part number of a placeholder ("to be defined") part.
@@ -321,6 +324,7 @@ pub const OPEN_TBD_VALUE: RuleMeta = RuleMeta {
     scope: ScopeKind::Device,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-core-044",
 };
 
 /// EW-CORE-044: a typed `Tbd` value of the device (FR-CHK-034, D-15): a PLC module's input or output start, the
@@ -410,6 +414,7 @@ pub const CONTACTS_EXCEED_PART: RuleMeta = RuleMeta {
     scope: ScopeKind::Device,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-core-045",
 };
 
 /// Counts of normally open, normally closed and change-over contacts.
@@ -529,6 +534,7 @@ pub const ORDER_CODES_COVER: RuleMeta = RuleMeta {
     scope: ScopeKind::Device,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-core-048",
 };
 
 /// The descendants of `head` (children, their children, …), each once, in ID order; a cycle ends the walk.

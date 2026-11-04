@@ -88,6 +88,7 @@ pub const INVALID_CORE_COLOUR: RuleMeta = RuleMeta {
     scope: ScopeKind::Cable,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-core-031",
 };
 
 /// The codes of a conductor's colour that are neither IEC 60757 codes nor company codes the project's colour
@@ -209,6 +210,7 @@ pub const CORE_DIFFERS_FROM_PART: RuleMeta = RuleMeta {
     scope: ScopeKind::Cable,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-core-032",
 };
 
 /// The cable part of a cable device: the first of its part uses whose copy defines cable cores.
@@ -323,6 +325,7 @@ pub const EXTERNAL_WITHOUT_CABLE: RuleMeta = RuleMeta {
     scope: ScopeKind::Page,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-core-034",
 };
 
 /// A location as a designation prints it: `+` and its path's codes (`+J-E-206`).
@@ -489,6 +492,7 @@ pub const CORE_ASSIGNED_TWICE: RuleMeta = RuleMeta {
     scope: ScopeKind::Cable,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-core-036",
 };
 
 /// The physical wires that use conductor `core`: the IDs of the wires whose constituents include a connection of
@@ -647,6 +651,7 @@ pub const SHIELD_NOT_CONNECTED: RuleMeta = RuleMeta {
     scope: ScopeKind::Cable,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-core-037",
 };
 
 /// EW-CORE-037: a shield conductor (`Conductor.shield`) that no connection assigns, so it is connected at neither

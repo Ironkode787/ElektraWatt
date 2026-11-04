@@ -219,4 +219,34 @@ mod tests {
         }
         assert!(rule("EW-NOPE-001").is_none());
     }
+
+    /// T5 (WP-S7.05 D6): the refusal of a rule whose `docs` is not its page `reference/rules/<id in lower case>`.
+    fn docs_refusal(m: &crate::rule::RuleMeta) -> Option<String> {
+        let page = format!("reference/rules/{}", m.id.to_lowercase());
+        (m.docs != page).then(|| {
+            format!(
+                "{}: docs \"{}\" is not the rule's page {page} (FR-CHK-015)",
+                m.id, m.docs
+            )
+        })
+    }
+
+    /// FR-CHK-015: every shipped rule declares the reference of its page of the user guide, and a wrong one is
+    /// refused in words (T5).
+    #[test]
+    fn every_rule_declares_its_documentation_page() {
+        let refused: Vec<String> = RULES.iter().filter_map(|r| docs_refusal(r.meta())).collect();
+        assert_eq!(refused, Vec::<String>::new());
+        let wrong = crate::rule::RuleMeta {
+            docs: "reference/rules/ew-core",
+            ..crate::rules::core::CABLE_WITHOUT_LENGTH
+        };
+        assert_eq!(
+            docs_refusal(&wrong).as_deref(),
+            Some(
+                "EW-CORE-033: docs \"reference/rules/ew-core\" is not the rule's page reference/rules/ew-core-033 \
+                 (FR-CHK-015)"
+            )
+        );
+    }
 }

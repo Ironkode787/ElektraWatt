@@ -74,8 +74,8 @@ all (a project that cannot be opened, a wrong option). A script should treat 2 a
 answer about the drawing. The exit codes of every subcommand are in
 [doc 17 §3.2](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/design/17-extensibility.md#32-exit-codes).
 
-Each rule has a page in the reference: [`EW-CORE-033`](../reference/rules/ew-core.md#ew-core-033) is the cable without
-a length, and [`EW-NUM-001`](../reference/rules/ew-iec81346.md#ew-num-001) is the information that a frozen device tag
+Each rule has a page in the reference: [`EW-CORE-033`](../reference/rules/ew-core-033.md) is the cable without
+a length, and [`EW-NUM-001`](../reference/rules/ew-num-001.md) is the information that a frozen device tag
 differs from what the numbering scheme would give.
 
 `ew check` takes a scheme and a mode. The default is the `pre-delivery` scheme in `release` mode; `--format json`

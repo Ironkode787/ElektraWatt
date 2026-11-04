@@ -73,6 +73,9 @@ fn generated() -> String {
                     "category": o.category,
                     "discriminator": o.discriminator,
                 })),
+                // WP-S7.05 D4, D6: the rule's page reference and the en-GB hint, for the rule's page of the guide.
+                "docs": m.docs,
+                "hint": ew_checks::messages::hint(m.id, ew_checks::messages::DEFAULT_LANGUAGE),
             })
         })
         .collect();

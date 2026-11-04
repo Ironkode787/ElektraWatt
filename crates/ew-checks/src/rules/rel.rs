@@ -37,6 +37,7 @@ pub const FOUR_EYES: RuleMeta = RuleMeta {
     scope: ScopeKind::Project,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-rel-001",
 };
 
 /// EW-REL-002 "Stale committed computation" (doc 15 §4.8): integrity, g, error, project.
@@ -52,6 +53,7 @@ pub const STALE_COMMITTED: RuleMeta = RuleMeta {
     scope: ScopeKind::Project,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-rel-002",
 };
 
 /// EW-REL-004 "Revision label order" (doc 15 §4.8): integrity, p g, error, project.
@@ -67,6 +69,7 @@ pub const LABEL_ORDER: RuleMeta = RuleMeta {
     scope: ScopeKind::Project,
     supersedes: &[],
     release: Release::Mvp,
+    docs: "reference/rules/ew-rel-004",
 };
 
 /// The role's name as the file writes it (`checker`).

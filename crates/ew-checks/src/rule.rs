@@ -201,6 +201,9 @@ pub struct RuleMeta {
     /// The release whose pack ships the rule (the catalogue's release column, doc 15 §4.1): a 1.0 rule of a
     /// pack that is complete at 1.0, such as EW-CORE-065, belongs to the pack's 1.0 content.
     pub release: Release,
+    /// The rule's page of the user guide (FR-CHK-015, WP-S7.05 D6): `reference/rules/<id in lower case>`, a path
+    /// below the book's source without its extension, which `cargo xtask docs-gen` writes from the catalogue.
+    pub docs: &'static str,
 }
 
 /// The release column of the rule catalogue (doc 15 §4, §4.1).
