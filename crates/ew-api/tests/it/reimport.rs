@@ -164,7 +164,7 @@ fn a_variant_adds_its_terminal_and_keeps_the_edit_here() {
         .rows
         .iter()
         .filter(|row| row.class != ReimportClass::Unchanged)
-        .map(|row| (row.class, row.record.clone()))
+        .map(|row| (row.class, row.record.to_string()))
         .collect();
     assert_eq!(r.plan.count(ReimportClass::SourceChanged), 0, "{classes:?}");
     assert_eq!(r.plan.count(ReimportClass::Conflict), 0, "{classes:?}");
@@ -185,7 +185,10 @@ fn a_variant_adds_its_terminal_and_keeps_the_edit_here() {
         .collect();
     let kinds: std::collections::BTreeSet<&str> = added.iter().map(|row| row.key.0.name()).collect();
     assert!(kinds.contains("connection"), "{classes:?}");
-    assert!(added.iter().any(|row| row.record == "-X1"), "{classes:?}");
+    assert!(
+        added.iter().any(|row| row.record.to_string() == "-X1"),
+        "{classes:?}"
+    );
     let before = model(&s);
     s.apply_reimport(r).expect("applied").expect("a transaction");
     assert_eq!(
@@ -199,14 +202,14 @@ fn a_variant_adds_its_terminal_and_keeps_the_edit_here() {
     let again = s
         .reimport_qet(FILE, variant_text().into_bytes(), &library(), detected.lineage())
         .expect("planned again");
-    let changed: Vec<(ReimportClass, &str)> = again
+    let changed: Vec<(ReimportClass, String)> = again
         .plan
         .rows
         .iter()
         .filter(|row| row.class != ReimportClass::Unchanged)
-        .map(|row| (row.class, row.record.as_str()))
+        .map(|row| (row.class, row.record.to_string()))
         .collect();
-    assert_eq!(changed, [(ReimportClass::EwChanged, "-K1")]);
+    assert_eq!(changed, [(ReimportClass::EwChanged, "-K1".to_owned())]);
     // Apply is one undo step.
     s.undo(&Origin::Gui).expect("the re-import is undoable");
     assert!(model(&s).content_eq(&before), "undo restores the project");
@@ -230,17 +233,17 @@ fn a_change_on_both_sides_and_a_removal_are_kept_and_listed() {
         .iter()
         .find(|row| row.class == ReimportClass::Conflict && row.key.0.name() == "device")
         .expect("-K1 changed on both sides");
-    assert_eq!(conflict.record, "-K1");
+    assert_eq!(conflict.record.to_string(), "-K1");
     let paths: Vec<&str> = conflict.members.iter().map(|m| m.path.as_str()).collect();
     assert!(paths.contains(&"function_text"), "{paths:?}");
-    let removed: Vec<&str> = r
+    let removed: Vec<String> = r
         .plan
         .rows
         .iter()
         .filter(|row| row.class == ReimportClass::Removed)
-        .map(|row| row.record.as_str())
+        .map(|row| row.record.to_string())
         .collect();
-    assert!(removed.contains(&"-K2"), "{removed:?}");
+    assert!(removed.contains(&"-K2".to_owned()), "{removed:?}");
     s.apply_reimport(r).expect("applied").expect("a transaction");
     assert_eq!(text_en(&device(&s, "-K1").function_text), Some("Main contactor"));
     device(&s, "-K2");

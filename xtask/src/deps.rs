@@ -489,7 +489,12 @@ pub fn manifest_edges(text: &str) -> Result<Vec<Edge>> {
         ("dev-dependencies", Kind::Dev),
         ("build-dependencies", Kind::Build),
     ] {
-        for (name, spec) in doc.get(table).and_then(toml::Value::as_table).into_iter().flatten() {
+        for (name, spec) in doc
+            .get(table)
+            .and_then(toml::Value::as_table)
+            .into_iter()
+            .flatten()
+        {
             let to = spec.get("package").and_then(toml::Value::as_str).unwrap_or(name);
             edges.push(Edge {
                 from: from.clone(),
@@ -511,7 +516,8 @@ pub fn check_confined_manifests(policy: &Policy, root: &Path) -> Result<Vec<Stri
     let mut v = Vec::new();
     for rule in &policy.confined {
         for manifest in &rule.manifests {
-            let text = std::fs::read_to_string(root.join(manifest)).with_context(|| format!("reading {manifest}"))?;
+            let text = std::fs::read_to_string(root.join(manifest))
+                .with_context(|| format!("reading {manifest}"))?;
             let edges = manifest_edges(&text).with_context(|| format!("parsing {manifest}"))?;
             for e in edges.iter().filter(|e| e.to == rule.krate) {
                 if !rule.only_direct_dependents.contains(&e.from) {
@@ -947,7 +953,10 @@ mod tests {
     fn confined_crate_in_a_manifest_outside_the_workspace_fails() {
         let manifest = "[package]\nname = \"g-fuzz\"\n\n[dependencies]\ng-top = { path = \"../top\" }\nqet = { package = \"g-import-qet\", path = \"../qet\" }\n\n[dev-dependencies]\ng-import-qet = { path = \"../qet\" }\n";
         let edges = manifest_edges(manifest).unwrap();
-        let to: Vec<(&str, &str, Kind)> = edges.iter().map(|e| (e.from.as_str(), e.to.as_str(), e.kind)).collect();
+        let to: Vec<(&str, &str, Kind)> = edges
+            .iter()
+            .map(|e| (e.from.as_str(), e.to.as_str(), e.kind))
+            .collect();
         assert_eq!(
             to,
             [

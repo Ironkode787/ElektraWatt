@@ -119,19 +119,66 @@ pub(crate) fn symbol(tx: &TxBuilder<'_>, id: ew_ids::Id<Representation>) -> Text
     )
 }
 
-/// Any record by the words of its kind (WP-S3.09 D12's EW-IMP-010 and EW-IMP-011): a device by its tag, a function or
-/// an interruption point, a page, a symbol, a wire or a junction as above, else its kind (`a terminal strip`… `a
-/// structure node`).
-pub(crate) fn record(tx: &TxBuilder<'_>, key: ew_model::AnyKey) -> String {
+/// Any record by the words of its kind (WP-S3.09 D12's EW-IMP-010 and EW-IMP-011, the re-import card's rows): a device
+/// by its tag, a function or an interruption point, a page, a symbol, a wire or a junction as above, else its kind with
+/// its article (`a conductor`… `an enclosure`). Keyed, so the window shows it in its language (ID-1374).
+pub(crate) fn record(tx: &TxBuilder<'_>, key: ew_model::AnyKey) -> TextArg {
     let (kind, id) = key;
     match kind {
-        Kind::Device => device(tx, id.cast()).to_string(),
-        Kind::Function => interruption_point(tx, id.cast()).to_string(),
-        Kind::Page => page(tx, id.cast()).to_string(),
-        Kind::Representation => symbol(tx, id.cast()).to_string(),
-        Kind::Connection => wire(tx, id.cast()).to_string(),
-        Kind::Junction => junction(tx, id.cast()).to_string(),
-        other => format!("a {}", other.name().replace('_', " ")),
+        Kind::Device => device(tx, id.cast()),
+        Kind::Function => interruption_point(tx, id.cast()),
+        Kind::Page => page(tx, id.cast()).into(),
+        Kind::Representation => symbol(tx, id.cast()).into(),
+        Kind::Connection => wire(tx, id.cast()).into(),
+        Kind::Junction => junction(tx, id.cast()).into(),
+        Kind::Project => text!("refusal-words-kind-project").into(),
+        Kind::PlcConfigProject => text!("refusal-words-kind-plc-config-project").into(),
+        Kind::LogicalNet => text!("refusal-words-kind-logical-net").into(),
+        Kind::PhysicalNet => text!("refusal-words-kind-physical-net").into(),
+        Kind::Medium => text!("refusal-words-kind-medium").into(),
+        Kind::ImportLineage => text!("refusal-words-kind-import-lineage").into(),
+        Kind::StructureNode => text!("refusal-words-kind-structure-node").into(),
+        Kind::Section => text!("refusal-words-kind-section").into(),
+        Kind::ExternalRef => text!("refusal-words-kind-external-ref").into(),
+        Kind::Conductor => text!("refusal-words-kind-conductor").into(),
+        Kind::Channel => text!("refusal-words-kind-channel").into(),
+        Kind::PotentialDef => text!("refusal-words-kind-potential-def").into(),
+        Kind::NetDef => text!("refusal-words-kind-net-def").into(),
+        Kind::MediumDef => text!("refusal-words-kind-medium-def").into(),
+        Kind::Bond => text!("refusal-words-kind-bond").into(),
+        Kind::DeviceLink => text!("refusal-words-kind-device-link").into(),
+        Kind::PageItem => text!("refusal-words-kind-page-item").into(),
+        Kind::StructureBox => text!("refusal-words-kind-structure-box").into(),
+        Kind::ReportBlock => text!("refusal-words-kind-report-block").into(),
+        Kind::MacroInstance => text!("refusal-words-kind-macro-instance").into(),
+        Kind::PlaceholderGroup => text!("refusal-words-kind-placeholder-group").into(),
+        Kind::LayoutSpace => text!("refusal-words-kind-layout-space").into(),
+        Kind::Enclosure => text!("refusal-words-kind-enclosure").into(),
+        Kind::MountingSurface => text!("refusal-words-kind-mounting-surface").into(),
+        Kind::Carrier => text!("refusal-words-kind-carrier").into(),
+        Kind::Placement => text!("refusal-words-kind-placement").into(),
+        Kind::RouteOverride => text!("refusal-words-kind-route-override").into(),
+        Kind::CommittedRoute => text!("refusal-words-kind-committed-route").into(),
+        Kind::RoutingPath => text!("refusal-words-kind-routing-path").into(),
+        Kind::SurfaceFeature => text!("refusal-words-kind-surface-feature").into(),
+        Kind::Revision => text!("refusal-words-kind-revision").into(),
+        Kind::Waiver => text!("refusal-words-kind-waiver").into(),
+        Kind::Comment => text!("refusal-words-kind-comment").into(),
+        Kind::Transmittal => text!("refusal-words-kind-transmittal").into(),
+        Kind::ExchangeRecord => text!("refusal-words-kind-exchange-record").into(),
+        Kind::ForeignId => text!("refusal-words-kind-foreign-id").into(),
+        Kind::ImportRun => text!("refusal-words-kind-import-run").into(),
+        Kind::Conflict => text!("refusal-words-kind-conflict").into(),
+        Kind::Part => text!("refusal-words-kind-part").into(),
+        Kind::Symbol => text!("refusal-words-kind-symbol").into(),
+        Kind::Fndef => text!("refusal-words-kind-fndef").into(),
+        Kind::Form => text!("refusal-words-kind-form").into(),
+        Kind::Macro => text!("refusal-words-kind-macro").into(),
+        Kind::Manufacturer => text!("refusal-words-kind-manufacturer").into(),
+        Kind::PlcProfile => text!("refusal-words-kind-plc-profile").into(),
+        Kind::MachineProfile => text!("refusal-words-kind-machine-profile").into(),
+        Kind::LabelProfile => text!("refusal-words-kind-label-profile").into(),
+        _ => text!("refusal-words-kind-other").into(),
     }
 }
 
@@ -214,5 +261,38 @@ pub(crate) fn wire(tx: &TxBuilder<'_>, id: ew_ids::Id<Connection>) -> Text {
     match tx.get::<Connection>(id).and_then(|c| c.page) {
         Some(p) => text!("refusal-words-wire-on", page(tx, p)),
         None => text!("refusal-words-wire-any"),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// ID-1374 (C51-p2#3): a record of a kind without words of its own is named by its keyed kind word, never by
+    /// the kind's internal name.
+    #[test]
+    fn a_record_of_another_kind_is_named_by_its_keyed_kind_word() {
+        let project = serde_json::from_str(
+            r#"{"id":"7f0c2a91-5d3e-7b48-9a61-0e2f4c8d1b37","derivation_profile":"2027.1"}"#,
+        )
+        .expect("project");
+        let model = ew_model::Model::new(project);
+        let mut ids = ew_ids::SystemSource;
+        let tx = TxBuilder::new(&model, &mut ids);
+        let id = ew_ids::Id::from_uuid(ew_ids::Uuid::from_u128(1));
+        for (kind, words) in [
+            (Kind::Conductor, "a conductor"),
+            (Kind::PotentialDef, "a potential definition"),
+            (Kind::Enclosure, "an enclosure"),
+        ] {
+            let TextArg::Text(t) = record(&tx, (kind, id)) else {
+                panic!("{kind} is keyed");
+            };
+            assert_eq!(t.to_string(), words);
+            assert_eq!(
+                t.key(),
+                format!("refusal-words-kind-{}", kind.name().replace('_', "-"))
+            );
+        }
     }
 }

@@ -511,6 +511,19 @@ fn a_qelectrotech_file_is_re_imported_into_the_open_project() {
     };
     assert_eq!(rows, &["Changed in the source: page 1".to_owned()]);
     done(&mut shell, "ui.dismiss", json!({}));
+    // ID-1374 (C51-p2#3): a Dutch window names the record in Dutch.
+    assert!(ew_viewmodel::strings::set_locale("nl"));
+    done(
+        &mut shell,
+        "file.reimport_qet",
+        json!({ "file": path(&qet), "accept": true }),
+    );
+    let Some(ew_viewmodel::shell::Dialog::Reimport { rows, .. }) = shell.dialog() else {
+        panic!("the re-import card");
+    };
+    assert_eq!(rows, &["Gewijzigd in de bron: pagina 1".to_owned()]);
+    assert!(ew_viewmodel::strings::set_locale("en"));
+    done(&mut shell, "ui.dismiss", json!({}));
     assert_eq!(shell.revision(), rev, "Cancel changes nothing");
     done(
         &mut shell,

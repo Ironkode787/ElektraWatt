@@ -23,7 +23,7 @@ use serde_json::Value;
 use crate::command::{DynCommand, Outcome};
 use crate::error::CmdError;
 use crate::meta::{CommandMeta, Cost, Exposure, Stability};
-use crate::text::text;
+use crate::text::{TextArg, text};
 use crate::tx::TxBuilder;
 
 /// `import.apply` (`ApplyImport`): see the module documentation.
@@ -86,8 +86,8 @@ pub struct ReimportRow {
     pub class: ReimportClass,
     /// Its key.
     pub key: AnyKey,
-    /// The record in words (its tag, folio or label, as `words` names it).
-    pub record: String,
+    /// The record in words (its tag, folio or label, as `words` names it), keyed for the window's language.
+    pub record: TextArg,
     /// For a conflict, the members that differ between this project and the source.
     pub members: Vec<MemberChange>,
 }
@@ -195,7 +195,7 @@ fn reimport_entry(code: &str, row: &ReimportRow, message: String, file: &str) ->
         message,
         location: Some(ew_schema::RunLocation {
             file: file.to_owned(),
-            item: Some(row.record.clone()),
+            item: Some(row.record.to_string()),
             ..Default::default()
         }),
         targets: vec![ew_schema::RunTarget {
@@ -315,7 +315,7 @@ pub fn plan_reimport(
         rows.push(ReimportRow {
             class,
             key,
-            record: String::new(),
+            record: TextArg::Plain(String::new()),
             members,
         });
     }

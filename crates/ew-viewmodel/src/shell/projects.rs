@@ -603,7 +603,12 @@ impl ShellModel {
                 ReimportClass::Removed => key!("reimport-row-removed"),
                 ReimportClass::EwChanged | ReimportClass::Unchanged => continue,
             };
-            rows.push(strings::format(key, &[&row.record]));
+            // ID-1374: the record's words in the window's language.
+            let record = match &row.record {
+                ew_api::TextArg::Plain(s) => s.clone(),
+                ew_api::TextArg::Text(t) => super::tools::rejected_words("", Some(t)),
+            };
+            rows.push(strings::format(key, &[&record]));
             for m in &row.members {
                 rows.push(strings::format(
                     key!("reimport-row-member"),
