@@ -76,13 +76,13 @@ States: *in force* (the control ships in 0.1.0), *1.0* or *1.x* (the threat arri
 | TM-04 | Automation embedded in a received project: rhai scripts, SQL reports, rule packs | not shipped | Nothing in a received project executes at 0.1.0: `ew-rhai` is a doc line without the `rhai` dependency (`crates/ew-rhai/src/lib.rs:4`), no project SQL report runs, no rule pack loads; the trust gate (NFR-SEC-05) arrives with WP-S1.15's remainder | — |
 | TM-05 | Resource exhaustion by formulas or SQL | in force for SQL; rhai not shipped | `ew sql`'s sandbox: one read-only statement, the authorizer, `SQLITE_LIMIT_*` (`crates/ew-sqlview/src/sandbox.rs:106`), the deadline and the result caps of each profile (`crates/ew-sqlview/src/sandbox.rs:49`); the rhai limits are WP-S1.15's (NFR-SEC-06) | `crates/ew-sqlview/src/sandbox_tests.rs:1`; `sql_sandbox` |
 | TM-06 | Plugin exfiltration or tampering | 1.x | No plugin host runs at 0.1.0 (`crates/ew-plugin-host/src/lib.rs:4`) | — |
-| TM-07 | MCP misuse, including prompt injection through project text | not shipped | `ew mcp` is not built; `egui_mcp` is a banned crate, reachable from test builds only (`ci/dep-rules.toml:34`) | CI-PR-09 `check-features` (`.github/workflows/ci.yml:1125`) |
+| TM-07 | MCP misuse, including prompt injection through project text | not shipped | `ew mcp` is not built; `egui_mcp` is a banned crate, reachable from test builds only (`ci/dep-rules.toml:35`) | CI-PR-09 `check-features` (`.github/workflows/ci.yml:1125`) |
 | TM-08 | Exploitation of OCCT through a vendor STEP file | not shipped | `ew-step-worker` prints its version and exits (`bin/ew-step-worker/src/main.rs:8`); no STEP file is read | — |
 | TM-09 | Silent tampering with a received project's engineering data | in force as documentation | `ew diff` and its textconv (`bin/ew/src/cli/diff.rs:4`); the as-built archive's SHA-256 in the revision tag (`crates/ew-api/src/release_run.rs:20`); the install guide's verification steps | Documentation |
 | TM-10 | Debug or remote-control endpoints in release binaries | in force | `EW_DEBUG_PANIC` only under `debug_assertions` (`bin/elektrawatt/src/main.rs:721`); the canary scan (`ci/sandbox-check.py:92`); a binary listing a test-only crate fails (`ci/audit-data.py:31`); no `listen` call in the installed tree (`ci/no-listen.sh:1`) | CI-R-09, CI-N-06 |
 | TM-11 | Dependency compromise or typosquatting | in force | `cargo deny` and `cargo vet` on every pull request (`.github/workflows/ci.yml:1101`, `:1105`); the reviewed build scripts (`ci/build-scripts.allowlist:64`) | CI-PR-09 |
 | TM-12 | CI or release pipeline compromise | in force without the two-person publish (1.0) | Read-only default permissions (`.github/workflows/ci.yml:22`); actions pinned by commit; `persist-credentials: false` (`.github/workflows/ci.yml:68`); build provenance in the one job with `id-token: write` (`.github/workflows/release.yml:126`) | Scorecard, review |
-| TM-13 | Update spoofing or MITM | 1.0 | 0.1.0 has no update check and no network code (WP-S6.05 D3; the network clients banned at `ci/dep-rules.toml:34`) | — |
+| TM-13 | Update spoofing or MITM | 1.0 | 0.1.0 has no update check and no network code (WP-S6.05 D3; the network clients banned at `ci/dep-rules.toml:35`) | — |
 | TM-14 | Local disclosure through journal, recovery snapshots, crash logs or logs | in force | User-only modes on Unix: the project writer (`crates/ew-store/src/vfs.rs:238`), the settings (`crates/ew-viewmodel/src/settings.rs:765`), the crash log (`bin/elektrawatt/src/crash.rs:178`); no automatic upload (NFR-PRIV-04) | CI-PR-02, WP-S6.05's tests |
 | TM-15 | Signing-key compromise | 1.0 | 0.1.0 is unsigned and holds no signing key (ID-1187) | — |
 | TM-16 | A user-configured external converter fed a hostile file | 1.0 | No converter runs at 0.1.0 | — |
@@ -133,7 +133,7 @@ in plain sight.
   (`ci/unsafe-allowlist.toml:15`). `cargo xtask check-unsafe` (`.github/workflows/ci.yml:120`) fails on the keyword
   in a file outside the list, in the workspace and in the fuzz crate (NFR-SEC-04).
 - **Test-only crates.** `egui_mcp`, `ew-testids` and `ew-testkit` are banned from the shipped binaries' normal and
-  build graph (`ci/dep-rules.toml:34`); the fuzz crate is outside the workspace.
+  build graph (`ci/dep-rules.toml:35`); the fuzz crate is outside the workspace.
 - **C.** The only build script of the shipped graph that compiles C is `libsqlite3-sys`'s, the bundled SQLite
   (`ci/build-scripts.allowlist:64`). OCCT is not shipped at 0.1.0.
 
