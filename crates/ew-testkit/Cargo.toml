@@ -53,9 +53,8 @@ serde_json = "1.0.154"
 ew-derive = { path = "../ew-derive" }
 # The fresh temporary directory of the tests (FT-569; dev-only edge, `[allowed_dev_edges]`).
 ew-testdir = { path = "../ew-testdir" }
-# The hostile corpus test (WP-S6.04 D10): a QElectroTech element through the front door as `qet_element` reads it, and
-# a raster asset through the renderers' decoder (dev-only edges, `[allowed_dev_edges]`).
-ew-import-qet = { path = "../ew-import-qet" }
+# The hostile corpus test (WP-S6.04 D10) decodes a raster asset as the renderers do (dev-only edge,
+# `[allowed_dev_edges]`).
 ew-render-cpu = { path = "../ew-render-cpu" }
 
 [[bench]]

@@ -56,8 +56,10 @@ Parser: the QElectroTech project importer through the front door into a new proj
 
 ## `elmt/`: QElectroTech element definitions
 
-Parser: the element importer through the front door under `Limits::element_definition()`, as the fuzz target
-`qet_element` calls it.
+Parser: the QElectroTech front door as the window's Import and `ew import qet` take a file,
+`ew_api::import::import_qet`. The standalone element importer has no caller outside the project importer at 0.1.0 and
+`ew-import-qet` is confined to `ew-api` (ADR-0024 decision 4); the fuzz target `qet_element` reads these bytes through
+it under `Limits::element_definition()`.
 
 | File | Tries | Verdict |
 |---|---|---|

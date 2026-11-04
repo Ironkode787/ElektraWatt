@@ -15,7 +15,7 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 
-use ew_api::import::{Refusal, StarterLibrary, front_door, import_qet};
+use ew_api::import::{StarterLibrary, front_door, import_qet};
 use ew_api::{MemoMode, Session, StoreOptions};
 
 #[global_allocator]
@@ -157,10 +157,12 @@ fn qet_projects() {
     );
 }
 
-/// A QElectroTech element definition through the front door under the element preset (as `qet_element` fuzzes it).
+/// A QElectroTech element definition as the window's Import and `ew import qet` take one: through the front door
+/// (`import_qet`). The standalone element importer has no caller outside the project importer at 0.1.0; it is the fuzz
+/// target `qet_element`'s, and `ew-import-qet` is confined to `ew-api` (ADR-0024 decision 4).
 #[test]
 fn qet_elements() {
-    use ew_import_qet::ew_interop_api::{ImportContext, ImportInput, Importer, Limits};
+    let lib = library();
     class(
         "elmt",
         &[
@@ -173,18 +175,9 @@ fn qet_elements() {
                 "malformed input at line 1: a DOCTYPE is not accepted",
             ),
         ],
-        |name, bytes| {
-            let input = ImportInput::new(name, bytes.to_vec()).expect("a file name");
-            let mut ctx = ImportContext::new(ew_ids::Id::from_uuid(ew_ids::Uuid::nil()));
-            ctx.limits = Limits::element_definition();
-            let limits = ctx.limits;
-            let sizes = [bytes.len() as u64];
-            match front_door(name, &sizes, &limits, None, || {
-                ew_import_qet::QetElementImporter.import(&input, &mut ctx)
-            }) {
-                Ok(b) => report(&b.report.entries),
-                Err(r) => r.to_string(),
-            }
+        |name, bytes| match import_qet(name, bytes.to_vec(), lib) {
+            Ok(imported) => report(&imported.batch.report.entries),
+            Err(r) => r.to_string(),
         },
     );
 }
