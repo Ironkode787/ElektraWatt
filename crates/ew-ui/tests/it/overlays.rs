@@ -504,6 +504,62 @@ fn ov6_the_highlight_name_chips_take_their_hue_and_a_black_label() {
     h.state_mut().shell_mut().shutdown();
 }
 
+/// FT-1288 (W49.2 item 6): with four potentials of folio 103 highlighted, at 1280 × 720, at the 1280 × 800 floor and
+/// at 1920 × 1080, with and without the find pane in the bottom dock, the name chips keep off each other, stand
+/// inside the page view and are never faded, and the page view ends above the status bar.
+#[test]
+fn ft1288_the_highlight_chips_stay_clear_in_a_short_window() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "103");
+    dispatch(&mut h, "navigator.show", json!({"kind": "potentials"}));
+    settle(&mut h);
+    for name in ["24VDC-1", "0V", "PE", "24VDC-2"] {
+        let key = row_key(h.state().shell(), NavKind::Potentials, NavRole::Potential, name);
+        dispatch(
+            &mut h,
+            "navigator.highlight",
+            json!({"kind": "potentials", "key": key}),
+        );
+    }
+    for find in [false, true] {
+        if find {
+            dispatch(&mut h, "find.open", json!({}));
+        }
+        for size in [
+            egui::vec2(1280.0, 720.0),
+            egui::vec2(1280.0, 800.0),
+            egui::vec2(1920.0, 1080.0),
+        ] {
+            h.set_size(size);
+            settle(&mut h);
+            settle(&mut h);
+            let status_top = h.ctx.content_rect().shrink(8.0).bottom() - ew_ui::theme::current(&h.ctx).size_status;
+            let pane = h.state().command_surface_rects().2.expect("the page view");
+            assert!(pane.bottom() <= status_top + 0.5, "{size:?} find {find}: {pane:?} above {status_top}");
+            let chips: Vec<_> = h
+                .state_mut()
+                .canvas_host()
+                .canvas_chips(0)
+                .iter()
+                .filter(|c| matches!(c.kind, ChipKind::Highlight(_)))
+                .cloned()
+                .collect();
+            assert_eq!(chips.len(), 4, "{size:?} find {find}: {chips:?}");
+            for (i, chip) in chips.iter().enumerate() {
+                assert!(!chip.faded, "{size:?} find {find}: {chip:?}");
+                assert!(pane.contains_rect(chip.rect), "{size:?} find {find}: {chip:?} in {pane:?}");
+                for other in &chips[i + 1..] {
+                    assert!(
+                        !chip.rect.intersects(other.rect),
+                        "{size:?} find {find}: {chip:?} and {other:?} apart"
+                    );
+                }
+            }
+        }
+    }
+    h.state_mut().shell_mut().shutdown();
+}
+
 /// OV4, FT-390: the link preview popup has a named, non-focusable image node with the target's folio and cell.
 #[test]
 fn ov4_the_link_preview_has_a_named_region() {
