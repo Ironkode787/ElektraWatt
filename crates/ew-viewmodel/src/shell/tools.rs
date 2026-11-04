@@ -1297,9 +1297,10 @@ fn command_error_text(e: &CmdError) -> (Key<'static>, Vec<String>) {
             }
         },
         CmdError::NeedsPreview { command } => (key!("command-error-needs-preview"), vec![title(command)]),
-        CmdError::Prevented { rule, finding, .. } => {
-            (key!("command-error-prevented"), vec![rule.clone(), finding.clone()])
-        }
+        CmdError::Prevented { rule, finding, .. } => (
+            key!("command-error-prevented"),
+            vec![rule.clone(), finding.clone()],
+        ),
         CmdError::Model(m) => (key!("command-error-model"), vec![m.to_string()]),
         CmdError::History { reason } => (key!("command-error-history"), vec![reason.clone()]),
         CmdError::Internal { reason } => (key!("command-error-internal"), vec![reason.clone()]),
@@ -1380,7 +1381,9 @@ mod ft779 {
 
     /// The `{ $pN }` arguments of the message `key` in the Fluent source `ftl`; `None` when it has no such message.
     fn arguments(ftl: &str, key: &str) -> Option<Vec<String>> {
-        let line = ftl.lines().find(|l| l.split_once(" = ").is_some_and(|(k, _)| k == key))?;
+        let line = ftl
+            .lines()
+            .find(|l| l.split_once(" = ").is_some_and(|(k, _)| k == key))?;
         let mut args: Vec<String> = line
             .split("{ $")
             .skip(1)

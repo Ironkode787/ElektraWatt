@@ -13,7 +13,11 @@ use support::{Scripted, Tmp, harness, settle, wait_for_page};
 
 /// Runs the frame until `done` holds of the shell (600 frames, 20 ms apart), then settles.
 #[track_caller]
-fn wait_until(h: &mut egui_kittest::Harness<'_, ew_ui::app::App>, what: &str, done: impl Fn(&ShellModel) -> bool) {
+fn wait_until(
+    h: &mut egui_kittest::Harness<'_, ew_ui::app::App>,
+    what: &str,
+    done: impl Fn(&ShellModel) -> bool,
+) {
     for _ in 0..600 {
         h.run_ok();
         if done(h.state().shell()) {
@@ -48,7 +52,11 @@ fn new_cable_and_report_block_open_their_forms_from_the_menus_and_create() {
     h.get_by_label("Create").click();
     wait_until(&mut h, "the cable form's close", |s| s.dialog().is_none());
     assert_ne!(h.state().shell().revision(), rev, "one step committed");
-    assert!(toast(h.state().shell()).starts_with("Created cable -"), "{}", toast(h.state().shell()));
+    assert!(
+        toast(h.state().shell()).starts_with("Created cable -"),
+        "{}",
+        toast(h.state().shell())
+    );
     let pages = h.state().shell().page_labels().len();
     support::open_menu(&mut h, &["Output"]);
     settle(&mut h);
@@ -57,6 +65,9 @@ fn new_cable_and_report_block_open_their_forms_from_the_menus_and_create() {
     assert!(matches!(h.state().shell().dialog(), Some(Dialog::Form(f)) if f.action == "report_block.new"));
     h.get_by_label("Create").click();
     wait_until(&mut h, "the report form's close", |s| s.dialog().is_none());
-    assert!(h.state().shell().page_labels().len() > pages, "the block's pages join the page order");
+    assert!(
+        h.state().shell().page_labels().len() > pages,
+        "the block's pages join the page order"
+    );
     h.state_mut().shell_mut().shutdown();
 }
