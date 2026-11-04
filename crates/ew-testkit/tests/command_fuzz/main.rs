@@ -85,7 +85,7 @@ use std::rc::Rc;
 
 use ew_api::checks::{CheckMode, PRE_DELIVERY};
 use ew_api::{AnyCommand, CmdError, HistoryLimits, MemoMode, Session, SessionOptions};
-use ew_commands::Cost;
+use ew_commands::{CommandRegistry, Cost, Exposure};
 use ew_derive::{DeviceTag, PageOrder, PotentialPartition, Q, WirePropsOf};
 use ew_model::Model;
 use ew_schema::Record;
@@ -136,7 +136,7 @@ fn gen_step(
     }
     let live = Live::read(&session.query(), fixture);
     let registry = session.registry();
-    let commands: Vec<&'static str> = registry.names().collect();
+    let commands: Vec<&'static str> = issuable(registry).collect();
     let defaults = commands.len() * schema_arm::WEIGHT;
     let arms: usize = ARMS.iter().map(|a| a.weight).sum();
     let total = arms + defaults + mix.undo + mix.save + mix.import;
@@ -200,6 +200,16 @@ fn golden_batch() -> &'static ew_import_tables::ew_interop_api::ImportBatch {
     static BATCH: std::sync::OnceLock<ew_import_tables::ew_interop_api::ImportBatch> =
         std::sync::OnceLock::new();
     BATCH.get_or_init(|| ew_testkit::golden::bootstrap(&repo()).expect("path (a) imports"))
+}
+
+/// The registered commands a step may issue: every one but an `Internal` one (`external.apply`), which only the
+/// session's external change runs (`Origin::External`; WP-S1.17 part 6, its own tests in `ew-api`).
+fn issuable(registry: &CommandRegistry) -> impl Iterator<Item = &'static str> + '_ {
+    registry.names().filter(|n| {
+        registry
+            .get(n)
+            .is_some_and(|e| e.meta().exposure != Exposure::Internal)
+    })
 }
 
 fn open_session(seed: u64) -> Session {
@@ -1067,7 +1077,7 @@ fn the_default_arm_steps_hold_the_invariants_on_golden_a() {
     let initial = session.world().model.clone();
     let registry = ew_commands::CommandRegistry::builtin();
     let mut stats = FuzzStats::default();
-    for (i, command) in registry.names().enumerate() {
+    for (i, command) in issuable(registry).enumerate() {
         for attempt in 0..DEFAULT_SEEDS / 4 {
             let mut rng = SplitMix64::new(7_000 * (i as u64 + 1) + attempt);
             let Some(Step::Cmd(c)) = schema_arm::step(registry, command, &live.all_ids, &mut rng) else {

@@ -198,10 +198,10 @@ fn run_textconv(file: &Path) -> i32 {
     };
     let cwd = std::env::current_dir().ok();
     let mut candidates: Vec<PathBuf> = cwd.as_deref().and_then(super::find_project).into_iter().collect();
-    if candidates.is_empty() {
-        if let Some(cwd) = &cwd {
-            ew_folders(cwd, 0, &mut candidates);
-        }
+    if candidates.is_empty()
+        && let Some(cwd) = &cwd
+    {
+        ew_folders(cwd, 0, &mut candidates);
     }
     let mut best = ew_api::output::textconv(None, &bytes).0;
     for dir in candidates {

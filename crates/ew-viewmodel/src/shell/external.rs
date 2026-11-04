@@ -355,12 +355,11 @@ impl ShellModel {
         if migrated.is_some() {
             banners.push(strings::text(key!("banner-older-format")).to_owned());
         }
-        match cloud {
-            Some(service) => banners.push(match service.name() {
+        if let Some(service) = cloud {
+            banners.push(match service.name() {
                 Some(name) => strings::format(key!("banner-cloud"), &[name]),
                 None => strings::text(key!("banner-cloud-other")).to_owned(),
-            }),
-            None => {}
+            });
         }
         (!banners.is_empty()).then(|| banners.join(" "))
     }

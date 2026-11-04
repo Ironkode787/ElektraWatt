@@ -203,15 +203,21 @@ pub fn show(
                             ui.add_space(t.space_3);
                         }
                         ui.label(
-                            egui::RichText::new(format!("{} · {}", r.record, r.field))
-                                .font(crate::theme::font(&t.type_body_strong))
-                                .color(t.text_primary.color32()),
+                            egui::RichText::new(strings::format(
+                                key!("external-row"),
+                                &[&r.record, &r.field],
+                            ))
+                            .font(crate::theme::font(&t.type_body_strong))
+                            .color(t.text_primary.color32()),
                         );
                         let small = |ui: &mut Ui, name: ew_viewmodel::strings::Key<'_>, value: &str| {
                             ui.label(
-                                egui::RichText::new(format!("{}: {value}", strings::text(name)))
-                                    .font(crate::theme::font(&t.type_small))
-                                    .color(t.text_secondary.color32()),
+                                egui::RichText::new(strings::format(
+                                    key!("external-side"),
+                                    &[strings::text(name), value],
+                                ))
+                                .font(crate::theme::font(&t.type_small))
+                                .color(t.text_secondary.color32()),
                             );
                         };
                         small(ui, key!("external-base"), &r.base);
@@ -230,7 +236,8 @@ pub fn show(
                                     &r.theirs,
                                 ),
                             ] {
-                                let label = format!("{}: {value}", strings::text(name));
+                                let label =
+                                    strings::format(key!("external-side"), &[strings::text(name), value]);
                                 if ui.radio(r.take == take, label).clicked() {
                                     events.push(Event::Action(
                                         "external.choose",
