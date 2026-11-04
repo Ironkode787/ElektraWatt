@@ -33,7 +33,10 @@ the SBOM lacks, and on any package of the shipped set outside the binaries' clos
 dependencies), naming each. `notices` appends a "Non-crate components" section
 to the cargo-about output <THIRD-PARTY-NOTICES.txt> (each non-crate component of the SBOMs with its licence, then the
 NOTICE section it comes from or that names it, SQLite's dedication included) and fails, naming each, on any component
-of the SBOMs that is not one of the workspace's own crates and that the file does not name as `- <name> <version>`.
+of the SBOMs that is not one of the workspace's own crates and that the file does not name as `- <name> <version>`, and
+on any non-crate component without a NOTICE section whose packaging/components.toml entry gives no `no_notice`, the
+reason it needs none (C50-p2#3). A components.toml entry's `shipped_licence`, where it has one, is the licence of the
+part that ships, its `licence` that of the whole download.
 NOTICE, packaging/components.toml and the bundled header are the one source of each non-crate component; the
 repository is the one this script lives in. Standard library only.
 """
@@ -305,7 +308,8 @@ def packaging_component(repo, name, sections):
     for entry in table["component"]:
         if entry["name"] == name:
             component = {"type": "application", "bom-ref": f"component:{name}", "name": name,
-                         "version": entry["version"], "licenses": licence(entry["licence"]),
+                         "version": entry["version"],
+                         "licenses": licence(entry.get("shipped_licence", entry["licence"])),
                          "description": entry["used_for"],
                          "externalReferences": [{"type": "distribution", "url": entry["url"]}]}
             if entry["sha256"]:
@@ -486,8 +490,16 @@ def notices(text, sboms, metadata, repo=REPO):
             out.append(f"\n{title}\n{'-' * len(title)}\n\n{body}\n")
     unsectioned = [c for c, s in components if s not in {t for t, _ in sections}]
     if unsectioned:
+        with open(os.path.join(repo, COMPONENTS), "rb") as f:
+            reasons = {e["name"]: e.get("no_notice") for e in tomllib.load(f)["component"]}
+        bare = sorted({(c["name"], c["version"]) for c in unsectioned if not reasons.get(c["name"])})
+        if bare:
+            names = "".join(f"\n  {n} {v}" for n, v in bare)
+            raise Refusal(f"NOTICE has no section for {len(bare)} component(s) of the SBOM, and "
+                          f"packaging/components.toml gives no reason they need none:{names}")
         out.append("\n")
-        out.extend(line(c) for c in unsectioned)
+        for component in unsectioned:
+            out.extend([line(component), f"  No notice: {reasons[component['name']]}\n"])
     result = "".join(out)
     own = workspace_crates(metadata)
     missing = sorted({(c["name"], c["version"]) for sbom in sboms for c in sbom.get("components", [])
@@ -618,6 +630,8 @@ FIXTURE_COMPONENTS = """[[component]]
 name = "nsis"
 version = "3.13"
 licence = "Zlib AND CPL-1.0"
+shipped_licence = "Zlib"
+no_notice = "zlib asks for none in a binary."
 url = "https://example.org/nsis.zip"
 sha256 = "dddd"
 checked_by = "x"
@@ -803,7 +817,7 @@ class SbomTest(unittest.TestCase):
         self.assertEqual((sqlite["version"], sqlite["licenses"]), ("3.53.2", [{"license": {"id": "blessing"}}]))
         nsis = names["nsis"]
         self.assertEqual((nsis["version"], nsis["licenses"], nsis["hashes"][0]["content"]),
-                         ("3.13", [{"expression": "Zlib AND CPL-1.0"}], "dddd"))
+                         ("3.13", [{"license": {"id": "Zlib"}}], "dddd"))
         self.assertNotIn("runtime", names)
         self.assertEqual(self.by_name(self.merged(components=("runtime",)))["runtime"]["licenses"],
                          [{"license": {"id": "MIT"}}])
@@ -834,10 +848,20 @@ class SbomTest(unittest.TestCase):
         self.assertIn("\n- SQLite 3.53.2 (blessing)\n\nSQLite (bundled by libsqlite3-sys)\n", tail)
         self.assertIn("  May you do good and not evil.\n", tail)
         self.assertIn("\n- runtime 20251108 (MIT)\n\nThe runtime (packaging/components.toml `runtime`)\n", tail)
-        self.assertTrue(tail.endswith("\n\n- nsis 3.13 (Zlib AND CPL-1.0)\n"), tail)
+        self.assertTrue(tail.endswith("\n\n- nsis 3.13 (Zlib)\n  No notice: zlib asks for none in a binary.\n"), tail)
         with self.assertRaises(Refusal) as refused:
             notices(text, boms, self.metadata, self.repo)
         self.assertEqual(str(refused.exception), 'the notices hold a "Non-crate components" section already')
+
+    def test_a_non_crate_component_without_a_section_or_a_reason_fails_naming_it(self):
+        bom = self.merged()
+        with open(os.path.join(self.repo, COMPONENTS), "w", encoding="utf-8") as f:
+            f.write(FIXTURE_COMPONENTS.replace('no_notice = "zlib asks for none in a binary."\n', ""))
+        with self.assertRaises(Refusal) as refused:
+            notices(self.CARGO_ABOUT, [bom], self.metadata, self.repo)
+        self.assertEqual(str(refused.exception), "NOTICE has no section for 1 component(s) of the SBOM, and "
+                                                 "packaging/components.toml gives no reason they need none:\n"
+                                                 "  nsis 3.13")
 
     def test_a_component_the_notices_do_not_name_fails_naming_it(self):
         without_cc = self.CARGO_ABOUT.replace("- cc 1.2.0\n", "")
@@ -889,6 +913,12 @@ class SbomTest(unittest.TestCase):
         # The packaging components that the artefacts hold are in packaging/components.toml.
         for name in ("nsis", "appimage-type2-runtime"):
             self.assertEqual(packaging_component(REPO, name, sections)["name"], name)
+        # C50-p2#3: NSIS's stub ships under zlib alone, which asks for no notice; the runtime has its section.
+        nsis = packaging_component(REPO, "nsis", sections)
+        self.assertEqual((nsis["licenses"], nsis["properties"][0]["value"]), ([{"license": {"id": "Zlib"}}], ""))
+        with open(os.path.join(REPO, COMPONENTS), "rb") as f:
+            entry = next(e for e in tomllib.load(f)["component"] if e["name"] == "nsis")
+        self.assertTrue(entry["no_notice"])
 
 
 if __name__ == "__main__":

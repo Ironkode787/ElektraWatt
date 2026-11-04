@@ -682,7 +682,8 @@ The per-artefact steps of `package.yml` (WP-S6.07 part 2), in `windows (x86_64)`
   artefact's shipped set, `cargo tree -e normal,build -p <its binaries> --target <target> --prefix none --format
   "{p}"` (ID-1318: `cargo metadata`'s resolve, which cargo-cyclonedx and cargo-auditable read, also holds the optional
   dependencies that only a weak feature `dep?/feature` names, such as egui_glow, glutin and zlib-rs, which no binary
-  holds); `merge` writes `<artefact>.cdx.json` for the setup (`elektrawatt`, `ew`, NSIS's stub), the AppImage
+  holds); for a CLI archive, `shipped --root ew` takes what `ew` reaches in the joint graph of both programs, the
+  build that makes its binary; `merge` writes `<artefact>.cdx.json` for the setup (`elektrawatt`, `ew`, NSIS's stub), the AppImage
   (`elektrawatt`, `ew`, the type-2 runtime) and each CLI archive (`ew`): the crates of the shipped set once per purl
   (one printed line per crate it drops), each workspace crate's `bom-ref` relative to the workspace (no checkout
   path), the bundled fonts and the Tabler icons of `NOTICE` (family, version, licence, SHA-256), SQLite at the version
@@ -691,7 +692,9 @@ The per-artefact steps of `package.yml` (WP-S6.07 part 2), in `windows (x86_64)`
   normal and build dependencies in `cargo metadata`, naming each; `notices` appends "Non-crate
   components" (each with its licence and its `NOTICE` section, SQLite's dedication included) to the cargo-about output
   `THIRD-PARTY-NOTICES.txt` before the tree is staged, and fails on any SBOM component, other than the workspace's own
-  crates, that the file does not name.
+  crates, that the file does not name, and on any non-crate component with no `NOTICE` section unless its
+  `components.toml` entry gives `no_notice`, why it needs none (NSIS's stub, zlib code: its SBOM licence is the entry's
+  `shipped_licence`).
 - [`audit-data.py`](audit-data.py) (D12 (b), CI-R-09) reads the `.dep-v0` section of every shipped binary (ELF or PE):
   "no cargo-auditable data in <file>" when it is missing, "<file> contains the test-only crate <name>" for `egui_mcp`,
   `ew-testids` or `ew-testkit`. Then `cargo audit bin` on the same binaries (D11).

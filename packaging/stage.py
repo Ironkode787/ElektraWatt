@@ -757,7 +757,8 @@ class StageTest(unittest.TestCase):
         fields = {"name", "version", "licence", "url", "sha256", "checked_by", "used_for"}
         hexdigest = re.compile(r"[0-9a-f]{64}")
         for component in table["component"]:
-            self.assertEqual(set(component), fields, component.get("name"))
+            # ci/sbom.py reads the two optional keys of a component that reaches an artefact (C50-p2#3).
+            self.assertTrue(fields <= set(component) <= fields | {"shipped_licence", "no_notice"}, component.get("name"))
             sha = component["sha256"]
             self.assertTrue(sha == "" or hexdigest.fullmatch(sha), sha)
         for name in ("gcc", "libc6-dev", "cargo-about", "python", "setup-python", "mdbook", "nsis"):

@@ -8,6 +8,9 @@
 # setup's stub and its uninstaller. The container images stay in the workflows as `*_IMAGE` variables, pinned by
 # digest (`cargo xtask check-workflows`).
 #
+# A component that reaches an artefact may give `shipped_licence`, the licence of the part that ships where the
+# download holds more, and `no_notice`, why it needs no section in NOTICE (ci/sbom.py's notices refuse it otherwise).
+#
 # `checked_by` says what verifies the bytes. The Debian packages come from snapshot.ubuntu.com at the one time of
 # `[apt]` below (FT-1222), so the archive never moves under the pins: apt checks each against the SHA-256 of the
 # snapshot's signed index, and `stage.py debs` compares every downloaded file with this list before the install
@@ -109,6 +112,8 @@ used_for = "builds the user guide (ci/build-book.sh, D7) of docs.yml's docs-book
 name = "nsis"
 version = "3.13"
 licence = "Zlib AND bzip2-1.0.6 AND CPL-1.0"
+shipped_licence = "Zlib"
+no_notice = "the setup's stub and uninstaller are NSIS's zlib-licensed code, and the zlib licence asks for no notice in a binary: its third condition binds source distributions only, and its first calls an acknowledgment appreciated but not required"
 url = "https://downloads.sourceforge.net/project/nsis/NSIS%203/3.13/nsis-3.13.zip"
 sha256 = "ba63dffc4410ee89193e1cb5a41989991bd77c61068da17e3156d136b7b0b3d8"
 checked_by = "package.yml, sha256sum before the archive is unpacked (its MD5 matched the 530e3623c077cba879ed2ae6e13be362 that SourceForge lists); makensis -VERSION must print v<version>"
