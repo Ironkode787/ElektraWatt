@@ -6,7 +6,10 @@
 #
 #   mesa-lavapipe.sh install
 #       As root, on the runner. Adds Ubuntu 24.04's archive at the pin's snapshot time on snapshot.ubuntu.com as an apt
-#       source (as ci/linux-container.sh reads it), installs exactly `mesa-vulkan-drivers=<version>`, then checks it.
+#       source (as ci/linux-container.sh reads it), with an apt preferences file that pins that origin (priority
+#       1001), so that every package the install takes, lavapipe's LLVM among them, comes from the snapshot. Installs
+#       exactly `mesa-vulkan-drivers=<version>`, checks it, and prints the installed Mesa and LLVM packages, each
+#       with the source apt took it from.
 #   mesa-lavapipe.sh check
 #       Fails when `dpkg-query` reports another version of mesa-vulkan-drivers than the pin (or none).
 #   mesa-lavapipe.sh '--test'
@@ -41,12 +44,23 @@ case "${1:-}" in
       echo "deb https://snapshot.ubuntu.com/ubuntu/$snapshot noble-updates main universe"
       echo "deb https://snapshot.ubuntu.com/ubuntu/$snapshot noble-security main universe"
     } > /etc/apt/sources.list.d/mesa-lavapipe-snapshot.list
+    {
+      echo "Package: *"
+      echo "Pin: origin \"snapshot.ubuntu.com\""
+      echo "Pin-Priority: 1001"
+    } > /etc/apt/preferences.d/mesa-lavapipe-snapshot.pref
     # FT-479: a stalled mirror connection becomes a retry of a few seconds.
     options=(-o Acquire::Retries=3 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20)
     apt-get "${options[@]}" update -qq
     apt-get "${options[@]}" install -y -qq --no-install-recommends "mesa-vulkan-drivers=$want"
     same "$(installed)"
     echo "mesa-vulkan-drivers $want from the snapshot $snapshot"
+    # ID-1375: the Mesa and LLVM that lavapipe runs on, each with the source apt took it from (its `***` line).
+    packages="$({ dpkg-query --show --showformat='${db:Status-Abbrev} ${Package}\n' 'mesa-*' 'libllvm*' 2>/dev/null \
+      || true; } | awk '$1 == "ii" { print $2 }')"
+    for p in $packages; do
+      apt-cache policy "$p"
+    done
     ;;
   check)
     same "$(installed)"

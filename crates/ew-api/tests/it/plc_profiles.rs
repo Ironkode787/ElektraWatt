@@ -251,9 +251,7 @@ fn an_edited_copy_of_a_builtin_profile_prints_and_parses_in_its_own_notation() {
 
     assert_eq!(&module_texts(&s)[..2], ["A0.0", "A0.1"]);
     let module = s.resolve_reference("tag:-201U3").unwrap();
-    let channel = s
-        .query()
-        .get::<ChannelAddresses>(Id::<Device>::from_uuid(module))[2]
+    let channel = s.query().get::<ChannelAddresses>(Id::<Device>::from_uuid(module))[2]
         .channel
         .as_uuid();
     let set = |s: &mut Session, text: &str| {

@@ -362,6 +362,56 @@ fn ft696_a_named_connection_point_draws_its_wires_or_its_ring() {
     shell.shutdown();
 }
 
+/// FT-696 (GT-6, ID-1375): a real EW-POT-001 finding on a potential without a definition (Golden A without B1 and
+/// without its potential definitions, so 0 V and PE merge with no definition to key them) draws, through
+/// `conflict_overlay`, exactly the wires of the connection point its discriminator names: the overlay is that of one
+/// point of the page, and no definition gives members.
+#[test]
+fn ft696_an_undefined_potential_s_finding_draws_its_named_point() {
+    let tmp = Tmp::new("ft696-finding");
+    let mut shell = without_b1(&tmp);
+    // Each pass deletes the definition a potential row stands for; a merged potential's next one then shows.
+    for _ in 0..64 {
+        let defs: Vec<serde_json::Value> = {
+            let t = shell.nav(NavKind::Potentials).and_then(|n| n.table()).unwrap();
+            t.nodes
+                .iter()
+                .filter(|n| n.kinds == ["potential_def"])
+                .map(|n| json!({"kind": "potential_def", "id": n.records[0].to_string()}))
+                .collect()
+        };
+        if defs.is_empty() {
+            break;
+        }
+        done(
+            &mut shell,
+            "command.run",
+            json!({"cmd": "edit.delete", "params": {"targets": defs}}),
+        );
+    }
+    assert!(shell.conflict_members().is_empty(), "no definition gives members");
+    let labels = shell.page_labels().to_vec();
+    let mut drawn = 0;
+    for folio in &labels {
+        done(&mut shell, "page.goto", json!({ "folio": folio }));
+        let overlay = shell.conflict_overlay(0);
+        if overlay.is_empty() {
+            continue;
+        }
+        drawn += 1;
+        let page = std::sync::Arc::clone(shell.canvas().expect("the page").page());
+        assert!(
+            page.tables
+                .cps
+                .iter()
+                .any(|c| page.conflict_lines(&[], &[(c.function, c.idx)]) == overlay),
+            "folio {folio}: the overlay is one named point's"
+        );
+    }
+    assert!(drawn > 0, "the finding's named point is drawn on its page");
+    shell.shutdown();
+}
+
 /// FT-1363 (W50-F13): in a window a script drives, the Waive prompt's refusal of the human-only `check.waive` is worded
 /// by the command's title under the fields, never the error's raw form with the exposure class and the origin.
 #[test]

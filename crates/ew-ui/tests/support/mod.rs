@@ -307,10 +307,52 @@ pub fn availability_problems(harness: &Harness<'_, App>, surface: &str) -> Vec<S
     }
     for menu in actions::menu_model(shell) {
         for item in menu.items().into_iter().filter(|i| !i.enabled) {
-            check(&item.label, true);
+            check(&menu_label(item), true);
         }
     }
     problems
+}
+
+/// The accessible name of a menu entry: its label, then its shortcut as the entry shows it (egui joins a button's
+/// texts with a space).
+fn menu_label(item: &ew_ui::ew_viewmodel::actions::ActionItem) -> String {
+    if item.shortcut.is_empty() {
+        item.label.clone()
+    } else {
+        format!("{} {}", item.label, ew_ui::keys::short_display(&item.shortcut))
+    }
+}
+
+/// R6 on an open menu of the app menu (WP-S2.11 D3, ID-1375): each of `items` whose action is unavailable has a
+/// shown entry in it. One that has none is a line, so an entry never passes unseen; whether it is disabled is
+/// [`availability_problems`]'s line.
+pub fn menu_entry_problems(
+    harness: &Harness<'_, App>,
+    surface: &str,
+    items: &[ew_ui::ew_viewmodel::actions::ActionItem],
+) -> Vec<String> {
+    use egui::accesskit::Role;
+    let menu_button = strings::text(key!("commandbar-menu"));
+    items
+        .iter()
+        .filter(|i| !i.enabled)
+        .filter(|i| {
+            !harness.query_all_by_label(&menu_label(i)).any(|node| {
+                let up = ancestors(&node);
+                let n = node.accesskit_node();
+                up.iter().any(|(r, _)| *r == Role::Menu)
+                    && up.iter().any(|(r, l)| *r == Role::Button && l == menu_button)
+                    && n.role() == Role::Button
+                    && !n.is_hidden()
+            })
+        })
+        .map(|i| {
+            format!(
+                "{surface}: the unavailable action's entry \"{}\" is not shown",
+                i.label
+            )
+        })
+        .collect()
 }
 
 /// The walker on the surface on show, R1 to R6, with WP-S2.08's splitter count: every splitter handle of the dock and

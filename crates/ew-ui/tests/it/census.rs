@@ -7,7 +7,7 @@
 //! surface, and every line of every surface is reported at once.
 //!
 //! The surfaces: folio 101 with a device and a wire selected (the cards show); the six command-bar tabs; every menu of
-//! the action registry; every `PaneKind` and `NavKind`, the Preview, History, Find and Messages panes with content;
+//! the action registry and every submenu path in it; every `PaneKind` and `NavKind`, the Preview, History, Find and Messages panes with content;
 //! every `Dialog` variant (by a `match` without a wildcard arm, so a new variant does not compile until it is listed);
 //! the start page, the five first-run steps and the ten wizard steps. The creation forms are W49.2-F1's census
 //! (`window_check_w49_2.rs`): it opens every form whose action the source builds, settles on each (the six rules) and
@@ -22,7 +22,7 @@ use std::collections::BTreeSet;
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
-use ew_ui::ew_viewmodel::actions::menu_model;
+use ew_ui::ew_viewmodel::actions::{ActionItem, MenuEntry, menu_model};
 use ew_ui::ew_viewmodel::command_bar::Tab;
 use ew_ui::ew_viewmodel::ew_api::{FormatStep, MigrationError, Migrations};
 use ew_ui::ew_viewmodel::first_run::FirstRunStep;
@@ -166,12 +166,22 @@ fn census_the_window_its_tabs_menus_panes_and_navigators() {
         dispatch(&mut h, "view.command_tab", json!({"tab": tab.word()}));
         census.visit(&mut h, &format!("the {} tab", strings::text(tab.label_key())));
     }
-    // Every menu of the app menu; R6 reaches its entries (a disabled one is under the Menu button).
+    // Every menu of the app menu and every submenu path in it (the command-bar groups, Open Recent, UI scale,
+    // Theme); R6 reaches the entries of each, and an unavailable action's entry that is not shown is a line.
     let menu_button = strings::text(key!("commandbar-menu"));
     let mut disabled_entries = 0;
+    let mut paths = Vec::new();
     for menu in menu_model(h.state().shell()) {
-        support::open_menu(&mut h, &[&menu.label]);
-        census.visit(&mut h, &format!("the {} menu", menu.label));
+        menu_paths(vec![menu.label.clone()], &menu.entries, &mut paths);
+    }
+    for (path, items) in paths {
+        let labels: Vec<&str> = path.iter().map(String::as_str).collect();
+        support::open_menu(&mut h, &labels);
+        let surface = format!("the {} menu", labels.join(" > "));
+        census.visit(&mut h, &surface);
+        census
+            .problems
+            .extend(support::menu_entry_problems(&h, &surface, &items));
         disabled_entries += h
             .root()
             .children_recursive()
@@ -186,9 +196,7 @@ fn census_the_window_its_tabs_menus_panes_and_navigators() {
                 under_menu && n.role() == egui::Role::Button && n.is_disabled()
             })
             .count();
-        h.key_press(egui::Key::Escape);
-        h.key_press(egui::Key::Escape);
-        h.run_ok();
+        close_menus(&mut h);
     }
     assert!(
         disabled_entries > 0,
@@ -206,8 +214,47 @@ fn census_the_window_its_tabs_menus_panes_and_navigators() {
     census.assert_clean();
 }
 
-/// A local mirror of [`Dialog`]'s variants: [`kind`] maps every variant without a wildcard arm, and [`open_dialog`]
-/// opens every kind, so a new variant fails to compile until the census opens it.
+/// Each menu path under `path` with the items it shows directly: `path` itself, then each submenu and each
+/// command-bar group in it, depth first.
+fn menu_paths(path: Vec<String>, entries: &[MenuEntry], out: &mut Vec<(Vec<String>, Vec<ActionItem>)>) {
+    let items = entries
+        .iter()
+        .filter_map(|e| match e {
+            MenuEntry::Item(i) => Some(i.clone()),
+            _ => None,
+        })
+        .collect();
+    out.push((path.clone(), items));
+    for e in entries {
+        let mut inner = path.clone();
+        match e {
+            MenuEntry::Submenu { label, items, .. } => {
+                inner.push(label.clone());
+                out.push((inner, items.clone()));
+            }
+            MenuEntry::Group { label, entries, .. } => {
+                inner.push(label.clone());
+                menu_paths(inner, entries, out);
+            }
+            MenuEntry::Separator | MenuEntry::Item(_) => {}
+        }
+    }
+}
+
+/// Escape until no menu is open.
+fn close_menus(h: &mut Harness<'_, App>) {
+    for _ in 0..8 {
+        if h.query_all_by_role(egui::Role::Menu).next().is_none() {
+            return;
+        }
+        h.key_press(egui::Key::Escape);
+        h.run_ok();
+    }
+    panic!("the app menu stays open");
+}
+
+/// A local mirror of [`Dialog`]'s variants: [`kind`] maps every variant without a wildcard arm, [`DialogKind::all`]
+/// lists every kind and [`open_dialog`] opens it, so a new variant fails to compile until the census opens it.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum DialogKind {
     About,
@@ -233,29 +280,40 @@ enum DialogKind {
     Reimport,
 }
 
-const DIALOGS: [DialogKind; 21] = [
-    DialogKind::About,
-    DialogKind::Shortcuts,
-    DialogKind::ConfirmDiscard,
-    DialogKind::GotoPage,
-    DialogKind::Notices,
-    DialogKind::ConfirmJournalDiscard,
-    DialogKind::ConfirmCheckScheme,
-    DialogKind::SaveWorkspace,
-    DialogKind::Form,
-    DialogKind::Recovery,
-    DialogKind::ConfirmPurge,
-    DialogKind::PartChoose,
-    DialogKind::PartEdit,
-    DialogKind::Print,
-    DialogKind::ExternalChange,
-    DialogKind::ConfirmUpgrade,
-    DialogKind::OpenEwz,
-    DialogKind::ConfirmGitSetup,
-    DialogKind::ImportQet,
-    DialogKind::ReimportMatch,
-    DialogKind::Reimport,
-];
+impl DialogKind {
+    /// The kind after this one in the census's order, by a `match` without a wildcard arm: a new kind does not
+    /// compile until it takes its place in the chain.
+    fn next(self) -> Option<Self> {
+        Some(match self {
+            Self::About => Self::Shortcuts,
+            Self::Shortcuts => Self::ConfirmDiscard,
+            Self::ConfirmDiscard => Self::GotoPage,
+            Self::GotoPage => Self::Notices,
+            Self::Notices => Self::ConfirmJournalDiscard,
+            Self::ConfirmJournalDiscard => Self::ConfirmCheckScheme,
+            Self::ConfirmCheckScheme => Self::SaveWorkspace,
+            Self::SaveWorkspace => Self::Form,
+            Self::Form => Self::Recovery,
+            Self::Recovery => Self::ConfirmPurge,
+            Self::ConfirmPurge => Self::PartChoose,
+            Self::PartChoose => Self::PartEdit,
+            Self::PartEdit => Self::Print,
+            Self::Print => Self::ExternalChange,
+            Self::ExternalChange => Self::ConfirmUpgrade,
+            Self::ConfirmUpgrade => Self::OpenEwz,
+            Self::OpenEwz => Self::ConfirmGitSetup,
+            Self::ConfirmGitSetup => Self::ImportQet,
+            Self::ImportQet => Self::ReimportMatch,
+            Self::ReimportMatch => Self::Reimport,
+            Self::Reimport => return None,
+        })
+    }
+
+    /// Every kind, from the first along [`DialogKind::next`].
+    fn all() -> impl Iterator<Item = Self> {
+        std::iter::successors(Some(Self::About), |k| k.next())
+    }
+}
 
 fn kind(d: &Dialog) -> DialogKind {
     match d {
@@ -499,7 +557,7 @@ fn open_dialog(tmp: &Tmp, kind: DialogKind) -> Harness<'static, App> {
 #[test]
 fn census_every_dialog() {
     let mut census = Census::default();
-    for want in DIALOGS {
+    for want in DialogKind::all() {
         let tmp = Tmp::new();
         let mut h = open_dialog(&tmp, want);
         h.run_ok();

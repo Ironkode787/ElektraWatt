@@ -15,8 +15,9 @@ publish = false
 workspace = true
 
 [features]
-# WP-S2.17 DL6: the chrome snapshot tests and their pixel gate (Windows only), rendered offscreen with this crate's
-# egui-wgpu and ew-render2d's headless device (no new package; D7 as amended). Without it they are not compiled.
+# WP-S2.17 DL6: the chrome snapshot tests and their pixel gate (Windows and Linux, WP-S2.11 D4), rendered offscreen
+# with this crate's egui-wgpu and ew-render2d's headless device (no new package; D7 as amended). Without it they are
+# not compiled.
 snapshots = []
 
 [dependencies]

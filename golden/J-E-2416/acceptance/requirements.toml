@@ -64,10 +64,6 @@ id = "FR-REP-030"
 tests = ["ew::it tables::the_wire_list_workbook_reads_back_as_the_golden_wire_list"]
 
 [[requirement]]
-id = "FR-CHK-016"
-tests = ["ew-api::checks golden_a_check_memoised_equals_cold_and_the_oracle_is_quiet_memo"]
-
-[[requirement]]
 id = "FR-REV-009"
 tests = ["ew-testkit::command_fuzz the_revision_steps_hold_on_golden_a"]
 
