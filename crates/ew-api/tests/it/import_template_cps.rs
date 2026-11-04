@@ -30,8 +30,8 @@ const EXTRA: &[(&str, &str)] = &[
     ("devices.csv", "-102K9,K,9,,,,,,=P01,+J-E-2416,,KPOS,,,,,,,,,,,,,"),
     ("functions.csv", "-102K9,-102K9,ew.fn.coil,,,,,,,,"),
     ("functions.csv", "-102K9#aux,-102K9,ew.fn.contact-no,aux,,,,,,,"),
-    ("connections.csv", "WK91,WK91,,-102K9:13,-102K9:A1,,,,,,,,,"),
-    ("connections.csv", "WK92,WK92,,-102K9:14,-102K9:A2,,,,,,,,,"),
+    ("connections.csv", "WK91,WK91,,-102K9:13,-102K9:A1,,,,,,,,,,"),
+    ("connections.csv", "WK92,WK92,,-102K9:14,-102K9:A2,,,,,,,,,,"),
 ];
 
 fn inputs() -> Vec<ImportInput> {

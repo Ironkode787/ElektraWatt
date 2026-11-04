@@ -11,7 +11,7 @@ use ew_interop_api::{Code, Severity};
 use ew_mltext::Ident;
 use ew_schema::{
     ClampKey, Conductor, Connection, Device, Endpoint, ExternalRef, Function, Junction, LibDocument, Page,
-    Part, PlcConfigProject, Project, Record, Section, Side, StructureNode,
+    Part, PlcConfigProject, Project, Record, Representation, Section, Side, StructureNode,
 };
 use ew_units::{Grid, Nm, Pt2};
 
@@ -171,6 +171,10 @@ pub(crate) struct Cx<'l> {
     pub(crate) conductors: BTreeMap<String, Id<Conductor>>,
     /// `connections` keys.
     pub(crate) connections: BTreeMap<String, ConnInfo>,
+    /// Where each function CP is drawn on each page by a symbol, the point the stored route of a `connections.csv`
+    /// row starts or ends at (FT-1315): of several representations on one page, the one of the smallest ID, as
+    /// `ew_derive::cp_end` reads it.
+    pub(crate) cp_points: BTreeMap<(Id<Function>, u16, Id<Page>), (Id<Representation>, Pt2)>,
     /// `plc_config_projects` keys (registered before the devices, whose station aspects name them).
     pub(crate) plc_projects: BTreeMap<String, Id<PlcConfigProject>>,
     /// The provenance of a part copy (`meta.sources`) when the parts are imported into an existing project
@@ -200,6 +204,7 @@ impl<'l> Cx<'l> {
             junctions: BTreeMap::new(),
             conductors: BTreeMap::new(),
             connections: BTreeMap::new(),
+            cp_points: BTreeMap::new(),
             plc_projects: BTreeMap::new(),
             part_source: None,
         }

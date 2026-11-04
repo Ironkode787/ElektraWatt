@@ -9,8 +9,8 @@ use ew_ids::Id;
 use ew_schema::{
     BoxCp, BoxSpec, Cable, CpOverride, Device, DeviceAspects, DeviceKind, DeviceState, Dir4, FnRole,
     FrozenTag, Function, FunctionKind, IpDirection, IpSpec, KeyedList, LabelMode, LengthSource, PartRef,
-    PartUse, PlcModule, PlcStation, Record, Representation, Side, Strip, TagPrint, TagScheme, TagSign,
-    TagSpec, Terminal, TerminalGroup, pair_template_cps,
+    PartUse, PlcModule, PlcStation, Record, Representation, Side, SlotOverride, Strip, TagPrint, TagScheme,
+    TagSign, TagSpec, Terminal, TerminalGroup, pair_template_cps,
 };
 use ew_units::{Dec3, Grid, Nm, Pt2};
 
@@ -21,7 +21,7 @@ use super::{
     parent_fates, parse_cell, place,
 };
 use crate::ids::{record_id, source_ref};
-use crate::table::{Rd, Row, Table, parse_dec3, parse_ident};
+use crate::table::{Rd, Row, Table, parse_dec3, parse_ident, parse_uint};
 
 const STATES: &[(&str, DeviceState)] = &[
     ("used", DeviceState::Used),
@@ -711,6 +711,31 @@ fn black_box_geometry(grid: Grid, pos: Pt2, cps: &[CpInfo]) -> Option<BoxSpec> {
     })
 }
 
+/// The `slot_pos` cell of a `representations.csv` row (FT-1323): `;`-separated `<slot> <x> <y>`, a text slot of the
+/// symbol by index and its moved position in symbol coordinates, in QET px.
+fn slot_pos(r: &mut Rd<'_>) -> Vec<(u16, Pt2)> {
+    let mut out = Vec::new();
+    for item in r.list("slot_pos") {
+        let px = |v: &str| -> Result<Nm, String> {
+            let n: i64 = v
+                .parse()
+                .map_err(|_| format!("`{v}` is not a whole number of px"))?;
+            Grid::QET_1PX
+                .at(n)
+                .ok_or_else(|| format!("`{v}` px is out of range"))
+        };
+        let parsed = match item.split(' ').collect::<Vec<_>>().as_slice() {
+            [slot, x, y] => parse_uint::<u16>(slot).and_then(|slot| Ok((slot, Pt2::new(px(x)?, px(y)?)))),
+            _ => Err(format!("`{item}` is not `<slot> <x> <y>`")),
+        };
+        match parsed {
+            Ok(p) => out.push(p),
+            Err(e) => r.fail(format!("column `slot_pos`: {e}")),
+        }
+    }
+    out
+}
+
 /// `representations.csv` → `representation`. Each interruption point keeps exactly one representation
 /// (EW-INV-013): a second one is dropped, and a point without one is dropped with its function.
 pub(crate) fn emit_representations(cx: &mut Cx<'_>, table: Option<&Table>) {
@@ -734,6 +759,7 @@ pub(crate) fn emit_representations(cx: &mut Cx<'_>, table: Option<&Table>) {
         let dx = r.int("dx").unwrap_or(0);
         let dy = r.int("dy").unwrap_or(0);
         let arrangement = r.ident("arrangement");
+        let slot_pos = slot_pos(&mut r);
         if functions.is_empty() {
             r.fail("column `functions` is empty");
         }
@@ -809,6 +835,29 @@ pub(crate) fn emit_representations(cx: &mut Cx<'_>, table: Option<&Table>) {
             cx.malformed(row, &format!("symbol `{symbol}` has no arrangement `{name}`"));
             continue;
         }
+        let mut text_slots = KeyedList::default();
+        let mut slot_problem = None;
+        for (slot, pos) in slot_pos {
+            if usize::from(slot) >= sym.item.text_slots.len() {
+                slot_problem = Some(format!("symbol `{symbol}` has no text slot {slot}"));
+            } else if text_slots
+                .insert(SlotOverride {
+                    slot,
+                    pos: Some(pos),
+                    angle: None,
+                    visible: None,
+                    extra: Default::default(),
+                })
+                .is_some()
+            {
+                slot_problem = Some(format!("column `slot_pos` moves slot {slot} twice"));
+            }
+        }
+        if let Some(p) = slot_problem {
+            cx.malformed(row, &p);
+            continue;
+        }
+        let sym_cps: Vec<(u16, Pt2)> = sym.item.cps.as_slice().iter().map(|c| (c.fn_cp, c.pos)).collect();
         let placed = sym
             .item
             .anchor_point()
@@ -837,8 +886,24 @@ pub(crate) fn emit_representations(cx: &mut Cx<'_>, table: Option<&Table>) {
             ip_reps.insert(f);
         }
         seen.insert(row.key().to_owned(), ());
+        let rep_id = record_id("representations", row.key());
+        if box_.is_none() {
+            // where the symbol draws the CPs of its first function (`ew_derive::rep_cp_end` without a pin map)
+            for (idx, local) in &sym_cps {
+                let Some(point) = pos.checked_add(*local) else {
+                    continue;
+                };
+                let slot = cx
+                    .cp_points
+                    .entry((ids[0], *idx, page_info.id))
+                    .or_insert((rep_id, point));
+                if rep_id < slot.0 {
+                    *slot = (rep_id, point);
+                }
+            }
+        }
         cx.records.push(Record::Representation(Representation {
-            id: record_id("representations", row.key()),
+            id: rep_id,
             v: 1,
             functions: ids,
             page: page_info.id,
@@ -848,7 +913,7 @@ pub(crate) fn emit_representations(cx: &mut Cx<'_>, table: Option<&Table>) {
             orient: Default::default(),
             rep_type,
             pin_map: KeyedList::default(),
-            text_slots: KeyedList::default(),
+            text_slots,
             arrangement,
             anchor: None,
             box_,

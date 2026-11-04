@@ -1993,7 +1993,7 @@ FUNC_COLS = [
     "key", "device", "fndef", "role", "kind", "part", "template", "cp_aliases", "ip_name", "ip_direction",
     "ip_external",
 ]  # fmt: skip
-REP_COLS = ["key", "functions", "page", "symbol", "cell", "dx", "dy", "arrangement"]
+REP_COLS = ["key", "functions", "page", "symbol", "cell", "dx", "dy", "arrangement", "slot_pos"]
 
 # doc 07 section 9.1: symbol of a function by its FnDef, always the "@qet10" edition
 SYMBOL = {
@@ -2315,6 +2315,21 @@ def build_functions_representations(devices, terms, ips, ip_order, ext):
         "test input (fixture choice): the symbol's arrangement without the Tag slot (FR-SYM-012)",
         marks=[],
     )  # fmt: skip
+    # FT-1323: on folio 203 the function-text slot (slot 1) of the eight used valves prints the process tag (§6.2,
+    # FR-FLU-005); at the symbol's (-30, 35) px the longer tags overlap the body's lower-left corner, so these
+    # representations move the slot 10 px down, clear of the body. The symbol stays: "Spare" on 204-206 does not move.
+    moved = []
+    for rp in reps:
+        if rp["symbol"] == SYMBOL["ew.fn.valve-5-2-sol-spring"] and rp["page"] == "203":
+            rp["slot_pos"] = "1 -30 45"
+            moved.append(rp["key"])
+    check(len(moved) == 8, f"section 12: {len(moved)} valve representations on folio 203, 8 expected")
+    fixture(
+        "representations", "slot_pos", "-201U3-Q1 … -201U4-Q4", "1 -30 45", "§6.2, §12",
+        "test input (fixture choice): the function-text slot of the used valves on folio 203 moves below the body, "
+        "clear of it (FT-1323); the symbol keeps its slot for the spare valves on 204-206",
+        marks=[],
+    )  # fmt: skip
     for rp in reps:
         check(rp["functions"] in fkeys, f"representation {rp['key']!r} shows the unknown function {rp['functions']!r}")
         check(rp["page"] in STORED_FOLIOS, f"representation {rp['key']!r} is on the unknown page {rp['page']!r}")
@@ -2328,7 +2343,7 @@ def build_functions_representations(devices, terms, ips, ip_order, ext):
 
 CONN_COLS = [
     "key", "wire", "page", "a", "b", "kind", "core", "bridge_group", "bridge_kind", "bridge_shaft", "csa",
-    "colour", "show_marker", "cable",
+    "colour", "show_marker", "cable", "route",
 ]  # fmt: skip
 
 
@@ -2449,6 +2464,16 @@ def build_fluid_lines(rows):
     valves to A and B of the actuators of -203Q1 ... -203Q8, fluid lines on folio 203 (F17 is Golden A-R's)."""
     keys = []
     first = None
+    cells = {rp["key"]: rp["cell"] for rp in TABLES["representations"][1]}
+    # ▲U-51 (FT-1315): the stored route, the corners between the ends in QET px from cell centres. Ports 2 and 4 sit
+    # on the valve's top at +30 and +10 px from the valve cell's centre (row D), A and B on the cylinder's left at
+    # -20 px, -20 and +20 px from the actuator cell's centre (row F, the valve's column, ▲U-39): each line runs down
+    # from its port into row E, left past the cylinder and then right into its end. The line to B turns higher and
+    # runs further out, so the two lines of a valve never cross.
+    routes = {
+        "2": "E{c} 30 0;E{c} -30 0;F{c} -30 -20",
+        "4": "E{c} 10 -20;E{c} -40 -20;F{c} -40 20",
+    }
     for r in table_dicts("## 12. Pneumatic functions", 1):
         if "A-R only" in r["Lines"]:
             continue
@@ -2457,18 +2482,29 @@ def build_fluid_lines(rows):
         to = re.match(r"(-203Q\d) \(", r["To"])
         check(len(lines) == 2 and frm and to, f"section 12: the line row {r!r}")
         first = first or r["To"]
+        column = cells[frm.group(1)][1:]
+        check(
+            cells[frm.group(1)][0] == "D" and cells[f"{to.group(1)}#actuator"] == f"F{column}",
+            f"section 12: the valve {frm.group(1)} and the actuator of {to.group(1)} are not in rows D and F of one column",
+        )
         for key, port, end in zip(lines, ("2", "4"), ("A", "B")):
             rows.append(
                 {"key": key, "wire": "", "page": "203", "a": f"{frm.group(1)}:{port}", "b": f"{to.group(1)}:{end}",
-                 "kind": "fluid"}
+                 "kind": "fluid", "route": routes[port].format(c=column)}
             )  # fmt: skip
             keys.append(key)
     check(keys == [f"F{n}" for n in range(1, 17)], f"section 12: the lines are {keys}")
     fixture(
         "connections", "kind", keys, "fluid", "§12",
         "ports 2 and 4 of each used valve join A and B of its actuator (the ▲ of the cell), as working fluid lines on "
-        "folio 203 without a route (WP-S1.20 D20)",
+        "folio 203 (WP-S1.20 D20)",
         cell=first,
+    )  # fmt: skip
+    fixture(
+        "connections", "route", keys, "; ".join(routes.values()), "§12",
+        "test input (fixture choice): each line runs down from its port, left past the cylinder and right into A or B, "
+        "on the connection grid and clear of the cylinder bodies (FT-1315); `{c}` is the column of the valve",
+        marks=["U-51"],
     )  # fmt: skip
 
 

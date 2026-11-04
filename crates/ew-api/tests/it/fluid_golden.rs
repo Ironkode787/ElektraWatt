@@ -10,8 +10,10 @@ use ew_api::output::page_view;
 use ew_api::{AnyCommand, Session};
 use ew_derive::{FunctionCps, PageOrder};
 use ew_ids::Id;
-use ew_schema::{ContactKind, Device, Endpoint, FluidPortRole};
+use ew_schema::{Connection, ContactKind, Device, Endpoint, FluidPortRole, Record};
+use ew_units::{Grid, Pt2};
 use serde_json::json;
+use std::collections::BTreeMap;
 
 fn device(s: &Session, tag: &str) -> Id<Device> {
     golden_common::tags(s)
@@ -374,4 +376,124 @@ fn d14_the_used_valves_print_the_process_tag_of_their_field_device() {
         let texts = slot_texts(&s, device(&s, tag));
         assert!(texts.iter().any(|t| t == text), "{tag}: {texts:?}");
     }
+}
+
+/// A point in QET px (the nearest px).
+fn px(p: Pt2) -> (i64, i64) {
+    (Grid::QET_1PX.snap(p.x), Grid::QET_1PX.snap(p.y))
+}
+
+/// Whether the axis-parallel segment `a`–`b` meets the closed box `lo`–`hi`.
+fn meets(a: Pt2, b: Pt2, lo: Pt2, hi: Pt2) -> bool {
+    a.x.min(b.x) <= hi.x && a.x.max(b.x) >= lo.x && a.y.min(b.y) <= hi.y && a.y.max(b.y) >= lo.y
+}
+
+/// FT-1315 (doc 20 ▲U-51): F1 to F16 carry stored routes on folio 203. Each starts and ends where its CPs are drawn,
+/// runs orthogonally, is taken again by `connection.route` (its ends and the connection grid, D3), keeps clear of
+/// every cylinder body, and the two lines of a valve never meet; F1 runs down from port 2, left past the cylinder and
+/// right into A.
+#[test]
+fn ft1315_the_working_lines_are_routed_clear_of_the_cylinder_bodies() {
+    let batch = golden_common::batch();
+    let mut s = golden_common::session(&batch);
+    let lines: Vec<(&str, &Connection)> = batch
+        .records
+        .iter()
+        .filter_map(|r| match r {
+            Record::Connection(c) => golden_common::source_key(r)
+                .and_then(|k| k.strip_prefix("connections|F"))
+                .map(|k| (k, c)),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(lines.len(), 16);
+    let q = s.query();
+    let page = lines[0].1.page.expect("on folio 203");
+    // the body of ew.iso.cylinder-double-acting@qet10: the rectangle (0, 0) to (20, 60) px from its position
+    let body = Pt2::new(Grid::QET_1PX.at(20).unwrap(), Grid::QET_1PX.at(60).unwrap());
+    let bodies: Vec<(Pt2, Pt2)> = q
+        .reps()
+        .iter()
+        .filter(|(_, r)| {
+            r.page == page
+                && q.symbols()
+                    .get(r.symbol)
+                    .and_then(|y| y.item.meta.key.as_ref())
+                    .is_some_and(|k| k.as_str() == "ew.iso.cylinder-double-acting@qet10")
+        })
+        .map(|(_, r)| (r.pos, r.pos.checked_add(body).unwrap()))
+        .collect();
+    assert_eq!(bodies.len(), 8);
+    let mut routes = BTreeMap::new();
+    for (n, c) in &lines {
+        assert_eq!(c.page, Some(page), "F{n}");
+        let path = ew_derive::drawn_path(&q, c, page).expect("drawn on folio 203");
+        let (k, route) = (path.len(), &c.route);
+        assert!(route.len() >= 2, "F{n}: {route:?}");
+        assert_eq!((path[0], path[k - 1]), (route[0], route[route.len() - 1]), "F{n}");
+        for w in route.windows(2) {
+            assert!(
+                w[0].x == w[1].x || w[0].y == w[1].y,
+                "F{n}: {w:?} is not orthogonal"
+            );
+            for (lo, hi) in &bodies {
+                assert!(!meets(w[0], w[1], *lo, *hi), "F{n}: {w:?} meets a cylinder body");
+            }
+        }
+        routes.insert(n.parse::<u32>().unwrap(), (c.id, route.clone()));
+    }
+    for k in (1..=16).step_by(2) {
+        for a in routes[&k].1.windows(2) {
+            for b in routes[&(k + 1)].1.windows(2) {
+                assert!(!meets(a[0], a[1], b[0], b[1]), "F{k} and F{} meet", k + 1);
+            }
+        }
+    }
+    let f1: Vec<(i64, i64)> = routes[&1].1.iter().copied().map(px).collect();
+    assert_eq!(f1, [(140, 270), (140, 380), (80, 380), (80, 440), (90, 440)]);
+    drop(q);
+    for (n, (id, route)) in &routes {
+        let cmd = AnyCommand {
+            name: "connection.route".into(),
+            params: json!({"connection": id.to_string(), "route": route}),
+        };
+        s.execute(&cmd).unwrap_or_else(|e| panic!("F{n}: {e}"));
+    }
+}
+
+/// FT-1323: on folio 203 the eight used valves move their function-text slot (slot 1, the process tag) to (-30, 45)
+/// px, below the valve body, which ends at 40 px; no other valve representation moves it, so the spare valves on 204
+/// to 206 keep "Spare" at the symbol's (-30, 35) px.
+#[test]
+fn ft1323_the_process_tags_on_folio_203_sit_below_the_valve_body() {
+    let s = golden_common::session(&golden_common::batch());
+    let q = s.query();
+    let mut moved = Vec::new();
+    for (valve, tag) in valves(&s) {
+        for f in q.idx().functions_of_device(valve) {
+            for r in q.idx().reps_of_function(f) {
+                let rep = q.reps().get(r).expect("the representation");
+                let slots: Vec<(u16, Option<(i64, i64)>)> =
+                    rep.text_slots.iter().map(|o| (o.slot, o.pos.map(px))).collect();
+                if !slots.is_empty() {
+                    assert_eq!(slots, [(1, Some((-30, 45)))], "{tag}");
+                    moved.push(tag.clone());
+                }
+            }
+        }
+    }
+    moved.sort();
+    assert_eq!(
+        moved,
+        [
+            "-201U3-Q1",
+            "-201U3-Q2",
+            "-201U3-Q3",
+            "-201U3-Q4",
+            "-201U4-Q1",
+            "-201U4-Q2",
+            "-201U4-Q3",
+            "-201U4-Q4"
+        ]
+    );
 }

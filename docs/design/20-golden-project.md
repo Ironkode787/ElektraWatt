@@ -855,8 +855,9 @@ valve. Silencers close ports 3 and 5 of -201U9 and -202U3, and plugs close ports
 
 *As built (2026-11-04, cycle 50; WP-S1.20, decision log ID-1340).* F1 to F16 are drawn on folio 203 as `fluid`
 working lines from ports 2 and 4 of -201U3-Q1 … -201U4-Q4 to A and B of the actuators of -203Q1 … -203Q8 (GA-2,
-FT-744 closed), and N-FL-4 gives the eight `drives` links that path (b) now takes from the lines. They have no route
-cells yet, so their derived paths cross the cylinder bodies (FT-1315).
+FT-744 closed), and N-FL-4 gives the eight `drives` links that path (b) now takes from the lines. *As built (cycle
+51, decision log ID-1359):* they carry stored routes (▲U-51, FT-1315 closed) that clear the cylinder bodies, and the
+eight valves move their function-text slot below the body on folio 203 only (FT-1323 closed).
 
 ---
 
@@ -1624,6 +1625,7 @@ that waits for the owner's acknowledgement with the generated change list (ID-63
 | U-48 | End-user address storage | street `<address>`, country `<country>` | §1.2, §4.2 | — (fixture choice) |
 | U-49 | Interruption points sharing one cell | PE-1.1 … PE-1.4 at 103-G6 and PE-AIR1, PE-AIR2 at 103-G1 get distinct offsets inside their cell, set by the fix round (FT-40) | §15 | — (fixture choice) |
 | U-50 | Layout test geometry | the plate 650 × 900 mm at frame (50, 50) mm, the carrier paths, the part dimensions and mount kinds, the placement poses of §13's test geometry (WP-S4.01 D13, FT-205) | §13 | PQ-24 |
+| U-51 | Fluid-line routes on folio 203 | F1 … F16 run down from port 2 or 4 into row E, left past the cylinder and right into A or B; the line to B turns higher and runs further out (FT-1315, decision log ID-1359) | §12 | — (fixture choice) |
 
 ### 23.2 Questions for the pilot user
 

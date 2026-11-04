@@ -12,12 +12,12 @@ use ew_schema::{
     ConnectionKind, Endpoint, FluidLine, Junction, JunctionStyle, JunctionWiring, NumberSpec, Page,
     PotentialDef, PotentialEarthing, PotentialEnv, Record, WireOverrides, WireProps,
 };
-use ew_units::Pt2;
+use ew_units::{Grid, Nm, Pt2};
 
 use super::parts::ROLES;
-use super::{ConnInfo, Cx, PlaceError, cell_point, fresh, parse_cell, place};
+use super::{ConnInfo, Cx, PageInfo, PlaceError, cell_point, fresh, grid_index, parse_cell, place};
 use crate::ids::{record_id, source_ref};
-use crate::table::{ColourFix, Row, Table, parse_ident};
+use crate::table::{ColourFix, Rd, Row, Table, parse_ident};
 
 /// The file name of `connections.csv`, the file of the findings about connections dropped with a junction.
 const CONNECTIONS_FILE: &str = "connections.csv";
@@ -120,6 +120,10 @@ pub(crate) fn emit_connections(cx: &mut Cx<'_>, table: Option<&Table>) {
         let b = r.req("b");
         let page = r.text("page");
         let cable = r.text("cable");
+        let corners = route_cells(&mut r);
+        if !corners.is_empty() && page.is_none() {
+            r.fail("column `route` needs a page");
+        }
         let kind = match r.text("kind") {
             None | Some("wire") => Some(PendingKind::Wire),
             Some("bus") => Some(PendingKind::Bus(cable)),
@@ -172,6 +176,7 @@ pub(crate) fn emit_connections(cx: &mut Cx<'_>, table: Option<&Table>) {
         let (Some(a), Some(b), Some(kind)) = (a, b, kind) else {
             continue;
         };
+        let ends_text = (a, b);
         let a = match cx.endpoint(a) {
             Ok(e) => e,
             Err(m) => {
@@ -193,13 +198,26 @@ pub(crate) fn emit_connections(cx: &mut Cx<'_>, table: Option<&Table>) {
         let page = match page {
             None => None,
             Some(p) => match cx.pages.get(p) {
-                Some(info) => Some(info.id),
+                Some(info) => Some(*info),
                 None => {
                     cx.unresolved(row, &format!("unknown page `{p}`"));
                     continue;
                 }
             },
         };
+        let route = match page {
+            Some(info) if !corners.is_empty() => {
+                match stored_route(cx, info, (&a, &b), ends_text, &corners) {
+                    Ok(route) => route,
+                    Err(m) => {
+                        cx.malformed(row, &m);
+                        continue;
+                    }
+                }
+            }
+            _ => Vec::new(),
+        };
+        let page = page.map(|info| info.id);
         let kind = match kind {
             PendingKind::Wire => ConnectionKind::Wire,
             PendingKind::Fluid => ConnectionKind::Fluid(FluidLine::default()),
@@ -252,7 +270,7 @@ pub(crate) fn emit_connections(cx: &mut Cx<'_>, table: Option<&Table>) {
             a,
             b,
             page,
-            route: Vec::new(),
+            route,
             kind,
             overrides,
             number: NumberSpec::default(),
@@ -260,6 +278,74 @@ pub(crate) fn emit_connections(cx: &mut Cx<'_>, table: Option<&Table>) {
             extra: Default::default(),
         }));
     }
+}
+
+/// The `route` cell of a `connections.csv` row (FT-1315, doc 20 ▲U-51): the corners between the two ends,
+/// `;`-separated, each `<cell>` or `<cell> <dx> <dy>` (an offset in QET px from the cell centre, as `dx` and `dy` of
+/// `junctions.csv`).
+fn route_cells(r: &mut Rd<'_>) -> Vec<((i64, i64), i64, i64)> {
+    let mut out = Vec::new();
+    for item in r.list("route") {
+        let px = |v: &str| {
+            v.parse::<i64>()
+                .map_err(|_| format!("`{v}` is not a whole number of px"))
+        };
+        let parsed = match item.split(' ').collect::<Vec<_>>().as_slice() {
+            [cell] => parse_cell(cell).map(|c| (c, 0, 0)),
+            [cell, dx, dy] => parse_cell(cell).and_then(|c| Ok((c, px(dx)?, px(dy)?))),
+            _ => Err(format!("`{item}` is not `<cell>` or `<cell> <dx> <dy>`")),
+        };
+        match parsed {
+            Ok(c) => out.push(c),
+            Err(e) => r.fail(format!("column `route`: {e}")),
+        }
+    }
+    out
+}
+
+/// The stored route of a connection on `page` with the corners `corners` (of [`route_cells`]): from the point where
+/// end `a` is drawn, through the corners, to the point where end `b` is drawn, as `connection.draw` stores it
+/// (`ew_commands::geometry::require_route`). A CP drawn by a symbol may lie off the page grid by the nm rounding of
+/// QET px, so a corner coordinate that names the same QET px as a coordinate of an end takes the end's exact value;
+/// every other corner coordinate must be a point of the page grid (never snapped, doc 06 §5.7).
+fn stored_route(
+    cx: &Cx<'_>,
+    page: PageInfo,
+    (a, b): (&Endpoint, &Endpoint),
+    (a_text, b_text): (&str, &str),
+    corners: &[((i64, i64), i64, i64)],
+) -> Result<Vec<Pt2>, String> {
+    let end = |e: &Endpoint, text: &str| {
+        match e {
+            Endpoint::Cp(f, idx) => cx.cp_points.get(&(*f, *idx, page.id)).map(|(_, p)| *p),
+            _ => None,
+        }
+        .ok_or_else(|| {
+            format!("column `route`: `{text}` is not a CP drawn by a symbol on the connection's page")
+        })
+    };
+    let (a, b) = (end(a, a_text)?, end(b, b_text)?);
+    let px = |v: Nm| Grid::QET_1PX.snap(v);
+    let coordinate = |v: Nm, ends: [Nm; 2]| -> Result<Nm, String> {
+        match ends.into_iter().find(|e| px(*e) == px(v)) {
+            Some(e) => Ok(e),
+            None if grid_index(page.grid, v).is_some() => Ok(v),
+            None => Err(
+                "column `route`: a corner is off the page grid (positions are never snapped, doc 06 §5.7)"
+                    .into(),
+            ),
+        }
+    };
+    let mut route = vec![a];
+    for (cell, dx, dy) in corners {
+        let p = cell_point(*cell, *dx, *dy).ok_or("column `route`: a corner is out of range")?;
+        route.push(Pt2::new(
+            coordinate(p.x, [a.x, b.x])?,
+            coordinate(p.y, [a.y, b.y])?,
+        ));
+    }
+    route.push(b);
+    Ok(route)
 }
 
 /// A `junctions.csv` row that read cleanly and awaits the sequence check (CI-04).

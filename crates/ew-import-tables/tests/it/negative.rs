@@ -299,6 +299,47 @@ fn a_terminal_key_must_name_strip_and_designation() {
     let _: Option<Device> = None;
 }
 
+/// FT-1323: the `slot_pos` column moves a text slot of the symbol, in symbol coordinates in QET px; a slot the
+/// symbol does not have, a slot moved twice and an item that is not `<slot> <x> <y>` drop the row, each with its
+/// whole reason.
+#[test]
+fn slot_pos_moves_a_text_slot() {
+    let table = |cell: &str| {
+        format!("key,functions,page,symbol,cell,slot_pos\n-1F1,-1F1,101,ew.iec.mcb-1pn@qet10,B2,{cell}\n")
+    };
+    let b = run(&[("representations.csv", &table("1 -30 45"))]);
+    assert!(b.report.entries.is_empty(), "{:#?}", b.report.entries);
+    let px = |v: i64| ew_units::Grid::QET_1PX.at(v).unwrap();
+    let moved: Vec<_> = representations(&b)[0]
+        .text_slots
+        .iter()
+        .map(|s| (s.slot, s.pos, s.angle, s.visible))
+        .collect();
+    assert_eq!(
+        moved,
+        [(1, Some(ew_units::Pt2::new(px(-30), px(45))), None, None)]
+    );
+    for (cell, reason) in [
+        (
+            "9 0 0",
+            "row dropped: symbol `ew.iec.mcb-1pn@qet10` has no text slot 9",
+        ),
+        (
+            "1 0 0;1 10 10",
+            "row dropped: column `slot_pos` moves slot 1 twice",
+        ),
+        (
+            "1 0",
+            "row dropped: column `slot_pos`: `1 0` is not `<slot> <x> <y>`",
+        ),
+    ] {
+        let b = run(&[("representations.csv", &table(cell))]);
+        let got: Vec<&str> = errors(&b, 2).iter().map(|e| e.message.as_str()).collect();
+        assert_eq!(got, [reason], "{cell}");
+        assert!(representations(&b).is_empty(), "{cell}");
+    }
+}
+
 // ---- finding helpers --------------------------------------------------------------------------------------
 
 /// The findings of `code` with severity error.

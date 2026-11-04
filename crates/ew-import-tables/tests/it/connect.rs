@@ -562,3 +562,58 @@ fn a_potential_reads_its_environment() {
     assert_eq!(count(&batch, 2, Severity::Error), 1);
     assert_eq!(count(&batch, 3, Severity::Error), 1);
 }
+
+/// Two breakers on page 101: -1F1 at B2 (its CP 2 at (160, 160) px) and -2F1 at B4 (its CP 1 at (280, 120) px).
+const ROUTE_REPS: &str = "key,functions,page,symbol,cell\n\
+    -1F1,-1F1,101,ew.iec.mcb-1pn@qet10,B2\n\
+    -2F1,-2F1,101,ew.iec.mcb-1pn@qet10,B4\n";
+
+/// FT-1315 (doc 20 ▲U-51): the `route` column gives the corners between the ends in cells; the stored route runs
+/// from the CP of `a` through them to the CP of `b`.
+#[test]
+fn a_route_runs_from_cp_to_cp_through_its_corners() {
+    let batch = run(&[
+        ("representations.csv", ROUTE_REPS),
+        (
+            "connections.csv",
+            "key,page,a,b,route\nW1,101,-1F1:2,-2F1:1,B2 -10 40;B4 -10 40\n",
+        ),
+    ]);
+    assert!(batch.report.entries.is_empty(), "{:?}", batch.report.entries);
+    let px = |v: i64| Grid::QET_1PX.at(v).unwrap();
+    let p = |x, y| ew_units::Pt2::new(px(x), px(y));
+    assert_eq!(
+        connection(&batch, "W1").expect("emitted").route,
+        [p(160, 160), p(160, 180), p(280, 180), p(280, 120)]
+    );
+}
+
+/// A route corner off the page grid, a route without a page, an end that no symbol draws on the page and a corner
+/// that is no cell drop the row with EW-IMP-002, each with its whole reason.
+#[test]
+fn a_bad_route_drops_the_row() {
+    let cases = [
+        (
+            "W1,101,-1F1:2,-2F1:1,B2 -5 40",
+            "row dropped: column `route`: a corner is off the page grid (positions are never snapped, doc 06 §5.7)",
+        ),
+        (
+            "W1,,-1F1:2,-2F1:1,B2 -10 40",
+            "row dropped: column `route` needs a page",
+        ),
+        (
+            "W1,101,-1F1:2,-3F1:1,B2 -10 40",
+            "row dropped: column `route`: `-3F1:1` is not a CP drawn by a symbol on the connection's page",
+        ),
+        (
+            "W1,101,-1F1:2,-2F1:1,B2 -10",
+            "row dropped: column `route`: `B2 -10` is not `<cell>` or `<cell> <dx> <dy>`",
+        ),
+    ];
+    for (row, reason) in cases {
+        let table = format!("key,page,a,b,route\n{row}\n");
+        let batch = run(&[("representations.csv", ROUTE_REPS), ("connections.csv", &table)]);
+        assert!(connection(&batch, "W1").is_none(), "{row}");
+        assert_eq!(messages(&batch, 2), [reason], "{row}");
+    }
+}

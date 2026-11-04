@@ -1090,7 +1090,7 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
     }
 
     /// `fields.set` of a connection's `overrides` members and `number`; its ends, page and kind are written
-    /// by `connection.draw`; a stored `route` is noted as not written.
+    /// by `connection.draw`; a stored `route` is set by `connection.route`.
     ///
     /// # Errors
     ///
@@ -1100,10 +1100,10 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
         for k in ["a", "b", "page", "kind"] {
             m.remove(k);
         }
-        // The builder draws without a route (a junction's connections come from a split); a stored route
-        // is not written, for every connection alike (`connection.route` would need the drawn geometry).
-        if take(&mut m, "route").is_some() {
-            self.not_written("connection.route", 1);
+        // The builder draws without a route (a junction's connections come from a split); a stored route is set
+        // afterwards by `connection.route`, which checks it against the drawn ends (FT-1315: F1 to F16 of Golden A).
+        if let Some(route) = take(&mut m, "route") {
+            self.run("connection.route", json!({"connection": id, "route": route}))?;
         }
         if let Some(Value::Object(o)) = take(&mut m, "overrides") {
             for (k, v) in o {
