@@ -417,6 +417,7 @@ pub(crate) fn emit(
             .or_insert_with(|| (manufacturer.clone(), source.clone()));
         let mut meta = ItemMeta {
             key: parse_ident(&key).ok(),
+            licence: bootstrap_licence(cx),
             sources: vec![source],
             ..ItemMeta::default()
         };
@@ -509,6 +510,7 @@ pub(crate) fn emit(
     for (name, (ident, source)) in manufacturers {
         let item = Manufacturer {
             meta: ItemMeta {
+                licence: bootstrap_licence(cx),
                 sources: vec![source],
                 ..ItemMeta::default()
             },
@@ -530,6 +532,12 @@ pub(crate) fn emit(
         }));
     }
     super::plc::report_unknown_parts(cx, plc);
+}
+
+/// The licence of a part or manufacturer copy (WP-S7.03 D1): `CC0-1.0` for the golden bootstrap, whose copies ship as
+/// the sample project (doc 07 §3.8); none for a user's `ew import parts`, whose licence is the user's to state.
+fn bootstrap_licence(cx: &Cx<'_>) -> Option<String> {
+    cx.part_source.is_none().then(|| "CC0-1.0".to_owned())
 }
 
 #[cfg(test)]

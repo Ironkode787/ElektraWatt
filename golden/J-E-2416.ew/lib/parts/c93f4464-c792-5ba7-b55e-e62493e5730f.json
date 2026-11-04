@@ -4,8 +4,8 @@
   "library_id": "d76f5765-c456-5393-935c-4cec32a87b01",
   "item_id": "95217c92-41d2-5178-b4aa-925da4e94272",
   "version": "1.0.0",
-  "sha256": "sha256:eeff79e41e20da24aea18012716df9e3be8e7996da14d3bc1d305557e0eb1ee4",
-  "meta": {"key": "A9P52610", "sources": ["golden.table:parts|A9P52610"]},
+  "sha256": "sha256:6c9c1acaa946133cac9bacfba5ec2dcd9822bac64ec9309414afb101fee9e8a2",
+  "meta": {"key": "A9P52610", "licence": "CC0-1.0", "sources": ["golden.table:parts|A9P52610"]},
   "manufacturer": {
     "library": "d76f5765-c456-5393-935c-4cec32a87b01",
     "item": "1bd48037-1c0b-5035-b88c-1576b03a7e74",

@@ -4,9 +4,10 @@
   "library_id": "d76f5765-c456-5393-935c-4cec32a87b01",
   "item_id": "dcaa358c-75f4-5550-b6cb-2c894f66a584",
   "version": "1.0.0",
-  "sha256": "sha256:aa9c6a003c8861ecf0c55a7de4eab7142ff02192c17ff02ee9e418de590f9733",
+  "sha256": "sha256:69ff2a59e1d465341af3f86d7bd40268d33cef8e33bbfeaa94452e74017e1398",
   "meta": {
     "key": "32P-VGL-R-MAHAHAHAHAHAHUL3LAHU-28MS",
+    "licence": "CC0-1.0",
     "sources": ["golden.table:parts|32P-VGL-R-MAHAHAHAHAHAHUL3LAHU-28MS"]
   },
   "kind": "configured",

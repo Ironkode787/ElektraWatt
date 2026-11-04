@@ -4,8 +4,8 @@
   "library_id": "d76f5765-c456-5393-935c-4cec32a87b01",
   "item_id": "70fcc693-b22b-51b9-a7d3-2c97adc24577",
   "version": "1.0.0",
-  "sha256": "sha256:03be98b9b84d8eb500e0634517550e9d90dfb2a9d9004d9ca713f2d90d4bfd67",
-  "meta": {"key": "MICO 4.10", "sources": ["golden.table:parts|MICO 4.10"]},
+  "sha256": "sha256:ed76918cbc04f81da66f9937614fa759e6c6b8de38aeaf0948f98cd616622457",
+  "meta": {"key": "MICO 4.10", "licence": "CC0-1.0", "sources": ["golden.table:parts|MICO 4.10"]},
   "manufacturer": {
     "library": "d76f5765-c456-5393-935c-4cec32a87b01",
     "item": "ff34c214-73ba-5dd0-b856-fac9e5216242",

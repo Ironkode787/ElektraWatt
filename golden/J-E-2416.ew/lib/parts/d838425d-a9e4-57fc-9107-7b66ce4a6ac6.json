@@ -4,9 +4,10 @@
   "library_id": "d76f5765-c456-5393-935c-4cec32a87b01",
   "item_id": "05d17a0f-8f9c-5a23-9226-465f95f4c2c3",
   "version": "1.0.0",
-  "sha256": "sha256:28cc2dc568d3e4ffeef1258f123e9fdb1234cc06796b267365f9cfaa2375c446",
+  "sha256": "sha256:2dab06c8f7b775a1690122ec50855160fedca5d379554fb494f791ee083d4ab0",
   "meta": {
     "key": "TBD plug-in bridge",
+    "licence": "CC0-1.0",
     "sources": ["golden.table:parts|TBD plug-in bridge"],
     "confidence": {"cp_pattern": "test", "function_template": "test", "part": "test", "sections": "test"}
   },

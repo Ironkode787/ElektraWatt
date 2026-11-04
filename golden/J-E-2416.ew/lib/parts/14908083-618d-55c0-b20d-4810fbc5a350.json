@@ -4,8 +4,8 @@
   "library_id": "d76f5765-c456-5393-935c-4cec32a87b01",
   "item_id": "eaf08311-6988-527b-be2c-4b715fc7a2f6",
   "version": "1.0.0",
-  "sha256": "sha256:117484ab2b3cb8f948575888583808ac03c2cbbf35b4f402182b1a9f5a225ff0",
-  "meta": {"key": "PT 2.5-TWIN", "sources": ["golden.table:parts|PT 2.5-TWIN"]},
+  "sha256": "sha256:cd89aee44b02f356df162e6bb25d1144d34f9f271da7b1d58071835e35e1c02d",
+  "meta": {"key": "PT 2.5-TWIN", "licence": "CC0-1.0", "sources": ["golden.table:parts|PT 2.5-TWIN"]},
   "kind": "terminal",
   "manufacturer": {
     "library": "d76f5765-c456-5393-935c-4cec32a87b01",

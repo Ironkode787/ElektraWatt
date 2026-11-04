@@ -4,8 +4,8 @@
   "library_id": "d76f5765-c456-5393-935c-4cec32a87b01",
   "item_id": "52dbf48a-f70f-55c9-8e9b-577475b13a4e",
   "version": "1.0.0",
-  "sha256": "sha256:9f3ff8f26aca7055fa901a4239f5988f5049c75e7077fdff37bbf916b7d471d1",
-  "meta": {"sources": ["golden.table:parts|32P-VGL-R-MAHAHAHAHAHAHUL3LAHU-28MS"]},
+  "sha256": "sha256:6e4ccb1769a92ddf9b6992e0199ee321879b39548fa4bbf0705dba447bb5cab5",
+  "meta": {"licence": "CC0-1.0", "sources": ["golden.table:parts|32P-VGL-R-MAHAHAHAHAHAHUL3LAHU-28MS"]},
   "key": "Festo",
   "name": "Festo"
 }

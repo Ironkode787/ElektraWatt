@@ -1621,6 +1621,7 @@ name = "ew-library"
 version = "0.0.0"
 dependencies = [
  "automod",
+ "ew-derive",
  "ew-format",
  "ew-hack",
  "ew-ids",

@@ -4,8 +4,8 @@
   "library_id": "d76f5765-c456-5393-935c-4cec32a87b01",
   "item_id": "40c4bbee-dcc4-59f8-b861-d72f87ea443b",
   "version": "1.0.0",
-  "sha256": "sha256:ec79bc9deb8e91de0cc14eea871e5a3943ebdca765fb1185e78e2025b7df249c",
-  "meta": {"key": "6XV1830-0EH10", "sources": ["golden.table:parts|6XV1830-0EH10"]},
+  "sha256": "sha256:b158db77f6c3b7a07c6357f39fc3a6a1683f80de4498bf374f5985358b683298",
+  "meta": {"key": "6XV1830-0EH10", "licence": "CC0-1.0", "sources": ["golden.table:parts|6XV1830-0EH10"]},
   "kind": "cable",
   "manufacturer": {
     "library": "d76f5765-c456-5393-935c-4cec32a87b01",

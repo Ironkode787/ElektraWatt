@@ -1660,7 +1660,8 @@ fn parts_target(t: &Tmp, name: &str) -> PathBuf {
 }
 
 /// The part copies of a `lib/parts` folder by `item_id`, without the members that legitimately differ between
-/// projects (ids, hash, provenance, the library of the manufacturer and of an enclosure's plate part).
+/// projects (ids, hash, provenance, the licence that only the golden bootstrap states (WP-S7.03 D1), the library of
+/// the manufacturer and of an enclosure's plate part).
 fn comparable_parts(dir: &std::path::Path) -> std::collections::BTreeMap<String, serde_json::Value> {
     let mut out = std::collections::BTreeMap::new();
     for (_, bytes) in tree(dir) {
@@ -1672,6 +1673,7 @@ fn comparable_parts(dir: &std::path::Path) -> std::collections::BTreeMap<String,
         }
         if let Some(m) = o.get_mut("meta").and_then(|m| m.as_object_mut()) {
             m.remove("sources");
+            m.remove("licence");
         }
         if let Some(m) = o.get_mut("manufacturer").and_then(|m| m.as_object_mut()) {
             m.remove("library");

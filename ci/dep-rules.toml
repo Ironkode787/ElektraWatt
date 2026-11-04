@@ -172,7 +172,8 @@ planned = ["ew-viewer", "ew-wiring-viewer", "ew-plugin-wit", "ew-plugin-sdk", "e
 
 # FT-569, FT-586: the tests take their fresh temporary directory (`ew_testdir::fresh_dir`) from ew-testdir.
 "ew-store" = ["ew-testdir"]
-"ew-library" = ["ew-testdir"]
+# WP-S7.03 D4: ew-library's content audit parses the shipped parts' map expressions and patterns with ew-derive's.
+"ew-library" = ["ew-testdir", "ew-derive"]
 "ew-sqlview" = ["ew-testdir"]
 # ew-checks' unit tests build small model snapshots to evaluate rules over a `Q` (no `raw-read`).
 "ew-checks" = ["ew-model"]

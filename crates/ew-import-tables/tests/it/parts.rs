@@ -127,8 +127,12 @@ fn the_golden_tables_give_the_bootstraps_part_copies() {
             vec!["parts.csv".to_owned()],
             "the base name only"
         );
+        // WP-S7.03 D1: the bootstrap's copies ship as the sample and carry CC0-1.0; a user's import states none.
+        assert_eq!(c.item.meta.licence, None, "no licence on a user's import");
+        assert_eq!(b.item.meta.licence.as_deref(), Some("CC0-1.0"));
         let mut item = c.item.clone();
         item.meta.sources.clone_from(&b.item.meta.sources);
+        item.meta.licence.clone_from(&b.item.meta.licence);
         assert_eq!(item, b.item, "{}", c.item.part_number);
     }
 }

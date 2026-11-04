@@ -4,8 +4,8 @@
   "library_id": "d76f5765-c456-5393-935c-4cec32a87b01",
   "item_id": "a3b0f9a2-b3bc-54eb-ac08-9ece5bda07e5",
   "version": "1.0.0",
-  "sha256": "sha256:fe8c4f2ebed11d200ea816bc799983c7e6b72f2e5193947d2d06189fafec3395",
-  "meta": {"sources": ["golden.table:parts|SK 3102.000"]},
+  "sha256": "sha256:1c545ed4646713c1418e6fcb10162d523ed8cc509f680a17ac889bd486c488bd",
+  "meta": {"licence": "CC0-1.0", "sources": ["golden.table:parts|SK 3102.000"]},
   "key": "Rittal",
   "name": "Rittal"
 }

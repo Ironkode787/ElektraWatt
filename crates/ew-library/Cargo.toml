@@ -31,3 +31,6 @@ ew-hack = { version = "0.0.0", path = "../ew-hack" }
 automod.workspace = true
 # The fresh temporary directory of the tests (FT-569; dev-only edge, `[allowed_dev_edges]`).
 ew-testdir = { path = "../ew-testdir" }
+# The content audit parses the shipped parts' map expressions and designation patterns with the derivation's own
+# parsers (WP-S7.03 D4; `ew_plcaddr` through its re-export; dev-only edge, `[allowed_dev_edges]`).
+ew-derive = { path = "../ew-derive" }

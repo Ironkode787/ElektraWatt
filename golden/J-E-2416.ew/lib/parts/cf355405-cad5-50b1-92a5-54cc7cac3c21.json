@@ -4,8 +4,12 @@
   "library_id": "d76f5765-c456-5393-935c-4cec32a87b01",
   "item_id": "a9422da7-3c36-5dcf-babd-b8e64a79b8aa",
   "version": "1.0.0",
-  "sha256": "sha256:4baacf35e099f563950b96d95c17b117fc2cff0e8da31904bf0e1571c580fabd",
-  "meta": {"key": "NEBU-G78W5-K-2-N-LE5", "sources": ["golden.table:parts|NEBU-G78W5-K-2-N-LE5"]},
+  "sha256": "sha256:c14f490957bcac7c60a4ebd4d73fe12cad717b3195370705d5efc804d0b0460f",
+  "meta": {
+    "key": "NEBU-G78W5-K-2-N-LE5",
+    "licence": "CC0-1.0",
+    "sources": ["golden.table:parts|NEBU-G78W5-K-2-N-LE5"]
+  },
   "kind": "cable",
   "manufacturer": {
     "library": "d76f5765-c456-5393-935c-4cec32a87b01",

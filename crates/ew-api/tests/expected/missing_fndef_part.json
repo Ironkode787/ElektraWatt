@@ -4,9 +4,10 @@
   "library_id": "7e570000-0000-4000-8000-000000000001",
   "item_id": "7e570000-0000-4000-8000-000000000031",
   "version": "1.0.0",
-  "sha256": "sha256:c66be8fc90176d0f58876359ba875e05bc3ee6e5c479a7d531708a2b346f00cf",
+  "sha256": "sha256:03057cbff4fc0bdc79030199942f53ae8d5c5b3a4914e4a8e4b0c64017ebfd9e",
   "meta": {
     "key": "MICO 4.10",
+    "licence": "CC0-1.0",
     "sources": [
       "golden.table:parts|MICO 4.10"
     ]
