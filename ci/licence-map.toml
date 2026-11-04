@@ -438,6 +438,12 @@ allowed = ["GPL-3.0-or-later"]
 glob = "docs/book/src/reference/format/**"
 allowed = ["MIT OR Apache-2.0"]
 
+# WP-S7.05 D13, D18: the release-notes pages are generated from docs/release-notes/ (CC-BY-4.0, L9), whose licence
+# they keep.
+[[path]]
+glob = "docs/book/src/reference/release-notes/**"
+allowed = ["CC-BY-4.0"]
+
 # The blind drafter's files (WP-S6.13, ID-622, FT-415): the prompts, personas, task sheets, recordings and the harness
 # help are prose and data written for agents, CC-BY-4.0 like docs/ (L9); the generated reference files under
 # tools/blind/reference/ are made of ew-viewmodel's strings (the action labels and the describe vocabulary), so they

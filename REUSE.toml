@@ -78,6 +78,14 @@ precedence = "override"
 SPDX-FileCopyrightText = "2026 The ElektraWatt contributors"
 SPDX-License-Identifier = "MIT OR Apache-2.0"
 
+# L9: the generated release-notes pages of the user guide (WP-S7.05 D13, D18). Their text is the release notes of
+# docs/release-notes/ (CC-BY-4.0, L9), so they keep that licence; `override` states it for these paths.
+[[annotations]]
+path = "docs/book/src/reference/release-notes/**"
+precedence = "override"
+SPDX-FileCopyrightText = "2026 The ElektraWatt contributors"
+SPDX-License-Identifier = "CC-BY-4.0"
+
 # L12: the installed-resources script of the packaging (WP-S6.06 D13), JSON lines, which cannot carry a header
 # (MIT OR Apache-2.0, like packaging/).
 [[annotations]]

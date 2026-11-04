@@ -20,6 +20,8 @@ These pages are generated from the code by `cargo xtask docs-gen` and checked in
 - [api_v1 reference](api-v1.md): every `api_v1` view of `ew sql`, with its columns, types and Preview marks.
 - [Format reference](format/index.md): every record kind of the project format, with its file, rank and fields,
   from the format's JSON Schemas.
+- [Release notes](release-notes/index.md): the release and migration notes of every release, newest first, from the
+  notes in the repository.
 
 ## The window
 

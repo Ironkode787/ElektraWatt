@@ -21,6 +21,9 @@
 //!   snapshot of `ew-sqlview` (`crates/ew-sqlview/api/api_v1.json`) gives `reference/api-v1.md`;
 //! - the JSON Schemas of the project format (`schemas/0.1/`, written by `ew-schema`) give one page per record kind
 //!   that has a schema under `reference/format/`, and its index of every kind;
+//! - the release and migration notes of the releases (`docs/release-notes/<X.Y.Z>.md`, WP-S6.08's) give one page per
+//!   release under `reference/release-notes/`, newest first, with their relative links rewritten to the repository's
+//!   address, and the index of the releases (WP-S7.05 D13);
 //! - the `[crates]` tables of `ci/dep-rules.toml` give the crate table of `docs/design/04-architecture.md` §3, written
 //!   between its `<!-- generated:crate-table -->` markers (RD43 R18a), the one generated part outside the book.
 //!
@@ -79,6 +82,10 @@ const QUERIES_PAGE: &str = "reference/queries.md";
 const API_V1_PAGE: &str = "reference/api-v1.md";
 /// Generated format pages, relative to [`BOOK_SRC`].
 const FORMAT_DIR: &str = "reference/format";
+/// The release and migration notes, one `<X.Y.Z>.md` per release (WP-S6.08's), relative to the root.
+const RELEASE_NOTES: &str = "docs/release-notes";
+/// Generated release-notes pages, relative to [`BOOK_SRC`] (WP-S7.05 D13).
+const RELEASE_NOTES_DIR: &str = "reference/release-notes";
 /// The crate-dependency rules whose `[crates]` tables give the crate table of [`ARCHITECTURE`].
 const DEP_RULES: &str = "ci/dep-rules.toml";
 /// The architecture document that holds the generated crate table (relative to the root, outside the book).
@@ -87,7 +94,7 @@ const CRATE_TABLE_BEGIN: &str = "<!-- generated:crate-table -->";
 const CRATE_TABLE_END: &str = "<!-- /generated:crate-table -->";
 /// The directories whose pages are all generated: a page no source gives is stale, and `SUMMARY.md` lists their pages
 /// below the line that links their index page.
-const GENERATED_DIRS: [&str; 4] = [COMMANDS_DIR, RULES_DIR, CLI_DIR, FORMAT_DIR];
+const GENERATED_DIRS: [&str; 5] = [COMMANDS_DIR, RULES_DIR, CLI_DIR, FORMAT_DIR, RELEASE_NOTES_DIR];
 /// The generated single pages outside [`GENERATED_DIRS`].
 const GENERATED_PAGES: [&str; 4] = [GLOSSARY_PAGE, KEYMAPS_PAGE, QUERIES_PAGE, API_V1_PAGE];
 /// The book's table of contents, relative to [`BOOK_SRC`].
@@ -124,18 +131,20 @@ struct Generated {
     packs: SummaryItems,
     cli: SummaryItems,
     format: SummaryItems,
+    releases: SummaryItems,
     /// The problems of the rule notes (T1 to T4) and of the glossary pages (T7).
     notes: Vec<String>,
 }
 
 impl Generated {
     /// The generated page lists of `SUMMARY.md`, in [`GENERATED_DIRS`] order.
-    fn lists(&self) -> [(&'static str, &SummaryItems); 4] {
+    fn lists(&self) -> [(&'static str, &SummaryItems); 5] {
         [
             (COMMANDS_DIR, &self.commands),
             (RULES_DIR, &self.packs),
             (CLI_DIR, &self.cli),
             (FORMAT_DIR, &self.format),
+            (RELEASE_NOTES_DIR, &self.releases),
         ]
     }
 }
@@ -362,12 +371,14 @@ fn generate(root: &Path) -> Result<Generated> {
     files.insert(QUERIES_PAGE.to_owned(), queries_text(&read_json(root, QUERIES)?)?);
     files.insert(API_V1_PAGE.to_owned(), api_v1_text(&read_json(root, API_V1)?)?);
     let format = format_pages(root, &mut files)?;
+    let releases = release_note_pages(root, &mut files)?;
     Ok(Generated {
         files,
         commands,
         packs,
         cli,
         format,
+        releases,
         notes,
     })
 }
@@ -1583,6 +1594,161 @@ fn format_kind_page(entry: &Value, schema: &Value) -> String {
         let _ = write!(out, "## Types\n\n{types}");
     }
     out
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Release notes
+
+/// The version of a release-notes file name `<X.Y.Z>.md` as numbers, for the order; `None` for every other name
+/// (`unreleased.md`, `m1-draft.md`).
+fn release_version(file: &str) -> Option<[u64; 3]> {
+    let parts: Vec<&str> = file.strip_suffix(".md")?.split('.').collect();
+    let num = |s: &str| {
+        (!s.is_empty() && s.bytes().all(|b| b.is_ascii_digit()))
+            .then(|| s.parse().ok())
+            .flatten()
+    };
+    match parts.as_slice() {
+        [x, y, z] => Some([num(x)?, num(y)?, num(z)?]),
+        _ => None,
+    }
+}
+
+/// The release-notes pages (WP-S7.05 D13): one page per `docs/release-notes/<X.Y.Z>.md`, newest first, and the index
+/// that lists them, or says "No release yet." (T8) when there is none.
+fn release_note_pages(root: &Path, files: &mut BTreeMap<String, String>) -> Result<SummaryItems> {
+    let mut releases = Vec::new();
+    match std::fs::read_dir(root.join(RELEASE_NOTES)) {
+        Ok(entries) => {
+            for entry in entries {
+                let name = entry
+                    .with_context(|| format!("reading {RELEASE_NOTES}"))?
+                    .file_name()
+                    .to_string_lossy()
+                    .into_owned();
+                if let Some(version) = release_version(&name) {
+                    releases.push((version, name));
+                }
+            }
+        }
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+        Err(e) => return Err(e).with_context(|| format!("reading {RELEASE_NOTES}")),
+    }
+    releases.sort_by(|a, b| b.0.cmp(&a.0));
+    let mut items = SummaryItems::new();
+    let mut rows = String::new();
+    for (_, name) in &releases {
+        let source = format!("{RELEASE_NOTES}/{name}");
+        let text = read_lf(&root.join(&source))?.with_context(|| format!("{source} is missing"))?;
+        let version = name.trim_end_matches(".md");
+        let page = format!("{RELEASE_NOTES_DIR}/{name}");
+        files.insert(page.clone(), release_page_text(&source, version, &text));
+        items.push((version.to_owned(), page, 0));
+        let _ = writeln!(rows, "- [ElektraWatt {version}]({name})");
+    }
+    if releases.is_empty() {
+        rows.push_str("No release yet.\n");
+    }
+    files.insert(
+        format!("{RELEASE_NOTES_DIR}/index.md"),
+        format!(
+            "# Release notes\n\n{}\n\n\
+             The release and migration notes of every release of ElektraWatt, newest first: what the release contains, \
+             the project format it reads and writes, and the steps to upgrade a project to it. How to upgrade a project \
+             is in [Upgrade a project](../../how-to/upgrade-a-project.md).\n\n{rows}",
+            header(&format!("{RELEASE_NOTES}/")),
+        ),
+    );
+    Ok(items)
+}
+
+/// The page of one release's notes (the file `source`): the notes without their licence comment, the generated-page
+/// line below their first heading (a heading `ElektraWatt <version>` when they have none), and every relative link
+/// rewritten to the repository's address.
+fn release_page_text(source: &str, version: &str, text: &str) -> String {
+    let mut text = text.trim_start();
+    if let Some(rest) = text.strip_prefix("<!--")
+        && let Some((comment, after)) = rest.split_once("-->")
+        && comment.contains("SPDX-License-Identifier")
+    {
+        text = after.trim_start();
+    }
+    let base = source.rsplit_once('/').map_or("", |(dir, _)| dir);
+    let text = release_links(text, base);
+    let (title, body) = match text.split_once('\n') {
+        Some((first, rest)) if first.starts_with("# ") => (first.to_owned(), rest.trim_start().to_owned()),
+        _ if text.starts_with("# ") => (text.trim_end().to_owned(), String::new()),
+        _ => (format!("# ElektraWatt {version}"), text),
+    };
+    format!("{title}\n\n{}\n\n{body}", header(source))
+}
+
+/// `text` with the target of every relative Markdown link, inline (`[a](b)`) or a reference definition (`[a]: b`),
+/// rewritten to the repository's address, read from the folder `base`; an absolute address and an anchor of the page
+/// itself stay.
+fn release_links(text: &str, base: &str) -> String {
+    let mut out = String::with_capacity(text.len());
+    for line in text.split_inclusive('\n') {
+        if let Some(rest) = line.strip_prefix('[')
+            && let Some((label, target)) = rest.split_once("]: ")
+            && !label.contains(']')
+        {
+            let _ = writeln!(out, "[{label}]: {}", repo_target(target.trim_end(), base));
+            continue;
+        }
+        let mut rest = line;
+        while let Some(at) = rest.find("](") {
+            let (before, after) = rest.split_at(at + 2);
+            out.push_str(before);
+            let Some(end) = after.find(')') else {
+                rest = after;
+                break;
+            };
+            let (target, title) = after[..end].split_once(' ').unwrap_or((&after[..end], ""));
+            out.push_str(&repo_target(target, base));
+            if !title.is_empty() {
+                out.push(' ');
+                out.push_str(title);
+            }
+            rest = &after[end..];
+        }
+        out.push_str(rest);
+    }
+    out
+}
+
+/// A link target of a file in the repository folder `base`, as the repository's address: a relative path resolved
+/// (`..` and `.`), a folder as its tree, an anchor kept; an absolute address, a `mailto:` and a page anchor unchanged,
+/// and so is a path that leaves the repository.
+fn repo_target(target: &str, base: &str) -> String {
+    if target.is_empty() || target.starts_with('#') || target.contains("://") || target.starts_with("mailto:") {
+        return target.to_owned();
+    }
+    let (path, anchor) = target
+        .split_once('#')
+        .map_or((target, None), |(p, a)| (p, Some(a)));
+    let mut parts: Vec<&str> = if path.starts_with('/') {
+        Vec::new()
+    } else {
+        base.split('/').filter(|p| !p.is_empty()).collect()
+    };
+    for segment in path.split('/') {
+        match segment {
+            "" | "." => {}
+            ".." => {
+                if parts.pop().is_none() {
+                    return target.to_owned();
+                }
+            }
+            s => parts.push(s),
+        }
+    }
+    let resolved = parts.join("/");
+    if path.ends_with('/') {
+        repo_tree_link(&resolved)
+    } else {
+        repo_link(&resolved, anchor)
+    }
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -3134,5 +3300,74 @@ row = "g-worker"
             assert!(generated.files.contains_key(&page), "{page}");
         }
         assert_eq!(rule_page_path("EW-CORE-033"), "reference/rules/ew-core-033.md");
+    }
+
+    /// D13, DC-10, T8: without a release the index says so; a release's notes give its page without their licence
+    /// comment, their relative links rewritten to the repository's address, newest first by number; the drafts and a
+    /// candidate's name give none.
+    #[test]
+    fn the_release_notes_give_a_page_per_release_newest_first() {
+        let root = temp_dir("release-notes");
+        let notes = root.join(RELEASE_NOTES);
+        std::fs::create_dir_all(&notes).unwrap();
+        let index = format!("{RELEASE_NOTES_DIR}/index.md");
+        let intro = "# Release notes\n\n<!-- Generated by `cargo xtask docs-gen` from docs/release-notes/. Do not edit: \
+                     change the source and regenerate. -->\n\nThe release and migration notes of every release of \
+                     ElektraWatt, newest first: what the release contains, the project format it reads and writes, \
+                     and the steps to upgrade a project to it. How to upgrade a project is in [Upgrade a \
+                     project](../../how-to/upgrade-a-project.md).\n\n";
+        let mut files = BTreeMap::new();
+        assert_eq!(
+            release_note_pages(&root, &mut files).unwrap(),
+            SummaryItems::new()
+        );
+        assert_eq!(files.len(), 1);
+        assert_eq!(files[&index], format!("{intro}No release yet.\n"));
+
+        let write = |name: &str, text: &str| std::fs::write(notes.join(name), text).unwrap();
+        write(
+            "9.9.9.md",
+            "<!--\nSPDX-FileCopyrightText: 2026 The ElektraWatt contributors\nSPDX-License-Identifier: CC-BY-4.0\n\
+             -->\n\n# ElektraWatt 9.9.9\n\nSee [the format](../design/05-project-format-and-persistence.md#12-versions), \
+             [the ADRs](../adr/), [below](#upgrade-steps), [a site](https://example.org/x) and [the \
+             notices](../../NOTICE \"Notices\").\n\n## Upgrade steps\n\nNone.\n\n[gates]: ./../plan/03-gates.md\n",
+        );
+        write("0.10.0.md", "# ElektraWatt 0.10.0\n");
+        write("0.9.0.md", "Notes without a heading.\n");
+        for draft in ["unreleased.md", "m1-draft.md", "1.0.0-rc.1.md", "1.0.md"] {
+            write(draft, "# A draft\n");
+        }
+        files.clear();
+        let items = release_note_pages(&root, &mut files).unwrap();
+        std::fs::remove_dir_all(&root).unwrap();
+        assert_eq!(
+            items,
+            ["9.9.9", "0.10.0", "0.9.0"]
+                .map(|v| (v.to_owned(), format!("{RELEASE_NOTES_DIR}/{v}.md"), 0))
+        );
+        assert_eq!(files.len(), 4);
+        assert_eq!(
+            files[&format!("{RELEASE_NOTES_DIR}/9.9.9.md")],
+            "# ElektraWatt 9.9.9\n\n<!-- Generated by `cargo xtask docs-gen` from docs/release-notes/9.9.9.md. Do not \
+             edit: change the source and regenerate. -->\n\nSee [the \
+             format](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/design/\
+             05-project-format-and-persistence.md#12-versions), [the \
+             ADRs](https://github.com/Ironkode787/ElektraWatt/tree/main/docs/adr), [below](#upgrade-steps), [a \
+             site](https://example.org/x) and [the notices](https://github.com/Ironkode787/ElektraWatt/blob/main/NOTICE \
+             \"Notices\").\n\n## Upgrade steps\n\nNone.\n\n[gates]: \
+             https://github.com/Ironkode787/ElektraWatt/blob/main/docs/plan/03-gates.md\n"
+        );
+        assert_eq!(
+            files[&format!("{RELEASE_NOTES_DIR}/0.9.0.md")],
+            "# ElektraWatt 0.9.0\n\n<!-- Generated by `cargo xtask docs-gen` from docs/release-notes/0.9.0.md. Do not \
+             edit: change the source and regenerate. -->\n\nNotes without a heading.\n"
+        );
+        assert_eq!(
+            files[&index],
+            format!(
+                "{intro}- [ElektraWatt 9.9.9](9.9.9.md)\n- [ElektraWatt 0.10.0](0.10.0.md)\n- [ElektraWatt \
+                 0.9.0](0.9.0.md)\n"
+            )
+        );
     }
 }

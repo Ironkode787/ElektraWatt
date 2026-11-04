@@ -16,6 +16,7 @@
   - [Draw a page from the text interface](how-to/text-interface.md)
   - [Define a supply potential](how-to/define-supply-potential.md)
   - [Choose parts](how-to/choose-parts.md)
+  - [Upgrade a project](how-to/upgrade-a-project.md)
 
 # Reference
 
@@ -308,6 +309,7 @@
     - [`plc_profile`](reference/format/plc_profile.md)
   - [Glossary](reference/glossary.md)
   - [Keymaps](reference/keymaps.md)
+  - [Release notes](reference/release-notes/index.md)
 
 # Explanation
 

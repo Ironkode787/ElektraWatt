@@ -15,6 +15,8 @@ EW, start with a [tutorial](../tutorials/index.md) instead.
   junction or terminal.
 - [Choose parts](choose-parts.md): a device's part from the property grid or the part selection, a device placed
   from its part, and where the parts are listed.
+- [Upgrade a project](upgrade-a-project.md): what a release reads and writes, opening a project of an older format,
+  the backup of the first save, `ew upgrade`, and what changes in the format from 0.1.0.
 
 More follow the headless workflow of the [first tutorial](../tutorials/headless-workflow.md), for example replaying a
 command log with `ew apply`, checking a project in a CI job, and exporting for a single page range.

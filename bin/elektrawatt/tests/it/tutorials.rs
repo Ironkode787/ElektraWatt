@@ -382,13 +382,14 @@ fn tutorial_1_a_first_schematic_page_runs_as_its_page_says() {
     );
 }
 
-/// D9, D12: the how-to and explanation pages that name menu paths pass the lint.
+/// D9, D12, D13: the how-to and explanation pages that name menu paths pass the lint.
 #[test]
 fn the_how_to_and_explanation_pages_name_the_windows_menu_paths() {
     let tmp = Tmp::new();
     let items = items(&tmp);
     for rel in [
         "how-to/choose-parts.md",
+        "how-to/upgrade-a-project.md",
         "explanation/eplan-and-ew.md",
         "explanation/qet-and-ew.md",
     ] {

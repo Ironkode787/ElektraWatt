@@ -18,7 +18,7 @@ belongs there.
 | `tutorial-scripts/` | the UI script of each window tutorial (`ew.uiscript/1`), run by `elektrawatt`'s `tutorials` test, which also checks the page's menu paths and keys against the window (T6) |
 | `rule-notes/` | the hand-written notes of every shipped rule, one file per rule ID with six headings; `docs-gen` joins them into the rule pages and fails without them (WP-S7.05 D5) |
 | `src/how-to/` | task guides: [using the application window](src/how-to/application-window.md), the target of F1 (no build bundles the built guide with the application yet; decision log ID-492) |
-| `src/reference/` | exact facts; `commands/` and `rules/` are **generated**; `window/` holds the tools, dialogs and panels that F1 opens |
+| `src/reference/` | exact facts; `commands/`, `rules/` and `release-notes/` are **generated**; `window/` holds the tools, dialogs and panels that F1 opens |
 | `src/explanation/` | background; links the design documents |
 
 ## Build
@@ -42,7 +42,9 @@ $ python3 -I ci/check-book-links.py target/book  # every link of the built pages
 `cargo xtask docs-gen` writes `src/reference/commands/` (one page per command, from the parameter schemas in
 `crates/ew-commands/schemas/`) and `src/reference/rules/` (one page per rule and an index page per rule pack, from the
 rule catalogue snapshot `crates/ew-checks/catalogue/rules.json` and the notes of `rule-notes/`), the CLI, query,
-`api_v1`, format, glossary and keymap references, and
+`api_v1`, format, glossary and keymap references, and `src/reference/release-notes/` (one page per
+`docs/release-notes/<X.Y.Z>.md`, newest first, with its relative links rewritten to the repository's address; the
+drafts `unreleased.md` and `m1-draft.md` are not shown), and
 regenerates the matching entries of `src/SUMMARY.md`. The pages are built, not committed: the root `.gitignore` names
 them, and the contract files they render stay committed. `SUMMARY.md` is committed; `cargo xtask docs-gen --check`
 fails when it differs from the sources, and it also runs in `cargo xtask ci`.
