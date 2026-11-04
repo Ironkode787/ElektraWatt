@@ -108,7 +108,7 @@ fn xw1_the_external_change_toast_offers_undo_and_show_changes() {
     done(&mut s, "project.check_disk", json!({}));
     assert_eq!(
         toasts(&s),
-        ["toast \"External change applied: 1 record on folios 102\" undo show_changes"]
+        ["toast \"External change applied: 1 record on folio 102\" undo show_changes"]
     );
     assert!(!s.is_dirty(), "the window holds the generation on disk");
     let serial = s.notifications().newest_visible().expect("the toast").serial;
@@ -163,7 +163,7 @@ fn xw2_the_collision_dialog_holds_saves_until_a_side_is_chosen() {
         &"  label \"1 field was changed here and on disk. Choose yours or theirs; saving waits until you do.\""
     ));
     assert!(dialog.contains(
-        &"  row 1 \"connection 102.1 · overrides.colour\" base \"(none)\" mine \"['BU']\" theirs \"['WH']\" chosen mine"
+        &"  row 1 \"connection 102.1 · Colour override\" base \"(none)\" mine \"BU\" theirs \"WH\" chosen mine"
     ));
     for w in ["chosen", "mine", "theirs"] {
         assert!(reach_words(Reach::Collab).contains(&w));
@@ -185,7 +185,7 @@ fn xw2_the_collision_dialog_holds_saves_until_a_side_is_chosen() {
     done(&mut s, "external.apply", json!({"take": "theirs"}));
     assert_eq!(
         toasts(&s),
-        ["toast \"External change applied: 1 record on folios 102\" undo show_changes"],
+        ["toast \"External change applied: 1 record on folio 102\" undo show_changes"],
         "one step, with its Undo"
     );
     assert_eq!(s.banner(), None);

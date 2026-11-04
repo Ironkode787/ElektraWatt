@@ -2793,6 +2793,7 @@ external-records = { $p0 } records
 external-records-one = 1 record
 toast-external = External change applied: { $p0 }
 toast-external-folios = External change applied: { $p0 } on folios { $p1 }
+toast-external-folio = External change applied: { $p0 } on folio { $p1 }
 toast-external-git = {" "}(git { $p0 })
 external-absent = (none)
 external-whole-record = the whole record

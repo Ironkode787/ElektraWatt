@@ -65,12 +65,15 @@ pub(crate) struct CollabState {
 /// The most polls `project.check_disk` makes while the change settles.
 const CHECK_POLLS: usize = 5;
 
-/// A value as the collision dialog shows it: compact JSON, or the word for an absent one.
+/// A value as the collision dialog shows it: a text as it is, a list of texts joined with commas, any other value as
+/// its JSON text, or the word for an absent one.
 fn value_text(v: Option<&Value>) -> String {
-    v.map_or_else(
-        || strings::text(key!("external-absent")).to_owned(),
-        Value::to_string,
-    )
+    let text = |v: &Value| v.as_str().map_or_else(|| v.to_string(), str::to_owned);
+    match v {
+        None => strings::text(key!("external-absent")).to_owned(),
+        Some(Value::Array(items)) => items.iter().map(text).collect::<Vec<_>>().join(", "),
+        Some(v) => text(v),
+    }
 }
 
 impl ShellModel {
@@ -165,6 +168,8 @@ impl ShellModel {
         let records = strings::format_count(crate::count_key!("external-records"), a.records);
         let mut text = if a.folios.is_empty() {
             strings::format(key!("toast-external"), &[&records])
+        } else if let [folio] = a.folios.as_slice() {
+            strings::format(key!("toast-external-folio"), &[&records, folio])
         } else {
             strings::format(key!("toast-external-folios"), &[&records, &and_list(&a.folios)])
         };
@@ -216,7 +221,7 @@ impl ShellModel {
                     field: if c.path.is_empty() {
                         strings::text(key!("external-whole-record")).to_owned()
                     } else {
-                        c.path.clone()
+                        strings::field_label(kind.name(), &c.path)
                     },
                     base: value_text(c.base.as_ref()),
                     mine: value_text(c.mine.as_ref()),
