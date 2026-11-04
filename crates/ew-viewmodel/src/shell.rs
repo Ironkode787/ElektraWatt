@@ -1750,6 +1750,8 @@ impl ShellModel {
             labels,
             rows: Vec::new(),
         });
+        // WP-S6.05 (C50-p3#9): a project the start-up offer lists is no longer offered once it is open.
+        self.opened_offered_project(dir);
         // WP-S1.17 part 7: the cloud-synced folder and the older format say so; the merge driver's status is read.
         if let Some(extra) = self.opened_extras(dir, report.migrated_from.as_deref()) {
             self.banner = Some(match self.banner.take() {

@@ -120,8 +120,9 @@ fn a_crash_with_unsaved_work_is_offered_and_recovered() {
                 folder.to_string_lossy()
             ),
             format!(
-                "  project 1 \"g.ew: 1 unsaved change, last change {} UTC\"",
-                minutes(offer.projects[0].last_change_ms)
+                "  project 1 \"g.ew: 1 unsaved change, last change {} UTC\" path \"{}\"",
+                minutes(offer.projects[0].last_change_ms),
+                offer.projects[0].path.to_string_lossy()
             ),
             "  button \"Recover\"".to_owned(),
             "  button \"Not now\"".to_owned(),
@@ -167,8 +168,9 @@ fn not_now_keeps_the_journal_and_offers_the_log_once() {
         [
             "startup \"Unsaved work from an earlier session\"".to_owned(),
             format!(
-                "  project 1 \"g.ew: 1 unsaved change, last change {} UTC\"",
-                minutes(offer.projects[0].last_change_ms)
+                "  project 1 \"g.ew: 1 unsaved change, last change {} UTC\" path \"{}\"",
+                minutes(offer.projects[0].last_change_ms),
+                offer.projects[0].path.to_string_lossy()
             ),
             "  button \"Recover\"".to_owned(),
             "  button \"Not now\"".to_owned(),
@@ -297,8 +299,8 @@ fn the_offer_speaks_dutch() {
         [
             "startup \"ElektraWatt is onverwacht gestopt\"".to_owned(),
             format!(
-                "  label \"ElektraWatt is op 2026-11-04 10:15 UTC onverwacht gestopt; geen project had niet-opgeslagen \
-                 wijzigingen. Het logbestand staat in {}.\"",
+                "  label \"ElektraWatt is op 2026-11-04 10:15 UTC onverwacht gestopt; in geen enkel project waren \
+                 niet-opgeslagen wijzigingen. Het logbestand staat in {}.\"",
                 crashes(&tmp).to_string_lossy()
             ),
             "  button \"Niet nu\"".to_owned(),
@@ -312,4 +314,68 @@ fn the_offer_speaks_dutch() {
         "settings.set",
         json!({ "key": "language", "value": "en" }),
     );
+}
+
+/// C50-p3#4: after a crash loop at start the offer shows the newest log, and closing it marks the older ones that ended
+/// their session as offered too, so no later start shows an older crash.
+#[test]
+fn closing_the_offer_marks_the_earlier_crash_logs_offered() {
+    let tmp = Tmp::new("startup-loop");
+    crash_log(&tmp, "20261104T100000Z-41.log", "2026-11-04T10:00:07Z", true);
+    crash_log(&tmp, "20261104T101500Z-42.log", "2026-11-04T10:15:07Z", true);
+    let mut shell = started(&tmp);
+    let offered = shell.startup_offer().and_then(|o| o.log.clone()).unwrap();
+    assert_eq!(offered.when, "2026-11-04 10:15");
+    done(&mut shell, "startup.dismiss", json!({}));
+    assert_eq!(
+        names(&crashes(&tmp)),
+        [
+            "20261104T100000Z-41.offered.log",
+            "20261104T101500Z-42.offered.log"
+        ]
+    );
+    assert!(started(&tmp).startup_offer().is_none());
+}
+
+/// C50-p3#9: a project the offer lists that opens another way (`elektrawatt <dir>`) leaves the offer.
+#[test]
+fn a_project_opened_another_way_leaves_the_offer() {
+    let tmp = Tmp::new("startup-open");
+    let project = crashed_project(&tmp);
+    let mut shell = started(&tmp);
+    assert!(shell.startup_offer().is_some());
+    done(&mut shell, "file.open", json!({ "dir": project.to_string_lossy() }));
+    assert!(matches!(shell.dialog(), Some(Dialog::Recovery { .. })));
+    assert_eq!(shell.startup_offer(), None);
+    shell.shutdown();
+}
+
+/// C50-p3#12: Open log folder hands the window the folder's whole `file://` URL, and a folder the window could not
+/// open is named in the offer (S7's second text).
+#[test]
+fn open_log_folder_asks_for_the_folder_and_names_it_when_it_fails() {
+    let tmp = Tmp::new("startup-folder");
+    crash_log(&tmp, "20261104T101500Z-42.log", "2026-11-04T10:15:07Z", true);
+    let mut shell = ShellModel::new(Mode::Gui, config(&tmp));
+    shell.start_up();
+    done(&mut shell, "startup.open_log_folder", json!({}));
+    let (url, folder) = shell.take_log_folder_request().expect("the request");
+    assert_eq!(folder, crashes(&tmp));
+    let text = folder.to_string_lossy().replace('\\', "/");
+    let expected = if text.starts_with('/') {
+        format!("file://{text}")
+    } else {
+        format!("file:///{text}")
+    };
+    assert_eq!(url, expected);
+    shell.log_folder_failed(&folder);
+    let message = format!(
+        "The log folder could not be opened; it is at {}.",
+        folder.to_string_lossy()
+    );
+    assert_eq!(
+        shell.startup_offer().and_then(|o| o.refusal.clone()),
+        Some(message.clone())
+    );
+    assert!(offer_lines(&shell).contains(&format!("  error: {message}")));
 }

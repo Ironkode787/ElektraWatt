@@ -724,7 +724,7 @@ jobs:
         continue-on-error: true
         shell: bash
         run: |
-          sudo unshare --net -- bash -c 'ip link set lo up && ip -brief address && exec sudo --preserve-env -u "$0" bash "$1/ci/sandbox/run.sh" "$1" "$2" "$3" "$4" "$5"' \
+          sudo unshare --net -- bash -c 'ip link set lo up && ip -brief address && exec sudo -H --preserve-env -u "$0" bash "$1/ci/sandbox/run.sh" "$1" "$2" "$3" "$4" "$5"' \
             "$USER" "$GITHUB_WORKSPACE" "$GITHUB_WORKSPACE/target/release" "$(cat "$RUNNER_TEMP/kittest.path")" \
             "$RUNNER_TEMP/sandbox" "$GITHUB_WORKSPACE/target/sandbox"
       - name: verdict and job summary

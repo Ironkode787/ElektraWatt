@@ -18,7 +18,6 @@
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
 
-use ew_api::Clock as _;
 use serde_json::{Map, Value, json};
 
 use super::{Mode, Outcome, ShellModel, failed};
@@ -72,6 +71,9 @@ pub struct StartupOffer {
     pub log: Option<OfferedLog>,
     /// The refusal of the last answer (S7), shown in the offer.
     pub refusal: Option<String>,
+    /// The older logs that also ended their session and were not offered (a crash loop at start): marked offered with
+    /// the offered one, so that no later start shows an older crash (C50-p3#4).
+    pub earlier_logs: Vec<PathBuf>,
 }
 
 impl StartupOffer {
@@ -174,9 +176,12 @@ fn last_entry_time(text: &str) -> Option<String> {
 }
 
 /// The crash logs of `dir` after the start-up pruning (logs older than [`KEEP_LOG_AGE`] at `now`, then all but the
-/// [`KEEP_LOGS`] newest, are deleted), newest first, and the newest one that ended its session and was not offered.
-fn prune_logs(dir: &Path, now: SystemTime) -> Option<OfferedLog> {
-    let entries = std::fs::read_dir(dir).ok()?;
+/// [`KEEP_LOGS`] newest, are deleted): the newest one that ended its session and was not offered, and the older ones
+/// that did too.
+fn prune_logs(dir: &Path, now: SystemTime) -> (Option<OfferedLog>, Vec<PathBuf>) {
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return (None, Vec::new());
+    };
     let mut logs: Vec<(String, PathBuf)> = Vec::new();
     for entry in entries.flatten() {
         let name = entry.file_name().to_string_lossy().into_owned();
@@ -198,17 +203,30 @@ fn prune_logs(dir: &Path, now: SystemTime) -> Option<OfferedLog> {
         let _ = std::fs::remove_file(path);
     }
     logs.truncate(KEEP_LOGS);
-    logs.into_iter()
+    let mut ended = logs
+        .into_iter()
         .filter(|(name, _)| !name.ends_with(OFFERED))
-        .find_map(|(_, path)| {
+        .filter_map(|(_, path)| {
             let text = std::fs::read_to_string(&path).ok()?;
-            if text.trim_end().ends_with(ENDED_LINE) {
-                let when = last_entry_time(&text).unwrap_or_default();
-                Some(OfferedLog { path, when })
-            } else {
-                None
-            }
-        })
+            text.trim_end()
+                .ends_with(ENDED_LINE)
+                .then(|| (path, last_entry_time(&text).unwrap_or_default()))
+        });
+    let newest = ended.next().map(|(path, when)| OfferedLog { path, when });
+    (newest, ended.map(|(path, _)| path).collect())
+}
+
+/// Renames the log `path` to `<stem>.offered.log`.
+fn mark_offered(path: &Path) {
+    if let Some(name) = path.file_name().map(|n| n.to_string_lossy().into_owned()) {
+        let stem = name.strip_suffix(".log").unwrap_or(&name);
+        let _ = std::fs::rename(path, path.with_file_name(format!("{stem}{OFFERED}")));
+    }
+}
+
+/// `path` as the system resolves it, for comparing two names of one project.
+fn canonical(path: &Path) -> PathBuf {
+    std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf())
 }
 
 impl ShellModel {
@@ -220,11 +238,15 @@ impl ShellModel {
         }
         let store = self.store_options();
         let found = store.start_up_scan();
-        let log = store.state_dir.as_ref().and_then(|state| {
-            let dir = state.join(CRASH_DIR);
-            crate::settings::user_only_dir(&dir);
-            prune_logs(&dir, ew_api::SystemClock.now())
-        });
+        let (log, earlier_logs) = match store.state_dir.as_ref() {
+            Some(state) => {
+                let dir = state.join(CRASH_DIR);
+                crate::settings::user_only_dir(&dir);
+                // The store's clock, the one its journal pruning reads (C50-p3#11).
+                prune_logs(&dir, store.clock.now())
+            }
+            None => (None, Vec::new()),
+        };
         let projects: Vec<OfferedProject> = found
             .into_iter()
             .map(|p| OfferedProject {
@@ -239,6 +261,7 @@ impl ShellModel {
                 projects,
                 log,
                 refusal: None,
+                earlier_logs,
             });
         }
     }
@@ -263,14 +286,22 @@ impl ShellModel {
         }
     }
 
-    /// Closes the offer; its log is renamed `<stem>.offered.log`, so it is never offered again.
+    /// Closes the offer; its log and the earlier ones are renamed `<stem>.offered.log`, so none is offered again.
     fn close_startup(&mut self) {
         let Some(offer) = self.startup.take() else { return };
-        if let Some(log) = offer.log
-            && let Some(name) = log.path.file_name().map(|n| n.to_string_lossy().into_owned())
-        {
-            let stem = name.strip_suffix(".log").unwrap_or(&name);
-            let _ = std::fs::rename(&log.path, log.path.with_file_name(format!("{stem}{OFFERED}")));
+        for path in offer.log.iter().map(|l| &l.path).chain(&offer.earlier_logs) {
+            mark_offered(path);
+        }
+    }
+
+    /// A project that opened is no longer offered (C50-p3#9: `elektrawatt <dir>` recovers it at open); an offer left
+    /// with neither a project nor a log closes.
+    pub(super) fn opened_offered_project(&mut self, dir: &Path) {
+        let Some(offer) = &mut self.startup else { return };
+        let opened = canonical(dir);
+        offer.projects.retain(|p| canonical(&p.path) != opened);
+        if offer.projects.is_empty() && offer.log.is_none() {
+            self.close_startup();
         }
     }
 
@@ -337,6 +368,9 @@ impl ShellModel {
             };
         };
         let _ = std::fs::remove_file(&log.path);
+        for path in std::mem::take(&mut offer.earlier_logs) {
+            mark_offered(&path);
+        }
         offer.refusal = None;
         if offer.projects.is_empty() {
             self.startup = None;

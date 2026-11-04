@@ -85,6 +85,12 @@ pub trait Vfs: Send + Sync + fmt::Debug {
     /// project's journal directory, so that one project reached through two paths (a mapped drive and its
     /// UNC path, a symbolic link) has one journal (doc 05 §8.1).
     fn canonicalize(&self, path: &Path) -> io::Result<PathBuf>;
+    /// Makes `path` user-only when its mode is wider: a directory (`dir`) 0700, a file 0600 (WP-S6.05 D10,
+    /// NFR-PRIV-05: the state directory, its journals). Only the OS file system on Unix does anything: on Windows the
+    /// state directory inherits the per-user ACL of `%LOCALAPPDATA%`. A failure is ignored: the path keeps its mode.
+    fn user_only(&self, path: &Path, dir: bool) {
+        let _ = (path, dir);
+    }
 }
 
 /// The project-relative path `rel` (with `/` separators) below `root`.
@@ -224,6 +230,16 @@ impl Vfs for OsVfs {
 
     fn canonicalize(&self, path: &Path) -> io::Result<PathBuf> {
         Ok(without_verbatim_prefix(fs::canonicalize(path)?))
+    }
+
+    #[cfg(unix)]
+    fn user_only(&self, path: &Path, dir: bool) {
+        use std::os::unix::fs::PermissionsExt as _;
+        let mode = if dir { 0o700 } else { 0o600 };
+        let wider = fs::metadata(path).is_ok_and(|m| m.permissions().mode() & 0o777 & !mode != 0);
+        if wider {
+            let _ = fs::set_permissions(path, fs::Permissions::from_mode(mode));
+        }
     }
 }
 

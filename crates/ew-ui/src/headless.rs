@@ -177,11 +177,24 @@ fn snapshot(shell: &ShellModel, params: &Value) -> Outcome {
 /// Runs the headless mode and returns the process exit code. The transcript goes to `out` (one flushed line per
 /// step), diagnostics to `err`.
 pub fn run(
+    config: ShellConfig,
+    args: &HeadlessArgs,
+    stdin: &mut dyn BufRead,
+    out: &mut dyn Write,
+    err: &mut dyn Write,
+) -> i32 {
+    run_ending(config, args, stdin, out, err, &|| {})
+}
+
+/// [`run`] that calls `script_ended` once the script's last step ran, before the jobs are waited for and the shell
+/// shuts down (WP-S6.05 D9: a debug build's forced panic there unwinds past the shutdown, as a crash does).
+pub fn run_ending(
     mut config: ShellConfig,
     args: &HeadlessArgs,
     stdin: &mut dyn BufRead,
     out: &mut dyn Write,
     err: &mut dyn Write,
+    script_ended: &dyn Fn(),
 ) -> i32 {
     if args.visual {
         return crate::visual::run(config, args, stdin, out, err);
@@ -240,6 +253,7 @@ pub fn run(
     if let RunEnd::Usage(e) = &end {
         let _ = writeln!(err, "error: {e}");
     }
+    script_ended();
     // An export started with `wait: false` and never waited for ends here as if `jobs.wait` had followed: its file is
     // written and its end recorded before the checks below, so two runs of the script give the same file (review
     // finding 3 of cycle 30; `shutdown` would cancel it at a point that depends on timing).

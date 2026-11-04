@@ -471,7 +471,7 @@ impl Journal {
         self.vfs.create_dir_all(&self.dir)?;
         // WP-S6.05 D10: the project's journal directory, `journal/` and the state directory are user-only.
         for dir in self.dir.ancestors().take(3) {
-            crate::store::user_only_dir(dir);
+            self.vfs.user_only(dir, true);
         }
         let mut path = self.dir.join(format!("{}-{base}.jsonl", self.session));
         if Some(&path) == self.segment.as_ref() {
@@ -495,7 +495,7 @@ impl Journal {
         }
         let written = (|| {
             self.vfs.append(&path, text.as_bytes())?;
-            crate::store::user_only_file(&path);
+            self.vfs.user_only(&path, false);
             self.vfs.sync(&path)?;
             self.vfs.sync_dir(&self.dir)?;
             // `create_dir_all` may have made `journal/` and the project's directory: their names are durable
@@ -891,7 +891,12 @@ fn open_path(bytes: &[u8]) -> Option<PathBuf> {
 /// start-up pruning): the segments of each `journal/<project>-<hash>/` directory, with the segments older than
 /// [`KEEP_LEFTOVERS`] deleted on the way and a directory left empty removed. A project is listed with its newest segment
 /// that holds unsaved transactions, newest last change first; whether its lock is live is the caller's.
-pub(crate) fn scan_projects(vfs: &dyn Vfs, state: &Path, now: SystemTime) -> Vec<LeftoverProject> {
+pub(crate) fn scan_projects(
+    vfs: &dyn Vfs,
+    state: &Path,
+    now: SystemTime,
+    live: &dyn Fn(&Path) -> bool,
+) -> Vec<LeftoverProject> {
     let root = state.join("journal");
     let Ok(dirs) = vfs.list(&root) else {
         return Vec::new();
@@ -903,18 +908,31 @@ pub(crate) fn scan_projects(vfs: &dyn Vfs, state: &Path, now: SystemTime) -> Vec
         }
         let dir = root.join(&name);
         let Ok(files) = vfs.list(&dir) else { continue };
-        let mut segments: Vec<(Segment, Option<PathBuf>)> = Vec::new();
+        let mut read: Vec<(PathBuf, Vec<u8>, Option<SystemTime>)> = Vec::new();
         for (file, kind) in files {
             if kind != EntryKind::File || !file.ends_with(".jsonl") {
                 continue;
             }
             let path = dir.join(&file);
             let modified = vfs.stat(&path).ok().and_then(|s| s.modified);
+            let Ok(bytes) = vfs.read(&path) else { continue };
+            read.push((path, bytes, modified));
+        }
+        // A project another session has open keeps every segment, however old (C50-p3#2): its live segment may not
+        // have been touched for 30 days, and pruning it would cut the journal under the session.
+        if read
+            .iter()
+            .find_map(|(_, bytes, _)| open_path(bytes))
+            .is_some_and(|project| live(&project))
+        {
+            continue;
+        }
+        let mut segments: Vec<(Segment, Option<PathBuf>)> = Vec::new();
+        for (path, bytes, modified) in read {
             if modified.is_some_and(|m| now.duration_since(m).is_ok_and(|age| age > KEEP_LEFTOVERS)) {
                 let _ = vfs.remove_file(&path);
                 continue;
             }
-            let Ok(bytes) = vfs.read(&path) else { continue };
             let project = open_path(&bytes);
             if let Some(seg) = Segment::parse(path, &bytes, modified) {
                 segments.push((seg, project));

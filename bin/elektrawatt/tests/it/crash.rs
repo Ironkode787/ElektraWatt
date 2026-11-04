@@ -110,7 +110,11 @@ fn a_forced_panic_writes_the_crash_log_and_the_next_start_offers_recovery() {
     let tmp = Tmp::new();
     let project = tmp.path("g.ew");
     copy_dir(Path::new(GOLDEN_A), &project);
-    let out = run(&tmp, "crash.uiscript", &edit(&project), true);
+    // The model after the edit, as its PDF: the digest Recover must give back.
+    let before = tmp.path("before.pdf");
+    let mut crash = edit(&project).to_vec();
+    crash.push(("file.export_pdf", json!({ "path": path(&before), "wait": true })));
+    let out = run(&tmp, "crash.uiscript", &crash, true);
     let stderr = String::from_utf8_lossy(&out.stderr).into_owned();
     assert_eq!(out.status.code(), Some(101), "{stderr}");
     // Rust's own message stays on stderr.
@@ -151,9 +155,13 @@ fn a_forced_panic_writes_the_crash_log_and_the_next_start_offers_recovery() {
         ("startup.recover", json!({ "project": 1 })),
         ("journal.recover", json!({})),
         ("ui.describe", json!({})),
+        ("file.export_pdf", json!({ "path": path(&tmp.path("after.pdf")), "wait": true })),
         ("app.quit", json!({ "discard": true })),
     ];
     let crashed_at = format!("{} {}", &time[..10], &time[11..16]);
+    // The project as its journal names it: the canonical path, without Windows' verbatim prefix.
+    let canonical = std::fs::canonicalize(&project).unwrap().to_string_lossy().into_owned();
+    let offered = canonical.strip_prefix(r"\\?\").unwrap_or(&canonical).to_owned();
     let changed_at = last_change(&tmp.path("config").join("state").join("journal"));
     let out = run(&tmp, "next.uiscript", &next, false);
     let lines = transcript(&out);
@@ -172,7 +180,7 @@ fn a_forced_panic_writes_the_crash_log_and_the_next_start_offers_recovery() {
                 "  label \"ElektraWatt stopped unexpectedly on {crashed_at} UTC. Its log is in {}.\"",
                 crashes(&tmp).to_string_lossy()
             ),
-            format!("  project 1 \"g.ew: 1 unsaved change, last change {changed_at} UTC\""),
+            format!("  project 1 \"g.ew: 1 unsaved change, last change {changed_at} UTC\" path \"{offered}\""),
             "  button \"Recover\"".to_owned(),
             "  button \"Not now\"".to_owned(),
             "  button \"Open log folder\"".to_owned(),
@@ -185,6 +193,13 @@ fn a_forced_panic_writes_the_crash_log_and_the_next_start_offers_recovery() {
     let after = lines[3]["describe"].as_str().unwrap();
     assert!(after.contains("page \"996\""), "{after}");
     assert!(!after.contains("startup \""), "{after}");
+    // D8 (C50-p3#6): the panic unwound past the shutdown, and the journal replays to the model after the edit: equal
+    // digests of the two exports.
+    let digest = |p: &Path| {
+        use sha2::Digest as _;
+        sha2::Sha256::digest(std::fs::read(p).unwrap()).to_vec()
+    };
+    assert_eq!(digest(&before), digest(&tmp.path("after.pdf")));
     // The offered log is never offered again.
     let found = entries(&crashes(&tmp));
     assert_eq!(found.len(), 1);

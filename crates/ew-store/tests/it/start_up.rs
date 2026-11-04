@@ -72,3 +72,21 @@ fn no_state_directory_finds_nothing() {
     o.state_dir = None;
     assert_eq!(o.start_up_scan(), Vec::new());
 }
+
+/// C50-p3#2: a session that is still open and has not touched its journal for 31 days keeps it: the lock is checked
+/// before the directory is pruned.
+#[test]
+fn a_live_session_keeps_its_old_journal() {
+    use ew_store::{Clock as _, Vfs as _};
+    let (vfs, _) = mem_project_of(DirSync::Explicit, small_fixture());
+    crashed(&vfs);
+    // Process 1 is alive and its lock's heartbeat is fresh, 31 days after its last change.
+    let mut later = options(&vfs, 1);
+    let clock = ManualClock::fixed();
+    clock.advance(Duration::from_secs(31 * 24 * 3600));
+    vfs.set_modified(&ew_store::join(&root(), ew_store::ew_format::LOCK), clock.now())
+        .unwrap();
+    later.clock = Arc::new(clock);
+    assert_eq!(later.start_up_scan(), Vec::new());
+    assert_eq!(segments(&vfs).len(), 1, "the live session's segment stays");
+}

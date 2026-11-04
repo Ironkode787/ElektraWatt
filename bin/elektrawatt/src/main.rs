@@ -714,20 +714,23 @@ fn run(cli: Result<Cli, String>) -> i32 {
             };
             crash::set_dir(crash_dir(&state));
             let stdin = std::io::stdin();
-            let code = headless::run(
+            // WP-S6.05 D9: a debug build ends a headless run with a real panic on the main thread when asked, after the
+            // script's last step and before the shutdown (C50-p3#6), the test of the crash log; a release build
+            // compiles none of it.
+            let forced_panic = || {
+                #[cfg(debug_assertions)]
+                if env_path("EW_DEBUG_PANIC").is_some_and(|v| v.as_os_str() == "1") {
+                    panic!("forced panic (EW_DEBUG_PANIC)");
+                }
+            };
+            headless::run_ending(
                 config,
                 &args,
                 &mut stdin.lock(),
                 &mut std::io::stdout(),
                 &mut std::io::stderr(),
-            );
-            // WP-S6.05 D9: a debug build ends a headless run with a real panic on the main thread when asked, the test
-            // of the crash log; a release build compiles none of it.
-            #[cfg(debug_assertions)]
-            if env_path("EW_DEBUG_PANIC").is_some_and(|v| v.as_os_str() == "1") {
-                panic!("forced panic (EW_DEBUG_PANIC)");
-            }
-            code
+                &forced_panic,
+            )
         }
     }
 }

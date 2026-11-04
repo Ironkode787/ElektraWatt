@@ -2755,9 +2755,10 @@ fn startup_lines(model: &ShellModel, lines: &mut Vec<String>) {
     }
     for (i, p) in offer.projects.iter().enumerate() {
         lines.push(format!(
-            "  project {} \"{}\"",
+            "  project {} \"{}\" path \"{}\"",
             i + 1,
-            user(&crate::shell::startup::StartupOffer::project_row(p))
+            user(&crate::shell::startup::StartupOffer::project_row(p)),
+            user(&p.path.to_string_lossy())
         ));
     }
     if let Some(e) = &offer.refusal {

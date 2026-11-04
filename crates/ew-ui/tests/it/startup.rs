@@ -50,14 +50,34 @@ fn the_start_up_dialog_offers_the_crash_log() {
     // Open log folder hands the folder to the system's file manager; the offer stays.
     h.get_by_label("Open log folder").click();
     settle(&mut h);
-    assert_eq!(platform.opened.borrow().len(), 1);
-    assert!(platform.opened.borrow()[0].starts_with("file://"));
+    let folder_url = {
+        let text = log.parent().unwrap().to_string_lossy().replace('\\', "/");
+        if text.starts_with('/') {
+            format!("file://{text}")
+        } else {
+            format!("file:///{text}")
+        }
+    };
+    assert_eq!(*platform.opened.borrow(), [folder_url]);
     assert!(h.state().shell().startup_offer().is_some());
     // Escape is Not now: the offer closes and the log is renamed, so it is never offered again.
     h.key_press(Key::Escape);
     settle(&mut h);
     assert!(h.state().shell().startup_offer().is_none());
     assert!(!log.exists());
+    assert!(log.with_file_name("20261104T101500Z-42.offered.log").exists());
+}
+
+/// C50-p3#3: the Primary takes the first focus, so Enter presses it (Not now for a log alone).
+#[test]
+fn enter_presses_the_primary() {
+    let tmp = Tmp::new();
+    let log = crash_log(&tmp);
+    let mut h = harness_with(started(tmp.config()), Scripted::default(), None);
+    settle(&mut h);
+    h.key_press(Key::Enter);
+    settle(&mut h);
+    assert!(h.state().shell().startup_offer().is_none());
     assert!(log.with_file_name("20261104T101500Z-42.offered.log").exists());
 }
 

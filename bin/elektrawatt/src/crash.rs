@@ -18,6 +18,7 @@ use std::io::Write as _;
 use std::panic::PanicHookInfo;
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use ew_ui::ew_viewmodel::settings::{user_only_dir, user_only_file};
@@ -28,6 +29,20 @@ static START: OnceLock<SystemTime> = OnceLock::new();
 
 /// The process's crash log, once the mode named its state directory ([`set_dir`]).
 static LOG: OnceLock<PathBuf> = OnceLock::new();
+
+/// The most entries one process writes to its log (C50-p3#1): a panic that a job, a rule run or the tessellator
+/// catches on every check or redraw would otherwise grow the log without end.
+pub(crate) const MAX_ENTRIES: usize = 50;
+
+/// The most bytes of one process's log before it stops taking entries (C50-p3#1).
+pub(crate) const MAX_BYTES: u64 = 1024 * 1024;
+
+/// The line after the last entry of a log that reached its cap.
+pub(crate) const CAPPED_LINE: &str = "further panics not logged";
+
+/// The entries this process wrote, and whether it wrote [`CAPPED_LINE`].
+static ENTRIES: AtomicUsize = AtomicUsize::new(0);
+static CAPPED: AtomicBool = AtomicBool::new(false);
 
 thread_local! {
     /// Whether this thread is inside the hook: a panic there is not logged again.
@@ -110,12 +125,22 @@ fn message(info: &PanicHookInfo<'_>) -> String {
         .unwrap_or_else(|| "(no message)".to_owned())
 }
 
-/// The hook's work: one entry in the log, unless this thread is in the hook already.
+/// The hook's work: one entry in the log, unless this thread is in the hook already; past [`MAX_ENTRIES`] or
+/// [`MAX_BYTES`] only [`CAPPED_LINE`], once.
 fn record(version: &str, info: &PanicHookInfo<'_>) {
     if IN_HOOK.with(|f| f.replace(true)) {
         return;
     }
-    if let Some(path) = LOG.get() {
+    let full = |path: &Path| {
+        ENTRIES.load(Ordering::Relaxed) >= MAX_ENTRIES
+            || std::fs::metadata(path).is_ok_and(|m| m.len() >= MAX_BYTES)
+    };
+    if let Some(path) = LOG.get().filter(|p| full(p)) {
+        if !CAPPED.swap(true, Ordering::Relaxed) {
+            append(path, &format!("{CAPPED_LINE}\n"));
+        }
+    } else if let Some(path) = LOG.get() {
+        ENTRIES.fetch_add(1, Ordering::Relaxed);
         let thread = std::thread::current();
         let location = info.location().map_or_else(
             || "unknown".to_owned(),
@@ -163,5 +188,52 @@ fn append(path: &Path, text: &str) {
 pub(crate) fn ended() {
     if let Some(path) = LOG.get().filter(|p| p.is_file()) {
         append(path, &format!("{ENDED_LINE}\n"));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn fresh(stem: &str) -> PathBuf {
+        let dir = ew_testdir::fresh_dir(stem);
+        install("0.0.0-test");
+        set_dir(Some(dir.join("crashes")));
+        dir
+    }
+
+    fn log_text() -> String {
+        std::fs::read_to_string(LOG.get().unwrap()).unwrap()
+    }
+
+    /// C50-p3#1: a panic caught over and over writes at most `MAX_ENTRIES` entries, then the cap line once; the
+    /// session's end line still follows. Nextest runs each test in a process of its own, so the hook and the count
+    /// are this test's.
+    #[test]
+    fn a_log_stops_taking_entries_at_its_cap() {
+        let dir = fresh("ew-crash-cap");
+        for n in 0..MAX_ENTRIES + 5 {
+            assert!(std::panic::catch_unwind(move || panic!("caught {n}")).is_err());
+        }
+        let text = log_text();
+        assert_eq!(text.matches(" crash log\n").count(), MAX_ENTRIES);
+        assert!(text.ends_with(&format!("\n\n{CAPPED_LINE}\n")));
+        ended();
+        assert!(log_text().ends_with(&format!("{CAPPED_LINE}\n{ENDED_LINE}\n")));
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    /// C50-p3#12: a panic on a thread already in the hook writes nothing (std aborts on a panic inside the hook, so
+    /// the guard is reached here by setting it).
+    #[test]
+    fn a_panic_inside_the_hook_is_not_logged_again() {
+        let dir = fresh("ew-crash-guard");
+        IN_HOOK.with(|f| f.set(true));
+        assert!(std::panic::catch_unwind(|| panic!("inside")).is_err());
+        IN_HOOK.with(|f| f.set(false));
+        assert!(!LOG.get().unwrap().exists());
+        assert!(std::panic::catch_unwind(|| panic!("outside")).is_err());
+        assert!(log_text().contains("\nMessage: outside\n"));
+        let _ = std::fs::remove_dir_all(dir);
     }
 }

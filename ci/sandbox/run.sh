@@ -23,6 +23,14 @@ mkdir -p "$out"
 : >"$out/failed.txt"
 cd "$work" || exit 2
 
+# The user directories of every flow inside the work directory (C50-p3#7): whatever `sudo` left in the environment, no
+# flow reads or writes root's home or the runner's own settings, state or caches, and a flow that may end with exit 1
+# cannot pass on a refused write there.
+export HOME="$work/home" XDG_CONFIG_HOME="$work/home/config" XDG_STATE_HOME="$work/home/state" \
+  XDG_DATA_HOME="$work/home/data" XDG_CACHE_HOME="$work/home/cache"
+mkdir -p "$XDG_CONFIG_HOME" "$XDG_STATE_HOME" "$XDG_DATA_HOME" "$XDG_CACHE_HOME"
+unset EW_CONFIG_DIR EW_DATA_DIR EW_CACHE_DIR
+
 # flow <name> "<exit codes it may end with>" <command>...
 flow() {
   local name=$1 ok=$2 code=0
@@ -46,6 +54,11 @@ flow headless "0" "$bin/elektrawatt" --headless --script "$repo/ci/sandbox/flows
 # The window's flows through the kittest harness: the tests ci/sandbox/kittest-filter.txt names.
 mapfile -t tests < <(grep -v '^[[:space:]]*\(#\|$\)' "$repo/ci/sandbox/kittest-filter.txt")
 flow kittest "0" "$kittest" --exact "${tests[@]}"
+# A renamed test matches no name and runs nothing with exit 0 (C50-p3#7): every name must have run and passed.
+if ! grep -q "^test result: ok\. ${#tests[@]} passed;" "$out/kittest.log"; then
+  echo "FAIL  kittest (not all ${#tests[@]} named tests ran and passed; see kittest.log)"
+  grep -qx kittest "$out/failed.txt" || echo kittest >>"$out/failed.txt"
+fi
 
 # The command line on the second copy (check exits 1 on Golden A's unwaived errors; apply and import qet exit 1 on a
 # refused line or a failed model check, which are no network finding).

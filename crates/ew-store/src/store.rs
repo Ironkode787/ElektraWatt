@@ -137,43 +137,18 @@ impl StoreOptions {
         let Some(state) = &self.state_dir else {
             return Vec::new();
         };
-        user_only_dir(state);
-        user_only_dir(&state.join("journal"));
-        let now = self.clock.now();
         let vfs = &*self.vfs;
-        journal::scan_projects(vfs, state, now)
-            .into_iter()
-            .filter(|p| {
-                let lock = lock::read_lock(vfs, &p.path, now, self.stale_after, &self.identity, &*self.probe);
-                !matches!(lock, Ok(Some(info)) if !info.stale)
-            })
-            .collect()
+        vfs.user_only(state, true);
+        vfs.user_only(&state.join("journal"), true);
+        let now = self.clock.now();
+        // A project whose lock is live is open in another session: its journal is neither pruned nor offered.
+        let live = |project: &Path| {
+            let lock = lock::read_lock(vfs, project, now, self.stale_after, &self.identity, &*self.probe);
+            matches!(lock, Ok(Some(info)) if !info.stale)
+        };
+        journal::scan_projects(vfs, state, now, &live)
     }
 }
-
-/// Makes the directory `dir` user-only on Unix, mode 0700, when its mode is wider (WP-S6.05 D10, NFR-PRIV-05). On
-/// Windows the state and configuration directories inherit the per-user ACL of `%LOCALAPPDATA%` and `%APPDATA%`, and
-/// nothing is done. A failure is ignored: the directory keeps its mode.
-pub(crate) fn user_only_dir(dir: &Path) {
-    tighten(dir, 0o700);
-}
-
-/// Makes the file `file` user-only on Unix, mode 0600, as [`user_only_dir`] does a directory.
-pub(crate) fn user_only_file(file: &Path) {
-    tighten(file, 0o600);
-}
-
-#[cfg(unix)]
-fn tighten(path: &Path, mode: u32) {
-    use std::os::unix::fs::PermissionsExt as _;
-    let wider = std::fs::metadata(path).is_ok_and(|m| m.permissions().mode() & 0o777 & !mode != 0);
-    if wider {
-        let _ = std::fs::set_permissions(path, std::fs::Permissions::from_mode(mode));
-    }
-}
-
-#[cfg(not(unix))]
-fn tighten(_path: &Path, _mode: u32) {}
 
 /// The OS state directory of doc 05 §1: `%LOCALAPPDATA%\ElektraWatt\state` on Windows,
 /// `~/Library/Application Support/ElektraWatt/state` on macOS, `$XDG_STATE_HOME/elektrawatt` (default
