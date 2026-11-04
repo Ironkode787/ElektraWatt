@@ -21,7 +21,7 @@ use std::sync::{Mutex, OnceLock};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use ew_ui::ew_viewmodel::settings::{user_only_dir, user_only_file};
+use ew_ui::ew_viewmodel::settings::{user_only_dir, user_only_file, user_only_options};
 use ew_ui::ew_viewmodel::shell::startup::ENDED_LINE;
 
 /// The start of the process, read once by [`install`].
@@ -180,14 +180,7 @@ fn append(path: &Path, text: &str) {
     if let Some(state) = dir.parent() {
         user_only_dir(state);
     }
-    let mut options = std::fs::OpenOptions::new();
-    options.create(true).append(true);
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::OpenOptionsExt as _;
-        options.mode(0o600);
-    }
-    if let Ok(mut file) = options.open(path) {
+    if let Ok(mut file) = user_only_options().create(true).append(true).open(path) {
         user_only_file(path);
         let _ = file.write_all(text.as_bytes());
         let _ = file.sync_all();

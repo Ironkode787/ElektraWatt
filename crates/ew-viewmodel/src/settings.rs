@@ -638,10 +638,37 @@ fn write_atomically(dir: &Path, text: &str) -> std::io::Result<()> {
     std::fs::create_dir_all(dir)?;
     // WP-S6.05 D10: the configuration directory is user-only.
     user_only_dir(dir);
-    let path = dir.join(FILE_NAME);
-    let tmp = dir.join(format!("{FILE_NAME}.tmp"));
-    std::fs::write(&tmp, text)?;
-    std::fs::rename(&tmp, &path)
+    write_user_only(&dir.join(FILE_NAME), text.as_bytes())
+}
+
+/// The options that create a file user-only: mode 0600 on Unix (WP-S6.05 D10, FT-1309). Every file EW creates in its
+/// configuration directory is created through them, beside the directory's 0700 ([`user_only_dir`]).
+pub fn user_only_options() -> std::fs::OpenOptions {
+    let mut options = std::fs::OpenOptions::new();
+    options.write(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt as _;
+        options.mode(0o600);
+    }
+    options
+}
+
+/// Writes `bytes` as the file `path` through `<path>.tmp`, created user-only ([`user_only_options`]), and a rename.
+///
+/// # Errors
+///
+/// The I/O error of the first step that failed.
+pub fn write_user_only(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
+    use std::io::Write as _;
+    let mut name = path.as_os_str().to_owned();
+    name.push(".tmp");
+    let tmp = PathBuf::from(name);
+    let mut file = user_only_options().create(true).truncate(true).open(&tmp)?;
+    user_only_file(&tmp);
+    file.write_all(bytes)?;
+    drop(file);
+    std::fs::rename(&tmp, path)
 }
 
 /// Removes a boolean key: absent is `false`, another type makes the file bad (`None`).
@@ -757,14 +784,11 @@ fn write_aside(dir: &Path, file_name: &str, first: u32, bytes: &[u8]) -> Option<
     let (tmp, mut file) = (0..TEMP_ATTEMPTS).find_map(|_| {
         let n = NEXT.fetch_add(1, Ordering::Relaxed);
         let tmp = dir.join(format!("{file_name}.aside-{}-{n}.tmp", std::process::id()));
-        let mut options = std::fs::OpenOptions::new();
-        options.write(true).create_new(true);
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::OpenOptionsExt as _;
-            options.mode(0o600);
-        }
-        options.open(&tmp).ok().map(|f| (tmp, f))
+        user_only_options()
+            .create_new(true)
+            .open(&tmp)
+            .ok()
+            .map(|f| (tmp, f))
     })?;
     let written = file.write_all(bytes).and_then(|()| file.sync_all());
     drop(file);

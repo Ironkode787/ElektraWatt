@@ -293,7 +293,7 @@ impl ShellModel {
         let written = path
             .parent()
             .map_or(Ok(()), std::fs::create_dir_all)
-            .and_then(|()| std::fs::write(&path, text));
+            .and_then(|()| crate::settings::write_user_only(&path, text.as_bytes()));
         if written.is_err()
             && let Some(w) = &mut self.wizard
         {

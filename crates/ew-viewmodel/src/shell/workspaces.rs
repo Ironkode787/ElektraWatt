@@ -88,9 +88,8 @@ impl ShellModel {
             return Ok(());
         };
         std::fs::create_dir_all(&dir)?;
-        let tmp = dir.join(format!("{name}.json.tmp"));
-        std::fs::write(&tmp, layout.to_json(name))?;
-        std::fs::rename(&tmp, dir.join(format!("{name}.json")))
+        crate::settings::user_only_dir(&dir);
+        crate::settings::write_user_only(&dir.join(format!("{name}.json")), layout.to_json(name).as_bytes())
     }
 
     /// Reads the active workspace at start; a missing file is the built-in layout, a bad one is the built-in layout

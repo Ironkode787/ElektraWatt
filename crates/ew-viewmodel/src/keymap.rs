@@ -541,9 +541,7 @@ pub fn read_user(dir: &Path) -> Result<Option<Keymap>, UserFileError> {
 /// The I/O error of the first step that failed.
 pub fn write_user(dir: &Path, keymap: &Keymap) -> std::io::Result<()> {
     std::fs::create_dir_all(dir)?;
-    let tmp = dir.join(format!("{USER_FILE}.tmp"));
-    std::fs::write(&tmp, keymap.to_toml())?;
-    std::fs::rename(&tmp, dir.join(USER_FILE))
+    crate::settings::write_user_only(&dir.join(USER_FILE), keymap.to_toml().as_bytes())
 }
 
 // ---------------------------------------------------------------------------------------------------------------

@@ -383,3 +383,62 @@ fn open_log_folder_asks_for_the_folder_and_names_it_when_it_fails() {
     );
     assert!(offer_lines(&shell).contains(&format!("  error: {message}")));
 }
+
+/// FT-1309 (WP-S6.05 D10): every file EW creates in its configuration directory, listed here (the settings, the user's
+/// keymap, a named workspace, the wizard's draft), is created through one helper, user-only: on Unix the files 0600
+/// beside the directories' 0700.
+#[test]
+fn the_files_of_the_configuration_directory_are_user_only() {
+    let tmp = Tmp::new("config-files-user-only");
+    let mut shell = ShellModel::new(Mode::Headless, config(&tmp));
+    done(&mut shell, "help.shortcuts", json!({}));
+    done(
+        &mut shell,
+        "keymap.record",
+        json!({"action": "canvas.activate", "keys": "F9"}),
+    );
+    done(&mut shell, "ui.dismiss", json!({}));
+    done(&mut shell, "view.workspace_save", json!({"name": "Mine"}));
+    done(&mut shell, "tools.company_standard", json!({}));
+    done(
+        &mut shell,
+        "wizard.set",
+        json!({"field": "text_styles", "value": "readable"}),
+    );
+    let dir = tmp.0.join("config");
+    fn files(d: &Path, base: &Path, out: &mut Vec<(String, PathBuf)>) {
+        for e in std::fs::read_dir(d).unwrap().flatten() {
+            let p = e.path();
+            if p.is_dir() {
+                files(&p, base, out);
+            } else {
+                let name = p.strip_prefix(base).unwrap().to_string_lossy().replace('\\', "/");
+                out.push((name, p));
+            }
+        }
+    }
+    let mut found = Vec::new();
+    files(&dir, &dir, &mut found);
+    found.sort();
+    let names: Vec<&str> = found.iter().map(|(n, _)| n.as_str()).collect();
+    assert_eq!(
+        names,
+        [
+            "keymap.toml",
+            "settings.toml",
+            "wizard-draft.json",
+            "workspaces/Mine.json"
+        ]
+    );
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt as _;
+        let mode = |p: &Path| std::fs::metadata(p).unwrap().permissions().mode() & 0o777;
+        for (name, path) in &found {
+            assert_eq!(mode(path), 0o600, "{name}");
+        }
+        assert_eq!(mode(&dir), 0o700);
+        assert_eq!(mode(&dir.join("workspaces")), 0o700);
+    }
+    shell.shutdown();
+}
