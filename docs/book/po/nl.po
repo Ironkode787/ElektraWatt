@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ElektraWatt User Guide\n"
-"POT-Creation-Date: 2026-11-04T20:05:46+01:00\n"
+"POT-Creation-Date: 2026-11-04T21:24:04+01:00\n"
 "PO-Revision-Date: 2026-11-04T00:00:00+00:00\n"
 "Last-Translator: \n"
 "Language-Team: Dutch\n"
@@ -28,67 +28,75 @@ msgstr "Handleidingen"
 msgid "A first schematic page with potentials"
 msgstr "Een eerste schemapagina met potentialen"
 
-#: src/SUMMARY.md:9 src/tutorials/import-qet.md:1
+#: src/SUMMARY.md:9 src/tutorials/terminal-strip-and-cable.md:1
+msgid "A terminal strip and a cable"
+msgstr "Een klemmenstrook en een kabel"
+
+#: src/SUMMARY.md:10 src/tutorials/reports-and-pdf.md:1
+msgid "Reports and PDF"
+msgstr "Rapporten en PDF"
+
+#: src/SUMMARY.md:11 src/tutorials/import-qet.md:1
 msgid "Importing a QElectroTech project"
 msgstr "Een QElectroTech-project importeren"
 
-#: src/SUMMARY.md:10 src/tutorials/headless-workflow.md:1
+#: src/SUMMARY.md:12 src/tutorials/headless-workflow.md:1
 msgid "A first headless run on the golden project"
-msgstr "Een eerste run zonder venster op het referentieproject"
+msgstr "Een eerste sessie op de opdrachtregel met het referentieproject"
 
-#: src/SUMMARY.md:12 src/SUMMARY.md:14 src/how-to/index.md:1
+#: src/SUMMARY.md:14 src/SUMMARY.md:16 src/how-to/index.md:1
 msgid "How-to guides"
 msgstr ""
 
-#: src/SUMMARY.md:15 src/how-to/install.md:1
+#: src/SUMMARY.md:17 src/how-to/install.md:1
 msgid "Install ElektraWatt"
 msgstr ""
 
-#: src/SUMMARY.md:16 src/how-to/application-window.md:1
+#: src/SUMMARY.md:18 src/how-to/application-window.md:1
 msgid "Use the application window"
 msgstr ""
 
-#: src/SUMMARY.md:17 src/how-to/text-interface.md:1
+#: src/SUMMARY.md:19 src/how-to/text-interface.md:1
 msgid "Draw a page from the text interface"
 msgstr ""
 
-#: src/SUMMARY.md:18 src/how-to/define-supply-potential.md:1
+#: src/SUMMARY.md:20 src/how-to/define-supply-potential.md:1
 msgid "Define a supply potential"
 msgstr ""
 
-#: src/SUMMARY.md:19 src/how-to/choose-parts.md:1
+#: src/SUMMARY.md:21 src/how-to/choose-parts.md:1
 msgid "Choose parts"
 msgstr ""
 
-#: src/SUMMARY.md:20 src/how-to/upgrade-a-project.md:1
+#: src/SUMMARY.md:22 src/how-to/upgrade-a-project.md:1
 msgid "Upgrade a project"
 msgstr ""
 
-#: src/SUMMARY.md:22 src/SUMMARY.md:24 src/reference/index.md:1
+#: src/SUMMARY.md:24 src/SUMMARY.md:26 src/reference/index.md:1
 msgid "Reference"
 msgstr ""
 
-#: src/SUMMARY.md:25 src/reference/window/tools.md:1
+#: src/SUMMARY.md:27 src/reference/window/tools.md:1
 msgid "Tools"
 msgstr ""
 
-#: src/SUMMARY.md:26 src/reference/window/dialogs.md:1
+#: src/SUMMARY.md:28 src/reference/window/dialogs.md:1
 msgid "Dialogs"
 msgstr ""
 
-#: src/SUMMARY.md:27 src/reference/window/panels.md:1
+#: src/SUMMARY.md:29 src/reference/window/panels.md:1
 msgid "Panels"
 msgstr ""
 
-#: src/SUMMARY.md:29 src/SUMMARY.md:31 src/explanation/index.md:1
+#: src/SUMMARY.md:31 src/SUMMARY.md:33 src/explanation/index.md:1
 msgid "Explanation"
 msgstr ""
 
-#: src/SUMMARY.md:32 src/explanation/eplan-and-ew.md:1
+#: src/SUMMARY.md:34 src/explanation/eplan-and-ew.md:1
 msgid "EPLAN and EW"
 msgstr ""
 
-#: src/SUMMARY.md:33 src/explanation/qet-and-ew.md:1
+#: src/SUMMARY.md:35 src/explanation/qet-and-ew.md:1
 msgid "QElectroTech and EW"
 msgstr ""
 
@@ -178,7 +186,7 @@ msgstr "een begeleide les met een resultaat aan het eind"
 
 #: src/introduction.md:25
 msgid "[How-to guides](how-to/index.md)"
-msgstr "[How-to-gidsen](how-to/index.md)"
+msgstr "[Instructies](how-to/index.md)"
 
 #: src/introduction.md:25
 msgid "solve a specific problem you already understand"
@@ -214,31 +222,35 @@ msgstr "achtergrond en ontwerpkeuzes"
 
 #: src/introduction.md:29
 msgid "Where to start"
-msgstr "Waar u begint"
+msgstr "Waar u kunt beginnen"
 
 #: src/introduction.md:31
 msgid ""
 "**New to EW:** the tutorial [A first schematic page with "
-"potentials](tutorials/first-page.md). If you come from QElectroTech, "
+"potentials](tutorials/first-page.md), then [A terminal strip and a "
+"cable](tutorials/terminal-strip-and-cable.md) and [Reports and "
+"PDF](tutorials/reports-and-pdf.md). If you come from QElectroTech, "
 "[Importing a QElectroTech project](tutorials/import-qet.md) brings a project "
 "of yours over."
 msgstr ""
-"**Nieuw met EW:** de handleiding [Een eerste schemapagina met "
-"potentialen](tutorials/first-page.md). Komt u van QElectroTech, dan "
-"brengt [Een QElectroTech-project importeren](tutorials/import-qet.md) een "
+"**Nieuw bij EW:** de handleiding [Een eerste schemapagina met "
+"potentialen](tutorials/first-page.md), daarna [Een klemmenstrook en een "
+"kabel](tutorials/terminal-strip-and-cable.md) en [Rapporten en "
+"PDF](tutorials/reports-and-pdf.md). Komt u van QElectroTech, dan brengt "
+"[Een QElectroTech-project importeren](tutorials/import-qet.md) een "
 "project van u over."
 
-#: src/introduction.md:33
+#: src/introduction.md:35
 msgid ""
 "**A task at hand:** the how-to guides, among them [Choose "
 "parts](how-to/choose-parts.md) and [Upgrade a "
 "project](how-to/upgrade-a-project.md)."
 msgstr ""
-"**Een taak die u wilt uitvoeren:** de how-to-gidsen, waaronder [Artikelen "
+"**Een taak die u wilt uitvoeren:** de instructies, waaronder [Artikelen "
 "kiezen](how-to/choose-parts.md) en [Een project "
 "omzetten](how-to/upgrade-a-project.md)."
 
-#: src/introduction.md:35
+#: src/introduction.md:37
 msgid ""
 "**A fact to look up:** the [rule reference](reference/rules/index.md), with "
 "a page per check rule; the window's [tools](reference/window/tools.md), "
@@ -253,7 +265,7 @@ msgstr ""
 "[panelen](reference/window/panels.md) van het venster; en de [release "
 "notes](reference/release-notes/index.md) van elke release."
 
-#: src/introduction.md:38
+#: src/introduction.md:40
 msgid ""
 "**Coming from another program:** [EPLAN and EW](explanation/eplan-and-ew.md) "
 "and [QElectroTech and EW](explanation/qet-and-ew.md) relate the concepts you "
@@ -264,11 +276,11 @@ msgstr ""
 "EW](explanation/qet-and-ew.md) zetten de begrippen die u kent naast die "
 "van EW."
 
-#: src/introduction.md:41
+#: src/introduction.md:43
 msgid "What the guide does not contain"
 msgstr "Wat de gids niet bevat"
 
-#: src/introduction.md:43
+#: src/introduction.md:45
 msgid ""
 "The design documents, the architecture decision records and the work plan "
 "stay in the repository, next to the code they describe. This guide links to "
@@ -280,11 +292,11 @@ msgstr ""
 "ernaar; hij neemt ze niet over. Begin bij het "
 "[documentatieoverzicht](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/README.md)."
 
-#: src/introduction.md:47
+#: src/introduction.md:49
 msgid "Offline use"
 msgstr "Offline gebruik"
 
-#: src/introduction.md:49
+#: src/introduction.md:51
 msgid ""
 "The guide builds without network access and is meant to be bundled with the "
 "application, so that the help works without a connection. Pages that link to "
@@ -295,11 +307,11 @@ msgstr ""
 "Pagina's die naar de repository verwijzen, hebben een verbinding nodig om "
 "die links te volgen."
 
-#: src/introduction.md:52
+#: src/introduction.md:54
 msgid "Sample data"
 msgstr "Voorbeeldgegevens"
 
-#: src/introduction.md:54
+#: src/introduction.md:56
 msgid ""
 "Every example uses the anonymised golden project (`golden/J-E-2416`, licence "
 "CC0-1.0). It holds placeholders where a real project would name a customer, "
@@ -353,6 +365,33 @@ msgstr ""
 
 #: src/tutorials/index.md:15
 msgid ""
+"[A terminal strip and a cable](terminal-strip-and-cable.md): on the project "
+"of the first tutorial, a terminal strip placed and wired on both sides, a "
+"cable created from its part with the field wires as its cores, the strip "
+"editor and the Cables navigator read. You need the project you saved at the "
+"end of the first tutorial."
+msgstr ""
+"[Een klemmenstrook en een kabel](terminal-strip-and-cable.md): op het "
+"project van de eerste handleiding een klemmenstrook geplaatst en aan "
+"beide zijden bedraad, een kabel uit zijn artikel gemaakt met de "
+"velddraden als aders, de klemmenstrookeditor en de navigator Kabels "
+"gelezen. U hebt het project nodig dat u aan het eind van de eerste "
+"handleiding hebt opgeslagen."
+
+#: src/tutorials/index.md:18
+msgid ""
+"[Reports and PDF](reports-and-pdf.md): on a copy of the sample project, its "
+"report pages read, a parts list and a terminal overview added, the project "
+"exported as one PDF and the print preview read. You need EW installed and an "
+"empty folder."
+msgstr ""
+"[Rapporten en PDF](reports-and-pdf.md): op een kopie van het "
+"voorbeeldproject de rapportpagina's gelezen, een stuklijst en een "
+"klemmenoverzicht toegevoegd, het project als één PDF geëxporteerd en het "
+"afdrukvoorbeeld bekeken. U hebt EW nodig en een lege map."
+
+#: src/tutorials/index.md:21
+msgid ""
 "[Importing a QElectroTech project](import-qet.md): a small QElectroTech "
 "project imported, its migration report read, its missing wire drawn and its "
 "parts chosen, until the report holds only the record of the import. You need "
@@ -365,33 +404,33 @@ msgstr ""
 "alleen nog het verslag van de import bevat. U hebt EW nodig en het "
 "bestand [lamp-circuit.qet](files/lamp-circuit.qet) van de handleiding."
 
-#: src/tutorials/index.md:18
+#: src/tutorials/index.md:24
 msgid ""
 "[A first headless run on the golden project](headless-workflow.md): check a "
 "project, write its pages as PDF and SVG, export the cable list and the bill "
 "of materials, and query it with SQL, all from the terminal with the `ew` "
 "program. You need a checkout of the repository and the `ew` program."
 msgstr ""
-"[Een eerste run zonder venster op het "
+"[Een eerste sessie op de opdrachtregel met het "
 "referentieproject](headless-workflow.md): een project controleren, de "
 "pagina's als PDF en SVG schrijven, de kabellijst en de stuklijst "
 "exporteren en het project met SQL bevragen, alles vanuit de terminal met "
 "het programma `ew`. U hebt een checkout van de repository nodig en het "
 "programma `ew`."
 
-#: src/tutorials/index.md:22
+#: src/tutorials/index.md:28
 msgid "Planned"
 msgstr "Gepland"
 
-#: src/tutorials/index.md:24
+#: src/tutorials/index.md:30
 msgid ""
-"The documentation requirements (NFR-DOC-03) name the tutorials that follow: "
-"a terminal strip and a cable, and reports and PDF; at version 1.0, a PLC "
-"card with addressing, and 2D/3D layout with the wire list."
+"The documentation requirements (NFR-DOC-03) name the tutorials that follow "
+"at version 1.0: a PLC card with addressing, and 2D/3D layout with the wire "
+"list."
 msgstr ""
-"De documentatie-eisen (NFR-DOC-03) noemen de handleidingen die volgen: "
-"een klemmenstrook en een kabel, en rapporten en PDF; bij versie 1.0 een "
-"PLC-kaart met adressering, en 2D/3D-layout met de draadlijst."
+"De documentatie-eisen (NFR-DOC-03) noemen de handleidingen die bij versie "
+"1.0 volgen: een PLC-kaart met adressering, en 2D/3D-layout met de "
+"draadlijst."
 
 #: src/tutorials/first-page.md:3
 msgid ""
@@ -407,13 +446,15 @@ msgstr ""
 "hun naam en leest wat EW over de schakeling weet. Aan het eind hebt u een "
 "opgeslagen project waarvan de controles geen fout tonen."
 
-#: src/tutorials/first-page.md:7 src/tutorials/import-qet.md:8
+#: src/tutorials/first-page.md:7 src/tutorials/terminal-strip-and-cable.md:8
+#: src/tutorials/reports-and-pdf.md:7 src/tutorials/import-qet.md:8
 #: src/how-to/install.md:7 src/how-to/define-supply-potential.md:7
 #: src/how-to/choose-parts.md:7
 msgid "What you need"
 msgstr "Wat u nodig hebt"
 
-#: src/tutorials/first-page.md:9 src/tutorials/import-qet.md:10
+#: src/tutorials/first-page.md:9 src/tutorials/reports-and-pdf.md:9
+#: src/tutorials/import-qet.md:10
 msgid ""
 "ElektraWatt installed and started; see [Install "
 "ElektraWatt](../how-to/install.md)."
@@ -430,7 +471,8 @@ msgid "Nothing else: the project starts from EW's built-in basic project."
 msgstr ""
 "Verder niets: het project begint bij het ingebouwde basisproject van EW."
 
-#: src/tutorials/first-page.md:14 src/tutorials/import-qet.md:16
+#: src/tutorials/first-page.md:14 src/tutorials/terminal-strip-and-cable.md:14
+#: src/tutorials/reports-and-pdf.md:12 src/tutorials/import-qet.md:16
 #: src/how-to/define-supply-potential.md:12
 msgid "Steps"
 msgstr "Stappen"
@@ -441,9 +483,9 @@ msgid ""
 "`first-page.ew`. EW creates the project from the basic project and shows its "
 "one empty page, folio 1, with its frame."
 msgstr ""
-"Kies **Bestand ▸ Nieuw project…** (`Ctrl+N`) en kies een lege map met de "
-"naam `first-page.ew`. EW maakt het project uit het basisproject en toont "
-"de ene lege pagina, folio 1, met zijn kader."
+"Kies **Bestand ▸ Nieuw project…** (`Ctrl+N`) en wijs een lege map aan met "
+"de naam `first-page.ew`. EW maakt het project uit het basisproject en "
+"toont de ene lege pagina, folio 1, met zijn kader."
 
 #: src/tutorials/first-page.md:18
 msgid ""
@@ -541,7 +583,8 @@ msgstr ""
 "Kies **Bestand ▸ Opslaan** (`Ctrl+S`). De titelbalk markeert het project "
 "niet meer als gewijzigd, en de statusbalk zegt Opgeslagen."
 
-#: src/tutorials/first-page.md:44 src/tutorials/import-qet.md:50
+#: src/tutorials/first-page.md:44 src/tutorials/terminal-strip-and-cable.md:51
+#: src/tutorials/reports-and-pdf.md:37 src/tutorials/import-qet.md:50
 msgid "What you learnt"
 msgstr "Wat u hebt geleerd"
 
@@ -579,6 +622,339 @@ msgstr ""
 "open staat; de [regelnaslag](../reference/rules/index.md) legt elke regel "
 "uit, en **Help ▸ Documentatie** op een bevinding opent de pagina van de "
 "regel."
+
+#: src/tutorials/terminal-strip-and-cable.md:3
+msgid ""
+"In this tutorial you take the lamp circuit of the first tutorial out of the "
+"cabinet: a third lamp sits on the machine, and it is fed through a terminal "
+"strip in the cabinet and a cable. You place the strip's terminals, wire "
+"their cabinet side and their field side, create the cable with its cores, "
+"and read the strip in the strip editor and the cable in the Cables "
+"navigator. At the end you have a saved project whose checks show no error."
+msgstr ""
+"In deze handleiding haalt u de lampschakeling van de eerste handleiding "
+"gedeeltelijk uit de kast: een derde lamp zit op de machine en wordt "
+"gevoed via een klemmenstrook in de kast en een kabel. U plaatst de "
+"klemmen van de strook, bedraadt hun kastzijde en hun veldzijde, maakt de "
+"kabel met zijn aders, en leest de strook in de klemmenstrookeditor en de "
+"kabel in de navigator Kabels. Aan het eind hebt u een opgeslagen project "
+"waarvan de controles geen fout tonen."
+
+#: src/tutorials/terminal-strip-and-cable.md:10
+msgid ""
+"The project of the tutorial [A first schematic page with "
+"potentials](first-page.md), `first-page.ew`, as you saved it at its end."
+msgstr ""
+"Het project van de handleiding [Een eerste schemapagina met "
+"potentialen](first-page.md), `first-page.ew`, zoals u het aan het eind "
+"hebt opgeslagen."
+
+#: src/tutorials/terminal-strip-and-cable.md:12
+msgid ""
+"The installed libraries of ElektraWatt, which hold the cable parts of the "
+"sample project."
+msgstr ""
+"De geïnstalleerde bibliotheken van ElektraWatt, met de kabelartikelen van "
+"het voorbeeldproject."
+
+#: src/tutorials/terminal-strip-and-cable.md:16
+msgid ""
+"Choose **File ▸ Open…** (`Ctrl+O`) and open `first-page.ew`. Its page shows "
+"the transformer -1T1 and the lamps -1E1 and -1E2."
+msgstr ""
+"Kies **Bestand ▸ Openen…** (`Ctrl+O`) en open `first-page.ew`. De pagina "
+"toont de transformator -1T1 en de lampen -1E1 en -1E2."
+
+#: src/tutorials/terminal-strip-and-cable.md:18
+msgid ""
+"Choose **Draw ▸ Place ▸ Terminal strip…**. EW creates an empty terminal "
+"strip. It takes its tag when its first terminal is placed."
+msgstr ""
+"Kies **Tekenen ▸ Plaatsen ▸ Klemmenstrook…**. EW maakt een lege "
+"klemmenstrook. Die krijgt haar kenmerk zodra de eerste klem is geplaatst."
+
+#: src/tutorials/terminal-strip-and-cable.md:20
+msgid ""
+"Choose **Draw ▸ Place ▸ Symbol…** (`I`) and choose **terminal**. In the list "
+"of strips, choose the new strip. Click twice, to the right of -1E2 and level "
+"with it, to place two terminals side by side. Choose **Draw ▸ Select**. The "
+"terminals -1X1:1 and -1X1:2 are on the page. Each has its cabinet side, "
+"clamp a, at the bottom and its field side, clamp b, at the top."
+msgstr ""
+"Kies **Tekenen ▸ Plaatsen ▸ Symbool…** (`I`) en kies **terminal**. Kies "
+"in de lijst met klemmenstroken de nieuwe strook. Klik twee keer, rechts "
+"van -1E2 en op dezelfde hoogte, om twee klemmen naast elkaar te plaatsen. "
+"Kies **Tekenen ▸ Selecteren**. De klemmen -1X1:1 en -1X1:2 staan op de "
+"pagina. Elke klem heeft zijn kastzijde, klemaansluiting a, aan de "
+"onderkant en zijn veldzijde, klemaansluiting b, aan de bovenkant."
+
+#: src/tutorials/terminal-strip-and-cable.md:24
+msgid ""
+"Choose **Draw ▸ Place ▸ Symbol…** again, choose **lamp**, and click above "
+"and to the right of the terminals. Choose **Draw ▸ Select**. The lamp -1E3, "
+"the lamp on the machine, is on the page."
+msgstr ""
+"Kies opnieuw **Tekenen ▸ Plaatsen ▸ Symbool…**, kies **lamp** en klik "
+"boven en rechts van de klemmen. Kies **Tekenen ▸ Selecteren**. De lamp "
+"-1E3, de lamp op de machine, staat op de pagina."
+
+#: src/tutorials/terminal-strip-and-cable.md:27
+msgid ""
+"Choose **Draw ▸ Connect ▸ Wire** (`W`). Draw the cabinet side: from X1 of "
+"-1E2 to the bottom of -1X1:1, and from X2 of -1E2 to the bottom of -1X1:2. "
+"Then the field side: from the top of -1X1:1 to X1 of -1E3, and from the top "
+"of \\-1X1:2 to X2 of -1E3. Choose **Draw ▸ Select**. The terminal -1X1:1 "
+"carries 24VAC and -1X1:2 carries 0VAC to the lamp on the machine."
+msgstr ""
+"Kies **Tekenen ▸ Verbinden ▸ Draad** (`W`). Teken de kastzijde: van X1 "
+"van -1E2 naar de onderkant van -1X1:1, en van X2 van -1E2 naar de "
+"onderkant van -1X1:2. Daarna de veldzijde: van de bovenkant van -1X1:1 "
+"naar X1 van -1E3, en van de bovenkant van -1X1:2 naar X2 van -1E3. Kies "
+"**Tekenen ▸ Selecteren**. De klem -1X1:1 brengt 24VAC en -1X1:2 brengt "
+"0VAC naar de lamp op de machine."
+
+#: src/tutorials/terminal-strip-and-cable.md:31
+msgid ""
+"Choose **Draw ▸ Connect ▸ New cable…**. In the form, choose the cable part "
+"**NEBU-G78W5-K-2-N-LE5**, a five-core connecting cable, and choose "
+"**Create**. The toast says \"Created cable -?W?; its cores: 5\". The cable "
+"has the part's five cores; its tag shows question marks until you give it "
+"one in step 8."
+msgstr ""
+"Kies **Tekenen ▸ Verbinden ▸ Nieuwe kabel…**. Kies in het formulier het "
+"kabelartikel **NEBU-G78W5-K-2-N-LE5**, een aansluitkabel met vijf aders, "
+"en kies **Maken**. De notificatie zegt \"Kabel -?W? gemaakt; aantal "
+"aders: 5\". De kabel heeft de vijf aders van het artikel; zijn kenmerk "
+"toont vraagtekens tot u het er in stap 8 een geeft."
+
+#: src/tutorials/terminal-strip-and-cable.md:35
+msgid ""
+"Click the field wire of -1X1:1, then Shift+click the field wire of -1X1:2. "
+"Choose **Draw ▸ Connect ▸ Connect cores…**, choose the cable **\\-?W?**, and "
+"choose **Connect**. The toast says \"Wires connected to the cores of -?W?: "
+"2\": the two field wires are now cores of the cable."
+msgstr ""
+"Klik op de velddraad van -1X1:1 en Shift-klik daarna op de velddraad van "
+"-1X1:2. Kies **Tekenen ▸ Verbinden ▸ Aders verbinden…**, kies de kabel "
+"**-?W?** en kies **Verbinden**. De notificatie zegt \"Draden verbonden "
+"met de aders van -?W?: 2\": de twee velddraden zijn nu aders van de "
+"kabel."
+
+#: src/tutorials/terminal-strip-and-cable.md:38
+msgid ""
+"Choose **View ▸ Panels ▸ Navigators ▸ Cables** and click the cable -?W?. In "
+"the Properties pane, set **Frozen tag** to `-1W1` and **Length** to `5 m`. "
+"The Cables navigator lists the cable -1W1 with its five cores: BK, BN, BU, "
+"GNYE and WH."
+msgstr ""
+"Kies **Beeld ▸ Panelen ▸ Navigators ▸ Kabels** en klik op de kabel -?W?. "
+"Zet in het paneel Eigenschappen **Vastgezet kenmerk** op `-1W1` en "
+"**Lengte** op `5 m`. De navigator Kabels toont de kabel -1W1 met zijn "
+"vijf aders: BK, BN, BU, GNYE en WH."
+
+#: src/tutorials/terminal-strip-and-cable.md:41
+msgid ""
+"Click the terminal -1X1:1 and choose **Edit ▸ Strip editor**. The Terminal "
+"strips navigator shows the strip -1X1 as a table: terminal 1 on 24VAC, with "
+"-1E2:X1 on side 1 and \\-1E3:X1 via -1W1 BK on side 2; terminal 2 on 0VAC, "
+"with -1E2:X2 and -1E3:X2 via -1W1 BU."
+msgstr ""
+"Klik op de klem -1X1:1 en kies **Bewerken ▸ Klemmenstrookeditor**. De "
+"navigator Klemmenstroken toont de strook -1X1 als tabel: klem 1 op 24VAC, "
+"met -1E2:X1 aan zijde 1 en -1E3:X1 via -1W1 BK aan zijde 2; klem 2 op "
+"0VAC, met -1E2:X2 en -1E3:X2 via -1W1 BU."
+
+#: src/tutorials/terminal-strip-and-cable.md:44
+msgid ""
+"Choose **Check ▸ Run checks** (`F7`). The toast says \"Check: 0 errors, 8 "
+"warnings, 3 infos\". The warnings are the devices that have no part yet and "
+"the transformer's open primary pins; the infos say that no report covers the "
+"strip or the cable yet, and that the cable's tag is frozen."
+msgstr ""
+"Kies **Controle ▸ Controles uitvoeren** (`F7`). De notificatie zegt "
+"\"Controle: 0 fouten, 8 waarschuwingen, 3 info's\". De waarschuwingen "
+"zijn de apparaten die nog geen artikel hebben en de open primaire "
+"aansluitpunten van de transformator; de info's zeggen dat nog geen "
+"rapport de klemmenstrook of de kabel dekt, en dat het kenmerk van de "
+"kabel is vastgezet."
+
+#: src/tutorials/terminal-strip-and-cable.md:48
+#: src/tutorials/reports-and-pdf.md:34 src/tutorials/import-qet.md:47
+msgid ""
+"Choose **File ▸ Save** (`Ctrl+S`). The title bar no longer marks the project "
+"as changed."
+msgstr ""
+"Kies **Bestand ▸ Opslaan** (`Ctrl+S`). De titelbalk markeert het project "
+"niet meer als gewijzigd."
+
+#: src/tutorials/terminal-strip-and-cable.md:53
+msgid ""
+"A terminal strip is a device of its own, and each terminal you place from "
+"the strip's list is one of its terminals, with a cabinet side and a field "
+"side."
+msgstr ""
+"Een klemmenstrook is een apparaat op zich, en elke klem die u uit de "
+"lijst van de strook plaatst, is een van zijn klemmen, met een kastzijde "
+"en een veldzijde."
+
+#: src/tutorials/terminal-strip-and-cable.md:55
+msgid ""
+"A cable is created from its part, with the part's cores; **Draw ▸ Connect ▸ "
+"Connect cores…** makes the selected wires its cores, in order."
+msgstr ""
+"Een kabel wordt uit zijn artikel gemaakt, met de aders van het artikel; "
+"**Tekenen ▸ Verbinden ▸ Aders verbinden…** maakt de geselecteerde draden "
+"op volgorde tot zijn aders."
+
+#: src/tutorials/terminal-strip-and-cable.md:57
+msgid ""
+"The strip editor and the Cables navigator show what passes through each "
+"terminal and each core, from the drawing."
+msgstr ""
+"De klemmenstrookeditor en de navigator Kabels tonen, uit de tekening, wat "
+"er door elke klem en elke ader gaat."
+
+#: src/tutorials/terminal-strip-and-cable.md:58
+msgid ""
+"The reports that list them, the terminal diagram and the cable list, are the "
+"subject of [Reports and PDF](reports-and-pdf.md)."
+msgstr ""
+"De rapporten die ze opsommen, het klemmenschema en de kabellijst, zijn "
+"het onderwerp van [Rapporten en PDF](reports-and-pdf.md)."
+
+#: src/tutorials/reports-and-pdf.md:3
+msgid ""
+"In this tutorial you work on a copy of the sample project, a complete "
+"control-cabinet project. You read its report pages, add two more, write the "
+"whole project as one PDF and look through the print preview. Report pages "
+"are not drawn: EW generates them from the schematic, so they follow every "
+"change."
+msgstr ""
+"In deze handleiding werkt u op een kopie van het voorbeeldproject, een "
+"volledig besturingskastproject. U leest de rapportpagina's, voegt er twee "
+"toe, schrijft het hele project als één PDF en bekijkt het "
+"afdrukvoorbeeld. Rapportpagina's worden niet getekend: EW genereert ze "
+"uit het schema, dus ze volgen elke wijziging."
+
+#: src/tutorials/reports-and-pdf.md:10
+msgid "An empty folder, or a place where EW may create one."
+msgstr "Een lege map, of een plek waar EW er een mag maken."
+
+#: src/tutorials/reports-and-pdf.md:14
+msgid ""
+"Choose **Help ▸ Tutorials** and name a new folder `reports.ew`. EW makes a "
+"fresh copy of the sample project there and opens it; the banner says \"A "
+"fresh copy of the sample project was made for the tutorials.\" The tutorials "
+"page of this guide opens beside it."
+msgstr ""
+"Kies **Help ▸ Handleidingen** en geef een nieuwe map de naam "
+"`reports.ew`. EW maakt daar een nieuwe kopie van het voorbeeldproject en "
+"opent die; de banner zegt \"Voor de handleidingen is een nieuwe kopie van "
+"het voorbeeldproject gemaakt.\" De pagina met handleidingen van deze gids "
+"opent ernaast."
+
+#: src/tutorials/reports-and-pdf.md:17
+msgid ""
+"Read the report pages in the Pages navigator, in section 9 (folios 900 to "
+"999). They are marked generated: the parts list (Partlist, 901 and 901.1), a "
+"terminal diagram for each terminal strip (903 to 905), the cable overview "
+"and diagrams (906), the wire list, the PLC overview, the potential overview, "
+"the device tag overview and the revision overview. Click one, such as 904, "
+"to see it."
+msgstr ""
+"Lees de rapportpagina's in de navigator Pagina's, in sectie 9 (folio's "
+"900 tot en met 999). Ze zijn gemarkeerd als gegenereerd: de stuklijst "
+"(Partlist, 901 en 901.1), een klemmenschema voor elke klemmenstrook (903 "
+"tot en met 905), het kabeloverzicht met de kabelschema's (906), de "
+"draadlijst, het PLC-overzicht, het potentiaaloverzicht, het overzicht van "
+"de apparaatkenmerken en het revisieoverzicht. Klik op een ervan, zoals "
+"904, om hem te bekijken."
+
+#: src/tutorials/reports-and-pdf.md:21
+msgid ""
+"Choose **Output ▸ Report block…**. In the form, choose the report **Parts "
+"list**, keep or type the first folio `912`, type the title `Parts list`, and "
+"choose **Create**. The toast says \"Added the report block Parts list from "
+"folio 912\". The Pages navigator lists the new pages 912 to 912.3: the parts "
+"list device by device, where the Partlist on 901 sums the parts up."
+msgstr ""
+"Kies **Uitvoer ▸ Rapportblok…**. Kies in het formulier het rapport "
+"**Stuklijst**, houd of typ de eerste folio `912`, typ de titel `Parts "
+"list` en kies **Maken**. De notificatie zegt \"Rapportblok Stuklijst "
+"toegevoegd vanaf folio 912\". De navigator Pagina's toont de nieuwe "
+"pagina's 912 tot en met 912.3: de stuklijst per apparaat, waar de "
+"Partlist op 901 de artikelen optelt."
+
+#: src/tutorials/reports-and-pdf.md:25
+msgid ""
+"Choose **Output ▸ Report block…** again, choose **Terminal overview**, the "
+"first folio `913` and the title `Terminal overview`, and choose **Create**. "
+"The page 913 lists every terminal strip of the project on one page."
+msgstr ""
+"Kies opnieuw **Uitvoer ▸ Rapportblok…**, kies **Klemmenoverzicht**, de "
+"eerste folio `913` en de titel `Terminal overview`, en kies **Maken**. "
+"Pagina 913 toont alle klemmenstroken van het project op één pagina."
+
+#: src/tutorials/reports-and-pdf.md:28
+msgid ""
+"Choose **Output ▸ Export PDF…** (`Ctrl+Shift+E`) and save the file as "
+"`reports.pdf`. When the export is done, the toast says \"Exported "
+"reports.pdf: 41 pages\", with the file's size. Open the file from the toast "
+"to see it: one PDF/A-2b file with every page, its outline and its "
+"cross-reference links."
+msgstr ""
+"Kies **Uitvoer ▸ PDF exporteren…** (`Ctrl+Shift+E`) en sla het bestand op "
+"als `reports.pdf`. Als de export klaar is, zegt de notificatie "
+"\"reports.pdf geëxporteerd: 41 pagina's\", met de grootte van het "
+"bestand. Open het bestand vanuit de notificatie om het te bekijken: één "
+"PDF/A-2b-bestand met elke pagina, een inhoudsopgave en links voor de "
+"kruisverwijzingen."
+
+#: src/tutorials/reports-and-pdf.md:31
+msgid ""
+"Choose **Output ▸ Print…** (`Ctrl+P`). The Print dialog shows the range, the "
+"paper and a preview of the first page: \"1 of 41\". Step to the next page in "
+"the preview to see page 2. Choose **Cancel** to close the dialog without "
+"printing."
+msgstr ""
+"Kies **Uitvoer ▸ Afdrukken…** (`Ctrl+P`). Het venster Afdrukken toont het "
+"bereik, het papier en een voorbeeld van de eerste pagina: \"1 van 41\". "
+"Ga in het voorbeeld naar de volgende pagina om pagina 2 te zien. Kies "
+"**Annuleren** om het venster te sluiten zonder af te drukken."
+
+#: src/tutorials/reports-and-pdf.md:39
+msgid ""
+"A report block generates report pages from the project: a parts list, "
+"terminal diagrams, a cable list and more. **Output ▸ Report block…** adds "
+"one, from the first folio you give."
+msgstr ""
+"Een rapportblok genereert rapportpagina's uit het project: een stuklijst, "
+"klemmenschema's, een kabellijst en meer. **Uitvoer ▸ Rapportblok…** voegt "
+"er een toe, vanaf de eerste folio die u opgeeft."
+
+#: src/tutorials/reports-and-pdf.md:41
+msgid ""
+"Report pages follow the drawing: change a device, a terminal or a cable, and "
+"its report pages change with it."
+msgstr ""
+"Rapportpagina's volgen de tekening: verander een apparaat, een klem of "
+"een kabel, en de rapportpagina's veranderen mee."
+
+#: src/tutorials/reports-and-pdf.md:42
+msgid ""
+"**Output ▸ Export PDF…** writes every page into one PDF; **Output ▸ Print…** "
+"shows each page before it prints."
+msgstr ""
+"**Uitvoer ▸ PDF exporteren…** schrijft elke pagina in één PDF; **Uitvoer "
+"▸ Afdrukken…** toont elke pagina voordat die wordt afgedrukt."
+
+#: src/tutorials/reports-and-pdf.md:43
+msgid ""
+"[A terminal strip and a cable](terminal-strip-and-cable.md) shows where the "
+"terminal diagrams and the cable list take their rows from."
+msgstr ""
+"[Een klemmenstrook en een kabel](terminal-strip-and-cable.md) laat zien "
+"waar de klemmenschema's en de kabellijst hun rijen vandaan halen."
 
 #: src/tutorials/import-qet.md:3
 msgid ""
@@ -626,7 +1002,7 @@ msgstr ""
 "`lamp-circuit.qet` en geef de map van het nieuwe project de naam "
 "`lamp-circuit.ew`. Het voorbeeld van de import zegt wat er gemaakt wordt: "
 "\"1 pagina's, 4 apparaten, 3 verbindingen; 0 fouten, 8 waarschuwingen en "
-"5 meldingen in het migratierapport\". Er is nog niets geschreven."
+"5 info's in het migratierapport\". Er is nog niets geschreven."
 
 #: src/tutorials/import-qet.md:22
 msgid ""
@@ -637,7 +1013,7 @@ msgstr ""
 "Kies **Toepassen** in het voorbeeld. EW maakt het project en opent het. "
 "Het paneel Meldingen toont het **Migratierapport**, gekozen in de kop van "
 "het paneel naast het eigen schema van het project: 8 waarschuwingen en 5 "
-"meldingen."
+"info's."
 
 #: src/tutorials/import-qet.md:25
 msgid ""
@@ -747,17 +1123,9 @@ msgid ""
 msgstr ""
 "Kies **Controle ▸ Controles uitvoeren** (`F7`). Het paneel Meldingen "
 "toont weer het migratierapport, met geen fout, 2 waarschuwingen "
-"(EW-IMP-008 en EW-IMP-119) en 5 meldingen (twee keer EW-IMP-103, "
-"EW-IMP-122 en twee keer EW-NUM-001): het verslag van de import, er is "
-"niets meer op te lossen."
-
-#: src/tutorials/import-qet.md:47
-msgid ""
-"Choose **File ▸ Save** (`Ctrl+S`). The title bar no longer marks the project "
-"as changed."
-msgstr ""
-"Kies **Bestand ▸ Opslaan** (`Ctrl+S`). De titelbalk markeert het project "
-"niet meer als gewijzigd."
+"(EW-IMP-008 en EW-IMP-119) en 5 info's (twee keer EW-IMP-103, EW-IMP-122 "
+"en twee keer EW-NUM-001): het verslag van de import, er is niets meer op "
+"te lossen."
 
 #: src/tutorials/import-qet.md:52
 msgid ""
@@ -1199,7 +1567,7 @@ msgid ""
 "[How-to guides](../how-to/index.md) for single tasks, such as checking a "
 "project in a CI job, will follow this tutorial."
 msgstr ""
-"[How-to-gidsen](../how-to/index.md) voor losse taken, zoals een project "
+"[Instructies](../how-to/index.md) voor losse taken, zoals een project "
 "controleren in een CI-taak, volgen na deze handleiding."
 
 #: src/tutorials/headless-workflow.md:183

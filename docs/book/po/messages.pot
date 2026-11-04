@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ElektraWatt User Guide\n"
-"POT-Creation-Date: 2026-11-04T20:05:46+01:00\n"
+"POT-Creation-Date: 2026-11-04T21:24:04+01:00\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -28,67 +28,75 @@ msgstr ""
 msgid "A first schematic page with potentials"
 msgstr ""
 
-#: src/SUMMARY.md:9 src/tutorials/import-qet.md:1
+#: src/SUMMARY.md:9 src/tutorials/terminal-strip-and-cable.md:1
+msgid "A terminal strip and a cable"
+msgstr ""
+
+#: src/SUMMARY.md:10 src/tutorials/reports-and-pdf.md:1
+msgid "Reports and PDF"
+msgstr ""
+
+#: src/SUMMARY.md:11 src/tutorials/import-qet.md:1
 msgid "Importing a QElectroTech project"
 msgstr ""
 
-#: src/SUMMARY.md:10 src/tutorials/headless-workflow.md:1
+#: src/SUMMARY.md:12 src/tutorials/headless-workflow.md:1
 msgid "A first headless run on the golden project"
 msgstr ""
 
-#: src/SUMMARY.md:12 src/SUMMARY.md:14 src/how-to/index.md:1
+#: src/SUMMARY.md:14 src/SUMMARY.md:16 src/how-to/index.md:1
 msgid "How-to guides"
 msgstr ""
 
-#: src/SUMMARY.md:15 src/how-to/install.md:1
+#: src/SUMMARY.md:17 src/how-to/install.md:1
 msgid "Install ElektraWatt"
 msgstr ""
 
-#: src/SUMMARY.md:16 src/how-to/application-window.md:1
+#: src/SUMMARY.md:18 src/how-to/application-window.md:1
 msgid "Use the application window"
 msgstr ""
 
-#: src/SUMMARY.md:17 src/how-to/text-interface.md:1
+#: src/SUMMARY.md:19 src/how-to/text-interface.md:1
 msgid "Draw a page from the text interface"
 msgstr ""
 
-#: src/SUMMARY.md:18 src/how-to/define-supply-potential.md:1
+#: src/SUMMARY.md:20 src/how-to/define-supply-potential.md:1
 msgid "Define a supply potential"
 msgstr ""
 
-#: src/SUMMARY.md:19 src/how-to/choose-parts.md:1
+#: src/SUMMARY.md:21 src/how-to/choose-parts.md:1
 msgid "Choose parts"
 msgstr ""
 
-#: src/SUMMARY.md:20 src/how-to/upgrade-a-project.md:1
+#: src/SUMMARY.md:22 src/how-to/upgrade-a-project.md:1
 msgid "Upgrade a project"
 msgstr ""
 
-#: src/SUMMARY.md:22 src/SUMMARY.md:24 src/reference/index.md:1
+#: src/SUMMARY.md:24 src/SUMMARY.md:26 src/reference/index.md:1
 msgid "Reference"
 msgstr ""
 
-#: src/SUMMARY.md:25 src/reference/window/tools.md:1
+#: src/SUMMARY.md:27 src/reference/window/tools.md:1
 msgid "Tools"
 msgstr ""
 
-#: src/SUMMARY.md:26 src/reference/window/dialogs.md:1
+#: src/SUMMARY.md:28 src/reference/window/dialogs.md:1
 msgid "Dialogs"
 msgstr ""
 
-#: src/SUMMARY.md:27 src/reference/window/panels.md:1
+#: src/SUMMARY.md:29 src/reference/window/panels.md:1
 msgid "Panels"
 msgstr ""
 
-#: src/SUMMARY.md:29 src/SUMMARY.md:31 src/explanation/index.md:1
+#: src/SUMMARY.md:31 src/SUMMARY.md:33 src/explanation/index.md:1
 msgid "Explanation"
 msgstr ""
 
-#: src/SUMMARY.md:32 src/explanation/eplan-and-ew.md:1
+#: src/SUMMARY.md:34 src/explanation/eplan-and-ew.md:1
 msgid "EPLAN and EW"
 msgstr ""
 
-#: src/SUMMARY.md:33 src/explanation/qet-and-ew.md:1
+#: src/SUMMARY.md:35 src/explanation/qet-and-ew.md:1
 msgid "QElectroTech and EW"
 msgstr ""
 
@@ -200,19 +208,21 @@ msgstr ""
 #: src/introduction.md:31
 msgid ""
 "**New to EW:** the tutorial [A first schematic page with "
-"potentials](tutorials/first-page.md). If you come from QElectroTech, "
+"potentials](tutorials/first-page.md), then [A terminal strip and a "
+"cable](tutorials/terminal-strip-and-cable.md) and [Reports and "
+"PDF](tutorials/reports-and-pdf.md). If you come from QElectroTech, "
 "[Importing a QElectroTech project](tutorials/import-qet.md) brings a project "
 "of yours over."
 msgstr ""
 
-#: src/introduction.md:33
+#: src/introduction.md:35
 msgid ""
 "**A task at hand:** the how-to guides, among them [Choose "
 "parts](how-to/choose-parts.md) and [Upgrade a "
 "project](how-to/upgrade-a-project.md)."
 msgstr ""
 
-#: src/introduction.md:35
+#: src/introduction.md:37
 msgid ""
 "**A fact to look up:** the [rule reference](reference/rules/index.md), with "
 "a page per check rule; the window's [tools](reference/window/tools.md), "
@@ -221,18 +231,18 @@ msgid ""
 "notes](reference/release-notes/index.md) of every release."
 msgstr ""
 
-#: src/introduction.md:38
+#: src/introduction.md:40
 msgid ""
 "**Coming from another program:** [EPLAN and EW](explanation/eplan-and-ew.md) "
 "and [QElectroTech and EW](explanation/qet-and-ew.md) relate the concepts you "
 "know to EW's."
 msgstr ""
 
-#: src/introduction.md:41
+#: src/introduction.md:43
 msgid "What the guide does not contain"
 msgstr ""
 
-#: src/introduction.md:43
+#: src/introduction.md:45
 msgid ""
 "The design documents, the architecture decision records and the work plan "
 "stay in the repository, next to the code they describe. This guide links to "
@@ -240,22 +250,22 @@ msgid ""
 "map](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/README.md)."
 msgstr ""
 
-#: src/introduction.md:47
+#: src/introduction.md:49
 msgid "Offline use"
 msgstr ""
 
-#: src/introduction.md:49
+#: src/introduction.md:51
 msgid ""
 "The guide builds without network access and is meant to be bundled with the "
 "application, so that the help works without a connection. Pages that link to "
 "the repository need a connection to follow those links."
 msgstr ""
 
-#: src/introduction.md:52
+#: src/introduction.md:54
 msgid "Sample data"
 msgstr ""
 
-#: src/introduction.md:54
+#: src/introduction.md:56
 msgid ""
 "Every example uses the anonymised golden project (`golden/J-E-2416`, licence "
 "CC0-1.0). It holds placeholders where a real project would name a customer, "
@@ -292,6 +302,23 @@ msgstr ""
 
 #: src/tutorials/index.md:15
 msgid ""
+"[A terminal strip and a cable](terminal-strip-and-cable.md): on the project "
+"of the first tutorial, a terminal strip placed and wired on both sides, a "
+"cable created from its part with the field wires as its cores, the strip "
+"editor and the Cables navigator read. You need the project you saved at the "
+"end of the first tutorial."
+msgstr ""
+
+#: src/tutorials/index.md:18
+msgid ""
+"[Reports and PDF](reports-and-pdf.md): on a copy of the sample project, its "
+"report pages read, a parts list and a terminal overview added, the project "
+"exported as one PDF and the print preview read. You need EW installed and an "
+"empty folder."
+msgstr ""
+
+#: src/tutorials/index.md:21
+msgid ""
 "[Importing a QElectroTech project](import-qet.md): a small QElectroTech "
 "project imported, its migration report read, its missing wire drawn and its "
 "parts chosen, until the report holds only the record of the import. You need "
@@ -299,7 +326,7 @@ msgid ""
 "[lamp-circuit.qet](files/lamp-circuit.qet)."
 msgstr ""
 
-#: src/tutorials/index.md:18
+#: src/tutorials/index.md:24
 msgid ""
 "[A first headless run on the golden project](headless-workflow.md): check a "
 "project, write its pages as PDF and SVG, export the cable list and the bill "
@@ -307,15 +334,15 @@ msgid ""
 "program. You need a checkout of the repository and the `ew` program."
 msgstr ""
 
-#: src/tutorials/index.md:22
+#: src/tutorials/index.md:28
 msgid "Planned"
 msgstr ""
 
-#: src/tutorials/index.md:24
+#: src/tutorials/index.md:30
 msgid ""
-"The documentation requirements (NFR-DOC-03) name the tutorials that follow: "
-"a terminal strip and a cable, and reports and PDF; at version 1.0, a PLC "
-"card with addressing, and 2D/3D layout with the wire list."
+"The documentation requirements (NFR-DOC-03) name the tutorials that follow "
+"at version 1.0: a PLC card with addressing, and 2D/3D layout with the wire "
+"list."
 msgstr ""
 
 #: src/tutorials/first-page.md:3
@@ -327,13 +354,15 @@ msgid ""
 "checks show no error."
 msgstr ""
 
-#: src/tutorials/first-page.md:7 src/tutorials/import-qet.md:8
+#: src/tutorials/first-page.md:7 src/tutorials/terminal-strip-and-cable.md:8
+#: src/tutorials/reports-and-pdf.md:7 src/tutorials/import-qet.md:8
 #: src/how-to/install.md:7 src/how-to/define-supply-potential.md:7
 #: src/how-to/choose-parts.md:7
 msgid "What you need"
 msgstr ""
 
-#: src/tutorials/first-page.md:9 src/tutorials/import-qet.md:10
+#: src/tutorials/first-page.md:9 src/tutorials/reports-and-pdf.md:9
+#: src/tutorials/import-qet.md:10
 msgid ""
 "ElektraWatt installed and started; see [Install "
 "ElektraWatt](../how-to/install.md)."
@@ -347,7 +376,8 @@ msgstr ""
 msgid "Nothing else: the project starts from EW's built-in basic project."
 msgstr ""
 
-#: src/tutorials/first-page.md:14 src/tutorials/import-qet.md:16
+#: src/tutorials/first-page.md:14 src/tutorials/terminal-strip-and-cable.md:14
+#: src/tutorials/reports-and-pdf.md:12 src/tutorials/import-qet.md:16
 #: src/how-to/define-supply-potential.md:12
 msgid "Steps"
 msgstr ""
@@ -421,7 +451,8 @@ msgid ""
 "as changed, and the status bar says Saved."
 msgstr ""
 
-#: src/tutorials/first-page.md:44 src/tutorials/import-qet.md:50
+#: src/tutorials/first-page.md:44 src/tutorials/terminal-strip-and-cable.md:51
+#: src/tutorials/reports-and-pdf.md:37 src/tutorials/import-qet.md:50
 msgid "What you learnt"
 msgstr ""
 
@@ -448,6 +479,227 @@ msgid ""
 "The checks run while you draw. A warning tells you what is still open; the "
 "[rule reference](../reference/rules/index.md) explains each rule, and **Help "
 "▸ Documentation** on a finding opens its rule's page."
+msgstr ""
+
+#: src/tutorials/terminal-strip-and-cable.md:3
+msgid ""
+"In this tutorial you take the lamp circuit of the first tutorial out of the "
+"cabinet: a third lamp sits on the machine, and it is fed through a terminal "
+"strip in the cabinet and a cable. You place the strip's terminals, wire "
+"their cabinet side and their field side, create the cable with its cores, "
+"and read the strip in the strip editor and the cable in the Cables "
+"navigator. At the end you have a saved project whose checks show no error."
+msgstr ""
+
+#: src/tutorials/terminal-strip-and-cable.md:10
+msgid ""
+"The project of the tutorial [A first schematic page with "
+"potentials](first-page.md), `first-page.ew`, as you saved it at its end."
+msgstr ""
+
+#: src/tutorials/terminal-strip-and-cable.md:12
+msgid ""
+"The installed libraries of ElektraWatt, which hold the cable parts of the "
+"sample project."
+msgstr ""
+
+#: src/tutorials/terminal-strip-and-cable.md:16
+msgid ""
+"Choose **File ▸ Open…** (`Ctrl+O`) and open `first-page.ew`. Its page shows "
+"the transformer -1T1 and the lamps -1E1 and -1E2."
+msgstr ""
+
+#: src/tutorials/terminal-strip-and-cable.md:18
+msgid ""
+"Choose **Draw ▸ Place ▸ Terminal strip…**. EW creates an empty terminal "
+"strip. It takes its tag when its first terminal is placed."
+msgstr ""
+
+#: src/tutorials/terminal-strip-and-cable.md:20
+msgid ""
+"Choose **Draw ▸ Place ▸ Symbol…** (`I`) and choose **terminal**. In the list "
+"of strips, choose the new strip. Click twice, to the right of -1E2 and level "
+"with it, to place two terminals side by side. Choose **Draw ▸ Select**. The "
+"terminals -1X1:1 and -1X1:2 are on the page. Each has its cabinet side, "
+"clamp a, at the bottom and its field side, clamp b, at the top."
+msgstr ""
+
+#: src/tutorials/terminal-strip-and-cable.md:24
+msgid ""
+"Choose **Draw ▸ Place ▸ Symbol…** again, choose **lamp**, and click above "
+"and to the right of the terminals. Choose **Draw ▸ Select**. The lamp -1E3, "
+"the lamp on the machine, is on the page."
+msgstr ""
+
+#: src/tutorials/terminal-strip-and-cable.md:27
+msgid ""
+"Choose **Draw ▸ Connect ▸ Wire** (`W`). Draw the cabinet side: from X1 of "
+"-1E2 to the bottom of -1X1:1, and from X2 of -1E2 to the bottom of -1X1:2. "
+"Then the field side: from the top of -1X1:1 to X1 of -1E3, and from the top "
+"of \\-1X1:2 to X2 of -1E3. Choose **Draw ▸ Select**. The terminal -1X1:1 "
+"carries 24VAC and -1X1:2 carries 0VAC to the lamp on the machine."
+msgstr ""
+
+#: src/tutorials/terminal-strip-and-cable.md:31
+msgid ""
+"Choose **Draw ▸ Connect ▸ New cable…**. In the form, choose the cable part "
+"**NEBU-G78W5-K-2-N-LE5**, a five-core connecting cable, and choose "
+"**Create**. The toast says \"Created cable -?W?; its cores: 5\". The cable "
+"has the part's five cores; its tag shows question marks until you give it "
+"one in step 8."
+msgstr ""
+
+#: src/tutorials/terminal-strip-and-cable.md:35
+msgid ""
+"Click the field wire of -1X1:1, then Shift+click the field wire of -1X1:2. "
+"Choose **Draw ▸ Connect ▸ Connect cores…**, choose the cable **\\-?W?**, and "
+"choose **Connect**. The toast says \"Wires connected to the cores of -?W?: "
+"2\": the two field wires are now cores of the cable."
+msgstr ""
+
+#: src/tutorials/terminal-strip-and-cable.md:38
+msgid ""
+"Choose **View ▸ Panels ▸ Navigators ▸ Cables** and click the cable -?W?. In "
+"the Properties pane, set **Frozen tag** to `-1W1` and **Length** to `5 m`. "
+"The Cables navigator lists the cable -1W1 with its five cores: BK, BN, BU, "
+"GNYE and WH."
+msgstr ""
+
+#: src/tutorials/terminal-strip-and-cable.md:41
+msgid ""
+"Click the terminal -1X1:1 and choose **Edit ▸ Strip editor**. The Terminal "
+"strips navigator shows the strip -1X1 as a table: terminal 1 on 24VAC, with "
+"-1E2:X1 on side 1 and \\-1E3:X1 via -1W1 BK on side 2; terminal 2 on 0VAC, "
+"with -1E2:X2 and -1E3:X2 via -1W1 BU."
+msgstr ""
+
+#: src/tutorials/terminal-strip-and-cable.md:44
+msgid ""
+"Choose **Check ▸ Run checks** (`F7`). The toast says \"Check: 0 errors, 8 "
+"warnings, 3 infos\". The warnings are the devices that have no part yet and "
+"the transformer's open primary pins; the infos say that no report covers the "
+"strip or the cable yet, and that the cable's tag is frozen."
+msgstr ""
+
+#: src/tutorials/terminal-strip-and-cable.md:48
+#: src/tutorials/reports-and-pdf.md:34 src/tutorials/import-qet.md:47
+msgid ""
+"Choose **File ▸ Save** (`Ctrl+S`). The title bar no longer marks the project "
+"as changed."
+msgstr ""
+
+#: src/tutorials/terminal-strip-and-cable.md:53
+msgid ""
+"A terminal strip is a device of its own, and each terminal you place from "
+"the strip's list is one of its terminals, with a cabinet side and a field "
+"side."
+msgstr ""
+
+#: src/tutorials/terminal-strip-and-cable.md:55
+msgid ""
+"A cable is created from its part, with the part's cores; **Draw ▸ Connect ▸ "
+"Connect cores…** makes the selected wires its cores, in order."
+msgstr ""
+
+#: src/tutorials/terminal-strip-and-cable.md:57
+msgid ""
+"The strip editor and the Cables navigator show what passes through each "
+"terminal and each core, from the drawing."
+msgstr ""
+
+#: src/tutorials/terminal-strip-and-cable.md:58
+msgid ""
+"The reports that list them, the terminal diagram and the cable list, are the "
+"subject of [Reports and PDF](reports-and-pdf.md)."
+msgstr ""
+
+#: src/tutorials/reports-and-pdf.md:3
+msgid ""
+"In this tutorial you work on a copy of the sample project, a complete "
+"control-cabinet project. You read its report pages, add two more, write the "
+"whole project as one PDF and look through the print preview. Report pages "
+"are not drawn: EW generates them from the schematic, so they follow every "
+"change."
+msgstr ""
+
+#: src/tutorials/reports-and-pdf.md:10
+msgid "An empty folder, or a place where EW may create one."
+msgstr ""
+
+#: src/tutorials/reports-and-pdf.md:14
+msgid ""
+"Choose **Help ▸ Tutorials** and name a new folder `reports.ew`. EW makes a "
+"fresh copy of the sample project there and opens it; the banner says \"A "
+"fresh copy of the sample project was made for the tutorials.\" The tutorials "
+"page of this guide opens beside it."
+msgstr ""
+
+#: src/tutorials/reports-and-pdf.md:17
+msgid ""
+"Read the report pages in the Pages navigator, in section 9 (folios 900 to "
+"999). They are marked generated: the parts list (Partlist, 901 and 901.1), a "
+"terminal diagram for each terminal strip (903 to 905), the cable overview "
+"and diagrams (906), the wire list, the PLC overview, the potential overview, "
+"the device tag overview and the revision overview. Click one, such as 904, "
+"to see it."
+msgstr ""
+
+#: src/tutorials/reports-and-pdf.md:21
+msgid ""
+"Choose **Output ▸ Report block…**. In the form, choose the report **Parts "
+"list**, keep or type the first folio `912`, type the title `Parts list`, and "
+"choose **Create**. The toast says \"Added the report block Parts list from "
+"folio 912\". The Pages navigator lists the new pages 912 to 912.3: the parts "
+"list device by device, where the Partlist on 901 sums the parts up."
+msgstr ""
+
+#: src/tutorials/reports-and-pdf.md:25
+msgid ""
+"Choose **Output ▸ Report block…** again, choose **Terminal overview**, the "
+"first folio `913` and the title `Terminal overview`, and choose **Create**. "
+"The page 913 lists every terminal strip of the project on one page."
+msgstr ""
+
+#: src/tutorials/reports-and-pdf.md:28
+msgid ""
+"Choose **Output ▸ Export PDF…** (`Ctrl+Shift+E`) and save the file as "
+"`reports.pdf`. When the export is done, the toast says \"Exported "
+"reports.pdf: 41 pages\", with the file's size. Open the file from the toast "
+"to see it: one PDF/A-2b file with every page, its outline and its "
+"cross-reference links."
+msgstr ""
+
+#: src/tutorials/reports-and-pdf.md:31
+msgid ""
+"Choose **Output ▸ Print…** (`Ctrl+P`). The Print dialog shows the range, the "
+"paper and a preview of the first page: \"1 of 41\". Step to the next page in "
+"the preview to see page 2. Choose **Cancel** to close the dialog without "
+"printing."
+msgstr ""
+
+#: src/tutorials/reports-and-pdf.md:39
+msgid ""
+"A report block generates report pages from the project: a parts list, "
+"terminal diagrams, a cable list and more. **Output ▸ Report block…** adds "
+"one, from the first folio you give."
+msgstr ""
+
+#: src/tutorials/reports-and-pdf.md:41
+msgid ""
+"Report pages follow the drawing: change a device, a terminal or a cable, and "
+"its report pages change with it."
+msgstr ""
+
+#: src/tutorials/reports-and-pdf.md:42
+msgid ""
+"**Output ▸ Export PDF…** writes every page into one PDF; **Output ▸ Print…** "
+"shows each page before it prints."
+msgstr ""
+
+#: src/tutorials/reports-and-pdf.md:43
+msgid ""
+"[A terminal strip and a cable](terminal-strip-and-cable.md) shows where the "
+"terminal diagrams and the cable list take their rows from."
 msgstr ""
 
 #: src/tutorials/import-qet.md:3
@@ -563,12 +815,6 @@ msgid ""
 "report again, with no error, 2 warnings (EW-IMP-008 and EW-IMP-119) and 5 "
 "infos (EW-IMP-103 twice, EW-IMP-122 and EW-NUM-001 twice): the record of the "
 "import, nothing left to fix."
-msgstr ""
-
-#: src/tutorials/import-qet.md:47
-msgid ""
-"Choose **File ▸ Save** (`Ctrl+S`). The title bar no longer marks the project "
-"as changed."
 msgstr ""
 
 #: src/tutorials/import-qet.md:52
