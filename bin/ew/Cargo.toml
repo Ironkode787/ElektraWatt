@@ -48,3 +48,5 @@ sha2 = { workspace = true }
 # serde traits for the round trip.
 boon = "=0.6.1"
 serde = { workspace = true }
+# tests/it/outputs.rs (FT-1278): reads the pixels of `ew export png` (the version ew-render-cpu writes them with).
+png = "0.18.1"

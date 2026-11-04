@@ -1297,6 +1297,7 @@ dependencies = [
  "ew-hack",
  "ew-print",
  "ew-testdir",
+ "png",
  "serde",
  "serde_json",
  "sha2",

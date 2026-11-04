@@ -309,6 +309,33 @@ fn export_png_writes_every_golden_png_in_one_and_four_threads() {
     }
 }
 
+/// FT-1278 (GT-4's PNG half): the wire-colour view is a window state and never reaches an export. The view strokes
+/// folio 103's W29 in DBU and W27 green and yellow; `ew export png` of folio 103 holds no coloured pixel.
+#[test]
+fn export_png_holds_no_wire_colour_view() {
+    let t = Tmp::new();
+    let p = t.golden();
+    let dir = t.0.join("png-103");
+    let o = t.ew(&args([&"export", &"png", &p, &"--out", &dir, &"--pages", &"103"]));
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    let bytes = std::fs::read(dir.join("103.png")).unwrap();
+    let mut decoder = png::Decoder::new(std::io::Cursor::new(bytes));
+    decoder.set_transformations(png::Transformations::normalize_to_color8() | png::Transformations::ALPHA);
+    let mut reader = decoder.read_info().expect("a PNG");
+    let mut buf = vec![0u8; reader.output_buffer_size().expect("a size")];
+    let info = reader.next_frame(&mut buf).expect("a frame");
+    buf.truncate(info.buffer_size());
+    // Folio 103 is drawn in grey: a coloured pixel could only be the view's. A grey PNG holds none.
+    let coloured = match info.color_type {
+        png::ColorType::Rgba => buf
+            .chunks_exact(4)
+            .filter(|p| p[0] != p[1] || p[1] != p[2])
+            .count(),
+        _ => 0,
+    };
+    assert_eq!(coloured, 0, "coloured pixels, the wire-colour view's");
+}
+
 /// OU-2: a directory holding a file that is not a PNG is refused (exit 2) and left as it was; a PNG-only directory is
 /// replaced as a whole.
 #[test]
