@@ -18,6 +18,8 @@
 //! - [`textconv`]: one project file through `ew_api::output::textconv`, with or without a session (WP-S6.04);
 //! - [`table_round_trip`]: a round-trip file through `Session::table_import` (WP-S6.04);
 //! - [`command_log`]: a `.ewcmd` through `Session::run_script` on the golden project (WP-S6.04).
+//! - [`importers`]: the QET project and element importers, the golden tables and the parts table, through the import
+//!   front door (WP-S3.09 D15).
 //!
 //! The crate is outside the cargo workspace and builds on the nightly toolchain of `rust-toolchain.toml`.
 //! `unsafe`: none in this crate; the `unsafe` of cargo-fuzz's `fuzz_target!` macro lives in `libfuzzer-sys`.
@@ -29,6 +31,7 @@ pub mod command_log;
 pub mod ewz_read;
 pub mod golden;
 pub mod image_decode;
+pub mod importers;
 pub mod loader;
 pub mod merge_file;
 pub mod open_path;

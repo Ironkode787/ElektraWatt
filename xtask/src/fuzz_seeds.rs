@@ -6,7 +6,8 @@
 //! A loader seed names its files by their index in Golden A's sorted file list, so it goes stale when that
 //! project gains or loses a file. `fuzz/src/bin/seed_corpus.rs` makes the seeds from the project, deterministically;
 //! this runs it into a temporary folder under `target/` (stable toolchain, dev profile, from the repository root,
-//! as `fuzz-build` builds `fuzz/`) and makes the three generated folders equal to what it wrote. In check mode it
+//! as `fuzz-build` builds `fuzz/`) and makes the generated folders (with the four importer targets' of WP-S3.09
+//! D15) equal to what it wrote. In check mode it
 //! changes nothing in the corpus and names each seed that differs, is missing or is no longer made; it still builds
 //! `seed_corpus` into `fuzz/target/`, the fuzz workspace's own target folder. The hand-made `png_pdf`, `ewz_read`
 //! and `merge_file` seeds are not touched.
@@ -18,7 +19,15 @@ use std::process::Command;
 use anyhow::{Context, Result};
 
 /// The corpus folders `seed_corpus` writes, below [`CORPUS`].
-const TARGETS: [&str; 3] = ["jsonl_loader", "migration_chain", "command_sequence"];
+const TARGETS: [&str; 7] = [
+    "jsonl_loader",
+    "migration_chain",
+    "command_sequence",
+    "qet_project",
+    "qet_element",
+    "golden_tables",
+    "parts_table",
+];
 /// The corpus folder, relative to the workspace root.
 const CORPUS: &str = "fuzz/corpus";
 /// The temporary folder `seed_corpus` writes into, relative to the workspace root (removed afterwards).
@@ -68,7 +77,7 @@ fn differences(
     out
 }
 
-/// Compares the three folders of `made_dir` with those of `corpus` and, unless `check`, makes `corpus` equal to
+/// Compares the generated folders of `made_dir` with those of `corpus` and, unless `check`, makes `corpus` equal to
 /// them. Returns the differences found.
 fn sync(made_dir: &Path, corpus: &Path, check: bool) -> Result<Vec<String>> {
     let mut problems = Vec::new();

@@ -451,13 +451,24 @@ pub(crate) const STEPS: &[Step] = &[
     Step {
         name: "fuzz-seeds",
         phase: Phase::Regen,
-        triggers: &["golden/J-E-2416.ew/**", "fuzz/src/**"],
+        triggers: &[
+            "golden/J-E-2416.ew/**",
+            "fuzz/src/**",
+            // WP-S3.09 D15: the importer seeds' sources.
+            "golden/J-E-2416/tables/**",
+            "crates/ew-import-qet/tests/fixtures/**",
+            "crates/ew-api/tests/qet_synth/**",
+        ],
         deps_of: &[],
         merge_reaches: &[],
         outputs: &[
             "fuzz/corpus/jsonl_loader/**",
             "fuzz/corpus/migration_chain/**",
             "fuzz/corpus/command_sequence/**",
+            "fuzz/corpus/qet_project/**",
+            "fuzz/corpus/qet_element/**",
+            "fuzz/corpus/golden_tables/**",
+            "fuzz/corpus/parts_table/**",
         ],
         partial: &[],
         reads: &[],

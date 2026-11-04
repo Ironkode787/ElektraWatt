@@ -319,6 +319,45 @@ fn the_png_pdf_plte_finding_is_refused_without_a_panic() {
     );
 }
 
+/// The importer seeds (WP-S3.09 D15, IC-17) pass and reach their properties: every QET project imports and commits;
+/// the element fixtures that are definitions import; the golden tables import and the smallest set opens as a
+/// project; both supplier tables import parts.
+#[test]
+fn the_importer_seeds_pass_and_import() {
+    use ew_fuzz::importers::{golden_tables, parts_table, qet_element, qet_project};
+    let projects = inputs("corpus/qet_project");
+    assert!(projects.len() >= 2, "the QET project seeds are missing");
+    for (name, bytes) in &projects {
+        let o = qet_project(bytes);
+        eprintln!("qet_project/{name}: {o:?}");
+        assert!(o.imported && o.committed && o.emitted > 0, "{name}: {o:?}");
+    }
+    let elements = inputs("corpus/qet_element");
+    assert!(elements.len() >= 6, "the element seeds are missing");
+    let imported = elements
+        .iter()
+        .filter(|(name, bytes)| {
+            let o = qet_element(bytes);
+            eprintln!("qet_element/{name}: {o:?}");
+            o.imported && o.emitted > 0
+        })
+        .count();
+    assert!(imported >= 4, "only {imported} element seeds import");
+    let tables = inputs("corpus/golden_tables");
+    assert!(tables.len() >= 3, "the golden table seeds are missing");
+    for (name, bytes) in &tables {
+        let o = golden_tables(bytes);
+        eprintln!("golden_tables/{name}: {o:?}");
+        assert!(o.imported && o.emitted > 0, "{name}: {o:?}");
+    }
+    assert!(golden_tables(&inputs_named(&tables, "project-pages")).committed);
+    for (name, bytes) in inputs("corpus/parts_table") {
+        let o = parts_table(&bytes);
+        eprintln!("parts_table/{name}: {o:?}");
+        assert!(o.imported && o.emitted >= 2, "{name}: {o:?}");
+    }
+}
+
 /// The reported findings: each input of `regressions/<target>/` is replayed in this ordinary test process, where a
 /// panic is caught and the generator's own failure text (the seed, the step, the oracle and the command log of
 /// `command_sequence`) is printed, which libFuzzer's aborting panic hook never lets the fuzz target do. Nothing is
@@ -364,6 +403,18 @@ fn the_regressions_are_replayed_and_reported() {
         }),
         ("regressions/command_log", |b| {
             let _ = ew_fuzz::command_log::check(b);
+        }),
+        ("regressions/qet_project", |b| {
+            let _ = ew_fuzz::importers::qet_project(b);
+        }),
+        ("regressions/qet_element", |b| {
+            let _ = ew_fuzz::importers::qet_element(b);
+        }),
+        ("regressions/golden_tables", |b| {
+            let _ = ew_fuzz::importers::golden_tables(b);
+        }),
+        ("regressions/parts_table", |b| {
+            let _ = ew_fuzz::importers::parts_table(b);
         }),
     ];
     for &(dir, check) in targets {

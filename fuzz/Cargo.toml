@@ -15,7 +15,7 @@ name = "ew-fuzz"
 version = "0.0.0"
 edition = "2024"
 license = "GPL-3.0-or-later"
-description = "cargo-fuzz targets: the JSONL loader, the open path with old-shape records, the command sequence, PNG to PDF, the .ewz reader, the merge, the SQL sandbox, SVG and raster assets, textconv, the table round trip and command logs."
+description = "cargo-fuzz targets: the JSONL loader, the open path with old-shape records, the command sequence, PNG to PDF, the .ewz reader, the merge, the SQL sandbox, SVG and raster assets, textconv, the table round trip, command logs and the importers."
 repository = "https://github.com/Ironkode787/ElektraWatt"
 publish = false
 
@@ -40,6 +40,8 @@ ew-commands = { path = "../crates/ew-commands", features = ["testkit"] }
 ew-derive = { path = "../crates/ew-derive" }
 ew-ids = { path = "../crates/ew-ids" }
 ew-import-tables = { path = "../crates/ew-import-tables" }
+# The importer targets (WP-S3.09 D15, src/importers.rs): the QET element importer, which no host re-exports.
+ew-import-qet = { path = "../crates/ew-import-qet" }
 # The command fuzzer's live state (`command_fuzz/live.rs`) names `ew_rds::Aspect`.
 ew-rds = { path = "../crates/ew-rds" }
 ew-schema = { path = "../crates/ew-schema" }
@@ -142,6 +144,34 @@ bench = false
 [[bin]]
 name = "command_log"
 path = "fuzz_targets/command_log.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "qet_project"
+path = "fuzz_targets/qet_project.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "qet_element"
+path = "fuzz_targets/qet_element.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "golden_tables"
+path = "fuzz_targets/golden_tables.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "parts_table"
+path = "fuzz_targets/parts_table.rs"
 test = false
 doc = false
 bench = false

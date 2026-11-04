@@ -1,0 +1,1364 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="0.100" title="Synthetic J-E-2416 101-103">
+  <properties/>
+  <newdiagrams><border cols="17" colsize="60" rows="8" rowsize="80" displaycols="true" displayrows="true"/><report label="%F-%l%c"/></newdiagrams>
+  <diagram order="1" folio="101" title="Power Supply 1 - Main Current" cols="17" colsize="60" rows="8" rowsize="80" height="660" author="" date="" indexrev="" version="0.100.0">
+    <elements>
+      <element type="embed://import/synth/ew.iec.mcb-1pn@qet10.elmt" uuid="{00000000-0000-4000-8000-000000ABC005}" x="530" y="140" z="10" orientation="0" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="-10" y="-20" orientation="n" id="1"/>
+          <terminal x="-10" y="20" orientation="s" id="2"/>
+          <terminal x="20" y="-20" orientation="n" id="3"/>
+          <terminal x="20" y="20" orientation="s" id="4"/>
+        </terminals>
+        <inputs/>
+        <elementInformations>
+          <elementInformation name="label" show="1">-101F1</elementInformation>
+        </elementInformations>
+        <dynamic_texts/>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+      <element type="embed://import/synth/ew.iec.pe@qet10.elmt" uuid="{00000000-0000-4000-8000-000000abc008}" x="350" y="300" z="10" orientation="0" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="0" orientation="n" id="5"/>
+        </terminals>
+        <inputs/>
+        <elementInformations>
+          <elementInformation name="label" show="1">-XPE</elementInformation>
+        </elementInformations>
+        <dynamic_texts/>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+      <element type="embed://import/synth/ew.iec.terminal@qet10.elmt" uuid="{00000000-0000-4000-8000-000000ABC00C}" x="150" y="300" z="10" orientation="0" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="10" orientation="s" id="6"/>
+          <terminal x="0" y="-10" orientation="n" id="7"/>
+        </terminals>
+        <inputs/>
+        <elementInformations>
+          <elementInformation name="label" show="1">1X1</elementInformation>
+        </elementInformations>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc00d}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>1</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+      <element type="embed://import/synth/ew.iec.terminal@qet10.elmt" uuid="{00000000-0000-4000-8000-000000abc00e}" x="170" y="300" z="10" orientation="0" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="10" orientation="s" id="8"/>
+          <terminal x="0" y="-10" orientation="n" id="9"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc00f}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>2</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+      <element type="embed://import/synth/ew.iec.terminal-pe@qet10.elmt" uuid="{00000000-0000-4000-8000-000000ABC013}" x="190" y="300" z="10" orientation="0" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="10" orientation="s" id="10"/>
+          <terminal x="0" y="-10" orientation="n" id="11"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc014}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>PE</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+      <element type="embed://import/synth/ew.iec.heater@qet10.elmt" uuid="{00000000-0000-4000-8000-000000abc019}" x="770" y="380" z="10" orientation="0" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-20" orientation="n" id="12"/>
+          <terminal x="0" y="20" orientation="s" id="13"/>
+          <terminal x="10" y="0" orientation="e" id="14"/>
+        </terminals>
+        <inputs/>
+        <elementInformations>
+          <elementInformation name="label" show="1">E55</elementInformation>
+        </elementInformations>
+        <dynamic_texts/>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+      <element type="embed://import/synth/ew.iec.lamp@qet10.elmt" uuid="{00000000-0000-4000-8000-000000ABC01D}" x="890" y="380" z="10" orientation="0" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="0" orientation="n" id="15"/>
+          <terminal x="0" y="30" orientation="s" id="16"/>
+        </terminals>
+        <inputs/>
+        <elementInformations>
+          <elementInformation name="label" show="1">E56</elementInformation>
+        </elementInformations>
+        <dynamic_texts/>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+      <element type="embed://import/synth/ew.iec.mcb-1pn@qet10.elmt" uuid="{00000000-0000-4000-8000-000000abc01e}" x="770" y="140" z="10" orientation="0" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="-10" y="-20" orientation="n" id="17"/>
+          <terminal x="-10" y="20" orientation="s" id="18"/>
+          <terminal x="20" y="-20" orientation="n" id="19"/>
+          <terminal x="20" y="20" orientation="s" id="20"/>
+        </terminals>
+        <inputs/>
+        <elementInformations>
+          <elementInformation name="label" show="1">F55</elementInformation>
+        </elementInformations>
+        <dynamic_texts/>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+      <element type="embed://import/synth/ew.gen.external-arrow@qet10.elmt" uuid="{00000000-0000-4000-8000-000000ABC021}" x="50" y="520" z="10" orientation="0" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="-20" y="0" orientation="w" id="21"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc022}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>J-E-206-L</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+      <element type="embed://import/synth/ew.gen.external-arrow@qet10.elmt" uuid="{00000000-0000-4000-8000-000000abc023}" x="50" y="540" z="10" orientation="0" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="-20" y="0" orientation="w" id="22"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc024}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>J-E-206-N</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+      <element type="embed://import/synth/ew.gen.external-arrow@qet10.elmt" uuid="{00000000-0000-4000-8000-000000ABC025}" x="50" y="560" z="10" orientation="0" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="-20" y="0" orientation="w" id="23"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc026}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>J-E-206-PE</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+      <element type="embed://import/synth/ew.gen.ip@qet10.elmt" uuid="{00000000-0000-4000-8000-000000abc029}" x="1010" y="620" z="10" orientation="0" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-10" orientation="n" id="24"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc02a}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>L-1</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids>
+          <link_uuid uuid="{00000000-0000-4000-8000-000000abc066}"/>
+        </links_uuids>
+      </element>
+      <element type="embed://import/synth/ew.gen.ip@qet10.elmt" uuid="{00000000-0000-4000-8000-000000ABC02B}" x="1010" y="640" z="10" orientation="0" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-10" orientation="n" id="25"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc02c}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>N-1</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids>
+          <link_uuid uuid="{00000000-0000-4000-8000-000000abc068}"/>
+        </links_uuids>
+      </element>
+      <element type="embed://import/synth/ew.gen.ip@qet10.elmt" uuid="{00000000-0000-4000-8000-000000abc02d}" x="950" y="540" z="10" orientation="0" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-10" orientation="n" id="26"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc02e}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>PE-1.1</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids>
+          <link_uuid uuid="{00000000-0000-4000-8000-000000abc0c6}"/>
+        </links_uuids>
+      </element>
+      <element type="embed://import/synth/ew.iec.switch-2p-manual@qet10.elmt" uuid="{00000000-0000-4000-8000-000000ABC034}" x="170" y="140" z="10" orientation="0" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="0" orientation="n" id="27"/>
+          <terminal x="0" y="30" orientation="s" id="28"/>
+          <terminal x="20" y="0" orientation="n" id="29"/>
+          <terminal x="20" y="30" orientation="s" id="30"/>
+        </terminals>
+        <inputs/>
+        <elementInformations>
+          <elementInformation name="label" show="1">S51</elementInformation>
+        </elementInformations>
+        <dynamic_texts/>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+      <element type="embed://import/synth/ew.iec.position-switch-no@qet10.elmt" uuid="{00000000-0000-4000-8000-000000abc038}" x="890" y="300" z="10" orientation="0" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="0" orientation="n" id="31"/>
+          <terminal x="0" y="30" orientation="s" id="32"/>
+        </terminals>
+        <inputs/>
+        <elementInformations>
+          <elementInformation name="label" show="1">S56</elementInformation>
+        </elementInformations>
+        <dynamic_texts/>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+      <element type="embed://import/synth/ew.iec.thermostat-nc@qet10.elmt" uuid="{00000000-0000-4000-8000-000000ABC03C}" x="770" y="220" z="10" orientation="0" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="0" orientation="n" id="33"/>
+          <terminal x="0" y="30" orientation="s" id="34"/>
+        </terminals>
+        <inputs/>
+        <elementInformations>
+          <elementInformation name="label" show="1">T55</elementInformation>
+        </elementInformations>
+        <dynamic_texts/>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+      <element type="embed://import/synth/junction.elmt" uuid="{00000000-0000-4000-8000-000000abc03f}" x="710" y="220" z="10" orientation="0" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="0" orientation="n" id="35"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts/>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+      <element type="embed://import/synth/junction.elmt" uuid="{00000000-0000-4000-8000-000000ABC040}" x="830" y="220" z="10" orientation="0" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="0" orientation="n" id="36"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts/>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+    </elements>
+    <conductors>
+      <conductor element1="{00000000-0000-4000-8000-000000abc01e}" terminal1="{00000000-0000-4000-8000-000000abc002}" element2="{00000000-0000-4000-8000-000000abc03f}" terminal2="{00000000-0000-4000-8000-000000abc03e}" num="" function="" tension_protocol="" conductor_color="" conductor_section="" type="multi" x="0" y="0" freezeLabel="false"/>
+      <conductor element1="{00000000-0000-4000-8000-000000abc01e}" terminal1="{00000000-0000-4000-8000-000000abc004}" element2="{00000000-0000-4000-8000-000000abc040}" terminal2="{00000000-0000-4000-8000-000000abc03e}" num="" function="" tension_protocol="" conductor_color="" conductor_section="" type="multi" x="0" y="0" freezeLabel="false"/>
+      <conductor terminal1="21" terminal2="7" num="" function="" tension_protocol="" conductor_color="" conductor_section="" type="multi" x="0" y="0" freezeLabel="false"/>
+      <conductor element1="{00000000-0000-4000-8000-000000abc023}" terminal1="{00000000-0000-4000-8000-000000abc020}" element2="{00000000-0000-4000-8000-000000abc00e}" terminal2="{00000000-0000-4000-8000-000000abc00b}" num="" function="" tension_protocol="" conductor_color="" conductor_section="" type="multi" x="0" y="0" freezeLabel="false"/>
+      <conductor element1="{00000000-0000-4000-8000-000000abc025}" terminal1="{00000000-0000-4000-8000-000000abc020}" element2="{00000000-0000-4000-8000-000000abc013}" terminal2="{00000000-0000-4000-8000-000000abc012}" num="" function="" tension_protocol="" conductor_color="" conductor_section="" type="multi" x="0" y="0" freezeLabel="false"/>
+      <conductor terminal1="6" terminal2="28" num="" function="" tension_protocol="" conductor_color="" conductor_section="" type="multi" x="0" y="0" freezeLabel="false"/>
+      <conductor element1="{00000000-0000-4000-8000-000000abc00e}" terminal1="{00000000-0000-4000-8000-000000abc00a}" element2="{00000000-0000-4000-8000-000000abc034}" terminal2="{00000000-0000-4000-8000-000000abc033}" num="" function="" tension_protocol="" conductor_color="" conductor_section="" type="multi" x="0" y="0" freezeLabel="false"/>
+      <conductor element1="{00000000-0000-4000-8000-000000abc013}" terminal1="{00000000-0000-4000-8000-000000abc011}" element2="{00000000-0000-4000-8000-000000abc008}" terminal2="{00000000-0000-4000-8000-000000abc007}" num="" function="" tension_protocol="" conductor_color="" conductor_section="" type="multi" x="0" y="0" freezeLabel="false"/>
+      <conductor terminal1="27" terminal2="1" num="" function="" tension_protocol="" conductor_color="" conductor_section="" type="multi" x="0" y="0" freezeLabel="false"/>
+      <conductor element1="{00000000-0000-4000-8000-000000abc005}" terminal1="{00000000-0000-4000-8000-000000abc001}" element2="{00000000-0000-4000-8000-000000abc01e}" terminal2="{00000000-0000-4000-8000-000000abc001}" num="" function="" tension_protocol="" conductor_color="" conductor_section="" type="multi" x="0" y="0" freezeLabel="false"/>
+      <conductor element1="{00000000-0000-4000-8000-000000abc034}" terminal1="{00000000-0000-4000-8000-000000abc032}" element2="{00000000-0000-4000-8000-000000abc005}" terminal2="{00000000-0000-4000-8000-000000abc003}" num="" function="" tension_protocol="" conductor_color="" conductor_section="" type="multi" x="0" y="0" freezeLabel="false"/>
+      <conductor terminal1="3" terminal2="19" num="" function="" tension_protocol="" conductor_color="" conductor_section="" type="multi" x="0" y="0" freezeLabel="false"/>
+      <conductor element1="{00000000-0000-4000-8000-000000abc005}" terminal1="{00000000-0000-4000-8000-000000abc002}" element2="{00000000-0000-4000-8000-000000abc029}" terminal2="{00000000-0000-4000-8000-000000abc028}" num="" function="" tension_protocol="" conductor_color="" conductor_section="" type="multi" x="0" y="0" freezeLabel="false"/>
+      <conductor element1="{00000000-0000-4000-8000-000000abc005}" terminal1="{00000000-0000-4000-8000-000000abc004}" element2="{00000000-0000-4000-8000-000000abc02b}" terminal2="{00000000-0000-4000-8000-000000abc028}" num="" function="" tension_protocol="" conductor_color="" conductor_section="" type="multi" x="0" y="0" freezeLabel="false"/>
+      <conductor terminal1="35" terminal2="12" num="" function="" tension_protocol="" conductor_color="" conductor_section="" type="multi" x="0" y="0" freezeLabel="false"/>
+      <conductor element1="{00000000-0000-4000-8000-000000abc03f}" terminal1="{00000000-0000-4000-8000-000000abc03e}" element2="{00000000-0000-4000-8000-000000abc01d}" terminal2="{00000000-0000-4000-8000-000000abc01c}" num="" function="" tension_protocol="" conductor_color="" conductor_section="" type="multi" x="0" y="0" freezeLabel="false"/>
+      <conductor element1="{00000000-0000-4000-8000-000000abc040}" terminal1="{00000000-0000-4000-8000-000000abc03e}" element2="{00000000-0000-4000-8000-000000abc03c}" terminal2="{00000000-0000-4000-8000-000000abc03a}" num="" function="" tension_protocol="" conductor_color="" conductor_section="" type="multi" x="0" y="0" freezeLabel="false"/>
+      <conductor terminal1="36" terminal2="31" num="" function="" tension_protocol="" conductor_color="" conductor_section="" type="multi" x="0" y="0" freezeLabel="false"/>
+      <conductor element1="{00000000-0000-4000-8000-000000abc03c}" terminal1="{00000000-0000-4000-8000-000000abc03b}" element2="{00000000-0000-4000-8000-000000abc019}" terminal2="{00000000-0000-4000-8000-000000abc017}" num="" function="" tension_protocol="" conductor_color="" conductor_section="" type="multi" x="0" y="0" freezeLabel="false"/>
+      <conductor element1="{00000000-0000-4000-8000-000000abc038}" terminal1="{00000000-0000-4000-8000-000000abc037}" element2="{00000000-0000-4000-8000-000000abc01d}" terminal2="{00000000-0000-4000-8000-000000abc01b}" num="" function="" tension_protocol="" conductor_color="" conductor_section="" type="multi" x="0" y="0" freezeLabel="false"/>
+      <conductor terminal1="14" terminal2="26" num="" function="" tension_protocol="" conductor_color="" conductor_section="" type="multi" x="0" y="0" freezeLabel="false"/>
+    </conductors>
+  </diagram>
+  <diagram order="2" folio="102" title="Power Supply 2 - Control Current" cols="17" colsize="60" rows="8" rowsize="80" height="660" author="" date="" indexrev="" version="0.100.0">
+    <elements>
+      <element type="embed://import/synth/ew.iec.mcb-1p@qet10.elmt" uuid="{00000000-0000-4000-8000-000000ABC044}" x="470" y="220" z="10" orientation="0" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-20" orientation="n" id="1"/>
+          <terminal x="0" y="20" orientation="s" id="2"/>
+        </terminals>
+        <inputs/>
+        <elementInformations>
+          <elementInformation name="label" show="1">-102F1</elementInformation>
+        </elementInformations>
+        <dynamic_texts/>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+      <element type="embed://import/synth/ew.gen.blackbox@qet10.elmt" uuid="{00000000-0000-4000-8000-000000abc050}" x="470" y="380" z="10" orientation="0" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="10" y="-30" orientation="n" id="3"/>
+          <terminal x="30" y="-30" orientation="n" id="4"/>
+          <terminal x="50" y="-30" orientation="n" id="5"/>
+          <terminal x="70" y="-30" orientation="n" id="6"/>
+          <terminal x="90" y="-30" orientation="n" id="7"/>
+          <terminal x="10" y="30" orientation="s" id="8"/>
+          <terminal x="30" y="30" orientation="s" id="9"/>
+          <terminal x="50" y="30" orientation="s" id="10"/>
+          <terminal x="70" y="30" orientation="s" id="11"/>
+          <terminal x="90" y="30" orientation="s" id="12"/>
+        </terminals>
+        <inputs/>
+        <elementInformations>
+          <elementInformation name="label" show="1">-102F2</elementInformation>
+        </elementInformations>
+        <dynamic_texts/>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+      <element type="embed://import/synth/ew.gen.blackbox@qet10-2.elmt" uuid="{00000000-0000-4000-8000-000000ABC059}" x="410" y="140" z="10" orientation="0" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="10" y="-30" orientation="n" id="13"/>
+          <terminal x="30" y="-30" orientation="n" id="14"/>
+          <terminal x="50" y="-30" orientation="n" id="15"/>
+          <terminal x="70" y="-30" orientation="n" id="16"/>
+          <terminal x="10" y="30" orientation="s" id="17"/>
+          <terminal x="30" y="30" orientation="s" id="18"/>
+          <terminal x="50" y="30" orientation="s" id="19"/>
+        </terminals>
+        <inputs/>
+        <elementInformations>
+          <elementInformation name="label" show="1">-102G1</elementInformation>
+        </elementInformations>
+        <dynamic_texts/>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+      <element type="embed://import/synth/ew.gen.ip@qet10.elmt" uuid="{00000000-0000-4000-8000-000000abc05a}" x="950" y="220" z="10" orientation="0" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-10" orientation="n" id="20"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc05b}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>0VDC</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids>
+          <link_uuid uuid="{00000000-0000-4000-8000-000000abc0b2}"/>
+        </links_uuids>
+      </element>
+      <element type="embed://import/synth/ew.gen.ip@qet10.elmt" uuid="{00000000-0000-4000-8000-000000ABC05C}" x="950" y="620" z="10" orientation="0" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-10" orientation="n" id="21"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc05d}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>24VDC-1</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids>
+          <link_uuid uuid="{00000000-0000-4000-8000-000000abc0b4}"/>
+        </links_uuids>
+      </element>
+      <element type="embed://import/synth/ew.gen.ip@qet10.elmt" uuid="{00000000-0000-4000-8000-000000abc05e}" x="950" y="640" z="10" orientation="0" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-10" orientation="n" id="22"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc05f}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>24VDC-2</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids>
+          <link_uuid uuid="{00000000-0000-4000-8000-000000abc0b6}"/>
+        </links_uuids>
+      </element>
+      <element type="embed://import/synth/ew.gen.ip@qet10.elmt" uuid="{00000000-0000-4000-8000-000000ABC060}" x="950" y="540" z="10" orientation="0" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-10" orientation="n" id="23"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc061}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>24VDC-3</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids>
+          <link_uuid uuid="{00000000-0000-4000-8000-000000abc0b8}"/>
+        </links_uuids>
+      </element>
+      <element type="embed://import/synth/ew.gen.ip@qet10.elmt" uuid="{00000000-0000-4000-8000-000000abc062}" x="950" y="560" z="10" orientation="0" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-10" orientation="n" id="24"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc063}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>24VDC-4</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids>
+          <link_uuid uuid="{00000000-0000-4000-8000-000000abc0ba}"/>
+        </links_uuids>
+      </element>
+      <element type="embed://import/synth/ew.gen.ip@qet10-2.elmt" uuid="{00000000-0000-4000-8000-000000ABC066}" x="110" y="60" z="10" orientation="0" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-10" orientation="n" id="25"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc067}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>L-1</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids>
+          <link_uuid uuid="{00000000-0000-4000-8000-000000abc029}"/>
+        </links_uuids>
+      </element>
+      <element type="embed://import/synth/ew.gen.ip@qet10-2.elmt" uuid="{00000000-0000-4000-8000-000000abc068}" x="110" y="80" z="10" orientation="0" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-10" orientation="n" id="26"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc069}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>N-1</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids>
+          <link_uuid uuid="{00000000-0000-4000-8000-000000abc02b}"/>
+        </links_uuids>
+      </element>
+      <element type="embed://import/synth/ew.gen.ip@qet10.elmt" uuid="{00000000-0000-4000-8000-000000ABC06A}" x="950" y="300" z="10" orientation="0" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-10" orientation="n" id="27"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc06b}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>PE-0VDC</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids>
+          <link_uuid uuid="{00000000-0000-4000-8000-000000abc0c4}"/>
+        </links_uuids>
+      </element>
+      <element type="embed://import/synth/ew.gen.ip@qet10.elmt" uuid="{00000000-0000-4000-8000-000000abc06c}" x="950" y="60" z="10" orientation="0" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-10" orientation="n" id="28"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc06d}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>PE-1.2</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids>
+          <link_uuid uuid="{00000000-0000-4000-8000-000000abc0c8}"/>
+        </links_uuids>
+      </element>
+      <element type="embed://import/synth/junction.elmt" uuid="{00000000-0000-4000-8000-000000ABC06E}" x="410" y="220" z="10" orientation="0" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="0" orientation="n" id="29"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts/>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+      <element type="embed://import/synth/junction.elmt" uuid="{00000000-0000-4000-8000-000000abc06f}" x="470" y="300" z="10" orientation="0" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="0" orientation="n" id="30"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts/>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+      <element type="embed://import/synth/junction.elmt" uuid="{00000000-0000-4000-8000-000000ABC070}" x="350" y="300" z="10" orientation="0" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="0" orientation="n" id="31"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts/>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+      <element type="embed://import/synth/junction.elmt" uuid="{00000000-0000-4000-8000-000000abc071}" x="410" y="300" z="10" orientation="0" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="0" orientation="n" id="32"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts/>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+    </elements>
+    <conductors>
+      <conductor element1="{00000000-0000-4000-8000-000000abc059}" terminal1="{00000000-0000-4000-8000-000000abc055}" element2="{00000000-0000-4000-8000-000000abc06e}" terminal2="{00000000-0000-4000-8000-000000abc03e}" num="" function="" tension_protocol="" conductor_color="" conductor_section="" type="multi" x="0" y="0" freezeLabel="false"/>
+      <conductor element1="{00000000-0000-4000-8000-000000abc06f}" terminal1="{00000000-0000-4000-8000-000000abc03e}" element2="{00000000-0000-4000-8000-000000abc050}" terminal2="{00000000-0000-4000-8000-000000abc046}" num="" function="" tension_protocol="" conductor_color="" conductor_section="" type="multi" x="0" y="0" freezeLabel="false"/>
+      <conductor terminal1="18" terminal2="31" num="" function="" tension_protocol="" conductor_color="" conductor_section="" type="multi" x="0" y="0" freezeLabel="false"/>
+      <conductor element1="{00000000-0000-4000-8000-000000abc059}" terminal1="{00000000-0000-4000-8000-000000abc058}" element2="{00000000-0000-4000-8000-000000abc071}" terminal2="{00000000-0000-4000-8000-000000abc03e}" num="" function="" tension_protocol="" conductor_color="" conductor_section="" type="multi" x="0" y="0" freezeLabel="false"/>
+      <conductor element1="{00000000-0000-4000-8000-000000abc066}" terminal1="{00000000-0000-4000-8000-000000abc065}" element2="{00000000-0000-4000-8000-000000abc059}" terminal2="{00000000-0000-4000-8000-000000abc052}" num="" function="" tension_protocol="" conductor_color="" conductor_section="" type="multi" x="0" y="0" freezeLabel="false"/>
+      <conductor terminal1="26" terminal2="14" num="" function="" tension_protocol="" conductor_color="" conductor_section="" type="multi" x="0" y="0" freezeLabel="false"/>
+      <conductor element1="{00000000-0000-4000-8000-000000abc06e}" terminal1="{00000000-0000-4000-8000-000000abc03e}" element2="{00000000-0000-4000-8000-000000abc044}" terminal2="{00000000-0000-4000-8000-000000abc042}" num="" function="" tension_protocol="" conductor_color="" conductor_section="" type="multi" x="0" y="0" freezeLabel="false"/>
+      <conductor element1="{00000000-0000-4000-8000-000000abc059}" terminal1="{00000000-0000-4000-8000-000000abc056}" element2="{00000000-0000-4000-8000-000000abc06e}" terminal2="{00000000-0000-4000-8000-000000abc03e}" num="" function="" tension_protocol="" conductor_color="" conductor_section="" type="multi" x="0" y="0" freezeLabel="false"/>
+      <conductor terminal1="31" terminal2="5" num="" function="" tension_protocol="" conductor_color="" conductor_section="" type="multi" x="0" y="0" freezeLabel="false"/>
+      <conductor element1="{00000000-0000-4000-8000-000000abc071}" terminal1="{00000000-0000-4000-8000-000000abc03e}" element2="{00000000-0000-4000-8000-000000abc050}" terminal2="{00000000-0000-4000-8000-000000abc049}" num="" function="" tension_protocol="" conductor_color="" conductor_section="" type="multi" x="0" y="0" freezeLabel="false"/>
+      <conductor element1="{00000000-0000-4000-8000-000000abc044}" terminal1="{00000000-0000-4000-8000-000000abc043}" element2="{00000000-0000-4000-8000-000000abc06f}" terminal2="{00000000-0000-4000-8000-000000abc03e}" num="" function="" tension_protocol="" conductor_color="" conductor_section="" type="multi" x="0" y="0" freezeLabel="false"/>
+      <conductor terminal1="30" terminal2="4" num="" function="" tension_protocol="" conductor_color="" conductor_section="" type="multi" x="0" y="0" freezeLabel="false"/>
+      <conductor element1="{00000000-0000-4000-8000-000000abc071}" terminal1="{00000000-0000-4000-8000-000000abc03e}" element2="{00000000-0000-4000-8000-000000abc05a}" terminal2="{00000000-0000-4000-8000-000000abc028}" num="" function="" tension_protocol="" conductor_color="" conductor_section="" type="multi" x="0" y="0" freezeLabel="false"/>
+      <conductor element1="{00000000-0000-4000-8000-000000abc070}" terminal1="{00000000-0000-4000-8000-000000abc03e}" element2="{00000000-0000-4000-8000-000000abc06a}" terminal2="{00000000-0000-4000-8000-000000abc028}" num="" function="" tension_protocol="" conductor_color="" conductor_section="" type="multi" x="0" y="0" freezeLabel="false"/>
+      <conductor terminal1="15" terminal2="28" num="" function="" tension_protocol="" conductor_color="" conductor_section="" type="multi" x="0" y="0" freezeLabel="false"/>
+      <conductor element1="{00000000-0000-4000-8000-000000abc050}" terminal1="{00000000-0000-4000-8000-000000abc04c}" element2="{00000000-0000-4000-8000-000000abc05c}" terminal2="{00000000-0000-4000-8000-000000abc028}" num="" function="" tension_protocol="" conductor_color="" conductor_section="" type="multi" x="0" y="0" freezeLabel="false"/>
+      <conductor element1="{00000000-0000-4000-8000-000000abc050}" terminal1="{00000000-0000-4000-8000-000000abc04d}" element2="{00000000-0000-4000-8000-000000abc05e}" terminal2="{00000000-0000-4000-8000-000000abc028}" num="" function="" tension_protocol="" conductor_color="" conductor_section="" type="multi" x="0" y="0" freezeLabel="false"/>
+      <conductor terminal1="11" terminal2="23" num="" function="" tension_protocol="" conductor_color="" conductor_section="" type="multi" x="0" y="0" freezeLabel="false"/>
+      <conductor element1="{00000000-0000-4000-8000-000000abc050}" terminal1="{00000000-0000-4000-8000-000000abc04f}" element2="{00000000-0000-4000-8000-000000abc062}" terminal2="{00000000-0000-4000-8000-000000abc028}" num="" function="" tension_protocol="" conductor_color="" conductor_section="" type="multi" x="0" y="0" freezeLabel="false"/>
+    </conductors>
+  </diagram>
+  <diagram order="3" folio="103" title="Power Supply 3 - Control Current Distribution" cols="17" colsize="60" rows="8" rowsize="80" height="660" author="" date="" indexrev="" version="0.100.0">
+    <elements>
+      <element type="embed://import/synth/strip-terminal.elmt" uuid="{00000000-0000-4000-8000-000000ABC075}" x="230" y="60" z="10" orientation="1" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-10" orientation="n" id="1"/>
+          <terminal x="0" y="10" orientation="s" id="2"/>
+        </terminals>
+        <inputs/>
+        <elementInformations>
+          <elementInformation name="label" show="1">-X1031</elementInformation>
+        </elementInformations>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc076}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>1</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+      <element type="embed://import/synth/strip-terminal.elmt" uuid="{00000000-0000-4000-8000-000000abc077}" x="230" y="80" z="10" orientation="1" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-10" orientation="n" id="3"/>
+          <terminal x="0" y="10" orientation="s" id="4"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc078}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>2</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+      <element type="embed://import/synth/strip-terminal.elmt" uuid="{00000000-0000-4000-8000-000000ABC079}" x="230" y="100" z="10" orientation="1" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-10" orientation="n" id="5"/>
+          <terminal x="0" y="10" orientation="s" id="6"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc07a}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>3</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+      <element type="embed://import/synth/strip-terminal.elmt" uuid="{00000000-0000-4000-8000-000000abc07b}" x="230" y="120" z="10" orientation="1" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-10" orientation="n" id="7"/>
+          <terminal x="0" y="10" orientation="s" id="8"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc07c}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>4</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+      <element type="embed://import/synth/strip-terminal.elmt" uuid="{00000000-0000-4000-8000-000000ABC07D}" x="230" y="140" z="10" orientation="1" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-10" orientation="n" id="9"/>
+          <terminal x="0" y="10" orientation="s" id="10"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc07e}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>5</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+      <element type="embed://import/synth/strip-terminal.elmt" uuid="{00000000-0000-4000-8000-000000abc07f}" x="230" y="160" z="10" orientation="1" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-10" orientation="n" id="11"/>
+          <terminal x="0" y="10" orientation="s" id="12"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc080}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>6</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+      <element type="embed://import/synth/strip-terminal.elmt" uuid="{00000000-0000-4000-8000-000000ABC081}" x="230" y="180" z="10" orientation="1" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-10" orientation="n" id="13"/>
+          <terminal x="0" y="10" orientation="s" id="14"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc082}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>7</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+      <element type="embed://import/synth/strip-terminal.elmt" uuid="{00000000-0000-4000-8000-000000abc083}" x="230" y="200" z="10" orientation="1" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-10" orientation="n" id="15"/>
+          <terminal x="0" y="10" orientation="s" id="16"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc084}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>8</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+      <element type="embed://import/synth/strip-terminal.elmt" uuid="{00000000-0000-4000-8000-000000ABC085}" x="230" y="220" z="10" orientation="1" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-10" orientation="n" id="17"/>
+          <terminal x="0" y="10" orientation="s" id="18"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc086}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>9</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+      <element type="embed://import/synth/strip-terminal.elmt" uuid="{00000000-0000-4000-8000-000000abc087}" x="230" y="240" z="10" orientation="1" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-10" orientation="n" id="19"/>
+          <terminal x="0" y="10" orientation="s" id="20"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc088}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>10</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+      <element type="embed://import/synth/strip-terminal.elmt" uuid="{00000000-0000-4000-8000-000000ABC089}" x="650" y="60" z="10" orientation="1" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-10" orientation="n" id="21"/>
+          <terminal x="0" y="10" orientation="s" id="22"/>
+        </terminals>
+        <inputs/>
+        <elementInformations>
+          <elementInformation name="label" show="1">-X1031</elementInformation>
+        </elementInformations>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc08a}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>11</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+      <element type="embed://import/synth/strip-terminal.elmt" uuid="{00000000-0000-4000-8000-000000abc08b}" x="650" y="80" z="10" orientation="1" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-10" orientation="n" id="23"/>
+          <terminal x="0" y="10" orientation="s" id="24"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc08c}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>12</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+      <element type="embed://import/synth/strip-terminal.elmt" uuid="{00000000-0000-4000-8000-000000ABC08D}" x="650" y="100" z="10" orientation="1" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-10" orientation="n" id="25"/>
+          <terminal x="0" y="10" orientation="s" id="26"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc08e}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>13</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+      <element type="embed://import/synth/strip-terminal.elmt" uuid="{00000000-0000-4000-8000-000000abc08f}" x="650" y="120" z="10" orientation="1" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-10" orientation="n" id="27"/>
+          <terminal x="0" y="10" orientation="s" id="28"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc090}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>14</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+      <element type="embed://import/synth/strip-terminal.elmt" uuid="{00000000-0000-4000-8000-000000ABC091}" x="650" y="140" z="10" orientation="1" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-10" orientation="n" id="29"/>
+          <terminal x="0" y="10" orientation="s" id="30"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc092}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>15</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+      <element type="embed://import/synth/strip-terminal.elmt" uuid="{00000000-0000-4000-8000-000000abc093}" x="650" y="160" z="10" orientation="1" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-10" orientation="n" id="31"/>
+          <terminal x="0" y="10" orientation="s" id="32"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc094}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>16</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+      <element type="embed://import/synth/strip-terminal.elmt" uuid="{00000000-0000-4000-8000-000000ABC095}" x="650" y="180" z="10" orientation="1" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-10" orientation="n" id="33"/>
+          <terminal x="0" y="10" orientation="s" id="34"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc096}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>17</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+      <element type="embed://import/synth/strip-terminal.elmt" uuid="{00000000-0000-4000-8000-000000abc097}" x="650" y="200" z="10" orientation="1" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-10" orientation="n" id="35"/>
+          <terminal x="0" y="10" orientation="s" id="36"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc098}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>18</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+      <element type="embed://import/synth/strip-terminal.elmt" uuid="{00000000-0000-4000-8000-000000ABC099}" x="650" y="220" z="10" orientation="1" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-10" orientation="n" id="37"/>
+          <terminal x="0" y="10" orientation="s" id="38"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc09a}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>19</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+      <element type="embed://import/synth/strip-terminal.elmt" uuid="{00000000-0000-4000-8000-000000abc09b}" x="650" y="240" z="10" orientation="1" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-10" orientation="n" id="39"/>
+          <terminal x="0" y="10" orientation="s" id="40"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc09c}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>20</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+      <element type="embed://import/synth/strip-terminal-pe.elmt" uuid="{00000000-0000-4000-8000-000000ABC0A0}" x="230" y="460" z="10" orientation="1" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-10" orientation="n" id="41"/>
+          <terminal x="0" y="10" orientation="s" id="42"/>
+        </terminals>
+        <inputs/>
+        <elementInformations>
+          <elementInformation name="label" show="1">-X1032</elementInformation>
+        </elementInformations>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc0a1}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>1</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+      <element type="embed://import/synth/strip-terminal-pe.elmt" uuid="{00000000-0000-4000-8000-000000abc0a2}" x="230" y="480" z="10" orientation="1" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-10" orientation="n" id="43"/>
+          <terminal x="0" y="10" orientation="s" id="44"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc0a3}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>2</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+      <element type="embed://import/synth/strip-terminal-pe.elmt" uuid="{00000000-0000-4000-8000-000000ABC0A4}" x="230" y="500" z="10" orientation="1" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-10" orientation="n" id="45"/>
+          <terminal x="0" y="10" orientation="s" id="46"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc0a5}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>3</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+      <element type="embed://import/synth/strip-terminal-pe.elmt" uuid="{00000000-0000-4000-8000-000000abc0a6}" x="230" y="520" z="10" orientation="1" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-10" orientation="n" id="47"/>
+          <terminal x="0" y="10" orientation="s" id="48"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc0a7}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>4</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+      <element type="embed://import/synth/strip-terminal-pe.elmt" uuid="{00000000-0000-4000-8000-000000ABC0A8}" x="230" y="540" z="10" orientation="1" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-10" orientation="n" id="49"/>
+          <terminal x="0" y="10" orientation="s" id="50"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc0a9}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>5</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+      <element type="embed://import/synth/ew.gen.ip@qet10.elmt" uuid="{00000000-0000-4000-8000-000000abc0aa}" x="890" y="60" z="10" orientation="0" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-10" orientation="n" id="51"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc0ab}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>0VDC-AIR1</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+      <element type="embed://import/synth/ew.gen.ip@qet10.elmt" uuid="{00000000-0000-4000-8000-000000ABC0AC}" x="890" y="140" z="10" orientation="0" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-10" orientation="n" id="52"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc0ad}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>0VDC-AIR2</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+      <element type="embed://import/synth/ew.gen.ip@qet10.elmt" uuid="{00000000-0000-4000-8000-000000abc0ae}" x="890" y="160" z="10" orientation="0" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-10" orientation="n" id="53"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc0af}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>0VDC-AIR3</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+      <element type="embed://import/synth/ew.gen.ip@qet10.elmt" uuid="{00000000-0000-4000-8000-000000ABC0B0}" x="890" y="120" z="10" orientation="0" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-10" orientation="n" id="54"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc0b1}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>0VDC-AIR4</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+      <element type="embed://import/synth/ew.gen.ip@qet10-2.elmt" uuid="{00000000-0000-4000-8000-000000abc0b2}" x="110" y="60" z="10" orientation="0" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-10" orientation="n" id="55"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc0b3}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>0VDC</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids>
+          <link_uuid uuid="{00000000-0000-4000-8000-000000abc05a}"/>
+        </links_uuids>
+      </element>
+      <element type="embed://import/synth/ew.gen.ip@qet10-2.elmt" uuid="{00000000-0000-4000-8000-000000ABC0B4}" x="110" y="80" z="10" orientation="0" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-10" orientation="n" id="56"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc0b5}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>24VDC-1</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids>
+          <link_uuid uuid="{00000000-0000-4000-8000-000000abc05c}"/>
+        </links_uuids>
+      </element>
+      <element type="embed://import/synth/ew.gen.ip@qet10-2.elmt" uuid="{00000000-0000-4000-8000-000000abc0b6}" x="110" y="220" z="10" orientation="0" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-10" orientation="n" id="57"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc0b7}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>24VDC-2</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids>
+          <link_uuid uuid="{00000000-0000-4000-8000-000000abc05e}"/>
+        </links_uuids>
+      </element>
+      <element type="embed://import/synth/ew.gen.ip@qet10-2.elmt" uuid="{00000000-0000-4000-8000-000000ABC0B8}" x="110" y="300" z="10" orientation="0" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-10" orientation="n" id="58"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc0b9}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>24VDC-3</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids>
+          <link_uuid uuid="{00000000-0000-4000-8000-000000abc060}"/>
+        </links_uuids>
+      </element>
+      <element type="embed://import/synth/ew.gen.ip@qet10-2.elmt" uuid="{00000000-0000-4000-8000-000000abc0ba}" x="110" y="460" z="10" orientation="0" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-10" orientation="n" id="59"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc0bb}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>24VDC-4</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids>
+          <link_uuid uuid="{00000000-0000-4000-8000-000000abc062}"/>
+        </links_uuids>
+      </element>
+      <element type="embed://import/synth/ew.gen.ip@qet10.elmt" uuid="{00000000-0000-4000-8000-000000ABC0BC}" x="410" y="60" z="10" orientation="0" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-10" orientation="n" id="60"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc0bd}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>24VDC-AIR1</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+      <element type="embed://import/synth/ew.gen.ip@qet10.elmt" uuid="{00000000-0000-4000-8000-000000abc0be}" x="410" y="140" z="10" orientation="0" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-10" orientation="n" id="61"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc0bf}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>24VDC-AIR2</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+      <element type="embed://import/synth/ew.gen.ip@qet10.elmt" uuid="{00000000-0000-4000-8000-000000ABC0C0}" x="410" y="160" z="10" orientation="0" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-10" orientation="n" id="62"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc0c1}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>24VDC-AIR3</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+      <element type="embed://import/synth/ew.gen.ip@qet10.elmt" uuid="{00000000-0000-4000-8000-000000abc0c2}" x="410" y="120" z="10" orientation="0" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-10" orientation="n" id="63"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc0c3}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>24VDC-AIR4</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+      <element type="embed://import/synth/ew.gen.ip@qet10-2.elmt" uuid="{00000000-0000-4000-8000-000000ABC0C4}" x="110" y="540" z="10" orientation="0" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-10" orientation="n" id="64"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc0c5}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>PE-0VDC</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids>
+          <link_uuid uuid="{00000000-0000-4000-8000-000000abc06a}"/>
+        </links_uuids>
+      </element>
+      <element type="embed://import/synth/ew.gen.ip@qet10-2.elmt" uuid="{00000000-0000-4000-8000-000000abc0c6}" x="410" y="540" z="10" orientation="0" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-10" orientation="n" id="65"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc0c7}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>PE-1.1</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids>
+          <link_uuid uuid="{00000000-0000-4000-8000-000000abc02d}"/>
+        </links_uuids>
+      </element>
+      <element type="embed://import/synth/ew.gen.ip@qet10-2.elmt" uuid="{00000000-0000-4000-8000-000000ABC0C8}" x="410" y="560" z="10" orientation="0" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-10" orientation="n" id="66"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc0c9}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>PE-1.2</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids>
+          <link_uuid uuid="{00000000-0000-4000-8000-000000abc06c}"/>
+        </links_uuids>
+      </element>
+      <element type="embed://import/synth/ew.gen.ip@qet10-2.elmt" uuid="{00000000-0000-4000-8000-000000abc0ca}" x="410" y="520" z="10" orientation="0" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-10" orientation="n" id="67"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc0cb}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>PE-1.3</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+      <element type="embed://import/synth/ew.gen.ip@qet10-2.elmt" uuid="{00000000-0000-4000-8000-000000ABC0CC}" x="430" y="540" z="10" orientation="0" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-10" orientation="n" id="68"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc0cd}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>PE-1.4</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+      <element type="embed://import/synth/ew.gen.ip@qet10-2.elmt" uuid="{00000000-0000-4000-8000-000000abc0ce}" x="110" y="560" z="10" orientation="0" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-10" orientation="n" id="69"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc0cf}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>PE-AIR1</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+      <element type="embed://import/synth/ew.gen.ip@qet10-2.elmt" uuid="{00000000-0000-4000-8000-000000ABC0D0}" x="110" y="520" z="10" orientation="0" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-10" orientation="n" id="70"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts>
+          <dynamic_elmt_text text_from="UserText" uuid="{00000000-0000-4000-8000-000000abc0d1}" x="0" y="0" rotation="0" font="Sans Serif,9,-1,5,50,0,0,0,0,0" frame="false" text_width="-1" keep_visual_rotation="true" Halignment="AlignLeft" Valignment="AlignTop"><text>PE-AIR2</text></dynamic_elmt_text>
+        </dynamic_texts>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+    </elements>
+    <conductors>
+      <conductor element1="{00000000-0000-4000-8000-000000abc0c6}" terminal1="{00000000-0000-4000-8000-000000abc065}" element2="{00000000-0000-4000-8000-000000abc0a0}" terminal2="{00000000-0000-4000-8000-000000abc09f}" num="" function="" tension_protocol="" conductor_color="" conductor_section="" type="multi" x="0" y="0" freezeLabel="false"/>
+      <conductor element1="{00000000-0000-4000-8000-000000abc0b2}" terminal1="{00000000-0000-4000-8000-000000abc065}" element2="{00000000-0000-4000-8000-000000abc089}" terminal2="{00000000-0000-4000-8000-000000abc073}" num="" function="" tension_protocol="" conductor_color="" conductor_section="" type="multi" x="0" y="0" freezeLabel="false"/>
+      <conductor terminal1="64" terminal2="43" num="" function="" tension_protocol="" conductor_color="" conductor_section="" type="multi" x="0" y="0" freezeLabel="false"/>
+      <conductor element1="{00000000-0000-4000-8000-000000abc0c8}" terminal1="{00000000-0000-4000-8000-000000abc065}" element2="{00000000-0000-4000-8000-000000abc0a2}" terminal2="{00000000-0000-4000-8000-000000abc09f}" num="" function="" tension_protocol="" conductor_color="" conductor_section="" type="multi" x="0" y="0" freezeLabel="false"/>
+      <conductor element1="{00000000-0000-4000-8000-000000abc0b4}" terminal1="{00000000-0000-4000-8000-000000abc065}" element2="{00000000-0000-4000-8000-000000abc075}" terminal2="{00000000-0000-4000-8000-000000abc073}" num="" function="" tension_protocol="" conductor_color="" conductor_section="" type="multi" x="0" y="0" freezeLabel="false"/>
+      <conductor terminal1="57" terminal2="9" num="" function="" tension_protocol="" conductor_color="" conductor_section="" type="multi" x="0" y="0" freezeLabel="false"/>
+      <conductor element1="{00000000-0000-4000-8000-000000abc0b8}" terminal1="{00000000-0000-4000-8000-000000abc065}" element2="{00000000-0000-4000-8000-000000abc081}" terminal2="{00000000-0000-4000-8000-000000abc073}" num="" function="" tension_protocol="" conductor_color="" conductor_section="" type="multi" x="0" y="0" freezeLabel="false"/>
+      <conductor element1="{00000000-0000-4000-8000-000000abc0ba}" terminal1="{00000000-0000-4000-8000-000000abc065}" element2="{00000000-0000-4000-8000-000000abc085}" terminal2="{00000000-0000-4000-8000-000000abc073}" num="" function="" tension_protocol="" conductor_color="" conductor_section="" type="multi" x="0" y="0" freezeLabel="false"/>
+      <conductor terminal1="46" terminal2="67" num="" function="" tension_protocol="" conductor_color="" conductor_section="" type="multi" x="0" y="0" freezeLabel="false"/>
+      <conductor element1="{00000000-0000-4000-8000-000000abc0a6}" terminal1="{00000000-0000-4000-8000-000000abc09f}" element2="{00000000-0000-4000-8000-000000abc0cc}" terminal2="{00000000-0000-4000-8000-000000abc065}" num="" function="" tension_protocol="" conductor_color="" conductor_section="" type="multi" x="0" y="0" freezeLabel="false"/>
+    </conductors>
+  </diagram>
+  <collection>
+    <category name="import"><names><name lang="en">Imported elements</name></names><category name="synth"><names><name lang="en">Synthetic</name></names>
+      <element name="ew.iec.mcb-1pn@qet10.elmt">
+        <definition type="element" version="0.100.0" link_type="simple" width="50" height="60" hotspot_x="20" hotspot_y="30">
+          <uuid uuid="{00000000-0000-4000-8000-000000abc000}"/>
+          <names><name lang="en">ew.iec.mcb-1pn@qet10</name></names>
+          <informations/>
+          <description>
+            <rect x="-20" y="-30" width="50" height="60" antialias="false" style="line-style:normal;line-weight:normal;filling:none;color:black"/>
+            <terminal x="-10" y="-20" orientation="n" name="1" type="Generic" uuid="{00000000-0000-4000-8000-000000abc001}"/>
+            <terminal x="-10" y="20" orientation="s" name="2" type="Generic" uuid="{00000000-0000-4000-8000-000000abc002}"/>
+            <terminal x="20" y="-20" orientation="n" name="N" type="Generic" uuid="{00000000-0000-4000-8000-000000abc003}"/>
+            <terminal x="20" y="20" orientation="s" name="N" type="Generic" uuid="{00000000-0000-4000-8000-000000abc004}"/>
+          </description>
+        </definition>
+      </element>
+      <element name="ew.iec.pe@qet10.elmt">
+        <definition type="element" version="0.100.0" link_type="simple" width="20" height="20" hotspot_x="10" hotspot_y="10">
+          <uuid uuid="{00000000-0000-4000-8000-000000abc006}"/>
+          <names><name lang="en">ew.iec.pe@qet10</name></names>
+          <informations/>
+          <description>
+            <rect x="-10" y="-10" width="20" height="20" antialias="false" style="line-style:normal;line-weight:normal;filling:none;color:black"/>
+            <terminal x="0" y="0" orientation="n" name="PE" type="Generic" uuid="{00000000-0000-4000-8000-000000abc007}"/>
+          </description>
+        </definition>
+      </element>
+      <element name="ew.iec.terminal@qet10.elmt">
+        <definition type="element" version="0.100.0" link_type="terminal" width="20" height="40" hotspot_x="10" hotspot_y="20">
+          <uuid uuid="{00000000-0000-4000-8000-000000abc009}"/>
+          <names><name lang="en">ew.iec.terminal@qet10</name></names>
+          <kindInformations><kindInformation name="type" show="1">generic</kindInformation></kindInformations>
+          <informations/>
+          <description>
+            <rect x="-10" y="-20" width="20" height="40" antialias="false" style="line-style:normal;line-weight:normal;filling:none;color:black"/>
+            <terminal x="0" y="10" orientation="s" name="1" type="Generic" uuid="{00000000-0000-4000-8000-000000abc00a}"/>
+            <terminal x="0" y="-10" orientation="n" name="2" type="Generic" uuid="{00000000-0000-4000-8000-000000abc00b}"/>
+          </description>
+        </definition>
+      </element>
+      <element name="ew.iec.terminal-pe@qet10.elmt">
+        <definition type="element" version="0.100.0" link_type="terminal" width="20" height="40" hotspot_x="10" hotspot_y="20">
+          <uuid uuid="{00000000-0000-4000-8000-000000abc010}"/>
+          <names><name lang="en">ew.iec.terminal-pe@qet10</name></names>
+          <kindInformations><kindInformation name="type" show="1">ground</kindInformation></kindInformations>
+          <informations/>
+          <description>
+            <rect x="-10" y="-20" width="20" height="40" antialias="false" style="line-style:normal;line-weight:normal;filling:none;color:black"/>
+            <terminal x="0" y="10" orientation="s" name="1" type="Generic" uuid="{00000000-0000-4000-8000-000000abc011}"/>
+            <terminal x="0" y="-10" orientation="n" name="2" type="Generic" uuid="{00000000-0000-4000-8000-000000abc012}"/>
+          </description>
+        </definition>
+      </element>
+      <element name="ew.iec.heater@qet10.elmt">
+        <definition type="element" version="0.100.0" link_type="simple" width="30" height="60" hotspot_x="10" hotspot_y="30">
+          <uuid uuid="{00000000-0000-4000-8000-000000abc015}"/>
+          <names><name lang="en">ew.iec.heater@qet10</name></names>
+          <informations/>
+          <description>
+            <rect x="-10" y="-30" width="30" height="60" antialias="false" style="line-style:normal;line-weight:normal;filling:none;color:black"/>
+            <terminal x="0" y="-20" orientation="n" name="L" type="Generic" uuid="{00000000-0000-4000-8000-000000abc016}"/>
+            <terminal x="0" y="20" orientation="s" name="N" type="Generic" uuid="{00000000-0000-4000-8000-000000abc017}"/>
+            <terminal x="10" y="0" orientation="e" name="PE" type="Generic" uuid="{00000000-0000-4000-8000-000000abc018}"/>
+          </description>
+        </definition>
+      </element>
+      <element name="ew.iec.lamp@qet10.elmt">
+        <definition type="element" version="0.100.0" link_type="simple" width="20" height="50" hotspot_x="10" hotspot_y="10">
+          <uuid uuid="{00000000-0000-4000-8000-000000abc01a}"/>
+          <names><name lang="en">ew.iec.lamp@qet10</name></names>
+          <informations/>
+          <description>
+            <rect x="-10" y="-10" width="20" height="50" antialias="false" style="line-style:normal;line-weight:normal;filling:none;color:black"/>
+            <terminal x="0" y="0" orientation="n" name="X1" type="Generic" uuid="{00000000-0000-4000-8000-000000abc01b}"/>
+            <terminal x="0" y="30" orientation="s" name="X2" type="Generic" uuid="{00000000-0000-4000-8000-000000abc01c}"/>
+          </description>
+        </definition>
+      </element>
+      <element name="ew.gen.external-arrow@qet10.elmt">
+        <definition type="element" version="0.100.0" link_type="previous_report" width="20" height="20" hotspot_x="30" hotspot_y="10">
+          <uuid uuid="{00000000-0000-4000-8000-000000abc01f}"/>
+          <names><name lang="en">ew.gen.external-arrow@qet10</name></names>
+          <informations/>
+          <description>
+            <rect x="-30" y="-10" width="20" height="20" antialias="false" style="line-style:normal;line-weight:normal;filling:none;color:black"/>
+            <terminal x="-20" y="0" orientation="w" name="1" type="Generic" uuid="{00000000-0000-4000-8000-000000abc020}"/>
+          </description>
+        </definition>
+      </element>
+      <element name="ew.gen.ip@qet10.elmt">
+        <definition type="element" version="0.100.0" link_type="next_report" width="20" height="20" hotspot_x="10" hotspot_y="20">
+          <uuid uuid="{00000000-0000-4000-8000-000000abc027}"/>
+          <names><name lang="en">ew.gen.ip@qet10</name></names>
+          <informations/>
+          <description>
+            <rect x="-10" y="-20" width="20" height="20" antialias="false" style="line-style:normal;line-weight:normal;filling:none;color:black"/>
+            <terminal x="0" y="-10" orientation="n" name="1" type="Generic" uuid="{00000000-0000-4000-8000-000000abc028}"/>
+          </description>
+        </definition>
+      </element>
+      <element name="ew.iec.switch-2p-manual@qet10.elmt">
+        <definition type="element" version="0.100.0" link_type="simple" width="40" height="50" hotspot_x="10" hotspot_y="10">
+          <uuid uuid="{00000000-0000-4000-8000-000000abc02f}"/>
+          <names><name lang="en">ew.iec.switch-2p-manual@qet10</name></names>
+          <informations/>
+          <description>
+            <rect x="-10" y="-10" width="40" height="50" antialias="false" style="line-style:normal;line-weight:normal;filling:none;color:black"/>
+            <terminal x="0" y="0" orientation="n" name="1" type="Generic" uuid="{00000000-0000-4000-8000-000000abc030}"/>
+            <terminal x="0" y="30" orientation="s" name="2" type="Generic" uuid="{00000000-0000-4000-8000-000000abc031}"/>
+            <terminal x="20" y="0" orientation="n" name="3" type="Generic" uuid="{00000000-0000-4000-8000-000000abc032}"/>
+            <terminal x="20" y="30" orientation="s" name="4" type="Generic" uuid="{00000000-0000-4000-8000-000000abc033}"/>
+          </description>
+        </definition>
+      </element>
+      <element name="ew.iec.position-switch-no@qet10.elmt">
+        <definition type="element" version="0.100.0" link_type="simple" width="20" height="50" hotspot_x="10" hotspot_y="10">
+          <uuid uuid="{00000000-0000-4000-8000-000000abc035}"/>
+          <names><name lang="en">ew.iec.position-switch-no@qet10</name></names>
+          <informations/>
+          <description>
+            <rect x="-10" y="-10" width="20" height="50" antialias="false" style="line-style:normal;line-weight:normal;filling:none;color:black"/>
+            <terminal x="0" y="0" orientation="n" name="13" type="Generic" uuid="{00000000-0000-4000-8000-000000abc036}"/>
+            <terminal x="0" y="30" orientation="s" name="14" type="Generic" uuid="{00000000-0000-4000-8000-000000abc037}"/>
+          </description>
+        </definition>
+      </element>
+      <element name="ew.iec.thermostat-nc@qet10.elmt">
+        <definition type="element" version="0.100.0" link_type="simple" width="20" height="50" hotspot_x="10" hotspot_y="10">
+          <uuid uuid="{00000000-0000-4000-8000-000000abc039}"/>
+          <names><name lang="en">ew.iec.thermostat-nc@qet10</name></names>
+          <informations/>
+          <description>
+            <rect x="-10" y="-10" width="20" height="50" antialias="false" style="line-style:normal;line-weight:normal;filling:none;color:black"/>
+            <terminal x="0" y="0" orientation="n" name="5" type="Generic" uuid="{00000000-0000-4000-8000-000000abc03a}"/>
+            <terminal x="0" y="30" orientation="s" name="3" type="Generic" uuid="{00000000-0000-4000-8000-000000abc03b}"/>
+          </description>
+        </definition>
+      </element>
+      <element name="junction.elmt">
+        <definition type="element" version="0.100.0" link_type="simple" width="20" height="20" hotspot_x="10" hotspot_y="10">
+          <uuid uuid="{00000000-0000-4000-8000-000000abc03d}"/>
+          <names><name lang="en">junction</name></names>
+          <informations/>
+          <description>
+            <rect x="-10" y="-10" width="20" height="20" antialias="false" style="line-style:normal;line-weight:normal;filling:none;color:black"/>
+            <terminal x="0" y="0" orientation="n" name="" type="Generic" uuid="{00000000-0000-4000-8000-000000abc03e}"/>
+          </description>
+        </definition>
+      </element>
+      <element name="ew.iec.mcb-1p@qet10.elmt">
+        <definition type="element" version="0.100.0" link_type="simple" width="20" height="60" hotspot_x="10" hotspot_y="30">
+          <uuid uuid="{00000000-0000-4000-8000-000000abc041}"/>
+          <names><name lang="en">ew.iec.mcb-1p@qet10</name></names>
+          <informations/>
+          <description>
+            <rect x="-10" y="-30" width="20" height="60" antialias="false" style="line-style:normal;line-weight:normal;filling:none;color:black"/>
+            <terminal x="0" y="-20" orientation="n" name="1" type="Generic" uuid="{00000000-0000-4000-8000-000000abc042}"/>
+            <terminal x="0" y="20" orientation="s" name="2" type="Generic" uuid="{00000000-0000-4000-8000-000000abc043}"/>
+          </description>
+        </definition>
+      </element>
+      <element name="ew.gen.blackbox@qet10.elmt">
+        <definition type="element" version="0.100.0" link_type="simple" width="100" height="80" hotspot_x="0" hotspot_y="40">
+          <uuid uuid="{00000000-0000-4000-8000-000000abc045}"/>
+          <names><name lang="en">ew.gen.blackbox@qet10</name></names>
+          <informations/>
+          <description>
+            <rect x="0" y="-40" width="100" height="80" antialias="false" style="line-style:normal;line-weight:normal;filling:none;color:black"/>
+            <terminal x="10" y="-30" orientation="n" name="24VDC" type="Generic" uuid="{00000000-0000-4000-8000-000000abc046}"/>
+            <terminal x="30" y="-30" orientation="n" name="24VDC" type="Generic" uuid="{00000000-0000-4000-8000-000000abc047}"/>
+            <terminal x="50" y="-30" orientation="n" name="GND" type="Generic" uuid="{00000000-0000-4000-8000-000000abc048}"/>
+            <terminal x="70" y="-30" orientation="n" name="GND" type="Generic" uuid="{00000000-0000-4000-8000-000000abc049}"/>
+            <terminal x="90" y="-30" orientation="n" name="13" type="Generic" uuid="{00000000-0000-4000-8000-000000abc04a}"/>
+            <terminal x="10" y="30" orientation="s" name="14" type="Generic" uuid="{00000000-0000-4000-8000-000000abc04b}"/>
+            <terminal x="30" y="30" orientation="s" name="Out1" type="Generic" uuid="{00000000-0000-4000-8000-000000abc04c}"/>
+            <terminal x="50" y="30" orientation="s" name="Out2" type="Generic" uuid="{00000000-0000-4000-8000-000000abc04d}"/>
+            <terminal x="70" y="30" orientation="s" name="Out3" type="Generic" uuid="{00000000-0000-4000-8000-000000abc04e}"/>
+            <terminal x="90" y="30" orientation="s" name="Out4" type="Generic" uuid="{00000000-0000-4000-8000-000000abc04f}"/>
+          </description>
+        </definition>
+      </element>
+      <element name="ew.gen.blackbox@qet10-2.elmt">
+        <definition type="element" version="0.100.0" link_type="simple" width="80" height="80" hotspot_x="0" hotspot_y="40">
+          <uuid uuid="{00000000-0000-4000-8000-000000abc051}"/>
+          <names><name lang="en">ew.gen.blackbox@qet10-2</name></names>
+          <informations/>
+          <description>
+            <rect x="0" y="-40" width="80" height="80" antialias="false" style="line-style:normal;line-weight:normal;filling:none;color:black"/>
+            <terminal x="10" y="-30" orientation="n" name="L" type="Generic" uuid="{00000000-0000-4000-8000-000000abc052}"/>
+            <terminal x="30" y="-30" orientation="n" name="N" type="Generic" uuid="{00000000-0000-4000-8000-000000abc053}"/>
+            <terminal x="50" y="-30" orientation="n" name="PE" type="Generic" uuid="{00000000-0000-4000-8000-000000abc054}"/>
+            <terminal x="70" y="-30" orientation="n" name="+" type="Generic" uuid="{00000000-0000-4000-8000-000000abc055}"/>
+            <terminal x="10" y="30" orientation="s" name="+" type="Generic" uuid="{00000000-0000-4000-8000-000000abc056}"/>
+            <terminal x="30" y="30" orientation="s" name="−" type="Generic" uuid="{00000000-0000-4000-8000-000000abc057}"/>
+            <terminal x="50" y="30" orientation="s" name="−" type="Generic" uuid="{00000000-0000-4000-8000-000000abc058}"/>
+          </description>
+        </definition>
+      </element>
+      <element name="ew.gen.ip@qet10-2.elmt">
+        <definition type="element" version="0.100.0" link_type="previous_report" width="20" height="20" hotspot_x="10" hotspot_y="20">
+          <uuid uuid="{00000000-0000-4000-8000-000000abc064}"/>
+          <names><name lang="en">ew.gen.ip@qet10-2</name></names>
+          <informations/>
+          <description>
+            <rect x="-10" y="-20" width="20" height="20" antialias="false" style="line-style:normal;line-weight:normal;filling:none;color:black"/>
+            <terminal x="0" y="-10" orientation="n" name="1" type="Generic" uuid="{00000000-0000-4000-8000-000000abc065}"/>
+          </description>
+        </definition>
+      </element>
+      <element name="strip-terminal.elmt">
+        <definition type="element" version="0.100.0" link_type="terminal" width="20" height="40" hotspot_x="10" hotspot_y="20">
+          <uuid uuid="{00000000-0000-4000-8000-000000abc072}"/>
+          <names><name lang="en">strip-terminal</name></names>
+          <kindInformations><kindInformation name="type" show="1">generic</kindInformation></kindInformations>
+          <informations/>
+          <description>
+            <rect x="-10" y="-20" width="20" height="40" antialias="false" style="line-style:normal;line-weight:normal;filling:none;color:black"/>
+            <terminal x="0" y="-10" orientation="n" name="1" type="Generic" uuid="{00000000-0000-4000-8000-000000abc073}"/>
+            <terminal x="0" y="10" orientation="s" name="2" type="Generic" uuid="{00000000-0000-4000-8000-000000abc074}"/>
+          </description>
+        </definition>
+      </element>
+      <element name="strip-terminal-pe.elmt">
+        <definition type="element" version="0.100.0" link_type="terminal" width="20" height="40" hotspot_x="10" hotspot_y="20">
+          <uuid uuid="{00000000-0000-4000-8000-000000abc09d}"/>
+          <names><name lang="en">strip-terminal-pe</name></names>
+          <kindInformations><kindInformation name="type" show="1">ground</kindInformation></kindInformations>
+          <informations/>
+          <description>
+            <rect x="-10" y="-20" width="20" height="40" antialias="false" style="line-style:normal;line-weight:normal;filling:none;color:black"/>
+            <terminal x="0" y="-10" orientation="n" name="1" type="Generic" uuid="{00000000-0000-4000-8000-000000abc09e}"/>
+            <terminal x="0" y="10" orientation="s" name="2" type="Generic" uuid="{00000000-0000-4000-8000-000000abc09f}"/>
+          </description>
+        </definition>
+      </element>
+    </category></category>
+  </collection>
+</project>

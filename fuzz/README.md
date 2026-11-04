@@ -37,6 +37,7 @@ workspace's, so the shared dependencies have the versions of the tested build; t
 | `textconv` | A selector byte (no session even, the golden project's session odd) and one project file through `ew_api::output::textconv` (WP-S6.04) | No panic; a text results; no record named without a session, at most one per line with it |
 | `table_round_trip` | A selector byte (bit 0: the table key given or not; the rest: the navigator) and a round-trip file (CSV or a workbook, by its own signature) through `Session::table_import` on the golden project's session (WP-S6.04) | No panic; changes or a refusal; the model unchanged |
 | `command_log` | A `.ewcmd` (lossy UTF-8) through `CmdLog::parse` and `Session::run_script` on a new in-memory session of the golden project (WP-S6.04) | No panic; a log naming a `HumanOnly` command is refused before its first line; a log refused before its first line changes nothing; the model passes the structural check |
+| `qet_project`, `qet_element`, `golden_tables`, `parts_table` | The four importers through the import front door (WP-S3.09 D15, src/importers.rs): the bytes as one `.qet` imported into an empty project by `import.apply`; as one `.elmt` under the element-definition limits; as up to eight named tables of the golden dialect (a count byte, then a selector byte, a 2-byte length and the bytes per table) through the bootstrap and `session_from_batch`; as a CSV or XLSX supplier table with a fixed column map | No panic (the front door's caught panic fails the target); every emitted record and library document reads again strictly from its own line with no malformed variant and validates; a batch keeps the importer contract; a model made from it passes the structural check |
 
 **The migration chain.** The format's upgrade chain on `serde_json::Value` (WP-S1.17) is not built. What exists is the
 open path that takes a project written by an older build within the same format (the typed revisions, ADR-0011
@@ -61,7 +62,7 @@ cargo fuzz run -a jsonl_loader target/corpus/jsonl_loader corpus/jsonl_loader --
 The first corpus directory is the working one (libFuzzer writes the inputs that add coverage there; `target/` is ignored);
 the committed seeds under `corpus/<target>/` stay as they are. Useful `max_len` values: `jsonl_loader` 65536,
 `migration_chain` 65, `command_sequence` 512, `png_pdf` 16384, `ewz_read` 16384, `merge_file` 65536, `sql_sandbox` 4096, and 16384 for `svg_asset`,
-`image_decode`, `textconv`, `table_round_trip` and `command_log`. Run it from `fuzz/`: from the repository root rustup would choose the stable
+`image_decode`, `textconv`, `table_round_trip` and `command_log`; `qet_project` 65536, `qet_element` 16384, `golden_tables` 65536, `parts_table` 65536. Run it from `fuzz/`: from the repository root rustup would choose the stable
 toolchain of the workspace and cargo-fuzz would refuse. AddressSanitizer is cargo-fuzz's default. A sanitized binary that
 links the bundled SQLite reports an ODR violation for `aiOff` at start-up unless `ASAN_OPTIONS=detect_odr_violation=0`
 (cargo-fuzz sets it for `cargo fuzz run`; export it to run a built binary by hand). This is a false positive of the C code,
@@ -89,8 +90,8 @@ for.
 ## Seed corpora and regressions
 
 `corpus/<target>/` holds small seeds made from the golden project (anonymised, CC0) by `src/bin/seed_corpus.rs`; `cargo xtask settle`
-regenerates the folders of `jsonl_loader`, `migration_chain` and `command_sequence` (the step `fuzz-seeds`, triggered by Golden A's
-files and `fuzz/src/`; it runs `cargo run --manifest-path fuzz/Cargo.toml --locked --bin seed_corpus -- <dir>` from the repository
+regenerates the folders of `jsonl_loader`, `migration_chain`, `command_sequence` and the four importer targets (the step `fuzz-seeds`,
+triggered by Golden A's files, `fuzz/src/`, the golden tables, the QET element fixtures and the synthetic QET project; it runs `cargo run --manifest-path fuzz/Cargo.toml --locked --bin seed_corpus -- <dir>` from the repository
 root, which is deterministic, and in `--check` names each seed that differs, is missing or is no longer made). A loader seed names
 its files by their index in Golden A's sorted file list, so a file added to or removed from Golden A makes the seeds stale. The seeds of `png_pdf` are four small PNGs
 written by hand (an 8-bit RGBA image with translucent pixels, an 8-bit grey-and-alpha image, a palette image with `tRNS`, a

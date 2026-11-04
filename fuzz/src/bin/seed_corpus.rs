@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Writes the seed corpora of the three targets into `fuzz/corpus/<target>/` (FT-297): small inputs made from
+//! Writes the seed corpora of the generated targets into `fuzz/corpus/<target>/` (FT-297): small inputs made from
 //! the golden project (no private data: the golden project is anonymised), deterministic, so a rerun gives the
 //! same files. `cargo xtask settle` runs it (the step `fuzz-seeds`, from the repository root): `cargo run
 //! --manifest-path fuzz/Cargo.toml --locked --bin seed_corpus -- <dir>`; an argument names the output directory
@@ -10,6 +10,7 @@
 use std::path::{Path, PathBuf};
 
 use ew_fuzz::golden;
+use ew_fuzz::importers;
 use ew_fuzz::loader::{self, MODE_COMPUTED_MANIFEST, MODE_TINY_LIMITS};
 use ew_fuzz::open_path::{self, MODE_READ_ONLY, MODE_STALE_MANIFEST, OP_KINDS, Op};
 
@@ -275,6 +276,264 @@ fn command_seeds(dir: &Path) {
     );
 }
 
+/// The helper the synthetic QET builder names (`crate::golden_common::repo`).
+mod golden_common {
+    pub fn repo() -> std::path::PathBuf {
+        ew_fuzz::golden::repo()
+    }
+}
+
+/// The synthetic QET project of Golden A's folios 101 to 103 (`crates/ew-api/tests/qet_synth`), built from the public
+/// golden tables.
+#[allow(dead_code, clippy::all, unused_imports)]
+#[path = "../../../crates/ew-api/tests/qet_synth/mod.rs"]
+mod qet_synth;
+
+/// A small QET project: two elements with a wire, a folio-report pair over two folios, a terminal and a project UUID.
+const SMALL_QET: &str = r#"<?xml version="1.0" encoding="UTF-8"?>
+<project version="0.100" title="Seed" uuid="{0190d8a4-6d3e-7c41-8f00-0000000000a1}">
+  <properties/>
+  <diagram order="1" folio="1" title="A" cols="17" colsize="60" rows="8" rowsize="80" height="660">
+    <elements>
+      <element type="embed://import/simple.elmt" uuid="{00000000-0000-4000-8000-000000000001}" x="100" y="100" z="10" orientation="0" prefix="">
+        <terminals><terminal x="0" y="-10" orientation="n" id="1"/><terminal x="0" y="10" orientation="s" id="2"/></terminals>
+        <inputs/><elementInformations><elementInformation name="label" show="1">-1K1</elementInformation></elementInformations>
+        <dynamic_texts/><texts_groups/><links_uuids/>
+      </element>
+      <element type="embed://import/next.elmt" uuid="{00000000-0000-4000-8000-000000000002}" x="100" y="200" z="10" orientation="0" prefix="">
+        <terminals><terminal x="0" y="-10" orientation="n" id="3"/></terminals>
+        <inputs/><elementInformations/><dynamic_texts/><texts_groups/>
+        <links_uuids><link_uuid uuid="{00000000-0000-4000-8000-000000000003}"/></links_uuids>
+      </element>
+    </elements>
+    <conductors>
+      <conductor element1="{00000000-0000-4000-8000-000000000001}" terminal1="{00000000-0000-4000-9000-000000000001}" element2="{00000000-0000-4000-8000-000000000002}" terminal2="{00000000-0000-4000-9000-000100000000}" num="" function="" tension_protocol="" conductor_color="" conductor_section="" type="multi" x="0" y="0"/>
+    </conductors>
+  </diagram>
+  <diagram order="2" folio="2" title="B" cols="17" colsize="60" rows="8" rowsize="80" height="660">
+    <elements>
+      <element type="embed://import/previous.elmt" uuid="{00000000-0000-4000-8000-000000000003}" x="100" y="100" z="10" orientation="0" prefix="">
+        <terminals><terminal x="0" y="10" orientation="s" id="1"/></terminals>
+        <inputs/><elementInformations/><dynamic_texts/><texts_groups/>
+        <links_uuids><link_uuid uuid="{00000000-0000-4000-8000-000000000002}"/></links_uuids>
+      </element>
+      <element type="embed://import/terminal.elmt" uuid="{00000000-0000-4000-8000-000000000004}" x="200" y="100" z="10" orientation="0" prefix="">
+        <terminals><terminal x="0" y="-10" orientation="n" id="2"/><terminal x="0" y="10" orientation="s" id="3"/></terminals>
+        <inputs/><elementInformations><elementInformation name="label" show="1">-X1</elementInformation></elementInformations>
+        <dynamic_texts/><texts_groups/><links_uuids/>
+      </element>
+    </elements>
+    <conductors>
+      <conductor element1="{00000000-0000-4000-8000-000000000003}" terminal1="{00000000-0000-4000-9000-000200000000}" element2="{00000000-0000-4000-8000-000000000004}" terminal2="{00000000-0000-4000-9000-000300000000}" num="" function="" tension_protocol="" conductor_color="" conductor_section="" type="multi" x="0" y="0"/>
+    </conductors>
+  </diagram>
+  <collection><category name="import">
+    <element name="simple.elmt"><definition type="element" version="0.100.0" link_type="simple" width="20" height="30" hotspot_x="10" hotspot_y="10"><uuid uuid="{00000000-0000-4000-8000-00000000e000}"/><names><name lang="en">simple</name></names><informations/><description><terminal x="0" y="-10" orientation="n" uuid="{00000000-0000-4000-9000-000000000000}" type="Generic"/><terminal x="0" y="10" orientation="s" uuid="{00000000-0000-4000-9000-000000000001}" type="Generic"/></description></definition></element>
+    <element name="next.elmt"><definition type="element" version="0.100.0" link_type="next_report" width="20" height="20" hotspot_x="10" hotspot_y="10"><uuid uuid="{00000000-0000-4000-8000-00000000e001}"/><names><name lang="en">next</name></names><informations/><description><terminal x="0" y="-10" orientation="n" uuid="{00000000-0000-4000-9000-000100000000}" type="Generic"/></description></definition></element>
+    <element name="previous.elmt"><definition type="element" version="0.100.0" link_type="previous_report" width="20" height="20" hotspot_x="10" hotspot_y="10"><uuid uuid="{00000000-0000-4000-8000-00000000e002}"/><names><name lang="en">previous</name></names><informations/><description><terminal x="0" y="10" orientation="s" uuid="{00000000-0000-4000-9000-000200000000}" type="Generic"/></description></definition></element>
+    <element name="terminal.elmt"><definition type="element" version="0.100.0" link_type="terminal" width="20" height="30" hotspot_x="10" hotspot_y="10"><uuid uuid="{00000000-0000-4000-8000-00000000e003}"/><names><name lang="en">terminal</name></names><kindInformations><kindInformation name="type" show="1">generic</kindInformation></kindInformations><informations/><description><terminal x="0" y="-10" orientation="n" uuid="{00000000-0000-4000-9000-000300000000}" type="Generic"/><terminal x="0" y="10" orientation="s" uuid="{00000000-0000-4000-9000-000300000001}" type="Generic"/></description></definition></element>
+  </category></collection>
+</project>
+"#;
+
+fn qet_project_seeds(dir: &Path) {
+    write(dir, "small-project", SMALL_QET.as_bytes());
+    write(dir, "synthetic-101-103", qet_synth::build().text.as_bytes());
+}
+
+fn qet_element_seeds(dir: &Path) {
+    let fixtures = golden::repo().join("crates/ew-import-qet/tests/fixtures");
+    let mut names: Vec<PathBuf> = std::fs::read_dir(&fixtures)
+        .expect("the element fixtures")
+        .map(|e| e.expect("a directory entry").path())
+        .filter(|p| p.extension().is_some_and(|x| x == "elmt"))
+        .collect();
+    names.sort();
+    for path in names {
+        let name = path.file_stem().expect("a file name").to_string_lossy().into_owned();
+        write(dir, &name, &std::fs::read(&path).expect("a readable fixture"));
+    }
+}
+
+fn golden_tables_seeds(dir: &Path) {
+    let table = |name: &str| -> Vec<u8> {
+        std::fs::read(golden::repo().join("golden/J-E-2416/tables").join(name))
+            .unwrap_or_else(|e| panic!("reading {name}: {e}"))
+    };
+    let seed = |lenient: bool, names: &[&str]| -> Vec<u8> {
+        let tables: Vec<(u8, Vec<u8>)> = names
+            .iter()
+            .map(|n| (importers::table_index(n), table(n)))
+            .collect();
+        let refs: Vec<(u8, &[u8])> = tables.iter().map(|(i, b)| (*i, b.as_slice())).collect();
+        importers::encode_tables(lenient, &refs)
+    };
+    write(
+        dir,
+        "project-pages",
+        &seed(
+            false,
+            &["project.csv", "structure.csv", "external_refs.csv", "pages.csv"],
+        ),
+    );
+    write(
+        dir,
+        "devices-functions-connections",
+        &seed(
+            true,
+            &[
+                "project.csv",
+                "structure.csv",
+                "external_refs.csv",
+                "pages.csv",
+                "devices.csv",
+                "functions.csv",
+                "connections.csv",
+                "potentials.csv",
+            ],
+        ),
+    );
+    write(
+        dir,
+        "parts-lenient",
+        &seed(
+            true,
+            &[
+                "project.csv",
+                "structure.csv",
+                "external_refs.csv",
+                "pages.csv",
+                "parts.csv",
+                "part_cps.csv",
+            ],
+        ),
+    );
+}
+
+/// The supplier table of the parts seeds: the fixed map's headers, a split part number and a row without one.
+const SUPPLIER: [[&str; 8]; 4] = [
+    [
+        "Manufacturer",
+        "Part number",
+        "Type",
+        "Order number",
+        "GTIN",
+        "Description",
+        "Kind",
+        "Unit",
+    ],
+    ["Phoenix Contact", "3044102", "UT 4", "3044102", "4017918960445", "Feed-through terminal", "terminal", "piece"],
+    ["Siemens", "3RT2015-1BB41 / 3RT2015-1BB42", "3RT2015", "", "", "Contactor", "contactor", "piece"],
+    ["Weidmüller", "", "WDU 2.5", "", "", "Terminal", "terminal", "piece"],
+];
+
+/// A ZIP of stored `files` (no compression), the smallest workbook container.
+fn stored_zip(files: &[(&str, String)]) -> Vec<u8> {
+    fn crc32(bytes: &[u8]) -> u32 {
+        let mut crc = !0u32;
+        for b in bytes {
+            crc ^= u32::from(*b);
+            for _ in 0..8 {
+                crc = if crc & 1 == 1 { (crc >> 1) ^ 0xedb8_8320 } else { crc >> 1 };
+            }
+        }
+        !crc
+    }
+    let u16_of = |n: usize| u16::try_from(n).expect("a small seed").to_le_bytes();
+    let u32_of = |n: usize| u32::try_from(n).expect("a small seed").to_le_bytes();
+    let mut out = Vec::new();
+    let mut central = Vec::new();
+    for (name, body) in files {
+        let offset = out.len();
+        let header = |sig: u32, central: bool| {
+            let mut h = sig.to_le_bytes().to_vec();
+            if central {
+                h.extend(20u16.to_le_bytes());
+            }
+            h.extend(20u16.to_le_bytes());
+            h.extend([0u8; 8]); // flags, method (stored), time, date
+            h.extend(crc32(body.as_bytes()).to_le_bytes());
+            h.extend(u32_of(body.len()));
+            h.extend(u32_of(body.len()));
+            h.extend(u16_of(name.len()));
+            h.extend([0u8; 2]);
+            if central {
+                h.extend([0u8; 8]); // comment, disk, internal and external attributes
+                h.extend([0u8; 2]);
+                h.extend(u32_of(offset));
+            }
+            h.extend(name.as_bytes());
+            h
+        };
+        out.extend(header(0x0403_4b50, false));
+        out.extend(body.as_bytes());
+        central.extend(header(0x0201_4b50, true));
+    }
+    let (cd_offset, cd_size) = (out.len(), central.len());
+    out.extend(central);
+    out.extend(0x0605_4b50u32.to_le_bytes());
+    out.extend([0u8; 4]);
+    out.extend(u16_of(files.len()));
+    out.extend(u16_of(files.len()));
+    out.extend(u32_of(cd_size));
+    out.extend(u32_of(cd_offset));
+    out.extend([0u8; 2]);
+    out
+}
+
+/// [`SUPPLIER`] as a one-sheet workbook with inline strings.
+fn supplier_xlsx() -> Vec<u8> {
+    let mut sheet = String::from(
+        r#"<?xml version="1.0" encoding="UTF-8"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>"#,
+    );
+    for (r, row) in SUPPLIER.iter().enumerate() {
+        sheet += &format!(r#"<row r="{}">"#, r + 1);
+        for (c, cell) in row.iter().enumerate().filter(|(_, c)| !c.is_empty()) {
+            let column = char::from(b'A' + u8::try_from(c).expect("eight columns"));
+            sheet += &format!(
+                r#"<c r="{column}{}" t="inlineStr"><is><t>{cell}</t></is></c>"#,
+                r + 1
+            );
+        }
+        sheet += "</row>";
+    }
+    sheet += "</sheetData></worksheet>";
+    stored_zip(&[
+        (
+            "[Content_Types].xml",
+            r#"<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/></Types>"#.to_owned(),
+        ),
+        (
+            "_rels/.rels",
+            r#"<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>"#.to_owned(),
+        ),
+        (
+            "xl/workbook.xml",
+            r#"<?xml version="1.0" encoding="UTF-8"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Parts" sheetId="1" r:id="rId1"/></sheets></workbook>"#.to_owned(),
+        ),
+        (
+            "xl/_rels/workbook.xml.rels",
+            r#"<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>"#.to_owned(),
+        ),
+        ("xl/worksheets/sheet1.xml", sheet),
+    ])
+}
+
+fn parts_table_seeds(dir: &Path) {
+    let csv: String = SUPPLIER
+        .iter()
+        .map(|row| {
+            let cells: Vec<String> = row
+                .iter()
+                .map(|c| if c.contains(['/', ' ']) { format!("\"{c}\"") } else { (*c).to_owned() })
+                .collect();
+            cells.join(",") + "\n"
+        })
+        .collect();
+    write(dir, "supplier-csv", csv.as_bytes());
+    write(dir, "supplier-xlsx", &supplier_xlsx());
+}
+
 fn main() {
     let out: PathBuf = std::env::args_os()
         .nth(1)
@@ -282,5 +541,9 @@ fn main() {
     loader_seeds(&out.join("jsonl_loader"));
     open_path_seeds(&out.join("migration_chain"));
     command_seeds(&out.join("command_sequence"));
+    qet_project_seeds(&out.join("qet_project"));
+    qet_element_seeds(&out.join("qet_element"));
+    golden_tables_seeds(&out.join("golden_tables"));
+    parts_table_seeds(&out.join("parts_table"));
     println!("seed corpora written to {}", out.display());
 }

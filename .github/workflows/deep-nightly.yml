@@ -318,6 +318,14 @@ jobs:
             max_len: "16384"
           - target: command_log
             max_len: "16384"
+          - target: qet_project
+            max_len: "65536"
+          - target: qet_element
+            max_len: "16384"
+          - target: golden_tables
+            max_len: "65536"
+          - target: parts_table
+            max_len: "65536"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
