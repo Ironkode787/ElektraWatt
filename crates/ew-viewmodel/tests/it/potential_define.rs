@@ -512,3 +512,66 @@ fn define_potential_from_the_menu_the_context_menu_and_the_palette() {
     );
     shell.shutdown();
 }
+
+/// The Potentials node named `name`.
+fn node(shell: &ShellModel, name: &str) -> ew_viewmodel::navigators::NavNode {
+    let t = shell.nav(NavKind::Potentials).and_then(|n| n.table()).unwrap();
+    t.nodes
+        .iter()
+        .find(|n| n.role == NavRole::Potential && n.label == name)
+        .cloned()
+        .unwrap_or_else(|| panic!("no potential {name}"))
+}
+
+/// FT-1239 (ID-1315): a Potentials row with a definition point offers Define potential… in its context menu; the
+/// form it opens defines the row's potential at that point in one step, whatever page is on show and whatever is
+/// selected; a row without one offers nothing and is refused in words; a later Define potential… from the menu takes
+/// the selection again.
+#[test]
+fn define_potential_from_a_potentials_row() {
+    let tmp = Tmp::new("potdef-row");
+    let mut shell = undefined(&tmp);
+    let l = potential_at(&mut shell, "101", "S51:2");
+    done(&mut shell, "navigator.show", json!({"kind": "potentials"}));
+    let row = node(&shell, &l);
+    let (function, idx) = row.define_at.expect("a point to define it at");
+    let menu = ew_viewmodel::command_bar::navigator_row_menu(NavKind::Potentials, &row, true);
+    let items: Vec<(&str, String, bool)> = menu.iter().map(|i| (i.id, i.label.clone(), i.enabled)).collect();
+    assert_eq!(items, [("potential.draw_row", "Define potential…".to_owned(), true)]);
+    let read_only = ew_viewmodel::command_bar::navigator_row_menu(NavKind::Potentials, &row, false);
+    assert_eq!(read_only[0].reason.as_deref(), Some("The project is open read-only"));
+    // Another page on show and nothing selected: the row's point all the same.
+    done(&mut shell, "page.goto", json!({"folio": "103"}));
+    done(&mut shell, "select.set", json!({"ids": []}));
+    let steps = shell.recorded_commands().len();
+    done(&mut shell, menu[0].id, menu[0].params.clone());
+    fill_form(&mut shell, ["FEED-R", "", ""]);
+    assert_eq!(shell.recorded_commands().len(), steps + 1, "one step");
+    let last = shell.recorded_commands().last().unwrap();
+    assert_eq!(last.cmd, "potential.define");
+    assert_eq!(
+        last.params["at"],
+        json!({"cp": {"function": function.to_string(), "idx": idx}}),
+        "{}",
+        last.params
+    );
+    // The defined row has no point left to define at: no menu, and the action refuses in words.
+    let defined = node(&shell, "FEED-R");
+    assert!(ew_viewmodel::command_bar::navigator_row_menu(NavKind::Potentials, &defined, true).is_empty());
+    let reason = common::refused(&mut shell, "potential.draw_row", json!({"row": defined.key}));
+    assert_eq!(
+        ew_viewmodel::strings::text(ew_viewmodel::strings::Key::run_time(reason)),
+        "This row has no connection point to define its potential at"
+    );
+    // The pin goes with its form: cancelled, a Define potential… from the menu asks for the selection again.
+    let n = potential_at(&mut shell, "101", "S51:4");
+    let n_row = node(&shell, &n).key;
+    done(&mut shell, "potential.draw_row", json!({"row": n_row}));
+    done(&mut shell, "ui.dismiss", json!({}));
+    let reason = common::refused(&mut shell, "potential.draw", json!({}));
+    assert_eq!(
+        ew_viewmodel::strings::text(ew_viewmodel::strings::Key::run_time(reason)),
+        "Select one wire, junction or terminal"
+    );
+    shell.shutdown();
+}

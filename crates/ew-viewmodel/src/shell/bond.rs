@@ -134,6 +134,10 @@ impl ShellModel {
     /// `from` end (a connection point or a junction, on the wire's potential as its other end is); a terminal's lowest
     /// connection point, or the one connection point of a symbol that has one. Anything else is refused in words.
     pub(crate) fn potential_point(&self) -> Result<TableEnd, Key<'static>> {
+        // FT-1239: while the form a Potentials row opened is open, the row's point.
+        if let Some(at) = self.potential_at.filter(|_| self.potential_form_open()) {
+            return Ok(at);
+        }
         let reason = key!("reason-potential-point");
         let Some(c) = self.canvas() else {
             return Err(reason);
@@ -262,6 +266,7 @@ impl ShellModel {
 
     /// The parameter form of `potential.draw` in the palette (WP-S2.08 D5 (a)), its name required.
     fn open_potential_form(&mut self) -> Outcome {
+        self.potential_at = None;
         let Some(meta) = crate::actions::find("potential.draw") else {
             return Outcome::Done;
         };
@@ -279,5 +284,42 @@ impl ShellModel {
             form: Some(form),
         });
         Outcome::Done
+    }
+
+    /// Whether Define potential…'s form is open with a Potentials row's point pinned (FT-1239).
+    pub(crate) fn potential_pinned(&self) -> bool {
+        self.potential_at.is_some() && self.potential_form_open()
+    }
+
+    /// Whether the palette holds Define potential…'s form.
+    fn potential_form_open(&self) -> bool {
+        self.palette
+            .as_ref()
+            .and_then(|p| p.form.as_ref())
+            .is_some_and(|f| f.action == "potential.draw")
+    }
+
+    /// `potential.draw_row {row}` (a Potentials row's context menu, FT-1239): Define potential…'s form for the row's
+    /// potential at its definition point (`NavNode::define_at`, the row's lowest member connection point), whatever
+    /// the selection or the page on show; a row without one is refused in words.
+    pub(crate) fn act_potential_draw_row(&mut self, p: &Map<String, Value>) -> Outcome {
+        let row = match string_param(p, "row") {
+            Err(e) => return e,
+            Ok(Some(row)) => row.to_owned(),
+            Ok(None) => return failed(key!("error-missing-param"), &["row"]),
+        };
+        let at = self
+            .nav(crate::navigators::NavKind::Potentials)
+            .and_then(|n| n.table())
+            .and_then(|t| t.nodes.iter().find(|n| n.key == row))
+            .and_then(|n| n.define_at);
+        let Some((function, idx)) = at else {
+            return Outcome::Refused {
+                reason_key: key!("reason-potential-row"),
+            };
+        };
+        let out = self.open_potential_form();
+        self.potential_at = Some(TableEnd::Cp { function, idx });
+        out
     }
 }

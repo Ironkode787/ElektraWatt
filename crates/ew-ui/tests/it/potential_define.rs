@@ -143,6 +143,67 @@ fn the_type_cell_of_an_undefined_potential_is_editable() {
     h.state_mut().shell_mut().shutdown();
 }
 
+/// FT-1239: a right click on a Potentials row with a definition point opens its context menu with Define potential…;
+/// it opens the form, which defines the row's potential at the row's point.
+#[test]
+fn a_potentials_rows_context_menu_defines_its_potential() {
+    let tmp = Tmp::new();
+    let dir = tmp.golden("g.ew");
+    let mut h: Harness<'static, App> = harness(&tmp, Scripted::default(), Some(dir));
+    settle(&mut h);
+    wait_for_page(&mut h);
+    let shell = h.state_mut().shell_mut();
+    done(shell, "navigator.show", json!({"kind": "potentials"}));
+    done(shell, "navigator.table", json!({"kind": "potentials"}));
+    let def = {
+        let t = shell.nav(NavKind::Potentials).and_then(|n| n.table()).unwrap();
+        t.nodes
+            .iter()
+            .find(|n| n.role == NavRole::Potential && n.label == "24VDC-4")
+            .map(|n| n.records[0])
+            .expect("24VDC-4")
+    };
+    done(
+        shell,
+        "command.run",
+        json!({"cmd": "edit.delete", "params": {"targets": [{"kind": "potential_def", "id": def.to_string()}]}}),
+    );
+    let (node, label, at) = {
+        let t = shell.nav(NavKind::Potentials).and_then(|n| n.table()).unwrap();
+        let i = t
+            .nodes
+            .iter()
+            .position(|n| n.table_row && n.define_at.is_some())
+            .expect("a potential with a point to define it at");
+        (u32::try_from(i).unwrap(), t.nodes[i].label.clone(), t.nodes[i].define_at.unwrap())
+    };
+    done(
+        shell,
+        "navigator.filter",
+        json!({"kind": "potentials", "text": label}),
+    );
+    settle(&mut h);
+    let name = cell_name(h.state().shell(), node, "Potential");
+    h.get_by_label(&name).click_secondary();
+    settle(&mut h);
+    h.get_by_label("Define potential…").click();
+    settle(&mut h);
+    let form = h.state().shell().palette().and_then(|p| p.form.clone()).expect("the form");
+    assert_eq!(form.action, "potential.draw");
+    let steps = h.state().shell().recorded_commands().len();
+    let shell = h.state_mut().shell_mut();
+    shell.set_palette_field(0, "FEED-W");
+    assert_eq!(shell.run_palette_selection(), Outcome::Done);
+    assert_eq!(shell.recorded_commands().len(), steps + 1);
+    let last = shell.recorded_commands().last().unwrap();
+    assert_eq!(last.cmd, "potential.define");
+    assert_eq!(
+        last.params["at"],
+        json!({"cp": {"function": at.0.to_string(), "idx": at.1}})
+    );
+    shell.shutdown();
+}
+
 /// ID-1278 ruling 8 (W49.1 M): Define potential… whose voltage does not read ("abc") shows its failure under the
 /// palette form's fields only, never as a banner as well; corrected and run again, it defines the potential with no
 /// banner either, and the form with its error is gone.

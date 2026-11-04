@@ -1172,6 +1172,16 @@ impl TableDelegate for Delegate<'_> {
         };
         let word = self.kind.word();
         let key = column.key.clone();
+        // FT-1239: the row's context menu, when the row offers an action (Define potential… on a Potentials row).
+        let menu = ew_viewmodel::command_bar::navigator_row_menu(self.kind, node, self.writable);
+        if !menu.is_empty() {
+            let events = &mut *self.events;
+            response.context_menu(|ui| {
+                for item in &menu {
+                    crate::menu::item(ui, item, events);
+                }
+            });
+        }
         if response.double_clicked() {
             if self.writable && reason.is_none() {
                 self.events.push(Event::Action(

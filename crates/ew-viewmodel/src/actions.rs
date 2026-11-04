@@ -586,6 +586,10 @@ fn bond_ends(m: &ShellModel) -> Result<(), Key<'static>> {
 
 /// An editable page whose selection names one point a potential is defined at (Draw ▸ Define potential…, FT-1202).
 fn potential_point(m: &ShellModel) -> Result<(), Key<'static>> {
+    // FT-1239: a Potentials row's form defines at the row's point, whatever page is on show.
+    if m.potential_pinned() {
+        return writable(m);
+    }
     editable_page(m)?;
     m.potential_point().map(|_| ())
 }
@@ -3236,6 +3240,19 @@ pub static ACTIONS: &[ActionMeta] = &[
             grp(Group::Connect),
             |s, p| s.act_potential_draw(p),
         )),
+    )),
+    // FT-1239: Define potential… from a Potentials row's context menu, at the row's point.
+    keeps_banner(with_params(
+        "row:text",
+        hidden(in_navigator(act(
+            "potential.draw_row",
+            Command,
+            Menu::Draw,
+            &[],
+            writable,
+            None,
+            |s, p| s.act_potential_draw_row(p),
+        ))),
     )),
     // WP-S2.04 part 4b: the Wire marker and Structure box tools, their fields and the marker mode.
     keeps_banner(in_canvas(with_icon(

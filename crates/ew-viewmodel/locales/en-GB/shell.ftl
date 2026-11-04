@@ -458,6 +458,8 @@ error-bond-same-end = Both ends of the bond are "{ $p0 }"; name two different co
 # FT-1202 (ID-1270): Draw ▸ Define potential…, beside Bond.
 action-potential-draw = Define potential…
 reason-potential-point = Select one wire, junction or terminal
+action-potential-draw-row = Define potential…
+reason-potential-row = This row has no connection point to define its potential at
 error-potential-type = "{ $p0 }" is not a potential type; type L1, L2, L3, L, N, PE, PEN, FE, L+, L-, M or signal.
 error-potential-voltage = "{ $p0 }" is not a voltage; type it as 24 V DC, 230 V AC or 24.
 # FT-1240 (ID-1315): a word that is not one of an enumerated field's, the field's words listed.

@@ -535,6 +535,29 @@ pub fn canvas_menu(model: &ShellModel, over_object: bool) -> Vec<ActionItem> {
     items
 }
 
+/// A navigator row's context menu (FT-1239): on a Potentials row with a definition point (`NavNode::define_at`),
+/// Define potential… at it (`potential.draw_row`), disabled with its reason in a read-only project. Empty when the row
+/// offers nothing: the window then opens no menu.
+pub fn navigator_row_menu(
+    kind: crate::navigators::NavKind,
+    node: &crate::navigators::NavNode,
+    writable: bool,
+) -> Vec<ActionItem> {
+    if kind != crate::navigators::NavKind::Potentials || node.define_at.is_none() {
+        return Vec::new();
+    }
+    vec![ActionItem {
+        id: "potential.draw_row",
+        params: serde_json::json!({ "row": node.key }),
+        label: strings::text(key!("action-potential-draw-row")).to_owned(),
+        shortcut: String::new(),
+        enabled: writable,
+        reason: (!writable).then(|| strings::text(key!("reason-read-only")).to_owned()),
+        checked: false,
+        topic: None,
+    }]
+}
+
 /// The quick-access buttons of the tab row (doc 16a §5.2).
 pub const QUICK_ACCESS: [&str; 3] = ["file.save", "edit.undo", "edit.redo"];
 

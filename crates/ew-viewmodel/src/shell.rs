@@ -640,6 +640,8 @@ pub struct ShellModel {
     glossary_filter: String,
     /// The glossary pane's row cursor (FT-1281), an index into its rows; none before the first move.
     glossary_row: Option<usize>,
+    /// The point a Potentials row's Define potential… pinned for its open form (FT-1239); none otherwise.
+    potential_at: Option<ew_api::output::TableEnd>,
     /// Whether the wire-colour view is on (View ▸ Wire colours, D18): view state of the session, off at start.
     wire_colours: bool,
     /// The wire-colour view's Connections table and the (session epoch, revision) it was fetched at.
@@ -1004,6 +1006,7 @@ impl ShellModel {
             revision: revision::RevisionState::default(),
             glossary_filter: String::new(),
             glossary_row: None,
+            potential_at: None,
             wire_colours: false,
             wire_colour_cache: std::cell::RefCell::new(None),
             collab: external::CollabState::default(),
