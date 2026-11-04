@@ -87,3 +87,12 @@ tests = ["ew-ui::it properties::pg9_d06_the_description_override_from_the_keyboa
 [[criterion]]
 id = "NFR-A11Y-01"
 tests = ["ew-ui::it keyboard_core::ax5_the_five_core_tasks_with_key_events_only"]
+
+[[criterion]]
+id = "NFR-A11Y-02"
+tests = [
+    "ew-ui::it census::census_the_window_its_tabs_menus_panes_and_navigators",
+    "ew-ui::it census::census_every_dialog",
+    "ew-ui::it census::census_the_start_page_the_first_run_and_the_wizard",
+    "ew-ui::it window_check_w49_2::w49_2_f1_every_form_dialog_focuses_its_first_text_field_or_its_primary",
+]

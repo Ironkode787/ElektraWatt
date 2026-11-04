@@ -78,7 +78,7 @@ fn action_of(lines: &[&str], at: usize, expr: &str) -> Option<String> {
 
 /// The actions of every form dialog `ew-viewmodel` opens, read from its source: each `FormDialog { action: … }`, each
 /// creation `Spec { action: … }` (whose `dialog` builds the form) and each `open_revision_form(<action>, …)`.
-fn form_actions() -> BTreeSet<String> {
+pub(crate) fn form_actions() -> BTreeSet<String> {
     let mut texts = Vec::new();
     sources(Path::new(VIEWMODEL_SRC), &mut texts);
     let mut out = BTreeSet::new();
@@ -332,7 +332,12 @@ fn w49_2_f1_every_form_dialog_focuses_its_first_text_field_or_its_primary() {
     checked.insert(check_form(&mut h, "revision.incomplete", json!({})));
     h.state_mut().shell_mut().shutdown();
 
-    assert_eq!(checked, listed, "every form dialog of the source is checked");
+    // WP-S2.11 D3: this is the census of the creation forms (§5 U2).
+    assert_eq!(
+        crate::census::form_problems(&checked, &listed),
+        Vec::<String>::new(),
+        "every form dialog of the source is checked"
+    );
 }
 
 /// Every AccessKit label and value of the window's last frame.

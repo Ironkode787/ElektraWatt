@@ -43,7 +43,7 @@ fn copy_dir(from: &Path, to: &Path) {
 }
 
 /// W20's ID, from its source key in the project's page files.
-fn w20(dir: &Path) -> String {
+pub(crate) fn w20(dir: &Path) -> String {
     for e in std::fs::read_dir(dir.join("pages")).unwrap() {
         let text = std::fs::read_to_string(e.unwrap().path()).unwrap();
         if let Some(line) = text.lines().find(|l| l.contains("\"key\":\"connections|W20\"")) {
@@ -62,7 +62,7 @@ fn colour(wire: &str, value: Value) -> AnyCommand {
 }
 
 /// A colleague's save of W20's colour `value` on a copy of `live`: its written files copied into `live`, the manifest last.
-fn colleague(tmp: &Tmp, live: &Path, value: &str) {
+pub(crate) fn colleague(tmp: &Tmp, live: &Path, value: &str) {
     let copy = tmp.0.join("colleague.ew");
     let _ = std::fs::remove_dir_all(&copy);
     copy_dir(live, &copy);
