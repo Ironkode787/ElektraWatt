@@ -394,10 +394,9 @@ def run_script(exe, script, run_dir):
     with open(os.path.join(cwd, "example.qet"), "w", encoding="utf-8", newline="\n") as f:
         f.write(QET)
     env = {k: v for k, v in os.environ.items() if k not in RESOURCE_VARIABLES}
-    # The settings directory through EW_CONFIG_DIR: `--config-dir` would drop the resources that the program found
-    # beside itself (the headless mode starts a configuration of that directory alone).
-    env["EW_CONFIG_DIR"] = os.path.abspath(config)
-    command = [exe, "--headless", "--script", os.path.abspath(script), "--keep-going"]
+    # `--config-dir` keeps the resources the program found beside itself (FT-1266).
+    command = [exe, "--headless", "--script", os.path.abspath(script), "--keep-going", "--config-dir",
+               os.path.abspath(config)]
     done = subprocess.run(command, cwd=cwd, env=env, capture_output=True, check=False)
     for name, data in (("transcript.jsonl", done.stdout), ("stderr.txt", done.stderr)):
         with open(os.path.join(run_dir, name), "wb") as f:

@@ -1369,8 +1369,11 @@ pub fn run_in_folder(
     err: &mut dyn Write,
 ) -> i32 {
     if let Some(dir) = &args.config_dir {
-        // The library tiers stay (WP-S1.19 §11: `EW_DATA_DIR` names them for a script).
-        config = ShellConfig::in_dir(dir, &config.app_version).with_libraries(config.libraries);
+        // The library tiers stay (WP-S1.19 §11: `EW_DATA_DIR` names them for a script), and so do the resources the
+        // program found (FT-1266).
+        config = ShellConfig::in_dir(dir, &config.app_version)
+            .with_libraries(config.libraries)
+            .with_resources(config.resources);
     }
     let frames_dir = if args.no_frames { None } else { args.frames.clone() };
     let mut driver = match Driver::with_geometry(config.clone(), frames_dir, base, args.geometry) {

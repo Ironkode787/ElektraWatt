@@ -187,8 +187,11 @@ pub fn run(
         return crate::visual::run(config, args, stdin, out, err);
     }
     if let Some(dir) = &args.config_dir {
-        // The library tiers stay (WP-S1.19 §11: `EW_DATA_DIR` names them for a script).
-        config = ShellConfig::in_dir(dir, &config.app_version).with_libraries(config.libraries);
+        // The library tiers stay (WP-S1.19 §11: `EW_DATA_DIR` names them for a script), and so do the resources the
+        // program found (FT-1266).
+        config = ShellConfig::in_dir(dir, &config.app_version)
+            .with_libraries(config.libraries)
+            .with_resources(config.resources);
     }
     let mut shell = ShellModel::new(Mode::Headless, config);
     let mut sink = |line: &str| -> io::Result<()> {

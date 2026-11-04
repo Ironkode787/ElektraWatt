@@ -607,6 +607,40 @@ fn a_script_that_ends_dirty_exits_one_and_keeps_the_journal() {
     assert_eq!(transcript(&out)[1]["state"]["access"], "edit");
 }
 
+/// FT-1266 (decision log ID-1312): `--config-dir` keeps the resources the program found (here the sample project
+/// through `EW_SAMPLE_DIR`): Open sample project opens it.
+#[test]
+fn config_dir_keeps_the_resources_the_program_found() {
+    let tmp = Tmp::new();
+    let home = tmp.path("home");
+    std::fs::create_dir_all(&home).unwrap();
+    let file = tmp.path("s.jsonl");
+    std::fs::write(
+        &file,
+        script(&[("file.open_sample", json!({})), ("file.close", json!({}))]),
+    )
+    .unwrap();
+    let out = Command::new(bin_exe())
+        .args(["--headless", "--script"])
+        .arg(&file)
+        .arg("--config-dir")
+        .arg(tmp.path("chosen"))
+        .env_remove("EW_CONFIG_DIR")
+        .env("EW_SAMPLE_DIR", GOLDEN_A)
+        .env("HOME", &home)
+        .env("APPDATA", &home)
+        .env("LOCALAPPDATA", &home)
+        .env("XDG_CONFIG_HOME", &home)
+        .env("XDG_STATE_HOME", &home)
+        .stdin(Stdio::null())
+        .output()
+        .unwrap();
+    assert_eq!(out.status.code(), Some(0), "{}", stderr(&out));
+    let steps = transcript(&out);
+    assert_eq!(steps[1]["outcome"], "done", "{}", steps[1]);
+    assert_eq!(steps[1]["state"]["project"], "J-E-2416.ew");
+}
+
 /// Review ruling 7: without `EW_CONFIG_DIR` a headless run has no settings directory of its own choosing: it
 /// neither reads nor writes the user's, and `--config-dir` names one.
 #[test]
