@@ -14,7 +14,7 @@ mod tokens;
 
 use std::sync::Arc;
 
-pub use apply::{apply, apply_setting, font, style_of};
+pub use apply::{apply, apply_setting, font, style_of, unsmoothed_scroll};
 pub use tokens::{
     Elevation, HC_PAIRS, PAIRS, Pair, PairKind, Rgba, ShadowLayer, TokenValue, Tokens, TypeToken, tokens,
 };

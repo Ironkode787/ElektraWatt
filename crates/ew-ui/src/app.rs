@@ -778,6 +778,10 @@ impl App {
             }
             self.applied_theme = Some(appearance);
         }
+        // FT-1247: reduced motion ends egui's wheel smoothing too.
+        if self.shell.reduce_motion() {
+            crate::theme::unsmoothed_scroll(&ctx);
+        }
         // The switch rule (WP-S2.02 section 7.2): the setting is effective at once, a failure moves the canvas to the
         // CPU with one banner, and the status bar shows the result.
         self.canvas.update_backend(&mut self.shell);

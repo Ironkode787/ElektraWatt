@@ -115,6 +115,50 @@ pub fn style_of(t: &Tokens) -> Style {
     style
 }
 
+/// FT-1247 (ID-1315 ruling 1): with reduced motion a scroll area moves by the wheel in the frame the wheel turns.
+/// egui 0.37 smooths a wheel's line and page steps over the next frames and has no switch for it; its pass's scroll
+/// delta is public input, so at the start of each frame it is set to this frame's own wheel events, in points as egui
+/// reads them (a line `line_scroll_speed`, a page the viewport's height, a horizontal or vertical modifier as egui
+/// applies it, the zoom modifier's turns left to the zoom). The steps egui still holds for later frames are then
+/// overwritten as they come out, so no motion follows the turn.
+pub fn unsmoothed_scroll(ctx: &egui::Context) {
+    let o = ctx.options(|o| o.input_options.clone());
+    ctx.input_mut(|i| {
+        let page = i.viewport_rect().height();
+        let mut sum = Vec2::ZERO;
+        for e in &i.events {
+            let egui::Event::MouseWheel {
+                unit,
+                delta,
+                modifiers,
+                ..
+            } = e
+            else {
+                continue;
+            };
+            if modifiers.matches_any(o.zoom_modifier) {
+                continue;
+            }
+            let mut d = match unit {
+                egui::MouseWheelUnit::Point => *delta,
+                egui::MouseWheelUnit::Line => o.line_scroll_speed * *delta,
+                egui::MouseWheelUnit::Page => page * *delta,
+            };
+            let (horizontal, vertical) = (
+                modifiers.matches_any(o.horizontal_scroll_modifier),
+                modifiers.matches_any(o.vertical_scroll_modifier),
+            );
+            if horizontal && !vertical {
+                d = Vec2::new(d.x + d.y, 0.0);
+            } else if vertical && !horizontal {
+                d = Vec2::new(0.0, d.x + d.y);
+            }
+            sum += d;
+        }
+        i.smooth_scroll_delta = sum;
+    });
+}
+
 /// Installs `tokens` in `ctx`: the style of its egui slot (light or dark) and the theme preference for that slot, so
 /// that `ctx.style()` is this style from the next pass.
 pub fn apply(tokens: &Tokens, ctx: &egui::Context) {
@@ -173,6 +217,41 @@ fn raise_text(t: &mut Tokens, min_pt: u8) {
 mod tests {
     use super::*;
     use crate::theme::Theme;
+
+    /// FT-1247: egui spreads a wheel line over several frames; with [`unsmoothed_scroll`] the whole line scrolls in the
+    /// frame of the turn and nothing follows in the next one.
+    #[test]
+    fn reduced_motion_scrolls_a_wheel_line_in_its_frame() {
+        let ctx = egui::Context::default();
+        let line = ctx.options(|o| o.input_options.line_scroll_speed);
+        let turn = || egui::RawInput {
+            events: vec![egui::Event::MouseWheel {
+                unit: egui::MouseWheelUnit::Line,
+                delta: Vec2::new(0.0, -1.0),
+                phase: egui::TouchPhase::Move,
+                modifiers: egui::Modifiers::NONE,
+                source: egui::MouseWheelSource::Wheel,
+            }],
+            ..Default::default()
+        };
+        let frame = |input: egui::RawInput, reduce: bool| {
+            let mut delta = Vec2::ZERO;
+            let mut out = ctx.run_ui(input, |ui| {
+                if reduce {
+                    unsmoothed_scroll(ui.ctx());
+                }
+                delta = ui.input(|i| i.smooth_scroll_delta);
+            });
+            out.textures_delta.clear();
+            delta
+        };
+        let smoothed = frame(turn(), false);
+        assert!(smoothed.y > -line, "egui alone spreads the line: {smoothed:?}");
+        let _ = frame(egui::RawInput::default(), false);
+        let _ = frame(egui::RawInput::default(), false);
+        assert_eq!(frame(turn(), true), Vec2::new(0.0, -line), "the whole line in its frame");
+        assert_eq!(frame(egui::RawInput::default(), true), Vec2::ZERO, "nothing after it");
+    }
 
     #[test]
     fn a_setting_installs_both_slots_and_its_preference() {
