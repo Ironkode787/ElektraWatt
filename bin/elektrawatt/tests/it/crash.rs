@@ -155,12 +155,18 @@ fn a_forced_panic_writes_the_crash_log_and_the_next_start_offers_recovery() {
         ("startup.recover", json!({ "project": 1 })),
         ("journal.recover", json!({})),
         ("ui.describe", json!({})),
-        ("file.export_pdf", json!({ "path": path(&tmp.path("after.pdf")), "wait": true })),
+        (
+            "file.export_pdf",
+            json!({ "path": path(&tmp.path("after.pdf")), "wait": true }),
+        ),
         ("app.quit", json!({ "discard": true })),
     ];
     let crashed_at = format!("{} {}", &time[..10], &time[11..16]);
     // The project as its journal names it: the canonical path, without Windows' verbatim prefix.
-    let canonical = std::fs::canonicalize(&project).unwrap().to_string_lossy().into_owned();
+    let canonical = std::fs::canonicalize(&project)
+        .unwrap()
+        .to_string_lossy()
+        .into_owned();
     let offered = canonical.strip_prefix(r"\\?\").unwrap_or(&canonical).to_owned();
     let changed_at = last_change(&tmp.path("config").join("state").join("journal"));
     let out = run(&tmp, "next.uiscript", &next, false);
@@ -180,7 +186,9 @@ fn a_forced_panic_writes_the_crash_log_and_the_next_start_offers_recovery() {
                 "  label \"ElektraWatt stopped unexpectedly on {crashed_at} UTC. Its log is in {}.\"",
                 crashes(&tmp).to_string_lossy()
             ),
-            format!("  project 1 \"g.ew: 1 unsaved change, last change {changed_at} UTC\" path \"{offered}\""),
+            format!(
+                "  project 1 \"g.ew: 1 unsaved change, last change {changed_at} UTC\" path \"{offered}\""
+            ),
             "  button \"Recover\"".to_owned(),
             "  button \"Not now\"".to_owned(),
             "  button \"Open log folder\"".to_owned(),

@@ -344,7 +344,11 @@ fn a_project_opened_another_way_leaves_the_offer() {
     let project = crashed_project(&tmp);
     let mut shell = started(&tmp);
     assert!(shell.startup_offer().is_some());
-    done(&mut shell, "file.open", json!({ "dir": project.to_string_lossy() }));
+    done(
+        &mut shell,
+        "file.open",
+        json!({ "dir": project.to_string_lossy() }),
+    );
     assert!(matches!(shell.dialog(), Some(Dialog::Recovery { .. })));
     assert_eq!(shell.startup_offer(), None);
     shell.shutdown();
