@@ -3355,7 +3355,7 @@ field-word-xref-format = Kruisverwijzingsnotatie
 
 # WP-S3.09 D6: the members of the import run's property sheet, and its mode and severity choices.
 field-word-as-of = Peildatum
-field-word-entries = Meldingen
+field-word-entries = Bevindingen
 field-word-defect = Defectklasse
 field-word-fix = Snelle oplossing
 field-word-command = Opdracht

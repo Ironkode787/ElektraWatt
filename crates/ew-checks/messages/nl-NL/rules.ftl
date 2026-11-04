@@ -352,11 +352,11 @@ rule-ew-imp-011 =
 
 rule-ew-imp-101 =
     .title = Opgeslagen label wijkt af van het formuleresultaat
-    .hint = Gebruik de afgeleide aanduiding, of behoud het opgeslagen label als vaste aanduiding.
+    .hint = Gebruik het afgeleide kenmerk, of behoud het opgeslagen label als vastgezet kenmerk.
 
 rule-ew-imp-103 =
-    .title = Label als vaste aanduiding behouden
-    .hint = Zet de aanduiding om naar het schema waar die past, of houd hem vast.
+    .title = Label als vastgezet kenmerk behouden
+    .hint = Zet het kenmerk om naar het schema waar het past, of laat het vastgezet.
 
 rule-ew-imp-104 =
     .title = Conflict in een titelhoofdwaarde per blad
@@ -391,8 +391,8 @@ rule-ew-imp-120 =
     .hint = Niets te doen: elke kopie kreeg een eigen record.
 
 rule-ew-imp-122 =
-    .title = Element zonder label, aanduiding gemaakt
-    .hint = Geef het apparaat een label; zijn aanduiding drukt tot dan "?" af.
+    .title = Element zonder label, kenmerk gemaakt
+    .hint = Geef het apparaat een label; zijn kenmerk drukt tot dan "?" af.
 
 rule-ew-imp-102 =
     .title = Spellingsvarianten van een structuurcode
