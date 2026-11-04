@@ -305,6 +305,19 @@ mod tests {
         assert_eq!(rows[1].fix, Some(fix));
     }
 
+    /// The re-import's codes read in Dutch (WP-S3.09 D12): the Messages pane titles them in the window's language.
+    #[test]
+    fn the_re_import_codes_have_dutch_titles() {
+        assert_eq!(
+            crate::messages::title("EW-IMP-010", "nl-NL").as_deref(),
+            Some("In de bron verwijderd, hier behouden")
+        );
+        assert_eq!(
+            crate::messages::title("EW-IMP-011", "nl-NL").as_deref(),
+            Some("In de bron en hier gewijzigd, hier behouden")
+        );
+    }
+
     /// Every code's metadata names its pack and message class 160.
     #[test]
     fn the_codes_are_of_class_160() {

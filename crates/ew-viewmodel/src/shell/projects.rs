@@ -294,7 +294,7 @@ impl ShellModel {
         };
         let (library, library_note) = self.import_library();
         // WP-S3.09 D4: the importer runs as a job (its own thread and `catch_unwind`), so the window stays responsive;
-        // the import's transaction follows on this thread, since a session is not `Send`. Headless, the step waits.
+        // the import's transaction follows on this thread, since a session is not `Send`.
         let options = JobOptions {
             name: "import".to_owned(),
             waker: self.jobs.waker.clone(),
@@ -316,22 +316,19 @@ impl ShellModel {
             dir,
             library_note,
         };
-        match self.mode {
-            Mode::Headless => {
-                let ImportJob {
-                    job,
-                    name,
-                    dir,
-                    library_note,
-                } = pending;
-                self.finish_import(job.wait(), name, dir, library_note)
-            }
-            Mode::Gui => {
-                self.banner = Some(strings::format(key!("banner-importing"), &[&pending.name]));
-                self.import_job = Some(pending);
-                Outcome::Done
-            }
+        // A script (headless or driving the window) waits for the job, so its next step finds the card.
+        if self.mode == Mode::Headless || !self.is_person() {
+            let ImportJob {
+                job,
+                name,
+                dir,
+                library_note,
+            } = pending;
+            return self.finish_import(job.wait(), name, dir, library_note);
         }
+        self.banner = Some(strings::format(key!("banner-importing"), &[&pending.name]));
+        self.import_job = Some(pending);
+        Outcome::Done
     }
 
     /// Takes the end of a running import job (the window every frame, through `poll_jobs`) and goes on with the import
