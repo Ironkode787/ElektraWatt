@@ -1,0 +1,35 @@
+{
+  "$schema": "ew.blindquestionnaire/1",
+  "run": "r0-t8-qet-veteran-v",
+  "a": {
+    "Q1": 3,
+    "Q10": 2,
+    "Q2": 1,
+    "Q3": 3,
+    "Q4": 2,
+    "Q5": 4,
+    "Q6": 2,
+    "Q7": 4,
+    "Q8": 2,
+    "Q9": 4
+  },
+  "b": {
+    "B1": {
+      "choice": "not-seen",
+      "sentence": "I moved no device."
+    },
+    "B2": {
+      "choice": "not-seen",
+      "sentence": "I placed no device."
+    },
+    "B3": {
+      "choice": "partly",
+      "sentence": "The arrow named 102-A1 and the jump worked, but the arrival was not centred and the way back was hidden."
+    },
+    "B4": {
+      "choice": "not-seen",
+      "sentence": "No junctions in this job."
+    }
+  },
+  "pq": 72.5
+}

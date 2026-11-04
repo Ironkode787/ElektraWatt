@@ -1,0 +1,57 @@
+{
+  "$schema": "ew.blindrun/1",
+  "run": "r0-t2-qet-veteran-t",
+  "kind": "brief",
+  "task": "brief-ut-t2-wire",
+  "persona": "qet-veteran",
+  "of": null,
+  "folios": [],
+  "caps": {
+    "turns": 300,
+    "steps": 800,
+    "looks": 400,
+    "refusals": 50
+  },
+  "files": {
+    "tools/blind/BLIND_DRAFTER.md": "96a9da1dacbbb9c157e49d7f013d9d5e8d2986db41aa680db7f6219e5304dfbb",
+    "tools/blind/HELP.md": "d05854152eb7dd672f84aa5d591cf6a5ec028c3b9aefc257981a68c38f236c2b",
+    "tools/blind/ROUND.md": "be6094094596104452aa27c03c81a1d3ce711ae96dc2a79de1b2e7872f63f03b",
+    "tools/blind/personas/qet-veteran.md": "4eb0721e18cdfa42b9129a51b15fee2dff98a365251d6c6ecb2eda4ee6fb8fe0",
+    "tools/blind/reference/actions.txt": "9127f3faa1ae5f2d61d4f4b00eed893c1727e08e458c504eda901d6a1f268a72",
+    "tools/blind/reference/vocabulary.txt": "d8d7f66ba0bdbf89fdcb358177da37bbfc738e0493d573f784f98b64f09d7024",
+    "tools/blind/tasks/brief-ut-t2-wire/acceptance.toml": "51a0311341267d9e6b2bcd2718ff48ec98ce02a0b17ae5b0a2b3eddfb04263ad",
+    "tools/blind/tasks/brief-ut-t2-wire/hints.toml": "9dccf75610438cec7f1c25f52a90b48d6dc7e6f29a9ee9882521b4fbd986dea4",
+    "tools/blind/tasks/brief-ut-t2-wire/prelude.toml": "2fe589a75603cde6cede83800f9ad79c70d69d0e851a6a27bbd760ca83d206a7",
+    "tools/blind/tasks/brief-ut-t2-wire/prelude.uiscript": "badde0c258b5726b86beeab6bd9712028b76a183fecb221e43599bb40eb3595d",
+    "tools/blind/tasks/brief-ut-t2-wire/solution.uiscript": "dd2563f400ceda453b196a590afa9ac3fb3dbf76bec224e15a8857036cfe893a",
+    "tools/blind/tasks/brief-ut-t2-wire/task.md": "c7de572254cb21e21dd489ff41306f3129c94f8e93420b4d1336e3be99636bfc",
+    "tools/blind/tasks/brief-ut-t2-wire/task.toml": "468f7d71498889f807de81c8b645017ba4544f8c177ef07adc6ac4c257e24cb7"
+  },
+  "golden": "4033ece2e2cee6c291ea521720958d6ed73dda5961d26bd8bdfae0a5e5b8c27e",
+  "golden_scope": "project",
+  "app_version": "0.0.0",
+  "harness_version": "0.0.0",
+  "stateless": false,
+  "counts": {
+    "turns": 3,
+    "steps": 10,
+    "looks": 2,
+    "refusals": 0,
+    "refused": 0,
+    "failed": 0,
+    "broken": 0
+  },
+  "end": "handback",
+  "handed_back": true,
+  "diverged_at": null,
+  "ci": "none",
+  "stale": null,
+  "clean_before_epilogue": true,
+  "child_exit": 0,
+  "golden_changed": false,
+  "start": "gp-ut",
+  "rounds": [
+    "R0",
+    "R1"
+  ]
+}

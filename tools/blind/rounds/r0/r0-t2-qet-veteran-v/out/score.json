@@ -1,0 +1,71 @@
+{
+  "$schema": "ew.blindscore/1",
+  "run": "r0-t2-qet-veteran-v",
+  "task": "brief-ut-t2-wire",
+  "outcome": null,
+  "hard": [],
+  "soft": [],
+  "protocol": {
+    "counts": {
+      "turns": 3,
+      "steps": 12,
+      "looks": 1,
+      "refusals": 0,
+      "refused": 0,
+      "failed": 0,
+      "broken": 0
+    },
+    "end": "handback",
+    "handed_back": true,
+    "folios": [],
+    "turns_by_folio": {},
+    "prelude": {
+      "setup": 0,
+      "drawing": 0
+    },
+    "observations": {
+      "clean_before_epilogue": true,
+      "product_exit": 0,
+      "pdfs_identical": true,
+      "ew_check_exit": 1
+    }
+  },
+  "brief": {
+    "task_id": "T2",
+    "items": [
+      {
+        "id": "A1",
+        "kind": "hard",
+        "met": true,
+        "decision": "met"
+      },
+      {
+        "id": "A2",
+        "kind": "hard",
+        "met": true,
+        "decision": "met"
+      },
+      {
+        "id": "A3",
+        "kind": "hard",
+        "met": true,
+        "decision": "met"
+      }
+    ],
+    "attempt": "unassisted",
+    "counts": {
+      "turns": 3,
+      "steps": 12,
+      "refused": 0,
+      "failed": 0,
+      "undo": 0,
+      "hints": 0,
+      "friction": {
+        "annoying": 0,
+        "blocker": 0,
+        "confusing": 2,
+        "cosmetic": 1
+      }
+    }
+  }
+}

@@ -1,0 +1,4 @@
+{"$schema":"ew.blindfriction/1"}
+{"n":1,"turn":1,"step":1,"frame":"t0001.png","region":[390,175,1090,230],"wanted":"see where L-1 arrives","expected":"the arrival centred in view","saw":"arrival pushed to the left edge under a grey empty area, sheet partly off-screen","severity":"cosmetic","category":"layout-legibility","workaround":null}
+{"n":2,"turn":1,"step":1,"frame":"t0001.png","region":[390,145,400,30],"wanted":"keep my place on 101","expected":"101 tab stays open or a back button appears","saw":"tab 101 replaced by 102, no visible back control","severity":"confusing","category":"feedback","workaround":null}
+{"n":3,"turn":2,"step":2,"frame":"t0002.png","region":null,"wanted":"return to 101","expected":"a visible back button or hint","saw":"no back control; Alt+Left worked by guess","severity":"annoying","category":"discoverability","workaround":null}

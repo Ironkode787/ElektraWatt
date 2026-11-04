@@ -1,0 +1,2 @@
+{"$schema":"ew.blindfriction/1"}
+{"n":1,"turn":2,"step":2,"frame":null,"region":null,"wanted":"See where L-1 continues from folio 101","expected":"A cross-reference label like 102.A1 printed beside the L-1 arrow in the page text, as QET shows","saw":"The page text listed L-1 as ip direction source in 101-H16 with no target folio/cell; I only learned it was 102-A1 by following","severity":"confusing","category":"discoverability","workaround":"nav.follow at the arrow's position, found by searching the help"}

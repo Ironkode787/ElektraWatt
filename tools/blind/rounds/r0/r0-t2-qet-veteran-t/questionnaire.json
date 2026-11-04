@@ -1,0 +1,35 @@
+{
+  "$schema": "ew.blindquestionnaire/1",
+  "run": "r0-t2-qet-veteran-t",
+  "a": {
+    "Q1": 4,
+    "Q10": 2,
+    "Q2": 1,
+    "Q3": 4,
+    "Q4": 2,
+    "Q5": 4,
+    "Q6": 2,
+    "Q7": 4,
+    "Q8": 2,
+    "Q9": 4
+  },
+  "b": {
+    "B1": {
+      "choice": "not-seen",
+      "sentence": "I moved no device in this job."
+    },
+    "B2": {
+      "choice": "not-seen",
+      "sentence": "No wires were proposed; I drew them all myself."
+    },
+    "B3": {
+      "choice": "not-seen",
+      "sentence": "The job stayed on folio 102."
+    },
+    "B4": {
+      "choice": "yes",
+      "sentence": "Two wires met at F1:1 and at F1:2 each, joined on the terminal as I would wire it."
+    }
+  },
+  "pq": 77.5
+}

@@ -1,0 +1,3 @@
+{"$schema":"ew.blindfriction/1"}
+{"n":1,"turn":5,"step":16,"frame":"t0004.png","region":[760,220,200,420],"wanted":"see each new wire clearly","expected":"wires routed beside existing ones","saw":"new wires overlap the existing minus wires and cross the bus line; cannot tell by eye where they end","severity":"confusing","category":"layout-legibility","workaround":null}
+{"n":2,"turn":7,"step":18,"frame":"t0005.png","region":[1104,200,360,75],"wanted":"know whether my wires are all connected","expected":"a quick per-page result","saw":"toast says 33 errors project-wide, which scared me; only after opening the page warnings did I see my pins were fine","severity":"annoying","category":"feedback","workaround":null}

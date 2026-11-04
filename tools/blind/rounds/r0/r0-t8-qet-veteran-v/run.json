@@ -1,0 +1,63 @@
+{
+  "$schema": "ew.blindrun/1",
+  "run": "r0-t8-qet-veteran-v",
+  "kind": "brief",
+  "task": "brief-ut-t8-navigation",
+  "persona": "qet-veteran",
+  "of": null,
+  "folios": [],
+  "caps": {
+    "turns": 250,
+    "steps": 2000,
+    "looks": 300,
+    "refusals": 50
+  },
+  "files": {
+    "tools/blind/HELP-VISUAL.md": "9246eaba3ac4da897d431a9b4366364657d59a9bd8ab5ded81c9ddc17224e875",
+    "tools/blind/PLAYTESTER.md": "9383bf5005082ad0045cf876519fbb7b6d0b68e259548baef70b58d8f6c6974e",
+    "tools/blind/ROUND.md": "be6094094596104452aa27c03c81a1d3ce711ae96dc2a79de1b2e7872f63f03b",
+    "tools/blind/personas/qet-veteran.md": "4eb0721e18cdfa42b9129a51b15fee2dff98a365251d6c6ecb2eda4ee6fb8fe0",
+    "tools/blind/reference/actions.txt": "9127f3faa1ae5f2d61d4f4b00eed893c1727e08e458c504eda901d6a1f268a72",
+    "tools/blind/reference/vocabulary.txt": "d8d7f66ba0bdbf89fdcb358177da37bbfc738e0493d573f784f98b64f09d7024",
+    "tools/blind/tasks/brief-ut-t8-navigation/acceptance.toml": "4f15a07886b864ec09cd526c7c1b094cb8f208bca0dd252086c4ac1bc8cf19c3",
+    "tools/blind/tasks/brief-ut-t8-navigation/hints.toml": "f1e2d3b7f1164cdba522ff41a4b079a468fdc56868a37e69165f1bfe36a0f6af",
+    "tools/blind/tasks/brief-ut-t8-navigation/prelude.toml": "2d6e8d30f0efb5d23972e8dea6f01bc6e82eb97f74c4c9c1ac39218f2ea2f742",
+    "tools/blind/tasks/brief-ut-t8-navigation/prelude.uiscript": "cbd642398d5f9f7d6dfba980c95e094327a74389078bd2264d796ace9870b971",
+    "tools/blind/tasks/brief-ut-t8-navigation/solution.uiscript": "23a4cbc44b05bb7e77dc5c2487908dfe7c4b9dbe1dff79bd8c01c9476086672e",
+    "tools/blind/tasks/brief-ut-t8-navigation/task.md": "59743b29b459ec885aff97a9db44ad499a8d37ac138b4af5f835efe5302156ba",
+    "tools/blind/tasks/brief-ut-t8-navigation/task.toml": "e703a779fe8b52c0f906155d6fc83995fa983c19bfb435c51da0c24cda5189f8"
+  },
+  "golden": "4033ece2e2cee6c291ea521720958d6ed73dda5961d26bd8bdfae0a5e5b8c27e",
+  "golden_scope": "project",
+  "app_version": "0.0.0",
+  "harness_version": "0.0.0",
+  "stateless": false,
+  "senses": "visual",
+  "ppp": 1.2,
+  "window": [
+    1280,
+    800
+  ],
+  "counts": {
+    "turns": 2,
+    "steps": 2,
+    "looks": 1,
+    "refusals": 0,
+    "refused": 0,
+    "failed": 0,
+    "broken": 0
+  },
+  "end": "handback",
+  "handed_back": true,
+  "diverged_at": null,
+  "ci": "none",
+  "stale": null,
+  "clean_before_epilogue": true,
+  "child_exit": 0,
+  "golden_changed": false,
+  "start": "golden-a",
+  "rounds": [
+    "R0",
+    "R1"
+  ]
+}

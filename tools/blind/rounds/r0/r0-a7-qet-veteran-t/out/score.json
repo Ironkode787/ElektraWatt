@@ -1,0 +1,81 @@
+{
+  "$schema": "ew.blindscore/1",
+  "run": "r0-a7-qet-veteran-t",
+  "task": "brief-ut-a7-move",
+  "outcome": null,
+  "hard": [],
+  "soft": [],
+  "protocol": {
+    "counts": {
+      "turns": 6,
+      "steps": 18,
+      "looks": 4,
+      "refusals": 0,
+      "refused": 2,
+      "failed": 0,
+      "broken": 0
+    },
+    "end": "handback",
+    "handed_back": true,
+    "folios": [],
+    "turns_by_folio": {
+      "101": {
+        "turns": 6
+      }
+    },
+    "prelude": {
+      "setup": 0,
+      "drawing": 0
+    },
+    "observations": {
+      "clean_before_epilogue": true,
+      "product_exit": 1,
+      "pdfs_identical": true,
+      "ew_check_exit": 1
+    }
+  },
+  "brief": {
+    "task_id": "A7",
+    "items": [
+      {
+        "id": "A1",
+        "kind": "hard",
+        "met": true,
+        "decision": "met"
+      },
+      {
+        "id": "A2",
+        "kind": "hard",
+        "met": true,
+        "decision": "met"
+      },
+      {
+        "id": "A3",
+        "kind": "hard",
+        "met": true,
+        "decision": "met"
+      },
+      {
+        "id": "A4",
+        "kind": "soft",
+        "met": true,
+        "decision": "met"
+      }
+    ],
+    "attempt": "unassisted",
+    "counts": {
+      "turns": 6,
+      "steps": 18,
+      "refused": 2,
+      "failed": 0,
+      "undo": 0,
+      "hints": 0,
+      "friction": {
+        "annoying": 0,
+        "blocker": 0,
+        "confusing": 2,
+        "cosmetic": 0
+      }
+    }
+  }
+}

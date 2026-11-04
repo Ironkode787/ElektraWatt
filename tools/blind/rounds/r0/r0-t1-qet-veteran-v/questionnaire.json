@@ -1,0 +1,35 @@
+{
+  "$schema": "ew.blindquestionnaire/1",
+  "run": "r0-t1-qet-veteran-v",
+  "a": {
+    "Q1": 3,
+    "Q10": 2,
+    "Q2": 2,
+    "Q3": 4,
+    "Q4": 2,
+    "Q5": 4,
+    "Q6": 2,
+    "Q7": 4,
+    "Q8": 2,
+    "Q9": 4
+  },
+  "b": {
+    "B1": {
+      "choice": "not-seen",
+      "sentence": "I did not move a device onto other connection points."
+    },
+    "B2": {
+      "choice": "not-seen",
+      "sentence": "No wires were proposed when I placed the breaker."
+    },
+    "B3": {
+      "choice": "not-seen",
+      "sentence": "I did not follow a potential to another folio."
+    },
+    "B4": {
+      "choice": "not-seen",
+      "sentence": "No three wires met in this job."
+    }
+  },
+  "pq": 72.5
+}

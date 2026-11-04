@@ -1,0 +1,35 @@
+{
+  "$schema": "ew.blindquestionnaire/1",
+  "run": "r0-t8-qet-user-v",
+  "a": {
+    "Q1": 4,
+    "Q10": 2,
+    "Q2": 1,
+    "Q3": 4,
+    "Q4": 2,
+    "Q5": 4,
+    "Q6": 2,
+    "Q7": 4,
+    "Q8": 1,
+    "Q9": 4
+  },
+  "b": {
+    "B1": {
+      "choice": "not-seen",
+      "sentence": "I moved no device in this job."
+    },
+    "B2": {
+      "choice": "not-seen",
+      "sentence": "I placed no device in this job."
+    },
+    "B3": {
+      "choice": "yes",
+      "sentence": "The arrow carried folio and cell and a double click took me there and back."
+    },
+    "B4": {
+      "choice": "not-seen",
+      "sentence": "No three wires met in this job."
+    }
+  },
+  "pq": 80.0
+}

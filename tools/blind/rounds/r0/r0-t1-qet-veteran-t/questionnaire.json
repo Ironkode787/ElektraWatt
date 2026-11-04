@@ -1,0 +1,35 @@
+{
+  "$schema": "ew.blindquestionnaire/1",
+  "run": "r0-t1-qet-veteran-t",
+  "a": {
+    "Q1": 3,
+    "Q10": 3,
+    "Q2": 3,
+    "Q3": 2,
+    "Q4": 3,
+    "Q5": 3,
+    "Q6": 3,
+    "Q7": 3,
+    "Q8": 3,
+    "Q9": 4
+  },
+  "b": {
+    "B1": {
+      "choice": "not-seen",
+      "sentence": "I never moved a device in this job."
+    },
+    "B2": {
+      "choice": "keep",
+      "sentence": "The single proposed wire to the supply +24V was the one I would have drawn."
+    },
+    "B3": {
+      "choice": "not-seen",
+      "sentence": "The job never followed a potential to another folio."
+    },
+    "B4": {
+      "choice": "not-seen",
+      "sentence": "No three-wire meeting was drawn in this job."
+    }
+  },
+  "pq": 50.0
+}

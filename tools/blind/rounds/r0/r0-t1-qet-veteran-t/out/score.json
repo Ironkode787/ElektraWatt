@@ -1,0 +1,75 @@
+{
+  "$schema": "ew.blindscore/1",
+  "run": "r0-t1-qet-veteran-t",
+  "task": "brief-ut-t1-place",
+  "outcome": null,
+  "hard": [],
+  "soft": [],
+  "protocol": {
+    "counts": {
+      "turns": 7,
+      "steps": 13,
+      "looks": 9,
+      "refusals": 0,
+      "refused": 0,
+      "failed": 0,
+      "broken": 0
+    },
+    "end": "handback",
+    "handed_back": true,
+    "folios": [],
+    "turns_by_folio": {
+      "102": {
+        "turns": 7
+      }
+    },
+    "prelude": {
+      "setup": 0,
+      "drawing": 0
+    },
+    "observations": {
+      "clean_before_epilogue": true,
+      "product_exit": 0,
+      "pdfs_identical": true,
+      "ew_check_exit": 1
+    }
+  },
+  "brief": {
+    "task_id": "T1",
+    "items": [
+      {
+        "id": "A1",
+        "kind": "hard",
+        "met": true,
+        "decision": "met"
+      },
+      {
+        "id": "A2",
+        "kind": "hard",
+        "met": true,
+        "decision": "met"
+      },
+      {
+        "id": "A3",
+        "kind": "hard",
+        "met": true,
+        "decision": "met"
+      }
+    ],
+    "attempt": "with help",
+    "counts": {
+      "turns": 7,
+      "steps": 13,
+      "refused": 0,
+      "failed": 0,
+      "undo": 0,
+      "hints": 2,
+      "friction": {
+        "annoying": 1,
+        "blocker": 0,
+        "confusing": 2,
+        "cosmetic": 0
+      }
+    }
+  }
+}
