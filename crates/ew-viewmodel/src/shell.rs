@@ -1818,6 +1818,13 @@ impl ShellModel {
         self.id_source = make;
     }
 
+    /// The open project's current snapshot (feature `testkit` only): WP-S2.11 D1's AC-28 flow compares the model's
+    /// records before an edit and after its undo.
+    #[cfg(feature = "testkit")]
+    pub fn world_for_tests(&self) -> Option<ew_api::World> {
+        self.project.as_ref().map(|p| p.session.world())
+    }
+
     fn open_for_editing_with(
         &self,
         dir: &Path,
