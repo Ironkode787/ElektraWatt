@@ -388,15 +388,17 @@ impl FindPane {
     /// The results' count, the stale badge, the error, the truncation and the note.
     fn status(ui: &mut Ui, shell: &ShellModel) {
         let f = shell.find_state();
+        // FT-1365: a search without hits says so once, in the empty state under this line ([`Self::results`]).
         let mut line = match f.results() {
             None => String::new(),
-            Some(r) if r.hits.is_empty() && r.error.is_none() => {
-                strings::text(key!("find-no-results")).to_owned()
-            }
+            Some(r) if r.hits.is_empty() && r.error.is_none() => String::new(),
             Some(r) => strings::format_count(ew_viewmodel::count_key!("find-results"), r.hits.len()),
         };
         if f.stale(shell.revision()) {
-            line.push_str(&format!(" [{}]", strings::text(key!("find-stale"))));
+            if !line.is_empty() {
+                line.push(' ');
+            }
+            line.push_str(&format!("[{}]", strings::text(key!("find-stale"))));
         }
         if let Some(r) = f.results() {
             if let Some(e) = &r.error {
@@ -407,7 +409,10 @@ impl FindPane {
             }
         }
         if let Some(note) = f.note() {
-            line.push_str(&format!(" · {note}"));
+            if !line.is_empty() {
+                line.push_str(" · ");
+            }
+            line.push_str(note);
         }
         if line.is_empty() {
             return;
@@ -438,6 +443,8 @@ impl FindPane {
                 Some(text) if !text.is_empty() => strings::format(key!("empty-nav-filter"), &[text]),
                 _ => strings::text(key!("find-no-results")).to_owned(),
             };
+            // FT-1365: the one line that says so, and the next step; a screen reader hears it as the count before.
+            let group = ui.scope_id().with(("empty-state", line.as_str()));
             crate::components::empty_state(
                 ui,
                 crate::icons::IconId::search,
@@ -445,6 +452,9 @@ impl FindPane {
                 strings::text(key!("empty-find-text")),
                 None,
             );
+            ui.ctx().accesskit_node_builder(group, |n| {
+                n.set_live(egui::accesskit::Live::Polite);
+            });
             return;
         }
         let list_id = ui.scope_id().with("find-results");

@@ -452,6 +452,17 @@ fn cp5_the_empty_states_of_messages_find_history_and_the_navigators() {
         group_named(&h, "Nothing matches \"zzqqk32\""),
         "Find's empty result"
     );
+    // FT-1365: it says so once, with the next step, and a screen reader hears it.
+    assert!(h.query_by_label("No results").is_none());
+    assert!(
+        h.query_by_label("Try other words, or search more fields and folios.")
+            .is_some()
+    );
+    assert!(
+        h.get_all_by_label("Nothing matches \"zzqqk32\"")
+            .any(|n| n.accesskit_node().live() == egui::accesskit::Live::Polite),
+        "the empty state is a live region"
+    );
     support::assert_accessible(&h);
     h.state_mut().shell_mut().shutdown();
 }
