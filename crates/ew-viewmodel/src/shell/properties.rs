@@ -756,13 +756,6 @@ impl ShellModel {
                     .map(|o| (o.clone(), Value::String(o.clone())))
                     .collect()
             }
-            // WP-S1.20 T25: a fluid line's line kinds in their words ("Pilot"), the value the raw word.
-            _ if section.kind == "connection" && row.path == "line_kind" => p
-                .session
-                .field_choices(&section.kind, &row.path, filter)
-                .into_iter()
-                .map(|c| (crate::strings::choice_text(&c.text), c.value))
-                .collect(),
             // FT-1258: an enumerated row's choices are its words in the UI language, filtered by those words.
             (_, crate::properties::FieldType::Enum { options }) => {
                 let f = filter.to_lowercase();

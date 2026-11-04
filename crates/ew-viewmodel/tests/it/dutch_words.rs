@@ -566,6 +566,28 @@ fn ft1258_an_enumerated_row_reads_and_takes_its_words() {
     shell.shutdown();
 }
 
+/// C50-p6#7 (WP-S1.20 T25, FT-1258): in nl-NL a fluid line's Line kind choices are the Dutch words, filtered by them:
+/// typing "Stuur" finds the pilot line ("Stuurleiding").
+#[test]
+fn a_fluid_line_kind_is_found_by_its_dutch_word() {
+    // Golden A's fluid line F6 on folio 203.
+    const F6: &str = "bc567040-5fda-53cd-8063-952499b3c9f3";
+    let tmp = Tmp::new("line-kind-nl");
+    let mut shell = tmp.shell_in(Mode::Headless, true, "203");
+    done(&mut shell, "view.language", json!({"value": "nl"}));
+    done(&mut shell, "select.set", json!({"ids": [F6]}));
+    done(&mut shell, "props.edit", json!({"row": "connection/line_kind"}));
+    done(&mut shell, "props.input", json!({"text": "Stuur"}));
+    let options: Vec<(String, serde_json::Value)> = shell
+        .properties()
+        .choices()
+        .expect("the combo's options")
+        .items
+        .clone();
+    assert_eq!(options, [("Stuurleiding".to_owned(), json!("pilot"))]);
+    shell.shutdown();
+}
+
 /// C50-p5#7 (FT-1287): every report kind of the format has its `report-kind-<kind>` text in en-GB and nl-NL, so no
 /// generated page's Source shows JSON.
 #[test]
