@@ -187,6 +187,10 @@ impl Rule for DuplicateDesignation {
                     subject,
                     message,
                 )
+                // FT-1334: the arguments of the rule's pattern.
+                .arg("designation", designation)
+                .arg("count", members.len().to_string())
+                .arg("strip", strip_tag.clone())
             })
             .collect()
     }

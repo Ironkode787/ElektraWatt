@@ -428,6 +428,11 @@ const OTHER_SENSES: &[(&str, &str, &str)] = &[
     ("toast-bind-off-card", "wire", "the verb (verbinden)"),
     ("rule-ew-pot-021", "wire", "the verb (verbinden)"),
     ("rule-ew-num-001", "unfreeze", "the separable verb (maak … los)"),
+    (
+        "rule-ew-core-071",
+        "part",
+        "the phrase \"takes part in\" (meetellen)",
+    ),
     ("error-join-no-slot", "device", "the script parameter `device=`"),
     (
         "error-no-external",

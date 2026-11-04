@@ -831,8 +831,8 @@ fn pot001_without_a_carrier_has_no_fix_and_names_draw_bond() {
     // C50-p7#5: the Dutch hint names the Dutch menu path.
     assert_eq!(
         ew_checks::messages::render(&f[0], "nl-NL"),
-        "member roles M meet Pe; the first in role order applies; declareer de potentiaalverbinding met Tekenen ▸ \
-         Potentiaalverbinding"
+        "aansluitpuntrollen M botsen met Pe; de eerste in de rolvolgorde geldt; declareer de potentiaalverbinding met \
+         Tekenen ▸ Potentiaalverbinding"
     );
 }
 
@@ -873,7 +873,12 @@ fn pot001_names_three_member_cps_and_counts_the_rest() {
     assert_eq!(members.matches("member CP ").count(), 6, "{members}");
     let nl = ew_checks::messages::render(&f, "nl-NL");
     assert!(nl.ends_with("; en nog 3 aansluitpunten"), "{nl}");
-    assert_eq!(nl.matches("member CP ").count(), 3, "{nl}");
+    assert_eq!(
+        nl,
+        "aansluitpunt -1K4352:PE heeft rol Pe; het gedefinieerde type M geldt; aansluitpunt -1K4353:PE heeft rol Pe; \
+         het gedefinieerde type M geldt; aansluitpunt -1K4354:PE heeft rol Pe; het gedefinieerde type M geldt; en nog \
+         3 aansluitpunten"
+    );
 }
 
 /// Three member CPs or fewer are all named, with no count.

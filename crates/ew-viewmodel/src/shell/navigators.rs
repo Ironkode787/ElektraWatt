@@ -1763,8 +1763,9 @@ pub(super) fn table_in_words(table: &mut ew_api::output::NavTable, project: &sup
                 }
             }
             NavRole::Rule if report.is_some() => {
-                if let Some(rule) = node.key.strip_prefix("rule:")
-                    && let Some(title) = ew_api::checks::messages::title(rule, lang)
+                // FT-1314: the row's key is a path (`severity:<word>/rule:<id>`), so the rule is its last segment.
+                if let Some(rule) = crate::navigators::messages::rule_of(node)
+                    && let Some(title) = ew_api::checks::messages::title(&rule, lang)
                 {
                     node.label = format!("{rule} {title}");
                 }

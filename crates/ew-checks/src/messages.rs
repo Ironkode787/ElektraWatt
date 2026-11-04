@@ -131,6 +131,32 @@ pub fn format(f: &Finding, lang: &str) -> Option<String> {
             }
         }
     }
+    // FT-1370: EW-POT-001's conflicts, each worded by its attribute of the rule's message where every one has a shape
+    // and an attribute, else the en-GB `conflicts`.
+    if f.rule == crate::rules::pot::TYPE_OR_VOLTAGE_CONFLICT.id
+        && let Some((_, list)) = f.args.iter().find(|(k, _)| *k == "conflict_list")
+        && let Some(message) = b.get_message(&id)
+    {
+        let worded: Option<Vec<String>> = list
+            .split('\n')
+            .map(|piece| {
+                let (attribute, subject, value, applied) = crate::rules::pot::conflict_words(piece)?;
+                let pattern = message.get_attribute(attribute)?.value();
+                let mut piece_args = FluentArgs::with_capacity(3);
+                piece_args.set("subject", subject);
+                piece_args.set("value", value);
+                piece_args.set("applied", applied);
+                let mut errors = Vec::new();
+                let text = b
+                    .format_pattern(pattern, Some(&piece_args), &mut errors)
+                    .into_owned();
+                errors.is_empty().then_some(text)
+            })
+            .collect();
+        if let Some(worded) = worded {
+            args.set("conflicts", worded.join("; "));
+        }
+    }
     let mut errors = Vec::new();
     let text = b.format_pattern(pattern, Some(&args), &mut errors);
     errors.is_empty().then(|| text.into_owned())

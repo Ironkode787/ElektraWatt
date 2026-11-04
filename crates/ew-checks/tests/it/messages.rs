@@ -105,14 +105,15 @@ fn one(m: &ew_model::Model, rule: &str) -> ew_checks::Finding {
 /// and `render` in en-GB is the message itself; nl-NL renders the Dutch pattern from the same arguments.
 #[test]
 fn en_gb_renders_the_message_byte_for_byte_and_nl_nl_renders_dutch() {
-    // EW-TERM-002 has no pattern yet: every language prints the en-GB message.
+    // EW-TERM-002 (FT-1334): its pattern words the duplicate in each language.
     let m = model(vec![strip(1, 1), terminal(2, 1, 1, "1"), terminal(3, 1, 2, "1")]);
     let dup = one(&m, "EW-TERM-002");
-    assert!(dup.args.is_empty());
-    assert_eq!(format(&dup, DEFAULT_LANGUAGE), None);
-    for lang in LANGUAGES {
-        assert_eq!(render(&dup, lang), dup.message, "{lang}");
-    }
+    assert_eq!(dup.message, "designation 1 is used by 2 terminals of -?X1");
+    assert_eq!(render(&dup, DEFAULT_LANGUAGE), dup.message);
+    assert_eq!(
+        render(&dup, "nl-NL"),
+        "aanduiding 1 wordt gebruikt door 2 klemmen van -?X1"
+    );
     // An unknown language falls back to en-GB.
     assert_eq!(render(&dup, "fr-FR"), dup.message);
     assert_eq!(
@@ -172,4 +173,174 @@ fn en_gb_renders_the_message_byte_for_byte_and_nl_nl_renders_dutch() {
         Some("Schakelen in de nulleider")
     );
     let _ = json!(null);
+}
+
+/// A finding of `rule` built by hand with `args`, its en-GB message `en`: the en-GB pattern renders `en` byte for byte.
+fn by_hand(rule: &str, discriminator: &str, en: &str, args: &[(&'static str, &str)]) -> ew_checks::Finding {
+    let meta = ew_checks::rule(rule).expect("registered").meta();
+    let mut f = ew_checks::Finding::new(meta, [], discriminator, "", en);
+    for (k, v) in args {
+        f = f.arg(*k, *v);
+    }
+    assert_eq!(format(&f, DEFAULT_LANGUAGE).as_deref(), Some(en), "{rule}");
+    f
+}
+
+/// FT-1334, FT-1370: the uniqueness rules EW-CORE-052 and EW-POT-015 (and so EW-CORE-013 that reports them after a
+/// merge), EW-BUS-004's segment ends and EW-POT-001's conflicts read in Dutch in nl-NL.
+#[test]
+fn nl_nl_words_the_uniqueness_rules_the_bus_ends_and_the_conflicts() {
+    let ip = by_hand(
+        "EW-CORE-052",
+        "star-source",
+        "interruption point L+: 2 source points and no star source; set all but one to target, or flag one as the \
+         star source",
+        &[("form", "sources"), ("name", "L+"), ("count", "2")],
+    );
+    assert_eq!(
+        render(&ip, "nl-NL"),
+        "onderbrekingspunt L+: 2 bronpunten en geen sterbron; maak ze op één na tot doel, of markeer er één als \
+         sterbron"
+    );
+    let flagged = by_hand(
+        "EW-CORE-052",
+        "star-source",
+        "interruption point L+: 3 points are flagged as star source; keep the flag on one of them",
+        &[("form", "flagged"), ("name", "L+"), ("count", "3")],
+    );
+    assert_eq!(
+        render(&flagged, "nl-NL"),
+        "onderbrekingspunt L+: 3 punten zijn als sterbron gemarkeerd; laat de markering op één ervan staan"
+    );
+    let number = by_hand(
+        "EW-POT-015",
+        "",
+        "wire number 101.3 is printed on 2 wires; a wire number names one numbering unit",
+        &[("number", "101.3"), ("count", "2")],
+    );
+    assert_eq!(
+        render(&number, "nl-NL"),
+        "draadnummer 101.3 staat op 2 draden; een draadnummer benoemt één nummeringseenheid"
+    );
+    // EW-CORE-013 words the group by the uniqueness rule's pattern.
+    let merge = by_hand(
+        "EW-CORE-013",
+        "EW-POT-015",
+        "wire number 101.3 is printed on 2 wires; a wire number names one numbering unit after a merge; the oldest \
+         record keeps it, and the other must change",
+        &[
+            ("number", "101.3"),
+            ("count", "2"),
+            (
+                "collision",
+                "wire number 101.3 is printed on 2 wires; a wire number names one numbering unit",
+            ),
+            ("keeper", "oldest"),
+            ("others", "one"),
+        ],
+    );
+    assert_eq!(
+        render(&merge, "nl-NL"),
+        "draadnummer 101.3 staat op 2 draden; een draadnummer benoemt één nummeringseenheid na samenvoegen; het \
+         oudste record behoudt het, en het andere moet wijzigen"
+    );
+    // EW-BUS-004: every kind of segment end.
+    for (end, port, en, nl) in [
+        (
+            "ip",
+            "DP",
+            "end DP: no terminating element at this segment end; terminate the segment here",
+            "einde DP: geen afsluitend element aan dit segmenteinde; sluit het segment hier af",
+        ),
+        (
+            "connector",
+            "",
+            "a connector: no terminating element at this segment end; terminate the segment here",
+            "een connector: geen afsluitend element aan dit segmenteinde; sluit het segment hier af",
+        ),
+        (
+            "device",
+            "DP",
+            "a device:DP: no terminating element at this segment end; terminate the segment here",
+            "een apparaat:DP: geen afsluitend element aan dit segmenteinde; sluit het segment hier af",
+        ),
+        (
+            "segment",
+            "",
+            "a segment end: no terminating element at this segment end; terminate the segment here",
+            "een segmenteinde: geen afsluitend element aan dit segmenteinde; sluit het segment hier af",
+        ),
+        (
+            "named",
+            "-3X1",
+            "-3X1: no terminating element at this segment end; terminate the segment here",
+            "-3X1: geen afsluitend element aan dit segmenteinde; sluit het segment hier af",
+        ),
+    ] {
+        let f = by_hand(
+            "EW-BUS-004",
+            "missing",
+            en,
+            &[("form", "missing"), ("end", end), ("port", port)],
+        );
+        assert_eq!(render(&f, "nl-NL"), nl, "{end}");
+    }
+    // EW-POT-001: each shape of conflict, one per line of `conflict_list`.
+    let conflicts = [
+        (
+            "24VDC-1 at -X1:1 sets type L1; LPlus applies (first definition in natural order)",
+            "24VDC-1 at -X1:1 stelt type L1 in; LPlus geldt (eerste definitie in natuurlijke volgorde)",
+        ),
+        (
+            "24VDC-1 at -X1:1 sets voltage 230 V; 24 V applies (first definition in natural order)",
+            "24VDC-1 at -X1:1 stelt spanning 230 V in; 24 V geldt (eerste definitie in natuurlijke volgorde)",
+        ),
+        (
+            "24VDC-1 at -X1:1 sets environment \"IT\"; \"TN-S\" applies (first definition in natural order)",
+            "24VDC-1 at -X1:1 stelt omgeving \"IT\" in; \"TN-S\" geldt (eerste definitie in natuurlijke volgorde)",
+        ),
+        (
+            "24VDC-1 at -X1:1 sets circuit class \"control\"; \"main\" applies (first definition in natural order)",
+            "24VDC-1 at -X1:1 stelt stroomkringklasse \"control\" in; \"main\" geldt (eerste definitie in natuurlijke \
+             volgorde)",
+        ),
+        (
+            "member CP -K1:A1 has role Pe; the defined type LPlus applies",
+            "aansluitpunt -K1:A1 heeft rol Pe; het gedefinieerde type LPlus geldt",
+        ),
+        (
+            "member roles M, Pe meet LPlus; the first in role order applies",
+            "aansluitpuntrollen M, Pe botsen met LPlus; de eerste in de rolvolgorde geldt",
+        ),
+    ];
+    let en: Vec<&str> = conflicts.iter().map(|(en, _)| *en).collect();
+    let nl: Vec<&str> = conflicts.iter().map(|(_, nl)| *nl).collect();
+    let pot = by_hand(
+        "EW-POT-001",
+        "attrs",
+        &format!("{}; and 2 more member CPs", en.join("; ")),
+        &[
+            ("conflicts", &en.join("; ")),
+            ("conflict_list", &en.join("\n")),
+            ("more", "2"),
+            ("hint", "none"),
+        ],
+    );
+    assert_eq!(
+        render(&pot, "nl-NL"),
+        format!("{}; en nog 2 aansluitpunten", nl.join("; "))
+    );
+    // A conflict of another shape keeps the en-GB conflicts.
+    let odd = by_hand(
+        "EW-POT-001",
+        "attrs",
+        "something else",
+        &[
+            ("conflicts", "something else"),
+            ("conflict_list", "something else"),
+            ("more", "none"),
+            ("hint", "none"),
+        ],
+    );
+    assert_eq!(render(&odd, "nl-NL"), "something else");
 }

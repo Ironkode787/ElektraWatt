@@ -218,7 +218,10 @@ fn waiver_words(report: &CheckReport, waiver: &str) -> String {
     let Some(f) = finding else {
         return strings::text(key!("revision-waiver-gone")).to_owned();
     };
-    let title = ew_api::checks::rule(f.rule).map_or_else(|| f.rule.to_owned(), |r| r.meta().title.to_owned());
+    // FT-1314: the rule's title in the window's language.
+    let title = ew_api::checks::messages::title(f.rule, strings::rule_language()).unwrap_or_else(|| {
+        ew_api::checks::rule(f.rule).map_or_else(|| f.rule.to_owned(), |r| r.meta().title.to_owned())
+    });
     if f.subject.is_empty() {
         title
     } else {

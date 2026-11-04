@@ -375,7 +375,8 @@ impl Rule for TypeOrVoltageConflict {
         let suffix = &pt.suffix;
         let attrs = q.get::<PotentialAttrsOf>(p);
         if !attrs.conflicts.is_empty() {
-            let (shown, more) = shown_conflicts(&attrs.conflicts);
+            let (pieces, more) = shown_conflicts(&attrs.conflicts);
+            let shown = pieces.join("; ");
             let mut message = shown.clone();
             if more > 0 {
                 message.push_str(&format!("; and {more} more member CPs"));
@@ -412,6 +413,8 @@ impl Rule for TypeOrVoltageConflict {
                     message,
                 )
                 .arg("conflicts", shown)
+                // FT-1370: the shown conflicts one per line, which `messages::format` words one by one.
+                .arg("conflict_list", pieces.join("\n"))
                 .arg(
                     "more",
                     if more > 0 {
@@ -453,9 +456,9 @@ impl Rule for TypeOrVoltageConflict {
 /// The most member-CP conflicts an EW-POT-001 message names; the rest are counted ("and 23 more member CPs").
 pub(crate) const SHOWN_MEMBER_CPS: usize = 3;
 
-/// The conflicts an EW-POT-001 message shows, joined with "; " in the order found: every definition conflict and the
-/// first [`SHOWN_MEMBER_CPS`] member-CP conflicts (`member CP …`); and how many member-CP conflicts it leaves out.
-fn shown_conflicts(conflicts: &[String]) -> (String, usize) {
+/// The conflicts an EW-POT-001 message shows, in the order found: every definition conflict and the first
+/// [`SHOWN_MEMBER_CPS`] member-CP conflicts (`member CP …`); and how many member-CP conflicts it leaves out.
+fn shown_conflicts(conflicts: &[String]) -> (Vec<&str>, usize) {
     let mut members = 0;
     let mut shown = Vec::new();
     for c in conflicts {
@@ -467,7 +470,53 @@ fn shown_conflicts(conflicts: &[String]) -> (String, usize) {
         }
         shown.push(c.as_str());
     }
-    (shown.join("; "), members.saturating_sub(SHOWN_MEMBER_CPS))
+    (shown, members.saturating_sub(SHOWN_MEMBER_CPS))
+}
+
+/// The tail of a definition conflict's text (`potential_attrs`, `ew-derive`).
+const FIRST_DEFINITION: &str = " applies (first definition in natural order)";
+
+/// One EW-POT-001 conflict as the arguments of its pattern (FT-1370): the attribute of `rule-ew-pot-001` that words it
+/// (`conflict-type`, `-voltage`, `-environment`, `-class`, `-role`, `-roles`) and its `subject` (a definition or a
+/// member CP), `value` and `applied`. It reads the text `ew-derive`'s `potential_attrs` writes; a text of another shape
+/// is `None`, and the message keeps its en-GB conflicts (the en-GB pattern renders each shape back byte for byte, which
+/// the message tests assert on every finding).
+pub(crate) fn conflict_words(text: &str) -> Option<(&'static str, String, String, String)> {
+    if let Some(rest) = text.strip_prefix("member CP ") {
+        let (left, applied) = rest
+            .strip_suffix(" applies")?
+            .rsplit_once("; the defined type ")?;
+        let (cp, role) = left.rsplit_once(" has role ")?;
+        return Some((
+            "conflict-role",
+            cp.to_owned(),
+            role.to_owned(),
+            applied.to_owned(),
+        ));
+    }
+    if let Some(rest) = text.strip_prefix("member roles ") {
+        let (roles, applied) = rest
+            .strip_suffix("; the first in role order applies")?
+            .rsplit_once(" meet ")?;
+        return Some((
+            "conflict-roles",
+            String::new(),
+            roles.to_owned(),
+            applied.to_owned(),
+        ));
+    }
+    let (left, applied) = text.strip_suffix(FIRST_DEFINITION)?.rsplit_once("; ")?;
+    [
+        (" sets type ", "conflict-type"),
+        (" sets voltage ", "conflict-voltage"),
+        (" sets environment ", "conflict-environment"),
+        (" sets circuit class ", "conflict-class"),
+    ]
+    .into_iter()
+    .find_map(|(marker, attribute)| {
+        let (def, value) = left.rsplit_once(marker)?;
+        Some((attribute, def.to_owned(), value.to_owned(), applied.to_owned()))
+    })
 }
 
 /// Whether the member CPs of a potential (interruption points aside) carry both the role `M` and the role `PE`: a
@@ -1847,6 +1896,9 @@ pub(crate) fn duplicate_numbers(numbers: impl IntoIterator<Item = (String, Id<Co
                     wires.len()
                 ),
             )
+            // FT-1334: the arguments of the rule's pattern.
+            .arg("number", label.clone())
+            .arg("count", wires.len().to_string())
         })
         .collect()
 }

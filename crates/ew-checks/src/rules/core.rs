@@ -263,22 +263,37 @@ fn ambiguous_groups(q: &Q) -> Vec<Finding> {
         let sources = count(&|i| i.direction == IpDirection::Source);
         // FT-901: what is wrong and the way out, in words (no ID tie-break in the text; the derivation still pairs from
         // the smallest ID until the user decides).
-        let why = if flagged > 1 {
-            format!("{flagged} points are flagged as star source; keep the flag on one of them")
+        let (form, count, why) = if flagged > 1 {
+            (
+                "flagged",
+                flagged,
+                format!("{flagged} points are flagged as star source; keep the flag on one of them"),
+            )
         } else if flagged == 0 && sources >= 2 {
-            format!(
-                "{sources} source points and no star source; set all but one to target, or flag one as the star source"
+            (
+                "sources",
+                sources,
+                format!(
+                    "{sources} source points and no star source; set all but one to target, or flag one as the star \
+                     source"
+                ),
             )
         } else {
             continue;
         };
-        out.push(Finding::new(
-            &AMBIGUOUS_INTERRUPTION_POINT,
-            g.members.iter().map(|f| Target::new(Kind::Function, *f)),
-            "star-source",
-            format!("interruption point {}", g.name),
-            format!("interruption point {}: {why}", g.name),
-        ));
+        // FT-1334: the arguments of the rule's pattern, so that EW-CORE-013 words this group in each language too.
+        out.push(
+            Finding::new(
+                &AMBIGUOUS_INTERRUPTION_POINT,
+                g.members.iter().map(|f| Target::new(Kind::Function, *f)),
+                "star-source",
+                format!("interruption point {}", g.name),
+                format!("interruption point {}: {why}", g.name),
+            )
+            .arg("form", form)
+            .arg("name", g.name.to_string())
+            .arg("count", count.to_string()),
+        );
     }
     out
 }

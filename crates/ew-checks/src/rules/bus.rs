@@ -9,7 +9,7 @@ use std::collections::BTreeMap;
 
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_schema::{AddrValue, BusPort, Function, FunctionKind, Kind, NetAddress, OnOff, PortRole};
-use ew_derive::{BusSegments, NetMembersOf, Q, SegmentMember, external_partner_text};
+use ew_derive::{BusSegments, DeviceTag, NetMembersOf, Q, SegmentMember, external_partner_text};
 
 use crate::finding::{Finding, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind};
@@ -28,18 +28,34 @@ pub(crate) fn port_name(q: &Q, function: &Function, port: &BusPort) -> String {
 /// An end of a segment as printed: a port by [`port_name`]; an external interruption point by its name and the
 /// partner its external reference names ("external end DP (+J-E-206 / JE-N1000-03)").
 fn end_name(q: &Q, f: Id<Function>) -> String {
-    let Some(function) = q.functions().get(f) else {
-        return "a segment end".to_owned();
-    };
-    if let Some(port) = &function.bus_port {
-        return port_name(q, function, port);
-    }
     if let Some((name, partner)) = external_end(q, f) {
         return format!("external end {name} ({partner})");
     }
+    end_words(q, f).0
+}
+
+/// An end of a segment other than an external one, as the message's arguments word it (FT-1334): the en-GB text, the
+/// selector `end` (`named` a tagged port or a bare interface, `connector` an untagged connector, `device` an untagged
+/// device's interface, `ip` an interruption point, `segment` an end without either) and the argument `port` (the
+/// printed name, interface or interruption point name; empty for the words alone).
+fn end_words(q: &Q, f: Id<Function>) -> (String, &'static str, String) {
+    let Some(function) = q.functions().get(f) else {
+        return ("a segment end".to_owned(), "segment", String::new());
+    };
+    if let Some(port) = &function.bus_port {
+        let name = port_name(q, function, port);
+        let tagged = function
+            .device
+            .is_none_or(|d| q.get::<DeviceTag>(d).as_ref().is_some());
+        return match (tagged, port.role == PortRole::Passive) {
+            (true, _) => (name.clone(), "named", name),
+            (false, true) => (name, "connector", String::new()),
+            (false, false) => (name, "device", port.interface.to_string()),
+        };
+    }
     match &function.kind {
-        FunctionKind::Ip(ip) => format!("end {}", ip.name),
-        _ => "a segment end".to_owned(),
+        FunctionKind::Ip(ip) => (format!("end {}", ip.name), "ip", ip.name.to_string()),
+        _ => ("a segment end".to_owned(), "segment", String::new()),
     }
 }
 
@@ -277,7 +293,7 @@ impl Rule for Termination {
                 match nearest_terminating(&available, from_start) {
                     Some(i) => claimed.push(i),
                     None => {
-                        let name = end_name(q, end);
+                        let (name, words, port) = end_words(q, end);
                         out.push(
                             Finding::new(
                                 &TERMINATION,
@@ -290,7 +306,8 @@ impl Rule for Termination {
                                 ),
                             )
                             .arg("form", "missing")
-                            .arg("port", name),
+                            .arg("end", words)
+                            .arg("port", port),
                         );
                     }
                 }
@@ -319,7 +336,7 @@ impl Rule for Termination {
                         "the termination state is of a newer format; check it",
                     ),
                 };
-                let name = end_name(q, *f);
+                let (name, words, port) = end_words(q, *f);
                 out.push(
                     Finding::new(
                         &TERMINATION,
@@ -330,7 +347,8 @@ impl Rule for Termination {
                     )
                     .with_severity(severity)
                     .arg("form", form)
-                    .arg("port", name),
+                    .arg("end", words)
+                    .arg("port", port),
                 );
             }
         }

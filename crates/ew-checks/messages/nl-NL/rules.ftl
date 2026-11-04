@@ -5,9 +5,41 @@
 # 1.0 the message test lists the missing ones as warnings. Shipped first for the rules that report on Golden A
 # (doc 20 §18.1); the other texts follow (the de-scope order of WP-S1.16 §13.1).
 
+rule-ew-core-008 =
+    .title = Verwijzing naar een ontbrekend record
+    .hint = Herstel het record waarnaar verwezen wordt, of verwijder de verwijzing met de snelle oplossing.
+
 rule-ew-core-011 =
     .title = Conflictrecords aanwezig
     .hint = Kies voor elk conflict onze of hun versie met ew merge resolve, of verwijder het record dat conflicteert.
+
+rule-ew-core-021 =
+    .title = Folio buiten zijn sectie
+    .hint = Hernummer de pagina binnen het foliobereik van haar sectie, of verplaats haar naar de sectie die het bereik bezit.
+
+rule-ew-core-022 =
+    .title = Dubbel folio
+    .hint = Geef een van de pagina's een ander folio; twee pagina's delen nooit een folio.
+
+rule-ew-core-023 =
+    .title = Overschrijving in het titelblok
+    .hint = Verwijder de overschrijving om de gekoppelde projectwaarde weer af te drukken, of behoud haar als de pagina een eigen tekst nodig heeft.
+
+rule-ew-core-025 =
+    .title = Inhoudsopgave komt niet tot rust
+    .hint = Verkort de gegenereerde inhoudsopgave of haar paginaregels, zodat haar aantal pagina's vast komt te liggen.
+
+rule-ew-core-026 =
+    .title = Rapport dekt niet alle records
+    .hint = Voeg een rapportblok van die soort toe, of sluit de records bewust uit van het rapport.
+
+rule-ew-core-031 =
+    .title = Ongeldige aderkleur
+    .hint = Kies een kleurcode uit de norm voor aderkleuren, bijvoorbeeld BN in plaats van BR.
+
+rule-ew-core-032 =
+    .title = Ader wijkt af van het artikel
+    .hint = Gebruik de ader zoals het kabelartikel haar definieert, of kies het artikel dat deze ader heeft.
 
 rule-ew-core-033 = { $cable } heeft geen gerouteerde, handmatige of artikellengte
     .title = Kabel zonder lengte
@@ -20,17 +52,84 @@ rule-ew-core-034 = de externe verbinding { $connection } heeft geen kabel: { $co
     .title = Externe verbinding zonder kabel
     .hint = Voeg de kabel toe die de locatie verlaat en wijs de aders toe aan de draden.
 
+rule-ew-core-036 =
+    .title = Ader dubbel toegewezen
+    .hint = Wijs de ader aan één verbinding toe, of gebruik een andere ader van de kabel.
+
+rule-ew-core-037 =
+    .title = Afscherming niet aangesloten
+    .hint = Sluit de afscherming aan op een aardingspunt, of markeer haar als bewust niet aangesloten.
+
 rule-ew-core-041 = { $device } heeft geen artikel; wijs er een toe of markeer het als geleverd door derden
     .title = Apparaat zonder artikel
     .hint = Wijs een artikel uit de bibliotheek toe of markeer het apparaat als geleverd door derden.
+
+rule-ew-core-042 =
+    .title = Onvolledige artikelgegevens
+    .hint = Vul de gegevens van het artikel aan in de bibliotheek en werk de ingebedde kopie bij.
 
 rule-ew-core-043 = tijdelijk artikel "{ $part }" (artikelnummer TBD) wordt gebruikt door { $users }; kies het artikel vóór de vrijgave
     .title = Tijdelijk artikel
     .hint = Vervang vóór de vrijgave elk tijdelijk artikel door het echte artikel.
 
+rule-ew-core-044 =
+    .title = Open Tbd-waarde
+    .hint = Vul vóór de vrijgave de waarde in die nog als TBD gemarkeerd is.
+
+rule-ew-core-045 =
+    .title = Meer hulpcontacten dan het artikel heeft
+    .hint = Verwijder contacten uit de tekening, of kies een artikel met genoeg hoofd- en hulpcontacten.
+
+rule-ew-core-047 =
+    .title = Apparaat niet in het schema
+    .hint = Plaats een weergave van het apparaat in het schema, of verwijder het apparaat.
+
+rule-ew-core-048 =
+    .title = Bestelcodes dekken de samenstelling niet
+    .hint = Neem de ontbrekende leden op in een bestelcode van de samenstelling, of verwijder ze uit de samenstelling.
+
+rule-ew-core-051 =
+    .title = Onderbrekingspunt zonder tegenhanger
+    .hint = Plaats het bijbehorende onderbrekingspunt met dezelfde naam, of verwijder dit punt.
+
+rule-ew-core-052 = onderbrekingspunt { $name }: { $form ->
+        [flagged] { $count } punten zijn als sterbron gemarkeerd; laat de markering op één ervan staan
+       *[sources] { $count } bronpunten en geen sterbron; maak ze op één na tot doel, of markeer er één als sterbron
+    }
+    .title = Dubbelzinnig onderbrekingspunt
+    .hint = Houd één bron per naam: maak de andere bronnen tot doel, of markeer precies één punt als sterbron.
+
+rule-ew-core-053 =
+    .title = Ongeldige cel voor de kruisverwijzing
+    .hint = Herstel het standaardbeleid voor ankers, of verplaats het anker naar een cel die de grafiek bevat.
+
 rule-ew-core-061 = tekststijl { $style } drukt af met een hoofdletterhoogte van { $height } mm, onder het minimum van { $minimum } mm
     .title = Tekst onder de minimale hoogte
     .hint = Vergroot de tekststijl of geef de teksten een stijl die minstens op de minimale hoogte afdrukt.
+
+rule-ew-core-063 =
+    .title = Tekstgrootte zonder tekststijl
+    .hint = Geef de tekst een van de tekststijlen van het project in plaats van een vrije grootte.
+
+rule-ew-core-065 =
+    .title = Technische gegevens in de omschrijving
+    .hint = Verplaats nominale waarden en technische gegevens uit de omschrijving naar hun eigen velden.
+
+rule-ew-core-071 =
+    .title = Grafische lijn op een aansluitpunt
+    .hint = Vervang de grafische lijn door een verbinding, zodat ze meetelt in de connectiviteit.
+
+rule-ew-core-081 =
+    .title = Vrijstelling zonder bevinding
+    .hint = Verwijder de vrijstelling, of corrigeer haar doel naar de bevinding waarvoor ze bedoeld was.
+
+rule-ew-core-083 =
+    .title = Regel niet geëvalueerd
+    .hint = Meld het defect; de bevindingen van de regel in dat bereik ontbreken tot het is verholpen.
+
+rule-ew-core-084 =
+    .title = Regelpakket niet geëvalueerd
+    .hint = Herstel het gegevensbestand van het pakket of vertrouw het project, zodat het pakket kan draaien.
 
 rule-ew-fl-001 = { $form ->
         [many] { $valve }: werkpoorten { $ports_nl } zijn open; sluit ze aan, zet er een blindstop op of blind ze af
@@ -150,6 +249,10 @@ rule-ew-num-001 = { $frozen }: vastgezet, wijkt af van het nummeringsschema (afg
     .title = Kenmerk wijkt af van het nummeringsschema
     .hint = Maak het kenmerk los om de afgeleide waarde over te nemen, of laat het vastgezet als de afwijking bedoeld is.
 
+rule-ew-num-002 =
+    .title = Vastgezette waarde wijkt af
+    .hint = Losmaken geeft de afgeleide waarde; houd de waarde vastgezet als de afwijking bedoeld is.
+
 rule-ew-plc-001 = { $form ->
         [alignment] { $channel }: het adres { $address } begint niet op een veelvoud van { $align } bytes, de woorduitlijning van het profiel (een niet-geverifieerde conventie)
        *[overlap] adressen overlappen in configuratieproject { $cfg }: { $channels }{ $more ->
@@ -211,7 +314,13 @@ rule-ew-bus-001 = { $form ->
 
 rule-ew-bus-004 = { $form ->
         [external] extern einde { $port } ({ $partner })
-       *[other] { $port }
+       *[other] { $end ->
+            [ip] einde { $port }
+            [connector] een connector
+            [device] een apparaat:{ $port }
+            [segment] een segmenteinde
+           *[named] { $port }
+        }
     }: { $form ->
         [external] de afsluiting aan het externe einde is onbekend; controleer dat de partner het segment afsluit
         [missing] geen afsluitend element aan dit segmenteinde; sluit het segment hier af
@@ -231,6 +340,16 @@ rule-ew-pot-001 = { $conflicts }{ $more ->
     }
     .title = Type- of spanningsconflict
     .hint = Scheid de potentialen, corrigeer de definitie of declareer de potentiaalverbinding die ze samenbrengt.
+    .conflict-type = { $subject } stelt type { $value } in; { $applied } geldt (eerste definitie in natuurlijke volgorde)
+    .conflict-voltage = { $subject } stelt spanning { $value } in; { $applied } geldt (eerste definitie in natuurlijke volgorde)
+    .conflict-environment = { $subject } stelt omgeving { $value } in; { $applied } geldt (eerste definitie in natuurlijke volgorde)
+    .conflict-class = { $subject } stelt stroomkringklasse { $value } in; { $applied } geldt (eerste definitie in natuurlijke volgorde)
+    .conflict-role = aansluitpunt { $subject } heeft rol { $value }; het gedefinieerde type { $applied } geldt
+    .conflict-roles = aansluitpuntrollen { $value } botsen met { $applied }; de eerste in de rolvolgorde geldt
+
+rule-ew-pot-002 =
+    .title = 0 V–PE-verbinding bij PELV of SELV
+    .hint = Declareer precies één 0 V–PE-verbinding voor een PELV-potentiaal, en geen voor een SELV-potentiaal.
 
 rule-ew-pot-003 = { $cp_shared ->
         [yes] { $cp_tag } pen { $cp_pin } ({ $cp_nth }e)
@@ -238,6 +357,10 @@ rule-ew-pot-003 = { $cp_shared ->
     } heeft de rol FE en is aangesloten op de PE-potentiaal { $potential }; declareer een FE–PE-verbinding of sluit het aan op functionele aarde
     .title = FE-pen op PE
     .hint = Declareer een FE–PE-verbinding of sluit de pen aan op functionele aarde.
+
+rule-ew-pot-004 =
+    .title = GNYE op een potentiaal die geen PE is
+    .hint = Gebruik groen-geel alleen voor beschermingsleiders; geef de draad een andere kleur.
 
 rule-ew-pot-005 = draad { $wire } is BU op de potentiaal { $potential }{ $type ->
         [none] {""}
@@ -253,6 +376,10 @@ rule-ew-pot-006 = PE-draad { $wire } heeft { $pe } mm², minder dan de { $requir
     .title = PE te klein
     .hint = Vergroot de doorsnede van de beschermingsleider tot de vereiste maat.
 
+rule-ew-pot-008 =
+    .title = PE-eiland
+    .hint = Verbind de PE-potentialen van de locatie, bijvoorbeeld via de railverbinding van de klemmen.
+
 rule-ew-pot-009 = { $cp_shared ->
         [yes] { $cp_tag } pen { $cp_pin } ({ $cp_nth }e)
        *[no] { $cp }
@@ -267,6 +394,10 @@ rule-ew-pot-011 = { $potential } heeft een knooppunt of een groep onderbrekingsp
     .title = Voeding van knooppunt onduidelijk
     .hint = Teken het knooppunt zo dat één draad het voedt, of stel de bedradingsvolgorde in.
 
+rule-ew-pot-012 =
+    .title = Ring in de tekening
+    .hint = Verwijder de draad die de ring sluit, of bevestig dat de ring bedoeld is.
+
 rule-ew-pot-013 = { $device } schakelt de nulleider { $from } → { $to }{ $loads ->
         [one] ; belasting { $load } blijft verbonden met { $line }
        *[none] {""}
@@ -274,12 +405,36 @@ rule-ew-pot-013 = { $device } schakelt de nulleider { $from } → { $to }{ $load
     .title = Schakelen in de nulleider
     .hint = Verplaats het contact naar de lijngeleider, of gebruik een apparaat dat L en N tegelijk opent.
 
+rule-ew-pot-014 =
+    .title = Conflict in een fysieke draad
+    .hint = Geef de fysieke draad één set eigenschappen, of splits hem in afzonderlijke draden.
+
+rule-ew-pot-015 = draadnummer { $number } staat op { $count } draden; een draadnummer benoemt één nummeringseenheid
+    .title = Draadnummerconflict
+    .hint = Geef de draden van één potentiaal hetzelfde draadnummer, of scheid de potentialen.
+
+rule-ew-pot-016 =
+    .title = Overbodige overschrijving
+    .hint = Verwijder de overschrijving; ze zet de waarde die de draad toch al krijgt.
+
+rule-ew-pot-017 =
+    .title = Twee namen voor één potentiaal
+    .hint = Houd één definitie van de potentiaal, of geef de onderbrekingspunten één naam.
+
 rule-ew-pot-021 = { $cp_shared ->
         [yes] { $cp_tag } pen { $cp_pin } ({ $cp_nth }e)
        *[no] { $cp }
     } ligt op { $potential }, dat geen voeding bereikt: de belasting wordt gevoed maar niet teruggevoerd; sluit het aan op de retourgeleider (0 V, N)
     .title = Belasting niet teruggevoerd
     .hint = Verbind de retourzijde van de belasting met de retourgeleider van de voeding (0 V, N), of met de retourpin van de module.
+
+rule-ew-rds-001 =
+    .title = Ongeldige aanduiding
+    .hint = Corrigeer de aanduiding naar de syntaxis van referentieaanduidingen volgens IEC 81346.
+
+rule-ew-rds-002 =
+    .title = Scheidingsteken in een structuurcode
+    .hint = Verwijder het scheidingsteken uit de code, of gebruik in plaats daarvan een structuurniveau.
 
 rule-ew-rds-003 = { $device }: de lettercode { $letter } past niet bij de functiecategorie { $category }; de identificatieset { $set } stelt { $suggested } voor{ $verified ->
         [yes] {""}
@@ -291,6 +446,54 @@ rule-ew-rds-003 = { $device }: de lettercode { $letter } past niet bij de functi
 rule-ew-rds-004 = `{ $tag }` wordt afgedrukt door { $count } apparaten
     .title = Dubbel kenmerk
     .hint = Geef een van de apparaten een ander kenmerk.
+
+rule-ew-rds-007 =
+    .title = Gereserveerde letters
+    .hint = Vermijd de letters I en O in een lettercode; kies een andere letter.
+
+rule-ew-rds-009 =
+    .title = Verwarrend teken
+    .hint = Vervang het teken door zijn gewone Latijnse vorm.
+
+rule-ew-rds-010 =
+    .title = Varianten van een structuurcode
+    .hint = Voeg de structuurknooppunten samen waarvan de codes alleen in spelling verschillen.
+
+rule-ew-rel-001 =
+    .title = Vier-ogenprincipe
+    .hint = Stel de auteur in en laat daarna een ander de opgeslagen revisie goedkeuren; keur opnieuw goed na een inhoudelijke wijziging.
+
+rule-ew-rel-002 =
+    .title = Verouderde vastgelegde berekening
+    .hint = Bereken het verouderde resultaat opnieuw en leg het vóór de vrijgave opnieuw vast.
+
+rule-ew-rel-004 =
+    .title = Volgorde van de revisielabels
+    .hint = Geef de revisie een label in het labelformaat van het project dat na elk eerder label komt.
+
+rule-ew-term-001 =
+    .title = Klem zonder aanduiding
+    .hint = Geef de klem een aanduiding.
+
+rule-ew-term-002 = aanduiding { $designation } wordt gebruikt door { $count } klemmen van { $strip }
+    .title = Dubbele aanduiding
+    .hint = Hernummer de klemmenstrook, of geef een van de klemmen een andere aanduiding.
+
+rule-ew-term-003 =
+    .title = Reserveklem aan de veldzijde bedraad
+    .hint = Verwijder de draad aan de veldzijde, of maak de klem een gebruikte klem.
+
+rule-ew-term-004 =
+    .title = Ongeldige bruggroep
+    .hint = Brug alleen naburige klemmen van één klemmenstrook, of zet de klemmen naast elkaar.
+
+rule-ew-term-005 =
+    .title = Railverbinding op een klem die geen PE is
+    .hint = Wis de railverbinding, of maak de klem een PE-klem.
+
+rule-ew-term-006 =
+    .title = Klem op een draad die hij niet verbindt
+    .hint = Neem de klem op in de draad, of haal haar van de draad af.
 
 ## WP-S1.17 part 8 (COL49): botsingen na samenvoegen
 

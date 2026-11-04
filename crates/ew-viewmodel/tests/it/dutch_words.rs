@@ -378,6 +378,26 @@ fn ft1162_the_messages_rows_and_the_chip_read_in_dutch() {
         }
     }
     assert_eq!(groups, expected_groups);
+    // FT-1314: each rule group reads its rule's nl-NL title (the row's key is a path, `severity:<word>/rule:<id>`).
+    let rule_rows: Vec<(String, String)> = t
+        .nodes
+        .iter()
+        .filter(|n| n.role == NavRole::Rule)
+        .filter_map(|n| Some((n.key.rsplit_once("rule:")?.1.to_owned(), n.label.clone())))
+        .filter(|(rule, _)| rule != "release")
+        .collect();
+    assert!(!rule_rows.is_empty());
+    for (rule, label) in &rule_rows {
+        let title = messages::title(rule, "nl-NL").expect("a title");
+        assert_eq!(*label, format!("{rule} {title}"));
+    }
+    for label in ["EW-FL-001 Werkpoort open", "EW-CORE-033 Kabel zonder lengte"] {
+        assert_eq!(
+            rule_rows.iter().filter(|(_, l)| l == label).count(),
+            1,
+            "{rule_rows:?}"
+        );
+    }
     let mut rows = Vec::new();
     let mut expected = Vec::new();
     for n in t.nodes.iter().filter(|n| n.role == NavRole::Finding) {
@@ -402,6 +422,23 @@ fn ft1162_the_messages_rows_and_the_chip_read_in_dutch() {
     // C50-p5#7: one row as the Dutch reader sees it.
     let cable = "=P01+J-E-2416-3W1 heeft geen gerouteerde, handmatige of artikellengte";
     assert_eq!(rows.iter().filter(|r| *r == cable).count(), 1, "{rows:?}");
+    // FT-1314: the detail of that row names the rule by its nl-NL title.
+    let key = t
+        .nodes
+        .iter()
+        .find(|n| n.role == NavRole::Finding && n.label == cable)
+        .expect("the cable row")
+        .key
+        .clone();
+    done(
+        &mut shell,
+        "navigator.row",
+        json!({"kind": "messages", "key": key}),
+    );
+    assert_eq!(
+        shell.messages_detail().expect("the detail").title,
+        "Kabel zonder lengte"
+    );
     assert!(
         report
             .findings

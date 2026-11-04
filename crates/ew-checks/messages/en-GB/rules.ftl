@@ -94,7 +94,10 @@ rule-ew-core-051 =
     .title = Unpaired interruption point
     .hint = Place the matching interruption point with the same name, or remove this one.
 
-rule-ew-core-052 =
+rule-ew-core-052 = interruption point { $name }: { $form ->
+        [flagged] { $count } points are flagged as star source; keep the flag on one of them
+       *[sources] { $count } source points and no star source; set all but one to target, or flag one as the star source
+    }
     .title = Ambiguous interruption point
     .hint = Keep one source per name: set the other sources to target, or flag exactly one point as the star source.
 
@@ -323,7 +326,13 @@ rule-ew-bus-001 = { $form ->
 
 rule-ew-bus-004 = { $form ->
         [external] external end { $port } ({ $partner })
-       *[other] { $port }
+       *[other] { $end ->
+            [ip] end { $port }
+            [connector] a connector
+            [device] a device:{ $port }
+            [segment] a segment end
+           *[named] { $port }
+        }
     }: { $form ->
         [external] the termination at the external end is unknown; check that the partner terminates the segment
         [missing] no terminating element at this segment end; terminate the segment here
@@ -345,6 +354,12 @@ rule-ew-pot-001 = { $conflicts }{ $more ->
     }
     .title = Type or voltage conflict
     .hint = Separate the potentials, correct the definition, or declare the bond that joins them.
+    .conflict-type = { $subject } sets type { $value }; { $applied } applies (first definition in natural order)
+    .conflict-voltage = { $subject } sets voltage { $value }; { $applied } applies (first definition in natural order)
+    .conflict-environment = { $subject } sets environment { $value }; { $applied } applies (first definition in natural order)
+    .conflict-class = { $subject } sets circuit class { $value }; { $applied } applies (first definition in natural order)
+    .conflict-role = member CP { $subject } has role { $value }; the defined type { $applied } applies
+    .conflict-roles = member roles { $value } meet { $applied }; the first in role order applies
 
 rule-ew-pot-002 =
     .title = PELV or SELV bonding
@@ -418,7 +433,7 @@ rule-ew-pot-014 =
     .title = Physical-wire conflict
     .hint = Give the physical wire one set of properties, or split it into separate wires.
 
-rule-ew-pot-015 =
+rule-ew-pot-015 = wire number { $number } is printed on { $count } wires; a wire number names one numbering unit
     .title = Wire-number conflict
     .hint = Give the wires of one potential the same wire number, or separate the potentials.
 
@@ -495,7 +510,7 @@ rule-ew-term-001 =
     .title = Terminal without designation
     .hint = Give the terminal a designation.
 
-rule-ew-term-002 =
+rule-ew-term-002 = designation { $designation } is used by { $count } terminals of { $strip }
     .title = Duplicate designation
     .hint = Renumber the strip, or give one of the terminals another designation.
 
