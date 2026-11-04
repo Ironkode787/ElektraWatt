@@ -31,8 +31,31 @@ fn choices(ui: &mut Ui, events: &mut Vec<Event>, field: &str, prefix: &str, opti
     }
 }
 
+/// The Start step's buttons and the start each one takes (FT-1262: the screen and the fit test read this one list).
+pub const STARTS: [(strings::Key<'static>, &str); 5] = [
+    (key!("firstrun-start-wizard"), "wizard"),
+    (key!("firstrun-start-sample"), "sample"),
+    (key!("firstrun-start-qet"), "qet"),
+    (key!("firstrun-start-new"), "new"),
+    (key!("firstrun-start-none"), "none"),
+];
+
+/// The footer's buttons on `step`, in their order, with the action each runs: Back after the first step, Skip and
+/// Next before the last (FT-1262: the screen and the fit test read this one list).
+pub fn footer(step: FirstRunStep) -> Vec<(strings::Key<'static>, &'static str)> {
+    let mut out = Vec::new();
+    if step != FirstRunStep::Language {
+        out.push((key!("firstrun-back"), "first_run.back"));
+    }
+    if step != FirstRunStep::Start {
+        out.push((key!("firstrun-skip"), "first_run.next"));
+        out.push((key!("firstrun-next"), "first_run.next"));
+    }
+    out
+}
+
 /// Paints the first-run screen into `ui`.
-pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
+pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
     let Some(run) = shell.first_run() else { return };
     let settings = shell.settings();
     ui.vertical_centered(|ui| {
@@ -86,13 +109,7 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                 }
                 FirstRunStep::Start => {
                     ui.label(strings::text(key!("firstrun-text-start")));
-                    for (key, start) in [
-                        (key!("firstrun-start-wizard"), "wizard"),
-                        (key!("firstrun-start-sample"), "sample"),
-                        (key!("firstrun-start-qet"), "qet"),
-                        (key!("firstrun-start-new"), "new"),
-                        (key!("firstrun-start-none"), "none"),
-                    ] {
+                    for (key, start) in STARTS {
                         if ui.button(strings::text(key)).clicked() {
                             events.push(Event::Action("first_run.finish", json!({ "start": start })));
                         }
@@ -102,16 +119,9 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         });
         ui.add_space(16.0);
         ui.horizontal(|ui| {
-            if run.step != FirstRunStep::Language && ui.button(strings::text(key!("firstrun-back"))).clicked()
-            {
-                events.push(Event::Action("first_run.back", Value::Null));
-            }
-            if run.step != FirstRunStep::Start {
-                if ui.button(strings::text(key!("firstrun-skip"))).clicked() {
-                    events.push(Event::Action("first_run.next", Value::Null));
-                }
-                if ui.button(strings::text(key!("firstrun-next"))).clicked() {
-                    events.push(Event::Action("first_run.next", Value::Null));
+            for (key, action) in footer(run.step) {
+                if ui.button(strings::text(key)).clicked() {
+                    events.push(Event::Action(action, Value::Null));
                 }
             }
         });

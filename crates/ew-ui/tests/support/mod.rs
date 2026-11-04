@@ -321,9 +321,9 @@ pub fn fit_problems<S>(harness: &Harness<'_, S>) -> Vec<String> {
 
 /// ID-1278 ruling 13 (C49-p3#3, C49-p6#3; FR-UI-027): the buttons of the open dialog (its Primary and Cancel among
 /// them) or of the first run's step on show lie inside the window down as well as across ([`fit_problems`] checks
-/// across only: a dialog grows down). A button is looked for in its own window only: under the nearest ancestor of
-/// the dialog's title (the first run's heading) that holds a button of that name, so a toolbar button of the same name
-/// never stands in for it. A button not shown there is reported too. Empty without a dialog or a first run.
+/// across only: a dialog grows down). A button is looked for in its own window only (FT-1261): the dialog's modal
+/// that holds its title (the first run's window), so a button of the same name elsewhere never stands in for it. A
+/// button not shown there is reported "not shown". Empty without a dialog or a first run.
 pub fn footer_problems(harness: &Harness<'_, App>) -> Vec<String> {
     use egui::accesskit::Role;
     use ew_ui::ew_viewmodel::first_run::FirstRunStep;
@@ -334,24 +334,13 @@ pub fn footer_problems(harness: &Harness<'_, App>) -> Vec<String> {
         let labels = spec.buttons().iter().map(|b| b.label.clone()).collect();
         (spec.title, labels)
     } else if let Some(run) = shell.first_run() {
+        // FT-1262: the screen's own lists of its buttons.
         let text = |k| strings::text(k).to_owned();
-        let mut labels = Vec::new();
-        if run.step != FirstRunStep::Language {
-            labels.push(text(key!("firstrun-back")));
-        }
+        let mut labels: Vec<String> = Vec::new();
         if run.step == FirstRunStep::Start {
-            for k in [
-                key!("firstrun-start-wizard"),
-                key!("firstrun-start-sample"),
-                key!("firstrun-start-qet"),
-                key!("firstrun-start-new"),
-                key!("firstrun-start-none"),
-            ] {
-                labels.push(text(k));
-            }
-        } else {
-            labels.extend([text(key!("firstrun-skip")), text(key!("firstrun-next"))]);
+            labels.extend(ew_ui::first_run::STARTS.iter().map(|(k, _)| text(*k)));
         }
+        labels.extend(ew_ui::first_run::footer(run.step).into_iter().map(|(k, _)| text(k)));
         (text(key!("firstrun-title")), labels)
     } else {
         return Vec::new();
@@ -360,10 +349,33 @@ pub fn footer_problems(harness: &Harness<'_, App>) -> Vec<String> {
     let (x0, y0) = (f64::from(screen.min.x) - SLACK, f64::from(screen.min.y) - SLACK);
     let (x1, y1) = (f64::from(screen.max.x) + SLACK, f64::from(screen.max.y) + SLACK);
     let root = harness.root();
-    let Some(heading) = root.children_recursive().find(|n| {
-        let n = n.accesskit_node();
-        n.label().or_else(|| n.value()).as_deref() == Some(title.as_str())
-    }) else {
+    // FT-1261: the dialog's own window (a modal's `Dialog` node; for the first run, which fills the window, the root):
+    // the title is looked for inside a dialog when a dialog is open, and the buttons under that window alone.
+    fn window_of<'a>(
+        n: &egui_kittest::kittest::AccessKitNode<'a>,
+    ) -> Option<egui_kittest::kittest::AccessKitNode<'a>> {
+        let mut at = n.parent();
+        while let Some(a) = at {
+            if matches!(a.role(), Role::Dialog | Role::Window) {
+                return Some(a);
+            }
+            at = a.parent();
+        }
+        None
+    }
+    let want = if shell.dialog().is_some() {
+        Role::Dialog
+    } else {
+        Role::Window
+    };
+    let Some(window) = root
+        .children_recursive()
+        .filter(|n| {
+            let n = n.accesskit_node();
+            n.label().or_else(|| n.value()).as_deref() == Some(title.as_str())
+        })
+        .find_map(|n| window_of(&n.accesskit_node()).filter(|w| w.role() == want))
+    else {
         return vec![format!("the title {title:?} is not shown")];
     };
     /// The bounds of the buttons named `label` under `node`.
@@ -385,14 +397,7 @@ pub fn footer_problems(harness: &Harness<'_, App>) -> Vec<String> {
     let mut problems = Vec::new();
     for label in &labels {
         let mut bounds = Vec::new();
-        let mut ancestor = heading.accesskit_node().parent();
-        while let Some(a) = ancestor {
-            buttons(&a, label, &mut bounds);
-            if !bounds.is_empty() {
-                break;
-            }
-            ancestor = a.parent();
-        }
+        buttons(&window, label, &mut bounds);
         if bounds.is_empty() {
             problems.push(format!("{label:?} is not shown"));
         } else if !bounds
