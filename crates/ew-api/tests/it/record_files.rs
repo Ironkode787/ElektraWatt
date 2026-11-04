@@ -108,6 +108,41 @@ fn merge_resolve_routes_every_record_to_the_file_the_writer_writes_it_in() {
             "side": "theirs", "lines": []
         })));
     }
+    // FT-1335: file-level conflicts of every root file, of each record directory, and of paths that name no record
+    // file (the writer routes those to the conflict's own shard).
+    let id = "0190d8a4-6d3e-7c41-8f00-0000000000aa";
+    let paths: Vec<String> = ew_store::ew_format::ROOT_FILES
+        .iter()
+        .map(|r| (*r).to_owned())
+        .chain(
+            ["layout", "imports", "exchange"]
+                .iter()
+                .map(|d| format!("{d}/{id}.jsonl")),
+        )
+        .chain(
+            [
+                "devices/0a.jsonl",
+                "devices/0A.jsonl",
+                "devices/0a.json",
+                "pages/not-an-id.jsonl",
+                "pages/a/b.jsonl",
+                "manifest.json",
+                "notes.txt",
+                "assets/x.svg",
+                "lib/fndefs/x.json",
+                ".ew/state.jsonl",
+                "project.jsonl.tmp-3",
+            ]
+            .iter()
+            .map(|p| (*p).to_owned()),
+        )
+        .collect();
+    for (n, path) in paths.iter().enumerate() {
+        records.push(record(json!({
+            "$k": "conflict", "id": format!("0190d8a4-6d3e-7c41-8f00-0000000002{n:02}"), "kind": "file",
+            "path": path, "side": "theirs", "lines": []
+        })));
+    }
     // A conflict on the project record (C50-p4#7).
     records.push(record(json!({
         "$k": "conflict", "id": project.id.to_string(), "kind": "project", "base": {}, "ours": {}, "theirs": {}

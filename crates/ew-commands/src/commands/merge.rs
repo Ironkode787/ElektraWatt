@@ -388,7 +388,9 @@ fn file_of(tx: &TxBuilder<'_>, record: &Record, depth: u8) -> Option<String> {
             CarrierRef::Unknown(_) => r.id.cast(),
         }),
         Record::Conflict(c) => match &c.body {
-            ConflictBody::File { path, .. } => path.clone(),
+            // FT-1335: the writer's routing; a path that names no record file, the shard of the conflict's own ID.
+            ConflictBody::File { path, .. } if names_record_file(path) => path.clone(),
+            ConflictBody::File { .. } => shard(c.id.cast()),
             ConflictBody::Record { kind, .. } => {
                 let target = Kind::from_name(kind)
                     .filter(|k| *k != Kind::Conflict && depth == 0)
@@ -405,4 +407,29 @@ fn file_of(tx: &TxBuilder<'_>, record: &Record, depth: u8) -> Option<String> {
         },
         Record::Unknown(_) => return None,
     })
+}
+
+/// Whether `path` names a record file as `ew_format::classify` reads one (doc 05 §2.2): a root file, `pages/`,
+/// `layout/`, `imports/` or `exchange/<id>.jsonl`, or `devices/<xx>.jsonl` (`xx` lower-case hex). The agreement test
+/// of `record_file_of` pins it to the writer's (FT-1335).
+fn names_record_file(path: &str) -> bool {
+    const ROOT_FILES: [&str; 6] = [
+        "project.jsonl",
+        "structure.jsonl",
+        "revisions.jsonl",
+        "report-blocks.jsonl",
+        "waivers.jsonl",
+        "comments.jsonl",
+    ];
+    let id_file = |name: &str| name.strip_suffix(".jsonl").is_some_and(|id| id.parse::<AnyId>().is_ok());
+    let hex = |b: u8| b.is_ascii_digit() || (b'a'..=b'f').contains(&b);
+    match path.split('/').collect::<Vec<_>>().as_slice() {
+        [name] => ROOT_FILES.contains(name),
+        ["pages" | "layout" | "imports" | "exchange", name] => id_file(name),
+        ["devices", name] => {
+            let b = name.as_bytes();
+            b.len() == 8 && name.ends_with(".jsonl") && hex(b[0]) && hex(b[1])
+        }
+        _ => false,
+    }
 }
