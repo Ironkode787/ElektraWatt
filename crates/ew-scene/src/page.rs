@@ -1357,7 +1357,7 @@ impl Builder<'_> {
                             own = shifted(own, dx);
                             break;
                         }
-                        dx = dx - step;
+                        dx -= step;
                     }
                 }
                 stacks.push((entity, lines.iter().map(|&(_, i)| i).collect(), own));
