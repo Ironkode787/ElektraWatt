@@ -6,23 +6,29 @@
 NFR-SEC-13, NFR-LIC-08, FT-04), run by the OS jobs of .github/workflows/package.yml.
 
   python3 -I ci/sbom.py cyclonedx --target <triple> --bin <name>... --out <dir>
-  python3 -I ci/sbom.py merge --artefact <file name> --version <v> --metadata <json> --cdx <json>...
-                              [--component <name>...] --out <artefact>.cdx.json
-  python3 -I ci/sbom.py complete --sbom <artefact>.cdx.json --metadata <json> --bin <name>...
+  python3 -I ci/sbom.py shipped --target <triple> --bin <name>... --out <tree.txt>
+  python3 -I ci/sbom.py merge --artefact <file name> --version <v> --metadata <json> --tree <tree.txt>
+                              --cdx <json>... [--component <name>...] --out <artefact>.cdx.json
+  python3 -I ci/sbom.py complete --sbom <artefact>.cdx.json --metadata <json> --tree <tree.txt> --bin <name>...
   python3 -I ci/sbom.py notices --sbom <artefact>.cdx.json... --metadata <json> --notices <THIRD-PARTY-NOTICES.txt>
   python3 -I ci/sbom.py --test                                          # its offline unit test
 
 `cyclonedx` writes `cargo metadata --filter-platform <triple>` to <dir>/metadata.json and runs cargo-cyclonedx (JSON,
 CycloneDX 1.5, every dependency, one SBOM per binary of the workspace for <triple>); it moves the SBOM of each `--bin`
 to <dir>/<name>.cdx.json and deletes the other files it wrote beside the workspace's manifests, so the checkout stays
-clean. `merge` joins the binaries' SBOMs of one artefact into one (one component per purl, the binaries as
-application components, the dependency graph's union) and adds the non-crate components: each file block of a
+clean. `shipped` writes the artefact's shipped set (ID-1318): `cargo tree -e normal,build -p <bins> --target <triple>
+--prefix none --format "{p}"`, cargo's own feature resolution, which leaves out the optional dependencies that
+`cargo metadata` resolves when only a weak feature (`dep?/feature`) names them. `merge` joins the binaries' SBOMs of
+one artefact into one (one component per purl, the binaries as application components, the dependency graph's union),
+keeps only the crate components of the shipped set and prints one line per component it drops, gives each `bom-ref`
+of a workspace crate its path relative to the workspace (no checkout path), and adds the non-crate components: each file block of a
 "Bundled ..." section of NOTICE (the fonts, with family, version, licence, copyright, source and SHA-256), a
 section's single component where it has no file block (the Tabler icons, with their version), SQLite at the version of
 the `sqlite3.h` that libsqlite3-sys bundles (found through its manifest path in <json>, when the binaries' graph holds
 it with its `bundled` feature), and the components of packaging/components.toml that the artefact holds (`--component`:
-NSIS's stub in the setup, the type-2 runtime in the AppImage). `complete` fails on any package of the normal-dependency
-closure of the binaries in <json> that the SBOM lacks, naming each. `notices` appends a "Non-crate components" section
+NSIS's stub in the setup, the type-2 runtime in the AppImage). `complete` fails on any package of the shipped set that
+the SBOM lacks, and on any package of the shipped set outside the binaries' closure in <json> (normal and build
+dependencies), naming each. `notices` appends a "Non-crate components" section
 to the cargo-about output <THIRD-PARTY-NOTICES.txt> (each non-crate component of the SBOMs with its licence, then the
 NOTICE section it comes from or that names it, SQLite's dedication included) and fails, naming each, on any component
 of the SBOMs that is not one of the workspace's own crates and that the file does not name as `- <name> <version>`.
@@ -30,9 +36,12 @@ NOTICE, packaging/components.toml and the bundled header are the one source of e
 repository is the one this script lives in. Standard library only.
 """
 import argparse
+import contextlib
 import datetime
+import io
 import json
 import os
+import pathlib
 import re
 import shutil
 import subprocess
@@ -40,6 +49,8 @@ import sys
 import tempfile
 import tomllib
 import unittest
+import urllib.parse
+import urllib.request
 import uuid
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -65,6 +76,12 @@ def run(command, cwd=None):
 def read_json(path):
     with open(path, encoding="utf-8") as f:
         return json.load(f)
+
+
+def read_tree(path):
+    """The shipped set of the `shipped` file at `path`."""
+    with open(path, encoding="utf-8") as f:
+        return shipped_set(f.read())
 
 
 def write_atomic(path, text):
@@ -93,9 +110,10 @@ def bin_package(metadata, name):
     raise Refusal(f"no workspace package has the binary {name}")
 
 
-def normal_closure(metadata, bins):
-    """The ids of the packages that the binaries `bins` reach through normal dependencies (the platform filter is
-    the metadata's own, `--filter-platform`), their own packages included."""
+def normal_closure(metadata, bins, kinds=(None,)):
+    """The ids of the packages that the binaries `bins` reach through normal dependencies (with `kinds` `(None,
+    "build")`, through build dependencies too; the platform filter is the metadata's own, `--filter-platform`), their
+    own packages included."""
     nodes = {n["id"]: n for n in metadata["resolve"]["nodes"]}
     seen = set()
     stack = [bin_package(metadata, b) for b in bins]
@@ -105,9 +123,33 @@ def normal_closure(metadata, bins):
             continue
         seen.add(node)
         for dep in nodes[node]["deps"]:
-            if any(kind["kind"] is None for kind in dep["dep_kinds"]):
+            if any(kind["kind"] in kinds for kind in dep["dep_kinds"]):
                 stack.append(dep["pkg"])
     return seen
+
+
+def shipped_set(text):
+    """The (name, version) pairs of `cargo tree --prefix none --format "{p}"`'s lines (`<name> v<version>[ ...]`)."""
+    found = set()
+    for line in text.splitlines():
+        if not line.strip():
+            continue
+        match = re.match(r"(\S+) v(\S+)", line)
+        if not match:
+            raise Refusal(f"not a line of cargo tree's {{p}} format: {line}")
+        found.add((match.group(1), match.group(2)))
+    return found
+
+
+def relative_ref(ref, root):
+    """A `path+file://` package id (cargo's id of a workspace crate) with its path relative to the workspace root
+    `root`, as `workspace/<path>#<fragment>`; any other reference as it is."""
+    if not ref or not ref.startswith("path+file://"):
+        return ref
+    location, _, fragment = ref[len("path+"):].partition("#")
+    path = urllib.request.url2pathname(urllib.parse.urlparse(location).path)
+    relative = os.path.relpath(os.path.normpath(path), os.path.normpath(root)).replace(os.sep, "/")
+    return f"workspace/{relative}#{fragment}"
 
 
 def workspace_crates(metadata):
@@ -277,8 +319,19 @@ def cyclonedx(target, bins, out, repo=REPO, run=run):
             os.remove(path)
 
 
-def merge(artefact, version, cdx_files, metadata, components=(), repo=REPO):
-    """D9: one SBOM for the artefact from its binaries' SBOMs, with the non-crate components."""
+def shipped(target, bins, out, repo=REPO, run=run):
+    """ID-1318: writes `cargo tree -e normal,build -p <bins> --target <target> --prefix none --format "{p}"` to
+    `out`."""
+    packages = [a for b in bins for a in ("-p", b)]
+    text = run(["cargo", "tree", "--locked", "-e", "normal,build", *packages, "--target", target, "--prefix", "none",
+                "--format", "{p}"], cwd=repo)
+    write_atomic(out, text)
+    return shipped_set(text)
+
+
+def merge(artefact, version, cdx_files, metadata, shipped, components=(), repo=REPO):
+    """D9: one SBOM for the artefact from its binaries' SBOMs, its crate components those of the shipped set `shipped`
+    ((name, version) pairs, ID-1318), with the non-crate components."""
     with open(os.path.join(repo, NOTICE), encoding="utf-8") as f:
         notice = f.read()
     sections = notice_sections(notice)
@@ -299,6 +352,21 @@ def merge(artefact, version, cdx_files, metadata, components=(), repo=REPO):
                 merged.append(component)
         for dependency in bom.get("dependencies", []):
             graph.setdefault(dependency["ref"], set()).update(dependency.get("dependsOn", []))
+    # ID-1318: what ships; cargo metadata's resolve also holds the optional dependencies of weak features.
+    dropped = sorted((c for c in merged if (c.get("name"), c.get("version")) not in shipped),
+                     key=lambda c: (c.get("name"), c.get("version")))
+    for component in dropped:
+        print(f"sbom: {artefact}: dropped {component.get('name')} {component.get('version')}, which cargo tree does "
+              f"not list for {' and '.join(bins)}")
+    gone = {c.get("bom-ref") for c in dropped}
+    merged = [c for c in merged if c.get("bom-ref") not in gone]
+    graph = {ref: on - gone for ref, on in graph.items() if ref not in gone}
+    # No checkout path: a workspace crate's bom-ref is its path relative to the workspace.
+    root = metadata["workspace_root"]
+    for component in merged:
+        if "bom-ref" in component:
+            component["bom-ref"] = relative_ref(component["bom-ref"], root)
+    graph = {relative_ref(ref, root): {relative_ref(r, root) for r in on} for ref, on in graph.items()}
     closure = normal_closure(metadata, bins)
     extra = notice_components(notice)
     sqlite = sqlite_component(metadata, closure, sections)
@@ -333,15 +401,21 @@ def with_tool(tools):
     return list(tools) + [{"vendor": "ElektraWatt", "name": "ci/sbom.py"}]
 
 
-def complete(sbom, metadata, bins, name="the SBOM"):
-    """D9: every package of the binaries' normal-dependency closure is a component of the SBOM."""
+def complete(sbom, metadata, shipped, bins, name="the SBOM"):
+    """D9, ID-1318: every package of the shipped set is a component of the SBOM, and every one lies in the binaries'
+    closure of normal and build dependencies in cargo metadata."""
     packages = {p["id"]: p for p in metadata["packages"]}
     have = {(c.get("name"), c.get("version")) for c in sbom.get("components", [])}
-    missing = sorted({(packages[i]["name"], packages[i]["version"]) for i in normal_closure(metadata, bins)} - have)
+    missing = sorted(shipped - have)
     if missing:
         lines = "".join(f"\n  {n} {v}" for n, v in missing)
-        raise Refusal(f"{name} lacks {len(missing)} package(s) of the normal dependencies of "
-                      f"{' and '.join(bins)} (cargo metadata):{lines}")
+        raise Refusal(f"{name} lacks {len(missing)} package(s) that cargo tree lists for {' and '.join(bins)}:{lines}")
+    closure = {(packages[i]["name"], packages[i]["version"]) for i in normal_closure(metadata, bins, (None, "build"))}
+    outside = sorted(shipped - closure)
+    if outside:
+        lines = "".join(f"\n  {n} {v}" for n, v in outside)
+        raise Refusal(f"cargo tree lists {len(outside)} package(s) for {' and '.join(bins)} outside their closure in "
+                      f"cargo metadata:{lines}")
     return len(have)
 
 
@@ -399,16 +473,22 @@ def main(argv):
     p.add_argument("--target", required=True)
     p.add_argument("--bin", action="append", required=True)
     p.add_argument("--out", required=True)
+    p = sub.add_parser("shipped", help="the shipped set of the binaries (cargo tree)")
+    p.add_argument("--target", required=True)
+    p.add_argument("--bin", action="append", required=True)
+    p.add_argument("--out", required=True)
     p = sub.add_parser("merge", help="one artefact's SBOM with the non-crate components")
     p.add_argument("--artefact", required=True)
     p.add_argument("--version", required=True)
     p.add_argument("--metadata", required=True)
+    p.add_argument("--tree", required=True)
     p.add_argument("--cdx", action="append", required=True)
     p.add_argument("--component", action="append", default=[])
     p.add_argument("--out", required=True)
-    p = sub.add_parser("complete", help="the SBOM against the binaries' normal dependencies")
+    p = sub.add_parser("complete", help="the SBOM against the shipped set and cargo metadata")
     p.add_argument("--sbom", required=True)
     p.add_argument("--metadata", required=True)
+    p.add_argument("--tree", required=True)
     p.add_argument("--bin", action="append", required=True)
     p = sub.add_parser("notices", help="append the non-crate components to the cargo-about notices")
     p.add_argument("--sbom", action="append", required=True)
@@ -422,14 +502,19 @@ def main(argv):
         if args.command == "cyclonedx":
             cyclonedx(args.target, args.bin, args.out)
             print(f"sbom: cargo-cyclonedx's SBOMs of {', '.join(args.bin)} for {args.target} in {args.out}")
+        elif args.command == "shipped":
+            count = len(shipped(args.target, args.bin, args.out))
+            print(f"sbom: {args.out}: {count} packages that cargo tree lists for {', '.join(args.bin)} on {args.target}")
         elif args.command == "merge":
-            bom = merge(args.artefact, args.version, args.cdx, read_json(args.metadata), args.component)
+            bom = merge(args.artefact, args.version, args.cdx, read_json(args.metadata), read_tree(args.tree),
+                        args.component)
             write_atomic(args.out, json.dumps(bom, indent=2, ensure_ascii=False) + "\n")
             extra = [c["name"] for c in bom["components"] if any(p["name"] == SECTION for p in c.get("properties", []))]
             print(f"sbom: {args.out}: {len(bom['components'])} components; non-crate: {', '.join(extra)}")
         elif args.command == "complete":
-            count = complete(read_json(args.sbom), read_json(args.metadata), args.bin, args.sbom)
-            print(f"sbom: {args.sbom} is complete against cargo metadata for {', '.join(args.bin)} ({count} components)")
+            count = complete(read_json(args.sbom), read_json(args.metadata), read_tree(args.tree), args.bin, args.sbom)
+            print(f"sbom: {args.sbom} holds every package cargo tree lists for {', '.join(args.bin)}, each in cargo "
+                  f"metadata's closure ({count} components)")
         elif args.command == "notices":
             with open(args.notices, encoding="utf-8") as f:
                 text = f.read()
@@ -525,8 +610,12 @@ class SbomTest(unittest.TestCase):
         os.makedirs(sqlite)
         with open(os.path.join(sqlite, "sqlite3.h"), "w", encoding="utf-8") as f:
             f.write('/*\n** May you do good and not evil.\n*/\n#define SQLITE_VERSION        "3.53.2"\n')
+        # The window's binary is a workspace crate: cargo's id holds its absolute path.
+        self.app_id = "path+" + pathlib.Path(os.path.join(self.dir, "ws", "bin", "app")).as_uri() + "#0.0.0"
         self.metadata = self.fixture_metadata()
-        self.cdx = {"app": self.write("app.cdx.json", self.fixture_cdx("app", ["serde", "libsqlite3-sys", "cc"])),
+        self.shipped = shipped_set(self.SHIPPED)
+        self.cdx = {"app": self.write("app.cdx.json",
+                                      self.fixture_cdx("app", ["serde", "libsqlite3-sys", "cc", "egui_glow"])),
                     "cli": self.write("cli.cdx.json", self.fixture_cdx("cli", ["serde"]))}
 
     def tearDown(self):
@@ -540,7 +629,7 @@ class SbomTest(unittest.TestCase):
 
     def fixture_metadata(self):
         def package(name, version, manifest="Cargo.toml", bin=False):
-            pid = f"registry+x#{name}@{version}"
+            pid = self.app_id if name == "app" else f"registry+x#{name}@{version}"
             kind = ["bin"] if bin else ["lib"]
             return {"id": pid, "name": name, "version": version, "manifest_path": manifest,
                     "targets": [{"name": name, "kind": kind}]}
@@ -553,7 +642,7 @@ class SbomTest(unittest.TestCase):
                     package("serde", "1.0.0"), package("libsqlite3-sys", "0.38.2", manifest),
                     package("cc", "1.2.0"), package("proptest", "1.0.0"), package("ew-model", "0.0.0")]
         nodes = [
-            {"id": "registry+x#app@0.0.0", "features": [],
+            {"id": self.app_id, "features": [],
              "deps": [dep("serde", "1.0.0"), dep("libsqlite3-sys", "0.38.2"), dep("proptest", "1.0.0", "dev"),
                       dep("ew-model", "0.0.0")]},
             {"id": "registry+x#cli@0.0.0", "features": [], "deps": [dep("serde", "1.0.0")]},
@@ -563,27 +652,66 @@ class SbomTest(unittest.TestCase):
             {"id": "registry+x#proptest@1.0.0", "features": [], "deps": []},
             {"id": "registry+x#ew-model@0.0.0", "features": [], "deps": []},
         ]
-        members = ["registry+x#app@0.0.0", "registry+x#cli@0.0.0", "registry+x#ew-model@0.0.0"]
-        return {"packages": packages, "workspace_members": members, "resolve": {"nodes": nodes}}
+        members = [self.app_id, "registry+x#cli@0.0.0", "registry+x#ew-model@0.0.0"]
+        return {"packages": packages, "workspace_members": members, "resolve": {"nodes": nodes},
+                "workspace_root": os.path.join(self.dir, "ws")}
+
+    # The shipped set of `cargo tree --prefix none --format "{p}"` for app and cli: no egui_glow, which only a weak
+    # feature names (ID-1318).
+    SHIPPED = ("app v0.0.0 (/ws/bin/app)\nserde v1.0.0\nlibsqlite3-sys v0.38.2\ncc v1.2.0\new-model v0.0.0\n\n"
+               "cli v0.0.0 (/ws/bin/cli)\nserde v1.0.0 (*)\n")
 
     def fixture_cdx(self, name, deps):
-        versions = {"serde": "1.0.0", "libsqlite3-sys": "0.38.2", "cc": "1.2.0", "ew-model": "0.0.0"}
+        versions = {"serde": "1.0.0", "libsqlite3-sys": "0.38.2", "cc": "1.2.0", "ew-model": "0.0.0",
+                    "egui_glow": "0.37.0"}
         deps = deps + (["ew-model"] if name == "app" else [])
+        top = self.app_id if name == "app" else f"registry+x#{name}@0.0.0"
         components = [{"type": "library", "bom-ref": f"registry+x#{d}@{versions[d]}", "name": d,
                        "version": versions[d], "purl": f"pkg:cargo/{d}@{versions[d]}",
                        "licenses": [{"expression": "MIT"}]} for d in deps]
         return {"bomFormat": "CycloneDX", "specVersion": "1.5", "version": 1,
                 "metadata": {"tools": [{"vendor": "CycloneDX", "name": "cargo-cyclonedx", "version": "0.5.9"}],
-                             "component": {"type": "application", "bom-ref": f"registry+x#{name}@0.0.0",
+                             "component": {"type": "application", "bom-ref": top,
                                            "name": name, "version": "0.0.0", "purl": f"pkg:cargo/{name}@0.0.0"},
                              "properties": [{"name": "cdx:rustc:sbom:target:triple", "value": "x86_64-unknown-linux-gnu"}]},
                 "components": components,
-                "dependencies": [{"ref": f"registry+x#{name}@0.0.0",
-                                  "dependsOn": [f"registry+x#{d}@{versions[d]}" for d in deps]}]}
+                "dependencies": [{"ref": top, "dependsOn": [f"registry+x#{d}@{versions[d]}" for d in deps]}]}
 
     def merged(self, cdx=("app", "cli"), components=("nsis",)):
-        return merge("ElektraWatt-0.1.0-x64-user-setup.exe", "0.1.0", [self.cdx[c] for c in cdx], self.metadata,
-                     components, self.repo)
+        printed = io.StringIO()
+        with contextlib.redirect_stdout(printed):
+            bom = merge("ElektraWatt-0.1.0-x64-user-setup.exe", "0.1.0", [self.cdx[c] for c in cdx], self.metadata,
+                        self.shipped, components, self.repo)
+        self.printed = printed.getvalue()
+        return bom
+
+    def test_merge_keeps_the_shipped_set_and_names_each_dropped_crate(self):
+        bom = self.merged()
+        self.assertNotIn("egui_glow", self.by_name(bom))
+        self.assertEqual(self.printed, "sbom: ElektraWatt-0.1.0-x64-user-setup.exe: dropped egui_glow 0.37.0, which "
+                                       "cargo tree does not list for app and cli\n")
+        refs = {d["ref"] for d in bom["dependencies"]} | {r for d in bom["dependencies"] for r in d["dependsOn"]}
+        self.assertNotIn("registry+x#egui_glow@0.37.0", refs)
+        self.assertEqual(shipped_set(self.SHIPPED), {("app", "0.0.0"), ("serde", "1.0.0"), ("libsqlite3-sys", "0.38.2"),
+                                                     ("cc", "1.2.0"), ("ew-model", "0.0.0"), ("cli", "0.0.0")})
+
+    def test_no_bom_ref_holds_a_checkout_path(self):
+        bom = self.merged()
+        refs = [c["bom-ref"] for c in bom["components"] if "bom-ref" in c]
+        refs += [d["ref"] for d in bom["dependencies"]] + [r for d in bom["dependencies"] for r in d["dependsOn"]]
+        self.assertIn("workspace/bin/app#0.0.0", refs)
+        for ref in refs:
+            self.assertNotIn(pathlib.Path(self.dir).as_uri()[len("file://"):], ref)
+            self.assertNotIn(self.dir, ref)
+            self.assertFalse(ref.startswith("path+file:"), ref)
+
+    def test_a_shipped_package_outside_the_closure_fails_naming_it(self):
+        bom = self.merged()
+        bom["components"].append({"type": "library", "name": "zlib-rs", "version": "0.6.8"})
+        with self.assertRaises(Refusal) as refused:
+            complete(bom, self.metadata, self.shipped | {("zlib-rs", "0.6.8")}, ["app", "cli"])
+        self.assertEqual(str(refused.exception), "cargo tree lists 1 package(s) for app and cli outside their closure "
+                                                 "in cargo metadata:\n  zlib-rs 0.6.8")
 
     def by_name(self, bom):
         return {c["name"]: c for c in bom["components"]}
@@ -616,17 +744,14 @@ class SbomTest(unittest.TestCase):
         # The CLI alone does not reach libsqlite3-sys: no SQLite.
         self.assertNotIn("SQLite", self.by_name(self.merged(cdx=("cli",), components=())))
 
-    def test_a_package_of_the_closure_missing_from_the_sbom_fails_naming_it(self):
+    def test_a_package_of_the_shipped_set_missing_from_the_sbom_fails_naming_it(self):
         bom = self.merged()
-        self.assertEqual(complete(bom, self.metadata, ["app", "cli"]), len(bom["components"]))
+        self.assertEqual(complete(bom, self.metadata, self.shipped, ["app", "cli"]), len(bom["components"]))
         bom["components"] = [c for c in bom["components"] if c["name"] != "libsqlite3-sys"]
         with self.assertRaises(Refusal) as refused:
-            complete(bom, self.metadata, ["app", "cli"])
-        self.assertEqual(str(refused.exception), "the SBOM lacks 1 package(s) of the normal dependencies of app and "
-                                                 "cli (cargo metadata):\n  libsqlite3-sys 0.38.2")
-        # A dev-dependency (proptest) and a build-dependency (cc) are not asked for.
-        bom["components"] = [c for c in self.merged()["components"] if c["name"] != "cc"]
-        complete(bom, self.metadata, ["app"])
+            complete(bom, self.metadata, self.shipped, ["app", "cli"])
+        self.assertEqual(str(refused.exception), "the SBOM lacks 1 package(s) that cargo tree lists for app and cli:"
+                                                 "\n  libsqlite3-sys 0.38.2")
 
     CARGO_ABOUT = ("ElektraWatt third-party notices\n===============================\n\nUsed by:\n"
                    "- serde 1.0.0 (https://example.org/serde)\n- libsqlite3-sys 0.38.2\n- cc 1.2.0\n\nMIT text\n")

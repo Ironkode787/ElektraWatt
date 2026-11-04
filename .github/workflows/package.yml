@@ -246,7 +246,8 @@ jobs:
           }
           if ($failed) { exit 1 }
       # D9 (CI-R-07, FT-04): the SBOM of the setup (both programs and NSIS's stub) and of the CLI archive (`ew`), each
-      # complete against cargo metadata; then the non-crate components in the notices that the tree takes.
+      # the shipped set of `cargo tree` (ID-1318) and complete against it and cargo metadata; then the non-crate
+      # components in the notices that the tree takes.
       - name: the SBOMs and the notices (D9)
         env:
           VERSION: ${{ steps.pins.outputs.version }}
@@ -256,12 +257,17 @@ jobs:
           setup="ElektraWatt-$VERSION-x64-user-setup.exe" cli="ew-$VERSION-$TARGET.zip"
           mkdir -p "$dist"
           python -I ci/sbom.py cyclonedx --target "$TARGET" --bin elektrawatt --bin ew --out "$sbom"
+          python -I ci/sbom.py shipped --target "$TARGET" --bin elektrawatt --bin ew --out "$sbom/setup.tree"
+          python -I ci/sbom.py shipped --target "$TARGET" --bin ew --out "$sbom/cli.tree"
           python -I ci/sbom.py merge --artefact "$setup" --version "$VERSION" --metadata "$sbom/metadata.json" \
-            --cdx "$sbom/elektrawatt.cdx.json" --cdx "$sbom/ew.cdx.json" --component nsis --out "$dist/$setup.cdx.json"
+            --tree "$sbom/setup.tree" --cdx "$sbom/elektrawatt.cdx.json" --cdx "$sbom/ew.cdx.json" --component nsis \
+            --out "$dist/$setup.cdx.json"
           python -I ci/sbom.py merge --artefact "$cli" --version "$VERSION" --metadata "$sbom/metadata.json" \
-            --cdx "$sbom/ew.cdx.json" --out "$dist/$cli.cdx.json"
-          python -I ci/sbom.py complete --sbom "$dist/$setup.cdx.json" --metadata "$sbom/metadata.json" --bin elektrawatt --bin ew
-          python -I ci/sbom.py complete --sbom "$dist/$cli.cdx.json" --metadata "$sbom/metadata.json" --bin ew
+            --tree "$sbom/cli.tree" --cdx "$sbom/ew.cdx.json" --out "$dist/$cli.cdx.json"
+          python -I ci/sbom.py complete --sbom "$dist/$setup.cdx.json" --metadata "$sbom/metadata.json" \
+            --tree "$sbom/setup.tree" --bin elektrawatt --bin ew
+          python -I ci/sbom.py complete --sbom "$dist/$cli.cdx.json" --metadata "$sbom/metadata.json" \
+            --tree "$sbom/cli.tree" --bin ew
           python -I ci/sbom.py notices --sbom "$dist/$setup.cdx.json" --sbom "$dist/$cli.cdx.json" \
             --metadata "$sbom/metadata.json" --notices target/release/THIRD-PARTY-NOTICES.txt
       - name: stage the installed tree
@@ -549,7 +555,8 @@ jobs:
           python3 -I ci/audit-data.py target/release/elektrawatt target/release/ew
           cargo audit bin target/release/elektrawatt target/release/ew
       # D9 (CI-R-07, FT-04): the SBOM of the AppImage (both programs and the type-2 runtime) and of the CLI archive
-      # (`ew`), each complete against cargo metadata; then the non-crate components in the notices the tree takes.
+      # (`ew`), each the shipped set of `cargo tree` (ID-1318) and complete against it and cargo metadata; then the
+      # non-crate components in the notices the tree takes.
       - name: the SBOMs and the notices (D9)
         env:
           VERSION: ${{ steps.pins.outputs.version }}
@@ -559,13 +566,17 @@ jobs:
           appimage="ElektraWatt-$VERSION-x86_64.AppImage" cli="ew-$VERSION-$TARGET.tar.gz"
           mkdir -p "$dist"
           python3 -I ci/sbom.py cyclonedx --target "$TARGET" --bin elektrawatt --bin ew --out "$sbom"
+          python3 -I ci/sbom.py shipped --target "$TARGET" --bin elektrawatt --bin ew --out "$sbom/appimage.tree"
+          python3 -I ci/sbom.py shipped --target "$TARGET" --bin ew --out "$sbom/cli.tree"
           python3 -I ci/sbom.py merge --artefact "$appimage" --version "$VERSION" --metadata "$sbom/metadata.json" \
-            --cdx "$sbom/elektrawatt.cdx.json" --cdx "$sbom/ew.cdx.json" --component appimage-type2-runtime \
-            --out "$dist/$appimage.cdx.json"
+            --tree "$sbom/appimage.tree" --cdx "$sbom/elektrawatt.cdx.json" --cdx "$sbom/ew.cdx.json" \
+            --component appimage-type2-runtime --out "$dist/$appimage.cdx.json"
           python3 -I ci/sbom.py merge --artefact "$cli" --version "$VERSION" --metadata "$sbom/metadata.json" \
-            --cdx "$sbom/ew.cdx.json" --out "$dist/$cli.cdx.json"
-          python3 -I ci/sbom.py complete --sbom "$dist/$appimage.cdx.json" --metadata "$sbom/metadata.json" --bin elektrawatt --bin ew
-          python3 -I ci/sbom.py complete --sbom "$dist/$cli.cdx.json" --metadata "$sbom/metadata.json" --bin ew
+            --tree "$sbom/cli.tree" --cdx "$sbom/ew.cdx.json" --out "$dist/$cli.cdx.json"
+          python3 -I ci/sbom.py complete --sbom "$dist/$appimage.cdx.json" --metadata "$sbom/metadata.json" \
+            --tree "$sbom/appimage.tree" --bin elektrawatt --bin ew
+          python3 -I ci/sbom.py complete --sbom "$dist/$cli.cdx.json" --metadata "$sbom/metadata.json" \
+            --tree "$sbom/cli.tree" --bin ew
           python3 -I ci/sbom.py notices --sbom "$dist/$appimage.cdx.json" --sbom "$dist/$cli.cdx.json" \
             --metadata "$sbom/metadata.json" --notices target/release/THIRD-PARTY-NOTICES.txt
       - name: stage the installed tree

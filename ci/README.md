@@ -676,12 +676,17 @@ The per-artefact steps of `package.yml` (WP-S6.07 part 2), in `windows (x86_64)`
 
 - [`sbom.py`](sbom.py) (D9, CI-R-07): `cyclonedx` writes `cargo metadata --filter-platform <target>` and runs
   cargo-cyclonedx 0.5.9 (`--format json --spec-version 1.5 --describe binaries --all --target <target>`), keeps the
-  SBOMs of `elektrawatt` and `ew` and deletes the other files it wrote beside the manifests; `merge` writes
-  `<artefact>.cdx.json` for the setup (`elektrawatt`, `ew`, NSIS's stub), the AppImage (`elektrawatt`, `ew`, the type-2
-  runtime) and each CLI archive (`ew`): the crates once per purl, the bundled fonts and the Tabler icons of `NOTICE`
-  (family, version, licence, SHA-256), SQLite at the version of the `sqlite3.h` that libsqlite3-sys bundles, and the
-  `packaging/components.toml` entries the artefact holds; `complete` fails on any package of the binaries'
-  normal-dependency closure in `cargo metadata` that the SBOM lacks, naming it; `notices` appends "Non-crate
+  SBOMs of `elektrawatt` and `ew` and deletes the other files it wrote beside the manifests; `shipped` writes the
+  artefact's shipped set, `cargo tree -e normal,build -p <its binaries> --target <target> --prefix none --format
+  "{p}"` (ID-1318: `cargo metadata`'s resolve, which cargo-cyclonedx and cargo-auditable read, also holds the optional
+  dependencies that only a weak feature `dep?/feature` names, such as egui_glow, glutin and zlib-rs, which no binary
+  holds); `merge` writes `<artefact>.cdx.json` for the setup (`elektrawatt`, `ew`, NSIS's stub), the AppImage
+  (`elektrawatt`, `ew`, the type-2 runtime) and each CLI archive (`ew`): the crates of the shipped set once per purl
+  (one printed line per crate it drops), each workspace crate's `bom-ref` relative to the workspace (no checkout
+  path), the bundled fonts and the Tabler icons of `NOTICE` (family, version, licence, SHA-256), SQLite at the version
+  of the `sqlite3.h` that libsqlite3-sys bundles, and the `packaging/components.toml` entries the artefact holds;
+  `complete` fails on any package of the shipped set that the SBOM lacks, and on any outside the binaries' closure of
+  normal and build dependencies in `cargo metadata`, naming each; `notices` appends "Non-crate
   components" (each with its licence and its `NOTICE` section, SQLite's dedication included) to the cargo-about output
   `THIRD-PARTY-NOTICES.txt` before the tree is staged, and fails on any SBOM component, other than the workspace's own
   crates, that the file does not name.
