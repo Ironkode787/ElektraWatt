@@ -163,9 +163,10 @@ jobs:
         run: python3 -I ci/check-book-links.py "$RUNNER_TEMP/book"
       # WP-S7.05 D15: the translation status report, its unit test first; it fails when nl-NL's window is below 95 %
       # or nl.po leaves a tutorial message untranslated.
+      - name: translation status report's tests
+        run: python3 -I ci/translation-status.py --test
       - name: translation status
         run: |
-          python3 -I ci/translation-status.py --test
           status=0
           python3 -I ci/translation-status.py > "$RUNNER_TEMP/translation-status.md" || status=$?
           cat "$RUNNER_TEMP/translation-status.md" >> "$GITHUB_STEP_SUMMARY"

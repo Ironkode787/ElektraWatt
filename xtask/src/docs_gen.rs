@@ -1634,7 +1634,7 @@ fn release_note_pages(root: &Path, files: &mut BTreeMap<String, String>) -> Resu
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
         Err(e) => return Err(e).with_context(|| format!("reading {RELEASE_NOTES}")),
     }
-    releases.sort_by(|a, b| b.0.cmp(&a.0));
+    releases.sort_by_key(|(version, _)| std::cmp::Reverse(*version));
     let mut items = SummaryItems::new();
     let mut rows = String::new();
     for (_, name) in &releases {
