@@ -103,6 +103,9 @@ pub(crate) struct PartInfo {
     pub(crate) templates: Vec<TemplateInfo>,
 }
 
+/// A function CP on a page: the key of [`Cx::cp_points`].
+pub(crate) type CpOnPage = (Id<Function>, u16, Id<Page>);
+
 /// An emitted connection: its ID and endpoints (the junction emitter checks sequences against them).
 #[derive(Clone, Debug)]
 pub(crate) struct ConnInfo {
@@ -174,7 +177,7 @@ pub(crate) struct Cx<'l> {
     /// Where each function CP is drawn on each page by a symbol, the point the stored route of a `connections.csv`
     /// row starts or ends at (FT-1315): of several representations on one page, the one of the smallest ID, as
     /// `ew_derive::cp_end` reads it.
-    pub(crate) cp_points: BTreeMap<(Id<Function>, u16, Id<Page>), (Id<Representation>, Pt2)>,
+    pub(crate) cp_points: BTreeMap<CpOnPage, (Id<Representation>, Pt2)>,
     /// `plc_config_projects` keys (registered before the devices, whose station aspects name them).
     pub(crate) plc_projects: BTreeMap<String, Id<PlcConfigProject>>,
     /// The provenance of a part copy (`meta.sources`) when the parts are imported into an existing project
