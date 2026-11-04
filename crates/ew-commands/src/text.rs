@@ -29,7 +29,8 @@ pub enum TextArg {
 }
 
 impl Text {
-    /// The constructor behind [`text!`], which checks the key and the number of arguments; call the macro instead.
+    /// The constructor behind the crate's `text!` macro, which checks the key and the number of arguments; call the
+    /// macro instead.
     #[doc(hidden)]
     pub fn checked_by_macro(key: &'static str, args: Vec<TextArg>) -> Text {
         Text { key, args }
