@@ -20,6 +20,7 @@ fn claimed(doc: &LibDocument) -> Option<[u8; 32]> {
         LibDocument::Form(c) => Some(c.sha256.0),
         LibDocument::Macro(c) => Some(c.sha256.0),
         LibDocument::Manufacturer(c) => Some(c.sha256.0),
+        LibDocument::PlcProfile(c) => Some(c.sha256.0),
         LibDocument::Unknown(_) => None,
     }
 }
@@ -28,7 +29,7 @@ fn claimed(doc: &LibDocument) -> Option<[u8; 32]> {
 fn shipped() -> Vec<LibDocument> {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../content");
     let mut docs = Vec::new();
-    for sub in ["symbols/qet10", "fndefs", "forms"] {
+    for sub in ["symbols/qet10", "fndefs", "forms", "plc-profiles"] {
         let mut paths: Vec<_> = std::fs::read_dir(root.join(sub))
             .expect("content directory")
             .map(|e| e.expect("entry").path())

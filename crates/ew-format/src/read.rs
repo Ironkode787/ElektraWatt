@@ -1312,6 +1312,7 @@ pub fn library_copy_hash(doc: &LibDocument) -> Option<[u8; 32]> {
         LibDocument::Form(c) => hash(&c.item),
         LibDocument::Macro(c) => hash(&c.item),
         LibDocument::Manufacturer(c) => hash(&c.item),
+        LibDocument::PlcProfile(c) => hash(&c.item),
         LibDocument::Unknown(_) => None,
     }
 }
@@ -1362,6 +1363,7 @@ fn copy_hash_matches(doc: &LibDocument) -> bool {
         LibDocument::Form(c) => &c.sha256,
         LibDocument::Macro(c) => &c.sha256,
         LibDocument::Manufacturer(c) => &c.sha256,
+        LibDocument::PlcProfile(c) => &c.sha256,
         LibDocument::Unknown(_) => return true,
     };
     library_copy_hash(doc) == Some(claimed.0)

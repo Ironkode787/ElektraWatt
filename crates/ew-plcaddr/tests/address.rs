@@ -6,8 +6,44 @@
 use ew_plcaddr::*;
 use proptest::prelude::*;
 
-fn p() -> &'static AddressProfile {
-    &SIEMENS_TIA_INTL
+/// The data of the built-in TIA profile (`content/plc-profiles/siemens-tia-intl.json`, compiled into `ew-derive`).
+fn tia_fields() -> ProfileFields {
+    let s = |v: &[&str; 5]| v.map(str::to_owned);
+    ProfileFields {
+        id: "siemens-tia-intl".into(),
+        version: "2027.1".into(),
+        label: "Siemens TIA (international)".into(),
+        absolute: true,
+        base: 10,
+        unit_bits: 8,
+        word_align: 2,
+        area_mnemonics: s(&["I", "Q", "M", "PI", "PQ"]),
+        size_mnemonics: s(&["", "B", "W", "D", "L"]),
+        render_bit: "{area}{byte}.{bit}".into(),
+        render_unit: "{area}{size}{byte}".into(),
+        drawing_prefix: String::new(),
+        exchange_prefix: "%".into(),
+        default_start_digital: 0,
+        default_start_analog: 0,
+        allocation_verified: false,
+    }
+}
+
+fn p() -> AddressProfile {
+    AddressProfile::new(tia_fields()).unwrap()
+}
+
+/// The data of the built-in IEC profile: the TIA profile with other data (doc 10 section 2.5).
+fn iec() -> AddressProfile {
+    AddressProfile::new(ProfileFields {
+        id: "iec-61131-3".into(),
+        label: "IEC 61131-3".into(),
+        size_mnemonics: ["X", "B", "W", "D", "L"].map(str::to_owned),
+        render_bit: "{area}{size}{byte}.{bit}".into(),
+        drawing_prefix: "%".into(),
+        ..tia_fields()
+    })
+    .unwrap()
 }
 
 #[test]
@@ -40,20 +76,54 @@ fn bits_and_units() {
     assert_eq!(Size::LWord.bits(), 64);
 }
 
+/// WP-S7.03 D7: the one constructor refuses data the engine does not render, with T2's reasons in their order.
 #[test]
-fn builtins_lookup() {
-    let b = builtin("siemens-tia-intl@2027.1").unwrap();
-    assert_eq!(b.reference(), "siemens-tia-intl@2027.1");
-    assert!(builtin("siemens-tia-intl").is_none());
-    assert!(builtins().contains(&&SIEMENS_TIA_INTL));
-    assert!(builtins().contains(&&IEC_61131_3));
-    assert_eq!(builtin("iec-61131-3@2027.1"), Some(&IEC_61131_3));
+fn the_constructor_refuses_data_it_does_not_render() {
+    assert_eq!(p().reference(), "siemens-tia-intl@2027.1");
+    assert_eq!(p().word_align, 2);
+    let refused = |f: ProfileFields| AddressProfile::new(f).unwrap_err().to_string();
+    let mut area = tia_fields();
+    area.area_mnemonics[4] = String::new();
+    for (fields, reason) in [
+        (
+            ProfileFields {
+                render_bit: "{area}{byte}".into(),
+                render_unit: "{area}".into(),
+                ..tia_fields()
+            },
+            "its bit template has no {bit}",
+        ),
+        (
+            ProfileFields {
+                render_unit: "{area}{size}".into(),
+                ..tia_fields()
+            },
+            "its unit template has no {byte}",
+        ),
+        (area, "an area mnemonic is empty"),
+        (
+            ProfileFields {
+                base: 16,
+                ..tia_fields()
+            },
+            "only base 10 is rendered",
+        ),
+        (
+            ProfileFields {
+                unit_bits: 16,
+                ..tia_fields()
+            },
+            "only 8 bits per unit are rendered",
+        ),
+    ] {
+        assert_eq!(refused(fields), reason);
+    }
 }
 
 /// WP-S1.21 PA-3: the IEC profile renders `%QX0.1` and `%IW64` and parses its own texts back (the prefix optional).
 #[test]
 fn the_iec_profile_renders_and_parses_its_notation() {
-    let p = &IEC_61131_3;
+    let p = &iec();
     assert_eq!(
         p.render(&PlcAddress::bit(Area::Q, 0, 1), Purpose::Drawing),
         "%QX0.1"
@@ -82,7 +152,7 @@ fn the_iec_profile_renders_and_parses_its_notation() {
 /// the byte alone; any other bit is refused.
 #[test]
 fn a_start_text_names_an_area_and_a_byte() {
-    let tia = &SIEMENS_TIA_INTL;
+    let tia = &p();
     for (text, want) in [
         ("Q10", (Area::Q, 10)),
         (" q10 ", (Area::Q, 10)),
@@ -97,7 +167,7 @@ fn a_start_text_names_an_area_and_a_byte() {
     for bad in ["", "Q10.3", "Q", "10", "auto", "Q-1", "%%Q1"] {
         assert_eq!(tia.parse_start(bad), None, "{bad:?}");
     }
-    let iec = &IEC_61131_3;
+    let iec = &iec();
     for (text, want) in [
         ("%QX10.0", (Area::Q, 10)),
         ("%QX10", (Area::Q, 10)),

@@ -162,6 +162,7 @@ impl Model {
                 LibDocument::Form(d) => Some(AnyRow::of(d)),
                 LibDocument::Macro(d) => Some(AnyRow::of(d)),
                 LibDocument::Manufacturer(d) => Some(AnyRow::of(d)),
+                LibDocument::PlcProfile(d) => Some(AnyRow::of(d)),
                 other => {
                     unknown_lib.push(other);
                     None

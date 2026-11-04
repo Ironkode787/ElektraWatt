@@ -605,10 +605,18 @@ fn channel_address_value(
     }
     let c = tx.require::<Channel>(channel)?;
     let profile = channel_profile(tx, c.module);
-    let address = ew_derive::parse_plc_address(&profile, text)
+    let address = ew_derive::parse_plc_address(&profiles_in(tx), &profile, text)
         .map_err(|m| CmdError::invalid_params(SetFields::NAME, "/value", m))?;
     serde_json::to_value(AddrSpec::Manual(address))
         .map_err(|e| CmdError::internal(format!("fields.set: cannot serialise an address ({e})")))
+}
+
+/// The address profiles at hand in the transaction's model (WP-S7.03 D8): the built-ins, then the project's copies.
+pub(crate) fn profiles_in(
+    tx: &TxBuilder<'_>,
+) -> Vec<std::sync::Arc<ew_derive::ew_plcaddr::AddressProfile>> {
+    let copies = tx.iter::<ew_schema::LibCopy<ew_schema::PlcProfileDef>>();
+    ew_derive::profiles_at_hand(copies.iter().map(|c| &**c))
 }
 
 /// The profile reference that reads a channel's address texts: the profile of the configuration project of the

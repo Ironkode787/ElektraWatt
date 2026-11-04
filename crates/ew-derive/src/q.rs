@@ -13,7 +13,7 @@ use ew_ids::Id;
 use ew_model::{EndpointKey, Entity, IndexName, Model, Rev, RevIndex, RowId, Table};
 use ew_schema::{
     Bond, Conductor, Connection, Device, ExternalRef, FnDef, FormDef, Function, Junction, Kind, LibCopy,
-    Manufacturer, Page, PageItem, Part, PotentialDef, Project, Record, ReportBlock, Representation, Section,
+    Manufacturer, Page, PageItem, Part, PlcProfileDef, PotentialDef, Project, Record, ReportBlock, Representation, Section,
     StructureBox, StructureNode, SymbolDef,
 };
 
@@ -725,6 +725,11 @@ impl Q {
 
     /// Embedded manufacturer copies (WP-S1.19 D10).
     pub fn manufacturers(&self) -> TableView<'_, LibCopy<Manufacturer>> {
+        self.table()
+    }
+
+    /// Embedded PLC address-profile copies (WP-S7.03 D7).
+    pub fn plc_profiles(&self) -> TableView<'_, LibCopy<PlcProfileDef>> {
         self.table()
     }
 

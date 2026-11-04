@@ -138,6 +138,7 @@ fn golden_library_documents_are_canonical() {
             Some(Kind::Part),
             Some(Kind::Macro),
             Some(Kind::Manufacturer),
+            Some(Kind::PlcProfile),
             Some(Kind::Part),
             Some(Kind::Part),
             Some(Kind::Part),

@@ -1068,6 +1068,26 @@ pub static NOT_LINKS: &[(&str, &str, &str)] = &[
         "LibRef to a library item offered by update from library, never resolved to an embedded copy",
     ),
     (
+        "plc_profile",
+        "library_id",
+        "library identity of the copy, not a reference",
+    ),
+    (
+        "plc_profile",
+        "item_id",
+        "library identity of the copy, not a reference",
+    ),
+    (
+        "plc_profile",
+        "meta.status.deprecated.successor.library",
+        "LibRef to a library item offered by update from library, never resolved to an embedded copy",
+    ),
+    (
+        "plc_profile",
+        "meta.status.deprecated.successor.item",
+        "LibRef to a library item offered by update from library, never resolved to an embedded copy",
+    ),
+    (
         "macro_instance",
         "members[][0]",
         "the fragment-local ID of a member in the macro's fragment; the created record is `members[][1]` (WP-S1.19 D13)",

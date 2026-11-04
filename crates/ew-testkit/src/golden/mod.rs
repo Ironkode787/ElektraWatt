@@ -104,6 +104,7 @@ fn is_local(doc: &LibDocument, project: ew_ids::Uuid) -> bool {
         LibDocument::Form(c) => c.library_id.as_uuid(),
         LibDocument::Macro(c) => c.library_id.as_uuid(),
         LibDocument::Manufacturer(c) => c.library_id.as_uuid(),
+        LibDocument::PlcProfile(c) => c.library_id.as_uuid(),
         LibDocument::Unknown(_) => return true,
     };
     library == project

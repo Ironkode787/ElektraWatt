@@ -616,6 +616,7 @@ impl Session {
                     LibDocument::Fndef(c) => c.id.as_uuid(),
                     LibDocument::Symbol(c) => c.id.as_uuid(),
                     LibDocument::Manufacturer(c) => c.id.as_uuid(),
+                    LibDocument::PlcProfile(c) => c.id.as_uuid(),
                     LibDocument::Form(c) => c.id.as_uuid(),
                     LibDocument::Macro(c) => c.id.as_uuid(),
                     LibDocument::Unknown(_) => continue,
@@ -726,6 +727,7 @@ fn starter_id(json: &str) -> Option<Uuid> {
             LibDocument::Form(c) => Some(c.id.as_uuid()),
             LibDocument::Macro(c) => Some(c.id.as_uuid()),
             LibDocument::Manufacturer(c) => Some(c.id.as_uuid()),
+            LibDocument::PlcProfile(c) => Some(c.id.as_uuid()),
             LibDocument::Unknown(_) => None,
         })
 }

@@ -165,8 +165,9 @@ pub use plc::{
     ChannelTarget, ChannelTargets, ChannelText, ChannelTexts, EffectiveState, ModuleOrder, ModuleStart,
     ModuleStartOf, ModuleStarts, OrderedModule, PlcAddressText, PlcAddressTexts, PlcRow, PlcRows, Slot,
     SolenoidPositions, SolenoidSlot, Start, auto_address, canonical, channel_pin, coil_cp, coil_host,
-    default_profile, driven_device, eval_map, module_part, parse_plc_address, parse_plc_start,
-    pin_pattern_error, profile_of, shipped_address_profile, shipped_address_profiles, solenoid_channel,
+    address_profile, address_profile_named, builtin_profiles, default_profile, driven_device, eval_map,
+    module_part, parse_plc_address, parse_plc_start, pinned_profile, profiles_at_hand,
+    pin_pattern_error, profile_of, solenoid_channel, unreadable_profile,
     solenoid_coil, start_example, station_of, stations, valve_solenoids,
 };
 pub use potentials::{

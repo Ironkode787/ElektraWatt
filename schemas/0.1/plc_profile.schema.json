@@ -1,0 +1,490 @@
+{
+  "$defs": {
+    "Confidence": {
+      "description": "Confidence of one section of library data.",
+      "oneOf": [
+        {
+          "const": "verified",
+          "description": "Checked against a source.",
+          "type": "string"
+        },
+        {
+          "const": "unverified",
+          "description": "Not yet checked.",
+          "type": "string"
+        },
+        {
+          "const": "test",
+          "description": "Test data.",
+          "type": "string"
+        }
+      ]
+    },
+    "Date": {
+      "description": "An authored date YYYY-MM-DD (doc 05 §3.2).",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+      "type": "string"
+    },
+    "Deprecation": {
+      "additionalProperties": true,
+      "description": "The payload of [`ItemStatus::Deprecated`].",
+      "properties": {
+        "successor": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LibRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The successor."
+        }
+      },
+      "type": "object"
+    },
+    "Ident": {
+      "description": "An identifier: non-empty, one line (no control character U+0000 to U+001F or U+007F to U+009F), without leading or trailing white space (the Unicode White_Space set); interior spaces are allowed (doc 05 §3.2). JSON Schema cannot express Unicode Normalization Form C; the reader rejects non-NFC text.",
+      "minLength": 1,
+      "pattern": "^[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000](?:[^\\u0000-\\u001F\\u007F-\\u009F]*[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000])?$",
+      "type": "string"
+    },
+    "ItemMeta": {
+      "additionalProperties": true,
+      "description": "Provenance of a library item (doc 07 §2.1, §2.5). The item's semantic version is the copy metadata\n`version` of the [`LibCopy`] and is stored once, there.",
+      "properties": {
+        "as_of": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Date"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Date of the data."
+        },
+        "confidence": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Confidence"
+          },
+          "description": "Confidence per section, keyed by section name.",
+          "type": "object"
+        },
+        "foreign_terms": {
+          "description": "Imported content under foreign terms.",
+          "type": "boolean"
+        },
+        "key": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Ident"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Human key (`pxc.2904602`, `ew.iec.mcb-1pn`)."
+        },
+        "licence": {
+          "description": "SPDX licence expression of the item.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sources": {
+          "description": "Where the data came from: datasheet references, file hashes, manual entry.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "status": {
+          "$ref": "#/$defs/ItemStatus",
+          "description": "Item status; default released."
+        }
+      },
+      "type": "object"
+    },
+    "ItemStatus": {
+      "description": "Status of a library item.",
+      "oneOf": [
+        {
+          "const": "draft",
+          "description": "Draft.",
+          "type": "string"
+        },
+        {
+          "const": "released",
+          "description": "Released (the default).",
+          "type": "string"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Deprecated, with an optional successor: `{\"deprecated\": {\"successor\": …}}`.",
+          "properties": {
+            "deprecated": {
+              "$ref": "#/$defs/Deprecation"
+            }
+          },
+          "required": [
+            "deprecated"
+          ],
+          "type": "object"
+        },
+        {
+          "const": "withdrawn",
+          "description": "Withdrawn.",
+          "type": "string"
+        }
+      ]
+    },
+    "LibRef": {
+      "additionalProperties": true,
+      "description": "A reference between library items (doc 07 §2.1): library, item and a semantic-version requirement.",
+      "properties": {
+        "item": {
+          "$ref": "#/$defs/Uuid",
+          "description": "The item's UUID, stable across versions."
+        },
+        "library": {
+          "$ref": "#/$defs/Uuid",
+          "description": "The library's UUID."
+        },
+        "version_req": {
+          "description": "A semantic-version requirement such as `\"^1\"`.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "library",
+        "item",
+        "version_req"
+      ],
+      "type": "object"
+    },
+    "PlcAllocation": {
+      "additionalProperties": true,
+      "description": "The allocation defaults of an address profile.",
+      "properties": {
+        "scheme": {
+          "description": "The allocation scheme (\"packed\").",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "start": {
+          "$ref": "#/$defs/PlcAllocationStart",
+          "description": "The first units of digital and analogue allocation."
+        },
+        "verified": {
+          "description": "Whether the allocation rules are verified against the vendor's.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "start",
+        "verified"
+      ],
+      "type": "object"
+    },
+    "PlcAllocationStart": {
+      "additionalProperties": true,
+      "description": "The first units of an address profile's allocation.",
+      "properties": {
+        "analog": {
+          "description": "Analogue.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "digital": {
+          "description": "Digital.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "digital",
+        "analog"
+      ],
+      "type": "object"
+    },
+    "PlcAreaMnemonics": {
+      "additionalProperties": true,
+      "description": "The area mnemonics of an address profile (\"I\", \"Q\", \"M\", \"PI\", \"PQ\").",
+      "properties": {
+        "I": {
+          "description": "Inputs.",
+          "type": "string"
+        },
+        "M": {
+          "description": "Memory.",
+          "type": "string"
+        },
+        "PI": {
+          "description": "Peripheral inputs.",
+          "type": "string"
+        },
+        "PQ": {
+          "description": "Peripheral outputs.",
+          "type": "string"
+        },
+        "Q": {
+          "description": "Outputs.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "I",
+        "Q",
+        "M",
+        "PI",
+        "PQ"
+      ],
+      "type": "object"
+    },
+    "PlcMnemonics": {
+      "additionalProperties": true,
+      "description": "The mnemonics of an address profile.",
+      "properties": {
+        "area": {
+          "$ref": "#/$defs/PlcAreaMnemonics",
+          "description": "The area mnemonics."
+        },
+        "size": {
+          "$ref": "#/$defs/PlcSizeMnemonics",
+          "description": "The size mnemonics."
+        }
+      },
+      "required": [
+        "area",
+        "size"
+      ],
+      "type": "object"
+    },
+    "PlcParse": {
+      "additionalProperties": true,
+      "description": "What the parser of an address profile accepts beyond the render form (doc 10 §2.5 `[profile.parse]`): kept as\ndata; the parser reads the drawing and exchange prefixes.",
+      "properties": {
+        "peripheral_suffix": {
+          "description": "A suffix accepted on import and reported (\":P\").",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "prefixes": {
+          "description": "The accepted prefixes.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "PlcProfilePin": {
+      "additionalProperties": true,
+      "description": "The pin of an address profile: `id@version` (`siemens-tia-intl@2027.1`).",
+      "properties": {
+        "id": {
+          "description": "The profile ID.",
+          "type": "string"
+        },
+        "version": {
+          "description": "The profile version.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "version"
+      ],
+      "type": "object"
+    },
+    "PlcRender": {
+      "additionalProperties": true,
+      "description": "The render templates of an address profile: `{area}`, `{size}`, `{byte}` and `{bit}` are replaced.",
+      "properties": {
+        "bit": {
+          "description": "A bit address (\"{area}{byte}.{bit}\").",
+          "type": "string"
+        },
+        "drawing": {
+          "description": "The prefix on pages and reports.",
+          "type": "string"
+        },
+        "exchange": {
+          "description": "The prefix in exchange files.",
+          "type": "string"
+        },
+        "unit": {
+          "description": "A unit address (\"{area}{size}{byte}\").",
+          "type": "string"
+        }
+      },
+      "required": [
+        "bit",
+        "unit",
+        "drawing",
+        "exchange"
+      ],
+      "type": "object"
+    },
+    "PlcSizeMnemonics": {
+      "additionalProperties": true,
+      "description": "The size mnemonics of an address profile (\"\", \"B\", \"W\", \"D\", \"L\").",
+      "properties": {
+        "bit": {
+          "description": "A bit.",
+          "type": "string"
+        },
+        "byte": {
+          "description": "A byte.",
+          "type": "string"
+        },
+        "dword": {
+          "description": "A double word.",
+          "type": "string"
+        },
+        "lword": {
+          "description": "A long word.",
+          "type": "string"
+        },
+        "word": {
+          "description": "A word.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "bit",
+        "byte",
+        "word",
+        "dword",
+        "lword"
+      ],
+      "type": "object"
+    },
+    "Sha256": {
+      "description": "A SHA-256 digest sha256:<64 lower-case hex> (doc 05 §3.2).",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "Uuid": {
+      "description": "A lower-case hyphenated UUID (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": true,
+  "description": "An embedded library copy (doc 07 §2.1, doc 05 §13.2): `$k`, `id` (the copy ID\n`v5(NS_LIBCOPY, library ‖ item)`), `$v`, the copy metadata, then the item's own members.\n\n`sha256` is taken over the canonical compact JSON of the item's own members, without `id` and the copy\nmetadata, so the copy's hash equals the published item's (EW-CORE-014).\n\nDeserialisation reads the copy metadata itself and hands the remaining members to the item's own\ndeserialiser, so errors inside the item keep their paths (a flattened field would lose them).",
+  "properties": {
+    "$k": {
+      "const": "plc_profile",
+      "description": "The kind name; always the first member."
+    },
+    "$v": {
+      "description": "Per-kind schema version `$v`, omitted when 1.",
+      "format": "uint16",
+      "maximum": 65535,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "absolute": {
+      "description": "Whether addresses are absolute (false for a tag-based platform).",
+      "type": "boolean"
+    },
+    "allocation": {
+      "$ref": "#/$defs/PlcAllocation",
+      "description": "The allocation defaults."
+    },
+    "base": {
+      "description": "The number base of rendered numbers.",
+      "format": "uint32",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "id": {
+      "$ref": "#/$defs/Uuid",
+      "description": "The copy ID."
+    },
+    "item_id": {
+      "$ref": "#/$defs/Uuid",
+      "description": "The item's UUID, stable across versions."
+    },
+    "label": {
+      "description": "The display label (\"Siemens TIA (international)\").",
+      "type": "string"
+    },
+    "library_id": {
+      "$ref": "#/$defs/Uuid",
+      "description": "The library's UUID (the project ID for project-local items)."
+    },
+    "meta": {
+      "$ref": "#/$defs/ItemMeta",
+      "description": "Provenance."
+    },
+    "mnemonics": {
+      "$ref": "#/$defs/PlcMnemonics",
+      "description": "The area and size mnemonics."
+    },
+    "parse": {
+      "$ref": "#/$defs/PlcParse",
+      "description": "What the parser accepts beyond the render form."
+    },
+    "profile": {
+      "$ref": "#/$defs/PlcProfilePin",
+      "description": "The pin: the profile's ID and version."
+    },
+    "render": {
+      "$ref": "#/$defs/PlcRender",
+      "description": "The render templates and prefixes."
+    },
+    "sha256": {
+      "$ref": "#/$defs/Sha256",
+      "description": "Hash of the item's own members."
+    },
+    "unit_bits": {
+      "description": "Bits per addressing unit.",
+      "format": "uint32",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "version": {
+      "description": "The item's semantic version (`MAJOR.MINOR.PATCH`).",
+      "type": "string"
+    },
+    "word_align": {
+      "description": "The alignment of multi-unit values, in units.",
+      "format": "uint32",
+      "minimum": 0,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "$k",
+    "id",
+    "library_id",
+    "item_id",
+    "version",
+    "sha256",
+    "profile",
+    "label",
+    "absolute",
+    "base",
+    "unit_bits",
+    "word_align",
+    "mnemonics",
+    "render",
+    "allocation"
+  ],
+  "title": "plc_profile",
+  "type": "object"
+}

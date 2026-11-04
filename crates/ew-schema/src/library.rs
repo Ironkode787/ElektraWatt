@@ -2034,6 +2034,167 @@ pub struct Manufacturer {
 }
 
 // ---------------------------------------------------------------------------------------------------------
+// PLC address profile
+
+/// A PLC address profile (doc 10 §2.5, FR-PLC-008; WP-S7.03 D7), library item kind `plc_profile`; embedded under
+/// `lib/plc-profiles/` as a `LibCopy<PlcProfileDef>`. The item's version is the library's semver; `profile.version`
+/// is the pin a configuration project names (`id@version`), and what a profile renders changes only with a new
+/// `profile.version`, never by an edit of a published one. Whether the notation renders is `ew-plcaddr`'s check.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct PlcProfileDef {
+    /// Provenance.
+    #[serde(default, skip_serializing_if = "ItemMeta::is_empty")]
+    pub meta: ItemMeta,
+    /// The pin: the profile's ID and version.
+    pub profile: PlcProfilePin,
+    /// The display label ("Siemens TIA (international)").
+    pub label: String,
+    /// Whether addresses are absolute (false for a tag-based platform).
+    pub absolute: bool,
+    /// The number base of rendered numbers.
+    pub base: u32,
+    /// Bits per addressing unit.
+    pub unit_bits: u32,
+    /// The alignment of multi-unit values, in units.
+    pub word_align: u32,
+    /// The area and size mnemonics.
+    pub mnemonics: PlcMnemonics,
+    /// The render templates and prefixes.
+    pub render: PlcRender,
+    /// What the parser accepts beyond the render form.
+    #[serde(default, skip_serializing_if = "is_default")]
+    pub parse: PlcParse,
+    /// The allocation defaults.
+    pub allocation: PlcAllocation,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// The pin of an address profile: `id@version` (`siemens-tia-intl@2027.1`).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct PlcProfilePin {
+    /// The profile ID.
+    pub id: String,
+    /// The profile version.
+    pub version: String,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// The mnemonics of an address profile.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct PlcMnemonics {
+    /// The area mnemonics.
+    pub area: PlcAreaMnemonics,
+    /// The size mnemonics.
+    pub size: PlcSizeMnemonics,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// The area mnemonics of an address profile ("I", "Q", "M", "PI", "PQ").
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct PlcAreaMnemonics {
+    /// Inputs.
+    #[serde(rename = "I")]
+    pub i: String,
+    /// Outputs.
+    #[serde(rename = "Q")]
+    pub q: String,
+    /// Memory.
+    #[serde(rename = "M")]
+    pub m: String,
+    /// Peripheral inputs.
+    #[serde(rename = "PI")]
+    pub pi: String,
+    /// Peripheral outputs.
+    #[serde(rename = "PQ")]
+    pub pq: String,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// The size mnemonics of an address profile ("", "B", "W", "D", "L").
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct PlcSizeMnemonics {
+    /// A bit.
+    pub bit: String,
+    /// A byte.
+    pub byte: String,
+    /// A word.
+    pub word: String,
+    /// A double word.
+    pub dword: String,
+    /// A long word.
+    pub lword: String,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// The render templates of an address profile: `{area}`, `{size}`, `{byte}` and `{bit}` are replaced.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct PlcRender {
+    /// A bit address ("{area}{byte}.{bit}").
+    pub bit: String,
+    /// A unit address ("{area}{size}{byte}").
+    pub unit: String,
+    /// The prefix on pages and reports.
+    pub drawing: String,
+    /// The prefix in exchange files.
+    pub exchange: String,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// What the parser of an address profile accepts beyond the render form (doc 10 §2.5 `[profile.parse]`): kept as
+/// data; the parser reads the drawing and exchange prefixes.
+#[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
+pub struct PlcParse {
+    /// The accepted prefixes.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub prefixes: Vec<String>,
+    /// A suffix accepted on import and reported (":P").
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub peripheral_suffix: Option<String>,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// The allocation defaults of an address profile.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct PlcAllocation {
+    /// The allocation scheme ("packed").
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scheme: Option<String>,
+    /// The first units of digital and analogue allocation.
+    pub start: PlcAllocationStart,
+    /// Whether the allocation rules are verified against the vendor's.
+    pub verified: bool,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// The first units of an address profile's allocation.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct PlcAllocationStart {
+    /// Digital.
+    pub digital: u32,
+    /// Analogue.
+    pub analog: u32,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+// ---------------------------------------------------------------------------------------------------------
 // Macro
 
 /// A reusable fragment (doc 07 §2.7, doc 03 §7), library item kind `macro`; embedded under `lib/macros/` as a

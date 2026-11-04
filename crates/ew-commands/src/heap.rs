@@ -109,6 +109,7 @@ pub fn row_bytes(row: &AnyRow) -> usize {
         AnyRow::Form(r) => of(&**r),
         AnyRow::Macro(r) => of(&**r),
         AnyRow::Manufacturer(r) => of(&**r),
+        AnyRow::PlcProfile(r) => of(&**r),
     }
 }
 
@@ -1252,6 +1253,29 @@ impl HeapSize for ew_schema::Manufacturer {
             + self.name.heap_size()
             + self.aliases.heap_size()
             + self.brands.heap_size()
+            + self.extra.heap_size()
+    }
+}
+
+// ---- address profiles (WP-S7.03 D7) ----
+
+impl HeapSize for ew_schema::PlcProfileDef {
+    fn heap_size(&self) -> usize {
+        // The members are short texts and numbers: the strings and the unknown members are the heap.
+        let (a, s, r) = (&self.mnemonics.area, &self.mnemonics.size, &self.render);
+        self.meta.heap_size()
+            + self.profile.id.heap_size()
+            + self.profile.version.heap_size()
+            + self.label.heap_size()
+            + [&a.i, &a.q, &a.m, &a.pi, &a.pq].iter().map(|m| m.heap_size()).sum::<usize>()
+            + [&s.bit, &s.byte, &s.word, &s.dword, &s.lword].iter().map(|m| m.heap_size()).sum::<usize>()
+            + r.bit.heap_size()
+            + r.unit.heap_size()
+            + r.drawing.heap_size()
+            + r.exchange.heap_size()
+            + self.parse.prefixes.heap_size()
+            + self.parse.peripheral_suffix.heap_size()
+            + self.allocation.scheme.heap_size()
             + self.extra.heap_size()
     }
 }

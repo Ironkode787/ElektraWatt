@@ -291,8 +291,21 @@ fn identity(doc: &LibDocument) -> Option<(Kind, Uuid, Uuid, Uuid, String, Sha256
         LibDocument::Form(c) => of(Kind::Form, c),
         LibDocument::Macro(c) => of(Kind::Macro, c),
         LibDocument::Manufacturer(c) => of(Kind::Manufacturer, c),
+        LibDocument::PlcProfile(c) => of(Kind::PlcProfile, c),
         LibDocument::Unknown(_) => return None,
     })
+}
+
+/// Why each address profile of `library` that does not render is left out of the profiles at hand (WP-S7.03 T2), in
+/// item order: the notes `ew lib list` shows under the library.
+pub fn unreadable_profiles(reg: &library::Registry, library: Uuid) -> Vec<String> {
+    reg.documents(library, Kind::PlcProfile)
+        .iter()
+        .filter_map(|d| match d {
+            LibDocument::PlcProfile(c) => ew_derive::unreadable_profile(&c.item),
+            _ => None,
+        })
+        .collect()
 }
 
 /// The held copy of a kind and ID, as a document.
@@ -322,6 +335,10 @@ fn held(q: &Q, kind: Kind, copy: Uuid) -> Option<LibDocument> {
             .table::<LibCopy<MacroDef>>()
             .get(Id::from_uuid(copy))
             .map(|c| LibDocument::Macro((**c).clone())),
+        Kind::PlcProfile => q
+            .plc_profiles()
+            .get(Id::from_uuid(copy))
+            .map(|c| LibDocument::PlcProfile((**c).clone())),
         _ => None,
     }
 }
@@ -335,13 +352,14 @@ fn held_any(q: &Q, copy: Uuid) -> Option<LibDocument> {
         Kind::Form,
         Kind::Manufacturer,
         Kind::Macro,
+        Kind::PlcProfile,
     ]
     .into_iter()
     .find_map(|k| held(q, k, copy))
 }
 
-/// Every held library copy the session reads (parts, symbols, FnDefs, forms, manufacturers, macros), in kind then ID
-/// order.
+/// Every held library copy the session reads (parts, symbols, FnDefs, forms, manufacturers, macros, address
+/// profiles), in kind then ID order.
 fn held_copies(q: &Q) -> Vec<LibDocument> {
     let mut out: Vec<LibDocument> = Vec::new();
     out.extend(q.parts().iter().map(|(_, c)| LibDocument::Part((**c).clone())));
@@ -361,6 +379,11 @@ fn held_copies(q: &Q) -> Vec<LibDocument> {
         q.table::<LibCopy<MacroDef>>()
             .iter()
             .map(|(_, c)| LibDocument::Macro((**c).clone())),
+    );
+    out.extend(
+        q.plc_profiles()
+            .iter()
+            .map(|(_, c)| LibDocument::PlcProfile((**c).clone())),
     );
     out
 }
@@ -461,6 +484,7 @@ fn is_fork(doc: &LibDocument) -> bool {
         LibDocument::Fndef(c) => meta(c, |i| &i.meta),
         LibDocument::Form(c) => meta(c, |i| &i.meta),
         LibDocument::Manufacturer(c) => meta(c, |i| &i.meta),
+        LibDocument::PlcProfile(c) => meta(c, |i| &i.meta),
         LibDocument::Macro(c) => meta(c, |i| &i.meta),
         _ => false,
     }
@@ -473,6 +497,7 @@ fn status_of(doc: &LibDocument) -> ItemStatus {
         LibDocument::Fndef(c) => c.item.meta.status.clone(),
         LibDocument::Form(c) => c.item.meta.status.clone(),
         LibDocument::Manufacturer(c) => c.item.meta.status.clone(),
+        LibDocument::PlcProfile(c) => c.item.meta.status.clone(),
         LibDocument::Macro(c) => c.item.meta.status.clone(),
         LibDocument::Unknown(_) => ItemStatus::default(),
     }
@@ -538,6 +563,38 @@ impl Session {
             .chain((1u64..).map(|n| Uuid::new_v5(&copy, format!("fork\u{1f}{n}").as_bytes())))
             .find(|item| !held(*item))
             .expect("an unbounded sequence has a free item")
+    }
+
+    /// The `library.embed` that a `plc.set_profile` naming `profile` needs first (WP-S7.03 D8): when no profile at hand
+    /// has that name (`id@version` or the ID, without regard to ASCII case) and a library profile of the session's
+    /// tiers that renders has, the command that embeds the first such in tier order, so that the command then pins
+    /// it; `None` otherwise. A library profile that does not render is left out (T2).
+    pub fn profile_embed(&self, profile: &str) -> Option<crate::AnyCommand> {
+        let q = self.query();
+        let copies = q.plc_profiles();
+        let at_hand = ew_derive::profiles_at_hand(copies.iter().map(|(_, c)| &**c));
+        if ew_derive::address_profile_named(&at_hand, profile).is_some() {
+            return None;
+        }
+        let text = profile.trim();
+        let reg = self.libraries();
+        let doc = reg
+            .libraries()
+            .into_iter()
+            .flat_map(|l| reg.documents(l.id, Kind::PlcProfile))
+            .find(|d| match d {
+                LibDocument::PlcProfile(c) => {
+                    let pin = &c.item.profile;
+                    ew_derive::unreadable_profile(&c.item).is_none()
+                        && (format!("{}@{}", pin.id, pin.version).eq_ignore_ascii_case(text)
+                            || pin.id.eq_ignore_ascii_case(text))
+                }
+                _ => false,
+            })?;
+        Some(crate::AnyCommand {
+            name: "library.embed".into(),
+            params: serde_json::json!({ "copies": [doc] }),
+        })
     }
 
     /// The parts of the system libraries (WP-S2.18 D6: the compiled-in generic starter parts, and any installed system

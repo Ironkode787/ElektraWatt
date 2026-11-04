@@ -17,6 +17,7 @@ without a row here. No set holds a vendor file or a maker's catalogue data.
 | `content/forms` | frames and the title block (QET-compatible) | CC-BY-SA-4.0 | the project's own, after doc 20 §17 | — | WP-S3.02 |
 | `content/libraries/ew-sample-parts.ewlib` | the sample project's catalogue parts and their manufacturers | CC0-1.0 | Golden A's part copies (`golden.table:…`) | `meta.confidence`: `test` or `unverified` per section, never `verified` | WP-S7.03 |
 | `content/libraries/ew-starter-parts.ewlib` | generic starter parts and the manufacturer "Generic" | CC0-1.0 | the project's own (`ew.original`) | — | WP-S2.18 |
+| `content/plc-profiles` | address profiles (`plc_profile`), compiled into `ew-derive` | CC-BY-SA-4.0 | the project's own data of doc 10 §2.5 | allocation `verified: false` | WP-S7.03 |
 | `content/profiles/colour` | colour profiles (`colour_profile` values) | CC-BY-SA-4.0 | the project's own table of doc 08 §4.3; "DBU/WH 24 V": the sample project's convention | `verified: false`; "DBU/WH 24 V" `verified: true` | FT-337; WP-S7.03 |
 | `content/profiles/size` | size profiles (`size_profile` values) | CC-BY-SA-4.0 | "0.75/1.5": the sample project's convention | `verified: true` | WP-S7.03 |
 | `content/symbols` | symbols, native edition | CC-BY-SA-4.0 | the project's own (`ew.original`) | — | WP-S7.02 |

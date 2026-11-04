@@ -75,6 +75,7 @@ fn item_object(doc: &LibDocument) -> serde_json::Map<String, Value> {
         LibDocument::Form(c) => obj(&c.item),
         LibDocument::Macro(c) => obj(&c.item),
         LibDocument::Manufacturer(c) => obj(&c.item),
+        LibDocument::PlcProfile(c) => obj(&c.item),
         LibDocument::Unknown(_) => serde_json::Map::new(),
     }
 }
@@ -100,6 +101,8 @@ fn patch_members(doc: &LibDocument) -> &'static [&'static str] {
         LibDocument::Fndef(_) => &["meta"],
         LibDocument::Form(_) => &["meta", "name", "description"],
         LibDocument::Macro(_) => &["meta", "name", "description", "thumbnail"],
+        // A profile renders by its data; what it renders changes only with a new `profile.version` (WP-S7.03 D7).
+        LibDocument::PlcProfile(_) => &["meta", "label"],
         LibDocument::Manufacturer(_) | LibDocument::Unknown(_) => &[],
     }
 }
@@ -776,6 +779,7 @@ impl Command for UpdateLibraryCopies {
                 LibDocument::Form(c) => tx.put(c),
                 LibDocument::Macro(c) => tx.put(c),
                 LibDocument::Manufacturer(c) => tx.put(c),
+                LibDocument::PlcProfile(c) => tx.put(c),
                 LibDocument::Unknown(_) => unreachable!("check_copy refuses an unknown kind"),
             }
         }
@@ -791,6 +795,7 @@ impl Command for UpdateLibraryCopies {
                 LibDocument::Form(c) => tx.put(c),
                 LibDocument::Macro(c) => tx.put(c),
                 LibDocument::Manufacturer(c) => tx.put(c),
+                LibDocument::PlcProfile(c) => tx.put(c),
                 LibDocument::Unknown(_) => unreachable!("read_copy refuses an unknown kind"),
             }
         }
@@ -812,6 +817,7 @@ fn held_version_of(doc: &LibDocument) -> String {
         LibDocument::Form(c) => v(c),
         LibDocument::Macro(c) => v(c),
         LibDocument::Manufacturer(c) => v(c),
+        LibDocument::PlcProfile(c) => v(c),
         LibDocument::Unknown(_) => String::new(),
     }
 }
@@ -824,6 +830,7 @@ fn held_sha_of(doc: &LibDocument) -> Option<Sha256> {
         LibDocument::Form(c) => c.sha256,
         LibDocument::Macro(c) => c.sha256,
         LibDocument::Manufacturer(c) => c.sha256,
+        LibDocument::PlcProfile(c) => c.sha256,
         LibDocument::Unknown(_) => return None,
     })
 }

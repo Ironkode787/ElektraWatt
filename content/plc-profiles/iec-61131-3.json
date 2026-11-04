@@ -1,0 +1,60 @@
+{
+  "$k": "plc_profile",
+  "id": "4c5179d6-55bf-5833-a94d-a7f1a6b4d8d1",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "ba7e57b5-eecb-5c09-a20f-fa252758b1a7",
+  "version": "0.1.0",
+  "sha256": "sha256:f5ac8919c6156b38110523de65f5850fde6a159c0113884bc1b6fd659863f34b",
+  "meta": {
+    "key": "ew.plc-profile.iec-61131-3",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "docs/design/10-plc-and-bus.md §2.5"
+    ]
+  },
+  "profile": {
+    "id": "iec-61131-3",
+    "version": "2027.1"
+  },
+  "label": "IEC 61131-3",
+  "absolute": true,
+  "base": 10,
+  "unit_bits": 8,
+  "word_align": 2,
+  "mnemonics": {
+    "area": {
+      "I": "I",
+      "Q": "Q",
+      "M": "M",
+      "PI": "PI",
+      "PQ": "PQ"
+    },
+    "size": {
+      "bit": "X",
+      "byte": "B",
+      "word": "W",
+      "dword": "D",
+      "lword": "L"
+    }
+  },
+  "render": {
+    "bit": "{area}{size}{byte}.{bit}",
+    "unit": "{area}{size}{byte}",
+    "drawing": "%",
+    "exchange": "%"
+  },
+  "parse": {
+    "prefixes": [
+      "",
+      "%"
+    ]
+  },
+  "allocation": {
+    "scheme": "packed",
+    "start": {
+      "digital": 0,
+      "analog": 0
+    },
+    "verified": false
+  }
+}

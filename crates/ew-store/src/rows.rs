@@ -169,6 +169,10 @@ macro_rules! with_row {
                 let $kind = Kind::Manufacturer;
                 $body
             }
+            AnyRow::PlcProfile($r) => {
+                let $kind = Kind::PlcProfile;
+                $body
+            }
         }
     };
 }
@@ -212,7 +216,8 @@ pub(crate) fn row_record(row: &AnyRow) -> Option<Record> {
         | AnyRow::Fndef(_)
         | AnyRow::Form(_)
         | AnyRow::Macro(_)
-        | AnyRow::Manufacturer(_) => return None,
+        | AnyRow::Manufacturer(_)
+        | AnyRow::PlcProfile(_) => return None,
     })
 }
 
@@ -263,6 +268,7 @@ pub(crate) fn document_row(doc: LibDocument) -> Option<AnyRow> {
         LibDocument::Form(d) => AnyRow::of(d),
         LibDocument::Macro(d) => AnyRow::of(d),
         LibDocument::Manufacturer(d) => AnyRow::of(d),
+        LibDocument::PlcProfile(d) => AnyRow::of(d),
         LibDocument::Unknown(_) => return None,
     })
 }

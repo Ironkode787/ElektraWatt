@@ -319,15 +319,16 @@ impl Command for SetStart {
                 "tbd" => AddrSpec::Tbd,
                 _ => {
                     let profile = module_profile(tx, *m);
-                    let a = ew_derive::parse_plc_start(&profile, &self.spec)
+                    let at_hand = crate::commands::fields::profiles_in(tx);
+                    let a = ew_derive::parse_plc_start(&at_hand, &profile, &self.spec)
                         .map_err(|e| CmdError::invalid_params(Self::NAME, "/spec", e))?;
                     let (want, name, area) = match self.dir {
                         StartDir::Input => (PlcArea::I, "an input", ew_derive::ew_plcaddr::Area::I),
                         StartDir::Output => (PlcArea::Q, "an output", ew_derive::ew_plcaddr::Area::Q),
                     };
                     if a.area != want {
-                        let example = ew_derive::ew_plcaddr::builtin(&profile)
-                            .map(|p| ew_derive::start_example(p, area))
+                        let example = ew_derive::pinned_profile(&at_hand, &profile)
+                            .map(|p| ew_derive::start_example(&p, area))
                             .unwrap_or_default();
                         return Err(CmdError::invalid_params(
                             Self::NAME,
@@ -377,21 +378,22 @@ impl Command for SetStart {
 }
 
 /// `plc.set_profile` (`SetProfile`, doc 10 §3.9 `plc.set_profile{cfg, profile}`, FR-PLC-008, FR-PLC-007; WP-S1.21
-/// D8): pins another shipped address profile on a configuration project.
+/// D8; WP-S7.03 D8): pins another address profile at hand on a configuration project.
 ///
-/// `profile` names a profile this build ships, by its reference `id@version` or its ID alone, without regard to case
-/// (`iec-61131-3` pins `iec-61131-3@2027.1`); every other text is rejected at `/profile` with the list of shipped
-/// profiles. The change renders only: addresses are stored canonically, so the project files differ in the one
-/// `profile` member, and every address prints in the new notation (`Q0.1` → `%QX0.1`). A profile equal to the current
-/// one writes nothing. The configuration project exists ([`CmdError::NotFound`]). One undo step. Outcome: the
-/// configuration project.
+/// `profile` names a profile at hand, built in or held by the project as a `plc_profile` copy (a library's profile
+/// is embedded by the front end with `library.embed` first), by its reference `id@version` or its ID alone, without
+/// regard to case (`iec-61131-3` pins `iec-61131-3@2027.1`); every other text is rejected at `/profile` with the list
+/// of the profiles at hand. The change renders only: addresses are stored canonically, so the project files differ
+/// in the one `profile` member, and every address prints in the new notation (`Q0.1` → `%QX0.1`). A profile equal to
+/// the current one writes nothing. The configuration project exists ([`CmdError::NotFound`]). One undo step.
+/// Outcome: the configuration project.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct SetProfile {
     /// The configuration project.
     #[schemars(with = "UuidS")]
     pub config_project: Id<PlcConfigProject>,
-    /// The shipped profile: `id@version` or the ID (`iec-61131-3`).
+    /// The profile at hand: `id@version` or the ID (`iec-61131-3`).
     pub profile: String,
 }
 
@@ -403,14 +405,16 @@ impl Command for SetProfile {
     }
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
-        let Some(reference) = ew_derive::shipped_address_profile(&self.profile) else {
+        let at_hand = crate::commands::fields::profiles_in(tx);
+        let Some(reference) = ew_derive::address_profile_named(&at_hand, &self.profile) else {
+            let list: Vec<String> = at_hand.iter().map(|p| p.reference()).collect();
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/profile",
                 format!(
-                    "`{}` is not a shipped address profile; the shipped profiles are {}",
+                    "`{}` is not an address profile of this build or of the project; the profiles at hand are {}",
                     self.profile,
-                    ew_derive::shipped_address_profiles().join(", ")
+                    list.join(", ")
                 ),
             ));
         };

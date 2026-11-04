@@ -114,6 +114,7 @@ pub use cmdlog::{CmdLog, CmdLogError, SCHEMA as CMDLOG_SCHEMA, ScriptDiff};
 pub use ew_commands::commands::{ChangeClass, CopyDiff, FieldChange, classify_update};
 pub use library_ops::{
     ApiError, AssignMode, CopyState, CopyStatus, CopyUpdate, CpMap, UpdatePlan, VersionConflict,
+    unreadable_profiles,
 };
 pub use macros::{
     InsertAt, MacroConflict, MacroError, MacroScope, MacroSpec, MacroValues, SavedMacro, macro_item_id,

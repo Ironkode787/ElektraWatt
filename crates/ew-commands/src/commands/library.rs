@@ -72,6 +72,7 @@ pub fn library_copy_hash(doc: &LibDocument) -> Option<[u8; 32]> {
         LibDocument::Form(c) => hash(&c.item),
         LibDocument::Macro(c) => hash(&c.item),
         LibDocument::Manufacturer(c) => hash(&c.item),
+        LibDocument::PlcProfile(c) => hash(&c.item),
         LibDocument::Unknown(_) => None,
     }
 }
@@ -125,6 +126,7 @@ pub(crate) fn read_copy(
         LibDocument::Form(c) => lineage(c, &doc),
         LibDocument::Macro(c) => lineage(c, &doc),
         LibDocument::Manufacturer(c) => lineage(c, &doc),
+        LibDocument::PlcProfile(c) => lineage(c, &doc),
         LibDocument::Unknown(_) => {
             return Err(CmdError::invalid_params(
                 command,
@@ -186,6 +188,12 @@ impl Command for EmbedLibraryCopies {
                     "the item is listed twice",
                 ));
             }
+            // WP-S7.03 D8, T2: an address profile that does not render never reaches a project.
+            if let LibDocument::PlcProfile(c) = &doc
+                && let Some(refusal) = ew_derive::unreadable_profile(&c.item)
+            {
+                return Err(CmdError::invalid_params(Self::NAME, at, refusal));
+            }
             let kind = doc.kind().expect("an implemented kind");
             if tx.row(&(kind, l.id)).is_some() {
                 return tx.reject(format!(
@@ -203,6 +211,7 @@ impl Command for EmbedLibraryCopies {
                 LibDocument::Form(c) => tx.insert(c)?.cast(),
                 LibDocument::Macro(c) => tx.insert(c)?.cast(),
                 LibDocument::Manufacturer(c) => tx.insert(c)?.cast(),
+                LibDocument::PlcProfile(c) => tx.insert(c)?.cast(),
                 LibDocument::Unknown(_) => unreachable!("rejected above"),
             };
             primary.get_or_insert((kind, id));

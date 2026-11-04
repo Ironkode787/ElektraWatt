@@ -117,7 +117,7 @@ pub enum Kind {
     Macro,
     /// `manufacturer`: library copy of a manufacturer record.
     Manufacturer,
-    /// `plc_profile`: library copy of a PLC address profile (1.0).
+    /// `plc_profile`: library copy of a PLC address profile (WP-S7.03 D7).
     PlcProfile,
     /// `machine_profile`: library copy of a machine profile (1.0, TOML source form).
     MachineProfile,
@@ -312,7 +312,7 @@ impl Kind {
                 I,
                 "0.1",
             ),
-            Kind::PlcProfile => ("plc_profile", None, F::LibraryDocument("plc-profiles"), R, "0.1"),
+            Kind::PlcProfile => ("plc_profile", None, F::LibraryDocument("plc-profiles"), I, "0.1"),
             Kind::MachineProfile => ("machine_profile", None, F::LibraryToml("profiles"), R, "0.1"),
             Kind::LabelProfile => ("label_profile", None, F::LibraryToml("profiles"), R, "0.1"),
         }
@@ -425,6 +425,7 @@ pub const SCHEMA_VERSIONS: &[(Kind, u16)] = &[
     (Kind::Form, 1),
     (Kind::Macro, 1),
     (Kind::Manufacturer, 1),
+    (Kind::PlcProfile, 1),
 ];
 
 /// Members that hold personal data (NFR-PRIV-06), as paths into a kind's JSON: `a.b` descends into an

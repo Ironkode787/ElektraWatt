@@ -2134,8 +2134,19 @@ fn run_apply(a: &ApplyArgs) -> i32 {
         subcommand: "apply".to_owned(),
         confirmed: false,
     };
-    let mut session = match open_for_writing(&dir, origin) {
-        Ok(s) => s,
+    // WP-S7.03 D8: a log that pins an address profile reads the libraries of `ew lib` (the content's system
+    // libraries, the user's), so that a line naming a library's profile embeds it first; any other log reads none.
+    let tiers = log
+        .commands()
+        .any(|c| c.name == "plc.set_profile")
+        .then(|| {
+            let system: Vec<PathBuf> = content_dir().map(|d| d.join("libraries")).into_iter().collect();
+            ew_api::library::LibraryTiers::for_user(system, Vec::new())
+        })
+        .flatten();
+    let store = ew_api::StoreOptions::new(env!("CARGO_PKG_VERSION"));
+    let mut session = match open_for_writing_from(&dir, origin, store, tiers) {
+        Ok((s, _)) => s,
         Err(code) => return code,
     };
     let result = session.run_script(&log, &file);
@@ -2194,7 +2205,18 @@ fn open_for_writing_items(
     origin: ew_api::Origin,
     store: ew_api::StoreOptions,
 ) -> Result<(ew_api::Session, Vec<ew_api::checks::IntegrityItem>), i32> {
-    let (session, opened) = open_editing(dir, origin, store, ew_api::Recovery::Keep)?;
+    open_for_writing_from(dir, origin, store, None)
+}
+
+/// [`open_for_writing_items`] with the session's library tiers: `ew apply`'s, so that a `plc.set_profile` of a
+/// library's address profile embeds it first (WP-S7.03 D8).
+fn open_for_writing_from(
+    dir: &Path,
+    origin: ew_api::Origin,
+    store: ew_api::StoreOptions,
+    libraries: Option<ew_api::library::LibraryTiers>,
+) -> Result<(ew_api::Session, Vec<ew_api::checks::IntegrityItem>), i32> {
+    let (session, opened) = open_editing_from(dir, origin, store, ew_api::Recovery::Keep, libraries)?;
     if opened.recovery.is_some() {
         eprintln!("{}", journal_refusal(dir));
         session.close();
@@ -2220,9 +2242,21 @@ fn open_editing(
     store: ew_api::StoreOptions,
     recovery: ew_api::Recovery,
 ) -> Result<(ew_api::Session, ew_api::OpenReport), i32> {
+    open_editing_from(dir, origin, store, recovery, None)
+}
+
+/// [`open_editing`] with the session's library tiers (`None`: the compiled-in libraries only).
+fn open_editing_from(
+    dir: &Path,
+    origin: ew_api::Origin,
+    store: ew_api::StoreOptions,
+    recovery: ew_api::Recovery,
+    libraries: Option<ew_api::library::LibraryTiers>,
+) -> Result<(ew_api::Session, ew_api::OpenReport), i32> {
     let repair = store.repair;
     let options = ew_api::SessionOptions {
         origin,
+        libraries,
         ..ew_api::SessionOptions::default()
     };
     let (session, opened) = match ew_api::Session::open(dir, store, options, recovery) {
@@ -3416,7 +3450,13 @@ fn run_lib(a: &LibArgs) -> i32 {
                         generation: l.generation,
                         index: index_state(&l.index),
                         path: l.path.as_ref().map(|p| p.display().to_string()),
-                        findings: l.findings.clone(),
+                        // WP-S7.03 T2: an address profile that does not render is left out of the profiles at hand.
+                        findings: l
+                            .findings
+                            .iter()
+                            .cloned()
+                            .chain(ew_api::unreadable_profiles(&reg, l.id))
+                            .collect(),
                     })
                     .collect();
                 print!(
@@ -3442,7 +3482,7 @@ fn run_lib(a: &LibArgs) -> i32 {
                         if l.writable { "rw" } else { "ro" },
                         index_state(&l.index)
                     );
-                    for f in &l.findings {
+                    for f in l.findings.iter().cloned().chain(ew_api::unreadable_profiles(&reg, l.id)) {
                         println!("  {f}");
                     }
                 }

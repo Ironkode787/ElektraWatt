@@ -13,7 +13,8 @@ use ew_schema::{
     AnyId, Bond, Carrier, Channel, Conductor, Conflict, Connection, Device, DeviceLink, Enclosure,
     ExternalRef, FnDef, FormDef, Function, ImportLineage, Junction, Kind, LayoutSpace, LibCopy, LogicalNet,
     MacroDef, MacroInstance, Manufacturer, MountingSurface, Page, PageItem, Part, PhysicalNet, Placement,
-    PlcConfigProject, PotentialDef, Project, ReportBlock, Representation, Revision, Section, StructureBox,
+    PlcConfigProject, PlcProfileDef, PotentialDef, Project, ReportBlock, Representation, Revision, Section,
+    StructureBox,
     StructureNode, SymbolDef, Waiver,
 };
 
@@ -77,6 +78,7 @@ pub struct LibraryCopies {
     pub(crate) forms: Table<LibCopy<FormDef>>,
     pub(crate) macros: Table<LibCopy<MacroDef>>,
     pub(crate) manufacturers: Table<LibCopy<Manufacturer>>,
+    pub(crate) plc_profiles: Table<LibCopy<PlcProfileDef>>,
 }
 
 impl LibraryCopies {
@@ -119,6 +121,13 @@ impl LibraryCopies {
         /// Manufacturer copies (WP-S1.19 part 1).
         fn manufacturers(&self) -> &Table<LibCopy<Manufacturer>> {
             &self.manufacturers
+        }
+    }
+
+    raw_read! {
+        /// PLC address-profile copies (WP-S7.03 D7).
+        fn plc_profiles(&self) -> &Table<LibCopy<PlcProfileDef>> {
+            &self.plc_profiles
         }
     }
 }
@@ -290,6 +299,7 @@ entities! {
     Form: LibCopy<FormDef>, FormDef, lib.forms;
     Macro: LibCopy<MacroDef>, MacroDef, lib.macros;
     Manufacturer: LibCopy<Manufacturer>, Manufacturer, lib.manufacturers;
+    PlcProfile: LibCopy<PlcProfileDef>, PlcProfileDef, lib.plc_profiles;
 }
 
 impl AnyRow {

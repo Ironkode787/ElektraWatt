@@ -1005,6 +1005,7 @@ fn copy_id(d: &LibDocument) -> Option<Uuid> {
         LibDocument::Form(c) => c.id.as_uuid(),
         LibDocument::Macro(c) => c.id.as_uuid(),
         LibDocument::Manufacturer(c) => c.id.as_uuid(),
+        LibDocument::PlcProfile(c) => c.id.as_uuid(),
         LibDocument::Unknown(_) => return None,
     })
 }

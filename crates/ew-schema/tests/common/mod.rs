@@ -101,6 +101,8 @@ pub const IDS: &[(&str, &str)] = &[
     ("MAC_PSU", "a6e3f0b8-5d12-5c79-9b4a-1e8d7c2f0a63"),
     ("ITEM_MAC", "d2c8a5e1-7b40-5f93-8e6d-0a3b9f1c4e57"),
     ("MFR_EATON", "1e9b4c07-3a62-5d8f-b0e5-7c2d8a4f9b16"),
+    ("PROF_TIA", "6b0e2f4a-8c13-5d79-9e41-3a7c5b2d8f60"),
+    ("ITEM_PROF", "2d8f6a1c-4e97-5b30-a2c8-9f1e7d4b6a35"),
     ("LOCAL_G1", "00000000-0000-5000-8000-000000000001"),
     ("LOCAL_F1", "00000000-0000-5000-8000-000000000002"),
     ("PART_MECH", "065a6080-fde3-528c-a474-1eaffc5bf2b5"),

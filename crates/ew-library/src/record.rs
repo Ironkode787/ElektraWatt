@@ -16,11 +16,12 @@ use ew_ids::Uuid;
 use serde_json::{Map, Value};
 
 /// The record directories of a library and their kinds, in byte order of the names.
-pub(crate) const KIND_DIRS: [(&str, Kind); 5] = [
+pub(crate) const KIND_DIRS: [(&str, Kind); 6] = [
     ("fndefs", Kind::Fndef),
     ("forms", Kind::Form),
     ("macros", Kind::Macro),
     ("parts", Kind::Part),
+    ("plc-profiles", Kind::PlcProfile),
     ("symbols", Kind::Symbol),
 ];
 
@@ -172,6 +173,7 @@ macro_rules! each_copy {
             LibDocument::Form($c) => $body,
             LibDocument::Macro($c) => $body,
             LibDocument::Manufacturer($c) => $body,
+            LibDocument::PlcProfile($c) => $body,
             LibDocument::Unknown(_) => $unknown,
         }
     };

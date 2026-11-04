@@ -405,9 +405,9 @@
       "file": "lib/plc-profiles/<id>.json",
       "kind": "plc_profile",
       "rank": null,
-      "schema": null,
-      "status": "reserved",
-      "v": null
+      "schema": "plc_profile.schema.json",
+      "status": "implemented",
+      "v": 1
     },
     {
       "file": "lib/profiles/<id>.toml",

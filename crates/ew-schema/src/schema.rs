@@ -14,7 +14,9 @@ use serde_json::{Map, Value, json};
 
 use crate::conflict::Conflict;
 use crate::kind::{FORMAT, Kind, KindStatus};
-use crate::library::{FnDef, FormDef, LibCopy, MacroDef, MacroInstance, Manufacturer, Part, SymbolDef};
+use crate::library::{
+    FnDef, FormDef, LibCopy, MacroDef, MacroInstance, Manufacturer, Part, PlcProfileDef, SymbolDef,
+};
 use crate::{
     Bond, Carrier, Channel, Conductor, Connection, Device, DeviceLink, Enclosure, ExternalRef, Function,
     ImportLineage, Junction, LayoutSpace, LogicalNet, MountingSurface, Page, PageItem, PhysicalNet,
@@ -94,6 +96,7 @@ pub fn kind_schema(kind: Kind) -> Option<Value> {
         Kind::Form => generate::<LibCopy<FormDef>>(kind),
         Kind::Macro => generate::<LibCopy<MacroDef>>(kind),
         Kind::Manufacturer => generate::<LibCopy<Manufacturer>>(kind),
+        Kind::PlcProfile => generate::<LibCopy<PlcProfileDef>>(kind),
         _ => return None,
     })
 }

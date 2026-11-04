@@ -373,6 +373,7 @@ fn records_and_library_are_sorted() {
                 LibDocument::Form(c) => c.id.as_uuid(),
                 LibDocument::Macro(c) => c.id.as_uuid(),
                 LibDocument::Manufacturer(c) => c.id.as_uuid(),
+                LibDocument::PlcProfile(c) => c.id.as_uuid(),
                 LibDocument::Unknown(_) => panic!("unknown library document"),
             };
             (d.kind().map(|k| k.name()), id)

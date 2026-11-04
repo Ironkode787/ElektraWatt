@@ -220,6 +220,7 @@ fn row_changed_at(model: &Model, key: &AnyKey) -> Option<Rev> {
         Kind::Form => at::<LibCopy<FormDef>>(model, id),
         Kind::Macro => at::<LibCopy<ew_schema::MacroDef>>(model, id),
         Kind::Manufacturer => at::<LibCopy<ew_schema::Manufacturer>>(model, id),
+        Kind::PlcProfile => at::<LibCopy<ew_schema::PlcProfileDef>>(model, id),
         _ => None,
     }
 }
@@ -267,6 +268,7 @@ fn table_changed_at(model: &Model, kind: Kind) -> Rev {
         Kind::Form => at::<LibCopy<FormDef>>(model),
         Kind::Macro => at::<LibCopy<ew_schema::MacroDef>>(model),
         Kind::Manufacturer => at::<LibCopy<ew_schema::Manufacturer>>(model),
+        Kind::PlcProfile => at::<LibCopy<ew_schema::PlcProfileDef>>(model),
         _ => Rev::ZERO,
     }
 }

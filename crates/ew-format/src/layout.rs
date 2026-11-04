@@ -232,6 +232,7 @@ pub fn lib_key(doc: &LibDocument) -> Option<(Kind, AnyId)> {
         LibDocument::Form(d) => (Kind::Form, d.id.cast()),
         LibDocument::Macro(d) => (Kind::Macro, d.id.cast()),
         LibDocument::Manufacturer(d) => (Kind::Manufacturer, d.id.cast()),
+        LibDocument::PlcProfile(d) => (Kind::PlcProfile, d.id.cast()),
         LibDocument::Unknown(_) => return None,
     })
 }

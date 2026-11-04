@@ -490,6 +490,7 @@ fn held_sha(row: &ew_model::AnyRow) -> Option<ew_schema::Sha256> {
         AnyRow::Fndef(c) => Some(c.sha256),
         AnyRow::Form(c) => Some(c.sha256),
         AnyRow::Manufacturer(c) => Some(c.sha256),
+        AnyRow::PlcProfile(c) => Some(c.sha256),
         _ => None,
     }
 }
@@ -842,8 +843,9 @@ impl Insertion<'_> {
                 LibDocument::Form(c) => (c.id.cast(), c.sha256),
                 // A part's closure holds its manufacturer (WP-S1.19 D10).
                 LibDocument::Manufacturer(c) => (c.id.cast(), c.sha256),
-                // a fragment carries the closure of its records (doc 07 §3.5), which names no macro
-                LibDocument::Macro(_) | LibDocument::Unknown(_) => {
+                // a fragment carries the closure of its records (doc 07 §3.5), which names no macro and no
+                // address profile
+                LibDocument::Macro(_) | LibDocument::PlcProfile(_) | LibDocument::Unknown(_) => {
                     return Err(self.invalid(
                         &at,
                         "not a library document of kind part, symbol, fndef, form or manufacturer",
@@ -1165,7 +1167,7 @@ impl Insertion<'_> {
                 LibDocument::Manufacturer(c) => {
                     tx.insert(c)?;
                 }
-                LibDocument::Macro(_) | LibDocument::Unknown(_) => {
+                LibDocument::Macro(_) | LibDocument::PlcProfile(_) | LibDocument::Unknown(_) => {
                     unreachable!("refused by `copies`")
                 }
             }

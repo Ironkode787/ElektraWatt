@@ -12,7 +12,9 @@ use serde_json::{Map, Value};
 use crate::MalformedVariant;
 use crate::conflict::Conflict;
 use crate::kind::{FileRule, Kind};
-use crate::library::{FnDef, FormDef, LibCopy, MacroDef, MacroInstance, Manufacturer, Part, SymbolDef};
+use crate::library::{
+    FnDef, FormDef, LibCopy, MacroDef, MacroInstance, Manufacturer, Part, PlcProfileDef, SymbolDef,
+};
 use crate::track::{buffer_strict, check_value_at, de_here, parse_value, raise, with_context};
 use crate::value::Endpoint;
 use crate::{
@@ -530,6 +532,8 @@ pub enum LibDocument {
     Macro(LibCopy<MacroDef>),
     /// `manufacturer`.
     Manufacturer(LibCopy<Manufacturer>),
+    /// `plc_profile` (WP-S7.03 D7).
+    PlcProfile(LibCopy<PlcProfileDef>),
     /// A library document of a kind this reader does not implement, kept verbatim.
     Unknown(Value),
 }
@@ -544,6 +548,7 @@ impl LibDocument {
             LibDocument::Form(_) => Kind::Form,
             LibDocument::Macro(_) => Kind::Macro,
             LibDocument::Manufacturer(_) => Kind::Manufacturer,
+            LibDocument::PlcProfile(_) => Kind::PlcProfile,
             LibDocument::Unknown(_) => return None,
         })
     }
@@ -561,6 +566,7 @@ impl Serialize for LibDocument {
             LibDocument::Form(d) => tagged(Kind::Form, d, serializer),
             LibDocument::Macro(d) => tagged(Kind::Macro, d, serializer),
             LibDocument::Manufacturer(d) => tagged(Kind::Manufacturer, d, serializer),
+            LibDocument::PlcProfile(d) => tagged(Kind::PlcProfile, d, serializer),
             LibDocument::Unknown(v) => v.serialize(serializer),
         }
     }
@@ -612,6 +618,9 @@ impl LibDocument {
             Kind::Macro => LibDocument::Macro(typed(kind, map, |d: &LibCopy<MacroDef>| d.v)?),
             Kind::Manufacturer => {
                 LibDocument::Manufacturer(typed(kind, map, |d: &LibCopy<Manufacturer>| d.v)?)
+            }
+            Kind::PlcProfile => {
+                LibDocument::PlcProfile(typed(kind, map, |d: &LibCopy<PlcProfileDef>| d.v)?)
             }
             k => return Err(SchemaError::UnknownKind(k.name().into())),
         })

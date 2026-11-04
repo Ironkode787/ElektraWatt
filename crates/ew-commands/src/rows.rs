@@ -63,6 +63,7 @@ pub fn row_json(row: &AnyRow) -> Result<Value, CmdError> {
         AnyRow::Form(r) => v(&**r, row),
         AnyRow::Macro(r) => v(&**r, row),
         AnyRow::Manufacturer(r) => v(&**r, row),
+        AnyRow::PlcProfile(r) => v(&**r, row),
     }
 }
 

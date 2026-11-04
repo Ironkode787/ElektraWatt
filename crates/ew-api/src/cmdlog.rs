@@ -320,6 +320,27 @@ impl Session {
                 name: cmd.name.clone(),
                 params,
             };
+            // WP-S7.03 D8: a profile of a library is embedded first, so that `plc.set_profile` pins a copy the
+            // project holds (the command stays pure over the model; the embedding is an undo step of its own, and
+            // the line's receipt is the command's).
+            if name == "plc.set_profile"
+                && let Some(embed) = cmd
+                    .params
+                    .get("profile")
+                    .and_then(serde_json::Value::as_str)
+                    .and_then(|p| self.profile_embed(p))
+            {
+                match self.execute_with(&embed, Submit::from(origin.clone())) {
+                    Ok(_) => {}
+                    Err(error) => {
+                        return Err(CmdLogError::Failed {
+                            line: *line,
+                            error,
+                            committed: receipts.len(),
+                        });
+                    }
+                }
+            }
             let submit = Submit::from(origin.clone());
             let bulk = self
                 .registry()

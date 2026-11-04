@@ -43,10 +43,13 @@ use std::sync::Arc;
 
 use ew_ids::Id;
 use ew_mltext::Ident;
-use ew_plcaddr::{AddressProfile, Area, AreaIntervals, MapExpr, MapVar, Purpose, Size};
+use ew_plcaddr::{
+    AddressProfile, Area, AreaIntervals, MapExpr, MapVar, ProfileError, ProfileFields, Purpose, Size,
+};
 use ew_schema::{
     AddrSpec, Channel, ChannelKind, ChannelState, Device, DeviceLink, DeviceLinkKind, DeviceState, Endpoint,
-    FnDef, Function, IoClass, IoDir, LibCopy, MapSpec, Part, PinMap, PlcArea, PlcConfigProject, PlcSection,
+    FnDef, Function, IoClass, IoDir, LibCopy, LibDocument, MapSpec, Part, PinMap, PlcArea, PlcConfigProject,
+    PlcProfileDef, PlcSection,
     PlcSize, RepType, Representation, SlotPath, SolenoidChannel,
 };
 
@@ -93,24 +96,120 @@ pub fn station_of(q: &Q, device: Id<Device>) -> Option<Id<Device>> {
     None
 }
 
-/// The address profile of a configuration project, when this build ships it.
-pub fn profile_of(q: &Q, cfg: Id<PlcConfigProject>) -> Option<&'static AddressProfile> {
+/// The built-in address profiles' files (WP-S7.03 D7): `content/plc-profiles`, library documents of kind
+/// `plc_profile`, compiled in and parsed once ([`builtin_profiles`]).
+const BUILTIN_PROFILE_FILES: [&str; 2] = [
+    include_str!("../../../content/plc-profiles/siemens-tia-intl.json"),
+    include_str!("../../../content/plc-profiles/iec-61131-3.json"),
+];
+
+/// The address profile of a profile document (WP-S7.03 D7): the one parse path of the built-ins and of a user's file.
+///
+/// # Errors
+///
+/// The [`ProfileError`] of a profile the engine does not render.
+pub fn address_profile(def: &PlcProfileDef) -> Result<AddressProfile, ProfileError> {
+    let (a, s) = (&def.mnemonics.area, &def.mnemonics.size);
+    AddressProfile::new(ProfileFields {
+        id: def.profile.id.clone(),
+        version: def.profile.version.clone(),
+        label: def.label.clone(),
+        absolute: def.absolute,
+        base: def.base,
+        unit_bits: def.unit_bits,
+        word_align: def.word_align,
+        area_mnemonics: [&a.i, &a.q, &a.m, &a.pi, &a.pq].map(String::clone),
+        size_mnemonics: [&s.bit, &s.byte, &s.word, &s.dword, &s.lword].map(String::clone),
+        render_bit: def.render.bit.clone(),
+        render_unit: def.render.unit.clone(),
+        drawing_prefix: def.render.drawing.clone(),
+        exchange_prefix: def.render.exchange.clone(),
+        default_start_digital: def.allocation.start.digital,
+        default_start_analog: def.allocation.start.analog,
+        allocation_verified: def.allocation.verified,
+    })
+}
+
+/// Why a profile document is no address profile at hand (WP-S7.03 T2), as a library's listing and `library.embed`
+/// say it: `the address profile <id@version> cannot be read: <reason>`; `None` for a profile that renders.
+pub fn unreadable_profile(def: &PlcProfileDef) -> Option<String> {
+    address_profile(def).err().map(|reason| {
+        format!(
+            "the address profile {}@{} cannot be read: {reason}",
+            def.profile.id, def.profile.version
+        )
+    })
+}
+
+/// The built-in address profiles in shipping order (`siemens-tia-intl@2027.1`, `iec-61131-3@2027.1`), parsed once
+/// from their compiled-in files. A built-in file that does not read is a build defect, which a test of this crate
+/// rules out.
+pub fn builtin_profiles() -> &'static [Arc<AddressProfile>] {
+    static ALL: std::sync::OnceLock<Vec<Arc<AddressProfile>>> = std::sync::OnceLock::new();
+    ALL.get_or_init(|| {
+        BUILTIN_PROFILE_FILES
+            .iter()
+            .map(|text| match LibDocument::from_json(text) {
+                Ok(LibDocument::PlcProfile(c)) => Arc::new(
+                    address_profile(&c.item).unwrap_or_else(|e| panic!("a built-in address profile: {e}")),
+                ),
+                other => panic!("a built-in address profile file does not read: {other:?}"),
+            })
+            .collect()
+    })
+}
+
+/// The address profiles at hand (WP-S7.03 D8): the built-ins, then the profiles of the project's `plc_profile`
+/// `copies` that render and whose pin no built-in has, in copy order. A copy that does not render is left out.
+pub fn profiles_at_hand<'a>(copies: impl IntoIterator<Item = &'a LibCopy<PlcProfileDef>>) -> Vec<Arc<AddressProfile>> {
+    let mut out: Vec<Arc<AddressProfile>> = builtin_profiles().to_vec();
+    for c in copies {
+        if let Ok(p) = address_profile(&c.item)
+            && out.iter().all(|o| o.reference() != p.reference())
+        {
+            out.push(Arc::new(p));
+        }
+    }
+    out
+}
+
+/// The profile of the pin `reference` (`id@version`) among `at_hand`.
+pub fn pinned_profile(at_hand: &[Arc<AddressProfile>], reference: &str) -> Option<Arc<AddressProfile>> {
+    at_hand.iter().find(|p| p.reference() == reference).cloned()
+}
+
+/// The address profile of a configuration project: its pin among the project's `plc_profile` copies, else among
+/// the built-ins (WP-S7.03 D8).
+pub fn profile_of(q: &Q, cfg: Id<PlcConfigProject>) -> Option<Arc<AddressProfile>> {
     let c = q.table::<PlcConfigProject>().get(cfg)?;
-    ew_plcaddr::builtin(c.profile.as_str())
+    let reference = c.profile.as_str();
+    let copies = q.plc_profiles();
+    if let Some(p) = copies
+        .iter()
+        .filter_map(|(_, c)| address_profile(&c.item).ok())
+        .find(|p| p.reference() == reference)
+    {
+        return Some(Arc::new(p));
+    }
+    pinned_profile(builtin_profiles(), reference)
 }
 
 /// The reference (`id@version`) of the address profile that a configuration project created on demand pins
-/// (FR-PLC-008's default, WP-S1.21 D3): the shipped TIA international profile.
+/// (FR-PLC-008's default, WP-S1.21 D3): the built-in TIA international profile.
 pub fn default_profile() -> String {
-    ew_plcaddr::SIEMENS_TIA_INTL.reference()
+    builtin_profiles()[0].reference()
 }
 
-/// An address text in the notation of the shipped profile `profile` (`id@version`), in the stored form of a
-/// channel's `Manual` address (WP-S1.21 D6): `"I4.0"` under the TIA profile is input byte 4, bit 0. The error is
-/// the message a refusal shows: the profile's example (`expected an address like Q0.1`) for a text that does not
+/// An address text in the notation of the profile `profile` (`id@version`) at hand (`at_hand`), in the stored form
+/// of a channel's `Manual` address (WP-S1.21 D6): `"I4.0"` under the TIA profile is input byte 4, bit 0. The error
+/// is the message a refusal shows: the profile's example (`expected an address like Q0.1`) for a text that does not
 /// parse, or that this build does not ship the profile.
-pub fn parse_plc_address(profile: &str, text: &str) -> Result<ew_schema::PlcAddress, String> {
-    let Some(p) = ew_plcaddr::builtin(profile) else {
+pub fn parse_plc_address(
+    at_hand: &[Arc<AddressProfile>],
+    profile: &str,
+    text: &str,
+) -> Result<ew_schema::PlcAddress, String> {
+    let Some(p) = pinned_profile(at_hand, profile) else {
         return Err(format!(
             "the address profile {profile} is not shipped by this build, so an address text cannot be read; give \
              auto, excluded or tbd"
@@ -145,12 +244,16 @@ pub fn parse_plc_address(profile: &str, text: &str) -> Result<ew_schema::PlcAddr
     })
 }
 
-/// A module-start text in the notation of the shipped profile `profile` (`id@version`), in the stored form of a
-/// `Manual` start (WP-S1.21 D8, `plc.set_start`): the area and the byte, no size and no bit (`"Q10"`, `"Q10.0"` and
-/// `"QB10"` under the TIA profile are output byte 10; see [`AddressProfile::parse_start`]). The error is the message a
-/// refusal shows, naming the profile's example start (`expected a start like Q0`).
-pub fn parse_plc_start(profile: &str, text: &str) -> Result<ew_schema::PlcAddress, String> {
-    let Some(p) = ew_plcaddr::builtin(profile) else {
+/// A module-start text in the notation of the profile `profile` (`id@version`) at hand (`at_hand`), in the stored
+/// form of a `Manual` start (WP-S1.21 D8, `plc.set_start`): the area and the byte, no size and no bit (`"Q10"`,
+/// `"Q10.0"` and `"QB10"` under the TIA profile are output byte 10; see [`AddressProfile::parse_start`]). The error is
+/// the message a refusal shows, naming the profile's example start (`expected a start like Q0`).
+pub fn parse_plc_start(
+    at_hand: &[Arc<AddressProfile>],
+    profile: &str,
+    text: &str,
+) -> Result<ew_schema::PlcAddress, String> {
+    let Some(p) = pinned_profile(at_hand, profile) else {
         return Err(format!(
             "the address profile {profile} is not shipped by this build, so a start text cannot be read; give auto, \
              excluded or tbd"
@@ -159,7 +262,7 @@ pub fn parse_plc_start(profile: &str, text: &str) -> Result<ew_schema::PlcAddres
     let Some((area, byte)) = p.parse_start(text) else {
         return Err(format!(
             "`{text}` is not a start of profile {profile}: expected a start like {}",
-            start_example(p, Area::Q)
+            start_example(&p, Area::Q)
         ));
     };
     Ok(ew_schema::PlcAddress {
@@ -180,20 +283,15 @@ pub fn start_example(p: &AddressProfile, area: Area) -> String {
     )
 }
 
-/// The reference (`id@version`) of the shipped address profile that `text` names: its exact reference, or its ID
-/// alone (`iec-61131-3`), compared without regard to ASCII case. `None` when this build ships no such profile
-/// (`plc.set_profile`, WP-S1.21 D8).
-pub fn shipped_address_profile(text: &str) -> Option<String> {
+/// The reference (`id@version`) of the profile among `at_hand` ([`profiles_at_hand`]) that `text` names: its exact
+/// reference, or its ID alone (`iec-61131-3`), compared without regard to ASCII case; the first in `at_hand` order.
+/// `None` when no profile at hand has that name (`plc.set_profile`, WP-S1.21 D8, WP-S7.03 D8).
+pub fn address_profile_named(at_hand: &[Arc<AddressProfile>], text: &str) -> Option<String> {
     let text = text.trim();
-    ew_plcaddr::builtins()
+    at_hand
         .iter()
         .find(|p| p.reference().eq_ignore_ascii_case(text) || p.id.eq_ignore_ascii_case(text))
         .map(|p| p.reference())
-}
-
-/// The references of every shipped address profile, in shipping order (`siemens-tia-intl@2027.1`, `iec-61131-3@2027.1`).
-pub fn shipped_address_profiles() -> Vec<String> {
-    ew_plcaddr::builtins().iter().map(|p| p.reference()).collect()
 }
 
 /// The stored area of a canonical area.
@@ -772,7 +870,7 @@ impl Query for ChannelAddresses {
         let out = channels
             .iter()
             .map(|c| {
-                let address = address_of(c, profile, start, bit_of.as_ref());
+                let address = address_of(c, profile.as_deref(), start, bit_of.as_ref());
                 let auto = match (&c.address, &address) {
                     (AddrSpec::Auto, ChannelAddr::At { address, .. }) => Some(*address),
                     (AddrSpec::Auto, _) => None,
@@ -781,7 +879,7 @@ impl Query for ChannelAddresses {
                             address: AddrSpec::Auto,
                             ..c.as_ref().clone()
                         };
-                        match address_of(&derived, profile, start, bit_of.as_ref()) {
+                        match address_of(&derived, profile.as_deref(), start, bit_of.as_ref()) {
                             ChannelAddr::At { address, .. } => Some(address),
                             _ => None,
                         }
@@ -924,7 +1022,7 @@ pub fn auto_address(q: &Q, module: Id<Device>, channel: Id<Channel>) -> Option<e
 
 fn address_of(
     c: &Channel,
-    profile: Option<&'static AddressProfile>,
+    profile: Option<&AddressProfile>,
     start: Option<ModuleStart>,
     bit_of: Option<&MapSpec>,
 ) -> ChannelAddr {

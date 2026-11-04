@@ -144,6 +144,7 @@ macro_rules! by_kind {
             Kind::Form => $f::<LibCopy<FormDef>>($($arg),*),
             Kind::Macro => $f::<LibCopy<ew_schema::MacroDef>>($($arg),*),
             Kind::Manufacturer => $f::<LibCopy<ew_schema::Manufacturer>>($($arg),*),
+            Kind::PlcProfile => $f::<LibCopy<ew_schema::PlcProfileDef>>($($arg),*),
             _ => $other,
         }
     };
@@ -300,7 +301,13 @@ pub(crate) fn stamp(model: &Model, dep: &DepKey) -> Rev {
 fn is_library(kind: Kind) -> bool {
     matches!(
         kind,
-        Kind::Part | Kind::Symbol | Kind::Fndef | Kind::Form | Kind::Macro | Kind::Manufacturer
+        Kind::Part
+            | Kind::Symbol
+            | Kind::Fndef
+            | Kind::Form
+            | Kind::Macro
+            | Kind::Manufacturer
+            | Kind::PlcProfile
     )
 }
 
@@ -316,8 +323,9 @@ fn kind_durability(kind: Kind) -> Durability {
 }
 
 /// The durability of an input (ADR-0002 decision 4): the project row is `Settings`; rows and tables of the
-/// embedded library copies (`Part`, `Symbol`, `Fndef`, `Form`, `Macro`, `Manufacturer`) are `Library`; everything else, the
-/// registration keys, the asset store and parts included, is `Drawing` (a drawing commit brings assets in).
+/// embedded library copies (`Part`, `Symbol`, `Fndef`, `Form`, `Macro`, `Manufacturer`, `PlcProfile`) are `Library`;
+/// everything else, the registration keys, the asset store and parts included, is `Drawing` (a drawing commit brings
+/// assets in).
 pub(crate) fn durability(input: &MemoInput) -> Durability {
     match input {
         MemoInput::Read(DepKey::Project) => Durability::Settings,

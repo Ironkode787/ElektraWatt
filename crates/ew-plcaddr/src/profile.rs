@@ -14,15 +14,16 @@ pub enum Purpose {
     Exchange,
 }
 
-/// A PLC address notation.
+/// The members of an address profile, as [`AddressProfile::new`] takes them (a profile file's data, doc 10 section
+/// 2.5).
 #[derive(Clone, PartialEq, Eq, Debug)]
-pub struct AddressProfile {
+pub struct ProfileFields {
     /// Profile id.
-    pub id: &'static str,
+    pub id: String,
     /// Profile version.
-    pub version: &'static str,
+    pub version: String,
     /// Display label.
-    pub label: &'static str,
+    pub label: String,
     /// Whether addresses are absolute.
     pub absolute: bool,
     /// Number base of rendered numbers (only 10 is rendered; other bases are 1.x).
@@ -32,17 +33,17 @@ pub struct AddressProfile {
     /// Alignment of multi-unit values, in units.
     pub word_align: u32,
     /// Area mnemonics, order I, Q, M, PI, PQ.
-    pub area_mnemonics: [&'static str; 5],
+    pub area_mnemonics: [String; 5],
     /// Size mnemonics, order bit, byte, word, dword, lword.
-    pub size_mnemonics: [&'static str; 5],
+    pub size_mnemonics: [String; 5],
     /// Bit address template.
-    pub render_bit: &'static str,
+    pub render_bit: String,
     /// Unit address template.
-    pub render_unit: &'static str,
+    pub render_unit: String,
     /// Prefix for drawings.
-    pub drawing_prefix: &'static str,
+    pub drawing_prefix: String,
     /// Prefix for exchange files.
-    pub exchange_prefix: &'static str,
+    pub exchange_prefix: String,
     /// Default first unit for digital allocation.
     pub default_start_digital: u32,
     /// Default first unit for analog allocation.
@@ -51,7 +52,74 @@ pub struct AddressProfile {
     pub allocation_verified: bool,
 }
 
+/// Why profile data is no address profile this engine renders (WP-S7.03 D7, T2's reasons).
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum ProfileError {
+    /// The bit template has no `{bit}`.
+    NoBit,
+    /// The unit template has no `{byte}`.
+    NoByte,
+    /// An area mnemonic is empty.
+    EmptyArea,
+    /// The base is not 10.
+    Base,
+    /// A unit is not 8 bits.
+    UnitBits,
+}
+
+impl core::fmt::Display for ProfileError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(match self {
+            ProfileError::NoBit => "its bit template has no {bit}",
+            ProfileError::NoByte => "its unit template has no {byte}",
+            ProfileError::EmptyArea => "an area mnemonic is empty",
+            ProfileError::Base => "only base 10 is rendered",
+            ProfileError::UnitBits => "only 8 bits per unit are rendered",
+        })
+    }
+}
+
+impl std::error::Error for ProfileError {}
+
+/// A PLC address notation: profile data that [`AddressProfile::new`] validated. Its members read through
+/// [`ProfileFields`].
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct AddressProfile(ProfileFields);
+
+impl core::ops::Deref for AddressProfile {
+    type Target = ProfileFields;
+
+    fn deref(&self) -> &ProfileFields {
+        &self.0
+    }
+}
+
 impl AddressProfile {
+    /// The profile of `fields`, when this engine renders it: a bit template with `{bit}`, a unit template with
+    /// `{byte}`, no empty area mnemonic, base 10 and 8 bits per unit.
+    ///
+    /// # Errors
+    ///
+    /// The first [`ProfileError`] in that order.
+    pub fn new(fields: ProfileFields) -> Result<AddressProfile, ProfileError> {
+        if !fields.render_bit.contains("{bit}") {
+            return Err(ProfileError::NoBit);
+        }
+        if !fields.render_unit.contains("{byte}") {
+            return Err(ProfileError::NoByte);
+        }
+        if fields.area_mnemonics.iter().any(String::is_empty) {
+            return Err(ProfileError::EmptyArea);
+        }
+        if fields.base != 10 {
+            return Err(ProfileError::Base);
+        }
+        if fields.unit_bits != 8 {
+            return Err(ProfileError::UnitBits);
+        }
+        Ok(AddressProfile(fields))
+    }
+
     /// The `id@version` reference.
     pub fn reference(&self) -> String {
         format!("{}@{}", self.id, self.version)
@@ -60,16 +128,16 @@ impl AddressProfile {
     /// Render an address; numbers are decimal (other bases are 1.x).
     pub fn render(&self, a: &PlcAddress, purpose: Purpose) -> String {
         let prefix = match purpose {
-            Purpose::Drawing => self.drawing_prefix,
-            Purpose::Exchange => self.exchange_prefix,
+            Purpose::Drawing => self.drawing_prefix.as_str(),
+            Purpose::Exchange => self.exchange_prefix.as_str(),
         };
         let template = if a.size == Size::Bit && a.bit.is_some() {
-            self.render_bit
+            self.render_bit.as_str()
         } else {
-            self.render_unit
+            self.render_unit.as_str()
         };
-        let area = self.area_mnemonics[a.area as usize];
-        let size = self.size_mnemonics[a.size as usize];
+        let area = self.area_mnemonics[a.area as usize].as_str();
+        let size = self.size_mnemonics[a.size as usize].as_str();
         let byte = a.byte.to_string();
         let bit = a.bit.map(|b| b.to_string()).unwrap_or_default();
         let tokens: [(&str, &str); 4] = [
@@ -127,14 +195,14 @@ impl AddressProfile {
     pub fn parse(&self, text: &str) -> Option<PlcAddress> {
         let text = text.trim();
         let mut bodies = vec![text];
-        for prefix in [self.exchange_prefix, self.drawing_prefix] {
+        for prefix in [self.exchange_prefix.as_str(), self.drawing_prefix.as_str()] {
             if let Some(rest) = strip_prefix_ci(text, prefix).filter(|_| !prefix.is_empty()) {
                 bodies.push(rest);
             }
         }
-        let bit = tokens(self.render_bit);
+        let bit = tokens(&self.render_bit);
         let bit_unsized: Vec<Token> = bit.iter().copied().filter(|t| *t != Token::Size).collect();
-        let unit = tokens(self.render_unit);
+        let unit = tokens(&self.render_unit);
         for body in bodies {
             if let Some(a) = self.parse_template(&bit, body, true) {
                 return Some(a);
@@ -164,13 +232,13 @@ impl AddressProfile {
         }
         let text = text.trim();
         let mut bodies = vec![text];
-        for prefix in [self.exchange_prefix, self.drawing_prefix] {
+        for prefix in [self.exchange_prefix.as_str(), self.drawing_prefix.as_str()] {
             if let Some(rest) = strip_prefix_ci(text, prefix).filter(|_| !prefix.is_empty()) {
                 bodies.push(rest);
             }
         }
         let bare = [Token::Area, Token::Byte];
-        let unit = tokens(self.render_unit);
+        let unit = tokens(&self.render_unit);
         for body in bodies {
             for template in [&unit[..], &bare[..]] {
                 // No let chain: the permissive crates build on Rust 1.85 (the MSRV check in ci.yml's supply-chain job).
@@ -215,7 +283,7 @@ impl AddressProfile {
                     None
                 }
             }
-            Token::Area => AREAS.iter().zip(self.area_mnemonics).find_map(|(area, m)| {
+            Token::Area => AREAS.iter().zip(&self.area_mnemonics).find_map(|(area, m)| {
                 let tail = strip_prefix_ci(text, m).filter(|_| !m.is_empty())?;
                 self.match_tokens(
                     rest,
@@ -226,7 +294,7 @@ impl AddressProfile {
                     },
                 )
             }),
-            Token::Size => SIZES.iter().zip(self.size_mnemonics).find_map(|(size, m)| {
+            Token::Size => SIZES.iter().zip(&self.size_mnemonics).find_map(|(size, m)| {
                 let tail = strip_prefix_ci(text, m)?;
                 self.match_tokens(
                     rest,
@@ -324,56 +392,4 @@ fn tokens(template: &str) -> Vec<Token> {
 fn strip_prefix_ci<'t>(text: &'t str, prefix: &str) -> Option<&'t str> {
     let head = text.get(..prefix.len())?;
     head.eq_ignore_ascii_case(prefix).then(|| &text[prefix.len()..])
-}
-
-/// Siemens TIA, international mnemonics (doc 10 section 2.5).
-pub static SIEMENS_TIA_INTL: AddressProfile = AddressProfile {
-    id: "siemens-tia-intl",
-    version: "2027.1",
-    label: "Siemens TIA (international)",
-    absolute: true,
-    base: 10,
-    unit_bits: 8,
-    word_align: 2,
-    area_mnemonics: ["I", "Q", "M", "PI", "PQ"],
-    size_mnemonics: ["", "B", "W", "D", "L"],
-    render_bit: "{area}{byte}.{bit}",
-    render_unit: "{area}{size}{byte}",
-    drawing_prefix: "",
-    exchange_prefix: "%",
-    default_start_digital: 0,
-    default_start_analog: 0,
-    allocation_verified: false,
-};
-
-/// IEC 61131-3 notation (doc 10 section 2.5: the TIA profile with other data): `%QX0.1`, `%IW64`, the `%` prefix on
-/// the drawing and in exchange files. Its allocation defaults are the TIA profile's (unverified).
-pub static IEC_61131_3: AddressProfile = AddressProfile {
-    id: "iec-61131-3",
-    version: "2027.1",
-    label: "IEC 61131-3",
-    absolute: true,
-    base: 10,
-    unit_bits: 8,
-    word_align: 2,
-    area_mnemonics: ["I", "Q", "M", "PI", "PQ"],
-    size_mnemonics: ["X", "B", "W", "D", "L"],
-    render_bit: "{area}{size}{byte}.{bit}",
-    render_unit: "{area}{size}{byte}",
-    drawing_prefix: "%",
-    exchange_prefix: "%",
-    default_start_digital: 0,
-    default_start_analog: 0,
-    allocation_verified: false,
-};
-
-/// The built-in profiles.
-pub fn builtins() -> &'static [&'static AddressProfile] {
-    static ALL: [&AddressProfile; 2] = [&SIEMENS_TIA_INTL, &IEC_61131_3];
-    &ALL
-}
-
-/// Look up a built-in profile by exact `id@version`.
-pub fn builtin(reference: &str) -> Option<&'static AddressProfile> {
-    builtins().iter().copied().find(|p| p.reference() == reference)
 }

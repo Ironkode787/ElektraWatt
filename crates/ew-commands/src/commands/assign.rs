@@ -147,6 +147,9 @@ pub(crate) fn embed_closure(
             LibDocument::Manufacturer(c) => {
                 tx.insert(c)?;
             }
+            LibDocument::PlcProfile(c) => {
+                tx.insert(c)?;
+            }
             LibDocument::Unknown(_) => unreachable!("check_copy refuses an unknown kind"),
         }
     }
@@ -163,6 +166,7 @@ pub(crate) fn held_sha(row: &ew_model::AnyRow) -> Option<ew_schema::Sha256> {
         AnyRow::Form(c) => c.sha256,
         AnyRow::Macro(c) => c.sha256,
         AnyRow::Manufacturer(c) => c.sha256,
+        AnyRow::PlcProfile(c) => c.sha256,
         _ => return None,
     })
 }
@@ -177,6 +181,7 @@ pub(crate) fn held_version(row: &ew_model::AnyRow) -> Option<String> {
         AnyRow::Form(c) => c.version.clone(),
         AnyRow::Macro(c) => c.version.clone(),
         AnyRow::Manufacturer(c) => c.version.clone(),
+        AnyRow::PlcProfile(c) => c.version.clone(),
         _ => return None,
     })
 }
