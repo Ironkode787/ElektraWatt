@@ -1,0 +1,1 @@
+SELECT * FROM api_v1_device ORDER BY 1 LIMIT 20

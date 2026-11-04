@@ -18,7 +18,10 @@
 # whole command, derivation, import and export stack. `png_pdf` feeds PNG bytes to `ew-render-cpu`'s decoder and the PDF
 # writer of `ew-export` (src/png_pdf.rs). `ewz_read` feeds bytes to the strict `.ewz` reader of `ew-store`
 # (src/ewz_read.rs). `merge_file` feeds three sides and a path to the three-way merge of `ew-format`
-# (src/merge_file.rs).
+# (src/merge_file.rs). WP-S6.04's `sql_sandbox`, `textconv`, `table_round_trip` and `command_log` run on the golden
+# project's in-memory session through the `ew-api` facade (src/golden.rs: `ew-format`'s loader, `ew-testkit`'s ID
+# source); `svg_asset` feeds the asset sniff of `ew-schema` and the SVG path of `ew-scene`; `image_decode` feeds
+# `ew-render-cpu`'s decoder through `ew-export`.
 
 [targets.jsonl_loader]
 max_len = 65536
@@ -127,3 +130,224 @@ closure = [
 max_len = 65536
 roots = ["ew-format"]
 closure = ["ew-format", "ew-ids", "ew-mltext", "ew-rds", "ew-schema", "ew-units"]
+
+[targets.sql_sandbox]
+max_len = 4096
+roots = ["ew-api", "ew-format", "ew-testkit"]
+closure = [
+    "ew-api",
+    "ew-caex",
+    "ew-checks",
+    "ew-commands",
+    "ew-derive",
+    "ew-devdesc",
+    "ew-dl",
+    "ew-ewpp",
+    "ew-export",
+    "ew-format",
+    "ew-hack",
+    "ew-ids",
+    "ew-import-catalog",
+    "ew-import-dxf",
+    "ew-import-eplan",
+    "ew-import-qet",
+    "ew-import-tables",
+    "ew-interop-api",
+    "ew-jobs",
+    "ew-library",
+    "ew-memo",
+    "ew-mfg",
+    "ew-mltext",
+    "ew-model",
+    "ew-panel",
+    "ew-plc",
+    "ew-plcaddr",
+    "ew-plugin-host",
+    "ew-rds",
+    "ew-render-cpu",
+    "ew-reports",
+    "ew-rhai",
+    "ew-scene",
+    "ew-schema",
+    "ew-script",
+    "ew-sqlview",
+    "ew-step-proto",
+    "ew-store",
+    "ew-testkit",
+    "ew-text",
+    "ew-units",
+    "ew-zip",
+]
+
+[targets.svg_asset]
+max_len = 16384
+roots = ["ew-dl", "ew-scene", "ew-schema"]
+closure = [
+    "ew-checks",
+    "ew-derive",
+    "ew-dl",
+    "ew-hack",
+    "ew-ids",
+    "ew-memo",
+    "ew-mltext",
+    "ew-model",
+    "ew-plcaddr",
+    "ew-rds",
+    "ew-reports",
+    "ew-rhai",
+    "ew-scene",
+    "ew-schema",
+    "ew-sqlview",
+    "ew-text",
+    "ew-units",
+    "ew-zip",
+]
+
+[targets.image_decode]
+max_len = 16384
+roots = ["ew-dl", "ew-export"]
+closure = ["ew-dl", "ew-export", "ew-hack", "ew-render-cpu", "ew-units"]
+
+[targets.textconv]
+max_len = 16384
+roots = ["ew-api", "ew-format", "ew-testkit"]
+closure = [
+    "ew-api",
+    "ew-caex",
+    "ew-checks",
+    "ew-commands",
+    "ew-derive",
+    "ew-devdesc",
+    "ew-dl",
+    "ew-ewpp",
+    "ew-export",
+    "ew-format",
+    "ew-hack",
+    "ew-ids",
+    "ew-import-catalog",
+    "ew-import-dxf",
+    "ew-import-eplan",
+    "ew-import-qet",
+    "ew-import-tables",
+    "ew-interop-api",
+    "ew-jobs",
+    "ew-library",
+    "ew-memo",
+    "ew-mfg",
+    "ew-mltext",
+    "ew-model",
+    "ew-panel",
+    "ew-plc",
+    "ew-plcaddr",
+    "ew-plugin-host",
+    "ew-rds",
+    "ew-render-cpu",
+    "ew-reports",
+    "ew-rhai",
+    "ew-scene",
+    "ew-schema",
+    "ew-script",
+    "ew-sqlview",
+    "ew-step-proto",
+    "ew-store",
+    "ew-testkit",
+    "ew-text",
+    "ew-units",
+    "ew-zip",
+]
+
+[targets.table_round_trip]
+max_len = 16384
+roots = ["ew-api", "ew-format", "ew-testkit"]
+closure = [
+    "ew-api",
+    "ew-caex",
+    "ew-checks",
+    "ew-commands",
+    "ew-derive",
+    "ew-devdesc",
+    "ew-dl",
+    "ew-ewpp",
+    "ew-export",
+    "ew-format",
+    "ew-hack",
+    "ew-ids",
+    "ew-import-catalog",
+    "ew-import-dxf",
+    "ew-import-eplan",
+    "ew-import-qet",
+    "ew-import-tables",
+    "ew-interop-api",
+    "ew-jobs",
+    "ew-library",
+    "ew-memo",
+    "ew-mfg",
+    "ew-mltext",
+    "ew-model",
+    "ew-panel",
+    "ew-plc",
+    "ew-plcaddr",
+    "ew-plugin-host",
+    "ew-rds",
+    "ew-render-cpu",
+    "ew-reports",
+    "ew-rhai",
+    "ew-scene",
+    "ew-schema",
+    "ew-script",
+    "ew-sqlview",
+    "ew-step-proto",
+    "ew-store",
+    "ew-testkit",
+    "ew-text",
+    "ew-units",
+    "ew-zip",
+]
+
+[targets.command_log]
+max_len = 16384
+roots = ["ew-api", "ew-format", "ew-testkit"]
+closure = [
+    "ew-api",
+    "ew-caex",
+    "ew-checks",
+    "ew-commands",
+    "ew-derive",
+    "ew-devdesc",
+    "ew-dl",
+    "ew-ewpp",
+    "ew-export",
+    "ew-format",
+    "ew-hack",
+    "ew-ids",
+    "ew-import-catalog",
+    "ew-import-dxf",
+    "ew-import-eplan",
+    "ew-import-qet",
+    "ew-import-tables",
+    "ew-interop-api",
+    "ew-jobs",
+    "ew-library",
+    "ew-memo",
+    "ew-mfg",
+    "ew-mltext",
+    "ew-model",
+    "ew-panel",
+    "ew-plc",
+    "ew-plcaddr",
+    "ew-plugin-host",
+    "ew-rds",
+    "ew-render-cpu",
+    "ew-reports",
+    "ew-rhai",
+    "ew-scene",
+    "ew-schema",
+    "ew-script",
+    "ew-sqlview",
+    "ew-step-proto",
+    "ew-store",
+    "ew-testkit",
+    "ew-text",
+    "ew-units",
+    "ew-zip",
+]

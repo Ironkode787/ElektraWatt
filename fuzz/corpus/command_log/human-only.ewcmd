@@ -1,0 +1,3 @@
+{"$schema":"ew.cmdlog/1","label":"a HumanOnly command after a valid line"}
+{"cmd":"page.renumber","params":{"scope":{"section":{"ref":"section:1"}},"start":101,"step":1,"keep_gaps":false}}
+{"cmd":"revision.approve","params":{}}

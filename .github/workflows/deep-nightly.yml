@@ -305,6 +305,19 @@ jobs:
             max_len: "16384"
           - target: merge_file
             max_len: "65536"
+          # WP-S6.04 D9: the SQL sandbox, the SVG and raster assets, textconv, the table round trip, command logs.
+          - target: sql_sandbox
+            max_len: "4096"
+          - target: svg_asset
+            max_len: "16384"
+          - target: image_decode
+            max_len: "16384"
+          - target: textconv
+            max_len: "16384"
+          - target: table_round_trip
+            max_len: "16384"
+          - target: command_log
+            max_len: "16384"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

@@ -401,6 +401,85 @@ fn a_huge_deadline_is_capped_and_never_overflows_the_clock() {
     assert_eq!(texts(&r, "SELECT count(*) FROM api_v1_item"), ["5"]);
 }
 
+/// The hostile SQL of the corpus (`crates/ew-testkit/hostile/sql/`; FT-223, WP-S6.04 D10).
+const HOSTILE_SQL: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../ew-testkit/hostile/sql");
+
+/// SE-6 (FT-223, NFR-SEC-06): every hostile SQL file of the corpus, which is also `sql_sandbox`'s seed corpus, is
+/// refused by the statement gate or the authorizer, or stopped by a limit or the deadline, with its error's text
+/// whole; the reader stays usable after each.
+#[test]
+fn the_hostile_sql_corpus_is_refused_file_by_file() {
+    let expected: &[(&str, &str)] = &[
+        (
+            "attach.sql",
+            "statement denied by the projection sandbox (ATTACH): only SELECT, WITH or VALUES may run",
+        ),
+        (
+            "clock-in-a-blob.sql",
+            "SQL error: date(): 'now' reads the clock or the host time zone, which the projection does not allow",
+        ),
+        (
+            "cte-named-after-a-view.sql",
+            "statement denied by the projection sandbox (read of the internal table t_other; query the api_v1_* views)",
+        ),
+        (
+            "deep-expression.sql",
+            "SQL error: Expression tree is too large (maximum depth 200)",
+        ),
+        (
+            "load-extension.sql",
+            "statement denied by the projection sandbox (function load_extension)",
+        ),
+        (
+            "pragma-read.sql",
+            "statement denied by the projection sandbox (read of pragma_table_info)",
+        ),
+        (
+            "recursive-cte-count.sql",
+            "the statement passed its deadline of 200 ms",
+        ),
+        (
+            "recursive-cte-doubling.sql",
+            "SQL error: string or blob too big",
+        ),
+        (
+            "two-statements.sql",
+            "statement denied by the projection sandbox: exactly one statement per call",
+        ),
+        (
+            "vacuum-into-behind-a-query.sql",
+            "statement denied by the projection sandbox: exactly one statement per call",
+        ),
+        (
+            "write-behind-a-cte.sql",
+            "statement denied by the projection sandbox (DELETE from t_item)",
+        ),
+    ];
+    let mut files: Vec<String> = std::fs::read_dir(HOSTILE_SQL)
+        .unwrap()
+        .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+        .collect();
+    files.sort();
+    assert_eq!(
+        files,
+        expected.iter().map(|(f, _)| (*f).to_owned()).collect::<Vec<_>>(),
+        "every file of the corpus has its verdict here"
+    );
+    let r = reader(Profile::EW_SQL.with_deadline(Duration::from_millis(200)));
+    let mut got = Vec::new();
+    for (file, _) in expected {
+        let sql = std::fs::read_to_string(format!("{HOSTILE_SQL}/{file}")).unwrap();
+        let verdict = match r.query(&sql) {
+            Ok(set) => panic!("{file}: the sandbox ran it: {set:?}"),
+            Err(e) => e.to_string(),
+        };
+        got.push((*file, verdict.as_str().to_owned()));
+        assert_eq!(texts(&r, "SELECT count(*) FROM api_v1_item"), ["5"], "{file}");
+    }
+    let got: Vec<(&str, &str)> = got.iter().map(|(f, v)| (*f, v.as_str())).collect();
+    assert_eq!(got, expected);
+}
+
 #[test]
 fn the_profiles_carry_the_documented_limits() {
     assert_eq!(Profile::EW_SQL.deadline, Duration::from_secs(60));

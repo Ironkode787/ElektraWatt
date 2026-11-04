@@ -31,6 +31,12 @@ workspace's, so the shared dependencies have the versions of the tested build; t
 | `png_pdf` | PNG bytes through `ew-render-cpu`'s `decode_image` and, when it accepts them, a one-page PDF/A-2b through `ew-export`'s writer (krilla) | No panic; an accepted PNG is written and drawn (`Ok`, one image, none skipped) |
 | `ewz_read` | Arbitrary bytes through `ew-store`'s strict `.ewz` reader (`ew_store::ewz::read`, WP-S1.17 part 2) under the default `ZipLimits` | No panic; when an accepted archive's entries pack again (`ewz::pack`), the new archive reads to the same entries and manifest |
 | `merge_file` | Three sides (base, ours, theirs) and a path selector (a page, the root file, a device shard, a library document, `manifest.json`, a file of no project class) through `ew_format::merge_file`, the core of `ew merge-driver` (WP-S1.17 part 4b), under the default limits and the shipped chain | No panic; a merge of two sides that each reload editable (alone at their path through `ew_format::load`, the manifest through `Manifest::parse`) reloads editable, with or without conflicts |
+| `sql_sandbox` | One SQL text (lossy UTF-8) through `ew-sqlview`'s sandboxed `Reader` with the report profile over the golden project's SQL projection, built once (WP-S6.04, FT-223) | No panic; rows within the row cap or an `SqlError`; the image unchanged; the same text twice gives the same result unless the deadline stopped a run |
+| `svg_asset` | Bytes through the asset sniff (`ew_schema::sniff`, with `svg_hazard`) and, accepted as an SVG, `ew-scene`'s drawing path (`svg_items`, usvg inside `catch_unwind`) (WP-S6.04) | No panic |
+| `image_decode` | A selector byte (PNG even, JPEG odd) and the bytes through `ew-render-cpu`'s `decode_image` (WP-S6.04) | No panic; a decoded image is at least 1 × 1, at most `MAX_IMAGE_PIXELS`, four bytes per pixel |
+| `textconv` | A selector byte (no session even, the golden project's session odd) and one project file through `ew_api::output::textconv` (WP-S6.04) | No panic; a text results; no record named without a session, at most one per line with it |
+| `table_round_trip` | A selector byte (bit 0: the table key given or not; the rest: the navigator) and a round-trip file (CSV or a workbook, by its own signature) through `Session::table_import` on the golden project's session (WP-S6.04) | No panic; changes or a refusal; the model unchanged |
+| `command_log` | A `.ewcmd` (lossy UTF-8) through `CmdLog::parse` and `Session::run_script` on a new in-memory session of the golden project (WP-S6.04) | No panic; a log naming a `HumanOnly` command is refused before its first line; a log refused before its first line changes nothing; the model passes the structural check |
 
 **The migration chain.** The format's upgrade chain on `serde_json::Value` (WP-S1.17) is not built. What exists is the
 open path that takes a project written by an older build within the same format (the typed revisions, ADR-0011
@@ -54,7 +60,8 @@ cargo fuzz run -a jsonl_loader target/corpus/jsonl_loader corpus/jsonl_loader --
 
 The first corpus directory is the working one (libFuzzer writes the inputs that add coverage there; `target/` is ignored);
 the committed seeds under `corpus/<target>/` stay as they are. Useful `max_len` values: `jsonl_loader` 65536,
-`migration_chain` 65, `command_sequence` 512, `png_pdf` 16384, `ewz_read` 16384, `merge_file` 65536. Run it from `fuzz/`: from the repository root rustup would choose the stable
+`migration_chain` 65, `command_sequence` 512, `png_pdf` 16384, `ewz_read` 16384, `merge_file` 65536, `sql_sandbox` 4096, and 16384 for `svg_asset`,
+`image_decode`, `textconv`, `table_round_trip` and `command_log`. Run it from `fuzz/`: from the repository root rustup would choose the stable
 toolchain of the workspace and cargo-fuzz would refuse. AddressSanitizer is cargo-fuzz's default. A sanitized binary that
 links the bundled SQLite reports an ODR violation for `aiOff` at start-up unless `ASAN_OPTIONS=detect_odr_violation=0`
 (cargo-fuzz sets it for `cargo fuzz run`; export it to run a built binary by hand). This is a false positive of the C code,
@@ -92,6 +99,13 @@ from `golden/fixtures/release-min`, one with a `.gitattributes` and a `.gitignor
 The seeds of `merge_file` are AC-41's data, made by hand from Golden A: page 102 with W20's `colour` BU added on ours and
 `csa` "2.5" on theirs (`w20-clean`), with `colour` WH on theirs too (`w20-conflict`), and the manifest changed on both
 sides (`manifest`); not made by `seed_corpus`.
+The seeds of WP-S6.04's targets are not made by `seed_corpus` either: `sql_sandbox`'s are the hostile SQL of
+`crates/ew-testkit/hostile/sql/` (the same bytes, which the replay test checks) and four queries of the golden project's
+views (`query-*.sql`); `svg_asset`'s three small SVGs written by hand (one with a script, refused by the sniff);
+`image_decode`'s the four PNGs of `png_pdf` behind the PNG selector and the hand-written 16 × 8 JPEG of `ew-render-cpu`'s
+tests behind the JPEG one; `textconv`'s two golden files and a few lines that are no records; `table_round_trip`'s the
+golden project's pages and devices as `ew export table --preset excel-en --line-end lf` writes them and its pages as a
+workbook; `command_log`'s Golden B's variants B1 and B2 and a log that names `revision.approve`.
 `artifacts/` (what libFuzzer writes for a crash, an out-of-memory, a timeout or a slow input) and `coverage/` are ignored.
 
 **A finding is reported, not fixed in the change that finds it.** Copy the crash input to `regressions/<target>/` (a

@@ -202,6 +202,109 @@ fn the_merge_file_seeds_reach_the_reload_and_the_conflict() {
     assert_eq!(decode(&[1, 9]).path, "project.jsonl");
 }
 
+/// WP-S6.04 D9, SE-6: the hostile SQL of the corpus is `sql_sandbox`'s seed corpus, byte for byte; every hostile file
+/// is refused or stopped against the golden project's projection too, and the queries of the views return rows.
+#[test]
+fn the_sql_sandbox_seeds_are_the_hostile_corpus_and_the_queries_run() {
+    let hostile = inputs("../crates/ew-testkit/hostile/sql");
+    let seeds = inputs("corpus/sql_sandbox");
+    assert!(hostile.len() >= 10, "the hostile SQL corpus is missing");
+    for (name, bytes) in &hostile {
+        assert_eq!(
+            seeds.iter().find(|(n, _)| n == name).map(|(_, b)| b),
+            Some(bytes),
+            "{name}: the seed is the hostile file"
+        );
+        let outcome = ew_fuzz::sql_sandbox::check(bytes);
+        assert_eq!(outcome.rows, None, "{name}: the sandbox ran it");
+    }
+    for (name, bytes) in seeds.iter().filter(|(n, _)| n.starts_with("query-")) {
+        let rows = ew_fuzz::sql_sandbox::check(bytes).rows;
+        eprintln!("{name}: {rows:?} rows");
+        assert!(rows.is_some_and(|n| n >= 1), "{name}: {rows:?}");
+    }
+}
+
+/// WP-S6.04 D9: the SVG seeds reach the drawing path where the sniff accepts them, and the script is refused.
+#[test]
+fn the_svg_asset_seeds_draw_or_are_refused() {
+    use ew_fuzz::svg_asset::{Outcome, check};
+    let seeds = inputs("corpus/svg_asset");
+    let drawn = Outcome {
+        svg: true,
+        drawn: true,
+    };
+    for (name, outcome) in [
+        ("arc-gradient.svg", drawn),
+        ("rect.svg", drawn),
+        (
+            "script.svg",
+            Outcome {
+                svg: false,
+                drawn: false,
+            },
+        ),
+    ] {
+        assert_eq!(check(&inputs_named(&seeds, name)), outcome, "{name}");
+    }
+}
+
+/// WP-S6.04 D9: every raster seed decodes, the PNGs behind the PNG selector and the JPEG behind the JPEG one.
+#[test]
+fn the_image_decode_seeds_decode() {
+    let seeds = inputs("corpus/image_decode");
+    assert!(seeds.len() >= 5, "the image decoder's seed corpus is missing");
+    for (name, bytes) in &seeds {
+        assert!(ew_fuzz::image_decode::check(bytes).decoded, "{name}");
+    }
+}
+
+/// WP-S6.04 D9: textconv prints every seed; with the session it names the golden project's records.
+#[test]
+fn the_textconv_seeds_print_and_name_records() {
+    let seeds = inputs("corpus/textconv");
+    for (name, bytes) in &seeds {
+        let outcome = ew_fuzz::textconv::check(bytes);
+        eprintln!("{name}: {outcome:?}");
+        assert!(outcome.lines >= 1, "{name}");
+    }
+    assert!(ew_fuzz::textconv::check(&inputs_named(&seeds, "structure-with-session")).named >= 1);
+}
+
+/// WP-S6.04 D9: the exported tables read back against the golden project with their key, given or from the workbook.
+#[test]
+fn the_table_round_trip_seeds_read_back() {
+    let seeds = inputs("corpus/table_round_trip");
+    assert_eq!(ew_fuzz::table_round_trip::key(0).as_deref(), Some("nav:pages"));
+    assert_eq!(ew_fuzz::table_round_trip::key(2).as_deref(), Some("nav:devices"));
+    assert_eq!(ew_fuzz::table_round_trip::key(1), None);
+    for (name, bytes) in &seeds {
+        let outcome = ew_fuzz::table_round_trip::check(bytes);
+        eprintln!("{name}: {outcome:?}");
+        assert!(outcome.read, "{name}");
+    }
+}
+
+/// WP-S6.04 D9: Golden B's variants replay on the golden project, and a log that names `revision.approve` is refused
+/// before its first line.
+#[test]
+fn the_command_log_seeds_commit_or_are_refused() {
+    use ew_fuzz::command_log::{Outcome, check};
+    let seeds = inputs("corpus/command_log");
+    for name in ["b1-page-based-tags.ewcmd", "b2-renumber-pages.ewcmd"] {
+        let outcome = check(&inputs_named(&seeds, name));
+        eprintln!("{name}: {outcome:?}");
+        assert!(outcome.parsed && outcome.committed >= 1, "{name}: {outcome:?}");
+    }
+    assert_eq!(
+        check(&inputs_named(&seeds, "human-only.ewcmd")),
+        Outcome {
+            parsed: true,
+            committed: 0
+        }
+    );
+}
+
 /// The fuzz finding of CI run 40897313649 (`regressions/png_pdf/plte-length-not-a-multiple-of-3`, 93 bytes): a 2 × 2
 /// palette PNG whose `PLTE` is 14 bytes long, which made `png` 0.18.1 panic in its palette code (`range end index 3
 /// out of range for slice of length 2`). Fixed by the chunk check of `ew_render_cpu`: the target's entry point refuses
@@ -243,6 +346,24 @@ fn the_regressions_are_replayed_and_reported() {
         }),
         ("regressions/merge_file", |b| {
             let _ = ew_fuzz::merge_file::check(b);
+        }),
+        ("regressions/sql_sandbox", |b| {
+            let _ = ew_fuzz::sql_sandbox::check(b);
+        }),
+        ("regressions/svg_asset", |b| {
+            let _ = ew_fuzz::svg_asset::check(b);
+        }),
+        ("regressions/image_decode", |b| {
+            let _ = ew_fuzz::image_decode::check(b);
+        }),
+        ("regressions/textconv", |b| {
+            let _ = ew_fuzz::textconv::check(b);
+        }),
+        ("regressions/table_round_trip", |b| {
+            let _ = ew_fuzz::table_round_trip::check(b);
+        }),
+        ("regressions/command_log", |b| {
+            let _ = ew_fuzz::command_log::check(b);
         }),
     ];
     for &(dir, check) in targets {

@@ -1,0 +1,1 @@
+WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < 10) SELECT i, (SELECT count(*) FROM api_v1_page) FROM n

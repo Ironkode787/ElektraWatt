@@ -397,6 +397,7 @@ dependencies = [
  "ew-mltext",
  "ew-model",
  "ew-rds",
+ "ew-scene",
  "ew-schema",
  "ew-store",
  "ew-testkit",

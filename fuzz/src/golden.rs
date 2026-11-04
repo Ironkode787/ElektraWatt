@@ -62,6 +62,46 @@ pub fn paths() -> &'static [String] {
     })
 }
 
+/// The golden project as the loader reads it (its records and library documents), read once: the base of the sessions
+/// of the WP-S6.04 targets.
+fn loaded() -> &'static ew_format::Loaded {
+    static LOADED: OnceLock<ew_format::Loaded> = OnceLock::new();
+    LOADED.get_or_init(|| {
+        let limits = ew_format::Limits::default();
+        let manifest = ew_format::Manifest::parse(&files()["manifest.json"], &limits).ok();
+        let files: BTreeMap<ew_format::FilePath, Vec<u8>> = paths()
+            .iter()
+            .map(|p| {
+                (
+                    ew_format::FilePath::new(p).expect("a project path"),
+                    files()[p].clone(),
+                )
+            })
+            .collect();
+        ew_format::load(manifest.as_ref(), &files, &limits)
+    })
+}
+
+/// A new in-memory session of the golden project: its model from the loader's records (no store, no disk), the IDs it
+/// makes from `seed` (deterministic), no memo.
+pub fn session(seed: u64) -> ew_api::Session {
+    let loaded = loaded();
+    ew_api::Session::from_records(
+        loaded
+            .project
+            .clone()
+            .expect("the golden project has its project record"),
+        loaded.records.clone(),
+        loaded.lib.clone(),
+        ew_api::SessionOptions {
+            ids: Some(Box::new(ew_testkit::synth::SynthSource::new(seed))),
+            memo: ew_api::MemoMode::Off,
+            ..ew_api::SessionOptions::default()
+        },
+    )
+    .expect("the golden project passes the model's integrity check")
+}
+
 /// The position of `path` in [`paths`] (for the seed corpora).
 pub fn index_of(path: &str) -> u8 {
     let at = paths()

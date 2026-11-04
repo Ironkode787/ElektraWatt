@@ -182,6 +182,16 @@ glob = "crates/ew-testkit/**"
 allowed = ["GPL-3.0-or-later"]
 crate = true
 
+# The hostile corpus of WP-S6.04 D10: the project's own attack files, CC0-1.0 (L8), in a folder per class; its index
+# is CC-BY-4.0 (L9).
+[[path]]
+glob = "crates/ew-testkit/hostile/*/**"
+allowed = ["CC0-1.0"]
+
+[[path]]
+glob = "crates/ew-testkit/hostile/README.md"
+allowed = ["CC-BY-4.0"]
+
 [[path]]
 glob = "crates/ew-py/**"
 allowed = ["GPL-3.0-or-later"]

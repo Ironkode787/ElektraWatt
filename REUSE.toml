@@ -211,6 +211,14 @@ precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 The ElektraWatt contributors"
 SPDX-License-Identifier = "CC0-1.0"
 
+# L8: the hostile corpus of WP-S6.04 D10, the project's own attack files in a folder per class: data files that cannot
+# carry a header (its index, README.md, carries its own).
+[[annotations]]
+path = "crates/ew-testkit/hostile/*/**"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 The ElektraWatt contributors"
+SPDX-License-Identifier = "CC0-1.0"
+
 # L8: the real-exporter SVG corpus of FT-418: public-domain and CC0 works from Wikimedia Commons, kept byte for byte
 # (crates/ew-schema/tests/fixtures/svg-exporters/SOURCES.md lists the source, licence and any change of each file).
 [[annotations]]

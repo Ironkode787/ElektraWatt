@@ -15,7 +15,7 @@ name = "ew-fuzz"
 version = "0.0.0"
 edition = "2024"
 license = "GPL-3.0-or-later"
-description = "cargo-fuzz targets: the JSONL loader, the open path with old-shape records, the command sequence, PNG to PDF and the .ewz reader."
+description = "cargo-fuzz targets: the JSONL loader, the open path with old-shape records, the command sequence, PNG to PDF, the .ewz reader, the merge, the SQL sandbox, SVG and raster assets, textconv, the table round trip and command logs."
 repository = "https://github.com/Ironkode787/ElektraWatt"
 publish = false
 
@@ -48,6 +48,8 @@ ew-units = { path = "../crates/ew-units" }
 # The PNG-to-PDF target: the PDF writer and its display list (src/png_pdf.rs).
 ew-dl = { path = "../crates/ew-dl" }
 ew-export = { path = "../crates/ew-export" }
+# The SVG asset target: `ew-scene`'s drawing path of an SVG (src/svg_asset.rs).
+ew-scene = { path = "../crates/ew-scene" }
 uuid = { version = "1.26", default-features = false }
 serde = "1.0.229"
 serde_json = "1.0.154"
@@ -98,6 +100,48 @@ bench = false
 [[bin]]
 name = "merge_file"
 path = "fuzz_targets/merge_file.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "sql_sandbox"
+path = "fuzz_targets/sql_sandbox.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "svg_asset"
+path = "fuzz_targets/svg_asset.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "image_decode"
+path = "fuzz_targets/image_decode.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "textconv"
+path = "fuzz_targets/textconv.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "table_round_trip"
+path = "fuzz_targets/table_round_trip.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "command_log"
+path = "fuzz_targets/command_log.rs"
 test = false
 doc = false
 bench = false

@@ -11,7 +11,13 @@
 //! - [`command`]: the seeded command generator of the nightly command fuzzer over the fuzzer's input;
 //! - [`png_pdf`]: a PNG through `ew-render-cpu`'s `decode_image` and, when it accepts it, the PDF writer of `ew-export`;
 //! - [`ewz_read`]: arbitrary bytes through `ew-store`'s strict `.ewz` reader (WP-S1.17 part 2);
-//! - [`merge_file`]: three sides and a path through `ew-format`'s three-way merge (WP-S1.17 part 4b).
+//! - [`merge_file`]: three sides and a path through `ew-format`'s three-way merge (WP-S1.17 part 4b);
+//! - [`sql_sandbox`]: SQL text through `ew-sqlview`'s sandbox over the golden project's projection (WP-S6.04, FT-223);
+//! - [`svg_asset`]: bytes through the asset sniff and, as an SVG, `ew-scene`'s drawing path (WP-S6.04);
+//! - [`image_decode`]: a PNG or a JPEG through `ew-render-cpu`'s `decode_image` (WP-S6.04);
+//! - [`textconv`]: one project file through `ew_api::output::textconv`, with or without a session (WP-S6.04);
+//! - [`table_round_trip`]: a round-trip file through `Session::table_import` (WP-S6.04);
+//! - [`command_log`]: a `.ewcmd` through `Session::run_script` on the golden project (WP-S6.04).
 //!
 //! The crate is outside the cargo workspace and builds on the nightly toolchain of `rust-toolchain.toml`.
 //! `unsafe`: none in this crate; the `unsafe` of cargo-fuzz's `fuzz_target!` macro lives in `libfuzzer-sys`.
@@ -19,12 +25,18 @@
 #![forbid(unsafe_code)]
 
 pub mod command;
+pub mod command_log;
 pub mod ewz_read;
 pub mod golden;
+pub mod image_decode;
 pub mod loader;
 pub mod merge_file;
 pub mod open_path;
 pub mod png_pdf;
+pub mod sql_sandbox;
+pub mod svg_asset;
+pub mod table_round_trip;
+pub mod textconv;
 
 /// The modules of the command fuzzer's test (`crates/ew-testkit/tests/command_fuzz`), included as they are: the
 /// generator, its arms, the oracles and the save-and-reload and import steps. The test's own `main.rs` is the
