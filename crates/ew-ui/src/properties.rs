@@ -27,8 +27,8 @@ use egui::{Key, Modifiers, RichText, Sense, TextEdit, Ui, Vec2};
 use ew_viewmodel::key;
 use ew_viewmodel::properties::{
     ChoiceKind, FieldType, Popup, PropRow, PropertySheet, Provenance, RowAction, RowValue, SheetSection,
-    advanced_count, chip_text, chip_word, group_key, groups, is_header, read_only_reason, row_label,
-    row_matches, value_text,
+    advanced_count, chip_text, chip_word, filtered, group_key, groups, is_header, read_only_reason,
+    row_label, value_text,
 };
 use ew_viewmodel::shell::{Focus, ShellModel};
 use ew_viewmodel::strings;
@@ -220,10 +220,7 @@ impl PropertiesPane {
                         if collapsed.contains(&group_key(&section.kind, group)) {
                             continue;
                         }
-                        let rows: Vec<&PropRow> = rows
-                            .into_iter()
-                            .filter(|r| row_matches(section, r, &filter))
-                            .collect();
+                        let rows: Vec<&PropRow> = filtered(section, rows, &filter);
                         let base = if matches!(group, ew_viewmodel::properties::RowGroup::Main) {
                             u8::MAX
                         } else {
@@ -259,11 +256,8 @@ impl PropertiesPane {
                         for (group, rows) in groups(section, advanced) {
                             let key = group_key(&section.kind, group);
                             let shut = collapsed.contains(&key);
-                            // FT-541: the filter keeps the rows it matches; an open group left without rows hides.
-                            let rows: Vec<&PropRow> = rows
-                                .into_iter()
-                                .filter(|r| row_matches(section, r, &filter))
-                                .collect();
+                            // FT-541: the filter keeps the rows it matches (FT-1358: with their parents); an open group left without rows hides.
+                            let rows: Vec<&PropRow> = filtered(section, rows, &filter);
                             if !shut && rows.is_empty() {
                                 continue;
                             }

@@ -112,7 +112,7 @@ const SEQ_1_TO_20: [&str; 20] = [
 ];
 
 /// SE7 (D2, D3, §6.2): the Terminal strips table sorts by `Order` by default (the strips in natural tag order, each
-/// strip's terminals in sequence order); `strip.edit` filters it to one strip (`strip:-x1031`, 20 rows) with the cursor
+/// strip's terminals in sequence order); `strip.edit` filters it to one strip (`strip:-X1031`, 20 rows) with the cursor
 /// on its first row; accessory rows are placed and numbered by D3 (`after_seq` 0, two at 4, 20); the read-only reasons
 /// of §6.2 refuse an edit of a Pos cell, an accessory row's cell and a Bridge part cell of a terminal without a bridge.
 #[test]
@@ -143,7 +143,7 @@ fn se7_order_sort_pos_cells_accessory_rows_and_reasons() {
     done(&mut shell, "strip.edit", json!({"strip": "-X1031"}));
     let header = lines_with(&shell, "navigator \"Terminal strips\"");
     assert!(
-        header[0].contains(" sort \"Order\" ascending filter \"strip:-x1031\" rows 20 showing 1 to 20"),
+        header[0].contains(" sort \"Order\" ascending filter \"strip:-X1031\" rows 20 showing 1 to 20"),
         "{header:?}"
     );
     assert_eq!(texts(&shell, "Pos"), SEQ_1_TO_20);
@@ -176,7 +176,7 @@ fn se7_order_sort_pos_cells_accessory_rows_and_reasons() {
     done(&mut shell, "strip.add_accessory", json!({}));
     assert_eq!(
         lines_with(&shell, "toast "),
-        ["toast \"Added End bracket at the start of -X1031\" undo"]
+        ["toast \"Added end bracket at the start of -X1031\" undo"]
     );
     done(&mut shell, "strip.edit", json!({"strip": "-X1031"}));
     let mut expected: Vec<&str> = vec!["0.1"];
@@ -555,7 +555,7 @@ fn se14_describe_lines() {
     let d = shell.describe();
     assert!(
         d.contains(
-            "navigator \"Terminal strips\" kind strips view tree table sort \"Order\" ascending filter \"strip:-x1031\" rows 21 showing 1 to 21\n  columns \"Strip\" \"Pos\" \"Terminal\" \"Function text\" \"Group\" \"Part\" \"Potential\" \"Side 1 (clamp a)\" \"Side 2 (clamp b)\" \"Bridge\" \"Bridge part\" \"State\"\n  row \"-X1031\" \"1\" \"1\" \"1+\" \"Pneumatics\" \"PT 2.5-TWIN\" \"24VDC-1\" \"-102F2:Out1\" \"-201U1:5 via -106W1 BN\" \"BR1\" \"\" \"used\"\n"
+            "navigator \"Terminal strips\" kind strips view tree table sort \"Order\" ascending filter \"strip:-X1031\" rows 21 showing 1 to 21\n  columns \"Strip\" \"Pos\" \"Terminal\" \"Function text\" \"Group\" \"Part\" \"Potential\" \"Side 1 (clamp a)\" \"Side 2 (clamp b)\" \"Bridge\" \"Bridge part\" \"State\"\n  row \"-X1031\" \"1\" \"1\" \"1+\" \"Pneumatics\" \"PT 2.5-TWIN\" \"24VDC-1\" \"-102F2:Out1\" \"-201U1:5 via -106W1 BN\" \"BR1\" \"\" \"used\"\n"
         ),
         "{d}"
     );
@@ -590,7 +590,7 @@ fn an_untagged_strips_accessory_row_names_it_in_words() {
     done(&mut shell, "strip.add_accessory", json!({}));
     assert_eq!(
         lines_with(&shell, "toast "),
-        ["toast \"Added End bracket at the start of New terminal strip \u{b7} no tag yet\" undo"]
+        ["toast \"Added end bracket at the start of New terminal strip \u{b7} no tag yet\" undo"]
     );
     mark(&mut shell, &[]);
     done(&mut shell, "navigator.row", json!({"kind": "strips", "key": key}));
@@ -654,7 +654,7 @@ fn ft1289_the_strip_editor_and_its_accessory_toast_read_in_dutch() {
     assert_eq!(word, "Eindsteun");
     assert_eq!(
         lines_with(&shell, "toast "),
-        ["toast \"Eindsteun toegevoegd na -X1031:4\" undo"]
+        ["toast \"Eindsteun toegevoegd na klem 4 van -X1031\" undo"]
     );
     shell.shutdown();
 }

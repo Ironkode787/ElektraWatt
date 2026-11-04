@@ -579,6 +579,13 @@ fn define_potential_from_a_potentials_row() {
         ew_viewmodel::strings::text(ew_viewmodel::strings::Key::run_time(reason)),
         "This row has no connection point to define its potential at"
     );
+    // FT-1348: in Dutch too.
+    done(&mut shell, "view.language", json!({"value": "nl"}));
+    assert_eq!(
+        ew_viewmodel::strings::text(ew_viewmodel::strings::Key::run_time(reason)),
+        "Deze rij heeft geen aansluitpunt om de potentiaal op te definiëren"
+    );
+    done(&mut shell, "view.language", json!({"value": "en"}));
     // The pin goes with its form: cancelled, a Define potential… from the menu asks for the selection again.
     let n = potential_at(&mut shell, "101", "S51:4");
     let n_row = node(&shell, &n).key;

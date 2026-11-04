@@ -251,6 +251,9 @@ fn view_show_tips_switches_the_tips_and_saves_the_setting() {
     assert!(settings_of(&tmp).tips);
     line_onto_a_cp(&mut s);
     assert_eq!(tips(&s).len(), 1, "the tip again once on");
+    // FT-1348: in Dutch too.
+    done(&mut s, "view.language", json!({"value": "nl"}));
+    assert_eq!(tips_item(&s), ("Tips tonen".to_owned(), true));
     s.shutdown();
 }
 
@@ -688,4 +691,17 @@ fn gt4_wire_colours_stroke_w29_in_dbu_and_stripe_w27_and_are_off_by_default() {
     // Off again: no stroke.
     done(&mut s, "view.wire_colours", json!({"on": false}));
     assert_eq!(s.wire_colour_overlay(0), []);
+}
+
+/// FT-1347: a script's `step` near `i64::MAX` with the cursor past row 0 stops at the last row (no overflow).
+#[test]
+fn ft1347_a_huge_glossary_step_stops_at_the_last_row() {
+    let tmp = Tmp::new("ft1347-glossary");
+    let mut s = tmp.shell_in(Mode::Headless, true, "102");
+    done(&mut s, "help.glossary", json!({}));
+    let n = s.glossary_rows().len();
+    done(&mut s, "glossary.row", json!({"step": 2}));
+    assert_eq!(s.glossary_row(), Some(1));
+    done(&mut s, "glossary.row", json!({"step": i64::MAX}));
+    assert_eq!(s.glossary_row(), Some(n - 1));
 }

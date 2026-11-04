@@ -277,7 +277,8 @@ impl ShellModel {
         let (filter, scope) = if strip.label.contains('?') {
             (String::new(), Some(strip.key.clone()))
         } else {
-            (format!("strip:{}", strip.label.to_lowercase()), None)
+            // FT-1361: the tag as it is written; the filter matches without case.
+            (format!("strip:{}", strip.label), None)
         };
         let first = (0..table.nodes.len())
             .find(|i| table.nodes[*i].parent == u32::try_from(at).ok())
@@ -754,19 +755,25 @@ impl ShellModel {
         {
             m.chooser = None;
         }
-        let word = strings::accessory_text(&kind);
+        // FT-1360: the accessory's word in lower case inside the sentence (doc 16a §8.1), the terminal in words
+        // (§8.8, "terminal 1 of -X1031"); the toast starts with a capital in either language.
+        let word = &strings::in_sentence(strings::accessory_text(&kind));
+        let terminal = strings::format(
+            key!("accessory-at-terminal"),
+            &[&rows.words(s), &rows.node(cursor).label],
+        );
         let text = match rows.node(cursor).role {
             NavRole::Strip => strings::format(key!("toast-accessory-added-first"), &[word, &rows.words(s)]),
             NavRole::Terminal if before => {
-                strings::format(key!("toast-accessory-added-before"), &[word, &rows.name(cursor)])
+                strings::format(key!("toast-accessory-added-before"), &[word, &terminal])
             }
-            NavRole::Terminal => strings::format(key!("toast-accessory-added"), &[word, &rows.name(cursor)]),
+            NavRole::Terminal => strings::format(key!("toast-accessory-added"), &[word, &terminal]),
             _ => strings::format(
                 key!("toast-accessory-added"),
                 &[word, &format!("{} {}", rows.words(s), pos)],
             ),
         };
-        self.notify(text, true);
+        self.notify(strings::sentence_start(&text).into_owned(), true);
         let strip_key = rows.node(s).key.clone();
         self.sync_navigators();
         let prefix = format!("{after_seq}.");

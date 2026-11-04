@@ -863,6 +863,29 @@ mod tests {
     use super::*;
     use crate::actions::{find, parse_signature};
 
+    /// FT-1348: a refused form says what to do next for a read-only project and for no page shown, in either
+    /// language.
+    #[test]
+    fn a_refused_form_names_the_next_step() {
+        let texts = || [key!("reason-read-only"), key!("reason-no-page")].map(refusal_text);
+        assert_eq!(
+            texts(),
+            [
+                "The project is open read-only. File ▸ Save as… makes a copy that can be changed.",
+                "No page is shown. Open a page, or choose another scope.",
+            ]
+        );
+        assert!(strings::set_locale("nl"));
+        assert_eq!(
+            texts(),
+            [
+                "Het project is alleen-lezen geopend. Bestand ▸ Opslaan als… maakt een kopie die u kunt wijzigen.",
+                "Er wordt geen pagina getoond. Open een pagina, of kies een ander bereik.",
+            ]
+        );
+        assert!(strings::set_locale("en"));
+    }
+
     #[test]
     fn the_signatures_list_the_words_the_actions_accept() {
         let enum_of = |action: &str, name: &str| -> Vec<String> {

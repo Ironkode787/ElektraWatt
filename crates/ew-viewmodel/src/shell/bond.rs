@@ -21,7 +21,7 @@
 
 use ew_api::AnyCommand;
 use ew_api::output::table_edit::potential_input;
-use ew_api::output::{InputError, PageTables, TableEnd};
+use ew_api::output::{InputError, PageTables, TableCp, TableEnd, TableRep};
 use serde_json::{Map, Value, json};
 
 use super::{Outcome, PaletteState, ShellModel, failed, string_param};
@@ -38,6 +38,28 @@ fn end_param(e: TableEnd) -> Value {
     match e {
         TableEnd::Cp { function, idx } => json!({"cp": {"function": function.to_string(), "idx": idx}}),
         TableEnd::Junction { id } => json!({"junction": {"junction": id.to_string()}}),
+    }
+}
+
+/// The one point a potential is defined at on representation `rep` (FT-1202): over the connection points of every
+/// function it shows (FT-1242), its one point, or a terminal's lowest; `None` for any other symbol.
+fn rep_point(rep: &TableRep, cps: &[TableCp]) -> Option<TableEnd> {
+    let mut cps: Vec<(u16, TableEnd)> = cps
+        .iter()
+        .filter(|c| rep.functions.contains(&c.function))
+        .map(|c| {
+            let end = TableEnd::Cp {
+                function: c.function,
+                idx: c.idx,
+            };
+            (c.idx, end)
+        })
+        .collect();
+    cps.sort_by_key(|(idx, _)| *idx);
+    match cps.as_slice() {
+        [(_, one)] => Some(*one),
+        [(_, lowest), ..] if rep.terminal => Some(*lowest),
+        _ => None,
     }
 }
 
@@ -157,24 +179,7 @@ impl ShellModel {
                 .ok_or(reason),
             EntityKind::Rep => {
                 let rep = tables.reps.iter().find(|r| r.id == e.0).ok_or(reason)?;
-                let mut cps: Vec<(u16, TableEnd)> = tables
-                    .cps
-                    .iter()
-                    .filter(|c| rep.functions.contains(&c.function))
-                    .map(|c| {
-                        let end = TableEnd::Cp {
-                            function: c.function,
-                            idx: c.idx,
-                        };
-                        (c.idx, end)
-                    })
-                    .collect();
-                cps.sort_by_key(|(idx, _)| *idx);
-                match cps.as_slice() {
-                    [(_, one)] => Ok(*one),
-                    [(_, lowest), ..] if rep.terminal => Ok(*lowest),
-                    _ => Err(reason),
-                }
+                rep_point(rep, &tables.cps).ok_or(reason)
             }
             _ => Err(reason),
         }
@@ -321,5 +326,71 @@ impl ShellModel {
         let out = self.open_potential_form();
         self.potential_at = Some(TableEnd::Cp { function, idx });
         out
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use ew_api::output::Uuid;
+
+    use super::*;
+
+    /// A symbol of the page tables showing `functions`, a terminal's or not.
+    fn rep(functions: &[u128], terminal: bool) -> TableRep {
+        TableRep {
+            id: Uuid::from_u128(100),
+            functions: functions.iter().map(|f| Uuid::from_u128(*f)).collect(),
+            device: None,
+            symbol: Uuid::from_u128(200),
+            symbol_key: String::new(),
+            orient: 0,
+            rep_type: "multi_line".to_owned(),
+            pos: (0, 0),
+            body: [0; 4],
+            tag_at: None,
+            ip: None,
+            black_box: None,
+            terminal,
+        }
+    }
+
+    /// Connection point `idx` of function `function`, drawn by the symbol of [`rep`].
+    fn cp(function: u128, idx: u16) -> TableCp {
+        TableCp {
+            id: Uuid::from_u128(1000 + function * 10 + u128::from(idx)),
+            function: Uuid::from_u128(function),
+            idx,
+            rep: Uuid::from_u128(100),
+            label: String::new(),
+            at: (0, 0),
+            dir: None,
+            connections: Vec::new(),
+            potential: None,
+            side: None,
+            plc_address: None,
+        }
+    }
+
+    /// FT-1342 (FT-1242, ID-1357 ruling 4): a symbol showing two functions of one connection point each has two points,
+    /// so Define potential takes none of them; one function's one point is the point, a terminal's lowest likewise.
+    #[test]
+    fn a_symbol_of_several_functions_counts_every_functions_points() {
+        let cps = [cp(1, 0), cp(2, 0), cp(3, 1), cp(3, 0)];
+        assert_eq!(rep_point(&rep(&[1, 2], false), &cps), None);
+        assert_eq!(
+            rep_point(&rep(&[1], false), &cps),
+            Some(TableEnd::Cp {
+                function: Uuid::from_u128(1),
+                idx: 0
+            })
+        );
+        assert_eq!(rep_point(&rep(&[3], false), &cps), None);
+        assert_eq!(
+            rep_point(&rep(&[3], true), &cps),
+            Some(TableEnd::Cp {
+                function: Uuid::from_u128(3),
+                idx: 0
+            })
+        );
     }
 }

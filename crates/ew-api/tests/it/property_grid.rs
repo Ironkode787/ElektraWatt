@@ -1180,6 +1180,21 @@ fn a_fluid_line_shows_its_line_kind_row_and_a_wire_none() {
         .map(|r| r.key.as_str())
         .collect();
     assert!(!keys.contains(&"connection/kind"), "{keys:?}");
+    // FT-1319 (ID-1357 ruling 2): the fluid rows only, none of a wire's, under the line's kind in words.
+    assert_eq!(
+        keys,
+        [
+            "connection/$v",
+            "connection/id",
+            "connection/line_kind",
+            "connection/page",
+            "connection/a",
+            "connection/b",
+            "connection/route",
+            "connection/source_ref"
+        ]
+    );
+    assert_eq!(sheet.header.title, "drain line");
     let w29 = wire(&s, "W29");
     let sheet = s.property_sheet(&[w29]);
     let keys: Vec<&str> = sheet

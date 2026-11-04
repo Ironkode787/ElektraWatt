@@ -38,6 +38,7 @@ impl ShellModel {
             .contains_key(&NavKind::Messages)
             .then_some(self.messages.scheme)
             .flatten()
+            .map(strings::scheme_text)
     }
 
     /// The folio of the editing page (§7.2), while there is one.
@@ -303,7 +304,9 @@ impl ShellModel {
     /// The name of the project's own scheme (the online checks'), which the Messages pane shows when it does not show
     /// the migration report.
     pub fn messages_project_scheme(&self) -> Option<&'static str> {
-        self.project.as_ref().map(|p| p.session.online_scheme().name)
+        self.project
+            .as_ref()
+            .map(|p| strings::scheme_text(p.session.online_scheme().name))
     }
 
     /// Whether the Messages pane offers the migration report beside the project's scheme (WP-S3.09 D9 d): the project

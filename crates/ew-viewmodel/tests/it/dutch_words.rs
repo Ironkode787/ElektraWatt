@@ -576,6 +576,19 @@ fn a_fluid_line_kind_is_found_by_its_dutch_word() {
     let mut shell = tmp.shell_in(Mode::Headless, true, "203");
     done(&mut shell, "view.language", json!({"value": "nl"}));
     done(&mut shell, "select.set", json!({"ids": [F6]}));
+    // FT-1319 (ID-1357 ruling 2): the sheet is headed by the line's kind in words, never "?".
+    let title = |s: &ShellModel| s.properties().sheet().expect("a sheet").header.title.clone();
+    assert_eq!(title(&shell), "Werkleiding");
+    let sheet = shell.properties().sheet().expect("a sheet");
+    let id = sheet.sections[0]
+        .rows
+        .iter()
+        .find(|r| r.key == "connection/id")
+        .expect("the ID row");
+    assert_eq!(ew_viewmodel::properties::value_text(id), "Werkleiding");
+    done(&mut shell, "view.language", json!({"value": "en"}));
+    assert_eq!(title(&shell), "Working line");
+    done(&mut shell, "view.language", json!({"value": "nl"}));
     done(&mut shell, "props.edit", json!({"row": "connection/line_kind"}));
     done(&mut shell, "props.input", json!({"text": "Stuur"}));
     let options: Vec<(String, serde_json::Value)> = shell
@@ -585,6 +598,62 @@ fn a_fluid_line_kind_is_found_by_its_dutch_word() {
         .items
         .clone();
     assert_eq!(options, [("Stuurleiding".to_owned(), json!("pilot"))]);
+    shell.shutdown();
+}
+
+/// FT-1338 (ID-1357 ruling 1): in nl-NL the navigators' section groups and yes-or-no cells read in Dutch: the report
+/// blocks' sections ("Sectie 9 - …"), the cables' Shield column ("nee").
+#[test]
+fn the_navigators_sections_and_yes_or_no_cells_read_in_dutch() {
+    let tmp = Tmp::new("sections-nl");
+    let mut shell = tmp.shell_in(Mode::Headless, true, "102");
+    done(&mut shell, "view.language", json!({"value": "nl"}));
+    done(&mut shell, "navigator.show", json!({"kind": "blocks"}));
+    let t = shell.nav(NavKind::Blocks).and_then(|n| n.table()).unwrap();
+    let sections: BTreeSet<String> = t
+        .nodes
+        .iter()
+        .filter(|n| n.role == ew_viewmodel::navigators::NavRole::Section)
+        .map(|n| n.label.clone())
+        .collect();
+    assert!(
+        !sections.is_empty()
+            && sections
+                .iter()
+                .all(|l| l.starts_with("Sectie ") || l == "Voorwerk"),
+        "{sections:?}"
+    );
+    done(&mut shell, "navigator.show", json!({"kind": "cables"}));
+    let t = shell.nav(NavKind::Cables).and_then(|n| n.table()).unwrap();
+    let shield = t
+        .columns
+        .iter()
+        .position(|c| c.key == "shield")
+        .expect("the Shield column");
+    let cells: BTreeSet<String> = t
+        .nodes
+        .iter()
+        .filter_map(|n| n.cells.get(shield).filter(|c| !c.is_empty()).cloned())
+        .collect();
+    assert!(
+        cells.contains("nee") && cells.iter().all(|c| c == "ja" || c == "nee"),
+        "{cells:?}"
+    );
+    shell.shutdown();
+}
+
+/// FT-1355 (W50-F4): the Messages pane names its scheme in the window's language, as the wizard's choice does.
+#[test]
+fn the_messages_scheme_reads_in_dutch() {
+    let tmp = Tmp::new("scheme-nl");
+    let mut shell = tmp.shell_in(Mode::Headless, true, "102");
+    done(&mut shell, "messages.show", json!({"on": true}));
+    assert_eq!(shell.messages_scheme(), Some("drafting"));
+    done(&mut shell, "view.language", json!({"value": "nl"}));
+    assert_eq!(
+        (shell.messages_scheme(), shell.messages_project_scheme()),
+        (Some("Ontwerp"), Some("Ontwerp"))
+    );
     shell.shutdown();
 }
 

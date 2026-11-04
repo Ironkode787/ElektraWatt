@@ -557,7 +557,7 @@ fn ms3_the_quick_fix_is_previewed_applied_in_one_step_and_undone() {
     // FT-1259: each count of the card's line takes its singular.
     assert_eq!(
         ew_viewmodel::script::card_summary(&shell).as_deref(),
-        Some("1 record, 0 tags, 0 cross-reference texts")
+        Some("1 change, 0 tags, 0 cross-reference texts")
     );
     // WP-S2.09 part 3 (§8.1): the card opens in the Preview tab like every origin; the Messages pane stays docked.
     assert!(shell.preview_shown());

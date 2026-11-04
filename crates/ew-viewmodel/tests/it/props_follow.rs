@@ -102,7 +102,14 @@ fn the_placement_rows_of_902_read_in_words_and_the_scale_edits_as_it_shows() {
     let placement: Vec<(String, String)> = rows
         .iter()
         .filter(|(l, _)| {
-            ["Scale", "Connection grid", "Grid step divisor", "Num", "Form"].contains(&l.as_str())
+            [
+                "Scale",
+                "Connection grid",
+                "Grid step divisor",
+                "Grid step multiplier",
+                "Form",
+            ]
+            .contains(&l.as_str())
         })
         .cloned()
         .collect();
@@ -110,7 +117,14 @@ fn the_placement_rows_of_902_read_in_words_and_the_scale_edits_as_it_shows() {
     let advanced: Vec<(String, String)> = shown(&s, true)
         .into_iter()
         .filter(|(l, _)| {
-            ["Scale", "Connection grid", "Grid step divisor", "Num", "Form"].contains(&l.as_str())
+            [
+                "Scale",
+                "Connection grid",
+                "Grid step divisor",
+                "Grid step multiplier",
+                "Form",
+            ]
+            .contains(&l.as_str())
         })
         .collect();
     assert_eq!(
@@ -119,7 +133,7 @@ fn the_placement_rows_of_902_read_in_words_and_the_scale_edits_as_it_shows() {
             ("Form", "c80af135-34f8-574c-8f52-756bd24c7bd0"),
             ("Connection grid", "QET 10 px"),
             ("Grid step divisor", "3"),
-            ("Num", "7937500"),
+            ("Grid step multiplier", "7937500"),
             ("Scale", "1:10"),
         ])
     );
@@ -135,5 +149,80 @@ fn the_placement_rows_of_902_read_in_words_and_the_scale_edits_as_it_shows() {
         .find(|r| r.key == "page/scale")
         .expect("the Scale row");
     assert_eq!(value_text(scale), "1:5");
+    s.shutdown();
+}
+
+/// The (label, value) pairs of the rows on show under the Properties filter `filter`.
+fn filtered(s: &ShellModel, filter: &str) -> Vec<(String, String)> {
+    let sheet = s.properties().sheet().expect("a Properties sheet");
+    visible_rows(sheet, &s.properties_collapsed(), true, filter)
+        .into_iter()
+        .map(|v| (row_label(v.section, v.row), value_text(v.row)))
+        .collect()
+}
+
+/// FT-1357 (ID-1357 ruling 7) and FT-1358 (ruling 8): the project's sheet is headed "Project", its yes and no, list
+/// counts and structured values read in words in either language, never as JSON; a filter shows its rows with their
+/// parents, so the four parties' "Personal data" rows never stand alone (doc 16a §6.8).
+#[test]
+fn ft1357_the_project_sheet_reads_in_words_and_a_filter_keeps_the_parents() {
+    let tmp = Tmp::new("ft1357");
+    let mut s = tmp.shell_in(Mode::Headless, true, "102");
+    done(&mut s, "props.show", json!({"on": true}));
+    done(&mut s, "props.project", json!({}));
+    let values = |s: &ShellModel| {
+        let sheet = s.properties().sheet().expect("a sheet");
+        let rows = shown(s, true);
+        let value = |label: &str| {
+            rows.iter()
+                .find(|(l, _)| l == label)
+                .map(|(_, v)| v.clone())
+                .unwrap_or_default()
+        };
+        (
+            sheet.header.title.clone(),
+            [
+                value("Parties"),
+                value("Neutral"),
+                value("Colour profile"),
+                value("Numbering"),
+            ],
+        )
+    };
+    assert_eq!(
+        values(&s),
+        (
+            "Project".to_owned(),
+            ["4 items", "yes", "DBU/WH 24 V", "page-based"].map(str::to_owned)
+        )
+    );
+    let party = |n: u8| {
+        [
+            (format!("Parties {n}"), String::new()),
+            ("Personal data".to_owned(), "yes".to_owned()),
+        ]
+    };
+    let mut rows = vec![("Parties".to_owned(), "4 items".to_owned())];
+    rows.extend((1..=4).flat_map(party));
+    assert_eq!(filtered(&s, "personal"), rows);
+    done(&mut s, "view.language", json!({"value": "nl"}));
+    let sheet = s.properties().sheet().expect("a sheet");
+    assert_eq!(sheet.header.title, "Project");
+    let texts: Vec<String> = [
+        "project/parties",
+        "project/supply.neutral",
+        "project/settings.numbering",
+    ]
+    .iter()
+    .map(|k| {
+        let row = sheet.sections[0]
+            .rows
+            .iter()
+            .find(|r| r.key == *k)
+            .expect("the row");
+        value_text(row)
+    })
+    .collect();
+    assert_eq!(texts, ["4 elementen", "ja", "page-based"]);
     s.shutdown();
 }

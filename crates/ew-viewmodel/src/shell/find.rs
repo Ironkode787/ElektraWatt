@@ -221,7 +221,7 @@ impl ShellModel {
             };
             let here = self.find.row().map_or(-1, |r| r as i64);
             let from = if here < 0 && step > 0 { -1 } else { here.max(0) };
-            (from + step).clamp(0, n as i64 - 1) as usize
+            from.saturating_add(step).clamp(0, n as i64 - 1) as usize
         } else {
             match p.get("to").and_then(Value::as_u64) {
                 Some(to) if to >= 1 && (to as usize) <= n => to as usize - 1,

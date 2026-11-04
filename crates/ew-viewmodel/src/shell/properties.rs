@@ -358,6 +358,8 @@ impl ShellModel {
         crate::properties::grid_in_words(&mut sheet);
         crate::properties::enums_in_words(&mut sheet);
         crate::properties::report_source_in_words(&mut sheet);
+        crate::properties::values_in_words(&mut sheet);
+        crate::properties::header_in_words(&mut sheet);
         // FT-1162 (ID-1219 ruling 6): the header's finding chips in the UI language, as the Messages detail renders
         // them, for the online report's finding of the chip's rule and message.
         let lang = strings::rule_language();
@@ -584,7 +586,7 @@ impl ShellModel {
             let Some(step) = step.as_i64() else {
                 return failed(key!("error-bad-param"), &["step"]);
             };
-            (here as i64 + step).clamp(0, rows.len() as i64 - 1) as usize
+            (here as i64).saturating_add(step).clamp(0, rows.len() as i64 - 1) as usize
         } else {
             match string_param(p, "to") {
                 Err(e) => return e,

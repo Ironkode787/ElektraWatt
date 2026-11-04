@@ -271,18 +271,62 @@ fn en_uses(texts: &str, term: &str) -> bool {
     })
 }
 
-/// Whether the Dutch `term` is in `texts` (lower case), inside a word too, so that a compound by the table counts
-/// ("draadartikel" holds "artikel", "proceskenmerk" "kenmerk"): a one-word term by its stem (`uses`' rule), a term
-/// of several words as a phrase. A rejected word is still looked for at the start of a word (`uses`).
+/// The Dutch forms of a one-word term (FT-1341): the term and its plurals, "klem" "klemmen", "draad" "draden",
+/// "kast" "kasten", "ader" "aders", "doorsnede" "doorsneden" ("pagina's" splits into "pagina" and "s").
+fn nl_forms(term: &str) -> Vec<String> {
+    let last = term.chars().last().map(String::from).unwrap_or_default();
+    let mut forms = vec![
+        term.to_owned(),
+        format!("{term}s"),
+        format!("{term}n"),
+        format!("{term}en"),
+        format!("{term}{last}en"),
+        format!("{}{last}en", stem(term)),
+    ];
+    forms.sort();
+    forms.dedup();
+    forms
+}
+
+/// Whether the Dutch `term` is in `texts` (lower case) as a word or at a compound part's edge (FT-1341), so that a
+/// compound by the table counts ("klemmenstrook" holds "klem", "draadartikel" "artikel", "proceskenmerk" "kenmerk")
+/// and a word that only shares letters does not ("kleur" and "klep" hold no "klem", "kader" no "ader"): a one-word
+/// term or its plural ([`nl_forms`]) starting a word, or after at least three letters ending one or, for a term of
+/// six letters or more, standing inside it ("paneellayoutpagina"); a term of several words as a phrase starting a
+/// word.
 fn nl_has(texts: &str, term: &str) -> bool {
     let term = term.to_lowercase();
     if term.chars().all(char::is_alphanumeric) {
-        let stem = Some(stem(&term))
-            .filter(|s| s.chars().count() >= 3)
-            .unwrap_or_else(|| term.clone());
-        texts.contains(&stem)
+        let forms = nl_forms(&term);
+        let long = term.chars().count() >= 6;
+        texts.split(|c: char| !c.is_alphanumeric()).any(|word| {
+            forms.iter().any(|f| {
+                word.match_indices(f.as_str()).any(|(i, _)| {
+                    let head = word[..i].chars().count();
+                    head == 0 || (head >= 3 && (long || i + f.len() == word.len()))
+                })
+            })
+        })
     } else {
-        texts.contains(&term)
+        texts
+            .match_indices(&term)
+            .any(|(i, _)| i == 0 || !texts[..i].chars().next_back().is_some_and(char::is_alphanumeric))
+    }
+}
+
+/// Whether the rejected Dutch word `alt` is in `texts` (lower case), inside a word too (FT-1341: "standaarddraadkleur"
+/// holds "draadkleur"), once the row's own term `own` is taken out ("kabelgoot" holds a duct's "goot" by right).
+fn nl_rejected(texts: &str, alt: &str, own: &str) -> bool {
+    let texts = if own.is_empty() {
+        texts.to_owned()
+    } else {
+        texts.replace(&own.to_lowercase(), " ")
+    };
+    let alt = alt.to_lowercase();
+    if alt.chars().all(char::is_alphanumeric) {
+        nl_forms(&alt).iter().any(|f| texts.contains(f.as_str()))
+    } else {
+        texts.contains(&alt)
     }
 }
 
@@ -351,7 +395,7 @@ fn rule_messages_nl() -> String {
 }
 
 /// FT-1238: the messages whose en-GB text holds a table term in another sense than the table's, by (key, term, the
-/// sense): NL-2 does not ask the row's Dutch term there. A Git tag is a tag (the shell's Git texts are not listed).
+/// sense): NL-2 does not ask the row's Dutch term there.
 const OTHER_SENSES: &[(&str, &str, &str)] = &[
     ("action-view-frame-stats", "frame", "a drawn frame of the window"),
     ("canvas-stats-frame", "frame", "a drawn frame of the window"),
@@ -395,6 +439,12 @@ const OTHER_SENSES: &[(&str, &str, &str)] = &[
         "connection",
         "an external reference's far connection (aansluiting)",
     ),
+    // FT-1341: the release's Git tag, named "the tag" or the verb (Git's own word, "tag").
+    ("form-revision-git", "tag", "the verb of Git (taggen)"),
+    ("error-revision-git", "tag", "a Git tag"),
+    ("revision-complete-git", "tag", "a Git tag"),
+    ("release-error-git-consent", "tag", "a Git tag"),
+    ("release-error-tag-exists", "tag", "a Git tag"),
 ];
 
 /// NL-2 (ID-1269 rulings 1 and 2): the terminology table heads the nl-NL file with the ruling's rows; over the
@@ -455,11 +505,12 @@ fn nl2_the_terminology_table_is_followed() {
             let Some(dutch) = dutch_messages.get(&key) else {
                 continue;
             };
-            let mut english = en.clone();
+            // FT-1341: a Git tag is Git's own word, "git tag" taken out; a message that names it "the tag" is listed
+            // in OTHER_SENSES, so a device tag beside Git is still asked for its kenmerk.
+            let mut english = en.replace("git tag", " ");
             let mut held = Vec::new();
             for term in &by_length {
-                let other_sense = OTHER_SENSES.iter().any(|(k, t, _)| *k == key && *t == term.en)
-                    || (term.en == "tag" && en_uses(&en, "git"));
+                let other_sense = OTHER_SENSES.iter().any(|(k, t, _)| *k == key && *t == term.en);
                 if !other_sense && en_uses(&english, &term.en) {
                     held.push(*term);
                     if !nl_has(dutch, &term.nl) {
@@ -470,11 +521,14 @@ fn nl2_the_terminology_table_is_followed() {
             }
             for term in &table {
                 for alt in &term.not {
-                    let owners: Vec<&Term> = table.iter().filter(|t| uses(&t.nl, alt)).collect();
+                    let owners: Vec<&Term> = table
+                        .iter()
+                        .filter(|t| t.en != term.en && nl_rejected(&t.nl, alt, ""))
+                        .collect();
                     let allowed = !owners.is_empty()
                         && (!held.iter().any(|t| t.en == term.en)
                             || owners.iter().any(|o| en_uses(&en, &o.en)));
-                    if !allowed && uses(dutch, alt) {
+                    if !allowed && nl_rejected(dutch, alt, &term.nl) {
                         wrong.push(format!("{key}: {} is {alt}, not {}: {dutch:?}", term.en, term.nl));
                     }
                 }
@@ -498,6 +552,14 @@ fn nl2_the_terminology_table_is_followed() {
     assert!(en_uses("cross-sections", "cross-section") && !en_uses("departure", "part"));
     assert!(nl_has("draadartikel overschreven", "artikel") && nl_has("proceskenmerk", "kenmerk"));
     assert!(nl_has("git-kenmerk", "kenmerk") && !nl_has("een onderdeel", "artikel"));
+    // FT-1341: a term whole, by its plural or at a compound part's edge, never by letters it shares.
+    assert!(!nl_has("de kleur", "klem") && !nl_has("de klep", "klem") && !nl_has("het kader", "ader"));
+    assert!(
+        nl_has("twee klemmen", "klem") && nl_has("de klemmenstrook", "klem") && nl_has("de draden", "draad")
+    );
+    assert!(nl_has("de aders", "ader") && nl_has("twee kasten", "kast") && !nl_has("de kassa", "kast"));
+    assert!(nl_rejected("de standaarddraadkleur", "draadkleur", "aderkleur"));
+    assert!(!nl_rejected("de kabelgoot", "goot", "kabelgoot") && nl_rejected("de goot", "goot", "kabelgoot"));
     let read =
         texts("k = a { $x ->\n    [one] de lay-out\n   *[other] { $y } onderdeel\n}\n    .hint = een tag\n");
     assert_eq!(read, "a \n de lay-out\n  onderdeel\n\neen tag");

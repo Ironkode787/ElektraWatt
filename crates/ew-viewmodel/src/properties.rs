@@ -844,7 +844,7 @@ pub fn group_of(section: &SheetSection, row: &PropRow) -> RowGroup {
 }
 
 /// The rows on show: every row of every expanded group, in display order ([`groups`]); the Advanced rows only while
-/// `advanced` is on; with a non-empty `filter`, only the rows it matches ([`row_matches`]).
+/// `advanced` is on; with a non-empty `filter`, only the rows it matches and their parents ([`filtered`]).
 pub fn visible_rows<'s>(
     sheet: &'s PropertySheet,
     collapsed: &BTreeSet<String>,
@@ -858,13 +858,32 @@ pub fn visible_rows<'s>(
                 continue;
             }
             out.extend(
-                rows.into_iter()
-                    .filter(|row| row_matches(s, row, filter))
+                filtered(s, rows, filter)
+                    .into_iter()
                     .map(|row| VisibleRow { section: s, row }),
             );
         }
     }
     out
+}
+
+/// The rows of one group that the Properties filter `filter` keeps: those it matches ([`row_matches`]) and, among
+/// the group's rows, their parents, so that two rows on show never share a label without their parents (FT-1358, doc
+/// 16a §6.8: "Party 2" above its "Personal data").
+pub fn filtered<'r>(section: &SheetSection, rows: Vec<&'r PropRow>, filter: &str) -> Vec<&'r PropRow> {
+    let matched: Vec<&str> = rows
+        .iter()
+        .filter(|r| row_matches(section, r, filter))
+        .map(|r| r.path.as_str())
+        .collect();
+    let parent_of = |parent: &str, child: &str| {
+        child.len() > parent.len()
+            && child.starts_with(parent)
+            && matches!(child.as_bytes()[parent.len()], b'.' | b'[')
+    };
+    rows.into_iter()
+        .filter(|r| row_matches(section, r, filter) || matched.iter().any(|m| parent_of(&r.path, m)))
+        .collect()
 }
 
 /// FT-541 (doc 16a §6.8): the filter field "Filter properties" appears only when the open categories hold more than
@@ -961,7 +980,10 @@ pub fn reason_text(reason: &FieldReadOnly) -> String {
         FieldReadOnly::Command {
             action: Some(action), ..
         } => strings::format(key!("props-ro-action"), &[action]),
-        FieldReadOnly::Command { command, .. } => strings::format(key!("props-ro-command"), &[command]),
+        // FT-1353: the command by its title ("Renumber pages"), never its ID.
+        FieldReadOnly::Command { command, .. } => {
+            strings::format(key!("props-ro-command"), &[strings::command_title(command)])
+        }
         FieldReadOnly::HumanOnly { step, .. } => strings::format(key!("props-ro-human-only"), &[step]),
         FieldReadOnly::NoCommand => strings::text(key!("props-ro-no-command")).to_owned(),
     }
@@ -990,8 +1012,11 @@ pub fn kind_plural(kind: &str, n: usize) -> String {
 }
 
 /// The header of a sheet's section of `n` records of `kind` (ID-1139): the kind in sentence case, singular for one,
-/// with the count ("Device (1)", "Devices (2)").
+/// with the count ("Device (1)", "Devices (2)"); one record's kind in the UI language (FT-1356: "Apparaat (1)").
 pub fn section_header(kind: &str, n: usize) -> String {
+    if n == 1 {
+        return format!("{} ({n})", strings::kind_heading(kind));
+    }
     let words = kind_plural(kind, n);
     let mut chars = words.chars();
     let words = match chars.next() {
@@ -1117,11 +1142,11 @@ pub fn reorder_line(card: &Card, notices: &[String]) -> String {
     strings::format(key!("card-reorder"), &[&notices.join(", "), &tags, &xrefs])
 }
 
-/// A quick fix card's summary line (`card-fix`): its records, tags and cross-reference texts each counted with its own
-/// singular (FT-1259); the window and the describe text show it (C50-p6#3).
+/// A quick fix card's summary line (`card-fix`): its changes (FT-1366), tags and cross-reference texts each counted
+/// with its own singular (FT-1259); the window and the describe text show it (C50-p6#3).
 pub fn fix_line(card: &Card) -> String {
     let (tags, xrefs) = card_counts(card);
-    let records = strings::format_count(crate::count_key!("preview-records"), card.changes);
+    let records = strings::format_count(crate::count_key!("preview-changes-count"), card.changes);
     strings::format(key!("card-fix"), &[&records, &tags, &xrefs])
 }
 
@@ -1170,6 +1195,113 @@ pub fn report_source_in_words(sheet: &mut PropertySheet) {
                     .map_or_else(|| strings::choice_words(kind), str::to_owned);
             } else if let Some(file) = json.pointer("/sql_query/file").and_then(Value::as_str) {
                 *text = strings::format(key!("report-source-sql"), &[file]);
+            }
+        }
+    }
+}
+
+/// Writes the values `ew-api` gives in English words in the UI language's (FT-1357): a yes or no ("ja", "nee"), a
+/// list's count ("4 elementen") and a project setting's structured value in words, never its JSON (`json_words`).
+/// The JSON values are unchanged, and the CLI keeps the English words (FT-680).
+pub fn values_in_words(sheet: &mut PropertySheet) {
+    let yes_no = |text: &mut String| match text.as_str() {
+        "yes" => *text = strings::text(key!("props-yes")).to_owned(),
+        "no" => *text = strings::text(key!("props-no")).to_owned(),
+        _ => {}
+    };
+    for section in &mut sheet.sections {
+        let project = section.kind == "project";
+        for row in &mut section.rows {
+            value_in_words(row, project, &yes_no);
+        }
+    }
+}
+
+/// [`values_in_words`] for one row; a structured value is worded on the project's sheet only.
+fn value_in_words(row: &mut PropRow, project: bool, yes_no: &dyn Fn(&mut String)) {
+    match (row.ty.inner(), &mut row.value) {
+        (FieldType::Bool, RowValue::One { text, .. }) => yes_no(text),
+        (FieldType::Bool, RowValue::Varies { texts, .. }) => texts.iter_mut().for_each(yes_no),
+        (
+            FieldType::List(_),
+            RowValue::One {
+                json: Value::Array(items),
+                text,
+            },
+        ) if *text
+            == if items.len() == 1 {
+                "1 item".to_owned()
+            } else {
+                format!("{} items", items.len())
+            } =>
+        {
+            *text = strings::format_count(crate::count_key!("props-items"), items.len());
+        }
+        (FieldType::Json, RowValue::One { json, text }) if project && text.starts_with(['{', '[']) => {
+            *text = json_words(json);
+        }
+        _ => {}
+    }
+}
+
+/// A structured value in words (FT-1357): its name (a profile's "DBU/WH 24 V", in the UI language where it has one),
+/// else its key or its default (a numbering's scheme), else the count of its items or members.
+fn json_words(json: &Value) -> String {
+    let named = |v: &Value| match v {
+        Value::String(s) => Some(s.clone()),
+        Value::Object(m) => m
+            .get(strings::rule_language().split('-').next().unwrap_or("en"))
+            .or_else(|| m.get("en"))
+            .or_else(|| m.values().next())
+            .and_then(Value::as_str)
+            .map(str::to_owned),
+        _ => None,
+    };
+    match json {
+        Value::Object(m) => m
+            .get("name")
+            .and_then(named)
+            .or_else(|| {
+                ["key", "default"]
+                    .iter()
+                    .find_map(|k| m.get(*k)?.as_str())
+                    .map(str::to_owned)
+            })
+            .unwrap_or_else(|| strings::format_count(crate::count_key!("props-items"), m.len())),
+        Value::Array(items) => strings::format_count(crate::count_key!("props-items"), items.len()),
+        other => other.to_string(),
+    }
+}
+
+/// Writes the sheet's header in words (FT-1357, FT-1319): a record without a title of its own by its kind as a heading
+/// in the UI language ("Project", not `project`), a fluid line by its line kind ("Working line", "Werkleiding"), its
+/// ID row likewise.
+pub fn header_in_words(sheet: &mut PropertySheet) {
+    let [(kind, 1)] = sheet.header.kinds.as_slice() else {
+        return;
+    };
+    if sheet.header.title == *kind {
+        sheet.header.title = strings::kind_heading(kind);
+    } else if kind == "connection"
+        && let Some(RowValue::One {
+            json: Value::String(word),
+            ..
+        }) = sheet
+            .sections
+            .iter()
+            .flat_map(|s| &s.rows)
+            .find(|r| r.path == "line_kind")
+            .map(|r| &r.value)
+    {
+        let words = strings::field_choice_text("connection", "line_kind", word);
+        let words = strings::format(key!("props-fluid-line"), &[&words]);
+        let english = std::mem::replace(&mut sheet.header.title, words.clone());
+        for row in sheet.sections.iter_mut().flat_map(|s| &mut s.rows) {
+            if let RowValue::One { text, .. } = &mut row.value
+                && row.path == "id"
+                && *text == english
+            {
+                *text = words.clone();
             }
         }
     }
@@ -1280,6 +1412,23 @@ mod tests {
             ],
             ["Device (1)", "Devices (2)", "Potential definitions (3)"]
         );
+        // FT-1356: one record's kind in the UI language.
+        assert!(strings::set_locale("nl"));
+        assert_eq!(section_header("device", 1), "Apparaat (1)");
+        assert!(strings::set_locale("en"));
+    }
+
+    /// FT-1353: a row another command edits names the command by its title, in the UI language, never its ID.
+    #[test]
+    fn a_read_only_reason_names_the_command_by_its_title() {
+        let folio = FieldReadOnly::Command {
+            command: "page.renumber".to_owned(),
+            action: None,
+        };
+        assert_eq!(reason_text(&folio), "changed by Renumber pages");
+        assert!(strings::set_locale("nl"));
+        assert_eq!(reason_text(&folio), "gewijzigd door Pagina's hernummeren");
+        assert!(strings::set_locale("en"));
     }
 
     /// FX38d: a refusal's leading rule code is split off for the secondary text; any other message stays whole.

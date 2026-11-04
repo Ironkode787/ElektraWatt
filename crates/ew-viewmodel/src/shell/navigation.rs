@@ -1313,7 +1313,7 @@ impl ShellModel {
                 .navigator_row_key()
                 .and_then(|k| rows.iter().position(|r| r.key == k))
                 .unwrap_or(0);
-            let at = (here as i64 + step).clamp(0, rows.len() as i64 - 1) as usize;
+            let at = (here as i64).saturating_add(step).clamp(0, rows.len() as i64 - 1) as usize;
             rows[at].key.clone()
         } else {
             return failed(key!("error-missing-param"), &["key"]);

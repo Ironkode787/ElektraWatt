@@ -146,7 +146,7 @@ impl ShellModel {
                 None if step > 0 => -1,
                 None => 0,
             };
-            (from + step).clamp(0, n as i64 - 1)
+            from.saturating_add(step).clamp(0, n as i64 - 1)
         } else {
             match p.get("to").and_then(Value::as_u64) {
                 Some(to) if to >= 1 && (to as usize) <= n => to as i64 - 1,

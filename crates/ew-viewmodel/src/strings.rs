@@ -551,6 +551,12 @@ pub fn choice_text(value: &str) -> String {
     }
 }
 
+/// A check scheme's name in the UI language's words (FT-1355): the wizard's `choice-check_scheme-<name>` text, else
+/// the name itself.
+pub fn scheme_text(name: &'static str) -> &'static str {
+    lookup(&format!("choice-check_scheme-{name}")).unwrap_or(name)
+}
+
 /// A choice value of the field `path` of `kind` in words (C50-p5#5): the field's own `choice-<kind>-<path>-<value>`
 /// text (`.` and `_` as `-`, a list item as `-item`), where one word means two things in two fields (a terminal
 /// level's `main` is no main function), else [`choice_text`].
@@ -1111,10 +1117,17 @@ mod tests {
             .filter(|k| has_key(k))
             .collect();
         assert!(counted.contains(&"toast-recovered"), "{counted:?}");
-        let src = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
+        // FT-1351: the window's sources too, which use the shell's keys.
+        let src = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..");
         let mut files = Vec::new();
-        scan(&src, &mut files);
+        for dir in ["ew-viewmodel/src", "ew-ui/src"] {
+            scan(&src.join(dir), &mut files);
+        }
         files.sort();
+        assert!(
+            files.iter().any(|f| f.starts_with(src.join("ew-ui/src"))),
+            "the window's sources"
+        );
         let mut plain = Vec::new();
         let mut seen = 0;
         for file in &files {
@@ -1382,6 +1395,8 @@ mod tests {
             "theirs",
             "git_tag",
             "den",
+            "num",
+            "potential",
         ];
         assert_eq!(
             members.map(|m| field_label("", m)),
@@ -1395,7 +1410,9 @@ mod tests {
                 "Onze versie",
                 "Hun versie",
                 "Git-tag",
-                "Deler van de rasterstap"
+                "Rasterdeler",
+                "Rasterfactor",
+                "Potentiaal"
             ]
         );
         assert_eq!(

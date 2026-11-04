@@ -198,7 +198,7 @@ fn ft600_add_accessory_before_the_first_terminal_in_table_mode() {
     let steps = s.recorded_commands().len();
     done(&mut s, "strip.add_accessory", json!({"before": true}));
     assert_eq!(s.recorded_commands().len(), steps + 1, "one command");
-    assert_eq!(toast(&s), "Added End bracket before -X1031:1");
+    assert_eq!(toast(&s), "Added end bracket before terminal 1 of -X1031");
     assert_eq!(texts(&s, "Pos")[..2], ["0.1", "1"]);
     assert_eq!(cursor(&s), row(&s, "Pos", "0.1"));
     // Before terminal 5: after terminal 4.
@@ -212,6 +212,10 @@ fn ft600_add_accessory_before_the_first_terminal_in_table_mode() {
     done(&mut s, "edit.undo", json!({}));
     assert!(!texts(&s, "Pos").contains(&"4.1".to_owned()));
     assert_eq!(texts(&s, "Pos")[0], "0.1");
+    // FT-1360: without `before`, after the terminal, named in words.
+    at(&mut s, &k5);
+    done(&mut s, "strip.add_accessory", json!({}));
+    assert_eq!(toast(&s), "Added end bracket after terminal 5 of -X1031");
     s.shutdown();
 }
 

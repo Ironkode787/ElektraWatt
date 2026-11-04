@@ -765,11 +765,11 @@ fn the_quick_fix_card_counts_in_words_in_english_and_dutch() {
     for (lang, line) in [
         (
             "en",
-            "Preview open: Quick fix EW-CORE-023 · 1 record, 0 tags, 0 cross-reference texts",
+            "Preview open: Quick fix EW-CORE-023 · 1 change, 0 tags, 0 cross-reference texts",
         ),
         (
             "nl",
-            "Voorbeeld open: Snelle oplossing EW-CORE-023 · 1 record, 0 kenmerken, 0 kruisverwijzingsteksten",
+            "Voorbeeld open: Snelle oplossing EW-CORE-023 · 1 wijziging, 0 kenmerken, 0 kruisverwijzingsteksten",
         ),
     ] {
         let tmp = Tmp::new();

@@ -184,7 +184,8 @@ pub enum Provenance {
     },
     /// On a generated page.
     Generated {
-        /// The report block's title.
+        /// The generated page's derived title ("Wire List 1", FT-1282), else its report block's title; the member keeps
+        /// its name (FT-1349).
         block: String,
     },
     /// Different on the targets.
@@ -571,7 +572,17 @@ pub(super) fn record_title(q: &Q, id: Uuid, source: Option<&str>) -> Option<Stri
             format!("{folio} {title}").trim().to_owned()
         }
         Kind::StructureNode => SheetCx::new(q).node_path(Id::from_uuid(id)).unwrap_or_default(),
-        Kind::Connection => wire_number_text(q, Id::from_uuid(id)),
+        // FT-1319 (ID-1357 ruling 2): a fluid line has no wire number; it is named by its line kind ("drain line").
+        Kind::Connection => match json.pointer("/kind/fluid") {
+            Some(fluid) => format!(
+                "{} line",
+                fluid
+                    .get("line_kind")
+                    .and_then(Value::as_str)
+                    .unwrap_or("working")
+            ),
+            None => wire_number_text(q, Id::from_uuid(id)),
+        },
         // WP-S4.02 part 4 (D12): a layout record by its device's tag, its label or its words.
         k if super::layout_edit::LAYOUT_KINDS.contains(&k) => super::layout_edit::layout_title(q, k, id)?,
         // FT-1076 (ID-1182): an external reference has no name; it reads as the IP tool prints it, `<device>:<connection>`
@@ -1744,9 +1755,11 @@ impl Session {
             }
             listed.push(spec.path.as_str());
             // WP-S1.20 D18: the line kind is a row of fluid lines only, and on them it stands for the kind's JSON.
+            // FT-1319 (ID-1357 ruling 2): a fluid line shows the fluid rows only, none of a wire's (its number, the
+            // wire overrides; below, the derived wire rows).
             if kind == Kind::Connection
                 && ((spec.path == super::fields::LINE_KIND && !fluid_lines)
-                    || (spec.path == "kind" && fluid_lines))
+                    || (["kind", "number", "overrides"].contains(&spec.path.as_str()) && fluid_lines))
             {
                 continue;
             }
@@ -1756,7 +1769,7 @@ impl Session {
         if kind == Kind::Function {
             part_function_row(q, cx, &targets, &mut built);
         }
-        if generated.is_none() || kind != Kind::ReportBlock {
+        if (generated.is_none() || kind != Kind::ReportBlock) && !fluid_lines {
             built.extend(self.derived_rows(q, cx, kind, &targets, &jsons));
         }
         // FT-1287 (ID-1315 ruling 3): a generated page shows its Kind, as a drawn page does: the page type `report`.

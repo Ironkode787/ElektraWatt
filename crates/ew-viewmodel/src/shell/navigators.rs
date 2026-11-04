@@ -1191,7 +1191,7 @@ impl ShellModel {
                     .as_ref()
                     .and_then(|k| keys.iter().position(|x| x == k))
                     .unwrap_or(0);
-                let at = (here as i64 + step).clamp(0, keys.len() as i64 - 1) as usize;
+                let at = (here as i64).saturating_add(step).clamp(0, keys.len() as i64 - 1) as usize;
                 keys[at].clone()
             } else {
                 return failed(key!("error-missing-param"), &["key"]);
@@ -1713,7 +1713,34 @@ pub(super) fn table_in_words(table: &mut ew_api::output::NavTable, project: &sup
             .check(project.session.online_scheme(), ew_api::checks::CheckMode::Online)
     });
     let message = table.columns.iter().position(|c| c.key == "message");
+    // FT-1338 (ID-1357 ruling 1): a yes-or-no column's cells ("Generated", a core's "Shield", a cable's "External").
+    let yes_no: Vec<usize> = (table.columns.iter().enumerate())
+        .filter(|(_, c)| ["generated", "shield", "external"].contains(&c.key.as_str()))
+        .map(|(i, _)| i)
+        .collect();
     for node in &mut table.nodes {
+        for i in &yes_no {
+            if let Some(cell) = node.cells.get_mut(*i) {
+                match cell.as_str() {
+                    "yes" => *cell = strings::text(key!("props-yes")).to_owned(),
+                    "no" => *cell = strings::text(key!("props-no")).to_owned(),
+                    _ => {}
+                }
+            }
+        }
+        // FT-1338: the section groups of the Pages tree and of the report blocks, the front matter's among them, as
+        // the page navigator words them.
+        let segment = node.key.rsplit('/').next().unwrap_or_default();
+        let section = segment
+            .strip_prefix("s:")
+            .or_else(|| segment.strip_prefix("section:"));
+        if section == Some("front") {
+            node.label = strings::text(key!("nav-front-matter")).to_owned();
+        } else if let Some(n) = section
+            && let Some(title) = node.label.strip_prefix(&format!("Section {n} - "))
+        {
+            node.label = strings::format(key!("nav-section"), &[n, title]);
+        }
         match node.role {
             NavRole::Accessory => {
                 let english = node.label.clone();
