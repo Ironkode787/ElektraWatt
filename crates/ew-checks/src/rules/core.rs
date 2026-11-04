@@ -1101,7 +1101,7 @@ fn conflict_target(q: &Q, kind: &str, id: Id<()>) -> String {
                     .and_then(|p| q.pages().get(p))
                     .map(|p| format!(" on folio {}", folio_label(p)))
                     .unwrap_or_default();
-                format!("connection {} → {}{page}", end(&c.a), end(&c.b))
+                format!("connection from {} to {}{page}", end(&c.a), end(&c.b))
             }
             None => "a connection".to_owned(),
         },

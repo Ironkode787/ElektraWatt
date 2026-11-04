@@ -84,3 +84,28 @@ fn ew_core_011_reports_each_conflict_in_words_as_a_release_error() {
         .count();
     assert_eq!(online, 0);
 }
+
+/// FT-1291 (ID-1315 ruling 7): a conflict on a connection whose end is a junction names that end in words, in en-GB
+/// and in nl-NL (whose message falls back to en-GB's words, FT-680).
+#[test]
+fn ew_core_011_names_a_junction_end_in_words() {
+    let mut fx = Fx::base();
+    fx.func(0x1001, P1);
+    fx.conn(0x2001, P1, Ep::J(0x3001), cp(0x1001), &json!({}));
+    fx.junction(0x3001, P1, &[0x2001]);
+    fx.push(json!({
+        "$k": "conflict", "id": us(0x2001), "kind": "connection", "base": {},
+        "ours": {"wire_colour": "BK"}, "theirs": {"wire_colour": "BU"}
+    }));
+    let m = fx.build();
+    let q = Q::new(&m);
+    let found: Vec<_> = run(&q, &FULL, CheckMode::Release)
+        .findings
+        .into_iter()
+        .filter(|f| f.rule == "EW-CORE-011")
+        .collect();
+    assert_eq!(found.len(), 1, "{found:#?}");
+    for lang in ["en-GB", "nl-NL"] {
+        assert_eq!(ew_checks::render(&found[0], lang), "connection from a junction to -1K4097:1 on folio 1: ours and theirs differ in wire_colour", "{lang}");
+    }
+}

@@ -106,7 +106,7 @@ fn cr1_cr4_ew_check_release_reports_ew_core_011_once_as_an_open_error() {
         [(
             "error".to_owned(),
             "open".to_owned(),
-            "connection a junction → -102F1:1 on folio 102: ours and theirs differ in overrides.colour"
+            "connection from a junction to -102F1:1 on folio 102: ours and theirs differ in overrides.colour"
                 .to_owned()
         )]
     );
