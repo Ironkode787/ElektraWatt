@@ -84,7 +84,7 @@ pub(crate) enum ReimportFound {
         /// The lineage.
         lineage: LineageInfo,
         /// The batch.
-        batch: ImportBatch,
+        batch: Box<ImportBatch>,
     },
 }
 
@@ -102,7 +102,12 @@ fn find_reimport(
     let lineage = match proposed {
         Some(l) => l,
         None => match detect_qet_reimport(lineages, name, bytes.clone(), library)? {
-            (Detected::Lineage(lineage), Some(batch)) => return Ok(ReimportFound::Batch { lineage, batch }),
+            (Detected::Lineage(lineage), Some(batch)) => {
+                return Ok(ReimportFound::Batch {
+                    lineage,
+                    batch: Box::new(batch),
+                });
+            }
             (
                 Detected::Proposed {
                     lineage,
@@ -121,7 +126,10 @@ fn find_reimport(
         },
     };
     let batch = reimport_qet_batch(lineages, name, bytes, library, &lineage)?;
-    Ok(ReimportFound::Batch { lineage, batch })
+    Ok(ReimportFound::Batch {
+        lineage,
+        batch: Box::new(batch),
+    })
 }
 
 /// The banner text of a refused import (T1, T2 through their keys; an importer's refusal in its English words).
@@ -726,7 +734,7 @@ impl ShellModel {
                 self.reimport_proposal = Some((path, lineage));
                 return self.open_dialog(dialog);
             }
-            ReimportFound::Batch { lineage, batch } => (lineage, batch),
+            ReimportFound::Batch { lineage, batch } => (lineage, *batch),
         };
         let reimport = match project.session.plan_qet_reimport(&name, batch, &lineage) {
             Ok(r) => r,
