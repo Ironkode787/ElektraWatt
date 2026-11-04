@@ -85,4 +85,5 @@ built from the same pages through mdbook-i18n-helpers 0.4.0 (pinned in `packagin
   `mdbook-gettext` preprocessor set from the environment, so `mdbook build docs/book` alone needs no plugin). F1 in a
   window whose language is Dutch opens the Dutch page when the installed book has it.
 - `python3 -I ci/translation-status.py` reports the share of each locale's texts: the window, the rule messages and
-  the guide. It fails when the Dutch window is below 95 % or a tutorial message is untranslated.
+  the guide. It fails when the Dutch window is below 95 % or a message of the introduction or a tutorial is
+  untranslated.

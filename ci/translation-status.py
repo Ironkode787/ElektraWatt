@@ -15,11 +15,12 @@ The report is a Markdown table per kind of text, a row per locale:
   - the rule messages (`crates/ew-checks/messages/<locale>/*.ftl`): each message's value and attributes (`.title`,
     `.hint`) that en-GB has;
   - the user guide (`docs/book/po/`): the messages of the template `messages.pot` that each `<language>.po` translates
-    (a fuzzy or empty translation is untranslated), and of those the tutorials' (the messages that a page of
-    `src/tutorials/` holds); the source language, English, is the template itself.
+    (a fuzzy or empty translation is untranslated), and of those the tutorials' (the messages that the introduction or
+    a page of `src/tutorials/` holds, the pages DC-11 asks whole); the source language, English, is the template
+    itself.
 
-It exits 1, naming why, when nl-NL has less than 95 % of the window's texts or `nl.po` leaves a tutorial message
-untranslated. WP-S6.08 attaches its output to a release (RC-06); Weblate's statistics replace it once a Weblate
+It exits 1, naming why, when nl-NL has less than 95 % of the window's texts or `nl.po` leaves a message of the
+introduction or a tutorial untranslated. WP-S6.08 attaches its output to a release (RC-06); Weblate's statistics replace it once a Weblate
 project exists. `--stale` compares the messages (not the references or the header) of two templates and exits 1,
 saying what differs, when they differ: `ci/build-book.sh` warns with it when the committed template is stale.
 Standard library only.
@@ -43,7 +44,8 @@ BAR = 95.0
 BAR_LOCALE = "nl-NL"
 # The PO language whose tutorials must be whole (NFR-I18N-07's Dutch tutorials).
 TUTORIALS_LANGUAGE = "nl"
-TUTORIALS = "src/tutorials/"
+# The pages it must translate whole (DC-11): the introduction, the tutorials page and the tutorials.
+TUTORIALS = ("src/introduction.md", "src/tutorials/")
 
 MESSAGE = re.compile(r"^(-?[A-Za-z][A-Za-z0-9_-]*)\s*=\s*(.*)$")
 ATTRIBUTE = re.compile(r"^\s+\.([A-Za-z][A-Za-z0-9_-]*)\s*=\s*(.*)$")
@@ -230,8 +232,8 @@ def report(root):
         "## The user guide",
         "",
         f"The messages of the template `{PO_DIR.replace(os.sep, '/')}/{TEMPLATE}` (the hand-written pages and the "
-        "table of contents) that each PO file translates; the tutorials are the messages of the pages of "
-        f"`{TUTORIALS}`. An untranslated message shows in English.",
+        "table of contents) that each PO file translates; the tutorials are the messages of "
+        f"`{TUTORIALS[0]}` and of the pages of `{TUTORIALS[1]}`. An untranslated message shows in English.",
         "",
         "| Language | Translated | Of the template | Share | Tutorials translated | Of the tutorials "
         "| Tutorials share |",
@@ -243,7 +245,10 @@ def report(root):
             f"{pct(share(tut_done, tut_total))} |"
         )
         if language == TUTORIALS_LANGUAGE and tut_done < tut_total:
-            failures.append(f"{language}.po leaves {tut_total - tut_done} tutorial message(s) untranslated")
+            failures.append(
+                f"{language}.po leaves {tut_total - tut_done} message(s) of the introduction and the tutorials "
+                "untranslated"
+            )
     return "\n".join(lines) + "\n", failures
 
 
@@ -360,11 +365,24 @@ class StatusTest(unittest.TestCase):
             failures,
             [
                 "nl-NL has 90.0 % of the window's texts, below 95.0 %",
-                "nl.po leaves 2 tutorial message(s) untranslated",
+                "nl.po leaves 2 message(s) of the introduction and the tutorials untranslated",
             ],
         )
         self.fixture(19, 'msgid "Tutorials"\nmsgstr "Lessen"\n\nmsgid "Step"\nmsgstr "Stap"\n')
         self.assertEqual(report(self.root)[1], [])
+
+    def test_the_bar_counts_the_introduction(self):
+        self.fixture(20, 'msgid "Tutorials"\nmsgstr "Lessen"\n\nmsgid "Step"\nmsgstr "Stap"\n')
+        self.write(
+            "docs/book/po/messages.pot",
+            self.HEADER
+            + '#: src/SUMMARY.md:1 src/tutorials/index.md:1\nmsgid "Tutorials"\nmsgstr ""\n\n'
+            + '#: src/tutorials/first-page.md:3\nmsgid "Step"\nmsgstr ""\n\n'
+            + '#: src/introduction.md:3\nmsgid "Welcome"\nmsgstr ""\n',
+        )
+        text, failures = report(self.root)
+        self.assertIn("| nl | 2 | 3 | 66.6 % | 2 | 3 | 66.6 % |\n", text)
+        self.assertEqual(failures, ["nl.po leaves 1 message(s) of the introduction and the tutorials untranslated"])
 
     def test_a_share_short_of_the_whole_never_reads_100(self):
         self.assertEqual(pct(share(1999, 2000)), "99.9 %")
