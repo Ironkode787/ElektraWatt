@@ -277,7 +277,14 @@ fn w49_2_f1_every_form_dialog_focuses_its_first_text_field_or_its_primary() {
         checked.insert(check_form(&mut h, action, json!({})));
     }
     goto(&mut h, "102");
-    let wire = h.state().shell().canvas().expect("folio 102").page().tables.connections[0]
+    let wire = h
+        .state()
+        .shell()
+        .canvas()
+        .expect("folio 102")
+        .page()
+        .tables
+        .connections[0]
         .id
         .to_string();
     dispatch(&mut h, "select.set", json!({ "ids": [wire] }));
