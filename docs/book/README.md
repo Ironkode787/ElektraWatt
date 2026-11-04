@@ -14,7 +14,7 @@ belongs there.
 | `book.toml` | the mdBook configuration (title, language, offline HTML output) |
 | `src/SUMMARY.md` | the table of contents; the entries below `reference/commands/index.md` and `reference/rules/index.md` are generated |
 | `src/introduction.md` | what the guide is and how it is organised |
-| `src/tutorials/` | lessons, each run as a test of the build (WP-S7.05 D10, D11): [a first schematic page](src/tutorials/first-page.md) and [a first headless run on the golden project](src/tutorials/headless-workflow.md) |
+| `src/tutorials/` | lessons, each run as a test of the build (WP-S7.05 D10, D11): [a first schematic page](src/tutorials/first-page.md), [importing a QElectroTech project](src/tutorials/import-qet.md) and [a first headless run on the golden project](src/tutorials/headless-workflow.md); `files/` holds the files a tutorial starts from |
 | `tutorial-scripts/` | the UI script of each window tutorial (`ew.uiscript/1`), run by `elektrawatt`'s `tutorials` test, which also checks the page's menu paths and keys against the window (T6) |
 | `rule-notes/` | the hand-written notes of every shipped rule, one file per rule ID with six headings; `docs-gen` joins them into the rule pages and fails without them (WP-S7.05 D5) |
 | `src/how-to/` | task guides: [using the application window](src/how-to/application-window.md), the target of F1 (no build bundles the built guide with the application yet; decision log ID-492) |

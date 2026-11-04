@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SPDX-FileCopyrightText: 2026 The ElektraWatt contributors -->
+<!-- SPDX-License-Identifier: CC-BY-4.0 -->
+<!-- A small QElectroTech project written for the tutorial "Importing a QElectroTech project" of the user guide. -->
+<project version="0.100" title="Lamp circuit">
+  <properties/>
+  <newdiagrams><border cols="17" colsize="60" rows="8" rowsize="80" displaycols="true" displayrows="true"/><report label="%F-%l%c"/></newdiagrams>
+  <diagram order="1" folio="1" title="Lamp circuit" cols="17" colsize="60" rows="8" rowsize="80" height="660" author="" date="" indexrev="" version="0.100.0">
+    <elements>
+      <element type="embed://import/tutorial/switch.elmt" uuid="00000000-0000-4000-8000-000000000001" x="200" y="200" z="10" orientation="0" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-20" orientation="n" id="1"/>
+          <terminal x="0" y="20" orientation="s" id="2"/>
+        </terminals>
+        <inputs/>
+        <elementInformations>
+          <elementInformation name="label" show="1">S1</elementInformation>
+        </elementInformations>
+        <dynamic_texts/>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+      <element type="embed://import/tutorial/lamp.elmt" uuid="00000000-0000-4000-8000-000000000002" x="200" y="320" z="10" orientation="0" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-20" orientation="n" id="3"/>
+          <terminal x="0" y="20" orientation="s" id="4"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts/>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+      <element type="embed://import/tutorial/supply.elmt" uuid="00000000-0000-4000-8000-000000000003" x="100" y="260" z="10" orientation="0" prefix="" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-20" orientation="n" id="5"/>
+          <terminal x="0" y="20" orientation="s" id="6"/>
+          <terminal x="20" y="0" orientation="e" id="7"/>
+        </terminals>
+        <inputs/>
+        <elementInformations>
+          <elementInformation name="label" show="1">G1</elementInformation>
+        </elementInformations>
+        <dynamic_texts/>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+      <element type="embed://import/tutorial/earth.elmt" uuid="00000000-0000-4000-8000-000000000004" x="140" y="290" z="10" orientation="0" prefix="X" freezeLabel="false">
+        <terminals>
+          <terminal x="0" y="-20" orientation="n" id="8"/>
+        </terminals>
+        <inputs/>
+        <elementInformations/>
+        <dynamic_texts/>
+        <texts_groups/>
+        <links_uuids/>
+      </element>
+    </elements>
+    <conductors>
+      <conductor element1="00000000-0000-4000-8000-000000000001" terminal1="00000000-0000-4000-8000-000000000102" element2="00000000-0000-4000-8000-000000000002" terminal2="00000000-0000-4000-8000-000000000201" num="" function="" tension_protocol="" conductor_color="" conductor_section="" type="multi" x="0" y="0" freezeLabel="false"/>
+      <conductor element1="00000000-0000-4000-8000-000000000003" terminal1="00000000-0000-4000-8000-000000000301" element2="00000000-0000-4000-8000-000000000001" terminal2="00000000-0000-4000-8000-000000000101" num="" function="" tension_protocol="" conductor_color="" conductor_section="" type="multi" x="0" y="0" freezeLabel="false"/>
+      <conductor element1="00000000-0000-4000-8000-000000000003" terminal1="00000000-0000-4000-8000-000000000303" element2="00000000-0000-4000-8000-000000000004" terminal2="00000000-0000-4000-8000-000000000401" num="" function="" tension_protocol="" conductor_color="" conductor_section="" type="multi" x="0" y="0" freezeLabel="false"/>
+    </conductors>
+  </diagram>
+  <collection>
+    <category name="import"><names><name lang="en">Imported elements</name></names><category name="tutorial"><names><name lang="en">Tutorial</name></names>
+      <element name="switch.elmt">
+        <definition type="element" version="0.100.0" link_type="simple" width="20" height="60" hotspot_x="10" hotspot_y="30">
+          <uuid uuid="00000000-0000-4000-8000-000000000100"/>
+          <names><name lang="en">Switch</name></names>
+          <informations/>
+          <description>
+            <line x1="0" y1="-20" x2="0" y2="-8" antialias="false" style="line-style:normal;line-weight:normal;filling:none;color:black"/>
+            <line x1="0" y1="-8" x2="-7" y2="8" antialias="false" style="line-style:normal;line-weight:normal;filling:none;color:black"/>
+            <line x1="0" y1="8" x2="0" y2="20" antialias="false" style="line-style:normal;line-weight:normal;filling:none;color:black"/>
+            <terminal x="0" y="-20" orientation="n" name="1" type="Generic" uuid="00000000-0000-4000-8000-000000000101"/>
+            <terminal x="0" y="20" orientation="s" name="2" type="Generic" uuid="00000000-0000-4000-8000-000000000102"/>
+          </description>
+        </definition>
+      </element>
+      <element name="lamp.elmt">
+        <definition type="element" version="0.100.0" link_type="simple" width="20" height="60" hotspot_x="10" hotspot_y="30">
+          <uuid uuid="00000000-0000-4000-8000-000000000200"/>
+          <names><name lang="en">Lamp</name></names>
+          <informations/>
+          <description>
+            <circle x="-8" y="-8" diameter="16" antialias="true" style="line-style:normal;line-weight:normal;filling:none;color:black"/>
+            <line x1="-6" y1="-6" x2="6" y2="6" antialias="true" style="line-style:normal;line-weight:normal;filling:none;color:black"/>
+            <line x1="6" y1="-6" x2="-6" y2="6" antialias="true" style="line-style:normal;line-weight:normal;filling:none;color:black"/>
+            <line x1="0" y1="-20" x2="0" y2="-8" antialias="false" style="line-style:normal;line-weight:normal;filling:none;color:black"/>
+            <line x1="0" y1="8" x2="0" y2="20" antialias="false" style="line-style:normal;line-weight:normal;filling:none;color:black"/>
+            <terminal x="0" y="-20" orientation="n" name="X1" type="Generic" uuid="00000000-0000-4000-8000-000000000201"/>
+            <terminal x="0" y="20" orientation="s" name="X2" type="Generic" uuid="00000000-0000-4000-8000-000000000202"/>
+          </description>
+        </definition>
+      </element>
+      <element name="supply.elmt">
+        <definition type="element" version="0.100.0" link_type="simple" width="40" height="60" hotspot_x="20" hotspot_y="30">
+          <uuid uuid="00000000-0000-4000-8000-000000000300"/>
+          <names><name lang="en">Supply</name></names>
+          <informations/>
+          <description>
+            <rect x="-15" y="-10" width="30" height="20" antialias="false" style="line-style:normal;line-weight:normal;filling:none;color:black"/>
+            <line x1="0" y1="-20" x2="0" y2="-10" antialias="false" style="line-style:normal;line-weight:normal;filling:none;color:black"/>
+            <line x1="0" y1="10" x2="0" y2="20" antialias="false" style="line-style:normal;line-weight:normal;filling:none;color:black"/>
+            <terminal x="0" y="-20" orientation="n" name="+" type="Generic" uuid="00000000-0000-4000-8000-000000000301"/>
+            <terminal x="0" y="20" orientation="s" name="-" type="Generic" uuid="00000000-0000-4000-8000-000000000302"/>
+            <line x1="15" y1="0" x2="20" y2="0" antialias="false" style="line-style:normal;line-weight:normal;filling:none;color:black"/>
+            <terminal x="20" y="0" orientation="e" name="PE" type="Generic" uuid="00000000-0000-4000-8000-000000000303"/>
+          </description>
+        </definition>
+      </element>
+      <element name="earth.elmt">
+        <definition type="element" version="0.100.0" link_type="simple" width="20" height="40" hotspot_x="10" hotspot_y="20">
+          <uuid uuid="00000000-0000-4000-8000-000000000400"/>
+          <names><name lang="en">Earth</name></names>
+          <informations/>
+          <description>
+            <line x1="0" y1="-20" x2="0" y2="0" antialias="false" style="line-style:normal;line-weight:normal;filling:none;color:black"/>
+            <line x1="-8" y1="0" x2="8" y2="0" antialias="false" style="line-style:normal;line-weight:normal;filling:none;color:black"/>
+            <line x1="-5" y1="4" x2="5" y2="4" antialias="false" style="line-style:normal;line-weight:normal;filling:none;color:black"/>
+            <line x1="-2" y1="8" x2="2" y2="8" antialias="false" style="line-style:normal;line-weight:normal;filling:none;color:black"/>
+            <terminal x="0" y="-20" orientation="n" name="PE" type="Generic" uuid="00000000-0000-4000-8000-000000000401"/>
+          </description>
+        </definition>
+      </element>
+    </category></category>
+  </collection>
+</project>

@@ -6,6 +6,7 @@
 
 - [Tutorials](tutorials/index.md)
   - [A first schematic page with potentials](tutorials/first-page.md)
+  - [Importing a QElectroTech project](tutorials/import-qet.md)
   - [A first headless run on the golden project](tutorials/headless-workflow.md)
 
 # How-to guides

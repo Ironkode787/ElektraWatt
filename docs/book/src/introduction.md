@@ -26,6 +26,18 @@ The guide follows the [Diátaxis](https://diataxis.fr/) structure: four kinds of
 | [Reference](reference/index.md) | look up an exact fact: a command, a parameter, a rule | complete and dry; parts are generated from the code |
 | [Explanation](explanation/index.md) | understand why EW works the way it does | background and design reasoning |
 
+## Where to start
+
+- **New to EW:** the tutorial [A first schematic page with potentials](tutorials/first-page.md). If you come from
+  QElectroTech, [Importing a QElectroTech project](tutorials/import-qet.md) brings a project of yours over.
+- **A task at hand:** the how-to guides, among them [Choose parts](how-to/choose-parts.md) and
+  [Upgrade a project](how-to/upgrade-a-project.md).
+- **A fact to look up:** the [rule reference](reference/rules/index.md), with a page per check rule; the window's
+  [tools](reference/window/tools.md), [dialogs](reference/window/dialogs.md) and [panels](reference/window/panels.md);
+  and the [release notes](reference/release-notes/index.md) of every release.
+- **Coming from another program:** [EPLAN and EW](explanation/eplan-and-ew.md) and
+  [QElectroTech and EW](explanation/qet-and-ew.md) relate the concepts you know to EW's.
+
 ## What the guide does not contain
 
 The design documents, the architecture decision records and the work plan stay in the repository, next to the code

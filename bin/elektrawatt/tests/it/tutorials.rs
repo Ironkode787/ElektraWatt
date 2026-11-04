@@ -103,15 +103,29 @@ fn all_done(out: &Output) -> String {
     text
 }
 
-/// The `describe` text of the transcript's last `ui.describe` step.
-fn last_describe(transcript: &str) -> String {
+/// The `describe` texts of the transcript's `ui.describe` steps, in order.
+fn describes(transcript: &str) -> Vec<String> {
     transcript
         .lines()
         .skip(1)
         .map(|l| serde_json::from_str::<Value>(l).unwrap())
         .filter_map(|s| s["describe"].as_str().map(str::to_owned))
-        .last()
-        .expect("a ui.describe step")
+        .collect()
+}
+
+/// The `describe` text of the transcript's last `ui.describe` step.
+fn last_describe(transcript: &str) -> String {
+    describes(transcript).pop().expect("a ui.describe step")
+}
+
+/// The lines of a `describe` text that start with one of `starts`, trimmed.
+fn lines_of(describe: &str, starts: &[&str]) -> Vec<String> {
+    describe
+        .lines()
+        .map(str::trim)
+        .filter(|l| starts.iter().any(|s| l.starts_with(s)))
+        .map(str::to_owned)
+        .collect()
 }
 
 // -------------------------------------------------------------------------------------------------------------------
@@ -376,6 +390,66 @@ fn tutorial_1_a_first_schematic_page_runs_as_its_page_says() {
             "tutorials/first-page.md",
             &page("tutorials/first-page.md"),
             Some(&script("first-page")),
+            &items
+        ),
+        Vec::<String>::new()
+    );
+}
+
+/// Tutorial 6 (D10, D17, DC-7): the tutorial's QElectroTech project imported through the front door and its preview,
+/// the migration report read, the return wire drawn and the four parts chosen, checked and saved: every step done, the
+/// report's counts before and after the fixes as the page states them, and the page passes the lint.
+#[test]
+fn tutorial_6_importing_a_qelectrotech_project_runs_as_its_page_says() {
+    let tmp = Tmp::new();
+    std::fs::copy(
+        Path::new(BOOK).join("src/tutorials/files/lamp-circuit.qet"),
+        tmp.path("lamp-circuit.qet"),
+    )
+    .unwrap();
+    let out = run_tutorial(&tmp, "import-qet");
+    let transcript = all_done(&out);
+    let [preview, imported, end] = <[String; 3]>::try_from(describes(&transcript)).unwrap();
+    assert_eq!(
+        lines_of(&preview, &["label \"1 pages"]),
+        ["label \"1 pages, 4 devices, 3 connections; 0 errors, 8 warnings and 5 infos in the migration report\""]
+    );
+    let report = ["messages scheme", "row level 2 rule"];
+    assert_eq!(
+        lines_of(&imported, &report),
+        [
+            "messages scheme \"Migration report\" errors 0 warnings 8 infos 5 waived 0 pending 0",
+            "row level 2 rule \"EW-CORE-041 Device without part\" badge \"4\" expanded",
+            "row level 2 rule \"EW-IMP-008 Value kept as foreign or opaque text\" badge \"1\" expanded",
+            "row level 2 rule \"EW-IMP-119 Element without function semantics\" badge \"1\" expanded",
+            "row level 2 rule \"EW-POT-009 Unconnected CP\" badge \"2\" expanded",
+            "row level 2 rule \"EW-IMP-103 Label kept as a frozen tag\" badge \"2\" expanded",
+            "row level 2 rule \"EW-IMP-122 Unlabelled element, tag synthesised\" badge \"1\" expanded",
+            "row level 2 rule \"EW-NUM-001 Tag deviates from the scheme\" badge \"2\" expanded",
+        ]
+    );
+    assert_eq!(
+        lines_of(&end, &report),
+        [
+            "messages scheme \"Migration report\" errors 0 warnings 2 infos 5 waived 0 pending 0",
+            "row level 2 rule \"EW-IMP-008 Value kept as foreign or opaque text\" badge \"1\" expanded",
+            "row level 2 rule \"EW-IMP-119 Element without function semantics\" badge \"1\" expanded",
+            "row level 2 rule \"EW-IMP-103 Label kept as a frozen tag\" badge \"2\" expanded",
+            "row level 2 rule \"EW-IMP-122 Unlabelled element, tag synthesised\" badge \"1\" expanded",
+            "row level 2 rule \"EW-NUM-001 Tag deviates from the scheme\" badge \"2\" expanded",
+        ]
+    );
+    assert_eq!(
+        lines_of(&end, &["title:"]),
+        ["title: lamp-circuit.ew - ElektraWatt"]
+    );
+    assert!(tmp.path("lamp-circuit.ew/project.jsonl").is_file());
+    let items = items(&tmp);
+    assert_eq!(
+        lint(
+            "tutorials/import-qet.md",
+            &page("tutorials/import-qet.md"),
+            Some(&script("import-qet")),
             &items
         ),
         Vec::<String>::new()

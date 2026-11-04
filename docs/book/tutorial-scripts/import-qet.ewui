@@ -1,0 +1,34 @@
+{"$schema":"ew.uiscript/1","label":"Tutorial 6: importing a QElectroTech project"}
+{"action":"file.import_qet","params":{"file":"lamp-circuit.qet","dir":"lamp-circuit.ew"}}
+{"action":"ui.describe"}
+{"action":"file.import_qet_apply","params":{"confirm":true}}
+{"action":"ui.describe"}
+{"action":"tool.wire"}
+{"action":"cursor.set","params":{"x_mm":61.981,"y_mm":98.514}}
+{"action":"canvas.activate"}
+{"action":"cursor.set","params":{"x_mm":35.885,"y_mm":82.857}}
+{"action":"canvas.activate"}
+{"action":"tool.select"}
+{"action":"canvas.press","params":{"x_mm":61.981,"y_mm":93.295}}
+{"action":"canvas.release","params":{"x_mm":61.981,"y_mm":93.295}}
+{"action":"part.choose"}
+{"action":"part.search","params":{"text":"lamp"}}
+{"action":"part.pick","params":{"part":"EW-GEN-LMP-1"}}
+{"action":"canvas.press","params":{"x_mm":61.981,"y_mm":61.981}}
+{"action":"canvas.release","params":{"x_mm":61.981,"y_mm":61.981}}
+{"action":"part.choose"}
+{"action":"part.search","params":{"text":"on/off"}}
+{"action":"part.pick","params":{"part":"EW-GEN-SW-1"}}
+{"action":"canvas.press","params":{"x_mm":35.885,"y_mm":77.638}}
+{"action":"canvas.release","params":{"x_mm":35.885,"y_mm":77.638}}
+{"action":"part.choose"}
+{"action":"part.search","params":{"text":"power supply"}}
+{"action":"part.pick","params":{"part":"EW-GEN-PSU-1"}}
+{"action":"canvas.press","params":{"x_mm":46.324,"y_mm":85.467}}
+{"action":"canvas.release","params":{"x_mm":46.324,"y_mm":85.467}}
+{"action":"part.choose"}
+{"action":"part.search","params":{"text":"earth"}}
+{"action":"part.pick","params":{"part":"EW-GEN-TRM-2"}}
+{"action":"messages.check"}
+{"action":"file.save"}
+{"action":"ui.describe"}
