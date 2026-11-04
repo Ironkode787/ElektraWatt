@@ -1173,10 +1173,20 @@ fn a_fluid_line_shows_its_line_kind_row_and_a_wire_none() {
     );
     let sheet = s.property_sheet(&[line]);
     assert_eq!(one(row(&sheet, "connection/line_kind")), "drain");
-    let keys: Vec<&str> = sheet.sections.iter().flat_map(|x| &x.rows).map(|r| r.key.as_str()).collect();
+    let keys: Vec<&str> = sheet
+        .sections
+        .iter()
+        .flat_map(|x| &x.rows)
+        .map(|r| r.key.as_str())
+        .collect();
     assert!(!keys.contains(&"connection/kind"), "{keys:?}");
     let w29 = wire(&s, "W29");
     let sheet = s.property_sheet(&[w29]);
-    let keys: Vec<&str> = sheet.sections.iter().flat_map(|x| &x.rows).map(|r| r.key.as_str()).collect();
+    let keys: Vec<&str> = sheet
+        .sections
+        .iter()
+        .flat_map(|x| &x.rows)
+        .map(|r| r.key.as_str())
+        .collect();
     assert!(!keys.contains(&"connection/line_kind"), "{keys:?}");
 }

@@ -276,7 +276,8 @@ fn bu7j_bus_ports_runs_after_module_pin_binding_and_before_revision_ensure_open(
             .unwrap_or_else(|| panic!("{n} in {ORDER:?}"))
     };
     assert_eq!(at("bus_ports"), at("module_pin_binding") + 1, "{ORDER:?}");
-    assert_eq!(at("revision_ensure_open"), at("bus_ports") + 1, "{ORDER:?}");
+    // WP-S1.20 D15: N-FL-4 `drives_link` runs between them.
+    assert!(at("revision_ensure_open") > at("bus_ports"), "{ORDER:?}");
 }
 
 // ---------------------------------------------------------------------------------------------------------

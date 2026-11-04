@@ -1738,7 +1738,8 @@ impl Session {
             listed.push(spec.path.as_str());
             // WP-S1.20 D18: the line kind is a row of fluid lines only, and on them it stands for the kind's JSON.
             if kind == Kind::Connection
-                && ((spec.path == super::fields::LINE_KIND && !fluid_lines) || (spec.path == "kind" && fluid_lines))
+                && ((spec.path == super::fields::LINE_KIND && !fluid_lines)
+                    || (spec.path == "kind" && fluid_lines))
             {
                 continue;
             }

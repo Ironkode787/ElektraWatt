@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The fluid commands of WP-S1.20: the refusals of `connection.draw` at fluid ports (§5 T1 to T3, D11),
-//! `valve.set_occupancy` (D9, FL-8), `fluid.port.close` (D10) and `fields.set` path `line_kind` (D18).
+//! `valve.set_occupancy` (D9, FL-8), `fluid.port.close` (D10), `fields.set` path `line_kind` (D18), normaliser N-FL-4
+//! `drives_link` (D15, FL-10) and `device.link`'s refusal T4.
 // A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
 #![allow(clippy::disallowed_methods)]
 
@@ -324,6 +325,161 @@ fn refusal_of(e: &mut Engine, cmd: &dyn ew_commands::DynCommand) -> String {
         Err(CmdError::Rejected { reason, .. }) => reason,
         other => panic!("expected a refusal, got {other:?}"),
     }
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// N-FL-4 drives_link (D15) and device.link (T4)
+
+const VALVE_DEF: Id<FnDef> = id(0x7600);
+const CYL_DEF: Id<FnDef> = id(0x7601);
+const TERMINAL: Id<Device> = id(0x7610);
+const VALVE: Id<Device> = id(0x7611);
+const CYL_A: Id<Device> = id(0x7612);
+const CYL_B: Id<Device> = id(0x7613);
+const FN_VALVE: Id<Function> = id(0x7621);
+const FN_CYL_A: Id<Function> = id(0x7622);
+const FN_CYL_B: Id<Function> = id(0x7623);
+
+/// A pneumatic FnDef copy of `contact` kind whose CPs carry `roles`.
+fn role_fndef(def: Id<FnDef>, contact: ew_schema::ContactKind, roles: &[&str]) -> LibCopy<FnDef> {
+    let designations: Vec<String> = (1..=roles.len()).map(|n| n.to_string()).collect();
+    let names: Vec<&str> = designations.iter().map(String::as_str).collect();
+    let mut copy = fluid_fndef_n(def, &names);
+    copy.item.contact_kind = contact;
+    let cps = copy
+        .item
+        .cps
+        .iter()
+        .cloned()
+        .zip(roles)
+        .map(|(mut c, r)| {
+            c.port_role = serde_json::from_value(json!(r)).ok();
+            c
+        })
+        .collect();
+    copy.item.cps = KeyedList::from_vec(cps).expect("distinct CP indexes");
+    copy
+}
+
+/// A pneumatic FnDef copy with the given designations.
+fn fluid_fndef_n(def: Id<FnDef>, designations: &[&str]) -> LibCopy<FnDef> {
+    let mut copy = fndef(def, designations);
+    let cps = copy
+        .item
+        .cps
+        .iter()
+        .cloned()
+        .map(|mut c| {
+            c.discipline = Discipline::Pneumatic;
+            c
+        })
+        .collect();
+    copy.item.cps = KeyedList::from_vec(cps).expect("distinct CP indexes");
+    copy
+}
+
+/// A valve -Q61 (supply 1, working 2 and 4) on a terminal -U61 and two cylinders -Q62 and -Q63 (consumer A, B).
+fn actuator_model() -> Model {
+    let (p, mut records, _) = mini_golden_parts();
+    let mut lib = library();
+    lib.push(LibDocument::Fndef(role_fndef(
+        VALVE_DEF,
+        ew_schema::ContactKind::Valve,
+        &["supply1", "working2", "exhaust3", "working4", "exhaust5"],
+    )));
+    lib.push(LibDocument::Fndef(role_fndef(
+        CYL_DEF,
+        ew_schema::ContactKind::BlackBox,
+        &["consumer", "consumer"],
+    )));
+    records.push(Record::Device(device(TERMINAL, "U", 61)));
+    let mut valve = device(VALVE, "Q", 61);
+    valve.parent = Some(TERMINAL);
+    records.push(Record::Device(valve));
+    records.push(Record::Function(function(
+        FN_VALVE,
+        VALVE,
+        VALVE_DEF,
+        FnRole::Main,
+    )));
+    for (d, f, n) in [(CYL_A, FN_CYL_A, 62), (CYL_B, FN_CYL_B, 63)] {
+        records.push(Record::Device(device(d, "Q", n)));
+        records.push(Record::Function(function(f, d, CYL_DEF, FnRole::Main)));
+    }
+    Model::from_records(p, records, lib).expect("the actuators")
+}
+
+fn drives_links(e: &Engine) -> Vec<(Id<Device>, Id<Device>)> {
+    e.model()
+        .table::<ew_schema::DeviceLink>()
+        .iter()
+        .map(|(_, l)| (l.from, l.to))
+        .collect()
+}
+
+/// FL-10: the first line from a working port to a cylinder adds the `drives` link (T22); a second line adds none.
+#[test]
+fn a_working_line_to_one_cylinder_links_the_valve_once() {
+    let mut e = engine(actuator_model());
+    let r = e
+        .execute(&draw(cp_param(FN_VALVE, 1), cp_param(FN_CYL_A, 0), fluid()))
+        .expect("F1");
+    assert_eq!(r.outcome.notices, ["-?Q61 now drives -?Q62"]);
+    assert_eq!(drives_links(&e), [(VALVE, CYL_A)]);
+    let r = e
+        .execute(&draw(cp_param(FN_VALVE, 3), cp_param(FN_CYL_A, 1), fluid()))
+        .expect("F2");
+    assert!(r.outcome.notices.is_empty(), "{:?}", r.outcome.notices);
+    assert_eq!(drives_links(&e), [(VALVE, CYL_A)]);
+    // A line from the supply port reaches no consumer through a working port: nothing.
+    let mut e = engine(actuator_model());
+    e.execute(&draw(cp_param(FN_VALVE, 0), cp_param(FN_CYL_B, 0), fluid()))
+        .expect("a supply line");
+    assert!(drives_links(&e).is_empty());
+}
+
+/// FL-10: a working line that reaches two cylinders adds no link and says so (T23).
+#[test]
+fn a_working_line_to_two_cylinders_links_nothing() {
+    let mut e = engine(actuator_model());
+    e.execute(&draw(cp_param(FN_CYL_A, 0), cp_param(FN_CYL_B, 0), fluid()))
+        .expect("a line between the cylinders");
+    let r = e
+        .execute(&draw(cp_param(FN_VALVE, 1), cp_param(FN_CYL_A, 0), fluid()))
+        .expect("a line");
+    assert!(drives_links(&e).is_empty());
+    assert_eq!(
+        r.outcome.notices,
+        ["the working-port lines of -?Q61 reach -?Q62 and -?Q63; link the driven device by hand"]
+    );
+}
+
+/// D15: N-FL-4 runs after `bus_ports` (doc 06 §3.2 row 16).
+#[test]
+fn drives_link_runs_after_bus_ports() {
+    let order = ew_commands::normalise::ORDER;
+    let at = |n: &str| {
+        order
+            .iter()
+            .position(|o| *o == n)
+            .unwrap_or_else(|| panic!("{n}"))
+    };
+    assert_eq!(at("drives_link"), at("bus_ports") + 1, "{order:?}");
+}
+
+/// T4: a valve does not drive the terminal that holds it.
+#[test]
+fn a_valve_cannot_drive_its_terminal() {
+    let mut e = engine(actuator_model());
+    let cmd = ew_commands::commands::LinkDevices {
+        from: VALVE,
+        to: TERMINAL,
+        kind: ew_schema::DeviceLinkKind::Drives,
+    };
+    assert_eq!(
+        refusal_of(&mut e, &cmd),
+        "-?Q61 cannot drive -?U61, which holds it"
+    );
 }
 
 // ---------------------------------------------------------------------------------------------------------

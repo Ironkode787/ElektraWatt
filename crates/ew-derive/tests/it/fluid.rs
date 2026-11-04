@@ -7,7 +7,9 @@
 use crate::common;
 
 use common::{Fx, id, uid};
-use ew_derive::{FluidNets, NetId, PotentialPartition, Q};
+use ew_derive::{
+    FluidNets, NetId, PotentialPartition, Q, reached_device, tracked_process_tag, tracked_target,
+};
 use ew_model::EndpointKey;
 use serde_json::json;
 
@@ -81,6 +83,59 @@ fn fluid_lines_and_their_junction_make_one_fluid_net() {
     assert_eq!(Some(net.id), NetId::of(net.members.iter().copied()));
     // A port that no fluid line reaches is in no fluid net.
     assert!(nets.net_of(EndpointKey::Cp(id(0x200), 0)).is_none());
+}
+
+const FNDEF_CYL: u128 = 0x702;
+
+/// [`valves`] plus two cylinders -Q11 and -Q12 (consumer ports A and B) with process tags.
+fn with_cylinders() -> Fx {
+    let mut fx = valves();
+    fx.lib_item(
+        "fndef",
+        FNDEF_CYL,
+        json!({"meta": {}, "category": ["Actuator", "Cylinder", "DoubleActing"], "contact_kind": "black_box", "cps": [
+            {"idx": 0, "designation": "A", "discipline": "pneumatic", "port_role": "consumer"},
+            {"idx": 1, "designation": "B", "discipline": "pneumatic", "port_role": "consumer"},
+        ]}),
+    );
+    for (dev, f, n, tag) in [(0x110, 0x220, 11, "TA05-V-15"), (0x111, 0x221, 12, "TA05-V-33")] {
+        fx.device(dev, "Q", Some(n))
+            .with("process_tag", json!(tag))
+            .function(f, Some(dev), FNDEF_CYL, true);
+    }
+    fx.record(0x100)["process_tag"] = json!("OWN-1");
+    fx
+}
+
+/// D13 (FL-10, FL-11): a line from a working port reaches the cylinder; the tracked target is the `drives` link's
+/// device first, else the reached device; the process tag follows it, else the valve's own.
+#[test]
+fn the_tracked_target_is_the_drives_link_else_the_reached_device() {
+    let mut fx = with_cylinders();
+    line(&mut fx, 0x400, cp(0x200, 1), cp(0x220, 0), json!({"fluid": {}}));
+    let m = fx.build();
+    let q = Q::new(&m);
+    assert_eq!(reached_device(&q, id(0x100)), Some(id(0x110)));
+    assert_eq!(tracked_target(&q, id(0x100)), Some(id(0x110)));
+    assert_eq!(tracked_process_tag(&q, id(0x100)).as_deref(), Some("TA05-V-15"));
+    // A supply port's line reaches nothing: only working ports count.
+    assert_eq!(reached_device(&q, id(0x101)), None);
+    // A `drives` link wins over the reached device.
+    let mut fx = with_cylinders();
+    line(&mut fx, 0x400, cp(0x200, 1), cp(0x220, 0), json!({"fluid": {}}));
+    fx.push(json!({"$k": "device_link", "id": uid(0x500), "from": uid(0x100), "to": uid(0x111), "kind": "drives"}));
+    let m = fx.build();
+    let q = Q::new(&m);
+    assert_eq!(tracked_target(&q, id(0x100)), Some(id(0x111)));
+    assert_eq!(tracked_process_tag(&q, id(0x100)).as_deref(), Some("TA05-V-33"));
+    // Two reached devices: none is the target, and the valve's own process tag stands.
+    let mut fx = with_cylinders();
+    line(&mut fx, 0x400, cp(0x200, 1), cp(0x220, 0), json!({"fluid": {}}));
+    line(&mut fx, 0x401, cp(0x200, 1), cp(0x221, 0), json!({"fluid": {}}));
+    let m = fx.build();
+    let q = Q::new(&m);
+    assert_eq!(reached_device(&q, id(0x100)), None);
+    assert_eq!(tracked_process_tag(&q, id(0x100)).as_deref(), Some("OWN-1"));
 }
 
 #[test]

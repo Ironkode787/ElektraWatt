@@ -771,7 +771,17 @@ fn slot_values(q: &Q, page: Id<Page>, rep: &Representation, def: &SymbolDef) -> 
                 Some(FunctionKind::Ip(ip)) => Some(ip.name.as_str().to_owned()),
                 // ID-1151: a terminal labelled by its function text prints it once, in its tag slot.
                 _ if label.as_ref().is_some_and(|(_, by_text)| *by_text) => None,
-                _ => dev.as_ref().map(|d| neutral(&d.function_text)),
+                // WP-S1.20 D14: a slot with the fallback `process_tag` prints, when the function text is empty, the
+                // process tag of the valve's tracked target, else the valve's own.
+                _ => {
+                    let own = dev.as_ref().map(|d| neutral(&d.function_text));
+                    match (&own, &slot.fallback) {
+                        (Some(t), Some(ew_schema::SlotFallback::ProcessTag)) if t.is_empty() => {
+                            device.and_then(|d| ew_derive::tracked_process_tag(q, d)).or(own)
+                        }
+                        _ => own,
+                    }
+                }
             },
             SlotKind::ProcessTag => dev
                 .as_ref()

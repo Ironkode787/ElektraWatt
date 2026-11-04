@@ -1,8 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The fluid side (doc 11 §5.1, WP-S1.20 D12): `fluid_nets()`, the partition of the fluid CPs joined by `fluid`
-//! connections and their junctions.
+//! The fluid side (doc 11 §5.1, WP-S1.20 D12, D13): `fluid_nets()`, the partition of the fluid CPs joined by `fluid`
+//! connections and their junctions, and the tracked target of a valve (`reached_device`, `tracked_target`,
+//! `tracked_process_tag`).
 //!
 //! A fluid net is a connected set of nodes (function CPs and junctions) joined by connections of kind `Fluid`, on
 //! every page and across pages; galleries, fluid interruption points and `Short` links are 1.0's. Its ID is its
@@ -14,11 +15,11 @@ use std::sync::Arc;
 
 use ew_ids::Id;
 use ew_model::EndpointKey;
-use ew_schema::{Connection, ConnectionKind};
+use ew_schema::{Connection, ConnectionKind, Device, FluidPortRole};
 
-use crate::Q;
 use crate::nets::{Dsu, NetId, ends};
 use crate::query::{Policy, Query};
+use crate::{FunctionCps, Q, driven_device};
 
 /// One fluid net.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -94,4 +95,75 @@ impl Query for FluidNets {
         }
         Arc::new(FluidPartition { nets, net_of })
     }
+}
+
+/// The device and its parent chain (doc 11 §3.3: a valve never drives the terminal that holds it); a cycle
+/// (EW-INV-009) ends the walk.
+pub fn parent_chain(q: &Q, device: Id<Device>) -> Vec<Id<Device>> {
+    let devices = q.devices();
+    let mut out = vec![device];
+    let mut at = device;
+    while let Some(p) = devices.get(at).and_then(|d| d.parent) {
+        if out.contains(&p) {
+            break;
+        }
+        out.push(p);
+        at = p;
+    }
+    out
+}
+
+/// `reached_device(valve)` (doc 11 §3.3, WP-S1.20 D13): the single device, other than the valve and its parent chain,
+/// with a CP in a fluid net of one of the valve's working ports (`working2`, `working4`); `None` when there is no
+/// such device or more than one. Cold.
+pub fn reached_device(q: &Q, valve: Id<Device>) -> Option<Id<Device>> {
+    let chain = parent_chain(q, valve);
+    let functions = q.functions();
+    let nets = q.get::<FluidNets>(());
+    let mut reached: Vec<Id<Device>> = Vec::new();
+    for f in q.idx().functions_of_device(valve) {
+        for cp in q.get::<FunctionCps>(f).iter() {
+            if !matches!(
+                cp.port_role,
+                Some(FluidPortRole::Working2 | FluidPortRole::Working4)
+            ) {
+                continue;
+            }
+            let Some(net) = nets.net_of(EndpointKey::Cp(f, cp.idx)) else {
+                continue;
+            };
+            for m in &net.members {
+                let EndpointKey::Cp(g, _) = m else { continue };
+                let Some(d) = functions.get(*g).and_then(|g| g.device) else {
+                    continue;
+                };
+                if !chain.contains(&d) && !reached.contains(&d) {
+                    reached.push(d);
+                }
+            }
+        }
+    }
+    match reached.as_slice() {
+        [one] => Some(*one),
+        _ => None,
+    }
+}
+
+/// `tracked_target(valve)` (doc 11 §3.3, WP-S1.20 D13): the device the valve's `drives` link names
+/// ([`driven_device`]), else its [`reached_device`], else none.
+pub fn tracked_target(q: &Q, valve: Id<Device>) -> Option<Id<Device>> {
+    driven_device(q, valve).or_else(|| reached_device(q, valve))
+}
+
+/// `tracked_process_tag(valve)` (doc 11 §3.3, WP-S1.20 D13): the process tag of the [`tracked_target`], else the
+/// valve's own; `None` when neither has one.
+pub fn tracked_process_tag(q: &Q, valve: Id<Device>) -> Option<String> {
+    let devices = q.devices();
+    let tag = |d: Id<Device>| {
+        devices
+            .get(d)
+            .and_then(|d| d.process_tag.as_ref())
+            .map(|t| t.as_str().to_owned())
+    };
+    tracked_target(q, valve).and_then(tag).or_else(|| tag(valve))
 }

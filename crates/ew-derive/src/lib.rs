@@ -141,7 +141,9 @@ pub use bus::{
 pub use ew_model::EndpointKey;
 pub use flow::{Flow, FlowBfs, FlowConflict, FlowEntry, FlowNotes, Load, PotentialFlow, Upstream};
 pub use flow_distance::{CpFlowDistanceOf, CpFlowDistances};
-pub use fluid::{FluidNet, FluidNets, FluidPartition};
+pub use fluid::{
+    FluidNet, FluidNets, FluidPartition, parent_chain, reached_device, tracked_process_tag, tracked_target,
+};
 pub use names::{
     PotentialAttrsOf, PotentialAttrsV, PotentialNameOf, PotentialNames, cp_text, def_text, potential_named,
     ranked_defs,
