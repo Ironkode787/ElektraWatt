@@ -475,6 +475,12 @@ rule-ew-term-006 =
 
 ## WP-S1.17 part 8 (COL49): collisions after a merge
 
-rule-ew-core-013 =
+rule-ew-core-013 = { $collision } after a merge; { $keeper ->
+        [frozen] the record with the frozen tag
+       *[oldest] the oldest record
+    } keeps it, and { $others ->
+        [many] the others
+       *[one] the other
+    } must change
     .title = Collision after a merge
     .hint = Renumber the newer device with the quick fix, or give one of the records another number.

@@ -21,7 +21,7 @@
 use std::path::{Path, PathBuf};
 
 use ew_api::external::{QUIESCENCE, Take};
-use ew_api::{DiskPoll, ExternalApplied};
+use ew_api::{DiskPoll, ExternalApplied, ExternalError};
 use serde_json::{Map, Value, json};
 
 use super::jobs::bool_param;
@@ -33,9 +33,9 @@ use crate::strings;
 /// One colliding field in the collision dialog (D24).
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct CollisionRow {
-    /// The record in words, with its derived tags (`connection -102G1:+ → -102F1:1`).
+    /// The record in words: its kind and its label in the property grid's words (`connection 102.1`).
     pub record: String,
-    /// The member's path (`overrides.colour`), or the record's absence on one side in words.
+    /// The field in the property grid's words (`Colour override`), or the whole record when one side deleted it.
     pub field: String,
     /// The value at the baseline, as text.
     pub base: String,
@@ -58,12 +58,26 @@ pub(crate) struct CollabState {
     pub(crate) driver_missing: bool,
     /// The banner a held external change set (it goes when the change is applied).
     pub(crate) held_banner: Option<String>,
+    /// Whether the collision dialog of the held change was shown: a poll opens it once, never over another dialog and
+    /// never again after Decide later (a refused save opens it again).
+    pub(crate) collisions_shown: bool,
     /// The migration chain the shell's stores open with, set by a test (feature `testkit`); `None`: the shipped one.
     pub(crate) migrations: Option<&'static ew_api::Migrations>,
 }
 
 /// The most polls `project.check_disk` makes while the change settles.
 const CHECK_POLLS: usize = 5;
+
+/// A side of a collision as the dialog shows it: for a field its value with record IDs named ([`value_text`]); for the
+/// whole record (one side deleted it) whether that side holds it, changed or deleted.
+fn side_text(session: &ew_api::Session, whole: bool, base: bool, v: Option<&Value>) -> String {
+    match (whole, v) {
+        (false, v) => value_text(v.map(|v| session.named_value(v)).as_ref()),
+        (true, None) => strings::text(key!("external-deleted")).to_owned(),
+        (true, Some(_)) if base => strings::text(key!("external-present")).to_owned(),
+        (true, Some(_)) => strings::text(key!("external-changed")).to_owned(),
+    }
+}
 
 /// A value as the collision dialog shows it: a text as it is, a list of texts joined with commas, any other value as
 /// its JSON text, or the word for an absent one.
@@ -112,8 +126,18 @@ impl ShellModel {
         match poll {
             DiskPoll::Applied(applied) => self.external_applied(&applied),
             DiskPoll::Collisions => {
-                self.open_collisions();
+                // A new change: its dialog replaces one of an earlier change, never another dialog.
+                self.collab.collisions_shown = false;
+                if self.dialog.is_none() || matches!(self.dialog, Some(Dialog::ExternalChange { .. })) {
+                    self.open_collisions();
+                }
                 self.hold_banner(strings::text(key!("banner-external-collisions")).to_owned());
+            }
+            // The held change is unchanged: its dialog opens once another dialog has closed, never after Decide later.
+            DiskPoll::Held => {
+                if !self.collab.collisions_shown && self.dialog.is_none() {
+                    self.open_collisions();
+                }
             }
             DiskPoll::Unreadable { retrying: false } => {
                 self.hold_banner(strings::text(key!("banner-external-unreadable")).to_owned());
@@ -201,7 +225,7 @@ impl ShellModel {
     }
 
     /// Opens the collision dialog with every colliding field, mine chosen (D24).
-    fn open_collisions(&mut self) {
+    pub(super) fn open_collisions(&mut self) {
         let Some(p) = self.project.as_ref() else {
             return;
         };
@@ -212,25 +236,29 @@ impl ShellModel {
             .iter()
             .map(|c| {
                 let (kind, id) = c.key;
+                let words = strings::kind_label(kind.name());
                 let label = p
                     .session
                     .record_label(kind, id.as_uuid())
-                    .map_or_else(|| kind.name().to_owned(), |l| format!("{} {l}", kind.name()));
+                    .map_or_else(|| words.clone(), |l| format!("{words} {l}"));
+                let whole = c.path.is_empty();
+                let side = |base: bool, v: Option<&Value>| side_text(&p.session, whole, base, v);
                 CollisionRow {
                     record: label,
-                    field: if c.path.is_empty() {
+                    field: if whole {
                         strings::text(key!("external-whole-record")).to_owned()
                     } else {
                         strings::field_label(kind.name(), &c.path)
                     },
-                    base: value_text(c.base.as_ref()),
-                    mine: value_text(c.mine.as_ref()),
-                    theirs: value_text(c.theirs.as_ref()),
+                    base: side(true, c.base.as_ref()),
+                    mine: side(false, c.mine.as_ref()),
+                    theirs: side(false, c.theirs.as_ref()),
                     take: Take::Mine,
                 }
             })
             .collect();
         self.palette = None;
+        self.collab.collisions_shown = true;
         self.dialog = Some(Dialog::ExternalChange { rows });
     }
 
@@ -300,10 +328,16 @@ impl ShellModel {
                 self.external_applied(&applied);
                 Outcome::Done
             }
-            Err(e) => {
-                let message = strings::format(key!("error-external-apply"), &[&e.to_string()]);
-                Outcome::Failed { message }
+            Err(ExternalError::Nothing) => Outcome::Refused {
+                reason_key: key!("reason-no-external-change"),
+            },
+            // The collisions changed since they were shown: the dialog shows the new ones for a new choice.
+            Err(ExternalError::Changed) => {
+                self.open_collisions();
+                failed(key!("error-external-changed"), &[])
             }
+            Err(ExternalError::Choices(_)) => failed(key!("error-external-choices"), &[]),
+            Err(ExternalError::Command(e)) => super::tools::command_failed(&e, &Value::Null),
         }
     }
 
@@ -336,12 +370,7 @@ impl ShellModel {
     /// What the window learns when a project opened in `dir`: the cloud-synced folder (D25) and the merge driver's status
     /// (doc 05 §16); the banner for a project of an older format (D11). Returns the banner's text to add, if any.
     pub(super) fn opened_extras(&mut self, dir: &Path, migrated: Option<&str>) -> Option<String> {
-        let env = self.collab.cloud_env.clone();
-        let lookup = move |name: &str| match &env {
-            Some(vars) => vars.iter().find(|(n, _)| n == name).map(|(_, v)| v.clone()),
-            None => crate::settings::env_path(name).map(PathBuf::into_os_string),
-        };
-        let cloud = ew_api::cloud::detect(&ew_api::OsVfs, &lookup, dir);
+        let cloud = self.cloud_of(dir);
         if let Some(p) = self.project.as_mut() {
             p.session.set_cloud_service(cloud);
         }
@@ -364,13 +393,32 @@ impl ShellModel {
         (!banners.is_empty()).then(|| banners.join(" "))
     }
 
+    /// An environment variable as the window reads it (the cloud detection, `$APPIMAGE`): a test's environment when one
+    /// is set (feature `testkit`), else the process's; `None` when unset or empty.
+    fn env_var(&self, name: &str) -> Option<std::ffi::OsString> {
+        match &self.collab.cloud_env {
+            Some(vars) => vars
+                .iter()
+                .find(|(n, _)| n == name)
+                .map(|(_, v)| v.clone())
+                .filter(|v| !v.is_empty()),
+            None => crate::settings::env_path(name).map(PathBuf::into_os_string),
+        }
+    }
+
+    /// The cloud-synced folder the project folder `dir` lies in, if any (D25).
+    pub(super) fn cloud_of(&self, dir: &Path) -> Option<ew_api::cloud::CloudService> {
+        ew_api::cloud::detect(&ew_api::OsVfs, &|name| self.env_var(name), dir)
+    }
+
     /// Whether the status bar shows "Merge driver not configured" (doc 05 §16): the open project is in a git worktree
     /// whose git configuration has no `merge.elektrawatt.driver`.
     pub fn merge_driver_missing(&self) -> bool {
         self.project.is_some() && self.collab.driver_missing
     }
 
-    /// The environment the cloud detection reads from now on, instead of the process's (feature `testkit`).
+    /// The environment the window reads from now on (the cloud detection, `$APPIMAGE`), instead of the process's
+    /// (feature `testkit`).
     #[cfg(feature = "testkit")]
     pub fn set_cloud_env_for_tests(&mut self, vars: Option<Vec<(String, std::ffi::OsString)>>) {
         self.collab.cloud_env = vars;
@@ -411,7 +459,9 @@ impl ShellModel {
         };
         if !confirm {
             self.palette = None;
-            self.dialog = Some(Dialog::ConfirmGitSetup);
+            self.dialog = Some(Dialog::ConfirmGitSetup {
+                folder: super::dir_name(&dir),
+            });
             return Outcome::Done;
         }
         let Some(ew) = self.collab.ew_exe.clone().or_else(ew_beside_program) else {
@@ -419,9 +469,12 @@ impl ShellModel {
                 reason_key: key!("reason-no-ew"),
             };
         };
-        if matches!(self.dialog, Some(Dialog::ConfirmGitSetup)) {
+        if matches!(self.dialog, Some(Dialog::ConfirmGitSetup { .. })) {
             self.dialog = None;
         }
+        // From an AppImage, git runs the AppImage with `ew` first, never its transient mount (C49-p9#5).
+        let appimage = self.env_var("APPIMAGE").map(PathBuf::from);
+        let ew = ew_api::git::ew_command(&ew, appimage.as_deref());
         let git = ew_api::git::GitExe::default();
         for (k, v) in ew_api::git::driver_config(&ew) {
             if let Err(e) = git.config_set(&root, k, &v, ew_api::git::ConfigScope::Repository) {

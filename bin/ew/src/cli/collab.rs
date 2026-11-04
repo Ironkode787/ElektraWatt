@@ -40,15 +40,25 @@ pub(super) fn run_git_setup(a: &GitSetupArgs) -> i32 {
         eprintln!("error: the path of `ew` cannot be read");
         return 2;
     };
-    run_git_setup_with(a, &cwd, &exe, terminal, &mut input, &mut output)
+    let ew = git::ew_command(&exe, appimage().as_deref());
+    run_git_setup_with(a, &cwd, &ew, terminal, &mut input, &mut output)
 }
 
-/// [`run_git_setup`] with the current directory, the `ew` executable, the terminal test, the reader and the writer
-/// injected (unit tests).
+// The program boundary: `$APPIMAGE`, the AppImage this `ew` runs from (ID-1187's Linux package), read once and passed
+// in, so that git runs the AppImage and never its transient mount (C49-p9#5).
+#[allow(clippy::disallowed_methods)]
+fn appimage() -> Option<PathBuf> {
+    std::env::var_os("APPIMAGE")
+        .filter(|v| !v.is_empty())
+        .map(PathBuf::from)
+}
+
+/// [`run_git_setup`] with the current directory, the command that runs `ew` ([`git::ew_command`]), the terminal test,
+/// the reader and the writer injected (unit tests).
 fn run_git_setup_with(
     a: &GitSetupArgs,
     cwd: &Path,
-    exe: &Path,
+    ew: &str,
     terminal: bool,
     input: &mut dyn std::io::BufRead,
     output: &mut dyn std::io::Write,
@@ -73,7 +83,18 @@ fn run_git_setup_with(
     } else {
         ConfigScope::Repository
     };
-    let config = git::driver_config(exe);
+    let config = git::driver_config(ew);
+    let projects = project_folders(&root);
+    let relative: Vec<String> = projects
+        .iter()
+        .map(|p| {
+            p.strip_prefix(&root)
+                .unwrap_or(p)
+                .to_string_lossy()
+                .replace('\\', "/")
+        })
+        .map(|p| if p.is_empty() { ".".to_owned() } else { p })
+        .collect();
     if !a.yes {
         if !terminal {
             eprintln!(
@@ -90,6 +111,20 @@ fn run_git_setup_with(
         for (key, value) in &config {
             let _ = writeln!(output, "  {key} = {value}");
         }
+        if relative.is_empty() {
+            let _ = writeln!(
+                output,
+                "No ElektraWatt project folder was found for the managed blocks."
+            );
+        } else {
+            let _ = writeln!(
+                output,
+                "and the managed .gitattributes and .gitignore blocks into these project folders:"
+            );
+            for rel in &relative {
+                let _ = writeln!(output, "  {rel}");
+            }
+        }
         let _ = write!(output, "Write them? [y/N] ");
         let _ = output.flush();
         let mut answer = String::new();
@@ -99,26 +134,27 @@ fn run_git_setup_with(
             return 2;
         }
     }
-    let projects = project_folders(&root);
-    let relative: Vec<String> = projects
-        .iter()
-        .map(|p| {
-            p.strip_prefix(&root)
-                .unwrap_or(p)
-                .to_string_lossy()
-                .replace('\\', "/")
-        })
-        .map(|p| if p.is_empty() { ".".to_owned() } else { p })
-        .collect();
-    let hook = git::hook_text(exe, &relative);
-    if a.hooks {
-        // A foreign hook refuses before anything is written.
-        if let Err(e @ git::HookError::Foreign(_)) = probe_hook(&vfs, &root, &hook) {
-            eprintln!("error: {e}; nothing was changed");
-            return 2;
-        }
-    }
+    let hook = git::hook_text(ew, &relative);
     let exe_git = GitExe::default();
+    // The hooks directory as git resolves it (`core.hooksPath` honoured); a foreign hook refuses before anything is
+    // written.
+    let hooks = if a.hooks {
+        match exe_git.hooks_dir(&root) {
+            Ok(hooks) => {
+                if let Err(e) = probe_hook(&hooks, &hook) {
+                    eprintln!("error: {e}; nothing was changed");
+                    return 2;
+                }
+                Some(hooks)
+            }
+            Err(e) => {
+                eprintln!("error: the hooks directory: {e}; nothing was changed");
+                return 2;
+            }
+        }
+    } else {
+        None
+    };
     for (key, value) in &config {
         if let Err(e) = exe_git.config_set(&root, key, value, scope) {
             eprintln!("error: {key}: {e}");
@@ -144,8 +180,8 @@ fn run_git_setup_with(
             }
         }
     }
-    if a.hooks {
-        match git::install_hook(&vfs, &root, &hook) {
+    if let Some(hooks) = hooks {
+        match git::install_hook(&vfs, &hooks, &hook) {
             Ok(git::Hook::Installed(p)) => {
                 let _ = writeln!(output, "the post-merge hook is installed: {}", p.display());
             }
@@ -161,15 +197,10 @@ fn run_git_setup_with(
     0
 }
 
-/// Whether the hook can be installed: a hook that `ew git setup` did not write refuses.
-fn probe_hook(vfs: &ew_api::OsVfs, root: &Path, text: &str) -> Result<(), git::HookError> {
-    let Some(dir) = git::git_dir(vfs, root).map_err(git::HookError::Io)? else {
-        return Err(git::HookError::NotAWorktree);
-    };
-    let common = std::fs::read_to_string(dir.join("commondir"))
-        .map(|c| dir.join(c.trim()))
-        .unwrap_or(dir);
-    let path = common.join("hooks").join("post-merge");
+/// Whether the hook can be installed into the hooks directory `hooks`: a hook that `ew git setup` did not write
+/// refuses.
+fn probe_hook(hooks: &Path, text: &str) -> Result<(), git::HookError> {
+    let path = hooks.join("post-merge");
     match std::fs::read(&path) {
         Ok(old)
             if old != text.as_bytes()
@@ -181,11 +212,17 @@ fn probe_hook(vfs: &ew_api::OsVfs, root: &Path, text: &str) -> Result<(), git::H
     }
 }
 
-/// The project folders of the worktree at `root`: the folders holding a `manifest.json`, at most [`PROJECT_DEPTH`]
-/// levels down, in path order; `.git`, hidden folders and links are not entered, nor a project's own folders.
+/// The project folders of the worktree at `root`: the folders holding a `manifest.json` that reads as an ElektraWatt
+/// manifest (a web app's `manifest.json` does not), at most [`PROJECT_DEPTH`] levels down, in path order; `.git`,
+/// hidden folders and links are not entered, nor a project's own folders.
 fn project_folders(root: &Path) -> Vec<PathBuf> {
+    fn is_project(dir: &Path) -> bool {
+        let limits = ew_api::Limits::default();
+        std::fs::read(dir.join("manifest.json"))
+            .is_ok_and(|bytes| ew_api::Manifest::parse(&bytes, &limits).is_ok())
+    }
     fn walk(dir: &Path, depth: usize, out: &mut Vec<PathBuf>) {
-        if dir.join("manifest.json").is_file() {
+        if is_project(dir) {
             out.push(dir.to_path_buf());
             return;
         }
@@ -229,13 +266,13 @@ mod tests {
         let mut input = std::io::Cursor::new(b"y\n".to_vec());
         let mut output = Vec::new();
         assert_eq!(
-            run_git_setup_with(&a, &dir, Path::new("/ew"), false, &mut input, &mut output),
+            run_git_setup_with(&a, &dir, "'/ew'", false, &mut input, &mut output),
             2
         );
         assert!(output.is_empty());
         let mut declined = std::io::Cursor::new(b"n\n".to_vec());
         assert_eq!(
-            run_git_setup_with(&a, &dir, Path::new("/ew"), true, &mut declined, &mut output),
+            run_git_setup_with(&a, &dir, "'/ew'", true, &mut declined, &mut output),
             2
         );
         let listed: Vec<_> = std::fs::read_dir(&dir)
@@ -245,6 +282,40 @@ mod tests {
             .collect();
         assert_eq!(listed, vec![std::ffi::OsString::from(".git")], "nothing written");
         assert!(std::fs::read_dir(dir.join(".git")).unwrap().next().is_none());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// C49-p9#6: the question names the project folders it writes the blocks into, and only ElektraWatt ones: a web
+    /// app's `manifest.json` is no project.
+    #[test]
+    fn the_question_names_the_project_folders_and_only_those() {
+        let dir = ew_testdir_dir();
+        std::fs::create_dir_all(dir.join(".git")).unwrap();
+        let golden = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../golden/J-E-2416.ew/manifest.json");
+        std::fs::create_dir_all(dir.join("plans/p.ew")).unwrap();
+        std::fs::copy(golden, dir.join("plans/p.ew/manifest.json")).unwrap();
+        std::fs::create_dir_all(dir.join("web/public")).unwrap();
+        std::fs::write(dir.join("web/public/manifest.json"), b"{\"name\":\"app\"}\n").unwrap();
+        let a = GitSetupArgs {
+            global: false,
+            hooks: false,
+            yes: false,
+        };
+        let mut declined = std::io::Cursor::new(b"n\n".to_vec());
+        let mut output = Vec::new();
+        assert_eq!(
+            run_git_setup_with(&a, &dir, "'/ew'", true, &mut declined, &mut output),
+            2
+        );
+        assert_eq!(
+            String::from_utf8(output).unwrap(),
+            "`ew git setup` writes these keys into this repository's git configuration:\n  merge.elektrawatt.name = \
+             ElektraWatt record merge\n  merge.elektrawatt.driver = '/ew' merge-driver %O %A %B %L %P\n  \
+             diff.elektrawatt.textconv = '/ew' diff --textconv\n  diff.elektrawatt.cachetextconv = true\nand the \
+             managed .gitattributes and .gitignore blocks into these project folders:\n  plans/p.ew\nWrite them? \
+             [y/N] "
+        );
+        assert_eq!(project_folders(&dir), vec![dir.join("plans").join("p.ew")]);
         let _ = std::fs::remove_dir_all(&dir);
     }
 

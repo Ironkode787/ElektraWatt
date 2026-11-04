@@ -168,6 +168,7 @@
       "id": "EW-CORE-013",
       "kind": "integrity",
       "modes": [
+        "online",
         "release"
       ],
       "open_item": null,
@@ -177,22 +178,22 @@
       "schemes": [
         {
           "name": "drafting",
-          "online": false,
+          "online": true,
           "release": true
         },
         {
           "name": "full",
-          "online": false,
+          "online": true,
           "release": true
         },
         {
           "name": "migration",
-          "online": false,
+          "online": true,
           "release": true
         },
         {
           "name": "pre-delivery",
-          "online": false,
+          "online": true,
           "release": true
         }
       ],

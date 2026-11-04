@@ -168,11 +168,20 @@ fn xw2_the_collision_dialog_holds_saves_until_a_side_is_chosen() {
     for w in ["chosen", "mine", "theirs"] {
         assert!(reach_words(Reach::Collab).contains(&w));
     }
-    // Decide later: the banner says why, and saves wait.
+    // C49-p9#1: the next poll keeps the dialog and the choice made in it.
+    done(&mut s, "external.choose", json!({"row": 1, "take": "theirs"}));
+    done(&mut s, "project.check_disk", json!({}));
+    assert!(describe(&s).contains(
+        "  row 1 \"connection 102.1 · Colour override\" base \"(none)\" mine \"BU\" theirs \"WH\" chosen theirs\n"
+    ));
+    // Decide later: the banner says why, and saves wait; the next poll does not bring the dialog back.
     done(&mut s, "ui.dismiss", json!({}));
     let held = "The project changed on disk, and the change collides with your edits. Saving waits until you choose \
                 yours or theirs for each field.";
     assert_eq!(s.banner(), Some(held));
+    done(&mut s, "project.check_disk", json!({}));
+    assert_eq!(s.dialog(), None, "Decide later holds");
+    // A save refused for the collisions opens their dialog again.
     assert_eq!(
         s.dispatch("file.save", &json!({})),
         Outcome::Failed {
@@ -181,7 +190,18 @@ fn xw2_the_collision_dialog_holds_saves_until_a_side_is_chosen() {
                     .to_owned()
         }
     );
-    // All theirs: one step, the banner gone, the window on the generation on disk.
+    assert!(matches!(s.dialog(), Some(Dialog::ExternalChange { .. })));
+    done(&mut s, "ui.dismiss", json!({}));
+    // An edit made since the hold, of another field of the colliding record, survives All theirs.
+    done(
+        &mut s,
+        "command.run",
+        json!({"cmd": "fields.set", "params": {"kind": "connection", "targets": [w20], "path": "overrides.csa",
+            "value": "2.5"}}),
+    );
+    done(&mut s, "project.check_disk", json!({}));
+    assert_eq!(s.dialog(), None);
+    // All theirs: one step, the banner gone, the edit since the hold the only one left to save.
     done(&mut s, "external.apply", json!({"take": "theirs"}));
     assert_eq!(
         toasts(&s),
@@ -189,7 +209,52 @@ fn xw2_the_collision_dialog_holds_saves_until_a_side_is_chosen() {
         "one step, with its Undo"
     );
     assert_eq!(s.banner(), None);
-    assert!(!s.is_dirty(), "theirs is on disk");
+    assert!(s.is_dirty(), "the edit since the hold is not on disk yet");
+    done(&mut s, "file.save", json!({}));
+    assert_eq!(
+        w20_overrides(&dir),
+        json!({"csa": "2.5", "colour": ["WH"], "show_marker": true})
+    );
+}
+
+/// W20's overrides as the project folder `dir` holds them.
+fn w20_overrides(dir: &Path) -> Value {
+    for e in std::fs::read_dir(dir.join("pages")).unwrap() {
+        let text = std::fs::read_to_string(e.unwrap().path()).unwrap();
+        if let Some(line) = text.lines().find(|l| l.contains("\"key\":\"connections|W20\"")) {
+            let v: Value = serde_json::from_str(line).unwrap();
+            return v["overrides"].clone();
+        }
+    }
+    panic!("W20 is on no page");
+}
+
+/// C49-p9#2: a record the colleague deleted while this window changed it is one row for the whole record, each side
+/// in words: present at the base, changed here, deleted on disk.
+#[test]
+fn xw2b_a_deleted_record_shows_each_side_in_words() {
+    let tmp = Tmp::new("xw2b");
+    let dir = tmp.0.join("J-E-2416.ew");
+    copy_dir(Path::new(GOLDEN_A), &dir);
+    let mut s = shell(&tmp);
+    open(&mut s, &dir, false);
+    let w20 = golden_id("connections|W20");
+    done(
+        &mut s,
+        "command.run",
+        json!({"cmd": "fields.set", "params": {"kind": "connection", "targets": [w20], "path": "overrides.colour",
+            "value": ["BU"]}}),
+    );
+    let delete = AnyCommand {
+        name: "edit.delete".into(),
+        params: json!({"targets": [{"kind": "connection", "id": w20}]}),
+    };
+    colleague(&tmp, &dir, &[delete]);
+    done(&mut s, "project.check_disk", json!({}));
+    assert!(describe(&s).contains(
+        "  row 1 \"connection 102.1 · the whole record\" base \"present\" mine \"changed\" theirs \"deleted\" chosen \
+         mine\n"
+    ));
 }
 
 /// XW-3: a read-only window reloads on the holder's save and keeps its page and zoom.
@@ -335,13 +400,15 @@ fn xw6_export_and_open_ewz_and_the_upgrade_dialog() {
 
 /// `git` in `dir` for the test's own set-up: `-C dir`, the repository-selecting variables removed.
 fn git_in(dir: &Path, args: &[&str]) -> Option<String> {
-    let out = Command::new("git")
-        .arg("-C")
-        .arg(dir)
-        .args(args)
-        .env_remove("GIT_DIR")
-        .env_remove("GIT_WORK_TREE")
-        .env_remove("GIT_INDEX_FILE")
+    let mut cmd = Command::new("git");
+    cmd.arg("-C").arg(dir).args(args);
+    // Every repository-selecting variable removed; the global configuration a file beside the repository, no system one.
+    for var in ew_viewmodel::ew_api::git::ISOLATE {
+        cmd.env_remove(var);
+    }
+    let out = cmd
+        .env("GIT_CONFIG_GLOBAL", dir.with_file_name("gitconfig"))
+        .env("GIT_CONFIG_NOSYSTEM", "1")
         .output()
         .ok()?;
     out.status
@@ -360,7 +427,13 @@ fn xw7_the_driver_badge_appears_without_the_configuration_and_goes_after_setup()
         eprintln!("XW-7 skipped: no git executable on the path");
         return;
     }
-    if git_in(&repo, &["config", "--get", "merge.elektrawatt.driver"]).is_some() {
+    // The window's own git reads the process's configuration.
+    let shell_git = ew_viewmodel::ew_api::git::GitExe::default();
+    let scope = ew_viewmodel::ew_api::git::ConfigScope::Repository;
+    if !matches!(
+        shell_git.config_has(&repo, "merge.elektrawatt.driver", scope),
+        Ok(false)
+    ) {
         eprintln!("XW-7 skipped: the user's git configuration names the driver already");
         return;
     }
@@ -376,13 +449,26 @@ fn xw7_the_driver_badge_appears_without_the_configuration_and_goes_after_setup()
     };
     assert_eq!(badge(&s).as_deref(), Some("Merge driver not configured"));
     done(&mut s, "git.setup", json!({}));
-    assert!(matches!(s.dialog(), Some(Dialog::ConfirmGitSetup)));
-    s.set_ew_exe_for_tests(Some(PathBuf::from("/opt/ew/ew")));
+    // C49-p9#6: the question names the project folder it writes into.
+    assert_eq!(
+        s.dialog(),
+        Some(&Dialog::ConfirmGitSetup {
+            folder: "J-E-2416.ew".to_owned()
+        })
+    );
+    // C49-p9#5: from an AppImage, git runs the AppImage with `ew` first, never the program's path in its mount.
+    s.set_ew_exe_for_tests(Some(PathBuf::from(
+        "/tmp/.mount_ElektrAbc/usr/lib/elektrawatt/ew",
+    )));
+    s.set_cloud_env_for_tests(Some(vec![(
+        "APPIMAGE".to_owned(),
+        "/home/u/Apps/ElektraWatt.AppImage".into(),
+    )]));
     done(&mut s, "git.setup", json!({"confirm": true}));
     assert_eq!(badge(&s), None);
     assert_eq!(
         git_in(&repo, &["config", "--get", "merge.elektrawatt.driver"]).as_deref(),
-        Some("\"/opt/ew/ew\" merge-driver %O %A %B %L %P\n")
+        Some("'/home/u/Apps/ElektraWatt.AppImage' ew merge-driver %O %A %B %L %P\n")
     );
     assert!(dir.join(".gitattributes").is_file() && dir.join(".gitignore").is_file());
 }

@@ -369,3 +369,67 @@ fn a_failed_repair_save_keeps_the_broken_lines() {
         "the errors reach both sides of the commit point"
     );
 }
+
+/// A clock whose wait lets a sync client finish: a sleep writes the missing file back (WP-S1.17 D25).
+#[derive(Debug)]
+struct SyncedWhileWaiting {
+    clock: ew_store::ManualClock,
+    vfs: Arc<MemVfs>,
+    file: PathBuf,
+    bytes: Vec<u8>,
+    slept: std::sync::Mutex<Vec<std::time::Duration>>,
+}
+
+impl ew_store::Clock for SyncedWhileWaiting {
+    fn now(&self) -> std::time::SystemTime {
+        self.clock.now()
+    }
+
+    fn sleep(&self, d: std::time::Duration) {
+        self.slept.lock().unwrap().push(d);
+        self.vfs.put(&self.file, &self.bytes);
+        self.clock.advance(d);
+    }
+}
+
+/// C49-p9#4 (WP-S1.17 D25): on a cloud-synced path, an open that finds a listed file missing (EW-CORE-003) waits five
+/// seconds and reads again before it reports: the file the sync client wrote meanwhile makes it an editing open. On
+/// another path the same folder is reported at once.
+#[test]
+fn a_cloud_synced_open_reads_a_missing_file_again_after_five_seconds() {
+    let (vfs, root) = mem_project(DirSync::Explicit);
+    let files = fixture();
+    let shard = files
+        .keys()
+        .find(|n| n.starts_with("devices/"))
+        .expect("the fixture has shards")
+        .clone();
+    let file = join(&root, &shard);
+    ew_store::Vfs::remove_file(&*vfs, &file).expect("the shard goes");
+    // Elsewhere the missing shard is reported at once: its records are gone, so the model does not build.
+    match Store::open(&root, options(&vfs, 1)) {
+        Err(ew_store::OpenError::Model { findings, .. }) => {
+            assert!(findings.iter().any(|f| f.kind == FindingKind::MissingFile));
+        }
+        Ok(_) => panic!("the open should report EW-CORE-003 at once"),
+        Err(e) => panic!("EW-CORE-003 at once, not: {e}"),
+    }
+
+    let synced = Arc::new(SyncedWhileWaiting {
+        clock: ew_store::ManualClock::fixed(),
+        vfs: Arc::clone(&vfs),
+        file: file.clone(),
+        bytes: files[&shard].clone(),
+        slept: std::sync::Mutex::new(Vec::new()),
+    });
+    let mut o = options(&vfs, 1);
+    o.clock = Arc::clone(&synced) as Arc<dyn ew_store::Clock>;
+    o.cloud_synced = true;
+    let opened = Store::open(&root, o).expect("opens");
+    assert_eq!(
+        *synced.slept.lock().unwrap(),
+        vec![std::time::Duration::from_secs(5)]
+    );
+    assert!(opened.report.findings.is_empty(), "{:?}", opened.report.findings);
+    assert_eq!(opened.report.access, Access::Edit);
+}

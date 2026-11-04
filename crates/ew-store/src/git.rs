@@ -9,12 +9,13 @@
 //! **A process boundary.** Every call spawns `git -C <dir> …` with an argument vector (never a shell), standard error
 //! closed, the repository-selecting environment variables removed (`GIT_DIR`, `GIT_WORK_TREE`, `GIT_INDEX_FILE`, …, so
 //! that git finds the repository from the directory as [`worktree_root`] does) and terminal prompts off. A `.git` file
-//! (a linked worktree, a submodule) is resolved to its `gitdir` ([`git_dir`]). What git prints is parsed in four places
+//! (a linked worktree, a submodule) is resolved to its `gitdir` ([`git_dir`]). What git prints is parsed in five places
 //! only (WP-S1.17 D26, decision log ID-1284 ruling 7), every other call is read for its exit status:
 //! - the `git cat-file --batch` header (`<oid> <type> <size>`, or `<name> missing`) and the blob bytes it announces,
 //!   under the reader's limits ([`CatFile`]);
 //! - `git rev-parse --short HEAD`, taken only as lower-case hexadecimal ([`GitExe::short_head`]);
 //! - `git for-each-ref --format=%(contents)`, a release tag's message ([`Git::tag_message`]);
+//! - `git rev-parse --git-path hooks`, one path line ([`GitExe::hooks_dir`]: `core.hooksPath` honoured);
 //! - `git config --get`, by its exit status only ([`GitExe::config_has`]).
 //!
 //! Configuration is written only by [`GitExe::config_set`], which `ew git setup` calls after the user's consent (D28).
@@ -51,8 +52,8 @@ pub const PATHSPECS: [&str; 6] = [
 ];
 
 /// The environment variables that would point git at another repository, index or object store than the one the
-/// project directory lies in; removed from every call.
-const ISOLATE: [&str; 9] = [
+/// project directory lies in; removed from every call (and by the tests that run git themselves).
+pub const ISOLATE: [&str; 9] = [
     "GIT_DIR",
     "GIT_WORK_TREE",
     "GIT_INDEX_FILE",
@@ -395,6 +396,28 @@ impl GitExe {
         let hex =
             (4..=64).contains(&text.len()) && text.bytes().all(|b| matches!(b, b'0'..=b'9' | b'a'..=b'f'));
         Ok(hex.then_some(text))
+    }
+
+    /// The hooks directory of the repository whose worktree root is `root`, as git resolves it (`git rev-parse
+    /// --git-path hooks`: `core.hooksPath` when set, else the common git directory's `hooks`), made absolute against
+    /// `root`. The output is taken as one UTF-8 line of at most [`HOOKS_PATH_MAX`] bytes.
+    ///
+    /// # Errors
+    ///
+    /// [`GitError`]: git cannot run, refuses, or prints anything else.
+    pub fn hooks_dir(&self, root: &Path) -> Result<PathBuf, GitError> {
+        const STEP: &str = "rev-parse --git-path";
+        let out = self.output(root, STEP, &["rev-parse", "--git-path", "hooks"])?;
+        let line = std::str::from_utf8(&out)
+            .ok()
+            .map(|t| t.trim_end_matches(['\r', '\n']))
+            .filter(|t| !t.is_empty() && t.len() <= HOOKS_PATH_MAX && !t.contains(['\r', '\n', '\0']))
+            .ok_or(GitError::Failed {
+                step: STEP,
+                code: None,
+            })?;
+        // Git prints `/` separators; the path's own are used.
+        Ok(root.join(line).components().collect())
     }
 
     /// [`GitExe::run`] that must succeed.
@@ -759,17 +782,37 @@ fn replace(vfs: &dyn Vfs, path: &Path, bytes: &[u8]) -> io::Result<()> {
     Ok(())
 }
 
-/// The four keys `ew git setup` writes (D28) for the `ew` executable at `ew`: the driver's name and command line, the
-/// textconv and its cache. The executable's path is quoted for git's shell, with `/` separators.
-pub fn driver_config(ew: &Path) -> [(&'static str, String); 4] {
-    let exe = ew.to_string_lossy().replace('\\', "/");
+/// The longest hooks path [`GitExe::hooks_dir`] takes.
+pub const HOOKS_PATH_MAX: usize = 4096;
+
+/// The command by which git runs `ew` (D28), quoted for git's shell with `/` separators: the AppImage `appimage` with
+/// `ew` as its first argument when the program runs from one (`$APPIMAGE`, ID-1187's Linux package, whose `AppRun`
+/// dispatches `ew`: the executable's own path lies in the AppImage's mount, which goes when it exits), else the
+/// executable `exe`.
+pub fn ew_command(exe: &Path, appimage: Option<&Path>) -> String {
+    match appimage {
+        Some(image) => format!("{} ew", sh_quoted(image)),
+        None => sh_quoted(exe),
+    }
+}
+
+/// `path` in single quotes for a POSIX shell (a `'` as `'\''`), with `/` separators: no `$`, backtick, `"` or space in
+/// it is read by the shell.
+fn sh_quoted(path: &Path) -> String {
+    let text = path.to_string_lossy().replace('\\', "/");
+    format!("'{}'", text.replace('\'', "'\\''"))
+}
+
+/// The four keys `ew git setup` writes (D28) for the command `ew` ([`ew_command`]): the driver's name and command line,
+/// the textconv and its cache.
+pub fn driver_config(ew: &str) -> [(&'static str, String); 4] {
     [
         ("merge.elektrawatt.name", "ElektraWatt record merge".to_owned()),
         (
             "merge.elektrawatt.driver",
-            format!("\"{exe}\" merge-driver %O %A %B %L %P"),
+            format!("{ew} merge-driver %O %A %B %L %P"),
         ),
-        ("diff.elektrawatt.textconv", format!("\"{exe}\" diff --textconv")),
+        ("diff.elektrawatt.textconv", format!("{ew} diff --textconv")),
         ("diff.elektrawatt.cachetextconv", "true".to_owned()),
     ]
 }
@@ -777,16 +820,15 @@ pub fn driver_config(ew: &Path) -> [(&'static str, String); 4] {
 /// The line that marks a `post-merge` hook as written by `ew git setup --hooks`.
 pub const HOOK_MARK: &str = "# ElektraWatt (managed): the project-integrity check after a merge";
 
-/// The `post-merge` hook for the `ew` executable at `ew` and the project directories `projects` (relative to the
+/// The `post-merge` hook for the command `ew` ([`ew_command`]) and the project directories `projects` (relative to the
 /// worktree's root, `/` separators): `ew check --integrity --after-merge` on each. A merge is done when it runs, so its
 /// status only informs.
-pub fn hook_text(ew: &Path, projects: &[String]) -> String {
-    let exe = ew.to_string_lossy().replace('\\', "/");
+pub fn hook_text(ew: &str, projects: &[String]) -> String {
     let mut out = format!("#!/bin/sh\n{HOOK_MARK}\nstatus=0\n");
     for p in projects {
         let p = p.replace('\'', "'\\''");
         out.push_str(&format!(
-            "\"{exe}\" check --integrity --after-merge '{p}' || status=1\n"
+            "{ew} check --integrity --after-merge '{p}' || status=1\n"
         ));
     }
     out.push_str("exit $status\n");
@@ -830,21 +872,13 @@ impl fmt::Display for HookError {
 
 impl std::error::Error for HookError {}
 
-/// Installs the `post-merge` hook ([`hook_text`]) into the hooks directory of the repository `dir` lies in (the common
-/// git directory of a linked worktree), all or nothing; a hook it did not write ([`HOOK_MARK`]) is refused (D28).
+/// Installs the `post-merge` hook ([`hook_text`]) into the hooks directory `hooks` ([`GitExe::hooks_dir`]), all or
+/// nothing; a hook it did not write ([`HOOK_MARK`]) is refused (D28).
 ///
 /// # Errors
 ///
 /// [`HookError`].
-pub fn install_hook(vfs: &dyn Vfs, dir: &Path, text: &str) -> Result<Hook, HookError> {
-    let git = git_dir(vfs, dir)
-        .map_err(HookError::Io)?
-        .ok_or(HookError::NotAWorktree)?;
-    let common = match vfs.read(&git.join("commondir")) {
-        Ok(b) => lexical(&git.join(String::from_utf8_lossy(&b).trim())),
-        Err(_) => git,
-    };
-    let hooks = common.join("hooks");
+pub fn install_hook(vfs: &dyn Vfs, hooks: &Path, text: &str) -> Result<Hook, HookError> {
     let path = hooks.join("post-merge");
     match vfs.read(&path) {
         Ok(old) if old == text.as_bytes() => return Ok(Hook::Unchanged(path)),
@@ -855,7 +889,7 @@ pub fn install_hook(vfs: &dyn Vfs, dir: &Path, text: &str) -> Result<Hook, HookE
         Err(e) if e.kind() == io::ErrorKind::NotFound => {}
         Err(e) => return Err(HookError::Io(e)),
     }
-    vfs.create_dir_all(&hooks).map_err(HookError::Io)?;
+    vfs.create_dir_all(hooks).map_err(HookError::Io)?;
     replace(vfs, &path, text.as_bytes()).map_err(HookError::Io)?;
     // Git runs a hook only when it is executable; the file system's mode is outside the seam.
     #[cfg(unix)]
@@ -964,23 +998,48 @@ mod tests {
             ignore.starts_with("notes.txt\n# >>> ElektraWatt (managed) >>>\n.ew/\n"),
             "{ignore}"
         );
-        let text = hook_text(Path::new("C:\\ew\\ew.exe"), &["p.ew".to_owned()]);
+        let text = hook_text(
+            &ew_command(Path::new("C:\\ew\\ew.exe"), None),
+            &["p.ew".to_owned()],
+        );
         assert_eq!(
             text,
-            "#!/bin/sh\n# ElektraWatt (managed): the project-integrity check after a merge\nstatus=0\n\"C:/ew/ew.exe\" \
+            "#!/bin/sh\n# ElektraWatt (managed): the project-integrity check after a merge\nstatus=0\n'C:/ew/ew.exe' \
              check --integrity --after-merge 'p.ew' || status=1\nexit $status\n"
         );
-        let hook = PathBuf::from("/r/.git/hooks/post-merge");
+        let hooks = Path::new("/r/.git/hooks");
+        let hook = hooks.join("post-merge");
         assert_eq!(
-            install_hook(&vfs, dir, &text).unwrap(),
+            install_hook(&vfs, hooks, &text).unwrap(),
             Hook::Installed(hook.clone())
         );
         assert_eq!(
-            install_hook(&vfs, dir, &text).unwrap(),
+            install_hook(&vfs, hooks, &text).unwrap(),
             Hook::Unchanged(hook.clone())
         );
         vfs.put(&hook, b"#!/bin/sh\necho mine\n");
-        assert!(matches!(install_hook(&vfs, dir, &text), Err(HookError::Foreign(p)) if p == hook));
+        assert!(matches!(install_hook(&vfs, hooks, &text), Err(HookError::Foreign(p)) if p == hook));
         assert_eq!(vfs.read(&hook).unwrap(), b"#!/bin/sh\necho mine\n");
+    }
+
+    /// C49-p9#5, #9: git's shell reads no `$`, backtick, `"` or `'` of the path, and an AppImage is named by `$APPIMAGE`
+    /// with `ew` as its first argument, never by its mount.
+    #[test]
+    fn the_ew_command_is_quoted_for_the_shell_and_names_the_appimage() {
+        assert_eq!(
+            ew_command(Path::new("/opt/it's $HOME `x` \"q\"/ew"), None),
+            "'/opt/it'\\''s $HOME `x` \"q\"/ew'"
+        );
+        assert_eq!(
+            ew_command(
+                Path::new("/tmp/.mount_ElektrAbc/usr/lib/elektrawatt/ew"),
+                Some(Path::new("/home/u/Apps/ElektraWatt.AppImage"))
+            ),
+            "'/home/u/Apps/ElektraWatt.AppImage' ew"
+        );
+        assert_eq!(
+            driver_config("'/a/ew'")[1].1,
+            "'/a/ew' merge-driver %O %A %B %L %P"
+        );
     }
 }

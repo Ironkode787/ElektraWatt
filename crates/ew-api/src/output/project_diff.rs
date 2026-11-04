@@ -161,6 +161,12 @@ impl Session {
         label_of(&self.query(), kind, id)
     }
 
+    /// `value` with every string that is the ID of a record with a label replaced by that label, as `ew diff` shows a
+    /// field (the collision dialog's values, WP-S1.17 D24).
+    pub fn named_value(&self, value: &Value) -> Value {
+        named(&self.query(), value)
+    }
+
     /// Whether the current model holds a record with the ID `id`, of any kind (a reloaded window's selection, WP-S1.17
     /// D24).
     pub fn record_exists(&self, id: Uuid) -> bool {

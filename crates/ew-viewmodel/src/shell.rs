@@ -349,7 +349,10 @@ pub enum Dialog {
     },
     /// Set up merge driver: the repository's git configuration and the project's managed blocks, after the consent
     /// (D28); Set up or Cancel.
-    ConfirmGitSetup,
+    ConfirmGitSetup {
+        /// The project folder's name, which the question names.
+        folder: String,
+    },
 }
 
 /// A marker line of the history (WP-S2.09 D13, view state, never a `History` entry): an export, a recovery.
@@ -1764,7 +1767,10 @@ impl ShellModel {
         dir: &Path,
         recovery: Recovery,
     ) -> Result<(Session, OpenReport), OpenError> {
-        Session::open(dir, self.store_options(), self.session_options(), recovery)
+        let mut store = self.store_options();
+        // D25: a half-synced cloud folder is read again before a missing file makes it read-only.
+        store.cloud_synced = self.cloud_of(dir).is_some();
+        Session::open(dir, store, self.session_options(), recovery)
     }
 
     /// Decides the access of a freshly opened session: a leftover journal re-opens it read-only.
@@ -1904,6 +1910,10 @@ impl ShellModel {
             Err(e) => {
                 let message = strings::format(key!("error-save"), &[strings::text(save_error_key(&e))]);
                 self.banner = Some(message.clone());
+                // After Decide later (D24), a save held by the collisions shows their dialog again.
+                if matches!(e, SaveError::ExternalCollisions) && self.dialog.is_none() {
+                    self.open_collisions();
+                }
                 Outcome::Failed { message }
             }
         }

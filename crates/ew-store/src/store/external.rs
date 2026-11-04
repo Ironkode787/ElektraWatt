@@ -30,13 +30,18 @@ impl Incoming {
     pub fn generation(&self) -> u64 {
         self.store.generation
     }
+
+    /// The SHA-256 of its `manifest.json` as read (`None`: absent).
+    pub fn manifest_hash(&self) -> Option<[u8; 32]> {
+        self.store.manifest_hash
+    }
 }
 
 impl Store {
     /// Polls `manifest.json` for an external change (D20): [`Poll::Unchanged`] while its raw bytes are the ones the store
     /// loaded or wrote; otherwise [`Poll::GitBusy`] while a git operation is in progress, [`Poll::Settling`] until the
     /// same bytes have been seen [`QUIESCENCE`] apart, then [`Poll::Changed`] (and on every later poll of the same
-    /// bytes, until they are adopted or change again).
+    /// bytes, until they are adopted or change again: [`Store::changed_manifest`] names them).
     ///
     /// # Errors
     ///
@@ -72,6 +77,12 @@ impl Store {
         }
     }
 
+    /// The hash of the changed `manifest.json` bytes a poll is watching (`Some(None)`: the manifest is gone); `None` while
+    /// the manifest is the one loaded or written. After [`Poll::Changed`], the bytes that change is about.
+    pub fn changed_manifest(&self) -> Option<Option<[u8; 32]>> {
+        self.watch.map(|(hash, _)| hash)
+    }
+
     /// Reads the generation on disk for an external change (D21): through the open path with this store's options,
     /// read-only (no lock, no roll-forward, no journal, no wait for a save in progress).
     ///
@@ -84,6 +95,8 @@ impl Store {
         opts.state_dir = None;
         opts.read_only_wait = Duration::ZERO;
         opts.repair = false;
+        // The session reads an unreadable change on a cloud path again itself (D21), never inside a poll.
+        opts.cloud_synced = false;
         let Opened { store, model, report } = Store::open(&self.root, opts).map_err(Unreadable::Open)?;
         let forced = report.findings.iter().any(|f| f.kind.forces_read_only());
         if forced || matches!(report.format, FormatAccess::ReadOnly(_)) {

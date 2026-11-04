@@ -2622,7 +2622,7 @@ fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
             }
         }
         // WP-S1.17 part 7 (D24): the paragraphs; the collision dialog's rows with base, mine, theirs and the side chosen.
-        Dialog::ConfirmUpgrade { .. } | Dialog::OpenEwz { .. } | Dialog::ConfirmGitSetup => {
+        Dialog::ConfirmUpgrade { .. } | Dialog::OpenEwz { .. } | Dialog::ConfirmGitSetup { .. } => {
             for line in &spec.body {
                 lines.push(format!("  label \"{}\"", user(line)));
             }

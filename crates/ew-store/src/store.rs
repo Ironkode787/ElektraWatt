@@ -101,6 +101,10 @@ pub struct StoreOptions {
     /// ([`Store::discard_broken_lines`]); a repair open that another finding made read-only still summarises a crashed
     /// session's journal ([`OpenReport::recovery`]), which the repair names first. `false` everywhere else.
     pub repair: bool,
+    /// Whether the project folder lies in a cloud-synced folder, as the front-end found it with
+    /// [`crate::cloud::detect`] (WP-S1.17 D25): an open that finds a listed file missing (EW-CORE-003, a half-synced
+    /// folder) waits [`crate::external::CLOUD_RECHECK`] and reads the project once more before it reports.
+    pub cloud_synced: bool,
 }
 
 impl StoreOptions {
@@ -121,6 +125,7 @@ impl StoreOptions {
             released: RELEASED_FORMATS,
             read_only_wait: READ_ONLY_WAIT,
             repair: false,
+            cloud_synced: false,
         }
     }
 }
@@ -830,6 +835,27 @@ impl Store {
     /// [`OpenError`]; integrity findings are not errors: they are in the report, and those that force it
     /// make the session read-only.
     pub fn open(root: &Path, opts: StoreOptions) -> Result<Opened, OpenError> {
+        if opts.cloud_synced {
+            let clock = Arc::clone(&opts.clock);
+            let first = Store::open_inner(root, opts.clone(), false);
+            let missing = |findings: &[Finding]| {
+                findings
+                    .iter()
+                    .any(|f| f.kind == ew_format::FindingKind::MissingFile)
+            };
+            let again = match &first {
+                Ok(opened) => missing(&opened.report.findings),
+                Err(OpenError::Model { findings, .. } | OpenError::NoProject(findings)) => missing(findings),
+                Err(_) => false,
+            };
+            if !again {
+                return first;
+            }
+            let opened = first;
+            // D25: a sync client may still be writing the folder; the first open's lock goes with it.
+            drop(opened);
+            clock.sleep(crate::external::CLOUD_RECHECK);
+        }
         Store::open_inner(root, opts, false)
     }
 

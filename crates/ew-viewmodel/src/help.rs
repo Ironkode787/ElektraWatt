@@ -171,7 +171,7 @@ pub fn context_topic(model: &ShellModel) -> &'static str {
             | Dialog::ExternalChange { .. }
             | Dialog::ConfirmUpgrade { .. }
             | Dialog::OpenEwz { .. }
-            | Dialog::ConfirmGitSetup,
+            | Dialog::ConfirmGitSetup { .. },
         )
         | None => {}
     }

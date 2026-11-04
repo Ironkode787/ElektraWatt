@@ -252,7 +252,7 @@ pub fn show(
                     }
                 });
         }
-        Dialog::ConfirmUpgrade { .. } | Dialog::OpenEwz { .. } | Dialog::ConfirmGitSetup => {}
+        Dialog::ConfirmUpgrade { .. } | Dialog::OpenEwz { .. } | Dialog::ConfirmGitSetup { .. } => {}
         Dialog::ConfirmPurge { files, .. } => {
             let t = crate::theme::current(ui.ctx());
             for f in files.iter().take(ew_viewmodel::shell::PURGE_LISTED) {

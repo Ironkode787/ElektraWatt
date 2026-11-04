@@ -326,12 +326,12 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
             )
         },
         // D28: Set up (Enter) or Cancel.
-        Dialog::ConfirmGitSetup => DialogSpec {
+        Dialog::ConfirmGitSetup { folder } => DialogSpec {
             secondary: vec![cancel()],
             asks: true,
             ..small(
                 strings::text(key!("git-setup-title")).to_owned(),
-                vec![strings::text(key!("git-setup-text")).to_owned()],
+                vec![strings::format(key!("git-setup-text"), &[folder])],
                 DialogButton::new(
                     key!("git-setup-button"),
                     DialogAnswer::Action("git.setup", json!({ "confirm": true })),

@@ -250,6 +250,12 @@ rule-ew-rds-003 = { $device }: de lettercode { $letter } past niet bij de functi
 
 ## WP-S1.17 part 8 (COL49): botsingen na samenvoegen
 
-rule-ew-core-013 =
+rule-ew-core-013 = { $collision } na samenvoegen; { $keeper ->
+        [frozen] het record met het vastgezette kenmerk
+       *[oldest] het oudste record
+    } behoudt het, en { $others ->
+        [many] de andere moeten
+       *[one] het andere moet
+    } wijzigen
     .title = Botsing na samenvoegen
     .hint = Hernummer het nieuwere apparaat met de snelle oplossing, of geef een van de records een ander nummer.

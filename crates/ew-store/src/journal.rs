@@ -417,7 +417,8 @@ impl Journal {
     ///
     /// # Errors
     ///
-    /// An I/O error of the journal; the previous segment is then kept.
+    /// An I/O error of the journal. Neither segment is kept then: the previous one's base is no longer the baseline, so
+    /// it would recover the wrong model, and the session is not crash-protected until its next save starts a segment.
     #[allow(clippy::too_many_arguments)]
     pub fn rebase(
         &mut self,
@@ -429,17 +430,29 @@ impl Journal {
         keys: &[AnyKey],
         on_disk: &dyn Fn(&AssetRef) -> bool,
     ) -> io::Result<()> {
-        let old = self.begin(base, base_manifest)?;
-        if let Err(e) = self.tx(t, "external.rebase", "external", incoming, current, keys, on_disk) {
-            // The new segment does not hold the local edits: the old one stays the one to recover.
-            if let Some(new) = self.segment.take() {
-                let _ = self.vfs.remove_file(&new);
+        let old = match self.begin(base, base_manifest) {
+            Ok(old) => old,
+            Err(e) => {
+                self.drop_segments(None);
+                return Err(e);
             }
-            self.segment = old;
+        };
+        if let Err(e) = self.tx(t, "external.rebase", "external", incoming, current, keys, on_disk) {
+            self.drop_segments(old);
             return Err(e);
         }
         self.end(old);
         Ok(())
+    }
+
+    /// After a failed [`Journal::rebase`]: deletes the current segment and `old`, and journals nothing until the next
+    /// [`Journal::start`].
+    fn drop_segments(&mut self, old: Option<PathBuf>) {
+        for seg in self.segment.take().into_iter().chain(old) {
+            let _ = self.vfs.remove_file(&seg);
+        }
+        self.journalled.clear();
+        self.segment_txs = 0;
     }
 
     /// Deletes the previous segment `old` once the current one is durable.

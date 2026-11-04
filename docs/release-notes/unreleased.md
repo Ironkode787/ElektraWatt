@@ -15,7 +15,7 @@ SPDX-License-Identifier: CC-BY-4.0
   failed, or its re-open found a finding (the new generation and the backup stay)"; a Preview surface, WP-S1.17
   ID-1185 ruling 7)
 - api-break: cli merge-driver exit 1 (its meaning gains a merged file that would pass the reader's limits: `%A` is
-  left as ours and theirs stays in Git's index; WP-S1.17 ID-1273 ruling 6)
+  left as ours and theirs stays in git's index; WP-S1.17 ID-1273 ruling 6)
 - api-break: cli merge-driver exit 129 (its meaning gains a usage error, with clap's usage text, as ADR-0012
   amendment 2 has it; WP-S1.17 ID-1273 ruling 9)
 - api-break: cli merge-driver exit 2 (removed: a usage error of `merge-driver` exits 129, every other command keeps 2;

@@ -377,6 +377,47 @@ fn xc3_a_collision_is_held_until_mine_or_theirs_is_chosen() {
     assert_eq!(report.written.len(), 1);
 }
 
+/// C49-p9#1: a held change is neither read nor merged again while the manifest's bytes stay; the apply merges it again
+/// with the current model, so an edit made since the hold survives theirs, and a choice made for collisions that have
+/// changed since is refused and held with the new ones.
+#[test]
+fn xc3b_a_held_change_is_kept_and_merged_again_at_the_apply() {
+    let (_vfs, c, mut s, w) = collided();
+    let shown = s.external_collisions().expect("held").to_vec();
+    for _ in 0..3 {
+        c.advance(QUIESCENCE);
+        assert_eq!(s.poll_disk(), DiskPoll::Held, "the held change stays as it is");
+    }
+    assert_eq!(s.external_collisions().expect("held"), shown.as_slice());
+
+    // An edit of another field of the colliding record since the hold survives theirs.
+    s.execute(&AnyCommand {
+        name: "fields.set".into(),
+        params: json!({"kind": "connection", "targets": [w], "path": "overrides.csa", "value": "2.5"}),
+    })
+    .expect("an edit since the hold");
+    // An edit of the colliding field since the hold changes the collision: the choice made before is refused.
+    s.execute(&colour(&w, json!(["RD"]))).expect("the colour again");
+    assert!(matches!(
+        s.apply_external(&[Take::Theirs]),
+        Err(ew_api::ExternalError::Changed)
+    ));
+    let now = s.external_collisions().expect("still held");
+    assert_eq!(now.len(), 1);
+    assert_eq!(
+        (now[0].mine.clone(), now[0].theirs.clone()),
+        (Some(json!(["RD"])), Some(json!(["WH"])))
+    );
+    s.apply_external(&[Take::Theirs])
+        .expect("theirs applies to the collisions shown");
+    assert_eq!(
+        overrides(&s, &w),
+        json!({"csa": "2.5", "colour": ["WH"], "show_marker": true}),
+        "theirs at the colliding field, the edit since the hold kept"
+    );
+    assert!(s.external_collisions().is_none());
+}
+
 /// XC-4: a git operation in progress (a test `index.lock`) defers detection until it is gone; the session's own save
 /// is never taken for an external change.
 #[test]
@@ -586,6 +627,15 @@ fn findings(s: &Session, rule: &str) -> Vec<ew_api::checks::Finding> {
         .collect()
 }
 
+/// The open findings of EW-CORE-013 of the window's online check of the session.
+fn online(s: &Session) -> Vec<ew_api::checks::Finding> {
+    s.check(s.online_scheme(), ew_api::checks::CheckMode::Online)
+        .findings
+        .into_iter()
+        .filter(|f| f.rule == "EW-CORE-013")
+        .collect()
+}
+
 /// DG-5 (FR-CHK-012's acceptance; D29, decision log ID-1284 rulings 5 and 6): two branches each added a device on
 /// folio 102 that numbers as -102F3. Without merge evidence only EW-RDS-004 reports; in a merged copy (`merged: true`)
 /// EW-CORE-013 reports the group with the older UUIDv7 as keeper and the fix "Renumber the newer", which gives the
@@ -655,18 +705,26 @@ fn dg5_ew_core_013_renumbers_the_newer_after_a_merge() {
         );
     };
     merged(false);
-    let s = open(&vfs, &c, 1);
+    let mut s = open(&vfs, &c, 1);
     assert!(!s.merge_evidence());
     let rds = findings(&s, "EW-RDS-004");
     assert_eq!(rds.len(), 1);
     assert_eq!(rds[0].message, "`=P01+J-E-2416-102F3` is printed by 2 devices");
     assert!(findings(&s, "EW-CORE-013").is_empty(), "no merge evidence");
+    assert!(online(&s).is_empty());
+
+    // C49-p9#3 (D29): a pull of the merged manifest is an external change, after which the window's online check
+    // reports EW-CORE-013.
+    merged(true);
+    assert!(matches!(settle(&mut s, &c), DiskPoll::Applied(_)));
+    assert!(s.merge_evidence());
+    assert_eq!(online(&s).len(), 1);
     s.close();
 
-    // The merged copy: the driver's manifest says so.
-    merged(true);
+    // The merged copy: the driver's manifest says so, and the window's check on open reports it.
     let mut s = open(&vfs, &c, 1);
     assert!(s.merge_evidence());
+    assert_eq!(online(&s).len(), 1);
     let collisions = findings(&s, "EW-CORE-013");
     assert_eq!(collisions.len(), 1);
     let f = &collisions[0];

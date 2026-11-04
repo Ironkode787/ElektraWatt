@@ -75,11 +75,11 @@ pub struct Collision {
     pub key: AnyKey,
     /// The member's dotted path (`overrides.colour`); empty when one side deleted the record and the other changed it.
     pub path: String,
-    /// Its value at the baseline (`None`: absent).
+    /// Its value at the baseline (`None`: absent); for the empty path the whole record.
     pub base: Option<Value>,
-    /// Its value in the session.
+    /// Its value in the session; for the empty path the whole record, `None` when the session deleted it.
     pub mine: Option<Value>,
-    /// Its value in the incoming generation.
+    /// Its value in the incoming generation; for the empty path the whole record, `None` when it was deleted there.
     pub theirs: Option<Value>,
 }
 
@@ -241,10 +241,10 @@ fn colliding_paths(conflict: Value) -> Result<Vec<String>, String> {
     Ok(conflict.member_paths())
 }
 
-/// The value at the dotted `path` of `value` (`None`: absent).
+/// The value at the dotted `path` of `value` (`None`: absent); the whole value for the empty path.
 fn at_path(value: Option<&Value>, path: &str) -> Option<Value> {
     let mut at = value?;
-    for name in path.split('.') {
+    for name in path.split('.').filter(|n| !n.is_empty()) {
         at = at.get(name)?;
     }
     Some(at.clone())

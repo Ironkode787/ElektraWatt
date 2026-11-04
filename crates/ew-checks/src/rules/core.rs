@@ -891,12 +891,13 @@ impl Rule for ConflictRecords {
 }
 
 /// EW-CORE-013 "Collision after a merge" (doc 15 §4.2, §6.4): integrity, n r, error, project. A registered rule over
-/// the model (WP-S1.17 D29, decision log ID-1284 ruling 5), no longer a row of [`INTEGRITY`].
+/// the model (WP-S1.17 D29, decision log ID-1284 ruling 5), no longer a row of [`INTEGRITY`]. Doc 15's `n`, the
+/// integrity run on open and after an external change, is the window's online check (C49-p9#3): `o r`.
 pub const MERGE_COLLISION: RuleMeta = integrity(
     "EW-CORE-013",
     "100013",
     "Collision after a merge",
-    "r",
+    "or",
     Severity::Error,
 );
 
@@ -949,15 +950,21 @@ pub fn merge_collisions(q: &Q) -> Vec<Finding> {
                 }
                 let mut group = f.targets.clone();
                 group.sort_by(|a, b| keeper_order(q, a, b));
+                let keeper = if frozen(q, &group[0]) { "frozen" } else { "oldest" };
+                let others = if group.len() > 2 { "many" } else { "one" };
                 let message = format!(
-                    "{} after a merge; {} keeps it, and the other{} must change",
+                    "{} after a merge; {} keeps it, and {} must change",
                     f.message,
-                    if frozen(q, &group[0]) {
+                    if keeper == "frozen" {
                         "the record with the frozen tag"
                     } else {
                         "the oldest record"
                     },
-                    if group.len() > 2 { "s" } else { "" }
+                    if others == "many" {
+                        "the others"
+                    } else {
+                        "the other"
+                    }
                 );
                 let mut finding = Finding::new(
                     &MERGE_COLLISION,
@@ -965,7 +972,10 @@ pub fn merge_collisions(q: &Q) -> Vec<Finding> {
                     id,
                     f.subject.clone(),
                     message,
-                );
+                )
+                .arg("collision", f.message.clone())
+                .arg("keeper", keeper)
+                .arg("others", others);
                 if id == crate::rules::rds::DUPLICATE_DESIGNATION.id {
                     if let Some(fix) = renumber_newer(q, &group) {
                         finding = finding.with_fix(fix);

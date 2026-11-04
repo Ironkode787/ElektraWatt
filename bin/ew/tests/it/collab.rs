@@ -4,9 +4,9 @@
 //! WP-S1.17 part 8 through the `ew` binary (D26 to D29, decision log ID-1284): `ew diff` (DG-1), its textconv in `git
 //! log -p` (DG-2), `ew git setup` (DG-3, DG-4), `ew check --integrity` (DG-6) and AC-41 through the real git (DG-7).
 //!
-//! Git runs only in fresh temporary repositories (ruling 8): `-C <dir>`, `GIT_DIR`, `GIT_WORK_TREE` and `GIT_INDEX_FILE`
-//! removed, the global configuration a file of the test's own folder and the system one off, a user set; a test skips
-//! with a message when git is absent. Golden A is only read and copied.
+//! Git runs only in fresh temporary repositories (ruling 8): `-C <dir>`, every repository-selecting variable of
+//! `ew_api::git::ISOLATE` removed, the global configuration a file of the test's own folder and the system one off, a
+//! user set; a test skips with a message when git is absent. Golden A is only read and copied.
 
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
@@ -95,11 +95,12 @@ impl Repo {
     }
 
     /// The test's own environment for git and `ew`: no repository-selecting variable, the global configuration a file
-    /// of this folder, no system configuration.
+    /// of this folder, no system configuration, no AppImage.
     fn env(&self, cmd: &mut Command) {
-        cmd.env_remove("GIT_DIR")
-            .env_remove("GIT_WORK_TREE")
-            .env_remove("GIT_INDEX_FILE")
+        for var in ew_api::git::ISOLATE {
+            cmd.env_remove(var);
+        }
+        cmd.env_remove("APPIMAGE")
             .env("GIT_CONFIG_GLOBAL", self.0.join("gitconfig"))
             .env("GIT_CONFIG_NOSYSTEM", "1")
             .stdin(Stdio::null());
@@ -231,16 +232,22 @@ fn dg1_ew_diff_prints_the_changed_part_with_the_tags_of_each_side() {
     );
 }
 
+/// The `ew` under test as git's shell reads it.
+fn quoted_exe() -> String {
+    let exe = super::conventions::bin_exe().to_string_lossy().replace('\\', "/");
+    format!("'{}'", exe.replace('\'', "'\\''"))
+}
+
 /// The four keys `ew git setup` writes for the `ew` under test.
 fn expected_config() -> Vec<(&'static str, String)> {
-    let exe = super::conventions::bin_exe().to_string_lossy().replace('\\', "/");
+    let exe = quoted_exe();
     vec![
         ("merge.elektrawatt.name", "ElektraWatt record merge".to_owned()),
         (
             "merge.elektrawatt.driver",
-            format!("\"{exe}\" merge-driver %O %A %B %L %P"),
+            format!("{exe} merge-driver %O %A %B %L %P"),
         ),
-        ("diff.elektrawatt.textconv", format!("\"{exe}\" diff --textconv")),
+        ("diff.elektrawatt.textconv", format!("{exe} diff --textconv")),
         ("diff.elektrawatt.cachetextconv", "true".to_owned()),
     ]
 }
@@ -256,6 +263,9 @@ merge=elektrawatt\nrules/** text eol=lf\nreports/*.sql text eol=lf\nassets/* bin
 fn dg3_git_setup_asks_writes_the_keys_and_the_blocks_and_is_idempotent() {
     let Some(r) = Repo::new("ew-dg3") else { return };
     std::fs::write(r.project().join(".gitattributes"), "*.png binary\n").unwrap();
+    // C49-p9#6: a web app's manifest is no project folder.
+    std::fs::create_dir_all(r.repo().join("web")).unwrap();
+    std::fs::write(r.repo().join("web/manifest.json"), "{\"name\":\"app\"}\n").unwrap();
     let config_before = std::fs::read(r.repo().join(".git/config")).unwrap();
     let refused = r.ew(&["git", "setup"]);
     assert_eq!(
@@ -319,6 +329,11 @@ fn dg3_git_setup_asks_writes_the_keys_and_the_blocks_and_is_idempotent() {
         "idempotent"
     );
     assert_eq!(
+        std::fs::read_dir(r.repo().join("web")).unwrap().count(),
+        1,
+        "nothing written beside a web app's manifest"
+    );
+    assert_eq!(
         std::fs::read_to_string(r.project().join(".gitattributes")).unwrap(),
         ATTRIBUTES
     );
@@ -337,14 +352,12 @@ fn dg4_the_hook_is_installed_and_a_foreign_one_is_kept() {
         "{}",
         String::from_utf8_lossy(&done.stderr)
     );
-    let exe = super::conventions::bin_exe().to_string_lossy().replace('\\', "/");
-    assert_eq!(
-        std::fs::read_to_string(&hook).unwrap(),
-        format!(
-            "#!/bin/sh\n# ElektraWatt (managed): the project-integrity check after a merge\nstatus=0\n\"{exe}\" check \
-             --integrity --after-merge 'J-E-2416.ew' || status=1\nexit $status\n"
-        )
+    let exe = quoted_exe();
+    let expected = format!(
+        "#!/bin/sh\n# ElektraWatt (managed): the project-integrity check after a merge\nstatus=0\n{exe} check \
+         --integrity --after-merge 'J-E-2416.ew' || status=1\nexit $status\n"
     );
+    assert_eq!(std::fs::read_to_string(&hook).unwrap(), expected);
     std::fs::write(&hook, "#!/bin/sh\necho mine\n").unwrap();
     std::fs::remove_file(r.project().join(".gitignore")).unwrap();
     let refused = r.ew(&["git", "setup", "--yes", "--hooks"]);
@@ -362,6 +375,50 @@ fn dg4_the_hook_is_installed_and_a_foreign_one_is_kept() {
     );
     assert_eq!(std::fs::read_to_string(&hook).unwrap(), "#!/bin/sh\necho mine\n");
     assert!(!r.project().join(".gitignore").exists(), "nothing written");
+
+    // C49-p9#9: `core.hooksPath` is where git runs hooks from, so the hook goes there.
+    assert!(r.git(&["config", "core.hooksPath", "githooks"]).status.success());
+    let done = r.ew(&["git", "setup", "--yes", "--hooks"]);
+    assert_eq!(
+        done.status.code(),
+        Some(0),
+        "{}",
+        String::from_utf8_lossy(&done.stderr)
+    );
+    assert_eq!(
+        std::fs::read_to_string(r.repo().join("githooks").join("post-merge")).unwrap(),
+        expected
+    );
+    assert_eq!(std::fs::read_to_string(&hook).unwrap(), "#!/bin/sh\necho mine\n");
+}
+
+/// C49-p9#5: run from an AppImage (`$APPIMAGE`), `ew git setup` writes the AppImage with `ew` as its first argument,
+/// never the executable's own path in the AppImage's transient mount.
+#[test]
+fn git_setup_from_an_appimage_names_the_appimage() {
+    let Some(r) = Repo::new("ew-dg3-appimage") else {
+        return;
+    };
+    let image = r.0.join("Apps").join("ElektraWatt.AppImage");
+    let mut cmd = Command::new(super::conventions::bin_exe());
+    cmd.args(["git", "setup", "--yes"]).current_dir(r.repo());
+    r.env(&mut cmd);
+    let done = cmd.env("APPIMAGE", &image).output().unwrap();
+    assert_eq!(
+        done.status.code(),
+        Some(0),
+        "{}",
+        String::from_utf8_lossy(&done.stderr)
+    );
+    let image = format!("'{}'", image.to_string_lossy().replace('\\', "/"));
+    assert_eq!(
+        r.config("merge.elektrawatt.driver"),
+        Some(format!("{image} ew merge-driver %O %A %B %L %P"))
+    );
+    assert_eq!(
+        r.config("diff.elektrawatt.textconv"),
+        Some(format!("{image} ew diff --textconv"))
+    );
 }
 
 /// A copy of Golden A whose page 102 holds MD-6's conflict record on W20's colour, as part 5's CR-1 project.

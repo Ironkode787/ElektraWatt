@@ -27,6 +27,11 @@ count = 1
 
 [[allow]]
 crate = "ew"
+item = "fn appimage"
+count = 1
+
+[[allow]]
+crate = "ew"
 item = "fn bin_exe"
 count = 5
 

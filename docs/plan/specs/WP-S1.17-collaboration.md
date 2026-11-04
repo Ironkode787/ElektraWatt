@@ -675,6 +675,11 @@ refuses saves with `SaveError::ExternalCollisions` or `SaveError::ExternalUnread
 stays. The cloud recheck reads the service the front-end sets (`Session::set_cloud_service`), since the store reads no
 environment. A delete/modify collision is one row for the whole record. An external step is undone, as a `HumanOnly` one,
 from the GUI and a confirmed CLI only. The reload is one new revision of the old model, so views keep their place.
+Review part 9's round (FIXCOL49): a held change is kept while the manifest's bytes stay (`DiskPoll::Held`, nothing read
+again), and `Session::apply_external` merges it again with the current model, so an edit made since the hold stays, and
+refuses with `ExternalError::Changed` when the collisions are no longer those chosen for; a delete/modify row carries
+the whole record per side. On a cloud path (`StoreOptions::cloud_synced`) an open that finds a listed file missing
+(EW-CORE-003) waits 5 s and reads once more before it reports (D25). A failed `Journal::rebase` keeps no segment.
 
 ## 12. Part 7: the window, cloud folders and the driver status
 
@@ -702,7 +707,10 @@ regained, never while a pointer button is held; `project.check_disk` polls at on
 Show changes (`NoteAction::ShowChanges`, the history opened at the step). The collision dialog names a record by the
 property grid's label (a connection by its wire label, not D24's ends). The driver badge shows in an editing window only.
 Online-only placeholders are **de-scoped** (§14.4); the cloud folder is a banner, not a status-bar badge. The upgrade
-dialog, Export .ewz… and Open .ewz… (Extract and open, Open read-only) are built (ruling 4).
+dialog, Export .ewz… and Open .ewz… (Extract and open, Open read-only) are built (ruling 4). Review part 9's round
+(FIXCOL49): the collision dialog opens once per held change, never over another dialog and never again after Decide
+later; a save refused for the collisions opens it again. A delete/modify row reads present, changed or deleted per side;
+values name records by their labels; kinds are in words. Set up merge driver names the project folder it writes into.
 
 ## 13. Part 8: `ew diff`, `ew git setup`, post-merge integrity and AC-41
 
@@ -736,7 +744,13 @@ registry rule (its INTEGRITY row moved) that reports on the model's own evidence
 groups for a merged manifest, a merge or rebase in progress and `--after-merge` (`CheckReport::with_merge_evidence`).
 The keeper order compares the IDs' time bytes (bytes 0 to 5 of a UUIDv7; a non-v7 ID counts as the oldest); a released
 number is not modelled. "Renumber the newer" is `numbering.renumber` with `selection` and `only_nonconforming`, no new
-parameter, on EW-RDS-004 and EW-CORE-013. `ew check --integrity` reports as the scheme `integrity`.
+parameter, on EW-RDS-004 and EW-CORE-013. `ew check --integrity` reports as the scheme `integrity`. Review part 9's
+round (FIXCOL49): EW-CORE-013 runs in the online and release modes (`o r`; doc 15's `n` is the window's online check), so
+the window reports it on open and after an external change that brings merge evidence, its message from the rule's
+pattern in both locales. Git runs `ew` by a single-quoted path, or under an AppImage by `'$APPIMAGE' ew`, never the
+AppImage's mount; the hook goes where `git rev-parse --git-path hooks` says (`core.hooksPath` honoured, a fifth parsed
+output); the managed blocks go only into folders whose `manifest.json` reads as an ElektraWatt manifest, and the
+question names them.
 
 ## 14. Files owned, boundaries, risks, size and routing
 

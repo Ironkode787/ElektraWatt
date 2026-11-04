@@ -34,6 +34,8 @@ pub enum DiskPoll {
     /// The change collides with unsaved edits: nothing was applied and saves are held until
     /// [`Session::apply_external`] ([`Session::external_collisions`]).
     Collisions,
+    /// The change already held for a choice is still the one on disk: nothing was read again, nothing is new.
+    Held,
     /// The change cannot be read (D21): nothing was applied. On a cloud-synced path it is read again after
     /// [`CLOUD_RECHECK`] up to [`CLOUD_RECHECKS`] times (`retrying`); then saves are held until it reads.
     Unreadable {
@@ -66,6 +68,9 @@ pub enum ExternalError {
     Nothing,
     /// The choices do not hold one choice per colliding field, or the chosen record does not read back.
     Choices(String),
+    /// The colliding fields changed since they were shown (an edit made since, merged again at the apply): nothing was
+    /// applied, and the change is held with the new collisions ([`Session::external_collisions`]) for a new choice.
+    Changed,
     /// The engine refused the step.
     Command(ew_commands::CmdError),
 }
@@ -75,6 +80,9 @@ impl std::fmt::Display for ExternalError {
         match self {
             ExternalError::Nothing => f.write_str("no external change is waiting for a choice"),
             ExternalError::Choices(m) => write!(f, "the choices cannot be applied: {m}"),
+            ExternalError::Changed => {
+                f.write_str("the colliding fields changed since they were shown; choose again")
+            }
             ExternalError::Command(e) => e.fmt(f),
         }
     }
@@ -129,6 +137,13 @@ impl Session {
             Poll::Settling => return DiskPoll::Settling,
             Poll::GitBusy => return DiskPoll::GitBusy,
             Poll::Changed => {}
+        }
+        // The change held for a choice is still the one on disk: it is neither read nor merged again (its merge is
+        // redone against the current model at the apply).
+        if let Some(Held::Collisions(held)) = &p.watch.held
+            && p.store.changed_manifest() == Some(held.0.manifest_hash())
+        {
+            return DiskPoll::Held;
         }
         if *p.store.access() != Access::Edit {
             return match self.reload() {
@@ -189,23 +204,40 @@ impl Session {
     }
 
     /// Applies the held external change with `choices`, one per colliding field of [`Session::external_collisions`] in
-    /// order: mine keeps the session's value, theirs takes the incoming one. One step "External change"; the incoming
-    /// generation becomes the baseline and saves are no longer held.
+    /// order: mine keeps the session's value, theirs takes the incoming one. The change is merged again with the current
+    /// model, so an edit made since the hold stays; when its collisions are no longer those the choices were made for,
+    /// nothing is applied ([`ExternalError::Changed`]). One step "External change"; the incoming generation becomes the
+    /// baseline and saves are no longer held.
     ///
     /// # Errors
     ///
-    /// [`ExternalError`]: nothing is held, the choices do not fit, or the step is refused. The change stays held.
+    /// [`ExternalError`]: nothing is held, the collisions changed, the choices do not fit, or the step is refused. The
+    /// change stays held (with the new collisions after [`ExternalError::Changed`]).
     pub fn apply_external(&mut self, choices: &[Take]) -> Result<ExternalApplied, ExternalError> {
         let p = self.persistence.as_mut().ok_or(ExternalError::Nothing)?;
         let Some(Held::Collisions(held)) = p.watch.held.take() else {
             return Err(ExternalError::Nothing);
         };
-        let (incoming, merged) = *held;
-        if let Err(e) = merged.rows(choices) {
-            if let Some(p) = self.persistence.as_mut() {
-                p.watch.held = Some(Held::Collisions(Box::new((incoming, merged))));
+        let (incoming, shown) = *held;
+        let merged = match external::merge(p.store.baseline(), self.engine.model(), &incoming.model) {
+            Ok(merged) => merged,
+            Err(e) => {
+                p.watch.held = Some(Held::Collisions(Box::new((incoming, shown))));
+                return Err(ExternalError::Choices(e));
             }
-            return Err(ExternalError::Choices(e));
+        };
+        if merged.collisions.is_empty() {
+            // An edit since the hold settled every collision: the change applies as it stands.
+            return self.commit_external(incoming, &merged, &[]);
+        }
+        let changed = merged.collisions != shown.collisions;
+        let fits = merged.rows(choices);
+        if changed || fits.is_err() {
+            p.watch.held = Some(Held::Collisions(Box::new((incoming, merged))));
+            return Err(match fits {
+                Err(e) if !changed => ExternalError::Choices(e),
+                _ => ExternalError::Changed,
+            });
         }
         self.commit_external(incoming, &merged, choices)
     }
