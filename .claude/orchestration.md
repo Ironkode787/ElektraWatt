@@ -80,7 +80,7 @@ The main session orchestrates. It plans each cycle, briefs Claude subagents, int
 
 6. **Lanes in waves on three slots.**
    - A cycle is about twice the work of a cycle-30 cycle, built as sequential waves.
-   - At least two of the three builder slots carry work-package parts. Polish, FT, fix and verify work share the third.
+   - At least two of the three builder slots carry work packages. Polish, FT, fix and verify work share the third.
      The rule holds at every moment while work-package lanes are queued, the end phase included: fixes and the last
      verify run one after another in the third slot. Only a major's fix may take a work-package slot, by delaying the
      next work-package dispatch.
@@ -127,8 +127,8 @@ The main session orchestrates. It plans each cycle, briefs Claude subagents, int
 
 ## Review and fixes (owner, 2026-10-27; amended 2026-10-31, 2026-11-01)
 
-11. **One independent review per cycle, in parts,** one part per wave (`<previous part's tip>..<wave tip>`, on the
-    verified tip).
+11. **One independent review per cycle, in parts:** one part per work package, built whole, and one per wave for the
+    FT, polish and fix lanes (`<previous part's tip>..<tip>`, on the verified tip; amended 2026-11-04, ID-1281).
     - Each part is a fresh `reviewer` (Opus `high`) with the cycle's findings ledger: a file in the orchestrator's
       notes, its path in the brief. Reviewers resumed across parts compacted in two of the last five cycles
       (2026-11-01).
@@ -144,22 +144,34 @@ The main session orchestrates. It plans each cycle, briefs Claude subagents, int
     - Fixed in the cycle: majors, and minors that touch data, the file format or what users see.
     - Nits in files that a fix round already touches are fixed by the author in that round (cycle-42 retro).
     - Other minors and nits become FT rows for one batch lane in the next cycle's first wave, without re-review.
-    - Window-check and play-test findings are triaged the same way. After the last wave, only their blockers and majors
-      are fixed before the end tip; the rest go to the next cycle's first polish lane.
+    - Window-check and play-test findings are triaged the same way.
+    - **After the last wave's review part** (its scoped re-review included) and the last window check, only majors,
+      blockers and minors that touch data or the file format get a fix round before the end tip. The rest go to the
+      next cycle's first review part, FT batch or polish lane, named in the ledger (cycle-49 retro: six fix rounds and
+      four re-review parts chained after the last wave).
 13. **Back to the author.**
     - Findings go verbatim, with the orchestrator's rulings, to the authoring lane.
-    - Resume that lane with SendMessage while its context is under about 250k tokens. Otherwise use a fresh `lane`
-      fixer (Opus `medium`) with the findings and the lane's hand-off note (2026-11-01).
+    - Resume that lane with SendMessage while its context is under about 600k tokens (ID-1282, the 800k window).
+      Otherwise use a fresh `lane` fixer (Opus `medium`) with the findings and the lane's hand-off note (2026-11-01;
+      amended 2026-11-04).
     - The lane's worktree is kept until its part is accepted.
     - A lane resumed after it has handed back may not be able to hand back again. Its message asks it to write its
       report to a file in the orchestrator's notes and to end with one line naming that file (cycle-46 retro).
 14. **No separate re-review rounds.**
     - The next part's reviewer first checks the earlier fixes in the ledger: each finding closed, with the test that
       shows it.
-    - The last part ends with a re-review scoped to the fixes. Only a major re-opens a full re-review.
+    - The last part ends with a re-review scoped to the fixes. Only a major re-opens a full re-review. That
+      re-review's own findings follow rule 12's last bullet; no further re-review runs in the cycle (cycle-49 retro).
     - A fix that lands after the cycle's review is accepted (a play-test blocker) opens the next cycle's first review
       part, named in its range.
 15. **Shift left.** Every lane runs the hand-back checks and the self-check of its agent definition, and reports them.
+    - One full lane-check per hand-back; after a failure, only the failed step and the steps after it. A second full
+      run needs a reason in the report (cycle-49 retro: 2.5 full runs per hand-back, 52 % of the cargo minutes on
+      unchanged trees).
+    - **Scripts are parse-checked before CI runs them** (cycle-49 retro: four of eight package runs red on scripts no
+      local step had run). Before any CI dispatch, the orchestrator parses every changed `.ps1`/`.psm1` with
+      PowerShell's parser (`[System.Management.Automation.Language.Parser]::ParseFile`, parse only, never run), runs
+      `bash -n` on every changed `.sh`, and runs `cargo xtask check-workflows`.
 
 ## Integration and checks (owner, 2026-10-27, 2026-10-29; amended 2026-11-01)
 
@@ -239,14 +251,14 @@ The main session orchestrates. It plans each cycle, briefs Claude subagents, int
 
 ## Lanes across parts (owner, 2026-11-01)
 
-24. **The next part of a work package is a fresh `lane`.**
-    - It gets two things:
-      - the previous part's hand-off note, written by that lane as its last act (at most 1,000 words, kept in the
-        orchestrator's notes);
-      - the code map (`cargo xtask map --crates <set>`; amended 2026-11-01, ID-1072).
-    - An agent is resumed only for fix rounds, rulings and questions, while its context is under about 250k tokens.
-      Part writers ended near the 367k compaction point, so a resumed writer would compact at once.
-    - Size lanes to finish under about 250k.
+24. **A work package is one lane** (owner, 2026-11-03: "do not split wps from now on, please", since reviewing
+    partial work costs time and tokens; ID-1281, ID-1282; amended 2026-11-04).
+    - One brief, one lane, one review part per work package.
+    - A lane is sized to finish under about 550k tokens (the 800k auto-compact window). Near 650k it commits, writes
+      its hand-off note (at most 1,000 words, kept in the orchestrator's notes) and hands back; a fresh `lane`
+      continues from that note and the code map (`cargo xtask map --crates <set>`), within the same brief and review
+      part.
+    - An agent is resumed for fix rounds, rulings and questions while its context is under about 600k tokens.
 
 ## Testing policy (owner, 2026-10-18; amended 2026-10-22, 2026-10-31, 2026-11-01)
 
