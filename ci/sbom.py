@@ -6,7 +6,7 @@
 NFR-SEC-13, NFR-LIC-08, FT-04), run by the OS jobs of .github/workflows/package.yml.
 
   python3 -I ci/sbom.py cyclonedx --target <triple> --bin <name>... --out <dir>
-  python3 -I ci/sbom.py shipped --target <triple> --bin <name>... --out <tree.txt>
+  python3 -I ci/sbom.py shipped --target <triple> --bin <name>... [--root <name>] --out <tree.txt>
   python3 -I ci/sbom.py merge --artefact <file name> --version <v> --metadata <json> --tree <tree.txt>
                               --cdx <json>... [--component <name>...] --out <artefact>.cdx.json
   python3 -I ci/sbom.py complete --sbom <artefact>.cdx.json --metadata <json> --tree <tree.txt> --bin <name>...
@@ -18,7 +18,9 @@ CycloneDX 1.5, every dependency, one SBOM per binary of the workspace for <tripl
 to <dir>/<name>.cdx.json and deletes the other files it wrote beside the workspace's manifests, so the checkout stays
 clean. `shipped` writes the artefact's shipped set (ID-1318): `cargo tree -e normal,build -p <bins> --target <triple>
 --prefix none --format "{p}"`, cargo's own feature resolution, which leaves out the optional dependencies that
-`cargo metadata` resolves when only a weak feature (`dep?/feature`) names them. `merge` joins the binaries' SBOMs of
+`cargo metadata` resolves when only a weak feature (`dep?/feature`) names them; with `--root <name>`, the part of that
+joint graph that the binary <name> reaches, since the artefact's <name> is built in the one joint invocation whose
+features cargo unifies (C50-p2#2). `merge` joins the binaries' SBOMs of
 one artefact into one (one component per purl, the binaries as application components, the dependency graph's union),
 keeps only the crate components of the shipped set and prints one line per component it drops, gives each `bom-ref`
 of a workspace crate its path relative to the workspace (no checkout path), and adds the non-crate components: each file block of a
@@ -138,6 +140,37 @@ def shipped_set(text):
         if not match:
             raise Refusal(f"not a line of cargo tree's {{p}} format: {line}")
         found.add((match.group(1), match.group(2)))
+    return found
+
+
+def root_block(text, root):
+    """The (name, version) pairs that the root `root` reaches in `cargo tree --prefix depth --format "{p}"` of several
+    roots. cargo shows a package's dependencies once in the whole output and marks each later showing `(*)`, so the
+    dependencies of each package are taken from wherever they are shown."""
+    deps, roots, path = {}, [], []
+    for line in text.splitlines():
+        if not line.strip():
+            continue
+        match = re.match(r"(\d+)(\S+) v(\S+)", line)
+        if not match or int(match.group(1)) > len(path):
+            raise Refusal(f"not a line of cargo tree's depth-prefixed {{p}} format: {line}")
+        depth, key = int(match.group(1)), (match.group(2), match.group(3))
+        del path[depth:]
+        if path:
+            deps[path[-1]].add(key)
+        else:
+            roots.append(key)
+        deps.setdefault(key, set())
+        path.append(key)
+    start = [key for key in roots if key[0] == root]
+    if not start:
+        raise Refusal(f"cargo tree shows no root {root}")
+    found, stack = set(), start
+    while stack:
+        key = stack.pop()
+        if key not in found:
+            found.add(key)
+            stack.extend(deps[key])
     return found
 
 
@@ -319,12 +352,14 @@ def cyclonedx(target, bins, out, repo=REPO, run=run):
             os.remove(path)
 
 
-def shipped(target, bins, out, repo=REPO, run=run):
+def shipped(target, bins, out, root=None, repo=REPO, run=run):
     """ID-1318: writes `cargo tree -e normal,build -p <bins> --target <target> --prefix none --format "{p}"` to
-    `out`."""
+    `out`; with `root`, the packages that the binary `root` reaches in that graph, one `<name> v<version>` a line."""
     packages = [a for b in bins for a in ("-p", b)]
-    text = run(["cargo", "tree", "--locked", "-e", "normal,build", *packages, "--target", target, "--prefix", "none",
-                "--format", "{p}"], cwd=repo)
+    text = run(["cargo", "tree", "--locked", "-e", "normal,build", *packages, "--target", target, "--prefix",
+                "depth" if root else "none", "--format", "{p}"], cwd=repo)
+    if root:
+        text = "".join(f"{name} v{version}\n" for name, version in sorted(root_block(text, root)))
     write_atomic(out, text)
     return shipped_set(text)
 
@@ -476,6 +511,7 @@ def main(argv):
     p = sub.add_parser("shipped", help="the shipped set of the binaries (cargo tree)")
     p.add_argument("--target", required=True)
     p.add_argument("--bin", action="append", required=True)
+    p.add_argument("--root")
     p.add_argument("--out", required=True)
     p = sub.add_parser("merge", help="one artefact's SBOM with the non-crate components")
     p.add_argument("--artefact", required=True)
@@ -503,8 +539,9 @@ def main(argv):
             cyclonedx(args.target, args.bin, args.out)
             print(f"sbom: cargo-cyclonedx's SBOMs of {', '.join(args.bin)} for {args.target} in {args.out}")
         elif args.command == "shipped":
-            count = len(shipped(args.target, args.bin, args.out))
-            print(f"sbom: {args.out}: {count} packages that cargo tree lists for {', '.join(args.bin)} on {args.target}")
+            count = len(shipped(args.target, args.bin, args.out, args.root))
+            built = f"{args.root}, built with {', '.join(args.bin)}," if args.root else ", ".join(args.bin)
+            print(f"sbom: {args.out}: {count} packages that cargo tree lists for {built} on {args.target}")
         elif args.command == "merge":
             bom = merge(args.artefact, args.version, args.cdx, read_json(args.metadata), read_tree(args.tree),
                         args.component)
@@ -694,6 +731,35 @@ class SbomTest(unittest.TestCase):
         self.assertNotIn("registry+x#egui_glow@0.37.0", refs)
         self.assertEqual(shipped_set(self.SHIPPED), {("app", "0.0.0"), ("serde", "1.0.0"), ("libsqlite3-sys", "0.38.2"),
                                                      ("cc", "1.2.0"), ("ew-model", "0.0.0"), ("cli", "0.0.0")})
+
+    # `cargo tree --prefix depth --format "{p}"` of app and cli, built together (C50-p2#2): cli's own block shows
+    # serde without its dependency (`(*)`), and cli reaches what app's block shows under serde, not libsqlite3-sys.
+    JOINT = ("0app v0.0.0 (/ws/bin/app)\n1serde v1.0.0\n2serde_core v1.0.0\n1libsqlite3-sys v0.38.2\n2cc v1.2.0\n"
+             "\n0cli v0.0.0 (/ws/bin/cli)\n1serde v1.0.0 (*)\n1cc v1.2.0 (*)\n")
+
+    def test_the_cli_tree_is_what_cli_reaches_in_the_joint_graph(self):
+        self.assertEqual(root_block(self.JOINT, "cli"), {("cli", "0.0.0"), ("serde", "1.0.0"),
+                                                         ("serde_core", "1.0.0"), ("cc", "1.2.0")})
+        self.assertEqual(len(root_block(self.JOINT, "app")), 5)
+        commands = []
+
+        def fake(command, cwd=None):
+            commands.append(command)
+            return self.JOINT
+
+        out = os.path.join(self.dir, "cli.tree")
+        self.assertEqual(shipped("x86_64-unknown-linux-gnu", ["app", "cli"], out, "cli", self.repo, fake),
+                         root_block(self.JOINT, "cli"))
+        self.assertEqual(commands, [["cargo", "tree", "--locked", "-e", "normal,build", "-p", "app", "-p", "cli",
+                                     "--target", "x86_64-unknown-linux-gnu", "--prefix", "depth", "--format", "{p}"]])
+        with open(out, encoding="utf-8") as f:
+            self.assertEqual(f.read(), "cc v1.2.0\ncli v0.0.0\nserde v1.0.0\nserde_core v1.0.0\n")
+        with self.assertRaises(Refusal) as refused:
+            root_block(self.JOINT, "ew")
+        self.assertEqual(str(refused.exception), "cargo tree shows no root ew")
+        with self.assertRaises(Refusal) as refused:
+            root_block("0app v0.0.0\n2serde v1.0.0\n", "app")
+        self.assertEqual(str(refused.exception), "not a line of cargo tree's depth-prefixed {p} format: 2serde v1.0.0")
 
     def test_no_bom_ref_holds_a_checkout_path(self):
         bom = self.merged()
