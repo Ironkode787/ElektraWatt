@@ -378,19 +378,25 @@ pub fn plan_reimport(
     Ok(plan)
 }
 
-/// The hash of D11: the first 128 bits of SHA-256 over a row's JSON form without its `source_ref`, as 32 lower-case
-/// hex digits.
+/// The hash of D11: the first 128 bits of SHA-256 over the record's canonical line without its `source_ref` member
+/// (doc 05 §3.1: `$k` first, then the members in declaration order; ID-1374), as 32 lower-case hex digits.
 ///
 /// # Errors
 ///
 /// [`CmdError::Internal`] for a row without a JSON form.
 pub fn record_hash(row: &AnyRow) -> Result<String, CmdError> {
     use sha2::Digest;
+    let (kind, id) = row.key();
     let mut value = crate::rows::row_json(row)?;
     if let Value::Object(map) = &mut value {
         map.remove("source_ref");
+        map.insert("$k".to_owned(), Value::from(kind.name()));
     }
-    let digest = sha2::Sha256::digest(value.to_string().as_bytes());
+    let line = Record::from_value(value)
+        .ok()
+        .and_then(|r| serde_json::to_string(&r).ok())
+        .ok_or_else(|| CmdError::internal(format!("the record {kind}:{id} has no canonical line")))?;
+    let digest = sha2::Sha256::digest(line.as_bytes());
     Ok(digest[..16].iter().map(|b| format!("{b:02x}")).collect())
 }
 
@@ -534,5 +540,27 @@ impl DynCommand for ApplyImport {
             "records": self.records.len(),
             "checkpoint": self.checkpoint,
         }))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// ID-1374 (C51-p2#4): D11's hash is taken over the record's canonical line without its `source_ref` member: `$k`
+    /// first, the members in declaration order.
+    #[test]
+    fn the_record_hash_is_over_the_canonical_line_without_source_ref() {
+        use sha2::Digest;
+        let line = r#"{"$k":"device","id":"c7a90e35-42d8-5f61-8b03-9d2e6f1a47c2","tag":{"letter":"G","counter":1},"kind":"psu","function_text":{"en-GB":"Power supply"}}"#;
+        let with_ref = line.replace(
+            r#""kind":"psu","#,
+            r#""kind":"psu","source_ref":{"lineage":"0e8b3d61-a74c-5f12-b5e9-82d4c1f06a3e","key":"k"},"#,
+        );
+        let record = Record::from_json(&with_ref).expect("the device reads");
+        let row = AnyRow::from_record(record).expect("a known kind");
+        let digest = sha2::Sha256::digest(line.as_bytes());
+        let expected: String = digest[..16].iter().map(|b| format!("{b:02x}")).collect();
+        assert_eq!(record_hash(&row).unwrap(), expected);
     }
 }
