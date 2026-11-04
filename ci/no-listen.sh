@@ -22,7 +22,8 @@ fail() {
 appdir="$1" out="$2"
 sample="$appdir/usr/lib/elektrawatt/samples/J-E-2416.ew"
 [ -x "$appdir/AppRun" ] || fail "no executable AppRun in $appdir"
-[ -f "$sample" ] || fail "no installed sample at $sample"
+# The sample project is a folder (WP-S6.06 D3: samples/J-E-2416.ew/).
+[ -d "$sample" ] || fail "no installed sample project at $sample"
 command -v strace > /dev/null || fail "strace is not installed"
 mkdir "$out" || fail "the output directory exists or cannot be made: $out"
 
