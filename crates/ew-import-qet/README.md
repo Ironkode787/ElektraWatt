@@ -44,7 +44,7 @@ it cannot map as `EW-IMP` findings. It never aborts on an item; only an unreadab
 | `label` (rule R1 `-{page}{letter}{counter}` on its own folio, upper-case letters, counter without leading zeros) | derived `TagSpec { letter, counter }` | labels EW would print differently (`-101K01`, `-101f1`) stay frozen |
 | any other `label` | `FrozenTag { text, sign }` (sign hidden without a leading `-`) | EW-IMP-103 (strips excluded) |
 | `label` with structure prefix (`+…-X1`) | product part as above, prefix in `Device.extra["qet.structure"]` | structure nodes not created (gap) |
-| no `label` | `TagSpec { letter: prefix attribute, else "A", counter: none }`, prints `?` (owner ruling) | EW-IMP-122 (proposed new code: element without label) count per folio |
+| no `label` | `TagSpec { letter: prefix attribute, else "A", counter: none }`, numbered on import (`-1A1`) | EW-IMP-122 (proposed new code: element without label) count per folio |
 | `function` (else `description`) | `Device.function_text` | |
 | other element information (`manufacturer`, `designation`, `comment`, `formula` …) | `Device.extra["qet.info"]` (slaves: `Function.extra`) | EW-IMP-008 per name with a count; parts, tech data and formulas not mapped |
 | instance dynamic texts, text groups | not imported | the symbol's slots print derived values |

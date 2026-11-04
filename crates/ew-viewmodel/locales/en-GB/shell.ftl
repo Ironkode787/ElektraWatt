@@ -3946,7 +3946,19 @@ choice-lenient = Lenient
 
 # WP-S3.09 D4, D8: the QElectroTech import card, its checkpoint confirmation and the front door's refusals.
 import-card-title = Import { $p0 }
-import-card-summary = { $p0 } pages, { $p1 } devices, { $p2 } connections; { $p3 } errors, { $p4 } warnings and { $p5 } infos in the migration report
+import-card-summary = { $p0 }, { $p1 }, { $p2 }; { $p3 }, { $p4 } and { $p5 } in the migration report
+import-card-pages = { $p0 } pages
+import-card-pages-one = 1 page
+import-card-devices = { $p0 } devices
+import-card-devices-one = 1 device
+import-card-connections = { $p0 } connections
+import-card-connections-one = 1 connection
+import-card-errors = { $p0 } errors
+import-card-errors-one = 1 error
+import-card-warnings = { $p0 } warnings
+import-card-warnings-one = 1 warning
+import-card-infos = { $p0 } infos
+import-card-infos-one = 1 info
 import-card-more = and { $p0 } more pages
 import-card-apply = Apply
 import-confirm-title = Create the project from { $p0 }?

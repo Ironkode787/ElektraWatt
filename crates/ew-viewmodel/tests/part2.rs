@@ -280,7 +280,7 @@ fn a_qelectrotech_project_is_imported_into_a_new_directory() {
     assert_eq!(spec.title, "Import example.qet");
     assert_eq!(
         spec.body,
-        ["1 pages, 0 devices, 0 connections; 0 errors, 0 warnings and 0 infos in the migration report"]
+        ["1 page, 0 devices, 0 connections; 0 errors, 0 warnings and 0 infos in the migration report"]
     );
     assert!(!dir.exists(), "the card writes nothing");
     match run(&mut shell, "file.import_qet_apply", json!({})) {

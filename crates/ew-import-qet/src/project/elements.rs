@@ -78,7 +78,7 @@ pub struct ElementsOut {
 pub const FALLBACK_LETTER: &str = "A";
 
 /// EW-IMP-122 (proposed, the next free code of the doc 14 §2.5 catalogue): element without label; its tag
-/// keeps the prefix letter without counter and prints "?" (owner ruling, cycle 11 review m7).
+/// keeps the prefix letter, and the import numbers it (`-1A1`; ID-1376).
 pub const UNLABELED: Code = Code::imp(122);
 
 /// The element a link UUID names, seen from `from`: the copy on `from`'s folio when the UUID is repeated
@@ -834,7 +834,7 @@ pub fn map(inp: &Inputs<'_>, used: &mut BTreeSet<String>, findings: &mut Finding
             UNLABELED,
             Severity::Info,
             loc,
-            format!("{n} elements without label: device tags carry the element prefix letter (else `{FALLBACK_LETTER}`) and no counter, and print `?`"),
+            format!("{n} elements without label: device tags carry the element prefix letter (else `{FALLBACK_LETTER}`) and are numbered on import"),
         );
     }
     for (name, n) in std::mem::take(&mut mx.infos_seen) {

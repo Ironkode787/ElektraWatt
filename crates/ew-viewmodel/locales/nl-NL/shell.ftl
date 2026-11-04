@@ -3710,7 +3710,19 @@ choice-lenient = Soepel
 
 # WP-S3.09 D4, D8: the QElectroTech import card, its checkpoint confirmation and the front door's refusals.
 import-card-title = { $p0 } importeren
-import-card-summary = { $p0 } pagina's, { $p1 } apparaten, { $p2 } verbindingen; { $p3 } fouten, { $p4 } waarschuwingen en { $p5 } info's in het migratierapport
+import-card-summary = { $p0 }, { $p1 }, { $p2 }; { $p3 }, { $p4 } en { $p5 } in het migratierapport
+import-card-pages = { $p0 } pagina's
+import-card-pages-one = 1 pagina
+import-card-devices = { $p0 } apparaten
+import-card-devices-one = 1 apparaat
+import-card-connections = { $p0 } verbindingen
+import-card-connections-one = 1 verbinding
+import-card-errors = { $p0 } fouten
+import-card-errors-one = 1 fout
+import-card-warnings = { $p0 } waarschuwingen
+import-card-warnings-one = 1 waarschuwing
+import-card-infos = { $p0 } info's
+import-card-infos-one = 1 info
 import-card-more = en nog { $p0 } pagina's
 import-card-apply = Toepassen
 import-confirm-title = Het project maken uit { $p0 }?

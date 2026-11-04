@@ -569,9 +569,9 @@ fn tutorial_6_importing_a_qelectrotech_project_runs_as_its_page_says() {
     let transcript = all_done(&out);
     let [preview, imported, wired, end] = <[String; 4]>::try_from(describes(&transcript)).unwrap();
     assert_eq!(
-        lines_of(&preview, &["label \"1 pages"]),
+        lines_of(&preview, &["label \"1 page,"]),
         [
-            "label \"1 pages, 4 devices, 3 connections; 0 errors, 8 warnings and 5 infos in the migration report\""
+            "label \"1 page, 4 devices, 3 connections; 0 errors, 8 warnings and 5 infos in the migration report\""
         ]
     );
     let report = ["messages scheme", "row level 2 rule"];

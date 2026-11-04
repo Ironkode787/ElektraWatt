@@ -639,9 +639,12 @@ fn unlabelled_elements_are_reported_with_their_own_code() {
         &[folio("1", "A", vec![el(SIMPLE, uuid(1), 100, 100).prefix("K")])],
     );
     let imported = import(&text);
+    // ID-1376: the text says what the import does: the tag is numbered, it does not print `?`.
     assert_eq!(
-        entries(&imported, "EW-IMP-122").len(),
-        1,
+        entries(&imported, "EW-IMP-122"),
+        [
+            "1 elements without label: device tags carry the element prefix letter (else `A`) and are numbered on import"
+        ],
         "{}",
         all_entries(&imported)
     );

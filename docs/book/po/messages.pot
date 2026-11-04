@@ -729,7 +729,7 @@ msgstr ""
 msgid ""
 "Choose **Project ▸ Import QElectroTech project…**, pick `lamp-circuit.qet`, "
 "and name the new project's folder `lamp-circuit.ew`. The import's preview "
-"says what it will create: \"1 pages, 4 devices, 3 connections; 0 errors, 8 "
+"says what it will create: \"1 page, 4 devices, 3 connections; 0 errors, 8 "
 "warnings and 5 infos in the migration report\". Nothing is written yet."
 msgstr ""
 

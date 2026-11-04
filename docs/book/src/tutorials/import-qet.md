@@ -17,7 +17,7 @@ symbol wired to the supply's PE terminal. One conductor is missing on purpose: t
 
 1. Choose **Project ▸ Import QElectroTech project…**, pick `lamp-circuit.qet`, and name the new project's
    folder `lamp-circuit.ew`.
-   The import's preview says what it will create: "1 pages, 4 devices, 3 connections; 0 errors, 8 warnings and 5
+   The import's preview says what it will create: "1 page, 4 devices, 3 connections; 0 errors, 8 warnings and 5
    infos in the migration report". Nothing is written yet.
 2. Choose **Apply** in the preview.
    EW creates the project and opens it. The Messages pane shows the **Migration report**, chosen in its header beside

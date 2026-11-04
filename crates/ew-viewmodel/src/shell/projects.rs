@@ -409,15 +409,16 @@ impl ShellModel {
         // WP-S3.09 D8: the import card first (its summary and pages); Apply asks the checkpoint confirmation, then
         // writes and opens the project. Cancel writes nothing.
         let (errors, warnings, infos) = migration_counts(&session);
+        // ID-1376: each count with its plural form ("1 page").
         let summary = strings::format(
             key!("import-card-summary"),
             &[
-                &counts.pages.to_string(),
-                &counts.devices.to_string(),
-                &counts.connections.to_string(),
-                &errors.to_string(),
-                &warnings.to_string(),
-                &infos.to_string(),
+                &strings::format_count(crate::count_key!("import-card-pages"), counts.pages),
+                &strings::format_count(crate::count_key!("import-card-devices"), counts.devices),
+                &strings::format_count(crate::count_key!("import-card-connections"), counts.connections),
+                &strings::format_count(crate::count_key!("import-card-errors"), errors),
+                &strings::format_count(crate::count_key!("import-card-warnings"), warnings),
+                &strings::format_count(crate::count_key!("import-card-infos"), infos),
             ],
         );
         let pages = session.page_labels();
