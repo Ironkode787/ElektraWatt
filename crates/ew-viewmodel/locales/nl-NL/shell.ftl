@@ -984,12 +984,12 @@ refusal-layout-plate-part-missing = het kastartikel noemt een plaatartikel dat h
 refusal-layout-enclosure-turn = de stand van een kast is in deze versie een verschuiving; geef haar zonder draaiing
 # page.create, page.delete, page.renumber and page.surface_view.set.
 refusal-page-create-outside-range = folio { $p0 } ligt buiten het foliobereik { $p2 } tot en met { $p3 } van sectie { $p1 }; kies een folio in het bereik
-refusal-page-create-divider = folio { $p0 } is de scheidingspagina van sectie { $p1 }; kies een andere folio
-refusal-page-create-generated = folio { $p0 } is een pagina die het rapportblok op folio { $p1 } genereert; kies een andere folio
+refusal-page-create-divider = folio { $p0 } is de scheidingspagina van sectie { $p1 }; kies een ander folio
+refusal-page-create-generated = folio { $p0 } is een pagina die het rapportblok op folio { $p1 } genereert; kies een ander folio
 refusal-page-create-report = rapportpagina's worden gegenereerd uit rapportblokken (EW-INV-012); maak een rapportblok
 refusal-page-create-section = `section` verschilt van de sectie van `after`; laat het weg of geef een expliciet `number`
 refusal-page-create-no-folio = geef een expliciet folio-`number` of de pagina waarna moet worden ingevoegd (`after`)
-refusal-page-create-exists = folio { $p0 } bestaat al in deze sectie; kies een vrije folio
+refusal-page-create-exists = folio { $p0 } bestaat al in deze sectie; kies een vrij folio
 refusal-page-delete-none = geen pagina's opgegeven; noem ten minste één pagina
 refusal-page-renumber-step = `step` moet ten minste 1 zijn
 refusal-page-renumber-no-pages = geen pagina's in het bereik; noem pagina's, een sectie of het project met pagina's
@@ -3777,7 +3777,7 @@ report-block-new-title = Nieuw rapportblok
 form-report-kind = Rapport
 form-first-folio = Eerste folio
 error-report-kind = "{ $p0 }" is geen rapport; gebruik een van: { $p1 }.
-error-first-folio = De eerste folio is een nummer: "{ $p0 }" niet.
+error-first-folio = Het eerste folio is een nummer: "{ $p0 }" niet.
 toast-report-block-new = Rapportblok { $p0 } toegevoegd vanaf folio { $p1 }
 
 # FT-1337 en FT-1363 (ID-1359 uitspraak 1): een opdrachtfout in het venster, naar de reden.
