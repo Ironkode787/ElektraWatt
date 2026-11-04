@@ -82,7 +82,11 @@
 //!   dirty worktree records nothing and skips nothing; once a step changed the worktree (a rewrite stops the run; any
 //!   other change), no later step is skipped or recorded. A failure forgets the step's record. A step that runs `cargo
 //!   deny` is never recorded: the advisory database comes from the network. The trailers step is never recorded or
-//!   skipped: commit messages change without the tree changing. `--fresh` runs every step and records anew.
+//!   skipped: commit messages change without the tree changing. `--fresh` runs every step and records anew. When the
+//!   memory applied and a step still ran, one more memory line names why, each reason once with its steps (ID-1309,
+//!   [`miss_line`]): `lane-check: memory: not skipped: clippy, doc (the tree changed); policy (no pass is recorded)`;
+//!   the reason is the first part of the record that differs: the merge base, the tree, the commands, or the inputs by
+//!   name (`env RUSTFLAGS changed`).
 //! - **`--plan`** prints the selection, the memory's line and the exact commands (a step it would skip as
 //!   `<step>: from memory: <command>`) and runs nothing. **`--only <step>`** runs one step with the same selection.
 //!   **`--warm`** builds exactly the nextest step's packages (the derived set and the declared one; at a lane's start
@@ -1614,6 +1618,7 @@ pub(crate) fn run(args: &[String], root: &Path) -> Result<bool> {
     }
 
     let selected = plan.steps.iter().filter(|s| a.only.is_none_or(|o| o == s.name));
+    let mut misses: Vec<(&str, String)> = Vec::new();
     let outcomes = run_steps(selected, |s| {
         let outcome = match &s.run {
             StepRun::Skip(why) => Outcome::without_command(s.name, "skipped", why),
@@ -1625,6 +1630,10 @@ pub(crate) fn run(args: &[String], root: &Path) -> Result<bool> {
                 }
             }
             StepRun::Run(cmds) => {
+                misses.extend(
+                    miss_reason(&records, s.name, cmds, key.as_ref(), a.fresh, &mut tool_version)
+                        .map(|why| (s.name, why)),
+                );
                 if s.name == "nextest" {
                     touch(root, &plan.touch)?;
                 }
@@ -1691,6 +1700,7 @@ pub(crate) fn run(args: &[String], root: &Path) -> Result<bool> {
         };
         Ok(outcome)
     })?;
+    memory.extend(miss_line(&misses));
     summarise(root, &a.base, Some(&memory.join("\n")), &outcomes, Some(&records))
 }
 
@@ -1750,6 +1760,68 @@ fn remembered(
         return false;
     };
     *record == record_of(name, cmds, key, tool_version)
+}
+
+/// Why a run does not skip the step `name` with `cmds` although the memory applies (`key` holds, no `--fresh`, the
+/// step is [`rememberable`]), ID-1309: no record, else the first part of its record that differs from what a pass now
+/// would record, in this order: the merge base, the tree, the commands, the inputs (named). `None` when the step is
+/// skipped or the memory does not apply.
+fn miss_reason(
+    records: &BTreeMap<String, Record>,
+    name: &str,
+    cmds: &[Cmd],
+    key: Option<&MemoryKey>,
+    fresh: bool,
+    tool_version: &mut dyn FnMut(&str) -> Option<String>,
+) -> Option<String> {
+    let key = key?;
+    if fresh || !rememberable(cmds) {
+        return None;
+    }
+    let now = record_of(name, cmds, key, tool_version);
+    let Some(was) = records.get(name) else {
+        return Some("no pass is recorded".to_owned());
+    };
+    let why = if was.merge_base != now.merge_base {
+        "the merge base changed".to_owned()
+    } else if was.tree != now.tree {
+        "the tree changed".to_owned()
+    } else if was.commands != now.commands {
+        "the commands changed".to_owned()
+    } else if was.inputs != now.inputs {
+        let names: BTreeSet<&str> = was
+            .inputs
+            .keys()
+            .chain(now.inputs.keys())
+            .filter(|k| was.inputs.get(*k) != now.inputs.get(*k))
+            .map(String::as_str)
+            .collect();
+        format!("{} changed", names.into_iter().collect::<Vec<_>>().join(", "))
+    } else {
+        return None;
+    };
+    Some(why)
+}
+
+/// The memory's line of the steps that ran although the memory applied (ID-1309), each reason once in the order of
+/// its first step: `lane-check: memory: not skipped: clippy, doc (the tree changed); policy (no pass is recorded)`.
+/// `None` without such a step.
+fn miss_line(misses: &[(&str, String)]) -> Option<String> {
+    let mut groups: Vec<(&str, Vec<&str>)> = Vec::new();
+    for (step, why) in misses {
+        match groups.iter_mut().find(|(w, _)| w == why) {
+            Some((_, steps)) => steps.push(step),
+            None => groups.push((why, vec![step])),
+        }
+    }
+    if groups.is_empty() {
+        return None;
+    }
+    let parts: Vec<String> = groups
+        .iter()
+        .map(|(why, steps)| format!("{} ({why})", steps.join(", ")))
+        .collect();
+    Some(format!("lane-check: memory: not skipped: {}", parts.join("; ")))
 }
 
 /// After the step `name` ran: a pass is recorded while `key` holds (a clean worktree, no fmt rewrite before) and the
@@ -2961,6 +3033,93 @@ mod tests {
         // A failure forgets the step, also on a dirty worktree.
         update_memory(&mut records, "clippy", &clippy, "FAILED", None, &mut tool);
         assert_eq!(records.keys().collect::<Vec<_>>(), ["nextest"]);
+    }
+
+    /// ID-1309: a step that runs although the memory applies says why: no record, else the first part of the record
+    /// that differs (the merge base, the tree, the commands, the inputs by name); a skipped step, `--fresh`, a dirty
+    /// worktree and `cargo deny` give no reason.
+    #[test]
+    fn a_step_that_runs_again_says_why() {
+        let clippy = vec![Cmd::cargo(&["clippy", "-p", "ew-leaf"])];
+        let nextest = vec![Cmd::cargo(&["nextest", "run", "-p", "ew-leaf"])];
+        let deny = vec![Cmd::cargo(&["deny", "--locked", "check"])];
+        let k = key("feedbeef");
+        let mut tool = |_: &str| Some("cargo-nextest 0.9.100".to_owned());
+        let mut records = BTreeMap::new();
+        let mut why = |records: &BTreeMap<String, Record>, name: &str, cmds: &[Cmd], key: &MemoryKey| {
+            miss_reason(records, name, cmds, Some(key), false, &mut tool)
+        };
+        assert_eq!(
+            why(&records, "clippy", &clippy, &k).as_deref(),
+            Some("no pass is recorded")
+        );
+        update_memory(&mut records, "clippy", &clippy, "ok", Some(&k), &mut |_| None);
+        update_memory(&mut records, "nextest", &nextest, "ok", Some(&k), &mut |_| {
+            Some("cargo-nextest 0.9.99".to_owned())
+        });
+        assert_eq!(why(&records, "clippy", &clippy, &k), None);
+        let mut other_base = key("other");
+        other_base.merge_base = "4567cdef".to_owned();
+        assert_eq!(
+            why(&records, "clippy", &clippy, &other_base).as_deref(),
+            Some("the merge base changed")
+        );
+        let other_cmds = vec![Cmd::cargo(&["clippy", "-p", "ew-api"])];
+        assert_eq!(
+            why(&records, "clippy", &other_cmds, &key("other")).as_deref(),
+            Some("the tree changed")
+        );
+        assert_eq!(
+            why(&records, "clippy", &other_cmds, &k).as_deref(),
+            Some("the commands changed")
+        );
+        let mut other_env = k.clone();
+        other_env.inputs.insert("env EW_BLESS".to_owned(), "1".to_owned());
+        other_env
+            .inputs
+            .insert("env RUSTFLAGS".to_owned(), "-Dwarnings".to_owned());
+        assert_eq!(
+            why(&records, "clippy", &clippy, &other_env).as_deref(),
+            Some("env EW_BLESS, env RUSTFLAGS changed")
+        );
+        assert_eq!(
+            why(&records, "nextest", &nextest, &k).as_deref(),
+            Some("cargo nextest --version changed")
+        );
+        let mut tool = |_: &str| None;
+        assert_eq!(
+            miss_reason(&records, "clippy", &other_cmds, Some(&k), true, &mut tool),
+            None
+        );
+        assert_eq!(
+            miss_reason(&records, "clippy", &other_cmds, None, false, &mut tool),
+            None
+        );
+        assert_eq!(
+            miss_reason(&records, "policy", &deny, Some(&k), false, &mut tool),
+            None
+        );
+    }
+
+    /// ID-1309: the line of the steps that ran again, each reason once in the order of its first step, whole; none
+    /// without such a step.
+    #[test]
+    fn the_line_of_the_steps_that_ran_again() {
+        assert_eq!(miss_line(&[]), None);
+        assert_eq!(
+            miss_line(&[
+                ("fmt", "no pass is recorded".to_owned()),
+                ("clippy", "the tree changed".to_owned()),
+                ("doc", "the tree changed".to_owned()),
+                ("policy", "no pass is recorded".to_owned()),
+                ("nextest", "cargo nextest --version changed".to_owned()),
+            ])
+            .as_deref(),
+            Some(
+                "lane-check: memory: not skipped: fmt, policy (no pass is recorded); clippy, doc (the tree changed); \
+                 nextest (cargo nextest --version changed)"
+            )
+        );
     }
 
     /// The memory's lines and a remembered step's summary and plan lines, whole.
