@@ -449,3 +449,53 @@ fn ft822_the_banner_overlays_the_canvas_and_moves_nothing() {
     );
     h.state_mut().shell_mut().shutdown();
 }
+
+/// FT-1279: in a 1000 × 700 window the View menu's every entry, the Show group's Grid, Frame statistics and the CPU
+/// canvas among them, lies inside the window, and Grid is reached and runs from it.
+#[test]
+fn ft1279_the_view_menu_fits_a_1000_by_700_window() {
+    let tmp = Tmp::new();
+    let mut h = window(&tmp, "comfortable");
+    h.set_size(Vec2::new(1000.0, 700.0));
+    settle(&mut h);
+    support::open_menu(&mut h, &["View"]);
+    settle(&mut h);
+    let screen = h.ctx.content_rect();
+    let view = support::menu_node(&h, "View").rect();
+    let mut outside = Vec::new();
+    let mut seen = Vec::new();
+    for n in h.root().children_recursive() {
+        let node = n.accesskit_node();
+        let role = node.role();
+        if !matches!(
+            role,
+            egui::Role::MenuItem | egui::Role::MenuItemCheckBox | egui::Role::Button
+        ) {
+            continue;
+        }
+        let r = n.rect();
+        // The View menu's column: in a menu, right of the app menu's column that holds "View".
+        let mut in_menu = false;
+        let mut at = node.parent();
+        while let Some(a) = at {
+            in_menu |= a.role() == egui::Role::Menu;
+            at = a.parent();
+        }
+        if !in_menu || r.left() < view.right() - 1.0 {
+            continue;
+        }
+        let label = node.label().unwrap_or_default();
+        seen.push(label.clone());
+        if r.bottom() > screen.bottom() + 0.5 || r.top() < screen.top() - 0.5 {
+            outside.push(format!("{label} at {r:?}"));
+        }
+    }
+    for show in ["Grid", "Frame statistics", "Use the CPU renderer for the canvas", "Wire colours"] {
+        assert!(seen.iter().any(|s| s == show), "{show} in {seen:?}");
+    }
+    assert_eq!(outside, Vec::<String>::new());
+    support::menu_node(&h, "Grid").click();
+    settle(&mut h);
+    assert!(!h.state().shell().grid_on());
+    h.state_mut().shell_mut().shutdown();
+}
