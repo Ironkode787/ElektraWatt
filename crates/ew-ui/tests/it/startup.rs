@@ -94,6 +94,59 @@ fn delete_log_deletes_the_log_and_closes_the_dialog() {
     assert!(h.query_by_label("ElektraWatt stopped unexpectedly").is_none());
 }
 
+/// A copy of Golden A named `name` with one unsaved page, left by a session that ended without its shutdown.
+fn crashed_project(tmp: &Tmp, name: &str) -> std::path::PathBuf {
+    let dir = tmp.golden(name);
+    let mut shell = ShellModel::new(Mode::Headless, tmp.config());
+    for (action, params) in [
+        ("file.open", serde_json::json!({ "dir": dir.to_string_lossy() })),
+        (
+            "command.run",
+            serde_json::json!({"cmd": "page.create", "params": {"number": 996}}),
+        ),
+    ] {
+        assert_eq!(
+            shell.dispatch(action, &params),
+            ew_ui::ew_viewmodel::shell::Outcome::Done,
+            "{action}"
+        );
+    }
+    // Dropped without `shutdown`: the journal stays.
+    drop(shell);
+    dir
+}
+
+/// FT-1312 (C50-p8#2): with two leftover projects the dialog offers a choice; the second chosen, Enter recovers it.
+#[test]
+fn the_second_of_two_projects_is_chosen_and_recovered() {
+    let tmp = Tmp::new();
+    crashed_project(&tmp, "one.ew");
+    crashed_project(&tmp, "two.ew");
+    let mut h = harness_with(started(tmp.config()), Scripted::default(), None);
+    settle(&mut h);
+    let offer = h.state().shell().startup_offer().expect("the offer").clone();
+    assert_eq!(offer.projects.len(), 2);
+    // The second row, `startup.recover {"project": 2}`.
+    let second = offer.projects[1]
+        .path
+        .file_name()
+        .expect("a directory name")
+        .to_string_lossy()
+        .into_owned();
+    let radios: Vec<_> = h.get_all_by_role(egui::accesskit::Role::RadioButton).collect();
+    assert_eq!(radios.len(), 2);
+    radios[1].click();
+    settle(&mut h);
+    h.key_press(Key::Enter);
+    settle(&mut h);
+    assert!(h.state().shell().startup_offer().is_none());
+    match h.state().shell().dialog() {
+        Some(ew_ui::ew_viewmodel::shell::Dialog::Recovery { name, .. }) => assert_eq!(*name, second),
+        other => panic!("the recovery of {second}, not {other:?}"),
+    }
+    h.state_mut().shell_mut().shutdown();
+}
+
 /// PV-10: with `PRIVACY.md` in the installation, About's and the first-run step's privacy buttons open it locally (the
 /// fall-back to the repository's copy when there is none is `part2.rs`'s).
 #[test]

@@ -16,7 +16,8 @@ use serde_json::json;
 
 use crate::app::Event;
 
-/// The memory of the dialog: whether it was shown in the last frame, and the project chosen (1-based).
+/// The memory of the dialog: whether it was shown in the last frame with the same choice, and the project chosen
+/// (1-based).
 fn state_id() -> Id {
     Id::unique("ew-startup-offer")
 }
@@ -62,7 +63,8 @@ pub(crate) fn show(ctx: &egui::Context, shell: &ShellModel, events: &mut Vec<Eve
             ui.colored_label(t.error.color32(), refusal);
         }
     });
-    ctx.data_mut(|d| d.insert_temp(state_id(), (true, choice)));
+    // FT-1312: a new choice gives the Primary the focus again (as at the first show), so Enter recovers that project.
+    ctx.data_mut(|d| d.insert_temp(state_id(), (choice == chosen, choice)));
     if let Some(DialogAnswer::Action(action, params)) = clicked {
         events.push(Event::Action(action, params));
     }

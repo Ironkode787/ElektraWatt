@@ -131,6 +131,11 @@ fn ft1281_the_glossary_has_a_keyboard_row_cursor() {
             .map(|n| n.accesskit_node().label().unwrap_or_default())
             .collect()
     };
+    // FT-1346: the field is named by its hint.
+    assert_eq!(
+        field(&h).accesskit_node().label().as_deref(),
+        Some("Search terms")
+    );
     field(&h).click();
     settle(&mut h);
     assert_eq!(h.state().shell().glossary_row(), None);
