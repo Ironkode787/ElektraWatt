@@ -79,6 +79,7 @@ set. The project has no code yet; the documents are the product of the design ph
 | [Gate records](plan/gate-records/G-M1-2026-10-readiness.md) | Dated readiness runs, pack drafts and gate records; first: the G-M1 readiness run of 2026-10-22 |
 | [Release notes](release-notes/m1-draft.md) | Drafts of the release notes of source tags and releases; first: the `m1` skeleton (FT-299) |
 | [Release procedure](release/README.md) | How a binary release is cut, checked and published (candidate, draft, promote), with the [release checklist](release/checklist.md) of RC-01 to RC-10 (WP-S6.07) |
+| [Threat model](security/threat-model.md) | The threats of the release and their controls, every parser of external bytes and extension point with its fuzz target, and the review log of RC-01 (NFR-SEC-01, WP-S6.04) |
 
 ### 2.3 adr/
 

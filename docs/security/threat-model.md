@@ -1,0 +1,148 @@
+<!--
+SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+SPDX-License-Identifier: CC-BY-4.0
+-->
+
+# Threat model
+
+**Status:** maintained (NFR-SEC-01) · **Release:** 0.1.0 · **Part of:** ElektraWatt security documents, beside
+[`SECURITY.md`](../../SECURITY.md)
+
+**Purpose.** This file states what ElektraWatt (EW) 0.1.0 does against each threat: the assets and trust boundaries,
+the threats TM-01 to TM-19 with their state in this release, the controls as built and the evidence that proves them,
+a row for every parser of external bytes and every extension point, and the review log that the release checklist's
+RC-01 reads. The design form of the model, the target of 1.0, stays in
+[doc 18 §11.1](../design/18-quality-security-release.md#111-threat-model); where the two differ, this file says what
+the release does. Paths are relative to the repository root, with the line where the control stands.
+
+**Contents**
+1. [Assets and trust boundaries](#1-assets-and-trust-boundaries)
+2. [Threats](#2-threats)
+3. [Parsers of external bytes](#3-parsers-of-external-bytes)
+4. [Extension points](#4-extension-points)
+5. [Native code and `unsafe`](#5-native-code-and-unsafe)
+6. [Review rule and review log](#6-review-rule-and-review-log)
+
+## 1. Assets and trust boundaries
+
+**Assets:**
+- the confidentiality of projects (customer work, personal data);
+- the **integrity of engineering data**: a silently changed cross-section or protective device is a safety hazard,
+  not only a data problem;
+- the integrity of EW binaries and their release files;
+- the availability of the user's session.
+
+**Trust boundaries.** Every byte that EW did not write in this session is hostile: a received project or `.ewz`, an
+import file, a table file read back, an asset in a project's `assets/`, a command log, a query text, and the content
+git hands to the merge driver and textconv after a fetch. The parsers are pure (they execute no content), bounded by
+the limits of NFR-SEC-02 and fuzzed (NFR-SEC-03). The user's own settings, keymap and configuration folder are
+trusted: they are the user's, not a received file's.
+
+```mermaid
+flowchart LR
+  subgraph EXT["Untrusted inputs"]
+    RP["Received project / .ewz"]
+    IF["Import files: QET, CSV, XLSX"]
+    TF["Table files read back (CSV, XLSX)"]
+    GIT["git: merge driver, textconv"]
+    TXT["SQL text, command logs"]
+  end
+  subgraph EW["elektrawatt and ew processes"]
+    PARSE["Parsers (pure, limited, fuzzed)"]
+    CMD["Command → Transaction → Op<br/>(validated, journalled, undoable)"]
+    SQL["SQL sandbox (read-only image)"]
+  end
+  RP --> PARSE --> CMD
+  IF --> PARSE
+  TF --> PARSE
+  GIT --> PARSE
+  TXT --> SQL
+  TXT -->|".ewcmd, exposure-checked"| CMD
+```
+
+0.1.0 has no plugins, no MCP server, no rhai engine, no STEP worker that does work, no update check and no signing
+identity; the boxes of doc 18's diagram for them are absent here and their threats are marked in §2.
+
+## 2. Threats
+
+States: *in force* (the control ships in 0.1.0), *1.0* or *1.x* (the threat arrives with that release), *not shipped*
+(0.1.0 has no surface for it).
+
+| ID | Threat | 0.1.0 state | Controls as built | Verified by |
+|---|---|---|---|---|
+| TM-01 | Hostile project or import file: memory exhaustion, decompression bombs, deep nesting, NaN geometry, panics; also reached without a click through the git merge driver and textconv | in force | The loader's limits (`crates/ew-format/src/limits.rs:10`: 16 MiB lines, depth 64, 100,000 files); the archive limits (`crates/ew-zip/src/lib.rs:95`: 2 GiB, 512 MiB per entry, 200 : 1); the merge driver under `catch_unwind` (`bin/ew/src/cli/merge_driver.rs:66`); the importers' limits and front door with WP-S3.09 | CI-PR-08 `fuzz-smoke` (`.github/workflows/ci.yml:887`), CI-N-03 (`.github/workflows/deep-nightly.yml:283`), the targets of §3 |
+| TM-02 | Archive path traversal or symbolic links (`.ewz`, XLSX) | in force | Entry-name rules: no colon, no absolute path, no empty, `.` or `..` segment (`crates/ew-zip/src/lib.rs:222`); the `.ewz` reader (`crates/ew-store/src/ewz.rs:261`); the project reader follows no link (`crates/ew-store/src/vfs.rs:110`, NFR-SEC-16) | `ewz_read`; the zip crate's name tests (`crates/ew-zip/src/lib.rs:691`) |
+| TM-03 | Hostile SQLite (QETZ, catalogues) with views or triggers | not shipped | 0.1.0 reads no foreign SQLite file (QETZ is 1.x); EW's own library index is opened with `trusted_schema=OFF` in defensive mode (`crates/ew-library/src/index.rs:4`) | — |
+| TM-04 | Automation embedded in a received project: rhai scripts, SQL reports, rule packs | not shipped | Nothing in a received project executes at 0.1.0: `ew-rhai` is a doc line without the `rhai` dependency (`crates/ew-rhai/src/lib.rs:4`), no project SQL report runs, no rule pack loads; the trust gate (NFR-SEC-05) arrives with WP-S1.15's remainder | — |
+| TM-05 | Resource exhaustion by formulas or SQL | in force for SQL; rhai not shipped | `ew sql`'s sandbox: one read-only statement, the authorizer, `SQLITE_LIMIT_*` (`crates/ew-sqlview/src/sandbox.rs:106`), the deadline and the result caps of each profile (`crates/ew-sqlview/src/sandbox.rs:49`); the rhai limits are WP-S1.15's (NFR-SEC-06) | `crates/ew-sqlview/src/sandbox_tests.rs:1`; `sql_sandbox` |
+| TM-06 | Plugin exfiltration or tampering | 1.x | No plugin host runs at 0.1.0 (`crates/ew-plugin-host/src/lib.rs:4`) | — |
+| TM-07 | MCP misuse, including prompt injection through project text | not shipped | `ew mcp` is not built; `egui_mcp` is a banned crate, reachable from test builds only (`ci/dep-rules.toml:34`) | CI-PR-09 `check-features` (`.github/workflows/ci.yml:1125`) |
+| TM-08 | Exploitation of OCCT through a vendor STEP file | not shipped | `ew-step-worker` prints its version and exits (`bin/ew-step-worker/src/main.rs:8`); no STEP file is read | — |
+| TM-09 | Silent tampering with a received project's engineering data | in force as documentation | `ew diff` and its textconv (`bin/ew/src/cli/diff.rs:4`); the as-built archive's SHA-256 in the revision tag (`crates/ew-api/src/release_run.rs:20`); the install guide's verification steps | Documentation |
+| TM-10 | Debug or remote-control endpoints in release binaries | in force | `EW_DEBUG_PANIC` only under `debug_assertions` (`bin/elektrawatt/src/main.rs:721`); the canary scan (`ci/sandbox-check.py:92`); a binary listing a test-only crate fails (`ci/audit-data.py:31`); no `listen` call in the installed tree (`ci/no-listen.sh:1`) | CI-R-09, CI-N-06 |
+| TM-11 | Dependency compromise or typosquatting | in force | `cargo deny` and `cargo vet` on every pull request (`.github/workflows/ci.yml:1101`, `:1105`); the reviewed build scripts (`ci/build-scripts.allowlist:64`) | CI-PR-09 |
+| TM-12 | CI or release pipeline compromise | in force without the two-person publish (1.0) | Read-only default permissions (`.github/workflows/ci.yml:22`); actions pinned by commit; `persist-credentials: false` (`.github/workflows/ci.yml:68`); build provenance in the one job with `id-token: write` (`.github/workflows/release.yml:126`) | Scorecard, review |
+| TM-13 | Update spoofing or MITM | 1.0 | 0.1.0 has no update check and no network code (WP-S6.05 D3; the network clients banned at `ci/dep-rules.toml:34`) | — |
+| TM-14 | Local disclosure through journal, recovery snapshots, crash logs or logs | in force | User-only modes on Unix: the project writer (`crates/ew-store/src/vfs.rs:238`), the settings (`crates/ew-viewmodel/src/settings.rs:765`), the crash log (`bin/elektrawatt/src/crash.rs:178`); no automatic upload (NFR-PRIV-04) | CI-PR-02, WP-S6.05's tests |
+| TM-15 | Signing-key compromise | 1.0 | 0.1.0 is unsigned and holds no signing key (ID-1187) | — |
+| TM-16 | A user-configured external converter fed a hostile file | 1.0 | No converter runs at 0.1.0 | — |
+| TM-17 | Unexpected process spawn by a dependency: rfd starts `zenity` from `PATH` when the desktop portal fails | in force, FT-332 open | The shell asks rfd only when a session bus is there for the portal (`bin/elektrawatt/src/main.rs:206`); removing the fallback is FT-332 | Review; FT-332 |
+| TM-18 | A hostile SVG in the asset store | in force | `sniff` (`crates/ew-schema/src/asset.rs:250`) runs `svg_hazard` (`crates/ew-schema/src/asset.rs:614`) before any parse: internal subsets, entities, scripts, `on*`, `foreignObject` and external `href`s refused; usvg parses inside `catch_unwind` (`crates/ew-scene/src/images.rs:92`) | The SVG hazard tests and the exporter corpus (`crates/ew-schema/tests/fixtures/svg-exporters/`); `svg_asset` |
+| TM-19 | A hostile raster in the asset store | in force | One decoder, `decode_image` (`crates/ew-render-cpu/src/image.rs:39`): `MAX_IMAGE_PIXELS` before allocation (`crates/ew-render-cpu/src/image.rs:14`), the decode inside `catch_unwind` (`crates/ew-render-cpu/src/image.rs:45`) | `png_pdf`, `image_decode`; the raster exporter corpus (`crates/ew-export/tests/fixtures/raster-exporters/`) |
+
+New threats take TM-20 onward.
+
+## 3. Parsers of external bytes
+
+Every parser of external bytes that 0.1.0 ships, with its fuzz target (NFR-SEC-03). A row without a target is a gap
+in plain sight.
+
+| Parser | Crate and entry point | Limits | Target | Target's owner |
+|---|---|---|---|---|
+| JSONL loader and the open path | `ew-format`, `ew_format::load` | `crates/ew-format/src/limits.rs:10` | `jsonl_loader`, `migration_chain` | WP-S0.05a, built |
+| `.ewz` | `ew-store`, `ew_store::ewz::read` (`crates/ew-store/src/ewz.rs:261`) | `crates/ew-zip/src/lib.rs:95` | `ewz_read` | WP-S1.17, built |
+| Three-way merge of the merge driver | `ew-format`, `ew_format::merge_file` | The loader's | `merge_file` | WP-S1.17, built |
+| textconv | `ew-api`, `ew_api::output::textconv` (`crates/ew-api/src/output/project_diff.rs:232`) | The loader's | `textconv` | WP-S6.04 |
+| QET project and element importers | `ew-import-qet`, through WP-S3.09's front door | With WP-S3.09 | `qet_project`, `qet_element` | WP-S3.09 |
+| The golden tables and the parts table | `ew-import-tables`, `ew-import-catalog` | With WP-S3.09 | `golden_tables`, `parts_table` | WP-S3.09 |
+| The table round trip's read | `ew-api`, `Session::table_import` (`crates/ew-api/src/output/table_io.rs:545`) | `ew_import_catalog::table_limits` | `table_round_trip` | WP-S6.04 |
+| SVG assets | `ew-schema`, `sniff` (`crates/ew-schema/src/asset.rs:250`); `ew-scene`'s usvg parse | `crates/ew-schema/src/asset.rs:614` | `svg_asset` | WP-S6.04 |
+| PNG and JPEG assets | `ew-render-cpu`, `decode_image` (`crates/ew-render-cpu/src/image.rs:39`) | `crates/ew-render-cpu/src/image.rs:14` | `png_pdf`, `image_decode` | FT-436, built; WP-S6.04 |
+| SQL text | `ew-sqlview`, `Reader::query` (`crates/ew-sqlview/src/sandbox.rs:434`) | `crates/ew-sqlview/src/sandbox.rs:106` | `sql_sandbox` | WP-S6.04 |
+| Command logs (`.ewcmd`) | `ew-api`, `Session::run_script` (`crates/ew-api/src/cmdlog.rs:287`) | The command schemas | `command_log` | WP-S6.04 |
+| Library documents of a project's `lib/` | `ew-format`, the `LibDocument` reader of the loader | The loader's | `jsonl_loader` | WP-S0.05a, built |
+| A `.ewlib` folder: `library.json`, the record shards, `library.lock` | `ew-library`, `LibManifest::parse` (`crates/ew-library/src/manifest.rs:65`), the shard reader (`crates/ew-library/src/record.rs:312`), `LockRecord::parse` (`crates/ew-library/src/lock.rs:125`) | The loader's (`crates/ew-library/src/lib.rs:12`) | none (reported, see the review log) | — |
+
+## 4. Extension points
+
+| Extension point | 0.1.0 state | Controls | Evidence |
+|---|---|---|---|
+| SQL through `ew sql` | in force | The sandbox of TM-05 under the `ew sql` profile (`bin/ew/src/cli.rs:802`) | `sql_sandbox`; the sandbox tests |
+| Command logs through `ew apply` | in force | Every line looked up and checked against its exposure class before line 1 runs, so a `HumanOnly` command is refused (`crates/ew-api/src/cmdlog.rs:297`) | `command_log`; the `HumanOnly` replay test (doc 18 §11.5) |
+| The headless script runner (`--headless --script`) | in force | Actions only, through the same action table as the window (`crates/ew-viewmodel/src/script.rs:227`) | The script tests; a target is FP-2 of WP-S6.04 |
+| git's merge driver and textconv, run by git on fetched content (TM-01) | in force | The merge under `catch_unwind` (`bin/ew/src/cli/merge_driver.rs:66`); textconv is pure over the bytes | `merge_file`, `textconv` |
+| rhai | not shipped | WP-S1.15's remainder adds the engine with its limits (NFR-SEC-06) | — |
+| The trust gate | not shipped | WP-S1.15's remainder (NFR-SEC-05) | — |
+| Plugins | 1.x | — | — |
+| MCP | not shipped | TM-07 | — |
+| The external converter | 1.0 | TM-16 | — |
+
+## 5. Native code and `unsafe`
+
+- **`unsafe`.** The allowlist `ci/unsafe-allowlist.toml` names what the code uses: `ew-print`'s Windows print adapter
+  (`ci/unsafe-allowlist.toml:15`). `cargo xtask check-unsafe` (`.github/workflows/ci.yml:120`) fails on the keyword
+  in a file outside the list, in the workspace and in the fuzz crate (NFR-SEC-04).
+- **Test-only crates.** `egui_mcp`, `ew-testids` and `ew-testkit` are banned from the shipped binaries' normal and
+  build graph (`ci/dep-rules.toml:34`); the fuzz crate is outside the workspace.
+- **C.** The only build script of the shipped graph that compiles C is `libsqlite3-sys`'s, the bundled SQLite
+  (`ci/build-scripts.allowlist:64`). OCCT is not shipped at 0.1.0.
+
+## 6. Review rule and review log
+
+**Rule.** This file's first review is the 0.1.0 entry below. Every minor release adds a row before its release
+(RC-01 of the [release checklist](../release/checklist.md)). A pull request that adds a parser of external bytes or an
+extension point adds its row to §3 or §4 in the same change ([CONTRIBUTING](../../CONTRIBUTING.md#pull-request-checklist)).
+
+| Date | Release | Reviewer | Parsers and extension points added since the last review | Result |
+|---|---|---|---|---|
+| 2026-11-04 | 0.1.0 (in progress) | WP-S6.04's lane, read by the cycle's reviewer | First review: every row of §3 and §4. The importer rows are completed with WP-S3.09. Found: `ew-library`'s `.ewlib` reader parses `library.json`, its shards and `library.lock` with its own code, not through the loader's `LibDocument` reader, and has no fuzz target (reported) | Open until WP-S3.09's rows are in |
