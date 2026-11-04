@@ -270,6 +270,11 @@ pub enum Primitive { Line, Polyline, Rect{rx, ry, shadow: Option<Nm>}, Circle, E
   native symbols (decision log ID-294). A QET cross-section mark that disagrees with the derived wire property is
   reported as EW-IMP-123 with the mark's value ([14](14-interop.md) §4.12; ID-284).
 
+*As built (2026-11-04, cycle 50; WP-S1.20, decision log ID-1340).* A text slot may carry `fallback: process_tag`: it prints the
+function text and, when that is empty, the tracked target's process tag (doc 11 §3.3); `ew.iso.valve-5-2-sol-spring`
+0.3.0 (both editions) sets it on its function-text slot. Pilot and drain lines are drawn with this section's `dashed`
+pattern, `verified = false`.
+
 ### 2.4 Function definitions and connection-point designations
 
 `FnDef` is defined in [03](03-domain-model.md) §7:
@@ -470,6 +475,9 @@ section `{"ports": []}` is written `{}`. The station address, the nets, the addr
 signal map are not typed (they stay in `extra`; FT-829). An older build's copy is rewritten canonically, and a
 pre-cycle-40 build reports EW-CORE-014 on a copy this build wrote (WP-S1.21 §8a.1 as amended). EW-GEN-CPU-1 0.1.1
 carries one port `DP`, `profibus_dp`, `master`.
+
+*As built (2026-11-04, cycle 50; WP-S1.20, decision log ID-1340).* The fluid section is typed with one member,
+`solenoids`, whose k-th entry is the part's k-th template entry on a coil FnDef (doc 11 §2.6 as built).
 
 ### 2.6 Classification: ETIM bundled, ECLASS identifiers only
 
@@ -1233,6 +1241,11 @@ Seven further symbols join the starter set for the pilot corpus (§2.3, decision
   project-local manufacturer copies, one per manufacturer name, and its 29 part copies name them with no `key`; the
   readers take the name from the held copy and fall back to a legacy `key`, so a file written before part 3 derives
   the same. Every exported output stayed byte-equal ([20](20-golden-project.md) ▲U-45).
+
+*As built (2026-11-04, cycle 50; WP-S1.20, decision log ID-1340).* The content versions after WP-S1.20, each checked against
+`main` before its bump: `ew.fn.valve-5-2-sol-spring` 0.2.0, `ew.fn.cylinder-double-acting` 0.1.1, the new
+`ew.fn.valve-solenoid` 0.1.0, `ew.iso.valve-5-2-sol-spring` 0.3.0 in both editions, `ew.ovw.module@qet10` 0.2.0,
+`EW-GEN-VLV-1` 0.2.0, `ew-starter-parts` 0.4.0 and the starter library 0.4.0; Golden A's 571334 declares solenoid 14.
 
 ### 9.3 Macros on the golden project
 

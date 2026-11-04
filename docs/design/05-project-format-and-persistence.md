@@ -139,6 +139,11 @@ Optional directories and files are absent in the golden project:
 - from 1.0, `trust.sig` at the root (a signature over the trust hash, §13.4) and opt-in embeddable meshes
   `assets/<sha256>.glb` ([12](12-panel-layout.md) §6.2).
 
+*Amended 2026-11-04 (cycle 50; decision log ID-1332, WP-S7.03 §13 O5).* User PLC address profiles in
+`lib/plc-profiles/<copy_id>.json` (kind `plc_profile`, §2.2's row) are the MVP's, not 1.0's: FR-PLC-008 (MVP) binds
+over this list's date, and WP-S7.03 D7 types the kind with the built-in profiles as library documents. The machine
+and label profiles of `lib/profiles/` stay 1.0's.
+
 None of the rule, report, script or job content runs until the user trusts the project (NFR-SEC-05, §13.4).
 
 **Temps, orphans and strays** (2026-10-20, ADR-0010 amendment 3; decision log ID-203, ID-214). The save protocol's
@@ -1020,6 +1025,14 @@ base generation). The example records W20's colour change from DBU to BU
   - At start-up, leftovers older than 30 days are pruned and logged.
   - If the state directory is unavailable, EW shows "unsaved changes are not crash-protected" and editing continues.
 
+*As built (2026-11-04, cycle 50; WP-S6.05 D8, D10, decision log ID-1338, ID-1339).* **Pruning at start:** every
+start (window and headless, not smoke) deletes the leftover journals older than 30 days of every project, after
+reading each project's lock, so a live session keeps its journal, and the crash logs older than 30 days or beyond the
+20 newest; the store's clock decides the age. **Panics:** there is no abort path and no flush from the hook: every
+journal entry is synced as it is appended, the panic hook writes only the crash log (18 §12.3 as built), and the
+unwind reaches no clean close, so a dirty session's journal stays for the start-up offer (§8.3). The journal's
+directories are 0700 and its segments 0600 on Unix.
+
 ### 8.2 Recovery
 
 1. **Find** a leftover journal whose `project` matches. The path hash only tells clones apart.
@@ -1064,6 +1077,16 @@ is written before a choice. Headless, `journal.recover`, `journal.keep` and `fil
 answer the dialog. `ew recover` is not built (FT-252). Save As closes the original cleanly once the copy exists (its
 journal of the edits that went into the copy deleted, its lock released), so reopening the original does not show this
 dialog; a failed Save As keeps the original's journal (FT-499, fixed in the cycle-30 review round).
+
+*As built (2026-11-04, cycle 50; WP-S6.05 D11, decision log ID-1338, ID-1339), the start-up half.* At start the
+shell lists the leftover journals with unsaved transactions of every project whose lock is not live, each with its
+directory name, path, unsaved count (the transactions after the segment's last save) and last change, and the newest
+crash log that ends a session and was not offered. The start-up dialog offers Recover per project (several projects
+are a choice under the one Recover), which opens the project as Open does, so the recovery dialog above follows; Open
+log folder and Delete log with a log; and Not now. Its Primary takes the first focus. When it closes, the offered log
+and every older unoffered one are marked offered and never shown again; the journals stay until recovered, discarded
+or pruned. Headless, the prompt is pending and answered by `startup.recover`, `startup.open_log_folder` (refused with
+`reason-no-opener`), `startup.delete_log` and `startup.dismiss`.
 
 ---
 
@@ -1174,7 +1197,7 @@ amendment 1):
    part copy of an older build that carries them in `extra` is read typed, reported not canonical (info) and rewritten
    in the typed order at the next save, with its stored `sha256` kept, so EW-CORE-014 reports the copy where the
    canonical order differs; this is accepted within 0.1 (ID-334). Golden A carries none of the new members, so no
-   golden copy hash moved.
+   golden copy hash moved. *Cycle 50 (WP-S1.20; decision log ID-1316, ID-1340):* the rule applies again to the fluid members of 0.1, each optional with a catch-all: `CpDef.port_role`, `ConnectionKind::Fluid` with its `line_kind`, `CpOverride.closure` (a new link to a part copy, which an older 0.1 build does not enforce), `PartSections.fluid` with `solenoids` and `TextSlot.fallback`; `schemas/0.1` was re-blessed with additions only. The format locks at the 0.1.0 release (ADR-0011 amendment 6).
 3. **Enums.** Every persisted enum has an `Unknown(serde_json::Value)` catch-all, so adding a variant is additive.
    Derivations treat `Unknown` conservatively: an unknown connection kind joins no net and is drawn grey and dashed.
    It blocks release where it affects outputs, as here (EW-CORE-016).

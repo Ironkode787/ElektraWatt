@@ -1,6 +1,6 @@
 # WP-S6.05: Privacy controls and the local crash log (closed specification)
 
-**Status:** specified in cycle 50 (documents only), an M2 package at the size of ID-1187's re-estimate (PERT 0.6 pw,
+**Status:** complete in cycle 50, built by one lane and its fix round (decision log ID-1338, ID-1339); PV-2 and PV-8 wait for the deep nightly's first `network-sandbox` run, and PV-13 is WP-S6.08's manual check (ID-1319); specified in cycle 50 (documents only), an M2 package at the size of ID-1187's re-estimate (PERT 0.6 pw,
 which stays), built whole by one lane (ID-1281) in the six steps of §6 · **Date:** 2026-11-04 · **Work package:**
 [WP-S6.05](../02-work-packages.md#wp-s605-privacy-controls-and-the-local-crash-log) · **Decision log:** ID-1187,
 ID-1203, ID-1247, ID-1311 · **Part of:** ElektraWatt plan, specifications

@@ -42,6 +42,11 @@ this note is the ADR that NFR-PRIV-07 asks for. 0.1.0 still opens no connection 
 (NFR-PRIV-01): help links, `ew mcp` on loopback and plugins granted network access stay allowed, as they are in that
 requirement.
 
+**As built (2026-11-04, cycle 50; WP-S6.05, decision log ID-1338).** "The network-sandbox CI job" is CI-N-06, built
+by WP-S6.05 as the deep nightly's job `network-sandbox` (doc 18 §12.2); its first run is still to come. The crash
+evidence is the local crash log of doc 18 §12.3, and the network-client crates are banned from every shipped graph
+(`ci/dep-rules.toml`). The ADR stays Proposed under this amendment until before 1.0 (decision log ID-1316).
+
 ## Recommendation
 
 **"Offline-first, zero by default":**

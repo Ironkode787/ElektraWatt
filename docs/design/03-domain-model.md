@@ -2115,6 +2115,10 @@ supply plates' ports 3 and 5 and plugs on the spare valves' ports 2 and 4 ([20](
 ISO 1219 symbol library, fluid page type; media handling is unverified. QET: pneumatic elements with unnamed
 generic terminals (no port semantics), so the importer needs a symbol-mapping table.
 
+*As built (2026-11-04, cycle 50; WP-S1.20, decision log ID-1340).* The fluid records are typed in format 0.1 as doc 11 §2.7 says
+as built: the port roles on the FnDef's CPs, `ConnectionKind::Fluid` with its line kind, and the port closure on
+`CpOverride.closure`, whose part is optional (a plug's part enters the BOM at 1.0).
+
 ---
 
 ## 16. Panel layout and routing

@@ -1,6 +1,6 @@
 # ADR-0024: Licence set and the permissive/GPL crate boundary
 
-**Status:** Accepted · amended 2026-10-18 · **Date:** 2026-10-17 · **Deciders:** project owner (licence set, decided 2026-10-17); core
+**Status:** Accepted · amended 2026-10-18, 2026-11-04 (amendment 6) · **Date:** 2026-10-17 · **Deciders:** project owner (licence set, decided 2026-10-17); core
 team (crate boundary)
 
 ## Context
@@ -117,6 +117,10 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    because every such edge points from the GPL layer into the permissive one. Each edge is drawn in the architecture
    graph, which is the source, and listed in `ci/dep-rules.toml`, which `cargo xtask check-deps` enforces; the two
    change in the same pull request. Decision 4 is untouched: only `ew-api` depends on `ew-import-qet`.
+6. **Tutorials are documentation** (2026-11-04, project owner (delegated); decision log ID-1330, WP-S7.05 §12 O3).
+   Decision 1's row "Project-authored part facts, examples, tutorials, …" gives way for tutorials: they are
+   `CC-BY-4.0` as the documentation row is, since they live in the user guide (`docs/book/src/tutorials/`), which
+   `ci/licence-map.toml`'s `docs/**` row and the existing tutorial already put under that licence. Part facts, examples, the golden fixture and the own test corpus stay `CC0-1.0`.
 
 ## Consequences
 

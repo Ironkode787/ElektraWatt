@@ -1,6 +1,6 @@
 # WP-S6.07: Release pipeline: sums, provenance, SBOM (closed specification)
 
-**Status:** specified in cycle 48 (documents only), an M2 package at the size of the owner's 0.1.0 scope (ID-1187), in
+**Status:** complete in cycle 50, both parts built by one lane and its fix round (decision log ID-1336, ID-1337); RP-3's tag half and RP-4 to RP-6 are proven at WP-S6.08's first candidate, and the installers join the release files when ID-476's hold lifts (ID-1331); specified in cycle 48 (documents only), an M2 package at the size of the owner's 0.1.0 scope (ID-1187), in
 two parts: part 1 the release workflow from a tag, with the build checks, `SHA256SUMS`, provenance, publishing and the
 release checklist (0.6 pw, D2 to D8, D10, D13, D14), part 2 the SBOM with its notices, the advisory gate and the canary
 assertions (0.4 pw, D9, D11, D12); 0.1 pw reserve; both after WP-S6.06 parts 1 and 2, part 1 before part 2 ·

@@ -987,6 +987,12 @@ shows its reason inside the form, which stays open (its next step is FT-1256). *
 opens the collision dialog again**: the save is the user's own request and the dialog is the way out, while no poll
 reopens it after Decide later.
 
+*As built (2026-11-04, cycle 50; decision log ID-1315, ID-1347; FT-1284 closed).* **A form whose Primary is disabled
+at open** (Create enclosure with no part) takes its first focus on its first text field, else on its first enabled
+control, a check box included, with the focus ring shown: "never a check box" and "takes no first focus (FT-1284)"
+above give way for that case, and Enter on that check box still does nothing while Space toggles it. The start-up
+dialog of WP-S6.05 takes its first focus on its Primary, as every other dialog does (decision log ID-1339).
+
 ### 6.13 Menus and context menus
 
 `color.surface.raised`, `elevation.1`, `radius.md`, `space.2` padding, rows of `size.row`: a 16-px icon column (empty

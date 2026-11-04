@@ -521,6 +521,16 @@ click, and the application itself sends nothing. When the browser cannot be open
 a banner shows the address ("PRIVACY.md could not be opened in a browser; it is at <address>."). `ui.describe` lists
 the button in both places.
 
+*As built (2026-11-04, cycle 50; WP-S6.05, decision log ID-1338, ID-1339; FT-386 closed).* **The privacy button**
+opens the bundled `PRIVACY.md` of the installed tree (`Resources::privacy_file`) as a local file, and `PRIVACY_URL`
+only when no bundled copy is found; `privacy-open-failed` no longer says "in a browser". **The start-up dialog**
+(FR-UI-050's 0.1.0 part, 05 §8.3 as built): after a session that ended with unsaved work or a crash, the next start
+shows a dialog at the form width, titled for a project ("Unsaved work from an earlier session") or for a crash log
+alone, with a row per leftover project (its name, path, unsaved count and last change; several projects are a choice),
+a line when the session crashed, and the buttons Recover (the Primary with a project), Open log folder and Delete log
+(secondary buttons, with a log) and Not now (the Primary for a log alone; Escape means the same). The Primary takes
+the first focus, so Enter runs it. Headless, the dialog is a pending prompt that does not block the script.
+
 **The headless mode** (decision log ID-474, ID-493). `elektrawatt --headless --script <file|->` runs the same registry
 actions on the same shell model with no window, no GPU and no display, and writes a deterministic transcript: the
 script is JSON Lines `ew.uiscript/1`, the transcript JSON Lines `ew.uitranscript/1` with the observable state after

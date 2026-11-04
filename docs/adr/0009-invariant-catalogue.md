@@ -1,6 +1,6 @@
 # ADR-0009: Invariant catalogue: structural vs configurable prevent rules; lenient import
 
-**Status:** Accepted · amended 2026-10-18, 2026-10-19, 2026-10-21, 2026-10-22, 2026-10-23 (specified: two invariants for page items and structure boxes) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+**Status:** Accepted · amended 2026-10-18, 2026-10-19, 2026-10-21, 2026-10-22, 2026-10-23 (specified: two invariants for page items and structure boxes), 2026-11-04 (amendment 9: EW-INV-024, fluid lines, built in WP-S1.20; decision log ID-1340) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
 
 ## Context
 

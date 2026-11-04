@@ -479,6 +479,11 @@ mechanical linkage (FR-SYM-014, FR-DEV-028). Field devices are marked *supplied 
 from the BOM, from EW-CORE-041 (FR-CHK-024) and from EW-LAY-001, included in fluid lines and PLC target tracking.
 Valve and field tags are not printed on 203–206 (property arrangement, FR-SYM-012); they appear in reports.
 
+*As built (2026-11-04, cycle 50; WP-S1.20, decision log ID-1340).* The valve part 571334 declares solenoid 14
+with its template (the 5/2 valve and `ew.fn.valve-solenoid`), so each of the 28 valves has its coil function with the
+channel binding on its CP (GA-1); the overviews 201 and 202 draw the valve glyphs (24 and 4, each printing 571334;
+GA-2); folio 203 prints the eight process tags through the slot's fallback.
+
 ---
 
 ## 7. Potentials and the colour and size profile
@@ -847,6 +852,11 @@ valve. Silencers close ports 3 and 5 of -201U9 and -202U3, and plugs close ports
 (`CpOverride.closure`). `expected/fluid.csv` then holds the tube list of 17 lines, F1–F17, each PU 6×4 BU at
 1,200 mm (source manual), and the media zones of [11](11-fluid-power.md) §5.3. EF-13, EF-20 and EF-21 clear; EF-14
 (spare positions, info) stays.
+
+*As built (2026-11-04, cycle 50; WP-S1.20, decision log ID-1340).* F1 to F16 are drawn on folio 203 as `fluid`
+working lines from ports 2 and 4 of -201U3-Q1 … -201U4-Q4 to A and B of the actuators of -203Q1 … -203Q8 (GA-2,
+FT-744 closed), and N-FL-4 gives the eight `drives` links that path (b) now takes from the lines. They have no route
+cells yet, so their derived paths cross the cylinder bodies (FT-1315).
 
 ---
 
@@ -1251,6 +1261,10 @@ overview), FR-CHK-028 (one bond), FR-CHK-032 (BN), FR-CHK-035 (3-B2) and FR-CHK-
 F55, E55, E56, S56 and -201U9 on Golden A, and AC-21's compared subset admits EW-LAYOUT, so seven packs are compared
 and only the fluid rows (EF-13, EF-14) stay pending (FT-589). The pre-delivery release run counts the 42 errors of the
 totals above, as §18.3 lists them.
+
+*As built (2026-11-04, cycle 50; WP-S1.20, decision log ID-1340).* EF-13 and
+EF-14 are no longer pending: EW-FL-001 and EW-FL-004 report their 20 subjects each, and AC-21 compares the whole
+`findings_mvp.csv` (FT-589 closed); the totals are unchanged.
 
 ### 18.2 Additional findings with the 1.0 packs (`expected/findings_1_0.csv`)
 

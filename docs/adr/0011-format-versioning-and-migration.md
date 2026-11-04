@@ -116,6 +116,10 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    bump, every `page_item` variant the reader does not type kept as `Unknown(Value)`. They add cascade and unlink links
    (ADR-0009 amendment 8), which an older 0.1 build does not enforce; because no format is released, the newer build
    reports a stale wire-marker entry as a load finding instead of raising `min_reader`.
+   Applied again in cycle 50 (WP-S1.20; decision log ID-1316, ID-1340) to the fluid members `CpDef.port_role`,
+   `ConnectionKind::Fluid` with `line_kind`, `CpOverride.closure`, `PartSections.fluid` and `TextSlot.fallback`, each
+   optional with an `Unknown` arm, `schemas/0.1` re-blessed with additions only; `closure.part` is a new link to a
+   part copy that an older 0.1 build does not enforce, accepted for the unreleased format (amendment 6).
 5. **The project fragment widens within v1 for macros** (2026-10-30, WP-S1.19 part 5, cycle 36; lead programmer,
    delegated; [architecture](../design/04-architecture.md) §5.5, [project format](../design/05-project-format-and-persistence.md)
    §12, [symbols, parts and macros](../design/07-symbols-parts-macros.md) §2.7). WP-S1.19 D12 makes a macro variant a

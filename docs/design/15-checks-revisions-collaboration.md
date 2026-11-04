@@ -795,6 +795,10 @@ both 1.0, so it follows at 1.x (Could).
 | EW-FL-013 | Occupancy | A duplicate or out-of-range position, or an `Empty` position (lenient report of FI-02 and FI-07) | conflict | p o | error (empty: warning) | device | MVP | FR-FLU-027 | D-10 | 11 §6 |
 | EW-FL-014 | Bulkhead missing | A tube crossing a location boundary without a transition device; off by default | completeness | o | info | fluid_net | 1.0 | FR-FLU-032 | — | 11 §6 |
 
+*As built (2026-11-04, cycle 50; WP-S1.20, decision log ID-1340).* EW-FL-004 runs in modes `o r`, not `o` as the row reads, so
+that the pre-delivery release run counts EF-14 (decision log ID-1316 O2); the MVP rules EW-FL-001, -002, -004, -011
+and -013 are built.
+
 #### 4.5.4 EW-LAYOUT
 
 | ID | Name | Checks | Kind | Modes | Severity | Scope | Rel | Req. | D (golden) | Def. |

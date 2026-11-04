@@ -1104,6 +1104,8 @@ flowchart LR
 
 The PR set stays within 30 min wall time (NFR-MAINT-05); a monthly CI-duration report flags the slowest jobs. As built (cycle 15): see §3.14 for the measured durations and the 50-minute job timeouts (decision log ID-381).
 
+*As built (2026-11-04, cycle 50; WP-S6.07, decision log ID-1336, ID-1337).* At 0.1.0 the release starts from a candidate tag `v<X.Y.Z>-rc.<n>`: `release.yml` builds and checks it, writes `SHA256SUMS`, attests every file and creates a **draft prerelease** with those files; the go is a dispatch of the same workflow with `candidate` and `dry` (default `true`), which verifies the draft's files again and publishes them byte for byte as `v<X.Y.Z>` on the candidate's commit, never rebuilding and never moving a tag. A blocker is fixed on `main` and the next candidate is cut. The green nightly is read, not re-run: `verify` requires a successful `ci.yml` and `deep-nightly.yml` run on the tagged commit.
+
 ### 5.2 Job catalogue
 
 | Job | Content | Runner | Blocks |
@@ -1129,7 +1131,7 @@ The PR set stays within 30 min wall time (NFR-MAINT-05); a monthly CI-duration r
 | CI-N-03 fuzz | ≥ 30 min per parser target; crash triage issues. *As built (cycle 20, FT-297, FT-272):* the crate `fuzz/` (§3.12) with the targets `jsonl_loader`, `migration_chain` and `command_sequence` (the command-sequence cargo-fuzz target of §3.6), 30 minutes each in the three `fuzz` jobs of `deep-nightly.yml` (AddressSanitizer, `-timeout=120`, `-rss_limit_mb=4096`; the crash inputs and the grown corpus are uploaded as artifacts, the status file is written first). The parser targets of §3.12 beyond these three, the counting allocator and the automatic triage issues are not built | Linux (ClusterFuzzLite-style batch) | Release |
 | CI-N-04 digests | GP outputs from all three OSs compared (AC-14, FR-OUT-019, NFR-REL-07) | All | Release |
 | CI-N-05 gpu-less | Windows WARP flows and fps sample; lavapipe 3D smoke (from M4, 12 OQ 9) | Windows, Linux | Release |
-| CI-N-06 network | Network sandbox (§12.2) and listening-socket scan | Linux | Release |
+| CI-N-06 network | Network sandbox (§12.2) and listening-socket scan. *As built (cycle 50, WP-S6.05; decision log ID-1338, ID-1339):* the job `network-sandbox` of `deep-nightly.yml` builds the release binaries and the kittest binary, runs each flow of `ci/sandbox/` in a loopback-only network namespace (`unshare --net` through `sudo`, the flows as the runner's user with `sudo -H` and `HOME` and `XDG_*` in the work folder) under strace, judges the traces with `ci/sandbox-check.py` and runs its canary over the release binaries; `ci/sandbox/run.sh` fails unless nextest's "N passed" equals the number of named tests. The listening-socket scan of the installed tree is WP-S6.07's `ci/no-listen.sh` in `package.yml` (CI-R-09). The job has not run yet | Linux | Release |
 | CI-N-07 reliability | Fault injection on ext4, NTFS, APFS; kill-and-replay loop | All | Release |
 | CI-N-08 locale | Locale and time-zone matrix (NFR-I18N-03) | Linux | Release |
 | CI-N-09 pdf | veraPDF on every GP export variant; PDF/UA-1 at 1.0. *As built (cycle 18, FT-294; in part):* the job `verapdf` of `ci.yml` (on every pull request and push, not nightly) validates three exports of the golden PDF (all pages, dated by `SOURCE_DATE_EPOCH`, a page selection) against PDF/A-2b with veraPDF 1.30.3 (the `verapdf/cli` image pinned by digest, no network); `ci/verapdf-check.py` is the verdict over the XML report; AC-13's veraPDF entry of the acceptance runner reads that report through `EW_VERAPDF_REPORT` in the gate path only (the committed headless report keeps the entry `not_applicable`); the full export must equal the committed digest; PDF/UA-1 is not built (decision log ID-456) | Linux | Release; per push it blocks merge once in the required checks after three green runs on `main` (FT-325, owner) |
@@ -1140,7 +1142,7 @@ The PR set stays within 30 min wall time (NFR-MAINT-05); a monthly CI-duration r
 | CI-W-02 fuzz-maint | Corpus minimisation, coverage of fuzz targets | Linux | — |
 | CI-W-03 dependency age | Lag against the limits of NFR-MAINT-04; advisory waivers expiring within 14 days | Linux | — (issues) |
 | CI-W-04 timings | Informational Windows timings | Hosted | — |
-| CI-R-03 (pre-release assertion) release-check | *As built before the release pipeline (cycle 21, FT-333; WP-S6.07 takes it over):* the job `release-check` of `.github/workflows/cli-artefact.yml` (nightly with CI-N-12, and on dispatch) builds `elektrawatt` with `cargo build -p elektrawatt --release --locked` with `PKG_CONFIG=false` and `--remap-path-prefix` for the cargo home, the rustup home and the checkout (Cargo's `trim-paths` is not stable on the pinned toolchain); `ci/release-check.sh env` first fails if `PKG_CONFIG` is not `false`, if any `PKG_CONFIG_*`, `HOST_PKG_CONFIG*` or `TARGET_PKG_CONFIG*` variable reaches the build, if `ICU4X_DATA_DIR` (§3.5) or `CARGO_ENCODED_RUSTFLAGS` is set, or if a cargo configuration file of the checkout or the cargo home has an `[env]` table; `ci/release-check.sh scan` then fails on any build-host path in the binary (`strings`: `/home/`, `/usr/lib/x86_64-linux-gnu`, `/opt/`, the checkout, cargo and rustup homes, the runner's temp directory; a legitimate run-time search path passes only through the script's reviewed exception list, empty today), on a `NEEDED` entry for libwayland*, libxkbcommon*, libX11*, libxcb*, libEGL*, libGL* or libvulkan* (`readelf -d`; these are `dlopen`ed, and a hard link breaks NFR-PLAT-03's fallback chain) and on any `Some` library directory in x11-dl's generated `config.rs` (§5.4). It uploads its Markdown report (30 days), never the binary (ID-476). Report-only: it gates nothing, red on any hit. *As built (cycle 48, I49; decision log ID-1251, ID-1265):* the check moved with `cli-artefact.yml`'s removal into the `linux` job of `.github/workflows/package.yml`, which runs `ci/release-check.sh` on both binaries inside the digest-pinned `ubuntu:22.04` build container (`ci/linux-container.sh`) and uploads the reports only | ubuntu-24.04 | — |
+| CI-R-03 (pre-release assertion) release-check | *As built before the release pipeline (cycle 21, FT-333; WP-S6.07 takes it over):* the job `release-check` of `.github/workflows/cli-artefact.yml` (nightly with CI-N-12, and on dispatch) builds `elektrawatt` with `cargo build -p elektrawatt --release --locked` with `PKG_CONFIG=false` and `--remap-path-prefix` for the cargo home, the rustup home and the checkout (Cargo's `trim-paths` is not stable on the pinned toolchain); `ci/release-check.sh env` first fails if `PKG_CONFIG` is not `false`, if any `PKG_CONFIG_*`, `HOST_PKG_CONFIG*` or `TARGET_PKG_CONFIG*` variable reaches the build, if `ICU4X_DATA_DIR` (§3.5) or `CARGO_ENCODED_RUSTFLAGS` is set, or if a cargo configuration file of the checkout or the cargo home has an `[env]` table; `ci/release-check.sh scan` then fails on any build-host path in the binary (`strings`: `/home/`, `/usr/lib/x86_64-linux-gnu`, `/opt/`, the checkout, cargo and rustup homes, the runner's temp directory; a legitimate run-time search path passes only through the script's reviewed exception list, empty today), on a `NEEDED` entry for libwayland*, libxkbcommon*, libX11*, libxcb*, libEGL*, libGL* or libvulkan* (`readelf -d`; these are `dlopen`ed, and a hard link breaks NFR-PLAT-03's fallback chain) and on any `Some` library directory in x11-dl's generated `config.rs` (§5.4). It uploads its Markdown report (30 days), never the binary (ID-476). Report-only: it gates nothing, red on any hit. *As built (cycle 48, I49; decision log ID-1251, ID-1265):* the check moved with `cli-artefact.yml`'s removal into the `linux` job of `.github/workflows/package.yml`, which runs `ci/release-check.sh` on both binaries inside the digest-pinned `ubuntu:22.04` build container (`ci/linux-container.sh`) and uploads the reports only. *As built (cycle 50, WP-S6.07; decision log ID-1336):* folded into the release builds: `ci/release-check.sh env` runs before `cargo auditable build` in both OS jobs of `package.yml` (on Windows with `PKG_CONFIG=false` and setup-python's `PKG_CONFIG_PATH` unset) and `scan` after the Linux build, the reports under `target/`, so `release.yml`'s `package` job runs CI-R-03 (§7.4) | ubuntu-24.04 | — |
 | CI-R-01 … CI-R-11 | Release pipeline (§7.4); at 0.1.0 without the tag signature of CI-R-01, the signing of CI-R-06 and the approval of CI-R-11 (ID-1187) | All | Publishing |
 
 *As built (cycle 30, FT-479 and FT-438; decision log ID-706).* FT-479 (cycle 30): `test-linux-default` took 28:40 and 26:35 in two runs because the lavapipe install step stalled (7:20 and 8:55, against 10 s for the same step in `test-linux`); both Linux jobs now run `apt-get` with 3 retries and 20-second timeouts. The Windows chain varied from 27:44 to 40:37 with the 2.1 GB archive's download (1:33 to 22:10 per run job), not with test time; `ew-store::fault_injection` moved from part 1 to part 2 and parts 1 and 2 skip `cargo fetch`, projected (not measured) 24:32 and 26:54 for the two latest runs. The download and the cache save are the next levers; FT-479 stays open until two delivery runs measure the chain. FT-438 is closed: run 40611786232 measured `test-macos` at 20:16 and `test-macos-all-features` at 24:26 (40607950237: 22:50 and 18:22, both red from a failing test), both halves under 25 minutes.
@@ -1341,6 +1343,11 @@ NFR-SEC-19:
     script in the release graph needs `pkg-config` (wayland-sys runs with `dlopen`, khronos-egl without `static`).
 - **Scorecard.** The OpenSSF Scorecard runs weekly and its result is published; the OpenSSF Best Practices badge is
   targeted at 1.0 (19 §6).
+- **The `release` environment** (as built, cycle 50; WP-S6.07 D4, decision log ID-1336, ID-1337). Only `release.yml`'s
+  `attest` (`id-token: write`, `attestations: write`) and `release` (`contents: write`) hold write scopes, both in the
+  environment `release`, which has no reviewer at 0.1.0; no job uses a secret. `cargo xtask check-workflows` refuses a
+  job that grants a write scope outside that environment, in the block form and the inline map form alike, and any
+  other inline `permissions:` form but `read-all`.
 
 ### 5.5 Documentation toolchain (as built, cycle 16)
 
@@ -1506,6 +1513,33 @@ gantt
 | CI-R-10 | Clean-VM offline installation on Windows 10 22H2, Windows 11, Ubuntu 22.04 and Debian 12 (0.1.0: the per-user setup on Windows and the AppImage on Linux; from 1.0 also the MSI and the `.deb`): install, open the GP sample, pass its acceptance CSVs, and from 1.0 open the GP `.ewpp` in `ew-wiring-viewer`; uninstall (NFR-PLAT-06, AC-40). An upgrade over the previous release's installer keeps user settings, keymaps, the trust store and company catalogues; uninstall leaves them in place |
 | CI-R-11 | Publish the GitHub release. From 1.0: after two-maintainer approval, with the update manifest, crates.io through trusted publishing (**verify**) and the Flathub PR |
 
+*As built (2026-11-04, cycle 50; WP-S6.07, decision log ID-1336, ID-1337), the jobs in 0.1.0's form.* `release.yml`
+runs on a candidate tag. **CI-R-01:** `ci/release-verify.py tag` requires the tag's `X.Y.Z` to equal the workspace
+version and `docs/release-notes/<X.Y.Z>.md` to exist and not be empty; `clean` requires an empty `git status
+--porcelain` after the builds. **CI-R-02:** `runs` requires a successful `ci.yml` and `deep-nightly.yml` run on the
+tagged commit; the advisory half is `cargo deny check advisories` and `cargo audit` on `Cargo.lock` and `cargo audit
+bin` on every shipped binary (§10). **CI-R-03:** `package.yml`'s release builds are `cargo auditable build`
+(cargo-auditable 0.7.7), with `ci/release-check.sh env` on both OSes. **CI-R-06:** `sums` writes `SHA256SUMS` over
+every artefact and every SBOM, unsigned. **CI-R-07:** `ci/sbom.py` joins cargo-cyclonedx 0.5.9's SBOM of each binary
+into the artefact's SBOM, keeps only the crates that cargo's feature-resolved graph `cargo tree -e normal,build` lists
+for the artefact's binaries and target (for the CLI archive, what `ew` reaches in the joint build's graph), prints
+each component it drops, adds the non-crate components (`NOTICE`'s file blocks, SQLite from `sqlite3.h`, the shipped
+entries of `packaging/components.toml`), and fails a non-crate component without a `NOTICE` section unless that file
+records `no_notice` with its reason. *NFR-SEC-13's "complete against `cargo metadata`"* is met through that graph
+(decision log ID-1317, ID-1318): `cargo metadata`'s resolve also turns on optional dependencies that only a weak
+feature names, which no binary compiles, so `complete` checks the SBOM against the feature-resolved set and checks
+that every package of the set lies in `cargo metadata`'s closure; the SBOM vulnerability scan at 0.1.0 is SQLite's
+version checked by hand at RC-03 (FT-1299). **CI-R-08:** `attest` runs `actions/attest-build-provenance` v4.2.2 over
+every release file (§9.2). **CI-R-09** in D12's form instead of the canary strings: `check-features` in the commit's
+green `ci.yml` run for the graph; `ci/audit-data.py` reads each binary's `cargo-auditable` list and fails on a missing
+list or a test-only crate; `ew/test-confirm` is not declared and egui's `inspection` holds no string of EW's; and
+`ci/no-listen.sh` traces the smoke start and an export of the installed Linux tree and fails on a `listen` call.
+**CI-R-11:** `release` creates the draft prerelease, downloads its files back and checks them with `sha256sum -c` and
+`gh attestation verify`; the promote is a dispatch (§5.1). `package.yml` runs 12 and 13 prove CI-R-03's build half,
+CI-R-07 and CI-R-09; CI-R-01's tag half and the draft and promote are proven at WP-S6.08's first candidate. The
+release files are the CLI archives, `SHA256SUMS` and every artefact's SBOM, and the setup and the AppImage join them
+when ID-476's hold lifts before the first candidate (decision log ID-1331).
+
 The release checklist holds the items that a pipeline cannot prove:
 
 | Item | Check |
@@ -1521,6 +1555,11 @@ The release checklist holds the items that a pipeline cannot prove:
 | RC-09 | Engineering-verification disclaimer present in About, check panel, docs and release report (NFR-COMP-04) |
 | RC-10 | Governance gates of [19](19-open-source-governance.md) §3.3 met before the first binary release: LG-1 (employer copyright statement). From 1.0 also LG-4 (steward, signing identity and repository organisation, NFR-COMP-08) and the steward checklist ST-01 … ST-10 of [19](19-open-source-governance.md) §3.10 complete with evidence (NFR-COMP-01); afterwards the checklist is re-reviewed every minor (ID-1187, ID-1188) |
 | RC-11 | 1.0 only: the Accessibility Conformance Report against EN 301 549 clauses 11 and 12 is updated with known gaps (NFR-COMP-06) |
+
+*As built (2026-11-04, cycle 50; WP-S6.07 D14, decision log ID-1336).* The checklist is the template
+`docs/release/checklist.md` (RC-01 to RC-10 in their 0.1.0 form, each with its check, the evidence it asks for and
+who signs), which WP-S6.08 copies into the release dossier for each candidate; `docs/release/README.md` is the
+procedure around it. RC-01 holds WP-S6.05 D18's review line and RC-05 its manual checks (decision log ID-1338).
 
 ### 7.5 Support policy
 
@@ -1599,6 +1638,14 @@ notarisation and no entitlement question (open question 13 here is moot).
 - **Custody** (1.0). The private key lives only in the protected `release` environment, behind second-maintainer approval
   (open question 6).
 
+*As built (2026-11-04, cycle 50; WP-S6.07 D10, decision log ID-1336, ID-1337).* `actions/attest-build-provenance`
+v4.2.2, pinned by commit SHA, attests every release file, `SHA256SUMS` included, in the one job that holds
+`id-token: write`. Every check runs `gh attestation verify <file> --repo <owner>/<repo> --signer-workflow
+<owner>/<repo>/.github/workflows/release.yml`, and the promote adds `--source-digest <the candidate's commit>`, so the
+bytes are bound to the release workflow and to the commit they were built from (beyond D10's `--repo` alone; the
+flags are in the hosted images' GitHub CLI and are proven at the first release run). The install guide's "Verify a
+download" gives `sha256sum -c SHA256SUMS` and that command, after `gh auth login`.
+
 ### 9.3 Update check
 
 **The update check is 1.0's** (decision log ID-1187, ADR-0029 as amended). 0.1.0 has no update check and no crash upload,
@@ -1654,6 +1701,14 @@ only.
 | Provenance and signing | §9 | CI-R-06, CI-R-08 |
 | CI integrity | §5.4 | All |
 
+*As built (2026-11-04, cycle 50; WP-S6.07 D11, decision log ID-1336).* The advisory gate runs in `package.yml`:
+`cargo deny check advisories` and `cargo audit` on `Cargo.lock` in the Linux job, and `cargo audit bin
+--max-binary-size 536870912` on every shipped binary in both OS jobs (the release binaries are larger than
+cargo-audit's 100 MiB default). A waiver is the same `ignore` entry in two files, `deny.toml` and
+`.cargo/audit.toml`, each with its reason, the owner's handle and an expiry within 90 days, checked by hand at RC-03
+(a script is FT-1300). The first runs report three unmaintained crates reached through zbus on Linux
+(RUSTSEC-2026-0370 to RUSTSEC-2026-0372), waived by no one and followed as FT-1301.
+
 ---
 
 ## 11. Security process
@@ -1704,7 +1759,7 @@ flowchart LR
 | TM-07 | MCP misuse, including prompt injection through project text ("rename all devices…") | Off by default; stdio or loopback with a per-session token; ask-first writes with a diff; project-scoped access; `origin=mcp` in the journal (NFR-SEC-08) | CI-PR-02 |
 | TM-08 | Exploitation of OCCT (C++) through a vendor STEP file | Separate process, timeouts, memory cap, quarantine after two crashes, fuzzed IPC decoder; OS sandbox in 1.x (NFR-SEC-21) | CI-PR-12 |
 | TM-09 | Silent tampering with a received project's engineering data | Not preventable by EW. Mitigations: `ew diff`; revision compare against the as-built archive; archive SHA-256 sums; documentation advice to compare a received project with its released archive | Docs; FR-COL-013 |
-| TM-10 | Debug or remote-control endpoints in release binaries | Test-only features; canary assertion; socket scan (NFR-SEC-09) | CI-R-09, CI-N-06 |
+| TM-10 | Debug or remote-control endpoints in release binaries | Test-only features; canary assertion; socket scan (NFR-SEC-09). *As built (cycle 50; decision log ID-1336, ID-1338):* `EW_DEBUG_PANIC` exists only under `debug_assertions`, and `ci/sandbox-check.py canary` fails a release binary that holds it; `ci/audit-data.py` fails a binary that lists a test-only crate; `ci/no-listen.sh` fails a `listen` call of the installed Linux tree | CI-R-09, CI-N-06 |
 | TM-11 | Dependency compromise or typosquatting | §10 | CI-PR-09 |
 | TM-12 | CI or release pipeline compromise | §5.4; provenance; two-person publish (from 1.0) | Scorecard, review |
 | TM-13 | Update spoofing or MITM (1.0: 0.1.0 has no update check) | HTTPS, signed manifest, OS signature, no silent install | CI-R-06, the tampered-package test |
@@ -1849,6 +1904,16 @@ ignored: other AF_UNIX traffic (D-Bus, AT-SPI, Wayland) and AF_NETLINK (interfac
 - **Smoke flag.** `elektrawatt --smoke <project>`, as listed in the CLI catalogue of [17](17-extensibility.md)
   §3.3, opens the project, renders its pages and exits. It accepts no remote input, so it is no control endpoint.
 
+*As built (2026-11-04, cycle 50; WP-S6.05 D4, decision log ID-1338, ID-1339).* The namespace is made with `unshare
+--net` through `sudo`, loopback up, and the flows then run as the runner's user; instead of an `LD_PRELOAD` shim, a
+read of the name-lookup files (`/etc/resolv.conf`, `/etc/hosts`, `/etc/gai.conf`) and a `connect` to the resolver's socket is the DNS signal, from strace's
+`openat` lines. The flows are `ci/sandbox/`'s: `elektrawatt --smoke` on Golden A, a headless script (open, edit,
+check, export PDF, print to file, save), the kittest flows `ci/sandbox/kittest-filter.txt` names, and the `ew`
+commands, which accept exit 0 or 1 from `check`, `apply` and `import qet`. `ci/sandbox-check.py` judges each trace
+(a socket of `AF_INET` or `AF_INET6`, a `connect` to it, a resolver connect, a name-lookup read or a `listen` fails
+with the flow, the line and the rule, with no allowlist, since 0.1.0 has no `ew mcp`; `AF_UNIX` D-Bus traffic and `AF_NETLINK` pass) and runs the canary over the
+release binaries. The job has not run yet (PV-2).
+
 ### 12.3 Crash reports and logs
 
 **0.1.0 writes a local log only** (decision log ID-1187, NFR-REL-13): on a panic the hook below logs the message and
@@ -1895,6 +1960,18 @@ payload := allowlisted fields only; anything else is dropped
   It has no size-based rotation, so EW's writer wrapper stops a day file at 10 MB and writes one truncation marker.
 - Project-derived strings are logged through a `Sensitive<T>` wrapper that prints `<redacted:len>`. Help ▸
   Diagnostics can enable full text for the current session only. The setting resets on restart (NFR-PRIV-05).
+
+*As built (2026-11-04, cycle 50; WP-S6.05, decision log ID-1338, ID-1339), 0.1.0's form.* The panic hook of
+`bin/elektrawatt/src/crash.rs` logs **every** panic: it appends an entry (the lines L1 to L7: version, OS and architecture,
+time, thread, location, message and a forced backtrace) to one log per process in `<state>/crashes/`, and the end mark L8
+is written by `main` after its outer `catch_unwind`, which then exits 101; a panic caught in place (a rule run,
+tessellation, an image) leaves an entry without L8, which is never offered. There is **no abort and no journal
+flush**: every journal entry is synced as it is appended, so the hook leaves the journal alone, and the unwind reaches
+no clean close. One process's log takes at most 50 entries or 1 MiB, then the line "further panics not logged" (past
+the cap the session-ending panic gets no entry yet: FT-1311). The directories are 0700 and the logs 0600 on Unix; at
+start logs older than 30 days or beyond the 20 newest are pruned, and the newest unoffered log with L8 is offered with
+the leftover journals (05 §8.3). The log stays English, being read by support (decision log ID-1319). No other log is
+written at 0.1.0; panics on other threads and a log for `ew` are FT-1304 and FT-1305.
 
 ---
 

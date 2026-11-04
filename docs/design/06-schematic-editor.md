@@ -535,6 +535,10 @@ normaliser 7 places its ends by `ew_derive::rep_cp_end`. Next to an end off the 
 edge, where neither normaliser 7 nor EW-TERM-006 sees it; a wire ending at a strip segment's terminal point is not
 split.
 
+*As built (2026-11-04, cycle 50; WP-S1.20, decision log ID-1340).* Rows 1 and 16 are built: N-FL-1
+as `valve_functions`, first in `ORDER`, and N-FL-4 as `drives_link`, after `bus_ports` (doc 11 §4.2 as built); row 1
+neither replaces nor removes a valve function on a part change (notice T21; FT-1333).
+
 ### 3.3 Placing symbols and assigning devices
 
 `PlaceSymbol.target` decides which device the new representation belongs to:
