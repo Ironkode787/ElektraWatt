@@ -2116,6 +2116,14 @@ impl ShellModel {
         {
             return outcome;
         }
+        // C49-p8b#2: Escape in a navigator with an empty filter ends the strip editor's scope.
+        if let Some(Focus::Navigator(k)) = self.focus
+            && let Some(n) = self.generic_mut(k)
+            && n.filter.is_empty()
+            && n.scope.take().is_some()
+        {
+            return Outcome::Done;
+        }
         // WP-S2.06 part 1: Escape in a navigator cancels the reorder card (WP-S2.09 part 2: and the quick-fix card;
         // WP-S3.08 part 3: and the table import card).
         if matches!(self.focus, Some(Focus::Navigator(_)))

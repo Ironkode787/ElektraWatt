@@ -370,18 +370,20 @@ fn w49_2_f2_the_strip_editor_opens_a_strip_without_a_tag_by_its_id() {
     dispatch(&mut h, "navigator.row", json!({ "kind": "strips", "key": key }));
     dispatch(&mut h, "strip.edit", json!({}));
     settle(&mut h);
-    for (language, header, empty) in [
+    for (language, header, empty, chip) in [
         (
             "en",
             "navigator \"Terminal strips\" kind strips view tree table sort \"Order\" ascending filter \"\" strip \"New \
              terminal strip \u{b7} no tag yet\" rows 0 showing 0 to 0",
             "No terminals yet",
+            "Strip: New terminal strip \u{b7} no tag yet",
         ),
         (
             "nl",
             "navigator \"Klemmenstroken\" kind strips view tree table sort \"Order\" ascending filter \"\" strip \
              \"Nieuwe klemmenstrook \u{b7} nog geen kenmerk\" rows 0 showing 0 to 0",
             "Nog geen klemmen",
+            "Strook: Nieuwe klemmenstrook \u{b7} nog geen kenmerk",
         ),
     ] {
         dispatch(&mut h, "view.language", json!({ "value": language }));
@@ -397,37 +399,57 @@ fn w49_2_f2_the_strip_editor_opens_a_strip_without_a_tag_by_its_id() {
             .find(|l| l.contains(" kind strips "))
             .expect("the strip editor's header");
         assert_eq!(line, header, "{language}");
-        assert!(!describe.to_lowercase().contains("?x?"), "{language}: {describe}");
+        let placeholder = |t: &str| {
+            let t = t.to_lowercase();
+            t.contains("?x?") || t.contains("x??")
+        };
+        assert!(!placeholder(&describe), "{language}: {describe}");
+        // C49-p8b#2: the scope shows in words in the filter row.
+        assert!(
+            h.query_all_by_label(chip).next().is_some(),
+            "{language}: the filter row says {chip}"
+        );
         assert!(
             h.query_all_by_label(empty).next().is_some(),
             "{language}: the empty state says {empty}"
         );
-        let tagged: Vec<String> = texts(&h)
-            .into_iter()
-            .filter(|t| t.to_lowercase().contains("?x?"))
-            .collect();
+        let tagged: Vec<String> = texts(&h).into_iter().filter(|t| placeholder(t)).collect();
         assert!(tagged.is_empty(), "{language}: {tagged:?}");
     }
-    // Golden A's strips have rows: the editor showed the new strip alone. A filter of the user's own ends that.
+    // C49-p8b#2: Golden A's strips have rows, the editor showed the new strip alone. The scope's Clear ends it, and
+    // so does Escape on the empty filter.
+    let scoped = |h: &Harness<'_, App>| {
+        let nav = h.state().shell().nav(NavKind::Strips).expect("the strip editor");
+        (nav.scope_label().is_some(), nav.visible().is_empty())
+    };
+    dispatch(&mut h, "view.language", json!({ "value": "en" }));
+    settle(&mut h);
+    assert_eq!(scoped(&h), (true, true));
+    support::off_chrome(&h, "Show every strip")
+        .expect("the scope's Clear")
+        .click();
+    settle(&mut h);
+    assert_eq!(scoped(&h), (false, false), "Clear: every strip's rows again");
+    let chip = "Strip: New terminal strip \u{b7} no tag yet";
+    assert!(h.query_all_by_label(chip).next().is_none());
+    // Back to the tree, where the strip's row is, and the editor on it again.
     dispatch(
         &mut h,
-        "navigator.filter",
-        json!({ "kind": "strips", "text": "1" }),
+        "navigator.table",
+        json!({ "kind": "strips", "on": false }),
     );
+    dispatch(&mut h, "navigator.row", json!({ "kind": "strips", "key": key }));
+    dispatch(&mut h, "strip.edit", json!({}));
     dispatch(
         &mut h,
-        "navigator.filter",
-        json!({ "kind": "strips", "text": "" }),
+        "ui.focus",
+        json!({ "area": "navigator", "kind": "strips" }),
     );
-    assert!(
-        !h.state()
-            .shell()
-            .nav(NavKind::Strips)
-            .expect("the strip editor")
-            .visible()
-            .is_empty(),
-        "every strip's rows again"
-    );
+    settle(&mut h);
+    assert_eq!(scoped(&h), (true, true));
+    h.key_press(Key::Escape);
+    settle(&mut h);
+    assert_eq!(scoped(&h), (false, false), "Escape on the empty filter");
     h.state_mut().shell_mut().shutdown();
 }
 

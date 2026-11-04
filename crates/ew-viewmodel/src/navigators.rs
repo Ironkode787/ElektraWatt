@@ -422,7 +422,12 @@ impl Navigator {
         }
         let query = Query::parse_for(self.kind, &self.filter);
         let rows = Arc::new(if self.table_mode.is_some() {
-            table::table_rows(table, &self.sort, self.descending, &query, self.scope.as_deref())
+            // A scope whose strip is gone (deleted) scopes nothing.
+            let scope = self
+                .scope
+                .as_deref()
+                .filter(|s| table.nodes.iter().any(|n| n.key == *s));
+            table::table_rows(table, &self.sort, self.descending, &query, scope)
         } else {
             visible_rows(
                 table,
@@ -628,6 +633,17 @@ pub fn visible_rows(
         }
     }
     out
+}
+
+/// The text of `node`'s cell in column `col` as the window shows it: the cell, except that the Terminal strips table's
+/// Strip column names a strip without a tag yet in words ([`strip_label`]; ID-1278 ruling 7, C49-p8b#3).
+pub fn cell_text(table: &NavTable, node: &NavNode, col: usize) -> String {
+    let cell = node.cells.get(col).map_or("", String::as_str);
+    if table.kind == NavKind::Strips && table.columns.get(col).is_some_and(|c| c.key == "strip") {
+        strip_label(cell)
+    } else {
+        cell.to_owned()
+    }
 }
 
 /// A terminal strip's label as the window shows it (ID-1278 ruling 7): a tag with a part not derived yet (`-X??`, a

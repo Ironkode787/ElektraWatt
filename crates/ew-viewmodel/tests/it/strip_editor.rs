@@ -567,3 +567,41 @@ fn se14_describe_lines() {
     );
     shell.shutdown();
 }
+
+/// C49-p8b#3 (ID-1278 ruling 7): an accessory at the start of a new strip without a tag yet reads the strip in words
+/// in its toast and in its row's Strip cell, never by the placeholder tag.
+#[test]
+fn an_untagged_strips_accessory_row_names_it_in_words() {
+    let tmp = Tmp::new("strip-untagged-accessory");
+    let mut shell = tmp.shell_in(Mode::Headless, true, "102");
+    done(&mut shell, "strip.new", json!({}));
+    done(&mut shell, "navigator.show", json!({"kind": "strips"}));
+    let key = shell
+        .nav(NavKind::Strips)
+        .and_then(|n| n.table())
+        .and_then(|t| {
+            t.nodes
+                .iter()
+                .find(|n| n.role == ew_viewmodel::navigators::NavRole::Strip && n.label.contains('?'))
+                .map(|n| n.key.clone())
+        })
+        .expect("the new strip");
+    mark(&mut shell, std::slice::from_ref(&key));
+    done(&mut shell, "strip.add_accessory", json!({}));
+    assert_eq!(
+        lines_with(&shell, "toast "),
+        ["toast \"Added End bracket at the start of New terminal strip \u{b7} no tag yet\" undo"]
+    );
+    mark(&mut shell, &[]);
+    done(&mut shell, "navigator.row", json!({"kind": "strips", "key": key}));
+    done(&mut shell, "strip.edit", json!({}));
+    let rows = lines_with(&shell, "  accessory ");
+    assert_eq!(rows.len(), 1, "{rows:?}");
+    assert!(
+        rows[0].starts_with("  accessory \"New terminal strip \u{b7} no tag yet\" "),
+        "{rows:?}"
+    );
+    let d = shell.describe();
+    assert!(!d.contains("?X?") && !d.contains("X??"), "{d}");
+    shell.shutdown();
+}

@@ -882,7 +882,6 @@ impl Session {
     /// D18). Reads memoised queries only; a connection that forms no physical wire, or whose colour is unset, is left
     /// out.
     pub fn wire_colours(&self, connections: &[Uuid]) -> WireColours {
-        use ew_schema::ColourCode;
         let q = self.query();
         let mut out = WireColours::default();
         for id in connections {
@@ -892,14 +891,7 @@ impl Session {
             let Some(spec) = props.colour.as_ref().map(|c| &c.value) else {
                 continue;
             };
-            let codes: Option<Vec<String>> = spec
-                .codes()
-                .iter()
-                .map(|c| match c {
-                    ColourCode::Foreign(f) => Some(f.as_str().to_owned()),
-                    other => serde_json::to_value(other).ok()?.as_str().map(str::to_owned),
-                })
-                .collect();
+            let codes: Option<Vec<String>> = spec.codes().iter().map(colour_code_text).collect();
             if let Some(codes) = codes.filter(|c| !c.is_empty()) {
                 out.connections.insert(*id, codes);
             }
@@ -920,6 +912,18 @@ impl Session {
             }
         }
         out
+    }
+}
+
+/// A colour code as the wire-colour view lists it: an IEC or company code and a foreign code by their spelling; a
+/// form of a newer format as `?`, which resolves to no colour, so the connection is drawn as the unresolved pattern
+/// (C49-p8b#7) rather than left out.
+fn colour_code_text(code: &ew_schema::ColourCode) -> Option<String> {
+    use ew_schema::ColourCode;
+    match code {
+        ColourCode::Foreign(f) => Some(f.as_str().to_owned()),
+        ColourCode::Unknown(_) => Some("?".to_owned()),
+        other => serde_json::to_value(other).ok()?.as_str().map(str::to_owned),
     }
 }
 
@@ -2623,6 +2627,23 @@ fn prop_via(q: &Q, source: &PropSource, potential: &str, class: Option<&ew_schem
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// C49-p8b#7: a colour code of a newer format is listed as `?` (drawn as the unresolved pattern), not dropped.
+    #[test]
+    fn a_colour_code_of_a_newer_format_is_listed_as_unresolved() {
+        let code = |v: Value| -> ew_schema::ColourCode { serde_json::from_value(v).expect("a colour code") };
+        let texts: Vec<Option<String>> = [
+            serde_json::json!("BU"),
+            serde_json::json!("DBU"),
+            serde_json::json!({"foreign": "BR"}),
+            serde_json::json!({"pantone": "300C"}),
+        ]
+        .into_iter()
+        .map(|v| colour_code_text(&code(v)))
+        .collect();
+        let want = ["BU", "DBU", "BR", "?"].map(|s| Some(s.to_owned()));
+        assert_eq!(texts, want);
+    }
 
     #[test]
     fn row_paths_split_into_members_and_indices() {

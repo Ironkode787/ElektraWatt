@@ -415,7 +415,11 @@ impl PlaceTool {
                 "terminal",
                 strings::format(
                     key!("place-target-terminal"),
-                    &[strip_tag, &self.designation_label(designation)],
+                    // ID-1278 ruling 7 (C49-p8b#3): a strip without a tag yet in words.
+                    &[
+                        &crate::navigators::strip_label(strip_tag),
+                        &self.designation_label(designation),
+                    ],
                 ),
             ),
         }

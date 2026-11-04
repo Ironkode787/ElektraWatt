@@ -1093,14 +1093,12 @@ fn table_lines(
         } else {
             "row"
         };
-        let mut line = format!(
-            "  {word}{}",
-            quoted(
-                &mut shown
-                    .iter()
-                    .map(|i| node.cells.get(*i).map_or("", String::as_str))
-            )
-        );
+        // ID-1278 ruling 7: a strip without a tag yet in words in its Strip cell.
+        let cells: Vec<String> = shown
+            .iter()
+            .map(|i| crate::navigators::cell_text(table, node, *i))
+            .collect();
+        let mut line = format!("  {word}{}", quoted(&mut cells.iter().map(String::as_str)));
         if nav.marked().contains(&r.key) {
             line.push_str(" selected");
         }

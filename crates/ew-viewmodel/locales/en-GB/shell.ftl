@@ -2852,3 +2852,7 @@ choice-extract = Extract
 choice-read-only = Read only
 choice-mine = Mine
 choice-theirs = Theirs
+
+# C49-p8b#2: the strip editor's scope in the filter row.
+nav-scope-strip = Strip: { $p0 }
+nav-scope-clear = Show every strip

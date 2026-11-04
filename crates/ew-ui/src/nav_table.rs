@@ -869,8 +869,10 @@ impl Delegate<'_> {
                 let cells = self
                     .rows
                     .iter()
-                    .filter_map(|r| self.table.nodes[r.node as usize].cells.get(c))
-                    .map(|text| text_width(ui, text, cell_font.clone()))
+                    .map(|r| {
+                        ew_viewmodel::navigators::cell_text(self.table, &self.table.nodes[r.node as usize], c)
+                    })
+                    .map(|text| text_width(ui, &text, cell_font.clone()))
                     .fold(0.0_f32, f32::max);
                 (header.max(cells) + 2.0 * t.space_4).max(start_width(t, self.kind, &column.key))
             })
@@ -1072,7 +1074,8 @@ impl TableDelegate for Delegate<'_> {
         };
         let node = &self.table.nodes[row.node as usize];
         let column = &self.table.columns[c];
-        let text = node.cells.get(c).cloned().unwrap_or_default();
+        // ID-1278 ruling 7: a strip without a tag yet in words in its Strip cell.
+        let text = ew_viewmodel::navigators::cell_text(self.table, node, c);
         let reason = cell_reason(self.table, node, c);
         let mut name = if text.is_empty() {
             column.label.clone()

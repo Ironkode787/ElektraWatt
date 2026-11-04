@@ -114,8 +114,11 @@ pub fn lane_offset_pt(lane: u8) -> f64 {
     if lane % 2 == 1 { k * LANE_PT } else { -k * LANE_PT }
 }
 
-/// The unit normal of the segment `a`–`b` (turned a quarter from its direction); `(0, 0)` for a point.
+/// The unit normal of the line through `a` and `b` (turned a quarter from its direction); `(0, 0)` for a point. One
+/// normal per line (C49-p8b#1): the direction runs from the lower end to the higher (by x, then y), so two segments of
+/// one line drawn in opposite directions share it, and a lane is the same side of the line for both.
 pub fn normal(a: (f64, f64), b: (f64, f64)) -> (f64, f64) {
+    let (a, b) = if b < a { (b, a) } else { (a, b) };
     let (dx, dy) = (b.0 - a.0, b.1 - a.1);
     let len = (dx * dx + dy * dy).sqrt();
     if len > 0.0 && len.is_finite() {
@@ -138,18 +141,45 @@ pub struct LabelAt {
 }
 
 /// Whether the segments `a`–`b` and `c`–`d` lie on one line and share a stretch of positive length.
+///
+/// Any `i64` ends (C49-p8b#4): the differences are taken in `i128`, the direction reduced to its lowest terms, and a
+/// cross product beyond `i128` (a slant across most of the `i64` range) counts as no shared stretch.
 fn overlaps(a: (i64, i64), b: (i64, i64), c: (i64, i64), d: (i64, i64)) -> bool {
-    let v = (i128::from(b.0 - a.0), i128::from(b.1 - a.1));
-    let rel = |p: (i64, i64)| (i128::from(p.0 - a.0), i128::from(p.1 - a.1));
-    let (rc, rd) = (rel(c), rel(d));
-    let cross = |r: (i128, i128)| v.0 * r.1 - v.1 * r.0;
-    let dot = |r: (i128, i128)| v.0 * r.0 + v.1 * r.1;
-    let len2 = v.0 * v.0 + v.1 * v.1;
-    if len2 == 0 || cross(rc) != 0 || cross(rd) != 0 {
+    let v = (
+        i128::from(b.0) - i128::from(a.0),
+        i128::from(b.1) - i128::from(a.1),
+    );
+    if v == (0, 0) {
         return false;
     }
-    let (tc, td) = (dot(rc), dot(rd));
-    tc.min(td).max(0) < tc.max(td).min(len2)
+    let (mut x, mut y) = (v.0.unsigned_abs(), v.1.unsigned_abs());
+    while y != 0 {
+        (x, y) = (y, x % y);
+    }
+    // `x` is the greatest common divisor, at least 1 and at most |v.0| or |v.1|: the quotients fit.
+    let g = i128::try_from(x).unwrap_or(1);
+    let dir = (v.0 / g, v.1 / g);
+    let on_line = |p: (i64, i64)| {
+        let r = (
+            i128::from(p.0) - i128::from(a.0),
+            i128::from(p.1) - i128::from(a.1),
+        );
+        matches!((dir.0.checked_mul(r.1), dir.1.checked_mul(r.0)), (Some(x), Some(y)) if x == y)
+    };
+    if !on_line(c) || !on_line(d) {
+        return false;
+    }
+    // On one line: the stretches compared along its longer axis.
+    let axis = |p: (i64, i64)| {
+        if v.0.abs() >= v.1.abs() {
+            i128::from(p.0)
+        } else {
+            i128::from(p.1)
+        }
+    };
+    let span = |p: (i64, i64), q: (i64, i64)| (axis(p).min(axis(q)), axis(p).max(axis(q)));
+    let ((a0, a1), (c0, c1)) = (span(a, b), span(c, d));
+    a0.max(c0) < a1.min(c1)
 }
 
 /// Gives each segment of each stroke a lane (W49.2 F9): a segment that shares a stretch of its line with segments of
@@ -505,12 +535,59 @@ mod tests {
         let gnye = strokes[1].midpoint().unwrap();
         assert_eq!(
             (gnye.at, gnye.lane, gnye.normal),
-            ((30_000_000.0, 10_000_000.0), 1, (0.0, -1.0))
+            ((30_000_000.0, 10_000_000.0), 1, (0.0, 1.0))
         );
         assert_eq!(lane_offset_pt(0), 0.0);
         assert_eq!(lane_offset_pt(1), LANE_PT);
         assert_eq!(lane_offset_pt(2), -LANE_PT);
         assert_eq!(lane_offset_pt(3), 2.0 * LANE_PT);
+    }
+
+    /// C49-p8b#1: three wires on one stretch, the third drawn the other way, stand in three lanes on three sides of
+    /// the path, and their three codes stand apart: no stroke and no code on another.
+    #[test]
+    fn three_wires_on_one_line_one_reversed_stand_apart() {
+        let mut strokes = vec![
+            stroke(&["BU"], vec![(0, 10_000_000), (40_000_000, 10_000_000)]),
+            stroke(&["RD"], vec![(0, 10_000_000), (40_000_000, 10_000_000)]),
+            stroke(&["BK"], vec![(40_000_000, 10_000_000), (0, 10_000_000)]),
+        ];
+        assign_lanes(&mut strokes);
+        let lanes: Vec<Vec<u8>> = strokes.iter().map(|s| s.lanes.clone()).collect();
+        assert_eq!(lanes, [[0], [1], [2]]);
+        // How far each stroke's segment and each code stand off the path, in points along y.
+        let side = |s: &WireStroke| {
+            let (a, b, _, lane) = s.segments()[0];
+            normal(a, b).1 * lane_offset_pt(lane)
+        };
+        let label = |s: &WireStroke| {
+            let m = s.midpoint().unwrap();
+            m.normal.1 * lane_offset_pt(m.lane)
+        };
+        let sides: Vec<f64> = strokes.iter().map(side).collect();
+        assert_eq!(sides, [0.0, LANE_PT, -LANE_PT], "three strokes apart");
+        let labels: Vec<f64> = strokes.iter().map(label).collect();
+        assert_eq!(labels, sides, "each code on its own stroke");
+    }
+
+    /// C49-p8b#4: the lanes take ends anywhere in `i64`, without an overflow.
+    #[test]
+    fn lanes_at_the_ends_of_i64() {
+        let (lo, hi) = (i64::MIN, i64::MAX);
+        let mut strokes = vec![
+            stroke(&["BU"], vec![(lo, 0), (hi, 0)]),
+            stroke(&["RD"], vec![(hi, 0), (lo, 0)]),
+            stroke(&["BK"], vec![(lo, lo), (hi, hi)]),
+            stroke(&["GN"], vec![(lo, hi), (hi, lo)]),
+            stroke(&["YE"], vec![(hi, hi), (lo, lo)]),
+        ];
+        assign_lanes(&mut strokes);
+        let lanes: Vec<Vec<u8>> = strokes.iter().map(|s| s.lanes.clone()).collect();
+        assert_eq!(
+            lanes,
+            [[0], [1], [0], [0], [1]],
+            "the shared lines share, the crossing does not"
+        );
     }
 
     #[test]

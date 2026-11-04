@@ -274,7 +274,7 @@ impl ShellModel {
                 self.notes.dismiss(entry.serial);
                 self.dispatch("edit.undo", &Value::Null)
             }
-            Some(NoteAction::Open) => match (self.mode, entry.open_path()) {
+            Some(NoteAction::Open) => match (self.mode, entry.open_path(action)) {
                 (Mode::Headless, _) => Outcome::Refused {
                     reason_key: key!("reason-no-opener"),
                 },
@@ -288,7 +288,7 @@ impl ShellModel {
             },
             // WP-S2.08 part 6 (D17): the tips' actions.
             Some(NoteAction::Convert | NoteAction::Renumber | NoteAction::ShowBlock) => {
-                self.run_tip_action(entry)
+                self.run_tip_action(entry, action)
             }
             // WP-S1.17 D24: the history opens with the step's changes.
             Some(NoteAction::ShowChanges) => {

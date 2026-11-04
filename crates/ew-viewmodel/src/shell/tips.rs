@@ -236,16 +236,16 @@ impl ShellModel {
     }
 
     /// Runs a tip's action (`run_note_action` has judged it valid): the toast goes, then the action's steps.
-    pub(super) fn run_tip_action(&mut self, entry: &Notification) -> Outcome {
+    pub(super) fn run_tip_action(&mut self, entry: &Notification, action: NoteAction) -> Outcome {
         self.notes.dismiss(entry.serial);
-        match entry.action() {
+        match Some(action) {
             Some(NoteAction::Convert) => match self.dispatch("edit.undo", &Value::Null) {
                 Outcome::Done => self.dispatch("tool.wire", &Value::Null),
                 other => other,
             },
             Some(NoteAction::Renumber) => self.dispatch("devices.renumber", &Value::Null),
             Some(NoteAction::ShowBlock) => {
-                let ids: Vec<String> = entry.selects().iter().map(ToString::to_string).collect();
+                let ids: Vec<String> = entry.selects(action).iter().map(ToString::to_string).collect();
                 match self.dispatch("select.set", &json!({ "ids": ids })) {
                     Outcome::Done => self.dispatch("props.focus", &Value::Null),
                     other => other,

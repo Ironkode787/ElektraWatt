@@ -204,6 +204,7 @@ impl NavigatorPane {
         let pages = self.kind == NavKind::Pages && shell.nav(NavKind::Pages).is_none();
         let table_nav = shell.nav(self.kind).filter(|n| n.table_mode().is_some());
         let in_table = table_nav.is_some();
+        let scope = table_nav.and_then(|n| n.scope_label());
         let shell_filter = match self.kind {
             NavKind::Pages if pages => shell.navigator().filter.clone(),
             k => shell.nav(k).map(|n| n.filter.clone()).unwrap_or_default(),
@@ -270,6 +271,27 @@ impl NavigatorPane {
                         ui.spacing_mut().item_spacing.x = t.space_2;
                         if let Some(nav) = table_nav {
                             crate::nav_table::chooser(ui, nav, events);
+                        }
+                        // C49-p8b#2: the strip editor's scope (one strip, by its ID) stands in the filter's place in
+                        // words, with its Clear; Clear, or Escape on the empty filter, ends it.
+                        if let Some(words) = scope.as_deref() {
+                            let clear = crate::components::icon_button(
+                                ui,
+                                crate::icons::IconId::x,
+                                strings::text(key!("nav-scope-clear")),
+                            );
+                            if clear.clicked() {
+                                events.push(Event::Action(
+                                    "navigator.filter",
+                                    json!({ "kind": self.kind_word(), "text": "" }),
+                                ));
+                            }
+                            let text = strings::format(key!("nav-scope-strip"), &[words]);
+                            return ui
+                                .with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
+                                    ui.add(egui::Label::new(text).truncate())
+                                })
+                                .inner;
                         }
                         crate::components::filter_field(
                             ui,

@@ -2572,4 +2572,6 @@ pub const KEYS: &[&str] = &[
     "choice-read-only",
     "choice-mine",
     "choice-theirs",
+    "nav-scope-strip",
+    "nav-scope-clear",
 ];

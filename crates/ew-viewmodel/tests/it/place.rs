@@ -560,6 +560,42 @@ fn pointer_and_cursor_moves_with_a_tool_armed_and_picker_filtering_call_no_sessi
     assert_eq!(s.session_calls().run_script, calls.run_script + 1);
 }
 
+/// C49-p8b#3 (ID-1278 ruling 7): the Place tool's label names a strip without a tag yet in words, never by its
+/// placeholder tag.
+#[test]
+fn the_place_label_names_a_strip_without_a_tag_in_words() {
+    let tmp = Tmp::new("terminal-untagged");
+    let mut s = shell(&tmp, "103");
+    done(&mut s, "strip.new", json!({}));
+    done(&mut s, "navigator.show", json!({"kind": "strips"}));
+    let tag = s
+        .nav(ew_viewmodel::navigators::NavKind::Strips)
+        .and_then(|n| n.table())
+        .and_then(|t| {
+            t.nodes
+                .iter()
+                .find(|n| n.role == ew_viewmodel::navigators::NavRole::Strip && n.label.contains('?'))
+                .map(|n| n.label.clone())
+        })
+        .expect("the new strip");
+    done(
+        &mut s,
+        "place.pick",
+        json!({"symbol": "ew.iec.terminal@qet10", "strip": tag}),
+    );
+    let p = grid_point(&s, (70, 40));
+    let pt = sheet(&s, p);
+    done(&mut s, "canvas.pointer", at(pt, json!({})));
+    let labels: Vec<String> = s.tool_overlay().labels().map(|l| l.to_string()).collect();
+    assert!(
+        labels
+            .iter()
+            .any(|l| l == "A New terminal strip \u{b7} no tag yet terminal 1"),
+        "{labels:?}"
+    );
+    assert!(!labels.iter().any(|l| l.contains('?')), "{labels:?}");
+}
+
 #[test]
 fn a_terminal_joins_strip_x1031_with_its_tag_predicted_and_the_designation_advanced() {
     let tmp = Tmp::new("terminal");

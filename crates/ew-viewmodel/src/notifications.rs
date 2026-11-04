@@ -191,17 +191,17 @@ impl Notification {
     }
 
     /// The file an Open action opens.
-    pub(crate) fn open_path(&self) -> Option<&PathBuf> {
-        match &self.action {
-            Some((_, Validity::Open { path })) => Some(path),
+    pub(crate) fn open_path(&self, action: NoteAction) -> Option<&PathBuf> {
+        match self.validity(action) {
+            Some(Validity::Open { path }) => Some(path),
             _ => None,
         }
     }
 
-    /// The records a tip's action selects (Show report block's block, WP-S2.08 part 6); empty for the others.
-    pub(crate) fn selects(&self) -> &[ew_api::output::Uuid] {
-        match &self.action {
-            Some((_, Validity::Session { select, .. })) => select,
+    /// The records its action `action` selects (Show report block's block, WP-S2.08 part 6); empty for the others.
+    pub(crate) fn selects(&self, action: NoteAction) -> &[ew_api::output::Uuid] {
+        match self.validity(action) {
+            Some(Validity::Session { select, .. }) => select,
             _ => &[],
         }
     }

@@ -2621,3 +2621,7 @@ choice-extract = Uitpakken
 choice-read-only = Alleen-lezen
 choice-mine = Van mij
 choice-theirs = Van schijf
+
+# C49-p8b#2: the strip editor's scope in the filter row.
+nav-scope-strip = Strook: { $p0 }
+nav-scope-clear = Alle klemmenstroken tonen

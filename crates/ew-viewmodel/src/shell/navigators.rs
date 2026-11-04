@@ -209,7 +209,7 @@ impl ShellModel {
         n.table_mode()?;
         let t = n.table()?;
         let has = |role| t.nodes.iter().any(|node| node.role == role);
-        let scoped = n.scope.is_some();
+        let scoped = n.scope_label().is_some();
         (scoped || (has(ew_api::output::NavRole::Strip) && !has(ew_api::output::NavRole::Terminal))).then(
             || {
                 (
@@ -1063,11 +1063,10 @@ impl ShellModel {
             Err(e) => e,
             Ok(None) => failed(key!("error-missing-param"), &["text"]),
             Ok(Some(t)) => {
-                if let Some(n) = self.generic_mut(kind)
-                    && n.filter != t
-                {
+                if let Some(n) = self.generic_mut(kind) {
                     n.filter = t.to_owned();
-                    // A filter of the user's own ends the strip editor's scope (ID-1278 ruling 7).
+                    // A filter of the user's own, or the scope's Clear (an empty filter), ends the strip editor's
+                    // scope (ID-1278 ruling 7, C49-p8b#2).
                     n.scope = None;
                 }
                 Outcome::Done
