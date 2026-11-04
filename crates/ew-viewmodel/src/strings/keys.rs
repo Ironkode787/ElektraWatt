@@ -2498,8 +2498,6 @@ pub const KEYS: &[&str] = &[
     "glossary-search",
     "glossary-insert",
     "glossary-insert-name",
-    "empty-glossary",
-    "empty-glossary-text",
     "tip-line-on-cp",
     "tip-derived-tag",
     "tip-generated-page",
