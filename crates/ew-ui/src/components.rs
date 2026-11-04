@@ -715,12 +715,28 @@ pub(crate) fn empty_state(
     let node = ui.interact(rect, id, Sense::hover());
     node.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Group, true, line));
     let mut clicked = None;
+    // FT-1288: in a pane too low for all of it (a bottom dock in a short window), the icon and the space above it give
+    // way, so that the two lines show whole.
+    let icon_size = 2.0 * t.icon_md - t.space_3;
+    let text_height = ui.fonts_mut(|f| {
+        f.layout(line.to_owned(), theme::font(&t.type_body_strong), theme::NONE, rect.width())
+            .size()
+            .y
+            + f.layout(sentence.to_owned(), theme::font(&t.type_body), theme::NONE, rect.width())
+                .size()
+                .y
+    });
+    let action_height = action.map_or(0.0, |_| t.space_3 + t.size_control);
+    let room = t.space_6 + icon_size + t.space_3 + text_height + action_height + 3.0 * ui.spacing().item_spacing.y;
+    let roomy = rect.height() >= room;
     ui.scope_builder(egui::UiBuilder::new().accessibility_parent(id), |ui| {
         ui.with_layout(Layout::top_down(Align::Center), |ui| {
-            ui.add_space(t.space_6);
-            let (r, _) = ui.allocate_exact_size(Vec2::splat(2.0 * t.icon_md - t.space_3), Sense::hover());
-            icons::paint(ui.painter(), icon, r, t.text_tertiary.color32(), t.icon_stroke_lg);
-            ui.add_space(t.space_3);
+            if roomy {
+                ui.add_space(t.space_6);
+                let (r, _) = ui.allocate_exact_size(Vec2::splat(icon_size), Sense::hover());
+                icons::paint(ui.painter(), icon, r, t.text_tertiary.color32(), t.icon_stroke_lg);
+                ui.add_space(t.space_3);
+            }
             ui.label(
                 RichText::new(line)
                     .font(theme::font(&t.type_body_strong))

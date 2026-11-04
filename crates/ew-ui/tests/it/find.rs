@@ -551,3 +551,39 @@ fn w49_2_f4_the_find_fields_take_their_rows_width_at_the_headers_inset() {
         "the replacement field grows with the window: {widths:?}"
     );
 }
+
+/// FT-1288: in a 1280 × 720 window the find pane's empty state shows its two lines whole inside the pane (its icon
+/// gives way), in Find and in Find and replace, and still shows its icon at 1920 × 1080.
+#[test]
+fn the_empty_state_shows_whole_in_a_short_window() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "204");
+    let text = |k| ew_ui::ew_viewmodel::strings::text(k).to_owned();
+    let pane_name = text(ew_ui::ew_viewmodel::key!("pane-find"));
+    let lines = [
+        text(ew_ui::ew_viewmodel::key!("empty-find-start")),
+        text(ew_ui::ew_viewmodel::key!("empty-find-start-text")),
+    ];
+    for (size, chord) in [
+        (egui::Vec2::new(1280.0, 720.0), Key::F),
+        (egui::Vec2::new(1280.0, 720.0), Key::H),
+        (egui::Vec2::new(1920.0, 1080.0), Key::H),
+    ] {
+        h.set_size(size);
+        settle(&mut h);
+        h.key_press_modifiers(Modifiers::COMMAND, chord);
+        settle(&mut h);
+        settle(&mut h);
+        let pane = h
+            .get_all_by_role(egui::Role::Group)
+            .find(|n| n.accesskit_node().label().as_deref() == Some(pane_name.as_str()))
+            .expect("the find pane")
+            .rect();
+        for line in &lines {
+            let r = h.get_by_role_and_label(egui::Role::Label, line).rect();
+            assert!(pane.contains_rect(r), "{size:?} {chord:?}: {line} {r:?} inside {pane:?}");
+        }
+        let _ = h.state_mut().shell_mut().dispatch("find.close", &json!({}));
+        settle(&mut h);
+    }
+}
