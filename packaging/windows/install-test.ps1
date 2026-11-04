@@ -10,7 +10,8 @@
 #       IN-9: outbound firewall rules block the setup, elektrawatt.exe, ew.exe and the elektrawatt.exe of D13's three
 #       copies by program, the firewall on. D9: `/S /D=<folder>` refuses a folder holding docs\keep.txt, and one
 #       holding another program's uninstall.exe beside it; an installation by `/S /D=<elsewhere>` is upgraded there by
-#       `/S` alone, then uninstalled.
+#       `/S` alone, then uninstalled; the folder the uninstall entry names, elektrawatt.exe deleted from it, is
+#       accepted by `/S /D=<folder>`, then uninstalled.
 #       IN-8: the setup's manifest asks for asInvoker; `/S` installs into %LOCALAPPDATA%\Programs\ElektraWatt; the
 #       key names under HKLM\SOFTWARE and the file names under both Program Files folders are the same before and
 #       after; the installed folder is the staged tree (every file's SHA-256) and the uninstaller; the Start-menu
@@ -253,6 +254,19 @@ function Assert-UpgradeKeepsFolder {
     Uninstall-Installation $elsewhere
 }
 
+# D9 (FT-1272): the folder the uninstall entry names is accepted though elektrawatt.exe is gone from it (an
+# installation whose files were lost), where the files branch of CheckFolder would refuse it: `/S /D=<folder>` installs
+# there again. Then the uninstall, as above.
+function Assert-AcceptsTheEntrysFolder {
+    $lost = Join-Path $env:RUNNER_TEMP 'lost-files'
+    Install-Setup @('/S', "/D=$lost")
+    Remove-Item -LiteralPath (Join-Path $lost 'elektrawatt.exe')
+    Install-Setup @('/S', "/D=$lost")
+    Assert-Installed $lost
+    Write-Host "install-test: the setup /S /D=$lost accepted the folder the entry names, elektrawatt.exe gone from it"
+    Uninstall-Installation $lost
+}
+
 # IN-8: the folder, the shortcut and the entry of an installation in $Folder.
 function Assert-Installed([string]$Folder = $Root) {
     $installed = @(Get-Listing $Folder)
@@ -323,6 +337,7 @@ switch ($Mode) {
             'docs\keep.txt' = "that program's own file"
         })
         Assert-UpgradeKeepsFolder
+        Assert-AcceptsTheEntrysFolder
         $before = Get-MachineListing
         Install-Setup
         Assert-SameListing $before (Get-MachineListing)
