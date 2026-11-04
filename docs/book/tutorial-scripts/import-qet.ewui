@@ -9,6 +9,7 @@
 {"action":"cursor.set","params":{"x_mm":35.885,"y_mm":82.857}}
 {"action":"canvas.activate"}
 {"action":"tool.select"}
+{"action":"ui.describe"}
 {"action":"canvas.press","params":{"x_mm":61.981,"y_mm":93.295}}
 {"action":"canvas.release","params":{"x_mm":61.981,"y_mm":93.295}}
 {"action":"part.choose"}

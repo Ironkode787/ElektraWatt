@@ -3,14 +3,14 @@
 {"action":"tool.place"}
 {"action":"place.pick","params":{"symbol":"ew.iec.transformer-1ph@qet10"}}
 {"action":"cursor.set","params":{"x_mm":60,"y_mm":60}}
-{"action":"canvas.activate","params":{"alt":true}}
+{"action":"canvas.activate"}
 {"action":"tool.select"}
 {"action":"tool.place"}
 {"action":"place.pick","params":{"symbol":"ew.iec.lamp@qet10"}}
 {"action":"cursor.set","params":{"x_mm":140,"y_mm":100}}
-{"action":"canvas.activate","params":{"alt":true}}
+{"action":"canvas.activate"}
 {"action":"cursor.set","params":{"x_mm":180,"y_mm":100}}
-{"action":"canvas.activate","params":{"alt":true}}
+{"action":"canvas.activate"}
 {"action":"tool.select"}
 {"action":"tool.wire"}
 {"action":"cursor.set","params":{"x_mm":60.854,"y_mm":71.4375}}

@@ -394,9 +394,10 @@ fn tutorial_1_a_first_schematic_page_runs_as_its_page_says() {
             "row level 2 rule \"EW-POT-009 Unconnected CP\" badge \"2\" expanded",
         ]
     );
-    assert!(
-        describe.contains("messages scheme \"drafting\" errors 0 "),
-        "{describe}"
+    // Step 8: "no error and five warnings, still pending while you draw" (ID-1376).
+    assert_eq!(
+        lines_of(&describe, &["messages scheme"]),
+        ["messages scheme \"drafting\" errors 0 warnings 0 infos 0 waived 0 pending 5"]
     );
     assert!(
         describe.contains("title: first-page.ew - ElektraWatt"),
@@ -423,7 +424,16 @@ fn tutorial_2_a_terminal_strip_and_a_cable_runs_as_its_page_says() {
     let tmp = Tmp::new();
     all_done(&run_tutorial(&tmp, "first-page"));
     let transcript = all_done(&run_tutorial(&tmp, "terminal-strip-and-cable"));
-    let describe = last_describe(&transcript);
+    // The toasts that steps 6 and 7 quote (ID-1376).
+    let [created, connected, describe] = <[String; 3]>::try_from(describes(&transcript)).unwrap();
+    assert_eq!(
+        lines_of(&created, &["toast"]),
+        ["toast \"Created cable -?W?; its cores: 5\" undo"]
+    );
+    assert_eq!(
+        lines_of(&connected, &["toast"]),
+        ["toast \"Wires connected to the cores of -?W?: 2\" undo"]
+    );
     assert_eq!(
         lines_of(
             &describe,
@@ -469,10 +479,44 @@ fn tutorial_4_reports_and_pdf_runs_as_its_page_says() {
     let tmp = Tmp::new();
     let out = run_tutorial_with(&tmp, "reports-and-pdf", Some(support::GOLDEN_A));
     let transcript = all_done(&out);
-    let [copied, preview, end] = <[String; 3]>::try_from(describes(&transcript)).unwrap();
+    let [copied, parts, preview, end] = <[String; 4]>::try_from(describes(&transcript)).unwrap();
     assert_eq!(
         lines_of(&copied, &["banner:"]),
         ["banner: A fresh copy of the sample project was made for the tutorials."]
+    );
+    // Step 2: the report pages of section 9, marked generated, from the parts list to the revision overview (ID-1376).
+    assert_eq!(
+        lines_of(
+            &copied,
+            &["row level 2 page \"90", "row level 2 page \"91"]
+        ),
+        [
+            "row level 2 page \"900\" \"=P01+J-E-2416 - Section 9 - Page 900 - 999 - Nomenclature\" changed \"V1.0\"",
+            "row level 2 page \"901\" \"Partlist 1\" generated changed \"V1.0\"",
+            "row level 2 page \"901.1\" \"Partlist 2\" generated changed \"V1.0\"",
+            "row level 2 page \"902\" \"Cabinet Layout\" badge \"QET grid\" changed \"V1.0\"",
+            "row level 2 page \"903\" \"Terminal Diagram 1X1\" generated changed \"V1.0\"",
+            "row level 2 page \"904\" \"Terminal Diagram -X1031\" generated changed \"V1.0\"",
+            "row level 2 page \"905\" \"Terminal Diagram -X1032\" generated changed \"V1.0\"",
+            "row level 2 page \"906\" \"Cable Overview and Diagrams\" generated changed \"V1.0\"",
+            "row level 2 page \"907\" \"Wire List 1\" generated changed \"V1.0\"",
+            "row level 2 page \"907.1\" \"Wire List 2\" generated changed \"V1.0\"",
+            "row level 2 page \"907.2\" \"Wire List 3\" generated changed \"V1.0\"",
+            "row level 2 page \"908\" \"PLC Overview -201U1 1\" generated changed \"V1.0\"",
+            "row level 2 page \"908.1\" \"PLC Overview -201U1 2\" generated changed \"V1.0\"",
+            "row level 2 page \"908.2\" \"PLC Overview -201U1 3\" generated changed \"V1.0\"",
+            "row level 2 page \"909\" \"Potential Overview\" generated changed \"V1.0\"",
+            "row level 2 page \"910\" \"Device Tag Overview 1\" generated changed \"V1.0\"",
+            "row level 2 page \"910.1\" \"Device Tag Overview 2\" generated changed \"V1.0\"",
+            "row level 2 page \"910.2\" \"Device Tag Overview 3\" generated changed \"V1.0\"",
+            "row level 2 page \"910.3\" \"Device Tag Overview 4\" generated changed \"V1.0\"",
+            "row level 2 page \"911\" \"Revision Overview\" generated changed \"V1.0\"",
+        ]
+    );
+    // Step 3's toast.
+    assert_eq!(
+        lines_of(&parts, &["toast"]),
+        ["toast \"Added the report block Parts list from folio 912\" undo"]
     );
     assert_eq!(
         lines_of(&preview, &["dialog \"Print\"", "preview \""]),
@@ -526,7 +570,7 @@ fn tutorial_6_importing_a_qelectrotech_project_runs_as_its_page_says() {
     .unwrap();
     let out = run_tutorial(&tmp, "import-qet");
     let transcript = all_done(&out);
-    let [preview, imported, end] = <[String; 3]>::try_from(describes(&transcript)).unwrap();
+    let [preview, imported, wired, end] = <[String; 4]>::try_from(describes(&transcript)).unwrap();
     assert_eq!(
         lines_of(&preview, &["label \"1 pages"]),
         [
@@ -546,6 +590,11 @@ fn tutorial_6_importing_a_qelectrotech_project_runs_as_its_page_says() {
             "row level 2 rule \"EW-IMP-122 Unlabelled element, tag synthesised\" badge \"1\" expanded",
             "row level 2 rule \"EW-NUM-001 Tag deviates from the scheme\" badge \"2\" expanded",
         ]
+    );
+    // Step 4: the return wire drawn, the Messages pane on the project's own scheme, and EW-POT-009 gone (ID-1376).
+    assert_eq!(
+        lines_of(&wired, &["messages scheme", "row level 2 rule \"EW-POT-009"]),
+        ["messages scheme \"drafting\" errors 0 warnings 2 infos 5 waived 0 pending 4"]
     );
     assert_eq!(
         lines_of(&end, &report),

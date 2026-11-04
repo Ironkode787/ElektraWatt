@@ -2,6 +2,7 @@
 {"action":"help.tutorials","params":{"dir":"reports.ew"}}
 {"action":"ui.describe"}
 {"action":"report_block.new","params":{"kind":"parts_list","folio":"912","title":"Parts list"}}
+{"action":"ui.describe"}
 {"action":"report_block.new","params":{"kind":"terminal_overview","folio":"913","title":"Terminal overview"}}
 {"action":"file.export_pdf","params":{"path":"reports.pdf"}}
 {"action":"file.print"}
