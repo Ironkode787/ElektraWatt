@@ -1735,6 +1735,7 @@ pub const KEYS: &[&str] = &[
     "error-table-import-table",
     "error-table-import-id",
     "error-table-import-many",
+    "error-table-import-panicked",
     "prompt-export-table-title",
     "prompt-table-name",
     "prompt-open-table-title",
