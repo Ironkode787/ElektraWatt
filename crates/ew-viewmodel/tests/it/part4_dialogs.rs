@@ -241,6 +241,8 @@ const OPENS_INPUT: &[&str] = &[
     "file.open_ewz",
     "file.save_as",
     "file.import_qet",
+    // WP-S3.09 D10: Re-import QElectroTech project… asks for the file.
+    "file.reimport_qet",
     "parts.import",
     "file.discard_journal",
     "file.export_ewz",
