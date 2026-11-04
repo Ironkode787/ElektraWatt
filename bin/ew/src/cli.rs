@@ -887,7 +887,10 @@ fn debug_panic(site: &str) {
 fn import_table_error_line(e: &ew_api::output::TableImportError) -> String {
     let text = e.to_string();
     let mut chars = text.chars();
-    let first = chars.next().map(|c| c.to_lowercase().collect::<String>()).unwrap_or_default();
+    let first = chars
+        .next()
+        .map(|c| c.to_lowercase().collect::<String>())
+        .unwrap_or_default();
     format!("error: {first}{}", chars.as_str())
 }
 

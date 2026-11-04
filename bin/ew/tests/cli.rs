@@ -724,10 +724,7 @@ fn sql_a_panicking_statement_ends_with_s1_and_changes_nothing() {
     let t = Tmp::new();
     let project = golden_copy(&t);
     let before = tree(&project);
-    let o = ew_faulted(
-        "sql",
-        &["sql".as_ref(), project.as_os_str(), "SELECT 1".as_ref()],
-    );
+    let o = ew_faulted("sql", &["sql".as_ref(), project.as_os_str(), "SELECT 1".as_ref()]);
     assert_eq!(o.status.code(), Some(2), "{}", stderr(&o));
     assert_eq!(
         last_line(&o),
