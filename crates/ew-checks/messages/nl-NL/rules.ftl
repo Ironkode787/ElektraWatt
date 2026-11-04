@@ -562,12 +562,12 @@ rule-ew-imp-103 =
     .hint = Zet het kenmerk om naar het schema waar het past, of laat het vastgezet.
 
 rule-ew-imp-104 =
-    .title = Conflict in een titelhoofdwaarde per blad
-    .hint = Maak de revisies die de bladen noemen en laat de waarden per pagina vallen.
+    .title = Conflict in een titelblokwaarde per folio
+    .hint = Maak de revisies die de folio's noemen en laat de waarden per pagina vallen.
 
 rule-ew-imp-109 =
-    .title = Strookdelen samengevoegd tot een strook
-    .hint = Niets te doen, of splits de strook als de delen aparte stroken zijn.
+    .title = Klemmenstrookdelen samengevoegd tot één klemmenstrook
+    .hint = Niets te doen, of splits de klemmenstrook als de delen aparte klemmenstroken zijn.
 
 rule-ew-imp-115 =
     .title = Namen van een bladverwijzingspaar verschillen

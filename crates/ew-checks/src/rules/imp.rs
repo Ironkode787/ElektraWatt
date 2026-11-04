@@ -427,6 +427,29 @@ mod tests {
             crate::messages::title("EW-IMP-011", "nl-NL").as_deref(),
             Some("In de bron en hier gewijzigd, hier behouden")
         );
+        // ID-1374 (C51-p2#9): the terminology table's words, the title block and the terminal strip.
+        let nl = |rule| {
+            (
+                crate::messages::title(rule, "nl-NL"),
+                crate::messages::hint(rule, "nl-NL"),
+            )
+        };
+        assert_eq!(
+            nl("EW-IMP-104"),
+            (
+                Some("Conflict in een titelblokwaarde per folio".to_owned()),
+                Some("Maak de revisies die de folio's noemen en laat de waarden per pagina vallen.".to_owned())
+            )
+        );
+        assert_eq!(
+            nl("EW-IMP-109"),
+            (
+                Some("Klemmenstrookdelen samengevoegd tot één klemmenstrook".to_owned()),
+                Some(
+                    "Niets te doen, of splits de klemmenstrook als de delen aparte klemmenstroken zijn.".to_owned()
+                )
+            )
+        );
     }
 
     /// Every code's metadata names its pack and message class 160.
