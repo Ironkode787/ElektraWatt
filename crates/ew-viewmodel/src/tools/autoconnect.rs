@@ -557,6 +557,7 @@ mod tests {
             polyline: vec![(-5 * G, 5 * G), (5 * G, 5 * G)],
             stored_route: true,
             off_sheet: Vec::new(),
+            line_kind: None,
         });
         assert_eq!(proposals(&g, &t, &[], AREA, 0).list.len(), 1);
         // A segment along the ray occupies the line.
@@ -568,6 +569,7 @@ mod tests {
             polyline: vec![(0, 3 * G), (0, 7 * G)],
             stored_route: true,
             off_sheet: Vec::new(),
+            line_kind: None,
         });
         assert!(proposals(&g, &t, &[], AREA, 0).list.is_empty());
         // A CP facing the wrong way or connected is no hit.
@@ -590,6 +592,7 @@ mod tests {
             polyline: vec![(0, 0), (0, 0), (0, 20 * G), (0, 20 * G)],
             stored_route: true,
             off_sheet: Vec::new(),
+            line_kind: None,
         });
         let g = [ghost(0, (0, 8 * G), Dir::Up), ghost(1, (0, 12 * G), Dir::Down)];
         let p = proposals(&g, &t, &[], AREA, 0);
@@ -614,6 +617,7 @@ mod tests {
                 polyline: vec![(0, 0), (0, 20 * G)],
                 stored_route,
                 off_sheet: Vec::new(),
+                line_kind: None,
             });
         }
         let g = [ghost(0, (0, 8 * G), Dir::Up), ghost(1, (0, 12 * G), Dir::Down)];
@@ -639,6 +643,7 @@ mod tests {
             polyline: vec![(20 * G, 0), (0, 0), (0, 20 * G)],
             stored_route: false,
             off_sheet: vec![1],
+            line_kind: None,
         });
         let on_edge = [ghost(0, (0, 8 * G), Dir::Up), ghost(1, (0, 12 * G), Dir::Down)];
         assert!(proposals(&on_edge, &t, &[], AREA, 0).list.is_empty());

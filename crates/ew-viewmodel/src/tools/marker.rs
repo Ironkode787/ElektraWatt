@@ -589,6 +589,7 @@ mod tests {
                     polyline: polyline.to_vec(),
                     stored_route: true,
                     off_sheet: Vec::new(),
+                    line_kind: None,
                 })
                 .collect(),
             junctions: Vec::new(),

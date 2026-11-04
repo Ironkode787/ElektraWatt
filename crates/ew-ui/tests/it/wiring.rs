@@ -478,6 +478,67 @@ fn ft902_a_page_link_shows_the_pointing_hand_and_its_target_in_a_tooltip() {
     h.state_mut().shell_mut().shutdown();
 }
 
+/// FT-1320 (WP-S1.20 D17): the pointer over a fluid line of folio 203 shows a tooltip naming its line kind ("Working
+/// line"); over an electrical wire of folio 102 there is none.
+#[test]
+fn hovering_a_fluid_line_names_its_kind() {
+    use egui_kittest::kittest::Queryable as _;
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "203");
+    // The middle of the longest segment of the page's longest fluid line, away from its ends.
+    let middle = |h: &Harness<'_, App>, fluid: bool| {
+        let c = h.state().shell().canvas().unwrap();
+        let length = |w: &[(i64, i64)]| (w[1].0 - w[0].0).abs() + (w[1].1 - w[0].1).abs();
+        let (line, w) = c
+            .page()
+            .tables
+            .connections
+            .iter()
+            .filter(|c| c.line_kind.is_some() == fluid)
+            .flat_map(|c| c.polyline.windows(2).map(move |w| (c, [w[0], w[1]])))
+            .max_by_key(|(_, w)| length(w))
+            .expect("a line");
+        (
+            line.line_kind.clone(),
+            ((w[0].0 + w[1].0) / 2, (w[0].1 + w[1].1) / 2),
+        )
+    };
+    let (kind, at) = middle(&h, true);
+    assert_eq!(kind.as_deref(), Some("working"));
+    let at = screen_of_page(&h, at);
+    h.hover_at(at);
+    settle(&mut h);
+    let tip = "Working line";
+    assert_eq!(
+        h.state().shell().canvas().unwrap().hovered_line_tip().as_deref(),
+        Some(tip)
+    );
+    // The tooltip shows after egui's delay: frames until it does (bounded).
+    let mut shown = false;
+    for _ in 0..120 {
+        h.step();
+        if h.query_by_label(tip).is_some() {
+            shown = true;
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
+    assert!(shown, "a tooltip reads {tip}");
+    // An electrical wire has none.
+    dispatch(&mut h, "page.goto", json!({ "folio": "102" }));
+    settle(&mut h);
+    wait_for_page(&mut h);
+    let (kind, at) = middle(&h, false);
+    assert_eq!(kind, None);
+    let at = screen_of_page(&h, at);
+    h.hover_at(at);
+    settle(&mut h);
+    let c = h.state().shell().canvas().unwrap();
+    assert!(c.hover().is_some(), "the wire is hovered");
+    assert_eq!(c.hovered_line_tip(), None);
+    h.state_mut().shell_mut().shutdown();
+}
+
 /// FT-512, with WP-S2.17 part 5's tooltip (OV4, doc 16a §7.2): the pointer over a connection point of folio 101 shows
 /// a tooltip with the CP's label as `cp_label` prints it, its kind and its potential (`1X1:1/a · terminal · L`), and
 /// none once the pointer leaves it.

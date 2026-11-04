@@ -834,6 +834,22 @@ impl CanvasModel {
         self.hovered_cp().map(|cp| cp_tip(&self.page, cp))
     }
 
+    /// The hover text of the fluid line under the pointer (WP-S1.20 D17, FT-1320; NFR-A11Y-03): its line kind in words,
+    /// as the property grid's header names it ("Pilot line"); `None` over anything else, an electrical wire included.
+    pub fn hovered_line_tip(&self) -> Option<String> {
+        let (entity, _) = self.hover?;
+        let kind = self
+            .page
+            .tables
+            .connections
+            .iter()
+            .find(|c| c.id == entity.0)?
+            .line_kind
+            .as_deref()?;
+        let words = crate::strings::field_choice_text("connection", "line_kind", kind);
+        Some(crate::strings::format(crate::key!("props-fluid-line"), &[&words]))
+    }
+
     /// The link under the pointer.
     pub fn hovered_link(&self) -> Option<&PageLink> {
         self.hover_link.and_then(|i| self.page.links.get(i))

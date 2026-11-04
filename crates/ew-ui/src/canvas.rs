@@ -1280,6 +1280,11 @@ impl CanvasHost {
             if !popup_shows {
                 cp_tooltip(&response, strings::format(key!("tip-link"), &[&label]));
             }
+        } else if let Some(tip) = canvas.hovered_line_tip() {
+            // FT-1320 (WP-S1.20 D17): a fluid line names its line kind.
+            if !popup_shows {
+                cp_tooltip(&response, tip);
+            }
         }
         if shell.area().map(|a| a.focused) == Some(group) {
             self.dwell(ui, canvas, group, events);

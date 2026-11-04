@@ -22,7 +22,7 @@ use ew_derive::ew_ids::{Id, Uuid, v5};
 use ew_derive::ew_rds::IdentifierSet;
 use ew_derive::ew_schema::{
     ConnectionKind, ContactKind, Device, Dir4, Endpoint, FnDef, Function, FunctionKind, IpDirection,
-    Junction, JunctionStyle, JunctionWiring, LibCopy, LibDocument, LibRef, Page, Part, RepType,
+    Junction, JunctionStyle, JunctionWiring, LibCopy, LibDocument, LibRef, LineKind, Page, Part, RepType,
     Representation, SymbolDef,
 };
 use ew_derive::ew_units::{Nm, Orient2, Pt2, Rect};
@@ -182,6 +182,19 @@ fn connection_kind_word(k: &ConnectionKind) -> String {
         ConnectionKind::Internal => "internal",
         ConnectionKind::Fluid(_) => "fluid",
         ConnectionKind::Unknown(_) => "unknown",
+    }
+    .to_owned()
+}
+
+/// The JSON spelling of a fluid line's line kind (`unknown` for a kind of a newer format).
+fn line_kind_word(k: &LineKind) -> String {
+    match k {
+        LineKind::Working => "working",
+        LineKind::Pilot => "pilot",
+        LineKind::Exhaust => "exhaust",
+        LineKind::Drain => "drain",
+        LineKind::Flexible => "flexible",
+        LineKind::Unknown(_) => "unknown",
     }
     .to_owned()
 }
@@ -1381,6 +1394,9 @@ pub struct TableConnection {
     /// does not run there, so the Place tool neither splits nor drops on them. Ascending; empty for a path on the
     /// sheet.
     pub off_sheet: Vec<usize>,
+    /// A fluid line's line kind (`working`, `pilot`, `exhaust`, `drain`, `flexible`, `unknown` for a kind of a newer
+    /// format; WP-S1.20 D17, FT-1320); `None` for any other connection.
+    pub line_kind: Option<String>,
 }
 
 impl TableConnection {
@@ -1829,6 +1845,10 @@ impl Session {
                 polyline,
                 stored_route: !c.route.is_empty(),
                 off_sheet,
+                line_kind: match &c.kind {
+                    ConnectionKind::Fluid(f) => Some(line_kind_word(&f.line_kind)),
+                    _ => None,
+                },
             });
         }
         // By place: the first vertex, then the last (y, then x), then ID; a CP lists its connections in this order.
