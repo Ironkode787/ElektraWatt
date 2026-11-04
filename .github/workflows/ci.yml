@@ -122,6 +122,11 @@ jobs:
       # the symbols listed in ci/ui-strings-allow.txt.
       - name: window texts
         run: cargo xtask check-ui-strings
+      # FT-1270: every tracked `.sh` parses with `bash -n` and every `.ps1` with PowerShell's parser (pwsh is on the
+      # hosted runner), before the packaging jobs run them; nothing is run.
+      - name: scripts parse
+        shell: bash
+        run: bash ci/parse-scripts.sh
 
   # CI-PR-14 (NFR-MAINT-10, WP-S1.22 D14): the API stability guard. `cargo xtask api-guard` compares the committed
   # snapshots of the published surfaces (the command schemas, bin/ew/api/cli.json, the result schemas, the query
