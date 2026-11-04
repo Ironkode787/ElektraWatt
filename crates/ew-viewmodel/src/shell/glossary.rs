@@ -150,7 +150,9 @@ impl ShellModel {
         } else {
             match p.get("to").and_then(Value::as_u64) {
                 Some(to) if to >= 1 && (to as usize) <= n => to as i64 - 1,
-                Some(_) | None if p.contains_key("to") => return super::failed(crate::key!("error-bad-param"), &["to"]),
+                Some(_) | None if p.contains_key("to") => {
+                    return super::failed(crate::key!("error-bad-param"), &["to"]);
+                }
                 _ => return super::failed(crate::key!("error-missing-param"), &["step"]),
             }
         };

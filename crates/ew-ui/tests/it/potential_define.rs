@@ -175,7 +175,11 @@ fn a_potentials_rows_context_menu_defines_its_potential() {
             .iter()
             .position(|n| n.table_row && n.define_at.is_some())
             .expect("a potential with a point to define it at");
-        (u32::try_from(i).unwrap(), t.nodes[i].label.clone(), t.nodes[i].define_at.unwrap())
+        (
+            u32::try_from(i).unwrap(),
+            t.nodes[i].label.clone(),
+            t.nodes[i].define_at.unwrap(),
+        )
     };
     done(
         shell,
@@ -188,7 +192,12 @@ fn a_potentials_rows_context_menu_defines_its_potential() {
     settle(&mut h);
     h.get_by_label("Define potential…").click();
     settle(&mut h);
-    let form = h.state().shell().palette().and_then(|p| p.form.clone()).expect("the form");
+    let form = h
+        .state()
+        .shell()
+        .palette()
+        .and_then(|p| p.form.clone())
+        .expect("the form");
     assert_eq!(form.action, "potential.draw");
     let steps = h.state().shell().recorded_commands().len();
     let shell = h.state_mut().shell_mut();
@@ -279,7 +288,10 @@ fn a_failed_define_stays_in_its_form_and_no_banner_follows() {
     // FT-1260: reopening its form is no success: the banner stays, the form open over it.
     h.state_mut().dispatch_from_window("potential.draw", &json!({}));
     settle(&mut h);
-    assert!(h.state().shell().palette().is_some_and(|p| p.form.is_some()), "the form is open");
+    assert!(
+        h.state().shell().palette().is_some_and(|p| p.form.is_some()),
+        "the form is open"
+    );
     assert_eq!(
         h.state().shell().banner(),
         Some("\"abc\" is not a voltage; type it as 24 V DC, 230 V AC or 24."),

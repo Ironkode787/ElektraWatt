@@ -80,10 +80,12 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         }
         if field.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)) {
             let rows = shell.glossary_rows();
-            let first = shell
-                .glossary_row()
-                .and_then(|r| rows.get(r))
-                .and_then(|r| r.actions.iter().filter_map(|a| actions::find(a)).find(|m| (m.enabled)(shell).is_ok()));
+            let first = shell.glossary_row().and_then(|r| rows.get(r)).and_then(|r| {
+                r.actions
+                    .iter()
+                    .filter_map(|a| actions::find(a))
+                    .find(|m| (m.enabled)(shell).is_ok())
+            });
             if let Some(meta) = first {
                 events.push(Event::Action(meta.id, Value::Null));
             }

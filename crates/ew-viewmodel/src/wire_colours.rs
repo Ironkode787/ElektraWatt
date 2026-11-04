@@ -344,7 +344,10 @@ impl WireStroke {
         }
         path.push(moved[moved.len() - 1].1);
         WireStroke {
-            polyline: path.iter().map(|p| (p.0.round() as i64, p.1.round() as i64)).collect(),
+            polyline: path
+                .iter()
+                .map(|p| (p.0.round() as i64, p.1.round() as i64))
+                .collect(),
             lanes: Vec::new(),
             ..self.clone()
         }
@@ -666,8 +669,16 @@ mod tests {
             stroke(&["GN"], ell.clone()),
         ];
         assign_lanes(&mut strokes);
-        assert_eq!(strokes[2].lanes, [1], "the second wire down stands beside the first");
-        assert_eq!(strokes[3].lanes, [2, 2], "one lane over the run, clear of lanes 0 and 1");
+        assert_eq!(
+            strokes[2].lanes,
+            [1],
+            "the second wire down stands beside the first"
+        );
+        assert_eq!(
+            strokes[3].lanes,
+            [2, 2],
+            "one lane over the run, clear of lanes 0 and 1"
+        );
         // Drawn in its lanes at 1 000 nm a point: each segment moved its lane's offset off its line, the corner the
         // crossing of the moved lines (the horizontal line's normal is +y, the vertical one's −x).
         let k = (lane_offset_pt(2) * 1_000.0) as i64;

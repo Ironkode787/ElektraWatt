@@ -755,7 +755,11 @@ fn focus_brings_a_navigator_behind_another_tab_forward() {
         }
         done(&mut shell, "ui.focus_next", json!({}));
     }
-    assert_eq!(shell.focused_navigator(), Some(NavKind::Strips), "F6 reaches Terminal strips");
+    assert_eq!(
+        shell.focused_navigator(),
+        Some(NavKind::Strips),
+        "F6 reaches Terminal strips"
+    );
     assert_eq!(
         shell.layout().shown_in_place_of(strips_pane),
         Some(strips_pane),

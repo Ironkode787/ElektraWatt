@@ -555,7 +555,9 @@ fn paint_wire_colours(
     let mut codes = Vec::new();
     for s in &strokes {
         // W49.2 F9, FT-1283: on its own stroke, in its lane.
-        let Some(mid) = s.in_lanes(nm_per_pt).midpoint() else { continue };
+        let Some(mid) = s.in_lanes(nm_per_pt).midpoint() else {
+            continue;
+        };
         let (x, y) = t.to_screen(mid.at);
         let at = rect.min + egui::Vec2::new(x as f32, y as f32) / ppp;
         let galley = painter.layout_no_wrap(

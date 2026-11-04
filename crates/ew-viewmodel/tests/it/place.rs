@@ -582,9 +582,17 @@ fn the_place_label_names_a_strip_without_a_tag_in_words() {
     let strip_id = s
         .nav(ew_viewmodel::navigators::NavKind::Strips)
         .and_then(|n| n.table())
-        .and_then(|t| t.nodes.iter().find(|n| n.label == tag).and_then(|n| n.records.first().copied()))
+        .and_then(|t| {
+            t.nodes
+                .iter()
+                .find(|n| n.label == tag)
+                .and_then(|n| n.records.first().copied())
+        })
         .expect("the strip's record");
-    assert_eq!(s.device_tag_label(strip_id, &tag), "New terminal strip · no tag yet");
+    assert_eq!(
+        s.device_tag_label(strip_id, &tag),
+        "New terminal strip · no tag yet"
+    );
     done(
         &mut s,
         "place.pick",

@@ -355,22 +355,46 @@ fn rule_messages_nl() -> String {
 const OTHER_SENSES: &[(&str, &str, &str)] = &[
     ("action-view-frame-stats", "frame", "a drawn frame of the window"),
     ("canvas-stats-frame", "frame", "a drawn frame of the window"),
-    ("action-view-workspace-reset", "layout", "the window's layout (indeling)"),
-    ("action-view-workspace-save", "layout", "the window's layout (indeling)"),
+    (
+        "action-view-workspace-reset",
+        "layout",
+        "the window's layout (indeling)",
+    ),
+    (
+        "action-view-workspace-save",
+        "layout",
+        "the window's layout (indeling)",
+    ),
     ("banner-workspace-bad", "layout", "the window's layout (indeling)"),
-    ("dialog-save-workspace", "layout", "the window's layout (indeling)"),
+    (
+        "dialog-save-workspace",
+        "layout",
+        "the window's layout (indeling)",
+    ),
     ("save-workspace-title", "layout", "the window's layout (indeling)"),
     ("layout-too-deep", "layout", "the window's layout (indeling)"),
     ("layout-too-many", "layout", "the window's layout (indeling)"),
     ("keymap-ctrl-alt", "layout", "a keyboard layout (indeling)"),
-    ("choice-report_blocks-golden", "layout", "the report pages' layout (indeling)"),
+    (
+        "choice-report_blocks-golden",
+        "layout",
+        "the report pages' layout (indeling)",
+    ),
     ("command-bond-create", "bond", "the verb (verbinden)"),
     ("toast-bind-off-card", "wire", "the verb (verbinden)"),
     ("rule-ew-pot-021", "wire", "the verb (verbinden)"),
     ("rule-ew-num-001", "unfreeze", "the separable verb (maak … los)"),
     ("error-join-no-slot", "device", "the script parameter `device=`"),
-    ("error-no-external", "connection", "the far device's connection (aansluiting) in `device:connection`"),
-    ("form-connection", "connection", "an external reference's far connection (aansluiting)"),
+    (
+        "error-no-external",
+        "connection",
+        "the far device's connection (aansluiting) in `device:connection`",
+    ),
+    (
+        "form-connection",
+        "connection",
+        "an external reference's far connection (aansluiting)",
+    ),
 ];
 
 /// NL-2 (ID-1269 rulings 1 and 2): the terminology table heads the nl-NL file with the ruling's rows; over the
@@ -527,7 +551,10 @@ fn nl2c_the_wordings_the_stem_match_forced_are_back() {
     assert_eq!(text(&en, "field-word-termination"), "termination");
     assert_eq!(text(&nl, "field-word-git-tag"), "git-kenmerk");
     assert_eq!(text(&nl, "field-word-process-tag"), "proceskenmerk");
-    assert_eq!(text(&nl, "field-connection-overrides-wire-part"), "draadartikel overschreven");
+    assert_eq!(
+        text(&nl, "field-connection-overrides-wire-part"),
+        "draadartikel overschreven"
+    );
     assert_eq!(text(&nl, "field-function-template-entry"), "artikelfunctie");
     assert_eq!(text(&nl, "field-word-wire-part"), "draadartikel");
     assert_eq!(text(&nl, "column-connections-part"), "draadartikel");

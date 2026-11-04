@@ -340,7 +340,11 @@ pub fn footer_problems(harness: &Harness<'_, App>) -> Vec<String> {
         if run.step == FirstRunStep::Start {
             labels.extend(ew_ui::first_run::STARTS.iter().map(|(k, _)| text(*k)));
         }
-        labels.extend(ew_ui::first_run::footer(run.step).into_iter().map(|(k, _)| text(k)));
+        labels.extend(
+            ew_ui::first_run::footer(run.step)
+                .into_iter()
+                .map(|(k, _)| text(k)),
+        );
         (text(key!("firstrun-title")), labels)
     } else {
         return Vec::new();

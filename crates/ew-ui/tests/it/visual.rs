@@ -628,7 +628,10 @@ fn the_driver_pins_the_minimum_text_size_and_reduced_motion() {
     let tmp = Tmp::new();
     let mut shell = ShellModel::new(Mode::Headless, tmp.config());
     assert_eq!(shell.dispatch("view.min_font", &json!({"pt": 12})), Outcome::Done);
-    assert_eq!(shell.dispatch("view.reduce_motion", &json!({"on": false})), Outcome::Done);
+    assert_eq!(
+        shell.dispatch("view.reduce_motion", &json!({"on": false})),
+        Outcome::Done
+    );
     shell.shutdown();
     let mut d = Driver::in_folder(tmp.config(), None, tmp.0.clone()).unwrap();
     assert_eq!(d.shell_mut().settings().min_font_pt, 0);

@@ -249,8 +249,16 @@ mod tests {
         assert!(smoothed.y > -line, "egui alone spreads the line: {smoothed:?}");
         let _ = frame(egui::RawInput::default(), false);
         let _ = frame(egui::RawInput::default(), false);
-        assert_eq!(frame(turn(), true), Vec2::new(0.0, -line), "the whole line in its frame");
-        assert_eq!(frame(egui::RawInput::default(), true), Vec2::ZERO, "nothing after it");
+        assert_eq!(
+            frame(turn(), true),
+            Vec2::new(0.0, -line),
+            "the whole line in its frame"
+        );
+        assert_eq!(
+            frame(egui::RawInput::default(), true),
+            Vec2::ZERO,
+            "nothing after it"
+        );
     }
 
     #[test]

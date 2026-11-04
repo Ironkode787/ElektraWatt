@@ -1062,7 +1062,12 @@ mod tests {
         let mut plain = Vec::new();
         let mut seen = 0;
         for file in &files {
-            let name = file.strip_prefix(&src).unwrap_or(file).display().to_string().replace('\\', "/");
+            let name = file
+                .strip_prefix(&src)
+                .unwrap_or(file)
+                .display()
+                .to_string()
+                .replace('\\', "/");
             let text = std::fs::read_to_string(file).expect("a source");
             for (at, _) in text.match_indices("key!(\"") {
                 if text[..at].ends_with("count_") {

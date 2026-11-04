@@ -445,12 +445,22 @@ fn define_potential_from_the_menu_the_context_menu_and_the_palette() {
     fill_form(&mut shell, ["FEED-A", "L+", "24 V DC"]);
     // FT-1242: one undo step, at the wire's `from` end.
     assert_eq!(shell.recorded_commands().len(), steps + 1, "one step");
-    let from = shell.canvas().unwrap().page().tables.connections.first().map(|c| c.a).unwrap();
+    let from = shell
+        .canvas()
+        .unwrap()
+        .page()
+        .tables
+        .connections
+        .first()
+        .map(|c| c.a)
+        .unwrap();
     let from = match from {
         ew_viewmodel::ew_api::output::TableEnd::Cp { function, idx } => {
             json!({"cp": {"function": function.to_string(), "idx": idx}})
         }
-        ew_viewmodel::ew_api::output::TableEnd::Junction { id } => json!({"junction": {"junction": id.to_string()}}),
+        ew_viewmodel::ew_api::output::TableEnd::Junction { id } => {
+            json!({"junction": {"junction": id.to_string()}})
+        }
     };
     let last = shell.recorded_commands().last().unwrap();
     assert_eq!(last.params["at"], from, "{}", last.params);
@@ -537,9 +547,15 @@ fn define_potential_from_a_potentials_row() {
     let (function, idx) = row.define_at.expect("a point to define it at");
     let menu = ew_viewmodel::command_bar::navigator_row_menu(NavKind::Potentials, &row, true);
     let items: Vec<(&str, String, bool)> = menu.iter().map(|i| (i.id, i.label.clone(), i.enabled)).collect();
-    assert_eq!(items, [("potential.draw_row", "Define potential…".to_owned(), true)]);
+    assert_eq!(
+        items,
+        [("potential.draw_row", "Define potential…".to_owned(), true)]
+    );
     let read_only = ew_viewmodel::command_bar::navigator_row_menu(NavKind::Potentials, &row, false);
-    assert_eq!(read_only[0].reason.as_deref(), Some("The project is open read-only"));
+    assert_eq!(
+        read_only[0].reason.as_deref(),
+        Some("The project is open read-only")
+    );
     // Another page on show and nothing selected: the row's point all the same.
     done(&mut shell, "page.goto", json!({"folio": "103"}));
     done(&mut shell, "select.set", json!({"ids": []}));

@@ -490,7 +490,12 @@ fn ft1279_the_view_menu_fits_a_1000_by_700_window() {
             outside.push(format!("{label} at {r:?}"));
         }
     }
-    for show in ["Grid", "Frame statistics", "Use the CPU renderer for the canvas", "Wire colours"] {
+    for show in [
+        "Grid",
+        "Frame statistics",
+        "Use the CPU renderer for the canvas",
+        "Wire colours",
+    ] {
         assert!(seen.iter().any(|s| s == show), "{show} in {seen:?}");
     }
     assert_eq!(outside, Vec::<String>::new());

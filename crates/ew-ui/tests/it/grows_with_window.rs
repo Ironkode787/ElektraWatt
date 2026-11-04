@@ -168,7 +168,9 @@ fn ft1143_a_part_rows_function_is_cut_with_an_ellipsis_and_whole_in_its_tooltip(
 fn selected_labels(h: &Harness<'_, App>) -> Vec<String> {
     h.root()
         .children_recursive()
-        .filter(|n| n.accesskit_node().is_selected() == Some(true) && n.accesskit_node().role() != egui::Role::Tab)
+        .filter(|n| {
+            n.accesskit_node().is_selected() == Some(true) && n.accesskit_node().role() != egui::Role::Tab
+        })
         .map(|n| n.accesskit_node().label().unwrap_or_default())
         .collect()
 }
