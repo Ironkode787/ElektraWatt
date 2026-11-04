@@ -569,12 +569,15 @@ impl App {
     /// (raised, replaced or cleared for its own reason): the banner [`App::report`] raised is then forgotten.
     fn run(&mut self, action: Option<&str>, step: impl FnOnce(&mut ShellModel) -> Outcome) {
         let before = self.shell.banner().map(str::to_owned);
-        // The palette form's run is reported as its action (ID-1278 ruling 8).
-        let form = self
-            .shell
-            .palette()
-            .and_then(|p| p.form.as_ref())
-            .map(|f| f.action);
+        // The palette form's run is reported as its action (ID-1278 ruling 8), and (FT-1260) the palette's run of
+        // its selected action without a form as that action.
+        let form = self.shell.palette().and_then(|p| match &p.form {
+            Some(f) => Some(f.action),
+            None => match self.shell.palette_entries().get(p.selected)?.run {
+                ew_viewmodel::actions::PaletteRun::Action(id) => Some(id),
+                _ => None,
+            },
+        });
         let outcome = step(&mut self.shell);
         if self.shell.banner() != before.as_deref() {
             self.reported = None;
@@ -600,7 +603,17 @@ impl App {
             Outcome::Refused { reason_key } if reason_key == key!("reason-cut-incomplete-items") => {
                 strings::text(reason_key).to_owned()
             }
-            Outcome::Done if ours && action.is_some() && self.reported_by.as_deref() == action => {
+            // FT-1260: an action that opened its parameter form has not run: its banner stays.
+            Outcome::Done
+                if ours
+                    && action.is_some()
+                    && self.reported_by.as_deref() == action
+                    && !self
+                        .shell
+                        .palette()
+                        .and_then(|p| p.form.as_ref())
+                        .is_some_and(|f| Some(f.action) == action) =>
+            {
                 self.shell.dismiss_banner();
                 self.reported = None;
                 self.reported_by = None;

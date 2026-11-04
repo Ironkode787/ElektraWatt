@@ -215,6 +215,17 @@ fn a_failed_define_stays_in_its_form_and_no_banner_follows() {
         h.state().shell().banner(),
         Some("\"abc\" is not a voltage; type it as 24 V DC, 230 V AC or 24.")
     );
+    // FT-1260: reopening its form is no success: the banner stays, the form open over it.
+    h.state_mut().dispatch_from_window("potential.draw", &json!({}));
+    settle(&mut h);
+    assert!(h.state().shell().palette().is_some_and(|p| p.form.is_some()), "the form is open");
+    assert_eq!(
+        h.state().shell().banner(),
+        Some("\"abc\" is not a voltage; type it as 24 V DC, 230 V AC or 24."),
+        "opening the form keeps the banner"
+    );
+    h.key_press(egui::Key::Escape);
+    settle(&mut h);
     let good = json!({"name": "FEED-B", "voltage": "24 V DC"});
     h.state_mut().dispatch_from_window("potential.draw", &good);
     settle(&mut h);
