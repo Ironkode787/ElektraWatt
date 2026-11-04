@@ -1,6 +1,6 @@
 # WP-S1.20: Fluid power model, the MVP (closed specification)
 
-**Status:** complete in cycle 50 when its fix round FIX120 lands, built in the seven steps by four lanes (decision log ID-1340; the PERT re-estimated by ID-1316 O1); specified in cycle 50 (documents only), an M2 package built whole by one lane (ID-1281) in the seven steps
+**Status:** complete in cycle 50, built in the seven steps by four lanes and its fix round FIX120 (decision log ID-1340, ID-1353; the PERT re-estimated by ID-1316 O1); specified in cycle 50 (documents only), an M2 package built whole by one lane (ID-1281) in the seven steps
 of §6, with one hand-back point (§11); about 3.7 pw against the PERT of 3.1 pw, which stays until the orchestrator
 rules on §13 O1 · **Date:** 2026-11-04 · **Work package:**
 [WP-S1.20](../02-work-packages.md#wp-s120-fluid-power-model-mvp) · **Decision log:** ID-1311 · **Part of:**
