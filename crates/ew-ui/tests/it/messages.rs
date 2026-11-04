@@ -794,7 +794,11 @@ fn the_quick_fix_card_counts_in_words_in_english_and_dutch() {
         settle(&mut h);
         let fix = table_nodes(&h)
             .into_iter()
-            .find(|n| n.role == NavRole::Finding && n.cells[1] == "EW-CORE-023" && n.badges.iter().any(|b| b == "fix"))
+            .find(|n| {
+                n.role == NavRole::Finding
+                    && n.cells[1] == "EW-CORE-023"
+                    && n.badges.iter().any(|b| b == "fix")
+            })
             .expect("EW-CORE-023's finding with a fix");
         dispatch(&mut h, "messages.fix", json!({"key": fix.key}));
         settle(&mut h);
@@ -802,7 +806,10 @@ fn the_quick_fix_card_counts_in_words_in_english_and_dutch() {
             .click();
         settle(&mut h);
         settle(&mut h);
-        let shown = h.root().children_recursive().any(|n| n.accesskit_node().value().as_deref() == Some(line));
+        let shown = h
+            .root()
+            .children_recursive()
+            .any(|n| n.accesskit_node().value().as_deref() == Some(line));
         assert!(shown, "{lang}: the strip reads {line:?}");
         h.state_mut().shell_mut().shutdown();
     }

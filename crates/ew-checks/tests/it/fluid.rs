@@ -223,7 +223,9 @@ fn ew_fl_001_lists_the_open_working_ports() {
     );
     assert_eq!(
         ew_checks::messages::hint("EW-FL-001", "nl-NL").as_deref(),
-        Some("Teken de werkleiding, of sluit de poort af: met een blindstop, met een geluiddemper of afgeblind.")
+        Some(
+            "Teken de werkleiding, of sluit de poort af: met een blindstop, met een geluiddemper of afgeblind."
+        )
     );
 }
 
