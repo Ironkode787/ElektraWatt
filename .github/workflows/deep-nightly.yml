@@ -30,6 +30,10 @@
 #                      default off): the trial of ODR level 1, whose verdict is the job's.
 #   gpu-parity         the `#[ignore]`d GPU canvas tests of `ew-ui` (`binary(gpu)`, `--run-ignored only`: the dense A3
 #                      parity of B2) on Mesa's lavapipe, debug profile (test audit, 2026-10-29).
+#   network-sandbox    CI-N-06 (WP-S6.05 D4, D5): the release `elektrawatt` and `ew` and `ew-ui`'s kittest binary through
+#                      the smoke, headless, kittest and command-line flows of ci/sandbox/run.sh in a network namespace
+#                      with only loopback up, under strace; ci/sandbox-check.py fails on a socket, a name lookup, a
+#                      listening port or a debug endpoint string in a release binary.
 #
 # The jobs are independent and run in parallel, so the workflow takes as long as the longest job, below two hours:
 # asan-command-fuzz builds in about 15 minutes, starts no seed after 55 minutes and a seed in flight finishes within
@@ -672,3 +676,88 @@ jobs:
       - name: the ignored GPU parity tests
         shell: bash
         run: cargo nextest run --locked --profile ci -p ew-ui -E 'binary(gpu)' --run-ignored only --no-fail-fast
+
+  # CI-N-06 (WP-S6.05 D4, D5; doc 18 §12.2; NFR-PRIV-01, NFR-SEC-09): the network sandbox. The release builds of
+  # `elektrawatt` and `ew` (without the debug-only checks of this workflow's release profile: the shipped build) and
+  # `ew-ui`'s kittest binary are built before the namespace; then every flow of ci/sandbox/run.sh runs as the runner user
+  # in a network namespace whose only interface is loopback, up (`unshare --net` through `sudo`, then back to the user),
+  # under `strace`. RED on a socket, a name lookup or a listening port in any trace, on `EW_DEBUG_PANIC` or `egui_mcp` in
+  # a release binary (ci/sandbox-check.py), and on a flow that failed. The deep nightly gates every release candidate
+  # (WP-S6.07 D6), so the sandbox gates 0.1.0.
+  network-sandbox:
+    name: network-sandbox
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      CARGO_PROFILE_RELEASE_DEBUG_ASSERTIONS: "false"
+      CARGO_PROFILE_RELEASE_OVERFLOW_CHECKS: "false"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          shared-key: ew-deep-sandbox
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - name: the offline unit test of the verdict
+        run: python3 -I ci/sandbox-check.py --test
+      - name: install strace when the image has none
+        shell: bash
+        run: command -v strace || { sudo apt-get -o Acquire::Retries=3 update -qq && sudo apt-get -o Acquire::Retries=3 install -y -qq --no-install-recommends strace; }
+      - name: build the release binaries and the kittest binary
+        shell: bash
+        run: |
+          cargo build --release --locked -p elektrawatt -p ew
+          cargo test --release --locked -p ew-ui --test it --no-run --message-format=json > "$RUNNER_TEMP/kittest.json"
+          python3 -I -c 'import json, sys
+          exe = [m["executable"] for m in map(json.loads, open(sys.argv[1])) if m.get("reason") == "compiler-artifact" and m.get("executable") and m["target"]["name"] == "it"]
+          print(exe[-1])' "$RUNNER_TEMP/kittest.json" > "$RUNNER_TEMP/kittest.path"
+          cat "$RUNNER_TEMP/kittest.path"
+          mkdir -p "$RUNNER_TEMP/sandbox"
+          cp -r golden/J-E-2416.ew "$RUNNER_TEMP/sandbox/gp.ew"
+          cp -r golden/J-E-2416.ew "$RUNNER_TEMP/sandbox/cli.ew"
+      - name: the flows in a network namespace with only loopback up
+        id: flows
+        continue-on-error: true
+        shell: bash
+        run: |
+          sudo unshare --net -- bash -c 'ip link set lo up && ip -brief address && exec sudo --preserve-env -u "$0" bash "$1/ci/sandbox/run.sh" "$1" "$2" "$3" "$4" "$5"' \
+            "$USER" "$GITHUB_WORKSPACE" "$GITHUB_WORKSPACE/target/release" "$(cat "$RUNNER_TEMP/kittest.path")" \
+            "$RUNNER_TEMP/sandbox" "$GITHUB_WORKSPACE/target/sandbox"
+      - name: verdict and job summary
+        if: always()
+        shell: bash
+        env:
+          FLOWS: ${{ steps.flows.outcome }}
+        run: |
+          mkdir -p target/sandbox
+          red=0
+          python3 -I ci/sandbox-check.py scan target/sandbox/*.strace > target/sandbox/scan.txt 2>&1 || red=1
+          python3 -I ci/sandbox-check.py canary target/release/elektrawatt target/release/ew > target/sandbox/canary.txt 2>&1 || red=1
+          {
+            echo "## Network sandbox (CI-N-06)"
+            echo
+            echo "flows: \`$FLOWS\`"
+            echo
+            echo '```text'
+            cat target/sandbox/failed.txt target/sandbox/scan.txt target/sandbox/canary.txt 2>/dev/null | tail -n 60
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$FLOWS" != "success" ]; then
+            echo "::error::a flow of the network sandbox failed or did not run; see target/sandbox/<flow>.log in the artifact network-sandbox-report"
+            red=1
+          fi
+          if [ "$red" != 0 ]; then
+            echo "::error::the network sandbox found a socket, a name lookup, a listening port or a debug endpoint, or a flow failed (WP-S6.05 D5)"
+          fi
+          exit "$red"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: network-sandbox-report
+          path: target/sandbox/
+          if-no-files-found: warn
+          retention-days: 90

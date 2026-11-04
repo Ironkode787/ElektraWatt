@@ -1,0 +1,10 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+#
+# The window flows of the network sandbox (WP-S6.05 D4, CI-N-06): tests of `ew-ui`'s `it` binary, one exact name per
+# line, run by ci/sandbox/run.sh in the network namespace. First run, open Golden A, an edit, the check, export PDF.
+part2::the_first_run_flow_walks_its_steps_and_starts_with_the_sample
+part2::the_sample_project_opens_read_only_from_the_start_page
+properties::pg5_ac28_w29_colour_through_the_editor_and_undo
+messages::ms5_the_pane_in_the_window_named_rows_keyboard_detail_and_pending
+glossary_tips::gt4_the_exported_pdf_is_the_golden_one_with_the_wire_colour_view_on_and_off

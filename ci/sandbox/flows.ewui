@@ -1,0 +1,9 @@
+{"$schema":"ew.uiscript/1","label":"network sandbox: open, edit, check, export, print, save, quit (WP-S6.05 D4)"}
+{"action":"file.open","params":{"dir":"gp.ew"}}
+{"action":"command.run","params":{"cmd":"page.create","params":{"number":996}}}
+{"action":"messages.check","params":{}}
+{"action":"file.export_pdf","params":{"path":"out.pdf","wait":true}}
+{"action":"file.print","params":{"wait":true}}
+{"action":"ui.dismiss","params":{}}
+{"action":"file.save","params":{}}
+{"action":"app.quit","params":{}}

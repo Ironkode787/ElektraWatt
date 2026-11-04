@@ -86,6 +86,14 @@ precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 The ElektraWatt contributors"
 SPDX-License-Identifier = "MIT OR Apache-2.0"
 
+# The network sandbox's headless flow and its QElectroTech project (WP-S6.05 D4), JSON lines and the project as the
+# importer reads it, which carry no header (MIT OR Apache-2.0, like ci/).
+[[annotations]]
+path = ["ci/sandbox/flows.ewui", "ci/sandbox/fixture.qet"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 The ElektraWatt contributors"
+SPDX-License-Identifier = "MIT OR Apache-2.0"
+
 # L9: the blind drafter's prompts, personas, task sheets, recordings and help (WP-S6.13, ID-622); data files and the
 # composed prompt cannot carry a header (CC-BY-4.0, like docs/).
 [[annotations]]
