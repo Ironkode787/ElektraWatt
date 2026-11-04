@@ -12,9 +12,12 @@ run by the OS jobs of .github/workflows/package.yml on every binary that an arte
 (ELF and PE alike). For each binary this script reads that section, fails when it is missing ("no cargo-auditable data
 in <file>"), and fails when the list names a test-only crate, `egui_mcp`, `ew-testids` or `ew-testkit` ("<file>
 contains the test-only crate <name>"); else it prints how many packages the list holds. ELF (64-bit, little-endian)
-and PE images are read; anything else is refused. Standard library only.
+and PE images are read; anything else is refused. A binary that fails is named in one line, without a traceback, and
+the next one is checked; the exit status is 1 when any failed (C50-p2#7). Standard library only.
 """
 import argparse
+import contextlib
+import io
 import json
 import os
 import shutil
@@ -73,7 +76,7 @@ def packages(path):
             section = pe_section(data, SECTION)
         else:
             raise Refusal("neither an ELF nor a PE image")
-    except (struct.error, ValueError, IndexError) as error:
+    except (struct.error, ValueError, IndexError, OverflowError) as error:
         raise Refusal(f"{path} is no readable image: {error}") from error
     except Refusal as refusal:
         raise Refusal(f"{path}: {refusal}") from refusal
@@ -82,9 +85,11 @@ def packages(path):
     try:
         text = zlib.decompressobj().decompress(section)
         listed = json.loads(text)["packages"]
-    except (zlib.error, ValueError, KeyError, TypeError) as error:
-        raise Refusal(f"the cargo-auditable data of {path} is unreadable: {error}") from error
-    return [p["name"] for p in listed]
+        if not isinstance(listed, list):
+            raise TypeError(f"`packages` is a {type(listed).__name__}, not a list")
+        return [p["name"] for p in listed]
+    except (zlib.error, ValueError, KeyError, TypeError, RecursionError) as error:
+        raise Refusal(f"the cargo-auditable data of {path} is unreadable: {error!r}") from error
 
 
 def check(path):
@@ -195,6 +200,36 @@ class AuditDataTest(unittest.TestCase):
             for name, build in (("ew", elf_image), ("ew.exe", pe_image)):
                 path = self.image(name, build([(SECTION, dep_list("ew", "serde", banned))]))
                 self.assertEqual(self.refused(path), f"{path} contains the test-only crate {banned}")
+
+    def test_a_malformed_image_or_list_is_refused_in_one_line(self):
+        # An ELF section table offset past what an index can hold (the mutation probe's OverflowError).
+        elf = bytearray(elf_image([(SECTION, dep_list("ew"))]))
+        struct.pack_into("<Q", elf, 0x28, 2**63)
+        path = self.image("ew", bytes(elf))
+        self.assertEqual(self.refused(path), f"{path} is no readable image: Python int too large to convert to C "
+                                             "ssize_t")
+        for listed, error in ((5, "TypeError('`packages` is a int, not a list')"),
+                              ({"name": "ew"}, "TypeError('`packages` is a dict, not a list')"),
+                              ("ew", "TypeError('`packages` is a str, not a list')"),
+                              ([{"version": "1.0.0"}], "KeyError('name')"),
+                              (["ew"], 'TypeError("string indices must be integers, not \'str\'")')):
+            path = self.image("ew", elf_image([(SECTION, zlib.compress(json.dumps({"packages": listed}).encode()))]))
+            self.assertEqual(self.refused(path), f"the cargo-auditable data of {path} is unreadable: {error}", listed)
+
+    def test_every_binary_is_checked_and_a_failure_fails_the_run(self):
+        bad = bytearray(elf_image([(SECTION, dep_list("ew"))]))
+        struct.pack_into("<Q", bad, 0x28, 2**63)
+        bad = self.image("bad", bytes(bad))
+        listless = self.image("listless", elf_image([(SECTION, zlib.compress(b'{"packages": 5}'))]))
+        good = self.image("good", elf_image([(SECTION, dep_list("ew", "serde"))]))
+        out, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            self.assertEqual(main([bad, listless, good]), 1)
+        self.assertEqual(err.getvalue(), f"audit-data: {bad} is no readable image: Python int too large to convert "
+                                         f"to C ssize_t\naudit-data: the cargo-auditable data of {listless} is "
+                                         "unreadable: TypeError('`packages` is a int, not a list')\n")
+        self.assertEqual(out.getvalue(), f"audit-data: {good}: 2 packages in its cargo-auditable data, no test-only "
+                                         "crate\n")
 
     def test_other_files_are_refused(self):
         path = self.image("notes.txt", b"plain text")
