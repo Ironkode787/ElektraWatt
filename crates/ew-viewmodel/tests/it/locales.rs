@@ -254,6 +254,64 @@ fn uses(texts: &str, term: &str) -> bool {
     }
 }
 
+/// Whether the en-GB `term` is used in `texts` (lower case) as whole words: the term at the start of a word and
+/// ending one, or followed by a plural's "s" or "es" that ends it ("terminals" is "terminal", "termination" is not;
+/// "parts" is "part", "parties" is not).
+fn en_uses(texts: &str, term: &str) -> bool {
+    let term = term.to_lowercase();
+    // An identifier's underscore joins its words: `props.accept_tag_proposal` holds no "tag".
+    let alnum = |c: Option<char>| c.is_some_and(|c| c.is_alphanumeric() || c == '_');
+    texts.match_indices(&term).any(|(i, _)| {
+        let rest = &texts[i + term.len()..];
+        let rest = ["es", "s"]
+            .iter()
+            .find_map(|p| rest.strip_prefix(p).filter(|r| !alnum(r.chars().next())))
+            .unwrap_or(rest);
+        !alnum(texts[..i].chars().next_back()) && !alnum(rest.chars().next())
+    })
+}
+
+/// Whether the Dutch `term` is in `texts` (lower case), inside a word too, so that a compound by the table counts
+/// ("draadartikel" holds "artikel", "proceskenmerk" "kenmerk"): a one-word term by its stem (`uses`' rule), a term
+/// of several words as a phrase. A rejected word is still looked for at the start of a word (`uses`).
+fn nl_has(texts: &str, term: &str) -> bool {
+    let term = term.to_lowercase();
+    if term.chars().all(char::is_alphanumeric) {
+        let stem = Some(stem(&term))
+            .filter(|s| s.chars().count() >= 3)
+            .unwrap_or_else(|| term.clone());
+        texts.contains(&stem)
+    } else {
+        texts.contains(&term)
+    }
+}
+
+/// The messages of the Fluent file `ftl` by key: each message's texts as `texts` reads them, its attributes, select
+/// arms and continuation lines included.
+fn messages_of(ftl: &str) -> std::collections::BTreeMap<String, String> {
+    let mut out = std::collections::BTreeMap::new();
+    let mut current: Option<(String, String)> = None;
+    for line in ftl.lines() {
+        let top = !line.starts_with(char::is_whitespace) && !line.starts_with('#') && !line.trim().is_empty();
+        if top {
+            if let Some((k, body)) = current.take() {
+                out.insert(k, texts(&body));
+            }
+            let (k, v) = line.split_once('=').expect("a message has key = value");
+            current = Some((k.trim().to_owned(), format!("k = {}", v.trim_start())));
+        } else if let Some((_, body)) = &mut current
+            && !line.starts_with('#')
+        {
+            body.push('\n');
+            body.push_str(line);
+        }
+    }
+    if let Some((k, body)) = current {
+        out.insert(k, texts(&body));
+    }
+    out
+}
+
 /// The message texts of the Fluent file `ftl` in lower case, one per line: each message's value, its attributes
 /// (`.title = …`), the arms of its selectors (`[one] …`, `*[other] …`) and its continuation lines (ID-1278 ruling 4),
 /// with the placeables (`{ $cp_tag }`, a selector's head) left out: they are no words of the text.
@@ -292,6 +350,29 @@ fn rule_messages_nl() -> String {
     std::fs::read_to_string(path).unwrap().replace("\r\n", "\n")
 }
 
+/// FT-1238: the messages whose en-GB text holds a table term in another sense than the table's, by (key, term, the
+/// sense): NL-2 does not ask the row's Dutch term there. A Git tag is a tag (the shell's Git texts are not listed).
+const OTHER_SENSES: &[(&str, &str, &str)] = &[
+    ("action-view-frame-stats", "frame", "a drawn frame of the window"),
+    ("canvas-stats-frame", "frame", "a drawn frame of the window"),
+    ("action-view-workspace-reset", "layout", "the window's layout (indeling)"),
+    ("action-view-workspace-save", "layout", "the window's layout (indeling)"),
+    ("banner-workspace-bad", "layout", "the window's layout (indeling)"),
+    ("dialog-save-workspace", "layout", "the window's layout (indeling)"),
+    ("save-workspace-title", "layout", "the window's layout (indeling)"),
+    ("layout-too-deep", "layout", "the window's layout (indeling)"),
+    ("layout-too-many", "layout", "the window's layout (indeling)"),
+    ("keymap-ctrl-alt", "layout", "a keyboard layout (indeling)"),
+    ("choice-report_blocks-golden", "layout", "the report pages' layout (indeling)"),
+    ("command-bond-create", "bond", "the verb (verbinden)"),
+    ("toast-bind-off-card", "wire", "the verb (verbinden)"),
+    ("rule-ew-pot-021", "wire", "the verb (verbinden)"),
+    ("rule-ew-num-001", "unfreeze", "the separable verb (maak … los)"),
+    ("error-join-no-slot", "device", "the script parameter `device=`"),
+    ("error-no-external", "connection", "the far device's connection (aansluiting) in `device:connection`"),
+    ("form-connection", "connection", "an external reference's far connection (aansluiting)"),
+];
+
 /// NL-2 (ID-1269 rulings 1 and 2): the terminology table heads the nl-NL file with the ruling's rows; over the
 /// messages, each Dutch term is used where its en-GB term is, and no rejected alternative is (one that is the Dutch
 /// term of another row, "kabel" for a cable, is that row's).
@@ -327,19 +408,52 @@ fn nl2_the_terminology_table_is_followed() {
     assert!(nl[..header_ends].contains("# term: device = apparaat (not: toestel, component)\n"));
     // ID-1278 ruling 4: the checks' Dutch messages follow the table too, select arms and attributes included.
     let rules = texts(&rule_messages_nl());
-    let dutch = format!("{}\n{rules}", texts(&nl));
-    let english = texts(&shipped_file("en-GB"));
+    // FT-1238: message by message. Each table term an en-GB message holds as whole words (the longest first, a term
+    // inside a longer one not counted again) is its Dutch term in the nl-NL message, inside a compound too. A rejected
+    // word is refused at the start of a Dutch word: everywhere, or, when it is (in) another row's Dutch term ("kabel"
+    // for a cable, "kabelgoot" for a duct), in the messages whose en-GB text holds this row's term and not that row's.
+    let mut by_length: Vec<&Term> = table.iter().collect();
+    by_length.sort_by_key(|t| std::cmp::Reverse(t.en.len()));
+    let rule_file = |locale: &str| {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../ew-checks/messages")
+            .join(locale)
+            .join("rules.ftl");
+        std::fs::read_to_string(path).unwrap().replace("\r\n", "\n")
+    };
     let mut wrong = Vec::new();
-    for term in &table {
-        if uses(&english, &term.en) && !uses(&dutch, &term.nl) {
-            wrong.push(format!("{} is never {}", term.en, term.nl));
-        }
-        for alt in &term.not {
-            if table.iter().any(|t| t.nl == *alt) {
+    for (en_file, nl_file) in [
+        (shipped_file("en-GB"), nl.clone()),
+        (rule_file("en-GB"), rule_messages_nl()),
+    ] {
+        let dutch_messages = messages_of(&nl_file);
+        for (key, en) in messages_of(&en_file) {
+            let Some(dutch) = dutch_messages.get(&key) else {
                 continue;
+            };
+            let mut english = en.clone();
+            let mut held = Vec::new();
+            for term in &by_length {
+                let other_sense = OTHER_SENSES.iter().any(|(k, t, _)| *k == key && *t == term.en)
+                    || (term.en == "tag" && en_uses(&en, "git"));
+                if !other_sense && en_uses(&english, &term.en) {
+                    held.push(*term);
+                    if !nl_has(dutch, &term.nl) {
+                        wrong.push(format!("{key}: {} is {}, not {dutch:?}", term.en, term.nl));
+                    }
+                    english = english.replace(&term.en.to_lowercase(), " ");
+                }
             }
-            if uses(&dutch, alt) {
-                wrong.push(format!("{} is {alt} somewhere, not {}", term.en, term.nl));
+            for term in &table {
+                for alt in &term.not {
+                    let owners: Vec<&Term> = table.iter().filter(|t| uses(&t.nl, alt)).collect();
+                    let allowed = !owners.is_empty()
+                        && (!held.iter().any(|t| t.en == term.en)
+                            || owners.iter().any(|o| en_uses(&en, &o.en)));
+                    if !allowed && uses(dutch, alt) {
+                        wrong.push(format!("{key}: {} is {alt}, not {}: {dutch:?}", term.en, term.nl));
+                    }
+                }
             }
         }
     }
@@ -354,6 +468,12 @@ fn nl2_the_terminology_table_is_followed() {
     assert!(!uses("een klemmenblok", "klemmenstrook"));
     assert!(uses("het toestel", "toestel"));
     assert!(!uses("de goedkeuring", "goot") && uses("de goot", "goot") && !uses("de kabelgoot", "goot"));
+    // FT-1238: the en-GB side takes whole words and a plural, the Dutch side a compound by the table.
+    assert!(en_uses("two terminals", "terminal") && en_uses("a wire's part", "part"));
+    assert!(!en_uses("termination", "terminal") && !en_uses("parties", "part"));
+    assert!(en_uses("cross-sections", "cross-section") && !en_uses("departure", "part"));
+    assert!(nl_has("draadartikel overschreven", "artikel") && nl_has("proceskenmerk", "kenmerk"));
+    assert!(nl_has("git-kenmerk", "kenmerk") && !nl_has("een onderdeel", "artikel"));
     let read =
         texts("k = a { $x ->\n    [one] de lay-out\n   *[other] { $y } onderdeel\n}\n    .hint = een tag\n");
     assert_eq!(read, "a \n de lay-out\n  onderdeel\n\neen tag");
@@ -384,8 +504,8 @@ fn nl2b_the_kind_and_field_headings_follow_the_table_each() {
             let dutch = nl.get(&key).unwrap_or_else(|| panic!("{key} has no Dutch text"));
             let mut english = en.clone();
             for term in &table {
-                if uses(&english, &term.en) {
-                    if !uses(dutch, &term.nl) {
+                if en_uses(&english, &term.en) {
+                    if !nl_has(dutch, &term.nl) {
                         wrong.push(format!("{key}: {} is {}, not {dutch:?}", term.en, term.nl));
                     }
                     english = english.replace(&term.en.to_lowercase(), " ");
@@ -394,6 +514,23 @@ fn nl2b_the_kind_and_field_headings_follow_the_table_each() {
         }
     }
     assert_eq!(wrong, Vec::<String>::new());
+}
+
+/// FT-1238 and C50-p1#2 (ID-1315): with NL-2 by whole words and Dutch compounds, the en-GB words stand as they were
+/// (English is never changed for a Dutch check) and the Dutch headings are compounds by the table.
+#[test]
+fn nl2c_the_wordings_the_stem_match_forced_are_back() {
+    let en = messages_with(&shipped_file("en-GB"), "");
+    let nl = messages_with(&shipped_file("nl-NL"), "");
+    let text = |m: &std::collections::BTreeMap<String, String>, k: &str| m.get(k).cloned().unwrap();
+    assert_eq!(text(&en, "field-word-parties"), "parties");
+    assert_eq!(text(&en, "field-word-termination"), "termination");
+    assert_eq!(text(&nl, "field-word-git-tag"), "git-kenmerk");
+    assert_eq!(text(&nl, "field-word-process-tag"), "proceskenmerk");
+    assert_eq!(text(&nl, "field-connection-overrides-wire-part"), "draadartikel overschreven");
+    assert_eq!(text(&nl, "field-function-template-entry"), "artikelfunctie");
+    assert_eq!(text(&nl, "field-word-wire-part"), "draadartikel");
+    assert_eq!(text(&nl, "column-connections-part"), "draadartikel");
 }
 
 /// The items of View ▸ Language: (label, parameters, checked).

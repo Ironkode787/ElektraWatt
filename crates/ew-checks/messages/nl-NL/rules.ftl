@@ -189,11 +189,11 @@ rule-ew-pot-001 = { $conflicts }{ $more ->
         [none] {""}
        *[other] ; en nog { $more } aansluitpunten
     }{ $hint ->
-        [bond] ; declareer de verbinding met Draw ▸ Bond
+        [bond] ; declareer de potentiaalverbinding met Draw ▸ Bond
        *[none] {""}
     }
     .title = Type- of spanningsconflict
-    .hint = Scheid de potentialen, corrigeer de definitie of declareer de verbinding die ze samenbrengt.
+    .hint = Scheid de potentialen, corrigeer de definitie of declareer de potentiaalverbinding die ze samenbrengt.
 
 rule-ew-pot-003 = { $cp_shared ->
         [yes] { $cp_tag } pen { $cp_pin } ({ $cp_nth }e)
