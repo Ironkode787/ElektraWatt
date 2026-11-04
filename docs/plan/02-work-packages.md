@@ -1879,6 +1879,8 @@ Open: FT-1162 (texts built in `ew-api`), FT-1237, FT-1238, FT-1247 to FT-1265, F
 | Acceptance | AC-28, NFR-A11Y-02 |
 | Owner role | UI developer |
 
+*Status (2026-11-04, cycle 50).* **Specified in cycle 50** ([closed specification](specs/WP-S2.11-gui-test-suite.md); decision log ID-1327): one lane (Opus/medium) in eight build steps with a hand-back point after step 4, about 2.6 pw, the PERT unchanged; only the gap over `crates/ew-ui/tests/`: AC-28 as one kittest flow, an accessibility census with name, role and state over every surface, the pixel gate on Linux with a pinned Mesa lavapipe, NFR-MAINT-11's per-requirement table with the G-M2 GUI entries from kittest, and FT-363, FT-696, FT-701's rest, FT-771 and FT-772 built, FT-455 as a written manual check; open for the orchestrator: how the Linux images are blessed, FT-713, whether `missing` rows block and the manual-tests file beside WP-S6.08 (the specification's O1 to O4).
+
 #### WP-S2.12 Usability rounds R0 and R1
 
 | Field | Value |
@@ -3180,6 +3182,8 @@ S7 produces the content that makes EW correct by default and learnable: the gold
 | Owner role | Content maintainer |
 
 *Scope note (2026-10-29, cycle-34 design pass; decision log ID-812).* The generic starter parts (one CC0 part per starter function that needs one, manufacturer "Generic", no catalogue data) move to [WP-S2.18](#wp-s218-basic-elements-from-the-window-starter-symbols-parts-and-joined-functions) part 2, which fills them into the system library `ew-starter-parts` so that the window's basic elements and the play-test briefs work in a new project; this package keeps the golden and pilot manufacturer parts, the profiles, the address maps, the forms and the basic project, and its estimate falls from O 2 · L 3 · P 4.5 to O 1.6 · L 2.5 · P 3.8.
+
+*Status (2026-11-04, cycle 50).* **Specified in cycle 50** ([closed specification](specs/WP-S7.03-starter-content.md); decision log ID-1327): one lane (Opus/high) in six build steps with a hand-back point after step 4, about 2.5 pw, the PERT unchanged; a licence and a source on every shipped record (Golden A's part and manufacturer copies gain CC0-1.0, outputs byte-equal), the content inventory for RC-07, the sample project's catalogue parts as the system library `ew-sample-parts` with their PLC sections and confidence, "DBU/WH 24 V" and "0.75/1.5" as content, the address profiles as library documents of kind `plc_profile`, and NFR-UX-08 proven from a wizard-made basic project with one new wizard field; open for the orchestrator: the divider form, the pilot's further parts, the text-size field, a standard size profile, user address profiles at MVP and a ready-made basic project (the specification's O1 to O6).
 
 #### WP-S7.04 Full IEC 60617 and ISO 1219 libraries with symbol lint
 
