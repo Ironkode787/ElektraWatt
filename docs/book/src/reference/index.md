@@ -11,7 +11,8 @@ These pages are generated from the code by `cargo xtask docs-gen` and checked in
 
 - [Command reference](commands/index.md): every registered command, with its parameters, types, constraints and exit
   codes, from the parameter schemas of the command registry.
-- [Rule reference](rules/index.md): every shipped check rule, one page per rule pack, from the rule registry.
+- [Rule reference](rules/index.md): every shipped check rule, one page per rule with an index page per pack, from
+  the rule registry and the rule notes.
 - [CLI reference](cli/index.md): every subcommand of `ew`, with its flags, exit codes and `--json` result schema,
   from the CLI table.
 - [Query reference](queries.md): every public query of `ew query`, with its key, example and output, from the query
@@ -19,6 +20,15 @@ These pages are generated from the code by `cargo xtask docs-gen` and checked in
 - [api_v1 reference](api-v1.md): every `api_v1` view of `ew sql`, with its columns, types and Preview marks.
 - [Format reference](format/index.md): every record kind of the project format, with its file, rank and fields,
   from the format's JSON Schemas.
+
+## The window
+
+What each part of the desktop application's window does and how to open it. Help ▸ Documentation opens the section of
+the tool, dialog or pane you are in.
+
+- [Tools](window/tools.md): every tool of the Draw tab.
+- [Dialogs](window/dialogs.md): every dialog.
+- [Panels](window/panels.md): every pane and navigator, the strip editor and the table mode.
 
 ## Command-line program
 

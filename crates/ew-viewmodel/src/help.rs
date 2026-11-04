@@ -5,8 +5,10 @@
 //!
 //! Every dialog, screen and registry action with a page in the user guide has a **topic**: a stable name that
 //! maps to a page of the book (`docs/book/src`) and a heading of that page. F1 resolves the context in the order
-//! of doc 16 section 13 as far as the shell has the contexts: an open wizard, first-run flow, palette or dialog,
-//! then the project view or the start page, otherwise the documentation home. A tooltip of a menu item that has a
+//! of doc 16 section 13 as far as the shell has the contexts: an open wizard, first-run flow, palette or dialog, then
+//! the focused pane (a navigator, the strip editor, a table, the property grid, the find pane, the history, the
+//! command bar, or the canvas's active tool), then the project view or the start page, otherwise the documentation
+//! home. Every tool action, dialog, pane and navigator has a topic on the window reference pages (WP-S7.05 D8). A tooltip of a menu item that has a
 //! topic ends with "F1: learn more"; F1 over a hovered item opens that item's topic (the `topic` parameter of
 //! `help.documentation`).
 //!
@@ -15,7 +17,9 @@
 //! anchor into them is checked against the contract file the page is built from (the command index, the rule
 //! catalogue), with the page and anchor rule of `cargo xtask docs-gen`.
 
-use crate::shell::{Dialog, ShellModel};
+use crate::layout::PaneKind;
+use crate::navigators::NavKind;
+use crate::shell::{Dialog, Focus, ShellModel};
 
 /// One documentation anchor.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -113,7 +117,88 @@ pub static ANCHORS: &[Anchor] = &[
         page: WINDOW,
         fragment: "about",
     },
+    // WP-S7.05 D8: a topic for every tool action, every dialog without one above, every pane and navigator kind.
+    on(TOOLS, "tool-back", "tool-step-back"),
+    on(TOOLS, "tool-select", "select"),
+    on(TOOLS, "tool-measure", "measure"),
+    on(TOOLS, "tool-place", "symbol"),
+    on(TOOLS, "tool-place-part", "device-from-part"),
+    on(TOOLS, "tool-rotate-cw", "rotate-clockwise"),
+    on(TOOLS, "tool-rotate-ccw", "rotate-counter-clockwise"),
+    on(TOOLS, "tool-mirror-x", "mirror-left-to-right"),
+    on(TOOLS, "tool-mirror-y", "mirror-top-to-bottom"),
+    on(TOOLS, "tool-next-variant", "next-variant"),
+    on(TOOLS, "tool-next-rep-type", "next-representation-type"),
+    on(TOOLS, "tool-move", "move"),
+    on(TOOLS, "tool-finish", "finish"),
+    on(TOOLS, "tool-wire", "wire"),
+    on(TOOLS, "tool-next-proposal", "next-autoconnect-proposal"),
+    on(TOOLS, "tool-place-layout", "place-device"),
+    on(TOOLS, "tool-rail-draw", "rail"),
+    on(TOOLS, "tool-duct-draw", "duct"),
+    on(TOOLS, "tool-connect-on-move", "connect-while-moving"),
+    on(TOOLS, "tool-route-edit", "edit-route"),
+    on(TOOLS, "tool-ip", "interruption-point"),
+    on(TOOLS, "tool-black-box", "black-box"),
+    on(TOOLS, "tool-ip-direction", "interruption-point-direction"),
+    on(TOOLS, "tool-star-source", "star-source"),
+    on(TOOLS, "tool-text", "text"),
+    on(TOOLS, "tool-graphic", "graphic"),
+    on(TOOLS, "tool-marker", "wire-marker"),
+    on(TOOLS, "tool-structure-box", "structure-box"),
+    on(TOOLS, "tool-image", "image"),
+    on(DIALOGS, "dialog-goto-page", "go-to-page-or-cell"),
+    on(DIALOGS, "dialog-form", "form-dialogs"),
+    on(DIALOGS, "dialog-purge", "purge-unused-images"),
+    on(DIALOGS, "dialog-part-choose", "choose-part"),
+    on(DIALOGS, "dialog-part-edit", "edit-part"),
+    on(DIALOGS, "dialog-print", "print"),
+    on(DIALOGS, "dialog-external-change", "changes-on-disk"),
+    on(DIALOGS, "dialog-upgrade", "upgrade-the-format"),
+    on(DIALOGS, "dialog-reimport-match", "re-import-a-matched-file"),
+    on(DIALOGS, "dialog-reimport", "re-import-qelectrotech-project"),
+    on(DIALOGS, "dialog-open-ewz", "open-ewz"),
+    on(DIALOGS, "dialog-git-setup", "set-up-merge-driver"),
+    on(PANELS, "pane-page-view", "page-view"),
+    on(PANELS, "pane-properties", "properties"),
+    on(PANELS, "pane-find", "find"),
+    on(PANELS, "pane-jobs", "jobs"),
+    on(PANELS, "pane-preview", "preview"),
+    on(PANELS, "pane-history", "history"),
+    on(PANELS, "pane-glossary", "glossary"),
+    on(PANELS, "command-bar", "command-bar"),
+    on(PANELS, "strip-editor", "strip-editor"),
+    on(PANELS, "table-mode", "table-mode"),
+    on(PANELS, "nav-pages", "pages"),
+    on(PANELS, "nav-devices", "devices"),
+    on(PANELS, "nav-connections", "connections"),
+    on(PANELS, "nav-strips", "terminal-strips"),
+    on(PANELS, "nav-cables", "cables"),
+    on(PANELS, "nav-plc", "plc"),
+    on(PANELS, "nav-potentials", "potentials"),
+    on(PANELS, "nav-ips", "interruption-points"),
+    on(PANELS, "nav-structure", "structure-identifiers"),
+    on(PANELS, "nav-parts", "parts-in-use"),
+    on(PANELS, "nav-blocks", "report-blocks"),
+    on(PANELS, "nav-unplaced", "unplaced-devices"),
+    on(PANELS, "nav-macros", "macros"),
+    on(PANELS, "nav-libraries", "libraries"),
+    on(PANELS, "nav-messages", "messages"),
 ];
+
+/// The window reference pages of WP-S7.05 D8: the tools, the dialogs, the panes and navigators.
+const TOOLS: &str = "reference/window/tools.md";
+const DIALOGS: &str = "reference/window/dialogs.md";
+const PANELS: &str = "reference/window/panels.md";
+
+/// An anchor on `page`.
+const fn on(page: &'static str, topic: &'static str, fragment: &'static str) -> Anchor {
+    Anchor {
+        topic,
+        page,
+        fragment,
+    }
+}
 
 /// The anchor of a topic.
 pub fn anchor(topic: &str) -> Option<&'static Anchor> {
@@ -135,6 +220,17 @@ pub fn action_topic(action: &str) -> Option<&'static str> {
         "help.tutorials" => "tutorials",
         "help.about" => "about",
         "command.run" => "commands",
+        // WP-S7.05 D8: the panes, the strip editor and the table mode open from these.
+        "props.show" | "props.focus" => "pane-properties",
+        "find.open" | "find.open_replace" => "pane-find",
+        "jobs.show" => "pane-jobs",
+        "preview.show" => "pane-preview",
+        "history.show" => "pane-history",
+        "help.glossary" => "pane-glossary",
+        "messages.show" => "nav-messages",
+        "strip.edit" => "strip-editor",
+        "navigator.table" => "table-mode",
+        a if a.starts_with("tool.") => return tool_topic(a),
         a if a.starts_with("view.workspace") => "workspaces",
         // WP-S2.17 part 2 (CB1): every command of the command bar has a page; until the book has a command-bar
         // section the project view's page explains the window it sits in.
@@ -154,35 +250,108 @@ pub fn context_topic(model: &ShellModel) -> &'static str {
     if model.palette().is_some() {
         return "command-palette";
     }
-    match model.dialog() {
-        Some(Dialog::About | Dialog::Notices) => return "about",
-        Some(Dialog::Shortcuts) => return "keyboard-shortcuts",
-        Some(Dialog::ConfirmDiscard { .. }) => return "unsaved-changes",
-        Some(Dialog::ConfirmJournalDiscard | Dialog::Recovery { .. }) => return "recovery",
-        Some(Dialog::ConfirmCheckScheme { .. }) => return "company-standard-wizard",
-        Some(Dialog::SaveWorkspace { .. }) => return "workspaces",
-        Some(
-            Dialog::GotoPage { .. }
-            | Dialog::Form(_)
-            | Dialog::ConfirmPurge { .. }
-            | Dialog::PartChoose(_)
-            | Dialog::PartEdit(_)
-            | Dialog::Print(_)
-            | Dialog::ExternalChange { .. }
-            | Dialog::ConfirmUpgrade { .. }
-            | Dialog::ImportQet { .. }
-            | Dialog::ReimportMatch { .. }
-            | Dialog::Reimport { .. }
-            | Dialog::OpenEwz { .. }
-            | Dialog::ConfirmGitSetup { .. },
-        )
-        | None => {}
+    if let Some(dialog) = model.dialog() {
+        return dialog_topic(dialog);
+    }
+    if let Some(topic) = focus_topic(model) {
+        return topic;
     }
     if model.has_project() {
         "project-view"
     } else {
         "start-page"
     }
+}
+
+/// The topic of a tool action (`tool.place` → `tool-place`, WP-S7.05 D8); `None` for one without an anchor.
+fn tool_topic(action: &str) -> Option<&'static str> {
+    let name = action.strip_prefix("tool.")?.replace('_', "-");
+    anchor(&format!("tool-{name}")).map(|a| a.topic)
+}
+
+/// The topic of an open dialog (WP-S7.05 D8). The match names every variant, so a new dialog does not compile until it
+/// has its topic.
+pub fn dialog_topic(dialog: &Dialog) -> &'static str {
+    match dialog {
+        Dialog::About | Dialog::Notices => "about",
+        Dialog::Shortcuts => "keyboard-shortcuts",
+        Dialog::ConfirmDiscard { .. } => "unsaved-changes",
+        Dialog::ConfirmJournalDiscard | Dialog::Recovery { .. } => "recovery",
+        Dialog::ConfirmCheckScheme { .. } => "company-standard-wizard",
+        Dialog::SaveWorkspace { .. } => "workspaces",
+        Dialog::GotoPage { .. } => "dialog-goto-page",
+        Dialog::Form(_) => "dialog-form",
+        Dialog::ConfirmPurge { .. } => "dialog-purge",
+        Dialog::PartChoose(_) => "dialog-part-choose",
+        Dialog::PartEdit(_) => "dialog-part-edit",
+        Dialog::Print(_) => "dialog-print",
+        Dialog::ExternalChange { .. } => "dialog-external-change",
+        Dialog::ConfirmUpgrade { .. } => "dialog-upgrade",
+        Dialog::ImportQet { .. } => "import-qet",
+        Dialog::ReimportMatch { .. } => "dialog-reimport-match",
+        Dialog::Reimport { .. } => "dialog-reimport",
+        Dialog::OpenEwz { .. } => "dialog-open-ewz",
+        Dialog::ConfirmGitSetup { .. } => "dialog-git-setup",
+    }
+}
+
+/// The topic of a navigator kind (WP-S7.05 D8).
+pub fn nav_topic(kind: NavKind) -> &'static str {
+    match kind {
+        NavKind::Pages => "nav-pages",
+        NavKind::Devices => "nav-devices",
+        NavKind::Connections => "nav-connections",
+        NavKind::Strips => "nav-strips",
+        NavKind::Cables => "nav-cables",
+        NavKind::Plc => "nav-plc",
+        NavKind::Potentials => "nav-potentials",
+        NavKind::Ips => "nav-ips",
+        NavKind::Structure => "nav-structure",
+        NavKind::Parts => "nav-parts",
+        NavKind::Blocks => "nav-blocks",
+        NavKind::Unplaced => "nav-unplaced",
+        NavKind::Macros => "nav-macros",
+        NavKind::Libraries => "nav-libraries",
+        NavKind::Messages => "nav-messages",
+    }
+}
+
+/// The topic of a pane kind (WP-S7.05 D8).
+pub fn pane_topic(pane: PaneKind) -> &'static str {
+    match pane {
+        PaneKind::Pages => nav_topic(NavKind::Pages),
+        PaneKind::PageView => "pane-page-view",
+        PaneKind::Properties => "pane-properties",
+        PaneKind::Find => "pane-find",
+        PaneKind::Navigator(kind) => nav_topic(kind),
+        PaneKind::Jobs => "pane-jobs",
+        PaneKind::Preview => "pane-preview",
+        PaneKind::History => "pane-history",
+        PaneKind::Glossary => "pane-glossary",
+    }
+}
+
+/// The topic of the focused pane (WP-S7.05 D8): a navigator, the strip editor or a navigator's table mode, the property
+/// grid, the find pane, the history, the command bar, or the canvas's active tool other than Select.
+fn focus_topic(model: &ShellModel) -> Option<&'static str> {
+    Some(match model.focus()? {
+        Focus::Navigator(kind) if model.nav(kind).is_some_and(|n| n.table_mode().is_some()) => {
+            if kind == NavKind::Strips {
+                "strip-editor"
+            } else {
+                "table-mode"
+            }
+        }
+        Focus::Navigator(kind) => nav_topic(kind),
+        Focus::Properties => pane_topic(PaneKind::Properties),
+        Focus::Find => pane_topic(PaneKind::Find),
+        Focus::History => pane_topic(PaneKind::History),
+        Focus::CommandBar => "command-bar",
+        Focus::Canvas(_) => match crate::command_bar::tool_action(model.tool().name()) {
+            "tool.select" => return None,
+            action => return tool_topic(action),
+        },
+    })
 }
 
 // WP-S2.09 part 2
@@ -342,6 +511,82 @@ mod tests {
             Some("reference/rules/ew-core-033.html")
         );
         assert_eq!(rule_page("EW-NONE-001"), None);
+    }
+
+    /// WP-S7.05 D8, DC-3: every tool action, every pane kind and every navigator kind has a topic whose anchor is in
+    /// the book (`every_anchor_resolves_in_the_book` checks the anchors), and so do the dialogs a test can build.
+    #[test]
+    fn every_tool_pane_navigator_and_dialog_has_a_topic() {
+        let tools: Vec<&str> = crate::actions::ACTIONS
+            .iter()
+            .map(|a| a.id)
+            .filter(|id| id.starts_with("tool."))
+            .collect();
+        assert!(!tools.is_empty());
+        for id in tools {
+            let topic = action_topic(id).unwrap_or_else(|| panic!("{id} has no topic"));
+            assert_eq!(anchor(topic).map(|a| a.page), Some(TOOLS), "{id}");
+        }
+        for kind in NavKind::ALL {
+            assert_eq!(anchor(nav_topic(kind)).map(|a| a.page), Some(PANELS), "{kind:?}");
+            assert_eq!(pane_topic(PaneKind::Navigator(kind)), nav_topic(kind));
+        }
+        for pane in PaneKind::ALL {
+            assert!(anchor(pane_topic(pane)).is_some(), "{pane:?}");
+        }
+        for topic in ["strip-editor", "table-mode", "command-bar"] {
+            assert_eq!(anchor(topic).map(|a| a.page), Some(PANELS), "{topic}");
+        }
+        let text = String::new;
+        for dialog in [
+            Dialog::About,
+            Dialog::Shortcuts,
+            Dialog::GotoPage { text: text() },
+            Dialog::Notices,
+            Dialog::ConfirmJournalDiscard,
+            Dialog::ConfirmCheckScheme { scheme: text() },
+            Dialog::SaveWorkspace { text: text() },
+            Dialog::ConfirmPurge {
+                files: Vec::new(),
+                assets: Vec::new(),
+            },
+            Dialog::ExternalChange { rows: Vec::new() },
+            Dialog::ConfirmUpgrade { from: text() },
+            Dialog::ImportQet {
+                file: text(),
+                folder: text(),
+                summary: text(),
+                pages: Vec::new(),
+                devices: 0,
+                confirm: false,
+            },
+            Dialog::ReimportMatch {
+                path: text(),
+                file: text(),
+                source: text(),
+                percent: 0,
+            },
+            Dialog::Reimport {
+                file: text(),
+                summary: text(),
+                rows: Vec::new(),
+            },
+            Dialog::OpenEwz {
+                path: text(),
+                name: text(),
+            },
+            Dialog::ConfirmGitSetup { folder: text() },
+        ] {
+            assert!(anchor(dialog_topic(&dialog)).is_some(), "{dialog:?}");
+        }
+        for topic in [
+            "dialog-form",
+            "dialog-part-choose",
+            "dialog-part-edit",
+            "dialog-print",
+        ] {
+            assert_eq!(anchor(topic).map(|a| a.page), Some(DIALOGS), "{topic}");
+        }
     }
 
     #[test]

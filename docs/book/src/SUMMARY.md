@@ -18,6 +18,9 @@
 # Reference
 
 - [Reference](reference/index.md)
+  - [Tools](reference/window/tools.md)
+  - [Dialogs](reference/window/dialogs.md)
+  - [Panels](reference/window/panels.md)
   - [Command reference](reference/commands/index.md)
     - [`assembly.attach`](reference/commands/assembly.attach.md)
     - [`bond.create`](reference/commands/bond.create.md)
