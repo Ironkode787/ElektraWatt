@@ -247,10 +247,11 @@ impl Command for AddValve {
         let position = match self.position {
             Some(p) => {
                 if let Some(holder) = taken.get(&p) {
+                    // FT-1331: the module and the holder in words.
                     return tx.reject(format!(
-                        "position {p} of module {} is held by device {holder}; choose a free position (no \
-                         push insert)",
-                        self.module
+                        "position {p} of {} is held by {}; choose a free position (no push insert)",
+                        crate::words::device(tx, self.module),
+                        crate::words::device(tx, *holder)
                     ));
                 }
                 p

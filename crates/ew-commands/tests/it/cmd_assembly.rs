@@ -220,8 +220,21 @@ fn valve_add_checks_positions_and_undo_removes_the_valve() {
     let v: Id<Device> = primary(&r);
     assert_eq!(row(&e, v).position, Some(5));
     let f: Id<Function> = created(&r, Kind::Function)[0];
-    rejected(e.execute(&valve(DEV_102G1, Some(1), None)));
-    rejected(e.execute(&valve(DEV_102G1, Some(5), None)));
+    // FT-1331: the module and the holder in words.
+    let reason = |r: Result<_, CmdError>| match r {
+        Err(CmdError::Rejected { reason, .. }) => reason,
+        other => panic!("expected a rejection, got {other:?}"),
+    };
+    assert_eq!(
+        [
+            reason(e.execute(&valve(DEV_102G1, Some(1), None))),
+            reason(e.execute(&valve(DEV_102G1, Some(5), None)))
+        ],
+        [
+            "position 1 of -102G1 is held by -101F1; choose a free position (no push insert)",
+            "position 5 of -102G1 is held by -102G1-Q5; choose a free position (no push insert)"
+        ]
+    );
     assert_eq!(
         invalid_path(e.execute(&valve(DEV_102G1, Some(0), None)), c),
         "/position"
