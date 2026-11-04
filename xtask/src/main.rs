@@ -33,6 +33,7 @@ mod plan_counts;
 mod raw_read;
 mod records;
 mod repo;
+mod requirements;
 mod settle;
 mod shell_keys;
 mod symbols;
@@ -127,11 +128,14 @@ commands:
   gen-icons [--check]  the icon table of ew-ui (crates/ew-ui/src/icons/generated.rs) from the vendored Tabler
                        Icons (assets/icons/tabler/) and the project's glyphs (assets/icons/ew/); --check changes
                        nothing and fails when the committed table differs
-  acceptance [--milestone] <report.md>
+  acceptance [--milestone] [--gate <M1|M2>] <report.md>
                        the acceptance runner of gate M1 over the golden project (WP-S6.01): writes the
                        Markdown report and a JUnit file (target/nextest/ci/junit.xml) and exits non-zero when an
                        entry fails or is not built (crates/ew-api/tests/acceptance.rs); --milestone runs the
-                       release profile with EW_PERF_ASSERT=1 so that AC-17 is measured
+                       release profile with EW_PERF_ASSERT=1 so that AC-17 is measured; --gate M2 (M1 is the
+                       default) runs the tests of golden/J-E-2416/acceptance/requirements.toml in the same run and
+                       adds pass, fail or missing per criterion outside the runner and per requirement whose
+                       acceptance names GP (WP-S2.11 D2; missing does not block)
   affected [--base <rev>]
                        the workspace crates changed since the merge base of <rev> (default main) and HEAD,
                        uncommitted and untracked files included, with their reverse dependencies (cargo
@@ -360,14 +364,33 @@ fn main() -> ExitCode {
                 Ok(false)
             }
         },
-        "acceptance" => match &args[1..] {
-            [report] => acceptance(report, false),
-            [flag, report] if flag == "--milestone" => acceptance(report, true),
-            _ => {
-                eprint!("acceptance needs the report file, optionally after --milestone\n\n{USAGE}");
-                Ok(false)
+        "acceptance" => {
+            let mut milestone = false;
+            let mut m2 = false;
+            let mut rest = &args[1..];
+            loop {
+                match rest {
+                    [flag, tail @ ..] if flag == "--milestone" => {
+                        milestone = true;
+                        rest = tail;
+                    }
+                    [flag, value, tail @ ..] if flag == "--gate" && (value == "M1" || value == "M2") => {
+                        m2 = value == "M2";
+                        rest = tail;
+                    }
+                    _ => break,
+                }
             }
-        },
+            match rest {
+                [report] => acceptance(report, milestone, m2),
+                _ => {
+                    eprint!(
+                        "acceptance needs the report file, optionally after --milestone and --gate <M1|M2>\n\n{USAGE}"
+                    );
+                    Ok(false)
+                }
+            }
+        }
         "affected" => affected::run(&args[1..], &workspace_root()),
         "all-features-set" => all_features::run(),
         "settle" => settle::run(&args[1..], &workspace_root()),
@@ -644,36 +667,48 @@ fn check_gen_icons() -> Result<Violations> {
     icons::violations(&workspace_root())
 }
 
-/// `acceptance [--milestone] <report.md>`: runs the `#[ignore]`d test `gate` of
+/// `acceptance [--milestone] [--gate <M1|M2>] <report.md>`: runs the `#[ignore]`d test `gate` of
 /// `crates/ew-api/tests/acceptance.rs` with nextest and its `ci` profile (which writes the JUnit file of doc 18
 /// §3.10 step 5). The test evaluates the M1 acceptance criteria over the golden project, writes the Markdown
 /// report to `report` and fails when an entry fails or is not built. A stale report is deleted first, so a
 /// report that exists afterwards is this run's; a build failure leaves none. With `milestone` the run uses the
 /// release profile and sets `EW_PERF_ASSERT=1`, which turns AC-17 into measured entries. The test binary runs
 /// from the workspace root, so a relative `report` is made absolute against the caller's directory first.
-fn acceptance(report: &str, milestone: bool) -> Result<bool> {
+fn acceptance(report: &str, milestone: bool, m2: bool) -> Result<bool> {
     let report = std::path::absolute(report).with_context(|| format!("resolving {report}"))?;
     match std::fs::remove_file(&report) {
         Ok(()) => {}
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
         Err(e) => return Err(e).with_context(|| format!("deleting the stale report {}", report.display())),
     }
+    let root = workspace_root();
+    let junit = root.join("target/nextest/ci/junit.xml");
     let mut command = Command::new(cargo());
     command
-        .current_dir(workspace_root())
+        .current_dir(&root)
         .env("EW_ACCEPTANCE_REPORT", &report)
-        .args([
-            "nextest",
-            "run",
-            "--locked",
-            "--profile",
-            "ci",
-            "-p",
-            "ew-api",
-            "--test",
-            "acceptance",
-        ])
-        .args(["--run-ignored", "only", "-E", "test(=gate)"]);
+        .args(["nextest", "run", "--locked", "--profile", "ci"]);
+    // WP-S2.11 D2: gate M2 runs the map's tests beside the runner's `gate`, in one run, and reads their JUnit
+    // results; a stale JUnit file is deleted first, so a test that did not run is `missing`.
+    let map = if m2 {
+        let map = requirements::read_map(&root)?;
+        let tests = requirements::mapped_tests(&map);
+        match std::fs::remove_file(&junit) {
+            Ok(()) => {}
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+            Err(e) => return Err(e).with_context(|| format!("deleting the stale {}", junit.display())),
+        }
+        for package in requirements::gate_packages(&tests) {
+            command.args(["-p", &package]);
+        }
+        command.args(["--run-ignored", "all", "-E", &requirements::gate_filter(&tests)]);
+        Some(map)
+    } else {
+        command
+            .args(["-p", "ew-api", "--test", "acceptance"])
+            .args(["--run-ignored", "only", "-E", "test(=gate)"]);
+        None
+    };
     if milestone {
         command
             .env("EW_PERF_ASSERT", "1")
@@ -681,8 +716,13 @@ fn acceptance(report: &str, milestone: bool) -> Result<bool> {
     }
     let status = command.status().context("running `cargo nextest`")?;
     if report.exists() {
+        if let Some(map) = &map {
+            let xml = std::fs::read_to_string(&junit).unwrap_or_default();
+            let text = std::fs::read_to_string(&report).with_context(|| format!("reading {}", report.display()))?;
+            let sections = requirements::gate_sections(&root, map, &requirements::junit_results(&xml), &text)?;
+            std::fs::write(&report, text + &sections).with_context(|| format!("writing {}", report.display()))?;
+        }
         println!("acceptance: report written to {}", report.display());
-        let junit = workspace_root().join("target/nextest/ci/junit.xml");
         if junit.exists() {
             println!("acceptance: JUnit written to {}", junit.display());
         }

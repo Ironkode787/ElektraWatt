@@ -1,0 +1,89 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: CC0-1.0
+
+# The requirement map of the acceptance runner (WP-S2.11 D2, NFR-MAINT-11), kept by hand. xtask builds
+# `expected/acceptance_requirements.md` from it, the requirement catalogues and doc 20 §21; `cargo xtask acceptance
+# --gate M2` runs every test named here and reports pass, fail or missing per row.
+#
+# A test is `<binary ID> <test path>` as nextest names them (`ew-ui::it ac28::<fn>`). A requirement is mapped to an
+# existing test that cites its row ID and asserts on Golden A; no test is written here for a row this map does not
+# own (FP-3).
+
+# map: acceptance-requirements: a new GP-named requirement goes here as one [[requirement]] per row ID with its tests; a criterion proven outside ew-api's runner goes in [[criterion]].
+[[requirement]]
+id = "FR-PRJ-010"
+tests = ["ew-api::it new_project::golden_a_saved_as_basic_without_devices_keeps_its_conventions"]
+
+[[requirement]]
+id = "FR-PRJ-020"
+tests = ["ew-api::it page_items::pi2_a_structure_box_around_the_external_points_assigns_their_location"]
+
+[[requirement]]
+id = "FR-PAG-013"
+tests = [
+    "ew-api::it report_pages::the_toc_pages_take_the_structure_all_drawn_pages_share",
+    "ew-api::page_output prev_and_next_follow_the_page_order_with_the_report_pages",
+]
+
+[[requirement]]
+id = "FR-SYM-013"
+tests = ["ew-api::it text_styles::ts3_a_tag_style_override_resizes_every_tag_in_one_undo_step"]
+
+[[requirement]]
+id = "FR-SYM-016"
+tests = [
+    "ew-api::it library_ops::em6_a_symbol_update_is_minor_with_a_moved_anchor_and_refused_without_a_connected_cp",
+]
+
+[[requirement]]
+id = "FR-NUM-028"
+tests = ["ew-api::it clipboard::ft456_new_devices_are_numbered_in_cell_order_not_id_order"]
+
+[[requirement]]
+id = "FR-XRF-019"
+tests = ["ew-api::it navigation::v1_link_targets_print_the_eplan_preset"]
+
+[[requirement]]
+id = "FR-PRT-034"
+tests = ["ew-api::it library_ops::em8_a_deprecated_part_offers_its_successor"]
+
+[[requirement]]
+id = "FR-MAC-011"
+tests = [
+    "ew-api::it new_project::a_basic_project_without_devices_keeps_only_the_layout_space",
+    "ew-api::it new_project::a_basic_project_without_pages_and_devices",
+    "ew-api::it new_project::golden_a_saved_as_basic_without_devices_keeps_its_conventions",
+]
+
+[[requirement]]
+id = "FR-REP-008"
+tests = ["ew-api::it report_kinds::rk1_the_device_list_lists_the_68_devices_of_folio_910"]
+
+[[requirement]]
+id = "FR-REP-030"
+tests = ["ew::it tables::the_wire_list_workbook_reads_back_as_the_golden_wire_list"]
+
+[[requirement]]
+id = "FR-CHK-016"
+tests = ["ew-api::checks golden_a_check_memoised_equals_cold_and_the_oracle_is_quiet_memo"]
+
+[[requirement]]
+id = "FR-REV-009"
+tests = ["ew-testkit::command_fuzz the_revision_steps_hold_on_golden_a"]
+
+# The criteria that ew-api's runner cannot evaluate: the window's (doc 20 §21, §22; G-M2).
+[[criterion]]
+id = "AC-18 (GUI)"
+tests = ["ew-ui::it preview_history::pv2_renumber_devices_through_the_dialog_and_the_preview_tab"]
+
+[[criterion]]
+id = "AC-28"
+tests = ["ew-ui::it ac28::ac28_the_four_steps_on_one_copy_of_golden_a"]
+
+[[criterion]]
+id = "D-06"
+tests = ["ew-ui::it properties::pg9_d06_the_description_override_from_the_keyboard"]
+
+[[criterion]]
+id = "NFR-A11Y-01"
+tests = ["ew-ui::it keyboard_core::ax5_the_five_core_tasks_with_key_events_only"]
