@@ -40,7 +40,8 @@ pub(super) fn run_git_setup(a: &GitSetupArgs) -> i32 {
         eprintln!("error: the path of `ew` cannot be read");
         return 2;
     };
-    let ew = git::ew_command(&exe, super::appimage().as_deref());
+    let [image, mount] = super::appimage();
+    let ew = git::ew_command(&exe, image.as_deref(), mount.as_deref());
     run_git_setup_with(a, &cwd, &ew, terminal, &mut input, &mut output)
 }
 
@@ -132,6 +133,17 @@ fn run_git_setup_with(
     let hooks = if a.hooks {
         match exe_git.hooks_dir(&root) {
             Ok(hooks) => {
+                // A `core.hooksPath` outside the repository (a global one) serves other repositories too: the hook,
+                // with this repository's project paths, is not written there (C49-p10#4).
+                if !git::own_hooks(&vfs, &root, &hooks).unwrap_or(false) {
+                    eprintln!(
+                        "error: git runs the hooks of this repository from {}, outside it (core.hooksPath), so other \
+                         repositories run them too; add `ew check --integrity --after-merge` to its post-merge hook \
+                         by hand; nothing was changed",
+                        hooks.display()
+                    );
+                    return 2;
+                }
                 if let Err(e) = probe_hook(&hooks, &hook) {
                     eprintln!("error: {e}; nothing was changed");
                     return 2;

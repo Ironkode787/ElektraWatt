@@ -596,10 +596,12 @@ fn an_untagged_strips_accessory_row_names_it_in_words() {
     done(&mut shell, "navigator.row", json!({"kind": "strips", "key": key}));
     done(&mut shell, "strip.edit", json!({}));
     let rows = lines_with(&shell, "  accessory ");
-    assert_eq!(rows.len(), 1, "{rows:?}");
-    assert!(
-        rows[0].starts_with("  accessory \"New terminal strip \u{b7} no tag yet\" "),
-        "{rows:?}"
+    assert_eq!(
+        rows,
+        [
+            "  accessory \"New terminal strip \u{b7} no tag yet\" \"0.1\" \"\" \"End bracket\" \"\" \"TBD\" \"\" \"\" \"\" \"\" \
+             \"\" \"\" cursor \"Strip\""
+        ]
     );
     let d = shell.describe();
     assert!(!d.contains("?X?") && !d.contains("X??"), "{d}");

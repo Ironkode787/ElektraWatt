@@ -192,6 +192,28 @@ pub fn git_dir(vfs: &dyn Vfs, dir: &Path) -> io::Result<Option<PathBuf>> {
     Ok(named.map(|p| lexical(&root.join(p))))
 }
 
+/// Whether the hooks directory `hooks` ([`GitExe::hooks_dir`]) is the repository's own: inside the worktree `root`, its
+/// git directory or its common git directory. A `core.hooksPath` elsewhere (a global one) serves other repositories
+/// too (WP-S1.17 D28, C49-p10#4).
+///
+/// # Errors
+///
+/// An I/O error reading the `.git` file.
+pub fn own_hooks(vfs: &dyn Vfs, root: &Path, hooks: &Path) -> io::Result<bool> {
+    let hooks = lexical(hooks);
+    if hooks.starts_with(lexical(root)) {
+        return Ok(true);
+    }
+    let Some(git) = git_dir(vfs, root)? else {
+        return Ok(false);
+    };
+    let common = match vfs.read(&git.join("commondir")) {
+        Ok(b) => lexical(&git.join(String::from_utf8_lossy(&b).trim())),
+        Err(_) => git.clone(),
+    };
+    Ok(hooks.starts_with(&git) || hooks.starts_with(&common))
+}
+
 /// `path` with its `.` and `..` components resolved by text, as a `gitdir` line means them.
 fn lexical(path: &Path) -> PathBuf {
     let mut out = PathBuf::new();
@@ -786,13 +808,14 @@ fn replace(vfs: &dyn Vfs, path: &Path, bytes: &[u8]) -> io::Result<()> {
 pub const HOOKS_PATH_MAX: usize = 4096;
 
 /// The command by which git runs `ew` (D28), quoted for git's shell with `/` separators: the AppImage `appimage` with
-/// `ew` as its first argument when the program runs from one (`$APPIMAGE`, ID-1187's Linux package, whose `AppRun`
-/// dispatches `ew`: the executable's own path lies in the AppImage's mount, which goes when it exits), else the
-/// executable `exe`.
-pub fn ew_command(exe: &Path, appimage: Option<&Path>) -> String {
-    match appimage {
-        Some(image) => format!("{} ew", sh_quoted(image)),
-        None => sh_quoted(exe),
+/// `ew` as its first argument when the executable `exe` runs from it (ID-1187's Linux package, whose `AppRun`
+/// dispatches `ew`: the executable lies in the AppImage's mount, which goes when it exits), else `exe`. The executable
+/// runs from the AppImage only when it lies under `appdir`, the mount the same runtime names (`$APPIMAGE` and `$APPDIR`):
+/// a program started from another AppImage (an editor's terminal) inherits both, and its `ew` is not under that mount.
+pub fn ew_command(exe: &Path, appimage: Option<&Path>, appdir: Option<&Path>) -> String {
+    match (appimage, appdir) {
+        (Some(image), Some(mount)) if exe.starts_with(mount) => format!("{} ew", sh_quoted(image)),
+        _ => sh_quoted(exe),
     }
 }
 
@@ -999,7 +1022,7 @@ mod tests {
             "{ignore}"
         );
         let text = hook_text(
-            &ew_command(Path::new("C:\\ew\\ew.exe"), None),
+            &ew_command(Path::new("C:\\ew\\ew.exe"), None, None),
             &["p.ew".to_owned()],
         );
         assert_eq!(
@@ -1027,15 +1050,24 @@ mod tests {
     #[test]
     fn the_ew_command_is_quoted_for_the_shell_and_names_the_appimage() {
         assert_eq!(
-            ew_command(Path::new("/opt/it's $HOME `x` \"q\"/ew"), None),
+            ew_command(Path::new("/opt/it's $HOME `x` \"q\"/ew"), None, None),
             "'/opt/it'\\''s $HOME `x` \"q\"/ew'"
         );
+        let image = Some(Path::new("/home/u/Apps/ElektraWatt.AppImage"));
+        let mount = Some(Path::new("/tmp/.mount_ElektrAbc"));
         assert_eq!(
             ew_command(
                 Path::new("/tmp/.mount_ElektrAbc/usr/lib/elektrawatt/ew"),
-                Some(Path::new("/home/u/Apps/ElektraWatt.AppImage"))
+                image,
+                mount
             ),
             "'/home/u/Apps/ElektraWatt.AppImage' ew"
+        );
+        // C49-p10#2: an `ew` outside the mount, started where another AppImage's variables are inherited, is itself.
+        assert_eq!(ew_command(Path::new("/opt/ew/ew"), image, mount), "'/opt/ew/ew'");
+        assert_eq!(
+            ew_command(Path::new("/tmp/.mount_ElektrAbc/ew"), image, None),
+            "'/tmp/.mount_ElektrAbc/ew'"
         );
         assert_eq!(
             driver_config("'/a/ew'")[1].1,

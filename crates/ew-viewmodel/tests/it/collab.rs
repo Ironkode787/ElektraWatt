@@ -460,10 +460,10 @@ fn xw7_the_driver_badge_appears_without_the_configuration_and_goes_after_setup()
     s.set_ew_exe_for_tests(Some(PathBuf::from(
         "/tmp/.mount_ElektrAbc/usr/lib/elektrawatt/ew",
     )));
-    s.set_cloud_env_for_tests(Some(vec![(
-        "APPIMAGE".to_owned(),
-        "/home/u/Apps/ElektraWatt.AppImage".into(),
-    )]));
+    s.set_cloud_env_for_tests(Some(vec![
+        ("APPIMAGE".to_owned(), "/home/u/Apps/ElektraWatt.AppImage".into()),
+        ("APPDIR".to_owned(), "/tmp/.mount_ElektrAbc".into()),
+    ]));
     done(&mut s, "git.setup", json!({"confirm": true}));
     assert_eq!(badge(&s), None);
     assert_eq!(
@@ -471,4 +471,156 @@ fn xw7_the_driver_badge_appears_without_the_configuration_and_goes_after_setup()
         Some("'/home/u/Apps/ElektraWatt.AppImage' ew merge-driver %O %A %B %L %P\n")
     );
     assert!(dir.join(".gitattributes").is_file() && dir.join(".gitignore").is_file());
+}
+
+/// The project folder `dir` as a merge of two branches leaves it: -102F2 numbered -102F1 too, and the manifest marked
+/// merged (its hashes not authoritative).
+fn merged_duplicate(dir: &Path) {
+    let shard = dir.join("devices").join("ba.jsonl");
+    let text = std::fs::read_to_string(&shard).unwrap();
+    let line = text
+        .lines()
+        .find(|l| l.contains("\"key\":\"devices|-102F2\""))
+        .expect("-102F2's line");
+    let one = line.replace(
+        "\"tag\":{\"letter\":\"F\",\"counter\":2}",
+        "\"tag\":{\"letter\":\"F\",\"counter\":1}",
+    );
+    assert_ne!(one, line);
+    std::fs::write(&shard, text.replace(line, &one)).unwrap();
+    let path = dir.join("manifest.json");
+    let limits = ew_viewmodel::ew_api::Limits::default();
+    let mut manifest =
+        ew_viewmodel::ew_api::Manifest::parse(&std::fs::read(&path).unwrap(), &limits).unwrap();
+    manifest.merged = true;
+    std::fs::write(&path, manifest.to_text()).unwrap();
+}
+
+/// The labels of the Messages pane's findings of `rule`.
+fn messages_of(s: &mut ShellModel, rule: &str) -> Vec<String> {
+    use ew_viewmodel::navigators::{NavKind, NavRole};
+    done(s, "messages.show", json!({"on": true}));
+    let t = s
+        .nav(NavKind::Messages)
+        .and_then(|n| n.table())
+        .cloned()
+        .expect("the Messages table");
+    t.nodes
+        .iter()
+        .filter(|n| n.role == NavRole::Finding && n.cells[1] == rule)
+        .map(|n| n.label.clone())
+        .collect()
+}
+
+/// C49-p10#1 (D29): the Messages pane lists EW-CORE-013 for a merged copy with a duplicated tag, on open and after a
+/// pull of that merge as an external change.
+#[test]
+fn xw8_the_messages_pane_lists_ew_core_013_after_a_merge() {
+    let expected = vec![
+        "=P01+J-E-2416-102F1: `=P01+J-E-2416-102F1` is printed by 2 devices after a merge; the oldest record keeps it, \
+         and the other must change"
+            .to_owned(),
+    ];
+    let tmp = Tmp::new("xw8");
+    let merged = tmp.0.join("merged.ew");
+    copy_dir(Path::new(GOLDEN_A), &merged);
+    merged_duplicate(&merged);
+    let mut s = shell(&tmp);
+    open(&mut s, &merged, false);
+    assert_eq!(messages_of(&mut s, "EW-CORE-013"), expected, "on open");
+    done(&mut s, "file.close", json!({}));
+
+    let dir = tmp.0.join("J-E-2416.ew");
+    copy_dir(Path::new(GOLDEN_A), &dir);
+    open(&mut s, &dir, false);
+    assert_eq!(messages_of(&mut s, "EW-CORE-013"), Vec::<String>::new());
+    // The pull: the merged files land, the manifest last.
+    let shard = std::fs::read(merged.join("devices").join("ba.jsonl")).unwrap();
+    std::fs::write(dir.join("devices").join("ba.jsonl"), shard).unwrap();
+    std::fs::copy(merged.join("manifest.json"), dir.join("manifest.json")).unwrap();
+    done(&mut s, "project.check_disk", json!({}));
+    assert_eq!(messages_of(&mut s, "EW-CORE-013"), expected, "after the pull");
+}
+
+/// C49-p10#3: a held change whose disk goes back to the baseline (a pull undone) closes its dialog and banner.
+#[test]
+fn xw2c_the_collision_dialog_closes_when_the_disk_returns() {
+    let tmp = Tmp::new("xw2c");
+    let dir = tmp.0.join("J-E-2416.ew");
+    copy_dir(Path::new(GOLDEN_A), &dir);
+    let mut s = shell(&tmp);
+    open(&mut s, &dir, false);
+    let w20 = golden_id("connections|W20");
+    done(
+        &mut s,
+        "command.run",
+        json!({"cmd": "fields.set", "params": {"kind": "connection", "targets": [w20], "path": "overrides.colour",
+            "value": ["BU"]}}),
+    );
+    let page = std::fs::read_dir(dir.join("pages"))
+        .unwrap()
+        .map(|e| e.unwrap().path())
+        .collect::<Vec<_>>();
+    let before: Vec<(PathBuf, Vec<u8>)> = page
+        .into_iter()
+        .chain([dir.join("manifest.json")])
+        .map(|p| {
+            let bytes = std::fs::read(&p).unwrap();
+            (p, bytes)
+        })
+        .collect();
+    colleague(&tmp, &dir, &[colour(&w20, json!(["WH"]))]);
+    done(&mut s, "project.check_disk", json!({}));
+    assert!(matches!(s.dialog(), Some(Dialog::ExternalChange { .. })));
+    for (p, bytes) in &before {
+        std::fs::write(p, bytes).unwrap();
+    }
+    done(&mut s, "project.check_disk", json!({}));
+    assert_eq!(s.dialog(), None);
+    assert_eq!(s.banner(), None);
+}
+
+/// C49-p10#5: a second external change while one is held rebuilds the dialog from the new collisions, mine chosen
+/// again, and nothing is lost: All theirs takes the second change's value, the local edit of another field stays.
+#[test]
+fn xw2d_a_second_change_while_held_rebuilds_the_dialog() {
+    let tmp = Tmp::new("xw2d");
+    let dir = tmp.0.join("J-E-2416.ew");
+    copy_dir(Path::new(GOLDEN_A), &dir);
+    let mut s = shell(&tmp);
+    open(&mut s, &dir, false);
+    let w20 = golden_id("connections|W20");
+    for (path, value) in [
+        ("overrides.colour", json!(["BU"])),
+        ("overrides.csa", json!("2.5")),
+    ] {
+        done(
+            &mut s,
+            "command.run",
+            json!({"cmd": "fields.set", "params": {"kind": "connection", "targets": [w20], "path": path,
+                "value": value}}),
+        );
+    }
+    colleague(&tmp, &dir, &[colour(&w20, json!(["WH"]))]);
+    done(&mut s, "project.check_disk", json!({}));
+    done(&mut s, "external.choose", json!({"row": 1, "take": "theirs"}));
+    colleague(&tmp, &dir, &[colour(&w20, json!(["RD"]))]);
+    done(&mut s, "project.check_disk", json!({}));
+    let rows: Vec<String> = describe(&s)
+        .lines()
+        .filter(|l| l.starts_with("  row ") && !l.starts_with("  row level "))
+        .map(str::to_owned)
+        .collect();
+    assert_eq!(
+        rows,
+        [
+            "  row 1 \"connection 102.1 · Colour override\" base \"(none)\" mine \"BU\" theirs \"RD\" chosen mine"
+        ]
+    );
+    done(&mut s, "external.apply", json!({"take": "theirs"}));
+    done(&mut s, "file.save", json!({}));
+    assert_eq!(
+        w20_overrides(&dir),
+        json!({"csa": "2.5", "colour": ["RD"], "show_marker": true})
+    );
 }

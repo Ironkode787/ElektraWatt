@@ -1125,12 +1125,22 @@ impl Session {
 
     /// Runs the check scheme `scheme` in `mode` over the current snapshot through the session's memo store
     /// (doc 15 §3): the findings, the totals and `ew check`'s exit code ([`checks::CheckReport`]). With merge evidence the
-    /// model does not hold ([`Session::merge_evidence`]), EW-CORE-013's groups join a release run (WP-S1.17 D29).
+    /// model does not hold ([`Session::merge_evidence`]), EW-CORE-013's groups join a run in a mode that runs the rule,
+    /// online (the window: the message panel, its counts, the property grid's chips) and release (WP-S1.17 D29).
     pub fn check(&self, scheme: &checks::Scheme, mode: checks::CheckMode) -> checks::CheckReport {
-        let q = self.query();
-        let report = checks::run(&q, scheme, mode);
+        self.check_over(&self.query(), scheme, mode)
+    }
+
+    /// [`Session::check`] over the snapshot of `q`.
+    pub(crate) fn check_over(
+        &self,
+        q: &Q,
+        scheme: &checks::Scheme,
+        mode: checks::CheckMode,
+    ) -> checks::CheckReport {
+        let report = checks::run(q, scheme, mode);
         if self.merge_evidence() {
-            report.with_merge_evidence(&q)
+            report.with_merge_evidence(q)
         } else {
             report
         }

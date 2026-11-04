@@ -101,6 +101,7 @@ impl Repo {
             cmd.env_remove(var);
         }
         cmd.env_remove("APPIMAGE")
+            .env_remove("APPDIR")
             .env("GIT_CONFIG_GLOBAL", self.0.join("gitconfig"))
             .env("GIT_CONFIG_NOSYSTEM", "1")
             .stdin(Stdio::null());
@@ -390,35 +391,67 @@ fn dg4_the_hook_is_installed_and_a_foreign_one_is_kept() {
         expected
     );
     assert_eq!(std::fs::read_to_string(&hook).unwrap(), "#!/bin/sh\necho mine\n");
+
+    // C49-p10#4: a `core.hooksPath` outside the repository (as a global one is) serves other repositories too: refused.
+    let shared = r.0.join("shared-hooks");
+    let value = shared.to_string_lossy().replace('\\', "/");
+    assert!(r.git(&["config", "core.hooksPath", &value]).status.success());
+    let refused = r.ew(&["git", "setup", "--yes", "--hooks"]);
+    assert_eq!(
+        result(&refused),
+        (
+            Some(2),
+            String::new(),
+            format!(
+                "error: git runs the hooks of this repository from {}, outside it (core.hooksPath), so other \
+                 repositories run them too; add `ew check --integrity --after-merge` to its post-merge hook by hand; \
+                 nothing was changed\n",
+                shared.display()
+            )
+        )
+    );
+    assert!(!shared.exists(), "nothing written");
 }
 
-/// C49-p9#5: run from an AppImage (`$APPIMAGE`), `ew git setup` writes the AppImage with `ew` as its first argument,
-/// never the executable's own path in the AppImage's transient mount.
+/// C49-p9#5, C49-p10#2: run from an AppImage (`$APPIMAGE`, the executable under `$APPDIR`), `ew git setup` writes the
+/// AppImage with `ew` as its first argument, never the executable's own path in the AppImage's transient mount; an
+/// `ew` outside `$APPDIR` that inherited another AppImage's variables (an editor's terminal) writes its own path.
 #[test]
 fn git_setup_from_an_appimage_names_the_appimage() {
     let Some(r) = Repo::new("ew-dg3-appimage") else {
         return;
     };
-    let image = r.0.join("Apps").join("ElektraWatt.AppImage");
-    let mut cmd = Command::new(super::conventions::bin_exe());
-    cmd.args(["git", "setup", "--yes"]).current_dir(r.repo());
-    r.env(&mut cmd);
-    let done = cmd.env("APPIMAGE", &image).output().unwrap();
-    assert_eq!(
-        done.status.code(),
-        Some(0),
-        "{}",
-        String::from_utf8_lossy(&done.stderr)
-    );
-    let image = format!("'{}'", image.to_string_lossy().replace('\\', "/"));
-    assert_eq!(
-        r.config("merge.elektrawatt.driver"),
-        Some(format!("{image} ew merge-driver %O %A %B %L %P"))
-    );
-    assert_eq!(
-        r.config("diff.elektrawatt.textconv"),
-        Some(format!("{image} ew diff --textconv"))
-    );
+    let image = r.0.join("Apps").join("Editor.AppImage");
+    let exe = super::conventions::bin_exe();
+    let quoted_image = format!("'{}'", image.to_string_lossy().replace('\\', "/"));
+    let elsewhere = r.0.join("mount");
+    for (appdir, command) in [
+        (elsewhere.as_path(), quoted_exe()),
+        (exe.parent().unwrap(), format!("{quoted_image} ew")),
+    ] {
+        let mut cmd = Command::new(&exe);
+        cmd.args(["git", "setup", "--yes"]).current_dir(r.repo());
+        r.env(&mut cmd);
+        let done = cmd
+            .env("APPIMAGE", &image)
+            .env("APPDIR", appdir)
+            .output()
+            .unwrap();
+        assert_eq!(
+            done.status.code(),
+            Some(0),
+            "{}",
+            String::from_utf8_lossy(&done.stderr)
+        );
+        assert_eq!(
+            r.config("merge.elektrawatt.driver"),
+            Some(format!("{command} merge-driver %O %A %B %L %P"))
+        );
+        assert_eq!(
+            r.config("diff.elektrawatt.textconv"),
+            Some(format!("{command} diff --textconv"))
+        );
+    }
 }
 
 /// A copy of Golden A whose page 102 holds MD-6's conflict record on W20's colour, as part 5's CR-1 project.

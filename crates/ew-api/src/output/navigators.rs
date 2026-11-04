@@ -2929,7 +2929,8 @@ impl Session {
     /// node's first natural key is its rank in this order, so that the default label sort shows the provider's order.
     fn messages_table(&self, q: &Q, b: &mut Builder) {
         use crate::checks::{self, CheckMode};
-        let report = checks::run(q, self.online_scheme(), CheckMode::Online);
+        // With merge evidence, EW-CORE-013's groups (WP-S1.17 D29).
+        let report = self.check_over(q, self.online_scheme(), CheckMode::Online);
         let folios = folios(q);
         for (severity, label) in SEVERITY_GROUPS {
             let of_severity: Vec<&checks::Finding> = report

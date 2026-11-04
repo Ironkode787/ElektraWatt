@@ -2265,7 +2265,8 @@ impl Session {
         let mut findings: Vec<(String, String, FindingChip)> = Vec::new();
         let folios = super::navigators::folios(q);
         {
-            let report = checks::run(q, self.online_scheme(), checks::CheckMode::Online);
+            // With merge evidence, EW-CORE-013's groups (WP-S1.17 D29).
+            let report = self.check_over(q, self.online_scheme(), checks::CheckMode::Online);
             for f in report
                 .findings
                 .iter()

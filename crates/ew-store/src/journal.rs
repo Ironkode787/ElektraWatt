@@ -489,16 +489,24 @@ impl Journal {
         if self.vfs.stat(&path).is_ok() {
             self.vfs.remove_file(&path)?;
         }
-        self.vfs.append(&path, text.as_bytes())?;
-        self.vfs.sync(&path)?;
-        self.vfs.sync_dir(&self.dir)?;
-        // `create_dir_all` may have made `journal/` and the project's directory: their names are durable
-        // only with their parents synced (`<state>/journal`, `<state>`).
-        let mut parent = self.dir.parent();
-        for _ in 0..2 {
-            let Some(dir) = parent else { break };
-            self.vfs.sync_dir(dir)?;
-            parent = dir.parent();
+        let written = (|| {
+            self.vfs.append(&path, text.as_bytes())?;
+            self.vfs.sync(&path)?;
+            self.vfs.sync_dir(&self.dir)?;
+            // `create_dir_all` may have made `journal/` and the project's directory: their names are durable
+            // only with their parents synced (`<state>/journal`, `<state>`).
+            let mut parent = self.dir.parent();
+            for _ in 0..2 {
+                let Some(dir) = parent else { break };
+                self.vfs.sync_dir(dir)?;
+                parent = dir.parent();
+            }
+            Ok::<(), io::Error>(())
+        })();
+        // A segment that is not durable is not left behind (C49-p10#7).
+        if let Err(e) = written {
+            let _ = self.vfs.remove_file(&path);
+            return Err(e);
         }
         self.journalled.clear();
         self.segment_txs = 0;
@@ -865,6 +873,39 @@ mod tests {
 
     fn seg(text: &str) -> Segment {
         Segment::parse(PathBuf::from("s-3.jsonl"), text.as_bytes(), None).unwrap()
+    }
+
+    /// C49-p10#7: a new segment whose `open` line is not durable is removed: a failure at any call of its start leaves
+    /// the previous segment alone, as it was.
+    #[test]
+    fn a_segment_that_fails_to_start_is_not_left_behind() {
+        use crate::mem::{DirSync, Fault, MemVfs};
+        let project: AnyId = "7f0c2a91-5d3e-7b48-9a61-0e2f4c8d1b37".parse().unwrap();
+        let mut failures = 0;
+        for at in 1..=10 {
+            let vfs = Arc::new(MemVfs::new(DirSync::Explicit));
+            let mut j = Journal::new(
+                Arc::clone(&vfs) as Arc<dyn Vfs>,
+                Path::new("/state"),
+                project,
+                Path::new("/p"),
+                "s",
+                "t",
+            );
+            j.start(3, None).unwrap();
+            let before = vfs.files(Path::new("/state"));
+            vfs.reset_calls();
+            vfs.set_fault(Fault::Error {
+                at,
+                kind: io::ErrorKind::Other,
+            });
+            if j.start(4, None).is_err() {
+                failures += 1;
+                vfs.set_fault(Fault::None);
+                assert_eq!(vfs.files(Path::new("/state")), before, "call {at}");
+            }
+        }
+        assert!(failures >= 3, "the open line's write and syncs failed in turn");
     }
 
     #[test]

@@ -143,7 +143,13 @@ impl ShellModel {
                 self.hold_banner(strings::text(key!("banner-external-unreadable")).to_owned());
             }
             DiskPoll::Reloaded => self.reloaded(),
-            DiskPoll::Unchanged => self.release_banner(),
+            // The disk is back to the baseline: nothing is held, so the collision dialog has nothing to apply.
+            DiskPoll::Unchanged => {
+                self.release_banner();
+                if matches!(self.dialog, Some(Dialog::ExternalChange { .. })) {
+                    self.dialog = None;
+                }
+            }
             DiskPoll::Settling | DiskPoll::GitBusy | DiskPoll::Unreadable { retrying: true } => {}
         }
     }
@@ -472,9 +478,9 @@ impl ShellModel {
         if matches!(self.dialog, Some(Dialog::ConfirmGitSetup { .. })) {
             self.dialog = None;
         }
-        // From an AppImage, git runs the AppImage with `ew` first, never its transient mount (C49-p9#5).
-        let appimage = self.env_var("APPIMAGE").map(PathBuf::from);
-        let ew = ew_api::git::ew_command(&ew, appimage.as_deref());
+        // From an AppImage, git runs the AppImage with `ew` first, never its transient mount (C49-p9#5, C49-p10#2).
+        let [image, mount] = ["APPIMAGE", "APPDIR"].map(|name| self.env_var(name).map(PathBuf::from));
+        let ew = ew_api::git::ew_command(&ew, image.as_deref(), mount.as_deref());
         let git = ew_api::git::GitExe::default();
         for (k, v) in ew_api::git::driver_config(&ew) {
             if let Err(e) = git.config_set(&root, k, &v, ew_api::git::ConfigScope::Repository) {
