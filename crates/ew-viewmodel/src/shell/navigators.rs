@@ -429,10 +429,10 @@ impl ShellModel {
                                 severity,
                                 pending: crate::navigators::messages::is_pending(node, editing.as_deref()),
                             });
-                        let mut badges: Vec<&str> =
+                        let mut badges: Vec<String> =
                             node.badges.iter().map(|b| super::macros::badge_word(b)).collect();
                         if finding.is_some_and(|f| f.pending) {
-                            badges.push("pending");
+                            badges.push("pending".to_owned());
                         }
                         // ID-1278 ruling 7: a strip without a tag yet reads in words, not by its underived tag.
                         let label = if node.role == ew_api::output::NavRole::Strip {
@@ -448,7 +448,6 @@ impl ShellModel {
                         for b in &badges {
                             text.push_str(&format!(" [{b}]"));
                         }
-                        let badges: Vec<String> = badges.iter().map(|b| (*b).to_owned()).collect();
                         // An unplaced function row, and an unplaced terminal row of the Terminal strips navigator
                         // (WP-S2.07 §6.8: its record is the terminal device; `place.pick` takes its main function).
                         let drag = (matches!(
@@ -535,6 +534,18 @@ impl ShellModel {
         (folio, section)
     }
 
+    /// A language change (View ▸ Language) fetches the navigators' tables and the property sheet again, so that the
+    /// texts [`table_in_words`] and the sheet's words give follow it (the end of the dispatch fetches them).
+    pub(super) fn refetch_for_language(&mut self) {
+        for n in self.navs.values_mut() {
+            n.table = None;
+        }
+        if let Some(n) = self.pages_table.as_mut() {
+            n.table = None;
+        }
+        self.props.key = None;
+    }
+
     // -----------------------------------------------------------------------------------------------------------
     // The end of every dispatch
 
@@ -588,7 +599,9 @@ impl ShellModel {
             let table = if k == NavKind::Messages {
                 Self::messages_table_of(project, &self.messages)
             } else {
-                project.session.navigator_table(k)
+                let mut table = project.session.navigator_table(k);
+                table_in_words(&mut table, project);
+                table
             };
             bump(&self.calls, |c| c.navigator_table += 1);
             // WP-S2.09 part 2: the Messages pane's header names the scheme its table was built with.
@@ -606,7 +619,8 @@ impl ShellModel {
             .is_some_and(|n| n.table().is_none_or(|t| Some(t.rev) != rev))
             && let Some(project) = &self.project
         {
-            let table = project.session.navigator_table(NavKind::Pages);
+            let mut table = project.session.navigator_table(NavKind::Pages);
+            table_in_words(&mut table, project);
             bump(&self.calls, |c| c.navigator_table += 1);
             if let Some(n) = self.pages_table.as_mut() {
                 n.table = Some(Arc::new(table));
@@ -1665,6 +1679,84 @@ fn json_map(v: Value) -> Map<String, Value> {
     match v {
         Value::Object(m) => m,
         _ => Map::new(),
+    }
+}
+
+/// A navigator table's texts in the UI language (ID-1315 ruling 1: `ew-api` gives the codes, the shell the words),
+/// once per fetch: the column headers by their `column-<navigator>-<key>` text, else `column-<key>` (FT-1264, the
+/// strip editor's columns with them, FT-1289), an accessory row's kind (FT-1289), the Messages pane's group headers
+/// (`messages-group-<severity>`) and, in a language other than en-GB, each rule group's title and each finding's
+/// message as the Messages detail renders it (FT-1162, `ew_api::checks::messages`). The badges keep their codes; the
+/// rows word them ([`super::macros::badge_word`]).
+pub(super) fn table_in_words(table: &mut ew_api::output::NavTable, project: &super::Project) {
+    let nav = table.kind.word();
+    for c in &mut table.columns {
+        let key = c.key.replace('_', "-");
+        if let Some(text) = strings::lookup(&format!("column-{nav}-{key}"))
+            .or_else(|| strings::lookup(&format!("column-{key}")))
+        {
+            c.label = text.to_owned();
+        }
+    }
+    let lang = strings::rule_language();
+    let report = (table.kind == NavKind::Messages && lang != "en-GB").then(|| {
+        project
+            .session
+            .check(project.session.online_scheme(), ew_api::checks::CheckMode::Online)
+    });
+    let message = table.columns.iter().position(|c| c.key == "message");
+    for node in &mut table.nodes {
+        match node.role {
+            NavRole::Accessory => {
+                let english = node.label.clone();
+                let words = ew_api::output::ACCESSORY_KINDS
+                    .iter()
+                    .find(|k| ew_api::output::accessory_kind_word(k) == english)
+                    .map_or_else(|| strings::accessory_text(""), |k| strings::accessory_text(k));
+                for cell in node.cells.iter_mut().filter(|c| **c == english) {
+                    *cell = words.to_owned();
+                }
+                node.label = words.to_owned();
+            }
+            NavRole::Severity => {
+                if let Some(text) = node
+                    .key
+                    .strip_prefix("severity:")
+                    .and_then(|word| strings::lookup(&format!("messages-group-{word}")))
+                {
+                    node.label = text.to_owned();
+                }
+            }
+            NavRole::Rule if report.is_some() => {
+                if let Some(rule) = node.key.strip_prefix("rule:")
+                    && let Some(title) = ew_api::checks::messages::title(rule, lang)
+                {
+                    node.label = format!("{rule} {title}");
+                }
+            }
+            NavRole::Finding => {
+                let Some(f) = report.as_ref().and_then(|r| {
+                    let fp = crate::navigators::messages::fingerprint_of(&node.key)?;
+                    r.findings.iter().find(|f| f.fingerprint.to_string() == fp)
+                }) else {
+                    continue;
+                };
+                let text = ew_api::checks::messages::render(f, lang);
+                // As `ew-api` builds the row: the subject once, before the message unless the message leads with it.
+                let leads = text
+                    .strip_prefix(f.subject.as_str())
+                    .is_some_and(|rest| rest.is_empty() || rest.starts_with(':') || rest.starts_with(' '));
+                node.label = if f.subject.is_empty() || leads {
+                    text.clone()
+                } else {
+                    format!("{}: {text}", f.subject)
+                };
+                if let Some(cell) = message.and_then(|i| node.cells.get_mut(i)) {
+                    *cell = text;
+                }
+            }
+            _ => {}
+        }
     }
 }
 

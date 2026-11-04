@@ -614,7 +614,10 @@ mod tests {
                 from: WireEnd::Point("-K1:A1".into()),
                 to: WireEnd::Junction,
             },
-            SelectionWords::Junction { folio: None, wires: 1 },
+            SelectionWords::Junction {
+                folio: None,
+                wires: 1,
+            },
             SelectionWords::InterruptionPoint {
                 name: "L-1".into(),
                 folio: None,

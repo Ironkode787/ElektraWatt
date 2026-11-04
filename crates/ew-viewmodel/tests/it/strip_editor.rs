@@ -607,3 +607,54 @@ fn an_untagged_strips_accessory_row_names_it_in_words() {
     assert!(!d.contains("?X?") && !d.contains("X??"), "{d}");
     shell.shutdown();
 }
+
+/// FT-1289 and FT-1264 (ID-1315 ruling 1): in nl-NL the strip editor's columns, an accessory row's kind and the
+/// accessory toast read in Dutch; the strip editor finds its columns and rows by those words.
+#[test]
+fn ft1289_the_strip_editor_and_its_accessory_toast_read_in_dutch() {
+    let tmp = Tmp::new("ft1289");
+    let mut shell = tmp.shell_in(Mode::Headless, true, "102");
+    done(&mut shell, "view.language", json!({"value": "nl"}));
+    done(&mut shell, "strip.edit", json!({"strip": "-X1031"}));
+    let labels: Vec<String> = shell
+        .nav(NavKind::Strips)
+        .and_then(|n| n.table())
+        .expect("a table")
+        .columns
+        .iter()
+        .map(|c| c.label.clone())
+        .collect();
+    assert_eq!(
+        labels,
+        [
+            "Klemmenstrook",
+            "Pos",
+            "Klem",
+            "Functietekst",
+            "Groep",
+            "Artikel",
+            "Potentiaal",
+            "Zijde 1 (aansluiting a)",
+            "Zijde 2 (aansluiting b)",
+            "Brug",
+            "Brugartikel",
+            "Status",
+        ]
+    );
+    let k4 = row(&shell, "Klem", "4");
+    at(&mut shell, &k4);
+    done(&mut shell, "strip.add_accessory", json!({}));
+    let accessory = cursor(&shell);
+    assert_eq!(accessory, row(&shell, "Pos", "4.1"));
+    let word = column(&shell, "Functietekst")
+        .into_iter()
+        .find(|(k, _)| *k == accessory)
+        .expect("the accessory row")
+        .1;
+    assert_eq!(word, "Eindsteun");
+    assert_eq!(
+        lines_with(&shell, "toast "),
+        ["toast \"Eindsteun toegevoegd na -X1031:4\" undo"]
+    );
+    shell.shutdown();
+}

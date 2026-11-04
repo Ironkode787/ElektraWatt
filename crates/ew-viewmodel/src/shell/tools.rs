@@ -1274,11 +1274,12 @@ pub(crate) fn param_words(params: &Value, path: &str) -> String {
     let Some(at) = segments.iter().rposition(|s| s.parse::<usize>().is_err()) else {
         return strings::text(key!("error-param-whole")).to_owned();
     };
+    // FT-1237: the words of the UI language.
     let base = match segments[at] {
-        "ips" => "Interruption points".to_owned(),
-        "cps" => "Connection points".to_owned(),
-        "reps" => "Symbols".to_owned(),
-        "rep" => "Symbol".to_owned(),
+        "ips" => strings::text(key!("param-ips")).to_owned(),
+        "cps" => strings::text(key!("param-cps")).to_owned(),
+        "reps" => strings::text(key!("param-reps")).to_owned(),
+        "rep" => strings::text(key!("param-rep")).to_owned(),
         other => strings::field_label("", other),
     };
     match segments.get(at + 1).and_then(|s| s.parse::<usize>().ok()) {

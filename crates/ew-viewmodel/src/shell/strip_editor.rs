@@ -735,7 +735,7 @@ impl ShellModel {
         {
             m.chooser = None;
         }
-        let word = ew_api::output::accessory_kind_word(&kind);
+        let word = strings::accessory_text(&kind);
         let text = match rows.node(cursor).role {
             NavRole::Strip => strings::format(key!("toast-accessory-added-first"), &[word, &rows.words(s)]),
             NavRole::Terminal if before => {

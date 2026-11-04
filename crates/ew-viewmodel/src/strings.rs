@@ -415,51 +415,6 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         .copied()
 }
 
-/// The exact English labels of the property grid's rows (WP-S2.05 §6.1.2): the rows the pilot edits on folios 101 to
-/// 103 (§6.12) whose humanised member name would not read well; every other row's label is its humanised last member.
-const FIELD_LABELS: &[(&str, &str, &str)] = &[
-    ("device", "tag.letter", "Tag letter"),
-    ("device", "tag.counter", "Tag counter"),
-    ("device", "tag.frozen", "Frozen tag"),
-    ("device", "tech_data", "Technical data"),
-    ("device", "derived.tag", "Tag"),
-    ("device", "derived.main_location", "Main location"),
-    // WP-S2.07 D13: a terminal's printed label and group.
-    ("device", "derived.printed_label", "Printed label"),
-    ("device", "derived.group", "Group"),
-    ("connection", "derived.number", "Wire number"),
-    // WP-S2.17 part 3 (D11): no two rows of a section share a label; an override is named as one.
-    ("connection", "overrides.flags.shielded", "Shielded override"),
-    ("connection", "overrides.flags.twisted", "Twisted override"),
-    ("connection", "overrides.colour", "Colour override"),
-    ("connection", "overrides.csa", "Cross-section override"),
-    ("connection", "overrides.function", "Function override"),
-    ("connection", "overrides.insulation", "Insulation override"),
-    ("connection", "overrides.wire_part", "Wire part override"),
-    ("connection", "overrides.length", "Length override"),
-    ("connection", "overrides.show_marker", "Wire marker"),
-    ("connection", "derived.shielded", "Shielded"),
-    ("connection", "derived.twisted", "Twisted"),
-    ("device", "tag", "Tag numbering"),
-    ("device", "parts[]", "Part use"),
-    ("device", "derived.structure.function", "Effective function"),
-    ("device", "derived.structure.location", "Effective location"),
-    ("device", "terminal.strip", "Terminal strip"),
-    ("page", "description_override", "Description override"),
-    ("page", "grid", "Connection grid"),
-    ("page", "derived.description", "Description"),
-    // FT-399: an interruption point's members on its function.
-    ("function", "kind.ip", "Interruption point"),
-    ("function", "kind.ip.sort", "Chain order"),
-    // FT-670: a templated function's entry, shown as the part names it.
-    ("function", "template_entry", "Part function"),
-    ("representation", "derived.xref", "Cross-reference"),
-    ("representation", "text_slots", "Text slots"),
-    // WP-S4.02 part 4 (D12): the layout rows whose humanised name would not read well.
-    ("carrier", "derived.pe_bond", "PE bond"),
-    ("mounting_surface", "derived.pe_bond", "PE bond"),
-];
-
 /// The words the humanised labels replace (`csa` → "cross-section").
 const LABEL_WORDS: &[(&str, &str)] = &[
     ("csa", "cross-section"),
@@ -471,8 +426,12 @@ const LABEL_WORDS: &[(&str, &str)] = &[
     ("cp", "connection point"),
 ];
 
-/// The English label of the field `path` of `kind` (list indices allowed): an exact entry of the table, else the last
-/// member humanised (underscores to spaces, the word list applied, the first letter capitalised).
+/// The label of the field `path` of `kind` (list indices allowed) in the UI language, the one source of the property
+/// grid's row labels, the collision dialog's field headings and the tools' texts that name a field (FT-1237): the
+/// field's own `field-<kind>-<path>` text (`.` and `_` as `-`, a list item as `-item`; a row whose humanised name would
+/// not read well, "Wire number", "Colour override"), else its last member's `field-word-<member>` text ("Number",
+/// "Nummer"), else that member humanised (underscores to spaces, the word list applied, the first letter capitalised:
+/// an open set's key, a part's technical data). A list item carries its position (`Connection point 2`).
 pub fn field_label(kind: &str, path: &str) -> String {
     let mut generic = String::with_capacity(path.len());
     let mut chars = path.chars().peekable();
@@ -495,7 +454,12 @@ pub fn field_label(kind: &str, path: &str) -> String {
         .and_then(|(_, n)| n.parse::<usize>().ok())
         .map(|n| format!(" {}", n + 1))
         .unwrap_or_default();
-    if let Some((_, _, label)) = FIELD_LABELS.iter().find(|(k, p, _)| *k == kind && *p == generic) {
+    let own = format!(
+        "field-{}-{}",
+        kind.replace('_', "-"),
+        generic.replace("[]", "-item").replace(['.', '_'], "-")
+    );
+    if let Some(label) = lookup(&own) {
         return format!("{label}{item}");
     }
     let last = generic
@@ -504,6 +468,9 @@ pub fn field_label(kind: &str, path: &str) -> String {
         .find(|s| !s.is_empty() && *s != "]")
         .unwrap_or(&generic)
         .trim_end_matches(']');
+    if let Some(label) = lookup(&format!("field-word-{}", last.replace('_', "-"))) {
+        return format!("{label}{item}");
+    }
     let words: Vec<String> = last
         .split('_')
         .filter(|w| !w.is_empty())
@@ -584,24 +551,12 @@ pub fn kind_heading(kind: &str) -> String {
     lookup(&key).map_or_else(|| sentence_start(&kind_label(kind)).into_owned(), str::to_owned)
 }
 
-/// A field as a heading in the UI language (`Colour override`, `Aderkleur overschreven`): its
-/// `field-<kind>-<path>` text (`.` and `_` as `-`, a list item as `-item` with its position after it), else
-/// [`field_label`] (W49.3-F3).
-pub fn field_heading(kind: &str, path: &str) -> String {
-    let (generic, item) = match path.strip_suffix(']').and_then(|p| p.rsplit_once('[')) {
-        Some((list, n)) if n.parse::<usize>().is_ok() => (format!("{list}[]"), Some(n)),
-        _ => (path.to_owned(), None),
-    };
-    let key = format!(
-        "field-{}-{}",
-        kind.replace('_', "-"),
-        generic.replace("[]", "-item").replace(['.', '_'], "-")
-    );
-    match (lookup(&key), item.and_then(|n| n.parse::<usize>().ok())) {
-        (Some(text), Some(n)) => format!("{text} {}", n + 1),
-        (Some(text), None) => text.to_owned(),
-        (None, _) => field_label(kind, path),
-    }
+/// An accessory kind of the strip editor in the UI language (FT-1289): the text of `accessory-<kind>` (`end_clamp`
+/// is "End bracket", "Eindsteun"), `accessory-other` for a kind this version does not know. The words of
+/// `ew_api::output::accessory_kind_word` in en-GB, which the table round trip keeps.
+pub fn accessory_text(kind: &str) -> &'static str {
+    lookup(&format!("accessory-{}", kind.replace('_', "-")))
+        .unwrap_or_else(|| text(crate::key!("accessory-other")))
 }
 
 /// A record kind in words, singular (`potential definition`).
@@ -733,6 +688,7 @@ pub fn elapsed_text(last_ms: u64, now_ms: u64) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::BTreeSet;
 
     const NOW: u64 = 1_793_000_000_000;
 
@@ -789,6 +745,14 @@ mod tests {
         ("wizard-error-revision", "V is the revision label's letter"),
         ("messages-header", "E, W and I are the severities"),
         ("error-potential-type", "L, N and M are potential types"),
+        ("choice-l", "L, N and M are potential types"),
+        ("choice-m", "L, N and M are potential types"),
+        ("choice-n", "L, N and M are potential types"),
+        ("report-kind-io-list", "I/O are the inputs and outputs"),
+        ("column-size", "W × H are the width and the height"),
+        ("field-word-b", "a geometry member's letter"),
+        ("field-word-r", "a geometry member's letter"),
+        ("field-word-t", "a geometry member's letter"),
         ("error-potential-voltage", "V is the volt"),
         ("param-tab", "the command bar's tab view.command_tab chooses"),
         ("choice-left", "the rail's side rail.show chooses"),
@@ -1192,6 +1156,129 @@ mod tests {
             text(key!("reason-page-type-no-symbols-contents")),
             "A table of contents takes no symbols or wires: draw on a schematic page"
         );
+    }
+
+    /// Every field of every record kind's catalogue with its value type: (kind, path, type), the kinds read from the
+    /// `record-kind-*` texts.
+    fn catalogue_fields() -> Vec<(String, String, ew_api::output::FieldType)> {
+        let mut out = Vec::new();
+        for line in include_str!("../locales/en-GB/shell.ftl").lines() {
+            let Some((kind, _)) = line
+                .strip_prefix("record-kind-")
+                .and_then(|l| l.split_once(" = "))
+            else {
+                continue;
+            };
+            let kind = kind.replace('-', "_");
+            for s in ew_api::output::field_catalogue(&kind)
+                .iter()
+                .flat_map(|c| c.iter())
+            {
+                out.push((kind.clone(), s.path.clone(), s.ty.clone()));
+            }
+        }
+        out
+    }
+
+    /// The keys of the nl-NL file.
+    fn nl_keys() -> BTreeSet<&'static str> {
+        include_str!("../locales/nl-NL/shell.ftl")
+            .lines()
+            .filter_map(|l| l.split_once(" = ").map(|(k, _)| k))
+            .collect()
+    }
+
+    /// FT-1237 (ID-1315): every field label the property grid, the collision dialog or a tool shows comes from one
+    /// source, a key of both languages: the field's own `field-<kind>-<path>` text, else its last member's
+    /// `field-word-<member>` (the record version `$v` alone is no word). The en-GB labels are the ones of before;
+    /// nl-NL's are its own.
+    #[test]
+    fn every_field_label_has_a_key_in_both_languages() {
+        let fields = catalogue_fields();
+        assert!(
+            fields
+                .iter()
+                .any(|(k, p, _)| k == "device" && p == "function_text")
+        );
+        let nl = nl_keys();
+        let mut missing = BTreeSet::new();
+        for (kind, path, _) in &fields {
+            let generic = path.replace("[]", "-item").replace(['.', '_'], "-");
+            let own = format!("field-{}-{generic}", kind.replace('_', "-"));
+            let last = path
+                .trim_end_matches("[]")
+                .rsplit(['.', '['])
+                .find(|s| !s.is_empty())
+                .unwrap_or(path)
+                .trim_end_matches(']');
+            if last == "$v" {
+                continue;
+            }
+            let word = format!("field-word-{}", last.replace('_', "-"));
+            if !has_key(&own) && !has_key(&word) {
+                missing.insert(format!("en-GB: {kind} {path}"));
+            }
+            if !nl.contains(own.as_str()) && !nl.contains(word.as_str()) {
+                missing.insert(format!("nl-NL: {kind} {path}"));
+            }
+        }
+        assert_eq!(missing, BTreeSet::new());
+        assert_eq!(field_label("device", "function_text"), "Function text");
+        assert_eq!(field_label("connection", "overrides.colour"), "Colour override");
+        assert_eq!(field_label("function", "cps[1]"), "Cps 2");
+        assert!(set_locale("nl"));
+        assert_eq!(field_label("device", "function_text"), "Functietekst");
+        assert_eq!(
+            field_label("connection", "overrides.colour"),
+            "Aderkleur overschreven"
+        );
+        assert_eq!(field_label("page", "section"), "Sectie");
+        assert_eq!(field_label("function", "cps[1]"), "Aansluitpunten 2");
+        // A part's technical data is an open set: a key it does not name keeps its humanised words.
+        assert_eq!(field_label("part", "tech_data.rated_current"), "Rated current");
+        assert!(set_locale("en"));
+    }
+
+    /// FT-1258 (ID-1315): every word of the format's enumerated fields has its `choice-<value>` in en-GB and nl-NL, so
+    /// the Properties pane's choices and values read in the UI language.
+    #[test]
+    fn every_enumerated_field_word_has_a_choice_text_in_both_languages() {
+        fn words(t: &ew_api::output::FieldType, out: &mut BTreeSet<String>) {
+            use ew_api::output::FieldType as F;
+            match t {
+                F::Enum { options } => out.extend(options.iter().cloned()),
+                F::Optional(i) | F::List(i) => words(i, out),
+                F::Group(nodes) => nodes.iter().for_each(|n| words(&n.ty, out)),
+                _ => {}
+            }
+        }
+        let mut all = BTreeSet::new();
+        for (_, _, ty) in catalogue_fields() {
+            words(&ty, &mut all);
+        }
+        assert!(all.contains("l_plus"), "{all:?}");
+        let nl = nl_keys();
+        let mut missing = BTreeSet::new();
+        for w in &all {
+            let key = format!("choice-{}", w.replace('_', "-"));
+            if !has_key(&key) {
+                missing.insert(format!("en-GB: {key}"));
+            }
+            if !nl.contains(key.as_str()) {
+                missing.insert(format!("nl-NL: {key}"));
+            }
+        }
+        assert_eq!(missing, BTreeSet::new());
+        assert_eq!(
+            ["l_plus", "tn_c_s", "multi_line"].map(choice_text),
+            ["L+", "TN-C-S", "Multi-line"]
+        );
+        assert!(set_locale("nl"));
+        assert_eq!(
+            ["l_plus", "spare", "multi_line"].map(choice_text),
+            ["L+", "Reserve", "Meerlijnschema"]
+        );
+        assert!(set_locale("en"));
     }
 
     /// FT-558: the form dialogs show doc 16a §8's words, never the raw parameter value.

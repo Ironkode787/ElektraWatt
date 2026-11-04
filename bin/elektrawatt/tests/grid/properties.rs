@@ -332,7 +332,7 @@ pub(crate) fn pg10_the_pilot_script_is_deterministic_and_replays_case(twice: boo
         "{d}"
     );
     assert!(
-        d.contains("row \"device/state\" \"State\" \"spare\" authored"),
+        d.contains("row \"device/state\" \"State\" \"Spare\" authored"),
         "{d}"
     );
     let d = describe(12);

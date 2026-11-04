@@ -17,7 +17,7 @@
 //! under the field. `part.save` builds `part.edit_copy` with `Session::part_edit_plan` and opens the `part` card in the
 //! Preview tab, whose Apply commits it (Bulk, always previewed); a field that does not parse refuses with its message.
 
-use ew_api::output::{NavKind, NavRole, Uuid, accessory_kind_word, accessory_part_kinds};
+use ew_api::output::{NavKind, NavRole, Uuid, accessory_part_kinds};
 use ew_api::{
     ApiError, AssignMode, Fit, OfferView, PartDraft, PartDraftError, PartOffer, PartOfferQuery, PartPick,
     PartTarget,
@@ -284,7 +284,7 @@ impl ShellModel {
                 let strip = cursor.parent.and_then(strip_node)?.records.first().copied()?;
                 let kind = ew_api::output::ACCESSORY_KINDS
                     .iter()
-                    .find(|k| accessory_kind_word(k) == cursor.label)
+                    .find(|k| strings::accessory_text(k) == cursor.label)
                     .copied()
                     .unwrap_or("partition");
                 let pos = table

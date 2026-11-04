@@ -51,6 +51,7 @@ impl ShellModel {
                 let tags: Vec<&str> = strings::languages().into_iter().map(|(tag, _)| tag).collect();
                 self.settings.language = choice(&tags)?;
                 strings::set_locale(&self.settings.language);
+                self.refetch_for_language();
             }
             "keymap" => self.settings.keymap = choice(&KEYMAPS)?,
             "theme" => self.settings.theme = choice(&THEMES)?,

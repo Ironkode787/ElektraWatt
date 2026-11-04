@@ -281,9 +281,15 @@ fn ft1250_a_wire_to_a_junction_names_that_end_a_junction() {
         })
         .expect("a wire from a connection point to a junction on 102");
     done(&mut shell, "select.set", json!({"ids": [conn.to_string()]}));
-    assert_eq!(live(&shell), format!("{number}, {potential}, {from} to a junction"));
+    assert_eq!(
+        live(&shell),
+        format!("{number}, {potential}, {from} to a junction")
+    );
     language(&mut shell, "nl");
-    assert_eq!(live(&shell), format!("{number}, {potential}, {from} naar een aftakking"));
+    assert_eq!(
+        live(&shell),
+        format!("{number}, {potential}, {from} naar een aftakking")
+    );
     shell.shutdown();
 }
 
@@ -301,7 +307,13 @@ fn ft1252_an_unplaced_device_without_a_kind_says_device() {
             params: json!({"letter": "K"}),
         })
         .unwrap();
-    let id = receipt.created.first().expect("the new device").1.as_uuid().to_string();
+    let id = receipt
+        .created
+        .first()
+        .expect("the new device")
+        .1
+        .as_uuid()
+        .to_string();
     let dir = tmp.0.join("one-more.ew");
     let mut fresh = Session::new(session.world().model.clone(), Default::default());
     fresh.create(&dir, StoreOptions::new("test")).unwrap();
@@ -313,7 +325,13 @@ fn ft1252_an_unplaced_device_without_a_kind_says_device() {
     done(&mut shell, "file.open", json!({ "dir": dir.to_string_lossy() }));
     done(&mut shell, "page.goto", json!({ "folio": "102" }));
     done(&mut shell, "select.set", json!({ "ids": [id] }));
-    let tag = shell.properties().sheet().expect("its sheet").header.title.clone();
+    let tag = shell
+        .properties()
+        .sheet()
+        .expect("its sheet")
+        .header
+        .title
+        .clone();
     assert_eq!(live(&shell), format!("{tag}, Device"));
     language(&mut shell, "nl");
     assert_eq!(live(&shell), format!("{tag}, Apparaat"));

@@ -190,8 +190,8 @@ mod tests {
     #[test]
     fn raise_text_raises_the_size_and_the_line_height_by_as_much() {
         let base = tokens(Theme::Light, Density::Comfortable);
-        let strong = base.type_body_strong.clone();
-        let display = base.type_display.clone();
+        let strong = base.type_body_strong;
+        let display = base.type_display;
         let min = strong.size + 3.0;
         assert!(display.size >= min, "the display token stays above the minimum");
         let mut t = base.clone();
@@ -201,7 +201,10 @@ mod tests {
             (t.type_body_strong.size, t.type_body_strong.line),
             (min, strong.line + (min - strong.size))
         );
-        assert_eq!((t.type_display.size, t.type_display.line), (display.size, display.line));
+        assert_eq!(
+            (t.type_display.size, t.type_display.line),
+            (display.size, display.line)
+        );
         let mut unchanged = base.clone();
         raise_text(&mut unchanged, 0);
         assert_eq!(

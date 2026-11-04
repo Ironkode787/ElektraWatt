@@ -334,7 +334,7 @@ impl TableUi {
         let max_height = t.size_row * rows as f32;
         let at = anchor.map_or(bound.center(), |r| r.left_bottom() + vec2(0.0, t.space_2));
         let list_id = ui.scope_id().with(("strip-chooser", nav.kind.word()));
-        let word = ew_viewmodel::ew_api::output::accessory_kind_word(&ch.kind);
+        let word = strings::accessory_text(&ch.kind);
         let question = strings::text(key!("chooser-accessory-part"));
         egui::Area::new(list_id.with("area"))
             .order(egui::Order::Foreground)

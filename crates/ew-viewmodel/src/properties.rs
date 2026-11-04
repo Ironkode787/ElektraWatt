@@ -1042,6 +1042,79 @@ pub fn grid_in_words(sheet: &mut PropertySheet) {
     }
 }
 
+/// Writes the values of the enumerated rows in the UI language's words (FT-1258): each stored word as
+/// [`strings::choice_text`] gives it ("Multi-line", "Meerlijnschema"), as the row's choices show them. The JSON values
+/// are unchanged, and a word typed in the editor is read back ([`enum_value_of`]). A layout row (WP-S4.02 D12) keeps
+/// the texts its sheet built.
+pub fn enums_in_words(sheet: &mut PropertySheet) {
+    for row in sheet.sections.iter_mut().flat_map(|s| s.rows.iter_mut()) {
+        if !matches!(row.ty.inner(), FieldType::Enum { .. }) || matches!(row.route, EditRoute::Command { .. })
+        {
+            continue;
+        }
+        match &mut row.value {
+            RowValue::One {
+                json: Value::String(word),
+                text,
+            } => *text = strings::choice_text(word),
+            RowValue::Varies { texts, .. } => {
+                for text in texts {
+                    *text = strings::choice_text(text);
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
+/// The stored word of an enumerated row that `text` names in the UI language's words (FT-1258), else `text` as typed:
+/// the parser reads the stored words.
+pub fn enum_value_of<'t>(row: &PropRow, text: &'t str) -> std::borrow::Cow<'t, str> {
+    let (FieldType::Enum { options }, false) =
+        (row.ty.inner(), matches!(row.route, EditRoute::Command { .. }))
+    else {
+        return text.into();
+    };
+    let typed = text.trim();
+    options
+        .iter()
+        .find(|o| strings::choice_text(o).eq_ignore_ascii_case(typed))
+        .map_or(text.into(), |o| o.clone().into())
+}
+
+/// The refusal of a word that is not one of an enumerated field's (FT-1240), in the UI language: a potential's Type
+/// names its printed forms (`error-potential-type`), any other field its words as its choices show them.
+pub fn not_one_of_text(kind: &str, path: &str, typed: &str, options: &[String]) -> String {
+    if kind == "potential_def" && path == "ptype" {
+        return strings::format(key!("error-potential-type"), &[typed]);
+    }
+    let words: Vec<String> = options.iter().map(|o| strings::choice_text(o)).collect();
+    strings::format(key!("error-not-one-of"), &[typed, &words.join(", ")])
+}
+
+/// Writes a report block's row source in words on a generated page's sheet (FT-1287, ID-1315 ruling 3): a built-in
+/// kind as its `report-kind-<kind>` text ("Table of contents"), a user SQL report with its file, never the JSON. The
+/// JSON value is unchanged; the generated page's rows are read-only.
+pub fn report_source_in_words(sheet: &mut PropertySheet) {
+    for row in sheet
+        .sections
+        .iter_mut()
+        .filter(|s| s.kind == "report_block")
+        .flat_map(|s| s.rows.iter_mut())
+        .filter(|r| r.path == "source" && matches!(r.provenance, Provenance::Generated { .. }))
+    {
+        if let RowValue::One { json, text } = &mut row.value {
+            if let Some(kind) = json.get("kind").and_then(Value::as_str) {
+                if let Some(words) = strings::lookup(&format!("report-kind-{}", kind.replace('_', "-"))) {
+                    *text = words.to_owned();
+                }
+            } else if let Some(file) = json.pointer("/sql_query/file").and_then(Value::as_str) {
+                *text = strings::format(key!("report-source-sql"), &[file]);
+            }
+        }
+    }
+}
+
 /// The display text of a row's value in the grid and the describe text: one value's text, `‹varies›` with its count,
 /// or empty when absent.
 pub fn value_text(row: &PropRow) -> String {

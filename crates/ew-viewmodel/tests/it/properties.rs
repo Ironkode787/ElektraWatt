@@ -647,14 +647,15 @@ fn choice_editors_list_options_and_untouched_rows_write_nothing() {
         .iter()
         .map(|(t, _)| t.clone())
         .collect();
-    assert_eq!(options, ["used", "spare", "reserved", "not_fitted"]);
+    // FT-1258: the words, not the stored values.
+    assert_eq!(options, ["Used", "Spare", "Reserved", "Not fitted"]);
     let calls = shell.session_calls().field_choices;
     assert!(calls >= 1, "the combo's options are one counted call");
     done(&mut shell, "props.choose", json!({"step": 1}));
     done(&mut shell, "props.choose", json!({"step": 1}));
     assert_eq!(state(&shell)["properties"]["highlight"], 1);
     assert!(
-        shell.describe().contains("\"not_fitted\" selected 1"),
+        shell.describe().contains("\"Not fitted\" selected 1"),
         "{}",
         shell.describe()
     );
@@ -664,7 +665,7 @@ fn choice_editors_list_options_and_untouched_rows_write_nothing() {
         "moving the highlight calls nothing"
     );
     done(&mut shell, "props.choose", json!({}));
-    assert_eq!(text(&shell, "device/state"), "spare");
+    assert_eq!(text(&shell, "device/state"), "Spare");
     assert_eq!(steps(&shell), before + 1);
     // A slot picker filtered by the typed text.
     done(

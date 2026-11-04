@@ -312,6 +312,10 @@ impl ShellModel {
                             CellValue::Invalid(strings::format(key!("error-no-part"), &[&typed]))
                         }
                         Err(InputError::Ambiguous { choices }) => CellValue::Ambiguous(choices),
+                        // FT-1240: the field's words, not the stored ones.
+                        Err(InputError::NotOneOf { typed, options }) => CellValue::Invalid(
+                            crate::properties::not_one_of_text(&kind, &path, &typed, &options),
+                        ),
                     }
                 }
             },

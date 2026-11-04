@@ -1729,6 +1729,26 @@ impl Session {
         if generated.is_none() || kind != Kind::ReportBlock {
             built.extend(self.derived_rows(q, cx, kind, &targets, &jsons));
         }
+        // FT-1287 (ID-1315 ruling 3): a generated page shows its Kind, as a drawn page does: the page type `report`.
+        if let (Kind::ReportBlock, Some(block)) = (kind, generated) {
+            built.push(derived(
+                "report_block",
+                "kind",
+                None,
+                Category::Identity,
+                FieldType::Enum {
+                    options: vec!["report".to_owned()],
+                },
+                RowValue::One {
+                    json: Value::String("report".to_owned()),
+                    text: "report".to_owned(),
+                },
+                Provenance::Generated {
+                    block: block.to_owned(),
+                },
+                Vec::new(),
+            ));
+        }
         // WP-S4.02 part 4 (D12): a panel layout page's Surface view rows.
         if kind == Kind::Page
             && let [page] = targets.as_slice()

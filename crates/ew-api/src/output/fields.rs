@@ -1202,6 +1202,28 @@ pub enum InputError {
         /// The choices.
         choices: Vec<(String, Value)>,
     },
+    /// Not one of an enumerated field's words (FT-1240): the text as typed, trimmed, and the stored words, which the
+    /// shell names in its words ([`InputError::text`] gives the English sentence).
+    NotOneOf {
+        /// The text as typed, trimmed.
+        typed: String,
+        /// The stored words, in schema order.
+        options: Vec<String>,
+    },
+}
+
+impl InputError {
+    /// The English sentence of an [`InputError::Invalid`] or [`InputError::NotOneOf`], for a front-end without the
+    /// shell's strings (the table round trip, the part editor); `None` for the others.
+    pub fn text(&self) -> Option<String> {
+        match self {
+            InputError::Invalid(why) => Some(why.clone()),
+            InputError::NotOneOf { typed, options } => {
+                Some(format!("`{typed}` is not one of {}", options.join(", ")))
+            }
+            InputError::UnknownPart(_) | InputError::Ambiguous { .. } => None,
+        }
+    }
 }
 
 /// One option of a choice editor.
@@ -1577,7 +1599,10 @@ pub(crate) fn parse_input(
                     value: Value::String(o.clone()),
                     notes: Vec::new(),
                 })
-                .ok_or_else(|| invalid(format!("`{t}` is not one of {}", options.join(", "))))
+                .ok_or_else(|| InputError::NotOneOf {
+                    typed: t.to_owned(),
+                    options: options.clone(),
+                })
         }
         FieldType::Link { kind } if kind == "part" => resolve_part(cx, text, None).map(|copy| ParsedInput {
             value: serde_json::json!({ "copy": copy }),

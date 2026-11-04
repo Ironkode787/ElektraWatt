@@ -1059,7 +1059,9 @@ impl Merge<'_> {
         let (input, extra) = potential_input(&kind, &path, &file);
         let value = match self.session.parse_field_input(&kind, &path, &input) {
             Ok(parsed) => CellValue::Valid(parsed.value),
-            Err(InputError::Invalid(why)) => CellValue::Invalid(why),
+            Err(e @ (InputError::Invalid(_) | InputError::NotOneOf { .. })) => {
+                CellValue::Invalid(e.text().unwrap_or_default())
+            }
             Err(InputError::UnknownPart(typed)) => CellValue::Invalid(format!(
                 "no part copy of the project has the part number `{typed}`"
             )),

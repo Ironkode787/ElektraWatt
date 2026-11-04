@@ -273,7 +273,9 @@ impl ShellModel {
             .as_ref()
             .filter(|(epoch, _)| *epoch == project.epoch)
             .map_or(&[][..], |(_, notes)| notes.as_slice());
-        messages::with_release_notes(project.session.navigator_table(NavKind::Messages), notes)
+        let mut table = project.session.navigator_table(NavKind::Messages);
+        super::navigators::table_in_words(&mut table, project);
+        messages::with_release_notes(table, notes)
     }
 
     /// Fetches the Messages table when it is not of the current revision (one counted `navigator_table` call).

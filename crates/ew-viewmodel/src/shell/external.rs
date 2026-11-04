@@ -342,7 +342,7 @@ impl ShellModel {
                     field: if whole {
                         strings::text(key!("external-whole-record")).to_owned()
                     } else {
-                        strings::field_heading(kind.name(), &c.path)
+                        strings::field_label(kind.name(), &c.path)
                     },
                     base: side(true, c.base.as_ref()),
                     mine: side(false, c.mine.as_ref()),

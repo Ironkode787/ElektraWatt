@@ -435,6 +435,7 @@ impl Session {
             let parsed = self.parse_quantity_text(t).map_err(|e| {
                 let why = match e {
                     InputError::Invalid(m) | InputError::UnknownPart(m) => m,
+                    e @ InputError::NotOneOf { .. } => e.text().unwrap_or_default(),
                     InputError::Ambiguous { choices } => choices
                         .iter()
                         .map(|(t, _)| t.as_str())

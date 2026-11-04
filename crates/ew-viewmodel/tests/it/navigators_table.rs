@@ -958,3 +958,49 @@ fn a_potential_without_a_definition_has_read_only_definition_cells() {
     assert_eq!(last(&shell).0, "fields.set");
     shell.shutdown();
 }
+
+/// FT-1240 (ID-1315): a Type cell of the Potentials table that is no potential type is refused naming the types as
+/// they are typed (`L+`, not `l_plus`), in en-GB and nl-NL.
+#[test]
+fn ft1240_a_refused_potential_type_names_the_types_in_words() {
+    let tmp = Tmp::new("ft1240");
+    let mut shell = tmp.shell_in(Mode::Headless, true, "102");
+    done(&mut shell, "navigator.show", json!({"kind": "potentials"}));
+    done(
+        &mut shell,
+        "navigator.table",
+        json!({"kind": "potentials", "on": true}),
+    );
+    let type_col = col(&shell, NavKind::Potentials, "Type");
+    let row = shell
+        .nav(NavKind::Potentials)
+        .and_then(|n| n.table())
+        .and_then(|t| {
+            t.nodes
+                .iter()
+                .find(|n| n.table_row && n.kinds.first().is_some_and(|k| k == "potential_def"))
+                .map(|n| n.key.clone())
+        })
+        .expect("a defined potential's row");
+    let mut said = Vec::new();
+    for lang in ["en", "nl"] {
+        done(&mut shell, "view.language", json!({ "value": lang }));
+        done(
+            &mut shell,
+            "table.cell",
+            json!({"kind": "potentials", "row": row, "column": type_col}),
+        );
+        done(&mut shell, "table.edit", json!({}));
+        done(&mut shell, "table.input", json!({"text": "XX"}));
+        said.push(failed(&mut shell, "table.commit", json!({})));
+        done(&mut shell, "ui.dismiss", json!({}));
+    }
+    assert_eq!(
+        said,
+        [
+            "\"XX\" is not a potential type; type L1, L2, L3, L, N, PE, PEN, FE, L+, L-, M or signal.",
+            "\"XX\" is geen potentiaaltype; typ L1, L2, L3, L, N, PE, PEN, FE, L+, L-, M of signal.",
+        ]
+    );
+    shell.shutdown();
+}

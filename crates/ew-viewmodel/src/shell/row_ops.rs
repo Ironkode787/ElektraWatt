@@ -353,6 +353,11 @@ impl ShellModel {
             Ok(parsed) => parsed.value,
             Err(InputError::Invalid(message)) => return Outcome::Failed { message },
             Err(InputError::UnknownPart(typed)) => return failed(key!("error-no-part"), &[&typed]),
+            Err(InputError::NotOneOf { typed, options }) => {
+                return Outcome::Failed {
+                    message: crate::properties::not_one_of_text(route_kind, path, &typed, &options),
+                };
+            }
             Err(InputError::Ambiguous { choices }) => {
                 let words: Vec<&str> = choices.iter().map(|(t, _)| t.as_str()).collect();
                 return Outcome::Failed {

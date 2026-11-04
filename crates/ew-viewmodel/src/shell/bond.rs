@@ -226,13 +226,20 @@ impl ShellModel {
             params[path] = match project.session.parse_field_input("potential_def", path, &input) {
                 Ok(parsed) => parsed.value,
                 // The form takes the printed forms: its refusal names them, not the stored words.
-                Err(InputError::Invalid(_)) if path == "ptype" => {
+                Err(InputError::Invalid(_) | InputError::NotOneOf { .. }) if path == "ptype" => {
                     return failed(key!("error-potential-type"), &[text]);
                 }
                 Err(InputError::Invalid(_)) if path == "voltage" => {
                     return failed(key!("error-potential-voltage"), &[text]);
                 }
                 Err(InputError::Invalid(why)) => {
+                    let title = strings::text(key!("command-potential-define"));
+                    return Outcome::Failed {
+                        message: strings::format(key!("error-command-field"), &[title, &field, &why]),
+                    };
+                }
+                Err(InputError::NotOneOf { typed, options }) => {
+                    let why = crate::properties::not_one_of_text("potential_def", path, &typed, &options);
                     let title = strings::text(key!("command-potential-define"));
                     return Outcome::Failed {
                         message: strings::format(key!("error-command-field"), &[title, &field, &why]),

@@ -201,16 +201,28 @@ fn save_error(e: &ew_api::MacroError, sets: &[String]) -> Outcome {
     failed(key!("error-macro-save"), &[&e.to_string()])
 }
 
-/// The words of a row badge of the Libraries and Macros navigators (the API's codes, §11); any other badge as given.
-pub(super) fn badge_word(code: &str) -> &str {
-    match code {
+/// The words of a row badge in the UI language: the Libraries and Macros navigators' codes (§11), the other
+/// navigators' fixed badge words by their `nav-badge-<word>` text (FT-1264: `unplaced`, `frozen`, `spare`, `main`, a
+/// severity, ...) and a strip's `<n> spare`; any other badge (a rule group's count) as given.
+pub(super) fn badge_word(code: &str) -> String {
+    let text = match code {
         "update_available" => strings::text(key!("badge-update-available")),
         "source_missing" => strings::text(key!("badge-source-missing")),
         "deprecated" => strings::text(key!("badge-deprecated")),
         "local_fork" => strings::text(key!("badge-local-fork")),
         "index_failed" => strings::text(key!("badge-index-failed")),
-        other => other,
-    }
+        other => {
+            if let Some(n) = other
+                .strip_suffix(" spare")
+                .filter(|n| n.parse::<usize>().is_ok())
+            {
+                return strings::format(key!("nav-badge-spares"), &[n]);
+            }
+            let key = format!("nav-badge-{}", other.to_lowercase().replace([' ', '_'], "-"));
+            strings::lookup(&key).unwrap_or(other)
+        }
+    };
+    text.to_owned()
 }
 
 /// A macro key from a name: lower case, letters and digits of any script kept, every run of other characters one `-`

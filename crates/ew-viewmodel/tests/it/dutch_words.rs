@@ -270,3 +270,295 @@ fn the_preview_chip_puts_the_action_mid_sentence_in_dutch() {
     );
     assert!(strings::set_locale("en"));
 }
+
+/// The navigator `kind`'s table of the window.
+fn table(shell: &ShellModel, kind: NavKind) -> std::sync::Arc<ew_viewmodel::ew_api::output::NavTable> {
+    shell
+        .nav(kind)
+        .and_then(|n| n.table())
+        .cloned()
+        .expect("the navigator's table")
+}
+
+/// FT-1264 and FT-1289 (ID-1315 ruling 1): every navigator's column header has its text in both locales, the en-GB one
+/// the label `ew-api` gives (`column-<navigator>-<key>`, else `column-<key>`); in nl-NL the window's tables show the
+/// Dutch headers and the Devices tree its badges in Dutch.
+#[test]
+fn ft1264_every_navigator_column_and_badge_reads_in_both_locales() {
+    let (session, _) =
+        ew_viewmodel::ew_api::Session::open_read_only(std::path::Path::new(crate::common::GOLDEN_A), "test")
+            .unwrap();
+    let mut wanted = BTreeSet::new();
+    let mut wrong = Vec::new();
+    for kind in NavKind::ALL {
+        for c in session.navigator_table(kind).columns {
+            let key = c.key.replace('_', "-");
+            let own = format!("column-{}-{key}", kind.word());
+            let key = if strings::has_key(&own) {
+                own
+            } else {
+                format!("column-{key}")
+            };
+            if strings::lookup(&key) != Some(c.label.as_str()) {
+                wrong.push(format!("{key}: {:?} is not {:?}", strings::lookup(&key), c.label));
+            }
+            wanted.insert(key);
+        }
+    }
+    assert_eq!(wrong, Vec::<String>::new());
+    assert_eq!(missing(&wanted), Vec::<String>::new());
+    let tmp = Tmp::new("ft1264");
+    let mut shell = tmp.shell("102");
+    done(&mut shell, "navigator.show", json!({"kind": "devices"}));
+    let english: Vec<String> = shell
+        .shown_rows(NavKind::Devices)
+        .iter()
+        .map(|r| r.text.clone())
+        .collect();
+    done(&mut shell, "view.language", json!({"value": "nl"}));
+    let labels: Vec<String> = table(&shell, NavKind::Devices)
+        .columns
+        .iter()
+        .map(|c| c.label.clone())
+        .collect();
+    assert_eq!(
+        labels,
+        ["Aanduiding", "Soort", "Functietekst", "Artikel", "Locatie (+)"]
+    );
+    let dutch: Vec<String> = shell
+        .shown_rows(NavKind::Devices)
+        .iter()
+        .map(|r| r.text.clone())
+        .collect();
+    let worded: Vec<String> = english
+        .iter()
+        .map(|t| {
+            t.replace(" [main]", " [hoofdfunctie]")
+                .replace(" [aux]", " [hulpfunctie]")
+                .replace(" [spare]", " [reserve]")
+                .replace(" [unplaced]", " [niet geplaatst]")
+                .replace(" [frozen]", " [vastgezet]")
+        })
+        .collect();
+    assert!(
+        english.iter().any(|t| t.ends_with(" [main]")) && english.iter().any(|t| t.ends_with(" [spare]")),
+        "{english:?}"
+    );
+    assert_eq!(dutch, worded);
+    shell.shutdown();
+}
+
+/// FT-1162 (ID-1219 ruling 6, ID-1315 ruling 1): in nl-NL the Messages pane's group headers, its rule groups and its
+/// finding rows read in Dutch, the messages as the detail renders them, and so does the Properties pane's finding chip.
+#[test]
+fn ft1162_the_messages_rows_and_the_chip_read_in_dutch() {
+    use ew_viewmodel::ew_api::checks::{CheckMode, messages};
+    use ew_viewmodel::ew_api::output::NavRole;
+    let tmp = Tmp::new("ft1162");
+    let mut shell = tmp.shell("102");
+    let (session, _) = ew_viewmodel::ew_api::Session::open_read_only(&tmp.golden_copy(), "test").unwrap();
+    let report = session.check(session.online_scheme(), CheckMode::Online);
+    done(&mut shell, "view.language", json!({"value": "nl"}));
+    done(&mut shell, "messages.show", json!({}));
+    let t = table(&shell, NavKind::Messages);
+    let groups: Vec<&str> = t
+        .nodes
+        .iter()
+        .filter(|n| n.role == NavRole::Severity && n.key.starts_with("severity:"))
+        .map(|n| n.label.as_str())
+        .collect();
+    let mut expected_groups = Vec::new();
+    for (severity, word) in [
+        (ew_viewmodel::ew_api::checks::Severity::Error, "Fouten"),
+        (ew_viewmodel::ew_api::checks::Severity::Warning, "Waarschuwingen"),
+        (ew_viewmodel::ew_api::checks::Severity::Info, "Info"),
+    ] {
+        if report.findings.iter().any(|f| f.severity == severity) {
+            expected_groups.push(word);
+        }
+    }
+    assert_eq!(groups, expected_groups);
+    let mut rows = Vec::new();
+    let mut expected = Vec::new();
+    for n in t.nodes.iter().filter(|n| n.role == NavRole::Finding) {
+        let fp = n.key.rsplit_once("finding:").expect("a finding key").1;
+        let Some(f) = report.findings.iter().find(|f| f.fingerprint.to_string() == fp) else {
+            continue;
+        };
+        let text = messages::render(f, "nl-NL");
+        let leads = text
+            .strip_prefix(f.subject.as_str())
+            .is_some_and(|rest| rest.is_empty() || rest.starts_with(':') || rest.starts_with(' '));
+        let shown = if f.subject.is_empty() || leads {
+            text
+        } else {
+            format!("{}: {text}", f.subject)
+        };
+        rows.push(n.label.clone());
+        expected.push(shown);
+    }
+    assert!(!rows.is_empty());
+    assert_eq!(rows, expected);
+    assert!(
+        report
+            .findings
+            .iter()
+            .any(|f| messages::render(f, "nl-NL") != f.message),
+        "a Dutch message to show"
+    );
+    // The chip of a record with an open finding.
+    let f = report
+        .findings
+        .iter()
+        .find(|f| {
+            f.state == ew_viewmodel::ew_api::checks::FindingState::Open
+                && !f.targets.is_empty()
+                && messages::render(f, "nl-NL") != f.message
+        })
+        .expect("an open finding with a Dutch message on a record");
+    let target = f.targets[0].id;
+    done(
+        &mut shell,
+        "select.set",
+        json!({ "ids": [target.as_uuid().to_string()] }),
+    );
+    let chips: BTreeSet<String> = shell
+        .properties()
+        .sheet()
+        .expect("its sheet")
+        .header
+        .findings
+        .iter()
+        .filter(|c| c.rule == f.rule)
+        .map(|c| c.message.clone())
+        .collect();
+    let dutch: BTreeSet<String> = report
+        .findings
+        .iter()
+        .filter(|g| {
+            g.rule == f.rule
+                && g.state == ew_viewmodel::ew_api::checks::FindingState::Open
+                && g.targets.iter().any(|t| t.id == target)
+        })
+        .map(|g| messages::render(g, "nl-NL"))
+        .collect();
+    assert_eq!(chips, dutch);
+    shell.shutdown();
+}
+
+/// The value text and the JSON of row `key` of the window's property sheet.
+fn row_value(shell: &ShellModel, key: &str) -> (String, serde_json::Value) {
+    let sheet = shell.properties().sheet().expect("a sheet");
+    let row = sheet
+        .sections
+        .iter()
+        .flat_map(|s| &s.rows)
+        .find(|r| r.key == key)
+        .unwrap_or_else(|| panic!("no row {key}"));
+    let json = match &row.value {
+        ew_viewmodel::properties::RowValue::One { json, .. } => json.clone(),
+        other => panic!("{key}: {other:?}"),
+    };
+    (ew_viewmodel::properties::value_text(row), json)
+}
+
+/// FT-1287 (ID-1315 ruling 3): a generated page's Properties show its Kind and its row source in words, in en-GB and
+/// nl-NL, never the JSON; the JSON values stay.
+#[test]
+fn ft1287_a_generated_page_shows_its_kind_and_source_in_words() {
+    let tmp = Tmp::new("ft1287");
+    let mut shell = tmp.shell("2");
+    let mut said = Vec::new();
+    for lang in ["en", "nl"] {
+        done(&mut shell, "view.language", json!({ "value": lang }));
+        let (kind, kind_json) = row_value(&shell, "report_block/derived.kind");
+        let (source, source_json) = row_value(&shell, "report_block/source");
+        assert_eq!(
+            (kind_json, source_json),
+            (json!("report"), json!({"kind": "toc"}))
+        );
+        let sheet = shell.properties().sheet().expect("a sheet");
+        let labels: Vec<String> = sheet
+            .sections
+            .iter()
+            .flat_map(|s| s.rows.iter().map(move |r| (s, r)))
+            .filter(|(_, r)| r.key == "report_block/derived.kind" || r.key == "report_block/source")
+            .map(|(s, r)| ew_viewmodel::properties::row_label(s, r))
+            .collect();
+        said.push((labels, kind, source));
+    }
+    assert_eq!(
+        said,
+        [
+            (
+                vec!["Kind".to_owned(), "Source".to_owned()],
+                "Report".to_owned(),
+                "Table of contents".to_owned()
+            ),
+            (
+                vec!["Soort".to_owned(), "Bron".to_owned()],
+                "Rapport".to_owned(),
+                "Inhoudsopgave".to_owned()
+            ),
+        ]
+    );
+    shell.shutdown();
+}
+
+/// FT-1258 and FT-1240 (ID-1315): an enumerated row shows its value and its choices in the UI language's words, takes
+/// a word typed in them, and refuses another word naming the choices in words, in en-GB and nl-NL.
+#[test]
+fn ft1258_an_enumerated_row_reads_and_takes_its_words() {
+    let tmp = Tmp::new("ft1258");
+    let mut shell = tmp.shell_in(Mode::Headless, true, "101");
+    done(&mut shell, "select.set", json!({"refs": ["tag:-101F1"]}));
+    done(
+        &mut shell,
+        "props.set",
+        json!({"row": "device/state", "value": "Spare"}),
+    );
+    assert_eq!(
+        row_value(&shell, "device/state"),
+        ("Spare".to_owned(), json!("spare"))
+    );
+    let refusal = |shell: &mut ShellModel| match shell
+        .dispatch("props.set", &json!({"row": "device/state", "value": "xx"}))
+    {
+        ew_viewmodel::shell::Outcome::Failed { message } => message,
+        other => panic!("{other:?}"),
+    };
+    assert_eq!(
+        refusal(&mut shell),
+        "\"xx\" is not one of the choices: Used, Spare, Reserved, Not fitted."
+    );
+    done(&mut shell, "view.language", json!({"value": "nl"}));
+    assert_eq!(
+        row_value(&shell, "device/state"),
+        ("Reserve".to_owned(), json!("spare"))
+    );
+    done(&mut shell, "props.edit", json!({"row": "device/state"}));
+    let options: Vec<String> = shell
+        .properties()
+        .choices()
+        .expect("the combo's options")
+        .items
+        .iter()
+        .map(|(t, _)| t.clone())
+        .collect();
+    assert_eq!(options, ["Gebruikt", "Reserve", "Gereserveerd", "Niet geplaatst"]);
+    done(&mut shell, "props.cancel", json!({}));
+    assert_eq!(
+        refusal(&mut shell),
+        "\"xx\" is geen van de keuzes: Gebruikt, Reserve, Gereserveerd, Niet geplaatst."
+    );
+    done(
+        &mut shell,
+        "props.set",
+        json!({"row": "device/state", "value": "gereserveerd"}),
+    );
+    assert_eq!(
+        row_value(&shell, "device/state"),
+        ("Gereserveerd".to_owned(), json!("reserved"))
+    );
+    shell.shutdown();
+}

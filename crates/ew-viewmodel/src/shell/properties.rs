@@ -356,6 +356,25 @@ impl ShellModel {
         let mut sheet = p.session.property_sheet(&uuids);
         sheet.read_only = self.read_only_reason().map(str::to_owned);
         crate::properties::grid_in_words(&mut sheet);
+        crate::properties::enums_in_words(&mut sheet);
+        crate::properties::report_source_in_words(&mut sheet);
+        // FT-1162 (ID-1219 ruling 6): the header's finding chips in the UI language, as the Messages detail renders
+        // them, for the online report's finding of the chip's rule and message.
+        let lang = strings::rule_language();
+        if lang != "en-GB" && !sheet.header.findings.is_empty() {
+            let report = p
+                .session
+                .check(p.session.online_scheme(), ew_api::checks::CheckMode::Online);
+            for chip in &mut sheet.header.findings {
+                if let Some(f) = report
+                    .findings
+                    .iter()
+                    .find(|f| f.rule == chip.rule && f.message == chip.message)
+                {
+                    chip.message = ew_api::checks::messages::render(f, lang);
+                }
+            }
+        }
         // A read-only project's rows offer nothing (§6.3, §6.8).
         if sheet.read_only.is_some() {
             for s in &mut sheet.sections {
@@ -737,6 +756,15 @@ impl ShellModel {
                     .map(|o| (o.clone(), Value::String(o.clone())))
                     .collect()
             }
+            // FT-1258: an enumerated row's choices are its words in the UI language, filtered by those words.
+            (_, crate::properties::FieldType::Enum { options }) => {
+                let f = filter.to_lowercase();
+                options
+                    .iter()
+                    .map(|o| (strings::choice_text(o), Value::String(o.clone())))
+                    .filter(|(text, _)| text.to_lowercase().contains(&f))
+                    .collect()
+            }
             _ => p
                 .session
                 .field_choices(&section.kind, &row.path, filter)
@@ -906,9 +934,11 @@ impl ShellModel {
         if row.key == GROUP_ROW {
             return self.commit_group_label(&section, &row, text);
         }
+        // FT-1258: a word of an enumerated row is read back as its stored word.
+        let typed = crate::properties::enum_value_of(&row, text);
         // WP-S4.02 part 4 (ruling 3): a layout row compiles through `Session::layout_edit`.
         if matches!(row.route, crate::properties::EditRoute::Command { .. }) {
-            return self.commit_layout_row(&section, &row, text);
+            return self.commit_layout_row(&section, &row, &typed);
         }
         // WP-S2.18 D3 (FT-628): an existing device's tag proposes Join; the shown tag again builds no command.
         if row.key == TAG_ROW {
@@ -935,7 +965,9 @@ impl ShellModel {
                 reason_key: key!("reason-no-project"),
             };
         };
-        let parsed = project.session.parse_field_input(&section.kind, &row.path, text);
+        let parsed = project
+            .session
+            .parse_field_input(&section.kind, &row.path, &typed);
         let parsed = match (parsed, choice) {
             (Ok(p), _) => p,
             (Err(InputError::Ambiguous { choices }), Some(i)) => match choices.get(i) {
@@ -960,6 +992,11 @@ impl ShellModel {
             }
             (Err(InputError::UnknownPart(typed)), _) => {
                 let message = strings::format(key!("error-no-part"), &[&typed]);
+                self.props.set_error(key.to_owned(), message.clone());
+                return Outcome::Failed { message };
+            }
+            (Err(InputError::NotOneOf { typed, options }), _) => {
+                let message = crate::properties::not_one_of_text(&section.kind, &row.path, &typed, &options);
                 self.props.set_error(key.to_owned(), message.clone());
                 return Outcome::Failed { message };
             }
