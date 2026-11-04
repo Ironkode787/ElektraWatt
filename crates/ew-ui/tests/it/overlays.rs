@@ -181,19 +181,60 @@ fn gate(name: &str, image: &RgbaImage) {
         (image.width, image.height),
         "{name}: size"
     );
-    let differing = blessed
+    let differs: Vec<bool> = blessed
         .pixels
         .as_chunks::<4>()
         .0
         .iter()
         .zip(image.pixels.as_chunks::<4>().0)
-        .filter(|(a, b)| a.iter().zip(b.iter()).any(|(x, y)| x.abs_diff(*y) > 4))
-        .count();
+        .map(|(a, b)| a.iter().zip(b.iter()).any(|(x, y)| x.abs_diff(*y) > 4))
+        .collect();
+    let differing = differs.iter().filter(|d| **d).count();
     let allowed = (image.width as usize * image.height as usize) / 2000;
     assert!(
         differing <= allowed,
         "{name}: {differing} pixels differ (at most {allowed})"
     );
+    if let Some((tx, ty, n)) = crowded_tile(&differs, image.width as usize) {
+        panic!("{name}: {n} pixels differ in the tile at ({tx}, {ty}) (at most {TILE_PIXELS})");
+    }
+}
+
+/// FT-1254: the differing pixels a 32 × 32 tile of a snapshot may hold.
+const TILE_PIXELS: usize = 16;
+
+/// FT-1254: the first 32 × 32 tile (x, y, count) of an image `w` pixels wide that holds more than [`TILE_PIXELS`]
+/// differing pixels: the differences may be scattered edge pixels, never a drawn thing, so a short tag that appears
+/// or goes (59 pixels of "1X1") fails although the whole image allows more.
+fn crowded_tile(differs: &[bool], w: usize) -> Option<(usize, usize, usize)> {
+    let h = differs.len() / w;
+    (0..h).step_by(32).find_map(|ty| {
+        (0..w).step_by(32).find_map(|tx| {
+            let n = (ty..(ty + 32).min(h))
+                .flat_map(|y| (tx..(tx + 32).min(w)).map(move |x| y * w + x))
+                .filter(|i| differs[*i])
+                .count();
+            (n > TILE_PIXELS).then_some((tx, ty, n))
+        })
+    })
+}
+
+/// FT-1254: an 8 × 8 block (a short tag) is a crowded tile, 16 scattered pixels are not.
+#[test]
+fn ov5_a_short_tag_is_a_crowded_tile() {
+    let (w, h) = (640, 700);
+    let mut tag = vec![false; w * h];
+    for y in 100..108 {
+        for x in 200..208 {
+            tag[y * w + x] = true;
+        }
+    }
+    assert_eq!(crowded_tile(&tag, w), Some((192, 96, 64)));
+    let mut scattered = vec![false; w * h];
+    for i in 0..16 {
+        scattered[i * 40 * w + i * 37] = true;
+    }
+    assert_eq!(crowded_tile(&scattered, w), None);
 }
 
 /// OV5 and OV6: folio 101 with a selection (the snapshot probed: the 2-pixel outline in `canvas.selection`, the white
