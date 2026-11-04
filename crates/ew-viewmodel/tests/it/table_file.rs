@@ -748,9 +748,14 @@ fn focus_brings_a_navigator_behind_another_tab_forward() {
         "Terminal strips is behind the Devices tab"
     );
     done(&mut shell, "ui.focus", json!({"area": "commandbar"}));
-    while shell.focused_navigator() != Some(NavKind::Strips) {
+    // FT-1243: F6 from the command bar reaches every open navigator within one step each, Pages included.
+    for _ in 0..=NavKind::ALL.len() {
+        if shell.focused_navigator() == Some(NavKind::Strips) {
+            break;
+        }
         done(&mut shell, "ui.focus_next", json!({}));
     }
+    assert_eq!(shell.focused_navigator(), Some(NavKind::Strips), "F6 reaches Terminal strips");
     assert_eq!(
         shell.layout().shown_in_place_of(strips_pane),
         Some(strips_pane),
