@@ -4164,15 +4164,6 @@ fn run_import_qet(a: &ImportQetArgs) -> i32 {
     code
 }
 
-/// The text of a member value of a re-import row: a text as it is, any other value as JSON, an absent one as `-`.
-fn member_text(v: Option<&serde_json::Value>) -> String {
-    match v {
-        None => "-".to_owned(),
-        Some(serde_json::Value::String(s)) => s.clone(),
-        Some(other) => other.to_string(),
-    }
-}
-
 /// `ew import qet <file> --into <project> [--apply]` (WP-S3.09 D10 to D12): the file re-imported into its earlier
 /// import in the project. Prints T6 when the import is matched by its items, T8 and the rows of the records added,
 /// changed in the source, changed on both sides (each member with this project's and the file's value) and removed
@@ -4185,7 +4176,7 @@ fn run_reimport_qet(
     bytes: Vec<u8>,
     library: &StarterLibrary,
 ) -> i32 {
-    use ew_api::import::ReimportClass as C;
+    use ew_api::import::{ReimportClass as C, member_text};
     let opened = if a.apply {
         let origin = ew_api::Origin::Cli {
             subcommand: "import qet".into(),

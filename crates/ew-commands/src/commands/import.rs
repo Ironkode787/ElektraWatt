@@ -163,13 +163,30 @@ pub fn name_rows(model: &ew_model::Model, rows: &mut [ReimportRow]) {
     }
 }
 
+/// A member value of a re-import row as text: a text as it is, a text in several languages as its texts (`Pumps /
+/// Pompen`), any other value as JSON, an absent one as `-`.
+pub fn member_text(value: Option<&Value>) -> String {
+    match value {
+        None => "-".to_owned(),
+        Some(Value::String(s)) => s.clone(),
+        Some(Value::Object(m)) if !m.is_empty() && m.values().all(Value::is_string) => m
+            .values()
+            .filter_map(Value::as_str)
+            .collect::<Vec<_>>()
+            .join(" / "),
+        Some(other) => other.to_string(),
+    }
+}
+
 /// The value at a dotted path of a JSON object.
 fn at_path<'v>(value: &'v Value, path: &str) -> Option<&'v Value> {
     path.split('.').try_fold(value, |v, k| v.get(k))
 }
 
-/// A run entry of a re-import about `key`.
-fn reimport_entry(code: &str, key: AnyKey, message: String, file: &str) -> ew_schema::RunEntry {
+/// A run entry of a re-import about the record `row`: its item the record in words, so that the finding's subject is
+/// the record.
+fn reimport_entry(code: &str, row: &ReimportRow, message: String, file: &str) -> ew_schema::RunEntry {
+    let key = row.key;
     ew_schema::RunEntry {
         code: code.to_owned(),
         severity: ew_schema::RunSeverity::Warning,
@@ -177,6 +194,7 @@ fn reimport_entry(code: &str, key: AnyKey, message: String, file: &str) -> ew_sc
         message,
         location: Some(ew_schema::RunLocation {
             file: file.to_owned(),
+            item: Some(row.record.clone()),
             ..Default::default()
         }),
         targets: vec![ew_schema::RunTarget {
@@ -335,7 +353,7 @@ pub fn plan_reimport(
         let entry = match row.class {
             ReimportClass::Conflict => reimport_entry(
                 "EW-IMP-011",
-                row.key,
+                row,
                 format!(
                     "{} was changed both in {file} and here; this project's version is kept.",
                     row.record
@@ -344,7 +362,7 @@ pub fn plan_reimport(
             ),
             ReimportClass::Removed => reimport_entry(
                 "EW-IMP-010",
-                row.key,
+                row,
                 format!(
                     "{} was removed in {file}; it is kept here. Delete it if it is no longer needed.",
                     row.record

@@ -731,9 +731,36 @@ impl Session {
             NavKind::Unplaced => unplaced_table(&q, &mut b),
             NavKind::Macros => self.macros_table(&q, &mut b),
             NavKind::Libraries => self.libraries_table(&q, &mut b),
-            NavKind::Messages => self.messages_table(&q, &mut b),
+            NavKind::Messages => {
+                self.messages_table(&q, &mut b, self.online_scheme(), crate::checks::CheckMode::Online);
+            }
         }
         b.finish(kind, rev)
+    }
+
+    /// The Messages table of the migration report (WP-S3.09 D9 d, T11): the tree of [`Session::navigator_table`]'s
+    /// Messages from a run of the `migration` scheme at the release mode, the import runs' findings among the live
+    /// ones.
+    pub fn migration_table(&self) -> NavTable {
+        let rev = self.world().rev.0;
+        let mut b = Builder { nodes: Vec::new() };
+        let q = self.query();
+        self.messages_table(
+            &q,
+            &mut b,
+            &crate::checks::MIGRATION,
+            crate::checks::CheckMode::Release,
+        );
+        b.finish(NavKind::Messages, rev)
+    }
+
+    /// Whether the project holds an import lineage, so that its migration report can be shown (WP-S3.09 D9 d).
+    pub fn has_lineage(&self) -> bool {
+        self.query()
+            .table::<ew_schema::ImportLineage>()
+            .iter()
+            .next()
+            .is_some()
     }
 
     /// The Pages tree as built (WP-S2.03 §6.1, section view): section nodes (front matter first, as the page order
@@ -2941,10 +2968,16 @@ impl Session {
     /// groups in rule-ID order (label `<rule ID> <title>`, badge the number of its findings) → the findings in the
     /// report's order (label `<subject>: <message>`, key `finding:<fingerprint>`), from the online scheme's run. A
     /// node's first natural key is its rank in this order, so that the default label sort shows the provider's order.
-    fn messages_table(&self, q: &Q, b: &mut Builder) {
-        use crate::checks::{self, CheckMode};
+    fn messages_table(
+        &self,
+        q: &Q,
+        b: &mut Builder,
+        scheme: &'static crate::checks::Scheme,
+        mode: crate::checks::CheckMode,
+    ) {
+        use crate::checks;
         // With merge evidence, EW-CORE-013's groups (WP-S1.17 D29).
-        let report = self.check_over(q, self.online_scheme(), CheckMode::Online);
+        let report = self.check_over(q, scheme, mode);
         let folios = folios(q);
         for (severity, label) in SEVERITY_GROUPS {
             let of_severity: Vec<&checks::Finding> = report

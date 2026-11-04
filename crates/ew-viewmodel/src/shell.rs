@@ -1950,6 +1950,8 @@ impl ShellModel {
         // WP-S1.18 part 5 and FT-842: the revision dialogs' state and the release's warnings are the project's.
         self.revision = revision::RevisionState::default();
         self.messages.release_notes = None;
+        // WP-S3.09 D9 d: the migration report is the choice of the project it was made for.
+        self.messages.migration = false;
     }
 
     /// Ends the shell at the end of a run or of the window (also on a log-off): a clean project is closed, a dirty

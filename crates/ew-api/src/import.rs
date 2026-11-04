@@ -595,7 +595,7 @@ pub fn apply_command(
 // -------------------------------------------------------------------------------------------------------------------
 // Re-import into a lineage (WP-S3.09 D10 to D12)
 
-pub use ew_commands::commands::{MemberChange, ReimportClass, ReimportPlan, ReimportRow};
+pub use ew_commands::commands::{MemberChange, ReimportClass, ReimportPlan, ReimportRow, member_text};
 
 /// The lineage of the open project a QET file re-imports into (D10).
 #[derive(Clone, PartialEq, Eq, Debug)]

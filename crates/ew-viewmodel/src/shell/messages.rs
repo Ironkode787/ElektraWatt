@@ -268,7 +268,12 @@ impl ShellModel {
             .as_ref()
             .filter(|(epoch, _)| *epoch == project.epoch)
             .map_or(&[][..], |(_, notes)| notes.as_slice());
-        let mut table = project.session.navigator_table(NavKind::Messages);
+        // WP-S3.09 D9 d: the migration report, while it is the pane's choice and the project has an import.
+        let mut table = if state.migration && project.session.has_lineage() {
+            project.session.migration_table()
+        } else {
+            project.session.navigator_table(NavKind::Messages)
+        };
         super::navigators::table_in_words(&mut table, project);
         messages::with_release_notes(table, notes)
     }
@@ -287,8 +292,50 @@ impl ShellModel {
         if let Some(n) = self.navs.get_mut(&NavKind::Messages) {
             n.table = Some(std::sync::Arc::new(table));
         }
-        self.messages.scheme = Some(project.session.online_scheme().name);
+        self.messages.scheme = Some(if self.messages.migration && project.session.has_lineage() {
+            strings::text(key!("messages-scheme-migration"))
+        } else {
+            project.session.online_scheme().name
+        });
         bump(&self.calls, |c| c.navigator_table += 1);
+    }
+
+    /// The name of the project's own scheme (the online checks'), which the Messages pane shows when it does not show
+    /// the migration report.
+    pub fn messages_project_scheme(&self) -> Option<&'static str> {
+        self.project.as_ref().map(|p| p.session.online_scheme().name)
+    }
+
+    /// Whether the Messages pane offers the migration report beside the project's scheme (WP-S3.09 D9 d): the project
+    /// holds an import.
+    pub fn messages_offers_migration(&self) -> bool {
+        self.project.as_ref().is_some_and(|p| p.session.has_lineage())
+    }
+
+    /// Whether the Messages pane shows the migration report.
+    pub fn messages_shows_migration(&self) -> bool {
+        self.messages.migration && self.messages_offers_migration()
+    }
+
+    /// `messages.migration {on?}` (WP-S3.09 D9 d, T11): the Messages pane shows the migration report (a run of the
+    /// `migration` scheme, the import runs' findings among the live ones) instead of the project's scheme, or (`on:
+    /// false`) the project's scheme again; without `on` it switches. Refused when the project holds no import.
+    pub(crate) fn act_messages_migration(&mut self, p: &Map<String, Value>) -> Outcome {
+        if !self.messages_offers_migration() {
+            return Outcome::Refused {
+                reason_key: key!("reason-no-lineage"),
+            };
+        }
+        let on = match super::jobs::bool_param(p, "on", !self.messages.migration) {
+            Ok(on) => on,
+            Err(e) => return e,
+        };
+        self.messages.migration = on;
+        if let Some(n) = self.navs.get_mut(&NavKind::Messages) {
+            n.table = None;
+        }
+        self.fetch_messages_table();
+        Outcome::Done
     }
 
     /// `messages.show {on?}` (View ▸ Messages): `navigator.show` with the kind `messages` (the pane in the bottom

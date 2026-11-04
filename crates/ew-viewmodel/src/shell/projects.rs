@@ -370,12 +370,20 @@ impl ShellModel {
             };
         };
         self.close_project();
-        self.create_and_install(
+        let outcome = self.create_and_install(
             pending.session,
             &pending.dir,
             key!("error-import-write"),
             Some(pending.banner),
-        )
+        );
+        // D8: the new project opens on its migration report in Messages.
+        if outcome == Outcome::Done {
+            let mut on = Map::new();
+            on.insert("on".into(), Value::from(true));
+            let _ = self.act_messages_show(&on);
+            let _ = self.act_messages_migration(&on);
+        }
+        outcome
     }
 
     /// The starter library an import resolves its built-in keys in, and the banner's note when there is none.
@@ -472,11 +480,7 @@ impl ShellModel {
                 &n(ReimportClass::Unchanged),
             ],
         );
-        let value = |v: Option<&Value>| match v {
-            None => "-".to_owned(),
-            Some(Value::String(s)) => s.clone(),
-            Some(other) => other.to_string(),
-        };
+        let value = ew_api::import::member_text;
         let mut rows = Vec::new();
         for row in &reimport.plan.rows {
             let key = match row.class {

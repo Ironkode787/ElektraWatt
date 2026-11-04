@@ -74,6 +74,7 @@ rail.show View "Show navigator" menu none shortcut none context global hidden pa
 jobs.show View "Jobs" menu "Output" shortcut none context global params "on?:bool"
 lists.parts View "Open parts list" menu "Output" shortcut none context global params ""
 notifications.show View "Notifications" menu "View" shortcut none context global params "on?:bool"
+messages.migration View "Migration report" menu none shortcut none context global hidden params "on?:bool"
 messages.show View "Messages" menu "Check" shortcut none context global params "on?:bool"
 messages.next View "Next finding" menu "Check" shortcut "F8" context global params ""
 messages.previous View "Previous finding" menu "Check" shortcut "Shift+F8" context global params ""

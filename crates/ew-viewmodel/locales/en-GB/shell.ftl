@@ -3656,3 +3656,8 @@ reimport-row-removed = Removed in the source, kept: { $p0 }
 reimport-row-member = { $p0 }: here { $p1 }, in { $p2 } { $p3 }
 banner-reimported = Re-imported { $p0 }.
 reason-no-reimport = No re-import is waiting to be applied
+
+# WP-S3.09 D9 d: the Messages pane's migration report (T11) beside the project's scheme.
+action-messages-migration = Migration report
+messages-scheme-migration = Migration report
+reason-no-lineage = The project holds no import

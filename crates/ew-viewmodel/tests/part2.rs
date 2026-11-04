@@ -299,7 +299,23 @@ fn a_qelectrotech_project_is_imported_into_a_new_directory() {
     let banner = shell.banner().unwrap_or_default().to_owned();
     assert!(banner.contains("Imported example.qet: 1 pages"), "{banner}");
     assert!(dir.join("manifest.json").is_file());
+    // WP-S3.09 D8, D9 d (T11): the new project opens on its migration report in Messages, a choice beside the
+    // project's scheme.
+    assert!(shell.messages_shows_migration());
+    assert_eq!(shell.messages_scheme(), Some("Migration report"));
+    done(&mut shell, "messages.migration", json!({ "on": false }));
+    assert_eq!(shell.messages_scheme(), shell.messages_project_scheme());
+    done(&mut shell, "messages.migration", json!({}));
+    assert_eq!(shell.messages_scheme(), Some("Migration report"));
     shell.shutdown();
+    let mut plain = tmp.shell();
+    done(&mut plain, "file.new", json!({ "dir": path(&tmp.0.join("new.ew")) }));
+    assert!(!plain.messages_offers_migration());
+    match run(&mut plain, "messages.migration", json!({})) {
+        Outcome::Refused { reason_key } => assert_eq!(reason_key, key!("reason-no-lineage")),
+        other => panic!("{other:?}"),
+    }
+    plain.shutdown();
 }
 
 /// WP-S3.09 IC-13 (D10 to D12): a changed file without a project UUID asks T6; the re-import card shows T8 and its
@@ -338,7 +354,9 @@ fn a_qelectrotech_file_is_re_imported_into_the_open_project() {
     assert_eq!(spec.title, "Re-import example.qet");
     assert_eq!(
         spec.body,
-        ["Re-import of example.qet: 0 added, 1 changed in the source, 0 kept with your changes, 0 changed on both sides and kept, 0 removed in the source and kept, 0 unchanged."]
+        [
+            "Re-import of example.qet: 0 added, 1 changed in the source, 0 kept with your changes, 0 changed on both sides and kept, 0 removed in the source and kept, 0 unchanged."
+        ]
     );
     let Some(ew_viewmodel::shell::Dialog::Reimport { rows, .. }) = shell.dialog() else {
         panic!("the re-import card");

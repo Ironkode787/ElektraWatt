@@ -38,6 +38,8 @@ pub struct MessagesState {
     pub(crate) editing_page: Option<(u64, PageId)>,
     /// The name of the scheme the table was built with, read with the table (once per revision while the pane is open).
     pub(crate) scheme: Option<&'static str>,
+    /// Whether the pane shows the migration report instead of the project's scheme (WP-S3.09 D9 d).
+    pub(crate) migration: bool,
     /// The origin annotations of the commits made through a quick fix, by (project session, revision): `quick fix
     /// <rule ID>` for the history panel (§7.4, §8.4).
     pub(crate) annotations: BTreeMap<(u64, u64), String>,

@@ -2057,6 +2057,19 @@ pub static ACTIONS: &[ActionMeta] = &[
             ),
         ),
     )),
+    // WP-S3.09 D9 d (T11): the Messages pane's choice of the migration report beside the project's scheme.
+    with_params(
+        "on?:bool",
+        hidden(act(
+            "messages.migration",
+            View,
+            Menu::Check,
+            &[],
+            project_open,
+            None,
+            |s, p| s.act_messages_migration(p),
+        )),
+    ),
     // WP-S2.09 part 2 (§7.6): View ▸ Messages, F8 and Shift+F8, the quick fix of a finding row.
     with_params(
         "on?:bool",
@@ -5638,6 +5651,8 @@ pub(crate) fn item_of(meta: &ActionMeta, model: &ShellModel) -> ActionItem {
             "notifications.show" => model.notifications().popup_open(),
             // WP-S2.09 part 2.
             "messages.show" => model.navigator_open(crate::navigators::NavKind::Messages),
+            // WP-S3.09 D9 d.
+            "messages.migration" => model.messages_shows_migration(),
             // WP-S2.09 part 3.
             "history.show" => model.history_shown(),
             "preview.show" => model.preview_shown(),

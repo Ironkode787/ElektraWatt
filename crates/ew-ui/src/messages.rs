@@ -305,7 +305,26 @@ pub(crate) fn header(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                 ui.painter().galley(rect.min, galley, colour.color32());
                 response
             };
-            small(ui, scheme, t.text_secondary);
+            // WP-S3.09 D9 d (T11): a project with an import offers its migration report beside its scheme.
+            if shell.messages_offers_migration() {
+                let migration = shell.messages_shows_migration();
+                let choices = [
+                    (
+                        shell.messages_project_scheme().unwrap_or_default(),
+                        !migration,
+                        false,
+                    ),
+                    (strings::text(key!("messages-scheme-migration")), migration, true),
+                ];
+                for (label, chosen, on) in choices {
+                    let text = RichText::new(label).font(theme::font(&t.type_small));
+                    if ui.selectable_label(chosen, text).clicked() && !chosen {
+                        events.push(Event::Action("messages.migration", json!({ "on": on })));
+                    }
+                }
+            } else {
+                small(ui, scheme, t.text_secondary);
+            }
             count_badge(ui, &t, "error", c.errors);
             count_badge(ui, &t, "warning", c.warnings);
             count_badge(ui, &t, "info", c.infos);
