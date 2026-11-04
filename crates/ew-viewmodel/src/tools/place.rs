@@ -499,11 +499,24 @@ impl PlaceTool {
             return text;
         }
         let (_, _, mut target) = self.effective_target(cx, pos);
-        if let Some(tag) = &self.tag {
+        // C50-p1#3: a terminal's target already names its strip and designation, so its predicted tag is not added.
+        if let Some(tag) = self.tag.as_ref().filter(|_| !self.is_terminal()) {
             target.push(' ');
             target.push_str(tag);
         }
         self.with_variant(&target)
+    }
+
+    /// Whether the target is a terminal on a strip.
+    fn is_terminal(&self) -> bool {
+        matches!(self.target, PlaceTarget::Terminal { .. })
+    }
+
+    /// FT-1297: the overlay at the current point again, in the language now set (View ▸ Language), the predicted tag
+    /// kept; `None` before the first point.
+    pub(crate) fn relabel(&mut self, cx: &ToolCx<'_>) -> Option<ToolOutput> {
+        self.at?;
+        Some(self.transient(cx))
     }
 
     /// `target` after the variant letter, which stands apart from the sentence ("Variant A · …", W49.3b-F7).
@@ -850,6 +863,10 @@ impl Tool for PlaceTool {
             if let OverlayItem::Label { text, .. } = item {
                 if let Some(whole) = &whole {
                     text.clone_from(whole);
+                    continue;
+                }
+                // C50-p1#3: a terminal's label names its tag already.
+                if self.is_terminal() {
                     continue;
                 }
                 for known in self.tag.iter().chain(std::iter::once(&tag)) {

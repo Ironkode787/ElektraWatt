@@ -167,6 +167,25 @@ impl ShellModel {
         out
     }
 
+    /// A printed tag of device `device` as the window shows it (FT-1285): a strip's tag not derived yet in words
+    /// ([`crate::navigators::strip_label`]), any other tag (an unnumbered device's `-?K?` too) as it is.
+    pub fn device_tag_label(&self, device: Uuid, tag: &str) -> String {
+        let strip = self.project.as_ref().is_some_and(|project| {
+            let q = project.session.query();
+            device
+                .to_string()
+                .parse()
+                .ok()
+                .and_then(|id| q.devices().get(id))
+                .is_some_and(|d| d.aspects.strip.is_some())
+        });
+        if strip {
+            crate::navigators::strip_label(tag)
+        } else {
+            tag.to_owned()
+        }
+    }
+
     /// The strip of a device: itself when it is a strip, its strip when it is a terminal.
     fn strip_of_device(&self, d: Uuid) -> Option<Uuid> {
         let project = self.project.as_ref()?;

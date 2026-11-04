@@ -578,6 +578,13 @@ fn the_place_label_names_a_strip_without_a_tag_in_words() {
                 .map(|n| n.label.clone())
         })
         .expect("the new strip");
+    // FT-1285: the preview chip's "before" of the strip reads in words; a device's "?" stays as it is.
+    let strip_id = s
+        .nav(ew_viewmodel::navigators::NavKind::Strips)
+        .and_then(|n| n.table())
+        .and_then(|t| t.nodes.iter().find(|n| n.label == tag).and_then(|n| n.records.first().copied()))
+        .expect("the strip's record");
+    assert_eq!(s.device_tag_label(strip_id, &tag), "New terminal strip · no tag yet");
     done(
         &mut s,
         "place.pick",
@@ -618,6 +625,16 @@ fn the_place_label_names_a_strip_without_a_tag_in_words() {
         "{nl:?}"
     );
     done(&mut s, "view.language", json!({"value": "en"}));
+    // FT-1285: a device that is no strip keeps its "?" as it is (folio 101's relay).
+    done(&mut s, "tool.select", json!({}));
+    done(&mut s, "page.goto", json!({"folio": "101"}));
+    let device = tables(&s)
+        .reps
+        .iter()
+        .filter(|r| !r.terminal)
+        .find_map(|r| r.device)
+        .expect("a device on 101");
+    assert_eq!(s.device_tag_label(device, "-?K?"), "-?K?");
 }
 
 #[test]
@@ -645,6 +662,14 @@ fn a_terminal_joins_strip_x1031_with_its_tag_predicted_and_the_designation_advan
     done(&mut s, "canvas.dwell", json!({"ms": 80}));
     assert_eq!(state(&s)["canvas"]["preview"]["state"], "ready");
     assert!(ghost(&s)["tag"].is_string(), "{g}");
+    // C50-p1#3: the whole label after the preview, the terminal's tag not added to it.
+    let labels: Vec<String> = s.tool_overlay().labels().map(|l| l.to_string()).collect();
+    assert_eq!(labels, ["Variant A · terminal 30 on -X1031"]);
+    // FT-1297: View ▸ Language relabels it at once, before the pointer moves.
+    done(&mut s, "view.language", json!({"value": "nl"}));
+    let labels: Vec<String> = s.tool_overlay().labels().map(|l| l.to_string()).collect();
+    assert_eq!(labels, ["Variant A · klem 30 op -X1031"]);
+    done(&mut s, "view.language", json!({"value": "en"}));
     let before = tables(&s).reps.len();
     // Enter at the grid cursor on the same point.
     let here = sheet(&s, p);

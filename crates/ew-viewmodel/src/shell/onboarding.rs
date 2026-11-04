@@ -52,6 +52,15 @@ impl ShellModel {
                 self.settings.language = choice(&tags)?;
                 strings::set_locale(&self.settings.language);
                 self.refetch_for_language();
+                // FT-1297: the Place tool's label in the new language at once, not at the pointer's next move.
+                let relabelled = self.with_tool(|t, cx| {
+                    t.as_any_mut()
+                        .and_then(|a| a.downcast_mut::<crate::tools::PlaceTool>())
+                        .and_then(|p| p.relabel(cx))
+                });
+                if let Some(Some(crate::tools::ToolOutput::Transient(o))) = relabelled {
+                    self.tools.overlay = o;
+                }
             }
             "keymap" => self.settings.keymap = choice(&KEYMAPS)?,
             "theme" => self.settings.theme = choice(&THEMES)?,

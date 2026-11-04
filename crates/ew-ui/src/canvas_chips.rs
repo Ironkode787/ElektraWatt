@@ -328,8 +328,10 @@ fn preview(
             .map(|r| r.tag_at.map_or(r.body, |t| [t.0, t.1, t.0, t.1]))
             .or(floating)
             .map(corner_of);
+        // FT-1285: a strip without a tag yet reads in words, never as "-?X?".
+        let before = shell.device_tag_label(id, &c.before);
         texts.push((
-            strings::format(key!("preview-chip-change"), &[&c.before, &c.after]),
+            strings::format(key!("preview-chip-change"), &[&before, &c.after]),
             at,
         ));
     }

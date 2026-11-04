@@ -91,13 +91,15 @@ fn pl6_a_terminal_joins_x1031_from_the_keyboard_with_the_predicted_tag_after_the
         panic!("no predicted tag after the rest");
     };
     assert!(h.state().shell().session_calls().preview_with >= 1);
+    assert_eq!(tag, "-X1031:30");
+    // C50-p1#3 (ID-1315): the label names the terminal's strip and designation, its predicted tag not added again.
     assert!(
         h.state()
             .shell()
             .tool_overlay()
             .labels()
-            .any(|l| l.contains(&tag)),
-        "the ghost's label shows {tag}"
+            .any(|l| l == "Variant A · terminal 30 on -X1031"),
+        "the ghost's label names {tag}"
     );
     assert!(
         support::hud_value(&h).contains("-X1031:30"),
