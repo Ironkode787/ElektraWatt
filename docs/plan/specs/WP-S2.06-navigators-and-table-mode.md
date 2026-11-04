@@ -535,7 +535,9 @@ actions and 291 describe words. Built as §7 says, with these points:
   with either end on it; the bond row and group rows cannot be highlighted; `Net(first record)` takes the smallest
   UUID. Highlights are painted above the overlays and below the statistics panel and the preview chips. Slots 0 and 1
   were below 3:1 on white; FT-506 (cycle 31) gave them dark orange #A86F00 and reddish purple #CC79A7, doc 16 §10.3's
-  colours, with the hatch angles kept.
+  colours, with the hatch angles kept. *Amended (cycle 49, ID-1277, ID-1296):* slot 0 (the first slot) is violet
+  #9878FC from WP-S2.08 part 5b on, because dark orange #A86F00 met vermillion for protanopes (ΔE00 0.74); the other slots,
+  the order and the hatch angles stay.
 - **Actions and words.** `navigator.highlight` (`kind?`, `key?`, `off?`; Ctrl+Shift+H; in the navigator) and
   `view.clear_highlights` (View menu, disabled without highlights); strings `reason-no-highlights` and
   `error-highlight-row`; the six words of §7.4.

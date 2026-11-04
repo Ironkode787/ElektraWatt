@@ -330,6 +330,9 @@ blue, and the CVD renders of NFR-A11Y-03 are re-run with the new value. **Highli
 their slot's hue (`radius.sm`, 20 px high), as in the mockup; their label is black, because white on the four hues
 is 3.87, 3.42, 3.06 and 4.25:1, under NFR-A11Y-04's 4.5:1 for text (one of the two corrections of §11).
 
+*Amended (cycle 49; decision log ID-1277, ID-1296).* With slot 1 violet, white on the four hues in slot order is 3.27,
+3.06, 3.42 and 3.87:1, so the label stays black (the table's 6.43, 6.86, 6.14 and 5.43).
+
 *As built (cycle 38; decision log ID-872, ID-876).* The open-CP squares are a session overlay, never in the display list, print or PDF. On paper, a black box's pins print their CP designations as stored, with the PLC address after one space when the CP is bound ("1 I0.0"); pin texts never move, and a cross-reference that would overlap one drops below it (FT-707).
 
 ### 4.7 High-contrast themes
@@ -361,6 +364,11 @@ do not jitter; no monospace face is needed.
 
 At most three sizes in one panel (NN/g). Sizes scale with the UI scale (100 % to 300 %); `type.caption` at 11 px is
 the floor and the configurable minimum font size (FR-UI-027) raises every token proportionally.
+
+*As built (cycle 49, WP-S2.08 part 5; decision log ID-1272, ID-1295).* **The minimum text size raises each token below it
+to the minimum**, not every token proportionally, as platforms' minimum font sizes do; the UI scale is the proportional
+control. View ▸ Minimum text size offers Off, 12, 14 and 16; its "pt" is this table's px at 100 %. At 16 `type.title` and
+`type.body` share a size and differ by weight, which is accepted for a minimum.
 
 ### 4.9 Spacing and sizes
 
@@ -896,6 +904,11 @@ its connection grid is an Advanced row (FT-1019). The editor's text is centred a
 opens under the value cell (FT-1036) and not at all when nothing matches (FT-1035); Home, End and the arrows scroll the
 cursor row into view (FT-1037). A pre-filled form or dialog field selects its text when it takes the focus (FT-1021).
 
+*As built (cycle 49, WP-S2.08 part 5b; decision log ID-1296).* **A cut text and its tooltip:** a list whose rows may be
+cut (the find results, the symbol picker) shows each row's whole line as a tooltip on every row, cut or not, so the
+pointer reads any row the same way; a single cut label (a property label, the part dialog's fields) shows its tooltip
+only when it is cut.
+
 ### 6.9 Cards
 
 A card is a bounded panel inside a pane for one object that waits for a decision (the preview card of WP-S2.05 and
@@ -931,6 +944,10 @@ its 8 s, all on the window's frame clock; then it leaves. Hovering a toast still
 while the pointer is on it, once the pointer has moved onto it (FT-1088, ID-1183): a toast that appears under a pointer at rest
 fades on time, and a toast already paused stays paused while the pointer is still.
 
+*As built (cycle 49; decision log ID-1300, ID-1303).* **Tips** (WP-S2.08 D17) are toasts with the info icon, whatever
+their action (beside ID-750's rule), and the key `tip`. A toast with two actions (Undo and Show changes after an
+external change) shows them on one row while they fit.
+
 ### 6.11 Banners
 
 A banner is for a state of the whole project (read-only, recovery pending, integrity findings, GPU fallback): full
@@ -939,6 +956,11 @@ Primary action and at most one Subtle action, a close button when it may be dism
 state queues behind it with a count ("1 more").
 
 *As built (cycle 40, FT-822).* The banner lies over the content as an overlay rather than taking a band of its own: along the top edge of the canvas below the page tabs when a page view is shown (full width of the page view), else under the command bar; the toasts start below it. Showing or dismissing it never moves the canvas or a panel (the cycle-39 play-test's clicks missed when it pushed the window down). A refused canvas click (an interruption point that EW-CORE-052's prevent mode refuses) is no project state: it says why in the HUD and a toast, not in the banner. *As built (cycle 40, lane H40; ID-934):* the refusal is said once, in words, with the source's page and the way out ("Not placed: 0V already has a source on page 101. Press D for a target, or mark one source as the star."): no canvas-top preview strip, the HUD and a toast carry it, and Messages keeps the rule's code.
+
+*As built (cycle 49, WP-S1.17 part 7; decision log ID-1303).* **A state banner stays while its state holds:** the
+held-saves banner (an external change with collisions waiting) and the cloud-folder banner are kept through every
+action until the state ends. The held-saves banner's Primary, "Choose…", reopens the collision dialog, and it has no
+Dismiss, since the saves stay held.
 
 ### 6.12 Dialogs
 
@@ -953,6 +975,17 @@ the Primary unless it is destructive. No close cross: Cancel is the way out.
 *As built (cycle 32; decision log ID-750).* Every dialog is drawn modal over the `color.backdrop` scrim. **In a confirmation of a destructive step (journal discard, purge) Cancel is the Primary**, so Enter keeps the data; the step is the danger button, and the Primary is drawn as a Secondary beside it. The button order on Linux and macOS has no test yet (FT-534).
 
 *As built (cycle 34; FT-557, FT-558, FT-566).* **`color.backdrop` is per theme:** light and high-contrast light `slate-900` at 24 % (#1A1D213D), dark and high-contrast dark black at 40 % (#00000066, the alpha of the dark `elevation.1` shadow). The scrim always covered the whole window; at slate-900 over a slate-900 chrome it dimmed nothing outside the canvas in dark, and now the command bar, rail, navigator, Properties and status bar are visibly darker under a dialog in every theme (a pixel test asserts it in light and dark). **Form dialogs** lay their rows out on one fixed label column, `size.dialog.label` (160 px) then `space.3`, so the field edges line up from dialog to dialog; the fields fill the body at `size.control` height and carry no placeholder that repeats their label; a choice field shows the display words of §8 ("Multi-line", "Location", "Page-based", "User-defined") while the action receives the raw value, and a yes-or-no field is a check box named by its label. The text caret is 1 px (`border.width`).
+
+*As built (cycle 49; decision log ID-1296, ID-1301, ID-1303).* **First focus:** a form dialog's first focus is its first
+text field, else its Primary, never a check box, with the focus ring shown; every other dialog takes its first focus on
+its Primary on every opening, a reopening by a poll included (a dialog of another kind than the last frame's is a new
+one), and in a destructive confirmation the Primary is Cancel (ID-750), so the journal-discard dialog opens on Cancel.
+A form whose Primary is disabled at open takes no first focus (FT-1284). **Enter on a focused check box does nothing;
+Space toggles it** ("Enter runs the Primary" gives way there, so Enter never submits a form by accident). **Ctrl+Enter**
+submits a form from any focus; with a disabled Primary its action refuses in its tooltip's words, and a refused submit
+shows its reason inside the form, which stays open (its next step is FT-1256). **A save refused for held collisions
+opens the collision dialog again**: the save is the user's own request and the dialog is the way out, while no poll
+reopens it after Decide later.
 
 ### 6.13 Menus and context menus
 

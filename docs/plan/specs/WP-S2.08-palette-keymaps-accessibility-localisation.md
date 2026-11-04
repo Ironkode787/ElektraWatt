@@ -8,7 +8,9 @@ D15), part 6 the glossary panel, tips and the wire-colour view (0.4 pw, D16 to D
 after it in any order or side by side; part 4 after part 3; part 6 last · **Part 1 built in cycle 39** (lane K39, decision log ID-907; PL-1 to PL-7; enabled entries before disabled ones ahead of D2's rank; the glossary file with 17 terms; O1 open, so D2's code-point order stays) · **Part 2 built in cycle 40** (lane D40, decision log ID-923; KM-1, KM-2, KM-3, KM-5 and KM-6 met, KM-4 in part with the orchestrator's ruling on the needs-Shift bindings; the editor is Help ▸ Keyboard shortcuts as D8 says; D7's waiting bindings stay FT-813) · **Part 2 complete in cycle 40** (lane H40, decision log ID-934): KM-4 met by the ruling recorded in D8 (`Ctrl+phys:Digit0`; a covered needs-Shift binding is an info), `PENDING_D8` empty; the editor's Changed state against the preset, the Menu-key note only while recording; the editor shows conflicts only, so the infos are not shown (FT-846) · **As built, cycle-40 design pass, part 3** (FIX40d, decision log ID-939): D8's key display and refused-file handling (key caps in every keymap text, the refused file copied aside once) · **Part 3 built in cycle 48** (lane L48,
 decision log ID-1219 at dispatch, ID-1226 for the review's fixes, ID-1234 as built; the shell's texts in
 `locales/en-GB/shell.ftl`, View ▸ Language, en-XA, `check-ui-strings`; the Messages rows and chip wait for part 4,
-FT-1162) · **Date:** 2026-10-30 · **Work package:**
+FT-1162) · **Complete in cycle 49** (parts 4 to 6; ID-1269, ID-1272, ID-1276, ID-1278 and ID-1286 at dispatch, ID-1277
+for slot 1's hue; as built ID-1291 (NL49), ID-1295 (AX49a), ID-1296 (AX49b), ID-1297 (NLFIX49), ID-1300 (GT49) and
+ID-1301 (FIXW49, FIXW49b); every acceptance row met; the as-built notes in §8 to §10) · **Date:** 2026-10-30 · **Work package:**
 [WP-S2.08](../02-work-packages.md#wp-s208-command-palette-keymaps-accessibility-and-ui-localisation) · **Decision
 log:** ID-895 · **Part of:** ElektraWatt plan, specifications
 
@@ -100,7 +102,7 @@ The lanes rely on exactly these items. If one differs, the lane stops and report
 | The accessible-name walker `assert_named` (every reachable node named; splitters counted), run by the kittest flows | `crates/ew-ui/tests/support/mod.rs` | Part 5 adds `assert_fits` |
 | The canvas node, its polite live region with the cursor, the tool hint and `<n> selected` (`announce-selected`) | `crates/ew-ui/src/canvas.rs`, `crates/ew-viewmodel/src/strings.rs` | Part 5 |
 | The main window at 300 % as a gated offscreen snapshot (`the_main_window_at_300_percent_for_review`, ppp 3.0, the system's scale); `ui_scale` stops at 200 % | `crates/ew-ui/tests/snapshots.rs` | Part 5 |
-| The highlight slots `SLOT_COLOURS` (#A86F00, #CC79A7, #009E73, #D55E00, each ≥ 3:1 on white) with hatches at 45°, 135°, 0° and 90° | `crates/ew-viewmodel/src/highlight.rs`, `crates/ew-ui/tests/overlays.rs` | Part 5's colour-vision test |
+| The highlight slots `SLOT_COLOURS` (#A86F00, #CC79A7, #009E73, #D55E00, each ≥ 3:1 on white) with hatches at 45°, 135°, 0° and 90° | `crates/ew-viewmodel/src/highlight.rs`, `crates/ew-ui/tests/overlays.rs` | Part 5's colour-vision test. *Amended (cycle 49, ID-1277, ID-1296):* slot 1 is violet #9878FC since part 5b, the other slots unchanged |
 | `Session::find`, `Session::page_rows`, `Session::resolve_goto`, the hidden `select.set`, `navigator.filter`, `messages.show` | `crates/ew-api/src/output/find.rs`, `navigation.rs`; `crates/ew-viewmodel/src/actions.rs` | Part 1's prefixes |
 | The headless mode's transcripts and `ui.describe`, byte-equal per script (ID-474) | `crates/ew-viewmodel/`, `crates/ew-ui/src/headless.rs` | Every part keeps them equal in English |
 
@@ -300,6 +302,14 @@ alternatives do not). **NL-3** The first-run flow, the five core tasks and Setti
 and 200 %. **NL-4** The owner's read-through of the core flows in Dutch is a window-check item of the cycle that
 delivers this part (not a lane item).
 
+*As built (cycle 49, NL49 and NLFIX49; decision log ID-1269, ID-1278, ID-1291, ID-1297):* NL-1 to NL-3 are met and NL-4
+was the window check W49.1's item, the owner adopting seven wordings ("Adopt all"). nl-NL holds every key; `LANGUAGES`
+is `["en", "nl"]`, and an unknown stored language loads as English. NL-1 reads `$pN` anywhere in a text, so the Dutch
+`preview-chip` can take the Fluent function `IN_SENTENCE`; NL-2 matches a term by its stem, or by the whole term when the
+stem is shorter than four letters, over the shell's and the checks' Dutch messages, arms and attributes included (its
+per-key check is FT-1238). Texts built in `ew-api` stay en-GB (ID-1269 ruling 6): FT-1162, FT-1237, FT-1258, FT-1264,
+FT-1265, FT-1289.
+
 ## 9. Part 5: accessibility and scaling
 
 **Scope.** D13 to D15, FT-433. **0.4 pw.**
@@ -318,6 +328,20 @@ named. **AX-6 (NFR-A11Y-03, FR-UI-025)** The colour-vision test of D15 passes; t
 review. **AX-7** The find pane's result list is built for the visible rows only, and the match markers move from the
 accessible name to the description (FT-433). **AX-8** Targeted checks for `ew-viewmodel`, `ew-ui`.
 
+*As built (cycle 49, AX49a, AX49b and their rounds, NLFIX49; decision log ID-1272, ID-1276 to ID-1278, ID-1295 to
+ID-1297):* AX-1 to AX-8 are met. **D13** as built: `ew-api`'s `selection_words` gives the words and
+`status::selection_text` formats them (a layout text first, one item in D13's words, two or more `<n> selected`); the
+describe line is `canvas live "…"`, quoted as the page-item lines are; `<kind>` falls back to the FnDef's name, not the
+record kind's label (D13 gives way, C49-p1#11b). **D14** as built: `UI_SCALES` reaches 3.0 with `scale_label` as the one
+source; `min_font_pt` raises each text token below it to the minimum, not every token proportionally (doc 16a §4.8 gives
+way; the UI scale is the proportional control), "pt" being doc 16a's px at 100 %; an unset `reduce_motion` is on while
+the canvas draws on the CPU, by the setting or after a GPU failure; AX-3 checks each dialog's Primary and Cancel inside
+the window in height too. **D15** as built: slot 1 failed the threshold against slot 4 under protanopia (ΔE00 0.74), and
+ID-1277 gave it violet #9878FC; the least ΔE00 is now 12.6, 15.9 and 13.9 under the three simulations. A form dialog
+submits by Ctrl+Enter from any focus, also with a disabled Primary, whose action then refuses in its tooltip's words; a
+refused submit shows its reason inside the form. The find list's rows are cut to one line with the whole line as their
+tooltip, and the cursor's option carries AccessKit's selected state. The rows left: FT-1247 to FT-1257.
+
 ## 10. Part 6: the glossary panel, tips and the wire-colour view
 
 **Scope.** D16 to D18. **0.4 pw.**
@@ -330,6 +354,17 @@ to connection"; the button undoes the line and arms the Wire tool; the second ti
 With View ▸ Wire colours on, W29 is stroked in its colour with "DBU" and W27 is striped green and yellow; the exported
 PDF's digest equals `expected/pdf/sha256.txt` with the view on and off. **GT-5** `assert_named` with the pane open;
 the transcripts gain only the counted words of the new action; targeted checks for `ew-viewmodel`, `ew-ui`.
+
+*As built (cycle 49, GT49 and its fix round; decision log ID-1286, ID-1300):* GT-1 to GT-5 are met. **D16** gives way:
+the glossary is a bottom-dock pane, not a navigator (`NavKind` lives in `ew-api`), taking the navigator filter's token
+rule and table look; a `tool.*` action's button reads "Insert", other actions their menu label. **D17** as built: tips
+are toasts with the info icon and the key `tip`; tips 2 and 3 fire only on the derived or generated reason, tip 3 also
+on the editing tools' and Paste's refusal on a generated page and on the Pages navigator's move and reorder. **D18** as
+built: the view is session state, like Grid, and View ▸ Wire colours is the first item of the View menu's ungrouped
+block; a company code's colour comes from the profile's declared base and shade, an unresolved code is drawn as a
+pattern; every stroke under 3:1 on white is cased (D18's "WH and YE" were examples); strokes on a shared stretch stand
+in lanes; `canvas.snapshot` composites the view, and the PDF digest is unchanged with it on and off. The rows left:
+FT-1277 to FT-1283. With this part the package is complete.
 
 ## 11. Files owned and what a lane may not decide
 

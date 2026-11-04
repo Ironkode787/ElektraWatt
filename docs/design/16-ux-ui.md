@@ -1491,6 +1491,11 @@ Okabe–Ito orange #E69F00 (2.25:1), sky blue #56B4E9 (2.31:1) and yellow #F0E44
 are used only on dark chrome surfaces, where they reach 7.4:1, 7.2:1 and 12.6:1 against #1E1E1E; on the sheet the
 darkened orange #A86F00 (not an Okabe–Ito value) replaces them.
 
+*Amended (cycle 49; decision log ID-1277, ID-1296).* No highlight slot takes dark orange #A86F00 any more: the table's
+Highlight 4 row and the sentence above describe the design before WP-S2.08's colour-vision test, which found it beside
+vermillion for protanopes; the slots as built are in the paragraph below (slot 1 violet #9878FC). #A86F00 stays the
+Warning colour of the table.
+
 *As built (cycle 30, WP-S2.06 part 2; decision log ID-687, ID-712, ID-713; colours amended in cycle 31, FT-506, and in
 cycle 49, ID-1277).* Highlights are view state, never a model
 edit, composited into `canvas.snapshot` and listed by `ui.describe`. The four slots use violet #9878FC, reddish purple
@@ -1512,6 +1517,19 @@ highlights are halos with a name chip, so an error icon on a vermillion-highligh
 view (FR-UI-047) strokes each connection in its effective colour, labels it with the code ("DBU" on W29), gives WH
 and YE wires a 1 px dark casing so they stay visible on white, and draws GNYE as alternating green and yellow 2 mm
 dashes (FR-UI-025). The view never reaches the PDF.
+
+*As built (cycle 49, WP-S2.08 part 6 and its fix rounds; decision log ID-1286, ID-1300, ID-1301).* View ▸ Wire colours
+is session state, off by default. Each stroke is 3 pt wide with its codes at the midpoint of its drawn path. A code's
+colour is its IEC 60757 colour, or, for a company code, the base and shade the colour profile declares (FR-CON-019),
+never guessed from its spelling; a code that resolves to no colour is drawn as the **unresolved pattern**, 1 mm
+slate-900 dashes with equal gaps, never cased and still labelled, so it is not mistaken for a colour. **The casing is
+computed:** every stroke whose colour is under 3:1 on white (WCAG relative luminance, NFR-A11Y-03) gets a slate-900
+outline 1 physical pixel wide on both sides, painted under it, so OG, TQ, GD, PK, SR and the light shades are cased as
+well as WH and YE, which the paragraph above names as examples. **Wires that share a stretch stand in lanes:** a stroke
+stands off the shared line by `3 pt + 2 pt` per lane, alternately to one side and the other, along one normal per line,
+so wires drawn in opposite directions keep apart. Two-colour wires alternate in 2 mm dashes walked over the path clipped
+to the sheet. `canvas.snapshot` composites the view; the PDF and PNG exports never see it. Labels on dense pages
+(FT-1277) and lanes at corners (FT-1283) are open.
 
 ### 10.4 Display and motion
 

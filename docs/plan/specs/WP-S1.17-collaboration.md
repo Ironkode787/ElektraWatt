@@ -10,7 +10,10 @@ The parts sum to **7.4 pw plus 0.3 pw reserve** against a 6.8 pw PERT (O1) · **
 [WP-S1.17](../02-work-packages.md#wp-s117-collaboration-external-change-migrations-integrity-merge-driver) ·
 **Decision log:** ID-1015; amended by ID-1029; part 1 ruled by ID-1115, its fixes by ID-1144; part 2 ruled by ID-1175; part 3 ruled by ID-1221; `fmt --repair` ruled by ID-1185, its backup by ID-1186; as built ID-1152, ID-1156 (part 1), ID-1191, ID-1195 (part 2), ID-1196, ID-1200 (`fmt --repair`); part 3 built in cycle 48 (lane M48, its deviations and the review's rulings
 in §8 and ID-1230, built by the fixer FM48, ID-1254; review part 4's amendments in §8, ID-1257; the window's half is
-FT-1148, part 7) · **Part of:** ElektraWatt plan, specifications
+FT-1148, part 7) · **Complete in cycle 49** (parts 4 to 8; ID-1268, ID-1271, ID-1273, ID-1279 and ID-1284 at
+dispatch; as built ID-1290 (MG49), ID-1293 (MGD49), ID-1294 (FIX49), ID-1302 (CR49) and ID-1303 (COL49, FIXCOL49,
+FIXCOL49b); the clarifications ID-1288, ID-1289; the as-built notes in §9 to §13 and §15; FT-1148 narrowed and open)
+· **Part of:** ElektraWatt plan, specifications
 
 **Purpose.** WP-S1.09 built the canonical format, the save protocol, the lock, the journal and recovery, and left to
 this package everything that happens when a project changes outside the running session or between builds: a pull
@@ -627,6 +630,21 @@ are written here as lines; part 5 types them.
   gives `max + 1`, `merged: true`, no `base`.
 - **MD-7** Targeted checks for `ew-schema`, `ew-format`, `ew`; the fuzz target builds.
 
+*As built (cycle 49, MG49, MGD49 and FIX49; decision log ID-1288 to ID-1290, ID-1293, ID-1294):* the conflict namespace
+is `NS_CONFLICT` in `ew-ids`, re-exported by `ew-schema` (this section's and D14's `CONFLICT_NS` read so); a side "newer
+than the reader" is a manifest `format` above the reader's or a record `$v` above its kind's `schema_version()` (D14's
+"newer major" reads so); the core takes the migration chain as a parameter. `MERGE_STRATEGIES` (nine rows) is the table
+of D13, and a strategy applies only where both sides changed the member; `project.master` merges as an object; a
+keyed-list conflict holds the whole list, and a keyed list merges by key only when its keys are all unsigned integers or
+all strings. A non-empty base that does not read follows D18's no-base rule (for library documents too, with base `{}`).
+D14 gives way twice: a result whose record line would break the line or depth limit is not produced, so ours is kept with
+the conflict counted and theirs survives only in git's index (MD-2's property test excludes the case by name), and a
+library document whose ours parses but cannot be merged keeps ours with one conflict, theirs again only in git's index
+(D14's `$conflict` needs a readable ours). The driver re-exports its types from `ew-api` (doc 04 rules 6 and 7); a side
+above `max_file_bytes` leaves `%A` as ours and exits 1; a working-tree manifest that does not parse means `FORMAT` for
+ours. D15 gives way to ADR-0012 amendment 2: a usage error of `merge-driver` exits 129 with clap's text. The rows left:
+FT-1232 to FT-1236, FT-1245 and FT-1246.
+
 ## 10. Part 5: conflict records, conflict markers and their resolution
 
 **Scope.** D17 to D19; FR-COL-025. **0.9 pw.** `ew-schema` (the `conflict` kind), `ew-model` (its table), `ew-format`
@@ -643,6 +661,13 @@ are written here as lines; part 5 types them.
 - **CR-4** Deleting a record removes its conflict in the same transaction; undo restores both. EW-CORE-011 appears in
   `ew check --mode release` and blocks the gate.
 - **CR-5** Targeted checks for `ew-schema`, `ew-model`, `ew-format`, `ew-store`, `ew-commands`, `ew-checks`, `ew`.
+
+*As built (cycle 49, lane CR49; decision log ID-1279, ID-1302):* `conflict` is one typed struct in `ew-schema` with D14's
+two shapes, through which part 4's writers write, and the model keeps conflicts in their own table. D19 gives way twice:
+`ours` on a delete/modify conflict deletes the record, since ours was the deletion, and taking a file-level conflict's
+held side replaces the file's records, either side. `ew merge resolve` with no matching conflict exits 2 with the reason;
+`--field` matches parent and child member paths. A conflict with no target is kept verbatim with EW-CORE-007. The rows
+left: FT-1290 to FT-1292.
 
 ## 11. Part 6: external change in the store and the session
 
@@ -711,6 +736,13 @@ dialog, Export .ewz… and Open .ewz… (Extract and open, Open read-only) are b
 (FIXCOL49): the collision dialog opens once per held change, never over another dialog and never again after Decide
 later; a save refused for the collisions opens it again. A delete/modify row reads present, changed or deleted per side;
 values name records by their labels; kinds are in words. Set up merge driver names the project folder it writes into.
+*As built (cycle 49, FIXCOL49b, the window check W49.3; decision log ID-1303):* D24 as built: every opening of the
+collision dialog, a reopening by a poll or by a refused save included, takes its first focus on Apply, its Primary, so
+Enter never takes All theirs; the held-saves and cloud-folder banners are state banners that stay while their state
+holds, and the held-saves banner's Primary "Choose…" (`external.review`) reopens the choice and has no Dismiss; an open
+collision dialog closes when the disk returns to the baseline. D25's online-only placeholders are de-scoped under
+§14.5's rule (D25's "§14.4" means that rule) and are FT-1293. The upgrade dialog is met in the model (XW-6): no binary
+can show it while the shipped chain is empty.
 
 ## 13. Part 8: `ew diff`, `ew git setup`, post-merge integrity and AC-41
 
@@ -750,7 +782,12 @@ the window reports it on open and after an external change that brings merge evi
 pattern in both locales. Git runs `ew` by a single-quoted path, or under an AppImage by `'$APPIMAGE' ew`, never the
 AppImage's mount; the hook goes where `git rev-parse --git-path hooks` says (`core.hooksPath` honoured, a fifth parsed
 output); the managed blocks go only into folders whose `manifest.json` reads as an ElektraWatt manifest, and the
-question names them.
+question names them. *As built (cycle 49, FIXCOL49b; ID-1303):* D28's `--hooks` refuses a `core.hooksPath` outside the
+repository's worktree and git directory rather than writing the repository's hook into a folder other repositories use
+(a last fix round makes the comparison canonical in case and symbolic links); `$APPIMAGE` is git's command only when the
+running executable lies under `$APPDIR`; EW-CORE-013 also reaches the Messages pane, its counts, the status bar and the
+property grid's chips through `Session::check`'s online report with the merge evidence. The keeper order's released
+number is FT-1294; FT-191's other options are FT-1296.
 
 ## 14. Files owned, boundaries, risks, size and routing
 
@@ -830,6 +867,10 @@ to 6 (format, store, a core crate). **Unblocks:** WP-S6.08 after part 8; WP-S2.1
 - **FP-5** ZIP64 for `.ewz` beyond 65,535 entries; the export-date rule of doc 05 §12.
 - **FP-6** `ew diff --queries` (bom, wires, terminals, plc, xref) and per-language `MlText` merging.
 - A de-scoped item of §14.5 becomes a new FT at the design pass.
+
+*Cycle 49 (ID-1303):* FT-191 was closed whole by part 8's trailer though only `--integrity` moved here; its other
+options are FT-1296. The online-only placeholders, de-scoped, are FT-1293; the keeper order's released number (a further
+proposal beside FP-2) is FT-1294. FP-1 to FP-6 are not yet opened as rows.
 
 **Documents.** **After part 1:** doc 05 §4 and §10.3, §10.4 (stamps, original lines as built), §5.2 step 2 (D5),
 §11.3 (FT-97); ADR-0011 a dated note (D3). **After part 2:** doc 05 §12 (D8, D9), doc 17 §3.3 (`export ewz`,

@@ -7,7 +7,9 @@ digests, the best-effort artefacts and the upgrade train (0.5 pw, D14 to D17); 0
 parts 2 and 3 in any order · **Date:** 2026-11-03 · **Work package:**
 [WP-S6.06](../02-work-packages.md#wp-s606-the-pilot-releases-installers-and-the-platform-ci-matrix) · **Decision
 log:** ID-1187, ID-1188, ID-1210; part 1 ruled by ID-1251, built in cycle 49's first lane I49 and folded into cycle
-48's delivery (as built ID-1265, the review's part 6 ID-1266; the as-built notes in §5) · **Part of:** ElektraWatt plan, specifications
+48's delivery (as built ID-1265, the review's part 6 ID-1266; the as-built notes in §5) · **Complete in cycle 49**
+(parts 2 and 3, reviewed whole; ID-1274, ID-1275, ID-1280, ID-1283 and ID-1285, amended by ID-1299; as built ID-1298;
+the as-built notes in §6 and §7; IN-15 manual, IN-18's failure half and IN-20 with IN-19's CI step at the next delivery) · **Part of:** ElektraWatt plan, specifications
 
 **Purpose.** ElektraWatt has a nightly `ew` archive and a report-only release check of the window's binary, and no
 installer of any kind. 0.1.0, the first binary release, ships a per-user Windows setup, a Linux AppImage and the CLI
@@ -260,6 +262,25 @@ stamping FT-1231.
   guide, recorded in the release dossier.
 - **IN-16** `cargo xtask check-workflows`; `docs-gen --check` and the book's link check with the new page.
 
+*As built (part 2, lanes S6P2a, FIXS6a, S6R49, FIXS6b, FIXS6c and FIXS6d, cycle 49; decision log ID-1274, ID-1275,
+ID-1280, ID-1283, ID-1285, ID-1298, ID-1299; `package.yml` runs 7 to 9 green):* IN-8 to IN-14 and IN-16 are met in CI;
+IN-15 is manual (WP-S6.08's RC-05). **D2:** NSIS 3.13 comes from its release archive by version and SHA-256 (the
+windows-2025 image has none), with zlib compression (LZMA's code is CPL-1.0); the AppImage's squashfs is zstd for the
+pinned type-2 runtime (release 20251108). **D9 as built:** the finish page's run box is NSIS's own "Run ElektraWatt";
+the uninstall removes D3's entries by name; the setup refuses a non-empty folder unless it holds both `uninstall.exe`
+and `elektrawatt.exe` or is the uninstall entry's `InstallLocation` (Install is off on the folder page, `/S` exits 2),
+and an upgrade proposes the installed folder (`InstallDirRegKey HKCU`). **D10 as built:** `Categories=Science;Engineering;`
+and `Exec=elektrawatt %f` (one project folder), the icon adapted from Tabler's `bolt` (`MIT AND GPL-3.0-or-later`,
+ID-1299), and `AppRun` finds its own location, never an inherited `APPDIR`. **IN-8 as built:** "nothing is written under
+`HKLM`" is proven by a before-and-after listing of the names under `HKLM\SOFTWARE`, leaving out Windows' own three
+diagnostic subpaths (ID-1283, narrowed), and by `stage.py`'s static test that every registry write of the `.nsi` names
+`HKCU`, every `SetShellVarContext` is `current` and the one `ExecWait` runs `uninstall.exe`; a listing of `HKLM\SYSTEM`
+and of values is not made (the spec gives way to that pair). **D11, D13:** the firewall blocks the setup, both programs
+and D13's three copies from one list; the test turns the firewall on where it is off; the installed-resources script
+gets its settings folder through `EW_CONFIG_DIR`, since headless `--config-dir` drops the resources (FT-1266); IN-11
+runs on the runner's extraction only, the bare containers holding no Python (ID-1285). The AppImage, like the setup,
+never leaves its job while ID-476's hold stands. The rows left: FT-1266 to FT-1273, FT-1276.
+
 ## 7. Part 3: digests, best-effort artefacts and the upgrade train
 
 **Scope.** D14 to D17 (D15 builds nothing). **0.5 pw.**
@@ -278,6 +299,13 @@ D16 in `package.yml`; `ci/ui-stack-lag.py` (new), `.github/workflows/weekly.yml`
   minors behind and wgpu two majors behind fail, two minors and one major pass; a yanked newest release is skipped.
 - **IN-20** (CI run) `weekly.yml` runs on dispatch and writes the table; `cargo xtask check-workflows` passes; the
   issue form lists the seven steps of doc 18 §6.3 with their pass conditions.
+
+*As built (part 3, lane S6R49 with FIXS6c, cycle 49; decision log ID-1280, ID-1285, ID-1298):* IN-17 is met by
+`golden-digests.py --test` in the `digests` job (run 8), whose compare also holds the serial against the 4-thread SVGs
+within a manifest; IN-19's `ui-stack-lag.py --test` runs as a step of `weekly.yml`, so in CI it is proven with IN-20; IN-18's green half by run 7 ("agree on 95 files, the PDFs on the expected digest"; both aarch64
+jobs green); FT-234 is closed. IN-18's failure half ("a failure leaves the run green") and IN-20 (`weekly.yml`, which
+`workflow_dispatch` reaches only on the default branch) are proven only after `main`'s fast-forward, at the next
+delivery: FT-1274 and FT-1275 name the runs that must show them.
 
 ## 8. Neighbours and who owns what
 
