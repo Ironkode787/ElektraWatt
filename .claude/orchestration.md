@@ -85,6 +85,10 @@ The main session orchestrates. It plans each cycle, briefs Claude subagents, int
      verify run one after another in the third slot. Only a major's fix may take a work-package slot, by delaying the
      next work-package dispatch.
    - A finished lane's slot takes the next queued lane.
+   - **No slot stays idle** (owner, 2026-11-04: "our goal should be to always fill up all possible build spaces";
+     ID-1326). When the current cycle has no lane ready for a free slot, its end phase included, the slot takes the
+     next cycle's first-wave lane, on the newest picked tip. That lane is integrated after the end tip and reviewed in
+     the next cycle (rule 8). The next cycle's briefs are therefore kept ready ahead of need.
    - Docs-only lanes write the next cycle's specifications during the current one.
    - The next cycle's first-wave briefs are written, feasibility-read and ruled by the time the last wave is
      dispatched.
