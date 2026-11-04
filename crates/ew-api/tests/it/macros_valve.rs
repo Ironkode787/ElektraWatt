@@ -112,6 +112,15 @@ fn tag_of(q: &Q, d: Id<Device>) -> String {
         .map_or_else(|| "?".to_owned(), |t| t.full.clone())
 }
 
+/// The `assembly.attach` that moves the child `tag` of -201U1 to the free position `position` (ID-1329: EW-FL-013 refuses
+/// a second module at a held position, FI-07, so a typical inserted again needs its slot freed first).
+fn free_slot(s: &Session, tag: &str, position: u32) -> AnyCommand {
+    AnyCommand {
+        name: "assembly.attach".into(),
+        params: json!({"parent": device(s, "-201U1").to_string(), "children": [{"device": device(s, tag).to_string(), "position": position}]}),
+    }
+}
+
 fn r0(page: Uuid) -> InsertAt {
     InsertAt {
         page,
@@ -739,14 +748,14 @@ fn by_tag_now(q: &Q, tag: &str) -> Option<Id<Device>> {
 // MC-5
 
 /// MC-5 (FR-MAC-005): the folio-203 typical inserted a second time with value set 1 doubles slots 1 and 2: the card
-/// lists exactly the eight bound addresses Q0.1, Q0.3 … Q1.7, and the commit is one undo step that undoes exactly.
+/// lists exactly the eight bound addresses Q0.1, Q0.3 … Q1.7 and EW-FL-013's two refusals of a module at a held
+/// position (FI-07, ID-1329); with -201U3 and -201U4 moved to free positions the commit is one undo step that undoes
+/// exactly.
 #[test]
 fn mc5_a_second_typical_lists_the_doubled_addresses_and_undoes_in_one_step() {
     let (_root, t, lib) = user_library("ew-api-mc5");
     let mut s = golden(Some(t));
     let saved = s.save_macro(lib, &page_spec(&s)).unwrap();
-    let before = ew_commands::rows::model_lines(&s.world().model).unwrap();
-    let depth = s.history().entries().len();
     let cmd = s
         .insert_macro(
             &saved.reference,
@@ -771,12 +780,24 @@ fn mc5_a_second_typical_lists_the_doubled_addresses_and_undoes_in_one_step() {
         ["Q0.1", "Q0.3", "Q0.5", "Q0.7", "Q1.1", "Q1.3", "Q1.5", "Q1.7"],
         "{conflicts:?}"
     );
-    assert!(
-        !conflicts
-            .iter()
-            .any(|c| matches!(c, MacroConflict::Refused { .. })),
-        "{conflicts:?}"
+    let refused: Vec<String> = conflicts
+        .iter()
+        .filter(|c| matches!(c, MacroConflict::Refused { .. }))
+        .map(ToString::to_string)
+        .collect();
+    assert_eq!(
+        refused,
+        [
+            "EW-FL-013: -201U1: position 2 holds both -201U3 and -207U3",
+            "EW-FL-013: -201U1: position 3 holds both -201U4 and -207U4"
+        ]
     );
+    let free = [free_slot(&s, "-201U3", 12), free_slot(&s, "-201U4", 13)];
+    for f in &free {
+        commit(&mut s, f);
+    }
+    let before = ew_commands::rows::model_lines(&s.world().model).unwrap();
+    let depth = s.history().entries().len();
     commit(&mut s, &cmd);
     assert_eq!(s.history().entries().len(), depth + 1, "one undo step");
     assert!(s.page_tables("207").is_some());
@@ -791,12 +812,42 @@ fn mc5_a_second_typical_lists_the_doubled_addresses_and_undoes_in_one_step() {
 // ---------------------------------------------------------------------------------------------------------
 // Value set 4, the window macro and FT-672
 
+/// ID-1329 (WP-S1.20 D16, FI-07): the valve module of a macro inserted at a position of -201U1 that a module holds is
+/// refused by EW-FL-013's prevent half, in its words, and nothing changes.
+#[test]
+fn a_macro_module_at_a_held_position_is_refused() {
+    let (_root, t, lib) = user_library("ew-api-mc-fi07");
+    let mut s = golden(Some(t));
+    let saved = s.save_macro(lib, &page_spec(&s)).unwrap();
+    let before = ew_commands::rows::model_lines(&s.world().model).unwrap();
+    let cmd = s
+        .insert_macro(
+            &saved.reference,
+            &r0(page_of(&s, "206")),
+            &MacroValues {
+                value_set: Some("4".into()),
+                values: [("assembly".to_owned(), json!(device(&s, "-201U1").to_string()))].into(),
+            },
+            instance(6),
+        )
+        .unwrap();
+    let refusal = s.preview(&cmd).expect_err("a module at a held position");
+    assert_eq!(
+        refusal.to_string(),
+        "EW-FL-013: -201U1: position 10 holds both -202U2 and -207U2"
+    );
+    assert_eq!(ew_commands::rows::model_lines(&s.world().model).unwrap(), before);
+}
+
 /// FR-MAC-018: value set 4 inserts one module and no field devices, and leaves no dangling connection or link.
 #[test]
 fn value_set_4_inserts_one_module_without_field_devices() {
     let (_root, t, lib) = user_library("ew-api-mc4-set4");
     let mut s = golden(Some(t));
     let saved = s.save_macro(lib, &page_spec(&s)).unwrap();
+    // ID-1329: -202U2 leaves position 10 of -201U1, where the inserted module goes
+    let free = free_slot(&s, "-202U2", 12);
+    commit(&mut s, &free);
     let devices = s.query().devices().iter().count();
     let links = s.query().table::<ew_schema::DeviceLink>().iter().count();
     let cmd = s
@@ -1218,6 +1269,9 @@ fn a_log_without_orient_replays_unchanged_and_a_page_macro_takes_no_orient() {
     let (_root, t, lib) = user_library("ew-api-orient-old");
     let mut s = golden(Some(t));
     let saved = s.save_macro(lib, &page_spec(&s)).unwrap();
+    // ID-1329: -202U2 leaves position 10 of -201U1, where the inserted module goes
+    let free = free_slot(&s, "-202U2", 12);
+    commit(&mut s, &free);
     let cmd = s
         .insert_macro(
             &saved.reference,
@@ -1234,8 +1288,9 @@ fn a_log_without_orient_replays_unchanged_and_a_page_macro_takes_no_orient() {
     assert_eq!(typed.orient, Orient2::R0);
     assert_eq!(serde_json::to_value(&typed).unwrap(), cmd.params);
     // The records of the replay equal those of the session that composed it.
+    let first = json!({"cmd": free.name, "params": free.params});
     let line = json!({"cmd": cmd.name, "params": cmd.params});
-    let text = format!("{{\"$schema\":\"ew.cmdlog/1\",\"label\":\"old\"}}\n{line}\n");
+    let text = format!("{{\"$schema\":\"ew.cmdlog/1\",\"label\":\"old\"}}\n{first}\n{line}\n");
     let mut replay = golden(None);
     replay
         .run_script(&ew_api::CmdLog::parse(&text).unwrap(), "old.ewcmd")
