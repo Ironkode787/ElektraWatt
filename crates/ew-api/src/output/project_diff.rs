@@ -137,7 +137,7 @@ fn record_json(q: &Q, kind: ew_derive::ew_schema::Kind, id: Uuid) -> Option<Valu
         DeviceLink => s::DeviceLink, PageItem => s::PageItem, StructureBox => s::StructureBox,
         ReportBlock => s::ReportBlock, MacroInstance => s::MacroInstance, LayoutSpace => s::LayoutSpace,
         Enclosure => s::Enclosure, MountingSurface => s::MountingSurface, Carrier => s::Carrier,
-        Placement => s::Placement, Revision => s::Revision, Waiver => s::Waiver, Conflict => s::Conflict,
+        Placement => s::Placement, Revision => s::Revision, Waiver => s::Waiver, ImportRun => s::ImportRun, Conflict => s::Conflict,
         Part => s::LibCopy<s::Part>, Symbol => s::LibCopy<s::SymbolDef>, Fndef => s::LibCopy<s::FnDef>,
         Form => s::LibCopy<s::FormDef>, Macro => s::LibCopy<s::MacroDef>,
         Manufacturer => s::LibCopy<s::Manufacturer>,

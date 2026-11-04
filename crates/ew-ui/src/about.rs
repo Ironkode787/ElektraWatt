@@ -256,6 +256,22 @@ pub fn show(
                 });
         }
         Dialog::ConfirmUpgrade { .. } | Dialog::OpenEwz { .. } | Dialog::ConfirmGitSetup { .. } => {}
+        // WP-S3.09 D8: the import card lists the imported pages under its summary.
+        Dialog::ImportQet {
+            pages,
+            confirm: false,
+            ..
+        } => {
+            let t = crate::theme::current(ui.ctx());
+            for page in pages.iter().take(ew_viewmodel::dialogs::IMPORT_PAGES_LISTED) {
+                ui.label(
+                    egui::RichText::new(page)
+                        .font(crate::theme::font(&t.type_small))
+                        .color(t.text_secondary.color32()),
+                );
+            }
+        }
+        Dialog::ImportQet { .. } => {}
         Dialog::ConfirmPurge { files, .. } => {
             let t = crate::theme::current(ui.ctx());
             for f in files.iter().take(ew_viewmodel::shell::PURGE_LISTED) {

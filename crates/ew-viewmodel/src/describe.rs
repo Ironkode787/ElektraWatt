@@ -2629,6 +2629,17 @@ fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
                 lines.push(format!("  label \"{}\"", user(line)));
             }
         }
+        // WP-S3.09 D8: the import card's summary and its listed pages; the confirmation's paragraph.
+        Dialog::ImportQet { pages, confirm, .. } => {
+            for line in &spec.body {
+                lines.push(format!("  label \"{}\"", user(line)));
+            }
+            if !confirm {
+                for page in pages.iter().take(crate::dialogs::IMPORT_PAGES_LISTED) {
+                    lines.push(format!("  page \"{}\"", user(page)));
+                }
+            }
+        }
         Dialog::ExternalChange { rows } => {
             for line in &spec.body {
                 lines.push(format!("  label \"{}\"", user(line)));

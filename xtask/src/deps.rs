@@ -548,8 +548,14 @@ pub fn importer_purity(root: &Path) -> Result<Vec<String>> {
         walk(&krate.join("src"), &mut files)?;
         files.sort();
         for file in files {
-            let text = std::fs::read_to_string(&file).with_context(|| format!("reading {}", file.display()))?;
-            let shown = file.strip_prefix(root).unwrap_or(&file).display().to_string().replace('\\', "/");
+            let text =
+                std::fs::read_to_string(&file).with_context(|| format!("reading {}", file.display()))?;
+            let shown = file
+                .strip_prefix(root)
+                .unwrap_or(&file)
+                .display()
+                .to_string()
+                .replace('\\', "/");
             out.extend(impure_lines(&shown, &text));
         }
     }

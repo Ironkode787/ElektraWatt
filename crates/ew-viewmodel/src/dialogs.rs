@@ -98,6 +98,9 @@ impl DialogSpec {
     }
 }
 
+/// The most pages the import card lists before its "and N more" line (WP-S3.09 D8).
+pub const IMPORT_PAGES_LISTED: usize = 12;
+
 fn close() -> DialogButton {
     DialogButton::new(key!("dialog-close"), DialogAnswer::Dismiss)
 }
@@ -307,6 +310,57 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
                 DialogButton::new(
                     key!("upgrade-button"),
                     DialogAnswer::Action("file.upgrade", Value::Null),
+                ),
+            )
+        },
+        // WP-S3.09 D8: the import card (Apply, Cancel) with its summary, its pages listed by the dialog; then the
+        // checkpoint confirmation (Create project, Cancel).
+        Dialog::ImportQet {
+            file,
+            folder,
+            summary,
+            pages,
+            devices,
+            confirm: false,
+        } => {
+            let _ = (folder, devices);
+            let mut body = vec![summary.clone()];
+            if pages.len() > IMPORT_PAGES_LISTED {
+                let more = (pages.len() - IMPORT_PAGES_LISTED).to_string();
+                body.push(strings::format(key!("import-card-more"), &[&more]));
+            }
+            DialogSpec {
+                secondary: vec![cancel()],
+                form: true,
+                ..small(
+                    strings::format(key!("import-card-title"), &[file]),
+                    body,
+                    DialogButton::new(
+                        key!("import-card-apply"),
+                        DialogAnswer::Action("file.import_qet_apply", Value::Null),
+                    ),
+                )
+            }
+        }
+        Dialog::ImportQet {
+            file,
+            folder,
+            pages,
+            devices,
+            confirm: true,
+            ..
+        } => DialogSpec {
+            secondary: vec![cancel()],
+            asks: true,
+            ..small(
+                strings::format(key!("import-confirm-title"), &[file]),
+                vec![strings::format(
+                    key!("import-confirm-text"),
+                    &[folder, &pages.len().to_string(), &devices.to_string()],
+                )],
+                DialogButton::new(
+                    key!("import-confirm-create"),
+                    DialogAnswer::Action("file.import_qet_apply", json!({ "confirm": true })),
                 ),
             )
         },

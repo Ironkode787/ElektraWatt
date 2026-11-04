@@ -347,6 +347,22 @@ pub enum Dialog {
         /// The older format.
         from: String,
     },
+    /// Project ▸ Import ▸ QElectroTech project (WP-S3.09 D8): the import card (its summary and pages, Apply or Cancel),
+    /// then the checkpoint confirmation (`confirm`: Create project or Cancel). Cancel writes nothing.
+    ImportQet {
+        /// The source's file name.
+        file: String,
+        /// The chosen folder's name.
+        folder: String,
+        /// The summary line (T5).
+        summary: String,
+        /// The folios of the imported pages, in page order.
+        pages: Vec<String>,
+        /// The imported devices.
+        devices: usize,
+        /// Whether the confirmation is shown.
+        confirm: bool,
+    },
     /// File ▸ Open .ewz…: Extract and open (into a new folder beside it), Open read-only, or Cancel.
     OpenEwz {
         /// The `.ewz` (never printed).
@@ -499,6 +515,8 @@ pub struct ShellModel {
     /// copied aside, at start-up (the editor's edits then apply without being written).
     keymap_keep_file: bool,
     dialog: Option<Dialog>,
+    /// The imported project the import card shows (WP-S3.09 D8).
+    import_pending: Option<projects::PendingImport>,
     /// Bumped on every opening of a dialog: the window gives a dialog opened again, even as the same kind, its first
     /// focus (C49-p10b#4).
     dialog_gen: u64,
@@ -944,6 +962,7 @@ impl ShellModel {
             keymap_editor: crate::keymap::EditorState::default(),
             keymap_keep_file,
             dialog: None,
+            import_pending: None,
             dialog_gen: 0,
             prompt: None,
             record: Record::default(),

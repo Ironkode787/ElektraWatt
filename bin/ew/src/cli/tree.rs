@@ -325,6 +325,8 @@ enum Import {
     ///
     /// Exits 0 when the import completes, even with findings; `--strict` exits 1 on lost connections or error
     /// findings. With `--report` and no `--report-out` stdout is exactly the report; the summary goes to stderr.
+    /// With `--out <dir>` (absent or empty) the import is written there as a new project, its import run under
+    /// `imports/`, after the report; without it nothing is written. Exit 2 when the project cannot be written.
     Qet(ImportQetArgs),
     /// Copy the parts of a parts table into the project.
     ///

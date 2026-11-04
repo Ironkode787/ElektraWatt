@@ -209,7 +209,10 @@ fn an_external_entity_is_refused() {
     let xml = "<?xml version=\"1.0\"?><!DOCTYPE project [<!ENTITY e SYSTEM \"file:///etc/passwd\">]>\
                <project title=\"&e;\"/>";
     let err = import(xml).unwrap_err();
-    assert_eq!(err.to_string(), "malformed input at line 1: a DOCTYPE is not accepted");
+    assert_eq!(
+        err.to_string(),
+        "malformed input at line 1: a DOCTYPE is not accepted"
+    );
 }
 
 /// WP-S3.09 IC-5 (D5 c): an `xi:include` is never followed: it is unknown content, reported and dropped, and the

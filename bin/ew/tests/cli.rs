@@ -84,6 +84,64 @@ fn import_summary_with_content() {
     );
 }
 
+/// WP-S3.09 IC-6 (D8): with `--out` the import is written as a new project with its run under `imports/`; without it
+/// nothing is written; a target that holds something is refused.
+#[test]
+fn import_qet_out_writes_a_project_with_its_run() {
+    let t = Tmp::new();
+    let f = t.project();
+    let before: Vec<_> = std::fs::read_dir(&t.0)
+        .unwrap()
+        .flatten()
+        .map(|e| e.file_name())
+        .collect();
+    let o = ew(&["import".as_ref(), "qet".as_ref(), f.as_os_str()]);
+    assert_eq!(o.status.code(), Some(0));
+    let after: Vec<_> = std::fs::read_dir(&t.0)
+        .unwrap()
+        .flatten()
+        .map(|e| e.file_name())
+        .collect();
+    assert_eq!(before, after, "without --out nothing is written");
+    let out = t.0.join("imported.ew");
+    let o = ew(&[
+        "import".as_ref(),
+        "qet".as_ref(),
+        f.as_os_str(),
+        "--content".as_ref(),
+        CONTENT.as_ref(),
+        "--out".as_ref(),
+        out.as_os_str(),
+    ]);
+    assert_eq!(o.status.code(), Some(0), "{}", String::from_utf8_lossy(&o.stderr));
+    assert!(
+        stdout(&o).ends_with(&format!("project written to {}\n", out.display())),
+        "{}",
+        stdout(&o)
+    );
+    let runs = std::fs::read_dir(out.join("imports")).unwrap().count();
+    assert_eq!(runs, 1);
+    assert!(out.join("manifest.json").is_file());
+    let again = ew(&[
+        "import".as_ref(),
+        "qet".as_ref(),
+        f.as_os_str(),
+        "--out".as_ref(),
+        out.as_os_str(),
+    ]);
+    assert_eq!(again.status.code(), Some(2));
+    assert_eq!(
+        String::from_utf8_lossy(&again.stderr)
+            .lines()
+            .last()
+            .unwrap_or_default(),
+        format!(
+            "error: {}: not an empty directory; the new project needs a new or empty directory",
+            out.display()
+        )
+    );
+}
+
 #[test]
 fn import_without_content_warns() {
     let t = Tmp::new();

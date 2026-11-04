@@ -5,8 +5,10 @@
 //! QElectroTech project importer and opens the batch as a [`Session`], so that front-ends see the import,
 //! its migration report and the derived pages without naming the record types.
 //!
-//! This is the spike form of `ApplyImport` (doc 14 §3.1): the batch becomes the whole model through
-//! [`Session::from_records`] (the model's structural check, no lenient validators, no import passes).
+//! Every importer call goes through [`front_door`] (WP-S3.09 D4). A QET project becomes a project through `import.apply`
+//! ([`session_from_import`], D7): the batch on a fork of an empty project, the normalisers, the structural invariants
+//! (prevent rules relaxed to findings) and the import run, committed as the project's first state. The golden CSV
+//! bootstrap keeps [`session_from_batch`] and writes no run (D13).
 
 use std::path::Path;
 
@@ -47,16 +49,6 @@ impl ContractBreach {
             ContractBreach::IdentityNotFromKey => "a record's identity does not follow from its source key",
             ContractBreach::OtherLineage => "a record names another import",
             ContractBreach::OutOfOrder => "the records are out of order",
-        }
-    }
-
-    /// The text key of the reason (the shell's words for it).
-    pub fn key(self) -> &'static str {
-        match self {
-            ContractBreach::SharedIdentity => "reason-import-shared-identity",
-            ContractBreach::IdentityNotFromKey => "reason-import-identity-key",
-            ContractBreach::OtherLineage => "reason-import-other-lineage",
-            ContractBreach::OutOfOrder => "reason-import-order",
         }
     }
 }
@@ -144,10 +136,12 @@ pub fn front_door<T: FrontDoorOutput>(
     lineage: Option<&LineageInfo>,
     run: impl FnOnce() -> Result<T, ImportError>,
 ) -> Result<T, Refusal> {
-    let limit = |what: &str, limit: u64| Refusal::Import(ImportError::LimitExceeded {
-        what: what.to_owned(),
-        limit,
-    });
+    let limit = |what: &str, limit: u64| {
+        Refusal::Import(ImportError::LimitExceeded {
+            what: what.to_owned(),
+            limit,
+        })
+    };
     if sizes.len() as u64 > u64::from(limits.max_input_files) {
         return Err(limit("input file count", u64::from(limits.max_input_files)));
     }
@@ -157,8 +151,10 @@ pub fn front_door<T: FrontDoorOutput>(
     if sizes.iter().fold(0u64, |a, &s| a.saturating_add(s)) > limits.max_expanded_bytes {
         return Err(limit("expanded input size", limits.max_expanded_bytes));
     }
-    let out = std::panic::catch_unwind(std::panic::AssertUnwindSafe(run))
-        .map_err(|_| Refusal::Panicked { file: file.to_owned() })??;
+    let out =
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(run)).map_err(|_| Refusal::Panicked {
+            file: file.to_owned(),
+        })??;
     out.contract(lineage).map_err(|breach| Refusal::Contract {
         file: file.to_owned(),
         breach,
@@ -206,7 +202,10 @@ pub fn check_contract(batch: &ImportBatch, lineage: Option<&LineageInfo>) -> Res
         if named != Some(lineage_id.to_string().as_str()) {
             return Err(ContractBreach::OtherLineage);
         }
-        let source_key = source.get("key").and_then(serde_json::Value::as_str).unwrap_or_default();
+        let source_key = source
+            .get("key")
+            .and_then(serde_json::Value::as_str)
+            .unwrap_or_default();
         let derived: ew_derive::ew_ids::Id<()> = v5::imported_id(namespace, source_key);
         let exempt = || match record {
             Record::Project(_) | Record::Channel(_) => true,
@@ -370,6 +369,20 @@ pub fn session_from_batch(batch: &ImportBatch, options: SessionOptions) -> Resul
 /// [`Refusal`] when the file as a whole cannot be read (a limit, malformed XML, not a project, a name that is a path),
 /// the importer panicked or its batch breaks the contract ([`front_door`]). Item-level problems are report entries.
 pub fn import_qet(name: &str, bytes: Vec<u8>, library: &StarterLibrary) -> Result<Imported, Refusal> {
+    import_qet_with(name, bytes, library, SessionOptions::default())
+}
+
+/// [`import_qet`] with the session's `options` (a seeded ID source makes the run's ID reproducible, IC-6).
+///
+/// # Errors
+///
+/// As [`import_qet`].
+pub fn import_qet_with(
+    name: &str,
+    bytes: Vec<u8>,
+    library: &StarterLibrary,
+    options: SessionOptions,
+) -> Result<Imported, Refusal> {
     let input = ImportInput::new(name, bytes).map_err(|e| ImportError::Unsupported {
         message: e.to_string(),
     })?;
@@ -378,9 +391,246 @@ pub fn import_qet(name: &str, bytes: Vec<u8>, library: &StarterLibrary) -> Resul
     let limits = ctx.limits;
     let sizes = [input.bytes().len() as u64];
     let batch = front_door(name, &sizes, &limits, None, || importer.import(&input, &mut ctx))?;
-    let session = session_from_batch(&batch, SessionOptions::default());
+    let session = session_from_import(&batch, ctx.mode, options);
     let live = session.as_ref().map(lenient_findings).unwrap_or_default();
     Ok(Imported { batch, session, live })
+}
+
+// -------------------------------------------------------------------------------------------------------------------
+// ApplyImport (WP-S3.09 D6, D7, D13)
+
+/// The import run of a batch's report (D6): its findings in the importer's order, its counts and its source; the ID
+/// and the record hashes are the transaction's. `lineage` is the lineage imported into.
+pub fn run_of(
+    report: &ImportReport,
+    lineage: ew_derive::ew_ids::Id<ew_schema::ImportLineage>,
+    mode: ImportMode,
+    as_of: Option<ew_schema::Date>,
+) -> ew_schema::ImportRun {
+    use ew_schema::{RunEntry, RunFix, RunLocation, RunMode, RunSeverity, RunSource, RunStats, RunTarget};
+    let entries = report
+        .entries
+        .iter()
+        .map(|e| RunEntry {
+            code: e.code.to_string(),
+            severity: match e.severity {
+                Severity::Info => RunSeverity::Info,
+                Severity::Warning => RunSeverity::Warning,
+                Severity::Error => RunSeverity::Error,
+            },
+            defect: e.defect.map(|d| d.to_string()),
+            message: e.message.clone(),
+            location: e.location.as_ref().map(|l| RunLocation {
+                file: l.file.clone(),
+                member: l.member.clone(),
+                folio: l.folio.clone(),
+                cell: l.cell.clone(),
+                item: l.item.clone(),
+                line: l.line,
+                extra: Default::default(),
+            }),
+            targets: e
+                .targets
+                .iter()
+                .map(|t| RunTarget {
+                    kind: t.kind.name().to_owned(),
+                    id: ew_derive::ew_ids::Id::from_uuid(t.id),
+                    extra: Default::default(),
+                })
+                .collect(),
+            fix: e.fix.as_ref().map(|f| RunFix {
+                label: f.label.clone(),
+                command: f.command.clone(),
+                params: f.params.clone(),
+                extra: Default::default(),
+            }),
+            extra: Default::default(),
+        })
+        .collect();
+    let s = &report.stats;
+    ew_schema::ImportRun {
+        id: ew_derive::ew_ids::Id::from_uuid(ew_derive::ew_ids::Uuid::nil()),
+        v: 1,
+        lineage,
+        importer: ew_mltext::Ident::from_input(&report.importer)
+            .unwrap_or_else(|_| ew_mltext::Ident::from_input("import").expect("a valid identifier")),
+        importer_version: report.importer_version.clone(),
+        source: RunSource {
+            name: report.source.name.clone(),
+            sha256: ew_schema::Sha256(report.source.sha256),
+            size: report.source.size,
+            format: report.source.format.clone(),
+            format_version: report.source.format_version.clone(),
+            extra: Default::default(),
+        },
+        as_of,
+        mode: match mode {
+            ImportMode::Strict => RunMode::Strict,
+            ImportMode::Lenient => RunMode::Lenient,
+        },
+        entries,
+        stats: RunStats {
+            per_kind: s.per_kind.clone(),
+            dropped: s.dropped,
+            inferred: s.inferred,
+            lost_connections: s.lost_connections,
+            suppressed: s.suppressed.iter().map(|(c, n)| (c.to_string(), *n)).collect(),
+            extra: Default::default(),
+        },
+        record_hashes: Default::default(),
+        extra: Default::default(),
+    }
+}
+
+/// Why an import was not applied.
+#[derive(Debug)]
+pub enum ApplyError {
+    /// The transaction was refused (a structural invariant, a normaliser that removed an imported record).
+    Refused(ew_commands::CmdError),
+    /// The run would not fit one line of the loader (T3).
+    TooLarge {
+        /// The source's file name.
+        file: String,
+        /// The batch's records.
+        records: usize,
+    },
+    /// The batch names no lineage to import into.
+    NoLineage,
+}
+
+impl std::fmt::Display for ApplyError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ApplyError::Refused(e) => write!(f, "{e}"),
+            ApplyError::TooLarge { file, records } => write!(
+                f,
+                "{file} makes more records than one import can record ({records}); nothing was imported."
+            ),
+            ApplyError::NoLineage => f.write_str("the import names no lineage; nothing was imported"),
+        }
+    }
+}
+
+impl std::error::Error for ApplyError {}
+
+/// The `import.apply` command of `batch` (D7): the batch's records but its project record, its library documents, and
+/// the run of its report in `mode` (`as_of` its date); `checkpoint` into an empty project. The lineage is the batch's
+/// own record, else `lineage`.
+///
+/// # Errors
+///
+/// [`ApplyError::NoLineage`] when neither names one; [`ApplyError::TooLarge`] (T3) for a run above the loader's line
+/// limit.
+pub fn apply_command(
+    batch: &ImportBatch,
+    lineage: Option<&LineageInfo>,
+    mode: ImportMode,
+    as_of: Option<ew_schema::Date>,
+    checkpoint: bool,
+) -> Result<ew_commands::commands::ApplyImport, ApplyError> {
+    let lineage_id = batch
+        .records
+        .iter()
+        .find_map(|r| match r {
+            Record::ImportLineage(l) => Some(l.id),
+            _ => None,
+        })
+        .or(lineage.map(|l| l.id))
+        .ok_or(ApplyError::NoLineage)?;
+    let mut run = run_of(&batch.report, lineage_id, mode, as_of);
+    // The run's line with a hash for every record (two 32-digit hashes and an ID each, about 140 bytes) must stay
+    // within the loader's line limit (D6, R2).
+    let line = serde_json::to_string(&Record::ImportRun(run.clone())).map_or(0, |l| l.len());
+    if line.saturating_add(batch.records.len().saturating_mul(140))
+        > ew_store::ew_format::Limits::default().max_line_bytes
+    {
+        return Err(ApplyError::TooLarge {
+            file: batch.report.source.name.clone(),
+            records: batch.records.len(),
+        });
+    }
+    run.entries.shrink_to_fit();
+    Ok(ew_commands::commands::ApplyImport {
+        records: batch.records.clone(),
+        lib: batch
+            .lib
+            .iter()
+            .map(|d| serde_json::to_value(d).unwrap_or_default())
+            .collect(),
+        run,
+        checkpoint,
+    })
+}
+
+impl Session {
+    /// The preview of an import (D7, `Session::import_preview`): `import.apply` of `cmd` on a fork, from the origin
+    /// `import`. Commit it with [`Session::commit_import`]; dropping it leaves the session unchanged.
+    ///
+    /// # Errors
+    ///
+    /// [`ApplyError::Refused`] when the transaction breaks a structural invariant.
+    pub fn import_preview(
+        &mut self,
+        cmd: &ew_commands::commands::ApplyImport,
+    ) -> Result<ew_commands::Preview, ApplyError> {
+        let submit = ew_commands::Submit::from(ew_commands::Origin::Import {
+            lineage: cmd.run.lineage.to_string(),
+        });
+        self.preview_with(cmd, submit).map_err(ApplyError::Refused)
+    }
+
+    /// Commits an import preview: one transaction, a non-undoable checkpoint into an empty project, else one undo
+    /// step.
+    ///
+    /// # Errors
+    ///
+    /// [`ApplyError::Refused`] when the commit is refused (the model changed under the preview).
+    pub fn commit_import(
+        &mut self,
+        preview: ew_commands::Preview,
+    ) -> Result<ew_commands::Receipt, ApplyError> {
+        self.commit(preview).map_err(ApplyError::Refused)
+    }
+}
+
+/// The batch of a new-project import applied to an empty project (D7, D13): a session over the batch's project
+/// record without its provenance, into which `import.apply` commits the batch as the project's first state (a
+/// checkpoint).
+///
+/// # Errors
+///
+/// The text of the refusal: no project record, a structural violation, T3.
+pub fn session_from_import(
+    batch: &ImportBatch,
+    mode: ImportMode,
+    options: SessionOptions,
+) -> Result<Session, String> {
+    let project = batch
+        .records
+        .iter()
+        .find_map(|r| match r {
+            Record::Project(p) => Some(ew_schema::Project {
+                source_ref: None,
+                ..p.clone()
+            }),
+            _ => None,
+        })
+        .ok_or_else(|| "the batch holds no project record".to_owned())?;
+    let mut session = Session::from_records(project, [], [], options).map_err(|e| e.to_string())?;
+    let cmd = apply_command(batch, None, mode, None, true).map_err(|e| e.to_string())?;
+    let preview = session.import_preview(&cmd).map_err(|e| e.to_string())?;
+    session.commit_import(preview).map_err(|e| e.to_string())?;
+    Ok(session)
+}
+
+/// The open findings of a project's migration report by severity (T5, WP-S3.09 D8): `(errors, warnings, infos)` of a
+/// run of the `migration` scheme.
+pub fn migration_counts(session: &Session) -> (usize, usize, usize) {
+    use crate::checks::Severity as S;
+    let report = session.check(&crate::checks::MIGRATION, crate::checks::CheckMode::Release);
+    let open = || report.findings.iter().filter(|f| f.is_open());
+    let count = |s: S| open().filter(|f| f.severity == s).count();
+    (count(S::Error), count(S::Warning), count(S::Info))
 }
 
 /// The lenient check findings of an imported model (doc 15 §10.2, doc 14 §2.5): the `migration` scheme of
@@ -507,11 +757,17 @@ pub fn parse_parts_tables(
         cable_cores: siblings.cable_cores.map(unmarked),
         part_plc: siblings.part_plc.map(unmarked),
     };
-    let sizes: Vec<u64> = [Some(parts_csv), siblings.part_cps, siblings.part_templates, siblings.cable_cores, siblings.part_plc]
-        .into_iter()
-        .flatten()
-        .map(|t| t.len() as u64)
-        .collect();
+    let sizes: Vec<u64> = [
+        Some(parts_csv),
+        siblings.part_cps,
+        siblings.part_templates,
+        siblings.cable_cores,
+        siblings.part_plc,
+    ]
+    .into_iter()
+    .flatten()
+    .map(|t| t.len() as u64)
+    .collect();
     let file = source.rsplit(['/', '\\']).next().unwrap_or(source);
     let copies = front_door(file, &sizes, &Limits::default(), None, || {
         ew_import_tables::parse_parts_tables(
@@ -754,12 +1010,13 @@ pub fn import_tables(
     ctx.mode = mode;
     let sizes: Vec<u64> = inputs.iter().map(|i| i.bytes().len() as u64).collect();
     let importer = ew_import_tables::TablesImporter::new(builtin);
-    front_door("the tables", &sizes, &ctx.limits, ctx.lineage.as_ref(), || importer.import(inputs, &ctx)).map_err(
-        |r| match r {
-            Refusal::Import(e) => TablesError::Import(e),
-            other => TablesError::Refused(other),
-        },
-    )
+    front_door("the tables", &sizes, &ctx.limits, ctx.lineage.as_ref(), || {
+        importer.import(inputs, &ctx)
+    })
+    .map_err(|r| match r {
+        Refusal::Import(e) => TablesError::Import(e),
+        other => TablesError::Refused(other),
+    })
 }
 
 /// Why a new project was not written.
@@ -807,8 +1064,30 @@ impl std::error::Error for CreateError {}
 pub fn create_project(
     batch: &ImportBatch,
     out: &Path,
-    mut store: crate::StoreOptions,
+    store: crate::StoreOptions,
 ) -> Result<(), CreateError> {
+    let empty_dir = target_state(out)?;
+    let session = session_from_batch(batch, SessionOptions::default()).map_err(CreateError::Model)?;
+    write_new(session, out, empty_dir, store)
+}
+
+/// Writes `session` as a new project into `out` under [`create_project`]'s rule (`ew import qet --out`, WP-S3.09 D8):
+/// `out` absent or empty, the project written into a sibling directory and renamed when complete.
+///
+/// # Errors
+///
+/// [`CreateError`]: `out` holds something, or the write fails (the sibling directory is removed again).
+pub fn create_project_from(
+    session: Session,
+    out: &Path,
+    store: crate::StoreOptions,
+) -> Result<(), CreateError> {
+    let empty_dir = target_state(out)?;
+    write_new(session, out, empty_dir, store)
+}
+
+/// Whether `out` is an empty directory (`false`: it does not exist).
+fn target_state(out: &Path) -> Result<bool, CreateError> {
     let empty_dir = match std::fs::symlink_metadata(out) {
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => false,
         Ok(meta) if meta.is_dir() => {
@@ -829,10 +1108,22 @@ pub fn create_project(
             });
         }
     };
+    if out.file_name().is_none() {
+        return Err(CreateError::NotEmpty(out.to_path_buf()));
+    }
+    Ok(empty_dir)
+}
+
+/// The write of [`create_project`] and [`create_project_from`].
+fn write_new(
+    mut session: Session,
+    out: &Path,
+    empty_dir: bool,
+    mut store: crate::StoreOptions,
+) -> Result<(), CreateError> {
     let Some(name) = out.file_name() else {
         return Err(CreateError::NotEmpty(out.to_path_buf()));
     };
-    let mut session = session_from_batch(batch, SessionOptions::default()).map_err(CreateError::Model)?;
     let parent = out
         .parent()
         .filter(|p| !p.as_os_str().is_empty())

@@ -4,6 +4,7 @@ file.open_ewz Command "Open .ewz…" menu "File" shortcut none context global pa
 file.open_recent Command "Open recent project" menu "File ▸ Open recent" shortcut none context global needs-parameters params "index:uint, discard?:bool"
 file.open_sample Command "Open sample project" menu "File" shortcut none context global params "discard?:bool"
 file.import_qet Command "Import QElectroTech project…" menu "Project" shortcut none context global params "file?:path, dir?:path, discard?:bool"
+file.import_qet_apply Command "Apply the import" menu none shortcut none context global hidden params "confirm?:bool"
 parts.import Command "Parts table…" menu "Project" shortcut none context global params "path?:path"
 parts.map Command "Map a column of the parts table" menu none shortcut none context global hidden params "source?:text, column?:text, member?:text"
 parts.map_import Command "Import the mapped parts table" menu none shortcut none context global hidden params ""

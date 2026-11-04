@@ -275,6 +275,23 @@ fn a_qelectrotech_project_is_imported_into_a_new_directory() {
         "file.import_qet",
         json!({ "file": path(&qet), "dir": path(&dir) }),
     );
+    // WP-S3.09 D8: the import card with T5's summary; nothing is written before Apply and its confirmation.
+    let spec = ew_viewmodel::dialogs::spec(shell.dialog().expect("the import card"), &shell);
+    assert_eq!(spec.title, "Import example.qet");
+    assert_eq!(
+        spec.body,
+        ["1 pages, 0 devices, 0 connections; 0 errors, 0 warnings and 0 infos in the migration report"]
+    );
+    assert!(!dir.exists(), "the card writes nothing");
+    match run(&mut shell, "file.import_qet_apply", json!({})) {
+        Outcome::Failed { message } => assert_eq!(
+            message,
+            "Creating the project from example.qet cannot be undone and needs \"confirm\": true."
+        ),
+        other => panic!("{other:?}"),
+    }
+    assert!(!dir.exists());
+    done(&mut shell, "file.import_qet_apply", json!({ "confirm": true }));
     assert_eq!(shell.project_name(), Some("imported.ew"));
     assert_eq!(shell.access(), Some(AccessMode::Edit));
     assert!(!shell.is_dirty());

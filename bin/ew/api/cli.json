@@ -911,6 +911,11 @@
           "name": "--json",
           "value": false,
           "repeatable": false
+        },
+        {
+          "name": "--out",
+          "value": true,
+          "repeatable": false
         }
       ],
       "exits": [

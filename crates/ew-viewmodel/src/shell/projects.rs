@@ -11,7 +11,7 @@
 
 use std::path::{Path, PathBuf};
 
-use ew_api::import::{Severity, StarterLibrary, import_qet};
+use ew_api::import::{Refusal, Severity, StarterLibrary, import_qet, migration_counts};
 use ew_api::{NewProjectKind, ProjectTemplate, Recovery, Session};
 use serde_json::{Map, Value};
 
@@ -22,6 +22,34 @@ use super::{
 use crate::key;
 use crate::strings;
 use crate::strings::Key;
+
+/// An imported project the import card shows, not written yet (WP-S3.09 D8).
+#[derive(Debug)]
+pub(crate) struct PendingImport {
+    /// The session of the committed import.
+    session: Session,
+    /// The folder the user chose.
+    dir: PathBuf,
+    /// The banner of the opened project.
+    banner: String,
+}
+
+/// The banner text of a refused import (T1, T2 through their keys; an importer's refusal in its English words).
+pub(crate) fn refusal_text(file: &str, refusal: &Refusal) -> String {
+    match refusal {
+        Refusal::Panicked { .. } => strings::format(key!("error-import-panicked"), &[file]),
+        Refusal::Contract { breach, .. } => {
+            let reason = match breach {
+                ew_api::import::ContractBreach::SharedIdentity => key!("reason-import-shared-identity"),
+                ew_api::import::ContractBreach::IdentityNotFromKey => key!("reason-import-identity-key"),
+                ew_api::import::ContractBreach::OtherLineage => key!("reason-import-other-lineage"),
+                ew_api::import::ContractBreach::OutOfOrder => key!("reason-import-order"),
+            };
+            strings::format(key!("error-import-refused"), &[file, strings::text(reason)])
+        }
+        Refusal::Import(e) => strings::format(key!("error-import"), &[file, &e.to_string()]),
+    }
+}
 
 impl ShellModel {
     /// The template of a new project: the `template` parameter (`builtin` or a directory), else the default basic
@@ -263,7 +291,7 @@ impl ShellModel {
         let imported = match import_qet(&name, bytes, &library) {
             Ok(i) => i,
             Err(e) => {
-                let message = strings::format(key!("error-import"), &[&name, &e.to_string()]);
+                let message = refusal_text(&name, &e);
                 self.banner = Some(message.clone());
                 return Outcome::Failed { message };
             }
@@ -284,7 +312,6 @@ impl ShellModel {
                 return Outcome::Failed { message };
             }
         };
-        self.close_project();
         let mut banner = strings::format(
             key!("banner-imported"),
             &[
@@ -298,7 +325,67 @@ impl ShellModel {
             banner.push(' ');
             banner.push_str(note);
         }
-        self.create_and_install(session, &dir, key!("error-import-write"), Some(banner))
+        // WP-S3.09 D8: the import card first (its summary and pages); Apply asks the checkpoint confirmation, then
+        // writes and opens the project. Cancel writes nothing.
+        let (errors, warnings, infos) = migration_counts(&session);
+        let summary = strings::format(
+            key!("import-card-summary"),
+            &[
+                &counts.pages.to_string(),
+                &counts.devices.to_string(),
+                &counts.connections.to_string(),
+                &errors.to_string(),
+                &warnings.to_string(),
+                &infos.to_string(),
+            ],
+        );
+        let pages = session.page_labels();
+        self.palette = None;
+        self.dialog_gen += 1;
+        self.dialog = Some(Dialog::ImportQet {
+            file: name.clone(),
+            folder: dir_name(&dir),
+            summary,
+            pages,
+            devices: counts.devices,
+            confirm: false,
+        });
+        self.import_pending = Some(PendingImport { session, dir, banner });
+        Outcome::Done
+    }
+
+    /// `file.import_qet_apply {confirm?}` (the import card's Apply, WP-S3.09 D8): the checkpoint confirmation T4 (in the
+    /// window a question, headless the `confirm` parameter), then the project written into the chosen folder and
+    /// opened. Without an import card it is refused.
+    pub(crate) fn act_import_qet_apply(&mut self, p: &Map<String, Value>) -> Outcome {
+        let Some(Dialog::ImportQet { file, confirm, .. }) = self.dialog.as_mut() else {
+            return Outcome::Refused {
+                reason_key: key!("reason-no-import"),
+            };
+        };
+        if !flag(p, "confirm") {
+            return match self.mode {
+                Mode::Headless => failed(key!("error-import-confirm"), &[file]),
+                Mode::Gui => {
+                    *confirm = true;
+                    self.dialog_gen += 1;
+                    Outcome::Done
+                }
+            };
+        }
+        self.dialog = None;
+        let Some(pending) = self.import_pending.take() else {
+            return Outcome::Refused {
+                reason_key: key!("reason-no-import"),
+            };
+        };
+        self.close_project();
+        self.create_and_install(
+            pending.session,
+            &pending.dir,
+            key!("error-import-write"),
+            Some(pending.banner),
+        )
     }
 
     pub(crate) fn act_discard_journal(&mut self, p: &Map<String, Value>) -> Outcome {

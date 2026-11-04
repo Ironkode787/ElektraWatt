@@ -420,6 +420,9 @@ impl Engine {
         } else {
             normalise(&mut tx, &self.normalisers)?
         };
+        if !internal {
+            cmd.after_normalise(&mut tx)?;
+        }
         // the normalisers' notices follow the command's own
         for notice in tx.take_notices() {
             if !outcome.notices.contains(&notice) {
@@ -434,7 +437,7 @@ impl Engine {
                 &ops,
                 base.rev().next(),
                 &ApplyOptions {
-                    prevent: (!internal).then_some(&*self.prevent),
+                    prevent: (!internal && cmd.prevent()).then_some(&*self.prevent),
                 },
             )?
         };

@@ -3618,3 +3618,21 @@ choice-warning = Warning
 choice-error = Error
 choice-strict = Strict
 choice-lenient = Lenient
+
+# WP-S3.09 D4, D8: the QElectroTech import card, its checkpoint confirmation and the front door's refusals.
+import-card-title = Import { $p0 }
+import-card-summary = { $p0 } pages, { $p1 } devices, { $p2 } connections; { $p3 } errors, { $p4 } warnings and { $p5 } infos in the migration report
+import-card-more = and { $p0 } more pages
+import-card-apply = Apply
+import-confirm-title = Create the project from { $p0 }?
+import-confirm-text = The import creates a new project in { $p0 } with { $p1 } pages and { $p2 } devices. It cannot be undone: delete the folder to discard it.
+import-confirm-create = Create project
+error-import-confirm = Creating the project from { $p0 } cannot be undone and needs "confirm": true.
+error-import-panicked = The importer stopped on an internal error while reading { $p0 }; nothing was imported.
+error-import-refused = The import of { $p0 } was refused because { $p1 }; nothing was imported.
+reason-import-shared-identity = two records share one identity
+reason-import-identity-key = a record's identity does not follow from its source key
+reason-import-other-lineage = a record names another import
+reason-import-order = the records are out of order
+reason-no-import = No import is waiting to be applied
+action-file-import-qet-apply = Apply the import

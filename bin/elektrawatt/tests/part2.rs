@@ -174,13 +174,14 @@ fn a_qelectrotech_project_is_imported_by_a_script() {
                 "file.import_qet",
                 json!({ "file": path(&qet), "dir": path(&dir) }),
             ),
+            ("file.import_qet_apply", json!({ "confirm": true })),
             ("ui.describe", json!({})),
         ],
     );
-    assert_eq!(steps[0]["state"]["project"], "imported.ew");
-    assert_eq!(steps[0]["state"]["page_count"], 1);
+    assert_eq!(steps[1]["state"]["project"], "imported.ew");
+    assert_eq!(steps[1]["state"]["page_count"], 1);
     assert!(
-        steps[0]["state"]["banner"]
+        steps[1]["state"]["banner"]
             .as_str()
             .unwrap()
             .starts_with("Imported example.qet: 1 pages")

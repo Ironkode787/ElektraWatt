@@ -84,6 +84,23 @@ pub trait DynCommand: Send + Sync {
     fn as_any_command(&self) -> Option<&AnyCommand> {
         None
     }
+
+    /// Runs on the same transaction after the normalisers; nothing by default (`import.apply` records the hashes of
+    /// the records as committed, WP-S3.09 D11).
+    ///
+    /// # Errors
+    ///
+    /// [`CmdError`] refuses the transaction.
+    fn after_normalise(&self, tx: &mut TxBuilder<'_>) -> Result<(), CmdError> {
+        let _ = tx;
+        Ok(())
+    }
+
+    /// Whether the prevent hook judges the transaction (true by default); `import.apply` keeps a prevent rule's
+    /// violation for the lenient findings (WP-S3.09 D7, doc 14 §3.3). The structural invariants hold either way.
+    fn prevent(&self) -> bool {
+        true
+    }
 }
 
 impl<C: Command> DynCommand for C {

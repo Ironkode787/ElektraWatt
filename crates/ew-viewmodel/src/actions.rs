@@ -1181,6 +1181,19 @@ pub static ACTIONS: &[ActionMeta] = &[
             ),
         ),
     ),
+    // WP-S3.09 D8: the import card's Apply and the checkpoint confirmation's Create project.
+    with_params(
+        "confirm?:bool",
+        hidden(act(
+            "file.import_qet_apply",
+            Command,
+            Menu::Project,
+            &[],
+            always,
+            None,
+            |s, p| s.act_import_qet_apply(p),
+        )),
+    ),
     // FT-410: File, Import, Parts table…
     with_params(
         "path?:path",

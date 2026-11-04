@@ -3382,3 +3382,21 @@ choice-warning = Waarschuwing
 choice-error = Fout
 choice-strict = Strikt
 choice-lenient = Soepel
+
+# WP-S3.09 D4, D8: the QElectroTech import card, its checkpoint confirmation and the front door's refusals.
+import-card-title = { $p0 } importeren
+import-card-summary = { $p0 } pagina's, { $p1 } apparaten, { $p2 } verbindingen; { $p3 } fouten, { $p4 } waarschuwingen en { $p5 } meldingen in het migratierapport
+import-card-more = en nog { $p0 } pagina's
+import-card-apply = Toepassen
+import-confirm-title = Het project maken uit { $p0 }?
+import-confirm-text = De import maakt een nieuw project in { $p0 } met { $p1 } pagina's en { $p2 } apparaten. Dit kan niet ongedaan worden gemaakt: verwijder de map om het te verwerpen.
+import-confirm-create = Project maken
+error-import-confirm = Het project maken uit { $p0 } kan niet ongedaan worden gemaakt en vraagt "confirm": true.
+error-import-panicked = De importfunctie is gestopt door een interne fout bij het lezen van { $p0 }; er is niets geïmporteerd.
+error-import-refused = De import van { $p0 } is geweigerd omdat { $p1 }; er is niets geïmporteerd.
+reason-import-shared-identity = twee records dezelfde identiteit hebben
+reason-import-identity-key = de identiteit van een record niet volgt uit zijn bronsleutel
+reason-import-other-lineage = een record naar een andere import verwijst
+reason-import-order = de records niet op volgorde staan
+reason-no-import = Er wacht geen import om te worden toegepast
+action-file-import-qet-apply = De import toepassen

@@ -611,6 +611,9 @@ pub struct ImportQetArgs {
     /// Print the result as JSON (`ew.import-qet-result/1`).
     #[arg(long, overrides_with = "json")]
     pub json: bool,
+    /// Write the imported project into this directory (absent or empty); without it nothing is written.
+    #[arg(long, value_name = "dir", allow_hyphen_values = true, overrides_with = "out")]
+    pub out: Option<PathBuf>,
 }
 
 /// The arguments of `ew import parts`.
@@ -4092,6 +4095,27 @@ fn run_import_qet(a: &ImportQetArgs) -> i32 {
                 }
             },
             None => print!("{text}"),
+        }
+    }
+    if let Some(out) = &a.out {
+        match imported.session {
+            Ok(session) => {
+                match ew_api::import::create_project_from(
+                    session,
+                    out,
+                    ew_api::StoreOptions::new(env!("CARGO_PKG_VERSION")),
+                ) {
+                    Ok(()) => say(format!("project written to {}", out.display())),
+                    Err(e) => {
+                        eprintln!("error: {e}");
+                        return 2;
+                    }
+                }
+            }
+            Err(_) => {
+                eprintln!("error: the imported records do not make a project; nothing was written");
+                return 2;
+            }
         }
     }
     if a.json {

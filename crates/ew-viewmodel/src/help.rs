@@ -170,6 +170,7 @@ pub fn context_topic(model: &ShellModel) -> &'static str {
             | Dialog::Print(_)
             | Dialog::ExternalChange { .. }
             | Dialog::ConfirmUpgrade { .. }
+            | Dialog::ImportQet { .. }
             | Dialog::OpenEwz { .. }
             | Dialog::ConfirmGitSetup { .. },
         )
