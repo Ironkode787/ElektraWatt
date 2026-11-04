@@ -10,6 +10,8 @@
 /fuzz/coverage
 **/*.rs.bk
 .DS_Store
+# The bytecode a `python` run of the ci/ or tools/ scripts leaves (FT-1303).
+__pycache__/
 
 # The book's generated reference pages: built, not committed. `cargo xtask docs-gen` writes them from the committed
 # contract files (command and result schemas, rule catalogue, keymap sheet, glossary, CLI, query and api_v1 snapshots,
