@@ -99,7 +99,7 @@ fn the_privacy_buttons_open_the_bundled_privacy_md() {
     settle(&mut h);
     h.get_by_label("Privacy (PRIVACY.md)").click();
     settle(&mut h);
-    assert_eq!(*platform.opened.borrow(), [target.clone()]);
+    assert_eq!(*platform.opened.borrow(), std::slice::from_ref(&target));
 
     let mut shell = ShellModel::new(Mode::Gui, config);
     shell.start_first_run_if_needed();

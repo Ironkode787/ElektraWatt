@@ -5,7 +5,7 @@
 //! the next start, its four answers, the refusal of a project that is gone, and the start-up pruning of crash logs.
 
 use std::path::{Path, PathBuf};
-use std::time::{Duration, SystemTime};
+use std::time::Duration;
 
 use crate::common::{GOLDEN_A, Tmp, copy_dir, done};
 use ew_viewmodel::shell::startup::{CRASH_DIR, ENDED_LINE, StartupOffer};
@@ -253,7 +253,8 @@ fn a_project_that_is_gone_is_refused_in_words() {
 fn old_and_surplus_crash_logs_are_pruned_at_start() {
     let tmp = Tmp::new("startup-prune");
     let old = crash_log(&tmp, "20260901T000000Z-1.log", "2026-09-01T00:00:00Z", false);
-    let month_ago = SystemTime::now() - Duration::from_secs(31 * 24 * 3600);
+    let month_ago = ew_viewmodel::ew_api::Clock::now(&ew_viewmodel::ew_api::SystemClock)
+        - Duration::from_secs(31 * 24 * 3600);
     std::fs::File::options()
         .write(true)
         .open(&old)
