@@ -588,7 +588,263 @@ pub fn apply_command(
             .collect(),
         run,
         checkpoint,
+        carried: std::collections::BTreeMap::new(),
     })
+}
+
+// -------------------------------------------------------------------------------------------------------------------
+// Re-import into a lineage (WP-S3.09 D10 to D12)
+
+pub use ew_commands::commands::{MemberChange, ReimportClass, ReimportPlan, ReimportRow};
+
+/// The lineage of the open project a QET file re-imports into (D10).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum Detected {
+    /// The file's own lineage is the project's (the same namespace: the same QET project UUID).
+    Lineage(LineageInfo),
+    /// A lineage of the same importer and source name holds `percent` % of the file's source keys: re-importing into
+    /// it is proposed (T6).
+    Proposed {
+        /// The lineage.
+        lineage: LineageInfo,
+        /// The source name of its earlier import.
+        source_name: String,
+        /// The share of the file's source keys it holds, in whole per cent (rounded down; at least 50).
+        percent: u32,
+    },
+}
+
+/// Why a re-import was refused; the project is unchanged in every case.
+#[derive(Debug)]
+pub enum ReimportError {
+    /// The front door refused the file.
+    Refused(Refusal),
+    /// The file is not an earlier import of this project (T7).
+    NotAnImport {
+        /// The file's name.
+        file: String,
+    },
+    /// The import's transaction was refused.
+    Apply(ApplyError),
+}
+
+impl std::fmt::Display for ReimportError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ReimportError::Refused(r) => write!(f, "{r}"),
+            ReimportError::NotAnImport { file } => write!(
+                f,
+                "{file} is not an earlier import of this project; import it into a new project instead."
+            ),
+            ReimportError::Apply(e) => write!(f, "{e}"),
+        }
+    }
+}
+
+impl std::error::Error for ReimportError {}
+
+impl Detected {
+    /// The lineage re-imported into.
+    pub fn lineage(&self) -> &LineageInfo {
+        match self {
+            Detected::Lineage(l) | Detected::Proposed { lineage: l, .. } => l,
+        }
+    }
+
+    /// T6, the proposal's question, for a proposed lineage; `file` is the file re-imported.
+    pub fn question(&self, file: &str) -> Option<String> {
+        match self {
+            Detected::Lineage(_) => None,
+            Detected::Proposed {
+                source_name,
+                percent,
+                ..
+            } => Some(format!(
+                "{file} matches the earlier import of {source_name} ({percent} % of its items). Re-import it into that import?"
+            )),
+        }
+    }
+}
+
+/// A re-import of a QET file into a lineage of the open project (D12), previewed, not applied yet.
+#[derive(Debug)]
+pub struct Reimport {
+    /// The file's name.
+    pub file: String,
+    /// The batch as imported into the lineage.
+    pub batch: ImportBatch,
+    /// Every record classed (the added and changed ones named as the preview commits them), the records to apply and
+    /// the run entries.
+    pub plan: ReimportPlan,
+    /// The preview of the plan's `import.apply` (one undoable transaction), `None` when it writes nothing (IC-12).
+    pub preview: Option<ew_commands::Preview>,
+}
+
+impl Reimport {
+    /// T8, the re-import's summary.
+    pub fn summary(&self) -> String {
+        let n = |c: ReimportClass| self.plan.count(c);
+        format!(
+            "Re-import of {}: {} added, {} changed in the source, {} kept with your changes, {} changed on both sides and kept, {} removed in the source and kept, {} unchanged.",
+            self.file,
+            n(ReimportClass::Added),
+            n(ReimportClass::SourceChanged),
+            n(ReimportClass::EwChanged),
+            n(ReimportClass::Conflict),
+            n(ReimportClass::Removed),
+            n(ReimportClass::Unchanged),
+        )
+    }
+}
+
+/// The QET import of `bytes` named `name` through the front door, with `ctx` (its lineage the batch's when `None`).
+fn qet_batch(
+    name: &str,
+    bytes: Vec<u8>,
+    library: &StarterLibrary,
+    ctx: &mut ew_import_qet::ew_interop_api::ImportContext,
+) -> Result<ImportBatch, Refusal> {
+    let input = ImportInput::new(name, bytes).map_err(|e| ImportError::Unsupported {
+        message: e.to_string(),
+    })?;
+    let importer = QetProjectImporter::with_library(library.docs.iter().cloned());
+    let limits = ctx.limits;
+    let lineage = ctx.lineage;
+    let sizes = [input.bytes().len() as u64];
+    front_door(name, &sizes, &limits, lineage.as_ref(), || importer.import(&input, ctx))
+}
+
+impl Session {
+    /// The lineage of this project that the QET file `bytes` named `name` re-imports into (D10): the file's own lineage
+    /// when the project holds it (the same namespace), else a lineage of the same importer and source name that holds
+    /// at least half of the file's source keys, proposed (T6).
+    ///
+    /// # Errors
+    ///
+    /// [`ReimportError::Refused`] when the front door refuses the file, [`ReimportError::NotAnImport`] (T7) when no
+    /// lineage of this project matches it.
+    pub fn detect_qet_lineage(
+        &self,
+        name: &str,
+        bytes: Vec<u8>,
+        library: &StarterLibrary,
+    ) -> Result<Detected, ReimportError> {
+        let mut ctx = ew_import_qet::project::new_project_context();
+        let batch = qet_batch(name, bytes, library, &mut ctx).map_err(ReimportError::Refused)?;
+        let not_an_import = || ReimportError::NotAnImport { file: name.to_owned() };
+        let Some(own) = batch.records.iter().find_map(|r| match r {
+            Record::ImportLineage(l) => Some(l.clone()),
+            _ => None,
+        }) else {
+            return Err(not_an_import());
+        };
+        let model = self.engine.model();
+        let q = self.query();
+        let lineages: Vec<std::sync::Arc<ew_schema::ImportLineage>> =
+            q.table::<ew_schema::ImportLineage>().iter().map(|(_, l)| l.clone()).collect();
+        let info = |l: &ew_schema::ImportLineage| LineageInfo {
+            id: l.id,
+            namespace: l.namespace.as_uuid(),
+        };
+        if let Some(l) = lineages.iter().find(|l| l.namespace == own.namespace) {
+            return Ok(Detected::Lineage(info(l)));
+        }
+        // The project record is not re-imported (the project keeps its own), so it is no item of the share.
+        let keys: std::collections::BTreeSet<String> = batch
+            .records
+            .iter()
+            .filter(|r| !matches!(r, Record::Project(_)))
+            .filter_map(|r| {
+                let v = serde_json::to_value(r).ok()?;
+                v.get("source_ref")?.get("key")?.as_str().map(str::to_owned)
+            })
+            .collect();
+        if keys.is_empty() {
+            return Err(not_an_import());
+        }
+        let mut best: Option<(u32, &ew_schema::ImportLineage)> = None;
+        for l in lineages
+            .iter()
+            .filter(|l| l.importer == own.importer && l.source_name == own.source_name)
+        {
+            let held = ew_commands::commands::lineage_keys(model, l.id)
+                .map_err(|e| ReimportError::Apply(ApplyError::Refused(e)))?;
+            let shared = keys.iter().filter(|k| held.contains(*k)).count();
+            let percent = u32::try_from(shared * 100 / keys.len()).unwrap_or(100);
+            if percent >= 50 && best.is_none_or(|(p, _)| percent > p) {
+                best = Some((percent, l));
+            }
+        }
+        match best {
+            Some((percent, l)) => Ok(Detected::Proposed {
+                lineage: info(l),
+                source_name: l.source_name.clone(),
+                percent,
+            }),
+            None => Err(not_an_import()),
+        }
+    }
+
+    /// The re-import of the QET file `bytes` named `name` into the lineage `lineage` of this project (D11, D12): the
+    /// file imported with the lineage's namespace, every record classed against the lineage's last run and the
+    /// project as it is, and the preview of the `import.apply` of the records to apply. Nothing is changed until
+    /// [`Session::apply_reimport`].
+    ///
+    /// # Errors
+    ///
+    /// [`ReimportError::Refused`] when the front door refuses the file; [`ReimportError::Apply`] for a record without a
+    /// JSON form, a run too large (T3) or a transaction that breaks a structural invariant.
+    pub fn reimport_qet(
+        &mut self,
+        name: &str,
+        bytes: Vec<u8>,
+        library: &StarterLibrary,
+        lineage: &LineageInfo,
+    ) -> Result<Reimport, ReimportError> {
+        let mut ctx = ew_import_qet::project::new_project_context();
+        ctx.project = self.query().project().id;
+        ctx.lineage = Some(*lineage);
+        let batch = qet_batch(name, bytes, library, &mut ctx).map_err(ReimportError::Refused)?;
+        let model = self.engine.model();
+        let q = self.query();
+        let base = q
+            .table::<ew_schema::ImportLineage>()
+            .get(lineage.id)
+            .and_then(|l| l.last_run)
+            .and_then(|r| q.table::<ew_schema::ImportRun>().get(r).cloned());
+        let mut plan = ew_commands::commands::plan_reimport(model, &batch.records, base.as_deref(), name)
+            .map_err(|e| ReimportError::Apply(ApplyError::Refused(e)))?;
+        let mut command = apply_command(&batch, Some(lineage), ctx.mode, ctx.as_of, false)
+            .map_err(ReimportError::Apply)?;
+        command.records = plan.apply.clone();
+        command.carried = plan.carried.clone();
+        command.run.entries.extend(plan.entries.iter().cloned());
+        let preview = if plan.writes() {
+            let preview = self.import_preview(&command).map_err(ReimportError::Apply)?;
+            ew_commands::commands::name_rows(preview.candidate(), &mut plan.rows);
+            Some(preview)
+        } else {
+            None
+        };
+        Ok(Reimport {
+            file: name.to_owned(),
+            batch,
+            plan,
+            preview,
+        })
+    }
+
+    /// Applies a re-import: one undoable transaction, or nothing when it writes nothing (IC-12).
+    ///
+    /// # Errors
+    ///
+    /// [`ApplyError::Refused`] when the commit is refused (the project changed under the preview).
+    pub fn apply_reimport(&mut self, reimport: Reimport) -> Result<Option<ew_commands::Receipt>, ApplyError> {
+        match reimport.preview {
+            Some(preview) => self.commit_import(preview).map(Some),
+            None => Ok(None),
+        }
+    }
 }
 
 impl Session {

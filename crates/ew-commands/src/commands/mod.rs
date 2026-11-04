@@ -77,7 +77,9 @@ pub use exchange::{ExchangePin, PinPairs, derive_pin_map};
 pub use fields::{ASPECTS, SET_MANY_MAX_EDITS, SETTABLE};
 pub use fluid::{ClosureKindParam, ClosureParam, OccupancyParam, ValveStateParam};
 pub use frames::{FRAMES_MEMBER, FrameForPageType};
-pub use import::{ApplyImport, record_hash};
+pub use import::{
+    ApplyImport, MemberChange, ReimportClass, ReimportPlan, ReimportRow, lineage_keys, name_rows, plan_reimport, record_hash,
+};
 pub use items::{
     AlignParam, DashParam, FreeTextParam, GraphicParam, ImageParam, ItemKindParam, ShapeParam, StrokeParam,
 };

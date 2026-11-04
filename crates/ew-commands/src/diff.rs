@@ -120,7 +120,7 @@ impl ModelDiff {
     }
 }
 
-fn field_paths(prefix: &str, before: &Value, after: &Value, out: &mut Vec<String>) {
+pub(crate) fn field_paths(prefix: &str, before: &Value, after: &Value, out: &mut Vec<String>) {
     match (before, after) {
         (Value::Object(a), Value::Object(b)) => {
             let mut keys: Vec<&String> = a.keys().chain(b.keys()).collect();

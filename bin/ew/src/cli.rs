@@ -614,6 +614,18 @@ pub struct ImportQetArgs {
     /// Write the imported project into this directory (absent or empty); without it nothing is written.
     #[arg(long, value_name = "dir", allow_hyphen_values = true, overrides_with = "out")]
     pub out: Option<PathBuf>,
+    /// Re-import the file into its earlier import in this project: prints what would change and writes nothing.
+    #[arg(
+        long,
+        value_name = "project",
+        allow_hyphen_values = true,
+        overrides_with = "into",
+        conflicts_with_all = ["out", "json", "report", "report_out"]
+    )]
+    pub into: Option<PathBuf>,
+    /// With `--into`: commit the re-import and save the project.
+    #[arg(long, overrides_with = "apply", requires = "into")]
+    pub apply: bool,
 }
 
 /// The arguments of `ew import parts`.
@@ -4024,6 +4036,9 @@ fn run_import_qet(a: &ImportQetArgs) -> i32 {
         || a.file.to_string_lossy().into_owned(),
         |n| n.to_string_lossy().into_owned(),
     );
+    if let Some(project) = &a.into {
+        return run_reimport_qet(a, project, &name, bytes, &library);
+    }
     let imported = match import_qet(&name, bytes, &library) {
         Ok(i) => i,
         Err(e) => {
@@ -4147,6 +4162,110 @@ fn run_import_qet(a: &ImportQetArgs) -> i32 {
         );
     }
     code
+}
+
+/// The text of a member value of a re-import row: a text as it is, any other value as JSON, an absent one as `-`.
+fn member_text(v: Option<&serde_json::Value>) -> String {
+    match v {
+        None => "-".to_owned(),
+        Some(serde_json::Value::String(s)) => s.clone(),
+        Some(other) => other.to_string(),
+    }
+}
+
+/// `ew import qet <file> --into <project> [--apply]` (WP-S3.09 D10 to D12): the file re-imported into its earlier
+/// import in the project. Prints T6 when the import is matched by its items, T8 and the rows of the records added,
+/// changed in the source, changed on both sides (each member with this project's and the file's value) and removed
+/// in the source; without `--apply` nothing is written (T12), with it the re-import is one transaction, saved. Exit 2
+/// when the file is refused or is not an earlier import of the project (T7).
+fn run_reimport_qet(
+    a: &ImportQetArgs,
+    project: &Path,
+    name: &str,
+    bytes: Vec<u8>,
+    library: &StarterLibrary,
+) -> i32 {
+    use ew_api::import::ReimportClass as C;
+    let opened = if a.apply {
+        let origin = ew_api::Origin::Cli {
+            subcommand: "import qet".into(),
+            confirmed: false,
+        };
+        open_for_writing(project, origin)
+    } else {
+        ew_api::Session::open_read_only(project, env!("CARGO_PKG_VERSION"))
+            .map(|(s, _)| s)
+            .map_err(|e| {
+                eprintln!("error: {}: {e}", project.display());
+                2
+            })
+    };
+    let Ok(mut session) = opened else {
+        return 2;
+    };
+    let detected = match session.detect_qet_lineage(name, bytes.clone(), library) {
+        Ok(d) => d,
+        Err(e) => {
+            eprintln!("error: {e}");
+            session.close();
+            return 2;
+        }
+    };
+    if let Some(question) = detected.question(name) {
+        println!("{question}");
+    }
+    let reimport = match session.reimport_qet(name, bytes, library, detected.lineage()) {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("error: {e}");
+            session.close();
+            return 2;
+        }
+    };
+    println!("{}", reimport.summary());
+    for row in &reimport.plan.rows {
+        let class = match row.class {
+            C::Added => "added",
+            C::SourceChanged => "changed in the source",
+            C::Conflict => "changed on both sides",
+            C::Removed => "removed in the source",
+            C::EwChanged | C::Unchanged => continue,
+        };
+        println!("{class}: {}", row.record);
+        for m in &row.members {
+            println!(
+                "  {}: here {}, in {name} {}",
+                m.path,
+                member_text(m.ours.as_ref()),
+                member_text(m.theirs.as_ref())
+            );
+        }
+    }
+    let writes = reimport.plan.writes();
+    if !a.apply {
+        if writes {
+            println!("nothing was written: add --apply to commit the re-import");
+        }
+        session.close();
+        return 0;
+    }
+    if let Err(e) = session.apply_reimport(reimport) {
+        eprintln!("error: {e}");
+        session.close();
+        return 2;
+    }
+    if writes {
+        if let Err(e) = session.save() {
+            eprintln!("error: the save failed: {e:?}");
+            session.close();
+            return 2;
+        }
+        println!("re-import applied; saved");
+    } else {
+        println!("nothing to apply");
+    }
+    session.close();
+    0
 }
 
 /// `ew import csv` (WP-S1.22 part 3, FT-27): the golden-dialect tables of a directory with the starter content as a new

@@ -36,11 +36,326 @@ pub struct ApplyImport {
     pub run: ImportRun,
     /// Whether the import makes an empty project's first state: a non-undoable checkpoint.
     pub checkpoint: bool,
+    /// The hashes a re-import carries from its base for the records it keeps ([`ReimportPlan::carried`], D12); empty
+    /// for an import into a new project.
+    pub carried: BTreeMap<AnyId, RecordHash>,
 }
 
 impl ApplyImport {
     /// The command name.
     pub const NAME: &'static str = "import.apply";
+}
+
+// -------------------------------------------------------------------------------------------------------------------
+// Re-import (WP-S3.09 D10 to D12)
+
+/// The class of one record of a re-import (D12), in the order the card lists them.
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
+pub enum ReimportClass {
+    /// Not in the base: applied.
+    Added,
+    /// Changed in the source only: the source's record is applied.
+    SourceChanged,
+    /// Changed on both sides: this project's record is kept (EW-IMP-011).
+    Conflict,
+    /// In the base, not in the source: kept (EW-IMP-010).
+    Removed,
+    /// Changed in this project only, or deleted here: kept.
+    EwChanged,
+    /// Equal on both sides.
+    Unchanged,
+}
+
+/// One member of a record changed on both sides: its path (`diff_model`'s dotted path), this project's value and the
+/// source's (`None` where the member is absent).
+#[derive(Clone, PartialEq, Debug)]
+pub struct MemberChange {
+    /// The member's dotted path.
+    pub path: String,
+    /// This project's value.
+    pub ours: Option<Value>,
+    /// The source's value.
+    pub theirs: Option<Value>,
+}
+
+/// One record of a re-import.
+#[derive(Clone, PartialEq, Debug)]
+pub struct ReimportRow {
+    /// Its class.
+    pub class: ReimportClass,
+    /// Its key.
+    pub key: AnyKey,
+    /// The record in words (its tag, folio or label, as `words` names it).
+    pub record: String,
+    /// For a conflict, the members that differ between this project and the source.
+    pub members: Vec<MemberChange>,
+}
+
+/// What a re-import of a batch into its lineage does (D12): every record of the batch and of the base classed, the
+/// records to apply, the base hashes of the records kept and the run entries of the conflicts and removals.
+#[derive(Clone, PartialEq, Debug, Default)]
+pub struct ReimportPlan {
+    /// Every record of the batch and of the base, in class order, then key order.
+    pub rows: Vec<ReimportRow>,
+    /// The records applied: added and changed in the source.
+    pub apply: Vec<Record>,
+    /// The hashes the new run carries for the records kept (unchanged, kept with this project's changes, conflicts,
+    /// removed in the source).
+    pub carried: BTreeMap<AnyId, RecordHash>,
+    /// The EW-IMP-011 entries of the conflicts and the EW-IMP-010 entries of the removals, in that order.
+    pub entries: Vec<ew_schema::RunEntry>,
+}
+
+impl ReimportPlan {
+    /// The number of records of `class`.
+    pub fn count(&self, class: ReimportClass) -> usize {
+        self.rows.iter().filter(|r| r.class == class).count()
+    }
+
+    /// Whether Apply writes anything: a record to apply, a conflict or a removal to record. A re-import of the same
+    /// source writes nothing (IC-12).
+    pub fn writes(&self) -> bool {
+        self.rows
+            .iter()
+            .any(|r| !matches!(r.class, ReimportClass::Unchanged | ReimportClass::EwChanged))
+    }
+}
+
+/// The source keys of the records of `model` whose `source_ref` names the lineage `lineage` (D10's share of the
+/// batch's source keys).
+///
+/// # Errors
+///
+/// [`CmdError::Internal`] for a record without a JSON form.
+pub fn lineage_keys(
+    model: &ew_model::Model,
+    lineage: Id<ImportLineage>,
+) -> Result<std::collections::BTreeSet<String>, CmdError> {
+    let id = lineage.to_string();
+    let mut keys = std::collections::BTreeSet::new();
+    for key in model.keys() {
+        let Some(row) = model.row(&key) else {
+            continue;
+        };
+        let value = crate::rows::row_json(&row)?;
+        let Some(source) = value.get("source_ref") else {
+            continue;
+        };
+        if source.get("lineage").and_then(Value::as_str) == Some(id.as_str()) {
+            if let Some(k) = source.get("key").and_then(Value::as_str) {
+                keys.insert(k.to_owned());
+            }
+        }
+    }
+    Ok(keys)
+}
+
+/// Names the added and changed records of `rows` as `model` holds them: the re-import's candidate after the
+/// normalisers, which number an added terminal (`-X1:3`).
+pub fn name_rows(model: &ew_model::Model, rows: &mut [ReimportRow]) {
+    let mut ids = ew_ids::SystemSource;
+    let tx = TxBuilder::new(model, &mut ids);
+    for row in rows
+        .iter_mut()
+        .filter(|r| matches!(r.class, ReimportClass::Added | ReimportClass::SourceChanged))
+    {
+        row.record = crate::words::record(&tx, row.key);
+    }
+}
+
+/// The value at a dotted path of a JSON object.
+fn at_path<'v>(value: &'v Value, path: &str) -> Option<&'v Value> {
+    path.split('.').try_fold(value, |v, k| v.get(k))
+}
+
+/// A run entry of a re-import about `key`.
+fn reimport_entry(code: &str, key: AnyKey, message: String, file: &str) -> ew_schema::RunEntry {
+    ew_schema::RunEntry {
+        code: code.to_owned(),
+        severity: ew_schema::RunSeverity::Warning,
+        defect: None,
+        message,
+        location: Some(ew_schema::RunLocation {
+            file: file.to_owned(),
+            ..Default::default()
+        }),
+        targets: vec![ew_schema::RunTarget {
+            kind: key.0.name().to_owned(),
+            id: key.1,
+            extra: Default::default(),
+        }],
+        fix: None,
+        extra: Default::default(),
+    }
+}
+
+/// The re-import of `records` (a batch imported into a lineage of `model`) against `base`, the lineage's last run
+/// (D11, D12). Per record, with "current" the hash of the record in `model` now and the base's `ew` hash (else its
+/// `source` hash) the record as committed:
+/// - **unchanged**: the source hash is the base's and current is the committed one;
+/// - **changed in the source**: the source hash differs, current is the committed one: applied;
+/// - **kept with this project's changes**: the source hash is the base's, current differs, or the record was deleted
+///   here (it stays deleted);
+/// - **conflict**: both differ: kept, with an EW-IMP-011 entry (T10);
+/// - **added**: not in the base: applied; a record of that ID already in `model` is kept as unchanged when equal,
+///   else as a conflict;
+/// - **removed**: in the base and in `model`, not in the batch: kept, with an EW-IMP-010 entry (T9).
+///
+/// The project record and the lineage of the batch are not classed. `file` names the source in the entries.
+///
+/// # Errors
+///
+/// [`CmdError::Internal`] for a record without a JSON form.
+pub fn plan_reimport(
+    model: &ew_model::Model,
+    records: &[Record],
+    base: Option<&ImportRun>,
+    file: &str,
+) -> Result<ReimportPlan, CmdError> {
+    let mut ids = ew_ids::SystemSource;
+    let mut tx = TxBuilder::new(model, &mut ids);
+    let mut plan = ReimportPlan::default();
+    let mut batch_ids = std::collections::BTreeSet::new();
+    let without_ref = |row: &AnyRow| -> Result<Value, CmdError> {
+        let mut v = crate::rows::row_json(row)?;
+        if let Value::Object(map) = &mut v {
+            map.remove("source_ref");
+        }
+        Ok(v)
+    };
+    let mut rows = Vec::new();
+    for record in records.iter().filter(|r| hashed(r)) {
+        let row = AnyRow::from_record(record.clone())
+            .map_err(|r| CmdError::internal(format!("a record of an unknown kind ({:?})", r.kind())))?;
+        let key = row.key();
+        batch_ids.insert(key.1);
+        let source = record_hash(&row)?;
+        let current = tx.row(&key);
+        let now = current.as_ref().map(record_hash).transpose()?;
+        let based = base.and_then(|b| b.record_hashes.get(&key.1));
+        let class = match (based, &now) {
+            (None, None) => ReimportClass::Added,
+            (None, Some(now)) if *now == source => ReimportClass::Unchanged,
+            (None, Some(_)) => ReimportClass::Conflict,
+            (Some(_), None) => ReimportClass::EwChanged,
+            (Some(b), Some(now)) => {
+                let committed = b.ew.as_ref().unwrap_or(&b.source);
+                match (b.source == source, now == committed) {
+                    (true, true) => ReimportClass::Unchanged,
+                    (false, true) => ReimportClass::SourceChanged,
+                    (true, false) => ReimportClass::EwChanged,
+                    (false, false) => ReimportClass::Conflict,
+                }
+            }
+        };
+        let mut members = Vec::new();
+        match class {
+            ReimportClass::Added | ReimportClass::SourceChanged => plan.apply.push(record.clone()),
+            ReimportClass::Conflict => {
+                // The base's committed hash stays the base of the next re-import, so this project's version stays
+                // "changed here" (D11): the new source becomes the source hash.
+                let committed = based.map_or_else(|| source.clone(), |b| b.ew.clone().unwrap_or(b.source.clone()));
+                plan.carried.insert(
+                    key.1,
+                    RecordHash {
+                        ew: (committed != source).then_some(committed),
+                        source,
+                        extra: Default::default(),
+                    },
+                );
+                if let Some(ours) = &current {
+                    let (ours, theirs) = (without_ref(ours)?, without_ref(&row)?);
+                    let mut paths = Vec::new();
+                    crate::diff::field_paths("", &ours, &theirs, &mut paths);
+                    members = paths
+                        .into_iter()
+                        .map(|path| MemberChange {
+                            ours: at_path(&ours, &path).cloned(),
+                            theirs: at_path(&theirs, &path).cloned(),
+                            path,
+                        })
+                        .collect();
+                }
+            }
+            ReimportClass::EwChanged | ReimportClass::Unchanged | ReimportClass::Removed => {
+                if let Some(b) = based {
+                    plan.carried.insert(key.1, b.clone());
+                } else {
+                    plan.carried.insert(
+                        key.1,
+                        RecordHash {
+                            source,
+                            ew: None,
+                            extra: Default::default(),
+                        },
+                    );
+                }
+            }
+        }
+        rows.push(ReimportRow {
+            class,
+            key,
+            record: String::new(),
+            members,
+        });
+    }
+    // The records applied are named with them pending; [`name_rows`] names them as committed.
+    for record in &plan.apply {
+        if let Ok(row) = AnyRow::from_record(record.clone()) {
+            tx.put_row(row);
+        }
+    }
+    for row in &mut rows {
+        row.record = crate::words::record(&tx, row.key);
+    }
+    if let Some(base) = base {
+        let removed: std::collections::BTreeSet<AnyId> = base
+            .record_hashes
+            .keys()
+            .filter(|id| !batch_ids.contains(id))
+            .copied()
+            .collect();
+        if !removed.is_empty() {
+            for key in model.keys().into_iter().filter(|k| removed.contains(&k.1)) {
+                if let Some(h) = base.record_hashes.get(&key.1) {
+                    plan.carried.insert(key.1, h.clone());
+                }
+                rows.push(ReimportRow {
+                    class: ReimportClass::Removed,
+                    key,
+                    record: crate::words::record(&tx, key),
+                    members: Vec::new(),
+                });
+            }
+        }
+    }
+    rows.sort_by(|a, b| (a.class, a.key).cmp(&(b.class, b.key)));
+    for row in &rows {
+        let entry = match row.class {
+            ReimportClass::Conflict => reimport_entry(
+                "EW-IMP-011",
+                row.key,
+                format!(
+                    "{} was changed both in {file} and here; this project's version is kept.",
+                    row.record
+                ),
+                file,
+            ),
+            ReimportClass::Removed => reimport_entry(
+                "EW-IMP-010",
+                row.key,
+                format!(
+                    "{} was removed in {file}; it is kept here. Delete it if it is no longer needed.",
+                    row.record
+                ),
+                file,
+            ),
+            _ => continue,
+        };
+        plan.entries.push(entry);
+    }
+    plan.rows = rows;
+    Ok(plan)
 }
 
 /// The hash of D11: the first 128 bits of SHA-256 over a row's JSON form without its `source_ref`, as 32 lower-case
@@ -86,21 +401,29 @@ impl DynCommand for ApplyImport {
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
         // The batch's library documents are checked as `library.embed` checks a copy (its identity and its hash),
         // without the library rule: the import's own library is project-local (doc 05 §13.2).
+        // A re-import keeps the copies the project holds (D12: this project's version is kept).
+        fn put_copy<T: ew_model::Entity>(tx: &mut TxBuilder<'_>, copy: T, keep_held: bool) {
+            if !keep_held || !tx.exists::<T>(copy.id()) {
+                tx.put(copy);
+            }
+        }
+        let keep = !self.checkpoint;
         for (i, value) in self.lib.iter().enumerate() {
             let (doc, _) = super::library::read_copy(Self::NAME, &format!("/lib/{i}"), value)?;
             match doc {
-                LibDocument::Part(c) => tx.put(c),
-                LibDocument::Symbol(c) => tx.put(c),
-                LibDocument::Fndef(c) => tx.put(c),
-                LibDocument::Form(c) => tx.put(c),
-                LibDocument::Macro(c) => tx.put(c),
-                LibDocument::Manufacturer(c) => tx.put(c),
+                LibDocument::Part(c) => put_copy(tx, c, keep),
+                LibDocument::Symbol(c) => put_copy(tx, c, keep),
+                LibDocument::Fndef(c) => put_copy(tx, c, keep),
+                LibDocument::Form(c) => put_copy(tx, c, keep),
+                LibDocument::Macro(c) => put_copy(tx, c, keep),
+                LibDocument::Manufacturer(c) => put_copy(tx, c, keep),
                 LibDocument::Unknown(_) => {}
             }
         }
         let run_id: Id<ImportRun> = tx.mint();
         let mut run = self.run.clone();
         run.id = run_id;
+        run.record_hashes.extend(self.carried.clone());
         let mut lineage_written = false;
         for record in &self.records {
             if hashed(record) {

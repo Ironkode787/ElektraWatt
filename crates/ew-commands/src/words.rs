@@ -104,6 +104,22 @@ pub(crate) fn symbol(tx: &TxBuilder<'_>, id: ew_ids::Id<Representation>) -> Stri
     tag.map_or_else(|| "a symbol".to_owned(), |t| format!("the symbol of {t}"))
 }
 
+/// Any record by the words of its kind (WP-S3.09 D12's EW-IMP-010 and EW-IMP-011): a device by its tag, a function or
+/// an interruption point, a page, a symbol, a wire or a junction as above, else its kind (`a terminal strip`… `a
+/// structure node`).
+pub(crate) fn record(tx: &TxBuilder<'_>, key: ew_model::AnyKey) -> String {
+    let (kind, id) = key;
+    match kind {
+        Kind::Device => device(tx, id.cast()),
+        Kind::Function => interruption_point(tx, id.cast()),
+        Kind::Page => page(tx, id.cast()),
+        Kind::Representation => symbol(tx, id.cast()),
+        Kind::Connection => wire(tx, id.cast()),
+        Kind::Junction => junction(tx, id.cast()),
+        other => format!("a {}", other.name().replace('_', " ")),
+    }
+}
+
 /// A length in millimetres to one decimal, a whole number without it ("45.5", "120"; 1 nm is "0").
 fn mm(n: ew_units::Nm) -> String {
     let s = format!("{:.1}", n.to_mm_f64());

@@ -24,10 +24,10 @@ struct Def {
     kind: Option<&'static str>,
 }
 
-const SIMPLE: usize = 0;
+pub(crate) const SIMPLE: usize = 0;
 const NEXT: usize = 1;
 const PREVIOUS: usize = 2;
-const TERMINAL: usize = 3;
+pub(crate) const TERMINAL: usize = 3;
 const THUMBNAIL: usize = 4;
 
 const DEFS: [Def; 5] = [
@@ -64,7 +64,7 @@ const DEFS: [Def; 5] = [
 ];
 
 /// A UUID text from a number.
-fn uuid(n: u64) -> String {
+pub(crate) fn uuid(n: u64) -> String {
     format!("{{00000000-0000-4000-8000-{n:012x}}}")
 }
 
@@ -74,7 +74,7 @@ fn terminal_uuid(def: usize, i: usize) -> String {
 }
 
 /// One placed element.
-struct El {
+pub(crate) struct El {
     def: usize,
     uuid: String,
     x: i64,
@@ -86,7 +86,7 @@ struct El {
     links: Vec<String>,
 }
 
-fn el(def: usize, uuid: String, x: i64, y: i64) -> El {
+pub(crate) fn el(def: usize, uuid: String, x: i64, y: i64) -> El {
     El {
         def,
         uuid,
@@ -101,7 +101,7 @@ fn el(def: usize, uuid: String, x: i64, y: i64) -> El {
 }
 
 impl El {
-    fn label(mut self, label: &'static str) -> El {
+    pub(crate) fn label(mut self, label: &'static str) -> El {
         self.label = Some(label);
         self
     }
@@ -128,16 +128,16 @@ impl El {
 }
 
 /// One end of a conductor: element UUID, definition index, terminal index.
-type End<'a> = (&'a str, usize, usize);
+pub(crate) type End<'a> = (&'a str, usize, usize);
 
-struct Folio {
+pub(crate) struct Folio {
     folio: &'static str,
     title: &'static str,
     elems: Vec<El>,
     conductors: Vec<(String, usize, usize, String, usize, usize)>,
 }
 
-fn folio(folio: &'static str, title: &'static str, elems: Vec<El>) -> Folio {
+pub(crate) fn folio(folio: &'static str, title: &'static str, elems: Vec<El>) -> Folio {
     Folio {
         folio,
         title,
@@ -147,7 +147,7 @@ fn folio(folio: &'static str, title: &'static str, elems: Vec<El>) -> Folio {
 }
 
 impl Folio {
-    fn wire(mut self, a: End<'_>, b: End<'_>) -> Folio {
+    pub(crate) fn wire(mut self, a: End<'_>, b: End<'_>) -> Folio {
         self.conductors
             .push((a.0.to_owned(), a.1, a.2, b.0.to_owned(), b.1, b.2));
         self
@@ -275,7 +275,7 @@ fn write_collection(w: &mut String) {
 }
 
 /// The `.qet` text of a project with the given root attributes and folios.
-fn qet(attributes: &str, folios: &[Folio]) -> String {
+pub(crate) fn qet(attributes: &str, folios: &[Folio]) -> String {
     let mut w = String::new();
     writeln!(w, r#"<?xml version="1.0" encoding="UTF-8"?>"#).unwrap();
     writeln!(w, r#"<project {attributes} title="Lenient">"#).unwrap();

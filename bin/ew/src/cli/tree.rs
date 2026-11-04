@@ -327,6 +327,9 @@ enum Import {
     /// findings. With `--report` and no `--report-out` stdout is exactly the report; the summary goes to stderr.
     /// With `--out <dir>` (absent or empty) the import is written there as a new project, its import run under
     /// `imports/`, after the report; without it nothing is written. Exit 2 when the project cannot be written.
+    /// With `--into <project>` the file is re-imported into its earlier import in that project: the changes are
+    /// printed and nothing is written; `--apply` commits them as one step and saves. Exit 2 when the file is not an
+    /// earlier import of the project.
     Qet(ImportQetArgs),
     /// Copy the parts of a parts table into the project.
     ///
