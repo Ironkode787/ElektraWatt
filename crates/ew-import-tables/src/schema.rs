@@ -130,6 +130,8 @@ pub(crate) const PARTS: TableSpec = spec(
         "enclosure_plate",
         "plate",
         "rail_profile",
+        // WP-S1.20 D4: the fluid section's solenoids of a valve part ("14", "14;12").
+        "solenoids",
     ],
 );
 

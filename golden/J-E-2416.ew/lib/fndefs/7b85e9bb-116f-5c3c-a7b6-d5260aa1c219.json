@@ -3,8 +3,8 @@
   "id": "7b85e9bb-116f-5c3c-a7b6-d5260aa1c219",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "3e54d172-19a6-5704-9be8-3c21d992112d",
-  "version": "0.1.0",
-  "sha256": "sha256:e5e871ee17198c711b1f41fa5a678b9d90929871f377022d63b94ffc3dd55a41",
+  "version": "0.1.1",
+  "sha256": "sha256:b01654270cd76941135d8798b3ce0b50b13ea4dfc4339eed124b25910c054ba6",
   "meta": {
     "key": "ew.fn.cylinder-double-acting",
     "licence": "CC-BY-SA-4.0",
@@ -14,7 +14,7 @@
   "category": ["CylinderFluid", "DoubleActing", "Cylinder"],
   "contact_kind": "pole",
   "cps": [
-    {"idx": 0, "designation": "A", "discipline": "pneumatic"},
-    {"idx": 1, "designation": "B", "discipline": "pneumatic"}
+    {"idx": 0, "designation": "A", "discipline": "pneumatic", "port_role": "consumer"},
+    {"idx": 1, "designation": "B", "discipline": "pneumatic", "port_role": "consumer"}
   ]
 }

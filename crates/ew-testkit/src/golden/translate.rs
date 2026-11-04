@@ -518,6 +518,17 @@ pub fn build<S: CommandSink + ?Sized>(batch: &ImportBatch, sink: &mut S) -> Resu
         if let (Some(main), Some(f)) = (main, f) {
             map.insert(main.id, f);
         }
+        // WP-S1.20 D6: the other template functions (the internal coils) that N-FL-1 made with the valve
+        for other in functions
+            .iter()
+            .filter(|f| f.device == Some(d.id) && Some(f.id) != main.map(|m| m.id))
+        {
+            if let Some(n) = other.template_entry {
+                let built = ew_ids::v5::template_function_id(id, u32::from(n));
+                map.insert(other.id, built);
+                b.template_function_rest(built, &map.apply(*other))?;
+            }
+        }
     }
 
     // 3c. PLC configuration projects, station and module aspects (a new module instantiates its channels,

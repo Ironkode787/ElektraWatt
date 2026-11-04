@@ -342,8 +342,8 @@ fn ft721_bind_channel_takes_tags() {
             .and_then(|c| c.binding.clone());
         assert_eq!(
             bound,
-            Some(ew_schema::Endpoint::Cp(coil.cast(), 5)),
-            "{form}: channel 0 binds the coil CP 14 (index 5)"
+            Some(ew_schema::Endpoint::Cp(coil.cast(), 0)),
+            "{form}: channel 0 binds the coil CP 14 (the coil function's CP 0, WP-S1.20 D5)"
         );
         assert!(plc_012(&s).iter().all(|f| f.subject != "=P01+J-E-2416-201U5:1"));
         s.undo(&Origin::CmdLog { file: "ft721".into() }).expect("undo");

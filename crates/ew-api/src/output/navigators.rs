@@ -1222,9 +1222,11 @@ fn device_node(
     let fn_drawables: Vec<(Id<Function>, bool, Vec<Drawable>)> = fns
         .iter()
         .map(|(aux, _, f)| {
+            // WP-S1.20 D5: an internal coil is drawn in its valve's symbol
+            let drawn = ew_derive::coil_host(q, *f).unwrap_or(*f);
             let reps = q
                 .idx()
-                .reps_of_function(*f)
+                .reps_of_function(drawn)
                 .filter_map(|r| drawable(q, folios, r, !aux))
                 .collect();
             (*f, !aux, sorted(reps))

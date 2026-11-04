@@ -313,16 +313,88 @@ pub fn pin_pattern_error(pin_of: &PinMap, number: u16) -> Option<PatternError> {
     }
 }
 
-/// The coil CP of solenoid `solenoid` in a function definition: its first CP (by index) whose designation is
-/// the solenoid's name and that is not physical (the internal coil CP of a valve on a valve terminal, doc 11
-/// §3.1). Until N-FL-1 and the typed `fluid.solenoids` of the valve part exist, a valve **declares** solenoid
-/// s exactly when one of its functions has such a CP (decision of cycle 18, lane C). Shared by
-/// `solenoid_positions` and normaliser N2.
-pub fn coil_cp_idx(def: &FnDef, solenoid: &Ident) -> Option<u16> {
+/// The solenoids a valve part declares (WP-S1.20 D4, D5): its `fluid.solenoids`, `None` for a part without a fluid
+/// section with solenoids. A device's **valve part** is its first part use whose copy gives `Some`.
+pub fn valve_solenoids(part: &Part) -> Option<&[Ident]> {
+    part.sections
+        .fluid
+        .as_ref()
+        .map(|f| f.solenoids.as_slice())
+        .filter(|s| !s.is_empty())
+}
+
+/// The coil CP of solenoid `solenoid` in one function (WP-S1.20 D5): on a FnDef of contact kind `coil`, its first
+/// non-physical CP (by index) whose effective designation (the function's override, else the FnDef CP's) is the
+/// solenoid's name; `None` on any other FnDef. A physical coil gives none. Shared by [`solenoid_coil`] and
+/// normaliser N2, so the derivation and the binding agree.
+pub fn coil_cp(
+    def: &FnDef,
+    overrides: &ew_schema::KeyedList<ew_schema::CpOverride>,
+    solenoid: &Ident,
+) -> Option<u16> {
+    if def.contact_kind != ew_schema::ContactKind::Coil {
+        return None;
+    }
     def.cps
         .iter()
-        .find(|cp| !cp.physical && cp.designation == *solenoid)
+        .filter(|cp| !cp.physical)
+        .find(|cp| {
+            let designation = overrides
+                .iter()
+                .find(|o| o.idx == cp.idx)
+                .and_then(|o| o.designation.as_ref())
+                .unwrap_or(&cp.designation);
+            designation == solenoid
+        })
         .map(|cp| cp.idx)
+}
+
+/// `solenoid_coil(device, s)` (WP-S1.20 D5, replacing the interim rule of decision log ID-469): a valve **declares**
+/// solenoid s exactly when s is in `fluid.solenoids` of its valve part ([`valve_solenoids`]); its coil CP is the
+/// first [`coil_cp`] among the device's functions in function-ID order. `None` when the device does not declare s
+/// or has no internal coil for it. Read by [`SolenoidPositions`] and, through the same rule, normaliser N2.
+pub fn solenoid_coil(q: &Q, device: Id<Device>, solenoid: &Ident) -> Option<crate::CpRef> {
+    let dev = q.devices().get(device)?;
+    let parts = q.parts();
+    let declared = dev.parts.iter().find_map(|u| {
+        parts
+            .get(u.part.copy)
+            .and_then(|c| valve_solenoids(&c.item).map(<[Ident]>::to_vec))
+    })?;
+    if !declared.contains(solenoid) {
+        return None;
+    }
+    let functions = q.functions();
+    let fndefs = q.fndefs();
+    let mut fns: Vec<Id<Function>> = q.idx().functions_of_device(device).collect();
+    fns.sort();
+    fns.into_iter().find_map(|f| {
+        let func = functions.get(f)?;
+        let def = fndefs.get(func.def)?;
+        coil_cp(&def.item, &func.cp_overrides, solenoid).map(|idx| crate::CpRef::new(f, idx))
+    })
+}
+
+/// The function whose representation draws an internal coil (doc 11 §3.1: the coil is drawn in its valve's
+/// symbol, WP-S1.20 D5): for a function on a FnDef of contact kind `coil` without a representation of its own, the
+/// lowest-ID function of its device on a FnDef of contact kind `valve`; `None` otherwise. The PLC rows and the CP
+/// link destinations read it, so a channel bound to an internal coil points at its valve.
+pub fn coil_host(q: &Q, function: Id<Function>) -> Option<Id<Function>> {
+    let functions = q.functions();
+    let fndefs = q.fndefs();
+    let kind = |f: &Function| fndefs.get(f.def).map(|d| d.item.contact_kind.clone());
+    let func = functions.get(function)?;
+    if kind(func) != Some(ew_schema::ContactKind::Coil) || q.idx().reps_of_function(function).next().is_some()
+    {
+        return None;
+    }
+    let mut fns: Vec<Id<Function>> = q.idx().functions_of_device(func.device?).collect();
+    fns.sort();
+    fns.into_iter().find(|f| {
+        functions
+            .get(*f)
+            .is_some_and(|x| kind(x) == Some(ew_schema::ContactKind::Valve))
+    })
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -949,7 +1021,10 @@ impl Query for ChannelTargets {
                     channel: c.id,
                     function,
                     device: function.and_then(|f| functions.get(f).and_then(|f| f.device)),
-                    rep: bound.or(function).and_then(drawn),
+                    // WP-S1.20 D5: an internal coil is drawn in its valve's symbol
+                    rep: bound
+                        .or(function)
+                        .and_then(|f| drawn(f).or_else(|| coil_host(q, f).and_then(drawn))),
                     cp: match &c.binding {
                         Some(Endpoint::Cp(f, idx)) if functions.contains(*f) => {
                             Some(crate::CpRef::new(*f, *idx))
@@ -979,8 +1054,8 @@ pub struct SolenoidSlot {
     pub channel: Option<u16>,
     /// The device at that position among the module's children (the lowest ID when several hold it).
     pub valve: Option<Id<Device>>,
-    /// The valve's coil CP for the solenoid ([`coil_cp_idx`] over its functions in ID order); `None` when the
-    /// valve does not declare the solenoid or no valve sits at the position.
+    /// The valve's coil CP for the solenoid ([`solenoid_coil`]); `None` when the valve does not declare the
+    /// solenoid or no valve sits at the position.
     pub coil: Option<crate::CpRef>,
 }
 
@@ -988,7 +1063,7 @@ pub struct SolenoidSlot {
 /// `[plc.positions]`) applied to the module's valve children, one [`SolenoidSlot`] per position (1 …
 /// `count`) and map entry, in (position, map order). Empty for a module whose part has no position map.
 /// Derivation step 4 of doc 10 §3.2 ([`ChannelStates`]) and, later, EW-PLC-012 (FT-192) read it; normaliser
-/// N2 (`ew-commands`) applies the same map through [`solenoid_channel`] and [`coil_cp_idx`].
+/// N2 (`ew-commands`) applies the same map through [`solenoid_channel`] and the rule of [`solenoid_coil`].
 #[derive(Debug)]
 pub struct SolenoidPositions;
 
@@ -1007,8 +1082,6 @@ impl Query for SolenoidPositions {
         };
         let channel_count = plc.channels.as_ref().map_or(0, |c| c.count);
         let devices = q.devices();
-        let functions = q.functions();
-        let fndefs = q.fndefs();
         // the child at each position, the lowest ID first
         let mut at: BTreeMap<u32, Id<Device>> = BTreeMap::new();
         let mut children: Vec<Id<Device>> = q.idx().device_children(*key).collect();
@@ -1021,16 +1094,9 @@ impl Query for SolenoidPositions {
         let mut out = Vec::new();
         for position in 1..=u32::from(map.count) {
             let valve = at.get(&position).copied();
-            let mut fns: Vec<Id<Function>> = valve
-                .map(|v| q.idx().functions_of_device(v).collect())
-                .unwrap_or_default();
-            fns.sort();
             for entry in &map.map {
                 let channel = solenoid_channel(entry, position - 1).filter(|c| *c < channel_count);
-                let coil = fns.iter().find_map(|f| {
-                    let def = fndefs.get(functions.get(*f)?.def)?;
-                    coil_cp_idx(&def.item, &entry.solenoid).map(|idx| crate::CpRef::new(*f, idx))
-                });
+                let coil = valve.and_then(|v| solenoid_coil(q, v, &entry.solenoid));
                 out.push(SolenoidSlot {
                     position,
                     solenoid: entry.solenoid.clone(),

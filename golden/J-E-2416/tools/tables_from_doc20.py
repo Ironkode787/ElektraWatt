@@ -774,7 +774,24 @@ def assembly_rows():
     return out
 
 
+def valve_solenoids():
+    """Doc 20 section 11.2's row "Valve part 571334": the solenoids the valve part declares (WP-S1.20 D4)."""
+    out = {}
+    for r in table_dicts("### 11.2 Station, modules and the address map"):
+        m = re.fullmatch(r"Valve part (\S+)", r["Item"])
+        if m:
+            s = re.search(r"solenoids \[([^\]]*)\]", r["Golden A value"])
+            check(s is not None, f"section 11.2: the solenoids of {m.group(1)} are not [..]: {r['Golden A value']!r}")
+            out[m.group(1)] = [x.strip() for x in s.group(1).split(",")]
+    check(out == {"571334": ["14"]}, f"section 11.2: the valve parts are {out}")
+    return out
+
+
+VALVE_SOLENOIDS = {}
+
+
 def build_parts():
+    VALVE_SOLENOIDS.update(valve_solenoids())
     part_tech, device_tech = tech_values()
     DEVICE_TECH.update(device_tech)
     out = []
@@ -811,9 +828,12 @@ def build_parts():
                 "tech_data": part_tech.get(pn, ""),
             }
         )
+    # doc 20 section 11.2 (WP-S1.20 D4): the solenoids a valve part declares, its fluid section
+    for p in out:
+        p["solenoids"] = ";".join(VALVE_SOLENOIDS.get(p["key"], []))
     cols = [
         "key", "manufacturer", "part_number", "kind", "type_designation", "description", "unit", "test_data", "tech_data",
-        *MECH_COLS,
+        *MECH_COLS, "solenoids",
     ]  # fmt: skip
     check(set(part_tech) <= {p["key"] for p in out}, f"technical data of parts that are not in section 14.1: {set(part_tech)}")
     mech = mech_values()
@@ -1274,10 +1294,20 @@ def build_part_cps_templates(part_keys):
                 "cps": ";".join(str(i) for i in range(n)),
             }
         )
-    register("part_templates", ["key", "part", "n", "fndef", "main", "cps"], rows, 5)
+    # WP-S1.20 D4: the valve part 571334 (no CP pattern) templates the 5/2 valve body as its main function and one internal
+    # coil per declared solenoid (doc 20 section 11.2); both take their FnDefs' CPs, so `cps` is empty
+    for part, solenoids in VALVE_SOLENOIDS.items():
+        entries = [("ew.fn.valve-5-2-sol-spring", "true")] + [("ew.fn.valve-solenoid", "false")] * len(solenoids)
+        for n, (fndef, main) in enumerate(entries):
+            rows.append({"key": f"{part}:{n}", "part": part, "n": str(n), "fndef": fndef, "main": main, "cps": ""})
+    register("part_templates", ["key", "part", "n", "fndef", "main", "cps"], rows, 7)
     fixture(
         "part_templates", "main", "550208:0", "false", "§6.1 rows 19, 28",
         "550208 is the power block of -201U1 and -202U1, whose main function is the overview module",
+    )  # fmt: skip
+    fixture(
+        "part_templates", "fndef", ["571334:0", "571334:1"], "ew.fn.valve-5-2-sol-spring; ew.fn.valve-solenoid",
+        "§11.2", "the valve part declares solenoid 14: its template is the 5/2 valve body and the internal coil (WP-S1.20 D4)",
     )  # fmt: skip
 
 
@@ -2082,6 +2112,8 @@ def build_functions_representations(devices, terms, ips, ip_order, ext):
         kw = dict(key=key, device=key, fndef=fd)
         if key in ("-102G1", "-102F2"):
             kw.update(kind="black_box", part=PARTS_BY_TAG[key])
+        if fd == "ew.fn.valve-5-2-sol-spring":
+            kw.update(part="571334", template="0")  # WP-S1.20 D4: the template entry is stored
         if key == "-102F1":
             aliases = re.findall(r"(\w+) \(alias (\w+)\)", rows61[key]["Connection points"])
             kw["cp_aliases"] = ";".join(f"{a}={b}" for a, b in aliases)
@@ -2101,6 +2133,12 @@ def build_functions_representations(devices, terms, ips, ip_order, ext):
     for dev, name, fd, kind, part in aux_defs:
         check(dev in devices, f"auxiliary function of the unknown device {dev!r}")
         fn(key=f"{dev}#{name}", device=dev, fndef=fd, role="aux", kind=kind, part=part)
+    # WP-S1.20 D4, D5: each valve's internal coil of solenoid 14, template entry 1 of its valve part
+    for key in devices:
+        if main_fndef(key) == "ew.fn.valve-5-2-sol-spring":
+            part = "571334"  # section 6.1: every valve child is a 571334 (checked by build_devices_terminals)
+            check(VALVE_SOLENOIDS.get(part) == ["14"], f"the valve {key} has the part {part!r}, no single solenoid")
+            fn(key=f"{key}#coil", device=key, fndef="ew.fn.valve-solenoid", role="aux", part=part, template="1")
 
     # -- terminals ----------------------------------------------------------------------------------------------
     for t in terms:
@@ -2131,8 +2169,8 @@ def build_functions_representations(devices, terms, ips, ip_order, ext):
         fn(key=f"{name}@{folio}", fndef="ew.fn.ip", kind="ip", ip_name=name, ip_direction=direction, ip_external=name)
     n_ip = sum(1 for f in funcs if f["fndef"] == "ew.fn.ip")
     check(n_ip == 48, f"section 15: {n_ip} interruption-point functions, 48 expected")
-    # 66 main + 18 aux + 28 terminal + 48 interruption-point functions
-    check(len(funcs) == 66 + 18 + 28 + 48, f"{len(funcs)} functions, 160 expected")
+    # 66 main + 18 aux + 28 valve coils (WP-S1.20) + 28 terminal + 48 interruption-point functions
+    check(len(funcs) == 66 + 18 + 28 + 28 + 48, f"{len(funcs)} functions, 188 expected")
     register("functions", FUNC_COLS, funcs)
     fkeys = {f["key"] for f in funcs}
     fndef_of = {f["key"]: f["fndef"] for f in funcs}

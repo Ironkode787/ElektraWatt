@@ -123,6 +123,7 @@ const ITEMS: &[StarterItem] = &[
         "fndefs/ew.fn.valve-5-2-sol-spring.json"
     ),
     item!("ew.fn.valve-coil", Fndef, "fndefs/ew.fn.valve-coil.json"),
+    item!("ew.fn.valve-solenoid", Fndef, "fndefs/ew.fn.valve-solenoid.json"),
     item!("ew.gen.blackbox", Symbol, "symbols/ew.gen.blackbox.json"),
     item!(
         "ew.gen.blackbox@qet10",

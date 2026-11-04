@@ -9,9 +9,9 @@
 //!
 //! - **Pairs.** For the valve child at position q (1-based; the map's index is p = q − 1; of two children at
 //!   one position the lower ID) and each map entry s: the channel number `ew_derive::solenoid_channel(s, p)`,
-//!   below the part's channel count, and the valve's coil CP `ew_derive::coil_cp_idx` over its functions in
-//!   ID order (a valve declares s when one of its functions has a non-physical CP named s, until N-FL-1 and
-//!   the valve part's typed `solenoids` exist). The single evaluation of the map is the one of
+//!   below the part's channel count, and the valve's coil CP by the rule of `ew_derive::solenoid_coil` (WP-S1.20
+//!   D5: the valve declares s when s is in `fluid.solenoids` of its valve part; the coil CP is the first
+//!   `ew_derive::coil_cp` among its functions in ID order). The single evaluation of the map is the one of
 //!   `ew_derive::SolenoidPositions`, so the derivation's step 4 and this normaliser agree.
 //! - **Trigger.** A pair is considered when its valve is new in the transaction, moved (parent or position
 //!   changed), changed its parts, or gained a function; or when the pair's channel is new in the
@@ -42,7 +42,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use ew_ids::Id;
-use ew_schema::{Channel, Device, Endpoint, FnDef, Function, Kind, LibCopy};
+use ew_schema::{Channel, Device, Endpoint, FnDef, Function, Kind, LibCopy, Part};
 
 use crate::commands::is_on_module;
 use crate::error::CmdError;
@@ -145,18 +145,28 @@ fn unbind_device(tx: &mut TxBuilder<'_>, device: Id<Device>, moved: Id<Device>) 
     Ok(changed)
 }
 
-/// The coil CP of `solenoid` on `valve`: the first of its functions (in ID order) whose FnDef copy has a
-/// non-physical CP named `solenoid`.
+/// The coil CP of `solenoid` on `valve` (WP-S1.20 D5, `ew_derive::solenoid_coil`'s rule): `None` unless the valve
+/// part (the first part use whose copy has a fluid section with solenoids) declares it; else the first of its
+/// functions (in ID order) with an `ew_derive::coil_cp` for it.
 fn coil_of(
     tx: &TxBuilder<'_>,
     valve: Id<Device>,
     solenoid: &ew_mltext::Ident,
 ) -> Option<(Id<Function>, u16)> {
+    let dev = tx.get::<Device>(valve)?;
+    let declared = dev.parts.iter().find_map(|u| {
+        tx.get::<LibCopy<Part>>(u.part.copy)
+            .and_then(|c| ew_derive::valve_solenoids(&c.item).map(<[ew_mltext::Ident]>::to_vec))
+    })?;
+    if !declared.contains(solenoid) {
+        return None;
+    }
     let mut fns = tx.functions_of_device(valve);
     fns.sort();
     fns.into_iter().find_map(|f| {
-        let def = tx.get::<LibCopy<FnDef>>(tx.get::<Function>(f)?.def)?;
-        ew_derive::coil_cp_idx(&def.item, solenoid).map(|idx| (f, idx))
+        let func = tx.get::<Function>(f)?;
+        let def = tx.get::<LibCopy<FnDef>>(func.def)?;
+        ew_derive::coil_cp(&def.item, &func.cp_overrides, solenoid).map(|idx| (f, idx))
     })
 }
 

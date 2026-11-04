@@ -30,8 +30,8 @@ use ew_commands::{Engine, Origin, Receipt};
 use ew_ids::Id;
 use ew_model::{Entity, Model};
 use ew_schema::{
-    Channel, CpDef, Device, Endpoint, Extra, FnDef, Function, Kind, LibCopy, LibDocument, Part, PartRef,
-    PartUse, PlcSection, Record,
+    Channel, Device, Endpoint, Extra, Function, LibCopy, LibDocument, Part, PartRef, PartUse, PlcSection,
+    Record,
 };
 use serde_json::{Value, json};
 
@@ -40,10 +40,8 @@ use serde_json::{Value, json};
 
 /// The valve-terminal module part: 8 DO channels, the solenoid-position map H1 (coil 14 on 2p, coil 12 on 2p + 1).
 const MODULE_H1: Id<Part> = id(0x6c);
-/// The valve part.
+/// The valve part 571334: solenoid 14 (WP-S1.20 D4).
 const VALVE: Id<Part> = id(0x6e);
-/// A monostable valve: pneumatic ports 1–5 and the internal coil CP 14 (index 5).
-const FNDEF_MONO: Id<FnDef> = id(0x6a);
 
 fn row<T: Entity<Marker = T>>(e: &Engine, id: Id<T>) -> std::sync::Arc<T> {
     e.model().table::<T>().get(&id).expect("row exists").clone()
@@ -87,28 +85,12 @@ fn mapped_module() -> LibCopy<Part> {
     )
 }
 
-fn valve_fndef() -> LibCopy<FnDef> {
-    let ports = ["1", "2", "3", "4", "5"];
-    let mut copy = fndef(FNDEF_MONO, &[ports.as_slice(), &["14"]].concat());
-    let cps: Vec<CpDef> = copy
-        .item
-        .cps
-        .iter()
-        .cloned()
-        .map(|mut cp| {
-            cp.physical = usize::from(cp.idx) < ports.len();
-            cp
-        })
-        .collect();
-    copy.item.cps = ew_schema::KeyedList::from_vec(cps).expect("distinct indexes");
-    copy
-}
-
 fn model_with(extra: Vec<LibCopy<Part>>, more: Vec<Record>) -> Model {
     let (p, mut records, mut lib) = mini_golden_parts();
     lib.push(LibDocument::Part(mapped_module()));
-    lib.push(LibDocument::Part(part(VALVE, "571334")));
-    lib.push(LibDocument::Fndef(valve_fndef()));
+    lib.push(LibDocument::Part(solenoid_valve_part(VALVE, "571334", &["14"])));
+    lib.push(LibDocument::Fndef(valve_52_fndef()));
+    lib.push(LibDocument::Fndef(solenoid_fndef()));
     lib.extend(extra.into_iter().map(LibDocument::Part));
     records.extend(more);
     Model::from_records(p, records, lib).expect("plc model is valid")
@@ -141,18 +123,13 @@ fn add_valve(e: &mut Engine, position: u32) -> (Receipt, Id<Device>, Id<Function
                 extra: Extra::new(),
             },
             letter: None,
-            fndef: Some(FNDEF_MONO),
+            fndef: None,
             structure: Default::default(),
         })
         .expect("valve.add");
     let valve: Id<Device> = primary(&r);
-    let f = r
-        .created
-        .iter()
-        .find(|k| k.0 == Kind::Function)
-        .map(|k| typed::<Function>(*k))
-        .expect("the valve's function");
-    (r, valve, f)
+    // the coil function of solenoid 14 that N-FL-1 gives the valve
+    (r, valve, coil_function(valve, 0))
 }
 
 fn binding(e: &Engine, n: u16) -> Option<Endpoint> {
@@ -203,13 +180,13 @@ fn ft320_a_valve_attached_elsewhere_unbinds_its_coil_and_undo_restores_it() {
     let mut e = engine(model_with(vec![], vec![]));
     make_module(&mut e, MODULE_H1);
     let (_, valve, f) = add_valve(&mut e, 1);
-    assert_eq!(binding(&e, 0), Some(Endpoint::Cp(f, 5)));
+    assert_eq!(binding(&e, 0), Some(Endpoint::Cp(f, 0)));
     let (module_tag, valve_tag) = (tag(&e, DEV_102F2), tag(&e, valve));
     let r = e
         .execute(&attach(DEV_101F1, valve, None))
         .expect("attach elsewhere");
     assert!(
-        (0..8u16).all(|n| binding(&e, n) != Some(Endpoint::Cp(f, 5))),
+        (0..8u16).all(|n| binding(&e, n) != Some(Endpoint::Cp(f, 0))),
         "no channel stays bound to the valve"
     );
     assert_eq!(binding(&e, 0), None);
@@ -220,7 +197,7 @@ fn ft320_a_valve_attached_elsewhere_unbinds_its_coil_and_undo_restores_it() {
         )]
     );
     e.undo(&Origin::Gui).expect("undo");
-    assert_eq!(binding(&e, 0), Some(Endpoint::Cp(f, 5)));
+    assert_eq!(binding(&e, 0), Some(Endpoint::Cp(f, 0)));
 }
 
 /// FT-320 between two modules: the valve moved to position 1 of another valve-terminal module leaves its old channel
@@ -237,10 +214,10 @@ fn ft320_a_valve_moved_to_another_module_rebinds_there() {
     let r = e
         .execute(&attach(DEV_101F1, valve, Some(1)))
         .expect("attach to the other module");
-    assert!((0..8u16).all(|n| binding(&e, n) != Some(Endpoint::Cp(f, 5))));
+    assert!((0..8u16).all(|n| binding(&e, n) != Some(Endpoint::Cp(f, 0))));
     assert_eq!(
         row(&e, channel_id(DEV_101F1, 0)).binding,
-        Some(Endpoint::Cp(f, 5)),
+        Some(Endpoint::Cp(f, 0)),
         "the new module's map channel"
     );
     assert_eq!(
@@ -262,7 +239,7 @@ fn ft320_a_move_within_the_module_keeps_the_binding() {
     let r = e
         .execute(&attach(DEV_102F2, valve, Some(2)))
         .expect("move to position 2");
-    assert_eq!(binding(&e, 0), Some(Endpoint::Cp(f, 5)));
+    assert_eq!(binding(&e, 0), Some(Endpoint::Cp(f, 0)));
     assert_eq!(
         r.outcome.notices,
         [format!(
@@ -294,7 +271,7 @@ fn ft352_n2_reads_the_children_through_the_parent_index() {
     e.commit(preview).expect("commit re-runs");
     assert_eq!(
         binding(&e, 6),
-        Some(Endpoint::Cp(other, 5)),
+        Some(Endpoint::Cp(other, 0)),
         "the valve added meanwhile"
     );
     assert!(binding(&e, 4).is_some(), "the moved valve binds at position 3");
@@ -311,13 +288,13 @@ fn ft953_a_moved_sub_assembly_unbinds_the_coils_of_its_descendants() {
     let mut e = engine(model_with(vec![], vec![]));
     make_module(&mut e, MODULE_H1);
     let (_, valve, f) = add_valve(&mut e, 1);
-    assert_eq!(binding(&e, 0), Some(Endpoint::Cp(f, 5)));
+    assert_eq!(binding(&e, 0), Some(Endpoint::Cp(f, 0)));
     // the sub-assembly -X1031 on the module, the valve under it: still on the module, so the coil stays bound
     e.execute(&attach(DEV_102F2, DEV_X1031, None))
         .expect("sub-assembly on the module");
     e.execute(&attach(DEV_X1031, valve, Some(1)))
         .expect("valve under the sub-assembly");
-    assert_eq!(binding(&e, 0), Some(Endpoint::Cp(f, 5)));
+    assert_eq!(binding(&e, 0), Some(Endpoint::Cp(f, 0)));
     let (module_tag, valve_tag, sub_tag) = (tag(&e, DEV_102F2), tag(&e, valve), tag(&e, DEV_X1031));
     let r = e
         .execute(&attach(DEV_101F1, DEV_X1031, None))
@@ -330,7 +307,7 @@ fn ft953_a_moved_sub_assembly_unbinds_the_coils_of_its_descendants() {
         )]
     );
     e.undo(&Origin::Gui).expect("undo");
-    assert_eq!(binding(&e, 0), Some(Endpoint::Cp(f, 5)));
+    assert_eq!(binding(&e, 0), Some(Endpoint::Cp(f, 0)));
 }
 
 /// FT-955 (ID-1108: "`assembly.attach` reads only the parent's children", ADR-0008): the positions taken under the

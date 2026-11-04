@@ -2844,6 +2844,10 @@ choice-pilot = Pilot
 choice-exhaust = Exhaust
 choice-drain = Drain
 choice-flexible = Flexible
+# WP-S1.20 D10: how a fluid port is closed.
+choice-plug = Plug
+choice-silencer = Silencer
+choice-blanked = Blanked
 # Ruling 3: the finding detail's kind, by rule kind (`ew_checks::RuleKind`).
 finding-kind-safety = Safety
 finding-kind-conflict = Conflict
@@ -3314,6 +3318,7 @@ field-word-checks = Checks
 field-word-circle = Circle
 field-word-circuit-class = Circuit class
 field-word-city = City
+field-word-closure = Closure
 field-word-code = Code
 field-word-colour = Colour
 field-word-colour-profile = Colour profile

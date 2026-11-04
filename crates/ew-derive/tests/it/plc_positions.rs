@@ -4,7 +4,8 @@
 //! The solenoid-position map (doc 10 §2.6 `[plc.positions]`, FT-228): `solenoid_positions(module)` and
 //! derivation step 4 of doc 10 §3.2 in `channel_states(module)`, on one valve-terminal module with three
 //! valves: V1 at position 1 (coil 14 bound "as drawn" to channel 1), V2 at position 2 (coil 14 unbound) and
-//! V3 at position 3 (a valve whose function declares no solenoid); position 4 is empty.
+//! V3 at position 3 (a valve without a valve part, so it declares no solenoid); position 4 is empty. V1 and V2 carry
+//! the valve part, which declares solenoid 14, and an internal coil function (WP-S1.20 D5).
 
 // The oracle test edits a snapshot with the raw op layer, as the other incremental tests do.
 #![allow(clippy::disallowed_methods)]
@@ -27,25 +28,45 @@ const V3: u128 = 0x203;
 const F1: u128 = 0x301;
 const F2: u128 = 0x302;
 const F3: u128 = 0x303;
+const C1: u128 = 0x311;
+const C2: u128 = 0x312;
 const VALVE_FNDEF: u128 = 0x500;
 const PLAIN_FNDEF: u128 = 0x501;
+const COIL_FNDEF: u128 = 0x502;
 const PART: u128 = 0x600;
+const VALVE_PART: u128 = 0x601;
 
 const H1: [&str; 2] = ["2p", "2p+1"];
 const H2: [&str; 2] = ["2p+1", "2p"];
 
 fn fixture(map: [&str; 2]) -> Fx {
     let mut fx = Fx::new();
-    // the valve: ports 1 … 5 and the internal coil CP 14 (index 5)
+    // the valve: ports 1 … 5; its internal coil CP 14 is the coil function's (WP-S1.20 D5)
     fx.lib_item(
         "fndef",
         VALVE_FNDEF,
         json!({"meta": {}, "category": ["ValveDirectional", "Valve52", "SolenoidSpring"], "contact_kind": "valve",
             "cps": [
                 {"idx": 0, "designation": "1"}, {"idx": 1, "designation": "2"}, {"idx": 2, "designation": "3"},
-                {"idx": 3, "designation": "4"}, {"idx": 4, "designation": "5"},
-                {"idx": 5, "designation": "14", "physical": false}
+                {"idx": 3, "designation": "4"}, {"idx": 4, "designation": "5"}
             ]}),
+    );
+    fx.lib_item(
+        "fndef",
+        COIL_FNDEF,
+        json!({"meta": {}, "category": ["Coil", "Solenoid", "Internal"], "contact_kind": "coil",
+            "cps": [{"idx": 0, "designation": "14", "physical": false}]}),
+    );
+    fx.lib_item(
+        "part",
+        VALVE_PART,
+        json!({
+            "meta": {},
+            "kind": "device",
+            "manufacturer": {"library": uid(LIBRARY), "item": uid(0x9000), "version_req": "^1"},
+            "part_number": "571334",
+            "sections": {"fluid": {"solenoids": ["14"]}},
+        }),
     );
     // a function with a physical CP named 14 (a pneumatic pilot port): it declares no solenoid
     fx.fndef(
@@ -83,13 +104,19 @@ fn fixture(map: [&str; 2]) -> Fx {
         .with("parts", json!([{"part": {"copy": uid(PART)}, "qty": "1"}]))
         .with("plc_module", json!({}));
     for (v, p) in [(V1, 1), (V2, 2), (V3, 3)] {
-        fx.device(v, "Q", Some(p))
+        let d = fx
+            .device(v, "Q", Some(p))
             .with("parent", json!(uid(M1)))
             .with("position", json!(p));
+        if v != V3 {
+            d.with("parts", json!([{"part": {"copy": uid(VALVE_PART)}, "qty": "1"}]));
+        }
     }
     fx.function(F1, Some(V1), VALVE_FNDEF, true);
     fx.function(F2, Some(V2), VALVE_FNDEF, true);
     fx.function(F3, Some(V3), PLAIN_FNDEF, true);
+    fx.function(C1, Some(V1), COIL_FNDEF, false);
+    fx.function(C2, Some(V2), COIL_FNDEF, false);
     for n in 0..8u16 {
         let mut c = json!({
             "$k": "channel",
@@ -97,7 +124,7 @@ fn fixture(map: [&str; 2]) -> Fx {
             "module": uid(M1), "number": n, "kind": "do",
         });
         if n == 1 {
-            c["binding"] = json!({"cp": [uid(F1), 5]});
+            c["binding"] = json!({"cp": [uid(C1), 0]});
         }
         fx.push(c);
     }
@@ -138,9 +165,9 @@ fn solenoid_positions_apply_the_map_to_the_valve_children() {
     assert_eq!(
         slots.as_ref(),
         &vec![
-            slot(1, "14", 0, Some(V1), Some((F1, 5))),
+            slot(1, "14", 0, Some(V1), Some((C1, 0))),
             slot(1, "12", 1, Some(V1), None),
-            slot(2, "14", 2, Some(V2), Some((F2, 5))),
+            slot(2, "14", 2, Some(V2), Some((C2, 0))),
             slot(2, "12", 3, Some(V2), None),
             slot(3, "14", 4, Some(V3), None),
             slot(3, "12", 5, Some(V3), None),
@@ -203,7 +230,7 @@ const FOREIGN: u128 = 0xc000;
 fn foreign_binding(module: u128) -> Channel {
     serde_json::from_value(json!({
         "id": uid(FOREIGN), "module": uid(module), "number": 9, "kind": "do",
-        "binding": {"cp": [uid(F2), 5]}
+        "binding": {"cp": [uid(C2), 0]}
     }))
     .expect("a channel")
 }
@@ -279,7 +306,7 @@ fn memoised_claims_equal_cold_claims_across_edits() {
             "V2's coil bound to channel 3",
             Box::new(|m| {
                 vec![update::<Channel>(m, channel(3), |v| {
-                    v["binding"] = json!({"cp": [uid(F2), 5]})
+                    v["binding"] = json!({"cp": [uid(C2), 0]})
                 })]
             }),
         ),
@@ -288,12 +315,12 @@ fn memoised_claims_equal_cold_claims_across_edits() {
             Box::new(|m| vec![update::<Device>(m, V2, |v| v["position"] = json!(4))]),
         ),
         (
-            "V1's function deleted",
+            "V1's coil function deleted",
             Box::new(|m| {
                 let unbind = update::<Channel>(m, channel(1), |v| {
                     v.as_object_mut().expect("object").remove("binding");
                 });
-                let f = m.row(&Function::key(id(F1))).expect("F1");
+                let f = m.row(&Function::key(id(C1))).expect("C1");
                 vec![unbind, Op::delete(f)]
             }),
         ),

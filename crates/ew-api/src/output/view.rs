@@ -520,8 +520,10 @@ impl Query for CpTargetsByPage {
                         continue;
                     };
                     // The smallest-ID representation of the function on each page that draws it.
+                    // WP-S1.20 D5: an internal coil without a representation is drawn in its valve's symbol.
+                    let drawn = ew_derive::coil_host(q, function).unwrap_or(function);
                     let mut seen = std::collections::BTreeSet::new();
-                    for rid in q.idx().reps_of_function(function) {
+                    for rid in q.idx().reps_of_function(drawn) {
                         let Some(x) = q.reps().get(rid) else { continue };
                         if x.rep_type == RepType::ContactImage || !seen.insert(x.page) {
                             continue;

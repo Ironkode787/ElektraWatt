@@ -808,8 +808,8 @@ fn the_56_channels_are_those_of_doc_20() {
                 c.id.as_uuid(),
                 record_id::<Channel>("channels", &format!("{module}:{number}")).as_uuid()
             );
-            // Valve index 14 is CP 5 of the valve FnDef.
-            let binding = (number % 2 == 1).then(|| cp(&format!("{module}-Q{}", number / 2 + 1), 5));
+            // Valve index 14 is CP 0 of the valve's coil function (WP-S1.20 D5).
+            let binding = (number % 2 == 1).then(|| cp(&format!("{module}-Q{}#coil", number / 2 + 1), 0));
             assert_eq!(c.binding, binding, "{module}:{number}");
         }
     }

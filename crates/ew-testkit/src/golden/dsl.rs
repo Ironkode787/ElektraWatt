@@ -584,9 +584,19 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
     }
 
     /// `fields.set` of a function's `cp_overrides`; its other members are written by the creating command.
+    /// [`Builder::function_rest`] of a function a command made from its part's template (a valve's coil, N-FL-1).
+    ///
+    /// # Errors
+    ///
+    /// A command's error.
+    pub fn template_function_rest(&mut self, id: Id<Function>, f: &Function) -> Result<()> {
+        self.function_rest(id, f)
+    }
+
     fn function_rest(&mut self, id: Id<Function>, f: &Function) -> Result<()> {
         let mut m = members(Record::Function(f.clone()));
-        for k in ["device", "def", "role", "kind"] {
+        // `template_entry`: written by the command that made the function from its part's template (N-FL-1)
+        for k in ["device", "def", "role", "kind", "template_entry"] {
             m.remove(k);
         }
         self.set_rest("function", id.cast(), m, &["cp_overrides", "bus_port"])
@@ -1266,7 +1276,14 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
         let parts = take(&mut m, "parts");
         let tag = take(&mut m, "tag");
         let (id, done) = self.primary::<Device>("valve.add", Value::Object(p))?;
-        let function = Self::created::<Function>(&done, Kind::Function).first().copied();
+        let created = Self::created::<Function>(&done, Kind::Function);
+        // WP-S1.20 D6: a valve part's template entry n gives the function `v5(valve, n)` (N-FL-1)
+        let function = match main.and_then(|f| f.template_entry) {
+            Some(n) => {
+                Some(ew_ids::v5::template_function_id(id, u32::from(n))).filter(|f| created.contains(f))
+            }
+            None => created.first().copied(),
+        };
         if device.parts.len() > 1 {
             self.set("device", &[id.cast()], "parts", parts.unwrap_or(Value::Null))?;
         }

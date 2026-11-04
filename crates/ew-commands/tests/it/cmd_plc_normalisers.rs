@@ -18,8 +18,8 @@ use ew_commands::{ChangeKind, CmdError, Engine, Receipt};
 use ew_ids::Id;
 use ew_model::{Entity, Model};
 use ew_schema::{
-    Channel, ChannelKind, CpDef, Device, Endpoint, Extra, FnDef, Function, Kind, LibCopy, LibDocument, Part,
-    PartRef, PartUse, PlcSection, Record,
+    Channel, ChannelKind, Device, Endpoint, Extra, Function, Kind, LibCopy, LibDocument, Part, PartRef,
+    PartUse, PlcSection, Record,
 };
 use serde_json::{Value, json};
 
@@ -30,12 +30,14 @@ use serde_json::{Value, json};
 const MODULE_H1: Id<Part> = id(0x6c);
 /// The module part with hypothesis H2 (coil 14 on 2p + 1).
 const MODULE_H2: Id<Part> = id(0x6d);
-/// The valve part (its solenoids are declared by the valve FnDef's coil CPs until N-FL-1).
+/// The valve part 571334: solenoid 14, its template the 5/2 body and one internal coil (WP-S1.20 D4).
 const VALVE: Id<Part> = id(0x6e);
-/// A monostable valve: pneumatic ports 1–5 and the internal coil CP 14 (index 5).
-const FNDEF_MONO: Id<FnDef> = id(0x6a);
-/// A bistable valve: ports 1–5, coil 14 (index 5) and coil 12 (index 6).
-const FNDEF_BI: Id<FnDef> = id(0x6b);
+/// A bistable valve part: solenoids 14 and 12.
+const VALVE_BI: Id<Part> = id(0x6a);
+/// A part without a fluid section (no valve part: it declares no solenoid).
+const PLAIN: Id<Part> = id(0x6b);
+/// A valve body of another type than the 5/2 of [`solenoid_valve_part`].
+const OTHER_VALVE: ew_ids::Uuid = ew_ids::Uuid::from_u128(0x9303);
 
 fn row<T: Entity<Marker = T>>(e: &Engine, id: Id<T>) -> std::sync::Arc<T> {
     e.model().table::<T>().get(&id).expect("row exists").clone()
@@ -79,24 +81,6 @@ fn mapped_module(part_id: Id<Part>, coil14: &str, coil12: &str) -> LibCopy<Part>
     )
 }
 
-/// A valve FnDef: ports 1–5, then the internal coil CPs.
-fn valve_fndef(fndef_id: Id<FnDef>, coils: &[&str]) -> LibCopy<FnDef> {
-    let ports = ["1", "2", "3", "4", "5"];
-    let mut copy = fndef(fndef_id, &[ports.as_slice(), coils].concat());
-    let cps: Vec<CpDef> = copy
-        .item
-        .cps
-        .iter()
-        .cloned()
-        .map(|mut cp| {
-            cp.physical = usize::from(cp.idx) < ports.len();
-            cp
-        })
-        .collect();
-    copy.item.cps = ew_schema::KeyedList::from_vec(cps).expect("distinct indexes");
-    copy
-}
-
 /// The mini golden model with the module, valve and `extra` part copies and the valve FnDefs.
 fn model_with(extra: Vec<LibCopy<Part>>) -> Model {
     model_with_records(extra, vec![])
@@ -106,9 +90,20 @@ fn model_with_records(extra: Vec<LibCopy<Part>>, more: Vec<Record>) -> Model {
     let (p, mut records, mut lib) = mini_golden_parts();
     lib.push(LibDocument::Part(mapped_module(MODULE_H1, "2p", "2p+1")));
     lib.push(LibDocument::Part(mapped_module(MODULE_H2, "2p+1", "2p")));
-    lib.push(LibDocument::Part(part(VALVE, "571334")));
-    lib.push(LibDocument::Fndef(valve_fndef(FNDEF_MONO, &["14"])));
-    lib.push(LibDocument::Fndef(valve_fndef(FNDEF_BI, &["14", "12"])));
+    lib.push(LibDocument::Part(solenoid_valve_part(VALVE, "571334", &["14"])));
+    lib.push(LibDocument::Part(solenoid_valve_part(
+        VALVE_BI,
+        "BI-1",
+        &["14", "12"],
+    )));
+    lib.push(LibDocument::Part(part(PLAIN, "PLAIN-1")));
+    lib.push(LibDocument::Fndef(valve_52_fndef()));
+    lib.push(LibDocument::Fndef(solenoid_fndef()));
+    lib.push(LibDocument::Fndef({
+        let mut d = fndef_copy_for(LIBRARY_VALVE, OTHER_VALVE, &["1", "2", "3", "4", "5"]);
+        d.item.contact_kind = ew_schema::ContactKind::Valve;
+        d
+    }));
     lib.extend(extra.into_iter().map(LibDocument::Part));
     records.extend(more);
     Model::from_records(p, records, lib).expect("plc model is valid")
@@ -127,29 +122,25 @@ fn make_module(e: &mut Engine, part: Id<Part>) -> Receipt {
         .expect("parts")
 }
 
-fn add_valve(e: &mut Engine, position: u32, fndef: Id<FnDef>) -> (Receipt, Id<Device>, Id<Function>) {
+/// `valve.add` of `part` at `position`; returns the receipt, the valve and its coil function of solenoid 14 (N-FL-1).
+fn add_valve(e: &mut Engine, position: u32, part: Id<Part>) -> (Receipt, Id<Device>, Id<Function>) {
+    let fndef = (part == PLAIN).then_some(FNDEF_MCB);
     let r = e
         .execute(&AddValve {
             module: DEV_102F2,
             position: Some(position),
             part: PartUse {
-                part: PartRef::new(VALVE),
+                part: PartRef::new(part),
                 qty: dec3("1"),
                 extra: Extra::new(),
             },
             letter: None,
-            fndef: Some(fndef),
+            fndef,
             structure: Default::default(),
         })
         .expect("valve.add");
     let valve: Id<Device> = primary(&r);
-    let f = r
-        .created
-        .iter()
-        .find(|k| k.0 == Kind::Function)
-        .map(|k| typed::<Function>(*k))
-        .expect("the valve's function");
-    (r, valve, f)
+    (r, valve, coil_function(valve, 0))
 }
 
 fn binding(e: &Engine, n: u16) -> Option<Endpoint> {
@@ -177,8 +168,8 @@ fn n2_binds_the_coil_of_a_new_valve_to_the_channel_of_the_map() {
     for (part, expected) in [(MODULE_H1, 4u16), (MODULE_H2, 5u16)] {
         let mut e = engine(model_with(vec![]));
         make_module(&mut e, part);
-        let (r, _, f) = add_valve(&mut e, 3, FNDEF_MONO);
-        assert_eq!(binding(&e, expected), Some(Endpoint::Cp(f, 5)), "part {part}");
+        let (r, _, f) = add_valve(&mut e, 3, VALVE);
+        assert_eq!(binding(&e, expected), Some(Endpoint::Cp(f, 0)), "part {part}");
         let bound = (0..8u16).filter(|n| binding(&e, *n).is_some()).count();
         assert_eq!(bound, 1, "only the declared coil 14 is bound");
         assert!(r.outcome.notices.is_empty(), "{:?}", r.outcome.notices);
@@ -193,17 +184,17 @@ fn n2_binds_the_coil_of_a_new_valve_to_the_channel_of_the_map() {
 fn n2_binds_both_coils_of_a_bistable_valve() {
     let mut e = engine(model_with(vec![]));
     make_module(&mut e, MODULE_H1);
-    let (_, _, f) = add_valve(&mut e, 2, FNDEF_BI);
-    assert_eq!(binding(&e, 2), Some(Endpoint::Cp(f, 5)));
-    assert_eq!(binding(&e, 3), Some(Endpoint::Cp(f, 6)));
+    let (_, v, f) = add_valve(&mut e, 2, VALVE_BI);
+    assert_eq!(binding(&e, 2), Some(Endpoint::Cp(f, 0)));
+    assert_eq!(binding(&e, 3), Some(Endpoint::Cp(coil_function(v, 1), 0)));
 }
 
-/// A valve that declares no solenoid of the map (no non-physical CP named 14 or 12) binds nothing.
+/// A valve that declares no solenoid of the map (its part has no fluid section) binds nothing.
 #[test]
 fn n2_ignores_a_valve_without_a_declared_solenoid() {
     let mut e = engine(model_with(vec![]));
     make_module(&mut e, MODULE_H1);
-    let (r, _, _) = add_valve(&mut e, 1, FNDEF_MCB);
+    let (r, _, _) = add_valve(&mut e, 1, PLAIN);
     assert!((0..8u16).all(|n| binding(&e, n).is_none()));
     assert!(r.outcome.notices.is_empty());
 }
@@ -215,13 +206,13 @@ fn n2_binds_existing_valves_when_n1_creates_the_channels() {
     let mut e = engine(model_with(vec![]));
     e.execute(&set_device(DEV_102F2, "plc_module", json!({})))
         .expect("plc_module");
-    let (_, _, f1) = add_valve(&mut e, 1, FNDEF_MONO);
-    let (_, _, f4) = add_valve(&mut e, 4, FNDEF_MONO);
+    let (_, _, f1) = add_valve(&mut e, 1, VALVE);
+    let (_, _, f4) = add_valve(&mut e, 4, VALVE);
     assert!(e.model().table::<Channel>().iter().next().is_none());
     e.execute(&set_device(DEV_102F2, "parts", uses(MODULE_H1)))
         .expect("parts");
-    assert_eq!(binding(&e, 0), Some(Endpoint::Cp(f1, 5)));
-    assert_eq!(binding(&e, 6), Some(Endpoint::Cp(f4, 5)));
+    assert_eq!(binding(&e, 0), Some(Endpoint::Cp(f1, 0)));
+    assert_eq!(binding(&e, 6), Some(Endpoint::Cp(f4, 0)));
     assert_eq!((0..8u16).filter(|n| binding(&e, *n).is_some()).count(), 2);
 }
 
@@ -233,9 +224,9 @@ fn n2_leaves_the_coil_unbound_when_the_map_channel_is_held() {
     make_module(&mut e, MODULE_H1);
     e.execute(&bind(channel_id(DEV_102F2, 4), Some((FN_102F2, 1))))
         .expect("explicit binding");
-    let (r, _, f) = add_valve(&mut e, 3, FNDEF_MONO);
+    let (r, _, f) = add_valve(&mut e, 3, VALVE);
     assert_eq!(binding(&e, 4), Some(Endpoint::Cp(FN_102F2, 1)));
-    assert!((0..8u16).all(|n| binding(&e, n) != Some(Endpoint::Cp(f, 5))));
+    assert!((0..8u16).all(|n| binding(&e, n) != Some(Endpoint::Cp(f, 0))));
     assert!(has_notice(&r, "EW-FL-002"), "{:?}", r.outcome.notices);
     assert_eq!(
         r.outcome.notices.len(),
@@ -251,17 +242,17 @@ fn n2_leaves_the_coil_unbound_when_the_map_channel_is_held() {
 fn an_explicit_rebinding_after_n2_stays() {
     let mut e = engine(model_with(vec![]));
     make_module(&mut e, MODULE_H1);
-    let (_, _, f) = add_valve(&mut e, 1, FNDEF_MONO);
-    assert_eq!(binding(&e, 0), Some(Endpoint::Cp(f, 5)));
+    let (_, _, f) = add_valve(&mut e, 1, VALVE);
+    assert_eq!(binding(&e, 0), Some(Endpoint::Cp(f, 0)));
     let r = e
-        .execute(&bind(channel_id(DEV_102F2, 1), Some((f, 5))))
+        .execute(&bind(channel_id(DEV_102F2, 1), Some((f, 0))))
         .expect("as drawn");
     assert_eq!(r.outcome.notices.len(), 1, "channel 0 is unbound (FR-PLC-005)");
     assert_eq!(binding(&e, 0), None);
-    assert_eq!(binding(&e, 1), Some(Endpoint::Cp(f, 5)));
+    assert_eq!(binding(&e, 1), Some(Endpoint::Cp(f, 0)));
     // another valve on the module: only its own coil binds, channel 0 stays free
-    let (_, _, f2) = add_valve(&mut e, 2, FNDEF_MONO);
-    assert_eq!(binding(&e, 2), Some(Endpoint::Cp(f2, 5)));
+    let (_, _, f2) = add_valve(&mut e, 2, VALVE);
+    assert_eq!(binding(&e, 2), Some(Endpoint::Cp(f2, 0)));
     assert_eq!(binding(&e, 0), None);
 }
 
@@ -272,12 +263,12 @@ fn an_explicit_rebinding_after_n2_stays() {
 fn a_preview_of_a_binding_is_re_run_after_another_channel_took_the_cp() {
     let mut e = engine(model_with(vec![]));
     make_module(&mut e, MODULE_H1);
-    let (_, _, f) = add_valve(&mut e, 1, FNDEF_MONO);
+    let (_, _, f) = add_valve(&mut e, 1, VALVE);
     e.execute(&bind(channel_id(DEV_102F2, 0), None)).expect("unbind");
     let preview = e
-        .preview(&bind(channel_id(DEV_102F2, 1), Some((f, 5))))
+        .preview(&bind(channel_id(DEV_102F2, 1), Some((f, 0))))
         .expect("preview");
-    e.execute(&bind(channel_id(DEV_102F2, 2), Some((f, 5))))
+    e.execute(&bind(channel_id(DEV_102F2, 2), Some((f, 0))))
         .expect("another channel takes the CP");
     let r = e.commit(preview).expect("commit");
     // FT-952 (ID-1108: "N1's and N3's PLC notices drop their UUIDs and requirement IDs and read as N2's do")
@@ -285,7 +276,7 @@ fn a_preview_of_a_binding_is_re_run_after_another_channel_took_the_cp() {
         r.outcome.notices,
         ["channel 2 of the same module was bound to this connection point and is now unbound"]
     );
-    assert_eq!(binding(&e, 1), Some(Endpoint::Cp(f, 5)));
+    assert_eq!(binding(&e, 1), Some(Endpoint::Cp(f, 0)));
     assert_eq!(
         binding(&e, 2),
         None,
@@ -301,7 +292,7 @@ fn a_preview_of_a_binding_is_re_run_after_another_channel_took_the_cp() {
 fn n2_on_a_move_binds_a_free_coil_and_keeps_a_bound_one() {
     let mut e = engine(model_with(vec![]));
     make_module(&mut e, MODULE_H1);
-    let (_, v, f) = add_valve(&mut e, 1, FNDEF_MONO);
+    let (_, v, f) = add_valve(&mut e, 1, VALVE);
     let move_to = |p| AttachChildren {
         parent: DEV_102F2,
         children: vec![ChildSpec {
@@ -312,7 +303,7 @@ fn n2_on_a_move_binds_a_free_coil_and_keeps_a_bound_one() {
     let r = e.execute(&move_to(2)).expect("move to 2");
     assert_eq!(
         binding(&e, 0),
-        Some(Endpoint::Cp(f, 5)),
+        Some(Endpoint::Cp(f, 0)),
         "a bound coil keeps its channel"
     );
     assert_eq!(binding(&e, 2), None);
@@ -324,7 +315,7 @@ fn n2_on_a_move_binds_a_free_coil_and_keeps_a_bound_one() {
     assert!(r.outcome.notices.is_empty(), "{:?}", r.outcome.notices);
     assert_eq!(
         binding(&e, 6),
-        Some(Endpoint::Cp(f, 5)),
+        Some(Endpoint::Cp(f, 0)),
         "a free coil binds at the new position"
     );
     assert_eq!(binding(&e, 0), None);
@@ -342,9 +333,113 @@ fn n2_reports_a_map_that_gives_no_channel() {
     );
     let mut e = engine(model_with(vec![short]));
     make_module(&mut e, SHORT);
-    let (r, _, _) = add_valve(&mut e, 3, FNDEF_MONO); // p = 2 → channel 4, not below 4
+    let (r, _, _) = add_valve(&mut e, 3, VALVE); // p = 2 → channel 4, not below 4
     assert!((0..4u16).all(|n| binding(&e, n).is_none()));
     assert!(has_notice(&r, "no channel below 4"), "{:?}", r.outcome.notices);
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// N-FL-1: valve functions (WP-S1.20 D6, FL-4)
+
+fn functions_of(e: &Engine, device: Id<Device>) -> Vec<(Id<Function>, Option<String>)> {
+    let mut out: Vec<(Id<Function>, Option<String>)> = e
+        .model()
+        .table::<Function>()
+        .iter()
+        .filter(|(_, f)| f.device == Some(device))
+        .map(|(id, f)| {
+            let over = f
+                .cp_overrides
+                .iter()
+                .find_map(|o| o.designation.as_ref().map(|d| d.as_str().to_owned()));
+            (*id, over)
+        })
+        .collect();
+    out.sort();
+    out
+}
+
+fn replace_part(device: Id<Device>, from: Id<Part>, to: Id<Part>) -> ew_commands::commands::AssignPart {
+    ew_commands::commands::AssignPart {
+        devices: vec![device],
+        part: to,
+        copies: Vec::new(),
+        mode: ew_commands::commands::AssignModeParam::Replace,
+        from: Some(from),
+        qty: None,
+    }
+}
+
+/// `valve.add` of a single-solenoid part gives the valve function and coil 14 from the part (D7: `fndef` is not
+/// needed), and N2 binds the coil by the map; a bistable part assigned in its place adds coil 12, with its designation
+/// override, which N2 binds to channel 2p + 1; assigning the single-solenoid part again removes coil 12 and unbinds its
+/// channel with a notice. Each is one undo step.
+#[test]
+fn n_fl_1_makes_the_valve_and_coil_functions_from_the_part() {
+    let mut e = engine(model_with(vec![]));
+    make_module(&mut e, MODULE_H1);
+    let (r, v, coil14) = add_valve(&mut e, 2, VALVE);
+    let body = ew_ids::v5::template_function_id(v, 0);
+    assert_eq!(functions_of(&e, v), {
+        let mut want = vec![(body, None), (coil14, None)];
+        want.sort();
+        want
+    });
+    assert_eq!(row(&e, body).role, ew_schema::FnRole::Main);
+    assert_eq!(row(&e, coil14).template_entry, Some(1));
+    assert_eq!(binding(&e, 2), Some(Endpoint::Cp(coil14, 0)));
+    assert!(r.outcome.notices.is_empty(), "{:?}", r.outcome.notices);
+
+    let r = e
+        .execute(&replace_part(v, VALVE, VALVE_BI))
+        .expect("the bistable part");
+    let coil12 = coil_function(v, 1);
+    assert_eq!(functions_of(&e, v), {
+        let mut want = vec![(body, None), (coil14, None), (coil12, Some("12".to_owned()))];
+        want.sort();
+        want
+    });
+    assert_eq!(binding(&e, 2), Some(Endpoint::Cp(coil14, 0)));
+    assert_eq!(binding(&e, 3), Some(Endpoint::Cp(coil12, 0)));
+    assert!(r.outcome.notices.is_empty(), "{:?}", r.outcome.notices);
+
+    let r = e
+        .execute(&replace_part(v, VALVE_BI, VALVE))
+        .expect("the single-solenoid part again");
+    assert_eq!(
+        r.outcome.notices,
+        ["solenoid 12 of -102F2-Q2 went with the old part; channel 3 of -102F2 is unbound"]
+    );
+    assert_eq!(functions_of(&e, v).len(), 2);
+    assert_eq!(binding(&e, 3), None);
+    assert_eq!(binding(&e, 2), Some(Endpoint::Cp(coil14, 0)));
+    e.undo(&ew_commands::Origin::Gui).expect("undo");
+    assert_eq!(binding(&e, 3), Some(Endpoint::Cp(coil12, 0)));
+    e.undo(&ew_commands::Origin::Gui).expect("undo");
+    assert_eq!(functions_of(&e, v).len(), 2);
+    assert_eq!(binding(&e, 3), None);
+}
+
+/// D6 (d): a valve keeps its drawn valve function when its new valve part has another valve FnDef, with a notice.
+#[test]
+fn n_fl_1_keeps_the_valve_function_of_another_valve_type() {
+    const OTHER: Id<Part> = id(0x70);
+    let mut other = solenoid_valve_part(OTHER, "OTHER-1", &["14"]);
+    other.item.function_template[0].fndef = lib_ref_to(LIBRARY_VALVE, OTHER_VALVE);
+    let mut e = engine(model_with_records(vec![other], vec![]));
+    make_module(&mut e, MODULE_H1);
+    let (_, v, _) = add_valve(&mut e, 1, VALVE);
+    let r = e
+        .execute(&replace_part(v, VALVE, OTHER))
+        .expect("another valve type");
+    assert_eq!(
+        r.outcome.notices,
+        [
+            "-102F2-Q1 keeps its drawn valve function; the new part has another valve type: replace the symbol \
+             to change it"
+        ]
+    );
+    assert_eq!(functions_of(&e, v).len(), 2);
 }
 
 // ---------------------------------------------------------------------------------------------------------

@@ -184,11 +184,12 @@ impl Command for AttachChildren {
 /// Creates `Device {tag: {letter, counter: position, scheme: child}, parent: module, position, structure,
 /// parts: [part]}` (doc 11 §3.2: the child rule prints `{parent}-{letter}{position}`; normaliser N-FL-2
 /// keeps the counter equal to the position) and, with `fndef`, its main function `{def: fndef, role: main,
-/// kind: normal}`. The position is the requested one, else the lowest free position of the module (1, 2,
-/// …). The module, the part copy and the FnDef copy must exist. Rejected: position 0 (at `/position`); a
-/// requested position another child of the module holds (no push insert in v0). Not in v0: the coil
-/// functions from the part's `solenoids` (N-FL-1; give `fndef`), the slot-count bound of the module's part
-/// (EW-FL-003 is a check). The coil-to-channel binding follows from the module part's solenoid-position
+/// kind: normal}`. A part whose template has an entry on a FnDef of contact kind `valve` ignores `fndef`: normaliser
+/// N-FL-1 (`valve_functions`) makes the valve and coil functions from the part (WP-S1.20 D7). The position is the
+/// requested one, else the lowest free position of the module (1, 2, …). The module, the part copy and the FnDef
+/// copy must exist. Rejected: position 0 (at `/position`); a requested position another child of the module holds
+/// (no push insert in v0). The slot-count bound of the module's part is EW-FL-013's prevent rule. The
+/// coil-to-channel binding follows from the module part's solenoid-position
 /// map through normaliser N2 (`solenoid_binding`) when the module has channels; `plc.bind_channel` binds
 /// otherwise. The state (spare valves) and the function text are set with `fields.set`.
 /// Outcome: the valve.
@@ -232,10 +233,16 @@ impl Command for AddValve {
             ));
         }
         tx.require::<Device>(self.module)?;
-        tx.require::<LibCopy<ew_schema::Part>>(self.part.part.copy)?;
+        let part = tx.require::<LibCopy<ew_schema::Part>>(self.part.part.copy)?;
         if let Some(fndef) = self.fndef {
             tx.require::<LibCopy<FnDef>>(fndef)?;
         }
+        // WP-S1.20 D7: a part with a valve entry gives the functions through N-FL-1
+        let from_part = part.item.function_template.iter().any(|e| {
+            let def: Id<FnDef> = ew_ids::v5::lib_copy_id(e.fndef.library.as_uuid(), e.fndef.item.as_uuid());
+            tx.get::<LibCopy<FnDef>>(def)
+                .is_some_and(|d| d.item.contact_kind == ew_schema::ContactKind::Valve)
+        });
         let taken = taken_positions(tx, self.module, &BTreeSet::new());
         let position = match self.position {
             Some(p) => {
@@ -275,7 +282,7 @@ impl Command for AddValve {
             aspects: DeviceAspects::default(),
             extra: Extra::new(),
         })?;
-        if let Some(def) = self.fndef {
+        if let Some(def) = self.fndef.filter(|_| !from_part) {
             insert_function(tx, Some(id), def, FnRole::Main)?;
         }
         Ok(Outcome::primary((Kind::Device, id.cast())))

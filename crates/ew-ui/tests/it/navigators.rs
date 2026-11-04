@@ -233,7 +233,12 @@ fn nv9_an_unplaced_function_is_dragged_onto_the_canvas() {
             .expect("the copy opens")
             .0;
         let q = s.query();
-        let (_, f) = q.functions().iter().next().expect("a function");
+        // a drawn function's FnDef, so a symbol of it exists (a valve's internal coil has none, WP-S1.20 D5)
+        let (_, f) = q
+            .functions()
+            .iter()
+            .find(|(id, _)| q.idx().reps_of_function(*id).next().is_some())
+            .expect("a drawn function");
         f.def.to_string()
     };
     let mut h = harness(&tmp, Scripted::default(), Some(dir));

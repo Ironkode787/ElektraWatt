@@ -102,16 +102,22 @@ const LIBRARY: Uuid = Uuid::from_u128(0x7202fd8b_1024_4bf1_9e99_670772eaa589);
 const VERSION: &str = "0.1.0";
 /// The starter documents changed after their first publication on `main` (a published version is immutable; doc 07
 /// §3.1 classifies the change): key (both editions) → version. WP-S1.21 part 2 (cycle 37): the `plc_address` slot, a
-/// minor change; FT-698 (cycle 38): the same slot on the lamp, the position switch and the 5/2 valve.
+/// minor change; FT-698 (cycle 38): the same slot on the lamp, the position switch and the 5/2 valve; WP-S1.20 (cycle
+/// 50): the 5/2 valve's solenoid CP leaves its FnDef (major) and its symbol's function text falls back to the process
+/// tag (minor), the cylinder's ports gain their role (minor).
 const BUMPED: &[(&str, &str)] = &[
+    ("ew.fn.cylinder-double-acting", "0.1.1"),
+    ("ew.fn.valve-5-2-sol-spring", "0.2.0"),
     ("ew.iec.coil", "0.2.0"),
     ("ew.iec.lamp", "0.2.0"),
     ("ew.iec.position-switch-no", "0.2.0"),
     ("ew.iec.pushbutton-no", "0.2.0"),
     ("ew.iec.selector-switch-no", "0.2.0"),
     ("ew.iec.valve-coil", "0.2.0"),
-    ("ew.iso.valve-5-2-sol-spring", "0.2.0"),
+    ("ew.iso.valve-5-2-sol-spring", "0.3.0"),
 ];
+/// The FnDefs no symbol draws: the internal solenoid coil is drawn in its valve's symbol (WP-S1.20 D3, D5).
+const UNDRAWN_FNDEFS: &[&str] = &["ew.fn.valve-solenoid"];
 /// House pen width of the pen-independent tolerance of on-outline checks, in nm (native edition).
 const OUTLINE_TOL: i64 = 1000;
 /// The most text slots a symbol may have.
@@ -658,16 +664,26 @@ fn fndef_references() {
                 r.library
             ));
         }
-        if r.version_req != "^0.1" {
-            problems.push(format!(
-                "{who}: fndef.version_req is {:?}, expected \"^0.1\"",
-                r.version_req
-            ));
-        }
         let Some(key) = r.extra.get("key").and_then(|v| v.as_str()) else {
             problems.push(format!("{who}: fndef.extra[\"key\"] is not a string"));
             continue;
         };
+        // the caret requirement of the FnDef's version: "^0.1" for 0.1.x, "^0.2" for 0.2.0 (WP-S1.20)
+        let want_req = by_key.get(key).map_or_else(
+            || "^0.1".to_owned(),
+            |fd| {
+                format!(
+                    "^{}",
+                    fd.copy.version.split('.').take(2).collect::<Vec<_>>().join(".")
+                )
+            },
+        );
+        if r.version_req != want_req {
+            problems.push(format!(
+                "{who}: fndef.version_req is {:?}, expected {want_req:?}",
+                r.version_req
+            ));
+        }
         referenced.insert(key);
         let want = Uuid::new_v5(&LIBRARY, key.as_bytes());
         let item = r.item.as_uuid();
@@ -711,7 +727,7 @@ fn fndef_references() {
     for fd in &l.fndefs {
         let who = fd.who();
         let def = &fd.copy.item;
-        if !referenced.contains(fd.key.as_str()) {
+        if !referenced.contains(fd.key.as_str()) && !UNDRAWN_FNDEFS.contains(&fd.key.as_str()) {
             problems.push(format!("{who}: orphan, no symbol references it"));
         }
         let mut seen = BTreeSet::new();

@@ -9,9 +9,9 @@ use std::collections::BTreeMap;
 use ew_ids::Id;
 use ew_ids::v5;
 use ew_schema::{
-    CableCore, ClampKey, Confidence, CpData, EnclosureSection, ItemMeta, KeyedList, LibCopy, LibDocument,
-    LibItem, LibRef, Library, Manufacturer, MechData, MountKind, OrderUnit, Part, PartKind, PartSections,
-    PlateSection, PotentialType, RailSection, Sha256, Side, TemplateFn,
+    CableCore, ClampKey, Confidence, CpData, EnclosureSection, FluidSection, ItemMeta, KeyedList, LibCopy,
+    LibDocument, LibItem, LibRef, Library, Manufacturer, MechData, MountKind, OrderUnit, Part, PartKind,
+    PartSections, PlateSection, PotentialType, RailSection, Sha256, Side, TemplateFn,
 };
 use serde::Serialize;
 use sha2::Digest;
@@ -210,6 +210,14 @@ pub(crate) fn emit(
         let test_data = r.flag("test_data");
         let tech_data = r.tech_data("tech_data");
         let mech = mech_cells(&mut r);
+        // WP-S1.20 D4: the solenoids a valve part declares (its fluid section)
+        let mut solenoids = Vec::new();
+        for s in r.list("solenoids") {
+            match parse_ident(s) {
+                Ok(s) => solenoids.push(s),
+                Err(e) => r.fail(format!("column `solenoids`: {e}")),
+            }
+        }
         if let Err(e) = r.finish() {
             cx.malformed(row, &e);
             continue;
@@ -229,6 +237,7 @@ pub(crate) fn emit(
             test_data,
             tech_data,
             mech,
+            solenoids,
         ));
     }
 
@@ -251,6 +260,7 @@ pub(crate) fn emit(
         test_data,
         tech_data,
         mech,
+        solenoids,
     ) in heads
     {
         let key = row.key().to_owned();
@@ -332,7 +342,8 @@ pub(crate) fn emit(
             let fndef = r.req("fndef").map(str::to_owned);
             let main = r.flag("main");
             let list: Vec<&str> = r.list("cps");
-            if list.is_empty() {
+            // a part without a CP pattern names none: its functions take their FnDef's CPs (WP-S1.20 D4)
+            if list.is_empty() && !pattern.is_empty() {
                 r.fail("column `cps` is empty (a template function lists its pattern indexes)");
             }
             let mut idxs = Vec::new();
@@ -457,6 +468,10 @@ pub(crate) fn emit(
                     width: s.first().copied(),
                     height: s.get(1).copied(),
                     thickness: None,
+                    extra: Default::default(),
+                }),
+                fluid: (!solenoids.is_empty()).then(|| FluidSection {
+                    solenoids,
                     extra: Default::default(),
                 }),
                 ..PartSections::default()

@@ -4,7 +4,7 @@
   "library_id": "d76f5765-c456-5393-935c-4cec32a87b01",
   "item_id": "98be07a2-7435-577d-982a-47e276532085",
   "version": "1.0.0",
-  "sha256": "sha256:27efb38ba7e1e5aa9e9af8de447f363acecdb65fdbd6f87b179fc0a2fe40c2d7",
+  "sha256": "sha256:b2f4cd35ee1325ab46a346ff3f97d5ca58b350221e1399d8151ae38c36144c92",
   "meta": {"key": "571334", "sources": ["golden.table:parts|571334"]},
   "manufacturer": {
     "library": "d76f5765-c456-5393-935c-4cec32a87b01",
@@ -13,5 +13,25 @@
   },
   "part_number": "571334",
   "description": "5/2 monostable solenoid valve",
-  "mech": {"mount_kind": "on_parent"}
+  "function_template": [
+    {
+      "fndef": {
+        "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+        "item": "953db918-4c70-57d8-a7dc-97bd0818d957",
+        "version_req": "^0.2",
+        "key": "ew.fn.valve-5-2-sol-spring"
+      },
+      "main": true
+    },
+    {
+      "fndef": {
+        "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+        "item": "a0f55933-d4dc-5721-bcbf-896c1b7f3f1f",
+        "version_req": "^0.1",
+        "key": "ew.fn.valve-solenoid"
+      }
+    }
+  ],
+  "mech": {"mount_kind": "on_parent"},
+  "sections": {"fluid": {"solenoids": ["14"]}}
 }

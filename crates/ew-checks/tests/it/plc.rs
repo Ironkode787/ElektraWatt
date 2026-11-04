@@ -22,6 +22,8 @@ const COIL: u128 = 0x1301;
 const VALVE_DEF: u128 = 0x520;
 const VALVE_SYM: u128 = 0x521;
 const PART: u128 = 0x600;
+/// The valve's part: it declares solenoids 14 and 12 (WP-S1.20 D5).
+const VALVE_PART: u128 = 0x601;
 
 /// The record ID text of channel `n` of module `module` (the v5 ID N1 gives it).
 fn ch(module: u128, n: u16) -> String {
@@ -44,7 +46,13 @@ fn fixture_with(meta: &Value) -> Fx {
             (1, "12", json!({"physical": false})),
         ],
         &json!([]),
-        &json!({}),
+        // the valve's internal coils (WP-S1.20 D5)
+        &json!({"contact_kind": "coil"}),
+    );
+    fx.part(
+        VALVE_PART,
+        "571334",
+        &json!({"kind": "device", "sections": {"fluid": {"solenoids": ["14", "12"]}}}),
     );
     fx.part(
         PART,
@@ -80,6 +88,7 @@ fn fixture_with(meta: &Value) -> Fx {
     fx.device(VALVE, "Q", Some(1))
         .with("parent", json!(us(M1)))
         .with("position", json!(1));
+    fx.with_parts(VALVE, &[VALVE_PART]);
     fx.push(json!({"$k": "function", "id": us(COIL), "device": us(VALVE), "def": us(VALVE_DEF)}));
     fx.push(json!({
         "$k": "representation", "id": us(COIL + 0x10_000), "functions": [us(COIL)], "page": us(P1),

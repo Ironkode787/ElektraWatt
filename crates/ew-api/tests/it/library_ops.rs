@@ -850,9 +850,16 @@ const GOLDEN_PRE_FT698: [(&str, &str); 3] = [
 ];
 
 /// A 0.2.0 starter symbol of FT-698 as its 0.1.0 predecessor: the appended `plc_address` slot and its arrangement
-/// entries removed, the version and the hash of the item put back.
+/// entries removed, the version and the hash of the item put back. The 5/2 valve's 0.3.0 (WP-S1.20) also loses its
+/// function-text fallback and names its FnDef's 0.1 again.
 fn before_ft698(doc: &LibDocument) -> LibDocument {
     let mut v = serde_json::to_value(doc).unwrap();
+    if v["fndef"]["version_req"] == json!("^0.2") {
+        v["fndef"]["version_req"] = json!("^0.1");
+    }
+    for slot in v["text_slots"].as_array_mut().unwrap() {
+        slot.as_object_mut().unwrap().remove("fallback");
+    }
     let slots = v["text_slots"].as_array_mut().unwrap();
     let last = slots.pop().unwrap();
     assert_eq!(last["kind"], json!("plc_address"), "the appended slot");
@@ -878,9 +885,10 @@ fn symbol_key(d: &LibDocument) -> Option<String> {
 
 /// FT-698 (cycle 38), the product path of Golden A's symbol change: over Golden A as it was (its lamp, position
 /// switch and 5/2 valve at 0.1.0, rebuilt from the new copies and checked against the published hashes), the library
-/// status offers exactly those three copies a minor update to the starter's 0.2.0; "update from library" updates them
-/// in one command, after which the held copies equal the bootstrap's (the committed fixture's), no copy has an update
-/// left and the valve of -201U3-Q1 prints its channel address Q0.1.
+/// status offers exactly those three copies an update, a minor one to the starter's 0.2.0 (the 5/2 valve a major one
+/// to its 0.3.0, which names the FnDef's 0.2, WP-S1.20); "update from library" updates them in one command, after which
+/// the held copies equal the bootstrap's (the committed fixture's), no copy has an update left and the valve of
+/// -201U3-Q1 prints its channel address Q0.1.
 #[test]
 fn ft698_update_from_library_brings_golden_a_symbols_to_the_plc_address_slot() {
     let batch = golden_common::batch();
@@ -919,13 +927,26 @@ fn ft698_update_from_library_brings_golden_a_symbols_to_the_plc_address_slot() {
         .collect();
     let valve = device(&s, "-201U3-Q1");
     assert!(!slot_texts(&s, valve).iter().any(|t| t == "Q0.1"));
+    // WP-S1.20: the 5/2 valve's update is the major one to 0.3.0
+    let target = |copy: Uuid| {
+        let valve = current.iter().any(|d| {
+            matches!(d, LibDocument::Symbol(c) if c.id.as_uuid() == copy)
+                && symbol_key(d).as_deref() == Some("ew.iso.valve-5-2-sol-spring@qet10")
+        });
+        if valve {
+            ("0.3.0", ChangeClass::Major)
+        } else {
+            ("0.2.0", ChangeClass::Minor)
+        }
+    };
     for c in s.library_status() {
         if copies.contains(&c.copy) {
+            let (version, class) = target(c.copy);
             assert_eq!(
                 c.state,
                 CopyState::UpdateAvailable {
-                    class: ChangeClass::Minor,
-                    version: "0.2.0".into()
+                    class,
+                    version: version.into()
                 },
                 "{}",
                 c.copy
@@ -943,7 +964,7 @@ fn ft698_update_from_library_brings_golden_a_symbols_to_the_plc_address_slot() {
     planned.sort_by_key(|p| p.0);
     let mut expected: Vec<(Uuid, &str, &str, ChangeClass)> = copies
         .iter()
-        .map(|c| (*c, "0.1.0", "0.2.0", ChangeClass::Minor))
+        .map(|c| (*c, "0.1.0", target(*c).0, target(*c).1))
         .collect();
     expected.sort_by_key(|p| p.0);
     assert_eq!(planned, expected);

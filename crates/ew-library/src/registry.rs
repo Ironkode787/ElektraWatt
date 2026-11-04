@@ -470,8 +470,10 @@ impl Registry {
                 name: "ElektraWatt starter library".to_owned(),
                 tier: Tier::System,
                 // 0.2.0: the plc_address slot of the coil, valve coil, pushbutton and selector (WP-S1.21 part 2);
-                // 0.3.0: the same slot on the lamp, position switch and 5/2 valve (FT-698).
-                version: "0.3.0".to_owned(),
+                // 0.3.0: the same slot on the lamp, position switch and 5/2 valve (FT-698);
+                // 0.4.0: the fluid power model (WP-S1.20): the port roles of the 5/2 valve and the cylinder, the 5/2
+                // valve's solenoid as the new `ew.fn.valve-solenoid`, the valve symbol's process-tag fallback.
+                version: "0.4.0".to_owned(),
                 licence: "CC-BY-SA-4.0".to_owned(),
                 writable: false,
                 path: None,

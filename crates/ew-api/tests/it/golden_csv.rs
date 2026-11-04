@@ -142,10 +142,10 @@ fn the_golden_batch_loads_with_the_counts_of_doc_20() {
         .count();
     assert_eq!(parts, 27 + 2);
     // Derived counts of the golden batch: doc 20 does not state them, they follow from its tables (functions: one
-    // per device function and interruption point, §6, §9, §15; representations: one per drawn symbol, §6.1, §9,
-    // §15). A change is a change of the fixture, never noise.
+    // per device function and interruption point, §6, §9, §15, and the 28 valve coils of §11.2, WP-S1.20 D4;
+    // representations: one per drawn symbol, §6.1, §9, §15). A change is a change of the fixture, never noise.
     let records = |f: fn(&Record) -> bool| batch.records.iter().filter(|r| f(r)).count();
-    assert_eq!(records(|r| matches!(r, Record::Function(_))), 160);
+    assert_eq!(records(|r| matches!(r, Record::Function(_))), 188);
     assert_eq!(records(|r| matches!(r, Record::Representation(_))), 135);
 }
 

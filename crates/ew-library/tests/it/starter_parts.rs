@@ -32,15 +32,16 @@ const VERSION: &str = "0.1.0";
 /// The library's version: 0.1.1 since FT-659 and FT-655 changed parts, 0.1.2 since FT-606 added the one-pole on/off
 /// switch EW-GEN-SW-1, 0.2.0 since WP-S1.21 D5 added the generic CPU EW-GEN-CPU-1, 0.2.1 since WP-S1.21 D17 gave
 /// it its DP port (a library refuses other content under a published version, doc 05 §13.1), 0.3.0 since WP-S4.02
-/// part 6 (D14) added the layout parts and the dimensions.
-const LIBRARY_VERSION: &str = "0.3.0";
+/// part 6 (D14) added the layout parts and the dimensions, 0.4.0 since WP-S1.20 D4 gave the valve its fluid section.
+const LIBRARY_VERSION: &str = "0.4.0";
 /// The parts whose content changed after 0.1.0, at their next patch version (FT-659: the selector switch on a
 /// manual-command FnDef, letter S; the valve's coil on a solenoid-actuator FnDef, letter M or Y. FT-655: the relay
 /// and the contactor template their contacts beside the coil. WP-S1.21 D17: the CPU's bus section, after 0.2.0.
-/// WP-S4.02 D14: the dimensions).
+/// WP-S4.02 D14: the dimensions. WP-S1.20 D4: the valve's solenoid 14 leaves the pattern for its fluid section, a
+/// major change).
 const BUMPED: &[(&str, &str)] = &[
     ("EW-GEN-SEL-1", "0.1.1"),
-    ("EW-GEN-VLV-1", "0.1.1"),
+    ("EW-GEN-VLV-1", "0.2.0"),
     ("EW-GEN-RLY-1", "0.1.2"),
     ("EW-GEN-CON-1", "0.1.2"),
     ("EW-GEN-CPU-1", "0.1.2"),
@@ -84,10 +85,12 @@ fn fndef(key: &str) -> Value {
     let LibDocument::Fndef(c) = doc else {
         panic!("{key} is not a FnDef")
     };
+    // the caret requirement of the FnDef's version: `^0.2` for 0.2.0
+    let minor = c.version.split('.').take(2).collect::<Vec<_>>().join(".");
     json!({
         "library": starter::LIBRARY.to_string(),
         "item": c.item_id.as_uuid().to_string(),
-        "version_req": "^0.1",
+        "version_req": format!("^{minor}"),
         "key": key,
     })
 }
@@ -389,16 +392,17 @@ fn defs() -> Vec<Def> {
             number: "EW-GEN-VLV-1",
             kind: None,
             description: "Solenoid valve 5/2, spring return",
-            cps: cps(&["A1", "A2", "1", "2", "3", "4", "5", "14"]),
+            cps: cps(&["A1", "A2", "1", "2", "3", "4", "5"]),
             template: vec![
                 ("ew.fn.valve-coil", true, vec![0, 1]),
-                ("ew.fn.valve-5-2-sol-spring", false, range(2, 8)),
+                ("ew.fn.valve-5-2-sol-spring", false, range(2, 7)),
             ],
             contacts: Vec::new(),
             tech: vec![("coil_voltage", q("24", "V"))],
             plc: None,
             mech: None,
-            sections: None,
+            // WP-S1.20 D4: solenoid 14 is the physical coil A1, A2 (no internal coil)
+            sections: Some(json!({"fluid": {"solenoids": ["14"]}})),
             unit: None,
         },
         Def {
@@ -1088,10 +1092,10 @@ fn the_compiled_in_registry_resolves_a_part_with_its_closure() {
 
 /// WP-S1.21 D5: the generic CPU is a station without I/O ranges on a black box with the supply CPs L+ and M, a new
 /// item at 0.1.0 in the library's minor version 0.2.0 (0.1.1 in 0.2.1 with its DP port, D17; 0.1.2 in 0.3.0 with its
-/// dimensions, D14); the cards are modules of 8 channels each.
+/// dimensions, D14; unchanged in 0.4.0); the cards are modules of 8 channels each.
 #[test]
 fn the_generic_cpu_is_a_station_without_io() {
-    assert_eq!(LIBRARY_VERSION, "0.3.0");
+    assert_eq!(LIBRARY_VERSION, "0.4.0");
     let part = |number: &str| {
         parts()
             .into_iter()
@@ -1167,4 +1171,44 @@ fn the_generic_cpu_has_its_dp_port() {
             }
         }
     }
+}
+
+/// WP-S1.20 D4 (FL-4's data): the stand-alone valve EW-GEN-VLV-1 (0.2.0) declares solenoid 14 in its fluid section;
+/// its coil is the physical A1, A2 of its main function on `ew.fn.valve-coil`, so it has no internal coil (D5), and the
+/// valve body takes the pattern's ports 1 to 5 (the former pattern CP "14" is gone).
+#[test]
+fn the_stand_alone_valve_declares_its_solenoid_on_its_physical_coil() {
+    let parts = parts();
+    let valve = parts
+        .iter()
+        .find_map(|d| match d {
+            LibDocument::Part(c) if c.item.part_number.as_str() == "EW-GEN-VLV-1" => Some(c),
+            _ => None,
+        })
+        .expect("the generic valve");
+    assert_eq!(valve.version, "0.2.0");
+    let fluid = valve.item.sections.fluid.as_ref().expect("a fluid section");
+    let solenoids: Vec<&str> = fluid.solenoids.iter().map(|s| s.as_str()).collect();
+    assert_eq!(solenoids, ["14"]);
+    let pattern: Vec<&str> = valve.item.cp_pattern.iter().map(|c| c.designation.as_str()).collect();
+    assert_eq!(pattern, ["A1", "A2", "1", "2", "3", "4", "5"]);
+    let template: Vec<(Option<&str>, bool, Vec<u16>)> = valve
+        .item
+        .function_template
+        .iter()
+        .map(|t| (t.fndef.extra.get("key").and_then(|k| k.as_str()), t.main, t.cps.clone()))
+        .collect();
+    assert_eq!(
+        template,
+        [
+            (Some("ew.fn.valve-coil"), true, vec![0, 1]),
+            (Some("ew.fn.valve-5-2-sol-spring"), false, vec![2, 3, 4, 5, 6]),
+        ]
+    );
+    let LibDocument::Fndef(coil) =
+        LibDocument::from_json(starter::item("ew.fn.valve-coil").expect("the coil FnDef").json).unwrap()
+    else {
+        panic!("a FnDef")
+    };
+    assert!(coil.item.cps.iter().all(|c| c.physical), "a physical coil: no internal coil CP");
 }

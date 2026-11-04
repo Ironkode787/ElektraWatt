@@ -3,8 +3,8 @@
   "id": "ab4c7813-e809-503b-a0cb-8978f1c4ac3a",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "953db918-4c70-57d8-a7dc-97bd0818d957",
-  "version": "0.1.0",
-  "sha256": "sha256:20e27ec753ffb8b83e531d3e7bb6f963b612ba790ed661c905983f42bd43b968",
+  "version": "0.2.0",
+  "sha256": "sha256:06561800db04ff1cea6a21e2d0b3514cc6b3e8123e83eab0180321d0e1f788c0",
   "meta": {
     "key": "ew.fn.valve-5-2-sol-spring",
     "licence": "CC-BY-SA-4.0",
@@ -23,32 +23,32 @@
     {
       "idx": 0,
       "designation": "1",
-      "discipline": "pneumatic"
+      "discipline": "pneumatic",
+      "port_role": "supply1"
     },
     {
       "idx": 1,
       "designation": "2",
-      "discipline": "pneumatic"
+      "discipline": "pneumatic",
+      "port_role": "working2"
     },
     {
       "idx": 2,
       "designation": "3",
-      "discipline": "pneumatic"
+      "discipline": "pneumatic",
+      "port_role": "exhaust3"
     },
     {
       "idx": 3,
       "designation": "4",
-      "discipline": "pneumatic"
+      "discipline": "pneumatic",
+      "port_role": "working4"
     },
     {
       "idx": 4,
       "designation": "5",
-      "discipline": "pneumatic"
-    },
-    {
-      "idx": 5,
-      "designation": "14",
-      "physical": false
+      "discipline": "pneumatic",
+      "port_role": "exhaust5"
     }
   ]
 }

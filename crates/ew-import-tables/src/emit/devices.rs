@@ -404,7 +404,7 @@ fn template_origin<'c>(
 /// The CP list of a function row, in CP index order:
 ///
 /// 1. **template origin**: the first template entry naming the FnDef, whatever its role, in part-use order (the
-///    entry `ew-derive` reads for a function without `template_entry`, which the importer does not record), its
+///    entry `ew-derive` reads for a function without `template_entry`; a row with `part` and `template` records it), its
 ///    pattern entries paired with the FnDef's CPs by `ew_schema::pair_template_cps` (FT-655), the rule `ew-derive`'s
 ///    `function_cps` applies: by position, with the FnDef CP indices, when the entry names as many pattern entries
 ///    as the FnDef has CPs; else each with its pattern index;
@@ -453,7 +453,7 @@ fn function_cps(
             .fndef(fndef)
             .map(|c| c.item.cps.as_slice().iter().map(|d| d.idx).collect())
             .unwrap_or_default();
-        return pair_template_cps(&t.cps, &pattern, &def)
+        let cps: Vec<CpInfo> = pair_template_cps(&t.cps, &pattern, &def)
             .into_iter()
             .filter_map(|c| {
                 part.pattern.get(&c.pattern).map(|p| CpInfo {
@@ -462,6 +462,10 @@ fn function_cps(
                 })
             })
             .collect();
+        // a template naming no pattern CP (a part without a pattern) gives the FnDef's CPs, as in `ew-derive`
+        if !cps.is_empty() {
+            return cps;
+        }
     }
     if black_box
         && let Some(part) = device
@@ -555,6 +559,8 @@ pub(crate) fn emit_functions(cx: &mut Cx<'_>, table: Option<&Table>) {
             .as_deref()
             .map(|f| function_cps(cx, &mut r, f, device.as_deref(), &role, black_box))
             .unwrap_or_default();
+        // WP-S1.20 D20: the template entry a row states (`part` and `template`, checked above) is stored (FT-655)
+        let template_entry = r.text("part").and(r.uint::<u16>("template"));
         let mut overrides = Vec::new();
         for item in r.list("cp_aliases") {
             let Some((d, alias)) = item.split_once('=') else {
@@ -627,7 +633,7 @@ pub(crate) fn emit_functions(cx: &mut Cx<'_>, table: Option<&Table>) {
                 kind,
                 cp_overrides,
                 source_ref: Some(source_ref("functions", row.key())),
-                template_entry: None,
+                template_entry,
                 bus_port: None,
                 extra: Default::default(),
             },

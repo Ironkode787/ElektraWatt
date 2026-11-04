@@ -8,6 +8,7 @@
 //!
 //! | # | ID | Effect |
 //! |---|---|---|
+//! | 1 | `valve_functions` | N-FL-1: a device that is new or whose parts changed and that has a valve part (a fluid section with solenoids) gets the valve function and one coil function per coil entry of the part's template; a coil function of an old part is removed, its channel unbound; the valve function is never replaced (WP-S1.20 D6) |
 //! | 0 | `plc_aspects` | N0: a device that gains a part with a PLC section and carries neither PLC aspect gets `plc_module` or `plc_station` from the section's role; the first station creates the configuration project `PLC<n>`, a module without a station is attached to the project's only station (WP-S1.21 D2 to D4), and so are the modules that waited for one when the first station arrives (FT-823) |
 //! | 2 | `cp_instantiation` | No-op recorder: CPs are derived from the FnDef or part pattern and only overrides persist (doc 06 §3.2 row 2), so there is nothing to store |
 //! | 3 | `channel_instantiation` | N1: a new module, or a device that gained the `plc_module` aspect or changed its parts, gets the channels of its part data with v5 IDs and the part's channel kind (doc 10 §3.3; surplus channels stay until `plc.set_module_part` removes them after its preview) |
@@ -39,6 +40,7 @@ mod online_numbering;
 mod plc_aspects;
 mod revision_ensure_open;
 mod solenoid_binding;
+mod valve_functions;
 mod wire_numbering;
 
 pub use bus_ports::BusPorts;
@@ -52,6 +54,7 @@ pub use online_numbering::OnlineNumbering;
 pub use plc_aspects::PlcAspects;
 pub use revision_ensure_open::RevisionEnsureOpen;
 pub use solenoid_binding::SolenoidBinding;
+pub use valve_functions::ValveFunctions;
 pub use wire_numbering::WireNumbering;
 
 use crate::error::CmdError;
@@ -68,7 +71,8 @@ pub trait Normaliser: Send + Sync {
 }
 
 /// The registry order within one pass: the IDs of [`registry`], asserted by a test.
-pub const ORDER: [&str; 12] = [
+pub const ORDER: [&str; 13] = [
+    "valve_functions",
     "plc_aspects",
     "cp_instantiation",
     "channel_instantiation",
@@ -89,6 +93,7 @@ pub const MAX_PASSES: usize = 3;
 /// The normalisers in registry order.
 pub fn registry() -> Vec<Box<dyn Normaliser>> {
     vec![
+        Box::new(ValveFunctions),
         Box::new(PlcAspects),
         Box::new(CpInstantiation),
         Box::new(ChannelInstantiation),

@@ -1,0 +1,29 @@
+{
+  "$k": "fndef",
+  "id": "6390be2f-2232-5be9-a867-eb4be56aa823",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "a0f55933-d4dc-5721-bcbf-896c1b7f3f1f",
+  "version": "0.1.0",
+  "sha256": "sha256:5a6b911bbef771a86df7788348e62286f9e1c2b06b4dd465ef732981150ad1d0",
+  "meta": {
+    "key": "ew.fn.valve-solenoid",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "SolenoidActuator",
+    "Coil",
+    "A1A2"
+  ],
+  "contact_kind": "coil",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "14",
+      "physical": false
+    }
+  ]
+}

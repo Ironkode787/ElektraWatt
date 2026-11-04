@@ -56,26 +56,20 @@ fn describe_reports_the_plc_address_of_the_hovered_cp() {
     let tmp = Tmp::new("plc-hover");
     let mut s = tmp.shell_in(Mode::Headless, true, "203");
     done(&mut s, "view.zoom_actual", json!({}));
-    // A drawn port of a valve whose coil a channel binds, and a spare channel of that channel's module.
+    // A drawn port of the valve -201U3-Q1 (its coil is a function of its own, WP-S1.20 D5) and the spare channel 0 of
+    // its module -201U3 (the row key of the golden tables names it).
     let records = channels(&tmp);
     let cps: Vec<TableCp> = s.canvas().unwrap().page().tables.cps.clone();
-    let (target, channel) = cps
+    let channel = records
         .iter()
-        .find_map(|c| {
-            let function = c.function.to_string();
-            let coil = records
-                .iter()
-                .find(|r| r["binding"]["cp"][0] == function.as_str())?;
-            if coil["binding"]["cp"][1] == c.idx {
-                return None;
-            }
-            let spare = records
-                .iter()
-                .filter(|r| r["module"] == coil["module"] && r.get("binding").is_none())
-                .filter_map(|r| r["id"].as_str())
-                .min()?;
-            Some((c.clone(), spare.to_owned()))
-        })
+        .find(|r| r["source_ref"]["key"] == "channels|-201U3:0" && r.get("binding").is_none())
+        .and_then(|r| r["id"].as_str())
+        .expect("the spare channel 0 of -201U3")
+        .to_owned();
+    let target = cps
+        .iter()
+        .find(|c| c.label.starts_with("-201U3-Q1:"))
+        .cloned()
         .expect("a valve port and a spare channel on 203");
     let p = s.canvas().unwrap().page().snapper.page_to_sheet(target.at);
     done(&mut s, "canvas.pointer", at(p, json!({})));
