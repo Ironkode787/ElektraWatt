@@ -1,0 +1,13 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: CC0-1.0
+
+# cargo-audit configuration (NFR-SEC-11; WP-S6.07 D11): read by `cargo audit` and `cargo audit bin` in package.yml
+# and by the supply-chain job of ci.yml.
+#
+# The waiver form: an advisory that cannot be fixed before a release is ignored here AND in deny.toml's
+# [advisories] `ignore`, each entry with a comment that gives the reason, the owner's handle and an expiry date at
+# most 90 days ahead, for example
+#     "RUSTSEC-0000-0000", # <reason>; owner <handle>; expires <YYYY-MM-DD>
+# The release checklist's RC-03 checks every entry by hand (docs/release/checklist.md). Empty: no waiver.
+[advisories]
+ignore = []

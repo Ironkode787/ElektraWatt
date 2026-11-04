@@ -43,6 +43,42 @@ checked_by = "taiki-e/install-action, which checks the release asset against the
 used_for = "THIRD-PARTY-NOTICES.txt of the installed tree and the CLI archives (NFR-LIC-08)"
 
 [[component]]
+name = "cargo-auditable"
+version = "0.7.7"
+licence = "MIT OR Apache-2.0"
+url = "https://github.com/rust-secure-code/cargo-auditable/releases/tag/v0.7.7"
+sha256 = ""
+checked_by = "taiki-e/install-action, which checks the release asset against the SHA-256 of its own manifest; on x86_64 Linux the static musl build, on aarch64 Linux the glibc build (GLIBC_2.34 at most), both run in the ubuntu:22.04 container from the mounted cargo home"
+used_for = "cargo auditable build, the release builds of package.yml (WP-S6.07 D7): it embeds each binary's dependency list (.dep-v0) and adds no dependency; it sets RUSTC_WORKSPACE_WRAPPER only, not RUSTFLAGS or CARGO_ENCODED_RUSTFLAGS"
+
+[[component]]
+name = "cargo-cyclonedx"
+version = "0.5.9"
+licence = "Apache-2.0"
+url = "https://github.com/CycloneDX/cyclonedx-rust-cargo/releases/tag/cargo-cyclonedx-0.5.9"
+sha256 = ""
+checked_by = "taiki-e/install-action, which checks the release asset against the SHA-256 of its own manifest"
+used_for = "the CycloneDX 1.5 SBOM of each binary that ci/sbom.py joins into each artefact's SBOM (WP-S6.07 D9)"
+
+[[component]]
+name = "cargo-audit"
+version = "0.22.2"
+licence = "Apache-2.0 OR MIT"
+url = "https://github.com/rustsec/rustsec/releases/tag/cargo-audit%2Fv0.22.2"
+sha256 = ""
+checked_by = "taiki-e/install-action, which checks the release asset against the SHA-256 of its own manifest; the version of ci.yml's supply-chain job"
+used_for = "cargo audit on Cargo.lock and cargo audit bin on every shipped binary (WP-S6.07 D11)"
+
+[[component]]
+name = "cargo-deny"
+version = "0.20.2"
+licence = "MIT OR Apache-2.0"
+url = "https://github.com/EmbarkStudios/cargo-deny/releases/tag/0.20.2"
+sha256 = ""
+checked_by = "taiki-e/install-action, which checks the release asset against the SHA-256 of its own manifest; the version of ci.yml's supply-chain job"
+used_for = "cargo deny check advisories on Cargo.lock in package.yml's linux job (WP-S6.07 D11)"
+
+[[component]]
 name = "python"
 version = "3.12"
 licence = "PSF-2.0"

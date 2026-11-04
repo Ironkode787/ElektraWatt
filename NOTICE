@@ -105,3 +105,16 @@ repository; packaging/linux/type2-runtime-notices.txt holds its licence file ver
     libzstd          Copyright (c) Meta Platforms, Inc. and affiliates; BSD-3-Clause (LICENSES/BSD-3-Clause.txt)
     zlib             Copyright (C) Jean-loup Gailly and Mark Adler; Zlib (LICENSES/Zlib.txt)
     mimalloc         Copyright (c) 2018-2025 Microsoft Corporation, Daan Leijen; MIT (LICENSES/MIT.txt)
+
+SQLite (bundled by the libsqlite3-sys crate)
+--------------------------------------------
+
+The libsqlite3-sys crate bundles SQLite's C source, which is compiled into ElektraWatt; the release's SBOM names its
+version, read from the bundled sqlite3.h. SQLite is in the public domain, which sqlite3.h states as:
+
+  The author disclaims copyright to this source code.  In place of
+  a legal notice, here is a blessing:
+
+     May you do good and not evil.
+     May you find forgiveness for yourself and forgive others.
+     May you share freely, never taking more than you give.
