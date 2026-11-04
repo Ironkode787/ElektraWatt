@@ -1298,7 +1298,9 @@ mod tests {
         );
         let dev = package("elektrawatt", vec![dep("ew-testkit", Kind::Dev, &[])], &[]);
         assert_eq!(check(&rules, &[dev]), Vec::<String>::new());
-        let graph = parse_tree("elektrawatt v0.1.0 (/w/bin/elektrawatt)|\new-testkit v0.1.0 (/w/crates/ew-testkit)|\n");
+        let graph = parse_tree(
+            "elektrawatt v0.1.0 (/w/bin/elektrawatt)|\new-testkit v0.1.0 (/w/crates/ew-testkit)|\n",
+        );
         assert_eq!(
             check_shipping(&rules, &graph, "elektrawatt, ew"),
             [

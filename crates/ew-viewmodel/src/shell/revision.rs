@@ -378,7 +378,8 @@ impl ShellModel {
     /// The engineering-verification disclaimer that ends the Approve and the Release dialog, the About dialog's sentence
     /// (WP-S6.04 D13, NFR-COMP-04); `None` in every other dialog.
     pub fn revision_disclaimer(&self) -> Option<&'static str> {
-        (self.in_form_of(APPROVE) || self.in_form_of(RELEASE)).then(|| strings::text(key!("about-disclaimer")))
+        (self.in_form_of(APPROVE) || self.in_form_of(RELEASE))
+            .then(|| strings::text(key!("about-disclaimer")))
     }
 
     /// What the incomplete-release offer lets the person do: complete the release with the archive, discard the

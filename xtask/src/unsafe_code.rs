@@ -355,8 +355,10 @@ mod tests {
         let v = violations(&dir);
         assert_eq!(
             v.unwrap(),
-            ["fuzz/src/alloc.rs:2: `unsafe` in the fuzz crate, which ci/unsafe-allowlist.toml does not list (doc 18 \
-              §11.2, NFR-SEC-04)"]
+            [
+                "fuzz/src/alloc.rs:2: `unsafe` in the fuzz crate, which ci/unsafe-allowlist.toml does not list (doc 18 \
+              §11.2, NFR-SEC-04)"
+            ]
         );
         write(&dir, ALLOWLIST, "[crates]\new-fuzz = [\"src/alloc.rs\"]\n");
         let v = violations(&dir);

@@ -19,7 +19,8 @@ pub const JSON_SCHEMA: &str = "ew.check-result/1";
 
 /// The disclaimer that ends every Markdown report (NFR-COMP-04); the as-built archive's `check/report.json` carries it
 /// too (doc 05 §14.2). It is the About dialog's sentence, one wording everywhere (WP-S6.04 D13).
-pub const DISCLAIMER: &str = "ElektraWatt's checks do not replace engineering verification by a competent person.";
+pub const DISCLAIMER: &str =
+    "ElektraWatt's checks do not replace engineering verification by a competent person.";
 
 fn mode_name(mode: CheckMode) -> &'static str {
     match mode {

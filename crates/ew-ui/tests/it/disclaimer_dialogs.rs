@@ -75,7 +75,10 @@ fn the_approve_and_release_dialogs_end_with_the_disclaimer() {
         ),
     ] {
         dispatch(&mut h, "view.language", json!({ "value": language }));
-        for (action, title, buttons) in [("revision.approve", approve, approve_buttons), ("revision.release", release, release_buttons)] {
+        for (action, title, buttons) in [
+            ("revision.approve", approve, approve_buttons),
+            ("revision.release", release, release_buttons),
+        ] {
             dispatch(&mut h, action, json!({}));
             settle(&mut h);
             settle(&mut h);

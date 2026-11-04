@@ -438,10 +438,7 @@ fn the_hostile_sql_corpus_is_refused_file_by_file() {
             "recursive-cte-count.sql",
             "the statement passed its deadline of 200 ms",
         ),
-        (
-            "recursive-cte-doubling.sql",
-            "SQL error: string or blob too big",
-        ),
+        ("recursive-cte-doubling.sql", "SQL error: string or blob too big"),
         (
             "two-statements.sql",
             "statement denied by the projection sandbox: exactly one statement per call",

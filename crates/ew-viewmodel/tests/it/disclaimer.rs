@@ -21,7 +21,9 @@ fn the_check_report_and_the_about_dialog_say_the_same_sentence() {
 
 #[test]
 fn the_guides_introduction_holds_the_sentence_as_a_paragraph() {
-    let text = std::fs::read_to_string(INTRODUCTION).unwrap().replace("\r\n", "\n");
+    let text = std::fs::read_to_string(INTRODUCTION)
+        .unwrap()
+        .replace("\r\n", "\n");
     let paragraphs: Vec<&str> = text.split("\n\n").map(str::trim).collect();
     assert!(paragraphs.contains(&S3), "{text}");
 }
