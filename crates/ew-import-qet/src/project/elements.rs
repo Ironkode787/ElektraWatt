@@ -24,7 +24,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use ew_ids::Id;
-use ew_interop_api::{Code, Severity};
+use ew_interop_api::{Code, ReportEntry, Severity};
 use ew_mltext::{Ident, MlText};
 use ew_schema::{
     Device, DeviceAspects, FnRole, FrozenTag, Function, FunctionKind, IpDirection, IpSpec, LibCopy, Record,
@@ -361,6 +361,26 @@ impl Mx<'_, '_> {
         self.findings.push(code, severity, loc, message);
     }
 
+    /// A finding at element `e` about the device `device` it emits (WP-S3.09 D1: the entry's target).
+    fn at_device(
+        &mut self,
+        e: &Elem<'_>,
+        device: Id<Device>,
+        code: Code,
+        severity: Severity,
+        message: impl Into<String>,
+    ) {
+        let folio = self.folio(e.diagram).to_owned();
+        let loc = self
+            .findings
+            .loc(Some(&folio), Some(e.ek.clone()), Some(e.el.line));
+        self.findings.entry(
+            ReportEntry::new(code, severity, message)
+                .at(loc)
+                .on(ew_schema::Kind::Device, device.as_uuid()),
+        );
+    }
+
     /// The function record of element `e` as `spec` says, its representation, and its registry entry.
     pub(crate) fn function_and_rep(&mut self, e: &Elem<'_>, spec: FnSpec) -> Id<ew_schema::Function> {
         let FnSpec {
@@ -470,10 +490,13 @@ impl Mx<'_, '_> {
         let label = e.el.info("label").unwrap_or("");
         let (tag, structure, outcome) = infer_tag(label, &folio, &e.el.prefix);
         let mut extra = BTreeMap::new();
+        let dkey = format!("qet:el:{}", e.ek);
+        let device_id: Id<Device> = self.inp.ids.id(&dkey);
         match outcome {
             TagOutcome::Derived => {}
-            TagOutcome::Frozen => self.at(
+            TagOutcome::Frozen => self.at_device(
                 e,
+                device_id,
                 Code::imp(103),
                 Severity::Info,
                 format!(
@@ -484,8 +507,9 @@ impl Mx<'_, '_> {
             TagOutcome::Unlabeled => *unlabeled.entry(e.diagram).or_default() += 1,
             TagOutcome::Invalid => {
                 extra.insert("qet.label".to_owned(), Value::String(label.to_owned()));
-                self.at(
+                self.at_device(
                     e,
+                    device_id,
                     Code::FOREIGN_VALUE,
                     Severity::Warning,
                     format!(
@@ -506,12 +530,12 @@ impl Mx<'_, '_> {
                 .or_else(|| e.el.info_nonempty("description"))
                 .map(MlText::neutral)
                 .unwrap_or_default();
-        let dkey = format!("qet:el:{}", e.ek);
         let device = self.device(&dkey, tag, function_text, None, DeviceAspects::default(), extra);
         self.function_and_rep(e, FnSpec::normal(e, def, device, FnRole::Main));
         if orphan {
-            self.at(
+            self.at_device(
                 e,
+                device,
                 Code::imp(116),
                 Severity::Warning,
                 "slave element without a linked master: own device, function promoted to main",

@@ -738,3 +738,37 @@ fn duplicate_printed_tags_are_lenient_findings() {
         .unwrap_or_else(|| panic!("{:?}\n{}", imported.live, all_entries(&imported)));
     assert_eq!(group.count, 1, "{:?}", group.messages);
 }
+
+/// WP-S3.09 D1: an entry about an emitted record names it as its target: a frozen tag its device, a repeated folio its
+/// page; an entry about dropped content names none.
+#[test]
+fn entries_about_emitted_records_name_them() {
+    let text = qet(
+        r#"version="0.100""#,
+        &[
+            folio("1", "A", vec![el(SIMPLE, uuid(1), 100, 100).label("-K1")]),
+            folio("1", "B", vec![]),
+        ],
+    );
+    let imported = import(&text);
+    let targets = |code: &str| -> Vec<(String, bool)> {
+        imported
+            .batch
+            .report
+            .entries
+            .iter()
+            .filter(|e| e.code.to_string() == code)
+            .flat_map(|e| &e.targets)
+            .map(|t| {
+                let emitted = imported
+                    .batch
+                    .records
+                    .iter()
+                    .any(|r| r.kind() == Some(t.kind) && r.id() == Some(t.id));
+                (t.kind.name().to_owned(), emitted)
+            })
+            .collect()
+    };
+    assert_eq!(targets("EW-IMP-103"), [("device".to_owned(), true)], "{}", all_entries(&imported));
+    assert_eq!(targets("EW-IMP-008"), [("page".to_owned(), true)], "{}", all_entries(&imported));
+}

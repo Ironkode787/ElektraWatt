@@ -22,7 +22,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use ew_ids::Id;
-use ew_interop_api::{Code, Severity};
+use ew_interop_api::{Code, ReportEntry, Severity};
 use ew_mltext::{Ident, MlText};
 use ew_schema::{Date, Folio, MasterData, Page, PageType, Project, Record, Scale};
 use ew_units::Grid;
@@ -271,20 +271,22 @@ pub fn map(
         let (folio_key, key) = if printed_seen.insert(e.printed.clone()) {
             (e.printed.clone(), format!("qet:folio:{}", e.printed))
         } else {
+            let key = format!("qet:folio-order:{}", position[i]);
+            let page: Id<Page> = ids.id(&key);
             let loc = findings.loc(Some(&e.printed), None, Some(d.line));
-            findings.push(
-                Code::FOREIGN_VALUE,
-                Severity::Warning,
-                loc,
-                format!(
-                    "folio `{}` is used by an earlier diagram; kept as found",
-                    e.printed
-                ),
+            findings.entry(
+                ReportEntry::new(
+                    Code::FOREIGN_VALUE,
+                    Severity::Warning,
+                    format!(
+                        "folio `{}` is used by an earlier diagram; kept as found",
+                        e.printed
+                    ),
+                )
+                .at(loc)
+                .on(ew_schema::Kind::Page, page.as_uuid()),
             );
-            (
-                format!("order-{}", position[i]),
-                format!("qet:folio-order:{}", position[i]),
-            )
+            (format!("order-{}", position[i]), key)
         };
         infos.push(PageInfo {
             id: ids.id(&key),
