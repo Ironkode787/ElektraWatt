@@ -1454,6 +1454,11 @@
           "name": "--json",
           "value": false,
           "repeatable": false
+        },
+        {
+          "name": "--yes",
+          "value": false,
+          "repeatable": false
         }
       ],
       "exits": [
