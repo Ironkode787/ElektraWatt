@@ -560,7 +560,6 @@ pub enum CoreIdMode {
 /// One logical element (doc 03 §7, rank 32): a pole set, a contact, a coil, a PSU, an interruption point.
 /// Its connection points are instantiated from the definition or the part's pattern; only overrides are
 /// stored. `device` is `None` if and only if the kind is `Ip` (ADR-0006 amendment 1).
-///
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct Function {
     /// The record ID: UUIDv7, or `v5(device, template_index)` from a part's function template.

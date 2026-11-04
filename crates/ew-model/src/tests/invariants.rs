@@ -1405,3 +1405,26 @@ fn inv024_junction_with_a_wire_and_a_fluid_line_rejected() {
     });
     rejected_by(edit(&m, &[seq, ins(wire)]), crate::FLUID_LINES);
 }
+
+/// FT-1318: the media are collected across any number of junctions: hydraulic to pneumatic through three junctions in
+/// series is rejected; pneumatic to pneumatic through them is accepted.
+#[test]
+fn inv024_media_across_three_junctions_in_series() {
+    let m = with_fluid_ports();
+    let j: Vec<Id<Junction>> = (0..3).map(|n| nid::<Junction>(0x24_410 + n)).collect();
+    let chain = |far: u128| {
+        let lines = [
+            fluid(0x24_310, cp(nid(FQ1), 0), at_junction(j[0])),
+            fluid(0x24_311, at_junction(j[0]), at_junction(j[1])),
+            fluid(0x24_312, at_junction(j[1]), at_junction(j[2])),
+            fluid(0x24_313, at_junction(j[2]), cp(nid(far), 0)),
+        ];
+        let mut ops: Vec<_> = (0..3)
+            .map(|n| ins(super::fixture::junction(j[n], PAGE_102, vec![lines[n].id, lines[n + 1].id])))
+            .collect();
+        ops.extend(lines.into_iter().map(ins));
+        ops
+    };
+    rejected_by(edit(&m, &chain(FH)), crate::FLUID_LINES);
+    assert!(edit(&m, &chain(FQ2)).is_ok());
+}

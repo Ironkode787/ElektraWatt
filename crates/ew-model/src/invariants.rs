@@ -1259,6 +1259,8 @@ fn fluid_line_ok(m: &Model, conn: &Connection) -> Result<(), ModelError> {
         _ => false,
     };
     let mut media: Vec<(FluidMedium, Id<Function>, u16)> = Vec::new();
+    // The junctions the line ends at; the media are collected across every junction the fluid lines reach (FT-1318).
+    let mut todo: Vec<Id<Junction>> = Vec::new();
     for end in [&conn.a, &conn.b] {
         match end {
             Endpoint::Cp(f, idx) => match port_class_in(m, *f, *idx) {
@@ -1300,16 +1302,35 @@ fn fluid_line_ok(m: &Model, conn: &Connection) -> Result<(), ModelError> {
                             vec![key, key_of(Kind::Junction, *j), key_of(Kind::Connection, *other)],
                         ));
                     }
-                    for e in [&o.a, &o.b] {
-                        if let Endpoint::Cp(f, idx) = e {
-                            if let FluidPortClass::Fluid(medium) = port_class_in(m, *f, *idx) {
-                                media.push((medium, *f, *idx));
-                            }
-                        }
-                    }
                 }
+                todo.push(*j);
             }
             _ => {}
+        }
+    }
+    let mut seen: BTreeSet<Id<Junction>> = BTreeSet::new();
+    while let Some(j) = todo.pop() {
+        if !seen.insert(j) {
+            continue;
+        }
+        for other in m.idx.connections_by_endpoint.get(&EndpointKey::Junction(j)) {
+            let Some(o) = m.connections.get(other) else {
+                continue;
+            };
+            if !matches!(o.kind, ConnectionKind::Fluid(_) | ConnectionKind::Unknown(_)) {
+                continue;
+            }
+            for e in [&o.a, &o.b] {
+                match e {
+                    Endpoint::Cp(f, idx) => {
+                        if let FluidPortClass::Fluid(medium) = port_class_in(m, *f, *idx) {
+                            media.push((medium, *f, *idx));
+                        }
+                    }
+                    Endpoint::Junction(k) => todo.push(*k),
+                    Endpoint::Unknown(_) => {}
+                }
+            }
         }
     }
     if let Some(((_, f1, i1), (_, f2, i2))) = media
