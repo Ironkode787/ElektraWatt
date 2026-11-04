@@ -180,8 +180,14 @@ fn row<T: Entity<Marker = T>>(e: &Engine, id: Id<T>) -> Option<std::sync::Arc<T>
 
 /// [`fluid_model`] with a module -U91 of four valve positions and two valve parts.
 fn module_model() -> Model {
+    module_model_with(Vec::new())
+}
+
+/// [`module_model`] with the library documents `extra`.
+fn module_model_with(extra: Vec<LibDocument>) -> Model {
     let (p, mut records, _) = mini_golden_parts();
     let mut lib = library();
+    lib.extend(extra);
     lib.push(LibDocument::Fndef(fluid_fndef(PNEU, Discipline::Pneumatic)));
     let mut module_part = part(PART_MODULE, "MODULE-4");
     module_part.item.sections.plc =
@@ -283,6 +289,65 @@ fn occupancy_makes_and_changes_valves_and_plates() {
     assert_eq!(child(&e, 3).map(|d| d.id), Some(v.id));
 }
 
+/// FT-1317: "blank" with another part on a plate swaps its part and its template functions, the old part's going and
+/// the new part's coming, in one undo step; the same part again changes nothing.
+#[test]
+fn a_plate_given_another_part_takes_that_parts_template_functions() {
+    const PLATE_A: Id<Part> = id(0x7504);
+    const PLATE_B: Id<Part> = id(0x7505);
+    let plate_part = |part_id: Id<Part>, number: &str, items: &[ew_ids::Uuid]| {
+        let mut copy = part(part_id, number);
+        copy.item.function_template = items
+            .iter()
+            .enumerate()
+            .map(|(i, item)| ew_schema::TemplateFn {
+                fndef: lib_ref_to(LIBRARY_VALVE, *item),
+                main: i == 0,
+                cps: vec![],
+                extra: ew_schema::Extra::new(),
+            })
+            .collect();
+        LibDocument::Part(copy)
+    };
+    let mut e = engine(module_model_with(vec![
+        LibDocument::Fndef(valve_52_fndef()),
+        LibDocument::Fndef(solenoid_fndef()),
+        plate_part(PLATE_A, "PLATE-A", &[ITEM_VALVE_52]),
+        plate_part(PLATE_B, "PLATE-B", &[ITEM_SOLENOID, ITEM_VALVE_52]),
+    ]));
+    let functions = |e: &Engine, plate: Id<Device>| {
+        let mut out: Vec<(Id<Function>, Id<FnDef>)> = e
+            .model()
+            .table::<Function>()
+            .iter()
+            .filter(|(_, f)| f.device == Some(plate))
+            .map(|(id, f)| (*id, f.def))
+            .collect();
+        out.sort();
+        out
+    };
+    let body: Id<FnDef> = ew_ids::v5::lib_copy_id(LIBRARY_VALVE, ITEM_VALVE_52);
+    let coil: Id<FnDef> = ew_ids::v5::lib_copy_id(LIBRARY_VALVE, ITEM_SOLENOID);
+    e.execute(&occupy(2, OccupancyParam::Blank { part: Some(PLATE_A) }))
+        .expect("a plate");
+    let plate = child(&e, 2).expect("a plate at 2").id;
+    let fid = |i| ew_ids::v5::template_function_id(plate, i);
+    let a = vec![(fid(0), body)];
+    assert_eq!(functions(&e, plate), a);
+    e.execute(&occupy(2, OccupancyParam::Blank { part: Some(PLATE_B) }))
+        .expect("another part");
+    assert_eq!(row::<Device>(&e, plate).unwrap().parts[0].part.copy, PLATE_B);
+    let mut b = vec![(fid(0), coil), (fid(1), body)];
+    b.sort();
+    assert_eq!(functions(&e, plate), b);
+    e.undo(&Origin::Gui).expect("undo the part change");
+    assert_eq!(row::<Device>(&e, plate).unwrap().parts[0].part.copy, PLATE_A);
+    assert_eq!(functions(&e, plate), a);
+    e.execute(&occupy(2, OccupancyParam::Blank { part: Some(PLATE_A) }))
+        .expect("the same part");
+    assert_eq!(functions(&e, plate), a);
+}
+
 // ---------------------------------------------------------------------------------------------------------
 // fluid.port.close (D10)
 
@@ -311,6 +376,19 @@ fn closing_a_fluid_port_sets_its_closure_and_opening_drops_it() {
         Some(ClosureKind::Silencer)
     );
     e.execute(&close(FN_Q1, 1, None)).expect("opened");
+    assert!(row::<Function>(&e, FN_Q1).unwrap().cp_overrides.is_empty());
+    // FT-1316: each is one undo step.
+    let closure = |e: &Engine| {
+        row::<Function>(e, FN_Q1)
+            .unwrap()
+            .cp_overrides
+            .iter()
+            .find(|o| o.idx == 1)
+            .and_then(|o| o.closure.as_ref().map(|c| c.kind.clone()))
+    };
+    e.undo(&Origin::Gui).expect("undo the opening");
+    assert_eq!(closure(&e), Some(ClosureKind::Silencer));
+    e.undo(&Origin::Gui).expect("undo the closing");
     assert!(row::<Function>(&e, FN_Q1).unwrap().cp_overrides.is_empty());
     e.execute(&draw(cp_param(FN_Q1, 0), cp_param(FN_Q2, 0), fluid()))
         .expect("a line");

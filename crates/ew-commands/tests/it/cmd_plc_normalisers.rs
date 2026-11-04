@@ -470,6 +470,78 @@ fn n_fl_1_gives_a_new_coil_a_fresh_id_when_its_own_is_the_kept_valve_function() 
     assert_eq!(binding(&e, 2), Some(Endpoint::Cp(old_coil, 0)));
 }
 
+/// FT-1316 (WP-S1.20 FL-8, T24 whole): emptying a valve's position removes it with its two fluid lines and unbinds
+/// the channel of its coil, each said in words; one undo step brings the valve, its lines and the binding back.
+#[test]
+fn emptying_a_valve_position_names_its_fluid_lines_and_the_unbound_channel() {
+    const PNEU_VALVE: Id<Part> = id(0x7a);
+    const PNEU_BODY: ew_ids::Uuid = ew_ids::Uuid::from_u128(0x9305);
+    let mut body = valve_52_fndef();
+    let other = fndef_copy_for(LIBRARY_VALVE, PNEU_BODY, &["1"]);
+    (body.id, body.item_id) = (other.id, other.item_id);
+    let cps: Vec<ew_schema::CpDef> = body
+        .item
+        .cps
+        .iter()
+        .cloned()
+        .map(|mut cp| {
+            cp.discipline = ew_schema::Discipline::Pneumatic;
+            cp
+        })
+        .collect();
+    body.item.cps = ew_schema::KeyedList::from_vec(cps).expect("distinct CP indexes");
+    let mut part = solenoid_valve_part(PNEU_VALVE, "PNEU-52", &["14"]);
+    part.item.function_template[0].fndef = lib_ref_to(LIBRARY_VALVE, PNEU_BODY);
+    let mut e = engine(model_with_documents(
+        vec![LibDocument::Part(part), LibDocument::Fndef(body)],
+        vec![],
+    ));
+    make_module(&mut e, MODULE_H1);
+    let (_, v2, coil) = add_valve(&mut e, 2, PNEU_VALVE);
+    let (_, v3, _) = add_valve(&mut e, 3, PNEU_VALVE);
+    let (b2, b3) = (
+        ew_ids::v5::template_function_id(v2, 0),
+        ew_ids::v5::template_function_id(v3, 0),
+    );
+    for idx in [1, 3] {
+        e.execute(&ew_commands::commands::Connect {
+            a: EndpointParam::Cp { function: b2, idx },
+            b: EndpointParam::Cp { function: b3, idx },
+            page: None,
+            route: vec![],
+            kind: ew_schema::ConnectionKind::Fluid(ew_schema::FluidLine::default()),
+        })
+        .expect("a fluid line");
+    }
+    assert_eq!(binding(&e, 2), Some(Endpoint::Cp(coil, 0)));
+    let r = e
+        .execute(&ew_commands::commands::SetValveOccupancy {
+            module: DEV_102F2,
+            position: 2,
+            occupancy: ew_commands::commands::OccupancyParam::Empty,
+            copies: Vec::new(),
+        })
+        .expect("empty");
+    assert_eq!(
+        r.outcome.notices,
+        [
+            "removed -102F2-Q2 from position 2 of -102F2 with 2 fluid lines",
+            "channel 2 of -102F2 is unbound: its coil went with -102F2-Q2"
+        ]
+    );
+    assert_eq!(binding(&e, 2), None);
+    e.undo(&ew_commands::Origin::Gui).expect("undo");
+    assert_eq!(binding(&e, 2), Some(Endpoint::Cp(coil, 0)));
+    assert_eq!(
+        e.model()
+            .table::<ew_schema::Connection>()
+            .iter()
+            .filter(|(_, c)| matches!(c.kind, ew_schema::ConnectionKind::Fluid(_)))
+            .count(),
+        2
+    );
+}
+
 /// D6 (d): a valve keeps its drawn valve function when its new valve part has another valve FnDef, with a notice.
 #[test]
 fn n_fl_1_keeps_the_valve_function_of_another_valve_type() {

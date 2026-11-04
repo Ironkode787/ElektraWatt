@@ -87,7 +87,7 @@ pub enum OccupancyParam {
 ///   the part (N-FL-1).
 /// - *blank:* a valve at the position is removed with its delete plan (functions, representations, the connections
 ///   at its CPs, its `drives` links; channels bound to its coils are unbound), with notices; a plate there takes the
-///   given part; otherwise a child `{kind: blanking_plate, tag: child scheme, letter Q, counter = position, parts:
+///   given part, the old part's template functions replaced by the new part's (FT-1317); otherwise a child `{kind: blanking_plate, tag: child scheme, letter Q, counter = position, parts:
 ///   [part]?}` is made, with the part's template functions when a part is given.
 /// - *empty:* the child at the position is removed as above.
 ///
@@ -327,8 +327,19 @@ impl Command for SetValveOccupancy {
                 }
                 match held {
                     Some(plate) if is_plate(&plate) => {
-                        if let Some(part) = part {
+                        if let Some(part) = part
+                            && plate.parts.first().map(|u| u.part.copy) != Some(*part)
+                        {
+                            // FT-1317: the template functions follow the part, the old part's going.
+                            let old: Vec<_> = tx
+                                .functions_of_device(plate.id)
+                                .into_iter()
+                                .filter(|f| tx.get::<Function>(*f).is_some_and(|f| f.template_entry.is_some()))
+                                .map(|f| (Kind::Function, f.cast()))
+                                .collect();
+                            tx.delete_many(&old)?;
                             tx.update::<Device>(plate.id, |d| d.parts = vec![part_use(*part)])?;
+                            plate_functions(tx, plate.id, *part)?;
                         }
                         Some(plate.id)
                     }
