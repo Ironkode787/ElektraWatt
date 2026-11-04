@@ -146,9 +146,7 @@ impl ShellModel {
                         .is_some_and(|e| e.rev().0 == *rev)
             }),
             // WP-S2.08 part 6: a tip's action without a step, while its project session is open.
-            Some((_, Validity::Session { epoch, .. })) => {
-                self.project.as_ref().is_some_and(|p| p.epoch == *epoch)
-            }
+            Some(Validity::Session { epoch, .. }) => self.project.as_ref().is_some_and(|p| p.epoch == *epoch),
         }
     }
 
