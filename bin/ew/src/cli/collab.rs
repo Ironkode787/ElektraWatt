@@ -40,17 +40,8 @@ pub(super) fn run_git_setup(a: &GitSetupArgs) -> i32 {
         eprintln!("error: the path of `ew` cannot be read");
         return 2;
     };
-    let ew = git::ew_command(&exe, appimage().as_deref());
+    let ew = git::ew_command(&exe, super::appimage().as_deref());
     run_git_setup_with(a, &cwd, &ew, terminal, &mut input, &mut output)
-}
-
-// The program boundary: `$APPIMAGE`, the AppImage this `ew` runs from (ID-1187's Linux package), read once and passed
-// in, so that git runs the AppImage and never its transient mount (C49-p9#5).
-#[allow(clippy::disallowed_methods)]
-fn appimage() -> Option<PathBuf> {
-    std::env::var_os("APPIMAGE")
-        .filter(|v| !v.is_empty())
-        .map(PathBuf::from)
 }
 
 /// [`run_git_setup`] with the current directory, the command that runs `ew` ([`git::ew_command`]), the terminal test,

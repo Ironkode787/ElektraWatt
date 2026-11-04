@@ -1554,6 +1554,15 @@ fn source_date_epoch() -> Option<std::ffi::OsString> {
     std::env::var_os("SOURCE_DATE_EPOCH").filter(|v| !v.is_empty())
 }
 
+// The program boundary: `$APPIMAGE`, the AppImage this `ew` runs from (ID-1187's Linux package), read once and passed
+// in, so that `ew git setup` makes git run the AppImage and never its transient mount (WP-S1.17 D28, C49-p9#5).
+#[allow(clippy::disallowed_methods)]
+fn appimage() -> Option<std::path::PathBuf> {
+    std::env::var_os("APPIMAGE")
+        .filter(|v| !v.is_empty())
+        .map(std::path::PathBuf::from)
+}
+
 /// The creation date of `SOURCE_DATE_EPOCH` (doc 17 section 3.1, FR-OUT-026); `Ok(None)` when it is not set.
 fn source_date() -> Result<Option<ew_api::output::PdfDate>, String> {
     let Some(v) = source_date_epoch() else {

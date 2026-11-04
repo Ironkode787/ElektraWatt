@@ -361,8 +361,8 @@ exempt_packages = ["xtask"]
 [[raw_read.allow]]
 path = "bin/ew/src/cli.rs"
 item = "disallowed_methods"
-count = 2
-reason = "the helpers source_date_epoch and content_dir, the CLI's program-boundary environment reads; reviewed in ci/disallowed-methods-allow.toml"
+count = 3
+reason = "the helpers source_date_epoch, content_dir and appimage, the CLI's program-boundary environment reads; reviewed in ci/disallowed-methods-allow.toml"
 
 [[raw_read.allow]]
 path = "bin/elektrawatt/src/main.rs"
