@@ -240,7 +240,7 @@ fn composite_wire_colours(
     ppp: f64,
     strokes: &[ew_viewmodel::wire_colours::WireStroke],
 ) {
-    use ew_viewmodel::wire_colours::{CASING_PX, CASING_RGB, STROKE_PT, lane_offset_pt, normal};
+    use ew_viewmodel::wire_colours::{CASING_PX, CASING_RGB, STROKE_PT};
     let (w, h) = (i64::from(image.width), i64::from(image.height));
     let half = STROKE_PT * ppp / 2.0;
     let band =
@@ -265,20 +265,14 @@ fn composite_wire_colours(
             }
         };
     for s in strokes {
-        // W49.2 F9: a piece in lane `l` stands off its path along the segment's normal, in pixels.
-        let off = |a: (f64, f64), b: (f64, f64), lane: u8| {
-            let n = normal(a, b);
-            let k = lane_offset_pt(lane) * ppp / t.px_per_nm();
-            ((a.0 + n.0 * k, a.1 + n.1 * k), (b.0 + n.0 * k, b.1 + n.1 * k))
-        };
+        // W49.2 F9, FT-1283: a laned stroke is drawn on its path moved into its lanes, its corners joined.
+        let s = s.in_lanes(ppp / t.px_per_nm());
         if s.cased {
-            for (a, b, _, lane) in s.segments() {
-                let (a, b) = off(a, b, lane);
+            for (a, b, _, _) in s.segments() {
                 band(image, a, b, half + CASING_PX, CASING_RGB);
             }
         }
-        for (a, b, c, lane) in s.pieces() {
-            let (a, b) = off(a, b, lane);
+        for (a, b, c, _) in s.pieces() {
             band(image, a, b, half, s.piece_rgb(c));
         }
     }
@@ -539,8 +533,9 @@ fn paint_highlights(
 
 // WP-S2.08 part 6
 /// Paints the wire-colour view of canvas group `group` (D18): the strokes ([`wire_colour_shapes`]), then each code as a
-/// canvas chip (doc 16a §7.4's look: `canvas.chip` at 94 % with `canvas.chip_text` in `type.caption`, `radius.sm`,
-/// `space.1` padding) centred at the middle of its path, over every stroke.
+/// canvas chip (`canvas.chip` at 94 % with `canvas.chip_text` in `type.caption`, `radius.sm`, `space.1` padding) over
+/// every stroke, placed by doc 16a §7.4's rule from the middle of its stroke in its lane, clear of the codes placed
+/// before it ([`crate::canvas_chips::wire_code_chips`], FT-1277); a code with no free place is drawn faded.
 fn paint_wire_colours(
     ui: &egui::Ui,
     rect: Rect,
@@ -556,79 +551,79 @@ fn paint_wire_colours(
     let painter = ui.painter_at(rect);
     painter.extend(wire_colour_shapes(&strokes, rect.min, ppp, t));
     let tokens = crate::theme::current(ui.ctx());
+    let nm_per_pt = f64::from(ppp) / t.px_per_nm();
+    let mut codes = Vec::new();
     for s in &strokes {
-        let Some(mid) = s.midpoint() else { continue };
+        // W49.2 F9, FT-1283: on its own stroke, in its lane.
+        let Some(mid) = s.in_lanes(nm_per_pt).midpoint() else { continue };
         let (x, y) = t.to_screen(mid.at);
-        // W49.2 F9: on its own stroke, in its segment's lane.
-        let lane = ew_viewmodel::wire_colours::lane_offset_pt(mid.lane) as f32;
-        let at = rect.min
-            + egui::Vec2::new(x as f32, y as f32) / ppp
-            + egui::Vec2::new(mid.normal.0 as f32, mid.normal.1 as f32) * lane;
+        let at = rect.min + egui::Vec2::new(x as f32, y as f32) / ppp;
         let galley = painter.layout_no_wrap(
             s.code.clone(),
             crate::theme::font(&tokens.type_caption),
             tokens.canvas_chip_text.color32(),
         );
-        let chip = Rect::from_center_size(at, galley.size() + egui::Vec2::splat(2.0 * tokens.space_1));
+        codes.push((at, galley.size() + egui::Vec2::splat(2.0 * tokens.space_1)));
+    }
+    let fade = |c: egui::Color32, faded: bool| {
+        if faded {
+            c.gamma_multiply(ew_viewmodel::canvas::chip::FADED_OPACITY)
+        } else {
+            c
+        }
+    };
+    let placed = crate::canvas_chips::wire_code_chips(rect, &codes, tokens.space_1);
+    let painted = strokes.iter().filter(|s| s.midpoint().is_some());
+    for ((chip, faded), s) in placed.into_iter().zip(painted) {
         painter.rect_filled(
             chip,
             crate::theme::radius(tokens.radius_sm),
-            tokens.canvas_chip.color32(),
+            fade(tokens.canvas_chip.color32(), faded),
         );
-        painter.galley(
-            chip.center() - galley.size() / 2.0,
-            galley,
-            tokens.canvas_chip_text.color32(),
-        );
+        let text = fade(tokens.canvas_chip_text.color32(), faded);
+        let galley = painter.layout_no_wrap(s.code.clone(), crate::theme::font(&tokens.type_caption), text);
+        painter.galley(chip.center() - galley.size() / 2.0, galley, text);
     }
 }
 
 /// The wire-colour view's strokes (D18) over a pane whose top-left is `origin`, at `ppp`: per connection a dark casing
 /// `CASING_PX` physical pixel wider on each side for a cased one, then its stroke (`STROKE_PT` points) in its colour or
-/// its two colours' alternating 2-mm dashes; a segment in a lane other than 0 stands off its path by its lane's offset
-/// (W49.2 F9), and such a stroke is drawn piece by piece.
+/// its two colours' alternating 2-mm dashes; a laned stroke (W49.2 F9) is drawn on its path moved into its lanes with
+/// its corners joined (FT-1283, `WireStroke::in_lanes`).
 pub fn wire_colour_shapes(
     strokes: &[ew_viewmodel::wire_colours::WireStroke],
     origin: Pos2,
     ppp: f32,
     t: &DrawTransform,
 ) -> Vec<egui::Shape> {
-    use ew_viewmodel::wire_colours::{CASING_PX, CASING_RGB, STROKE_PT, lane_offset_pt, normal};
+    use ew_viewmodel::wire_colours::{CASING_PX, CASING_RGB, STROKE_PT};
     let to_pt = |p: (f64, f64)| {
         let (x, y) = t.to_screen(p);
         origin + egui::Vec2::new(x as f32, y as f32) / ppp
-    };
-    let ends = |a: (f64, f64), b: (f64, f64), lane: u8| {
-        let n = normal(a, b);
-        let off = egui::Vec2::new(n.0 as f32, n.1 as f32) * lane_offset_pt(lane) as f32;
-        [to_pt(a) + off, to_pt(b) + off]
     };
     let rgb = |(r, g, b): (u8, u8, u8)| crate::theme::rgba(r, g, b, u8::MAX);
     let width = STROKE_PT as f32;
     let mut out = Vec::new();
     for s in strokes {
+        let s = &s.in_lanes(f64::from(ppp) / t.px_per_nm());
         let path: Vec<Pos2> = s
             .polyline
             .iter()
             .map(|p| to_pt((p.0 as f64, p.1 as f64)))
             .collect();
         let casing = egui::Stroke::new(width + 2.0 * CASING_PX as f32 / ppp, rgb(CASING_RGB));
-        if s.cased && s.laned() {
-            for (a, b, _, lane) in s.segments() {
-                out.push(egui::Shape::line_segment(ends(a, b, lane), casing));
-            }
-        } else if s.cased {
+        if s.cased {
             out.push(egui::Shape::line(path.clone(), casing));
         }
-        if s.colours.len() == 1 && !s.unresolved() && !s.laned() {
+        if s.colours.len() == 1 && !s.unresolved() {
             out.push(egui::Shape::line(
                 path,
                 egui::Stroke::new(width, rgb(s.piece_rgb(0))),
             ));
         } else {
-            for (a, b, c, lane) in s.pieces() {
+            for (a, b, c, _) in s.pieces() {
                 out.push(egui::Shape::line_segment(
-                    ends(a, b, lane),
+                    [to_pt(a), to_pt(b)],
                     egui::Stroke::new(width, rgb(s.piece_rgb(c))),
                 ));
             }

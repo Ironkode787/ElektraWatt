@@ -291,6 +291,32 @@ fn f9_two_wires_on_one_path_are_drawn_side_by_side() {
     assert_eq!(strokes[1].midpoint().unwrap().lane, 1);
 }
 
+/// FT-1277 (doc 16a §7.4): the code chips of wires whose middles fall together are placed apart, by the rule's
+/// candidates and then stacked inward, inside the canvas, none faded while a free place exists; a code alone takes
+/// the rule's preferred anchor, above right of its stroke's middle.
+#[test]
+fn ft1277_the_wire_codes_stand_apart_by_the_chip_rule() {
+    use egui::{Pos2, Rect, Vec2};
+    let canvas = Rect::from_min_size(Pos2::new(0.0, 0.0), Vec2::new(800.0, 600.0));
+    let size = Vec2::new(36.0, 16.0);
+    let codes = vec![(Pos2::new(400.0, 300.0), size); 6];
+    let placed = ew_ui::canvas_chips::wire_code_chips(canvas, &codes, 4.0);
+    assert_eq!(placed.len(), 6);
+    for (i, (a, faded)) in placed.iter().enumerate() {
+        assert!(!faded, "{i} has a free place");
+        assert!(canvas.contains_rect(*a), "{i} inside the canvas");
+        for (b, _) in &placed[..i] {
+            assert!(!a.intersects(b.shrink(0.5)), "{i}: {a:?} overlaps {b:?}");
+        }
+    }
+    let alone = ew_ui::canvas_chips::wire_code_chips(canvas, &codes[..1], 4.0);
+    let a = alone[0].0;
+    assert!(
+        a.left() > 400.0 && a.bottom() < 300.0,
+        "above right of its anchor: {a:?}"
+    );
+}
+
 /// The SHA-256 of `bytes` in hex.
 fn sha256(bytes: &[u8]) -> String {
     Sha256::digest(bytes).iter().map(|b| format!("{b:02x}")).collect()
@@ -328,12 +354,10 @@ fn gt4_the_exported_pdf_is_the_golden_one_with_the_wire_colour_view_on_and_off()
         let count: usize = strokes
             .iter()
             .map(|s| {
-                let casing = match (s.cased, s.laned()) {
-                    (false, _) => 0,
-                    (true, false) => 1,
-                    (true, true) => s.segments().len(),
-                };
-                let solid = s.colours.len() == 1 && !s.unresolved() && !s.laned();
+                // FT-1283: a laned stroke is drawn on its path moved into its lanes.
+                let s = s.in_lanes(1.0 / t.px_per_nm());
+                let casing = usize::from(s.cased);
+                let solid = s.colours.len() == 1 && !s.unresolved();
                 casing + if solid { 1 } else { s.pieces().len() }
             })
             .sum();

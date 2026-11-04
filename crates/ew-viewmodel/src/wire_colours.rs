@@ -183,16 +183,21 @@ fn overlaps(a: (i64, i64), b: (i64, i64), c: (i64, i64), d: (i64, i64)) -> bool 
 }
 
 /// Gives each segment of each stroke a lane (W49.2 F9): a segment that shares a stretch of its line with segments of
-/// strokes before it takes the lowest lane none of them holds, so two wires drawn on one path stand side by side and
-/// each keeps its colour or stripes; a segment alone keeps lane 0, on its path.
+/// strokes before it takes a lane none of them holds, so two wires drawn on one path stand side by side and each keeps
+/// its colour or stripes; a segment alone keeps lane 0, on its path. FT-1283: a run of such segments one after the
+/// other (a shared run that turns a corner) takes one lane, the lowest that none of the segments it shares with holds,
+/// so the wire keeps its lane over the run and its corner turns with it ([`WireStroke::in_lanes`]).
 pub fn assign_lanes(strokes: &mut [WireStroke]) {
     for j in 0..strokes.len() {
         let (earlier, rest) = strokes.split_at_mut(j);
         let stroke = &mut rest[0];
-        stroke.lanes = stroke
+        // Per segment, the lanes the earlier strokes' segments it shares a stretch with hold; `None` when it shares
+        // none.
+        let used: Vec<Option<Vec<u8>>> = stroke
             .polyline
             .windows(2)
             .map(|w| {
+                let mut shared = false;
                 let used: Vec<u8> = earlier
                     .iter()
                     .flat_map(|e| {
@@ -202,11 +207,38 @@ pub fn assign_lanes(strokes: &mut [WireStroke]) {
                             .filter(|(x, _)| overlaps(w[0], w[1], x[0], x[1]))
                             .map(|(_, l)| *l)
                     })
+                    .inspect(|_| shared = true)
                     .collect();
-                (0..=u8::MAX).find(|l| !used.contains(l)).unwrap_or(0)
+                shared.then_some(used)
             })
             .collect();
+        let mut lanes = vec![0u8; used.len()];
+        let mut i = 0;
+        while i < used.len() {
+            if used[i].is_none() {
+                i += 1;
+                continue;
+            }
+            let end = (i..used.len()).find(|k| used[*k].is_none()).unwrap_or(used.len());
+            let held: Vec<u8> = used[i..end].iter().flatten().flatten().copied().collect();
+            let lane = (0..=u8::MAX).find(|l| !held.contains(l)).unwrap_or(0);
+            lanes[i..end].fill(lane);
+            i = end;
+        }
+        stroke.lanes = lanes;
     }
+}
+
+/// The point where the lines through `a`–`b` and `c`–`d` cross; `None` for parallel lines.
+fn crossing(a: (f64, f64), b: (f64, f64), c: (f64, f64), d: (f64, f64)) -> Option<(f64, f64)> {
+    let (r, s) = ((b.0 - a.0, b.1 - a.1), (d.0 - c.0, d.1 - c.1));
+    let den = r.0 * s.1 - r.1 * s.0;
+    let scale = (r.0.hypot(r.1) * s.0.hypot(s.1)).max(f64::MIN_POSITIVE);
+    if den.is_nan() || den.abs() <= scale * 1e-9 {
+        return None;
+    }
+    let t = ((c.0 - a.0) * s.1 - (c.1 - a.1) * s.0) / den;
+    Some((a.0 + t * r.0, a.1 + t * r.1))
 }
 
 /// One connection of the view on the shown page.
@@ -270,6 +302,52 @@ impl WireStroke {
     /// Whether a segment stands off its path: the strokes are drawn piece by piece.
     pub fn laned(&self) -> bool {
         self.lanes.iter().any(|l| *l > 0)
+    }
+
+    /// FT-1283: the stroke as it is drawn at `nm_per_pt` sheet nanometres per logical point: each segment moved off
+    /// its path by its lane's offset ([`lane_offset_pt`] along [`normal`]), and the moved segments joined where their
+    /// lines cross, so a laned stroke turns its corners in its lane and meets itself at every turn (a lane that ends
+    /// at a corner turns onto the next segment's line). Two segments on one line in different lanes are joined by a
+    /// step across. The result has no lanes: it is drawn on its path, a two-colour one's dashes running on over the
+    /// joined corners. An unlaned stroke is itself.
+    pub fn in_lanes(&self, nm_per_pt: f64) -> WireStroke {
+        if !self.laned() || self.polyline.len() < 2 {
+            return self.clone();
+        }
+        let pts: Vec<(f64, f64)> = self.polyline.iter().map(|p| (p.0 as f64, p.1 as f64)).collect();
+        let moved: Vec<((f64, f64), (f64, f64))> = pts
+            .windows(2)
+            .enumerate()
+            .map(|(i, w)| {
+                let n = normal(w[0], w[1]);
+                let k = lane_offset_pt(self.lanes.get(i).copied().unwrap_or(0)) * nm_per_pt;
+                let off = |p: (f64, f64)| (p.0 + n.0 * k, p.1 + n.1 * k);
+                (off(w[0]), off(w[1]))
+            })
+            .collect();
+        let mut path = vec![moved[0].0];
+        let dist = |p: (f64, f64), q: (f64, f64)| (p.0 - q.0).hypot(p.1 - q.1);
+        for (j, pair) in moved.windows(2).enumerate() {
+            let ((a, b), (c, d)) = (pair[0], pair[1]);
+            // A turn of nearly half a circle would put the join far out: there the two ends are joined straight.
+            let v = pts[j + 1];
+            let reach = 4.0 * dist(b, v).max(dist(c, v)) + 1.0;
+            match crossing(a, b, c, d).filter(|x| dist(*x, v) <= reach) {
+                Some(x) => path.push(x),
+                None => {
+                    path.push(b);
+                    if c != b {
+                        path.push(c);
+                    }
+                }
+            }
+        }
+        path.push(moved[moved.len() - 1].1);
+        WireStroke {
+            polyline: path.iter().map(|p| (p.0.round() as i64, p.1.round() as i64)).collect(),
+            lanes: Vec::new(),
+            ..self.clone()
+        }
     }
 
     /// The segments of the path clipped to the sheet, in sheet nanometres, each with colour index 0 and its lane.
@@ -568,6 +646,48 @@ mod tests {
         assert_eq!(sides, [0.0, LANE_PT, -LANE_PT], "three strokes apart");
         let labels: Vec<f64> = strokes.iter().map(label).collect();
         assert_eq!(labels, sides, "each code on its own stroke");
+    }
+
+    /// FT-1283 (C49-p8b#5): a wire keeps one lane over a shared run that turns a corner, the lowest that none of the
+    /// run's segments meets (not lane 1 on one segment and lane 2 on the next), and drawn in its lanes its corner is
+    /// one point where the moved segments' lines cross.
+    #[test]
+    fn a_wire_keeps_its_lane_over_a_shared_run_and_its_corner_turns_with_it() {
+        let ell = vec![
+            (0, 10_000_000),
+            (40_000_000, 10_000_000),
+            (40_000_000, 30_000_000),
+        ];
+        let down = vec![(40_000_000, 10_000_000), (40_000_000, 30_000_000)];
+        let mut strokes = vec![
+            stroke(&["BU"], vec![(0, 10_000_000), (40_000_000, 10_000_000)]),
+            stroke(&["RD"], down.clone()),
+            stroke(&["BK"], down),
+            stroke(&["GN"], ell.clone()),
+        ];
+        assign_lanes(&mut strokes);
+        assert_eq!(strokes[2].lanes, [1], "the second wire down stands beside the first");
+        assert_eq!(strokes[3].lanes, [2, 2], "one lane over the run, clear of lanes 0 and 1");
+        // Drawn in its lanes at 1 000 nm a point: each segment moved its lane's offset off its line, the corner the
+        // crossing of the moved lines (the horizontal line's normal is +y, the vertical one's −x).
+        let k = (lane_offset_pt(2) * 1_000.0) as i64;
+        assert_eq!(k, -(LANE_PT * 1_000.0) as i64);
+        let drawn = strokes[3].in_lanes(1_000.0);
+        assert_eq!(
+            drawn.polyline,
+            [
+                (0, 10_000_000 + k),
+                (40_000_000 - k, 10_000_000 + k),
+                (40_000_000 - k, 30_000_000)
+            ]
+        );
+        assert!(!drawn.laned(), "drawn on its moved path");
+        // A two-segment run on one wire that a single earlier wire shares keeps lane 1 over the corner.
+        let mut two = vec![stroke(&["BU"], ell.clone()), stroke(&["RD"], ell)];
+        assign_lanes(&mut two);
+        assert_eq!(two[1].lanes, [1, 1]);
+        // An unlaned stroke is drawn as it is.
+        assert_eq!(two[0].in_lanes(1_000.0), two[0]);
     }
 
     /// C49-p8b#4: the lanes take ends anywhere in `i64`, without an overflow.
