@@ -709,3 +709,26 @@ fn dg5_ew_core_013_renumbers_the_newer_after_a_merge() {
     assert_eq!(tags, ["=P01+J-E-2416-102F3", "=P01+J-E-2416-102F4"]);
     assert!(findings(&s, "EW-CORE-013").is_empty());
 }
+
+/// XW-5 (D25, doc 05 §15 row 8): a sync client's unlisted `pages/<id> (conflicted copy).jsonl` is listed at open as
+/// EW-CORE-004 with its path, a warning the window counts in its banner; the project still opens for editing.
+#[test]
+fn xw5_a_conflicted_copy_is_listed_as_an_orphan_file() {
+    let vfs = project();
+    let page = golden()
+        .into_keys()
+        .find(|p| p.starts_with("pages/"))
+        .expect("a page file");
+    let copy = page.replace(".jsonl", " (conflicted copy).jsonl");
+    vfs.put(&ew_store::join(&root(), &copy), &golden()[&page]);
+    let c = clock();
+    let (s, report) = Session::open(&root(), options(&vfs, &c, 1), SessionOptions::default(), Recovery::Keep)
+        .expect("the copy opens");
+    assert_eq!(report.access, ew_api::Access::Edit);
+    let items = ew_api::integrity_items(&report);
+    let orphans: Vec<_> = items.iter().filter(|i| i.rule == "EW-CORE-004").collect();
+    assert_eq!(orphans.len(), 1);
+    assert_eq!(orphans[0].location, copy);
+    assert_eq!(orphans[0].severity, ew_api::checks::Severity::Warning);
+    s.close();
+}

@@ -1720,6 +1720,9 @@ impl ShellModel {
         if let Some(state) = &self.config.state_dir {
             store.state_dir = Some(state.clone());
         }
+        if let Some(chain) = self.collab.migrations {
+            store.migrations = chain;
+        }
         store
     }
 

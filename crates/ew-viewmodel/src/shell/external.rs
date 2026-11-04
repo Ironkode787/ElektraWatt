@@ -58,6 +58,8 @@ pub(crate) struct CollabState {
     pub(crate) driver_missing: bool,
     /// The banner a held external change set (it goes when the change is applied).
     pub(crate) held_banner: Option<String>,
+    /// The migration chain the shell's stores open with, set by a test (feature `testkit`); `None`: the shipped one.
+    pub(crate) migrations: Option<&'static ew_api::Migrations>,
 }
 
 /// The most polls `project.check_disk` makes while the change settles.
@@ -125,10 +127,13 @@ impl ShellModel {
         self.collab.held_banner = Some(text);
     }
 
-    /// Takes the banner of a held change away once it is no longer held.
+    /// Takes the banner of a held change away once it is no longer held, and a refused save's banner that named it.
     fn release_banner(&mut self) {
-        if let Some(held) = self.collab.held_banner.take()
-            && self.banner.as_deref() == Some(held.as_str())
+        let held = self.collab.held_banner.take();
+        let refusals = [key!("saveerr-external-collisions"), key!("saveerr-external-unreadable")]
+            .map(|k| strings::format(key!("error-save"), &[strings::text(k)]));
+        if let Some(b) = self.banner.as_deref()
+            && (held.as_deref() == Some(b) || refusals.iter().any(|r| r == b))
         {
             self.banner = None;
         }
@@ -297,10 +302,8 @@ impl ShellModel {
     /// A read-only window after its session reloaded (D23, D24): the page, the zoom and the selection stay where their
     /// records exist; the views follow the new generation.
     fn reloaded(&mut self) {
-        self.epochs += 1;
-        let epoch = self.epochs;
+        // The session's model moved on by one revision: the canvases replace their pages and keep their views.
         if let Some(p) = self.project.as_mut() {
-            p.epoch = epoch;
             p.labels = p.session.page_labels();
         }
         let exists = |s: &ew_api::Session, e: &ew_api::output::ew_dl::EntityRef| s.record_exists(e.0);
@@ -359,6 +362,13 @@ impl ShellModel {
     #[cfg(feature = "testkit")]
     pub fn set_cloud_env_for_tests(&mut self, vars: Option<Vec<(String, std::ffi::OsString)>>) {
         self.collab.cloud_env = vars;
+    }
+
+    /// The migration chain of the stores the shell opens from now on, instead of the shipped one (feature `testkit`): a
+    /// test's chain makes a project of an older format.
+    #[cfg(feature = "testkit")]
+    pub fn set_migrations_for_tests(&mut self, chain: Option<&'static ew_api::Migrations>) {
+        self.collab.migrations = chain;
     }
 
     /// The `ew` executable `git.setup` configures from now on, instead of the one beside this program (feature
@@ -526,7 +536,10 @@ impl ShellModel {
             Ok(Some(path)) => PathBuf::from(path),
             Ok(None) => return self.need_path("file.open_ewz", Prompt::OpenEwz, "path", p),
         };
-        let name = super::dir_name(&path);
+        let name = path
+            .file_name()
+            .map(|n| n.to_string_lossy().into_owned())
+            .unwrap_or_default();
         match string_param(p, "how") {
             Err(e) => e,
             Ok(None) => {
@@ -544,15 +557,20 @@ impl ShellModel {
             Ok(Some("extract")) => {
                 self.dialog = None;
                 let target = path.with_extension("ew");
-                let opened = ew_api::ewz::read_file(&ew_api::OsVfs, &path)
-                    .map_err(|e| e.to_string())
-                    .and_then(|archive| {
-                        ew_api::ewz::extract(&ew_api::OsVfs, &archive, &target).map_err(|e| e.to_string())
-                    });
-                match opened {
-                    Ok(()) => self.open_dir(&target, false),
-                    Err(e) => {
-                        let message = strings::format(key!("error-extract-ewz"), &[&name, &e]);
+                let folder = super::dir_name(&target);
+                // A folder of that name refuses the extract before anything is written (D9); the messages name no path.
+                let refused = if target.exists() {
+                    Some(strings::format(key!("error-extract-exists"), &[&name, &folder]))
+                } else {
+                    ew_api::ewz::read_file(&ew_api::OsVfs, &path)
+                        .ok()
+                        .and_then(|archive| ew_api::ewz::extract(&ew_api::OsVfs, &archive, &target).ok())
+                        .is_none()
+                        .then(|| strings::format(key!("error-extract-ewz"), &[&name]))
+                };
+                match refused {
+                    None => self.open_dir(&target, false),
+                    Some(message) => {
                         self.banner = Some(message.clone());
                         Outcome::Failed { message }
                     }

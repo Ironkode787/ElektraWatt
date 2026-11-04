@@ -96,6 +96,8 @@ pub enum Reach {
     /// WP-S2.08 part 6: the glossary pane, the tips' actions and the wire-colour view (D16 to D18);
     /// `tests/it/glossary_tips.rs`.
     Guide,
+    /// WP-S1.17 part 7: the external change's toast and collision dialog, the merge driver's status; `tests/it/collab.rs`.
+    Collab,
     /// The property grid's section kind of a record no test's describe state selects; the unit test
     /// `every_kind_a_section_can_have_is_in_the_vocabulary` checks that every such kind is a word.
     Kind,
@@ -475,6 +477,11 @@ const WORDS: &[(&str, &[Reach])] = &[
     ("notification", &[Reach::Job]),
     ("open", &[Reach::Job]),
     ("expired", &[Reach::Job]),
+    // WP-S1.17 part 7 (D24): the toast's Show changes and the collision dialog's chosen side.
+    ("show_changes", &[Reach::Collab]),
+    ("chosen", &[Reach::Collab]),
+    ("mine", &[Reach::Collab]),
+    ("theirs", &[Reach::Collab]),
     ("recovery", &[Reach::Job]),
     ("transactions", &[Reach::Job]),
     ("base", &[Reach::Job]),
@@ -2618,19 +2625,16 @@ fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
             }
             for (i, r) in rows.iter().enumerate() {
                 let take = match r.take {
-                    ew_api::external::Take::Mine => strings::text(key!("external-mine")),
-                    ew_api::external::Take::Theirs => strings::text(key!("external-theirs")),
+                    ew_api::external::Take::Mine => "mine",
+                    ew_api::external::Take::Theirs => "theirs",
                 };
                 lines.push(format!(
-                    "  row {} \"{} · {}\" {} \"{}\" {} \"{}\" {} \"{}\" chosen \"{take}\"",
+                    "  row {} \"{} · {}\" base \"{}\" mine \"{}\" theirs \"{}\" chosen {take}",
                     i + 1,
                     user(&r.record),
                     user(&r.field),
-                    strings::text(key!("external-base")),
                     user(&r.base),
-                    strings::text(key!("external-mine")),
                     user(&r.mine),
-                    strings::text(key!("external-theirs")),
                     user(&r.theirs),
                 ));
             }

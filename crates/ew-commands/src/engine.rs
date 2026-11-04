@@ -318,10 +318,33 @@ impl Engine {
 
     /// Replaces the model by one reopened from disk (a read-only session's reload, WP-S1.17 D23): the history starts
     /// again, and a preview of the old model is never committed as prepared.
+    ///
+    /// The model becomes `model` as one new revision of the old one (its changed rows as ops), so that a view keyed by
+    /// the revision follows it and keeps its place; where the ops do not apply, `model` replaces it as it is.
     pub fn reload(&mut self, model: Model) {
         self.generation += 1;
         self.history = History::new(self.history.limits());
-        self.model = model;
+        let old = &self.model;
+        let keys: std::collections::BTreeSet<AnyKey> = old.keys().into_iter().chain(model.keys()).collect();
+        let ops: Vec<Op> = keys
+            .iter()
+            .filter_map(|k| match (old.row(k), model.row(k)) {
+                (Some(a), Some(b)) if !a.same(&b) => Some(Op::update(a, b)),
+                (None, Some(b)) => Some(Op::insert(b)),
+                (Some(a), None) => Some(Op::delete(a)),
+                _ => None,
+            })
+            .collect();
+        let mut next = if ops.is_empty() {
+            Ok(old.clone())
+        } else {
+            old.apply_history(&ops, old.rev().next())
+        }
+        .unwrap_or_else(|_| model.clone());
+        for asset in model.assets() {
+            next.put_asset(asset.clone());
+        }
+        self.model = next;
         self.changes.clear();
         self.assets_unsaved = false;
     }

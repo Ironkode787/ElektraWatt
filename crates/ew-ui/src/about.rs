@@ -217,8 +217,18 @@ pub fn show(
                         small(ui, key!("external-base"), &r.base);
                         ui.horizontal(|ui| {
                             for (take, word, name, value) in [
-                                (ew_viewmodel::ew_api::external::Take::Mine, "mine", key!("external-mine"), &r.mine),
-                                (ew_viewmodel::ew_api::external::Take::Theirs, "theirs", key!("external-theirs"), &r.theirs),
+                                (
+                                    ew_viewmodel::ew_api::external::Take::Mine,
+                                    "mine",
+                                    key!("external-mine"),
+                                    &r.mine,
+                                ),
+                                (
+                                    ew_viewmodel::ew_api::external::Take::Theirs,
+                                    "theirs",
+                                    key!("external-theirs"),
+                                    &r.theirs,
+                                ),
                             ] {
                                 let label = format!("{}: {value}", strings::text(name));
                                 if ui.radio(r.take == take, label).clicked() {
