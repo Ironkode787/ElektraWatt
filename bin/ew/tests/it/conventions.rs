@@ -78,9 +78,6 @@ impl Tmp {
         let home = self.0.join("home");
         if cfg!(windows) {
             home.join("localappdata").join("ElektraWatt").join("state")
-        } else if cfg!(target_os = "macos") {
-            home.join("home")
-                .join("Library/Application Support/ElektraWatt/state")
         } else {
             home.join("xdg_state_home").join("elektrawatt")
         }

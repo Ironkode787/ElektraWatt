@@ -1013,9 +1013,6 @@ fn ew_isolated_with(home: &std::path::Path, args: &[&std::ffi::OsStr], epoch: Op
 fn isolated_state_dir(home: &std::path::Path) -> PathBuf {
     if cfg!(windows) {
         home.join("localappdata").join("ElektraWatt").join("state")
-    } else if cfg!(target_os = "macos") {
-        home.join("home")
-            .join("Library/Application Support/ElektraWatt/state")
     } else {
         home.join("xdg_state_home").join("elektrawatt")
     }
