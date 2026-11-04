@@ -421,7 +421,10 @@ fn names_record_file(path: &str) -> bool {
         "waivers.jsonl",
         "comments.jsonl",
     ];
-    let id_file = |name: &str| name.strip_suffix(".jsonl").is_some_and(|id| id.parse::<AnyId>().is_ok());
+    let id_file = |name: &str| {
+        name.strip_suffix(".jsonl")
+            .is_some_and(|id| id.parse::<AnyId>().is_ok())
+    };
     let hex = |b: u8| b.is_ascii_digit() || (b'a'..=b'f').contains(&b);
     match path.split('/').collect::<Vec<_>>().as_slice() {
         [name] => ROOT_FILES.contains(name),

@@ -1420,7 +1420,13 @@ fn inv024_media_across_three_junctions_in_series() {
             fluid(0x24_313, at_junction(j[2]), cp(nid(far), 0)),
         ];
         let mut ops: Vec<_> = (0..3)
-            .map(|n| ins(super::fixture::junction(j[n], PAGE_102, vec![lines[n].id, lines[n + 1].id])))
+            .map(|n| {
+                ins(super::fixture::junction(
+                    j[n],
+                    PAGE_102,
+                    vec![lines[n].id, lines[n + 1].id],
+                ))
+            })
             .collect();
         ops.extend(lines.into_iter().map(ins));
         ops

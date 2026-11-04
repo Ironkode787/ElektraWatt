@@ -1086,7 +1086,8 @@ impl Command for DrawToIp {
         // judges an end (T2), in words before EW-INV-024 would judge it.
         let kind = self.kind.clone().unwrap_or_default();
         if matches!(kind, ConnectionKind::Fluid(_)) {
-            return tx.reject("a fluid line joins fluid ports only; an interruption point is not a fluid port");
+            return tx
+                .reject("a fluid line joins fluid ports only; an interruption point is not a fluid port");
         }
         refuse_fluid_mismatch(tx, &kind, &[&self.a])?;
         // FT-446: the start must be drawn on the page the wire and the IP are drawn on; refuse another page (or none)

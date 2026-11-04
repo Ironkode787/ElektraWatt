@@ -1801,10 +1801,7 @@ mod tests {
              upgrade it, anything else to abort: ",
             ew_api::FORMAT
         );
-        assert_eq!(
-            run(false, true, "yes\n"),
-            (1, format!("{summary}{prompt}"))
-        );
+        assert_eq!(run(false, true, "yes\n"), (1, format!("{summary}{prompt}")));
         assert_eq!(upgrade_files(&dir), before, "nothing was saved");
         assert!(!journals(&dir).is_empty(), "the journal is kept");
         let (code, shown) = run(true, false, "");

@@ -204,8 +204,14 @@ fn the_fluid_refusals_name_junction_and_connection_ends_in_words() {
     let texts = [
         refusal(&mut e, &draw(cp_param(FN_Q3, 1), wires, fluid())),
         refusal(&mut e, &draw(cp_param(FN_Q3, 1), on(CON_W22), fluid())),
-        refusal(&mut e, &draw(cp_param(FN_102G1, 0), pipes.clone(), ConnectionKind::Wire)),
-        refusal(&mut e, &draw(cp_param(FN_102G1, 0), on(LINE_1), ConnectionKind::Wire)),
+        refusal(
+            &mut e,
+            &draw(cp_param(FN_102G1, 0), pipes.clone(), ConnectionKind::Wire),
+        ),
+        refusal(
+            &mut e,
+            &draw(cp_param(FN_102G1, 0), on(LINE_1), ConnectionKind::Wire),
+        ),
     ];
     assert_eq!(
         texts,

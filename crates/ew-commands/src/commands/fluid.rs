@@ -334,7 +334,9 @@ impl Command for SetValveOccupancy {
                             let old: Vec<_> = tx
                                 .functions_of_device(plate.id)
                                 .into_iter()
-                                .filter(|f| tx.get::<Function>(*f).is_some_and(|f| f.template_entry.is_some()))
+                                .filter(|f| {
+                                    tx.get::<Function>(*f).is_some_and(|f| f.template_entry.is_some())
+                                })
                                 .map(|f| (Kind::Function, f.cast()))
                                 .collect();
                             tx.delete_many(&old)?;

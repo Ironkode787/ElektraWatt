@@ -17,8 +17,8 @@ use std::cell::Cell;
 use std::io::Write as _;
 use std::panic::PanicHookInfo;
 use std::path::{Path, PathBuf};
-use std::sync::{Mutex, OnceLock};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::{Mutex, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use ew_ui::ew_viewmodel::settings::{user_only_dir, user_only_file, user_only_options};
