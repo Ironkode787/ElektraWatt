@@ -82,6 +82,21 @@ pub struct Limits {
     /// copies a name several times (white-space collapse, multilingual text, canonical XML, symbol name,
     /// serialisation). Names, descriptions and kind information are a few hundred bytes in practice.
     pub max_text_bytes: u32,
+    /// Most entries of one archive (an XLSX workbook, later EDZ and QETZ), doc 14 §11 "Archives".
+    pub max_archive_entries: u32,
+    /// Most bytes one archive may expand to, all entries together (doc 14 §11 "Archives"), and most bytes of a
+    /// set of inputs together.
+    pub max_expanded_bytes: u64,
+    /// Most bytes one archive entry may expand to (doc 14 §11 "Archives").
+    pub max_entry_bytes: u64,
+    /// Highest expansion ratio of one archive entry, unpacked to packed bytes (doc 14 §11 "Archives": 200 : 1).
+    pub max_entry_ratio: u32,
+    /// Most input files of one import of a set of inputs (the golden CSV bootstrap's tables).
+    pub max_input_files: u32,
+    /// Most data rows of one table (doc 14 §11 "CSV, XLSX").
+    pub max_table_rows: u32,
+    /// Most columns of one table (doc 14 §11 "CSV, XLSX").
+    pub max_table_columns: u32,
 }
 
 impl Limits {
@@ -127,6 +142,13 @@ impl Limits {
             max_xml_attributes: self.max_xml_attributes.min(other.max_xml_attributes),
             max_xml_attribute_work: self.max_xml_attribute_work.min(other.max_xml_attribute_work),
             max_text_bytes: self.max_text_bytes.min(other.max_text_bytes),
+            max_archive_entries: self.max_archive_entries.min(other.max_archive_entries),
+            max_expanded_bytes: self.max_expanded_bytes.min(other.max_expanded_bytes),
+            max_entry_bytes: self.max_entry_bytes.min(other.max_entry_bytes),
+            max_entry_ratio: self.max_entry_ratio.min(other.max_entry_ratio),
+            max_input_files: self.max_input_files.min(other.max_input_files),
+            max_table_rows: self.max_table_rows.min(other.max_table_rows),
+            max_table_columns: self.max_table_columns.min(other.max_table_columns),
         }
     }
 }
@@ -136,7 +158,8 @@ impl Default for Limits {
     /// file limit); 1,000,000 XML nodes (see [`Limits::max_xml_nodes`]); 8,192 attributes per element (see
     /// [`Limits::max_xml_attributes_per_element`]), 1,048,576 per document and an attribute work of 2^26
     /// (see [`Limits::max_xml_attribute_work`]); text nodes and CDATA sections up to 1 MiB (see
-    /// [`Limits::max_text_bytes`]).
+    /// [`Limits::max_text_bytes`]); archives of at most 100,000 entries, 2 GiB expanded, 512 MiB per entry and a
+    /// ratio of 200 : 1 per entry; at most 64 input files; tables of at most 1,000,000 rows and 1,024 columns.
     fn default() -> Limits {
         Limits {
             max_input_bytes: 512 * 1024 * 1024,
@@ -147,6 +170,13 @@ impl Default for Limits {
             max_xml_attributes: 1_048_576,
             max_xml_attribute_work: 1 << 26,
             max_text_bytes: 1024 * 1024,
+            max_archive_entries: 100_000,
+            max_expanded_bytes: 2 * 1024 * 1024 * 1024,
+            max_entry_bytes: 512 * 1024 * 1024,
+            max_entry_ratio: 200,
+            max_input_files: 64,
+            max_table_rows: 1_000_000,
+            max_table_columns: 1_024,
         }
     }
 }

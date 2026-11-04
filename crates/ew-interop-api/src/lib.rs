@@ -19,6 +19,9 @@
 //!   [`DefectClass`] and a [`SourceLocation`]; [`SourceInfo`] and [`ImportStats`].
 //! - [`ImportError`]: why a whole file was refused.
 //! - [`SourceRef`] (re-exported from `ew-schema`): the persisted `{lineage, key}` provenance.
+//! - [`Exporter`] (WP-S3.09 D14): an [`ExportView`] of one revision's records and [`RowTable`]s written to a sink, with
+//!   an [`ExportReport`] of its outputs.
+//! - [`check_archive_name`]: the name rule of an archive entry (doc 14 §11).
 //! - [`SYSTEM_LIBRARY`]: the library ID of the compiled-in starter library, which importers reference built-in
 //!   items by (FT-24).
 //!
@@ -36,8 +39,9 @@
 //!   importer stamps no dates, since it never reads the wall clock.
 //! - [`ImportBatch`] carries library documents beside the records, and no `assets` or `provenance` vectors
 //!   yet: library items keep their provenance in `ItemMeta.sources` and `extra["source_ref"]`.
-//! - `Proposal`, `TableImage` and the `Exporter` trait are left to WP-S3.09; [`ReportEntry`] has no
-//!   `proposal`, `targets` or Fluent arguments yet, and its message is plain English text.
+//! - `Proposal` and `TableImage` are not built (WP-S3.09 FP-1, ADR-0021 amendment 1); [`ReportEntry`] has
+//!   `targets` ([`RecordKey`], WP-S3.09 D1) but no `proposal` or Fluent arguments, and its message is plain English
+//!   text (FP-6).
 //!
 //! # Lenient-mode boundaries (doc 14 §3.3)
 //!
@@ -57,6 +61,7 @@
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 
+mod export;
 mod importer;
 mod input;
 mod report;
@@ -69,12 +74,16 @@ pub use ew_schema;
 
 /// The ID types and the UUIDv5 rules of imported identities (ADR-0004 amendment 4), re-exported for the same reason.
 pub use ew_ids;
+pub use export::{
+    CellKind, ExportContext, ExportError, ExportReport, ExportView, Exporter, OutputMeta, RowCell, RowColumn, RowTable,
+    RowTableRow,
+};
 pub use importer::{
     Detection, ImportBatch, ImportContext, ImportError, ImportMode, Importer, Limits, LineageInfo,
 };
-pub use input::{ImportInput, InputNameError, check_file_name};
+pub use input::{ArchiveNameError, ImportInput, InputNameError, check_archive_name, check_file_name};
 pub use report::{
-    Code, CodeParseError, DefectClass, ImportReport, ImportStats, QuickFixProposal, ReportEntry, Severity,
+    Code, CodeParseError, DefectClass, ImportReport, ImportStats, QuickFixProposal, RecordKey, ReportEntry, Severity,
     SourceInfo, SourceLocation,
 };
 

@@ -747,8 +747,15 @@ fn a_shared_string_named_by_many_cells_is_refused_within_the_memory_budget() {
     // the cells may hold at most eight times the ~1 MB unpacked, far under the 256 MB rule.
     // Under the general 1 MiB text limit the string itself is admitted, and the cells' budget refuses it; under the
     // table preset (32 KiB cells, FT-665) the string is refused on its own.
+    // The string packs at about 1,000 : 1, so the archive's ratio limit (200 : 1, doc 14 §11) refuses it first; with
+    // the ratio lifted the cells' budget is what refuses it.
+    let err = import_bytes("bomb.xlsx", bomb.clone(), &CatalogTarget { limits: Limits::default(), ..target() }).unwrap_err();
+    assert_eq!(err.to_string(), "input exceeds the archive entry expansion ratio limit of 200");
     let loose = CatalogTarget {
-        limits: Limits::default(),
+        limits: Limits {
+            max_entry_ratio: u32::MAX,
+            ..Limits::default()
+        },
         ..target()
     };
     let err = import_bytes("bomb.xlsx", bomb.clone(), &loose).unwrap_err();
@@ -756,7 +763,14 @@ fn a_shared_string_named_by_many_cells_is_refused_within_the_memory_budget() {
         matches!(&err, ImportError::LimitExceeded { what, limit } if what == "cell text size" && *limit < 16 << 20),
         "{err}"
     );
-    let err = import_bytes("bomb.xlsx", bomb, &target()).unwrap_err();
+    let preset = CatalogTarget {
+        limits: Limits {
+            max_entry_ratio: u32::MAX,
+            ..target().limits
+        },
+        ..target()
+    };
+    let err = import_bytes("bomb.xlsx", bomb, &preset).unwrap_err();
     assert!(
         matches!(&err, ImportError::LimitExceeded { limit, .. } if *limit == 32 * 1024),
         "{err}"
@@ -864,7 +878,7 @@ fn oversized_inputs_are_refused_before_parsing() {
         .windows(4)
         .position(|w| w == [0x50, 0x4b, 0x01, 0x02])
         .unwrap();
-    lying[cd + 24..cd + 28].copy_from_slice(&0x7fff_ffffu32.to_le_bytes());
+    lying[cd + 24..cd + 28].copy_from_slice(&0x0100_0000u32.to_le_bytes());
     let err = import_bytes("liste.xlsx", lying, &tight).unwrap_err();
     assert!(
         matches!(&err, ImportError::LimitExceeded { what, .. } if what == "unpacked workbook size"),
@@ -928,5 +942,53 @@ fn a_cell_above_32_kib_refuses_the_table() {
     assert!(
         matches!(&err, ImportError::LimitExceeded { what, limit } if what == "cell size at line 2" && *limit == 32 * 1024),
         "{err}"
+    );
+}
+
+/// IC-2 (WP-S3.09 D2): a workbook with an entry whose name leads out of the archive, is absolute or a drive path, has a
+/// backslash or a NUL is refused, naming the rule and the entry.
+#[test]
+fn an_entry_name_outside_the_archive_refuses_the_workbook() {
+    let cases = [
+        ("../x", "the archive entry name leads out of the archive (`..`): `../x`"),
+        ("/x", "the archive entry name is an absolute path: `/x`"),
+        ("C:x", "the archive entry name contains ':' (a drive path): `C:x`"),
+        ("a\\b", "the archive entry name contains a backslash: `a\\\\b`"),
+        ("a\0b", "the archive entry name contains NUL or a control character: `a\\0b`"),
+    ];
+    for (name, why) in cases {
+        let bad = zip_with(&[(name, "x".to_owned())], false, &|_, s| s);
+        let err = import_bytes("liste.xlsx", bad, &target()).unwrap_err();
+        assert_eq!(
+            err.to_string(),
+            format!("malformed input: not a readable XLSX workbook: {why}"),
+            "{name:?}"
+        );
+    }
+}
+
+/// IC-2: an entry that expands more than 200 : 1 is refused from the directory, before it is inflated; a workbook
+/// within the ratio reads.
+#[test]
+fn an_entry_above_the_expansion_ratio_is_refused() {
+    let bomb = zip_with(&[("xl/workbook.xml", "A".repeat(1 << 20))], true, &|_, s| s);
+    let err = import_bytes("bomb.xlsx", bomb, &target()).unwrap_err();
+    assert_eq!(
+        err.to_string(),
+        "input exceeds the archive entry expansion ratio limit of 200"
+    );
+    let book = xlsx_with(&[("Teile", list_rows())], true, false, &|_, size| size);
+    assert!(import_bytes("liste.xlsx", book, &target()).is_ok());
+}
+
+/// IC-5 (WP-S3.09 D5 b): a workbook part that declares a DOCTYPE is refused, naming it.
+#[test]
+fn a_part_with_a_doctype_is_refused() {
+    let rels = r#"<?xml version="1.0"?><!DOCTYPE r [<!ENTITY e SYSTEM "file:///etc/passwd">]><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>"#;
+    let bad = zip_with(&[("_rels/.rels", rels.to_owned())], false, &|_, s| s);
+    let err = import_bytes("liste.xlsx", bad, &target()).unwrap_err();
+    assert_eq!(
+        err.to_string(),
+        "malformed input: not a readable XLSX workbook: a part declares a DOCTYPE, and DTDs are refused"
     );
 }

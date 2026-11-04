@@ -37,10 +37,10 @@ use ew_derive::ew_ids::Id;
 use ew_derive::ew_schema::{Device, ReportBlock, ReportSource};
 use ew_derive::{BomMode, DeviceTag, PageOrder, PageRef, Q};
 use ew_export::PdfDate;
-use ew_reports::csv::{CsvOptions, Preset, csv_field, restyle, rows_csv, table_csv};
+use ew_reports::csv::{CsvOptions, Preset, csv_field, restyle, rows_csv};
 use ew_reports::kinds::PartsSummary;
 use ew_reports::table::{Table, TableCell, TableColumn, TableRow};
-use ew_reports::xlsx::{DateTime, WorkbookMeta, xlsx};
+use ew_reports::xlsx::{DateTime, WorkbookMeta};
 use ew_reports::{
     CellType, Registry, Row, RowKey, RowKind, RowSet, RowSetStatus, arranged, kind_name, project_rows,
     rows_of,
@@ -716,12 +716,19 @@ pub fn row_output(
         }
         RowsFormat::Csv(options) => {
             let table = one_table(q, &chosen);
-            (RowsOutput::Csv(table_csv(&table, options)), table.rows.len())
+            let exporter = ew_reports::exporter::CsvExporter { options: *options };
+            let (bytes, _) = ew_reports::exporter::export_tables(&exporter, 0, std::slice::from_ref(&table))
+                .map_err(|e| RowsError::Xlsx(e.to_string()))?;
+            let csv = String::from_utf8(bytes).unwrap_or_default();
+            (RowsOutput::Csv(csv), table.rows.len())
         }
         RowsFormat::Xlsx(meta) => {
             let tables = sheets(q, &chosen);
             let rows = tables.iter().map(|t| t.rows.len()).sum();
-            let bytes = xlsx(&tables, &with_base_digest(meta, &tables))
+            let exporter = ew_reports::exporter::XlsxExporter {
+                meta: with_base_digest(meta, &tables),
+            };
+            let (bytes, _) = ew_reports::exporter::export_tables(&exporter, meta.rev, &tables)
                 .map_err(|e| RowsError::Xlsx(e.to_string()))?;
             (RowsOutput::Xlsx(bytes), rows)
         }

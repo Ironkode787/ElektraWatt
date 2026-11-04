@@ -162,6 +162,16 @@ impl Hash for QuickFixProposal {
     }
 }
 
+/// A record a finding is about: its kind and ID (WP-S3.09 D1). The migration report folds an import finding into a
+/// live finding on the same records (D9).
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+pub struct RecordKey {
+    /// The record's kind.
+    pub kind: ew_schema::Kind,
+    /// The record's ID.
+    pub id: ew_ids::Uuid,
+}
+
 /// One finding of an import (doc 14 §2.4).
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub struct ReportEntry {
@@ -175,6 +185,8 @@ pub struct ReportEntry {
     pub message: String,
     /// Where.
     pub location: Option<SourceLocation>,
+    /// The emitted records the finding is about, empty when it is about none (WP-S3.09 D1).
+    pub targets: Vec<RecordKey>,
     /// A quick fix, where the finding offers one.
     pub fix: Option<QuickFixProposal>,
 }
@@ -188,6 +200,7 @@ impl ReportEntry {
             defect: None,
             message: message.into(),
             location: None,
+            targets: Vec::new(),
             fix: None,
         }
     }
@@ -206,6 +219,12 @@ impl ReportEntry {
             fix: Some(fix),
             ..self
         }
+    }
+
+    /// This entry about the record `kind`/`id` as well (appended to [`ReportEntry::targets`]).
+    pub fn on(mut self, kind: ew_schema::Kind, id: ew_ids::Uuid) -> ReportEntry {
+        self.targets.push(RecordKey { kind, id });
+        self
     }
 
     /// This entry with defect class `defect`.

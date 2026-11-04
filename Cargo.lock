@@ -1786,6 +1786,7 @@ dependencies = [
  "ew-checks",
  "ew-derive",
  "ew-hack",
+ "ew-interop-api",
  "ew-model",
  "ew-sqlview",
  "ew-text",

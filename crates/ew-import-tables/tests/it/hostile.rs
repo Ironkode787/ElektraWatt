@@ -6,13 +6,15 @@
 use crate::common;
 
 use ew_import_tables::csv::TableLimits;
-use ew_import_tables::{MAX_REPORT_ENTRIES, MAX_TABLE_FILES, TablesImporter};
-use ew_interop_api::{Code, ImportError};
+use ew_import_tables::{MAX_REPORT_ENTRIES, TablesImporter};
+use ew_interop_api::{Code, ImportError, Limits};
 
-/// More than `MAX_TABLE_FILES` inputs are refused.
+/// More than `ctx.limits.max_input_files` inputs are refused.
 #[test]
 fn too_many_files_are_refused() {
-    let names: Vec<String> = (0..=MAX_TABLE_FILES).map(|i| format!("t{i}.csv")).collect();
+    let names: Vec<String> = (0..=Limits::bootstrap_tables().max_input_files)
+        .map(|i| format!("t{i}.csv"))
+        .collect();
     let files: Vec<(&str, &str)> = names.iter().map(|n| (n.as_str(), "key\n")).collect();
     let r = common::import(&common::inputs(&files));
     assert!(matches!(r, Err(ImportError::LimitExceeded { .. })), "{r:?}");

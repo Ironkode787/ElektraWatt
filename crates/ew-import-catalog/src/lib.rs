@@ -49,5 +49,5 @@ pub mod sheet {
 }
 
 pub use table::{
-    MAX_CELL_BYTES, MAX_COLUMNS, MAX_ROWS, SourceFormat, TableColumn, table_columns, table_limits,
+    MAX_CELL_BYTES, SourceFormat, TableColumn, table_columns, table_limits,
 };

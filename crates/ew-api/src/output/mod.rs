@@ -170,6 +170,9 @@ pub use ew_import_catalog::sheet;
 pub use ew_reports::csv::{CsvOptions, LineEnd, Preset, restyle, table_csv};
 pub use ew_reports::table::{Table, TableCell, TableColumn, TableRow};
 pub use ew_reports::xlsx::{WorkbookMeta, XlsxError, base_text, xlsx};
+/// The table writers behind the `Exporter` trait (WP-S3.09 D14): `ew export` and the window's table export write
+/// through them.
+pub use ew_reports::exporter::{CsvExporter, XlsxExporter, export_tables};
 pub use raster::{
     DEFAULT_DPI, DPI_RANGE, MAX_PAGE_PIXELS, MAX_PIXELS_IN_FLIGHT, PngExport, PngFile, check_page_pixels,
     export_png_with, page_png, png_file_name, raster_workers,

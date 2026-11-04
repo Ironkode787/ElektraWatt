@@ -32,6 +32,7 @@
 pub mod arrange;
 pub mod csv;
 pub mod export;
+pub mod exporter;
 mod kind;
 pub mod kinds;
 pub mod layout;

@@ -8,12 +8,6 @@
 
 use ew_interop_api::{ImportError, Limits};
 
-/// The most data rows of one table.
-pub const MAX_ROWS: usize = 1_000_000;
-
-/// The most columns of one table.
-pub const MAX_COLUMNS: usize = 1_024;
-
 /// The longest cell of one table, in bytes: 32 KiB (doc 14 §11, "CSV, XLSX: cell ≤ 32 KiB"; FT-665).
 pub const MAX_CELL_BYTES: u32 = 32 * 1024;
 
@@ -93,6 +87,16 @@ pub(crate) fn malformed(message: impl Into<String>, line: Option<u32>) -> Import
     }
 }
 
+/// The most data rows of one table: `limits.max_table_rows`.
+pub(crate) fn max_rows(limits: &Limits) -> usize {
+    usize::try_from(limits.max_table_rows).unwrap_or(usize::MAX)
+}
+
+/// The most columns of one table: `limits.max_table_columns`.
+pub(crate) fn max_columns(limits: &Limits) -> usize {
+    usize::try_from(limits.max_table_columns).unwrap_or(usize::MAX)
+}
+
 pub(crate) fn too_many(what: &str, limit: usize) -> ImportError {
     ImportError::LimitExceeded {
         what: what.to_owned(),
@@ -111,8 +115,8 @@ fn sheet_of(records: Vec<(u32, Vec<Cell>)>, limits: &Limits) -> Result<Sheet, Im
         return Err(malformed("the table has no header row", None));
     };
     let headers: Vec<String> = header.iter().map(|c| c.text().trim().to_owned()).collect();
-    if headers.len() > MAX_COLUMNS {
-        return Err(too_many("column count", MAX_COLUMNS));
+    if headers.len() > max_columns(limits) {
+        return Err(too_many("column count", max_columns(limits)));
     }
     if headers.iter().all(String::is_empty) {
         return Err(malformed("the header row is empty", Some(line)));
@@ -120,8 +124,8 @@ fn sheet_of(records: Vec<(u32, Vec<Cell>)>, limits: &Limits) -> Result<Sheet, Im
     let mut rows = Vec::new();
     let mut overhang = 0;
     for (line, mut cells) in it {
-        if rows.len() == MAX_ROWS {
-            return Err(too_many("row count", MAX_ROWS));
+        if rows.len() == max_rows(limits) {
+            return Err(too_many("row count", max_rows(limits)));
         }
         for c in &cells {
             if c.text().len() > limits.max_text_bytes as usize {
@@ -168,11 +172,11 @@ fn separator(text: &str) -> char {
 /// Reads CSV text: UTF-8, an optional byte-order mark, `,` or `;`, fields quoted with `"` (a doubled `""` inside a
 /// quoted field is one quote; a quoted field may span lines), lines ended by LF or CR LF.
 pub(crate) fn read_csv(bytes: &[u8], limits: &Limits) -> Result<Sheet, ImportError> {
-    sheet_of(csv_records(bytes)?, limits)
+    sheet_of(csv_records(bytes, limits)?, limits)
 }
 
 /// The records of CSV text as [`read_csv`] reads them (line, cells), before the header is found.
-fn csv_records(bytes: &[u8]) -> Result<Vec<(u32, Vec<Cell>)>, ImportError> {
+fn csv_records(bytes: &[u8], limits: &Limits) -> Result<Vec<(u32, Vec<Cell>)>, ImportError> {
     let text = std::str::from_utf8(bytes).map_err(|e| {
         let line = bytes[..e.valid_up_to()].iter().filter(|b| **b == b'\n').count() + 1;
         malformed("the table is not UTF-8 text", u32::try_from(line).ok())
@@ -215,8 +219,8 @@ fn csv_records(bytes: &[u8]) -> Result<Vec<(u32, Vec<Cell>)>, ImportError> {
             }
             c if c == sep => {
                 cells.push(Cell::Text(std::mem::take(&mut field)));
-                if cells.len() > MAX_COLUMNS {
-                    return Err(too_many("column count", MAX_COLUMNS));
+                if cells.len() > max_columns(limits) {
+                    return Err(too_many("column count", max_columns(limits)));
                 }
                 (closed, started) = (false, false);
             }
@@ -224,8 +228,8 @@ fn csv_records(bytes: &[u8]) -> Result<Vec<(u32, Vec<Cell>)>, ImportError> {
             '\n' => {
                 cells.push(Cell::Text(std::mem::take(&mut field)));
                 records.push((record_line, std::mem::take(&mut cells)));
-                if records.len() > MAX_ROWS + 1 {
-                    return Err(too_many("row count", MAX_ROWS));
+                if records.len() > max_rows(limits) + 1 {
+                    return Err(too_many("row count", max_rows(limits)));
                 }
                 line += 1;
                 record_line = line;
@@ -258,7 +262,7 @@ fn csv_records(bytes: &[u8]) -> Result<Vec<(u32, Vec<Cell>)>, ImportError> {
 
 /// Reads the sheet `sheet` (the first when `None`) of an XLSX workbook ([`crate::xlsx`]: the archive's declared and
 /// actual unpacked sizes bounded by `limits.max_input_bytes`, the shared strings by the loader limits), at most
-/// [`MAX_COLUMNS`] columns and [`MAX_ROWS`] rows.
+/// `limits.max_table_columns` columns and `limits.max_table_rows` rows.
 pub(crate) fn read_xlsx(bytes: &[u8], sheet: Option<&str>, limits: &Limits) -> Result<Sheet, ImportError> {
     sheet_of(crate::xlsx::read(bytes, sheet, limits)?, limits)
 }
@@ -344,7 +348,7 @@ fn records_of(
 ) -> Result<Vec<(u32, Vec<Cell>)>, ImportError> {
     check_size(bytes, limits)?;
     match format {
-        SourceFormat::Csv => csv_records(bytes),
+        SourceFormat::Csv => csv_records(bytes, limits),
         SourceFormat::Xlsx => crate::xlsx::read(bytes, sheet, limits),
     }
 }
@@ -420,7 +424,7 @@ pub fn read_sheet(
 /// # Errors
 ///
 /// As [`read_sheet`], under the same limits: [`ImportError::LimitExceeded`] for an input above
-/// `limits.max_input_bytes`, more than [`MAX_ROWS`] records, more than [`MAX_COLUMNS`] cells in one or too long a cell;
+/// `limits.max_input_bytes`, more than `limits.max_table_rows` records, more than `limits.max_table_columns` cells in one or too long a cell;
 /// [`ImportError::Malformed`] for a table that is not UTF-8, not a workbook or without the named sheet;
 /// [`ImportError::Unsupported`] for a ZIP64 or encrypted workbook.
 pub fn read_rows(
@@ -438,11 +442,11 @@ pub fn read_rows(
         if !any {
             continue;
         }
-        if out.len() >= MAX_ROWS {
-            return Err(too_many("row count", MAX_ROWS));
+        if out.len() >= max_rows(limits) {
+            return Err(too_many("row count", max_rows(limits)));
         }
-        if cells.len() > MAX_COLUMNS {
-            return Err(too_many("column count", MAX_COLUMNS));
+        if cells.len() > max_columns(limits) {
+            return Err(too_many("column count", max_columns(limits)));
         }
         if cells
             .iter()
@@ -505,20 +509,20 @@ mod tests {
         );
     }
 
-    /// FT-1107: `MAX_ROWS` records pass (there is no header row), the next one is refused.
+    /// FT-1107: `max_table_rows` records pass (there is no header row), the next one is refused.
     #[test]
     fn read_rows_takes_max_rows_records_and_refuses_one_more() {
         let rows = read_rows(
-            "x\n".repeat(MAX_ROWS).as_bytes(),
+            "x\n".repeat(1_000_000).as_bytes(),
             SourceFormat::Csv,
             "",
             &Limits::default(),
         )
         .unwrap();
-        assert_eq!(rows.len(), MAX_ROWS);
+        assert_eq!(rows.len(), 1_000_000);
         assert_eq!(
             read_rows(
-                "x\n".repeat(MAX_ROWS + 1).as_bytes(),
+                "x\n".repeat(1_000_000 + 1).as_bytes(),
                 SourceFormat::Csv,
                 "",
                 &Limits::default()

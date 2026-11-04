@@ -344,9 +344,17 @@ impl TableFile {
     /// The file's bytes; a workbook the writer refuses fails with the writer's sentence.
     fn encode(self) -> Result<Vec<u8>, JobError> {
         match self {
-            TableFile::Xlsx { table, meta } => ew_api::output::xlsx(std::slice::from_ref(&table), &meta)
-                .map_err(|e| JobError::Failed(e.to_string())),
-            TableFile::Csv { table, options } => Ok(ew_api::output::table_csv(&table, &options).into_bytes()),
+            TableFile::Xlsx { table, meta } => {
+                let rev = meta.rev;
+                ew_api::output::export_tables(&ew_api::output::XlsxExporter { meta }, rev, std::slice::from_ref(&table))
+                    .map(|(bytes, _)| bytes)
+                    .map_err(|e| JobError::Failed(e.to_string()))
+            }
+            TableFile::Csv { table, options } => {
+                ew_api::output::export_tables(&ew_api::output::CsvExporter { options }, 0, std::slice::from_ref(&table))
+                    .map(|(bytes, _)| bytes)
+                    .map_err(|e| JobError::Failed(e.to_string()))
+            }
         }
     }
 }

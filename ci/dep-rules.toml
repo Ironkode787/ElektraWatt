@@ -96,7 +96,9 @@ planned = ["ew-viewer", "ew-wiring-viewer", "ew-plugin-wit", "ew-plugin-sdk", "e
 "ew-text" = ["ew-dl", "ew-units", "ew-hack"]
 # The open-items kind reads `ew_checks::open_items` (WP-S3.06 D8); `ew-checks` was already in the graph through `ew-sqlview`.
 # The XLSX writer's container (WP-S3.08 D3, decision log ID-1145): the own ZIP of `ew-zip`.
-"ew-reports" = ["ew-derive", "ew-sqlview", "ew-text", "ew-checks", "ew-zip", "ew-hack"]
+# The table writers implement the `Exporter` trait of `ew-interop-api` (WP-S3.09 D14, decision log ID-1016); no crate of
+# the trait is new to the graph, and no other edge of the workspace re-exports it to `ew-reports`.
+"ew-reports" = ["ew-derive", "ew-sqlview", "ew-text", "ew-checks", "ew-zip", "ew-hack", "ew-interop-api"]
 # The drawn path of a connection (decision log ID-1111): `ew-derive` was already in the graph through `ew-reports`.
 "ew-scene" = ["ew-reports", "ew-derive", "ew-dl", "ew-text", "ew-schema", "ew-units", "ew-ids", "ew-mltext", "ew-hack"]
 "ew-render2d" = ["ew-dl", "ew-render-cpu", "ew-hack"]

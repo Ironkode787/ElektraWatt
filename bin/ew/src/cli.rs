@@ -1147,7 +1147,14 @@ fn run_export_nav_table(a: &ExportTableArgs) -> i32 {
     };
     let (bytes, text, format, preset) = match a.format {
         RowFormat::Csv(options) => {
-            let csv = ew_api::output::table_csv(&table, &options);
+            let exporter = ew_api::output::CsvExporter { options };
+            let csv = match ew_api::output::export_tables(&exporter, session.world().rev.0, std::slice::from_ref(&table)) {
+                Ok((bytes, _)) => String::from_utf8(bytes).unwrap_or_default(),
+                Err(e) => {
+                    eprintln!("error: {e}");
+                    return 2;
+                }
+            };
             (
                 csv.clone().into_bytes(),
                 Some(csv),
@@ -1165,8 +1172,9 @@ fn run_export_nav_table(a: &ExportTableArgs) -> i32 {
             };
             let tables = std::slice::from_ref(&table);
             let meta = ew_api::output::with_base_digest(&session.workbook_meta(date), tables);
-            match ew_api::output::xlsx(tables, &meta) {
-                Ok(b) => (b, None, "xlsx", None),
+            let rev = meta.rev;
+            match ew_api::output::export_tables(&ew_api::output::XlsxExporter { meta }, rev, tables) {
+                Ok((b, _)) => (b, None, "xlsx", None),
                 Err(e) => {
                     eprintln!("error: {e}");
                     return 2;

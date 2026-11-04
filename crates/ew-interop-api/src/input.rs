@@ -55,6 +55,67 @@ pub fn check_file_name(name: &str) -> Result<(), InputNameError> {
     Ok(())
 }
 
+/// Why [`check_archive_name`] refused the name of an archive entry (doc 14 §11 "Archives").
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+pub enum ArchiveNameError {
+    /// The name is empty.
+    Empty,
+    /// The name has a `..` segment.
+    ParentSegment,
+    /// The name starts with `/`: an absolute path.
+    Absolute,
+    /// The name contains `\`.
+    Backslash,
+    /// The name contains `:`, as a drive path does.
+    Colon,
+    /// The name contains NUL or another control character.
+    Control,
+}
+
+impl fmt::Display for ArchiveNameError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            ArchiveNameError::Empty => "the archive entry name is empty",
+            ArchiveNameError::ParentSegment => "the archive entry name leads out of the archive (`..`)",
+            ArchiveNameError::Absolute => "the archive entry name is an absolute path",
+            ArchiveNameError::Backslash => "the archive entry name contains a backslash",
+            ArchiveNameError::Colon => "the archive entry name contains ':' (a drive path)",
+            ArchiveNameError::Control => "the archive entry name contains NUL or a control character",
+        })
+    }
+}
+
+impl std::error::Error for ArchiveNameError {}
+
+/// Checks the name of an archive entry (doc 14 §11 "Archives", FR-IMP-005): not empty, no `..` segment, not absolute
+/// (a leading `/`), no `\`, no `:` (a drive path) and no NUL or other control character. Segments are separated by
+/// `/`, the ZIP rule.
+///
+/// # Errors
+///
+/// The first [`ArchiveNameError`] that applies, in the order of its variants.
+pub fn check_archive_name(name: &str) -> Result<(), ArchiveNameError> {
+    if name.is_empty() {
+        return Err(ArchiveNameError::Empty);
+    }
+    if name.split('/').any(|segment| segment == "..") {
+        return Err(ArchiveNameError::ParentSegment);
+    }
+    if name.starts_with('/') {
+        return Err(ArchiveNameError::Absolute);
+    }
+    if name.contains('\\') {
+        return Err(ArchiveNameError::Backslash);
+    }
+    if name.contains(':') {
+        return Err(ArchiveNameError::Colon);
+    }
+    if name.chars().any(char::is_control) {
+        return Err(ArchiveNameError::Control);
+    }
+    Ok(())
+}
+
 impl ImportInput {
     /// The input named `name` with `bytes`; computes the SHA-256.
     ///

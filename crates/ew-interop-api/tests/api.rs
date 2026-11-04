@@ -6,7 +6,8 @@
 use ew_ids::{Id, Uuid};
 use ew_interop_api::{
     Code, DefectClass, Detection, ImportBatch, ImportContext, ImportError, ImportInput, ImportReport,
-    Importer, InputNameError, Limits, ReportEntry, Severity, SourceInfo, SourceLocation, check_file_name,
+    Importer, InputNameError, Limits, RecordKey, ReportEntry, Severity, SourceInfo, SourceLocation,
+    check_archive_name, check_file_name,
 };
 
 fn hex(bytes: &[u8]) -> String {
@@ -239,4 +240,78 @@ fn importer_is_object_safe() {
     assert!(Detection::No < Detection::Maybe(0));
     assert!(Detection::Maybe(0) < Detection::Maybe(5));
     assert!(Detection::Maybe(5) < Detection::Certain);
+}
+
+/// WP-S3.09 D2: the archive, file-set and table members and their defaults (doc 14 §11).
+#[test]
+fn limits_default_archives_inputs_and_tables() {
+    let l = Limits::default();
+    assert_eq!(l.max_archive_entries, 100_000);
+    assert_eq!(l.max_expanded_bytes, 2 * 1024 * 1024 * 1024);
+    assert_eq!(l.max_entry_bytes, 512 * 1024 * 1024);
+    assert_eq!(l.max_entry_ratio, 200);
+    assert_eq!(l.max_input_files, 64);
+    assert_eq!(l.max_table_rows, 1_000_000);
+    assert_eq!(l.max_table_columns, 1_024);
+}
+
+/// IC-1: `stricter` takes the smaller of every member, whichever side it comes from.
+#[test]
+fn stricter_covers_every_member() {
+    let small = Limits {
+        max_input_bytes: 1,
+        max_xml_depth: 2,
+        max_xml_nodes: 3,
+        max_attribute_bytes: 4,
+        max_xml_attributes_per_element: 5,
+        max_xml_attributes: 6,
+        max_xml_attribute_work: 7,
+        max_text_bytes: 8,
+        max_archive_entries: 9,
+        max_expanded_bytes: 10,
+        max_entry_bytes: 11,
+        max_entry_ratio: 12,
+        max_input_files: 13,
+        max_table_rows: 14,
+        max_table_columns: 15,
+    };
+    assert_eq!(Limits::default().stricter(small), small);
+    assert_eq!(small.stricter(Limits::default()), small);
+}
+
+/// IC-2: the archive-name rule, each refusal's whole text.
+#[test]
+fn archive_names_outside_the_archive_are_refused() {
+    let cases = [
+        ("", "the archive entry name is empty"),
+        ("../x", "the archive entry name leads out of the archive (`..`)"),
+        ("a/../b", "the archive entry name leads out of the archive (`..`)"),
+        ("/x", "the archive entry name is an absolute path"),
+        ("a\\b", "the archive entry name contains a backslash"),
+        ("C:x", "the archive entry name contains ':' (a drive path)"),
+        ("a\0b", "the archive entry name contains NUL or a control character"),
+        ("a\nb", "the archive entry name contains NUL or a control character"),
+    ];
+    for (name, text) in cases {
+        let err = check_archive_name(name).unwrap_err();
+        assert_eq!(err.to_string(), text, "{name:?}");
+    }
+    for good in ["xl/workbook.xml", "[Content_Types].xml", "a..b/c", "dir/"] {
+        assert_eq!(check_archive_name(good), Ok(()), "{good:?}");
+    }
+}
+
+/// D1: an entry names the records it is about.
+#[test]
+fn report_entries_name_their_targets() {
+    let id = Uuid::from_u128(7);
+    let e = ReportEntry::new(Code::STYLES_NOT_BOUND, Severity::Info, "x").on(ew_schema::Kind::Device, id);
+    assert_eq!(
+        e.targets,
+        vec![RecordKey {
+            kind: ew_schema::Kind::Device,
+            id
+        }]
+    );
+    assert!(ReportEntry::new(Code::LIMIT, Severity::Info, "x").targets.is_empty());
 }

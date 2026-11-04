@@ -19,7 +19,7 @@ use crate::ids;
 use crate::library::BuiltinLibrary;
 use crate::schema;
 use crate::table::{Findings, Table};
-use crate::{IMPORTER_ID, IMPORTER_VERSION, LINEAGE_LABEL, MAX_TABLE_FILES};
+use crate::{IMPORTER_ID, IMPORTER_VERSION, LINEAGE_LABEL};
 
 /// The golden CSV bootstrap (`ew import csv`, FR-IMP-022, doc 20 §3.2 path (a)).
 ///
@@ -63,7 +63,7 @@ impl TablesImporter {
     ///
     /// # Errors
     ///
-    /// [`ImportError::LimitExceeded`] for more than [`MAX_TABLE_FILES`] files, a file or a total above the
+    /// [`ImportError::LimitExceeded`] for more than `ctx.limits.max_input_files` files, a file or a total above the
     /// limits, a table above the row, column or cell limits; [`ImportError::Malformed`] for a repeated file
     /// name, a missing or unusable `project.csv`, or a `ctx.project` that is neither nil nor the derived project ID;
     /// [`ImportError::Unsupported`] for another lineage.
@@ -78,10 +78,10 @@ impl TablesImporter {
                     .into(),
             });
         }
-        if inputs.len() > MAX_TABLE_FILES {
+        if inputs.len() as u64 > u64::from(ctx.limits.max_input_files) {
             return Err(ImportError::LimitExceeded {
                 what: "table files".into(),
-                limit: MAX_TABLE_FILES as u64,
+                limit: u64::from(ctx.limits.max_input_files),
             });
         }
         let max_total = ctx.limits.max_input_bytes;
@@ -104,6 +104,8 @@ impl TablesImporter {
         }
         let limits = TableLimits {
             max_file_bytes: self.limits.max_file_bytes.min(max_total),
+            max_rows: self.limits.max_rows.min(ctx.limits.max_table_rows as usize),
+            max_columns: self.limits.max_columns.min(ctx.limits.max_table_columns as usize),
             ..self.limits
         };
 

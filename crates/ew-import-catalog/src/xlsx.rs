@@ -5,15 +5,17 @@
 //! sheet's cells as their displayed text, a formula's cached value (never evaluated).
 //!
 //! **The archive.** The ZIP central directory is read first; its declared unpacked sizes may not add up to more than
-//! the loader's input limit (doc 05 §3.6), ZIP64, encrypted entries and methods other than stored and deflate are
-//! refused. An entry is inflated (miniz_oxide, raw deflate) into a buffer capped at its declared size plus one byte,
+//! the loader's input limit (doc 05 §3.6) nor `limits.max_expanded_bytes`, an entry not `max_entry_bytes` nor a ratio
+//! above `max_entry_ratio` to its packed size, the entries not `max_archive_entries`; an entry name that
+//! [`ew_interop_api::check_archive_name`] refuses, ZIP64, encrypted entries and methods other than stored and deflate
+//! are refused. An entry is inflated (miniz_oxide, raw deflate) into a buffer capped at its declared size plus one byte,
 //! and never above the input limit: an entry that inflates to more, or to another size than declared, refuses the
 //! workbook (a compression bomb stops at the cap, it is not read).
 //!
 //! **The XML** (quick-xml, streamed): `_rels/.rels` names the workbook, the workbook's relationships its sheets and
 //! shared strings. The shared-strings table is bounded by the loader limits: at most `max_xml_nodes` strings, each at
 //! most `max_text_bytes`, all together at most `max_input_bytes`. Elements nest at most `max_xml_depth` deep. Cells
-//! are streamed into the rows they name; at most [`MAX_COLUMNS`] columns and [`MAX_ROWS`] rows. The cells' text
+//! are streamed into the rows they name; at most `max_table_columns` columns and `max_table_rows` rows. The cells' text
 //! together may not exceed [`CELL_TEXT_FACTOR`] times the unpacked size of the sheet and shared-strings parts, and
 //! never `max_input_bytes`: a shared string is copied into every cell that names it, so without this bound a
 //! workbook of a few kilobytes (one 1 MB string named by a thousand cells) would allocate a gigabyte.
@@ -28,10 +30,7 @@ use ew_interop_api::{ImportError, Limits};
 use quick_xml::events::{BytesStart, Event};
 use quick_xml::{Reader, XmlVersion};
 
-use crate::table::{Cell, MAX_COLUMNS, MAX_ROWS, malformed, too_many};
-
-/// The most entries of an XLSX workbook (the loader's file count, doc 05 §3.6).
-const MAX_ZIP_ENTRIES: usize = 100_000;
+use crate::table::{Cell, malformed, max_columns, max_rows, too_many};
 
 /// The most text the cells of a sheet may hold, as a multiple of the unpacked size of the sheet and shared-strings
 /// parts (and never above `limits.max_input_bytes`). A shared-string reference costs at least about 20 bytes of sheet
@@ -95,8 +94,11 @@ impl<'a> Archive<'a> {
             return Err(unsupported("a ZIP64 workbook"));
         }
         let entries = usize::from(entries);
-        if entries > MAX_ZIP_ENTRIES {
-            return Err(too_many("workbook entry count", MAX_ZIP_ENTRIES));
+        if entries > usize::try_from(limits.max_archive_entries).unwrap_or(usize::MAX) {
+            return Err(ImportError::LimitExceeded {
+                what: "archive entry count".into(),
+                limit: u64::from(limits.max_archive_entries),
+            });
         }
         let mut at = usize::try_from(offset).map_err(|_| broken())?;
         let mut total: u64 = 0;
@@ -119,11 +121,30 @@ impl<'a> Archive<'a> {
             }
             let name = bytes.get(at + 46..at + 46 + n).ok_or_else(broken)?;
             let name = String::from_utf8_lossy(name).into_owned();
+            ew_interop_api::check_archive_name(&name).map_err(|e| unreadable(format!("{e}: `{}`", name.escape_debug())))?;
+            if u64::from(size) > limits.max_entry_bytes {
+                return Err(ImportError::LimitExceeded {
+                    what: "archive entry size".into(),
+                    limit: limits.max_entry_bytes,
+                });
+            }
             total = total.saturating_add(u64::from(size));
+            if total > limits.max_expanded_bytes {
+                return Err(ImportError::LimitExceeded {
+                    what: "expanded archive size".into(),
+                    limit: limits.max_expanded_bytes,
+                });
+            }
             if total > limits.max_input_bytes {
                 return Err(ImportError::LimitExceeded {
                     what: "unpacked workbook size".into(),
                     limit: limits.max_input_bytes,
+                });
+            }
+            if u64::from(size) > u64::from(compressed).saturating_mul(u64::from(limits.max_entry_ratio)) {
+                return Err(ImportError::LimitExceeded {
+                    what: "archive entry expansion ratio".into(),
+                    limit: u64::from(limits.max_entry_ratio),
                 });
             }
             let entry = Entry {
@@ -266,6 +287,7 @@ fn walk(
                 };
                 on(Node::Text(c.encode_utf8(&mut [0; 4])))?;
             }
+            Event::DocType(_) => return Err(unreadable("a part declares a DOCTYPE, and DTDs are refused")),
             Event::Eof => return Ok(()),
             _ => {}
         }
@@ -550,8 +572,8 @@ pub(crate) fn read(
                         }
                         None => next_column,
                     };
-                    if column >= MAX_COLUMNS {
-                        return Err(too_many("column count", MAX_COLUMNS));
+                    if column >= max_columns(limits) {
+                        return Err(too_many("column count", max_columns(limits)));
                     }
                     next_column = column + 1;
                     cell = Some(RawCell {
@@ -581,8 +603,8 @@ pub(crate) fn read(
                             });
                         }
                         if value != Cell::Text(String::new()) {
-                            if !grid.contains_key(&row) && grid.len() > MAX_ROWS {
-                                return Err(too_many("row count", MAX_ROWS));
+                            if !grid.contains_key(&row) && grid.len() > max_rows(limits) {
+                                return Err(too_many("row count", max_rows(limits)));
                             }
                             grid.entry(row).or_default().insert(c.column, value);
                         }

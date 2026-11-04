@@ -43,7 +43,7 @@
 //!
 //! # Hostile input (doc 14 §11)
 //!
-//! At most [`MAX_TABLE_FILES`] files, their sum within `ImportContext::limits.max_input_bytes` (64 MiB for
+//! At most `ImportContext::limits.max_input_files` files (64), their sum within `ImportContext::limits.max_input_bytes` (64 MiB for
 //! [`bootstrap_context`], doc 14 §11), each table within [`TableLimits`] (16 MiB, 1,000,000 rows, 1,024
 //! columns, 32 KiB per cell, 4,000,000 cells): a violation refuses the import
 //! ([`ImportError::LimitExceeded`](ew_interop_api::ImportError)). The cell budget bounds the memory of a
@@ -99,9 +99,6 @@ pub const IMPORTER_VERSION: &str = "0.1.0";
 
 /// The label of the fixed lineage anchor, `Fixed("golden")`.
 pub const LINEAGE_LABEL: &str = "golden";
-
-/// The most table files of one import.
-pub const MAX_TABLE_FILES: usize = 64;
 
 /// The most findings listed in one report (doc 14 §11 "Report volume").
 pub const MAX_REPORT_ENTRIES: usize = 1_000;

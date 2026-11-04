@@ -377,7 +377,7 @@ pub fn read_parts_tables(
 
 pub use ew_import_tables::csv::CsvError;
 pub use ew_import_tables::ew_interop_api::ImportMode;
-pub use ew_import_tables::{LibraryError, MAX_TABLE_FILES};
+pub use ew_import_tables::LibraryError;
 
 /// Why `ew import csv` imports nothing.
 #[derive(Debug)]
@@ -389,7 +389,7 @@ pub enum TablesError {
         /// The error.
         error: std::io::Error,
     },
-    /// The directory holds more CSV files than the importer reads ([`MAX_TABLE_FILES`]).
+    /// The directory holds more CSV files than the importer reads (`Limits::max_input_files`).
     TooManyFiles {
         /// The limit.
         limit: usize,
@@ -437,7 +437,7 @@ impl std::fmt::Display for TablesError {
 impl std::error::Error for TablesError {}
 
 /// Reads every `*.csv` regular file of `dir` (no links, no sub-directories), in file-name order: at most
-/// [`MAX_TABLE_FILES`] files, their sum within the bootstrap's input limit, both checked before a byte is read.
+/// `Limits::bootstrap_tables().max_input_files` files, their sum within the bootstrap's input limit, both checked before a byte is read.
 ///
 /// # Errors
 ///
@@ -460,10 +460,9 @@ pub fn read_tables(dir: &Path) -> Result<Vec<ImportInput>, TablesError> {
         if !is_file || !name.ends_with(".csv") {
             continue;
         }
-        if files.len() == MAX_TABLE_FILES {
-            return Err(TablesError::TooManyFiles {
-                limit: MAX_TABLE_FILES,
-            });
+        let max_files = ew_import_tables::ew_interop_api::Limits::bootstrap_tables().max_input_files as usize;
+        if files.len() == max_files {
+            return Err(TablesError::TooManyFiles { limit: max_files });
         }
         files.push((name, entry.path()));
     }
