@@ -47,6 +47,11 @@ count = 1
 
 [[allow]]
 crate = "ew"
+item = "fn debug_panic"
+count = 1
+
+[[allow]]
+crate = "ew"
 item = "fn source_date_epoch"
 count = 1
 

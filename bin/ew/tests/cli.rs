@@ -702,6 +702,72 @@ fn sql_random_is_denied_and_missing_project_is_exit_2() {
     assert!(stderr(&o).contains("error:"));
 }
 
+/// `ew <args>` with `EW_DEBUG_PANIC` set to `site`: a debug build's test fault inside the panic guard of that site.
+fn ew_faulted(site: &str, args: &[&std::ffi::OsStr]) -> Output {
+    Command::new(bin_exe())
+        .args(args)
+        .env_remove("EW_CONTENT_DIR")
+        .env("EW_DEBUG_PANIC", site)
+        .output()
+        .unwrap()
+}
+
+/// The last line of a command's stderr (a caught panic's message from the default hook comes first).
+fn last_line(o: &Output) -> String {
+    stderr(o).lines().last().unwrap_or_default().to_owned()
+}
+
+/// SE-9 at the call site (WP-S6.04 D15, C51-p1#3): `ew sql`'s statement panics inside `run_sql`'s guard; the run ends
+/// with S1 and exit 2, prints no result, and the copy of Golden A's files are as they were.
+#[test]
+fn sql_a_panicking_statement_ends_with_s1_and_changes_nothing() {
+    let t = Tmp::new();
+    let project = golden_copy(&t);
+    let before = tree(&project);
+    let o = ew_faulted(
+        "sql",
+        &["sql".as_ref(), project.as_os_str(), "SELECT 1".as_ref()],
+    );
+    assert_eq!(o.status.code(), Some(2), "{}", stderr(&o));
+    assert_eq!(
+        last_line(&o),
+        "error: the query stopped on an internal error; nothing was changed"
+    );
+    assert_eq!(stdout(&o), "");
+    assert!(tree(&project) == before, "the copy's files changed");
+}
+
+/// SE-9 at the call site (WP-S6.04 D15, C51-p1#2, C51-p1#3): `ew import table --apply`'s read panics inside
+/// `run_import_table`'s guard; the run ends with `error: ` and S2 with its first letter in lower case, exit 2, and the
+/// copy of Golden A's files are as they were.
+#[test]
+fn import_table_a_panicking_read_ends_with_s2_and_changes_nothing() {
+    let t = Tmp::new();
+    let project = golden_copy(&t);
+    let file = t.0.join("pages.csv");
+    std::fs::write(&file, "id,Title\n").unwrap();
+    let before = tree(&project);
+    let o = ew_faulted(
+        "table-read",
+        &[
+            "import".as_ref(),
+            "table".as_ref(),
+            file.as_os_str(),
+            project.as_os_str(),
+            "--table".as_ref(),
+            "nav:pages".as_ref(),
+            "--apply".as_ref(),
+        ],
+    );
+    assert_eq!(o.status.code(), Some(2), "{}", stderr(&o));
+    assert_eq!(
+        last_line(&o),
+        "error: the table import stopped on an internal error while reading pages.csv; nothing was changed."
+    );
+    assert_eq!(stdout(&o), "");
+    assert!(tree(&project) == before, "the copy's files changed");
+}
+
 /// SE-9 (WP-S6.04 D15, NFR-REL-12): a recursive-CTE bomb in `ew sql` on a copy of Golden A stops at its deadline with
 /// exit 2, and the copy's files are as they were.
 #[test]

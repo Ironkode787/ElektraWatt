@@ -820,7 +820,10 @@ fn run_sql(a: &SqlArgs) -> i32 {
     if let Some(n) = a.timeout {
         profile = profile.with_deadline(std::time::Duration::from_secs(n));
     }
-    let set = match guarded_query(|| projection.reader(profile).and_then(|r| r.query(&sql))) {
+    let set = match guarded_query(|| {
+        debug_panic("sql");
+        projection.reader(profile).and_then(|r| r.query(&sql))
+    }) {
         Ok(s) => s,
         Err(line) => {
             eprintln!("{line}");
@@ -863,6 +866,29 @@ fn guarded_query<T>(run: impl FnOnce() -> Result<T, ew_api::sql::SqlError>) -> R
         Ok(Err(e)) => Err(format!("error: {e}")),
         Err(_) => Err(QUERY_PANICKED.to_owned()),
     }
+}
+
+/// A debug build panics here when `EW_DEBUG_PANIC` names `site` (`sql`: `ew sql`'s statement; `table-read`: `ew import
+/// table`'s read), inside the panic guard it tests (WP-S6.04 D15, SE-9: the guard at its call site); a release build
+/// compiles none of it.
+// The program boundary of a debug build's test fault, read at the site it fails; a release build has no such read.
+#[allow(clippy::disallowed_methods)]
+fn debug_panic(site: &str) {
+    #[cfg(debug_assertions)]
+    if std::env::var_os("EW_DEBUG_PANIC").is_some_and(|v| v == site) {
+        panic!("forced panic (EW_DEBUG_PANIC={site})");
+    }
+    #[cfg(not(debug_assertions))]
+    let _ = site;
+}
+
+/// `ew import table`'s line for a refused file: `error: ` and the refusal with its first letter in lower case, as every
+/// `ew` error line (S2 of WP-S6.04 for a read that panicked; ruling of C51-p1#2).
+fn import_table_error_line(e: &ew_api::output::TableImportError) -> String {
+    let text = e.to_string();
+    let mut chars = text.chars();
+    let first = chars.next().map(|c| c.to_lowercase().collect::<String>()).unwrap_or_default();
+    format!("error: {first}{}", chars.as_str())
 }
 
 /// `ew sql --format xlsx --out <file>` (FT-218): the result as the one sheet `sql` of a workbook, written atomically.
@@ -1313,10 +1339,13 @@ fn run_import_table(a: &ImportTableArgs) -> i32 {
         || a.file.display().to_string(),
         |n| n.to_string_lossy().into_owned(),
     );
-    let import = match ew_api::output::guard_table_read(&file, || session.table_import(&bytes, &options)) {
+    let import = match ew_api::output::guard_table_read(&file, || {
+        debug_panic("table-read");
+        session.table_import(&bytes, &options)
+    }) {
         Ok(i) => i,
         Err(e) => {
-            eprintln!("error: {e}");
+            eprintln!("{}", import_table_error_line(&e));
             session.close();
             return 2;
         }
@@ -6683,6 +6712,21 @@ mod guard_tests {
                 std::fs::copy(&p, &target).unwrap();
             }
         }
+    }
+
+    /// C51-p1#2: `ew import table`'s refusal lines, each whole: `error: ` and the refusal, its first letter in lower
+    /// case (S2 for a read that panicked).
+    #[test]
+    fn an_import_table_refusal_is_one_lower_case_error_line() {
+        use ew_api::output::TableImportError as E;
+        assert_eq!(
+            import_table_error_line(&E::Panicked("pages.csv".into())),
+            "error: the table import stopped on an internal error while reading pages.csv; nothing was changed."
+        );
+        assert_eq!(
+            import_table_error_line(&E::CsvNoTable),
+            "error: a CSV names no table: give `--table <key>`"
+        );
     }
 
     /// S1 whole, when the statement panics after it ran on the projection of a copy of Golden A; the copy's files

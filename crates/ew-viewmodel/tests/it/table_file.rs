@@ -607,6 +607,49 @@ fn the_export_is_cut_to_the_rows_and_columns_on_show() {
     shell.shutdown();
 }
 
+/// Every file below `dir` with its bytes, by relative path.
+fn files_of(dir: &Path) -> std::collections::BTreeMap<String, Vec<u8>> {
+    fn walk(dir: &Path, base: &Path, out: &mut std::collections::BTreeMap<String, Vec<u8>>) {
+        for e in std::fs::read_dir(dir).unwrap() {
+            let p = e.unwrap().path();
+            if p.is_dir() {
+                walk(&p, base, out);
+            } else {
+                let rel = p.strip_prefix(base).unwrap().to_string_lossy().replace('\\', "/");
+                out.insert(rel, std::fs::read(&p).unwrap());
+            }
+        }
+    }
+    let mut out = std::collections::BTreeMap::new();
+    walk(dir, dir, &mut out);
+    out
+}
+
+/// SE-9 at the call site (WP-S6.04 D15, C51-p1#3): the window's table read panics inside its guard (the test fault
+/// `table-read`); `navigator.import_table` fails with S2 whole, opens no card, records no command and leaves the
+/// project's files as they were.
+#[test]
+fn a_panicking_table_read_fails_with_s2_and_changes_nothing() {
+    let tmp = Tmp::new("tfp");
+    let mut shell = strips(&tmp);
+    let out = tmp.0.join("x.xlsx");
+    done(&mut shell, "navigator.export_table", json!({"path": text(&out)}));
+    let file = tmp.0.join("y.xlsx");
+    std::fs::copy(&out, &file).unwrap();
+    let before = (steps(&shell), files_of(&tmp.golden_copy()));
+    shell.set_job_panic_for_tests(Some("table-read"));
+    assert_eq!(
+        failed(&mut shell, "navigator.import_table", json!({"path": text(&file)})),
+        "The table import stopped on an internal error while reading y.xlsx; nothing was changed."
+    );
+    assert!(shell.properties().card().is_none(), "no card");
+    assert!(
+        (steps(&shell), files_of(&tmp.golden_copy())) == before,
+        "the import changed the project"
+    );
+    shell.shutdown();
+}
+
 /// Ruling 6 (ID-1231): a project changed after the import's preview refuses its Apply in words, and the card stays.
 #[test]
 fn a_stale_import_is_refused_and_the_card_stays() {

@@ -177,7 +177,8 @@ impl ShellModel {
     }
 
     /// A test fault of the export jobs started from now on (feature `testkit`): `Some("sibling")` makes the body panic
-    /// right after the sibling file is written and synced, before the rename.
+    /// right after the sibling file is written and synced, before the rename; `Some("table-read")` makes the table
+    /// import's read panic inside its guard (WP-S6.04 D15).
     #[cfg(feature = "testkit")]
     pub fn set_job_panic_for_tests(&mut self, at: Option<&'static str>) {
         self.jobs.hooks.panic_at = at;

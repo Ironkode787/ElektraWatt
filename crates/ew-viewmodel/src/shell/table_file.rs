@@ -313,6 +313,8 @@ impl ShellModel {
             Err(e) => return failed(key!("error-table-import-read"), &[&e.to_string()]),
         };
         let submit = Submit::from(self.origin());
+        #[cfg(feature = "testkit")]
+        let fault = self.jobs.hooks.panic_at == Some("table-read");
         let calls = &self.calls;
         let Some(project) = &mut self.project else {
             return Outcome::Done;
@@ -322,6 +324,10 @@ impl ShellModel {
             ..ImportTableOptions::default()
         };
         let import = match ew_api::output::guard_table_read(input.name(), || {
+            #[cfg(feature = "testkit")]
+            if fault {
+                panic!("a test fault in the table read");
+            }
             project.session.table_import(input.bytes(), &options)
         }) {
             Ok(i) => i,
