@@ -293,6 +293,10 @@ const OPENS_INPUT: &[&str] = &[
     "potential.draw",
     // FT-1239: a Potentials row's Define potential… opens the same form.
     "potential.draw_row",
+    // FT-1371 and FT-1372 (ID-1362): New cable…, Connect cores… and Report block… open their forms.
+    "cable.new",
+    "cable.connect_cores",
+    "report_block.new",
 ];
 
 #[test]
