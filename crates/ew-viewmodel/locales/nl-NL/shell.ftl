@@ -2878,6 +2878,7 @@ external-text-one = Hier en op schijf gewijzigd: { $p0 }. Kies uw versie of die 
 external-fields = { $p0 } velden
 external-fields-one = 1 veld
 toast-external-kept = Uw versie is behouden: { $p0 }
+toast-external-same = De wijziging op schijf is gelijk aan uw versie: er is niets over te nemen
 external-apply = Toepassen
 external-all-mine = Alles van mij
 external-all-theirs = Alles van schijf

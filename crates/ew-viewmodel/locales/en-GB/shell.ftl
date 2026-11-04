@@ -3110,6 +3110,7 @@ external-text-one = Changed here and on disk: { $p0 }. Choose yours or theirs; s
 external-fields = { $p0 } fields
 external-fields-one = 1 field
 toast-external-kept = Your version was kept: { $p0 }
+toast-external-same = The change on disk equals your version: nothing to take
 external-apply = Apply
 external-all-mine = All mine
 external-all-theirs = All theirs

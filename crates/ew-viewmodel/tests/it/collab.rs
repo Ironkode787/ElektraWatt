@@ -777,3 +777,28 @@ fn xw2g_a_mixed_choice_counts_what_came_from_disk() {
         ["toast \"External change applied: 1 record on folio 102\" undo show_changes"]
     );
 }
+
+/// C50-p1#4: an external change that equals the session's edit (the same colour set on both sides) takes nothing and
+/// keeps nothing: its toast says so, never "applied: 0 records".
+#[test]
+fn xw2h_the_same_edit_on_both_sides_takes_nothing() {
+    let tmp = Tmp::new("xw2h");
+    let dir = tmp.0.join("J-E-2416.ew");
+    copy_dir(Path::new(GOLDEN_A), &dir);
+    let mut s = shell(&tmp);
+    open(&mut s, &dir, false);
+    let w20 = golden_id("connections|W20");
+    done(
+        &mut s,
+        "command.run",
+        json!({"cmd": "fields.set", "params": {"kind": "connection", "targets": [&w20], "path": "overrides.colour",
+            "value": ["BU"]}}),
+    );
+    colleague(&tmp, &dir, &[colour(&w20, json!(["BU"]))]);
+    done(&mut s, "project.check_disk", json!({}));
+    assert!(s.dialog().is_none(), "no collision: nothing to choose");
+    assert_eq!(
+        toasts(&s),
+        ["toast \"The change on disk equals your version: nothing to take\""]
+    );
+}

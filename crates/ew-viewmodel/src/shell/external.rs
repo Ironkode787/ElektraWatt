@@ -281,7 +281,10 @@ impl ShellModel {
         }
         let records = strings::format_count(crate::count_key!("external-records"), a.records);
         // W49.3-F5: nothing of theirs was taken (All mine): the window says it kept the user's version.
-        let mut text = if a.records == 0 && a.kept > 0 {
+        // C50-p1#4: nothing taken and nothing kept (the same edit made on both sides) has words of its own.
+        let mut text = if a.records == 0 && a.kept == 0 {
+            strings::text(key!("toast-external-same")).to_owned()
+        } else if a.records == 0 && a.kept > 0 {
             let kept = strings::format_count(crate::count_key!("external-records"), a.kept);
             strings::format(key!("toast-external-kept"), &[&kept])
         } else if a.folios.is_empty() {
