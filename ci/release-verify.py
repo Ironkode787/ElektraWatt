@@ -11,7 +11,7 @@ CI-R-02, CI-R-06, CI-R-08, CI-R-11), run by .github/workflows/release.yml and, f
   python3 -I ci/release-verify.py sums <dir> --version <v>   CI-R-06: writes <dir>/SHA256SUMS
   python3 -I ci/release-verify.py draft <tag> <dir> --repo <o/r>
   python3 -I ci/release-verify.py promote <candidate> <dir> --repo <o/r> (--dry | --publish)
-  python3 -I ci/release-verify.py --test                     its offline unit test
+  python3 -I ci/release-verify.py --test                     # its offline unit test
 
 `tag` takes a candidate tag `v<X.Y.Z>-rc.<n>` (D2) and refuses it unless `X.Y.Z` is `[workspace.package].version` of
 Cargo.toml and docs/release-notes/<X.Y.Z>.md exists with text beyond its licence comment. `runs` asks the GitHub CLI

@@ -5,8 +5,8 @@
 """The canary of the shipped binaries' embedded dependency list (WP-S6.07 D12 (b); doc 18 CI-R-09; NFR-SEC-13),
 run by the OS jobs of .github/workflows/package.yml on every binary that an artefact ships.
 
-  python3 -I ci/audit-data.py <binary>...      checks each binary
-  python3 -I ci/audit-data.py --test           its offline unit test (minimal ELF and PE images built in memory)
+  python3 -I ci/audit-data.py <binary>...      # checks each binary
+  python3 -I ci/audit-data.py --test           # its offline unit test (minimal ELF and PE images built in memory)
 
 `cargo auditable build` embeds the binary's dependency list as zlib-compressed JSON in a section named `.dep-v0`
 (ELF and PE alike). For each binary this script reads that section, fails when it is missing ("no cargo-auditable data

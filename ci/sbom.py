@@ -10,7 +10,7 @@ NFR-SEC-13, NFR-LIC-08, FT-04), run by the OS jobs of .github/workflows/package.
                               [--component <name>...] --out <artefact>.cdx.json
   python3 -I ci/sbom.py complete --sbom <artefact>.cdx.json --metadata <json> --bin <name>...
   python3 -I ci/sbom.py notices --sbom <artefact>.cdx.json... --metadata <json> --notices <THIRD-PARTY-NOTICES.txt>
-  python3 -I ci/sbom.py --test                                          its offline unit test
+  python3 -I ci/sbom.py --test                                          # its offline unit test
 
 `cyclonedx` writes `cargo metadata --filter-platform <triple>` to <dir>/metadata.json and runs cargo-cyclonedx (JSON,
 CycloneDX 1.5, every dependency, one SBOM per binary of the workspace for <triple>); it moves the SBOM of each `--bin`
