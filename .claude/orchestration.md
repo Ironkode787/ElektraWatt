@@ -309,6 +309,8 @@ The main session orchestrates. It plans each cycle, briefs Claude subagents, int
   - Delete a lane's `target` when its part is accepted, and at once when its last fix round is picked: "accepted with
     fixes" counts as accepted once the fixes are in (cycle 50: a dozen 50-60 GB targets of picked lanes filled the
     disk and stopped three builders). If `rm -rf` fails, use `cmd //c "rmdir /s /q <path>"`.
+  - A lane's `fuzz/target` is a target too: the fuzz crate is its own workspace. Cycle 51 found twenty idle worktrees
+    still holding one.
   - Clean the main checkout's `target` after every last verify and gate.
   - Incremental builds make targets larger: watch them at each merge point.
 - **Free space.** At least 150 GB before a gate. The orchestrator's guard is 250 GB before every dispatch and verify:
