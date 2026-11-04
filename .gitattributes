@@ -31,6 +31,7 @@ fuzz/corpus/qet_project/** merge=regen
 fuzz/corpus/qet_element/** merge=regen
 fuzz/corpus/golden_tables/** merge=regen
 fuzz/corpus/parts_table/** merge=regen
+fuzz/corpus/ewlib_read/** merge=regen
 tools/blind/recordings/selftest/** merge=regen
 tools/blind/recordings/selftest-visual/** merge=regen
 docs/plan/records.md merge=regen

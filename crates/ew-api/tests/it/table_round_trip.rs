@@ -171,11 +171,10 @@ fn a_panicking_read_gives_s2_and_changes_nothing() {
         table: Some(key),
         ..ImportTableOptions::default()
     };
-    let e = ew_api::output::guard_table_read("x1031.csv", || {
+    let e = ew_api::output::guard_table_read::<()>("x1031.csv", || {
         session.table_import(csv.as_bytes(), &options)?;
         panic!("a read that panics")
     })
-    .map(|()| ())
     .unwrap_err();
     assert_eq!(
         e.to_string(),
