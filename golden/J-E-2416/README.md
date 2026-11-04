@@ -922,18 +922,19 @@ EW_PRIVATE_CORPUS=<dir> cargo nextest run -p ew-api --test it -E 'test(/^golden_
   (decision log ID-277), and S56 and E56 are not elements of this file. MF-04 gives 2 EW-IMP-104 entries (one
   revision value differs on one folio; the per-folio description of folio 101 is reported as a folio-property
   conflict) against "4 formats" (the CSV's `doc20 = 1` reads "4 formats on 18 folios" as one condition, an
-  interpretation).
+  interpretation). MF-24 gives 5 EW-POT-009 findings against 2 (the rule arrived with the EW-POT pack after cycle 12).
 - *Doc expectation does not fit this file:* MF-01. The stored labels of -3W1 and -3X1 equal their formulas, so no
   EW-IMP-101 arises; the stale -4W1/-4X1 can only be in the nomenclature table (MF-21).
 - *Not detected yet (importer gaps):* MF-02 (FT-130), MF-06 (FT-139), MF-07, MF-18, MF-19 (FT-132), MF-08 (it
   surfaces inside EW-IMP-008, as the terminal numbered "8" for want of a designation, FT-141; the CSV lists MF-08 on
   both rows), MF-11 (FT-135), MF-12 (FT-131), MF-21 (FT-133). The live-rule
-  rows MF-13, MF-16, MF-23, MF-24, MF-25 and MF-27 need imports through the pipeline (FT-143); the text "3-B0" itself
+  rows MF-13, MF-16, MF-23, MF-25 and MF-27 need imports through the pipeline (FT-143); the text "3-B0" itself
   is reproduced. MF-05 (EW-IMP-105, FT-173), MF-06 (EW-IMP-106, FT-174), MF-14 and MF-20 (EW-IMP-110 and
   EW-IMP-112, FT-175), MF-15 (EW-IMP-111, FT-176), MF-26 (EW-IMP-114, FT-177) and MF-17 (EW-IMP-121, FT-178) have
   no detection in the importer yet.
 - *Not in §20.1:* EW-IMP-004 (94), EW-IMP-005 (3 fallback strips), EW-IMP-008 (13), EW-IMP-116 (1), EW-IMP-119 (16)
-  and EW-IMP-122 (6).
+  and EW-IMP-122 (6); the live rules added since cycle 12, EW-CORE-026 (6), EW-CORE-041 (104), EW-NUM-001 (10) and
+  EW-RDS-003 (14).
 
 **Fix script.** `variants/c-fix.ewcmd` (49 lines, every line commits) does what existing commands can do: the
 numbering scheme of doc 20 §4.4 (`project.settings.set`); -X1031 and -X1032 unfrozen onto the strip rule with their

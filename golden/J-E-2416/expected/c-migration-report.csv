@@ -1,7 +1,9 @@
 code,mf,doc20,as_built,status,note
 EW-CORE-023,MF-05,1,0,ft,the description of folio 101 arrives as an EW-IMP-104 folio-property entry
+EW-CORE-026,,,6,extra,
 EW-CORE-031,MF-11,2,0,ft,
 EW-CORE-034,MF-27,1,0,ft,
+EW-CORE-041,,,104,extra,
 EW-CORE-046,MF-14,1,0,ft,
 EW-CORE-051,,,5,extra,unpaired interruption points; the missing source of PE-1.1 (folio 101) is among them
 EW-CORE-052,,,0,extra,no ambiguous star source in the file
@@ -26,9 +28,11 @@ EW-IMP-116,,,1,extra,
 EW-IMP-119,,,16,extra,
 EW-IMP-121,MF-17,3,0,ft,
 EW-IMP-122,,,6,extra,
+EW-NUM-001,,,10,extra,
 EW-POT-001,MF-16,1,0,ft,
-EW-POT-009,MF-24,2,0,ft,
+EW-POT-009,MF-24,2,5,differs,
 EW-POT-013,MF-23,2,0,ft,
+EW-RDS-003,,,14,extra,
 EW-RDS-010,MF-02,1,0,ft,
 EW-TERM-001,MF-08,1,0,ft,
 EW-TERM-002,MF-09,8,8,holds,
