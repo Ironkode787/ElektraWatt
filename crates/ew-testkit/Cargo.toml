@@ -11,8 +11,18 @@ description = "Golden builders, project generators, oracle comparator and accept
 repository.workspace = true
 publish = false
 
-[lints]
-workspace = true
+# The workspace's lints with `unsafe_code` at deny (ci/unsafe-allowlist.toml, WP-S6.04 D7): the hostile corpus test's
+# counting allocator, `tests/hostile_corpus/alloc.rs`, allows it; the library keeps `#![forbid(unsafe_code)]` (ID-1334).
+[lints.rust]
+unsafe_code = "deny"
+missing_docs = "warn"
+
+[lints.clippy]
+dbg_macro = "warn"
+todo = "warn"
+unimplemented = "warn"
+undocumented_unsafe_blocks = "warn"
+mem_forget = "warn"
 
 [dependencies]
 # The generator (`ew_testkit::synth`) builds format-level records and the model snapshot from them.
@@ -43,6 +53,10 @@ serde_json = "1.0.154"
 ew-derive = { path = "../ew-derive" }
 # The fresh temporary directory of the tests (FT-569; dev-only edge, `[allowed_dev_edges]`).
 ew-testdir = { path = "../ew-testdir" }
+# The hostile corpus test (WP-S6.04 D10): a QElectroTech element through the front door as `qet_element` reads it, and
+# a raster asset through the renderers' decoder (dev-only edges, `[allowed_dev_edges]`).
+ew-import-qet = { path = "../ew-import-qet" }
+ew-render-cpu = { path = "../ew-render-cpu" }
 
 [[bench]]
 name = "cold_ops"

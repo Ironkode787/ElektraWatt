@@ -13,3 +13,5 @@
 [crates]
 # The Windows print adapter: the print dialog, the printer's device context and the bands sent with StretchDIBits.
 ew-print = ["src/windows.rs"]
+# The counting allocator of the hostile corpus test, that test binary's global allocator only (WP-S6.04 D7, D10).
+ew-testkit = ["tests/hostile_corpus/alloc.rs"]

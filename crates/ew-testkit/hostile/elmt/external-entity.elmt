@@ -1,0 +1,3 @@
+<?xml version="1.0"?>
+<!DOCTYPE definition [<!ENTITY e SYSTEM "file:///etc/passwd">]>
+<definition type="element" width="10" height="10" hotspot_x="5" hotspot_y="5" version="0.100"><names><name lang="en">&e;</name></names><description/></definition>

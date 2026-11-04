@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<!DOCTYPE definition [
+ <!ENTITY a "aaaaaaaaaa">
+ <!ENTITY b "&a;&a;&a;&a;&a;&a;&a;&a;&a;&a;">
+ <!ENTITY c "&b;&b;&b;&b;&b;&b;&b;&b;&b;&b;">
+ <!ENTITY d "&c;&c;&c;&c;&c;&c;&c;&c;&c;&c;">
+ <!ENTITY e "&d;&d;&d;&d;&d;&d;&d;&d;&d;&d;">
+ <!ENTITY f "&e;&e;&e;&e;&e;&e;&e;&e;&e;&e;">
+ <!ENTITY g "&f;&f;&f;&f;&f;&f;&f;&f;&f;&f;">
+ <!ENTITY h "&g;&g;&g;&g;&g;&g;&g;&g;&g;&g;">
+ <!ENTITY i "&h;&h;&h;&h;&h;&h;&h;&h;&h;&h;">
+]>
+<definition type="element" width="10" height="10" hotspot_x="5" hotspot_y="5" version="0.100"><names><name lang="en">&i;</name></names><description/></definition>

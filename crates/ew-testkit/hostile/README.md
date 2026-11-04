@@ -11,6 +11,15 @@ stands in the folder of its class and is named after what it tries; this index n
 expected. A test asserts each verdict whole; the files of `sql/` are also the seed corpus of the fuzz target
 `sql_sandbox` (`fuzz/corpus/sql_sandbox/`, the same bytes).
 
+Every class but `sql/` runs in the test binary `hostile_corpus` of `ew-testkit` (`tests/hostile_corpus/`): each file
+through its parser's public entry point, the importers through WP-S3.09's front door (`ew_api::import::front_door`),
+its verdict asserted whole and its extra peak allocation at most 256 MiB, counted by that binary's own global allocator
+(NFR-SEC-02; no time is asserted). The binary files are made by its generator (`tests/hostile_corpus/generate.rs`):
+those marked *generated* below are made at each run and never committed (they are large on disk); the other binary
+files are committed small, and the test compares them with the generator's bytes (`EW_BLESS=1` writes them). A project
+copy whose page file is a symbolic link (NFR-SEC-16) is made by the test itself, on Unix only: it opens read-only with
+the page missing, `EW-CORE-003 …: listed in the manifest but is not a regular file; links are not followed`.
+
 ## `sql/`: hostile SQL text (FT-223)
 
 Parser: the SQL sandbox, `ew_sqlview::Reader::query`, under `ew sql`'s profile with a 200 ms deadline, on the small
@@ -30,3 +39,82 @@ image of the sandbox tests (`t_item` behind `api_v1_item`, `t_other` behind `api
 | `two-statements.sql` | two statements in one call | Refused by the statement gate |
 | `vacuum-into-behind-a-query.sql` | `VACUUM INTO` after a query, to write a file | Refused by the statement gate; no file is written |
 | `write-behind-a-cte.sql` | a `DELETE` behind a `WITH` | Denied by the authorizer: a `DELETE` |
+
+## `qet/`: QElectroTech projects
+
+Parser: the QElectroTech project importer through the front door into a new project, `ew_api::import::import_qet`
+(`ew import qet`, the window's Import). The verdict is the refusal's text, or the import's report.
+
+| File | Tries | Verdict |
+|---|---|---|
+| `attributes-over-the-limit.qet` | one element with 8,193 attributes (*generated*) | Refused: the XML attributes per element limit of 8,192 |
+| `billion-laughs.qet` | nine levels of entities, each ten of the one before (10^9 bytes expanded) | Refused: a DOCTYPE is not accepted |
+| `depth-over-the-limit.qet` | elements nested 257 deep | Refused: the XML depth limit of 256 |
+| `external-entity.qet` | an external entity naming `/etc/passwd` | Refused: a DOCTYPE is not accepted |
+| `infinite-coordinate.qet` | an element at `x="Infinity"` | Imported without the element: EW-IMP-002 "element skipped: bad x/y" |
+| `nan-coordinate.qet` | an element at `x="NaN"` | Imported without the element: EW-IMP-002 "element skipped: bad x/y" |
+
+## `elmt/`: QElectroTech element definitions
+
+Parser: the element importer through the front door under `Limits::element_definition()`, as the fuzz target
+`qet_element` calls it.
+
+| File | Tries | Verdict |
+|---|---|---|
+| `billion-laughs.elmt` | the billion laughs in an element's name | Refused: a DOCTYPE is not accepted |
+| `external-entity.elmt` | an external entity naming `/etc/passwd` | Refused: a DOCTYPE is not accepted |
+
+## `xlsx/`: workbooks
+
+Parser: the parts import's XLSX reader through the front door, `ew_api::catalog::parse_parts` (`ew import parts`, the
+window's parts import); the round trip's read takes the same reader.
+
+| File | Tries | Verdict |
+|---|---|---|
+| `billion-laughs.xlsx` | the billion laughs in the package relationships | Refused: a part declares a DOCTYPE |
+| `entry-absolute.xlsx` | an entry named `/x` | Refused: the entry name is an absolute path |
+| `entry-drive.xlsx` | an entry named `C:x` | Refused: the entry name contains `:` (a drive path) |
+| `entry-parent.xlsx` | an entry named `../../x` | Refused: the entry name leads out of the archive |
+| `external-entity.xlsx` | an external entity in the package relationships | Refused: a part declares a DOCTYPE |
+| `ratio-over-200.xlsx` | an entry honestly declared at 1 MiB, packed about 1,000 : 1 | Refused: the archive entry expansion ratio limit of 200 |
+| `zip-bomb.xlsx` | an entry declared at 4,096 bytes whose deflate stream unpacks to 10 MiB | Refused when the inflation passes the declared size |
+
+## `ewz/`: transport archives
+
+Parser: the `.ewz` reader as every reader opens one, `ew_api::Session::open_ewz`.
+
+| File | Tries | Verdict |
+|---|---|---|
+| `65536-entries.ewz` | 65,536 entries, one more than the 16-bit counts hold (*generated*) | Refused: bytes between the central directory and the end record |
+| `parent-entry.ewz` | an entry named `../x` | Refused: a `..` segment |
+
+## `jsonl/`: project files
+
+Parser: the project loader, on Golden A's files with its first page file replaced, opened from memory as `ew diff`'s
+revision side opens one (`ew_api::Session::open_in_memory`).
+
+| File | Tries | Verdict |
+|---|---|---|
+| `line-over-16-mib.jsonl` | a line one byte over the 16 MiB line limit (*generated*) | EW-CORE-019 on the line: the file is not read |
+| `nested-past-depth-64.jsonl` | arrays nested 70 deep | EW-CORE-019 on the line: nesting deeper than 64 |
+
+## `svg/`: SVG assets
+
+Parser: the asset gate before any SVG parser, `ew_api::asset_ref_of` (`sniff` and `svg_hazard`), as the window and
+`item.place` take a picked or dropped file.
+
+| File | Tries | Verdict |
+|---|---|---|
+| `external-href.svg` | an image linking `/etc/passwd` | Refused: it references something outside the document |
+| `internal-subset.svg` | an internal DTD subset with an entity | Refused: it declares an entity |
+| `script.svg` | a `<script>` | Refused: it has a script |
+
+## `raster/`: PNG and JPEG assets
+
+Parser: the asset gate (`ew_api::asset_ref_of`), then the renderers' decoder (`ew_render_cpu::decode_image`), which
+every renderer and writer of an image goes through.
+
+| File | Tries | Verdict |
+|---|---|---|
+| `jpeg-without-end-marker.jpg` | a JPEG cut before its end marker | Taken as an asset; not decoded |
+| `png-2-31-pixels.png` | a header declaring 65,536 × 32,768 pixels (2^31) | Taken as an asset; not decoded (over 16 Mi pixels) |

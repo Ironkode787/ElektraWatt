@@ -1,0 +1,3 @@
+<?xml version="1.0"?>
+<!DOCTYPE project [<!ENTITY e SYSTEM "file:///etc/passwd">]>
+<project version="0.100" title="&e;"/>
