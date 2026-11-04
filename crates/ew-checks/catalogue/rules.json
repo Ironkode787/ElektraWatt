@@ -1541,6 +1541,981 @@
       "waivable": true
     },
     {
+      "code": "160001",
+      "id": "EW-IMP-001",
+      "kind": "completeness",
+      "modes": [
+        "release"
+      ],
+      "open_item": null,
+      "pack": "EW-IMP",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": false,
+          "release": false
+        }
+      ],
+      "scope": "project",
+      "severity": "error",
+      "supersedes": [],
+      "title": "Input limit exceeded; item or file refused",
+      "waivable": true
+    },
+    {
+      "code": "160002",
+      "id": "EW-IMP-002",
+      "kind": "completeness",
+      "modes": [
+        "release"
+      ],
+      "open_item": null,
+      "pack": "EW-IMP",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": false,
+          "release": false
+        }
+      ],
+      "scope": "project",
+      "severity": "error",
+      "supersedes": [],
+      "title": "Malformed or refused item skipped",
+      "waivable": true
+    },
+    {
+      "code": "160003",
+      "id": "EW-IMP-003",
+      "kind": "completeness",
+      "modes": [
+        "release"
+      ],
+      "open_item": null,
+      "pack": "EW-IMP",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": false,
+          "release": false
+        }
+      ],
+      "scope": "project",
+      "severity": "error",
+      "supersedes": [],
+      "title": "Unresolvable reference dropped",
+      "waivable": true
+    },
+    {
+      "code": "160004",
+      "id": "EW-IMP-004",
+      "kind": "hygiene",
+      "modes": [
+        "release"
+      ],
+      "open_item": null,
+      "pack": "EW-IMP",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": false,
+          "release": false
+        }
+      ],
+      "scope": "project",
+      "severity": "info",
+      "supersedes": [],
+      "title": "Content dropped by design",
+      "waivable": true
+    },
+    {
+      "code": "160005",
+      "id": "EW-IMP-005",
+      "kind": "completeness",
+      "modes": [
+        "release"
+      ],
+      "open_item": null,
+      "pack": "EW-IMP",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": false,
+          "release": false
+        }
+      ],
+      "scope": "project",
+      "severity": "warning",
+      "supersedes": [],
+      "title": "Object inferred, review",
+      "waivable": true
+    },
+    {
+      "code": "160006",
+      "id": "EW-IMP-006",
+      "kind": "hygiene",
+      "modes": [
+        "release"
+      ],
+      "open_item": null,
+      "pack": "EW-IMP",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": false,
+          "release": false
+        }
+      ],
+      "scope": "project",
+      "severity": "info",
+      "supersedes": [],
+      "title": "Font substituted",
+      "waivable": true
+    },
+    {
+      "code": "160007",
+      "id": "EW-IMP-007",
+      "kind": "hygiene",
+      "modes": [
+        "release"
+      ],
+      "open_item": null,
+      "pack": "EW-IMP",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": false,
+          "release": false
+        }
+      ],
+      "scope": "project",
+      "severity": "info",
+      "supersedes": [],
+      "title": "Value mapped through an alias table",
+      "waivable": true
+    },
+    {
+      "code": "160008",
+      "id": "EW-IMP-008",
+      "kind": "completeness",
+      "modes": [
+        "release"
+      ],
+      "open_item": null,
+      "pack": "EW-IMP",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": false,
+          "release": false
+        }
+      ],
+      "scope": "project",
+      "severity": "warning",
+      "supersedes": [],
+      "title": "Value kept as foreign or opaque text",
+      "waivable": true
+    },
+    {
+      "code": "160009",
+      "id": "EW-IMP-009",
+      "kind": "conflict",
+      "modes": [
+        "release"
+      ],
+      "open_item": null,
+      "pack": "EW-IMP",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": false,
+          "release": false
+        }
+      ],
+      "scope": "project",
+      "severity": "warning",
+      "supersedes": [],
+      "title": "Print-equivalence deviation",
+      "waivable": true
+    },
+    {
+      "code": "160010",
+      "id": "EW-IMP-010",
+      "kind": "conflict",
+      "modes": [
+        "release"
+      ],
+      "open_item": null,
+      "pack": "EW-IMP",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": false,
+          "release": false
+        }
+      ],
+      "scope": "project",
+      "severity": "warning",
+      "supersedes": [],
+      "title": "Removed in the source, kept here",
+      "waivable": true
+    },
+    {
+      "code": "160011",
+      "id": "EW-IMP-011",
+      "kind": "conflict",
+      "modes": [
+        "release"
+      ],
+      "open_item": null,
+      "pack": "EW-IMP",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": false,
+          "release": false
+        }
+      ],
+      "scope": "project",
+      "severity": "warning",
+      "supersedes": [],
+      "title": "Changed in the source and here, kept here",
+      "waivable": true
+    },
+    {
+      "code": "160101",
+      "id": "EW-IMP-101",
+      "kind": "conflict",
+      "modes": [
+        "release"
+      ],
+      "open_item": null,
+      "pack": "EW-IMP",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": false,
+          "release": false
+        }
+      ],
+      "scope": "project",
+      "severity": "warning",
+      "supersedes": [],
+      "title": "Stored label differs from the formula result",
+      "waivable": true
+    },
+    {
+      "code": "160102",
+      "id": "EW-IMP-102",
+      "kind": "conflict",
+      "modes": [
+        "release"
+      ],
+      "open_item": null,
+      "pack": "EW-IMP",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": false,
+          "release": false
+        }
+      ],
+      "scope": "project",
+      "severity": "warning",
+      "supersedes": [],
+      "title": "Structure-code spelling variants",
+      "waivable": true
+    },
+    {
+      "code": "160103",
+      "id": "EW-IMP-103",
+      "kind": "hygiene",
+      "modes": [
+        "release"
+      ],
+      "open_item": null,
+      "pack": "EW-IMP",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": false,
+          "release": false
+        }
+      ],
+      "scope": "project",
+      "severity": "info",
+      "supersedes": [],
+      "title": "Label kept as a frozen tag",
+      "waivable": true
+    },
+    {
+      "code": "160104",
+      "id": "EW-IMP-104",
+      "kind": "conflict",
+      "modes": [
+        "release"
+      ],
+      "open_item": null,
+      "pack": "EW-IMP",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": false,
+          "release": false
+        }
+      ],
+      "scope": "project",
+      "severity": "warning",
+      "supersedes": [],
+      "title": "Per-folio title-block value conflict",
+      "waivable": true
+    },
+    {
+      "code": "160105",
+      "id": "EW-IMP-105",
+      "kind": "hygiene",
+      "modes": [
+        "release"
+      ],
+      "open_item": null,
+      "pack": "EW-IMP",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": false,
+          "release": false
+        }
+      ],
+      "scope": "project",
+      "severity": "info",
+      "supersedes": [],
+      "title": "Per-folio description kept as an override",
+      "waivable": true
+    },
+    {
+      "code": "160109",
+      "id": "EW-IMP-109",
+      "kind": "hygiene",
+      "modes": [
+        "release"
+      ],
+      "open_item": null,
+      "pack": "EW-IMP",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": false,
+          "release": false
+        }
+      ],
+      "scope": "project",
+      "severity": "info",
+      "supersedes": [],
+      "title": "Strip segments merged into one strip",
+      "waivable": true
+    },
+    {
+      "code": "160114",
+      "id": "EW-IMP-114",
+      "kind": "hygiene",
+      "modes": [
+        "release"
+      ],
+      "open_item": null,
+      "pack": "EW-IMP",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": false,
+          "release": false
+        }
+      ],
+      "scope": "project",
+      "severity": "info",
+      "supersedes": [],
+      "title": "Imported text styles not bound to slot kinds",
+      "waivable": true
+    },
+    {
+      "code": "160115",
+      "id": "EW-IMP-115",
+      "kind": "conflict",
+      "modes": [
+        "release"
+      ],
+      "open_item": null,
+      "pack": "EW-IMP",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": false,
+          "release": false
+        }
+      ],
+      "scope": "project",
+      "severity": "warning",
+      "supersedes": [],
+      "title": "Folio-report pair names differ",
+      "waivable": true
+    },
+    {
+      "code": "160116",
+      "id": "EW-IMP-116",
+      "kind": "completeness",
+      "modes": [
+        "release"
+      ],
+      "open_item": null,
+      "pack": "EW-IMP",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": false,
+          "release": false
+        }
+      ],
+      "scope": "project",
+      "severity": "warning",
+      "supersedes": [],
+      "title": "Slave without master, or master above its slaves",
+      "waivable": true
+    },
+    {
+      "code": "160117",
+      "id": "EW-IMP-117",
+      "kind": "hygiene",
+      "modes": [
+        "release"
+      ],
+      "open_item": null,
+      "pack": "EW-IMP",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": false,
+          "release": false
+        }
+      ],
+      "scope": "project",
+      "severity": "info",
+      "supersedes": [],
+      "title": "Default folio-index formula",
+      "waivable": true
+    },
+    {
+      "code": "160118",
+      "id": "EW-IMP-118",
+      "kind": "hygiene",
+      "modes": [
+        "release"
+      ],
+      "open_item": null,
+      "pack": "EW-IMP",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": false,
+          "release": false
+        }
+      ],
+      "scope": "project",
+      "severity": "info",
+      "supersedes": [],
+      "title": "Junction wiring assumed",
+      "waivable": true
+    },
+    {
+      "code": "160119",
+      "id": "EW-IMP-119",
+      "kind": "completeness",
+      "modes": [
+        "release"
+      ],
+      "open_item": null,
+      "pack": "EW-IMP",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": false,
+          "release": false
+        }
+      ],
+      "scope": "project",
+      "severity": "warning",
+      "supersedes": [],
+      "title": "Element without function semantics",
+      "waivable": true
+    },
+    {
+      "code": "160120",
+      "id": "EW-IMP-120",
+      "kind": "hygiene",
+      "modes": [
+        "release"
+      ],
+      "open_item": null,
+      "pack": "EW-IMP",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": false,
+          "release": false
+        }
+      ],
+      "scope": "project",
+      "severity": "info",
+      "supersedes": [],
+      "title": "Shared element UUID disambiguated",
+      "waivable": true
+    },
+    {
+      "code": "160122",
+      "id": "EW-IMP-122",
+      "kind": "completeness",
+      "modes": [
+        "release"
+      ],
+      "open_item": null,
+      "pack": "EW-IMP",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": false,
+          "release": false
+        }
+      ],
+      "scope": "project",
+      "severity": "info",
+      "supersedes": [],
+      "title": "Unlabelled element, tag synthesised",
+      "waivable": true
+    },
+    {
       "code": "130001",
       "id": "EW-LAY-001",
       "kind": "completeness",

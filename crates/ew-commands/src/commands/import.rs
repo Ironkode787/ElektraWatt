@@ -436,6 +436,7 @@ impl DynCommand for ApplyImport {
                 LibDocument::Form(c) => put_copy(tx, c, keep),
                 LibDocument::Macro(c) => put_copy(tx, c, keep),
                 LibDocument::Manufacturer(c) => put_copy(tx, c, keep),
+                LibDocument::PlcProfile(c) => put_copy(tx, c, keep),
                 LibDocument::Unknown(_) => {}
             }
         }

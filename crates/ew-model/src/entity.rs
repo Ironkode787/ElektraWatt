@@ -13,8 +13,8 @@ use ew_schema::{
     AnyId, Bond, Carrier, Channel, Conductor, Conflict, Connection, Device, DeviceLink, Enclosure,
     ExternalRef, FnDef, FormDef, Function, ImportLineage, ImportRun, Junction, Kind, LayoutSpace, LibCopy,
     LogicalNet, MacroDef, MacroInstance, Manufacturer, MountingSurface, Page, PageItem, Part, PhysicalNet,
-    Placement, PlcConfigProject, PlcProfileDef, PotentialDef, Project, ReportBlock, Representation, Revision, Section,
-    StructureBox, StructureNode, SymbolDef, Waiver,
+    Placement, PlcConfigProject, PlcProfileDef, PotentialDef, Project, ReportBlock, Representation, Revision,
+    Section, StructureBox, StructureNode, SymbolDef, Waiver,
 };
 
 use crate::diff::Presence;
