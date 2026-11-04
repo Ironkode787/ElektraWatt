@@ -138,7 +138,7 @@ impl HistoryPane {
     }
 
     /// FT-1362: an origin text ([`HistoryPane::origin_of`]) in words in the UI language: "by hand" for the window's,
-    /// "from <name>" for a script, a log or a client, "changed on disk", "import", "merge", "quick fix <rule>"; any
+    /// "from `<name>`" for a script, a log or a client, "changed on disk", "import", "merge", "quick fix `<rule>`"; any
     /// other text as it is.
     pub fn origin_words(origin: &str) -> String {
         use crate::strings::{format, text};

@@ -180,7 +180,7 @@ fn by_hand(rule: &str, discriminator: &str, en: &str, args: &[(&'static str, &st
     let meta = ew_checks::rule(rule).expect("registered").meta();
     let mut f = ew_checks::Finding::new(meta, [], discriminator, "", en);
     for (k, v) in args {
-        f = f.arg(*k, *v);
+        f = f.arg(k, *v);
     }
     assert_eq!(format(&f, DEFAULT_LANGUAGE).as_deref(), Some(en), "{rule}");
     f
