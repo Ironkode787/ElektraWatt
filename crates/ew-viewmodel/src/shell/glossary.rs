@@ -116,8 +116,45 @@ impl ShellModel {
             Err(e) => e,
             Ok(text) => {
                 text.unwrap_or_default().clone_into(&mut self.glossary_filter);
+                self.glossary_row = None;
                 Outcome::Done
             }
         }
+    }
+
+    /// The row cursor of the glossary pane (FT-1281): the index of its row among [`ShellModel::glossary_rows`], none
+    /// before the first move or a new search.
+    pub fn glossary_row(&self) -> Option<usize> {
+        let n = self.glossary_rows().len();
+        self.glossary_row.filter(|r| *r < n)
+    }
+
+    /// `glossary.row {step?, to?}` (Up and Down in the pane's field, FT-1281): moves the row cursor by `step` rows
+    /// (from before the first row when there is none) or to row `to` (1-based), kept within the rows; nothing to move
+    /// over no row.
+    pub(crate) fn act_glossary_row(&mut self, p: &Map<String, Value>) -> Outcome {
+        let n = self.glossary_rows().len();
+        if n == 0 {
+            return Outcome::Done;
+        }
+        let at = if let Some(step) = p.get("step") {
+            let Some(step) = step.as_i64() else {
+                return super::failed(crate::key!("error-bad-param"), &["step"]);
+            };
+            let from = match self.glossary_row() {
+                Some(r) => r as i64,
+                None if step > 0 => -1,
+                None => 0,
+            };
+            (from + step).clamp(0, n as i64 - 1)
+        } else {
+            match p.get("to").and_then(Value::as_u64) {
+                Some(to) if to >= 1 && (to as usize) <= n => to as i64 - 1,
+                Some(_) | None if p.contains_key("to") => return super::failed(crate::key!("error-bad-param"), &["to"]),
+                _ => return super::failed(crate::key!("error-missing-param"), &["step"]),
+            }
+        };
+        self.glossary_row = Some(at as usize);
+        Outcome::Done
     }
 }

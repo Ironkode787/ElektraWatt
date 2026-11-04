@@ -102,6 +102,65 @@ fn gt1_gt5_the_glossary_pane_is_named_and_folio_reports_insert_arms_the_ip_tool_
     h.state_mut().shell_mut().shutdown();
 }
 
+/// The glossary pane's search field.
+fn field<'h>(h: &'h Harness<'_, App>) -> egui_kittest::Node<'h> {
+    h.get_all_by_label("Glossary")
+        .find(|n| n.accesskit_node().role() == egui::accesskit::Role::Group)
+        .unwrap()
+        .get_by_role(egui::accesskit::Role::TextInput)
+}
+
+/// FT-1281: in the glossary's field Down and Up move a row cursor, its row alone selected for AccessKit, a new search
+/// starts it again, and Enter runs the cursor row's first enabled action (Insert arms the IP tool).
+#[test]
+fn ft1281_the_glossary_has_a_keyboard_row_cursor() {
+    let tmp = Tmp::new();
+    let dir = tmp.golden("g.ew");
+    let mut h = harness(&tmp, Scripted::default(), Some(dir));
+    settle(&mut h);
+    dispatch(&mut h, "page.goto", json!({"folio": "102"}));
+    dispatch(&mut h, "help.glossary", json!({}));
+    settle(&mut h);
+    let selected = |h: &Harness<'_, App>| -> Vec<String> {
+        h.root()
+            .children_recursive()
+            .filter(|n| {
+                let n = n.accesskit_node();
+                n.role() == egui::accesskit::Role::Group && n.is_selected() == Some(true)
+            })
+            .map(|n| n.accesskit_node().label().unwrap_or_default())
+            .collect()
+    };
+    field(&h).click();
+    settle(&mut h);
+    assert_eq!(h.state().shell().glossary_row(), None);
+    assert_eq!(selected(&h), Vec::<String>::new());
+    for _ in 0..2 {
+        h.key_press(egui::Key::ArrowDown);
+        settle(&mut h);
+    }
+    assert_eq!(h.state().shell().glossary_row(), Some(1));
+    let second = h.state().shell().glossary_rows()[1].term.clone();
+    assert_eq!(selected(&h), [second]);
+    h.key_press(egui::Key::ArrowUp);
+    h.key_press(egui::Key::ArrowUp);
+    settle(&mut h);
+    assert_eq!(h.state().shell().glossary_row(), Some(0), "kept at the first row");
+    // A search starts the cursor again; Down and Enter run the row's Insert.
+    dispatch(&mut h, "glossary.filter", json!({"text": "folio report"}));
+    settle(&mut h);
+    assert_eq!(h.state().shell().glossary_row(), None);
+    field(&h).click();
+    settle(&mut h);
+    h.key_press(egui::Key::ArrowDown);
+    settle(&mut h);
+    assert_eq!(selected(&h), ["Interruption point"]);
+    h.key_press(egui::Key::Enter);
+    settle(&mut h);
+    assert_eq!(h.state().shell().tool().name(), "ip");
+    h.state_mut().shell_mut().shutdown();
+}
+
 /// C49-p8#8: a cased stroke's casing is painted first, `CASING_PX` physical pixel wider on each side, in the casing
 /// colour; then the stroke in its colour.
 #[test]

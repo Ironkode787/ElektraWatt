@@ -638,6 +638,8 @@ pub struct ShellModel {
     // WP-S2.08 part 6
     /// The glossary pane's search text (D16).
     glossary_filter: String,
+    /// The glossary pane's row cursor (FT-1281), an index into its rows; none before the first move.
+    glossary_row: Option<usize>,
     /// Whether the wire-colour view is on (View ▸ Wire colours, D18): view state of the session, off at start.
     wire_colours: bool,
     /// The wire-colour view's Connections table and the (session epoch, revision) it was fetched at.
@@ -1001,6 +1003,7 @@ impl ShellModel {
             person: mode == Mode::Gui,
             revision: revision::RevisionState::default(),
             glossary_filter: String::new(),
+            glossary_row: None,
             wire_colours: false,
             wire_colour_cache: std::cell::RefCell::new(None),
             collab: external::CollabState::default(),

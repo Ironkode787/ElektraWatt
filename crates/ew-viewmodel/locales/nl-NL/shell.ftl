@@ -2833,6 +2833,7 @@ revision-waivers-one = Goedkeuren erkent ook 1 geldende veiligheidsvrijstelling.
 # WP-S2.08 part 6: het woordenlijstvenster (D16), de eenmalige tips (D17) en de aderkleurweergave (D18).
 action-help-glossary = Woordenlijst
 action-glossary-filter = Zoeken in de woordenlijst
+action-glossary-row = De cursor van de woordenlijst verplaatsen
 action-view-wire-colours = Aderkleuren
 pane-glossary = Woordenlijst
 glossary-term = EW-term

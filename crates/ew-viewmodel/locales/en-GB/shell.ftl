@@ -3065,6 +3065,7 @@ revision-waivers-one = Approving also acknowledges 1 safety waiver in force.
 # WP-S2.08 part 6: the glossary pane (D16), the one-time tips (D17) and the wire-colour view (D18).
 action-help-glossary = Glossary
 action-glossary-filter = Search the glossary
+action-glossary-row = Move the glossary cursor
 action-view-wire-colours = Wire colours
 pane-glossary = Glossary
 glossary-term = EW term

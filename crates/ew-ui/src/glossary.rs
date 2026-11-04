@@ -10,6 +10,8 @@
 //!
 //! **Accessibility.** The pane is a `Group` named "Glossary"; the field is named by its hint; each row is a `Group`
 //! named by its term, its other cells its description (`EPLAN: …; QET: …; <definition>`, "none" for an empty cell).
+//! In the field, Up and Down move a row cursor (`glossary.row`; the row selected for AccessKit) and Enter runs the
+//! cursor row's first enabled action (FT-1281).
 
 use egui::{Sense, Ui, Vec2};
 use ew_viewmodel::shell::{GlossaryRow, ShellModel};
@@ -67,6 +69,24 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         let field = components::filter_field(ui, &mut filter, strings::text(key!("glossary-search")));
         if field.changed() {
             events.push(Event::Action("glossary.filter", json!({ "text": filter })));
+        }
+        // FT-1281: in the field, Up and Down move the row cursor and Enter runs the cursor row's first enabled action.
+        if field.has_focus() {
+            for (key, step) in [(egui::Key::ArrowDown, 1), (egui::Key::ArrowUp, -1)] {
+                if ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, key)) {
+                    events.push(Event::Action("glossary.row", json!({ "step": step })));
+                }
+            }
+        }
+        if field.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)) {
+            let rows = shell.glossary_rows();
+            let first = shell
+                .glossary_row()
+                .and_then(|r| rows.get(r))
+                .and_then(|r| r.actions.iter().filter_map(|a| actions::find(a)).find(|m| (m.enabled)(shell).is_ok()));
+            if let Some(meta) = first {
+                events.push(Event::Action(meta.id, Value::Null));
+            }
         }
         ui.add_space(t.space_2);
         let rows = shell.glossary_rows();
@@ -126,8 +146,9 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         egui::ScrollArea::vertical()
             .auto_shrink([false, true])
             .show(ui, |ui| {
-                for r in &rows {
-                    row(ui, &t, shell, r, &widths, events);
+                let cursor = shell.glossary_row();
+                for (i, r) in rows.iter().enumerate() {
+                    row(ui, &t, shell, r, &widths, cursor == Some(i), events);
                 }
             });
     });
@@ -180,13 +201,15 @@ fn header(ui: &mut Ui, t: &Tokens, widths: &[f32; 5]) {
 }
 
 /// One term's row: the texts wrapped in their columns, `space.2` above and below the tallest, at least `size.row`
-/// high; the actions stacked in the last column.
+/// high; the actions stacked in the last column. The cursor's row (FT-1281) has the hover overlay, as a navigator's
+/// does, is selected for AccessKit and is scrolled into view.
 fn row(
     ui: &mut Ui,
     t: &Tokens,
     shell: &ShellModel,
     r: &GlossaryRow,
     widths: &[f32; 5],
+    cursor: bool,
     events: &mut Vec<Event>,
 ) {
     let strong = theme::TypeToken {
@@ -217,8 +240,14 @@ fn row(
     let height = (text_h.max(actions_h) + 2.0 * t.space_2).max(t.size_row);
     let (rect, _) = ui.allocate_exact_size(Vec2::new(ui.available_width(), height), Sense::hover());
     let id = ui.scope_id().with(("glossary-row", &r.term));
-    ui.interact(rect, id, Sense::hover())
-        .widget_info(|| egui::WidgetInfo::labeled(egui::Role::Group, true, &r.term));
+    let response = ui.interact(rect, id, Sense::hover());
+    response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Group, true, &r.term));
+    ui.ctx().accesskit_node_builder(id, |n| n.set_selected(cursor));
+    if cursor {
+        ui.painter()
+            .rect_filled(rect, egui::CornerRadius::ZERO, t.state_hover.color32());
+        response.scroll_to_me(None);
+    }
     // The painted cells, for a screen reader: the row's description.
     let none = strings::text(key!("glossary-none"));
     let or_none = |text: &str| {

@@ -3576,6 +3576,19 @@ pub static ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_glossary_filter(p),
         )),
     )),
+    // FT-1281: the glossary pane's row cursor (Up and Down in its field).
+    keeps_banner(with_params(
+        "step?:int, to?:uint",
+        hidden(act(
+            "glossary.row",
+            View,
+            Menu::Help,
+            &[],
+            project_open,
+            None,
+            |s, p| s.act_glossary_row(p),
+        )),
+    )),
     keeps_banner(act(
         "help.notices",
         View,
