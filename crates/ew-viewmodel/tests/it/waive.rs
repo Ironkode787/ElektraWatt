@@ -322,7 +322,12 @@ fn ft696_a_named_connection_point_draws_its_wires_or_its_ring() {
     let mut shell = tmp.shell_in(Mode::Gui, true, "103");
     let page = std::sync::Arc::clone(shell.canvas().expect("folio 103").page());
     let sheet = |p: &(i64, i64)| page.snapper.page_to_sheet(*p);
-    let wired = page.tables.cps.iter().find(|c| !c.connections.is_empty()).expect("a wired CP");
+    let wired = page
+        .tables
+        .cps
+        .iter()
+        .find(|c| !c.connections.is_empty())
+        .expect("a wired CP");
     let lines = page.conflict_lines(&[], &[(wired.function, wired.idx)]);
     let expected: Vec<Vec<(i64, i64)>> = page
         .tables
@@ -333,7 +338,12 @@ fn ft696_a_named_connection_point_draws_its_wires_or_its_ring() {
         .collect();
     assert!(!expected.is_empty());
     assert_eq!(lines, expected);
-    let lone = page.tables.cps.iter().find(|c| c.connections.is_empty()).expect("a CP without wires");
+    let lone = page
+        .tables
+        .cps
+        .iter()
+        .find(|c| c.connections.is_empty())
+        .expect("a CP without wires");
     let ring = page.conflict_lines(&[], &[(lone.function, lone.idx)]);
     assert_eq!(ring.len(), 1, "one ring");
     let ring = &ring[0];
@@ -343,7 +353,10 @@ fn ft696_a_named_connection_point_draws_its_wires_or_its_ring() {
     let step = page.tables.grid.0 / page.tables.grid.1;
     for &(x, y) in ring {
         let r = (((x - cx) as f64).powi(2) + ((y - cy) as f64).powi(2)).sqrt();
-        assert!((r - step as f64 / 2.0).abs() <= 1.0, "{r} nm from the point, half of {step}");
+        assert!(
+            (r - step as f64 / 2.0).abs() <= 1.0,
+            "{r} nm from the point, half of {step}"
+        );
     }
     assert_eq!(page.conflict_lines(&[], &[]), Vec::<Vec<(i64, i64)>>::new());
     shell.shutdown();

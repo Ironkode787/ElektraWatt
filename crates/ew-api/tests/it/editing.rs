@@ -424,7 +424,11 @@ fn ft771_tag_at_is_where_the_labels_layer_prints_the_tag() {
         }
     }
     assert!(reported > 0);
-    assert_eq!(raised.len(), 1, "one raise, the tag style's text height: {raised:?}");
+    assert_eq!(
+        raised.len(),
+        1,
+        "one raise, the tag style's text height: {raised:?}"
+    );
 }
 
 /// FT-421: the catalogue lists every terminal strip of the project by its printed tag, with the next free decimal

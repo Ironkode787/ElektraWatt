@@ -1641,13 +1641,18 @@ impl Builder<'_> {
                     collides(at, b)
                 }
             };
-            let Some(mut bottom) = others().filter(|o| hits(own, *o)).map(|(_, _, b)| b.max().y).max() else {
+            let Some(mut bottom) = others()
+                .filter(|o| hits(own, *o))
+                .map(|(_, _, b)| b.max().y)
+                .max()
+            else {
                 continue;
             };
             // Where it lands it may still meet a text of its own symbol (its CP designation reaching under it): it
             // drops below that one too, at most [`SLOT_TEXT_DROPS`] times; else it stays where it was.
-            let blocked =
-                |at: Rect, (same, _, b): (bool, bool, Rect)| if same { overlaps(at, b) } else { collides(at, b) };
+            let blocked = |at: Rect, (same, _, b): (bool, bool, Rect)| {
+                if same { overlaps(at, b) } else { collides(at, b) }
+            };
             for _ in 0..SLOT_TEXT_DROPS {
                 let drop = Nm(bottom.0 + SLOT_TEXT_GAP.0 - own.min().y.0);
                 let moved = Rect::from_points(

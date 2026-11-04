@@ -711,9 +711,12 @@ fn acceptance(report: &str, milestone: bool, m2: bool) -> Result<bool> {
         command.args(["--run-ignored", "all", "-E", &requirements::gate_filter(&tests)]);
         Some(map)
     } else {
-        command
-            .args(["-p", "ew-api", "--test", "acceptance"])
-            .args(["--run-ignored", "only", "-E", "test(=gate)"]);
+        command.args(["-p", "ew-api", "--test", "acceptance"]).args([
+            "--run-ignored",
+            "only",
+            "-E",
+            "test(=gate)",
+        ]);
         None
     };
     if milestone {
@@ -725,9 +728,12 @@ fn acceptance(report: &str, milestone: bool, m2: bool) -> Result<bool> {
     if report.exists() {
         if let Some(map) = &map {
             let xml = std::fs::read_to_string(&junit).unwrap_or_default();
-            let text = std::fs::read_to_string(&report).with_context(|| format!("reading {}", report.display()))?;
-            let sections = requirements::gate_sections(&root, map, &requirements::junit_results(&xml), &text)?;
-            std::fs::write(&report, text + &sections).with_context(|| format!("writing {}", report.display()))?;
+            let text =
+                std::fs::read_to_string(&report).with_context(|| format!("reading {}", report.display()))?;
+            let sections =
+                requirements::gate_sections(&root, map, &requirements::junit_results(&xml), &text)?;
+            std::fs::write(&report, text + &sections)
+                .with_context(|| format!("writing {}", report.display()))?;
         }
         println!("acceptance: report written to {}", report.display());
         if junit.exists() {

@@ -486,7 +486,12 @@ impl CanvasPage {
             .connections
             .iter()
             .filter(|t| wires.binary_search(&t.id).is_ok())
-            .map(|t| t.polyline.iter().map(|p| self.snapper.page_to_sheet(*p)).collect())
+            .map(|t| {
+                t.polyline
+                    .iter()
+                    .map(|p| self.snapper.page_to_sheet(*p))
+                    .collect()
+            })
             .collect();
         let (num, den) = self.tables.grid;
         let radius = (num / den.max(1)).max(1) as f64 / 2.0;

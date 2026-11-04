@@ -46,10 +46,8 @@ impl Census {
     fn visit(&mut self, h: &mut Harness<'_, App>, surface: &str) {
         h.run_ok();
         h.run_ok();
-        self.problems
-            .extend(support::accessibility_problems(h, surface));
-        self.problems
-            .extend(support::availability_problems(h, surface));
+        self.problems.extend(support::accessibility_problems(h, surface));
+        self.problems.extend(support::availability_problems(h, surface));
         self.surfaces.push(surface.to_owned());
     }
 
@@ -166,10 +164,7 @@ fn census_the_window_its_tabs_menus_panes_and_navigators() {
     census.visit(&mut h, "folio 101 with a device and a wire");
     for tab in Tab::ALL {
         dispatch(&mut h, "view.command_tab", json!({"tab": tab.word()}));
-        census.visit(
-            &mut h,
-            &format!("the {} tab", strings::text(tab.label_key())),
-        );
+        census.visit(&mut h, &format!("the {} tab", strings::text(tab.label_key())));
     }
     // Every menu of the app menu; R6 reaches its entries (a disabled one is under the Menu button).
     let menu_button = strings::text(key!("commandbar-menu"));
@@ -550,14 +545,13 @@ fn the_walker_names_each_failing_node_in_words() {
         // kittest's own check would stop at the unnamed button: the walker's lines are the subject here.
         .with_accessibility_check(false)
         .build_ui(|ui| {
-        let check = ui.checkbox(&mut grid, "Grid");
-        ui.ctx()
-            .accesskit_node_builder(check.id, |n| n.clear_toggled());
-        egui::ComboBox::from_label("Kind")
-            .selected_text("contact")
-            .show_ui(ui, |_| {});
-        ui.add(egui::Button::new(""));
-    });
+            let check = ui.checkbox(&mut grid, "Grid");
+            ui.ctx().accesskit_node_builder(check.id, |n| n.clear_toggled());
+            egui::ComboBox::from_label("Kind")
+                .selected_text("contact")
+                .show_ui(ui, |_| {});
+            ui.add(egui::Button::new(""));
+        });
     h.run();
     let bounds = h
         .get_all_by_role(egui::Role::Button)

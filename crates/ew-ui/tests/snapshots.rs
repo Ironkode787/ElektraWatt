@@ -62,7 +62,8 @@ fn bless() -> bool {
 }
 
 fn device() -> ew_render2d::gpu::HeadlessDevice {
-    offscreen::device().expect("no adapter: DX12 WARP on Windows or Mesa's lavapipe on Linux at least must be found")
+    offscreen::device()
+        .expect("no adapter: DX12 WARP on Windows or Mesa's lavapipe on Linux at least must be found")
 }
 
 /// Writes `image` for review as `name` and, when `gated`, compares it with the blessed file (or blesses it). Returns
@@ -85,7 +86,8 @@ fn record(name: &str, image: &ew_render_cpu::RgbaImage, gated: bool) -> Option<S
     if bless() {
         if cfg!(target_os = "linux") {
             let differs = offscreen::read_png(&shared).is_none_or(|old| {
-                offscreen::compare(&old, image).is_none_or(|(count, _)| count > offscreen::MAX_DIFFERING_PIXELS)
+                offscreen::compare(&old, image)
+                    .is_none_or(|(count, _)| count > offscreen::MAX_DIFFERING_PIXELS)
             });
             if differs {
                 offscreen::write_png(image, &linux);

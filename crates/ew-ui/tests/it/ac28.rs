@@ -242,7 +242,8 @@ fn ac28_the_four_steps_on_one_copy_of_golden_a() {
     // The window's dwell timer, dispatched as the window dispatches it: no clock is read (ID-559).
     dispatch(&mut h, "canvas.dwell", json!({"ms": 80}));
     settle(&mut h);
-    let Some(ew_ui::ew_viewmodel::tools::Ghost::Place { tag: Some(tag), .. }) = h.state().shell().tool_ghost()
+    let Some(ew_ui::ew_viewmodel::tools::Ghost::Place { tag: Some(tag), .. }) =
+        h.state().shell().tool_ghost()
     else {
         panic!("no predicted tag before the click");
     };

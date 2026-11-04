@@ -211,8 +211,8 @@ pub fn accessibility_problems<S>(harness: &Harness<'_, S>, surface: &str) -> Vec
             continue;
         }
         let role = node.role();
-        let reachable =
-            egui::accessibility::is_input(role) || node.data().supports_action(egui::accesskit::Action::Focus);
+        let reachable = egui::accessibility::is_input(role)
+            || node.data().supports_action(egui::accesskit::Action::Focus);
         if !reachable {
             continue;
         }
@@ -256,7 +256,9 @@ pub fn accessibility_problems<S>(harness: &Harness<'_, S>, surface: &str) -> Vec
         {
             states.push("selected");
         }
-        if (role == Role::SpinButton || node.is_text_input()) && node.value().is_none() && node.numeric_value().is_none()
+        if (role == Role::SpinButton || node.is_text_input())
+            && node.value().is_none()
+            && node.numeric_value().is_none()
         {
             states.push("value");
         }

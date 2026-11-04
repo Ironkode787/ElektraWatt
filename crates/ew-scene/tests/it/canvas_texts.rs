@@ -455,7 +455,11 @@ fn the_labels_layer_reports_a_moved_tag_where_it_prints() {
     let id = Uuid::from_u128(0x33);
     assert_eq!(moved.keys().collect::<Vec<_>>(), [&id], "the valve's tag alone");
     let tag = run(&runs(&wired), 0x33, "-101M1").rect;
-    assert_ne!(tag, run(&runs(&unwired), 0x33, "-101M1").rect, "the case: the rule moves the tag");
+    assert_ne!(
+        tag,
+        run(&runs(&unwired), 0x33, "-101M1").rect,
+        "the case: the rule moves the tag"
+    );
     let at = moved[&id];
     assert!(
         tag.min().x <= at.x && at.x <= tag.max().x && tag.min().y <= at.y && at.y <= tag.max().y,
@@ -614,7 +618,14 @@ fn a_risen_caption_clears_another_caption() {
 #[test]
 fn a_technical_data_text_drops_below_a_pin_text_it_would_overlap() {
     let valve = symbol(VALVE);
-    let bx = boxed(0x12, (30, 30), (12, 12), &[(0, (0, 6), "left")], &[(0, "Q0.2")], None);
+    let bx = boxed(
+        0x12,
+        (30, 30),
+        (12, 12),
+        &[(0, (0, 6), "left")],
+        &[(0, "Q0.2")],
+        None,
+    );
     let pin = run(&runs(&view(vec![bx.clone()], Vec::new())), 0x12, "Q0.2").rect;
     let at = |pos: Pt2| {
         let mut m = RepView {
@@ -631,7 +642,10 @@ fn a_technical_data_text_drops_below_a_pin_text_it_would_overlap() {
     let data = run(&runs(&view(vec![at(Pt2::ORIGIN)], Vec::new())), 0x33, "24 V").rect;
     let valve_at = Pt2::new(pin.min().x - data.min().x, pin.min().y - data.min().y);
     let alone = run(&runs(&view(vec![at(valve_at)], Vec::new())), 0x33, "24 V").rect;
-    assert!(overlap(alone, pin), "the case: {alone:?} over the pin text {pin:?}");
+    assert!(
+        overlap(alone, pin),
+        "the case: {alone:?} over the pin text {pin:?}"
+    );
     let r = runs(&view(vec![bx, at(valve_at)], Vec::new()));
     let moved = run(&r, 0x33, "24 V").rect;
     assert_eq!(run(&r, 0x12, "Q0.2").rect, pin, "the pin text stays");

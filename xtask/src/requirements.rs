@@ -89,7 +89,8 @@ fn cells(line: &str) -> Vec<String> {
 /// Whether `id` has the form of a requirement row ID (`FR-PRJ-001`, `NFR-A11Y-02`).
 fn is_requirement_id(id: &str) -> bool {
     let mut parts = id.split('-');
-    let (Some(kind), Some(area), Some(number), None) = (parts.next(), parts.next(), parts.next(), parts.next())
+    let (Some(kind), Some(area), Some(number), None) =
+        (parts.next(), parts.next(), parts.next(), parts.next())
     else {
         return false;
     };
@@ -143,7 +144,8 @@ fn requirement_ids(cell: &str) -> Vec<String> {
         let item = item.trim();
         if let Some((from, to)) = item.split_once('…') {
             let (from, to) = (from.trim(), to.trim());
-            let (Some((prefix, a)), Some((prefix_b, b))) = (from.rsplit_once('-'), to.rsplit_once('-')) else {
+            let (Some((prefix, a)), Some((prefix_b, b))) = (from.rsplit_once('-'), to.rsplit_once('-'))
+            else {
                 continue;
             };
             if let (true, Ok(a_n), Ok(b_n)) = (prefix == prefix_b, a.parse::<u32>(), b.parse::<u32>()) {
@@ -158,7 +160,8 @@ fn requirement_ids(cell: &str) -> Vec<String> {
 
 /// The AC rows of doc 20 §21: (AC, its requirement IDs), in document order.
 pub(crate) fn ac_rows(root: &Path) -> Result<Vec<(String, Vec<String>)>> {
-    let text = std::fs::read_to_string(root.join(GOLDEN_DOC)).with_context(|| format!("reading {GOLDEN_DOC}"))?;
+    let text =
+        std::fs::read_to_string(root.join(GOLDEN_DOC)).with_context(|| format!("reading {GOLDEN_DOC}"))?;
     let Some(start) = text.find("\n## 21. ") else {
         bail!("{GOLDEN_DOC}: no section 21");
     };
@@ -259,7 +262,9 @@ pub(crate) fn map_problems(root: &Path, map: &Map, gp: &[Requirement]) -> Vec<St
                 problems.push(format!("{MAP}: {id} is listed twice"));
             }
             if is_requirement && !gp.contains(id.as_str()) {
-                problems.push(format!("{MAP}: {id} is not a requirement whose acceptance names GP"));
+                problems.push(format!(
+                    "{MAP}: {id} is not a requirement whose acceptance names GP"
+                ));
             }
             for test in tests {
                 if !test_exists(root, test) {
@@ -291,8 +296,10 @@ pub(crate) fn rows(root: &Path, map: &Map) -> Result<Vec<Row>> {
         .iter()
         .map(|(id, _)| id.split(' ').next().unwrap_or(id))
         .collect();
-    let mapped: BTreeMap<&str, &Vec<String>> = map.requirements.iter().map(|(id, t)| (id.as_str(), t)).collect();
-    let crit_tests: BTreeMap<&str, &Vec<String>> = map.criteria.iter().map(|(id, t)| (id.as_str(), t)).collect();
+    let mapped: BTreeMap<&str, &Vec<String>> =
+        map.requirements.iter().map(|(id, t)| (id.as_str(), t)).collect();
+    let crit_tests: BTreeMap<&str, &Vec<String>> =
+        map.criteria.iter().map(|(id, t)| (id.as_str(), t)).collect();
     let mut out = Vec::new();
     for req in mvp_rows(&gp_rows(root)?) {
         let its: Vec<String> = acs
@@ -300,7 +307,10 @@ pub(crate) fn rows(root: &Path, map: &Map) -> Result<Vec<Row>> {
             .filter(|(_, ids)| ids.contains(&req.id))
             .map(|(ac, _)| ac.clone())
             .collect();
-        let mut tests: Vec<String> = mapped.get(req.id.as_str()).map(|t| t.to_vec()).unwrap_or_default();
+        let mut tests: Vec<String> = mapped
+            .get(req.id.as_str())
+            .map(|t| t.to_vec())
+            .unwrap_or_default();
         // A criterion of the map that is this requirement (NFR-A11Y-01) proves it too.
         if let Some(t) = crit_tests.get(req.id.as_str()) {
             tests.extend(t.iter().cloned());
@@ -487,14 +497,25 @@ fn report_ac_results(report: &str) -> BTreeMap<String, bool> {
 /// The gate's sections of the report (gate M2): the criteria outside the runner and every requirement row, each with
 /// `pass`, `fail` or `missing` from the JUnit results and the report's AC entries. `missing` does not block
 /// (ID-1332 O3).
-pub(crate) fn gate_sections(root: &Path, map: &Map, junit: &BTreeMap<String, bool>, report: &str) -> Result<String> {
+pub(crate) fn gate_sections(
+    root: &Path,
+    map: &Map,
+    junit: &BTreeMap<String, bool>,
+    report: &str,
+) -> Result<String> {
     let acs = report_ac_results(report);
     let result = |t: &String| junit.get(t).copied();
     let mut criteria: BTreeMap<&str, Vec<Option<bool>>> = BTreeMap::new();
-    let mut out = String::from("\n## Gate M2: the criteria outside the runner\n\n| Criterion | Tests | Status |\n|---|---|---|\n");
+    let mut out = String::from(
+        "\n## Gate M2: the criteria outside the runner\n\n| Criterion | Tests | Status |\n|---|---|---|\n",
+    );
     for (id, tests) in &map.criteria {
         let results: Vec<Option<bool>> = tests.iter().map(result).collect();
-        out.push_str(&format!("| {id} | {} | {} |\n", tests_cell(tests), status(&results)));
+        out.push_str(&format!(
+            "| {id} | {} | {} |\n",
+            tests_cell(tests),
+            status(&results)
+        ));
         criteria.insert(id.split(' ').next().unwrap_or(id), results);
     }
     out.push_str(
