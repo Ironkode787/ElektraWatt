@@ -13,7 +13,7 @@
 [[allow]]
 crate = "elektrawatt"
 item = "fn bin_exe"
-count = 9
+count = 10
 
 [[allow]]
 crate = "elektrawatt"
@@ -33,7 +33,7 @@ count = 1
 [[allow]]
 crate = "ew"
 item = "fn bin_exe"
-count = 5
+count = 6
 
 [[allow]]
 crate = "ew"
