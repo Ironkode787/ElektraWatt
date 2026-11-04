@@ -627,7 +627,8 @@ pub fn note(run: &Run, text: &str) -> Result<String> {
     Ok(out)
 }
 
-/// `handback`: the fixed hand-back with its seven headings, accepted once; it ends a run that goes on.
+/// `handback`: the fixed hand-back with its seven headings, accepted once (in a round task only after the
+/// questionnaire, K7); it ends a run that goes on.
 ///
 /// # Errors
 ///
@@ -641,6 +642,10 @@ pub fn handback(run: &Run, text: &str) -> Result<String> {
         && !matches!(end.as_str(), "quit" | "cap" | "app-closed")
     {
         return Ok(ended(end));
+    }
+    // A round task's persona answers the questionnaire first (WP-S2.12 D11).
+    if !rj.rounds.is_empty() && !run.path("questionnaire.json").is_file() {
+        return Ok(format!("{}\n", super::round::handback_first(run, &rj.run)));
     }
     // A check run files the checker's audit (five headings, `checker.md`); a visual run the play-tester's hand-back
     // (eight headings); the others the drafter's hand-back.
@@ -1280,6 +1285,33 @@ pub mod tests {
         assert_eq!(
             f.run_do(&[s("help.about", serde_json::json!({}))]),
             "harness: the run has ended (handback)\n"
+        );
+    }
+
+    /// UR-5: in a round task the hand-back waits for the questionnaire (K7); a run of another task does not.
+    #[test]
+    fn ur5_a_round_tasks_handback_waits_for_the_questionnaire() {
+        let f = fixture(Kind::Brief);
+        f.run.update(|j| j.rounds = vec!["R0".to_owned()]).unwrap();
+        let all: Vec<String> = HANDBACK_HEADINGS.iter().map(|h| format!("## {h}\nx")).collect();
+        assert_eq!(
+            handback(&f.run, &all.join("\n")).unwrap(),
+            format!(
+                "harness: file the questionnaire before the hand-back ({} questionnaire r1 -)\n",
+                f.run.blind_command()
+            )
+        );
+        assert!(!f.run.load().unwrap().handed_back && !f.run.path("handback.md").exists());
+        std::fs::write(f.run.path("questionnaire.json"), "{}\n").unwrap();
+        assert_eq!(
+            handback(&f.run, &all.join("\n")).unwrap(),
+            "hand-back filed; the run is over\n"
+        );
+        // A brief without rounds files its hand-back at once.
+        let g = fixture(Kind::Brief);
+        assert_eq!(
+            handback(&g.run, &all.join("\n")).unwrap(),
+            "hand-back filed; the run is over\n"
         );
     }
 

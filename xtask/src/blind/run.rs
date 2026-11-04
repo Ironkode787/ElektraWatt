@@ -391,6 +391,14 @@ pub struct RunJson {
     /// After `stop`: whether `golden/` changed during the run (D16); such a run is never blessed.
     #[serde(default)]
     pub golden_changed: bool,
+    /// A brief's start project (`gp-ut` or `golden-a`, WP-S2.12 D5): `work/project` is a copy of the project `start`
+    /// made in `.harness/start-project`; absent for a run that starts from its prelude alone.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub start: Option<String>,
+    /// The usability rounds of a brief's task (`R0`, `R1`, WP-S2.12 D11): a round task's hand-back waits for the
+    /// questionnaire. Empty, and left out of the file, for every other run.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub rounds: Vec<String>,
 }
 
 /// Whether `task` is one of the self-test tasks (`selftest`, `selftest-visual`). Their prompt names no persona and no
@@ -489,6 +497,9 @@ pub struct Turn {
     /// In a visual run, for `do` and `look`: the frame the call wrote (`t0003.png`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub frame: Option<String>,
+    /// For `hint`: the number of the hint the call printed (WP-S2.12 D8), from 1.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub hint: Option<u32>,
 }
 
 /// The directory of a run and the paths inside it.
@@ -778,6 +789,8 @@ mod tests {
             clean_before_epilogue: None,
             child_exit: None,
             golden_changed: false,
+            start: None,
+            rounds: Vec::new(),
         };
         run.save(&json).unwrap();
         assert_eq!(run.load().unwrap(), json);

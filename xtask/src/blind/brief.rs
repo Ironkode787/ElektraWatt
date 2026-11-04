@@ -16,6 +16,13 @@
 //! be met; every soft item met or marked `infeasible = "<reason / WP>"`. A step of the solution that only the
 //! prelude's command form can do (`command.run`) is a finding: the window has no path for it. `start --kind brief`
 //! refuses a brief that does not pass.
+//!
+//! **The usability rounds' tasks (WP-S2.12 D4 to D8):** `task.toml` may name the task (`task_id`, `T1`), its rounds
+//! (`rounds`) and its start project (`start`: `gp-ut` or `golden-a`), which every replay makes as `work/project` from a
+//! copy of the golden project ([`super::start::make_start_project`]) before the prelude opens it. An item may name
+//! `actions`, an ordered list of action IDs (alternatives joined by ` or `) that must be done in that order, decided
+//! from the outcomes. A task may have `hints.toml` (one to three hints, [`super::round`]). [`decide_items`] decides
+//! the items here and at a brief run's `stop`, with the same code.
 
 use std::collections::BTreeSet;
 use std::fmt::Write as _;
@@ -62,6 +69,34 @@ pub struct TaskToml {
     /// by them, and friction in an area still under feature work is parked.
     #[serde(default)]
     pub areas: Vec<String>,
+    /// The task's ID in its plan (`T1`, `A7`; WP-S2.12 D4).
+    #[serde(default)]
+    pub task_id: Option<String>,
+    /// The usability rounds that run the task (`R0`, `R1`, `R2`): a round task's prompt adds `ROUND.md` (D11).
+    #[serde(default)]
+    pub rounds: Vec<String>,
+    /// The start project: `gp-ut` or `golden-a` (D5); absent, the prelude makes the project.
+    #[serde(default)]
+    pub start: Option<String>,
+}
+
+/// K9: a `task.toml` with another start.
+pub const START_VALUES: &str = "task.toml: `start` is `gp-ut` or `golden-a`";
+
+/// The start projects a brief may name (D5).
+pub const STARTS: [&str; 2] = ["gp-ut", "golden-a"];
+
+/// The brief's `task.toml`, or `None` for a task without one (every task that is not a brief).
+///
+/// # Errors
+///
+/// A `task.toml` that does not parse.
+pub fn task_toml(root: &Path, task: &str) -> Result<Option<TaskToml>> {
+    let path = task_dir(root, task).join("task.toml");
+    if !path.is_file() {
+        return Ok(None);
+    }
+    read_toml(&path).map(Some)
 }
 
 /// One item of `acceptance.toml`.
@@ -85,6 +120,9 @@ pub struct Item {
     /// A soft item the current build cannot meet: the reason and the package that brings it.
     #[serde(default)]
     pub infeasible: Option<String>,
+    /// Action IDs that must be done in this order (alternatives joined by ` or `), decided from the outcomes (D7).
+    #[serde(default)]
+    pub actions: Option<Vec<String>>,
 }
 
 /// `acceptance.toml`.
@@ -291,6 +329,27 @@ pub fn check_files(root: &Path, task: &str) -> Result<(BriefCheck, Option<Accept
                     c.problems.push(format!("requires: {e}"));
                 }
             }
+            if t.start.as_deref().is_some_and(|s| !STARTS.contains(&s)) {
+                c.problems.push(START_VALUES.to_owned());
+            }
+        }
+    }
+    // The hints (WP-S2.12 D8): one to three, in the user's words.
+    if dir.join("hints.toml").is_file() {
+        match read_toml::<super::round::Hints>(&dir.join("hints.toml")) {
+            Err(e) => c.problems.push(format!("hints.toml: {e:#}")),
+            Ok(h) => {
+                if !(1..=3).contains(&h.hint.len()) {
+                    c.problems.push("hints.toml: one to three hints".to_owned());
+                }
+                for id in &actions {
+                    if h.hint.iter().any(|x| has_word(&x.text, id)) {
+                        c.problems.push(format!(
+                            "hints.toml names the action {id}: a hint is in a user's words"
+                        ));
+                    }
+                }
+            }
         }
     }
     let acceptance = match read_toml::<Acceptance>(&dir.join("acceptance.toml")) {
@@ -384,7 +443,10 @@ pub fn check_files(root: &Path, task: &str) -> Result<(BriefCheck, Option<Accept
     if let Ok(text) = std::fs::read_to_string(&list) {
         let denylist = crate::anonymise::parse_denylist(&text)?;
         let mut files = Vec::new();
-        for f in ["task.md", "task.toml", "acceptance.toml", "solution.uiscript"] {
+        for f in ["task.md", "task.toml", "acceptance.toml", "solution.uiscript", "hints.toml"] {
+            if !dir.join(f).is_file() {
+                continue;
+            }
             files.push((
                 format!("tools/blind/tasks/{task}/{f}"),
                 std::fs::read_to_string(dir.join(f))?,
@@ -463,11 +525,24 @@ pub fn check_brief_in(root: &Path, task: &str, bin: &Path, parent: &Path) -> Res
             ));
         }
     }
+    let start = task_toml(root, task)?.and_then(|t| t.start);
     let scratch = scratch(parent, task);
-    let result = prove(root, &mut c, &acceptance, &prelude, &solution, &scratch, &exe);
+    let script = Script {
+        prelude: &prelude,
+        solution: &solution,
+        start: start.as_deref(),
+    };
+    let result = prove(root, &mut c, &acceptance, &script, &scratch, &exe);
     let _ = std::fs::remove_dir_all(&scratch);
     result?;
     Ok(c)
+}
+
+/// What [`prove`] replays: the prelude and the reference solution, from the start project if the task names one.
+struct Script<'a> {
+    prelude: &'a [(String, Value)],
+    solution: &'a [(String, Value)],
+    start: Option<&'a str>,
 }
 
 /// The replay and the decisions of [`check_brief`], in `scratch`.
@@ -475,13 +550,25 @@ fn prove(
     root: &Path,
     c: &mut BriefCheck,
     acceptance: &Acceptance,
-    prelude: &[(String, Value)],
-    solution: &[(String, Value)],
+    script: &Script,
     scratch: &Path,
     exe: &dyn Fn(&str) -> PathBuf,
 ) -> Result<()> {
+    let Script {
+        prelude,
+        solution,
+        start,
+    } = *script;
     for sub in ["work", "config", "empty-sample", "book", "out"] {
         std::fs::create_dir_all(scratch.join(sub))?;
+    }
+    // The start project (D5): a copy of the golden project in `work/project`, which the prelude opens.
+    if let Some(start) = start
+        && let Err(e) =
+            super::start::make_start_project(root, start, &exe("ew"), &scratch.join("work/project"))
+    {
+        c.problems.push(format!("{e:#}"));
+        return Ok(());
     }
     let mut script = format!("{}\n", script_header("check-brief"));
     for (a, p) in prelude.iter().chain(solution) {
@@ -549,17 +636,128 @@ fn prove(
         return Ok(());
     }
     let ew_exe = exe("ew");
-    let (check_exit, _) = ew(root, &ew_exe, &["check", "project", "--format", "text"], &work)?;
-    let (_, bom) = ew(
-        root,
-        &ew_exe,
-        &["export", "bom", "project", "--mode", "parts", "--format", "csv"],
-        &work,
-    )?;
+    // The actions the reference solution did, after the prelude (an `actions` item reads them).
+    let done = done_actions(lines.iter().skip(prelude.len()).copied());
+    let decisions = decide_items(acceptance, &work, &done, &mut |args: &[&str]| {
+        ew(root, &ew_exe, args, &work)
+    })?;
+    for (it, decision) in acceptance.item.iter().zip(decisions) {
+        let text = match (&decision, &it.infeasible) {
+            (Ok(()), _) => "met".to_owned(),
+            (Err(why), Some(inf)) if it.kind == "soft" => format!("infeasible ({inf}); {why}"),
+            (Err(why), _) => {
+                c.problems.push(format!(
+                    "{} ({}) is not met by the reference solution: {why}",
+                    it.id, it.kind
+                ));
+                format!("NOT met: {why}")
+            }
+        };
+        c.items.push((it.id.clone(), it.kind.clone(), text));
+    }
+    Ok(())
+}
+
+/// The actions and their outcomes, in order, in the transcript `lines` (after their header): a text line's action, and
+/// each action that a visual input or frame line dispatched.
+pub fn step_outcomes<'a>(lines: impl IntoIterator<Item = &'a str>) -> Vec<(String, String)> {
+    let mut out = Vec::new();
+    for line in lines {
+        let Ok(v) = serde_json::from_str::<Value>(line) else {
+            continue;
+        };
+        let steps: Vec<&Value> = match v["dispatched"].as_array() {
+            Some(d) => d.iter().collect(),
+            None => vec![&v],
+        };
+        for s in steps {
+            if let (Some(a), Some(o)) = (s["action"].as_str(), s["outcome"].as_str()) {
+                out.push((a.to_owned(), o.to_owned()));
+            }
+        }
+    }
+    out
+}
+
+/// The actions done, in order, in the transcript `lines` ([`step_outcomes`] whose outcome is `done`).
+pub fn done_actions<'a>(lines: impl IntoIterator<Item = &'a str>) -> Vec<String> {
+    step_outcomes(lines)
+        .into_iter()
+        .filter(|(_, o)| o == "done")
+        .map(|(a, _)| a)
+        .collect()
+}
+
+/// Whether the actions `wanted` (each an action ID, or alternatives joined by ` or `) were done in this order in
+/// `done`, other actions between them allowed (D7).
+///
+/// # Errors
+///
+/// The first wanted action that was not done after the ones before it.
+pub fn actions_met(wanted: &[String], done: &[String]) -> Result<(), String> {
+    let mut at = 0;
+    for w in wanted {
+        let alternatives: Vec<&str> = w.split(" or ").map(str::trim).collect();
+        match done[at..].iter().position(|d| alternatives.contains(&d.as_str())) {
+            Some(i) => at += i + 1,
+            None => {
+                return Err(format!(
+                    "`{w}` was not done after the actions before it (in order: {})",
+                    wanted.join(", ")
+                ));
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Whether `dir` holds a PDF file that is not empty, at any depth.
+fn holds_pdf(dir: &Path) -> bool {
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return false;
+    };
+    entries.flatten().any(|e| {
+        let p = e.path();
+        if p.is_dir() {
+            holds_pdf(&p)
+        } else {
+            p.extension().is_some_and(|x| x.eq_ignore_ascii_case("pdf"))
+                && std::fs::metadata(&p).is_ok_and(|m| m.len() > 0)
+        }
+    })
+}
+
+/// Runs `ew` with the arguments in the work folder: its exit code and standard output.
+pub type EwFn<'a> = dyn FnMut(&[&str]) -> Result<(Option<i32>, String)> + 'a;
+
+/// Decides every item of `acceptance` on the saved project `<work>/project`, in order: `check-brief` on the reference
+/// solution and `stop` on a brief run (D7) decide with this one code. `done` are the actions done, in order (an
+/// `actions` item reads them); `ew` runs the product's `ew` in `work`. A query decides an item by its row count, else
+/// its outputs do: `pdf` a PDF in `work`, `check` a check report without an error, `bom` a parts list with a row. An
+/// `actions` item must also have its actions done in order.
+///
+/// # Errors
+///
+/// `ew` does not start.
+pub fn decide_items(
+    acceptance: &Acceptance,
+    work: &Path,
+    done: &[String],
+    ew: &mut EwFn,
+) -> Result<Vec<Result<(), String>>> {
+    let (check_exit, _) = ew(&["check", "project", "--format", "text"])?;
+    let (_, bom) = ew(&["export", "bom", "project", "--mode", "parts", "--format", "csv"])?;
+    let mut out = Vec::new();
     for it in &acceptance.item {
+        if let Some(wanted) = &it.actions
+            && let Err(why) = actions_met(wanted, done)
+        {
+            out.push(Err(why));
+            continue;
+        }
         let decision: Result<(), String> = match (&it.query, &it.expect) {
             (Some(q), Some(e)) => {
-                let (code, rows) = ew(root, &ew_exe, &["sql", "project", q, "--format", "csv"], &work)?;
+                let (code, rows) = ew(&["sql", "project", q, "--format", "csv"])?;
                 let n = rows.lines().skip(1).filter(|l| !l.trim().is_empty()).count() as u64;
                 match (code, parse_expect(e)) {
                     (Some(0), Some((op, want))) if holds(op, n, want) => Ok(()),
@@ -570,12 +768,14 @@ fn prove(
                     )),
                 }
             }
+            _ if it.actions.is_some() => Ok(()),
             _ => {
                 let hows: Vec<&str> = it.how.split(',').map(str::trim).collect();
                 if hows.contains(&"pdf") {
-                    match std::fs::metadata(work.join("project.pdf")) {
-                        Ok(m) if m.len() > 0 => Ok(()),
-                        _ => Err("the solution exported no project.pdf".to_owned()),
+                    if holds_pdf(work) {
+                        Ok(())
+                    } else {
+                        Err("no PDF was exported into the work folder".to_owned())
                     }
                 } else if hows.contains(&"check") {
                     if check_exit == Some(0) {
@@ -593,24 +793,13 @@ fn prove(
                         Err("the parts list has no row".to_owned())
                     }
                 } else {
-                    Err("no query decides it on the reference solution".to_owned())
+                    Err("no query or output decides it".to_owned())
                 }
             }
         };
-        let text = match (&decision, &it.infeasible) {
-            (Ok(()), _) => "met".to_owned(),
-            (Err(why), Some(inf)) if it.kind == "soft" => format!("infeasible ({inf}); {why}"),
-            (Err(why), _) => {
-                c.problems.push(format!(
-                    "{} ({}) is not met by the reference solution: {why}",
-                    it.id, it.kind
-                ));
-                format!("NOT met: {why}")
-            }
-        };
-        c.items.push((it.id.clone(), it.kind.clone(), text));
+        out.push(decision);
     }
-    Ok(())
+    Ok(out)
 }
 
 #[cfg(test)]
@@ -754,6 +943,109 @@ mod tests {
             "{:?}",
             c.problems
         );
+    }
+
+    /// UR-2: an `actions` item is met when its actions were done in that order (others between them allowed, an
+    /// alternative joined by ` or ` counts), and not met when one is missing, refused or out of order.
+    #[test]
+    fn ur2_actions_are_met_in_order_only() {
+        let want: Vec<String> = ["nav.follow or props.follow", "nav.back"]
+            .map(str::to_owned)
+            .to_vec();
+        let done = |list: &[&str]| list.iter().map(|s| (*s).to_owned()).collect::<Vec<_>>();
+        assert_eq!(actions_met(&want, &done(&["page.goto", "nav.follow", "ui.describe", "nav.back"])), Ok(()));
+        assert_eq!(actions_met(&want, &done(&["props.follow", "nav.back"])), Ok(()));
+        let missing = Err(
+            "`nav.back` was not done after the actions before it (in order: nav.follow or props.follow, nav.back)"
+                .to_owned(),
+        );
+        assert_eq!(actions_met(&want, &done(&["nav.follow"])), missing);
+        assert_eq!(actions_met(&want, &done(&["nav.back", "nav.follow"])), missing, "out of order");
+        assert_eq!(
+            actions_met(&want, &done(&[])),
+            Err("`nav.follow or props.follow` was not done after the actions before it (in order: nav.follow or \
+                 props.follow, nav.back)"
+                .to_owned())
+        );
+        // The outcomes of a text transcript and a visual one: only what was done counts, a refused step does not.
+        let text = [
+            r#"{"step":1,"action":"nav.follow","outcome":"done","reason":null}"#,
+            r#"{"step":2,"action":"nav.back","outcome":"refused","reason":"reason-x"}"#,
+        ];
+        assert_eq!(done_actions(text), ["nav.follow"]);
+        assert_eq!(actions_met(&want, &done_actions(text)), missing, "a refused step is not done");
+        let visual = [
+            r#"{"frame":"t0000.png","sha256":null,"dispatched":[]}"#,
+            r#"{"step":1,"input":{"input":"click"},"dispatched":[{"action":"nav.follow","outcome":"done","reason":null}]}"#,
+            r#"{"step":2,"input":{"input":"key"},"dispatched":[{"action":"edit.undo","outcome":"refused","reason":"r"},{"action":"nav.back","outcome":"done","reason":null}]}"#,
+        ];
+        assert_eq!(done_actions(visual), ["nav.follow", "nav.back"]);
+        assert_eq!(actions_met(&want, &done_actions(visual)), Ok(()));
+        assert_eq!(
+            step_outcomes(visual)[1],
+            ("edit.undo".to_owned(), "refused".to_owned())
+        );
+    }
+
+    /// UR-2, D7: [`decide_items`] decides an `actions` item from the actions, a query item from its rows and an output
+    /// item from the outputs, in the items' order.
+    #[test]
+    fn ur2_decide_items_reads_the_actions_the_queries_and_the_outputs() {
+        let tmp = crate::blind::testkit::Tmp::new("brief-decide");
+        let acceptance: Acceptance = toml::from_str(
+            "[[item]]\nid = \"A1\"\nkind = \"hard\"\nwhat = \"x\"\nhow = \"outcomes\"\nactions = [\"nav.follow\", \"nav.back\"]\n\n\
+             [[item]]\nid = \"A2\"\nkind = \"hard\"\nwhat = \"y\"\nhow = \"connections\"\nquery = \"SELECT 1\"\nexpect = \">= 2\"\n\n\
+             [[item]]\nid = \"A3\"\nkind = \"hard\"\nwhat = \"z\"\nhow = \"pdf\"\n",
+        )
+        .unwrap();
+        let mut asked = Vec::new();
+        let mut fake = |args: &[&str]| -> Result<(Option<i32>, String)> {
+            asked.push(args.join(" "));
+            Ok((Some(0), "n\n1\n".to_owned()))
+        };
+        let done = vec!["nav.follow".to_owned(), "nav.back".to_owned()];
+        let d = decide_items(&acceptance, &tmp.0, &done, &mut fake).unwrap();
+        assert_eq!(
+            d,
+            [
+                Ok(()),
+                Err("the query returns 1 row(s), expected >= 2".to_owned()),
+                Err("no PDF was exported into the work folder".to_owned())
+            ]
+        );
+        std::fs::write(tmp.0.join("job.pdf"), "%PDF").unwrap();
+        let d = decide_items(&acceptance, &tmp.0, &done[..1], &mut fake).unwrap();
+        assert!(d[0].is_err() && d[2].is_ok(), "{d:?}");
+        assert_eq!(asked[2], "sql project SELECT 1 --format csv");
+    }
+
+    /// K9: a start other than `gp-ut` or `golden-a` makes the brief not runnable; a task's hints are one to three and in
+    /// the user's words.
+    #[test]
+    fn k9_a_start_project_is_gp_ut_or_golden_a_and_the_hints_are_words() {
+        let (tmp, dir) = copy_brief("brief-valve-switch");
+        let t = std::fs::read_to_string(dir.join("task.toml")).unwrap();
+        std::fs::write(dir.join("task.toml"), format!("{t}start = \"golden-b\"\n")).unwrap();
+        std::fs::write(
+            dir.join("hints.toml"),
+            "[[hint]]\ntext = \"Use file.save.\"\n[[hint]]\ntext = \"b\"\n[[hint]]\ntext = \"c\"\n[[hint]]\ntext = \"d\"\n",
+        )
+        .unwrap();
+        let (c, _) = check_files(&tmp.0, "brief-valve-switch").unwrap();
+        assert_eq!(
+            c.problems,
+            [
+                "task.toml: `start` is `gp-ut` or `golden-a`",
+                "hints.toml: one to three hints",
+                "hints.toml names the action file.save: a hint is in a user's words",
+            ]
+        );
+        for start in STARTS {
+            std::fs::write(dir.join("task.toml"), format!("{t}start = \"{start}\"\n")).unwrap();
+            std::fs::write(dir.join("hints.toml"), "[[hint]]\ntext = \"Look at the page.\"\n").unwrap();
+            let (c, _) = check_files(&tmp.0, "brief-valve-switch").unwrap();
+            assert!(c.problems.is_empty(), "{start}: {:?}", c.problems);
+        }
     }
 
     /// Two checks of one brief never share a scratch folder, in one process or under one parent.

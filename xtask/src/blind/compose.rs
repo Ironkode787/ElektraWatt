@@ -10,7 +10,8 @@
 //!
 //! A visual run (WP-S6.13 part 4, visual spec §8) is composed of the play-tester's prompt `PLAYTESTER.md`, the persona,
 //! the task sheet and `HELP-VISUAL.md`, with `{frames}` the run's frames folder. A check run of a brief adds the brief's
-//! `acceptance.toml` after the task sheet: the checker decides the acceptance list.
+//! `acceptance.toml` after the task sheet: the checker decides the acceptance list. A brief whose `task.toml` names
+//! usability rounds adds `ROUND.md` after the task sheet (WP-S2.12 D11): the hint command and the questionnaire.
 
 use std::collections::BTreeMap;
 use std::path::Path;
@@ -135,6 +136,13 @@ pub fn compose(inp: &ComposeIn) -> Result<Composed> {
             .is_file()
     {
         rels.push(format!("tools/blind/tasks/{}/acceptance.toml", inp.task));
+    }
+    // A round task's persona reads the round prompt after the task sheet: the hints and the questionnaire (WP-S2.12
+    // D11).
+    if inp.kind == Kind::Brief
+        && super::brief::task_toml(inp.root, inp.task)?.is_some_and(|t| !t.rounds.is_empty())
+    {
+        rels.push("tools/blind/ROUND.md".to_owned());
     }
     rels.push(if visual {
         "tools/blind/HELP-VISUAL.md".to_owned()
@@ -398,6 +406,66 @@ mod tests {
         assert!(keys.contains(&&"tools/blind/tasks/gpp/oracle/counts.toml".to_owned()));
         assert!(keys.contains(&&"tools/blind/reference/actions.txt".to_owned()));
         assert!(keys.windows(2).all(|w| w[0] < w[1]));
+    }
+
+    /// UR-5 (D11): a brief whose `task.toml` names rounds gets `ROUND.md` after its task sheet, with its digest and its
+    /// placeholders; a brief without rounds and a check run of a round task do not; the prompt is byte-deterministic.
+    #[test]
+    fn ur5_a_round_task_adds_the_round_prompt_after_the_sheet() {
+        let tmp = Tmp::new("compose-round");
+        tree(&tmp);
+        let toml = |rounds: &str| {
+            format!(
+                "kind = \"brief\"\ngrade = 1\nversion = 1\nturn_budget = 5\nsenses = [\"text\", \"visual\"]\n\
+                 areas = [\"x\"]\nrounds = [{rounds}]\n"
+            )
+        };
+        for (task, rounds) in [("brief-r", "\"R0\", \"R1\""), ("brief-n", "")] {
+            let dir = tmp.0.join("tools/blind/tasks").join(task);
+            std::fs::create_dir_all(&dir).unwrap();
+            std::fs::write(dir.join("task.md"), "The task.\n").unwrap();
+            std::fs::write(dir.join("task.toml"), toml(rounds)).unwrap();
+        }
+        std::fs::write(
+            tmp.0.join("tools/blind/ROUND.md"),
+            "Ask: {blind} hint {run}.\n",
+        )
+        .unwrap();
+        std::fs::write(tmp.0.join("tools/blind/PLAYTESTER.md"), "You play.\n").unwrap();
+        std::fs::write(tmp.0.join("tools/blind/HELP-VISUAL.md"), "Look.\n").unwrap();
+        let rels = |c: &Composed| -> Vec<String> {
+            c.text
+                .lines()
+                .filter_map(|l| l.strip_prefix("<!-- file: "))
+                .map(|l| l.split(' ').next().unwrap().to_owned())
+                .collect()
+        };
+        let mut inp = input(&tmp.0, Kind::Brief, "brief-r", Some("qet-veteran"));
+        let a = compose(&inp).unwrap();
+        assert_eq!(
+            rels(&a),
+            [
+                "tools/blind/BLIND_DRAFTER.md",
+                "tools/blind/personas/qet-veteran.md",
+                "tools/blind/tasks/brief-r/task.md",
+                "tools/blind/ROUND.md",
+                "tools/blind/HELP.md"
+            ]
+        );
+        assert!(a.text.contains("Ask: /r/bin/xtask blind hint gpp-r1."), "{}", a.text);
+        assert_eq!(a.files["tools/blind/ROUND.md"], sha256_hex(b"Ask: {blind} hint {run}.\n"));
+        assert_eq!(compose(&inp).unwrap(), a, "byte-deterministic");
+        // A visual run of the round task reads it too, before the visual help.
+        inp.senses = Senses::Visual;
+        assert_eq!(
+            rels(&compose(&inp).unwrap())[3..],
+            ["tools/blind/ROUND.md", "tools/blind/HELP-VISUAL.md"]
+        );
+        // No rounds, no round prompt; a check run of the round task has none either.
+        let n = compose(&input(&tmp.0, Kind::Brief, "brief-n", Some("qet-veteran"))).unwrap();
+        assert!(!n.files.contains_key("tools/blind/ROUND.md"));
+        let c = compose(&input(&tmp.0, Kind::Check, "brief-r", None)).unwrap();
+        assert!(!c.files.contains_key("tools/blind/ROUND.md"));
     }
 
     #[test]

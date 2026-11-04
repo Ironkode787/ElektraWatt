@@ -335,7 +335,8 @@ pub fn stop(root: &Path, run: &Run, backend: &mut dyn Backend, reason: &str) -> 
         j.child_exit = code;
         j.golden_changed = golden.is_err();
     })?;
-    // The score (§5.9): a gate run against its oracle, any other run only its protocol; a check run has none.
+    // The score (§5.9): a gate run against its oracle, a brief run its acceptance list decided mechanically (WP-S2.12
+    // D7), any other run only its protocol; a check run has none.
     let scored = if check {
         None
     } else {
@@ -593,6 +594,133 @@ mod tests {
         std::fs::write(root.join("golden/J-E-2416.ew/p.json"), "2").unwrap();
         assert!(stop(&root, &g.run, &mut g.backend, "orchestrator").is_err());
         assert!(g.run.load().unwrap().golden_changed);
+    }
+
+    /// A brief run of the fixture with its task in `root`: three agent steps (`nav.follow` and `edit.undo` done,
+    /// `nav.back` refused), a hint and a friction entry.
+    fn brief_fixture() -> (crate::blind::protocol::tests::Fixture, std::path::PathBuf) {
+        let f = fixture(Kind::Brief);
+        let root = repo_with_golden(&f);
+        let dir = root.join("tools/blind/tasks/brief-ut");
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(
+            dir.join("task.toml"),
+            "kind = \"brief\"\ngrade = 1\nversion = 1\nturn_budget = 5\nsenses = [\"text\"]\nareas = [\"x\"]\n\
+             task_id = \"T8\"\n",
+        )
+        .unwrap();
+        std::fs::write(
+            dir.join("acceptance.toml"),
+            "[[item]]\nid = \"A1\"\nkind = \"hard\"\nwhat = \"a\"\nhow = \"outcomes\"\nactions = [\"nav.follow\", \"edit.undo\"]\n\n\
+             [[item]]\nid = \"A2\"\nkind = \"soft\"\nwhat = \"b\"\nhow = \"outcomes\"\nactions = [\"nav.back\"]\n\n\
+             [[item]]\nid = \"A3\"\nkind = \"hard\"\nwhat = \"c\"\nhow = \"connections\"\nquery = \"SELECT 1\"\nexpect = \"== 1\"\n",
+        )
+        .unwrap();
+        f.run.update(|j| j.task = "brief-ut".to_owned()).unwrap();
+        let mut steps = format!("{}\n", crate::blind::run::script_header("steps"));
+        let mut transcript = String::from("{\"$schema\":\"ew.uitranscript/1\",\"version\":\"0\"}\n");
+        for (i, (action, outcome)) in [("nav.follow", "done"), ("edit.undo", "done"), ("nav.back", "refused")]
+            .iter()
+            .enumerate()
+        {
+            steps.push_str(&format!("{}\n", step_line(action, &json!({}))));
+            transcript.push_str(&format!(
+                "{{\"step\":{},\"action\":\"{action}\",\"outcome\":\"{outcome}\",\"reason\":null,\"message\":null,\"state\":{{\"dirty\":false}}}}\n",
+                i + 1
+            ));
+        }
+        std::fs::write(f.run.path("steps.uiscript"), steps).unwrap();
+        std::fs::write(f.run.path("transcript.jsonl"), transcript).unwrap();
+        f.run
+            .push_turn(Turn {
+                kind: "hint".to_owned(),
+                hint: Some(1),
+                ..Turn::default()
+            })
+            .unwrap();
+        std::fs::write(
+            f.run.path("friction.jsonl"),
+            "{\"$schema\":\"ew.blindfriction/1\"}\n{\"n\":1,\"turn\":1,\"step\":1,\"frame\":null,\"region\":null,\"wanted\":\"w\",\"expected\":\"e\",\"saw\":\"s\",\"severity\":\"confusing\",\"category\":\"wording\",\"workaround\":null}\n",
+        )
+        .unwrap();
+        (f, root)
+    }
+
+    /// UR-3 (D7 to D9): a brief run's score decides each item with `check-brief`'s code on the same project, so the two
+    /// decisions are equal; it gives the attempt and D9's counts.
+    #[test]
+    fn ur3_a_brief_runs_score_decides_its_items_as_check_brief_does() {
+        let (f, root) = brief_fixture();
+        let fake = |args: &[&str]| -> Result<(Option<i32>, String)> {
+            Ok((Some(0), if args[0] == "sql" { "n\n1\n" } else { "" }.to_owned()))
+        };
+        let ev = crate::blind::score::evidence_of(&f.run, None, crate::blind::score::ExportFacts::default()).unwrap();
+        let b = crate::blind::score::brief_score(&root, &f.run, &ev, &mut { fake }).unwrap();
+        let acceptance: crate::blind::brief::Acceptance =
+            crate::blind::score::read_toml(&root.join("tools/blind/tasks/brief-ut/acceptance.toml")).unwrap();
+        let done = ["nav.follow".to_owned(), "edit.undo".to_owned()];
+        let check = crate::blind::brief::decide_items(&acceptance, &f.run.path("work"), &done, &mut { fake }).unwrap();
+        assert_eq!(
+            b.items.iter().map(|i| i.met).collect::<Vec<_>>(),
+            check.iter().map(Result::is_ok).collect::<Vec<_>>()
+        );
+        let decisions: Vec<(&str, &str)> = b.items.iter().map(|i| (i.id.as_str(), i.decision.as_str())).collect();
+        assert_eq!(
+            decisions,
+            [
+                ("A1", "met"),
+                (
+                    "A2",
+                    "not met: `nav.back` was not done after the actions before it (in order: nav.back)"
+                ),
+                ("A3", "met"),
+            ]
+        );
+        assert_eq!(b.task_id.as_deref(), Some("T8"));
+        assert_eq!(b.attempt, "with help", "every hard item met after a hint");
+        assert_eq!(
+            (b.counts.refused, b.counts.failed, b.counts.undo, b.counts.hints),
+            (1, 0, 1, 1)
+        );
+        assert_eq!(
+            b.counts.friction,
+            std::collections::BTreeMap::from(
+                [("annoying", 0), ("blocker", 0), ("confusing", 1), ("cosmetic", 0)]
+                    .map(|(s, n)| (s.to_owned(), n))
+            )
+        );
+        // The attempt: an early end or an unmet hard item is not completed; without a hint it is unassisted.
+        use crate::blind::score::attempt_of;
+        assert_eq!(attempt_of(Some("handback"), &b.items, 0), "unassisted");
+        assert_eq!(attempt_of(Some("cap"), &b.items, 0), "not completed");
+        assert_eq!(attempt_of(Some("quit"), &b.items, 1), "not completed");
+        let mut unmet = b.items.clone();
+        unmet[2].met = false;
+        assert_eq!(attempt_of(Some("handback"), &unmet, 0), "not completed");
+    }
+
+    /// UR-3: `stop` of a brief run writes the decisions, the attempt and the counts into `out/score.json` and
+    /// `out/report.md`; a run without its copied `ew` decides no query (each fails).
+    #[test]
+    fn ur3_stop_of_a_brief_run_writes_its_decisions() {
+        let (mut f, root) = brief_fixture();
+        hand_back(&f);
+        stop(&root, &f.run, &mut f.backend, "handback").unwrap();
+        let score: crate::blind::score::Score =
+            serde_json::from_str(&std::fs::read_to_string(f.run.path("out/score.json")).unwrap()).unwrap();
+        let b = score.brief.unwrap();
+        assert_eq!(b.attempt, "not completed");
+        assert_eq!(b.items[2].decision, "not met: the query fails (exit ?)");
+        let report = std::fs::read_to_string(f.run.path("out/report.md")).unwrap();
+        assert!(
+            report.contains(
+                "## Score\n\nAttempt: **not completed**\n\n| ID | Kind | Decision |\n|---|---|---|\n| A1 | hard | met |\n\
+                 | A2 | soft | not met: `nav.back` was not done after the actions before it (in order: nav.back) |\n\
+                 | A3 | hard | not met: the query fails (exit ?) |\n\nturns 0, steps 0, refused 1, failed 0, undo 1, hints 1; \
+                 friction annoying 0, blocker 0, confusing 1, cosmetic 0\n\n## Protocol"
+            ),
+            "{report}"
+        );
     }
 
     /// BD10: a changed golden fails the stop, after the report is written.

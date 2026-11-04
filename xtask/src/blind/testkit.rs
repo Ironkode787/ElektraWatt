@@ -60,6 +60,8 @@ pub fn new_run_json(id: &str, kind: Kind) -> RunJson {
         clean_before_epilogue: None,
         child_exit: None,
         golden_changed: false,
+        start: None,
+        rounds: Vec::new(),
     }
 }
 

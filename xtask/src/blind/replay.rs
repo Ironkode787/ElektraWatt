@@ -103,6 +103,8 @@ pub struct Inputs {
     pub paint_into: Option<PathBuf>,
     /// A visual run's window size and scale, as its `run.json` records it.
     pub geometry: super::visual::Geometry,
+    /// The run's start project (`gp-ut`, `golden-a`; WP-S2.12 D5): the replay makes it as `work/project` first.
+    pub start: Option<String>,
 }
 
 /// `frames.sha256` from the lines of a transcript: `<sha256>  <file>` per painted frame line, in order.
@@ -202,6 +204,7 @@ pub fn load_inputs(dir: &Path) -> Result<Inputs> {
         frames,
         paint_into: None,
         geometry,
+        start: rj.start,
     })
 }
 
@@ -300,6 +303,11 @@ pub fn replay_in(root: &Path, exe: &Path, inputs: &Inputs, dir: &Path) -> Result
     std::fs::create_dir_all(dir.join("config"))?;
     std::fs::create_dir_all(dir.join("empty-sample"))?;
     std::fs::create_dir_all(dir.join("book"))?;
+    // The start project, from a copy of the golden project with the built `ew` beside `exe`.
+    if let Some(start) = &inputs.start {
+        let ew = exe.with_file_name(format!("ew{}", std::env::consts::EXE_SUFFIX));
+        super::start::make_start_project(root, start, &ew, &dir.join("work/project"))?;
+    }
     let mut script = format!("{}\n", script_header("replay"));
     for (a, p) in inputs.prelude.iter().chain(&inputs.steps) {
         script.push_str(&step_line(a, p));
@@ -1048,6 +1056,7 @@ mod tests {
             frames: Vec::new(),
             paint_into: None,
             geometry: g,
+            start: None,
         };
         let argv = |i: &Inputs| -> Vec<String> {
             replay_command(Path::new("elektrawatt"), i, Path::new("d"))

@@ -6,7 +6,8 @@
 //!
 //! The agent never needs the repository: the harness, the product binaries, the user guide, the starter content and
 //! the reference files are copied into the folder. The sample project is not: `EW_SAMPLE_DIR` points at an empty
-//! folder, and `golden/` is hashed here and again at `stop` (D16).
+//! folder, and `golden/` is hashed here and again at `stop` (D16). A usability task's start project (WP-S2.12 D5,
+//! which amends D16 in one point) is a copy of the golden project made here, never a path to the fixture.
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -116,14 +117,75 @@ fn seed_from(drafter: &Run, run: &Run) -> Result<()> {
     copy_dir(&project, &run.path("work/project"))
 }
 
-/// Puts a check run's copy of the drafter's project back after `work/` was deleted (`resume`, a stateless call): the
-/// check prelude opens `project`. A run of another kind needs nothing.
+/// The variant that turns a copy of Golden A into GP-UT (doc 20 §2, WP-S2.12 D6).
+pub const GP_UT_LOG: &str = "golden/J-E-2416/variants/gp-ut.ewcmd";
+
+/// K8: a start project that cannot be made.
+pub fn start_refusal(start: &str, reason: &str) -> String {
+    format!("the task's start project {start} could not be made: {reason}")
+}
+
+/// Makes the start project `start` (`golden-a` or `gp-ut`, D5) in `dest`: a copy of the golden project, and for
+/// `gp-ut` with `ew apply` of [`GP_UT_LOG`] on that copy (`ew` is the built or copied `ew`). The fixture is only read; a
+/// failure leaves no `dest`.
 ///
 /// # Errors
 ///
-/// The drafter run or its project is gone.
+/// K8 with the reason.
+pub fn make_start_project(root: &Path, start: &str, ew: &Path, dest: &Path) -> Result<()> {
+    let made = (|| -> std::result::Result<(), String> {
+        if !super::brief::STARTS.contains(&start) {
+            return Err(super::brief::START_VALUES.to_owned());
+        }
+        let golden = root.join(GOLDEN_PROJECT_DIR);
+        if !golden.is_dir() {
+            return Err(format!("{GOLDEN_PROJECT_DIR} is missing"));
+        }
+        let log = root.join(GP_UT_LOG);
+        if start == "gp-ut" && !log.is_file() {
+            return Err(format!("{GP_UT_LOG} is missing"));
+        }
+        copy_dir(&golden, dest).map_err(|e| format!("{e:#}"))?;
+        if start == "gp-ut" {
+            let out = std::process::Command::new(ew)
+                .arg("apply")
+                .arg(dest)
+                .arg(&log)
+                .env("EW_CONTENT_DIR", root.join("content"))
+                .env_remove("SOURCE_DATE_EPOCH")
+                .stdin(std::process::Stdio::null())
+                .output()
+                .map_err(|e| format!("running {}: {e}", ew.display()))?;
+            if !out.status.success() {
+                let err = String::from_utf8_lossy(&out.stderr);
+                return Err(format!(
+                    "ew apply exits {} ({})",
+                    out.status.code().map_or("?".to_owned(), |c| c.to_string()),
+                    err.lines().next().unwrap_or("no message")
+                ));
+            }
+        }
+        Ok(())
+    })();
+    if let Err(reason) = made {
+        let _ = std::fs::remove_dir_all(dest);
+        bail!("{}", start_refusal(start, &reason));
+    }
+    Ok(())
+}
+
+/// Puts a check run's copy of the drafter's project back after `work/` was deleted (`resume`, a stateless call): the
+/// check prelude opens `project`. A brief run with a start project gets the copy kept in `.harness/start-project`
+/// (D5: the run's copy of the harness never reaches the repository). A run of another kind needs nothing.
+///
+/// # Errors
+///
+/// The drafter run or its project is gone, or the start project's copy.
 pub fn reseed_check_project(run: &Run) -> Result<()> {
     let rj = run.load()?;
+    if rj.start.is_some() {
+        return copy_dir(&run.path(".harness/start-project"), &run.path("work/project"));
+    }
     if rj.kind != "check" {
         return Ok(());
     }
@@ -180,6 +242,13 @@ pub fn prepare(root: &Path, a: &StartArgs, version: &dyn Fn(&Path) -> Result<Str
         None
     };
     let folios = run_folios(root, a, drafter.as_ref())?;
+    // A brief's start project and rounds (WP-S2.12 D5, D11).
+    let toml = if a.kind == Kind::Brief {
+        super::brief::task_toml(root, &a.task)?
+    } else {
+        None
+    };
+    let (start, rounds) = toml.map(|t| (t.start, t.rounds)).unwrap_or_default();
     let golden = golden_digest(root, Some(GOLDEN_SCOPE_PROJECT))?;
     // Every option is validated here, before anything is created: the composition checks the persona, the task and the
     // kind (FT-484), and the sources are looked up now.
@@ -210,6 +279,8 @@ pub fn prepare(root: &Path, a: &StartArgs, version: &dyn Fn(&Path) -> Result<Str
             files,
             folios,
             golden,
+            start,
+            rounds,
         },
     );
     if built.is_err() && !existed {
@@ -228,6 +299,8 @@ struct Inputs {
     files: BTreeMap<String, String>,
     folios: Vec<String>,
     golden: String,
+    start: Option<String>,
+    rounds: Vec<String>,
 }
 
 /// Creates the run folder's content and `run.json` (the part of `prepare` that writes).
@@ -246,6 +319,8 @@ fn populate(
         files,
         folios,
         golden,
+        start,
+        rounds,
     } = inputs;
     for sub in [
         "bin",
@@ -282,6 +357,17 @@ fn populate(
         )?;
     }
     copy_file(&root.join("tools/blind/HELP.md"), &run.path(".harness/HELP.md"))?;
+    // The start project (WP-S2.12 D5): made once from a copy of the golden project and kept in `.harness/`, where a
+    // resume or a stateless call takes it from again; `work/project` is its copy, which the prelude opens.
+    if let Some(start) = start {
+        make_start_project(root, start, &run.product_exe("ew"), &run.path(".harness/start-project"))?;
+        copy_dir(&run.path(".harness/start-project"), &run.path("work/project"))?;
+    }
+    // The task's hints (D8), which `hint` gives one at a time; a check run has none.
+    let hints = root.join(format!("tools/blind/tasks/{}/hints.toml", a.task));
+    if a.kind != Kind::Check && hints.is_file() {
+        copy_file(&hints, &run.path(".harness/hints.toml"))?;
+    }
     let visual = a.senses == Senses::Visual;
     if visual {
         copy_file(
@@ -353,6 +439,8 @@ fn populate(
         clean_before_epilogue: None,
         child_exit: None,
         golden_changed: false,
+        start: start.clone(),
+        rounds: rounds.clone(),
     };
     run.save(&json)?;
     Ok(())
@@ -966,6 +1054,131 @@ mod tests {
         assert!(prepare(&root, &a, &|_| Ok("0".to_owned())).is_err());
         assert!(tmp.0.join("runs/r4").is_dir());
     }
+    /// A brief of the fake repository with the given `task.toml` lines added.
+    fn fake_brief(root: &Path, extra: &str) {
+        let w = |rel: &str, text: &str| {
+            let p = root.join(rel);
+            std::fs::create_dir_all(p.parent().unwrap()).unwrap();
+            std::fs::write(p, text).unwrap();
+        };
+        w("tools/blind/BLIND_DRAFTER.md", "Draft {run}.\n");
+        w("tools/blind/ROUND.md", "Ask with {blind} hint {run}.\n");
+        w("tools/blind/tasks/brief-ut/task.md", "Do it.\n");
+        w(
+            "tools/blind/tasks/brief-ut/task.toml",
+            &format!(
+                "kind = \"brief\"\ngrade = 1\nversion = 1\nturn_budget = 5\nsenses = [\"text\"]\nareas = [\"x\"]\n{extra}"
+            ),
+        );
+        w(
+            "tools/blind/tasks/brief-ut/prelude.uiscript",
+            "{\"$schema\":\"ew.uiscript/1\",\"label\":\"p\"}\n{\"action\":\"file.open\",\"params\":{\"dir\":\"project\"}}\n",
+        );
+        w("tools/blind/tasks/brief-ut/hints.toml", "[[hint]]\ntext = \"Look.\"\n");
+    }
+
+    /// UR-1 (D5): a brief with `start = "golden-a"` starts on a copy of the golden project in `work/project`, kept in
+    /// `.harness/start-project`; `resume` and a stateless call put it back after `work/` was deleted; the golden digest is
+    /// the same at the start and after; the round and the hints reach the run.
+    #[test]
+    fn ur1_a_brief_starts_on_a_copy_of_the_golden_project() {
+        let tmp = Tmp::new("start-project");
+        let root = fake_repo(&tmp);
+        fake_brief(&root, "start = \"golden-a\"\nrounds = [\"R0\"]\n");
+        let mut a = args(&tmp, "u1");
+        a.kind = Kind::Brief;
+        a.task = "brief-ut".to_owned();
+        a.stateless = false;
+        let run = prepare(&root, &a, &|_| Ok("0".to_owned())).unwrap();
+        let rj = run.load().unwrap();
+        assert_eq!(rj.start.as_deref(), Some("golden-a"));
+        assert_eq!(rj.rounds, ["R0"]);
+        for rel in [".harness/start-project/project.json", "work/project/project.json"] {
+            assert_eq!(std::fs::read_to_string(run.path(rel)).unwrap(), "{}\n", "{rel}");
+        }
+        assert_eq!(
+            std::fs::read_to_string(run.path(".harness/hints.toml")).unwrap(),
+            "[[hint]]\ntext = \"Look.\"\n"
+        );
+        assert!(
+            std::fs::read_to_string(run.path("prompt.md")).unwrap().contains("Ask with "),
+            "the round prompt is composed"
+        );
+        check_golden(&root, &rj).unwrap();
+        // A stateless call or a resume deletes `work/` and puts the copy back.
+        std::fs::remove_dir_all(run.path("work")).unwrap();
+        reseed_check_project(&run).unwrap();
+        assert!(run.path("work/project/project.json").is_file());
+        std::fs::write(run.path("work/project/project.json"), "changed").unwrap();
+        std::fs::remove_dir_all(run.path("work")).unwrap();
+        // There is no real harness to spawn the keeper, so `resume` fails after it has put the project back.
+        assert!(super::super::resume(&run).is_err());
+        assert_eq!(
+            std::fs::read_to_string(run.path("work/project/project.json")).unwrap(),
+            "{}\n"
+        );
+        // A brief without a start keeps the old behaviour: no start project, no copy.
+        fake_brief(&root, "");
+        let mut b = args(&tmp, "u2");
+        b.kind = Kind::Brief;
+        b.task = "brief-ut".to_owned();
+        let plain = prepare(&root, &b, &|_| Ok("0".to_owned())).unwrap();
+        assert_eq!(plain.load().unwrap().start, None);
+        assert!(!plain.path("work/project").exists() && !plain.path(".harness/start-project").exists());
+        // A replay makes it too: a replay's product that does not start fails after the project was made.
+        let inputs = crate::blind::replay::Inputs {
+            prelude: Vec::new(),
+            steps: Vec::new(),
+            outcomes: Vec::new(),
+            epilogue: String::new(),
+            epilogue_range: None,
+            transcript: None,
+            stale: None,
+            visual: false,
+            frames: Vec::new(),
+            paint_into: None,
+            geometry: Geometry::DEFAULT,
+            start: Some("golden-a".to_owned()),
+        };
+        let dir = tmp.0.join("replay");
+        let exe = tmp.0.join(exe_name("no-such-elektrawatt"));
+        assert!(crate::blind::replay::replay_in(&root, &exe, &inputs, &dir).is_err());
+        assert!(dir.join("work/project/project.json").is_file());
+    }
+
+    /// UR-1, K8: a start project that cannot be made refuses the start whole and leaves no run folder; the copy is never
+    /// made into a folder that names the fixture.
+    #[test]
+    fn ur1_k8_a_start_project_that_cannot_be_made_refuses_the_start() {
+        let tmp = Tmp::new("start-project-k8");
+        let root = fake_repo(&tmp);
+        fake_brief(&root, "start = \"gp-ut\"\n");
+        let mut a = args(&tmp, "k8");
+        a.kind = Kind::Brief;
+        a.task = "brief-ut".to_owned();
+        let err = prepare(&root, &a, &|_| Ok("0".to_owned())).unwrap_err();
+        assert_eq!(
+            err.to_string(),
+            "the task's start project gp-ut could not be made: golden/J-E-2416/variants/gp-ut.ewcmd is missing"
+        );
+        assert!(!tmp.0.join("runs/k8").exists());
+        let dest = tmp.0.join("dest");
+        std::fs::remove_dir_all(root.join("golden/J-E-2416.ew")).unwrap();
+        assert_eq!(
+            make_start_project(&root, "golden-a", Path::new("ew"), &dest)
+                .unwrap_err()
+                .to_string(),
+            "the task's start project golden-a could not be made: golden/J-E-2416.ew is missing"
+        );
+        assert_eq!(
+            make_start_project(&root, "golden-b", Path::new("ew"), &dest)
+                .unwrap_err()
+                .to_string(),
+            "the task's start project golden-b could not be made: task.toml: `start` is `gp-ut` or `golden-a`"
+        );
+        assert!(!dest.exists());
+    }
+
     /// Cycle 39: a visual run started with `--window 1920x1080 --ppp 1` records both in `run.json` and passes them to
     /// the spawned app; a default visual run records 1280 × 800 at 1.2 and adds no flag; a text run with `--window` is
     /// refused before anything is created.

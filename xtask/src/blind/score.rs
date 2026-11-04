@@ -13,6 +13,10 @@
 //!
 //! Every ordering is named (rows sort by their text, checks by their ID) and no map iteration order reaches the
 //! output (NFR-REL-07).
+//!
+//! A brief run's score adds `brief` ([`BriefScore`], WP-S2.12 D7 to D9): each acceptance item decided on the saved
+//! project with `check-brief`'s code, the attempt (unassisted, with help, not completed) and the counts of errors,
+//! undo and assists.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write as _;
@@ -628,6 +632,150 @@ pub struct Score {
     pub soft: Vec<Check>,
     /// The protocol.
     pub protocol: Protocol,
+    /// A brief run's acceptance list decided at `stop` and its attempt (WP-S2.12 D7 to D9); absent for other runs.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub brief: Option<BriefScore>,
+}
+
+/// The decision of one acceptance item of a brief run, by the code of `check-brief` ([`super::brief::decide_items`]).
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug)]
+pub struct ItemDecision {
+    /// `A1`, `A2`, …
+    pub id: String,
+    /// `hard` or `soft`.
+    pub kind: String,
+    /// Whether the run's project meets it.
+    pub met: bool,
+    /// `met`, `not met: <why>`, or for a soft item the build cannot meet `infeasible (<reason>); <why>`.
+    pub decision: String,
+}
+
+/// D9's counts of an attempt: errors, undo and assists as counts, never times.
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug, Default)]
+pub struct AttemptCounts {
+    /// `do` calls.
+    pub turns: u32,
+    /// Steps (a visual run: inputs) the agent sent.
+    pub steps: u32,
+    /// The agent's steps (a visual run: dispatched actions) the product refused.
+    pub refused: u32,
+    /// The agent's steps (a visual run: dispatched actions) that failed.
+    pub failed: u32,
+    /// `edit.undo` done.
+    pub undo: u32,
+    /// Hints given.
+    pub hints: u32,
+    /// Friction entries by severity (every severity, zero included).
+    pub friction: BTreeMap<String, u32>,
+}
+
+/// A brief run's score (D7 to D9).
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug)]
+pub struct BriefScore {
+    /// The task's ID in its plan (`T1`), when `task.toml` names one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub task_id: Option<String>,
+    /// Every acceptance item in order.
+    pub items: Vec<ItemDecision>,
+    /// `unassisted` (every hard item met, no hint), `with help` (met after a hint) or `not completed` (a hard item
+    /// unmet, or the run ended early: a cap, a quit rule, the orchestrator, a lost session, a divergence).
+    pub attempt: String,
+    /// D9's counts.
+    pub counts: AttemptCounts,
+}
+
+/// The attempt of a brief run: `not completed` when it ended early or a hard item is unmet, else `with help` after a
+/// hint and `unassisted` without one (D8).
+pub fn attempt_of(end: Option<&str>, items: &[ItemDecision], hints: u32) -> &'static str {
+    let early = matches!(end, Some("cap" | "quit" | "orchestrator" | "lost" | "diverged"));
+    if early || items.iter().any(|i| i.kind == "hard" && !i.met) {
+        "not completed"
+    } else if hints > 0 {
+        "with help"
+    } else {
+        "unassisted"
+    }
+}
+
+/// The brief part of a stopped brief run's score: its acceptance list decided on `work/project` with `ew` (D7), the
+/// attempt (D8) and the counts (D9). `ew` runs the product's `ew` in `work`.
+///
+/// # Errors
+///
+/// A task file or a file of the run that cannot be read.
+pub fn brief_score(
+    root: &Path,
+    run: &Run,
+    ev: &Evidence,
+    ew: &mut super::brief::EwFn,
+) -> Result<BriefScore> {
+    let rj = &ev.rj;
+    let dir = task_dir(root, &rj.task);
+    let acceptance: super::brief::Acceptance = read_toml(&dir.join("acceptance.toml"))?;
+    let task_id = super::brief::task_toml(root, &rj.task)?.and_then(|t| t.task_id);
+    // The agent's part of the transcript: after the prelude, before the epilogue.
+    let prelude = super::run::read_script(&run.path("prelude.uiscript"))?.len();
+    let transcript = run.transcript()?;
+    let epilogue = ev
+        .turns
+        .iter()
+        .rev()
+        .find(|t| t.kind == "epilogue")
+        .and_then(|t| t.steps)
+        .map(|[a, _]| usize::try_from(a).unwrap_or(usize::MAX).saturating_sub(1));
+    let end = epilogue.map_or(transcript.len(), |n| (prelude + n).min(transcript.len()));
+    let agent = transcript.get(prelude.min(end)..end).unwrap_or_default();
+    let outcomes = super::brief::step_outcomes(agent.iter().map(String::as_str));
+    let done: Vec<String> = outcomes
+        .iter()
+        .filter(|(_, o)| o == "done")
+        .map(|(a, _)| a.clone())
+        .collect();
+    let decisions = super::brief::decide_items(&acceptance, &ev.work, &done, ew)?;
+    let items: Vec<ItemDecision> = acceptance
+        .item
+        .iter()
+        .zip(decisions)
+        .map(|(it, d)| ItemDecision {
+            id: it.id.clone(),
+            kind: it.kind.clone(),
+            met: d.is_ok(),
+            decision: match (&d, &it.infeasible) {
+                (Ok(()), _) => "met".to_owned(),
+                (Err(why), Some(inf)) if it.kind == "soft" => format!("infeasible ({inf}); {why}"),
+                (Err(why), _) => format!("not met: {why}"),
+            },
+        })
+        .collect();
+    let count = |outcome: &str| {
+        u32::try_from(outcomes.iter().filter(|(_, o)| o == outcome).count()).unwrap_or(u32::MAX)
+    };
+    let hints = u32::try_from(ev.turns.iter().filter(|t| t.kind == "hint").count()).unwrap_or(u32::MAX);
+    let mut friction: BTreeMap<String, u32> = super::friction::SEVERITIES
+        .iter()
+        .map(|s| ((*s).to_owned(), 0))
+        .collect();
+    let log = std::fs::read_to_string(run.path("friction.jsonl")).unwrap_or_default();
+    for line in log.lines().skip(1).filter(|l| !l.trim().is_empty()) {
+        if let Ok(e) = serde_json::from_str::<super::friction::Entry>(line) {
+            *friction.entry(e.severity).or_default() += 1;
+        }
+    }
+    let counts = AttemptCounts {
+        turns: rj.counts.turns,
+        steps: rj.counts.steps,
+        refused: count("refused"),
+        failed: count("failed"),
+        undo: u32::try_from(done.iter().filter(|a| *a == "edit.undo").count()).unwrap_or(u32::MAX),
+        hints,
+        friction,
+    };
+    Ok(BriefScore {
+        task_id,
+        attempt: attempt_of(rj.end.as_deref(), &items, hints).to_owned(),
+        items,
+        counts,
+    })
 }
 
 /// A step of the agent with its outcome.
@@ -1390,6 +1538,7 @@ pub fn score(task: Option<&TaskDef>, ev: &Evidence) -> Score {
         hard,
         soft,
         protocol,
+        brief: None,
     }
 }
 
@@ -1408,6 +1557,28 @@ pub fn score_json(score: &Score) -> Result<String> {
 pub fn score_markdown(score: &Score) -> String {
     let mut md = String::new();
     let _ = writeln!(md, "## Score\n");
+    if let Some(b) = &score.brief {
+        let _ = writeln!(md, "Attempt: **{}**\n", b.attempt);
+        let _ = writeln!(md, "| ID | Kind | Decision |");
+        let _ = writeln!(md, "|---|---|---|");
+        for i in &b.items {
+            let _ = writeln!(md, "| {} | {} | {} |", i.id, i.kind, i.decision.replace('|', "/"));
+        }
+        let c = &b.counts;
+        let friction: Vec<String> = c.friction.iter().map(|(s, n)| format!("{s} {n}")).collect();
+        let _ = writeln!(
+            md,
+            "\nturns {}, steps {}, refused {}, failed {}, undo {}, hints {}; friction {}\n",
+            c.turns,
+            c.steps,
+            c.refused,
+            c.failed,
+            c.undo,
+            c.hints,
+            friction.join(", ")
+        );
+        return md;
+    }
     let Some(outcome) = score.outcome else {
         let _ = writeln!(
             md,
@@ -1517,8 +1688,8 @@ pub fn evidence_of(run: &Run, task: Option<&TaskDef>, facts: ExportFacts) -> Res
 
 /// Scores the stopped run `run` and writes `out/score.json`; returns the score.
 ///
-/// A drafter run of a task with an oracle (`tools/blind/tasks/<task>/oracle/counts.toml`) is scored against it; every
-/// other run holds only its protocol.
+/// A drafter run of a task with an oracle (`tools/blind/tasks/<task>/oracle/counts.toml`) is scored against it; a
+/// brief run holds its protocol and its acceptance list ([`brief_score`]); every other run holds only its protocol.
 ///
 /// # Errors
 ///
@@ -1532,7 +1703,17 @@ pub fn score_run(root: &Path, run: &Run, facts: ExportFacts) -> Result<Score> {
         None
     };
     let ev = evidence_of(run, task.as_ref(), facts)?;
-    let score = score(task.as_ref(), &ev);
+    let mut score = score(task.as_ref(), &ev);
+    // A brief run's acceptance list, decided with `check-brief`'s code on the saved project (D7). An `ew` that does
+    // not start decides nothing: its queries fail.
+    if rj.kind == "brief" {
+        let ew = run.product_exe("ew");
+        let work = run.path("work");
+        score.brief = Some(brief_score(root, run, &ev, &mut |args: &[&str]| {
+            Ok(super::session::run_tool(run, &ew, args, &work)
+                .map_or((None, String::new()), |(code, out, _)| (code, out)))
+        })?);
+    }
     std::fs::create_dir_all(run.path("out"))?;
     super::run::write_atomic(&run.path("out/score.json"), &score_json(&score)?)?;
     Ok(score)

@@ -7,8 +7,8 @@
 //! and `page.describe` as its only senses and the transcript as its evidence. This module is the tool between the agent
 //! and the product: run folders outside the repository ([`mod@run`], [`start`]), the filter and the typed arguments
 //! ([`filter`]), the protocol ([`protocol`]), the loopback keeper and the stateless replay ([`keeper`], [`stateless`]),
-//! the composed prompt ([`compose`]), the stop with its epilogue ([`stop`]) and the recording, bless and replay
-//! ([`replay`]). The harness drives the built `elektrawatt` and `ew` binaries as processes: it has no edge to any product
+//! the composed prompt ([`compose`]), the stop with its epilogue ([`stop`]), the recording, bless and replay
+//! ([`replay`]) and the usability rounds' hints and questionnaire ([`round`]). The harness drives the built `elektrawatt` and `ew` binaries as processes: it has no edge to any product
 //! crate and calls no model (D2, D13).
 //!
 //! The agent runs only the run's copy of this program (`<run>/bin/xtask blind …`); the orchestrator runs the same code
@@ -28,6 +28,7 @@ pub mod normalise;
 pub mod oracle;
 pub mod protocol;
 pub mod replay;
+pub mod round;
 pub mod run;
 pub mod score;
 pub mod selftest;
@@ -58,6 +59,8 @@ For the agent:
   friction <run> --severity <s> --category <c> --wanted \"…\" --expected \"…\" --saw \"…\"
         [--frame <name>] [--region <x>,<y>,<w>,<h>] [--workaround \"…\"]
                                               one entry of the friction log
+  hint <run>                                  the next hint of a usability task (it counts as help)
+  questionnaire <run> -                       a usability task's questionnaire on stdin, before the hand-back
 In a visual run (--senses visual) `do` takes mouse and key inputs (help prints HELP-VISUAL.md) and `look` paints:
   do <run> <input> [key=value ...]            one input: click x=412 y=96, key chord=ctrl+s, …
   do <run> -                                  1 to 12 inputs as JSON Lines on stdin
@@ -116,8 +119,18 @@ impl Flags {
 }
 
 /// The subcommands an agent may run from the run's copy of the harness; every other one is the orchestrator's.
-pub const AGENT_COMMANDS: [&str; 9] = [
-    "help", "do", "look", "note", "handback", "report", "resume", "serve", "friction",
+pub const AGENT_COMMANDS: [&str; 11] = [
+    "help",
+    "do",
+    "look",
+    "note",
+    "handback",
+    "report",
+    "resume",
+    "serve",
+    "friction",
+    "hint",
+    "questionnaire",
 ];
 
 /// The run whose copy of the harness is `exe`: `<dir>/bin/xtask` beside `<dir>/run.json`.
@@ -468,6 +481,33 @@ pub fn run(args: &[String], root: &Path) -> Result<bool> {
             };
             let run = locate(run_arg, out.as_deref())?;
             print!("{}", friction::friction(&run, &a)?);
+            Ok(true)
+        }
+        "hint" => {
+            let mut f = Flags(rest);
+            let out = f.take_value("--out")?;
+            let args = f.rest();
+            let [run_arg] = args.as_slice() else {
+                bail!("hint <run>");
+            };
+            let run = locate(run_arg, out.as_deref())?;
+            print!("{}", round::hint(&run)?);
+            Ok(true)
+        }
+        "questionnaire" => {
+            let mut f = Flags(rest);
+            let out = f.take_value("--out")?;
+            let args = f.rest();
+            let [run_arg, dash] = args.as_slice() else {
+                bail!("questionnaire <run> -");
+            };
+            if dash != "-" {
+                bail!("questionnaire <run> - (the answers on stdin)");
+            }
+            let mut text = String::new();
+            std::io::stdin().read_to_string(&mut text)?;
+            let run = locate(run_arg, out.as_deref())?;
+            print!("{}", round::questionnaire(&run, &text)?);
             Ok(true)
         }
         "check-brief" => {
