@@ -1239,6 +1239,10 @@ pub struct FmtResult {
     pub kept: Vec<KeptRow>,
     /// The generation on disk afterwards.
     pub generation: u64,
+    /// The older format of a project that opened migrated (WP-S1.17 D11): only `ew upgrade` converts it, so `--check`
+    /// exits 1 with no file listed and `ew fmt` refuses. Absent for a project of this version's format.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub older_format: Option<String>,
 }
 
 /// One file of [`FmtResult`].

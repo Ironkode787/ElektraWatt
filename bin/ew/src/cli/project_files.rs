@@ -27,8 +27,20 @@ const UPGRADE_WORD: &str = "upgrade";
 /// lock, nothing written) or rewritten through the save protocol after the content check (`ew_api::fmt`). The lines the
 /// open kept verbatim are listed on stderr in both modes.
 pub(super) fn run_fmt(a: &FmtArgs) -> i32 {
+    let (mut out, mut err) = (std::io::stdout().lock(), std::io::stderr().lock());
+    run_fmt_with(a, ew_api::StoreOptions::new(VERSION), (&mut out, &mut err))
+}
+
+/// [`run_fmt`] with the store options (a test's migration chain among them) and the writers of what it prints on a
+/// project of an older format injected (C50-p4#4).
+fn run_fmt_with(
+    a: &FmtArgs,
+    mut store: ew_api::StoreOptions,
+    (out, err): (&mut dyn std::io::Write, &mut dyn std::io::Write),
+) -> i32 {
     if a.repair {
-        return run_repair(a);
+        store.repair = true;
+        return run_repair(a, store, err);
     }
     // `--check` is a reader and takes an `.ewz` (WP-S1.17 D9); `fmt` writes and refuses one.
     let dir = if a.check {
@@ -40,22 +52,24 @@ pub(super) fn run_fmt(a: &FmtArgs) -> i32 {
         return 2;
     };
     let opened = if a.check {
-        ew_api::Session::open_reader(&dir, VERSION, "fmt").map_err(|e| {
+        // `Session::open_reader`, with the store options given.
+        let reader = if ew_api::ewz::is_ewz(&ew_api::OsVfs, &dir) {
+            ew_api::Session::open_ewz_with(&dir, store, "fmt", ew_api::MemoMode::default())
+        } else {
+            store.mode = ew_api::OpenMode::ReadOnly;
+            store.state_dir = None;
+            let options = ew_api::SessionOptions {
+                origin: fmt_origin(),
+                ..ew_api::SessionOptions::default()
+            };
+            ew_api::Session::open(&dir, store, options, ew_api::Recovery::Keep)
+        };
+        reader.map_err(|e| {
             eprintln!("error: {}: {e}", dir.display());
             2
         })
     } else {
-        let origin = ew_api::Origin::Cli {
-            subcommand: "fmt".to_owned(),
-            confirmed: false,
-        };
-        open_editing(
-            &dir,
-            origin,
-            ew_api::StoreOptions::new(VERSION),
-            ew_api::Recovery::Keep,
-        )
-        .and_then(|(session, report)| {
+        open_editing(&dir, fmt_origin(), store, ew_api::Recovery::Keep).and_then(|(session, report)| {
             if report.recovery.is_some() {
                 // A save would hide the crashed session's unsaved changes (doc 05 section 8.3): every writer's text.
                 eprintln!("{}", journal_refusal(&dir));
@@ -72,7 +86,18 @@ pub(super) fn run_fmt(a: &FmtArgs) -> i32 {
     if let Some(from) = &report.migrated_from {
         session.close();
         let (code, text) = fmt_older(a.check, &dir, from);
-        eprintln!("{text}");
+        let _ = writeln!(err, "{text}");
+        if a.check && a.json {
+            let result = results::FmtResult {
+                schema: results::FMT.to_owned(),
+                check: true,
+                files: Vec::new(),
+                kept: Vec::new(),
+                generation: report.generation,
+                older_format: Some(from.clone()),
+            };
+            let _ = write!(out, "{}", results::to_text(&result));
+        }
         return code;
     }
     let kept = ew_api::fmt::kept_lines(&report);
@@ -134,6 +159,7 @@ pub(super) fn run_fmt(a: &FmtArgs) -> i32 {
                     })
                     .collect(),
                 generation,
+                older_format: None,
             })
         );
     }
@@ -188,12 +214,10 @@ fn fmt_origin() -> ew_api::Origin {
 /// (`ew_api::fmt::repair`), and the project opened again as an editor opens it (ruling 6): exit 0 when it opens editable
 /// with no EW-CORE-005 finding, else 2, the new generation kept. The discarded lines and the backup go to stdout (stderr
 /// with `--json`); the kept lines and the summary to stderr.
-fn run_repair(a: &FmtArgs) -> i32 {
+fn run_repair(a: &FmtArgs, store: ew_api::StoreOptions, err: &mut dyn std::io::Write) -> i32 {
     let Some(dir) = project_dir(a.project.as_ref()) else {
         return 2;
     };
-    let mut store = ew_api::StoreOptions::new(VERSION);
-    store.repair = true;
     let (mut session, report) = match open_editing(&dir, fmt_origin(), store, ew_api::Recovery::Keep) {
         Ok(r) => r,
         Err(code) => return code,
@@ -204,7 +228,7 @@ fn run_repair(a: &FmtArgs) -> i32 {
         return 2;
     }
     if let Some(from) = &report.migrated_from {
-        eprintln!("error: {}", older_format(&dir, from));
+        let _ = writeln!(err, "error: {}", older_format(&dir, from));
         session.close();
         return 2;
     }
@@ -1541,8 +1565,46 @@ mod tests {
              written",
             project.display()
         );
-        assert_eq!(fmt_older(false, &project, "0.0"), (2, format!("error: {older}")));
-        assert_eq!(fmt_older(true, &project, "0.0"), (1, format!("fmt: {older}")));
+        // C50-p4#4: `ew fmt`, `--check` (with and without `--json`) and `--repair` through their runner, the whole
+        // stderr and stdout and the exit codes.
+        let fmt = |check: bool, repair: bool, json: bool| {
+            let args = FmtArgs {
+                project: Some(project.clone()),
+                check,
+                repair,
+                json,
+            };
+            let (mut out, mut err) = (Vec::new(), Vec::new());
+            let code = run_fmt_with(&args, upgrade_store(&dir), (&mut out, &mut err));
+            (
+                code,
+                String::from_utf8(out).unwrap(),
+                String::from_utf8(err).unwrap(),
+            )
+        };
+        assert_eq!(
+            fmt(false, false, false),
+            (2, String::new(), format!("error: {older}\n"))
+        );
+        assert_eq!(
+            fmt(true, false, false),
+            (1, String::new(), format!("fmt: {older}\n"))
+        );
+        assert_eq!(
+            fmt(false, true, false),
+            (2, String::new(), format!("error: {older}\n"))
+        );
+        let (code, json, err) = fmt(true, false, true);
+        assert_eq!((code, err), (1, format!("fmt: {older}\n")));
+        let json: serde_json::Value = serde_json::from_str(&json).unwrap();
+        assert_eq!(
+            json,
+            serde_json::json!({
+                "$schema": "ew.fmt-result/1", "check": true, "files": [], "kept": [], "generation": 1,
+                "older_format": "0.0"
+            })
+        );
+        assert_eq!(upgrade_files(&dir), before, "nothing was written");
         let _ = std::fs::remove_dir_all(&dir);
     }
 

@@ -84,6 +84,13 @@
         "$ref": "#/$defs/KeptRow"
       },
       "type": "array"
+    },
+    "older_format": {
+      "description": "The older format of a project that opened migrated (WP-S1.17 D11): only `ew upgrade` converts it, so `--check`\nexits 1 with no file listed and `ew fmt` refuses. Absent for a project of this version's format.",
+      "type": [
+        "string",
+        "null"
+      ]
     }
   },
   "required": [
