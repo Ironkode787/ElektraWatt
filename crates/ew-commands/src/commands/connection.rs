@@ -190,7 +190,7 @@ impl Command for Connect {
                 return tx.reject("both ends are on the same connection; pick two different connections");
             }
         }
-        refuse_fluid_mismatch(tx, &self.kind, &self.a, &self.b)?;
+        refuse_fluid_mismatch(tx, &self.kind, &[&self.a, &self.b])?;
         let new_id: Id<Connection> = tx.mint();
         let mut split_page = None;
         let a = resolve_end(tx, &self.a, "/a", new_id, &mut split_page)?;
@@ -237,53 +237,162 @@ pub(crate) fn cp_fluid_class(tx: &TxBuilder<'_>, f: Id<Function>, idx: u16) -> F
     fluid_port_class(&function, def.as_ref().map(|d| &d.item), &parts, idx)
 }
 
-/// The refusals of WP-S1.20 §5 T1 to T3 before EW-INV-024 judges the drawn connection: a fluid line to a CP that is no
-/// fluid port, another kind (except an overview connection or a kind of a newer format) to a fluid port, and a fluid
-/// line between a hydraulic and a pneumatic or vacuum port. Only CP ends are judged here; a junction end is left to
-/// the invariant.
+/// What one end of a drawn connection is to WP-S1.20 §5 T1 to T3: whether it is fluid (`None`: neither, as an exempt
+/// CP, a junction without connections or an overview connection), and the fluid ports of its medium it reaches.
+struct FluidEnd {
+    fluid: Option<bool>,
+    media: Vec<(ew_model::FluidMedium, Id<Function>, u16)>,
+}
+
+/// The fluid ports the fluid lines at the junctions `todo` reach, across any number of junctions (EW-INV-024's walk).
+fn reached_media(
+    tx: &TxBuilder<'_>,
+    mut todo: Vec<Id<Junction>>,
+    media: &mut Vec<(ew_model::FluidMedium, Id<Function>, u16)>,
+) {
+    let mut seen: std::collections::BTreeSet<Id<Junction>> = std::collections::BTreeSet::new();
+    while let Some(j) = todo.pop() {
+        if !seen.insert(j) {
+            continue;
+        }
+        for c in tx.connections_at(EndpointKey::Junction(j)) {
+            let Some(c) = tx.get::<Connection>(c) else {
+                continue;
+            };
+            if !matches!(c.kind, ConnectionKind::Fluid(_)) {
+                continue;
+            }
+            for e in [&c.a, &c.b] {
+                match e {
+                    Endpoint::Cp(f, idx) => {
+                        if let FluidPortClass::Fluid(m) = cp_fluid_class(tx, *f, *idx) {
+                            media.push((m, *f, *idx));
+                        }
+                    }
+                    Endpoint::Junction(k) => todo.push(*k),
+                    Endpoint::Unknown(_) => {}
+                }
+            }
+        }
+    }
+}
+
+/// The [`FluidEnd`] of `end`.
+fn fluid_end(tx: &TxBuilder<'_>, end: &EndpointParam) -> FluidEnd {
+    let judged = |c: &Connection| match c.kind {
+        ConnectionKind::Overview | ConnectionKind::Unknown(_) => None,
+        ConnectionKind::Fluid(_) => Some(true),
+        _ => Some(false),
+    };
+    let mut media = Vec::new();
+    let fluid = match end {
+        EndpointParam::Cp { function, idx } => match cp_fluid_class(tx, *function, *idx) {
+            FluidPortClass::Fluid(m) => {
+                media.push((m, *function, *idx));
+                Some(true)
+            }
+            FluidPortClass::Other => Some(false),
+            FluidPortClass::Exempt => None,
+        },
+        EndpointParam::Junction { junction } => {
+            let kinds: Vec<Option<bool>> = tx
+                .connections_at(EndpointKey::Junction(*junction))
+                .into_iter()
+                .filter_map(|c| tx.get::<Connection>(c))
+                .map(|c| judged(&c))
+                .collect();
+            reached_media(tx, vec![*junction], &mut media);
+            kinds.iter().copied().max().flatten()
+        }
+        EndpointParam::OnConnection { connection, .. } => {
+            let c = tx.get::<Connection>(*connection);
+            let fluid = c.as_deref().and_then(judged);
+            if let (Some(true), Some(c)) = (fluid, &c) {
+                let mut junctions = Vec::new();
+                for e in [&c.a, &c.b] {
+                    match e {
+                        Endpoint::Cp(f, idx) => {
+                            if let FluidPortClass::Fluid(m) = cp_fluid_class(tx, *f, *idx) {
+                                media.push((m, *f, *idx));
+                            }
+                        }
+                        Endpoint::Junction(j) => junctions.push(*j),
+                        Endpoint::Unknown(_) => {}
+                    }
+                }
+                reached_media(tx, junctions, &mut media);
+            }
+            fluid
+        }
+    };
+    FluidEnd { fluid, media }
+}
+
+/// A connection in words: a fluid line by its page ("the fluid line on page 203"), another as [`crate::words::wire`].
+fn line_words(tx: &TxBuilder<'_>, id: Id<Connection>) -> String {
+    match tx.get::<Connection>(id) {
+        Some(c) if matches!(c.kind, ConnectionKind::Fluid(_)) => match c.page {
+            Some(p) => format!("the fluid line on {}", crate::words::page(tx, p)),
+            None => "a fluid line".to_owned(),
+        },
+        _ => crate::words::wire(tx, id),
+    }
+}
+
+/// The refusals of WP-S1.20 §5 T1 to T3 before EW-INV-024 judges the drawn connection: a fluid line to an end that is
+/// no fluid port, another kind (except an overview connection or a kind of a newer format) to a fluid end, and a fluid
+/// line between a hydraulic and a pneumatic or vacuum port. Every end kind is judged in words (FT-1321): a CP, a
+/// junction (by the connections at it) and a point on a connection (by its kind); the media are those the fluid lines
+/// reach across any number of junctions.
 fn refuse_fluid_mismatch(
     tx: &TxBuilder<'_>,
     kind: &ConnectionKind,
-    a: &EndpointParam,
-    b: &EndpointParam,
+    ends: &[&EndpointParam],
 ) -> Result<(), CmdError> {
-    let ends: Vec<(Id<Function>, u16, FluidPortClass)> = [a, b]
-        .into_iter()
-        .filter_map(|e| match e {
-            EndpointParam::Cp { function, idx } => {
-                Some((*function, *idx, cp_fluid_class(tx, *function, *idx)))
-            }
-            _ => None,
-        })
-        .collect();
+    let judged: Vec<(&EndpointParam, FluidEnd)> = ends.iter().map(|e| (*e, fluid_end(tx, e))).collect();
     match kind {
         ConnectionKind::Overview | ConnectionKind::Unknown(_) => Ok(()),
         ConnectionKind::Fluid(_) => {
-            if let Some((f, idx, _)) = ends.iter().find(|e| e.2 == FluidPortClass::Other) {
-                return tx.reject(format!(
-                    "a fluid line joins fluid ports only; {} is not a fluid port",
-                    crate::words::cp(tx, *f, *idx)
-                ));
+            if let Some((end, _)) = judged.iter().find(|(_, j)| j.fluid == Some(false)) {
+                let what = match end {
+                    EndpointParam::Cp { function, idx } => {
+                        format!("{} is not a fluid port", crate::words::cp(tx, *function, *idx))
+                    }
+                    EndpointParam::Junction { junction } => {
+                        format!("{} joins wires", crate::words::junction(tx, *junction))
+                    }
+                    EndpointParam::OnConnection { connection, .. } => {
+                        format!("{} is no fluid line", line_words(tx, *connection))
+                    }
+                };
+                return tx.reject(format!("a fluid line joins fluid ports only; {what}"));
             }
-            if let [
-                (fa, ia, FluidPortClass::Fluid(ma)),
-                (fb, ib, FluidPortClass::Fluid(mb)),
-            ] = ends.as_slice()
+            let media: Vec<&(ew_model::FluidMedium, Id<Function>, u16)> =
+                judged.iter().flat_map(|(_, j)| &j.media).collect();
+            if let Some(((_, fa, ia), (_, fb, ib))) = media
+                .iter()
+                .find_map(|a| media.iter().find(|b| b.0 != a.0).map(|b| (*a, *b)))
             {
-                if ma != mb {
-                    return tx.reject(format!(
-                        "a fluid line does not join a hydraulic port to a pneumatic or vacuum port: {}, {}",
-                        crate::words::cp(tx, *fa, *ia),
-                        crate::words::cp(tx, *fb, *ib)
-                    ));
-                }
+                return tx.reject(format!(
+                    "a fluid line does not join a hydraulic port to a pneumatic or vacuum port: {}, {}",
+                    crate::words::cp(tx, *fa, *ia),
+                    crate::words::cp(tx, *fb, *ib)
+                ));
             }
             Ok(())
         }
-        _ => match ends.iter().find(|e| matches!(e.2, FluidPortClass::Fluid(_))) {
-            Some((f, idx, _)) => tx.reject(format!(
+        _ => match judged.iter().find(|(_, j)| j.fluid == Some(true)) {
+            Some((EndpointParam::Cp { function, idx }, _)) => tx.reject(format!(
                 "{} is a fluid port; only a fluid line joins it",
-                crate::words::cp(tx, *f, *idx)
+                crate::words::cp(tx, *function, *idx)
+            )),
+            Some((EndpointParam::Junction { junction }, _)) => tx.reject(format!(
+                "{} joins fluid lines; only a fluid line joins it",
+                crate::words::junction(tx, *junction)
+            )),
+            Some((EndpointParam::OnConnection { connection, .. }, _)) => tx.reject(format!(
+                "only a fluid line branches from {}",
+                line_words(tx, *connection)
             )),
             None => Ok(()),
         },
@@ -905,7 +1014,8 @@ pub struct IpAtEnd {
 /// `ip.place` (a missing page, symbol copy or external reference, a FnDef that is not embedded, `ip.pos` off the
 /// grid, a starred point that is no source or is external, ID-1146), as `connection.draw` (a missing endpoint record,
 /// off-grid geometry, a route that does not meet its CPs) and an `a` end that no representation of `page` draws; an IP
-/// symbol whose FnDef has not exactly one CP, or that does not draw it.
+/// symbol whose FnDef has not exactly one CP, or that does not draw it; a fluid line, and another kind from a fluid
+/// end, in words (WP-S1.20 §5 T1, T2; FT-1322).
 /// `copies` (FT-673): library documents (`lib/` JSON form) embedded first, in the same transaction, as `ip.place`
 /// embeds them, so ending a wire in a starter IP symbol is one undo step. Interactive. Outcome: the connection.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
@@ -972,6 +1082,13 @@ impl Command for DrawToIp {
             }
         };
         self.a.check(tx)?;
+        // FT-1322: an interruption point's CP is no fluid port (T1), and its start is judged as `connection.draw`
+        // judges an end (T2), in words before EW-INV-024 would judge it.
+        let kind = self.kind.clone().unwrap_or_default();
+        if matches!(kind, ConnectionKind::Fluid(_)) {
+            return tx.reject("a fluid line joins fluid ports only; an interruption point is not a fluid port");
+        }
+        refuse_fluid_mismatch(tx, &kind, &[&self.a])?;
         // FT-446: the start must be drawn on the page the wire and the IP are drawn on; refuse another page (or none)
         // before anything is inserted.
         let (drawn, other) = match &self.a {
@@ -1059,7 +1176,7 @@ impl Command for DrawToIp {
             b,
             page: Some(self.page),
             route: self.route.clone(),
-            kind: self.kind.clone().unwrap_or_default(),
+            kind,
             overrides: WireOverrides::default(),
             number: NumberSpec::default(),
             source_ref: None,

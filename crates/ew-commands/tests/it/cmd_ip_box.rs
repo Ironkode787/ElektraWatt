@@ -214,6 +214,21 @@ fn reps_of(e: &Engine, f: Id<Function>) -> Vec<Representation> {
         .collect()
 }
 
+/// FT-1322: on a fluid page the tool sends the fluid kind; an interruption point's CP is no fluid port, so the line is
+/// refused in words (WP-S1.20 §5 T1) before EW-INV-024, and nothing is made.
+#[test]
+fn draw_to_ip_refuses_a_fluid_line_in_words() {
+    let mut e = engine(ip_model(|_| {}));
+    let before = lines(e.model());
+    let mut cmd = draw_to_ip(cp_param(FN_102G1, 1), pt(5 * G, 0), vec![pt(0, 0), pt(6 * G, 0)]);
+    cmd.kind = Some(ew_schema::ConnectionKind::Fluid(Default::default()));
+    assert_eq!(
+        rejection(e.execute(&cmd)),
+        "a fluid line joins fluid ports only; an interruption point is not a fluid port"
+    );
+    assert_eq!(lines(e.model()), before);
+}
+
 #[test]
 fn draw_to_ip_from_a_cp_creates_function_representation_and_connection_in_one_undo_step() {
     let mut e = engine(ip_model(|_| {}));

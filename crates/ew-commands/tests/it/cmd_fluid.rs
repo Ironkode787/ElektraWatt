@@ -52,7 +52,13 @@ fn fluid_fndef(def: Id<FnDef>, discipline: Discipline) -> LibCopy<FnDef> {
 
 /// The mini golden project with two pneumatic valves -Q71 and -Q72 and a hydraulic one, -Q73.
 fn fluid_model() -> Model {
+    fluid_model_with(Vec::new())
+}
+
+/// [`fluid_model`] with the records `more`.
+fn fluid_model_with(more: Vec<Record>) -> Model {
     let (p, mut records, _) = mini_golden_parts();
+    records.extend(more);
     let mut lib = library();
     lib.push(LibDocument::Fndef(fluid_fndef(PNEU, Discipline::Pneumatic)));
     lib.push(LibDocument::Fndef(fluid_fndef(HYD, Discipline::Hydraulic)));
@@ -163,6 +169,56 @@ fn a_hydraulic_to_pneumatic_line_is_refused_in_words() {
     assert_eq!(
         refusal(&mut e, &cmd),
         "a fluid line does not join a hydraulic port to a pneumatic or vacuum port: -?Q71:1, -?Q73:1"
+    );
+}
+
+const JF: Id<ew_schema::Junction> = id(0x7700);
+const LINE_1: Id<Connection> = id(0x7701);
+const LINE_2: Id<Connection> = id(0x7702);
+
+/// [`fluid_model`] with -Q71:1 and -Q72:1 joined by two fluid lines on page 102 through the junction `JF`.
+fn fluid_net_model() -> Model {
+    let line = |id, a, b| {
+        let mut c = connection(id, Some(PAGE_102), a, b);
+        c.kind = fluid();
+        Record::Connection(c)
+    };
+    fluid_model_with(vec![
+        line(LINE_1, ew_schema::Endpoint::Cp(FN_Q1, 0), at_junction(JF)),
+        line(LINE_2, at_junction(JF), ew_schema::Endpoint::Cp(FN_Q2, 0)),
+        Record::Junction(junction(JF, PAGE_102, vec![LINE_1, LINE_2])),
+    ])
+}
+
+/// FT-1321: T1 and T2 in words at a junction end and at a point on a connection, and T3 across a junction; no record
+/// ID reaches the user.
+#[test]
+fn the_fluid_refusals_name_junction_and_connection_ends_in_words() {
+    let mut e = engine(fluid_net_model());
+    let on = |connection| EndpointParam::OnConnection {
+        connection,
+        at: ew_units::Pt2::new(ew_units::Nm(0), ew_units::Nm(0)),
+    };
+    let wires = EndpointParam::Junction { junction: J5 };
+    let pipes = EndpointParam::Junction { junction: JF };
+    let texts = [
+        refusal(&mut e, &draw(cp_param(FN_Q3, 1), wires, fluid())),
+        refusal(&mut e, &draw(cp_param(FN_Q3, 1), on(CON_W22), fluid())),
+        refusal(&mut e, &draw(cp_param(FN_102G1, 0), pipes.clone(), ConnectionKind::Wire)),
+        refusal(&mut e, &draw(cp_param(FN_102G1, 0), on(LINE_1), ConnectionKind::Wire)),
+    ];
+    assert_eq!(
+        texts,
+        [
+            "a fluid line joins fluid ports only; the junction at x 0, y 0 mm on page 102 joins wires",
+            "a fluid line joins fluid ports only; wire 102.1 is no fluid line",
+            "the junction at x 0, y 0 mm on page 102 joins fluid lines; only a fluid line joins it",
+            "only a fluid line branches from the fluid line on page 102"
+        ]
+    );
+    assert_eq!(
+        refusal(&mut e, &draw(cp_param(FN_Q3, 1), pipes, fluid())),
+        "a fluid line does not join a hydraulic port to a pneumatic or vacuum port: -?Q73:2, -?Q71:1"
     );
 }
 
