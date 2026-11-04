@@ -149,6 +149,10 @@ pub const TEXT_KEYS: &[&str] = &[
     // Session::swap_cores.
     "reason-swap-two-cores",
     "reason-swap-cores-unwired",
+    // Session::connect_cores (FT-1371).
+    "reason-cores-no-cable",
+    "reason-cores-no-wires",
+    "error-cores-too-few",
     // Find hit labels.
     "find-field-function-text",
     "find-field-tag",

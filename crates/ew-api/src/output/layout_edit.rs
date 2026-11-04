@@ -1218,13 +1218,15 @@ impl Session {
     /// The layout parts of `kind` (`enclosure`, `rail` or `duct`) a set-up dialog or a drawing tool offers (part 4, D11, ruling 8): the project's copies
     /// of that kind by part number, then the system libraries' parts of that kind the project does not hold, each with
     /// the `copies` that embed it and its closure; an enclosure part's plate part and its closure come along. For
-    /// `enclosure` only parts with an enclosure section; for `rail` only parts with a rail section; nothing for any
-    /// other word. A library part whose closure does not resolve is left out.
+    /// `enclosure` only parts with an enclosure section; for `rail` only parts with a rail section; for `cable` (New
+    /// cable…, FT-1371) only parts with cable cores; nothing for any other word. A library part whose closure does not
+    /// resolve is left out.
     pub fn layout_part_offers(&self, kind: &str) -> Vec<LayoutPartOffer> {
         let kind = match kind {
             "enclosure" => PartKind::Enclosure,
             "rail" => PartKind::Rail,
             "duct" => PartKind::Duct,
+            "cable" => PartKind::Cable,
             _ => return Vec::new(),
         };
         let q = self.query();
@@ -1233,6 +1235,7 @@ impl Session {
                 && match kind {
                     PartKind::Enclosure => c.item.sections.enclosure.is_some(),
                     PartKind::Rail => c.item.sections.rail.is_some(),
+                    PartKind::Cable => !c.item.sections.cable_cores.is_empty(),
                     _ => true,
                 }
         };

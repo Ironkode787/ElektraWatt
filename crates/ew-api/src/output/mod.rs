@@ -133,6 +133,8 @@ pub use layers::{
 };
 // WP-S4.01 part 3
 pub use layout_edit::{LayoutEdit, LayoutEditError, LayoutPartOffer, parse_mm};
+// FT-1371: Connect cores…' refusal.
+pub use cable_edit::CoresRefused;
 // FT-1016 (ID-1148)
 pub use navigation::{
     CellLabel, GotoError, GotoTarget, LinkTarget, PageCells, PageCp, PageListRow, PageListTable, PageRow,

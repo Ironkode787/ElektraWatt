@@ -186,6 +186,46 @@ static STRIP_NEW: Spec = Spec {
     fields: &[field("tag", key!("form-tag"))],
 };
 
+/// The report kinds Output ▸ Reports ▸ Report block… adds (FT-1372): the page-oriented kinds of `ReportKind`, in its
+/// order (the embedded ones, profile tables and part data, sit on a drawn page and are not offered).
+pub const REPORT_KINDS: &[&str] = &[
+    "toc",
+    "structure_overview",
+    "parts_summary",
+    "parts_list",
+    "device_list",
+    "terminal_diagram",
+    "terminal_overview",
+    "cable_overview_diagrams",
+    "wire_list",
+    "plc_overview",
+    "io_list",
+    "potential_overview",
+    "revision_overview",
+    "open_items",
+    "numbering_report",
+    "enclosure_legend",
+    "check_report",
+];
+
+/// FT-1372 (ID-1362): Output ▸ Reports ▸ Report block…, its kind offered in words.
+static REPORT_NEW: Spec = Spec {
+    action: "report_block.new",
+    title_key: key!("report-block-new-title"),
+    fields: &[
+        field("kind", key!("form-report-kind")),
+        field("folio", key!("form-first-folio")),
+        field("title", key!("form-title")),
+    ],
+};
+
+/// A report kind in the window's words (`report-kind-<kind>`).
+fn report_kind_words(kind: &str) -> String {
+    strings::lookup(&format!("report-kind-{}", kind.replace('_', "-")))
+        .unwrap_or(kind)
+        .to_owned()
+}
+
 /// One field of an open creation dialog.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct FormField {
@@ -855,6 +895,105 @@ impl ShellModel {
             self.notify(strings::format(key!("toast-external-ref-new"), &[&label]), true);
         }
         self.form_done(&EXTERNAL_REF_NEW, out)
+    }
+
+    /// `report_block.new {kind, folio, title?}` (Output ▸ Reports ▸ Report block…, FT-1372): one `report_block.create`
+    /// of the report kind `kind` from folio `folio` on, titled `title`, on the shipped frame without the grid (embedded
+    /// with its title block where the project does not hold it, as the company-standard wizard's blocks are), in the
+    /// section whose folio range holds the folio. In the window without a kind or a folio its form opens, the first
+    /// folio after the last page proposed.
+    pub(crate) fn act_report_block_new(&mut self, p: &Map<String, Value>) -> Outcome {
+        let mut v = Vec::new();
+        for f in REPORT_NEW.fields {
+            match text_param(p, f.name) {
+                Ok(t) => v.push(t),
+                Err(e) => return e,
+            }
+        }
+        let [kind, folio, title] = <[String; 3]>::try_from(v).expect("three fields");
+        for (name, value) in [("kind", &kind), ("folio", &folio)] {
+            if value.is_empty() {
+                if self.mode == Mode::Gui && !self.in_form(&REPORT_NEW) {
+                    let next = self
+                        .page_labels()
+                        .iter()
+                        .filter_map(|l| l.split('.').next()?.parse::<u32>().ok())
+                        .max()
+                        .map_or(1, |n| n.saturating_add(1));
+                    let mut filled = p.clone();
+                    if folio.is_empty() {
+                        filled.insert("folio".into(), Value::String(next.to_string()));
+                    }
+                    let mut dialog = REPORT_NEW.dialog(&filled);
+                    if let Some(f) = dialog.fields.iter_mut().find(|f| f.name == "kind") {
+                        f.options = REPORT_KINDS
+                            .iter()
+                            .map(|k| ((*k).to_owned(), report_kind_words(k)))
+                            .collect();
+                        if f.value.is_empty() {
+                            REPORT_KINDS[0].clone_into(&mut f.value);
+                        }
+                    }
+                    return self.open_dialog(Dialog::Form(dialog));
+                }
+                return self.form_missing(&REPORT_NEW, p, name);
+            }
+        }
+        if !REPORT_KINDS.contains(&kind.as_str()) {
+            let words: Vec<String> = REPORT_KINDS.iter().map(|k| report_kind_words(k)).collect();
+            return self.form_failed(
+                &REPORT_NEW,
+                strings::format(key!("error-report-kind"), &[&kind, &words.join(", ")]),
+            );
+        }
+        let Ok(number) = folio.parse::<u32>() else {
+            return self.form_failed(&REPORT_NEW, strings::format(key!("error-first-folio"), &[&folio]));
+        };
+        let (Some(form), Some(project)) = (
+            crate::wizard::shipped_form_id(crate::wizard_data::NOGRID_FRAME),
+            &self.project,
+        ) else {
+            return Outcome::Refused {
+                reason_key: key!("reason-no-project"),
+            };
+        };
+        let held = form.as_str().is_some_and(|id| {
+            project
+                .session
+                .query()
+                .forms()
+                .iter()
+                .any(|(f, _)| f.as_uuid().to_string() == id)
+        });
+        let mut params = json!({
+            "source": { "kind": kind },
+            "form": form,
+            "first_folio": number,
+        });
+        if !held {
+            let copies: Vec<Value> = [crate::wizard_data::NOGRID_FRAME, crate::wizard_data::TITLE_BLOCK]
+                .iter()
+                .filter_map(|k| crate::wizard::shipped_form(k))
+                .collect();
+            params["form_copies"] = Value::Array(copies);
+        }
+        if !title.is_empty() {
+            params["title"] = Value::String(title);
+        }
+        if let Some(id) = section_of(self, number) {
+            params["section"] = Value::String(id);
+        }
+        let out = self.host_create("report_block.create", params);
+        if out == Outcome::Done {
+            self.notify(
+                strings::format(
+                    key!("toast-report-block-new"),
+                    &[&report_kind_words(&kind), &folio],
+                ),
+                true,
+            );
+        }
+        self.form_done(&REPORT_NEW, out)
     }
 }
 

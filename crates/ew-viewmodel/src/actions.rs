@@ -2026,6 +2026,19 @@ pub static ACTIONS: &[ActionMeta] = &[
             ),
         ),
     )),
+    // FT-1372 (ID-1362): Output ▸ Reports ▸ Report block…, `report_block.create` through its form.
+    with_params(
+        "kind:text, folio:text, title?:text",
+        act(
+            "report_block.new",
+            Command,
+            Menu::Output,
+            &[],
+            writable,
+            grp(Group::Reports),
+            |s, p| s.act_report_block_new(p),
+        ),
+    ),
     // FT-717: Output ▸ Parts list opens the first page of the project's parts list (the first `parts_summary` block,
     // else the first `parts_list` block, in page order).
     placed(
@@ -3303,6 +3316,32 @@ pub static ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_potential_draw(p),
         )),
     )),
+    // FT-1371 (ID-1362): Draw ▸ Connect ▸ New cable… (`cable.create` from a cable part, with its cores) and Connect
+    // cores… (the selected wires become the cable's cores, by order), each through its form.
+    with_params(
+        "part:text",
+        act(
+            "cable.new",
+            Command,
+            Menu::Draw,
+            &[],
+            writable,
+            grp(Group::Connect),
+            |s, p| s.act_cable_new(p),
+        ),
+    ),
+    with_params(
+        "cable:text",
+        in_canvas(act(
+            "cable.connect_cores",
+            Command,
+            Menu::Draw,
+            &[],
+            selection_editable,
+            grp(Group::Connect),
+            |s, p| s.act_cable_connect_cores(p),
+        )),
+    ),
     // FT-1239: Define potential… from a Potentials row's context menu, at the row's point.
     keeps_banner(with_params(
         "row:text",

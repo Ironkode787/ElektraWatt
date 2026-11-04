@@ -1005,7 +1005,7 @@ impl Draft {
 }
 
 /// The library document of the shipped form with `key` ([`SHIPPED_FORMS`]).
-fn shipped_form(key: &str) -> Option<Value> {
+pub(crate) fn shipped_form(key: &str) -> Option<Value> {
     SHIPPED_FORMS.iter().find_map(|text| {
         let form: Value = serde_json::from_str(text).ok()?;
         (form.pointer("/meta/key").and_then(Value::as_str) == Some(key)).then_some(form)
@@ -1013,7 +1013,7 @@ fn shipped_form(key: &str) -> Option<Value> {
 }
 
 /// The copy ID of the shipped form with `key` ([`SHIPPED_FORMS`]).
-fn shipped_form_id(key: &str) -> Option<Value> {
+pub(crate) fn shipped_form_id(key: &str) -> Option<Value> {
     shipped_form(key).and_then(|form| form.get("id").cloned())
 }
 

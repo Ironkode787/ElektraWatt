@@ -5,8 +5,10 @@
 //! two cores of one cable into one `fields.set_many` that moves the core assignment of their connections (each
 //! connection of the one core becomes a connection of the other), so the assignment moves, not the colour.
 
+use std::collections::BTreeSet;
+
 use ew_derive::ew_ids::Id;
-use ew_derive::ew_schema::{Conductor, ConnectionKind};
+use ew_derive::ew_schema::{Conductor, ConnectionKind, Part};
 use serde_json::json;
 
 use super::navigators::Uuid;
@@ -53,6 +55,175 @@ impl Session {
         if edits.is_empty() {
             return Err("reason-swap-cores-unwired");
         }
+        Ok(AnyCommand {
+            name: "fields.set_many".into(),
+            params: json!({ "edits": edits }),
+        })
+    }
+}
+
+/// Why [`Session::connect_cores`] compiles no command: a text key and the texts it names.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct CoresRefused {
+    /// The text key: `reason-cores-no-cable`, `reason-cores-no-wires` or `error-cores-too-few` (the cable's tag, its
+    /// free cores and the wires).
+    pub key: &'static str,
+    /// The texts the key's pattern takes, in order.
+    pub args: Vec<String>,
+}
+
+impl Session {
+    /// The commands of New cable… (FT-1371) for the cable part `part` (its copy ID, a project copy or an installed
+    /// library's part, as [`Session::layout_part_offers`] offers it for `cable`): `library.embed` of the part and its
+    /// closure when the project does not hold it, then `cable.create` with the part (quantity 1) and one conductor per
+    /// core of the part's cable cores, in the part's order (FR-CBL-004). `None` when no cable part has that ID.
+    pub fn create_cable(&self, part: Uuid) -> Option<Vec<AnyCommand>> {
+        let offer = self
+            .layout_part_offers("cable")
+            .into_iter()
+            .find(|o| o.part == part)?;
+        let id: Id<Part> = Id::from_uuid(part);
+        let held = self
+            .query()
+            .parts()
+            .get(id)
+            .map(|c| c.item.sections.cable_cores.clone());
+        let cores = match held {
+            Some(cores) => cores,
+            None => {
+                self.library_parts()
+                    .into_iter()
+                    .find(|c| c.id == id)?
+                    .item
+                    .sections
+                    .cable_cores
+            }
+        };
+        let conductors: Vec<_> = cores
+            .iter()
+            .map(|c| {
+                let mut spec = json!({ "core": c.core.as_str(), "shield": c.shield });
+                if let Some(colour) = &c.colour {
+                    spec["colour"] = serde_json::to_value(colour).unwrap_or_default();
+                }
+                if let Some(csa) = &c.csa {
+                    spec["csa"] = serde_json::to_value(csa).unwrap_or_default();
+                }
+                if let Some(pair) = c.pair {
+                    spec["pair"] = json!(pair);
+                }
+                spec
+            })
+            .collect();
+        let mut out = Vec::new();
+        if !offer.copies.is_empty() {
+            out.push(AnyCommand {
+                name: "library.embed".into(),
+                params: json!({ "copies": offer.copies }),
+            });
+        }
+        out.push(AnyCommand {
+            name: "cable.create".into(),
+            params: json!({
+                "parts": [{ "part": { "copy": part.to_string() }, "qty": "1" }],
+                "conductors": conductors,
+            }),
+        });
+        Some(out)
+    }
+
+    /// The project's cables for Connect cores… (FT-1371): `(cable device, its tag)`, by tag.
+    pub fn cables(&self) -> Vec<(Uuid, String)> {
+        let ids: Vec<Uuid> = self
+            .query()
+            .devices()
+            .iter()
+            .filter(|(_, d)| d.aspects.cable.is_some())
+            .map(|(id, _)| id.as_uuid())
+            .collect();
+        let mut out: Vec<(Uuid, String)> = ids
+            .into_iter()
+            .filter_map(|id| Some((id, self.device_tag(id)?)))
+            .collect();
+        out.sort_by(|a, b| ew_derive::ew_mltext::natural_cmp(&a.1, &b.1).then(a.0.cmp(&b.0)));
+        out
+    }
+
+    /// The one command of Connect cores… (FT-1371; doc 08 §7.2, by order): one `fields.set_many` that makes the
+    /// connections `wires`, in the order given, cores of `cable`, taking its free cores in the order of its part's
+    /// cable cores (cores the part does not list after them, by core). A free core is one that no connection outside
+    /// `wires` is; a wire among `wires` that is a core already is assigned again.
+    ///
+    /// # Errors
+    ///
+    /// [`CoresRefused`]: `cable` is no cable; `wires` is empty or holds a connection that is neither a wire nor a core;
+    /// the cable has fewer free cores than `wires` (nothing is assigned, doc 08 §7.2).
+    pub fn connect_cores(&self, cable: Uuid, wires: &[Uuid]) -> Result<AnyCommand, CoresRefused> {
+        let q = self.query();
+        let refused = |key: &'static str, args: Vec<String>| CoresRefused { key, args };
+        let cable_id: Id<ew_derive::ew_schema::Device> = Id::from_uuid(cable);
+        let Some(device) = q.devices().get(cable_id).filter(|d| d.aspects.cable.is_some()) else {
+            return Err(refused("reason-cores-no-cable", Vec::new()));
+        };
+        let connections = q.connections();
+        let usable = !wires.is_empty()
+            && wires.iter().all(|w| {
+                connections
+                    .get(Id::from_uuid(*w))
+                    .is_some_and(|c| matches!(c.kind, ConnectionKind::Wire | ConnectionKind::Core(_)))
+            });
+        if !usable {
+            return Err(refused("reason-cores-no-wires", Vec::new()));
+        }
+        let order: Vec<_> = device
+            .parts
+            .first()
+            .and_then(|u| q.parts().get(u.part.copy))
+            .map(|p| {
+                p.item
+                    .sections
+                    .cable_cores
+                    .iter()
+                    .map(|c| c.core.clone())
+                    .collect()
+            })
+            .unwrap_or_default();
+        let mut cores: Vec<(usize, Conductor)> = q
+            .conductors()
+            .iter()
+            .filter(|(_, c)| c.cable == cable_id)
+            .map(|(_, c)| c.as_ref().clone())
+            .map(|c| (order.iter().position(|o| *o == c.core).unwrap_or(usize::MAX), c))
+            .collect();
+        cores.sort_by(|a, b| a.0.cmp(&b.0).then(a.1.core.natural_cmp(&b.1.core)));
+        let taken: BTreeSet<Id<Conductor>> = connections
+            .iter()
+            .filter(|(id, _)| !wires.contains(&id.as_uuid()))
+            .filter_map(|(_, c)| match c.kind {
+                ConnectionKind::Core(x) => Some(x),
+                _ => None,
+            })
+            .collect();
+        let free: Vec<Id<Conductor>> = cores
+            .iter()
+            .map(|(_, c)| c.id)
+            .filter(|c| !taken.contains(c))
+            .collect();
+        if free.len() < wires.len() {
+            let tag = self.device_tag(cable).unwrap_or_default();
+            return Err(refused(
+                "error-cores-too-few",
+                vec![tag, free.len().to_string(), wires.len().to_string()],
+            ));
+        }
+        let edits: Vec<_> = wires
+            .iter()
+            .zip(free)
+            .map(|(w, core)| {
+                let value = serde_json::to_value(ConnectionKind::Core(core)).unwrap_or_default();
+                json!({"kind": "connection", "targets": [w.to_string()], "path": "kind", "value": value})
+            })
+            .collect();
         Ok(AnyCommand {
             name: "fields.set_many".into(),
             params: json!({ "edits": edits }),

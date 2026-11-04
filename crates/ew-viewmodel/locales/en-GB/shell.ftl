@@ -3673,3 +3673,28 @@ reason-no-lineage = The project holds no import
 
 # WP-S3.09 D4: the banner while the import job runs.
 banner-importing = Importing { $p0 }…
+
+# FT-1371 (ID-1362): Draw ▸ Connect ▸ New cable… and Connect cores….
+action-cable-new = New cable…
+action-cable-connect-cores = Connect cores…
+cable-new-title = New cable
+form-cable-part = Cable part
+connect-cores-title = Connect cores
+form-cable = Cable
+reason-no-cable-part = No cable part is in the project or an installed library
+error-no-cable-part = No cable part has the part number { $p0 }: choose one from the list.
+reason-cores-no-wires = Select the wires that become the cable's cores
+reason-cores-no-cable = The project has no cable yet; create one first
+error-no-cable = The project has no cable { $p0 }: choose one from the list.
+error-cores-too-few = { $p0 } has { $p1 } free cores for { $p2 } wires: select fewer wires, or choose another cable.
+toast-cable-new = Created cable { $p0 }; its cores: { $p1 }
+toast-cores-connected = Wires connected to the cores of { $p1 }: { $p0 }
+
+# FT-1372 (ID-1362): Output ▸ Reports ▸ Report block….
+action-report-block-new = Report block…
+report-block-new-title = New report block
+form-report-kind = Report
+form-first-folio = First folio
+error-report-kind = "{ $p0 }" is not a report; use one of: { $p1 }.
+error-first-folio = The first folio is a number: "{ $p0 }" is not.
+toast-report-block-new = Added the report block { $p0 } from folio { $p1 }

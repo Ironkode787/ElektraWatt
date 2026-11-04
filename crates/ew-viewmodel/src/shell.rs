@@ -47,6 +47,8 @@ pub(crate) use external::collision_count;
 mod bridge;
 // G-PP triage row 7: Draw ▸ Bond.
 mod bond;
+// FT-1371: Draw ▸ Connect ▸ New cable… and Connect cores….
+mod cables;
 // WP-S2.09 part 3: the Preview tab, the renumber dialogs and the purge.
 mod bulk;
 mod editing;

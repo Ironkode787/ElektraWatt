@@ -3438,3 +3438,28 @@ reason-no-lineage = Het project bevat geen import
 
 # WP-S3.09 D4: the banner while the import job runs.
 banner-importing = { $p0 } wordt geïmporteerd…
+
+# FT-1371 (ID-1362): Tekenen ▸ Verbinden ▸ Nieuwe kabel… en Aders verbinden….
+action-cable-new = Nieuwe kabel…
+action-cable-connect-cores = Aders verbinden…
+cable-new-title = Nieuwe kabel
+form-cable-part = Kabelartikel
+connect-cores-title = Aders verbinden
+form-cable = Kabel
+reason-no-cable-part = Er staat geen kabelartikel in het project of in een geïnstalleerde bibliotheek
+error-no-cable-part = Geen kabelartikel heeft het artikelnummer { $p0 }: kies er een uit de lijst.
+reason-cores-no-wires = Selecteer de draden die de aders van de kabel worden
+reason-cores-no-cable = Het project heeft nog geen kabel; maak er eerst een
+error-no-cable = Het project heeft geen kabel { $p0 }: kies er een uit de lijst.
+error-cores-too-few = { $p0 } heeft { $p1 } vrije aders voor { $p2 } draden: selecteer minder draden, of kies een andere kabel.
+toast-cable-new = Kabel { $p0 } gemaakt; aantal aders: { $p1 }
+toast-cores-connected = Draden verbonden met de aders van { $p1 }: { $p0 }
+
+# FT-1372 (ID-1362): Uitvoer ▸ Rapporten ▸ Rapportblok….
+action-report-block-new = Rapportblok…
+report-block-new-title = Nieuw rapportblok
+form-report-kind = Rapport
+form-first-folio = Eerste folio
+error-report-kind = "{ $p0 }" is geen rapport; gebruik een van: { $p1 }.
+error-first-folio = De eerste folio is een nummer: "{ $p0 }" niet.
+toast-report-block-new = Rapportblok { $p0 } toegevoegd vanaf folio { $p1 }
