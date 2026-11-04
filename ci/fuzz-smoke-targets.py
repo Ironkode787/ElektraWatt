@@ -86,13 +86,17 @@ def selftest():
     every = " ".join(f"{t}:{n}" for t, n in MAX_LEN.items())
     assert {"jsonl_loader", "migration_chain", "command_sequence", "png_pdf", "ewz_read", "merge_file"} <= set(MAX_LEN), list(MAX_LEN)
     assert {"sql_sandbox", "svg_asset", "image_decode", "textconv", "table_round_trip", "command_log"} <= set(MAX_LEN)
+    assert {"qet_project", "qet_element", "golden_tables", "parts_table"} <= set(MAX_LEN)
     loader, chain, command = "jsonl_loader:65536", "migration_chain:65", "command_sequence:512"
     ewz, merge = "ewz_read:16384", "merge_file:65536"
     # WP-S6.04: the targets on the golden project's session reach the whole stack through ew-api; the SVG target
     # reaches ew-scene and what it builds on
     sql, svg = "sql_sandbox:4096", "svg_asset:16384"
     conv = "textconv:16384 table_round_trip:16384 command_log:16384"
-    api = f"{sql} {conv}"
+    kit = f"{sql} {conv}"
+    # WP-S3.09: the importer targets reach the whole stack through ew-api, without ew-testkit
+    imp = "qet_project:65536 qet_element:16384 golden_tables:65536 parts_table:65536"
+    api = f"{kit} {imp}"
     # nothing relevant
     assert run() == ""
     assert run("README.md", "docs/design/10-plc-and-bus.md", "crates/ew-ui/src/lib.rs") == ""
@@ -102,16 +106,16 @@ def selftest():
     # the closure of each target: the format crate is in five (the command target saves through ew-store, the
     # .ewz reader parses the manifest, the merge target merges and reloads)
     assert run("crates/ew-format/src/lib.rs") == f"{loader} {chain} {command} {ewz} {merge} {api}"
-    assert run("crates/ew-schema/src/plc.rs") == f"{loader} {chain} {command} {ewz} {merge} {sql} {svg} {conv}"
+    assert run("crates/ew-schema/src/plc.rs") == f"{loader} {chain} {command} {ewz} {merge} {sql} {svg} {conv} {imp}"
     assert run("crates/ew-store/src/open.rs") == f"{chain} {command} {ewz} {api}"
-    assert run("crates/ew-model/src/index.rs") == f"{chain} {command} {ewz} {sql} {svg} {conv}"
-    assert run("crates/ew-zip/src/lib.rs") == f"{chain} {command} {ewz} {sql} {svg} {conv}"
+    assert run("crates/ew-model/src/index.rs") == f"{chain} {command} {ewz} {sql} {svg} {conv} {imp}"
+    assert run("crates/ew-zip/src/lib.rs") == f"{chain} {command} {ewz} {sql} {svg} {conv} {imp}"
     assert run("crates/ew-commands/src/tx.rs") == f"{command} {api}"
-    assert run("crates/ew-derive/src/plc.rs") == f"{command} {sql} {svg} {conv}"
+    assert run("crates/ew-derive/src/plc.rs") == f"{command} {sql} {svg} {conv} {imp}"
     assert run("crates/ew-api/src/verify.rs") == f"{command} {api}"
     assert run("crates/ew-import-tables/Cargo.toml") == f"{command} {api}"
-    assert run("crates/ew-testkit/src/lib.rs") == f"{command} {api}"
-    assert run("crates/ew-testkit/tests/command_fuzz/arms.rs") == f"{command} {api}", "the generator is included by fuzz/"
+    assert run("crates/ew-testkit/src/lib.rs") == f"{command} {kit}"
+    assert run("crates/ew-testkit/tests/command_fuzz/arms.rs") == f"{command} {kit}", "the generator is included by fuzz/"
     assert run("crates/ew-testkit/tests/other.rs") == ""
     assert run("crates/ew-format-extra/x.rs") == "", "a prefix of a directory name is not the crate"
     # the fuzz crate
