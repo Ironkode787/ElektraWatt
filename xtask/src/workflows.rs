@@ -421,7 +421,9 @@ fn check_write_scopes(file: &str, lines: &[Line<'_>], v: &mut Vec<String>) {
     let Some(job_indent) = body.first().map(|l| l.indent) else {
         return;
     };
-    let heads: Vec<usize> = (0..body.len()).filter(|&i| body[i].indent == job_indent).collect();
+    let heads: Vec<usize> = (0..body.len())
+        .filter(|&i| body[i].indent == job_indent)
+        .collect();
     for (k, &head) in heads.iter().enumerate() {
         let job = key_value(body[head].content).map_or("", |(name, _)| name);
         let inner = &body[head + 1..heads.get(k + 1).copied().unwrap_or(body.len())];
@@ -444,10 +446,12 @@ fn check_write_scopes(file: &str, lines: &[Line<'_>], v: &mut Vec<String>) {
                     });
                 }
                 Some(("environment", name)) => environment = Some(name),
-                Some(("permissions", "")) => writes.extend(block(i).filter_map(|l| match key_value(l.content) {
-                    Some((scope, "write")) => Some((l.number, scope)),
-                    _ => None,
-                })),
+                Some(("permissions", "")) => {
+                    writes.extend(block(i).filter_map(|l| match key_value(l.content) {
+                        Some((scope, "write")) => Some((l.number, scope)),
+                        _ => None,
+                    }))
+                }
                 _ => {}
             }
         }
@@ -874,14 +878,19 @@ mod tests {
     fn job_level_write_scope_needs_the_release_environment() {
         let head = "on: [push]\npermissions:\n  contents: read\njobs:\n  build:\n    runs-on: x\n    permissions:\n      contents: read\n      actions: read\n";
         for scope in ["contents", "id-token", "attestations"] {
-            let job = format!("  rel:\n    runs-on: x\n    permissions:\n      contents: read\n      {scope}: write\n");
+            let job = format!(
+                "  rel:\n    runs-on: x\n    permissions:\n      contents: read\n      {scope}: write\n"
+            );
             assert_eq!(
                 check_text("release.yml", &format!("{head}{job}")),
                 vec![format!(
                     "release.yml:14: job `rel` grants `{scope}: write` outside the `release` environment"
                 )]
             );
-            for environment in ["    environment: release\n", "    environment:\n      name: \"release\"\n"] {
+            for environment in [
+                "    environment: release\n",
+                "    environment:\n      name: \"release\"\n",
+            ] {
                 let text = format!("{head}{job}{environment}");
                 assert_eq!(check_text("release.yml", &text), Vec::<String>::new(), "{text}");
             }
@@ -1047,7 +1056,9 @@ mod tests {
                     .filter(|t| t.starts_with("cargo-deny@"))
             })
             .expect("the supply-chain job's install-action tools");
-        let components: toml::Table = read("packaging/components.toml").parse().expect("components.toml");
+        let components: toml::Table = read("packaging/components.toml")
+            .parse()
+            .expect("components.toml");
         let pinned = |name: &str| {
             components["component"]
                 .as_array()
@@ -1061,7 +1072,10 @@ mod tests {
         for pin in tools.split(',') {
             let (name, version) = pin.split_once('@').expect("tool@version");
             if let Some(ours) = pinned(name) {
-                assert_eq!(ours, version, "{name}: packaging/components.toml and ci.yml's supply-chain job");
+                assert_eq!(
+                    ours, version,
+                    "{name}: packaging/components.toml and ci.yml's supply-chain job"
+                );
                 compared.push(name);
             }
         }
