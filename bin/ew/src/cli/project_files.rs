@@ -1541,10 +1541,7 @@ mod tests {
              written",
             project.display()
         );
-        assert_eq!(
-            fmt_older(false, &project, "0.0"),
-            (2, format!("error: {older}"))
-        );
+        assert_eq!(fmt_older(false, &project, "0.0"), (2, format!("error: {older}")));
         assert_eq!(fmt_older(true, &project, "0.0"), (1, format!("fmt: {older}")));
         let _ = std::fs::remove_dir_all(&dir);
     }

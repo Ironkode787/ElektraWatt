@@ -1132,14 +1132,14 @@ mod tests {
         let appimage = "'/home/u/Apps/ElektraWatt.AppImage' ew";
         let exe = mount.join("usr").join("ew");
         assert_eq!(ew_command(&exe, image, Some(&link)), appimage);
-        assert_eq!(ew_command(&link.join("usr").join("ew"), image, Some(&mount)), appimage);
+        assert_eq!(
+            ew_command(&link.join("usr").join("ew"), image, Some(&mount)),
+            appimage
+        );
         // A folder beside the mount is not under it, through the link or not.
         let beside = dir.join("beside");
         std::fs::create_dir_all(&beside).unwrap();
-        assert_eq!(
-            ew_command(&exe, image, Some(&beside)),
-            sh_quoted(&exe)
-        );
+        assert_eq!(ew_command(&exe, image, Some(&beside)), sh_quoted(&exe));
         let _ = std::fs::remove_dir_all(&dir);
     }
 
