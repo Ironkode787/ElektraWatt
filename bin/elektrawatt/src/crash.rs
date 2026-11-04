@@ -17,7 +17,7 @@ use std::cell::Cell;
 use std::io::Write as _;
 use std::panic::PanicHookInfo;
 use std::path::{Path, PathBuf};
-use std::sync::OnceLock;
+use std::sync::{Mutex, OnceLock};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -43,6 +43,10 @@ pub(crate) const CAPPED_LINE: &str = "further panics not logged";
 /// The entries this process wrote, and whether it wrote [`CAPPED_LINE`].
 static ENTRIES: AtomicUsize = AtomicUsize::new(0);
 static CAPPED: AtomicBool = AtomicBool::new(false);
+
+/// The hook's own slot past the cap: the newest panic's entry, which [`ended`] writes before the end line, so the
+/// panic that ends a session in a crash loop is still logged and its time is the one offered (FT-1311).
+static NEWEST: Mutex<Option<String>> = Mutex::new(None);
 
 thread_local! {
     /// Whether this thread is inside the hook: a panic there is not logged again.
@@ -126,7 +130,7 @@ fn message(info: &PanicHookInfo<'_>) -> String {
 }
 
 /// The hook's work: one entry in the log, unless this thread is in the hook already; past [`MAX_ENTRIES`] or
-/// [`MAX_BYTES`] only [`CAPPED_LINE`], once.
+/// [`MAX_BYTES`] only [`CAPPED_LINE`], once, and the newest entry kept in [`NEWEST`] for [`ended`].
 fn record(version: &str, info: &PanicHookInfo<'_>) {
     if IN_HOOK.with(|f| f.replace(true)) {
         return;
@@ -139,25 +143,31 @@ fn record(version: &str, info: &PanicHookInfo<'_>) {
         if !CAPPED.swap(true, Ordering::Relaxed) {
             append(path, &format!("{CAPPED_LINE}\n"));
         }
+        let text = entry_of(version, info);
+        *NEWEST.lock().unwrap_or_else(std::sync::PoisonError::into_inner) = Some(text);
     } else if let Some(path) = LOG.get() {
         ENTRIES.fetch_add(1, Ordering::Relaxed);
-        let thread = std::thread::current();
-        let location = info.location().map_or_else(
-            || "unknown".to_owned(),
-            |l| format!("{}:{}:{}", l.file(), l.line(), l.column()),
-        );
-        let frames = std::backtrace::Backtrace::force_capture().to_string();
-        let text = entry(
-            version,
-            &utc(now(), false),
-            thread.name().unwrap_or("unnamed"),
-            &location,
-            &message(info),
-            &frames,
-        );
-        append(path, &text);
+        append(path, &entry_of(version, info));
     }
     IN_HOOK.with(|f| f.set(false));
+}
+
+/// The entry of the panic `info`, at the current time.
+fn entry_of(version: &str, info: &PanicHookInfo<'_>) -> String {
+    let thread = std::thread::current();
+    let location = info.location().map_or_else(
+        || "unknown".to_owned(),
+        |l| format!("{}:{}:{}", l.file(), l.line(), l.column()),
+    );
+    let frames = std::backtrace::Backtrace::force_capture().to_string();
+    entry(
+        version,
+        &utc(now(), false),
+        thread.name().unwrap_or("unnamed"),
+        &location,
+        &message(info),
+        &frames,
+    )
 }
 
 /// Appends `text` to the log at `path`, creating it and its directory user-only (WP-S6.05 D10); errors are ignored.
@@ -184,9 +194,17 @@ fn append(path: &Path, text: &str) {
     }
 }
 
-/// The panic that `main`'s outer catch caught ended the session: its entry gets the end line (L8).
+/// The panic that `main`'s outer catch caught ended the session: its entry gets the end line (L8). Past the cap, its
+/// entry, kept in [`NEWEST`], is written first.
 pub(crate) fn ended() {
     if let Some(path) = LOG.get().filter(|p| p.is_file()) {
+        let newest = NEWEST
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .take();
+        if let Some(text) = newest {
+            append(path, &text);
+        }
         append(path, &format!("{ENDED_LINE}\n"));
     }
 }
@@ -206,8 +224,7 @@ mod tests {
         std::fs::read_to_string(LOG.get().unwrap()).unwrap()
     }
 
-    /// C50-p3#1: a panic caught over and over writes at most `MAX_ENTRIES` entries, then the cap line once; the
-    /// session's end line still follows. Nextest runs each test in a process of its own, so the hook and the count
+    /// C50-p3#1: a panic caught over and over writes at most `MAX_ENTRIES` entries, then the cap line once. Nextest runs each test in a process of its own, so the hook and the count
     /// are this test's.
     #[test]
     fn a_log_stops_taking_entries_at_its_cap() {
@@ -218,8 +235,29 @@ mod tests {
         let text = log_text();
         assert_eq!(text.matches(" crash log\n").count(), MAX_ENTRIES);
         assert!(text.ends_with(&format!("\n\n{CAPPED_LINE}\n")));
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    /// FT-1311: past the cap, the newest panic's entry is kept and `ended()` writes it before the end line, so the
+    /// final entry is the panic that ended the session and the offer reads its time (the log's last `Time:` line).
+    #[test]
+    fn the_panic_past_the_cap_that_ends_the_session_gets_the_final_entry() {
+        let dir = fresh("ew-crash-cap-ended");
+        for n in 0..MAX_ENTRIES + 5 {
+            assert!(std::panic::catch_unwind(move || panic!("caught {n}")).is_err());
+        }
         ended();
-        assert!(log_text().ends_with(&format!("{CAPPED_LINE}\n{ENDED_LINE}\n")));
+        let text = log_text();
+        let (before, last) = text.split_once(&format!("{CAPPED_LINE}\n")).unwrap();
+        assert_eq!(before.matches(" crash log\n").count(), MAX_ENTRIES);
+        assert_eq!(last.matches(" crash log\n").count(), 1);
+        assert!(last.ends_with(&format!("\n\n{ENDED_LINE}\n")));
+        let message = last.lines().find_map(|l| l.strip_prefix("Message: "));
+        assert_eq!(message, Some(format!("caught {}", MAX_ENTRIES + 4).as_str()));
+        let offered = text.lines().rev().find_map(|l| l.strip_prefix("Time: "));
+        let own = last.lines().find_map(|l| l.strip_prefix("Time: "));
+        assert!(own.is_some());
+        assert_eq!(offered, own);
         let _ = std::fs::remove_dir_all(dir);
     }
 
