@@ -122,7 +122,7 @@ pub fn style_of(t: &Tokens) -> Style {
 /// applies it, the zoom modifier's turns left to the zoom). The steps egui still holds for later frames are then
 /// overwritten as they come out, so no motion follows the turn.
 pub fn unsmoothed_scroll(ctx: &egui::Context) {
-    let o = ctx.options(|o| o.input_options.clone());
+    let o = ctx.options(|o| o.input_options);
     ctx.input_mut(|i| {
         let page = i.viewport_rect().height();
         let mut sum = Vec2::ZERO;

@@ -954,9 +954,10 @@ fn assert_chips_apart(
 }
 
 /// FT-389, FT-507 and FT-508 (WP-S2.17 part 5, OV2): the Place ghost of a terminal on Golden A draws one label with
-/// its tag once, even after a second rest; the preview's change chip stands by the floating insertion point, off the
-/// label (the rule's next candidate), the header by it; with the frame statistics shown and the anchor
-/// moved beside their panel, no chip covers the panel; no two chips intersect, with the statistics on and off.
+/// no tag added, even after a second rest (its tag in the change chip, C50-p1#3); the preview's change chip stands by
+/// the floating insertion point, off the label (the rule's next candidate), the header by it; with the frame
+/// statistics shown and the anchor moved beside their panel, no chip covers the panel; no two chips intersect, with
+/// the statistics on and off.
 #[test]
 fn ov2_the_place_ghost_draws_its_tag_once_and_its_chips_keep_apart() {
     let tmp = Tmp::new();
@@ -982,12 +983,8 @@ fn ov2_the_place_ghost_draws_its_tag_once_and_its_chips_keep_apart() {
         .filter(|c| c.kind == ew_ui::canvas_chips::ChipKind::Label)
         .collect();
     assert_eq!(labels.len(), 1, "one ghost label: {all:?}");
-    assert_eq!(
-        labels[0].text.matches("-X1031:30").count(),
-        1,
-        "the tag once: {:?}",
-        labels[0].text
-    );
+    // C50-p1#3 (ID-1315): a terminal's label names its strip and designation; its tag stands in the preview chip.
+    assert_eq!(labels[0].text, "Variant A · terminal 30 on -X1031");
     let anchor = drawn_of(&mut h, tl);
     let (text, frame) = &chips[1];
     assert!(text.contains("-X1031:30"), "{chips:?}");

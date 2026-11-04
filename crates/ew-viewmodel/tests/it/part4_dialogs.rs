@@ -289,6 +289,8 @@ const OPENS_INPUT: &[&str] = &[
     "revision.incomplete",
     // FT-1202 (ID-1270): Draw ▸ Define potential… opens its parameter form.
     "potential.draw",
+    // FT-1239: a Potentials row's Define potential… opens the same form.
+    "potential.draw_row",
 ];
 
 #[test]
