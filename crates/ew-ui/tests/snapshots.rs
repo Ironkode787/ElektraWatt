@@ -11,8 +11,11 @@
 //! `tests/expected/snapshots/`. A pixel differs when a channel differs by more than
 //! [`offscreen::CHANNEL_TOLERANCE`]; an image fails with more than [`offscreen::MAX_DIFFERING_PIXELS`] differing
 //! pixels, and a diff image (differences in red) is written next to the output. `EW_BLESS=1` writes the blessed
-//! files. Behind the `snapshots` feature and on Windows only (DX12 WARP: one platform keeps the pixels stable); no
-//! adapter there is a failure.
+//! files. Behind the `snapshots` feature, on Windows (DX12 WARP) and on Linux (Mesa's lavapipe, the version pinned in
+//! `ci/mesa-lavapipe.txt`; WP-S2.11 D4): one software rasteriser per platform keeps the pixels stable, and no adapter
+//! is a failure. On Linux an image is compared with its override `tests/expected/snapshots/linux/<name>` when that
+//! file exists, else with the shared one; a bless on Linux writes an override only for an image that differs from the
+//! shared one beyond the tolerance, and removes an override that no longer differs.
 //!
 //! One image per screen (test audit, 2026-10-29): each cropped screen is gated in light Comfortable, plus dark
 //! Compact for the DK12 panes. The theme tokens are gated by `theme.rs` (`dl2_the_dump_equals_the_blessed_file`,
@@ -20,7 +23,7 @@
 //! both densities by `main-*`, so a dark or Compact copy of every crop guards nothing more. Every image this file
 //! writes is gated: nothing is rendered for review only.
 
-#![cfg(all(feature = "snapshots", windows))]
+#![cfg(all(feature = "snapshots", any(windows, target_os = "linux")))]
 
 mod gallery;
 mod offscreen;
@@ -59,7 +62,7 @@ fn bless() -> bool {
 }
 
 fn device() -> ew_render2d::gpu::HeadlessDevice {
-    offscreen::device().expect("no adapter: on Windows DX12 WARP at least must be found")
+    offscreen::device().expect("no adapter: DX12 WARP on Windows or Mesa's lavapipe on Linux at least must be found")
 }
 
 /// Writes `image` for review as `name` and, when `gated`, compares it with the blessed file (or blesses it). Returns
@@ -70,10 +73,28 @@ fn record(name: &str, image: &ew_render_cpu::RgbaImage, gated: bool) -> Option<S
     if !gated {
         return None;
     }
-    let blessed = PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/expected/snapshots"))
-        .join(format!("{name}.png"));
+    let expected = PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/expected/snapshots"));
+    let shared = expected.join(format!("{name}.png"));
+    // WP-S2.11 D4: Linux reads its override where lavapipe and WARP differ beyond the tolerance.
+    let linux = expected.join("linux").join(format!("{name}.png"));
+    let blessed = if cfg!(target_os = "linux") && linux.is_file() {
+        linux.clone()
+    } else {
+        shared.clone()
+    };
     if bless() {
-        offscreen::write_png(image, &blessed);
+        if cfg!(target_os = "linux") {
+            let differs = offscreen::read_png(&shared).is_none_or(|old| {
+                offscreen::compare(&old, image).is_none_or(|(count, _)| count > offscreen::MAX_DIFFERING_PIXELS)
+            });
+            if differs {
+                offscreen::write_png(image, &linux);
+            } else if linux.is_file() {
+                std::fs::remove_file(&linux).unwrap();
+            }
+        } else {
+            offscreen::write_png(image, &blessed);
+        }
         return None;
     }
     let Some(old) = offscreen::read_png(&blessed) else {

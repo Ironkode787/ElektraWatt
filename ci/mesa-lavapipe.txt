@@ -1,0 +1,10 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+# The Mesa of the Linux pixel gate (WP-S2.11 D4, doc 18 §3.11): the package version of `mesa-vulkan-drivers` (MIT;
+# lavapipe, Mesa's software Vulkan driver) that both Linux test jobs install, from Ubuntu 24.04's archive as it stood
+# at `snapshot` on snapshot.ubuntu.com, so the version stays installable. `ci/mesa-lavapipe.sh install` installs it,
+# `check` fails when `dpkg-query` reports another, `'--test'` shows that the check fails on a wrong version. A new pin
+# changes both lines together and re-blesses the Linux overrides of crates/ew-ui/tests/expected/snapshots/linux/.
+version=25.2.8-0ubuntu0.24.04.4
+snapshot=20261101T000000Z

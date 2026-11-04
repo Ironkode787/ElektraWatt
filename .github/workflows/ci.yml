@@ -201,8 +201,12 @@ jobs:
       # needs an adapter; without one the test prints `skipped: no adapter` and passes, which proves nothing on Linux.
       # FT-479: the step took 440 s and 535 s in test-linux-default in runs 40376419761 and 40364837825 (10 s in test-linux, same
       # command, same runs), a stalled mirror connection; the timeouts and retries turn a stall into a retry of a few seconds.
+      # WP-S2.11 D4: exactly the version of ci/mesa-lavapipe.txt, from Ubuntu's snapshot archive, so the pixel gate's
+      # Linux images stay valid; a step that finds another version fails with the pinned and the installed version.
       - name: install Mesa's lavapipe for the GPU canvas tests
-        run: sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 update -qq && sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 install -y -qq --no-install-recommends mesa-vulkan-drivers
+        run: sudo bash ci/mesa-lavapipe.sh install
+      - name: Mesa's lavapipe is the pinned version
+        run: bash ci/mesa-lavapipe.sh check && bash ci/mesa-lavapipe.sh '--test'
       # The runner ran out of disk building the doctests after the all-features run (os error 28, cycle-36 delivery,
       # run 41005832037): remove preinstalled toolchains this job never uses (about 20 GB) before the first build.
       # It ran out again in the all-features nextest run with that list (cycle-39 delivery, run 41166075051): the
@@ -283,6 +287,16 @@ jobs:
               cases.sort(reverse=True)
               print("::notice title=slowest tests::" + "%0A".join(f"{t:.1f}s {n}" for t, n in cases[:10]))
           PY
+      # WP-S2.11 D4: the Linux pixel gate (`ew-ui::snapshots`, feature `snapshots`) runs in the all-features run above
+      # on lavapipe against tests/expected/snapshots/ and its linux/ overrides; never blessed here. On a failure its
+      # images and diff images are uploaded, as test-windows-3 does.
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: failure()
+        with:
+          name: ew-ui-snapshots-linux
+          path: target/ew-ui-snapshots/
+          if-no-files-found: ignore
+          retention-days: 7
       # nextest does not run doctests.
       - name: cargo test --doc
         run: cargo test --doc --workspace --locked
@@ -317,8 +331,12 @@ jobs:
       # needs an adapter; without one the test prints `skipped: no adapter` and passes, which proves nothing on Linux.
       # FT-479: the step took 440 s and 535 s in test-linux-default in runs 40376419761 and 40364837825 (10 s in test-linux, same
       # command, same runs), a stalled mirror connection; the timeouts and retries turn a stall into a retry of a few seconds.
+      # WP-S2.11 D4: exactly the version of ci/mesa-lavapipe.txt, from Ubuntu's snapshot archive, so the pixel gate's
+      # Linux images stay valid; a step that finds another version fails with the pinned and the installed version.
       - name: install Mesa's lavapipe for the GPU canvas tests
-        run: sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 update -qq && sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 install -y -qq --no-install-recommends mesa-vulkan-drivers
+        run: sudo bash ci/mesa-lavapipe.sh install
+      - name: Mesa's lavapipe is the pinned version
+        run: bash ci/mesa-lavapipe.sh check && bash ci/mesa-lavapipe.sh '--test'
       # The runner ran out of disk in the nextest run (no space left on device, cycle-37 delivery, run 41047161627), as
       # test-linux did in cycle 36: remove the same preinstalled toolchains this job never uses before the first build
       # (the longer list of the cycle-39 delivery, as in test-linux).
@@ -555,7 +573,7 @@ jobs:
       # many-test, well-parallelised bulk). The acceptance tests and the command fuzzer are in part 1 only.
       # The xtask tests run `cargo metadata`, which needs the registry sources; they are in this part only (no other test binary
       # starts cargo: FT-479), so parts 1 and 2 skip the fetch (62 s and 64 s in runs 40611786232 and 40607950237).
-      # WP-S2.17's pixel gate `ew-ui::snapshots` (feature `snapshots`, Windows only) runs in this part on WARP against
+      # WP-S2.17's pixel gate `ew-ui::snapshots` (feature `snapshots`; Linux in test-linux) runs in this part on WARP against
       # the blessed PNG files of crates/ew-ui/tests/expected/snapshots; it is never blessed here. On a failure its
       # images and diff images are uploaded below.
       - name: cargo fetch
