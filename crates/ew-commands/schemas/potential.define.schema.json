@@ -491,7 +491,7 @@
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
-  "description": "`potential.define`: names and types a potential at a CP or a junction (FR-CON-010).\n\nCreates `PotentialDef {at, name, ptype, voltage, env, circuit_class, props}`. `at` must be a CP of an\nexisting function or an existing junction (a point on a connection is rejected). Outcome: the\ndefinition.",
+  "description": "`potential.define`: names and types a potential at a CP or a junction (FR-CON-010).\n\nCreates `PotentialDef {at, name, ptype, voltage, env, circuit_class, props}`. `at` must be a CP of an\nexisting function or an existing junction (a point on a connection is rejected), and must not hold a definition\nalready: another point of the potential may (doc 08 §3.4). Outcome: the definition.",
   "properties": {
     "at": {
       "$ref": "#/$defs/EndpointParam",

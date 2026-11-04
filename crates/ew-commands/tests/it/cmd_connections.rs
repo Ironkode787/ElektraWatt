@@ -877,6 +877,24 @@ fn define_potential_at_a_junction() {
     assert_eq!(d.at, at_junction(J5));
 }
 
+/// FT-1241 (decision log ID-1312): a point that defines a potential already refuses a second definition, naming the
+/// first; nothing is written.
+#[test]
+fn define_potential_twice_at_one_point_is_refused_naming_the_first() {
+    let mut e = engine(golden_model());
+    e.execute(&define(cp_param(FN_102G1, 4), "L1"))
+        .expect("potential.define");
+    let before = lines(e.model());
+    match e.execute(&define(cp_param(FN_102G1, 4), "L2")) {
+        Err(CmdError::Rejected { reason, .. }) => assert_eq!(
+            reason,
+            "this point already defines the potential L1; change that definition instead"
+        ),
+        other => panic!("expected a rejection, got {other:?}"),
+    }
+    assert_eq!(lines(e.model()), before);
+}
+
 #[test]
 fn define_potential_on_a_connection_is_rejected() {
     let mut e = engine(model_with_wire());

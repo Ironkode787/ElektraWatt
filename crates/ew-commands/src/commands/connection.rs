@@ -614,8 +614,8 @@ impl Command for ContinueIp {
 /// `potential.define`: names and types a potential at a CP or a junction (FR-CON-010).
 ///
 /// Creates `PotentialDef {at, name, ptype, voltage, env, circuit_class, props}`. `at` must be a CP of an
-/// existing function or an existing junction (a point on a connection is rejected). Outcome: the
-/// definition.
+/// existing function or an existing junction (a point on a connection is rejected), and must not hold a definition
+/// already: another point of the potential may (doc 08 §3.4). Outcome: the definition.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct DefinePotential {
@@ -656,6 +656,17 @@ impl Command for DefinePotential {
             );
         };
         self.at.check(tx)?;
+        // A potential may hold several definitions (doc 08 §3.4, §3.5: EW-POT-017 when their names differ), but one
+        // point defines it once (decision log ID-1312).
+        let existing = EndpointKey::of(&at)
+            .and_then(|key| tx.potential_defs_at(key).into_iter().min())
+            .and_then(|d| tx.get::<PotentialDef>(d));
+        if let Some(existing) = existing {
+            return tx.reject(format!(
+                "this point already defines the potential {}; change that definition instead",
+                existing.name
+            ));
+        }
         let id: Id<PotentialDef> = tx.mint();
         tx.insert(PotentialDef {
             id,
