@@ -328,7 +328,9 @@ fn export_png_holds_no_wire_colour_view() {
     // Folio 103 is drawn in grey: a coloured pixel could only be the view's. A grey PNG holds none.
     let coloured = match info.color_type {
         png::ColorType::Rgba => buf
-            .chunks_exact(4)
+            .as_chunks::<4>()
+            .0
+            .iter()
             .filter(|p| p[0] != p[1] || p[1] != p[2])
             .count(),
         _ => 0,
