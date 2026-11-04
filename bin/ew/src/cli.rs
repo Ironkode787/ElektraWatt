@@ -2200,6 +2200,11 @@ fn open_for_writing_items(
         session.close();
         return Err(2);
     }
+    if let Some(from) = &opened.migrated_from {
+        eprintln!("error: {}", older_format(dir, from));
+        session.close();
+        return Err(2);
+    }
     let items = ew_api::integrity_items(&opened);
     Ok((session, items))
 }
@@ -2270,6 +2275,17 @@ fn read_only_words(reason: &ew_api::ReadOnlyReason) -> String {
         R::Format(why) => format!("it was {why}"),
         R::LockLost(_) => "the lock was taken over".to_owned(),
     }
+}
+
+/// Why a writer other than `ew upgrade` and `ew recover` does not write a project of an older format, which opens
+/// migrated in memory (WP-S1.17 D11, decision log ID-1312): said before the unsaved-changes check and the save's
+/// consent gate, naming the writer that converts it. `ew fmt --check` says it too.
+fn older_format(dir: &Path, from: &str) -> String {
+    format!(
+        "{}: the project is in the older format {from}; convert it with `ew upgrade <project>` first; nothing was \
+         written",
+        dir.display()
+    )
 }
 
 /// The refusal of every writer (`apply`, `fmt`, `import parts`, the human-only subcommands) while a crashed session's

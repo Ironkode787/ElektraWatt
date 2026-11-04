@@ -11,8 +11,8 @@ use ew_api::cli_results as results;
 use ew_api::fmt::{Backup, DiscardedLine, FmtError, KeptLine, RepairError, Repaired, Rewrite};
 
 use super::{
-    FmtArgs, RecoverAction, RecoverArgs, UpgradeArgs, journal_refusal, open_editing, plural, printable,
-    project_dir, read_only_words, reader_dir, typed_word,
+    FmtArgs, RecoverAction, RecoverArgs, UpgradeArgs, journal_refusal, older_format, open_editing, plural,
+    printable, project_dir, read_only_words, reader_dir, typed_word,
 };
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -69,6 +69,12 @@ pub(super) fn run_fmt(a: &FmtArgs) -> i32 {
         Ok(r) => r,
         Err(code) => return code,
     };
+    if let Some(from) = &report.migrated_from {
+        session.close();
+        let (code, text) = fmt_older(a.check, &dir, from);
+        eprintln!("{text}");
+        return code;
+    }
     let kept = ew_api::fmt::kept_lines(&report);
     for k in &kept {
         eprintln!("{}", kept_line(k));
@@ -134,6 +140,16 @@ pub(super) fn run_fmt(a: &FmtArgs) -> i32 {
     i32::from(a.check && !files.is_empty())
 }
 
+/// What `ew fmt` says on a project of an older format, which opens migrated and only `ew upgrade` writes (WP-S1.17
+/// D11, decision log ID-1312), with its exit code: `--check` a needed change (1), `ew fmt` a refusal (2).
+fn fmt_older(check: bool, dir: &Path, from: &str) -> (i32, String) {
+    if check {
+        (1, format!("fmt: {}", older_format(dir, from)))
+    } else {
+        (2, format!("error: {}", older_format(dir, from)))
+    }
+}
+
 /// One line the open kept verbatim, as `ew fmt` lists it on stderr.
 fn kept_line(k: &KeptLine) -> String {
     match k.line {
@@ -184,6 +200,11 @@ fn run_repair(a: &FmtArgs) -> i32 {
     };
     if report.recovery.is_some() {
         eprintln!("{}", journal_refusal(&dir));
+        session.close();
+        return 2;
+    }
+    if let Some(from) = &report.migrated_from {
+        eprintln!("error: {}", older_format(&dir, from));
         session.close();
         return 2;
     }
@@ -1495,6 +1516,36 @@ mod tests {
                 String::new()
             )
         );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// FT-1148 (decision log ID-1312): the writers other than `ew upgrade` (`ew apply`, the purge, the release and the
+    /// rest through `open_for_writing_items`; `ew fmt` and `--repair`) refuse a project of an older format before the
+    /// unsaved-changes check, naming `ew upgrade`; nothing is written. `ew fmt --check` says so as a needed change.
+    #[test]
+    fn the_writers_refuse_an_older_project_naming_ew_upgrade() {
+        let dir = setup_v0("older-writers");
+        let project = dir.join("p.ew");
+        let before = upgrade_files(&dir);
+        let origin = ew_api::Origin::Cli {
+            subcommand: "apply".to_owned(),
+            confirmed: false,
+        };
+        assert!(matches!(
+            super::super::open_for_writing_items(&project, origin, upgrade_store(&dir)),
+            Err(2)
+        ));
+        assert_eq!(upgrade_files(&dir), before, "nothing was written");
+        let older = format!(
+            "{}: the project is in the older format 0.0; convert it with `ew upgrade <project>` first; nothing was \
+             written",
+            project.display()
+        );
+        assert_eq!(
+            fmt_older(false, &project, "0.0"),
+            (2, format!("error: {older}"))
+        );
+        assert_eq!(fmt_older(true, &project, "0.0"), (1, format!("fmt: {older}")));
         let _ = std::fs::remove_dir_all(&dir);
     }
 
