@@ -178,3 +178,31 @@ fn f1b_a_rebuilt_collision_dialog_takes_its_first_focus_again() {
     dispatch(&mut h, "project.check_disk", json!({}));
     enter_applies_mine(&mut h, "a rebuilt dialog");
 }
+
+/// C50-p1#1 (W49.3b-N1): after Decide later, a save refused for the collisions shows its refusal in the banner with the
+/// held saves' Choose… beside it, and Choose… opens the collision dialog again.
+#[test]
+fn a_refused_saves_banner_keeps_choose() {
+    let tmp = Tmp::new();
+    let mut h = collided(&tmp);
+    dispatch(&mut h, "project.check_disk", json!({}));
+    settle(&mut h);
+    dispatch(&mut h, "ui.dismiss", json!({}));
+    settle(&mut h);
+    h.state_mut().dispatch_from_window("file.save", &json!({}));
+    settle(&mut h);
+    assert_eq!(
+        h.state().shell().banner(),
+        Some("Saving failed: the change on disk collides with your edits; choose yours or theirs first.")
+    );
+    let choose = strings::text(ew_ui::ew_viewmodel::key!("banner-external-choose"));
+    support::off_chrome(&h, choose)
+        .unwrap_or_else(|| panic!("the banner shows {choose}"))
+        .click();
+    settle(&mut h);
+    assert!(
+        matches!(h.state().shell().dialog(), Some(Dialog::ExternalChange { .. })),
+        "Choose… opens the collision dialog"
+    );
+    h.state_mut().shell_mut().shutdown();
+}
