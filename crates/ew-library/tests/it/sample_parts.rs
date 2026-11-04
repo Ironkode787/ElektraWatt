@@ -343,6 +343,7 @@ fn confidence(v: &Value) -> Value {
 // The test boundary: `EW_BLESS=1` asks the generator to rewrite the shipped files.
 #[allow(clippy::disallowed_methods)]
 fn bless() -> bool {
+    // The bless switch of a test: it chooses whether the test rewrites the shipped files, never a result.
     std::env::var_os("EW_BLESS").is_some_and(|v| v == "1")
 }
 
