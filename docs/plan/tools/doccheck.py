@@ -14,7 +14,10 @@ Checks:
   - every Markdown table has the same number of cells in each row as in its header;
   - every WP ID cited in a plan document exists in docs/plan/work-packages.csv;
   - the plan documents use the gate IDs G-M0 ... G-M6, G-PP and G-SP, never the retired short forms G0 ... G6 or G-1
-    (G1 ... G6 only where used like a gate, because G1 ... G13 are also research gap topics).
+    (G1 ... G6 only where used like a gate, because G1 ... G13 are also research gap topics);
+  - in docs/security/, every `path:line` code span (`:line` alone repeats the previous path) names a file of the
+    repository and a line of it that holds more than white space and brackets, so a reference that drifted onto a
+    blank line or a closing brace is a finding (SE-1 of WP-S6.04; C51-p1#1).
 Exit code 1 on any finding.
 """
 import csv, re, subprocess, sys
@@ -130,9 +133,32 @@ def check(paths, root=ROOT):
                 for m in re.finditer(pat, line):
                     g = next(x for x in m.groups() if x)
                     bad.append(f"{rel_of(root, f)}:{n}: retired gate ID {g} (use G-M0 … G-M6, G-SP)")
+        if f.parent.name == "security":
+            bad.extend(line_refs(f, txt, root))
     skip = ignored(root, [tgt for tgt, _ in missing])
     bad.extend(msg for tgt, msg in missing if rel_of(root, tgt) not in skip)
     return bad
+
+
+def line_refs(f, txt, root):
+    """The findings of the `path:line` code spans of `f`: a missing file or line, or a line of white space and
+    brackets only."""
+    out, last = [], None
+    for m in re.finditer(r"`([A-Za-z0-9_./-]+)?:(\d+)`", txt):
+        path, n = m.group(1) or last, int(m.group(2))
+        last = path
+        if path is None:
+            continue
+        try:
+            lines = (root / path).read_text(encoding="utf-8").split("\n")
+        except OSError:
+            out.append(f"{rel_of(root, f)}: `{path}:{n}`: no such file")
+            continue
+        if not 0 < n <= len(lines):
+            out.append(f"{rel_of(root, f)}: `{path}:{n}`: the file has {len(lines)} lines")
+        elif not lines[n - 1].strip(" \t\r{}()[];,"):
+            out.append(f"{rel_of(root, f)}: `{path}:{n}`: the line holds no code or text")
+    return out
 
 
 def selftest():
@@ -180,6 +206,19 @@ def selftest():
             )
             f = self.doc("[x](b.md#device) [y](b.md#b) [z](b.md#fenced)\n")
             self.assertEqual(check([f], self.root), ["docs/a.md: anchor missing: b.md#fenced"])
+
+        def test_a_security_reference_must_name_a_line_with_content(self):
+            (self.root / "src").mkdir()
+            (self.root / "src" / "a.rs").write_text("fn a() {\n}\n\nfn b() {}\n", encoding="utf-8")
+            (self.root / "docs" / "security").mkdir()
+            f = self.root / "docs" / "security" / "m.md"
+            f.write_text("`src/a.rs:1`, `:2`, `:3`, `:4`, `src/a.rs:9`, `src/gone.rs:1`\n", encoding="utf-8")
+            self.assertEqual(check([f], self.root), [
+                "docs/security/m.md: `src/a.rs:2`: the line holds no code or text",
+                "docs/security/m.md: `src/a.rs:3`: the line holds no code or text",
+                "docs/security/m.md: `src/a.rs:9`: the file has 5 lines",
+                "docs/security/m.md: `src/gone.rs:1`: no such file",
+            ])
 
         def test_outside_a_repository_nothing_is_ignored(self):
             outside = self.root.parent
