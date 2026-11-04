@@ -89,7 +89,8 @@
 //!   (its CP designation reaching under it) it drops below those too, at most three times, and it stays where it was
 //!   when another representation's text is there or it finds no free place. At one-column spacing a contact's back-reference so moves below the neighbour contact's
 //!   tag. (3) A horizontal technical-data text follows rule 2 against other representations' texts only (cycle 37: a
-//!   valve's "24 V" ran into the next valve's tag); within one symbol its author's layout stands. Printed text order
+//!   valve's "24 V" ran into the next valve's tag); within one symbol its author's layout stands. A black box's pin
+//!   texts are fixed obstacles of rule 3 as of rule 2 (FT-701): a technical-data text that overlaps one drops below it. Printed text order
 //!   and every other position are unchanged. The rules run after "Black-box captions" and "Device tags" below and
 //!   see those texts where they ended.
 //! - **Black-box captions** (FT-734). A black box's tag, part-number and manufacturer texts without a position or
@@ -97,7 +98,9 @@
 //!   [`SLOT_TEXT_GAP`] above the one before, the tag's anchor [`BLACK_BOX_CAPTION_GAP`] above the outline. Without a
 //!   CP on the top edge they are left-aligned on the outline's left edge (the tag where the symbol puts it); else
 //!   right-aligned one grid step left of the leftmost top CP, so no caption text stands over a CP, its pin text or
-//!   its wire. A text with an override stays where it says. A stack that collides with another representation's pin
+//!   its wire. A stack that a stored wire's segment crosses (FT-772) moves left in grid steps, at most until its anchor
+//!   reaches the outline's left edge, to the first place no stored wire crosses; without one it stays. A text with an
+//!   override stays where it says. A stack that collides with another representation's pin
 //!   text (FT-1138) rises [`SLOT_TEXT_GAP`] above what is in its way, at most three times, as a raised device tag
 //!   does, to the first place the device-tag rule judges free (ID-1250: no wire runs through it, it collides with no
 //!   text or pin text of another representation; a movable device tag yields to it in its turn); without a free place
@@ -1267,6 +1270,7 @@ impl Builder<'_> {
     ) {
         let step = view.grid.at(1).unwrap_or(Nm::ZERO);
         let mut stacks: Vec<(EntityRef, Vec<usize>, Rect)> = Vec::new();
+        let mut stored: Option<Vec<(Pt2, Pt2)>> = None;
         for rv in sorted_reps(view) {
             let rep = &rv.rep;
             let (Some(def), Some(b)) = (&rv.symbol, &rep.box_) else {
@@ -1330,7 +1334,32 @@ impl Builder<'_> {
                     }));
                 }
             }
-            if let Some(own) = stack {
+            if let Some(mut own) = stack {
+                // FT-772 (WP-S2.11 D11): a stack across a stored wire moves left in grid steps, at most to the
+                // outline's left edge, to the first place where no caption box crosses one; else it stays.
+                let wires = stored.get_or_insert_with(|| stored_wires(view));
+                let boxes: Vec<Rect> = lines
+                    .iter()
+                    .filter_map(|&(_, i)| self.text_box(&texts[i].spec(false), false))
+                    .collect();
+                let crosses = |dx: Nm| {
+                    boxes
+                        .iter()
+                        .any(|b| wires.iter().any(|w| wire_through(shifted(*b, dx), *w)))
+                };
+                if step > Nm::ZERO && crosses(Nm::ZERO) {
+                    let mut dx = Nm(-step.0);
+                    while x + dx >= left {
+                        if !crosses(dx) {
+                            for &(_, i) in &lines {
+                                texts[i].at = texts[i].at + Pt2::new(dx, Nm::ZERO);
+                            }
+                            own = shifted(own, dx);
+                            break;
+                        }
+                        dx = dx - step;
+                    }
+                }
                 stacks.push((entity, lines.iter().map(|&(_, i)| i).collect(), own));
             }
         }
@@ -1594,37 +1623,38 @@ impl Builder<'_> {
             // collides (its author placed the texts), between representations also a gap below [`SLOT_TEXT_GAP`].
             // A technical-data text yields only to other representations' texts.
             // A pin text counts as a text of the same representation: only an overlap collides, and it sends the
-            // text further down; a technical-data text ignores it (it takes part in rule 2 only).
-            let xref = texts[i].xref;
+            // text further down; FT-701 (WP-S2.11 D10): so for a technical-data text too (`pin`).
             let others = || {
                 boxes
                     .iter()
                     .enumerate()
                     .filter(|(k, _)| *k != i)
-                    .filter_map(|(k, b)| b.map(|b| (texts[k].entity == texts[i].entity, b)))
-                    .chain(pins.iter().filter(|_| xref).map(|(_, b)| (true, *b)))
+                    .filter_map(|(k, b)| b.map(|b| (texts[k].entity == texts[i].entity, false, b)))
+                    .chain(pins.iter().map(|(_, b)| (true, true, *b)))
             };
-            let hits = |at: Rect, (same, b): (bool, Rect)| {
-                if same {
+            let hits = |at: Rect, (same, pin, b): (bool, bool, Rect)| {
+                if pin {
+                    overlaps(at, b)
+                } else if same {
                     !texts[i].data && overlaps(at, b)
                 } else {
                     collides(at, b)
                 }
             };
-            let Some(mut bottom) = others().filter(|o| hits(own, *o)).map(|(_, b)| b.max().y).max() else {
+            let Some(mut bottom) = others().filter(|o| hits(own, *o)).map(|(_, _, b)| b.max().y).max() else {
                 continue;
             };
             // Where it lands it may still meet a text of its own symbol (its CP designation reaching under it): it
             // drops below that one too, at most [`SLOT_TEXT_DROPS`] times; else it stays where it was.
             let blocked =
-                |at: Rect, (same, b): (bool, Rect)| if same { overlaps(at, b) } else { collides(at, b) };
+                |at: Rect, (same, _, b): (bool, bool, Rect)| if same { overlaps(at, b) } else { collides(at, b) };
             for _ in 0..SLOT_TEXT_DROPS {
                 let drop = Nm(bottom.0 + SLOT_TEXT_GAP.0 - own.min().y.0);
                 let moved = Rect::from_points(
                     Pt2::new(own.min().x, own.min().y + drop),
                     Pt2::new(own.max().x, own.max().y + drop),
                 );
-                let blockers: Vec<(bool, Rect)> = others().filter(|o| blocked(moved, *o)).collect();
+                let blockers: Vec<(bool, bool, Rect)> = others().filter(|o| blocked(moved, *o)).collect();
                 if blockers.is_empty() {
                     texts[i].at = texts[i].at + Pt2::new(Nm::ZERO, drop);
                     boxes[i] = Some(moved);
@@ -1632,10 +1662,10 @@ impl Builder<'_> {
                 }
                 // Only its own symbol's texts send it further down; another representation's text there means no
                 // free place nearby, and it stays.
-                if blockers.iter().any(|(same, _)| !same) {
+                if blockers.iter().any(|(same, _, _)| !same) {
                     break;
                 }
-                bottom = blockers.iter().map(|(_, b)| b.max().y).max().unwrap_or(bottom);
+                bottom = blockers.iter().map(|(_, _, b)| b.max().y).max().unwrap_or(bottom);
             }
         }
     }
@@ -2137,6 +2167,31 @@ fn page_wires(view: &PageView) -> Vec<(Pt2, Pt2)> {
         }
     }
     wires
+}
+
+/// The segments of the page's stored wires (a connection with a stored route), connections in ID order: the obstacles
+/// of a black box's caption stack (FT-772).
+fn stored_wires(view: &PageView) -> Vec<(Pt2, Pt2)> {
+    let cps = cp_map(view);
+    let page = page_rect(view);
+    let mut wires: Vec<(Pt2, Pt2)> = Vec::new();
+    for cv in sorted_connections(view)
+        .into_iter()
+        .filter(|cv| !cv.connection.route.is_empty())
+    {
+        if let Some(pts) = polyline_of(view, &cps, &cv.connection, page) {
+            wires.extend(pts.windows(2).map(|w| (w[0], w[1])));
+        }
+    }
+    wires
+}
+
+/// `r` moved across by `dx`.
+fn shifted(r: Rect, dx: Nm) -> Rect {
+    Rect::from_points(
+        Pt2::new(r.min().x + dx, r.min().y),
+        Pt2::new(r.max().x + dx, r.max().y),
+    )
 }
 
 /// The tag rule's free test (FT-758, module documentation, "Device tags"; FT-1138's risen caption, ID-1250): what is

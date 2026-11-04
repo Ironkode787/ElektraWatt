@@ -607,3 +607,113 @@ fn a_risen_caption_clears_another_caption() {
         assert!(t.max().y.0 <= top - SLOT_TEXT_GAP.0 + 1_000, "{c} {t:?} above it");
     }
 }
+
+/// FT-701's rest (WP-S2.11 D10, GT-7): a black box's pin text is a fixed obstacle of a technical-data text, as of a
+/// cross-reference text. A valve's "24 V" placed over the box's pin text "Q0.2" drops below it, `SLOT_TEXT_GAP` apart;
+/// the pin text stays where it was.
+#[test]
+fn a_technical_data_text_drops_below_a_pin_text_it_would_overlap() {
+    let valve = symbol(VALVE);
+    let bx = boxed(0x12, (30, 30), (12, 12), &[(0, (0, 6), "left")], &[(0, "Q0.2")], None);
+    let pin = run(&runs(&view(vec![bx.clone()], Vec::new())), 0x12, "Q0.2").rect;
+    let at = |pos: Pt2| {
+        let mut m = RepView {
+            rep: rep(0x33, valve.id, 0, 0, json!({})),
+            symbol: Some(valve.def.clone()),
+            slots: vec![value(slot(&valve, &SlotKind::TechData), "24 V")],
+            terminals: Vec::new(),
+            pins: Vec::new(),
+        };
+        Arc::make_mut(&mut m.rep).pos = pos;
+        m
+    };
+    // The valve placed so that its "24 V" starts on the pin text's top-left corner.
+    let data = run(&runs(&view(vec![at(Pt2::ORIGIN)], Vec::new())), 0x33, "24 V").rect;
+    let valve_at = Pt2::new(pin.min().x - data.min().x, pin.min().y - data.min().y);
+    let alone = run(&runs(&view(vec![at(valve_at)], Vec::new())), 0x33, "24 V").rect;
+    assert!(overlap(alone, pin), "the case: {alone:?} over the pin text {pin:?}");
+    let r = runs(&view(vec![bx, at(valve_at)], Vec::new()));
+    let moved = run(&r, 0x33, "24 V").rect;
+    assert_eq!(run(&r, 0x12, "Q0.2").rect, pin, "the pin text stays");
+    assert!(!overlap(moved, pin), "{moved:?} clear of {pin:?}");
+    assert_eq!(moved.min().x, alone.min().x, "straight down");
+    assert!(
+        (moved.min().y.0 - pin.max().y.0 - SLOT_TEXT_GAP.0).abs() <= 1_000,
+        "{moved:?} the gap below {pin:?}"
+    );
+}
+
+/// A connection `n` from `a` to `b` with the stored route `route` (grid points).
+fn routed(n: u128, a: (u128, u16), b: (u128, u16), route: &[(i64, i64)]) -> ConnectionView {
+    let route: Vec<[i64; 2]> = route.iter().map(|&(x, y)| [g(x), g(y)]).collect();
+    let c: Connection = serde_json::from_value(json!({
+        "id": uuid(n), "page": uuid(PAGE),
+        "a": {"cp": [uuid(a.0), a.1]}, "b": {"cp": [uuid(b.0), b.1]}, "route": route,
+    }))
+    .unwrap();
+    ConnectionView {
+        connection: Arc::new(c),
+        marker: None,
+    }
+}
+
+/// The black box `-101A1` (0x11) with its leftmost top CP at grid (50, 30): its caption stacks right-aligned at
+/// grid 49, above the box.
+fn captioned() -> RepView {
+    black_box(&[(0, (20, 0), "up")], &[])
+}
+
+/// FT-772 (WP-S2.11 D11, GT-7): a black box's caption stack that a stored wire crosses moves left in grid steps until
+/// no caption crosses it, every line by the same step, never past the outline's left edge. The wire runs down at grid
+/// x 47 from a box above to a box on the black box's top edge.
+#[test]
+fn a_caption_stack_moves_left_off_a_stored_wire() {
+    let reps = vec![
+        captioned(),
+        boxed(0x13, (44, 2), (6, 4), &[(0, (3, 4), "down")], &[], None),
+        boxed(0x14, (46, 29), (2, 1), &[(0, (1, 0), "up")], &[], None),
+    ];
+    let wire_x = g(47);
+    let across = |t: Rect| t.min().x.0 < wire_x && wire_x < t.max().x.0;
+    let before = runs(&view(reps.clone(), Vec::new()));
+    assert!(
+        CAPTION.iter().any(|c| across(run(&before, 0x11, c).rect)),
+        "the case: the caption stands where the wire runs"
+    );
+    let wired = view(reps, vec![routed(0x41, (0x1013, 0), (0x1014, 0), &[(47, 16)])]);
+    let r = runs(&wired);
+    let dx = run(&r, 0x11, CAPTION[0]).rect.min().x.0 - run(&before, 0x11, CAPTION[0]).rect.min().x.0;
+    assert!(dx < 0 && dx % g(1) == 0, "left in grid steps: {dx}");
+    for c in CAPTION {
+        let (t, b) = (run(&r, 0x11, c).rect, run(&before, 0x11, c).rect);
+        assert!(!across(t), "{c} {t:?} clear of the wire");
+        assert_eq!(t.min().x.0 - b.min().x.0, dx, "{c} moves with the stack");
+        assert_eq!(t.min().y, b.min().y, "{c} keeps its line");
+        assert!(t.max().x.0 >= g(30), "{c} within the outline's left edge");
+    }
+}
+
+/// FT-772: a stored wire that crosses the caption stack wherever it could move (a horizontal wire across the whole box)
+/// leaves it where it was.
+#[test]
+fn a_caption_stack_without_a_free_place_stays() {
+    let reps = vec![
+        captioned(),
+        boxed(0x13, (10, 26), (2, 4), &[(0, (2, 2), "right")], &[], None),
+        boxed(0x14, (70, 26), (2, 4), &[(0, (0, 2), "left")], &[], None),
+    ];
+    let before = runs(&view(reps.clone(), Vec::new()));
+    let wired = view(reps, vec![routed(0x41, (0x1013, 0), (0x1014, 0), &[(40, 28)])]);
+    let r = runs(&wired);
+    let y = g(28);
+    assert!(
+        CAPTION.iter().any(|c| {
+            let t = run(&r, 0x11, c).rect;
+            t.min().y.0 < y && y < t.max().y.0
+        }),
+        "the case: the wire runs through the stack"
+    );
+    for c in CAPTION {
+        assert_eq!(run(&r, 0x11, c).rect, run(&before, 0x11, c).rect, "{c} stays");
+    }
+}
