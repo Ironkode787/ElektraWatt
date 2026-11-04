@@ -5,7 +5,7 @@
 //! two cores of one cable into one `fields.set_many` that moves the core assignment of their connections (each
 //! connection of the one core becomes a connection of the other), so the assignment moves, not the colour.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_schema::{Conductor, ConnectionKind, Part};
@@ -73,11 +73,12 @@ pub struct CoresRefused {
 }
 
 impl Session {
-    /// The commands of New cable… (FT-1371) for the cable part `part` (its copy ID, a project copy or an installed
-    /// library's part, as [`Session::layout_part_offers`] offers it for `cable`): `library.embed` of the part and its
-    /// closure when the project does not hold it, then `cable.create` with the part (quantity 1) and one conductor per
-    /// core of the part's cable cores, in the part's order (FR-CBL-004). `None` when no cable part has that ID.
-    pub fn create_cable(&self, part: Uuid) -> Option<Vec<AnyCommand>> {
+    /// The one command of New cable… (FT-1371) for the cable part `part` (its copy ID, a project copy or an installed
+    /// library's part, as [`Session::layout_part_offers`] offers it for `cable`): `cable.create` with the part
+    /// (quantity 1), one conductor per core of the part's cable cores, in the part's order (FR-CBL-004), and the part
+    /// and its closure as `copies` when the project does not hold it, so that the embed and the cable are one
+    /// transaction and one undo step (decision log ID-1376). `None` when no cable part has that ID.
+    pub fn create_cable(&self, part: Uuid) -> Option<AnyCommand> {
         let offer = self
             .layout_part_offers("cable")
             .into_iter()
@@ -115,37 +116,63 @@ impl Session {
                 spec
             })
             .collect();
-        let mut out = Vec::new();
-        if !offer.copies.is_empty() {
-            out.push(AnyCommand {
-                name: "library.embed".into(),
-                params: json!({ "copies": offer.copies }),
-            });
-        }
-        out.push(AnyCommand {
-            name: "cable.create".into(),
-            params: json!({
-                "parts": [{ "part": { "copy": part.to_string() }, "qty": "1" }],
-                "conductors": conductors,
-            }),
+        let mut params = json!({
+            "parts": [{ "part": { "copy": part.to_string() }, "qty": "1" }],
+            "conductors": conductors,
         });
-        Some(out)
+        if !offer.copies.is_empty() {
+            params["copies"] = serde_json::Value::Array(offer.copies);
+        }
+        Some(AnyCommand {
+            name: "cable.create".into(),
+            params,
+        })
     }
 
-    /// The project's cables for Connect cores… (FT-1371): `(cable device, its tag)`, by tag.
-    pub fn cables(&self) -> Vec<(Uuid, String)> {
-        let ids: Vec<Uuid> = self
-            .query()
+    /// The project's cables for Connect cores… (FT-1371): `(cable device, its tag, its words)`, by tag. The words are
+    /// the tag, unless another cable prints the same tag (new cables print `-?W?` until they are numbered, decision log
+    /// ID-1376): then the tag, `·` and the cable's part number (none for a cable without a part), and where those words
+    /// are shared too, its position among them in the order the cables were created, `(1)`, `(2)`.
+    pub fn cables(&self) -> Vec<(Uuid, String, String)> {
+        let q = self.query();
+        let ids: Vec<Uuid> = q
             .devices()
             .iter()
             .filter(|(_, d)| d.aspects.cable.is_some())
             .map(|(id, _)| id.as_uuid())
             .collect();
-        let mut out: Vec<(Uuid, String)> = ids
+        let mut out: Vec<(Uuid, String, String)> = ids
             .into_iter()
-            .filter_map(|id| Some((id, self.device_tag(id)?)))
+            .filter_map(|id| {
+                let tag = self.device_tag(id)?;
+                Some((id, tag.clone(), tag))
+            })
             .collect();
         out.sort_by(|a, b| ew_derive::ew_mltext::natural_cmp(&a.1, &b.1).then(a.0.cmp(&b.0)));
+        let part = |id: Uuid| {
+            q.devices()
+                .get(Id::from_uuid(id))
+                .and_then(|d| d.parts.first())
+                .and_then(|p| q.parts().get(p.part.copy))
+                .map(|c| c.item.part_number.as_str().to_owned())
+        };
+        for pass in 0..2 {
+            let mut alike: BTreeMap<String, Vec<usize>> = BTreeMap::new();
+            for (i, (_, _, words)) in out.iter().enumerate() {
+                alike.entry(words.clone()).or_default().push(i);
+            }
+            // The UUIDv7 IDs sort in the order the cables were created, and `out` is by tag, then by ID.
+            for at in alike.values().filter(|at| at.len() > 1) {
+                for (n, &i) in at.iter().enumerate() {
+                    let (id, _, words) = &mut out[i];
+                    match (pass, part(*id)) {
+                        (0, Some(number)) => *words = format!("{words} \u{b7} {number}"),
+                        (0, None) => {}
+                        _ => *words = format!("{words} ({})", n + 1),
+                    }
+                }
+            }
+        }
         out
     }
 

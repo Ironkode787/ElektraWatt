@@ -3661,6 +3661,7 @@ pub const KEYS: &[&str] = &[
     "reason-cores-no-wires",
     "reason-cores-no-cable",
     "error-no-cable",
+    "error-cable-ambiguous",
     "error-cores-too-few",
     "toast-cable-new",
     "toast-cores-connected",

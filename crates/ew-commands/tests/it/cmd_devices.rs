@@ -990,6 +990,7 @@ fn cable_cmd(cores: &[&str]) -> CreateCable {
         structure: Default::default(),
         cable: Cable::default(),
         conductors: cores.iter().map(|c| conductor_spec(c)).collect(),
+        copies: vec![],
     }
 }
 

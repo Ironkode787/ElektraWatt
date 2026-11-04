@@ -288,3 +288,158 @@ fn a_report_block_from_its_form_adds_its_pages() {
     assert_eq!(form(&s).error.as_deref(), Some(message.as_str()));
     s.shutdown();
 }
+
+/// ID-1376 (C51-p4#4): Report block…'s two refusals, a kind that is no report and a folio that is no number, stay
+/// under the fields, whole, in English and in Dutch; the kind's refusal lists the kinds the form offers, in words.
+#[test]
+fn report_block_refuses_a_bad_kind_and_a_bad_folio_in_both_languages() {
+    let tmp = Tmp::new("ft1372b");
+    let mut s = tmp.shell_in(Mode::Gui, true, "103");
+    for (language, kind, folio) in [
+        (
+            "en",
+            "\"bogus\" is not a report; use one of: ",
+            "The first folio is a number: \"9x\" is not.",
+        ),
+        (
+            "nl",
+            "\"bogus\" is geen rapport; gebruik een van: ",
+            "Het eerste folio is een nummer: \"9x\" niet.",
+        ),
+    ] {
+        done(&mut s, "view.language", json!({ "value": language }));
+        done(&mut s, "report_block.new", json!({}));
+        let words: Vec<String> = form(&s).fields[0]
+            .options
+            .iter()
+            .map(|(_, w)| w.clone())
+            .collect();
+        s.set_form_field("kind", "bogus");
+        let rev = s.revision();
+        let Outcome::Failed { message } = s.submit_form() else {
+            panic!("{language}: not a report")
+        };
+        assert_eq!(message, format!("{kind}{}.", words.join(", ")), "{language}");
+        assert_eq!(form(&s).error.as_deref(), Some(message.as_str()), "{language}");
+        s.set_form_field("kind", "terminal_diagram");
+        s.set_form_field("folio", "9x");
+        let Outcome::Failed { message } = s.submit_form() else {
+            panic!("{language}: not a number")
+        };
+        assert_eq!(message, folio, "{language}");
+        assert_eq!(form(&s).error.as_deref(), Some(folio), "{language}");
+        assert_eq!(s.revision(), rev, "{language}: nothing added");
+        done(&mut s, "ui.dismiss", json!({}));
+    }
+    s.shutdown();
+}
+
+/// The library tiers of an installation: the content's system libraries, the rest in `root`.
+fn tiers(root: &std::path::Path) -> ew_viewmodel::ew_api::library::LibraryTiers {
+    ew_viewmodel::ew_api::library::LibraryTiers {
+        system: vec![std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../content/libraries")],
+        community: root.join("data").join("packs"),
+        company: Vec::new(),
+        user: root.join("data").join("libraries"),
+        cache: root.join("cache"),
+    }
+}
+
+/// Whether the Libraries navigator lists a library copy of the project whose words hold `number`.
+fn holds_copy(s: &mut ShellModel, number: &str) -> bool {
+    done(s, "navigator.show", json!({"kind": "libraries"}));
+    let t = s.nav(NavKind::Libraries).and_then(|n| n.table()).unwrap().clone();
+    t.nodes.iter().any(|n| n.label.contains(number))
+}
+
+/// ID-1376 (C51-p4#3a): in a new project, New cable… with a cable part of an installed library embeds the part and
+/// creates the cable in one transaction: one undo step takes both back, and no copy of the part is left.
+#[test]
+fn a_library_cable_part_is_embedded_with_its_cable_in_one_undo_step() {
+    let tmp = Tmp::new("ft1371c");
+    let config = ew_viewmodel::shell::ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test")
+        .with_libraries(Some(tiers(&tmp.0)));
+    let mut s = ShellModel::new(Mode::Gui, config);
+    done(
+        &mut s,
+        "file.new",
+        json!({"dir": tmp.0.join("new.ew").to_string_lossy(), "template": "builtin"}),
+    );
+    const NUMBER: &str = "6XV1830-0EH10";
+    assert!(!holds_copy(&mut s, NUMBER), "the new project holds no cable part");
+    assert!(!s.can_undo());
+    done(&mut s, "cable.new", json!({}));
+    let (part, _) = form(&s).fields[0]
+        .options
+        .iter()
+        .find(|(_, w)| w.starts_with(NUMBER))
+        .cloned()
+        .expect("the library's cable part is offered");
+    s.set_form_field("part", &part);
+    assert_eq!(s.submit_form(), Outcome::Done);
+    assert_eq!(cables(&mut s).len(), 1);
+    assert!(holds_copy(&mut s, NUMBER), "the part is embedded");
+    done(&mut s, "edit.undo", json!({}));
+    assert!(!s.can_undo(), "one undo step");
+    assert_eq!(cables(&mut s), Vec::<(String, Vec<String>)>::new());
+    assert!(!holds_copy(&mut s, NUMBER), "no copy of the part is left");
+    s.shutdown();
+}
+
+/// ID-1376 (C51-p4#3b): two new cables both print `-?W?`; Connect cores… names each in its list by its part and its
+/// position, and refuses the bare tag in words, in both languages, instead of taking the first.
+#[test]
+fn connect_cores_tells_two_cables_with_one_tag_apart() {
+    let tmp = Tmp::new("ft1371d");
+    let mut s = tmp.shell_in(Mode::Gui, true, "103");
+    let before = cables(&mut s);
+    for _ in 0..2 {
+        done(&mut s, "cable.new", json!({"part": "NEBU-G78W5-K-2-N-LE5"}));
+    }
+    let new: Vec<String> = cables(&mut s)
+        .into_iter()
+        .map(|(tag, _)| tag)
+        .filter(|t| !before.iter().any(|(b, _)| b == t))
+        .collect();
+    assert_eq!(new, ["-?W?", "-?W?"], "both new cables print the same tag");
+    let w = wires(&s);
+    done(&mut s, "select.set", json!({"ids": [w[0].to_string()]}));
+    done(&mut s, "cable.connect_cores", json!({}));
+    let words: Vec<String> = form(&s).fields[0]
+        .options
+        .iter()
+        .map(|(_, w)| w.clone())
+        .filter(|w| w.starts_with("-?W?"))
+        .collect();
+    assert_eq!(
+        words,
+        [
+            "-?W? \u{b7} NEBU-G78W5-K-2-N-LE5 (1)",
+            "-?W? \u{b7} NEBU-G78W5-K-2-N-LE5 (2)"
+        ]
+    );
+    done(&mut s, "ui.dismiss", json!({}));
+    for (language, refusal) in [
+        ("en", "-?W? is the tag of 2 cables: choose one from the list."),
+        ("nl", "-?W? is het kenmerk van 2 kabels: kies er een uit de lijst."),
+    ] {
+        done(&mut s, "view.language", json!({ "value": language }));
+        let rev = s.revision();
+        let Outcome::Failed { message } = s.dispatch("cable.connect_cores", &json!({"cable": "-?W?"})) else {
+            panic!("{language}: an ambiguous tag")
+        };
+        assert_eq!(message, refusal, "{language}");
+        assert_eq!(s.revision(), rev, "{language}: nothing assigned");
+    }
+    done(&mut s, "view.language", json!({ "value": "en" }));
+    done(
+        &mut s,
+        "cable.connect_cores",
+        json!({"cable": "-?W? \u{b7} NEBU-G78W5-K-2-N-LE5 (2)"}),
+    );
+    assert_eq!(
+        state(&s)["toast"]["text"],
+        "Wires connected to the cores of -?W? \u{b7} NEBU-G78W5-K-2-N-LE5 (2): 1"
+    );
+    s.shutdown();
+}

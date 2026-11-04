@@ -4003,6 +4003,7 @@ error-no-cable-part = No cable part has the part number { $p0 }: choose one from
 reason-cores-no-wires = Select the wires that become the cable's cores
 reason-cores-no-cable = The project has no cable yet; create one first
 error-no-cable = The project has no cable { $p0 }: choose one from the list.
+error-cable-ambiguous = { $p0 } is the tag of { $p1 } cables: choose one from the list.
 error-cores-too-few = { $p0 } has { $p1 } free cores for { $p2 } wires: select fewer wires, or choose another cable.
 toast-cable-new = Created cable { $p0 }; its cores: { $p1 }
 toast-cores-connected = Wires connected to the cores of { $p1 }: { $p0 }

@@ -15,8 +15,10 @@ use ew_schema::{
 };
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 use crate::command::{Command, Outcome};
+use crate::commands::assign::embed_closure;
 use crate::error::CmdError;
 use crate::meta::CommandMeta;
 use crate::proxy::{IdentS, MlTextS, UuidS};
@@ -758,6 +760,10 @@ pub struct CreateCable {
     /// The conductors.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub conductors: Vec<ConductorSpec>,
+    /// The library documents to embed first, in the same transaction (`lib/` JSON form; decision log ID-1376): the
+    /// cable part and its closure; empty when the project holds them.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub copies: Vec<Value>,
 }
 
 impl Command for CreateCable {
@@ -768,6 +774,8 @@ impl Command for CreateCable {
     }
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        // The copies first, so that the part they bring resolves below.
+        embed_closure(Self::NAME, tx, &self.copies)?;
         for part in &self.parts {
             tx.require::<LibCopy<Part>>(part.part.copy)?;
         }

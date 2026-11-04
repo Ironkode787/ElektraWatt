@@ -293,6 +293,7 @@ fn build(seed: u64) -> (Dsl, Ids) {
         structure: at_loc(loc),
         cable: Cable::default(),
         conductors: vec![spec("A", false), spec("B", false), spec("SH", true)],
+        copies: vec![],
     });
     let cable: Id<Device> = primary(&r);
     let cond: [Id<Conductor>; 3] = created::<Conductor>(&r, Kind::Conductor)

@@ -5,11 +5,12 @@
 //! cores… (`cable.connect_cores`), the existing model commands behind a form, as the creation dialogs are.
 //!
 //! - **New cable…** creates a cable device from a cable part with one conductor per core of the part
-//!   (`Session::create_cable`: `cable.create`, after `library.embed` when the part comes from an installed library,
-//!   FR-CBL-004). Its form offers the cable parts of the project, then of the installed libraries.
+//!   (`Session::create_cable`: one `cable.create` that embeds the part first when it comes from an installed library,
+//!   FR-CBL-004, one undo step). Its form offers the cable parts of the project, then of the installed libraries.
 //! - **Connect cores…** makes the selected wires of the page the cable's cores, by order (doc 08 §7.2): the wires left
 //!   to right, then top to bottom, take the cable's free cores in its part's order (`Session::connect_cores`, one
-//!   `fields.set_many`, one undo step). Its form offers the project's cables by tag.
+//!   `fields.set_many`, one undo step). Its form offers the project's cables by tag, two cables with one tag told
+//!   apart by their part and position (`Session::cables`).
 //!
 //! In the window without its parameter each action opens its form; headless the parameter is required. A refusal stays
 //! under the fields, a success closes the form with a toast.
@@ -132,19 +133,12 @@ impl ShellModel {
             let message = strings::format(key!("error-no-cable-part"), &[&part]);
             return self.cable_form_failed(NEW, message);
         };
-        let Some(commands) = project.session.create_cable(offer.part) else {
+        let Some(cmd) = project.session.create_cable(offer.part) else {
             let message = strings::format(key!("error-no-cable-part"), &[&part]);
             return self.cable_form_failed(NEW, message);
         };
-        let cores = offer_cores(&commands);
-        let mut out = Outcome::Done;
-        for cmd in commands {
-            out = self.host_create(&cmd.name, cmd.params);
-            if out != Outcome::Done {
-                break;
-            }
-        }
-        match out {
+        let cores = offer_cores(&cmd);
+        match self.host_create(&cmd.name, cmd.params) {
             Outcome::Done => {
                 let tag = self
                     .tools
@@ -189,8 +183,9 @@ impl ShellModel {
     }
 
     /// `cable.connect_cores {cable}` (Draw ▸ Connect ▸ Connect cores…, FT-1371): the selected wires become cores of
-    /// the cable `cable` (its tag or ID), by order, in one undo step, then the toast. No wire selected, no cable in the
-    /// project, a cable with too few free cores: refused in words.
+    /// the cable `cable` (its ID, its tag, or its words in the form's list), by order, in one undo step, then the toast.
+    /// No wire selected, no cable in the project, a tag that several cables print, a cable with too few free cores:
+    /// refused in words.
     pub(crate) fn act_cable_connect_cores(&mut self, p: &Map<String, Value>) -> Outcome {
         let wires = self.selected_wires();
         if wires.is_empty() {
@@ -219,7 +214,7 @@ impl ShellModel {
                 Mode::Gui => {
                     let options = cables
                         .iter()
-                        .map(|(id, tag)| (id.to_string(), tag.clone()))
+                        .map(|(id, _, words)| (id.to_string(), words.clone()))
                         .collect();
                     let form = Self::cable_form(
                         CONNECT,
@@ -233,9 +228,15 @@ impl ShellModel {
                 }
             };
         };
-        let Some((id, tag)) = cables
+        // A tag that several cables print names none of them: refused in words, never the first (decision log ID-1376).
+        let shared = cables.iter().filter(|(_, tag, _)| *tag == cable).count();
+        if shared > 1 {
+            let message = strings::format(key!("error-cable-ambiguous"), &[&cable, &shared.to_string()]);
+            return self.cable_form_failed(CONNECT, message);
+        }
+        let Some((id, _, tag)) = cables
             .iter()
-            .find(|(id, tag)| id.to_string() == cable || *tag == cable)
+            .find(|(id, tag, words)| id.to_string() == cable || *tag == cable || *words == cable)
             .cloned()
         else {
             let message = strings::format(key!("error-no-cable"), &[&cable]);
@@ -272,11 +273,11 @@ impl ShellModel {
     }
 }
 
-/// The number of conductors the last command of New cable… creates.
-fn offer_cores(commands: &[ew_api::AnyCommand]) -> usize {
-    commands
-        .last()
-        .and_then(|c| c.params.get("conductors"))
+/// The number of conductors the command of New cable… creates.
+fn offer_cores(command: &ew_api::AnyCommand) -> usize {
+    command
+        .params
+        .get("conductors")
         .and_then(Value::as_array)
         .map_or(0, Vec::len)
 }

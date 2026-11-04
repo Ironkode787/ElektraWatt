@@ -3767,6 +3767,7 @@ error-no-cable-part = Geen kabelartikel heeft het artikelnummer { $p0 }: kies er
 reason-cores-no-wires = Selecteer de draden die de aders van de kabel worden
 reason-cores-no-cable = Het project heeft nog geen kabel; maak er eerst een
 error-no-cable = Het project heeft geen kabel { $p0 }: kies er een uit de lijst.
+error-cable-ambiguous = { $p0 } is het kenmerk van { $p1 } kabels: kies er een uit de lijst.
 error-cores-too-few = { $p0 } heeft { $p1 } vrije aders voor { $p2 } draden: selecteer minder draden, of kies een andere kabel.
 toast-cable-new = Kabel { $p0 } gemaakt; aantal aders: { $p1 }
 toast-cores-connected = Draden verbonden met de aders van { $p1 }: { $p0 }
