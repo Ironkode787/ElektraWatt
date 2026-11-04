@@ -17,7 +17,8 @@ name, shown here as `<version>`.
 2. The setup is not signed yet, so Windows may stop it with **Windows protected your PC**. Choose **More info**, check
    that the file is the one you downloaded, then choose **Run anyway**.
 3. Keep the folder the setup proposes, `%LOCALAPPDATA%\Programs\ElektraWatt`, or choose another one of your own, then
-   choose **Install**.
+   choose **Install**. The folder must be new or empty, or hold an earlier installation: for a folder that holds
+   other files, **Install** stays off, so that removing ElektraWatt later never deletes them.
 4. On the last page, leave **Run ElektraWatt** ticked to start it, and choose **Finish**.
 
 The setup installs for you alone: the program, the command-line program `ew.exe`, the starter content, the sample
@@ -30,6 +31,9 @@ argument, without quotes even when the folder has spaces, to install into anothe
 ```text
 ElektraWatt-<version>-x64-user-setup.exe /S /D=C:\Tools\ElektraWatt
 ```
+
+A folder that holds other files and no earlier installation is refused here too: the setup installs nothing and ends
+with exit code 2.
 
 ## Run the AppImage on Linux
 
@@ -52,13 +56,23 @@ The AppImage is one file, `ElektraWatt-<version>-x86_64.AppImage`, that holds th
    ```
 
 3. To run `ew`, give `ew` as the first argument, then its own arguments (after `--appimage-extract-and-run` where FUSE
-   is missing). Like the `ew` of a CLI archive, it reads the starter content only through `--content` or
-   `EW_CONTENT_DIR` (see below):
+   is missing):
 
    ```text
    ./ElektraWatt-<version>-x86_64.AppImage ew --version
    ./ElektraWatt-<version>-x86_64.AppImage ew export pdf my-project.ew --out drawings.pdf
    ```
+
+   Like the `ew` of a CLI archive, it reads the starter content only through `--content` or `EW_CONTENT_DIR`. The
+   AppImage's own content sits in a folder that changes with each run, so for now unpack the AppImage once, which
+   writes the folder `squashfs-root` where you run it, and point `EW_CONTENT_DIR` at the content in it:
+
+   ```text
+   ./ElektraWatt-<version>-x86_64.AppImage --appimage-extract
+   export EW_CONTENT_DIR="$PWD/squashfs-root/usr/lib/elektrawatt/content"
+   ```
+
+   Unpack it again after an upgrade.
 
 Keep the file where you like, for example in `~/Applications`. The AppImage is not signed yet: check that the file is
 the one you downloaded against the checksums published with its release.
@@ -81,8 +95,9 @@ folder of the installation.
 
 ## Upgrade
 
-Run the setup of the newer version as above. It finds the installed version, removes it first with its own
-uninstaller, then installs, so no file of the older version remains. Your settings and keymaps stay as they are.
+Run the setup of the newer version as above. It finds the installed version and proposes its folder, removes it first
+with its own uninstaller, then installs, so no file of the older version remains. Your settings and keymaps stay as
+they are.
 
 To upgrade the AppImage, download the newer file, make it executable and delete the older one. Your settings and
 keymaps stay as they are.
@@ -100,7 +115,8 @@ and keymaps (in `%APPDATA%\ElektraWatt`), and your libraries and the program's c
 delete those folders yourself when you no longer want them.
 
 The AppImage installs nothing: delete its file. It leaves your projects, your settings and keymaps (in
-`~/.config/elektrawatt`), and your libraries and the program's cache (in `~/.local/share/elektrawatt` and
-`~/.cache/elektrawatt`): delete those folders yourself when you no longer want them.
+`~/.config/elektrawatt`), your libraries and the program's cache (in `~/.local/share/elektrawatt` and
+`~/.cache/elektrawatt`), and the program's lock and journal files (in `~/.local/state/elektrawatt`): delete those
+folders yourself when you no longer want them.
 
 A CLI archive installs nothing: delete its folder.

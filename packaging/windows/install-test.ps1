@@ -7,7 +7,8 @@
 # Start menu, and add firewall rules (as an administrator, as the runner is).
 #
 #   install-test.ps1 install -Setup <setup.exe> -Tree <staged tree> -Version <v>
-#       IN-9: outbound firewall rules block the setup, elektrawatt.exe and ew.exe by program, the firewall on.
+#       IN-9: outbound firewall rules block the setup, elektrawatt.exe, ew.exe and the elektrawatt.exe of D13's three
+#       copies by program, the firewall on. D9: `/S /D=<folder>` refuses a folder holding docs\keep.txt.
 #       IN-8: the setup's manifest asks for asInvoker; `/S` installs into %LOCALAPPDATA%\Programs\ElektraWatt; the
 #       key names under HKLM\SOFTWARE and the file names under both Program Files folders are the same before and
 #       after; the installed folder is the staged tree (every file's SHA-256) and the uninstaller; the Start-menu
@@ -38,13 +39,19 @@ $EntryKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\ElektraWa
 $Settings = Join-Path $env:APPDATA 'ElektraWatt'
 $RuleGroup = 'ElektraWatt install test'
 $Stage = Join-Path $PSScriptRoot '..\stage.py'
+# D13's copies of the installed tree, each without one resource: `stage.py resources --work $RUNNER_TEMP\resources`
+# in package.yml starts their elektrawatt.exe (stage.py's RESOURCES names the words).
+$Copies = @(foreach ($word in @('sample', 'content', 'notices')) {
+    Join-Path $env:RUNNER_TEMP "resources\without-$word\tree\elektrawatt.exe"
+})
 
 function Fail([string]$Message) {
     Write-Host "::error::install-test: $Message"
     exit 1
 }
 
-# IN-9: the rules, and the firewall on for every profile (outbound stays allowed for everything else).
+# IN-9: the rules (the setup, the two programs and D13's three copies), and the firewall on for every profile
+# (outbound stays allowed for everything else).
 function Add-FirewallBlock {
     $off = @(Get-NetFirewallProfile -PolicyStore ActiveStore | Where-Object { $_.Enabled -ne 'True' })
     if ($off.Count -gt 0) {
@@ -52,8 +59,10 @@ function Add-FirewallBlock {
         Write-Host "install-test: the firewall was off for $names; turned on for the test"
         Set-NetFirewallProfile -Profile $off.Name -Enabled True
     }
-    foreach ($program in @($Setup, (Join-Path $Root 'elektrawatt.exe'), (Join-Path $Root 'ew.exe'))) {
+    $copy = 0
+    foreach ($program in @($Setup, (Join-Path $Root 'elektrawatt.exe'), (Join-Path $Root 'ew.exe')) + $Copies) {
         $name = "$RuleGroup ($(Split-Path -Leaf $program))"
+        if ($Copies -contains $program) { $copy++; $name = "$RuleGroup (D13 copy $copy, elektrawatt.exe)" }
         New-NetFirewallRule -DisplayName $name -Group $RuleGroup -Direction Outbound -Action Block -Program $program |
             Out-Null
     }
@@ -68,8 +77,9 @@ function Assert-FirewallBlock {
     $rules = @(Get-NetFirewallRule -Group $RuleGroup -PolicyStore ActiveStore |
         Where-Object { $_.Enabled -eq 'True' -and $_.Action -eq 'Block' -and $_.Direction -eq 'Outbound' })
     $programs = @($rules | Get-NetFirewallApplicationFilter | ForEach-Object { $_.Program })
-    if ($programs.Count -ne 3) {
-        Fail "the outbound block rules in force name $($programs.Count) programs, not the setup and the two programs"
+    if ($programs.Count -ne 3 + $Copies.Count) {
+        $want = "the setup, the two programs and D13's $($Copies.Count) copies"
+        Fail "the outbound block rules in force name $($programs.Count) programs, not $want"
     }
     Write-Host "install-test: outbound blocked for $($programs -join ', ')"
 }
@@ -126,12 +136,13 @@ function Get-MachineListing {
 # IN-8: the subtrees that Windows' own diagnostics write while the test runs (ID-1283). The listing's changes in them
 # are printed as ignored, not failed. A subtree joins only when a run shows the operating system writing it.
 $IgnoredSubtrees = @(
-    # Windows Error Reporting records why a process ended, under TermReason\<process ID> (package.yml run 5).
-    'HKLM\SOFTWARE\Microsoft\Windows\Windows Error Reporting'
+    # Windows Error Reporting records why a process ended, under TermReason\<process ID> (package.yml runs 5 and 7).
+    'HKLM\SOFTWARE\Microsoft\Windows\Windows Error Reporting\TermReason'
     # RADAR, the heap-leak diagnosis, records the applications it diagnosed: run 5's was the test's own pwsh.exe.
-    'HKLM\SOFTWARE\Microsoft\RADAR'
-    # WMI's tracing registers and drops its providers: run 5 dropped wfascim, the CIM provider of the firewall cmdlets.
-    'HKLM\SOFTWARE\Microsoft\Wbem\Tracing'
+    'HKLM\SOFTWARE\Microsoft\RADAR\HeapLeakDetection\DiagnosedApplications'
+    # WMI's tracing registers and drops its providers: runs 5 and 7 dropped wfascim, the CIM provider of the firewall
+    # cmdlets.
+    'HKLM\SOFTWARE\Microsoft\Wbem\Tracing\Providers'
 )
 
 # True, after printing it as ignored, for a change in one of the ignored subtrees (its prefix at a path-segment
@@ -165,6 +176,27 @@ function Get-Listing([string]$Folder) {
     $lines = @(python -I $Stage listing $Folder)
     if ($LASTEXITCODE -ne 0) { Fail "stage.py listing $Folder failed" }
     $lines
+}
+
+# D9: the setup refuses a folder that holds files and no uninstall.exe, whose own `docs` or `content` its uninstall
+# would delete; `/S` exits non-zero there, and the folder keeps its file. Run before any installation.
+function Assert-RefusesForeignFolder {
+    $folder = Join-Path $env:RUNNER_TEMP 'foreign-folder'
+    $keep = Join-Path $folder 'docs\keep.txt'
+    $text = "the user's own file"
+    New-Item -ItemType Directory -Force -Path (Split-Path -Parent $keep) | Out-Null
+    [IO.File]::WriteAllText($keep, $text)
+    $run = Start-Process -FilePath $Setup -ArgumentList '/S', "/D=$folder" -Wait -PassThru
+    if ($run.ExitCode -eq 0) { Fail "the setup /S installed into $folder, which holds a file and no uninstall.exe" }
+    $left = @(Get-ChildItem -LiteralPath $folder -Recurse -Force | ForEach-Object { $_.FullName })
+    $want = @((Split-Path -Parent $keep), $keep)
+    if (($left -join ', ') -ne ($want -join ', ') -or [IO.File]::ReadAllText($keep) -cne $text) {
+        Fail "the refused setup changed $folder; it holds $($left -join ', ')"
+    }
+    foreach ($written in @($EntryKey, $Shortcut)) {
+        if (Test-Path -LiteralPath $written) { Fail "the refused setup wrote $written" }
+    }
+    Write-Host "install-test: the setup /S refused $folder (exit $($run.ExitCode)); docs\keep.txt is the same"
 }
 
 function Install-Setup {
@@ -236,6 +268,7 @@ switch ($Mode) {
         }
         Write-Host 'install-test: the setup asks for asInvoker'
         Add-FirewallBlock
+        Assert-RefusesForeignFolder
         $before = Get-MachineListing
         Install-Setup
         Assert-SameListing $before (Get-MachineListing)

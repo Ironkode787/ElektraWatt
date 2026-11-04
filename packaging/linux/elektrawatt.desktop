@@ -3,7 +3,7 @@
 [Desktop Entry]
 Type=Application
 Name=ElektraWatt
-Exec=elektrawatt %F
+Exec=elektrawatt %f
 Icon=elektrawatt
-Categories=Engineering;
+Categories=Science;Engineering;
 Terminal=false

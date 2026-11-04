@@ -371,10 +371,11 @@ allowed = ["MIT"]
 glob = "assets/icons/ew/**"
 allowed = ["GPL-3.0-or-later"]
 
-# L1: the application icon (WP-S6.06 §13 O5, ID-1280), the project's own work; REUSE.toml annotation.
+# L1 and L14: the application icon (WP-S6.06 §13 O5, ID-1280), Tabler's `bolt` (MIT) on the project's square;
+# REUSE.toml annotation, provenance in NOTICE.
 [[path]]
 glob = "assets/icons/app/**"
-allowed = ["GPL-3.0-or-later"]
+allowed = ["MIT AND GPL-3.0-or-later"]
 
 # ---------------------------------------------------------------------------------------------------------------
 # L9: documentation and the root prose files (CC-BY-4.0). LICENSE.md is L11 (below).
@@ -585,6 +586,7 @@ third_party = [
   "crates/ew-import-qet/src/qet_port/**",
   "assets/fonts/**",
   "assets/icons/tabler/**",
+  "assets/icons/app/**",
   "packaging/linux/type2-runtime-notices.txt",
   "crates/ew-ui/src/icons/generated.rs",
   "crates/ew-schema/tests/fixtures/svg-exporters/**",

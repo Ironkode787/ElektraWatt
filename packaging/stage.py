@@ -897,6 +897,19 @@ class StageTest(unittest.TestCase):
         tree = self.stage("windows")
         self.assertEqual(sorted(removed), sorted(os.listdir(tree) + ["uninstall.exe"]))
 
+    def test_the_setup_names_the_registry_under_hkcu_alone(self):
+        # IN-8's static half: every registry instruction of the setup names HKCU, and no instruction names HKLM or
+        # the shell context, which `SetShellVarContext all` would make HKLM.
+        with open(os.path.join(REPO, "packaging", "windows", "elektrawatt.nsi"), encoding="utf-8") as f:
+            lines = [line.strip() for line in f if not line.lstrip().startswith((";", "#"))]
+        # A read names its variable first, then the root.
+        instruction = r"^(?:WriteReg\w*|DeleteReg\w*|InstallDirRegKey|(?:ReadReg|EnumReg)\w*\s+\S+)\s+(\S+)"
+        roots = re.findall(instruction, "\n".join(lines), re.M)
+        self.assertIn("HKCU", roots)
+        self.assertEqual(sorted(set(roots)), ["HKCU"])
+        machine = [line for line in lines if re.search(r"\b(?:HKLM|HKEY_LOCAL_MACHINE|SHCTX|SHELL_CONTEXT)\b", line)]
+        self.assertEqual(machine, [])
+
     def test_a_cli_tree_holds_the_archives_entries_alone(self):
         linux = os.path.join(self.dir, "cli-linux")
         stage_tree(self.repo, os.path.join(self.dir, "linux"), None, self.VERSION, linux, cli=True)
@@ -939,9 +952,9 @@ class StageTest(unittest.TestCase):
             [
                 ("Type", "Application"),
                 ("Name", "ElektraWatt"),
-                ("Exec", "elektrawatt %F"),
+                ("Exec", "elektrawatt %f"),
                 ("Icon", "elektrawatt"),
-                ("Categories", "Engineering;"),
+                ("Categories", "Science;Engineering;"),
                 ("Terminal", "false"),
             ],
         )
@@ -974,11 +987,10 @@ class StageTest(unittest.TestCase):
         self.assertEqual(run("--smoke", "s.ew"), "elektrawatt|--smoke|s.ew|")
         self.assertEqual(run("ewx", "ew"), "elektrawatt|ewx|ew|")
         self.assertEqual(run(), "elektrawatt|")
-        # The runtime's APPDIR wins over the script's own folder.
-        moved = os.path.join(self.dir, "Moved")
-        shutil.copytree(appdir, moved)
-        shutil.rmtree(os.path.join(appdir, "usr"))
-        self.assertEqual(run("ew", "-V", appdir_env=moved), "ew|-V|")
+        # The script's own folder wins over an inherited APPDIR, another AppImage's.
+        other = os.path.join(self.dir, "Other")
+        os.makedirs(other)
+        self.assertEqual(run("ew", "-V", appdir_env=other), "ew|-V|")
 
     def test_the_appimage_is_the_runtime_then_the_image(self):
         out = os.path.join(self.dir, "ElektraWatt-1.2.3-x86_64.AppImage")

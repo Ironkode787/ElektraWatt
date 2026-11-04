@@ -142,3 +142,8 @@ SPDX-License-Identifier: CC-BY-4.0
 - text-change: window canvas HUD (on a page that takes no symbols it gives the page type's reason while no tool is
   armed; FT-1089)
 - dependency: async-executor 1.14.0 → 1.14.1 (a use-after-free fixed upstream; 1.14.0 yanked)
+- dependency: the AppImage's runtime, the AppImage project's static type-2 runtime 20251108 (new; a separate program
+  at the start of the Linux AppImage, not linked into ElektraWatt, ID-1275; MIT, and it links statically musl libc
+  (MIT), libfuse 3.15.0 (LGPL-2.1-only), squashfuse 0.5.2 (BSD-2-Clause), libzstd (BSD-3-Clause), zlib (Zlib) and
+  mimalloc (MIT); the notices are in NOTICE, the source at https://github.com/AppImage/type2-runtime, tag 20251108,
+  commit dd6cebedcbddde9c82f89b011e8e1d40b6e43868)

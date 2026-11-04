@@ -82,6 +82,10 @@ crates/ew-ui/src/icons/generated.rs.
 
 The project's own glyphs (assets/icons/ew/) are part of ElektraWatt (GPL-3.0-or-later).
 
+The application icon (assets/icons/app/, at the root of the Linux AppImage) adapts Tabler's `bolt` (the outline path
+of icons-3.50.0, scaled and stroked white on a blue rounded square): MIT for Tabler's part, with the copyright and
+permission notice above, GPL-3.0-or-later for the whole (MIT AND GPL-3.0-or-later).
+
 The AppImage's runtime (packaging/components.toml `appimage-type2-runtime`, WP-S6.06 D2, D10)
 -----------------------------------------------------------------------------------------------
 

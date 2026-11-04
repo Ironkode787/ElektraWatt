@@ -150,13 +150,17 @@ precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 The ElektraWatt contributors"
 SPDX-License-Identifier = "GPL-3.0-or-later"
 
-# L1: the application icon (WP-S6.06 §13 O5, ID-1280), the project's own work under the application's licence: the
-# SVG comment-free like the glyphs above, and the PNG rendered from it, which cannot carry a header.
+# L1 and L14: the application icon (WP-S6.06 §13 O5, ID-1280), Tabler's `bolt` (MIT, its path as Tabler draws it,
+# scaled) on the project's rounded square, under the application's licence: the SVG comment-free like the glyphs
+# above, and the PNG rendered from it, which cannot carry a header; provenance in NOTICE.
 [[annotations]]
 path = "assets/icons/app/**"
 precedence = "aggregate"
-SPDX-FileCopyrightText = "2026 The ElektraWatt contributors"
-SPDX-License-Identifier = "GPL-3.0-or-later"
+SPDX-FileCopyrightText = [
+  "Copyright (c) 2020-2026 Paweł Kuna",
+  "2026 The ElektraWatt contributors",
+]
+SPDX-License-Identifier = "MIT AND GPL-3.0-or-later"
 
 # L14: the licence file and notices of the AppImage's type-2 runtime (WP-S6.06 D2, ID-1275), which the AppImage
 # aggregates; the runtime itself is downloaded by the Linux job, never committed. The file quotes the runtime's MIT

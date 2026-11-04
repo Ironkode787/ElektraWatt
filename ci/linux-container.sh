@@ -42,7 +42,7 @@ fail() {
   exit 1
 }
 
-[ "$#" -eq 1 ] || fail "usage: linux-container.sh download | check | release"
+[ "$#" -eq 1 ] || fail "usage: linux-container.sh download | check | release | cli | appimage"
 mode="$1"
 : "${EW_GCC_VERSION:?}" "${EW_LIBC6_DEV_VERSION:?}" "${EW_APT_SNAPSHOT:?}"
 [[ "$EW_APT_SNAPSHOT" =~ ^[0-9]{8}T[0-9]{6}Z$ ]] \

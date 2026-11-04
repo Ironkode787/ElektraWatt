@@ -24,8 +24,9 @@ The programs run without EW_CONTENT_DIR and SOURCE_DATE_EPOCH, so the bytes are 
 not exist; the outputs stay there.
 
 `--compare` reads two such manifests (one per OS) and fails, naming each file, on any line that differs or that only
-one holds, and on a PDF whose digest is not <dir>/pdf/sha256.txt (with both digests); else it prints how many files it
-compared. `--test` is the offline unit test. Standard library only.
+one holds, on a PDF whose digest is not <dir>/pdf/sha256.txt (with both digests), and on an SVG of `svg/serial/` that
+is not its `svg/threads-4/` namesake in the same manifest (NFR-REL-07); else it prints how many files it compared.
+`--test` is the offline unit test. Standard library only.
 """
 import argparse
 import hashlib
@@ -124,8 +125,9 @@ def read_manifest(path):
 
 
 def compare(a, b, expected):
-    """The number of files compared; refused with every difference between the manifests `a` and `b`, and every PDF
-    whose digest is not `expected`/pdf/sha256.txt."""
+    """The number of files compared; refused with every difference between the manifests `a` and `b`, every PDF
+    whose digest is not `expected`/pdf/sha256.txt, and every serial SVG that the manifest's 4-thread one does not
+    equal."""
     with open(os.path.join(expected, "pdf", "sha256.txt"), encoding="utf-8") as f:
         want = f.read().strip()
     (left, left_clean), (right, right_clean) = read_manifest(a), read_manifest(b)
@@ -141,6 +143,14 @@ def compare(a, b, expected):
         for name, digest in sorted(entries.items()):
             if name.startswith("pdf/") and digest != want:
                 problems.append(f"{name} of {path} has the SHA-256 {digest}, not the {want} of the expected PDF")
+            for here, there in (("svg/serial/", "svg/threads-4/"), ("svg/threads-4/", "svg/serial/")):
+                if not name.startswith(here):
+                    continue
+                twin = there + name[len(here) :]
+                if twin not in entries:
+                    problems.append(f"{name} of {path} has no {twin}")
+                elif here == "svg/serial/" and entries[twin] != digest:
+                    problems.append(f"{twin} of {path} differs from its {name}: {entries[twin]}, not {digest}")
         if not clean:
             problems.append(f"{path} lacks the line `{CLEAN}`")
     if not any(name.startswith("pdf/") for name in left):
@@ -219,7 +229,23 @@ class DigestsTest(unittest.TestCase):
         self.assertEqual(
             str(refused.exception),
             "the digests of the two platforms differ:\n"
-            f"svg/threads-4/101.svg differs: {'2' * 64} in {a}, {'3' * 64} in {b}",
+            f"svg/threads-4/101.svg differs: {'2' * 64} in {a}, {'3' * 64} in {b}\n"
+            f"svg/threads-4/101.svg of {b} differs from its svg/serial/101.svg: {'3' * 64}, not {'2' * 64}",
+        )
+
+    def test_a_serial_svg_that_its_four_thread_one_does_not_equal_fails_in_each_manifest(self):
+        # The platforms agree, but within each manifest the thread counts do not (NFR-REL-07).
+        changed = {"svg/threads-4/101.svg": "3" * 64, "svg/threads-4/9.svg": "5" * 64}
+        a, b = self.manifest("digests-linux.txt", changed), self.manifest("digests-windows.txt", changed)
+        with self.assertRaises(Refusal) as refused:
+            compare(a, b, self.expected)
+        self.assertEqual(
+            str(refused.exception),
+            "the digests of the two platforms differ:\n"
+            f"svg/threads-4/101.svg of {a} differs from its svg/serial/101.svg: {'3' * 64}, not {'2' * 64}\n"
+            f"svg/threads-4/9.svg of {a} has no svg/serial/9.svg\n"
+            f"svg/threads-4/101.svg of {b} differs from its svg/serial/101.svg: {'3' * 64}, not {'2' * 64}\n"
+            f"svg/threads-4/9.svg of {b} has no svg/serial/9.svg",
         )
 
     def test_a_pdf_digest_other_than_the_expected_one_fails_with_both(self):
