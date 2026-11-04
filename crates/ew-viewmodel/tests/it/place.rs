@@ -590,7 +590,7 @@ fn the_place_label_names_a_strip_without_a_tag_in_words() {
     assert!(
         labels
             .iter()
-            .any(|l| l == "A New terminal strip \u{b7} no tag yet terminal 1"),
+            .any(|l| l == "A terminal 1 on the new strip (no tag yet)"),
         "{labels:?}"
     );
     assert!(!labels.iter().any(|l| l.contains('?')), "{labels:?}");
@@ -611,7 +611,7 @@ fn a_terminal_joins_strip_x1031_with_its_tag_predicted_and_the_designation_advan
     let g = ghost(&s);
     assert_eq!(g["target"], "terminal");
     assert!(
-        s.tool_overlay().labels().any(|l| l == "A -X1031 terminal 30"),
+        s.tool_overlay().labels().any(|l| l == "A terminal 30 on -X1031"),
         "{:?}",
         s.tool_overlay()
     );

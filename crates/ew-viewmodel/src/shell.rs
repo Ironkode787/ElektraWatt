@@ -42,6 +42,7 @@ mod clipboard;
 mod drawing;
 // WP-S1.17 part 7: external change, cloud folders, .ewz, the upgrade, the merge driver
 mod external;
+pub(crate) use external::collision_count;
 // WP-S2.04 part 4b: FT-411, Edit ▸ Bridge terminals.
 mod bridge;
 // G-PP triage row 7: Draw ▸ Bond.

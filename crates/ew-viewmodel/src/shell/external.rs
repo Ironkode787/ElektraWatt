@@ -43,8 +43,31 @@ pub struct CollisionRow {
     pub mine: String,
     /// The value on disk.
     pub theirs: String,
+    /// Whether the row is the whole record (one side deleted it), not one field.
+    pub whole: bool,
     /// The side chosen.
     pub take: Take,
+}
+
+/// The rows of the collision dialog counted as they read (W49.3-F4): `2 fields and 1 record`, a whole-record row
+/// counted as a record.
+pub(crate) fn collision_count(rows: &[CollisionRow]) -> String {
+    let records = rows.iter().filter(|r| r.whole).count();
+    let fields = rows.len() - records;
+    let mut parts = Vec::new();
+    if fields > 0 {
+        parts.push(strings::format_count(
+            crate::count_key!("external-fields"),
+            fields,
+        ));
+    }
+    if records > 0 {
+        parts.push(strings::format_count(
+            crate::count_key!("external-records"),
+            records,
+        ));
+    }
+    and_list(&parts)
 }
 
 /// The collaboration state of the shell.
@@ -251,7 +274,10 @@ impl ShellModel {
             });
         }
         let records = strings::format_count(crate::count_key!("external-records"), a.records);
-        let mut text = if a.folios.is_empty() {
+        // W49.3-F5: nothing of theirs was taken (All mine): the window says it kept the user's version.
+        let mut text = if a.entry.is_none() && a.records > 0 {
+            strings::format(key!("toast-external-kept"), &[&records])
+        } else if a.folios.is_empty() {
             strings::format(key!("toast-external"), &[&records])
         } else if let [folio] = a.folios.as_slice() {
             strings::format(key!("toast-external-folio"), &[&records, folio])
@@ -297,7 +323,7 @@ impl ShellModel {
             .iter()
             .map(|c| {
                 let (kind, id) = c.key;
-                let words = strings::kind_label(kind.name());
+                let words = strings::kind_heading(kind.name());
                 let label = p
                     .session
                     .record_label(kind, id.as_uuid())
@@ -309,11 +335,12 @@ impl ShellModel {
                     field: if whole {
                         strings::text(key!("external-whole-record")).to_owned()
                     } else {
-                        strings::field_label(kind.name(), &c.path)
+                        strings::field_heading(kind.name(), &c.path)
                     },
                     base: side(true, c.base.as_ref()),
                     mine: side(false, c.mine.as_ref()),
                     theirs: side(false, c.theirs.as_ref()),
+                    whole,
                     take: Take::Mine,
                 }
             })

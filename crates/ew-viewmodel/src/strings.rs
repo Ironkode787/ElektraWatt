@@ -577,6 +577,33 @@ pub fn choice_words(value: &str) -> String {
         .unwrap_or_default()
 }
 
+/// A record kind as a heading in the UI language (`Potential definition`, `Potentiaaldefinitie`): its
+/// `record-kind-<kind>` text, else [`kind_label`] with a capital (W49.3-F3).
+pub fn kind_heading(kind: &str) -> String {
+    let key = format!("record-kind-{}", kind.replace('_', "-"));
+    lookup(&key).map_or_else(|| sentence_start(&kind_label(kind)).into_owned(), str::to_owned)
+}
+
+/// A field as a heading in the UI language (`Colour override`, `Aderkleur overschreven`): its
+/// `field-<kind>-<path>` text (`.` and `_` as `-`, a list item as `-item` with its position after it), else
+/// [`field_label`] (W49.3-F3).
+pub fn field_heading(kind: &str, path: &str) -> String {
+    let (generic, item) = match path.strip_suffix(']').and_then(|p| p.rsplit_once('[')) {
+        Some((list, n)) if n.parse::<usize>().is_ok() => (format!("{list}[]"), Some(n)),
+        _ => (path.to_owned(), None),
+    };
+    let key = format!(
+        "field-{}-{}",
+        kind.replace('_', "-"),
+        generic.replace("[]", "-item").replace(['.', '_'], "-")
+    );
+    match (lookup(&key), item.and_then(|n| n.parse::<usize>().ok())) {
+        (Some(text), Some(n)) => format!("{text} {}", n + 1),
+        (Some(text), None) => text.to_owned(),
+        (None, _) => field_label(kind, path),
+    }
+}
+
 /// A record kind in words, singular (`potential definition`).
 pub fn kind_label(kind: &str) -> String {
     match kind {

@@ -34,9 +34,20 @@ use crate::theme::{self, Tokens};
 /// The actions of `n` as text links in `type.small` SemiBold `color.accent`, each disabled while it is not valid (an
 /// external change offers Undo and Show changes, WP-S1.17 D24).
 fn action_link(ui: &mut Ui, t: &Tokens, shell: &ShellModel, n: &Notification, events: &mut Vec<Event>) {
-    for action in n.actions() {
-        one_link(ui, t, shell, n, action, events);
+    let actions = n.actions();
+    if actions.len() < 2 {
+        for action in actions {
+            one_link(ui, t, shell, n, action, events);
+        }
+        return;
     }
+    // W49.3-F6 (doc 16a §6.10): two actions share one row while they fit, else the second wraps under the first.
+    ui.horizontal_wrapped(|ui| {
+        ui.spacing_mut().item_spacing.x = t.space_4;
+        for action in actions {
+            one_link(ui, t, shell, n, action, events);
+        }
+    });
 }
 
 /// One action link of `n`.

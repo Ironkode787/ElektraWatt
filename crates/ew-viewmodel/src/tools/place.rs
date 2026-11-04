@@ -415,9 +415,14 @@ impl PlaceTool {
                 "terminal",
                 strings::format(
                     key!("place-target-terminal"),
-                    // ID-1278 ruling 7 (C49-p8b#3): a strip without a tag yet in words.
+                    // ID-1278 ruling 7 (C49-p8b#3): a strip without a tag yet in words; W49.3-F7: the terminal
+                    // first, then the strip it goes on.
                     &[
-                        &crate::navigators::strip_label(strip_tag),
+                        &if strip_tag.contains('?') {
+                            strings::text(key!("place-target-new-strip")).to_owned()
+                        } else {
+                            strip_tag.clone()
+                        },
                         &self.designation_label(designation),
                     ],
                 ),

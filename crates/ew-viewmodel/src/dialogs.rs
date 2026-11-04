@@ -280,9 +280,9 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
             form: true,
             ..small(
                 strings::text(key!("external-title")).to_owned(),
-                vec![strings::format_count(
-                    crate::count_key!("external-text"),
-                    rows.len(),
+                vec![strings::format(
+                    key!("external-text"),
+                    &[&crate::shell::collision_count(rows)],
                 )],
                 DialogButton::new(
                     key!("external-apply"),

@@ -160,10 +160,10 @@ fn xw2_the_collision_dialog_holds_saves_until_a_side_is_chosen() {
         .collect();
     assert_eq!(dialog[0], "dialog \"Keep your changes or the ones on disk?\"");
     assert!(dialog.contains(
-        &"  label \"1 field was changed here and on disk. Choose yours or theirs; saving waits until you do.\""
+        &"  label \"Changed here and on disk: 1 field. Choose yours or theirs for each; saving waits until you do.\""
     ));
     assert!(dialog.contains(
-        &"  row 1 \"connection 102.1 · Colour override\" base \"(none)\" mine \"BU\" theirs \"WH\" chosen mine"
+        &"  row 1 \"Connection 102.1 · Colour override\" base \"(none)\" mine \"BU\" theirs \"WH\" chosen mine"
     ));
     for w in ["chosen", "mine", "theirs"] {
         assert!(reach_words(Reach::Collab).contains(&w));
@@ -172,7 +172,7 @@ fn xw2_the_collision_dialog_holds_saves_until_a_side_is_chosen() {
     done(&mut s, "external.choose", json!({"row": 1, "take": "theirs"}));
     done(&mut s, "project.check_disk", json!({}));
     assert!(describe(&s).contains(
-        "  row 1 \"connection 102.1 · Colour override\" base \"(none)\" mine \"BU\" theirs \"WH\" chosen theirs\n"
+        "  row 1 \"Connection 102.1 · Colour override\" base \"(none)\" mine \"BU\" theirs \"WH\" chosen theirs\n"
     ));
     // Decide later: the banner says why, and saves wait; the next poll does not bring the dialog back.
     done(&mut s, "ui.dismiss", json!({}));
@@ -252,7 +252,7 @@ fn xw2b_a_deleted_record_shows_each_side_in_words() {
     colleague(&tmp, &dir, &[delete]);
     done(&mut s, "project.check_disk", json!({}));
     assert!(describe(&s).contains(
-        "  row 1 \"connection 102.1 · the whole record\" base \"present\" mine \"changed\" theirs \"deleted\" chosen \
+        "  row 1 \"Connection 102.1 · The whole record\" base \"present\" mine \"changed\" theirs \"deleted\" chosen \
          mine\n"
     ));
 }
@@ -651,7 +651,7 @@ fn xw2d_a_second_change_while_held_rebuilds_the_dialog() {
     assert_eq!(
         rows,
         [
-            "  row 1 \"connection 102.1 · Colour override\" base \"(none)\" mine \"BU\" theirs \"RD\" chosen mine"
+            "  row 1 \"Connection 102.1 · Colour override\" base \"(none)\" mine \"BU\" theirs \"RD\" chosen mine"
         ]
     );
     done(&mut s, "external.apply", json!({"take": "theirs"}));
@@ -659,5 +659,56 @@ fn xw2d_a_second_change_while_held_rebuilds_the_dialog() {
     assert_eq!(
         w20_overrides(&dir),
         json!({"csa": "2.5", "colour": ["RD"], "show_marker": true})
+    );
+}
+
+/// W49.3-F3 to F5: the dialog's headings in Dutch, capitalised, with the kind and the field from the terminology; the
+/// intro counts a whole-record row as a record; All mine says the user's version was kept.
+#[test]
+fn xw2f_the_dialog_reads_in_words_and_all_mine_says_it_kept_yours() {
+    let tmp = Tmp::new("xw2f");
+    let dir = tmp.0.join("J-E-2416.ew");
+    copy_dir(Path::new(GOLDEN_A), &dir);
+    let mut s = shell(&tmp);
+    open(&mut s, &dir, false);
+    let w20 = golden_id("connections|W20");
+    done(
+        &mut s,
+        "command.run",
+        json!({"cmd": "fields.set", "params": {"kind": "connection", "targets": [w20], "path": "overrides.colour",
+            "value": ["BU"]}}),
+    );
+    colleague(&tmp, &dir, &[colour(&w20, json!(["WH"]))]);
+    done(&mut s, "view.language", json!({"value": "nl"}));
+    done(&mut s, "project.check_disk", json!({}));
+    let lines = |s: &ShellModel, start: &str| -> Vec<String> {
+        describe(s)
+            .lines()
+            .filter(|l| l.starts_with(start) && !l.starts_with("  row level "))
+            .map(str::to_owned)
+            .collect()
+    };
+    assert_eq!(
+        lines(&s, "  row "),
+        [
+            "  row 1 \"Verbinding 102.1 · Aderkleur overschreven\" base \"(geen)\" mine \"BU\" theirs \"WH\" chosen mine"
+        ]
+    );
+    done(&mut s, "view.language", json!({"value": "en"}));
+    done(&mut s, "external.apply", json!({"take": "mine"}));
+    assert_eq!(toasts(&s), ["toast \"Your version was kept: 1 record\""]);
+
+    // A record deleted on disk is counted as a record.
+    let delete = AnyCommand {
+        name: "edit.delete".into(),
+        params: json!({"targets": [{"kind": "connection", "id": w20}]}),
+    };
+    colleague(&tmp, &dir, &[delete]);
+    done(&mut s, "project.check_disk", json!({}));
+    assert_eq!(
+        lines(&s, "  label "),
+        [
+            "  label \"Changed here and on disk: 1 record. Choose yours or theirs for each; saving waits until you do.\""
+        ]
     );
 }

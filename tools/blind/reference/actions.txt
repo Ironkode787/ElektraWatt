@@ -15,7 +15,7 @@ file.export_ewz Command "Export .ewz…" menu "File" shortcut none context globa
 project.check_disk Command "Check for changes on disk" menu "File" shortcut none context global params ""
 file.upgrade Command "Upgrade and save" menu none shortcut none context global hidden params ""
 external.apply Command "Apply the change on disk" menu none shortcut none context global hidden params "take?:enum(mine|theirs)"
-external.review View "?" menu none shortcut none context global hidden params ""
+external.review View "Choose again between yours and the disk's" menu none shortcut none context global hidden params ""
 external.choose View "Choose a side" menu none shortcut none context global hidden params "row:uint, take:enum(mine|theirs)"
 git.setup Command "Set up merge driver" menu "Project" shortcut none context global params "confirm?:bool"
 file.print View "Print…" menu "Output" shortcut "Ctrl+P" context global params "range?:enum(all|current|sections|pages), sections?:text, pages?:text, paper?:text, fit?:bool, mono?:bool, wait?:bool"
