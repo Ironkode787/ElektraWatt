@@ -298,11 +298,8 @@ impl ShellModel {
         bump(calls, |c| c.preview_with += 1);
         let preview = match project.session.preview_with(&cmd, submit) {
             Ok(p) => p,
-            Err(e) => {
-                return Outcome::Failed {
-                    message: e.to_string(),
-                };
-            }
+            // FT-1337: a refusal in the window's language, as every command error shows
+            Err(e) => return super::tools::command_failed(&e, &cmd.params),
         };
         let derived = project.session.derived_diff(&preview);
         let changes = preview.diff().len();

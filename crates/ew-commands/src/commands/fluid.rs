@@ -25,6 +25,7 @@ use crate::commands::connection::cp_fluid_class;
 use crate::error::CmdError;
 use crate::meta::CommandMeta;
 use crate::proxy::UuidS;
+use crate::text::text;
 use crate::tx::TxBuilder;
 
 /// The state of a valve set by [`SetValveOccupancy`].
@@ -161,7 +162,7 @@ fn remove_child(
     }
     bound.sort();
     bound.dedup();
-    let unbound: Vec<String> = bound.iter().map(|c| crate::words::channel(tx, *c)).collect();
+    let unbound: Vec<String> = bound.iter().map(|c| crate::words::channel(tx, *c).to_string()).collect();
     tx.delete((Kind::Device, child.id.cast()))?;
     tx.notice(match lines.len() {
         0 => format!("removed {name} from position {position} of {module_name}"),
@@ -229,9 +230,9 @@ fn plate_functions(tx: &mut TxBuilder<'_>, plate: Id<Device>, part: Id<Part>) ->
     for (i, e) in copy.item.function_template.iter().enumerate() {
         let def: Id<FnDef> = ew_ids::v5::lib_copy_id(e.fndef.library.as_uuid(), e.fndef.item.as_uuid());
         let Some(fndef) = tx.get::<LibCopy<FnDef>>(def) else {
-            return tx.reject(format!(
-                "the function definition of template entry {i} of part {} is not embedded in the project; embed it \
-                 first (`library.embed`)",
+            return tx.reject(text!(
+                "refusal-part-entry-fndef-missing",
+                i.to_string(),
                 copy.item.part_number.as_str()
             ));
         };
@@ -270,12 +271,15 @@ impl Command for SetValveOccupancy {
         let module = tx.require::<Device>(self.module)?;
         let module_name = crate::words::device(tx, self.module);
         let Some(n) = position_count(tx, &module) else {
-            return tx.reject(format!("{module_name} has no valve positions"));
+            return tx.reject(text!("refusal-valve-no-positions", module_name));
         };
         let p = self.position;
         if p == 0 || p > u32::from(n) {
-            return tx.reject(format!(
-                "{module_name} has {n} valve positions; position {p} does not exist"
+            return tx.reject(text!(
+                "refusal-valve-no-position",
+                module_name,
+                n.to_string(),
+                p.to_string()
             ));
         }
         let held = child_at(tx, self.module, p);
@@ -295,8 +299,11 @@ impl Command for SetValveOccupancy {
                         if let Some(part) = part.filter(|part| Some(*part) != own) {
                             tx.require::<LibCopy<Part>>(part)?;
                             let name = crate::words::device(tx, v.id);
-                            return tx.reject(format!(
-                                "position {p} of {module_name} holds {name}; assign the new part to {name} instead"
+                            return tx.reject(text!(
+                                "refusal-valve-position-holds",
+                                p.to_string(),
+                                module_name,
+                                name
                             ));
                         }
                         let state = state.state();
@@ -305,9 +312,7 @@ impl Command for SetValveOccupancy {
                     }
                     None => {
                         let Some(part) = part else {
-                            return tx.reject(format!(
-                                "position {p} of {module_name} holds no valve; name the valve part"
-                            ));
+                            return tx.reject(text!("refusal-valve-position-empty", p.to_string(), module_name));
                         };
                         tx.require::<LibCopy<Part>>(*part)?;
                         Some(new_child(
@@ -431,7 +436,7 @@ impl Command for ClosePort {
         tx.require::<Function>(self.function)?;
         let (f, idx) = (self.function, self.idx);
         if !matches!(cp_fluid_class(tx, f, idx), FluidPortClass::Fluid(_)) {
-            return tx.reject(format!("{} is not a fluid port", crate::words::cp(tx, f, idx)));
+            return tx.reject(text!("refusal-connection-not-fluid-port", crate::words::cp(tx, f, idx)));
         }
         let closure = match &self.closure {
             Some(c) => {
@@ -444,10 +449,7 @@ impl Command for ClosePort {
                     .filter_map(|c| tx.get::<Connection>(c))
                     .any(|c| matches!(c.kind, ConnectionKind::Fluid(_)));
                 if lined {
-                    return tx.reject(format!(
-                        "{} has a fluid line; delete the line before closing the port",
-                        crate::words::cp(tx, f, idx)
-                    ));
+                    return tx.reject(text!("refusal-fluid-port-has-line", crate::words::cp(tx, f, idx)));
                 }
                 Some(PortClosure {
                     kind: match c.kind {

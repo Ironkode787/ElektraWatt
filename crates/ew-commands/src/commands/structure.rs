@@ -19,6 +19,7 @@ use crate::command::{Command, Outcome};
 use crate::error::CmdError;
 use crate::meta::CommandMeta;
 use crate::proxy::{AspectS, IdentS, MlTextS, UuidS};
+use crate::text::text;
 use crate::tx::TxBuilder;
 
 /// `structure.create_node`: one identifier in one aspect tree (doc 03 §5, FR-PRJ-017).
@@ -60,15 +61,13 @@ impl Command for CreateStructureNode {
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
         if self.aspect == Aspect::Product {
             return tx
-                .reject("the product aspect is the device tree, not a structure node; pick another aspect");
+                .reject(text!("refusal-structure-product-aspect"));
         }
         let aspect = Open::Known(self.aspect);
         if let Some(parent) = self.parent {
             let parent = tx.require::<StructureNode>(parent)?;
             if parent.aspect != aspect {
-                return tx.reject(
-                    "the parent belongs to another aspect (EW-INV-011); pick a parent of the same aspect",
-                );
+                return tx.reject(text!("refusal-structure-parent-aspect"));
             }
         }
         let clash = tx
@@ -76,10 +75,7 @@ impl Command for CreateStructureNode {
             .iter()
             .any(|n| n.aspect == aspect && n.parent == self.parent && n.code == self.code);
         if clash {
-            return tx.reject(format!(
-                "a sibling with code `{}` already exists in this aspect; choose another code",
-                self.code.as_str()
-            ));
+            return tx.reject(text!("refusal-structure-code-used", self.code.as_str()));
         }
         let id: Id<StructureNode> = tx.mint();
         tx.insert(StructureNode {
@@ -128,20 +124,21 @@ impl Command for CreateSection {
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
         let (from, to) = self.folio_range;
         if from > to {
-            return tx.reject("`folio_range` starts after it ends; give first <= last");
+            return tx.reject(text!("refusal-section-range-order"));
         }
         for other in tx.iter::<Section>() {
             if other.number == self.number {
-                return tx.reject(format!(
-                    "section number {} already exists; choose another number",
-                    self.number
-                ));
+                return tx.reject(text!("refusal-section-number-used", self.number.to_string()));
             }
             let (a, b) = other.folio_range;
             if from <= b && a <= to {
-                return tx.reject(format!(
-                    "folio range {from}-{to} overlaps section {} ({a}-{b}); choose a free range",
-                    other.number
+                return tx.reject(text!(
+                    "refusal-section-range-overlap",
+                    from.to_string(),
+                    to.to_string(),
+                    other.number.to_string(),
+                    a.to_string(),
+                    b.to_string()
                 ));
             }
         }
@@ -255,9 +252,7 @@ impl CreateReportBlock {
             match tx.get::<LibCopy<FormDef>>(copy.id) {
                 Some(held) if held.sha256 == copy.sha256 => {}
                 Some(_) => {
-                    return tx.reject(
-                        "the project holds another version of this form; take the new one with update from library",
-                    );
+                    return tx.reject(text!("refusal-report-block-form-version"));
                 }
                 None => {
                     tx.insert(copy)?;
@@ -277,9 +272,7 @@ impl Command for CreateReportBlock {
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
         if self.embedded.is_none() && self.first_folio.is_none() {
-            return tx.reject(
-                "a page-oriented report block needs `first_folio` (EW-INV-014); give one or embed it",
-            );
+            return tx.reject(text!("refusal-report-block-first-folio"));
         }
         if !self.form_copies.is_empty() {
             self.embed_forms(tx)?;
@@ -349,10 +342,7 @@ impl Command for CreateExternalRef {
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
         let node = tx.require::<StructureNode>(self.location)?;
         if node.aspect != Open::Known(Aspect::Location) {
-            return tx.reject(format!(
-                "node {} is not a location; an external reference sits at a location node",
-                node.code.as_str()
-            ));
+            return tx.reject(text!("refusal-external-ref-not-location", node.code.as_str()));
         }
         let id: Id<ExternalRef> = tx.mint();
         tx.insert(ExternalRef {

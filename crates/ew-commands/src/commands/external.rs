@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 use crate::command::{Command, Outcome};
 use crate::error::CmdError;
 use crate::meta::{CommandMeta, Exposure, Stability};
+use crate::text::text;
 use crate::tx::TxBuilder;
 
 /// `external.apply` (`ApplyExternal`): the records of a project that changed on disk (a pull, a checkout, a sync
@@ -50,7 +51,7 @@ impl Command for ApplyExternal {
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
         for asset in &self.assets {
             tx.put_asset(asset.bytes().to_vec()).map_err(|e| {
-                CmdError::rejected(Self::NAME, format!("an image of the change does not read ({e})"))
+                CmdError::rejected(Self::NAME, text!("refusal-external-image", e.to_string()))
             })?;
         }
         // Removals first: a removal's own bookkeeping (a macro member's instance) never outlives a row written after it.

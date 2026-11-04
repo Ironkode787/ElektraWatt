@@ -23,6 +23,7 @@ use serde_json::Value;
 use crate::command::{DynCommand, Outcome};
 use crate::error::CmdError;
 use crate::meta::{CommandMeta, Cost, Exposure, Stability};
+use crate::text::text;
 use crate::tx::TxBuilder;
 
 /// `import.apply` (`ApplyImport`): see the module documentation.
@@ -448,10 +449,7 @@ impl DynCommand for ApplyImport {
         for record in &self.records {
             if hashed(record) {
                 let row = AnyRow::from_record(record.clone()).map_err(|r| {
-                    CmdError::rejected(
-                        Self::NAME,
-                        format!("a record of an unknown kind ({:?})", r.kind()),
-                    )
+                    CmdError::rejected(Self::NAME, text!("refusal-import-unknown-kind", format!("{:?}", r.kind())))
                 })?;
                 let source = record_hash(&row)?;
                 run.record_hashes.insert(
@@ -505,7 +503,7 @@ impl DynCommand for ApplyImport {
             let Some(row) = tx.row(&key) else {
                 return Err(CmdError::rejected(
                     Self::NAME,
-                    format!("a normaliser removed the imported {} {id}", kind.name()),
+                    text!("refusal-import-removed", kind.name(), id.to_string()),
                 ));
             };
             let now = record_hash(&row)?;

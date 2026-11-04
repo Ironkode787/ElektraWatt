@@ -23,6 +23,7 @@ use crate::commands::device::insert_function;
 use crate::error::CmdError;
 use crate::meta::CommandMeta;
 use crate::proxy::{IdentS, UuidS};
+use crate::text::text;
 use crate::tx::TxBuilder;
 
 /// One child of [`AttachChildren`].
@@ -135,26 +136,31 @@ impl Command for AttachChildren {
             tx.require::<Device>(c.device)?;
             if let Some(p) = c.position {
                 if let Some(other) = positions.insert(p, c.device) {
-                    return tx.reject(format!(
-                        "position {p} is given to two children ({other} and {})",
-                        c.device
+                    return tx.reject(text!(
+                        "refusal-assembly-position-twice",
+                        p.to_string(),
+                        other.to_string(),
+                        c.device.to_string()
                     ));
                 }
             }
         }
         if let Some(c) = ancestors(tx, self.parent).into_iter().find(|a| seen.contains(a)) {
-            return tx.reject(format!(
-                "device {c} is an ancestor of the parent {}; the assembly graph is acyclic (EW-INV-009)",
-                self.parent
+            return tx.reject(text!(
+                "refusal-assembly-cycle",
+                c.to_string(),
+                self.parent.to_string()
             ));
         }
         let taken = taken_positions(tx, self.parent, &seen);
         for (p, child) in &positions {
             if let Some(holder) = taken.get(p) {
-                return tx.reject(format!(
-                    "position {p} of {} is held by device {holder}; move it first (no push insert), then \
-                     attach {child}",
-                    self.parent
+                return tx.reject(text!(
+                    "refusal-assembly-position-held",
+                    p.to_string(),
+                    self.parent.to_string(),
+                    holder.to_string(),
+                    child.to_string()
                 ));
             }
         }
@@ -248,8 +254,9 @@ impl Command for AddValve {
             Some(p) => {
                 if let Some(holder) = taken.get(&p) {
                     // FT-1331: the module and the holder in words.
-                    return tx.reject(format!(
-                        "position {p} of {} is held by {}; choose a free position (no push insert)",
+                    return tx.reject(text!(
+                        "refusal-valve-position-held",
+                        p.to_string(),
                         crate::words::device(tx, self.module),
                         crate::words::device(tx, *holder)
                     ));
@@ -332,8 +339,8 @@ impl Command for LinkDevices {
             let mut at = self.from;
             while let Some(p) = tx.get::<Device>(at).and_then(|d| d.parent) {
                 if p == self.to {
-                    return tx.reject(format!(
-                        "{} cannot drive {}, which holds it",
+                    return tx.reject(text!(
+                        "refusal-device-link-holder",
                         crate::words::device(tx, self.from),
                         crate::words::device(tx, self.to)
                     ));
@@ -349,9 +356,11 @@ impl Command for LinkDevices {
             .into_iter()
             .find(|l| l.from == self.from && l.to == self.to && l.kind == self.kind)
         {
-            return tx.reject(format!(
-                "device {} already links to {} with this kind (link {})",
-                self.from, self.to, l.id
+            return tx.reject(text!(
+                "refusal-device-link-twice",
+                self.from.to_string(),
+                self.to.to_string(),
+                l.id.to_string()
             ));
         }
         let id: Id<DeviceLink> = tx.mint();

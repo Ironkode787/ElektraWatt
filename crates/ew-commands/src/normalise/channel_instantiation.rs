@@ -35,6 +35,7 @@ use ew_schema::{AddrSpec, Channel, ChannelKind, Device, Endpoint, Extra, Kind, L
 
 use crate::error::CmdError;
 use crate::normalise::Normaliser;
+use crate::text::{Text, text};
 use crate::tx::TxBuilder;
 use crate::words;
 
@@ -115,7 +116,7 @@ pub(crate) fn binding_words(tx: &TxBuilder<'_>, binding: Option<&Endpoint>) -> S
 /// A CP in words: its function's device tag and its designation (`-201U3-Q1:14`); the designation is the FnDef CP's,
 /// else the CP pattern entry's of the device's first part that has it (a black box takes the pattern's first), else
 /// "CP <index>" (`-102F2 CP 9`).
-pub(crate) fn cp_words(tx: &TxBuilder<'_>, function: Id<ew_schema::Function>, idx: u16) -> String {
+pub(crate) fn cp_words(tx: &TxBuilder<'_>, function: Id<ew_schema::Function>, idx: u16) -> Text {
     let tag = crate::words::function(tx, function);
     let f = tx.get::<ew_schema::Function>(function);
     let from_def = f
@@ -148,8 +149,8 @@ pub(crate) fn cp_words(tx: &TxBuilder<'_>, function: Id<ew_schema::Function>, id
         from_def.or_else(from_pattern)
     };
     match designation {
-        Some(d) => format!("{tag}:{d}"),
-        None => format!("{tag} CP {idx}"),
+        Some(d) => text!("refusal-words-cp", tag, d),
+        None => text!("refusal-words-cp-index", tag, idx.to_string()),
     }
 }
 
@@ -194,11 +195,11 @@ impl Normaliser for ChannelInstantiation {
                 for number in (0..spec.count).filter(|n| !present.contains_key(n)) {
                     let id = v5::plc_channel_id(dev.id, number);
                     if let Some(other) = tx.get::<Channel>(id) {
-                        return tx.reject(format!(
-                            "channel {number} of module {} cannot be made: channel {} of module {} already has its \
-                             identity; delete that channel first",
+                        return tx.reject(text!(
+                            "refusal-channel-identity-taken",
+                            number.to_string(),
                             words::device(tx, dev.id),
-                            other.number,
+                            other.number.to_string(),
                             words::device(tx, other.module)
                         ));
                     }

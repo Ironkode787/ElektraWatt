@@ -21,6 +21,7 @@ use crate::commands::library::{check_copy, read_copy};
 use crate::error::CmdError;
 use crate::meta::CommandMeta;
 use crate::proxy::UuidS;
+use crate::text::text;
 use crate::tx::TxBuilder;
 
 /// The class of a library copy's change (doc 07 §4.5), whatever its declared version says. Ordered: `Patch` <
@@ -711,9 +712,12 @@ impl Command for UpdateLibraryCopies {
                             if to != endpoint {
                                 if let Some(prev) = remap.insert((f, endpoint), to) {
                                     if prev != to {
-                                        return tx.reject(format!(
-                                            "two updated copies map CP {endpoint} of function {f} differently \
-                                             ({prev} and {to})"
+                                        return tx.reject(text!(
+                                            "refusal-library-update-cp-twice",
+                                            endpoint.to_string(),
+                                            f.to_string(),
+                                            prev.to_string(),
+                                            to.to_string()
                                         ));
                                     }
                                 }
@@ -724,10 +728,7 @@ impl Command for UpdateLibraryCopies {
             }
         }
         if !blocked.is_empty() {
-            return tx.reject(format!(
-                "the update leaves connected CPs without a CP; map them in `cp_maps` (doc 07 §4.5): {}",
-                blocked.join("; ")
-            ));
+            return tx.reject(text!("refusal-library-update-blocked", blocked.join("; ")));
         }
         // FT-640: the closure documents to embed, and the new version's items the project would lack.
         let project = tx.project().id.as_uuid();
@@ -766,10 +767,7 @@ impl Command for UpdateLibraryCopies {
             }
         }
         if !missing.is_empty() {
-            return tx.reject(format!(
-                "the new versions name items the project does not hold; give them in `embed` (FT-640): {}",
-                missing.join("; ")
-            ));
+            return tx.reject(text!("refusal-library-update-missing", missing.join("; ")));
         }
         for (_, doc) in embed {
             match doc {
@@ -885,9 +883,7 @@ fn apply_remap(tx: &mut TxBuilder<'_>, remap: &BTreeMap<(Id<Function>, u16), u16
         for o in &func.cp_overrides {
             let to = remap.get(&(f, o.idx)).copied().unwrap_or(o.idx);
             if !seen.insert(to) {
-                return tx.reject(format!(
-                    "the mapping moves two CP overrides of function {f} onto CP {to}; change the overrides first"
-                ));
+                return tx.reject(text!("refusal-library-update-overrides", f.to_string(), to.to_string()));
             }
         }
         let moved: Vec<_> = func

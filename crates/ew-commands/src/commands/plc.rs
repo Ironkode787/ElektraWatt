@@ -26,6 +26,7 @@ use crate::error::CmdError;
 use crate::meta::CommandMeta;
 use crate::normalise::channel_instantiation::{binding_words, module_section};
 use crate::proxy::{IdentS, UuidS};
+use crate::text::text;
 use crate::tx::TxBuilder;
 
 /// `plc.config_project.create` (`CreatePlcConfigProject`): a configuration project, the target
@@ -82,10 +83,7 @@ impl Command for CreatePlcConfigProject {
             .into_iter()
             .find(|p| p.name == self.name)
         {
-            return tx.reject(format!(
-                "configuration project {} exists ({}); names are unique",
-                self.name, other.id
-            ));
+            return tx.reject(text!("refusal-plc-project-exists", self.name.to_string(), other.id.to_string()));
         }
         let id: Id<PlcConfigProject> = tx.mint();
         tx.insert(PlcConfigProject {
@@ -182,9 +180,8 @@ impl Command for BindChannel {
                 tx.get::<Device>(d).and_then(|x| x.parent)
             });
             if !inside {
-                return tx.reject(format!(
-                    "{} is not on module {} or one of its children; a channel binds a pin of its module or the \
-                     coil of a valve on it",
+                return tx.reject(text!(
+                    "refusal-plc-channel-not-on-module",
                     crate::words::function(tx, function),
                     crate::words::device(tx, channel.module)
                 ));
@@ -211,9 +208,11 @@ impl Command for BindChannel {
                 } else {
                     "its function definition or its part's template defines the CPs".to_owned()
                 };
-                return tx.reject(format!(
-                    "{} has no connection point number {idx} ({source})",
-                    crate::words::function(tx, function)
+                return tx.reject(text!(
+                    "refusal-plc-channel-no-cp",
+                    crate::words::function(tx, function),
+                    idx.to_string(),
+                    source.to_string()
                 ));
             }
             // the channels that hold the CP: an index lookup, not a scan of the channel table (FT-319)
@@ -308,8 +307,8 @@ impl Command for SetStart {
             }
             let dev = tx.require::<Device>(*m)?;
             let Some(aspect) = dev.aspects.plc_module.as_ref() else {
-                return tx.reject(format!(
-                    "{} is not a PLC module, and a start address belongs to a module; make it a module first",
+                return tx.reject(text!(
+                    "refusal-plc-address-not-module",
                     crate::words::device(tx, *m)
                 ));
             };
@@ -479,8 +478,8 @@ impl Command for SetModulePart {
         let m = self.module;
         let before = tx.require::<Device>(m)?;
         let Some(aspect) = before.aspects.plc_module.as_ref() else {
-            return tx.reject(format!(
-                "{} is not a PLC module; make it a module first",
+            return tx.reject(text!(
+                "refusal-plc-not-module",
                 crate::words::device(tx, m)
             ));
         };

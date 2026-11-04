@@ -751,6 +751,315 @@ banner-no-file-dialog = De bestandsdialoog is niet beschikbaar: hij vraagt om de
 error-no-folio = Geen pagina heeft het folio { $p0 }.
 error-part-fndef-missing = Het artikel vraagt om de functiedefinities { $p0 }, die noch het project noch de starterbibliotheek bevat.
 error-command = { $p0 }
+# FT-1337 (ID-1359): a command's own refusal by key (`ew_commands::TEXTS`), grouped by command; the CLI prints the English.
+# The records in words (`words.rs`) and the geometry's sentences (`geometry.rs`).
+refusal-words-device-gone = een apparaat dat niet in het project staat
+refusal-words-function-no-device = een functie zonder apparaat
+refusal-words-cp = { $p0 }:{ $p1 }
+refusal-words-channel = kanaal { $p0 } van { $p1 }
+refusal-words-channel-gone = een kanaal dat niet in het project staat
+refusal-words-page = pagina { $p0 }
+refusal-words-page-gone = een pagina die niet in het project staat
+refusal-words-symbol = het symbool van { $p0 }
+refusal-words-symbol-any = een symbool
+refusal-words-point = x { $p0 }, y { $p1 } mm op { $p2 }
+refusal-words-junction = de aftakking op { $p0 }
+refusal-words-junction-gone = een aftakking die niet in het project staat
+refusal-words-ip = onderbrekingspunt { $p0 }
+refusal-words-position = x { $p0 }, y { $p1 } mm
+refusal-words-wire = draad { $p0 }
+refusal-words-wire-on = een draad op { $p0 }
+refusal-words-wire-any = een draad
+refusal-words-cp-index = { $p0 } aansluitpunt { $p1 }
+refusal-geometry-off-grid = { $p0 } op { $p1 } ligt niet op het tekenraster
+refusal-geometry-branch-point = het aftakpunt
+refusal-geometry-outline-corner = de hoek van de omtrek
+refusal-geometry-box-cp = het aansluitpunt van de box
+refusal-geometry-position = de positie
+refusal-geometry-out-of-range = { $p0 } op { $p1 } ligt buiten het tekenbereik; kies een punt dichter bij de oorsprong van de pagina
+refusal-geometry-onto-grid = { $p0 }; kies een punt op het raster
+refusal-geometry-wire-start = het begin van de draad
+refusal-geometry-wire-end = het einde van de draad
+refusal-geometry-wire-corner = de hoek van de draad
+refusal-geometry-route-out-of-range = { $p0 } op { $p1 } ligt buiten het tekenbereik; teken de draad dichter bij de oorsprong van de pagina
+refusal-geometry-ip-pin = het aansluitpunt van { $p0 }
+refusal-geometry-pin = aansluitpunt { $p0 }
+refusal-geometry-misses = mist { $p0 } met minder dan 0,1 mm
+refusal-geometry-does-not-meet = sluit niet aan op { $p0 } op { $p1 }
+refusal-geometry-end-off-cp = { $p0 } op { $p1 } { $p2 }; laat de draad op zijn aansluitpunt eindigen
+refusal-geometry-corner-onto-grid = { $p0 }; zet de hoek op het raster
+refusal-geometry-duplicate-corner = { $p0 } op { $p1 } herhaalt de hoek ervoor; verwijder de dubbele hoek
+refusal-geometry-overlap = de draad loopt over zichzelf terug op { $p0 }: zijn stuk van { $p1 } tot { $p2 } ligt op zijn stuk van { $p3 } tot { $p4 }; verwijder het stuk waarover hij terugloopt
+# assembly.attach, valve.add and device.link.
+refusal-assembly-position-twice = positie { $p0 } is aan twee kinderen gegeven ({ $p1 } en { $p2 })
+refusal-assembly-cycle = apparaat { $p0 } is een voorouder van de ouder { $p1 }; de samenstellingsgraaf is acyclisch (EW-INV-009)
+refusal-assembly-position-held = positie { $p0 } van { $p1 } is bezet door apparaat { $p2 }; verplaats dat eerst (er wordt niet opgeschoven) en koppel daarna { $p3 }
+refusal-valve-position-held = positie { $p0 } van { $p1 } is bezet door { $p2 }; kies een vrije positie (er wordt niet opgeschoven)
+refusal-device-link-holder = { $p0 } kan { $p1 } niet aandrijven, want { $p1 } bevat { $p0 }
+refusal-device-link-twice = apparaat { $p0 } is al met deze soort aan { $p1 } gekoppeld (koppeling { $p2 })
+# box.reshape.
+refusal-box-reshape-no-box = de representatie heeft geen box; alleen een black box die met een omtrek is getekend kan van vorm veranderen
+refusal-box-reshape-out-of-range = de box ligt buiten het tekenbereik; geef hem een vorm dichter bij de oorsprong van de pagina
+refusal-box-reshape-cp-connected = aansluitpunt { $p0 } van de box is op deze pagina verbonden en de nieuwe aansluitpunten laten het weg; houd het in `cps`
+# bus.logical_net.create and bus.physical_net.create.
+refusal-bus-logical-net-exists = logisch net { $p0 } bestaat al; namen zijn uniek
+refusal-bus-physical-net-exists = fysiek net { $p0 } bestaat al; namen zijn uniek
+# The project settings: project.checks.set, project.frames.set, project.drawing.set and project.company.set.
+refusal-settings-member-not-object = het instellingenlid `{ $p0 }` is geen object (een nieuwer of beschadigd formaat); het blijft zoals het is
+refusal-drawing-member-not-object = het lid `{ $p0 }` van de projectinstellingen is geen object (een nieuwer of beschadigd formaat); het blijft zoals het is
+refusal-company-no-party = het project heeft geen paneelbouwer om te markeren; geef de `name` van het bedrijf om hem aan te maken
+refusal-company-member-not-object = het lid `{ $p0 }` van de projectregel is geen object (een nieuwer of beschadigd formaat); het blijft zoals het is
+# check.waive.
+refusal-check-waive-twice = vrijstelling { $p0 } dekt de bevinding { $p1 } van { $p2 } al
+# connection.draw, connection.draw_many and connection.delete.
+refusal-connection-no-page = verbinding { $p0 } heeft geen pagina, dus er kan geen aftakking op worden geplaatst; geef haar eerst een pagina
+refusal-connection-same-end = beide uiteinden zijn hetzelfde eindpunt (CI-01); kies twee verschillende uiteinden
+refusal-connection-same-connection = beide uiteinden liggen op dezelfde verbinding; kies twee verschillende verbindingen
+refusal-connection-fluid-line-on = de fluïdumleiding op { $p0 }
+refusal-connection-fluid-line-any = een fluïdumleiding
+refusal-connection-not-fluid-port = { $p0 } is geen fluïdumpoort
+refusal-connection-junction-joins-wires = { $p0 } verbindt draden
+refusal-connection-no-fluid-line = { $p0 } is geen fluïdumleiding
+refusal-connection-fluid-ports-only = een fluïdumleiding verbindt alleen fluïdumpoorten; { $p0 }
+refusal-connection-fluid-media = een fluïdumleiding verbindt geen hydraulische poort met een pneumatische of vacuümpoort: { $p0 }, { $p1 }
+refusal-connection-fluid-port = { $p0 } is een fluïdumpoort; alleen een fluïdumleiding sluit erop aan
+refusal-connection-fluid-junction = { $p0 } verbindt fluïdumleidingen; alleen een fluïdumleiding sluit erop aan
+refusal-connection-fluid-branch = alleen een fluïdumleiding takt af van { $p0 }
+refusal-connection-draw-many-entry = regel { $p0 }: { $p1 }
+refusal-connection-delete-none = geen verbinding opgegeven; noem ten minste één verbinding om te verwijderen
+# junction.edit.
+refusal-junction-sequence = `sequence` is geen permutatie van de verbindingen die bij de aftakking eindigen; noem elk ervan precies één keer
+# ip.place, ip.continue and the star of an interruption point.
+refusal-ip-star-external = een extern punt vormt nooit een paar en krijgt dus geen ster; verwijder de ster
+refusal-ip-star-not-source = een sterbron is een bronpunt; zet de richting op bron, of verwijder de ster
+refusal-ip-continue-not-ip = de functie is geen onderbrekingspunt; kies een onderbrekingspuntfunctie
+refusal-ip-continue-external = een extern aansluitpunt vormt nooit een paar; het kan niet worden voortgezet
+refusal-ip-continue-same-page = de doelpagina is de pagina van het onderbrekingspunt; zet het op een andere pagina voort
+refusal-ip-continue-no-rep = het onderbrekingspunt heeft geen representatie om voort te zetten
+# potential.define and bond.create.
+refusal-potential-define-on-connection = een potentiaal wordt gedefinieerd op een aansluitpunt of een aftakking, niet op een verbinding; noem een van beide
+refusal-potential-define-twice = dit punt definieert de potentiaal { $p0 } al; wijzig in plaats daarvan die definitie
+refusal-bond-on-connection = een potentiaalverbinding eindigt op een aansluitpunt of een aftakking, niet op een verbinding; noem een van beide
+refusal-bond-same-end = beide uiteinden van de potentiaalverbinding zijn hetzelfde punt; kies twee verschillende uiteinden
+# connection.draw_to_ip.
+refusal-draw-to-ip-cp-count = de functiedefinitie van het onderbrekingspunt heeft { $p0 } aansluitpunten; een draad eindigt in een onderbrekingspunt met precies één
+refusal-draw-to-ip-fluid = een fluïdumleiding verbindt alleen fluïdumpoorten; een onderbrekingspunt is geen fluïdumpoort
+refusal-connection-start-on-other-page = het begin van de draad is getekend op { $p0 }, niet op { $p1 }; begin de draad op { $p1 }
+refusal-draw-to-ip-start-on-no-page = het begin van de draad is op geen enkele pagina getekend, niet op { $p0 }; begin de draad daar
+refusal-draw-to-ip-symbol-cp = het onderbrekingspuntsymbool tekent zijn aansluitpunt niet; kies een onderbrekingspuntsymbool dat het tekent
+# ip.arrange, and a move that takes a route along.
+refusal-ip-arrange-not-ip = { $p0 } is geen onderbrekingspunt; schik alleen onderbrekingspunten
+refusal-ip-arrange-drawn-times = { $p0 } is { $p1 } keer getekend; een geschikt onderbrekingspunt is precies één keer getekend
+refusal-ip-arrange-pages = de onderbrekingspunten liggen op verschillende pagina's; schik de onderbrekingspunten van één pagina
+refusal-ip-arrange-out-of-range = de schikking zet een aansluitpunt buiten het tekenbereik; schik onderbrekingspunten dichter bij de oorsprong van de pagina
+refusal-ip-arrange-too-far = de schikking verplaatst een aansluitpunt te ver
+refusal-move-what-arrangement = de schikking
+refusal-move-what-reshape = de vormwijziging
+refusal-move-route-out-of-range = { $p0 } verplaatst het verloop van { $p1 } buiten het tekenbereik; verplaats minder ver
+# device.place, box.black and a device from a part.
+refusal-device-place-no-cp = het symbool heeft geen aansluitpunt { $p0 }; kies een van zijn aansluitpunten
+refusal-device-place-ip = een onderbrekingspunt wordt geplaatst met `ip.place`; kies een andere functie
+refusal-device-place-out-of-range = de positie zet een aansluitpunt van het symbool buiten het tekenbereik; plaats het dichter bij de oorsprong van de pagina
+refusal-device-place-lost-cp = het symbool is een aansluitpunt kwijtgeraakt
+refusal-device-place-fndef-missing = de functiedefinitie van het symbool is niet in het project opgenomen; geef `fndef` op of neem haar op
+refusal-rep-type = representatietype { $p0 } is niet toegestaan op een pagina van het type { $p1 } ({ $p2 }); toegestaan: { $p3 }
+refusal-rep-type-none = geen (dit paginatype neemt geen representaties)
+refusal-box-black-cp-out-of-range = aansluitpunt { $p0 } van de box ligt buiten het tekenbereik; plaats de box dichter bij de oorsprong van de pagina
+refusal-box-black-not-black-box = de functie is geen black box; plaats een andere representatie ervan met `device.place`
+refusal-box-black-out-of-range = de positie zet een aansluitpunt van de black box buiten het tekenbereik; plaats hem dichter bij de oorsprong van de pagina
+refusal-from-part-no-template = artikel { $p0 } heeft geen functiesjabloon; plaats een symbool met een `new_device`-doel
+refusal-from-part-no-entry = artikel { $p0 } heeft geen sjabloonregel { $p1 }; het heeft er { $p2 } (0 tot en met { $p3 })
+refusal-part-entry-fndef-missing = de functiedefinitie van sjabloonregel { $p0 } van artikel { $p1 } is niet in het project opgenomen; neem haar eerst op (`library.embed`)
+refusal-from-part-mains = het functiesjabloon van artikel { $p0 } heeft { $p1 } hoofdregels; een apparaat dat ervan wordt gemaakt heeft er precies één nodig
+refusal-from-part-black-box = sjabloonregel { $p0 } van artikel { $p1 } is een black box; plaats hem met `box.black`
+refusal-from-part-other-fndef = het symbool tekent een andere functiedefinitie dan sjabloonregel { $p0 } van artikel { $p1 }; kies een symbool van de functiedefinitie van die regel
+refusal-from-part-not-black-box = sjabloonregel { $p0 } van artikel { $p1 } is geen black box; plaats hem met `device.place`
+refusal-new-terminal-part = artikel { $p0 } is geen klem van de functiedefinitie van het symbool; kies een symbool van de hoofdfunctie van het artikel of een ander artikel
+# rep.move and rep.transform.
+refusal-rep-move-surface-view = het paneelaanzicht op { $p0 } beweegt niet mee met een selectie; laat het buiten de selectie, of wijzig het met Paneelaanzicht instellen
+refusal-rep-move-unknown-item = een pagina-element op { $p0 } is van een soort die deze versie laat zoals hij is, dus het kan niet worden verplaatst; laat het buiten de selectie
+refusal-rep-move-item-out-of-range = de verplaatsing brengt { $p0 } op { $p1 } buiten het tekenbereik; verplaats minder ver
+refusal-rep-move-item-graphic = de afbeelding
+refusal-rep-move-item-text = de tekst
+refusal-rep-move-item-wire-marker = de adermarkering
+refusal-rep-move-item-image = het beeld
+refusal-rep-move-box-out-of-range = de verplaatsing brengt een structuurkader op { $p0 } buiten het tekenbereik; verplaats minder ver
+refusal-rep-move-steps-off-grid = { $p0 }, dus het kan niet in rasterstappen worden verplaatst; zet het eerst op het raster
+refusal-rep-move-steps-out-of-range = de verplaatsing brengt { $p0 } buiten het tekenbereik; verplaats minder rasterstappen
+refusal-rep-move-steps-cp-out-of-range = de verplaatsing brengt een aansluitpunt van { $p0 } buiten het tekenbereik; verplaats minder rasterstappen
+refusal-rep-move-route-out-of-range = de verplaatsing brengt het verloop van { $p0 } buiten het tekenbereik; verplaats minder ver
+refusal-rep-move-nothing = geef ten minste één representatie of element om te verplaatsen
+refusal-rep-move-out-of-range = de verplaatsing brengt { $p0 } buiten het tekenbereik; verplaats minder ver
+refusal-rep-move-cp-out-of-range = de verplaatsing brengt een aansluitpunt van { $p0 } buiten het tekenbereik; verplaats minder ver
+refusal-rep-move-end-behind = de verplaatsing zou één uiteinde van { $p0 } op de oude pagina achterlaten; verplaats beide uiteinden samen
+refusal-rep-transform-nothing = geef ten minste één representatie om te transformeren
+refusal-rep-transform-rotate = `rotate` telt kwartslagen en moet 0 tot en met 3 zijn
+refusal-rep-transform-cp-out-of-range = de transformatie zet een aansluitpunt van { $p0 } buiten het tekenbereik
+refusal-rep-transform-route-out-of-range = de transformatie verplaatst het verloop van { $p0 } buiten het tekenbereik; draai het dichter bij de oorsprong van de pagina
+# The terminals of a strip (device.place, terminal.add).
+refusal-terminal-not-strip = het apparaat is geen klemmenstrook; kies een apparaat met het aspect klemmenstrook
+refusal-terminal-designation-used = aanduiding { $p0 } wordt al gebruikt in de klemmenstrook; kies een andere
+refusal-terminal-seq-used = volgnummer { $p0 } wordt al gebruikt in de klemmenstrook; kies een ander
+# edit.delete.
+refusal-edit-delete-plate = De plaat hoort bij haar kast; verwijder de kast van { $p0 }.
+refusal-edit-delete-the-plate = de plaat
+refusal-edit-delete-the-enclosure = de kast
+refusal-edit-delete-holds-one = bevat 1 plaatsing
+refusal-edit-delete-holds = bevat { $p0 } plaatsingen
+refusal-edit-delete-carrier-holds = { $p0 } { $p1 }; gebruik Drager verwijderen… om ze te verwijderen of te verplaatsen.
+refusal-edit-delete-plate-holds = De plaat van { $p0 } { $p1 }; verwijder ze eerst.
+refusal-edit-delete-carries-enclosure = { $p0 } draagt een kast; verwijder eerst de kast.
+# rep.exchange_symbol.
+refusal-exchange-no-function = de representatie tekent geen functie; er is niets te behouden
+refusal-exchange-ip = een onderbrekingspunt houdt zijn onderbrekingspuntsymbool; zijn symbool kan niet worden gewisseld
+refusal-exchange-no-counterpart = aansluitpunt { $p0 } van het nieuwe symbool heeft geen tegenhanger met dezelfde aanduiding en zou functieaansluitpunt { $p1 } tekenen; geef `pin_map` op
+refusal-exchange-out-of-range = het nieuwe symbool zet een aansluitpunt buiten het tekenbereik; plaats de representatie dichter bij de oorsprong van de pagina
+refusal-exchange-cp-connected = functieaansluitpunt { $p0 } is op deze pagina verbonden en het nieuwe symbool tekent het niet; kies een symbool dat het tekent of geef `pin_map` op
+refusal-exchange-too-far = de wissel verplaatst een aansluitpunt te ver
+refusal-exchange-route-out-of-range = de wissel verplaatst het verloop van { $p0 } buiten het tekenbereik; verplaats de representatie eerst dichter bij de oorsprong van de pagina
+# fields.set.
+refusal-fields-ip-star = { $p0 }: { $p1 }
+refusal-fields-not-fluid-line = { $p0 } is geen fluïdumleiding
+refusal-fields-counter-used = teller { $p0 } met letter { $p1 } wordt op { $p2 } al door een ander apparaat gebruikt; gebruik { $p3 }, de volgende vrije teller
+# valve.set_occupancy and fluid.port.close.
+refusal-valve-no-positions = { $p0 } heeft geen ventielplaatsen
+refusal-valve-no-position = { $p0 } heeft { $p1 } ventielplaatsen; plaats { $p2 } bestaat niet
+refusal-valve-position-holds = plaats { $p0 } van { $p1 } bevat { $p2 }; wijs het nieuwe artikel in plaats daarvan toe aan { $p2 }
+refusal-valve-position-empty = plaats { $p0 } van { $p1 } bevat geen ventiel; noem het ventielartikel
+refusal-fluid-port-has-line = { $p0 } heeft een fluïdumleiding; verwijder de leiding voordat u de poort afsluit
+# The panel layout: layout.place, layout.move, layout.place_assembly, layout.auto_fill, the carriers, spaces and enclosures.
+refusal-words-rail = rail { $p0 }
+refusal-words-duct = kabelgoot { $p0 }
+refusal-words-rail-label = Rail { $p0 }
+refusal-words-duct-label = Kabelgoot { $p0 }
+refusal-words-device-gone-start = Een apparaat dat niet in het project staat
+refusal-layout-the-rail = de rail
+refusal-layout-the-assembly = de samenstelling { $p0 }
+refusal-layout-the-assembly-start = De samenstelling { $p0 }
+refusal-layout-a-placement = een plaatsing
+refusal-layout-mount-screw = geschroefd
+refusal-layout-mount-busbar-adapter = stroomrailadapter
+refusal-layout-mount-door-cutout = deuruitsparing
+refusal-layout-mount-on-parent = op zijn ouder gemonteerd
+refusal-layout-mount-none = niet gemonteerd
+refusal-layout-rail-path = het pad van de rail bestaat niet uit twee punten op één horizontale of verticale lijn; bewerk eerst de rail
+refusal-layout-carrier-unknown = de drager is van een soort die deze versie niet kent; hij draagt geen plaatsingen
+refusal-layout-part-no-surface = Artikel { $p0 } wordt niet op een montagevlak gemonteerd; kies een artikel dat erop wordt gemonteerd.
+refusal-layout-does-not-fit = { $p0 } ({ $p1 }) past niet op een rail { $p2 }
+refusal-layout-pose-rail-axis = een stand op een rail ligt op haar as: t = (s, 0, 0)
+refusal-layout-pose-rail-turn = een stand op een rail draait alleen 0° of 180° om de normaal van het vlak
+refusal-layout-pose-off-rail = de stand ligt naast de rail: s = { $p0 } mm ligt buiten [0, { $p1 } mm]
+refusal-layout-pose-surface-plane = een stand op een montagevlak ligt in het vlak: t = (u, v, 0)
+refusal-layout-pose-surface-turn = een stand op een montagevlak draait alleen in stappen van 90° om de normaal van het vlak
+refusal-layout-pose-duct = een kabelgoot draagt geen plaatsingen
+refusal-layout-space-named-exists = locatie { $p0 } heeft al layoutruimte "{ $p1 }"; een locatie heeft één layoutruimte
+refusal-layout-space-exists = de layoutruimte van locatie { $p0 } bestaat al; een locatie heeft één layoutruimte
+refusal-layout-space-not-location = knooppunt { $p0 } is geen locatie; een layoutruimte deelt een locatie in
+refusal-layout-space-has-enclosure = de layoutruimte heeft al kast { $p0 }; een layoutruimte heeft één kast. Kies een andere layoutruimte, of bewerk { $p0 }
+refusal-layout-no-enclosure-part = { $p0 }: het apparaat heeft geen kastartikel
+refusal-layout-carrier-holds = de drager bevat { $p0 } plaatsing(en); geef `then`: `remove_placements` of `rehome_to_surface`
+refusal-layout-rehome-rail-only = alleen de plaatsingen van een rail (twee punten op één horizontale of verticale lijn) verhuizen naar haar montagevlak
+refusal-layout-rehome-off-rail = de plaatsing van { $p0 } heeft een stand naast de rail; verplaats of verwijder haar eerst
+refusal-layout-snap-no-gap = Geen opening op { $p0 } is breed genoeg voor { $p1 } ({ $p2 } mm).
+refusal-layout-snap-unlock = Ontgrendel { $p0 } om het op te schuiven of te verwisselen.
+refusal-layout-snap-swap-locked = Verwisselen zou { $p0 } verplaatsen, dat vergrendeld is.
+refusal-layout-snap-push-locked = Opschuiven zou { $p0 } verplaatsen, dat vergrendeld is.
+refusal-layout-snap-swap-past-end = Verwisselen zou { $p0 } { $p1 } mm voorbij het einde van de rail verplaatsen.
+refusal-layout-snap-push-past-end = Opschuiven zou { $p0 } { $p1 } mm voorbij het einde van de rail verplaatsen.
+refusal-layout-snap-item-past-end = { $p0 } zou { $p1 } mm voorbij het einde van de rail komen.
+refusal-layout-snap-swap-across = Verwisselen werkt binnen één rail; gebruik opschuiven of vrij om het daar te plaatsen.
+refusal-layout-snap-swap-no-target = Zet het neer op een plaatsing om ermee te verwisselen.
+refusal-layout-modes-on-rail = Opschuiven en verwisselen werken op een rail.
+refusal-layout-already-placed = { $p0 } is al geplaatst met dit artikel en deze functie; verplaats in plaats daarvan zijn plaatsing
+refusal-layout-assembly-on-rail = Een samenstelling wordt op een rail geplaatst.
+refusal-layout-assembly-swap = Verwisselen werkt met één plaatsing; plaats een samenstelling in de modus vrij of opschuiven.
+refusal-layout-not-assembly = { $p0 } hoort niet bij een samenstelling; plaats het afzonderlijk.
+refusal-layout-assembly-placed = Elk lid van { $p0 } dat wordt gemonteerd is al geplaatst.
+refusal-layout-auto-fill-rail = Automatisch vullen werkt op een rail.
+refusal-layout-auto-fill-no-device = geen apparaat om te plaatsen.
+refusal-layout-auto-fill-nothing = Er is niets geplaatst op { $p0 }: { $p1 }
+refusal-layout-no-enclosure-section = { $p0 } heeft geen kastgedeelte; kies een kastartikel.
+refusal-layout-location-has-enclosure = locatie +{ $p0 } heeft al kast { $p1 }; een locatie heeft één kast. Kies een andere locatie, of bewerk { $p1 }
+refusal-layout-plate-part-missing = het kastartikel noemt een plaatartikel dat het project niet bevat; voeg het toe aan de kopieën
+refusal-layout-enclosure-turn = de stand van een kast is in deze versie een verschuiving; geef haar zonder draaiing
+# page.create, page.delete, page.renumber and page.surface_view.set.
+refusal-page-create-outside-range = folio { $p0 } ligt buiten het foliobereik { $p2 } tot en met { $p3 } van sectie { $p1 }; kies een folio in het bereik
+refusal-page-create-divider = folio { $p0 } is de scheidingspagina van sectie { $p1 }; kies een andere folio
+refusal-page-create-generated = folio { $p0 } is een pagina die het rapportblok op folio { $p1 } genereert; kies een andere folio
+refusal-page-create-report = rapportpagina's worden gegenereerd uit rapportblokken (EW-INV-012); maak een rapportblok
+refusal-page-create-section = `section` verschilt van de sectie van `after`; laat het weg of geef een expliciet `number`
+refusal-page-create-no-folio = geef een expliciet folio-`number` of de pagina waarna moet worden ingevoegd (`after`)
+refusal-page-create-exists = folio { $p0 } bestaat al in deze sectie; kies een vrije folio
+refusal-page-delete-none = geen pagina's opgegeven; noem ten minste één pagina
+refusal-page-renumber-step = `step` moet ten minste 1 zijn
+refusal-page-renumber-no-pages = geen pagina's in het bereik; noem pagina's, een sectie of het project met pagina's
+refusal-page-renumber-out-of-range = nieuw folionummer { $p0 } valt buiten het bereik; kies een andere `start` of `step`
+refusal-page-renumber-used = folio { $p0 } wordt al gebruikt door een pagina buiten de hernummerde pagina's; kies een andere `start` of neem die pagina mee
+refusal-page-renumber-label-used = subpaginalabel { $p0 } wordt al gebruikt door een andere pagina van de sectie; kies een andere `start`
+refusal-page-surface-view-not-layout = folio { $p0 } is geen paneellayoutpagina; een paneelaanzicht hoort op een paneellayoutpagina
+# library.embed and library.update.
+refusal-library-embed-held = het project bevat deze { $p0 } al; neem een andere versie ervan met bijwerken vanuit de bibliotheek
+refusal-library-update-cp-twice = twee bijgewerkte kopieën koppelen aansluitpunt { $p0 } van functie { $p1 } verschillend ({ $p2 } en { $p3 })
+refusal-library-update-blocked = de bijwerking laat verbonden aansluitpunten zonder aansluitpunt; koppel ze in `cp_maps` (doc 07 §4.5): { $p0 }
+refusal-library-update-missing = de nieuwe versies noemen items die het project niet bevat; geef ze in `embed` (FT-640): { $p0 }
+refusal-library-update-overrides = de koppeling verplaatst twee aansluitpuntaanpassingen van functie { $p0 } naar aansluitpunt { $p1 }; wijzig eerst de aanpassingen
+# merge.resolve.
+refusal-merge-project-record = het projectrecord kan niet worden verwijderd; neem de andere kant
+refusal-merge-kind-kept = die van hen kan niet worden geschreven: deze versie laat records van de soort "{ $p0 }" ongewijzigd; neem die van ons
+refusal-merge-invalid-record = die van hen geeft geen geldig record ({ $p0 }); neem die van ons, of bewerk het record
+refusal-merge-record-kept = het record is van een soort die deze versie ongewijzigd laat
+refusal-merge-file-side = het conflict van een bestand bevat een kant die deze versie niet kent; open het project in een nieuwere versie
+refusal-merge-file-line = regel { $p0 } van het bestand dat de samenvoeging niet kon lezen is geen record dat deze versie leest; neem de andere kant, of herstel het bestand
+# part.edit.
+refusal-part-edit-unchanged = het artikel is ongewijzigd
+# The PLC configuration: plc.config_project.create, plc.bind_channel, plc.set_start, plc.set_module_part.
+refusal-plc-project-exists = configuratieproject { $p0 } bestaat al ({ $p1 }); namen zijn uniek
+refusal-plc-channel-not-on-module = { $p0 } zit niet op module { $p1 } of een van haar kinderen; een kanaal bindt een pin van zijn module of de spoel van een ventiel erop
+refusal-plc-channel-no-cp = { $p0 } heeft geen aansluitpunt met nummer { $p1 } ({ $p2 })
+refusal-plc-address-not-module = { $p0 } is geen PLC-module, en een startadres hoort bij een module; maak het eerst een module
+refusal-plc-not-module = { $p0 } is geen PLC-module; maak het eerst een module
+refusal-channel-identity-taken = kanaal { $p0 } van module { $p1 } kan niet worden gemaakt: kanaal { $p2 } van module { $p3 } heeft zijn identiteit al; verwijder eerst dat kanaal
+# revision.create and revision.withdraw.
+refusal-revision-label-used = revisie { $p0 } heeft het label { $p1 } al; een label noemt één revisie
+refusal-revision-open = revisie { $p0 } ({ $p1 }) is open; ten hoogste één revisie verzamelt de huidige wijzigingen
+refusal-revision-released = revisie { $p0 } ({ $p1 }) heeft een vrijgaverecord; een historische vrijgegeven revisie kan niet volgen op een vrijgave door ElektraWatt: een vrijgave gaat via revision.release en zijn poort
+refusal-revision-withdrawn = revisie { $p0 } ({ $p1 }) is al ingetrokken door het intrekkingsrecord { $p2 }
+# The structure: structure.create_node, section.create, report_block.create and external_ref.create.
+refusal-structure-product-aspect = het productaspect is de apparatenboom, geen structuurknooppunt; kies een ander aspect
+refusal-structure-parent-aspect = de ouder hoort bij een ander aspect (EW-INV-011); kies een ouder van hetzelfde aspect
+refusal-structure-code-used = een zuster met code `{ $p0 }` bestaat al in dit aspect; kies een andere code
+refusal-section-range-order = `folio_range` begint na zijn einde; geef eerste <= laatste
+refusal-section-number-used = sectienummer { $p0 } bestaat al; kies een ander nummer
+refusal-section-range-overlap = foliobereik { $p0 }-{ $p1 } overlapt sectie { $p2 } ({ $p3 }-{ $p4 }); kies een vrij bereik
+refusal-report-block-form-version = het project bevat een andere versie van dit formulier; neem de nieuwe met bijwerken vanuit de bibliotheek
+refusal-report-block-first-folio = een paginagericht rapportblok heeft `first_folio` nodig (EW-INV-014); geef er een of neem het op
+refusal-external-ref-not-location = knooppunt { $p0 } is geen locatie; een externe verwijzing staat op een locatieknooppunt
+# project.supply.set.
+refusal-supply-none = het project heeft geen voeding (een basis- of macroproject); er is niets in te stellen
+# terminal.add, terminal.insert, terminal.move and conductor.add.
+refusal-terminal-add-none = geef ten minste één klem om toe te voegen
+refusal-terminal-insert-splits-group = invoegen vóór klem { $p0 } zou brugroep { $p1 } splitsen (klemmen { $p2 }); voeg in vóór klem { $p3 } of na klem { $p4 }, of verwijder eerst de brug van de groep daar
+refusal-terminal-move-remedy-outside = zet de klemmen vóór klem { $p0 } of na klem { $p1 }, of verwijder eerst de brug van de groep daar
+refusal-terminal-move-remedy-remove = haal klem { $p0 } eerst uit de groep (verwijder zijn bruggen), of verplaats de hele groep
+refusal-terminal-move-splits-group = de verplaatsing zou brugroep { $p0 } splitsen (klemmen { $p1 }); { $p2 }
+refusal-conductor-not-cable = het apparaat is geen kabel; kies een apparaat met het aspect kabel
+refusal-conductor-add-none = geef ten minste één ader om toe te voegen
+refusal-conductor-core-used = ader { $p0 } wordt al gebruikt in de kabel; kies een andere
+# The normalisers: a split connection, a dissolving junction and a valve's functions.
+refusal-split-not-on-route = het splitspunt ligt niet op het verloop van verbinding { $p0 }; kies een punt op de draad
+refusal-split-second-not-on-route = het tweede splitspunt ligt niet op het verloop van verbinding { $p0 } na het eerste
+refusal-junction-merge-numbers = { $p0 } zou een draad { $p1 } en een draad { $p2 } samenvoegen, die verschillende nummers dragen; wis een van de nummers of verwijder de draden afzonderlijk
+refusal-junction-numbered = met nummer "{ $p0 }"
+refusal-junction-numbered-assigned = met nummer "{ $p0 }" en toegewezen nummer { $p1 }
+refusal-junction-assigned = met toegewezen nummer { $p0 }
+refusal-junction-unnumbered = zonder nummer
+refusal-junction-number-newer = met een nummer van een nieuwer formaat
+refusal-valve-functions-no-id = { $p0 } kan de functies van artikel { $p1 } niet aannemen: er is geen vrije functie-ID meer; vervang het apparaat
+# The imports and the external changes: import.apply and external.apply.
+refusal-import-unknown-kind = een record van een onbekende soort ({ $p0 })
+refusal-import-removed = een normalisator heeft het geïmporteerde { $p0 } { $p1 } verwijderd
+refusal-external-image = een afbeelding van de wijziging is niet leesbaar ({ $p0 })
+# FT-1337: end of the command refusals.
 error-command-field = { $p0 }: { $p1 }: { $p2 }
 error-param-item = { $p0 }, item { $p1 }
 error-param-whole = De parameters

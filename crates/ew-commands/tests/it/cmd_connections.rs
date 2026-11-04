@@ -317,7 +317,7 @@ fn draw_many_refuses_no_entry_and_a_bad_entry_whole() {
         connections: vec![bridge(FN_T1, FN_T2), bridge(FN_T3, FN_T3)],
     });
     assert!(
-        matches!(&r, Err(CmdError::Rejected { source, reason })
+        matches!(&r, Err(CmdError::Rejected { source, reason, .. })
             if source == "connection.draw_many" && reason.starts_with("entry 1: ")),
         "{r:?}"
     );

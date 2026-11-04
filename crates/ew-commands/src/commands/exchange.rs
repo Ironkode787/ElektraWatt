@@ -23,6 +23,7 @@ use crate::error::CmdError;
 use crate::geometry::{follow_ends, rep_cps_checked, sub};
 use crate::meta::CommandMeta;
 use crate::proxy::UuidS;
+use crate::text::text;
 use crate::tx::TxBuilder;
 
 /// One entry of an explicit CP map of [`ExchangeSymbol`]: a CP of the new symbol and the function CP it draws.
@@ -132,13 +133,11 @@ impl Command for ExchangeSymbol {
         let old = tx.require::<Representation>(self.rep)?;
         let symbol = tx.require::<LibCopy<SymbolDef>>(self.symbol)?;
         let Some(&function_id) = old.functions.first() else {
-            return tx.reject("the representation draws no function; there is nothing to keep");
+            return tx.reject(text!("refusal-exchange-no-function"));
         };
         let function = tx.require::<Function>(function_id)?;
         if matches!(function.kind, FunctionKind::Ip(_)) {
-            return tx.reject(
-                "an interruption point keeps its interruption-point symbol; its symbol cannot be exchanged",
-            );
+            return tx.reject(text!("refusal-exchange-ip"));
         }
         let page = tx.require::<Page>(old.page)?;
         check_rep_type(tx, &page, &symbol.item.rep_type)?;
@@ -233,9 +232,10 @@ impl Command for ExchangeSymbol {
                         }));
                     }
                     Err((symbol_cp, fn_cp)) => {
-                        return tx.reject(format!(
-                            "connection point {symbol_cp} of the new symbol has no counterpart by designation \
-                             and would draw function CP {fn_cp}; give `pin_map`"
+                        return tx.reject(text!(
+                            "refusal-exchange-no-counterpart",
+                            symbol_cp.to_string(),
+                            fn_cp.to_string()
                         ));
                     }
                 }
@@ -258,10 +258,7 @@ impl Command for ExchangeSymbol {
         next.text_slots = KeyedList::from_vec(kept)
             .map_err(|e| CmdError::internal(format!("rep.exchange_symbol: text slots ({e})")))?;
         let (Ok(before), Ok(after)) = (rep_cps_checked(tx, &old), rep_cps_checked(tx, &next)) else {
-            return tx.reject(
-                "the new symbol puts a connection point outside the drawable range; place the representation \
-                 nearer the page origin",
-            );
+            return tx.reject(text!("refusal-exchange-out-of-range"));
         };
         // Function CPs drawn before and not now: refused when connected on this page, else a notice.
         let now: BTreeSet<(Id<Function>, u16)> = after.iter().map(|c| (c.function, c.idx)).collect();
@@ -278,11 +275,7 @@ impl Command for ExchangeSymbol {
                 })
             });
             if connected {
-                return tx.reject(format!(
-                    "function CP {} is connected on this page and the new symbol does not draw it; pick a \
-                     symbol that draws it or give `pin_map`",
-                    b.idx
-                ));
+                return tx.reject(text!("refusal-exchange-cp-connected", b.idx.to_string()));
             }
             notices.push(format!(
                 "function CP {} is no longer drawn by this representation",
@@ -296,7 +289,7 @@ impl Command for ExchangeSymbol {
                 continue;
             };
             let Ok(d) = sub(a.pos, b.pos) else {
-                return tx.reject("the exchange moves a connection point too far");
+                return tx.reject(text!("refusal-exchange-too-far"));
             };
             if d != Pt2::ORIGIN {
                 moves.entry((a.function, a.idx)).or_insert(d);
@@ -323,11 +316,7 @@ impl Command for ExchangeSymbol {
             let mut route = c.route.clone();
             let followed = follow_ends(&mut route, page.grid, da, db);
             if followed.is_err() {
-                return tx.reject(format!(
-                    "the exchange moves the route of {} outside the drawable range; move the representation \
-                     nearer the page origin first",
-                    crate::words::wire(tx, cid)
-                ));
+                return tx.reject(text!("refusal-exchange-route-out-of-range", crate::words::wire(tx, cid)));
             }
             if route != c.route {
                 let mut changed = (*c).clone();

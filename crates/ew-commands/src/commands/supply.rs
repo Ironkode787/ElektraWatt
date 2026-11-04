@@ -12,6 +12,7 @@ use crate::command::{Command, Outcome};
 use crate::commands::fields::set_member;
 use crate::error::CmdError;
 use crate::meta::CommandMeta;
+use crate::text::text;
 use crate::tx::TxBuilder;
 
 /// The member paths of the supply that `project.supply.set` edits (the `SupplySpec` JSON form).
@@ -61,7 +62,7 @@ impl Command for SetProjectSupply {
         let mut project = (*tx.project()).clone();
         let Some(supply) = project.supply.as_ref() else {
             return tx
-                .reject("the project has no supply (a basic or macro project); there is nothing to set");
+                .reject(text!("refusal-supply-none"));
         };
         let mut json = serde_json::to_value(supply)
             .map_err(|e| CmdError::internal(format!("project.supply.set: cannot serialise ({e})")))?;

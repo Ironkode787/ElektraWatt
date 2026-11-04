@@ -1251,8 +1251,11 @@ pub(super) fn command_failed(e: &CmdError, params: &Value) -> Outcome {
                 message,
             ],
         ),
-        // FT-909 (ID-1108): a refusal shows its reason, never the error's Display form ("<source>: <reason>")
-        CmdError::Rejected { reason, .. } => failed(key!("error-command"), &[reason]),
+        // FT-909 (ID-1108): a refusal shows its reason, never the error's Display form ("<source>: <reason>"); FT-1337
+        // (ID-1359 ruling 1): in the window's language
+        CmdError::Rejected { reason, text, .. } => {
+            failed(key!("error-command"), &[&rejected_words(reason, text.as_ref())])
+        }
         // FT-1337 and FT-1363 (ID-1359 ruling 1): every other reason through its own key in the window's language,
         // never the error's Display form (which names the exposure class and the origin, `cmdlog:script.uiscript`).
         other => {
@@ -1261,6 +1264,24 @@ pub(super) fn command_failed(e: &CmdError, params: &Value) -> Outcome {
             failed(key, &args)
         }
     }
+}
+
+/// A command's own refusal in the window's language (FT-1337, ID-1359 ruling 1): its keyed text, an argument that is
+/// itself a text in the same language; a refusal without a key (one of the API's own) as its English `reason`.
+pub(crate) fn rejected_words(reason: &str, text: Option<&ew_api::Text>) -> String {
+    fn words(t: &ew_api::Text) -> String {
+        let args: Vec<String> = t
+            .args()
+            .iter()
+            .map(|a| match a {
+                ew_api::TextArg::Plain(s) => s.clone(),
+                ew_api::TextArg::Text(t) => words(t),
+            })
+            .collect();
+        let args: Vec<&str> = args.iter().map(String::as_str).collect();
+        strings::format(Key::run_time(t.key()), &args)
+    }
+    text.map_or_else(|| reason.to_owned(), words)
 }
 
 /// The keys [`command_error_text`] renders a command error by, one per reason (FT-1337): a test checks each has its
@@ -1300,9 +1321,8 @@ fn command_error_text(e: &CmdError) -> (Key<'static>, Vec<String>) {
         CmdError::Prevented { .. } | CmdError::Model(_) => (key!("error-command"), vec![e.to_string()]),
         CmdError::History { reason } => (key!("error-command-history"), vec![reason.clone()]),
         CmdError::Internal { reason } => (key!("error-command-internal"), vec![reason.clone()]),
-        CmdError::InvalidParams { message, .. } | CmdError::Rejected { reason: message, .. } => {
-            (key!("error-command"), vec![message.clone()])
-        }
+        CmdError::InvalidParams { message, .. } => (key!("error-command"), vec![message.clone()]),
+        CmdError::Rejected { reason, text, .. } => (key!("error-command"), vec![rejected_words(reason, text.as_ref())]),
     }
 }
 

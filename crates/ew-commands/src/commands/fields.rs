@@ -25,6 +25,7 @@ use crate::commands::common::KindName;
 use crate::error::CmdError;
 use crate::meta::{CommandMeta, Cost};
 use crate::proxy::UuidS;
+use crate::text::text;
 use crate::tx::TxBuilder;
 
 /// The settable field paths per kind: dotted JSON member paths of the record's serde form (device aspects
@@ -678,10 +679,7 @@ fn refuse_duplicate_config_name(
         .into_iter()
         .find(|o| o.id != cfg && o.name == c.name)
     {
-        return tx.reject(format!(
-            "configuration project {} exists ({}); names are unique",
-            c.name, other.id
-        ));
+        return tx.reject(text!("refusal-plc-project-exists", c.name.to_string(), other.id.to_string()));
     }
     Ok(())
 }
@@ -894,7 +892,7 @@ fn refuse_no_port(tx: &TxBuilder<'_>, target: AnyId, path: &str) -> Result<(), C
     let f = tx.require::<Function>(target.cast())?;
     if f.bus_port.is_none() {
         // "function -Q1 has no …", or "a function without a device has no …": the fallback is its own subject.
-        let who = crate::words::function(tx, target.cast());
+        let who = crate::words::function(tx, target.cast()).to_string();
         let subject = if who.starts_with("a function ") {
             who
         } else {
@@ -1031,9 +1029,10 @@ fn refuse_bad_stars(tx: &TxBuilder<'_>, edits: &[SetFields]) -> Result<(), CmdEr
                     ip.external.is_some(),
                 )
             {
-                return tx.reject(format!(
-                    "{}: {problem}",
-                    crate::words::interruption_point(tx, t.cast())
+                return tx.reject(text!(
+                    "refusal-fields-ip-star",
+                    crate::words::interruption_point(tx, t.cast()),
+                    problem
                 ));
             }
         }
@@ -1047,7 +1046,7 @@ fn refuse_bad_stars(tx: &TxBuilder<'_>, edits: &[SetFields]) -> Result<(), CmdEr
 fn set_line_kind(tx: &mut TxBuilder<'_>, id: ew_ids::Id<Connection>, value: &Value) -> Result<(), CmdError> {
     let c = tx.require::<Connection>(id)?;
     if !matches!(c.kind, ew_schema::ConnectionKind::Fluid(_)) {
-        return tx.reject(format!("{} is not a fluid line", crate::words::wire(tx, id)));
+        return tx.reject(text!("refusal-fields-not-fluid-line", crate::words::wire(tx, id)));
     }
     let kind = match serde_json::from_value::<ew_schema::LineKind>(value.clone()) {
         Ok(ew_schema::LineKind::Unknown(_)) | Err(_) => {
@@ -1137,11 +1136,12 @@ fn refuse_tag_collision(tx: &TxBuilder<'_>, device: ew_ids::Id<Device>) -> Resul
         return Ok(());
     }
     let free = next_free_counter(tx, &dev.tag.letter, scope, Some(device));
-    tx.reject(format!(
-        "counter {counter} with letter {} is already used on {} by another device; use {free}, the next free \
-         counter",
-        dev.tag.letter,
-        crate::words::page(tx, page)
+    tx.reject(text!(
+        "refusal-fields-counter-used",
+        counter.to_string(),
+        dev.tag.letter.to_string(),
+        crate::words::page(tx, page),
+        free.to_string()
     ))
 }
 

@@ -904,9 +904,9 @@ impl<'a> TxBuilder<'a> {
         self.delete(key)
     }
 
-    /// A refusal by the current command or normaliser: `return tx.reject("cause; remedy")`.
-    pub fn reject<T>(&self, reason: impl Into<String>) -> Result<T, CmdError> {
-        Err(CmdError::rejected(self.source, reason))
+    /// A refusal by the current command or normaliser, by key: `return tx.reject(text!("refusal-…", …))`.
+    pub fn reject<T>(&self, text: crate::text::Text) -> Result<T, CmdError> {
+        Err(CmdError::rejected(self.source, text))
     }
 
     // -----------------------------------------------------------------------------------------------------

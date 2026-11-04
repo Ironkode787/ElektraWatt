@@ -1572,10 +1572,8 @@ impl ShellModel {
             Err(_) => (Default::default(), Vec::new()),
         };
         if let Err(e) = &result {
-            // A refused reorder opens no card: its reason is the outcome.
-            return Outcome::Failed {
-                message: e.to_string(),
-            };
+            // A refused reorder opens no card: its reason is the outcome, in the window's language (FT-1337).
+            return super::tools::command_failed(e, &cmd.params);
         }
         let result = result.map_err(|e| e.to_string());
         let edit = PendingEdit {

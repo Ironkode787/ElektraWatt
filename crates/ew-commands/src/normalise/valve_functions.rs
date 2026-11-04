@@ -37,6 +37,7 @@ use ew_schema::{
 
 use crate::error::CmdError;
 use crate::normalise::Normaliser;
+use crate::text::text;
 use crate::tx::TxBuilder;
 use crate::words;
 
@@ -104,10 +105,7 @@ fn follow_part(tx: &mut TxBuilder<'_>, dev: &Device, part: &LibCopy<Part>) -> Re
     for (i, e) in part.item.function_template.iter().enumerate() {
         let def: Id<FnDef> = ew_ids::v5::lib_copy_id(e.fndef.library.as_uuid(), e.fndef.item.as_uuid());
         let Some(copy) = tx.get::<LibCopy<FnDef>>(def) else {
-            return tx.reject(format!(
-                "the function definition of template entry {i} of part {number} is not embedded in the project; \
-                 embed it first (`library.embed`)"
-            ));
+            return tx.reject(text!("refusal-part-entry-fndef-missing", i.to_string(), number));
         };
         entries.push((i, def, copy.item.contact_kind.clone(), e.main));
     }
@@ -198,7 +196,7 @@ fn follow_part(tx: &mut TxBuilder<'_>, dev: &Device, part: &LibCopy<Part>) -> Re
             .collect();
         bound.sort();
         bound.dedup();
-        let unbound: Vec<String> = bound.iter().map(|c| words::channel(tx, *c)).collect();
+        let unbound: Vec<String> = bound.iter().map(|c| words::channel(tx, *c).to_string()).collect();
         for c in bound {
             tx.update::<ew_schema::Channel>(c, |c| c.binding = None)?;
         }
@@ -253,9 +251,7 @@ fn follow_part(tx: &mut TxBuilder<'_>, dev: &Device, part: &LibCopy<Part>) -> Re
             id = ew_ids::v5::template_function_id(id.cast::<Device>(), index);
         }
         if tx.exists::<Function>(id) {
-            return tx.reject(format!(
-                "{name} cannot take the functions of part {number}: no free function ID is left; replace the device"
-            ));
+            return tx.reject(text!("refusal-valve-functions-no-id", name, number));
         }
         tx.insert(Function {
             id,

@@ -450,7 +450,7 @@ impl ShellModel {
                     _ => message.clone(),
                 }
             }
-            ew_api::CmdError::Rejected { reason, .. } => reason.clone(),
+            ew_api::CmdError::Rejected { reason, text, .. } => super::tools::rejected_words(reason, text.as_ref()),
             ew_api::CmdError::Prevented { rule, finding, .. } => format!("{rule}: {finding}"),
             ew_api::CmdError::NotFound { .. } => strings::text(key!("props-gone")).to_owned(),
             other => other.to_string(),

@@ -17,6 +17,7 @@ use crate::command::{Command, Outcome};
 use crate::commands::common::TargetRef;
 use crate::error::CmdError;
 use crate::meta::{CommandMeta, Cost};
+use crate::text::text;
 use crate::tx::TxBuilder;
 
 /// Deletions that remove more than this many records (the targets and everything their delete plan
@@ -167,9 +168,9 @@ fn refuse_layout_delete(tx: &TxBuilder<'_>, keys: &[AnyKey]) -> Result<(), CmdEr
         if surfaces.contains(&(Kind::MountingSurface, s.id.cast())) && !gone_enclosures.contains(&s.enclosure)
         {
             let device = tx.get::<Enclosure>(s.enclosure).map(|e| e.device);
-            return tx.reject(format!(
-                "The plate goes with its enclosure; delete the enclosure of {}.",
-                device.map_or_else(|| "the plate".to_owned(), |d| crate::words::device(tx, d))
+            return tx.reject(text!(
+                "refusal-edit-delete-plate",
+                device.map_or_else(|| text!("refusal-edit-delete-the-plate").into(), |d| crate::words::device(tx, d))
             ));
         }
     }
@@ -188,9 +189,9 @@ fn refuse_layout_delete(tx: &TxBuilder<'_>, keys: &[AnyKey]) -> Result<(), CmdEr
     };
     let holds = |n: usize| {
         if n == 1 {
-            "holds 1 placement".to_owned()
+            text!("refusal-edit-delete-holds-one")
         } else {
-            format!("holds {n} placements")
+            text!("refusal-edit-delete-holds", n.to_string())
         }
     };
     // the carriers that go: the targeted ones and those of the surfaces that go, in label order per surface
@@ -213,8 +214,9 @@ fn refuse_layout_delete(tx: &TxBuilder<'_>, keys: &[AnyKey]) -> Result<(), CmdEr
             }
             let n = left(tx.placements_on_carrier(c));
             if n > 0 {
-                return tx.reject(format!(
-                    "{label} {}; use Delete carrier… to remove or rehome them.",
+                return tx.reject(text!(
+                    "refusal-edit-delete-carrier-holds",
+                    crate::words::carrier_label(label),
                     holds(n)
                 ));
             }
@@ -224,9 +226,9 @@ fn refuse_layout_delete(tx: &TxBuilder<'_>, keys: &[AnyKey]) -> Result<(), CmdEr
         let n = left(tx.placements_on_surface(s.id));
         if n > 0 {
             let device = tx.get::<Enclosure>(s.enclosure).map(|e| e.device);
-            return tx.reject(format!(
-                "The plate of {} {}; remove them first.",
-                device.map_or_else(|| "the enclosure".to_owned(), |d| crate::words::device(tx, d)),
+            return tx.reject(text!(
+                "refusal-edit-delete-plate-holds",
+                device.map_or_else(|| text!("refusal-edit-delete-the-enclosure").into(), |d| crate::words::device(tx, d)),
                 holds(n)
             ));
         }
@@ -236,8 +238,5 @@ fn refuse_layout_delete(tx: &TxBuilder<'_>, keys: &[AnyKey]) -> Result<(), CmdEr
 
 /// "-UC1 carries an enclosure; delete the enclosure first."
 fn carries_enclosure(tx: &TxBuilder<'_>, device: Id<Device>) -> Result<(), CmdError> {
-    tx.reject(format!(
-        "{} carries an enclosure; delete the enclosure first.",
-        crate::words::device(tx, device)
-    ))
+    tx.reject(text!("refusal-edit-delete-carries-enclosure", crate::words::device(tx, device)))
 }

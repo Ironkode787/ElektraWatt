@@ -38,6 +38,7 @@ use ew_units::Pt2;
 use crate::error::CmdError;
 use crate::normalise::Normaliser;
 use crate::normalise::connection_split::same_endpoint;
+use crate::text::{Text, text};
 use crate::tx::TxBuilder;
 
 /// Normaliser #8.
@@ -164,9 +165,8 @@ fn prefer_numbered(
             printed_number(tx, j, second, first),
         );
         let coincide = p1 == p2;
-        return tx.reject(format!(
-            "{} would merge a wire {} and a wire {}, which carry different numbers; clear one of the \
-             numbers or delete the wires separately",
+        return tx.reject(text!(
+            "refusal-junction-merge-numbers",
             crate::words::junction(tx, j),
             number_words(&n1, p1.as_deref(), coincide),
             number_words(&n2, p2.as_deref(), coincide)
@@ -210,16 +210,16 @@ fn printed_number(
 /// the number the drawing prints, `numbered "102.5"`, and its counter only where the two wires' printed numbers
 /// coincide (`numbered "102.5" with assigned number 5`) or it prints none (`with assigned number 5`), so two different
 /// numbers never read the same; or how it is numbered.
-fn number_words(n: &NumberSpec, printed: Option<&str>, coincide: bool) -> String {
+fn number_words(n: &NumberSpec, printed: Option<&str>, coincide: bool) -> Text {
     match n {
-        NumberSpec::Frozen(i) => format!("numbered \"{i}\""),
+        NumberSpec::Frozen(i) => text!("refusal-junction-numbered", i.to_string()),
         NumberSpec::Assigned(a) => match printed {
-            Some(p) if !coincide => format!("numbered \"{p}\""),
-            Some(p) => format!("numbered \"{p}\" with assigned number {}", a.counter),
-            None => format!("with assigned number {}", a.counter),
+            Some(p) if !coincide => text!("refusal-junction-numbered", p),
+            Some(p) => text!("refusal-junction-numbered-assigned", p, a.counter.to_string()),
+            None => text!("refusal-junction-assigned", a.counter.to_string()),
         },
-        NumberSpec::Unassigned => "without a number".to_owned(),
-        NumberSpec::Unknown(_) => "with a number of a newer format".to_owned(),
+        NumberSpec::Unassigned => text!("refusal-junction-unnumbered"),
+        NumberSpec::Unknown(_) => text!("refusal-junction-number-newer"),
     }
 }
 

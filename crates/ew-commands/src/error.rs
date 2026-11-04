@@ -8,6 +8,7 @@ use std::fmt;
 use ew_model::{AnyKey, ModelError};
 
 use crate::meta::{Exposure, Origin};
+use crate::text::Text;
 
 /// Why a command was not committed. A failed command leaves the session unchanged.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -36,8 +37,11 @@ pub enum CmdError {
     Rejected {
         /// The command's canonical name, or the normaliser's ID.
         source: String,
-        /// Cause and remedy.
+        /// Cause and remedy, in English.
         reason: String,
+        /// The same by key, which the window renders in its language (FT-1337); `None` for a refusal of the
+        /// API's own, which has only its English text.
+        text: Option<Text>,
     },
     /// The origin may not submit a command of this exposure class (doc 17 §2.3, FR-EXT-030).
     Exposure {
@@ -81,11 +85,12 @@ pub enum CmdError {
 }
 
 impl CmdError {
-    /// A refusal by a command or normaliser.
-    pub fn rejected(source: impl Into<String>, reason: impl Into<String>) -> CmdError {
+    /// A refusal by a command or normaliser: its English text is `text`'s.
+    pub fn rejected(source: impl Into<String>, text: Text) -> CmdError {
         CmdError::Rejected {
             source: source.into(),
-            reason: reason.into(),
+            reason: text.to_string(),
+            text: Some(text),
         }
     }
 
@@ -134,7 +139,7 @@ impl fmt::Display for CmdError {
                 message,
             } => write!(f, "{command}: invalid parameters at `{path}`: {message}"),
             CmdError::NotFound { key } => write!(f, "no record {}:{}", key.0, key.1),
-            CmdError::Rejected { source, reason } => write!(f, "{source}: {reason}"),
+            CmdError::Rejected { source, reason, .. } => write!(f, "{source}: {reason}"),
             CmdError::Exposure {
                 command,
                 exposure,

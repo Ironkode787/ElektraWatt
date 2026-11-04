@@ -20,6 +20,7 @@ use crate::command::{Command, Outcome};
 use crate::error::CmdError;
 use crate::meta::CommandMeta;
 use crate::proxy::{IdentS, MlTextS, UuidS};
+use crate::text::text;
 use crate::tx::TxBuilder;
 
 /// One terminal of `terminal.add`.
@@ -142,11 +143,11 @@ impl Command for AddTerminals {
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
         let strip = tx.require::<Device>(self.strip)?;
         if strip.aspects.strip.is_none() {
-            return tx.reject("the device is not a terminal strip; pick a device with the strip aspect");
+            return tx.reject(text!("refusal-terminal-not-strip"));
         }
         tx.require::<LibCopy<FnDef>>(self.fndef)?;
         if self.terminals.is_empty() {
-            return tx.reject("give at least one terminal to add");
+            return tx.reject(text!("refusal-terminal-add-none"));
         }
         let (mut designations, mut seqs) = strip_usage(tx, self.strip);
         let mut next = seqs.last().copied().unwrap_or(0).saturating_add(1);
@@ -161,15 +162,10 @@ impl Command for AddTerminals {
                 }
             };
             if !designations.insert(spec.designation.clone()) {
-                return tx.reject(format!(
-                    "designation {} is already used in the strip; choose another",
-                    spec.designation.as_str()
-                ));
+                return tx.reject(text!("refusal-terminal-designation-used", spec.designation.as_str()));
             }
             if !seqs.insert(seq) {
-                return tx.reject(format!(
-                    "sequence number {seq} is already used in the strip; choose another"
-                ));
+                return tx.reject(text!("refusal-terminal-seq-used", seq.to_string()));
             }
             let (device, _) = insert_terminal(tx, self.strip, &strip, self.fndef, spec, seq, Vec::new())?;
             first.get_or_insert(device);
@@ -460,10 +456,10 @@ impl Command for InsertTerminals {
             }
             if let Some((group, names)) = split_bridge_group(tx, self.strip, &current, &after) {
                 let (first, last) = (names.first().cloned(), names.last().cloned());
-                return tx.reject(format!(
-                    "inserting before terminal {} would split bridge group {group} (terminals {}); insert before \
-                     terminal {} or after terminal {}, or delete the group's bridge there first",
+                return tx.reject(text!(
+                    "refusal-terminal-insert-splits-group",
                     designation_of(tx, b),
+                    group.to_string(),
                     names.join(", "),
                     first.unwrap_or_default(),
                     last.unwrap_or_default(),
@@ -672,21 +668,19 @@ impl Command for MoveTerminals {
                 .filter(|n| names.contains(n))
                 .collect();
             let remedy = if moved_names.is_empty() {
-                format!(
-                    "put the terminals before terminal {} or after terminal {}, or delete the group's bridge there \
-                     first",
+                text!(
+                    "refusal-terminal-move-remedy-outside",
                     names.first().cloned().unwrap_or_default(),
                     names.last().cloned().unwrap_or_default()
                 )
             } else {
-                format!(
-                    "remove terminal {} from the group first (delete its bridges), or move the whole group",
-                    moved_names.join(", ")
-                )
+                text!("refusal-terminal-move-remedy-remove", moved_names.join(", "))
             };
-            return tx.reject(format!(
-                "the move would split bridge group {group} (terminals {}); {remedy}",
-                names.join(", ")
+            return tx.reject(text!(
+                "refusal-terminal-move-splits-group",
+                group.to_string(),
+                names.join(", "),
+                remedy
             ));
         }
         // The terminal that comes to position k takes the sequence number of the terminal that held k.
@@ -823,10 +817,10 @@ impl Command for AddConductors {
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
         let device = tx.require::<Device>(self.cable)?;
         if device.aspects.cable.is_none() {
-            return tx.reject("the device is not a cable; pick a device with the cable aspect");
+            return tx.reject(text!("refusal-conductor-not-cable"));
         }
         if self.conductors.is_empty() {
-            return tx.reject("give at least one conductor to add");
+            return tx.reject(text!("refusal-conductor-add-none"));
         }
         let existing: Vec<Ident> = tx
             .conductors_of_cable(self.cable)
@@ -852,10 +846,7 @@ fn check_distinct_cores(
     let mut seen: BTreeSet<&Ident> = existing.iter().collect();
     for spec in specs {
         if !seen.insert(&spec.core) {
-            return tx.reject(format!(
-                "core {} is already used in the cable; choose another",
-                spec.core.as_str()
-            ));
+            return tx.reject(text!("refusal-conductor-core-used", spec.core.as_str()));
         }
     }
     Ok(())

@@ -794,6 +794,315 @@ banner-no-file-dialog = The file dialog is not available: it needs the xdg-deskt
 error-no-folio = No page has the folio { $p0 }.
 error-part-fndef-missing = The part needs the function definitions { $p0 }, which neither the project nor the starter library holds.
 error-command = { $p0 }
+# FT-1337 (ID-1359): a command's own refusal by key (`ew_commands::TEXTS`), grouped by command; the CLI prints the English.
+# The records in words (`words.rs`) and the geometry's sentences (`geometry.rs`).
+refusal-words-device-gone = a device that is not in the project
+refusal-words-function-no-device = a function without a device
+refusal-words-cp = { $p0 }:{ $p1 }
+refusal-words-channel = channel { $p0 } of { $p1 }
+refusal-words-channel-gone = a channel that is not in the project
+refusal-words-page = page { $p0 }
+refusal-words-page-gone = a page that is not in the project
+refusal-words-symbol = the symbol of { $p0 }
+refusal-words-symbol-any = a symbol
+refusal-words-point = x { $p0 }, y { $p1 } mm on { $p2 }
+refusal-words-junction = the junction at { $p0 }
+refusal-words-junction-gone = a junction that is not in the project
+refusal-words-ip = interruption point { $p0 }
+refusal-words-position = x { $p0 }, y { $p1 } mm
+refusal-words-wire = wire { $p0 }
+refusal-words-wire-on = a wire on { $p0 }
+refusal-words-wire-any = a wire
+refusal-words-cp-index = { $p0 } CP { $p1 }
+refusal-geometry-off-grid = { $p0 } at { $p1 } is not on the drawing grid
+refusal-geometry-branch-point = the branch point
+refusal-geometry-outline-corner = the outline's corner
+refusal-geometry-box-cp = the box's connection point
+refusal-geometry-position = the position
+refusal-geometry-out-of-range = { $p0 } at { $p1 } lies outside the drawable range; move it nearer the page origin
+refusal-geometry-onto-grid = { $p0 }; move it onto the grid
+refusal-geometry-wire-start = the wire's start
+refusal-geometry-wire-end = the wire's end
+refusal-geometry-wire-corner = the wire's corner
+refusal-geometry-route-out-of-range = { $p0 } at { $p1 } lies outside the drawable range; draw the wire nearer the page origin
+refusal-geometry-ip-pin = the connection point of { $p0 }
+refusal-geometry-pin = connection point { $p0 }
+refusal-geometry-misses = misses { $p0 } by less than 0.1 mm
+refusal-geometry-does-not-meet = does not meet { $p0 } at { $p1 }
+refusal-geometry-end-off-cp = { $p0 } at { $p1 } { $p2 }; end the wire at its connection point
+refusal-geometry-corner-onto-grid = { $p0 }; move the corner onto the grid
+refusal-geometry-duplicate-corner = { $p0 } at { $p1 } repeats the corner before it; remove the duplicate corner
+refusal-geometry-overlap = the wire runs back over itself on { $p0 }: its stretch from { $p1 } to { $p2 } lies on its stretch from { $p3 } to { $p4 }; remove the stretch it runs back over
+# assembly.attach, valve.add and device.link.
+refusal-assembly-position-twice = position { $p0 } is given to two children ({ $p1 } and { $p2 })
+refusal-assembly-cycle = device { $p0 } is an ancestor of the parent { $p1 }; the assembly graph is acyclic (EW-INV-009)
+refusal-assembly-position-held = position { $p0 } of { $p1 } is held by device { $p2 }; move it first (no push insert), then attach { $p3 }
+refusal-valve-position-held = position { $p0 } of { $p1 } is held by { $p2 }; choose a free position (no push insert)
+refusal-device-link-holder = { $p0 } cannot drive { $p1 }, which holds it
+refusal-device-link-twice = device { $p0 } already links to { $p1 } with this kind (link { $p2 })
+# box.reshape.
+refusal-box-reshape-no-box = the representation has no box; only a black box drawn with an outline can be reshaped
+refusal-box-reshape-out-of-range = the box lies outside the drawable range; reshape it nearer the page origin
+refusal-box-reshape-cp-connected = box connection point { $p0 } is connected on this page and the new connection points leave it out; keep it in `cps`
+# bus.logical_net.create and bus.physical_net.create.
+refusal-bus-logical-net-exists = logical net { $p0 } exists already; names are unique
+refusal-bus-physical-net-exists = physical net { $p0 } exists already; names are unique
+# The project settings: project.checks.set, project.frames.set, project.drawing.set and project.company.set.
+refusal-settings-member-not-object = the settings member `{ $p0 }` is not an object (a newer or damaged format); it is kept as it is
+refusal-drawing-member-not-object = the project settings' `{ $p0 }` member is not an object (a newer or damaged format); it is kept as it is
+refusal-company-no-party = the project has no panel-builder party to mark; give the company `name` to create it
+refusal-company-member-not-object = the project row's `{ $p0 }` member is not an object (a newer or damaged format); it is kept as it is
+# check.waive.
+refusal-check-waive-twice = waiver { $p0 } already covers the finding { $p1 } of { $p2 }
+# connection.draw, connection.draw_many and connection.delete.
+refusal-connection-no-page = connection { $p0 } has no page, so a junction cannot be placed on it; give it a page first
+refusal-connection-same-end = both ends are the same endpoint (CI-01); pick two different ends
+refusal-connection-same-connection = both ends are on the same connection; pick two different connections
+refusal-connection-fluid-line-on = the fluid line on { $p0 }
+refusal-connection-fluid-line-any = a fluid line
+refusal-connection-not-fluid-port = { $p0 } is not a fluid port
+refusal-connection-junction-joins-wires = { $p0 } joins wires
+refusal-connection-no-fluid-line = { $p0 } is no fluid line
+refusal-connection-fluid-ports-only = a fluid line joins fluid ports only; { $p0 }
+refusal-connection-fluid-media = a fluid line does not join a hydraulic port to a pneumatic or vacuum port: { $p0 }, { $p1 }
+refusal-connection-fluid-port = { $p0 } is a fluid port; only a fluid line joins it
+refusal-connection-fluid-junction = { $p0 } joins fluid lines; only a fluid line joins it
+refusal-connection-fluid-branch = only a fluid line branches from { $p0 }
+refusal-connection-draw-many-entry = entry { $p0 }: { $p1 }
+refusal-connection-delete-none = no connection given; name at least one connection to delete
+# junction.edit.
+refusal-junction-sequence = `sequence` is not a permutation of the connections ending at the junction; list each of them exactly once
+# ip.place, ip.continue and the star of an interruption point.
+refusal-ip-star-external = an external point never pairs, so it takes no star; clear the star
+refusal-ip-star-not-source = a star source is a source point; set the direction to source, or clear the star
+refusal-ip-continue-not-ip = the function is not an interruption point; pick an IP function
+refusal-ip-continue-external = an external connection point never pairs; it cannot be continued
+refusal-ip-continue-same-page = the target page is the page of the interruption point; continue it on another page
+refusal-ip-continue-no-rep = the interruption point has no representation to continue
+# potential.define and bond.create.
+refusal-potential-define-on-connection = a potential is defined at a CP or a junction, not on a connection; name one of them
+refusal-potential-define-twice = this point already defines the potential { $p0 }; change that definition instead
+refusal-bond-on-connection = a bond ends at a CP or a junction, not on a connection; name one of them
+refusal-bond-same-end = both ends of the bond are the same point; pick two different ends
+# connection.draw_to_ip.
+refusal-draw-to-ip-cp-count = the interruption point's function definition has { $p0 } connection points; a wire ends in an interruption point with exactly one
+refusal-draw-to-ip-fluid = a fluid line joins fluid ports only; an interruption point is not a fluid port
+refusal-connection-start-on-other-page = the wire's start is drawn on { $p0 }, not on { $p1 }; start the wire on { $p1 }
+refusal-draw-to-ip-start-on-no-page = the wire's start is drawn on no page, not on { $p0 }; start the wire there
+refusal-draw-to-ip-symbol-cp = the interruption-point symbol does not draw its connection point; pick an interruption-point symbol that draws it
+# ip.arrange, and a move that takes a route along.
+refusal-ip-arrange-not-ip = { $p0 } is not an interruption point; arrange interruption points only
+refusal-ip-arrange-drawn-times = { $p0 } is drawn { $p1 } times; an arranged interruption point is drawn exactly once
+refusal-ip-arrange-pages = the interruption points lie on different pages; arrange the interruption points of one page
+refusal-ip-arrange-out-of-range = the arrangement puts a connection point outside the drawable range; arrange interruption points nearer the page origin
+refusal-ip-arrange-too-far = the arrangement moves a connection point too far
+refusal-move-what-arrangement = the arrangement
+refusal-move-what-reshape = the reshape
+refusal-move-route-out-of-range = { $p0 } moves the route of { $p1 } outside the drawable range; move it less far
+# device.place, box.black and a device from a part.
+refusal-device-place-no-cp = the symbol has no connection point { $p0 }; pick one of its CPs
+refusal-device-place-ip = an interruption point is placed with `ip.place`; pick another function
+refusal-device-place-out-of-range = the position puts a connection point of the symbol outside the drawable range; place it nearer the page origin
+refusal-device-place-lost-cp = the symbol lost a connection point
+refusal-device-place-fndef-missing = the function definition of the symbol is not embedded in the project; pass `fndef` or embed it
+refusal-rep-type = representation type { $p0 } is not allowed on a { $p1 } page ({ $p2 }); allowed: { $p3 }
+refusal-rep-type-none = none (this page type takes no representations)
+refusal-box-black-cp-out-of-range = box CP { $p0 } lies outside the drawable range; place the box nearer the page origin
+refusal-box-black-not-black-box = the function is not a black box; place another representation of it with `device.place`
+refusal-box-black-out-of-range = the position puts a connection point of the black box outside the drawable range; place it nearer the page origin
+refusal-from-part-no-template = part { $p0 } has no function template; place a symbol with a `new_device` target
+refusal-from-part-no-entry = part { $p0 } has no template entry { $p1 }; it has { $p2 } (0 to { $p3 })
+refusal-part-entry-fndef-missing = the function definition of template entry { $p0 } of part { $p1 } is not embedded in the project; embed it first (`library.embed`)
+refusal-from-part-mains = the function template of part { $p0 } has { $p1 } main entries; a device made from it needs exactly one
+refusal-from-part-black-box = template entry { $p0 } of part { $p1 } is a black box; place it with `box.black`
+refusal-from-part-other-fndef = the symbol draws another function definition than template entry { $p0 } of part { $p1 }; pick a symbol of that entry's function definition
+refusal-from-part-not-black-box = template entry { $p0 } of part { $p1 } is not a black box; place it with `device.place`
+refusal-new-terminal-part = part { $p0 } is no terminal of the symbol's function definition; pick a symbol of the part's main function or another part
+# rep.move and rep.transform.
+refusal-rep-move-surface-view = the surface view on { $p0 } does not move with a selection; leave it out of the selection, or change it with Set panel view
+refusal-rep-move-unknown-item = a page item on { $p0 } is of a kind this build keeps as it is, so it cannot be moved; leave it out of the selection
+refusal-rep-move-item-out-of-range = the move takes the { $p0 } on { $p1 } outside the drawable range; move it less far
+refusal-rep-move-item-graphic = graphic
+refusal-rep-move-item-text = text
+refusal-rep-move-item-wire-marker = wire marker
+refusal-rep-move-item-image = image
+refusal-rep-move-box-out-of-range = the move takes a structure box on { $p0 } outside the drawable range; move it less far
+refusal-rep-move-steps-off-grid = { $p0 }, so it cannot be moved by grid steps; move it onto the grid first
+refusal-rep-move-steps-out-of-range = the move takes { $p0 } outside the drawable range; move it fewer grid steps
+refusal-rep-move-steps-cp-out-of-range = the move takes a connection point of { $p0 } outside the drawable range; move it fewer grid steps
+refusal-rep-move-route-out-of-range = the move takes the route of { $p0 } outside the drawable range; move it less far
+refusal-rep-move-nothing = give at least one representation or item to move
+refusal-rep-move-out-of-range = the move takes { $p0 } outside the drawable range; move it less far
+refusal-rep-move-cp-out-of-range = the move takes a connection point of { $p0 } outside the drawable range; move it less far
+refusal-rep-move-end-behind = the move would keep one end of { $p0 } behind on the old page; move both ends together
+refusal-rep-transform-nothing = give at least one representation to transform
+refusal-rep-transform-rotate = `rotate` counts quarter turns and must be 0 to 3
+refusal-rep-transform-cp-out-of-range = the transform puts a connection point of { $p0 } outside the drawable range
+refusal-rep-transform-route-out-of-range = the transform moves the route of { $p0 } outside the drawable range; turn it nearer the page origin
+# The terminals of a strip (device.place, terminal.add).
+refusal-terminal-not-strip = the device is not a terminal strip; pick a device with the strip aspect
+refusal-terminal-designation-used = designation { $p0 } is already used in the strip; choose another
+refusal-terminal-seq-used = sequence number { $p0 } is already used in the strip; choose another
+# edit.delete.
+refusal-edit-delete-plate = The plate goes with its enclosure; delete the enclosure of { $p0 }.
+refusal-edit-delete-the-plate = the plate
+refusal-edit-delete-the-enclosure = the enclosure
+refusal-edit-delete-holds-one = holds 1 placement
+refusal-edit-delete-holds = holds { $p0 } placements
+refusal-edit-delete-carrier-holds = { $p0 } { $p1 }; use Delete carrier… to remove or rehome them.
+refusal-edit-delete-plate-holds = The plate of { $p0 } { $p1 }; remove them first.
+refusal-edit-delete-carries-enclosure = { $p0 } carries an enclosure; delete the enclosure first.
+# rep.exchange_symbol.
+refusal-exchange-no-function = the representation draws no function; there is nothing to keep
+refusal-exchange-ip = an interruption point keeps its interruption-point symbol; its symbol cannot be exchanged
+refusal-exchange-no-counterpart = connection point { $p0 } of the new symbol has no counterpart by designation and would draw function CP { $p1 }; give `pin_map`
+refusal-exchange-out-of-range = the new symbol puts a connection point outside the drawable range; place the representation nearer the page origin
+refusal-exchange-cp-connected = function CP { $p0 } is connected on this page and the new symbol does not draw it; pick a symbol that draws it or give `pin_map`
+refusal-exchange-too-far = the exchange moves a connection point too far
+refusal-exchange-route-out-of-range = the exchange moves the route of { $p0 } outside the drawable range; move the representation nearer the page origin first
+# fields.set.
+refusal-fields-ip-star = { $p0 }: { $p1 }
+refusal-fields-not-fluid-line = { $p0 } is not a fluid line
+refusal-fields-counter-used = counter { $p0 } with letter { $p1 } is already used on { $p2 } by another device; use { $p3 }, the next free counter
+# valve.set_occupancy and fluid.port.close.
+refusal-valve-no-positions = { $p0 } has no valve positions
+refusal-valve-no-position = { $p0 } has { $p1 } valve positions; position { $p2 } does not exist
+refusal-valve-position-holds = position { $p0 } of { $p1 } holds { $p2 }; assign the new part to { $p2 } instead
+refusal-valve-position-empty = position { $p0 } of { $p1 } holds no valve; name the valve part
+refusal-fluid-port-has-line = { $p0 } has a fluid line; delete the line before closing the port
+# The panel layout: layout.place, layout.move, layout.place_assembly, layout.auto_fill, the carriers, spaces and enclosures.
+refusal-words-rail = rail { $p0 }
+refusal-words-duct = duct { $p0 }
+refusal-words-rail-label = Rail { $p0 }
+refusal-words-duct-label = Duct { $p0 }
+refusal-words-device-gone-start = A device that is not in the project
+refusal-layout-the-rail = the rail
+refusal-layout-the-assembly = the assembly { $p0 }
+refusal-layout-the-assembly-start = The assembly { $p0 }
+refusal-layout-a-placement = a placement
+refusal-layout-mount-screw = screw-mounted
+refusal-layout-mount-busbar-adapter = busbar adapter
+refusal-layout-mount-door-cutout = door cut-out
+refusal-layout-mount-on-parent = mounted on its parent
+refusal-layout-mount-none = not mounted
+refusal-layout-rail-path = the rail's path is not two points on one horizontal or vertical line; edit the rail first
+refusal-layout-carrier-unknown = the carrier is of a kind this build does not know; it carries no placements
+refusal-layout-part-no-surface = Part { $p0 } does not mount on a surface; choose a part that mounts on it.
+refusal-layout-does-not-fit = { $p0 } ({ $p1 }) does not fit a { $p2 } rail
+refusal-layout-pose-rail-axis = a pose on a rail lies on its axis: t = (s, 0, 0)
+refusal-layout-pose-rail-turn = a pose on a rail turns by 0° or 180° about the surface normal only
+refusal-layout-pose-off-rail = the pose is off the rail: s = { $p0 } mm is outside [0, { $p1 } mm]
+refusal-layout-pose-surface-plane = a pose on a surface lies in its plane: t = (u, v, 0)
+refusal-layout-pose-surface-turn = a pose on a surface turns in steps of 90° about the surface normal only
+refusal-layout-pose-duct = a duct carries no placements
+refusal-layout-space-named-exists = location { $p0 } already has layout space "{ $p1 }"; a location has one layout space
+refusal-layout-space-exists = the layout space of location { $p0 } already exists; a location has one layout space
+refusal-layout-space-not-location = node { $p0 } is not a location; a layout space lays out a location
+refusal-layout-space-has-enclosure = the layout space already has enclosure { $p0 }; a layout space has one enclosure. Choose another layout space, or edit { $p0 }
+refusal-layout-no-enclosure-part = { $p0 }: the device has no enclosure part
+refusal-layout-carrier-holds = the carrier holds { $p0 } placement(s); give `then`: `remove_placements` or `rehome_to_surface`
+refusal-layout-rehome-rail-only = only the placements of a rail (two points on one horizontal or vertical line) rehome to its surface
+refusal-layout-rehome-off-rail = the placement of { $p0 } has a pose off the rail; move or remove it first
+refusal-layout-snap-no-gap = No gap on { $p0 } is wide enough for { $p1 } ({ $p2 } mm).
+refusal-layout-snap-unlock = Unlock { $p0 } to push or swap it.
+refusal-layout-snap-swap-locked = Swapping would move { $p0 }, which is locked.
+refusal-layout-snap-push-locked = Pushing would move { $p0 }, which is locked.
+refusal-layout-snap-swap-past-end = Swapping would move { $p0 } past the rail end by { $p1 } mm.
+refusal-layout-snap-push-past-end = Pushing would move { $p0 } past the rail end by { $p1 } mm.
+refusal-layout-snap-item-past-end = { $p0 } would pass the rail end by { $p1 } mm.
+refusal-layout-snap-swap-across = Swap works within one rail; use push or free to place it there.
+refusal-layout-snap-swap-no-target = Drop onto a placement to swap with it.
+refusal-layout-modes-on-rail = Push and swap work on a rail.
+refusal-layout-already-placed = { $p0 } is already placed with this part and function; move its placement instead
+refusal-layout-assembly-on-rail = An assembly is placed on a rail.
+refusal-layout-assembly-swap = Swap works with one placement; place an assembly in free or push mode.
+refusal-layout-not-assembly = { $p0 } is not part of an assembly; place it on its own.
+refusal-layout-assembly-placed = Every member of { $p0 } that mounts is already placed.
+refusal-layout-auto-fill-rail = Auto-fill works on a rail.
+refusal-layout-auto-fill-no-device = no device to place.
+refusal-layout-auto-fill-nothing = Nothing was placed on { $p0 }: { $p1 }
+refusal-layout-no-enclosure-section = { $p0 } has no enclosure section; choose an enclosure part.
+refusal-layout-location-has-enclosure = location +{ $p0 } already has enclosure { $p1 }; a location has one enclosure. Choose another location, or edit { $p1 }
+refusal-layout-plate-part-missing = the enclosure part names a plate part that the project does not hold; add it to copies
+refusal-layout-enclosure-turn = an enclosure's pose is a translation at this version; give it without a turn
+# page.create, page.delete, page.renumber and page.surface_view.set.
+refusal-page-create-outside-range = folio { $p0 } lies outside section { $p1 }'s folio range { $p2 } to { $p3 }; choose a folio in the range
+refusal-page-create-divider = folio { $p0 } is the divider page of section { $p1 }; choose another folio
+refusal-page-create-generated = folio { $p0 } is a page the report block at folio { $p1 } generates; choose another folio
+refusal-page-create-report = report pages are generated from report blocks (EW-INV-012); create a report block
+refusal-page-create-section = `section` differs from the section of `after`; omit it or give an explicit `number`
+refusal-page-create-no-folio = give an explicit folio `number` or the page to insert `after`
+refusal-page-create-exists = folio { $p0 } already exists in this section; choose a free folio
+refusal-page-delete-none = no pages given; name at least one page
+refusal-page-renumber-step = `step` must be at least 1
+refusal-page-renumber-no-pages = no pages in scope; name pages, a section or the project with pages
+refusal-page-renumber-out-of-range = new folio number { $p0 } is out of range; choose another `start` or `step`
+refusal-page-renumber-used = folio { $p0 } is already used by a page outside the renumbered pages; choose another `start` or include that page
+refusal-page-renumber-label-used = sub-page label { $p0 } is already used by another page of the section; choose another `start`
+refusal-page-surface-view-not-layout = folio { $p0 } is not a panel-layout page; a surface view goes on a panel-layout page
+# library.embed and library.update.
+refusal-library-embed-held = the project holds this { $p0 } already; take another version of it with update from library
+refusal-library-update-cp-twice = two updated copies map CP { $p0 } of function { $p1 } differently ({ $p2 } and { $p3 })
+refusal-library-update-blocked = the update leaves connected CPs without a CP; map them in `cp_maps` (doc 07 §4.5): { $p0 }
+refusal-library-update-missing = the new versions name items the project does not hold; give them in `embed` (FT-640): { $p0 }
+refusal-library-update-overrides = the mapping moves two CP overrides of function { $p0 } onto CP { $p1 }; change the overrides first
+# merge.resolve.
+refusal-merge-project-record = the project record cannot be deleted; take the other side
+refusal-merge-kind-kept = theirs cannot be written: this version keeps records of the kind "{ $p0 }" unchanged; take ours
+refusal-merge-invalid-record = theirs does not make a valid record ({ $p0 }); take ours, or edit the record
+refusal-merge-record-kept = the record is of a kind this version keeps unchanged
+refusal-merge-file-side = the conflict of a file holds a side this version does not know; open the project in a newer version
+refusal-merge-file-line = line { $p0 } of the file the merge could not read is not a record this version reads; take the other side, or fix the file
+# part.edit.
+refusal-part-edit-unchanged = the part is unchanged
+# The PLC configuration: plc.config_project.create, plc.bind_channel, plc.set_start, plc.set_module_part.
+refusal-plc-project-exists = configuration project { $p0 } exists ({ $p1 }); names are unique
+refusal-plc-channel-not-on-module = { $p0 } is not on module { $p1 } or one of its children; a channel binds a pin of its module or the coil of a valve on it
+refusal-plc-channel-no-cp = { $p0 } has no connection point number { $p1 } ({ $p2 })
+refusal-plc-address-not-module = { $p0 } is not a PLC module, and a start address belongs to a module; make it a module first
+refusal-plc-not-module = { $p0 } is not a PLC module; make it a module first
+refusal-channel-identity-taken = channel { $p0 } of module { $p1 } cannot be made: channel { $p2 } of module { $p3 } already has its identity; delete that channel first
+# revision.create and revision.withdraw.
+refusal-revision-label-used = revision { $p0 } already has the label { $p1 }; a label names one revision
+refusal-revision-open = revision { $p0 } ({ $p1 }) is open; at most one revision collects the current edits
+refusal-revision-released = revision { $p0 } ({ $p1 }) has a release record; a historic released revision cannot follow a release by ElektraWatt: a release goes through revision.release and its gate
+refusal-revision-withdrawn = revision { $p0 } ({ $p1 }) is withdrawn already by the withdrawal record { $p2 }
+# The structure: structure.create_node, section.create, report_block.create and external_ref.create.
+refusal-structure-product-aspect = the product aspect is the device tree, not a structure node; pick another aspect
+refusal-structure-parent-aspect = the parent belongs to another aspect (EW-INV-011); pick a parent of the same aspect
+refusal-structure-code-used = a sibling with code `{ $p0 }` already exists in this aspect; choose another code
+refusal-section-range-order = `folio_range` starts after it ends; give first <= last
+refusal-section-number-used = section number { $p0 } already exists; choose another number
+refusal-section-range-overlap = folio range { $p0 }-{ $p1 } overlaps section { $p2 } ({ $p3 }-{ $p4 }); choose a free range
+refusal-report-block-form-version = the project holds another version of this form; take the new one with update from library
+refusal-report-block-first-folio = a page-oriented report block needs `first_folio` (EW-INV-014); give one or embed it
+refusal-external-ref-not-location = node { $p0 } is not a location; an external reference sits at a location node
+# project.supply.set.
+refusal-supply-none = the project has no supply (a basic or macro project); there is nothing to set
+# terminal.add, terminal.insert, terminal.move and conductor.add.
+refusal-terminal-add-none = give at least one terminal to add
+refusal-terminal-insert-splits-group = inserting before terminal { $p0 } would split bridge group { $p1 } (terminals { $p2 }); insert before terminal { $p3 } or after terminal { $p4 }, or delete the group's bridge there first
+refusal-terminal-move-remedy-outside = put the terminals before terminal { $p0 } or after terminal { $p1 }, or delete the group's bridge there first
+refusal-terminal-move-remedy-remove = remove terminal { $p0 } from the group first (delete its bridges), or move the whole group
+refusal-terminal-move-splits-group = the move would split bridge group { $p0 } (terminals { $p1 }); { $p2 }
+refusal-conductor-not-cable = the device is not a cable; pick a device with the cable aspect
+refusal-conductor-add-none = give at least one conductor to add
+refusal-conductor-core-used = core { $p0 } is already used in the cable; choose another
+# The normalisers: a split connection, a dissolving junction and a valve's functions.
+refusal-split-not-on-route = the split point is not on the route of connection { $p0 }; pick a point on the wire
+refusal-split-second-not-on-route = the second split point is not on the route of connection { $p0 } after the first
+refusal-junction-merge-numbers = { $p0 } would merge a wire { $p1 } and a wire { $p2 }, which carry different numbers; clear one of the numbers or delete the wires separately
+refusal-junction-numbered = numbered "{ $p0 }"
+refusal-junction-numbered-assigned = numbered "{ $p0 }" with assigned number { $p1 }
+refusal-junction-assigned = with assigned number { $p0 }
+refusal-junction-unnumbered = without a number
+refusal-junction-number-newer = with a number of a newer format
+refusal-valve-functions-no-id = { $p0 } cannot take the functions of part { $p1 }: no free function ID is left; replace the device
+# The imports and the external changes: import.apply and external.apply.
+refusal-import-unknown-kind = a record of an unknown kind ({ $p0 })
+refusal-import-removed = a normaliser removed the imported { $p0 } { $p1 }
+refusal-external-image = an image of the change does not read ({ $p0 })
+# FT-1337: end of the command refusals.
 
 # FT-779: a refused parameter named by its field's words: the command's title, the field, the refusal.
 error-command-field = { $p0 }: { $p1 }: { $p2 }

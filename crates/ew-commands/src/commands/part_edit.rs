@@ -23,6 +23,7 @@ use crate::commands::library::library_copy_hash;
 use crate::error::CmdError;
 use crate::meta::CommandMeta;
 use crate::proxy::UuidS;
+use crate::text::text;
 use crate::tx::TxBuilder;
 
 /// The members of a part that `part.edit_copy` edits (D20); every other member must equal the copy's.
@@ -283,7 +284,7 @@ impl Command for EditPartCopy {
             }
         }
         if part == held.item {
-            return tx.reject("the part is unchanged");
+            return tx.reject(text!("refusal-part-edit-unchanged"));
         }
         let primary = match fork_copy {
             None => {

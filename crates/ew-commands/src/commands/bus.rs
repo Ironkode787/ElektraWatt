@@ -19,6 +19,7 @@ use crate::command::{Command, Outcome};
 use crate::error::CmdError;
 use crate::meta::CommandMeta;
 use crate::proxy::IdentS;
+use crate::text::text;
 use crate::tx::TxBuilder;
 
 /// `bus.logical_net.create` (`CreateLogicalNet`): a logical bus network, the scope of address uniqueness with its
@@ -143,7 +144,7 @@ pub(crate) fn refuse_duplicate_logical_name(
         .into_iter()
         .any(|n| Some(n.id) != except && n.name == *name)
     {
-        return tx.reject(format!("logical net {name} exists already; names are unique"));
+        return tx.reject(text!("refusal-bus-logical-net-exists", name.to_string()));
     }
     Ok(())
 }
@@ -159,7 +160,7 @@ pub(crate) fn refuse_duplicate_physical_name(
         .into_iter()
         .any(|n| Some(n.id) != except && n.name == *name)
     {
-        return tx.reject(format!("physical net {name} exists already; names are unique"));
+        return tx.reject(text!("refusal-bus-physical-net-exists", name.to_string()));
     }
     Ok(())
 }

@@ -50,7 +50,7 @@ fn refusal_text(e: &CmdError, label: &dyn Fn(usize) -> String) -> String {
                 None => message.clone(),
             }
         }
-        CmdError::Rejected { reason, .. } => reason.clone(),
+        CmdError::Rejected { reason, text, .. } => super::tools::rejected_words(reason, text.as_ref()),
         CmdError::Prevented { rule, finding, .. } => format!("{rule}: {finding}"),
         CmdError::NotFound { .. } => strings::text(key!("props-gone")).to_owned(),
         other => other.to_string(),

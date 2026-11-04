@@ -28,6 +28,7 @@ use crate::geometry::{require_on_grid, require_route, require_split_point};
 use crate::meta::CommandMeta;
 use crate::normalise::split_connection;
 use crate::proxy::{Dec3S, IdentS, Orient2S, Pt2S, UuidS};
+use crate::text::{Text, TextArg, text};
 use crate::tx::TxBuilder;
 
 /// Resolves one end of `connection.draw` to a record endpoint. A point on a connection W creates a
@@ -48,10 +49,7 @@ fn resolve_end(
         EndpointParam::OnConnection { connection, at } => {
             let w = tx.require::<Connection>(*connection)?;
             let Some(page) = w.page else {
-                return tx.reject(format!(
-                    "connection {connection} has no page, so a junction cannot be placed on it; \
-                     give it a page first"
-                ));
+                return tx.reject(text!("refusal-connection-no-page", connection.to_string()));
             };
             require_split_point(tx, &w, page, *at, &format!("{field}/on_connection/at"))?;
             let junction: Id<Junction> = tx.mint();
@@ -178,7 +176,7 @@ impl Command for Connect {
         self.b.check(tx)?;
         if let (Some(a), Some(b)) = (self.a.endpoint(), self.b.endpoint()) {
             if a == b {
-                return tx.reject("both ends are the same endpoint (CI-01); pick two different ends");
+                return tx.reject(text!("refusal-connection-same-end"));
             }
         }
         if let (
@@ -187,7 +185,7 @@ impl Command for Connect {
         ) = (&self.a, &self.b)
         {
             if x == y {
-                return tx.reject("both ends are on the same connection; pick two different connections");
+                return tx.reject(text!("refusal-connection-same-connection"));
             }
         }
         refuse_fluid_mismatch(tx, &self.kind, &[&self.a, &self.b])?;
@@ -329,11 +327,11 @@ fn fluid_end(tx: &TxBuilder<'_>, end: &EndpointParam) -> FluidEnd {
 }
 
 /// A connection in words: a fluid line by its page ("the fluid line on page 203"), another as [`crate::words::wire`].
-fn line_words(tx: &TxBuilder<'_>, id: Id<Connection>) -> String {
+fn line_words(tx: &TxBuilder<'_>, id: Id<Connection>) -> Text {
     match tx.get::<Connection>(id) {
         Some(c) if matches!(c.kind, ConnectionKind::Fluid(_)) => match c.page {
-            Some(p) => format!("the fluid line on {}", crate::words::page(tx, p)),
-            None => "a fluid line".to_owned(),
+            Some(p) => text!("refusal-connection-fluid-line-on", crate::words::page(tx, p)),
+            None => text!("refusal-connection-fluid-line-any"),
         },
         _ => crate::words::wire(tx, id),
     }
@@ -356,16 +354,16 @@ fn refuse_fluid_mismatch(
             if let Some((end, _)) = judged.iter().find(|(_, j)| j.fluid == Some(false)) {
                 let what = match end {
                     EndpointParam::Cp { function, idx } => {
-                        format!("{} is not a fluid port", crate::words::cp(tx, *function, *idx))
+                        text!("refusal-connection-not-fluid-port", crate::words::cp(tx, *function, *idx))
                     }
                     EndpointParam::Junction { junction } => {
-                        format!("{} joins wires", crate::words::junction(tx, *junction))
+                        text!("refusal-connection-junction-joins-wires", crate::words::junction(tx, *junction))
                     }
                     EndpointParam::OnConnection { connection, .. } => {
-                        format!("{} is no fluid line", line_words(tx, *connection))
+                        text!("refusal-connection-no-fluid-line", line_words(tx, *connection))
                     }
                 };
-                return tx.reject(format!("a fluid line joins fluid ports only; {what}"));
+                return tx.reject(text!("refusal-connection-fluid-ports-only", what));
             }
             let media: Vec<&(ew_model::FluidMedium, Id<Function>, u16)> =
                 judged.iter().flat_map(|(_, j)| &j.media).collect();
@@ -373,8 +371,8 @@ fn refuse_fluid_mismatch(
                 .iter()
                 .find_map(|a| media.iter().find(|b| b.0 != a.0).map(|b| (*a, *b)))
             {
-                return tx.reject(format!(
-                    "a fluid line does not join a hydraulic port to a pneumatic or vacuum port: {}, {}",
+                return tx.reject(text!(
+                    "refusal-connection-fluid-media",
                     crate::words::cp(tx, *fa, *ia),
                     crate::words::cp(tx, *fb, *ib)
                 ));
@@ -382,16 +380,16 @@ fn refuse_fluid_mismatch(
             Ok(())
         }
         _ => match judged.iter().find(|(_, j)| j.fluid == Some(true)) {
-            Some((EndpointParam::Cp { function, idx }, _)) => tx.reject(format!(
-                "{} is a fluid port; only a fluid line joins it",
+            Some((EndpointParam::Cp { function, idx }, _)) => tx.reject(text!(
+                "refusal-connection-fluid-port",
                 crate::words::cp(tx, *function, *idx)
             )),
-            Some((EndpointParam::Junction { junction }, _)) => tx.reject(format!(
-                "{} joins fluid lines; only a fluid line joins it",
+            Some((EndpointParam::Junction { junction }, _)) => tx.reject(text!(
+                "refusal-connection-fluid-junction",
                 crate::words::junction(tx, *junction)
             )),
-            Some((EndpointParam::OnConnection { connection, .. }, _)) => tx.reject(format!(
-                "only a fluid line branches from {}",
+            Some((EndpointParam::OnConnection { connection, .. }, _)) => tx.reject(text!(
+                "refusal-connection-fluid-branch",
                 line_words(tx, *connection)
             )),
             None => Ok(()),
@@ -459,8 +457,9 @@ impl Command for ConnectMany {
                 CmdError::InvalidParams { path, message, .. } => {
                     CmdError::invalid_params(Self::NAME, format!("/connections/{i}{path}"), message)
                 }
-                CmdError::Rejected { source, reason } => {
-                    CmdError::rejected(source, format!("entry {i}: {reason}"))
+                CmdError::Rejected { source, reason, text } => {
+                    let why = text.map_or_else(|| TextArg::from(reason), TextArg::from);
+                    CmdError::rejected(source, text!("refusal-connection-draw-many-entry", i.to_string(), why))
                 }
                 // NotFound names the missing record by its key; it has no field an index could prefix (see above).
                 other => other,
@@ -525,7 +524,7 @@ impl Command for DeleteConnections {
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
         if self.connections.is_empty() {
-            return tx.reject("no connection given; name at least one connection to delete");
+            return tx.reject(text!("refusal-connection-delete-none"));
         }
         for c in &self.connections {
             tx.require::<Connection>(*c)?;
@@ -590,10 +589,7 @@ impl Command for EditJunction {
             given.sort();
             let members = tx.connections_at(EndpointKey::Junction(self.junction));
             if given != members {
-                return tx.reject(
-                    "`sequence` is not a permutation of the connections ending at the junction; \
-                     list each of them exactly once",
-                );
+                return tx.reject(text!("refusal-junction-sequence"));
             }
         }
         let mut next = (*junction).clone();
@@ -747,10 +743,10 @@ impl Command for ContinueIp {
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
         let original = tx.require::<Function>(self.ip)?;
         let FunctionKind::Ip(spec) = &original.kind else {
-            return tx.reject("the function is not an interruption point; pick an IP function");
+            return tx.reject(text!("refusal-ip-continue-not-ip"));
         };
         if spec.external.is_some() {
-            return tx.reject("an external connection point never pairs; it cannot be continued");
+            return tx.reject(text!("refusal-ip-continue-external"));
         }
         tx.require::<Page>(self.page)?;
         let reps: Vec<Arc<Representation>> = tx
@@ -759,12 +755,10 @@ impl Command for ContinueIp {
             .filter_map(|r| tx.get::<Representation>(r))
             .collect();
         if reps.iter().any(|r| r.page == self.page) {
-            return tx.reject(
-                "the target page is the page of the interruption point; continue it on another page",
-            );
+            return tx.reject(text!("refusal-ip-continue-same-page"));
         }
         let Some(rep) = reps.first() else {
-            return tx.reject("the interruption point has no representation to continue");
+            return tx.reject(text!("refusal-ip-continue-no-rep"));
         };
         let direction = match &spec.direction {
             IpDirection::Source => IpDirection::Target,
@@ -835,9 +829,7 @@ impl Command for DefinePotential {
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
         let Some(at) = self.at.endpoint() else {
-            return tx.reject(
-                "a potential is defined at a CP or a junction, not on a connection; name one of them",
-            );
+            return tx.reject(text!("refusal-potential-define-on-connection"));
         };
         self.at.check(tx)?;
         // A potential may hold several definitions (doc 08 §3.4, §3.5: EW-POT-017 when their names differ), but one
@@ -846,10 +838,7 @@ impl Command for DefinePotential {
             .and_then(|key| tx.potential_defs_at(key).into_iter().min())
             .and_then(|d| tx.get::<PotentialDef>(d));
         if let Some(existing) = existing {
-            return tx.reject(format!(
-                "this point already defines the potential {}; change that definition instead",
-                existing.name
-            ));
+            return tx.reject(text!("refusal-potential-define-twice", existing.name.to_string()));
         }
         let id: Id<PotentialDef> = tx.mint();
         tx.insert(PotentialDef {
@@ -901,10 +890,10 @@ impl Command for CreateBond {
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
         let (Some(a), Some(b)) = (self.a.endpoint(), self.b.endpoint()) else {
-            return tx.reject("a bond ends at a CP or a junction, not on a connection; name one of them");
+            return tx.reject(text!("refusal-bond-on-connection"));
         };
         if a == b {
-            return tx.reject("both ends of the bond are the same point; pick two different ends");
+            return tx.reject(text!("refusal-bond-same-end"));
         }
         if matches!(self.kind, BondKind::Unknown(_)) {
             return Err(CmdError::invalid_params(Self::NAME, "/kind", "unknown bond kind"));
@@ -949,13 +938,13 @@ pub(crate) fn star_problem(
     direction: &IpDirection,
     star_source: bool,
     external: bool,
-) -> Option<&'static str> {
+) -> Option<Text> {
     if !star_source {
         None
     } else if external {
-        Some("an external point never pairs, so it takes no star; clear the star")
+        Some(text!("refusal-ip-star-external"))
     } else if *direction != IpDirection::Source {
-        Some("a star source is a source point; set the direction to source, or clear the star")
+        Some(text!("refusal-ip-star-not-source"))
     } else {
         None
     }
@@ -1074,11 +1063,7 @@ impl Command for DrawToIp {
         let idx = match fndef.item.cps.as_slice() {
             [cp] => cp.idx,
             other => {
-                return tx.reject(format!(
-                    "the interruption point's function definition has {} connection points; a wire ends in an \
-                     interruption point with exactly one",
-                    other.len()
-                ));
+                return tx.reject(text!("refusal-draw-to-ip-cp-count", other.len().to_string()));
             }
         };
         self.a.check(tx)?;
@@ -1087,7 +1072,7 @@ impl Command for DrawToIp {
         let kind = self.kind.clone().unwrap_or_default();
         if matches!(kind, ConnectionKind::Fluid(_)) {
             return tx
-                .reject("a fluid line joins fluid ports only; an interruption point is not a fluid port");
+                .reject(text!("refusal-draw-to-ip-fluid"));
         }
         refuse_fluid_mismatch(tx, &kind, &[&self.a])?;
         // FT-446: the start must be drawn on the page the wire and the IP are drawn on; refuse another page (or none)
@@ -1129,13 +1114,13 @@ impl Command for DrawToIp {
         if !drawn {
             let page = self.page;
             return match other {
-                Some(other) => tx.reject(format!(
-                    "the wire's start is drawn on {}, not on {}; start the wire on {1}",
+                Some(other) => tx.reject(text!(
+                    "refusal-connection-start-on-other-page",
                     crate::words::page(tx, other),
                     crate::words::page(tx, page)
                 )),
-                None => tx.reject(format!(
-                    "the wire's start is drawn on no page, not on {}; start the wire there",
+                None => tx.reject(text!(
+                    "refusal-draw-to-ip-start-on-no-page",
                     crate::words::page(tx, page)
                 )),
             };
@@ -1159,10 +1144,7 @@ impl Command for DrawToIp {
             RepType::MultiLine,
         )?;
         if crate::geometry::cp_position(tx, function, idx, self.page).is_none() {
-            return tx.reject(
-                "the interruption-point symbol does not draw its connection point; pick an interruption-point \
-                 symbol that draws it",
-            );
+            return tx.reject(text!("refusal-draw-to-ip-symbol-cp"));
         }
         let new_id: Id<Connection> = tx.mint();
         let mut split_page = None;
@@ -1241,26 +1223,24 @@ impl Command for ArrangeIps {
         for f in &self.ips {
             let function = tx.require::<Function>(*f)?;
             if !matches!(function.kind, FunctionKind::Ip(_)) {
-                return tx.reject(format!(
-                    "{} is not an interruption point; arrange interruption points only",
+                return tx.reject(text!(
+                    "refusal-ip-arrange-not-ip",
                     crate::words::function(tx, *f)
                 ));
             }
             let ids = tx.reps_of_function(*f);
             let [rid] = ids.as_slice() else {
-                return tx.reject(format!(
-                    "{} is drawn {} times; an arranged interruption point is drawn exactly once",
+                return tx.reject(text!(
+                    "refusal-ip-arrange-drawn-times",
                     crate::words::interruption_point(tx, *f),
-                    ids.len()
+                    ids.len().to_string()
                 ));
             };
             reps.push(tx.require::<Representation>(*rid)?);
         }
         let page_id = reps[0].page;
         if reps.iter().any(|r| r.page != page_id) {
-            return tx.reject(
-                "the interruption points lie on different pages; arrange the interruption points of one page",
-            );
+            return tx.reject(text!("refusal-ip-arrange-pages"));
         }
         let page = tx.require::<Page>(page_id)?;
         let mut slots: Vec<(Pt2, Id<Representation>)> = reps.iter().map(|r| (r.pos, r.id)).collect();
@@ -1277,17 +1257,14 @@ impl Command for ArrangeIps {
                 crate::geometry::rep_cps_checked(tx, rep),
                 crate::geometry::rep_cps_checked(tx, &next),
             ) else {
-                return tx.reject(
-                    "the arrangement puts a connection point outside the drawable range; arrange interruption \
-                     points nearer the page origin",
-                );
+                return tx.reject(text!("refusal-ip-arrange-out-of-range"));
             };
             for a in &after {
                 let Some(b) = before.iter().find(|b| b.function == a.function && b.idx == a.idx) else {
                     continue;
                 };
                 let Ok(d) = crate::geometry::sub(a.pos, b.pos) else {
-                    return tx.reject("the arrangement moves a connection point too far");
+                    return tx.reject(text!("refusal-ip-arrange-too-far"));
                 };
                 if d != Pt2::ORIGIN {
                     moves.entry((a.function, a.idx)).or_insert(d);
@@ -1295,7 +1272,7 @@ impl Command for ArrangeIps {
             }
             moved.push(next);
         }
-        follow_moved_cps(tx, page_id, page.grid, &moves, "the arrangement")?;
+        follow_moved_cps(tx, page_id, page.grid, &moves, text!("refusal-move-what-arrangement"))?;
         for r in moved {
             tx.put(r);
         }
@@ -1320,7 +1297,7 @@ pub(crate) fn follow_moved_cps(
     page: Id<Page>,
     grid: ew_units::Grid,
     moves: &std::collections::BTreeMap<(Id<Function>, u16), Pt2>,
-    what: &str,
+    what: Text,
 ) -> Result<(), CmdError> {
     let functions: std::collections::BTreeSet<Id<Function>> = moves.keys().map(|(f, _)| *f).collect();
     let mut connections: std::collections::BTreeSet<Id<Connection>> = Default::default();
@@ -1342,8 +1319,9 @@ pub(crate) fn follow_moved_cps(
         }
         let mut route = c.route.clone();
         if crate::geometry::follow_ends(&mut route, grid, da, db).is_err() {
-            return tx.reject(format!(
-                "{what} moves the route of {} outside the drawable range; move it less far",
+            return tx.reject(text!(
+                "refusal-move-route-out-of-range",
+                what.clone(),
                 crate::words::wire(tx, cid)
             ));
         }

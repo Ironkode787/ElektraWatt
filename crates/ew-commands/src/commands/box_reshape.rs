@@ -18,6 +18,7 @@ use crate::error::CmdError;
 use crate::geometry::{OutOfRange, add, on_grid, on_segment, point_in_range, require_on_grid, sub};
 use crate::meta::CommandMeta;
 use crate::proxy::{Pt2S, UuidS};
+use crate::text::text;
 use crate::tx::TxBuilder;
 
 /// `box.reshape` (`ReshapeBox`, FR-DEV-039): replaces the outline of a black box (a representation with a `box`),
@@ -163,9 +164,7 @@ impl Command for ReshapeBox {
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
         let rep = tx.require::<Representation>(self.rep)?;
         let Some(old) = rep.box_.clone() else {
-            return tx.reject(
-                "the representation has no box; only a black box drawn with an outline can be reshaped",
-            );
+            return tx.reject(text!("refusal-box-reshape-no-box"));
         };
         let page = tx.require::<Page>(rep.page)?;
         let grid = page.grid;
@@ -177,7 +176,7 @@ impl Command for ReshapeBox {
             ));
         }
         let out_of_range = |tx: &TxBuilder<'_>| -> Result<Outcome, CmdError> {
-            tx.reject("the box lies outside the drawable range; reshape it nearer the page origin")
+            tx.reject(text!("refusal-box-reshape-out-of-range"))
         };
         // Absolute page points of relative box points (`pos + orient(v)`), and back.
         let abs = |v: Pt2| -> Result<Pt2, OutOfRange> {
@@ -325,18 +324,14 @@ impl Command for ReshapeBox {
                             })
                         });
                         if connected {
-                            return tx.reject(format!(
-                                "box connection point {} is connected on this page and the new connection points \
-                                 leave it out; keep it in `cps`",
-                                cp.idx
-                            ));
+                            return tx.reject(text!("refusal-box-reshape-cp-connected", cp.idx.to_string()));
                         }
                         notices.push(format!("connection point {} is no longer drawn", cp.idx));
                     }
                 }
             }
         }
-        follow_moved_cps(tx, rep.page, grid, &moves, "the reshape")?;
+        follow_moved_cps(tx, rep.page, grid, &moves, text!("refusal-move-what-reshape"))?;
         let mut next = (*rep).clone();
         next.box_ = Some(BoxSpec {
             outline: self.outline.clone(),

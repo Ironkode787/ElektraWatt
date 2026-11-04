@@ -21,6 +21,7 @@ use crate::error::CmdError;
 use crate::meta::CommandMeta;
 use crate::proxy::UuidS;
 use crate::rows::row_json;
+use crate::text::text;
 use crate::tx::TxBuilder;
 
 /// The side of a conflict a choice takes.
@@ -141,7 +142,7 @@ fn resolve_record(
     if chosen.as_str() == Some(DELETED_SIDE) {
         if let Some(key) = present {
             if key.0 == Kind::Project {
-                return tx.reject("the project record cannot be deleted; take the other side");
+                return tx.reject(text!("refusal-merge-project-record"));
             }
             tx.delete(key)?;
         }
@@ -153,9 +154,7 @@ fn resolve_record(
         return Ok(());
     }
     let Some(key) = target else {
-        return tx.reject(format!(
-            "theirs cannot be written: this version keeps records of the kind \"{kind}\" unchanged; take ours"
-        ));
+        return tx.reject(text!("refusal-merge-kind-kept", kind.to_string()));
     };
     let mut value = match tx.row(&key) {
         Some(row) => row_json(&row)?,
@@ -166,10 +165,7 @@ fn resolve_record(
         members.insert("$k".to_owned(), Value::from(kind));
     }
     let record = Record::from_value(value).map_err(|e| {
-        CmdError::rejected(
-            ResolveConflicts::NAME,
-            format!("theirs does not make a valid record ({e}); take ours, or edit the record"),
-        )
+        CmdError::rejected(ResolveConflicts::NAME, text!("refusal-merge-invalid-record", e.to_string()))
     })?;
     put_record(tx, record)?;
     remove_conflict(tx, id);
@@ -217,7 +213,7 @@ fn put_record(tx: &mut TxBuilder<'_>, record: Record) -> Result<(), CmdError> {
             tx.put_row(row);
             Ok(())
         }
-        Err(_) => tx.reject("the record is of a kind this version keeps unchanged"),
+        Err(_) => tx.reject(text!("refusal-merge-record-kept")),
     }
 }
 
@@ -234,9 +230,7 @@ fn resolve_file(
         ConflictSide::Ours => Take::Ours,
         ConflictSide::Theirs => Take::Theirs,
         ConflictSide::Unknown(_) => {
-            return tx.reject(
-                "the conflict of a file holds a side this version does not know; open the project in a newer version",
-            );
+            return tx.reject(text!("refusal-merge-file-side"));
         }
     };
     if take != held {
@@ -252,11 +246,7 @@ fn resolve_file(
         match record {
             Some(r) => records.push(r),
             None => {
-                return tx.reject(format!(
-                    "line {} of the file the merge could not read is not a record this version reads; take the \
-                     other side, or fix the file",
-                    n + 1
-                ));
+                return tx.reject(text!("refusal-merge-file-line", (n + 1).to_string()));
             }
         }
     }

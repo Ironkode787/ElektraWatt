@@ -14,6 +14,7 @@ use ew_units::Pt2;
 use crate::error::CmdError;
 use crate::geometry::{locate, provisional_path_of, rep_cps, split_route};
 use crate::normalise::Normaliser;
+use crate::text::text;
 use crate::tx::TxBuilder;
 
 /// Splits connection W (A → B) into W′ (A → `first_end`) and W″ (`second_end` → B) (doc 06 §5.3):
@@ -39,14 +40,10 @@ pub fn split_connection(
         (Vec::new(), Vec::new())
     } else {
         let Some((r1, rest)) = split_route(&w.route, first_at) else {
-            return tx.reject(format!(
-                "the split point is not on the route of connection {connection}; pick a point on the wire"
-            ));
+            return tx.reject(text!("refusal-split-not-on-route", connection.to_string()));
         };
         let Some((_, r2)) = split_route(&rest, second_at) else {
-            return tx.reject(format!(
-                "the second split point is not on the route of connection {connection} after the first"
-            ));
+            return tx.reject(text!("refusal-split-second-not-on-route", connection.to_string()));
         };
         (r1, r2)
     };

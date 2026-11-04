@@ -16,6 +16,7 @@ use crate::command::{Command, Outcome};
 use crate::error::CmdError;
 use crate::meta::{CommandMeta, Exposure};
 use crate::proxy::{IdentS, MlTextS, UuidS};
+use crate::text::text;
 use crate::tx::TxBuilder;
 
 /// The `ProjectSettings` member that holds the check settings (doc 03 §15 `CheckSettings`), kept in
@@ -89,10 +90,7 @@ impl Command for SetCheckSchemes {
             None => serde_json::Map::new(),
             Some(Value::Object(map)) => map.clone(),
             Some(_) => {
-                return tx.reject(format!(
-                    "the settings member `{CHECKS_MEMBER}` is not an object (a newer or damaged format); it is \
-                     kept as it is"
-                ));
+                return tx.reject(text!("refusal-settings-member-not-object", CHECKS_MEMBER));
             }
         };
         for (member, scheme) in members {
@@ -229,9 +227,10 @@ impl Command for WaiveFinding {
                     .as_deref()
                     .is_some_and(|f| f.eq_ignore_ascii_case(&fingerprint))
         }) {
-            return tx.reject(format!(
-                "waiver {} already covers the finding {fingerprint} of {}",
-                twin.id,
+            return tx.reject(text!(
+                "refusal-check-waive-twice",
+                twin.id.to_string(),
+                fingerprint.to_string(),
                 self.rule.as_str()
             ));
         }

@@ -31,6 +31,7 @@ use crate::geometry::{
 };
 use crate::meta::CommandMeta;
 use crate::proxy::{IdentS, MlTextS, Orient2S, Pt2S, UuidS};
+use crate::text::{TextArg, text};
 use crate::tx::TxBuilder;
 
 /// `device.create`: a device without a representation (FR-DEV-001), optionally with its main function.
@@ -300,10 +301,7 @@ impl Command for PlaceSymbol {
         // Check the hints before anything is written.
         for hint in &self.connect {
             if !symbol.item.cps.as_slice().iter().any(|cp| cp.idx == hint.cp) {
-                return tx.reject(format!(
-                    "the symbol has no connection point {}; pick one of its CPs",
-                    hint.cp
-                ));
+                return tx.reject(text!("refusal-device-place-no-cp", hint.cp.to_string()));
             }
         }
         let mut notices = Vec::new();
@@ -317,7 +315,7 @@ impl Command for PlaceSymbol {
                 let f = tx.require::<Function>(*function)?;
                 if matches!(f.kind, FunctionKind::Ip(_)) {
                     return tx
-                        .reject("an interruption point is placed with `ip.place`; pick another function");
+                        .reject(text!("refusal-device-place-ip"));
                 }
                 *function
             }
@@ -364,10 +362,7 @@ impl Command for PlaceSymbol {
             extra: Extra::new(),
         };
         if rep_cps_checked(tx, &record).is_err() {
-            return tx.reject(
-                "the position puts a connection point of the symbol outside the drawable range; place it nearer \
-                 the page origin",
-            );
+            return tx.reject(text!("refusal-device-place-out-of-range"));
         }
         tx.insert(record)?;
         for (i, hint) in self.connect.iter().enumerate() {
@@ -386,7 +381,7 @@ impl Command for PlaceSymbol {
                 .find(|cp| cp.idx == hint.cp)
                 .map(|cp| cp.fn_cp)
             else {
-                return tx.reject("the symbol lost a connection point");
+                return tx.reject(text!("refusal-device-place-lost-cp"));
             };
             let id: Id<Connection> = tx.mint();
             let (to, joins_sequence) = match &hint.to {
@@ -457,9 +452,7 @@ fn split_for_hint(
 ) -> Result<Endpoint, CmdError> {
     let w = tx.require::<Connection>(connection)?;
     let Some(page) = w.page else {
-        return tx.reject(format!(
-            "connection {connection} has no page, so a junction cannot be placed on it; give it a page first"
-        ));
+        return tx.reject(text!("refusal-connection-no-page", connection.to_string()));
     };
     require_split_point(tx, &w, page, at, field)?;
     let junction: Id<Junction> = tx.mint();
@@ -533,17 +526,22 @@ pub(crate) fn check_rep_type(tx: &TxBuilder<'_>, page: &Page, rep_type: &RepType
         return Ok(());
     }
     let list = if allowed.is_empty() {
-        "none (this page type takes no representations)".to_owned()
+        text!("refusal-rep-type-none").into()
     } else {
-        allowed
-            .iter()
-            .map(|t| format!("{t:?}"))
-            .collect::<Vec<_>>()
-            .join(", ")
+        TextArg::Plain(
+            allowed
+                .iter()
+                .map(|t| format!("{t:?}"))
+                .collect::<Vec<_>>()
+                .join(", "),
+        )
     };
-    tx.reject(format!(
-        "representation type {rep_type:?} is not allowed on a {:?} page ({}); allowed: {list}",
-        page.kind, page.id
+    tx.reject(text!(
+        "refusal-rep-type",
+        format!("{rep_type:?}"),
+        format!("{:?}", page.kind),
+        page.id.to_string(),
+        list
     ))
 }
 
@@ -709,22 +707,17 @@ impl MoveReps {
                         // FT-882 (ID-1108): the item in words and the true reason
                         let page = crate::words::page(tx, item.page);
                         let why = match &item.kind {
-                            PageItemKind::SurfaceView(_) => format!(
-                                "the surface view on {page} does not move with a selection; leave it out of the \
-                                 selection, or change it with Set panel view"
-                            ),
-                            PageItemKind::Unknown(_) => format!(
-                                "a page item on {page} is of a kind this build keeps as it is, so it cannot be \
-                                 moved; leave it out of the selection"
-                            ),
-                            kind => format!(
-                                "the move takes the {} on {page} outside the drawable range; move it less far",
+                            PageItemKind::SurfaceView(_) => text!("refusal-rep-move-surface-view", page),
+                            PageItemKind::Unknown(_) => text!("refusal-rep-move-unknown-item", page),
+                            kind => text!(
+                                "refusal-rep-move-item-out-of-range",
                                 match kind {
-                                    PageItemKind::Graphic(_) => "graphic",
-                                    PageItemKind::FreeText(_) => "text",
-                                    PageItemKind::WireMarker(_) => "wire marker",
-                                    _ => "image",
-                                }
+                                    PageItemKind::Graphic(_) => text!("refusal-rep-move-item-graphic"),
+                                    PageItemKind::FreeText(_) => text!("refusal-rep-move-item-text"),
+                                    PageItemKind::WireMarker(_) => text!("refusal-rep-move-item-wire-marker"),
+                                    _ => text!("refusal-rep-move-item-image"),
+                                },
+                                page
                             ),
                         };
                         return tx.reject(why);
@@ -734,8 +727,8 @@ impl MoveReps {
                 }
                 MovedItem::Box(b) => {
                     let Some(next) = crate::commands::items::translate_box(b, d) else {
-                        return tx.reject(format!(
-                            "the move takes a structure box on {} outside the drawable range; move it less far",
+                        return tx.reject(text!(
+                            "refusal-rep-move-box-out-of-range",
                             crate::words::page(tx, b.page)
                         ));
                     };
@@ -772,35 +765,25 @@ impl MoveReps {
             let rep = tx.require::<Representation>(*id)?;
             let grid = tx.require::<Page>(rep.page)?.grid;
             if !crate::geometry::point_on_grid(grid, rep.pos) {
-                return tx.reject(format!(
-                    "{}, so it cannot be moved by grid steps; move it onto the grid first",
-                    crate::geometry::off_grid(tx, &crate::words::symbol(tx, *id), rep.page, rep.pos)
+                return tx.reject(text!(
+                    "refusal-rep-move-steps-off-grid",
+                    crate::geometry::off_grid(tx, crate::words::symbol(tx, *id), rep.page, rep.pos)
                 ));
             }
             let (Some(x), Some(y)) = (
                 step_axis(grid, rep.pos.x, steps[0]),
                 step_axis(grid, rep.pos.y, steps[1]),
             ) else {
-                return tx.reject(format!(
-                    "the move takes {sym} outside the drawable range; move it fewer grid steps",
-                    sym = crate::words::symbol(tx, *id)
-                ));
+                return tx.reject(text!("refusal-rep-move-steps-out-of-range", crate::words::symbol(tx, *id)));
             };
             let mut next = (*rep).clone();
             next.pos = Pt2::new(x, y);
             require_on_grid(tx, next.page, next.pos, "/steps")?;
             if rep_cps_checked(tx, &next).is_err() {
-                return tx.reject(format!(
-                    "the move takes a connection point of {sym} outside the drawable range; move \
-                     it fewer grid steps",
-                    sym = crate::words::symbol(tx, *id)
-                ));
+                return tx.reject(text!("refusal-rep-move-steps-cp-out-of-range", crate::words::symbol(tx, *id)));
             }
             let Ok(d) = sub(next.pos, rep.pos) else {
-                return tx.reject(format!(
-                    "the move takes {sym} outside the drawable range; move it fewer grid steps",
-                    sym = crate::words::symbol(tx, *id)
-                ));
+                return tx.reject(text!("refusal-rep-move-steps-out-of-range", crate::words::symbol(tx, *id)));
             };
             shift.insert(*id, d);
             reps.push(rep);
@@ -846,10 +829,7 @@ impl MoveReps {
                 (None, None) => Ok(()),
             };
             if followed.is_err() {
-                return tx.reject(format!(
-                    "the move takes the route of {} outside the drawable range; move it less far",
-                    crate::words::wire(tx, cid)
-                ));
+                return tx.reject(text!("refusal-rep-move-route-out-of-range", crate::words::wire(tx, cid)));
             }
             changed.push(next);
         }
@@ -949,7 +929,7 @@ impl Command for MoveReps {
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
         if self.reps.is_empty() && self.items.is_empty() {
-            return tx.reject("give at least one representation or item to move");
+            return tx.reject(text!("refusal-rep-move-nothing"));
         }
         if let Some(steps) = self.steps {
             return self.run_steps(tx, steps);
@@ -968,10 +948,7 @@ impl Command for MoveReps {
             next.pos = match add(rep.pos, self.delta) {
                 Ok(p) => p,
                 Err(OutOfRange) => {
-                    return tx.reject(format!(
-                        "the move takes {sym} outside the drawable range; move it less far",
-                        sym = crate::words::symbol(tx, *id)
-                    ));
+                    return tx.reject(text!("refusal-rep-move-out-of-range", crate::words::symbol(tx, *id)));
                 }
             };
             if let (Some(p), Some(page)) = (self.page, &target_page) {
@@ -980,11 +957,7 @@ impl Command for MoveReps {
             }
             require_on_grid(tx, next.page, next.pos, "/delta")?;
             if rep_cps_checked(tx, &next).is_err() {
-                return tx.reject(format!(
-                    "the move takes a connection point of {sym} outside the drawable range; \
-                     move it less far",
-                    sym = crate::words::symbol(tx, *id)
-                ));
+                return tx.reject(text!("refusal-rep-move-cp-out-of-range", crate::words::symbol(tx, *id)));
             }
             reps.push(rep);
             moved.push(next);
@@ -1016,10 +989,7 @@ impl Command for MoveReps {
             let mut next = (*c).clone();
             if let Some(new_page) = self.page.filter(|np| *np != page) {
                 if !(a && b) {
-                    return tx.reject(format!(
-                        "the move would keep one end of {} behind on the old page; move both ends together",
-                        crate::words::wire(tx, cid)
-                    ));
+                    return tx.reject(text!("refusal-rep-move-end-behind", crate::words::wire(tx, cid)));
                 }
                 next.page = Some(new_page);
                 off_page.push(cid);
@@ -1031,10 +1001,7 @@ impl Command for MoveReps {
                 follow_end(&mut next.route, grid, a, self.delta)
             };
             if followed.is_err() {
-                return tx.reject(format!(
-                    "the move takes the route of {} outside the drawable range; move it less far",
-                    crate::words::wire(tx, cid)
-                ));
+                return tx.reject(text!("refusal-rep-move-route-out-of-range", crate::words::wire(tx, cid)));
             }
             changed.push(next);
         }
@@ -1100,10 +1067,10 @@ impl Command for TransformReps {
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
         if self.reps.is_empty() {
-            return tx.reject("give at least one representation to transform");
+            return tx.reject(text!("refusal-rep-transform-nothing"));
         }
         if self.rotate > 3 {
-            return tx.reject("`rotate` counts quarter turns and must be 0 to 3");
+            return tx.reject(text!("refusal-rep-transform-rotate"));
         }
         let ids: BTreeSet<Id<Representation>> = self.reps.iter().copied().collect();
         // The displacement of each drawn function CP that moves, by (page, function, CP).
@@ -1121,11 +1088,7 @@ impl Command for TransformReps {
                 new.variant = v;
             }
             let out_of_range = |tx: &TxBuilder<'_>| {
-                tx.reject::<()>(format!(
-                    "the transform puts a connection point of {sym} outside the drawable \
-                     range",
-                    sym = crate::words::symbol(tx, *id)
-                ))
+                tx.reject::<()>(text!("refusal-rep-transform-cp-out-of-range", crate::words::symbol(tx, *id)))
             };
             if let Some(b) = old.box_.as_ref().filter(|_| orient != old.orient) {
                 let grid = tx.require::<Page>(old.page)?.grid;
@@ -1179,11 +1142,7 @@ impl Command for TransformReps {
             let grid = tx.require::<Page>(page)?.grid;
             let followed = follow_ends(&mut next.route, grid, da, db);
             if followed.is_err() {
-                return tx.reject(format!(
-                    "the transform moves the route of {} outside the drawable range; turn it nearer the page \
-                     origin",
-                    crate::words::wire(tx, cid)
-                ));
+                return tx.reject(text!("refusal-rep-transform-route-out-of-range", crate::words::wire(tx, cid)));
             }
             tx.put(next);
         }
@@ -1410,9 +1369,7 @@ impl Command for PlaceBlackBox {
                 }
                 if self.orient == Orient2::default() {
                     let Ok(at) = add(self.pos, cp.pos) else {
-                        return tx.reject(format!(
-                            "box CP {i} lies outside the drawable range; place the box nearer the page origin"
-                        ));
+                        return tx.reject(text!("refusal-box-black-cp-out-of-range", i.to_string()));
                     };
                     require_on_grid(tx, self.page, at, &format!("/box/cps/{i}/pos"))?;
                 }
@@ -1427,10 +1384,7 @@ impl Command for PlaceBlackBox {
             PlaceTarget::ExistingFunction { function } => {
                 let f = tx.require::<Function>(*function)?;
                 if f.kind != FunctionKind::BlackBox {
-                    return tx.reject(
-                        "the function is not a black box; place another representation of it with \
-                         `device.place`",
-                    );
+                    return tx.reject(text!("refusal-box-black-not-black-box"));
                 }
                 *function
             }
@@ -1472,10 +1426,7 @@ impl Command for PlaceBlackBox {
             extra: Extra::new(),
         };
         if rep_cps_checked(tx, &record).is_err() {
-            return tx.reject(
-                "the position puts a connection point of the black box outside the drawable range; place it nearer \
-                 the page origin",
-            );
+            return tx.reject(text!("refusal-box-black-out-of-range"));
         }
         tx.insert(record)?;
         Ok(Outcome::primary((Kind::Representation, rep.cast())))
@@ -1505,9 +1456,7 @@ fn place_fndef(
     let r = &symbol.item.fndef;
     let def: Id<FnDef> = ew_ids::v5::lib_copy_id(r.library.as_uuid(), r.item.as_uuid());
     if !tx.exists::<LibCopy<FnDef>>(def) {
-        return tx.reject(
-            "the function definition of the symbol is not embedded in the project; pass `fndef` or embed it",
-        );
+        return tx.reject(text!("refusal-device-place-fndef-missing"));
     }
     Ok(def)
 }
@@ -1569,15 +1518,15 @@ fn insert_from_part(
     let number = copy.item.part_number.as_str().to_owned();
     let entries = copy.item.function_template.clone();
     if entries.is_empty() {
-        return tx.reject(format!(
-            "part {number} has no function template; place a symbol with a `new_device` target"
-        ));
+        return tx.reject(text!("refusal-from-part-no-template", number));
     }
     if usize::from(template) >= entries.len() {
-        return tx.reject(format!(
-            "part {number} has no template entry {template}; it has {} (0 to {})",
-            entries.len(),
-            entries.len() - 1
+        return tx.reject(text!(
+            "refusal-from-part-no-entry",
+            number,
+            template.to_string(),
+            entries.len().to_string(),
+            (entries.len() - 1).to_string()
         ));
     }
     // Every entry's FnDef must be embedded; the kinds follow their contact kinds.
@@ -1585,10 +1534,7 @@ fn insert_from_part(
     for (i, e) in entries.iter().enumerate() {
         let def: Id<FnDef> = ew_ids::v5::lib_copy_id(e.fndef.library.as_uuid(), e.fndef.item.as_uuid());
         let Some(fndef) = tx.get::<LibCopy<FnDef>>(def) else {
-            return tx.reject(format!(
-                "the function definition of template entry {i} of part {number} is not embedded in the project; \
-                 embed it first (`library.embed`)"
-            ));
+            return tx.reject(text!("refusal-part-entry-fndef-missing", i.to_string(), number));
         };
         let kind = if fndef.item.contact_kind == ContactKind::BlackBox {
             FunctionKind::BlackBox
@@ -1601,31 +1547,21 @@ fn insert_from_part(
     // refused here, naming the part, rather than by the invariant at the end of the transaction.
     let mains = entries.iter().filter(|e| e.main).count();
     if mains != 1 {
-        return tx.reject(format!(
-            "the function template of part {number} has {mains} main entries; a device made from it needs \
-             exactly one"
-        ));
+        return tx.reject(text!("refusal-from-part-mains", number, mains.to_string()));
     }
     let (def, kind) = defs[usize::from(template)].clone();
     match placed {
         PartEntry::Normal(symbol_def) => {
             if kind == FunctionKind::BlackBox {
-                return tx.reject(format!(
-                    "template entry {template} of part {number} is a black box; place it with `box.black`"
-                ));
+                return tx.reject(text!("refusal-from-part-black-box", template.to_string(), number));
             }
             if symbol_def != def {
-                return tx.reject(format!(
-                    "the symbol draws another function definition than template entry {template} of part \
-                     {number}; pick a symbol of that entry's function definition"
-                ));
+                return tx.reject(text!("refusal-from-part-other-fndef", template.to_string(), number));
             }
         }
         PartEntry::BlackBox => {
             if kind != FunctionKind::BlackBox {
-                return tx.reject(format!(
-                    "template entry {template} of part {number} is not a black box; place it with `device.place`"
-                ));
+                return tx.reject(text!("refusal-from-part-not-black-box", template.to_string(), number));
             }
         }
     }
@@ -1680,7 +1616,7 @@ fn insert_new_terminal(
 ) -> Result<Id<Function>, CmdError> {
     let strip = tx.require::<Device>(strip_id)?;
     if strip.aspects.strip.is_none() {
-        return tx.reject("the device is not a terminal strip; pick a device with the strip aspect");
+        return tx.reject(text!("refusal-terminal-not-strip"));
     }
     let mut parts = Vec::new();
     if let Some(part) = part {
@@ -1690,11 +1626,7 @@ fn insert_new_terminal(
             let main_def: Id<FnDef> =
                 ew_ids::v5::lib_copy_id(e.fndef.library.as_uuid(), e.fndef.item.as_uuid());
             if main_def != def {
-                return tx.reject(format!(
-                    "part {} is no terminal of the symbol's function definition; pick a symbol of the part's \
-                     main function or another part",
-                    copy.item.part_number.as_str()
-                ));
+                return tx.reject(text!("refusal-new-terminal-part", copy.item.part_number.as_str()));
             }
         }
         parts.push(PartUse {
@@ -1709,17 +1641,12 @@ fn insert_new_terminal(
     }
     let (designations, seqs) = strip_usage(tx, strip_id);
     if designations.contains(designation) {
-        return tx.reject(format!(
-            "designation {} is already used in the strip; choose another",
-            designation.as_str()
-        ));
+        return tx.reject(text!("refusal-terminal-designation-used", designation.as_str()));
     }
     let seq = match seq {
         Some(seq) => {
             if seqs.contains(&seq) {
-                return tx.reject(format!(
-                    "sequence number {seq} is already used in the strip; choose another"
-                ));
+                return tx.reject(text!("refusal-terminal-seq-used", seq.to_string()));
             }
             seq
         }

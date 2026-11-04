@@ -36,6 +36,7 @@ use crate::command::{Command, Outcome};
 use crate::error::CmdError;
 use crate::meta::{CommandMeta, Confirmation, Exposure};
 use crate::proxy::{IdentS, MlTextS, UuidS};
+use crate::text::text;
 use crate::tx::TxBuilder;
 
 /// The rule ID of the label format and order rule (doc 15 §4.8), whose prevent half `revision.create` applies.
@@ -150,10 +151,7 @@ impl Command for CreateRevision {
             .iter()
             .find(|r| !r.is_withdrawal() && r.label == self.label)
         {
-            return tx.reject(format!(
-                "revision {} already has the label {}; a label names one revision",
-                twin.id, self.label
-            ));
+            return tx.reject(text!("refusal-revision-label-used", twin.id.to_string(), self.label.to_string()));
         }
         let state = match self.state {
             NewRevisionState::Open => RevisionState::Open,
@@ -161,18 +159,15 @@ impl Command for CreateRevision {
         };
         if state == RevisionState::Open {
             if let Some(open) = revisions.iter().find(|r| r.is_open()) {
-                return tx.reject(format!(
-                    "revision {} ({}) is open; at most one revision collects the current edits",
-                    open.label, open.id
-                ));
+                return tx.reject(text!("refusal-revision-open", open.label.to_string(), open.id.to_string()));
             }
         }
         if state == RevisionState::Released {
             if let Some(released) = revisions.iter().find(|r| r.release.is_some()) {
-                return tx.reject(format!(
-                    "revision {} ({}) has a release record; a historic released revision cannot follow a \
-                     release by ElektraWatt: a release goes through revision.release and its gate",
-                    released.label, released.id
+                return tx.reject(text!(
+                    "refusal-revision-released",
+                    released.label.to_string(),
+                    released.id.to_string()
                 ));
             }
         }
@@ -402,9 +397,11 @@ impl Command for WithdrawRevision {
             .iter()
             .find(|r| r.is_withdrawal() && r.withdraws == Some(self.revision))
         {
-            return tx.reject(format!(
-                "revision {} ({}) is withdrawn already by the withdrawal record {}",
-                revision.label, revision.id, earlier.id
+            return tx.reject(text!(
+                "refusal-revision-withdrawn",
+                revision.label.to_string(),
+                revision.id.to_string(),
+                earlier.id.to_string()
             ));
         }
         let id: Id<Revision> = v5::revision_withdrawal_id(self.revision);

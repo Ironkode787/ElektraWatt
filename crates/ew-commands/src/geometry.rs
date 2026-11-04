@@ -17,6 +17,7 @@ use ew_schema::{Connection, Dir4, Endpoint, Function, Junction, LibCopy, Page, R
 use ew_units::{Grid, Nm, Pt2};
 
 use crate::error::CmdError;
+use crate::text::{Text, TextArg, text};
 use crate::tx::TxBuilder;
 
 /// The largest coordinate magnitude a record can hold: 2⁵³ − 1 nm (ADR-0005).
@@ -380,24 +381,21 @@ pub fn point_on_grid(grid: Grid, p: Pt2) -> bool {
 /// the point is, its position in mm and its page, no nm and no JSON Pointer ("the wire's corner at x 77, y 161 mm
 /// on page 101 is not on the drawing grid"). A fragment: each caller ends it with the step the user can take
 /// (FT-1054, ID-1108).
-pub(crate) fn off_grid(tx: &TxBuilder<'_>, what: &str, page: Id<Page>, p: Pt2) -> String {
-    format!(
-        "{what} at {} is not on the drawing grid",
-        crate::words::point(tx, page, p)
-    )
+pub(crate) fn off_grid(tx: &TxBuilder<'_>, what: impl Into<TextArg>, page: Id<Page>, p: Pt2) -> Text {
+    text!("refusal-geometry-off-grid", what.into(), crate::words::point(tx, page, p))
 }
 
 /// What the JSON Pointer of a position checked by [`require_on_grid`] names, in words: a split point
 /// (`…/on_connection/at`), an outline vertex (`/outline/<i>`), a box CP (`…/cps/<i>/pos`), else a position.
-fn what_of(field: &str) -> &'static str {
+fn what_of(field: &str) -> Text {
     if field.ends_with("/at") {
-        "the branch point"
+        text!("refusal-geometry-branch-point")
     } else if field.starts_with("/outline/") {
-        "the outline's corner"
+        text!("refusal-geometry-outline-corner")
     } else if field.contains("cps/") {
-        "the box's connection point"
+        text!("refusal-geometry-box-cp")
     } else {
-        "the position"
+        text!("refusal-geometry-position")
     }
 }
 
@@ -411,8 +409,8 @@ fn what_of(field: &str) -> &'static str {
 pub fn require_on_grid(tx: &TxBuilder<'_>, page: Id<Page>, pos: Pt2, field: &str) -> Result<(), CmdError> {
     let grid = tx.require::<Page>(page)?.grid;
     if !point_in_range(pos) {
-        return tx.reject(format!(
-            "{} at {} lies outside the drawable range; move it nearer the page origin",
+        return tx.reject(text!(
+            "refusal-geometry-out-of-range",
             what_of(field),
             crate::words::position(pos)
         ));
@@ -420,8 +418,8 @@ pub fn require_on_grid(tx: &TxBuilder<'_>, page: Id<Page>, pos: Pt2, field: &str
     if point_on_grid(grid, pos) {
         return Ok(());
     }
-    tx.reject(format!(
-        "{}; move it onto the grid",
+    tx.reject(text!(
+        "refusal-geometry-onto-grid",
         off_grid(tx, what_of(field), page, pos)
     ))
 }
@@ -497,17 +495,17 @@ pub fn require_route(
     let grid = tx.require::<Page>(page)?.grid;
     let what = |i: usize| {
         if i == 0 {
-            "the wire's start"
+            text!("refusal-geometry-wire-start")
         } else if i + 1 == route.len() {
-            "the wire's end"
+            text!("refusal-geometry-wire-end")
         } else {
-            "the wire's corner"
+            text!("refusal-geometry-wire-corner")
         }
     };
     for (i, v) in route.iter().enumerate() {
         if !point_in_range(*v) {
-            return tx.reject(format!(
-                "{} at {} lies outside the drawable range; draw the wire nearer the page origin",
+            return tx.reject(text!(
+                "refusal-geometry-route-out-of-range",
                 what(i),
                 crate::words::point(tx, page, *v)
             ));
@@ -526,27 +524,28 @@ pub fn require_route(
                 .get::<Function>(*function)
                 .is_some_and(|f| matches!(f.kind, ew_schema::FunctionKind::Ip(_)));
             let pin = if is_ip {
-                format!(
-                    "the connection point of {}",
+                text!(
+                    "refusal-geometry-ip-pin",
                     crate::words::interruption_point(tx, *function)
                 )
             } else {
-                format!(
-                    "connection point {}",
+                text!(
+                    "refusal-geometry-pin",
                     crate::normalise::channel_instantiation::cp_words(tx, *function, *idx)
                 )
             };
             let (at, cp_at) = (crate::words::position(v), crate::words::position(cp));
             // two positions that print alike in mm are told apart by the gap, not by the same words twice
             let miss = if at == cp_at {
-                format!("misses {pin} by less than 0.1 mm")
+                text!("refusal-geometry-misses", pin)
             } else {
-                format!("does not meet {pin} at {cp_at}")
+                text!("refusal-geometry-does-not-meet", pin, cp_at)
             };
-            return tx.reject(format!(
-                "{} at {} {miss}; end the wire at its connection point",
+            return tx.reject(text!(
+                "refusal-geometry-end-off-cp",
                 what(i),
-                crate::words::point(tx, page, v)
+                crate::words::point(tx, page, v),
+                miss
             ));
         }
         exact.push(cp);
@@ -555,22 +554,21 @@ pub fn require_route(
         let ok_x = on_grid(grid, v.x) || exact.iter().any(|c| c.x == v.x);
         let ok_y = on_grid(grid, v.y) || exact.iter().any(|c| c.y == v.y);
         if !(ok_x && ok_y) {
-            return tx.reject(format!(
-                "{}; move the corner onto the grid",
+            return tx.reject(text!(
+                "refusal-geometry-corner-onto-grid",
                 off_grid(tx, what(i), page, *v)
             ));
         }
     }
     match route_defect(route) {
         None => Ok(()),
-        Some(RouteDefect::Duplicate(i)) => tx.reject(format!(
-            "{} at {} repeats the corner before it; remove the duplicate corner",
+        Some(RouteDefect::Duplicate(i)) => tx.reject(text!(
+            "refusal-geometry-duplicate-corner",
             what(i),
             crate::words::point(tx, page, route[i])
         )),
-        Some(RouteDefect::Overlap(i, j)) => tx.reject(format!(
-            "the wire runs back over itself on {}: its stretch from {} to {} lies on its stretch from {} to {}; \
-             remove the stretch it runs back over",
+        Some(RouteDefect::Overlap(i, j)) => tx.reject(text!(
+            "refusal-geometry-overlap",
             crate::words::page(tx, page),
             crate::words::position(route[j]),
             crate::words::position(route[j + 1]),

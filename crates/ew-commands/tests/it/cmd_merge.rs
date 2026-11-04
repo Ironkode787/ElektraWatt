@@ -256,12 +256,9 @@ fn a_file_level_conflict_whose_line_does_not_read_is_refused() {
         json!({"choices": [{"conflict": conflict_id, "take": "theirs"}]}),
     );
     assert_eq!(
-        e.execute(&take).unwrap_err(),
-        CmdError::rejected(
-            "merge.resolve",
-            "line 1 of the file the merge could not read is not a record this version reads; take the other side, \
-             or fix the file"
-        )
+        e.execute(&take).unwrap_err().to_string(),
+        "merge.resolve: line 1 of the file the merge could not read is not a record this version reads; take the \
+         other side, or fix the file"
     );
     assert_eq!(lines(e.model()), before);
 }

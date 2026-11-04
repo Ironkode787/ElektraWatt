@@ -16,6 +16,7 @@ use sha2::Digest;
 use crate::command::{Command, Outcome};
 use crate::error::CmdError;
 use crate::meta::CommandMeta;
+use crate::text::text;
 use crate::tx::TxBuilder;
 
 /// `library.embed` (`EmbedLibraryCopies`): embeds library items into the project, each as a copy that
@@ -196,9 +197,7 @@ impl Command for EmbedLibraryCopies {
             }
             let kind = doc.kind().expect("an implemented kind");
             if tx.row(&(kind, l.id)).is_some() {
-                return tx.reject(format!(
-                    "the project holds this {kind} already; take another version of it with update from library"
-                ));
+                return tx.reject(text!("refusal-library-embed-held", kind.to_string()));
             }
             docs.push((kind, doc));
         }

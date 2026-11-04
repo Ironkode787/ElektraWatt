@@ -40,6 +40,7 @@ use crate::commands::assign::embed_closure;
 use crate::error::CmdError;
 use crate::meta::{CommandMeta, Cost};
 use crate::proxy::{IdentS, NmS, Pose3S, SurfacePt2S, UuidS};
+use crate::text::{Text, TextArg, text};
 use crate::tx::TxBuilder;
 
 /// The layout deletes are `Bulk` when they remove or rehome more than this many placements (D6).
@@ -149,8 +150,20 @@ impl PlaceMode {
 // Shared reads and checks
 
 /// `"<tag>"` of a device.
-fn tag(tx: &TxBuilder<'_>, device: Id<Device>) -> String {
+fn tag(tx: &TxBuilder<'_>, device: Id<Device>) -> TextArg {
     crate::words::device(tx, device)
+}
+
+/// A mount kind or a rail profile in words ([`mount_label`]'s, keyed): a profile name stays as it is.
+fn mount_words(kind: &MountKind) -> TextArg {
+    match kind {
+        MountKind::Screw => text!("refusal-layout-mount-screw").into(),
+        MountKind::BusbarAdapter => text!("refusal-layout-mount-busbar-adapter").into(),
+        MountKind::DoorCutout => text!("refusal-layout-mount-door-cutout").into(),
+        MountKind::OnParent => text!("refusal-layout-mount-on-parent").into(),
+        MountKind::None => text!("refusal-layout-mount-none").into(),
+        other => TextArg::Plain(mount_label(other)),
+    }
 }
 
 /// The part copy of a part use, if the project holds it.
@@ -232,9 +245,7 @@ fn target(tx: &TxBuilder<'_>, name: &'static str, at: &str, on: CarrierRef) -> R
             match (&carrier.kind, &carrier.params) {
                 (CarrierKind::Rail, params) => {
                     let Some(axis) = RailAxis::of(&carrier.path) else {
-                        return tx.reject(
-                            "the rail's path is not two points on one horizontal or vertical line; edit the rail first",
-                        );
+                        return tx.reject(text!("refusal-layout-rail-path"));
                     };
                     let profile = match params {
                         CarrierParams::Rail(r) => Some(r.profile.clone()),
@@ -250,7 +261,7 @@ fn target(tx: &TxBuilder<'_>, name: &'static str, at: &str, on: CarrierRef) -> R
                     profile: None,
                 }),
                 (CarrierKind::Unknown(_), _) => {
-                    tx.reject("the carrier is of a kind this build does not know; it carries no placements")
+                    tx.reject(text!("refusal-layout-carrier-unknown"))
                 }
             }
         }
@@ -293,10 +304,7 @@ fn check_fit(
                 .and_then(|m| m.mount_kind.as_ref())
                 .is_some_and(|k| matches!(k, MountKind::None | MountKind::OnParent))
         }) {
-            return tx.reject(format!(
-                "Part {} does not mount on a surface; choose a part that mounts on it.",
-                copy.item.part_number.as_str()
-            ));
+            return tx.reject(text!("refusal-layout-part-no-surface", copy.item.part_number.as_str()));
         }
     }
     let Some(profile) = &target.profile else {
@@ -304,11 +312,12 @@ fn check_fit(
     };
     let mount = part.and_then(|p| mech_of(tx, p.copy)).and_then(|m| m.mount_kind);
     if fits_rail(mount.as_ref(), profile) == Fit::DoesNotFit {
-        let mount = mount.as_ref().map(mount_label).unwrap_or_default();
-        return tx.reject(format!(
-            "{} ({mount}) does not fit a {} rail",
+        let mount = mount.as_ref().map_or_else(|| TextArg::Plain(String::new()), mount_words);
+        return tx.reject(text!(
+            "refusal-layout-does-not-fit",
             tag(tx, device),
-            mount_label(profile)
+            mount,
+            mount_words(profile)
         ));
     }
     Ok(())
@@ -316,7 +325,19 @@ fn check_fit(
 
 /// Refuses a pose outside the target's degrees of freedom or off its rail (D5).
 fn check_pose_on(tx: &TxBuilder<'_>, target: &Target, pose: &Pose3) -> Result<(), CmdError> {
-    check_pose(target.on, pose).or_else(|e: PoseError| tx.reject(e.to_string()))
+    check_pose(target.on, pose).or_else(|e: PoseError| tx.reject(pose_words(&e)))
+}
+
+/// A pose off its carrier in words ([`PoseError`]'s text, keyed).
+fn pose_words(e: &PoseError) -> Text {
+    match e {
+        PoseError::OffRailAxis => text!("refusal-layout-pose-rail-axis"),
+        PoseError::RailTurn => text!("refusal-layout-pose-rail-turn"),
+        PoseError::OffRail(s, l) => text!("refusal-layout-pose-off-rail", mm(*s), mm(*l)),
+        PoseError::OffSurface => text!("refusal-layout-pose-surface-plane"),
+        PoseError::SurfaceTurn => text!("refusal-layout-pose-surface-turn"),
+        PoseError::OnDuct => text!("refusal-layout-pose-duct"),
+    }
 }
 
 /// The number of placements a delete plan of `keys` would remove (0 when the plan cannot be made: `run` refuses it).
@@ -476,13 +497,8 @@ impl Command for CreateLayoutSpace {
             // ID-900: the space in words, by its name, else as the layout space of its location; never by its ID.
             let code = node.code.as_str();
             return tx.reject(match first.name.as_ref() {
-                Some(n) => format!(
-                    "location {code} already has layout space \"{}\"; a location has one layout space",
-                    n.as_str()
-                ),
-                None => format!(
-                    "the layout space of location {code} already exists; a location has one layout space"
-                ),
+                Some(n) => text!("refusal-layout-space-named-exists", code, n.as_str()),
+                None => text!("refusal-layout-space-exists", code),
             });
         }
         let id = insert_space(tx, self.location, self.name.clone())?;
@@ -505,10 +521,7 @@ fn checked_location(
         ));
     };
     if node.aspect != Open::Known(ew_rds::Aspect::Location) {
-        return tx.reject(format!(
-            "node {} is not a location; a layout space lays out a location",
-            node.code.as_str()
-        ));
+        return tx.reject(text!("refusal-layout-space-not-location", node.code.as_str()));
     }
     Ok(node)
 }
@@ -627,10 +640,7 @@ impl Command for CreateEnclosure {
         if let Some(first) = tx.iter::<Enclosure>().into_iter().find(|e| e.space == self.space) {
             // ID-1106 (FT-1033): the refusal names the next step, as the location's does.
             let tag = tag(tx, first.device);
-            return tx.reject(format!(
-                "the layout space already has enclosure {tag}; a layout space has one enclosure. \
-                 Choose another layout space, or edit {tag}"
-            ));
+            return tx.reject(text!("refusal-layout-space-has-enclosure", tag));
         }
         let Some(section) = device
             .parts
@@ -638,10 +648,7 @@ impl Command for CreateEnclosure {
             .filter_map(|u| part_copy(tx, u.part.copy))
             .find_map(|c| c.item.sections.enclosure.clone())
         else {
-            return tx.reject(format!(
-                "{}: the device has no enclosure part",
-                tag(tx, self.device)
-            ));
+            return tx.reject(text!("refusal-layout-no-enclosure-part", tag(tx, self.device)));
         };
         let enclosure = insert_enclosure(
             tx,
@@ -991,10 +998,7 @@ impl Command for DeleteCarrier {
         match (self.then, placements.is_empty()) {
             (_, true) => {}
             (None, false) => {
-                return tx.reject(format!(
-                    "the carrier holds {} placement(s); give `then`: `remove_placements` or `rehome_to_surface`",
-                    placements.len()
-                ));
+                return tx.reject(text!("refusal-layout-carrier-holds", placements.len().to_string()));
             }
             (Some(CarrierThen::RemovePlacements), false) => {
                 let keys: Vec<AnyKey> = placements.iter().map(|p| (Kind::Placement, p.cast())).collect();
@@ -1006,20 +1010,14 @@ impl Command for DeleteCarrier {
                     _ => None,
                 };
                 let Some(axis) = axis else {
-                    return tx.reject(
-                        "only the placements of a rail (two points on one horizontal or vertical line) rehome to \
-                         its surface",
-                    );
+                    return tx.reject(text!("refusal-layout-rehome-rail-only"));
                 };
                 for p in placements {
                     let row = tx.require::<Placement>(p)?;
                     let device = tx.require::<Device>(row.device)?;
                     let clip = placement_clip(tx, &device, row.part.as_ref());
                     let Some(pose) = rehome_pose(&axis, &row.pose, clip) else {
-                        return tx.reject(format!(
-                            "the placement of {} has a pose off the rail; move or remove it first",
-                            tag(tx, row.device)
-                        ));
+                        return tx.reject(text!("refusal-layout-rehome-off-rail", tag(tx, row.device)));
                     };
                     let surface = carrier.surface;
                     tx.update::<Placement>(p, |pl| {
@@ -1102,7 +1100,7 @@ fn note_rail_reads(tx: &TxBuilder<'_>, carrier: Id<Carrier>, devices: &[&Device]
 /// `Nm` range.
 fn rail_pose(tx: &TxBuilder<'_>, axis: &RailAxis, s: i128, like: &Pose3) -> Result<Pose3, CmdError> {
     let Ok(x) = i64::try_from(s) else {
-        return tx.reject(PoseError::OffRail(s, axis.length).to_string());
+        return tx.reject(pose_words(&PoseError::OffRail(s, axis.length)));
     };
     Ok(Pose3 {
         t: [Nm(x), Nm::ZERO, Nm::ZERO],
@@ -1117,60 +1115,61 @@ struct Wording<'n> {
     /// The mode resolved (swap words its refusals as swapping).
     mode: PlaceMode,
     /// The dropped item: a device's tag, or "the assembly -201U1" for an assembly's block.
-    item: String,
+    item: TextArg,
     /// The tag of each placement minted by the command and not inserted yet.
     names: &'n BTreeMap<Id<Placement>, String>,
 }
 
 /// D5's refusal of a mode, in words: the rail by its label in a sentence ("rail 1", ruling 4), devices by their tags.
-fn snap_text(tx: &TxBuilder<'_>, q: &Q, w: &Wording<'_>, e: SnapError) -> String {
-    let item = &w.item;
-    let verb = if w.mode == PlaceMode::Swap {
-        "Swapping"
-    } else {
-        "Pushing"
-    };
+fn snap_text(tx: &TxBuilder<'_>, q: &Q, w: &Wording<'_>, e: SnapError) -> Text {
+    let item = w.item.clone();
+    let swap = w.mode == PlaceMode::Swap;
     let placed = |p: Option<Id<Placement>>| match p.and_then(|p| w.names.get(&p)) {
-        Some(name) => name.clone(),
+        Some(name) => TextArg::Plain(name.clone()),
         None => p
             .and_then(|p| tx.get::<Placement>(p))
-            .map_or_else(|| "a placement".to_owned(), |pl| tag(tx, pl.device)),
+            .map_or_else(|| text!("refusal-layout-a-placement").into(), |pl| tag(tx, pl.device)),
     };
     match e {
         SnapError::NoGap { width } => {
-            let rail = carrier_label(q, w.carrier).map_or_else(|| "the rail".to_owned(), |l| l.in_sentence());
-            format!("No gap on {rail} is wide enough for {item} ({} mm).", mm(width))
+            let rail = rail_in_sentence(q, w.carrier);
+            text!("refusal-layout-snap-no-gap", rail, item, mm(width))
         }
-        SnapError::MovedLocked => format!("Unlock {item} to push or swap it."),
-        SnapError::Locked(p) => format!("{verb} would move {}, which is locked.", placed(p)),
+        SnapError::MovedLocked => text!("refusal-layout-snap-unlock", item),
+        SnapError::Locked(p) if swap => text!("refusal-layout-snap-swap-locked", placed(p)),
+        SnapError::Locked(p) => text!("refusal-layout-snap-push-locked", placed(p)),
         SnapError::PastEnd {
             neighbour: Some(p),
             by,
-        } => format!(
-            "{verb} would move {} past the rail end by {} mm.",
-            placed(Some(p)),
-            mm(by)
-        ),
+        } if swap => text!("refusal-layout-snap-swap-past-end", placed(Some(p)), mm(by)),
+        SnapError::PastEnd {
+            neighbour: Some(p),
+            by,
+        } => text!("refusal-layout-snap-push-past-end", placed(Some(p)), mm(by)),
         SnapError::PastEnd { neighbour: None, by } => {
-            format!(
-                "{} would pass the rail end by {} mm.",
-                sentence_start(item),
-                mm(by)
-            )
+            text!("refusal-layout-snap-item-past-end", sentence_start(&item), mm(by))
         }
-        SnapError::SwapAcrossRails => {
-            "Swap works within one rail; use push or free to place it there.".to_owned()
-        }
-        SnapError::SwapNoTarget => "Drop onto a placement to swap with it.".to_owned(),
+        SnapError::SwapAcrossRails => text!("refusal-layout-snap-swap-across"),
+        SnapError::SwapNoTarget => text!("refusal-layout-snap-swap-no-target"),
     }
 }
 
-/// A text with its first letter in upper case (a sentence that starts with "the assembly …").
-fn sentence_start(text: &str) -> String {
-    let mut chars = text.chars();
-    match chars.next() {
-        Some(c) => c.to_uppercase().chain(chars).collect(),
-        None => String::new(),
+/// An item at the start of a sentence ("the assembly …" as "The assembly …"): a plain text with its first letter in
+/// upper case, a keyed one by its sentence-start key.
+fn sentence_start(item: &TextArg) -> TextArg {
+    match item {
+        TextArg::Plain(text) => {
+            let mut chars = text.chars();
+            TextArg::Plain(match chars.next() {
+                Some(c) => c.to_uppercase().chain(chars).collect(),
+                None => String::new(),
+            })
+        }
+        TextArg::Text(t) => match (t.key(), t.args()) {
+            ("refusal-layout-the-assembly", [root]) => text!("refusal-layout-the-assembly-start", root.clone()).into(),
+            ("refusal-words-device-gone", []) => text!("refusal-words-device-gone-start").into(),
+            _ => item.clone(),
+        },
     }
 }
 
@@ -1269,7 +1268,7 @@ fn mode_on_rail(
     };
     match (target.on, carrier) {
         (PoseOn::Rail(axis), CarrierRef::Carrier(c)) => Ok(Some((*c, axis, mode))),
-        (PoseOn::Surface, _) if mode != PlaceMode::Free => tx.reject("Push and swap work on a rail."),
+        (PoseOn::Surface, _) if mode != PlaceMode::Free => tx.reject(text!("refusal-layout-modes-on-rail")),
         _ => Ok(None),
     }
 }
@@ -1392,10 +1391,7 @@ impl Command for PlaceDevice {
             .map(|p| placement_key(p.device, p.part.as_ref(), p.function))
             .collect();
         if placed.contains(&key) {
-            return tx.reject(format!(
-                "{} is already placed with this part and function; move its placement instead",
-                tag(tx, self.device)
-            ));
+            return tx.reject(text!("refusal-layout-already-placed", tag(tx, self.device)));
         }
         check_fit(tx, self.device, part.as_ref(), &target)?;
         check_pose_on(tx, &target, &self.pose)?;
@@ -1512,10 +1508,7 @@ impl Command for MovePlacement {
                     .filter_map(|p| tx.get::<Placement>(p))
                     .any(|p| placement_key(p.device, p.part.as_ref(), p.function) == key);
                 if taken {
-                    return tx.reject(format!(
-                        "{} is already placed with this part and function; move its placement instead",
-                        tag(tx, current.device)
-                    ));
+                    return tx.reject(text!("refusal-layout-already-placed", tag(tx, current.device)));
                 }
                 Some(u.part.clone())
             }
@@ -1808,8 +1801,8 @@ fn moved_poses(
 }
 
 /// The rail by its label in a sentence ("rail 3"); "the rail" without one.
-fn rail_in_sentence(q: &Q, carrier: Id<Carrier>) -> String {
-    carrier_label(q, carrier).map_or_else(|| "the rail".to_owned(), |l| l.in_sentence())
+fn rail_in_sentence(q: &Q, carrier: Id<Carrier>) -> Text {
+    carrier_label(q, carrier).map_or_else(|| text!("refusal-layout-the-rail"), crate::words::carrier_in_sentence)
 }
 
 /// The full designation of a device as the derived tag prints it (empty without one), for sorting.
@@ -1957,18 +1950,15 @@ impl Command for PlaceAssembly {
         };
         let target = target(tx, name, "/carrier", self.carrier.to_ref())?;
         let (PoseOn::Rail(axis), PlaceOnParam::Carrier(rail)) = (target.on, self.carrier) else {
-            return tx.reject("An assembly is placed on a rail.");
+            return tx.reject(text!("refusal-layout-assembly-on-rail"));
         };
         if self.mode == Some(PlaceMode::Swap) {
-            return tx.reject("Swap works with one placement; place an assembly in free or push mode.");
+            return tx.reject(text!("refusal-layout-assembly-swap"));
         }
         let base_model = tx.base_model().clone();
         let q = Q::new(&base_model);
         let Some(root) = assembly_root_tx(tx, &device) else {
-            return tx.reject(format!(
-                "{} is not part of an assembly; place it on its own.",
-                tag(tx, self.device)
-            ));
+            return tx.reject(text!("refusal-layout-not-assembly", tag(tx, self.device)));
         };
         // Finding 1 of cycle-42 review part 2: how the members are chosen and ordered is in the read set.
         note_members(tx, root);
@@ -2000,10 +1990,7 @@ impl Command for PlaceAssembly {
             }
         }
         if unplaced.is_empty() {
-            return tx.reject(format!(
-                "Every member of {} that mounts is already placed.",
-                tag(tx, root)
-            ));
+            return tx.reject(text!("refusal-layout-assembly-placed", tag(tx, root)));
         }
         let block_s = match (on_rail.is_empty(), self.s) {
             (true, None) => {
@@ -2026,7 +2013,7 @@ impl Command for PlaceAssembly {
         }
         let members: Vec<Member> = unplaced.into_iter().map(|d| member(tx, &q, d)).collect();
         let names: BTreeMap<Id<Placement>, String> =
-            members.iter().map(|m| (m.id, tag(tx, m.device.id))).collect();
+            members.iter().map(|m| (m.id, tag(tx, m.device.id).to_string())).collect();
         let base = rail_items(&q, rail);
         let mut mem = base.clone();
         match block_s {
@@ -2034,7 +2021,7 @@ impl Command for PlaceAssembly {
                 let (offsets, block) = block_of(members.iter().map(|m| &m.item));
                 let item = match members.as_slice() {
                     [one] => tag(tx, one.device.id),
-                    _ => format!("the assembly {}", tag(tx, root)),
+                    _ => text!("refusal-layout-the-assembly", tag(tx, root)).into(),
                 };
                 let wording = Wording {
                     carrier: rail,
@@ -2236,7 +2223,7 @@ impl Command for AutoFill {
         let carrier = self.carrier;
         let target = target(tx, name, "/carrier", CarrierRef::Carrier(carrier))?;
         let PoseOn::Rail(axis) = target.on else {
-            return tx.reject("Auto-fill works on a rail.");
+            return tx.reject(text!("refusal-layout-auto-fill-rail"));
         };
         let base_model = tx.base_model().clone();
         let q = Q::new(&base_model);
@@ -2319,11 +2306,11 @@ impl Command for AutoFill {
         let notices: Vec<String> = notices.into_iter().flatten().collect();
         if placed.is_empty() {
             let why = if notices.is_empty() {
-                "no device to place.".to_owned()
+                text!("refusal-layout-auto-fill-no-device").into()
             } else {
-                notices.join("; ")
+                TextArg::Plain(notices.join("; "))
             };
-            return tx.reject(format!("Nothing was placed on {rail}: {why}"));
+            return tx.reject(text!("refusal-layout-auto-fill-nothing", rail, why));
         }
         for (m, pose) in placed {
             tx.insert(Placement {
@@ -2522,10 +2509,7 @@ impl Command for CreateEnclosureFromPart {
             ));
         };
         let Some(section) = copy.item.sections.enclosure.clone() else {
-            return tx.reject(format!(
-                "{} has no enclosure section; choose an enclosure part.",
-                copy.item.part_number.as_str()
-            ));
+            return tx.reject(text!("refusal-layout-no-enclosure-section", copy.item.part_number.as_str()));
         };
         if let Some(f) = self.function {
             let Some(fnode) = tx.get::<StructureNode>(f) else {
@@ -2561,19 +2545,13 @@ impl Command for CreateEnclosureFromPart {
                 // ID-1106 (FT-1033): "Location +{location} already has enclosure {tag}; a location has one
                 // enclosure. Choose another location, or edit {tag}."
                 let tag = tag(tx, e.device);
-                return tx.reject(format!(
-                    "location +{} already has enclosure {tag}; a location has one enclosure. \
-                     Choose another location, or edit {tag}",
-                    codes.join("+"),
-                ));
+                return tx.reject(text!("refusal-layout-location-has-enclosure", codes.join("+"), tag));
             }
         }
         let plate = plate_copy_id(&section);
         if plate.is_some_and(|p| !tx.exists::<LibCopy<Part>>(p)) {
             // The copy is not held, so its part number is not known here (lane E42: the brief's text named it).
-            return tx.reject(
-                "the enclosure part names a plate part that the project does not hold; add it to copies",
-            );
+            return tx.reject(text!("refusal-layout-plate-part-missing"));
         }
         let space = match existing {
             Some(s) => s,
@@ -2743,7 +2721,7 @@ impl Command for EditEnclosure {
             ));
         }
         if Quarter::of(self.pose.q) != Some(Quarter::NONE) {
-            return tx.reject("an enclosure's pose is a translation at this version; give it without a turn");
+            return tx.reject(text!("refusal-layout-enclosure-turn"));
         }
         let pose = self.pose;
         tx.update::<Enclosure>(self.enclosure, |e| e.pose = pose)?;

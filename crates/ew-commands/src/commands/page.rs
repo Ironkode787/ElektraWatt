@@ -23,6 +23,7 @@ use crate::command::{Command, Outcome};
 use crate::error::CmdError;
 use crate::meta::CommandMeta;
 use crate::proxy::{GridS, IdentS, MlTextS, Pt2S, UuidS};
+use crate::text::{Text, text};
 use crate::tx::TxBuilder;
 
 fn multi_line() -> PageType {
@@ -183,20 +184,20 @@ fn explicit_folio_problem(
     section: Option<Id<Section>>,
     number: u32,
     printed: &str,
-) -> Option<String> {
+) -> Option<Text> {
     if let Some(s) = sec {
         let (first, last) = s.folio_range;
         if number < first || number > last {
-            return Some(format!(
-                "folio {printed} lies outside section {}'s folio range {first} to {last}; choose a folio in the range",
-                s.number
+            return Some(text!(
+                "refusal-page-create-outside-range",
+                printed,
+                s.number.to_string(),
+                first.to_string(),
+                last.to_string()
             ));
         }
         if s.divider && printed == first.to_string() {
-            return Some(format!(
-                "folio {printed} is the divider page of section {}; choose another folio",
-                s.number
-            ));
+            return Some(text!("refusal-page-create-divider", printed, s.number.to_string()));
         }
     }
     for b in tx.iter::<ReportBlock>() {
@@ -211,9 +212,7 @@ fn explicit_folio_problem(
                     .strip_prefix(&head)
                     .is_some_and(|rest| rest.starts_with('.')));
         if generated {
-            return Some(format!(
-                "folio {printed} is a page the report block at folio {first} generates; choose another folio"
-            ));
+            return Some(text!("refusal-page-create-generated", printed, first.to_string()));
         }
     }
     None
@@ -229,7 +228,7 @@ impl Command for CreatePage {
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
         if self.kind == PageType::Report {
             return tx
-                .reject("report pages are generated from report blocks (EW-INV-012); create a report block");
+                .reject(text!("refusal-page-create-report"));
         }
         if let Some(form) = self.form {
             tx.require::<ew_schema::LibCopy<FormDef>>(form)?;
@@ -239,15 +238,13 @@ impl Command for CreatePage {
             (None, Some(after)) => {
                 let after = tx.require::<Page>(after)?;
                 if self.section.is_some() && self.section != after.folio.section {
-                    return tx.reject(
-                        "`section` differs from the section of `after`; omit it or give an explicit `number`",
-                    );
+                    return tx.reject(text!("refusal-page-create-section"));
                 }
                 let (n, label) = propose_folio(tx, &after)?;
                 (after.folio.section, n, label)
             }
             (None, None) => {
-                return tx.reject("give an explicit folio `number` or the page to insert `after`");
+                return tx.reject(text!("refusal-page-create-no-folio"));
             }
         };
         let sec = match section {
@@ -264,9 +261,7 @@ impl Command for CreatePage {
             .iter()
             .any(|(_, f)| printed_folio(f.number, f.label.as_ref()) == printed)
         {
-            return tx.reject(format!(
-                "folio {printed} already exists in this section; choose a free folio"
-            ));
+            return tx.reject(text!("refusal-page-create-exists", printed));
         }
         let id: Id<Page> = tx.mint();
         tx.insert(Page {
@@ -320,7 +315,7 @@ impl Command for DeletePages {
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
         if self.pages.is_empty() {
-            return tx.reject("no pages given; name at least one page");
+            return tx.reject(text!("refusal-page-delete-none"));
         }
         for page in &self.pages {
             tx.require::<Page>(*page)?;
@@ -424,7 +419,7 @@ impl Command for RenumberPages {
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
         if self.step == 0 {
-            return tx.reject("`step` must be at least 1");
+            return tx.reject(text!("refusal-page-renumber-step"));
         }
         let mut scope: Vec<Arc<Page>> = match &self.scope {
             PageScope::Pages(ids) => {
@@ -445,7 +440,7 @@ impl Command for RenumberPages {
             PageScope::Project => tx.iter::<Page>(),
         };
         if scope.is_empty() {
-            return tx.reject("no pages in scope; name pages, a section or the project with pages");
+            return tx.reject(text!("refusal-page-renumber-no-pages"));
         }
         let section_number = |p: &Page| {
             p.folio
@@ -480,9 +475,7 @@ impl Command for RenumberPages {
                 i64::from(self.start) + index * i64::from(self.step)
             };
             let Ok(new) = u32::try_from(new) else {
-                return tx.reject(format!(
-                    "new folio number {new} is out of range; choose another `start` or `step`"
-                ));
+                return tx.reject(text!("refusal-page-renumber-out-of-range", new.to_string()));
             };
             new_numbers.push((p.id, new));
         }
@@ -497,9 +490,7 @@ impl Command for RenumberPages {
             .collect();
         for (p, &(_, new)) in scope.iter().zip(&new_numbers) {
             if taken.contains(&(p.folio.section, new, p.folio.label.clone())) {
-                return tx.reject(format!(
-                    "folio {new} is already used by a page outside the renumbered pages; choose another `start` or include that page"
-                ));
+                return tx.reject(text!("refusal-page-renumber-used", new.to_string()));
             }
         }
         // FT-475: a label that carries the printed folio of its parent (FT-460's `101.1`, an imported `101.1.1`, or
@@ -544,9 +535,7 @@ impl Command for RenumberPages {
             }
             for (section, text, relabelled) in texts {
                 if relabelled && printed[&(section, text.clone())] > 1 {
-                    return tx.reject(format!(
-                        "sub-page label {text} is already used by another page of the section; choose another `start`"
-                    ));
+                    return tx.reject(text!("refusal-page-renumber-label-used", text.to_string()));
                 }
             }
         }
@@ -778,8 +767,8 @@ impl Command for SetSurfaceView {
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
         let page = tx.require::<Page>(self.page)?;
         if page.kind != PageType::PanelLayout {
-            return tx.reject(format!(
-                "folio {} is not a panel-layout page; a surface view goes on a panel-layout page",
+            return tx.reject(text!(
+                "refusal-page-surface-view-not-layout",
                 printed_folio(page.folio.number, page.folio.label.as_ref())
             ));
         }

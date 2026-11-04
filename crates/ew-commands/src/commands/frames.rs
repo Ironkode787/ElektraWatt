@@ -16,6 +16,7 @@ use crate::command::{Command, Outcome};
 use crate::error::CmdError;
 use crate::meta::CommandMeta;
 use crate::proxy::UuidS;
+use crate::text::text;
 use crate::tx::TxBuilder;
 
 /// The `ProjectSettings` member that holds the frame defaults (doc 03 §5.1), kept in `ProjectSettings.extra`
@@ -138,10 +139,7 @@ impl Command for SetFrameDefaults {
             None => Map::new(),
             Some(Value::Object(map)) => map.clone(),
             Some(_) => {
-                return tx.reject(format!(
-                    "the settings member `{FRAMES_MEMBER}` is not an object (a newer or damaged format); it is \
-                     kept as it is"
-                ));
+                return tx.reject(text!("refusal-settings-member-not-object", FRAMES_MEMBER));
             }
         };
         let serialise = |e: serde_json::Error| {

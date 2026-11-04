@@ -11,6 +11,7 @@ use serde_json::{Map, Value};
 use crate::command::{Command, Outcome};
 use crate::error::CmdError;
 use crate::meta::CommandMeta;
+use crate::text::text;
 use crate::tx::TxBuilder;
 
 /// The member of `ProjectSettings.extra` that holds the drawing settings: an object, such as `{"crossings": "hops"}`.
@@ -118,10 +119,7 @@ impl Command for SetDrawing {
             None => Map::new(),
             Some(Value::Object(m)) => m.clone(),
             Some(_) => {
-                return tx.reject(format!(
-                    "the project settings' `{DRAWING_MEMBER}` member is not an object (a newer or damaged format); \
-                     it is kept as it is"
-                ));
+                return tx.reject(text!("refusal-drawing-member-not-object", DRAWING_MEMBER));
             }
         };
         if let Some(crossings) = self.crossings {

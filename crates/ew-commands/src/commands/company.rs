@@ -16,6 +16,7 @@ use crate::command::{Command, Outcome};
 use crate::error::CmdError;
 use crate::meta::CommandMeta;
 use crate::proxy::MlTextS;
+use crate::text::text;
 use crate::tx::TxBuilder;
 
 /// The project-row member that holds the company data of a basic project until `Project` types it: an object
@@ -161,9 +162,7 @@ impl Command for SetCompany {
         }
         if let Some(flag) = self.personal_data {
             let Some(i) = index else {
-                return tx.reject(
-                    "the project has no panel-builder party to mark; give the company `name` to create it",
-                );
+                return tx.reject(text!("refusal-company-no-party"));
             };
             project.parties[i].personal_data = flag;
         }
@@ -179,10 +178,7 @@ impl Command for SetCompany {
                 None => serde_json::Map::new(),
                 Some(Value::Object(map)) => map.clone(),
                 Some(_) => {
-                    return tx.reject(format!(
-                        "the project row's `{COMPANY_MEMBER}` member is not an object (a newer or damaged \
-                         format); it is kept as it is"
-                    ));
+                    return tx.reject(text!("refusal-company-member-not-object", COMPANY_MEMBER));
                 }
             };
             for (member, value) in [("notice", notice), ("logo", logo)] {

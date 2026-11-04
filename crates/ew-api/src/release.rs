@@ -447,6 +447,7 @@ impl Session {
             reason: "the sign-off is recorded only by the approval on the saved generation (Revision ▸ Approve, ew \
                      revision approve), which runs the release gate first (WP-S1.18 D9)"
                 .to_owned(),
+            text: None,
         })
     }
 }
