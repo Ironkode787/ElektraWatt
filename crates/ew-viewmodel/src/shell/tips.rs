@@ -256,4 +256,26 @@ impl ShellModel {
             },
         }
     }
+
+    /// Whether the one-time tips may be shown: the setting `tips` (FR-UI-048), View ▸ Show tips' check.
+    pub fn tips_on(&self) -> bool {
+        self.settings.tips
+    }
+
+    /// `view.tips {on?}` (View ▸ Show tips, FT-1280): switches the one-time tips on or off (without `on`, the other
+    /// way), saved to `tips` in `settings.toml`.
+    pub(crate) fn act_tips(&mut self, p: &serde_json::Map<String, Value>) -> Outcome {
+        let on = match p.get("on") {
+            None => !self.settings.tips,
+            Some(v) => match v.as_bool() {
+                Some(b) => b,
+                None => return super::failed(key!("error-bad-param"), &["on"]),
+            },
+        };
+        if self.settings.tips != on {
+            self.settings.tips = on;
+            self.save_settings();
+        }
+        Outcome::Done
+    }
 }

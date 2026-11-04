@@ -2143,6 +2143,19 @@ pub static ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_reduce_motion(p),
         ),
     ),
+    // FT-1280 (ID-1315 ruling 3): View ▸ Show tips, the setting `tips` (FR-UI-048), beside Reduce motion.
+    with_params(
+        "on?:bool",
+        act(
+            "view.tips",
+            View,
+            Menu::View,
+            &[],
+            always,
+            slot(Menu::View),
+            |s, p| s.act_tips(p),
+        ),
+    ),
     // WP-S2.17 part 1: View ▸ Theme and View ▸ Density (doc 16a §4.13, D5, D6). The theme words of the spec
     // (`hc-dark`, `hc-light`) are not words of the signature grammar, so `value` is text, checked against `THEMES`.
     with_params(
@@ -5578,6 +5591,7 @@ pub(crate) fn item_of(meta: &ActionMeta, model: &ShellModel) -> ActionItem {
             "view.frame_stats" => model.frame_stats_shown(),
             "view.cpu_canvas" => model.cpu_canvas_setting(),
             "view.reduce_motion" => model.reduce_motion(),
+            "view.tips" => model.tips_on(),
             "view.side_by_side" => model.area().is_some_and(crate::area::CanvasArea::side_by_side),
             "props.show" => model
                 .layout()

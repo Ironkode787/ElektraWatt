@@ -1571,11 +1571,18 @@ impl Session {
                         .and_then(|g| serde_json::to_value(&g.title).ok())
                         .map(|t| ml_text(&t, source.as_deref()))
                         .unwrap_or_default();
+                    // FT-1282: a generated row's provenance names the page's derived title ("Wire List 1"), not the
+                    // block's title format ("Wire List {n}").
+                    let title = if page_title.is_empty() {
+                        ml_text(&serde_json::to_value(&b.title).ok()?, source.as_deref())
+                    } else {
+                        page_title.clone()
+                    };
                     Some((
                         super::page_uuid(e.page),
                         (
                             block.as_uuid(),
-                            ml_text(&serde_json::to_value(&b.title).ok()?, source.as_deref()),
+                            title,
                             format!("{} {page_title}", e.folio).trim().to_owned(),
                         ),
                     ))
