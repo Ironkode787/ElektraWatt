@@ -16,7 +16,8 @@ rate or NFR-UX-02's SUS score. R0 is NFR-UX-09's formative round: two personas m
 
 ## 2. The build and the runs
 
-The build is the working tip of cycle 51 with WP-S2.12's first sitting (ID-1361), the binaries reporting `0.0.0`.
+The binaries were built from commit `6e2c7dd0` of the working branch of cycle 51, after FT51d's pick, with WP-S2.12's
+first sitting (ID-1361), and report `0.0.0`.
 The personas, play-testers, drafters and checkers ran on Opus at `low` (D18), the visual runs at the default frame
 (1280 × 800 at 1.2, D12, ruling O4).
 
@@ -65,22 +66,24 @@ The two attempts not completed:
 
 ## 4. Findings
 
-Severity on Nielsen's 0 to 4 by D15. Evidence as `<run>#<friction entry>` (frame); "both" in the pairing column means
-friction in a visual and a text run (a product finding), "visual" a window finding (D12).
+Severity on Nielsen's 0 to 4 by D15. Evidence as `<run>#<friction entry>` (frame and region); a region is the entry's
+`[x, y, width, height]` in the frame's pixels, and "whole frame" where the persona marked none. A text run's entry
+has no frame. "Both" in the pairing column means friction in a visual and a text run (a product finding), "visual" a
+window finding (D12).
 
 | ID | Title | Severity | Personas | Evidence | Pairing | Owner | Route |
 |---|---|---|---|---|---|---|---|
-| R0-F1 | Insert device (Device from part…) finds no A9F78116, though the project holds its part copy and Choose part finds it; T1 met only with help by two personas | **3** | qet-user, qet-veteran | t1-qet-user-v#1, #3 (t0002, t0007); t1-qet-veteran-v#1, #2 (t0002, t0007); t1-qet-veteran-t#1, #2 | both | the picker's parts (WP-S2.18) and the part selection (WP-S2.07 part 4), both complete | fix lane (ID-1281), kittest flow below, before R1 |
-| R0-F2 | The "N Pending" badge on the properties says nothing about what is pending | 2 | qet-user, qet-veteran | t1-qet-user-v#4 (t0009); t1-qet-veteran-v#3 (t0009); t2-qet-veteran-v#1 (t0002); a7-qet-user-v#1 (t0001) | visual | the properties' findings badge (WP-S2.09) | follow-up row P-5 |
-| R0-F3 | Check project's toast counts the whole project's 33 errors, so a clean edit looks broken | 2 | qet-user, qet-veteran | t2-qet-user-v#2 (t0005); t2-qet-veteran-v#3 (t0003) | visual | the check toast (WP-S2.09) | follow-up row P-6 |
-| R0-F4 | A device dropped on a wire connects into it without asking | 2 | qet-user | t1-qet-user-v#2 (t0005); B1 `ask` | visual | the place tool's autoconnect (WP-S2.04); ADR-0007's record | §6, row P-7 |
-| R0-F5 | New wires route with jogs or rectangular detours and run over existing wires | 2 | qet-user, qet-veteran | t2-qet-user-v#1 (t0004); t2-qet-veteran-v#2 (t0002); a7-qet-user-v#5 (t0006); a7-qet-veteran-v#1 (t0002); a7-qet-veteran-t#2 | both | the router | follow-up row P-8 |
-| R0-F6 | After a cross-reference jump the arrival is neither centred nor marked and Back has no visible control | 2 | qet-user, qet-veteran | t8-qet-user-v#1, #3 (t0001, t0002); t8-qet-veteran-v#1, #2, #3 (t0001, t0002) | visual | navigation (WP-S2.03) | follow-up row P-9 |
-| R0-F7 | The two cross-reference labels "102-A1" of L-1 and N-1 overlap between the arrows | 2 | qet-user | t8-qet-user-v#2 (t0002) | visual | Golden A's 102 (the label placement) | follow-up row P-10 |
+| R0-F1 | Insert device (Device from part…) finds no A9F78116, though the project holds its part copy and Choose part finds it; T1 met only with help by two personas | **3** | qet-user, qet-veteran | t1-qet-user-v#1 (t0002 [451,280,640,30]), #3 (t0007 [172,845,286,40]); t1-qet-veteran-v#1 (t0002, whole frame), #2 (t0007, whole frame); t1-qet-veteran-t#1, #2 | both | the picker's parts (WP-S2.18) and the part selection (WP-S2.07 part 4), both complete | fix lane (ID-1281), kittest flow below, before R1 |
+| R0-F2 | The "N Pending" badge on the properties says nothing about what is pending | 2 | qet-user, qet-veteran | t1-qet-user-v#4 (t0009 [284,598,92,24]); t1-qet-veteran-v#3 (t0009 [285,598,90,24]); t2-qet-veteran-v#1 (t0002 [285,598,90,24]); a7-qet-user-v#1 (t0001 [285,598,90,24]) | visual | the properties' findings badge (WP-S2.09) | follow-up row P-5 |
+| R0-F3 | Check project's toast counts the whole project's 33 errors, so a clean edit looks broken | 2 | qet-user, qet-veteran | t2-qet-user-v#2 (t0005 [1104,200,360,75]); t2-qet-veteran-v#3 (t0003 [1104,200,360,75]) | visual | the check toast (WP-S2.09) | follow-up row P-6 |
+| R0-F4 | A device dropped on a wire connects into it without asking | 2 | qet-user | t1-qet-user-v#2 (t0005 [1104,200,360,130]); B1 `ask` | visual | the place tool's autoconnect (WP-S2.04); ADR-0007's record | §6, row P-7 |
+| R0-F5 | New wires route with jogs or rectangular detours and run over existing wires | 2 | qet-user, qet-veteran | t2-qet-user-v#1 (t0004 [760,220,200,420]); t2-qet-veteran-v#2 (t0002 [800,440,220,420]); a7-qet-user-v#5 (t0006 [1040,570,40,60]); a7-qet-veteran-v#1 (t0002 [1215,495,30,45]); a7-qet-veteran-t#2 | both | the router | follow-up row P-8 |
+| R0-F6 | After a cross-reference jump the arrival is neither centred nor marked and Back has no visible control | 2 | qet-user, qet-veteran | t8-qet-user-v#1 (t0001 [870,540,120,80]), #3 (t0002, whole frame); t8-qet-veteran-v#1 (t0001 [390,175,1090,230]), #2 (t0001 [390,145,400,30]), #3 (t0002, whole frame) | visual | navigation (WP-S2.03) | follow-up row P-9 |
+| R0-F7 | The two cross-reference labels "102-A1" of L-1 and N-1 overlap between the arrows | 2 | qet-user | t8-qet-user-v#2 (t0002 [880,540,100,80]) | visual | Golden A's 102 (the label placement) | follow-up row P-10 |
 | R0-F8 | The page text of an interruption point names no continuation | 2 | qet-veteran | t8-qet-veteran-t#1 | text | the describe vocabulary (WP-S6.13's `page.describe`) | follow-up row P-11 |
-| R0-F9 | Texts at the first zoom (69 to 88 %) too small: pin numbers, part labels, title block, cross-references | 2 | qet-user, qet-veteran | t1-qet-user-v#5 (t0009); t1-qet-veteran-v#4 (t0009); hand-backs' heading 8 of six visual runs | visual | FT-713 (WP-S2.11's O2) | §7 |
-| R0-F10 | A device selected by its tag is not movable (Move refuses "nothing movable"), and a click on the lamp's centre selects the wire through it | 2 | qet-veteran | a7-qet-veteran-t#1; a7-qet-user-v#4 (t0005) | both | the Select tool (WP-S2.04) | follow-up row P-12 |
-| R0-F11 | The plain mouse wheel zooms where a QET user expects it to scroll; opening the messages zoomed the sheet out to 35 % | 1 | qet-user | a7-qet-user-v#2, #3 (t0002, t0004) | visual | the canvas input (WP-S2.03) | follow-up row P-13 |
+| R0-F9 | Texts at the first zoom (69 to 88 %) too small: pin numbers, part labels, title block, cross-references | 2 | qet-user, qet-veteran | t1-qet-user-v#5 (t0009 [830,410,130,35]); t1-qet-veteran-v#4 (t0009 [755,400,130,40]); hand-backs' heading 8 of six visual runs | visual | FT-713 (WP-S2.11's O2) | §7 |
+| R0-F10 | A device selected by its tag is not movable (Move refuses "nothing movable"), and a click on the lamp's centre selects the wire through it | 2 | qet-veteran | a7-qet-veteran-t#1; a7-qet-user-v#4 (t0005 [1000,540,120,130]) | both | the Select tool (WP-S2.04) | follow-up row P-12 |
+| R0-F11 | The plain mouse wheel zooms where a QET user expects it to scroll; opening the messages zoomed the sheet out to 35 % | 1 | qet-user | a7-qet-user-v#2 (t0002, whole frame), #3 (t0004, whole frame) | visual | the canvas input (WP-S2.03) | follow-up row P-13 |
 | R0-F12 | T1 placed one column left of the item's box (102-C5) | 0 | qet-veteran | t1-qet-veteran-v; its checker | visual | — | the persona's own choice; see the orchestrator's list |
 | R0-F13 | Returning from a jump by the back reference counts as not returning | 0 | qet-user | t8-qet-user-v; its checker | visual | this package (T8's A2) | row P-3 |
 | R0-F14 | The part actions and a finished wire answer a bare "done" in the text protocol | 1 | qet-veteran | t1-qet-veteran-t#3; t2-qet-veteran-t#1 | text | the describe vocabulary | follow-up row P-14 |
@@ -94,7 +97,7 @@ finding points at autoconnect as model semantics (D17): see §6.
 
 | Finding | Severity | Owner | Kittest flow it needs | State |
 |---|---|---|---|---|
-| R0-F1 | 3 | fix lane by ID-1281 (WP-S2.18's picker parts and WP-S2.07 part 4's part selection, both complete) | on GP-UT, folio 102: Device from part…, filter `A9F78116`: the project's part A9F78116 is a row and places -102F1 with its part (or, if the copy cannot be placed, the empty list names Choose part… for a placed symbol), asserted whole | open; closes before R1 (G-M2-22), re-run by R1's T1 runs |
+| R0-F1 | 3 | FT-1375 (High), a fix lane by ID-1281 (WP-S2.18's picker parts and WP-S2.07 part 4's part selection, both complete) | on GP-UT, folio 102: Device from part…, filter `A9F78116`: the project's part A9F78116 is a row and places -102F1 with its part (or, if the copy cannot be placed, the empty list names Choose part… for a placed symbol), asserted whole | open; closes before R1 (G-M2-22), re-run by R1's T1 runs |
 
 ## 6. ADR-0007's early evidence
 
@@ -155,4 +158,24 @@ score.
 
 ## 11. Token use
 
-Not recorded in the run index; the orchestrator adds it.
+As the orchestrator records it: each figure is the agent's whole use in tokens. Batch A's visual and text runs
+also count a first attempt, about 57k, that was sent to a wrong run root and read nothing (§2's validity).
+
+| Run | Tokens |
+|---|---|
+| r0-t1-qet-user-v | 93,762 |
+| r0-t2-qet-user-v | 88,275 |
+| r0-t8-qet-user-v | 76,196 |
+| r0-a7-qet-user-v | 90,295 |
+| r0-t1-qet-veteran-t | 86,463 |
+| r0-t2-qet-veteran-t | 79,551 |
+| r0-t8-qet-veteran-t | 74,225 |
+| r0-a7-qet-veteran-t | 79,505 |
+| r0-t1-qet-veteran-v | 93,388 |
+| r0-t2-qet-veteran-v | 80,250 |
+| r0-t8-qet-veteran-v | 75,241 |
+| r0-a7-qet-veteran-v | 78,794 |
+| r0-t8-qet-user-v-c (checker) | 69,904 |
+| r0-t1-qet-veteran-v-c (checker) | 74,221 |
+
+The twelve runs used 995,945 tokens and the two checkers 144,125: 1,140,070 in all.
