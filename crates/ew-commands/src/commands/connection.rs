@@ -8,7 +8,7 @@ use std::sync::Arc;
 
 use ew_ids::Id;
 use ew_mltext::Ident;
-use ew_model::EndpointKey;
+use ew_model::{EndpointKey, FluidPortClass, fluid_port_class};
 use ew_schema::{
     Bond, BondKind, CircuitClass, Connection, ConnectionKind, Device, Endpoint, ExternalRef, Extra, FnDef,
     FnRole, Function, FunctionKind, IpDirection, IpSpec, Junction, JunctionStyle, JunctionWiring, Kind,
@@ -190,6 +190,7 @@ impl Command for Connect {
                 return tx.reject("both ends are on the same connection; pick two different connections");
             }
         }
+        refuse_fluid_mismatch(tx, &self.kind, &self.a, &self.b)?;
         let new_id: Id<Connection> = tx.mint();
         let mut split_page = None;
         let a = resolve_end(tx, &self.a, "/a", new_id, &mut split_page)?;
@@ -212,6 +213,74 @@ impl Command for Connect {
             extra: Extra::new(),
         })?;
         Ok(Outcome::primary(key))
+    }
+}
+
+/// The fluid class of CP `idx` of function `f` in the transaction (`ew_model::fluid_port_class`, the rule of
+/// EW-INV-024).
+pub(crate) fn cp_fluid_class(tx: &TxBuilder<'_>, f: Id<Function>, idx: u16) -> FluidPortClass {
+    let Some(function) = tx.get::<Function>(f) else {
+        return FluidPortClass::Other;
+    };
+    let def = tx.get::<LibCopy<FnDef>>(function.def);
+    let parts: Vec<Arc<LibCopy<ew_schema::Part>>> = function
+        .device
+        .and_then(|d| tx.get::<Device>(d))
+        .map(|d| {
+            d.parts
+                .iter()
+                .filter_map(|u| tx.get::<LibCopy<ew_schema::Part>>(u.part.copy))
+                .collect()
+        })
+        .unwrap_or_default();
+    let parts: Vec<&ew_schema::Part> = parts.iter().map(|p| &p.item).collect();
+    fluid_port_class(&function, def.as_ref().map(|d| &d.item), &parts, idx)
+}
+
+/// The refusals of WP-S1.20 §5 T1 to T3 before EW-INV-024 judges the drawn connection: a fluid line to a CP that is no
+/// fluid port, another kind (except an overview connection or a kind of a newer format) to a fluid port, and a fluid
+/// line between a hydraulic and a pneumatic or vacuum port. Only CP ends are judged here; a junction end is left to
+/// the invariant.
+fn refuse_fluid_mismatch(
+    tx: &TxBuilder<'_>,
+    kind: &ConnectionKind,
+    a: &EndpointParam,
+    b: &EndpointParam,
+) -> Result<(), CmdError> {
+    let ends: Vec<(Id<Function>, u16, FluidPortClass)> = [a, b]
+        .into_iter()
+        .filter_map(|e| match e {
+            EndpointParam::Cp { function, idx } => Some((*function, *idx, cp_fluid_class(tx, *function, *idx))),
+            _ => None,
+        })
+        .collect();
+    match kind {
+        ConnectionKind::Overview | ConnectionKind::Unknown(_) => Ok(()),
+        ConnectionKind::Fluid(_) => {
+            if let Some((f, idx, _)) = ends.iter().find(|e| e.2 == FluidPortClass::Other) {
+                return tx.reject(format!(
+                    "a fluid line joins fluid ports only; {} is not a fluid port",
+                    crate::words::cp(tx, *f, *idx)
+                ));
+            }
+            if let [(fa, ia, FluidPortClass::Fluid(ma)), (fb, ib, FluidPortClass::Fluid(mb))] = ends.as_slice() {
+                if ma != mb {
+                    return tx.reject(format!(
+                        "a fluid line does not join a hydraulic port to a pneumatic or vacuum port: {}, {}",
+                        crate::words::cp(tx, *fa, *ia),
+                        crate::words::cp(tx, *fb, *ib)
+                    ));
+                }
+            }
+            Ok(())
+        }
+        _ => match ends.iter().find(|e| matches!(e.2, FluidPortClass::Fluid(_))) {
+            Some((f, idx, _)) => tx.reject(format!(
+                "{} is a fluid port; only a fluid line joins it",
+                crate::words::cp(tx, *f, *idx)
+            )),
+            None => Ok(()),
+        },
     }
 }
 

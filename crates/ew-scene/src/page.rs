@@ -134,14 +134,14 @@ use std::ops::Range;
 use std::sync::Arc;
 
 use ew_dl::{
-    Brush, Destination, DisplayList, EntityRef, Item, ItemKind, Layer, Link, Path, Pen, Stroke, SymbolGeomId,
-    Transform,
+    Brush, DashPattern, Destination, DisplayList, EntityRef, Item, ItemKind, Layer, Link, Path, Pen, Stroke,
+    SymbolGeomId, Transform,
 };
 use ew_ids::{Id, Uuid};
 use ew_mltext::LangTag;
 use ew_schema::{
-    Align, Connection, Dir4, Endpoint, FormDef, Function, Junction, JunctionStyle, Page, Representation,
-    SlotKind, SymbolDef,
+    Align, Connection, ConnectionKind, Dir4, Endpoint, FormDef, Function, Junction, JunctionStyle, LineKind, Page,
+    Representation, SlotKind, SymbolDef,
 };
 use ew_text::{DEFAULT_STYLE_KEY, FontSet, LineSpan, Shaped, TextStyle, TextStyleTable, VerticalMetrics};
 use ew_units::{Angle2, Grid, Nm, Orient2, Pt2, Rect};
@@ -929,8 +929,10 @@ impl Builder<'_> {
         let cps = cp_map(view);
         let page = page_rect(view);
         let stroke = wire_stroke(view.grid);
-        // The drawn polylines in connection-ID order (the hop rule of `crate::hops` reads them all first).
+        // The drawn polylines in connection-ID order (the hop rule of `crate::hops` reads them all first), each with
+        // its stroke: a fluid pilot or drain line is dashed 4:2 in the page's wire pen (WP-S1.20 D17).
         let mut drawn: Vec<(Id<Connection>, Vec<Pt2>)> = Vec::new();
+        let mut strokes: Vec<Stroke> = Vec::new();
         for cv in sorted_connections(view) {
             let c = &cv.connection;
             let Some(pts) = polyline_of(view, &cps, c, page) else {
@@ -943,6 +945,12 @@ impl Builder<'_> {
                 continue;
             }
             drawn.push((c.id, pts));
+            strokes.push(match &c.kind {
+                ConnectionKind::Fluid(f) if matches!(f.line_kind, LineKind::Pilot | LineKind::Drain) => {
+                    stroke.clone().dashed(DashPattern::Dash42)
+                }
+                _ => stroke.clone(),
+            });
         }
         let hopped = match view.crossings {
             Crossings::Plain => Vec::new(),
@@ -953,7 +961,7 @@ impl Builder<'_> {
                 Some(h) if !h.is_empty() => hop_path(pts, h),
                 _ => Path::polyline(pts),
             };
-            self.push(Item::path(path, Some(stroke.clone()), None).with_entity(EntityRef(id.as_uuid())));
+            self.push(Item::path(path, Some(strokes[k].clone()), None).with_entity(EntityRef(id.as_uuid())));
         }
         let mut junctions: Vec<&JunctionView> = view.junctions.iter().collect();
         junctions.sort_by_key(|j| j.junction.id);

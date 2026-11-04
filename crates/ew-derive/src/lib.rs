@@ -58,6 +58,7 @@ mod cps;
 mod drawn_path;
 mod flow;
 mod flow_distance;
+mod fluid;
 mod heap;
 mod index;
 mod ip;
@@ -140,6 +141,7 @@ pub use bus::{
 pub use ew_model::EndpointKey;
 pub use flow::{Flow, FlowBfs, FlowConflict, FlowEntry, FlowNotes, Load, PotentialFlow, Upstream};
 pub use flow_distance::{CpFlowDistanceOf, CpFlowDistances};
+pub use fluid::{FluidNet, FluidNets, FluidPartition};
 pub use names::{
     PotentialAttrsOf, PotentialAttrsV, PotentialNameOf, PotentialNames, cp_text, def_text, potential_named,
     ranked_defs,
@@ -267,6 +269,7 @@ pub const FAMILIES: &[(&str, Policy)] = &[
     (DrawnPageOrder::FAMILY, DrawnPageOrder::POLICY),
     (EndClass::FAMILY, EndClass::POLICY),
     (FlowNotes::FAMILY, FlowNotes::POLICY),
+    (FluidNets::FAMILY, FluidNets::POLICY),
     (FrameGridOf::FAMILY, FrameGridOf::POLICY),
     (FrameSettings::FAMILY, FrameSettings::POLICY),
     (FunctionCps::FAMILY, FunctionCps::POLICY),

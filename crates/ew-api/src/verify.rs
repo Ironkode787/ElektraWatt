@@ -66,6 +66,7 @@ pub const SWEPT: &[&str] = &[
     "drawn_page_order",
     "end_class",
     "flow_notes",
+    "fluid_nets",
     "function_links",
     "group_accessories",
     "ip_functions",
@@ -269,6 +270,7 @@ pub fn sweep(memo: &Q, cold: Option<&Q>) -> Sweep {
     check::<RailTerminalOf>(memo, cold, keys.devices.iter().copied(), o);
     check::<RailTerminals>(memo, cold, [()], o);
     check::<FlowNotes>(memo, cold, [()], o);
+    check::<ew_derive::FluidNets>(memo, cold, [()], o);
     check::<IpNotes>(memo, cold, [()], o);
     check::<PotentialAttrsOf>(memo, cold, keys.potentials.iter().copied(), o);
     check::<PotentialNameOf>(memo, cold, keys.potentials.iter().copied(), o);

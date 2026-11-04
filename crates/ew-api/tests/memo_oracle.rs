@@ -156,13 +156,18 @@ struct Targets {
 /// A connection point of a function (the function's ID as JSON, the CP index) and whether it is free.
 type CpEntry = (Value, u16, bool);
 
-/// The connection points (function, idx) of the representations on `page`, free ones first.
+/// The connection points (function, idx) of the representations on `page`, free ones first; fluid ports are left
+/// out, since a wire cannot join them (EW-INV-024).
 fn cps_on(q: &Q, page: Id<Page>) -> Vec<CpEntry> {
+    use ew_schema::Discipline;
     let mut out = Vec::new();
     for rep in q.idx().reps_by_page(page) {
         let Some(rep) = q.reps().get(rep) else { continue };
         for f in &rep.functions {
-            for cp in q.get::<FunctionCps>(*f).iter().filter(|c| c.physical) {
+            let wireable = |c: &&ew_derive::Cp| {
+                c.physical && !matches!(c.discipline, Discipline::Pneumatic | Discipline::Vacuum | Discipline::Hydraulic)
+            };
+            for cp in q.get::<FunctionCps>(*f).iter().filter(wireable) {
                 let free = q.idx().connections_at_cp(*f, cp.idx).next().is_none();
                 out.push((id_json(*f), cp.idx, free));
             }

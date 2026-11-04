@@ -10,8 +10,8 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use ew_ids::Id;
 use ew_schema::{
-    Connection, Device, FnRole, Function, FunctionKind, Junction, Kind, PageItem, PageItemKind,
-    Representation, Revision, RevisionState, StructureNode,
+    Connection, ConnectionKind, Device, Discipline, Endpoint, FnDef, FnRole, Function, FunctionKind, Junction,
+    Kind, PageItem, PageItemKind, Representation, Revision, RevisionState, StructureNode, template_entry_of,
 };
 
 use crate::entity::{AnyKey, AnyRow, get_row, table_keys, typed};
@@ -100,6 +100,9 @@ pub const ITEM_PAGE_EXISTS: &str = "EW-INV-022";
 /// EW-INV-023: every connection a wire marker lists exists and lies on the marker's page (WP-S2.04 part 4a,
 /// ADR-0009 amendment 8).
 pub const MARKER_CONNECTIONS: &str = "EW-INV-023";
+/// EW-INV-024: a fluid line joins fluid ports of one medium family only, and no other line ends at a fluid port
+/// (WP-S1.20 D11, ADR-0009 amendment 9).
+pub const FLUID_LINES: &str = "EW-INV-024";
 
 /// The catalogue in evaluation order: the structural invariants, then the delete-time rule.
 pub static RULES: &[Rule] = &[
@@ -239,6 +242,14 @@ pub static RULES: &[Rule] = &[
                     amendment 8), so neither the integrity check nor the history path judges the lists",
     },
     Rule {
+        id: FLUID_LINES,
+        class: RuleClass::Structural,
+        statement: "A fluid connection ends at fluid CPs of one medium family (pneumatic and vacuum together, \
+                    hydraulic alone) or at junctions whose every connection is fluid; no other connection except \
+                    an overview connection ends at a fluid CP. A connection or a CP discipline of a newer format \
+                    is exempt",
+    },
+    Rule {
         id: LIB_REF_KEEP_ALIVE,
         class: RuleClass::DeleteTime,
         statement: "An edit does not remove an embedded library copy that a record still names through a LibRef \
@@ -323,7 +334,8 @@ pub(crate) fn check(m: &Model, scope: &Scope) -> Result<(), ModelError> {
     revision_page_note_unique(m, scope)?;
     revision_immutable(m, scope)?;
     // EW-INV-022 is the page links' half of EW-INV-001 (above).
-    marker_connections(m, scope)
+    marker_connections(m, scope)?;
+    fluid_lines(m, scope)
 }
 
 /// EW-INV-001 with the forbid policy.
@@ -1118,6 +1130,185 @@ fn marker_connections(m: &Model, scope: &Scope) -> Result<(), ModelError> {
                 ));
             }
         }
+    }
+    Ok(())
+}
+
+/// The medium family of a fluid port (WP-S1.20 D11): pneumatic and vacuum are one family, hydraulic another.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum FluidMedium {
+    /// Pneumatic or vacuum.
+    Air,
+    /// Hydraulic.
+    Hydraulic,
+}
+
+/// What a CP is for EW-INV-024 and the refusals of `connection.draw`: a fluid port of a medium, an electrical (or
+/// bus) point, or exempt (a discipline of a newer format).
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum FluidPortClass {
+    /// A fluid port (discipline pneumatic, vacuum or hydraulic).
+    Fluid(FluidMedium),
+    /// An electrical or bus point, or no CP.
+    Other,
+    /// A discipline of a newer format.
+    Exempt,
+}
+
+/// The class of CP `idx` of `function`, by the discipline `ew-derive`'s `function_cps` gives it: the CP of the same
+/// index of its FnDef copy `def` (a template-origin CP keeps its FnDef CP's index,
+/// `ew_schema::TemplateFn::function_cps`), except for a black box drawn from its device's part pattern (`parts`, the
+/// copies of its device's part uses in order), whose CPs are electrical. A missing FnDef copy is
+/// [`FluidPortClass::Other`] (EW-INV-001 judges the reference). One rule for EW-INV-024 and the commands' refusals.
+pub fn fluid_port_class(function: &Function, def: Option<&FnDef>, parts: &[&ew_schema::Part], idx: u16) -> FluidPortClass {
+    let Some(def) = def else {
+        return FluidPortClass::Other;
+    };
+    if matches!(function.kind, FunctionKind::BlackBox) && black_box_from_pattern(function, parts) {
+        return FluidPortClass::Other;
+    }
+    match def.cps.iter().find(|c| c.idx == idx).map(|c| &c.discipline) {
+        Some(Discipline::Pneumatic | Discipline::Vacuum) => FluidPortClass::Fluid(FluidMedium::Air),
+        Some(Discipline::Hydraulic) => FluidPortClass::Fluid(FluidMedium::Hydraulic),
+        Some(Discipline::Unknown(_)) => FluidPortClass::Exempt,
+        Some(Discipline::Electrical | Discipline::Bus) | None => FluidPortClass::Other,
+    }
+}
+
+/// [`fluid_port_class`] of CP `idx` of function `f` in `m`; a missing function is [`FluidPortClass::Other`].
+fn port_class_in(m: &Model, f: Id<Function>, idx: u16) -> FluidPortClass {
+    let Some(function) = m.functions.get(&f) else {
+        return FluidPortClass::Other;
+    };
+    let parts: Vec<&ew_schema::Part> = function
+        .device
+        .and_then(|d| m.devices.get(&d))
+        .map(|d| {
+            d.parts
+                .iter()
+                .filter_map(|u| m.lib.parts.get(&u.part.copy).map(|p| &p.item))
+                .collect()
+        })
+        .unwrap_or_default();
+    let def = m.lib.fndefs.get(&function.def).map(|d| &d.item);
+    fluid_port_class(function, def, &parts, idx)
+}
+
+/// Whether a black box takes its CPs from its device's part pattern: no template entry of its device's parts names
+/// its FnDef copy and a part use has a CP pattern (the rule of `function_cps`).
+fn black_box_from_pattern(function: &Function, parts: &[&ew_schema::Part]) -> bool {
+    let names_def = |t: &ew_schema::TemplateFn| {
+        let copy: Id<FnDef> = ew_ids::v5::lib_copy_id(t.fndef.library.as_uuid(), t.fndef.item.as_uuid());
+        copy == function.def
+    };
+    let uses = parts.iter().map(|p| ((), *p));
+    template_entry_of(uses, function.template_entry, names_def).is_none()
+        && parts.iter().any(|p| !p.cp_pattern.is_empty())
+}
+
+/// EW-INV-024 (WP-S1.20 D11): the touched connections, the connections at the CPs of touched functions and of the
+/// functions of touched devices, and every connection at a junction one of them ends at. A batch that touches a
+/// FnDef or part copy checks every connection, since a copy changes the disciplines of every function using it.
+fn fluid_lines(m: &Model, scope: &Scope) -> Result<(), ModelError> {
+    let mut connections: BTreeSet<Id<Connection>> = BTreeSet::new();
+    if scope.of_kind(Kind::Fndef).next().is_some() || scope.of_kind(Kind::Part).next().is_some() {
+        connections.extend(m.connections.ids());
+    } else {
+        connections.extend(scope.of_kind(Kind::Connection).map(typed));
+        let mut functions: BTreeSet<Id<Function>> = scope.of_kind(Kind::Function).map(typed).collect();
+        for key in scope.of_kind(Kind::Device) {
+            functions.extend(m.idx.functions_by_device.get(&typed(key)).copied());
+        }
+        let by_end = &m.idx.connections_by_endpoint;
+        for f in functions {
+            for (k, _) in by_end.range(EndpointKey::Cp(f, 0)..=EndpointKey::Cp(f, u16::MAX)) {
+                connections.extend(by_end.get(k).copied());
+            }
+        }
+        let mut junctions: BTreeSet<Id<Junction>> = scope.of_kind(Kind::Junction).map(typed).collect();
+        for c in &connections {
+            if let Some(c) = m.connections.get(c) {
+                junctions_of(c, &mut junctions);
+            }
+        }
+        for j in junctions {
+            connections.extend(by_end.get(&EndpointKey::Junction(j)).copied());
+        }
+    }
+    for c in connections {
+        let Some(conn) = m.connections.get(&c) else {
+            continue;
+        };
+        fluid_line_ok(m, conn)?;
+    }
+    Ok(())
+}
+
+/// EW-INV-024 for one connection.
+fn fluid_line_ok(m: &Model, conn: &Connection) -> Result<(), ModelError> {
+    let key = key_of(Kind::Connection, conn.id);
+    let fluid = match &conn.kind {
+        ConnectionKind::Fluid(_) => true,
+        ConnectionKind::Overview | ConnectionKind::Unknown(_) => return Ok(()),
+        _ => false,
+    };
+    let mut media: Vec<(FluidMedium, Id<Function>, u16)> = Vec::new();
+    for end in [&conn.a, &conn.b] {
+        match end {
+            Endpoint::Cp(f, idx) => match port_class_in(m, *f, *idx) {
+                FluidPortClass::Fluid(medium) if fluid => media.push((medium, *f, *idx)),
+                FluidPortClass::Fluid(_) => {
+                    return Err(violation(
+                        FLUID_LINES,
+                        format!("connection {} is no fluid line but ends at fluid port {f}:{idx}", conn.id),
+                        vec![key, key_of(Kind::Function, *f)],
+                    ));
+                }
+                FluidPortClass::Other if fluid => {
+                    return Err(violation(
+                        FLUID_LINES,
+                        format!("fluid line {} ends at {f}:{idx}, which is not a fluid port", conn.id),
+                        vec![key, key_of(Kind::Function, *f)],
+                    ));
+                }
+                FluidPortClass::Other | FluidPortClass::Exempt => {}
+            },
+            Endpoint::Junction(j) if fluid => {
+                for other in m.idx.connections_by_endpoint.get(&EndpointKey::Junction(*j)) {
+                    let Some(o) = m.connections.get(other) else {
+                        continue;
+                    };
+                    if !matches!(o.kind, ConnectionKind::Fluid(_) | ConnectionKind::Unknown(_)) {
+                        return Err(violation(
+                            FLUID_LINES,
+                            format!("fluid line {} ends at junction {j}, where connection {other} is no fluid line", conn.id),
+                            vec![key, key_of(Kind::Junction, *j), key_of(Kind::Connection, *other)],
+                        ));
+                    }
+                    for e in [&o.a, &o.b] {
+                        if let Endpoint::Cp(f, idx) = e {
+                            if let FluidPortClass::Fluid(medium) = port_class_in(m, *f, *idx) {
+                                media.push((medium, *f, *idx));
+                            }
+                        }
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+    if let Some(((_, f1, i1), (_, f2, i2))) = media
+        .iter()
+        .find_map(|a| media.iter().find(|b| b.0 != a.0).map(|b| (a, b)))
+    {
+        return Err(violation(
+            FLUID_LINES,
+            format!(
+                "fluid line {} joins a hydraulic port to a pneumatic or vacuum port: {f1}:{i1}, {f2}:{i2}",
+                conn.id
+            ),
+            vec![key, key_of(Kind::Function, *f1), key_of(Kind::Function, *f2)],
+        ));
     }
     Ok(())
 }

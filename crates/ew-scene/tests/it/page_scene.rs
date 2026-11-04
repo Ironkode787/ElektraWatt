@@ -675,6 +675,43 @@ fn wires_use_the_1_px_pen_on_the_qet_grid_and_the_house_pen_elsewhere() {
     assert!(stroke_widths(&wires.list).iter().all(|&w| w == 260_000));
 }
 
+/// WP-S1.20 D17 (FL-3): a fluid pilot or drain line is dashed 4:2 in the wire pen; a working, exhaust or flexible
+/// line is solid, as a wire is.
+#[test]
+fn fluid_pilot_and_drain_lines_are_dashed_and_working_lines_solid() {
+    let mut v = view();
+    let kinds = [
+        json!({"fluid": {"line_kind": "pilot"}}),
+        json!({"fluid": {}}),
+        json!({"fluid": {"line_kind": "drain"}}),
+    ];
+    for (c, kind) in v.connections.iter_mut().zip(kinds) {
+        let mut record = (*c.connection).clone();
+        record.kind = serde_json::from_value(kind).unwrap();
+        c.connection = Arc::new(record);
+    }
+    let wires = page_display_list(&v, Layer::Wires, bundled(), builtin());
+    let dashes: Vec<(Uuid, Option<ew_dl::Dash>)> = wires
+        .list
+        .items
+        .iter()
+        .filter_map(|i| match (&i.kind, i.entity) {
+            (ItemKind::Path(p), Some(EntityRef(e))) => p.stroke.as_ref().map(|s| (e, s.dash.clone())),
+            _ => None,
+        })
+        .collect();
+    let dash_of = |n: u128| {
+        let id = v.connections[n as usize].connection.id.as_uuid();
+        dashes.iter().find(|(e, _)| *e == id).map(|(_, d)| d.clone()).expect("drawn")
+    };
+    let dashed = ew_dl::Stroke::solid(ew_scene::page::QET_PEN_1PX)
+        .dashed(ew_dl::DashPattern::Dash42)
+        .dash;
+    assert_eq!(dash_of(0), dashed);
+    assert_eq!(dash_of(1), None);
+    assert_eq!(dash_of(2), dashed);
+}
+
 #[test]
 fn a_black_box_draws_its_box_cps() {
     let bb = symbol(BLACKBOX);

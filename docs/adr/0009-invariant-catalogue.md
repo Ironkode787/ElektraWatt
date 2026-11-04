@@ -176,6 +176,21 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
      the derivation and the drawing ignore the stale entry and the next edit of the marker writes a clean list. This
      differs from amendment 6's open failure, because a stale list loses no data and the record stays editable.
    Until part 4a both numbers are reserved; `crates/ew-model/invariants.md` gains them with the part.
+9. **Fluid lines** (2026-11-04, lead designer, built in WP-S1.20; decision log ID-1316, which overrules the
+   specification's "no decision changes an ADR"; [fluid power](../design/11-fluid-power.md) §4.1 FI-01). One
+   structural invariant joins the `ew-model` catalogue with the next number (decision 5):
+   - **EW-INV-024:** a `fluid` connection ends at fluid CPs (discipline pneumatic, vacuum or hydraulic) of one medium
+     family, pneumatic and vacuum together and hydraulic alone, or at junctions whose every connection is `fluid`;
+     no other connection except `overview` ends at a fluid CP. A connection kind or a CP discipline of a newer
+     format is exempt. A CP's discipline is the one `function_cps` derives (the FnDef CP of the same index; a black
+     box drawn from its part pattern is electrical).
+   - **Why structural.** Every path that writes connections (paste, scripts, imports, macros) is guarded, and the
+     invariant holds in every committed state: an electrical net never reaches a fluid port. `connection.draw`
+     and the Wire tool refuse first with a sentence that names the ports, so a user does not meet the invariant ID.
+   - **Not here:** FI-06 (a valve does not drive its own parent chain) is a refusal of `device.link`, not an
+     invariant (a follow-up may make it one).
+   - **No format change** beyond the fluid members typed inside 0.1 (ADR-0011 amendments 1 and 4): a file without a
+     fluid line is unchanged, and an older 0.1 build keeps a fluid line as an unknown kind, which joins no net.
 
 ## Consequences
 

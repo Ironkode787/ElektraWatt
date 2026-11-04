@@ -1118,7 +1118,7 @@ fn has_test(source: &str, name: &str) -> bool {
         .any(|l| l == "#[test]")
 }
 
-/// Every rule of `RULES` (23 of them) has its table row in `invariants.md`; every test the row names exists
+/// Every rule of `RULES` (24 of them) has its table row in `invariants.md`; every test the row names exists
 /// as a `#[test]` function, with at least one accepting (`_ok`) and one rejecting (`rejected`/`referenced`) test.
 #[test]
 fn every_catalogue_rule_has_a_test() {
@@ -1293,4 +1293,109 @@ fn reload_with(_base: &Model, extra: Vec<Record>) -> Model {
     let (project, mut records, lib) = super::fixture::mini_golden_parts();
     records.extend(extra);
     Model::from_records(project, records, lib).expect("a stale list is not an integrity violation")
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// EW-INV-024 (WP-S1.20 D11, ADR-0009 amendment 9)
+
+/// A FnDef copy with two CPs of `discipline`.
+fn fluid_fndef(def: Id<FnDef>, discipline: ew_schema::Discipline) -> LibCopy<FnDef> {
+    let mut copy = super::fixture::fndef(def, &["1", "2"]);
+    let cps = copy
+        .item
+        .cps
+        .iter()
+        .cloned()
+        .map(|mut c| {
+            c.discipline = discipline.clone();
+            c
+        })
+        .collect();
+    copy.item.cps = KeyedList::from_vec(cps).expect("distinct CP indexes");
+    copy
+}
+
+const PNEU: u128 = 0x24_000;
+const HYD: u128 = 0x24_001;
+const FQ1: u128 = 0x24_201;
+const FQ2: u128 = 0x24_202;
+const FH: u128 = 0x24_203;
+
+/// The mini golden project with two pneumatic valves and a hydraulic one: their FnDefs, devices and functions.
+fn with_fluid_ports() -> Model {
+    let m = mini_golden();
+    let mut ops = vec![
+        ins(fluid_fndef(nid(PNEU), ew_schema::Discipline::Pneumatic)),
+        ins(fluid_fndef(nid(HYD), ew_schema::Discipline::Hydraulic)),
+    ];
+    for (dev, f, def, counter) in [(0x24_101, FQ1, PNEU, 1), (0x24_102, FQ2, PNEU, 2), (0x24_103, FH, HYD, 3)] {
+        ops.push(ins(device(nid(dev), "Q", counter)));
+        ops.push(ins(function(nid(f), nid(dev), nid(def), FnRole::Main)));
+    }
+    edit(&m, &ops).expect("the valves")
+}
+
+fn fluid(id: u128, a: ew_schema::Endpoint, b: ew_schema::Endpoint) -> Connection {
+    let mut c = connection(nid(id), Some(PAGE_102), a, b);
+    c.kind = ew_schema::ConnectionKind::Fluid(Default::default());
+    c
+}
+
+/// A fluid line between two pneumatic ports and a pilot line between them are accepted.
+#[test]
+fn inv024_fluid_line_between_fluid_ports_ok() {
+    let m = with_fluid_ports();
+    let mut pilot = fluid(0x24_301, cp(nid(FQ1), 1), cp(nid(FQ2), 1));
+    if let ew_schema::ConnectionKind::Fluid(f) = &mut pilot.kind {
+        f.line_kind = ew_schema::LineKind::Pilot;
+    }
+    let ops = [ins(fluid(0x24_300, cp(nid(FQ1), 0), cp(nid(FQ2), 0))), ins(pilot)];
+    assert!(edit(&m, &ops).is_ok());
+}
+
+/// A fluid line from a pneumatic port to an electrical CP is rejected.
+#[test]
+fn inv024_fluid_line_to_an_electrical_cp_rejected() {
+    let m = with_fluid_ports();
+    let line = fluid(0x24_300, cp(nid(FQ1), 0), cp(FN_101F1, 0));
+    rejected_by(edit(&m, &[ins(line)]), crate::FLUID_LINES);
+}
+
+/// A wire to a fluid port is rejected; an overview connection to it is accepted.
+#[test]
+fn inv024_wire_to_a_fluid_port_rejected() {
+    let m = with_fluid_ports();
+    let wire = connection(nid(0x24_300), Some(PAGE_102), cp(FN_101F1, 0), cp(nid(FQ1), 0));
+    rejected_by(edit(&m, &[ins(wire.clone())]), crate::FLUID_LINES);
+    let mut overview = wire;
+    overview.kind = ew_schema::ConnectionKind::Overview;
+    assert!(edit(&m, &[ins(overview)]).is_ok());
+}
+
+/// A fluid line from a hydraulic port to a pneumatic one is rejected.
+#[test]
+fn inv024_hydraulic_to_pneumatic_rejected() {
+    let m = with_fluid_ports();
+    let line = fluid(0x24_300, cp(nid(FQ1), 0), cp(nid(FH), 0));
+    rejected_by(edit(&m, &[ins(line)]), crate::FLUID_LINES);
+}
+
+/// A junction that joins a fluid line and a wire is rejected, in one batch and when the wire comes later; a
+/// junction of two fluid lines is accepted.
+#[test]
+fn inv024_junction_with_a_wire_and_a_fluid_line_rejected() {
+    let m = with_fluid_ports();
+    let j = nid::<Junction>(0x24_400);
+    let line = fluid(0x24_300, cp(nid(FQ1), 0), at_junction(j));
+    let wire = connection(nid(0x24_301), Some(PAGE_102), cp(FN_101F1, 0), at_junction(j));
+    let both = super::fixture::junction(j, PAGE_102, vec![line.id, wire.id]);
+    rejected_by(
+        edit(&m, &[ins(both), ins(line.clone()), ins(wire.clone())]),
+        crate::FLUID_LINES,
+    );
+    let line2 = fluid(0x24_302, cp(nid(FQ2), 0), at_junction(j));
+    let fluid_only = super::fixture::junction(j, PAGE_102, vec![line.id, line2.id]);
+    let m = edit(&m, &[ins(fluid_only), ins(line.clone()), ins(line2.clone())]).expect("fluid lines");
+    let seq = upd(&m, j, |x: &mut Junction| x.sequence = vec![line.id, line2.id, wire.id]);
+    rejected_by(edit(&m, &[seq, ins(wire)]), crate::FLUID_LINES);
 }

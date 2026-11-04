@@ -47,6 +47,26 @@ pub(crate) fn function(tx: &TxBuilder<'_>, id: ew_ids::Id<Function>) -> String {
         .unwrap_or_else(|| "a function without a device".to_owned())
 }
 
+/// A connection point by its device's tag and its printed designation (`-201U3-Q1:2`, WP-S1.20 §5): the designation
+/// `function_cps` derives on the transaction's base model, else the FnDef CP's, else the index.
+pub(crate) fn cp(tx: &TxBuilder<'_>, f: ew_ids::Id<Function>, idx: u16) -> String {
+    let q = Q::new(tx.base_model());
+    let derived = q
+        .get::<ew_derive::FunctionCps>(f)
+        .iter()
+        .find(|c| c.idx == idx)
+        .map(|c| c.designation.clone());
+    let designation = derived
+        .or_else(|| {
+            let function = tx.get::<Function>(f)?;
+            let def = tx.get::<ew_schema::LibCopy<ew_schema::FnDef>>(function.def)?;
+            let cp = def.item.cps.iter().find(|c| c.idx == idx)?;
+            Some(cp.designation.as_str().to_owned())
+        })
+        .unwrap_or_else(|| idx.to_string());
+    format!("{}:{designation}", function(tx, f))
+}
+
 /// The printed folio of a page (its label, else its number), or `None` when the page does not exist.
 pub(crate) fn folio(tx: &TxBuilder<'_>, id: ew_ids::Id<Page>) -> Option<String> {
     tx.get::<Page>(id).map(|p| {
