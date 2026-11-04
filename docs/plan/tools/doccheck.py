@@ -42,6 +42,8 @@ def anchors(p):
                 fence = not fence
             if fence:
                 continue
+            # An explicit anchor (`<a id="x"></a>`), as the generated glossary's rows carry (WP-S7.05 D9, ID-1364).
+            s.update(re.findall(r"<a\s[^>]*?\b(?:id|name)\s*=\s*[\"']([^\"']+)[\"']", line, flags=re.I))
             m = re.match(r"^(#{1,6})\s+(.*)", line)
             if m:
                 b = slug(m.group(2))
@@ -170,6 +172,14 @@ def selftest():
             (self.root / "docs" / "built" / "one.md").write_text("# One\n", encoding="utf-8")
             f = self.doc("[x](built/one.md#one) [y](built/one.md#two)\n")
             self.assertEqual(check([f], self.root), ["docs/a.md: anchor missing: built/one.md#two"])
+
+        def test_an_explicit_anchor_is_an_anchor(self):
+            (self.root / "docs" / "b.md").write_text(
+                "# B\n\n| Term |\n|---|\n| <a id=\"device\"></a>Device |\n\n```\n<a id=\"fenced\"></a>\n```\n",
+                encoding="utf-8",
+            )
+            f = self.doc("[x](b.md#device) [y](b.md#b) [z](b.md#fenced)\n")
+            self.assertEqual(check([f], self.root), ["docs/a.md: anchor missing: b.md#fenced"])
 
         def test_outside_a_repository_nothing_is_ignored(self):
             outside = self.root.parent
