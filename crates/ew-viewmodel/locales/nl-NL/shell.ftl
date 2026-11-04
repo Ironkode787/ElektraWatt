@@ -3425,3 +3425,6 @@ reason-no-reimport = Er wacht geen nieuwe import om te worden toegepast
 action-messages-migration = Migratierapport
 messages-scheme-migration = Migratierapport
 reason-no-lineage = Het project bevat geen import
+
+# WP-S3.09 D4: the banner while the import job runs.
+banner-importing = { $p0 } wordt geïmporteerd…

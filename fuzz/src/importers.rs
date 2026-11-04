@@ -41,7 +41,8 @@ pub struct Outcome {
 fn library() -> &'static StarterLibrary {
     static LIB: OnceLock<StarterLibrary> = OnceLock::new();
     LIB.get_or_init(|| {
-        StarterLibrary::from_dir(&crate::golden::repo().join("content")).unwrap_or_else(|_| StarterLibrary::empty())
+        StarterLibrary::from_dir(&crate::golden::repo().join("content"))
+            .unwrap_or_else(|_| StarterLibrary::empty())
     })
 }
 
@@ -94,7 +95,9 @@ fn committed(session: &Result<ew_api::Session, String>) -> bool {
 /// `qet_project`: the bytes as `fuzz.qet`.
 pub fn qet_project(data: &[u8]) -> Outcome {
     match import_qet("fuzz.qet", data.to_vec(), library()) {
-        Ok(Imported { batch: b, session, .. }) => Outcome {
+        Ok(Imported {
+            batch: b, session, ..
+        }) => Outcome {
             imported: true,
             emitted: batch(&b),
             committed: committed(&session),
@@ -116,7 +119,9 @@ pub fn qet_element(data: &[u8]) -> Outcome {
     let limits = ctx.limits;
     let importer = ew_import_qet::QetElementImporter;
     let sizes = [input.bytes().len() as u64];
-    match front_door("fuzz.elmt", &sizes, &limits, None, || importer.import(&input, &mut ctx)) {
+    match front_door("fuzz.elmt", &sizes, &limits, None, || {
+        importer.import(&input, &mut ctx)
+    }) {
         Ok(b) => Outcome {
             imported: true,
             emitted: batch(&b),

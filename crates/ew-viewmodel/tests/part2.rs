@@ -309,13 +309,39 @@ fn a_qelectrotech_project_is_imported_into_a_new_directory() {
     assert_eq!(shell.messages_scheme(), Some("Migration report"));
     shell.shutdown();
     let mut plain = tmp.shell();
-    done(&mut plain, "file.new", json!({ "dir": path(&tmp.0.join("new.ew")) }));
+    done(
+        &mut plain,
+        "file.new",
+        json!({ "dir": path(&tmp.0.join("new.ew")) }),
+    );
     assert!(!plain.messages_offers_migration());
     match run(&mut plain, "messages.migration", json!({})) {
         Outcome::Refused { reason_key } => assert_eq!(reason_key, key!("reason-no-lineage")),
         other => panic!("{other:?}"),
     }
     plain.shutdown();
+}
+
+/// WP-S3.09 D4: in the window the importer runs as a job: the step returns at once with the banner, and the job's end
+/// opens the import card.
+#[test]
+fn the_window_imports_as_a_job() {
+    let tmp = Tmp::new();
+    let qet = tmp.0.join("example.qet");
+    std::fs::write(&qet, QET).unwrap();
+    let dir = tmp.0.join("imported.ew");
+    let mut gui = tmp.gui();
+    done(
+        &mut gui,
+        "file.import_qet",
+        json!({ "file": path(&qet), "dir": path(&dir) }),
+    );
+    assert_eq!(gui.banner(), Some("Importing example.qet…"));
+    assert!(gui.dialog().is_none(), "the card waits for the job's end");
+    assert!(gui.wait_jobs().is_empty());
+    let spec = ew_viewmodel::dialogs::spec(gui.dialog().expect("the import card"), &gui);
+    assert_eq!(spec.title, "Import example.qet");
+    assert!(!dir.exists(), "the card writes nothing");
 }
 
 /// WP-S3.09 IC-13 (D10 to D12): a changed file without a project UUID asks T6; the re-import card shows T8 and its

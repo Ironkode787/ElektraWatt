@@ -412,17 +412,31 @@ pub fn import_qet_with(
     library: &StarterLibrary,
     options: SessionOptions,
 ) -> Result<Imported, Refusal> {
-    let input = ImportInput::new(name, bytes).map_err(|e| ImportError::Unsupported {
-        message: e.to_string(),
-    })?;
-    let importer = QetProjectImporter::with_library(library.docs.iter().cloned());
+    import_qet_batch(name, bytes, library).map(|batch| imported_of(batch, options))
+}
+
+/// The first half of [`import_qet`]: the file through the front door into a new project's context, the batch only. It
+/// makes no session, so a host may run it as a job (WP-S3.09 D4: a `Session` is not `Send`).
+///
+/// # Errors
+///
+/// As [`import_qet`].
+pub fn import_qet_batch(
+    name: &str,
+    bytes: Vec<u8>,
+    library: &StarterLibrary,
+) -> Result<ImportBatch, Refusal> {
     let mut ctx = ew_import_qet::project::new_project_context();
-    let limits = ctx.limits;
-    let sizes = [input.bytes().len() as u64];
-    let batch = front_door(name, &sizes, &limits, None, || importer.import(&input, &mut ctx))?;
-    let session = session_from_import(&batch, ctx.mode, options);
+    qet_batch(name, bytes, library, &mut ctx)
+}
+
+/// The second half of [`import_qet`]: `batch` committed into an empty project by `import.apply` (D7) with `options`,
+/// and the live findings of the made project.
+pub fn imported_of(batch: ImportBatch, options: SessionOptions) -> Imported {
+    let mode = ew_import_qet::project::new_project_context().mode;
+    let session = session_from_import(&batch, mode, options);
     let live = session.as_ref().map(lenient_findings).unwrap_or_default();
-    Ok(Imported { batch, session, live })
+    Imported { batch, session, live }
 }
 
 // -------------------------------------------------------------------------------------------------------------------

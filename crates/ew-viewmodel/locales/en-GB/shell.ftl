@@ -3661,3 +3661,6 @@ reason-no-reimport = No re-import is waiting to be applied
 action-messages-migration = Migration report
 messages-scheme-migration = Migration report
 reason-no-lineage = The project holds no import
+
+# WP-S3.09 D4: the banner while the import job runs.
+banner-importing = Importing { $p0 }…

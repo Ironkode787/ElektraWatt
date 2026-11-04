@@ -11,8 +11,10 @@
 
 use std::path::{Path, PathBuf};
 
+use ew_api::ew_jobs::{Job, JobEnd, JobOptions};
 use ew_api::import::{
-    Detected, Refusal, ReimportClass, ReimportError, Severity, StarterLibrary, import_qet, migration_counts,
+    Detected, Refusal, ReimportClass, ReimportError, Severity, StarterLibrary, import_qet_batch, imported_of,
+    migration_counts,
 };
 use ew_api::{NewProjectKind, ProjectTemplate, Recovery, Session};
 use serde_json::{Map, Value};
@@ -34,6 +36,19 @@ pub(crate) struct PendingImport {
     dir: PathBuf,
     /// The banner of the opened project.
     banner: String,
+}
+
+/// A running import job of the window (WP-S3.09 D4): the importer on its own thread, with what its end needs.
+#[derive(Debug)]
+pub(crate) struct ImportJob {
+    /// The job: the batch, or why the front door refused the file.
+    pub(super) job: Job<Result<ew_api::import::ImportBatch, Refusal>>,
+    /// The source's file name.
+    pub(super) name: String,
+    /// The folder the user chose.
+    pub(super) dir: PathBuf,
+    /// The banner's note when there is no starter content.
+    pub(super) library_note: Option<&'static str>,
 }
 
 /// The banner text of a refused import (T1, T2 through their keys; an importer's refusal in its English words).
@@ -278,8 +293,71 @@ impl ShellModel {
             return failed(key!("error-import-read"), &[&name]);
         };
         let (library, library_note) = self.import_library();
-        let imported = match import_qet(&name, bytes, &library) {
-            Ok(i) => i,
+        // WP-S3.09 D4: the importer runs as a job (its own thread and `catch_unwind`), so the window stays responsive;
+        // the import's transaction follows on this thread, since a session is not `Send`. Headless, the step waits.
+        let options = JobOptions {
+            name: "import".to_owned(),
+            waker: self.jobs.waker.clone(),
+            gate: self.jobs.hooks.gate(),
+        };
+        let job_name = name.clone();
+        let job = Job::spawn(options, move |_| Ok(import_qet_batch(&job_name, bytes, &library)));
+        let Ok(job) = job else {
+            return failed(key!("error-import-read"), &[&name]);
+        };
+        let pending = ImportJob {
+            job,
+            name,
+            dir,
+            library_note,
+        };
+        match self.mode {
+            Mode::Headless => {
+                let ImportJob {
+                    job,
+                    name,
+                    dir,
+                    library_note,
+                } = pending;
+                self.finish_import(job.wait(), name, dir, library_note)
+            }
+            Mode::Gui => {
+                self.banner = Some(strings::format(key!("banner-importing"), &[&pending.name]));
+                self.import_job = Some(pending);
+                Outcome::Done
+            }
+        }
+    }
+
+    /// Takes the end of a running import job (the window every frame, through `poll_jobs`) and goes on with the import
+    /// card.
+    pub(super) fn poll_import(&mut self) {
+        let ended = self.import_job.as_mut().and_then(|pending| pending.job.try_end());
+        if let Some(end) = ended
+            && let Some(pending) = self.import_job.take()
+        {
+            let _ = self.finish_import(end, pending.name, pending.dir, pending.library_note);
+        }
+    }
+
+    /// The end of an import job: a refusal (T1 for a panic, T2, the importer's words) in the banner, else the batch
+    /// committed into a new project by `import.apply` and shown on the import card.
+    pub(super) fn finish_import(
+        &mut self,
+        end: JobEnd<Result<ew_api::import::ImportBatch, Refusal>>,
+        name: String,
+        dir: PathBuf,
+        library_note: Option<&'static str>,
+    ) -> Outcome {
+        let batch = match end {
+            JobEnd::Done(Ok(batch)) => Ok(batch),
+            JobEnd::Done(Err(refusal)) => Err(refusal),
+            JobEnd::Panicked | JobEnd::Failed(_) | JobEnd::Cancelled => {
+                Err(Refusal::Panicked { file: name.clone() })
+            }
+        };
+        let imported = match batch {
+            Ok(batch) => imported_of(batch, ew_api::SessionOptions::default()),
             Err(e) => {
                 let message = refusal_text(&name, &e);
                 self.banner = Some(message.clone());

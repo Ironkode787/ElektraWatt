@@ -350,7 +350,11 @@ fn qet_element_seeds(dir: &Path) {
         .collect();
     names.sort();
     for path in names {
-        let name = path.file_stem().expect("a file name").to_string_lossy().into_owned();
+        let name = path
+            .file_stem()
+            .expect("a file name")
+            .to_string_lossy()
+            .into_owned();
         write(dir, &name, &std::fs::read(&path).expect("a readable fixture"));
     }
 }
@@ -422,9 +426,36 @@ const SUPPLIER: [[&str; 8]; 4] = [
         "Kind",
         "Unit",
     ],
-    ["Phoenix Contact", "3044102", "UT 4", "3044102", "4017918960445", "Feed-through terminal", "terminal", "piece"],
-    ["Siemens", "3RT2015-1BB41 / 3RT2015-1BB42", "3RT2015", "", "", "Contactor", "contactor", "piece"],
-    ["Weidmüller", "", "WDU 2.5", "", "", "Terminal", "terminal", "piece"],
+    [
+        "Phoenix Contact",
+        "3044102",
+        "UT 4",
+        "3044102",
+        "4017918960445",
+        "Feed-through terminal",
+        "terminal",
+        "piece",
+    ],
+    [
+        "Siemens",
+        "3RT2015-1BB41 / 3RT2015-1BB42",
+        "3RT2015",
+        "",
+        "",
+        "Contactor",
+        "contactor",
+        "piece",
+    ],
+    [
+        "Weidmüller",
+        "",
+        "WDU 2.5",
+        "",
+        "",
+        "Terminal",
+        "terminal",
+        "piece",
+    ],
 ];
 
 /// A ZIP of stored `files` (no compression), the smallest workbook container.
@@ -434,7 +465,11 @@ fn stored_zip(files: &[(&str, String)]) -> Vec<u8> {
         for b in bytes {
             crc ^= u32::from(*b);
             for _ in 0..8 {
-                crc = if crc & 1 == 1 { (crc >> 1) ^ 0xedb8_8320 } else { crc >> 1 };
+                crc = if crc & 1 == 1 {
+                    (crc >> 1) ^ 0xedb8_8320
+                } else {
+                    crc >> 1
+                };
             }
         }
         !crc
@@ -525,7 +560,13 @@ fn parts_table_seeds(dir: &Path) {
         .map(|row| {
             let cells: Vec<String> = row
                 .iter()
-                .map(|c| if c.contains(['/', ' ']) { format!("\"{c}\"") } else { (*c).to_owned() })
+                .map(|c| {
+                    if c.contains(['/', ' ']) {
+                        format!("\"{c}\"")
+                    } else {
+                        (*c).to_owned()
+                    }
+                })
                 .collect();
             cells.join(",") + "\n"
         })

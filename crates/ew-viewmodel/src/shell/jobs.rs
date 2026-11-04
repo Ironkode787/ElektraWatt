@@ -402,6 +402,8 @@ impl ShellModel {
     pub fn poll_jobs(&mut self) {
         // WP-S3.07 part 3: the print pre-dialog's build too.
         self.poll_print();
+        // WP-S3.09 D4: and the import's.
+        self.poll_import();
         let ended: Vec<(u64, JobEnd<ExportDone>)> = self
             .jobs
             .entries
@@ -426,6 +428,11 @@ impl ShellModel {
     /// for, whether their end was taken now or by an earlier poll (FT-513): the runner prints each as
     /// `error: <text>` and exits 1. Which poll took an end depends on timing; this list does not.
     pub fn wait_jobs(&mut self) -> Vec<String> {
+        // WP-S3.09 D4: a running import job ends in its card.
+        if let Some(pending) = self.import_job.take() {
+            let end = pending.job.wait();
+            let _ = self.finish_import(end, pending.name, pending.dir, pending.library_note);
+        }
         let running: Vec<u64> = self
             .jobs
             .entries()

@@ -769,6 +769,16 @@ fn entries_about_emitted_records_name_them() {
             })
             .collect()
     };
-    assert_eq!(targets("EW-IMP-103"), [("device".to_owned(), true)], "{}", all_entries(&imported));
-    assert_eq!(targets("EW-IMP-008"), [("page".to_owned(), true)], "{}", all_entries(&imported));
+    assert_eq!(
+        targets("EW-IMP-103"),
+        [("device".to_owned(), true)],
+        "{}",
+        all_entries(&imported)
+    );
+    assert_eq!(
+        targets("EW-IMP-008"),
+        [("page".to_owned(), true)],
+        "{}",
+        all_entries(&imported)
+    );
 }

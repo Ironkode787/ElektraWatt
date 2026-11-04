@@ -539,6 +539,8 @@ pub struct ShellModel {
     dialog: Option<Dialog>,
     /// The imported project the import card shows (WP-S3.09 D8).
     import_pending: Option<projects::PendingImport>,
+    /// The import job running for the import card (WP-S3.09 D4).
+    import_job: Option<projects::ImportJob>,
     /// The previewed re-import the re-import card shows (WP-S3.09 D12).
     reimport_pending: Option<ew_api::import::Reimport>,
     /// Bumped on every opening of a dialog: the window gives a dialog opened again, even as the same kind, its first
@@ -987,6 +989,7 @@ impl ShellModel {
             keymap_keep_file,
             dialog: None,
             import_pending: None,
+            import_job: None,
             reimport_pending: None,
             dialog_gen: 0,
             prompt: None,
