@@ -1253,7 +1253,59 @@ pub(super) fn command_failed(e: &CmdError, params: &Value) -> Outcome {
         ),
         // FT-909 (ID-1108): a refusal shows its reason, never the error's Display form ("<source>: <reason>")
         CmdError::Rejected { reason, .. } => failed(key!("error-command"), &[reason]),
-        other => failed(key!("error-command"), &[&other.to_string()]),
+        // FT-1337 and FT-1363 (ID-1359 ruling 1): every other reason through its own key in the window's language,
+        // never the error's Display form (which names the exposure class and the origin, `cmdlog:script.uiscript`).
+        other => {
+            let (key, args) = command_error_text(other);
+            let args: Vec<&str> = args.iter().map(String::as_str).collect();
+            failed(key, &args)
+        }
+    }
+}
+
+/// The keys [`command_error_text`] renders a command error by, one per reason (FT-1337): a test checks each has its
+/// text in both languages with the same arguments.
+#[cfg(test)]
+const COMMAND_ERROR_KEYS: &[&str] = &[
+    "command-error-unknown",
+    "command-error-not-found",
+    "command-error-human-only",
+    "command-error-import-only",
+    "command-error-internal-only",
+    "command-error-needs-preview",
+    "command-error-prevented",
+    "command-error-model",
+    "command-error-history",
+    "command-error-internal",
+];
+
+/// The key and the arguments of a command error that is neither an invalid parameter nor a command's refusal
+/// (FT-1337, FT-1363): the command by its title, a prevent rule by its ID and finding, a model, history or internal
+/// error with its text. The match names every reason, so a new one does not build until it has its key.
+fn command_error_text(e: &CmdError) -> (Key<'static>, Vec<String>) {
+    let title = |c: &str| strings::command_title(c).to_owned();
+    match e {
+        CmdError::UnknownCommand { name } => (key!("command-error-unknown"), vec![name.clone()]),
+        CmdError::NotFound { .. } => (key!("command-error-not-found"), Vec::new()),
+        CmdError::Exposure {
+            command, exposure, ..
+        } => match exposure {
+            ew_api::Exposure::Import => (key!("command-error-import-only"), vec![title(command)]),
+            ew_api::Exposure::Internal => (key!("command-error-internal-only"), vec![title(command)]),
+            ew_api::Exposure::HumanOnly | ew_api::Exposure::Edit => {
+                (key!("command-error-human-only"), vec![title(command)])
+            }
+        },
+        CmdError::NeedsPreview { command } => (key!("command-error-needs-preview"), vec![title(command)]),
+        CmdError::Prevented { rule, finding, .. } => {
+            (key!("command-error-prevented"), vec![rule.clone(), finding.clone()])
+        }
+        CmdError::Model(m) => (key!("command-error-model"), vec![m.to_string()]),
+        CmdError::History { reason } => (key!("command-error-history"), vec![reason.clone()]),
+        CmdError::Internal { reason } => (key!("command-error-internal"), vec![reason.clone()]),
+        CmdError::InvalidParams { message, .. } | CmdError::Rejected { reason: message, .. } => {
+            (key!("error-command"), vec![message.clone()])
+        }
     }
 }
 
@@ -1323,6 +1375,74 @@ mod ft779 {
         assert_eq!(
             message(command_failed(&e, &Value::Null)),
             "Delete wire: Connections: list at least one connection"
+        );
+    }
+
+    /// The `{ $pN }` arguments of the message `key` in the Fluent source `ftl`; `None` when it has no such message.
+    fn arguments(ftl: &str, key: &str) -> Option<Vec<String>> {
+        let line = ftl.lines().find(|l| l.split_once(" = ").is_some_and(|(k, _)| k == key))?;
+        let mut args: Vec<String> = line
+            .split("{ $")
+            .skip(1)
+            .filter_map(|r| r.split_once(" }").map(|(a, _)| a.to_owned()))
+            .collect();
+        args.sort();
+        args.dedup();
+        Some(args)
+    }
+
+    /// FT-1337 (ID-1359 ruling 1): every reason a command error is rendered by has its text in en-GB and nl-NL, with
+    /// the same arguments; the exhaustive match of `command_error_text` makes a new reason name its key, and this
+    /// list holds it.
+    #[test]
+    fn every_command_error_reason_has_its_text_in_both_languages() {
+        let en = include_str!("../../locales/en-GB/shell.ftl");
+        let nl = include_str!("../../locales/nl-NL/shell.ftl");
+        for key in COMMAND_ERROR_KEYS {
+            let a = arguments(en, key).unwrap_or_else(|| panic!("{key} has no en-GB text"));
+            assert_eq!(arguments(nl, key).as_ref(), Some(&a), "{key} in nl-NL");
+        }
+        let errors = [
+            CmdError::UnknownCommand { name: "x.y".into() },
+            CmdError::NeedsPreview {
+                command: "part.assign".into(),
+            },
+            CmdError::History { reason: "r".into() },
+            CmdError::Internal { reason: "r".into() },
+            CmdError::Prevented {
+                rule: "EW-TERM-002".into(),
+                finding: "f".into(),
+                keys: Vec::new(),
+            },
+        ];
+        for e in &errors {
+            let (key, _) = command_error_text(e);
+            assert!(COMMAND_ERROR_KEYS.contains(&key.as_str()), "{key:?}");
+        }
+    }
+
+    /// FT-1363 (W50-F13): a human-only command refused for a script's origin is worded by its title, in the window's
+    /// language, never "exposure HumanOnly is refused for origin cmdlog:script.uiscript".
+    #[test]
+    fn a_refused_exposure_names_the_command_in_the_windows_language() {
+        let e = CmdError::Exposure {
+            command: "check.waive".into(),
+            exposure: ew_api::Exposure::HumanOnly,
+            origin: ew_api::Origin::CmdLog {
+                file: "script.uiscript".into(),
+            },
+        };
+        assert_eq!(
+            message(command_failed(&e, &Value::Null)),
+            "Only a person can run Waive finding, in the window; a script or a plugin cannot (ADR-0008)"
+        );
+        assert!(strings::set_locale("nl"));
+        let nl = message(command_failed(&e, &Value::Null));
+        assert!(strings::set_locale("en"));
+        assert_eq!(
+            nl,
+            "Alleen een persoon kan Bevinding vrijstellen uitvoeren, in het venster; een script of een plug-in kan dat \
+             niet (ADR-0008)"
         );
     }
 }

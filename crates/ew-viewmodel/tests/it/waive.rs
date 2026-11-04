@@ -361,3 +361,44 @@ fn ft696_a_named_connection_point_draws_its_wires_or_its_ring() {
     assert_eq!(page.conflict_lines(&[], &[]), Vec::<Vec<(i64, i64)>>::new());
     shell.shutdown();
 }
+
+/// FT-1363 (W50-F13): in a window a script drives, the Waive prompt's refusal of the human-only `check.waive` is worded
+/// by the command's title under the fields, never the error's raw form with the exposure class and the origin.
+#[test]
+fn a_scripted_window_shows_the_waive_refusal_in_words() {
+    let tmp = Tmp::new("waive-scripted");
+    let dir = tmp.golden_copy();
+    common::copy_dir(std::path::Path::new(common::GOLDEN_A), &dir);
+    let mut shell = ShellModel::new_scripted(ew_viewmodel::shell::ShellConfig::in_dir(
+        &tmp.0.join("config"),
+        "0.0.0-test",
+    ));
+    done(
+        &mut shell,
+        "file.open",
+        json!({"dir": dir.to_string_lossy(), "read_only": false}),
+    );
+    done(&mut shell, "page.goto", json!({"folio": "102"}));
+    done(&mut shell, "messages.show", json!({"on": true}));
+    let row = finding(&shell, "EW-CORE-033", "-3W1");
+    done(
+        &mut shell,
+        "navigator.row",
+        json!({"kind": "messages", "key": row.key}),
+    );
+    done(&mut shell, "messages.waive", json!({"date": DATE}));
+    shell.set_form_field("reason", "Cable length is set on site");
+    shell.set_form_field("author", "A. Engineer");
+    let Outcome::Failed { message } = shell.submit_form() else {
+        panic!("refused for the script's origin")
+    };
+    assert_eq!(
+        message,
+        "Only a person can run Waive finding, in the window; a script or a plugin cannot (ADR-0008)"
+    );
+    let Some(Dialog::Form(form)) = shell.dialog() else {
+        panic!("the prompt stays");
+    };
+    assert_eq!(form.error.as_deref(), Some(message.as_str()));
+    shell.shutdown();
+}
