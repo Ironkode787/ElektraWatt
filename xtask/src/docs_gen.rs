@@ -105,11 +105,18 @@ const REPO_BLOB: &str = "https://github.com/Ironkode787/ElektraWatt/blob/main/";
 const PACK_SECTIONS: &[(&str, &str, &str)] = &[
     ("EW-BUS", "4.5.2 EW-BUS", "452-ew-bus"),
     ("EW-CORE", "4.2 EW-CORE", "42-ew-core"),
+    ("EW-FL", "4.5.3 EW-FL", "453-ew-fl"),
     (
         "EW-IEC81346",
         "4.3 EW-IEC81346: designations and numbering",
         "43-ew-iec81346-designations-and-numbering",
     ),
+    (
+        "EW-IMP",
+        "4.10 EW-IMP: import findings",
+        "410-ew-imp-import-findings",
+    ),
+    ("EW-LAYOUT", "4.5.4 EW-LAYOUT", "454-ew-layout"),
     ("EW-PLC", "4.5.1 EW-PLC", "451-ew-plc"),
     ("EW-POT", "4.4 EW-TERM and EW-POT", "44-ew-term-and-ew-pot"),
     ("EW-REL", "4.8 EW-REL: release gate", "48-ew-rel-release-gate"),
@@ -2730,6 +2737,39 @@ mod tests {
         }
         assert_eq!(generated.notes, Vec::<String>::new());
         assert_eq!(rule_page_path("EW-CORE-033"), "reference/rules/ew-core-033.md");
+    }
+
+    /// FT-1325: every pack of the catalogue has its row in the anchor table, and each row's title is a heading of doc 15
+    /// whose GitHub anchor (lower case, spaces as `-`, other punctuation dropped) is the row's anchor.
+    #[test]
+    fn every_pack_links_its_doc_15_section() {
+        let root = crate::workspace_root();
+        let text = read_lf(&root.join(CATALOGUE)).unwrap().unwrap();
+        let catalogue = parse_catalogue(&text).unwrap();
+        for r in &catalogue.rules {
+            assert!(
+                PACK_SECTIONS.iter().any(|(p, _, _)| *p == r.pack),
+                "{} has no row",
+                r.pack
+            );
+        }
+        let doc = read_lf(&root.join("docs/design/15-checks-revisions-collaboration.md"))
+            .unwrap()
+            .unwrap();
+        for (pack, title, anchor) in PACK_SECTIONS {
+            assert!(
+                doc.lines()
+                    .any(|l| l.trim_start_matches('#').trim() == *title && l.starts_with('#')),
+                "{pack}: no heading {title}"
+            );
+            let slug: String = title
+                .to_lowercase()
+                .chars()
+                .filter(|c| c.is_alphanumeric() || *c == ' ' || *c == '-')
+                .map(|c| if c == ' ' { '-' } else { c })
+                .collect();
+            assert_eq!(slug, *anchor, "{pack}");
+        }
     }
 
     #[test]
