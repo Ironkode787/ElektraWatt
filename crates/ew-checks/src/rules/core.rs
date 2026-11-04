@@ -980,8 +980,8 @@ pub fn merge_collisions(q: &Q) -> Vec<Finding> {
                 }
                 finding = finding
                     .arg("collision", f.message.clone())
-                .arg("keeper", keeper)
-                .arg("others", others);
+                    .arg("keeper", keeper)
+                    .arg("others", others);
                 if id == crate::rules::rds::DUPLICATE_DESIGNATION.id {
                     if let Some(fix) = renumber_newer(q, &group) {
                         finding = finding.with_fix(fix);

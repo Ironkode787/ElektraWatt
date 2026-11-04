@@ -241,7 +241,8 @@ impl Rule for Termination {
             for (end, from_start) in line_ends {
                 if segment.external_ends.contains(&end) {
                     let name = end_name(q, end);
-                    let (port, partner) = external_end(q, end).unwrap_or_else(|| (name.clone(), String::new()));
+                    let (port, partner) =
+                        external_end(q, end).unwrap_or_else(|| (name.clone(), String::new()));
                     out.push(
                         Finding::new(
                             &TERMINATION,

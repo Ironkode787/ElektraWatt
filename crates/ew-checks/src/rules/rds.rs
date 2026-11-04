@@ -97,9 +97,15 @@ impl Rule for DuplicateDesignation {
                 let mut group: Vec<Target> = members.iter().map(|m| Target::new(Kind::Device, *m)).collect();
                 group.sort_by(|a, b| keeper_order(q, a, b));
                 let count = members.len().to_string();
-                let finding = Finding::new(&DUPLICATE_DESIGNATION, group.iter().copied(), "", full.clone(), message)
-                    .arg("tag", full)
-                    .arg("count", count);
+                let finding = Finding::new(
+                    &DUPLICATE_DESIGNATION,
+                    group.iter().copied(),
+                    "",
+                    full.clone(),
+                    message,
+                )
+                .arg("tag", full)
+                .arg("count", count);
                 match renumber_newer(q, &group) {
                     Some(fix) => finding.with_fix(fix),
                     None => finding,

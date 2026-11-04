@@ -86,9 +86,9 @@ pub use macro_insert::{
     InstantiateError, Instantiated, MACRO_FIELDS, MACRO_KINDS, binding_field_ok, coerce_value, instantiate,
     pick_variant,
 };
-pub use merge::{ConflictChoice, Take};
 #[cfg(feature = "testkit")]
 pub use merge::record_file_of;
+pub use merge::{ConflictChoice, Take};
 pub use page::{LabelModeParam, PageScope};
 pub use part_edit::PART_EDITABLE;
 pub use parts::import_counts;

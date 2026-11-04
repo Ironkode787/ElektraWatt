@@ -1745,16 +1745,27 @@ fn a_side_that_is_not_utf8_is_a_binary_conflict_that_keeps_ours() {
     let base = format!("{}\n", bond(1, json!({})));
     let limits = Limits::default();
     assert_eq!(
-        merge_bytes("waivers.jsonl", [base.as_bytes(), ours.as_bytes(), not_utf8], &limits),
+        merge_bytes(
+            "waivers.jsonl",
+            [base.as_bytes(), ours.as_bytes(), not_utf8],
+            &limits
+        ),
         (ours.clone().into_bytes(), 1)
     );
     assert_eq!(
-        merge_bytes("waivers.jsonl", [base.as_bytes(), not_utf8, ours.as_bytes()], &limits),
+        merge_bytes(
+            "waivers.jsonl",
+            [base.as_bytes(), not_utf8, ours.as_bytes()],
+            &limits
+        ),
         (not_utf8.to_vec(), 1)
     );
     let path = "lib/manufacturers/221fd06e-3263-5cab-bbb9-27aee71c8d79.json";
     let doc = golden()[path].clone();
-    assert_eq!(merge_bytes(path, [b"{}\n", &doc, not_utf8], &limits), (doc.clone(), 1));
+    assert_eq!(
+        merge_bytes(path, [b"{}\n", &doc, not_utf8], &limits),
+        (doc.clone(), 1)
+    );
 }
 
 #[test]
@@ -1772,7 +1783,10 @@ fn a_second_conflict_on_a_target_joins_its_conflict_record() {
     );
     assert_eq!(
         (String::from_utf8(bytes).expect("UTF-8"), conflicts),
-        (format!("{}\n{joined}\n", bond(1, json!({"number": 1, "page": "q"}))), 1)
+        (
+            format!("{}\n{joined}\n", bond(1, json!({"number": 1, "page": "q"}))),
+            1
+        )
     );
     // The sides added different conflict records of one target: one record holds both, theirs' value where both hold
     // a member.
@@ -1783,7 +1797,10 @@ fn a_second_conflict_on_a_target_joins_its_conflict_record() {
     };
     let o = format!("{}\n", bond(1, json!({})));
     let a = format!("{o}{}\n", conflict(r#"{"number":1}"#, r#"{"number":2}"#));
-    let b = format!("{o}{}\n", conflict(r#"{"page":"q"}"#, r#"{"number":3,"page":"r"}"#));
+    let b = format!(
+        "{o}{}\n",
+        conflict(r#"{"page":"q"}"#, r#"{"number":3,"page":"r"}"#)
+    );
     let (bytes, conflicts) = merge_bytes(
         "waivers.jsonl",
         [o.as_bytes(), a.as_bytes(), b.as_bytes()],
@@ -1858,12 +1875,18 @@ fn a_merge_that_would_pass_a_file_limit_keeps_ours_as_it_is() {
         max_lines_per_file: 2,
         ..Limits::default()
     };
-    assert_eq!(merge_bytes("waivers.jsonl", sides, &lines), (a.clone().into_bytes(), 1));
+    assert_eq!(
+        merge_bytes("waivers.jsonl", sides, &lines),
+        (a.clone().into_bytes(), 1)
+    );
     let size = Limits {
         max_file_bytes: a.len() as u64,
         ..Limits::default()
     };
-    assert_eq!(merge_bytes("waivers.jsonl", sides, &size), (a.clone().into_bytes(), 1));
+    assert_eq!(
+        merge_bytes("waivers.jsonl", sides, &size),
+        (a.clone().into_bytes(), 1)
+    );
     assert_eq!(merge_bytes("waivers.jsonl", sides, &Limits::default()).1, 0);
 
     let o = manifest(1, &[("a.jsonl", 1)], "");
