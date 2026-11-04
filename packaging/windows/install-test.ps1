@@ -212,7 +212,16 @@ function Assert-RefusesForeignFolder([string]$Name, [Collections.Specialized.Ord
     foreach ($written in @($EntryKey, $Shortcut)) {
         if (Test-Path -LiteralPath $written) { Fail "the refused setup wrote $written" }
     }
-    Write-Host "install-test: the setup /S refused $folder (exit 2); $($Files.Keys -join ' and ') are the same"
+    # FT-1273: the files one by one, the verb agreeing in number ("docs\keep.txt is the same").
+    $names = @($Files.Keys | ForEach-Object { "$_" })
+    if ($names.Count -gt 1) {
+        $list = ($names[0..($names.Count - 2)] -join ', ') + ' and ' + $names[-1]
+        $verb = 'are'
+    } else {
+        $list = $names[0]
+        $verb = 'is'
+    }
+    Write-Host "install-test: the setup /S refused $folder (exit 2); $list $verb the same"
 }
 
 function Install-Setup([string[]]$Arguments = @('/S')) {
