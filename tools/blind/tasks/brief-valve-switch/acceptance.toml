@@ -56,7 +56,7 @@ what = "The supply potentials are named and typed: +24 V DC and 0 V."
 how = "connections"
 query = "SELECT name FROM api_v1_potential WHERE ac_dc IS NOT NULL AND voltage IS NOT NULL"
 expect = ">= 2"
-infeasible = "the window cannot name or type a potential yet (potential naming, F34 lane of cycle 34)"
+infeasible = "the reference solution defines no potential, so its replay meets no row; the window names and types one with Draw ▸ Connect ▸ Define potential… (FT-1202), so a tester can meet it (FT-1244: check-brief keeps it soft)"
 
 [[item]]
 id = "A8"
