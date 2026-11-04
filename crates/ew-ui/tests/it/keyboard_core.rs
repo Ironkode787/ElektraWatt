@@ -5,7 +5,7 @@
 //! only (ID-1276 ruling 1): place a symbol (I, the picker by typing and arrows, Enter, Enter at the grid cursor), draw a
 //! wire (W, `]`, Enter, `]`, `]`, Enter), insert a terminal from the Terminal strips navigator (Ctrl+2; F6 and
 //! Shift+F6; Insert), renumber the devices through the palette and Ctrl+Enter (Ctrl+K, "renum", Enter; Tab and Space
-//! clear "Only non-conforming"; Ctrl+Enter submits; F6 to Properties and Ctrl+Enter apply the card) and export the PDF
+//! clear "Only non-conforming tags"; Ctrl+Enter submits; F6 to Properties and Ctrl+Enter apply the card) and export the PDF
 //! (Ctrl+Shift+E, the save dialog answered with a path in the test's folder). Each step's effect is read from the
 //! model; the accessible-name walker runs after every key.
 
@@ -201,14 +201,14 @@ fn ax5_the_five_core_tasks_with_key_events_only() {
         matches!(h.state().shell().dialog(), Some(Dialog::Form(f)) if f.action == "devices.renumber"),
         "the renumber form"
     );
-    // Tab to "Only non-conforming", Space clears it: every device is renumbered.
+    // Tab to "Only non-conforming tags", Space clears it: every device is renumbered.
     let mut tabs = 0;
     while !h.get_all_by_role(egui::Role::CheckBox).any(|n| {
-        n.accesskit_node().label().as_deref() == Some("Only non-conforming")
+        n.accesskit_node().label().as_deref() == Some("Only non-conforming tags")
             && n.accesskit_node().is_focused()
     }) {
         tabs += 1;
-        assert!(tabs <= 8, "Tab reaches Only non-conforming");
+        assert!(tabs <= 8, "Tab reaches Only non-conforming tags");
         press(&mut h, Key::Tab);
     }
     press(&mut h, Key::Space);

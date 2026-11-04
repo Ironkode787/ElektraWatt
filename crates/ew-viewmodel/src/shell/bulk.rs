@@ -557,7 +557,7 @@ impl ShellModel {
 
     /// `devices.renumber {scope?, scheme?, include_frozen?, only_nonconforming?}` (Tools, Renumber devices…):
     /// `numbering.renumber` of the project, the current page or the selected devices, opening the `bulk` card. Without
-    /// `scheme` the window opens the dialog (Scope, Scheme, Include frozen tags, Only non-conforming); headless the step
+    /// `scheme` the window opens the dialog (Scope, Scheme, Include frozen tags, Only non-conforming tags); headless the step
     /// fails.
     pub(crate) fn act_devices_renumber(&mut self, p: &Map<String, Value>) -> Outcome {
         const ACTION: &str = "devices.renumber";

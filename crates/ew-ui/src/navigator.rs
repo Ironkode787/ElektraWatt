@@ -289,8 +289,9 @@ impl NavigatorPane {
                             let text = strings::format(key!("nav-scope-strip"), &[words]);
                             return ui
                                 .with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
-                                    // W49.3-F8: the scope takes the width it has and wraps there, never cut.
-                                    ui.add(egui::Label::new(text).wrap())
+                                    // ID-1320: the scope takes the width it has; cut there with "…", its whole
+                                    // text is its tooltip.
+                                    ui.add(egui::Label::new(text).truncate())
                                 })
                                 .inner;
                         }

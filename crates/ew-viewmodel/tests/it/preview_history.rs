@@ -163,7 +163,7 @@ fn golden_b(mode: Mode) {
             let d = shell.describe();
             assert!(
                 d.contains(
-                    "dialog \"Renumber devices\"\n  field \"Scope\": \"project\"\n  field \"Scheme\": \"page_based\"\n  field \"Include frozen tags\": \"false\"\n  field \"Only non-conforming\": \"true\"\n  button \"Renumber\"\n  button \"Cancel\""
+                    "dialog \"Renumber devices\"\n  field \"Scope\": \"project\"\n  field \"Scheme\": \"page_based\"\n  field \"Include frozen tags\": \"false\"\n  field \"Only non-conforming tags\": \"true\"\n  button \"Renumber\"\n  button \"Cancel\""
                 ),
                 "{d}"
             );

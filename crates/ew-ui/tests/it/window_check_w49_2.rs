@@ -383,7 +383,7 @@ fn w49_2_f2_the_strip_editor_opens_a_strip_without_a_tag_by_its_id() {
             "navigator \"Klemmenstroken\" kind strips view tree table sort \"Order\" ascending filter \"\" strip \
              \"Nieuwe klemmenstrook \u{b7} nog geen kenmerk\" rows 0 showing 0 to 0",
             "Nog geen klemmen",
-            "Strook: Nieuwe klemmenstrook \u{b7} nog geen kenmerk",
+            "Klemmenstrook: Nieuwe klemmenstrook \u{b7} nog geen kenmerk",
         ),
     ] {
         dispatch(&mut h, "view.language", json!({ "value": language }));
