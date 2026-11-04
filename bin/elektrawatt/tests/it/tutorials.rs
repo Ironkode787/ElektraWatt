@@ -421,7 +421,9 @@ fn tutorial_6_importing_a_qelectrotech_project_runs_as_its_page_says() {
     let [preview, imported, end] = <[String; 3]>::try_from(describes(&transcript)).unwrap();
     assert_eq!(
         lines_of(&preview, &["label \"1 pages"]),
-        ["label \"1 pages, 4 devices, 3 connections; 0 errors, 8 warnings and 5 infos in the migration report\""]
+        [
+            "label \"1 pages, 4 devices, 3 connections; 0 errors, 8 warnings and 5 infos in the migration report\""
+        ]
     );
     let report = ["messages scheme", "row level 2 rule"];
     assert_eq!(
@@ -471,7 +473,11 @@ fn dutch_translations() -> Vec<(String, String)> {
     let path = Path::new(BOOK).join("po/nl.po");
     let text = std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
     let unquote = |s: &str| {
-        let inner = s.trim().strip_prefix('"').and_then(|s| s.strip_suffix('"')).unwrap();
+        let inner = s
+            .trim()
+            .strip_prefix('"')
+            .and_then(|s| s.strip_suffix('"'))
+            .unwrap();
         inner
             .replace("\\n", "\n")
             .replace("\\\"", "\"")

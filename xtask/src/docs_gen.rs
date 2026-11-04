@@ -1721,7 +1721,8 @@ fn release_links(text: &str, base: &str) -> String {
 /// (`..` and `.`), a folder as its tree, an anchor kept; an absolute address, a `mailto:` and a page anchor unchanged,
 /// and so is a path that leaves the repository.
 fn repo_target(target: &str, base: &str) -> String {
-    if target.is_empty() || target.starts_with('#') || target.contains("://") || target.starts_with("mailto:") {
+    if target.is_empty() || target.starts_with('#') || target.contains("://") || target.starts_with("mailto:")
+    {
         return target.to_owned();
     }
     let (path, anchor) = target
@@ -3342,8 +3343,7 @@ row = "g-worker"
         std::fs::remove_dir_all(&root).unwrap();
         assert_eq!(
             items,
-            ["9.9.9", "0.10.0", "0.9.0"]
-                .map(|v| (v.to_owned(), format!("{RELEASE_NOTES_DIR}/{v}.md"), 0))
+            ["9.9.9", "0.10.0", "0.9.0"].map(|v| (v.to_owned(), format!("{RELEASE_NOTES_DIR}/{v}.md"), 0))
         );
         assert_eq!(files.len(), 4);
         assert_eq!(
