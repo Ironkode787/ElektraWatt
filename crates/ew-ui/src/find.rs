@@ -36,6 +36,9 @@ pub struct FindPane {
     folios: String,
     /// Whether the pane had the shell's focus in the last frame (the text field takes the focus when it gets it).
     was_ours: bool,
+    /// The width the first row's buttons took in the last frame, their gaps included: the fields share the rest
+    /// (W49.2-F4).
+    buttons: f32,
 }
 
 /// The text of a result line: folio and cell, subject, field, the string (with its matches marked as `[[…]]` when
@@ -112,107 +115,168 @@ impl FindPane {
             self.folios = f.folios().join(", ");
         }
         let card = has_find_card(shell);
+        // W49.2-F5 (doc 16a §4.9): the field rows and the status line at the header's inset, `space.4` each side.
+        let inset = crate::theme::margin_px(crate::theme::current(ui.ctx()).space_4);
+        let rows = egui::Frame::new().inner_margin(egui::Margin {
+            left: inset,
+            right: inset,
+            top: 0,
+            bottom: 0,
+        });
         ui.scope_builder(egui::UiBuilder::new().accessibility_parent(pane_id), |ui| {
             Self::card(ui, shell, events);
-            ui.horizontal_wrapped(|ui| {
-                let name = strings::text(key!("find-text")).to_owned();
-                let response = Self::field(ui, &mut self.text, &name, events, "find.text", (card, ours));
-                if arrived {
-                    response.request_focus();
-                }
-                if f.replace_mode() {
-                    let name = strings::text(key!("find-replacement")).to_owned();
-                    Self::field(
+            rows.show(ui, |ui| {
+                ui.horizontal_wrapped(|ui| {
+                    let gap = ui.spacing().item_spacing.x;
+                    let fields = if f.replace_mode() { 2.0 } else { 1.0 };
+                    // W49.2-F4 (doc 16a §2, as ID-1276 ruling 8 for the folio field): the fields share what the row has
+                    // beside the buttons, so they grow with the pane; where that cannot show a field's placeholder (with
+                    // a button's padding each side), each field takes a row of its own.
+                    let row = ui.max_rect().width();
+                    let font = egui::TextStyle::Body.resolve(ui.style());
+                    let least = [key!("find-text"), key!("find-replacement")]
+                        .into_iter()
+                        .map(|k| {
+                            ui.fonts_mut(|fonts| {
+                                fonts
+                                    .layout_no_wrap(
+                                        strings::text(k).to_owned(),
+                                        font.clone(),
+                                        crate::theme::NONE,
+                                    )
+                                    .size()
+                                    .x
+                            })
+                        })
+                        .fold(0.0_f32, f32::max)
+                        .ceil()
+                        + 2.0 * ui.spacing().button_padding.x;
+                    let each = ((row - self.buttons - gap * fields) / fields).floor();
+                    let width = if each >= least { each } else { row };
+                    let name = strings::text(key!("find-text")).to_owned();
+                    let response = Self::field(
                         ui,
-                        &mut self.replacement,
+                        &mut self.text,
                         &name,
+                        width,
                         events,
-                        "find.replacement",
+                        "find.text",
                         (card, ours),
                     );
-                }
-                if ui.button(strings::text(key!("find-run"))).clicked() {
-                    events.push(Event::Action("find.run", json!({})));
-                }
-                if f.replace_mode() && ui.button(strings::text(key!("find-replace-all"))).clicked() {
-                    events.push(Event::Action("find.replace_all", json!({})));
-                }
-                if ui.button(strings::text(key!("find-close"))).clicked() {
-                    events.push(Event::Action("find.close", json!({})));
-                }
-            });
-            ui.horizontal_wrapped(|ui| {
-                let (regex, case, word, selection) = f.options();
-                for (option, on, key) in [
-                    ("regex", regex, key!("find-regex")),
-                    ("match_case", case, key!("find-match-case")),
-                    ("whole_word", word, key!("find-whole-word")),
-                    ("in_selection", selection, key!("find-in-selection")),
-                ] {
-                    let mut now = on;
-                    let name = strings::text(key).to_owned();
-                    let response = ui.checkbox(&mut now, &name);
-                    response
-                        .widget_info(|| egui::WidgetInfo::selected(egui::Role::CheckBox, true, on, &name));
-                    if now != on {
-                        events.push(Event::Action("find.option", json!({"option": option, "on": now})));
+                    if arrived {
+                        response.request_focus();
                     }
-                }
-                ui.separator();
-                for field in FIELDS {
-                    let on = f.fields().contains(&field);
-                    let mut now = on;
-                    let name = strings::text(field_label_key(field)).to_owned();
-                    let response = ui.checkbox(&mut now, &name);
-                    response
-                        .widget_info(|| egui::WidgetInfo::selected(egui::Role::CheckBox, true, on, &name));
-                    if now != on {
-                        let fields: Vec<&str> = FIELDS
-                            .into_iter()
-                            .filter(|x| if *x == field { now } else { f.fields().contains(x) })
-                            .map(field_word)
-                            .collect();
-                        events.push(Event::Action("find.fields", json!({ "fields": fields })));
+                    if f.replace_mode() {
+                        let name = strings::text(key!("find-replacement")).to_owned();
+                        Self::field(
+                            ui,
+                            &mut self.replacement,
+                            &name,
+                            width,
+                            events,
+                            "find.replacement",
+                            (card, ours),
+                        );
                     }
-                }
-                ui.separator();
-                let name = strings::text(key!("find-folios")).to_owned();
-                // W49.1-J: the field takes the rest of its row; where the rest cannot show the whole placeholder
-                // (with a button's padding each side), it wraps to a row of its own and takes all of that.
-                let font = egui::TextStyle::Body.resolve(ui.style());
-                let hint = ui.fonts_mut(|fonts| {
-                    fonts
-                        .layout_no_wrap(name.clone(), font, crate::theme::NONE)
-                        .size()
-                        .x
+                    let mut buttons = 0.0;
+                    let run = ui.button(strings::text(key!("find-run")));
+                    buttons += run.rect.width() + gap;
+                    if run.clicked() {
+                        events.push(Event::Action("find.run", json!({})));
+                    }
+                    if f.replace_mode() {
+                        let all = ui.button(strings::text(key!("find-replace-all")));
+                        buttons += all.rect.width() + gap;
+                        if all.clicked() {
+                            events.push(Event::Action("find.replace_all", json!({})));
+                        }
+                    }
+                    let close = ui.button(strings::text(key!("find-close")));
+                    buttons += close.rect.width();
+                    if close.clicked() {
+                        events.push(Event::Action("find.close", json!({})));
+                    }
+                    // The buttons' width is known once they are laid out: a change lays the row out again.
+                    if (buttons - self.buttons).abs() > 0.5 {
+                        self.buttons = buttons;
+                        ui.ctx().request_repaint();
+                    }
                 });
-                let least = hint.ceil() + 2.0 * ui.spacing().button_padding.x;
-                // What is left of the current row (`available_width` is a whole row's in a wrapping layout).
-                let rest = (ui.max_rect().right() - ui.cursor().min.x).floor();
-                let width = if rest >= least {
-                    rest
-                } else {
-                    ui.max_rect().width()
-                };
-                let response = ui.add(
-                    TextEdit::singleline(&mut self.folios)
-                        .desired_width(width)
-                        .hint_text(&name),
-                );
-                response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, true, &name));
-                Self::report_focus(&response, ours, events);
-                if response.changed() {
-                    let folios: Vec<&str> = self
-                        .folios
-                        .split(',')
-                        .map(str::trim)
-                        .filter(|s| !s.is_empty())
-                        .collect();
-                    events.push(Event::Action("find.folios", json!({ "folios": folios })));
-                }
-                Self::enter_keys(ui, &response, events, card);
+                ui.horizontal_wrapped(|ui| {
+                    let (regex, case, word, selection) = f.options();
+                    for (option, on, key) in [
+                        ("regex", regex, key!("find-regex")),
+                        ("match_case", case, key!("find-match-case")),
+                        ("whole_word", word, key!("find-whole-word")),
+                        ("in_selection", selection, key!("find-in-selection")),
+                    ] {
+                        let mut now = on;
+                        let name = strings::text(key).to_owned();
+                        let response = ui.checkbox(&mut now, &name);
+                        response.widget_info(|| {
+                            egui::WidgetInfo::selected(egui::Role::CheckBox, true, on, &name)
+                        });
+                        if now != on {
+                            events.push(Event::Action("find.option", json!({"option": option, "on": now})));
+                        }
+                    }
+                    ui.separator();
+                    for field in FIELDS {
+                        let on = f.fields().contains(&field);
+                        let mut now = on;
+                        let name = strings::text(field_label_key(field)).to_owned();
+                        let response = ui.checkbox(&mut now, &name);
+                        response.widget_info(|| {
+                            egui::WidgetInfo::selected(egui::Role::CheckBox, true, on, &name)
+                        });
+                        if now != on {
+                            let fields: Vec<&str> = FIELDS
+                                .into_iter()
+                                .filter(|x| if *x == field { now } else { f.fields().contains(x) })
+                                .map(field_word)
+                                .collect();
+                            events.push(Event::Action("find.fields", json!({ "fields": fields })));
+                        }
+                    }
+                    ui.separator();
+                    let name = strings::text(key!("find-folios")).to_owned();
+                    // W49.1-J: the field takes the rest of its row; where the rest cannot show the whole placeholder
+                    // (with a button's padding each side), it wraps to a row of its own and takes all of that.
+                    let font = egui::TextStyle::Body.resolve(ui.style());
+                    let hint = ui.fonts_mut(|fonts| {
+                        fonts
+                            .layout_no_wrap(name.clone(), font, crate::theme::NONE)
+                            .size()
+                            .x
+                    });
+                    let least = hint.ceil() + 2.0 * ui.spacing().button_padding.x;
+                    // What is left of the current row (`available_width` is a whole row's in a wrapping layout).
+                    let rest = (ui.max_rect().right() - ui.cursor().min.x).floor();
+                    let width = if rest >= least {
+                        rest
+                    } else {
+                        ui.max_rect().width()
+                    };
+                    let response = ui.add(
+                        TextEdit::singleline(&mut self.folios)
+                            .desired_width(width)
+                            .hint_text(&name),
+                    );
+                    response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, true, &name));
+                    Self::report_focus(&response, ours, events);
+                    if response.changed() {
+                        let folios: Vec<&str> = self
+                            .folios
+                            .split(',')
+                            .map(str::trim)
+                            .filter(|s| !s.is_empty())
+                            .collect();
+                        events.push(Event::Action("find.folios", json!({ "folios": folios })));
+                    }
+                    Self::enter_keys(ui, &response, events, card);
+                });
+                Self::status(ui, shell);
             });
-            Self::status(ui, shell);
             Self::results(ui, shell, events);
         });
     }
@@ -222,16 +286,18 @@ impl FindPane {
         crate::focus::report_focus(response, ours, "find", events);
     }
 
-    /// A text field labelled `name` whose changes go to `action`; Enter runs the search, Ctrl+Enter replaces.
+    /// A text field labelled `name`, `width` wide, whose changes go to `action`; Enter runs the search, Ctrl+Enter
+    /// replaces.
     fn field(
         ui: &mut Ui,
         text: &mut String,
         name: &str,
+        width: f32,
         events: &mut Vec<Event>,
         action: &'static str,
         (card, ours): (bool, bool),
     ) -> egui::Response {
-        let response = ui.add(TextEdit::singleline(text).desired_width(220.0).hint_text(name));
+        let response = ui.add(TextEdit::singleline(text).desired_width(width).hint_text(name));
         Self::report_focus(&response, ours, events);
         let label = name.to_owned();
         response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, true, &label));

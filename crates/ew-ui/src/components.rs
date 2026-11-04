@@ -217,6 +217,21 @@ pub(crate) fn button_look(
     (fill, text, border, font)
 }
 
+/// The keyboard focus ring of `response`'s widget while it has the focus (doc 16a §6.1): 2-px `color.focus`, 1 px
+/// outside the element, at the element's `radius` + 1.
+pub(crate) fn focus_ring(ui: &Ui, response: &Response, radius: f32) {
+    if !response.has_focus() {
+        return;
+    }
+    let t = tokens(ui);
+    ui.painter().rect_stroke(
+        response.rect.expand(1.0),
+        theme::radius(radius + 1.0),
+        theme::stroke(t.focus_width, t.focus),
+        egui::StrokeKind::Outside,
+    );
+}
+
 /// A button of `kind` labelled `label`, `size.control` high, `radius.md`; `min_width` is 72 px in dialogs (0
 /// elsewhere). Disabled buttons keep their place.
 pub(crate) fn button(ui: &mut Ui, kind: Kind, label: &str, enabled: bool, min_width: f32) -> Response {

@@ -249,7 +249,7 @@ impl ShellModel {
         let strip_label = cursor
             .parent
             .and_then(strip_node)
-            .map_or_else(String::new, |s| s.label.clone());
+            .map_or_else(String::new, |s| crate::navigators::strip_label(&s.label));
         let _ = ci;
         match want {
             "bridge_part" => {

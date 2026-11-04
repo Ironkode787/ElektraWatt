@@ -284,9 +284,16 @@ pub struct CellEdit {
     pub buffer: String,
 }
 
-/// The rows of the table on show (§8.1): the table rows that pass the filter, sorted by the sort column (or the
-/// label), natural, ascending or descending, ties by node order. One level, a pure function.
-pub fn table_rows(table: &NavTable, sort: &SortBy, descending: bool, query: &Query) -> Vec<VisRow> {
+/// The rows of the table on show (§8.1): the table rows that pass the filter (and, with a `scope`, the children of the
+/// node of that key), sorted by the sort column (or the label), natural, ascending or descending, ties by node order.
+/// One level, a pure function.
+pub fn table_rows(
+    table: &NavTable,
+    sort: &SortBy,
+    descending: bool,
+    query: &Query,
+    scope: Option<&str>,
+) -> Vec<VisRow> {
     let col = match sort {
         SortBy::Label | SortBy::Order => None,
         SortBy::Column(c) => table.columns.iter().position(|x| x.key == *c),
@@ -307,7 +314,11 @@ pub fn table_rows(table: &NavTable, sort: &SortBy, descending: bool, query: &Que
     let mut rows: Vec<usize> = (0..table.nodes.len())
         .filter(|&i| {
             let n = &table.nodes[i];
-            n.table_row && (!filtering || query.matches(&n.tokens, &n.facets, &n.label, &n.cells))
+            let in_scope = scope.is_none_or(|s| {
+                n.parent
+                    .is_some_and(|p| table.nodes.get(p as usize).is_some_and(|x| x.key == s))
+            });
+            n.table_row && in_scope && (!filtering || query.matches(&n.tokens, &n.facets, &n.label, &n.cells))
         })
         .collect();
     rows.sort_by(|&a, &b| {

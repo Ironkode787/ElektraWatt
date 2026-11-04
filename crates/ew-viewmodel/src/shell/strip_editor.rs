@@ -65,6 +65,11 @@ impl Rows {
             .map_or("", String::as_str)
     }
 
+    /// Strip node `s` in words (ID-1278 ruling 7: a strip without a tag yet reads in words).
+    fn words(&self, s: usize) -> String {
+        crate::navigators::strip_label(&self.node(s).label)
+    }
+
     /// `<strip>:<designation>` of terminal row `i`.
     fn name(&self, i: usize) -> String {
         let strip = self.strip_of(i).map_or("", |s| self.node(s).label.as_str());
@@ -247,7 +252,14 @@ impl ShellModel {
                 }
             },
         };
-        let tag = table.nodes[at].label.to_lowercase();
+        let strip = &table.nodes[at];
+        // ID-1278 ruling 7 (W49.2-F2): a strip without a tag yet (`-?X?`) is shown by its ID, never by a filter built
+        // from its placeholder tag; any other strip by its `strip:` filter (§6.10).
+        let (filter, scope) = if strip.label.contains('?') {
+            (String::new(), Some(strip.key.clone()))
+        } else {
+            (format!("strip:{}", strip.label.to_lowercase()), None)
+        };
         let first = (0..table.nodes.len())
             .find(|i| table.nodes[*i].parent == u32::try_from(at).ok())
             .map(|i| table.nodes[i].key.clone());
@@ -256,7 +268,8 @@ impl ShellModel {
             if n.table_mode.is_none() {
                 n.table_mode = Some(TableMode::default());
             }
-            n.filter = format!("strip:{tag}");
+            n.filter = filter;
+            n.scope = scope;
             n.marked.clear();
             n.cursor = first.or_else(|| Some(table.nodes[at].key.clone()));
             // The cursor stays where the editor put it: the selection was seen.
@@ -345,7 +358,7 @@ impl ShellModel {
                 } else {
                     key!("toast-strip-appended")
                 };
-                strings::format(key, &[&n, &rows.node(s).label])
+                strings::format(key, &[&n, &rows.words(s)])
             }
         };
         self.notify(text, true);
@@ -577,7 +590,7 @@ impl ShellModel {
         let out = self.run_commit(&cmd);
         if out == Outcome::Done {
             let n = moved.len();
-            let strip = rows.node(s).label.clone();
+            let strip = rows.words(s);
             let text = if n == 1 {
                 strings::format(key!("toast-strip-moved-one"), &[&n.to_string(), &strip])
             } else {
@@ -724,16 +737,14 @@ impl ShellModel {
         }
         let word = ew_api::output::accessory_kind_word(&kind);
         let text = match rows.node(cursor).role {
-            NavRole::Strip => {
-                strings::format(key!("toast-accessory-added-first"), &[word, &rows.node(s).label])
-            }
+            NavRole::Strip => strings::format(key!("toast-accessory-added-first"), &[word, &rows.words(s)]),
             NavRole::Terminal if before => {
                 strings::format(key!("toast-accessory-added-before"), &[word, &rows.name(cursor)])
             }
             NavRole::Terminal => strings::format(key!("toast-accessory-added"), &[word, &rows.name(cursor)]),
             _ => strings::format(
                 key!("toast-accessory-added"),
-                &[word, &format!("{} {}", rows.node(s).label, pos)],
+                &[word, &format!("{} {}", rows.words(s), pos)],
             ),
         };
         self.notify(text, true);

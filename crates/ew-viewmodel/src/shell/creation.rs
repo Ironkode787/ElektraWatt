@@ -207,6 +207,12 @@ impl FormField {
     pub fn is_toggle(&self) -> bool {
         self.choices == ["false", "true"]
     }
+
+    /// Whether the field is free text: no choice and no run-time option list. A form's first focus is its first text
+    /// field, else its Primary (doc 16a §6.12; window check W49.2-F1).
+    pub fn is_text(&self) -> bool {
+        self.choices.is_empty() && self.options.is_empty()
+    }
 }
 
 /// A creation dialog: the action Enter dispatches with the fields, the title key, the fields, and the refusal of the

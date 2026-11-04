@@ -256,6 +256,7 @@ struct VisKey {
     sort: SortBy,
     descending: bool,
     filter: String,
+    scope: Option<String>,
     collapsed: BTreeSet<String>,
     table_mode: bool,
 }
@@ -284,6 +285,7 @@ pub struct NavStamp {
     sort: SortBy,
     descending: bool,
     filter: String,
+    scope: Option<String>,
     collapsed: BTreeSet<String>,
     marked: BTreeSet<String>,
     cursor: Option<String>,
@@ -303,6 +305,10 @@ pub struct Navigator {
     pub descending: bool,
     /// The filter text.
     pub filter: String,
+    /// The key of the one strip whose rows the table shows (`strip.edit` on a strip without a tag yet, ID-1278 ruling
+    /// 7: by its ID, never by a filter built from its placeholder tag); cleared by a new filter and by leaving table
+    /// mode.
+    pub(crate) scope: Option<String>,
     /// The keys of the collapsed nodes (every node starts expanded).
     pub(crate) collapsed: BTreeSet<String>,
     /// The keys of the marked rows.
@@ -331,6 +337,7 @@ impl Navigator {
             sort: SortBy::default_for(kind),
             descending: false,
             filter: String::new(),
+            scope: None,
             collapsed: BTreeSet::new(),
             marked: BTreeSet::new(),
             cursor: None,
@@ -346,6 +353,12 @@ impl Navigator {
     /// The table on show (`None` before the first fetch).
     pub fn table(&self) -> Option<&Arc<NavTable>> {
         self.table.as_ref()
+    }
+
+    /// The words of the strip the table is scoped to (`strip.edit` on a strip without a tag yet), if any.
+    pub fn scope_label(&self) -> Option<String> {
+        let (_, node) = self.node_of(self.scope.as_deref()?)?;
+        Some(strip_label(&node.label))
     }
 
     /// The marked keys.
@@ -373,6 +386,7 @@ impl Navigator {
             sort: self.sort.clone(),
             descending: self.descending,
             filter: self.filter.clone(),
+            scope: self.scope.clone(),
             collapsed: self.collapsed.clone(),
             marked: self.marked.clone(),
             cursor: self.cursor.clone(),
@@ -397,6 +411,7 @@ impl Navigator {
             sort: self.sort.clone(),
             descending: self.descending,
             filter: self.filter.clone(),
+            scope: self.scope.clone(),
             collapsed: self.collapsed.clone(),
             table_mode: self.table_mode.is_some(),
         };
@@ -407,7 +422,7 @@ impl Navigator {
         }
         let query = Query::parse_for(self.kind, &self.filter);
         let rows = Arc::new(if self.table_mode.is_some() {
-            table::table_rows(table, &self.sort, self.descending, &query)
+            table::table_rows(table, &self.sort, self.descending, &query, self.scope.as_deref())
         } else {
             visible_rows(
                 table,

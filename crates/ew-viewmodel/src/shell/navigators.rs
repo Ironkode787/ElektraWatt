@@ -201,19 +201,23 @@ impl ShellModel {
         }
     }
 
-    /// The line and sentence of the Terminal strips table's empty state when the project has strips but no terminal
-    /// (ID-1278 ruling 7: the table's rows are terminals), "No terminals yet" and how to place one; `None` otherwise.
+    /// The line and sentence of the Terminal strips table's empty state when the project has strips but no terminal,
+    /// or the strip editor shows a strip without one (ID-1278 ruling 7: the table's rows are terminals), "No terminals
+    /// yet" and how to place one; `None` otherwise.
     pub fn strips_empty(&self) -> Option<(String, String)> {
         let n = self.navs.get(&NavKind::Strips)?;
         n.table_mode()?;
         let t = n.table()?;
         let has = |role| t.nodes.iter().any(|node| node.role == role);
-        (has(ew_api::output::NavRole::Strip) && !has(ew_api::output::NavRole::Terminal)).then(|| {
-            (
-                crate::strings::text(key!("empty-nav-terminals")).to_owned(),
-                crate::strings::text(key!("empty-nav-terminals-text")).to_owned(),
-            )
-        })
+        let scoped = n.scope.is_some();
+        (scoped || (has(ew_api::output::NavRole::Strip) && !has(ew_api::output::NavRole::Terminal))).then(
+            || {
+                (
+                    crate::strings::text(key!("empty-nav-terminals")).to_owned(),
+                    crate::strings::text(key!("empty-nav-terminals-text")).to_owned(),
+                )
+            },
+        )
     }
 
     /// [`ShellModel::generic`], mutable.
@@ -1059,8 +1063,12 @@ impl ShellModel {
             Err(e) => e,
             Ok(None) => failed(key!("error-missing-param"), &["text"]),
             Ok(Some(t)) => {
-                if let Some(n) = self.generic_mut(kind) {
+                if let Some(n) = self.generic_mut(kind)
+                    && n.filter != t
+                {
                     n.filter = t.to_owned();
+                    // A filter of the user's own ends the strip editor's scope (ID-1278 ruling 7).
+                    n.scope = None;
                 }
                 Outcome::Done
             }

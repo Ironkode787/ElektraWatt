@@ -959,7 +959,7 @@ fn other_navigator_lines(model: &ShellModel, lines: &mut Vec<String>) {
         let start = window_start(rows.len(), at);
         let end = (start + NAV_WINDOW).min(rows.len());
         lines.push(format!(
-            "navigator \"{}\" kind {} view {}{} sort \"{}\" {} filter \"{}\" rows {} showing {} to {end}",
+            "navigator \"{}\" kind {} view {}{} sort \"{}\" {} filter \"{}\"{} rows {} showing {} to {end}",
             strings::text(crate::layout::nav_title_key(kind)),
             kind.word(),
             nav.view.word(),
@@ -967,6 +967,9 @@ fn other_navigator_lines(model: &ShellModel, lines: &mut Vec<String>) {
             user(&nav.sort_label()),
             if nav.descending { "descending" } else { "ascending" },
             user(&nav.filter),
+            // ID-1278 ruling 7: the strip the editor shows by its ID, in words.
+            nav.scope_label()
+                .map_or_else(String::new, |s| format!(" strip \"{}\"", user(&s))),
             rows.len(),
             if rows.is_empty() { 0 } else { start + 1 },
         ));
@@ -1146,7 +1149,14 @@ fn table_lines(
 fn label_of(table: Option<&std::sync::Arc<crate::navigators::NavTable>>, key: &str) -> String {
     table
         .and_then(|t| t.nodes.iter().find(|n| n.key == key))
-        .map(|n| n.label.clone())
+        // ID-1278 ruling 7: a strip without a tag yet in words.
+        .map(|n| {
+            if n.role == crate::navigators::NavRole::Strip {
+                crate::navigators::strip_label(&n.label)
+            } else {
+                n.label.clone()
+            }
+        })
         .unwrap_or_default()
 }
 

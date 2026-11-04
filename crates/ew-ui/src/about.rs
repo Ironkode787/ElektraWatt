@@ -147,6 +147,9 @@ pub fn show(
     // until the set is built: it takes the focus once it can, while no other widget holds it.
     let focus_primary = if matches!(d, Dialog::Print(_)) {
         ctx.memory(|m| m.focused().is_none())
+    } else if let Dialog::Form(form) = d {
+        // W49.2-F1 (doc 16a §6.12): a form's first focus is its first text field, else its Primary, never a check box.
+        just_opened && !form.fields.iter().any(|f| f.is_text())
     } else {
         just_opened && !has_field
     };
@@ -411,6 +414,11 @@ fn form_fields(ui: &mut Ui, form: &FormDialog, just_opened: bool, events: &mut V
             ui.add_space(t.space_3);
             if f.is_toggle() {
                 let mut on = f.value == "true";
+                // W49.2-F1: Enter on the focused check box is no click (egui's): it neither toggles nor submits;
+                // Space toggles it. The check box takes the next automatic id.
+                if ui.memory(|m| m.has_focus(ui.next_auto_id())) {
+                    ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Enter));
+                }
                 // At the field column's start, as the fields' text.
                 let check = ui
                     .add(egui::Checkbox::without_text(&mut on))
@@ -418,10 +426,7 @@ fn form_fields(ui: &mut Ui, form: &FormDialog, just_opened: bool, events: &mut V
                 if check.changed() {
                     events.push(Event::FormField(f.name, on.to_string()));
                 }
-                if first {
-                    check.request_focus();
-                    first = false;
-                }
+                crate::components::focus_ring(ui, &check, t.radius_sm);
             } else if !f.options.is_empty() {
                 // WP-S4.02 part 4 (ruling 7): a choice list built at run time, shown by its words.
                 let shown = f
@@ -440,7 +445,8 @@ fn form_fields(ui: &mut Ui, form: &FormDialog, just_opened: bool, events: &mut V
                             }
                         }
                     });
-                combo.response.labelled_by(label.id);
+                let combo = combo.response.labelled_by(label.id);
+                crate::components::focus_ring(ui, &combo, t.radius_md);
             } else if f.choices.is_empty() {
                 let mut text = f.value.clone();
                 let edit = ui
@@ -472,7 +478,8 @@ fn form_fields(ui: &mut Ui, form: &FormDialog, just_opened: bool, events: &mut V
                             }
                         }
                     });
-                combo.response.labelled_by(label.id);
+                let combo = combo.response.labelled_by(label.id);
+                crate::components::focus_ring(ui, &combo, t.radius_md);
             }
         });
     }

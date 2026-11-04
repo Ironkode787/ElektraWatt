@@ -800,6 +800,7 @@ impl ShellModel {
         };
         if !on {
             n.table_mode = None;
+            n.scope = None;
         } else if n.table_mode.is_none() {
             n.table_mode = Some(TableMode::default());
         }

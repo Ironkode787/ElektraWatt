@@ -468,11 +468,86 @@ fn the_folio_filter_takes_the_width_it_has_at_both_sizes() {
             "{size:?}: a field of {} for a placeholder of {hint} and a margin of {margin}",
             field.width()
         );
+        // W49.2-F5: the rows keep the header's inset, `space.4`, at the right as at the left.
+        let inset = ew_ui::theme::current(&h.ctx).space_4;
         assert!(
-            (pane.right() - field.right()).abs() <= 2.0,
-            "{size:?}: the field ends at {} in a pane ending at {}",
+            (pane.right() - inset - field.right()).abs() <= 2.0,
+            "{size:?}: the field ends at {} in a pane ending at {} with an inset of {inset}",
             field.right(),
             pane.right()
         );
     }
+}
+
+/// W49.2-F4 and F5: in replace mode the Find and Replace fields share what their row has beside the buttons, so a
+/// long replacement shows more of itself at 1920 × 1080 than at the floor (doc 16a §2: a floor fix scales, never caps);
+/// the fields and the buttons stay on one row ending at the pane's right inset, and the field rows start at the
+/// header's inset, `space.4` (16a §4.9). Every node fits at both sizes.
+#[test]
+fn w49_2_f4_the_find_fields_take_their_rows_width_at_the_headers_inset() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "204");
+    h.key_press_modifiers(Modifiers::COMMAND, Key::H);
+    settle(&mut h);
+    dispatch(&mut h, "find.text", json!({ "text": "e" }));
+    dispatch(
+        &mut h,
+        "find.replacement",
+        json!({ "text": "a replacement that runs past the edge ".repeat(8) }),
+    );
+    let label = |k| ew_ui::ew_viewmodel::strings::text(k).to_owned();
+    let find = label(ew_ui::ew_viewmodel::key!("find-text"));
+    let replacement = label(ew_ui::ew_viewmodel::key!("find-replacement"));
+    let close = label(ew_ui::ew_viewmodel::key!("find-close"));
+    let pane_name = label(ew_ui::ew_viewmodel::key!("pane-find"));
+    let inset = ew_ui::theme::current(&h.ctx).space_4;
+    let mut widths = Vec::new();
+    for size in [egui::Vec2::new(1280.0, 800.0), egui::Vec2::new(1920.0, 1080.0)] {
+        h.set_size(size);
+        settle(&mut h);
+        settle(&mut h);
+        support::assert_fits(&h);
+        let input = |name: &str| {
+            h.get_all_by_role(egui::Role::TextInput)
+                .find(|n| n.accesskit_node().label().as_deref() == Some(name))
+                .unwrap_or_else(|| panic!("the field {name}"))
+                .rect()
+        };
+        let (find, replacement) = (input(&find), input(&replacement));
+        let close = h
+            .get_all_by_role(egui::Role::Button)
+            .find(|n| n.accesskit_node().label().as_deref() == Some(close.as_str()))
+            .expect("Close")
+            .rect();
+        let pane = h
+            .get_all_by_role(egui::Role::Group)
+            .find(|n| n.accesskit_node().label().as_deref() == Some(pane_name.as_str()))
+            .expect("the find pane")
+            .rect();
+        assert!(
+            (find.left() - pane.left() - inset).abs() <= 1.0,
+            "{size:?}: the row starts at {} in a pane starting at {} with an inset of {inset}",
+            find.left(),
+            pane.left()
+        );
+        assert!(
+            (find.width() - replacement.width()).abs() <= 1.0,
+            "{size:?}: {find:?} and {replacement:?} share the row"
+        );
+        assert!(
+            (close.center().y - find.center().y).abs() <= 1.0,
+            "{size:?}: Close {close:?} on the fields' row {find:?}"
+        );
+        assert!(
+            (pane.right() - inset - close.right()).abs() <= 2.0,
+            "{size:?}: the row ends at {} in a pane ending at {} with an inset of {inset}",
+            close.right(),
+            pane.right()
+        );
+        widths.push(replacement.width());
+    }
+    assert!(
+        widths[1] > widths[0] + 100.0,
+        "the replacement field grows with the window: {widths:?}"
+    );
 }
