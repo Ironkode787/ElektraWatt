@@ -345,4 +345,13 @@ mod tests {
         let violations = crate::check_anonymisation_at(&root, false).unwrap();
         assert_eq!(violations, Vec::<String>::new());
     }
+
+    /// WP-S6.05 D17 (PV-12): the committed list has entries, so the tree passes with `--require-entries` too (the
+    /// switch stays off in CI until the owner says the list is complete, ID-1316).
+    #[test]
+    fn real_repository_passes_with_entries_required() {
+        let root = crate::workspace_root();
+        let violations = crate::check_anonymisation_at(&root, true).unwrap();
+        assert_eq!(violations, Vec::<String>::new());
+    }
 }

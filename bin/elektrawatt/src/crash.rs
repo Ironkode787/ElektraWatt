@@ -34,11 +34,11 @@ thread_local! {
     static IN_HOOK: Cell<bool> = const { Cell::new(false) };
 }
 
-/// The wall clock: the process start (the log's name) and the time of a panic (L3).
-// The crash log is a local diagnostic, never project data or output; the time of a crash is what it records.
-#[allow(clippy::disallowed_methods)]
+/// The wall clock: the process start (the log's name) and the time of a panic (L3), from the clock the lock and the
+/// journal use (`ew_store::SystemClock`); the crash log, like them, is no project data.
 fn now() -> SystemTime {
-    SystemTime::now()
+    use ew_ui::ew_viewmodel::ew_api::Clock as _;
+    ew_ui::ew_viewmodel::ew_api::SystemClock.now()
 }
 
 /// `t` in UTC as `yyyy-mm-ddThh:mm:ssZ` (`compact`: `yyyymmddThhmmssZ`, for a file name).

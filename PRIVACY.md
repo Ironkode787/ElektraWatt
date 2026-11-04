@@ -16,7 +16,7 @@ stores. Changing the list of network flows requires an architecture decision rec
   upload and no plugin network; nothing is downloaded (fonts, symbols and parts ship with the application).
 - **Your project data stays in your project files.** The application never copies a project, its drawings, its
   part data, its logos or its file names anywhere except to the places listed below, all on your computer.
-- **Crash reports stay on your computer.** This version writes none to upload.
+- **Crash logs stay on your computer.** A crash writes a local log that this version never sends.
 - **Contact.** Open an issue in the repository's issue tracker (never put project data or personal data in one).
   Vulnerabilities are reported privately as described in [SECURITY.md](SECURITY.md).
 
@@ -26,9 +26,14 @@ stores. Changing the list of network flows requires an architecture decision rec
 |---|---|---|---|---|
 | Settings (`settings.toml`): language, theme, keymap, UI scale, the first-run answers, the update-check choice (off), the recent-projects list (paths as text) | Remember your choices and offer recent projects | The configuration directory: `%APPDATA%\ElektraWatt` on Windows, `~/Library/Application Support/ElektraWatt` on macOS, `$XDG_CONFIG_HOME/elektrawatt` or `~/.config/elektrawatt` on Linux (`EW_CONFIG_DIR` overrides it) | Until you delete it; the list keeps the ten latest projects | Delete the file, or the directory |
 | Workspace layouts (`workspaces/<name>.json`) | Save and restore window layouts you name | `workspaces/` in the configuration directory | Until you delete them | Delete the file (View ▸ Workspace ▸ Reset layout restores the default layout but deletes no file) |
-| Crash journal (`journal/`) | Recover unsaved changes after a crash or power loss; holds the field-level changes of each commit and the bytes of assets (logos) the changes name, so it can contain project content | The state directory: `%LOCALAPPDATA%\ElektraWatt\state` on Windows, `~/Library/Application Support/ElektraWatt/state` on macOS, `$XDG_STATE_HOME/elektrawatt` or `~/.local/state/elektrawatt` on Linux | Deleted on a clean close and after a successful save; a leftover journal (one per project, under `journal/<project>-<hash>`) is pruned after 30 days, when that project is next opened | Discard it when the application offers it at the next open, or delete the `journal` directory |
+| Crash journal (`journal/`) | Recover unsaved changes after a crash or power loss; holds the field-level changes of each commit and the bytes of assets (logos) the changes name, so it can contain project content | The state directory: `%LOCALAPPDATA%\ElektraWatt\state` on Windows, `~/Library/Application Support/ElektraWatt/state` on macOS, `$XDG_STATE_HOME/elektrawatt` or `~/.local/state/elektrawatt` on Linux | Deleted on a clean close and after a successful save; a leftover journal (one per project, under `journal/<project>-<hash>`) is offered at the next start and pruned after 30 days at a start | Discard it when the application offers it at the next start or open, or delete the `journal` directory |
+| Crash logs (`crashes/`) | Help find the cause of a crash | The state directory, beside the journal | The 20 newest, each at most 30 days; offered once at the next start after a crash | Delete the file, or Delete log in the start-up dialog. A log holds the error's message, which can quote project text such as a tag or a file name, and the program's call stack; it is never sent anywhere |
 | Lock file (`.~ew.lock`) | Tell another opener that the project is in use | The project directory, while the project is open | Removed on close; a stale one is replaced on confirmed takeover (renamed `.~ew.lock.stale-<session>`) | Delete it once no session is open. It records the operating-system user name, the host name, the process ID, the program version and the start time, so leave it out of anything you share |
 | The project (`.ew` directory: records, `assets/`, generated outputs) | Your work | Where you save it | Yours to keep | Delete the directory. Logos and other opaque files sit in `assets/` under their content hash |
+
+On Linux the configuration directory, the state directory and its `journal/` and `crashes/` are open to your user
+only (mode 0700), and the crash logs and journal files in them are readable by you only (0600); on Windows they
+inherit the per-user access rights of `%APPDATA%` and `%LOCALAPPDATA%`.
 
 Project files are plain text and contain what you enter: company, project and drawing identifiers, the names you
 type, the logo you pick. Check a project before you share it (for example in an issue or a repository); the
@@ -50,12 +55,12 @@ AI or translation service.
 
 ## The network sandbox
 
-The design (doc 18, section 12.2) is that continuous integration runs the application and the command line in a
-network namespace with only loopback up and fails the build on any socket, DNS lookup or listening port outside the
-list above. From 1.0, with the update check opted in, a second run against a local mock server asserts the exact request.
-Windows and Linux are observed by hand for each minor release with outbound firewall logging. The sandbox job
-is being built; until it runs on every change, "no network connection of its own" is a design rule that the code
-follows (the code has no network client of its own), not yet a proven one.
+Every night, continuous integration runs the release builds of the application and the command line on Linux in a
+network namespace with only loopback up (doc 18, section 12.2): the smoke run, a headless session, the user-interface
+tests and the command-line flows, and it fails on any network socket, name lookup or listening port, and on a debug
+switch in a release binary. Every change also checks that the shipped programs depend on no HTTP, TLS, name-lookup or
+crash-upload library. From 1.0, with the update check opted in, a second run against a local mock server asserts the
+exact request. Windows is observed by hand for each minor release with outbound firewall logging.
 
 ## Changes
 
