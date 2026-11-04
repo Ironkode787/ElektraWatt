@@ -1170,8 +1170,14 @@ impl ShellModel {
         self.last_help.as_deref()
     }
 
-    /// The banner, if one is showing.
+    /// The banner, if one is showing: a message, else the banner of a state that holds (saves held by a change on disk,
+    /// the cloud-synced folder; W49.3-F2).
     pub fn banner(&self) -> Option<&str> {
+        self.banner.as_deref().or(self.collab.state_banner.as_deref())
+    }
+
+    /// The message banner alone (an action's failure or notice), without a state banner under it.
+    pub fn message_banner(&self) -> Option<&str> {
         self.banner.as_deref()
     }
 
@@ -1327,6 +1333,8 @@ impl ShellModel {
             log.len() - 1
         });
         let outcome = self.dispatch_unlogged(action, params);
+        // W49.3-F2: a state banner follows its state, and the UI language.
+        self.refresh_state_banner();
         // WP-S2.08 part 6 (D17): tip 3 on an editing tool's, Paste's, a move's or a reorder's generated-page refusal.
         self.tip_for_outcome(action, params, &outcome);
         if let Some(entry) = slot.and_then(|i| self.dispatch_log.as_mut()?.get_mut(i)) {
@@ -2166,7 +2174,9 @@ impl ShellModel {
 
     /// The banner's own button.
     pub fn dismiss_banner(&mut self) {
-        self.banner = None;
+        if self.banner.take().is_none() {
+            self.dismiss_state_banner();
+        }
     }
 
     /// Answers the unsaved-changes dialog with Save (save, then the pending action), Discard (the pending action with

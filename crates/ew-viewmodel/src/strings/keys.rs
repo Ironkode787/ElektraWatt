@@ -2517,6 +2517,7 @@ pub const KEYS: &[&str] = &[
     "external-whole-record",
     "banner-external-collisions",
     "banner-external-unreadable",
+    "banner-external-choose",
     "reason-no-external-change",
     "error-external-changed",
     "error-external-choices",

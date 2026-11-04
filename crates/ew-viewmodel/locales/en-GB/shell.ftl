@@ -2797,6 +2797,7 @@ external-absent = (none)
 external-whole-record = the whole record
 banner-external-collisions = The project changed on disk, and the change collides with your edits. Saving waits until you choose yours or theirs for each field.
 banner-external-unreadable = The project on disk changed and cannot be read; your edits are kept. Save a copy, or wait until the disk is complete.
+banner-external-choose = Choose…
 reason-no-external-change = No change on disk is waiting for a choice
 error-external-changed = The project on disk or your edits changed since the choice was shown; choose again.
 error-external-choices = The choices do not fit the change on disk; choose again.

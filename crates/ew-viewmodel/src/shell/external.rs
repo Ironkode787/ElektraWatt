@@ -56,8 +56,11 @@ pub(crate) struct CollabState {
     pub(crate) ew_exe: Option<PathBuf>,
     /// Whether the open project is in a git worktree whose git configuration has no merge driver.
     pub(crate) driver_missing: bool,
-    /// The banner a held external change set (it goes when the change is applied).
-    pub(crate) held_banner: Option<String>,
+    /// The banner of a state that holds ([`ShellModel::refresh_state_banner`]): saves held by a change on disk, or the
+    /// cloud-synced folder. It shows under a message banner and stays while its state holds (W49.3-F2).
+    pub(crate) state_banner: Option<String>,
+    /// Whether the user dismissed the cloud folder's banner (until the next open).
+    pub(crate) cloud_dismissed: bool,
     /// Whether the collision dialog of the held change was shown: a poll opens it once, never over another dialog and
     /// never again after Decide later (a refused save opens it again).
     pub(crate) collisions_shown: bool,
@@ -101,6 +104,7 @@ impl ShellModel {
         let poll = project.session.poll_disk();
         let settling = matches!(poll, DiskPoll::Settling | DiskPoll::Unreadable { retrying: true });
         self.disk_changed(poll);
+        self.refresh_state_banner();
         settling
     }
 
@@ -131,16 +135,12 @@ impl ShellModel {
                 if self.dialog.is_none() || matches!(self.dialog, Some(Dialog::ExternalChange { .. })) {
                     self.open_collisions();
                 }
-                self.hold_banner(strings::text(key!("banner-external-collisions")).to_owned());
             }
             // The held change is unchanged: its dialog opens once another dialog has closed, never after Decide later.
             DiskPoll::Held => {
                 if !self.collab.collisions_shown && self.dialog.is_none() {
                     self.open_collisions();
                 }
-            }
-            DiskPoll::Unreadable { retrying: false } => {
-                self.hold_banner(strings::text(key!("banner-external-unreadable")).to_owned());
             }
             DiskPoll::Reloaded => self.reloaded(),
             // The disk is back to the baseline: nothing is held, so the collision dialog has nothing to apply.
@@ -150,26 +150,81 @@ impl ShellModel {
                     self.dialog = None;
                 }
             }
-            DiskPoll::Settling | DiskPoll::GitBusy | DiskPoll::Unreadable { retrying: true } => {}
+            DiskPoll::Settling | DiskPoll::GitBusy | DiskPoll::Unreadable { .. } => {}
         }
     }
 
-    /// Shows the banner of a held change.
-    fn hold_banner(&mut self, text: String) {
-        self.banner = Some(text.clone());
-        self.collab.held_banner = Some(text);
+    /// The banner of the state that holds, in the UI language (doc 16a §6.11; W49.3-F2): saves held by a change on disk
+    /// that collides (D24) or cannot be read (D21), else the cloud-synced folder (D25) until the user dismisses it. It
+    /// stays while its state holds, whatever action runs; only resolving the state (or Dismiss, for the cloud folder)
+    /// takes it away.
+    pub(crate) fn refresh_state_banner(&mut self) {
+        let text = self.project.as_ref().and_then(|p| {
+            if p.session.external_collisions().is_some() {
+                return Some(strings::text(key!("banner-external-collisions")).to_owned());
+            }
+            if p.session.external_unreadable() {
+                return Some(strings::text(key!("banner-external-unreadable")).to_owned());
+            }
+            if self.collab.cloud_dismissed {
+                return None;
+            }
+            p.session.cloud_service().map(|service| match service.name() {
+                Some(name) => strings::format(key!("banner-cloud"), &[name]),
+                None => strings::text(key!("banner-cloud-other")).to_owned(),
+            })
+        });
+        self.collab.state_banner = text;
     }
 
-    /// Takes the banner of a held change away once it is no longer held, and a refused save's banner that named it.
+    /// Whether the collisions of a change on disk wait for a choice: the held-saves banner's Primary reopens their dialog
+    /// (`external.review`, doc 16a §6.11).
+    pub fn external_choice_waiting(&self) -> bool {
+        self.project
+            .as_ref()
+            .is_some_and(|p| p.session.external_collisions().is_some())
+    }
+
+    /// Whether the banner shown may be dismissed: a message, or the cloud folder's; never saves held by a change on disk,
+    /// which only a choice (or the disk) resolves.
+    pub fn banner_dismissable(&self) -> bool {
+        self.banner.is_some()
+            || !self
+                .project
+                .as_ref()
+                .is_some_and(|p| p.session.external_collisions().is_some() || p.session.external_unreadable())
+    }
+
+    /// Dismisses the state banner where that is allowed (the cloud folder's).
+    pub(super) fn dismiss_state_banner(&mut self) {
+        if self.banner_dismissable() {
+            self.collab.cloud_dismissed = true;
+        }
+        self.refresh_state_banner();
+    }
+
+    /// `external.review` (the held-saves banner's Choose…): the collision dialog again, mine chosen.
+    pub(crate) fn act_external_review(&mut self) -> Outcome {
+        if !self.external_choice_waiting() {
+            return Outcome::Refused {
+                reason_key: key!("reason-no-external-change"),
+            };
+        }
+        self.open_collisions();
+        Outcome::Done
+    }
+
+    /// Takes a refused save's banner that named a held change away once it is no longer held.
     fn release_banner(&mut self) {
-        let held = self.collab.held_banner.take();
         let refusals = [
             key!("saveerr-external-collisions"),
             key!("saveerr-external-unreadable"),
         ]
         .map(|k| strings::format(key!("error-save"), &[strings::text(k)]));
-        if let Some(b) = self.banner.as_deref()
-            && (held.as_deref() == Some(b) || refusals.iter().any(|r| r == b))
+        if self
+            .banner
+            .as_deref()
+            .is_some_and(|b| refusals.iter().any(|r| r == b))
         {
             self.banner = None;
         }
@@ -386,17 +441,10 @@ impl ShellModel {
             .as_ref()
             .is_some_and(|p| matches!(p.access, super::AccessMode::Edit));
         self.collab.driver_missing = edits && driver_missing(dir);
-        let mut banners = Vec::new();
-        if migrated.is_some() {
-            banners.push(strings::text(key!("banner-older-format")).to_owned());
-        }
-        if let Some(service) = cloud {
-            banners.push(match service.name() {
-                Some(name) => strings::format(key!("banner-cloud"), &[name]),
-                None => strings::text(key!("banner-cloud-other")).to_owned(),
-            });
-        }
-        (!banners.is_empty()).then(|| banners.join(" "))
+        // The cloud folder's banner is a state banner (W49.3-F2).
+        self.collab.cloud_dismissed = false;
+        self.refresh_state_banner();
+        migrated.map(|_| strings::text(key!("banner-older-format")).to_owned())
     }
 
     /// An environment variable as the window reads it (the cloud detection, `$APPIMAGE`): a test's environment when one

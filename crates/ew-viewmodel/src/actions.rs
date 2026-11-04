@@ -1321,6 +1321,15 @@ pub static ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_external_apply(p),
         )),
     )),
+    keeps_banner(hidden(parameterless(act(
+        "external.review",
+        View,
+        Menu::File,
+        &[],
+        project_open,
+        None,
+        |s, _| s.act_external_review(),
+    )))),
     keeps_banner(with_params(
         "row:uint, take:enum(mine|theirs)",
         hidden(act(

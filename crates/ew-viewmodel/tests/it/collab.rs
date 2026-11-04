@@ -297,15 +297,52 @@ fn xw4_a_cloud_synced_folder_shows_its_banner() {
     let mut s = shell(&tmp);
     s.set_cloud_env_for_tests(Some(vec![("OneDrive".to_owned(), cloud.into_os_string())]));
     open(&mut s, &inside, true);
-    assert_eq!(
-        s.banner(),
-        Some(
-            "This project is in a cloud-synced folder (OneDrive). Two people can open it within the sync delay; use \
-             git or a network share for teams."
-        )
-    );
+    let cloud_banner = "This project is in a cloud-synced folder (OneDrive). Two people can open it within the sync \
+                        delay; use git or a network share for teams.";
+    assert_eq!(s.banner(), Some(cloud_banner));
+    // W49.3-F2: a state banner stays through ordinary actions; Dismiss takes it away until the next open.
+    done(&mut s, "page.goto", json!({"folio": "102"}));
+    assert_eq!(s.banner(), Some(cloud_banner));
+    s.dismiss_banner();
+    assert_eq!(s.banner(), None);
+    done(&mut s, "page.goto", json!({"folio": "101"}));
+    assert_eq!(s.banner(), None);
     open(&mut s, &outside, true);
     assert_eq!(s.banner(), None);
+}
+
+/// W49.3-F2: after Decide later, the held-saves banner stays through navigation and zoom and cannot be dismissed; its
+/// Choose… (`external.review`) reopens the dialog.
+#[test]
+fn xw2e_the_held_banner_stays_until_the_choice() {
+    let tmp = Tmp::new("xw2e");
+    let dir = tmp.0.join("J-E-2416.ew");
+    copy_dir(Path::new(GOLDEN_A), &dir);
+    let mut s = shell(&tmp);
+    open(&mut s, &dir, false);
+    let w20 = golden_id("connections|W20");
+    done(
+        &mut s,
+        "command.run",
+        json!({"cmd": "fields.set", "params": {"kind": "connection", "targets": [w20], "path": "overrides.colour",
+            "value": ["BU"]}}),
+    );
+    colleague(&tmp, &dir, &[colour(&w20, json!(["WH"]))]);
+    done(&mut s, "project.check_disk", json!({}));
+    done(&mut s, "ui.dismiss", json!({}));
+    let held = "The project changed on disk, and the change collides with your edits. Saving waits until you choose \
+                yours or theirs for each field.";
+    assert_eq!(s.banner(), Some(held));
+    done(&mut s, "page.goto", json!({"folio": "102"}));
+    let _ = s.dispatch("page.next", &json!({}));
+    let _ = s.dispatch("view.zoom_in", &json!({}));
+    assert_eq!(s.banner(), Some(held), "the banner holds");
+    assert!(!s.banner_dismissable());
+    s.dismiss_banner();
+    assert_eq!(s.banner(), Some(held), "saves held: no Dismiss");
+    assert!(s.external_choice_waiting());
+    done(&mut s, "external.review", json!({}));
+    assert!(matches!(s.dialog(), Some(Dialog::ExternalChange { .. })));
 }
 
 fn same(value: Value) -> Result<Value, MigrationError> {

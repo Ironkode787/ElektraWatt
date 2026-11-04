@@ -2566,6 +2566,7 @@ external-absent = (geen)
 external-whole-record = het hele record
 banner-external-collisions = Het project is op schijf gewijzigd en de wijziging botst met uw bewerkingen. Opslaan wacht tot u voor elk veld uw versie of die op schijf kiest.
 banner-external-unreadable = Het project op schijf is gewijzigd en kan niet worden gelezen; uw bewerkingen blijven bewaard. Sla een kopie op, of wacht tot de schijf compleet is.
+banner-external-choose = Kiezen…
 reason-no-external-change = Er wacht geen wijziging op schijf op een keuze
 error-external-changed = Het project op schijf of uw bewerkingen zijn veranderd sinds de keuze werd getoond; kies opnieuw.
 error-external-choices = De keuzes passen niet bij de wijziging op schijf; kies opnieuw.
