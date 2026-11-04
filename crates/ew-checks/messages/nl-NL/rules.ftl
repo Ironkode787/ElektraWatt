@@ -26,7 +26,7 @@ rule-ew-core-023 =
     .hint = Verwijder de overschrijving om de gekoppelde projectwaarde weer af te drukken, of behoud haar als de pagina een eigen tekst nodig heeft.
 
 rule-ew-core-025 =
-    .title = Inhoudsopgave komt niet tot rust
+    .title = Inhoudsopgave stabiliseert niet
     .hint = Verkort de gegenereerde inhoudsopgave of haar paginaregels, zodat haar aantal pagina's vast komt te liggen.
 
 rule-ew-core-026 =
@@ -73,7 +73,7 @@ rule-ew-core-043 = tijdelijk artikel "{ $part }" (artikelnummer TBD) wordt gebru
     .hint = Vervang vóór de vrijgave elk tijdelijk artikel door het echte artikel.
 
 rule-ew-core-044 =
-    .title = Open Tbd-waarde
+    .title = Open TBD-waarde
     .hint = Vul vóór de vrijgave de waarde in die nog als TBD gemarkeerd is.
 
 rule-ew-core-045 =
@@ -349,7 +349,7 @@ rule-ew-pot-001 = { $conflicts }{ $more ->
 
 rule-ew-pot-002 =
     .title = 0 V–PE-verbinding bij PELV of SELV
-    .hint = Declareer precies één 0 V–PE-verbinding voor een PELV-potentiaal, en geen voor een SELV-potentiaal.
+    .hint = Definieer precies één 0 V–PE-verbinding voor een PELV-potentiaal, en geen voor een SELV-potentiaal.
 
 rule-ew-pot-003 = { $cp_shared ->
         [yes] { $cp_tag } pen { $cp_pin } ({ $cp_nth }e)
@@ -493,7 +493,7 @@ rule-ew-term-005 =
 
 rule-ew-term-006 =
     .title = Klem op een draad die hij niet verbindt
-    .hint = Neem de klem op in de draad, of haal haar van de draad af.
+    .hint = Neem de klem op in de draad, of haal hem van de draad af.
 
 ## WP-S1.17 part 8 (COL49): botsingen na samenvoegen
 
