@@ -576,6 +576,77 @@ fn ra1_ra2_ra6_the_release_writes_the_archive_and_the_record() {
     let _ = std::fs::remove_dir_all(&base);
 }
 
+/// SE-3 (WP-S6.04 D13): with a waiver in force the release report lists it. On a copy of the fixture one connection of
+/// the loop is deleted, each finding of the release scheme that leaves is waived from the GUI and saved, the checker
+/// approves (acknowledging the safety-kind waivers) and the release's `check/report.json` lists every waiver in force,
+/// each once and sorted, beside the disclaimer.
+#[test]
+fn the_release_report_lists_the_waivers_in_force() {
+    let base = ew_testdir::fresh_dir("ew-release-waivers");
+    let dir = base.join("release-min");
+    let state = base.join("state");
+    copy_dir(&fixture(), &dir);
+    let (mut s, integrity) = open(&dir, &state);
+    let connection = s.query().connections().ids().next().expect("a connection");
+    run(
+        &mut s,
+        "connection.delete",
+        serde_json::json!({"connections": [connection.to_string()]}),
+    );
+    s.save().expect("saved");
+    let gate = s.release_gate(LABEL, &integrity).expect("the gate");
+    let open: Vec<(String, String)> = gate
+        .report
+        .findings
+        .iter()
+        .filter(|f| f.rule != "EW-REL-001")
+        .map(|f| (f.rule.to_owned(), f.fingerprint.to_string()))
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect();
+    assert!(!open.is_empty(), "the open loop gives a finding: {:#?}", gate.report.findings);
+    for (rule, fingerprint) in &open {
+        run(
+            &mut s,
+            "check.waive",
+            serde_json::json!({"rule": rule, "fingerprint": fingerprint, "reason": "accepted for the test release",
+                "author": "author", "date": "2026-03-01"}),
+        );
+    }
+    s.save().expect("the waivers save");
+    let mut waivers: Vec<String> = s
+        .query()
+        .table::<ew_schema::Waiver>()
+        .ids()
+        .map(|w| w.to_string())
+        .collect();
+    waivers.sort();
+    assert_eq!(waivers.len(), open.len());
+    let gate = s.release_gate(LABEL, &integrity).expect("the gate");
+    let approval = Approval {
+        label: LABEL.into(),
+        checker: PartyRole::Checker,
+        date: date(),
+        waivers_ack: gate.safety_waivers.clone(),
+    };
+    s.approve(&approval, &integrity)
+        .unwrap_or_else(|e| panic!("approved: {e}"));
+    s.save().expect("the sign-off saves");
+    let root = base.join("archives");
+    let released = s
+        .release(&context(), &integrity, &options(&NoGit, Some(&root)))
+        .expect("released");
+    let entries = entries(&std::fs::read(&released.archive).expect("the archive"));
+    let check: serde_json::Value = serde_json::from_slice(&entries["check/report.json"]).expect("JSON");
+    assert_eq!(check["waivers"], serde_json::json!(waivers));
+    assert_eq!(
+        check["disclaimer"],
+        "ElektraWatt's checks do not replace engineering verification by a competent person."
+    );
+    s.close();
+    let _ = std::fs::remove_dir_all(&base);
+}
+
 /// RA-5: two releases of the same saved state (two copies in directories of different names, one with one thread
 /// and one with four) write byte-identical archives: no clock, no locale, no hash-map order, no host path.
 #[test]
