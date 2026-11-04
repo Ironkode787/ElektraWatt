@@ -17,11 +17,10 @@ You need:
   `target/release/ew` (`target\release\ew.exe` on Windows). The examples write plain `ew`; put the program on your
   `PATH` or type its path.
 
-Run every command from the root of the checkout. Check that `ew` works:
+Run every command from the root of the checkout. Check that `ew` works; it prints its name and its version:
 
 ```console
 $ ew --version
-ew 0.0.0
 ```
 
 Then make a directory for the results:
@@ -51,16 +50,21 @@ argument.
 
 ```console
 $ ew check golden/J-E-2416.ew
-error EW-CORE-033 003033 =P01+J-E-2416-3W1: =P01+J-E-2416-3W1 has no routed, manual or part length
-info EW-NUM-001 017101 =P01+J-E-2416-E56: E56: frozen, deviates from scheme (rule-derived value 101E?)
-info EW-NUM-001 017101 =P01+J-E-2416-F55: F55: frozen, deviates from scheme (rule-derived value 101F?)
 ...
-1 errors, 0 warnings, 10 infos, 0 waived
+42 errors, 41 warnings, 31 infos, 0 waived
+pre-delivery: 42 errors, 41 warnings, 31 infos, 0 waived
+```
+
+The first lines are the findings, for example:
+
+```text
+error EW-CORE-033 003033 =P01+J-E-2416-3W1: =P01+J-E-2416-3W1 has no routed, manual or part length
 ```
 
 Each line gives the severity, the rule ID, the rule's six-digit code, the thing the finding is about and a message. The
-last line counts the findings. The golden project has one error and ten infos, and the error is on purpose: the
-cable `-3W1` has no length, so a cable list cannot be complete.
+last line counts the findings, and the standard error stream repeats the count with the scheme's name. The golden
+project holds deliberate defects, so it reports errors: the cable `-3W1`, for one, has no length, so a cable list
+cannot be complete.
 
 Look at the exit code:
 
@@ -101,6 +105,7 @@ numbered 101 to 106 that exist:
 ```console
 $ ew export svg golden/J-E-2416.ew --out out/svg --pages 101-106
 SVG written to out/svg: 4 files
+12 page findings (unresolved wire ends, unknown styles, overflowing table texts)
 ```
 
 The directory now holds `101.svg`, `102.svg`, `103.svg` and `106.svg`. `ew` replaces the directory as a whole, so it

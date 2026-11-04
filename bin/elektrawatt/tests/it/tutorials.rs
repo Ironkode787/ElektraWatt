@@ -1,0 +1,387 @@
+// SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+//! The tutorials of the user guide as scripted tests (WP-S7.05 D10, D12, NFR-DOC-03): each tutorial's script
+//! (`docs/book/tutorial-scripts/<page>.ewui`) runs headless through the built binary on a fresh configuration folder,
+//! every step is `done` and the end state is the one its page states; and the page lint (T6) checks that the menu
+//! paths and keys a page names are the window's own.
+//!
+//! **The page lint.** A page writes every menu path in bold (`**File ▸ Save**`), a key in brackets right after it
+//! (`(`Ctrl+S`)`). The paths of a page's numbered steps, in order, are the script's menu steps, in order: the steps
+//! whose action and parameters are a menu item; each must be that item's en-GB label path, and its key that action's
+//! default binding. Every other path of a page, and every path of a page without a script, must be the label path of a
+//! menu item or of a menu or group above one.
+
+use crate::support;
+
+use std::path::{Path, PathBuf};
+use std::process::{Command, Output, Stdio};
+
+use ew_ui::ew_viewmodel::actions::{ACTIONS, MenuEntry, menu_model};
+use ew_ui::ew_viewmodel::shell::{Mode, Outcome, ShellConfig, ShellModel};
+use serde_json::{Value, json};
+use support::{CONTENT, Tmp, USER_DIRS};
+
+/// The book's directory.
+const BOOK: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../docs/book");
+
+/// The path of the `elektrawatt` binary under test (nextest sets it at run time; see `tests/headless.rs`).
+// Allowed: the program boundary of a test — nextest's binary path is read once, never persisted or printed.
+#[allow(clippy::disallowed_methods)]
+fn bin_exe() -> PathBuf {
+    std::env::var_os("NEXTEST_BIN_EXE_elektrawatt")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from(env!("CARGO_BIN_EXE_elektrawatt"))) // bin-exe-fallback
+}
+
+/// A page of the book's source.
+fn page(rel: &str) -> String {
+    let path = Path::new(BOOK).join("src").join(rel);
+    std::fs::read_to_string(&path)
+        .unwrap_or_else(|e| panic!("{}: {e}", path.display()))
+        .replace("\r\n", "\n")
+}
+
+/// The steps of a tutorial script, without its header.
+fn script(name: &str) -> Vec<(String, Value)> {
+    let path = Path::new(BOOK).join("tutorial-scripts").join(format!("{name}.ewui"));
+    let text = std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
+    text.lines()
+        .filter(|l| !l.trim().is_empty())
+        .skip(1)
+        .map(|l| {
+            let v: Value = serde_json::from_str(l).unwrap();
+            (
+                v["action"].as_str().unwrap().to_owned(),
+                v.get("params").cloned().unwrap_or_else(|| json!({})),
+            )
+        })
+        .collect()
+}
+
+/// Runs the tutorial script `name` headless in `tmp` (its working folder, so the script's relative paths land there),
+/// with a fresh configuration folder and the user folders inside `tmp`.
+fn run_tutorial(tmp: &Tmp, name: &str) -> Output {
+    let path = Path::new(BOOK).join("tutorial-scripts").join(format!("{name}.ewui"));
+    let mut cmd = Command::new(bin_exe());
+    cmd.args(["--headless", "--script"]).arg(&path).current_dir(tmp.path(""));
+    for d in USER_DIRS {
+        let dir = tmp.path("home").join(d.to_ascii_lowercase());
+        std::fs::create_dir_all(&dir).unwrap();
+        cmd.env(d, dir);
+    }
+    cmd.env("EW_CONFIG_DIR", tmp.path(&format!("config-{name}")))
+        .env("EW_CONTENT_DIR", CONTENT)
+        .env_remove("EW_SAMPLE_DIR")
+        .env_remove("EW_DOCS_DIR")
+        .env_remove("SOURCE_DATE_EPOCH")
+        .stdin(Stdio::null())
+        .output()
+        .unwrap()
+}
+
+/// The transcript of a run in which every step was done.
+#[track_caller]
+fn all_done(out: &Output) -> String {
+    let text = String::from_utf8(out.stdout.clone()).unwrap();
+    assert_eq!(
+        out.status.code(),
+        Some(0),
+        "{}\n{text}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    for line in text.lines().skip(1) {
+        let step: Value = serde_json::from_str(line).unwrap();
+        assert_eq!(step["outcome"], "done", "{step}");
+    }
+    text
+}
+
+/// The `describe` text of the transcript's last `ui.describe` step.
+fn last_describe(transcript: &str) -> String {
+    transcript
+        .lines()
+        .skip(1)
+        .map(|l| serde_json::from_str::<Value>(l).unwrap())
+        .filter_map(|s| s["describe"].as_str().map(str::to_owned))
+        .last()
+        .expect("a ui.describe step")
+}
+
+// -------------------------------------------------------------------------------------------------------------------
+// The page lint (T6)
+
+/// A menu item of the window: its action, parameters, en-GB label path and the action's default bindings.
+struct Item {
+    action: String,
+    params: Value,
+    path: String,
+    keys: Vec<String>,
+}
+
+fn walk(entry: &MenuEntry, path: &mut Vec<String>, out: &mut Vec<Item>) {
+    let mut item = |i: &ew_ui::ew_viewmodel::actions::ActionItem, path: &[String]| {
+        let keys = ACTIONS
+            .iter()
+            .find(|a| a.id == i.id)
+            .map(|a| a.shortcut.iter().map(|k| (*k).to_owned()).collect())
+            .unwrap_or_default();
+        out.push(Item {
+            action: i.id.to_owned(),
+            params: i.params.clone(),
+            path: format!("{} ▸ {}", path.join(" ▸ "), i.label),
+            keys,
+        });
+    };
+    match entry {
+        MenuEntry::Separator => {}
+        MenuEntry::Item(i) => item(i, path),
+        MenuEntry::Submenu { label, items, .. } => {
+            path.push(label.clone());
+            for i in items {
+                item(i, path);
+            }
+            path.pop();
+        }
+        MenuEntry::Group { label, entries, .. } => {
+            path.push(label.clone());
+            for e in entries {
+                walk(e, path, out);
+            }
+            path.pop();
+        }
+    }
+}
+
+/// The window's menu items, read from the menus of a new project in a fresh configuration.
+fn items(tmp: &Tmp) -> Vec<Item> {
+    let mut shell = ShellModel::new(
+        Mode::Headless,
+        ShellConfig::in_dir(&tmp.path("menu-config"), "0.0.0-test"),
+    );
+    let dir = tmp.path("menu.ew");
+    assert_eq!(
+        shell.dispatch("file.new", &json!({"dir": dir.to_string_lossy()})),
+        Outcome::Done
+    );
+    let mut out = Vec::new();
+    for menu in menu_model(&shell) {
+        let mut path = vec![menu.label.clone()];
+        for e in &menu.entries {
+            walk(e, &mut path, &mut out);
+        }
+    }
+    shell.shutdown();
+    out
+}
+
+/// A menu path a page names: the line it starts on, its text, the key in brackets after it, and whether it stands in
+/// a numbered step.
+#[derive(Debug)]
+struct Named {
+    line: usize,
+    text: String,
+    key: Option<String>,
+    in_step: bool,
+}
+
+/// The bold menu paths of a page.
+fn named(text: &str) -> Vec<Named> {
+    // The line and the numbered-step state of each byte offset's line.
+    let mut starts = Vec::new();
+    let mut in_step = false;
+    let mut offset = 0;
+    for line in text.split_inclusive('\n') {
+        let trimmed = line.trim_end();
+        let number = trimmed.split_once(". ").is_some_and(|(n, _)| {
+            !n.is_empty() && n.chars().all(|c| c.is_ascii_digit())
+        });
+        if number {
+            in_step = true;
+        } else if !trimmed.is_empty() && !line.starts_with("   ") {
+            in_step = false;
+        }
+        starts.push((offset, in_step));
+        offset += line.len();
+    }
+    let line_of = |at: usize| starts.iter().rposition(|(o, _)| *o <= at).unwrap();
+    let mut out = Vec::new();
+    let mut rest = 0;
+    while let Some(open) = text[rest..].find("**").map(|i| rest + i) {
+        let Some(close) = text[open + 2..].find("**").map(|i| open + 2 + i) else {
+            break;
+        };
+        let inner = text[open + 2..close].split_whitespace().collect::<Vec<_>>().join(" ");
+        rest = close + 2;
+        if !inner.contains(" ▸ ") {
+            continue;
+        }
+        let key = text[rest..]
+            .strip_prefix(" (`")
+            .and_then(|k| k.split_once("`)"))
+            .map(|(k, _)| k.to_owned());
+        let line = line_of(open);
+        out.push(Named {
+            line: line + 1,
+            text: inner,
+            key,
+            in_step: starts[line].1,
+        });
+    }
+    out
+}
+
+/// Whether `params` holds every member of `item` with the same value.
+fn holds(params: &Value, item: &Value) -> bool {
+    item.as_object()
+        .is_none_or(|m| m.iter().all(|(k, v)| params.get(k) == Some(v)))
+}
+
+/// The T6 problems of the page `name` (its text `text`), against the menu steps of `script` when it has one.
+fn lint(name: &str, text: &str, script: Option<&[(String, Value)]>, items: &[Item]) -> Vec<String> {
+    let t6 = |n: &Named, what: &str, action: &str, expected: &str| {
+        format!(
+            "{name}:{}: \"{what}\" is not how the window names {action} (\"{expected}\")",
+            n.line
+        )
+    };
+    let named = named(text);
+    let mut problems = Vec::new();
+    let mut free: Vec<&Named> = named.iter().filter(|n| !n.in_step || script.is_none()).collect();
+    if let Some(script) = script {
+        let steps: Vec<&Item> = script
+            .iter()
+            .filter_map(|(action, params)| {
+                items
+                    .iter()
+                    .filter(|i| i.action == *action && holds(params, &i.params))
+                    .max_by_key(|i| i.params.as_object().map_or(0, serde_json::Map::len))
+            })
+            .collect();
+        let in_steps: Vec<&Named> = named.iter().filter(|n| n.in_step).collect();
+        for (n, item) in in_steps.iter().zip(&steps) {
+            if n.text != item.path {
+                problems.push(t6(n, &n.text, &item.action, &item.path));
+            }
+            if let Some(key) = &n.key
+                && !item.keys.contains(key)
+            {
+                problems.push(t6(n, key, &item.action, &item.keys.join(", ")));
+            }
+        }
+        if in_steps.len() != steps.len() {
+            problems.push(format!(
+                "{name}: the steps name {} menu paths, the script runs {} menu steps",
+                in_steps.len(),
+                steps.len()
+            ));
+        }
+    } else {
+        free = named.iter().collect();
+    }
+    for n in free {
+        let known = items.iter().any(|i| {
+            i.path == n.text || i.path.starts_with(&format!("{} ▸ ", n.text))
+        });
+        if !known {
+            let last = n.text.rsplit(" ▸ ").next().unwrap_or_default();
+            match items.iter().find(|i| i.path.ends_with(&format!(" ▸ {last}"))) {
+                Some(i) => problems.push(t6(n, &n.text, &i.action, &i.path)),
+                None => problems.push(t6(n, &n.text, "any action", "no menu path")),
+            }
+        }
+    }
+    problems
+}
+
+/// T6 on fixture pages, whole: a step's path that is not the window's, a key that is not the action's binding, a
+/// path outside the steps that names no menu item, and a page with a step too many.
+#[test]
+fn the_page_lint_names_the_windows_words_for_each_step() {
+    let tmp = Tmp::new();
+    let items = items(&tmp);
+    let script = [
+        ("file.new".to_owned(), json!({"dir": "x.ew"})),
+        ("cursor.set".to_owned(), json!({"x_mm": 1, "y_mm": 1})),
+        ("file.save".to_owned(), json!({})),
+    ];
+    let good = "1. Choose **File ▸ New project…** (`Ctrl+N`).\n2. Click, then choose **File ▸ Save**.\n\n\
+                Later, **Help ▸ Documentation** helps.\n";
+    assert_eq!(lint("p.md", good, Some(&script), &items), Vec::<String>::new());
+    let bad = "1. Choose **File ▸ New Project…** (`Ctrl+M`).\n2. Choose\n   **File ▸ Save**.\n\n\
+               Later, **Help ▸ Manual** helps.\n";
+    assert_eq!(
+        lint("p.md", bad, Some(&script), &items),
+        [
+            "p.md:1: \"File ▸ New Project…\" is not how the window names file.new (\"File ▸ New project…\")",
+            "p.md:1: \"Ctrl+M\" is not how the window names file.new (\"Ctrl+N\")",
+            "p.md:5: \"Help ▸ Manual\" is not how the window names any action (\"no menu path\")",
+        ]
+    );
+    let extra = format!("{good}\n3. Choose **File ▸ Save** again.\n");
+    assert_eq!(
+        lint("p.md", &extra, Some(&script), &items),
+        ["p.md: the steps name 3 menu paths, the script runs 2 menu steps"]
+    );
+    assert_eq!(
+        lint("q.md", "See **Draw ▸ Bond**.\n", None, &items),
+        ["q.md:1: \"Draw ▸ Bond\" is not how the window names any action (\"no menu path\")"]
+    );
+}
+
+/// Tutorial 1 (FT-613): a new project from the basic project, a transformer and two lamps placed and wired, the two
+/// potentials defined, the Potentials navigator and the Messages pane read, saved: every step done, no error, the
+/// findings the page names, and the page passes the lint.
+#[test]
+fn tutorial_1_a_first_schematic_page_runs_as_its_page_says() {
+    let tmp = Tmp::new();
+    let out = run_tutorial(&tmp, "first-page");
+    let transcript = all_done(&out);
+    let describe = last_describe(&transcript);
+    let rows: Vec<&str> = describe
+        .lines()
+        .map(str::trim)
+        .filter(|l| l.starts_with("row level 1 potential") || l.starts_with("row level 2 rule"))
+        .collect();
+    assert_eq!(
+        rows,
+        [
+            "row level 1 potential \"0VAC\" expanded",
+            "row level 1 potential \"24VAC\" expanded",
+            "row level 2 rule \"EW-CORE-041 Device without part\" badge \"3\" expanded",
+            "row level 2 rule \"EW-POT-009 Unconnected CP\" badge \"2\" expanded",
+        ]
+    );
+    assert!(
+        describe.contains("messages scheme \"drafting\" errors 0 "),
+        "{describe}"
+    );
+    assert!(describe.contains("title: first-page.ew - ElektraWatt"), "saved: {describe}");
+    assert!(tmp.path("first-page.ew/project.jsonl").is_file());
+    let items = items(&tmp);
+    assert_eq!(
+        lint(
+            "tutorials/first-page.md",
+            &page("tutorials/first-page.md"),
+            Some(&script("first-page")),
+            &items
+        ),
+        Vec::<String>::new()
+    );
+}
+
+/// D9, D12: the how-to and explanation pages that name menu paths pass the lint.
+#[test]
+fn the_how_to_and_explanation_pages_name_the_windows_menu_paths() {
+    let tmp = Tmp::new();
+    let items = items(&tmp);
+    for rel in [
+        "how-to/choose-parts.md",
+        "explanation/eplan-and-ew.md",
+        "explanation/qet-and-ew.md",
+    ] {
+        let text = page(rel);
+        assert!(!named(&text).is_empty(), "{rel} names no menu path");
+        assert_eq!(lint(rel, &text, None, &items), Vec::<String>::new(), "{rel}");
+    }
+}

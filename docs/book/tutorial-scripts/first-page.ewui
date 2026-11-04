@@ -1,0 +1,42 @@
+{"$schema":"ew.uiscript/1","label":"Tutorial 1: a first schematic page with potentials"}
+{"action":"file.new","params":{"dir":"first-page.ew"}}
+{"action":"tool.place"}
+{"action":"place.pick","params":{"symbol":"ew.iec.transformer-1ph@qet10"}}
+{"action":"cursor.set","params":{"x_mm":60,"y_mm":60}}
+{"action":"canvas.activate","params":{"alt":true}}
+{"action":"tool.select"}
+{"action":"tool.place"}
+{"action":"place.pick","params":{"symbol":"ew.iec.lamp@qet10"}}
+{"action":"cursor.set","params":{"x_mm":140,"y_mm":100}}
+{"action":"canvas.activate","params":{"alt":true}}
+{"action":"cursor.set","params":{"x_mm":180,"y_mm":100}}
+{"action":"canvas.activate","params":{"alt":true}}
+{"action":"tool.select"}
+{"action":"tool.wire"}
+{"action":"cursor.set","params":{"x_mm":60.854,"y_mm":71.4375}}
+{"action":"canvas.activate"}
+{"action":"cursor.set","params":{"x_mm":140.229,"y_mm":100.542}}
+{"action":"canvas.activate"}
+{"action":"cursor.set","params":{"x_mm":140.229,"y_mm":100.542}}
+{"action":"canvas.activate"}
+{"action":"cursor.set","params":{"x_mm":179.917,"y_mm":100.542}}
+{"action":"canvas.activate"}
+{"action":"cursor.set","params":{"x_mm":66.146,"y_mm":71.4375}}
+{"action":"canvas.activate"}
+{"action":"cursor.set","params":{"x_mm":140.229,"y_mm":108.479}}
+{"action":"canvas.activate"}
+{"action":"cursor.set","params":{"x_mm":140.229,"y_mm":108.479}}
+{"action":"canvas.activate"}
+{"action":"cursor.set","params":{"x_mm":179.917,"y_mm":108.479}}
+{"action":"canvas.activate"}
+{"action":"tool.select"}
+{"action":"canvas.press","params":{"x_mm":160,"y_mm":97.896}}
+{"action":"canvas.release","params":{"x_mm":160,"y_mm":97.896}}
+{"action":"potential.draw","params":{"name":"24VAC","type":"L","voltage":"24 V AC"}}
+{"action":"canvas.press","params":{"x_mm":160,"y_mm":111.125}}
+{"action":"canvas.release","params":{"x_mm":160,"y_mm":111.125}}
+{"action":"potential.draw","params":{"name":"0VAC","type":"N","voltage":"24 V AC"}}
+{"action":"navigator.show","params":{"kind":"potentials"}}
+{"action":"messages.show","params":{"on":true}}
+{"action":"file.save"}
+{"action":"ui.describe"}

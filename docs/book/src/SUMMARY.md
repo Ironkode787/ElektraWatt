@@ -5,6 +5,7 @@
 # Tutorials
 
 - [Tutorials](tutorials/index.md)
+  - [A first schematic page with potentials](tutorials/first-page.md)
   - [A first headless run on the golden project](tutorials/headless-workflow.md)
 
 # How-to guides
@@ -14,6 +15,7 @@
   - [Use the application window](how-to/application-window.md)
   - [Draw a page from the text interface](how-to/text-interface.md)
   - [Define a supply potential](how-to/define-supply-potential.md)
+  - [Choose parts](how-to/choose-parts.md)
 
 # Reference
 

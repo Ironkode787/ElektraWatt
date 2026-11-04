@@ -13,6 +13,8 @@ EW, start with a [tutorial](../tutorials/index.md) instead.
   terminal strips, external points, wires and junctions, delete and export, without a screen.
 - [Define a supply potential](define-supply-potential.md): a potential's name, type and voltage from a selected wire,
   junction or terminal.
+- [Choose parts](choose-parts.md): a device's part from the property grid or the part selection, a device placed
+  from its part, and where the parts are listed.
 
 More follow the headless workflow of the [first tutorial](../tutorials/headless-workflow.md), for example replaying a
 command log with `ew apply`, checking a project in a CI job, and exporting for a single page range.

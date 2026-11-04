@@ -794,7 +794,7 @@ pub fn script_text(steps: &[(String, Value)]) -> String {
 
 /// The environment variables of the user directories a child run might write to (`ew_store::default_state_dir`, the
 /// library tiers' data and cache, the settings), as `ew`'s tests isolate them.
-const USER_DIRS: [&str; 8] = [
+pub const USER_DIRS: [&str; 8] = [
     "HOME",
     "USERPROFILE",
     "LOCALAPPDATA",
