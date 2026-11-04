@@ -1033,6 +1033,55 @@ mod tests {
         assert_eq!(missing, Vec::<String>::new());
     }
 
+    /// FT-1263 (C49-p6b#4): a key that has a `-one` text is used with its count, through `count_key!`, never as a
+    /// plain `key!` whose text would read "1 records", unless its file names the `-one` key too (a branch that says
+    /// one itself); `KEPT` names the other uses (file, key) that never show a count of one.
+    #[test]
+    fn a_key_with_a_one_text_is_used_with_its_count() {
+        const KEPT: &[(&str, &str)] = &[];
+        fn scan(dir: &std::path::Path, files: &mut Vec<std::path::PathBuf>) {
+            for entry in std::fs::read_dir(dir).expect("the sources") {
+                let path = entry.expect("a directory entry").path();
+                if path.is_dir() {
+                    scan(&path, files);
+                } else if path.extension().is_some_and(|e| e == "rs") {
+                    files.push(path);
+                }
+            }
+        }
+        let counted: Vec<&str> = KEYS
+            .iter()
+            .filter_map(|k| k.strip_suffix("-one"))
+            .filter(|k| has_key(k))
+            .collect();
+        assert!(counted.contains(&"toast-recovered"), "{counted:?}");
+        let src = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
+        let mut files = Vec::new();
+        scan(&src, &mut files);
+        files.sort();
+        let mut plain = Vec::new();
+        let mut seen = 0;
+        for file in &files {
+            let name = file.strip_prefix(&src).unwrap_or(file).display().to_string().replace('\\', "/");
+            let text = std::fs::read_to_string(file).expect("a source");
+            for (at, _) in text.match_indices("key!(\"") {
+                if text[..at].ends_with("count_") {
+                    continue;
+                }
+                let rest = &text[at + "key!(\"".len()..];
+                let key = &rest[..rest.find('"').unwrap_or(0)];
+                // A file that also names the `-one` key branches on one itself.
+                let branches = text.contains(&format!("key!(\"{key}-one\")"));
+                seen += usize::from(counted.contains(&key) && branches);
+                if counted.contains(&key) && !branches && !KEPT.contains(&(name.as_str(), key)) {
+                    plain.push(format!("{name}: key!(\"{key}\")"));
+                }
+            }
+        }
+        assert!(seen > 0, "the scan finds the branches that say one themselves");
+        assert_eq!(plain, Vec::<String>::new());
+    }
+
     /// The quoted keys of `line`: every `"<prefix>[a-z0-9_-]+"` anywhere on it, whatever quotes stand before it
     /// (ID-1113, C45-p2#3).
     fn quoted_keys<'l>(line: &'l str, prefixes: &[String]) -> Vec<&'l str> {
