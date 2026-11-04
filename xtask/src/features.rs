@@ -1278,6 +1278,36 @@ mod tests {
         );
     }
 
+    /// SE-4 (WP-S6.04 D8): the real policy bans `ew-testkit` from the shipped binaries; on a normal edge of a shipped
+    /// binary, or in its resolved graph, it fails, and on a dev edge it passes.
+    #[test]
+    fn the_testkit_fails_outside_dev_edges() {
+        let root = crate::workspace_root();
+        let policy = crate::deps::Policy::load(&root.join("ci/dep-rules.toml")).expect("policy loads");
+        let rules = Rules {
+            features: &[],
+            crates: &policy.banned_crates,
+        };
+        let normal = package("elektrawatt", vec![dep("ew-testkit", Kind::Normal, &[])], &[]);
+        assert_eq!(
+            check(&rules, &[normal]),
+            [
+                "feature ban: `elektrawatt` has `ew-testkit` as a dependency; the crate may only be a dev-dependency \
+              (18 §5.2 CI-PR-09)"
+            ]
+        );
+        let dev = package("elektrawatt", vec![dep("ew-testkit", Kind::Dev, &[])], &[]);
+        assert_eq!(check(&rules, &[dev]), Vec::<String>::new());
+        let graph = parse_tree("elektrawatt v0.1.0 (/w/bin/elektrawatt)|\new-testkit v0.1.0 (/w/crates/ew-testkit)|\n");
+        assert_eq!(
+            check_shipping(&rules, &graph, "elektrawatt, ew"),
+            [
+                "shipping graph: `ew-testkit` is in the build of elektrawatt, ew; it may only be a dev-dependency (18 \
+                 CI-R-09)"
+            ]
+        );
+    }
+
     /// The generator features of `uuid` and `rand` (FT-317) are banned outside dev edges by the real policy.
     #[test]
     fn the_generator_features_are_banned_outside_dev_edges() {

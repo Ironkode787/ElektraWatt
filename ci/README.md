@@ -825,7 +825,7 @@ duration is not known (the timeout is 150 minutes).
 CI-PR-09 requires that test-only and unsafe features never reach a non-test target. `[[banned_features]]` in
 [`dep-rules.toml`](dep-rules.toml) lists `{ crate, feature, allowed_kinds }` (`ew-commands/testkit`,
 `ew-viewmodel/testkit` and `ew/test-confirm` on dev edges only; rhai `unchecked` and egui `inspection` nowhere) and
-`banned_crates` lists crates that may only be dev-dependencies (`egui_mcp`, and `ew-testids`, the seeded ID source). The check reads the declared dependencies of every
+`banned_crates` lists crates that may only be dev-dependencies (`egui_mcp`, `ew-testids`, the seeded ID source, and `ew-testkit`, the test-only crate, WP-S6.04 D8). The check reads the declared dependencies of every
 workspace package from `cargo metadata` and fails when a banned feature is requested on an edge whose kind
 (`normal`, `dev`, `build`) is not allowed, when a banned crate is a non-dev dependency, or when a package's own
 `default` feature forwards a banned feature (`default = ["ew-commands/testkit"]`, also through other local

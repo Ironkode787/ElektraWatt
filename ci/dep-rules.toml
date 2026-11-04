@@ -28,11 +28,12 @@
 # (and an ADR where the rules themselves change).
 
 # Crates that may appear as dev-dependencies only (18 §5.2 CI-PR-09: egui_mcp in any non-test target).
-# ew-testids, the seeded ID source of the tests (doc 18 §2.2), likewise.
+# ew-testids, the seeded ID source of the tests (doc 18 §2.2), likewise; and ew-testkit, the test-only crate of the
+# golden builders and the hostile corpus (doc 18 §11.2, WP-S6.04 D8).
 # WP-S6.05 D3 (ADR-0029's interim rule): no HTTP, TLS, DNS or crash-upload client in the shipped binaries; a dev edge
 # (1.0's mock server) stays allowed.
 banned_crates = [
-  "egui_mcp", "ew-testids",
+  "egui_mcp", "ew-testids", "ew-testkit",
   "attohttpc", "curl", "curl-sys", "h2", "hickory-resolver", "hyper", "isahc", "minreq", "native-tls", "openssl",
   "reqwest", "rustls", "sentry", "trust-dns-resolver", "ureq",
 ]

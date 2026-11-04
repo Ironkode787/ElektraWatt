@@ -7,7 +7,10 @@
 //! `unsafe_code` (the workspace's lint counts as the crate's `forbid`), or when each of its crate roots (every target's
 //! root file) carries `#![forbid(unsafe_code)]`. Any other package must be listed in [`ALLOWLIST`]. The `unsafe`
 //! keyword (a block, fn, impl, trait or extern block) may stand only in a file the allowlist lists for its package;
-//! comments and strings do not count (the source is lexed). `fuzz/` is its own workspace and outside the check.
+//! comments and strings do not count (the source is lexed). `fuzz/` is its own workspace, outside `cargo metadata`:
+//! every `.rs` file under it is lexed too, and the keyword fails there unless the allowlist lists the file for the
+//! fuzz crate `ew-fuzz`, relative to `fuzz/` (WP-S6.04 D7; no crate root's `forbid` is required there, since
+//! `libfuzzer-sys`'s macro expands its own exported symbol).
 //!
 //! The `SAFETY:` comment of each block is clippy's `undocumented_unsafe_blocks` (an error under `-D warnings`), which
 //! this check does not repeat; the second maintainer's review is the cycle reviewer's (ID-1030).
@@ -51,7 +54,36 @@ pub fn violations(root: &Path) -> Result<Vec<String>> {
         toml::from_str(&text).with_context(|| format!("parsing {}", path.display()))?;
     let manifest = std::fs::read_to_string(root.join("Cargo.toml")).context("reading the root Cargo.toml")?;
     let packages = packages(root)?;
-    Ok(check(&manifest, &allowlist.crates, &packages))
+    let mut v = check(&manifest, &allowlist.crates, &packages);
+    v.extend(fuzz_violations(root, &allowlist.crates)?);
+    Ok(v)
+}
+
+/// The fuzz crate's package name, its key in the allowlist.
+const FUZZ_CRATE: &str = "ew-fuzz";
+
+/// The `unsafe` keywords of the `.rs` files under `<root>/fuzz` (not `target`, not hidden directories) that stand
+/// outside a file the allowlist lists for [`FUZZ_CRATE`] (WP-S6.04 D7, S5); none without a `fuzz/` folder.
+fn fuzz_violations(root: &Path, allowed: &BTreeMap<String, Vec<String>>) -> Result<Vec<String>> {
+    let dir = root.join("fuzz");
+    if !dir.is_dir() {
+        return Ok(Vec::new());
+    }
+    let mut files = Vec::new();
+    collect_rs(&dir, root, true, &mut files)?;
+    let listed = allowed.get(FUZZ_CRATE);
+    let mut v = Vec::new();
+    for (path, text) in &files {
+        if listed.is_some_and(|files| files.iter().any(|f| format!("fuzz/{f}") == *path)) {
+            continue;
+        }
+        for line in unsafe_lines(text) {
+            v.push(format!(
+                "{path}:{line}: `unsafe` in the fuzz crate, which {ALLOWLIST} does not list (doc 18 §11.2, NFR-SEC-04)"
+            ));
+        }
+    }
+    Ok(v)
 }
 
 /// The workspace's packages at `root` (`cargo metadata --no-deps`), with their crate roots and `.rs` files.
@@ -305,6 +337,31 @@ mod tests {
                  `good` (doc 18 §11.2, NFR-SEC-04)",
             ]
         );
+    }
+
+    /// SE-4 (WP-S6.04 D7, S5): `unsafe` in a file of the fuzz folder fails with the file and its line, unless the
+    /// allowlist lists the file for `ew-fuzz`; comments, strings and `target/` do not count.
+    #[test]
+    fn unsafe_in_the_fuzz_crate_fails_unless_listed() {
+        let dir = fresh("fuzz");
+        workspace(&dir, "[crates]\n");
+        write(
+            &dir,
+            "fuzz/fuzz_targets/t.rs",
+            "#![no_main]\n// unsafe in a comment\nfuzz_target!(|d: &[u8]| { let _ = \"unsafe\"; });\n",
+        );
+        write(&dir, "fuzz/src/alloc.rs", "\nunsafe impl Sync for X {}\n");
+        write(&dir, "fuzz/target/debug/build/out.rs", "unsafe fn f() {}\n");
+        let v = violations(&dir);
+        assert_eq!(
+            v.unwrap(),
+            ["fuzz/src/alloc.rs:2: `unsafe` in the fuzz crate, which ci/unsafe-allowlist.toml does not list (doc 18 \
+              §11.2, NFR-SEC-04)"]
+        );
+        write(&dir, ALLOWLIST, "[crates]\new-fuzz = [\"src/alloc.rs\"]\n");
+        let v = violations(&dir);
+        std::fs::remove_dir_all(&dir).unwrap();
+        assert_eq!(v.unwrap(), Vec::<String>::new());
     }
 
     /// WN-1: a crate with neither `forbid(unsafe_code)` in its root nor the workspace's lints, and no entry, fails
