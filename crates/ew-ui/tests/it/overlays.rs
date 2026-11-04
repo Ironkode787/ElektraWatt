@@ -627,6 +627,10 @@ fn ft1091_the_link_preview_and_the_cp_tooltip_never_show_together() {
 fn ov2_the_chips_keep_off_the_hud_and_the_zoom_control() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "101");
+    // W49.3b-F7: the label ("Variant A · new F") is wider than the variant letter alone was; a wider window keeps
+    // room for it above left of the HUD, where the test expects a free spot.
+    h.set_size(egui::Vec2::new(1400.0, 800.0));
+    settle(&mut h);
     dispatch(&mut h, "place.pick", json!({"symbol": "ew.iec.mcb-1p@qet10"}));
     settle(&mut h);
     let (w, hh) = h.state().shell().canvas().unwrap().sheet();

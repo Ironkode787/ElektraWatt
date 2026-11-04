@@ -170,6 +170,8 @@ pub const KEYS: &[&str] = &[
     "place-target-part",
     "place-target-terminal",
     "place-target-new-strip",
+    "place-target-strip-new",
+    "place-variant",
     "place-target-box",
     "announce-place",
     "announce-place-no-cell",

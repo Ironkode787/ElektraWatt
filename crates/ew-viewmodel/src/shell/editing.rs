@@ -1686,17 +1686,19 @@ impl ShellModel {
             return;
         };
         let Some(c) = self.canvas() else { return };
+        let v = variant.to_string();
+        // The label without its variant part (`Variant A · `, W49.3b-F7): the announcement names the variant itself.
+        let prefix = strings::format(key!("place-variant"), &[&v, ""]);
         let label = self
             .tools
             .overlay
             .labels()
             .next()
-            .map(|l| l.split_once(' ').map_or(l, |(_, rest)| rest).to_owned())
+            .map(|l| l.strip_prefix(prefix.as_str()).unwrap_or(l).to_owned())
             .unwrap_or_default();
         let cell = at_nm
             .map(|p| c.page().snapper.page_to_sheet(p))
             .and_then(|s| c.page().cell_text(s));
-        let v = variant.to_string();
         self.tools.announcement = Some(match cell {
             Some(cell) => strings::format(key!("announce-place"), &[&symbol, &label, &v, &cell]),
             None => strings::format(key!("announce-place-no-cell"), &[&symbol, &label, &v]),

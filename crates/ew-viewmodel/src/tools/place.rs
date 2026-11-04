@@ -495,13 +495,48 @@ impl PlaceTool {
 
     /// The label text: the variant letter, the target and the predicted tag.
     fn label(&self, cx: &ToolCx<'_>, pos: (i64, i64)) -> String {
-        let (_, _, target) = self.effective_target(cx, pos);
-        let mut text = format!("{} {target}", variant_letter(self.orient));
-        if let Some(tag) = &self.tag {
-            text.push(' ');
-            text.push_str(tag);
+        if let Some(text) = self.tag.as_deref().and_then(|tag| self.new_strip_label(tag)) {
+            return text;
         }
-        text
+        let (_, _, mut target) = self.effective_target(cx, pos);
+        if let Some(tag) = &self.tag {
+            target.push(' ');
+            target.push_str(tag);
+        }
+        self.with_variant(&target)
+    }
+
+    /// `target` after the variant letter, which stands apart from the sentence ("Variant A · …", W49.3b-F7).
+    fn with_variant(&self, target: &str) -> String {
+        strings::format(
+            key!("place-variant"),
+            &[&variant_letter(self.orient).to_string(), target],
+        )
+    }
+
+    /// The whole label of a terminal for a strip without a tag yet once the preview predicts the terminal's tag `tag`
+    /// (W49.3b-F7): the strip by its predicted tag, "terminal 1 on -101X1 (new)", not by the words for a strip without
+    /// one, and the terminal's tag not repeated; `None` for any other target.
+    fn new_strip_label(&self, tag: &str) -> Option<String> {
+        let PlaceTarget::Terminal {
+            strip_tag,
+            designation,
+            ..
+        } = &self.target
+        else {
+            return None;
+        };
+        if !strip_tag.contains('?') {
+            return None;
+        }
+        let strip = tag.rsplit_once(':').map_or(tag, |(s, _)| s);
+        Some(self.with_variant(&strings::format(
+            key!("place-target-terminal"),
+            &[
+                &strings::format(key!("place-target-strip-new"), &[strip]),
+                &self.designation_label(designation),
+            ],
+        )))
     }
 
     /// The overlay at the current point.
@@ -810,8 +845,13 @@ impl Tool for PlaceTool {
         // already ends with the tag of an earlier preview at this point, or with this one, gets it once (FT-507: one
         // label per tag).
         let mut o = self.last.clone();
+        let whole = self.new_strip_label(&tag);
         for item in &mut o.items {
             if let OverlayItem::Label { text, .. } = item {
+                if let Some(whole) = &whole {
+                    text.clone_from(whole);
+                    continue;
+                }
                 for known in self.tag.iter().chain(std::iter::once(&tag)) {
                     while let Some(n) = text
                         .strip_suffix(known.as_str())

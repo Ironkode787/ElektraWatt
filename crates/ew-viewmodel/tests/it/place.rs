@@ -192,7 +192,7 @@ fn placing_a_contact_cycles_the_variants_and_commits_the_chosen_orientation() {
     // The overlay: the outline, a marker per CP, the label with the variant and the target.
     let overlay = s.tool_overlay().clone();
     assert!(matches!(overlay.items[0], OverlayItem::Paths { transform: (0, q), .. } if q == p));
-    assert!(overlay.labels().any(|l| l == "A new K"), "{overlay:?}");
+    assert!(overlay.labels().any(|l| l == "Variant A · new K"), "{overlay:?}");
     // V cycles A to H and back to A.
     let mut letters = String::new();
     for _ in 0..8 {
@@ -586,14 +586,38 @@ fn the_place_label_names_a_strip_without_a_tag_in_words() {
     let p = grid_point(&s, (70, 40));
     let pt = sheet(&s, p);
     done(&mut s, "canvas.pointer", at(pt, json!({})));
-    let labels: Vec<String> = s.tool_overlay().labels().map(|l| l.to_string()).collect();
+    let labels =
+        |s: &ShellModel| -> Vec<String> { s.tool_overlay().labels().map(|l| l.to_string()).collect() };
+    let before = labels(&s);
     assert!(
-        labels
+        before
             .iter()
-            .any(|l| l == "A terminal 1 on the new strip (no tag yet)"),
-        "{labels:?}"
+            .any(|l| l == "Variant A \u{b7} terminal 1 on the new strip (no tag yet)"),
+        "{before:?}"
     );
-    assert!(!labels.iter().any(|l| l.contains('?')), "{labels:?}");
+    assert!(!before.iter().any(|l| l.contains('?')), "{before:?}");
+    // W49.3b-F7: once the preview predicts the strip's tag, the label names the strip by it, as one phrase.
+    done(&mut s, "canvas.dwell", json!({"ms": 80}));
+    let tag = ghost(&s)["tag"].as_str().expect("the predicted tag").to_owned();
+    let strip = tag.rsplit_once(':').expect("<strip>:<terminal>").0.to_owned();
+    assert!(!strip.contains('?'), "{tag}");
+    let after = labels(&s);
+    assert!(
+        after
+            .iter()
+            .any(|l| *l == format!("Variant A \u{b7} terminal 1 on {strip} (new)")),
+        "{after:?}"
+    );
+    done(&mut s, "view.language", json!({"value": "nl"}));
+    done(&mut s, "canvas.pointer", at(pt, json!({})));
+    done(&mut s, "canvas.dwell", json!({"ms": 80}));
+    let nl = labels(&s);
+    assert!(
+        nl.iter()
+            .any(|l| *l == format!("Variant A \u{b7} klem 1 op {strip} (nieuw)")),
+        "{nl:?}"
+    );
+    done(&mut s, "view.language", json!({"value": "en"}));
 }
 
 #[test]
@@ -611,7 +635,9 @@ fn a_terminal_joins_strip_x1031_with_its_tag_predicted_and_the_designation_advan
     let g = ghost(&s);
     assert_eq!(g["target"], "terminal");
     assert!(
-        s.tool_overlay().labels().any(|l| l == "A terminal 30 on -X1031"),
+        s.tool_overlay()
+            .labels()
+            .any(|l| l == "Variant A · terminal 30 on -X1031"),
         "{:?}",
         s.tool_overlay()
     );
