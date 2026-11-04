@@ -158,7 +158,8 @@ Report each item as "checked: `<place>`" or "not applicable".
 - A fit number that the fixture contradicts is a stop: column weights, rectangles, scales, capacities. Report the
   probe.
 - Stop and report only for:
-  - a format change no ADR covers;
+  - a format change no ADR covers, or one that is not additive within format 0.1 (the format is locked, ID-1324;
+    ADR-0011 amendment 6 says what is additive; anything else needs a migration your brief must order);
   - a licence-boundary question;
   - a contradiction between specs;
   - a stop in your brief.
