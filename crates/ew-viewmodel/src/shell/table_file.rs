@@ -55,6 +55,7 @@ fn import_error(e: &TableImportError) -> String {
         TableImportError::TooManyCells(n) => {
             strings::format(key!("error-table-import-many"), &[&n.to_string()])
         }
+        TableImportError::Panicked(file) => strings::format(key!("error-table-import-panicked"), &[file]),
     }
 }
 
@@ -320,7 +321,9 @@ impl ShellModel {
             table: Some(key),
             ..ImportTableOptions::default()
         };
-        let import = match project.session.table_import(input.bytes(), &options) {
+        let import = match ew_api::output::guard_table_read(input.name(), || {
+            project.session.table_import(input.bytes(), &options)
+        }) {
             Ok(i) => i,
             Err(e) => {
                 return Outcome::Failed {
@@ -415,5 +418,24 @@ impl ShellModel {
                 Outcome::Failed { message }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// SE-9 (WP-S6.04 D15): a read that panicked, under the guard the window calls it through, is the banner's S2
+    /// whole, with the file's name.
+    #[test]
+    fn a_panicked_read_is_worded_with_the_file() {
+        let e = ew_api::output::guard_table_read("parts.csv", || -> Result<(), TableImportError> {
+            panic!("a hostile file")
+        })
+        .unwrap_err();
+        assert_eq!(
+            import_error(&e),
+            "The table import stopped on an internal error while reading parts.csv; nothing was changed."
+        );
     }
 }

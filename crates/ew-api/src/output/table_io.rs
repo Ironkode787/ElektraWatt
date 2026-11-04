@@ -171,6 +171,8 @@ pub enum TableImportError {
     NoIdColumn,
     /// More changed cells than one import applies (their number).
     TooManyCells(usize),
+    /// The read panicked on the file named (WP-S6.04 D15, [`guard_table_read`]).
+    Panicked(String),
 }
 
 impl fmt::Display for TableImportError {
@@ -195,11 +197,31 @@ impl fmt::Display for TableImportError {
                 f,
                 "{n} changed cells are more than the 10,000 one import applies; split the file"
             ),
+            TableImportError::Panicked(file) => write!(
+                f,
+                "The table import stopped on an internal error while reading {file}; nothing was changed."
+            ),
         }
     }
 }
 
 impl std::error::Error for TableImportError {}
+
+/// Runs `read`, a table round trip's read of the file `file` ([`Session::table_import`]), inside `catch_unwind`
+/// (WP-S6.04 D15, NFR-REL-12): a panic becomes [`TableImportError::Panicked`] with the file's name. The read is pure
+/// over the bytes and the session (`&self`), so a panic leaves the model and the files as they were. The window and
+/// `ew import table` call the read through it.
+///
+/// # Errors
+///
+/// `read`'s [`TableImportError`], or [`TableImportError::Panicked`].
+pub fn guard_table_read<T>(
+    file: &str,
+    read: impl FnOnce() -> Result<T, TableImportError>,
+) -> Result<T, TableImportError> {
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(read))
+        .unwrap_or_else(|_| Err(TableImportError::Panicked(file.to_owned())))
+}
 
 /// What became of one cell of the file (D11).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]

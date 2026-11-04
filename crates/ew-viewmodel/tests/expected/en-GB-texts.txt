@@ -2210,3 +2210,4 @@ auto-fill-devices-one = 1 device
 reason-enclosure-location = Choose a location
 reason-enclosure-part = Type or choose a part number
 category-surface_view = Surface view
+error-table-import-panicked = The table import stopped on an internal error while reading {0}; nothing was changed.

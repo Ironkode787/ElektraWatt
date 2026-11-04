@@ -702,6 +702,26 @@ fn sql_random_is_denied_and_missing_project_is_exit_2() {
     assert!(stderr(&o).contains("error:"));
 }
 
+/// SE-9 (WP-S6.04 D15, NFR-REL-12): a recursive-CTE bomb in `ew sql` on a copy of Golden A stops at its deadline with
+/// exit 2, and the copy's files are as they were.
+#[test]
+fn sql_a_recursive_cte_bomb_stops_at_its_deadline_and_changes_nothing() {
+    let t = Tmp::new();
+    let project = golden_copy(&t);
+    let before = tree(&project);
+    let o = ew(&[
+        "sql".as_ref(),
+        project.as_os_str(),
+        "WITH RECURSIVE c(x) AS (SELECT 1 UNION ALL SELECT x + 1 FROM c) SELECT count(*) FROM c".as_ref(),
+        "--timeout".as_ref(),
+        "1".as_ref(),
+    ]);
+    assert_eq!(o.status.code(), Some(2), "{}", stderr(&o));
+    assert_eq!(stderr(&o), "error: the statement passed its deadline of 1000 ms\n");
+    assert_eq!(stdout(&o), "");
+    assert!(tree(&project) == before, "the copy's files changed");
+}
+
 const EXPECTED: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416/expected");
 
 fn expected(path: &str) -> String {

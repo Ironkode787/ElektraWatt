@@ -820,10 +820,10 @@ fn run_sql(a: &SqlArgs) -> i32 {
     if let Some(n) = a.timeout {
         profile = profile.with_deadline(std::time::Duration::from_secs(n));
     }
-    let set = match projection.reader(profile).and_then(|r| r.query(&sql)) {
+    let set = match guarded_query(|| projection.reader(profile).and_then(|r| r.query(&sql))) {
         Ok(s) => s,
-        Err(e) => {
-            eprintln!("error: {e}");
+        Err(line) => {
+            eprintln!("{line}");
             return 2;
         }
     };
@@ -849,6 +849,20 @@ fn run_sql(a: &SqlArgs) -> i32 {
         }
     }
     0
+}
+
+/// S1 of WP-S6.04 (D15): `ew sql`'s line when the statement panicked.
+const QUERY_PANICKED: &str = "error: the query stopped on an internal error; nothing was changed";
+
+/// Runs `ew sql`'s statement, `run`, inside `catch_unwind` (WP-S6.04 D15, NFR-REL-12): its result, or the line to print
+/// (`error: <the SQL error>`, or [`QUERY_PANICKED`] when it panicked). The query reads a projection image only, so a
+/// panic changes nothing.
+fn guarded_query<T>(run: impl FnOnce() -> Result<T, ew_api::sql::SqlError>) -> Result<T, String> {
+    match std::panic::catch_unwind(std::panic::AssertUnwindSafe(run)) {
+        Ok(Ok(t)) => Ok(t),
+        Ok(Err(e)) => Err(format!("error: {e}")),
+        Err(_) => Err(QUERY_PANICKED.to_owned()),
+    }
 }
 
 /// `ew sql --format xlsx --out <file>` (FT-218): the result as the one sheet `sql` of a workbook, written atomically.
@@ -1295,7 +1309,11 @@ fn run_import_table(a: &ImportTableArgs) -> i32 {
             }
         }
     };
-    let import = match session.table_import(&bytes, &options) {
+    let file = a.file.file_name().map_or_else(
+        || a.file.display().to_string(),
+        |n| n.to_string_lossy().into_owned(),
+    );
+    let import = match ew_api::output::guard_table_read(&file, || session.table_import(&bytes, &options)) {
         Ok(i) => i,
         Err(e) => {
             eprintln!("error: {e}");
@@ -6632,5 +6650,83 @@ mod revision_tests {
         let path = ew_api::archive::write_run_record(vfs, state, &record).unwrap();
         session.close();
         path
+    }
+}
+
+#[cfg(test)]
+mod guard_tests {
+    //! WP-S6.04 D15, SE-9: `ew sql`'s statement under its panic guard, given a panicking closure, on a copy of
+    //! Golden A in a fresh directory; nothing under `golden/` is opened for writing.
+    use super::*;
+
+    /// Every file below `dir` with its bytes, by path relative to `base`.
+    fn tree(dir: &Path, base: &Path, out: &mut std::collections::BTreeMap<String, Vec<u8>>) {
+        for e in std::fs::read_dir(dir).unwrap() {
+            let p = e.unwrap().path();
+            if p.is_dir() {
+                tree(&p, base, out);
+            } else {
+                let rel = p.strip_prefix(base).unwrap().to_string_lossy().replace('\\', "/");
+                out.insert(rel, std::fs::read(&p).unwrap());
+            }
+        }
+    }
+
+    fn copy(from: &Path, to: &Path) {
+        std::fs::create_dir_all(to).unwrap();
+        for e in std::fs::read_dir(from).unwrap() {
+            let p = e.unwrap().path();
+            let target = to.join(p.file_name().unwrap());
+            if p.is_dir() {
+                copy(&p, &target);
+            } else {
+                std::fs::copy(&p, &target).unwrap();
+            }
+        }
+    }
+
+    /// S1 whole, when the statement panics after it ran on the projection of a copy of Golden A; the copy's files
+    /// and the session's model are unchanged; an SQL error keeps its own line.
+    #[test]
+    fn a_panicking_statement_gives_s1_and_changes_nothing() {
+        let root = ew_testdir::fresh_dir("ew-cli-guard");
+        let dir = root.join("J-E-2416.ew");
+        copy(
+            &Path::new(env!("CARGO_MANIFEST_DIR")).join("../../golden/J-E-2416.ew"),
+            &dir,
+        );
+        let files = |d: &Path| {
+            let mut out = std::collections::BTreeMap::new();
+            tree(d, d, &mut out);
+            out
+        };
+        let before = files(&dir);
+        let (projection, session) = open_projection_and_session(Some(&dir)).unwrap();
+        let model = session.world().model.clone();
+        let r: Result<(), String> = guarded_query(|| {
+            let set = projection
+                .reader(ew_api::sql::Profile::EW_SQL)
+                .and_then(|r| r.query("SELECT count(*) FROM api_v1_terminal"))?;
+            assert_eq!(set.rows.len(), 1);
+            panic!("a statement that panics")
+        });
+        assert_eq!(
+            r,
+            Err("error: the query stopped on an internal error; nothing was changed".to_owned())
+        );
+        let r = guarded_query(|| {
+            projection
+                .reader(ew_api::sql::Profile::EW_SQL)
+                .and_then(|r| r.query("DELETE FROM api_v1_terminal"))
+        });
+        assert_eq!(
+            r.map(|_| ()),
+            Err("error: statement denied by the projection sandbox (DELETE): only SELECT, WITH or VALUES may run"
+                .to_owned())
+        );
+        assert!(session.world().model.content_eq(&model), "the model changed");
+        drop((projection, session));
+        assert!(files(&dir) == before, "the copy's files changed");
+        let _ = std::fs::remove_dir_all(&root);
     }
 }

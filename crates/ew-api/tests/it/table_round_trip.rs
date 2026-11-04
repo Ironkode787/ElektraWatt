@@ -159,3 +159,32 @@ fn the_round_trip_refuses_in_words() {
         "no terminal strip `-X9` (the strips are: -X1031, -X1032, 1X1)"
     );
 }
+
+/// SE-9 (WP-S6.04 D15, NFR-REL-12): a read that panics under `guard_table_read`, after it read the file against
+/// the project, is S2 whole with the file's name, and the session's model is unchanged; a refusal keeps its own text.
+#[test]
+fn a_panicking_read_gives_s2_and_changes_nothing() {
+    let (session, key, table) = x1031();
+    let model = session.world().model.clone();
+    let csv = table_csv(&table, &CsvOptions::preset(Preset::ExcelEn));
+    let options = ImportTableOptions {
+        table: Some(key),
+        ..ImportTableOptions::default()
+    };
+    let e = ew_api::output::guard_table_read("x1031.csv", || {
+        session.table_import(csv.as_bytes(), &options)?;
+        panic!("a read that panics")
+    })
+    .map(|()| ())
+    .unwrap_err();
+    assert_eq!(
+        e.to_string(),
+        "The table import stopped on an internal error while reading x1031.csv; nothing was changed."
+    );
+    let e = ew_api::output::guard_table_read("x1031.csv", || {
+        session.table_import(csv.as_bytes(), &ImportTableOptions::default())
+    })
+    .unwrap_err();
+    assert_eq!(e, TableImportError::CsvNoTable);
+    assert!(session.world().model.content_eq(&model), "the model changed");
+}

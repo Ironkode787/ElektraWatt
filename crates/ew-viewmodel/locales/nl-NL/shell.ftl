@@ -1788,6 +1788,7 @@ error-table-import-project = Het bestand is uit een ander project geëxporteerd;
 error-table-import-table = Het bestand is geen tabel van dit project; exporteer de tabel opnieuw.
 error-table-import-id = Het bestand heeft geen id-kolom, waarmee zijn rijen worden gekoppeld; exporteer de tabel opnieuw en behoud de kolom.
 error-table-import-many = { $p0 } gewijzigde cellen zijn meer dan de 10.000 die één import toepast; splits het bestand.
+error-table-import-panicked = De tabelimport is gestopt door een interne fout bij het lezen van { $p0 }; er is niets gewijzigd.
 prompt-export-table-title = Tabel exporteren
 prompt-table-name = table.xlsx
 prompt-open-table-title = Tabel importeren

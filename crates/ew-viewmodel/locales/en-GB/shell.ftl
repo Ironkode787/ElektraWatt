@@ -1928,6 +1928,7 @@ error-table-import-project = The file was exported from another project; export 
 error-table-import-table = The file is not a table of this project; export the table again.
 error-table-import-id = The file has no id column, by which its rows are matched; export the table again and keep the column.
 error-table-import-many = { $p0 } changed cells are more than the 10,000 one import applies; split the file.
+error-table-import-panicked = The table import stopped on an internal error while reading { $p0 }; nothing was changed.
 prompt-export-table-title = Export table
 prompt-table-name = table.xlsx
 prompt-open-table-title = Import table

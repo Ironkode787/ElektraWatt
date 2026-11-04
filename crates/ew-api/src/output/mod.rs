@@ -186,7 +186,7 @@ pub use rows::{
 pub use table_io::{
     CellOutcome, IO_LIST_ROUTES, ImportCell, ImportCounts, ImportFinding, ImportTableOptions,
     MAX_IMPORT_CELLS, REASON_KEYS, TABLE_NAVIGATORS, TableApplyError, TableError, TableImport,
-    TableImportError, reason_words,
+    TableImportError, guard_table_read, reason_words,
 };
 // WP-S2.07 part 1
 pub use strip_edit::{
