@@ -427,6 +427,42 @@ fn long_and_two_line_results_keep_the_cursor_inside_the_list() {
     }
 }
 
+/// FT-1343 (FT-1260's first edge): an action without a form that fails when the palette runs it raises a banner the
+/// window reports as that action, so the action's next success clears it.
+#[test]
+fn a_palette_run_that_fails_is_cleared_by_the_actions_next_success() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "204");
+    dispatch(&mut h, "find.open_replace", json!({}));
+    dispatch(&mut h, "find.fields", json!({"fields": ["function_text"]}));
+    dispatch(&mut h, "find.option", json!({"option": "regex", "on": true}));
+    dispatch(&mut h, "find.text", json!({"text": "("}));
+    dispatch(&mut h, "find.replacement", json!({"text": "Reserve"}));
+    settle(&mut h);
+    h.state_mut().dispatch_from_window("tools.palette", &json!({}));
+    settle(&mut h);
+    h.state_mut().shell_mut().set_palette_query("Replace all");
+    settle(&mut h);
+    let palette = h.state().shell().palette().expect("the palette");
+    assert_eq!(
+        h.state().shell().palette_entries()[palette.selected].id,
+        "find.replace_all"
+    );
+    h.key_press(Key::Enter);
+    settle(&mut h);
+    assert!(h.state().shell().palette().is_none());
+    assert_eq!(
+        h.state().shell().banner(),
+        Some("the regular expression does not compile: regex parse error:\n    (\n    ^\nerror: unclosed group"),
+        "the failure is a banner"
+    );
+    dispatch(&mut h, "find.text", json!({"text": "Spare"}));
+    h.state_mut().dispatch_from_window("find.replace_all", &json!({}));
+    settle(&mut h);
+    assert_eq!(h.state().shell().banner(), None, "its success clears it");
+    h.state_mut().shell_mut().shutdown();
+}
+
 /// W49.1-J: the folio filter takes the rest of its row (a row of its own where the rest cannot show its placeholder),
 /// so its placeholder shows whole in Dutch at the 1280 × 800 floor and at 1920 × 1080 and the field reaches the pane's
 /// right edge; every node fits at both sizes.
