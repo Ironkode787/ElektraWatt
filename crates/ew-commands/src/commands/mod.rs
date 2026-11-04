@@ -87,6 +87,8 @@ pub use macro_insert::{
     pick_variant,
 };
 pub use merge::{ConflictChoice, Take};
+#[cfg(feature = "testkit")]
+pub use merge::record_file_of;
 pub use page::{LabelModeParam, PageScope};
 pub use part_edit::PART_EDITABLE;
 pub use parts::import_counts;

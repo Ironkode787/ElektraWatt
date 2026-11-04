@@ -297,9 +297,18 @@ fn record_of(row: &AnyRow) -> Result<Record, CmdError> {
     Record::from_value(value).map_err(|e| CmdError::internal(format!("a record does not read back: {e}")))
 }
 
+/// The file `merge.resolve` routes `record` to in `model` (its `file_of`), for the test in `ew-api` that pins it to `ew_format::record_file` record kind by record
+/// kind (FT-1290): the crate that sees both.
+#[cfg(feature = "testkit")]
+pub fn record_file_of(model: &ew_model::Model, record: &Record) -> Option<String> {
+    let mut ids = ew_ids::SystemSource;
+    file_of(&TxBuilder::new(model, &mut ids), record, 0)
+}
+
 /// The project-relative file a record of the transaction lives in: doc 05 §2.2's rules as `ew_format::record_file`
 /// applies them over the model (`ew-commands` has no `ew-format` edge), `None` for a record of a kind without a rule
-/// here. A reference that does not resolve falls back to the shard of the referenced ID, as there.
+/// here. A reference that does not resolve falls back to the shard of the referenced ID, as there. A test in `ew-api`
+/// pins the two together (`record_file_of`).
 fn file_of(tx: &TxBuilder<'_>, record: &Record, depth: u8) -> Option<String> {
     let page = |id: AnyId| format!("pages/{id}.jsonl");
     let shard = |id: AnyId| format!("devices/{}.jsonl", id.shard_name());
