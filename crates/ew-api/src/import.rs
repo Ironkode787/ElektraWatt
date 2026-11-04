@@ -656,9 +656,7 @@ impl Detected {
         match self {
             Detected::Lineage(_) => None,
             Detected::Proposed {
-                source_name,
-                percent,
-                ..
+                source_name, percent, ..
             } => Some(format!(
                 "{file} matches the earlier import of {source_name} ({percent} % of its items). Re-import it into that import?"
             )),
@@ -711,7 +709,9 @@ fn qet_batch(
     let limits = ctx.limits;
     let lineage = ctx.lineage;
     let sizes = [input.bytes().len() as u64];
-    front_door(name, &sizes, &limits, lineage.as_ref(), || importer.import(&input, ctx))
+    front_door(name, &sizes, &limits, lineage.as_ref(), || {
+        importer.import(&input, ctx)
+    })
 }
 
 impl Session {
@@ -731,7 +731,9 @@ impl Session {
     ) -> Result<Detected, ReimportError> {
         let mut ctx = ew_import_qet::project::new_project_context();
         let batch = qet_batch(name, bytes, library, &mut ctx).map_err(ReimportError::Refused)?;
-        let not_an_import = || ReimportError::NotAnImport { file: name.to_owned() };
+        let not_an_import = || ReimportError::NotAnImport {
+            file: name.to_owned(),
+        };
         let Some(own) = batch.records.iter().find_map(|r| match r {
             Record::ImportLineage(l) => Some(l.clone()),
             _ => None,
@@ -740,8 +742,11 @@ impl Session {
         };
         let model = self.engine.model();
         let q = self.query();
-        let lineages: Vec<std::sync::Arc<ew_schema::ImportLineage>> =
-            q.table::<ew_schema::ImportLineage>().iter().map(|(_, l)| l.clone()).collect();
+        let lineages: Vec<std::sync::Arc<ew_schema::ImportLineage>> = q
+            .table::<ew_schema::ImportLineage>()
+            .iter()
+            .map(|(_, l)| l.clone())
+            .collect();
         let info = |l: &ew_schema::ImportLineage| LineageInfo {
             id: l.id,
             namespace: l.namespace.as_uuid(),
@@ -814,8 +819,8 @@ impl Session {
             .and_then(|r| q.table::<ew_schema::ImportRun>().get(r).cloned());
         let mut plan = ew_commands::commands::plan_reimport(model, &batch.records, base.as_deref(), name)
             .map_err(|e| ReimportError::Apply(ApplyError::Refused(e)))?;
-        let mut command = apply_command(&batch, Some(lineage), ctx.mode, ctx.as_of, false)
-            .map_err(ReimportError::Apply)?;
+        let mut command =
+            apply_command(&batch, Some(lineage), ctx.mode, ctx.as_of, false).map_err(ReimportError::Apply)?;
         command.records = plan.apply.clone();
         command.carried = plan.carried.clone();
         command.run.entries.extend(plan.entries.iter().cloned());

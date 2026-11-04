@@ -3636,3 +3636,23 @@ reason-import-other-lineage = a record names another import
 reason-import-order = the records are out of order
 reason-no-import = No import is waiting to be applied
 action-file-import-qet-apply = Apply the import
+
+# WP-S3.09 D10 to D12: the re-import of a QElectroTech file into the open project: the proposal (T6), the refusal (T7),
+# the re-import card (T8) and its rows.
+action-file-reimport-qet = Re-import QElectroTech project…
+action-file-reimport-qet-apply = Apply the re-import
+reimport-match-title = Re-import it into that import?
+reimport-match-text = { $p0 } matches the earlier import of { $p1 } ({ $p2 } % of its items).
+reimport-match-accept = Re-import
+error-reimport-foreign = { $p0 } is not an earlier import of this project; import it into a new project instead.
+reimport-card-title = Re-import { $p0 }
+reimport-card-summary = Re-import of { $p0 }: { $p1 } added, { $p2 } changed in the source, { $p3 } kept with your changes, { $p4 } changed on both sides and kept, { $p5 } removed in the source and kept, { $p6 } unchanged.
+reimport-card-more = and { $p0 } more changes
+reimport-card-apply = Apply
+reimport-row-added = Added: { $p0 }
+reimport-row-source = Changed in the source: { $p0 }
+reimport-row-both = Changed on both sides, kept: { $p0 }
+reimport-row-removed = Removed in the source, kept: { $p0 }
+reimport-row-member = { $p0 }: here { $p1 }, in { $p2 } { $p3 }
+banner-reimported = Re-imported { $p0 }.
+reason-no-reimport = No re-import is waiting to be applied

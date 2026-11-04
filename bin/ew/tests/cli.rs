@@ -149,17 +149,34 @@ fn import_qet_into_re_imports_into_the_earlier_import() {
     let t = Tmp::new();
     let f = t.project();
     let out = t.0.join("p.ew");
-    let o = ew(&["import".as_ref(), "qet".as_ref(), f.as_os_str(), "--out".as_ref(), out.as_os_str()]);
+    let o = ew(&[
+        "import".as_ref(),
+        "qet".as_ref(),
+        f.as_os_str(),
+        "--out".as_ref(),
+        out.as_os_str(),
+    ]);
     assert_eq!(o.status.code(), Some(0), "{}", String::from_utf8_lossy(&o.stderr));
     let into = |file: &std::path::Path, apply: bool| {
-        let mut args: Vec<&std::ffi::OsStr> = vec!["import".as_ref(), "qet".as_ref(), file.as_os_str(), "--into".as_ref(), out.as_os_str()];
+        let mut args: Vec<&std::ffi::OsStr> = vec![
+            "import".as_ref(),
+            "qet".as_ref(),
+            file.as_os_str(),
+            "--into".as_ref(),
+            out.as_os_str(),
+        ];
         if apply {
             args.push("--apply".as_ref());
         }
         ew(&args)
     };
     let same = into(&f, false);
-    assert_eq!(same.status.code(), Some(0), "{}", String::from_utf8_lossy(&same.stderr));
+    assert_eq!(
+        same.status.code(),
+        Some(0),
+        "{}",
+        String::from_utf8_lossy(&same.stderr)
+    );
     assert_eq!(
         stdout(&same),
         "Re-import of t.qet: 0 added, 0 changed in the source, 0 kept with your changes, 0 changed on both sides and kept, 0 removed in the source and kept, 1 unchanged.\n"
@@ -167,7 +184,12 @@ fn import_qet_into_re_imports_into_the_earlier_import() {
     let renamed = t.project_with(&PROJECT.replace(r#"title="P""#, r#"title="Q""#));
     let manifest = std::fs::read(out.join("project.jsonl")).unwrap();
     let dry = into(&renamed, false);
-    assert_eq!(dry.status.code(), Some(0), "{}", String::from_utf8_lossy(&dry.stderr));
+    assert_eq!(
+        dry.status.code(),
+        Some(0),
+        "{}",
+        String::from_utf8_lossy(&dry.stderr)
+    );
     assert_eq!(
         stdout(&dry),
         "t.qet matches the earlier import of t.qet (100 % of its items). Re-import it into that import?\n\
@@ -175,10 +197,23 @@ fn import_qet_into_re_imports_into_the_earlier_import() {
          changed in the source: page 1\n\
          nothing was written: add --apply to commit the re-import\n"
     );
-    assert_eq!(std::fs::read(out.join("project.jsonl")).unwrap(), manifest, "nothing was written");
+    assert_eq!(
+        std::fs::read(out.join("project.jsonl")).unwrap(),
+        manifest,
+        "nothing was written"
+    );
     let applied = into(&renamed, true);
-    assert_eq!(applied.status.code(), Some(0), "{}", String::from_utf8_lossy(&applied.stderr));
-    assert!(stdout(&applied).ends_with("re-import applied; saved\n"), "{}", stdout(&applied));
+    assert_eq!(
+        applied.status.code(),
+        Some(0),
+        "{}",
+        String::from_utf8_lossy(&applied.stderr)
+    );
+    assert!(
+        stdout(&applied).ends_with("re-import applied; saved\n"),
+        "{}",
+        stdout(&applied)
+    );
     let again = into(&renamed, false);
     assert!(
         stdout(&again).ends_with(
@@ -192,7 +227,10 @@ fn import_qet_into_re_imports_into_the_earlier_import() {
     let refused = into(&foreign, false);
     assert_eq!(refused.status.code(), Some(2));
     assert_eq!(
-        String::from_utf8_lossy(&refused.stderr).lines().last().unwrap_or_default(),
+        String::from_utf8_lossy(&refused.stderr)
+            .lines()
+            .last()
+            .unwrap_or_default(),
         "error: other.qet is not an earlier import of this project; import it into a new project instead."
     );
 }

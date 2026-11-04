@@ -916,6 +916,16 @@
           "name": "--out",
           "value": true,
           "repeatable": false
+        },
+        {
+          "name": "--into",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--apply",
+          "value": false,
+          "repeatable": false
         }
       ],
       "exits": [

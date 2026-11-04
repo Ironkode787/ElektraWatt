@@ -302,6 +302,73 @@ fn a_qelectrotech_project_is_imported_into_a_new_directory() {
     shell.shutdown();
 }
 
+/// WP-S3.09 IC-13 (D10 to D12): a changed file without a project UUID asks T6; the re-import card shows T8 and its
+/// row; Cancel leaves the project as it was; Apply is one undo step; a file of another project is refused with T7.
+#[test]
+fn a_qelectrotech_file_is_re_imported_into_the_open_project() {
+    let tmp = Tmp::new();
+    let qet = tmp.0.join("example.qet");
+    std::fs::write(&qet, QET).unwrap();
+    let dir = tmp.0.join("imported.ew");
+    let mut shell = tmp.shell();
+    done(
+        &mut shell,
+        "file.import_qet",
+        json!({ "file": path(&qet), "dir": path(&dir) }),
+    );
+    done(&mut shell, "file.import_qet_apply", json!({ "confirm": true }));
+    std::fs::write(&qet, QET.replace("First page", "Main page")).unwrap();
+    let rev = shell.revision();
+    done(&mut shell, "file.reimport_qet", json!({ "file": path(&qet) }));
+    let spec = ew_viewmodel::dialogs::spec(shell.dialog().expect("the proposal"), &shell);
+    assert_eq!(spec.title, "Re-import it into that import?");
+    assert_eq!(
+        spec.body,
+        ["example.qet matches the earlier import of example.qet (100 % of its items)."]
+    );
+    assert_eq!(spec.primary.label, "Re-import");
+    done(&mut shell, "ui.dismiss", json!({}));
+    assert_eq!(shell.revision(), rev, "Cancel changes nothing");
+    done(
+        &mut shell,
+        "file.reimport_qet",
+        json!({ "file": path(&qet), "accept": true }),
+    );
+    let spec = ew_viewmodel::dialogs::spec(shell.dialog().expect("the re-import card"), &shell);
+    assert_eq!(spec.title, "Re-import example.qet");
+    assert_eq!(
+        spec.body,
+        ["Re-import of example.qet: 0 added, 1 changed in the source, 0 kept with your changes, 0 changed on both sides and kept, 0 removed in the source and kept, 0 unchanged."]
+    );
+    let Some(ew_viewmodel::shell::Dialog::Reimport { rows, .. }) = shell.dialog() else {
+        panic!("the re-import card");
+    };
+    assert_eq!(rows, &["Changed in the source: page 1".to_owned()]);
+    done(&mut shell, "ui.dismiss", json!({}));
+    assert_eq!(shell.revision(), rev, "Cancel changes nothing");
+    done(
+        &mut shell,
+        "file.reimport_qet",
+        json!({ "file": path(&qet), "accept": true }),
+    );
+    done(&mut shell, "file.reimport_qet_apply", json!({}));
+    assert_eq!(shell.banner(), Some("Re-imported example.qet."));
+    assert_ne!(shell.revision(), rev);
+    assert!(shell.is_dirty());
+    done(&mut shell, "edit.undo", json!({}));
+    assert!(!shell.is_dirty(), "Apply is one undo step");
+    let other = tmp.0.join("other.qet");
+    std::fs::write(&other, QET.replace("Example", "Other")).unwrap();
+    match run(&mut shell, "file.reimport_qet", json!({ "file": path(&other) })) {
+        Outcome::Failed { message } => assert_eq!(
+            message,
+            "other.qet is not an earlier import of this project; import it into a new project instead."
+        ),
+        other => panic!("{other:?}"),
+    }
+    shell.shutdown();
+}
+
 #[test]
 fn an_import_that_cannot_be_read_fails_without_a_path() {
     let tmp = Tmp::new();

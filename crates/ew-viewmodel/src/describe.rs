@@ -2640,6 +2640,20 @@ fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
                 }
             }
         }
+        // WP-S3.09 D10, D12: the proposal's paragraph; the re-import card's summary and its listed rows.
+        Dialog::ReimportMatch { .. } => {
+            for line in &spec.body {
+                lines.push(format!("  label \"{}\"", user(line)));
+            }
+        }
+        Dialog::Reimport { rows, .. } => {
+            for line in &spec.body {
+                lines.push(format!("  label \"{}\"", user(line)));
+            }
+            for row in rows.iter().take(crate::dialogs::IMPORT_PAGES_LISTED) {
+                lines.push(format!("  row \"{}\"", user(row)));
+            }
+        }
         Dialog::ExternalChange { rows } => {
             for line in &spec.body {
                 lines.push(format!("  label \"{}\"", user(line)));

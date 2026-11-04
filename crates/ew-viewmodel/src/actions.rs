@@ -1194,6 +1194,29 @@ pub static ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_import_qet_apply(p),
         )),
     ),
+    // WP-S3.09 D10 to D12: Project, Import, Re-import QElectroTech project (the open project's earlier import), its
+    // proposal's Re-import (`accept`) and the re-import card's Apply.
+    with_params(
+        "file?:path, accept?:bool",
+        act(
+            "file.reimport_qet",
+            Command,
+            Menu::Project,
+            &[],
+            project_open,
+            None,
+            |s, p| s.act_reimport_qet(p),
+        ),
+    ),
+    hidden(parameterless(act(
+        "file.reimport_qet_apply",
+        Command,
+        Menu::Project,
+        &[],
+        project_open,
+        None,
+        |s, _| s.act_reimport_qet_apply(),
+    ))),
     // FT-410: File, Import, Parts table…
     with_params(
         "path?:path",

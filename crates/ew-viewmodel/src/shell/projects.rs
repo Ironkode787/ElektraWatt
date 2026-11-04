@@ -11,7 +11,9 @@
 
 use std::path::{Path, PathBuf};
 
-use ew_api::import::{Refusal, Severity, StarterLibrary, import_qet, migration_counts};
+use ew_api::import::{
+    Detected, Refusal, ReimportClass, ReimportError, Severity, StarterLibrary, import_qet, migration_counts,
+};
 use ew_api::{NewProjectKind, ProjectTemplate, Recovery, Session};
 use serde_json::{Map, Value};
 
@@ -275,19 +277,7 @@ impl ShellModel {
         let Ok(bytes) = std::fs::read(&file) else {
             return failed(key!("error-import-read"), &[&name]);
         };
-        let (library, library_note) = match self.config.resources.content_dir.as_deref() {
-            Some(content) => match StarterLibrary::from_dir(content) {
-                Ok(l) => (l, None),
-                Err(_) => (
-                    StarterLibrary::empty(),
-                    Some(strings::text(key!("banner-import-no-content"))),
-                ),
-            },
-            None => (
-                StarterLibrary::empty(),
-                Some(strings::text(key!("banner-import-no-content"))),
-            ),
-        };
+        let (library, library_note) = self.import_library();
         let imported = match import_qet(&name, bytes, &library) {
             Ok(i) => i,
             Err(e) => {
@@ -386,6 +376,164 @@ impl ShellModel {
             key!("error-import-write"),
             Some(pending.banner),
         )
+    }
+
+    /// The starter library an import resolves its built-in keys in, and the banner's note when there is none.
+    fn import_library(&self) -> (StarterLibrary, Option<&'static str>) {
+        match self.config.resources.content_dir.as_deref() {
+            Some(content) => match StarterLibrary::from_dir(content) {
+                Ok(l) => (l, None),
+                Err(_) => (
+                    StarterLibrary::empty(),
+                    Some(strings::text(key!("banner-import-no-content"))),
+                ),
+            },
+            None => (
+                StarterLibrary::empty(),
+                Some(strings::text(key!("banner-import-no-content"))),
+            ),
+        }
+    }
+
+    /// `file.reimport_qet {file?, accept?}` (WP-S3.09 D10 to D12): the QElectroTech file re-imported into its earlier
+    /// import in the open project. A file matched by its items asks T6 first (`accept: true` answers it); a file of
+    /// another project is refused with T7; else the re-import card shows T8 and its rows. Nothing changes until Apply.
+    pub(crate) fn act_reimport_qet(&mut self, p: &Map<String, Value>) -> Outcome {
+        let file = match string_param(p, "file") {
+            Err(e) => return e,
+            Ok(Some(file)) => PathBuf::from(file),
+            Ok(None) => return self.need_path("file.reimport_qet", Prompt::OpenQet, "file", p),
+        };
+        if !self.is_writable() {
+            return Outcome::Refused {
+                reason_key: key!("reason-read-only"),
+            };
+        }
+        let name = file
+            .file_name()
+            .map_or_else(|| "project.qet".to_owned(), |n| n.to_string_lossy().into_owned());
+        let Ok(bytes) = std::fs::read(&file) else {
+            return failed(key!("error-import-read"), &[&name]);
+        };
+        let (library, _) = self.import_library();
+        let accept = flag(p, "accept");
+        let Some(project) = self.project.as_mut() else {
+            return Outcome::Refused {
+                reason_key: key!("reason-no-project"),
+            };
+        };
+        let refused = |e: &ReimportError| match e {
+            ReimportError::Refused(r) => refusal_text(&name, r),
+            ReimportError::NotAnImport { .. } => strings::format(key!("error-reimport-foreign"), &[&name]),
+            ReimportError::Apply(e) => strings::format(key!("error-import"), &[&name, &e.to_string()]),
+        };
+        let detected = match project.session.detect_qet_lineage(&name, bytes.clone(), &library) {
+            Ok(d) => d,
+            Err(e) => {
+                let message = refused(&e);
+                self.banner = Some(message.clone());
+                return Outcome::Failed { message };
+            }
+        };
+        if let Detected::Proposed {
+            source_name, percent, ..
+        } = &detected
+            && !accept
+        {
+            self.palette = None;
+            return self.open_dialog(Dialog::ReimportMatch {
+                path: file.to_string_lossy().into_owned(),
+                file: name,
+                source: source_name.clone(),
+                percent: *percent,
+            });
+        }
+        let reimport = match project
+            .session
+            .reimport_qet(&name, bytes, &library, detected.lineage())
+        {
+            Ok(r) => r,
+            Err(e) => {
+                let message = refused(&e);
+                self.banner = Some(message.clone());
+                return Outcome::Failed { message };
+            }
+        };
+        let n = |c: ReimportClass| reimport.plan.count(c).to_string();
+        let summary = strings::format(
+            key!("reimport-card-summary"),
+            &[
+                &name,
+                &n(ReimportClass::Added),
+                &n(ReimportClass::SourceChanged),
+                &n(ReimportClass::EwChanged),
+                &n(ReimportClass::Conflict),
+                &n(ReimportClass::Removed),
+                &n(ReimportClass::Unchanged),
+            ],
+        );
+        let value = |v: Option<&Value>| match v {
+            None => "-".to_owned(),
+            Some(Value::String(s)) => s.clone(),
+            Some(other) => other.to_string(),
+        };
+        let mut rows = Vec::new();
+        for row in &reimport.plan.rows {
+            let key = match row.class {
+                ReimportClass::Added => key!("reimport-row-added"),
+                ReimportClass::SourceChanged => key!("reimport-row-source"),
+                ReimportClass::Conflict => key!("reimport-row-both"),
+                ReimportClass::Removed => key!("reimport-row-removed"),
+                ReimportClass::EwChanged | ReimportClass::Unchanged => continue,
+            };
+            rows.push(strings::format(key, &[&row.record]));
+            for m in &row.members {
+                rows.push(strings::format(
+                    key!("reimport-row-member"),
+                    &[
+                        &strings::field_label(row.key.0.name(), &m.path),
+                        &value(m.ours.as_ref()),
+                        &name,
+                        &value(m.theirs.as_ref()),
+                    ],
+                ));
+            }
+        }
+        self.palette = None;
+        self.reimport_pending = Some(reimport);
+        self.open_dialog(Dialog::Reimport {
+            file: name,
+            summary,
+            rows,
+        })
+    }
+
+    /// `file.reimport_qet_apply` (the re-import card's Apply, WP-S3.09 D12): the previewed re-import committed as one
+    /// undo step (nothing when it changes nothing). Without a re-import card it is refused.
+    pub(crate) fn act_reimport_qet_apply(&mut self) -> Outcome {
+        let Some(Dialog::Reimport { file, .. }) = self.dialog.take() else {
+            return Outcome::Refused {
+                reason_key: key!("reason-no-reimport"),
+            };
+        };
+        let (Some(pending), Some(project)) = (self.reimport_pending.take(), self.project.as_mut()) else {
+            return Outcome::Refused {
+                reason_key: key!("reason-no-reimport"),
+            };
+        };
+        let outcome = match project.session.apply_reimport(pending) {
+            Ok(_) => {
+                self.banner = Some(strings::format(key!("banner-reimported"), &[&file]));
+                Outcome::Done
+            }
+            Err(e) => {
+                let message = strings::format(key!("error-import"), &[&file, &e.to_string()]);
+                self.banner = Some(message.clone());
+                Outcome::Failed { message }
+            }
+        };
+        self.refresh();
+        outcome
     }
 
     pub(crate) fn act_discard_journal(&mut self, p: &Map<String, Value>) -> Outcome {

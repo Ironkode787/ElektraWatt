@@ -363,6 +363,28 @@ pub enum Dialog {
         /// Whether the confirmation is shown.
         confirm: bool,
     },
+    /// Project ▸ Import ▸ Re-import QElectroTech project (WP-S3.09 D10): a file matched to an earlier import by its
+    /// items (T6): Re-import or Cancel.
+    ReimportMatch {
+        /// The file (never printed).
+        path: String,
+        /// Its file name.
+        file: String,
+        /// The source name of the earlier import.
+        source: String,
+        /// The share of the file's items the earlier import holds, in per cent.
+        percent: u32,
+    },
+    /// The re-import card (WP-S3.09 D12): T8 and the rows of the records added, changed in the source, changed on
+    /// both sides and removed in the source; Apply (one undo step) or Cancel (nothing changes).
+    Reimport {
+        /// The file's name.
+        file: String,
+        /// The summary (T8).
+        summary: String,
+        /// The rows, in words.
+        rows: Vec<String>,
+    },
     /// File ▸ Open .ewz…: Extract and open (into a new folder beside it), Open read-only, or Cancel.
     OpenEwz {
         /// The `.ewz` (never printed).
@@ -517,6 +539,8 @@ pub struct ShellModel {
     dialog: Option<Dialog>,
     /// The imported project the import card shows (WP-S3.09 D8).
     import_pending: Option<projects::PendingImport>,
+    /// The previewed re-import the re-import card shows (WP-S3.09 D12).
+    reimport_pending: Option<ew_api::import::Reimport>,
     /// Bumped on every opening of a dialog: the window gives a dialog opened again, even as the same kind, its first
     /// focus (C49-p10b#4).
     dialog_gen: u64,
@@ -963,6 +987,7 @@ impl ShellModel {
             keymap_keep_file,
             dialog: None,
             import_pending: None,
+            reimport_pending: None,
             dialog_gen: 0,
             prompt: None,
             record: Record::default(),

@@ -98,7 +98,8 @@ impl DialogSpec {
     }
 }
 
-/// The most pages the import card lists before its "and N more" line (WP-S3.09 D8).
+/// The most pages the import card lists, and the most rows the re-import card lists, before its "and N more" line
+/// (WP-S3.09 D8, D12).
 pub const IMPORT_PAGES_LISTED: usize = 12;
 
 fn close() -> DialogButton {
@@ -364,6 +365,47 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
                 ),
             )
         },
+        // WP-S3.09 D10: the proposal T6 (Re-import, Cancel).
+        Dialog::ReimportMatch {
+            path,
+            file,
+            source,
+            percent,
+        } => DialogSpec {
+            secondary: vec![cancel()],
+            asks: true,
+            ..small(
+                strings::text(key!("reimport-match-title")).to_owned(),
+                vec![strings::format(
+                    key!("reimport-match-text"),
+                    &[file, source, &percent.to_string()],
+                )],
+                DialogButton::new(
+                    key!("reimport-match-accept"),
+                    DialogAnswer::Action("file.reimport_qet", json!({ "file": path, "accept": true })),
+                ),
+            )
+        },
+        // WP-S3.09 D12: the re-import card (Apply, Cancel) with T8, its rows listed by the dialog.
+        Dialog::Reimport { file, summary, rows } => {
+            let mut body = vec![summary.clone()];
+            if rows.len() > IMPORT_PAGES_LISTED {
+                let more = (rows.len() - IMPORT_PAGES_LISTED).to_string();
+                body.push(strings::format(key!("reimport-card-more"), &[&more]));
+            }
+            DialogSpec {
+                secondary: vec![cancel()],
+                form: true,
+                ..small(
+                    strings::format(key!("reimport-card-title"), &[file]),
+                    body,
+                    DialogButton::new(
+                        key!("reimport-card-apply"),
+                        DialogAnswer::Action("file.reimport_qet_apply", Value::Null),
+                    ),
+                )
+            }
+        }
         // D24: Extract and open (Enter), Open read-only, Cancel.
         Dialog::OpenEwz { path, name } => DialogSpec {
             secondary: vec![

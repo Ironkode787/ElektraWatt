@@ -271,7 +271,18 @@ pub fn show(
                 );
             }
         }
-        Dialog::ImportQet { .. } => {}
+        Dialog::ImportQet { .. } | Dialog::ReimportMatch { .. } => {}
+        // WP-S3.09 D12: the re-import card lists its rows under T8.
+        Dialog::Reimport { rows, .. } => {
+            let t = crate::theme::current(ui.ctx());
+            for row in rows.iter().take(ew_viewmodel::dialogs::IMPORT_PAGES_LISTED) {
+                ui.label(
+                    egui::RichText::new(row)
+                        .font(crate::theme::font(&t.type_small))
+                        .color(t.text_secondary.color32()),
+                );
+            }
+        }
         Dialog::ConfirmPurge { files, .. } => {
             let t = crate::theme::current(ui.ctx());
             for f in files.iter().take(ew_viewmodel::shell::PURGE_LISTED) {

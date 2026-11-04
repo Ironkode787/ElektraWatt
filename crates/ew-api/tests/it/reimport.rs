@@ -8,9 +8,7 @@
 
 use std::path::Path;
 
-use ew_api::import::{
-    Detected, ReimportClass, ReimportError, StarterLibrary, import_qet_with,
-};
+use ew_api::import::{Detected, ReimportClass, ReimportError, StarterLibrary, import_qet_with};
 use ew_api::{AnyCommand, Origin, Session, SessionOptions};
 use ew_schema::Record;
 use serde_json::json;
@@ -20,7 +18,8 @@ use crate::qet_lenient::{El, SIMPLE, TERMINAL, el, folio, qet, uuid};
 const FILE: &str = "r.qet";
 
 fn library() -> StarterLibrary {
-    StarterLibrary::from_dir(&Path::new(env!("CARGO_MANIFEST_DIR")).join("../../content")).expect("the starter content")
+    StarterLibrary::from_dir(&Path::new(env!("CARGO_MANIFEST_DIR")).join("../../content"))
+        .expect("the starter content")
 }
 
 fn k1(label: &'static str) -> El {
@@ -69,7 +68,14 @@ fn device(s: &Session, tag: &str) -> ew_schema::Device {
     q.table::<ew_schema::Device>()
         .iter()
         .map(|(_, d)| (**d).clone())
-        .find(|d| q.get::<ew_derive::DeviceTag>(d.id).as_ref().as_ref().map(ew_derive::Tag::short).as_deref() == Some(tag))
+        .find(|d| {
+            q.get::<ew_derive::DeviceTag>(d.id)
+                .as_ref()
+                .as_ref()
+                .map(ew_derive::Tag::short)
+                .as_deref()
+                == Some(tag)
+        })
         .unwrap_or_else(|| panic!("{tag} is in the project"))
 }
 
@@ -103,7 +109,12 @@ fn the_same_file_again_is_unchanged_and_writes_nothing() {
     let r = s
         .reimport_qet(FILE, base_text().into_bytes(), &library(), detected.lineage())
         .expect("the re-import is planned");
-    let records = r.batch.records.iter().filter(|r| !matches!(r, Record::Project(_))).count();
+    let records = r
+        .batch
+        .records
+        .iter()
+        .filter(|r| !matches!(r, Record::Project(_)))
+        .count();
     assert!(records > 0);
     assert_eq!(
         r.summary(),
@@ -112,9 +123,17 @@ fn the_same_file_again_is_unchanged_and_writes_nothing() {
         )
     );
     // The IDs of the unchanged source keys are the project's.
-    for record in r.batch.records.iter().filter(|r| !matches!(r, Record::Project(_))) {
+    for record in r
+        .batch
+        .records
+        .iter()
+        .filter(|r| !matches!(r, Record::Project(_)))
+    {
         let id = record.id().expect("an ID");
-        assert!(r.plan.rows.iter().any(|row| row.key.1.as_uuid() == id), "{record:?}");
+        assert!(
+            r.plan.rows.iter().any(|row| row.key.1.as_uuid() == id),
+            "{record:?}"
+        );
     }
     assert!(s.apply_reimport(r).expect("nothing to apply").is_none());
     assert!(model(&s).content_eq(&before), "nothing was written");
@@ -151,17 +170,29 @@ fn a_variant_adds_its_terminal_and_keeps_the_edit_here() {
     assert_eq!(r.plan.count(ReimportClass::Conflict), 0, "{classes:?}");
     assert_eq!(r.plan.count(ReimportClass::Removed), 0, "{classes:?}");
     assert_eq!(
-        classes.iter().filter(|(c, _)| *c == ReimportClass::EwChanged).collect::<Vec<_>>(),
+        classes
+            .iter()
+            .filter(|(c, _)| *c == ReimportClass::EwChanged)
+            .collect::<Vec<_>>(),
         [&(ReimportClass::EwChanged, "-K1".to_owned())]
     );
-    let added: Vec<ew_api::import::ReimportRow> =
-        r.plan.rows.iter().filter(|row| row.class == ReimportClass::Added).cloned().collect();
+    let added: Vec<ew_api::import::ReimportRow> = r
+        .plan
+        .rows
+        .iter()
+        .filter(|row| row.class == ReimportClass::Added)
+        .cloned()
+        .collect();
     let kinds: std::collections::BTreeSet<&str> = added.iter().map(|row| row.key.0.name()).collect();
     assert!(kinds.contains("connection"), "{classes:?}");
     assert!(added.iter().any(|row| row.record == "-X1"), "{classes:?}");
     let before = model(&s);
     s.apply_reimport(r).expect("applied").expect("a transaction");
-    assert_eq!(text_en(&device(&s, "-K1").function_text), Some("Main contactor"), "the edit is kept");
+    assert_eq!(
+        text_en(&device(&s, "-K1").function_text),
+        Some("Main contactor"),
+        "the edit is kept"
+    );
     let x1 = device(&s, "-X1");
     assert!(added.iter().any(|row| row.key.1.as_uuid() == x1.id.as_uuid()));
     // Right after the re-import, the same file again finds every record unchanged but the edit (R3).
@@ -223,13 +254,15 @@ fn a_change_on_both_sides_and_a_removal_are_kept_and_listed() {
             .collect()
     };
     assert!(
-        messages("EW-IMP-011").contains(&"-K1 was changed both in r.qet and here; this project's version is kept.".to_owned()),
+        messages("EW-IMP-011")
+            .contains(&"-K1 was changed both in r.qet and here; this project's version is kept.".to_owned()),
         "{:?}",
         messages("EW-IMP-011")
     );
     assert!(
-        messages("EW-IMP-010")
-            .contains(&"-K2 was removed in r.qet; it is kept here. Delete it if it is no longer needed.".to_owned()),
+        messages("EW-IMP-010").contains(
+            &"-K2 was removed in r.qet; it is kept here. Delete it if it is no longer needed.".to_owned()
+        ),
         "{:?}",
         messages("EW-IMP-010")
     );
@@ -240,7 +273,11 @@ fn a_file_of_another_project_is_refused() {
     let s = imported(&base_text());
     let other = qet(
         r#"version="0.100""#,
-        &[folio("1", "Other", vec![el(SIMPLE, uuid(9), 100, 100).label("-Q9")])],
+        &[folio(
+            "1",
+            "Other",
+            vec![el(SIMPLE, uuid(9), 100, 100).label("-Q9")],
+        )],
     );
     let err = s
         .detect_qet_lineage("other.qet", other.into_bytes(), &library())

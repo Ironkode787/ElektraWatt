@@ -254,7 +254,8 @@ pub fn plan_reimport(
             ReimportClass::Conflict => {
                 // The base's committed hash stays the base of the next re-import, so this project's version stays
                 // "changed here" (D11): the new source becomes the source hash.
-                let committed = based.map_or_else(|| source.clone(), |b| b.ew.clone().unwrap_or(b.source.clone()));
+                let committed =
+                    based.map_or_else(|| source.clone(), |b| b.ew.clone().unwrap_or(b.source.clone()));
                 plan.carried.insert(
                     key.1,
                     RecordHash {

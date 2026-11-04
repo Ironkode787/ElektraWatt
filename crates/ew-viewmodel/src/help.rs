@@ -171,6 +171,8 @@ pub fn context_topic(model: &ShellModel) -> &'static str {
             | Dialog::ExternalChange { .. }
             | Dialog::ConfirmUpgrade { .. }
             | Dialog::ImportQet { .. }
+            | Dialog::ReimportMatch { .. }
+            | Dialog::Reimport { .. }
             | Dialog::OpenEwz { .. }
             | Dialog::ConfirmGitSetup { .. },
         )

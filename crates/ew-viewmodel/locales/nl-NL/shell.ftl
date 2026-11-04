@@ -3400,3 +3400,23 @@ reason-import-other-lineage = een record naar een andere import verwijst
 reason-import-order = de records niet op volgorde staan
 reason-no-import = Er wacht geen import om te worden toegepast
 action-file-import-qet-apply = De import toepassen
+
+# WP-S3.09 D10 to D12: the re-import of a QElectroTech file into the open project: the proposal (T6), the refusal (T7),
+# the re-import card (T8) and its rows.
+action-file-reimport-qet = QElectroTech-project opnieuw importeren…
+action-file-reimport-qet-apply = De nieuwe import toepassen
+reimport-match-title = Opnieuw importeren in die import?
+reimport-match-text = { $p0 } komt overeen met de eerdere import van { $p1 } ({ $p2 } % van de onderdelen).
+reimport-match-accept = Opnieuw importeren
+error-reimport-foreign = { $p0 } is geen eerdere import van dit project; importeer het in een nieuw project.
+reimport-card-title = { $p0 } opnieuw importeren
+reimport-card-summary = Nieuwe import van { $p0 }: { $p1 } toegevoegd, { $p2 } gewijzigd in de bron, { $p3 } behouden met uw wijzigingen, { $p4 } aan beide kanten gewijzigd en behouden, { $p5 } verwijderd in de bron en behouden, { $p6 } ongewijzigd.
+reimport-card-more = en nog { $p0 } wijzigingen
+reimport-card-apply = Toepassen
+reimport-row-added = Toegevoegd: { $p0 }
+reimport-row-source = Gewijzigd in de bron: { $p0 }
+reimport-row-both = Aan beide kanten gewijzigd, behouden: { $p0 }
+reimport-row-removed = Verwijderd in de bron, behouden: { $p0 }
+reimport-row-member = { $p0 }: hier { $p1 }, in { $p2 } { $p3 }
+banner-reimported = { $p0 } opnieuw geïmporteerd.
+reason-no-reimport = Er wacht geen nieuwe import om te worden toegepast
