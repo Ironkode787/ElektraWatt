@@ -719,15 +719,26 @@ pub(crate) fn empty_state(
     // way, so that the two lines show whole.
     let icon_size = 2.0 * t.icon_md - t.space_3;
     let text_height = ui.fonts_mut(|f| {
-        f.layout(line.to_owned(), theme::font(&t.type_body_strong), theme::NONE, rect.width())
+        f.layout(
+            line.to_owned(),
+            theme::font(&t.type_body_strong),
+            theme::NONE,
+            rect.width(),
+        )
+        .size()
+        .y + f
+            .layout(
+                sentence.to_owned(),
+                theme::font(&t.type_body),
+                theme::NONE,
+                rect.width(),
+            )
             .size()
             .y
-            + f.layout(sentence.to_owned(), theme::font(&t.type_body), theme::NONE, rect.width())
-                .size()
-                .y
     });
     let action_height = action.map_or(0.0, |_| t.space_3 + t.size_control);
-    let room = t.space_6 + icon_size + t.space_3 + text_height + action_height + 3.0 * ui.spacing().item_spacing.y;
+    let room =
+        t.space_6 + icon_size + t.space_3 + text_height + action_height + 3.0 * ui.spacing().item_spacing.y;
     let roomy = rect.height() >= room;
     ui.scope_builder(egui::UiBuilder::new().accessibility_parent(id), |ui| {
         ui.with_layout(Layout::top_down(Align::Center), |ui| {

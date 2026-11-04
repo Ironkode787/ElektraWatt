@@ -106,6 +106,10 @@ fn ew_core_011_names_a_junction_end_in_words() {
         .collect();
     assert_eq!(found.len(), 1, "{found:#?}");
     for lang in ["en-GB", "nl-NL"] {
-        assert_eq!(ew_checks::render(&found[0], lang), "connection from a junction to -1K4097:1 on folio 1: ours and theirs differ in wire_colour", "{lang}");
+        assert_eq!(
+            ew_checks::render(&found[0], lang),
+            "connection from a junction to -1K4097:1 on folio 1: ours and theirs differ in wire_colour",
+            "{lang}"
+        );
     }
 }

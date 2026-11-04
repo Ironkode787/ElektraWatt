@@ -581,7 +581,10 @@ fn the_empty_state_shows_whole_in_a_short_window() {
             .rect();
         for line in &lines {
             let r = h.get_by_role_and_label(egui::Role::Label, line).rect();
-            assert!(pane.contains_rect(r), "{size:?} {chord:?}: {line} {r:?} inside {pane:?}");
+            assert!(
+                pane.contains_rect(r),
+                "{size:?} {chord:?}: {line} {r:?} inside {pane:?}"
+            );
         }
         let _ = h.state_mut().shell_mut().dispatch("find.close", &json!({}));
         settle(&mut h);

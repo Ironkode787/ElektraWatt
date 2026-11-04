@@ -428,7 +428,10 @@ fn create_enclosure_disabled_at_open_focuses_its_first_control() {
     let Some(Dialog::Form(form)) = h.state().shell().dialog().cloned() else {
         panic!("{:?}", h.state().shell().dialog());
     };
-    assert!(form.fields.iter().all(|f| !f.is_text()), "two lists, no text field");
+    assert!(
+        form.fields.iter().all(|f| !f.is_text()),
+        "two lists, no text field"
+    );
     let spec = ew_ui::ew_viewmodel::dialogs::spec(&Dialog::Form(form), h.state().shell());
     assert_eq!(
         spec.primary.disabled.as_deref(),
