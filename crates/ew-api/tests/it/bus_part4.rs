@@ -160,6 +160,21 @@ fn bu6_ac31_the_bus_checks_on_golden_a() {
         )]
     );
     assert_eq!(open(&report, "EW-CORE-044"), [], "superseded by EW-BUS-001");
+    // FT-1265: the external end is worded in each language, from its name and partner.
+    let info = report
+        .findings
+        .iter()
+        .find(|f| f.rule == "EW-BUS-004")
+        .expect("the info");
+    assert_eq!(
+        ew_api::checks::messages::format(info, "en-GB").as_deref(),
+        Some(info.message.as_str())
+    );
+    assert_eq!(
+        ew_api::checks::messages::render(info, "nl-NL"),
+        "extern einde DP (+J-E-206 / JE-N1000-03): de afsluiting aan het externe einde is onbekend; controleer dat \
+         de partner het segment afsluit"
+    );
     assert_eq!(report.exit_code(), 1, "EF-03 blocks release");
 
     let plug: Id<Function> = id(&ids, "functions|-3X1");

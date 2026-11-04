@@ -282,7 +282,10 @@ rule-ew-bus-001 = { $form ->
     .title = Bus address missing or duplicate
     .hint = Enter a station address that is unique in the logical net before release.
 
-rule-ew-bus-004 = { $port }: { $form ->
+rule-ew-bus-004 = { $form ->
+        [external] external end { $port } ({ $partner })
+       *[other] { $port }
+    }: { $form ->
         [external] the termination at the external end is unknown; check that the partner terminates the segment
         [missing] no terminating element at this segment end; terminate the segment here
         [end] the termination is off at the segment end; switch it on
@@ -417,7 +420,7 @@ rule-ew-rds-003 = { $device }: the letter code { $letter } does not match its fu
     .title = Letter code against function
     .hint = Use the suggested letter code, or keep the tag if the classification is intended.
 
-rule-ew-rds-004 =
+rule-ew-rds-004 = `{ $tag }` is printed by { $count } devices
     .title = Duplicate designation
     .hint = Give one of the devices another designation.
 

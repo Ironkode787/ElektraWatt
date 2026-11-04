@@ -733,6 +733,21 @@ fn dg5_ew_core_013_renumbers_the_newer_after_a_merge() {
         "`=P01+J-E-2416-102F3` is printed by 2 devices after a merge; the oldest record keeps it, and the other must \
          change"
     );
+    // FT-1295: the inner uniqueness finding is worded by EW-RDS-004's own pattern in each language.
+    use ew_api::checks::messages::{format, render};
+    assert_eq!(format(f, "en-GB").as_deref(), Some(f.message.as_str()));
+    assert_eq!(
+        render(f, "nl-NL"),
+        "`=P01+J-E-2416-102F3` wordt afgedrukt door 2 apparaten na samenvoegen; het oudste record behoudt het, en het \
+         andere moet wijzigen"
+    );
+    let rds = findings(&s, "EW-RDS-004");
+    let rds = &rds[0];
+    assert_eq!(format(rds, "en-GB").as_deref(), Some(rds.message.as_str()));
+    assert_eq!(
+        render(rds, "nl-NL"),
+        "`=P01+J-E-2416-102F3` wordt afgedrukt door 2 apparaten"
+    );
     let fix = f.fix.clone().expect("renumber the newer");
     assert_eq!(fix.label, "Renumber the newer");
     assert_eq!(

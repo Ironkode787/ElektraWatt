@@ -34,12 +34,23 @@ fn end_name(q: &Q, f: Id<Function>) -> String {
     if let Some(port) = &function.bus_port {
         return port_name(q, function, port);
     }
+    if let Some((name, partner)) = external_end(q, f) {
+        return format!("external end {name} ({partner})");
+    }
     match &function.kind {
-        FunctionKind::Ip(ip) => match ip.external {
-            Some(e) => format!("external end {} ({})", ip.name, external_partner_text(q, e)),
-            None => format!("end {}", ip.name),
-        },
+        FunctionKind::Ip(ip) => format!("end {}", ip.name),
         _ => "a segment end".to_owned(),
+    }
+}
+
+/// An external interruption point's name and the partner its external reference names, the arguments of its message
+/// so that each language words the end ([`end_name`]); `None` for any other function.
+fn external_end(q: &Q, f: Id<Function>) -> Option<(String, String)> {
+    match &q.functions().get(f)?.kind {
+        FunctionKind::Ip(ip) => ip
+            .external
+            .map(|e| (ip.name.to_string(), external_partner_text(q, e))),
+        _ => None,
     }
 }
 
@@ -230,6 +241,7 @@ impl Rule for Termination {
             for (end, from_start) in line_ends {
                 if segment.external_ends.contains(&end) {
                     let name = end_name(q, end);
+                    let (port, partner) = external_end(q, end).unwrap_or_else(|| (name.clone(), String::new()));
                     out.push(
                         Finding::new(
                             &TERMINATION,
@@ -243,7 +255,8 @@ impl Rule for Termination {
                         )
                         .with_severity(Severity::Info)
                         .arg("form", "external")
-                        .arg("port", name),
+                        .arg("port", port)
+                        .arg("partner", partner),
                     );
                     continue;
                 }

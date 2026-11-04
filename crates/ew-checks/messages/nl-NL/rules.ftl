@@ -172,7 +172,10 @@ rule-ew-bus-001 = { $form ->
     .title = Busadres ontbreekt of dubbel
     .hint = Vul vóór de vrijgave een stationsadres in dat uniek is in het logische net.
 
-rule-ew-bus-004 = { $port }: { $form ->
+rule-ew-bus-004 = { $form ->
+        [external] extern einde { $port } ({ $partner })
+       *[other] { $port }
+    }: { $form ->
         [external] de afsluiting aan het externe einde is onbekend; controleer dat de partner het segment afsluit
         [missing] geen afsluitend element aan dit segmenteinde; sluit het segment hier af
         [end] de afsluiting staat uit aan het segmenteinde; zet haar aan
@@ -247,6 +250,10 @@ rule-ew-rds-003 = { $device }: de lettercode { $letter } past niet bij de functi
     }
     .title = Lettercode tegen functie
     .hint = Gebruik de voorgestelde lettercode, of behoud het kenmerk als de classificatie bedoeld is.
+
+rule-ew-rds-004 = `{ $tag }` wordt afgedrukt door { $count } apparaten
+    .title = Dubbel kenmerk
+    .hint = Geef een van de apparaten een ander kenmerk.
 
 ## WP-S1.17 part 8 (COL49): botsingen na samenvoegen
 

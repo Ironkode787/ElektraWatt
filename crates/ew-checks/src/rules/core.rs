@@ -972,8 +972,14 @@ pub fn merge_collisions(q: &Q) -> Vec<Finding> {
                     id,
                     f.subject.clone(),
                     message,
-                )
-                .arg("collision", f.message.clone())
+                );
+                // The uniqueness finding's own arguments, so that each language words it by that rule's pattern
+                // (`messages::format`).
+                for (name, value) in &f.args {
+                    finding = finding.arg(name, value.clone());
+                }
+                finding = finding
+                    .arg("collision", f.message.clone())
                 .arg("keeper", keeper)
                 .arg("others", others);
                 if id == crate::rules::rds::DUPLICATE_DESIGNATION.id {

@@ -116,7 +116,21 @@ pub fn format(f: &Finding, lang: &str) -> Option<String> {
     let b = bundle(lang)?;
     let id = message_id(f.rule);
     let pattern = b.get_message(&id)?.value()?;
-    let args = fluent_args(f);
+    let mut args = fluent_args(f);
+    // EW-CORE-013 carries the uniqueness finding it reports by that finding's arguments, its discriminator naming the
+    // rule: the finding is worded by that rule's pattern where it has one, else stays the en-GB `collision`.
+    if f.rule == crate::rules::core::MERGE_COLLISION.id {
+        if let Some(inner) = b
+            .get_message(&message_id(&f.discriminator))
+            .and_then(|m| m.value())
+        {
+            let mut errors = Vec::new();
+            let text = b.format_pattern(inner, Some(&args), &mut errors).into_owned();
+            if errors.is_empty() {
+                args.set("collision", text);
+            }
+        }
+    }
     let mut errors = Vec::new();
     let text = b.format_pattern(pattern, Some(&args), &mut errors);
     errors.is_empty().then(|| text.into_owned())
