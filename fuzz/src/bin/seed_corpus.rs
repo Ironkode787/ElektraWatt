@@ -223,7 +223,8 @@ fn open_path_seeds(dir: &Path) {
     // The findings of the first hosted fuzz-smoke run (cycle 22), as libFuzzer wrote them: a BOM before a library
     // copy (a part copy, then the member order of a revision; edit mode), the same before a function definition
     // (stale manifest, read-only), and a swap of two lines inside a part copy (not a shape: it moves `sha256` into
-    // `meta`).
+    // `meta`). The swap now names its copy by path, one no device names (the DIN rail, where it swaps `$k` and `id`),
+    // so that a new golden file cannot move it onto a copy a device needs (FT-1373).
     write(
         dir,
         "lib-document-bom",
@@ -233,7 +234,15 @@ fn open_path_seeds(dir: &Path) {
     write(
         dir,
         "lib-document-line-swap",
-        &[0x2f, 0x73, 0x74, 0x61, 0x74, 0x65],
+        &open_path::encode(
+            0x2f,
+            &[Op {
+                file: golden::index_of("lib/parts/3ca56721-1ede-51cd-b51c-c120ac11148a.json"),
+                line: 0x74,
+                op: 0x61,
+                arg: 0x74,
+            }],
+        ),
     );
     for kind in 0..OP_KINDS {
         // Revisions are leaf records: most changes to them still open (a change to the structure refuses to).

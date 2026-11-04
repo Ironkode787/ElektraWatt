@@ -105,6 +105,10 @@ jobs:
           cargo check --manifest-path fuzz/Cargo.toml --all-targets --locked
           cargo clippy --manifest-path fuzz/Cargo.toml --all-targets --locked -- -D warnings 2>&1 | tee clippy-fuzz.log
           test ${PIPESTATUS[0]} -eq 0 && ! grep -q "does not refer to a reachable" clippy-fuzz.log
+      # FT-1374: the committed seeds and regressions replay through the targets' checks without the fuzzer.
+      - name: fuzz replay
+        shell: bash
+        run: cargo test --manifest-path fuzz/Cargo.toml --locked --test replay
       # FT-271: the std hash containers are `disallowed-types` in the generated clippy.toml; the sites that allow
       # them (iteration order never reaches output) are listed in ci/ordered-collections-allow.toml.
       - name: ordered collections
