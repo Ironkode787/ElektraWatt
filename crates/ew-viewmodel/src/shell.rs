@@ -58,6 +58,7 @@ mod join;
 pub(crate) use interruption::natural_cmp;
 // WP-S2.09 part 1: the export job, the notifications, the recovery dialog.
 mod jobs;
+pub(crate) use jobs::file_url_of;
 // WP-S4.02 part 3: placing on a panel page.
 mod layout;
 // WP-S2.09 part 2: the message panel.
@@ -99,6 +100,8 @@ mod revision;
 mod glossary;
 mod tips;
 mod wire_colours;
+// WP-S6.05: the start-up offer after a crash.
+pub mod startup;
 pub use glossary::GlossaryRow;
 pub use macros::MacroVariable;
 pub use tips::Tip;
@@ -139,6 +142,9 @@ pub struct Resources {
     pub docs_dir: Option<PathBuf>,
     /// The generated third-party notices (`THIRD-PARTY-NOTICES.txt`), shown in the notices dialog.
     pub notices_file: Option<PathBuf>,
+    /// The bundled `PRIVACY.md` (WP-S6.05 D16), which the privacy buttons open; without it they open the repository's
+    /// copy ([`crate::about::PRIVACY_URL`]).
+    pub privacy_file: Option<PathBuf>,
 }
 
 /// Where the shell keeps its files outside projects.
@@ -501,6 +507,11 @@ pub struct ShellModel {
     quit: bool,
     origin_file: String,
     first_run: Option<FirstRun>,
+    // WP-S6.05 D11
+    /// The start-up offer: leftover journals and the crash log of an earlier session.
+    startup: Option<startup::StartupOffer>,
+    /// The log folder `startup.open_log_folder` asks the window to open: its `file://` URL and the folder.
+    startup_folder_request: Option<(String, PathBuf)>,
     wizard: Option<Wizard>,
     /// The dock layout of the project view (FT-309) and the workspace it belongs to.
     layout: Layout,
@@ -923,6 +934,8 @@ impl ShellModel {
             quit: false,
             origin_file: "ui-script".to_owned(),
             first_run: None,
+            startup: None,
+            startup_folder_request: None,
             wizard: None,
             layout: Layout::schematic(),
             bottom_closed: Vec::new(),

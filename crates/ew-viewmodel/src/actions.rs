@@ -4961,6 +4961,46 @@ pub static ACTIONS: &[ActionMeta] = &[
         None,
         |s, _| s.act_journal_keep(),
     ))))),
+    // WP-S6.05 D11: the start-up offer's answers.
+    with_params(
+        "project:uint",
+        hidden(act(
+            "startup.recover",
+            Command,
+            Menu::File,
+            &[],
+            always,
+            None,
+            |s, p| s.act_startup_recover(p),
+        )),
+    ),
+    keeps_banner(hidden(parameterless(act(
+        "startup.open_log_folder",
+        View,
+        Menu::File,
+        &[],
+        always,
+        None,
+        |s, _| s.act_startup_open_log_folder(),
+    )))),
+    keeps_banner(hidden(parameterless(act(
+        "startup.delete_log",
+        Command,
+        Menu::File,
+        &[],
+        always,
+        None,
+        |s, _| s.act_startup_delete_log(),
+    )))),
+    keeps_banner(hidden(parameterless(act(
+        "startup.dismiss",
+        View,
+        Menu::File,
+        &[],
+        always,
+        None,
+        |s, _| s.act_startup_dismiss(),
+    )))),
     // WP-S2.05 part 2: the find pane's own controls (§7.6); the pane handles Enter, Up and Down itself.
     keeps_banner(hidden(in_find(parameterless(act(
         "find.close",

@@ -1246,6 +1246,36 @@ mod tests {
         );
     }
 
+    /// WP-S6.05 D3 (PV-3): the real policy bans the network clients; `reqwest` on a normal edge of a shipped binary,
+    /// or in its resolved graph, fails, and the same on a dev edge passes.
+    #[test]
+    fn a_network_client_fails_outside_dev_edges() {
+        let root = crate::workspace_root();
+        let policy = crate::deps::Policy::load(&root.join("ci/dep-rules.toml")).expect("policy loads");
+        for krate in ["reqwest", "hyper", "rustls", "ureq", "sentry", "hickory-resolver"] {
+            assert!(policy.banned_crates.iter().any(|c| c == krate), "{krate}");
+        }
+        let rules = Rules {
+            features: &[],
+            crates: &policy.banned_crates,
+        };
+        let normal = package("elektrawatt", vec![dep("reqwest", Kind::Normal, &[])], &[]);
+        assert_eq!(
+            check(&rules, &[normal]),
+            [
+                "feature ban: `elektrawatt` has `reqwest` as a dependency; the crate may only be a dev-dependency \
+              (18 §5.2 CI-PR-09)"
+            ]
+        );
+        let dev = package("elektrawatt", vec![dep("reqwest", Kind::Dev, &[])], &[]);
+        assert_eq!(check(&rules, &[dev]), Vec::<String>::new());
+        let graph = parse_tree("elektrawatt v0.1.0 (/w/bin/elektrawatt)|\nreqwest v0.12.0|default\n");
+        assert_eq!(
+            check_shipping(&rules, &graph, "elektrawatt, ew"),
+            ["shipping graph: `reqwest` is in the build of elektrawatt, ew; it may only be a dev-dependency (18 CI-R-09)"]
+        );
+    }
+
     /// The generator features of `uuid` and `rand` (FT-317) are banned outside dev edges by the real policy.
     #[test]
     fn the_generator_features_are_banned_outside_dev_edges() {

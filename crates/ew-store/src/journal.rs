@@ -469,6 +469,10 @@ impl Journal {
     /// written under a second name, so the current one is never truncated first.
     fn begin(&mut self, base: u64, base_manifest: Option<&[u8; 32]>) -> io::Result<Option<PathBuf>> {
         self.vfs.create_dir_all(&self.dir)?;
+        // WP-S6.05 D10: the project's journal directory, `journal/` and the state directory are user-only.
+        for dir in self.dir.ancestors().take(3) {
+            crate::store::user_only_dir(dir);
+        }
         let mut path = self.dir.join(format!("{}-{base}.jsonl", self.session));
         if Some(&path) == self.segment.as_ref() {
             path = self.dir.join(format!("{}-{base}-rebased.jsonl", self.session));
@@ -491,6 +495,7 @@ impl Journal {
         }
         let written = (|| {
             self.vfs.append(&path, text.as_bytes())?;
+            crate::store::user_only_file(&path);
             self.vfs.sync(&path)?;
             self.vfs.sync_dir(&self.dir)?;
             // `create_dir_all` may have made `journal/` and the project's directory: their names are durable
@@ -862,6 +867,82 @@ pub(crate) fn summarise(
             .collect(),
         further: segments.len() - 1,
     })
+}
+
+/// A project with unsaved work in a leftover journal, as the start-up scan finds it (WP-S6.05 D11).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct LeftoverProject {
+    /// The project directory the journal's `open` line names.
+    pub path: PathBuf,
+    /// The unsaved transactions of its newest segment that has any: those after that segment's last save.
+    pub transactions: usize,
+    /// Epoch milliseconds of their last change (0 when unknown).
+    pub last_change_ms: u64,
+}
+
+/// The project path of a segment's `open` line.
+fn open_path(bytes: &[u8]) -> Option<PathBuf> {
+    let first = bytes.split(|&b| b == b'\n').next()?;
+    let open: Value = serde_json::from_slice(first).ok()?;
+    open.get("path")?.as_str().map(PathBuf::from)
+}
+
+/// The leftover journals of every project under the state directory `state` (WP-S6.05 D10, D11; doc 05 §8.1's
+/// start-up pruning): the segments of each `journal/<project>-<hash>/` directory, with the segments older than
+/// [`KEEP_LEFTOVERS`] deleted on the way and a directory left empty removed. A project is listed with its newest segment
+/// that holds unsaved transactions, newest last change first; whether its lock is live is the caller's.
+pub(crate) fn scan_projects(vfs: &dyn Vfs, state: &Path, now: SystemTime) -> Vec<LeftoverProject> {
+    let root = state.join("journal");
+    let Ok(dirs) = vfs.list(&root) else {
+        return Vec::new();
+    };
+    let mut out = Vec::new();
+    for (name, kind) in dirs {
+        if kind != EntryKind::Dir {
+            continue;
+        }
+        let dir = root.join(&name);
+        let Ok(files) = vfs.list(&dir) else { continue };
+        let mut segments: Vec<(Segment, Option<PathBuf>)> = Vec::new();
+        for (file, kind) in files {
+            if kind != EntryKind::File || !file.ends_with(".jsonl") {
+                continue;
+            }
+            let path = dir.join(&file);
+            let modified = vfs.stat(&path).ok().and_then(|s| s.modified);
+            if modified.is_some_and(|m| now.duration_since(m).is_ok_and(|age| age > KEEP_LEFTOVERS)) {
+                let _ = vfs.remove_file(&path);
+                continue;
+            }
+            let Ok(bytes) = vfs.read(&path) else { continue };
+            let project = open_path(&bytes);
+            if let Some(seg) = Segment::parse(path, &bytes, modified) {
+                segments.push((seg, project));
+            }
+        }
+        if vfs.list(&dir).is_ok_and(|e| e.is_empty()) {
+            let _ = vfs.remove_dir(&dir);
+            continue;
+        }
+        segments.sort_by(|(a, _), (b, _)| b.base.cmp(&a.base).then_with(|| b.modified.cmp(&a.modified)));
+        let found = segments.iter().find_map(|(seg, project)| {
+            // Without a disk generation to hand, the unsaved transactions are those after the segment's last save.
+            let saved = seg.entries.iter().rev().find_map(|e| match e {
+                Entry::SaveBegin { generation, .. } => Some(*generation),
+                _ => None,
+            });
+            let generation = saved.unwrap_or(u64::MAX);
+            let transactions = seg.unsaved(generation).len();
+            (transactions > 0).then(|| LeftoverProject {
+                path: project.clone().unwrap_or_default(),
+                transactions,
+                last_change_ms: seg.last_change(generation),
+            })
+        });
+        out.extend(found.filter(|p| !p.path.as_os_str().is_empty()));
+    }
+    out.sort_by(|a, b| b.last_change_ms.cmp(&a.last_change_ms).then_with(|| a.path.cmp(&b.path)));
+    out
 }
 
 #[cfg(test)]

@@ -2742,6 +2742,32 @@ fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
     }
 }
 
+/// The start-up offer's lines (WP-S6.05 D11): its title, the crash line, one row per project, the refusal of the last
+/// answer and the buttons, as the window's dialog shows them.
+fn startup_lines(model: &ShellModel, lines: &mut Vec<String>) {
+    let Some(offer) = model.startup_offer() else {
+        return;
+    };
+    let spec = offer.spec();
+    lines.push(format!("startup \"{}\"", user(&spec.title)));
+    for line in &spec.body {
+        lines.push(format!("  label \"{}\"", user(line)));
+    }
+    for (i, p) in offer.projects.iter().enumerate() {
+        lines.push(format!(
+            "  project {} \"{}\"",
+            i + 1,
+            user(&crate::shell::startup::StartupOffer::project_row(p))
+        ));
+    }
+    if let Some(e) = &offer.refusal {
+        lines.push(format!("  error: {}", user(e)));
+    }
+    for b in spec.buttons() {
+        lines.push(format!("  button \"{}\"", b.label));
+    }
+}
+
 /// The print pre-dialog's lines (WP-S3.07 part 3): `range`, the section rows or the Pages field with its refusal,
 /// `paper`, the two check boxes, then the preview.
 fn print_lines(model: &ShellModel, d: &crate::shell::print::PrintDialog, lines: &mut Vec<String>) {
@@ -3379,6 +3405,8 @@ pub fn describe(model: &ShellModel) -> String {
         }
     }
     dialog(model, &mut lines);
+    // WP-S6.05 D11: the start-up offer.
+    startup_lines(model, &mut lines);
     if let Some(target) = model.last_help() {
         lines.push(format!("help: {target}"));
     }

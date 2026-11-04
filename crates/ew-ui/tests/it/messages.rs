@@ -37,6 +37,7 @@ fn on_golden(tmp: &Tmp, platform: Scripted) -> Harness<'static, App> {
         content_dir: None,
         docs_dir: Some(docs),
         notices_file: None,
+        privacy_file: None,
     });
     let dir = tmp.golden("g.ew");
     let mut h = harness_with(ShellModel::new(Mode::Gui, config), platform, Some(dir));

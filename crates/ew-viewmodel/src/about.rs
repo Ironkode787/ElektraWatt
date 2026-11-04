@@ -9,7 +9,8 @@
 //! support end embedded at build time. The notices are the repository's `NOTICE` (the bundled fonts) and, when the
 //! installation has it, the generated `THIRD-PARTY-NOTICES.txt` of the Rust crates (cargo-about, per release).
 //!
-//! `PRIVACY.md` (FT-342) is linked by a button of the dialog and of the first-run privacy step ([`PRIVACY_URL`]).
+//! `PRIVACY.md` (FT-342) is opened by a button of the dialog and of the first-run privacy step: the bundled copy when
+//! the installation has it, else the repository's ([`privacy_target`], WP-S6.05 D16).
 //!
 //! Not here yet: the dismissible banner after the support end (at most once a month), which needs a clock and a
 //! setting.
@@ -27,6 +28,17 @@ pub const SUPPORT_END: Option<&str> = None;
 /// user (a click; the application sends nothing). The installed builds of the release phase bundle the file next
 /// to the user guide and open that copy instead.
 pub const PRIVACY_URL: &str = concat!(env!("CARGO_PKG_REPOSITORY"), "/blob/main/PRIVACY.md");
+
+/// What the privacy buttons open (WP-S6.05 D16, FT-386): the bundled `PRIVACY.md` as a `file://` URL when the
+/// installation has it ([`crate::shell::Resources::privacy_file`]), offline; else [`PRIVACY_URL`].
+pub fn privacy_target(model: &ShellModel) -> String {
+    model
+        .config()
+        .resources
+        .privacy_file
+        .as_deref()
+        .map_or_else(|| PRIVACY_URL.to_owned(), crate::shell::file_url_of)
+}
 
 /// The repository's third-party notices of committed material (the bundled fonts).
 pub const NOTICE: &str = include_str!("../../../NOTICE");

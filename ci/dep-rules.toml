@@ -29,7 +29,13 @@
 
 # Crates that may appear as dev-dependencies only (18 §5.2 CI-PR-09: egui_mcp in any non-test target).
 # ew-testids, the seeded ID source of the tests (doc 18 §2.2), likewise.
-banned_crates = ["egui_mcp", "ew-testids"]
+# WP-S6.05 D3 (ADR-0029's interim rule): no HTTP, TLS, DNS or crash-upload client in the shipped binaries; a dev edge
+# (1.0's mock server) stays allowed.
+banned_crates = [
+  "egui_mcp", "ew-testids",
+  "attohttpc", "curl", "curl-sys", "h2", "hickory-resolver", "hyper", "isahc", "minreq", "native-tls", "openssl",
+  "reqwest", "rustls", "sentry", "trust-dns-resolver", "ureq",
+]
 
 # map: dep-rules: a new workspace crate goes in [layers], [allowed_edges] (its edges from 04-architecture §3) and a [crates] table (its §3 row); a permissive one also in `.config/hakari.toml` final-excludes.
 [layers]

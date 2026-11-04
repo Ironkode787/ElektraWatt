@@ -70,7 +70,8 @@ pub(crate) enum Event {
     FormTableRemove(usize),
     /// The banner's own button.
     DismissBanner,
-    /// The privacy button of the About dialog and of the first-run privacy step: `PRIVACY.md` in the system browser.
+    /// The privacy button of the About dialog and of the first-run privacy step: `PRIVACY.md` in the system's viewer
+    /// (WP-S6.05 D16: the bundled copy when there is one).
     OpenPrivacy,
     /// The junction sequence editor's focused row (WP-S2.04 part 2; a view change of the popup).
     JunctionRow(usize),
@@ -1148,6 +1149,10 @@ impl App {
             &mut events,
         );
         self.dialog_was = opening;
+        // WP-S6.05 D11: the start-up offer, while no other dialog is open.
+        if self.shell.dialog().is_none() {
+            crate::startup::show(&ctx, &self.shell, &mut events);
+        }
         // F1 resolves the context (a hovered menu item has taken the key already).
         if ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::F1)) {
             events.push(Event::Action("help.documentation", Value::Null));
@@ -1231,6 +1236,7 @@ impl App {
         }
         self.open_documentation();
         self.open_results();
+        self.open_log_folder();
         self.print_requests(&ctx);
 
         // The layout the user made is the shell's; it is written a second after the last change.
@@ -1286,6 +1292,13 @@ impl App {
         }
         if overlay && ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape)) {
             events.push(Event::Action("ui.dismiss", Value::Null));
+            return;
+        }
+        // WP-S6.05 D11: the start-up offer is modal; Escape is its Not now.
+        if self.shell.startup_offer().is_some() {
+            if ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape)) {
+                events.push(Event::Action("startup.dismiss", Value::Null));
+            }
             return;
         }
         if dialog_open || picker_open || (ctx.text_edit_focused() && !palette_open) {
@@ -1748,10 +1761,14 @@ impl App {
             Event::DismissToast(serial) => self.shell.dismiss_toast(serial),
             Event::DisabledClick(text) => self.shell.explain_disabled(text),
             Event::JunctionRow(row) => self.shell.set_junction_row(row),
+            // WP-S6.05 D16: the bundled copy when there is one, else the repository's.
             Event::OpenPrivacy => {
-                if !self.platform.open_url(ew_viewmodel::about::PRIVACY_URL) {
-                    let text =
-                        strings::format(key!("privacy-open-failed"), &[ew_viewmodel::about::PRIVACY_URL]);
+                let target = ew_viewmodel::about::privacy_target(&self.shell);
+                if !self.platform.open_url(&target) {
+                    let at = self.shell.config().resources.privacy_file.as_ref().map_or(target, |p| {
+                        p.to_string_lossy().into_owned()
+                    });
+                    let text = strings::format(key!("privacy-open-failed"), &[&at]);
                     self.shell.show_banner(&text);
                 }
             }
@@ -1827,6 +1844,16 @@ impl App {
             if !self.platform.open_url(&url) {
                 self.shell.show_banner(strings::text(key!("open-failed")));
             }
+        }
+    }
+
+    /// The start-up offer's Open log folder (WP-S6.05 D11): the folder in the system's file manager; the offer says
+    /// where it is when it could not be opened (S7).
+    fn open_log_folder(&mut self) {
+        if let Some((url, folder)) = self.shell.take_log_folder_request()
+            && !self.platform.open_url(&url)
+        {
+            self.shell.log_folder_failed(&folder);
         }
     }
 

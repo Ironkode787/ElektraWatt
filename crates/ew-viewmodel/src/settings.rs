@@ -636,6 +636,8 @@ impl Settings {
 /// Writes `text` as `<dir>/settings.toml` through a temporary file and a rename; creates `dir` if needed.
 fn write_atomically(dir: &Path, text: &str) -> std::io::Result<()> {
     std::fs::create_dir_all(dir)?;
+    // WP-S6.05 D10: the configuration directory is user-only.
+    user_only_dir(dir);
     let path = dir.join(FILE_NAME);
     let tmp = dir.join(format!("{FILE_NAME}.tmp"));
     std::fs::write(&tmp, text)?;
@@ -780,6 +782,29 @@ fn write_aside(dir: &Path, file_name: &str, first: u32, bytes: &[u8]) -> Option<
     let _ = std::fs::remove_file(&tmp);
     linked
 }
+
+/// Makes the directory `dir` user-only on Unix, mode 0700, when its mode is wider (WP-S6.05 D10, NFR-PRIV-05: the
+/// configuration directory, the state directory's `crashes/`). On Windows the directories inherit the per-user ACL of
+/// `%APPDATA%` and `%LOCALAPPDATA%`, and nothing is done. A failure is ignored: the directory keeps its mode.
+pub fn user_only_dir(dir: &Path) {
+    tighten(dir, 0o700);
+}
+
+/// Makes the file `file` user-only on Unix, mode 0600, as [`user_only_dir`] does a directory (a crash log).
+pub fn user_only_file(file: &Path) {
+    tighten(file, 0o600);
+}
+
+#[cfg(unix)]
+fn tighten(path: &Path, mode: u32) {
+    use std::os::unix::fs::PermissionsExt as _;
+    if std::fs::metadata(path).is_ok_and(|m| m.permissions().mode() & 0o777 & !mode != 0) {
+        let _ = std::fs::set_permissions(path, std::fs::Permissions::from_mode(mode));
+    }
+}
+
+#[cfg(not(unix))]
+fn tighten(_path: &Path, _mode: u32) {}
 
 /// An environment variable as a path, `None` when unset or empty.
 // Program boundary: the settings directory override is read once at start-up and passed in.

@@ -77,6 +77,8 @@ mod picker;
 pub mod properties;
 mod splitter;
 mod start_page;
+// WP-S6.05 D11: the start-up offer after a crash.
+mod startup;
 mod status_bar;
 // WP-S2.04 part 4b: the text tool's popup.
 mod text_popup;

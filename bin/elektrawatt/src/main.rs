@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The ElektraWatt desktop application: eframe shell, file dialogs, the headless mode and exit codes. Native menus,
-//! clipboard and the crash handler come with later work packages (WP-S2.01 part 2, FT-310).
+//! The ElektraWatt desktop application: eframe shell, file dialogs, the headless mode, the crash log and exit codes.
+//! Native menus and clipboard come with a later work package (WP-S2.01 part 2, FT-310).
 //!
 //! ```text
 //! elektrawatt [--no-gpu] [<project-dir>]               the window; the project opens after the first frame
@@ -11,7 +11,8 @@
 //! elektrawatt --smoke <project-dir>                    opens read-only, draws page 1 at 36 dpi, exits
 //! ```
 //!
-//! Exit codes of the headless mode: 0 every step done, 1 a step was refused or failed (without `--keep-going` the run
+//! A panic that ends the session in any mode is written to the local crash log ([`crash`], WP-S6.05) and the process
+//! exits with 101. Exit codes of the headless mode: 0 every step done, 1 a step was refused or failed (without `--keep-going` the run
 //! stops there; with it the run goes on and the code is 1 when any step was not done), 2 a usage error. The window
 //! exits with 3 when the system has no graphics adapter at all (egui's own chrome needs one; WP-S2.02 section 7.2):
 //! the message names the headless mode, the command-line tool `ew` and, on Linux, Mesa's software drivers.
@@ -24,6 +25,8 @@
 //! the feature that needs it.
 
 #![forbid(unsafe_code)]
+
+mod crash;
 
 use std::ffi::OsString;
 use std::io::Write;
@@ -422,11 +425,20 @@ fn locate_resources(exe: Option<&Path>) -> Resources {
             .map(|p| p.canonicalize().unwrap_or(p))
     };
     let notices = exe_dir.as_ref().map(|d| d.join("THIRD-PARTY-NOTICES.txt"));
+    // WP-S6.05 D16: `PRIVACY.md` beside the executable (WP-S6.06 D3's tree), else the repository's in a development
+    // build.
+    let privacy = exe_dir
+        .as_ref()
+        .map(|d| d.join("PRIVACY.md"))
+        .filter(|p| p.is_file())
+        .or_else(|| tree("PRIVACY.md").filter(|p| p.is_file()))
+        .map(|p| p.canonicalize().unwrap_or(p));
     Resources {
         sample_dir: find_dir("EW_SAMPLE_DIR", "samples/J-E-2416.ew", "golden/J-E-2416.ew"),
         content_dir: find_dir("EW_CONTENT_DIR", "content", "content"),
         docs_dir: find_dir("EW_DOCS_DIR", "docs", "target/book"),
         notices_file: notices.filter(|p| p.is_file()),
+        privacy_file: privacy,
     }
 }
 
@@ -482,6 +494,16 @@ fn shell_config(isolated: bool) -> ShellConfig {
     let resources = locate_resources(current_exe().as_deref());
     let libraries = library_tiers(isolated, resources.content_dir.as_deref());
     config.with_resources(resources).with_libraries(libraries)
+}
+
+/// The crash directory of a run with `config` (WP-S6.05 D6): `crashes/` in its state directory, which is the store's
+/// default when the configuration names none.
+fn crash_dir(config: &ShellConfig) -> Option<PathBuf> {
+    config
+        .state_dir
+        .clone()
+        .or_else(|| ew_ui::ew_viewmodel::ew_api::StoreOptions::new(VERSION).state_dir)
+        .map(|state| state.join(ew_ui::ew_viewmodel::shell::startup::CRASH_DIR))
 }
 
 /// The eframe application: the shell frame of `ew-ui`, and whether the window has been placed on a monitor.
@@ -599,7 +621,11 @@ fn gui_failure(e: &eframe::Error, os: &str, adapters: impl FnOnce() -> usize) ->
 }
 
 fn run_gui(initial: Option<PathBuf>, no_gpu: bool) -> i32 {
-    let mut shell = ShellModel::new(Mode::Gui, shell_config(false));
+    let config = shell_config(false);
+    crash::set_dir(crash_dir(&config));
+    let mut shell = ShellModel::new(Mode::Gui, config);
+    // WP-S6.05 D11: the start-up offer of an earlier session's unsaved work and crash log.
+    shell.start_up();
     // The first start (and only that) shows the first-run flow, unless the user named a project to open.
     if initial.is_none() {
         shell.start_first_run_if_needed();
@@ -643,7 +669,22 @@ fn run_gui(initial: Option<PathBuf>, no_gpu: bool) -> i32 {
 }
 
 fn main() {
-    let code = match parse_args(std::env::args_os().skip(1)) {
+    // WP-S6.05 D6, D7: the crash log's hook first, for every mode; a panic that reaches this frame ended the session.
+    crash::install(VERSION);
+    let cli = parse_args(std::env::args_os().skip(1));
+    let code = match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| run(cli))) {
+        Ok(code) => code,
+        Err(_) => {
+            crash::ended();
+            101
+        }
+    };
+    std::process::exit(code);
+}
+
+/// Runs the mode the command line asked for and returns the process exit code.
+fn run(cli: Result<Cli, String>) -> i32 {
+    match cli {
         Err(message) => {
             eprintln!("error: {message}\n{USAGE}");
             2
@@ -658,8 +699,10 @@ fn main() {
         }
         Ok(Cli::Gui(initial, no_gpu)) => run_gui(initial, no_gpu),
         Ok(Cli::Smoke(dir)) => {
+            let config = shell_config(false);
+            crash::set_dir(crash_dir(&config));
             let code = headless::smoke(
-                shell_config(false),
+                config,
                 &dir,
                 &mut std::io::stdout(),
                 &mut std::io::stderr(),
@@ -668,22 +711,85 @@ fn main() {
             code
         }
         Ok(Cli::Headless(args)) => {
+            let config = shell_config(true);
+            // `--config-dir` puts the state directory in it, as `headless::run` does.
+            let state = match &args.config_dir {
+                Some(dir) => ShellConfig::in_dir(dir, VERSION),
+                None => config.clone(),
+            };
+            crash::set_dir(crash_dir(&state));
             let stdin = std::io::stdin();
-            headless::run(
-                shell_config(true),
+            let code = headless::run(
+                config,
                 &args,
                 &mut stdin.lock(),
                 &mut std::io::stdout(),
                 &mut std::io::stderr(),
-            )
+            );
+            // WP-S6.05 D9: a debug build ends a headless run with a real panic on the main thread when asked, the test
+            // of the crash log; a release build compiles none of it.
+            #[cfg(debug_assertions)]
+            if env_path("EW_DEBUG_PANIC").is_some_and(|v| v.as_os_str() == "1") {
+                panic!("forced panic (EW_DEBUG_PANIC)");
+            }
+            code
         }
-    };
-    std::process::exit(code);
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// WP-S6.05 §5 L1 to L7: one entry, whole, with the frames trimmed and the empty line that ends it.
+    #[test]
+    fn a_crash_log_entry_has_its_seven_lines() {
+        assert_eq!(
+            crash::entry(
+                "0.1.0",
+                "2026-11-04T10:15:07Z",
+                "main",
+                "bin/elektrawatt/src/main.rs:1:2",
+                "boom",
+                "   0: main\n\n"
+            ),
+            format!(
+                "ElektraWatt 0.1.0 crash log\nOS: {} {}\nTime: 2026-11-04T10:15:07Z\nThread: main\n\
+                 Location: bin/elektrawatt/src/main.rs:1:2\nMessage: boom\nBacktrace:\n   0: main\n\n",
+                std::env::consts::OS,
+                std::env::consts::ARCH
+            )
+        );
+    }
+
+    /// PV-5: with the hook installed, a panic caught on its way (as a rule run's EW-CORE-083 path catches one) appends
+    /// an entry without the end line, the run goes on, and the next start offers no such log. Nextest runs each test
+    /// in a process of its own, so the hook stays in this one.
+    #[test]
+    fn a_caught_panic_is_logged_without_the_end_line_and_never_offered() {
+        let dir = ew_testdir::fresh_dir("ew-crash-caught");
+        let config = ShellConfig::in_dir(&dir, VERSION);
+        crash::install(VERSION);
+        crash::set_dir(crash_dir(&config));
+        let caught = std::panic::catch_unwind(|| panic!("a rule run panicked"));
+        assert!(caught.is_err());
+        let crashes = dir.join("state").join("crashes");
+        let logs: Vec<PathBuf> = std::fs::read_dir(&crashes)
+            .unwrap()
+            .map(|e| e.unwrap().path())
+            .collect();
+        assert_eq!(logs.len(), 1);
+        let text = std::fs::read_to_string(&logs[0]).unwrap();
+        let lines: Vec<&str> = text.lines().collect();
+        assert_eq!(lines[0], format!("ElektraWatt {VERSION} crash log"));
+        assert_eq!(lines[5], "Message: a rule run panicked");
+        assert!(text.ends_with("\n\n"), "{text}");
+        assert!(!text.contains(ew_ui::ew_viewmodel::shell::startup::ENDED_LINE));
+        let mut shell = ShellModel::new(Mode::Headless, config);
+        shell.start_up();
+        assert_eq!(shell.startup_offer(), None);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 
     fn parse(args: &[&str]) -> Result<Cli, String> {
         parse_args(args.iter().map(OsString::from))
@@ -1070,6 +1176,7 @@ mod tests {
                     std::fs::create_dir_all(root.join(base).join(dir)).unwrap();
                 }
                 std::fs::write(root.join(base).join("THIRD-PARTY-NOTICES.txt"), "notices").unwrap();
+                std::fs::write(root.join(base).join("PRIVACY.md"), "privacy").unwrap();
             }
             for dir in ["inst/bin", "x/empty", "env/sample", "env/content", "env/docs"] {
                 std::fs::create_dir_all(root.join(dir)).unwrap();
@@ -1096,6 +1203,7 @@ mod tests {
         let found = |dir: &str| locate_resources(Some(&root.join(dir).join("elektrawatt")));
         let dir = |rel: &str| Some(root.join(rel).canonicalize().unwrap());
         let notices = Some(root.join("x/flat/THIRD-PARTY-NOTICES.txt"));
+        let privacy = Some(root.join("x/flat/PRIVACY.md").canonicalize().unwrap());
         match args[at + 1].as_str() {
             "layouts" => {
                 // The flat tree: all four beside the executable.
@@ -1106,6 +1214,7 @@ mod tests {
                         content_dir: dir("x/flat/content"),
                         docs_dir: dir("x/flat/docs"),
                         notices_file: notices,
+                        privacy_file: privacy,
                     }
                 );
                 // `share/elektrawatt` one level up: the three directories; the notices are looked for beside the
@@ -1117,6 +1226,7 @@ mod tests {
                         content_dir: dir("inst/share/elektrawatt/content"),
                         docs_dir: dir("inst/share/elektrawatt/docs"),
                         notices_file: None,
+                        privacy_file: None,
                     }
                 );
                 // Nothing near the executable, and no executable path at all: every resource is absent.
@@ -1132,6 +1242,7 @@ mod tests {
                         content_dir: dir("env/content"),
                         docs_dir: dir("env/docs"),
                         notices_file: notices,
+                        privacy_file: privacy,
                     }
                 );
                 // The share layout's directories lose to the variables as well.

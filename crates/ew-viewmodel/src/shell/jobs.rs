@@ -61,7 +61,7 @@ fn number_list(numbers: &[u64]) -> String {
 
 /// The `file://` URL of a written file (Open PDF): the path's characters outside the unreserved set percent-encoded,
 /// so nothing in a folder name can leave the URL.
-fn file_url_of(path: &Path) -> String {
+pub(crate) fn file_url_of(path: &Path) -> String {
     let path = path.to_string_lossy().replace('\\', "/");
     let path = path.strip_prefix("//?/").unwrap_or(&path);
     let encoded = super::onboarding::encode_path(path);

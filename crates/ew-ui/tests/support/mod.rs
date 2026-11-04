@@ -47,6 +47,7 @@ impl Tmp {
             content_dir: Some(PathBuf::from(CONTENT)),
             docs_dir: None,
             notices_file: None,
+            privacy_file: None,
         })
     }
 

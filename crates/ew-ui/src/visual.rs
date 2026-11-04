@@ -745,6 +745,8 @@ impl Driver {
             let _ = shell.dispatch("settings.set", &json!({ "key": key, "value": value }));
         }
         let _ = shell.dispatch("view.ui_scale", &json!({ "scale": 1.0 }));
+        // WP-S6.05 D11: the start-up offer, as the window's start shows it.
+        shell.start_up();
         shell.set_dispatch_log(true);
         let ctx = egui::Context::default();
         crate::app::setup(&ctx);

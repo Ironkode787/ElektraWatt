@@ -194,6 +194,8 @@ pub fn run(
             .with_resources(config.resources);
     }
     let mut shell = ShellModel::new(Mode::Headless, config);
+    // WP-S6.05 D11: the start-up offer is pending and blocks no step.
+    shell.start_up();
     let mut sink = |line: &str| -> io::Result<()> {
         out.write_all(line.as_bytes())?;
         out.write_all(b"\n")?;
