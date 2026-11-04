@@ -517,7 +517,7 @@ fn the_window_asks_for_the_fields_and_keeps_a_refusal_in_the_dialog() {
     let Some(Dialog::Form(form)) = shell.dialog() else {
         panic!()
     };
-    assert_eq!(form.error.as_deref(), Some("Missing parameter `folio`."));
+    assert_eq!(form.error.as_deref(), Some("Folio is empty: fill it in."));
     shell.set_form_field("folio", "101");
     shell.set_form_field("type", "single_line");
     assert!(matches!(shell.dialog(), Some(Dialog::Form(f)) if f.error.is_none()));
@@ -566,6 +566,45 @@ fn the_window_asks_for_the_fields_and_keeps_a_refusal_in_the_dialog() {
         Outcome::Refused { reason_key } if reason_key == key!("reason-no-project")
     ));
     assert!(shell.dialog().is_none());
+    shell.shutdown();
+}
+
+/// FT-1257: a form names a missing field by its label; FT-1256: a common refusal says what to do next (doc 16a §8
+/// item 5); in both languages.
+#[test]
+fn a_form_names_the_missing_field_and_the_next_step() {
+    let tmp = Tmp::new("form-steps");
+    let mut shell = new_project(&tmp, Mode::Gui);
+    for (language, missing, refusal) in [
+        (
+            "en",
+            "Start is empty: fill it in.",
+            "No device is selected. Select the devices first, or choose another scope.",
+        ),
+        (
+            "nl",
+            "Begin is leeg: vul het veld in.",
+            "Er is geen apparaat geselecteerd. Selecteer eerst de apparaten, of kies een ander bereik.",
+        ),
+    ] {
+        done(&mut shell, "view.language", json!({ "value": language }));
+        done(&mut shell, "pages.renumber", json!({}));
+        shell.set_form_field("start", "");
+        assert!(matches!(shell.submit_form(), Outcome::Failed { .. }));
+        let Some(Dialog::Form(form)) = shell.dialog() else {
+            panic!("{language}: {:?}", shell.dialog())
+        };
+        assert_eq!(form.error.as_deref(), Some(missing), "{language}");
+        done(&mut shell, "ui.dismiss", json!({}));
+        done(&mut shell, "devices.renumber", json!({}));
+        shell.set_form_field("scope", "selection");
+        assert!(matches!(shell.submit_form(), Outcome::Refused { .. }));
+        let Some(Dialog::Form(form)) = shell.dialog() else {
+            panic!("{language}: {:?}", shell.dialog())
+        };
+        assert_eq!(form.error.as_deref(), Some(refusal), "{language}");
+        done(&mut shell, "ui.dismiss", json!({}));
+    }
     shell.shutdown();
 }
 

@@ -348,6 +348,27 @@ fn parse_folio(text: &str) -> Result<(u32, Option<String>), String> {
     Ok((number, (text.len() > digits.len()).then(|| text.to_owned())))
 }
 
+/// FT-1256 (doc 16a §8 item 5): a form's common refusal reasons, each with the key of what to do next.
+const NEXT_STEPS: [(Key<'static>, Key<'static>); 3] = [
+    (key!("reason-read-only"), key!("form-step-read-only")),
+    (key!("reason-no-page"), key!("form-step-no-page")),
+    (
+        key!("reason-no-devices-selected"),
+        key!("form-step-no-devices-selected"),
+    ),
+];
+
+/// The text a refused form shows: the reason, and what to do next where [`NEXT_STEPS`] has it.
+fn refusal_text(reason: Key<'_>) -> String {
+    match NEXT_STEPS.iter().find(|(r, _)| r.as_str() == reason.as_str()) {
+        Some(&(_, step)) => strings::format(
+            key!("form-refused-step"),
+            &[strings::text(reason), strings::text(step)],
+        ),
+        None => strings::text(reason).to_owned(),
+    }
+}
+
 impl ShellModel {
     // -----------------------------------------------------------------------------------------------------------
     // The dialog
@@ -432,7 +453,7 @@ impl ShellModel {
             && let Some(Dialog::Form(f)) = &mut self.dialog
             && f.action == action
         {
-            f.error = Some(strings::text(*reason_key).to_owned());
+            f.error = Some(refusal_text(*reason_key));
         }
         // The project closed under the open dialog: nothing is left to create in.
         if matches!(out, Outcome::Refused { .. }) && !self.has_project() {
@@ -451,11 +472,20 @@ impl ShellModel {
     fn form_missing(&mut self, spec: &'static Spec, p: &Map<String, Value>, name: &str) -> Outcome {
         match self.mode {
             Mode::Headless => failed(key!("error-missing-param"), &[name]),
-            Mode::Gui if self.in_form(spec) => {
-                self.form_failed(spec, strings::format(key!("error-missing-param"), &[name]))
-            }
+            Mode::Gui if self.in_form(spec) => self.form_failed(spec, self.missing_text(name)),
             Mode::Gui => self.open_dialog(Dialog::Form(spec.dialog(p))),
         }
+    }
+
+    /// FT-1257: the text of a missing parameter `name`: by its field's label when the open form has the field, else
+    /// by the parameter's name.
+    pub(super) fn missing_text(&self, name: &str) -> String {
+        if let Some(Dialog::Form(f)) = &self.dialog
+            && let Some(field) = f.fields.iter().find(|f| f.name == name)
+        {
+            return strings::format(key!("error-missing-field"), &[strings::text(field.label_key)]);
+        }
+        strings::format(key!("error-missing-param"), &[name])
     }
 
     /// A refusal: it stays in the dialog when the form is open.

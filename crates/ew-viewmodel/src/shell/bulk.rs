@@ -430,7 +430,9 @@ impl ShellModel {
         };
         let Some(start) = start else {
             if self.mode == Mode::Headless || self.in_bulk_form(ACTION) {
-                let out = failed(key!("error-missing-param"), &["start"]);
+                let out = Outcome::Failed {
+                    message: self.missing_text("start"),
+                };
                 return self.bulk_form_done(ACTION, out);
             }
             let first = self
@@ -557,8 +559,8 @@ impl ShellModel {
 
     /// `devices.renumber {scope?, scheme?, include_frozen?, only_nonconforming?}` (Tools, Renumber devices…):
     /// `numbering.renumber` of the project, the current page or the selected devices, opening the `bulk` card. Without
-    /// `scheme` the window opens the dialog (Scope, Scheme, Include frozen tags, Only non-conforming tags); headless the step
-    /// fails.
+    /// `scheme` the window opens the dialog (Scope, Scheme, Include frozen tags, Only non-conforming tags); headless the
+    /// step fails.
     pub(crate) fn act_devices_renumber(&mut self, p: &Map<String, Value>) -> Outcome {
         const ACTION: &str = "devices.renumber";
         let scope = match string_param(p, "scope") {
@@ -572,7 +574,9 @@ impl ShellModel {
         };
         let Some(scheme) = scheme else {
             if self.mode == Mode::Headless || self.in_bulk_form(ACTION) {
-                let out = failed(key!("error-missing-param"), &["scheme"]);
+                let out = Outcome::Failed {
+                    message: self.missing_text("scheme"),
+                };
                 return self.bulk_form_done(ACTION, out);
             }
             let field = |name, label_key, choices, value: &str| FormField {

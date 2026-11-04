@@ -771,6 +771,13 @@ message-expected-refusal = expected a refusal; the step was accepted
 message-expect-refused-inner = script.expect_refused needs `action`, an action ID, and `params` as an object
 error-unknown-action = Unknown action `{ $p0 }`.
 error-missing-param = Missing parameter `{ $p0 }`.
+# FT-1257: a form's missing parameter, named by its field's label.
+error-missing-field = { $p0 } is empty: fill it in.
+# FT-1256 (doc 16a §8 item 5): a form's common refusal reasons, each with what to do next.
+form-refused-step = { $p0 }. { $p1 }
+form-step-read-only = File ▸ Save as… makes a copy that can be changed.
+form-step-no-page = Open a page, or choose another scope.
+form-step-no-devices-selected = Select the devices first, or choose another scope.
 error-bad-param = Parameter `{ $p0 }` is not valid.
 error-unknown-alias = No record has the alias `{ $p0 }` in this session.
 error-params-object = The parameters are a JSON object.
@@ -2041,7 +2048,7 @@ error-waive-author = A waiver needs the author's name.
 reason-not-open-finding = The row is not an open finding
 reason-not-waived = The finding is not waived
 toast-check-qualified = Check · { $p1 }: { $p0 }
-card-fix = { $p0 } records, { $p1 } tags, { $p2 } cross-reference texts
+card-fix = { $p0 }, { $p1 }, { $p2 }
 nav-tree-name = { $p0 } navigator
 chips-label = Not on this page:
 chip-name = Open { $p0 }
