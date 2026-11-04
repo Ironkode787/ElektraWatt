@@ -162,7 +162,10 @@ impl Command for AddTerminals {
                 }
             };
             if !designations.insert(spec.designation.clone()) {
-                return tx.reject(text!("refusal-terminal-designation-used", spec.designation.as_str()));
+                return tx.reject(text!(
+                    "refusal-terminal-designation-used",
+                    spec.designation.as_str()
+                ));
             }
             if !seqs.insert(seq) {
                 return tx.reject(text!("refusal-terminal-seq-used", seq.to_string()));

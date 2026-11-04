@@ -679,7 +679,11 @@ fn refuse_duplicate_config_name(
         .into_iter()
         .find(|o| o.id != cfg && o.name == c.name)
     {
-        return tx.reject(text!("refusal-plc-project-exists", c.name.to_string(), other.id.to_string()));
+        return tx.reject(text!(
+            "refusal-plc-project-exists",
+            c.name.to_string(),
+            other.id.to_string()
+        ));
     }
     Ok(())
 }

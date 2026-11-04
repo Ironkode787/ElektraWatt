@@ -290,11 +290,11 @@ pub use ew_commands::{
     EntityChange, History, HistoryLimits, IdSource, ModelDiff, Origin, Preview, Receipt, Restored, Submit,
     TxContext, World,
 };
-/// A command's refusal by key (FT-1337): the window renders it in its language, the CLI prints its English.
-pub use ew_commands::{TEXTS, Text, TextArg};
 /// A command's registered metadata, its cost and its exposure class (WP-S2.05 §4.2): the property grid's guard that
 /// builds only `Edit` commands and its edit policy read them through [`Session::command_meta`].
 pub use ew_commands::{CommandMeta, Cost, Exposure};
+/// A command's refusal by key (FT-1337): the window renders it in its language, the CLI prints its English.
+pub use ew_commands::{TEXTS, Text, TextArg};
 /// The types of [`IdSource`]'s methods, so that a test can supply its own source of new IDs
 /// ([`SessionOptions::ids`]).
 pub use ew_derive::ew_ids::{EntropyError, UnixTime};

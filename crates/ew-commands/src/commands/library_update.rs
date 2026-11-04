@@ -883,7 +883,11 @@ fn apply_remap(tx: &mut TxBuilder<'_>, remap: &BTreeMap<(Id<Function>, u16), u16
         for o in &func.cp_overrides {
             let to = remap.get(&(f, o.idx)).copied().unwrap_or(o.idx);
             if !seen.insert(to) {
-                return tx.reject(text!("refusal-library-update-overrides", f.to_string(), to.to_string()));
+                return tx.reject(text!(
+                    "refusal-library-update-overrides",
+                    f.to_string(),
+                    to.to_string()
+                ));
             }
         }
         let moved: Vec<_> = func

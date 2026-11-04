@@ -170,7 +170,10 @@ fn refuse_layout_delete(tx: &TxBuilder<'_>, keys: &[AnyKey]) -> Result<(), CmdEr
             let device = tx.get::<Enclosure>(s.enclosure).map(|e| e.device);
             return tx.reject(text!(
                 "refusal-edit-delete-plate",
-                device.map_or_else(|| text!("refusal-edit-delete-the-plate").into(), |d| crate::words::device(tx, d))
+                device.map_or_else(
+                    || text!("refusal-edit-delete-the-plate").into(),
+                    |d| crate::words::device(tx, d)
+                )
             ));
         }
     }
@@ -228,7 +231,10 @@ fn refuse_layout_delete(tx: &TxBuilder<'_>, keys: &[AnyKey]) -> Result<(), CmdEr
             let device = tx.get::<Enclosure>(s.enclosure).map(|e| e.device);
             return tx.reject(text!(
                 "refusal-edit-delete-plate-holds",
-                device.map_or_else(|| text!("refusal-edit-delete-the-enclosure").into(), |d| crate::words::device(tx, d)),
+                device.map_or_else(
+                    || text!("refusal-edit-delete-the-enclosure").into(),
+                    |d| crate::words::device(tx, d)
+                ),
                 holds(n)
             ));
         }
@@ -238,5 +244,8 @@ fn refuse_layout_delete(tx: &TxBuilder<'_>, keys: &[AnyKey]) -> Result<(), CmdEr
 
 /// "-UC1 carries an enclosure; delete the enclosure first."
 fn carries_enclosure(tx: &TxBuilder<'_>, device: Id<Device>) -> Result<(), CmdError> {
-    tx.reject(text!("refusal-edit-delete-carries-enclosure", crate::words::device(tx, device)))
+    tx.reject(text!(
+        "refusal-edit-delete-carries-enclosure",
+        crate::words::device(tx, device)
+    ))
 }

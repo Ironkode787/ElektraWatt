@@ -94,7 +94,6 @@ pub use engine::{
     Change, Engine, EngineOptions, NoPrevent, Preview, Receipt, Restored, World, affected_pages,
 };
 pub use error::CmdError;
-pub use text::{TEXTS, Text, TextArg};
 pub use history::{History, HistoryEntry, HistoryLimits};
 pub use jsonschema::{
     MAX_PARAM_BYTES, MAX_PARAM_DEPTH, MAX_PARAM_ITEMS, MAX_PARAM_STRING, SchemaViolation, check_limits,
@@ -102,6 +101,7 @@ pub use jsonschema::{
 };
 pub use meta::{CommandMeta, Confirmation, Cost, Exposure, Origin, Stability};
 pub use registry::{AnyCommand, CommandRegistry, RegisteredCommand};
+pub use text::{TEXTS, Text, TextArg};
 pub use transaction::{Submit, Transaction, TxContext, Viewport};
 pub use tx::{IndexRead, ReadSet, TxBuilder};
 

@@ -93,7 +93,10 @@ fn chain(tx: &TxBuilder<'_>, device: Id<Device>) -> Vec<Id<Device>> {
 
 /// Devices in words: "-A", "-A and -B", "-A, -B and -C".
 fn listed(tx: &TxBuilder<'_>, devices: &[Id<Device>]) -> String {
-    let names: Vec<String> = devices.iter().map(|d| words::device(tx, *d).to_string()).collect();
+    let names: Vec<String> = devices
+        .iter()
+        .map(|d| words::device(tx, *d).to_string())
+        .collect();
     match names.split_last() {
         Some((last, rest)) if !rest.is_empty() => format!("{} and {last}", rest.join(", ")),
         Some((last, _)) => last.clone(),

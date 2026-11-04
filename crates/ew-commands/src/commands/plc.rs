@@ -83,7 +83,11 @@ impl Command for CreatePlcConfigProject {
             .into_iter()
             .find(|p| p.name == self.name)
         {
-            return tx.reject(text!("refusal-plc-project-exists", self.name.to_string(), other.id.to_string()));
+            return tx.reject(text!(
+                "refusal-plc-project-exists",
+                self.name.to_string(),
+                other.id.to_string()
+            ));
         }
         let id: Id<PlcConfigProject> = tx.mint();
         tx.insert(PlcConfigProject {
@@ -478,10 +482,7 @@ impl Command for SetModulePart {
         let m = self.module;
         let before = tx.require::<Device>(m)?;
         let Some(aspect) = before.aspects.plc_module.as_ref() else {
-            return tx.reject(text!(
-                "refusal-plc-not-module",
-                crate::words::device(tx, m)
-            ));
+            return tx.reject(text!("refusal-plc-not-module", crate::words::device(tx, m)));
         };
         if let Some(parts) = &self.parts {
             // review ruling (cycle 18): a `part_use` that names no entry of the new parts would give a count

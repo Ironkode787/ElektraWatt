@@ -165,7 +165,10 @@ fn resolve_record(
         members.insert("$k".to_owned(), Value::from(kind));
     }
     let record = Record::from_value(value).map_err(|e| {
-        CmdError::rejected(ResolveConflicts::NAME, text!("refusal-merge-invalid-record", e.to_string()))
+        CmdError::rejected(
+            ResolveConflicts::NAME,
+            text!("refusal-merge-invalid-record", e.to_string()),
+        )
     })?;
     put_record(tx, record)?;
     remove_conflict(tx, id);

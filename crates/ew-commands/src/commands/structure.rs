@@ -60,8 +60,7 @@ impl Command for CreateStructureNode {
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
         if self.aspect == Aspect::Product {
-            return tx
-                .reject(text!("refusal-structure-product-aspect"));
+            return tx.reject(text!("refusal-structure-product-aspect"));
         }
         let aspect = Open::Known(self.aspect);
         if let Some(parent) = self.parent {

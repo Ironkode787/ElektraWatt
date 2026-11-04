@@ -61,8 +61,7 @@ impl Command for SetProjectSupply {
         }
         let mut project = (*tx.project()).clone();
         let Some(supply) = project.supply.as_ref() else {
-            return tx
-                .reject(text!("refusal-supply-none"));
+            return tx.reject(text!("refusal-supply-none"));
         };
         let mut json = serde_json::to_value(supply)
             .map_err(|e| CmdError::internal(format!("project.supply.set: cannot serialise ({e})")))?;

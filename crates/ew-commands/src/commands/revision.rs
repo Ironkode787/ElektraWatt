@@ -151,7 +151,11 @@ impl Command for CreateRevision {
             .iter()
             .find(|r| !r.is_withdrawal() && r.label == self.label)
         {
-            return tx.reject(text!("refusal-revision-label-used", twin.id.to_string(), self.label.to_string()));
+            return tx.reject(text!(
+                "refusal-revision-label-used",
+                twin.id.to_string(),
+                self.label.to_string()
+            ));
         }
         let state = match self.state {
             NewRevisionState::Open => RevisionState::Open,
@@ -159,7 +163,11 @@ impl Command for CreateRevision {
         };
         if state == RevisionState::Open {
             if let Some(open) = revisions.iter().find(|r| r.is_open()) {
-                return tx.reject(text!("refusal-revision-open", open.label.to_string(), open.id.to_string()));
+                return tx.reject(text!(
+                    "refusal-revision-open",
+                    open.label.to_string(),
+                    open.id.to_string()
+                ));
             }
         }
         if state == RevisionState::Released {

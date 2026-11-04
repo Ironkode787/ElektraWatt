@@ -354,10 +354,16 @@ fn refuse_fluid_mismatch(
             if let Some((end, _)) = judged.iter().find(|(_, j)| j.fluid == Some(false)) {
                 let what = match end {
                     EndpointParam::Cp { function, idx } => {
-                        text!("refusal-connection-not-fluid-port", crate::words::cp(tx, *function, *idx))
+                        text!(
+                            "refusal-connection-not-fluid-port",
+                            crate::words::cp(tx, *function, *idx)
+                        )
                     }
                     EndpointParam::Junction { junction } => {
-                        text!("refusal-connection-junction-joins-wires", crate::words::junction(tx, *junction))
+                        text!(
+                            "refusal-connection-junction-joins-wires",
+                            crate::words::junction(tx, *junction)
+                        )
                     }
                     EndpointParam::OnConnection { connection, .. } => {
                         text!("refusal-connection-no-fluid-line", line_words(tx, *connection))
@@ -459,7 +465,10 @@ impl Command for ConnectMany {
                 }
                 CmdError::Rejected { source, reason, text } => {
                     let why = text.map_or_else(|| TextArg::from(reason), TextArg::from);
-                    CmdError::rejected(source, text!("refusal-connection-draw-many-entry", i.to_string(), why))
+                    CmdError::rejected(
+                        source,
+                        text!("refusal-connection-draw-many-entry", i.to_string(), why),
+                    )
                 }
                 // NotFound names the missing record by its key; it has no field an index could prefix (see above).
                 other => other,
@@ -934,11 +943,7 @@ fn is_r0(o: &Orient2) -> bool {
 /// The refusal of an interruption point's star (ID-1146, ID-1038's ruling (a)): a star source is a source point, and
 /// an external point never pairs, so it takes no star. `None` for an unstarred point and a starred source; the
 /// external refusal first, since clearing the star answers both.
-pub(crate) fn star_problem(
-    direction: &IpDirection,
-    star_source: bool,
-    external: bool,
-) -> Option<Text> {
+pub(crate) fn star_problem(direction: &IpDirection, star_source: bool, external: bool) -> Option<Text> {
     if !star_source {
         None
     } else if external {
@@ -1071,8 +1076,7 @@ impl Command for DrawToIp {
         // judges an end (T2), in words before EW-INV-024 would judge it.
         let kind = self.kind.clone().unwrap_or_default();
         if matches!(kind, ConnectionKind::Fluid(_)) {
-            return tx
-                .reject(text!("refusal-draw-to-ip-fluid"));
+            return tx.reject(text!("refusal-draw-to-ip-fluid"));
         }
         refuse_fluid_mismatch(tx, &kind, &[&self.a])?;
         // FT-446: the start must be drawn on the page the wire and the IP are drawn on; refuse another page (or none)
@@ -1223,10 +1227,7 @@ impl Command for ArrangeIps {
         for f in &self.ips {
             let function = tx.require::<Function>(*f)?;
             if !matches!(function.kind, FunctionKind::Ip(_)) {
-                return tx.reject(text!(
-                    "refusal-ip-arrange-not-ip",
-                    crate::words::function(tx, *f)
-                ));
+                return tx.reject(text!("refusal-ip-arrange-not-ip", crate::words::function(tx, *f)));
             }
             let ids = tx.reps_of_function(*f);
             let [rid] = ids.as_slice() else {
@@ -1272,7 +1273,13 @@ impl Command for ArrangeIps {
             }
             moved.push(next);
         }
-        follow_moved_cps(tx, page_id, page.grid, &moves, text!("refusal-move-what-arrangement"))?;
+        follow_moved_cps(
+            tx,
+            page_id,
+            page.grid,
+            &moves,
+            text!("refusal-move-what-arrangement"),
+        )?;
         for r in moved {
             tx.put(r);
         }

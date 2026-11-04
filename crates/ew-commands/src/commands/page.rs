@@ -197,7 +197,11 @@ fn explicit_folio_problem(
             ));
         }
         if s.divider && printed == first.to_string() {
-            return Some(text!("refusal-page-create-divider", printed, s.number.to_string()));
+            return Some(text!(
+                "refusal-page-create-divider",
+                printed,
+                s.number.to_string()
+            ));
         }
     }
     for b in tx.iter::<ReportBlock>() {
@@ -227,8 +231,7 @@ impl Command for CreatePage {
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
         if self.kind == PageType::Report {
-            return tx
-                .reject(text!("refusal-page-create-report"));
+            return tx.reject(text!("refusal-page-create-report"));
         }
         if let Some(form) = self.form {
             tx.require::<ew_schema::LibCopy<FormDef>>(form)?;

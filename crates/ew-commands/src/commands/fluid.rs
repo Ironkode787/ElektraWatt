@@ -162,7 +162,10 @@ fn remove_child(
     }
     bound.sort();
     bound.dedup();
-    let unbound: Vec<String> = bound.iter().map(|c| crate::words::channel(tx, *c).to_string()).collect();
+    let unbound: Vec<String> = bound
+        .iter()
+        .map(|c| crate::words::channel(tx, *c).to_string())
+        .collect();
     tx.delete((Kind::Device, child.id.cast()))?;
     tx.notice(match lines.len() {
         0 => format!("removed {name} from position {position} of {module_name}"),
@@ -312,7 +315,11 @@ impl Command for SetValveOccupancy {
                     }
                     None => {
                         let Some(part) = part else {
-                            return tx.reject(text!("refusal-valve-position-empty", p.to_string(), module_name));
+                            return tx.reject(text!(
+                                "refusal-valve-position-empty",
+                                p.to_string(),
+                                module_name
+                            ));
                         };
                         tx.require::<LibCopy<Part>>(*part)?;
                         Some(new_child(
@@ -436,7 +443,10 @@ impl Command for ClosePort {
         tx.require::<Function>(self.function)?;
         let (f, idx) = (self.function, self.idx);
         if !matches!(cp_fluid_class(tx, f, idx), FluidPortClass::Fluid(_)) {
-            return tx.reject(text!("refusal-connection-not-fluid-port", crate::words::cp(tx, f, idx)));
+            return tx.reject(text!(
+                "refusal-connection-not-fluid-port",
+                crate::words::cp(tx, f, idx)
+            ));
         }
         let closure = match &self.closure {
             Some(c) => {

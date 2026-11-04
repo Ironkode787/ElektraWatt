@@ -316,7 +316,10 @@ impl Command for ExchangeSymbol {
             let mut route = c.route.clone();
             let followed = follow_ends(&mut route, page.grid, da, db);
             if followed.is_err() {
-                return tx.reject(text!("refusal-exchange-route-out-of-range", crate::words::wire(tx, cid)));
+                return tx.reject(text!(
+                    "refusal-exchange-route-out-of-range",
+                    crate::words::wire(tx, cid)
+                ));
             }
             if route != c.route {
                 let mut changed = (*c).clone();

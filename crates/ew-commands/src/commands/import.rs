@@ -449,7 +449,10 @@ impl DynCommand for ApplyImport {
         for record in &self.records {
             if hashed(record) {
                 let row = AnyRow::from_record(record.clone()).map_err(|r| {
-                    CmdError::rejected(Self::NAME, text!("refusal-import-unknown-kind", format!("{:?}", r.kind())))
+                    CmdError::rejected(
+                        Self::NAME,
+                        text!("refusal-import-unknown-kind", format!("{:?}", r.kind())),
+                    )
                 })?;
                 let source = record_hash(&row)?;
                 run.record_hashes.insert(

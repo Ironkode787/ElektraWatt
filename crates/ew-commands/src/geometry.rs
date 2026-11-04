@@ -382,7 +382,11 @@ pub fn point_on_grid(grid: Grid, p: Pt2) -> bool {
 /// on page 101 is not on the drawing grid"). A fragment: each caller ends it with the step the user can take
 /// (FT-1054, ID-1108).
 pub(crate) fn off_grid(tx: &TxBuilder<'_>, what: impl Into<TextArg>, page: Id<Page>, p: Pt2) -> Text {
-    text!("refusal-geometry-off-grid", what.into(), crate::words::point(tx, page, p))
+    text!(
+        "refusal-geometry-off-grid",
+        what.into(),
+        crate::words::point(tx, page, p)
+    )
 }
 
 /// What the JSON Pointer of a position checked by [`require_on_grid`] names, in words: a split point

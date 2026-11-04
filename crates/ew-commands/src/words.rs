@@ -47,7 +47,10 @@ pub(crate) fn function(tx: &TxBuilder<'_>, id: ew_ids::Id<Function>) -> TextArg 
     tx.get::<Function>(id)
         .and_then(|f| f.device)
         .and_then(|d| existing_tag(tx, d))
-        .map_or_else(|| text!("refusal-words-function-no-device").into(), TextArg::Plain)
+        .map_or_else(
+            || text!("refusal-words-function-no-device").into(),
+            TextArg::Plain,
+        )
 }
 
 /// A connection point by its device's tag and its printed designation (`-201U3-Q1:2`, WP-S1.20 §5): the designation
@@ -74,7 +77,13 @@ pub(crate) fn cp(tx: &TxBuilder<'_>, f: ew_ids::Id<Function>, idx: u16) -> Text 
 pub(crate) fn channel(tx: &TxBuilder<'_>, id: ew_ids::Id<ew_schema::Channel>) -> Text {
     tx.get::<ew_schema::Channel>(id).map_or_else(
         || text!("refusal-words-channel-gone"),
-        |c| text!("refusal-words-channel", c.number.to_string(), device(tx, c.module)),
+        |c| {
+            text!(
+                "refusal-words-channel",
+                c.number.to_string(),
+                device(tx, c.module)
+            )
+        },
     )
 }
 
@@ -104,7 +113,10 @@ pub(crate) fn symbol(tx: &TxBuilder<'_>, id: ew_ids::Id<Representation>) -> Text
         .and_then(|f| tx.get::<Function>(f))
         .and_then(|f| f.device)
         .and_then(|d| existing_tag(tx, d));
-    tag.map_or_else(|| text!("refusal-words-symbol-any"), |t| text!("refusal-words-symbol", t))
+    tag.map_or_else(
+        || text!("refusal-words-symbol-any"),
+        |t| text!("refusal-words-symbol", t),
+    )
 }
 
 /// Any record by the words of its kind (WP-S3.09 D12's EW-IMP-010 and EW-IMP-011): a device by its tag, a function or

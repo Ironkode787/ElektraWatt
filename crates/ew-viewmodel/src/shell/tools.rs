@@ -1322,7 +1322,9 @@ fn command_error_text(e: &CmdError) -> (Key<'static>, Vec<String>) {
         CmdError::History { reason } => (key!("error-command-history"), vec![reason.clone()]),
         CmdError::Internal { reason } => (key!("error-command-internal"), vec![reason.clone()]),
         CmdError::InvalidParams { message, .. } => (key!("error-command"), vec![message.clone()]),
-        CmdError::Rejected { reason, text, .. } => (key!("error-command"), vec![rejected_words(reason, text.as_ref())]),
+        CmdError::Rejected { reason, text, .. } => {
+            (key!("error-command"), vec![rejected_words(reason, text.as_ref())])
+        }
     }
 }
 

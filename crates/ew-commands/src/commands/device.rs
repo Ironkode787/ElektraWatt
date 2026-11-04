@@ -314,8 +314,7 @@ impl Command for PlaceSymbol {
             PlaceTarget::ExistingFunction { function } => {
                 let f = tx.require::<Function>(*function)?;
                 if matches!(f.kind, FunctionKind::Ip(_)) {
-                    return tx
-                        .reject(text!("refusal-device-place-ip"));
+                    return tx.reject(text!("refusal-device-place-ip"));
                 }
                 *function
             }
@@ -774,16 +773,25 @@ impl MoveReps {
                 step_axis(grid, rep.pos.x, steps[0]),
                 step_axis(grid, rep.pos.y, steps[1]),
             ) else {
-                return tx.reject(text!("refusal-rep-move-steps-out-of-range", crate::words::symbol(tx, *id)));
+                return tx.reject(text!(
+                    "refusal-rep-move-steps-out-of-range",
+                    crate::words::symbol(tx, *id)
+                ));
             };
             let mut next = (*rep).clone();
             next.pos = Pt2::new(x, y);
             require_on_grid(tx, next.page, next.pos, "/steps")?;
             if rep_cps_checked(tx, &next).is_err() {
-                return tx.reject(text!("refusal-rep-move-steps-cp-out-of-range", crate::words::symbol(tx, *id)));
+                return tx.reject(text!(
+                    "refusal-rep-move-steps-cp-out-of-range",
+                    crate::words::symbol(tx, *id)
+                ));
             }
             let Ok(d) = sub(next.pos, rep.pos) else {
-                return tx.reject(text!("refusal-rep-move-steps-out-of-range", crate::words::symbol(tx, *id)));
+                return tx.reject(text!(
+                    "refusal-rep-move-steps-out-of-range",
+                    crate::words::symbol(tx, *id)
+                ));
             };
             shift.insert(*id, d);
             reps.push(rep);
@@ -829,7 +837,10 @@ impl MoveReps {
                 (None, None) => Ok(()),
             };
             if followed.is_err() {
-                return tx.reject(text!("refusal-rep-move-route-out-of-range", crate::words::wire(tx, cid)));
+                return tx.reject(text!(
+                    "refusal-rep-move-route-out-of-range",
+                    crate::words::wire(tx, cid)
+                ));
             }
             changed.push(next);
         }
@@ -948,7 +959,10 @@ impl Command for MoveReps {
             next.pos = match add(rep.pos, self.delta) {
                 Ok(p) => p,
                 Err(OutOfRange) => {
-                    return tx.reject(text!("refusal-rep-move-out-of-range", crate::words::symbol(tx, *id)));
+                    return tx.reject(text!(
+                        "refusal-rep-move-out-of-range",
+                        crate::words::symbol(tx, *id)
+                    ));
                 }
             };
             if let (Some(p), Some(page)) = (self.page, &target_page) {
@@ -957,7 +971,10 @@ impl Command for MoveReps {
             }
             require_on_grid(tx, next.page, next.pos, "/delta")?;
             if rep_cps_checked(tx, &next).is_err() {
-                return tx.reject(text!("refusal-rep-move-cp-out-of-range", crate::words::symbol(tx, *id)));
+                return tx.reject(text!(
+                    "refusal-rep-move-cp-out-of-range",
+                    crate::words::symbol(tx, *id)
+                ));
             }
             reps.push(rep);
             moved.push(next);
@@ -1001,7 +1018,10 @@ impl Command for MoveReps {
                 follow_end(&mut next.route, grid, a, self.delta)
             };
             if followed.is_err() {
-                return tx.reject(text!("refusal-rep-move-route-out-of-range", crate::words::wire(tx, cid)));
+                return tx.reject(text!(
+                    "refusal-rep-move-route-out-of-range",
+                    crate::words::wire(tx, cid)
+                ));
             }
             changed.push(next);
         }
@@ -1088,7 +1108,10 @@ impl Command for TransformReps {
                 new.variant = v;
             }
             let out_of_range = |tx: &TxBuilder<'_>| {
-                tx.reject::<()>(text!("refusal-rep-transform-cp-out-of-range", crate::words::symbol(tx, *id)))
+                tx.reject::<()>(text!(
+                    "refusal-rep-transform-cp-out-of-range",
+                    crate::words::symbol(tx, *id)
+                ))
             };
             if let Some(b) = old.box_.as_ref().filter(|_| orient != old.orient) {
                 let grid = tx.require::<Page>(old.page)?.grid;
@@ -1142,7 +1165,10 @@ impl Command for TransformReps {
             let grid = tx.require::<Page>(page)?.grid;
             let followed = follow_ends(&mut next.route, grid, da, db);
             if followed.is_err() {
-                return tx.reject(text!("refusal-rep-transform-route-out-of-range", crate::words::wire(tx, cid)));
+                return tx.reject(text!(
+                    "refusal-rep-transform-route-out-of-range",
+                    crate::words::wire(tx, cid)
+                ));
             }
             tx.put(next);
         }
@@ -1556,12 +1582,20 @@ fn insert_from_part(
                 return tx.reject(text!("refusal-from-part-black-box", template.to_string(), number));
             }
             if symbol_def != def {
-                return tx.reject(text!("refusal-from-part-other-fndef", template.to_string(), number));
+                return tx.reject(text!(
+                    "refusal-from-part-other-fndef",
+                    template.to_string(),
+                    number
+                ));
             }
         }
         PartEntry::BlackBox => {
             if kind != FunctionKind::BlackBox {
-                return tx.reject(text!("refusal-from-part-not-black-box", template.to_string(), number));
+                return tx.reject(text!(
+                    "refusal-from-part-not-black-box",
+                    template.to_string(),
+                    number
+                ));
             }
         }
     }
