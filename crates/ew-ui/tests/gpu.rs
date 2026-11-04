@@ -770,3 +770,52 @@ fn a_title_block_page_with_a_png_logo_is_drawn_by_the_gpu_path() {
     assert_parity("folio 101 with a PNG logo", &gpu, &cpu, plain_mean + 0.05);
     shell.shutdown();
 }
+
+/// FT-363 (WP-S2.11 D8, GT-5): a frame whose target exceeds the device's limits is no fault. The host gives no texture
+/// for it (the canvas host then draws that frame on the CPU), records no fault and tells no banner, and the next frame
+/// renders on the GPU again; a lost device still ends the GPU path for the session with its banner.
+#[test]
+fn ft363_a_frame_beyond_the_limits_is_drawn_on_the_cpu_and_the_next_on_the_gpu() {
+    use ew_render2d::gpu::GpuError;
+    use ew_ui::ew_viewmodel::{key, strings};
+    let devices = devices();
+    let tmp = Tmp::new();
+    let fonts: ew_render2d::pool::SharedFonts = Arc::new(fonts().clone());
+    let page = folio_103(&tmp);
+    for d in &devices {
+        let (mut host, mut shell) = gpu_host(d, &tmp);
+        let ctx = egui::Context::default();
+        assert_eq!(until_ready(&mut host, &ctx, &page, &fonts), (true, true));
+        let max = host.canvas().expect("the GPU canvas").max_image_side();
+        let view = |target_px| GpuView {
+            target_px,
+            origin_px: (0.0, 0.0),
+            px_per_nm: 96.0 / 25_400_000.0,
+        };
+        // The frame beyond the limits: no texture, no fault, the GPU stays chosen.
+        assert!(host.render(&view((max + 1, 64))).is_none());
+        assert!(host.canvas().expect("the canvas stays").fault().is_none());
+        host.update(&mut shell);
+        assert!(host.drawing(), "the GPU path stays for the next frame");
+        assert_eq!(shell.banner(), None);
+        assert_eq!(shell.canvas_backend().label(), "GPU Vulkan");
+        // The next frame renders on the GPU (without eframe's render state the host registers no texture, but the
+        // canvas renders and reads back).
+        let _ = host.render(&view((640, 480)));
+        let canvas = host.canvas().expect("the GPU canvas");
+        assert!(canvas.fault().is_none());
+        let image = canvas.read_back().expect("the next frame was rendered");
+        assert_eq!((image.width, image.height), (640, 480));
+        // A lost device ends the GPU path, with its banner.
+        host.inject_fault(GpuError::DeviceLost("reset".into()));
+        host.update(&mut shell);
+        assert!(!host.drawing());
+        assert_eq!(shell.canvas_backend().label(), "CPU");
+        let lost = GpuError::DeviceLost("reset".into()).to_string();
+        assert_eq!(
+            shell.banner(),
+            Some(strings::format(key!("banner-gpu-lost"), &[&lost]).as_str())
+        );
+        shell.shutdown();
+    }
+}

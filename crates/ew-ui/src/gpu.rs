@@ -431,11 +431,13 @@ impl GpuHost {
 
     /// Renders the scene at `view` (only when something changed) and returns the texture to paint; the texture is
     /// registered with egui-wgpu's renderer once per size. An error is recorded as a fault (the CPU canvas from the
-    /// next frame on).
+    /// next frame on), except a target beyond the device's limits (FT-363, WP-S2.11 D8): a pane too large is a property
+    /// of this frame, not a broken device, so the CPU draws this frame and the next one tries the GPU again.
     pub fn render(&mut self, view: &GpuView) -> Option<(TextureId, RenderOutcome)> {
         let canvas = self.canvas.as_mut()?;
         let outcome = match canvas.render(view) {
             Ok(o) => o,
+            Err(GpuError::Limits(_)) => return None,
             Err(e) => {
                 self.fault.get_or_insert(e);
                 return None;
