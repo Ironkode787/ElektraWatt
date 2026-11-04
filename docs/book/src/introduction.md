@@ -28,8 +28,10 @@ The guide follows the [Diátaxis](https://diataxis.fr/) structure: four kinds of
 
 ## Where to start
 
-- **New to EW:** the tutorial [A first schematic page with potentials](tutorials/first-page.md). If you come from
-  QElectroTech, [Importing a QElectroTech project](tutorials/import-qet.md) brings a project of yours over.
+- **New to EW:** the tutorial [A first schematic page with potentials](tutorials/first-page.md), then
+  [A terminal strip and a cable](tutorials/terminal-strip-and-cable.md) and
+  [Reports and PDF](tutorials/reports-and-pdf.md). If you come from QElectroTech,
+  [Importing a QElectroTech project](tutorials/import-qet.md) brings a project of yours over.
 - **A task at hand:** the how-to guides, among them [Choose parts](how-to/choose-parts.md) and
   [Upgrade a project](how-to/upgrade-a-project.md).
 - **A fact to look up:** the [rule reference](reference/rules/index.md), with a page per check rule; the window's

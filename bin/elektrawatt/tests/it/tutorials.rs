@@ -64,6 +64,12 @@ fn script(name: &str) -> Vec<(String, Value)> {
 /// Runs the tutorial script `name` headless in `tmp` (its working folder, so the script's relative paths land there),
 /// with a fresh configuration folder and the user folders inside `tmp`.
 fn run_tutorial(tmp: &Tmp, name: &str) -> Output {
+    run_tutorial_with(tmp, name, None)
+}
+
+/// [`run_tutorial`] with the sample project `sample` (Help ▸ Tutorials copies it; absent: none). The installation's
+/// libraries are read, as in an installed window: a script run reads them only with a data directory (`EW_DATA_DIR`).
+fn run_tutorial_with(tmp: &Tmp, name: &str, sample: Option<&str>) -> Output {
     let path = Path::new(BOOK)
         .join("tutorial-scripts")
         .join(format!("{name}.ewui"));
@@ -76,9 +82,13 @@ fn run_tutorial(tmp: &Tmp, name: &str) -> Output {
         std::fs::create_dir_all(&dir).unwrap();
         cmd.env(d, dir);
     }
+    match sample {
+        Some(dir) => cmd.env("EW_SAMPLE_DIR", dir),
+        None => cmd.env_remove("EW_SAMPLE_DIR"),
+    };
     cmd.env("EW_CONFIG_DIR", tmp.path(&format!("config-{name}")))
         .env("EW_CONTENT_DIR", CONTENT)
-        .env_remove("EW_SAMPLE_DIR")
+        .env("EW_DATA_DIR", tmp.path(&format!("data-{name}")))
         .env_remove("EW_DOCS_DIR")
         .env_remove("SOURCE_DATE_EPOCH")
         .stdin(Stdio::null())
@@ -399,6 +409,98 @@ fn tutorial_1_a_first_schematic_page_runs_as_its_page_says() {
             "tutorials/first-page.md",
             &page("tutorials/first-page.md"),
             Some(&script("first-page")),
+            &items
+        ),
+        Vec::<String>::new()
+    );
+}
+
+/// Tutorial 2 (D10, DC-6, FT-1371): on tutorial 1's project, a strip with two terminals, the cabinet and the field
+/// side wired, a cable from its part with the field wires as its cores, its tag and length set, the strip editor and
+/// the Cables navigator read, checked and saved: every step done, the end state the page names, and the lint.
+#[test]
+fn tutorial_2_a_terminal_strip_and_a_cable_runs_as_its_page_says() {
+    let tmp = Tmp::new();
+    all_done(&run_tutorial(&tmp, "first-page"));
+    let transcript = all_done(&run_tutorial(&tmp, "terminal-strip-and-cable"));
+    let describe = last_describe(&transcript);
+    assert_eq!(
+        lines_of(
+            &describe,
+            &["row \"-1X1\"", "row level 1 cable", "row level 2 conductor", "toast", "title:"]
+        ),
+        [
+            "title: first-page.ew - ElektraWatt",
+            "row \"-1X1\" \"1\" \"1\" \"\" \"\" \"\" \"24VAC\" \"-1E2:X1\" \"-1E3:X1 via -1W1 BK\" \"\" \"\" \"used\" \
+             cursor \"Strip\"",
+            "row \"-1X1\" \"2\" \"2\" \"\" \"\" \"\" \"0VAC\" \"-1E2:X2\" \"-1E3:X2 via -1W1 BU\" \"\" \"\" \"used\"",
+            "row level 1 cable \"-1W1\" expanded cursor",
+            "row level 2 conductor \"BK\"",
+            "row level 2 conductor \"BN\"",
+            "row level 2 conductor \"BU\"",
+            "row level 2 conductor \"GNYE\"",
+            "row level 2 conductor \"WH\"",
+            "toast \"Check: 0 errors, 8 warnings, 3 infos\"",
+        ]
+    );
+    let items = items(&tmp);
+    assert_eq!(
+        lint(
+            "tutorials/terminal-strip-and-cable.md",
+            &page("tutorials/terminal-strip-and-cable.md"),
+            Some(&script("terminal-strip-and-cable")),
+            &items
+        ),
+        Vec::<String>::new()
+    );
+}
+
+/// Tutorial 4 (D10, DC-6, FT-1372): on Help ▸ Tutorials' copy of the sample project, a parts list and a terminal
+/// overview added as report blocks, the pages exported as PDF, the print preview stepped through and the project
+/// saved: every step done, the pages, the PDF's page count and the preview the page names, and the lint.
+#[test]
+fn tutorial_4_reports_and_pdf_runs_as_its_page_says() {
+    let tmp = Tmp::new();
+    let out = run_tutorial_with(&tmp, "reports-and-pdf", Some(support::GOLDEN_A));
+    let transcript = all_done(&out);
+    let [copied, preview, end] = <[String; 3]>::try_from(describes(&transcript)).unwrap();
+    assert_eq!(
+        lines_of(&copied, &["banner:"]),
+        ["banner: A fresh copy of the sample project was made for the tutorials."]
+    );
+    assert_eq!(
+        lines_of(&preview, &["dialog \"Print\"", "preview \""]),
+        ["dialog \"Print\"", "preview \"2 of 41\" page 2"]
+    );
+    assert_eq!(
+        lines_of(&end, &["row level 2 page \"91", "title:"]),
+        [
+            "title: reports.ew - ElektraWatt",
+            "row level 2 page \"910\" \"Device Tag Overview 1\" generated changed \"V1.0\"",
+            "row level 2 page \"910.1\" \"Device Tag Overview 2\" generated changed \"V1.0\"",
+            "row level 2 page \"910.2\" \"Device Tag Overview 3\" generated changed \"V1.0\"",
+            "row level 2 page \"910.3\" \"Device Tag Overview 4\" generated changed \"V1.0\"",
+            "row level 2 page \"911\" \"Revision Overview\" generated changed \"V1.0\"",
+            "row level 2 page \"912\" \"Parts list\" generated changed \"V1.0\"",
+            "row level 2 page \"912.1\" \"Parts list\" generated changed \"V1.0\"",
+            "row level 2 page \"912.2\" \"Parts list\" generated changed \"V1.0\"",
+            "row level 2 page \"912.3\" \"Parts list\" generated changed \"V1.0\"",
+            "row level 2 page \"913\" \"Terminal overview\" generated changed \"V1.0\"",
+        ]
+    );
+    let toast = lines_of(&end, &["toast \"Exported"]);
+    assert!(
+        toast.len() == 1 && toast[0].starts_with("toast \"Exported reports.pdf: 41 pages, "),
+        "{toast:?}"
+    );
+    assert!(tmp.path("reports.pdf").is_file());
+    assert!(tmp.path("reports.ew/project.jsonl").is_file());
+    let items = items(&tmp);
+    assert_eq!(
+        lint(
+            "tutorials/reports-and-pdf.md",
+            &page("tutorials/reports-and-pdf.md"),
+            Some(&script("reports-and-pdf")),
             &items
         ),
         Vec::<String>::new()
