@@ -169,6 +169,12 @@ SPDX-License-Identifier: CC-BY-4.0
 - text-change: window part chooser, place-tool picker, cli ew lib search (the sample project's catalogue parts are
   listed from the system library "Sample project parts"; WP-S7.03 D3)
 - dependency: async-executor 1.14.0 → 1.14.1 (a use-after-free fixed upstream; 1.14.0 yanked)
+- text-change: drawings (a technical-data text that would overlap a black box's pin text drops below it, as a
+  cross-reference text does; a black box's caption stack that a stored wire crosses moves left in grid steps, within
+  the box's outline, or stays where no place is free; FT-701, FT-772)
+- text-change: window canvas (the EW-POT-001 conflict overlay draws the wires at the connection point that keys a
+  potential without a definition, and a ring around such a point without wires; a pane beyond the graphics device's
+  limits is drawn on the CPU for that frame and the GPU canvas stays; FT-696, FT-363)
 - dependency: the AppImage's runtime, the AppImage project's static type-2 runtime 20251108 (new; a separate program
   at the start of the Linux AppImage, not linked into ElektraWatt, ID-1275; MIT, and it links statically musl libc
   (MIT), libfuse 3.15.0 (LGPL-2.1-only), squashfuse 0.5.2 (BSD-2-Clause), libzstd (BSD-3-Clause), zlib (Zlib) and
