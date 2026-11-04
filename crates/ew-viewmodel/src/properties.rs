@@ -1117,6 +1117,14 @@ pub fn reorder_line(card: &Card, notices: &[String]) -> String {
     strings::format(key!("card-reorder"), &[&notices.join(", "), &tags, &xrefs])
 }
 
+/// A quick fix card's summary line (`card-fix`): its records, tags and cross-reference texts each counted with its own
+/// singular (FT-1259); the window and the describe text show it (C50-p6#3).
+pub fn fix_line(card: &Card) -> String {
+    let (tags, xrefs) = card_counts(card);
+    let records = strings::format_count(crate::count_key!("preview-records"), card.changes);
+    strings::format(key!("card-fix"), &[&records, &tags, &xrefs])
+}
+
 /// A card's tags and cross-reference texts, counted.
 fn card_counts(card: &Card) -> (String, String) {
     (

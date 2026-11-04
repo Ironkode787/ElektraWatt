@@ -67,7 +67,6 @@ use std::io;
 use serde_json::{Map, Value};
 
 use crate::actions;
-use crate::count_key;
 use crate::key;
 use crate::shell::{AccessMode, Focus, Outcome, ShellModel};
 use crate::strings;
@@ -974,18 +973,7 @@ pub fn card_summary(shell: &ShellModel) -> Option<String> {
             &[source, &created.to_string(), &skipped.to_string(), "0"],
         ),
         CardOrigin::Reorder { notices } => crate::properties::reorder_line(card, notices),
-        // FT-1259: each count with its own singular.
-        CardOrigin::QuickFix { .. } => strings::format(
-            key!("card-fix"),
-            &[
-                &strings::format_count(count_key!("preview-records"), card.changes),
-                &strings::format_count(count_key!("preview-tags-count"), card.preview.derived.tags.len()),
-                &strings::format_count(
-                    count_key!("preview-xrefs-count"),
-                    card.preview.derived.xrefs.len(),
-                ),
-            ],
-        ),
+        CardOrigin::QuickFix { .. } => crate::properties::fix_line(card),
         // FT-580: the Preview tab's title (a table card's gesture title) and its summary line, as the window shows them.
         CardOrigin::Bulk
         | CardOrigin::Table { .. }

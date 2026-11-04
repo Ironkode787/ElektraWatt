@@ -339,14 +339,7 @@ fn fix_card(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         return;
     };
     let title = strings::format(key!("card-title-fix"), &[rule]);
-    let summary = strings::format(
-        key!("card-fix"),
-        &[
-            &card.changes.to_string(),
-            &card.preview.derived.tags.len().to_string(),
-            &card.preview.derived.xrefs.len().to_string(),
-        ],
-    );
+    let summary = ew_viewmodel::properties::fix_line(card);
     let card = crate::components::InlineCard {
         title: &title,
         summary: &summary,

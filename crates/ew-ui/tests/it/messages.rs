@@ -757,6 +757,57 @@ fn ft1097_the_pot_011_detail_shows_its_title_and_message_whole_at_the_floor_and_
     }
 }
 
+/// C50-p6#3, C50-p7#1: the quick-fix card's strip in the Messages pane counts its records, tags and cross-reference
+/// texts in words, in en-GB and in nl-NL (it read "1, 0, 0").
+#[test]
+fn the_quick_fix_card_counts_in_words_in_english_and_dutch() {
+    use ew_ui::ew_viewmodel::{key, strings};
+    for (lang, line) in [
+        (
+            "en",
+            "Preview open: Quick fix EW-CORE-023 · 1 record, 0 tags, 0 cross-reference texts",
+        ),
+        (
+            "nl",
+            "Voorbeeld open: Snelle oplossing EW-CORE-023 · 1 record, 0 kenmerken, 0 kruisverwijzingsteksten",
+        ),
+    ] {
+        let tmp = Tmp::new();
+        let mut h = on_golden(&tmp, Scripted::default());
+        dispatch(&mut h, "view.language", json!({ "value": lang }));
+        dispatch(&mut h, "page.goto", json!({"folio": "102"}));
+        let page = h
+            .state()
+            .shell()
+            .page_rows()
+            .iter()
+            .find(|r| r.folio == "102")
+            .map(|r| r.id.to_string())
+            .expect("folio 102");
+        dispatch(
+            &mut h,
+            "command.run",
+            json!({"cmd": "fields.set", "params": {"kind": "page", "targets": [page],
+                "path": "description_override", "value": "Overridden"}}),
+        );
+        dispatch(&mut h, "messages.show", json!({"on": true}));
+        settle(&mut h);
+        let fix = table_nodes(&h)
+            .into_iter()
+            .find(|n| n.role == NavRole::Finding && n.cells[1] == "EW-CORE-023" && n.badges.iter().any(|b| b == "fix"))
+            .expect("EW-CORE-023's finding with a fix");
+        dispatch(&mut h, "messages.fix", json!({"key": fix.key}));
+        settle(&mut h);
+        h.get_by_role_and_label(egui::Role::Button, strings::text(key!("nav-title-messages")))
+            .click();
+        settle(&mut h);
+        settle(&mut h);
+        let shown = h.root().children_recursive().any(|n| n.accesskit_node().value().as_deref() == Some(line));
+        assert!(shown, "{lang}: the strip reads {line:?}");
+        h.state_mut().shell_mut().shutdown();
+    }
+}
+
 /// C50-p5#2: in nl-NL a finding row with a quick fix still paints its Fix status badge (`badge-fix`, "Oplossen"):
 /// the window paints the badge from its code, the row's text carries the Dutch word.
 #[test]
