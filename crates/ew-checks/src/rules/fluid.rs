@@ -624,12 +624,19 @@ impl Rule for Occupancy {
                 };
                 out.push(outside(after, parent, slots.count, p, t, tail));
             }
-            if slots.second.contains(&(p, t))
-                && let Some(a) = usize::try_from(p)
-                    .ok()
-                    .and_then(|i| slots.slots.get(i - 1))
-                    .and_then(holder)
-            {
+            // whatever the IDs' order: the touched child may be the holder (the lower ID) or a second child
+            let held_by = usize::try_from(p)
+                .ok()
+                .and_then(|i| slots.slots.get(i.wrapping_sub(1)))
+                .and_then(holder);
+            let other = if slots.second.contains(&(p, t)) {
+                held_by
+            } else if held_by == Some(t) {
+                slots.second.iter().find(|(at, _)| *at == p).map(|(_, b)| *b)
+            } else {
+                None
+            };
+            if let Some(a) = other {
                 out.push(both(after, parent, p, a, t, "both"));
             }
             // FI-07: a module at a position another module of the same parent holds

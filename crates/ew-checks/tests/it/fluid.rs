@@ -365,3 +365,21 @@ fn ew_fl_013_prevents_a_valve_outside_or_at_a_held_position() {
     valve(&mut free, V2, 2, 2, None);
     assert!(messages(&free).is_empty());
 }
+
+/// EW-FL-013's prevent half (FL-7, C50-p6#1): a valve added at a position another valve holds is refused whatever the
+/// IDs' order, here the new valve's ID being the lower.
+#[test]
+fn ew_fl_013_prevents_a_lower_id_valve_at_a_held_position() {
+    use ew_derive::Q;
+    let mut fx = base();
+    valve(&mut fx, V2, 2, 1, None);
+    let before = fx.build();
+    let mut held = fx.clone();
+    valve(&mut held, V1, 1, 1, None);
+    let touched = [(ew_derive::ew_schema::Kind::Device, common::uid(V1))];
+    let messages: Vec<String> = ew_checks::prevent(&Q::new(&before), &Q::new(&held.build()), &touched)
+        .into_iter()
+        .map(|f| f.message)
+        .collect();
+    assert_eq!(messages, ["-1U3: position 1 holds both -1Q2 and -1Q1"]);
+}
