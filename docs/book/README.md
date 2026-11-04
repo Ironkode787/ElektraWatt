@@ -15,6 +15,7 @@ belongs there.
 | `src/SUMMARY.md` | the table of contents; the entries below `reference/commands/index.md` and `reference/rules/index.md` are generated |
 | `src/introduction.md` | what the guide is and how it is organised |
 | `src/tutorials/` | lessons, each run as a test of the build (WP-S7.05 D10, D11): [a first schematic page](src/tutorials/first-page.md), [importing a QElectroTech project](src/tutorials/import-qet.md) and [a first headless run on the golden project](src/tutorials/headless-workflow.md); `files/` holds the files a tutorial starts from |
+| `po/` | the PO template `messages.pot` of the hand-written pages and the table of contents, and `nl.po`, the Dutch translation (WP-S7.05 D14) |
 | `tutorial-scripts/` | the UI script of each window tutorial (`ew.uiscript/1`), run by `elektrawatt`'s `tutorials` test, which also checks the page's menu paths and keys against the window (T6) |
 | `rule-notes/` | the hand-written notes of every shipped rule, one file per rule ID with six headings; `docs-gen` joins them into the rule pages and fails without them (WP-S7.05 D5) |
 | `src/how-to/` | task guides: [using the application window](src/how-to/application-window.md), the target of F1 (no build bundles the built guide with the application yet; decision log ID-492) |
@@ -23,8 +24,9 @@ belongs there.
 
 ## Build
 
-The book builds offline: it uses no plugin, and nothing is fetched at build time. CI builds it with mdBook 0.5.4 (the
-version and the checksum of the release archive are pinned in `.github/workflows/docs.yml`, job `docs-book`).
+The book builds offline: nothing is fetched at build time, and the only plugin is the pinned `mdbook-gettext` of the
+Dutch build. CI builds it with `ci/build-book.sh` and mdBook 0.5.4 (the versions and checksums of mdBook and of
+mdbook-i18n-helpers are pinned in `packaging/components.toml`), in the `docs-book` job of `.github/workflows/docs.yml`.
 
 Run `cargo xtask docs-gen`, then `mdbook build docs/book`: the reference pages are built, not committed, so the
 book does not build without them.
@@ -68,7 +70,19 @@ $ cargo xtask docs-gen
 
 ## Translation
 
-The source language is English (`language = "en"` in `book.toml`). Translations are planned through
-mdbook-i18n-helpers (PO files) and Weblate (NFR-I18N-07: Dutch tutorials at the MVP, German by 1.0). Neither is set up
-yet: the Weblate project needs a maintainer's account, and mdbook-i18n-helpers is added to the build when a pinned
-version has been verified to build offline with this mdBook version.
+The source language is English (`language = "en"` in `book.toml`). The Dutch guide (NFR-I18N-07, WP-S7.05 D14) is
+built from the same pages through mdbook-i18n-helpers 0.4.0 (pinned in `packaging/components.toml`):
+
+- `po/messages.pot` holds the messages of the hand-written pages and the table of contents, made from a copy of the
+  book without the generated pages, so no generated text is translated. `bash ci/build-book.sh --pot` refreshes it;
+  the `docs-book` job warns when the committed template's messages differ from the pages.
+- `po/nl.po` translates the introduction, the tutorials page and the tutorials; every other message, and every
+  generated page, shows in English. Edit it in the repository (no Weblate at 0.1.0, ID-1331): add a new message of the
+  template to it, translate it, and keep the window's Dutch words (the terminology table at the head of
+  `crates/ew-viewmodel/locales/nl-NL/shell.ftl`) and its Dutch menu paths, which `elektrawatt`'s `tutorials` test
+  checks.
+- `ci/build-book.sh` builds the Dutch book into `nl/` of the built book (`MDBOOK_BOOK__LANGUAGE=nl`, the
+  `mdbook-gettext` preprocessor set from the environment, so `mdbook build docs/book` alone needs no plugin). F1 in a
+  window whose language is Dutch opens the Dutch page when the installed book has it.
+- `python3 -I ci/translation-status.py` reports the share of each locale's texts: the window, the rule messages and
+  the guide. It fails when the Dutch window is below 95 % or a tutorial message is untranslated.

@@ -2,16 +2,17 @@
 # SPDX-License-Identifier: CC-BY-4.0
 
 # The ElektraWatt user documentation (NFR-DOC-01, WP-S0.06): an mdBook in the Diátaxis structure. Build it with
-# `mdbook build docs/book` (offline: no preprocessor or renderer that fetches anything); the pinned version is in
-# .github/workflows/docs.yml. docs/book/README.md describes the layout and the generated pages.
+# `mdbook build docs/book` (offline: no preprocessor or renderer that fetches anything); the pinned versions are in
+# packaging/components.toml, and ci/build-book.sh builds the English and the Dutch book. docs/book/README.md describes
+# the layout, the generated pages and the translation.
 
 [book]
 title = "ElektraWatt User Guide"
 authors = ["The ElektraWatt contributors"]
 description = "Tutorials, how-to guides, reference and explanation for the ElektraWatt electrical control-cabinet design application."
-# The source language. Translations (NFR-I18N-07: Dutch tutorials at MVP, German by 1.0) are PO files produced
-# by mdbook-i18n-helpers and translated in Weblate. Neither is set up yet (owner items: the Weblate project, and
-# pinning mdbook-i18n-helpers once a build of it has been verified); see docs/book/README.md.
+# The source language. Translations (NFR-I18N-07: Dutch tutorials at MVP, German by 1.0) are the PO files of po/,
+# made and read by mdbook-i18n-helpers and edited in the repository (no Weblate at 0.1.0, ID-1331); the Dutch build
+# sets `book.language` and the `gettext` preprocessor from the environment (ci/build-book.sh, WP-S7.05 D14).
 language = "en"
 src = "src"
 

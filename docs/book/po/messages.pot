@@ -1,0 +1,3447 @@
+
+msgid ""
+msgstr ""
+"Project-Id-Version: ElektraWatt User Guide\n"
+"POT-Creation-Date: 2026-11-04T20:05:46+01:00\n"
+"PO-Revision-Date: \n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: en\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+#: src/SUMMARY.md:1
+msgid "Summary"
+msgstr ""
+
+#: src/SUMMARY.md:3 src/introduction.md:1
+msgid "Introduction"
+msgstr ""
+
+#: src/SUMMARY.md:5 src/SUMMARY.md:7 src/tutorials/index.md:1
+msgid "Tutorials"
+msgstr ""
+
+#: src/SUMMARY.md:8 src/tutorials/first-page.md:1
+msgid "A first schematic page with potentials"
+msgstr ""
+
+#: src/SUMMARY.md:9 src/tutorials/import-qet.md:1
+msgid "Importing a QElectroTech project"
+msgstr ""
+
+#: src/SUMMARY.md:10 src/tutorials/headless-workflow.md:1
+msgid "A first headless run on the golden project"
+msgstr ""
+
+#: src/SUMMARY.md:12 src/SUMMARY.md:14 src/how-to/index.md:1
+msgid "How-to guides"
+msgstr ""
+
+#: src/SUMMARY.md:15 src/how-to/install.md:1
+msgid "Install ElektraWatt"
+msgstr ""
+
+#: src/SUMMARY.md:16 src/how-to/application-window.md:1
+msgid "Use the application window"
+msgstr ""
+
+#: src/SUMMARY.md:17 src/how-to/text-interface.md:1
+msgid "Draw a page from the text interface"
+msgstr ""
+
+#: src/SUMMARY.md:18 src/how-to/define-supply-potential.md:1
+msgid "Define a supply potential"
+msgstr ""
+
+#: src/SUMMARY.md:19 src/how-to/choose-parts.md:1
+msgid "Choose parts"
+msgstr ""
+
+#: src/SUMMARY.md:20 src/how-to/upgrade-a-project.md:1
+msgid "Upgrade a project"
+msgstr ""
+
+#: src/SUMMARY.md:22 src/SUMMARY.md:24 src/reference/index.md:1
+msgid "Reference"
+msgstr ""
+
+#: src/SUMMARY.md:25 src/reference/window/tools.md:1
+msgid "Tools"
+msgstr ""
+
+#: src/SUMMARY.md:26 src/reference/window/dialogs.md:1
+msgid "Dialogs"
+msgstr ""
+
+#: src/SUMMARY.md:27 src/reference/window/panels.md:1
+msgid "Panels"
+msgstr ""
+
+#: src/SUMMARY.md:29 src/SUMMARY.md:31 src/explanation/index.md:1
+msgid "Explanation"
+msgstr ""
+
+#: src/SUMMARY.md:32 src/explanation/eplan-and-ew.md:1
+msgid "EPLAN and EW"
+msgstr ""
+
+#: src/SUMMARY.md:33 src/explanation/qet-and-ew.md:1
+msgid "QElectroTech and EW"
+msgstr ""
+
+#: src/introduction.md:3
+msgid ""
+"ElektraWatt (EW) is an open-source, cross-platform desktop application for "
+"designing the electrical schematics of control cabinets. This guide is its "
+"user documentation."
+msgstr ""
+
+#: src/introduction.md:6
+msgid ""
+"**Status.** EW is working toward its first release, the pilot release 0.1.0 "
+"for Windows and Linux. Two programs exist today: the desktop application, "
+"`elektrawatt`, which opens, edits, checks and prints a project, with "
+"navigators, table mode, a history and the 2D panel layout; and the "
+"command-line program, `ew`, which works on a project from the terminal "
+"(\"headless\"): it imports QElectroTech projects, checks, exports PDF/A-2b, "
+"SVG and tables, and prints. This guide grows with the product; where a page "
+"describes something that is not built, it says so. The milestones and where "
+"each stands are in the repository's "
+"[roadmap](https://github.com/Ironkode787/ElektraWatt/blob/main/ROADMAP.md)."
+msgstr ""
+
+#: src/introduction.md:14
+msgid "Checks and engineering verification"
+msgstr ""
+
+#: src/introduction.md:16
+msgid ""
+"ElektraWatt's checks do not replace engineering verification by a competent "
+"person."
+msgstr ""
+
+#: src/introduction.md:18
+msgid "How this guide is organised"
+msgstr ""
+
+#: src/introduction.md:20
+msgid ""
+"The guide follows the [Diátaxis](https://diataxis.fr/) structure: four kinds "
+"of page, each for a different need."
+msgstr ""
+
+#: src/introduction.md:22
+msgid "Section"
+msgstr ""
+
+#: src/introduction.md:22
+msgid "Use it when you want to"
+msgstr ""
+
+#: src/introduction.md:22
+msgid "Style"
+msgstr ""
+
+#: src/introduction.md:24
+msgid "[Tutorials](tutorials/index.md)"
+msgstr ""
+
+#: src/introduction.md:24
+msgid "learn by doing a complete task from start to finish"
+msgstr ""
+
+#: src/introduction.md:24
+msgid "a guided lesson with a result at the end"
+msgstr ""
+
+#: src/introduction.md:25
+msgid "[How-to guides](how-to/index.md)"
+msgstr ""
+
+#: src/introduction.md:25
+msgid "solve a specific problem you already understand"
+msgstr ""
+
+#: src/introduction.md:25
+msgid "short steps for one goal"
+msgstr ""
+
+#: src/introduction.md:26
+msgid "[Reference](reference/index.md)"
+msgstr ""
+
+#: src/introduction.md:26
+msgid "look up an exact fact: a command, a parameter, a rule"
+msgstr ""
+
+#: src/introduction.md:26
+msgid "complete and dry; parts are generated from the code"
+msgstr ""
+
+#: src/introduction.md:27
+msgid "[Explanation](explanation/index.md)"
+msgstr ""
+
+#: src/introduction.md:27
+msgid "understand why EW works the way it does"
+msgstr ""
+
+#: src/introduction.md:27
+msgid "background and design reasoning"
+msgstr ""
+
+#: src/introduction.md:29
+msgid "Where to start"
+msgstr ""
+
+#: src/introduction.md:31
+msgid ""
+"**New to EW:** the tutorial [A first schematic page with "
+"potentials](tutorials/first-page.md). If you come from QElectroTech, "
+"[Importing a QElectroTech project](tutorials/import-qet.md) brings a project "
+"of yours over."
+msgstr ""
+
+#: src/introduction.md:33
+msgid ""
+"**A task at hand:** the how-to guides, among them [Choose "
+"parts](how-to/choose-parts.md) and [Upgrade a "
+"project](how-to/upgrade-a-project.md)."
+msgstr ""
+
+#: src/introduction.md:35
+msgid ""
+"**A fact to look up:** the [rule reference](reference/rules/index.md), with "
+"a page per check rule; the window's [tools](reference/window/tools.md), "
+"[dialogs](reference/window/dialogs.md) and "
+"[panels](reference/window/panels.md); and the [release "
+"notes](reference/release-notes/index.md) of every release."
+msgstr ""
+
+#: src/introduction.md:38
+msgid ""
+"**Coming from another program:** [EPLAN and EW](explanation/eplan-and-ew.md) "
+"and [QElectroTech and EW](explanation/qet-and-ew.md) relate the concepts you "
+"know to EW's."
+msgstr ""
+
+#: src/introduction.md:41
+msgid "What the guide does not contain"
+msgstr ""
+
+#: src/introduction.md:43
+msgid ""
+"The design documents, the architecture decision records and the work plan "
+"stay in the repository, next to the code they describe. This guide links to "
+"them; it does not copy them. Start from the [documentation "
+"map](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/README.md)."
+msgstr ""
+
+#: src/introduction.md:47
+msgid "Offline use"
+msgstr ""
+
+#: src/introduction.md:49
+msgid ""
+"The guide builds without network access and is meant to be bundled with the "
+"application, so that the help works without a connection. Pages that link to "
+"the repository need a connection to follow those links."
+msgstr ""
+
+#: src/introduction.md:52
+msgid "Sample data"
+msgstr ""
+
+#: src/introduction.md:54
+msgid ""
+"Every example uses the anonymised golden project (`golden/J-E-2416`, licence "
+"CC0-1.0). It holds placeholders where a real project would name a customer, "
+"an end user or a person, such as `<customer>` and `<drawing id>`. Do not put "
+"real customer data into examples that you contribute to this guide."
+msgstr ""
+
+#: src/tutorials/index.md:3
+msgid ""
+"A tutorial is a lesson. It takes you through one complete task, with every "
+"step spelled out and a visible result at the end, so that you learn how the "
+"parts of EW fit together by using them. You do not need to understand why a "
+"step works to do it; the [explanation](../explanation/index.md) section and "
+"the [reference](../reference/index.md) say why and what exactly."
+msgstr ""
+
+#: src/tutorials/index.md:8
+msgid ""
+"Each tutorial runs as a test of EW's own build, so its steps, menu paths and "
+"keys are the ones the program has."
+msgstr ""
+
+#: src/tutorials/index.md:10 src/how-to/index.md:6
+msgid "Available now"
+msgstr ""
+
+#: src/tutorials/index.md:12
+msgid ""
+"[A first schematic page with potentials](first-page.md): a new project, a "
+"transformer and two lamps placed and wired, the potentials named, the "
+"Potentials navigator and the Messages pane read. You need EW installed and "
+"an empty folder."
+msgstr ""
+
+#: src/tutorials/index.md:15
+msgid ""
+"[Importing a QElectroTech project](import-qet.md): a small QElectroTech "
+"project imported, its migration report read, its missing wire drawn and its "
+"parts chosen, until the report holds only the record of the import. You need "
+"EW installed and the tutorial's file "
+"[lamp-circuit.qet](files/lamp-circuit.qet)."
+msgstr ""
+
+#: src/tutorials/index.md:18
+msgid ""
+"[A first headless run on the golden project](headless-workflow.md): check a "
+"project, write its pages as PDF and SVG, export the cable list and the bill "
+"of materials, and query it with SQL, all from the terminal with the `ew` "
+"program. You need a checkout of the repository and the `ew` program."
+msgstr ""
+
+#: src/tutorials/index.md:22
+msgid "Planned"
+msgstr ""
+
+#: src/tutorials/index.md:24
+msgid ""
+"The documentation requirements (NFR-DOC-03) name the tutorials that follow: "
+"a terminal strip and a cable, and reports and PDF; at version 1.0, a PLC "
+"card with addressing, and 2D/3D layout with the wire list."
+msgstr ""
+
+#: src/tutorials/first-page.md:3
+msgid ""
+"In this tutorial you draw your first schematic page in the ElektraWatt "
+"window: a small control transformer that feeds two cabinet lamps. You place "
+"the symbols, draw the wires, give the two potentials their names and read "
+"what EW knows about the circuit. At the end you have a saved project whose "
+"checks show no error."
+msgstr ""
+
+#: src/tutorials/first-page.md:7 src/tutorials/import-qet.md:8
+#: src/how-to/install.md:7 src/how-to/define-supply-potential.md:7
+#: src/how-to/choose-parts.md:7
+msgid "What you need"
+msgstr ""
+
+#: src/tutorials/first-page.md:9 src/tutorials/import-qet.md:10
+msgid ""
+"ElektraWatt installed and started; see [Install "
+"ElektraWatt](../how-to/install.md)."
+msgstr ""
+
+#: src/tutorials/first-page.md:10
+msgid "An empty folder for the project, or a place where EW may create one."
+msgstr ""
+
+#: src/tutorials/first-page.md:12
+msgid "Nothing else: the project starts from EW's built-in basic project."
+msgstr ""
+
+#: src/tutorials/first-page.md:14 src/tutorials/import-qet.md:16
+#: src/how-to/define-supply-potential.md:12
+msgid "Steps"
+msgstr ""
+
+#: src/tutorials/first-page.md:16
+msgid ""
+"Choose **File ▸ New project…** (`Ctrl+N`) and pick an empty folder named "
+"`first-page.ew`. EW creates the project from the basic project and shows its "
+"one empty page, folio 1, with its frame."
+msgstr ""
+
+#: src/tutorials/first-page.md:18
+msgid ""
+"Choose **Draw ▸ Place ▸ Symbol…** (`I`). In the symbol picker, choose "
+"**transformer-1ph** and click near the top left of the page. Then choose "
+"**Draw ▸ Select** to put the tool away. The transformer -1T1 is on the page, "
+"with its primary pins 1U1 and 2U1 at the top and its secondary pins 1U2 and "
+"2U2 at the bottom."
+msgstr ""
+
+#: src/tutorials/first-page.md:22
+msgid ""
+"Choose **Draw ▸ Place ▸ Symbol…** again, choose **lamp**, and click twice, "
+"to the right of and below the transformer, to place two lamps side by side. "
+"Choose **Draw ▸ Select**. The lamps -1E1 and -1E2 are on the page, each with "
+"the pins X1 at the top and X2 at the bottom."
+msgstr ""
+
+#: src/tutorials/first-page.md:25
+msgid ""
+"Choose **Draw ▸ Connect ▸ Wire** (`W`). Click the transformer's pin 1U2, "
+"then the pin X1 of -1E1: the wire is drawn. Draw three more wires the same "
+"way: from X1 of -1E1 to X1 of -1E2, from 2U2 to X2 of -1E1, and from X2 of "
+"\\-1E1 to X2 of -1E2. Choose **Draw ▸ Select**. The two lamps are wired in "
+"parallel to the transformer's secondary. Each wire takes a number, such as "
+"1.1."
+msgstr ""
+
+#: src/tutorials/first-page.md:29
+msgid ""
+"Click the wire between the two lamps' X1 pins, then choose **Draw ▸ Connect "
+"▸ Define potential…**. Type the name `24VAC`, the type `L` and the voltage "
+"`24 V AC`, and confirm the form. Every wire of that potential now carries "
+"the name 24VAC."
+msgstr ""
+
+#: src/tutorials/first-page.md:32
+msgid ""
+"Click the wire between the two lamps' X2 pins, choose **Draw ▸ Connect ▸ "
+"Define potential…**, and give it the name `0VAC`, the type `N` and the "
+"voltage `24 V AC`. The circuit has its two named potentials."
+msgstr ""
+
+#: src/tutorials/first-page.md:35
+msgid ""
+"Choose **View ▸ Panels ▸ Navigators ▸ Potentials**. The Potentials navigator "
+"lists 0VAC and 24VAC, each with its two wires."
+msgstr ""
+
+#: src/tutorials/first-page.md:37
+msgid ""
+"Choose **Check ▸ Messages**. The Messages pane lists no error and five "
+"warnings, still pending while you draw: three devices without a part "
+"(EW-CORE-041: -1E1, -1E2 and -1T1) and the transformer's two open primary "
+"pins (EW-POT-009: -1T1:1U1 and \\-1T1:2U1)."
+msgstr ""
+
+#: src/tutorials/first-page.md:41
+msgid ""
+"Choose **File ▸ Save** (`Ctrl+S`). The title bar no longer marks the project "
+"as changed, and the status bar says Saved."
+msgstr ""
+
+#: src/tutorials/first-page.md:44 src/tutorials/import-qet.md:50
+msgid "What you learnt"
+msgstr ""
+
+#: src/tutorials/first-page.md:46
+msgid ""
+"A project starts from a basic project; **File ▸ New project…** makes one in "
+"a folder of its own."
+msgstr ""
+
+#: src/tutorials/first-page.md:47
+msgid ""
+"A symbol you place is a function of a device, and the device gets its tag "
+"(-1T1, -1E1) from the numbering scheme."
+msgstr ""
+
+#: src/tutorials/first-page.md:48
+msgid ""
+"Wires join connection points; the wires that touch form a potential, which "
+"you name with Define potential…."
+msgstr ""
+
+#: src/tutorials/first-page.md:49
+msgid ""
+"The checks run while you draw. A warning tells you what is still open; the "
+"[rule reference](../reference/rules/index.md) explains each rule, and **Help "
+"▸ Documentation** on a finding opens its rule's page."
+msgstr ""
+
+#: src/tutorials/import-qet.md:3
+msgid ""
+"In this tutorial you bring a small QElectroTech project into ElektraWatt: a "
+"24 V supply that feeds a lamp through a switch. You import it, read the "
+"migration report that says what the import changed, guessed or left out, and "
+"fix the findings that are yours to fix, until the report shows only the "
+"record of the import itself. At the end you have a saved EW project."
+msgstr ""
+
+#: src/tutorials/import-qet.md:11
+msgid ""
+"The tutorial's QElectroTech project, "
+"[lamp-circuit.qet](files/lamp-circuit.qet). Save it in a folder of your own."
+msgstr ""
+
+#: src/tutorials/import-qet.md:13
+msgid ""
+"The project has one folio with four elements: the supply G1, the switch S1, "
+"a lamp without a label and an earth symbol wired to the supply's PE "
+"terminal. One conductor is missing on purpose: the lamp's return to the "
+"supply."
+msgstr ""
+
+#: src/tutorials/import-qet.md:18
+msgid ""
+"Choose **Project ▸ Import QElectroTech project…**, pick `lamp-circuit.qet`, "
+"and name the new project's folder `lamp-circuit.ew`. The import's preview "
+"says what it will create: \"1 pages, 4 devices, 3 connections; 0 errors, 8 "
+"warnings and 5 infos in the migration report\". Nothing is written yet."
+msgstr ""
+
+#: src/tutorials/import-qet.md:22
+msgid ""
+"Choose **Apply** in the preview. EW creates the project and opens it. The "
+"Messages pane shows the **Migration report**, chosen in its header beside "
+"the project's own scheme: 8 warnings and 5 infos."
+msgstr ""
+
+#: src/tutorials/import-qet.md:25
+msgid ""
+"Read the report, rule by rule. Some findings are the record of the import, "
+"and stay:"
+msgstr ""
+
+#: src/tutorials/import-qet.md:26
+msgid ""
+"EW-IMP-008: the folio-report format of QElectroTech is kept as text; EW's "
+"own cross-reference format applies."
+msgstr ""
+
+#: src/tutorials/import-qet.md:27
+msgid ""
+"EW-IMP-119: the supply's element has no meaning EW knows, so G1 came in as a "
+"generic black box."
+msgstr ""
+
+#: src/tutorials/import-qet.md:28
+msgid ""
+"EW-IMP-103 and EW-NUM-001: the labels S1 and G1 are kept as frozen tags, "
+"because they do not follow the project's numbering."
+msgstr ""
+
+#: src/tutorials/import-qet.md:30
+msgid ""
+"EW-IMP-122: the lamp and the earth had no label, so EW gave them the tags "
+"-1A1 and -1X1."
+msgstr ""
+
+#: src/tutorials/import-qet.md:32
+msgid ""
+"The others are live checks of the project, and yours to fix: EW-POT-009 says "
+"that the lamp's pin X2 and the supply's pin - are not connected, and "
+"EW-CORE-041 says that none of the four devices has a part."
+msgstr ""
+
+#: src/tutorials/import-qet.md:34
+msgid ""
+"Choose **Draw ▸ Connect ▸ Wire** (`W`). Click the lamp's pin X2, at its "
+"bottom, then the supply's pin -, at the bottom of G1: the return wire is "
+"drawn. Choose **Draw ▸ Select**. The two EW-POT-009 warnings are gone. While "
+"you edit, the Messages pane shows the project's own scheme, drafting."
+msgstr ""
+
+#: src/tutorials/import-qet.md:37
+msgid ""
+"Click the lamp -1A1 and choose **Edit ▸ Choose part…**. Type `lamp`, choose "
+"**EW-GEN-LMP-1**, and confirm with **Choose**. The lamp has its part."
+msgstr ""
+
+#: src/tutorials/import-qet.md:40
+msgid ""
+"Click the switch S1, choose **Edit ▸ Choose part…**, type `on/off` and "
+"choose **EW-GEN-SW-1**."
+msgstr ""
+
+#: src/tutorials/import-qet.md:41
+msgid ""
+"Click the supply G1, choose **Edit ▸ Choose part…**, type `power supply` and "
+"choose **EW-GEN-PSU-1**."
+msgstr ""
+
+#: src/tutorials/import-qet.md:42
+msgid ""
+"Click the earth -1X1, choose **Edit ▸ Choose part…**, type `earth` and "
+"choose **EW-GEN-TRM-2**. Every device has its part, and EW-CORE-041 is gone."
+msgstr ""
+
+#: src/tutorials/import-qet.md:44
+msgid ""
+"Choose **Check ▸ Run checks** (`F7`). The Messages pane shows the migration "
+"report again, with no error, 2 warnings (EW-IMP-008 and EW-IMP-119) and 5 "
+"infos (EW-IMP-103 twice, EW-IMP-122 and EW-NUM-001 twice): the record of the "
+"import, nothing left to fix."
+msgstr ""
+
+#: src/tutorials/import-qet.md:47
+msgid ""
+"Choose **File ▸ Save** (`Ctrl+S`). The title bar no longer marks the project "
+"as changed."
+msgstr ""
+
+#: src/tutorials/import-qet.md:52
+msgid ""
+"**Project ▸ Import QElectroTech project…** previews an import before it "
+"writes anything, and makes a new EW project of its own; the QElectroTech "
+"file is not changed."
+msgstr ""
+
+#: src/tutorials/import-qet.md:54
+msgid ""
+"The migration report lists two kinds of finding: the import's own record "
+"(the EW-IMP rules, and the frozen tags), which stays as a note of what "
+"changed, and the live checks of the project, which go away when you fix them."
+msgstr ""
+
+#: src/tutorials/import-qet.md:56
+msgid ""
+"In the Messages pane's header you switch between the migration report and "
+"the project's own scheme."
+msgstr ""
+
+#: src/tutorials/import-qet.md:57
+msgid ""
+"[QElectroTech and EW](../explanation/qet-and-ew.md) explains how "
+"QElectroTech's elements, labels, conductors and folio reports become EW's "
+"functions, devices, wires and interruption points."
+msgstr ""
+
+#: src/tutorials/headless-workflow.md:3
+msgid ""
+"In this tutorial you use the `ew` command-line program on the golden "
+"project: you check the project, write its pages as PDF and SVG, export the "
+"cable list and the bill of materials, and ask the project questions in SQL. "
+"Nothing needs the desktop application, and nothing leaves your machine: `ew` "
+"never uses the network."
+msgstr ""
+
+#: src/tutorials/headless-workflow.md:7
+msgid ""
+"The golden project, `J-E-2416`, is an anonymised control-cabinet project "
+"that EW uses as its acceptance target. Where a real project names a customer "
+"or a person, it holds a placeholder such as `<customer>`. You only read it "
+"here; none of the steps changes it."
+msgstr ""
+
+#: src/tutorials/headless-workflow.md:11
+msgid "Before you start"
+msgstr ""
+
+#: src/tutorials/headless-workflow.md:13
+msgid "You need:"
+msgstr ""
+
+#: src/tutorials/headless-workflow.md:15
+msgid ""
+"a checkout of the ElektraWatt repository, which holds the project in "
+"`golden/`;"
+msgstr ""
+
+#: src/tutorials/headless-workflow.md:16
+msgid ""
+"the `ew` program, built from the checkout with `cargo build --release -p "
+"ew`. It is then `target/release/ew` (`target\\release\\ew.exe` on Windows). "
+"The examples write plain `ew`; put the program on your `PATH` or type its "
+"path."
+msgstr ""
+
+#: src/tutorials/headless-workflow.md:20
+msgid ""
+"Run every command from the root of the checkout. Check that `ew` works; it "
+"prints its name and its version:"
+msgstr ""
+
+#: src/tutorials/headless-workflow.md:26
+msgid "Then make a directory for the results:"
+msgstr ""
+
+#: src/tutorials/headless-workflow.md:32
+msgid "Where the project comes from"
+msgstr ""
+
+#: src/tutorials/headless-workflow.md:34
+msgid ""
+"The folder `golden/J-E-2416/tables/` holds the project as plain CSV tables: "
+"one file per kind of record (devices, terminals, connections, pages and so "
+"on). The importer of the `ew-import-tables` crate turns these tables into "
+"project records, and the checked-in project `golden/J-E-2416.ew` is "
+"generated from the same tables. The [golden "
+"README](https://github.com/Ironkode787/ElektraWatt/blob/main/golden/J-E-2416/README.md) "
+"describes the tables and their format."
+msgstr ""
+
+#: src/tutorials/headless-workflow.md:40
+msgid ""
+"**Not built yet.** The importer is a library today. The `ew import csv` "
+"subcommand that will run it from the terminal does not exist yet, so this "
+"tutorial starts from the checked-in project. When the subcommand exists, "
+"this step will become a command line."
+msgstr ""
+
+#: src/tutorials/headless-workflow.md:44
+msgid ""
+"A project is a directory, here `golden/J-E-2416.ew`. Every `ew` command that "
+"works on a project takes it as its first argument."
+msgstr ""
+
+#: src/tutorials/headless-workflow.md:47
+msgid "Step 1: check the project"
+msgstr ""
+
+#: src/tutorials/headless-workflow.md:49
+msgid ""
+"`ew check` runs the check rules over the project and prints what it finds, "
+"one finding per line:"
+msgstr ""
+
+#: src/tutorials/headless-workflow.md:58
+msgid "The first lines are the findings, for example:"
+msgstr ""
+
+#: src/tutorials/headless-workflow.md:64
+msgid ""
+"Each line gives the severity, the rule ID, the rule's six-digit code, the "
+"thing the finding is about and a message. The last line counts the findings, "
+"and the standard error stream repeats the count with the scheme's name. The "
+"golden project holds deliberate defects, so it reports errors: the cable "
+"`-3W1`, for one, has no length, so a cable list cannot be complete."
+msgstr ""
+
+#: src/tutorials/headless-workflow.md:69
+msgid "Look at the exit code:"
+msgstr ""
+
+#: src/tutorials/headless-workflow.md:76
+msgid ""
+"`ew` exits with 0 when the project has no unwaived errors, 1 when it has "
+"some and 2 when it could not run the check at all (a project that cannot be "
+"opened, a wrong option). A script should treat 2 as a failure of the tooling "
+"and 1 as an answer about the drawing. The exit codes of every subcommand are "
+"in [doc 17 "
+"§3.2](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/design/17-extensibility.md#32-exit-codes)."
+msgstr ""
+
+#: src/tutorials/headless-workflow.md:81
+msgid ""
+"Each rule has a page in the reference: "
+"[`EW-CORE-033`](../reference/rules/ew-core-033.md) is the cable without a "
+"length, and [`EW-NUM-001`](../reference/rules/ew-num-001.md) is the "
+"information that a frozen device tag differs from what the numbering scheme "
+"would give."
+msgstr ""
+
+#: src/tutorials/headless-workflow.md:85
+msgid ""
+"`ew check` takes a scheme and a mode. The default is the `pre-delivery` "
+"scheme in `release` mode; `--format json` and `--format md` change the "
+"output, and `--out <file>` writes it to a file."
+msgstr ""
+
+#: src/tutorials/headless-workflow.md:88
+msgid "Step 2: write the pages as PDF and SVG"
+msgstr ""
+
+#: src/tutorials/headless-workflow.md:90
+msgid ""
+"`ew export pdf` writes every page of the project into one PDF/A-2b file, "
+"with an outline, page labels and cross-reference links:"
+msgstr ""
+
+#: src/tutorials/headless-workflow.md:99
+msgid ""
+"The second line, on the standard error stream, counts remarks about the "
+"rendering of single pages. They do not stop the export. The directory of "
+"`--out` must exist, which is why you made `out` first."
+msgstr ""
+
+#: src/tutorials/headless-workflow.md:102
+msgid ""
+"`ew export svg` writes one SVG file per page into a directory. Use `--pages` "
+"to select folios; this writes the pages numbered 101 to 106 that exist:"
+msgstr ""
+
+#: src/tutorials/headless-workflow.md:111
+msgid ""
+"The directory now holds `101.svg`, `102.svg`, `103.svg` and `106.svg`. `ew` "
+"replaces the directory as a whole, so it must hold SVG files only; a stale "
+"page of an earlier export cannot remain in it."
+msgstr ""
+
+#: src/tutorials/headless-workflow.md:114
+msgid ""
+"The same export always gives the same bytes. The only date in the output "
+"comes from the project, or from the environment variable `SOURCE_DATE_EPOCH` "
+"when you set it, never from the clock of your machine; `--threads <n>` "
+"changes the speed and never the result."
+msgstr ""
+
+#: src/tutorials/headless-workflow.md:118
+msgid "Step 3: export the cable list and the bill of materials"
+msgstr ""
+
+#: src/tutorials/headless-workflow.md:120
+msgid "Two more exports write the rows of a report as CSV:"
+msgstr ""
+
+#: src/tutorials/headless-workflow.md:129
+msgid ""
+"Open `out/cables.csv` in a text editor or a spreadsheet. It starts like this:"
+msgstr ""
+
+#: src/tutorials/headless-workflow.md:131
+msgid ""
+"```text\n"
+"row,Cable,Cable type,Core,Colour,mm²,From,To,Length\n"
+"heading,Cable overview,,,,,,,\n"
+"data,-3W1,6XV1830-0EH10,,,,,,length missing\n"
+"data,-106W1,NEBU-G78W5-K-2-N-LE5,,,,\"-X1031, -X1032\",-201U1,from part\n"
+"```"
+msgstr ""
+
+#: src/tutorials/headless-workflow.md:138
+msgid ""
+"The cable `-3W1` says \"length missing\": it is the finding of step 1, seen "
+"from the other side. The cables `-106W1` and `-106W2` take their length from "
+"their part."
+msgstr ""
+
+#: src/tutorials/headless-workflow.md:141
+msgid ""
+"`--mode` of `ew export bom` is `parts` (the default; every component part) "
+"or `assembly`, which replaces the parts a configured product covers by one "
+"row for the product. Both write the rows of the project's own report page, "
+"so the CSV equals what the drawing prints."
+msgstr ""
+
+#: src/tutorials/headless-workflow.md:145
+msgid "Step 4: ask the project questions with SQL"
+msgstr ""
+
+#: src/tutorials/headless-workflow.md:147
+msgid ""
+"`ew sql` runs one read-only `SELECT` over the project's SQL views, which are "
+"named `api_v1_...`:"
+msgstr ""
+
+#: src/tutorials/headless-workflow.md:149
+msgid ""
+"```console\n"
+"$ ew sql golden/J-E-2416.ew \"SELECT count(*) FROM api_v1_terminal\"\n"
+"count(*)\n"
+"28\n"
+"1 rows\n"
+"```"
+msgstr ""
+
+#: src/tutorials/headless-workflow.md:156
+msgid ""
+"The result is CSV with a header line, on the standard output; the row count "
+"goes to the standard error stream. Ask for the cables and where their "
+"lengths come from:"
+msgstr ""
+
+#: src/tutorials/headless-workflow.md:159
+msgid ""
+"```console\n"
+"$ ew sql golden/J-E-2416.ew \"SELECT tag, cores, length_source FROM "
+"api_v1_cable ORDER BY tag\"\n"
+"tag,cores,length_source\n"
+"-106W1,5,part\n"
+"-106W2,5,part\n"
+"-3W1,3,missing\n"
+"3 rows\n"
+"```"
+msgstr ""
+
+#: src/tutorials/headless-workflow.md:168
+msgid ""
+"`ew sql schema` prints every view with its columns. Only `SELECT`, `WITH` "
+"and `VALUES` statements run; anything else, such as `ATTACH`, is refused and "
+"the exit code is 2."
+msgstr ""
+
+#: src/tutorials/headless-workflow.md:171
+msgid "What you have done"
+msgstr ""
+
+#: src/tutorials/headless-workflow.md:173
+msgid ""
+"You checked a project and read the exit code, wrote its pages as PDF and "
+"SVG, exported a cable list and a bill of materials, and queried the project "
+"in SQL, all from the terminal. The same commands run in a script or a CI "
+"job, because they read the project without locking it and never need a "
+"display."
+msgstr ""
+
+#: src/tutorials/headless-workflow.md:177
+msgid "Where to go next"
+msgstr ""
+
+#: src/tutorials/headless-workflow.md:179
+msgid ""
+"The [command reference](../reference/commands/index.md) lists the commands "
+"that change a project, and the [rule reference](../reference/rules/index.md) "
+"the rules that `ew check` runs."
+msgstr ""
+
+#: src/tutorials/headless-workflow.md:181
+msgid ""
+"[How-to guides](../how-to/index.md) for single tasks, such as checking a "
+"project in a CI job, will follow this tutorial."
+msgstr ""
+
+#: src/tutorials/headless-workflow.md:183
+msgid ""
+"The [explanation](../explanation/index.md) section links the design of the "
+"model and of the check engine."
+msgstr ""
+
+#: src/how-to/index.md:3
+msgid ""
+"A how-to guide helps you reach one goal that you already understand: short "
+"steps, no background. If you are new to EW, start with a "
+"[tutorial](../tutorials/index.md) instead."
+msgstr ""
+
+#: src/how-to/index.md:8
+msgid ""
+"[Install ElektraWatt](install.md): the Windows setup, silent installs, the "
+"Linux AppImage, the CLI archives and `EW_CONTENT_DIR`, upgrading and "
+"uninstalling."
+msgstr ""
+
+#: src/how-to/index.md:10
+msgid ""
+"[Use the application window](application-window.md): the start page, new, "
+"sample and imported projects, recovery, the command palette, workspaces, the "
+"first-run setup, the company-standard wizard and F1."
+msgstr ""
+
+#: src/how-to/index.md:12
+msgid ""
+"[Draw a page from the text interface](text-interface.md): reading a page as "
+"text, placing, autoconnect, frozen tags, terminal strips, external points, "
+"wires and junctions, delete and export, without a screen."
+msgstr ""
+
+#: src/how-to/index.md:14
+msgid ""
+"[Define a supply potential](define-supply-potential.md): a potential's name, "
+"type and voltage from a selected wire, junction or terminal."
+msgstr ""
+
+#: src/how-to/index.md:16
+msgid ""
+"[Choose parts](choose-parts.md): a device's part from the property grid or "
+"the part selection, a device placed from its part, and where the parts are "
+"listed."
+msgstr ""
+
+#: src/how-to/index.md:18
+msgid ""
+"[Upgrade a project](upgrade-a-project.md): what a release reads and writes, "
+"opening a project of an older format, the backup of the first save, `ew "
+"upgrade`, and what changes in the format from 0.1.0."
+msgstr ""
+
+#: src/how-to/index.md:21
+msgid ""
+"More follow the headless workflow of the [first "
+"tutorial](../tutorials/headless-workflow.md), for example replaying a "
+"command log with `ew apply`, checking a project in a CI job, and exporting "
+"for a single page range."
+msgstr ""
+
+#: src/how-to/index.md:24
+msgid "Writing a how-to guide"
+msgstr ""
+
+#: src/how-to/index.md:26
+msgid ""
+"A guide names its goal in the title (\"Export one page range as SVG\"), "
+"lists what you need, gives numbered steps and ends when the goal is met. "
+"Facts that belong to a command or a rule go to the "
+"[reference](../reference/index.md), and are linked, not repeated."
+msgstr ""
+
+#: src/how-to/install.md:3
+msgid ""
+"This guide installs ElektraWatt on Windows with its setup or on Linux as an "
+"AppImage, or the command-line program `ew` alone from its archive on Windows "
+"or Linux, and then upgrades or removes it. Each download carries the version "
+"in its name, shown here as `<version>`."
+msgstr ""
+
+#: src/how-to/install.md:9
+msgid ""
+"For the setup: Windows 10 or 11 on an x86-64 PC. No administrator rights and "
+"no network connection are needed."
+msgstr ""
+
+#: src/how-to/install.md:10
+msgid ""
+"For the AppImage: Linux with glibc 2.35 or newer (as on Ubuntu 22.04 and "
+"Debian 12) on x86-64. No administrator rights, no network connection and no "
+"other package are needed."
+msgstr ""
+
+#: src/how-to/install.md:12
+msgid ""
+"For a CLI archive: Windows or Linux (glibc 2.35 or newer, as on Ubuntu 22.04 "
+"and Debian 12) on x86-64."
+msgstr ""
+
+#: src/how-to/install.md:14
+msgid "Verify a download"
+msgstr ""
+
+#: src/how-to/install.md:16
+msgid ""
+"Every release lists the SHA-256 checksum of each of its files in "
+"`SHA256SUMS`, one of the release's files. Check a download before you run it:"
+msgstr ""
+
+#: src/how-to/install.md:19
+msgid ""
+"Linux: put the downloaded files and `SHA256SUMS` in one folder and run, in "
+"that folder,"
+msgstr ""
+
+#: src/how-to/install.md:25
+msgid ""
+"It prints `OK` after the name of each file you downloaded. Any other word "
+"means the file is not the released one: delete it and download it again."
+msgstr ""
+
+#: src/how-to/install.md:27
+msgid ""
+"Windows (PowerShell): `Get-FileHash <file> -Algorithm SHA256` prints the "
+"file's checksum. It must be the one that `SHA256SUMS` lists before the "
+"file's name (PowerShell prints it in capitals)."
+msgstr ""
+
+#: src/how-to/install.md:30
+msgid ""
+"Each file also carries GitHub's build provenance: a signed statement that "
+"the release workflow of ElektraWatt's repository built it from the release's "
+"commit. With the GitHub CLI installed, sign in to GitHub once with `gh auth "
+"login` (the CLI reads the statements through GitHub's API), then check a "
+"file with"
+msgstr ""
+
+#: src/how-to/install.md:38
+msgid ""
+"The releases are not signed yet; these two checks show that a file is the "
+"one the project built and published."
+msgstr ""
+
+#: src/how-to/install.md:40
+msgid "Install with the setup on Windows"
+msgstr ""
+
+#: src/how-to/install.md:42
+msgid "Run `ElektraWatt-<version>-x64-user-setup.exe`."
+msgstr ""
+
+#: src/how-to/install.md:43
+msgid ""
+"The setup is not signed yet, so Windows may stop it with **Windows protected "
+"your PC**. Choose **More info**, check that the file is the one you "
+"downloaded, then choose **Run anyway**."
+msgstr ""
+
+#: src/how-to/install.md:45
+msgid ""
+"Keep the folder the setup proposes, `%LOCALAPPDATA%\\Programs\\ElektraWatt`, "
+"or choose another one of your own, then choose **Install**. The folder must "
+"be new or empty, hold both `elektrawatt.exe` and `uninstall.exe` of an "
+"earlier installation, or be the folder of the installed version. For any "
+"other folder that holds files, **Install** stays off, so that removing "
+"ElektraWatt later never deletes them: choose another folder, or, when it is "
+"an earlier installation that lost one of those files, delete that folder and "
+"run the setup again."
+msgstr ""
+
+#: src/how-to/install.md:50
+msgid ""
+"On the last page, leave **Run ElektraWatt** ticked to start it, and choose "
+"**Finish**."
+msgstr ""
+
+#: src/how-to/install.md:52
+msgid ""
+"The setup installs for you alone: the program, the command-line program "
+"`ew.exe`, the starter content, the sample project and this guide, all in the "
+"one folder, with a shortcut **ElektraWatt** in the Start menu. It does not "
+"change `PATH`."
+msgstr ""
+
+#: src/how-to/install.md:56
+msgid ""
+"To install without questions, for example from a script, run the setup with "
+"`/S`. Add `/D=<folder>` as the last argument, without quotes even when the "
+"folder has spaces, to install into another folder:"
+msgstr ""
+
+#: src/how-to/install.md:63
+msgid ""
+"The same folders are refused here too: the setup installs nothing and ends "
+"with exit code 2. Give another folder, or delete the old one and run the "
+"setup again."
+msgstr ""
+
+#: src/how-to/install.md:66
+msgid "Run the AppImage on Linux"
+msgstr ""
+
+#: src/how-to/install.md:68
+msgid ""
+"The AppImage is one file, `ElektraWatt-<version>-x86_64.AppImage`, that "
+"holds the program, the command-line program `ew`, the starter content, the "
+"sample project and this guide. It installs nothing: you run the file itself."
+msgstr ""
+
+#: src/how-to/install.md:71
+msgid "Make it executable, then start it:"
+msgstr ""
+
+#: src/how-to/install.md:78
+msgid ""
+"The AppImage opens itself through FUSE, which most desktops have. Where FUSE "
+"is missing (in a container, or on a system without the `fuse` kernel "
+"module), it stops with a message about FUSE. Run it with "
+"`--appimage-extract-and-run` as the first argument instead: it unpacks "
+"itself into a temporary folder for that run."
+msgstr ""
+
+#: src/how-to/install.md:86
+msgid ""
+"To run `ew`, give `ew` as the first argument, then its own arguments (after "
+"`--appimage-extract-and-run` where FUSE is missing):"
+msgstr ""
+
+#: src/how-to/install.md:94
+msgid ""
+"Like the `ew` of a CLI archive, it reads the starter content only through "
+"`--content` or `EW_CONTENT_DIR`. The AppImage's own content sits in a folder "
+"that changes with each run, so for now unpack the AppImage once, which "
+"writes the folder `squashfs-root` where you run it, and point "
+"`EW_CONTENT_DIR` at the content in it:"
+msgstr ""
+
+#: src/how-to/install.md:98
+msgid ""
+"```text\n"
+"./ElektraWatt-<version>-x86_64.AppImage --appimage-extract\n"
+"export EW_CONTENT_DIR=\"$PWD/squashfs-root/usr/lib/elektrawatt/content\"\n"
+"```"
+msgstr ""
+
+#: src/how-to/install.md:103
+msgid "Unpack it again after an upgrade."
+msgstr ""
+
+#: src/how-to/install.md:105
+msgid ""
+"Keep the file where you like, for example in `~/Applications`. The AppImage "
+"is not signed yet: check that the file is the one you downloaded against the "
+"checksums published with its release."
+msgstr ""
+
+#: src/how-to/install.md:108
+msgid "Use the CLI archive"
+msgstr ""
+
+#: src/how-to/install.md:110
+msgid ""
+"The archives hold `ew` with the starter content and the sample project, for "
+"a machine without the window or for a CI job: "
+"`ew-<version>-x86_64-pc-windows-msvc.zip` and "
+"`ew-<version>-x86_64-unknown-linux-gnu.tar.gz`."
+msgstr ""
+
+#: src/how-to/install.md:113
+msgid "Unpack the archive. It holds one folder, `ew-<version>-<target>`."
+msgstr ""
+
+#: src/how-to/install.md:114
+msgid ""
+"`ew` finds the starter content through `--content` or the environment "
+"variable `EW_CONTENT_DIR`, not beside itself. Set `EW_CONTENT_DIR` to the "
+"folder's `content` folder:"
+msgstr ""
+
+#: src/how-to/install.md:116
+msgid "Linux: `export EW_CONTENT_DIR=<folder>/content`"
+msgstr ""
+
+#: src/how-to/install.md:117
+msgid "Windows (PowerShell): `$env:EW_CONTENT_DIR = \"<folder>\\content\"`"
+msgstr ""
+
+#: src/how-to/install.md:118
+msgid ""
+"Check it: `ew --version` prints the version, and `ew export pdf "
+"<folder>/samples/J-E-2416.ew --out sample.pdf` writes the sample project's "
+"drawings as a PDF."
+msgstr ""
+
+#: src/how-to/install.md:121
+msgid ""
+"The `ew.exe` that the setup installs finds the starter content the same way: "
+"set `EW_CONTENT_DIR` to the `content` folder of the installation."
+msgstr ""
+
+#: src/how-to/install.md:124
+msgid "Upgrade"
+msgstr ""
+
+#: src/how-to/install.md:126
+msgid ""
+"Run the setup of the newer version as above. It finds the installed version "
+"and proposes its folder, removes it first with its own uninstaller, then "
+"installs, so no file of the older version remains. Your settings and keymaps "
+"stay as they are."
+msgstr ""
+
+#: src/how-to/install.md:130
+msgid ""
+"To upgrade the AppImage, download the newer file, make it executable and "
+"delete the older one. Your settings and keymaps stay as they are."
+msgstr ""
+
+#: src/how-to/install.md:133
+msgid ""
+"To upgrade `ew` from an archive, unpack the newer archive and point "
+"`EW_CONTENT_DIR` at its `content` folder."
+msgstr ""
+
+#: src/how-to/install.md:135
+msgid "Uninstall"
+msgstr ""
+
+#: src/how-to/install.md:137
+msgid ""
+"Open **Settings**, then **Apps** and **Installed apps** (on Windows 10: "
+"**Apps & features**)."
+msgstr ""
+
+#: src/how-to/install.md:138
+msgid "Find **ElektraWatt** and choose **Uninstall**."
+msgstr ""
+
+#: src/how-to/install.md:140
+msgid ""
+"To uninstall without questions, run `uninstall.exe /S` from the installation "
+"folder. The uninstall removes the installation folder, the Start-menu "
+"shortcut and the entry in the list of apps. It leaves your projects, your "
+"settings and keymaps (in `%APPDATA%\\ElektraWatt`), and your libraries and "
+"the program's cache (in `%LOCALAPPDATA%\\ElektraWatt`): delete those folders "
+"yourself when you no longer want them."
+msgstr ""
+
+#: src/how-to/install.md:145
+msgid ""
+"The AppImage installs nothing: delete its file. It leaves your projects, "
+"your settings and keymaps (in `~/.config/elektrawatt`), your libraries and "
+"the program's cache (in `~/.local/share/elektrawatt` and "
+"`~/.cache/elektrawatt`), and the program's lock and journal files (in "
+"`~/.local/state/elektrawatt`): delete those folders yourself when you no "
+"longer want them."
+msgstr ""
+
+#: src/how-to/install.md:150
+msgid "A CLI archive installs nothing: delete its folder."
+msgstr ""
+
+#: src/how-to/application-window.md:3
+msgid ""
+"This guide describes the desktop application `elektrawatt`: what is on the "
+"start page, how to make or open a project, how to arrange the window, and "
+"where F1 leads. Every action of the window is an action of one registry, so "
+"the same names work in the menu, in the command palette (`Ctrl+K`) and in a "
+"headless UI script (`elektrawatt --headless --script`)."
+msgstr ""
+
+#: src/how-to/application-window.md:8
+msgid "Start page"
+msgstr ""
+
+#: src/how-to/application-window.md:10
+msgid ""
+"With no project open the window shows the start page. It has no news feed "
+"and opens no connection."
+msgstr ""
+
+#: src/how-to/application-window.md:12
+msgid ""
+"**New project** makes a project in a new, empty directory from your company "
+"basic project, or from the built-in basic project when you have none."
+msgstr ""
+
+#: src/how-to/application-window.md:14
+msgid ""
+"**Open...** opens a project directory; the recent projects are listed below "
+"it."
+msgstr ""
+
+#: src/how-to/application-window.md:15
+msgid ""
+"**Open sample project** opens the CC0 sample project read-only; use **Save "
+"as...** to make your own copy."
+msgstr ""
+
+#: src/how-to/application-window.md:16
+msgid ""
+"**Import QElectroTech project** reads a `.qet` file into a new project "
+"directory."
+msgstr ""
+
+#: src/how-to/application-window.md:17
+msgid ""
+"**Create company standard** starts the [company-standard "
+"wizard](#company-standard-wizard)."
+msgstr ""
+
+#: src/how-to/application-window.md:18
+msgid "**Tutorials** opens the tutorials and a fresh copy of the sample project."
+msgstr ""
+
+#: src/how-to/application-window.md:19
+msgid ""
+"The quick switches set the language and the keymap preset. The privacy line "
+"says that this version has no update check; **change** opens the privacy "
+"step of the [first-run setup](#first-run-setup)."
+msgstr ""
+
+#: src/how-to/application-window.md:22
+msgid "Project view"
+msgstr ""
+
+#: src/how-to/application-window.md:24
+msgid ""
+"With a project open the window shows the page list, the page view and the "
+"status bar. The page view shows the current page read-only. `Page Down` and "
+"`Page Up` move between pages, `Ctrl+G` goes to a folio, `Ctrl+Z` and "
+"`Ctrl+Shift+Z` undo and redo, `Ctrl+S` saves and `Ctrl+Shift+S` saves under "
+"a new name."
+msgstr ""
+
+#: src/how-to/application-window.md:28
+msgid "New project"
+msgstr ""
+
+#: src/how-to/application-window.md:30
+msgid ""
+"**File, New project** (`Ctrl+N`) asks for a new, empty directory and writes "
+"the project there at once. The project starts from the default basic project "
+"(a company basic project made by the wizard, or the built-in one) with new "
+"identities for every record."
+msgstr ""
+
+#: src/how-to/application-window.md:34
+msgid "Sample project"
+msgstr ""
+
+#: src/how-to/application-window.md:36
+msgid ""
+"**File, Open sample project** opens the sample project read-only, so that "
+"nothing is written into the installation. **Save as...** writes a copy into "
+"a directory of your own and continues in the copy."
+msgstr ""
+
+#: src/how-to/application-window.md:39
+msgid "Import a QElectroTech project"
+msgstr ""
+
+#: src/how-to/application-window.md:41
+msgid ""
+"**File, Import QElectroTech project...** asks for the `.qet` file and then "
+"for a new, empty directory. The importer reads the file into a new project "
+"and writes it to the directory; a banner counts the pages and the findings "
+"of the migration report."
+msgstr ""
+
+#: src/how-to/application-window.md:45
+msgid "Unsaved changes and recovery"
+msgstr ""
+
+#: src/how-to/application-window.md:47
+msgid ""
+"Closing, quitting or opening another project with unsaved changes asks "
+"whether to save, discard or cancel. If the application ends while a project "
+"has unsaved changes, the next open finds the journal of that session and "
+"opens the project read-only with a banner. **File, Discard unsaved changes "
+"of the earlier session** deletes the journal after a confirmation and opens "
+"the project for editing."
+msgstr ""
+
+#: src/how-to/application-window.md:52
+msgid "Command palette"
+msgstr ""
+
+#: src/how-to/application-window.md:54
+msgid ""
+"`Ctrl+K` (or `Ctrl+Shift+P`) opens the palette: type a part of a name and "
+"press `Enter` to run the selected entry. Disabled entries are listed last "
+"with the reason. `Escape` closes it."
+msgstr ""
+
+#: src/how-to/application-window.md:57
+msgid "Keyboard shortcuts"
+msgstr ""
+
+#: src/how-to/application-window.md:59
+msgid ""
+"**Help, Keyboard shortcuts** lists the bindings of the EW preset. `F1` opens "
+"this guide at the page of what has the focus: an open dialog, the palette, "
+"the wizard, the project view or the start page. Over a menu item with a "
+"shortcut the tooltip ends with \"F1: learn more\"; `F1` while the pointer is "
+"on the item opens the page of that item."
+msgstr ""
+
+#: src/how-to/application-window.md:63
+msgid "Workspaces"
+msgstr ""
+
+#: src/how-to/application-window.md:65
+msgid ""
+"The project view is a dock: drag the border between two panes to resize "
+"them, and drag a pane's title onto another pane to rearrange or tab it. The "
+"built-in workspace is **Schematic**. **View, Workspace** lists the saved "
+"workspaces, saves the current layout under a name and resets the layout. A "
+"workspace is a file `workspaces/<name>.json` in the configuration directory; "
+"the layout is saved a second after its last change."
+msgstr ""
+
+#: src/how-to/application-window.md:70
+msgid "First-run setup"
+msgstr ""
+
+#: src/how-to/application-window.md:72
+msgid ""
+"On the first start the application asks for the language and what you come "
+"from (EPLAN, QElectroTech, KiCad or other), says what it does with your data "
+"(this version has no update check and sends no crash reports; **Privacy "
+"(PRIVACY.md)** opens the full statement), asks for the appearance (theme and "
+"scale), and then what to do first. Every step can be skipped. **Help, "
+"First-run setup** runs it again. Nothing in it makes a network connection."
+msgstr ""
+
+#: src/how-to/application-window.md:77
+msgid "Company-standard wizard"
+msgstr ""
+
+#: src/how-to/application-window.md:79
+msgid ""
+"The wizard collects the conventions of your company and writes a **basic "
+"project**, from which new projects start. It has steps for the company, the "
+"frame and title block, the colour profile, the size profile, identifiers and "
+"numbering, structure and sections, revisions, languages and formats, and "
+"reports and checks, and a review. A preview of the cover and of a sample "
+"page shows the current choices. The draft is kept in the configuration "
+"directory until you finish, and the basic project is written to a directory "
+"you choose and becomes the default for **New project**."
+msgstr ""
+
+#: src/how-to/application-window.md:85
+msgid "About"
+msgstr ""
+
+#: src/how-to/application-window.md:87
+msgid ""
+"**Help, About ElektraWatt** shows the version, the page-view renderer, the "
+"privacy state, the licence, the engineering-verification disclaimer, the "
+"support status computed from the planned support end, and the third-party "
+"notices."
+msgstr ""
+
+#: src/how-to/text-interface.md:3
+msgid ""
+"This guide is for drawing without a screen: a headless UI script "
+"(`elektrawatt --headless --script`), or any client that reads the interface "
+"as text (`ui.describe`) and the content of a page as text (`page.describe`). "
+"Every step below is an action of the same registry as the window's menus; "
+"the parameters are those the action list prints."
+msgstr ""
+
+#: src/how-to/text-interface.md:7
+msgid "Read the page"
+msgstr ""
+
+#: src/how-to/text-interface.md:9
+msgid ""
+"`page.describe` (with `folio`, or the page shown) lists the page in reading "
+"order: a `rep` line per drawn symbol with its tag, cell, symbol and "
+"position, its `cp` lines (connection points, the wires drawn to each, the "
+"potential), a `wire` line per drawn connection and a `junction` line per "
+"junction."
+msgstr ""
+
+#: src/how-to/text-interface.md:13
+msgid ""
+"**Positions are the positions you click.** Every `at <x> <y> mm` is a point "
+"of the sheet, the same coordinates `canvas.press`, `canvas.pointer` and "
+"`cursor.set` take: `cursor.set` with a `cp` line's position puts the grid "
+"cursor on that connection point, and the cursor line names it."
+msgstr ""
+
+#: src/how-to/text-interface.md:16
+msgid ""
+"**A `wire` line ends with a point on the wire** (`at <x> <y> mm`) where a "
+"click with the Select tool picks that wire and nothing else. A wire whose "
+"drawn route runs along another wire or through a symbol for its whole length "
+"has no such point; select it by its ends instead: `select.set` with `refs` "
+"`[\"wire:-101F1:1 -> F55:1\"]` (the ends as the `wire` line prints them, "
+"either way round; a junction end is `junction <n>`)."
+msgstr ""
+
+#: src/how-to/text-interface.md:21
+msgid "Place symbols"
+msgstr ""
+
+#: src/how-to/text-interface.md:23
+msgid ""
+"`place.pick` (or Insert, Symbol... and the picker) arms the Place tool; "
+"`nav.goto` with a cell (`101-B2`) or `cursor.set` moves the ghost, and "
+"`canvas.activate` (Enter) places it."
+msgstr ""
+
+#: src/how-to/text-interface.md:25
+msgid ""
+"**Autoconnect.** When the ghost's free connection points face free "
+"connection points on the page, the ghost proposes wires to them: "
+"`ui.describe` prints them as `canvas proposals <n> \"<cp>\" -> "
+"\"<target>\"`, and the status hint says that Enter connects them. "
+"`canvas.activate` with `alt` (Alt+Enter, Alt+Click) places the symbol "
+"without connecting; `tool.next_proposal` (Tab) tries the next target along "
+"each ray. After a placement that connected, the toast names the wires it "
+"drew; one Undo removes the symbol with its wires."
+msgstr ""
+
+#: src/how-to/text-interface.md:31
+msgid "Freeze a tag"
+msgstr ""
+
+#: src/how-to/text-interface.md:33
+msgid ""
+"Select the device (`select.set` with `refs` `[\"tag:-101S1\"]`) and set its "
+"frozen tag as the page should print it: `props.set` with `row` "
+"`device/tag.frozen` and `value` `S51` prints `S51`; `-S51` prints `-S51` "
+"(the sign shown). An empty value unfreezes it. The derived tag row's Freeze "
+"action and the `tag.frozen.text` and `tag.frozen.sign` rows do the same in "
+"several steps."
+msgstr ""
+
+#: src/how-to/text-interface.md:38 src/reference/window/panels.md:79
+msgid "Terminal strips"
+msgstr ""
+
+#: src/how-to/text-interface.md:40
+msgid ""
+"`strip.new` creates an empty terminal strip; the toast names it. It draws "
+"nothing until its first terminal is placed: choose the terminal symbol in "
+"the symbol picker, and a second picker lists the strips (`row strip "
+"\"<tag>\" terminal \"<next>\" @<n>`); choose the strip there. The terminal "
+"takes the row's proposed designation unless the choice names one "
+"(`picker.choose` with `designation` `PE`, on either picker). A strip without "
+"terminals prints its tag with question marks in it (`-X??`) because its "
+"counter is given with its first terminal; the `@n` at the end of its row "
+"selects it (`select.set` with `ids` `[\"@n\"]`), and `edit.delete_selection` "
+"deletes a strip that has no terminals. After its first terminal the strip "
+"has its real tag (`-X1011`); `place.pick` with a strip name the project does "
+"not have fails with a message that lists the project's strips."
+msgstr ""
+
+#: src/how-to/text-interface.md:49
+msgid ""
+"In the Terminal strips navigator a row is named by what it prints: a "
+"terminal by its tag, the strip's label, a colon and its own (`-X1031:1`), "
+"and a strip by its tag (`-X1031`). `navigator.select` with `keys` and "
+"`table.set` with `rows` take these names (`table.set` with `kind` `strips`, "
+"`rows` `[\"-X1031:1\",\"-X1031:2\"]`, a `column` and a `value`)."
+msgstr ""
+
+#: src/how-to/text-interface.md:53
+msgid ""
+"A terminal's connection points print `strip:terminal/clamp` (`-X1031:1/b`): "
+"the starter terminal has clamp `a` on side 1 (internal) and `b` on side 2 "
+"(field), `1X1:1/a` and `1X1:1/b`. Where two clamps of one level carry the "
+"same letter, as on a library terminal that names them so, the label adds "
+"`#n` in connection-point order: `-X1:1/a#1` and `-X1:1/a#2`."
+msgstr ""
+
+#: src/how-to/text-interface.md:57
+msgid "Bridge terminals"
+msgstr ""
+
+#: src/how-to/text-interface.md:59
+msgid ""
+"Select two or more terminals of one strip on the page (click the first "
+"terminal symbol, Shift+click the others, or `select.set` with their "
+"representations), then run `strip.bridge` (Draw ▸ Bridge terminals). It "
+"draws a plug-in bridge between each two terminals that follow each other in "
+"the strip's order among the selected ones, in one undo step: selecting "
+"`-X1031:1` to `:4` draws 1-2, 2-3 and 3-4, whatever order you selected them "
+"in. The bridges join the group of a bridge they touch, or else the strip's "
+"next free group. A bridge ends on the terminal's bridge shaft when its part "
+"has one; a terminal without a part (or with a part that has no shaft) is "
+"bridged at its lowest side-1 connection point, so you can draw the bridges "
+"before choosing the parts. A pair that is bridged already is left as it is. "
+"The command is refused when fewer than two terminals are selected, when they "
+"belong to more than one strip, or when every pair is bridged already; the "
+"refusal names the reason."
+msgstr ""
+
+#: src/how-to/text-interface.md:69
+msgid "External points"
+msgstr ""
+
+#: src/how-to/text-interface.md:71
+msgid ""
+"`structure.new` with `kind` `location` and the location (`+J-E-206`), then "
+"`external_ref.new` with the location, the device and the connection, once "
+"per connection. Each says in the toast what it created; the external "
+"reference's label is `<device>:<connection>` (`JE-N1000-03:L`)."
+msgstr ""
+
+#: src/how-to/text-interface.md:74
+msgid ""
+"With the Interruption point tool armed, `ip.external` takes that label, or "
+"the label after the location as the page prints it (`+J-E-206 / "
+"JE-N1000-03:L`); the ghost becomes an external point. A text that no "
+"reference has fails with a message that lists the labels the project has."
+msgstr ""
+
+#: src/how-to/text-interface.md:78
+msgid "Draw wires"
+msgstr ""
+
+#: src/how-to/text-interface.md:80
+msgid ""
+"With the Wire tool armed, put the grid cursor on a connection point (its "
+"`cp` position), press Enter, move to the other end and press Enter. The "
+"`canvas route` line names the start (`from`) and the end (`end`) before you "
+"commit."
+msgstr ""
+
+#: src/how-to/text-interface.md:83
+msgid ""
+"`cp.next` and `cp.previous` step the cursor through the page's connection "
+"points in reading order of the cell **column by column** (column 0 to 16, "
+"and in a column row A to H), then by position; this differs from the page "
+"text's order, which goes row by row. Going to a `cp` position with "
+"`cursor.set` needs no walk."
+msgstr ""
+
+#: src/how-to/text-interface.md:86
+msgid ""
+"**Ending a wire on a wire** makes a junction there and splits that wire. The "
+"route's `end` names the wire it would split by its ends (`@101-C12 F55:2 -> "
+"E55:L`): check it before Enter when two wires run through one cell."
+msgstr ""
+
+#: src/how-to/text-interface.md:89
+msgid "Delete"
+msgstr ""
+
+#: src/how-to/text-interface.md:91
+msgid ""
+"`edit.delete_selection` (Delete) deletes what is selected on the page shown: "
+"a representation, a wire, a junction or an item. A device selected by its "
+"tag is deleted as its representations on the page shown (the device stays, "
+"its functions unplaced); a device that no page draws, such as an empty "
+"terminal strip, is deleted itself. A device drawn only on another page is "
+"refused (`reason-not-on-page`)."
+msgstr ""
+
+#: src/how-to/text-interface.md:96
+msgid "Save and export"
+msgstr ""
+
+#: src/how-to/text-interface.md:98
+msgid ""
+"`file.save` saves. `file.export_pdf` with a file name writes the PDF; the "
+"toast names the file, its page count and its size."
+msgstr ""
+
+#: src/how-to/define-supply-potential.md:3
+msgid ""
+"This guide gives a drawn potential its name, its type and its voltage in the "
+"application window, so that its wires take the colours of the project's "
+"profile and the reports print its name. A potential that you have only drawn "
+"is known by its connection points and has a fallback name until you define "
+"it."
+msgstr ""
+
+#: src/how-to/define-supply-potential.md:9 src/how-to/choose-parts.md:9
+msgid "A project open for writing, with a schematic page shown."
+msgstr ""
+
+#: src/how-to/define-supply-potential.md:10
+msgid "A wire, a junction or a terminal on the potential."
+msgstr ""
+
+#: src/how-to/define-supply-potential.md:14
+msgid "Select one item on the potential:"
+msgstr ""
+
+#: src/how-to/define-supply-potential.md:15
+msgid ""
+"a wire: the potential is defined at its start, a connection point or a "
+"junction;"
+msgstr ""
+
+#: src/how-to/define-supply-potential.md:16
+msgid "a junction;"
+msgstr ""
+
+#: src/how-to/define-supply-potential.md:17
+msgid "a terminal: the potential is defined at its first connection point."
+msgstr ""
+
+#: src/how-to/define-supply-potential.md:18
+msgid "Open **Define potential…** in one of these ways:"
+msgstr ""
+
+#: src/how-to/define-supply-potential.md:19
+msgid "the **Draw** menu, under **Connect**, beside **Bond**;"
+msgstr ""
+
+#: src/how-to/define-supply-potential.md:20
+msgid "a right-click on the item, then **Define potential…**;"
+msgstr ""
+
+#: src/how-to/define-supply-potential.md:21
+msgid ""
+"the command palette (`Ctrl+K`): type `potential`, `supply` or `voltage`, "
+"then press Enter."
+msgstr ""
+
+#: src/how-to/define-supply-potential.md:22
+msgid ""
+"In the form, type the **Name** (`24VDC-1`). The **Type** and the **Voltage** "
+"may stay empty; type them as the pages print them: `L+`, `L-`, `L1`, `N`, "
+"`PE` for the type, and `24 V DC` or `230 V AC` for the voltage. `DC` or `AC` "
+"in the voltage also sets the current."
+msgstr ""
+
+#: src/how-to/define-supply-potential.md:25
+msgid ""
+"Press Enter. The potential is defined in one step: **Undo** takes it back."
+msgstr ""
+
+#: src/how-to/define-supply-potential.md:27
+msgid ""
+"When nothing, or more than one item, is selected, **Define potential…** is "
+"greyed out and its tooltip says what to select. A name left empty is refused "
+"with \"Name the potential first\"."
+msgstr ""
+
+#: src/how-to/define-supply-potential.md:30
+msgid "Check the result"
+msgstr ""
+
+#: src/how-to/define-supply-potential.md:32
+msgid ""
+"Open the **Potentials** navigator: the potential's row now carries the name "
+"you typed, with its type and voltage. In the navigator's table view you can "
+"also change them later in the **Potential**, **Type** and **Voltage** cells."
+msgstr ""
+
+#: src/how-to/define-supply-potential.md:35
+msgid ""
+"The command behind the form is "
+"[`potential.define`](../reference/commands/potential.define.md)."
+msgstr ""
+
+#: src/how-to/choose-parts.md:3
+msgid ""
+"This guide gives a device its part, the orderable article with its "
+"manufacturer and order number, and shows where the project's parts are "
+"listed. A device without a part is reported by the check EW-CORE-041 and is "
+"missing from the parts list."
+msgstr ""
+
+#: src/how-to/choose-parts.md:10
+msgid "The starter parts that come with EW, or a library of your own."
+msgstr ""
+
+#: src/how-to/choose-parts.md:12
+msgid "Give a device its part"
+msgstr ""
+
+#: src/how-to/choose-parts.md:14
+msgid "Click the device on the page, for example a lamp."
+msgstr ""
+
+#: src/how-to/choose-parts.md:15
+msgid ""
+"Choose **Edit ▸ Choose part…**. The property grid's **Parts** row offers the "
+"same in its row menu."
+msgstr ""
+
+#: src/how-to/choose-parts.md:16
+msgid ""
+"In the part selection, type a few letters of the part, such as `lamp`, "
+"choose the part (EW-GEN-LMP-1 for the starter lamp) and confirm with "
+"**Choose**."
+msgstr ""
+
+#: src/how-to/choose-parts.md:19
+msgid ""
+"The device's **Parts** row now shows the part, and the warning EW-CORE-041 "
+"for the device disappears from the Messages pane. **Edit ▸ Edit part…** "
+"changes the project's copy of the part."
+msgstr ""
+
+#: src/how-to/choose-parts.md:22
+msgid "Place a device with its part"
+msgstr ""
+
+#: src/how-to/choose-parts.md:24
+msgid ""
+"When you know the part before you draw, place the device from it, so that "
+"the device has its part from the start:"
+msgstr ""
+
+#: src/how-to/choose-parts.md:26
+msgid "Choose **Draw ▸ Place ▸ Device from part…** (`Shift+I`)."
+msgstr ""
+
+#: src/how-to/choose-parts.md:27
+msgid ""
+"In the picker, choose the part's function, for example the terminal of "
+"EW-GEN-TRM-1."
+msgstr ""
+
+#: src/how-to/choose-parts.md:28
+msgid "Click where the device goes on the page."
+msgstr ""
+
+#: src/how-to/choose-parts.md:30
+msgid "Read the parts list"
+msgstr ""
+
+#: src/how-to/choose-parts.md:32
+msgid ""
+"**Output ▸ Open parts list** opens the parts-list page of the project, when "
+"it has one: a project made with the company standard wizard, and the sample "
+"project, have one."
+msgstr ""
+
+#: src/how-to/choose-parts.md:34
+msgid ""
+"**View ▸ Panels ▸ Navigators ▸ Parts in use** lists the parts the project "
+"uses with their devices, in any project."
+msgstr ""
+
+#: src/how-to/choose-parts.md:36
+msgid ""
+"The part data comes from the library: [Edit "
+"part](../reference/window/dialogs.md#edit-part) changes the project's copy, "
+"and the [glossary](../reference/glossary.md#part) relates EW's part to "
+"EPLAN's article and QElectroTech's manufacturer reference."
+msgstr ""
+
+#: src/how-to/upgrade-a-project.md:3
+msgid ""
+"This guide takes a project made with an earlier release of ElektraWatt to "
+"the release you have installed. Installing the new release itself is in "
+"[Install ElektraWatt](install.md#upgrade)."
+msgstr ""
+
+#: src/how-to/upgrade-a-project.md:6
+msgid "What a release reads and writes"
+msgstr ""
+
+#: src/how-to/upgrade-a-project.md:8
+msgid ""
+"The version of ElektraWatt and the version of the project format are "
+"numbered separately. Each release writes one format, the current one, and "
+"reads that format and every older one it has a migration for. The [release "
+"notes](../reference/release-notes/index.md) of each release name the format "
+"it writes."
+msgstr ""
+
+#: src/how-to/upgrade-a-project.md:12
+msgid ""
+"**An older format** opens migrated in memory: you see and edit the project "
+"as the current format holds it, and nothing on disk changes until you save."
+msgstr ""
+
+#: src/how-to/upgrade-a-project.md:14
+msgid ""
+"**A newer or an unreleased format**, one that a later release or a "
+"development build wrote, opens read-only. The banner says so: \"This project "
+"is open read-only: a file format this version does not write.\" Open it with "
+"the release that wrote it."
+msgstr ""
+
+#: src/how-to/upgrade-a-project.md:18
+msgid "Upgrade in the window"
+msgstr ""
+
+#: src/how-to/upgrade-a-project.md:20
+msgid ""
+"Open the project with **File ▸ Open…** (`Ctrl+O`). The banner says \"This "
+"project is in an older format; saving converts it.\""
+msgstr ""
+
+#: src/how-to/upgrade-a-project.md:22
+msgid ""
+"Choose **File ▸ Save** (`Ctrl+S`). The dialog \"Convert this project to the "
+"current format?\" names the older format and the new one. Older versions of "
+"ElektraWatt cannot open the project once it is converted."
+msgstr ""
+
+#: src/how-to/upgrade-a-project.md:25
+msgid ""
+"Choose **Upgrade and save**. ElektraWatt first writes a backup of the "
+"project as it was, `<project folder>.pre-<old format>.ewz`, beside the "
+"project folder, then saves the project in the current format. If a file of "
+"that name already holds something else, the backup takes the next free name "
+"(`.pre-<old format>-2.ewz` and so on)."
+msgstr ""
+
+#: src/how-to/upgrade-a-project.md:30
+msgid ""
+"To go back, keep the backup: it is the whole project in one file. **File ▸ "
+"Open .ewz…** opens it read-only, or extracts it into a new folder beside it, "
+"which the earlier release opens."
+msgstr ""
+
+#: src/how-to/upgrade-a-project.md:33
+msgid "Upgrade from the terminal"
+msgstr ""
+
+#: src/how-to/upgrade-a-project.md:35
+msgid "`ew upgrade` does the same without the window:"
+msgstr ""
+
+#: src/how-to/upgrade-a-project.md:42
+msgid ""
+"`--check` only reports: it exits 0 when the project needs no upgrade and 1 "
+"when it is in an older format, and it writes nothing."
+msgstr ""
+
+#: src/how-to/upgrade-a-project.md:44
+msgid ""
+"Without `--check`, `ew upgrade` asks you to type `upgrade` to confirm, "
+"writes the backup beside the project folder and saves the project. `--yes` "
+"confirms without asking, for a script; without a terminal and without "
+"`--yes` it changes nothing and exits 2."
+msgstr ""
+
+#: src/how-to/upgrade-a-project.md:48
+msgid ""
+"The [CLI reference](../reference/cli/upgrade.md) lists every flag and exit "
+"code."
+msgstr ""
+
+#: src/how-to/upgrade-a-project.md:50
+msgid "What changes in the format from 0.1.0"
+msgstr ""
+
+#: src/how-to/upgrade-a-project.md:52
+msgid ""
+"Until the release 0.1.0 the format changed from build to build without "
+"migrations. From 0.1.0 on, the format that 0.1.0 writes is fixed: a later "
+"release changes it only by adding to it, so that a project of 0.1.0 opens "
+"and saves unchanged, or by a new format version that comes with a migration "
+"from the released one, and with the first save's backup described above. The "
+"rule is the project's [format "
+"decision](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/adr/0011-format-versioning-and-migration.md), "
+"amendment 6."
+msgstr ""
+
+#: src/reference/index.md:3
+msgid ""
+"The reference states exact facts about EW and nothing else: what a command "
+"takes, what a rule checks, what a program prints. Look here when you know "
+"what you are doing and need the detail. To learn, use a "
+"[tutorial](../tutorials/index.md); to understand the design, read the "
+"[explanation](../explanation/index.md)."
+msgstr ""
+
+#: src/reference/index.md:7
+msgid "Generated reference"
+msgstr ""
+
+#: src/reference/index.md:9
+msgid ""
+"These pages are generated from the code by `cargo xtask docs-gen` and "
+"checked in CI, so they cannot fall behind it (NFR-DOC-06). Do not edit them "
+"by hand."
+msgstr ""
+
+#: src/reference/index.md:12
+msgid ""
+"[Command reference](commands/index.md): every registered command, with its "
+"parameters, types, constraints and exit codes, from the parameter schemas of "
+"the command registry."
+msgstr ""
+
+#: src/reference/index.md:14
+msgid ""
+"[Rule reference](rules/index.md): every shipped check rule, one page per "
+"rule with an index page per pack, from the rule registry and the rule notes."
+msgstr ""
+
+#: src/reference/index.md:16
+msgid ""
+"[CLI reference](cli/index.md): every subcommand of `ew`, with its flags, "
+"exit codes and `--json` result schema, from the CLI table."
+msgstr ""
+
+#: src/reference/index.md:18
+msgid ""
+"[Query reference](queries.md): every public query of `ew query`, with its "
+"key, example and output, from the query registry."
+msgstr ""
+
+#: src/reference/index.md:20
+msgid ""
+"[api_v1 reference](api-v1.md): every `api_v1` view of `ew sql`, with its "
+"columns, types and Preview marks."
+msgstr ""
+
+#: src/reference/index.md:21
+msgid ""
+"[Format reference](format/index.md): every record kind of the project "
+"format, with its file, rank and fields, from the format's JSON Schemas."
+msgstr ""
+
+#: src/reference/index.md:23
+msgid ""
+"[Release notes](release-notes/index.md): the release and migration notes of "
+"every release, newest first, from the notes in the repository."
+msgstr ""
+
+#: src/reference/index.md:26
+msgid "The window"
+msgstr ""
+
+#: src/reference/index.md:28
+msgid ""
+"What each part of the desktop application's window does and how to open it. "
+"Help ▸ Documentation opens the section of the tool, dialog or pane you are "
+"in."
+msgstr ""
+
+#: src/reference/index.md:31
+msgid "[Tools](window/tools.md): every tool of the Draw tab."
+msgstr ""
+
+#: src/reference/index.md:32
+msgid "[Dialogs](window/dialogs.md): every dialog."
+msgstr ""
+
+#: src/reference/index.md:33
+msgid ""
+"[Panels](window/panels.md): every pane and navigator, the strip editor and "
+"the table mode."
+msgstr ""
+
+#: src/reference/index.md:35
+msgid "Command-line program"
+msgstr ""
+
+#: src/reference/index.md:37
+msgid ""
+"The usage text of `ew` is part of the program: `ew --help` lists the "
+"subcommands and their options, and `ew sql schema` prints the `api_v1` views "
+"that `ew sql` queries. The authoritative design catalogue, with the exit "
+"codes of every subcommand, is [doc 17 "
+"§3](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/design/17-extensibility.md#3-the-ew-cli)."
+msgstr ""
+
+#: src/reference/index.md:42
+msgid "Not generated yet"
+msgstr ""
+
+#: src/reference/index.md:44
+msgid ""
+"The documentation of the plugin interface (WIT, 1.x) is also meant to be "
+"generated (NFR-DOC-06). It is not part of the book yet."
+msgstr ""
+
+#: src/reference/window/tools.md:3
+msgid ""
+"A tool decides what a click on the page does. One tool is active at a time; "
+"Select is active when no other is. The Draw tab of the command bar holds the "
+"tools, and each is in the Draw menu at the path given below. Help ▸ "
+"Documentation with a tool active opens its section here."
+msgstr ""
+
+#: src/reference/window/tools.md:7
+msgid ""
+"The keys of every tool are on the [keymap](../keymaps.md) page, for each "
+"keymap preset. A tool's own keys work only while it is active."
+msgstr ""
+
+#: src/reference/window/tools.md:10
+msgid "Select"
+msgstr ""
+
+#: src/reference/window/tools.md:12
+msgid ""
+"Selects, moves and opens what you click: a click selects one item, a drag "
+"draws a selection band, a double click opens the item's properties. Open it "
+"with Draw ▸ Select. See [Use the application "
+"window](../../how-to/application-window.md)."
+msgstr ""
+
+#: src/reference/window/tools.md:16
+msgid "Measure"
+msgstr ""
+
+#: src/reference/window/tools.md:18
+msgid ""
+"Measures the distance between two points on the page, in millimetres of the "
+"sheet. Open it with Draw ▸ Annotate ▸ Measure."
+msgstr ""
+
+#: src/reference/window/tools.md:21
+msgid "Symbol"
+msgstr ""
+
+#: src/reference/window/tools.md:23
+msgid ""
+"Places a symbol from the library: choose the symbol in the picker, then "
+"click where it goes; each click places one more until you finish. Open it "
+"with Draw ▸ Place ▸ Symbol…. See [A first schematic "
+"page](../../tutorials/first-page.md)."
+msgstr ""
+
+#: src/reference/window/tools.md:26
+msgid "Device from part"
+msgstr ""
+
+#: src/reference/window/tools.md:28
+msgid ""
+"Places a device from a part of the library, so that the device has its part "
+"from the start. Open it with Draw ▸ Place ▸ Device from part…. See [Choose "
+"parts](../../how-to/choose-parts.md)."
+msgstr ""
+
+#: src/reference/window/tools.md:31 src/explanation/eplan-and-ew.md:112
+msgid "Black box"
+msgstr ""
+
+#: src/reference/window/tools.md:33
+msgid ""
+"Draws a black box: a rectangle with connection points for a device that the "
+"library has no symbol for. Open it with Draw ▸ Place ▸ Black box…."
+msgstr ""
+
+#: src/reference/window/tools.md:36
+msgid "Tool step back"
+msgstr ""
+
+#: src/reference/window/tools.md:38
+msgid ""
+"Takes back the last step of the active tool, such as the last corner of a "
+"wire, without leaving the tool. It has no menu item; use its key."
+msgstr ""
+
+#: src/reference/window/tools.md:41
+msgid "Rotate clockwise"
+msgstr ""
+
+#: src/reference/window/tools.md:43
+msgid ""
+"Turns the symbol that the tool floats, or the selection, by 90° clockwise. "
+"Draw ▸ Arrange ▸ Rotate clockwise."
+msgstr ""
+
+#: src/reference/window/tools.md:45
+msgid "Rotate counter-clockwise"
+msgstr ""
+
+#: src/reference/window/tools.md:47
+msgid ""
+"Turns the floating symbol, or the selection, by 90° counter-clockwise. Draw "
+"▸ Arrange ▸ Rotate counter-clockwise."
+msgstr ""
+
+#: src/reference/window/tools.md:49
+msgid "Mirror left to right"
+msgstr ""
+
+#: src/reference/window/tools.md:51
+msgid ""
+"Mirrors the floating symbol, or the selection, about its vertical axis. Draw "
+"▸ Arrange ▸ Mirror left to right."
+msgstr ""
+
+#: src/reference/window/tools.md:53
+msgid "Mirror top to bottom"
+msgstr ""
+
+#: src/reference/window/tools.md:55
+msgid ""
+"Mirrors the floating symbol, or the selection, about its horizontal axis. "
+"Draw ▸ Arrange ▸ Mirror top to bottom."
+msgstr ""
+
+#: src/reference/window/tools.md:57
+msgid "Next variant"
+msgstr ""
+
+#: src/reference/window/tools.md:59
+msgid ""
+"Switches the floating symbol to its next variant, such as another contact "
+"arrangement of the same function. Draw ▸ Arrange ▸ Next variant."
+msgstr ""
+
+#: src/reference/window/tools.md:62
+msgid "Next representation type"
+msgstr ""
+
+#: src/reference/window/tools.md:64
+msgid ""
+"Switches the floating symbol to its next representation type, for example "
+"from the multi-line to the single-line form. Draw ▸ Arrange ▸ Next "
+"representation type."
+msgstr ""
+
+#: src/reference/window/tools.md:67
+msgid "Move"
+msgstr ""
+
+#: src/reference/window/tools.md:69
+msgid ""
+"Moves the selection with the pointer or the keyboard; wires attached to it "
+"follow. Draw ▸ Arrange ▸ Move."
+msgstr ""
+
+#: src/reference/window/tools.md:71
+msgid "Finish"
+msgstr ""
+
+#: src/reference/window/tools.md:73
+msgid ""
+"Ends what the active tool is drawing, such as a wire or a polyline, at the "
+"current point. It has no menu item; use its key or double-click where a tool "
+"allows it."
+msgstr ""
+
+#: src/reference/window/tools.md:76
+msgid "Wire"
+msgstr ""
+
+#: src/reference/window/tools.md:78
+msgid ""
+"Draws connections between connection points: click a start point, then the "
+"end point; corners are placed where you click in between. Open it with Draw "
+"▸ Connect ▸ Wire. See [A first schematic "
+"page](../../tutorials/first-page.md)."
+msgstr ""
+
+#: src/reference/window/tools.md:81
+msgid "Next autoconnect proposal"
+msgstr ""
+
+#: src/reference/window/tools.md:83
+msgid ""
+"While a symbol floats near other connection points, shows the next of the "
+"connections EW proposes to draw when you place it. It has no menu item; use "
+"its key."
+msgstr ""
+
+#: src/reference/window/tools.md:86
+msgid "Connect while moving"
+msgstr ""
+
+#: src/reference/window/tools.md:88
+msgid ""
+"While moving a symbol, connects its connection points to the ones it lands "
+"on. It has no menu item; use its key."
+msgstr ""
+
+#: src/reference/window/tools.md:90
+msgid "Edit route"
+msgstr ""
+
+#: src/reference/window/tools.md:92
+msgid ""
+"Changes the drawn route of a wire: drag a segment or a corner. Open it with "
+"Draw ▸ Connect ▸ Edit route."
+msgstr ""
+
+#: src/reference/window/tools.md:94 src/explanation/eplan-and-ew.md:44
+msgid "Interruption point"
+msgstr ""
+
+#: src/reference/window/tools.md:96
+msgid ""
+"Places an interruption point: the end of a potential on this page that "
+"continues at a point of the same name elsewhere. Open it with Draw ▸ Connect "
+"▸ Interruption point."
+msgstr ""
+
+#: src/reference/window/tools.md:99
+msgid "Interruption point direction"
+msgstr ""
+
+#: src/reference/window/tools.md:101
+msgid ""
+"Turns the interruption point that the tool floats to its next direction. "
+"Draw ▸ Connect ▸ Interruption point direction."
+msgstr ""
+
+#: src/reference/window/tools.md:104
+msgid "Star source"
+msgstr ""
+
+#: src/reference/window/tools.md:106
+msgid ""
+"Marks the interruption point as the source of its name in star mode: one "
+"source, many targets. Draw ▸ Connect ▸ Star source."
+msgstr ""
+
+#: src/reference/window/tools.md:109
+msgid "Wire marker"
+msgstr ""
+
+#: src/reference/window/tools.md:111
+msgid ""
+"Places a wire marker, the label that prints a wire's number or text on the "
+"wire. Open it with Draw ▸ Connect ▸ Wire marker."
+msgstr ""
+
+#: src/reference/window/tools.md:114
+msgid "Text"
+msgstr ""
+
+#: src/reference/window/tools.md:116
+msgid "Places a free text on the page. Open it with Draw ▸ Annotate ▸ Text."
+msgstr ""
+
+#: src/reference/window/tools.md:118
+msgid "Graphic"
+msgstr ""
+
+#: src/reference/window/tools.md:120
+msgid ""
+"Draws a graphic: a line, polyline, rectangle, circle, arc or polygon, which "
+"has no electrical meaning. Open it with Draw ▸ Annotate ▸ Graphic and the "
+"shape."
+msgstr ""
+
+#: src/reference/window/tools.md:123 src/explanation/eplan-and-ew.md:120
+msgid "Structure box"
+msgstr ""
+
+#: src/reference/window/tools.md:125
+msgid ""
+"Draws a structure box: a dashed frame that puts what it encloses into a "
+"function or location of the project's structure. Open it with Draw ▸ "
+"Annotate ▸ Structure box."
+msgstr ""
+
+#: src/reference/window/tools.md:128
+msgid "Image"
+msgstr ""
+
+#: src/reference/window/tools.md:130
+msgid ""
+"Places an image file (SVG, PNG or JPEG) on the page. Open it with Draw ▸ "
+"Annotate ▸ Image…."
+msgstr ""
+
+#: src/reference/window/tools.md:132
+msgid "Place device"
+msgstr ""
+
+#: src/reference/window/tools.md:134
+msgid ""
+"On a panel layout page, places a device of the location on a rail or the "
+"mounting plate. Open it from the Unplaced devices navigator, which lists the "
+"devices of the location that have no place yet."
+msgstr ""
+
+#: src/reference/window/tools.md:137
+msgid "Rail"
+msgstr ""
+
+#: src/reference/window/tools.md:139
+msgid "On a panel layout page, draws a mounting rail. Open it with Draw ▸ Rail."
+msgstr ""
+
+#: src/reference/window/tools.md:141
+msgid "Duct"
+msgstr ""
+
+#: src/reference/window/tools.md:143
+msgid "On a panel layout page, draws a wiring duct. Open it with Draw ▸ Duct."
+msgstr ""
+
+#: src/reference/window/dialogs.md:3
+msgid ""
+"A dialog asks for a decision or a few values and closes when you answer. "
+"Help ▸ Documentation in an open dialog opens its section, here or in [Use "
+"the application window](../../how-to/application-window.md), which describes "
+"these dialogs:"
+msgstr ""
+
+#: src/reference/window/dialogs.md:7
+msgid ""
+"About ElektraWatt and the third-party notices: "
+"[About](../../how-to/application-window.md#about);"
+msgstr ""
+
+#: src/reference/window/dialogs.md:8
+msgid ""
+"the keyboard shortcuts: [Keyboard "
+"shortcuts](../../how-to/application-window.md#keyboard-shortcuts);"
+msgstr ""
+
+#: src/reference/window/dialogs.md:9
+msgid ""
+"Save, Discard or Cancel before a change would be lost, and the recovery of "
+"unsaved changes: [Unsaved changes and "
+"recovery](../../how-to/application-window.md#unsaved-changes-and-recovery);"
+msgstr ""
+
+#: src/reference/window/dialogs.md:11
+msgid ""
+"the check scheme the company standard wizard applies: [Company standard "
+"wizard](../../how-to/application-window.md#company-standard-wizard);"
+msgstr ""
+
+#: src/reference/window/dialogs.md:13
+msgid ""
+"the name of a saved layout: "
+"[Workspaces](../../how-to/application-window.md#workspaces);"
+msgstr ""
+
+#: src/reference/window/dialogs.md:14
+msgid ""
+"the QElectroTech import: [Import a QElectroTech "
+"project](../../how-to/application-window.md#import-a-qelectrotech-project)."
+msgstr ""
+
+#: src/reference/window/dialogs.md:16
+msgid "The keys of a dialog's buttons are on the [keymap](../keymaps.md) page."
+msgstr ""
+
+#: src/reference/window/dialogs.md:18
+msgid "Go to page or cell"
+msgstr ""
+
+#: src/reference/window/dialogs.md:20
+msgid ""
+"Opens a page by its folio, or a cell of a page by its folio and grid "
+"reference, such as 102-B4. Open it with Page ▸ Go ▸ Go to page or cell…."
+msgstr ""
+
+#: src/reference/window/dialogs.md:23
+msgid "Form dialogs"
+msgstr ""
+
+#: src/reference/window/dialogs.md:25
+msgid ""
+"The fields of an action that needs values before it runs, such as Page ▸ New "
+"page…, Project ▸ Project ▸ Structure node… and Project ▸ Project ▸ External "
+"reference…. The primary button runs the action with the values; Cancel "
+"changes nothing."
+msgstr ""
+
+#: src/reference/window/dialogs.md:29
+msgid "Purge unused images"
+msgstr ""
+
+#: src/reference/window/dialogs.md:31
+msgid ""
+"Lists the image files that no page uses any more and deletes them on Purge. "
+"Undo does not bring them back. Open it with Project ▸ Purge unused images…."
+msgstr ""
+
+#: src/reference/window/dialogs.md:34
+msgid "Choose part"
+msgstr ""
+
+#: src/reference/window/dialogs.md:36
+msgid ""
+"The part selection: search the library, filter the results and choose the "
+"part for the selected devices. Open it with Edit ▸ Choose part…. See [Choose "
+"parts](../../how-to/choose-parts.md)."
+msgstr ""
+
+#: src/reference/window/dialogs.md:39
+msgid "Edit part"
+msgstr ""
+
+#: src/reference/window/dialogs.md:41
+msgid ""
+"The part editor: change the members of the project's copy of a part and save "
+"them. Open it with Edit ▸ Edit part…."
+msgstr ""
+
+#: src/reference/window/dialogs.md:43
+msgid "Print"
+msgstr ""
+
+#: src/reference/window/dialogs.md:45
+msgid ""
+"The print options beside a preview of the print set; Print… hands the set to "
+"the printer, Open in PDF viewer opens it there. Open it with Output ▸ "
+"Print…. See [Reports and PDF](../../tutorials/reports-and-pdf.md)."
+msgstr ""
+
+#: src/reference/window/dialogs.md:48
+msgid "Changes on disk"
+msgstr ""
+
+#: src/reference/window/dialogs.md:50
+msgid ""
+"The project changed on disk while you have unsaved edits to the same fields: "
+"each colliding field with its base, your value and the value on disk. Choose "
+"a side per field and Apply, take all of one side, or decide later. It opens "
+"by itself; File ▸ Check for changes on disk looks again."
+msgstr ""
+
+#: src/reference/window/dialogs.md:54
+msgid "Upgrade the format"
+msgstr ""
+
+#: src/reference/window/dialogs.md:56
+msgid ""
+"The first save of a project in an older format: Upgrade and save writes a "
+"backup beside the project, then saves in the current format; Cancel saves "
+"nothing. It opens by itself. See [Upgrade a "
+"project](../../how-to/upgrade-a-project.md)."
+msgstr ""
+
+#: src/reference/window/dialogs.md:59
+msgid "Re-import a matched file"
+msgstr ""
+
+#: src/reference/window/dialogs.md:61
+msgid ""
+"A QElectroTech file that matches an earlier import of this project by its "
+"items: Re-import compares it with that import; Cancel stops. Open it with "
+"Project ▸ Re-import QElectroTech project…."
+msgstr ""
+
+#: src/reference/window/dialogs.md:64
+msgid "Re-import QElectroTech project"
+msgstr ""
+
+#: src/reference/window/dialogs.md:66
+msgid ""
+"The re-import card: the records the source added, changed, changed on both "
+"sides and removed, in words. Apply takes them over as one undo step; Cancel "
+"changes nothing. The migration report then lists what needs a decision."
+msgstr ""
+
+#: src/reference/window/dialogs.md:69
+msgid "Open .ewz"
+msgstr ""
+
+#: src/reference/window/dialogs.md:71
+msgid ""
+"An `.ewz` archive of a project: Extract and open unpacks it into a new "
+"folder beside it, Open read-only opens it without unpacking. Open it with "
+"File ▸ Open .ewz…."
+msgstr ""
+
+#: src/reference/window/dialogs.md:74
+msgid "Set up merge driver"
+msgstr ""
+
+#: src/reference/window/dialogs.md:76
+msgid ""
+"Sets up the repository's git configuration so that git merges the project's "
+"files record by record. It asks first and writes nothing on Cancel. Open it "
+"with Project ▸ Set up merge driver."
+msgstr ""
+
+#: src/reference/window/panels.md:3
+msgid ""
+"The window's panes sit around the page view: the navigators on the left, the "
+"property grid on the right, and the find pane, the jobs, the preview, the "
+"history and the glossary in the bottom dock. View ▸ Panels shows and hides "
+"them. Help ▸ Documentation in a focused pane opens its section here. The "
+"keys of each pane are on the [keymap](../keymaps.md) page."
+msgstr ""
+
+#: src/reference/window/panels.md:8
+msgid "Panes"
+msgstr ""
+
+#: src/reference/window/panels.md:10
+msgid "Page view"
+msgstr ""
+
+#: src/reference/window/panels.md:12
+msgid ""
+"The canvas: the open pages as tabs, one or two groups side by side. The "
+"tools of the Draw tab act on it; see [Tools](tools.md)."
+msgstr ""
+
+#: src/reference/window/panels.md:15
+msgid "Properties"
+msgstr ""
+
+#: src/reference/window/panels.md:17
+msgid ""
+"The property grid: the members of the selection, by category, each editable "
+"in place. A row's menu holds the actions of that member, such as Choose part "
+"on the Parts row. View ▸ Panels ▸ Properties shows it; Edit ▸ Properties of "
+"selection moves the focus to it. See [Choose "
+"parts](../../how-to/choose-parts.md)."
+msgstr ""
+
+#: src/reference/window/panels.md:21
+msgid "Find"
+msgstr ""
+
+#: src/reference/window/panels.md:23
+msgid ""
+"The find pane: search texts, tags and fields of the project, and replace "
+"them. Open it with Edit ▸ Find… or Edit ▸ Find and replace…."
+msgstr ""
+
+#: src/reference/window/panels.md:26
+msgid "Jobs"
+msgstr ""
+
+#: src/reference/window/panels.md:28
+msgid ""
+"The jobs: the PDF exports that run in the background, with their progress "
+"and results. Open it with Output ▸ Jobs. See [Reports and "
+"PDF](../../tutorials/reports-and-pdf.md)."
+msgstr ""
+
+#: src/reference/window/panels.md:31
+msgid "Preview"
+msgstr ""
+
+#: src/reference/window/panels.md:33
+msgid ""
+"The preview of the open card: what a command, a quick fix or a paste would "
+"change, before you apply it."
+msgstr ""
+
+#: src/reference/window/panels.md:35
+msgid "History"
+msgstr ""
+
+#: src/reference/window/panels.md:37
+msgid ""
+"The undo steps of the project and the marker lines of exports and "
+"recoveries; undo to any step from here. Open it with View ▸ Panels ▸ History."
+msgstr ""
+
+#: src/reference/window/panels.md:40
+msgid "Glossary"
+msgstr ""
+
+#: src/reference/window/panels.md:42
+msgid ""
+"The terms of EW with their EPLAN and QElectroTech names. Open it with Help ▸ "
+"Glossary. See [EPLAN and EW](../../explanation/eplan-and-ew.md) and "
+"[QElectroTech and EW](../../explanation/qet-and-ew.md)."
+msgstr ""
+
+#: src/reference/window/panels.md:45
+msgid "Command bar"
+msgstr ""
+
+#: src/reference/window/panels.md:47
+msgid ""
+"The tabs and groups of commands at the top of the window: Project, Page, "
+"Draw, Check, Output and View. View ▸ Layout ▸ Collapse command bar folds it "
+"to its tab row."
+msgstr ""
+
+#: src/reference/window/panels.md:50
+msgid "Strip editor"
+msgstr ""
+
+#: src/reference/window/panels.md:52
+msgid ""
+"The Terminal strips navigator in table mode for one strip: insert, delete "
+"and move terminals, add accessories and edit the cells of the terminal rows. "
+"Open it with Edit ▸ Strip editor with a strip selected. See [A terminal "
+"strip and a cable](../../tutorials/terminal-strip-and-cable.md)."
+msgstr ""
+
+#: src/reference/window/panels.md:56
+msgid "Table mode"
+msgstr ""
+
+#: src/reference/window/panels.md:58
+msgid ""
+"A navigator shown as a table: one row per record and a column per member, "
+"edited cell by cell; fill down, pattern fill and paste work on several cells "
+"at once. The navigator's Table button switches it. Output ▸ Export table… "
+"and Output ▸ Import table… exchange the table with a spreadsheet."
+msgstr ""
+
+#: src/reference/window/panels.md:62
+msgid "Navigators"
+msgstr ""
+
+#: src/reference/window/panels.md:64
+msgid ""
+"A navigator lists one kind of record of the project. View ▸ Panels ▸ "
+"Navigators shows each one; clicking a row selects the record and opens its "
+"page."
+msgstr ""
+
+#: src/reference/window/panels.md:67
+msgid "Pages"
+msgstr ""
+
+#: src/reference/window/panels.md:69
+msgid "The pages in folio order, flat, by section or by structure."
+msgstr ""
+
+#: src/reference/window/panels.md:71
+msgid "Devices"
+msgstr ""
+
+#: src/reference/window/panels.md:73
+msgid "The devices with their functions and representations."
+msgstr ""
+
+#: src/reference/window/panels.md:75
+msgid "Connections"
+msgstr ""
+
+#: src/reference/window/panels.md:77
+msgid "The connections, the wires drawn on the pages."
+msgstr ""
+
+#: src/reference/window/panels.md:81
+msgid ""
+"The terminal strips with their terminals. Its table mode is the strip editor."
+msgstr ""
+
+#: src/reference/window/panels.md:83
+msgid "Cables"
+msgstr ""
+
+#: src/reference/window/panels.md:85
+msgid ""
+"The cables with their cores. See [A terminal strip and a "
+"cable](../../tutorials/terminal-strip-and-cable.md)."
+msgstr ""
+
+#: src/reference/window/panels.md:87
+msgid "PLC"
+msgstr ""
+
+#: src/reference/window/panels.md:89
+msgid ""
+"The PLC configuration projects, stations, modules and channels, with their "
+"addresses."
+msgstr ""
+
+#: src/reference/window/panels.md:91
+msgid "Potentials"
+msgstr ""
+
+#: src/reference/window/panels.md:93
+msgid ""
+"The potentials with their definitions and members. See [Define a supply "
+"potential](../../how-to/define-supply-potential.md)."
+msgstr ""
+
+#: src/reference/window/panels.md:96
+msgid "Interruption points"
+msgstr ""
+
+#: src/reference/window/panels.md:98
+msgid "The interruption points grouped by name, with their partners."
+msgstr ""
+
+#: src/reference/window/panels.md:100
+msgid "Structure identifiers"
+msgstr ""
+
+#: src/reference/window/panels.md:102
+msgid "The function and location nodes of the project's structure."
+msgstr ""
+
+#: src/reference/window/panels.md:104
+msgid "Parts in use"
+msgstr ""
+
+#: src/reference/window/panels.md:106
+msgid ""
+"The parts the project uses, with their devices. See [Choose "
+"parts](../../how-to/choose-parts.md)."
+msgstr ""
+
+#: src/reference/window/panels.md:108
+msgid "Report blocks"
+msgstr ""
+
+#: src/reference/window/panels.md:110
+msgid ""
+"The report blocks: the generated pages such as the terminal diagram, the "
+"cable list and the parts list. See [Reports and "
+"PDF](../../tutorials/reports-and-pdf.md)."
+msgstr ""
+
+#: src/reference/window/panels.md:113
+msgid "Unplaced devices"
+msgstr ""
+
+#: src/reference/window/panels.md:115
+msgid ""
+"The devices of each layout space that have no place on a rail or the plate "
+"yet."
+msgstr ""
+
+#: src/reference/window/panels.md:117
+msgid "Macros"
+msgstr ""
+
+#: src/reference/window/panels.md:119
+msgid "The macros of every library tier and of the project."
+msgstr ""
+
+#: src/reference/window/panels.md:121
+msgid "Libraries"
+msgstr ""
+
+#: src/reference/window/panels.md:123
+msgid ""
+"The installed libraries and the project's library copies with their state."
+msgstr ""
+
+#: src/reference/window/panels.md:125
+msgid "Messages"
+msgstr ""
+
+#: src/reference/window/panels.md:127
+msgid ""
+"The findings of the project's checks, by severity and rule. Check ▸ Next "
+"finding and Check ▸ Previous finding walk them; Help ▸ Documentation on a "
+"finding opens its rule's page in the [rule reference](../rules/index.md). "
+"Open it with Check ▸ Messages."
+msgstr ""
+
+#: src/explanation/index.md:3
+msgid ""
+"Explanation gives the background: why EW is built the way it is, what ideas "
+"its parts rest on, which alternatives were rejected. It does not tell you "
+"what to type; the [tutorials](../tutorials/index.md) and [how-to "
+"guides](../how-to/index.md) do that."
+msgstr ""
+
+#: src/explanation/index.md:7
+msgid ""
+"The design of EW is written down in documents that live in the repository, "
+"beside the code. They are the explanation of record, and this section links "
+"to them instead of copying them, so that there is one text to keep correct."
+msgstr ""
+
+#: src/explanation/index.md:10
+msgid "To understand"
+msgstr ""
+
+#: src/explanation/index.md:10
+msgid "Read"
+msgstr ""
+
+#: src/explanation/index.md:12
+msgid "why EW exists and what it will and will not do"
+msgstr ""
+
+#: src/explanation/index.md:12
+msgid ""
+"[Vision and "
+"scope](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/design/00-vision-and-scope.md)"
+msgstr ""
+
+#: src/explanation/index.md:13
+msgid ""
+"the entities of a project: devices, functions, terminals, potentials, cables"
+msgstr ""
+
+#: src/explanation/index.md:13
+msgid ""
+"[Domain "
+"model](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/design/03-domain-model.md)"
+msgstr ""
+
+#: src/explanation/index.md:14
+msgid "how the program is built: the model, commands, derived data"
+msgstr ""
+
+#: src/explanation/index.md:14
+msgid ""
+"[Architecture](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/design/04-architecture.md)"
+msgstr ""
+
+#: src/explanation/index.md:15
+msgid "how a project is stored on disk"
+msgstr ""
+
+#: src/explanation/index.md:15
+msgid ""
+"[Project format and "
+"persistence](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/design/05-project-format-and-persistence.md)"
+msgstr ""
+
+#: src/explanation/index.md:16
+msgid "how potentials, terminals and cables connect"
+msgstr ""
+
+#: src/explanation/index.md:16
+msgid ""
+"[Connections, terminals, "
+"cables](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/design/08-connections-terminals-cables.md)"
+msgstr ""
+
+#: src/explanation/index.md:17
+msgid "how rules, findings and waivers work"
+msgstr ""
+
+#: src/explanation/index.md:17
+msgid ""
+"[Checks, revisions, "
+"collaboration](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/design/15-checks-revisions-collaboration.md)"
+msgstr ""
+
+#: src/explanation/index.md:18
+msgid "the command line, scripting and the SQL projection"
+msgstr ""
+
+#: src/explanation/index.md:18
+msgid ""
+"[Extensibility](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/design/17-extensibility.md)"
+msgstr ""
+
+#: src/explanation/index.md:19
+msgid "the golden project used in the tutorials"
+msgstr ""
+
+#: src/explanation/index.md:19
+msgid ""
+"[Golden "
+"project](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/design/20-golden-project.md)"
+msgstr ""
+
+#: src/explanation/index.md:20
+msgid "why a decision was made"
+msgstr ""
+
+#: src/explanation/index.md:20
+msgid ""
+"[Architecture decision "
+"records](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/adr/README.md)"
+msgstr ""
+
+#: src/explanation/index.md:22
+msgid ""
+"The [documentation "
+"map](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/README.md) "
+"lists every design document with its purpose."
+msgstr ""
+
+#: src/explanation/index.md:25
+msgid "For users of other programs"
+msgstr ""
+
+#: src/explanation/index.md:27
+msgid ""
+"[EPLAN and EW](eplan-and-ew.md): the EPLAN concepts, such as functions, "
+"device tags, CDPs and message management, and what they are called and how "
+"they differ in EW."
+msgstr ""
+
+#: src/explanation/index.md:29
+msgid ""
+"[QElectroTech and EW](qet-and-ew.md): the QElectroTech concepts, such as "
+"elements, master and slave, folio reports and conductors, and their EW "
+"counterparts."
+msgstr ""
+
+#: src/explanation/eplan-and-ew.md:3
+msgid ""
+"If you come from EPLAN Electric P8, most of EW will feel familiar: a project "
+"of pages, devices with functions, parts from a database, potentials and "
+"reports that update themselves. The words are mostly the same too. This page "
+"takes each EPLAN concept in turn: the EW term, what is the same, what "
+"differs, and where to find it in EW's window. The "
+"[glossary](../reference/glossary.md) lists every term in one table, and each "
+"EPLAN term below is also an alias in the command palette."
+msgstr ""
+
+#: src/explanation/eplan-and-ew.md:9
+msgid "Function"
+msgstr ""
+
+#: src/explanation/eplan-and-ew.md:11 src/explanation/qet-and-ew.md:12
+msgid "**EW term:** [Function](../reference/glossary.md#function)"
+msgstr ""
+
+#: src/explanation/eplan-and-ew.md:13
+msgid ""
+"**The same:** a function is one symbol's worth of a device: a coil, a "
+"contact, a pin group, placed on a page. **What differs:** a function always "
+"belongs to a device in EW; there is no function without a device tag, and "
+"placing a symbol creates its device at once. **In the window:** **Draw ▸ "
+"Place ▸ Symbol…**."
+msgstr ""
+
+#: src/explanation/eplan-and-ew.md:17
+msgid "Device, Device tag, DT, BMK"
+msgstr ""
+
+#: src/explanation/eplan-and-ew.md:19 src/explanation/qet-and-ew.md:20
+msgid "**EW term:** [Device](../reference/glossary.md#device)"
+msgstr ""
+
+#: src/explanation/eplan-and-ew.md:21
+msgid ""
+"**The same:** a device is the physical object with its device tag (DT, the "
+"German BMK), made of functions that may sit on several pages. **What "
+"differs:** EW derives the tag from the project's numbering scheme and the "
+"structure, so a tag is never typed text: renumbering changes every page, "
+"report and label at once, and a tag you want to keep is frozen. **In the "
+"window:** **Draw ▸ Place ▸ Device from part…** and **Draw ▸ Arrange ▸ "
+"Renumber devices…**."
+msgstr ""
+
+#: src/explanation/eplan-and-ew.md:26
+msgid "Part, Article"
+msgstr ""
+
+#: src/explanation/eplan-and-ew.md:28 src/explanation/qet-and-ew.md:28
+msgid "**EW term:** [Part](../reference/glossary.md#part)"
+msgstr ""
+
+#: src/explanation/eplan-and-ew.md:30
+msgid ""
+"**The same:** a part is the orderable article with its manufacturer, order "
+"number and technical data, assigned to a device. **What differs:** the "
+"project embeds a copy of each part it uses, so it opens and prints without "
+"the library; updating the copy from the library is a command you run. **In "
+"the window:** **Edit ▸ Choose part…**. See [Choose "
+"parts](../how-to/choose-parts.md)."
+msgstr ""
+
+#: src/explanation/eplan-and-ew.md:35
+msgid "CDP, Connection definition point"
+msgstr ""
+
+#: src/explanation/eplan-and-ew.md:37 src/explanation/qet-and-ew.md:36
+msgid "**EW term:** [Wire marker](../reference/glossary.md#wire-marker)"
+msgstr ""
+
+#: src/explanation/eplan-and-ew.md:39
+msgid ""
+"**The same:** you set a wire's cross-section, colour or number at a point on "
+"the wire. **What differs:** in EW the value belongs to the wire itself, and "
+"the wire marker is only the label that shows it on the page; potentials and "
+"profiles give the default, and a value set on the wire is an override. **In "
+"the window:** **Draw ▸ Connect ▸ Wire marker**."
+msgstr ""
+
+#: src/explanation/eplan-and-ew.md:46 src/explanation/qet-and-ew.md:44
+msgid ""
+"**EW term:** [Interruption "
+"point](../reference/glossary.md#interruption-point)"
+msgstr ""
+
+#: src/explanation/eplan-and-ew.md:48
+msgid ""
+"**The same:** an interruption point continues a potential at another point "
+"of the same name, in star or chain mode, with cross-references. **What "
+"differs:** the pairing is checked: a point without a partner and a star with "
+"two sources are findings in the Messages pane. **In the window:** **Draw ▸ "
+"Connect ▸ Interruption point**."
+msgstr ""
+
+#: src/explanation/eplan-and-ew.md:52
+msgid "Basic project"
+msgstr ""
+
+#: src/explanation/eplan-and-ew.md:54 src/explanation/qet-and-ew.md:52
+msgid "**EW term:** [Basic project](../reference/glossary.md#basic-project)"
+msgstr ""
+
+#: src/explanation/eplan-and-ew.md:56
+msgid ""
+"**The same:** a new project starts from a basic project that holds the "
+"company's frames, settings and structure. **What differs:** EW ships one "
+"basic project and the company standard wizard makes your own from it. **In "
+"the window:** **File ▸ New project…** and **Project ▸ Company standard "
+"wizard…**."
+msgstr ""
+
+#: src/explanation/eplan-and-ew.md:60
+msgid "Form, Plot frame"
+msgstr ""
+
+#: src/explanation/eplan-and-ew.md:62 src/explanation/qet-and-ew.md:59
+msgid ""
+"**EW term:** [Frame and title "
+"block](../reference/glossary.md#frame-and-title-block)"
+msgstr ""
+
+#: src/explanation/eplan-and-ew.md:64
+msgid ""
+"**The same:** the frame and title block print around every page, filled from "
+"the project's and the page's data. **What differs:** report pages and "
+"drawing pages take their frame from the project's frame settings by page "
+"type, and a title-block value is bound to the project, its revision or its "
+"page, not typed per page. **In the window:** **Project ▸ Company standard "
+"wizard…**."
+msgstr ""
+
+#: src/explanation/eplan-and-ew.md:69
+msgid "Message management"
+msgstr ""
+
+#: src/explanation/eplan-and-ew.md:71
+msgid "**EW term:** [Messages](../reference/glossary.md#messages)"
+msgstr ""
+
+#: src/explanation/eplan-and-ew.md:73
+msgid ""
+"**The same:** the checks report messages that you can sort, jump to and "
+"accept. **What differs:** the checks run while you draw, not only on demand, "
+"and each finding names its rule, which has a page in the [rule "
+"reference](../reference/rules/index.md); accepting a finding is a waiver "
+"with a reason. **In the window:** **Check ▸ Messages**."
+msgstr ""
+
+#: src/explanation/eplan-and-ew.md:78
+msgid "Main function, Auxiliary function"
+msgstr ""
+
+#: src/explanation/eplan-and-ew.md:80 src/explanation/qet-and-ew.md:66
+msgid ""
+"**EW term:** [Main and auxiliary "
+"function](../reference/glossary.md#main-and-auxiliary-function)"
+msgstr ""
+
+#: src/explanation/eplan-and-ew.md:82
+msgid ""
+"**The same:** a coil is the main function, its contacts are auxiliary "
+"functions, and the contact image lists them with cross-references. **What "
+"differs:** a contact joins its coil's device when you place it on the coil's "
+"tag; the contacts the part offers are checked against the ones you draw. "
+"**In the window:** **Draw ▸ Place ▸ Symbol…**."
+msgstr ""
+
+#: src/explanation/eplan-and-ew.md:86
+msgid "Connection"
+msgstr ""
+
+#: src/explanation/eplan-and-ew.md:88 src/explanation/qet-and-ew.md:74
+msgid "**EW term:** [Connection](../reference/glossary.md#connection)"
+msgstr ""
+
+#: src/explanation/eplan-and-ew.md:90
+msgid ""
+"**The same:** connections join connection points and follow the drawing. "
+"**What differs:** EW builds the physical wires from the drawn connections, "
+"junctions and interruption points, so the wire list follows the drawing "
+"without an update step. **In the window:** **Draw ▸ Connect ▸ Wire**."
+msgstr ""
+
+#: src/explanation/eplan-and-ew.md:94 src/explanation/qet-and-ew.md:80
+msgid "Terminal strip"
+msgstr ""
+
+#: src/explanation/eplan-and-ew.md:96 src/explanation/qet-and-ew.md:82
+msgid "**EW term:** [Terminal strip](../reference/glossary.md#terminal-strip)"
+msgstr ""
+
+#: src/explanation/eplan-and-ew.md:98
+msgid ""
+"**The same:** a terminal strip is a device whose terminals are functions, "
+"with an editor for their order, bridges and accessories. **What differs:** "
+"the strip editor is a table you edit cell by cell, and every edit is one "
+"undo step. **In the window:** **Draw ▸ Place ▸ Terminal strip…** and **Edit "
+"▸ Strip editor**. See [A terminal strip and a "
+"cable](../tutorials/terminal-strip-and-cable.md)."
+msgstr ""
+
+#: src/explanation/eplan-and-ew.md:103
+msgid ""
+"Structure identifier, Identifier block, Higher-level function, Mounting "
+"location"
+msgstr ""
+
+#: src/explanation/eplan-and-ew.md:105 src/explanation/qet-and-ew.md:91
+msgid "**EW term:** [Structure node](../reference/glossary.md#structure-node)"
+msgstr ""
+
+#: src/explanation/eplan-and-ew.md:107
+msgid ""
+"**The same:** the higher-level function (`=`) and the mounting location "
+"(`+`) structure the project, and a device's full tag carries them. **What "
+"differs:** a structure node is a record of its own, so renaming it renames "
+"every tag under it; EW keeps a code as one token and never splits it again. "
+"**In the window:** **Project ▸ Project ▸ Structure node…**."
+msgstr ""
+
+#: src/explanation/eplan-and-ew.md:114 src/explanation/qet-and-ew.md:99
+msgid "**EW term:** [Black box](../reference/glossary.md#black-box)"
+msgstr ""
+
+#: src/explanation/eplan-and-ew.md:116
+msgid ""
+"**The same:** a black box stands for a device that has no symbol, with "
+"connection points on its outline. **What differs:** nothing much; a black "
+"box is a function of its device like any symbol. **In the window:** **Draw ▸ "
+"Place ▸ Black box…**."
+msgstr ""
+
+#: src/explanation/eplan-and-ew.md:122 src/explanation/qet-and-ew.md:106
+msgid "**EW term:** [Structure box](../reference/glossary.md#structure-box)"
+msgstr ""
+
+#: src/explanation/eplan-and-ew.md:124
+msgid ""
+"**The same:** a dashed frame that assigns what it encloses to a function or "
+"location. **What differs:** nothing much; the assignment shows in the tags "
+"at once. **In the window:** **Draw ▸ Annotate ▸ Structure box**."
+msgstr ""
+
+#: src/explanation/eplan-and-ew.md:127
+msgid "Report, Update reports, Embedded report"
+msgstr ""
+
+#: src/explanation/eplan-and-ew.md:129 src/explanation/qet-and-ew.md:113
+msgid "**EW term:** [Report block](../reference/glossary.md#report-block)"
+msgstr ""
+
+#: src/explanation/eplan-and-ew.md:131
+msgid ""
+"**The same:** report pages such as the terminal diagram, the cable list and "
+"the parts list are generated from the project. **What differs:** there is no "
+"update step: a report block is regenerated whenever the project changes, and "
+"its pages are always current. **In the window:** **View ▸ Panels ▸ "
+"Navigators ▸ Report blocks**. See [Reports and "
+"PDF](../tutorials/reports-and-pdf.md)."
+msgstr ""
+
+#: src/explanation/eplan-and-ew.md:136
+msgid "Potential, Potential definition point"
+msgstr ""
+
+#: src/explanation/eplan-and-ew.md:138
+msgid "**EW term:** [Potential](../reference/glossary.md#potential)"
+msgstr ""
+
+#: src/explanation/eplan-and-ew.md:140
+msgid ""
+"**The same:** a potential is a connected electrical node with a name, a type "
+"and a voltage, set by a definition on one of its connections. **What "
+"differs:** potentials are checked: two definitions that disagree, a "
+"protective conductor with the wrong colour or a switched neutral are "
+"findings. **In the window:** **Draw ▸ Connect ▸ Define potential…**. See "
+"[Define a supply potential](../how-to/define-supply-potential.md)."
+msgstr ""
+
+#: src/explanation/eplan-and-ew.md:145
+msgid "Cross-reference, Contact image"
+msgstr ""
+
+#: src/explanation/eplan-and-ew.md:147 src/explanation/qet-and-ew.md:121
+msgid "**EW term:** [Cross-reference](../reference/glossary.md#cross-reference)"
+msgstr ""
+
+#: src/explanation/eplan-and-ew.md:149
+msgid ""
+"**The same:** cross-references point from a coil to its contacts and from an "
+"interruption point to its partner, and the contact image under a coil lists "
+"the contacts. **What differs:** a cross-reference is computed, never text, "
+"so it cannot go stale; one that points outside the frame is a finding. **In "
+"the window:** **Page ▸ Go ▸ Follow cross-reference**."
+msgstr ""
+
+#: src/explanation/qet-and-ew.md:3
+msgid ""
+"If you come from QElectroTech, EW draws pages the same way, but it knows "
+"more about what you draw: every symbol is a function of a device, every line "
+"is a connection that carries a potential, and terminals, cables and reports "
+"follow from the drawing. This page takes each QElectroTech concept in turn: "
+"the EW term, what is the same, what differs, and where to find it in EW's "
+"window. The [glossary](../reference/glossary.md) lists every term in one "
+"table, and each QElectroTech term below is also an alias in the command "
+"palette. To bring a QElectroTech project over, see [Importing a QElectroTech "
+"project](../tutorials/import-qet.md)."
+msgstr ""
+
+#: src/explanation/qet-and-ew.md:10
+msgid "Element, Element instance"
+msgstr ""
+
+#: src/explanation/qet-and-ew.md:14
+msgid ""
+"**The same:** you pick a symbol from the collection and place it on a folio. "
+"**What differs:** the placed symbol is a function of a device, not a free "
+"element; the device holds the tag, the part and the other functions. **In "
+"the window:** **Draw ▸ Place ▸ Symbol…**."
+msgstr ""
+
+#: src/explanation/qet-and-ew.md:18
+msgid "Element label"
+msgstr ""
+
+#: src/explanation/qet-and-ew.md:22
+msgid ""
+"**The same:** a label such as -K1 names the element. **What differs:** in EW "
+"the label is the device's tag, derived from the numbering scheme and the "
+"structure, so you do not type it; all functions of one device share it. **In "
+"the window:** **Draw ▸ Arrange ▸ Renumber devices…**."
+msgstr ""
+
+#: src/explanation/qet-and-ew.md:26
+msgid "Manufacturer reference"
+msgstr ""
+
+#: src/explanation/qet-and-ew.md:30
+msgid ""
+"**The same:** the element can name the article you order. **What differs:** "
+"a part is a record with its manufacturer, order number and data, embedded in "
+"the project and listed in the parts list. **In the window:** **Edit ▸ Choose "
+"part…**. See [Choose parts](../how-to/choose-parts.md)."
+msgstr ""
+
+#: src/explanation/qet-and-ew.md:34
+msgid "Conductor text"
+msgstr ""
+
+#: src/explanation/qet-and-ew.md:38
+msgid ""
+"**The same:** a text on the wire shows its number or function. **What "
+"differs:** the number is a property of the wire, derived by the numbering "
+"scheme; the wire marker only shows it. **In the window:** **Draw ▸ Connect ▸ "
+"Wire marker**."
+msgstr ""
+
+#: src/explanation/qet-and-ew.md:42
+msgid "Folio report"
+msgstr ""
+
+#: src/explanation/qet-and-ew.md:46
+msgid ""
+"**The same:** a folio report continues a conductor on another folio, with a "
+"reference to it. **What differs:** an interruption point continues a "
+"potential by its name and is paired by EW; an unpaired point is a finding. "
+"**In the window:** **Draw ▸ Connect ▸ Interruption point**."
+msgstr ""
+
+#: src/explanation/qet-and-ew.md:50
+msgid "Template project"
+msgstr ""
+
+#: src/explanation/qet-and-ew.md:54
+msgid ""
+"**The same:** a new project starts from a template. **What differs:** the "
+"basic project also holds the company's check scheme and numbering, and the "
+"company standard wizard makes your own. **In the window:** **File ▸ New "
+"project…**."
+msgstr ""
+
+#: src/explanation/qet-and-ew.md:57
+msgid "Title-block template"
+msgstr ""
+
+#: src/explanation/qet-and-ew.md:61
+msgid ""
+"**The same:** a template draws the title block and fills its fields. **What "
+"differs:** the fields are bound to the project, the revision and the page, "
+"so a value is set once. **In the window:** **Project ▸ Company standard "
+"wizard…**."
+msgstr ""
+
+#: src/explanation/qet-and-ew.md:64
+msgid "Master/slave, Master, Slave"
+msgstr ""
+
+#: src/explanation/qet-and-ew.md:68
+msgid ""
+"**The same:** a coil is the master and its contacts are slaves, linked with "
+"cross-references. **What differs:** the contacts are functions of the coil's "
+"device, and the part says how many it has; drawing more is a finding. **In "
+"the window:** **Draw ▸ Place ▸ Symbol…**."
+msgstr ""
+
+#: src/explanation/qet-and-ew.md:72
+msgid "Conductor"
+msgstr ""
+
+#: src/explanation/qet-and-ew.md:76
+msgid ""
+"**The same:** a conductor joins two terminals of elements. **What differs:** "
+"a connection belongs to a potential and becomes part of a physical wire with "
+"a cross-section, colour and number, which the wire list and the terminal "
+"diagram show. **In the window:** **Draw ▸ Connect ▸ Wire**."
+msgstr ""
+
+#: src/explanation/qet-and-ew.md:84
+msgid ""
+"**The same:** terminals are grouped in strips with a terminal-strip editor. "
+"**What differs:** a terminal strip is a device, its terminals are its "
+"functions, and the terminal diagram is generated from it. **In the window:** "
+"**Draw ▸ Place ▸ Terminal strip…** and **Edit ▸ Strip editor**. See [A "
+"terminal strip and a cable](../tutorials/terminal-strip-and-cable.md)."
+msgstr ""
+
+#: src/explanation/qet-and-ew.md:89
+msgid "Plant, Location"
+msgstr ""
+
+#: src/explanation/qet-and-ew.md:93
+msgid ""
+"**The same:** plant and location codes group the elements and print in their "
+"labels. **What differs:** a structure node is a record, and a device's tag "
+"carries it, so renaming the node renames every tag below it. **In the "
+"window:** **Project ▸ Project ▸ Structure node…**."
+msgstr ""
+
+#: src/explanation/qet-and-ew.md:97
+msgid "Rectangle"
+msgstr ""
+
+#: src/explanation/qet-and-ew.md:101
+msgid ""
+"**The same:** a rectangle stands for a device that has no symbol of its own. "
+"**What differs:** a black box has connection points on its outline, so wires "
+"connect to it. **In the window:** **Draw ▸ Place ▸ Black box…**."
+msgstr ""
+
+#: src/explanation/qet-and-ew.md:104
+msgid "Dotted shape"
+msgstr ""
+
+#: src/explanation/qet-and-ew.md:108
+msgid ""
+"**The same:** a dotted frame groups what it encloses. **What differs:** a "
+"structure box assigns its contents to a function or location, which their "
+"tags then carry. **In the window:** **Draw ▸ Annotate ▸ Structure box**."
+msgstr ""
+
+#: src/explanation/qet-and-ew.md:111
+msgid "Summary, Nomenclature, Folio list"
+msgstr ""
+
+#: src/explanation/qet-and-ew.md:115
+msgid ""
+"**The same:** the folio list and the nomenclature are generated pages. "
+"**What differs:** a report block is always current, and EW offers more of "
+"them: terminal diagrams, cable lists and the parts list. **In the window:** "
+"**View ▸ Panels ▸ Navigators ▸ Report blocks**. See [Reports and "
+"PDF](../tutorials/reports-and-pdf.md)."
+msgstr ""
+
+#: src/explanation/qet-and-ew.md:119
+msgid "Cross-reference"
+msgstr ""
+
+#: src/explanation/qet-and-ew.md:123
+msgid ""
+"**The same:** a reference points from a coil to its contacts and from a "
+"folio report to its partner. **What differs:** EW computes it from the "
+"model, so it cannot go stale. **In the window:** **Page ▸ Go ▸ Follow "
+"cross-reference**."
+msgstr ""
+

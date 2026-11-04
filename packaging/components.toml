@@ -109,6 +109,15 @@ checked_by = "ci/build-book.sh, sha256sum before the archive is unpacked (the SH
 used_for = "builds the user guide (ci/build-book.sh, D7) of docs.yml's docs-book and package.yml's book job; the built book in docs/ of the installed tree carries its theme (FT-1224)"
 
 [[component]]
+name = "mdbook-i18n-helpers"
+version = "0.4.0"
+licence = "Apache-2.0"
+url = "https://static.crates.io/crates/mdbook-i18n-helpers/mdbook-i18n-helpers-0.4.0.crate"
+sha256 = "82a64b6c27dc99a20968cc85a89dcfe0d36f82e2c9bc3b4342a2ffc55158822f"
+checked_by = "ci/build-book.sh, sha256sum before the crate is unpacked (the SHA-256 crates.io's index records for it); built with cargo install --locked from the crate's own Cargo.lock"
+used_for = "mdbook-gettext, the one preprocessor of the Dutch build of the user guide, and mdbook-xgettext, which makes docs/book/po/messages.pot (ci/build-book.sh, WP-S7.05 D14); a build tool, nothing of it ships"
+
+[[component]]
 name = "nsis"
 version = "3.13"
 licence = "Zlib AND bzip2-1.0.6 AND CPL-1.0"

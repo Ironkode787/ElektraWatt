@@ -175,11 +175,18 @@ fn walk(entry: &MenuEntry, path: &mut Vec<String>, out: &mut Vec<Item>) {
 
 /// The window's menu items, read from the menus of a new project in a fresh configuration.
 fn items(tmp: &Tmp) -> Vec<Item> {
+    items_in(tmp, "en")
+}
+
+/// The window's menu items in the UI language `language` (a settings value: `en`, `nl`).
+fn items_in(tmp: &Tmp, language: &str) -> Vec<Item> {
     let mut shell = ShellModel::new(
         Mode::Headless,
-        ShellConfig::in_dir(&tmp.path("menu-config"), "0.0.0-test"),
+        ShellConfig::in_dir(&tmp.path(&format!("menu-config-{language}")), "0.0.0-test"),
     );
-    let dir = tmp.path("menu.ew");
+    let set = json!({"key": "language", "value": language});
+    assert_eq!(shell.dispatch("settings.set", &set), Outcome::Done);
+    let dir = tmp.path(&format!("menu-{language}.ew"));
     assert_eq!(
         shell.dispatch("file.new", &json!({"dir": dir.to_string_lossy()})),
         Outcome::Done
@@ -191,6 +198,8 @@ fn items(tmp: &Tmp) -> Vec<Item> {
             walk(e, &mut path, &mut out);
         }
     }
+    let set = json!({"key": "language", "value": "en"});
+    assert_eq!(shell.dispatch("settings.set", &set), Outcome::Done);
     shell.shutdown();
     out
 }
@@ -454,6 +463,59 @@ fn tutorial_6_importing_a_qelectrotech_project_runs_as_its_page_says() {
         ),
         Vec::<String>::new()
     );
+}
+
+/// The translations of the Dutch guide (`docs/book/po/nl.po`): (the entry's first reference, its translation), for
+/// every translated entry.
+fn dutch_translations() -> Vec<(String, String)> {
+    let path = Path::new(BOOK).join("po/nl.po");
+    let text = std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
+    let unquote = |s: &str| {
+        let inner = s.trim().strip_prefix('"').and_then(|s| s.strip_suffix('"')).unwrap();
+        inner
+            .replace("\\n", "\n")
+            .replace("\\\"", "\"")
+            .replace("\\\\", "\\")
+    };
+    let mut out = Vec::new();
+    for entry in text.replace("\r\n", "\n").split("\n\n") {
+        let reference = entry
+            .lines()
+            .find_map(|l| l.strip_prefix("#: "))
+            .and_then(|r| r.split_whitespace().next())
+            .unwrap_or_default()
+            .to_owned();
+        let mut msgstr = None::<String>;
+        for line in entry.lines() {
+            if let Some(rest) = line.strip_prefix("msgstr ") {
+                msgstr = Some(unquote(rest));
+            } else if let Some(m) = msgstr.as_mut()
+                && line.starts_with('"')
+            {
+                m.push_str(&unquote(line));
+            }
+        }
+        if let Some(m) = msgstr.filter(|m| !m.is_empty() && !reference.is_empty()) {
+            out.push((reference, m));
+        }
+    }
+    out
+}
+
+/// D14: every menu path that a Dutch translation names is the label path of a menu item of the window in Dutch, or of
+/// a menu or group above one (T6 for the Dutch guide).
+#[test]
+fn the_dutch_guide_names_the_dutch_windows_menu_paths() {
+    let tmp = Tmp::new();
+    let items = items_in(&tmp, "nl");
+    let translations = dutch_translations();
+    let named_paths: usize = translations.iter().map(|(_, t)| named(t).len()).sum();
+    assert!(named_paths > 0, "nl.po names no menu path");
+    let problems: Vec<String> = translations
+        .iter()
+        .flat_map(|(reference, text)| lint(&format!("po/nl.po ({reference})"), text, None, &items))
+        .collect();
+    assert_eq!(problems, Vec::<String>::new());
 }
 
 /// D9, D12, D13: the how-to and explanation pages that name menu paths pass the lint.
