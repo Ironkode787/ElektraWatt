@@ -51,10 +51,7 @@ fn f1_opens_the_section_of_the_focused_pane() {
     done(&mut shell, "tool.wire", json!({}));
     assert_eq!(f1(&mut shell), "reference/window/tools.html#wire");
     done(&mut shell, "tool.select", json!({}));
-    assert_eq!(
-        f1(&mut shell),
-        "how-to/application-window.html#project-view"
-    );
+    assert_eq!(f1(&mut shell), "how-to/application-window.html#project-view");
     shell.shutdown();
 }
 
@@ -65,10 +62,7 @@ fn f1_in_a_dialog_opens_its_section() {
     let mut shell = tmp.shell_in(Mode::Gui, true, "102");
     done(&mut shell, "ui.focus", json!({"area": "properties"}));
     done(&mut shell, "nav.goto", json!({}));
-    assert_eq!(
-        f1(&mut shell),
-        "reference/window/dialogs.html#go-to-page-or-cell"
-    );
+    assert_eq!(f1(&mut shell), "reference/window/dialogs.html#go-to-page-or-cell");
     done(&mut shell, "ui.dismiss", json!({}));
     done(&mut shell, "page.new", json!({}));
     assert_eq!(f1(&mut shell), "reference/window/dialogs.html#form-dialogs");

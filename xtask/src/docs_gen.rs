@@ -309,7 +309,10 @@ pub(crate) fn run(root: &Path, check: bool) -> Result<bool> {
         plan.partial.len()
     );
     if !plan.notes.is_empty() {
-        eprintln!("docs-gen: {} problem(s) in the rule notes and the glossary pages", plan.notes.len());
+        eprintln!(
+            "docs-gen: {} problem(s) in the rule notes and the glossary pages",
+            plan.notes.len()
+        );
         for v in &plan.notes {
             eprintln!("  - {v}");
         }
@@ -1065,7 +1068,9 @@ fn glossary_problems(file: &GlossaryFile, pages: [&str; 2]) -> Vec<String> {
             if let Some(heading) = line.strip_prefix("## ") {
                 named.extend(heading.split(", ").map(str::trim));
                 sections.push((heading, None));
-            } else if let (Some(rest), Some(last)) = (line.strip_prefix("**EW term:** ["), sections.last_mut()) {
+            } else if let (Some(rest), Some(last)) =
+                (line.strip_prefix("**EW term:** ["), sections.last_mut())
+            {
                 last.1 = rest.split_once("](").map(|(term, _)| term);
             }
         }
@@ -2594,7 +2599,10 @@ mod tests {
         )
         .unwrap();
         let link = |t: &str| format!("**EW term:** [{t}](../reference/glossary.md#{})\n", anchor(t));
-        let eplan = format!("# EPLAN and EW\n\n## Interruption point\n\n{}", link("Interruption point"));
+        let eplan = format!(
+            "# EPLAN and EW\n\n## Interruption point\n\n{}",
+            link("Interruption point")
+        );
         let qet = format!(
             "# QElectroTech and EW\n\n## Folio report\n\n{}\n## Element, Element instance\n\n{}",
             link("Interruption point"),

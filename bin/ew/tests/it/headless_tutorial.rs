@@ -93,15 +93,16 @@ fn shows(shown: &[String], actual: &[String]) -> bool {
         None => shown.is_empty() || shown == actual,
         Some(at) => {
             let (head, tail) = (&shown[..at], &shown[at + 1..]);
-            actual.len() >= head.len() + tail.len()
-                && actual.starts_with(head)
-                && actual.ends_with(tail)
+            actual.len() >= head.len() + tail.len() && actual.starts_with(head) && actual.ends_with(tail)
         }
     }
 }
 
 fn lines(bytes: &[u8]) -> Vec<String> {
-    String::from_utf8_lossy(bytes).lines().map(str::to_owned).collect()
+    String::from_utf8_lossy(bytes)
+        .lines()
+        .map(str::to_owned)
+        .collect()
 }
 
 /// `ew` in `dir` with its user directories inside it, no starter content and no `SOURCE_DATE_EPOCH`.
@@ -154,7 +155,11 @@ fn the_headless_tutorials_commands_print_what_its_page_shows() {
             }
             "mkdir" => std::fs::create_dir_all(tmp.join(&words[1])).unwrap(),
             "echo" if words[1] == "$?" => {
-                assert_eq!(shown, &[last.expect("an earlier command").to_string()], "$ {command}");
+                assert_eq!(
+                    shown,
+                    &[last.expect("an earlier command").to_string()],
+                    "$ {command}"
+                );
             }
             other => panic!("the page runs `{other}`, which the test does not know"),
         }

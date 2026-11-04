@@ -698,10 +698,7 @@ fn ms4_f8_walks_and_wraps_and_opens_the_pane_and_f1_opens_the_rule_page() {
         json!({"area": "navigator", "kind": "messages"}),
     );
     done(&mut shell, "help.documentation", json!({}));
-    assert_eq!(
-        line(&shell, "help: "),
-        "help: reference/rules/ew-core-033.html"
-    );
+    assert_eq!(line(&shell, "help: "), "help: reference/rules/ew-core-033.html");
     assert_eq!(
         ew_viewmodel::help::rule_page("EW-CORE-033").as_deref(),
         Some("reference/rules/ew-core-033.md")
@@ -714,10 +711,7 @@ fn ms4_f8_walks_and_wraps_and_opens_the_pane_and_f1_opens_the_rule_page() {
         json!({"kind": "messages", "key": group.key}),
     );
     done(&mut shell, "help.documentation", json!({}));
-    assert_ne!(
-        line(&shell, "help: "),
-        "help: reference/rules/ew-core-033.html"
-    );
+    assert_ne!(line(&shell, "help: "), "help: reference/rules/ew-core-033.html");
     shell.shutdown();
 }
 

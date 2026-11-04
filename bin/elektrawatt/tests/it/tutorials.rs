@@ -44,7 +44,9 @@ fn page(rel: &str) -> String {
 
 /// The steps of a tutorial script, without its header.
 fn script(name: &str) -> Vec<(String, Value)> {
-    let path = Path::new(BOOK).join("tutorial-scripts").join(format!("{name}.ewui"));
+    let path = Path::new(BOOK)
+        .join("tutorial-scripts")
+        .join(format!("{name}.ewui"));
     let text = std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
     text.lines()
         .filter(|l| !l.trim().is_empty())
@@ -62,9 +64,13 @@ fn script(name: &str) -> Vec<(String, Value)> {
 /// Runs the tutorial script `name` headless in `tmp` (its working folder, so the script's relative paths land there),
 /// with a fresh configuration folder and the user folders inside `tmp`.
 fn run_tutorial(tmp: &Tmp, name: &str) -> Output {
-    let path = Path::new(BOOK).join("tutorial-scripts").join(format!("{name}.ewui"));
+    let path = Path::new(BOOK)
+        .join("tutorial-scripts")
+        .join(format!("{name}.ewui"));
     let mut cmd = Command::new(bin_exe());
-    cmd.args(["--headless", "--script"]).arg(&path).current_dir(tmp.path(""));
+    cmd.args(["--headless", "--script"])
+        .arg(&path)
+        .current_dir(tmp.path(""));
     for d in USER_DIRS {
         let dir = tmp.path("home").join(d.to_ascii_lowercase());
         std::fs::create_dir_all(&dir).unwrap();
@@ -193,9 +199,9 @@ fn named(text: &str) -> Vec<Named> {
     let mut offset = 0;
     for line in text.split_inclusive('\n') {
         let trimmed = line.trim_end();
-        let number = trimmed.split_once(". ").is_some_and(|(n, _)| {
-            !n.is_empty() && n.chars().all(|c| c.is_ascii_digit())
-        });
+        let number = trimmed
+            .split_once(". ")
+            .is_some_and(|(n, _)| !n.is_empty() && n.chars().all(|c| c.is_ascii_digit()));
         if number {
             in_step = true;
         } else if !trimmed.is_empty() && !line.starts_with("   ") {
@@ -211,7 +217,10 @@ fn named(text: &str) -> Vec<Named> {
         let Some(close) = text[open + 2..].find("**").map(|i| open + 2 + i) else {
             break;
         };
-        let inner = text[open + 2..close].split_whitespace().collect::<Vec<_>>().join(" ");
+        let inner = text[open + 2..close]
+            .split_whitespace()
+            .collect::<Vec<_>>()
+            .join(" ");
         rest = close + 2;
         if !inner.contains(" ▸ ") {
             continue;
@@ -280,9 +289,9 @@ fn lint(name: &str, text: &str, script: Option<&[(String, Value)]>, items: &[Ite
         free = named.iter().collect();
     }
     for n in free {
-        let known = items.iter().any(|i| {
-            i.path == n.text || i.path.starts_with(&format!("{} ▸ ", n.text))
-        });
+        let known = items
+            .iter()
+            .any(|i| i.path == n.text || i.path.starts_with(&format!("{} ▸ ", n.text)));
         if !known {
             let last = n.text.rsplit(" ▸ ").next().unwrap_or_default();
             match items.iter().find(|i| i.path.ends_with(&format!(" ▸ {last}"))) {
@@ -356,7 +365,10 @@ fn tutorial_1_a_first_schematic_page_runs_as_its_page_says() {
         describe.contains("messages scheme \"drafting\" errors 0 "),
         "{describe}"
     );
-    assert!(describe.contains("title: first-page.ew - ElektraWatt"), "saved: {describe}");
+    assert!(
+        describe.contains("title: first-page.ew - ElektraWatt"),
+        "saved: {describe}"
+    );
     assert!(tmp.path("first-page.ew/project.jsonl").is_file());
     let items = items(&tmp);
     assert_eq!(
