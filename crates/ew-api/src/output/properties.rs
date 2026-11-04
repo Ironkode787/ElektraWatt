@@ -854,6 +854,75 @@ fn wires_of(q: &Q, conn: Id<Connection>) -> Vec<Wire> {
     wires.into_iter().map(|(_, w)| w).collect()
 }
 
+// WP-S2.08 part 6 (D18, C49-p8#1)
+/// A company colour code the project's colour profile declares (FR-CON-019): its IEC 60757 base and its shade.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct CompanyColour {
+    /// The code (`DBU`).
+    pub code: String,
+    /// The IEC 60757 base code (`BU`).
+    pub base: String,
+    /// `light` or `dark`; `None` for the base colour itself.
+    pub shade: Option<String>,
+}
+
+/// What the wire-colour view reads (WP-S2.08 D18): the effective colour of each connection asked for, as its codes,
+/// and the company codes of the colour profile.
+#[derive(Clone, PartialEq, Eq, Debug, Default)]
+pub struct WireColours {
+    /// Each connection's effective colour (its first wire's, as the property sheet prints it): the codes in order,
+    /// one or two (a foreign code by its spelling); a connection without a known colour is not listed.
+    pub connections: BTreeMap<Uuid, Vec<String>>,
+    /// The declared company codes, in the profile's order.
+    pub company: Vec<CompanyColour>,
+}
+
+impl Session {
+    /// The effective colours of `connections` and the profile's company codes, for the wire-colour view (WP-S2.08
+    /// D18). Reads memoised queries only; a connection that forms no physical wire, or whose colour is unset, is left
+    /// out.
+    pub fn wire_colours(&self, connections: &[Uuid]) -> WireColours {
+        use ew_schema::ColourCode;
+        let q = self.query();
+        let mut out = WireColours::default();
+        for id in connections {
+            let Some((_, props)) = wires_of(&q, Id::from_uuid(*id)).into_iter().next() else {
+                continue;
+            };
+            let Some(spec) = props.colour.as_ref().map(|c| &c.value) else {
+                continue;
+            };
+            let codes: Option<Vec<String>> = spec
+                .codes()
+                .iter()
+                .map(|c| match c {
+                    ColourCode::Foreign(f) => Some(f.as_str().to_owned()),
+                    other => serde_json::to_value(other).ok()?.as_str().map(str::to_owned),
+                })
+                .collect();
+            if let Some(codes) = codes.filter(|c| !c.is_empty()) {
+                out.connections.insert(*id, codes);
+            }
+        }
+        let profile = q.project().settings.extra.get("colour_profile").cloned();
+        if let Some(profile) = profile {
+            let declared = profile.get("codes").and_then(Value::as_array);
+            for (code, base) in ew_derive::company_codes(&profile) {
+                let shade = declared
+                    .and_then(|d| {
+                        d.iter()
+                            .find(|c| c.get("code").and_then(Value::as_str) == Some(code.as_str()))
+                    })
+                    .and_then(|c| c.get("shade"))
+                    .and_then(Value::as_str)
+                    .map(str::to_owned);
+                out.company.push(CompanyColour { code, base, shade });
+            }
+        }
+        out
+    }
+}
+
 /// The order of printed wire numbers: natural order, then bytes; an unnumbered wire (`None`) after every numbered one.
 fn number_order(a: Option<&str>, b: Option<&str>) -> std::cmp::Ordering {
     match (a, b) {

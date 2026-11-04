@@ -1324,6 +1324,8 @@ impl ShellModel {
             log.len() - 1
         });
         let outcome = self.dispatch_unlogged(action, params);
+        // WP-S2.08 part 6 (D17): tip 3 on an editing tool's, Paste's, a move's or a reorder's generated-page refusal.
+        self.tip_for_outcome(action, params, &outcome);
         if let Some(entry) = slot.and_then(|i| self.dispatch_log.as_mut()?.get_mut(i)) {
             (entry.outcome, entry.reason) = match &outcome {
                 Outcome::Done => ("done", None),

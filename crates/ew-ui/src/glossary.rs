@@ -18,13 +18,26 @@ use ew_viewmodel::{actions, key};
 use serde_json::{Value, json};
 
 use crate::app::Event;
-use crate::components::{self, Kind};
+use crate::components::{self, Kind, Tip as _};
 use crate::icons::IconId;
 use crate::theme::{self, Tokens};
 
-/// The share of the table's width each text column takes (EW term, EPLAN, QET; the definition takes the rest after
-/// the actions, whose column is as wide as its widest button, so a button never wraps).
-const TEXT_SHARE: f32 = 0.15;
+/// The share of the table's width each text column takes at least (EW term, EPLAN, QET; the definition takes the rest
+/// after the actions, whose column is as wide as its widest button, so a button never wraps).
+pub const TEXT_SHARE: f32 = 0.15;
+
+/// The share a text column takes at most when its longest word needs more than [`TEXT_SHARE`] (W49.2 F8).
+pub const TEXT_SHARE_MAX: f32 = 0.25;
+
+/// The widths of the columns of a table `width` wide (EW term, EPLAN, QET, Definition, Actions): each text column
+/// [`TEXT_SHARE`] of the width, or the width its longest word needs (`longest`, with the cell padding) up to
+/// [`TEXT_SHARE_MAX`], so a term wraps between words, never inside one, where the pane allows it (doc 16a §6.7); the
+/// actions `actions`; the definition the rest.
+pub fn column_widths(width: f32, longest: [f32; 3], actions: f32) -> [f32; 5] {
+    let text = longest.map(|w| w.max(width * TEXT_SHARE).min(width * TEXT_SHARE_MAX).ceil());
+    let definition = (width - text.iter().sum::<f32>() - actions).max(0.0);
+    [text[0], text[1], text[2], definition, actions]
+}
 
 /// The text of a glossary button for action `id`, and its accessible name: "Insert" for an action that arms a tool,
 /// else the action's menu label.
@@ -40,7 +53,7 @@ pub(crate) fn action_words(id: &str) -> Option<(String, String)> {
 }
 
 /// Paints the glossary pane of `shell`.
-pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
+pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
     let t = components::tokens(ui);
     let rect = ui.available_rect_before_wrap();
     let pane_id = ui.scope_id().with("glossary-pane");
@@ -58,17 +71,21 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         ui.add_space(t.space_2);
         let rows = shell.glossary_rows();
         if rows.is_empty() {
-            components::empty_state(
+            // Doc 16a §6.17, the navigators' form: the search quoted, and Clear.
+            let line = strings::format(key!("empty-nav-filter"), &[shell.glossary_filter()]);
+            let clear = components::empty_state(
                 ui,
                 IconId::search,
-                strings::text(key!("empty-glossary")),
-                strings::text(key!("empty-glossary-text")),
-                None,
+                &line,
+                strings::text(key!("empty-nav-filter-text")),
+                Some(strings::text(key!("empty-nav-clear"))),
             );
+            if clear.is_some_and(|b| b.clicked()) {
+                events.push(Event::Action("glossary.filter", json!({ "text": "" })));
+            }
             return;
         }
         let width = ui.available_width();
-        let text_w = (width * TEXT_SHARE).floor();
         // The widest button's label in `type.body` (the Subtle button's font) with its padding, or the header's title.
         let pad = ui.spacing().button_padding.x;
         let measure = |text: String, font: &theme::TypeToken| {
@@ -87,13 +104,24 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                 f32::max,
             );
         let actions_w = (widest + 2.0 * t.space_4).ceil();
-        let widths = [
-            text_w,
-            text_w,
-            text_w,
-            (width - 3.0 * text_w - actions_w).max(0.0),
-            actions_w,
+        // The longest word of each text column on show, in its font, with the cell padding.
+        let strong = theme::TypeToken {
+            semibold: true,
+            ..t.type_small
+        };
+        let longest_word = |texts: &mut dyn Iterator<Item = &String>, font: &theme::TypeToken| {
+            texts
+                .flat_map(|s| s.split_whitespace())
+                .map(|w| measure(w.to_owned(), font))
+                .fold(0.0, f32::max)
+                + 2.0 * t.space_4
+        };
+        let longest = [
+            longest_word(&mut rows.iter().map(|r| &r.term), &strong),
+            longest_word(&mut rows.iter().map(|r| &r.eplan), &t.type_small),
+            longest_word(&mut rows.iter().map(|r| &r.qet), &t.type_small),
         ];
+        let widths = column_widths(width, longest, actions_w);
         header(ui, &t, &widths);
         egui::ScrollArea::vertical()
             .auto_shrink([false, true])
@@ -252,8 +280,8 @@ fn action_button(ui: &mut Ui, shell: &ShellModel, id: &str, events: &mut Vec<Eve
     let b = components::button(ui, Kind::Subtle, &text, state.is_ok(), 0.0);
     b.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, state.is_ok(), &name));
     let b = match state {
-        Ok(()) => b.on_hover_text(&name),
-        Err(reason) => b.on_disabled_hover_text(strings::text(reason)),
+        Ok(()) => b.tip(name),
+        Err(reason) => b.disabled_tip_beside(strings::text(reason)),
     };
     if b.clicked() {
         events.push(Event::Action(meta.id, Value::Null));

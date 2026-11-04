@@ -16,7 +16,7 @@ use ew_viewmodel::layout::PaneKind;
 use ew_viewmodel::notifications::{NoteAction, NoteTone};
 use ew_viewmodel::settings::Settings;
 use ew_viewmodel::shell::{Focus, GlossaryRow, Mode, Outcome, ShellModel};
-use ew_viewmodel::wire_colours::{DASH_NM, colours_of};
+use ew_viewmodel::wire_colours::{DASH_NM, iec_rgb};
 use serde_json::json;
 
 /// W29 on folio 103 (`connections|W29`): 0.75 mm² DBU from the colour profile.
@@ -383,6 +383,140 @@ fn gt3_tips_2_and_3_appear_once_each_on_their_refusals_and_never_with_tips_off_o
     s.shutdown();
 }
 
+/// C49-p8#3: a read-only project's refusal offers neither tip 2 nor tip 3 and leaves both unused.
+#[test]
+fn gt3_a_read_only_refusal_leaves_tips_2_and_3_unused() {
+    let tmp = Tmp::new("gt3-read-only");
+    let config = tmp.0.join("config");
+    std::fs::create_dir_all(&config).unwrap();
+    std::fs::write(
+        config.join("settings.toml"),
+        "version = 1\nfirst_run_done = true\ncomes_from = \"eplan\"\n",
+    )
+    .unwrap();
+    let mut s = tmp.shell_in(Mode::Headless, false, "102");
+    done(
+        &mut s,
+        "select.set",
+        json!({"refs": ["tag:-102F1", "tag:-102F2"]}),
+    );
+    let read_only = Outcome::Refused {
+        reason_key: ew_viewmodel::key!("reason-read-only"),
+    };
+    assert_eq!(
+        s.dispatch(
+            "props.action",
+            &json!({"row": "device/derived.tag", "action": "edit"})
+        ),
+        read_only
+    );
+    let (folio, _) = generated_page(&s);
+    done(&mut s, "page.goto", json!({ "folio": folio }));
+    done(&mut s, "select.set", json!({"ids": []}));
+    let row = s.properties().sheet().expect("the page's sheet").sections[0].rows[0]
+        .key
+        .clone();
+    assert_eq!(
+        s.dispatch("props.action", &json!({"row": row, "action": "edit"})),
+        read_only
+    );
+    assert_eq!(tips(&s), []);
+    assert_eq!(settings_of(&tmp).tips_seen, Vec::<String>::new());
+    s.shutdown();
+}
+
+/// C49-p8#3: an editing tool refused on a generated page, and the Pages navigator's reorder and move of one, offer tip
+/// 3 (once).
+#[test]
+fn gt3_a_tool_a_reorder_or_a_move_refused_on_a_generated_page_offers_tip_3() {
+    let generated = "This page is generated from a report block.".to_owned();
+    // The Wire tool on a generated page.
+    let tmp = Tmp::new("gt3-tool");
+    let mut s = shell_with(
+        &tmp,
+        "version = 1\nfirst_run_done = true\ncomes_from = \"qet\"\n",
+        "102",
+    );
+    let (folio, block) = generated_page(&s);
+    done(&mut s, "page.goto", json!({ "folio": folio }));
+    assert_eq!(
+        s.dispatch("tool.wire", &json!({})),
+        Outcome::Refused {
+            reason_key: ew_viewmodel::key!("reason-page-type-no-symbols-report")
+        }
+    );
+    assert_eq!(tips(&s), [(generated.clone(), Some(NoteAction::ShowBlock))]);
+    let serial = s.toast().unwrap().serial;
+    done(
+        &mut s,
+        "notifications.run",
+        json!({"entry": serial, "action": "show_block"}),
+    );
+    assert_eq!(
+        s.selection()
+            .items
+            .iter()
+            .map(|e| e.0.to_string())
+            .collect::<Vec<_>>(),
+        [block]
+    );
+    s.shutdown();
+    // A reorder naming the generated page.
+    let tmp = Tmp::new("gt3-reorder");
+    let mut s = shell_with(
+        &tmp,
+        "version = 1\nfirst_run_done = true\ncomes_from = \"qet\"\n",
+        "102",
+    );
+    let failed = Outcome::Failed {
+        message: "A generated page has no folio of its own.".to_owned(),
+    };
+    assert_eq!(
+        s.dispatch("pages.reorder", &json!({"pages": [folio], "end": true})),
+        failed
+    );
+    assert_eq!(tips(&s), [(generated.clone(), Some(NoteAction::ShowBlock))]);
+    s.shutdown();
+    // A move of the cursor row, the generated page on show.
+    let tmp = Tmp::new("gt3-move");
+    let mut s = shell_with(
+        &tmp,
+        "version = 1\nfirst_run_done = true\ncomes_from = \"qet\"\n",
+        "102",
+    );
+    done(&mut s, "page.goto", json!({ "folio": folio }));
+    assert_eq!(s.dispatch("pages.move_up", &json!({})), failed);
+    assert_eq!(tips(&s), [(generated, Some(NoteAction::ShowBlock))]);
+    s.shutdown();
+}
+
+/// C49-p6b#5, C49-p8#9: the six Dutch choice words are the words the window already uses for those values.
+#[test]
+fn the_six_dutch_choice_words_equal_their_siblings() {
+    use ew_viewmodel::strings::{self, Key};
+    assert!(strings::set_locale("nl"));
+    for (choice, sibling, word) in [
+        (
+            "choice-equipotential",
+            "bond-kind-equipotential",
+            "Potentiaalvereffening",
+        ),
+        ("choice-end-clamp", "choice-end-bracket", "Eindsteun"),
+        ("choice-dt", "form-tag", "Kenmerk"),
+        ("choice-chain", "junction-wiring-chain", "Keten"),
+        ("choice-bevel", "junction-style-bevel", "Schuin"),
+        (
+            "choice-style-default",
+            "junction-wiring-default",
+            "Standaard van de stijl",
+        ),
+    ] {
+        assert_eq!(strings::text(Key::run_time(choice)), word, "{choice}");
+        assert_eq!(strings::text(Key::run_time(sibling)), word, "{sibling}");
+    }
+    assert!(strings::set_locale("en"));
+}
+
 #[test]
 fn gt3_table_mode_refusals_on_a_tag_and_on_a_generated_page_offer_tips_2_and_3() {
     let tmp = Tmp::new("gt3-table");
@@ -452,7 +586,8 @@ fn gt4_wire_colours_stroke_w29_in_dbu_and_stripe_w27_and_are_off_by_default() {
         .find(|x| x.id.to_string() == W29)
         .expect("W29 is drawn on 103");
     assert_eq!(w29.code, "DBU");
-    assert_eq!(w29.colours, colours_of("DBU"));
+    // Golden A's colour profile declares DBU as BU, dark (C49-p8#1): the colour comes from that, not the spelling.
+    assert_eq!(w29.colours, [Some((0x11, 0x34, 0x76))]);
     assert!(!w29.cased);
     assert_eq!(
         lines(&s, "canvas wire "),
@@ -473,11 +608,11 @@ fn gt4_wire_colours_stroke_w29_in_dbu_and_stripe_w27_and_are_off_by_default() {
     let strokes = s.wire_colour_overlay(0);
     let stripes = strokes.iter().find(|x| x.id == w27).expect("W27 is stroked");
     assert_eq!(stripes.code, "GNYE", "on folio {folio}");
-    assert_eq!(stripes.colours, colours_of("GNYE"));
+    assert_eq!(stripes.colours, [iec_rgb("GN"), iec_rgb("YE")]);
     assert_eq!(stripes.colours.len(), 2);
     let pieces = stripes.pieces();
     assert!(pieces.len() > 1);
-    for (i, (a, b, c)) in pieces.iter().enumerate() {
+    for (i, (a, b, c, _)) in pieces.iter().enumerate() {
         let len = ((b.0 - a.0).powi(2) + (b.1 - a.1).powi(2)).sqrt();
         assert!(len <= DASH_NM + 1.0, "{len}");
         if i == 0 {

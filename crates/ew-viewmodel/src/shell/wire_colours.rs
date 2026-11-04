@@ -5,20 +5,20 @@
 //! colours) switches the view, a session's view state like View ▸ Grid, off at start; [`ShellModel::wire_colour_overlay`]
 //! gives the strokes of a canvas group's shown page for the window's painter ([`crate::wire_colours`]).
 //!
-//! **The colours** are the effective colours of the Connections navigator's table (the wire list's Colour column):
-//! the table is fetched once per (project session, revision) while the view is on, and a drawn connection takes the
-//! colour of the row whose wire it belongs to (`NavTable::index`).
+//! **The colours** are the effective colours `Session::wire_colours` gives for the page's connections, as lists of
+//! codes, with the colour profile's company codes (their declared base and shade): read once per (project session,
+//! revision, page) while the view is on.
 
 use std::sync::Arc;
 
-use ew_api::output::{NavKind, NavRole, NavTable};
+use ew_api::output::{PageTables, Uuid, WireColours};
 use serde_json::{Map, Value};
 
 use super::{Outcome, ShellModel};
 use crate::wire_colours::WireStroke;
 
-/// The Connections table of the wire-colour view and the (session epoch, revision) it was fetched at.
-pub(super) type Cached = ((u64, u64), Arc<NavTable>);
+/// The wire-colour view's facts and the (session epoch, revision, page) they were read at.
+pub(super) type Cached = ((u64, u64, Uuid), Arc<WireColours>);
 
 impl ShellModel {
     /// Whether the wire-colour view is on.
@@ -37,19 +37,21 @@ impl ShellModel {
         }
     }
 
-    /// The Connections table of the open project's revision, fetched once per (session, revision).
-    fn wire_colour_table(&self) -> Option<Arc<NavTable>> {
+    /// The effective colours of the connections drawn on `tables`' page and the profile's company codes, read once per
+    /// (session, revision, page).
+    fn wire_colour_facts(&self, tables: &PageTables) -> Option<Arc<WireColours>> {
         let project = self.project.as_ref()?;
-        let key = (project.epoch, project.session.world().rev.0);
+        let key = (project.epoch, project.session.world().rev.0, tables.page);
         let mut cache = self.wire_colour_cache.borrow_mut();
-        if let Some((k, table)) = cache.as_ref()
+        if let Some((k, facts)) = cache.as_ref()
             && *k == key
         {
-            return Some(Arc::clone(table));
+            return Some(Arc::clone(facts));
         }
-        let table = Arc::new(project.session.navigator_table(NavKind::Connections));
-        *cache = Some((key, Arc::clone(&table)));
-        Some(table)
+        let ids: Vec<Uuid> = tables.connections.iter().map(|c| c.id).collect();
+        let facts = Arc::new(project.session.wire_colours(&ids));
+        *cache = Some((key, Arc::clone(&facts)));
+        Some(facts)
     }
 
     /// The strokes of the wire-colour view on canvas group `group`'s page: each drawn connection whose effective colour
@@ -58,33 +60,29 @@ impl ShellModel {
         if !self.wire_colours {
             return Vec::new();
         }
-        let (Some(c), Some(table)) = (self.canvas_of(group), self.wire_colour_table()) else {
-            return Vec::new();
-        };
-        let Some(col) = table.columns.iter().position(|c| c.key == "colour") else {
+        let Some(c) = self.canvas_of(group) else {
             return Vec::new();
         };
         let page = c.page();
-        page.tables
+        let Some(facts) = self.wire_colour_facts(&page.tables) else {
+            return Vec::new();
+        };
+        let mut strokes: Vec<WireStroke> = page
+            .tables
             .connections
             .iter()
             .filter_map(|t| {
-                let code = table
-                    .index
-                    .get(&t.id)?
-                    .iter()
-                    .map(|i| &table.nodes[*i as usize])
-                    .find(|n| n.role == NavRole::Connection)?
-                    .cells
-                    .get(col)
-                    .filter(|code| !code.is_empty())?;
+                let codes = facts.connections.get(&t.id)?;
                 let polyline = t
                     .polyline
                     .iter()
                     .map(|p| page.snapper.page_to_sheet(*p))
                     .collect();
-                Some(WireStroke::new(t.id, polyline, code))
+                Some(WireStroke::new(t.id, polyline, page.sheet, codes, &facts.company))
             })
-            .collect()
+            .collect();
+        // W49.2 F9: wires drawn on one path stand side by side.
+        crate::wire_colours::assign_lanes(&mut strokes);
+        strokes
     }
 }

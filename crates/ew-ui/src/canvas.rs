@@ -205,6 +205,13 @@ pub fn snapshot_image(shell: &ShellModel, group: usize) -> Result<(ew_render_cpu
         },
     )?;
     let view = view_of(canvas);
+    // WP-S2.08 part 6 (C49-p8#4): the wire-colour view, under the conflicts and the highlights as in the window.
+    composite_wire_colours(
+        &mut image,
+        &view.settled_transform(),
+        view.ppp,
+        &shell.wire_colour_overlay(group),
+    );
     // FT-675: the conflict overlay under the highlights.
     composite_conflicts(
         &mut image,
@@ -221,6 +228,60 @@ pub fn snapshot_image(shell: &ShellModel, group: usize) -> Result<(ew_render_cpu
         .collect();
     composite_highlights(&mut image, &view.settled_transform(), view.ppp, &items);
     Ok((image, dpi))
+}
+
+// WP-S2.08 part 6
+/// Composites the wire-colour view into a snapshot (D18) by the window's widths: per stroke its casing (the stroke's
+/// half width plus `CASING_PX`) in the casing colour, then its pieces in their colours, each pixel whose centre lies
+/// within the half width of a piece. The codes are chips, which a snapshot leaves out (WP-S2.03 §7.4).
+fn composite_wire_colours(
+    image: &mut ew_render_cpu::RgbaImage,
+    t: &DrawTransform,
+    ppp: f64,
+    strokes: &[ew_viewmodel::wire_colours::WireStroke],
+) {
+    use ew_viewmodel::wire_colours::{CASING_PX, CASING_RGB, STROKE_PT, lane_offset_pt, normal};
+    let (w, h) = (i64::from(image.width), i64::from(image.height));
+    let half = STROKE_PT * ppp / 2.0;
+    let band =
+        |image: &mut ew_render_cpu::RgbaImage, a: (f64, f64), b: (f64, f64), half: f64, rgb: (u8, u8, u8)| {
+            let (a, b) = (t.to_screen(a), t.to_screen(b));
+            let x0 = ((a.0.min(b.0) - half).floor() as i64).max(0);
+            let x1 = ((a.0.max(b.0) + half).ceil() as i64).min(w);
+            let y0 = ((a.1.min(b.1) - half).floor() as i64).max(0);
+            let y1 = ((a.1.max(b.1) + half).ceil() as i64).min(h);
+            let c = Color {
+                r: rgb.0,
+                g: rgb.1,
+                b: rgb.2,
+                a: u8::MAX,
+            };
+            for y in y0..y1 {
+                for x in x0..x1 {
+                    if segment_distance((x as f64 + 0.5, y as f64 + 0.5), a, b) <= half {
+                        overlay::fill(image, PxRect::new(x, y, x + 1, y + 1), c);
+                    }
+                }
+            }
+        };
+    for s in strokes {
+        // W49.2 F9: a piece in lane `l` stands off its path along the segment's normal, in pixels.
+        let off = |a: (f64, f64), b: (f64, f64), lane: u8| {
+            let n = normal(a, b);
+            let k = lane_offset_pt(lane) * ppp / t.px_per_nm();
+            ((a.0 + n.0 * k, a.1 + n.1 * k), (b.0 + n.0 * k, b.1 + n.1 * k))
+        };
+        if s.cased {
+            for (a, b, _, lane) in s.segments() {
+                let (a, b) = off(a, b, lane);
+                band(image, a, b, half + CASING_PX, CASING_RGB);
+            }
+        }
+        for (a, b, c, lane) in s.pieces() {
+            let (a, b) = off(a, b, lane);
+            band(image, a, b, half, s.piece_rgb(c));
+        }
+    }
 }
 
 // FT-675
@@ -497,8 +558,12 @@ fn paint_wire_colours(
     let tokens = crate::theme::current(ui.ctx());
     for s in &strokes {
         let Some(mid) = s.midpoint() else { continue };
-        let (x, y) = t.to_screen(mid);
-        let at = rect.min + egui::Vec2::new(x as f32, y as f32) / ppp;
+        let (x, y) = t.to_screen(mid.at);
+        // W49.2 F9: on its own stroke, in its segment's lane.
+        let lane = ew_viewmodel::wire_colours::lane_offset_pt(mid.lane) as f32;
+        let at = rect.min
+            + egui::Vec2::new(x as f32, y as f32) / ppp
+            + egui::Vec2::new(mid.normal.0 as f32, mid.normal.1 as f32) * lane;
         let galley = painter.layout_no_wrap(
             s.code.clone(),
             crate::theme::font(&tokens.type_caption),
@@ -520,17 +585,23 @@ fn paint_wire_colours(
 
 /// The wire-colour view's strokes (D18) over a pane whose top-left is `origin`, at `ppp`: per connection a dark casing
 /// `CASING_PX` physical pixel wider on each side for a cased one, then its stroke (`STROKE_PT` points) in its colour or
-/// its two colours' alternating 2-mm dashes.
+/// its two colours' alternating 2-mm dashes; a segment in a lane other than 0 stands off its path by its lane's offset
+/// (W49.2 F9), and such a stroke is drawn piece by piece.
 pub fn wire_colour_shapes(
     strokes: &[ew_viewmodel::wire_colours::WireStroke],
     origin: Pos2,
     ppp: f32,
     t: &DrawTransform,
 ) -> Vec<egui::Shape> {
-    use ew_viewmodel::wire_colours::{CASING_PX, CASING_RGB, STROKE_PT};
+    use ew_viewmodel::wire_colours::{CASING_PX, CASING_RGB, STROKE_PT, lane_offset_pt, normal};
     let to_pt = |p: (f64, f64)| {
         let (x, y) = t.to_screen(p);
         origin + egui::Vec2::new(x as f32, y as f32) / ppp
+    };
+    let ends = |a: (f64, f64), b: (f64, f64), lane: u8| {
+        let n = normal(a, b);
+        let off = egui::Vec2::new(n.0 as f32, n.1 as f32) * lane_offset_pt(lane) as f32;
+        [to_pt(a) + off, to_pt(b) + off]
     };
     let rgb = |(r, g, b): (u8, u8, u8)| crate::theme::rgba(r, g, b, u8::MAX);
     let width = STROKE_PT as f32;
@@ -541,22 +612,24 @@ pub fn wire_colour_shapes(
             .iter()
             .map(|p| to_pt((p.0 as f64, p.1 as f64)))
             .collect();
-        if s.cased {
-            out.push(egui::Shape::line(
-                path.clone(),
-                egui::Stroke::new(width + 2.0 * CASING_PX as f32 / ppp, rgb(CASING_RGB)),
-            ));
+        let casing = egui::Stroke::new(width + 2.0 * CASING_PX as f32 / ppp, rgb(CASING_RGB));
+        if s.cased && s.laned() {
+            for (a, b, _, lane) in s.segments() {
+                out.push(egui::Shape::line_segment(ends(a, b, lane), casing));
+            }
+        } else if s.cased {
+            out.push(egui::Shape::line(path.clone(), casing));
         }
-        if s.colours.len() == 1 {
+        if s.colours.len() == 1 && !s.unresolved() && !s.laned() {
             out.push(egui::Shape::line(
                 path,
-                egui::Stroke::new(width, rgb(s.colours[0])),
+                egui::Stroke::new(width, rgb(s.piece_rgb(0))),
             ));
         } else {
-            for (a, b, c) in s.pieces() {
+            for (a, b, c, lane) in s.pieces() {
                 out.push(egui::Shape::line_segment(
-                    [to_pt(a), to_pt(b)],
-                    egui::Stroke::new(width, rgb(s.colours[c])),
+                    ends(a, b, lane),
+                    egui::Stroke::new(width, rgb(s.piece_rgb(c))),
                 ));
             }
         }

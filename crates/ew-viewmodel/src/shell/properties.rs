@@ -653,7 +653,7 @@ impl ShellModel {
         };
         if let Some(out) = self.props_refusal(&section, &row, action) {
             // WP-S2.08 part 6 (D17): tips 2 and 3.
-            self.tip_for_refused_row(&section, &row);
+            self.tip_for_refused_row(&section, &row, &out);
             return out;
         }
         let shown = buffer.is_none();
@@ -1865,7 +1865,7 @@ impl ShellModel {
         };
         if let Some(out) = self.props_refusal(&section, &row, action) {
             // WP-S2.08 part 6 (D17): tips 2 and 3.
-            self.tip_for_refused_row(&section, &row);
+            self.tip_for_refused_row(&section, &row, &out);
             return out;
         }
         self.props.row = Some(key.to_owned());

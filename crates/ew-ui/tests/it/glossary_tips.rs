@@ -58,10 +58,23 @@ fn gt1_gt5_the_glossary_pane_is_named_and_folio_reports_insert_arms_the_ip_tool_
     // On the title page the IP tool cannot be armed: the button is disabled.
     let insert = h.get_by_label("Insert: Interruption point");
     assert!(insert.accesskit_node().is_disabled());
+    // C49-p8#6: its reason, as the menus give it, beside the button.
+    insert.hover();
+    settle(&mut h);
+    settle(&mut h);
+    assert!(
+        h.query_by_label("A title page takes no symbols or wires: draw on a schematic page")
+            .is_some(),
+        "the disabled button's reason"
+    );
     // On a schematic page it arms the tool.
     dispatch(&mut h, "page.goto", json!({"folio": "102"}));
     settle(&mut h);
-    h.get_by_label("Insert: Interruption point").click();
+    // The pointer still rests on it: its tooltip names it too.
+    h.get_all_by_label("Insert: Interruption point")
+        .find(|n| n.accesskit_node().role() == egui::accesskit::Role::Button)
+        .unwrap()
+        .click();
     settle(&mut h);
     assert_eq!(h.state().shell().tool().name(), "ip");
     dispatch(&mut h, "tool.select", json!({}));
@@ -77,11 +90,146 @@ fn gt1_gt5_the_glossary_pane_is_named_and_folio_reports_insert_arms_the_ip_tool_
     // No term: the empty state.
     dispatch(&mut h, "glossary.filter", json!({"text": "zzqx"}));
     settle(&mut h);
-    assert!(group(&h, "Geen term gevonden"), "the empty state");
+    // C49-p8#7: the search quoted, and Clear, as in the navigators.
+    assert!(group(&h, "Niets komt overeen met \"zzqx\""), "the empty state");
+    h.get_by_label("Filter wissen").click();
+    settle(&mut h);
+    assert_eq!(h.state().shell().glossary_filter(), "");
+    assert!(group(&h, "Onderbrekingspunt"), "every term again");
     dispatch(&mut h, "view.language", json!({"value": "en"}));
     settle(&mut h);
     assert_named(&h);
     h.state_mut().shell_mut().shutdown();
+}
+
+/// C49-p8#8: a cased stroke's casing is painted first, `CASING_PX` physical pixel wider on each side, in the casing
+/// colour; then the stroke in its colour.
+#[test]
+fn a_cased_strokes_casing_is_painted_first_one_pixel_wider_on_each_side() {
+    use ew_ui::ew_viewmodel::wire_colours::{CASING_RGB, STROKE_PT, WireStroke};
+    let white = WireStroke::new(
+        ew_ui::ew_viewmodel::ew_api::output::Uuid::nil(),
+        vec![(10_000_000, 10_000_000), (20_000_000, 10_000_000)],
+        (420_000_000, 297_000_000),
+        &["WH".to_owned()],
+        &[],
+    );
+    assert!(white.cased);
+    let t = DrawTransform {
+        dpi: 96.0,
+        origin: (0.0, 0.0),
+        raster_dpi: None,
+    };
+    let ppp = 2.0;
+    let shapes = ew_ui::canvas::wire_colour_shapes(&[white], egui::Pos2::ZERO, ppp, &t);
+    let strokes: Vec<(f32, egui::Color32)> = shapes
+        .iter()
+        .map(|s| match s {
+            egui::Shape::Path(p) => match &p.stroke.color {
+                egui::epaint::ColorMode::Solid(c) => (p.stroke.width, *c),
+                other => panic!("{other:?}"),
+            },
+            other => panic!("{other:?}"),
+        })
+        .collect();
+    let (r, g, b) = CASING_RGB;
+    assert_eq!(
+        strokes,
+        [
+            (STROKE_PT as f32 + 2.0 / ppp, egui::Color32::from_rgb(r, g, b)),
+            (STROKE_PT as f32, egui::Color32::WHITE),
+        ]
+    );
+}
+
+/// W49.2 F8: at the 1280 × 800 floor in Dutch the term column is as wide as "Onderbrekingspunt" needs, so the term
+/// wraps between words, never inside one; the pane's rows fit.
+#[test]
+fn f8_the_dutch_term_keeps_its_longest_word_whole_at_the_floor() {
+    let tmp = Tmp::new();
+    let dir = tmp.golden("g.ew");
+    let mut h = harness(&tmp, Scripted::default(), Some(dir));
+    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    settle(&mut h);
+    dispatch(&mut h, "view.language", json!({"value": "nl"}));
+    dispatch(&mut h, "help.glossary", json!({}));
+    dispatch(&mut h, "glossary.filter", json!({"text": "onderbrekingspunt"}));
+    settle(&mut h);
+    assert!(group(&h, "Onderbrekingspunt"));
+    support::assert_fits(&h);
+    // The column rule: the word's width with the cell padding, at the pane's width.
+    let pane = h
+        .get_all_by_label("Woordenlijst")
+        .find(|n| n.accesskit_node().role() == egui::accesskit::Role::Group)
+        .unwrap()
+        .accesskit_node()
+        .raw_bounds()
+        .unwrap();
+    let t = ew_ui::theme::current(&h.ctx);
+    let strong = ew_ui::theme::TypeToken {
+        semibold: true,
+        ..t.type_small
+    };
+    let painter = egui::Painter::new(h.ctx.clone(), egui::LayerId::background(), egui::Rect::EVERYTHING);
+    let word = painter
+        .layout_no_wrap(
+            "Onderbrekingspunt".to_owned(),
+            ew_ui::theme::font(&strong),
+            egui::Color32::BLACK,
+        )
+        .size()
+        .x;
+    let width = (pane.x1 - pane.x0) as f32;
+    let needed = word + 2.0 * t.space_4;
+    assert!(
+        needed > width * ew_ui::glossary::TEXT_SHARE,
+        "the word needs more than the share"
+    );
+    let widths = ew_ui::glossary::column_widths(width, [needed, 0.0, 0.0], 100.0);
+    assert!(widths[0] >= needed, "{widths:?} for {needed}");
+    assert!(widths[3] > 0.0, "the definition keeps its column");
+    dispatch(&mut h, "view.language", json!({"value": "en"}));
+    h.state_mut().shell_mut().shutdown();
+}
+
+/// W49.2 F9: a WH and a GNYE wire on one path are drawn side by side, both colours on show; each code on its own.
+#[test]
+fn f9_two_wires_on_one_path_are_drawn_side_by_side() {
+    use ew_ui::ew_viewmodel::wire_colours::{LANE_PT, WireStroke, assign_lanes};
+    let nil = ew_ui::ew_viewmodel::ew_api::output::Uuid::nil();
+    let path = vec![(10_000_000, 10_000_000), (50_000_000, 10_000_000)];
+    let sheet = (420_000_000, 297_000_000);
+    let mut strokes = vec![
+        WireStroke::new(nil, path.clone(), sheet, &["WH".to_owned()], &[]),
+        WireStroke::new(nil, path, sheet, &["GN".to_owned(), "YE".to_owned()], &[]),
+    ];
+    assign_lanes(&mut strokes);
+    let t = DrawTransform {
+        dpi: 96.0,
+        origin: (0.0, 0.0),
+        raster_dpi: None,
+    };
+    let ys = |s: &WireStroke| -> Vec<f32> {
+        ew_ui::canvas::wire_colour_shapes(std::slice::from_ref(s), egui::Pos2::ZERO, 1.0, &t)
+            .iter()
+            .flat_map(|sh| match sh {
+                egui::Shape::Path(p) => p.points.iter().map(|q| q.y).collect::<Vec<_>>(),
+                egui::Shape::LineSegment { points, .. } => points.iter().map(|q| q.y).collect(),
+                other => panic!("{other:?}"),
+            })
+            .collect()
+    };
+    let (white, stripes) = (ys(&strokes[0]), ys(&strokes[1]));
+    let y = (10_000_000.0 * t.px_per_nm()) as f32;
+    assert!(white.iter().all(|v| (v - y).abs() < 1e-3), "{white:?}");
+    // The stripes stand one lane off, clear of the white stroke and its casing.
+    assert!(
+        stripes.iter().all(|v| (v - y).abs() >= LANE_PT as f32 - 1e-3),
+        "{stripes:?}"
+    );
+    // Each code on its own stroke's lane.
+    assert_eq!(strokes[0].midpoint().unwrap().lane, 0);
+    assert_eq!(strokes[1].midpoint().unwrap().lane, 1);
 }
 
 /// The SHA-256 of `bytes` in hex.
@@ -120,9 +268,36 @@ fn gt4_the_exported_pdf_is_the_golden_one_with_the_wire_colour_view_on_and_off()
         let shapes = ew_ui::canvas::wire_colour_shapes(&strokes, egui::Pos2::ZERO, 1.0, &t);
         let count: usize = strokes
             .iter()
-            .map(|s| usize::from(s.cased) + if s.colours.len() == 1 { 1 } else { s.pieces().len() })
+            .map(|s| {
+                let casing = match (s.cased, s.laned()) {
+                    (false, _) => 0,
+                    (true, false) => 1,
+                    (true, true) => s.segments().len(),
+                };
+                let solid = s.colours.len() == 1 && !s.unresolved() && !s.laned();
+                casing + if solid { 1 } else { s.pieces().len() }
+            })
             .sum();
         assert_eq!(shapes.len(), count);
+        // C49-p8#4: the headless snapshot shows the view as the window does: W29's DBU only while it is on.
+        let (image, _) = ew_ui::canvas::snapshot_image(shell, 0).unwrap();
+        let dbu = ew_ui::ew_viewmodel::wire_colours::company_rgb(
+            "DBU",
+            &[ew_ui::ew_viewmodel::wire_colours::CompanyColour {
+                code: "DBU".to_owned(),
+                base: "BU".to_owned(),
+                shade: Some("dark".to_owned()),
+            }],
+        )
+        .unwrap();
+        let painted = image
+            .pixels
+            .as_chunks::<4>()
+            .0
+            .iter()
+            .filter(|p| (p[0], p[1], p[2]) == dbu)
+            .count();
+        assert_eq!(painted > 0, on, "DBU pixels in the snapshot, view on: {on}");
         let pdf = tmp.0.join(format!("out-{n}.pdf"));
         dispatch(
             &mut h,
