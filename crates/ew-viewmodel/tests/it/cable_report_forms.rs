@@ -148,6 +148,7 @@ fn a_new_cable_takes_its_parts_cores_and_the_selected_wires_become_its_cores() {
     let f = form(&s);
     assert_eq!(f.action, "cable.connect_cores");
     assert_eq!(f.fields[0].label_key.as_str(), "form-cable");
+    assert_eq!(f.ok_key.as_str(), "dialog-connect");
     let (cable, _) = f.fields[0]
         .options
         .iter()

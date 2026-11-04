@@ -3446,6 +3446,7 @@ cable-new-title = Nieuwe kabel
 form-cable-part = Kabelartikel
 connect-cores-title = Aders verbinden
 form-cable = Kabel
+dialog-connect = Verbinden
 reason-no-cable-part = Er staat geen kabelartikel in het project of in een geïnstalleerde bibliotheek
 error-no-cable-part = Geen kabelartikel heeft het artikelnummer { $p0 }: kies er een uit de lijst.
 reason-cores-no-wires = Selecteer de draden die de aders van de kabel worden

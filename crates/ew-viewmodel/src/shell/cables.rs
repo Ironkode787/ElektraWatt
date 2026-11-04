@@ -52,10 +52,12 @@ impl ShellModel {
         Outcome::Failed { message }
     }
 
-    /// The form of `action` with its one choice field `name` (its label `label`, the options, the first chosen).
+    /// The form of `action` with its button `ok_key` and its one choice field `name` (its label `label`, the
+    /// options, the first chosen).
     fn cable_form(
         action: &'static str,
         title_key: Key<'static>,
+        ok_key: Key<'static>,
         name: &'static str,
         label_key: Key<'static>,
         options: Vec<(String, String)>,
@@ -64,7 +66,7 @@ impl ShellModel {
         FormDialog {
             action,
             title_key,
-            ok_key: key!("dialog-create"),
+            ok_key,
             fields: vec![FormField {
                 name,
                 label_key,
@@ -114,6 +116,7 @@ impl ShellModel {
                     let form = Self::cable_form(
                         NEW,
                         key!("cable-new-title"),
+                        key!("dialog-create"),
                         "part",
                         key!("form-cable-part"),
                         options,
@@ -221,6 +224,7 @@ impl ShellModel {
                     let form = Self::cable_form(
                         CONNECT,
                         key!("connect-cores-title"),
+                        key!("dialog-connect"),
                         "cable",
                         key!("form-cable"),
                         options,

@@ -3681,6 +3681,7 @@ cable-new-title = New cable
 form-cable-part = Cable part
 connect-cores-title = Connect cores
 form-cable = Cable
+dialog-connect = Connect
 reason-no-cable-part = No cable part is in the project or an installed library
 error-no-cable-part = No cable part has the part number { $p0 }: choose one from the list.
 reason-cores-no-wires = Select the wires that become the cable's cores
