@@ -2732,6 +2732,10 @@ fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
             if let Some(e) = &form.error {
                 lines.push(format!("  error: {e}"));
             }
+            // WP-S6.04 D13: the Approve and the Release dialog end with the disclaimer.
+            if let Some(line) = model.revision_disclaimer() {
+                lines.push(format!("  label \"{}\"", user(line)));
+            }
         }
     }
     for b in spec.buttons() {

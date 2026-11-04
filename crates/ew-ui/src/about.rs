@@ -322,6 +322,18 @@ pub fn show(
                 }
             }
             submit |= form_fields(ui, form, just_opened, primary_disabled, events);
+            // WP-S6.04 D13: the Approve and the Release dialog end with the disclaimer, before the buttons.
+            if let Some(line) = shell.revision_disclaimer() {
+                let t = crate::theme::current(ui.ctx());
+                ui.add(
+                    egui::Label::new(
+                        egui::RichText::new(line)
+                            .font(crate::theme::font(&t.type_small))
+                            .color(t.text_secondary.color32()),
+                    )
+                    .wrap(),
+                );
+            }
         }
         Dialog::PartChoose(c) => crate::part_dialog::chooser(ui, shell, c, just_opened, events),
         Dialog::PartEdit(e) => crate::part_dialog::editor(ui, e, just_opened, events),

@@ -421,7 +421,7 @@ fn entries(bytes: &[u8]) -> BTreeMap<String, Vec<u8>> {
 ///   `SHA256SUMS` matches its entry as `sha256sum -c` checks it and every other entry is listed; `project/` is
 ///   generation g byte for byte and its hashes equal manifest g; `ARCHIVE.json` names the project, the revision, g,
 ///   the release context, the profile, the packs, the generator and the format; `check/report.json` carries the
-///   scheme, the packs and the disclaimer;
+///   scheme, the packs, the waivers in force and the disclaimer;
 /// - RA-6: the record carries the sign-off as `approval`, the packs, the derivation profile, the content digest of g,
 ///   every page digest and the changed pages (every page: the first release has no earlier one).
 #[test]
@@ -558,8 +558,13 @@ fn ra1_ra2_ra6_the_release_writes_the_archive_and_the_record() {
     );
     let check: serde_json::Value = serde_json::from_slice(&entries["check/report.json"]).expect("JSON");
     assert_eq!(check["scheme"], "pre-delivery");
-    assert_eq!(check["disclaimer"], checks::report::DISCLAIMER);
+    assert_eq!(
+        check["disclaimer"],
+        "ElektraWatt's checks do not replace engineering verification by a competent person."
+    );
     assert_eq!(check["packs"].as_array().map(Vec::len), Some(gate.packs.len()));
+    // WP-S6.04 D13: the waivers in force (the fixture has none).
+    assert_eq!(check["waivers"], serde_json::json!([]));
 
     // The release is on disk: the project reopens released at g+1.
     s.close();

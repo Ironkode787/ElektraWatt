@@ -1233,6 +1233,19 @@ impl Session {
                     })
                     .collect(),
             );
+            // WP-S6.04 D13: the waivers in force, each once, beside the packs.
+            let mut waivers: Vec<&str> = gate
+                .report
+                .findings
+                .iter()
+                .filter_map(|f| match &f.state {
+                    checks::FindingState::Waived { waiver } => Some(waiver.as_str()),
+                    checks::FindingState::Open => None,
+                })
+                .collect();
+            waivers.sort_unstable();
+            waivers.dedup();
+            o.insert("waivers".into(), waivers.into());
             o.insert("disclaimer".into(), checks::report::DISCLAIMER.into());
             o.insert(
                 "sign_off".into(),

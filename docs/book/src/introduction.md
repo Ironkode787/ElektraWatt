@@ -11,6 +11,10 @@ control cabinets. This guide is its user documentation.
 > milestones and where each stands are in the repository's
 > [roadmap](https://github.com/Ironkode787/ElektraWatt/blob/main/ROADMAP.md).
 
+## Checks and engineering verification
+
+ElektraWatt's checks do not replace engineering verification by a competent person.
+
 ## How this guide is organised
 
 The guide follows the [Diátaxis](https://diataxis.fr/) structure: four kinds of page, each for a different need.

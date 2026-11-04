@@ -238,6 +238,14 @@ fn check_golden_a_in_each_format() {
         "case check_markdown_title: {}",
         stdout(&o)
     );
+    // WP-S6.04 D13: the About dialog's sentence ends the report.
+    assert!(
+        stdout(&o).ends_with(
+            "\n\nElektraWatt's checks do not replace engineering verification by a competent person.\n"
+        ),
+        "case check_markdown_disclaimer: {}",
+        stdout(&o)
+    );
 }
 
 fn copy_dir(from: &std::path::Path, to: &std::path::Path) {

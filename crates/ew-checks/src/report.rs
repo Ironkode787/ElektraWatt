@@ -18,8 +18,8 @@ use crate::scheme::CheckMode;
 pub const JSON_SCHEMA: &str = "ew.check-result/1";
 
 /// The disclaimer that ends every Markdown report (NFR-COMP-04); the as-built archive's `check/report.json` carries it
-/// too (doc 05 §14.2).
-pub const DISCLAIMER: &str = "Checks do not replace engineering verification (NFR-COMP-04).";
+/// too (doc 05 §14.2). It is the About dialog's sentence, one wording everywhere (WP-S6.04 D13).
+pub const DISCLAIMER: &str = "ElektraWatt's checks do not replace engineering verification by a competent person.";
 
 fn mode_name(mode: CheckMode) -> &'static str {
     match mode {
@@ -432,7 +432,9 @@ mod tests {
             "{md}"
         );
         assert!(md.contains("| EW-TERM-002 | 001002 | error | 1 | 0 |"), "{md}");
-        assert!(md.ends_with("Checks do not replace engineering verification (NFR-COMP-04).\n"));
+        assert!(md.ends_with(
+            "\n\nElektraWatt's checks do not replace engineering verification by a competent person.\n"
+        ));
         assert!(!md.contains("No findings."));
     }
 
