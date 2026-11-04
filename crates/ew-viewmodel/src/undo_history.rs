@@ -131,6 +131,37 @@ impl HistoryPane {
         ))
     }
 
+    /// FT-1362 (ID-1358 ruling 7; doc 16a §8): an entry's label in words, its command's title ("Create page" for
+    /// `page.create`).
+    pub fn label_words(row: &HistoryRow) -> &str {
+        crate::strings::command_title(&row.label)
+    }
+
+    /// FT-1362: an origin text ([`HistoryPane::origin_of`]) in words in the UI language: "by hand" for the window's,
+    /// "from <name>" for a script, a log or a client, "changed on disk", "import", "merge", "quick fix <rule>"; any
+    /// other text as it is.
+    pub fn origin_words(origin: &str) -> String {
+        use crate::strings::{format, text};
+        match origin {
+            "GUI" => text(crate::key!("history-origin-gui")).to_owned(),
+            "external change" => text(crate::key!("history-origin-external")).to_owned(),
+            "import" => text(crate::key!("history-origin-import")).to_owned(),
+            "merge" => text(crate::key!("history-origin-merge")).to_owned(),
+            o => {
+                if let Some(rule) = o.strip_prefix("quick fix ") {
+                    format(crate::key!("history-origin-fix"), &[rule])
+                } else if let Some(name) = o
+                    .strip_prefix("script ")
+                    .or_else(|| o.split_once(':').map(|(_, name)| name))
+                {
+                    format(crate::key!("history-origin-from"), &[name])
+                } else {
+                    o.to_owned()
+                }
+            }
+        }
+    }
+
     /// The origin text of `row`: the shell's annotation for its revision, else its own.
     pub fn origin_of<'a>(&'a self, row: &'a HistoryRow) -> &'a str {
         self.origins

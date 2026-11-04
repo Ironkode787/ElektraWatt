@@ -2204,6 +2204,13 @@ history-merged = merged { $p0 }
 history-changes-title = Changes of step { $p0 }
 history-redo = undone
 history-redo-to = Redo to here
+# FT-1362: an entry's origin in words.
+history-origin-gui = by hand
+history-origin-from = from { $p0 }
+history-origin-external = changed on disk
+history-origin-import = import
+history-origin-merge = merge
+history-origin-fix = quick fix { $p0 }
 marker-saved = Saved
 renumber-pages-title = Renumber pages
 renumber-devices-title = Renumber devices

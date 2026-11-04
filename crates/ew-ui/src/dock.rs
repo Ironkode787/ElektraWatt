@@ -25,6 +25,23 @@ use serde_json::json;
 
 use crate::app::Event;
 
+/// FT-1362 (ID-1358 ruling 7): the key of what a bottom pane's list reported in the last frame.
+fn content_id(pane: PaneKind) -> egui::Id {
+    egui::Id::unique(("ew-dock-content", format!("{pane:?}")))
+}
+
+/// FT-1362 (ID-1358 ruling 7): a bottom pane's report of its list this frame: the list's `viewport` (its scroll area as
+/// shown) and the height of its `content`. The next frame shows the bottom dock no higher than the pane needs down to
+/// the content's end ([`Dock::keep_bottom_min`]); a pane that reports nothing keeps the dock's height.
+pub(crate) fn report_content(ui: &Ui, pane: PaneKind, viewport: Rect, content: f32) {
+    ui.ctx()
+        .data_mut(|d| d.insert_temp(content_id(pane), (viewport.top(), content)));
+    // Room the list does not need: the next frame shows the dock lower.
+    if content < viewport.height() - 0.5 {
+        ui.ctx().request_repaint();
+    }
+}
+
 /// The dock tree of the project view and the layout version it was built from.
 pub struct Dock {
     tree: Tree<PaneKind>,
@@ -194,7 +211,21 @@ impl Dock {
         // FX38d: the page view (the canvas and its tab bar) keeps at least half the window's client height (the
         // default 1536 × 994 included); ID-743's 300-point least height gives way to it in a short window.
         let floor = ui.ctx().content_rect().height() / 2.0;
-        let (mut clamps, guessed) = self.keep_bottom_min(height, tokens.size_dock_bottom_min, floor);
+        // FT-1362: what each bottom pane's list needed in the last frame, taken once.
+        let reports: BTreeMap<String, (f32, f32)> = PaneKind::BOTTOM
+            .iter()
+            .filter_map(|p| {
+                let id = content_id(*p);
+                let report = ui.ctx().data_mut(|d| {
+                    let r = d.get_temp::<(f32, f32)>(id);
+                    d.remove::<(f32, f32)>(id);
+                    r
+                })?;
+                Some((format!("{p:?}"), report))
+            })
+            .collect();
+        let (mut clamps, guessed) =
+            self.keep_bottom_min(height, tokens.size_dock_bottom_min, floor, &reports);
         // C40 (FT-798): the left column keeps its floor width and grows with a wide window while it has its default
         // share; display only, like the bottom clamp.
         let window = ui.ctx().content_rect().width();
@@ -313,7 +344,17 @@ impl Dock {
     /// the user's shares stay the layout (no rewrite of the workspace file, no share that only ever grows). Other
     /// vertical splits (a column where Messages was docked) are left alone.
     /// The flag is true when a split had no last shown height, so `fallback` was used.
-    fn keep_bottom_min(&mut self, fallback: f32, min: f32, floor: f32) -> (Vec<Clamp>, bool) {
+    ///
+    /// FT-1362 (ID-1358 ruling 7): the height follows the content. Where the bottom child's shown pane reported its
+    /// list in the last frame (`reports`, by pane: the list's top and its content's height, [`report_content`]), the
+    /// child is shown no higher than from its top to the content's end: a short History is a short dock.
+    fn keep_bottom_min(
+        &mut self,
+        fallback: f32,
+        min: f32,
+        floor: f32,
+        reports: &BTreeMap<String, (f32, f32)>,
+    ) -> (Vec<Clamp>, bool) {
         fn holds(tiles: &Tiles<PaneKind>, id: TileId, pred: &dyn Fn(&PaneKind) -> bool) -> bool {
             match tiles.get(id) {
                 Some(Tile::Pane(p)) => pred(p),
@@ -358,6 +399,26 @@ impl Dock {
             if page.is_none() || height <= 0.0 {
                 continue;
             }
+            // The pane the bottom child shows: itself, or its tab group's active one.
+            let shown_pane = match tiles.get(bottom) {
+                Some(Tile::Pane(p)) => Some(*p),
+                Some(Tile::Container(Container::Tabs(t))) => t.active.and_then(|a| match tiles.get(a) {
+                    Some(Tile::Pane(p)) => Some(*p),
+                    _ => None,
+                }),
+                _ => None,
+            };
+            let needed = shown_pane
+                .and_then(|p| reports.get(&format!("{p:?}")))
+                .zip(tiles.rect(bottom))
+                .map(|((top, content), r)| top + content - r.top());
+            // The child's height is its share of the split less the gaps between the children.
+            let gaps = height
+                - children
+                    .iter()
+                    .filter_map(|c| tiles_rect_height(tiles, *c))
+                    .sum::<f32>();
+            let usable = (height - gaps.max(0.0)).max(1.0);
             let room = (height - floor).max(0.0);
             let want = (min.min(room) / height).min(2.0 / 3.0);
             let Some(Tile::Container(Container::Linear(linear))) = self.tree.tiles.get_mut(id) else {
@@ -365,7 +426,15 @@ impl Dock {
             };
             let total: f32 = children.iter().map(|c| linear.shares[*c].max(0.0)).sum();
             let own = linear.shares[bottom].max(0.0);
-            if total <= 0.0 || own / total >= want {
+            if total <= 0.0 {
+                continue;
+            }
+            let shown = (own / total).max(want);
+            let want = match needed {
+                Some(n) => shown.min(n / usable),
+                None => shown,
+            };
+            if (own / total - want).abs() <= 1e-4 {
                 continue;
             }
             let user: Vec<(TileId, f32)> = children.iter().map(|c| (*c, linear.shares[*c])).collect();
@@ -499,6 +568,11 @@ fn default_left_share() -> f32 {
         }
         _ => 0.0,
     }
+}
+
+/// The height a tile was last shown at, if it was.
+fn tiles_rect_height(tiles: &Tiles<PaneKind>, id: TileId) -> Option<f32> {
+    tiles.rect(id).map(|r| r.height())
 }
 
 /// The shares of one split before and after [`Dock::keep_bottom_min`] or [`Dock::keep_left_wide`] raised a child for
@@ -1121,7 +1195,7 @@ mod tests {
     fn a_drag_during_a_clamped_frame_keeps_the_dragged_shares() {
         let layout = page_over_messages();
         let mut dock = Dock::new(&layout, 0);
-        let (clamps, guessed) = dock.keep_bottom_min(800.0, 300.0, 0.0);
+        let (clamps, guessed) = dock.keep_bottom_min(800.0, 300.0, 0.0, &BTreeMap::new());
         assert!(guessed, "no frame yet, so the fallback height was used");
         assert_eq!(
             clamps.len(),

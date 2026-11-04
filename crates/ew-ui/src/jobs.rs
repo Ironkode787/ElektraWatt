@@ -45,7 +45,8 @@ pub fn show(
             );
             return;
         }
-        egui::ScrollArea::vertical()
+        let room = ui.available_rect_before_wrap();
+        let list = egui::ScrollArea::vertical()
             .auto_shrink([false, true])
             .show(ui, |ui| {
                 for e in jobs.entries() {
@@ -60,6 +61,13 @@ pub fn show(
                     ui.separator();
                 }
             });
+        // FT-1362: the dock follows the list's height.
+        crate::dock::report_content(
+            ui,
+            ew_viewmodel::layout::PaneKind::Jobs,
+            room,
+            list.content_size.y,
+        );
     });
 }
 

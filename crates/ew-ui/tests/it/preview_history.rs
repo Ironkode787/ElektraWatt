@@ -186,6 +186,52 @@ fn ft1078_the_history_header_keeps_space_4_from_the_pane_edge() {
     h.state_mut().shell_mut().shutdown();
 }
 
+/// FT-1362 (ID-1358 ruling 7; W50-F12): with one step the History dock is as high as its one row needs, at the floor
+/// and at 1920 × 1080, and the row reads in words: the command's title and its origin, not `fields.set` and `script ui-script`.
+#[test]
+fn ft1362_a_short_history_is_a_short_dock_in_words() {
+    let tmp = Tmp::new();
+    let dir = tmp.golden("g.ew");
+    let mut h = harness(&tmp, Scripted::default(), Some(dir));
+    settle(&mut h);
+    dispatch(
+        &mut h,
+        "command.run",
+        json!({"cmd": "fields.set", "params": {"kind": "device", "targets": [{"ref": "tag:-101F1"}],
+            "path": "function_text", "value": "one"}}),
+    );
+    dispatch(&mut h, "history.show", json!({}));
+    for size in [egui::vec2(1280.0, 800.0), egui::vec2(1920.0, 1080.0)] {
+        h.set_size(size);
+        settle(&mut h);
+        settle(&mut h);
+        let t = ew_ui::theme::current(&h.ctx);
+        let pane = h
+            .get_all_by_role(egui::Role::Group)
+            .find(|n| n.accesskit_node().label().as_deref() == Some("History"))
+            .expect("the History panel")
+            .rect();
+        let row = h
+            .get_all_by_role(egui::Role::Group)
+            .find(|n| n.accesskit_node().label().as_deref() == Some("1  Set property  (from ui-script)  101"))
+            .unwrap_or_else(|| {
+                let names: Vec<String> = h
+                    .get_all_by_role(egui::Role::Group)
+                    .filter_map(|n| n.accesskit_node().label())
+                    .collect();
+                panic!("{size:?}: the step's row in words among {names:?}")
+            })
+            .rect();
+        assert!(pane.contains_rect(row), "{size:?}: {row:?} in {pane:?}");
+        // The row ends the list: below it at most the dock's gutter, not an empty half dock.
+        assert!(
+            pane.bottom() - row.bottom() <= t.space_4 + 1.0,
+            "{size:?}: {row:?} ends {pane:?}"
+        );
+    }
+    h.state_mut().shell_mut().shutdown();
+}
+
 /// W31-2: at 1280×800 the renumber card's first tag change is on show in the Preview tab without a click: Tags is the
 /// list that carries the change, first and open, below Apply and Cancel.
 #[test]

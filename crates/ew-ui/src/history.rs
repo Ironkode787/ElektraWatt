@@ -33,7 +33,7 @@ use ew_viewmodel::ew_api::output::HistoryRow;
 use ew_viewmodel::key;
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::strings;
-use ew_viewmodel::undo_history::{EntryState, HistoryLine, MAX_CHANGES};
+use ew_viewmodel::undo_history::{EntryState, HistoryLine, HistoryPane, MAX_CHANGES};
 use serde_json::json;
 
 use crate::app::Event;
@@ -90,7 +90,13 @@ fn label_colour(t: &Tokens, state: EntryState, selected: bool) -> Rgba {
 
 /// The as-built text of an entry: number, label, origin, pages, "merged n" and "not undoable" (its accessible name).
 fn entry_text(row: &HistoryRow, origin: &str) -> String {
-    let mut text = format!("{}  {}  ({origin})", row.index + 1, row.label);
+    // FT-1362: the label and the origin in words.
+    let mut text = format!(
+        "{}  {}  ({})",
+        row.index + 1,
+        HistoryPane::label_words(row),
+        HistoryPane::origin_words(origin)
+    );
     if !row.pages.is_empty() {
         text.push_str(&format!("  {}", row.pages.join(", ")));
     }
@@ -179,7 +185,7 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                 ),
             );
         });
-        egui::ScrollArea::vertical()
+        let list = egui::ScrollArea::vertical()
             .id_salt("history-rows")
             .auto_shrink([false, false])
             .show(ui, |ui| {
@@ -227,6 +233,13 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                     }
                 }
             });
+        // FT-1362: the dock follows the list's height.
+        crate::dock::report_content(
+            ui,
+            ew_viewmodel::layout::PaneKind::History,
+            list.inner_rect,
+            list.content_size.y,
+        );
     });
     if focused_now != focused_row {
         ui.data_mut(|d| match focused_now {
@@ -373,14 +386,14 @@ fn entry_row(ui: &mut Ui, t: &Tokens, e: &Entry<'_>) -> EntryOut {
             };
             ui.add(
                 egui::Label::new(
-                    RichText::new(&e.row.label)
+                    RichText::new(HistoryPane::label_words(e.row))
                         .font(theme::font(font))
                         .color(label_colour(t, e.state, e.selected).color32()),
                 )
                 .selectable(false)
                 .truncate(),
             );
-            let mut meta = e.origin.to_owned();
+            let mut meta = HistoryPane::origin_words(e.origin);
             if !e.row.pages.is_empty() {
                 meta.push_str(&format!(" · {}", e.row.pages.join(", ")));
             }
