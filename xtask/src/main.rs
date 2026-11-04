@@ -488,6 +488,7 @@ fn check_deps() -> Result<Violations> {
     let policy = deps::Policy::load(&root.join("ci/dep-rules.toml"))?;
     let graph = deps::Graph::from_metadata(&metadata()?);
     let mut violations = deps::check(&policy, &graph);
+    violations.extend(deps::check_confined_manifests(&policy, &root)?);
     violations.extend(deps::importer_purity(&root)?);
     Ok(violations)
 }

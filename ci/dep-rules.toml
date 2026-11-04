@@ -327,11 +327,13 @@ pattern = "ew-import-*"
 
 # ADR-0024 decision 4 and NFR-LIC-05: QET-derived code is confined. Only ew-api depends on ew-import-qet;
 # ew-plugin-host and the permissive crates never reach it, directly or transitively ("@permissive" stands
-# for every crate of the permissive layer).
+# for every crate of the permissive layer). The fuzz crate, outside the workspace, is read from its manifest
+# (ID-1374): it reaches the importers through ew-api only.
 [[confined]]
 crate = "ew-import-qet"
 only_direct_dependents = ["ew-api"]
 never_reached_from = ["ew-plugin-host", "@permissive"]
+manifests = ["fuzz/Cargo.toml"]
 reason = "ADR-0024 decision 4 (QET-derived code)"
 
 # `cargo xtask check-raw-read` (ADR-0001 amendment 2, decision log ID-50, FT-01) guards the raw readers that

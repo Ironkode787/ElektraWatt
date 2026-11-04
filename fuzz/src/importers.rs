@@ -19,11 +19,11 @@
 use std::sync::OnceLock;
 
 use ew_api::SessionOptions;
+use ew_api::catalog::ImportInput;
 use ew_api::import::{
     ImportBatch, ImportMode, Imported, Refusal, StarterLibrary, check_contract, front_door, import_qet,
-    import_tables, session_from_batch,
+    import_qet_element, import_tables, session_from_batch,
 };
-use ew_import_qet::ew_interop_api::{ImportContext, ImportInput, Importer, Limits};
 use ew_schema::{LibDocument, Record};
 
 /// What one input did.
@@ -111,17 +111,7 @@ pub fn qet_project(data: &[u8]) -> Outcome {
 
 /// `qet_element`: the bytes as `fuzz.elmt` under `Limits::element_definition()`.
 pub fn qet_element(data: &[u8]) -> Outcome {
-    let Ok(input) = ImportInput::new("fuzz.elmt", data.to_vec()) else {
-        return Outcome::default();
-    };
-    let mut ctx = ImportContext::new(ew_ids::Id::from_uuid(ew_ids::Uuid::nil()));
-    ctx.limits = Limits::element_definition();
-    let limits = ctx.limits;
-    let importer = ew_import_qet::QetElementImporter;
-    let sizes = [input.bytes().len() as u64];
-    match front_door("fuzz.elmt", &sizes, &limits, None, || {
-        importer.import(&input, &mut ctx)
-    }) {
+    match import_qet_element("fuzz.elmt", data.to_vec()) {
         Ok(b) => Outcome {
             imported: true,
             emitted: batch(&b),

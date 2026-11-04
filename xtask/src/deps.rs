@@ -137,6 +137,10 @@ pub struct Confined {
     /// Packages that must not reach it through any chain of workspace edges; `@permissive` expands to the
     /// permissive layer.
     pub never_reached_from: Vec<String>,
+    /// Manifests outside the workspace (paths from the repository root, such as the fuzz crate's) whose direct
+    /// dependencies the rule reads too ([`check_confined_manifests`]).
+    #[serde(default)]
+    pub manifests: Vec<String>,
     /// Where the rule comes from.
     pub reason: String,
 }
@@ -463,6 +467,67 @@ fn check_confined(policy: &Policy, graph: &Graph, v: &mut Vec<String>) {
             }
         }
     }
+}
+
+/// The direct dependencies a manifest declares (its `[dependencies]`, `[dev-dependencies]` and
+/// `[build-dependencies]`), each by its real name, also when renamed.
+///
+/// # Errors
+///
+/// The text is no TOML.
+pub fn manifest_edges(text: &str) -> Result<Vec<Edge>> {
+    let doc: toml::Table = toml::from_str(text)?;
+    let from = doc
+        .get("package")
+        .and_then(|p| p.get("name"))
+        .and_then(toml::Value::as_str)
+        .unwrap_or("?")
+        .to_owned();
+    let mut edges = Vec::new();
+    for (table, kind) in [
+        ("dependencies", Kind::Normal),
+        ("dev-dependencies", Kind::Dev),
+        ("build-dependencies", Kind::Build),
+    ] {
+        for (name, spec) in doc.get(table).and_then(toml::Value::as_table).into_iter().flatten() {
+            let to = spec.get("package").and_then(toml::Value::as_str).unwrap_or(name);
+            edges.push(Edge {
+                from: from.clone(),
+                to: to.to_owned(),
+                kind,
+            });
+        }
+    }
+    Ok(edges)
+}
+
+/// The confined crates in the manifests outside the workspace that their rules name (`manifests`, ID-1374): a
+/// direct dependency on the confined crate from a package the rule does not allow is a violation.
+///
+/// # Errors
+///
+/// A named manifest does not read or is no TOML.
+pub fn check_confined_manifests(policy: &Policy, root: &Path) -> Result<Vec<String>> {
+    let mut v = Vec::new();
+    for rule in &policy.confined {
+        for manifest in &rule.manifests {
+            let text = std::fs::read_to_string(root.join(manifest)).with_context(|| format!("reading {manifest}"))?;
+            let edges = manifest_edges(&text).with_context(|| format!("parsing {manifest}"))?;
+            for e in edges.iter().filter(|e| e.to == rule.krate) {
+                if !rule.only_direct_dependents.contains(&e.from) {
+                    v.push(format!(
+                        "confined: `{}` ({manifest}) depends on `{}` ({}); only {} may ({})",
+                        e.from,
+                        rule.krate,
+                        e.kind.label(),
+                        rule.only_direct_dependents.join(", "),
+                        rule.reason
+                    ));
+                }
+            }
+        }
+    }
+    Ok(v)
 }
 
 /// The names an importer's source may not use (NFR-SEC-18, WP-S3.09 D5 a): importers read only the bytes they are given,
@@ -873,6 +938,43 @@ mod tests {
         assert_violation(
             &v,
             "confined: `p-units` reaches `g-import-qet` via p-units -> g-top -> g-import-qet",
+        );
+    }
+
+    /// ID-1374 (C51-p2#2): the confined rule reads the manifests it names outside the workspace: a direct edge there,
+    /// renamed or a dev-dependency, fails; the real fuzz manifest passes.
+    #[test]
+    fn confined_crate_in_a_manifest_outside_the_workspace_fails() {
+        let manifest = "[package]\nname = \"g-fuzz\"\n\n[dependencies]\ng-top = { path = \"../top\" }\nqet = { package = \"g-import-qet\", path = \"../qet\" }\n\n[dev-dependencies]\ng-import-qet = { path = \"../qet\" }\n";
+        let edges = manifest_edges(manifest).unwrap();
+        let to: Vec<(&str, &str, Kind)> = edges.iter().map(|e| (e.from.as_str(), e.to.as_str(), e.kind)).collect();
+        assert_eq!(
+            to,
+            [
+                ("g-fuzz", "g-top", Kind::Normal),
+                ("g-fuzz", "g-import-qet", Kind::Normal),
+                ("g-fuzz", "g-import-qet", Kind::Dev),
+            ]
+        );
+        let root = std::env::temp_dir().join(format!("ew-xtask-confined-{}", std::process::id()));
+        std::fs::create_dir_all(root.join("fuzz")).unwrap();
+        std::fs::write(root.join("fuzz/Cargo.toml"), manifest).unwrap();
+        let mut p = policy();
+        p.confined[0].manifests = vec!["fuzz/Cargo.toml".to_owned()];
+        let v = check_confined_manifests(&p, &root).unwrap();
+        let _ = std::fs::remove_dir_all(&root);
+        assert_eq!(
+            v,
+            [
+                "confined: `g-fuzz` (fuzz/Cargo.toml) depends on `g-import-qet` (dependency); only g-top may (ADR-0024 decision 4)",
+                "confined: `g-fuzz` (fuzz/Cargo.toml) depends on `g-import-qet` (dev-dependency); only g-top may (ADR-0024 decision 4)",
+            ]
+        );
+        let real = Policy::load(&crate::workspace_root().join("ci/dep-rules.toml")).unwrap();
+        assert!(real.confined.iter().any(|r| r.manifests == ["fuzz/Cargo.toml"]));
+        assert_eq!(
+            check_confined_manifests(&real, &crate::workspace_root()).unwrap(),
+            Vec::<String>::new()
         );
     }
 
