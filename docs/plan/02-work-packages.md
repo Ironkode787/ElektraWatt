@@ -2239,6 +2239,8 @@ are regenerated (FT-52, FT-54, FT-55, FT-58 closed); the golden PDF has 31 of do
 | Acceptance | AC-25 |
 | Owner role | Output and migration developer |
 
+*Status (2026-11-04, cycle 50).* **Specified in cycle 50** ([closed specification](specs/WP-S3.09-importer-contracts-and-lineage.md); decision log ID-1321): one lane (Opus/high) in seven build steps with a hand-back point after step 5, about 3.1 pw, the PERT unchanged; one `Limits` and one import front door with panic isolation and a contract check, `ImportRun` typed within format 0.1, `ApplyImport` with the preview and the empty-project checkpoint, the migration report as a run of the `migration` scheme, re-import into a lineage, the `Exporter` trait of ID-1016 and four importer fuzz targets; open for the orchestrator: which imports persist a run (the specification's O1, Golden A unchanged recommended) and who runs Golden C's corpus-gated tests (O2).
+
 #### WP-S3.10 QET project import I: pages, devices, conductors, title blocks
 
 | Field | Value |
@@ -2915,6 +2917,8 @@ S6 implements the test layers, gates, packaging, signing and CRA processes of [q
 | Owner role | Release engineer |
 
 *Status (2026-11-02, ID-1187, ID-1188).* **Re-estimated** from 3 · 4.5 · 7 (PERT 4.7): the steward's CRA processes (NFR-COMP-01) leave G-M2 and move to WP-S6.10 at 1.0, and the package keeps its product items.
+
+*Status (2026-11-04, cycle 50).* **Specified in cycle 50** ([closed specification](specs/WP-S6.04-security-engineering.md); decision log ID-1321): one lane (Opus/medium) in six build steps at 1.1 pw, the PERT unchanged, after WP-S3.09 (steps 1 to 5 need nothing of it); the threat model as `docs/security/threat-model.md`, `SECURITY.md` in full (FT-1182), one disclaimer wording, the `unsafe` allowlist as used, six fuzz targets with FT-223's hostile SQL and a committed hostile corpus; the importers' targets are WP-S3.09's and the rhai limits WP-S1.15's remainder; open for the owner: private vulnerability reporting with the response targets and 0.1.0's support period (the specification's O1, O2).
 
 #### WP-S6.05 Privacy controls and the local crash log
 
