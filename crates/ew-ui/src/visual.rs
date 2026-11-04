@@ -745,6 +745,9 @@ impl Driver {
             let _ = shell.dispatch("settings.set", &json!({ "key": key, "value": value }));
         }
         let _ = shell.dispatch("view.ui_scale", &json!({ "scale": 1.0 }));
+        // FT-1253: no minimum text size and reduced motion, whatever the settings folder holds.
+        let _ = shell.dispatch("view.min_font", &json!({ "pt": 0 }));
+        let _ = shell.dispatch("view.reduce_motion", &json!({ "on": true }));
         // WP-S6.05 D11: the start-up offer, as the window's start shows it.
         shell.start_up();
         shell.set_dispatch_log(true);

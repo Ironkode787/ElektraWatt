@@ -130,9 +130,9 @@ Each is a lead ruling the owner may reverse; the decision-log rows are ID-785 to
   of `ew-render-cpu`'s encoder. *As built (cycle 39): the default; `--window` and `--ppp` choose another (below).*
 - **Fixed rendering inputs.** Theme `light`, density `comfortable`, language en-GB, the bundled fonts only (the Noto
   family of `ew-ui`'s `fonts.rs`; no system font is read), `ui_scale` 1, the canvas backend `cpu` (the switch rule's
-  headless path), the text caret's blinking off (the caret is always drawn, a deliberate difference from the window,
-  so a frame never catches it off). A run may name another theme or density at `start` (`--theme`, `--density`) for a
-  dedicated round; the default round is fixed.
+  headless path), no minimum text size and reduced motion on (*FT-1253, cycle 50*), the text caret's blinking off (the
+  caret is always drawn, a deliberate difference from the window, so a frame never catches it off). A run may name
+  another theme or density at `start` (`--theme`, `--density`) for a dedicated round; the default round is fixed.
 - **When a frame is taken.** (1) After every `do` batch, once the batch has settled (§5.1): `frames/t<turn>.png`.
   (2) On request, `look`: the current state re-rendered without input, `frames/t<turn>-l<k>.png`. (3) On request,
   `look --zoom <x> <y> <w> <h>`: the region (frame pixels, at most 768 × 497, inside the frame) rendered at 2.4 pixels
