@@ -415,3 +415,30 @@ fn painted_texts(h: &Harness<'_, App>) -> Vec<(String, egui::Pos2)> {
     }
     out
 }
+
+/// FT-1284 (ID-1315 ruling 4, doc 16a §6.12): Create enclosure with its Create disabled at open (its part emptied
+/// before the first frame) and no text field gives its first focus to its first enabled control, the location list.
+#[test]
+fn create_enclosure_disabled_at_open_focuses_its_first_control() {
+    let tmp = Tmp::new();
+    let mut h = on_902(&tmp);
+    dispatch(&mut h, "layout.enclosure_new", json!({}));
+    h.state_mut().shell_mut().set_form_field("part", "");
+    settle(&mut h);
+    let Some(Dialog::Form(form)) = h.state().shell().dialog().cloned() else {
+        panic!("{:?}", h.state().shell().dialog());
+    };
+    assert!(form.fields.iter().all(|f| !f.is_text()), "two lists, no text field");
+    let spec = ew_ui::ew_viewmodel::dialogs::spec(&Dialog::Form(form), h.state().shell());
+    assert_eq!(
+        spec.primary.disabled.as_deref(),
+        Some("Type or choose a part number")
+    );
+    let focused: Vec<(egui::Role, Option<String>)> = h
+        .root()
+        .children_recursive()
+        .filter(|n| n.accesskit_node().is_focused())
+        .map(|n| (n.accesskit_node().role(), n.accesskit_node().label()))
+        .collect();
+    assert_eq!(focused, [(egui::Role::ComboBox, Some("Location".to_owned()))]);
+}

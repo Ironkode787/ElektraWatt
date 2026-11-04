@@ -153,6 +153,9 @@ pub fn show(
     } else {
         just_opened && !has_field
     };
+    // FT-1284 (doc 16a §6.12): a form whose Primary is disabled at open and that has no text field gives its first
+    // focus to its first control.
+    let primary_disabled = spec.primary.disabled.is_some();
     let clicked = crate::dialog::show_sized(ctx, &spec, width, focus_primary, |ui| match d {
         Dialog::About => {
             ui.horizontal_wrapped(|ui| {
@@ -318,7 +321,7 @@ pub fn show(
                     );
                 }
             }
-            submit |= form_fields(ui, form, just_opened, events);
+            submit |= form_fields(ui, form, just_opened, primary_disabled, events);
         }
         Dialog::PartChoose(c) => crate::part_dialog::chooser(ui, shell, c, just_opened, events),
         Dialog::PartEdit(e) => crate::part_dialog::editor(ui, e, just_opened, events),
@@ -372,10 +375,18 @@ pub fn show(
 /// rest of the body, `size.control` high. A text field has no placeholder (its label names it); a choice shows doc
 /// 16a §8's words ([`strings::choice_text`]) behind a `chevron-down`; a yes-or-no choice is a check box. `true` when
 /// Enter in a text field submits the form.
-fn form_fields(ui: &mut Ui, form: &FormDialog, just_opened: bool, events: &mut Vec<Event>) -> bool {
+fn form_fields(
+    ui: &mut Ui,
+    form: &FormDialog,
+    just_opened: bool,
+    primary_disabled: bool,
+    events: &mut Vec<Event>,
+) -> bool {
     let t = crate::theme::current(ui.ctx());
     let mut submit = false;
     let mut first = just_opened;
+    // FT-1284: with no text field to take it, the first control takes the first focus while the Primary is disabled.
+    let mut first_control = just_opened && primary_disabled && !form.fields.iter().any(|f| f.is_text());
     // Cycle 39 (FIX39b-1): the label column is at least `size.dialog.label` and grows to the widest label, up to half
     // the body; a label wider still wraps, so a label is never cut ("Library (cannot be undone)").
     let font = egui::TextStyle::Body.resolve(ui.style());
@@ -426,6 +437,9 @@ fn form_fields(ui: &mut Ui, form: &FormDialog, just_opened: bool, events: &mut V
                 if check.changed() {
                     events.push(Event::FormField(f.name, on.to_string()));
                 }
+                if std::mem::take(&mut first_control) {
+                    check.request_focus();
+                }
                 crate::components::focus_ring(ui, &check, t.radius_sm);
             } else if !f.options.is_empty() {
                 // WP-S4.02 part 4 (ruling 7): a choice list built at run time, shown by its words.
@@ -446,6 +460,9 @@ fn form_fields(ui: &mut Ui, form: &FormDialog, just_opened: bool, events: &mut V
                         }
                     });
                 let combo = combo.response.labelled_by(label.id);
+                if std::mem::take(&mut first_control) {
+                    combo.request_focus();
+                }
                 crate::components::focus_ring(ui, &combo, t.radius_md);
             } else if f.choices.is_empty() {
                 let mut text = f.value.clone();
@@ -479,6 +496,9 @@ fn form_fields(ui: &mut Ui, form: &FormDialog, just_opened: bool, events: &mut V
                         }
                     });
                 let combo = combo.response.labelled_by(label.id);
+                if std::mem::take(&mut first_control) {
+                    combo.request_focus();
+                }
                 crate::components::focus_ring(ui, &combo, t.radius_md);
             }
         });
