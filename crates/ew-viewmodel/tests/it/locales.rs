@@ -450,6 +450,8 @@ const OTHER_SENSES: &[(&str, &str, &str)] = &[
     ("revision-complete-git", "tag", "a Git tag"),
     ("release-error-git-consent", "tag", "a Git tag"),
     ("release-error-tag-exists", "tag", "a Git tag"),
+    // FT-1337: "not part of an assembly", a share (deel).
+    ("refusal-layout-not-assembly", "part", "a share of an assembly (deel)"),
 ];
 
 /// NL-2 (ID-1269 rulings 1 and 2): the terminology table heads the nl-NL file with the ruling's rows; over the

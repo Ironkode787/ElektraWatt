@@ -506,4 +506,60 @@ mod tests {
         assert_eq!(arity("a {0} b {2} {1}"), 3);
         assert_eq!(arity("no arguments"), 0);
     }
+
+    /// The `.rs` files under `dir`, recursively.
+    fn sources(dir: &std::path::Path, out: &mut Vec<std::path::PathBuf>) {
+        for entry in std::fs::read_dir(dir).unwrap() {
+            let path = entry.unwrap().path();
+            if path.is_dir() {
+                sources(&path, out);
+            } else if path.extension().is_some_and(|e| e == "rs") {
+                out.push(path);
+            }
+        }
+    }
+
+    /// FT-1337 (ID-1359 ruling 1): no refusal of the crate goes without its key. `tx.reject` and `CmdError::rejected`
+    /// take a [`Text`]; besides them, no source builds a `CmdError::Rejected` itself (with `source:`) or one without a
+    /// text (`text: None`), and every key of [`TEXTS`] is named by the code.
+    #[test]
+    fn every_refusal_of_the_crate_is_keyed() {
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
+        let mut files = Vec::new();
+        sources(&root, &mut files);
+        files.sort();
+        let mut unkeyed = Vec::new();
+        let mut code = String::new();
+        for file in files {
+            let name = file.strip_prefix(&root).unwrap().to_string_lossy().replace('\\', "/");
+            let text = std::fs::read_to_string(&file).unwrap();
+            if name == "text.rs" {
+                continue;
+            }
+            code.push_str(&text);
+            if name == "error.rs" {
+                continue;
+            }
+            for (at, _) in text.match_indices("Rejected {") {
+                let fields = &text[at..at + text[at..].find('}').unwrap_or(text.len() - at)];
+                if fields.contains("source:") || fields.contains("text: None") {
+                    let line = text[..at].lines().count();
+                    unkeyed.push(format!("{name}:{line}"));
+                }
+            }
+            for (i, line) in text.lines().enumerate() {
+                let line = line.trim_start();
+                if !line.starts_with("//") && (line.contains(".reject(format!") || line.contains(".reject(\"")) {
+                    unkeyed.push(format!("{name}:{}", i + 1));
+                }
+            }
+        }
+        assert_eq!(unkeyed, Vec::<String>::new());
+        let unused: Vec<&str> = TEXTS
+            .iter()
+            .map(|(k, _)| *k)
+            .filter(|k| !code.contains(&format!("\"{k}\"")))
+            .collect();
+        assert_eq!(unused, Vec::<&str>::new());
+    }
 }

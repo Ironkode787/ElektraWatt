@@ -1241,6 +1241,19 @@ mod tests {
         assert_eq!(missing, Vec::<&str>::new());
     }
 
+    /// FT-1337 (ID-1359 rulings 2 and 3): every command refusal of `ew_commands::TEXTS` is a message of both files, its
+    /// en-GB text the English the CLI prints (its arguments as `text` shows them); the Dutch file's arguments are the
+    /// same (NL-1 holds that for every key).
+    #[test]
+    fn every_command_refusal_has_its_texts() {
+        let differ: Vec<String> = ew_api::TEXTS
+            .iter()
+            .filter(|(k, en)| en_gb().texts.get(k).copied() != Some(*en) || !nl_nl().texts.contains_key(k))
+            .map(|(k, en)| format!("{k}: {en:?}, en-GB {:?}", en_gb().texts.get(k)))
+            .collect();
+        assert_eq!(differ, Vec::<String>::new());
+    }
+
     /// D12: the nl-NL file parses, has a message for every key and a Dutch name.
     #[test]
     fn the_dutch_file_parses_with_every_key() {
