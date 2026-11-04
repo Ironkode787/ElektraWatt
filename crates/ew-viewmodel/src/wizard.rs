@@ -1359,6 +1359,37 @@ mod tests {
         assert_eq!(*size, shipped);
     }
 
+    /// WP-S7.03 SC-4: the two company profile files are, byte for byte, the values of the sample project's
+    /// `project.jsonl` (compact, sorted keys), and the wizard's `sample` choices write them unchanged.
+    #[test]
+    fn the_company_profile_files_are_the_sample_projects_values() {
+        let project = include_str!("../../../golden/J-E-2416.ew/project.jsonl");
+        let project: Value = serde_json::from_str(project.lines().next().unwrap()).unwrap();
+        let settings = &project["settings"];
+        for (member, text) in [
+            ("colour_profile", COLOUR_PROFILE_SAMPLE),
+            ("size_profile", SIZE_PROFILE_SAMPLE),
+        ] {
+            assert_eq!(
+                serde_json::to_string(&settings[member]).unwrap(),
+                text,
+                "{member}"
+            );
+        }
+        let d = Draft::default();
+        assert_eq!((d.get("colour"), d.get("size")), ("sample", "sample"));
+        let cmds = d.commands().unwrap();
+        let written: Vec<&Value> = cmds
+            .iter()
+            .filter(|(n, p)| *n == "project.settings.set" && p["member"] != "numbering")
+            .map(|(_, p)| &p["value"])
+            .collect();
+        assert_eq!(
+            written,
+            [&settings["colour_profile"], &settings["size_profile"]]
+        );
+    }
+
     #[test]
     fn the_choices_change_the_commands() {
         let mut d = Draft::default();

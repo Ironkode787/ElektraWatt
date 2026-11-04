@@ -16,7 +16,8 @@ without a row here. No set holds a vendor file or a maker's catalogue data.
 | `content/fndefs` | function definitions | CC-BY-SA-4.0 | the project's own (`ew.original`) | — | WP-S7.02 |
 | `content/forms` | frames and the title block (QET-compatible) | CC-BY-SA-4.0 | the project's own, after doc 20 §17 | — | WP-S3.02 |
 | `content/libraries/ew-starter-parts.ewlib` | generic starter parts and the manufacturer "Generic" | CC0-1.0 | the project's own (`ew.original`) | — | WP-S2.18 |
-| `content/profiles/colour` | colour profiles (`colour_profile` values) | CC-BY-SA-4.0 | the project's own table of doc 08 §4.3 | `verified: false` | FT-337 |
+| `content/profiles/colour` | colour profiles (`colour_profile` values) | CC-BY-SA-4.0 | the project's own table of doc 08 §4.3; "DBU/WH 24 V": the sample project's convention | `verified: false`; "DBU/WH 24 V" `verified: true` | FT-337; WP-S7.03 |
+| `content/profiles/size` | size profiles (`size_profile` values) | CC-BY-SA-4.0 | "0.75/1.5": the sample project's convention | `verified: true` | WP-S7.03 |
 | `content/symbols` | symbols, native edition | CC-BY-SA-4.0 | the project's own (`ew.original`) | — | WP-S7.02 |
 | `content/symbols/qet10` | symbols, QET 10 px edition | CC-BY-SA-4.0 | generated from `content/symbols` | — | WP-S7.02 |
 
