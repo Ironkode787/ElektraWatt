@@ -1,0 +1,43 @@
+{"$schema":"ew.uiscript/1","label":"brief-ut-t6-timed-circuit reference solution"}
+{"action":"page.new","params":{"folio":"102","title":"Power supply 24 V DC","type":"multi_line"}}
+{"action":"page.goto","params":{"folio":"102"}}
+{"action":"tool.black_box","params":{"part":"2904602","letter":"G"}}
+{"action":"cursor.set","params":{"x_mm":114.172,"y_mm":38.495}}
+{"action":"canvas.activate","params":{}}
+{"action":"cursor.set","params":{"x_mm":140.267,"y_mm":54.152}}
+{"action":"canvas.activate","params":{}}
+{"action":"ui.dismiss","params":{}}
+{"action":"nav.goto","params":{"text":"102-C7"}}
+{"action":"tool.place","params":{}}
+{"action":"place.pick","params":{"symbol":"ew.iec.mcb-1p@qet10"}}
+{"action":"canvas.activate","params":{"alt":true}}
+{"action":"ui.dismiss","params":{}}
+{"action":"part.choose","params":{}}
+{"action":"part.search","params":{"text":"A9F78116"}}
+{"action":"part.pick","params":{"index":1}}
+{"action":"tool.black_box","params":{"part":"MICO 4.10","letter":"F"}}
+{"action":"cursor.set","params":{"x_mm":129.829,"y_mm":101.124}}
+{"action":"canvas.activate","params":{}}
+{"action":"cursor.set","params":{"x_mm":161.143,"y_mm":116.781}}
+{"action":"canvas.activate","params":{}}
+{"action":"ui.dismiss","params":{}}
+{"action":"tool.wire","params":{}}
+{"action":"cursor.set","params":{"x_mm":135.048,"y_mm":38.495}}
+{"action":"canvas.activate","params":{}}
+{"action":"cursor.set","params":{"x_mm":132.438,"y_mm":67.200}}
+{"action":"canvas.activate","params":{}}
+{"action":"cursor.set","params":{"x_mm":122.000,"y_mm":54.152}}
+{"action":"canvas.activate","params":{}}
+{"action":"cursor.set","params":{"x_mm":132.438,"y_mm":67.200}}
+{"action":"canvas.activate","params":{}}
+{"action":"cursor.set","params":{"x_mm":132.438,"y_mm":77.638}}
+{"action":"canvas.activate","params":{}}
+{"action":"cursor.set","params":{"x_mm":135.048,"y_mm":101.124}}
+{"action":"canvas.activate","params":{}}
+{"action":"cursor.set","params":{"x_mm":132.438,"y_mm":77.638}}
+{"action":"canvas.activate","params":{}}
+{"action":"cursor.set","params":{"x_mm":140.267,"y_mm":101.124}}
+{"action":"canvas.activate","params":{}}
+{"action":"ui.dismiss","params":{}}
+{"action":"file.save","params":{}}
+{"action":"file.export_pdf","params":{"path":"project.pdf","wait":true}}

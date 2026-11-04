@@ -1,0 +1,19 @@
+# A usability task (WP-S2.12 section 5.1): doc 16 section 19.4's T6 as a brief, from the wizard's basic project (no
+# start project; `start --no-book`, without the guide). `check-brief brief-ut-t6-timed-circuit` proves it runnable.
+kind = "brief"
+grade = 3
+version = 1
+turn_budget = 30
+senses = ["text", "visual"]
+requires = [
+    "part: 2904602",
+    "part: A9F78116",
+    "part: MICO 4.10",
+    "symbol: ew.iec.mcb-1p@qet10",
+    "action: tool.black_box",
+    "action: tool.wire",
+    "action: file.export_pdf",
+]
+areas = ["new page", "black boxes", "parts", "wiring", "save and export"]
+task_id = "T6"
+rounds = ["R1"]

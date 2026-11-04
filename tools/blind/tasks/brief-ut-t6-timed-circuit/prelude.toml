@@ -1,0 +1,23 @@
+# The class of every step of `prelude.uiscript`, in order: setup only (the first-run flow's company-standard wizard
+# with its defaults, the new project, and the three golden part copies of folio 102 embedded as `gpp-101-103` embeds
+# its parts); the page and the drawing are the tester's work.
+
+[[step]]
+action = "tools.company_standard"
+class = "setup"
+
+[[step]]
+action = "wizard.finish"
+class = "setup"
+
+[[step]]
+action = "wizard.cancel"
+class = "setup"
+
+[[step]]
+action = "file.new"
+class = "setup"
+
+[[step]]
+action = "command.run"
+class = "setup"

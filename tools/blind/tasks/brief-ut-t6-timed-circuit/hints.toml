@@ -1,0 +1,10 @@
+# The hints (WP-S2.12 D8), from where to look to what to do, in the user's words; `hint` gives them one at a time.
+
+[[hint]]
+text = "Start with a new multi-line page numbered 102 (Page menu). The power supply and the load distribution are black boxes drawn from their parts; the breaker is a symbol that then gets its part."
+
+[[hint]]
+text = "Draw each black box as a rectangle from its part, the power supply at the top and the load distribution below, with the breaker symbol between them; then wire + to 1 twice and 2 to 24VDC twice with the wire tool."
+
+[[hint]]
+text = "Draw menu: Black box... from part 2904602 (letter G), Symbol... for the 1-pole breaker in C7 and Choose part... A9F78116, Black box... from MICO 4.10 (letter F) below; then Wire; then Export PDF... in the Output menu and save."
