@@ -182,7 +182,7 @@ fn scope_selection(h: &mut Harness<'_, App>) {
 /// The refusal's whole text in the form and as the dialog's label.
 #[track_caller]
 fn refused_in_the_form(h: &Harness<'_, App>, how: &str) {
-    const WHY: &str = "No device is selected";
+    const WHY: &str = "No device is selected. Select the devices first, or choose another scope.";
     assert_eq!(form(h), Some(("devices.renumber", Some(WHY.to_owned()))), "{how}");
     assert!(h.query_by_label(WHY).is_some(), "{how}: shown in the form");
 }
