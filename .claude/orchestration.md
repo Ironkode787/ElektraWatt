@@ -312,8 +312,9 @@ The main session orchestrates. It plans each cycle, briefs Claude subagents, int
   - Clean the main checkout's `target` after every last verify and gate.
   - Incremental builds make targets larger: watch them at each merge point.
 - **Free space.** At least 150 GB before a gate. The orchestrator's guard is 250 GB before every dispatch and verify:
-  run `python ../ew-private/notes/tools/gate.py verify` (or `df`) in the same message as each builder's dispatch, a
-  resumed author's included.
+  run `python ../ew-private/notes/tools/gate.py verify` (or `df`) right before each builder's dispatch, a resumed
+  author's included, and dispatch only on its `go`. Never send the guard in parallel with the dispatch: in cycle 51 a
+  dispatch went out beside a refused guard (226 GB).
   Agents delete nothing outside their own worktree; if the disk runs short, they stop and report.
 
 ## Notes outside the repository
