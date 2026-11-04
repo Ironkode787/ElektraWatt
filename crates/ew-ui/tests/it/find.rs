@@ -453,7 +453,9 @@ fn a_palette_run_that_fails_is_cleared_by_the_actions_next_success() {
     assert!(h.state().shell().palette().is_none());
     assert_eq!(
         h.state().shell().banner(),
-        Some("the regular expression does not compile: regex parse error:\n    (\n    ^\nerror: unclosed group"),
+        Some(
+            "the regular expression does not compile: regex parse error:\n    (\n    ^\nerror: unclosed group"
+        ),
         "the failure is a banner"
     );
     dispatch(&mut h, "find.text", json!({"text": "Spare"}));

@@ -539,9 +539,13 @@ fn ft1288_the_highlight_chips_stay_clear_in_a_short_window() {
             h.set_size(size);
             settle(&mut h);
             settle(&mut h);
-            let status_top = h.ctx.content_rect().shrink(8.0).bottom() - ew_ui::theme::current(&h.ctx).size_status;
+            let status_top =
+                h.ctx.content_rect().shrink(8.0).bottom() - ew_ui::theme::current(&h.ctx).size_status;
             let pane = h.state().command_surface_rects().2.expect("the page view");
-            assert!(pane.bottom() <= status_top + 0.5, "{size:?} find {find}: {pane:?} above {status_top}");
+            assert!(
+                pane.bottom() <= status_top + 0.5,
+                "{size:?} find {find}: {pane:?} above {status_top}"
+            );
             let chips: Vec<_> = h
                 .state_mut()
                 .canvas_host()
@@ -553,7 +557,10 @@ fn ft1288_the_highlight_chips_stay_clear_in_a_short_window() {
             assert_eq!(chips.len(), 4, "{size:?} find {find}: {chips:?}");
             for (i, chip) in chips.iter().enumerate() {
                 assert!(!chip.faded, "{size:?} find {find}: {chip:?}");
-                assert!(pane.contains_rect(chip.rect), "{size:?} find {find}: {chip:?} in {pane:?}");
+                assert!(
+                    pane.contains_rect(chip.rect),
+                    "{size:?} find {find}: {chip:?} in {pane:?}"
+                );
                 for other in &chips[i + 1..] {
                     assert!(
                         !chip.rect.intersects(other.rect),

@@ -244,7 +244,10 @@ fn split_at_shared(polyline: &[(i64, i64)], earlier: &[WireStroke]) -> Vec<(i64,
         let (a, b) = (w[0], w[1]);
         // Along the segment's longer axis, from `a` towards `b`.
         let along = |p: (i64, i64)| {
-            let (dx, dy) = (i128::from(b.0) - i128::from(a.0), i128::from(b.1) - i128::from(a.1));
+            let (dx, dy) = (
+                i128::from(b.0) - i128::from(a.0),
+                i128::from(b.1) - i128::from(a.1),
+            );
             if dx.abs() >= dy.abs() {
                 (i128::from(p.0) - i128::from(a.0)) * dx.signum()
             } else {
@@ -753,12 +756,7 @@ mod tests {
         assert_eq!(strokes[0].lanes, [0]);
         assert_eq!(
             strokes[1].polyline,
-            [
-                (100_000_000, 0),
-                (60_000_000, 0),
-                (40_000_000, 0),
-                (0, 0)
-            ],
+            [(100_000_000, 0), (60_000_000, 0), (40_000_000, 0), (0, 0)],
             "split where the shared part begins and ends"
         );
         assert_eq!(strokes[1].lanes, [0, 1, 0]);

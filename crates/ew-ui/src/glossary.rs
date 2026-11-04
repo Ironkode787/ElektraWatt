@@ -69,7 +69,11 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         let field = components::filter_field(ui, &mut filter, strings::text(key!("glossary-search")));
         // FT-1346: the field's accessible name is its hint.
         field.widget_info(|| {
-            egui::WidgetInfo::labeled(egui::Role::TextInput, true, strings::text(key!("glossary-search")))
+            egui::WidgetInfo::labeled(
+                egui::Role::TextInput,
+                true,
+                strings::text(key!("glossary-search")),
+            )
         });
         if field.changed() {
             events.push(Event::Action("glossary.filter", json!({ "text": filter })));

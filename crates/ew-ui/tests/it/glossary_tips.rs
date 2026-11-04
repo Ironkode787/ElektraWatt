@@ -348,10 +348,16 @@ fn ft1345_the_wire_codes_keep_clear_of_the_printed_texts_and_the_chrome() {
                 continue;
             }
             for other in texts.iter().chain(&chrome).chain(&chips) {
-                assert!(!code.intersects(other.shrink(0.5)), "{size:?}: code {i} {code:?} on {other:?}");
+                assert!(
+                    !code.intersects(other.shrink(0.5)),
+                    "{size:?}: code {i} {code:?} on {other:?}"
+                );
             }
             for (other, _) in &codes[..i] {
-                assert!(!code.intersects(other.shrink(0.5)), "{size:?}: code {i} {code:?} on {other:?}");
+                assert!(
+                    !code.intersects(other.shrink(0.5)),
+                    "{size:?}: code {i} {code:?} on {other:?}"
+                );
             }
         }
     }
