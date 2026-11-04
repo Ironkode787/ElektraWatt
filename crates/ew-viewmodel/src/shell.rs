@@ -2175,16 +2175,6 @@ impl ShellModel {
         if let Some(outcome) = self.dismiss_find() {
             return outcome;
         }
-        // W49.3b-N1: Escape dismisses the banner its Dismiss would (a message, the cloud folder's), once a tool at work
-        // has had its Escape (the Select tool at rest).
-        if self.tools.tool.name() == "select"
-            && self.tools.tool.state() == "idle"
-            && self.banner().is_some()
-            && self.banner_dismissable()
-        {
-            self.dismiss_banner();
-            return Outcome::Done;
-        }
         // FX38d (doc 16a §5.7): Escape with the focus in the Messages pane closes it (the focus returns to the canvas),
         // once a tool at work has had its Escape (the Select tool at rest).
         if self.focus == Some(Focus::Navigator(crate::navigators::NavKind::Messages))

@@ -714,8 +714,8 @@ fn xw2f_the_dialog_reads_in_words_and_all_mine_says_it_kept_yours() {
 }
 
 /// W49.3b-N3, N1, C49-p10b#6: a mixed choice's toast counts the records taken from disk; a save refused for the
-/// collisions keeps the way to the choice (Choose… stays on its banner) and Escape dismisses the refusal as Dismiss
-/// would; `external.review` never opens over another dialog.
+/// collisions keeps the way to the choice (Choose… stays on its banner), and its Dismiss brings the held banner back;
+/// `external.review` never opens over another dialog.
 #[test]
 fn xw2g_a_mixed_choice_counts_what_came_from_disk() {
     let tmp = Tmp::new("xw2g");
@@ -749,7 +749,7 @@ fn xw2g_a_mixed_choice_counts_what_came_from_disk() {
     );
     assert!(matches!(s.dialog(), Some(Dialog::About)));
     done(&mut s, "ui.dismiss", json!({}));
-    // N1: the refused save's banner; Escape dismisses it, the held banner with its Choose… is back.
+    // N1: the refused save's banner keeps Choose…; its Dismiss brings the held banner back.
     let refused = "Saving failed: the change on disk collides with your edits; choose yours or theirs first.";
     assert_eq!(
         s.dispatch("file.save", &json!({})),
@@ -760,7 +760,7 @@ fn xw2g_a_mixed_choice_counts_what_came_from_disk() {
     done(&mut s, "ui.dismiss", json!({}));
     assert_eq!(s.banner(), Some(refused));
     assert!(s.external_choice_waiting(), "Choose… stays");
-    done(&mut s, "ui.dismiss", json!({}));
+    s.dismiss_banner();
     assert_eq!(
         s.banner(),
         Some(
