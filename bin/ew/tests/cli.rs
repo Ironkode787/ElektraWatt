@@ -302,6 +302,45 @@ fn strict_fails_on_error_finding_lenient_does_not() {
     assert!(String::from_utf8_lossy(&strict.stderr).contains("strict:"));
 }
 
+/// ID-1374 (C51-p2#7): `--strict` that fails writes no project into `--out`, as `ew import csv --strict`; without it
+/// the same file is written.
+#[test]
+fn strict_with_out_writes_nothing_when_it_fails() {
+    let t = Tmp::new();
+    let f = t.project_with(LOST);
+    let out = t.0.join("strict.ew");
+    let strict = ew(&[
+        "import".as_ref(),
+        "qet".as_ref(),
+        f.as_os_str(),
+        "--content".as_ref(),
+        CONTENT.as_ref(),
+        "--strict".as_ref(),
+        "--out".as_ref(),
+        out.as_os_str(),
+    ]);
+    assert_eq!(strict.status.code(), Some(1));
+    let err = String::from_utf8_lossy(&strict.stderr);
+    assert_eq!(err.lines().last(), Some("strict: nothing was written"), "{err}");
+    assert!(!out.exists(), "nothing was written");
+    let lenient = ew(&[
+        "import".as_ref(),
+        "qet".as_ref(),
+        f.as_os_str(),
+        "--content".as_ref(),
+        CONTENT.as_ref(),
+        "--out".as_ref(),
+        out.as_os_str(),
+    ]);
+    assert_eq!(
+        lenient.status.code(),
+        Some(0),
+        "{}",
+        String::from_utf8_lossy(&lenient.stderr)
+    );
+    assert!(out.join("manifest.json").is_file());
+}
+
 #[test]
 fn report_csv_to_file() {
     let t = Tmp::new();

@@ -438,7 +438,9 @@ mod tests {
             nl("EW-IMP-104"),
             (
                 Some("Conflict in een titelblokwaarde per folio".to_owned()),
-                Some("Maak de revisies die de folio's noemen en laat de waarden per pagina vallen.".to_owned())
+                Some(
+                    "Maak de revisies die de folio's noemen en laat de waarden per pagina vallen.".to_owned()
+                )
             )
         );
         assert_eq!(
@@ -446,7 +448,8 @@ mod tests {
             (
                 Some("Klemmenstrookdelen samengevoegd tot één klemmenstrook".to_owned()),
                 Some(
-                    "Niets te doen, of splits de klemmenstrook als de delen aparte klemmenstroken zijn.".to_owned()
+                    "Niets te doen, of splits de klemmenstrook als de delen aparte klemmenstroken zijn."
+                        .to_owned()
                 )
             )
         );

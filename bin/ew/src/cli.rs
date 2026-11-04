@@ -607,7 +607,7 @@ pub struct ImportQetArgs {
         overrides_with = "report_out"
     )]
     pub report_out: Option<PathBuf>,
-    /// Exit 1 on lost connections or error findings.
+    /// Exit 1 on lost connections or error findings, and write no project.
     #[arg(long, overrides_with = "strict")]
     pub strict: bool,
     /// Print the result as JSON (`ew.import-qet-result/1`).
@@ -4134,6 +4134,8 @@ fn run_import_qet(a: &ImportQetArgs) -> i32 {
             (None, Some(msg.to_string()))
         }
     };
+    // ID-1374 (C51-p2#7): as `import csv --strict`, a failed `--strict` writes no project.
+    let mut strict_failed = false;
     if a.strict {
         let errors = imported
             .batch
@@ -4144,10 +4146,13 @@ fn run_import_qet(a: &ImportQetArgs) -> i32 {
             .count();
         if report.lost_connections > 0 {
             eprintln!("strict: {} lost connections", report.lost_connections);
-            code = 1;
+            strict_failed = true;
         }
         if errors > 0 {
             eprintln!("strict: {errors} error findings");
+            strict_failed = true;
+        }
+        if strict_failed {
             code = 1;
         }
     }
@@ -4164,7 +4169,9 @@ fn run_import_qet(a: &ImportQetArgs) -> i32 {
             None => print!("{text}"),
         }
     }
-    if let Some(out) = &a.out {
+    if a.out.is_some() && strict_failed {
+        eprintln!("strict: nothing was written");
+    } else if let Some(out) = &a.out {
         match imported.session {
             Ok(session) => {
                 match ew_api::import::create_project_from(
