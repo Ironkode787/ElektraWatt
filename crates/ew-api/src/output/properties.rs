@@ -2843,6 +2843,47 @@ mod tests {
         Session::open_read_only(&dir, "ElektraWatt test").unwrap().0
     }
 
+    /// C50-p5#4 (FT-1250): through the model, a wire end of a newer format is unknown, not a junction (before, every end
+    /// but a labelled connection point read "a junction"). A connection point with an empty label has no model: the
+    /// invariants refuse a dangling function and a function without a device that is no interruption point.
+    #[test]
+    fn a_wire_end_that_is_no_junction_is_never_called_one() {
+        let session = golden();
+        let q = session.query();
+        let conn = q
+            .connections()
+            .iter()
+            .find_map(|(_, c)| {
+                let (ew_schema::Endpoint::Cp(f, _), ew_schema::Endpoint::Cp(..)) = (&c.a, &c.b) else {
+                    return None;
+                };
+                q.functions()
+                    .get(*f)
+                    .is_some_and(|f| f.device.is_some() && !matches!(f.kind, ew_schema::FunctionKind::Ip(_)))
+                    .then(|| c.as_ref().clone())
+            })
+            .expect("a wire between two connection points of devices");
+        let mut unknown = conn.clone();
+        unknown.b = ew_schema::Endpoint::Unknown(serde_json::json!({"port": 1}));
+        let model = session.world().model.clone();
+        let rev = ew_model::Rev(model.rev().0 + 1);
+        let ops = [ew_model::Op::update(
+            ew_model::AnyRow::of(conn.clone()),
+            ew_model::AnyRow::of(unknown),
+        )];
+        let session = Session::new(
+            model
+                .apply_with(&ops, rev, &ew_model::ApplyOptions::default())
+                .unwrap(),
+            Default::default(),
+        );
+        let Some(SelectionWords::Wire { from, to, .. }) = session.selection_words(conn.id.as_uuid()) else {
+            panic!("the wire's words");
+        };
+        assert!(matches!(from, WireEnd::Point(_)), "{from:?}");
+        assert_eq!(to, WireEnd::Unknown);
+    }
+
     /// FT-439, ruling 4: a connection's first wire has the smallest printed number (natural order), an unnumbered wire
     /// comes after every numbered one; the carrier ID only breaks a tie.
     #[test]

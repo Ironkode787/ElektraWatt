@@ -101,20 +101,24 @@ fn the_placement_rows_of_902_read_in_words_and_the_scale_edits_as_it_shows() {
     let rows = shown(&s, false);
     let placement: Vec<(String, String)> = rows
         .iter()
-        .filter(|(l, _)| ["Scale", "Connection grid", "Den", "Num", "Form"].contains(&l.as_str()))
+        .filter(|(l, _)| {
+            ["Scale", "Connection grid", "Grid step divisor", "Num", "Form"].contains(&l.as_str())
+        })
         .cloned()
         .collect();
     assert_eq!(placement, pairs(&[("Scale", "1:10")]));
     let advanced: Vec<(String, String)> = shown(&s, true)
         .into_iter()
-        .filter(|(l, _)| ["Scale", "Connection grid", "Den", "Num", "Form"].contains(&l.as_str()))
+        .filter(|(l, _)| {
+            ["Scale", "Connection grid", "Grid step divisor", "Num", "Form"].contains(&l.as_str())
+        })
         .collect();
     assert_eq!(
         advanced,
         pairs(&[
             ("Form", "c80af135-34f8-574c-8f52-756bd24c7bd0"),
             ("Connection grid", "QET 10 px"),
-            ("Den", "3"),
+            ("Grid step divisor", "3"),
             ("Num", "7937500"),
             ("Scale", "1:10"),
         ])

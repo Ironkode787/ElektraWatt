@@ -1047,39 +1047,88 @@ pub fn grid_in_words(sheet: &mut PropertySheet) {
 /// are unchanged, and a word typed in the editor is read back ([`enum_value_of`]). A layout row (WP-S4.02 D12) keeps
 /// the texts its sheet built.
 pub fn enums_in_words(sheet: &mut PropertySheet) {
-    for row in sheet.sections.iter_mut().flat_map(|s| s.rows.iter_mut()) {
-        if !matches!(row.ty.inner(), FieldType::Enum { .. }) || matches!(row.route, EditRoute::Command { .. })
-        {
-            continue;
-        }
-        match &mut row.value {
-            RowValue::One {
-                json: Value::String(word),
-                text,
-            } => *text = strings::choice_text(word),
-            RowValue::Varies { texts, .. } => {
-                for text in texts {
-                    *text = strings::choice_text(text);
-                }
+    for section in &mut sheet.sections {
+        for row in &mut section.rows {
+            if !matches!(row.ty.inner(), FieldType::Enum { .. })
+                || matches!(row.route, EditRoute::Command { .. })
+            {
+                continue;
             }
-            _ => {}
+            let words = |w: &str| strings::field_choice_text(&section.kind, &row.path, w);
+            match &mut row.value {
+                RowValue::One {
+                    json: Value::String(word),
+                    text,
+                } => *text = words(word),
+                RowValue::Varies { texts, .. } => {
+                    for text in texts {
+                        *text = words(text);
+                    }
+                }
+                _ => {}
+            }
         }
     }
 }
 
 /// The stored word of an enumerated row that `text` names in the UI language's words (FT-1258), else `text` as typed:
 /// the parser reads the stored words.
-pub fn enum_value_of<'t>(row: &PropRow, text: &'t str) -> std::borrow::Cow<'t, str> {
-    let (FieldType::Enum { options }, false) =
-        (row.ty.inner(), matches!(row.route, EditRoute::Command { .. }))
-    else {
+pub fn enum_value_of<'t>(kind: &str, row: &PropRow, text: &'t str) -> std::borrow::Cow<'t, str> {
+    if matches!(row.route, EditRoute::Command { .. }) {
+        return text.into();
+    }
+    enum_word_of(kind, &row.path, &row.ty, text)
+}
+
+/// The stored word of a value of the field `path` of `kind`, of type `ty`, that `text` names in the UI language's
+/// words, else `text` as typed: what [`enum_value_of`] reads for a row and a table cell for its column's field
+/// (C50-p5#3).
+pub fn enum_word_of<'t>(kind: &str, path: &str, ty: &FieldType, text: &'t str) -> std::borrow::Cow<'t, str> {
+    let FieldType::Enum { options } = ty.inner() else {
         return text.into();
     };
     let typed = text.trim();
     options
         .iter()
-        .find(|o| strings::choice_text(o).eq_ignore_ascii_case(typed))
+        .find(|o| strings::field_choice_text(kind, path, o).eq_ignore_ascii_case(typed))
         .map_or(text.into(), |o| o.clone().into())
+}
+
+/// A Properties card's summary line (`card-line`): its targets, then its changes, tags and cross-reference texts each
+/// counted with its own singular (FIX50b, as the quick fix's, FT-1259); the window and the describe text show it.
+pub fn card_line(card: &Card) -> String {
+    let (tags, xrefs) = card_counts(card);
+    strings::format(
+        key!("card-line"),
+        &[
+            &card.targets.to_string(),
+            &kind_plural(&card.edit.kind, card.targets),
+            &strings::format_count(crate::count_key!("preview-changes-count"), card.changes),
+            &tags,
+            &xrefs,
+        ],
+    )
+}
+
+/// A reorder card's summary line (`card-reorder`): its moves (`notices`), then its tags and cross-reference texts each
+/// counted with its own singular (FIX50b).
+pub fn reorder_line(card: &Card, notices: &[String]) -> String {
+    let (tags, xrefs) = card_counts(card);
+    strings::format(key!("card-reorder"), &[&notices.join(", "), &tags, &xrefs])
+}
+
+/// A card's tags and cross-reference texts, counted.
+fn card_counts(card: &Card) -> (String, String) {
+    (
+        strings::format_count(
+            crate::count_key!("preview-tags-count"),
+            card.preview.derived.tags.len(),
+        ),
+        strings::format_count(
+            crate::count_key!("preview-xrefs-count"),
+            card.preview.derived.xrefs.len(),
+        ),
+    )
 }
 
 /// The refusal of a word that is not one of an enumerated field's (FT-1240), in the UI language: a potential's Type
@@ -1088,7 +1137,10 @@ pub fn not_one_of_text(kind: &str, path: &str, typed: &str, options: &[String]) 
     if kind == "potential_def" && path == "ptype" {
         return strings::format(key!("error-potential-type"), &[typed]);
     }
-    let words: Vec<String> = options.iter().map(|o| strings::choice_text(o)).collect();
+    let words: Vec<String> = options
+        .iter()
+        .map(|o| strings::field_choice_text(kind, path, o))
+        .collect();
     strings::format(key!("error-not-one-of"), &[typed, &words.join(", ")])
 }
 
@@ -1105,9 +1157,9 @@ pub fn report_source_in_words(sheet: &mut PropertySheet) {
     {
         if let RowValue::One { json, text } = &mut row.value {
             if let Some(kind) = json.get("kind").and_then(Value::as_str) {
-                if let Some(words) = strings::lookup(&format!("report-kind-{}", kind.replace('_', "-"))) {
-                    *text = words.to_owned();
-                }
+                // C50-p5#7: a kind of a newer format reads as its words, never as JSON.
+                *text = strings::lookup(&format!("report-kind-{}", kind.replace('_', "-")))
+                    .map_or_else(|| strings::choice_words(kind), str::to_owned);
             } else if let Some(file) = json.pointer("/sql_query/file").and_then(Value::as_str) {
                 *text = strings::format(key!("report-source-sql"), &[file]);
             }

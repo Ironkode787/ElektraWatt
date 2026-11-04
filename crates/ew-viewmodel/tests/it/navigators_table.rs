@@ -1004,3 +1004,120 @@ fn ft1240_a_refused_potential_type_names_the_types_in_words() {
     );
     shell.shutdown();
 }
+
+/// C50-p5#1: a header row is read as a header in either language: -X1032's rows copied in en-GB and pasted back in
+/// nl-NL change nothing, and copied in nl-NL and pasted back in en-GB neither.
+#[test]
+fn a_header_copied_in_one_language_pastes_in_the_other() {
+    let tmp = Tmp::new("paste-header");
+    let mut shell = strips(&tmp, "x1032");
+    let keys: Vec<String> = column(&shell, NavKind::Strips, "Terminal")
+        .into_iter()
+        .map(|(k, _)| k)
+        .collect();
+    assert_eq!(keys.len(), 5);
+    for (copy_in, paste_in) in [("en", "nl"), ("nl", "en")] {
+        done(&mut shell, "view.language", json!({ "value": copy_in }));
+        mark(&mut shell, NavKind::Strips, &keys);
+        done(&mut shell, "table.copy", json!({}));
+        done(&mut shell, "view.language", json!({ "value": paste_in }));
+        done(
+            &mut shell,
+            "table.cell",
+            json!({"kind": "strips", "row": keys[0]}),
+        );
+        let (n, calls, rev) = (steps(&shell), shell.session_calls(), shell.revision());
+        done(&mut shell, "table.paste", json!({}));
+        assert_eq!(steps(&shell), n, "{copy_in} to {paste_in}: nothing committed");
+        assert_eq!(
+            shell.session_calls().preview_with,
+            calls.preview_with,
+            "{copy_in} to {paste_in}: no command to preview"
+        );
+        assert_eq!(shell.revision(), rev);
+        assert!(shell.properties().card().is_none());
+    }
+    assert!(
+        shell
+            .clipboard()
+            .text()
+            .unwrap()
+            .starts_with("Klemmenstrook\tPos\tKlem\t")
+    );
+    shell.shutdown();
+}
+
+/// C50-p5#3: a table cell of an enumerated field takes the words its refusal lists, in en-GB and nl-NL: Strips ▸
+/// State "Not fitted" and "Reserve", stored as `not_fitted` and `spare`.
+#[test]
+fn a_table_cell_takes_the_words_of_an_enumerated_field() {
+    let tmp = Tmp::new("enum-cell");
+    let mut shell = strips(&tmp, "x1032");
+    let state = col(&shell, NavKind::Strips, "State");
+    let k5 = terminal(&shell, "5");
+    let mut stored = Vec::new();
+    for (lang, word) in [("en", "Not fitted"), ("nl", "Reserve")] {
+        done(&mut shell, "view.language", json!({ "value": lang }));
+        done(
+            &mut shell,
+            "table.cell",
+            json!({"kind": "strips", "row": k5, "column": state}),
+        );
+        done(&mut shell, "table.edit", json!({}));
+        done(&mut shell, "table.input", json!({"text": word}));
+        done(&mut shell, "table.commit", json!({}));
+        let (cmd, params) = last(&shell);
+        stored.push((cmd, params["value"].clone()));
+    }
+    assert_eq!(
+        stored,
+        [
+            ("fields.set".to_owned(), json!("not_fitted")),
+            ("fields.set".to_owned(), json!("spare")),
+        ]
+    );
+    shell.shutdown();
+}
+
+/// C50-p5#3: PLC ▸ State and Potentials ▸ Class take their words too ("Spare", "Analogue"), on the first row that edits
+/// the column.
+#[test]
+fn plc_state_and_potential_class_cells_take_their_words() {
+    let tmp = Tmp::new("enum-cell-2");
+    let mut shell = tmp.shell_in(Mode::Headless, true, "102");
+    let mut stored = Vec::new();
+    for (kind, record, label, word) in [
+        (NavKind::Plc, "channel", "State", "Spare"),
+        (NavKind::Potentials, "potential_def", "Class", "Analogue"),
+    ] {
+        done(&mut shell, "navigator.show", json!({"kind": kind.word()}));
+        done(
+            &mut shell,
+            "navigator.table",
+            json!({"kind": kind.word(), "on": true}),
+        );
+        let column = col(&shell, kind, label);
+        let row = shell
+            .nav(kind)
+            .and_then(|n| n.table())
+            .and_then(|t| {
+                t.nodes
+                    .iter()
+                    .find(|n| n.table_row && n.kinds.first().is_some_and(|k| k == record))
+                    .map(|n| n.key.clone())
+            })
+            .unwrap_or_else(|| panic!("a {record} row"));
+        done(
+            &mut shell,
+            "table.cell",
+            json!({"kind": kind.word(), "row": row, "column": column}),
+        );
+        done(&mut shell, "table.edit", json!({}));
+        done(&mut shell, "table.input", json!({"text": word}));
+        done(&mut shell, "table.commit", json!({}));
+        let (_, params) = last(&shell);
+        stored.push(params["value"].clone());
+    }
+    assert_eq!(stored, [json!("spare"), json!("analogue")]);
+    shell.shutdown();
+}

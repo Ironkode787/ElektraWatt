@@ -768,7 +768,12 @@ impl ShellModel {
                 let f = filter.to_lowercase();
                 options
                     .iter()
-                    .map(|o| (strings::choice_text(o), Value::String(o.clone())))
+                    .map(|o| {
+                        (
+                            strings::field_choice_text(&section.kind, &row.path, o),
+                            Value::String(o.clone()),
+                        )
+                    })
                     .filter(|(text, _)| text.to_lowercase().contains(&f))
                     .collect()
             }
@@ -942,7 +947,7 @@ impl ShellModel {
             return self.commit_group_label(&section, &row, text);
         }
         // FT-1258: a word of an enumerated row is read back as its stored word.
-        let typed = crate::properties::enum_value_of(&row, text);
+        let typed = crate::properties::enum_value_of(&section.kind, &row, text);
         // WP-S4.02 part 4 (ruling 3): a layout row compiles through `Session::layout_edit`.
         if matches!(row.route, crate::properties::EditRoute::Command { .. }) {
             return self.commit_layout_row(&section, &row, &typed);

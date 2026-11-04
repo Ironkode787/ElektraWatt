@@ -756,3 +756,43 @@ fn ft1097_the_pot_011_detail_shows_its_title_and_message_whole_at_the_floor_and_
         h.state_mut().shell_mut().shutdown();
     }
 }
+
+/// C50-p5#2: in nl-NL a finding row with a quick fix still paints its Fix status badge (`badge-fix`, "Oplossen"):
+/// the window paints the badge from its code, the row's text carries the Dutch word.
+#[test]
+fn a_finding_keeps_its_fix_badge_in_dutch() {
+    use ew_ui::ew_viewmodel::{key, strings};
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, Scripted::default());
+    dispatch(&mut h, "view.language", json!({ "value": "nl" }));
+    dispatch(&mut h, "messages.show", json!({"on": true}));
+    settle(&mut h);
+    let fixable = table_nodes(&h)
+        .into_iter()
+        .find(|n| n.role == NavRole::Finding && n.badges.iter().any(|b| b == "fix"))
+        .expect("a finding with a quick fix");
+    dispatch(
+        &mut h,
+        "navigator.row",
+        json!({"kind": "messages", "key": fixable.key}),
+    );
+    settle(&mut h);
+    let row = h
+        .state()
+        .shell()
+        .shown_rows(NavKind::Messages)
+        .into_iter()
+        .find(|r| r.key == fixable.key)
+        .expect("the row on show");
+    assert!(
+        row.badge_codes.iter().any(|c| c == "fix"),
+        "{:?}",
+        row.badge_codes
+    );
+    assert!(row.text.ends_with(" [oplossing]"), "{}", row.text);
+    assert_eq!(strings::text(key!("badge-fix")), "Oplossen");
+    assert!(
+        h.query_all_by_label("Oplossen").count() >= 1,
+        "the Fix status badge is painted"
+    );
+}

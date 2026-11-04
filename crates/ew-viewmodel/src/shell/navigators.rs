@@ -104,8 +104,11 @@ pub struct ShownRow {
     pub text: String,
     /// The text without its badges (WP-S2.17 part 3: the window paints the badges as chips, doc 16a §6.6).
     pub label: String,
-    /// The badges (`generated`, `QET grid`, `unplaced`, `pending`), in their order.
+    /// The badges in the UI language's words (`generated`, `QET grid`, `unplaced`, `pending`), in their order.
     pub badges: Vec<String>,
+    /// The badges' codes, aligned with `badges` (`fix`, `waived`, `pending`): what the window paints a status badge
+    /// from (C50-p5#2); the Pages tree's are its words.
+    pub badge_codes: Vec<String>,
     /// The accessible name.
     pub name: String,
     /// `Some(expanded)` for a node with children on show.
@@ -392,7 +395,10 @@ impl ShellModel {
                         for b in &badges {
                             text.push_str(&format!(" [{b}]"));
                         }
+                        // The Pages tree paints its badges as chips, from their words.
+                        let badge_codes = badges.clone();
                         ShownRow {
+                            badge_codes,
                             marked: nav.is_marked(&r.key),
                             key: r.key,
                             parent: r.parent,
@@ -429,11 +435,12 @@ impl ShellModel {
                                 severity,
                                 pending: crate::navigators::messages::is_pending(node, editing.as_deref()),
                             });
-                        let mut badges: Vec<String> =
-                            node.badges.iter().map(|b| super::macros::badge_word(b)).collect();
+                        let mut badge_codes = node.badges.clone();
                         if finding.is_some_and(|f| f.pending) {
-                            badges.push("pending".to_owned());
+                            badge_codes.push("pending".to_owned());
                         }
+                        let badges: Vec<String> =
+                            badge_codes.iter().map(|b| super::macros::badge_word(b)).collect();
                         // ID-1278 ruling 7: a strip without a tag yet reads in words, not by its underived tag.
                         let label = if node.role == ew_api::output::NavRole::Strip {
                             crate::navigators::strip_label(&node.label)
@@ -481,6 +488,7 @@ impl ShellModel {
                             text,
                             label,
                             badges,
+                            badge_codes,
                             name,
                             expanded: v.expanded,
                             position: v.position,

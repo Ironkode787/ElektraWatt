@@ -305,6 +305,13 @@ impl ShellModel {
                     // The G-PP triage's row 8: a potential's Type and Voltage take their printed forms.
                     let (input, leaf) = potential_input(&kind, &path, text);
                     extra = leaf;
+                    // C50-p5#3: a word of an enumerated field, as its choices show it, is read back as its code.
+                    let input = match ew_api::output::field_catalogue(&kind)
+                        .and_then(|c| c.iter().find(|s| s.path == path).map(|s| s.ty.clone()))
+                    {
+                        Some(ty) => crate::properties::enum_word_of(&kind, &path, &ty, &input).into_owned(),
+                        None => input,
+                    };
                     match project.session.parse_field_input(&kind, &path, &input) {
                         Ok(parsed) => CellValue::Valid(parsed.value),
                         Err(InputError::Invalid(message)) => CellValue::Invalid(message),
@@ -1257,8 +1264,8 @@ impl ShellModel {
     }
 
     /// `table.paste {text?}` (Ctrl+V): the tab-separated text (else the clipboard's) from the cursor cell (§8.6). A
-    /// first row naming at least half of the columns on show is a header and maps the columns by label; otherwise
-    /// they map by position from the cursor column. A cell whose text equals the cell's own is unchanged and left out.
+    /// first row naming at least half of the columns on show is a header and maps the columns by label (in any shipped
+    /// language) or key (C50-p5#1); otherwise they map by position from the cursor column. A cell whose text equals the cell's own is unchanged and left out.
     pub(crate) fn act_table_paste(&mut self, p: &Map<String, Value>) -> Outcome {
         let kind = match self.table_kind(p) {
             Ok(k) => k,
@@ -1284,16 +1291,27 @@ impl ShellModel {
             return Outcome::Done;
         };
         let fold = |s: &str| s.trim().to_lowercase();
-        let labels: Vec<String> = view
+        // C50-p5#1: a column's header in the window's language, in any shipped language (a copy made in en-GB, a
+        // `table_export` file) or as its key.
+        let nav = kind.word();
+        let labels: Vec<Vec<String>> = view
             .shown
             .iter()
-            .map(|i| fold(&view.table.columns[*i].label))
+            .map(|i| {
+                let c = &view.table.columns[*i];
+                let mut names = vec![fold(&c.label), fold(&c.key)];
+                names.extend(strings::column_labels(nav, &c.key).into_iter().map(fold));
+                names
+            })
             .collect();
         let first: Vec<String> = grid
             .first()
             .map(|r| r.iter().map(|c| fold(c)).collect())
             .unwrap_or_default();
-        let matched = labels.iter().filter(|l| first.contains(l)).count();
+        let matched = labels
+            .iter()
+            .filter(|names| names.iter().any(|n| first.contains(n)))
+            .count();
         let header = matched > 0 && matched * 2 >= labels.len();
         let mut ignored = Vec::new();
         // Pasted column j → a column index on show, or `None` past the right edge.
@@ -1305,7 +1323,7 @@ impl ShellModel {
                 .map(|n| {
                     let at = labels
                         .iter()
-                        .position(|l| *l == fold(n))
+                        .position(|names| names.contains(&fold(n)))
                         .map(|k| view.shown[k])
                         .filter(|c| !used.contains(c));
                     match at {

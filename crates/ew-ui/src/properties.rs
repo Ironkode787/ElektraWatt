@@ -588,21 +588,11 @@ impl PropertiesPane {
         if !matches!(card.origin, ew_viewmodel::properties::CardOrigin::Properties) {
             return;
         }
-        let kind = card.edit.kind.clone();
         let title = strings::format(
             key!("card-title-properties"),
             &[strings::command_title(&card.preview.name)],
         );
-        let summary = strings::format(
-            key!("card-line"),
-            &[
-                &card.targets.to_string(),
-                &ew_viewmodel::properties::kind_plural(&kind, card.targets),
-                &card.changes.to_string(),
-                &card.preview.derived.tags.len().to_string(),
-                &card.preview.derived.xrefs.len().to_string(),
-            ],
-        );
+        let summary = ew_viewmodel::properties::card_line(card);
         let tags: Vec<String> = card
             .preview
             .derived

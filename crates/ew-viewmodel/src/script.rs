@@ -955,16 +955,7 @@ pub fn card_summary(shell: &ShellModel) -> Option<String> {
         return Some(strings::format(key!("card-failed"), &[message]));
     }
     Some(match &card.origin {
-        CardOrigin::Properties => strings::format(
-            key!("card-line"),
-            &[
-                &card.targets.to_string(),
-                &crate::properties::kind_plural(&card.edit.kind, card.targets),
-                &card.changes.to_string(),
-                &tags,
-                &xrefs,
-            ],
-        ),
+        CardOrigin::Properties => crate::properties::card_line(card),
         CardOrigin::Find { .. } => strings::format(
             key!("find-card-line"),
             &[
@@ -982,9 +973,7 @@ pub fn card_summary(shell: &ShellModel) -> Option<String> {
             key!("parts-card-line"),
             &[source, &created.to_string(), &skipped.to_string(), "0"],
         ),
-        CardOrigin::Reorder { notices } => {
-            strings::format(key!("card-reorder"), &[&notices.join(", "), &tags, &xrefs])
-        }
+        CardOrigin::Reorder { notices } => crate::properties::reorder_line(card, notices),
         // FT-1259: each count with its own singular.
         CardOrigin::QuickFix { .. } => strings::format(
             key!("card-fix"),

@@ -1005,10 +1005,11 @@ fn row_ui(
             // rule row's finding count is a count badge; another navigator's badges are caption chips.
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 ui.add_space(t.space_4);
-                for b in row.badges.iter().rev() {
+                // C50-p5#2: a status badge from its code, a chip and a count from the words.
+                for (b, code) in row.badges.iter().zip(&row.badge_codes).rev() {
                     if kind != NavKind::Messages {
                         crate::components::caption_chip(ui, b);
-                    } else if let Some(status) = crate::messages::finding_badge(b) {
+                    } else if let Some(status) = crate::messages::finding_badge(code) {
                         crate::components::status_badge(ui, status);
                     } else if row.finding.is_none()
                         && let Ok(n) = b.parse::<usize>()
@@ -1157,14 +1158,7 @@ fn reorder_card(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
     let CardOrigin::Reorder { notices } = &card.origin else {
         return;
     };
-    let summary = strings::format(
-        key!("card-reorder"),
-        &[
-            &notices.join(", "),
-            &card.preview.derived.tags.len().to_string(),
-            &card.preview.derived.xrefs.len().to_string(),
-        ],
-    );
+    let summary = ew_viewmodel::properties::reorder_line(card, notices);
     let card = crate::components::InlineCard {
         title: strings::text(key!("card-title-reorder")),
         summary: &summary,

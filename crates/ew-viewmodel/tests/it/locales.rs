@@ -526,7 +526,9 @@ fn nl2b_the_kind_and_field_headings_follow_the_table_each() {
         let nl = messages_with(&nl_file, prefix);
         for (key, en) in messages_with(&en_file, prefix) {
             let dutch = nl.get(&key).unwrap_or_else(|| panic!("{key} has no Dutch text"));
-            let mut english = en.clone();
+            // FIX50b ruling 1: a Git tag is Git's own word ("Git-tag"), not the drawing's device tag (NL-2's Git
+            // exemption).
+            let mut english = en.replace("git tag", " ");
             for term in &table {
                 if en_uses(&english, &term.en) {
                     if !nl_has(dutch, &term.nl) {
@@ -549,7 +551,7 @@ fn nl2c_the_wordings_the_stem_match_forced_are_back() {
     let text = |m: &std::collections::BTreeMap<String, String>, k: &str| m.get(k).cloned().unwrap();
     assert_eq!(text(&en, "field-word-parties"), "parties");
     assert_eq!(text(&en, "field-word-termination"), "termination");
-    assert_eq!(text(&nl, "field-word-git-tag"), "git-kenmerk");
+    assert_eq!(text(&nl, "field-word-git-tag"), "git-tag");
     assert_eq!(text(&nl, "field-word-process-tag"), "proceskenmerk");
     assert_eq!(
         text(&nl, "field-connection-overrides-wire-part"),

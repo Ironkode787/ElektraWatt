@@ -826,7 +826,10 @@ mod choice_word_tests {
             if !nl.contains(key.as_str()) {
                 missing.insert(format!("nl-NL: {key}"));
             }
-            assert_eq!(choice_text(v), choice_words(v), "{v}");
+            // C50-p5#5: the accessory has one English word, "End bracket" (16a §8 item 4).
+            if v != "end_clamp" {
+                assert_eq!(choice_text(v), choice_words(v), "{v}");
+            }
         }
         assert_eq!(missing, std::collections::BTreeSet::new());
         assert!(strings::set_locale("nl"));

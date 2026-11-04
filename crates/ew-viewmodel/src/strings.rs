@@ -415,6 +415,21 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         .copied()
 }
 
+/// The headers of navigator `nav`'s column `key` (`nav` its word, `pages`) in each shipped language, en-GB first: its
+/// `column-<nav>-<key>` text, else `column-<key>` (C50-p5#1: a header copied in one language pastes in another).
+pub fn column_labels(nav: &str, key: &str) -> Vec<&'static str> {
+    let key = key.replace('_', "-");
+    [en_gb(), nl_nl()]
+        .into_iter()
+        .filter_map(|l| {
+            l.texts
+                .get(format!("column-{nav}-{key}").as_str())
+                .or_else(|| l.texts.get(format!("column-{key}").as_str()))
+                .copied()
+        })
+        .collect()
+}
+
 /// The line kinds of a fluid line (WP-S1.20 T25), in schema order: the Line kind row shows each as its
 /// `choice-<kind>` text.
 pub const LINE_KINDS: &[&str] = &["working", "pilot", "exhaust", "drain", "flexible"];
@@ -472,7 +487,12 @@ pub fn field_label(kind: &str, path: &str) -> String {
         .find(|s| !s.is_empty() && *s != "]")
         .unwrap_or(&generic)
         .trim_end_matches(']');
-    if let Some(label) = lookup(&format!("field-word-{}", last.replace('_', "-"))) {
+    let word = format!("field-word-{}", last.replace('_', "-"));
+    // C50-p5#6: a list's item by its singular where the list has one ("Connection point 2").
+    let singular = (!item.is_empty())
+        .then(|| lookup(&format!("{word}-item")))
+        .flatten();
+    if let Some(label) = singular.or_else(|| lookup(&word)) {
         return format!("{label}{item}");
     }
     let words: Vec<String> = last
@@ -529,6 +549,42 @@ pub fn choice_text(value: &str) -> String {
         Some(text) if !value.is_empty() => text.to_owned(),
         _ => choice_words(value),
     }
+}
+
+/// A choice value of the field `path` of `kind` in words (C50-p5#5): the field's own `choice-<kind>-<path>-<value>`
+/// text (`.` and `_` as `-`, a list item as `-item`), where one word means two things in two fields (a terminal
+/// level's `main` is no main function), else [`choice_text`].
+pub fn field_choice_text(kind: &str, path: &str, value: &str) -> String {
+    let generic = generic_field_path(path);
+    let own = format!(
+        "choice-{}-{}-{}",
+        kind.replace('_', "-"),
+        generic.replace("[]", "-item").replace(['.', '_'], "-"),
+        value.replace('_', "-")
+    );
+    match lookup(&own) {
+        Some(text) if !value.is_empty() => text.to_owned(),
+        _ => choice_text(value),
+    }
+}
+
+/// A field path with every list index as `[]` (`levels[0].role` is `levels[].role`).
+fn generic_field_path(path: &str) -> String {
+    let mut generic = String::with_capacity(path.len());
+    let mut chars = path.chars().peekable();
+    while let Some(c) = chars.next() {
+        if c == '[' && chars.peek().is_some_and(char::is_ascii_digit) {
+            for d in chars.by_ref() {
+                if d == ']' {
+                    break;
+                }
+            }
+            generic.push_str("[]");
+        } else {
+            generic.push(c);
+        }
+    }
+    generic
 }
 
 /// A value's snake_case word in sentence case, with the hyphenated compounds of the standard's usage (`multi_line` is
@@ -1283,15 +1339,76 @@ mod tests {
         assert_eq!(missing, BTreeSet::new());
         assert_eq!(field_label("device", "function_text"), "Function text");
         assert_eq!(field_label("connection", "overrides.colour"), "Colour override");
-        assert_eq!(field_label("function", "cps[1]"), "Cps 2");
+        assert_eq!(field_label("function", "cps[1]"), "Connection point 2");
+        assert_eq!(field_label("function", "cps"), "Connection points");
+        // C50-p5#6 (ID-1320): the humanised English labels written by hand.
+        let members = [
+            "pe",
+            "pe_bond",
+            "cpu",
+            "sha256",
+            "bom_basis",
+            "idx",
+            "ac_dc",
+            "den",
+            "parties",
+            "termination",
+        ];
+        assert_eq!(
+            members.map(|m| field_label("", m)),
+            [
+                "PE",
+                "PE bond",
+                "CPU",
+                "SHA-256",
+                "BOM basis",
+                "Index",
+                "AC/DC",
+                "Grid step divisor",
+                "Parties",
+                "Termination"
+            ]
+        );
         assert!(set_locale("nl"));
+        // C50-p5#6 (ID-1320) and FIX50b's ruling 1: the Dutch compounds and words.
+        let members = [
+            "wire_part",
+            "symbol_cp",
+            "xref_format",
+            "bom_basis",
+            "tag_case",
+            "user_defined",
+            "ours",
+            "theirs",
+            "git_tag",
+            "den",
+        ];
+        assert_eq!(
+            members.map(|m| field_label("", m)),
+            [
+                "Draadartikel",
+                "Symboolaansluitpunt",
+                "Kruisverwijzingsnotatie",
+                "Stuklijstbasis",
+                "Kenmerk in hoofdletters",
+                "Door de gebruiker gedefinieerd",
+                "Onze versie",
+                "Hun versie",
+                "Git-tag",
+                "Deler van de rasterstap"
+            ]
+        );
+        assert_eq!(
+            field_label("connection", "overrides.wire_part"),
+            "Draadartikel overschreven"
+        );
         assert_eq!(field_label("device", "function_text"), "Functietekst");
         assert_eq!(
             field_label("connection", "overrides.colour"),
             "Aderkleur overschreven"
         );
         assert_eq!(field_label("page", "section"), "Sectie");
-        assert_eq!(field_label("function", "cps[1]"), "Aansluitpunten 2");
+        assert_eq!(field_label("function", "cps[1]"), "Aansluitpunt 2");
         // A part's technical data is an open set: a key it does not name keeps its humanised words.
         assert_eq!(field_label("part", "tech_data.rated_current"), "Rated current");
         assert!(set_locale("en"));
@@ -1333,10 +1450,44 @@ mod tests {
         );
         assert!(set_locale("nl"));
         assert_eq!(
-            ["l_plus", "spare", "multi_line"].map(choice_text),
-            ["L+", "Reserve", "Meerlijnschema"]
+            ["l_plus", "spare", "multi_line", "strip_segment", "end_clamp"].map(choice_text),
+            [
+                "L+",
+                "Reserve",
+                "Meerlijnschema",
+                "Klemmenstrooksegment",
+                "Eindsteun"
+            ]
         );
+        // C50-p5#5: one word, two meanings, each field its own words; the merge's sides (C50-p5#6).
+        let fields = [
+            ("function", "role", "main"),
+            ("device", "terminal.levels[0].role", "main"),
+            ("device", "terminal.levels[1].role", "aux"),
+            ("conflict", "side", "theirs"),
+            ("conflict", "side", "ours"),
+        ];
+        assert_eq!(
+            fields.map(|(k, p, v)| field_choice_text(k, p, v)),
+            [
+                "Hoofdfunctie",
+                "Hoofdniveau",
+                "Hulpniveau",
+                "Hun versie",
+                "Onze versie"
+            ]
+        );
+        assert_eq!(choice_text("theirs"), "Versie op schijf");
         assert!(set_locale("en"));
+        assert_eq!(
+            fields.map(|(k, p, v)| field_choice_text(k, p, v)),
+            ["Main", "Main level", "Auxiliary level", "Theirs", "Ours"]
+        );
+        // One English word for the accessory (16a §8 item 4).
+        assert_eq!(
+            [choice_text("end_clamp"), accessory_text("end_clamp").to_owned()],
+            ["End bracket", "End bracket"]
+        );
     }
 
     /// FT-558: the form dialogs show doc 16a §8's words, never the raw parameter value.

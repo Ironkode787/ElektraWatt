@@ -399,6 +399,9 @@ fn ft1162_the_messages_rows_and_the_chip_read_in_dutch() {
     }
     assert!(!rows.is_empty());
     assert_eq!(rows, expected);
+    // C50-p5#7: one row as the Dutch reader sees it.
+    let cable = "=P01+J-E-2416-3W1 heeft geen gerouteerde, handmatige of artikellengte";
+    assert_eq!(rows.iter().filter(|r| *r == cable).count(), 1, "{rows:?}");
     assert!(
         report
             .findings
@@ -561,4 +564,30 @@ fn ft1258_an_enumerated_row_reads_and_takes_its_words() {
         ("Gereserveerd".to_owned(), json!("reserved"))
     );
     shell.shutdown();
+}
+
+/// C50-p5#7 (FT-1287): every report kind of the format has its `report-kind-<kind>` text in en-GB and nl-NL, so no
+/// generated page's Source shows JSON.
+#[test]
+fn every_report_kind_has_its_words_in_both_locales() {
+    let schema: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("../../schemas/0.1/report_block.schema.json"),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    let kinds: Vec<String> = schema["$defs"]["ReportKind"]["oneOf"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(|k| k["const"].as_str().map(str::to_owned))
+        .collect();
+    assert!(kinds.iter().any(|k| k == "wire_list"), "{kinds:?}");
+    let wanted: BTreeSet<String> = kinds
+        .iter()
+        .map(|k| format!("report-kind-{}", k.replace('_', "-")))
+        .collect();
+    assert_eq!(missing(&wanted), Vec::<String>::new());
 }
