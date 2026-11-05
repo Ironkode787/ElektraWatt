@@ -345,40 +345,39 @@ fn a_white_band_is_not_sent() {
     assert!(!white(&band));
 }
 
-/// An adapter that must not be asked: the chain's next way after a cancel.
-struct Never;
-
-impl PrintAdapter for Never {
-    fn name(&self) -> &'static str {
-        "never"
-    }
-
-    fn print(&self, _: &PrintJob) -> Result<PrintOutcome, PrintError> {
-        panic!("a cancelled print went on to the next way")
-    }
-}
 
 /// FT-1157 (ID-1417): a print whose job's cancel signal is set (through a clone of the job, as the window's job Cancel
 /// and `ew print`'s Ctrl+C hold one) ends before its first band is sent, the document aborted, as
-/// [`PrintError::Cancelled`], which ends the window's chain: the next way is not asked and the spooler writes no file.
-/// Skipped, with its line, as WN-3 is when the PDF printer cannot be opened.
+/// [`PrintError::Cancelled`], and the spooler writes no file. The adapter is asked directly: the window's chain asks no
+/// way once the signal is set (C52-p6#2, ID-1424). Skipped, with its line, as WN-3 is when the PDF printer cannot be
+/// opened.
 #[test]
 fn a_cancelled_print_aborts_before_its_first_band() {
     let dir = Dir::new("cancel");
     let out = dir.0.join("cancel.pdf");
-    let chain = crate::Chain::new(vec![Box::new(Windows::to_file(out.clone())), Box::new(Never)]);
     let job = job(PDF_PRINTER, vec![placed_page(1)]);
     job.clone().cancel.cancel();
-    match chain.print(&job) {
-        Err(failed)
-            if matches!(failed.first(), Some((_, PrintError::Windows { what, .. }))
-                if *what == Step::Open(PDF_PRINTER).to_string()) =>
-        {
-            println!("skipped: {failed:?}");
+    match Windows::to_file(out.clone()).print(&job) {
+        Err(PrintError::Windows { what, reason }) if what == Step::Open(PDF_PRINTER).to_string() => {
+            println!("skipped: {what}: {reason}");
         }
         printed => {
-            assert_eq!(printed, Err(vec![("windows", PrintError::Cancelled)]));
+            assert_eq!(printed, Err(PrintError::Cancelled));
             assert!(!out.exists(), "{} was written", out.display());
         }
     }
+}
+
+/// C52-p6#3 (ID-1424): the first Ctrl+C or Ctrl+Break sets the print's signal and is handled; a second, with the signal
+/// set, goes on to the default handler, which ends the process as before; other console events always go on.
+#[test]
+fn a_second_ctrl_c_ends_the_process_as_before() {
+    let cancel = PrintCancel::default();
+    assert!(CTRL_C.set(cancel.clone()).is_ok(), "one test per process");
+    assert!(!on_ctrl_c(2).as_bool(), "a close event goes on");
+    assert!(!cancel.is_set());
+    assert!(on_ctrl_c(CTRL_C_EVENT).as_bool(), "the first Ctrl+C is handled");
+    assert!(cancel.is_set());
+    assert!(!on_ctrl_c(CTRL_C_EVENT).as_bool(), "a second Ctrl+C goes on");
+    assert!(!on_ctrl_c(CTRL_BREAK_EVENT).as_bool(), "so does a Ctrl+Break");
 }

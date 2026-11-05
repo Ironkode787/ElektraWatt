@@ -2108,6 +2108,8 @@ toast-print-opened = Opened { $p0 } in your PDF viewer
 toast-print-fallback-printer = Printing through the print dialog failed, so { $p0 } went to the default printer.
 toast-print-fallback-viewer = Printing could not start, so { $p0 } opened in your PDF viewer to print from there.
 toast-print-failed = Printing failed: { $p0 }. Export a PDF and print it from your PDF viewer.
+toast-print-cancel-late-printer = The printer already had { $p0 } when you cancelled; cancel it in the system's print queue.
+toast-print-cancel-late-viewer = { $p0 } was already open in your PDF viewer when you cancelled; close it there.
 reason-no-print-dialog = Open the print dialog first
 reason-print-not-built = The print set is still being built
 reason-print-no-pages = No pages are chosen
@@ -3163,7 +3165,7 @@ reason-macro-no-key = The name has no letter or digit to make a key from; type a
 reason-library-write-window = Only a person saves a macro, in the window: a library write is not undoable and no script reaches it
 reason-variable-one-record = Make variable takes the field of one record
 reason-variable-derived = A derived value cannot be a variable
-# FT-1477 (ID-1409): the words of a text-slots value in the macro value table ("slot 2: at 10, -5 mm, turned 90°,
+# FT-1477 (ID-1409): the words of a text-slots value in the macro value table ("slot 2: at 10; -5 mm, turned 90°,
 # hidden; slot 3: shown"), each a word the cell reads back.
 macro-slots-default = as the symbol
 macro-slots-slot = slot

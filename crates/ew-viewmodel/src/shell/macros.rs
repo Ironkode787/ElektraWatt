@@ -136,17 +136,47 @@ fn literal_value(ty: &str, text: &str) -> Value {
 }
 
 /// A text-slots value typed in words (FT-1477), in the UI language: `as the symbol` is the empty list (every slot as
-/// the symbol draws it), else one clause per slot, `;` between them: `slot 2: at 10, -5 mm, turned 90°, hidden`, each
-/// part optional and in any order. `None` for a text that does not read so.
+/// the symbol draws it), else one clause per slot, `;` between them: `slot 2: at 10; -5.5 mm, turned 90°, hidden`, each
+/// part optional and in any order. The two coordinates are separated by `;` (or, as written before, `, `), and a
+/// number takes a decimal point or comma whatever the project writes (C52-p6#4, ID-1424), so `10; -5,5` and
+/// `10; -5.5` read the same. `None` for a text that does not read so.
 fn slots_value(text: &str) -> Option<Value> {
     let word = |k: Key<'_>| strings::text(k).to_lowercase();
     let text = text.to_lowercase().replace('\u{2212}', "-");
     if text == word(key!("macro-slots-default")) {
         return Some(Value::Array(Vec::new()));
     }
+    // A `;` that a slot word does not follow separates the coordinates: its text belongs to the clause before.
+    let slot_word = word(key!("macro-slots-slot"));
+    let mut clauses: Vec<String> = Vec::new();
+    for (i, piece) in text.split(';').enumerate() {
+        match clauses.last_mut() {
+            Some(last) if i > 0 && !piece.trim_start().starts_with(&slot_word) => {
+                last.push(' ');
+                last.push_str(piece);
+            }
+            _ => clauses.push(piece.to_owned()),
+        }
+    }
     let mut slots = Vec::new();
-    for clause in text.split(';') {
-        let clause = clause.replace([',', ':'], " ").replace('°', " ");
+    for clause in clauses {
+        // A comma between two digits is a decimal comma; any other separates parts.
+        let chars: Vec<char> = clause.chars().collect();
+        let clause: String = chars
+            .iter()
+            .enumerate()
+            .map(|(i, &c)| {
+                let decimal = c == ','
+                    && i > 0
+                    && chars[i - 1].is_ascii_digit()
+                    && chars.get(i + 1).is_some_and(char::is_ascii_digit);
+                if (c == ',' && !decimal) || c == ':' || c == '°' {
+                    ' '
+                } else {
+                    c
+                }
+            })
+            .collect();
         let mut tokens = clause.split_whitespace().filter(|t| *t != "mm");
         if tokens.next()? != word(key!("macro-slots-slot")) {
             return None;
@@ -182,9 +212,10 @@ fn slots_value(text: &str) -> Option<Value> {
     Some(Value::Array(slots))
 }
 
-/// A text-slots value in words (FT-1477), as [`slots_value`] reads them back; `None` for a list that is not one of
-/// slot overrides.
-fn slots_text(items: &[Value]) -> Option<String> {
+/// A text-slots value in words (FT-1477), as [`slots_value`] reads them back, its numbers with the project's decimal
+/// separator (`comma`, FT-366) and its two coordinates separated by `; ` in every language (C52-p6#4, ID-1424); `None`
+/// for a list that is not one of slot overrides.
+fn slots_text(items: &[Value], comma: bool) -> Option<String> {
     if items.is_empty() {
         return Some(strings::text(key!("macro-slots-default")).to_owned());
     }
@@ -196,17 +227,17 @@ fn slots_text(items: &[Value]) -> Option<String> {
             let x = pos.get(0)?.as_i64()?;
             let y = pos.get(1)?.as_i64()?;
             parts.push(format!(
-                "{} {}, {} mm",
+                "{} {}; {} mm",
                 strings::text(key!("macro-slots-at")),
-                super::layout::mm_text(i128::from(x), false),
-                super::layout::mm_text(i128::from(y), false)
+                super::layout::mm_text(i128::from(x), comma),
+                super::layout::mm_text(i128::from(y), comma)
             ));
         }
         if let Some(angle) = item.get("angle") {
             parts.push(format!(
                 "{} {}°",
                 strings::text(key!("macro-slots-turned")),
-                super::layout::mm_text(i128::from(angle.as_i64()?) * 1000, false)
+                super::layout::mm_text(i128::from(angle.as_i64()?) * 1000, comma)
             ));
         }
         match item.get("visible").and_then(Value::as_bool) {
@@ -225,10 +256,10 @@ fn slots_text(items: &[Value]) -> Option<String> {
 }
 
 /// A variable's value as the card and the value-set table show it: a text as it is, a part by its copy ID, a list of
-/// text slots in words (FT-1477), any other value as its JSON text.
-fn value_text(v: &Value) -> String {
+/// text slots in words (FT-1477) with the project's decimal separator (`comma`), any other value as its JSON text.
+fn value_text(v: &Value, comma: bool) -> String {
     match v {
-        Value::Array(items) => slots_text(items).unwrap_or_else(|| v.to_string()),
+        Value::Array(items) => slots_text(items, comma).unwrap_or_else(|| v.to_string()),
         Value::String(s) => s.clone(),
         Value::Object(o) => match o.get("copy") {
             Some(Value::String(c)) => c.clone(),
@@ -336,6 +367,16 @@ fn key_of(name: &str) -> String {
 }
 
 impl ShellModel {
+    /// Whether the project writes a decimal comma (`settings.formatting.decimal_separator`, FT-366).
+    fn decimal_comma(&self) -> bool {
+        self.project.as_ref().is_some_and(|p| {
+            matches!(
+                p.session.query().project().settings.formatting.decimal_separator,
+                Some(ew_api::DecimalSeparator::Comma)
+            )
+        })
+    }
+
     // -----------------------------------------------------------------------------------------------------------
     // The Macros navigator's detail
 
@@ -573,6 +614,7 @@ impl ShellModel {
             self.person,
             &self.origin_file,
         ));
+        let comma = self.decimal_comma();
         let calls = &self.calls;
         let Some(project) = &mut self.project else {
             return Outcome::Done;
@@ -610,7 +652,7 @@ impl ShellModel {
                 placeholder: set_values
                     .and_then(|s| s.get(name))
                     .or(default.as_ref())
-                    .map(value_text)
+                    .map(|v| value_text(v, comma))
                     .unwrap_or_default(),
                 value: typed.get(name).cloned().unwrap_or_default(),
                 error: None,
@@ -1066,6 +1108,7 @@ impl ShellModel {
                 reason_key: key!("reason-no-project"),
             });
         }
+        let comma = self.decimal_comma();
         let Some(project) = &self.project else {
             return Outcome::Refused {
                 reason_key: key!("reason-no-project"),
@@ -1124,7 +1167,7 @@ impl ShellModel {
                     key: name.clone(),
                     cells: columns
                         .iter()
-                        .map(|(c, _)| values.get(c).map(value_text).unwrap_or_default())
+                        .map(|(c, _)| values.get(c).map(|v| value_text(v, comma)).unwrap_or_default())
                         .collect(),
                 })
                 .collect();
@@ -1304,11 +1347,28 @@ mod tests {
         let Value::Array(items) = &slots else {
             unreachable!()
         };
-        let en = "slot 2: at 10, -5.5 mm, turned 90°, hidden; slot 3: shown; slot 5";
-        assert_eq!(value_text(&slots), en);
+        let en = "slot 2: at 10; -5.5 mm, turned 90°, hidden; slot 3: shown; slot 5";
+        assert_eq!(value_text(&slots, false), en);
         assert_eq!(literal_value("text_slots", en), slots);
+        // C52-p6#4 (ID-1424): the project's decimal comma, and the form written before, read the same.
+        assert_eq!(
+            value_text(&slots, true),
+            "slot 2: at 10; -5,5 mm, turned 90°, hidden; slot 3: shown; slot 5"
+        );
+        assert_eq!(literal_value("text_slots", &value_text(&slots, true)), slots);
+        assert_eq!(
+            literal_value(
+                "text_slots",
+                "slot 2: at 10, -5.5 mm, turned 90°, hidden; slot 3: shown; slot 5"
+            ),
+            slots
+        );
+        assert_eq!(
+            literal_value("text_slots", "slot 1: at 2,5; 7, turned 22,5°"),
+            json!([{"slot": 0, "pos": [2_500_000, 7_000_000], "angle": 22_500}])
+        );
         assert_eq!(literal_value("text_slots", "As the symbol"), json!([]));
-        assert_eq!(value_text(&json!([])), "as the symbol");
+        assert_eq!(value_text(&json!([]), false), "as the symbol");
         // Any order, the minus sign, no unit.
         assert_eq!(
             literal_value("text_slots", "Slot 2: hidden, turned 90, at 10 −5.5"),
@@ -1322,9 +1382,12 @@ mod tests {
         assert_eq!(literal_value("text_slots", "slot 2: left"), json!("slot 2: left"));
         assert!(strings::set_locale("nl"));
         let nl = (
-            slots_text(items),
+            slots_text(items, true),
             slots_value(
-                "tekstvak 2: op 10, -5.5 mm, gedraaid 90°, verborgen; tekstvak 3: zichtbaar; tekstvak 5",
+                "tekstvak 2: op 10; -5,5 mm, gedraaid 90°, verborgen; tekstvak 3: zichtbaar; tekstvak 5",
+            ),
+            slots_value(
+                "tekstvak 2: op 10; -5.5 mm, gedraaid 90°, verborgen; tekstvak 3: zichtbaar; tekstvak 5",
             ),
         );
         assert!(strings::set_locale("en"));
@@ -1332,9 +1395,10 @@ mod tests {
             nl,
             (
                 Some(
-                    "tekstvak 2: op 10, -5.5 mm, gedraaid 90°, verborgen; tekstvak 3: zichtbaar; tekstvak 5"
+                    "tekstvak 2: op 10; -5,5 mm, gedraaid 90°, verborgen; tekstvak 3: zichtbaar; tekstvak 5"
                         .to_owned()
                 ),
+                Some(slots.clone()),
                 Some(slots.clone())
             )
         );

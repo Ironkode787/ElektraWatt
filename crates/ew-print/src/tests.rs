@@ -488,6 +488,45 @@ fn the_chain_stops_at_the_first_print_and_at_a_cancel() {
     assert_eq!(Chain::new(Vec::new()).print(&job("t", None)), Err(Vec::new()));
 }
 
+/// An adapter whose print is cancelled while it runs (in its dialog or hand-over), and which then fails with another
+/// error than a cancel.
+struct CancelledThenFails;
+
+impl PrintAdapter for CancelledThenFails {
+    fn name(&self) -> &'static str {
+        "portal"
+    }
+
+    fn print(&self, job: &PrintJob) -> Result<PrintOutcome, PrintError> {
+        job.cancel.cancel();
+        Err(portal_down())
+    }
+}
+
+/// An adapter that must not be asked: the chain's next way after a cancel. Its panic would be listed as its failure.
+struct Never;
+
+impl PrintAdapter for Never {
+    fn name(&self) -> &'static str {
+        "never"
+    }
+
+    fn print(&self, _: &PrintJob) -> Result<PrintOutcome, PrintError> {
+        panic!("a cancelled print went on to the next way")
+    }
+}
+
+/// C52-p6#2 (ID-1424): a job cancelled while a way runs that then fails asks no further way, so the viewer never opens
+/// the print the person cancelled: the list ends with the cancel, in place of the way not asked.
+#[test]
+fn a_cancel_while_a_way_runs_asks_no_further_way() {
+    let chain = Chain::new(vec![Box::new(CancelledThenFails), Box::new(Never)]);
+    assert_eq!(
+        chain.print(&job("t", None)),
+        Err(vec![("portal", portal_down()), ("never", PrintError::Cancelled)])
+    );
+}
+
 /// The window's chains: on Linux the portal, `lp`, then the viewer; on Windows the Windows adapter, then the viewer
 /// (ruling 4 of ID-1218); elsewhere the viewer; Open in PDF viewer is the viewer alone.
 #[test]

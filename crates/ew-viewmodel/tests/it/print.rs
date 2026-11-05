@@ -331,3 +331,43 @@ fn a_running_print_is_a_job_whose_cancel_reaches_the_print() {
     assert_eq!(refused(&mut s, "jobs.cancel", json!({})), "reason-no-running-job");
     s.shutdown();
 }
+
+/// C52-p6#2 (ID-1424): a way that hands a file over cannot take it back: a print cancelled in the Jobs pane that the
+/// printer or the viewer already had says so in words, in English and Dutch, rather than telling it as sent.
+#[test]
+fn a_cancel_too_late_for_a_handed_over_print_says_where_it_went() {
+    let tmp = Tmp::new("print-cancel-late");
+    let mut s = tmp.shell("100");
+    let cases = [
+        (
+            "en",
+            PrintEnd::Printed,
+            "The printer already had J-E-2416 when you cancelled; cancel it in the system's print queue.",
+        ),
+        (
+            "en",
+            PrintEnd::FellBackToViewer,
+            "J-E-2416 was already open in your PDF viewer when you cancelled; close it there.",
+        ),
+        (
+            "nl",
+            PrintEnd::FellBackToPrinter,
+            "De printer had J-E-2416 al toen u annuleerde; annuleer het in de afdrukwachtrij van het systeem.",
+        ),
+        (
+            "nl",
+            PrintEnd::Opened,
+            "J-E-2416 was al geopend in uw PDF-viewer toen u annuleerde; sluit het daar.",
+        ),
+    ];
+    for (language, end, text) in cases {
+        done(&mut s, "view.language", json!({ "value": language }));
+        done(&mut s, "file.print", json!({"range": "current"}));
+        done(&mut s, "print.send", json!({}));
+        let _ = s.take_print_request().expect("a request");
+        done(&mut s, "jobs.cancel", json!({}));
+        s.print_done(end);
+        assert_eq!(s.toast().map(|t| t.text.as_str()), Some(text));
+    }
+    s.shutdown();
+}

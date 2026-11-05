@@ -123,21 +123,23 @@ impl PrintAdapter for Windows {
 static CTRL_C: OnceLock<PrintCancel> = OnceLock::new();
 
 /// FT-1157 (ID-1417): makes the console's Ctrl+C and Ctrl+Break set `cancel` instead of ending the process, so that
-/// `ew print --via windows` aborts its document at the next band and ends as a cancelled print. Once per process:
-/// `false` when a signal is set already or the console refuses the handler.
+/// `ew print --via windows` aborts its document at the next band and ends as a cancelled print; a second press, with
+/// the signal set, ends the process as before (C52-p6#3, ID-1424). Once per process: `false` when a signal is set
+/// already or the console refuses the handler.
 pub fn ctrl_c_cancels(cancel: &PrintCancel) -> bool {
     if CTRL_C.set(cancel.clone()).is_err() {
         return false;
     }
     // SAFETY: `on_ctrl_c` is a function of this program, valid for the process's life; it only reads a `OnceLock` and
-    // stores an atomic, which is sound on the console's own thread.
+    // loads and stores an atomic, which is sound on the thread Windows creates in the process to run the handler.
     unsafe { SetConsoleCtrlHandler(Some(on_ctrl_c), true) }.is_ok()
 }
 
-/// The console's control handler: Ctrl+C and Ctrl+Break set the signal and are handled; other events go on.
+/// The console's control handler: the first Ctrl+C or Ctrl+Break sets the signal and is handled; one with the signal
+/// set already, and other events, go on to the next handler (the default one ends the process).
 extern "system" fn on_ctrl_c(event: u32) -> BOOL {
     match CTRL_C.get() {
-        Some(cancel) if event == CTRL_C_EVENT || event == CTRL_BREAK_EVENT => {
+        Some(cancel) if (event == CTRL_C_EVENT || event == CTRL_BREAK_EVENT) && !cancel.is_set() => {
             cancel.cancel();
             true.into()
         }

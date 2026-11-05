@@ -282,7 +282,8 @@ impl Chain {
         self.adapters.iter().map(|a| a.name()).collect()
     }
 
-    /// Tries each adapter in turn until one prints `job`.
+    /// Tries each adapter in turn until one prints `job`. Once the job's cancel signal is set, no further adapter is
+    /// asked: the adapter that would have been is listed with [`PrintError::Cancelled`].
     ///
     /// # Errors
     ///
@@ -292,6 +293,12 @@ impl Chain {
         let mut failed: Vec<(&'static str, PrintError)> = Vec::new();
         for adapter in &self.adapters {
             let name = adapter.name();
+            // C52-p6#2 (ID-1424): a job cancelled while an earlier way ran asks no further way, whatever that way's
+            // error, so the viewer never opens a print the person cancelled.
+            if job.cancel.is_set() {
+                failed.push((name, PrintError::Cancelled));
+                return Err(failed);
+            }
             let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| adapter.print(job)))
                 .unwrap_or_else(|_| {
                     Err(PrintError::Spawn {

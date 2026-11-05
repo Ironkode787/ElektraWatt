@@ -322,15 +322,28 @@ impl ShellModel {
     pub fn print_done(&mut self, end: PrintEnd) {
         let title = self.print.printing.take().unwrap_or_default();
         // The print's entry in the Jobs pane goes; the toast tells its end.
+        let mut cancelled = false;
         if let Some(i) = self
             .jobs
             .entries
             .iter()
             .position(|e| e.cancel.is_some() && e.is_running())
         {
+            cancelled = self.jobs.entries[i]
+                .cancel
+                .as_ref()
+                .is_some_and(|c| c.load(std::sync::atomic::Ordering::Relaxed));
             self.jobs.entries.remove(i);
         }
         let text = match end {
+            // C52-p6#2 (ID-1424): a way that hands a file over cannot take it back; a Cancel that came too late says
+            // where the print went instead of telling it as done.
+            PrintEnd::Printed | PrintEnd::FellBackToPrinter if cancelled => {
+                strings::format(key!("toast-print-cancel-late-printer"), &[&title])
+            }
+            PrintEnd::Opened | PrintEnd::FellBackToViewer if cancelled => {
+                strings::format(key!("toast-print-cancel-late-viewer"), &[&title])
+            }
             PrintEnd::Printed => strings::format(key!("toast-print-printed"), &[&title]),
             PrintEnd::Opened => strings::format(key!("toast-print-opened"), &[&title]),
             PrintEnd::FellBackToPrinter => strings::format(key!("toast-print-fallback-printer"), &[&title]),
