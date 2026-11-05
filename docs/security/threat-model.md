@@ -111,7 +111,7 @@ in plain sight.
 | SQL text | `ew-sqlview`, `Reader::query` (`crates/ew-sqlview/src/sandbox.rs:434 (query)`) | `crates/ew-sqlview/src/sandbox.rs:106 (LIMITS)` | `sql_sandbox` | WP-S6.04 |
 | Command logs (`.ewcmd`) | `ew-api`, `Session::run_script` (`crates/ew-api/src/cmdlog.rs:287 (run_script)`) | The command schemas | `command_log` | WP-S6.04 |
 | Library documents of a project's `lib/` | `ew-format`, the `LibDocument` reader of the loader | The loader's | `jsonl_loader` | WP-S0.05a, built |
-| A `.ewlib` folder: `library.json`, the record shards, `library.lock` | `ew-library`, `LibManifest::parse` (`crates/ew-library/src/manifest.rs:65 (parse)`), the shard reader (`crates/ew-library/src/record.rs:314 (parse_records)`), `LockRecord::parse` (`crates/ew-library/src/lock.rs:125 (parse)`), through `Registry::open` (`crates/ew-library/src/registry.rs:426 (open)`) | The loader's (`crates/ew-library/src/lib.rs:15 (the limits of doc 05)`) | `ewlib_read` | WP-S6.04 (ID-1354) |
+| A `.ewlib` folder: `library.json`, the record shards, `library.lock` | `ew-library`, `LibManifest::parse` (`crates/ew-library/src/manifest.rs:65 (parse)`), the shard reader (`crates/ew-library/src/record.rs:314 (parse_records)`), `LockRecord::parse` (`crates/ew-library/src/lock.rs:125 (parse)`), through `Registry::open` (`crates/ew-library/src/registry.rs:447 (open)`) | The loader's (`crates/ew-library/src/lib.rs:15 (the limits of doc 05)`) | `ewlib_read` | WP-S6.04 (ID-1354) |
 
 ## 4. Extension points
 
