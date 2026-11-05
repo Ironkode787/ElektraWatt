@@ -446,7 +446,11 @@ const OTHER_SENSES: &[(&str, &str, &str)] = &[
     ),
     // FT-1341: the release's Git tag, named "the tag" or the verb (Git's own word, "tag").
     // FT-1421: a computer's terminal, where `ew` runs (de opdrachtregel).
-    ("refusal-purge-human-only", "terminal", "a computer's terminal (opdrachtregel)"),
+    (
+        "refusal-purge-human-only",
+        "terminal",
+        "a computer's terminal (opdrachtregel)",
+    ),
     ("form-revision-git", "tag", "the verb of Git (taggen)"),
     ("error-revision-git", "tag", "a Git tag"),
     ("revision-complete-git", "tag", "a Git tag"),

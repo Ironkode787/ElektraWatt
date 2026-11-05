@@ -280,22 +280,43 @@ fn nl_nl_words_ew_bus_001_s_untagged_ports() {
             "-3X1: het stationsadres is TBD; vul het in vóór de vrijgave",
         ),
         (
-            &[("form", "duplicate"), ("named", "some"), ("others", "none"), ("untagged", "0"), ("ports", "-3X1, -3X2"),
-                ("address", "3"), ("net", "DP1")][..],
+            &[
+                ("form", "duplicate"),
+                ("named", "some"),
+                ("others", "none"),
+                ("untagged", "0"),
+                ("ports", "-3X1, -3X2"),
+                ("address", "3"),
+                ("net", "DP1"),
+            ][..],
             "-3X1, -3X2: station address 3 is used more than once in logical net DP1; give each port its own address",
             "-3X1, -3X2: stationsadres 3 komt meer dan eens voor in logisch net DP1; geef elke poort een eigen adres",
         ),
         (
-            &[("form", "duplicate"), ("named", "some"), ("others", "one"), ("untagged", "1"), ("ports", "-3X1"), ("address", "3"),
-                ("net", "DP1")][..],
+            &[
+                ("form", "duplicate"),
+                ("named", "some"),
+                ("others", "one"),
+                ("untagged", "1"),
+                ("ports", "-3X1"),
+                ("address", "3"),
+                ("net", "DP1"),
+            ][..],
             "-3X1 and a port without a tag: station address 3 is used more than once in logical net DP1; give each \
              port its own address",
             "-3X1 en een poort zonder kenmerk: stationsadres 3 komt meer dan eens voor in logisch net DP1; geef elke \
              poort een eigen adres",
         ),
         (
-            &[("form", "duplicate"), ("named", "none"), ("others", "many"), ("untagged", "2"), ("ports", ""), ("address", "3"),
-                ("net", "DP1")][..],
+            &[
+                ("form", "duplicate"),
+                ("named", "none"),
+                ("others", "many"),
+                ("untagged", "2"),
+                ("ports", ""),
+                ("address", "3"),
+                ("net", "DP1"),
+            ][..],
             "2 ports without a tag: station address 3 is used more than once in logical net DP1; give each port its \
              own address",
             "2 poorten zonder kenmerk: stationsadres 3 komt meer dan eens voor in logisch net DP1; geef elke poort een \
@@ -303,7 +324,12 @@ fn nl_nl_words_ew_bus_001_s_untagged_ports() {
         ),
     ] {
         let form = args[0].1;
-        let f = by_hand("EW-BUS-001", if form == "tbd" { "address" } else { "duplicate" }, en, args);
+        let f = by_hand(
+            "EW-BUS-001",
+            if form == "tbd" { "address" } else { "duplicate" },
+            en,
+            args,
+        );
         assert_eq!(render(&f, "nl-NL"), nl, "{args:?}");
     }
 }
