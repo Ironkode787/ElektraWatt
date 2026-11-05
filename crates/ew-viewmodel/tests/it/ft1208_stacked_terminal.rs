@@ -31,8 +31,11 @@ fn hover(s: &mut ShellModel, designation: &str, k: (i64, i64)) {
     done(s, "cursor.set", at(q, json!({})));
 }
 
+/// A page point, if any.
+type Point = Option<(i64, i64)>;
+
 /// Where the ghost stands: its insertion point and the outline's.
-fn ghost_at(s: &ShellModel) -> (Option<(i64, i64)>, Option<(i64, i64)>) {
+fn ghost_at(s: &ShellModel) -> (Point, Point) {
     let at = match s.tool_ghost() {
         Some(Ghost::Place { at_nm, .. }) => at_nm,
         _ => None,
