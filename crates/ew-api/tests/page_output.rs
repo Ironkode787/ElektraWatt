@@ -515,8 +515,8 @@ fn the_display_list_of_folio_101_is_stable() {
         labels glyphs 9b2316f2 "103-G6" origin=(244067013,146082014) size=2381250 angle=0
         labels path 9b2316f2 els=5 first=(244067013,143536458) last=(252015625,143536458) stroke=- fill=-
         labels glyphs dc21e14c "L-1" origin=(269213542,163568856) size=2381250 angle=0
-        labels glyphs dc21e14c "102-A1" origin=(260153944,167248681) size=2381250 angle=0
-        labels path dc21e14c els=5 first=(260153944,164703125) last=(267890625,164703125) stroke=- fill=-
+        labels glyphs dc21e14c "102-A1" origin=(260153944,165489794) size=2381250 angle=0
+        labels path dc21e14c els=5 first=(260153944,162944238) last=(267890625,162944238) stroke=- fill=-
         labels glyphs de795e26 "E55" origin=(195236043,101769598) size=3439583 angle=0
         labels glyphs de795e26 "L" origin=(204390625,97045198) size=1322917 angle=0
         labels glyphs de795e26 "N" origin=(204390625,104982698) size=1322917 angle=0

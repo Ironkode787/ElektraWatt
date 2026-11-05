@@ -731,3 +731,38 @@ fn a_caption_stack_without_a_free_place_stays() {
         assert_eq!(run(&r, 0x11, c).rect, run(&before, 0x11, c).rect, "{c} stays");
     }
 }
+
+const IP: &str = include_str!("../../../../content/symbols/qet10/ew.gen.ip@qet10.json");
+
+/// FT-1436 (folio 101's "102-A1" of L-1 across N-1's wire): a cross-reference text that a horizontal wire runs through
+/// rises [`SLOT_TEXT_GAP`] above the wire, in its column; without the wire it stays where its symbol puts it.
+#[test]
+fn a_cross_reference_rises_off_a_horizontal_wire() {
+    let ip = symbol(IP);
+    let arrow = RepView {
+        rep: rep(0x21, ip.id, 40, 27, json!({})),
+        symbol: Some(ip.def.clone()),
+        slots: vec![value(slot(&ip, &SlotKind::Xref), "102-A1")],
+        terminals: Vec::new(),
+        pins: Vec::new(),
+    };
+    let reps = vec![
+        arrow,
+        boxed(0x13, (10, 26), (2, 4), &[(0, (2, 2), "right")], &[], None),
+        boxed(0x14, (70, 26), (2, 4), &[(0, (0, 2), "left")], &[], None),
+    ];
+    let y = g(28);
+    let before = run(&runs(&view(reps.clone(), Vec::new())), 0x21, "102-A1").rect;
+    assert!(
+        before.min().y.0 < y && y < before.max().y.0,
+        "the case: the wire would run through {before:?}"
+    );
+    let wired = view(reps, vec![routed(0x41, (0x1013, 0), (0x1014, 0), &[])]);
+    let after = run(&runs(&wired), 0x21, "102-A1").rect;
+    assert!(
+        (after.max().y.0 - (y - SLOT_TEXT_GAP.0)).abs() <= 1_000,
+        "{after:?} {SLOT_TEXT_GAP:?} above the wire"
+    );
+    assert_eq!(after.max().y - after.min().y, before.max().y - before.min().y);
+    assert_eq!((after.min().x, after.max().x), (before.min().x, before.max().x), "in its column");
+}

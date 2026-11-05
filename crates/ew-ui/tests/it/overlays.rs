@@ -640,12 +640,13 @@ fn ov4_the_link_preview_has_a_named_region() {
 }
 
 /// FT-1091 (ID-1184; play-test rv-vis-7, t0009): the link preview popup and a hover tooltip never show at once. A
-/// connection point that stands on a link (N-1 of folio 101, over the link to cell 102-A1) is hovered until the rest
-/// opens the popup, and then for as long again: the connection point's tooltip does not show while the popup does.
+/// connection point that stands on a link (24VDC-1 of folio 103, over 0VDC's link to cell 102-C15; FT-1436 moved
+/// folio 101's "102-A1" off N-1) is hovered until the rest opens the popup, and then for as long again: the connection
+/// point's tooltip does not show while the popup does.
 #[test]
 fn ft1091_the_link_preview_and_the_cp_tooltip_never_show_together() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "101");
+    let mut h = on_golden(&tmp, "103");
     let (cp, link) = {
         let c = h.state().shell().canvas().unwrap();
         let page = c.page();
@@ -672,8 +673,8 @@ fn ft1091_the_link_preview_and_the_cp_tooltip_never_show_together() {
             .expect("the connection point");
         (cp, link)
     };
-    assert_eq!(cp.label, "N-1");
-    assert_eq!(link.target.as_ref().unwrap().cell.as_deref(), Some("102-A1"));
+    assert_eq!(cp.label, "24VDC-1");
+    assert_eq!(link.target.as_ref().unwrap().cell.as_deref(), Some("102-C15"));
     let bounds = h
         .get_all_by_role(egui::Role::Canvas)
         .next()
@@ -710,7 +711,7 @@ fn ft1091_the_link_preview_and_the_cp_tooltip_never_show_together() {
         "the rest shows the preview"
     );
     assert!(
-        tip.starts_with("N-1"),
+        tip.starts_with("24VDC-1"),
         "the connection point's tooltip text: {tip:?}"
     );
     // The popup stays while the pointer rests: for 120 more frames its tooltip never shows beside it.

@@ -90,7 +90,11 @@
 //!   when another representation's text is there or it finds no free place. At one-column spacing a contact's back-reference so moves below the neighbour contact's
 //!   tag. (3) A horizontal technical-data text follows rule 2 against other representations' texts only (cycle 37: a
 //!   valve's "24 V" ran into the next valve's tag); within one symbol its author's layout stands. A black box's pin
-//!   texts are fixed obstacles of rule 3 as of rule 2 (FT-701): a technical-data text that overlaps one drops below it. Printed text order
+//!   texts are fixed obstacles of rule 3 as of rule 2 (FT-701): a technical-data text that overlaps one drops below it.
+//!   (4) A horizontal cross-reference text that a horizontal wire runs through (FT-1436: on folio 101 the "102-A1" of
+//!   L-1 stood across N-1's wire, by N-1's own "102-A1") rises [`SLOT_TEXT_GAP`] above what is in its way, at most
+//!   three times, to the first place the device-tag rule judges free, inside the page's drawing area; without one it
+//!   stays. Printed text order
 //!   and every other position are unchanged. The rules run after "Black-box captions" and "Device tags" below and
 //!   see those texts where they ended.
 //! - **Black-box captions** (FT-734). A black box's tag, part-number and manufacturer texts without a position or
@@ -1183,6 +1187,7 @@ impl Builder<'_> {
         self.place_tags_off_own_mark(view, &mut texts);
         self.place_tags(view, &mut texts, &pin_boxes);
         self.place_slot_texts(&mut texts, &pin_boxes);
+        self.place_xrefs_off_wires(view, &mut texts, &pin_boxes);
         for t in texts.iter().filter(|t| t.tag) {
             self.out.tags.entry(t.entity.0).or_insert(t.at);
         }
@@ -1687,6 +1692,69 @@ impl Builder<'_> {
                     break;
                 }
                 bottom = blockers.iter().map(|(_, _, b)| b.max().y).max().unwrap_or(bottom);
+            }
+        }
+    }
+
+    /// The wire rule of the cross-reference texts (FT-1436, module documentation, "Slot text collisions" rule 4): a
+    /// horizontal cross-reference text that a horizontal wire runs through rises [`SLOT_TEXT_GAP`] above what is in
+    /// its way, at most [`SLOT_TEXT_DROPS`] times, to the first place the device-tag rule judges free (no wire runs
+    /// through it, it overlaps no other text of its own symbol and collides with no text or pin text of another
+    /// representation) inside the page's drawing area; without a free place it stays.
+    fn place_xrefs_off_wires(&self, view: &PageView, texts: &mut [SlotText<'_>], pins: &[(EntityRef, Rect)]) {
+        if !texts.iter().any(|t| t.xref && t.angle == Angle2::ZERO) {
+            return;
+        }
+        let wires = page_wires(view);
+        let area = drawing_area(view);
+        let mut boxes: Vec<Option<Rect>> = texts
+            .iter()
+            .map(|t| self.text_box(&t.spec(false), t.xref))
+            .collect();
+        let entities: Vec<EntityRef> = texts.iter().map(|t| t.entity).collect();
+        for i in 0..texts.len() {
+            if !texts[i].xref || texts[i].angle != Angle2::ZERO {
+                continue;
+            }
+            // The whole text, every line of a list, is judged against the wires.
+            let Some(own) = self.text_box(&texts[i].spec(false), false) else {
+                continue;
+            };
+            if !wires.iter().any(|&(a, c)| a.y == c.y && wire_through(own, (a, c))) {
+                continue;
+            }
+            let entity = entities[i];
+            let in_way = |b: Rect, boxes: &[Option<Rect>]| {
+                in_the_way(b, entity, (boxes, &entities), |k| k == i, pins, &wires)
+            };
+            let mut b = own;
+            let mut found = false;
+            for _ in 0..SLOT_TEXT_DROPS {
+                let Some(top) = in_way(b, &boxes).and_then(|w| w.iter().map(|w| w.0).min()) else {
+                    break;
+                };
+                let dy = Nm(top.0 - SLOT_TEXT_GAP.0 - b.max().y.0);
+                b = Rect::from_points(
+                    Pt2::new(b.min().x, b.min().y + dy),
+                    Pt2::new(b.max().x, b.max().y + dy),
+                );
+                if b.min().y < area.min().y {
+                    break;
+                }
+                if in_way(b, &boxes).is_some_and(|w| w.is_empty()) {
+                    found = true;
+                    break;
+                }
+            }
+            if found {
+                let dy = b.min().y - own.min().y;
+                texts[i].at = texts[i].at + Pt2::new(Nm::ZERO, dy);
+                boxes[i] = boxes[i].map(|r| {
+                    Rect::from_points(
+                        Pt2::new(r.min().x, r.min().y + dy),
+                        Pt2::new(r.max().x, r.max().y + dy),
+                    )
+                });
             }
         }
     }
