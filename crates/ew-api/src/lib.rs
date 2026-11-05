@@ -107,6 +107,7 @@ mod new_project;
 pub mod output;
 mod part_editor;
 mod part_offers;
+pub mod symbols;
 // WP-S1.22 part 4: the public queries of `ew query` and `--explain` (D11, D12).
 pub mod queries;
 // WP-S1.18 part 3: the release gate and the sign-off (D8 to D10).

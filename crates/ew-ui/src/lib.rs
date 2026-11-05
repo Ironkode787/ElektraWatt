@@ -77,6 +77,7 @@ mod picker;
 pub mod properties;
 mod splitter;
 mod start_page;
+mod symbol_editor;
 // WP-S6.05 D11: the start-up offer after a crash.
 mod startup;
 mod status_bar;

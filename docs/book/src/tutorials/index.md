@@ -25,6 +25,8 @@ Each tutorial runs as a test of EW's own build, so its steps, menu paths and key
    SVG, export the cable list and the bill of materials, and query it with SQL, all from the terminal with the `ew`
    program. You need a checkout of the repository and the `ew` program.
 
+6. [Draw a six-pin power block](symbol-editor.md): create, validate, preview, publish and test a reusable symbol.
+
 ## Planned
 
 The documentation requirements (NFR-DOC-03) name the tutorials that follow at version 1.0: a PLC card with

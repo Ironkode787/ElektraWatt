@@ -27,6 +27,53 @@
 # library's files in memory with `ew-library`'s registry through `ew-api` (src/ewlib_read.rs, WP-S6.04, ID-1354,
 # FT-1382). `ewui_script` feeds the headless runner's script parser of `ew-viewmodel` (src/ewui_script.rs, FT-1452).
 
+[targets.symbol_authoring]
+max_len = 65536
+roots = ["ew-api"]
+closure = [
+    "ew-api",
+    "ew-caex",
+    "ew-checks",
+    "ew-commands",
+    "ew-derive",
+    "ew-devdesc",
+    "ew-dl",
+    "ew-ewpp",
+    "ew-export",
+    "ew-format",
+    "ew-hack",
+    "ew-ids",
+    "ew-import-catalog",
+    "ew-import-dxf",
+    "ew-import-eplan",
+    "ew-import-qet",
+    "ew-import-tables",
+    "ew-interop-api",
+    "ew-jobs",
+    "ew-library",
+    "ew-memo",
+    "ew-mfg",
+    "ew-mltext",
+    "ew-model",
+    "ew-panel",
+    "ew-plc",
+    "ew-plcaddr",
+    "ew-plugin-host",
+    "ew-rds",
+    "ew-render-cpu",
+    "ew-reports",
+    "ew-rhai",
+    "ew-scene",
+    "ew-schema",
+    "ew-script",
+    "ew-sqlview",
+    "ew-step-proto",
+    "ew-store",
+    "ew-text",
+    "ew-units",
+    "ew-zip",
+]
+
 [targets.jsonl_loader]
 max_len = 65536
 roots = ["ew-format"]

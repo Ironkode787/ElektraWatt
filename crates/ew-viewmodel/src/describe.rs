@@ -3375,6 +3375,19 @@ pub fn describe(model: &ShellModel) -> String {
         first_run(model, &mut lines);
     } else if model.wizard().is_some() {
         wizard(model, &mut lines);
+    } else if let Some(editor) = model.symbol_editor() {
+        lines.push(format!("dialog \"{}\"", strings::text(key!("symbol-title"))));
+        lines.push(format!(
+            "  field \"{}\": \"{}\"",
+            strings::text(key!("symbol-key")),
+            editor.draft.key
+        ));
+        for issue in editor.draft.validate() {
+            lines.push(format!(
+                "  error \"{}\"",
+                strings::format(Key::run_time(issue.code), &[&issue.detail])
+            ));
+        }
     } else if model.has_project() {
         project_view(model, &mut lines);
     } else {

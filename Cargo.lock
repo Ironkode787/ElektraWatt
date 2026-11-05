@@ -852,6 +852,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "crc-fast"
+version = "1.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e75b2483e97a5a7da73ac68a05b629f9c53cff58d8ed1c77866079e18b00dba5"
+dependencies = [
+ "digest",
+ "spin",
+]
+
+[[package]]
 name = "crc32fast"
 version = "1.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1564,7 +1574,14 @@ dependencies = [
 name = "ew-import-eplan"
 version = "0.0.0"
 dependencies = [
+ "automod",
+ "crc32fast",
  "ew-interop-api",
+ "miniz_oxide 0.8.9",
+ "roxmltree",
+ "serde",
+ "serde_json",
+ "sevenz-turbo",
 ]
 
 [[package]]
@@ -3066,6 +3083,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "lzma-turbo"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9062c1b910139b10dc12eb1a78aa90919aafed4124012fc7828dd29a7fdcce40"
+dependencies = [
+ "crc-fast",
+]
+
+[[package]]
 name = "memchr"
 version = "2.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4401,6 +4427,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "sevenz-turbo"
+version = "0.26.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b7ae28f29a0ae97f1684ed883efce22f5bed33f2c241e164ef0a26f15c76e732"
+dependencies = [
+ "js-sys",
+ "lzma-turbo",
+ "wasm-bindgen",
+ "zeroize",
+]
+
+[[package]]
 name = "sha1_smol"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4573,6 +4611,12 @@ checksum = "646c5a367da914e3babcb9cd8e91c37ccaac42325b8f86f036513ad103f2a716"
 dependencies = [
  "smallvec",
 ]
+
+[[package]]
+name = "spin"
+version = "0.10.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "023a211cb3138dbc438680b32560ad89f699977624c9f8dbb95a47d5b4c07dd3"
 
 [[package]]
 name = "spirv"
@@ -6055,6 +6099,12 @@ dependencies = [
  "syn 3.0.9",
  "synstructure",
 ]
+
+[[package]]
+name = "zeroize"
+version = "1.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e13084392c5e4bc371903e2935a5eaeed24905a7511356b883835e18a78f6879"
 
 [[package]]
 name = "zerotrie"

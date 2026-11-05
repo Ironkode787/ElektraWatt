@@ -9,6 +9,7 @@
   - [A terminal strip and a cable](tutorials/terminal-strip-and-cable.md)
   - [Reports and PDF](tutorials/reports-and-pdf.md)
   - [Importing a QElectroTech project](tutorials/import-qet.md)
+  - [Draw a six-pin power block](tutorials/symbol-editor.md)
   - [A first headless run on the golden project](tutorials/headless-workflow.md)
 
 # How-to guides
@@ -27,6 +28,7 @@
   - [Tools](reference/window/tools.md)
   - [Dialogs](reference/window/dialogs.md)
   - [Panels](reference/window/panels.md)
+  - [Symbol editor and automated authoring](reference/symbol-editor.md)
   - [Command reference](reference/commands/index.md)
     - [`assembly.attach`](reference/commands/assembly.attach.md)
     - [`bond.create`](reference/commands/bond.create.md)
@@ -282,6 +284,7 @@
     - [`ew revision`](reference/cli/revision.md)
     - [`ew schema`](reference/cli/schema.md)
     - [`ew sql`](reference/cli/sql.md)
+    - [`ew symbol`](reference/cli/symbol.md)
     - [`ew upgrade`](reference/cli/upgrade.md)
     - [`ew verify-derived`](reference/cli/verify-derived.md)
   - [Query reference](reference/queries.md)

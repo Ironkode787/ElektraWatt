@@ -320,7 +320,7 @@ pub fn state_json(shell: &ShellModel) -> String {
     } else {
         Value::Null
     };
-    object(vec![
+    let mut members = vec![
         member("title", &Value::from(shell.title())),
         member("project", &opt(shell.project_name())),
         member("access", &access),
@@ -359,7 +359,11 @@ pub fn state_json(shell: &ShellModel) -> String {
         format!("\"find\":{}", find_json(shell)),
         // WP-S2.05 part 3
         format!("\"clipboard\":{}", clipboard_json(shell)),
-    ])
+    ];
+    if let Some(e) = shell.symbol_editor() {
+        members.push(member("symbol_editor",&serde_json::json!({"key":e.draft.key,"variant":e.variant,"dirty":e.dirty(),"graphics":e.draft.symbol.graphics.len(),"pins":e.draft.symbol.cps.len(),"issues":e.draft.validate(),"candidates":e.candidates.len()})));
+    }
+    object(members)
 }
 
 // WP-S2.05 part 3

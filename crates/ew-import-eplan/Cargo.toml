@@ -5,9 +5,9 @@
 name = "ew-import-eplan"
 version.workspace = true
 edition.workspace = true
-rust-version.workspace = true
+rust-version = "1.97.1"
 license = "GPL-3.0-or-later"
-description = "EPLAN importer: EDZ (7-Zip and ZIP), EPLAN XML and XLSX."
+description = "Bounded EPLAN EDZ, PXF macro XML and parts XML symbol import."
 repository.workspace = true
 publish = false
 
@@ -16,3 +16,13 @@ workspace = true
 
 [dependencies]
 ew-interop-api = { path = "../ew-interop-api" }
+roxmltree = { version = "=0.21.1", default-features = false, features = ["std", "positions"] }
+serde_json = "1.0.154"
+serde.workspace = true
+miniz_oxide.workspace = true
+crc32fast = "=1.5.2"
+# Explicit archive allocation limits; no filesystem extraction, encryption or compression features.
+sevenz-turbo = { version = "=0.26.0", default-features = false }
+
+[dev-dependencies]
+automod.workspace = true

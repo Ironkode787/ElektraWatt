@@ -36,6 +36,7 @@ use crate::wizard::Wizard;
 mod canvas_actions;
 // FT-408 and FT-409
 mod creation;
+pub mod symbol_editor;
 // WP-S2.05 part 3
 mod clipboard;
 // WP-S2.04 part 4b: the text and graphic tools' host duties.
@@ -526,6 +527,7 @@ struct Project {
 
 /// All state of the application shell.
 pub struct ShellModel {
+    symbol_editor: Option<symbol_editor::SymbolEditor>,
     mode: Mode,
     config: ShellConfig,
     settings: Settings,
@@ -1094,6 +1096,7 @@ impl ShellModel {
             command_bar_collapsed: false,
             rail_collapsed: false,
             macros: macros::MacroState::default(),
+            symbol_editor: None,
             dispatch_log: None,
             person: mode == Mode::Gui,
             revision: revision::RevisionState::default(),
@@ -1225,6 +1228,9 @@ impl ShellModel {
 
     /// Whether the open project has a step to undo.
     pub fn can_undo(&self) -> bool {
+        if let Some(editor) = &self.symbol_editor {
+            return editor.can_undo();
+        }
         self.project
             .as_ref()
             .is_some_and(|p| p.session.history().cursor() > 0)
@@ -1232,6 +1238,9 @@ impl ShellModel {
 
     /// Whether the open project has a step to redo.
     pub fn can_redo(&self) -> bool {
+        if let Some(editor) = &self.symbol_editor {
+            return editor.can_redo();
+        }
         self.project.as_ref().is_some_and(|p| {
             let h = p.session.history();
             h.cursor() < h.entries().len()
@@ -2105,6 +2114,9 @@ impl ShellModel {
     }
 
     pub(crate) fn act_save(&mut self) -> Outcome {
+        if self.symbol_editor.is_some() {
+            return self.act_symbol("save", &Map::new());
+        }
         let Some(p) = &mut self.project else {
             return Outcome::Refused {
                 reason_key: key!("reason-no-project"),
@@ -2201,6 +2213,13 @@ impl ShellModel {
     }
 
     pub(crate) fn act_quit(&mut self, p: &Map<String, Value>) -> Outcome {
+        if self
+            .symbol_editor
+            .as_ref()
+            .is_some_and(symbol_editor::SymbolEditor::dirty)
+        {
+            return failed(key!("symbol-unsaved"), &[]);
+        }
         if let Some(outcome) = self.guard_unsaved("app.quit", p) {
             return outcome;
         }
@@ -2210,6 +2229,9 @@ impl ShellModel {
     }
 
     pub(crate) fn act_undo(&mut self) -> Outcome {
+        if self.symbol_editor.is_some() {
+            return self.act_symbol("undo", &Map::new());
+        }
         let Some(p) = &mut self.project else {
             return Outcome::Refused {
                 reason_key: key!("reason-no-project"),
@@ -2247,6 +2269,9 @@ impl ShellModel {
     }
 
     pub(crate) fn act_redo(&mut self) -> Outcome {
+        if self.symbol_editor.is_some() {
+            return self.act_symbol("redo", &Map::new());
+        }
         let Some(p) = &mut self.project else {
             return Outcome::Refused {
                 reason_key: key!("reason-no-project"),

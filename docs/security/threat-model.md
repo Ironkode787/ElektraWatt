@@ -127,6 +127,23 @@ in plain sight.
 | MCP | not shipped | TM-07 | — |
 | The external converter | 1.0 | TM-16 | — |
 
+### Symbol authoring and EPLAN inputs (0.2 feature branch)
+
+The `ew.symbol/1` reader (`ew-api::symbols`) bounds bytes, JSON structure, geometry and item counts before
+preview/publication. GUI, CLI and scripts use the same validator. Publishing uses the existing library transaction;
+export writes a temporary sibling and links it to a new destination, never truncating an existing draft.
+
+`ew-import-eplan` reads untrusted EDZ 7z/ZIP and PXF/parts XML. It never extracts archive members, opens linked files,
+executes embedded content or follows URLs. Compressed input is at most 32 MiB, one member/XML 4 MiB, total unpacked
+content 64 MiB. The 7z reader has explicit dictionary/header/entry/name limits and one decoding thread; ZIP validates
+central/local headers, names, ranges and CRC, refusing encryption/ZIP64 and unsupported compression. XML forbids
+DTD/entity expansion and bounds nodes, depth and attributes. Unsupported records are reported for review; missing
+connection directions block publication. Downloading does not grant a licence: EPLAN imports require source terms.
+
+Evidence: `ew-import-eplan/tests/it/reader.rs`, `ew-api/tests/it/symbol_authoring.rs`, the `symbol_authoring` fuzz target.
+The downloaded manufacturer sample stays outside the public repository. The new 7z dependency chain is **not yet
+approved by cargo-vet**; this is a release blocker, not an exemption or a completed audit.
+
 ## 5. Native code and `unsafe`
 
 - **`unsafe`.** The allowlist `ci/unsafe-allowlist.toml` names what the code uses, with the count of the keyword in

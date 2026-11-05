@@ -24,6 +24,13 @@ cargo-fuzz = true
 
 [workspace]
 
+[[bin]]
+name = "symbol_authoring"
+path = "fuzz_targets/symbol_authoring.rs"
+test = false
+doc = false
+bench = false
+
 [dependencies]
 libfuzzer-sys = "0.4.13"
 # The loader target: the permissive format crate.

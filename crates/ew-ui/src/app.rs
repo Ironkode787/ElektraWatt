@@ -249,6 +249,7 @@ pub struct App {
     area_splitters: usize,
     /// The page view of the wizard's preview.
     preview_view: PageView,
+    symbol_editor_view: crate::symbol_editor::EditorView,
     dock: Dock,
     initial: Option<PathBuf>,
     bindings: Vec<Binding>,
@@ -355,6 +356,7 @@ impl App {
             waker_set: false,
             area_splitters: 0,
             preview_view: PageView::new(),
+            symbol_editor_view: crate::symbol_editor::EditorView::default(),
             dock,
             initial,
             // Built by the first frame from the shell's keymap (`App::sync_bindings`).
@@ -974,7 +976,7 @@ impl App {
         let mut canvas_shown = false;
         let project_view =
             self.shell.first_run().is_none() && self.shell.wizard().is_none() && self.shell.has_project();
-        if project_view {
+        if project_view && self.shell.symbol_editor().is_none() {
             self.canvas.begin_frame(&ctx, &self.shell);
         }
         self.area_splitters = 0;
@@ -1007,6 +1009,8 @@ impl App {
                 first_run::show(ui, &self.shell, &mut events);
             } else if self.shell.wizard().is_some() {
                 wizard::show(ui, &self.shell, &mut self.preview_view, &mut events);
+            } else if self.shell.symbol_editor().is_some() {
+                self.symbol_editor_view.show(ui, &self.shell, &mut events);
             } else if self.shell.has_project() {
                 let App {
                     shell,

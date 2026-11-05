@@ -10,6 +10,9 @@ SYM, PRT and MAC rows of [02a](02a-requirements-core.md). Every example comes fr
 cabinet J-E-2416, held as Golden A of the [golden project](20-golden-project.md).
 
 **Contents**
+The symbol editor's authoring profile is specified in [07a: Symbol design standard](07a-symbol-design-standard.md).
+Its implementation and import compatibility scope are recorded in [WP-S2.10](../plan/specs/WP-S2.10-symbol-editor.md).
+
 1. [Scope and position in the architecture](#1-scope-and-position-in-the-architecture)
 2. [Concepts and data](#2-concepts-and-data)
 3. [Behaviour and rules](#3-behaviour-and-rules)
