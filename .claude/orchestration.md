@@ -312,7 +312,8 @@ The main session orchestrates. It plans each cycle, briefs Claude subagents, int
 ## Build environment and disk (owner, 2026-10-21; amended 2026-10-28, -29, -31, 2026-11-01)
 
 - **Environment.**
-  - `.claude/settings.json` sets `CARGO_PROFILE_DEV_DEBUG=line-tables-only` and `CARGO_BUILD_JOBS=8`.
+  - `.claude/settings.json` sets `CARGO_PROFILE_DEV_DEBUG=0` (ID-1440: the edit loop 23 % faster and a third of the
+    PDBs; a backtrace loses its line numbers, a panic message keeps its file and line) and `CARGO_BUILD_JOBS=8`.
   - Local builds are incremental since 2026-11-01: −46 to −53% per rebuild, measured. CI stays non-incremental: its
     workflows set `CARGO_INCREMENTAL=0`.
   - Dependencies build without debug info. Integration tests build as one test binary per crate (`tests/it/`),

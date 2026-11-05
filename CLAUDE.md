@@ -44,7 +44,7 @@ source: GPL-3.0-or-later for the app, MIT OR Apache-2.0 for the format crates. T
 
 ## Build and disk (owner, 2026-10-21; amended 2026-10-28, -29, -31, 2026-11-01)
 
-- **Environment.** `.claude/settings.json` sets the build environment: line-table debug info and 8 jobs. Local builds
-  are incremental. Do not override these settings in a worktree.
+- **Environment.** `.claude/settings.json` sets the build environment: no debug info (ID-1440) and 8 jobs. Local
+  builds are incremental. Do not override these settings in a worktree.
 - **Builders.** At most three at once. A subagent's cargo run, a verify and a gate each count as one.
 - **Disk.** Agents delete nothing outside their own worktree. If the disk runs short, they stop and report.
