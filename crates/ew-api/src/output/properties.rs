@@ -1459,6 +1459,35 @@ fn part_function_row(q: &Q, cx: &SheetCx<'_>, targets: &[Uuid], built: &mut Vec<
     row.actions = Vec::new();
 }
 
+/// ID-1389 (W51 finding G; doc 16a §8.5): the route points of connection `c` as the frame cells they lie in (`D5`), as
+/// cross-references print them, never as nanometres; a point outside the frame grid by its two lengths.
+fn route_in_cells(q: &Q, c: Id<Connection>, built: &mut [Built]) {
+    let Some(conn) = q.connections().get(c) else {
+        return;
+    };
+    for b in built.iter_mut() {
+        let Some(i) = b
+            .row
+            .path
+            .strip_prefix("route[")
+            .and_then(|r| r.strip_suffix(']'))
+            .and_then(|i| i.parse::<usize>().ok())
+        else {
+            continue;
+        };
+        let (Some(point), RowValue::One { text, .. }) = (conn.route.get(i), &mut b.row.value) else {
+            continue;
+        };
+        let cell = conn
+            .page
+            .and_then(|page| q.get::<ew_derive::CellOf>((page, *point)).as_ref().clone());
+        *text = cell.map_or_else(
+            || format!("{}, {}", super::fields::nm_text(point.x.0), super::fields::nm_text(point.y.0)),
+            |cell| cell.to_string(),
+        );
+    }
+}
+
 /// The library provenance of a part reference: the embedded copy's library, item and version.
 fn library_provenance(q: &Q, json: &Value) -> Option<Provenance> {
     let copy = Uuid::parse_str(json.get("copy")?.as_str()?).ok()?;
@@ -1766,6 +1795,11 @@ impl Session {
             scx.emit(spec, &spec.path, 0, &mut built);
         }
         scx.emit_unlisted("", &listed, Category::Extra, 0, &mut built);
+        if kind == Kind::Connection
+            && let [c] = targets.as_slice()
+        {
+            route_in_cells(q, Id::from_uuid(*c), &mut built);
+        }
         if kind == Kind::Function {
             part_function_row(q, cx, &targets, &mut built);
         }

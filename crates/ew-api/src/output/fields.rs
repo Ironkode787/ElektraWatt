@@ -1032,7 +1032,7 @@ fn unit_text(unit: &str) -> &str {
 }
 
 /// Nanometres as millimetres: three decimals, more when not exact.
-fn nm_text(nm: i64) -> String {
+pub(crate) fn nm_text(nm: i64) -> String {
     let sign = if nm < 0 { "-" } else { "" };
     let abs = nm.unsigned_abs();
     let (mm, frac) = (abs / 1_000_000, abs % 1_000_000);

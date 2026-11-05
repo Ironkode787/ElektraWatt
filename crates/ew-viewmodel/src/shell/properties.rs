@@ -356,6 +356,7 @@ impl ShellModel {
         let mut sheet = p.session.property_sheet(&uuids);
         sheet.read_only = self.read_only_reason().map(str::to_owned);
         crate::properties::grid_in_words(&mut sheet);
+        crate::properties::ends_in_words(&mut sheet, |id| p.session.selection_words(id));
         crate::properties::enums_in_words(&mut sheet);
         crate::properties::report_source_in_words(&mut sheet);
         crate::properties::values_in_words(&mut sheet);

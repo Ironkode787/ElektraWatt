@@ -756,8 +756,9 @@ const PRIMARY: &[(&str, &[&str])] = &[
 
 /// The internal members shown only under Advanced, by the row's path: the record version, the ID, the source reference
 /// with its key and lineage, the tag counter, the form's UUID and (FT-1019, ID-1107) a page's connection grid, a
-/// fraction of nanometres (`num`, `den`) with no meaning to the user.
-const ADVANCED: &[&str] = &["$v", "id", "source_ref", "tag.counter", "form", "grid"];
+/// fraction of nanometres (`num`, `den`) with no meaning to the user, and (ID-1389) a connection's route, drawn on the
+/// canvas.
+const ADVANCED: &[&str] = &["$v", "id", "source_ref", "tag.counter", "form", "grid", "route"];
 
 /// Whether `rest` is `base` or one of its members (`parts[0].qty` of `parts`).
 fn under(rest: &str, base: &str) -> bool {
@@ -1063,6 +1064,33 @@ pub fn grid_in_words(sheet: &mut PropertySheet) {
             && den > 0
         {
             *text = crate::status::grid_words(num, den);
+        }
+    }
+}
+
+/// Writes a connection's ends A and B in words (ID-1389, W51 finding G): each end as the live description says it
+/// ([`crate::status::end_words`]: the device's tag and its connection point, else "a junction"), never its JSON;
+/// `words` gives a record's description values. The JSON values are unchanged.
+pub fn ends_in_words(
+    sheet: &mut PropertySheet,
+    words: impl Fn(ew_api::output::Uuid) -> Option<ew_api::output::SelectionWords>,
+) {
+    for section in sheet.sections.iter_mut().filter(|s| s.kind == "connection") {
+        let [id] = section.targets.as_slice() else {
+            continue;
+        };
+        let Some(ew_api::output::SelectionWords::Wire { from, to, .. }) = words(*id) else {
+            continue;
+        };
+        for row in &mut section.rows {
+            let end = match row.path.as_str() {
+                "a" => &from,
+                "b" => &to,
+                _ => continue,
+            };
+            if let RowValue::One { text, .. } = &mut row.value {
+                *text = crate::status::end_words(end);
+            }
         }
     }
 }

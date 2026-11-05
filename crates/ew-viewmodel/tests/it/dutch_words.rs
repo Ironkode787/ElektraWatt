@@ -638,6 +638,73 @@ fn a_fluid_line_kind_is_found_by_its_dutch_word() {
     shell.shutdown();
 }
 
+/// ID-1389 (W51 finding G; doc 16a §6.8, §8.5): a fluid line's sheet shows its ends A and B as the device's tag and
+/// connection point, never JSON, and its route only under Advanced, as frame cells, never nanometres; in English and
+/// in Dutch.
+#[test]
+fn a_fluid_line_sheet_shows_its_ends_in_words_and_its_route_under_advanced() {
+    // Golden A's fluid line F6 on folio 203.
+    const F6: &str = "bc567040-5fda-53cd-8063-952499b3c9f3";
+    let tmp = Tmp::new("fluid-ends");
+    let mut shell = tmp.shell_in(Mode::Headless, true, "203");
+    done(&mut shell, "select.set", json!({"ids": [F6]}));
+    let rows = |s: &ShellModel, advanced: bool| -> Vec<String> {
+        let sheet = s.properties().sheet().expect("a sheet");
+        ew_viewmodel::properties::visible_rows(sheet, &BTreeSet::new(), advanced, "")
+            .iter()
+            .map(|v| {
+                format!(
+                    "{}: {}",
+                    ew_viewmodel::properties::row_label(v.section, v.row),
+                    ew_viewmodel::properties::value_text(v.row)
+                )
+            })
+            .collect()
+    };
+    let en = vec!["Line kind: Working", "Page: 203 Valve Manifold 1", "A: -201U3-Q3:4", "B: -203Q3:B"];
+    let nl = vec!["Leidingsoort: Werkleiding", "Pagina: 203 Valve Manifold 1", "A: -201U3-Q3:4", "B: -203Q3:B"];
+    let en_advanced = vec![
+        "$v: ",
+        "ID: Working line",
+        "Line kind: Working",
+        "Page: 203 Valve Manifold 1",
+        "A: -201U3-Q3:4",
+        "B: -203Q3:B",
+        "Route: 5 items",
+        "Route 1: D5",
+        "Route 2: E5",
+        "Route 3: E4",
+        "Route 4: F4",
+        "Route 5: F5",
+        "Source ref: ",
+        "Key: connections|F6",
+        "Lineage: import_lineage",
+    ];
+    let nl_advanced = vec![
+        "$v: ",
+        "ID: Werkleiding",
+        "Leidingsoort: Werkleiding",
+        "Pagina: 203 Valve Manifold 1",
+        "A: -201U3-Q3:4",
+        "B: -203Q3:B",
+        "Route: 5 elementen",
+        "Route 1: D5",
+        "Route 2: E5",
+        "Route 3: E4",
+        "Route 4: F4",
+        "Route 5: F5",
+        "Bronverwijzing: ",
+        "Sleutel: connections|F6",
+        "Herkomst: import_lineage",
+    ];
+    for (language, main, advanced) in [("en", en, en_advanced), ("nl", nl, nl_advanced)] {
+        done(&mut shell, "view.language", json!({ "value": language }));
+        assert_eq!(rows(&shell, false), main, "{language}");
+        assert_eq!(rows(&shell, true), advanced, "{language}");
+    }
+    shell.shutdown();
+}
+
 /// FT-1338 (ID-1357 ruling 1): in nl-NL the navigators' section groups and yes-or-no cells read in Dutch: the report
 /// blocks' sections ("Sectie 9 - …"), the cables' Shield column ("nee").
 #[test]

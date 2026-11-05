@@ -52,6 +52,17 @@ pub fn grid_words(num_nm: i64, den: i64) -> String {
     }
 }
 
+/// One end of a wire in words: its connection point's label (`-102F1:2`, the device's tag and the point), else what it
+/// is. FT-1250 (ID-1315 ruling 5): only a junction is "a junction".
+pub(crate) fn end_words(e: &WireEnd) -> String {
+    match e {
+        WireEnd::Point(label) => label.clone(),
+        WireEnd::UnnamedPoint => strings::text(key!("announce-end-point")).to_owned(),
+        WireEnd::Junction => strings::text(key!("announce-end-junction")).to_owned(),
+        WireEnd::Unknown => strings::text(key!("announce-end-unknown")).to_owned(),
+    }
+}
+
 /// What the canvas's live region says of the selection (WP-S2.08 D13, NFR-A11Y-02), and `ui.describe`'s `canvas live`
 /// line: a placement selected on a panel page with where it is (doc 12 §12.4), else the one selected device, wire or
 /// page item in words, else `<n> selected`. A selection change sets it as the tool announcement, which
@@ -108,14 +119,7 @@ fn words_text(words: &SelectionWords) -> String {
             let number = number
                 .as_deref()
                 .unwrap_or_else(|| strings::text(key!("announce-wire-unnumbered")));
-            // FT-1250 (ID-1315 ruling 5): only a junction is "a junction".
-            let end = |e: &WireEnd| match e {
-                WireEnd::Point(label) => label.clone(),
-                WireEnd::UnnamedPoint => strings::text(key!("announce-end-point")).to_owned(),
-                WireEnd::Junction => strings::text(key!("announce-end-junction")).to_owned(),
-                WireEnd::Unknown => strings::text(key!("announce-end-unknown")).to_owned(),
-            };
-            let (from, to) = (end(from), end(to));
+            let (from, to) = (end_words(from), end_words(to));
             match potential {
                 Some(p) => strings::format(key!("announce-wire"), &[number, p, &from, &to]),
                 None => strings::format(key!("announce-wire-no-potential"), &[number, &from, &to]),
