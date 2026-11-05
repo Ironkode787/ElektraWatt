@@ -1039,18 +1039,20 @@ fn row_ui(
                     let response = if counts.is_empty() {
                         ui.add(button)
                     } else {
-                        // The name's text ends `button_padding` inside its button; the count follows `space.2` after
-                        // the text.
-                        let padding = ui.spacing().button_padding.x;
-                        let width = full.min(room.max(0.0)) + 2.0 * padding;
+                        // The frameless name button ends at its text; the count follows `space.2` after it.
+                        let width = full.min(room.max(0.0)) + 2.0 * ui.spacing().button_padding.x;
                         ui.spacing_mut().item_spacing.x = 0.0;
-                        let response = ui.add_sized(egui::vec2(width, ui.spacing().interact_size.y), button);
-                        for (i, n) in counts.iter().enumerate() {
-                            ui.add_space(if i == 0 {
-                                (t.space_2 - padding).max(0.0)
-                            } else {
-                                t.space_2
-                            });
+                        // Left-aligned in at most `width`: the button keeps its own size, so the name stays at its
+                        // indent and the count follows the button.
+                        let response = ui
+                            .allocate_ui_with_layout(
+                                egui::vec2(width, ui.spacing().interact_size.y),
+                                egui::Layout::left_to_right(egui::Align::Center),
+                                |ui| ui.add(button),
+                            )
+                            .inner;
+                        for n in &counts {
+                            ui.add_space(t.space_2);
                             crate::components::count_badge(ui, *n);
                         }
                         response

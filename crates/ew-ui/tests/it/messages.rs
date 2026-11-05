@@ -894,7 +894,7 @@ fn ft1186_a_group_rows_count_follows_its_name() {
         let inner = ((badge.width() + 2.0 * t.space_icon).max(t.size_badge) - badge.width()) / 2.0;
         let gap = badge.left() - name.right();
         assert!(
-            gap >= t.space_2 + inner && gap < t.space_4 + inner + t.space_2,
+            (gap - (t.space_2 + inner)).abs() < 1.0,
             "{size:?}: {} then {count}, {gap} points apart",
             row.label
         );
