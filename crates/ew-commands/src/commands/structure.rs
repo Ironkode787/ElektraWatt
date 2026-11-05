@@ -160,7 +160,8 @@ impl Command for CreateSection {
 ///
 /// Creates a `ReportBlock` with the given members (`manual`, `sort`, `group`, `continuation`, `empty`
 /// default). Rejected with a message: a page-oriented block (no `embedded`) without `first_folio`
-/// (EW-INV-014): `first_folio` is required unless `embedded` is set. The form copy, the section and the
+/// (EW-INV-014): `first_folio` is required unless `embedded` is set; a first folio whose generated pages a page of the
+/// section already holds (ID-1389, see `held_folio`). The form copy, the section and the
 /// embedding page must exist (else not found). Outcome: the new block.
 ///
 /// **The form from the library** (FT-341). The block's form is a library item; a project holds it as an embedded
@@ -262,6 +263,35 @@ impl CreateReportBlock {
     }
 }
 
+/// The printed folio of a page of `section` that the generated pages of a page-oriented block from `first` on would
+/// take (ID-1389, as `page.create` keeps a folio free, FT-459): a page of folio `first`, with sub-page continuation
+/// one of `<first>.<k>`, or the first folio of another page-oriented block of the section. `None` when it is free.
+fn held_folio(
+    tx: &TxBuilder<'_>,
+    section: Option<Id<Section>>,
+    first: u32,
+    continuation: &ContinuationPolicy,
+) -> Option<String> {
+    let head = first.to_string();
+    let generated = |printed: &str| {
+        printed == head
+            || (*continuation == ContinuationPolicy::SubPage
+                && printed
+                    .strip_prefix(&head)
+                    .is_some_and(|rest| rest.starts_with('.')))
+    };
+    let page = super::page::section_pages(tx, section)
+        .into_iter()
+        .map(|(_, f)| super::page::printed_folio(f.number, f.label.as_ref()))
+        .find(|printed| generated(printed));
+    page.or_else(|| {
+        tx.iter::<ReportBlock>()
+            .iter()
+            .any(|b| b.section == section && b.embedded.is_none() && b.first_folio == Some(first))
+            .then_some(head.clone())
+    })
+}
+
 impl Command for CreateReportBlock {
     const NAME: &'static str = "report_block.create";
 
@@ -282,6 +312,11 @@ impl Command for CreateReportBlock {
         }
         if let Some(embed) = &self.embedded {
             tx.require::<Page>(embed.page)?;
+        }
+        if let (None, Some(first)) = (&self.embedded, self.first_folio) {
+            if let Some(held) = held_folio(tx, self.section, first, &self.continuation) {
+                return tx.reject(text!("refusal-page-create-exists", held));
+            }
         }
         let id: Id<ReportBlock> = tx.mint();
         tx.insert(ReportBlock {

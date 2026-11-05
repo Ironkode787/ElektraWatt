@@ -30,7 +30,7 @@ cable in the Cables navigator. At the end you have a saved project whose checks 
    The terminal -1X1:1 carries 24VAC and -1X1:2 carries 0VAC to the lamp on the machine.
 6. Choose **Draw ▸ Connect ▸ New cable…**. In the form, choose the cable part **NEBU-G78W5-K-2-N-LE5**, a five-core
    connecting cable, and choose **Create**.
-   The toast says "Created cable -?W?; its cores: 5". The cable has the part's five cores; its tag shows question
+   The toast says "Created cable -?W? with 5 cores". The cable has the part's five cores; its tag shows question
    marks until you give it one in step 8.
 7. Click the field wire of -1X1:1, then Shift+click the field wire of -1X1:2. Choose **Draw ▸ Connect ▸ Connect
    cores…**, choose the cable **-?W?**, and choose **Connect**.

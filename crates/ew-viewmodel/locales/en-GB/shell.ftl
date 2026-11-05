@@ -4011,7 +4011,7 @@ import-card-infos-one = 1 info
 import-card-more = and { $p0 } more pages
 import-card-apply = Apply
 import-confirm-title = Create the project from { $p0 }?
-import-confirm-text = The import creates a new project in { $p0 } with { $p1 } pages and { $p2 } devices. It cannot be undone: delete the folder to discard it.
+import-confirm-text = The import creates a new project in { $p0 } with { $p1 } and { $p2 }. It cannot be undone: delete the folder to discard it.
 import-confirm-create = Create project
 error-import-confirm = Creating the project from { $p0 } cannot be undone and needs "confirm": true.
 error-import-panicked = The importer stopped on an internal error while reading { $p0 }; nothing was imported.
@@ -4067,7 +4067,9 @@ reason-cores-no-cable = The project has no cable yet; create one first
 error-no-cable = The project has no cable { $p0 }: choose one from the list.
 error-cable-ambiguous = { $p0 } is the tag of { $p1 } cables: choose one from the list.
 error-cores-too-few = { $p0 } has { $p1 } free cores for { $p2 } wires: select fewer wires, or choose another cable.
-toast-cable-new = Created cable { $p0 }; its cores: { $p1 }
+toast-cable-new = Created cable { $p0 } with { $p1 }
+toast-cable-new-cores = { $p0 } cores
+toast-cable-new-cores-one = 1 core
 toast-cores-connected = Wires connected to the cores of { $p1 }: { $p0 }
 
 # FT-1372 (ID-1362): Output ▸ Reports ▸ Report block….

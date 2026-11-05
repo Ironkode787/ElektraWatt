@@ -11,8 +11,8 @@ use crate::common;
 use common::fixture::*;
 use common::*;
 use ew_commands::commands::{
-    CreatePage, CreateReportBlock, CreateSection, CreateStructureNode, DeletePages, PageScope, RenumberPages,
-    ReorderPages,
+    CreatePage, CreateReportBlock, CreateSection, CreateStructureNode, DeletePages, KindName, PageScope,
+    RenumberPages, ReorderPages, SetFields,
 };
 use ew_commands::{CmdError, DynCommand, Engine, Receipt};
 use ew_ids::Id;
@@ -214,10 +214,22 @@ fn create_page_names_the_first_of_several_refusals() {
         rejected(e.execute(&CreatePage::at(Some(sec2), 200))),
         "folio 200 is the divider page of section 2; choose another folio"
     );
-    // Report block before duplicate: a page that prints "190" exists, then a block at 190 is made.
+    // Report block before duplicate: a page that prints "190" exists, then a block is moved to 190 (`report_block.create`
+    // refuses a folio a page holds, ID-1389).
     e.execute(&labelled(Some(SEC1), 191, "190"))
         .expect("a page that prints 190");
-    bulk(&mut e, &block(Some(190))).expect("a block at 190");
+    let moved: Id<ReportBlock> = typed(bulk(&mut e, &block(Some(189))).unwrap().outcome.primary.unwrap());
+    bulk(
+        &mut e,
+        &SetFields {
+            kind: KindName::ReportBlock,
+            targets: vec![moved.cast()],
+            path: "first_folio".into(),
+            value: serde_json::json!(190),
+            copies: Vec::new(),
+        },
+    )
+    .expect("a block moved to 190");
     assert_eq!(
         rejected(e.execute(&CreatePage::at(Some(SEC1), 190))),
         "folio 190 is a page the report block at folio 190 generates; choose another folio"
@@ -773,6 +785,40 @@ fn create_report_block_rejections() {
     let mut bad_section = block(Some(907));
     bad_section.section = Some(id(0xdead));
     assert!(matches!(e.execute(&bad_section), Err(CmdError::NotFound { .. })));
+}
+
+/// ID-1389 (W51 finding E): a page-oriented block whose generated pages a page of its section already holds is
+/// refused in the words of `page.create`: the first folio; with sub-page continuation a `<first>.<k>`; the first folio
+/// of another page-oriented block of the section. A block of another section and an embedded block refuse nothing.
+#[test]
+fn create_report_block_refuses_a_folio_a_page_holds() {
+    let mut e = engine(golden_model());
+    assert_eq!(
+        rejected(e.execute(&block(Some(101)))),
+        "folio 101 already exists in this section; choose a free folio"
+    );
+    e.execute(&labelled(Some(SEC1), 150, "150.2")).unwrap();
+    assert_eq!(
+        rejected(e.execute(&block(Some(150)))),
+        "folio 150.2 already exists in this section; choose a free folio"
+    );
+    let mut next = block(Some(150));
+    next.continuation = ContinuationPolicy::NextFolio;
+    e.execute(&next).expect("a next-folio block has no sub-pages");
+    assert_eq!(
+        rejected(e.execute(&next)),
+        "folio 150 already exists in this section; choose a free folio"
+    );
+    let mut elsewhere = block(Some(101));
+    elsewhere.section = None;
+    e.execute(&elsewhere).expect("a block of another section");
+    let mut embedded = block(Some(101));
+    embedded.embedded = Some(ew_schema::EmbedSpec {
+        page: PAGE_101,
+        rect: serde_json::from_str("[[10000000,10000000],[120000000,90000000]]").unwrap(),
+        extra: Default::default(),
+    });
+    e.execute(&embedded).expect("an embedded block generates no page");
 }
 
 /// The shipped frame without the grid (`content/forms`), the form of the golden report blocks, in the `lib/` JSON

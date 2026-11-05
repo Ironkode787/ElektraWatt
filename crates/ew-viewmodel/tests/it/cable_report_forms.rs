@@ -134,7 +134,7 @@ fn a_new_cable_takes_its_parts_cores_and_the_selected_wires_become_its_cores() {
     assert_eq!(sorted, ["BK", "BN", "BU", "GNYE", "WH"], "the part's cores");
     assert_eq!(
         state(&s)["toast"]["text"],
-        format!("Created cable {tag}; its cores: 5")
+        format!("Created cable {tag} with 5 cores")
     );
     // Connect cores…: the two leftmost wires of the page become BK and BU.
     let w = wires(&s);
@@ -304,7 +304,7 @@ fn report_block_refuses_a_bad_kind_and_a_bad_folio_in_both_languages() {
         (
             "nl",
             "\"bogus\" is geen rapport; gebruik een van: ",
-            "Het eerste folio is een nummer: \"9x\" niet.",
+            "Het eerste folio moet een nummer zijn; \"9x\" is dat niet.",
         ),
     ] {
         done(&mut s, "view.language", json!({ "value": language }));
@@ -329,6 +329,37 @@ fn report_block_refuses_a_bad_kind_and_a_bad_folio_in_both_languages() {
         assert_eq!(message, folio, "{language}");
         assert_eq!(form(&s).error.as_deref(), Some(folio), "{language}");
         assert_eq!(s.revision(), rev, "{language}: nothing added");
+        done(&mut s, "ui.dismiss", json!({}));
+    }
+    s.shutdown();
+}
+
+/// ID-1389 (W51 finding E): Report block… refuses first folio 102, which a page of Golden A holds, under the fields,
+/// whole, in English and in Dutch, as New page… does; nothing is added.
+#[test]
+fn report_block_refuses_a_folio_a_page_holds_in_both_languages() {
+    let tmp = Tmp::new("id1389e");
+    let mut s = tmp.shell_in(Mode::Gui, true, "103");
+    let pages = s.page_labels().to_vec();
+    for (language, refusal) in [
+        (
+            "en",
+            "folio 102 already exists in this section; choose a free folio",
+        ),
+        ("nl", "folio 102 bestaat al in deze sectie; kies een vrij folio"),
+    ] {
+        done(&mut s, "view.language", json!({ "value": language }));
+        done(&mut s, "report_block.new", json!({}));
+        s.set_form_field("kind", "terminal_diagram");
+        s.set_form_field("folio", "102");
+        let rev = s.revision();
+        let Outcome::Failed { message } = s.submit_form() else {
+            panic!("{language}: folio 102 is taken")
+        };
+        assert_eq!(message, refusal, "{language}");
+        assert_eq!(form(&s).error.as_deref(), Some(refusal), "{language}");
+        assert_eq!(s.revision(), rev, "{language}: nothing added");
+        assert_eq!(s.page_labels(), pages, "{language}");
         done(&mut s, "ui.dismiss", json!({}));
     }
     s.shutdown();

@@ -1076,7 +1076,7 @@ refusal-revision-withdrawn = revisie { $p0 } ({ $p1 }) is al ingetrokken door he
 # The structure: structure.create_node, section.create, report_block.create and external_ref.create.
 refusal-structure-product-aspect = het productaspect is de apparatenboom, geen structuurknooppunt; kies een ander aspect
 refusal-structure-parent-aspect = de ouder hoort bij een ander aspect (EW-INV-011); kies een ouder van hetzelfde aspect
-refusal-structure-code-used = een knooppunt op hetzelfde niveau met code `{ $p0 }` bestaat al in dit aspect; kies een andere code
+refusal-structure-code-used = een knooppunt op hetzelfde niveau met code "{ $p0 }" bestaat al in dit aspect; kies een andere code
 refusal-section-range-order = `folio_range` begint na zijn einde; geef eerste <= laatste
 refusal-section-number-used = sectienummer { $p0 } bestaat al; kies een ander nummer
 refusal-section-range-overlap = foliobereik { $p0 }-{ $p1 } overlapt sectie { $p2 } ({ $p3 }-{ $p4 }); kies een vrij bereik
@@ -3019,7 +3019,7 @@ choice-right = Rechts
 choice-first = Eerste
 choice-last = Laatste
 choice-free = Vrij
-choice-push = Opschuiven
+choice-push = Duwen
 choice-swap = Wisselen
 choice-schematic = Schema
 choice-dt = Kenmerk
@@ -3775,7 +3775,7 @@ import-card-infos-one = 1 info
 import-card-more = en nog { $p0 } pagina's
 import-card-apply = Toepassen
 import-confirm-title = Het project maken uit { $p0 }?
-import-confirm-text = De import maakt een nieuw project in { $p0 } met { $p1 } pagina's en { $p2 } apparaten. Dit kan niet ongedaan worden gemaakt: verwijder de map om het te verwerpen.
+import-confirm-text = De import maakt een nieuw project in { $p0 } met { $p1 } en { $p2 }. Dit kan niet ongedaan worden gemaakt: verwijder de map om het te verwerpen.
 import-confirm-create = Project maken
 error-import-confirm = Het project maken uit { $p0 } kan niet ongedaan worden gemaakt en vraagt "confirm": true.
 error-import-panicked = De importfunctie is gestopt door een interne fout bij het lezen van { $p0 }; er is niets geïmporteerd.
@@ -3797,7 +3797,7 @@ reimport-match-text = { $p0 } komt overeen met de eerdere import van { $p1 } ({ 
 reimport-match-accept = Opnieuw importeren
 error-reimport-foreign = { $p0 } is geen eerdere import van dit project; importeer het in een nieuw project.
 reimport-card-title = { $p0 } opnieuw importeren
-reimport-card-summary = Nieuwe import van { $p0 }: { $p1 } toegevoegd, { $p2 } gewijzigd in de bron, { $p3 } behouden met uw wijzigingen, { $p4 } aan beide kanten gewijzigd en behouden, { $p5 } verwijderd in de bron en behouden, { $p6 } ongewijzigd.
+reimport-card-summary = Herimport van { $p0 }: { $p1 } toegevoegd, { $p2 } gewijzigd in de bron, { $p3 } behouden met uw wijzigingen, { $p4 } aan beide kanten gewijzigd en behouden, { $p5 } verwijderd in de bron en behouden, { $p6 } ongewijzigd.
 reimport-card-more = en nog { $p0 } wijzigingen
 reimport-card-apply = Toepassen
 reimport-row-added = Toegevoegd: { $p0 }
@@ -3831,7 +3831,9 @@ reason-cores-no-cable = Het project heeft nog geen kabel; maak er eerst een
 error-no-cable = Het project heeft geen kabel { $p0 }: kies er een uit de lijst.
 error-cable-ambiguous = { $p0 } is het kenmerk van { $p1 } kabels: kies er een uit de lijst.
 error-cores-too-few = { $p0 } heeft { $p1 } vrije aders voor { $p2 } draden: selecteer minder draden, of kies een andere kabel.
-toast-cable-new = Kabel { $p0 } gemaakt; aantal aders: { $p1 }
+toast-cable-new = Kabel { $p0 } gemaakt met { $p1 }
+toast-cable-new-cores = { $p0 } aders
+toast-cable-new-cores-one = 1 ader
 toast-cores-connected = Draden verbonden met de aders van { $p1 }: { $p0 }
 
 # FT-1372 (ID-1362): Uitvoer ▸ Rapporten ▸ Rapportblok….
@@ -3840,7 +3842,7 @@ report-block-new-title = Nieuw rapportblok
 form-report-kind = Rapport
 form-first-folio = Eerste folio
 error-report-kind = "{ $p0 }" is geen rapport; gebruik een van: { $p1 }.
-error-first-folio = Het eerste folio is een nummer: "{ $p0 }" niet.
+error-first-folio = Het eerste folio moet een nummer zijn; "{ $p0 }" is dat niet.
 toast-report-block-new = Rapportblok { $p0 } toegevoegd vanaf folio { $p1 }
 
 # FT-1337 en FT-1363 (ID-1359 uitspraak 1): een opdrachtfout in het venster, naar de reden.

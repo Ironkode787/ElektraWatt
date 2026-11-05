@@ -148,7 +148,13 @@ impl ShellModel {
                     .and_then(|id| self.project.as_ref()?.session.device_tag(id))
                     .unwrap_or_default();
                 self.notify(
-                    strings::format(key!("toast-cable-new"), &[&tag, &cores.to_string()]),
+                    strings::format(
+                        key!("toast-cable-new"),
+                        &[
+                            &tag,
+                            &strings::format_count(crate::count_key!("toast-cable-new-cores"), cores),
+                        ],
+                    ),
                     true,
                 );
                 if self.in_cable_form(NEW) {

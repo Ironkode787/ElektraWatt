@@ -357,7 +357,11 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
                 strings::format(key!("import-confirm-title"), &[file]),
                 vec![strings::format(
                     key!("import-confirm-text"),
-                    &[folder, &pages.len().to_string(), &devices.to_string()],
+                    &[
+                        folder,
+                        &strings::format_count(crate::count_key!("import-card-pages"), pages.len()),
+                        &strings::format_count(crate::count_key!("import-card-devices"), *devices),
+                    ],
                 )],
                 DialogButton::new(
                     key!("import-confirm-create"),

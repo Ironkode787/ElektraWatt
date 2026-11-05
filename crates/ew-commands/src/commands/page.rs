@@ -104,7 +104,7 @@ impl CreatePage {
 }
 
 /// The pages of a section (or of no section), with their folios.
-fn section_pages(tx: &TxBuilder<'_>, section: Option<Id<Section>>) -> Vec<(Id<Page>, Folio)> {
+pub(super) fn section_pages(tx: &TxBuilder<'_>, section: Option<Id<Section>>) -> Vec<(Id<Page>, Folio)> {
     match section {
         Some(s) => tx
             .pages_in_section(s)
@@ -169,7 +169,7 @@ pub(crate) fn scale_problem(scale: &Scale) -> Option<&'static str> {
 }
 
 /// The printed folio of a drawn page: its label, else its number (`ew_derive::folio_label`).
-fn printed_folio(number: u32, label: Option<&Ident>) -> String {
+pub(super) fn printed_folio(number: u32, label: Option<&Ident>) -> String {
     label.map_or_else(|| number.to_string(), |l| l.as_str().to_owned())
 }
 
