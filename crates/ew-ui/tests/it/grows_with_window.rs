@@ -418,3 +418,31 @@ fn the_pages_table_title_refills_on_a_resize() {
     );
     h.state_mut().shell_mut().shutdown();
 }
+
+/// FT-1404: in a wide window the strip editor's grid shows its side columns without scrolling sideways: at 1920 the
+/// left column grows past its default width (`size.panel.left_max`, 480) by what the grid lacks, so the header
+/// "Sort by Side 2 (clamp b)" ends inside the grid; at the floor the grid keeps its width and scrolls.
+#[test]
+fn the_strip_editor_shows_its_side_columns_at_1920() {
+    let grid = |h: &Harness<'_, App>| {
+        h.get_all_by_role(egui::Role::Table)
+            .map(|n| n.rect())
+            .max_by(|a, b| a.width().total_cmp(&b.width()))
+            .expect("the strip editor's grid")
+    };
+    let (floor, typical) = at_both_sizes(
+        |h| dispatch(h, "strip.edit", json!({"strip": "-X1031"})),
+        |h| grid(h).width(),
+    );
+    assert_grows("the strip editor", floor, typical);
+    assert!(typical > 480.0, "the grid is {typical} wide at 1920");
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, egui::Vec2::new(1920.0, 1080.0));
+    dispatch(&mut h, "strip.edit", json!({"strip": "-X1031"}));
+    for _ in 0..4 {
+        settle(&mut h);
+    }
+    let side2 = h.get_by_label_contains("Sort by Side 2").rect();
+    assert!(side2.right() <= grid(&h).right(), "{side2:?} in {:?}", grid(&h));
+    h.state_mut().shell_mut().shutdown();
+}

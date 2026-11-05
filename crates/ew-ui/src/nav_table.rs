@@ -256,6 +256,16 @@ impl TableUi {
             w.active.bg_stroke = theme::stroke(tokens.border_width, tokens.accent);
             let id = t.get_id(ui);
             t.show(ui, &mut delegate);
+            // FT-1404: the strip editor's side columns in a wide window: the width its columns lack is reported, and
+            // the dock widens the left column by it (as far as its default share may grow).
+            if kind == NavKind::Strips {
+                let widths = egui_table::TableState::load(ui.ctx(), id).map(|s| s.col_widths);
+                let need: f32 = column_ids
+                    .iter()
+                    .filter_map(|(c, _)| widths.as_ref().and_then(|w| w.get(c).copied()))
+                    .sum();
+                crate::dock::report_left_lack(ui, need - area.width());
+            }
             // egui_table's column resize handles are `interact` areas without a role or a name: they are named here
             // ("Resize <label> column", a splitter) so that every focusable node has a name (ADR-0014 amendment 2).
             for (column, label) in &column_ids {

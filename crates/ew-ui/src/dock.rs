@@ -42,6 +42,22 @@ pub(crate) fn report_content(ui: &Ui, pane: PaneKind, viewport: Rect, content: f
     }
 }
 
+/// FT-1404: the key of the width the strip editor's grid lacked in the last frame.
+fn left_lack_id() -> egui::Id {
+    egui::Id::unique("ew-dock-left-lack")
+}
+
+/// FT-1404: the strip editor's report of the width its columns need beyond the grid's this frame (negative: room to
+/// spare), every frame it is shown. Above the floor the next frame shows the left column that much wider, as far as
+/// [`Dock::keep_left_wide`] lets a default share grow (two thirds of the dock), so that the side columns show without scrolling
+/// sideways in a wide window; without a report the column has its default width again.
+pub(crate) fn report_left_lack(ui: &Ui, lack: f32) {
+    ui.ctx().data_mut(|d| d.insert_temp(left_lack_id(), lack));
+    if lack > 0.5 {
+        ui.ctx().request_repaint();
+    }
+}
+
 /// The dock tree of the project view and the layout version it was built from.
 pub struct Dock {
     tree: Tree<PaneKind>,
@@ -229,8 +245,14 @@ impl Dock {
         // C40 (FT-798): the left column keeps its floor width and grows with a wide window while it has its default
         // share; display only, like the bottom clamp.
         let window = ui.ctx().content_rect().width();
+        let lack = ui.ctx().data_mut(|d| {
+            let r = d.get_temp::<f32>(left_lack_id());
+            d.remove::<f32>(left_lack_id());
+            r
+        });
         if window > FLOOR_WIDTH {
-            clamps.extend(self.keep_left_wide(ui.available_width(), left_default_width(&tokens, window)));
+            let want = left_default_width(&tokens, window);
+            clamps.extend(self.keep_left_wide(ui.available_width(), want, lack));
         }
         if guessed {
             // R3-4: a split without a last shown height was clamped against the guess; the next frame uses its
@@ -457,8 +479,9 @@ impl Dock {
     /// while its share is the Schematic workspace's default ([`default_left_share`]): the default grows with the
     /// window. A share the user dragged is shown as it is. Display only, like [`Dock::keep_bottom_min`]:
     /// [`Dock::restore`] puts the shares back after the frame, and a drag during the frame keeps the dragged shares
-    /// (from then on the share is the user's, not the default).
-    fn keep_left_wide(&mut self, fallback: f32, want: f32) -> Option<Clamp> {
+    /// (from then on the share is the user's, not the default). `lack` is what the strip editor's grid lacked in the
+    /// last frame ([`report_left_lack`], FT-1404): the column is then shown at least its last width plus that.
+    fn keep_left_wide(&mut self, fallback: f32, want: f32, lack: Option<f32>) -> Option<Clamp> {
         let root = self.tree.root()?;
         let width = self.tree.tiles.rect(root).map_or(fallback, |r| r.width());
         let Some(Tile::Container(Container::Linear(linear))) = self.tree.tiles.get(root) else {
@@ -476,12 +499,18 @@ impl Dock {
         if !tiles.is_visible(left) {
             return None;
         }
+        // FT-1404: the strip editor in the column asks for its last width plus what its grid lacked, up to two
+        // thirds of the dock (an editing table; the page view keeps a third), else the default grows to half.
+        let (want, most) = match (lack, tiles.rect(left)) {
+            (Some(lack), Some(r)) => (want.max(r.width() + lack), 2.0 / 3.0),
+            _ => (want, 0.5),
+        };
         let Some(Tile::Container(Container::Linear(linear))) = self.tree.tiles.get_mut(root) else {
             return None;
         };
         let total: f32 = children.iter().map(|c| linear.shares[*c].max(0.0)).sum();
         let own = linear.shares[left].max(0.0);
-        let want = (want / width).min(0.5);
+        let want = (want / width).min(most);
         if total <= 0.0 || (own / total - default_left_share()).abs() > 5e-4 || own / total >= want {
             return None;
         }
