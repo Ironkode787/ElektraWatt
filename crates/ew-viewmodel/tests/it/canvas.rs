@@ -198,6 +198,10 @@ fn a2_the_canvas_actions_are_in_the_registry_with_their_menus_and_reasons() {
 fn a1_zoom_pan_fit_and_resize_through_the_shell() {
     let tmp = Tmp::new();
     let mut shell = tmp.shell_on_103();
+    // FT-1443: the page's first view is fit-width (wider than Fit page in this pane); Fit page is one key away.
+    let first = shell.canvas().expect("folio 103 is on the canvas");
+    assert!(first.is_first_view() && first.zoom() > first.fit_zoom());
+    done(&mut shell, "view.fit_page", json!({}));
     let c = shell.canvas().expect("folio 103 is on the canvas");
     assert_eq!(c.page().folio, "103");
     assert_eq!(c.sheet(), (297_000_000, 210_000_000));
@@ -300,6 +304,7 @@ fn a5_a_pointer_at_each_entity_centre_hovers_an_entity_no_larger_that_contains_i
 fn a8_the_transcript_and_the_describe_text_carry_the_canvas() {
     let tmp = Tmp::new();
     let mut shell = tmp.shell_on_103();
+    done(&mut shell, "view.fit_page", json!({}));
     done(&mut shell, "view.zoom_to", json!({"percent": 156.25}));
     let s = state(&shell);
     let c = &s["canvas"];

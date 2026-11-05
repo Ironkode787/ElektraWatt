@@ -270,7 +270,9 @@ fn v3_walks_jumps_back_and_forward_with_the_exact_view() {
     done(&mut shell, "nav.back", json!({}));
     let c = shell.canvas().unwrap();
     assert_eq!(c.page().folio, "201");
-    assert!(c.is_fitted() && (c.zoom() - c.fit_zoom()).abs() < 1e-12 && c.pane() == (600.0, 400.0));
+    // FT-1443: a page's first view, fit-width in this pane.
+    let width = (600.0 - 32.0) / (297.0 / 25.4 * 96.0);
+    assert!(c.is_first_view() && (c.zoom() - width).abs() < 1e-12 && c.pane() == (600.0, 400.0));
     // The jump view: max(current zoom, 2 × fit); a page destination arrives (fitted on a first visit).
     done(
         &mut shell,

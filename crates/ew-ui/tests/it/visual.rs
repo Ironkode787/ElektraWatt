@@ -278,6 +278,10 @@ fn ft891_the_drivers_double_clicks_on_two_rows_open_both() {
 fn bv3_clicks_right_clicks_typing_and_drags_reach_the_widgets() {
     let tmp = Tmp::new();
     let mut d = golden_on_101(&tmp);
+    // The drags below aim at Fit page's view (FT-1443: the first view is fit-width).
+    let _ = d.shell_mut().dispatch("view.fit_page", &json!({}));
+    d.settle();
+    let _ = actions(&mut d);
     // A click on the command bar's Check project.
     let at = d.find("Check project").expect("the Check project button");
     d.input(&click(at));

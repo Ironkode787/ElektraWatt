@@ -400,6 +400,9 @@ fn fx38d_the_badge_opens_messages_and_its_close_button_closes_it() {
         let c = h.state().shell().canvas().expect("a canvas");
         (c.zoom(), c.centre())
     };
+    // FT-1443: from Fit page (a page's first view is fit-width, which a shorter pane keeps).
+    dispatch(&mut h, "view.fit_page", json!({}));
+    settle(&mut h);
     let before = view(&h);
     dispatch(&mut h, "messages.check", json!({}));
     assert!(!h.state().shell().navigator_open(messages));

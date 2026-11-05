@@ -316,6 +316,7 @@ mod tests {
                 centre: (0, 0),
                 zoom: 1.0,
                 fitted: true,
+                first: true,
             },
             selection: Vec::new(),
         };

@@ -105,6 +105,7 @@ mod tests {
                 centre: (x, 0),
                 zoom: 1.0,
                 fitted: false,
+                first: false,
             },
         }
     }

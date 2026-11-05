@@ -481,6 +481,7 @@ mod tests {
             centre: (x, 0),
             zoom: 1.0,
             fitted: false,
+            first: false,
         };
         for n in 0..70u128 {
             t.remember(page(n), v(n as i64));

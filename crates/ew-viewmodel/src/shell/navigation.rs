@@ -548,6 +548,7 @@ impl ShellModel {
                 centre: (0, 0),
                 zoom: 1.0,
                 fitted: true,
+                first: true,
             },
             CanvasModel::viewport,
         );

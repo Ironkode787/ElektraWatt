@@ -92,7 +92,8 @@ fn a10_ctrl_plus_zooms_the_canvas_and_leaves_the_ui_scale() {
 fn a10_home_fits_and_ctrl_arrow_right_moves_the_view() {
     let tmp = Tmp::new();
     let mut h = on_103(&tmp);
-    let fit = zoom(&h);
+    // FT-1443: the first view is fit-width here; Home is Fit page.
+    let fit = h.state().shell().canvas().unwrap().fit_zoom();
     h.key_press_modifiers(Modifiers::COMMAND, Key::Plus);
     h.key_press_modifiers(Modifiers::COMMAND, Key::Plus);
     settle(&mut h);

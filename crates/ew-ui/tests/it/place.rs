@@ -471,6 +471,9 @@ fn ft890_the_device_picker_is_titled_insert_device_and_the_symbol_picker_insert_
 fn ft1375_device_from_part_places_the_projects_a9f78116_as_102f1_on_gp_ut() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "102");
+    // The place cursor starts at the middle of Fit page's view (FT-1443: the first view is fit-width).
+    dispatch(&mut h, "view.fit_page", json!({}));
+    settle(&mut h);
     let gp_ut = std::fs::read_to_string(
         std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../golden/J-E-2416/variants/gp-ut.ewcmd"),
     )

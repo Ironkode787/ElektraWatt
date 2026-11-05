@@ -209,6 +209,8 @@ pub struct Viewport {
     pub zoom: f64,
     /// Whether the view is the fit of the page.
     pub fitted: bool,
+    /// Whether a fitted view is the page's first view (FT-1443), which fits again as one, not as Fit page.
+    pub first: bool,
 }
 
 /// Nanometres per inch.
@@ -536,6 +538,8 @@ pub struct CanvasModel {
     fit_inset: f64,
     /// The point a jump arrived at and the jump's serial (FT-1435): the window marks it for a moment.
     arrival: Option<((i64, i64), u64)>,
+    /// Whether the view is a page's first view (FT-1443): while fitted it fits again as one, until Fit page.
+    first: bool,
 }
 
 /// The serial of the next jump's arrival (FT-1435): a new jump to the same point is a new mark.
@@ -558,8 +562,9 @@ impl CanvasModel {
             hover_link: None,
             fit_inset: 0.0,
             arrival: None,
+            first: true,
         };
-        m.fit();
+        m.refit();
         m
     }
 
@@ -583,7 +588,7 @@ impl CanvasModel {
             1.0
         };
         if self.fitted {
-            self.fit();
+            self.refit();
         } else {
             self.update_hover();
         }
@@ -697,12 +702,51 @@ impl CanvasModel {
         }
         self.fit_inset = bottom;
         if self.fitted {
-            self.fit();
+            self.refit();
         }
     }
 
-    /// Fits the sheet into the pane above the fit inset with [`FIT_MARGIN_PT`] on each side, centred in that area.
+    /// Fits the sheet into the pane above the fit inset with [`FIT_MARGIN_PT`] on each side, centred in that area (Fit
+    /// page); the view is no longer a page's first view.
     pub fn fit(&mut self) {
+        self.first = false;
+        self.fit_page();
+    }
+
+    /// Whether the view is a page's first view, untouched (FT-1443): it fits again as [`CanvasModel::first_view`].
+    pub fn is_first_view(&self) -> bool {
+        self.first && self.fitted
+    }
+
+    /// Fits the view again as it was fitted: a page's first view as [`CanvasModel::first_view`], else Fit page.
+    fn refit(&mut self) {
+        if self.first {
+            self.first_view();
+        } else {
+            self.fit_page();
+        }
+    }
+
+    /// A page's first view (FT-1443, ID-1419): fit-width when that is larger than Fit page, the top of the sheet
+    /// [`FIT_MARGIN_PT`] below the pane's top and its middle at the pane's middle; else Fit page. Fit page stays one
+    /// key away (`view.fit_page`).
+    fn first_view(&mut self) {
+        self.fit_page();
+        let (w, _) = self.page.sheet;
+        let pt = POINTS_PER_INCH / NM_PER_INCH / self.ui_scale;
+        let zx = (self.pane.0 - 2.0 * FIT_MARGIN_PT) / (w as f64 * pt);
+        if !zx.is_finite() || clamp_zoom(zx) <= self.zoom {
+            return;
+        }
+        self.zoom = clamp_zoom(zx);
+        let down = ((self.pane.1 / 2.0 - FIT_MARGIN_PT) / self.points_per_nm()).trunc() as i64;
+        self.centre = (w / 2, down.max(0));
+        self.clamp_centre();
+        self.update_hover();
+    }
+
+    /// Fit page: the sheet whole in the pane above the fit inset, centred in that area.
+    fn fit_page(&mut self) {
         let (w, h) = self.page.sheet;
         let pt = POINTS_PER_INCH / NM_PER_INCH / self.ui_scale;
         let (sw, sh) = (w as f64 * pt, h as f64 * pt);
@@ -767,7 +811,7 @@ impl CanvasModel {
         self.pane = pane;
         self.ppp = ppp;
         if self.fitted {
-            self.fit();
+            self.refit();
         } else {
             self.update_hover();
         }
@@ -784,7 +828,7 @@ impl CanvasModel {
         self.pane = pane;
         self.ppp = ppp;
         if self.fitted {
-            self.fit();
+            self.refit();
             return;
         }
         self.clamp_centre();
@@ -990,7 +1034,7 @@ impl CanvasModel {
     /// The zoom at which the page fits this pane ([`CanvasModel::fit`]), without changing the view.
     pub fn fit_zoom(&self) -> f64 {
         let mut probe = self.clone();
-        probe.fit();
+        probe.fit_page();
         probe.zoom
     }
 
@@ -1016,13 +1060,15 @@ impl CanvasModel {
             centre: self.centre,
             zoom: self.zoom,
             fitted: self.fitted,
+            first: self.first,
         }
     }
 
-    /// Restores a remembered view exactly; a fitted one fits this pane again.
+    /// Restores a remembered view exactly; a fitted one fits this pane again, a first view as one.
     pub fn set_viewport(&mut self, v: &Viewport) {
+        self.first = v.first;
         if v.fitted {
-            self.fit();
+            self.refit();
             return;
         }
         self.zoom = clamp_zoom(v.zoom);
@@ -1202,8 +1248,38 @@ mod tests {
         })
     }
 
+    /// An A4 page in the headless pane at Fit page (its first view is fit-width, FT-1443).
     fn model() -> CanvasModel {
-        CanvasModel::new(page(Vec::new()), HEADLESS_PANE, 1.0)
+        let mut m = CanvasModel::new(page(Vec::new()), HEADLESS_PANE, 1.0);
+        m.fit();
+        m
+    }
+
+    /// FT-1443 (ID-1419): a page's first view is fit-width where that is larger than Fit page, the top of the sheet
+    /// 16 points below the pane's top; it fits again so on a new pane until Fit page, which stays one key away.
+    #[test]
+    fn a_pages_first_view_is_fit_width_with_its_top_in_view() {
+        // A4 in 1200 × 800 points: fit-width (1200 − 32) / 1122.5 = 1.0405 > Fit page 0.9676.
+        let mut m = CanvasModel::new(page(Vec::new()), HEADLESS_PANE, 1.0);
+        let width = (1200.0 - 32.0) / (297.0 / 25.4 * 96.0);
+        assert!((m.zoom() - width).abs() < 1e-12, "{}", m.zoom());
+        assert!(m.is_fitted() && m.is_first_view());
+        let k = m.points_per_nm();
+        let top = 400.0 - m.centre().1 as f64 * k;
+        assert!((top - 16.0).abs() < 0.01, "the sheet's top {top} points below the pane's");
+        assert_eq!(m.centre().0, 148_500_000);
+        // A new pane: the first view again.
+        m.relayout((1600.0, 800.0), 1.0);
+        assert!((m.zoom() - (1600.0 - 32.0) / (297.0 / 25.4 * 96.0)).abs() < 1e-12);
+        // Fit page, one key away, and from then on.
+        m.fit();
+        assert!((m.zoom() - 768.0 / (210.0 / 25.4 * 96.0)).abs() < 1e-12);
+        assert!(m.is_fitted() && !m.is_first_view());
+        m.relayout(HEADLESS_PANE, 1.0);
+        assert!((m.zoom() - 768.0 / (210.0 / 25.4 * 96.0)).abs() < 1e-12);
+        // A pane where Fit page is fit-width already: the first view is Fit page.
+        let tall = CanvasModel::new(page(Vec::new()), (800.0, 1200.0), 1.0);
+        assert_eq!(tall.centre(), (148_500_000, 105_000_000));
     }
 
     #[test]
@@ -1259,6 +1335,7 @@ mod tests {
     #[test]
     fn a_fit_inset_keeps_the_bottom_band_clear() {
         let mut m = CanvasModel::new(page(Vec::new()), (2000.0, 600.0), 1.0);
+        m.fit();
         m.set_fit_inset(100.0);
         assert!(m.is_fitted());
         let k = m.points_per_nm();
@@ -1278,7 +1355,8 @@ mod tests {
 
     #[test]
     fn fit_page_leaves_16_points_on_the_tighter_side() {
-        let m = CanvasModel::new(page(Vec::new()), (2000.0, 600.0), 2.0);
+        let mut m = CanvasModel::new(page(Vec::new()), (2000.0, 600.0), 2.0);
+        m.fit();
         let k = m.points_per_nm();
         let height_pt = 210_000_000.0 * k;
         assert!((height_pt - (600.0 - 32.0)).abs() < 1e-6, "{height_pt}");
