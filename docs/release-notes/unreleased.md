@@ -196,3 +196,10 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   next minor release."; WP-S6.08 D7)
 - api-add: window script transcript (a done `help.documentation` step carries `doc`, the file the request opens below
   the installed user guide, or null without one; FT-1267, WP-S6.08 D6)
+- api-break: cli recover exit 1 (its meaning names a declined upgrade: "the replay refused, or its upgrade or the
+  discard not confirmed"; a Preview surface, FT-1394, ID-1394)
+- behaviour-change: cli ew recover --replay (on a project of an older format the upgrade's consent is asked before
+  the replay, so a declined run leaves the crashed session's journal as it was; FT-1394)
+- text-change: cli ew upgrade --check (on an `.ewz` of an older format: "the project is in the older format <f>: `ew
+  extract` makes a project folder of the archive, and `ew upgrade` converts that folder to format <g> after a backup";
+  FT-1214)

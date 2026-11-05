@@ -2336,6 +2336,18 @@ fn open_editing_from(
     recovery: ew_api::Recovery,
     libraries: Option<ew_api::library::LibraryTiers>,
 ) -> Result<(ew_api::Session, ew_api::OpenReport), i32> {
+    open_editing_to(dir, origin, store, recovery, libraries, &mut std::io::stderr())
+}
+
+/// [`open_editing_from`] with its refusals written to `errors` (`ew recover`'s injected writer, FT-1394).
+fn open_editing_to(
+    dir: &Path,
+    origin: ew_api::Origin,
+    store: ew_api::StoreOptions,
+    recovery: ew_api::Recovery,
+    libraries: Option<ew_api::library::LibraryTiers>,
+    errors: &mut dyn std::io::Write,
+) -> Result<(ew_api::Session, ew_api::OpenReport), i32> {
     let repair = store.repair;
     let options = ew_api::SessionOptions {
         origin,
@@ -2345,14 +2357,14 @@ fn open_editing_from(
     let (session, opened) = match ew_api::Session::open(dir, store, options, recovery) {
         Ok(r) => r,
         Err(e) => {
-            eprintln!("error: {}: {e}", dir.display());
+            let _ = writeln!(errors, "error: {}: {e}", dir.display());
             return Err(2);
         }
     };
     match &opened.access {
         ew_api::Access::ReadOnly(ew_api::ReadOnlyReason::Integrity) if repair => {}
         ew_api::Access::ReadOnly(reason) => {
-            eprintln!("{}", read_only_refusal(dir, reason));
+            let _ = writeln!(errors, "{}", read_only_refusal(dir, reason));
             session.close();
             return Err(2);
         }

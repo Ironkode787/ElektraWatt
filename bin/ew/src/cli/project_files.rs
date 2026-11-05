@@ -11,7 +11,8 @@ use ew_api::cli_results as results;
 use ew_api::fmt::{Backup, DiscardedLine, FmtError, KeptLine, RepairError, Repaired, Rewrite};
 
 use super::{
-    FmtArgs, RecoverAction, RecoverArgs, UpgradeArgs, journal_refusal, older_format, open_editing, plural,
+    FmtArgs, RecoverAction, RecoverArgs, UpgradeArgs, journal_refusal, older_format, open_editing, open_editing_to,
+    plural,
     printable, project_dir, read_only_words, reader_dir, typed_word,
 };
 
@@ -514,32 +515,35 @@ fn fmt_refusal(e: &FmtError) -> String {
 /// `ew recover [--replay|--discard]` (D10, FT-252): the journal of the crashed session with the latest change, one at
 /// a time (ruling 2 of cycle 41). Without a flag its summary; `--replay` replays it and saves; `--discard` deletes it
 /// after the word typed on a controlling terminal (without one: exit 2 before the project is opened). On a project of
-/// an older format `--replay` saves only after the upgrade's typed word or `--yes`, with its backup (FT-1336).
+/// an older format `--replay` asks the upgrade's typed word (or takes `--yes`) before it replays, and saves with the
+/// upgrade's backup (FT-1336, FT-1394).
 pub(super) fn run_recover(a: &RecoverArgs) -> i32 {
     use std::io::IsTerminal;
     let terminal = std::io::stdin().is_terminal() && std::io::stdout().is_terminal();
     let mut input = std::io::stdin().lock();
     let mut output = std::io::stdout().lock();
+    let mut errors = std::io::stderr().lock();
     run_recover_with(
         a,
         terminal,
         &mut input,
-        &mut output,
+        (&mut output, &mut errors),
         ew_api::StoreOptions::new(VERSION),
     )
 }
 
-/// [`run_recover`] with the terminal test, the reader, the writer (everything `ew recover` prints on stdout) and the
-/// store options injected (unit tests; ruling 3 of cycle 41).
+/// [`run_recover`] with the terminal test, the reader, the writers (everything `ew recover` prints on stdout, and its
+/// own errors on stderr) and the store options injected (unit tests; ruling 3 of cycle 41, FT-1394).
 fn run_recover_with(
     a: &RecoverArgs,
     terminal: bool,
     input: &mut dyn std::io::BufRead,
-    output: &mut dyn std::io::Write,
+    (output, errors): (&mut dyn std::io::Write, &mut dyn std::io::Write),
     store: ew_api::StoreOptions,
 ) -> i32 {
     if a.action == RecoverAction::Discard && !terminal {
-        eprintln!(
+        let _ = writeln!(
+            errors,
             "error: HumanOnly: needs an interactive terminal (`recover --discard` is confirmed by typing \
              `{DISCARD_WORD}`; `ew recover` prints the summary without one); nothing was discarded"
         );
@@ -548,16 +552,14 @@ fn run_recover_with(
     let Some(dir) = project_dir(a.project.as_ref()) else {
         return 2;
     };
-    let recovery = match a.action {
-        RecoverAction::Replay => ew_api::Recovery::Apply,
-        RecoverAction::Summary | RecoverAction::Discard => ew_api::Recovery::Keep,
-    };
     let origin = ew_api::Origin::Cli {
         subcommand: "recover".to_owned(),
         confirmed: a.action == RecoverAction::Discard,
     };
     // Ruling 2 of cycle 41: `ew recover` acts only with the lock; a read-only open is refused with `ew apply`'s text.
-    let (mut session, opened) = match open_editing(&dir, origin, store, recovery) {
+    // The first open keeps the journal: `--replay` opens again to replay it once the upgrade has its consent (FT-1394).
+    let opened = open_editing_to(&dir, origin.clone(), store.clone(), ew_api::Recovery::Keep, None, errors);
+    let (mut session, opened) = match opened {
         Ok(r) => r,
         Err(code) => return code,
     };
@@ -581,15 +583,12 @@ fn run_recover_with(
         })
     };
     // With `--json` stdout is the result: the human lines go to stderr.
-    let say = |output: &mut dyn std::io::Write, text: &str| {
-        if a.json {
-            eprint!("{text}");
-        } else {
-            let _ = output.write_all(text.as_bytes());
-        }
+    let say = |output: &mut dyn std::io::Write, errors: &mut dyn std::io::Write, text: &str| {
+        let to: &mut dyn std::io::Write = if a.json { errors } else { output };
+        let _ = to.write_all(text.as_bytes());
     };
     let Some(info) = opened.recovery else {
-        say(output, "no journal of a crashed session: nothing to recover\n");
+        say(output, errors, "no journal of a crashed session: nothing to recover\n");
         session.close();
         if a.json {
             let _ = output.write_all(result(None, false, generation).as_bytes());
@@ -598,9 +597,10 @@ fn run_recover_with(
     };
     match a.action {
         RecoverAction::Summary => {
-            say(output, &summary(&info));
+            say(output, errors, &summary(&info));
             say(
                 output,
+                errors,
                 &format!(
                     "`ew recover --replay` replays and saves {them}; `ew recover --discard` deletes {them}\n",
                     them = if info.transactions == 1 { "it" } else { "them" }
@@ -613,31 +613,22 @@ fn run_recover_with(
             0
         }
         RecoverAction::Replay => {
-            say(output, &summary(&info));
-            if let Some(refusal) = session.recovery_refusal() {
-                let (code, text) = replay_refusal(refusal);
-                eprintln!("{text}");
-                // The store kept the journal; the clean close deletes only this session's own journal.
-                session.close();
-                if a.json {
-                    let _ = output.write_all(result(Some(&info), false, generation).as_bytes());
-                }
-                return code;
-            }
-            // FT-1336: a project of an older format opened migrated and the journal replayed onto it, as the crashed
-            // session had it; its save converts the project after the upgrade's consent (WP-S1.17 D11). Without the
-            // consent the session is dropped without its clean close: the journal stays.
+            say(output, errors, &summary(&info));
+            // FT-1336, FT-1394: a project of an older format opens migrated and the journal replays onto it, as the
+            // crashed session had it; its save converts the project, so the upgrade's consent comes first (WP-S1.17
+            // D11). Without it the session closes with the journal kept as it was, nothing replayed.
             if let Some(from) = &opened.migrated_from
                 && !a.yes
             {
                 let format = ew_api::FORMAT;
                 if !terminal {
-                    eprintln!(
+                    let _ = writeln!(
+                        errors,
                         "error: the project is in the older format {from}: saving the replay converts it, and \
                          confirming that needs an interactive terminal (type `{UPGRADE_WORD}` there) or `ew recover \
                          --replay --yes`; nothing was saved and the journal is kept"
                     );
-                    drop(session);
+                    session.close();
                     return 2;
                 }
                 let prompt = format!(
@@ -645,13 +636,31 @@ fn run_recover_with(
                      which older versions of ElektraWatt cannot open, after a backup beside the project folder. Type \
                      `{UPGRADE_WORD}` to replay and upgrade it, anything else to abort: "
                 );
-                let mut errors = std::io::stderr();
-                let asked: &mut dyn std::io::Write = if a.json { &mut errors } else { output };
+                let asked: &mut dyn std::io::Write = if a.json { &mut *errors } else { &mut *output };
                 if !typed_word(input, asked, &prompt, UPGRADE_WORD) {
-                    eprintln!("error: not confirmed; nothing was saved and the journal is kept");
-                    drop(session);
+                    let _ = writeln!(
+                        errors,
+                        "error: not confirmed; nothing was saved and the journal is kept"
+                    );
+                    session.close();
                     return 1;
                 }
+            }
+            // The replay: the session opened again with the journal applied.
+            session.close();
+            let mut session = match open_editing_to(&dir, origin, store, ew_api::Recovery::Apply, None, errors) {
+                Ok((session, _)) => session,
+                Err(code) => return code,
+            };
+            if let Some(refusal) = session.recovery_refusal() {
+                let (code, text) = replay_refusal(refusal);
+                let _ = writeln!(errors, "{text}");
+                // The store kept the journal; the clean close deletes only this session's own journal.
+                session.close();
+                if a.json {
+                    let _ = output.write_all(result(Some(&info), false, generation).as_bytes());
+                }
+                return code;
             }
             session.confirm_upgrade();
             // `Session::save_and_close`, with the upgrade's backup read before the close.
@@ -664,9 +673,10 @@ fn run_recover_with(
             }
             match saved {
                 Ok(saved) => {
-                    super::warn_unreleased(saved.unstable, &mut std::io::stderr());
+                    super::warn_unreleased(saved.unstable, errors);
                     say(
                         output,
+                        errors,
                         &format!(
                             "replayed {} of the crashed session's journal; saved generation {}\n",
                             plural(info.transactions, "transaction", "transactions"),
@@ -676,6 +686,7 @@ fn run_recover_with(
                     if let (Some(from), Some(backup)) = (&opened.migrated_from, backup) {
                         say(
                             output,
+                            errors,
                             &format!(
                                 "upgraded the project from format {from} to format {}; backup: {}\n",
                                 ew_api::FORMAT,
@@ -683,17 +694,18 @@ fn run_recover_with(
                             ),
                         );
                     }
-                    say(output, &further(info.further));
+                    say(output, errors, &further(info.further));
                     if a.json {
                         let _ = output.write_all(result(Some(&info), true, saved.generation).as_bytes());
                     }
                     0
                 }
                 Err(e) => {
-                    eprintln!("error: the save failed: {e}");
+                    let _ = writeln!(errors, "error: the save failed: {e}");
                     if !matches!(e, ew_api::SaveError::Incomplete { .. }) {
                         // The session was dropped without its clean close.
-                        eprintln!(
+                        let _ = writeln!(
+                            errors,
                             "the replayed transactions stay in this session's journal; `ew recover` offers them again"
                         );
                     }
@@ -708,7 +720,7 @@ fn run_recover_with(
                  `{DISCARD_WORD}` to delete it, anything else to abort: "
             );
             if !typed_word(input, output, &prompt, DISCARD_WORD) {
-                eprintln!("error: not confirmed; nothing was discarded");
+                let _ = writeln!(errors, "error: not confirmed; nothing was discarded");
                 session.close();
                 return 1;
             }
@@ -772,7 +784,8 @@ fn run_upgrade_with(
             },
             ..ew_api::SessionOptions::default()
         };
-        let opened = if ew_api::ewz::is_ewz(&ew_api::OsVfs, &dir) {
+        let ewz = ew_api::ewz::is_ewz(&ew_api::OsVfs, &dir);
+        let opened = if ewz {
             ew_api::Session::open_ewz_with(&dir, store, "upgrade", ew_api::MemoMode::default())
         } else {
             ew_api::Session::open(&dir, store, options, ew_api::Recovery::Keep)
@@ -788,6 +801,15 @@ fn run_upgrade_with(
             }
         };
         return match opened.migrated_from {
+            // FT-1214: `ew upgrade` refuses an `.ewz` as every writer does, so the way names `ew extract` first.
+            Some(from) if ewz => {
+                let _ = writeln!(
+                    output,
+                    "the project is in the older format {from}: `ew extract` makes a project folder of the archive, \
+                     and `ew upgrade` converts that folder to format {format} after a backup"
+                );
+                1
+            }
             Some(from) => {
                 let _ = writeln!(
                     output,
@@ -1005,8 +1027,9 @@ mod tests {
         labels
     }
 
-    /// Runs `ew recover` on the project with `terminal` and the typed `answer`: the exit code and its stdout.
-    fn recover(dir: &Path, action: RecoverAction, json: bool, terminal: bool, answer: &str) -> (i32, String) {
+    /// Runs `ew recover` on the project with `terminal` and the typed `answer`: the exit code, its stdout and its
+    /// stderr.
+    fn recover(dir: &Path, action: RecoverAction, json: bool, terminal: bool, answer: &str) -> (i32, String, String) {
         let args = RecoverArgs {
             project: Some(dir.join("p.ew")),
             action,
@@ -1014,9 +1037,13 @@ mod tests {
             yes: false,
         };
         let mut input = std::io::Cursor::new(answer.as_bytes().to_vec());
-        let mut output = Vec::new();
-        let code = run_recover_with(&args, terminal, &mut input, &mut output, store(dir));
-        (code, String::from_utf8(output).unwrap())
+        let (mut output, mut errors) = (Vec::new(), Vec::new());
+        let code = run_recover_with(&args, terminal, &mut input, (&mut output, &mut errors), store(dir));
+        (
+            code,
+            String::from_utf8(output).unwrap(),
+            String::from_utf8(errors).unwrap(),
+        )
     }
 
     #[test]
@@ -1125,8 +1152,8 @@ mod tests {
         let before = journals(&dir);
         assert_eq!(before.len(), 2);
 
-        let (code, shown) = recover(&dir, RecoverAction::Summary, false, false, "");
-        assert_eq!(code, 0);
+        let (code, shown, errors) = recover(&dir, RecoverAction::Summary, false, false, "");
+        assert_eq!((code, errors.as_str()), (0, ""));
         assert_eq!(
             shown,
             "a crashed session left 1 unsaved transaction in its journal:\n  1. page.create\nthe project is unchanged \
@@ -1135,10 +1162,15 @@ mod tests {
         );
         assert_eq!(journals(&dir), before, "the summary changes nothing");
 
-        let (code, shown) = recover(&dir, RecoverAction::Discard, false, false, "discard\n");
+        let (code, shown, errors) = recover(&dir, RecoverAction::Discard, false, false, "discard\n");
         assert_eq!(
-            (code, shown.as_str()),
-            (2, ""),
+            (code, shown.as_str(), errors.as_str()),
+            (
+                2,
+                "",
+                "error: HumanOnly: needs an interactive terminal (`recover --discard` is confirmed by typing \
+                 `discard`; `ew recover` prints the summary without one); nothing was discarded\n"
+            ),
             "off a terminal nothing is opened"
         );
         assert_eq!(journals(&dir), before);
@@ -1148,13 +1180,17 @@ mod tests {
                       remains; run ew recover again\nDiscarding deletes the journal: its unsaved changes are lost and \
                       do not come back. Type `discard` to delete it, anything else to abort: ";
         for wrong in ["", "\n", "y\n", "yes\n", "Discard\n", "discard it\n"] {
-            let (code, shown) = recover(&dir, RecoverAction::Discard, false, true, wrong);
-            assert_eq!((code, shown.as_str()), (1, prompt), "{wrong:?} must abort");
+            let (code, shown, errors) = recover(&dir, RecoverAction::Discard, false, true, wrong);
+            assert_eq!(
+                (code, shown.as_str(), errors.as_str()),
+                (1, prompt, "error: not confirmed; nothing was discarded\n"),
+                "{wrong:?} must abort"
+            );
             assert_eq!(journals(&dir), before, "{wrong:?}: nothing is discarded");
         }
 
-        let (code, shown) = recover(&dir, RecoverAction::Discard, false, true, "  discard \r\n");
-        assert_eq!(code, 0, "{shown}");
+        let (code, shown, errors) = recover(&dir, RecoverAction::Discard, false, true, "  discard \r\n");
+        assert_eq!((code, errors.as_str()), (0, ""), "{shown}");
         assert_eq!(
             shown,
             format!(
@@ -1167,8 +1203,8 @@ mod tests {
         assert!(before.contains(&left[0]), "the other journal is unchanged");
 
         // The other journal (page 5) is offered next and replays.
-        let (code, shown) = recover(&dir, RecoverAction::Replay, false, false, "");
-        assert_eq!(code, 0, "{shown}");
+        let (code, shown, errors) = recover(&dir, RecoverAction::Replay, false, false, "");
+        assert_eq!((code, errors.as_str()), (0, ""), "{shown}");
         assert_eq!(
             shown,
             "a crashed session left 1 unsaved transaction in its journal:\n  1. page.create\nthe project is unchanged \
@@ -1177,10 +1213,10 @@ mod tests {
         );
         assert_eq!(saved_folios(&dir), ["1", "2", "5"]);
         assert!(journals(&dir).is_empty());
-        let (code, shown) = recover(&dir, RecoverAction::Summary, false, false, "");
+        let (code, shown, errors) = recover(&dir, RecoverAction::Summary, false, false, "");
         assert_eq!(
-            (code, shown.as_str()),
-            (0, "no journal of a crashed session: nothing to recover\n")
+            (code, shown.as_str(), errors.as_str()),
+            (0, "no journal of a crashed session: nothing to recover\n", "")
         );
         let _ = std::fs::remove_dir_all(&dir);
     }
@@ -1203,13 +1239,34 @@ mod tests {
         )
         .unwrap();
         assert_eq!(opened.access, ew_api::Access::Edit);
+        // The lock's holder in words (its user, host and start), as a second open reports it.
+        let (probe, probed) = ew_api::Session::open(
+            &dir.join("p.ew"),
+            store(&dir),
+            ew_api::SessionOptions::default(),
+            ew_api::Recovery::Keep,
+        )
+        .unwrap();
+        probe.close();
+        let ew_api::Access::ReadOnly(reason) = &probed.access else {
+            panic!("the probe opened {:?}", probed.access);
+        };
+        let refusal = format!(
+            "error: {}: the project opens read-only: {}; nothing was written\n",
+            dir.join("p.ew").display(),
+            read_only_words(reason)
+        );
         for action in [
             RecoverAction::Summary,
             RecoverAction::Replay,
             RecoverAction::Discard,
         ] {
-            let (code, shown) = recover(&dir, action, false, true, "discard\n");
-            assert_eq!((code, shown.as_str()), (2, ""), "{action:?}");
+            let (code, shown, errors) = recover(&dir, action, false, true, "discard\n");
+            assert_eq!(
+                (code, shown.as_str(), errors.as_str()),
+                (2, "", refusal.as_str()),
+                "{action:?}"
+            );
             assert_eq!(journals(&dir), before, "{action:?}");
         }
         editor.close();
@@ -1792,7 +1849,9 @@ mod tests {
     /// FT-1336: a session on a project of an older format (opened migrated) adds page 3 and crashes. `ew upgrade`
     /// refuses the journal, so `ew recover --replay` is the way out that keeps it: off a terminal without `--yes` it
     /// exits 2 and a wrong word exits 1, the journal kept and offered again each time; `--yes` replays, writes the
-    /// upgrade's backup and saves in this version's format.
+    /// upgrade's backup and saves in this version's format. FT-1394: the consent comes before the replay, so a
+    /// declined run leaves the journal byte for byte as the crash left it, its labels offered again; stderr is
+    /// asserted whole.
     #[test]
     fn recover_replays_the_journal_of_an_older_project_after_the_upgrade_consent() {
         let dir = setup_v0("recover-older");
@@ -1815,33 +1874,55 @@ mod tests {
                 yes,
             };
             let mut input = std::io::Cursor::new(answer.as_bytes().to_vec());
-            let mut output = Vec::new();
-            let code = run_recover_with(&args, terminal, &mut input, &mut output, upgrade_store(&dir));
-            (code, String::from_utf8(output).unwrap())
-        };
-        // A declined replay leaves the replayed transactions in its own session's journal, as one `recover`
-        // transaction (the way a failed save leaves them).
-        let summary_of = |label: &str| {
-            format!(
-                "a crashed session left 1 unsaved transaction in its journal:\n  1. {label}\nthe project is unchanged \
-                 since that session last opened or saved it\n"
+            let (mut output, mut errors) = (Vec::new(), Vec::new());
+            let code = run_recover_with(
+                &args,
+                terminal,
+                &mut input,
+                (&mut output, &mut errors),
+                upgrade_store(&dir),
+            );
+            (
+                code,
+                String::from_utf8(output).unwrap(),
+                String::from_utf8(errors).unwrap(),
             )
         };
-        assert_eq!(run(false, false, ""), (2, summary_of("page.create")));
-        let summary = summary_of("recover");
+        let summary = "a crashed session left 1 unsaved transaction in its journal:\n  1. page.create\nthe project is \
+                       unchanged since that session last opened or saved it\n";
+        let crashed = journals(&dir);
+        assert_eq!(
+            run(false, false, ""),
+            (
+                2,
+                summary.to_owned(),
+                "error: the project is in the older format 0.0: saving the replay converts it, and confirming that \
+                 needs an interactive terminal (type `upgrade` there) or `ew recover --replay --yes`; nothing was \
+                 saved and the journal is kept\n"
+                    .to_owned()
+            )
+        );
         assert_eq!(upgrade_files(&dir), before, "nothing was saved");
+        assert_eq!(journals(&dir), crashed, "the journal is as the crash left it");
         let prompt = format!(
             "The project is in the older format 0.0. Saving the replay converts it to format {}, which older versions \
              of ElektraWatt cannot open, after a backup beside the project folder. Type `upgrade` to replay and \
              upgrade it, anything else to abort: ",
             ew_api::FORMAT
         );
-        assert_eq!(run(false, true, "yes\n"), (1, format!("{summary}{prompt}")));
-        assert_eq!(upgrade_files(&dir), before, "nothing was saved");
-        assert!(!journals(&dir).is_empty(), "the journal is kept");
-        let (code, shown) = run(true, false, "");
         assert_eq!(
-            (code, shown),
+            run(false, true, "yes\n"),
+            (
+                1,
+                format!("{summary}{prompt}"),
+                "error: not confirmed; nothing was saved and the journal is kept\n".to_owned()
+            )
+        );
+        assert_eq!(upgrade_files(&dir), before, "nothing was saved");
+        assert_eq!(journals(&dir), crashed, "the journal is as the crash left it");
+        let (code, shown, errors) = run(true, false, "");
+        assert_eq!(
+            (code, shown, errors),
             (
                 0,
                 format!(
@@ -1849,7 +1930,8 @@ mod tests {
                      project from format 0.0 to format {}; backup: {}\n",
                     ew_api::FORMAT,
                     backup_of(&dir).display()
-                )
+                ),
+                String::new()
             )
         );
         assert!(backup_of(&dir).is_file());
@@ -1859,7 +1941,8 @@ mod tests {
     }
 
     /// ID-1250 (C48-p4#5): `--check` on an `.ewz` of an older format opens it through the injected chain and exits 1;
-    /// the backup the upgrade wrote holds the project in format 0.0. Nothing is written.
+    /// the backup the upgrade wrote holds the project in format 0.0. Nothing is written. The way names `ew extract`
+    /// first, since `ew upgrade` refuses an `.ewz` (FT-1214).
     #[test]
     fn upgrade_check_exits_1_on_an_older_ewz() {
         let dir = setup_v0("upgrade-check-ewz");
@@ -1873,7 +1956,8 @@ mod tests {
             (
                 1,
                 format!(
-                    "the project is in the older format 0.0: `ew upgrade` converts it to format {} after a backup\n",
+                    "the project is in the older format 0.0: `ew extract` makes a project folder of the archive, and \
+                     `ew upgrade` converts that folder to format {} after a backup\n",
                     ew_api::FORMAT
                 ),
                 String::new()

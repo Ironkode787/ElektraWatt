@@ -1468,7 +1468,7 @@
         },
         {
           "code": 1,
-          "meaning": "the replay refused or the discard not confirmed"
+          "meaning": "the replay refused, or its upgrade or the discard not confirmed"
         },
         {
           "code": 2,
