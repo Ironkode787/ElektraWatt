@@ -42,8 +42,14 @@ pub fn check(input: &[u8]) -> Outcome {
     };
     let mut last = 0;
     for step in &steps {
-        assert!(step.line > last, "the steps are not on lines of their own, in order: {steps:?}");
-        assert!(step.params.is_object(), "a step's parameters are no object: {step:?}");
+        assert!(
+            step.line > last,
+            "the steps are not on lines of their own, in order: {steps:?}"
+        );
+        assert!(
+            step.params.is_object(),
+            "a step's parameters are no object: {step:?}"
+        );
         last = step.line;
     }
     let mut again = vec![json!({"$schema": SCRIPT_SCHEMA}).to_string()];
@@ -56,7 +62,11 @@ pub fn check(input: &[u8]) -> Outcome {
     let pairs = |s: &[ew_viewmodel::script::Step]| -> Vec<(String, Value)> {
         s.iter().map(|s| (s.action.clone(), s.params.clone())).collect()
     };
-    assert_eq!(pairs(&reread), pairs(&steps), "a parsed script written back reads differently");
+    assert_eq!(
+        pairs(&reread),
+        pairs(&steps),
+        "a parsed script written back reads differently"
+    );
     Outcome {
         parsed: true,
         steps: steps.len(),

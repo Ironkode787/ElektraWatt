@@ -831,9 +831,13 @@ pub fn map(inp: &Inputs<'_>, used: &mut BTreeSet<String>, findings: &mut Finding
         let folio = mx.folio(d).to_owned();
         let loc = mx.findings.loc(Some(&folio), None, None);
         let text = if n == 1 {
-            format!("1 element without label: its device tag carries the element prefix letter (else `{FALLBACK_LETTER}`) and is numbered on import")
+            format!(
+                "1 element without label: its device tag carries the element prefix letter (else `{FALLBACK_LETTER}`) and is numbered on import"
+            )
         } else {
-            format!("{n} elements without label: device tags carry the element prefix letter (else `{FALLBACK_LETTER}`) and are numbered on import")
+            format!(
+                "{n} elements without label: device tags carry the element prefix letter (else `{FALLBACK_LETTER}`) and are numbered on import"
+            )
         };
         mx.findings.push(UNLABELED, Severity::Info, loc, text);
     }

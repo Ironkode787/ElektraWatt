@@ -165,7 +165,10 @@ fn a_cable_without_a_definition_line_is_placed_through_its_first_core() {
         .function(0x2001, Some(0x2000), 0x500, true)
         .rep(0x2010, PAGES[2], 0x510, &[0x2001], 0, 0);
     // The cores of 0x4000: BU on 103 (the larger ID), BN on 102 (the smaller, its first core).
-    for (n, page, core, f) in [(0x4102, PAGES[2], 0x4002, 0x2001), (0x4101, PAGES[1], 0x4001, 0x1001)] {
+    for (n, page, core, f) in [
+        (0x4102, PAGES[2], 0x4002, 0x2001),
+        (0x4101, PAGES[1], 0x4001, 0x1001),
+    ] {
         fx.push(json!({"$k": "connection", "id": uid(n), "page": uid(page),
             "a": {"cp": [uid(f), 0]}, "b": {"cp": [uid(f), 1]}, "kind": {"core": uid(core)}}));
     }
@@ -177,7 +180,14 @@ fn a_cable_without_a_definition_line_is_placed_through_its_first_core() {
         Some(id(PAGES[1]))
     );
     assert_eq!(ew_commands::numbering::main_page_in(&m, id(0x5000)), None);
-    let product = |d: u128| q.get::<DeviceTag>(id(d)).as_ref().as_ref().unwrap().product.clone();
+    let product = |d: u128| {
+        q.get::<DeviceTag>(id(d))
+            .as_ref()
+            .as_ref()
+            .unwrap()
+            .product
+            .clone()
+    };
     assert_eq!(product(0x4000), "102W1");
     assert_eq!(product(0x5000), "W2");
     assert_agree(&fx, &[0x4000, 0x5000, 0x1000, 0x2000]);

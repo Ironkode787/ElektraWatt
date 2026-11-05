@@ -22,8 +22,8 @@
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Mutex;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use ew_api::library::lock::{self, Identity, LockRecord};
 use ew_api::library::{LibManifest, LockPolicy, MANIFEST, Registry, Tier};

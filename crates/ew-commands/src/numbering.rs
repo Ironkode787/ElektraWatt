@@ -28,8 +28,8 @@ use ew_ids::Id;
 use ew_mltext::{Ident, NaturalKey};
 use ew_model::Model;
 use ew_schema::{
-    Conductor, Connection, ConnectionKind, Device, FnRole, FormDef, FrameGrid, Function, LibCopy, Page, PageType,
-    RepType, Representation, SymbolDef, TagScheme,
+    Conductor, Connection, ConnectionKind, Device, FnRole, FormDef, FrameGrid, Function, LibCopy, Page,
+    PageType, RepType, Representation, SymbolDef, TagScheme,
 };
 
 use crate::tx::TxBuilder;
@@ -291,8 +291,12 @@ pub fn main_page_in(model: &Model, device: Id<Device>) -> Option<Id<Page>> {
         .or_else(|| {
             // a cable without a definition line: the page of its first connected core (see [`main_page`])
             devices.get(&device)?.aspects.cable.as_ref()?;
-            let conductors: BTreeSet<Id<Conductor>> =
-                model.indexes().conductors_by_cable().get(&device).copied().collect();
+            let conductors: BTreeSet<Id<Conductor>> = model
+                .indexes()
+                .conductors_by_cable()
+                .get(&device)
+                .copied()
+                .collect();
             if conductors.is_empty() {
                 return None;
             }

@@ -437,7 +437,11 @@ fn connect_cores_tells_two_cables_with_one_tag_apart() {
         .map(|(tag, _)| tag)
         .filter(|t| !before.iter().any(|(b, _)| b == t))
         .collect();
-    assert_eq!(new, ["-W1", "-W2"], "FT-1406: each new cable takes the project's counter");
+    assert_eq!(
+        new,
+        ["-W1", "-W2"],
+        "FT-1406: each new cable takes the project's counter"
+    );
     done(&mut s, "navigator.show", json!({"kind": "cables"}));
     for tag in ["-W1", "-W2"] {
         done(&mut s, "navigator.select", json!({"keys": [tag]}));

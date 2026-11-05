@@ -887,7 +887,15 @@ fn a_route_runs_from_a_black_box_cp_to_a_junction() {
         })
         .expect("-102G1's representation");
     assert_eq!(rep.functions[0], f);
-    let local = rep.box_.as_ref().expect("a box").cps.iter().find(|c| c.idx == idx).unwrap().pos;
+    let local = rep
+        .box_
+        .as_ref()
+        .expect("a box")
+        .cps
+        .iter()
+        .find(|c| c.idx == idx)
+        .unwrap()
+        .pos;
     let a = Pt2::new(Nm(rep.pos.x.0 + local.x.0), Nm(rep.pos.y.0 + local.y.0));
     let j: Id<ew_schema::Junction> = record_id("junctions", "J3");
     let b = plain

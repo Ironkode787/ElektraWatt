@@ -26,8 +26,8 @@ use std::sync::Arc;
 use ew_ids::Id;
 use ew_rds::{Aspect, Designation, RdsSyntax};
 use ew_schema::{
-    Conductor, ConnectionKind, Device, DeviceKind, FnRole, Function, Page, RepType, Representation, TagScheme,
-    TagSign,
+    Conductor, ConnectionKind, Device, DeviceKind, FnRole, Function, Page, RepType, Representation,
+    TagScheme, TagSign,
 };
 
 use crate::Q;

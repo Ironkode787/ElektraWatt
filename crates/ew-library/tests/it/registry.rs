@@ -1180,7 +1180,10 @@ fn a_library_in_memory_reads_as_its_directory() {
     let mem = Registry::in_memory(Tier::Company, files.clone()).unwrap();
     assert_eq!(mem.documents(lib, Kind::Part), reg.documents(lib, Kind::Part));
     let info = mem.libraries().into_iter().find(|l| l.id == lib).unwrap();
-    assert_eq!((info.tier, info.writable, info.path), (Tier::Company, false, None));
+    assert_eq!(
+        (info.tier, info.writable, info.path),
+        (Tier::Company, false, None)
+    );
     assert_eq!(search(&mem, "A9P52610")[0].library, lib);
     assert!(mem.findings().is_empty(), "{:?}", mem.findings());
 

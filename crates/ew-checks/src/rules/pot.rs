@@ -17,8 +17,8 @@ use std::sync::OnceLock;
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::natural_cmp;
 use ew_derive::ew_schema::{
-    BondKind, ColourCode, Connection, ContactKind, Csa, Device, Discipline, Function, FunctionKind, IecColour, Kind, Page,
-    PotentialEarthing, PotentialType, StructureNode,
+    BondKind, ColourCode, Connection, ContactKind, Csa, Device, Discipline, Function, FunctionKind,
+    IecColour, Kind, Page, PotentialEarthing, PotentialType, StructureNode,
 };
 use ew_derive::ew_units::Dec3;
 use ew_derive::{
