@@ -734,6 +734,8 @@ readonly-lock-lost = de vergrendeling is overgenomen
 readonly-recovery = niet-opgeslagen wijzigingen uit een eerdere sessie
 banner-recovery = Dit project heeft niet-opgeslagen wijzigingen uit een sessie die onverwacht is beëindigd. Het is alleen-lezen geopend. Bestand, Niet-opgeslagen wijzigingen van de eerdere sessie verwerpen verwijdert ze en opent het project om te bewerken; om ze te herstellen opent u het project opnieuw en kiest u Herstellen in de herstelvenster.
 banner-read-only = Dit project is alleen-lezen geopend: { $p0 }.
+# FT-1383 (ID-1418): a read-only project whose damaged library copy a device uses.
+banner-damaged-copy = Dit project is alleen-lezen geopend: het apparaat { $p0 } gebruikt de bibliotheekkopie { $p1 }, die beschadigd is. Werk de kopie eerst bij vanuit de bibliotheek.
 banner-findings = Bij het openen van het project zijn { $p0 } integriteitsbevindingen gevonden.
 banner-settings-bad = Het instellingenbestand kon niet worden gelezen; de standaardwaarden worden gebruikt en het oude bestand is bewaard als { $p0 }.
 banner-settings-write = De instellingen konden niet worden geschreven.
@@ -757,6 +759,7 @@ error-params-object = De parameters zijn een JSON-object.
 error-open = Kan { $p0 } niet openen: { $p1 }.
 error-save = Opslaan mislukt: { $p0 }.
 error-save-as = Opslaan als mislukt: { $p0 }.
+error-save-as-damaged-copy = Opslaan als is geweigerd: het apparaat { $p0 } gebruikt de bibliotheekkopie { $p1 }, die beschadigd is, en een projectkopie zonder dat bestand zou niet openen. Werk de kopie eerst bij vanuit de bibliotheek.
 toast-saved-unreleased-format = Opgeslagen in een formaat dat nog niet is uitgebracht. Uitgebrachte versies van ElektraWatt openen dit project alleen-lezen.
 error-export = Exporteren mislukt: { $p0 }.
 error-write = Het bestand kon niet worden geschreven.

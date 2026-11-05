@@ -1957,8 +1957,17 @@ impl ShellModel {
             },
             Access::ReadOnly(reason) => {
                 let key = read_only_key(reason);
-                let banner =
-                    (!read_only).then(|| strings::format(key!("banner-read-only"), &[strings::text(key)]));
+                // FT-1383 (ID-1418): a damaged library copy a device uses is named, with the way out.
+                let damaged = matches!(reason, ReadOnlyReason::Integrity)
+                    .then(|| session.damaged_copy())
+                    .flatten();
+                let banner = (!read_only).then(|| match damaged {
+                    Some(ew_api::DamagedCopy {
+                        device: Some(device),
+                        file,
+                    }) => strings::format(key!("banner-damaged-copy"), &[&device, &file]),
+                    _ => strings::format(key!("banner-read-only"), &[strings::text(key)]),
+                });
                 Opened {
                     session,
                     report,
@@ -2082,6 +2091,16 @@ impl ShellModel {
     }
 
     pub(crate) fn act_save_as(&mut self, p: &Map<String, Value>) -> Outcome {
+        // FT-1383 (ID-1418): a project whose damaged library copy a device uses is not copied: the copy would not open.
+        if let Some(ew_api::DamagedCopy {
+            device: Some(device),
+            file,
+        }) = self.project.as_ref().and_then(|p| p.session.damaged_copy())
+        {
+            let message = strings::format(key!("error-save-as-damaged-copy"), &[&device, &file]);
+            self.banner = Some(message.clone());
+            return Outcome::Failed { message };
+        }
         let dir = match string_param(p, "dir") {
             Err(e) => return e,
             Ok(Some(dir)) => PathBuf::from(dir),

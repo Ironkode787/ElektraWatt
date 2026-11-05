@@ -485,6 +485,15 @@ pub fn integrity_items(report: &OpenReport) -> Vec<checks::IntegrityItem> {
         .collect()
 }
 
+/// A library copy the open dropped as damaged and the device that names it ([`Session::damaged_copy`], FT-1383).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct DamagedCopy {
+    /// The tag of the device that names the copy (`-101K1`); `None` for a record of no device.
+    pub device: Option<String>,
+    /// The copy's file, relative to the project folder (`lib/parts/<id>.json`).
+    pub file: String,
+}
+
 /// What [`Session::open`] does with a leftover journal of a crashed session (doc 05 §8.3).
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum Recovery {
@@ -1297,6 +1306,41 @@ impl Session {
         }
         self.engine.mark_saved();
         Ok(())
+    }
+
+    /// FT-1383 (ID-1418): the first record, in the integrity check's order, that names a library copy the open
+    /// dropped as damaged, as the device's tag and the copy's project-relative file; `None` when the model passes the
+    /// check. Such a project is read-only, and [`Session::create`] refuses it: a copy without the damaged file would not
+    /// open.
+    pub fn damaged_copy(&self) -> Option<DamagedCopy> {
+        let Err(ModelError::Invariant { id, keys, .. }) = self.engine.model().integrity_check() else {
+            return None;
+        };
+        let (&[referrer, (kind, copy)], true) = (keys.as_slice(), id == ew_model::REFS_RESOLVE) else {
+            return None;
+        };
+        let file = ew_store::ew_format::FilePath::lib(ew_store::ew_format::lib_dir(kind)?, copy).to_string();
+        let q = self.query();
+        let device = match referrer.0 {
+            ew_schema::Kind::Device => Some(referrer.1.cast()),
+            ew_schema::Kind::Function => q
+                .functions()
+                .get(referrer.1.cast())
+                .and_then(|f| f.device),
+            ew_schema::Kind::Representation => q
+                .table::<ew_schema::Representation>()
+                .get(referrer.1.cast())
+                .and_then(|r| r.functions.iter().find_map(|f| q.functions().get(*f)?.device)),
+            _ => None,
+        };
+        let device = device.map(|d| {
+            q.get::<DeviceTag>(d)
+                .as_ref()
+                .as_ref()
+                .map(|t| t.short())
+                .unwrap_or_default()
+        });
+        Some(DamagedCopy { device, file })
     }
 
     /// Saves the current model (doc 05 §5.2): only the files of the transactions since the last save,

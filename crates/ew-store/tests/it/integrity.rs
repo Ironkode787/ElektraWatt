@@ -471,6 +471,20 @@ fn a_damaged_copy_a_device_names_opens_read_only_with_its_finding() {
         model.integrity_check().is_err(),
         "a device names the missing copy"
     );
+    // C52-p4#1 (ID-1418): Save As of it is refused before anything is written; the copy would not open.
+    let target = PathBuf::from("/q");
+    let mut opts = options(&vfs, 1);
+    opts.state_dir = None;
+    assert!(matches!(
+        Store::create(&target, &model, opts),
+        Err(ew_store::OpenError::Model { .. })
+    ));
+    assert!(
+        project_files(&vfs, &target).is_empty(),
+        "nothing is written"
+    );
+    use ew_store::Vfs as _;
+    assert!(vfs.stat(&target).is_err(), "not even the folder");
     store.close();
     let opened = Store::open(&root, repair_options(&vfs, 1)).expect("opens");
     assert_eq!(opened.report.access, Access::ReadOnly(ReadOnlyReason::Integrity));

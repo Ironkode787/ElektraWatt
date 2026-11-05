@@ -775,6 +775,8 @@ readonly-recovery = unsaved changes from an earlier session
 # Banners and messages.
 banner-recovery = This project has unsaved changes from a session that ended unexpectedly. It is open read-only. File, Discard unsaved changes of the earlier session deletes them and opens the project for editing; to recover them, reopen the project and choose Recover in the recovery dialog.
 banner-read-only = This project is open read-only: { $p0 }.
+# FT-1383 (ID-1418): a read-only project whose damaged library copy a device uses.
+banner-damaged-copy = This project is open read-only: the device { $p0 } uses the library copy { $p1 }, which is damaged. Update the copy from its library first.
 banner-findings = { $p0 } integrity findings were found when the project was opened.
 banner-settings-bad = The settings file could not be read; defaults are used and the old file was kept as { $p0 }.
 banner-settings-write = The settings could not be written.
@@ -800,6 +802,7 @@ error-params-object = The parameters are a JSON object.
 error-open = Cannot open { $p0 }: { $p1 }.
 error-save = Saving failed: { $p0 }.
 error-save-as = Save as failed: { $p0 }.
+error-save-as-damaged-copy = Save as is refused: the device { $p0 } uses the library copy { $p1 }, which is damaged, and a copy of the project without that file would not open. Update the copy from its library first.
 toast-saved-unreleased-format = Saved in a format that is not released yet. Released versions of ElektraWatt open this project read-only.
 error-export = Export failed: { $p0 }.
 error-write = The file could not be written.

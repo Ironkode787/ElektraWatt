@@ -2385,7 +2385,22 @@ fn open_editing_to(
     match &opened.access {
         ew_api::Access::ReadOnly(ew_api::ReadOnlyReason::Integrity) if repair => {}
         ew_api::Access::ReadOnly(reason) => {
-            let _ = writeln!(errors, "{}", read_only_refusal(dir, reason));
+            // FT-1383 (ID-1418): a damaged library copy a device uses is named, with the way out.
+            let refusal = match (reason, session.damaged_copy()) {
+                (
+                    ew_api::ReadOnlyReason::Integrity,
+                    Some(ew_api::DamagedCopy {
+                        device: Some(device),
+                        file,
+                    }),
+                ) => format!(
+                    "error: {}: the project opens read-only: the device {device} uses the library copy {file}, which \
+                     is damaged; update the copy from its library first; nothing was written",
+                    dir.display()
+                ),
+                _ => read_only_refusal(dir, reason),
+            };
+            let _ = writeln!(errors, "{refusal}");
             session.close();
             return Err(2);
         }

@@ -2973,6 +2973,45 @@ fn fmt_keeps_unknown_members_and_quarantined_lines_verbatim() {
     assert!(tree(&broken) == before, "nothing is written");
 }
 
+/// C52-p4#1, #2 (FT-1383, ID-1418): a writer refused on a project whose damaged library copy a device uses names the
+/// device, the copy's file and the way out, and writes nothing.
+#[test]
+fn a_writer_names_the_damaged_copy_a_device_uses() {
+    let t = Tmp::new();
+    let home = t.0.join("home");
+    let project = golden_copy(&t);
+    let mut shards: Vec<_> = std::fs::read_dir(project.join("devices"))
+        .unwrap()
+        .map(|e| e.unwrap().path())
+        .collect();
+    shards.sort();
+    let copy = shards
+        .iter()
+        .find_map(|p| {
+            let text = std::fs::read_to_string(p).unwrap();
+            let at = text.find("\"copy\":\"")? + "\"copy\":\"".len();
+            Some(text[at..at + 36].to_owned())
+        })
+        .expect("a device names a part copy");
+    let file = format!("lib/parts/{copy}.json");
+    std::fs::write(project.join(&file), "{\"$k\": \"part\",\n").unwrap();
+    let before = tree(&project);
+    let o = ew_in(&home, &["fmt".as_ref(), project.as_os_str()], &[]);
+    assert_eq!(
+        (o.status.code(), stdout(&o), stderr(&o)),
+        (
+            Some(2),
+            String::new(),
+            format!(
+                "error: {}: the project opens read-only: the device -201U8-Q1 uses the library copy {file}, which is \
+                 damaged; update the copy from its library first; nothing was written\n",
+                project.display()
+            )
+        )
+    );
+    assert!(tree(&project) == before, "nothing is written");
+}
+
 /// FM-3: `ew fmt` on a project with a crashed session's journal exits 2, pointing at `ew recover`, and writes nothing,
 /// though a file is out of canonical form; the journal stays.
 #[test]

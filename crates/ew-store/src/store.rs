@@ -1765,8 +1765,13 @@ impl Store {
     /// # Errors
     ///
     /// [`OpenError::Exists`] when `root` already holds a project; I/O and lock errors; a save error as
-    /// [`OpenError::Format`].
+    /// [`OpenError::Format`]; [`OpenError::Model`] for a model that fails its integrity check (a read-only project
+    /// whose damaged library copy a record names, FT-1383, ID-1418), before anything is written.
     pub fn create(root: &Path, model: &Model, opts: StoreOptions) -> Result<Store, OpenError> {
+        model.integrity_check().map_err(|error| OpenError::Model {
+            error,
+            findings: Vec::new(),
+        })?;
         let vfs = Arc::clone(&opts.vfs);
         vfs.create_dir_all(root).map_err(io_err(root))?;
         if vfs.stat(&join(root, MANIFEST)).is_ok() {
