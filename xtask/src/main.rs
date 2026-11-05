@@ -16,6 +16,8 @@ mod all_features;
 mod anonymise;
 mod api_guard;
 mod blind;
+#[cfg(test)]
+mod book_pot;
 mod build_scripts;
 mod dco;
 mod deps;

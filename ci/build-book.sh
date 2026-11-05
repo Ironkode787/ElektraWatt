@@ -24,7 +24,8 @@
 #    sudo; their absence fails here with the reason, not as a documentation failure of the build. The English book goes
 #    to <dest>, then the Dutch one (`book.language = nl`, docs/book/po/nl.po) to <dest>/nl.
 # 5. The PO template is made from a copy of the book without its generated pages, so no generated text enters it; a
-#    committed docs/book/po/messages.pot whose messages differ is a warning, not a failure (`--pot` refreshes it).
+#    committed docs/book/po/messages.pot whose messages differ is a warning here (`--pot` refreshes it); xtask's test
+#    `book_pot` fails on a page whose words the template does not hold (FT-1481).
 set -euo pipefail
 
 docs_mdbook_version="$(python3 -I packaging/stage.py pin mdbook)"
