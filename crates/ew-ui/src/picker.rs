@@ -268,7 +268,7 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
 
 /// The key of the open picker's width (ID-1439): it never narrows while the picker is open.
 fn picker_width_id() -> Id {
-    Id::new("place-picker-width")
+    Id::unique("place-picker-width")
 }
 
 /// A part row's part number (FT-712, FT-759): visibly secondary, `type.small` in `color.text.secondary`
