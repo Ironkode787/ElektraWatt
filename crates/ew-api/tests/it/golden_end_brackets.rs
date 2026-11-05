@@ -470,7 +470,11 @@ fn insert_terminals(s: &mut Session, strip: &str, count: u32) {
 /// millimetre.
 fn s10(s: &Session, key: &str) -> i64 {
     let q = s.query();
-    let row = q.table::<Placement>().get(placement(key)).cloned().expect("the placement");
+    let row = q
+        .table::<Placement>()
+        .get(placement(key))
+        .cloned()
+        .expect("the placement");
     row.pose.t[0].0 * 10 / MM
 }
 

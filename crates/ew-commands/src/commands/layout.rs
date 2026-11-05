@@ -14,11 +14,10 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use ew_derive::Q;
 use ew_derive::layout::{
-    Fit, Mountable, PathError, PoseError, PoseOn, Profile, Quarter, RailAxis, RailExtent, RailItem,
-    PlacementGeometry, Resolution, SnapError, SnapMode, Unplaced, bracket_part, carrier_label, cascade, check_path,
-    check_pose,
-    clip_offset, fits_rail, member_order, member_slot, min_gap, mm, mount_label, next_fit, plate_frame,
-    rail_extent, rail_items, rehome_pose, resolve,
+    Fit, Mountable, PathError, PlacementGeometry, PoseError, PoseOn, Profile, Quarter, RailAxis, RailExtent,
+    RailItem, Resolution, SnapError, SnapMode, Unplaced, bracket_part, carrier_label, cascade, check_path,
+    check_pose, clip_offset, fits_rail, member_order, member_slot, min_gap, mm, mount_label, next_fit,
+    plate_frame, rail_extent, rail_items, rehome_pose, resolve,
 };
 use ew_derive::{DeviceTag, DrawnPageOrder, PageRef, StructureOf, StructurePath};
 use ew_ids::Id;
@@ -1708,7 +1707,11 @@ pub(crate) fn push_after_growth(tx: &mut TxBuilder<'_>, strip: Id<Device>) -> Re
         let CarrierRef::Carrier(c) = row.carrier else {
             continue;
         };
-        let known = q.get::<PlacementGeometry>(p).as_ref().as_ref().is_some_and(|g| !g.unknown);
+        let known = q
+            .get::<PlacementGeometry>(p)
+            .as_ref()
+            .as_ref()
+            .is_some_and(|g| !g.unknown);
         if row.part.is_some() || !known || Quarter::of(row.pose.q) != Some(Quarter::NONE) {
             continue;
         }
