@@ -134,6 +134,9 @@ Report each item as "checked: `<place>`" or "not applicable".
 - **Consumers:** importers, `library.update`, catalogues, briefs and the CLI follow the change.
 - **The spec:** the built behaviour matches the spec. Report a deviation as a proposed row; do not hide it.
 - **Growing sets:** no test pins the total of a set that grows.
+- **Oracles:** a change to what an open, a command or a migration may return updates the fuzz oracles that judge it
+  (`fuzz/src/`, `crates/ew-testkit/tests/command_fuzz/`) in the same lane; say which (retro 52, ID-1449).
+- **Both platforms:** a branch a platform takes (`cfg!(target_os = ...)`) is proven by a unit test of both branches.
 - **Library content:** a published version is immutable. Check `git show main:<path>` before you change one.
 
 ## Visible changes

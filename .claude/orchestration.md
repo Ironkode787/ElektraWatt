@@ -200,8 +200,15 @@ The main session orchestrates. It plans each cycle, briefs Claude subagents, int
         integration commit, never `git add -A` (2026-11-01, cycle-43 retro);
       - squashes a lane's work-in-progress commits that fail alone into the commit that completes them when it
         merges them (ID-1113, from cycle 46).
+      - **integrates a lane by merge, settled in the merge** (retro 52, ID-1449): `git merge --no-ff <lane branch>`,
+        then `cargo xtask settle --base <the pre-merge tip>` amended into the merge commit, so every lane commit builds
+        on its own line and first-parent bisect holds; a single-commit lane may be cherry-picked. The lane's `target`
+        is freed at the merge (the shared cache refills a fix round's dependencies).
+    - **The delivery verify mirrors CI's jobs** (retro 52, ID-1449): the workspace with all features, the fuzz crate's
+      clippy, `ci/translation-status.py` and the book's template check, and each fuzz target for 20 s on its own
+      toolchain.
     - Subagent check results are claims until re-run.
-    - Lanes keep their `target` for a fix round; the orchestrator deletes it when the part is accepted (2026-11-01).
+    - A lane's `target` is freed at its merge (retro 52, ID-1449); before that rule, lanes kept it for a fix round.
     - **A release branch** (owner, 2026-11-05, ID-1412). A release is cut from `release/<X.Y>`, branched at a
       delivery. Its candidates are tagged there, and only fixes for what the release's checks find land there: a fix
       lane bases on the release branch, and the orchestrator cherry-picks each fix onto the working branch too. Every
