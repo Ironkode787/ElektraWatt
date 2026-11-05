@@ -27,8 +27,8 @@ pub enum CmdError {
         path: String,
         /// What is wrong, in English.
         message: String,
-        /// The same by key, which the window renders in its language (FT-1395).
-        text: Text,
+        /// The same by key, which the window renders in its language (FT-1395); boxed, so that the error stays small.
+        text: Box<Text>,
     },
     /// A record the command names does not exist.
     NotFound {
@@ -109,7 +109,7 @@ impl CmdError {
             command: command.into(),
             path: path.into(),
             message: text.to_string(),
-            text,
+            text: Box::new(text),
         }
     }
 }

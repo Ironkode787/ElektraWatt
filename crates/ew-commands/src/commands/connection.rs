@@ -462,7 +462,7 @@ impl Command for ConnectMany {
         for (i, c) in self.connections.iter().enumerate() {
             let out = c.run(tx).map_err(|err| match err {
                 CmdError::InvalidParams { path, text, .. } => {
-                    CmdError::invalid_params(Self::NAME, format!("/connections/{i}{path}"), text)
+                    CmdError::invalid_params(Self::NAME, format!("/connections/{i}{path}"), *text)
                 }
                 CmdError::Rejected { source, reason, text } => {
                     let why = text.map_or_else(|| TextArg::from(reason), TextArg::from);

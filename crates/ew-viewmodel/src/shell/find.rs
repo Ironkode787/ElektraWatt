@@ -437,7 +437,7 @@ impl ShellModel {
                 path, message, text, ..
             } => {
                 // FT-1395 (ID-1415): the reason in the window's language.
-                let message = super::tools::rejected_words(message, Some(text));
+                let message = super::tools::rejected_words(message, Some(&**text));
                 let mut parts = path.trim_start_matches('/').split('/');
                 match (parts.next(), parts.next().and_then(|i| i.parse::<usize>().ok())) {
                     (Some("edits"), Some(i)) => {

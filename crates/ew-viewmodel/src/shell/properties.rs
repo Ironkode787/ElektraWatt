@@ -45,7 +45,7 @@ fn refusal_text(e: &CmdError, label: &dyn Fn(usize) -> String) -> String {
         CmdError::InvalidParams {
             path, message, text, ..
         } => {
-            let message = super::tools::rejected_words(message, Some(text));
+            let message = super::tools::rejected_words(message, Some(&**text));
             match path
                 .strip_prefix("/targets/")
                 .and_then(|i| i.parse::<usize>().ok())

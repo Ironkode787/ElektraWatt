@@ -478,7 +478,7 @@ impl SetFields {
                     crate::commands::structure_box::check_box(tx, Self::NAME, "", &b).map_err(
                         |e| match e {
                             CmdError::InvalidParams { text, .. } => {
-                                CmdError::invalid_params(Self::NAME, "/value", text)
+                                CmdError::invalid_params(Self::NAME, "/value", *text)
                             }
                             other => other,
                         },
@@ -802,7 +802,7 @@ impl Command for SetManyFields {
         for (i, e) in self.edits.iter().enumerate() {
             e.apply(tx).map_err(|err| match err {
                 CmdError::InvalidParams { path, text, .. } => {
-                    CmdError::invalid_params(Self::NAME, format!("/edits/{i}{path}"), text)
+                    CmdError::invalid_params(Self::NAME, format!("/edits/{i}{path}"), *text)
                 }
                 other => other,
             })?;

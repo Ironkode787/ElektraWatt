@@ -1250,7 +1250,7 @@ pub(super) fn command_failed(e: &CmdError, params: &Value) -> Outcome {
             &[
                 strings::command_title(command),
                 &param_words(params, path),
-                &rejected_words(message, Some(text)),
+                &rejected_words(message, Some(&**text)),
             ],
         ),
         // FT-909 (ID-1108): a refusal shows its reason, never the error's Display form ("<source>: <reason>"); FT-1337
@@ -1323,9 +1323,10 @@ fn command_error_text(e: &CmdError) -> (Key<'static>, Vec<String>) {
         CmdError::Prevented { .. } | CmdError::Model(_) => (key!("error-command"), vec![e.to_string()]),
         CmdError::History { reason } => (key!("error-command-history"), vec![reason.clone()]),
         CmdError::Internal { reason } => (key!("error-command-internal"), vec![reason.clone()]),
-        CmdError::InvalidParams { message, text, .. } => {
-            (key!("error-command"), vec![rejected_words(message, Some(text))])
-        }
+        CmdError::InvalidParams { message, text, .. } => (
+            key!("error-command"),
+            vec![rejected_words(message, Some(&**text))],
+        ),
         CmdError::Rejected { reason, text, .. } => {
             (key!("error-command"), vec![rejected_words(reason, text.as_ref())])
         }

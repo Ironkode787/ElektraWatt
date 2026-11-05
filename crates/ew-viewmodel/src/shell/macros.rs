@@ -564,7 +564,7 @@ impl ShellModel {
                 ("refusal-macro-variable", [_, ew_api::TextArg::Text(why)]) => {
                     super::tools::rejected_words(message, Some(why))
                 }
-                _ => super::tools::rejected_words(message, Some(text)),
+                _ => super::tools::rejected_words(message, Some(&**text)),
             });
         }
         let result = raw.map_err(|e| e.to_string());
