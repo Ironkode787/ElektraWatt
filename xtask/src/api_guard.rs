@@ -37,7 +37,7 @@
 //!
 //! **The sixth surface, `format`** (WP-S6.08 D9; ADR-0011 amendment 6). Each format folder `schemas/<f>/` is compared
 //! with its base, the oldest final release tag (`v<X.Y.Z>`, no `-rc`) whose tree holds `schemas/<f>/index.json`;
-//! without one the format is not released and the guard prints "format <f>: not released; nothing to compare". Its
+//! without one the format is not released and the guard prints `format <f>: not released; nothing to compare`. Its
 //! items are `index.json`, `<kind>` (a schema file or an index entry) and `<kind> <path>` (a property path as above).
 //! Against the base, **breaking**, which always fails with its own line and no `api-break` line lets pass: a schema
 //! file or a kind removed; a property removed, its type changed or newly required; an `enum` value, a `const` or a
