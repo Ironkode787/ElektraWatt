@@ -941,7 +941,11 @@ impl App {
         self.shell
             .set_canvas_fit_inset(f64::from(crate::hud::fit_inset(&tokens)));
         // WP-S2.17 part 2: the command bar replaces the menu bar (doc 16a §5.2); the app button opens the app menu.
-        let bar_height = crate::command_bar::bar_height(&tokens, self.shell.command_bar_collapsed());
+        let bar_height = if self.shell.symbol_editor().is_some() {
+            tokens.size_tab_row + crate::symbol_editor::toolbar_height(&tokens) + tokens.border_width
+        } else {
+            crate::command_bar::bar_height(&tokens, self.shell.command_bar_collapsed())
+        };
         let command_bar = &mut self.command_bar;
         let shell = &self.shell;
         Panel::top("command-bar")
@@ -949,7 +953,9 @@ impl App {
             .resizable(false)
             .show_separator_line(false)
             .frame(egui::Frame::NONE.fill(chrome))
-            .show(ui, |ui| command_bar.show(ui, shell, &mut events));
+            .show(ui, |ui| {
+                command_bar.show(ui, shell, &mut events, &mut self.symbol_editor_view)
+            });
         // F6 reached the command bar: its active tab takes egui's keyboard focus.
         let bar_has_focus = self.shell.focus() == Some(Focus::CommandBar);
         if bar_has_focus && !self.bar_had_focus {
@@ -980,7 +986,7 @@ impl App {
             self.canvas.begin_frame(&ctx, &self.shell);
         }
         self.area_splitters = 0;
-        if project_view {
+        if project_view && self.shell.symbol_editor().is_none() {
             // WP-S2.17 part 3 (doc 16a §5.4, §5.6): the navigator rail at the left, the palettes rail at the right.
             for (side, left) in [("rail-left", true), ("rail-right", false)] {
                 let panel = if left {

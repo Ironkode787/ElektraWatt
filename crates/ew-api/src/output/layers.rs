@@ -195,7 +195,20 @@ fn layer_view(q: &Q, page: PageRef, layer: Layer) -> Option<PageView> {
 /// The project's effective text-style table (ADR-0032) as the scene's table: the rows of `ew_derive::text_styles`
 /// in their order. Every page layer, the editing outputs and the exports resolve text styles through it.
 pub fn text_style_table(q: &Q) -> ew_text::TextStyleTable {
-    ew_text::TextStyleTable::from_rows(ew_derive::text_styles(q).iter().map(|s| {
+    table_from_style_rows(&ew_derive::text_styles(q))
+}
+
+/// The effective styles of a new basic project, for a document preview before any project is open.
+pub fn new_project_text_style_table() -> ew_text::TextStyleTable {
+    let settings = ew_schema::ProjectSettings {
+        text_styles: ew_schema::new_project_text_styles(),
+        ..Default::default()
+    };
+    table_from_style_rows(&ew_schema::effective_text_styles(&settings))
+}
+
+fn table_from_style_rows(rows: &[ew_schema::EffectiveStyle]) -> ew_text::TextStyleTable {
+    ew_text::TextStyleTable::from_rows(rows.iter().map(|s| {
         let weight = if s.is_bold() {
             ew_text::Weight::Bold
         } else {

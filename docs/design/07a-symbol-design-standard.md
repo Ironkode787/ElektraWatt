@@ -31,3 +31,6 @@ Sources: [EPLAN variants](https://www.eplan.help/en-US/Infoportal/Content/Plattf
 Editor errors block publishing: off-grid pins, invalid geometry, missing function mappings, invalid slot references,
 unknown unsupported drawing kinds, missing provenance or an invalid version. Advice about layout or visual balance
 does not silently alter the symbol. A valid file still needs engineering review of its electrical meaning.
+
+Test placement requires identical symbol and page connection grids; use a matching-grid scratch page otherwise.
+Unknown active electrical semantics remain inspectable in a draft but block publication and placement.

@@ -10,9 +10,11 @@ use std::path::Path;
 
 use ew_derive::ew_ids::{Id, Uuid, v5};
 pub use ew_dl as drawing;
+pub use ew_mltext::{MlText, MlTextView};
 pub use ew_scene::symbol::{SymbolGeometry, TextSource, lower};
 pub use ew_schema as schema;
 use ew_schema::{FnDef, LibCopy, LibDocument, LibRef, Sha256, SymbolDef};
+pub use ew_text::TextStyleTable;
 pub use ew_units as units;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -182,6 +184,45 @@ pub fn export(draft: &SymbolDraft, path: &Path) -> Result<(), Error> {
     result
 }
 
+/// Preview graphics with text shaped identically to page output. Slot contents are illustrative except pin designations.
+pub fn preview_display_list(
+    draft: &SymbolDraft,
+    geometry: &SymbolGeometry,
+    styles: &TextStyleTable,
+    slot_placeholder: &str,
+) -> drawing::DisplayList {
+    let mut list = geometry.graphics.clone();
+    for text in &geometry.texts {
+        let content = match &text.source {
+            TextSource::Static(t) => match t.view() {
+                MlTextView::Neutral(t) => t.to_owned(),
+                MlTextView::Langs(map) => map
+                    .iter()
+                    .find(|(k, _)| k.as_str() == "en")
+                    .or_else(|| map.iter().next())
+                    .map(|(_, v)| v.clone())
+                    .unwrap_or_default(),
+            },
+            TextSource::Slot(schema::SlotKind::CpDesignation(idx)) => draft
+                .symbol
+                .cps
+                .iter()
+                .find(|c| c.idx == *idx)
+                .and_then(|c| draft.function.cps.iter().find(|p| p.idx == c.fn_cp))
+                .map(|p| p.designation.to_string())
+                .unwrap_or_default(),
+            TextSource::Slot(schema::SlotKind::Tag) => "-U1".into(),
+            TextSource::Slot(_) => slot_placeholder.into(),
+        };
+        list.items.extend(
+            ew_scene::page::symbol_preview_text(text, &content, ew_text::bundled(), styles)
+                .list
+                .items,
+        );
+    }
+    list
+}
+
 impl SymbolDraft {
     /// A new native-grid draft with a private, empty black-box function definition.
     ///
@@ -276,6 +317,35 @@ impl SymbolDraft {
             || self.function.cps.len() > MAX_ITEMS
         {
             issue("symbol-input-limit", "/symbol".into(), self.key.clone());
+        }
+        if matches!(self.function.contact_kind, schema::ContactKind::Unknown(_)) {
+            issue(
+                "symbol-function-semantics",
+                "/function/contact_kind".into(),
+                self.key.clone(),
+            );
+        }
+        for cp in self.function.cps.iter() {
+            if matches!(cp.discipline, schema::Discipline::Unknown(_))
+                || matches!(cp.potential_role, Some(schema::PotentialType::Unknown(_)))
+                || matches!(cp.side, Some(schema::Side::Unknown(_)))
+                || matches!(cp.port_role, Some(schema::FluidPortRole::Unknown(_)))
+            {
+                issue(
+                    "symbol-function-semantics",
+                    format!("/function/cps/{}", cp.idx),
+                    cp.designation.to_string(),
+                );
+            }
+        }
+        for cp in self.symbol.cps.iter() {
+            if matches!(cp.discipline, schema::Discipline::Unknown(_)) {
+                issue(
+                    "symbol-function-semantics",
+                    format!("/symbol/cps/{}", cp.idx),
+                    cp.idx.to_string(),
+                );
+            }
         }
         let mut mapped = BTreeSet::new();
         if self.import_notes.iter().any(|n| n.starts_with("eplan-")) && !self.import_reviewed {
@@ -662,6 +732,50 @@ pub fn open(path: &Path, key: &str) -> Result<Vec<SymbolDraft>, Error> {
         .and_then(|e| e.to_str())
         .unwrap_or("")
         .to_ascii_lowercase();
+    if ext == "slk" {
+        use sha2::{Digest, Sha256};
+        let descriptor = read_bounded_file(path, 8192)?;
+        let directory = ew_import_eplan::slk::directory(&descriptor).map_err(input)?;
+        let parent = path
+            .parent()
+            .filter(|p| !p.as_os_str().is_empty())
+            .unwrap_or(Path::new("."))
+            .canonicalize()
+            .map_err(input)?;
+        let root = parent
+            .join(directory)
+            .canonicalize()
+            .map_err(|_| input("eplan-slk-companion"))?;
+        if root.parent() != Some(parent.as_path()) {
+            return Err(input("eplan-archive-path"));
+        }
+        let mut files = std::collections::BTreeMap::new();
+        let mut hash = Sha256::new();
+        hash.update(&descriptor);
+        let mut total = 0u64;
+        for name in ew_import_eplan::slk::FILES {
+            let file = root.join(name);
+            if file
+                .canonicalize()
+                .map_err(|_| input("eplan-slk-companion"))?
+                .parent()
+                != Some(root.as_path())
+            {
+                return Err(input("eplan-archive-path"));
+            }
+            let bytes = read_bounded_file(&file, ew_import_eplan::MAX_FILE)?;
+            total += bytes.len() as u64;
+            if total > ew_import_eplan::MAX_TOTAL {
+                return Err(input("eplan-input-limit"));
+            }
+            hash.update(name.as_bytes());
+            hash.update((bytes.len() as u64).to_le_bytes());
+            hash.update(&bytes);
+            files.insert(name.to_owned(), bytes);
+        }
+        let imported = ew_import_eplan::slk::read(&files).map_err(input)?;
+        return eplan_drafts(imported, key, &format!("{:x}", hash.finalize()));
+    }
     let eplan = matches!(ext.as_str(), "edz" | "ema" | "ems" | "esl" | "slk" | "xml");
     let bytes = read_bounded_file(
         path,
@@ -689,7 +803,15 @@ pub fn open(path: &Path, key: &str) -> Result<Vec<SymbolDraft>, Error> {
 pub fn import_eplan(bytes: &[u8], name: &str, key: &str) -> Result<Vec<SymbolDraft>, Error> {
     use sha2::{Digest, Sha256};
     let hash = format!("{:x}", Sha256::digest(bytes));
-    ew_import_eplan::read(bytes, name).map_err(input)?.into_iter().enumerate().map(|(i, imported)| {
+    eplan_drafts(ew_import_eplan::read(bytes, name).map_err(input)?, key, &hash)
+}
+
+fn eplan_drafts(
+    imported: Vec<ew_import_eplan::ImportedSymbol>,
+    key: &str,
+    hash: &str,
+) -> Result<Vec<SymbolDraft>, Error> {
+    imported.into_iter().enumerate().map(|(i, imported)| {
         let mut d = serde_json::to_value(SymbolDraft::new(&format!("{key}.{}", i+1), &imported.name)?).map_err(input)?;
         d["symbol"]["graphics"] = json!(imported.graphics);
         // No licence grant is inferred from a download. The author supplies the actual terms before publication.

@@ -24,7 +24,7 @@
 {"action":"symbol.validate"}
 {"action":"symbol.export","params":{"file":"power.symbol.json"}}
 {"action":"symbol.save","params":{"directory":"symbols.ewlib"}}
-{"action":"symbol.place","params":{"x":60,"y":60}}
+{"action":"symbol.scratch"}
 {"action":"ui.describe"}
 {"action":"symbol.close"}
 {"action":"file.save"}

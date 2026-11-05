@@ -712,3 +712,54 @@ fn the_driver_pins_the_minimum_text_size_and_reduced_motion() {
     assert_eq!(d.shell_mut().settings().min_font_pt, 0);
     assert!(d.shell_mut().reduce_motion());
 }
+
+/// WP-S2.10 review: named variants/pin controls and keyboard editing/creation use the real window.
+#[test]
+fn symbol_editor_accessible_controls_and_numeric_keyboard_creation() {
+    use ew_ui::ew_viewmodel::shell::Outcome;
+    let tmp = Tmp::new();
+    let mut d = Driver::in_folder(tmp.config(), None, tmp.0.clone()).unwrap();
+    d.enable_accesskit();
+    assert_eq!(
+        d.shell_mut().dispatch(
+            "symbol.new",
+            &json!({"key":"example.keyboard", "name":"Keyboard"})
+        ),
+        Outcome::Done
+    );
+    assert_eq!(
+        d.shell_mut().dispatch(
+            "symbol.cp",
+            &json!({"x":0,"y":0,"designation":"FE","direction":"left"})
+        ),
+        Outcome::Done
+    );
+    d.settle();
+    for variant in 'A'..='H' {
+        assert!(d.find(&format!("Variants {variant}")).is_some());
+    }
+    d.input(&click(d.find("Electrical data").unwrap()));
+    for name in [
+        "Designation 1",
+        "Potential role FE",
+        "Source output FE",
+        "May remain unconnected FE",
+    ] {
+        assert!(d.find(name).is_some(), "missing accessible control {name}");
+    }
+    d.input(&click(d.find("Drawing").unwrap()));
+    d.input(&click(d.find("Line").unwrap()));
+    // Clicking enters numeric editing; type the endpoint and reach Add with the keyboard.
+    let at = d.find("End x (mm)").unwrap_or_else(|| panic!("{:?}", d.labels()));
+    d.input(&click(at));
+    d.input(&key("ctrl+a"));
+    d.input(&Input::Type { text: "8".into() });
+    d.input(&key("tab"));
+    d.input(&key("tab"));
+    d.input(&key("space"));
+    assert!(actions(&mut d).contains(&"symbol.draw".to_owned()));
+    let draft = &d.shell_mut().symbol_editor().unwrap().draft;
+    let graphics = serde_json::to_value(&draft.symbol.graphics).unwrap();
+    assert_eq!(graphics[0]["line"]["to"], json!([8_000_000, 0]));
+    d.shell_mut().shutdown();
+}

@@ -142,3 +142,84 @@ fn duplicate_json_mapping_and_unsafe_geometry_refuse() {
     let d = SymbolDraft::parse(&serde_json::to_vec(&value).unwrap()).unwrap();
     assert!(d.preview(0).is_err());
 }
+
+#[test]
+fn unknown_electrical_semantics_are_inspectable_but_cannot_publish_or_place() {
+    for pointer in [
+        "/function/contact_kind",
+        "/function/cps/0/discipline",
+        "/function/cps/0/potential_role",
+        "/function/cps/0/port_role",
+        "/function/cps/0/side",
+        "/symbol/cps/0/discipline",
+    ] {
+        let mut doc = serde_json::to_value(block()).unwrap();
+        let (parent, key) = pointer.rsplit_once('/').unwrap();
+        doc.pointer_mut(parent).unwrap()[key] = json!("unsupported-kind");
+        let draft = SymbolDraft::parse(&serde_json::to_vec(&doc).unwrap()).unwrap();
+        assert!(draft.preview(0).is_ok(), "{pointer}");
+        assert!(
+            draft
+                .validate()
+                .iter()
+                .any(|i| i.code == "symbol-function-semantics"),
+            "{pointer}"
+        );
+        assert!(draft.documents(symbols::DRAFT_LIBRARY).is_err(), "{pointer}");
+    }
+}
+
+#[test]
+fn preview_uses_the_page_text_style_in_every_variant() {
+    let mut draft = block();
+    draft.symbol.text_slots[0].style = Some("tag.main".parse().unwrap());
+    let defaults = ew_api::output::new_project_text_style_table();
+    assert_eq!(
+        defaults.get("cp.small").unwrap().em,
+        ew_api::new_project_text_styles()["cp.small"].size
+    );
+    let styles = symbols::TextStyleTable::from_rows(defaults.rows().iter().map(|row| {
+        (
+            row.key.as_str(),
+            if row.key == "tag.main" {
+                symbols::units::Nm(6_000_000)
+            } else {
+                row.em
+            },
+            row.weight,
+        )
+    }));
+    for variant in 0..8 {
+        let g = draft.preview(variant).unwrap();
+        let list = symbols::preview_display_list(&draft, &g, &styles, "Text");
+        let runs: Vec<_> = list
+            .items
+            .iter()
+            .filter_map(|i| match &i.kind {
+                symbols::drawing::ItemKind::Glyphs(run) => Some(run),
+                _ => None,
+            })
+            .collect();
+        assert!(!runs.is_empty());
+        let expected = symbols::units::Nm(6_000_000);
+        assert!(runs.iter().all(|run| run.size == expected));
+    }
+}
+
+#[test]
+// This opt-in test reads a private corpus path at the test boundary, never in production code.
+#[allow(clippy::disallowed_methods)]
+fn optional_native_slk_sample_opens_without_eplan() {
+    let Some(path) = std::env::var_os("EW_EPLAN_SLK_SAMPLE") else {
+        return;
+    };
+    let drafts = symbols::open(std::path::Path::new(&path), "sample.slk").unwrap();
+    assert!(!drafts.is_empty());
+    let sample = drafts
+        .iter()
+        .find(|d| serde_json::to_string(&d.symbol.name).unwrap().contains("QF-FU"))
+        .unwrap();
+    assert!(!sample.symbol.graphics.is_empty());
+    assert!(sample.function.cps.len() >= 6);
+    assert!(sample.import_notes.iter().any(|n| n == "eplan-slk-subset"));
+}

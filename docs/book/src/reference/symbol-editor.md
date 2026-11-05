@@ -3,7 +3,9 @@
 Open **Edit → Symbol editor**. A symbol draft has its own undo history, drawing, function definition,
 connection points, text slots and cross-reference anchor. Changes do not alter existing placements.
 Choose A to draw; B–H show live rotated/mirrored previews. Select a graphic to move it by dragging or edit
-its coordinates in the properties. Pin coordinates, directions and function mappings are editable in **Pins**.
+its coordinates in **Drawing**. **Draw by coordinates** also creates geometry from the keyboard.
+Pin coordinates, directions and function mappings are editable in **Electrical data**.
+The command bar and status bar follow the active symbol; library paths and publication settings live in **Library**.
 Text fields can show tags, function text, technical data, pin designations or cross-references.
 **Advanced JSON** exposes the complete draft, including other slot types, styles and arrangements.
 
@@ -16,7 +18,8 @@ An assigned existing function definition stays referenced and its semantics cann
 Increase the version when changing previously published content. **Export draft** writes portable JSON to a
 new file, including incomplete work; an existing file is never overwritten. Closing an unsaved draft requires
 the explicit **Discard changes** choice. **Test on scratch page** creates a page in the current project and
-places embedded copies there. Project undo removes the placement after closing the editor.
+uses the symbol's connection grid and places embedded copies there. After closing the editor, project undo removes
+the placement; a second undo removes the scratch page.
 
 ## AI and command-line tools
 
@@ -29,6 +32,7 @@ ew symbol validate power.symbol.json
 ew symbol publish power.symbol.json --library symbols.ewlib
 ew symbol import element.elmt --key example.import > imported-drafts.json
 ew symbol import manufacturer.edz --key example.import > imported-drafts.json
+ew symbol import custom.slk --key example.import > imported-drafts.json
 ```
 
 Template and schema print JSON. Validation prints stable issue codes, JSON pointers and details, exiting 0
@@ -66,7 +70,8 @@ The window and `.ewui` scripts share these actions:
 | `symbol.close` | optional `discard: true` |
 
 Action coordinates are **millimetres**, unlike JSON document coordinates. Placement snaps the insertion point to
-the destination page grid; it never moves a pin within the symbol. Replacing/opening/closing dirty drafts
+the destination page grid; it never moves a pin within the symbol. A different symbol/page grid is refused
+before changing the project; use a scratch page with the matching grid. Replacing/opening/closing dirty drafts
 also requires `discard: true` where applicable. `ui.describe` and the script state expose the open editor and
 validation findings. [The tutorial](../tutorials/symbol-editor.md) includes a complete six-pin example.
 
@@ -78,7 +83,8 @@ validation findings. [The tutorial](../tutorials/symbol-editor.md) includes a co
 | EPLAN `.edz` | Bounded 7-Zip or ZIP container; candidates from supported XML members. Never extracts files to disk. |
 | EPLAN `.ema`, `.ems`, `.esl` XML | PXF revision **1.23**: straight lines, rectangles, polylines, full circles and text. Each macro variant becomes a separate candidate. |
 | EPLAN parts XML | Connection designations become a generated rectangular outline. This is explicitly **not the original macro artwork**. |
-| EPLAN binary `.slk` or binary macros | Refused with an explanation. Export a supported XML macro/parts file from EPLAN. |
+| EPLAN `.slk` with its companion `.sdb` folder | Direct read without EPLAN: observed SLK 1.2 / FE53 tables, UTF-16LE or UTF-8 descriptor, A-variant lines, axis-aligned rectangles, full circles and graphical connection points. Review required. |
+| Other binary macros | Refused with an explanation; use a supported XML macro/parts export. |
 
 PXF arcs/ellipses, images, groups, external symbol references and unrecognised records are not faithfully
 reconstructed. The importer reports incomplete geometry and style differences; unresolved macro pins have an
@@ -90,3 +96,29 @@ EPLAN drafts require a licence/source review and explicit acknowledgement. A dow
 redistribution licence. No links or embedded executables are followed. Input limits: 4 MiB per XML/draft,
 32 MiB compressed archive, 64 MiB unpacked total, 4,096 archive entries, 512 recovered candidates, 4,096 editable
 primitives/pins per symbol; archive names, CRCs, decompression ratio and XML depth are checked.
+
+## How the symbol data fits together
+
+| Record | What it owns |
+|---|---|
+| Symbol | Artwork, insertion/reference anchors, text slots, pin positions and directions, and each pin's function mapping. |
+| Function definition | Electrical type, pin designations, potential roles, optional/source flags and internal connections. |
+| Manufacturer part | Purchased-product information such as article number, manufacturer and technical ratings; assigned to a project device separately. |
+| Placed device/function | Device tag, function text, chosen part and embedded copies of the symbol/function definitions. |
+
+A new drawing starts with a generic black-box function. In **Electrical data → Function definition**, choose its
+function type and set each pin's potential role and flags, or assign an existing library function. Existing assigned
+functions remain read-only. Internal connections and less common fields are available through **Advanced JSON**.
+Typing `FE` as a designation changes the printed label; select the FE potential role to give it electrical meaning.
+Text slots obtain tags, technical data and function text from the placed device; the editor shows sample values.
+Library publication does not update already placed copies. The EPLAN importer does not create complete manufacturer
+part records, and SLK connection designations are provisional numbers until the function is reviewed.
+
+Keep `custom.slk` beside the complete `custom.sdb` folder (or the sibling folder named in the descriptor).
+Only the Symbol, Variant, Instance and Blob drawing tables are read. No EPLAN installation, script, workstation
+record or lock file is used. The supported subset is based on an inspected public library sample; it is not a
+vendor-certified database reader. Unsupported versions and legacy descriptor encodings are refused. Other
+primitives, static text, fills and custom line styles are reported as incomplete. Only A is reconstructed; EW
+then derives B–H, which can differ from separately authored EPLAN variants. Review geometry, every connection,
+function semantics and licence before publishing. Missing connection records are reported, never invented.
+Companion tables are limited to 4 MiB each and reconstructed streams to 64 MiB total; oversized libraries are refused.

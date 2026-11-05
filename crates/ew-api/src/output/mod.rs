@@ -129,7 +129,8 @@ pub use job::{ExportJob, PrintSetJob};
 pub use join::{JoinCandidate, JoinCandidates, JoinProposal, JoinedText};
 pub use layers::{
     CarriersLayer, FrameLayer, LabelsLayer, PageLayer, PlacementsLayer, SurfaceLayer, SymbolsLayer,
-    TablesLayer, WiresLayer, page_kind, page_layer, page_scene, page_view, text_style_table,
+    TablesLayer, WiresLayer, new_project_text_style_table, page_kind, page_layer, page_scene, page_view,
+    text_style_table,
 };
 // WP-S4.01 part 3
 pub use layout_edit::{LayoutEdit, LayoutEditError, LayoutPartOffer, parse_mm};

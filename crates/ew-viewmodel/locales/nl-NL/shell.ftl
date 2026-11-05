@@ -4592,3 +4592,53 @@ symbol-y-mm = y (mm)
 symbol-mm = { $p0 } (mm)
 
 symbol-graphic-item = { $p0 } { $p1 }
+
+symbol-more-shapes = Meer vormen
+symbol-cancel = Annuleren
+symbol-drawing-tab = Tekening
+symbol-data-tab = Elektrische data
+symbol-library-tab = Bibliotheek
+symbol-data-help = Aansluitpunten koppelen de tekening aan een elektrische functie. Fabrikantartikelen en apparaatkenmerken worden in het project toegewezen.
+
+symbol-page-grid-mismatch = Dit symbool gebruikt een ander verbindingsraster dan de pagina. Test het op een proefpagina met het juiste raster.
+symbol-function-semantics = Niet-ondersteunde elektrische functiegegevens: { $p0 }. Kies een ondersteunde functie of corrigeer de verbindingsgegevens voor het opslaan.
+
+symbol-numeric-draw = Tekenen met coördinaten
+symbol-end-x = Eindpunt x (mm)
+symbol-end-y = Eindpunt y (mm)
+symbol-add = Toevoegen
+symbol-finish-path = Pad afronden
+
+symbol-function-kind = Functietype
+symbol-potential-role = Potentiaalrol
+symbol-role-none = Niet toegewezen
+symbol-source-output = Bronuitgang
+symbol-optional-pin = Mag onaangesloten blijven
+symbol-kind-black_box = Generieke black box
+symbol-kind-no = Maakcontact
+symbol-kind-nc = Verbreekcontact
+symbol-kind-co = Wisselcontact
+symbol-kind-coil = Spoel
+symbol-kind-pole = Pool
+symbol-kind-terminal = Klem
+symbol-kind-plc_io = PLC-ingang/uitgang
+symbol-kind-bus_port = Buspoort
+symbol-kind-valve = Ventiel
+
+eplan-slk-invalid = De database van de symboolbibliotheek is beschadigd of heeft een niet-ondersteunde recordlayout.
+eplan-slk-version = Deze versie van de EPLAN-symboolbibliotheekdatabase wordt niet ondersteund.
+eplan-slk-encoding = Dit oudere SLK-bestand heeft een niet-ondersteunde tekstcodering. UTF-16- en UTF-8-bestanden worden ondersteund.
+eplan-slk-companion = Bewaar het SLK-bestand naast de volledige .sdb-map en open het opnieuw. Een vereiste tekentabel ontbreekt.
+eplan-slk-record-unsupported = De database van de symboolbibliotheek bevat een niet-ondersteunde recordcodering.
+eplan-slk-subset = Variant A is uit een SLK-bibliotheek geïmporteerd. ElektraWatt genereert de andere oriëntaties. Controleer de tekening voor gebruik.
+eplan-slk-pins-review = De aansluitpuntrecords konden niet worden gelezen. Voeg alle elektrische verbindingen toe en controleer ze voor gebruik.
+eplan-style-review = Tekenstijlen zijn naar de standaardlijnstijl omgezet. Controleer lijndiktes, vullingen en tekst.
+
+eplan-slk-graphics-incomplete = Sommige bibliotheekelementen konden niet worden omgezet. Vergelijk de tekening voor gebruik met de bron.
+
+symbol-pin-column = Pin
+symbol-role-column = Rol
+symbol-source-column = Bron
+symbol-optional-column = Optioneel
+
+symbol-control-name = { $p0 } { $p1 }

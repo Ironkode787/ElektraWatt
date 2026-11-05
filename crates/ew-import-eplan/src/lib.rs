@@ -1,12 +1,13 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Bounded EPLAN EDZ (7-Zip and ZIP), PXF macro XML and parts XML symbol import.
+//! Bounded EPLAN EDZ, PXF/parts XML and native SLK companion-table symbol import.
 
 #![forbid(unsafe_code)]
 
 mod archive;
 mod pxf;
+pub mod slk;
 
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -45,7 +46,8 @@ pub struct Pin {
 }
 
 /// Import EDZ (7z/ZIP), PXF XML macros (.ema/.ems/.esl), or parts XML.
-/// Binary symbol databases (.slk) and unknown PXF revisions are explicitly refused.
+/// Native SLK databases use [`slk::directory`] and [`slk::read`] with bounded companion tables.
+/// This byte-only entry point refuses binary input and unknown PXF revisions.
 /// No filesystem extraction, linked-file loading or code execution occurs.
 ///
 /// # Errors

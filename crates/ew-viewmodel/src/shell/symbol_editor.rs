@@ -90,6 +90,15 @@ impl ShellModel {
         self.symbol_editor.as_ref()
     }
 
+    /// Text styles used by both the project and the editor preview.
+    pub fn symbol_text_styles(&self) -> symbols::TextStyleTable {
+        self.project
+            .as_ref()
+            .map_or_else(ew_api::output::new_project_text_style_table, |p| {
+                ew_api::output::text_style_table(&p.session.query())
+            })
+    }
+
     /// New/import/replace/edit/history/save/place share this action implementation.
     pub(crate) fn act_symbol(&mut self, action: &str, p: &Map<String, Value>) -> Outcome {
         let result = self.symbol_operation(action, p);
@@ -194,11 +203,16 @@ impl ShellModel {
             while labels.iter().any(|l| l == &index.to_string()) {
                 index += 1;
             }
-            let params = json!({"folio":index.to_string(),"title":strings::text(key!("symbol-title"))});
-            match self.dispatch("page.new", &params) {
+            let params =
+                json!({"number":index,"title":strings::text(key!("symbol-title")),"grid":draft.symbol.grid});
+            match self.host_create("page.create", params) {
                 Outcome::Done => {}
                 Outcome::Failed { message } => return Err(message),
                 Outcome::Refused { reason_key } => return Err(strings::text(reason_key).into()),
+            }
+            if let Some(id) = self.tools.last_primary.clone() {
+                self.tools.selection.clear();
+                self.show_page_by_id(&id);
             }
             return self.symbol_operation("place", json!({"x":40,"y":40}).as_object().ok_or("position")?);
         }
@@ -557,6 +571,9 @@ impl ShellModel {
                     .canvas()
                     .ok_or_else(|| strings::text(key!("reason-no-page")).to_owned())?;
                 let snapper = &canvas.page().snapper;
+                if snapper.grid() != (draft.symbol.grid.num() as i64, draft.symbol.grid.den() as i64) {
+                    return Err(strings::text(key!("symbol-page-grid-mismatch")).into());
+                }
                 let pos = snapper
                     .snap_grid(snapper.page_to_sheet((nm(p, "x")?, nm(p, "y")?)))
                     .page_nm;

@@ -2117,6 +2117,10 @@ impl ShellModel {
         if self.symbol_editor.is_some() {
             return self.act_symbol("save", &Map::new());
         }
+        self.save_project()
+    }
+
+    fn save_project(&mut self) -> Outcome {
         let Some(p) = &mut self.project else {
             return Outcome::Refused {
                 reason_key: key!("reason-no-project"),
@@ -2472,7 +2476,7 @@ impl ShellModel {
                 params.insert("discard".to_owned(), Value::Bool(true));
                 self.dispatch(pending.action, &Value::Object(params))
             }
-            ConfirmAnswer::Save => match self.dispatch("file.save", &Value::Null) {
+            ConfirmAnswer::Save => match self.save_project() {
                 Outcome::Done => self.dispatch(pending.action, &Value::Object(params)),
                 other => other,
             },

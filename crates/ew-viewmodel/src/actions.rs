@@ -5935,7 +5935,7 @@ pub struct MenuModel {
 
 /// The menu item of `meta` in the state of `model`.
 pub(crate) fn item_of(meta: &ActionMeta, model: &ShellModel) -> ActionItem {
-    let state = (meta.enabled)(model);
+    let state = enabled_with(meta, model, &serde_json::Map::new());
     // Paste names the page kind that cannot take it (window check, item 3): the reason is a text with the kind, not a
     // plain key, so the item formats it here.
     // Enclosure… likewise names Structure node… in its reason when the project has no location (W44.2 F1).

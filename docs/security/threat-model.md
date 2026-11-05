@@ -168,3 +168,10 @@ extension point adds its row to §3 or §4 in the same change ([CONTRIBUTING](..
 | Date | Release | Reviewer | Parsers and extension points added since the last review | Result |
 |---|---|---|---|---|
 | 2026-11-04 | 0.1.0 (in progress) | WP-S6.04's lanes, read by the cycle's reviewer | First review: every row of §3 and §4, the importer rows from WP-S3.09's code (its front door, limits, purity check and four targets; IC-4 its panic evidence). Found: `ew-library`'s `.ewlib` reader parses `library.json`, its shards and `library.lock` with its own code, not through the loader's `LibDocument` reader; it gained the target `ewlib_read` (ID-1354). Added: the hostile corpus with its allocation bound, the sandbox's rule `foreign-file`, the panic guards of `ew sql` and the table round trip's read | Every parser of §3 has a target; complete for 0.1.0 once the delivery's CI runs `fuzz-smoke`, the deep nightly and the network sandbox green |
+
+Native SLK import reads only eight fixed drawing-table filenames beneath the descriptor's single sibling `.sdb`
+directory. Traversal, external symlink targets, unknown table layouts, duplicate identities/continuation chunks,
+invalid compressed data and excessive records/bytes are refused. It never reads user/lock tables or invokes EPLAN.
+Each file is bounded to 4 MiB, decoded streams to 64 MiB total, candidates to 512 and graphics to 65,536 total.
+Source provenance hashes the descriptor and all consumed tables; no embedded workstation data enters the draft.
+Unsupported native graphics and connection structures are explicit findings and require author review.

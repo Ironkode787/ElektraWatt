@@ -107,12 +107,12 @@ Sources: handoff WP-S2.10; ADR-0011/0027; docs 07/16/16a; the neighbouring speci
 [EPLAN symbol interchange](https://www.eplan.help/en-us/Infoportal/Content/Plattform/2.9/Content/htm/symboleditorgui_h_symboleimportierenexportieren.htm),
 [KiCad library conventions](https://klc.kicad.org/symbol/s3/).
 
-## 10. Implementation and review evidence
+## 10. Implementation and initial verification evidence
 
 - `ew-api::symbols`: portable draft, common validation, schema, QET/EPLAN adapters, atomic new-file export,
   embedded/library forks, assigned-function consistency, canonical library publication. No format 0.1 changes.
 - `ew-viewmodel::shell::symbol_editor`: independent bounded history, all editing actions, import candidate selection,
-  function assignment, publication, scratch-page creation and placement using the destination page's insertion grid.
+  function assignment, publication, scratch pages using the symbol grid and placement only on a compatible page grid.
 - `ew-ui::symbol_editor`: canvas tools, graphics selection/movement, numeric properties, pin mapping/direction,
   slots, anchors, linkage points, live A–H, import review and advanced JSON. Graphics use the production CPU renderer.
 - `ew symbol template|schema|validate|import|publish`: data-only AI authoring, independent of an open project.
@@ -130,24 +130,43 @@ Sources: handoff WP-S2.10; ADR-0011/0027; docs 07/16/16a; the neighbouring speci
   scratch pages and the manufacturer's EDZ preview (33 editable candidates). Images/transcripts remain local.
   The manufacturer's source identity is SHA-256
   `01c7910f1625f15d6f284cf6fc7092de82b6cab848eabed7b274c959f60c2685`.
-- Performance: not measured (owner's rule). Independent review and release promotion are not claimed.
+- Performance: not measured (owner's rule). Independent acceptance and release promotion remain pending.
 
 ### Exact limitations and remaining gates
 
-Binary `.slk` and binary macros are refused. No native SLK sample or decoder is claimed. PXF supports lines,
-rectangles, polylines, full circles and basic text; incomplete records, style changes and unresolved function
-connections are reported. `.esl` is accepted only if it contains the same supported PXF macro structure;
-symbol-library export structures are not verified. This is a partial fulfilment of the requested native-library
-scope, not a full EPLAN compatibility claim. Imported electrical meaning still requires author review.
+Direct `.slk` import now reads its sibling `.sdb` drawing tables without EPLAN (SLK 1.2, FE53 tables,
+UTF-16LE/UTF-8 descriptors). It reconstructs A-variant lines, axis-aligned rectangles, full circles and supported
+connection-point records. Compressed records and Blob continuations are bounded and checked. Other primitives,
+static text, fills/styles and unresolved connections remain explicit review findings. EPLAN B–H are not imported
+as independently authored variants; EW derives them. Unknown database layouts and legacy descriptor encodings
+are refused. A public library was inspected privately; no vendor content is redistributed.
 
-Proposed **FT-?**: implement verified native SLK/symbol-library export decoding and the remaining PXF primitives,
-transforms and library-resolved connection positions, with redistributable synthetic fixtures.
+Binary macros remain refused. PXF 1.23 supports lines, rectangles, polylines, full circles and basic text;
+`.esl` is supported only for that PXF structure. Full EPLAN compatibility, native function semantics and complete
+manufacturer-part import are not claimed.
+
+Proposed **FT-?**: expand the verified SLK subset to remaining primitives/text/styles/encodings and independently
+authored variants; implement symbol-library exports and library-resolved macro connections with synthetic fixtures.
 Proposed **ID-?**: decide the five pinned decoder dependencies (`sevenz-turbo` 0.26.0, `lzma-turbo` 0.6.0,
 `crc-fast` 1.10.0, `spin` 0.10.1, `zeroize` 1.9.1). `cargo-vet` has no approvals for them, and `cargo-deny` rejects
-`lzma-turbo`'s GPL-3.0-or-later licence under the current external-dependency allowlist. The owner explicitly chose to keep release blocked pending dependency review. No exemptions or licence
+`lzma-turbo`'s GPL-3.0-or-later licence under the current external-dependency allowlist. The owner explicitly chose to keep release blocked pending dependency review. No dependency exemptions or licence
 policy changes have been made. The GPL application graph uses Rust 1.97.1 for this importer; the workspace's
 pinned compiler is 1.99.0 and the permissive crates' MSRV is unchanged. These checks block release approval.
 
 The independent G-M2.5 blind-persona review and release promotion remain with the orchestrator. The generic
 power-block fixture demonstrates authoring behavior; it is not a claim that the private reference drawing was
 reproduced or that every G-M2.5 gate passed.
+
+### Independent review corrections and UI revision
+
+The independent review rejected the initial implementation for a neutral-text edit crash, incompatible-grid test
+placement, and acceptance of unknown electrical semantics. Corrections preserve neutral/multilingual text,
+reject mismatched page grids before mutation, give scratch pages the draft grid, and block unknown active function,
+discipline, potential-role, side and fluid-port semantics from publication/placement.
+Project Save confirmations now save the project explicitly. Displayed command availability uses the dispatch
+predicate; status follows the symbol document. Preview glyphs use the page's font/style shaping pipeline.
+The editor uses one contextual command bar and Drawing / Electrical data / Library panels, labelled fields,
+named variant controls, numeric keyboard creation and a discard confirmation. Function type, potential roles,
+source and optional-pin flags are visible without JSON. Printing a designation does not set electrical meaning.
+The correction set has targeted regressions and offscreen checks at 1280×800 and 1920×1080; independent
+re-review is still pending. The owner's dependency-review release block remains in force; no exemption was added.

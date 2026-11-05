@@ -65,6 +65,14 @@ fn editor_power_block_history_export_save_and_place_in_both_frontends() {
             json!({"directory":tmp.0.join("symbols.ewlib")}),
         );
         done(&mut shell, "symbol.variant", json!({"variant":7}));
+        let pages = shell.page_count();
+        assert!(matches!(
+            shell.dispatch("symbol.place", &json!({"x":80,"y":80})),
+            Outcome::Failed { .. }
+        ));
+        assert_eq!(shell.page_count(), pages);
+        done(&mut shell, "symbol.scratch", json!({}));
+        assert_eq!(shell.canvas().unwrap().page().snapper.grid(), (4_000_000, 1));
         done(&mut shell, "symbol.place", json!({"x":80,"y":80}));
         done(
             &mut shell,
@@ -72,6 +80,26 @@ fn editor_power_block_history_export_save_and_place_in_both_frontends() {
             json!({"tool":"line","x":1,"y":1,"x2":2,"y2":2}),
         );
         done(&mut shell, "symbol.place", json!({"x":120,"y":80}));
+        let draft = shell.symbol_editor().unwrap().draft.clone();
+        let mut qet = serde_json::to_value(&draft).unwrap();
+        let grid = ew_viewmodel::ew_api::symbols::units::Grid::QET_10PX;
+        qet["symbol"]["grid"] = serde_json::to_value(grid).unwrap();
+        for (i, pin) in qet["symbol"]["cps"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .enumerate()
+        {
+            pin["pos"] = json!([0, grid.at(i as i64 + 1).unwrap().0]);
+        }
+        done(&mut shell, "symbol.replace", json!({"document":qet}));
+        done(&mut shell, "symbol.validate", json!({}));
+        let page_count = shell.page_count();
+        assert!(
+            matches!(shell.dispatch("symbol.place", &json!({"x":80,"y":80})), Outcome::Failed { message } if message.contains("different connection grid"))
+        );
+        assert_eq!(shell.page_count(), page_count);
+        done(&mut shell, "symbol.replace", json!({"document":draft}));
         assert_eq!(
             shell.dispatch("symbol.close", &json!({})),
             Outcome::Failed {
@@ -145,6 +173,39 @@ fn moving_an_assigned_pin_keeps_its_mapping_and_scratch_uses_a_free_folio() {
         assert_eq!(shell.page_count(), pages + 1);
         done(&mut shell, "symbol.scratch", json!({}));
         assert_eq!(shell.page_count(), pages + 2);
+        shell.shutdown();
+    }
+}
+
+#[test]
+fn project_save_confirmation_saves_the_project_with_a_symbol_open() {
+    use ew_viewmodel::shell::ConfirmAnswer;
+    for pending in ["file.close", "app.quit"] {
+        let tmp = Tmp::new("symbol-project-confirm");
+        let mut shell = ShellModel::new(
+            Mode::Gui,
+            ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
+        );
+        done(
+            &mut shell,
+            "file.new",
+            json!({"dir":tmp.0.join("project.ew"),"template":"builtin"}),
+        );
+        done(&mut shell, "page.new", json!({"folio":"42"}));
+        done(
+            &mut shell,
+            "symbol.new",
+            json!({"key":"example.test","name":"Test"}),
+        );
+        done(
+            &mut shell,
+            "symbol.export",
+            json!({"file":tmp.0.join("draft.json")}),
+        );
+        assert!(shell.is_dirty());
+        done(&mut shell, pending, json!({}));
+        assert_eq!(shell.answer_confirm(ConfirmAnswer::Save), Outcome::Done);
+        assert!(!shell.has_project(), "{pending}");
         shell.shutdown();
     }
 }
