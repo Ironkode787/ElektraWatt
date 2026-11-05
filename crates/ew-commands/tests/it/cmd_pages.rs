@@ -917,7 +917,10 @@ fn every_folio_path_refuses_the_divider_folio() {
             .unwrap(),
     );
     assert_eq!(
-        rejected(bulk(&mut e, &renumber(PageScope::Pages(vec![page]), 200, 1, false))),
+        rejected(bulk(
+            &mut e,
+            &renumber(PageScope::Pages(vec![page]), 200, 1, false)
+        )),
         "folio 200 is the divider page of section 2; choose another folio"
     );
     assert_eq!(folio_of(&e, page), (Some(sec2), 250, None));
@@ -937,7 +940,10 @@ fn renumber_refuses_a_folio_a_report_block_generates() {
     bulk(&mut e, &block(Some(190))).expect("a sub-page block at 190");
     let before = lines(e.model());
     assert_eq!(
-        rejected(bulk(&mut e, &renumber(PageScope::Pages(vec![PAGE_101]), 190, 1, false))),
+        rejected(bulk(
+            &mut e,
+            &renumber(PageScope::Pages(vec![PAGE_101]), 190, 1, false)
+        )),
         "folio 190 is a page the report block at folio 190 generates; choose another folio"
     );
     assert_eq!(lines(e.model()), before);
@@ -952,7 +958,10 @@ fn renumber_refuses_a_folio_a_report_block_generates() {
         .expect("a sub-page of 160");
     let with_pages = lines(e.model());
     assert_eq!(
-        rejected(bulk(&mut e, &renumber(PageScope::Pages(vec![lettered]), 190, 1, false))),
+        rejected(bulk(
+            &mut e,
+            &renumber(PageScope::Pages(vec![lettered]), 190, 1, false)
+        )),
         "folio 190.1 is a page the report block at folio 190 generates; choose another folio"
     );
     assert_eq!(lines(e.model()), with_pages);

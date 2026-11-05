@@ -345,7 +345,6 @@ fn a_white_band_is_not_sent() {
     assert!(!white(&band));
 }
 
-
 /// FT-1157 (ID-1417): a print whose job's cancel signal is set (through a clone of the job, as the window's job Cancel
 /// and `ew print`'s Ctrl+C hold one) ends before its first band is sent, the document aborted, as
 /// [`PrintError::Cancelled`], and the spooler writes no file. The adapter is asked directly: the window's chain asks no

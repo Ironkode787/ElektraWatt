@@ -281,15 +281,15 @@ pub use ew_library as library;
 pub use ew_mltext::to_nfc;
 /// The row sources of `ew export cables|bom` (doc 17 §3.3): what to export and why it could not.
 pub use ew_reports::export::{Export, ExportError, Exported};
+/// The project's decimal separator (`settings.formatting.decimal_separator`, FT-366): the shell writes millimetres
+/// with it.
+pub use ew_schema::DecimalSeparator;
 /// The format this version writes, and the migration chain a project of an older format runs through at open
 /// (WP-S1.17 D10, D11): `ew upgrade` names the format, and a test passes its own chain in [`StoreOptions`].
 pub use ew_schema::FORMAT;
 /// The project's revision label format (doc 15 §5.2, FR-REV-002): the new-project wizard checks the first label
 /// against it, as `revision.create` does (EW-REL-004).
 pub use ew_schema::LabelFormat;
-/// The project's decimal separator (`settings.formatting.decimal_separator`, FT-366): the shell writes millimetres
-/// with it.
-pub use ew_schema::DecimalSeparator;
 /// The party roles of a revision's author and checker (doc 03 `Party`): `ew revision approve --as <role>` names one.
 pub use ew_schema::PartyRole;
 /// The text styles the built-in basic project of a new project writes (ADR-0032 decision 3): the wizard's readable
