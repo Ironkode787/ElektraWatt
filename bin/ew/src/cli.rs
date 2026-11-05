@@ -832,7 +832,10 @@ fn run_sql(a: &SqlArgs) -> i32 {
                 a.csv.writes_bom(),
                 a.csv.writes_line_end(),
             )),
-            SqlFormat::Csv => Some(ew_api::output::table_csv(&ew_api::output::sql_table(&set), &a.csv)),
+            SqlFormat::Csv => Some(ew_api::output::table_csv(
+                &ew_api::output::sql_table(&set),
+                &a.csv,
+            )),
             SqlFormat::Json => Some(format!("{:#}\n", set.to_json())),
             SqlFormat::Xlsx => None,
         };

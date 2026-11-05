@@ -11,9 +11,8 @@ use ew_api::cli_results as results;
 use ew_api::fmt::{Backup, DiscardedLine, FmtError, KeptLine, RepairError, Repaired, Rewrite};
 
 use super::{
-    FmtArgs, RecoverAction, RecoverArgs, UpgradeArgs, journal_refusal, older_format, open_editing, open_editing_to,
-    plural,
-    printable, project_dir, read_only_words, reader_dir, typed_word,
+    FmtArgs, RecoverAction, RecoverArgs, UpgradeArgs, journal_refusal, older_format, open_editing,
+    open_editing_to, plural, printable, project_dir, read_only_words, reader_dir, typed_word,
 };
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -558,7 +557,14 @@ fn run_recover_with(
     };
     // Ruling 2 of cycle 41: `ew recover` acts only with the lock; a read-only open is refused with `ew apply`'s text.
     // The first open keeps the journal: `--replay` opens again to replay it once the upgrade has its consent (FT-1394).
-    let opened = open_editing_to(&dir, origin.clone(), store.clone(), ew_api::Recovery::Keep, None, errors);
+    let opened = open_editing_to(
+        &dir,
+        origin.clone(),
+        store.clone(),
+        ew_api::Recovery::Keep,
+        None,
+        errors,
+    );
     let (mut session, opened) = match opened {
         Ok(r) => r,
         Err(code) => return code,
@@ -588,7 +594,11 @@ fn run_recover_with(
         let _ = to.write_all(text.as_bytes());
     };
     let Some(info) = opened.recovery else {
-        say(output, errors, "no journal of a crashed session: nothing to recover\n");
+        say(
+            output,
+            errors,
+            "no journal of a crashed session: nothing to recover\n",
+        );
         session.close();
         if a.json {
             let _ = output.write_all(result(None, false, generation).as_bytes());
@@ -648,10 +658,11 @@ fn run_recover_with(
             }
             // The replay: the session opened again with the journal applied.
             session.close();
-            let mut session = match open_editing_to(&dir, origin, store, ew_api::Recovery::Apply, None, errors) {
-                Ok((session, _)) => session,
-                Err(code) => return code,
-            };
+            let mut session =
+                match open_editing_to(&dir, origin, store, ew_api::Recovery::Apply, None, errors) {
+                    Ok((session, _)) => session,
+                    Err(code) => return code,
+                };
             if let Some(refusal) = session.recovery_refusal() {
                 let (code, text) = replay_refusal(refusal);
                 let _ = writeln!(errors, "{text}");
@@ -1029,7 +1040,13 @@ mod tests {
 
     /// Runs `ew recover` on the project with `terminal` and the typed `answer`: the exit code, its stdout and its
     /// stderr.
-    fn recover(dir: &Path, action: RecoverAction, json: bool, terminal: bool, answer: &str) -> (i32, String, String) {
+    fn recover(
+        dir: &Path,
+        action: RecoverAction,
+        json: bool,
+        terminal: bool,
+        answer: &str,
+    ) -> (i32, String, String) {
         let args = RecoverArgs {
             project: Some(dir.join("p.ew")),
             action,
@@ -1038,7 +1055,13 @@ mod tests {
         };
         let mut input = std::io::Cursor::new(answer.as_bytes().to_vec());
         let (mut output, mut errors) = (Vec::new(), Vec::new());
-        let code = run_recover_with(&args, terminal, &mut input, (&mut output, &mut errors), store(dir));
+        let code = run_recover_with(
+            &args,
+            terminal,
+            &mut input,
+            (&mut output, &mut errors),
+            store(dir),
+        );
         (
             code,
             String::from_utf8(output).unwrap(),

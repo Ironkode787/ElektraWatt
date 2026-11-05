@@ -3872,6 +3872,20 @@ pub static ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_script_expect_refused(p),
         )),
     ),
+    // FT-1409: a script step that expects its inner step to fail, so a failure's window state (a form's error) can be
+    // framed.
+    with_params(
+        "action:text, params?:json",
+        headless(act(
+            "script.expect_failed",
+            View,
+            Menu::View,
+            &[],
+            always,
+            None,
+            |s, p| s.act_script_expect_failed(p),
+        )),
+    ),
     keeps_link_preview(answers_recovery(keeps_banner(headless(parameterless(act(
         "ui.describe",
         View,

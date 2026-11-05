@@ -90,7 +90,8 @@ fn fuzz_violations(root: &Path, allowed: &BTreeMap<String, Files>) -> Result<Vec
     let listed = allowed.get(FUZZ_CRATE);
     let mut v = Vec::new();
     for (path, text) in &files {
-        if let Some(count) = listed.and_then(|files| files.iter().find(|(f, _)| format!("fuzz/{f}") == *path)) {
+        if let Some(count) = listed.and_then(|files| files.iter().find(|(f, _)| format!("fuzz/{f}") == *path))
+        {
             v.extend(miscount(path, text, *count.1, FUZZ_CRATE));
             continue;
         }
@@ -236,7 +237,9 @@ fn check(manifest: &str, allowed: &BTreeMap<String, Files>, packages: &[Package]
             format!("{}/", package.dir)
         };
         for (path, text) in &package.files {
-            if let Some(count) = listed.and_then(|files| files.iter().find(|(f, _)| format!("{prefix}{f}") == *path)) {
+            if let Some(count) =
+                listed.and_then(|files| files.iter().find(|(f, _)| format!("{prefix}{f}") == *path))
+            {
                 v.extend(miscount(path, text, *count.1, &package.name));
                 continue;
             }

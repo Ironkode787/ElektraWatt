@@ -1605,6 +1605,12 @@ impl ShellModel {
         failed(key!("error-unknown-action"), &["script.expect_refused"])
     }
 
+    /// `script.expect_failed` (FT-1409): the script runner runs it before the dispatch; a direct dispatch does not know
+    /// it.
+    pub(crate) fn act_script_expect_failed(&mut self, _p: &Map<String, Value>) -> Outcome {
+        failed(key!("error-unknown-action"), &["script.expect_failed"])
+    }
+
     /// `page.describe {folio?}` (WP-S6.13 §5.5.3): the content of the page `folio` (default the page on show) as text, read
     /// from the page-content cache (one `page_tables` call when the (revision, folio) is not in it, none when it is);
     /// the script runner takes the text with [`ShellModel::take_page_text`]. Changes no state.

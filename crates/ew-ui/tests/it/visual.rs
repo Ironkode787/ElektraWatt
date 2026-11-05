@@ -115,6 +115,29 @@ fn golden_on_101(tmp: &Tmp) -> Driver {
     d
 }
 
+/// FT-1188: a script's `ui.dismiss` action line with the app menu open closes the menu and nothing else, as the
+/// window's own `ui.dismiss` does (FT-1130): the selection stays; with the menu closed it dismisses as before.
+#[test]
+fn a_scripts_ui_dismiss_with_the_app_menu_open_closes_only_the_menu() {
+    let tmp = Tmp::new();
+    let golden = tmp.golden("g.ew");
+    let lines = [
+        json!({"action": "file.open", "params": {"dir": golden.to_string_lossy()}}),
+        json!({"action": "page.goto", "params": {"folio": "101"}}),
+        json!({"action": "select.set", "params": {"refs": ["tag:F55"]}}),
+        json!({"input": "key", "chord": "f10"}),
+        json!({"action": "ui.dismiss"}),
+        json!({"action": "ui.dismiss"}),
+    ];
+    let (t, code, err) = run(&tmp, "dismiss", &lines, false);
+    assert_eq!((code, err.as_str()), (0, ""), "{t:?}");
+    let selected = |v: &Value| v["state"]["canvas"]["selection"].as_array().map(Vec::len);
+    assert_eq!(t[5]["outcome"], "done", "{}", t[5]);
+    assert_eq!(selected(&t[5]), selected(&t[3]), "the menu took it: {}", t[5]);
+    assert_eq!(selected(&t[3]), Some(1), "{}", t[3]);
+    assert_eq!(selected(&t[6]), Some(0), "then it dismisses: {}", t[6]);
+}
+
 /// BV2: the vocabulary's members and bounds (spec §4.1); the frame line's.
 #[test]
 fn bv2_the_inputs_check_their_members_and_bounds() {

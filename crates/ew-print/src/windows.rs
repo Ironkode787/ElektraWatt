@@ -34,11 +34,11 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use ::windows::Win32::Foundation::{ERROR_CANCELLED, ERROR_SUCCESS, GlobalFree, HGLOBAL, HWND, SetLastError};
 use ::windows::Win32::Graphics::Gdi::{
-    BI_RGB, BITMAPINFO, BITMAPINFOHEADER, CreateDCW, DEVMODEW, DEVMODEW_0_0, DIB_RGB_COLORS, DM_FORMNAME, DM_ORIENTATION,
-    DM_PAPERLENGTH, DM_PAPERSIZE, DM_PAPERWIDTH, DM_SPECVERSION, DMORIENT_LANDSCAPE, DMORIENT_PORTRAIT,
-    DMPAPER_A2, DMPAPER_A3, DMPAPER_A4, DMPAPER_A5, DMPAPER_LEGAL, DMPAPER_LETTER, DMPAPER_TABLOID, DeleteDC,
-    GDI_ERROR, GET_DEVICE_CAPS_INDEX, GetDeviceCaps, HDC, LOGPIXELSX, LOGPIXELSY, PHYSICALHEIGHT,
-    PHYSICALOFFSETX, PHYSICALOFFSETY, ResetDCW, SRCCOPY, StretchDIBits,
+    BI_RGB, BITMAPINFO, BITMAPINFOHEADER, CreateDCW, DEVMODEW, DEVMODEW_0_0, DIB_RGB_COLORS, DM_FORMNAME,
+    DM_ORIENTATION, DM_PAPERLENGTH, DM_PAPERSIZE, DM_PAPERWIDTH, DM_SPECVERSION, DMORIENT_LANDSCAPE,
+    DMORIENT_PORTRAIT, DMPAPER_A2, DMPAPER_A3, DMPAPER_A4, DMPAPER_A5, DMPAPER_LEGAL, DMPAPER_LETTER,
+    DMPAPER_TABLOID, DeleteDC, GDI_ERROR, GET_DEVICE_CAPS_INDEX, GetDeviceCaps, HDC, LOGPIXELSX, LOGPIXELSY,
+    PHYSICALHEIGHT, PHYSICALOFFSETX, PHYSICALOFFSETY, ResetDCW, SRCCOPY, StretchDIBits,
 };
 use ::windows::Win32::Storage::Xps::{AbortDoc, DOCINFOW, EndDoc, EndPage, StartDocW, StartPage};
 use ::windows::Win32::System::Com::{COINIT_APARTMENTTHREADED, CoInitializeEx, CoUninitialize};
@@ -494,8 +494,14 @@ impl DevMode {
             .flat_map(u16::to_ne_bytes)
             .collect();
         mode.put(offset_of!(DEVMODEW, dmDeviceName), &name);
-        mode.put(offset_of!(DEVMODEW, dmSpecVersion), &(DM_SPECVERSION.0 as u16).to_ne_bytes());
-        mode.put(offset_of!(DEVMODEW, dmSize), &(size_of::<DEVMODEW>() as u16).to_ne_bytes());
+        mode.put(
+            offset_of!(DEVMODEW, dmSpecVersion),
+            &(DM_SPECVERSION.0 as u16).to_ne_bytes(),
+        );
+        mode.put(
+            offset_of!(DEVMODEW, dmSize),
+            &(size_of::<DEVMODEW>() as u16).to_ne_bytes(),
+        );
         mode
     }
 
@@ -568,13 +574,22 @@ impl DevMode {
         match named {
             Some(size) => {
                 fields = (fields | DM_ORIENTATION.0 | DM_PAPERSIZE.0) & !(DM_PAPERLENGTH.0 | DM_PAPERWIDTH.0);
-                self.put(paper(offset_of!(DEVMODEW_0_0, dmPaperSize)), &(size as i16).to_ne_bytes());
+                self.put(
+                    paper(offset_of!(DEVMODEW_0_0, dmPaperSize)),
+                    &(size as i16).to_ne_bytes(),
+                );
             }
             None => {
                 fields = (fields | DM_ORIENTATION.0 | DM_PAPERLENGTH.0 | DM_PAPERWIDTH.0) & !DM_PAPERSIZE.0;
                 self.put(paper(offset_of!(DEVMODEW_0_0, dmPaperSize)), &0i16.to_ne_bytes());
-                self.put(paper(offset_of!(DEVMODEW_0_0, dmPaperWidth)), &tenths(short).to_ne_bytes());
-                self.put(paper(offset_of!(DEVMODEW_0_0, dmPaperLength)), &tenths(long).to_ne_bytes());
+                self.put(
+                    paper(offset_of!(DEVMODEW_0_0, dmPaperWidth)),
+                    &tenths(short).to_ne_bytes(),
+                );
+                self.put(
+                    paper(offset_of!(DEVMODEW_0_0, dmPaperLength)),
+                    &tenths(long).to_ne_bytes(),
+                );
             }
         }
         self.put(flags, &fields.to_ne_bytes());

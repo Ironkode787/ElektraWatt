@@ -1472,6 +1472,21 @@ pub fn transcript_header(version: &str, g: Geometry) -> String {
     )
 }
 
+/// The action lines' extension: the headless mode's snapshots, and `ui.dismiss` while the app menu is open, which
+/// closes only the menu as in the window's event loop (FT-1188).
+struct Steps {
+    ctx: egui::Context,
+}
+
+impl script::StepExtension for Steps {
+    fn handle(&mut self, shell: &mut ShellModel, action: &str, params: &Value) -> Option<ew_viewmodel::shell::Outcome> {
+        if action == "ui.dismiss" && crate::app::menu_takes_dismiss(&self.ctx) {
+            return Some(ew_viewmodel::shell::Outcome::Done);
+        }
+        crate::headless::Snapshot.handle(shell, action, params)
+    }
+}
+
 /// The script loop: the transcript's lines to `sink`; the exit code, or the usage error that ended the run.
 fn drive(
     driver: &mut Driver,
@@ -1483,7 +1498,9 @@ fn drive(
     driver.shell_mut().reset_aliases();
     sink(&transcript_header(&version, driver.geometry))?;
     let mut parser = ScriptParser::new();
-    let mut ext = crate::headless::Snapshot;
+    let mut ext = Steps {
+        ctx: driver.ctx.clone(),
+    };
     let mut number = 0usize;
     let mut not_done = 0usize;
     for (i, raw) in lines.enumerate() {

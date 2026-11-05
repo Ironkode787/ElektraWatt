@@ -609,17 +609,31 @@ fn census_every_context_menu() {
     // Each menu in a window of its own: a right click elsewhere first closes an open menu.
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "nothing.ew");
-    let rep = h.state().shell().canvas().unwrap().page().tables.reps[0].id.to_string();
+    let rep = h.state().shell().canvas().unwrap().page().tables.reps[0]
+        .id
+        .to_string();
     dispatch(&mut h, "select.set", json!({ "ids": [rep] }));
     dispatch(&mut h, "edit.copy", json!({}));
     dispatch(&mut h, "select.set", json!({ "ids": [] }));
     let bounds = crate::tools::canvas_bounds(&h)[0];
     let nothing = egui::Pos2::new(bounds.0 as f32 + 12.0, bounds.1 as f32 + 12.0);
-    open(&mut h, nothing, false, &mut census, "the canvas context menu over nothing");
+    open(
+        &mut h,
+        nothing,
+        false,
+        &mut census,
+        "the canvas context menu over nothing",
+    );
     h.state_mut().shell_mut().shutdown();
     let mut h = on_golden(&tmp, "object.ew");
     let at = crate::tools::screen(&h, object(&h, &|_| true));
-    open(&mut h, at, true, &mut census, "the canvas context menu over an object");
+    open(
+        &mut h,
+        at,
+        true,
+        &mut census,
+        "the canvas context menu over an object",
+    );
     h.state_mut().shell_mut().shutdown();
     let mut h = on_golden(&tmp, "placement.ew");
     dispatch(&mut h, "page.goto", json!({ "folio": "902" }));
@@ -635,7 +649,13 @@ fn census_every_context_menu() {
         .map(|p| p.id.to_string())
         .collect();
     let at = crate::tools::screen(&h, object(&h, &|e| placements.contains(&e)));
-    open(&mut h, at, true, &mut census, "the canvas context menu over a placement");
+    open(
+        &mut h,
+        at,
+        true,
+        &mut census,
+        "the canvas context menu over a placement",
+    );
     assert!(h.state().shell().selected_placements() > 0, "a placement");
     h.state_mut().shell_mut().shutdown();
     let mut h = on_golden(&tmp, "row.ew");
@@ -643,7 +663,8 @@ fn census_every_context_menu() {
     h.get_by_label(&name).click_secondary();
     h.run_ok();
     assert!(
-        h.query_by_label(strings::text(key!("action-potential-draw-row"))).is_some(),
+        h.query_by_label(strings::text(key!("action-potential-draw-row")))
+            .is_some(),
         "the row's menu"
     );
     census.visit(&mut h, "the context menu of a Potentials row");
@@ -673,7 +694,10 @@ fn every_tool_cancels_with_escape_and_changes_nothing() {
         (
             "101",
             "route_edit",
-            vec![("select.set", json!({"ids": ["<wire>"]})), ("tool.route_edit", json!({}))],
+            vec![
+                ("select.set", json!({"ids": ["<wire>"]})),
+                ("tool.route_edit", json!({})),
+            ],
         ),
         (
             "101",
@@ -709,7 +733,11 @@ fn every_tool_cancels_with_escape_and_changes_nothing() {
         ),
         ("902", "rail_draw", vec![("tool.rail_draw", json!({}))]),
         ("902", "duct_draw", vec![("tool.duct_draw", json!({}))]),
-        ("902", "layout_place", vec![("tool.place_layout", json!({"device": "<device>"}))]),
+        (
+            "902",
+            "layout_place",
+            vec![("tool.place_layout", json!({"device": "<device>"}))],
+        ),
     ];
     for (folio, want, steps) in rows {
         dispatch(&mut h, "page.goto", json!({ "folio": folio }));

@@ -732,6 +732,7 @@ action-command-run = Run model command
 action-view-snapshot = Write page snapshot
 action-ui-describe = Describe the user interface
 action-script-expect-refused = Expect a refusal
+action-script-expect-failed = Expect a failure
 action-ui-dismiss = Dismiss popup or dialog
 
 # Why an action is disabled.
@@ -779,6 +780,8 @@ banner-dismiss = Dismiss
 message-no-snapshot = The snapshot needs the page renderer, which this runner does not have.
 message-expected-refusal = expected a refusal; the step was accepted
 message-expect-refused-inner = script.expect_refused needs `action`, an action ID, and `params` as an object
+message-expected-failure = expected a failure; the step did not fail
+message-expect-failed-inner = script.expect_failed needs `action`, an action ID other than script.expect_refused and script.expect_failed, and `params` as an object
 error-unknown-action = Unknown action `{ $p0 }`.
 error-missing-param = Missing parameter `{ $p0 }`.
 # FT-1257: a form's missing parameter, named by its field's label.

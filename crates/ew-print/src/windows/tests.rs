@@ -125,7 +125,10 @@ fn the_paper_request_names_a_known_size_or_gives_its_sides() {
     let mut mode = DevMode::blank(PDF_PRINTER);
     let b = bytes(&mode);
     let unit = |at: usize| u16::from_ne_bytes([b[at], b[at + 1]]);
-    assert_eq!(usize::from(unit(offset_of!(DEVMODEW, dmSize))), size_of::<DEVMODEW>());
+    assert_eq!(
+        usize::from(unit(offset_of!(DEVMODEW, dmSize))),
+        size_of::<DEVMODEW>()
+    );
     assert_eq!(unit(offset_of!(DEVMODEW, dmDriverExtra)), 0);
     assert_eq!(unit(offset_of!(DEVMODEW, dmSpecVersion)), DM_SPECVERSION.0 as u16);
     let name: Vec<u16> = PDF_PRINTER.encode_utf16().chain([0]).collect();
@@ -318,7 +321,10 @@ fn the_dialog_is_owned_by_a_window_of_this_process() {
     assert!(!ours(0));
     assert!(!ours(std::process::id().wrapping_add(1)));
     let owner = Owner::new().unwrap();
-    assert!(owner.1, "a test process has no window of its own in the foreground");
+    assert!(
+        owner.1,
+        "a test process has no window of its own in the foreground"
+    );
     let window = owner.0;
     assert_eq!(window_process(window), std::process::id());
     drop(owner);

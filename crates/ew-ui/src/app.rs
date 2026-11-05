@@ -162,6 +162,17 @@ pub trait Platform {
     }
 }
 
+/// Whether `ui.dismiss` goes to the open app menu (FT-1130, ID-1228 item 5): while it is open the menu (with its
+/// submenus) closes and nothing else runs, as Escape does. The one place the window's event loop and a visual script's
+/// action line both reach (FT-1188).
+pub(crate) fn menu_takes_dismiss(ctx: &egui::Context) -> bool {
+    if egui::Popup::is_id_open(ctx, crate::command_bar::app_menu_id()) {
+        egui::Popup::close_all(ctx);
+        return true;
+    }
+    false
+}
+
 /// How the end of a print comes to the frame (WP-S3.07 part 3).
 #[derive(Debug)]
 pub enum PrintReply {
@@ -1218,10 +1229,7 @@ impl App {
         for event in events {
             // FT-1130 (ID-1228 item 5): `ui.dismiss` while the app menu is open closes the menu and nothing else, as
             // Escape does.
-            if matches!(event, Event::Action("ui.dismiss", _))
-                && egui::Popup::is_id_open(&ctx, crate::command_bar::app_menu_id())
-            {
-                egui::Popup::close_all(&ctx);
+            if matches!(event, Event::Action("ui.dismiss", _)) && menu_takes_dismiss(&ctx) {
                 continue;
             }
             self.apply(event);
@@ -1513,7 +1521,12 @@ impl App {
             )
         });
         for binding in candidates {
-            if matches!(binding.action, "ui.dismiss" | "help.documentation")
+            // Plain Escape is `ui.dismiss`'s own path above; a `ui.dismiss` the keymap binds to another key is matched
+            // here, as the physical-key loop matches one (FT-1187).
+            let escape =
+                binding.shortcut.logical_key == Key::Escape && binding.shortcut.modifiers == Modifiers::NONE;
+            if binding.action == "help.documentation"
+                || (binding.action == "ui.dismiss" && escape)
                 || (palette_open && binding.action != "tools.palette")
                 || (focused == Context::Navigator && keys::is_navigator_key(&binding.shortcut))
                 || (focused == Context::Properties

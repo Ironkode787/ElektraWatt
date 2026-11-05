@@ -146,7 +146,9 @@ fn the_type_cell_of_an_undefined_potential_is_editable() {
 /// FT-1239's row with a context menu, in the window `h` on a copy of Golden A: the Potentials table, 24VDC-4's
 /// definition deleted, filtered to the first row with a point to define its potential at; the accessible name of its
 /// Potential cell and the point (the census opens its menu too, FT-1424).
-pub(crate) fn a_row_to_define(h: &mut Harness<'static, App>) -> (String, (impl std::fmt::Display + use<>, u16)) {
+pub(crate) fn a_row_to_define(
+    h: &mut Harness<'static, App>,
+) -> (String, (impl std::fmt::Display + use<>, u16)) {
     let shell = h.state_mut().shell_mut();
     done(shell, "navigator.show", json!({"kind": "potentials"}));
     done(shell, "navigator.table", json!({"kind": "potentials"}));
