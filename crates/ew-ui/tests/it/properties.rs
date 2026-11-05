@@ -1233,11 +1233,7 @@ fn id1427_an_identifier_stays_whole_beside_its_chip_at_the_floor() {
         cut.accesskit_node().description().as_deref(),
         Some("Kenmerkletter")
     );
-    assert!(
-        cut.rect().height() <= line + 0.5,
-        "one line: {:?}",
-        cut.rect()
-    );
+    assert!(cut.rect().height() <= line + 0.5, "one line: {:?}", cut.rect());
     assert!(
         texts_in_row(&h, "Kenmerkletter").contains(&("Kenmerkletter".to_owned(), true)),
         "cut with an ellipsis"

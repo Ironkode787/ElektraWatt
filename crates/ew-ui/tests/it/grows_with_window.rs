@@ -125,7 +125,8 @@ fn id1439_the_part_picker_keeps_its_width_and_stays_inside_the_window() {
         let open = field(&h);
         let t = ew_ui::theme::current(&h.ctx);
         assert!(
-            open.left() - t.space_5 >= t.space_6 - 0.5 && open.right() + t.space_5 <= size.x - t.space_6 + 0.5,
+            open.left() - t.space_5 >= t.space_6 - 0.5
+                && open.right() + t.space_5 <= size.x - t.space_6 + 0.5,
             "the picker's content {open:?} in a window {size:?}"
         );
         dispatch(&mut h, "picker.filter", json!({"text": "533356"}));
