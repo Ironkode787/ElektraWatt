@@ -1523,7 +1523,7 @@ fn the_check_scheme_is_applied_after_finishing_by_a_person_only() {
     done(&mut shell, "wizard.finish", json!({ "dir": path(&basic) }));
     let review = shell.describe();
     assert!(
-        review.contains("review \"Check scheme\": \"full\" kept"),
+        review.contains("review \"Check scheme\": \"Full\" kept"),
         "{review}"
     );
     assert!(review.contains("button \"Apply the check scheme\""), "{review}");
