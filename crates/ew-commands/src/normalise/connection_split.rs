@@ -40,10 +40,16 @@ pub fn split_connection(
         (Vec::new(), Vec::new())
     } else {
         let Some((r1, rest)) = split_route(&w.route, first_at) else {
-            return tx.reject(text!("refusal-split-not-on-route", connection.to_string()));
+            return tx.reject(text!(
+                "refusal-split-not-on-route",
+                crate::words::wire(tx, connection)
+            ));
         };
         let Some((_, r2)) = split_route(&rest, second_at) else {
-            return tx.reject(text!("refusal-split-second-not-on-route", connection.to_string()));
+            return tx.reject(text!(
+                "refusal-split-second-not-on-route",
+                crate::words::wire(tx, connection)
+            ));
         };
         (r1, r2)
     };

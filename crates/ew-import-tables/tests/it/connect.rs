@@ -282,7 +282,8 @@ fn a_duplicate_connection_key_keeps_the_first_row_only() {
 fn equal_endpoints_are_malformed() {
     let batch = run(&[("connections.csv", "key,a,b\nW1,-1F1:1,-1F1:1\n")]);
     assert!(connection(&batch, "W1").is_none());
-    assert!(messages(&batch, 2).iter().any(|m| m.contains("CI-01")));
+    // FT-1396: in words, no plan reference.
+    assert_eq!(messages(&batch, 2), ["row dropped: both endpoints are the same"]);
 }
 
 #[test]

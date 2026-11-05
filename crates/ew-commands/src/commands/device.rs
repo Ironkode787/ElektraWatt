@@ -453,7 +453,10 @@ fn split_for_hint(
 ) -> Result<Endpoint, CmdError> {
     let w = tx.require::<Connection>(connection)?;
     let Some(page) = w.page else {
-        return tx.reject(text!("refusal-connection-no-page", connection.to_string()));
+        return tx.reject(text!(
+            "refusal-connection-no-page",
+            crate::words::wire(tx, connection)
+        ));
     };
     require_split_point(tx, &w, page, at, field)?;
     let junction: Id<Junction> = tx.mint();
@@ -535,7 +538,7 @@ pub(crate) fn check_rep_type(tx: &TxBuilder<'_>, page: &Page, rep_type: &RepType
         "refusal-rep-type",
         crate::words::rep_type(rep_type),
         crate::words::page_kind(&page.kind),
-        page.id.to_string(),
+        crate::words::page(tx, page.id),
         list
     ))
 }

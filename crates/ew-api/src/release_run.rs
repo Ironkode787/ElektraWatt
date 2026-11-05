@@ -462,7 +462,7 @@ impl fmt::Display for ReleaseError {
             ReleaseError::Freeze(e) => write!(f, "the freeze was refused: {e}"),
             ReleaseError::FreezeChangesPages { pages } => write!(
                 f,
-                "the freeze would change {} printed page(s); it was undone and the release aborted (doc 15 §5.5)",
+                "the freeze would change {} printed page(s); it was undone and the release aborted",
                 pages.len()
             ),
             ReleaseError::Save(e) => write!(f, "the save failed: {e}"),
@@ -608,7 +608,7 @@ impl Session {
         if archive::lies_inside(&*vfs, &chosen, project) {
             return Err(ReleaseError::ArchiveRoot {
                 root: chosen,
-                why: "it lies inside the project directory; an archive is kept outside the project (ADR-0013)",
+                why: "it lies inside the project directory; an archive is kept outside the project",
             });
         }
         Ok(chosen)
@@ -1832,7 +1832,7 @@ impl Session {
             source: ReleaseRevision::NAME.to_owned(),
             reason: format!(
                 "the release's stamp is written only by the release (Revision ▸ Release, ew revision release), after the \
-                 gate ({FOUR_EYES_RULE} and the release scheme), the as-built archive and the git tag (WP-S1.18 D13)"
+                 gate ({FOUR_EYES_RULE} and the release scheme), the as-built archive and the git tag"
             ),
             text: Some(api_text!("refusal-revision-release-direct")),
         })

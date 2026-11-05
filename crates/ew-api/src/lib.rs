@@ -505,8 +505,12 @@ pub fn integrity_items(report: &OpenReport) -> Vec<checks::IntegrityItem> {
 pub struct DamagedCopy {
     /// The tag of the device that names the copy (`-101K1`); `None` for a record of no device.
     pub device: Option<String>,
-    /// The copy's file, relative to the project folder (`lib/parts/<id>.json`).
+    /// The copy's file, relative to the project folder (`lib/parts/<id>.json`): the finding's detail, never a user
+    /// text's (FT-1396).
     pub file: String,
+    /// The part the copy holds, as an installed library gives it: its part number and the library's name; `None` when
+    /// no installed library holds it, or the copy is no part's.
+    pub part: Option<(String, String)>,
 }
 
 /// What [`Session::open`] does with a leftover journal of a crashed session (doc 05 §8.3).
@@ -1378,7 +1382,8 @@ impl Session {
     }
 
     /// FT-1383 (ID-1418): the first record, in the integrity check's order, that names a library copy the open
-    /// dropped as damaged, as the device's tag and the copy's project-relative file; `None` when the model passes the
+    /// dropped as damaged, as the device's tag, the copy's project-relative file and, from the installed libraries, the
+    /// copy's part (FT-1396); `None` when the model passes the
     /// check. Such a project is read-only, and [`Session::create`] refuses it: a copy without the damaged file would not
     /// open.
     pub fn damaged_copy(&self) -> Option<DamagedCopy> {
@@ -1406,7 +1411,29 @@ impl Session {
                 .map(|t| t.short())
                 .unwrap_or_default()
         });
-        Some(DamagedCopy { device, file })
+        let part = (kind == ew_schema::Kind::Part)
+            .then(|| self.installed_part(copy))
+            .flatten();
+        Some(DamagedCopy { device, file, part })
+    }
+
+    /// The part number and library name of the installed part whose copy ID is `copy` (FT-1396, ID-1423): the words
+    /// of a damaged copy, whose own file cannot be read.
+    fn installed_part(&self, copy: ew_derive::ew_ids::Id<()>) -> Option<(String, String)> {
+        let libraries = self.libraries();
+        libraries.libraries().into_iter().find_map(|info| {
+            libraries
+                .documents(info.id, ew_schema::Kind::Part)
+                .into_iter()
+                .find_map(|d| match d {
+                    LibDocument::Part(c)
+                        if ew_derive::ew_ids::v5::lib_copy_id::<()>(info.id, c.item_id.as_uuid()) == copy =>
+                    {
+                        Some((c.item.part_number.to_string(), info.name.clone()))
+                    }
+                    _ => None,
+                })
+        })
     }
 
     /// Saves the current model (doc 05 §5.2): only the files of the transactions since the last save,

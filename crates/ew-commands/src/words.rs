@@ -184,6 +184,54 @@ pub(crate) fn record(tx: &TxBuilder<'_>, key: ew_model::AnyKey) -> TextArg {
     }
 }
 
+/// A library item by its name (a part's number, else the item's key, `ew.iec.mcb-1pn`), else its kind with its
+/// article ("a part", as [`record`] names a library kind).
+fn item(tx: &TxBuilder<'_>, kind: Kind, name: Option<String>) -> TextArg {
+    name.map_or_else(
+        || record(tx, (kind, ew_ids::Id::from_uuid(ew_ids::Uuid::nil()))),
+        TextArg::Plain,
+    )
+}
+
+/// A library copy by its item's name and its version ("2904602 at version 1.2.0", FT-1396): the project holds no
+/// library's name, so the item's names it.
+pub(crate) fn copy(tx: &TxBuilder<'_>, kind: Kind, name: Option<String>, version: &str) -> Text {
+    text!("refusal-words-copy", item(tx, kind, name), version)
+}
+
+/// A library document's kind, item name (a part's number, else the item's key) and version; `None` for a kind this
+/// build does not read.
+fn document_parts(doc: &ew_schema::LibDocument) -> Option<(Kind, Option<String>, &str)> {
+    use ew_schema::LibDocument as D;
+    let key = |m: &ew_schema::ItemMeta| m.key.as_ref().map(ToString::to_string);
+    Some(match doc {
+        D::Part(c) => (Kind::Part, Some(c.item.part_number.to_string()), &c.version),
+        D::Symbol(c) => (Kind::Symbol, key(&c.item.meta), &c.version),
+        D::Fndef(c) => (Kind::Fndef, key(&c.item.meta), &c.version),
+        D::Form(c) => (Kind::Form, key(&c.item.meta), &c.version),
+        D::Macro(c) => (Kind::Macro, key(&c.item.meta), &c.version),
+        D::Manufacturer(c) => (Kind::Manufacturer, key(&c.item.meta), &c.version),
+        D::PlcProfile(c) => (Kind::PlcProfile, key(&c.item.meta), &c.version),
+        D::Unknown(_) => return None,
+    })
+}
+
+/// A library document's copy, as [`copy`] names it; a document of a kind this build does not read as "an item".
+pub(crate) fn document(tx: &TxBuilder<'_>, doc: &ew_schema::LibDocument) -> Text {
+    document_parts(doc).map_or_else(
+        || text!("refusal-words-kind-other"),
+        |(kind, name, version)| copy(tx, kind, name, version),
+    )
+}
+
+/// A library document's item, as [`copy`] names it without its version.
+pub(crate) fn document_item(tx: &TxBuilder<'_>, doc: &ew_schema::LibDocument) -> TextArg {
+    document_parts(doc).map_or_else(
+        || text!("refusal-words-kind-other").into(),
+        |(kind, name, _)| item(tx, kind, name),
+    )
+}
+
 /// A carrier's label inside a sentence ("rail 1", "duct 3"; [`CarrierLabel::in_sentence`], keyed).
 pub(crate) fn carrier_in_sentence(label: CarrierLabel) -> Text {
     match label.kind {

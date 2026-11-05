@@ -68,7 +68,7 @@ fn waive_records_a_waiver_and_unwaive_removes_it_each_one_undo_step() {
 }
 
 /// The parameter checks: the rule ID's form, the fingerprint's 32 hex digits, a reason of at least ten characters in
-/// every language; a second waiver of the same finding is rejected naming the first; an unknown waiver is invalid.
+/// every language; a second waiver of the same finding is rejected naming its rule; an unknown waiver is invalid.
 #[test]
 fn waive_checks_its_parameters_and_refuses_a_second_waiver_of_one_finding() {
     let mut e = engine(golden_model());
@@ -101,12 +101,12 @@ fn waive_checks_its_parameters_and_refuses_a_second_waiver_of_one_finding() {
     assert!(waivers(&e).is_empty());
 
     e.execute(&waive(w1())).unwrap();
-    let first = waivers(&e)[0].id;
     let mut again = w1();
     again["fingerprint"] = json!(FP.to_ascii_lowercase());
     match e.execute(&waive(again)).unwrap_err() {
+        // FT-1396: the waiver by its rule, never by its ID or the finding's fingerprint.
         CmdError::Rejected { reason, .. } => {
-            assert!(reason.contains(&first.to_string()), "{reason}");
+            assert_eq!(reason, "a waiver of EW-CORE-041 covers this finding already");
         }
         other => panic!("{other:?}"),
     }

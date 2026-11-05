@@ -266,7 +266,13 @@ fn device_link_creates_and_validates() {
         invalid_path(e.execute(&link(DEV_102F2, DEV_102F2)), "device.link"),
         "/to"
     );
-    rejected(e.execute(&link(DEV_102F2, DEV_101F1)));
+    // FT-1396: the devices by their tags, no link ID.
+    match e.execute(&link(DEV_102F2, DEV_101F1)) {
+        Err(CmdError::Rejected { reason, .. }) => {
+            assert_eq!(reason, "device -102F2 already links to -101F1 with this kind");
+        }
+        other => panic!("expected a rejection, got {other:?}"),
+    }
     not_found(e.execute(&link(DEV_102F2, id(0xdead))));
     not_found(e.execute(&link(id(0xdead), DEV_102F2)));
 }
@@ -293,7 +299,16 @@ fn config_project_create_validates_name_profile_and_cpu() {
     assert_eq!(p.name, ident("PLC1"));
     assert_eq!(p.profile, ident("siemens-tia-intl@2027.1"));
     assert_eq!(p.cpu, None);
-    rejected(e.execute(&config_project("PLC1", "siemens-tia-intl@2027.1", None)));
+    // FT-1396: the name, no ID.
+    match e.execute(&config_project("PLC1", "siemens-tia-intl@2027.1", None)) {
+        Err(CmdError::Rejected { reason, .. }) => {
+            assert_eq!(
+                reason,
+                "configuration project PLC1 exists already; names are unique"
+            );
+        }
+        other => panic!("expected a rejection, got {other:?}"),
+    }
     for bad in ["siemens", "@1", "a@"] {
         assert_eq!(
             invalid_path(e.execute(&config_project("PLC2", bad, None)), c),

@@ -212,19 +212,14 @@ impl Command for WaiveFinding {
                 text!("refusal-check-waive-reason", WAIVER_REASON_MIN_CHARS.to_string()),
             ));
         }
-        if let Some(twin) = tx.iter::<Waiver>().iter().find(|w| {
+        if tx.iter::<Waiver>().iter().any(|w| {
             w.rule == self.rule
                 && w.target
                     .finding
                     .as_deref()
                     .is_some_and(|f| f.eq_ignore_ascii_case(&fingerprint))
         }) {
-            return tx.reject(text!(
-                "refusal-check-waive-twice",
-                twin.id.to_string(),
-                fingerprint.to_string(),
-                self.rule.as_str()
-            ));
+            return tx.reject(text!("refusal-check-waive-twice", self.rule.as_str()));
         }
         let id: Id<Waiver> = tx.mint();
         tx.insert(Waiver {

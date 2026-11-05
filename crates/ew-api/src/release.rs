@@ -445,7 +445,7 @@ impl Session {
         Err(CmdError::Rejected {
             source: ApproveRevision::NAME.to_owned(),
             reason: "the sign-off is recorded only by the approval on the saved generation (Revision ▸ Approve, ew \
-                     revision approve), which runs the release gate first (WP-S1.18 D9)"
+                     revision approve), which runs the release gate first"
                 .to_owned(),
             text: Some(api_text!("refusal-revision-approve-direct")),
         })

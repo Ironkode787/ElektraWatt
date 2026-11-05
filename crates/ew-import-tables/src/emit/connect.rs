@@ -202,7 +202,7 @@ pub(crate) fn emit_connections(cx: &mut Cx<'_>, table: Option<&Table>) {
             }
         };
         if a == b {
-            cx.malformed(row, "both endpoints are the same (CI-01)");
+            cx.malformed(row, "both endpoints are the same");
             continue;
         }
         let page = match page {

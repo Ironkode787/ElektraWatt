@@ -149,6 +149,36 @@ fn create_refuses_a_second_open_revision() {
     assert!(e.execute(&create("V0.9", NewRevisionState::Released)).is_ok());
 }
 
+/// FT-1396 (ID-1415): the refusals name a revision by its label and a page by its folio, never by an ID.
+#[test]
+fn create_refusals_name_revisions_and_pages_in_words() {
+    let (mut e, _, _) = with_history();
+    let reason = |err: CmdError| match err {
+        CmdError::Rejected { reason, .. } => reason,
+        CmdError::InvalidParams { message, .. } => message,
+        other => panic!("{other:?}"),
+    };
+    assert_eq!(
+        reason(e.execute(&create("V3.0", NewRevisionState::Open)).unwrap_err()),
+        "revision V2.0 is open; at most one revision collects the current edits"
+    );
+    assert_eq!(
+        reason(
+            e.execute(&create("V1.0", NewRevisionState::Released))
+                .unwrap_err()
+        ),
+        "another revision already has the label V1.0; a label names one revision"
+    );
+    let twice = CreateRevision {
+        page_notes: vec![note(PAGE_101), note(PAGE_101)],
+        ..create("V0.9", NewRevisionState::Released)
+    };
+    assert_eq!(
+        reason(e.execute(&twice).unwrap_err()),
+        "page 101 has a note already; one note per page"
+    );
+}
+
 #[test]
 fn create_refuses_a_label_in_use() {
     let (mut e, _, _) = with_history();
@@ -718,7 +748,7 @@ fn the_roles_are_not_set_by_fields_set() {
                         message,
                         format!(
                             "`{path}` of a revision is not set here: set by Check ▸ Revision ▸ Set revision \
-                             author… or by approval (four eyes need one confirmed path per role, FT-402)"
+                             author… or by approval (four eyes need one confirmed path per role)"
                         )
                     );
                 }

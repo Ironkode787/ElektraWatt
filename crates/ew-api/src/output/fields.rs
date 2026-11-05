@@ -608,11 +608,10 @@ const IDENTIFIERS: &[(&str, &str)] = &[
 ];
 
 /// Why a page item's kind is narrowed (WP-S2.04 §5.2).
-const KIND: &str =
-    "a page item's kind is not changed in place; delete the item and place another (WP-S2.04 §5.2)";
+const KIND: &str = "a page item's kind is not changed in place; delete the item and place another";
 
 /// Why a wire marker's wires are narrowed (WP-S2.04 §5.2).
-const GROUP: &str = "a marker's wires are changed by deleting the marker and placing another (WP-S2.04 §5.2)";
+const GROUP: &str = "a marker's wires are changed by deleting the marker and placing another";
 
 /// Why a surface view is narrowed (WP-S4.01 part 3): a panel page has one view, set by its own command.
 const VIEW: &str = "a panel page's view is changed with Set panel view";

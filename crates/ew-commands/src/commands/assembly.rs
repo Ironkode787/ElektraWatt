@@ -139,8 +139,8 @@ impl Command for AttachChildren {
                     return tx.reject(text!(
                         "refusal-assembly-position-twice",
                         p.to_string(),
-                        other.to_string(),
-                        c.device.to_string()
+                        crate::words::device(tx, other),
+                        crate::words::device(tx, c.device)
                     ));
                 }
             }
@@ -148,8 +148,8 @@ impl Command for AttachChildren {
         if let Some(c) = ancestors(tx, self.parent).into_iter().find(|a| seen.contains(a)) {
             return tx.reject(text!(
                 "refusal-assembly-cycle",
-                c.to_string(),
-                self.parent.to_string()
+                crate::words::device(tx, c),
+                crate::words::device(tx, self.parent)
             ));
         }
         let taken = taken_positions(tx, self.parent, &seen);
@@ -158,9 +158,9 @@ impl Command for AttachChildren {
                 return tx.reject(text!(
                     "refusal-assembly-position-held",
                     p.to_string(),
-                    self.parent.to_string(),
-                    holder.to_string(),
-                    child.to_string()
+                    crate::words::device(tx, self.parent),
+                    crate::words::device(tx, *holder),
+                    crate::words::device(tx, *child)
                 ));
             }
         }
@@ -351,16 +351,15 @@ impl Command for LinkDevices {
                 at = p;
             }
         }
-        if let Some(l) = tx
+        if tx
             .iter::<DeviceLink>()
             .into_iter()
-            .find(|l| l.from == self.from && l.to == self.to && l.kind == self.kind)
+            .any(|l| l.from == self.from && l.to == self.to && l.kind == self.kind)
         {
             return tx.reject(text!(
                 "refusal-device-link-twice",
-                self.from.to_string(),
-                self.to.to_string(),
-                l.id.to_string()
+                crate::words::device(tx, self.from),
+                crate::words::device(tx, self.to)
             ));
         }
         let id: Id<DeviceLink> = tx.mint();

@@ -206,20 +206,20 @@ impl Command for JoinDevice {
             .iter::<DeviceLink>()
             .into_iter()
             .filter(|l| l.from == source || l.to == source)
-            .map(|l| l.id)
-            .min()
+            .min_by_key(|l| l.id)
         {
+            let other = if link.from == source { link.to } else { link.from };
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/rep",
-                text!("refusal-join-device-link", link.to_string()),
+                text!("refusal-join-device-link", crate::words::device(tx, other)),
             ));
         }
         if self.device == source {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/device",
-                text!("refusal-join-same-device", source.to_string()),
+                text!("refusal-join-same-device", crate::words::device(tx, source)),
             ));
         }
         let target = tx.require::<Device>(self.device)?;
@@ -256,13 +256,20 @@ impl Command for JoinDevice {
                     .is_some_and(|p| p.item.function_template.iter().any(|t| entry_def(t) == f.def))
             });
             if !contact || terminal_or_strip(&target) || !(coil || templated) {
+                let fndef_words = tx.get::<LibCopy<FnDef>>(f.def).map_or_else(
+                    || text!("refusal-words-kind-fndef"),
+                    |d| {
+                        let key = d.item.meta.key.as_ref().map(ToString::to_string);
+                        crate::words::copy(tx, ew_schema::Kind::Fndef, key, &d.version)
+                    },
+                );
                 return Err(CmdError::invalid_params(
                     Self::NAME,
                     "/device",
                     text!(
                         "refusal-join-no-function",
-                        self.device.to_string(),
-                        f.def.to_string(),
+                        crate::words::device(tx, self.device),
+                        fndef_words,
                         if contact {
                             text!("refusal-join-no-auxiliary")
                         } else {
@@ -315,7 +322,7 @@ impl Command for JoinDevice {
                 "/device",
                 text!(
                     "refusal-join-cp-connected",
-                    self.device.to_string(),
+                    crate::words::device(tx, self.device),
                     lost.join(", ")
                 ),
             ));

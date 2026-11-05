@@ -1673,7 +1673,7 @@ mod tests {
         let params = serde_json::json!({ "revision": WAIVER, "reason": " " });
         assert_eq!(
             refusal_text(command_failed(&e, &params)),
-            "Withdraw revision: Reason: a withdrawal needs a reason (doc 15 §5.10)"
+            "Withdraw revision: Reason: a withdrawal needs a reason"
         );
     }
 

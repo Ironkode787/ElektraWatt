@@ -2191,7 +2191,6 @@ fn ft656_held_copies_are_skipped_and_another_hash_is_refused_by_item() {
     let mut other = copies[1].clone();
     other["part_number"] = json!("KTWO-B");
     other["sha256"] = json!(sha_text(&other));
-    let item = other["item_id"].as_str().unwrap().to_owned();
     cmd.pos = gp(15, 3);
     cmd.copies = vec![copies[0].clone(), other];
     let rev = e.model().rev();
@@ -2202,8 +2201,16 @@ fn ft656_held_copies_are_skipped_and_another_hash_is_refused_by_item() {
             ..
         }) => {
             assert_eq!(path, "/copies/1");
-            assert!(reason.contains(&item), "`{reason}` names item {item}");
-            assert!(reason.contains("library.update"), "{reason}");
+            // FT-1396: the held item by its part number, never its ID.
+            assert_eq!(
+                reason,
+                format!(
+                    "the project holds {} at version {} with another hash; update from library first \
+                     (library.update)",
+                    copies[1]["part_number"].as_str().unwrap(),
+                    copies[1]["version"].as_str().unwrap()
+                )
+            );
         }
         other => panic!("expected InvalidParams at /copies/1, got {other:?}"),
     }

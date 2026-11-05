@@ -66,14 +66,13 @@ fn ft1383_a_damaged_copy_a_device_names_opens_read_only_and_every_page_shows() {
     done(&mut s, "messages.check", json!({}));
 }
 
-/// C52-p4#1, #2 (ID-1418): the read-only banner names the device, the damaged copy's file and the way out, and Save As
+/// C52-p4#1, #2 (ID-1418; FT-1396): the read-only banner names the device, the damaged copy in words and the way out, and Save As
 /// is refused in those words before it asks for a folder: a copy without the damaged file would not open. Nothing is
 /// written. Both languages.
 #[test]
 fn ft1383_save_as_is_refused_and_the_banner_names_the_device_and_the_copy() {
     let tmp = Tmp::new("ft1383-save-as");
-    let (dir, copy) = damaged_golden(&tmp);
-    let file = format!("lib/parts/{copy}.json");
+    let (dir, _) = damaged_golden(&tmp);
     let target = tmp.0.join("save-as");
     let refused =
         |s: &mut ShellModel| match s.dispatch("file.save_as", &json!({"dir": target.to_string_lossy()})) {
@@ -83,28 +82,20 @@ fn ft1383_save_as_is_refused_and_the_banner_names_the_device_and_the_copy() {
     for (locale, banner, save_as) in [
         (
             "en",
-            format!(
-                "This project is open read-only: the device -201U8-Q1 uses the library copy {file}, which is damaged. \
-                 Update the copy from its library first. 1 integrity finding was found when the project was \
-                 opened."
-            ),
-            format!(
-                "Save as is refused: the device -201U8-Q1 uses the library copy {file}, which is damaged, and a copy of \
-                 the project without that file would not open. Update the copy from its library first."
-            ),
+            "This project is open read-only: the device -201U8-Q1 uses the library copy of its part, which is \
+             damaged. Update the copy from its library first. 1 integrity finding was found when the project was \
+             opened.",
+            "Save as is refused: the device -201U8-Q1 uses the library copy of its part, which is damaged, and a copy \
+             of the project without it would not open. Update the copy from its library first.",
         ),
         (
             "nl",
-            format!(
-                "Dit project is alleen-lezen geopend: het apparaat -201U8-Q1 gebruikt de bibliotheekkopie {file}, die \
-                 beschadigd is. Werk de kopie eerst bij vanuit de bibliotheek. Bij het openen van het project is 1 \
-                 integriteitsbevinding gevonden."
-            ),
-            format!(
-                "Opslaan als is geweigerd: het apparaat -201U8-Q1 gebruikt de bibliotheekkopie {file}, die beschadigd \
-                 is, en een projectkopie zonder dat bestand zou niet openen. Werk de kopie eerst bij vanuit de \
-                 bibliotheek."
-            ),
+            "Dit project is alleen-lezen geopend: het apparaat -201U8-Q1 gebruikt de bibliotheekkopie van zijn \
+             artikel, die beschadigd is. Werk de kopie eerst bij vanuit de bibliotheek. Bij het openen van het \
+             project is 1 integriteitsbevinding gevonden.",
+            "Opslaan als is geweigerd: het apparaat -201U8-Q1 gebruikt de bibliotheekkopie van zijn artikel, die \
+             beschadigd is, en een projectkopie zonder deze bibliotheekkopie zou niet openen. Werk de kopie eerst \
+             bij vanuit de bibliotheek.",
         ),
     ] {
         let mut s = ShellModel::new(
@@ -117,7 +108,7 @@ fn ft1383_save_as_is_refused_and_the_banner_names_the_device_and_the_copy() {
             "file.open",
             json!({"dir": dir.to_string_lossy(), "read_only": false}),
         );
-        assert_eq!(s.banner(), Some(banner.as_str()));
+        assert_eq!(s.banner(), Some(banner));
         assert_eq!(refused(&mut s), save_as);
         assert!(!target.exists(), "nothing is written");
         assert!(

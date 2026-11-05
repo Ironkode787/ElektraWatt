@@ -578,22 +578,23 @@ fn attached(tx: &TxBuilder<'_>, f: Id<Function>, ep: u16) -> Vec<Text> {
     out.extend(
         tx.connections_at(at)
             .into_iter()
-            .map(|c| text!("refusal-library-update-attached-connection", c.to_string())),
+            .map(|c| crate::words::wire(tx, c)),
     );
     out.extend(
         tx.potential_defs_at(at)
             .into_iter()
-            .map(|p| text!("refusal-library-update-attached-potential", p.to_string())),
+            .filter_map(|p| tx.get::<PotentialDef>(p))
+            .map(|p| text!("refusal-library-update-attached-potential", p.name.to_string())),
     );
     out.extend(
         tx.bonds_at(at)
             .into_iter()
-            .map(|b| text!("refusal-library-update-attached-bond", b.to_string())),
+            .map(|_| text!("refusal-library-update-attached-bond")),
     );
     out.extend(
         tx.channels_at_cp(f, ep)
             .into_iter()
-            .map(|c| text!("refusal-library-update-attached-channel", c.to_string())),
+            .map(|c| crate::words::channel(tx, c)),
     );
     out
 }
@@ -638,9 +639,7 @@ impl Command for UpdateLibraryCopies {
                     at,
                     text!(
                         "refusal-library-update-not-held",
-                        kind.to_string(),
-                        l.id.to_string(),
-                        l.item.to_string()
+                        crate::words::document(tx, &doc)
                     ),
                 ));
             };
@@ -728,7 +727,7 @@ impl Command for UpdateLibraryCopies {
                                         return tx.reject(text!(
                                             "refusal-library-update-cp-twice",
                                             endpoint.to_string(),
-                                            f.to_string(),
+                                            crate::words::function(tx, f),
                                             prev.to_string(),
                                             to.to_string()
                                         ));
@@ -766,8 +765,7 @@ impl Command for UpdateLibraryCopies {
                     at,
                     text!(
                         "refusal-library-update-embed-held",
-                        key.0.to_string(),
-                        key.1.to_string()
+                        crate::words::document(tx, &doc)
                     ),
                 ));
             }
@@ -775,7 +773,7 @@ impl Command for UpdateLibraryCopies {
         }
         let mut missing: Vec<TextArg> = Vec::new();
         let mut listed: BTreeSet<AnyKey> = BTreeSet::new();
-        for (held, new, key, changed) in &updates {
+        for (held, new, _, changed) in &updates {
             if !changed {
                 continue;
             }
@@ -786,10 +784,8 @@ impl Command for UpdateLibraryCopies {
                     missing.push(
                         text!(
                             "refusal-library-update-missing-copy",
-                            item.0.to_string(),
-                            item.1.to_string(),
-                            key.0.to_string(),
-                            key.1.to_string()
+                            crate::words::record(tx, *item),
+                            crate::words::document(tx, new)
                         )
                         .into(),
                     );
@@ -918,7 +914,7 @@ fn apply_remap(tx: &mut TxBuilder<'_>, remap: &BTreeMap<(Id<Function>, u16), u16
             if !seen.insert(to) {
                 return tx.reject(text!(
                     "refusal-library-update-overrides",
-                    f.to_string(),
+                    crate::words::function(tx, f),
                     to.to_string()
                 ));
             }

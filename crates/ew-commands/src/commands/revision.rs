@@ -145,15 +145,11 @@ impl Command for CreateRevision {
             .collect();
         check_page_notes(tx, Self::NAME, "/page_notes", &notes)?;
         let revisions = tx.iter::<Revision>();
-        if let Some(twin) = revisions
+        if revisions
             .iter()
-            .find(|r| !r.is_withdrawal() && r.label == self.label)
+            .any(|r| !r.is_withdrawal() && r.label == self.label)
         {
-            return tx.reject(text!(
-                "refusal-revision-label-used",
-                twin.id.to_string(),
-                self.label.to_string()
-            ));
+            return tx.reject(text!("refusal-revision-label-used", self.label.to_string()));
         }
         let state = match self.state {
             NewRevisionState::Open => RevisionState::Open,
@@ -161,20 +157,12 @@ impl Command for CreateRevision {
         };
         if state == RevisionState::Open {
             if let Some(open) = revisions.iter().find(|r| r.is_open()) {
-                return tx.reject(text!(
-                    "refusal-revision-open",
-                    open.label.to_string(),
-                    open.id.to_string()
-                ));
+                return tx.reject(text!("refusal-revision-open", open.label.to_string()));
             }
         }
         if state == RevisionState::Released {
             if let Some(released) = revisions.iter().find(|r| r.release.is_some()) {
-                return tx.reject(text!(
-                    "refusal-revision-released",
-                    released.label.to_string(),
-                    released.id.to_string()
-                ));
+                return tx.reject(text!("refusal-revision-released", released.label.to_string()));
             }
         }
         let format = tx.project().settings.revision_label_format();
@@ -399,17 +387,12 @@ impl Command for WithdrawRevision {
                 text!("refusal-revision-withdraw-no-reason"),
             ));
         }
-        if let Some(earlier) = tx
+        if tx
             .iter::<Revision>()
             .iter()
-            .find(|r| r.is_withdrawal() && r.withdraws == Some(self.revision))
+            .any(|r| r.is_withdrawal() && r.withdraws == Some(self.revision))
         {
-            return tx.reject(text!(
-                "refusal-revision-withdrawn",
-                revision.label.to_string(),
-                revision.id.to_string(),
-                earlier.id.to_string()
-            ));
+            return tx.reject(text!("refusal-revision-withdrawn", revision.label.to_string()));
         }
         let id: Id<Revision> = v5::revision_withdrawal_id(self.revision);
         tx.insert(Revision {
@@ -752,7 +735,7 @@ pub(crate) fn check_page_notes(
             return Err(CmdError::invalid_params(
                 command,
                 format!("{path}/{i}"),
-                text!("refusal-revision-note-twice", n.page.to_string()),
+                text!("refusal-revision-note-twice", crate::words::page(tx, n.page)),
             ));
         }
     }

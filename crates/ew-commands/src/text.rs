@@ -257,6 +257,7 @@ pub const TEXTS: &[(&str, &str)] = &[
     ("refusal-words-kind-machine-profile", "a machine profile"),
     ("refusal-words-kind-label-profile", "a label profile"),
     ("refusal-words-kind-other", "an item"),
+    ("refusal-words-copy", "{0} at version {1}"),
     (
         "refusal-geometry-off-grid",
         "{0} at {1} is not on the drawing grid",
@@ -409,7 +410,7 @@ pub const TEXTS: &[(&str, &str)] = &[
     ),
     (
         "refusal-assembly-cycle",
-        "device {0} is an ancestor of the parent {1}; the assembly graph is acyclic (EW-INV-009)",
+        "device {0} is an ancestor of the parent {1}; an assembly cannot hold itself",
     ),
     (
         "refusal-assembly-position-held",
@@ -425,7 +426,7 @@ pub const TEXTS: &[(&str, &str)] = &[
     ),
     (
         "refusal-device-link-twice",
-        "device {0} already links to {1} with this kind (link {2})",
+        "device {0} already links to {1} with this kind",
     ),
     ("refusal-assembly-own-child", "a device cannot be its own child"),
     ("refusal-device-link-itself", "a device cannot link to itself"),
@@ -535,7 +536,7 @@ pub const TEXTS: &[(&str, &str)] = &[
     ),
     (
         "refusal-frames-report",
-        "report pages take the form of their report block (EW-INV-012); give no entry for `report`",
+        "report pages take the form of their report block; give no entry for `report`",
     ),
     (
         "refusal-frames-not-frame",
@@ -577,7 +578,7 @@ pub const TEXTS: &[(&str, &str)] = &[
     // check.waive.
     (
         "refusal-check-waive-twice",
-        "waiver {0} already covers the finding {1} of {2}",
+        "a waiver of {0} covers this finding already",
     ),
     (
         "refusal-check-waive-rule-id",
@@ -589,17 +590,17 @@ pub const TEXTS: &[(&str, &str)] = &[
     ),
     (
         "refusal-check-waive-reason",
-        "a waiver needs a reason of at least {0} characters (doc 15 §2.5)",
+        "a waiver needs a reason of at least {0} characters",
     ),
     ("refusal-check-unwaive-gone", "waiver {0} does not exist"),
     // connection.draw, connection.draw_many and connection.delete.
     (
         "refusal-connection-no-page",
-        "connection {0} has no page, so a junction cannot be placed on it; give it a page first",
+        "{0} has no page, so a junction cannot be placed on it; give it a page first",
     ),
     (
         "refusal-connection-same-end",
-        "both ends are the same endpoint (CI-01); pick two different ends",
+        "both ends are the same endpoint; pick two different ends",
     ),
     (
         "refusal-connection-same-connection",
@@ -823,7 +824,7 @@ pub const TEXTS: &[(&str, &str)] = &[
     // part.assign.
     (
         "refusal-assign-held-other-hash",
-        "the project holds item {0} at version {1} with another hash; update from library first (library.update)",
+        "the project holds {0} at version {1} with another hash; update from library first (library.update)",
     ),
     (
         "refusal-assign-part-unused",
@@ -1186,7 +1187,7 @@ pub const TEXTS: &[(&str, &str)] = &[
     // rep.join_device.
     (
         "refusal-join-device-link",
-        "the representation's device takes part in device link {0}, which the join would lose; remove the link first",
+        "the representation's device takes part in a device link with {0}, which the join would lose; remove the link first",
     ),
     (
         "refusal-join-same-device",
@@ -1227,7 +1228,7 @@ pub const TEXTS: &[(&str, &str)] = &[
     ),
     (
         "refusal-join-no-function",
-        "device {0} cannot take function definition {1}: it has no unplaced function of it, and {2}",
+        "device {0} cannot take {1}: it has no unplaced function of it, and {2}",
     ),
     (
         "refusal-join-no-auxiliary",
@@ -1246,7 +1247,7 @@ pub const TEXTS: &[(&str, &str)] = &[
     ),
     (
         "refusal-fields-revision-party",
-        "`{0}` of a revision is not set here: set by Check ▸ Revision ▸ Set revision author… or by approval (four eyes need one confirmed path per role, FT-402)",
+        "`{0}` of a revision is not set here: set by Check ▸ Revision ▸ Set revision author… or by approval (four eyes need one confirmed path per role)",
     ),
     (
         "refusal-fields-link-kind-unknown",
@@ -1587,7 +1588,7 @@ pub const TEXTS: &[(&str, &str)] = &[
     ),
     (
         "refusal-page-create-report",
-        "report pages are generated from report blocks (EW-INV-012); create a report block",
+        "report pages are generated from report blocks; create a report block",
     ),
     (
         "refusal-page-create-section",
@@ -1661,11 +1662,11 @@ pub const TEXTS: &[(&str, &str)] = &[
     ),
     (
         "refusal-library-update-blocked",
-        "the update leaves connected CPs without a CP; map them in `cp_maps` (doc 07 §4.5): {0}",
+        "the update leaves connected CPs without a CP; map them in `cp_maps`: {0}",
     ),
     (
         "refusal-library-update-missing",
-        "the new versions name items the project does not hold; give them in `embed` (FT-640): {0}",
+        "the new versions name items the project does not hold; give them in `embed`: {0}",
     ),
     (
         "refusal-library-update-overrides",
@@ -1715,26 +1716,21 @@ pub const TEXTS: &[(&str, &str)] = &[
         "refusal-library-update-map-new-twice",
         "CP {0} of the new copy is the target of two CPs of the held copy",
     ),
-    ("refusal-library-update-attached-connection", "connection {0}"),
     (
         "refusal-library-update-attached-potential",
         "potential definition {0}",
     ),
-    ("refusal-library-update-attached-bond", "bond {0}"),
-    ("refusal-library-update-attached-channel", "channel {0}"),
+    ("refusal-library-update-attached-bond", "a bond"),
     (
         "refusal-library-update-not-held",
-        "the project holds no {0} copy {1} (item {2}); embed it first (library.embed or part.assign)",
+        "the project holds no copy of {0}; embed it first (library.embed or part.assign)",
     ),
     ("refusal-library-update-blocked-pin", "{0} pin {1}: {2}"),
     (
         "refusal-library-update-embed-held",
-        "the project holds {0} copy {1} already; leave it out",
+        "the project holds a copy of {0} already; leave it out",
     ),
-    (
-        "refusal-library-update-missing-copy",
-        "{0} copy {1} (named by {2} {3})",
-    ),
+    ("refusal-library-update-missing-copy", "{0}, named by {1}"),
     // macro.insert.
     (
         "refusal-macro-held-version",
@@ -1924,7 +1920,7 @@ pub const TEXTS: &[(&str, &str)] = &[
     // The PLC configuration: plc.config_project.create, plc.bind_channel, plc.set_start, plc.set_module_part.
     (
         "refusal-plc-project-exists",
-        "configuration project {0} exists ({1}); names are unique",
+        "configuration project {0} exists already; names are unique",
     ),
     (
         "refusal-plc-channel-not-on-module",
@@ -1971,20 +1967,17 @@ pub const TEXTS: &[(&str, &str)] = &[
     // revision.create and revision.withdraw.
     (
         "refusal-revision-label-used",
-        "revision {0} already has the label {1}; a label names one revision",
+        "another revision already has the label {0}; a label names one revision",
     ),
     (
         "refusal-revision-open",
-        "revision {0} ({1}) is open; at most one revision collects the current edits",
+        "revision {0} is open; at most one revision collects the current edits",
     ),
     (
         "refusal-revision-released",
-        "revision {0} ({1}) has a release record; a historic released revision cannot follow a release by ElektraWatt: a release goes through revision.release and its gate",
+        "revision {0} has a release record; a historic released revision cannot follow a release by ElektraWatt: a release goes through revision.release and its gate",
     ),
-    (
-        "refusal-revision-withdrawn",
-        "revision {0} ({1}) is withdrawn already by the withdrawal record {2}",
-    ),
+    ("refusal-revision-withdrawn", "revision {0} is withdrawn already"),
     (
         "refusal-revision-approve-no-author",
         "revision {0} has no author; four eyes compare two parties, so set the author first (Revision ▸ Set author)",
@@ -2005,7 +1998,7 @@ pub const TEXTS: &[(&str, &str)] = &[
     ("refusal-revision-note-page-gone", "page {0} does not exist"),
     (
         "refusal-revision-note-twice",
-        "page {0} has a note already; one note per page",
+        "{0} has a note already; one note per page",
     ),
     (
         "refusal-revision-closed",
@@ -2013,7 +2006,7 @@ pub const TEXTS: &[(&str, &str)] = &[
     ),
     (
         "refusal-revision-withdraw-no-reason",
-        "a withdrawal needs a reason (doc 15 §5.10)",
+        "a withdrawal needs a reason",
     ),
     (
         "refusal-revision-author-is-checker",
@@ -2025,7 +2018,7 @@ pub const TEXTS: &[(&str, &str)] = &[
     ),
     (
         "refusal-revision-create-checker",
-        "the checker of an open revision is written by approval (revision.approve), never when it is created: four eyes need one confirmed path per role (FT-402); only a historic released revision takes a checker here",
+        "the checker of an open revision is written by approval (revision.approve), never when it is created: four eyes need one confirmed path per role; only a historic released revision takes a checker here",
     ),
     ("refusal-revision-state-open", "open"),
     ("refusal-revision-state-withdrawn", "a withdrawal record"),
@@ -2099,7 +2092,7 @@ pub const TEXTS: &[(&str, &str)] = &[
     ),
     (
         "refusal-structure-parent-aspect",
-        "the parent belongs to another aspect (EW-INV-011); pick a parent of the same aspect",
+        "the parent belongs to another aspect; pick a parent of the same aspect",
     ),
     (
         "refusal-structure-code-used",
@@ -2123,7 +2116,7 @@ pub const TEXTS: &[(&str, &str)] = &[
     ),
     (
         "refusal-report-block-first-folio",
-        "a page-oriented report block needs `first_folio` (EW-INV-014); give one or embed it",
+        "a page-oriented report block needs `first_folio`; give one or embed it",
     ),
     (
         "refusal-external-ref-not-location",
@@ -2210,11 +2203,11 @@ pub const TEXTS: &[(&str, &str)] = &[
     // The normalisers: a split connection, a dissolving junction and a valve's functions.
     (
         "refusal-split-not-on-route",
-        "the split point is not on the route of connection {0}; pick a point on the wire",
+        "the split point is not on the route of {0}; pick a point on the wire",
     ),
     (
         "refusal-split-second-not-on-route",
-        "the second split point is not on the route of connection {0} after the first",
+        "the second split point is not on the route of {0} after the first",
     ),
     (
         "refusal-junction-merge-numbers",
@@ -2236,7 +2229,7 @@ pub const TEXTS: &[(&str, &str)] = &[
     ("refusal-import-unknown-kind", "a record of an unknown kind ({0})"),
     (
         "refusal-import-removed",
-        "a normaliser removed the imported {0} {1}",
+        "a normaliser removed a record the import brought: {0}",
     ),
     (
         "refusal-external-image",

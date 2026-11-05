@@ -513,7 +513,7 @@ impl DynCommand for ApplyImport {
             let Some(row) = tx.row(&key) else {
                 return Err(CmdError::rejected(
                     Self::NAME,
-                    text!("refusal-import-removed", kind.name(), id.to_string()),
+                    text!("refusal-import-removed", crate::words::record(tx, key)),
                 ));
             };
             let now = record_hash(&row)?;

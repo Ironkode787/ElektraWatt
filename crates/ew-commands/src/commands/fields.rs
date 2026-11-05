@@ -698,16 +698,12 @@ fn refuse_duplicate_config_name(
     cfg: ew_ids::Id<PlcConfigProject>,
 ) -> Result<(), CmdError> {
     let c = tx.require::<PlcConfigProject>(cfg)?;
-    if let Some(other) = tx
+    if tx
         .iter::<PlcConfigProject>()
         .into_iter()
-        .find(|o| o.id != cfg && o.name == c.name)
+        .any(|o| o.id != cfg && o.name == c.name)
     {
-        return tx.reject(text!(
-            "refusal-plc-project-exists",
-            c.name.to_string(),
-            other.id.to_string()
-        ));
+        return tx.reject(text!("refusal-plc-project-exists", c.name.to_string()));
     }
     Ok(())
 }

@@ -1994,8 +1994,14 @@ impl ShellModel {
                 let banner = (!read_only).then(|| match damaged {
                     Some(ew_api::DamagedCopy {
                         device: Some(device),
-                        file,
-                    }) => strings::format(key!("banner-damaged-copy"), &[&device, &file]),
+                        part: Some((part, library)),
+                        ..
+                    }) => strings::format(key!("banner-damaged-copy"), &[&device, &part, &library]),
+                    Some(ew_api::DamagedCopy {
+                        device: Some(device),
+                        part: None,
+                        ..
+                    }) => strings::format(key!("banner-damaged-copy-unnamed"), &[&device]),
                     _ => strings::format(key!("banner-read-only"), &[strings::text(key)]),
                 });
                 Opened {
@@ -2124,10 +2130,16 @@ impl ShellModel {
         // FT-1383 (ID-1418): a project whose damaged library copy a device uses is not copied: the copy would not open.
         if let Some(ew_api::DamagedCopy {
             device: Some(device),
-            file,
+            part,
+            ..
         }) = self.project.as_ref().and_then(|p| p.session.damaged_copy())
         {
-            let message = strings::format(key!("error-save-as-damaged-copy"), &[&device, &file]);
+            let message = match part {
+                Some((part, library)) => {
+                    strings::format(key!("error-save-as-damaged-copy"), &[&device, &part, &library])
+                }
+                None => strings::format(key!("error-save-as-damaged-copy-unnamed"), &[&device]),
+            };
             self.banner = Some(message.clone());
             return Outcome::Failed { message };
         }

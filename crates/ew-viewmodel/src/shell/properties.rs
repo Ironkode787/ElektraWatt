@@ -2535,9 +2535,11 @@ pub(super) mod tests {
             (applied, at),
             "a refused undo changes nothing"
         );
-        assert!(
-            strings::text(key!("reason-human-only-history")).contains("ADR-0008 amendment 3"),
-            "the reason names the rule"
+        assert_eq!(
+            strings::text(key!("reason-human-only-history")),
+            "Only a person undoes or redoes this step, in the window: it holds a human-only command that decides what \
+             the checks report",
+            "the reason says why, with no plan reference"
         );
         // The window's shell: a person drives it (cycle 41, ruling 1: the origin is `Origin::Gui` only there).
         shell.mode = Mode::Gui;

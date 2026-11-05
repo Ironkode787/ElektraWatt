@@ -2396,13 +2396,20 @@ fn open_editing_to(
                     ew_api::ReadOnlyReason::Integrity,
                     Some(ew_api::DamagedCopy {
                         device: Some(device),
-                        file,
+                        part,
+                        ..
                     }),
-                ) => format!(
-                    "error: {}: the project opens read-only: the device {device} uses the library copy {file}, which \
-                     is damaged; update the copy from its library first; nothing was written",
-                    dir.display()
-                ),
+                ) => {
+                    let copy = match part {
+                        Some((part, library)) => format!("the library copy of part {part} from {library}"),
+                        None => "the library copy of its part".to_owned(),
+                    };
+                    format!(
+                        "error: {}: the project opens read-only: the device {device} uses {copy}, which is damaged; \
+                         update the copy from its library first; nothing was written",
+                        dir.display()
+                    )
+                }
                 _ => read_only_refusal(dir, reason),
             };
             let _ = writeln!(errors, "{refusal}");

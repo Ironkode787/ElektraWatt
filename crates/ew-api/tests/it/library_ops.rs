@@ -565,11 +565,11 @@ fn em9_an_update_embeds_the_new_versions_missing_closure_or_is_refused() {
     // Without `embed`: refused, the missing item listed.
     let mut bare = plan.command.clone();
     bare.params.as_object_mut().unwrap().remove("embed");
-    let maker_copy = copy_in(lib, maker_item).to_string();
     match s.preview(&bare).unwrap_err() {
-        CmdError::Rejected { reason, .. } => assert!(
-            reason.contains("FT-640") && reason.contains(&format!("manufacturer copy {maker_copy}")),
-            "{reason}"
+        CmdError::Rejected { reason, .. } => assert_eq!(
+            reason,
+            "the new versions name items the project does not hold; give them in `embed`: a manufacturer, named by \
+             2904602 at version 1.1.0"
         ),
         other => panic!("expected the missing closure refused, got {other:?}"),
     }
@@ -648,8 +648,14 @@ fn em6_a_symbol_update_is_minor_with_a_moved_anchor_and_refused_without_a_connec
     let CmdError::Rejected { reason, .. } = &e else {
         panic!("{e:?}")
     };
+    // FT-1396: the attached records in words, a wire by its number or page, never by its ID.
+    let uuid = |w: &str| w.len() == 36 && w.matches('-').count() == 4;
     assert!(
-        reason.contains("connected CPs without a CP") && reason.contains("connection"),
+        reason.starts_with("the update leaves connected CPs without a CP; map them in `cp_maps`: ")
+            && reason.contains("wire")
+            && !reason
+                .split(|c: char| !(c.is_ascii_hexdigit() || c == '-'))
+                .any(uuid),
         "{reason}"
     );
 }
@@ -742,7 +748,14 @@ fn library_update_refuses_what_it_cannot_update() {
     };
     let (p, m) = run(&mut s, json!({"copies": [not_held]}));
     assert_eq!(p, "/copies/0");
-    assert!(m.contains("holds no part copy"), "{m}");
+    assert_eq!(
+        m,
+        format!(
+            "the project holds no copy of {} at version {}; embed it first (library.embed or part.assign)",
+            not_held["part_number"].as_str().unwrap(),
+            not_held["version"].as_str().unwrap()
+        )
+    );
     let mut lower = golden_part("2904602");
     lower["description"] = json!("older");
     let mut lower = rehashed(lower);
@@ -979,4 +992,49 @@ fn ft698_update_from_library_brings_golden_a_symbols_to_the_plc_address_slot() {
             .all(|c| !matches!(c.state, CopyState::UpdateAvailable { .. }))
     );
     assert!(slot_texts(&s, valve).iter().any(|t| t == "Q0.1"));
+}
+
+/// FT-1396 (ID-1423 ruling 5): a damaged library copy a device names is named by its part's words, as the installed
+/// library gives them, never by its file: the part number and the library's name.
+#[test]
+fn a_damaged_copy_is_named_by_its_installed_part() {
+    let (root, t, lib) = company("ew-api-damaged-named");
+    let mut s = golden(Some(t.clone()));
+    let g1 = device(&s, "-102G1");
+    let item = item_of("2904602");
+    let cmd = s
+        .assign_part(
+            &[g1.as_uuid()],
+            &lib_ref(lib, item),
+            AssignMode::Replace {
+                from: golden_copy("2904602"),
+            },
+            Dec3::ONE,
+        )
+        .unwrap();
+    s.execute(&cmd).unwrap();
+    let dir = root.0.join("project");
+    s.create(&dir, ew_api::StoreOptions::new("0.0.0-test")).unwrap();
+    s.close();
+    let copy = copy_in(lib, item);
+    std::fs::write(
+        dir.join("lib/parts").join(format!("{copy}.json")),
+        "{\"$k\": \"part\",\n",
+    )
+    .unwrap();
+    let (s, _) = Session::open(
+        &dir,
+        ew_api::StoreOptions::new("0.0.0-test"),
+        options(Some(t)),
+        ew_api::Recovery::Keep,
+    )
+    .unwrap();
+    let damaged = s.damaged_copy().expect("a damaged copy");
+    assert_eq!(
+        (damaged.device, damaged.part),
+        (
+            Some("-102G1".to_owned()),
+            Some(("2904602".to_owned(), "Acme".to_owned()))
+        )
+    );
 }

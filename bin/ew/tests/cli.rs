@@ -2973,8 +2973,8 @@ fn fmt_keeps_unknown_members_and_quarantined_lines_verbatim() {
     assert!(tree(&broken) == before, "nothing is written");
 }
 
-/// C52-p4#1, #2 (FT-1383, ID-1418): a writer refused on a project whose damaged library copy a device uses names the
-/// device, the copy's file and the way out, and writes nothing.
+/// C52-p4#1, #2 (FT-1383, ID-1418; FT-1396): a writer refused on a project whose damaged library copy a device uses names the
+/// device, the copy in words and the way out, and writes nothing.
 #[test]
 fn a_writer_names_the_damaged_copy_a_device_uses() {
     let t = Tmp::new();
@@ -3003,8 +3003,8 @@ fn a_writer_names_the_damaged_copy_a_device_uses() {
             Some(2),
             String::new(),
             format!(
-                "error: {}: the project opens read-only: the device -201U8-Q1 uses the library copy {file}, which is \
-                 damaged; update the copy from its library first; nothing was written\n",
+                "error: {}: the project opens read-only: the device -201U8-Q1 uses the library copy of its part, \
+                 which is damaged; update the copy from its library first; nothing was written\n",
                 project.display()
             )
         )

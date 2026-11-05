@@ -49,7 +49,10 @@ fn resolve_end(
         EndpointParam::OnConnection { connection, at } => {
             let w = tx.require::<Connection>(*connection)?;
             let Some(page) = w.page else {
-                return tx.reject(text!("refusal-connection-no-page", connection.to_string()));
+                return tx.reject(text!(
+                    "refusal-connection-no-page",
+                    crate::words::wire(tx, *connection)
+                ));
             };
             require_split_point(tx, &w, page, *at, &format!("{field}/on_connection/at"))?;
             let junction: Id<Junction> = tx.mint();

@@ -812,10 +812,8 @@ fn ft544_a_bare_tag_is_a_reference() {
 /// kind keep their `fields.set` route.
 #[test]
 fn page_item_and_structure_box_members_read_their_reasons() {
-    const KIND: &str =
-        "a page item's kind is not changed in place; delete the item and place another (WP-S2.04 §5.2)";
-    const GROUP: &str =
-        "a marker's wires are changed by deleting the marker and placing another (WP-S2.04 §5.2)";
+    const KIND: &str = "a page item's kind is not changed in place; delete the item and place another";
+    const GROUP: &str = "a marker's wires are changed by deleting the marker and placing another";
     const PAGE: &str = "stays on its page; delete it and place it on the other page";
     let route = |kind: &str, path: &str| {
         field_catalogue(kind)
@@ -941,10 +939,8 @@ fn page_items_and_structure_boxes_have_property_sheets() {
         );
         assert!(r.actions.contains(&RowAction::Edit));
     };
-    const KIND: &str =
-        "a page item's kind is not changed in place; delete the item and place another (WP-S2.04 §5.2)";
-    const GROUP: &str =
-        "a marker's wires are changed by deleting the marker and placing another (WP-S2.04 §5.2)";
+    const KIND: &str = "a page item's kind is not changed in place; delete the item and place another";
+    const GROUP: &str = "a marker's wires are changed by deleting the marker and placing another";
     const PAGE: &str = "stays on its page; delete it and place it on the other page";
     for id in [text, line, marker] {
         let sheet = s.property_sheet(&[id]);

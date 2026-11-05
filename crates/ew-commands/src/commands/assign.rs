@@ -123,7 +123,10 @@ pub(crate) fn embed_closure(
                     at,
                     text!(
                         "refusal-assign-held-other-hash",
-                        l.item.to_string(),
+                        crate::commands::library_update::row_document(&held).map_or_else(
+                            || text!("refusal-words-kind-other").into(),
+                            |d| crate::words::document_item(tx, &d)
+                        ),
                         version.to_string()
                     ),
                 ));

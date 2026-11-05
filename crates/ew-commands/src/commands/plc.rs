@@ -75,16 +75,12 @@ impl Command for CreatePlcConfigProject {
         if let Some(cpu) = self.cpu {
             tx.require::<Device>(cpu)?;
         }
-        if let Some(other) = tx
+        if tx
             .iter::<PlcConfigProject>()
             .into_iter()
-            .find(|p| p.name == self.name)
+            .any(|p| p.name == self.name)
         {
-            return tx.reject(text!(
-                "refusal-plc-project-exists",
-                self.name.to_string(),
-                other.id.to_string()
-            ));
+            return tx.reject(text!("refusal-plc-project-exists", self.name.to_string()));
         }
         let id: Id<PlcConfigProject> = tx.mint();
         tx.insert(PlcConfigProject {
