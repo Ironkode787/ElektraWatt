@@ -944,6 +944,32 @@ fn the_new_strip_toasts_name_the_strip_picker_in_dutch() {
     shell.shutdown();
 }
 
+/// ID-1439 (C52-p8#5, #6, #7): in Dutch the Messages header's sentence puts the count before "vrijgesteld" and
+/// "wachtend", the Preview's counts name items "elementen", and the action after the Preview's colon is in a sentence.
+#[test]
+fn id1439_the_messages_and_preview_headers_in_dutch() {
+    let tmp = Tmp::new("id1439-headers-nl");
+    let mut shell = tmp.shell_in(Mode::Headless, true, "101");
+    done(&mut shell, "view.language", json!({"value": "nl"}));
+    assert_eq!(
+        (
+            strings::format(key!("messages-header"), &["Ontwerp", "1", "2", "3", "4", "5"]),
+            strings::format_count(count_key!("preview-records"), 1),
+            strings::format_count(count_key!("preview-records"), 2),
+            strings::format(key!("preview-header"), &["Eigenschap instellen", "7"]),
+            strings::format(key!("preview-title"), &["Eigenschap instellen"]),
+        ),
+        (
+            "Ontwerp · F 1 · W 2 · I 3 · 4 vrijgesteld · 5 wachtend".to_owned(),
+            "1 element".to_owned(),
+            "2 elementen".to_owned(),
+            "Voorbeeld: eigenschap instellen · vanaf revisie 7".to_owned(),
+            "Voorbeeld: eigenschap instellen".to_owned(),
+        )
+    );
+    shell.shutdown();
+}
+
 /// C50-p5#7 (FT-1287): every report kind of the format has its `report-kind-<kind>` text in en-GB and nl-NL, so no
 /// generated page's Source shows JSON.
 #[test]
