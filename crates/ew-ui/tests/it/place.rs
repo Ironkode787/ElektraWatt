@@ -520,10 +520,7 @@ fn ft1375_device_from_part_places_the_projects_a9f78116_as_102f1_on_gp_ut() {
             .is_some(),
         "the symbol by its name"
     );
-    assert!(
-        h.query_by_label_contains("mcb-1p").is_none(),
-        "no key on show"
-    );
+    assert!(h.query_by_label_contains("mcb-1p").is_none(), "no key on show");
     let before = reps(&h);
     press(&mut h, Key::Enter);
     assert_eq!(h.state().shell().tool().name(), "place");

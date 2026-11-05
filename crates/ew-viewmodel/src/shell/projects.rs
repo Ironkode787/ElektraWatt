@@ -847,16 +847,16 @@ impl ShellModel {
             strings::text(key!("reimport-card-nothing")).to_owned()
         } else {
             strings::format(
-            key!("reimport-card-summary"),
-            &[
-                &name,
-                &n(ReimportClass::Added),
-                &n(ReimportClass::SourceChanged),
-                &n(ReimportClass::EwChanged),
-                &n(ReimportClass::Conflict),
-                &n(ReimportClass::Removed),
-                &n(ReimportClass::Unchanged),
-            ],
+                key!("reimport-card-summary"),
+                &[
+                    &name,
+                    &n(ReimportClass::Added),
+                    &n(ReimportClass::SourceChanged),
+                    &n(ReimportClass::EwChanged),
+                    &n(ReimportClass::Conflict),
+                    &n(ReimportClass::Removed),
+                    &n(ReimportClass::Unchanged),
+                ],
             )
         };
         // ID-1392 (FT-1387): each member's values in words, as the property grid shows them.

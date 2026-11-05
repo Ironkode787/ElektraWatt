@@ -128,7 +128,10 @@ mod tests {
     use super::field_words;
 
     fn words(fields: &[&str]) -> Vec<String> {
-        field_words("part", &fields.iter().map(|f| (*f).to_owned()).collect::<Vec<_>>())
+        field_words(
+            "part",
+            &fields.iter().map(|f| (*f).to_owned()).collect::<Vec<_>>(),
+        )
     }
 
     #[test]

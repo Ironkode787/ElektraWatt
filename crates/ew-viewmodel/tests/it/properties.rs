@@ -1188,7 +1188,10 @@ fn ft1043_a_representations_position_reads_in_millimetres_with_its_cell() {
     assert!(jsonl.contains("\"decimal_separator\":\"point\""));
     std::fs::write(
         &file,
-        jsonl.replace("\"decimal_separator\":\"point\"", "\"decimal_separator\":\"comma\""),
+        jsonl.replace(
+            "\"decimal_separator\":\"point\"",
+            "\"decimal_separator\":\"comma\"",
+        ),
     )
     .unwrap();
     let mut shell = writable(&tmp, "102");

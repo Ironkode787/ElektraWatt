@@ -761,7 +761,10 @@ fn damaged_banner(damaged: &ew_api::DamagedCopy) -> Option<String> {
             device: Some(device),
             part: Some((part, library)),
             ..
-        } => Some(strings::format(key!("banner-damaged-copy"), &[device, part, library])),
+        } => Some(strings::format(
+            key!("banner-damaged-copy"),
+            &[device, part, library],
+        )),
         ew_api::DamagedCopy {
             device: Some(device),
             part: None,

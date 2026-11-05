@@ -496,7 +496,11 @@ fn id1427_the_libraries_table_shows_its_state_column_at_1920() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, egui::Vec2::new(1920.0, 1080.0));
     dispatch(&mut h, "navigator.show", json!({"kind": "libraries"}));
-    dispatch(&mut h, "navigator.table", json!({"kind": "libraries", "on": true}));
+    dispatch(
+        &mut h,
+        "navigator.table",
+        json!({"kind": "libraries", "on": true}),
+    );
     for _ in 0..4 {
         settle(&mut h);
     }
