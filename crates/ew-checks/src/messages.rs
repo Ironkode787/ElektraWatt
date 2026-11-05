@@ -94,6 +94,13 @@ pub fn resource_errors() -> Vec<(&'static str, String)> {
 /// The arguments a pattern reads as numbers (an ordinal through `NUMBER(…, type: "ordinal")`, FT-756).
 const NUMBER_ARGS: &[&str] = &["cp_nth"];
 
+/// The decimal arguments of a rule, by rule ID (ID-1417): written with the decimal separator of the language
+/// ([`DECIMAL_COMMA`]). EW-POT-006's cross-sections in mm².
+const DECIMAL_ARGS: &[(&str, &[&str])] = &[(crate::rules::pot::PE_UNDERSIZED.id, &["pe", "required", "line"])];
+
+/// The shipped languages that write a decimal comma (`1,5 mm²`).
+const DECIMAL_COMMA: &[&str] = &["nl-NL"];
+
 /// The arguments of a finding as Fluent arguments (every value a string, but [`NUMBER_ARGS`] as numbers).
 fn fluent_args(f: &Finding) -> FluentArgs<'_> {
     let mut args = FluentArgs::with_capacity(f.args.len());
@@ -117,6 +124,15 @@ pub fn format(f: &Finding, lang: &str) -> Option<String> {
     let id = message_id(f.rule);
     let pattern = b.get_message(&id)?.value()?;
     let mut args = fluent_args(f);
+    if DECIMAL_COMMA.iter().any(|l| l.eq_ignore_ascii_case(lang))
+        && let Some((_, names)) = DECIMAL_ARGS.iter().find(|(rule, _)| *rule == f.rule)
+    {
+        for (k, v) in &f.args {
+            if names.contains(k) {
+                args.set(*k, v.replace('.', ","));
+            }
+        }
+    }
     // EW-CORE-013 carries the uniqueness finding it reports by that finding's arguments, its discriminator naming the
     // rule: the finding is worded by that rule's pattern where it has one, else stays the en-GB `collision`.
     if f.rule == crate::rules::core::MERGE_COLLISION.id {

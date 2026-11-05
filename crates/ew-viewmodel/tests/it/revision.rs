@@ -876,7 +876,7 @@ fn the_revision_dialogs_list_the_findings_in_dutch() {
     let release = s.revision_list().to_vec();
     let first = [
         "=P01+J-E-2416-3W1 heeft geen gerouteerde, handmatige of artikellengte",
-        "101.8: PE-draad 101.8 heeft 1.5 mm², minder dan de 2.5 mm² die nodig is voor de lijngeleiders van 2.5 mm² bij \
+        "101.8: PE-draad 101.8 heeft 1,5 mm², minder dan de 2,5 mm² die nodig is voor de lijngeleiders van 2,5 mm² bij \
          1X1 (de dimensioneringstabel is niet getoetst aan de norm)",
     ];
     assert_eq!(
