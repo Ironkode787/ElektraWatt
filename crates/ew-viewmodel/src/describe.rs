@@ -717,7 +717,6 @@ fn start_page(model: &ShellModel, lines: &mut Vec<String>) {
     // FT-1117 (ID-1229 item 3, ID-1187): this version has no update check, whatever the stored setting says.
     let privacy = strings::text(key!("start-update-check"));
     lines.push(format!("  label \"{privacy}\""));
-    lines.push(button(key!("start-privacy-change")));
 }
 
 fn first_run(model: &ShellModel, lines: &mut Vec<String>) {

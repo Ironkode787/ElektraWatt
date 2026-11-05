@@ -46,18 +46,25 @@ pub fn show(
             return;
         }
         let room = ui.available_rect_before_wrap();
+        // FT-1199: an entry is inset from the pane's edges as the other panes' rows are (`space.4`).
+        let inset = egui::Margin::symmetric(
+            crate::theme::margin_px(crate::theme::current(ui.ctx()).space_4),
+            0,
+        );
         let list = egui::ScrollArea::vertical()
             .auto_shrink([false, true])
             .show(ui, |ui| {
                 for e in jobs.entries() {
-                    entry(
-                        ui,
-                        e,
-                        started
-                            .get(&e.number)
-                            .map(|t| std::time::Duration::from_secs_f64((now - t).max(0.0))),
-                        events,
-                    );
+                    egui::Frame::new().inner_margin(inset).show(ui, |ui| {
+                        entry(
+                            ui,
+                            e,
+                            started
+                                .get(&e.number)
+                                .map(|t| std::time::Duration::from_secs_f64((now - t).max(0.0))),
+                            events,
+                        );
+                    });
                     ui.separator();
                 }
             });

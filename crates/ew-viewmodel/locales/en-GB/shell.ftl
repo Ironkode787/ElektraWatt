@@ -1321,7 +1321,6 @@ start-edit-standard = Edit company standard
 start-tutorials = Tutorials
 start-quick-language = Language
 start-quick-keymap = Keymap
-start-privacy-change = Change
 language-en = English
 language-nl = Nederlands
 keymap-ew = EW

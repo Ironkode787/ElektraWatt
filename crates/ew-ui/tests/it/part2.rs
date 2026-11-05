@@ -124,9 +124,15 @@ fn the_quick_switches_and_the_privacy_link_change_settings() {
     h.get_by_label("EW").click();
     settle(&mut h);
     assert_eq!(h.state().shell().settings().keymap, "ew");
-    // "Change" leads to the privacy step of the first-run flow. FT-1117 (ID-1229 item 3): the step says this version
-    // has no update check and sends no crash reports, with no box for one; the Privacy button stays.
-    h.get_by_label("Change").click();
+    // FT-1197 (doc 16a §8 item 2): the line says this version has no update check, and no "Change" button stands
+    // beside it, since there is nothing to change. FT-1117 (ID-1229 item 3): the first run's privacy step says so
+    // too and sends no crash reports, with no box for one; the Privacy button stays.
+    let _ = h.get_by_label("This version has no update check");
+    assert!(h.query_by_label("Change").is_none());
+    let _ = h
+        .state_mut()
+        .shell_mut()
+        .dispatch("help.first_run", &json!({"step": "privacy"}));
     settle(&mut h);
     assert!(h.state().shell().first_run().is_some());
     let _ = h.get_by_label(
@@ -186,6 +192,43 @@ fn the_first_run_flow_walks_its_steps_and_starts_with_the_sample() {
     assert!(shell.settings().first_run_done);
     assert_eq!(shell.project_name(), Some("J-E-2416.ew"));
     h.state_mut().shell_mut().shutdown();
+}
+
+/// FT-1173 (doc 16a §2): a first-run step's heading, text, choices and buttons share the reading column
+/// (`size.text.measure`, centred in the window): the heading, the first choice and Skip start at its left edge, Next
+/// ends at its right.
+#[test]
+fn the_first_run_step_sits_in_one_reading_column() {
+    let tmp = Tmp::new();
+    let mut shell = gui_shell(&tmp);
+    shell.start_first_run_if_needed();
+    let mut h = harness_with(shell, Scripted::default(), None);
+    settle(&mut h);
+    let measure = ew_ui::theme::current(&h.ctx).size_text_measure;
+    let window = h.ctx.content_rect();
+    let near = |a: f32, b: f32| (a - b).abs() <= 1.0;
+    let heading = h.get_by_label("Welcome to ElektraWatt").rect();
+    assert!(
+        near(heading.min.x, window.center().x - measure / 2.0),
+        "{heading:?} in {window:?}"
+    );
+    let (left, right) = (heading.min.x, heading.min.x + measure);
+    // The first step: English, then Skip at the left edge, Next at the right.
+    for label in ["English", "Skip"] {
+        let r = h.get_by_label(label).rect();
+        assert!(near(r.min.x, left), "{label} {r:?} from {left}");
+    }
+    let next = h.get_by_label("Next").rect();
+    assert!(near(next.max.x, right), "{next:?} to {right}");
+    // The second step: its first choice and Back at the left edge, Next at the right.
+    h.get_by_label("Next").click();
+    settle(&mut h);
+    for label in ["EPLAN", "Back"] {
+        let r = h.get_by_label(label).rect();
+        assert!(near(r.min.x, left), "{label} {r:?} from {left}");
+    }
+    let next = h.get_by_label("Next").rect();
+    assert!(near(next.max.x, right), "{next:?} to {right}");
 }
 
 // ---------------------------------------------------------------------------------------------------------------

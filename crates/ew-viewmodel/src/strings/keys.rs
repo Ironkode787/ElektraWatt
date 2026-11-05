@@ -1175,7 +1175,6 @@ pub const KEYS: &[&str] = &[
     "start-tutorials",
     "start-quick-language",
     "start-quick-keymap",
-    "start-privacy-change",
     "language-en",
     "language-nl",
     "keymap-ew",

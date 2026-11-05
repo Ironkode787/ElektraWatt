@@ -1173,11 +1173,9 @@ fn r30_the_image_hint_follows_a_threaded_file_answer_without_a_pointer_move() {
     settle(&mut h);
     wait_for_page(&mut h);
     dispatch(&mut h, "tool.image", json!({}));
-    // The dialog's thread answers at once; a bounded number of frames waits for it (no wall clock in tests).
-    for _ in 0..1000 {
-        if h.state().shell().tool().state() == "armed" {
-            break;
-        }
+    // The dialog's thread answers at once; the frames wait on the answer's state, not on a count of frames, which a
+    // loaded machine outlasted (FT-1156; no wall clock in tests, and nextest's slow-timeout ends a hang).
+    while h.state().shell().tool().state() != "armed" {
         std::thread::yield_now();
         h.step();
     }

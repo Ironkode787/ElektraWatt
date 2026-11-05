@@ -253,6 +253,37 @@ fn ft1125_the_first_focus_is_print() {
     h.state_mut().shell_mut().shutdown();
 }
 
+/// FT-1198 (doc 16a §6.1, §6.12): the first focus, Print…, shows its focus ring: a `color.focus` stroke round the
+/// button, whole inside its clip.
+#[test]
+fn ft1198_the_first_focus_shows_its_focus_ring() {
+    let tmp = Tmp::new();
+    let mut h = harness(&tmp, Scripted::default(), Some(tmp.golden("g.ew")));
+    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    settle(&mut h);
+    dispatch(&mut h, "file.print", json!({"range": "current"}));
+    run_until_built(&mut h);
+    settle(&mut h);
+    let button = h.get_by_role_and_label(egui::Role::Button, "Print…").rect();
+    let t = ew_ui::theme::current(&h.ctx);
+    let rings: Vec<(egui::Rect, egui::Rect)> = shapes(&h)
+        .into_iter()
+        .filter_map(|(s, clip)| match s {
+            egui::Shape::Rect(r) if r.stroke.color == t.focus.color32() && r.rect.contains_rect(button) => {
+                Some((r.rect, clip))
+            }
+            _ => None,
+        })
+        .collect();
+    assert_eq!(rings.len(), 1, "one ring round {button:?}: {rings:?}");
+    let (ring, clip) = rings[0];
+    assert!(
+        clip.contains_rect(ring.expand(t.focus_width)),
+        "the ring {ring:?} whole in its clip {clip:?}"
+    );
+    h.state_mut().shell_mut().shutdown();
+}
+
 /// FT-1126 (ID-1225): with paper A3 and no fit the preview draws the paper as a sheet: its whole edge (no clip cuts
 /// it) in `color.border.control`, which meets the non-text contrast on the dialog's surface (the theme's pairs).
 #[test]

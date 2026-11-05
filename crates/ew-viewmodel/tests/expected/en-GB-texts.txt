@@ -769,7 +769,6 @@ start-edit-standard = Edit company standard
 start-tutorials = Tutorials
 start-quick-language = Language
 start-quick-keymap = Keymap
-start-privacy-change = Change
 language-en = English
 keymap-ew = EW
 keymap-kicad = KiCad-like

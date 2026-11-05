@@ -25,6 +25,10 @@ use serde_json::json;
 use crate::app::Event;
 use crate::theme;
 
+/// The share of the window's height the result list takes once that is more than ten rows (FT-1040): ten rows at the
+/// 800-px floor, more in a taller window.
+const LIST_SHARE: f32 = 0.35;
+
 fn active_id() -> egui::Id {
     egui::Id::unique("part-choose-active")
 }
@@ -119,7 +123,8 @@ pub(crate) fn chooser(
         act -= 1;
     }
     let list_name = strings::text(key!("part-choose-list"));
-    let height = t.size_row * 10.0;
+    // FT-1040 (doc 16a §2): the list takes the window's height as it grows, ten rows at the floor.
+    let height = crate::dialog::grown(t.size_row * 10.0, LIST_SHARE, ctx.content_rect().height());
     let list_id = ui.scope_id().with("part-choose-list");
     let list_rect = egui::Rect::from_min_size(ui.cursor().min, vec2(ui.available_width(), height));
     let list = ui.interact(list_rect, list_id, Sense::hover());

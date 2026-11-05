@@ -58,19 +58,24 @@ pub fn footer(step: FirstRunStep) -> Vec<(strings::Key<'static>, &'static str)> 
 pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
     let Some(run) = shell.first_run() else { return };
     let settings = shell.settings();
+    // C40 (FT-816): the reading measure, kept fixed on purpose (running text gets no easier to read wider). FT-1173
+    // (doc 16a §2): the heading, the texts, the choices and the buttons share that one column, centred in the window.
+    let width = crate::theme::current(ui.ctx())
+        .size_text_measure
+        .min(ui.available_width());
     ui.vertical_centered(|ui| {
         ui.add_space(ui.available_height() * 0.1);
-        ui.heading(strings::text(key!("firstrun-title")));
-        ui.label(format!(
-            "{} / {}: {}",
-            run.step.index() + 1,
-            FirstRunStep::ALL.len(),
-            strings::text(run.step.title_key())
-        ));
-        ui.add_space(12.0);
-        ui.scope(|ui| {
-            // C40 (FT-816): the reading measure, kept fixed on purpose (running text gets no easier to read wider).
-            ui.set_max_width(crate::theme::current(ui.ctx()).size_text_measure);
+        let column = egui::vec2(width, ui.available_height());
+        ui.allocate_ui_with_layout(column, egui::Layout::top_down(egui::Align::Min), |ui| {
+            ui.set_width(width);
+            ui.heading(strings::text(key!("firstrun-title")));
+            ui.label(format!(
+                "{} / {}: {}",
+                run.step.index() + 1,
+                FirstRunStep::ALL.len(),
+                strings::text(run.step.title_key())
+            ));
+            ui.add_space(12.0);
             match run.step {
                 FirstRunStep::Language => {
                     ui.label(strings::text(key!("firstrun-text-language")));
@@ -116,14 +121,27 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                     }
                 }
             }
-        });
-        ui.add_space(16.0);
-        ui.horizontal(|ui| {
-            for (key, action) in footer(run.step) {
-                if ui.button(strings::text(key)).clicked() {
-                    events.push(Event::Action(action, Value::Null));
+            ui.add_space(16.0);
+            // Back and Skip at the column's left edge, Next at its right.
+            let buttons = footer(run.step);
+            let (left, next) = match buttons.split_last() {
+                Some((next, left)) if run.step != FirstRunStep::Start => (left, Some(next)),
+                _ => (buttons.as_slice(), None),
+            };
+            ui.horizontal(|ui| {
+                for (key, action) in left {
+                    if ui.button(strings::text(*key)).clicked() {
+                        events.push(Event::Action(*action, Value::Null));
+                    }
                 }
-            }
+                if let Some((key, action)) = next {
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        if ui.button(strings::text(*key)).clicked() {
+                            events.push(Event::Action(*action, Value::Null));
+                        }
+                    });
+                }
+            });
         });
     });
 }

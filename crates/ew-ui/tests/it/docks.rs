@@ -426,3 +426,38 @@ fn fx38d_the_badge_opens_messages_and_its_close_button_closes_it() {
     assert_eq!(view(&h), before, "closing the dock refits the first fit");
     h.state_mut().shell_mut().shutdown();
 }
+
+/// FT-1199: a Jobs entry's title is inset from the pane's edge by `space.4`, as the other panes' rows are, not flush
+/// with it.
+#[test]
+fn ft1199_a_jobs_entry_is_inset_from_the_panes_edge() {
+    let tmp = Tmp::new();
+    let pdf = tmp.0.join("out.pdf");
+    let platform = Scripted::default();
+    platform
+        .answers
+        .borrow_mut()
+        .push_back(ew_ui::app::Pick::Path(pdf.clone()));
+    let mut h = harness_with(
+        ShellModel::new(Mode::Gui, tmp.config()),
+        platform,
+        Some(tmp.golden("g.ew")),
+    );
+    h.set_size(Vec2::new(1280.0, 800.0));
+    settle(&mut h);
+    wait_for_page(&mut h);
+    dispatch(&mut h, "file.export_pdf", Value::Null);
+    while h.state().shell().jobs().running() > 0 {
+        std::thread::yield_now();
+        h.run_ok();
+    }
+    dispatch(&mut h, "jobs.show", json!({}));
+    let pane = h.get_by_role_and_label(egui::Role::Group, "Jobs").rect();
+    let title = h.get_by_label("PDF export out.pdf").rect();
+    let space = ew_ui::theme::current(&h.ctx).space_4;
+    assert!(
+        (title.min.x - (pane.min.x + space)).abs() <= 1.0,
+        "{title:?} in {pane:?}"
+    );
+    h.state_mut().shell_mut().shutdown();
+}

@@ -1261,7 +1261,6 @@ start-edit-standard = Bedrijfsstandaard bewerken
 start-tutorials = Handleidingen
 start-quick-language = Taal
 start-quick-keymap = Toetsenindeling
-start-privacy-change = Wijzigen
 language-en = English
 language-nl = Nederlands
 keymap-ew = EW
