@@ -290,7 +290,10 @@ pub(super) fn held_folio(
         tx.iter::<ReportBlock>()
             .iter()
             .any(|b| {
-                Some(b.id) != own && b.section == section && b.embedded.is_none() && b.first_folio == Some(first)
+                Some(b.id) != own
+                    && b.section == section
+                    && b.embedded.is_none()
+                    && b.first_folio == Some(first)
             })
             .then_some(head.clone())
     })
