@@ -672,6 +672,10 @@ fn census_every_context_menu() {
     census.assert_clean();
 }
 
+/// A tool of [`every_tool_cancels_with_escape_and_changes_nothing`]: the folio, the tool's name and the steps that start
+/// it.
+type ToolRow<'a> = (&'a str, &'a str, Vec<(&'a str, Value)>);
+
 /// FT-1444 (NFR-UX-07, doc 16 §10.5): every tool started on its page gives way to Select at Escape and leaves the
 /// revision as it was. Each row starts one tool as a user does (its action, a picker's choice, a copied selection).
 #[test]
@@ -682,7 +686,7 @@ fn every_tool_cancels_with_escape_and_changes_nothing() {
     let mut problems = Vec::new();
     // `<rep>`, `<wire>` and `<device>` stand for the first representation and connection of the page on show and the
     // first device the panel page has not placed.
-    let rows: [(&str, &str, Vec<(&str, Value)>); 16] = [
+    let rows: [ToolRow<'_>; 16] = [
         ("101", "wire", vec![("tool.wire", json!({}))]),
         ("101", "ip", vec![("tool.ip", json!({}))]),
         ("101", "text", vec![("tool.text", json!({}))]),
