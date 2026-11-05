@@ -1623,6 +1623,34 @@ fn ft468_a_structure_box_survives_a_save_and_reload() {
         .unwrap_or_else(|e| panic!("after the undo: {e}"));
 }
 
+/// Cycle 52 `fuzz-smoke` finding (`fuzz/regressions/command_sequence/rep-transform-black-box-pivot`, CI run
+/// 42069007538, seed 382 692 297 722 036 225): `rep.transform` turned and mirrored Golden A's black box -102G1, which
+/// turns about the centre of its bounding box and so moves its insertion point by rule (`rep.transform`, "The
+/// pivot"), and the arm's oracle expected the insertion point to stay. The input replays with the cadence of the
+/// fuzz target and passes the oracle that checks the centre instead.
+#[test]
+fn rep_transform_of_a_black_box_keeps_the_centre_of_its_bounding_box() {
+    let input: &[u8] =
+        include_bytes!("../../../../fuzz/regressions/command_sequence/rep-transform-black-box-pivot");
+    let (seed, rest) = input.split_first_chunk::<8>().expect("a seed");
+    let (&steps, tape) = rest.split_first().expect("a step count");
+    let cadence = Cadence {
+        sample_every: 0,
+        check_every: 0,
+        verify_every: 0,
+        full_end: false,
+        save_weight: 1,
+        import_weight: 0,
+        deep: false,
+    };
+    run_fuzz_tape(
+        u64::from_le_bytes(*seed),
+        tape,
+        1 + usize::from(steps) % 8,
+        &cadence,
+    );
+}
+
 /// The placement and arrangement steps of WP-S2.04 on Golden A: the `from_part` and `new_terminal` targets of
 /// `device.place`, the `from_part` target of `box.black`, `rep.move` by grid steps, `rep.exchange_symbol`,
 /// `project.drawing.set`, `connection.draw_to_ip`, `ip.arrange` and `box.reshape` are all generated, and each kind
