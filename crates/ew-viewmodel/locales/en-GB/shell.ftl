@@ -1251,6 +1251,7 @@ refusal-fields-no-port = { $p0 } has no bus port; set `bus_port` first
 refusal-fields-port-role-unknown = { $p0 } is not a port role; give master, slave, controller, device or passive
 refusal-fields-bus-address-unknown = { $p0 } is not a bus address; give tbd, not_applicable or {"{"}"value": {"{"}"profibus": n{"}"}{"}"}
 refusal-fields-termination-unknown = { $p0 } is not a termination; give on or off
+refusal-fields-counter-used-project = counter { $p0 } with letter { $p1 } is already used by another cable without a page; use { $p2 }, the next free counter
 # valve.set_occupancy and fluid.port.close.
 refusal-valve-no-positions = { $p0 } has no valve positions
 refusal-valve-no-position = { $p0 } has { $p1 } valve positions; position { $p2 } does not exist

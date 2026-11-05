@@ -1131,8 +1131,9 @@ fn set_one<T: Entity + Serialize + DeserializeOwned>(
 
 /// D2: a counter or letter set through `fields.set` that makes the device's page-based tag collide on its
 /// page is refused with the next free counter as the remedy, never replaced silently (automatic
-/// renumbering, FR-NUM-029, applies only to new devices, moves and page changes). A tag that the edit
-/// leaves unchanged, an unplaced device and a device outside page-based numbering are not checked.
+/// renumbering, FR-NUM-029, applies only to new devices, moves and page changes). A cable on no page is checked in
+/// the project's scope, in words that name no page (FT-1406, ID-1418). A tag that the edit leaves unchanged, another
+/// unplaced device and a device outside page-based numbering are not checked.
 fn refuse_tag_collision(tx: &TxBuilder<'_>, device: ew_ids::Id<Device>) -> Result<(), CmdError> {
     use crate::numbering::{CounterScope, devices_in_scope, main_page, next_free_counter, numbered};
     let Some(dev) = tx.get::<Device>(device) else {
@@ -1148,10 +1149,12 @@ fn refuse_tag_collision(tx: &TxBuilder<'_>, device: ew_ids::Id<Device>) -> Resul
     if unchanged || !numbered(&dev) {
         return Ok(());
     }
-    let Some(page) = main_page(tx, device) else {
-        return Ok(());
+    let page = main_page(tx, device);
+    let scope = match page {
+        Some(page) => CounterScope::Page(page),
+        None if dev.aspects.cable.is_some() => CounterScope::Project,
+        None => return Ok(()),
     };
-    let scope = CounterScope::Page(page);
     let taken = devices_in_scope(tx, &dev.tag.letter, scope)
         .into_iter()
         .any(|(other, c)| other != device && c == Some(counter));
@@ -1159,6 +1162,14 @@ fn refuse_tag_collision(tx: &TxBuilder<'_>, device: ew_ids::Id<Device>) -> Resul
         return Ok(());
     }
     let free = next_free_counter(tx, &dev.tag.letter, scope, Some(device));
+    let Some(page) = page else {
+        return tx.reject(text!(
+            "refusal-fields-counter-used-project",
+            counter.to_string(),
+            dev.tag.letter.to_string(),
+            free.to_string()
+        ));
+    };
     tx.reject(text!(
         "refusal-fields-counter-used",
         counter.to_string(),

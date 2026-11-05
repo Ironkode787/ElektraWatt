@@ -495,3 +495,65 @@ fn connect_cores_tells_two_cables_with_one_tag_apart() {
     );
     s.shutdown();
 }
+
+/// C52-p4#3 (FT-1406, ID-1418): (a) a counter that another cable on no page holds is refused through `fields.set`, in
+/// words that name no page, in both languages, instead of being replaced; (b) `numbering.renumber` numbers the cables
+/// on no page in the project's scope and a cable placed through its first core in its page's.
+#[test]
+fn cables_on_no_page_or_placed_by_a_core_keep_their_scope_in_edits_and_renumbering() {
+    let tmp = Tmp::new("ft1406-scope");
+    let mut s = tmp.shell_in(Mode::Gui, true, "103");
+    let before = cables(&mut s);
+    for _ in 0..3 {
+        done(&mut s, "cable.new", json!({"part": "NEBU-G78W5-K-2-N-LE5"}));
+    }
+    let new = |s: &mut ShellModel| -> Vec<String> {
+        let mut new: Vec<String> = cables(s)
+            .into_iter()
+            .map(|(tag, _)| tag)
+            .filter(|t| !before.iter().any(|(b, _)| b == t))
+            .collect();
+        new.sort();
+        new
+    };
+    assert_eq!(new(&mut s), ["-W1", "-W2", "-W3"]);
+    done(&mut s, "navigator.show", json!({"kind": "cables"}));
+    done(&mut s, "navigator.select", json!({"keys": ["-W2"]}));
+    for (language, refusal) in [
+        (
+            "en",
+            "counter 1 with letter W is already used by another cable without a page; use 2, the next free counter",
+        ),
+        (
+            "nl",
+            "teller 1 met letter W wordt al gebruikt door een andere kabel zonder pagina; gebruik 2, de volgende vrije \
+             teller",
+        ),
+    ] {
+        done(&mut s, "view.language", json!({ "value": language }));
+        let rev = s.revision();
+        let Outcome::Failed { message } = s.dispatch("props.set", &json!({"row": "device/tag.counter", "value": "1"}))
+        else {
+            panic!("{language}: a taken counter")
+        };
+        assert_eq!(message, refusal, "{language}");
+        assert_eq!(s.revision(), rev, "{language}: nothing changed");
+    }
+    done(&mut s, "view.language", json!({ "value": "en" }));
+    // (b) -W2 off to 7 and -W3, placed through its first core on folio 103, off to 9: renumbering takes both back.
+    done(&mut s, "props.set", json!({"row": "device/tag.counter", "value": "7"}));
+    let w = wires(&s);
+    done(&mut s, "select.set", json!({"ids": [w[0].to_string()]}));
+    done(&mut s, "cable.connect_cores", json!({"cable": "-W3"}));
+    done(&mut s, "navigator.show", json!({"kind": "cables"}));
+    done(&mut s, "navigator.select", json!({"keys": ["-103W1"]}));
+    done(&mut s, "props.set", json!({"row": "device/tag.counter", "value": "9"}));
+    assert_eq!(new(&mut s), ["-103W9", "-W1", "-W7"]);
+    done(
+        &mut s,
+        "command.run",
+        json!({"cmd": "numbering.renumber", "params": {"scope": "project"}}),
+    );
+    assert_eq!(new(&mut s), ["-103W1", "-W1", "-W2"]);
+    s.shutdown();
+}

@@ -69,8 +69,10 @@ impl Default for RenumberOptions {
 ///
 /// The devices in scope that take part in numbering (`numbering::numbered`: no terminal aspect, no frozen
 /// tag, default scheme; with `include_frozen` also the frozen ones) and are placed are grouped by (page of
-/// the main representation, letter). In each group the devices are ordered by their main representation's
-/// position, column first (x, then y), then by ID. Counters held by devices of the group outside the scope
+/// the main representation, letter); a cable without a definition line takes the page of its first core, and a cable
+/// on no page the project's group (`numbering::main_page`, FT-1406). In each group the devices are ordered by their
+/// main representation's position, column first (x, then y), then by ID; a cable without a representation comes
+/// after the drawn devices. Counters held by devices of the group outside the scope
 /// are reserved. Then, in order:
 ///
 /// - `only_nonconforming`: a device keeps its counter unless it has none or shares it with an earlier
@@ -143,8 +145,11 @@ impl Command for RenumberDevices {
             }
             DeviceScope::Project => tx.iter::<Device>().into_iter().map(|d| d.id).collect(),
         };
-        // Numbered, placed devices by (page, letter), with the position of the main representation.
-        let mut groups: BTreeMap<(Id<Page>, Ident), Vec<Member>> = BTreeMap::new();
+        // Numbered devices by (scope, letter), with the position of the main representation: a placed device in its
+        // page's scope, a cable on no page in the project's (FT-1406, ID-1418). A cable placed through its first core
+        // has no representation; it follows the drawn devices of its page, and the project's cables follow one
+        // another, in ID order.
+        let mut groups: BTreeMap<(CounterScope, Ident), Vec<Member>> = BTreeMap::new();
         for id in &in_scope {
             let Some(device) = tx.get::<Device>(*id) else {
                 continue;
@@ -152,18 +157,21 @@ impl Command for RenumberDevices {
             if !takes_part(&device, self.include_frozen) {
                 continue;
             }
-            let Some(rep) = numbering::main_rep(tx, *id) else {
-                continue;
+            let (scope, x, y) = match (numbering::main_rep(tx, *id), numbering::main_page(tx, *id)) {
+                (Some(rep), _) => (CounterScope::Page(rep.page), rep.pos.x.0, rep.pos.y.0),
+                (None, Some(page)) => (CounterScope::Page(page), i64::MAX, i64::MAX),
+                (None, None) if device.aspects.cable.is_some() => (CounterScope::Project, 0, 0),
+                (None, None) => continue,
             };
             groups
-                .entry((rep.page, device.tag.letter.clone()))
+                .entry((scope, device.tag.letter.clone()))
                 .or_default()
-                .push((rep.pos.x.0, rep.pos.y.0, *id));
+                .push((x, y, *id));
         }
         let mut assignments: Vec<(Id<Device>, u32)> = Vec::new();
-        for ((page, letter), mut members) in groups {
+        for ((scope, letter), mut members) in groups {
             members.sort();
-            let reserved: BTreeSet<u32> = numbering::devices_in_scope(tx, &letter, CounterScope::Page(page))
+            let reserved: BTreeSet<u32> = numbering::devices_in_scope(tx, &letter, scope)
                 .into_iter()
                 .filter(|(d, _)| !in_scope.contains(d))
                 .filter_map(|(_, c)| c)

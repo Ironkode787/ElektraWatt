@@ -1208,6 +1208,7 @@ refusal-fields-no-port = { $p0 } heeft geen buspoort; stel eerst `bus_port` in
 refusal-fields-port-role-unknown = { $p0 } is geen poortrol; geef master, slave, controller, device of passive
 refusal-fields-bus-address-unknown = { $p0 } is geen busadres; geef tbd, not_applicable of {"{"}"value": {"{"}"profibus": n{"}"}{"}"}
 refusal-fields-termination-unknown = { $p0 } is geen afsluiting; geef on of off
+refusal-fields-counter-used-project = teller { $p0 } met letter { $p1 } wordt al gebruikt door een andere kabel zonder pagina; gebruik { $p2 }, de volgende vrije teller
 # valve.set_occupancy and fluid.port.close.
 refusal-valve-no-positions = { $p0 } heeft geen ventielplaatsen
 refusal-valve-no-position = { $p0 } heeft { $p1 } ventielplaatsen; plaats { $p2 } bestaat niet

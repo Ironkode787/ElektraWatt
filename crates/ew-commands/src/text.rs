@@ -1333,6 +1333,10 @@ pub const TEXTS: &[(&str, &str)] = &[
         "refusal-fields-termination-unknown",
         "{0} is not a termination; give on or off",
     ),
+    (
+        "refusal-fields-counter-used-project",
+        "counter {0} with letter {1} is already used by another cable without a page; use {2}, the next free counter",
+    ),
     // valve.set_occupancy and fluid.port.close.
     ("refusal-valve-no-positions", "{0} has no valve positions"),
     (
