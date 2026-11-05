@@ -834,7 +834,7 @@ and the coil addresses on 203–206 follow with FT-227.
 
 | Valves | Type (ISO 1219-1) | Ports (printed) | Actuation | Drives |
 |---|---|---|---|---|
-| 28 × 571334 | 5/2 monostable | 3, 1, 5 at the top; 2 and 4 at the bottom | solenoid 14 with manual override; spring return | 8 used valves → one actuator each |
+| 28 × 571334 | 5/2 monostable | 4 and 2 at the top, 5, 1 and 3 at the bottom, left to right (`ew.iso.valve-5-2-sol-spring`; FT-1418) | solenoid 14 with manual override; spring return | 8 used valves → one actuator each |
 
 | Lines | From | To | Spec (Golden A) | Spec (Golden A-R ▲U-25) |
 |---|---|---|---|---|
