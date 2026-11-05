@@ -751,6 +751,24 @@ fn string_param<'a>(p: &'a Map<String, Value>, name: &str) -> Result<Option<&'a 
     }
 }
 
+/// The banner of a project open read-only because of a damaged library copy a device uses (FT-1383, ID-1418): the
+/// device, the copy's part and its library when an installed library holds it; `None` for a copy no device names.
+fn damaged_banner(damaged: &ew_api::DamagedCopy) -> Option<String> {
+    match damaged {
+        ew_api::DamagedCopy {
+            device: Some(device),
+            part: Some((part, library)),
+            ..
+        } => Some(strings::format(key!("banner-damaged-copy"), &[device, part, library])),
+        ew_api::DamagedCopy {
+            device: Some(device),
+            part: None,
+            ..
+        } => Some(strings::format(key!("banner-damaged-copy-unnamed"), &[device])),
+        _ => None,
+    }
+}
+
 fn read_only_key(reason: &ReadOnlyReason) -> Key<'static> {
     match reason {
         ReadOnlyReason::Requested => key!("readonly-requested"),
@@ -1991,18 +2009,11 @@ impl ShellModel {
                 let damaged = matches!(reason, ReadOnlyReason::Integrity)
                     .then(|| session.damaged_copy())
                     .flatten();
-                let banner = (!read_only).then(|| match damaged {
-                    Some(ew_api::DamagedCopy {
-                        device: Some(device),
-                        part: Some((part, library)),
-                        ..
-                    }) => strings::format(key!("banner-damaged-copy"), &[&device, &part, &library]),
-                    Some(ew_api::DamagedCopy {
-                        device: Some(device),
-                        part: None,
-                        ..
-                    }) => strings::format(key!("banner-damaged-copy-unnamed"), &[&device]),
-                    _ => strings::format(key!("banner-read-only"), &[strings::text(key)]),
+                let banner = (!read_only).then(|| {
+                    damaged
+                        .as_ref()
+                        .and_then(damaged_banner)
+                        .unwrap_or_else(|| strings::format(key!("banner-read-only"), &[strings::text(key)]))
                 });
                 Opened {
                     session,

@@ -84,6 +84,9 @@ pub(crate) struct CollabState {
     pub(crate) state_banner: Option<String>,
     /// Whether the user dismissed the cloud folder's banner (until the next open).
     pub(crate) cloud_dismissed: bool,
+    /// The damaged library copy that made the project of this epoch read-only (FT-1383), kept from its open: its banner
+    /// is a state banner and stays while the project is open (ID-1427, W52 F7).
+    pub(crate) damaged: Option<(u64, ew_api::DamagedCopy)>,
     /// Whether the collision dialog of the held change was shown: a poll opens it once, never over another dialog and
     /// never again after Decide later (a refused save opens it again).
     pub(crate) collisions_shown: bool,
@@ -191,6 +194,9 @@ impl ShellModel {
             if p.session.external_unreadable() {
                 return Some(strings::text(key!("banner-external-unreadable")).to_owned());
             }
+            if let Some(text) = self.damaged_state(p.epoch).and_then(super::damaged_banner) {
+                return Some(text);
+            }
             if self.collab.cloud_dismissed {
                 return None;
             }
@@ -214,10 +220,20 @@ impl ShellModel {
     /// which only a choice (or the disk) resolves.
     pub fn banner_dismissable(&self) -> bool {
         self.banner.is_some()
-            || !self
-                .project
-                .as_ref()
-                .is_some_and(|p| p.session.external_collisions().is_some() || p.session.external_unreadable())
+            || !self.project.as_ref().is_some_and(|p| {
+                p.session.external_collisions().is_some()
+                    || p.session.external_unreadable()
+                    || self.damaged_state(p.epoch).is_some()
+            })
+    }
+
+    /// The damaged library copy that made the open project of `epoch` read-only (ID-1427, W52 F7).
+    fn damaged_state(&self, epoch: u64) -> Option<&ew_api::DamagedCopy> {
+        self.collab
+            .damaged
+            .as_ref()
+            .filter(|(e, _)| *e == epoch)
+            .map(|(_, d)| d)
     }
 
     /// Dismisses the state banner where that is allowed (the cloud folder's).
@@ -481,6 +497,15 @@ impl ShellModel {
             .as_ref()
             .is_some_and(|p| matches!(p.access, super::AccessMode::Edit));
         self.collab.driver_missing = edits && driver_missing(dir);
+        // ID-1427 (W52 F7): a damaged library copy's banner is a state banner too, while the project stays open.
+        self.collab.damaged = self.project.as_ref().and_then(|p| {
+            let integrity = matches!(p.access, super::AccessMode::ReadOnly { reason_key }
+                if reason_key == key!("readonly-integrity"));
+            integrity
+                .then(|| p.session.damaged_copy())
+                .flatten()
+                .map(|d| (p.epoch, d))
+        });
         // The cloud folder's banner is a state banner (W49.3-F2).
         self.collab.cloud_dismissed = false;
         self.refresh_state_banner();

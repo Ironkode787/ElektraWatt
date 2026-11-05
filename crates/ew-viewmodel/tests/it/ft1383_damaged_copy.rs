@@ -119,3 +119,42 @@ fn ft1383_save_as_is_refused_and_the_banner_names_the_device_and_the_copy() {
     }
     assert!(strings::set_locale("en"));
 }
+
+/// ID-1427 (W52 F7): the damaged copy's banner stays while the project is read-only for it: after a page change it
+/// still names the device and the way out (the open's finding count goes with the message), and it cannot be
+/// dismissed; it follows the UI language, and it goes when the project closes.
+#[test]
+fn id1427_the_damaged_copy_banner_stays_while_its_state_holds() {
+    let tmp = Tmp::new("id1427-damaged-banner");
+    let (dir, _) = damaged_golden(&tmp);
+    let mut s = ShellModel::new(
+        Mode::Headless,
+        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
+    );
+    done(
+        &mut s,
+        "file.open",
+        json!({"dir": dir.to_string_lossy(), "read_only": false}),
+    );
+    done(&mut s, "page.next", json!({}));
+    assert_eq!(
+        s.banner(),
+        Some(
+            "This project is open read-only: the device -201U8-Q1 uses the library copy of its part, which is \
+             damaged. Update the copy from its library first."
+        )
+    );
+    assert!(!s.banner_dismissable());
+    done(&mut s, "view.language", json!({"value": "nl"}));
+    assert_eq!(
+        s.banner(),
+        Some(
+            "Dit project is alleen-lezen geopend: het apparaat -201U8-Q1 gebruikt de bibliotheekkopie van zijn \
+             artikel, die beschadigd is. Werk de kopie eerst bij vanuit de bibliotheek."
+        )
+    );
+    done(&mut s, "view.language", json!({"value": "en"}));
+    done(&mut s, "file.close", json!({}));
+    assert_eq!(s.banner(), None);
+    assert!(strings::set_locale("en"));
+}
