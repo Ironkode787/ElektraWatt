@@ -650,7 +650,7 @@ fn unlabelled_elements_are_reported_with_their_own_code() {
     assert_eq!(
         entries(&imported, "EW-IMP-122"),
         [
-            "1 elements without label: device tags carry the element prefix letter (else `A`) and are numbered on import"
+            "1 element without label: its device tag carries the element prefix letter (else `A`) and is numbered on import"
         ],
         "{}",
         all_entries(&imported)
@@ -663,6 +663,27 @@ fn unlabelled_elements_are_reported_with_their_own_code() {
     let devs = devices(&imported);
     assert_eq!(devs.len(), 1);
     assert_eq!(devs[0].tag.letter.as_str(), "K");
+    // FT-1390: two read in the plural.
+    let text = qet(
+        r#"version="0.100""#,
+        &[folio(
+            "1",
+            "A",
+            vec![
+                el(SIMPLE, uuid(1), 100, 100).prefix("K"),
+                el(SIMPLE, uuid(2), 100, 200).prefix("K"),
+            ],
+        )],
+    );
+    let imported = import(&text);
+    assert_eq!(
+        entries(&imported, "EW-IMP-122"),
+        [
+            "2 elements without label: device tags carry the element prefix letter (else `A`) and are numbered on import"
+        ],
+        "{}",
+        all_entries(&imported)
+    );
 }
 
 #[test]
