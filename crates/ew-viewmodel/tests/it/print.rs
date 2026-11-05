@@ -8,6 +8,7 @@
 
 use crate::common::{Tmp, done, refused};
 use ew_viewmodel::ew_api::ew_jobs::Gate;
+use ew_viewmodel::jobs::JobKind;
 use ew_viewmodel::shell::print::{PrintEnd, PrintVia};
 use ew_viewmodel::shell::{Outcome, ShellModel};
 use serde_json::json;
@@ -302,5 +303,31 @@ fn print_send_hands_the_set_to_the_window_and_each_end_has_one_toast() {
     let _ = s.take_print_request();
     s.print_done(PrintEnd::Cancelled);
     assert_eq!(toasts(&s), before, "a cancel says nothing");
+    s.shutdown();
+}
+
+/// C52-p3#3 (FT-1157, ID-1417): the print the window hands to its platform is a running entry of the Jobs pane; its
+/// Cancel sets the request's cancel signal, which the platform hands to the print job, and the print's end takes the
+/// entry away.
+#[test]
+fn a_running_print_is_a_job_whose_cancel_reaches_the_print() {
+    use std::sync::atomic::Ordering::Relaxed;
+    let tmp = Tmp::new("print-cancel");
+    let mut s = tmp.shell("100");
+    done(&mut s, "file.print", json!({"range": "current"}));
+    done(&mut s, "print.send", json!({}));
+    let request = s.take_print_request().expect("a request");
+    let running: Vec<(JobKind, String, bool)> = s
+        .jobs()
+        .entries()
+        .map(|e| (e.kind, e.name.clone(), e.is_running()))
+        .collect();
+    assert_eq!(running, [(JobKind::Print, "J-E-2416".to_owned(), true)]);
+    assert!(!request.cancel.load(Relaxed));
+    done(&mut s, "jobs.cancel", json!({}));
+    assert!(request.cancel.load(Relaxed), "the Cancel reaches the print");
+    s.print_done(PrintEnd::Cancelled);
+    assert_eq!(s.jobs().entries().count(), 0, "the end takes the entry away");
+    assert_eq!(refused(&mut s, "jobs.cancel", json!({})), "reason-no-running-job");
     s.shutdown();
 }

@@ -208,6 +208,9 @@ pub struct PrintRequest {
     pub via: PrintVia,
     /// Whether the set is drawn in black and grey.
     pub monochrome: bool,
+    /// The print's cancel signal (FT-1157, ID-1417): the Cancel of its entry in the Jobs pane sets it, and the platform
+    /// hands it to the print job.
+    pub cancel: Arc<std::sync::atomic::AtomicBool>,
 }
 
 /// How a print the window started ended (the platform's report, ruling 3).
@@ -305,12 +308,28 @@ impl ShellModel {
     pub fn take_print_request(&mut self) -> Option<PrintRequest> {
         let request = self.print.request.take()?;
         self.print.printing = Some(request.title.clone());
+        // FT-1157 (ID-1417): the print shows in the Jobs pane while the platform runs it, with its Cancel.
+        let (rev, epoch) = self
+            .project
+            .as_ref()
+            .map_or((0, 0), |p| (p.session.world().rev.0, p.epoch));
+        self.jobs
+            .start_print(request.title.clone(), rev, epoch, Arc::clone(&request.cancel));
         Some(request)
     }
 
     /// The end of the print the window ran: its one toast (none for a cancel).
     pub fn print_done(&mut self, end: PrintEnd) {
         let title = self.print.printing.take().unwrap_or_default();
+        // The print's entry in the Jobs pane goes; the toast tells its end.
+        if let Some(i) = self
+            .jobs
+            .entries
+            .iter()
+            .position(|e| e.cancel.is_some() && e.is_running())
+        {
+            self.jobs.entries.remove(i);
+        }
         let text = match end {
             PrintEnd::Printed => strings::format(key!("toast-print-printed"), &[&title]),
             PrintEnd::Opened => strings::format(key!("toast-print-opened"), &[&title]),
@@ -515,6 +534,7 @@ impl ShellModel {
             title,
             via,
             monochrome,
+            cancel: Arc::default(),
         });
         self.drop_print();
         self.dialog = None;

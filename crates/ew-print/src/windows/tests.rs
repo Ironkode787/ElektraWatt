@@ -42,6 +42,7 @@ fn job(printer: &str, pages: Vec<PdfPage>) -> PrintJob {
         printer: Some(printer.to_owned()),
         monochrome: false,
         fonts: BTreeMap::new(),
+        cancel: crate::PrintCancel::default(),
     }
 }
 
@@ -344,21 +345,39 @@ fn a_white_band_is_not_sent() {
     assert!(!white(&band));
 }
 
-/// FT-1157: a print whose cancel signal is set ends before its first band is sent, the document aborted, as
-/// [`PrintError::Cancelled`]; the spooler writes no file. Skipped, with its line, as WN-3 is when the PDF printer
-/// cannot be opened.
+/// An adapter that must not be asked: the chain's next way after a cancel.
+struct Never;
+
+impl PrintAdapter for Never {
+    fn name(&self) -> &'static str {
+        "never"
+    }
+
+    fn print(&self, _: &PrintJob) -> Result<PrintOutcome, PrintError> {
+        panic!("a cancelled print went on to the next way")
+    }
+}
+
+/// FT-1157 (ID-1417): a print whose job's cancel signal is set (through a clone of the job, as the window's job Cancel
+/// and `ew print`'s Ctrl+C hold one) ends before its first band is sent, the document aborted, as
+/// [`PrintError::Cancelled`], which ends the window's chain: the next way is not asked and the spooler writes no file.
+/// Skipped, with its line, as WN-3 is when the PDF printer cannot be opened.
 #[test]
 fn a_cancelled_print_aborts_before_its_first_band() {
     let dir = Dir::new("cancel");
     let out = dir.0.join("cancel.pdf");
-    let mut adapter = Windows::cancelled_by(Arc::new(AtomicBool::new(true)));
-    adapter.output = Some(out.clone());
-    match adapter.print(&job(PDF_PRINTER, vec![placed_page(1)])) {
-        Err(PrintError::Windows { what, reason }) if what == Step::Open(PDF_PRINTER).to_string() => {
-            println!("skipped: {what}: {reason}");
+    let chain = crate::Chain::new(vec![Box::new(Windows::to_file(out.clone())), Box::new(Never)]);
+    let job = job(PDF_PRINTER, vec![placed_page(1)]);
+    job.clone().cancel.cancel();
+    match chain.print(&job) {
+        Err(failed)
+            if matches!(failed.first(), Some((_, PrintError::Windows { what, .. }))
+                if *what == Step::Open(PDF_PRINTER).to_string()) =>
+        {
+            println!("skipped: {failed:?}");
         }
         printed => {
-            assert_eq!(printed, Err(PrintError::Cancelled));
+            assert_eq!(printed, Err(vec![("windows", PrintError::Cancelled)]));
             assert!(!out.exists(), "{} was written", out.display());
         }
     }

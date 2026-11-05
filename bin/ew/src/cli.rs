@@ -1940,12 +1940,17 @@ fn run_print(a: &PrintArgs) -> i32 {
         fonts: ew_api::output::font_bytes().clone(),
         printer: a.printer.clone(),
         monochrome: a.mono,
+        cancel: ew_print::PrintCancel::default(),
     };
     let adapter: Box<dyn ew_print::PrintAdapter> = match a.via {
         PrintVia::Lp => Box::new(ew_print::Lp::new(std::env::temp_dir())),
         PrintVia::Viewer => Box::new(ew_print::Viewer::new(std::env::temp_dir(), &title)),
+        // FT-1157 (ID-1417): Ctrl+C aborts the document at the next band instead of ending the process mid-job.
         #[cfg(windows)]
-        PrintVia::Windows => Box::new(ew_print::Windows::new()),
+        PrintVia::Windows => {
+            ew_print::ctrl_c_cancels(&job.cancel);
+            Box::new(ew_print::Windows::new())
+        }
     };
     let outcome = match adapter.print(&job) {
         Ok(o) => o,

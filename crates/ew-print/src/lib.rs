@@ -41,10 +41,11 @@ use std::ffi::OsString;
 use std::fmt;
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 
 #[cfg(windows)]
-pub use crate::windows::Windows;
+pub use crate::windows::{Windows, ctrl_c_cancels};
 pub use ew_export::PdfPage;
 use ew_render_cpu::FontBytes;
 use ew_render_cpu::ew_dl::FontKey;
@@ -69,7 +70,40 @@ pub struct PrintJob {
     pub printer: Option<String>,
     /// Whether the set is drawn in black and grey.
     pub monochrome: bool,
+    /// The job's cancel signal (FT-1157, ID-1417): the window's job Cancel and `ew print`'s Ctrl+C set it.
+    pub cancel: PrintCancel,
 }
+
+/// The cancel signal of a [`PrintJob`] (FT-1157, ID-1417), shared by its clones. An adapter that renders (the Windows
+/// adapter) reads it before each band and aborts the document once it is set; the adapters that hand a file over
+/// cannot take it back. Two signals are equal when they are one.
+#[derive(Clone, Debug, Default)]
+pub struct PrintCancel(Arc<AtomicBool>);
+
+impl PrintCancel {
+    /// A signal over `flag`, which the caller sets.
+    pub fn of(flag: Arc<AtomicBool>) -> PrintCancel {
+        PrintCancel(flag)
+    }
+
+    /// Sets the signal.
+    pub fn cancel(&self) {
+        self.0.store(true, Ordering::Relaxed);
+    }
+
+    /// Whether the signal is set.
+    pub fn is_set(&self) -> bool {
+        self.0.load(Ordering::Relaxed)
+    }
+}
+
+impl PartialEq for PrintCancel {
+    fn eq(&self, other: &PrintCancel) -> bool {
+        Arc::ptr_eq(&self.0, &other.0)
+    }
+}
+
+impl Eq for PrintCancel {}
 
 /// What an adapter did with a job.
 #[derive(Clone, PartialEq, Eq, Debug)]

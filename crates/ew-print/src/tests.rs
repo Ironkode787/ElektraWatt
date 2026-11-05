@@ -78,6 +78,7 @@ fn job(title: &str, printer: Option<&str>) -> PrintJob {
         fonts: BTreeMap::new(),
         printer: printer.map(str::to_owned),
         monochrome: false,
+        cancel: crate::PrintCancel::default(),
     }
 }
 

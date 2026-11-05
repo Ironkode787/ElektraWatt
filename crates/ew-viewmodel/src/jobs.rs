@@ -16,6 +16,8 @@
 use std::collections::VecDeque;
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
 
 use ew_api::ew_jobs::{Gate, Job, JobCtl, JobEnd, JobError, JobOptions, Progress, Waker};
 use ew_api::output::{CsvOptions, ExportJob, Table, WorkbookMeta};
@@ -107,8 +109,11 @@ pub struct JobEntry {
     pub(crate) epoch: u64,
     /// The target (never printed).
     pub(crate) path: PathBuf,
-    /// The running job; `None` once its end has been taken.
+    /// The running job; `None` once its end has been taken, and for a print.
     pub(crate) handle: Option<Job<ExportDone>>,
+    /// The cancel signal of a print the window hands to its platform (FT-1157, ID-1417): the entry's Cancel sets it;
+    /// `None` for the other jobs.
+    pub(crate) cancel: Option<Arc<AtomicBool>>,
     /// The notification text of a failed, cancelled or panicked end that no step waited for (a `wait: false` export
     /// whose end was taken by polling or at the end of a headless run); cleared when a waiting step takes the end.
     /// The headless runner reports these on stderr (FT-513).
@@ -287,10 +292,39 @@ impl JobsState {
             epoch,
             path: target,
             handle: Some(handle),
+            cancel: None,
             unseen_failure: None,
             waited: false,
         });
-        // The oldest finished entries go; a running one stays.
+        self.trim();
+        Ok(number)
+    }
+
+    /// Adds the running entry of a print the window hands to its platform (FT-1157, ID-1417): `name` the print's title,
+    /// `cancel` its signal, which the entry's Cancel sets. [`crate::shell::ShellModel::print_done`] removes it at the
+    /// print's end, whose toast tells it. Returns its number.
+    pub(crate) fn start_print(&mut self, name: String, rev: u64, epoch: u64, cancel: Arc<AtomicBool>) -> u64 {
+        self.next += 1;
+        let number = self.next;
+        self.entries.push_back(JobEntry {
+            number,
+            kind: JobKind::Print,
+            name,
+            rev,
+            status: JobStatus::Running,
+            epoch,
+            path: PathBuf::new(),
+            handle: None,
+            cancel: Some(cancel),
+            unseen_failure: None,
+            waited: false,
+        });
+        self.trim();
+        number
+    }
+
+    /// The oldest finished entries go past [`MAX_JOBS`]; a running one stays.
+    fn trim(&mut self) {
         while self.entries.len() > MAX_JOBS {
             match self.entries.iter().position(|e| !e.is_running()) {
                 Some(i) => {
@@ -299,7 +333,6 @@ impl JobsState {
                 None => break,
             }
         }
-        Ok(number)
     }
 
     /// Cancels every running job and waits for each to end (the shell's end: no job outlives its window or run, so

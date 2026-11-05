@@ -354,6 +354,8 @@ fn run_print(request: &PrintRequest) -> Result<ew_print::Printed, Vec<(&'static 
         fonts: ew_ui::ew_viewmodel::ew_api::output::font_bytes().clone(),
         printer: None,
         monochrome: request.monochrome,
+        // FT-1157 (ID-1417): the Jobs pane's Cancel of the print sets it.
+        cancel: ew_print::PrintCancel::of(std::sync::Arc::clone(&request.cancel)),
     })
 }
 

@@ -13,7 +13,7 @@
 //! at the lower of the device's horizontal and vertical resolutions (the placement's offset is from the paper's corner,
 //! so the printable area's offset is subtracted) and each stretched by `StretchDIBits` to its device rectangle,
 //! `EndPage`; then `EndDoc`. A band that would start below the device's paper is not sent, nor a band that is white
-//! paper alone (FT-1158). The adapter's cancel signal ([`Windows::cancelled_by`], FT-1157) is read before each band:
+//! paper alone (FT-1158). The job's cancel signal ([`PrintJob::cancel`], FT-1157) is read before each band:
 //! once it is set, the document is aborted (`AbortDoc`) and the print is [`PrintError::Cancelled`]. With
 //! [`PrintJob::monochrome`] the bands are drawn from the lists `ew_render_cpu::monochrome` gives, the greying the PDF
 //! uses; the driver's colour setting is left as it is. A failure aborts the document. The print set's PDF is not used.
@@ -29,8 +29,7 @@ use std::marker::PhantomData;
 use std::mem::{align_of, offset_of, size_of};
 use std::os::windows::ffi::OsStrExt as _;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::OnceLock;
 
 use ::windows::Win32::Foundation::{ERROR_CANCELLED, ERROR_SUCCESS, GlobalFree, HGLOBAL, HWND, SetLastError};
 use ::windows::Win32::Graphics::Gdi::{
@@ -42,6 +41,7 @@ use ::windows::Win32::Graphics::Gdi::{
 };
 use ::windows::Win32::Storage::Xps::{AbortDoc, DOCINFOW, EndDoc, EndPage, StartDocW, StartPage};
 use ::windows::Win32::System::Com::{COINIT_APARTMENTTHREADED, CoInitializeEx, CoUninitialize};
+use ::windows::Win32::System::Console::{CTRL_BREAK_EVENT, CTRL_C_EVENT, SetConsoleCtrlHandler};
 use ::windows::Win32::System::Memory::{GlobalLock, GlobalSize, GlobalUnlock};
 use ::windows::Win32::UI::Controls::Dialogs::{
     DEVNAMES, PD_HIDEPRINTTOFILE, PD_NOCURRENTPAGE, PD_NOPAGENUMS, PD_NOSELECTION, PD_RESULT_PRINT,
@@ -50,10 +50,10 @@ use ::windows::Win32::UI::Controls::Dialogs::{
 use ::windows::Win32::UI::WindowsAndMessaging::{
     CreateWindowExW, DestroyWindow, GetForegroundWindow, GetWindowThreadProcessId, WS_EX_TOOLWINDOW, WS_POPUP,
 };
-use ::windows::core::{HRESULT, PCWSTR, w};
+use ::windows::core::{BOOL, HRESULT, PCWSTR, w};
 use ew_render_cpu::{PagePlacement, RenderOptions, RgbaImage, monochrome, pixel_size, render_placed_band};
 
-use crate::{PdfPage, PrintAdapter, PrintError, PrintJob, PrintOutcome};
+use crate::{PdfPage, PrintAdapter, PrintCancel, PrintError, PrintJob, PrintOutcome};
 
 /// The device rows of one band (D12): about 10 MB of RGBA at 600 dpi on A3.
 const BAND_ROWS: u32 = 256;
@@ -76,22 +76,12 @@ pub struct Windows {
     /// The file the spooler writes the job to instead of the printer's port (DOCINFO's output); `None` but in WN-3's
     /// test.
     output: Option<PathBuf>,
-    /// The cancel signal read before each band (FT-1157): set, the document is aborted.
-    cancel: Arc<AtomicBool>,
 }
 
 impl Windows {
     /// The adapter as the binaries use it.
     pub fn new() -> Windows {
         Windows::default()
-    }
-
-    /// The adapter whose print ends, aborted, at the first band after `cancel` is set (FT-1157).
-    pub fn cancelled_by(cancel: Arc<AtomicBool>) -> Windows {
-        Windows {
-            cancel,
-            ..Windows::default()
-        }
     }
 
     /// The adapter writing its jobs to `output` (ruling 7 of ID-1218: a print to "Microsoft Print to PDF" without its
@@ -117,7 +107,7 @@ impl PrintAdapter for Windows {
         };
         dc.start_doc(&job.title, self.output.as_deref())?;
         for page in &job.pages {
-            if let Err(e) = send_page(&dc, &mut mode, page, job, &self.cancel) {
+            if let Err(e) = send_page(&dc, &mut mode, page, job) {
                 dc.abort_doc();
                 return Err(e);
             }
@@ -129,6 +119,32 @@ impl PrintAdapter for Windows {
             printer,
             message: String::new(),
         })
+    }
+}
+
+/// The signal the console's Ctrl+C sets ([`ctrl_c_cancels`]): the console's handler has no context but this.
+static CTRL_C: OnceLock<PrintCancel> = OnceLock::new();
+
+/// FT-1157 (ID-1417): makes the console's Ctrl+C and Ctrl+Break set `cancel` instead of ending the process, so that
+/// `ew print --via windows` aborts its document at the next band and ends as a cancelled print. Once per process:
+/// `false` when a signal is set already or the console refuses the handler.
+pub fn ctrl_c_cancels(cancel: &PrintCancel) -> bool {
+    if CTRL_C.set(cancel.clone()).is_err() {
+        return false;
+    }
+    // SAFETY: `on_ctrl_c` is a function of this program, valid for the process's life; it only reads a `OnceLock` and
+    // stores an atomic, which is sound on the console's own thread.
+    unsafe { SetConsoleCtrlHandler(Some(on_ctrl_c), true) }.is_ok()
+}
+
+/// The console's control handler: Ctrl+C and Ctrl+Break set the signal and are handled; other events go on.
+extern "system" fn on_ctrl_c(event: u32) -> BOOL {
+    match CTRL_C.get() {
+        Some(cancel) if event == CTRL_C_EVENT || event == CTRL_BREAK_EVENT => {
+            cancel.cancel();
+            true.into()
+        }
+        _ => false.into(),
     }
 }
 
@@ -201,15 +217,9 @@ fn wide(s: &str) -> Vec<u16> {
     s.encode_utf16().chain([0]).collect()
 }
 
-/// One page: its paper asked for, then its bands between `StartPage` and `EndPage`, white ones not sent; `cancel` set
-/// before a band is [`PrintError::Cancelled`].
-fn send_page(
-    dc: &Dc,
-    mode: &mut DevMode,
-    page: &PdfPage,
-    job: &PrintJob,
-    cancel: &AtomicBool,
-) -> Result<(), PrintError> {
+/// One page: its paper asked for, then its bands between `StartPage` and `EndPage`, white ones not sent; the job's
+/// cancel signal set before a band is [`PrintError::Cancelled`].
+fn send_page(dc: &Dc, mode: &mut DevMode, page: &PdfPage, job: &PrintJob) -> Result<(), PrintError> {
     let label = page.label.as_str();
     // An export page's paper is its sheet (the window's preview does the same).
     let mut placement = page.placement.clone().unwrap_or_else(|| PagePlacement {
@@ -251,7 +261,7 @@ fn send_page(
     }
     let mut first_row: u32 = 0;
     while u64::from(first_row) < rows {
-        if cancel.load(Ordering::Relaxed) {
+        if job.cancel.is_set() {
             return Err(PrintError::Cancelled);
         }
         let y = device(u64::from(first_row), y_dpi, dpi);

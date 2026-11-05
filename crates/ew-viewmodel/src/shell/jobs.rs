@@ -652,12 +652,22 @@ impl ShellModel {
             Ok(n) => n,
             Err(e) => return e,
         };
-        match self.jobs.get(number).and_then(|e| e.handle.as_ref()) {
-            Some(h) => {
+        let Some(entry) = self.jobs.get(number) else {
+            return Outcome::Refused {
+                reason_key: key!("reason-job-finished"),
+            };
+        };
+        match (&entry.handle, &entry.cancel) {
+            (Some(h), _) => {
                 h.cancel();
                 Outcome::Done
             }
-            None => Outcome::Refused {
+            // FT-1157 (ID-1417): a print the platform runs ends, aborted, at its next band.
+            (None, Some(cancel)) if entry.is_running() => {
+                cancel.store(true, std::sync::atomic::Ordering::Relaxed);
+                Outcome::Done
+            }
+            _ => Outcome::Refused {
                 reason_key: key!("reason-job-finished"),
             },
         }
