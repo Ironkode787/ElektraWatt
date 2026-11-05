@@ -130,6 +130,26 @@ pub fn starter_version(number: &str) -> String {
     found.remove(0)
 }
 
+/// An address profile document of `library` (FT-1425): the shipped built-in TIA profile file
+/// `content/plc-profiles/siemens-tia-intl.json` with the pin `<id>@1`, its own item ID and the label "Fixture", for a
+/// test that chooses a library's profile. Panics when the shipped file cannot be read.
+pub fn address_profile(library: Uuid, id: &str) -> LibDocument {
+    let text = std::fs::read_to_string(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../content/plc-profiles/siemens-tia-intl.json"
+    ))
+    .expect("the shipped TIA profile is readable");
+    let mut v: serde_json::Value = serde_json::from_str(&text).expect("the shipped TIA profile is JSON");
+    let item = Uuid::new_v5(&library, format!("ew-testkit-profile-{id}").as_bytes());
+    v["library_id"] = json!(library.to_string());
+    v["item_id"] = json!(item.to_string());
+    v["id"] = json!(item.to_string());
+    v["meta"] = json!({"key": id, "licence": "CC0-1.0", "sources": ["ew.original"]});
+    v["profile"] = json!({"id": id, "version": "1"});
+    v["label"] = json!("Fixture");
+    LibDocument::from_value(v).expect("the fixture profile is a library document")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -155,24 +175,4 @@ mod tests {
                 .all(|d| d.kind() == Some(Kind::Manufacturer))
         );
     }
-}
-
-/// An address profile document of `library` (FT-1425): the shipped built-in TIA profile file
-/// `content/plc-profiles/siemens-tia-intl.json` with the pin `<id>@1`, its own item ID and the label "Fixture", for a
-/// test that chooses a library's profile. Panics when the shipped file cannot be read.
-pub fn address_profile(library: Uuid, id: &str) -> LibDocument {
-    let text = std::fs::read_to_string(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/../../content/plc-profiles/siemens-tia-intl.json"
-    ))
-    .expect("the shipped TIA profile is readable");
-    let mut v: serde_json::Value = serde_json::from_str(&text).expect("the shipped TIA profile is JSON");
-    let item = Uuid::new_v5(&library, format!("ew-testkit-profile-{id}").as_bytes());
-    v["library_id"] = json!(library.to_string());
-    v["item_id"] = json!(item.to_string());
-    v["id"] = json!(item.to_string());
-    v["meta"] = json!({"key": id, "licence": "CC0-1.0", "sources": ["ew.original"]});
-    v["profile"] = json!({"id": id, "version": "1"});
-    v["label"] = json!("Fixture");
-    LibDocument::from_value(v).expect("the fixture profile is a library document")
 }
