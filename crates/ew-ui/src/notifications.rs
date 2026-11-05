@@ -443,17 +443,41 @@ mod tests {
     #[test]
     fn the_toasts_keep_clear_of_a_working_tool() {
         let pane = Some(Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(800.0, 600.0)));
-        let stack = Some(Rect::from_min_max(egui::pos2(480.0, 400.0), egui::pos2(780.0, 580.0)));
+        let stack = Some(Rect::from_min_max(
+            egui::pos2(480.0, 400.0),
+            egui::pos2(780.0, 580.0),
+        ));
         let at = |x: f32, y: f32| Some(egui::pos2(x, y));
-        assert!(toasts_low(false, true, pane, at(700.0, 100.0), None), "a press in the top-right quarter");
+        assert!(
+            toasts_low(false, true, pane, at(700.0, 100.0), None),
+            "a press in the top-right quarter"
+        );
         assert!(!toasts_low(false, false, pane, at(700.0, 100.0), None), "Select");
-        assert!(!toasts_low(true, true, None, at(700.0, 100.0), stack), "no canvas");
+        assert!(
+            !toasts_low(true, true, None, at(700.0, 100.0), stack),
+            "no canvas"
+        );
         assert!(toasts_low(true, true, pane, None, stack), "no press");
-        assert!(toasts_low(true, true, pane, at(600.0, 500.0), stack), "a press on the stack");
-        assert!(toasts_low(true, true, pane, at(900.0, 100.0), stack), "a press outside the canvas");
-        assert!(!toasts_low(true, true, pane, at(450.0, 500.0), stack), "a press elsewhere");
-        assert!(!toasts_low(true, true, pane, at(100.0, 100.0), stack), "a press in the left half");
-        assert!(!toasts_low(false, true, pane, None, None), "no press keeps them up");
+        assert!(
+            toasts_low(true, true, pane, at(600.0, 500.0), stack),
+            "a press on the stack"
+        );
+        assert!(
+            toasts_low(true, true, pane, at(900.0, 100.0), stack),
+            "a press outside the canvas"
+        );
+        assert!(
+            !toasts_low(true, true, pane, at(450.0, 500.0), stack),
+            "a press elsewhere"
+        );
+        assert!(
+            !toasts_low(true, true, pane, at(100.0, 100.0), stack),
+            "a press in the left half"
+        );
+        assert!(
+            !toasts_low(false, true, pane, None, None),
+            "no press keeps them up"
+        );
     }
 
     #[test]

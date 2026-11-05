@@ -847,12 +847,18 @@ fn a_two_line_list_rises_off_a_wire_through_its_second_line() {
     let (first, second) = (run(&bare, 0x22, "101-B6").rect, run(&bare, 0x22, "101-D8").rect);
     // Through the second line's lower part, which a box laid out about its middle would not reach.
     let y = second.max().y.0 - (second.max().y.0 - second.min().y.0) / 5;
-    assert!(!through(first, y), "the case: the wire runs through the second line only");
+    assert!(
+        !through(first, y),
+        "the case: the wire runs through the second line only"
+    );
     let (mut reps, connections) = wires_at(&[y]);
     reps.push(coil);
     let r = runs(&view(reps, connections));
     let (one, two) = (run(&r, 0x22, "101-B6").rect, run(&r, 0x22, "101-D8").rect);
-    assert!(!through(one, y) && !through(two, y), "off the wire: {one:?} {two:?}");
+    assert!(
+        !through(one, y) && !through(two, y),
+        "off the wire: {one:?} {two:?}"
+    );
     assert!(two.max().y.0 < y, "above it: {two:?}");
     let dy = one.min().y.0 - first.min().y.0;
     assert!(dy < 0, "risen: {dy}");
@@ -891,7 +897,10 @@ fn a_cross_reference_rises_at_most_three_times() {
     let rows = [g(28), g(27), g(26), g(25)];
     let (three, bare) = arrow_label(27, &rows[..3], (Vec::new(), Vec::new()));
     assert!(through(bare, g(28)), "the case: the wire runs through {bare:?}");
-    assert!(rows[..3].iter().all(|y| !through(three, *y)), "past three wires: {three:?}");
+    assert!(
+        rows[..3].iter().all(|y| !through(three, *y)),
+        "past three wires: {three:?}"
+    );
     assert!(three.max().y.0 < g(26), "above the third: {three:?}");
     let (four, bare) = arrow_label(27, &rows, (Vec::new(), Vec::new()));
     assert_eq!(four, bare, "a fourth wire: it stays");

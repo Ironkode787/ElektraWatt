@@ -340,7 +340,12 @@ fn c52_p3_2_a_placed_toasts_undo_is_reached_with_a_tool_armed() {
     dispatch(&mut h, "picker.choose", json!({}));
     settle(&mut h);
     let rev = h.state().shell().revision();
-    let reps = |h: &Harness<'_, App>| h.state().shell().canvas().map_or(0, |c| c.page().tables.reps.len());
+    let reps = |h: &Harness<'_, App>| {
+        h.state()
+            .shell()
+            .canvas()
+            .map_or(0, |c| c.page().tables.reps.len())
+    };
     let before = reps(&h);
     let canvas = h
         .get_all_by_role(egui::Role::Canvas)
@@ -375,7 +380,10 @@ fn c52_p3_2_a_placed_toasts_undo_is_reached_with_a_tool_armed() {
             .rect()
     };
     let low = toast(&h);
-    assert!(low.center().y > canvas.center().y, "the toast stands low: {low:?}");
+    assert!(
+        low.center().y > canvas.center().y,
+        "the toast stands low: {low:?}"
+    );
     let undo = h
         .get_all_by_role(egui::Role::Button)
         .map(|n| n.rect())
