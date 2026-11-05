@@ -424,7 +424,26 @@ impl SetFields {
                 KindName::PotentialDef => set_one::<PotentialDef>(tx, *t, path, value)?,
                 KindName::StructureNode => set_one::<StructureNode>(tx, *t, path, value)?,
                 KindName::Section => set_one::<Section>(tx, *t, path, value)?,
-                KindName::ReportBlock => set_one::<ReportBlock>(tx, *t, path, value)?,
+                KindName::ReportBlock => {
+                    set_one::<ReportBlock>(tx, *t, path, value)?;
+                    // ID-1417 (C52-p2#1): a first folio or a continuation whose generated pages a page of the section
+                    // already holds is refused, as `report_block.create` refuses it.
+                    if path == "first_folio" || path == "continuation" {
+                        let b = tx.require::<ReportBlock>(t.cast())?;
+                        if let (None, Some(first)) = (&b.embedded, b.first_folio) {
+                            let held = crate::commands::structure::held_folio(
+                                tx,
+                                b.section,
+                                first,
+                                &b.continuation,
+                                Some(b.id),
+                            );
+                            if let Some(held) = held {
+                                return tx.reject(text!("refusal-page-create-exists", held));
+                            }
+                        }
+                    }
+                }
                 KindName::ExternalRef => set_one::<ExternalRef>(tx, *t, path, value)?,
                 KindName::Revision => {
                     if path == "page_notes" {

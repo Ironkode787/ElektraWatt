@@ -214,24 +214,18 @@ fn create_page_names_the_first_of_several_refusals() {
         rejected(e.execute(&CreatePage::at(Some(sec2), 200))),
         "folio 200 is the divider page of section 2; choose another folio"
     );
-    // Report block before duplicate: a page that prints "190" exists, then a block is moved to 190 (`report_block.create`
-    // refuses a folio a page holds, ID-1389).
-    e.execute(&labelled(Some(SEC1), 191, "190"))
-        .expect("a page that prints 190");
-    let moved: Id<ReportBlock> = typed(bulk(&mut e, &block(Some(189))).unwrap().outcome.primary.unwrap());
-    bulk(
-        &mut e,
-        &SetFields {
-            kind: KindName::ReportBlock,
-            targets: vec![moved.cast()],
-            path: "first_folio".into(),
-            value: serde_json::json!(190),
-            copies: Vec::new(),
-        },
-    )
-    .expect("a block moved to 190");
+    // Report block before duplicate: no command makes a page that prints "190" beside a block at 190 (ID-1389, ID-1417),
+    // so the project is loaded with both, as a file may hold them.
+    let (p, mut records, _) = mini_golden_parts();
+    let mut printed = ew_schema::Record::Page(page(id(0xf190), Some(SEC1), 191, "Prints 190"));
+    if let ew_schema::Record::Page(pg) = &mut printed {
+        pg.folio.label = Some(ident("190"));
+    }
+    records.push(printed);
+    records.push(ew_schema::Record::ReportBlock(report_block(id(0xf191), 190)));
+    let mut both = engine(ew_model::Model::from_records(p, records, library()).expect("a loadable project"));
     assert_eq!(
-        rejected(e.execute(&CreatePage::at(Some(SEC1), 190))),
+        rejected(both.execute(&CreatePage::at(Some(SEC1), 190))),
         "folio 190 is a page the report block at folio 190 generates; choose another folio"
     );
     // The duplicate alone, last in the order.
@@ -819,6 +813,72 @@ fn create_report_block_refuses_a_folio_a_page_holds() {
         extra: Default::default(),
     });
     e.execute(&embedded).expect("an embedded block generates no page");
+}
+
+/// A page-oriented table-of-contents block of section 1 at `first`, as a project file holds it.
+fn report_block(block: Id<ReportBlock>, first: u32) -> ReportBlock {
+    ReportBlock {
+        id: block,
+        v: 1,
+        source: ReportSource::Kind(ReportKind::Toc),
+        manual: Default::default(),
+        sort: vec![],
+        group: None,
+        form: FORM,
+        section: Some(SEC1),
+        first_folio: Some(first),
+        continuation: ContinuationPolicy::default(),
+        title: Default::default(),
+        empty: EmptyPolicy::default(),
+        embedded: None,
+        source_ref: None,
+        extra: Default::default(),
+    }
+}
+
+/// `fields.set` of a report block's `path` to `value`.
+fn set_block(block: Id<ReportBlock>, path: &str, value: serde_json::Value) -> SetFields {
+    SetFields {
+        kind: KindName::ReportBlock,
+        targets: vec![block.cast()],
+        path: path.into(),
+        value,
+        copies: Vec::new(),
+    }
+}
+
+/// ID-1417 (C52-p2#1): `fields.set` of a block's first folio or continuation refuses, in `page.create`'s words, the
+/// pages a page of the section already holds: a first folio a page prints, a sub-page continuation over a page
+/// `<first>.<k>`, another block's first folio. The block's own folio is no conflict; nothing changes on a refusal.
+#[test]
+fn set_fields_refuses_a_report_block_folio_a_page_holds() {
+    let mut e = engine(golden_model());
+    e.execute(&labelled(Some(SEC1), 191, "190"))
+        .expect("a page that prints 190");
+    let mut next = block(Some(189));
+    next.continuation = ContinuationPolicy::NextFolio;
+    let moved: Id<ReportBlock> = typed(bulk(&mut e, &next).unwrap().outcome.primary.unwrap());
+    let before = e.model().table::<ReportBlock>().get(&moved).unwrap().clone();
+    assert_eq!(
+        rejected(e.execute(&set_block(moved, "first_folio", serde_json::json!(190)))),
+        "folio 190 already exists in this section; choose a free folio"
+    );
+    e.execute(&labelled(Some(SEC1), 189, "189.1"))
+        .expect("a page that prints 189.1");
+    assert_eq!(
+        rejected(e.execute(&set_block(moved, "continuation", serde_json::json!("sub_page")))),
+        "folio 189.1 already exists in this section; choose a free folio"
+    );
+    bulk(&mut e, &block(Some(185))).expect("another block at 185");
+    assert_eq!(
+        rejected(e.execute(&set_block(moved, "first_folio", serde_json::json!(185)))),
+        "folio 185 already exists in this section; choose a free folio"
+    );
+    assert_eq!(*e.model().table::<ReportBlock>().get(&moved).unwrap(), before);
+    e.execute(&set_block(moved, "first_folio", serde_json::json!(189)))
+        .expect("its own folio is free");
+    e.execute(&set_block(moved, "first_folio", serde_json::json!(186)))
+        .expect("a free folio");
 }
 
 /// The shipped frame without the grid (`content/forms`), the form of the golden report blocks, in the `lib/` JSON

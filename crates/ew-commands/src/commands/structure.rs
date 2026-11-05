@@ -265,12 +265,14 @@ impl CreateReportBlock {
 
 /// The printed folio of a page of `section` that the generated pages of a page-oriented block from `first` on would
 /// take (ID-1389, as `page.create` keeps a folio free, FT-459): a page of folio `first`, with sub-page continuation
-/// one of `<first>.<k>`, or the first folio of another page-oriented block of the section. `None` when it is free.
-fn held_folio(
+/// one of `<first>.<k>`, or the first folio of another page-oriented block of the section than `own` (the block itself
+/// when it is edited, ID-1417). `None` when it is free.
+pub(super) fn held_folio(
     tx: &TxBuilder<'_>,
     section: Option<Id<Section>>,
     first: u32,
     continuation: &ContinuationPolicy,
+    own: Option<Id<ReportBlock>>,
 ) -> Option<String> {
     let head = first.to_string();
     let generated = |printed: &str| {
@@ -287,7 +289,9 @@ fn held_folio(
     page.or_else(|| {
         tx.iter::<ReportBlock>()
             .iter()
-            .any(|b| b.section == section && b.embedded.is_none() && b.first_folio == Some(first))
+            .any(|b| {
+                Some(b.id) != own && b.section == section && b.embedded.is_none() && b.first_folio == Some(first)
+            })
             .then_some(head.clone())
     })
 }
@@ -314,7 +318,7 @@ impl Command for CreateReportBlock {
             tx.require::<Page>(embed.page)?;
         }
         if let (None, Some(first)) = (&self.embedded, self.first_folio) {
-            if let Some(held) = held_folio(tx, self.section, first, &self.continuation) {
+            if let Some(held) = held_folio(tx, self.section, first, &self.continuation, None) {
                 return tx.reject(text!("refusal-page-create-exists", held));
             }
         }
