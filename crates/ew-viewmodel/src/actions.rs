@@ -132,7 +132,19 @@ pub enum Submenu {
     Language,
     /// View, Minimum text size: off, then one item per size of `MIN_FONT_CHOICES` (WP-S2.08 D14).
     MinFont,
+    /// Help, Tutorials: one item per tutorial of [`TUTORIALS`], each with its own start (FT-1458).
+    Tutorials,
 }
+
+/// The tutorials of the guide in its order (FT-1458, ID-1397): each its page's name, which `help.tutorials` takes as
+/// `tutorial` and whose label is `tutorial-<name>`.
+pub const TUTORIALS: [&str; 5] = [
+    "first-page",
+    "terminal-strip-and-cable",
+    "reports-and-pdf",
+    "import-qet",
+    "headless-workflow",
+];
 
 impl Submenu {
     /// The key of the submenu's label.
@@ -153,6 +165,7 @@ impl Submenu {
             Submenu::Revision => key!("submenu-revision"),
             Submenu::Language => key!("submenu-language"),
             Submenu::MinFont => key!("submenu-min-font"),
+            Submenu::Tutorials => key!("submenu-tutorials"),
         }
     }
 }
@@ -3645,14 +3658,14 @@ pub static ACTIONS: &[ActionMeta] = &[
         ),
     ))),
     with_params(
-        "dir?:path, discard?:bool",
+        "dir?:path, discard?:bool, tutorial?:text",
         act(
             "help.tutorials",
             Command,
             Menu::Help,
             &[],
             always,
-            slot(Menu::Help),
+            sub(Menu::Help, Submenu::Tutorials, false),
             |s, p| s.act_tutorials(p),
         ),
     ),
@@ -5888,6 +5901,18 @@ fn submenu_items(submenu: Submenu, metas: &[&ActionMeta], model: &ShellModel) ->
                 })
                 .collect()
         }
+        // FT-1458: one item per tutorial, each with its own start.
+        Submenu::Tutorials => TUTORIALS
+            .iter()
+            .map(|name| {
+                let mut item = item_of(meta, model);
+                item.label = strings::lookup(&format!("tutorial-{name}"))
+                    .unwrap_or(name)
+                    .to_owned();
+                item.params = json!({ "tutorial": name });
+                item
+            })
+            .collect(),
         Submenu::MinFont => {
             let current = model.settings().min_font_pt;
             MIN_FONT_CHOICES
@@ -6213,6 +6238,7 @@ mod tests {
             Submenu::Revision,
             Submenu::Language,
             Submenu::MinFont,
+            Submenu::Tutorials,
         ] {
             assert!(strings::lookup(s.label_key().as_str()).is_some());
         }

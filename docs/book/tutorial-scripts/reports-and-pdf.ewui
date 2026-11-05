@@ -1,5 +1,5 @@
 {"$schema":"ew.uiscript/1","label":"Tutorial 4: reports and PDF"}
-{"action":"help.tutorials","params":{"dir":"reports.ew"}}
+{"action":"help.tutorials","params":{"tutorial":"reports-and-pdf","dir":"reports.ew"}}
 {"action":"ui.describe"}
 {"action":"report_block.new","params":{"kind":"parts_list","folio":"912","title":"Parts list"}}
 {"action":"ui.describe"}

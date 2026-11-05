@@ -259,6 +259,84 @@ fn the_tutorials_open_a_fresh_copy_of_the_sample_project() {
     shell.shutdown();
 }
 
+/// FT-1458 (ID-1397): Help ▸ Tutorials offers each tutorial its own start: the first a new project from the basic
+/// project, the reports tutorial the sample's copy, the others their page alone; each opens its own page.
+#[test]
+fn each_tutorial_has_its_own_start() {
+    let tmp = Tmp::new();
+    let mut shell = tmp.shell();
+    use ew_viewmodel::actions::{Menu, MenuEntry, Submenu, menu_model};
+    let help = menu_model(&shell)
+        .into_iter()
+        .find(|m| m.menu == Menu::Help)
+        .expect("the Help menu");
+    let items: Vec<(String, Value)> = help
+        .entries
+        .into_iter()
+        .find_map(|e| match e {
+            MenuEntry::Submenu {
+                submenu: Submenu::Tutorials,
+                label,
+                items,
+            } => {
+                assert_eq!(label, "Tutorials");
+                Some(items)
+            }
+            _ => None,
+        })
+        .expect("Help ▸ Tutorials")
+        .into_iter()
+        .map(|i| (i.label, i.params))
+        .collect();
+    assert_eq!(
+        items,
+        [
+            (
+                "A first schematic page with potentials".to_owned(),
+                json!({"tutorial": "first-page"})
+            ),
+            (
+                "A terminal strip and a cable".to_owned(),
+                json!({"tutorial": "terminal-strip-and-cable"})
+            ),
+            (
+                "Reports and PDF".to_owned(),
+                json!({"tutorial": "reports-and-pdf"})
+            ),
+            (
+                "Importing a QElectroTech project".to_owned(),
+                json!({"tutorial": "import-qet"})
+            ),
+            (
+                "A first headless run on the golden project".to_owned(),
+                json!({"tutorial": "headless-workflow"})
+            ),
+        ]
+    );
+    let first = tmp.0.join("first.ew");
+    done(
+        &mut shell,
+        "help.tutorials",
+        json!({ "tutorial": "first-page", "dir": path(&first) }),
+    );
+    assert_eq!(shell.project_name(), Some("first.ew"));
+    assert_eq!(shell.page_labels().len(), 1, "an empty basic project");
+    assert_eq!(shell.last_help(), Some("tutorials/first-page.html"));
+    let reports = tmp.0.join("reports.ew");
+    done(
+        &mut shell,
+        "help.tutorials",
+        json!({ "tutorial": "reports-and-pdf", "dir": path(&reports), "discard": true }),
+    );
+    let (sample, _) = Session::open_read_only(Path::new(GOLDEN_A), VERSION).unwrap();
+    assert_eq!(shell.page_labels(), sample.page_labels().as_slice());
+    assert_eq!(shell.last_help(), Some("tutorials/reports-and-pdf.html"));
+    done(&mut shell, "help.tutorials", json!({ "tutorial": "import-qet" }));
+    assert_eq!(shell.project_name(), Some("reports.ew"), "no project of its own");
+    assert_eq!(shell.last_help(), Some("tutorials/import-qet.html"));
+    shell.shutdown();
+}
+
 const QET: &str = r#"<project version="0.100" title="Example">
 <diagram title="First page" folio="1" cols="17" colsize="60" rows="8" rowsize="80" height="640"/>
 </project>"#;

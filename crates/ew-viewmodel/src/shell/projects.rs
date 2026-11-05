@@ -303,10 +303,34 @@ impl ShellModel {
         outcome
     }
 
+    /// `help.tutorials {tutorial?, dir?}` (Help ▸ Tutorials): each tutorial its own start (FT-1458, ID-1397) with its
+    /// page: `first-page` a new project from the basic project, `reports-and-pdf` (and no `tutorial`, the tutorials
+    /// page) a copy of the sample project, the others their page alone (they start from the first tutorial's project,
+    /// a QElectroTech file or a terminal).
     pub(crate) fn act_tutorials(&mut self, p: &Map<String, Value>) -> Outcome {
+        let tutorial = match string_param(p, "tutorial") {
+            Err(e) => return e,
+            Ok(Some(t)) if !crate::actions::TUTORIALS.contains(&t) => {
+                return failed(key!("error-bad-param"), &["tutorial"]);
+            }
+            Ok(t) => t.map(str::to_owned),
+        };
+        let page = tutorial.as_deref().map(|name| format!("tutorials/{name}.html"));
+        match tutorial.as_deref() {
+            Some("first-page") => return self.tutorial_from_basic(p, page.unwrap_or_default()),
+            None | Some("reports-and-pdf") => {}
+            Some(_) => {
+                self.request_doc_target(page.unwrap_or_default());
+                return Outcome::Done;
+            }
+        }
+        let open_page = |s: &mut ShellModel| match &page {
+            Some(page) => s.request_doc_target(page.clone()),
+            None => s.request_doc("tutorials"),
+        };
         let Some(sample) = self.config.resources.sample_dir.clone().filter(|d| d.is_dir()) else {
             // Without the sample the tutorials page still opens.
-            self.request_doc("tutorials");
+            open_page(self);
             return Outcome::Done;
         };
         if self.has_project()
@@ -343,7 +367,42 @@ impl ShellModel {
             Some(strings::text(key!("banner-tutorial-copy")).to_owned()),
         );
         if outcome == Outcome::Done {
-            self.request_doc("tutorials");
+            open_page(self);
+        }
+        outcome
+    }
+
+    /// FT-1458: the first tutorial's start, a new project from the basic project in the folder `dir` (asked for when
+    /// absent), then its page `page`.
+    fn tutorial_from_basic(&mut self, p: &Map<String, Value>, page: String) -> Outcome {
+        if self.has_project()
+            && let Some(outcome) = self.guard_unsaved("help.tutorials", p)
+        {
+            return outcome;
+        }
+        let dir = match string_param(p, "dir") {
+            Err(e) => return e,
+            Ok(Some(dir)) => PathBuf::from(dir),
+            Ok(None) => return self.need_path("help.tutorials", Prompt::NewFolder, "dir", p),
+        };
+        if let Some(outcome) = self.require_free_dir(&dir) {
+            return outcome;
+        }
+        self.close_project();
+        let outcome = match Session::new_project(
+            ProjectTemplate::Builtin,
+            NewProjectKind::Schematic,
+            self.session_options(),
+        ) {
+            Ok(session) => self.create_and_install(session, &dir, key!("error-new"), None),
+            Err(e) => {
+                let message = strings::format(key!("error-new"), &[strings::text(open_error_key(&e))]);
+                self.banner = Some(message.clone());
+                Outcome::Failed { message }
+            }
+        };
+        if outcome == Outcome::Done {
+            self.request_doc_target(page);
         }
         outcome
     }

@@ -1213,6 +1213,13 @@ action-view-workspace-reset = Indeling herstellen
 action-tools-company-standard = Wizard bedrijfsstandaard…
 action-help-documentation = Documentatie
 action-help-tutorials = Handleidingen
+# FT-1458: Help ▸ Tutorials, one entry per tutorial of the guide, by its page's title.
+submenu-tutorials = Handleidingen
+tutorial-first-page = Een eerste schemapagina met potentialen
+tutorial-terminal-strip-and-cable = Een klemmenstrook en een kabel
+tutorial-reports-and-pdf = Rapporten en PDF
+tutorial-import-qet = Een QElectroTech-project importeren
+tutorial-headless-workflow = Een eerste sessie op de opdrachtregel met het referentieproject
 action-help-first-run = Eerste instelling…
 action-help-notices = Kennisgevingen van derden
 action-settings-set = Een instelling wijzigen

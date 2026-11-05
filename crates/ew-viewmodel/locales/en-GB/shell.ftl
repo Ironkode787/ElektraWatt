@@ -1269,6 +1269,13 @@ action-view-workspace-reset = Reset layout
 action-tools-company-standard = Company standard wizard…
 action-help-documentation = Documentation
 action-help-tutorials = Tutorials
+# FT-1458: Help ▸ Tutorials, one entry per tutorial of the guide, by its page's title.
+submenu-tutorials = Tutorials
+tutorial-first-page = A first schematic page with potentials
+tutorial-terminal-strip-and-cable = A terminal strip and a cable
+tutorial-reports-and-pdf = Reports and PDF
+tutorial-import-qet = Importing a QElectroTech project
+tutorial-headless-workflow = A first headless run on the golden project
 action-help-first-run = First-run setup…
 action-help-notices = Third-party notices
 action-settings-set = Change a setting
