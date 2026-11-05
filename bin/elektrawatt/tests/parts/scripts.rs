@@ -74,6 +74,8 @@ fn run(run: &Path, name: &str, steps: &[(&str, Value)]) -> Output {
         .arg(run.join("record.ewcmd"))
         .env("EW_CONFIG_DIR", run.join("config"))
         .env("EW_DATA_DIR", run.join("data"))
+        // The installation's system libraries (ew-sample-parts) wherever the binary was put (a nextest archive).
+        .env("EW_CONTENT_DIR", super::support::CONTENT)
         .env_remove("SOURCE_DATE_EPOCH")
         .stdin(Stdio::null())
         .output()
@@ -371,6 +373,8 @@ fn run_with_data(dir: &Path, data: &Path, name: &str, steps: &[(&str, Value)]) -
         .arg(dir.join("record.ewcmd"))
         .env("EW_CONFIG_DIR", dir.join("config"))
         .env("EW_DATA_DIR", data)
+        // The installation's system libraries (ew-sample-parts) wherever the binary was put (a nextest archive).
+        .env("EW_CONTENT_DIR", super::support::CONTENT)
         .env_remove("SOURCE_DATE_EPOCH")
         .stdin(Stdio::null())
         .output()
