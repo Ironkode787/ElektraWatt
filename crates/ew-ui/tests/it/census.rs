@@ -547,7 +547,8 @@ fn open_dialog(tmp: &Tmp, kind: DialogKind) -> Harness<'static, App> {
                     "file.reimport_qet",
                     json!({ "file": file, "accept": accept }),
                 );
-                // The re-import's job ends before the census looks, as the import's does.
+                // FT-1472: the re-import runs as a job whose end opens the card; waiting for that end (not for a
+                // number of frames) makes the census independent of the machine's load.
                 assert!(h.state_mut().shell_mut().wait_jobs().is_empty());
             }
             h
@@ -570,6 +571,202 @@ fn census_every_dialog() {
         h.state_mut().shell_mut().shutdown();
     }
     census.assert_clean();
+}
+
+/// FT-1424: every context menu that has a registry entry (`command_bar::canvas_menu` over an object, over nothing and
+/// over a placement of a panel page; `command_bar::navigator_row_menu` on a Potentials row), opened by a right click as
+/// a user opens it, is a surface of the census.
+#[test]
+fn census_every_context_menu() {
+    use ew_ui::ew_viewmodel::canvas::{pick, rect_centre};
+    use ew_ui::ew_viewmodel::command_bar::canvas_menu;
+    let mut census = Census::default();
+    // The centre of an object's rectangle whose pick is that object, on the page on show; `only` narrows the objects.
+    let object = |h: &Harness<'_, App>, only: &dyn Fn(String) -> bool| {
+        let c = h.state().shell().canvas().unwrap();
+        let page = std::sync::Arc::clone(c.page());
+        page.entities
+            .iter()
+            .map(|(e, r)| (*e, rect_centre(*r)))
+            .find(|(e, p)| {
+                only(e.0.to_string())
+                    && c.link_at(*p).is_none()
+                    && pick(&page.entities, Some(*p), 0.0).map(|(x, _)| x) == Some(*e)
+            })
+            .map(|(_, p)| p)
+            .expect("an object")
+    };
+    // A right click at `at`; the menu's first entry shows.
+    let open = |h: &mut Harness<'_, App>, at: egui::Pos2, over: bool, census: &mut Census, surface: &str| {
+        crate::tools::right_click(h, at);
+        let first = canvas_menu(h.state().shell(), over)
+            .first()
+            .map(|i| i.label.clone())
+            .expect("a menu");
+        assert!(h.query_by_label_contains(&first).is_some(), "{surface}: {first}");
+        census.visit(h, surface);
+    };
+    // Each menu in a window of its own: a right click elsewhere first closes an open menu.
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "nothing.ew");
+    let rep = h.state().shell().canvas().unwrap().page().tables.reps[0].id.to_string();
+    dispatch(&mut h, "select.set", json!({ "ids": [rep] }));
+    dispatch(&mut h, "edit.copy", json!({}));
+    dispatch(&mut h, "select.set", json!({ "ids": [] }));
+    let bounds = crate::tools::canvas_bounds(&h)[0];
+    let nothing = egui::Pos2::new(bounds.0 as f32 + 12.0, bounds.1 as f32 + 12.0);
+    open(&mut h, nothing, false, &mut census, "the canvas context menu over nothing");
+    h.state_mut().shell_mut().shutdown();
+    let mut h = on_golden(&tmp, "object.ew");
+    let at = crate::tools::screen(&h, object(&h, &|_| true));
+    open(&mut h, at, true, &mut census, "the canvas context menu over an object");
+    h.state_mut().shell_mut().shutdown();
+    let mut h = on_golden(&tmp, "placement.ew");
+    dispatch(&mut h, "page.goto", json!({ "folio": "902" }));
+    wait_for_page(&mut h);
+    h.run_ok();
+    let placements: Vec<String> = h
+        .state()
+        .shell()
+        .panel_tables()
+        .expect("a panel page")
+        .placements
+        .iter()
+        .map(|p| p.id.to_string())
+        .collect();
+    let at = crate::tools::screen(&h, object(&h, &|e| placements.contains(&e)));
+    open(&mut h, at, true, &mut census, "the canvas context menu over a placement");
+    assert!(h.state().shell().selected_placements() > 0, "a placement");
+    h.state_mut().shell_mut().shutdown();
+    let mut h = on_golden(&tmp, "row.ew");
+    let (name, _) = crate::potential_define::a_row_to_define(&mut h);
+    h.get_by_label(&name).click_secondary();
+    h.run_ok();
+    assert!(
+        h.query_by_label(strings::text(key!("action-potential-draw-row"))).is_some(),
+        "the row's menu"
+    );
+    census.visit(&mut h, "the context menu of a Potentials row");
+    h.state_mut().shell_mut().shutdown();
+    census.assert_clean();
+}
+
+/// FT-1444 (NFR-UX-07, doc 16 §10.5): every tool started on its page gives way to Select at Escape and leaves the
+/// revision as it was. Each row starts one tool as a user does (its action, a picker's choice, a copied selection).
+#[test]
+fn every_tool_cancels_with_escape_and_changes_nothing() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "tools.ew");
+    let mut started = BTreeSet::new();
+    let mut problems = Vec::new();
+    // `<rep>`, `<wire>` and `<device>` stand for the first representation and connection of the page on show and the
+    // first device the panel page has not placed.
+    let rows: [(&str, &str, Vec<(&str, Value)>); 16] = [
+        ("101", "wire", vec![("tool.wire", json!({}))]),
+        ("101", "ip", vec![("tool.ip", json!({}))]),
+        ("101", "text", vec![("tool.text", json!({}))]),
+        ("101", "graphic", vec![("tool.graphic", json!({}))]),
+        ("101", "marker", vec![("tool.marker", json!({}))]),
+        ("101", "structure_box", vec![("tool.structure_box", json!({}))]),
+        ("101", "measure", vec![("tool.measure", json!({}))]),
+        ("101", "image", vec![("tool.image", json!({}))]),
+        (
+            "101",
+            "route_edit",
+            vec![("select.set", json!({"ids": ["<wire>"]})), ("tool.route_edit", json!({}))],
+        ),
+        (
+            "101",
+            "place",
+            vec![
+                ("tool.place", json!({})),
+                ("picker.filter", json!({"text": "lamp"})),
+                ("picker.choose", json!({})),
+            ],
+        ),
+        (
+            "101",
+            "black_box",
+            vec![("tool.black_box", json!({"part": "EW-GEN-CPU-1", "template": 0}))],
+        ),
+        (
+            "101",
+            "paste",
+            vec![
+                ("select.set", json!({"ids": ["<rep>"]})),
+                ("edit.copy", json!({})),
+                ("edit.paste_clip", json!({})),
+            ],
+        ),
+        (
+            "101",
+            "exchange",
+            vec![
+                ("select.set", json!({"ids": ["<rep>"]})),
+                ("rep.exchange", json!({})),
+                ("picker.choose", json!({})),
+            ],
+        ),
+        ("902", "rail_draw", vec![("tool.rail_draw", json!({}))]),
+        ("902", "duct_draw", vec![("tool.duct_draw", json!({}))]),
+        ("902", "layout_place", vec![("tool.place_layout", json!({"device": "<device>"}))]),
+    ];
+    for (folio, want, steps) in rows {
+        dispatch(&mut h, "page.goto", json!({ "folio": folio }));
+        wait_for_page(&mut h);
+        dispatch(&mut h, "select.set", json!({"ids": []}));
+        let shell = h.state().shell();
+        let tables = &shell.canvas().expect("a page").page().tables;
+        let fill = [
+            ("<rep>", tables.reps.first().map(|r| r.id.to_string())),
+            ("<wire>", tables.connections.first().map(|c| c.id.to_string())),
+            (
+                "<device>",
+                shell
+                    .panel_tables()
+                    .and_then(|p| p.unplaced.first().map(|u| u.device.to_string())),
+            ),
+        ];
+        for (action, params) in &steps {
+            let mut text = params.to_string();
+            for (mark, id) in &fill {
+                if let Some(id) = id {
+                    text = text.replace(mark, id);
+                }
+            }
+            let params: Value = serde_json::from_str(&text).unwrap();
+            let out = h.state_mut().shell_mut().dispatch(action, &params);
+            if out != Outcome::Done {
+                problems.push(format!("{want}: {action} gave {out:?}"));
+            }
+        }
+        h.run_ok();
+        let name = h.state().shell().tool().name();
+        if name != want {
+            problems.push(format!("{want}: {name} started"));
+        }
+        if name == "select" {
+            continue;
+        }
+        started.insert(name.to_owned());
+        let rev_started = h.state().shell().revision();
+        for _ in 0..3 {
+            if h.state().shell().tool().name() == "select" {
+                break;
+            }
+            h.key_press(egui::Key::Escape);
+            h.run_ok();
+        }
+        let after = h.state().shell().tool().name();
+        if after != "select" {
+            problems.push(format!("{want}: {name} is still active after Escape"));
+        }
+        if h.state().shell().revision() != rev_started {
+            problems.push(format!("{want}: Escape changed the revision of {name}"));
+        }
+    }
+    h.state_mut().shell_mut().shutdown();
+    assert_eq!(problems, Vec::<String>::new(), "started: {started:?}");
 }
 
 /// D3: the start page, the five first-run steps and the ten wizard steps.

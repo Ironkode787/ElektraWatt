@@ -63,7 +63,7 @@ fn press(h: &mut Harness<'_, App>, key: Key) {
 }
 
 /// The window position (points) of the sheet point `p` on the focused canvas, from the canvas's view.
-fn screen(h: &Harness<'_, App>, p: (i64, i64)) -> Pos2 {
+pub(crate) fn screen(h: &Harness<'_, App>, p: (i64, i64)) -> Pos2 {
     let bounds = h
         .get_all_by_role(egui::Role::Canvas)
         .next()
@@ -359,7 +359,7 @@ fn a_press_on_the_splitter_between_the_groups_is_no_tool_input() {
 }
 
 /// The canvases' bounds, left to right.
-fn canvas_bounds(h: &Harness<'_, App>) -> Vec<(f64, f64, f64, f64)> {
+pub(crate) fn canvas_bounds(h: &Harness<'_, App>) -> Vec<(f64, f64, f64, f64)> {
     let mut v: Vec<_> = h
         .get_all_by_role(egui::Role::Canvas)
         .map(|n| {
@@ -1262,7 +1262,7 @@ fn the_chip_of_an_existing_devices_tag_change_stands_above_its_printed_tag() {
 }
 
 /// A secondary press and release at `pos` (a right-click).
-fn right_click(h: &mut Harness<'_, App>, pos: Pos2) {
+pub(crate) fn right_click(h: &mut Harness<'_, App>, pos: Pos2) {
     h.event(egui::Event::PointerMoved(pos));
     h.run_ok();
     for pressed in [true, false] {

@@ -143,15 +143,10 @@ fn the_type_cell_of_an_undefined_potential_is_editable() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1239: a right click on a Potentials row with a definition point opens its context menu with Define potential…;
-/// it opens the form, which defines the row's potential at the row's point.
-#[test]
-fn a_potentials_rows_context_menu_defines_its_potential() {
-    let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
-    let mut h: Harness<'static, App> = harness(&tmp, Scripted::default(), Some(dir));
-    settle(&mut h);
-    wait_for_page(&mut h);
+/// FT-1239's row with a context menu, in the window `h` on a copy of Golden A: the Potentials table, 24VDC-4's
+/// definition deleted, filtered to the first row with a point to define its potential at; the accessible name of its
+/// Potential cell and the point (the census opens its menu too, FT-1424).
+pub(crate) fn a_row_to_define(h: &mut Harness<'static, App>) -> (String, (impl std::fmt::Display + use<>, u16)) {
     let shell = h.state_mut().shell_mut();
     done(shell, "navigator.show", json!({"kind": "potentials"}));
     done(shell, "navigator.table", json!({"kind": "potentials"}));
@@ -186,8 +181,20 @@ fn a_potentials_rows_context_menu_defines_its_potential() {
         "navigator.filter",
         json!({"kind": "potentials", "text": label}),
     );
+    settle(h);
+    (cell_name(h.state().shell(), node, "Potential"), at)
+}
+
+/// FT-1239: a right click on a Potentials row with a definition point opens its context menu with Define potential…;
+/// it opens the form, which defines the row's potential at the row's point.
+#[test]
+fn a_potentials_rows_context_menu_defines_its_potential() {
+    let tmp = Tmp::new();
+    let dir = tmp.golden("g.ew");
+    let mut h: Harness<'static, App> = harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
-    let name = cell_name(h.state().shell(), node, "Potential");
+    wait_for_page(&mut h);
+    let (name, at) = a_row_to_define(&mut h);
     h.get_by_label(&name).click_secondary();
     settle(&mut h);
     h.get_by_label("Define potential…").click();
