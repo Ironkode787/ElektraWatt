@@ -198,7 +198,7 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
                                 .atom_max_width(meta_w)
                                 .atom_align(egui::Align2::RIGHT_CENTER),
                         );
-                        let tooltip = if matches!(row, PickerRow::PartFn(..) | PickerRow::Part(_)) {
+                        let tooltip = if !matches!(row, PickerRow::Strip(_)) {
                             format!("{tooltip}\n{meta}")
                         } else {
                             tooltip
@@ -257,12 +257,10 @@ fn row_texts(
             };
             // The name is the key's last segment without its grid variant (`ew.iec.mcb-1p@qet10` → `mcb-1p`).
             let name = ew_viewmodel::tools::symbol_name(&s.key).to_owned();
-            (
-                name,
-                None,
-                library.to_owned(),
-                format!("{}\n{}", s.key, s.fndef_key),
-            )
+            // FT-1196 (as ID-1225 ruling 8 for the part rows): the tooltip in words, the symbol's name, then the row's
+            // function column whole (its reason when disabled), never the keys.
+            let words = if s.name.is_empty() { name.clone() } else { s.name.clone() };
+            (name, None, library.to_owned(), words)
         }
         PickerRow::PartFn(p, k) => {
             let part = &picker.catalogue.parts[p];
@@ -363,6 +361,32 @@ mod tests {
             super::function_words("NO contact 13-14", "ew.fn.contact-no"),
             "NO contact 13-14"
         );
+    }
+
+    /// FT-1196: a symbol row's tooltip is in words, its name, never its keys.
+    #[test]
+    fn a_symbol_rows_tooltip_is_in_words() {
+        use ew_viewmodel::ew_api::output::{CatalogueSymbol, PlaceCatalogue};
+        use ew_viewmodel::tools::{Picker, PickerMode, PickerRow};
+        let symbol = CatalogueSymbol {
+            key: "ew.iec.mcb-1p@qet10".to_owned(),
+            copy: None,
+            fndef_key: "ew.fn.mcb-1p".to_owned(),
+            rep_type: "panel_front".to_owned(),
+            letter: None,
+            black_box: false,
+            terminal: false,
+            allowed: false,
+            words: Vec::new(),
+            name: "Miniature circuit breaker, 1-pole".to_owned(),
+        };
+        let catalogue = PlaceCatalogue {
+            symbols: vec![symbol],
+            ..PlaceCatalogue::default()
+        };
+        let picker = Picker::new(PickerMode::Exchange, "101", std::sync::Arc::new(catalogue));
+        let (_, _, _, tooltip) = super::row_texts(&picker, PickerRow::Symbol(0));
+        assert_eq!(tooltip, "Miniature circuit breaker, 1-pole");
     }
 
     /// FT-759: the part number after a part row's description is `type.small` in `color.text.secondary`.
