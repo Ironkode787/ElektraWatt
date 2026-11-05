@@ -6,7 +6,7 @@
 //! the print pre-dialog 1040 px, growing too),
 //! `space.5` padding, over a backdrop of `color.backdrop` (slate-900 at 24 %); the title in `type.title`, left-aligned;
 //! the body in `type.body`; the dialog's own content (fields, lists); the footer with the buttons right-aligned in the
-//! platform's order (Windows: Primary then the others; macOS and Linux: the others then the Primary), the destructive
+//! platform's order (Windows: Primary then the others; Linux: the others then the Primary), the destructive
 //! action left-aligned and apart. No close cross: Cancel is the way out; Escape cancels through `ui.dismiss`
 //! (`App::route_keys`); the first focus is the Primary when the dialog has no field.
 
@@ -119,17 +119,14 @@ pub(crate) fn show_sized(
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum Platform {
     Windows,
-    MacOs,
     Linux,
 }
 
 impl Platform {
-    /// The platform the application runs on (anything but Windows and macOS follows the Linux order).
+    /// The platform the application runs on (anything but Windows follows the Linux order).
     pub(crate) fn host() -> Self {
         if cfg!(target_os = "windows") {
             Self::Windows
-        } else if cfg!(target_os = "macos") {
-            Self::MacOs
         } else {
             Self::Linux
         }
@@ -144,12 +141,12 @@ pub(crate) enum Slot {
 }
 
 /// The reading order (left to right) of the footer's right-hand group on `platform` with `others` other buttons:
-/// Windows puts the Primary first, macOS and Linux put it last.
+/// Windows puts the Primary first, Linux puts it last.
 pub(crate) fn footer_order(platform: Platform, others: usize) -> Vec<Slot> {
     let rest = (0..others).map(Slot::Other);
     match platform {
         Platform::Windows => std::iter::once(Slot::Primary).chain(rest).collect(),
-        Platform::MacOs | Platform::Linux => rest.chain(std::iter::once(Slot::Primary)).collect(),
+        Platform::Linux => rest.chain(std::iter::once(Slot::Primary)).collect(),
     }
 }
 
@@ -231,13 +228,8 @@ mod tests {
     }
 
     #[test]
-    fn macos_puts_the_primary_last() {
-        assert_eq!(footer_order(Platform::MacOs, 1), [Slot::Other(0), Slot::Primary]);
-    }
-
-    #[test]
     fn a_lone_primary_is_the_whole_group_everywhere() {
-        for p in [Platform::Windows, Platform::MacOs, Platform::Linux] {
+        for p in [Platform::Windows, Platform::Linux] {
             assert_eq!(footer_order(p, 0), [Slot::Primary]);
         }
     }

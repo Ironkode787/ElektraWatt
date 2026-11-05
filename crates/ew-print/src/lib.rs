@@ -316,15 +316,13 @@ impl Program {
     }
 
     /// The platform's opener of a file in its default application: `explorer.exe` on Windows (its exit status is
-    /// not an answer), `open` on macOS, `xdg-open` elsewhere.
+    /// not an answer), `xdg-open` elsewhere.
     pub fn opener() -> Program {
         if cfg!(windows) {
             Program {
                 check_status: false,
                 ..Program::named("explorer.exe")
             }
-        } else if cfg!(target_os = "macos") {
-            Program::named("open")
         } else {
             Program::named("xdg-open")
         }

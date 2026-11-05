@@ -99,17 +99,14 @@ fn env_path(name: &str) -> Option<PathBuf> {
 }
 
 /// The OS data directory of doc 05 §1 (user libraries and community packs): `EW_DATA_DIR` when set, else
-/// `%LOCALAPPDATA%\ElektraWatt\data` on Windows, `~/Library/Application Support/ElektraWatt/data` on macOS and
-/// `$XDG_DATA_HOME/elektrawatt` (else `~/.local/share/elektrawatt`) elsewhere; `None` when the environment names
-/// none.
+/// `%LOCALAPPDATA%\ElektraWatt\data` on Windows and `$XDG_DATA_HOME/elektrawatt` (else `~/.local/share/elektrawatt`)
+/// elsewhere; `None` when the environment names none.
 pub fn default_data_dir() -> Option<PathBuf> {
     if let Some(dir) = env_path("EW_DATA_DIR") {
         return Some(dir);
     }
     if cfg!(windows) {
         env_path("LOCALAPPDATA").map(|p| p.join("ElektraWatt").join("data"))
-    } else if cfg!(target_os = "macos") {
-        env_path("HOME").map(|p| p.join("Library/Application Support/ElektraWatt/data"))
     } else {
         env_path("XDG_DATA_HOME")
             .map(|p| p.join("elektrawatt"))
@@ -118,16 +115,14 @@ pub fn default_data_dir() -> Option<PathBuf> {
 }
 
 /// The OS cache directory of doc 05 §1 (the derived search index): `EW_CACHE_DIR` when set, else
-/// `%LOCALAPPDATA%\ElektraWatt\cache` on Windows, `~/Library/Caches/ElektraWatt` on macOS and
-/// `$XDG_CACHE_HOME/elektrawatt` (else `~/.cache/elektrawatt`) elsewhere; `None` when the environment names none.
+/// `%LOCALAPPDATA%\ElektraWatt\cache` on Windows and `$XDG_CACHE_HOME/elektrawatt` (else `~/.cache/elektrawatt`)
+/// elsewhere; `None` when the environment names none.
 pub fn default_cache_dir() -> Option<PathBuf> {
     if let Some(dir) = env_path("EW_CACHE_DIR") {
         return Some(dir);
     }
     if cfg!(windows) {
         env_path("LOCALAPPDATA").map(|p| p.join("ElektraWatt").join("cache"))
-    } else if cfg!(target_os = "macos") {
-        env_path("HOME").map(|p| p.join("Library/Caches/ElektraWatt"))
     } else {
         env_path("XDG_CACHE_HOME")
             .map(|p| p.join("elektrawatt"))

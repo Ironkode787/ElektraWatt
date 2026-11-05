@@ -901,7 +901,7 @@ pub(crate) fn nothing_to_apply(card: &ew_viewmodel::properties::Card) -> bool {
 }
 
 /// Apply (Primary) and Cancel (Secondary), right-aligned in the platform's order (doc 16a §6.12: Windows Apply then
-/// Cancel, macOS and Linux Cancel then Apply), each dispatching its action with its parameters.
+/// Cancel, Linux Cancel then Apply), each dispatching its action with its parameters.
 pub(crate) fn apply_cancel_with(
     ui: &mut Ui,
     apply: (&'static str, Value),
