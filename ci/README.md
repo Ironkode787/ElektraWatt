@@ -196,8 +196,8 @@ Two lessons of the cycle-22 hotfixes to the split Windows jobs (FT-387), for eve
 A third lesson, from the cycle-25 delivery run (39914507884): `test-linux` builds the workspace twice (all features for
 nextest, the default features for the doctests) in one `target`, and with full debug info the second build ran the runner's
 disk dry ("No space left on device" while linking `ew-model`). The workflow env now sets `CARGO_PROFILE_DEV_DEBUG` to
-`line-tables-only`, as every local build has since 2026-10-21; a job that adds a third feature set to one `target` must
-check the free disk first.
+`line-tables-only`, CI's own setting (local builds have had no debug info since ID-1440); a job that adds a third
+feature set to one `target` must check the free disk first.
 
 `cargo xtask ci` runs fmt, clippy, nextest and the doctests (the default run whole, the acceptance tests and the command
 fuzzer in it; then, for the packages of `cargo xtask all-features-set`, an all-features nextest run and doctest run, as

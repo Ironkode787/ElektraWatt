@@ -59,9 +59,11 @@ how every lane works.
 
 Commit, then run `cargo xtask lane-check --base <base> -p <A> -p <B> --trailers "<Key>: <items>"` with your package
 set and one `--trailers` per trailer key of your brief's Expected, **once, as your last test run**, and quote its
-summary. On a clean worktree it skips a step that passed with the same commands when nothing the step reads has
-changed since (`ok (from memory; …)`; ID-1425, ID-1440), and names each step that still runs, with its first changed
-input, on the line `memory: not skipped: <steps> (<why>)`; `--fresh` runs every step. The trailers step is never remembered.
+summary. On a clean worktree it skips a step that passed on the same tree with the same commands (`ok (from memory;
+…)`); fmt, clippy, doc and nextest are skipped too when nothing they read has changed since (ID-1425, ID-1441), on
+the line `memory: skipped on a changed tree: <steps> (…)`. Each step that still runs is named with why on the line
+`memory: not skipped: <steps> (<why>)`, with its first changed input when only the tree differs; `--fresh` runs every
+step. The trailers step is never remembered.
 - When `fmt` or `settle` reports `rewrote <files>`, the run stops and each later step reads `not run`: commit the
   rewrites and run again.
 - After a failure, fix it and re-run only the failed step (`--only <step>`). After an amend that only formats, run
