@@ -185,7 +185,10 @@ fn the_picker_lists_the_imported_parts_under_their_manufacturer_in_part_number_o
     let keys: Vec<(bool, &str, &str)> = rows.iter().map(|(_, m, n, l)| (*l, *m, *n)).collect();
     let mut sorted = keys.clone();
     sorted.sort_unstable();
-    assert_eq!(keys, sorted, "the project's first, then manufacturer, then part-number order");
+    assert_eq!(
+        keys, sorted,
+        "the project's first, then manufacturer, then part-number order"
+    );
     // A header stands above the first part row of each manufacturer and above no other row.
     for (k, (i, m, _, _)) in rows.iter().enumerate() {
         let first = k == 0 || rows[k - 1].1 != *m;

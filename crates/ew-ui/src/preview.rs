@@ -25,7 +25,7 @@ use ew_viewmodel::key;
 use ew_viewmodel::properties::CardOrigin;
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::strings;
-use serde_json::Value;
+use serde_json::{Value, json};
 
 use crate::app::Event;
 use crate::components::{self, CardStatus};
@@ -453,7 +453,18 @@ fn table_import(
             bottom: 0,
         })
         .show(ui, |ui| {
-            components::inline_card(ui, shell, card, events, |_, _| {})
+            // FT-1149 (D14, TW-2): with a conflict the switch "Take the file's values" reads the file again.
+            let switch = c.import.counts().conflicts > 0 || c.take_file;
+            components::inline_card(ui, shell, card, events, |ui, events| {
+                let mut on = c.take_file;
+                if switch
+                    && ui
+                        .checkbox(&mut on, strings::text(key!("action-preview-take-file")))
+                        .changed()
+                {
+                    events.push(Event::Action("preview.take_file", json!({ "on": on })));
+                }
+            })
         });
     ui.add_space(t.space_2);
     egui::ScrollArea::vertical()

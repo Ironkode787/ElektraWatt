@@ -93,8 +93,7 @@ impl PrintSetJob {
     /// [`JobError::Cancelled`] at a checkpoint after [`ew_jobs::Job::cancel`]; [`JobError::Failed`] with the
     /// [`OutputError`]'s text (no path) for a selection the page order does not have or pages the writer refuses.
     pub fn run(self, ctl: &JobCtl) -> Result<PrintSet, JobError> {
-        self.run_typed(ctl)?
-            .map_err(|e| JobError::Failed(e.to_string()))
+        self.run_typed(ctl)?.map_err(|e| JobError::Failed(e.to_string()))
     }
 
     /// [`PrintSetJob::run`] with the build's failure kept as its [`OutputError`] (FT-1190): the outer `Err` is

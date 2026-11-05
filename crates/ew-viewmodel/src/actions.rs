@@ -4409,7 +4409,7 @@ pub static ACTIONS: &[ActionMeta] = &[
         ),
     ),
     with_params(
-        "path?:path",
+        "path?:path, take_file?:bool",
         act(
             "navigator.import_table",
             Command,
@@ -4958,6 +4958,19 @@ pub static ACTIONS: &[ActionMeta] = &[
         None,
         |s, _| s.act_preview_cancel(),
     ))))),
+    // FT-1149 (WP-S3.08 D14): the table import card's switch "Take the file's values".
+    keeps_banner(with_params(
+        "on?:bool",
+        hidden(act(
+            "preview.take_file",
+            View,
+            Menu::Edit,
+            &[],
+            card_shown,
+            None,
+            |s, p| s.act_preview_take_file(p),
+        )),
+    )),
     // WP-S2.09 part 3 (§8.1, §8.4): the Preview tab and the history panel's own moves.
     keeps_banner(with_params(
         "on?:bool",

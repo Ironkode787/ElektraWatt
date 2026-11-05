@@ -23,8 +23,8 @@
 use std::sync::Arc;
 
 use ew_api::ew_jobs::{Job, JobEnd, JobOptions, Progress};
-use ew_api::output::{OutputError, PageSelection};
 use ew_api::output::print::{Fit, Paper, PrintOptions, PrintSet};
+use ew_api::output::{OutputError, PageSelection};
 use serde_json::{Map, Value};
 
 use super::jobs::bool_param;
@@ -661,10 +661,9 @@ impl ShellModel {
         match &d.build {
             PrintBuild::Built { .. } if self.print_set().is_some() => None,
             // FT-1172 (ID-1391): a refused Pages text says why in words.
-            PrintBuild::Empty if d.range == PrintRange::Pages && d.pages_error.is_some() => Some(strings::format(
-                key!("reason-print-not-a-range"),
-                &[d.pages.trim()],
-            )),
+            PrintBuild::Empty if d.range == PrintRange::Pages && d.pages_error.is_some() => Some(
+                strings::format(key!("reason-print-not-a-range"), &[d.pages.trim()]),
+            ),
             PrintBuild::Empty => Some(strings::text(key!("reason-print-no-pages")).to_owned()),
             PrintBuild::Failed(_) => Some(strings::text(key!("reason-print-failed")).to_owned()),
             _ => Some(strings::text(key!("reason-print-not-built")).to_owned()),

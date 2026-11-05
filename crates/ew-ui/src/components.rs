@@ -886,15 +886,16 @@ pub(crate) fn apply_cancel(
 /// for a table paste where every cell is invalid); `None` when Apply can run or no card is open. Apply is then
 /// disabled with this reason as its tooltip (doc 16a §6.13: a disabled control shows its reason).
 pub(crate) fn apply_blocked(shell: &ShellModel) -> Option<String> {
-    shell
-        .properties()
-        .card()
-        .filter(|c| !nothing_to_apply(c))
-        .and_then(|c| c.preview.result.as_ref().err().cloned())
+    let card = shell.properties().card()?;
+    // FT-1193 (ID-1391): a table import that changes nothing has no Apply, and says why.
+    if nothing_to_apply(card) {
+        return Some(strings::text(key!("reason-table-import-nothing")).to_owned());
+    }
+    card.preview.result.as_ref().err().cloned()
 }
 
 /// Whether `card` is a table import whose file changes no cell it can apply (WP-S3.08 part 3, ruling 7 of ID-1224):
-/// it previews no command, and its Apply only closes it.
+/// it previews no command, and its Apply is disabled (FT-1193, ID-1391).
 pub(crate) fn nothing_to_apply(card: &ew_viewmodel::properties::Card) -> bool {
     matches!(&card.origin, CardOrigin::TableImport(c) if c.import.command.is_none())
 }

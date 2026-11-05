@@ -123,6 +123,17 @@ fn the_catalogue_of_folio_102_keeps_the_grid_family_and_maps_the_letters() {
         .find(|p| p.part_number == "A9F78116")
         .expect("the project's A9F78116");
     assert_eq!((mcb_part.library, mcb_part.functions.len()), (None, 0));
+    // FT-1170 (ID-1391): an embedded part's maker comes from its own maker field, as the Parts row names it.
+    for p in cat.parts.iter().filter(|p| p.library.is_none()) {
+        let copy = q.parts().get(Id::from_uuid(p.copy)).expect("held");
+        assert_eq!(
+            p.manufacturer,
+            ew_derive::manufacturer_name(&q, &copy.item.manufacturer),
+            "{}",
+            p.part_number
+        );
+    }
+    assert_eq!(mcb_part.manufacturer, "Schneider Electric");
     assert!(cat.parts.iter().any(|p| p.library.is_none()), "embedded rows");
     let library: Vec<&str> = cat
         .parts

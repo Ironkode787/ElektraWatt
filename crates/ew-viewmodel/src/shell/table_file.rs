@@ -312,6 +312,49 @@ impl ShellModel {
             }
             Err(e) => return failed(key!("error-table-import-read"), &[&e.to_string()]),
         };
+        let take_file = match bool_param(p, "take_file", false) {
+            Ok(on) => on,
+            Err(e) => return e,
+        };
+        let bytes = std::sync::Arc::new(input.bytes().to_vec());
+        self.open_table_import(input.name().to_owned(), bytes, key, take_file, rev)
+    }
+
+    /// `preview.take_file {on?}` (FT-1149, WP-S3.08 D14): the table import card's switch "Take the file's values"
+    /// reads the bytes the card keeps again with `take_file` on (or off; without `on` it flips), so a cell changed in
+    /// both takes the file's value; the card shows the new reading.
+    pub(crate) fn act_preview_take_file(&mut self, p: &Map<String, Value>) -> Outcome {
+        let Some(CardOrigin::TableImport(c)) = self.props.card.as_ref().map(|c| &c.origin) else {
+            return Outcome::Refused {
+                reason_key: key!("reason-no-card"),
+            };
+        };
+        let on = match bool_param(p, "on", !c.take_file) {
+            Ok(on) => on,
+            Err(e) => return e,
+        };
+        let (source, bytes, table) = (
+            c.source.clone(),
+            std::sync::Arc::clone(&c.bytes),
+            c.import.table.clone(),
+        );
+        let Some(rev) = self.revision() else {
+            return Outcome::Refused {
+                reason_key: key!("reason-no-project"),
+            };
+        };
+        self.open_table_import(source, bytes, table, on, rev)
+    }
+
+    /// Reads `bytes` (the file `source`) against table `key` with `take_file` and opens its card in the Preview tab.
+    fn open_table_import(
+        &mut self,
+        source: String,
+        bytes: std::sync::Arc<Vec<u8>>,
+        key: String,
+        take_file: bool,
+        rev: u64,
+    ) -> Outcome {
         let submit = Submit::from(self.origin());
         #[cfg(feature = "testkit")]
         let fault = self.jobs.hooks.panic_at == Some("table-read");
@@ -321,14 +364,15 @@ impl ShellModel {
         };
         let options = ImportTableOptions {
             table: Some(key),
+            take_file,
             ..ImportTableOptions::default()
         };
-        let import = match ew_api::output::guard_table_read(input.name(), || {
+        let import = match ew_api::output::guard_table_read(&source, || {
             #[cfg(feature = "testkit")]
             if fault {
                 panic!("a test fault in the table read");
             }
-            project.session.table_import(input.bytes(), &options)
+            project.session.table_import(&bytes, &options)
         }) {
             Ok(i) => i,
             Err(e) => {
@@ -355,7 +399,6 @@ impl ShellModel {
             ),
         };
         let changes = import.counts().changed;
-        let source = input.name().to_owned();
         self.props.card = Some(Card {
             preview: PreviewState {
                 base_rev: rev,
@@ -380,17 +423,30 @@ impl ShellModel {
             targets: changes,
             changes,
             reason: key!("reason-table-import"),
-            origin: CardOrigin::TableImport(Box::new(TableImportCard { source, import })),
+            origin: CardOrigin::TableImport(Box::new(TableImportCard {
+                source,
+                import,
+                bytes,
+                take_file,
+            })),
         });
         Outcome::Done
     }
 
-    /// Apply on a table import card (ruling 6): the import's one `fields.set_many`, one undo step; nothing to apply
-    /// closes the card; a project changed since the read is refused in words and the card stays.
+    /// Apply on a table import card (ruling 6): the import's one `fields.set_many`, one undo step; with nothing to
+    /// apply it is refused and the card stays (FT-1193); a project changed since the read is refused in words and the
+    /// card stays.
     pub(super) fn apply_table_import_card(&mut self, card: Card) -> Outcome {
         let CardOrigin::TableImport(c) = &card.origin else {
             return Outcome::Done;
         };
+        // FT-1193 (ID-1391): a file that changes nothing has no Apply; the card stays.
+        if c.nothing_to_import() {
+            self.props.card = Some(card);
+            return Outcome::Refused {
+                reason_key: key!("reason-table-import-nothing"),
+            };
+        }
         let submit = Submit::from(self.origin());
         let Some(project) = &mut self.project else {
             return Outcome::Done;

@@ -450,7 +450,13 @@ fn from_part_without_a_template_places_the_symbol_with_the_part() {
     let f = row(&e, fns[0]);
     assert_eq!(
         (f.def, f.role.clone(), f.kind.clone(), f.device, f.template_entry),
-        (fndef_two(), FnRole::Main, FunctionKind::Normal, Some(devs[0]), None)
+        (
+            fndef_two(),
+            FnRole::Main,
+            FunctionKind::Normal,
+            Some(devs[0]),
+            None
+        )
     );
     assert_eq!(row(&e, primary::<Representation>(&r)).functions, vec![fns[0]]);
 }

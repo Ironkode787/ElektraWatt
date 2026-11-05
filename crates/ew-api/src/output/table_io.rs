@@ -1185,7 +1185,7 @@ pub fn reason_words(key: &str) -> &'static str {
 }
 
 /// The text keys [`reason_words`] words, for the shell's test that its texts are the same.
-// map: round-trip-reasons: a new read-only reason of a round trip goes in REASON_KEYS, in reason_words' match with its English words, and in strings.rs TEXTS with the same words.
+// map: round-trip-reasons: a new read-only reason of a round trip goes in REASON_KEYS, in reason_words' match with its English words, and under the same key in crates/ew-viewmodel/locales/en-GB/shell.ftl with the same words (in nl-NL/shell.ftl in Dutch).
 pub const REASON_KEYS: &[&str] = &[
     "table-accessory-row",
     "table-pos-move",

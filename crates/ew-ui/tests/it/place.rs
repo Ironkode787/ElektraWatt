@@ -481,7 +481,10 @@ fn ft1375_device_from_part_places_the_projects_a9f78116_as_102f1_on_gp_ut() {
     let (key, mods) = chord_of(&h, "tool.place_part");
     h.key_press_modifiers(mods, key);
     settle(&mut h);
-    assert!(h.query_by_label("Insert device").is_some(), "titled Insert device");
+    assert!(
+        h.query_by_label("Insert device").is_some(),
+        "titled Insert device"
+    );
     h.get_all_by_role(egui::Role::TextInput)
         .next()
         .expect("the filter field")
@@ -491,7 +494,8 @@ fn ft1375_device_from_part_places_the_projects_a9f78116_as_102f1_on_gp_ut() {
     let rows: Vec<String> = picker.rows.iter().map(|r| picker.row_line(*r)).collect();
     assert_eq!(rows, ["row part \"A9F78116\" symbol"]);
     assert!(
-        h.query_by_label_contains("Miniature circuit breaker 1P").is_some(),
+        h.query_by_label_contains("Miniature circuit breaker 1P")
+            .is_some(),
         "the row leads with the part's description"
     );
     press(&mut h, Key::Enter);

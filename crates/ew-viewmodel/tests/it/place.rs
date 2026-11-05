@@ -1107,7 +1107,10 @@ fn ft1087_the_chooser_lists_the_projects_parts_first_also_after_a_placement_embe
         sorted.sort();
         keys == sorted
     };
-    assert!(in_order(&before), "the project's first, then maker, then part number");
+    assert!(
+        in_order(&before),
+        "the project's first, then maker, then part number"
+    );
     done(&mut s, "ui.dismiss", json!({}));
     // The placement embeds the part with its closure.
     done(

@@ -1624,7 +1624,11 @@ fn insert_from_part(
 }
 
 /// The device of a `from_part` target: `{tag: {letter, counter: none}, parts: [the part, quantity 1]}`.
-fn insert_part_device(tx: &mut TxBuilder<'_>, part: Id<Part>, letter: &Ident) -> Result<Id<Device>, CmdError> {
+fn insert_part_device(
+    tx: &mut TxBuilder<'_>,
+    part: Id<Part>,
+    letter: &Ident,
+) -> Result<Id<Device>, CmdError> {
     let device: Id<Device> = tx.mint();
     tx.insert(Device {
         id: device,

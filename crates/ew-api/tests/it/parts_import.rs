@@ -63,11 +63,20 @@ fn the_golden_parts_table_imports_into_a_new_project_once() {
     let order: Vec<(bool, &str, &str)> = cat
         .parts
         .iter()
-        .map(|p| (p.library.is_some(), p.manufacturer.as_str(), p.part_number.as_str()))
+        .map(|p| {
+            (
+                p.library.is_some(),
+                p.manufacturer.as_str(),
+                p.part_number.as_str(),
+            )
+        })
         .collect();
     let mut sorted = order.clone();
     sorted.sort_unstable();
-    assert_eq!(order, sorted, "the embedded first, then maker, then part-number order");
+    assert_eq!(
+        order, sorted,
+        "the embedded first, then maker, then part-number order"
+    );
     assert!(cat.parts.iter().any(|p| p.library.is_none()), "embedded rows");
     assert!(cat.parts.iter().any(|p| p.library.is_some()), "library rows");
 }

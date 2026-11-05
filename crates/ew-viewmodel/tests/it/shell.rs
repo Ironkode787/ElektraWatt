@@ -429,17 +429,17 @@ fn dl7_density_and_theme_round_trip_through_settings_toml() {
     assert!(text.contains("theme = \"hc-dark\""), "{text}");
     // FT-1175: a refused theme or language names the values it takes.
     for (action, value, message) in [
-        ("view.density", "dense", "\"dense\" is not one of the choices: comfortable, compact."),
+        (
+            "view.density",
+            "dense",
+            "\"dense\" is not one of the choices: comfortable, compact.",
+        ),
         (
             "view.theme",
             "purple",
             "\"purple\" is not one of the choices: system, light, dark, hc-dark, hc-light.",
         ),
-        (
-            "view.language",
-            "fr",
-            "\"fr\" is not one of the choices: en, nl.",
-        ),
+        ("view.language", "fr", "\"fr\" is not one of the choices: en, nl."),
     ] {
         assert_eq!(
             shell.dispatch(action, &json!({"value": value})),

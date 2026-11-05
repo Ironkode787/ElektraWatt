@@ -486,13 +486,15 @@ impl Session {
                 .then_with(|| b.copy.is_some().cmp(&a.copy.is_some()))
         });
         // FT-1087 (ID-1184): one order for the chooser, (maker, part number, copy), within the embedded copies and
-        // within the system libraries' parts the project does not hold, the embedded ones first (FT-1375, ID-1391);
-        // and one maker name, the library record's, held or not ([`Session::library_manufacturer`]).
+        // within the system libraries' parts the project does not hold, the embedded ones first (FT-1375, ID-1391).
+        // FT-1170 (ID-1391): an embedded part's maker is named from its own maker field as the Parts row names it
+        // (`ew_derive::manufacturer_name`); a library part's, which the project does not hold, from its library
+        // ([`Session::library_manufacturer`]).
         let mut parts: Vec<CataloguePart> = Vec::new();
         for (id, copy) in q.parts().iter() {
             if let Some(row) = catalogue_part(&q, &rows, id.as_uuid(), &copy.item, None) {
                 parts.push(CataloguePart {
-                    manufacturer: self.library_manufacturer(&copy.item.manufacturer),
+                    manufacturer: ew_derive::manufacturer_name(&q, &copy.item.manufacturer),
                     ..row
                 });
             }

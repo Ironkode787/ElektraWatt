@@ -198,8 +198,14 @@ fn ft1042_a_links_hint_takes_its_follow_key_from_the_keymap() {
     use ew_viewmodel::status::follow_hint;
     let tmp = Tmp::new("ft1042-hint");
     let mut s = golden(&tmp);
-    assert_eq!(follow_hint(&s, "-201U7", "props.follow"), "Click or F: go to -201U7");
-    assert_eq!(follow_hint(&s, "103-A1", "nav.follow"), "Click or F: go to 103-A1");
+    assert_eq!(
+        follow_hint(&s, "-201U7", "props.follow"),
+        "Click or F: go to -201U7"
+    );
+    assert_eq!(
+        follow_hint(&s, "103-A1", "nav.follow"),
+        "Click or F: go to 103-A1"
+    );
     done(&mut s, "help.shortcuts", json!({}));
     done(
         &mut s,
@@ -212,7 +218,10 @@ fn ft1042_a_links_hint_takes_its_follow_key_from_the_keymap() {
         follow_hint(&s, "103-A1", "nav.follow"),
         format!("Click or {key}: go to 103-A1")
     );
-    assert_eq!(follow_hint(&s, "-201U7", "props.follow"), "Click or F: go to -201U7");
+    assert_eq!(
+        follow_hint(&s, "-201U7", "props.follow"),
+        "Click or F: go to -201U7"
+    );
     assert_eq!(
         ew_viewmodel::strings::format(ew_viewmodel::key!("status-hint-link"), &["-201U7"]),
         "Click to go to -201U7"

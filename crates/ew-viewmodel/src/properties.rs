@@ -18,8 +18,8 @@ use ew_api::Cost;
 use ew_api::output::ew_dl::EntityRef;
 
 use crate::canvas::PageId;
-use crate::key;
 use crate::strings::Key;
+use crate::{count_key, key};
 pub use ew_api::output::{
     Category, EditRoute, FieldReadOnly, FieldType, PropRow, PropertySheet, Provenance, RowAction, RowValue,
     SheetSection,
@@ -258,39 +258,55 @@ pub struct TableImportCard {
     pub source: String,
     /// The file read against the project: the cells, the findings, the missing rows and the command.
     pub import: ew_api::output::TableImport,
+    /// The file's bytes, which the switch "Take the file's values" reads again (FT-1149).
+    pub bytes: std::sync::Arc<Vec<u8>>,
+    /// Whether a cell changed in both takes the file's value (the switch, WP-S3.08 D14).
+    pub take_file: bool,
 }
 
 // The import holds its command's parameters as JSON, which has no NaN: equality is total.
 impl Eq for TableImportCard {}
 
 impl TableImportCard {
-    /// The card's counts line: "5 changed, 0 kept, 1 conflict: the project's value is kept, …".
+    /// Whether the file changes nothing it could apply (no command): its Apply is disabled (FT-1193, ID-1391).
+    pub fn nothing_to_import(&self) -> bool {
+        self.import.command.is_none()
+    }
+
+    /// The card's counts line: "5 cells changed, 0 cells kept, 1 conflict: the project's value is kept, …", each count
+    /// with its noun (FT-1194); a file that matches the project says so in one sentence (FT-1193, ID-1391).
     pub fn counts_line(&self) -> String {
         let c = self.import.counts();
-        let conflicts = match c.conflicts {
-            0 => strings::format(key!("table-import-conflicts"), &["0"]),
-            1 => strings::text(key!("table-import-conflict-kept")).to_owned(),
-            n => strings::format(key!("table-import-conflicts-kept"), &[&n.to_string()]),
+        if self.nothing_to_import() && c.kept + c.conflicts + c.refused + c.unknown + c.missing == 0 {
+            return strings::text(key!("table-import-nothing")).to_owned();
+        }
+        let conflicts = match (c.conflicts, self.take_file) {
+            (0, _) => strings::format(key!("table-import-conflicts"), &["0"]),
+            (1, false) => strings::text(key!("table-import-conflict-kept")).to_owned(),
+            (n, false) => strings::format(key!("table-import-conflicts-kept"), &[&n.to_string()]),
+            (1, true) => strings::text(key!("table-import-conflict-taken")).to_owned(),
+            (n, true) => strings::format(key!("table-import-conflicts-taken"), &[&n.to_string()]),
         };
         strings::format(
             key!("table-import-counts"),
             &[
-                &c.changed.to_string(),
-                &c.kept.to_string(),
+                &strings::format_count(count_key!("table-import-changed"), c.changed),
+                &strings::format_count(count_key!("table-import-kept"), c.kept),
                 &conflicts,
-                &c.refused.to_string(),
-                &c.unknown.to_string(),
-                &c.missing.to_string(),
+                &strings::format_count(count_key!("table-import-refused"), c.refused),
+                &strings::format_count(count_key!("table-import-unknown"), c.unknown),
+                &strings::format_count(count_key!("table-import-missing"), c.missing),
             ],
         )
     }
 
-    /// One cell's line of the per-cell list: `-X1031:1 · Function text · "Valve" → "Valve 1" · applied`, with the
-    /// reason of a read-only or refused cell.
+    /// One cell's line of the per-cell list: `-X1031:1 · Function text · "Valve" → "Valve 1" · Apply takes the
+    /// file's value` (what Apply will do, FT-1194), with the reason of a read-only or refused cell.
     pub fn cell_line(cell: &ew_api::output::ImportCell) -> String {
         use ew_api::output::CellOutcome;
         let outcome = match cell.outcome {
-            CellOutcome::Applied | CellOutcome::Conflict { taken: true } => key!("table-import-cell-applied"),
+            CellOutcome::Applied => key!("table-import-cell-applied"),
+            CellOutcome::Conflict { taken: true } => key!("table-import-cell-conflict-taken"),
             CellOutcome::Kept => key!("table-import-cell-kept"),
             CellOutcome::Conflict { taken: false } => key!("table-import-cell-conflict"),
             CellOutcome::ReadOnly => key!("table-import-cell-read-only"),

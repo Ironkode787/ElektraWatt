@@ -352,10 +352,7 @@ impl Picker {
                     if f.main { " main" } else { "" }
                 )
             }
-            PickerRow::Part(p) => format!(
-                "row part \"{}\" symbol",
-                self.catalogue.parts[p].part_number
-            ),
+            PickerRow::Part(p) => format!("row part \"{}\" symbol", self.catalogue.parts[p].part_number),
             PickerRow::Strip(i) => {
                 let strip = &self.catalogue.strips[i];
                 // The strip's ID ends the line, which the printer names `@n` (FT-485 item 9): a strip without

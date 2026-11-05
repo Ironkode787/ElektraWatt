@@ -240,7 +240,21 @@ fn tw1_the_export_is_the_clis_and_an_accepted_import_is_one_undo_step() {
     done(&mut shell, "navigator.import_table", json!({"path": text(&file)}));
     assert_eq!(
         card_summary(&shell).unwrap(),
-        "Import y.xlsx · 5 changed, 0 kept, 0 conflicts, 0 refused, 0 unknown, 0 missing"
+        "Import y.xlsx · 5 cells changed, 0 cells kept, 0 conflicts, 0 cells refused, 0 unknown rows, 0 rows not in \
+         the file"
+    );
+    // FT-1194: a cell line says what Apply will do, never "applied" before it.
+    let ew_viewmodel::properties::CardOrigin::TableImport(c) = &shell.properties().card().unwrap().origin
+    else {
+        panic!("a table import card");
+    };
+    let first = &c.import.cells[0];
+    assert_eq!(
+        ew_viewmodel::properties::TableImportCard::cell_line(first),
+        format!(
+            "-X1031:1 · Function text · \"{}\" → \"Valve 1\" · Apply takes the file's value",
+            first.ew
+        )
     );
     let d = shell.describe();
     assert!(
@@ -292,10 +306,11 @@ fn tw1_the_export_is_the_clis_and_an_accepted_import_is_one_undo_step() {
     shell.shutdown();
 }
 
-/// TW-2 as ruling 7 narrows it: a label changed in the project since the export and in the file is "1 conflict", and
-/// Accept keeps the project's value (no step).
+/// TW-2 restored (FT-1149, ID-1391): a label changed in the project since the export and in the file is "1 conflict",
+/// which keeps the project's value, so the file changes nothing and Apply is refused (FT-1193); with "Take the file's
+/// values" on, the bytes the card keeps are read again and Accept applies the file's value in one step.
 #[test]
-fn tw2_a_conflict_keeps_the_projects_value() {
+fn tw2_a_conflict_keeps_the_projects_value_until_the_switch_takes_the_files() {
     let tmp = Tmp::new("tw2");
     let mut shell = strips(&tmp);
     let out = tmp.0.join("x.xlsx");
@@ -312,18 +327,36 @@ fn tw2_a_conflict_keeps_the_projects_value() {
     done(&mut shell, "navigator.import_table", json!({"path": text(&file)}));
     assert_eq!(
         card_summary(&shell).unwrap(),
-        "Import y.xlsx · 0 changed, 0 kept, 1 conflict: the project's value is kept, 0 refused, 0 unknown, 0 missing"
+        "Import y.xlsx · 0 cells changed, 0 cells kept, 1 conflict: the project's value is kept, 0 cells refused, 0 \
+         unknown rows, 0 rows not in the file"
     );
     let d = shell.describe();
     assert!(d.contains("\"EW 3\" \"File 3\" conflict"), "{d}");
+    assert_eq!(
+        refused(&mut shell, "preview.apply", json!({})),
+        "reason-table-import-nothing"
+    );
+    assert_eq!(
+        ew_viewmodel::strings::text(ew_viewmodel::key!("reason-table-import-nothing")),
+        "The file changes nothing in the project"
+    );
+    assert!(shell.properties().card().is_some(), "the card stays");
+    assert_eq!(steps(&shell), before, "nothing is committed");
+    // The switch: the file's value is taken.
+    done(&mut shell, "preview.take_file", json!({"on": true}));
+    assert_eq!(
+        card_summary(&shell).unwrap(),
+        "Import y.xlsx · 1 cell changed, 0 cells kept, 1 conflict: the file's value is taken, 0 cells refused, 0 \
+         unknown rows, 0 rows not in the file"
+    );
     done(&mut shell, "preview.apply", json!({}));
     assert!(shell.properties().card().is_none());
-    assert_eq!(steps(&shell), before, "nothing is committed");
+    assert_eq!(steps(&shell), before + 1, "one step");
     let now = tmp.0.join("now.xlsx");
     done(&mut shell, "navigator.export_table", json!({"path": text(&now)}));
     assert_eq!(
         column_cells(&std::fs::read(&now).unwrap(), "Function text")[2],
-        "EW 3"
+        "File 3"
     );
     shell.shutdown();
 }
@@ -442,7 +475,7 @@ fn the_refusals_in_words_and_a_csv() {
     done(&mut shell, "navigator.import_table", json!({"path": text(&csv)}));
     assert_eq!(
         card_summary(&shell).unwrap(),
-        "Import x.csv · 0 changed, 0 kept, 0 conflicts, 0 refused, 0 unknown, 0 missing"
+        "Import x.csv · Nothing to import: the file matches the project."
     );
     done(&mut shell, "preview.cancel", json!({}));
     let missing = tmp.0.join("none.xlsx");
@@ -478,7 +511,7 @@ fn a_csv_export_keeps_its_id_column_and_ew_is_refused() {
     done(&mut shell, "navigator.import_table", json!({"path": text(&csv)}));
     assert_eq!(
         card_summary(&shell).unwrap(),
-        "Import x.csv · 0 changed, 0 kept, 0 conflicts, 0 refused, 0 unknown, 0 missing"
+        "Import x.csv · Nothing to import: the file matches the project."
     );
     done(&mut shell, "preview.cancel", json!({}));
     let other = tmp.0.join("y.csv");
