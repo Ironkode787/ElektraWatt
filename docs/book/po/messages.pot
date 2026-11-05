@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ElektraWatt User Guide\n"
-"POT-Creation-Date: 2026-11-04T21:24:04+01:00\n"
+"POT-Creation-Date: 2026-11-05T11:01:27+01:00\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -439,10 +439,11 @@ msgstr ""
 
 #: src/tutorials/first-page.md:37
 msgid ""
-"Choose **Check ▸ Messages**. The Messages pane lists no error and five "
-"warnings, still pending while you draw: three devices without a part "
-"(EW-CORE-041: -1E1, -1E2 and -1T1) and the transformer's two open primary "
-"pins (EW-POT-009: -1T1:1U1 and \\-1T1:2U1)."
+"Choose **Check ▸ Messages**. The Messages header shows E 0, W 0 and pending "
+"5: five findings wait on the page you are drawing until you leave it or run "
+"the checks. They are three devices without a part (EW-CORE-041: -1E1, -1E2 "
+"and -1T1) and the transformer's two open primary pins (EW-POT-009: -1T1:1U1 "
+"and -1T1:2U1)."
 msgstr ""
 
 #: src/tutorials/first-page.md:41
@@ -452,7 +453,7 @@ msgid ""
 msgstr ""
 
 #: src/tutorials/first-page.md:44 src/tutorials/terminal-strip-and-cable.md:50
-#: src/tutorials/reports-and-pdf.md:37 src/tutorials/import-qet.md:50
+#: src/tutorials/reports-and-pdf.md:38 src/tutorials/import-qet.md:50
 msgid "What you learnt"
 msgstr ""
 
@@ -546,7 +547,7 @@ msgstr ""
 #: src/tutorials/terminal-strip-and-cable.md:34
 msgid ""
 "Click the field wire of -1X1:1, then Shift+click the field wire of -1X1:2. "
-"Choose **Draw ▸ Connect ▸ Connect cores…**, choose the cable **-W1**, and "
+"Choose **Draw ▸ Connect ▸ Connect cores…**, choose the cable **\\-W1**, and "
 "choose **Connect**. The toast says \"Wires connected to the cores of -1W1: "
 "2\": the two field wires are now cores of the cable, and the cable takes its "
 "page number from its first core."
@@ -555,8 +556,8 @@ msgstr ""
 #: src/tutorials/terminal-strip-and-cable.md:38
 msgid ""
 "Choose **View ▸ Panels ▸ Navigators ▸ Cables** and click the cable -1W1. In "
-"the Properties pane, set **Length** to `5 m`. The Cables navigator lists "
-"the cable -1W1 with its three cores: BN, BU and GNYE."
+"the Properties pane, set **Length** to `5 m`. The Cables navigator lists the "
+"cable -1W1 with its three cores: BN, BU and GNYE."
 msgstr ""
 
 #: src/tutorials/terminal-strip-and-cable.md:41
@@ -571,12 +572,12 @@ msgstr ""
 msgid ""
 "Choose **Check ▸ Run checks** (`F7`). The toast says \"Check: 0 errors, 8 "
 "warnings, 2 infos\". The warnings are the devices that have no part yet and "
-"the transformer's open primary pins; the infos say that no report covers "
-"the strip or the cable yet."
+"the transformer's open primary pins; the infos say that no report covers the "
+"strip or the cable yet."
 msgstr ""
 
 #: src/tutorials/terminal-strip-and-cable.md:47
-#: src/tutorials/reports-and-pdf.md:34 src/tutorials/import-qet.md:47
+#: src/tutorials/reports-and-pdf.md:35 src/tutorials/import-qet.md:47
 msgid ""
 "Choose **File ▸ Save** (`Ctrl+S`). The title bar no longer marks the project "
 "as changed."
@@ -623,10 +624,10 @@ msgstr ""
 
 #: src/tutorials/reports-and-pdf.md:14
 msgid ""
-"Choose **Help ▸ Tutorials** and name a new folder `reports.ew`. EW makes a "
-"fresh copy of the sample project there and opens it; the banner says \"A "
-"fresh copy of the sample project was made for the tutorials.\" The tutorials "
-"page of this guide opens beside it."
+"Choose **Help ▸ Tutorials ▸ Reports and PDF** and name a new folder "
+"`reports.ew`. EW makes a fresh copy of the sample project there and opens "
+"it; the banner says \"A fresh copy of the sample project was made for the "
+"tutorials.\" This tutorial's page of the guide opens beside it."
 msgstr ""
 
 #: src/tutorials/reports-and-pdf.md:17
@@ -664,7 +665,7 @@ msgid ""
 "PDF/A-2b file with every page, its outline and its cross-reference links."
 msgstr ""
 
-#: src/tutorials/reports-and-pdf.md:31
+#: src/tutorials/reports-and-pdf.md:32
 msgid ""
 "Choose **Output ▸ Print…** (`Ctrl+P`). The Print dialog shows the range, the "
 "paper and a preview of the first page: \"1 of 41\". Step to the next page in "
@@ -672,26 +673,26 @@ msgid ""
 "printing."
 msgstr ""
 
-#: src/tutorials/reports-and-pdf.md:39
+#: src/tutorials/reports-and-pdf.md:40
 msgid ""
 "A report block generates report pages from the project: a parts list, "
 "terminal diagrams, a cable list and more. **Output ▸ Report block…** adds "
 "one, from the first folio you give."
 msgstr ""
 
-#: src/tutorials/reports-and-pdf.md:41
+#: src/tutorials/reports-and-pdf.md:42
 msgid ""
 "Report pages follow the drawing: change a device, a terminal or a cable, and "
 "its report pages change with it."
 msgstr ""
 
-#: src/tutorials/reports-and-pdf.md:42
+#: src/tutorials/reports-and-pdf.md:43
 msgid ""
 "**Output ▸ Export PDF…** writes every page into one PDF; **Output ▸ Print…** "
 "shows each page before it prints."
 msgstr ""
 
-#: src/tutorials/reports-and-pdf.md:43
+#: src/tutorials/reports-and-pdf.md:44
 msgid ""
 "[A terminal strip and a cable](terminal-strip-and-cable.md) shows where the "
 "terminal diagrams and the cable list take their rows from."
