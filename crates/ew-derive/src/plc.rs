@@ -215,7 +215,7 @@ pub fn default_profile() -> String {
 /// An address text in the notation of the profile `profile` (`id@version`) at hand (`at_hand`), in the stored form
 /// of a channel's `Manual` address (WP-S1.21 D6): `"I4.0"` under the TIA profile is input byte 4, bit 0. The error
 /// is the message a refusal shows: the profile's example (`expected an address like Q0.1`) for a text that does not
-/// parse, or that this build does not ship the profile.
+/// parse, or that the profile is not one at hand (FT-1427: "not an address profile of this build or of the project").
 pub fn parse_plc_address(
     at_hand: &[Arc<AddressProfile>],
     profile: &str,
@@ -223,8 +223,8 @@ pub fn parse_plc_address(
 ) -> Result<ew_schema::PlcAddress, String> {
     let Some(p) = pinned_profile(at_hand, profile) else {
         return Err(format!(
-            "the address profile {profile} is not shipped by this build, so an address text cannot be read; give \
-             auto, excluded or tbd"
+            "`{profile}` is not an address profile of this build or of the project, so an address text cannot be \
+             read; give auto, excluded or tbd"
         ));
     };
     let Some(a) = p.parse(text) else {
@@ -267,8 +267,8 @@ pub fn parse_plc_start(
 ) -> Result<ew_schema::PlcAddress, String> {
     let Some(p) = pinned_profile(at_hand, profile) else {
         return Err(format!(
-            "the address profile {profile} is not shipped by this build, so a start text cannot be read; give auto, \
-             excluded or tbd"
+            "`{profile}` is not an address profile of this build or of the project, so a start text cannot be read; \
+             give auto, excluded or tbd"
         ));
     };
     let Some((area, byte)) = p.parse_start(text) else {

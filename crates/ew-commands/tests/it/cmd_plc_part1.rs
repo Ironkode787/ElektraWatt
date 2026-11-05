@@ -562,7 +562,12 @@ fn channel_values_outside_the_profile_and_this_build_are_refused() {
     ))
     .expect("move the station");
     let (_, message) = invalid(e.execute(&set(KindName::Channel, c0.cast(), "address", json!("I4.0"))));
-    assert!(message.contains("not shipped"), "{message}");
+    // FT-1427: a project's copy is a profile at hand too, so the text names both.
+    assert_eq!(
+        message,
+        "`vendor-x@1` is not an address profile of this build or of the project, so an address text cannot be read; \
+         give auto, excluded or tbd"
+    );
     e.execute(&set(KindName::Channel, c0.cast(), "address", json!("tbd")))
         .expect("a word needs no profile");
 }
