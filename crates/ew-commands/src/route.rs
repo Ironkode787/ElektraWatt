@@ -1311,6 +1311,28 @@ mod tests {
     }
 
     #[test]
+    fn the_end_devices_tag_blocks_the_last_leg_too() {
+        // FT-1183 (ID-1395): FT-1085's case, a black box below the first end's pin with its tag up-left of the CP.
+        // The tag of the device the run ends at is an obstacle on the last leg as on every other: without it the
+        // tie rule turns at once, across the tag; with it the route runs down beside the tag and turns below it.
+        let own_box = rect(2, -1, 12, 9);
+        let tag = rect(1, -10, 5, -2);
+        let mut rq = req(
+            end(0, -10, Some(Heading::Down)),
+            end(6, 0, Some(Heading::Up)),
+            vec![],
+        );
+        rq.area = [-10 * MM, -16 * MM, 18 * MM, 14 * MM];
+        rq.own[1] = vec![own_box];
+        let untagged = auto_route(&rq);
+        assert!(enters(&untagged, tag), "{untagged:?}");
+        rq.own[1] = vec![own_box, tag];
+        let routed = route(&rq);
+        assert!(!routed.direct, "{:?}", routed.points);
+        assert_eq!(routed.points, [p(0, -10), p(0, -2), p(6, -2), p(6, 0)]);
+    }
+
+    #[test]
     fn a_foreign_obstacle_across_the_corridor_still_blocks() {
         // The same tag as another representation's: the corridor is the stub only, and the CP cannot be left.
         let mut rq = req(

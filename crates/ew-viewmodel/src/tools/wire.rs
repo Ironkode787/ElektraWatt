@@ -669,6 +669,30 @@ fn rep_rects(cx: &ToolCx<'_>, g: i64, texts: bool) -> std::collections::BTreeMap
     out
 }
 
+/// The direction to leave `end` by when it is the CP of an interruption point and `other`, the route's other end, lies
+/// straight behind it, on its axis against its leaving direction: the opposite one (FT-1210). `None` otherwise.
+fn ip_turned(cx: &ToolCx<'_>, end: &WireTarget, other: (i64, i64)) -> Option<Dir> {
+    let WireTarget::Cp {
+        rep,
+        at,
+        dir: Some(d),
+        ..
+    } = end
+    else {
+        return None;
+    };
+    let v = d.vector();
+    let (dx, dy) = (other.0 - at.0, other.1 - at.1);
+    let behind = v.0 * dx + v.1 * dy < 0 && v.1 * dx - v.0 * dy == 0;
+    let ip = cx
+        .page
+        .tables
+        .reps
+        .iter()
+        .any(|r| r.id == rep.0 && r.ip.is_some());
+    (behind && ip).then(|| Dir::of_vector((-v.0, -v.1))).flatten()
+}
+
 /// The obstacle rectangles of the page's frame (FT-758): the sheet outside the frame grid's drawing area, that is
 /// the header bands with their labels, the title block and its text fields, in page nm, the drawing area's edge grown
 /// inward by one grid step `g` as a box's outline is. On a side where one of the `ends` (the route's ends and their
@@ -975,6 +999,24 @@ impl WireTool {
         // The start's representation is the tail's own only while the tail starts at it; after a bend it is an
         // obstacle like any other (FT-706).
         let own = [start.rep().filter(|_| fixed.len() == 1), to.rep()];
+        // FT-1210 (ID-1395): an interruption point with the other end straight behind it is left the other way,
+        // through its own arrow, so the short run between them is straight and takes no loop round the point.
+        let from_dir = match ip_turned(cx, start, to.at()) {
+            Some(d) if fixed.len() == 1 => Some(d),
+            _ => from_dir,
+        };
+        let turned_end;
+        let to = match (ip_turned(cx, to, last), to) {
+            (Some(d), WireTarget::Cp { .. }) => {
+                let mut end = to.clone();
+                if let WireTarget::Cp { dir, .. } = &mut end {
+                    *dir = Some(d);
+                }
+                turned_end = end;
+                &turned_end
+            }
+            _ => to,
+        };
         let tail = self.tail(cx, (last, from_dir, arrive), own, to);
         let mut pts: Vec<(i64, i64)> = fixed[..fixed.len() - 1].to_vec();
         pts.extend(tail);
