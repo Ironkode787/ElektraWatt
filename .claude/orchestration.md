@@ -202,6 +202,10 @@ The main session orchestrates. It plans each cycle, briefs Claude subagents, int
         merges them (ID-1113, from cycle 46).
     - Subagent check results are claims until re-run.
     - Lanes keep their `target` for a fix round; the orchestrator deletes it when the part is accepted (2026-11-01).
+    - **A release branch** (owner, 2026-11-05, ID-1412). A release is cut from `release/<X.Y>`, branched at a
+      delivery. Its candidates are tagged there, and only fixes for what the release's checks find land there: a fix
+      lane bases on the release branch, and the orchestrator cherry-picks each fix onto the working branch too. Every
+      other lane goes on as before on the working branch, and `main` follows the working branch at deliveries.
 17. **Facts and the feasibility read before dispatch** (amended 2026-11-02; the facts, 2026-11-01, cycle-43 retro;
     fix rulings, cycle-45 retro).
     - **The facts, for every brief:** a `scout` (Haiku) gathers them at the lane's base hash with `git show` and
@@ -219,6 +223,19 @@ The main session orchestrates. It plans each cycle, briefs Claude subagents, int
     - **Rulings:** the orchestrator writes its rulings into the spec, and an Opus `low` read checks them.
     - **Fits:** a spec or brief that fixes a fit names the fixture data it was tried against, or leaves the number to
       the lane with a stop (cycle-41 retro).
+    - **FT batches finish what they take** (owner, 2026-11-05, ID-1413: "why do the FTs stop without completing all
+      fixes appointed to them?"). In cycle 52 about one row in seven came back open: a third not reached (the lane's
+      context ran out on 23 to 25 rows), a third stopped on a question the brief should have ruled, the rest flakes
+      that did not reproduce or a missing fixture or crate edge.
+      - A batch holds at most 12 rows, fewer when a row is large (a re-bless of Golden A, a new check, a sweep over
+        many sites).
+      - Every FT batch gets the feasibility read, whatever it touches. Per row it answers: the files and Golden A
+        pages the change reaches, the spec rule it follows, the fixture or crate edge it needs, and "ready" or "needs
+        ruling". No row goes out with an open question: the orchestrator rules it first, or holds the row back.
+      - A flake row goes out only with its reproduction; without one it goes to a diagnosis lane, never into a build
+        batch.
+      - A lane that still hits a stop parks that row, builds the rest and hands back. The orchestrator rules the stop
+        and resumes the same lane while its context is under 650k; only then a follow-up lane.
 18. **Upkeep** (re-bless, regeneration, seed corpus, count bumps) runs through `cargo xtask settle` at each merge
     point. Lanes run it in write mode as `lane-check`'s settle step (amended 2026-11-02, ID-1103). Tests never pin
     totals of growing sets (CONTRIBUTING.md).

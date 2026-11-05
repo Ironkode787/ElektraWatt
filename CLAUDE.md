@@ -14,6 +14,8 @@ source: GPL-3.0-or-later for the app, MIT OR Apache-2.0 for the format crates. T
 
 - **Branches.** Commit on the working branch. At a delivery, fast-forward `main` and push both; at a checkpoint, push
   the working branch only (owner's standing instruction, amended 2026-10-31).
+  - A release has its own branch, `release/<X.Y>`, cut at a delivery. Its candidates are tagged on it, and only fixes
+    for them land there, each also on the working branch (owner, 2026-11-05, ID-1412).
 - **Public repository.** Never commit any of these:
   - customer or end-user names, addresses, project or drawing numbers;
   - personal names or e-mail addresses;
