@@ -745,6 +745,27 @@ fn ft1448_the_address_profile_is_chosen_in_properties() {
         options.len() >= 2 && options.contains(&now),
         "{now} among {options:?}"
     );
+    // FT-1478: the chooser shows each profile's name, its reference as the secondary line, and commits the reference.
+    done(&mut s, "props.edit", json!({"row": "plc_config_project/profile"}));
+    let c = s.properties().choices().expect("the profiles").clone();
+    let shown: Vec<(&str, &str, &str)> = c
+        .items
+        .iter()
+        .zip(&c.details)
+        .map(|((name, value), r)| (name.as_str(), r.as_str(), value.as_str().unwrap_or("")))
+        .collect();
+    for builtin in [
+        ("IEC 61131-3", "iec-61131-3@2027.1", "iec-61131-3@2027.1"),
+        (
+            "Siemens TIA (international)",
+            "siemens-tia-intl@2027.1",
+            "siemens-tia-intl@2027.1",
+        ),
+    ] {
+        assert!(shown.contains(&builtin), "{builtin:?} among {shown:?}");
+    }
+    assert_eq!(c.details.len(), c.items.len());
+    done(&mut s, "props.cancel", json!({}));
     let other = options.iter().find(|o| **o != now).unwrap().clone();
     done(
         &mut s,

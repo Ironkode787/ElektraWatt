@@ -773,7 +773,22 @@ impl ShellModel {
         bump(&self.calls, |c| c.field_choices += 1);
         // WP-S4.02 part 4 (D12): a layout row lists the choices its sheet built (the device's parts, the turns, the
         // project's surfaces), each its own text.
+        let mut details = Vec::new();
         let items: Vec<(String, Value)> = match (&row.route, row.ty.inner()) {
+            // FT-1478: an address profile by its name, its reference as the secondary line; choosing one commits the
+            // reference.
+            (crate::properties::EditRoute::Command { command }, _) if command == "plc.set_profile" => {
+                let f = filter.to_lowercase();
+                let (items, refs): (Vec<_>, Vec<_>) = p
+                    .session
+                    .profile_choices()
+                    .into_iter()
+                    .filter(|(r, name)| name.to_lowercase().contains(&f) || r.to_lowercase().contains(&f))
+                    .map(|(r, name)| ((name, Value::String(r.clone())), r))
+                    .unzip();
+                details = refs;
+                items
+            }
             // The Surface row's choice is the surface, by its ID (C44-p2#4): two surfaces may read alike.
             (crate::properties::EditRoute::Command { .. }, _) if row.key == SURFACE_ROW => {
                 let f = filter.to_lowercase();
@@ -824,6 +839,7 @@ impl ShellModel {
         Some(Choices {
             row: key.to_owned(),
             items,
+            details,
             kind: ChoiceKind::Options,
             index: None,
         })
@@ -1030,6 +1046,7 @@ impl ShellModel {
                 self.props.choices = Some(Choices {
                     row: key.to_owned(),
                     items: choices,
+                    details: Vec::new(),
                     kind: ChoiceKind::Ambiguous,
                     index: None,
                 });
@@ -2208,6 +2225,7 @@ impl ShellModel {
                 self.props.choices = Some(Choices {
                     row: key,
                     items: choices,
+                    details: Vec::new(),
                     kind: ChoiceKind::MlTextSwitch,
                     index: None,
                 });

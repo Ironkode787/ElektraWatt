@@ -1308,6 +1308,17 @@ impl Session {
             .collect()
     }
 
+    /// The address profiles at hand as `(reference, name)` (FT-1478): the Address profile row's choices, each shown by
+    /// its name with its reference as the secondary line; choosing one commits its reference.
+    pub fn profile_choices(&self) -> Vec<(String, String)> {
+        let q = self.query();
+        let copies = q.plc_profiles();
+        ew_derive::profiles_at_hand(copies.iter().map(|(_, c)| &**c))
+            .iter()
+            .map(|p| (p.reference(), p.label.clone()))
+            .collect()
+    }
+
     /// The project's locations (the structure nodes of the location aspect) as `(node, +code path)`, by path.
     pub fn layout_locations(&self) -> Vec<(Uuid, String)> {
         let q = self.query();

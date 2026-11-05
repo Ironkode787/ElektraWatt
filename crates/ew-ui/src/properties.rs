@@ -1083,7 +1083,13 @@ impl PropertiesPane {
             .width()
             .clamp(t.size_chooser_min_width, t.size_chooser_max_width);
         let rows = c.items.len().min(t.size_chooser_rows as usize).max(1);
-        let content = t.size_row * rows as f32;
+        // FT-1478: an item with a secondary line (an address profile's reference under its name) is two lines tall.
+        let row_height = if c.details.is_empty() {
+            t.size_row
+        } else {
+            2.0 * t.space_1 + t.type_body.line + t.type_small.line
+        };
+        let content = row_height * rows as f32;
         let pad = t.space_2 + t.border_width;
         let (pos, max_height) = choices_placement(anchor, bound, width, content, pad, t.space_1);
         let list_id = ui.scope_id().with(("prop-choices", key));
@@ -1115,9 +1121,10 @@ impl PropertiesPane {
                                     for (i, (text, _)) in c.items.iter().enumerate() {
                                         let selected = c.index == Some(i);
                                         let (r, response) = ui.allocate_exact_size(
-                                            Vec2::new(ui.available_width(), t.size_row),
+                                            Vec2::new(ui.available_width(), row_height),
                                             Sense::click(),
                                         );
+                                        let detail = c.details.get(i);
                                         let name = text.clone();
                                         response.widget_info(|| {
                                             egui::WidgetInfo::selected(
@@ -1139,13 +1146,31 @@ impl PropertiesPane {
                                                 t.state_hover.color32(),
                                             );
                                         }
-                                        ui.painter().text(
-                                            egui::pos2(r.left() + t.space_2, r.center().y),
-                                            egui::Align2::LEFT_CENTER,
-                                            text,
-                                            crate::theme::font(&t.type_body),
-                                            t.text_primary.color32(),
-                                        );
+                                        if let Some(detail) = detail {
+                                            let top = r.top() + t.space_1;
+                                            ui.painter().text(
+                                                egui::pos2(r.left() + t.space_2, top),
+                                                egui::Align2::LEFT_TOP,
+                                                text,
+                                                crate::theme::font(&t.type_body),
+                                                t.text_primary.color32(),
+                                            );
+                                            ui.painter().text(
+                                                egui::pos2(r.left() + t.space_2, top + t.type_body.line),
+                                                egui::Align2::LEFT_TOP,
+                                                detail,
+                                                crate::theme::font(&t.type_small),
+                                                t.text_secondary.color32(),
+                                            );
+                                        } else {
+                                            ui.painter().text(
+                                                egui::pos2(r.left() + t.space_2, r.center().y),
+                                                egui::Align2::LEFT_CENTER,
+                                                text,
+                                                crate::theme::font(&t.type_body),
+                                                t.text_primary.color32(),
+                                            );
+                                        }
                                         if selected {
                                             response.scroll_to_me(None);
                                         }

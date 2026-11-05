@@ -99,6 +99,9 @@ pub struct Choices {
     pub row: String,
     /// The texts and values, in order.
     pub items: Vec<(String, Value)>,
+    /// Each item's secondary line, in the items' order (FT-1478: an address profile's reference under its name); empty
+    /// when the items have none.
+    pub details: Vec<String>,
     /// What they are for.
     pub kind: ChoiceKind,
     /// The highlighted item (Up, Down), if any.
