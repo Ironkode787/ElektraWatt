@@ -473,8 +473,9 @@ impl Registry {
                 // 0.3.0: the same slot on the lamp, position switch and 5/2 valve (FT-698);
                 // 0.4.0: the fluid power model (WP-S1.20): the port roles of the 5/2 valve and the cylinder, the 5/2
                 // valve's solenoid as the new `ew.fn.valve-solenoid`, the valve symbol's process-tag fallback, the module
-                // overview's tag above the valve glyphs.
-                version: "0.4.0".to_owned(),
+                // overview's tag above the valve glyphs;
+                // 0.4.1: the one-pole on/off switch in the manual-command category, class S (FT-1204, ID-1395).
+                version: "0.4.1".to_owned(),
                 licence: "CC-BY-SA-4.0".to_owned(),
                 writable: false,
                 path: None,

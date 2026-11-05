@@ -32,13 +32,14 @@ const VERSION: &str = "0.1.0";
 /// The library's version: 0.1.1 since FT-659 and FT-655 changed parts, 0.1.2 since FT-606 added the one-pole on/off
 /// switch EW-GEN-SW-1, 0.2.0 since WP-S1.21 D5 added the generic CPU EW-GEN-CPU-1, 0.2.1 since WP-S1.21 D17 gave
 /// it its DP port (a library refuses other content under a published version, doc 05 §13.1), 0.3.0 since WP-S4.02
-/// part 6 (D14) added the layout parts and the dimensions, 0.4.0 since WP-S1.20 D4 gave the valve its fluid section.
-const LIBRARY_VERSION: &str = "0.4.0";
+/// part 6 (D14) added the layout parts and the dimensions, 0.4.0 since WP-S1.20 D4 gave the valve its fluid section,
+/// 0.4.1 since FT-1204 (ID-1395) moved the on/off switch to the manual-command category, class S.
+const LIBRARY_VERSION: &str = "0.4.1";
 /// The parts whose content changed after 0.1.0, at their next patch version (FT-659: the selector switch on a
 /// manual-command FnDef, letter S; the valve's coil on a solenoid-actuator FnDef, letter M or Y. FT-655: the relay
 /// and the contactor template their contacts beside the coil. WP-S1.21 D17: the CPU's bus section, after 0.2.0.
 /// WP-S4.02 D14: the dimensions. WP-S1.20 D4: the valve's solenoid 14 leaves the pattern for its fluid section, a
-/// major change).
+/// major change. FT-1204: the on/off switch on the manual-command FnDef, letter S).
 const BUMPED: &[(&str, &str)] = &[
     ("EW-GEN-SEL-1", "0.1.1"),
     ("EW-GEN-VLV-1", "0.2.0"),
@@ -48,7 +49,7 @@ const BUMPED: &[(&str, &str)] = &[
     ("EW-GEN-MCB-1", "0.1.1"),
     ("EW-GEN-MCB-2", "0.1.1"),
     ("EW-GEN-FUS-1", "0.1.1"),
-    ("EW-GEN-SW-1", "0.1.1"),
+    ("EW-GEN-SW-1", "0.1.2"),
     ("EW-GEN-PSU-1", "0.1.1"),
     ("EW-GEN-DI-1", "0.1.1"),
     ("EW-GEN-DO-1", "0.1.1"),
@@ -1019,7 +1020,7 @@ fn the_dimensioned_parts_read_back_from_the_shipped_files() {
         ("EW-GEN-MCB-1", "0.1.1", 18000000, 85000000, 70000000),
         ("EW-GEN-MCB-2", "0.1.1", 36000000, 85000000, 70000000),
         ("EW-GEN-FUS-1", "0.1.1", 18000000, 85000000, 60000000),
-        ("EW-GEN-SW-1", "0.1.1", 18000000, 85000000, 70000000),
+        ("EW-GEN-SW-1", "0.1.2", 18000000, 85000000, 70000000),
         ("EW-GEN-RLY-1", "0.1.2", 27000000, 80000000, 70000000),
         ("EW-GEN-CON-1", "0.1.2", 45000000, 85000000, 80000000),
         ("EW-GEN-PSU-1", "0.1.1", 60000000, 90000000, 110000000),
@@ -1092,10 +1093,10 @@ fn the_compiled_in_registry_resolves_a_part_with_its_closure() {
 
 /// WP-S1.21 D5: the generic CPU is a station without I/O ranges on a black box with the supply CPs L+ and M, a new
 /// item at 0.1.0 in the library's minor version 0.2.0 (0.1.1 in 0.2.1 with its DP port, D17; 0.1.2 in 0.3.0 with its
-/// dimensions, D14; unchanged in 0.4.0); the cards are modules of 8 channels each.
+/// dimensions, D14; unchanged in 0.4.0 and 0.4.1); the cards are modules of 8 channels each.
 #[test]
 fn the_generic_cpu_is_a_station_without_io() {
-    assert_eq!(LIBRARY_VERSION, "0.4.0");
+    assert_eq!(LIBRARY_VERSION, "0.4.1");
     let part = |number: &str| {
         parts()
             .into_iter()

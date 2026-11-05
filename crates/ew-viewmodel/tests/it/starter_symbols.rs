@@ -354,8 +354,9 @@ fn every_starter_symbol_reaches_a_usable_device_from_the_picker() {
 }
 
 /// FT-659: the letter a new project (identifier set EN 81346-2:2009) gives each generic starter part placed from the
-/// picker without a letter of its own: the selector switch S (a manual command), the valve's coil M (a solenoid
-/// actuator), not the switching device's Q or the relay's K.
+/// picker without a letter of its own: the selector switch and the one-pole on/off switch S (a manual command, FT-1204
+/// by IEC 81346-2:2019, ID-1395), the valve's coil M (a solenoid actuator), not the switching device's Q or the
+/// relay's K.
 #[test]
 fn a_new_project_gives_each_starter_part_its_iec_81346_letter() {
     let tmp = Tmp::new("starter-letters");
@@ -365,6 +366,7 @@ fn a_new_project_gives_each_starter_part_its_iec_81346_letter() {
         ("EW-GEN-RLY-1", "K"),
         ("EW-GEN-PB-1", "S"),
         ("EW-GEN-SEL-1", "S"),
+        ("EW-GEN-SW-1", "S"),
         ("EW-GEN-POS-1", "B"),
         ("EW-GEN-LMP-1", "E"),
         ("EW-GEN-VLV-1", "M"),
