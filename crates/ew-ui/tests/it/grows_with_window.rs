@@ -446,3 +446,20 @@ fn the_strip_editor_shows_its_side_columns_at_1920() {
     assert!(side2.right() <= grid(&h).right(), "{side2:?} in {:?}", grid(&h));
     h.state_mut().shell_mut().shutdown();
 }
+
+/// C52-p4#5 (FT-1404, ID-1418): the strip editor's grid asks for a repaint only while what its columns lack changes: at
+/// the floor, where the left column does not grow, and at 1920 once it has grown, the window comes to rest after the
+/// first frames instead of repainting every frame.
+#[test]
+fn the_strip_editor_comes_to_rest() {
+    for size in [egui::Vec2::new(1280.0, 800.0), egui::Vec2::new(1920.0, 1080.0)] {
+        let tmp = Tmp::new();
+        let mut h = on_golden(&tmp, size);
+        dispatch(&mut h, "strip.edit", json!({"strip": "-X1031"}));
+        for _ in 0..4 {
+            h.run_ok();
+        }
+        assert!(h.run_ok().is_some(), "at {size:?} the window repaints every frame");
+        h.state_mut().shell_mut().shutdown();
+    }
+}

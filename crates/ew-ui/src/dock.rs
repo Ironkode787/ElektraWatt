@@ -52,8 +52,16 @@ fn left_lack_id() -> egui::Id {
 /// [`Dock::keep_left_wide`] lets a default share grow (two thirds of the dock), so that the side columns show without scrolling
 /// sideways in a wide window; without a report the column has its default width again.
 pub(crate) fn report_left_lack(ui: &Ui, lack: f32) {
-    ui.ctx().data_mut(|d| d.insert_temp(left_lack_id(), lack));
-    if lack > 0.5 {
+    // C52-p4#5: a lack the column cannot take (at the floor, or at two thirds) stays the same; only a change asks
+    // for the next frame.
+    let last = egui::Id::unique("ew-dock-left-lack-last");
+    let changed = ui.ctx().data_mut(|d| {
+        d.insert_temp(left_lack_id(), lack);
+        let before = d.get_temp::<f32>(last);
+        d.insert_temp(last, lack);
+        before.is_none_or(|b| (b - lack).abs() > 0.5)
+    });
+    if lack > 0.5 && changed {
         ui.ctx().request_repaint();
     }
 }
