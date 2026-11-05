@@ -27,7 +27,7 @@ WP-S6.08 §5; each blocks what its last column says until it is on file here.
 |---|---|---|---|
 | G1 | The repository's settings of [the release procedure](../../README.md#2-before-the-first-candidate-the-repositorys-settings) §2: the environment `release`, the tag ruleset (it forbids updating and deleting `v*` tags and leaves their creation open, decision log ID-1366), immutable releases, the read-only workflow token, the required checks `c-only` and `api-guard` | On file | Set by the owner and read back through the API on 2026-11-04 (decision log ID-1368) |
 | G2 | Whether the AI-performed audits and recorded exemptions of ID-723 cover 0.1.0 | On file | The owner's decision: they cover 0.1.0 as they cover the 0.0.x builds (decision log ID-1331 (2)) |
-| G3 | LG-1: the employer copyright statement, or the statement that no employer's staff contributed (RC-10) | **Open** | The owner's statement, to be filed here before the go |
+| G3 | LG-1: the employer copyright statement, or the statement that no employer's staff contributed (RC-10) | **On file** | The owner (2026-11-05, decision log ID-1401): no employer is involved, so no employer's staff contributed |
 | G4 | Who cuts the candidates, signs the checklist as release manager and dispatches the promote | **On file** | The owner (2026-11-05, decision log ID-1400): the orchestrator, or an agent it dispatches; the gate review and the go stay the owner's |
 | G5 | Private vulnerability reporting switched on, so that `SECURITY.md`'s channel works | On file | Switched on by the owner and read back on 2026-11-04 (decision log ID-1368) |
 
