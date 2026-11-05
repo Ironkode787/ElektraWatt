@@ -66,7 +66,7 @@ page "101" "Power Supply 1 - Main Current" reps 17 connections 21 junctions 2
   wire "S51:1" -> "-101F1:1" route provisional bends 1 at 54.152 43.714 mm
   wire "S51:3" -> "-101F1:N#1" route provisional bends 1 at 59.371 44.040 mm
   wire "S56:14" -> "E56:X1" route provisional bends 0
-  wire "T55:3" -> "E55:N" route provisional bends 0 at 210.725 106.832 mm
+  wire "T55:3" -> "E55:N" route provisional bends 0 at 210.725 111.725 mm
   wire junction 1 -> "E55:L" route provisional bends 1 at 210.725 71.767 mm
   wire junction 1 -> "E56:X2" route provisional bends 1 at 242.039 91.990 mm
   wire junction 2 -> "S56:13" route provisional bends 1

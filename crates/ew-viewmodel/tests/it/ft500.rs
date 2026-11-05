@@ -53,12 +53,29 @@ fn samples(pts: &[(i64, i64)]) -> Vec<(i64, i64)> {
     out
 }
 
-/// The first sample of `own`'s route that no other wire passes within the reach of, and that no link is under.
+/// Whether `p` lies on a symbol's body, the middle half of a representation's rectangle each way, where a press picks
+/// the symbol before a wire (FT-1438).
+fn on_body(s: &ShellModel, p: (i64, i64)) -> bool {
+    let page = s.canvas().unwrap().page();
+    page.entities.iter().any(|(e, rect)| {
+        let (a, b) = (rect.min(), rect.max());
+        let (qx, qy) = ((b.x.0 - a.x.0) / 4, (b.y.0 - a.y.0) / 4);
+        ew_viewmodel::tools::entity_kind(&page.tables, *e) == Some(ew_viewmodel::tools::EntityKind::Rep)
+            && p.0 > a.x.0 + qx
+            && p.0 < b.x.0 - qx
+            && p.1 > a.y.0 + qy
+            && p.1 < b.y.0 - qy
+    })
+}
+
+/// The first sample of `own`'s route that no other wire passes within the reach of, that no link is under and that no
+/// symbol's body covers (FT-1438).
 fn own_point(s: &ShellModel, own: EntityRef, all: &[(EntityRef, Vec<(i64, i64)>)]) -> Option<(i64, i64)> {
     let r = reach(s);
     let line = &all.iter().find(|(e, _)| *e == own)?.1;
     samples(line).into_iter().find(|p| {
-        s.canvas().unwrap().link_at(*p).is_none()
+        !on_body(s, *p)
+            && s.canvas().unwrap().link_at(*p).is_none()
             && all
                 .iter()
                 .all(|(e, pts)| *e == own || pts.windows(2).all(|w| segment_dist2(*p, w[0], w[1]) > r * r))
@@ -252,5 +269,36 @@ fn a_wire_through_a_symbol_is_clicked_and_the_symbol_still_drags_from_there() {
         .unwrap()
         .pos;
     assert_eq!(moved, (snap.page_of_index(i + 1), heater.pos.1));
+    s.shutdown();
+}
+
+/// FT-1438 (ID-1397; R0-F10): a click at the lamp E56's centre picks the lamp, never a wire through it; E56 selected by
+/// its tag is moved by Move as its symbol on the page shown, which the selection becomes.
+#[test]
+fn ft1438_a_symbol_s_body_wins_and_a_device_by_its_tag_moves() {
+    let tmp = Tmp::new("ft1438");
+    let mut s = tmp.shell_in(Mode::Headless, true, "101");
+    let (lamp, centre) = {
+        let page = s.canvas().unwrap().page();
+        let rep = page
+            .tables
+            .cps
+            .iter()
+            .find(|c| c.label == "E56:X1")
+            .expect("E56 on 101")
+            .rep;
+        let rect = page
+            .entities
+            .iter()
+            .find(|(e, _)| e.0 == rep)
+            .expect("its rectangle")
+            .1;
+        (EntityRef(rep), ew_viewmodel::canvas::rect_centre(rect))
+    };
+    assert_eq!(fresh_click(&mut s, centre), vec![lamp]);
+    done(&mut s, "select.set", json!({"refs": ["tag:E56"]}));
+    assert_ne!(s.selection().items, vec![lamp], "the device itself");
+    done(&mut s, "tool.move", json!({}));
+    assert_eq!(s.selection().items, vec![lamp], "Move takes its symbol");
     s.shutdown();
 }

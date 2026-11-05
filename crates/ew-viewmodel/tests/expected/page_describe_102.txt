@@ -49,9 +49,9 @@ page "102" "Power Supply 2 - Control Current" reps 12 connections 19 junctions 4
   wire "-102G1:PE" -> "PE-1.2" route provisional bends 1 at 193.763 22.838 mm
   wire "-102G1:−#1" -> junction 2 route provisional bends 1 at 129.829 71.114 mm
   wire "-102G1:−#2" -> junction 3 route provisional bends 1 at 135.048 71.114 mm
-  wire "L-1" -> "-102G1:L" route provisional bends 1 at 38.495 24.306 mm
+  wire "L-1" -> "-102G1:L" route provisional bends 1 at 38.495 23.327 mm
   wire "N-1" -> "-102G1:N" route provisional bends 1 at 121.919 38.495 mm
-  wire junction 1 -> "-102F1:1" route provisional bends 1 at 126.567 67.200 mm
+  wire junction 1 -> "-102F1:1" route provisional bends 1 at 127.545 67.200 mm
   wire junction 2 -> "-102F2:GND#1" route provisional bends 1 at 145.486 94.600 mm
   wire junction 2 -> "PE-0VDC" route provisional bends 1
   wire junction 3 -> "-102F2:GND#2" route provisional bends 1 at 150.705 94.600 mm

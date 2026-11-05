@@ -686,7 +686,9 @@ impl ToolCx<'_> {
 /// passes within `reach` of `at` by exact integer distance (the nearer first, then by ID); **B**, the structure boxes
 /// whose closed outline passes within `reach` (the nearer first, then by ID). The stack is `C, R, B` when R is empty,
 /// or when R's first is a representation and the nearest connection's line is strictly nearer to `at` than the
-/// nearest centre of that representation's rectangles that contain `at`; else `R, C, B`. A representation's rectangle
+/// nearest centre of that representation's rectangles that contain `at`, unless `at` lies on the representation's body
+/// (the middle half of one of its rectangles each way, FT-1438: a lamp's centre picks the lamp, and a repeated click
+/// the wire through it); else `R, C, B`. A representation's rectangle
 /// is the bounding box of its drawing, so a press on a wire's drawn line inside it picks the wire, while a press at
 /// the representation's centre still picks the representation (FT-500: a provisional route that runs through a
 /// symbol's body, or along a symbol's edge, could not be picked at all); a junction, a page item or another rectangle
@@ -750,9 +752,21 @@ pub fn pick_stack(page: &CanvasPage, snapper: &Snapper, at: (i64, i64), reach: f
             .min()
             .unwrap_or(i128::MAX)
     };
+    // FT-1438 (ID-1397): a press on a symbol's body, the middle half of one of its rectangles each way, picks the
+    // symbol before a wire under it (a lamp's centre); nearer its outline, where the wires meet its pins, the nearer
+    // of the wire and the rectangle's centre goes first, as before.
+    let on_body = |e: EntityRef| -> bool {
+        others.iter().any(|(x, rect)| {
+            let (a, b) = (rect.min(), rect.max());
+            let (qx, qy) = ((b.x.0 - a.x.0) / 4, (b.y.0 - a.y.0) / 4);
+            *x == e && at.0 > a.x.0 + qx && at.0 < b.x.0 - qx && at.1 > a.y.0 + qy && at.1 < b.y.0 - qy
+        })
+    };
     let wires_first = match (rects.first(), conns.first()) {
         (None, _) => true,
-        (Some(&e), Some(&(d, _))) => entity_kind(tables, e) == Some(EntityKind::Rep) && d < centre(e),
+        (Some(&e), Some(&(d, _))) => {
+            entity_kind(tables, e) == Some(EntityKind::Rep) && d < centre(e) && !on_body(e)
+        }
         (Some(_), None) => false,
     };
     let conns = conns.into_iter().map(|(_, e)| e);

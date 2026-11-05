@@ -1169,7 +1169,27 @@ impl ShellModel {
             };
         };
         let tables = Arc::clone(&c.page().tables);
-        let movable = transform::selected_movable(&self.tools.selection, c.page());
+        let mut movable = transform::selected_movable(&self.tools.selection, c.page());
+        // FT-1438 (ID-1397): a device or a function selected by reference (`select.set` with its tag) is moved as the
+        // representations the page shown draws of it, as R and X take it: the selection becomes those symbols.
+        if movable.is_empty() {
+            let drawn = self.drawn_reps_of_selection();
+            if !drawn.is_empty() {
+                if self
+                    .tools
+                    .selection
+                    .apply(&crate::tools::SelectionChange::Replace(drawn.clone()))
+                {
+                    self.announce_selection();
+                }
+                movable = drawn;
+            }
+        }
+        let Some(c) = self.canvas() else {
+            return Outcome::Refused {
+                reason_key: key!("reason-no-page"),
+            };
+        };
         if movable.is_empty() {
             return Outcome::Refused {
                 reason_key: key!("reason-nothing-to-move"),

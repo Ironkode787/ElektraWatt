@@ -117,7 +117,7 @@ page "103" "Power Supply 3 - Control Current Distribution" reps 23 connections 2
     cp "PE-1.4" at 122.000 148.096 mm wires 1 potential "PE"
   rep ip "PE-1.2" direction target continues "102-A15" cell "103-G6" symbol "ew.gen.ip@qet10" variant "A" at 116.781 155.924 mm
     cp "PE-1.2" at 116.781 153.315 mm wires 1 potential "PE"
-  wire "-X1031:1/b" -> "24VDC-AIR1" route provisional bends 1 at 72.419 28.383 mm
+  wire "-X1031:1/b" -> "24VDC-AIR1" route provisional bends 1 at 72.419 31.319 mm
   wire "-X1031:11/b" -> "0VDC-AIR1" route provisional bends 1 at 212.029 22.838 mm
   wire "-X1031:12/b" -> "0VDC-AIR2" route provisional bends 1 at 213.334 43.714 mm
   wire "-X1031:13/b" -> "0VDC-AIR3" route provisional bends 1 at 214.639 48.933 mm
