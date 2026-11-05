@@ -1482,7 +1482,13 @@ fn route_in_cells(q: &Q, c: Id<Connection>, built: &mut [Built]) {
             .page
             .and_then(|page| q.get::<ew_derive::CellOf>((page, *point)).as_ref().clone());
         *text = cell.map_or_else(
-            || format!("{}, {}", super::fields::nm_text(point.x.0), super::fields::nm_text(point.y.0)),
+            || {
+                format!(
+                    "{}, {}",
+                    super::fields::nm_text(point.x.0),
+                    super::fields::nm_text(point.y.0)
+                )
+            },
             |cell| cell.to_string(),
         );
     }

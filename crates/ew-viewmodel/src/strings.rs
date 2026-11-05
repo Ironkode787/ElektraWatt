@@ -377,6 +377,12 @@ pub fn languages() -> Vec<(&'static str, &'static str)> {
     out
 }
 
+/// The decimal number `number` (`268.4`, written with a point) with the UI language's decimal separator (ID-1389, W51
+/// finding L: `268,4` in Dutch).
+pub fn decimal(number: &str) -> String {
+    number.replace('.', text(key!("number-decimal-point")))
+}
+
 /// The language of the check rules' messages for the UI language now (D10): `nl-NL` for Dutch, else `en-GB`
 /// (`ew-checks` falls back to en-GB per message).
 pub fn rule_language() -> &'static str {

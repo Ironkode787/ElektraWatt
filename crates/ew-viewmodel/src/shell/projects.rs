@@ -510,7 +510,12 @@ impl ShellModel {
                 &strings::format_count(crate::count_key!("import-card-infos"), infos),
             ],
         );
-        let pages = session.page_labels();
+        // ID-1389 (W51 finding B): each listed page in words ("Page 1"), never its bare folio.
+        let pages = session
+            .page_labels()
+            .iter()
+            .map(|folio| strings::format(key!("import-card-page"), &[folio]))
+            .collect();
         let card = Dialog::ImportQet {
             file: name.clone(),
             folder: dir_name(&dir),

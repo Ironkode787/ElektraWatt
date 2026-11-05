@@ -193,7 +193,7 @@ fn dk10_messages_rows_badges_and_header() {
     assert!(counts.errors > 0 && counts.infos > 0, "{counts:?}");
     assert!(counts.pending > 0, "{counts:?}");
     let header = format!(
-        "drafting · E {} · W {} · I {} · waived {} · pending {}",
+        "Drafting · E {} · W {} · I {} · waived {} · pending {}",
         counts.errors, counts.warnings, counts.infos, counts.waived, counts.pending
     );
     let node = h.get_by_label(&header);

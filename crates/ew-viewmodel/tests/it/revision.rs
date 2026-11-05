@@ -879,7 +879,10 @@ fn the_revision_dialogs_list_the_findings_in_dutch() {
         "101.8: PE-draad 101.8 heeft 1.5 mm², minder dan de 2.5 mm² die nodig is voor de lijngeleiders van 2.5 mm² bij \
          1X1 (de dimensioneringstabel is niet getoetst aan de norm)",
     ];
-    assert_eq!((&approve[..2], &release[..2]), (&first.map(String::from)[..], &first.map(String::from)[..]));
+    assert_eq!(
+        (&approve[..2], &release[..2]),
+        (&first.map(String::from)[..], &first.map(String::from)[..])
+    );
     s.shutdown();
 }
 

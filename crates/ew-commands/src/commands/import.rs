@@ -151,15 +151,12 @@ pub fn lineage_keys(
     Ok(keys)
 }
 
-/// Names the added and changed records of `rows` as `model` holds them: the re-import's candidate after the
-/// normalisers, which number an added terminal (`-X1:3`).
+/// Names the added records of `rows` as `model` holds them: the re-import's candidate after the normalisers, which
+/// number an added terminal (`-X1:3`). A changed record keeps the name this project gives it (ID-1389).
 pub fn name_rows(model: &ew_model::Model, rows: &mut [ReimportRow]) {
     let mut ids = ew_ids::SystemSource;
     let tx = TxBuilder::new(model, &mut ids);
-    for row in rows
-        .iter_mut()
-        .filter(|r| matches!(r.class, ReimportClass::Added | ReimportClass::SourceChanged))
-    {
+    for row in rows.iter_mut().filter(|r| r.class == ReimportClass::Added) {
         row.record = crate::words::record(&tx, row.key);
     }
 }
@@ -319,13 +316,17 @@ pub fn plan_reimport(
             members,
         });
     }
-    // The records applied are named with them pending; [`name_rows`] names them as committed.
+    // ID-1389 (W51 finding C): a record this project holds is named as it is here (a device by its tag, not the
+    // source's new label); an added record with the records applied pending, and [`name_rows`] names it as committed.
+    for row in rows.iter_mut().filter(|r| r.class != ReimportClass::Added) {
+        row.record = crate::words::record(&tx, row.key);
+    }
     for record in &plan.apply {
         if let Ok(row) = AnyRow::from_record(record.clone()) {
             tx.put_row(row);
         }
     }
-    for row in &mut rows {
+    for row in rows.iter_mut().filter(|r| r.class == ReimportClass::Added) {
         row.record = crate::words::record(&tx, row.key);
     }
     if let Some(base) = base {

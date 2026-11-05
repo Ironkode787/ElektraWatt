@@ -358,6 +358,7 @@ impl ShellModel {
         crate::properties::grid_in_words(&mut sheet);
         crate::properties::ends_in_words(&mut sheet, |id| p.session.selection_words(id));
         crate::properties::enums_in_words(&mut sheet);
+        crate::properties::command_choices_in_words(&mut sheet);
         crate::properties::report_source_in_words(&mut sheet);
         crate::properties::values_in_words(&mut sheet);
         crate::properties::header_in_words(&mut sheet);
@@ -755,8 +756,13 @@ impl ShellModel {
                 let f = filter.to_lowercase();
                 options
                     .iter()
-                    .filter(|o| o.to_lowercase().contains(&f))
-                    .map(|o| (o.clone(), Value::String(o.clone())))
+                    .map(|o| {
+                        (
+                            crate::properties::command_choice_text(&row.path, o),
+                            Value::String(o.clone()),
+                        )
+                    })
+                    .filter(|(text, _)| text.to_lowercase().contains(&f))
                     .collect()
             }
             // FT-1258: an enumerated row's choices are its words in the UI language, filtered by those words.

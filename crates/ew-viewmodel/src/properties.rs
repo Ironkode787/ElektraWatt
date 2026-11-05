@@ -1066,6 +1066,27 @@ pub fn grid_in_words(sheet: &mut PropertySheet) {
             *text = crate::status::grid_words(num, den);
         }
     }
+    // ID-1389 (W51 finding I): the grid factor (`num`, nanometres) as a length in millimetres, never the count.
+    for row in sheet
+        .sections
+        .iter_mut()
+        .filter(|s| s.kind == "page")
+        .flat_map(|s| s.rows.iter_mut())
+        .filter(|r| r.path == "grid.num")
+    {
+        if let RowValue::One { json, text } = &mut row.value
+            && let Some(nm) = json.as_i64()
+        {
+            let (whole, part) = (nm / 1_000_000, (nm % 1_000_000).abs());
+            let mm = if part == 0 {
+                whole.to_string()
+            } else {
+                let sign = if nm < 0 && whole == 0 { "-" } else { "" };
+                format!("{sign}{whole}.{}", format!("{part:06}").trim_end_matches('0'))
+            };
+            *text = strings::format(key!("status-grid-mm"), &[&strings::decimal(&mm)]);
+        }
+    }
 }
 
 /// Writes a connection's ends A and B in words (ID-1389, W51 finding G): each end as the live description says it
@@ -1091,6 +1112,55 @@ pub fn ends_in_words(
             if let RowValue::One { text, .. } = &mut row.value {
                 *text = crate::status::end_words(end);
             }
+        }
+    }
+}
+
+/// A choice of a row its own command commits in the UI language's words (ID-1389, W51 finding J): a panel page's Label
+/// mode as its `choice-label_mode-<mode>` text, a Surface as its enclosure's tag and the keyed word for the plate
+/// ("-UC1 montageplaat", with its ordinal " (2)" kept); any other choice as it is. The option itself is what the
+/// command reads.
+pub fn command_choice_text(path: &str, option: &str) -> String {
+    match path.rsplit('.').next().unwrap_or(path) {
+        "label_mode" => strings::lookup(&format!("choice-label_mode-{}", option.to_lowercase()))
+            .map_or_else(|| option.to_owned(), str::to_owned),
+        "surface" => {
+            let (words, ordinal) = match option.rsplit_once(" (") {
+                Some((w, n)) if n.ends_with(')') && n[..n.len() - 1].bytes().all(|b| b.is_ascii_digit()) => {
+                    (w, &option[w.len()..])
+                }
+                _ => (option, ""),
+            };
+            let plate = if words == "plate" {
+                strings::text(key!("surface-plate")).to_owned()
+            } else if let Some(tag) = words.strip_suffix(" plate") {
+                strings::format(key!("surface-plate-of"), &[tag])
+            } else {
+                return option.to_owned();
+            };
+            format!("{plate}{ordinal}")
+        }
+        _ => option.to_owned(),
+    }
+}
+
+/// Writes the choices of the rows their own command commits in the UI language's words ([`command_choice_text`]).
+/// The JSON values are unchanged.
+pub fn command_choices_in_words(sheet: &mut PropertySheet) {
+    for row in sheet.sections.iter_mut().flat_map(|s| s.rows.iter_mut()) {
+        if !matches!(row.route, EditRoute::Command { .. })
+            || !matches!(row.ty.inner(), FieldType::Enum { .. })
+        {
+            continue;
+        }
+        match &mut row.value {
+            RowValue::One { text, .. } => *text = command_choice_text(&row.path, text),
+            RowValue::Varies { texts, .. } => {
+                for text in texts {
+                    *text = command_choice_text(&row.path, text);
+                }
+            }
+            RowValue::Absent => {}
         }
     }
 }
@@ -1128,7 +1198,14 @@ pub fn enums_in_words(sheet: &mut PropertySheet) {
 /// the parser reads the stored words.
 pub fn enum_value_of<'t>(kind: &str, row: &PropRow, text: &'t str) -> std::borrow::Cow<'t, str> {
     if matches!(row.route, EditRoute::Command { .. }) {
-        return text.into();
+        // ID-1389: a Surface view choice typed in the UI language's words is its option.
+        let FieldType::Enum { options } = row.ty.inner() else {
+            return text.into();
+        };
+        return options
+            .iter()
+            .find(|o| command_choice_text(&row.path, o).eq_ignore_ascii_case(text.trim()))
+            .map_or(text.into(), |o| o.clone().into());
     }
     enum_word_of(kind, &row.path, &row.ty, text)
 }

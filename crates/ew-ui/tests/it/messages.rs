@@ -137,7 +137,7 @@ fn ms5_the_pane_in_the_window_named_rows_keyboard_detail_and_pending() {
     );
     let counts = shell.messages_counts().unwrap();
     let header = format!(
-        "drafting · E {} · W {} · I {} · waived {} · pending {}",
+        "Drafting · E {} · W {} · I {} · waived {} · pending {}",
         counts.errors, counts.warnings, counts.infos, counts.waived, counts.pending
     );
     assert!(h.query_by_label(&header).is_some(), "the header line {header}");

@@ -166,7 +166,7 @@ fn ms1_the_pane_lists_the_findings_and_enter_opens_ef08() {
     assert_eq!(
         line(&shell, "  messages scheme "),
         format!(
-            "  messages scheme \"drafting\" errors {} warnings {} infos {} waived {} pending 0",
+            "  messages scheme \"Drafting\" errors {} warnings {} infos {} waived {} pending 0",
             counts.errors, counts.warnings, counts.infos, counts.waived
         )
     );

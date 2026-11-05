@@ -283,6 +283,26 @@ fn a_qelectrotech_project_is_imported_into_a_new_directory() {
         ["1 page, 0 devices, 0 connections; 0 errors, 0 warnings and 0 infos in the migration report"]
     );
     assert!(!dir.exists(), "the card writes nothing");
+    // ID-1389 (W51 findings A and B): the listed page in words; the confirmation's counts with their plurals.
+    let Some(ew_viewmodel::shell::Dialog::ImportQet { pages, .. }) = shell.dialog() else {
+        panic!("the import card");
+    };
+    assert_eq!(pages, &["Page 1".to_owned()]);
+    let confirm = ew_viewmodel::shell::Dialog::ImportQet {
+        file: "example.qet".into(),
+        folder: "imported.ew".into(),
+        summary: String::new(),
+        pages: pages.clone(),
+        devices: 1,
+        confirm: true,
+    };
+    assert_eq!(
+        ew_viewmodel::dialogs::spec(&confirm, &shell).body,
+        [
+            "The import creates a new project in imported.ew with 1 page and 1 device. It cannot be undone: delete the \
+             folder to discard it."
+        ]
+    );
     match run(&mut shell, "file.import_qet_apply", json!({})) {
         Outcome::Failed { message } => assert_eq!(
             message,
@@ -2403,7 +2423,7 @@ fn describe_lists_the_start_page_the_wizard_and_the_project_view() {
         "{review}"
     );
     assert!(
-        review.contains("review \"Check scheme\": \"pre-delivery\" kept"),
+        review.contains("review \"Check scheme\": \"Pre-delivery\" kept"),
         "{review}"
     );
     assert!(

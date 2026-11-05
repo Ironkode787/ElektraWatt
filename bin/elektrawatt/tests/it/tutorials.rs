@@ -397,7 +397,7 @@ fn tutorial_1_a_first_schematic_page_runs_as_its_page_says() {
     // Step 8: "no error and five warnings, still pending while you draw" (ID-1376).
     assert_eq!(
         lines_of(&describe, &["messages scheme"]),
-        ["messages scheme \"drafting\" errors 0 warnings 0 infos 0 waived 0 pending 5"]
+        ["messages scheme \"Drafting\" errors 0 warnings 0 infos 0 waived 0 pending 5"]
     );
     assert!(
         describe.contains("title: first-page.ew - ElektraWatt"),
@@ -591,7 +591,7 @@ fn tutorial_6_importing_a_qelectrotech_project_runs_as_its_page_says() {
     // Step 4: the return wire drawn, the Messages pane on the project's own scheme, and EW-POT-009 gone (ID-1376).
     assert_eq!(
         lines_of(&wired, &["messages scheme", "row level 2 rule \"EW-POT-009"]),
-        ["messages scheme \"drafting\" errors 0 warnings 2 infos 5 waived 0 pending 4"]
+        ["messages scheme \"Drafting\" errors 0 warnings 2 infos 5 waived 0 pending 4"]
     );
     assert_eq!(
         lines_of(&end, &report),

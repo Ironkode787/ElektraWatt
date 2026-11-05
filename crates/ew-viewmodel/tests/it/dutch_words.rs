@@ -661,8 +661,18 @@ fn a_fluid_line_sheet_shows_its_ends_in_words_and_its_route_under_advanced() {
             })
             .collect()
     };
-    let en = vec!["Line kind: Working", "Page: 203 Valve Manifold 1", "A: -201U3-Q3:4", "B: -203Q3:B"];
-    let nl = vec!["Leidingsoort: Werkleiding", "Pagina: 203 Valve Manifold 1", "A: -201U3-Q3:4", "B: -203Q3:B"];
+    let en = vec![
+        "Line kind: Working",
+        "Page: 203 Valve Manifold 1",
+        "A: -201U3-Q3:4",
+        "B: -203Q3:B",
+    ];
+    let nl = vec![
+        "Leidingsoort: Werkleiding",
+        "Pagina: 203 Valve Manifold 1",
+        "A: -201U3-Q3:4",
+        "B: -203Q3:B",
+    ];
     let en_advanced = vec![
         "$v: ",
         "ID: Working line",
@@ -702,6 +712,128 @@ fn a_fluid_line_sheet_shows_its_ends_in_words_and_its_route_under_advanced() {
         assert_eq!(rows(&shell, false), main, "{language}");
         assert_eq!(rows(&shell, true), advanced, "{language}");
     }
+    shell.shutdown();
+}
+
+/// ID-1389 (W51 findings D, I, J, L) in both languages: the check-scheme question names the scheme's word; a page's
+/// grid factor is a length, never a nanometre count; a panel page's Label mode and Surface read in words; a size takes
+/// the language's decimal separator.
+#[test]
+fn the_scheme_grid_factor_surface_view_and_sizes_read_in_words() {
+    let tmp = Tmp::new("w51-minor");
+    let mut shell = tmp.shell_in(Mode::Headless, true, "902");
+    let rows = |s: &ShellModel| -> Vec<String> {
+        let sheet = s.properties().sheet().expect("a sheet");
+        ew_viewmodel::properties::visible_rows(sheet, &BTreeSet::new(), true, "")
+            .iter()
+            .filter(|v| ["grid.num", "derived.label_mode", "derived.surface"].contains(&v.row.path.as_str()))
+            .map(|v| {
+                format!(
+                    "{}: {}",
+                    ew_viewmodel::properties::row_label(v.section, v.row),
+                    ew_viewmodel::properties::value_text(v.row)
+                )
+            })
+            .collect()
+    };
+    let mut got = Vec::new();
+    for language in ["en", "nl"] {
+        done(&mut shell, "view.language", json!({ "value": language }));
+        done(&mut shell, "select.set", json!({"ids": []}));
+        let question = ew_viewmodel::dialogs::spec(
+            &ew_viewmodel::shell::Dialog::ConfirmCheckScheme {
+                scheme: "pre-delivery".into(),
+            },
+            &shell,
+        )
+        .body;
+        got.push((rows(&shell), question, strings::decimal("268.4")));
+    }
+    let words = |v: &[&str]| v.iter().map(|s| (*s).to_owned()).collect::<Vec<String>>();
+    assert_eq!(
+        got,
+        [
+            (
+                words(&[
+                    "Grid step multiplier: 7.9375 mm",
+                    "Surface: -UC1 plate",
+                    "Label mode: Abbreviated"
+                ]),
+                words(&[
+                    "Apply the check scheme \"Pre-delivery\" to the basic project? The check scheme decides which rules \
+                     the release gate runs and what the checks report."
+                ]),
+                "268.4".to_owned()
+            ),
+            (
+                words(&[
+                    "Rasterfactor: 7,9375 mm",
+                    "Vlak: -UC1 montageplaat",
+                    "Labelmodus: Afgekort"
+                ]),
+                words(&[
+                    "Het controleschema \"Vóór oplevering\" op het basisproject toepassen? Het controleschema bepaalt \
+                     welke regels de vrijgavepoort uitvoert en wat de controles melden."
+                ]),
+                "268,4".to_owned()
+            )
+        ]
+    );
+    // A label mode typed in Dutch is the mode it names.
+    done(
+        &mut shell,
+        "props.set",
+        json!({"row": "page/derived.label_mode", "value": "Volledig"}),
+    );
+    assert_eq!(rows(&shell)[2], "Labelmodus: Volledig");
+    shell.shutdown();
+}
+
+/// ID-1389 (ID-1320, W51 finding C): the orchestrator's Dutch word for word, and a re-import's member row quoting its
+/// values in both languages.
+#[test]
+fn the_w51_dutch_texts_read_word_for_word() {
+    let tmp = Tmp::new("w51-dutch");
+    let mut shell = tmp.shell_in(Mode::Headless, true, "101");
+    let member = || {
+        strings::format(
+            key!("reimport-row-member"),
+            &["Title", "Bench", "lamp-circuit.qet", "Lamp and switch"],
+        )
+    };
+    assert_eq!(
+        member(),
+        "Title: here \"Bench\", in lamp-circuit.qet \"Lamp and switch\""
+    );
+    done(&mut shell, "view.language", json!({"value": "nl"}));
+    let cores = |n: usize| {
+        strings::format(
+            key!("toast-cable-new"),
+            &["-1W1", &strings::format_count(count_key!("toast-cable-new-cores"), n)],
+        )
+    };
+    assert_eq!(
+        [
+            member(),
+            strings::format(key!("error-first-folio"), &["9x"]),
+            cores(5),
+            cores(1),
+            strings::text(key!("choice-push")).to_owned(),
+            strings::format(key!("refusal-structure-code-used"), &["K1"]),
+            strings::format(key!("reimport-card-summary"), &["a.qet", "0", "1", "0", "0", "0", "0"]),
+        ],
+        [
+            "Title: hier \"Bench\", in lamp-circuit.qet \"Lamp and switch\"",
+            "Het eerste folio moet een nummer zijn; \"9x\" is dat niet.",
+            "Kabel -1W1 gemaakt met 5 aders",
+            "Kabel -1W1 gemaakt met 1 ader",
+            "Duwen",
+            "een knooppunt op hetzelfde niveau met code \"K1\" bestaat al in dit aspect; kies een andere code",
+            "Herimport van a.qet: 0 toegevoegd, 1 gewijzigd in de bron, 0 behouden met uw wijzigingen, 0 aan beide \
+             kanten gewijzigd en behouden, 0 verwijderd in de bron en behouden, 0 ongewijzigd.",
+        ]
+    );
+    done(&mut shell, "view.language", json!({"value": "en"}));
     shell.shutdown();
 }
 
@@ -752,7 +884,7 @@ fn the_messages_scheme_reads_in_dutch() {
     let tmp = Tmp::new("scheme-nl");
     let mut shell = tmp.shell_in(Mode::Headless, true, "102");
     done(&mut shell, "messages.show", json!({"on": true}));
-    assert_eq!(shell.messages_scheme(), Some("drafting"));
+    assert_eq!(shell.messages_scheme(), Some("Drafting"));
     done(&mut shell, "view.language", json!({"value": "nl"}));
     assert_eq!(
         (shell.messages_scheme(), shell.messages_project_scheme()),

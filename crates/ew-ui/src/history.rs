@@ -175,7 +175,7 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             // FT-986: "1 step" for one.
             small(ui, history.header().unwrap_or_default());
             // FT-518: the oldest step kept and the memory the steps hold against the bound.
-            let mb = |b: usize| format!("{:.1}", b as f64 / 1_000_000.0);
+            let mb = |b: usize| strings::decimal(&format!("{:.1}", b as f64 / 1_000_000.0));
             let oldest = view.rows.first().map_or(1, |r| r.index + 1);
             small(
                 ui,

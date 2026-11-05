@@ -296,6 +296,31 @@ fn a_change_on_both_sides_and_a_removal_are_kept_and_listed() {
     );
 }
 
+/// ID-1389 (W51 finding C): a device the source renames is listed by the tag it has here, not by the source's new
+/// label.
+#[test]
+fn a_device_changed_in_the_source_is_named_by_its_tag_here() {
+    let mut s = imported(&base_text());
+    let text = qet(
+        r#"version="0.100""#,
+        &[folio("1", "Base", vec![k1("-K3"), k2()]).wire((&uuid(1), SIMPLE, 1), (&uuid(2), SIMPLE, 0))],
+    );
+    let detected = s
+        .detect_qet_lineage(FILE, text.clone().into_bytes(), &library())
+        .expect("the earlier import is proposed");
+    let r = s
+        .reimport_qet(FILE, text.into_bytes(), &library(), detected.lineage())
+        .expect("the re-import is planned");
+    let changed: Vec<String> = r
+        .plan
+        .rows
+        .iter()
+        .filter(|row| row.class == ReimportClass::SourceChanged && row.key.0.name() == "device")
+        .map(|row| row.record.to_string())
+        .collect();
+    assert_eq!(changed, ["-K1"]);
+}
+
 #[test]
 fn a_file_of_another_project_is_refused() {
     let s = imported(&base_text());

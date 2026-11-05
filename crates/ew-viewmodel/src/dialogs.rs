@@ -188,7 +188,13 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
             asks: true,
             ..small(
                 strings::text(key!("confirm-check-scheme-title")).to_owned(),
-                vec![strings::format(key!("confirm-check-scheme-text"), &[scheme])],
+                // ID-1389 (W51 finding D): the scheme's word, as the wizard's choice shows it.
+                vec![strings::format(
+                    key!("confirm-check-scheme-text"),
+                    &[strings::text(Key::run_time(&format!(
+                        "choice-check_scheme-{scheme}"
+                    )))],
+                )],
                 DialogButton::new(
                     key!("dialog-apply"),
                     DialogAnswer::Action("wizard.apply_check_scheme", json!({ "confirm": true })),
