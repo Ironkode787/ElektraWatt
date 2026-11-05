@@ -19,6 +19,8 @@ use crate::components::Tip as _;
 /// Paints the picker when it is open. `just_opened` puts the keyboard focus into its filter field.
 pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: &mut Vec<Event>) {
     let Some(picker) = shell.picker() else {
+        // ID-1439: the next picker opens at its own width.
+        ctx.data_mut(|d| d.remove::<f32>(picker_width_id()));
         return;
     };
     // The list's keys are consumed before the filter field sees them; not while a dialog over the picker has them
@@ -64,8 +66,12 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
         PickerMode::BlackBox => strings::text(key!("picker-title-black-box")),
     };
     let t = crate::theme::current(ctx);
-    // ID-1427 (W52 F2): the table uses the space it has. The picker is as wide as its widest name, its part number
-    // column and its function column need, at least its grown width and at most the window inside `space.6`.
+    // ID-1427 (W52 F2): the table uses the space it has. The picker's content is as wide as its widest name, its part
+    // number column and its function column need, at least its grown width; the window then keeps `space.6` free on
+    // each side. ID-1439 (C52-p8#3): measured over the step's rows without the filter, and never narrower than the
+    // width it opened at, so typing does not move the field.
+    let spacing = ctx.global_style().spacing.clone();
+    let margin = spacing.window_margin.leftf() + spacing.window_margin.rightf();
     let need = {
         let measure = |text: &str, font: &crate::theme::TypeToken| {
             ctx.fonts_mut(|f| {
@@ -74,30 +80,33 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
                     .x
             })
         };
+        let mut all = picker.clone();
+        all.filter.clear();
+        all.refilter();
         let (mut name_w, mut number_w, mut meta_w) = (0.0_f32, 0.0_f32, 0.0_f32);
-        for row in &picker.rows {
-            let (name, second, meta, _) = row_texts(picker, *row);
-            let meta = picker
-                .disabled(*row)
-                .map_or(meta, |r| strings::text(r).to_owned());
+        for row in &all.rows {
+            let (name, second, meta, _) = row_texts(&all, *row);
+            let meta = all.disabled(*row).map_or(meta, |r| strings::text(r).to_owned());
             name_w = name_w.max(measure(&name, &t.type_body));
             number_w = number_w.max(second.as_deref().map_or(0.0, |n| measure(n, &t.type_small)));
             meta_w = meta_w.max(measure(&meta, &t.type_small));
         }
-        let spacing = ctx.global_style().spacing.clone();
-        // The row's button padding and its gaps between the columns, the window's margins, the scroll bar.
+        // The row's button padding and its gaps between the columns, the scroll bar.
         name_w
             + number_w
             + meta_w
             + 2.0 * spacing.button_padding.x
             + 3.0 * spacing.item_spacing.x
-            + 2.0 * spacing.window_margin.leftf()
             + spacing.scroll.bar_width
             + spacing.scroll.bar_outer_margin
     };
     let window = ctx.content_rect().width();
+    let most = (window - 2.0 * t.space_6 - margin).max(0.0);
+    let opened = ctx.data(|d| d.get_temp::<f32>(picker_width_id())).unwrap_or(0.0);
     let width = crate::dialog::grown(t.size_palette, crate::palette::PALETTE_SHARE, window)
-        .max(need.min(window - 2.0 * t.space_6));
+        .max(need.min(most))
+        .max(opened.min(most));
+    ctx.data_mut(|d| d.insert_temp(picker_width_id(), width));
     Window::new(title)
         .id(Id::unique("place-picker"))
         .anchor(
@@ -255,6 +264,11 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
                     }
                 });
         });
+}
+
+/// The key of the open picker's width (ID-1439): it never narrows while the picker is open.
+fn picker_width_id() -> Id {
+    Id::new("place-picker-width")
 }
 
 /// A part row's part number (FT-712, FT-759): visibly secondary, `type.small` in `color.text.secondary`

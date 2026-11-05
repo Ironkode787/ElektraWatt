@@ -104,6 +104,44 @@ fn the_part_picker_grows_with_the_window() {
     );
 }
 
+/// ID-1439 (C52-p8#3): Device from part keeps its width while the filter narrows its rows, and its window stays
+/// inside the app's window with `space.6` free on each side (its content inside `space.5` margins), at both sizes.
+#[test]
+fn id1439_the_part_picker_keeps_its_width_and_stays_inside_the_window() {
+    for size in [egui::Vec2::new(1280.0, 800.0), egui::Vec2::new(1920.0, 1080.0)] {
+        let tmp = Tmp::new();
+        let mut h = on_golden(&tmp, size);
+        dispatch(&mut h, "page.goto", json!({"folio": "101"}));
+        dispatch(&mut h, "tool.place_part", json!({}));
+        settle(&mut h);
+        settle(&mut h);
+        let hint = "Filter by key, part number or function";
+        let field = |h: &Harness<'_, App>| {
+            h.get_all_by_role(egui::Role::TextInput)
+                .find(|n| n.accesskit_node().data().placeholder() == Some(hint))
+                .expect("the filter field")
+                .rect()
+        };
+        let open = field(&h);
+        let t = ew_ui::theme::current(&h.ctx);
+        assert!(
+            open.left() - t.space_5 >= t.space_6 - 0.5 && open.right() + t.space_5 <= size.x - t.space_6 + 0.5,
+            "the picker's content {open:?} in a window {size:?}"
+        );
+        dispatch(&mut h, "picker.filter", json!({"text": "533356"}));
+        settle(&mut h);
+        settle(&mut h);
+        let filtered = field(&h);
+        assert!(
+            (filtered.width() - open.width()).abs() < 0.5,
+            "{} after the filter against {} at open",
+            filtered.width(),
+            open.width()
+        );
+        h.state_mut().shell_mut().shutdown();
+    }
+}
+
 /// ID-1427 (W52 F2, §6.22): in Device from part the part names are whole at the floor and at 1920, beside a part
 /// number as long as Golden A's "32P-VGL-R-…" order code: the table uses the space it has.
 #[test]
