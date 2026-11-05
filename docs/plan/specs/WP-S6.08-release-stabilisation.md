@@ -1,6 +1,6 @@
 # WP-S6.08: MVP release stabilisation and the first release, 0.1.0 (closed specification)
 
-**Status:** specified in cycle 50 (documents only), an M2 package in two halves: the lane's six build steps of §6,
+**Status:** steps 1 to 4 built in cycle 52 by the lane S608 (decision log ID-1396), accepted with fixes by review part 2 (ID-1417); steps 5 and 6 (the lock and the pre-run) wait for cycle 53, right before the first candidate, with review part 2's two findings (C52-p2#2, the format surface's line check; C52-p2#3, unknown members in their original line), FT-1489, FT-1490 and the release branch's procedure (`release/0.1`, ID-1412); G3 (LG-1, ID-1401) and G4 (the release manager, ID-1400) on file (ID-1436) · specified in cycle 50 (documents only), an M2 package in two halves: the lane's six build steps of §6,
 built whole by one lane (ID-1281) with one hand-back point (§11), about 1.8 pw, and the release cycle of §7 (the
 candidates, the checklist, the acceptance run, the fix rounds, the go and the promote), about 4.2 pw; the PERT of 6.0
 pw unchanged · **Date:** 2026-11-04 · **Work package:**

@@ -1,6 +1,6 @@
 # WP-S2.04: placement, wiring and drawing tools (closed specification)
 
-**Status:** amended 2026-10-30, cycle-38 design pass, part 3: §8.2's through route as built (decision log ID-888) · amended 2026-10-30, cycle-38 design pass: §6.1's double click as amended (decision log ID-883) · amended 2026-10-29, cycle-33 design pass: the G-PP findings as built in §10.7 (decision log ID-768 to ID-773) · specified in cycle 23 (documents only; fix round after the independent Opus design review, whose items
+**Status:** amended 2026-11-05, cycle-52 design pass: §6.6's pick rule with FT-1438's body exception as built (decision log ID-1433) · amended 2026-10-30, cycle-38 design pass, part 3: §8.2's through route as built (decision log ID-888) · amended 2026-10-30, cycle-38 design pass: §6.1's double click as amended (decision log ID-883) · amended 2026-10-29, cycle-33 design pass: the G-PP findings as built in §10.7 (decision log ID-768 to ID-773) · specified in cycle 23 (documents only; fix round after the independent Opus design review, whose items
 the owner's delegate ruled) for six lead-programmer parts: part 1 (place and arrange, D4), part 2 (wiring, D4), part 3
 (interruption points and black boxes, D4), part 4a (the page-item and structure-box record kinds, derivation, drawing
 and commands, D5), part 4b (their tools and the G-PP rehearsal, D4) and part 5 (images, D4, after FT-337); every part
@@ -350,6 +350,15 @@ becomes, and for Activate (Enter); Shift and Ctrl clicks never walk. A press on 
 representation's rectangle that turns into a drag moves the representation. The page text's wire point (`at X Y mm`)
 is a point where the wire is first in the stack and the only connection in it, with no link under it. The hover
 outline keeps WP-S2.02's rectangle pick until WP-S2.17 part 5 (OV7); a chooser and a HUD hint are FT-520 and FT-521.
+
+*As built (2026-11-05, cycle-52 design pass; FT-1438, decision log ID-1397, ID-1408, ID-1433; C52-p5#4).* FT-500's
+rule has one exception: a press on a symbol's **body**, the middle half of one of its representation's rectangles
+each way, picks the symbol before a wire under it (R0-F10: a click at the lamp E56's centre picks the lamp), so the
+stack is R, C, B there even when the wire's line is nearer than the rectangle's centre; a repeated click walks on to
+the wire. Nearer the rectangle's outline, where wires meet the pins, the nearer of the wire and the centre goes first
+as before. A device selected by its tag (`select.set` with its tag) stays the selection; Move, R and X take the
+symbols the page shows of it, and Move turns the selection into those symbols only once the move starts, a refused
+move putting the selection back (C52-p5#3).
 
 ### 6.7 Readouts (FR-UI-018's rest)
 

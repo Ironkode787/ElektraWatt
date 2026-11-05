@@ -1,6 +1,6 @@
 # ADR-0011: Format versioning, per-kind migration and format-change windows
 
-**Status:** Accepted · amended 2026-10-18, 2026-10-21 (amendment 4 annotated as applied again on 2026-10-23), 2026-10-30 (amendment 5, the project fragment's version rule, WP-S1.19 part 5) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+**Status:** Accepted · amended 2026-10-18, 2026-10-21 (amendment 4 annotated as applied again on 2026-10-23), 2026-10-30 (amendment 5, the project fragment's version rule, WP-S1.19 part 5), 2026-11-05 (amendment 4 annotated as applied again for `import_run`, cycle-52 design pass) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
 
 ## Context
 
@@ -120,6 +120,10 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    `ConnectionKind::Fluid` with `line_kind`, `CpOverride.closure`, `PartSections.fluid` and `TextSlot.fallback`, each
    optional with an `Unknown` arm, `schemas/0.1` re-blessed with additions only; `closure.part` is a new link to a
    part copy that an older 0.1 build does not enforce, accepted for the unreleased format (amendment 6).
+   Applied again in cycle 51 (WP-S3.09 D6; decision log ID-1360, ID-1432) to the reserved kind `import_run` (rank 72,
+   `imports/<run-uuid>.jsonl`), typed within 0.1 with `schemas/0.1` re-blessed with additions only, and to
+   `ImportLineage.last_run`, now a link to the run without cascade; a build from before the change keeps the runs
+   verbatim as a reserved kind.
 5. **The project fragment widens within v1 for macros** (2026-10-30, WP-S1.19 part 5, cycle 36; lead programmer,
    delegated; [architecture](../design/04-architecture.md) §5.5, [project format](../design/05-project-format-and-persistence.md)
    §12, [symbols, parts and macros](../design/07-symbols-parts-macros.md) §2.7). WP-S1.19 D12 makes a macro variant a

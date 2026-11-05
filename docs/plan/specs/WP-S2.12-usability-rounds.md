@@ -1,6 +1,6 @@
 # WP-S2.12: the usability rounds R0 and R1 as blind-persona rounds (closed specification)
 
-**Status:** the first half built in cycle 51 (§7 steps 1 to 5 and the R0 run, decision log ID-1361, ID-1365); R1
+**Status:** cycle 52 (decision log ID-1399, ID-1436): FT-1375 (R0-F1) fixed by FT52a and proven by R0's kittest flow on GP-UT; R1 waits for 0.1.0's first candidate on `release/0.1` (ID-1412), with FT-1486 ruled first · the first half built in cycle 51 (§7 steps 1 to 5 and the R0 run, decision log ID-1361, ID-1365); R1
 waits for WP-S6.08's first candidate, with FT-1375 (R0-F1) fixed before it; specified in cycle 50 (documents only), an
 M2 package in two halves: the lane's five build steps of §7
 (the harness additions, GP-UT, the personas and the round prompt, the task sheets, then R0 with its report and its

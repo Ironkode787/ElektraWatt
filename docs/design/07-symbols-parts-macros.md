@@ -1,6 +1,6 @@
 # Symbols, parts and macros
 
-**Status:** Draft v0.1 · **Date:** 2026-10-21 (2026-11-05, the symbol editor's release is 0.2.0, milestone M2.5, right after the MVP, §10, decision log ID-1402; 2026-10-31, cycle-40 design pass, part 1, the part bus section as built, §2.5, WP-S1.21 part 4b, decision log ID-927; 2026-10-30, cycle-38 design pass, part 3, the Macros and Libraries navigators as built, §5, decision log ID-885; 2026-10-30, cycle-38 design pass, `macro.insert`'s orientation and the valve typical as built, §4.6, §9.3, decision log ID-878; 2026-10-29, cycle-35 design pass, WP-S1.19 parts 2 to 4 and WP-S2.18 parts 2 and 3 as built: the generic starter parts in `ew-starter-parts`, the tiers and the index, `part.assign`, `library.update`, the parts import and the manufacturer copies, §2.1, §2.2, §3.1, §3.3, §3.6, §4.5, §4.7, §9.2, decision log ID-818, ID-820, ID-824, ID-830; 2026-10-29, cycle-34 design pass, WP-S1.19 part 1 as built: the typed part members, manufacturer and macro copies, `MacroInstance`, `Project.basic_project` and `SYSTEM_LIBRARY`, §2.5, §2.7, §2.8, open question 17, decision log ID-334, ID-783; cycle-12 design pass: typed technical data in slot texts, the two appended symbol slots, decision log ID-314 and ID-315; cycle-11 design pass: symbol rulings for the pilot corpus, decision log ID-294 to ID-296; generated pole-count families, §3.2 rule 10) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-21 (2026-11-05, cycle-52 design pass: the macro variable type `text_slots` and its value in words as built, §2.7's variable types, decision log ID-1433; 2026-11-05, the symbol editor's release is 0.2.0, milestone M2.5, right after the MVP, §10, decision log ID-1402; 2026-10-31, cycle-40 design pass, part 1, the part bus section as built, §2.5, WP-S1.21 part 4b, decision log ID-927; 2026-10-30, cycle-38 design pass, part 3, the Macros and Libraries navigators as built, §5, decision log ID-885; 2026-10-30, cycle-38 design pass, `macro.insert`'s orientation and the valve typical as built, §4.6, §9.3, decision log ID-878; 2026-10-29, cycle-35 design pass, WP-S1.19 parts 2 to 4 and WP-S2.18 parts 2 and 3 as built: the generic starter parts in `ew-starter-parts`, the tiers and the index, `part.assign`, `library.update`, the parts import and the manufacturer copies, §2.1, §2.2, §3.1, §3.3, §3.6, §4.5, §4.7, §9.2, decision log ID-818, ID-820, ID-824, ID-830; 2026-10-29, cycle-34 design pass, WP-S1.19 part 1 as built: the typed part members, manufacturer and macro copies, `MacroInstance`, `Project.basic_project` and `SYSTEM_LIBRARY`, §2.5, §2.7, §2.8, open question 17, decision log ID-334, ID-783; cycle-12 design pass: typed technical data in slot texts, the two appended symbol slots, decision log ID-314 and ID-315; cycle-11 design pass: symbol rulings for the pilot corpus, decision log ID-294 to ID-296; generated pole-count families, §3.2 rule 10) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies ElektraWatt's (EW) master data: symbols and function definitions (FnDefs), the
 parts database, macros with value sets, basic projects (company templates), and the libraries and governance that
@@ -520,7 +520,18 @@ pub struct Fragment {                        // project-format records, ids loca
 - `Text` (MlText), `Ident`, `Number` (Dec3 + unit), `Bool`;
 - `State` (used, spare, reserved, not fitted), `Part` (a `LibRef`), `ProcessTag`;
 - `ChannelBinding` (channel number in the module), `Address` (sets `AddrSpec::Manual`), `TagCounter`;
-- `DeviceRef` (an existing device chosen at insertion, such as the assembly head a module is added to).
+- `DeviceRef` (an existing device chosen at insertion, such as the assembly head a module is added to);
+- `TextSlots` (as built in cycle 52, FT-1420; decision log ID-1397, ID-1408, ID-1433): a representation's text-slot
+  overrides as a list, so a value set may move, turn, show or hide a symbol's texts; MC-4 keeps one `<group>_slots`
+  variable per placeholder group.
+
+*As built (2026-11-05, cycle-52 design pass; FT-1477, FT-1420, decision log ID-1408, ID-1419, ID-1424, ID-1433).* A
+`text_slots` value is typed and shown in words in the macro value table, in the window's language: "as the symbol"
+for the empty list, else one clause per slot, "; " between clauses, each clause `slot <n>: at <x>; <y> mm, turned
+<a>°, hidden` (or "shown") with every part optional and in any order, slots counted from 1. A number is written with
+the project's decimal separator, and "; " separates the two coordinates in every language, so "at 10; -5,5 mm" and
+"at 10; -5.5 mm" read the same, and the form written before ("at 10, -5.5") still reads back; a text that does not
+read stays a text, which the command refuses in words.
 
 A `FieldPath` is an `ew-schema` path such as `device.function_text`, `device.state`, `device.position`,
 `device.parts[0].part` or `function.cp_overrides[3].designation`. Bindings are checked against the schema when the

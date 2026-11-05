@@ -1,6 +1,6 @@
 # WP-S2.11: The GUI test suite as the per-PR gate (closed specification)
 
-**Status:** complete in cycle 51, built whole by one lane and its fix round FIX51p3 (decision log ID-1354,
+**Status:** amended 2026-11-05, cycle-52 design pass: §12's design note on one registered type for a form's closed choices (FT-1476, decision log ID-1434) · complete in cycle 51, built whole by one lane and its fix round FIX51p3 (decision log ID-1354,
 ID-1375); the Linux pixel gate is proven by CI at the delivery, after the merge point's WSL re-bless; specified in cycle
 50 (documents only), an M2 package built whole by one lane (ID-1281) in the eight steps
 of §6, with one hand-back point (§11); about 2.6 pw by its steps, the PERT of 2.6 pw unchanged · **Date:** 2026-11-04
@@ -269,6 +269,33 @@ FT-713 closes by §13 O2's ruling.
   if §13 O2 keeps option 1).
 - **FP-3** The `missing` rows of the requirement table, each to the package that owns its requirement.
 - **FP-4** The UI-thread watchdog and AC-28's frame bound at the milestone performance run (NFR-PERF-04, NFR-PERF-19).
+
+*Design note (2026-11-05, cycle-52 design pass; FT-1476, FT-1352; decision log ID-1407, ID-1434).* **One registered
+type for a form's closed choices.** The census opens every form, and the choice-word test of `ew-viewmodel`
+(`every_closed_choice_has_its_words_in_both_locales`, ID-1278 ruling 2) checks that each closed choice a form shows
+through `strings::choice_text` has its `choice-<value>` text in en-GB and nl-NL. The test reads the action
+signatures' `enum(…)` and `bool` parameters, the format's page types and `CLOSED_SETS`, a list kept by hand in
+`shell.rs` beside its map marker, because a form field's closed choices are written field by field
+(`choices: PAGE_TYPES`, `choices: BOOL_CHOICES`, …) with no list behind them; a new set a form uses and the list
+forgets has no check (FT-1352 could not derive it, ID-1407). Three ways were weighed:
+- **(a) A registered type (recommended).** A form field's `choices` becomes `&'static ClosedChoices`, a struct whose
+  fields are private to one module, `strings::closed` (or `shell::choices`), so it can be built nowhere else. That
+  module declares every set in one `closed_choices!` invocation, which defines each set as a `pub static` and the slice
+  `ALL` from the same lines. A form can name only a set the macro defined, so `ALL` is complete by construction: no
+  second list, no map marker. The choice-word test reads `ALL` in place of `CLOSED_SETS`, the census can assert that
+  every choice a form shows comes from `ALL`, and the free-text fields keep an empty `choices`. Run-time lists (the
+  project's locations, the enclosure parts in `options`) are open sets, outside the type. No new dependency (no
+  `inventory` or `linkme`); permissive crates are not touched.
+- **(b) A source scan.** A test greps the crate's source for `choices:` and resolves each constant's name. It is
+  fragile (a re-export, a renamed constant or a computed slice escapes it) and keeps the list implicit.
+- **(c) The census collects them.** The census, which opens every form on a Golden A copy, reads each open form's
+  closed choices and checks their words. It needs no new type, but a choice set reached only in a state the census
+  does not set up (a form behind a revision or a selection) is missed, and the check moves into the slower window
+  suite.
+
+The recommendation is (a), built in one FT batch lane: the type and the macro, every form field converted, the test
+reading `ALL`, `CLOSED_SETS` and its `closed-sets` map marker removed, and a compile-time refusal of a choice list
+built outside the module (FT-1521).
 
 ## 13. Open questions
 

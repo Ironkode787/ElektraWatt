@@ -1,6 +1,6 @@
 # ADR-0021: Importers emit format-level records; QET first; EDZ as 7-Zip; DWG via acadrust plus ODA
 
-**Status:** Accepted · amended 2026-10-18, 2026-10-19 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the judge panel)
+**Status:** Accepted · amended 2026-10-18, 2026-10-19, 2026-11-05 (amendment 7, decision 1's batch as built) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the judge panel)
 
 ## Context
 
@@ -138,6 +138,14 @@ is unchanged; these entries refine it.
    the first such importer. Its importer ID is `csv`, the `<importer>` of its lineage `csv␟fixed␟golden`
    (ADR-0004 amendment 4); `golden-csv` in decision 1's comment is the name of its report format, not an importer
    ID.
+7. **Decision 1's batch as built** (2026-11-05, cycle-52 design pass; WP-S3.09 D1 and D17; decision log ID-1360,
+   ID-1432). The decision text is unchanged; it is read so: `ImportBatch` is `{records, lib, report}`, and
+   decision 1's `provenance` is each record's own `source_ref` member, which no parallel vector could contradict;
+   amendment 1's `assets` waits for the first importer that emits an image (FT-1468). Every host reaches an importer
+   through one front door that applies the limits, isolates a panic and checks the batch's contract (IDs re-derived
+   from source keys, one lineage, sorted records) before `ApplyImport`; the import run of amendment 2 is typed with
+   two hashes per record, the record as imported and as committed ([14](../design/14-interop.md) §2.3 and §2.4's
+   notes).
 
 ## Consequences
 

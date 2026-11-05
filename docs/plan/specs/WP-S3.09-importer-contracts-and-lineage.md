@@ -1,7 +1,8 @@
 # WP-S3.09: Importer contracts, lineage and the migration report (closed specification)
 
-**Status:** built in cycle 51 by one lane in two sittings (S309, S309b) with its fix round FIX309 (decision log
-ID-1360, ID-1374, ID-1379), complete when cycle 52's first review part accepts FIX309; specified in cycle 50
+**Status:** complete in cycle 52: FIX309 accepted by review part 1 (decision log ID-1390), the documents to
+update worked through by the cycle-52 design pass (§13, ID-1432); built in cycle 51 by one lane in two sittings
+(S309, S309b) with its fix round FIX309 (decision log ID-1360, ID-1374, ID-1379); specified in cycle 50
 (documents only), an M2 package built whole by one lane (ID-1281) in the seven steps
 of §6, with one hand-back point (§11); about 3.1 pw by its steps, the PERT of 3.1 pw unchanged · **Date:** 2026-11-04 ·
 **Work package:**
@@ -167,6 +168,16 @@ a record the base lists as removed keeps its base hashes, so it is classed remov
 same file and a new run is written (a row); `ew import qet --strict --out` writes nothing when it exits 1, as
 `ew import csv --strict` does.
 
+*As built (2026-11-05, cycle-52 design pass; decision log ID-1390, ID-1392, ID-1398, ID-1432).* D12's removed record:
+FT-1384 replaced the repeat above, so a removed record carries no base hash and an identical re-import writes no run
+(IC-12's note). D11's hash change and older projects (C52-p1#5): a project whose import run was written before the
+canonical-line hash (FIX309) re-imports every record of that lineage as a conflict, and the carried old-form hash
+never matches again, so such a lineage is imported afresh; no released or repository project holds a run, and no
+migration is written before 0.1.0 (ID-1325). FIXW51's re-import fixes: the re-import's proposal and card wait behind
+an open dialog, a job whose project closed is dropped whatever its end and clears only its own banner, and the
+remembered proposal names its project and is cleared when the project closes, a proposal for another project refused
+in words (C52-p1#2 to #4).
+
 ## 5. The texts
 
 Every text is asserted whole (en-GB). `<file>` is the source's file name, `<folder>` a folder's name; records are named
@@ -241,6 +252,12 @@ One lane builds the seven steps in this order and commits at the end of each.
   writes nothing on Apply; re-importing a variant with one more terminal after a function-text edit in EW adds that
   terminal and its connections, keeps the edit and lists no other change; a record changed on both sides is kept with
   EW-IMP-011, a record removed in the source is kept with EW-IMP-010; the IDs of unchanged source keys are equal.
+  *As built (2026-11-05, cycle-52 design pass; FT-1384, decision log ID-1392, ID-1410, ID-1432; C52-p5#8):* since
+  FT-1384 a re-import of the identical file writes nothing, and a record removed in the source carries no base hash
+  in the run an applied re-import writes, so the same file again finds nothing to do; because the migration report
+  reads only each lineage's last run, the next re-import that writes (another record changed) drops the EW-IMP-010
+  row of a record that is still kept here, as it does for a conflict. The record stays in the project; only the
+  reminder goes.
 - **IC-13** (window, FR-IMP-004) The re-import card with T8 and its rows; Cancel leaves the model digest unchanged;
   Apply is one undo step; T6 on a fixture without a project UUID; T7 on a foreign file; frames at both sizes.
 - **IC-14** Golden A's bytes are unchanged (the bootstrap writes no run, D13); AC-15's paths (a) and (b) stay equal.
@@ -378,6 +395,13 @@ ADR-0021 (decision 1's `provenance` read as the records' `source_ref`; amendment
 amendment 4 ("applied again" for `import_run`); doc 15's catalogue (class 160 rows); 02b FR-IMP-001 to -005, -040,
 -041 and FR-EXP-001 ("as built" notes); `golden/J-E-2416/README.md`'s Golden C section (the pipeline, FT-143 closed);
 doc 18 §3.12 (the importer targets).
+
+*Done (2026-11-05, cycle-52 design pass; decision log ID-1432).* Doc 14 §2.1, §2.3, §2.4, §2.5 (EW-IMP-010 and -011
+added to its catalogue), §3.1, §3.4, §4.16 and §16 have dated as-built notes; doc 03's `ImportRun` row; doc 05 §2.1;
+doc 04 §10.6; ADR-0021's decision 1 note and ADR-0011 amendment 4's "applied again"; doc 15 §4.10's EW-IMP-010 and
+-011 rows; 02b FR-IMP-001 to -005, -040, -041 and FR-EXP-001's as-built notes. Doc 14 §11's target names and doc 18
+§3.12 were written by cycle 51's design pass (ID-1386). Left: `golden/J-E-2416/README.md`'s Golden C section, a
+golden file that a design pass does not write, to an FT batch (FT-1522).
 
 ---
 
