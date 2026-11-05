@@ -142,6 +142,16 @@ impl Normaliser for OnlineNumbering {
             None => true,
             Some(counter) => {
                 let base = tx.base_model();
+                // FT-1406: a cable leaving the project's scope for a page takes that page's next free counter; the
+                // project's was only for the time it lay on no page. Once, in the pass that places it (the counter it
+                // came with is the base's).
+                let placed_now = dev.aspects.cable.is_some()
+                    && base.table::<Device>().get(&d).is_some_and(|b| b.tag.counter == Some(counter))
+                    && main_page_in(base, d).is_none()
+                    && main_page(tx, d).is_some();
+                if placed_now {
+                    return true;
+                }
                 // The other holder was there first: not a candidate, or a candidate earlier in place order.
                 let earlier = |other: &Id<Device>| rank.get(other).is_none_or(|r| Some(r) < rank.get(&d));
                 group

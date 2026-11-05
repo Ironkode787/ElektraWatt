@@ -527,9 +527,12 @@ pub fn number_devices(
             .or_insert_with(|| ScopeCounters::load(tx, &dev.tag.letter, scope));
         if renumber(tx, *d, &dev, group) {
             let next = group.next_free(Some(*d));
-            tx.update::<Device>(*d, |dev| dev.tag.counter = Some(next))?;
+            // A device that keeps its counter changes nothing (FT-1406: a cable placed from the project's scope).
+            if dev.tag.counter != Some(next) {
+                tx.update::<Device>(*d, |dev| dev.tag.counter = Some(next))?;
+                changed = true;
+            }
             group.set_counter(*d, next);
-            changed = true;
         }
     }
     Ok(changed)
