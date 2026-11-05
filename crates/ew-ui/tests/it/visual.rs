@@ -448,6 +448,50 @@ fn bv5_bv6_dialogs_are_answered_and_an_export_ends_within_its_input() {
     d.shell_mut().shutdown();
 }
 
+/// FT-1201: `answer_open` names the file the next open dialog answers with, resolved against the script's folder, and
+/// runs no frame; the QElectroTech import then reads that file and its card shows. Without it the same import is
+/// cancelled.
+#[test]
+fn answer_open_names_the_file_of_the_next_open_dialog() {
+    let tmp = Tmp::new();
+    let scripts = tmp.0.join("scripts");
+    std::fs::create_dir_all(&scripts).unwrap();
+    std::fs::write(
+        scripts.join("plant.qet"),
+        r#"<project version="0.100" title="Plant"><diagram title="Supply" folio="1" order="1" cols="17" colsize="60" rows="8" rowsize="80" height="640"/></project>"#,
+    )
+    .unwrap();
+    let import = |answer: bool| {
+        let mut d = Driver::in_folder(tmp.config(), None, tmp.0.clone()).unwrap();
+        d.set_script_dir(scripts.clone());
+        d.settle();
+        let _ = actions(&mut d);
+        if answer {
+            let start = d.frame_count();
+            d.input(&parse_input(&obj(json!({"input": "answer_open", "path": "plant.qet"}))).unwrap());
+            assert_eq!(d.frame_count(), start, "no frame runs");
+        }
+        let _ = d.shell_mut().dispatch("file.import_qet", &json!({}));
+        d.input(&Input::Wait { ms: 100 });
+        assert!(d.shell_mut().wait_jobs().is_empty());
+        d.input(&Input::Wait { ms: 100 });
+        d
+    };
+    let mut d = import(true);
+    let card = format!("{:?}", d.shell_mut().dialog());
+    assert!(card.starts_with("Some(ImportQet"), "the import's card: {card}");
+    assert!(card.contains("plant.qet"), "of the answered file: {card}");
+    d.shell_mut().shutdown();
+    let mut d = import(false);
+    assert!(d.shell_mut().dialog().is_none(), "cancelled");
+    assert_eq!(actions(&mut d), ["file.import_qet"], "only the step's own dispatch");
+    d.shell_mut().shutdown();
+    assert_eq!(
+        parse_input(&obj(json!({"input": "answer_open", "path": ""}))),
+        Err("`path` names the file, 1 to 260 characters without control characters".to_owned())
+    );
+}
+
 /// BV5 (Windows, where frames are painted): the caret does not blink, so a field with the focus paints the same
 /// frame before and after half a second.
 #[cfg(windows)]

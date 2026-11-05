@@ -14,7 +14,9 @@
 //!   while the zoom changes about it (absent: the view's centre); to centre a point, pan to it first (FT-939);
 //! - an input line (`{"input":"click","x":412,"y":96}`, spec §4.1): the egui events of the input in one or more
 //!   frames, then frames until the window settles; one transcript line `{"step","input","dispatched","state"}`, with
-//!   `"closed":true` once the application has closed;
+//!   `"closed":true` once the application has closed; `{"input":"answer_open","path":"plan.qet"}` runs no frame and
+//!   makes the next open file dialog answer with that file, resolved against the script's folder (FT-1201; without
+//!   it an open dialog answers Cancelled);
 //! - a frame line (`{"frame":"t0003.png"}`, optional `"settle":false` for a look, `"zoom":[x,y,w,h]`, and
 //!   `"paint":false` for a replay that settles as the run did but paints nothing): the
 //!   current frame painted to `<frames>/<file>`; one transcript line `{"frame","sha256"}` without a step number (a
@@ -33,8 +35,10 @@
 //! canvas's tiles and the page view's image are waited for in the frame that asked for them, and a running job is
 //! waited for by blocking on it, never on time.
 
+use std::cell::RefCell;
 use std::io::{self, BufRead, Write};
 use std::path::PathBuf;
+use std::rc::Rc;
 
 use egui::{Event, Key, Modifiers, PointerButton, Pos2, Rect, Vec2, ViewportId};
 use ew_render_cpu::{RgbaImage, encode_png};
@@ -224,10 +228,13 @@ fn hundredths(text: &str) -> Option<u32> {
 }
 
 /// The file dialogs answered without a dialog (spec §4.3): bare names in the working directory (the run's `work/`;
-/// a test names its own folder): a project `project`, a PDF `project.pdf`; an import or an image is cancelled, and
-/// the system browser opens nothing (the trait's default).
+/// a test names its own folder): a project `project`, a PDF `project.pdf`; an import or an image is cancelled, unless
+/// an `answer_open` input named the file the next open dialog answers with (FT-1201), and the system browser opens
+/// nothing (the trait's default).
 struct VisualPlatform {
     base: PathBuf,
+    /// The file the next open dialog answers with, once ([`Input::AnswerOpen`]).
+    answer: Rc<RefCell<Option<PathBuf>>>,
 }
 
 impl Platform for VisualPlatform {
@@ -238,6 +245,16 @@ impl Platform for VisualPlatform {
             Prompt::SaveKeymap => Pick::Path(self.base.join("keymap.toml")),
             Prompt::SaveTable => Pick::Path(self.base.join("table.xlsx")),
             Prompt::SaveEwz => Pick::Path(self.base.join("project.ewz")),
+            Prompt::OpenQet
+            | Prompt::OpenPartsTable
+            | Prompt::OpenImage
+            | Prompt::OpenKeymap
+            | Prompt::OpenTable
+            | Prompt::OpenEwz
+                if self.answer.borrow().is_some() =>
+            {
+                self.answer.take().map_or(Pick::Cancelled, Pick::Path)
+            }
             Prompt::OpenQet
             | Prompt::OpenPartsTable
             | Prompt::OpenImage
@@ -312,6 +329,12 @@ pub enum Input {
     Wait {
         /// Milliseconds.
         ms: u32,
+    },
+    /// The next open file dialog answers with this file, resolved against the script's folder (FT-1201); without
+    /// one an open dialog answers Cancelled. No frame runs.
+    AnswerOpen {
+        /// The file, as the script names it.
+        path: String,
     },
 }
 
@@ -463,6 +486,7 @@ pub fn parse_input_in(o: &Map<String, Value>, g: Geometry) -> Result<Input, Stri
         "key" => &["chord", "repeat"],
         "hover" => &["x", "y"],
         "wait" => &["ms"],
+        "answer_open" => &["path"],
         other => return Err(bad(format!("unknown input `{other}`"))),
     };
     if let Some(extra) = o.keys().find(|k| *k != "input" && !members.contains(&k.as_str())) {
@@ -532,6 +556,14 @@ pub fn parse_input_in(o: &Map<String, Value>, g: Geometry) -> Result<Input, Stri
         "hover" => Input::Hover {
             at: point(o, "x", "y", g)?,
         },
+        "answer_open" => {
+            let path = o
+                .get("path")
+                .and_then(Value::as_str)
+                .filter(|p| !p.is_empty() && p.chars().count() <= 260 && !p.chars().any(char::is_control))
+                .ok_or_else(|| bad("`path` names the file, 1 to 260 characters without control characters"))?;
+            Input::AnswerOpen { path: path.to_owned() }
+        }
         _ => match o.get("ms").and_then(Value::as_u64) {
             Some(ms @ 100..=5000) => Input::Wait { ms: ms as u32 },
             _ => return Err(bad("`ms` is 100 to 5000")),
@@ -670,6 +702,10 @@ pub struct Driver {
     access: Option<Access>,
     /// The window size and scale.
     geometry: Geometry,
+    /// The folder an `answer_open` path is resolved against: the script's ([`Driver::set_script_dir`]).
+    script_dir: PathBuf,
+    /// The platform's answer to the next open dialog.
+    answer: Rc<RefCell<Option<PathBuf>>>,
 }
 
 /// The accessibility tree as the frames reported it: its root and every node by ID.
@@ -753,8 +789,13 @@ impl Driver {
         shell.set_dispatch_log(true);
         let ctx = egui::Context::default();
         crate::app::setup(&ctx);
+        let answer = Rc::new(RefCell::new(None));
+        let platform = VisualPlatform {
+            base: base.clone(),
+            answer: answer.clone(),
+        };
         Ok(Driver {
-            app: Some(App::new(shell, Box::new(VisualPlatform { base }), None)),
+            app: Some(App::new(shell, Box::new(platform), None)),
             after: None,
             config,
             ctx,
@@ -773,7 +814,15 @@ impl Driver {
             closed: false,
             access: None,
             geometry,
+            script_dir: base,
+            answer,
         })
+    }
+
+    /// Resolves the paths of `answer_open` inputs against `dir` (the script's folder; by default the folder the file
+    /// dialogs answer in).
+    pub fn set_script_dir(&mut self, dir: PathBuf) {
+        self.script_dir = dir;
     }
 
     /// The shell action lines go to.
@@ -1016,6 +1065,10 @@ impl Driver {
         if self.app.is_none() {
             return;
         }
+        if let Input::AnswerOpen { path } = input {
+            *self.answer.borrow_mut() = Some(self.script_dir.join(path));
+            return;
+        }
         // An input acts on what the last frame laid out: before the first input the window has been on screen.
         if self.frames == 0 {
             self.settle();
@@ -1108,6 +1161,7 @@ impl Driver {
                     self.frame(Vec::new());
                 }
             }
+            Input::AnswerOpen { .. } => {}
         }
         self.settle();
     }
@@ -1398,6 +1452,10 @@ pub fn run_in_folder(
             Ok(text) => {
                 if let Some(name) = path.file_name() {
                     driver.shell_mut().set_origin_file(&name.to_string_lossy());
+                }
+                // FT-1201: an `answer_open` path is the script's folder's.
+                if let Some(dir) = path.parent() {
+                    driver.set_script_dir(dir.to_path_buf());
                 }
                 Box::new(
                     text.lines()

@@ -251,7 +251,10 @@ the key names is checked against `ew-ui`'s `parse_chord` by a test (xtask has no
   in the run's `work/` folder: a new or saved project `project`, an opened project `project`, a PDF `project.pdf`; a
   QElectroTech import is cancelled; `open_url` returns false (the window then shows its own fallback). `HELP-VISUAL.md`
   states it ("your system's file dialogs are answered for you: …"). The usability of the system's own dialogs is out of
-  scope; the window's reaction to them is in.
+  scope; the window's reaction to them is in. *As built (cycle 52, FT-1201, ID-1406):* a window-check script (not a
+  blind run: the harness's vocabulary leaves it out) may name the file the next open dialog answers with, in the input
+  line `{"input":"answer_open","path":"plan.qet"}`, the path resolved against the script's folder; it runs no frame,
+  answers one open dialog, and without it an open dialog answers Cancelled.
 - **Prelude and epilogue** are action lines of the harness, not of the agent: the driver dispatches them on the shell
   before the first frame and after the last, admitting the headless-only actions they need (`command.run` in a
   prelude, `page.describe` in the epilogue); the filter refuses action lines from the agent (§3.3).
