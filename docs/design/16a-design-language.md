@@ -945,6 +945,14 @@ identifier keeps its whole width and its chip, the label column yielding first, 
 overlong label word cut with its tooltip, built by the fix round FIXW52. A prose value cut harder at the floor now
 that labels may take half the row is FT-1498.
 
+*As built (2026-11-05, cycle 52, FIXW52 and its second round; decision log ID-1438, ID-1439).* **Labels give way to
+identifiers only, down to half their width.** The note above is amended as built: the word floor no longer holds for
+an identifier, so an identifier value (a tag, a part number, any word with a digit) can narrow the label column down to
+half its labels' width, and a label whose longest word no longer fits is then cut on one line with its whole text as
+its tooltip; a nested Dutch label can therefore be cut at the floor beside an identifier. A prose value or choice word
+without a digit, one word or several, and a list count take no width from the labels. The row's "…" button now counts
+in the value's width, so the selected row's identifier stays whole too.
+
 ### 6.9 Cards
 
 A card is a bounded panel inside a pane for one object that waits for a decision (the preview card of WP-S2.05 and
