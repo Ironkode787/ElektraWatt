@@ -773,6 +773,33 @@ fn sql_a_panicking_statement_ends_with_s1_and_changes_nothing() {
     assert!(tree(&project) == before, "the copy's files changed");
 }
 
+/// FT-1379 (ID-1394 ruling 1): the writing of `ew sql`'s result (CSV in both presets, JSON, the workbook) panics inside
+/// `run_sql`'s guard; each run ends with S1 and exit 2, prints no result and writes no file.
+#[test]
+fn sql_a_panicking_result_writer_ends_with_s1_and_writes_nothing() {
+    let t = Tmp::new();
+    let project = golden_copy(&t);
+    let out = t.0.join("result.xlsx");
+    for format in [
+        &["--format", "csv"][..],
+        &["--format", "csv", "--preset", "rfc4180"],
+        &["--format", "json"],
+        &["--format", "xlsx", "--out", out.to_str().unwrap()],
+    ] {
+        let mut args: Vec<&std::ffi::OsStr> = vec!["sql".as_ref(), project.as_os_str(), "SELECT 1".as_ref()];
+        args.extend(format.iter().map(std::ffi::OsStr::new));
+        let o = ew_faulted("sql-write", &args);
+        assert_eq!(o.status.code(), Some(2), "{format:?}: {}", stderr(&o));
+        assert_eq!(
+            last_line(&o),
+            "error: the query stopped on an internal error; nothing was changed",
+            "{format:?}"
+        );
+        assert_eq!(stdout(&o), "", "{format:?}");
+        assert!(!out.exists(), "{format:?}");
+    }
+}
+
 /// SE-9 at the call site (WP-S6.04 D15, C51-p1#2, C51-p1#3): `ew import table --apply`'s read panics inside
 /// `run_import_table`'s guard; the run ends with `error: ` and S2 with its first letter in lower case, exit 2, and the
 /// copy of Golden A's files are as they were.

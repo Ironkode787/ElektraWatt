@@ -820,9 +820,23 @@ fn run_sql(a: &SqlArgs) -> i32 {
     if let Some(n) = a.timeout {
         profile = profile.with_deadline(std::time::Duration::from_secs(n));
     }
-    let set = match guarded_query(|| {
+    // FT-1379: the result's writing, which a hostile SELECT drives as much as the statement, runs inside the guard
+    // too (the workbook's in `write_sql_xlsx`).
+    let (set, text) = match guarded_query(|| {
         debug_panic("sql");
-        projection.reader(profile).and_then(|r| r.query(&sql))
+        let set = projection.reader(profile).and_then(|r| r.query(&sql))?;
+        debug_panic("sql-write");
+        let text = match a.format {
+            SqlFormat::Csv if a.csv.preset == Preset::Ew => Some(ew_api::output::restyle(
+                &set.to_csv(),
+                a.csv.writes_bom(),
+                a.csv.writes_line_end(),
+            )),
+            SqlFormat::Csv => Some(ew_api::output::table_csv(&ew_api::output::sql_table(&set), &a.csv)),
+            SqlFormat::Json => Some(format!("{:#}\n", set.to_json())),
+            SqlFormat::Xlsx => None,
+        };
+        Ok((set, text))
     }) {
         Ok(s) => s,
         Err(line) => {
@@ -830,13 +844,8 @@ fn run_sql(a: &SqlArgs) -> i32 {
             return 2;
         }
     };
-    let text = match a.format {
-        SqlFormat::Csv if a.csv.preset == Preset::Ew => {
-            ew_api::output::restyle(&set.to_csv(), a.csv.writes_bom(), a.csv.writes_line_end())
-        }
-        SqlFormat::Csv => ew_api::output::table_csv(&ew_api::output::sql_table(&set), &a.csv),
-        SqlFormat::Json => format!("{:#}\n", set.to_json()),
-        SqlFormat::Xlsx => return write_sql_xlsx(a, &session, &set),
+    let Some(text) = text else {
+        return write_sql_xlsx(a, &session, &set);
     };
     match &a.out {
         Some(path) => match write_report(path, &text) {
@@ -868,8 +877,8 @@ fn guarded_query<T>(run: impl FnOnce() -> Result<T, ew_api::sql::SqlError>) -> R
     }
 }
 
-/// A debug build panics here when `EW_DEBUG_PANIC` names `site` (`sql`: `ew sql`'s statement; `table-read`: `ew import
-/// table`'s read), inside the panic guard it tests (WP-S6.04 D15, SE-9: the guard at its call site); a release build
+/// A debug build panics here when `EW_DEBUG_PANIC` names `site` (`sql`: `ew sql`'s statement; `sql-write`: the writing
+/// of its result; `table-read`: `ew import table`'s read), inside the panic guard it tests (WP-S6.04 D15, SE-9: the guard at its call site); a release build
 /// compiles none of it.
 // The program boundary of a debug build's test fault, read at the site it fails; a release build has no such read.
 #[allow(clippy::disallowed_methods)]
@@ -907,10 +916,19 @@ fn write_sql_xlsx(a: &SqlArgs, session: &ew_api::Session, set: &ew_api::sql::Res
             return 2;
         }
     };
-    let bytes = match ew_api::output::xlsx(&[ew_api::output::sql_table(set)], &session.workbook_meta(date)) {
-        Ok(b) => b,
-        Err(e) => {
+    let meta = session.workbook_meta(date);
+    // FT-1379: the workbook is written from the result inside the statement's guard.
+    let bytes = match guarded_query(|| {
+        debug_panic("sql-write");
+        Ok(ew_api::output::xlsx(&[ew_api::output::sql_table(set)], &meta))
+    }) {
+        Ok(Ok(b)) => b,
+        Ok(Err(e)) => {
             eprintln!("error: {e}");
+            return 2;
+        }
+        Err(line) => {
+            eprintln!("{line}");
             return 2;
         }
     };

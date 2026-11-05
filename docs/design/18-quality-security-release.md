@@ -1772,7 +1772,8 @@ cargo-audit's 100 MiB default). A waiver is the same `ignore` entry in two files
 shipped, or another package's), the controls as built and the evidence that proves them, every control and evidence
 named by `path:line`, which `docs/plan/tools/doccheck.py` checks exists and holds more than white space or brackets;
 a parser and extension table, the importer and `.ewlib` rows and a review log. This section stays the design; where
-the two differ, the threat model states the release.
+the two differ, the threat model states the release. *Amended (cycle 52, FT-1381, decision log ID-1394):* each
+reference is written `path:line (symbol)`, and doccheck also checks that the symbol stands on that line.
 
 **Assets:**
 - the confidentiality of projects (customer work, personal data);
