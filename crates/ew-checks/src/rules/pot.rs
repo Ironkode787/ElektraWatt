@@ -2279,6 +2279,11 @@ mod tests {
             f[0].message,
             "wire number 101.2 is printed on 2 wires; a wire number names one numbering unit"
         );
+        // FT-1334: the finding's own arguments word it in Dutch (C51-p6#5).
+        assert_eq!(
+            crate::messages::render(&f[0], "nl-NL"),
+            "draadnummer 101.2 staat op 2 draden; een draadnummer benoemt één nummeringseenheid"
+        );
         assert!(duplicate_numbers([("1.1".to_owned(), w(1)), ("1.1".to_owned(), w(1))]).is_empty());
     }
 }

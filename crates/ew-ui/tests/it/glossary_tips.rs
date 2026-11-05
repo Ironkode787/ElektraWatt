@@ -343,6 +343,19 @@ fn ft1345_the_wire_codes_keep_clear_of_the_printed_texts_and_the_chrome() {
         let chrome = host.chrome_obstacles(0).to_vec();
         let chips: Vec<egui::Rect> = host.canvas_chips(0).iter().map(|c| c.rect).collect();
         assert!(!codes.is_empty() && !texts.is_empty(), "{size:?}");
+        // C51-p6#7: a code fades only where it has no free place, so most codes stand unfaded at the floor and every
+        // code at 1920 × 1080.
+        let unfaded = codes.iter().filter(|(_, faded)| !faded).count();
+        let least = if size.x < 1920.0 {
+            codes.len() / 2 + 1
+        } else {
+            codes.len()
+        };
+        assert!(
+            unfaded >= least,
+            "{size:?}: {unfaded} of {} codes unfaded",
+            codes.len()
+        );
         for (i, (code, faded)) in codes.iter().enumerate() {
             if *faded {
                 continue;

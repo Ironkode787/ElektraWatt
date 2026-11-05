@@ -333,6 +333,10 @@ fn exact_counts_the_jump_the_escape_chain_and_errors() {
     done(&mut shell, "find.row", json!({"to": 16}));
     done(&mut shell, "find.row", json!({"step": 5}));
     assert_eq!(state(&shell)["find"]["row"], 16, "clamped");
+    // FT-1347 (C51-p6#6): a step near `i64::MAX` past row 0 stops at the last row (no overflow).
+    done(&mut shell, "find.row", json!({"to": 2}));
+    done(&mut shell, "find.row", json!({"step": i64::MAX}));
+    assert_eq!(state(&shell)["find"]["row"], 16, "clamped");
     done(&mut shell, "find.row", json!({"to": 1}));
     assert_eq!(shell.session_calls().find, after.find, "moves make no call");
     // A read-only project: Replace all is refused.

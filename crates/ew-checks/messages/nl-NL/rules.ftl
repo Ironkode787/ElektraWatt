@@ -5,13 +5,61 @@
 # 1.0 the message test lists the missing ones as warnings. Shipped first for the rules that report on Golden A
 # (doc 20 §18.1); the other texts follow (the de-scope order of WP-S1.16 §13.1).
 
+rule-ew-core-001 =
+    .title = Manifest beschadigd
+
+rule-ew-core-002 =
+    .title = Gemengde generatie
+
+rule-ew-core-003 =
+    .title = Vermeld bestand ontbreekt
+
+rule-ew-core-004 =
+    .title = Verweesd bestand
+
+rule-ew-core-005 =
+    .title = JSON-syntaxisfout
+
+rule-ew-core-006 =
+    .title = Git-conflictmarkeringen
+
+rule-ew-core-007 =
+    .title = Schemaschending
+
 rule-ew-core-008 =
     .title = Verwijzing naar een ontbrekend record
     .hint = Herstel het record waarnaar verwezen wordt, of verwijder de verwijzing met de snelle oplossing.
 
+rule-ew-core-009 =
+    .title = Dubbele record-ID
+
+rule-ew-core-010 =
+    .title = Record in het verkeerde bestand
+
 rule-ew-core-011 =
     .title = Conflictrecords aanwezig
     .hint = Kies voor elk conflict onze of hun versie met ew merge resolve, of verwijder het record dat conflicteert.
+
+rule-ew-core-012 =
+    .title = Structurele invariant geschonden
+
+rule-ew-core-014 =
+    .title = Bibliotheekkopie gewijzigd
+
+rule-ew-core-015 =
+    .title = Asset ontbreekt
+
+rule-ew-core-016 =
+    .title = Gegevens uit een nieuwer formaat
+
+rule-ew-core-017 =
+    .title = Ongeldige bekende variant
+
+rule-ew-core-018 =
+    .title = Onbekend afleidingsprofiel
+
+rule-ew-core-019 =
+    .title = Leeslimiet overschreden
 
 rule-ew-core-021 =
     .title = Folio buiten zijn sectie

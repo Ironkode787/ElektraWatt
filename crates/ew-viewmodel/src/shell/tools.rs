@@ -1450,7 +1450,7 @@ mod ft779 {
         };
         assert_eq!(
             message(command_failed(&e, &Value::Null)),
-            "Only a person can run Waive finding, in the window; a script or a plugin cannot (ADR-0008)"
+            "Only a person can run Waive finding, in the window; a script or a plugin cannot"
         );
         assert!(strings::set_locale("nl"));
         let nl = message(command_failed(&e, &Value::Null));
@@ -1458,7 +1458,41 @@ mod ft779 {
         assert_eq!(
             nl,
             "Alleen een persoon kan Bevinding vrijstellen uitvoeren, in het venster; een script of een plug-in kan dat \
-             niet (ADR-0008)"
+             niet"
+        );
+    }
+
+    /// FT-1366 (C51-p6#8): a command error names what it changes or misses as items ("elementen"), never records.
+    #[test]
+    fn a_command_error_says_items_not_records() {
+        let preview = CmdError::NeedsPreview {
+            command: "part.assign".into(),
+        };
+        let texts = || {
+            (
+                message(command_failed(&preview, &Value::Null)),
+                strings::text(key!("error-command-not-found")).to_owned(),
+            )
+        };
+        assert_eq!(
+            texts(),
+            (
+                "Assign part changes many items: it is previewed first, then applied".to_owned(),
+                "An item the command names is no longer in the project; try again on what the page shows now"
+                    .to_owned()
+            )
+        );
+        assert!(strings::set_locale("nl"));
+        let nl = texts();
+        assert!(strings::set_locale("en"));
+        assert_eq!(
+            nl,
+            (
+                "Artikel toewijzen wijzigt veel elementen: eerst volgt een voorbeeld, daarna toepassen".to_owned(),
+                "Een element dat de opdracht noemt staat niet meer in het project; probeer het opnieuw op wat de \
+                 pagina nu toont"
+                    .to_owned()
+            )
         );
     }
 }

@@ -3,17 +3,66 @@
 
 # The rule messages in en-GB (doc 15 §3.8; WP-S1.16 D6): the mandatory language and the fallback of every other.
 # Every registered rule has `rule-<id lower case>` with `.title` (the catalogue title) and `.hint`. A rule whose
-# findings carry arguments also has the message's value, which renders the finding's message byte for byte.
+# findings carry arguments also has the message's value, which renders the finding's message byte for byte. An
+# integrity rule of opening a project (`INTEGRITY`) has its `.title`, since its findings reach the Messages pane.
 
 ## EW-CORE: integrity, pages, cables, parts, interruption points, texts, the rule system
+
+rule-ew-core-001 =
+    .title = Manifest damaged
+
+rule-ew-core-002 =
+    .title = Mixed generation
+
+rule-ew-core-003 =
+    .title = Listed file missing
+
+rule-ew-core-004 =
+    .title = Orphan file
+
+rule-ew-core-005 =
+    .title = JSON syntax error
+
+rule-ew-core-006 =
+    .title = Git conflict markers
+
+rule-ew-core-007 =
+    .title = Schema violation
 
 rule-ew-core-008 =
     .title = Dangling reference
     .hint = Restore the referenced record, or remove the reference with the quick fix.
 
+rule-ew-core-009 =
+    .title = Duplicate record ID
+
+rule-ew-core-010 =
+    .title = Record in the wrong file
+
 rule-ew-core-011 =
     .title = Conflict records present
     .hint = Take ours or theirs for each conflict with ew merge resolve, or delete the record that conflicts.
+
+rule-ew-core-012 =
+    .title = Structural invariant violated
+
+rule-ew-core-014 =
+    .title = Library copy modified
+
+rule-ew-core-015 =
+    .title = Asset missing
+
+rule-ew-core-016 =
+    .title = Data from a newer format
+
+rule-ew-core-017 =
+    .title = Malformed known variant
+
+rule-ew-core-018 =
+    .title = Unknown derivation profile
+
+rule-ew-core-019 =
+    .title = Reader limit exceeded
 
 rule-ew-core-021 =
     .title = Folio outside its section

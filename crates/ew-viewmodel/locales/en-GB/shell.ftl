@@ -4080,10 +4080,10 @@ toast-report-block-new = Added the report block { $p0 } from folio { $p1 }
 
 # FT-1337 and FT-1363 (ID-1359 ruling 1): a command error in the window, by its reason.
 error-command-unknown = There is no command { $p0 }
-error-command-not-found = A record the command names is no longer in the project; try again on what the page shows now
-error-command-human-only = Only a person can run { $p0 }, in the window; a script or a plugin cannot (ADR-0008)
+error-command-not-found = An item the command names is no longer in the project; try again on what the page shows now
+error-command-human-only = Only a person can run { $p0 }, in the window; a script or a plugin cannot
 error-command-import-only = { $p0 } runs only from an import
 error-command-internal-only = { $p0 } is run only by ElektraWatt itself, when a file changes on disk
-error-command-needs-preview = { $p0 } changes many records: it is previewed first, then applied
+error-command-needs-preview = { $p0 } changes many items: it is previewed first, then applied
 error-command-history = Undo or redo cannot apply: { $p0 }
 error-command-internal = An internal error stopped the command: { $p0 }

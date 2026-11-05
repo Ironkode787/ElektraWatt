@@ -444,7 +444,7 @@ fn a_scripted_window_shows_the_waive_refusal_in_words() {
     };
     assert_eq!(
         message,
-        "Only a person can run Waive finding, in the window; a script or a plugin cannot (ADR-0008)"
+        "Only a person can run Waive finding, in the window; a script or a plugin cannot"
     );
     let Some(Dialog::Form(form)) = shell.dialog() else {
         panic!("the prompt stays");

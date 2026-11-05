@@ -12,6 +12,7 @@ use ew_checks::messages::{
     self, DEFAULT_LANGUAGE, LANGUAGES, format, has, hint, message_id, render, resource_errors, title,
 };
 use ew_checks::rules;
+use ew_checks::rules::core::INTEGRITY;
 use serde_json::json;
 
 const SOURCES: [(&str, &str); 2] = [
@@ -52,6 +53,19 @@ fn every_rule_has_its_message_title_and_hint_in_en_gb() {
         );
     }
     assert!(missing.is_empty(), "en-GB lacks: {missing:#?}");
+    // The integrity rules of opening a project reach the Messages pane too (C51-p6#1): each has its title in every
+    // language, en-GB's the catalogue's.
+    for m in INTEGRITY {
+        assert_eq!(
+            title(m.id, DEFAULT_LANGUAGE).as_deref(),
+            Some(m.title),
+            "{}: the en-GB title is the catalogue title",
+            m.id
+        );
+        for lang in LANGUAGES {
+            assert!(has(m.id, Some("title"), lang), "{lang} has no title for {}", m.id);
+        }
+    }
     for lang in LANGUAGES.iter().filter(|l| **l != DEFAULT_LANGUAGE) {
         let absent: Vec<&str> = rules()
             .iter()
@@ -68,11 +82,16 @@ fn every_rule_has_its_message_title_and_hint_in_en_gb() {
     }
 }
 
-/// Every message of every resource names a registered rule, once; a language never has a pattern (a value) that en-GB
+/// Every message of every resource names a registered rule or an integrity rule, once; a language never has a pattern (a value) that en-GB
 /// lacks, so a translated text always has the en-GB text it falls back to.
 #[test]
 fn every_message_names_a_registered_rule_once() {
-    let known: BTreeSet<String> = rules().iter().map(|r| message_id(r.meta().id)).collect();
+    let known: BTreeSet<String> = rules()
+        .iter()
+        .map(|r| r.meta())
+        .chain(INTEGRITY)
+        .map(|m| message_id(m.id))
+        .collect();
     for (lang, source) in SOURCES {
         let list = ids(source);
         let distinct: BTreeSet<&str> = list.iter().copied().collect();

@@ -782,3 +782,33 @@ fn ten_thousand_nodes_flatten_filter_and_sort() {
     assert_eq!(label(&flat[0]), "-99K98");
     assert_eq!(label(&flat[9_899]), "-0K0");
 }
+
+/// FT-1347 (C51-p6#6): a script's `step` near `i64::MAX` with the cursor past row 0 stops at the last row (no
+/// overflow).
+#[test]
+fn ft1347_a_huge_navigator_step_stops_at_the_last_row() {
+    let tmp = Tmp::new();
+    let mut shell = tmp.shell(false);
+    let row = |s: &ShellModel| s.nav(NavKind::Devices).and_then(|n| n.cursor_key());
+    done(&mut shell, "navigator.show", json!({"kind": "devices"}));
+    done(
+        &mut shell,
+        "navigator.row",
+        json!({"kind": "devices", "to": "last"}),
+    );
+    let last = row(&shell);
+    assert!(last.is_some());
+    done(
+        &mut shell,
+        "navigator.row",
+        json!({"kind": "devices", "to": "first"}),
+    );
+    done(&mut shell, "navigator.row", json!({"kind": "devices", "step": 1}));
+    assert_ne!(row(&shell), last, "the cursor is on row 1");
+    done(
+        &mut shell,
+        "navigator.row",
+        json!({"kind": "devices", "step": i64::MAX}),
+    );
+    assert_eq!(row(&shell), last);
+}

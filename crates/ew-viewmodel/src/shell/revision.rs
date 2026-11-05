@@ -1487,6 +1487,20 @@ mod tests {
         }
     }
 
+    /// FT-1314 (C51-p6#2): in a Dutch window the approval names a safety waiver in force by its rule's Dutch title.
+    #[test]
+    fn a_dutch_approval_names_the_waiver_in_force_by_its_dutch_title() {
+        let unacknowledged = ApproveError::Unacknowledged(vec![WAIVER.parse().expect("an ID")]);
+        assert!(strings::set_locale("nl"));
+        let words = approve_words(&unacknowledged, Some(&waived("-K1", WAIVER)), &Value::Null);
+        assert!(strings::set_locale("en"));
+        assert_eq!(
+            words,
+            "De goedkeuring is geweigerd: de goedkeuring erkent de geldende veiligheidsvrijstellingen niet: \
+             Vier-ogenprincipe op -K1."
+        );
+    }
+
     /// FIX41b ruling 1: every `GateError` in words.
     #[test]
     fn every_gate_refusal_reads_in_words() {

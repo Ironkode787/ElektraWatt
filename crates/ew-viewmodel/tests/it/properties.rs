@@ -1139,6 +1139,25 @@ fn a_refused_row_action_names_why_the_row_refuses_it() {
     shell.shutdown();
 }
 
+/// FT-1347 (C51-p6#6): a script's `step` near `i64::MAX` with the cursor past row 0 stops at the last row (no
+/// overflow).
+#[test]
+fn ft1347_a_huge_properties_step_stops_at_the_last_row() {
+    let tmp = Tmp::new("props-ft1347");
+    let mut shell = writable(&tmp, "101");
+    done(&mut shell, "select.set", json!({"refs": ["tag:-101F1"]}));
+    done(&mut shell, "props.focus", json!({}));
+    done(&mut shell, "props.row", json!({"to": "last"}));
+    let last = shell.properties_row();
+    assert!(last.is_some());
+    done(&mut shell, "props.row", json!({"to": "first"}));
+    done(&mut shell, "props.row", json!({"step": 1}));
+    assert_ne!(shell.properties_row(), last, "the cursor is on row 1");
+    done(&mut shell, "props.row", json!({"step": i64::MAX}));
+    assert_eq!(shell.properties_row(), last);
+    shell.shutdown();
+}
+
 /// The refusal of a page item's narrowed row (ID-1113), whole.
 const NARROWED: &str =
     "This row cannot be edited: stays on its page; delete it and place it on the other page.";

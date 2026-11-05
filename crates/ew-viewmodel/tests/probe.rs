@@ -530,7 +530,7 @@ fn t2_a_human_only_command_is_refused_headless() {
     assert_eq!(
         message,
         format!(
-            "Only a person can run {}, in the window; a script or a plugin cannot (ADR-0008)",
+            "Only a person can run {}, in the window; a script or a plugin cannot",
             ew_viewmodel::strings::command_title("project.checks.set")
         )
     );

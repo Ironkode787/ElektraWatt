@@ -3844,10 +3844,10 @@ toast-report-block-new = Rapportblok { $p0 } toegevoegd vanaf folio { $p1 }
 
 # FT-1337 en FT-1363 (ID-1359 uitspraak 1): een opdrachtfout in het venster, naar de reden.
 error-command-unknown = Er is geen opdracht { $p0 }
-error-command-not-found = Een record dat de opdracht noemt staat niet meer in het project; probeer het opnieuw op wat de pagina nu toont
-error-command-human-only = Alleen een persoon kan { $p0 } uitvoeren, in het venster; een script of een plug-in kan dat niet (ADR-0008)
+error-command-not-found = Een element dat de opdracht noemt staat niet meer in het project; probeer het opnieuw op wat de pagina nu toont
+error-command-human-only = Alleen een persoon kan { $p0 } uitvoeren, in het venster; een script of een plug-in kan dat niet
 error-command-import-only = { $p0 } draait alleen vanuit een import
 error-command-internal-only = { $p0 } wordt alleen door ElektraWatt zelf uitgevoerd, als een bestand op schijf verandert
-error-command-needs-preview = { $p0 } wijzigt veel records: eerst volgt een voorbeeld, daarna toepassen
+error-command-needs-preview = { $p0 } wijzigt veel elementen: eerst volgt een voorbeeld, daarna toepassen
 error-command-history = Ongedaan maken of opnieuw uitvoeren lukt niet: { $p0 }
 error-command-internal = Een interne fout stopte de opdracht: { $p0 }

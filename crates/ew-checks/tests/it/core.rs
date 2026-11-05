@@ -230,6 +230,13 @@ fn core052_cases() {
                          flag one as the star source",
                         "case {c}"
                     );
+                    // FT-1334: the finding's own arguments word it in Dutch (C51-p6#5).
+                    assert_eq!(
+                        ew_checks::messages::render(&f[0], "nl-NL"),
+                        "onderbrekingspunt X: 2 bronpunten en geen sterbron; maak ze op één na tot doel, of markeer \
+                         er één als sterbron",
+                        "case {c}"
+                    );
                 },
             ),
             Case::reports("two star flags are ambiguous", two_stars, |c, f| {
@@ -238,6 +245,11 @@ fn core052_cases() {
                 assert_eq!(
                     f[0].message,
                     "interruption point X: 2 points are flagged as star source; keep the flag on one of them",
+                    "case {c}"
+                );
+                assert_eq!(
+                    ew_checks::messages::render(&f[0], "nl-NL"),
+                    "onderbrekingspunt X: 2 punten zijn als sterbron gemarkeerd; laat de markering op één ervan staan",
                     "case {c}"
                 );
             }),
