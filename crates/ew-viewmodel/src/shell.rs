@@ -2400,6 +2400,12 @@ impl ShellModel {
                 reason_key: key!("reason-no-project"),
             };
         };
+        // FT-1425 (ID-1395): the `library.embed` that a `plc.set_profile` naming a library's profile runs first (WP-S7.03
+        // D8), an undo step of its own, joins the record before it, so the recorded script replays without the library.
+        let embed = (cmd == "plc.set_profile")
+            .then(|| params.get("profile").and_then(Value::as_str))
+            .flatten()
+            .and_then(|p| project.session.profile_embed(p));
         let before = project.session.history().cursor();
         let result = project.session.run_script(&log, &file);
         let committed = project.session.history().cursor() > before;
@@ -2422,6 +2428,12 @@ impl ShellModel {
         };
         if committed && outcome == Outcome::Done {
             self.record.undone.clear();
+            if let Some(embed) = embed {
+                self.record.steps.push(RecordedCommand {
+                    cmd: embed.name.to_string(),
+                    params: embed.params,
+                });
+            }
             self.record.steps.push(RecordedCommand { cmd, params });
         }
         self.refresh();
