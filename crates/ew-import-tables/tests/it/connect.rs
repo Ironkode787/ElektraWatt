@@ -603,7 +603,8 @@ fn a_bad_route_drops_the_row() {
         ),
         (
             "W1,101,-1F1:2,-3F1:1,B2 -10 40",
-            "row dropped: column `route`: `-3F1:1` is not a CP drawn by a symbol on the connection's page",
+            "row dropped: column `route`: `-3F1:1` is not a CP drawn by a symbol or a black box, nor a junction, on \
+             the connection's page",
         ),
         (
             "W1,101,-1F1:2,-2F1:1,B2 -10",

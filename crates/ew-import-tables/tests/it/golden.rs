@@ -867,3 +867,55 @@ fn the_import_is_deterministic() {
     assert_eq!(json(&a), json(&b));
     assert_eq!(a.report.entries, b.report.entries);
 }
+
+/// FT-1419: a `route` may start at a CP that a black box draws and end at a junction: Golden A's `J3.1`, from
+/// -102G1's `+` to J3 on page 102, with one corner on the CP's column and the junction's row.
+#[test]
+fn a_route_runs_from_a_black_box_cp_to_a_junction() {
+    let plain = golden();
+    let base = connection(&plain, "J3.1");
+    let Endpoint::Cp(f, idx) = base.a else {
+        panic!("J3.1 starts at a CP: {:?}", base.a)
+    };
+    let rep_id: Id<Representation> = record_id("representations", "-102G1");
+    let rep = plain
+        .records
+        .iter()
+        .find_map(|r| match r {
+            Record::Representation(r) if r.id == rep_id => Some(r.clone()),
+            _ => None,
+        })
+        .expect("-102G1's representation");
+    assert_eq!(rep.functions[0], f);
+    let local = rep.box_.as_ref().expect("a box").cps.iter().find(|c| c.idx == idx).unwrap().pos;
+    let a = Pt2::new(Nm(rep.pos.x.0 + local.x.0), Nm(rep.pos.y.0 + local.y.0));
+    let j: Id<ew_schema::Junction> = record_id("junctions", "J3");
+    let b = plain
+        .records
+        .iter()
+        .find_map(|r| match r {
+            Record::Junction(x) if x.id == j => Some(x.at),
+            _ => None,
+        })
+        .expect("J3");
+    // J3 lies at the centre of C6; the corner is that cell moved to the CP's column (in QET px).
+    let px = |v: Nm| Grid::QET_1PX.snap(v);
+    let dx = px(a.x) - px(b.x);
+    let row = "J3.1,,102,-102G1:+#1,@J3,,,,,,,,,,";
+    let text = std::fs::read_to_string(common::tables_dir().join("connections.csv")).unwrap();
+    assert!(text.contains(row));
+    let text = text.replace(row, &format!("{row}C6 {dx} 0"));
+    let inputs: Vec<ew_interop_api::ImportInput> = common::golden_inputs()
+        .into_iter()
+        .map(|i| {
+            if i.name() == "connections.csv" {
+                ew_interop_api::ImportInput::new("connections.csv", text.as_bytes().to_vec()).unwrap()
+            } else {
+                i
+            }
+        })
+        .collect();
+    let routed = common::import(&inputs).expect("the golden tables import");
+    assert_eq!(routed.report.entries, plain.report.entries);
+    assert_eq!(connection(&routed, "J3.1").route, [a, Pt2::new(a.x, b.y), b]);
+}

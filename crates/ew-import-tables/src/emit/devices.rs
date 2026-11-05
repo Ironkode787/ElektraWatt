@@ -887,19 +887,22 @@ pub(crate) fn emit_representations(cx: &mut Cx<'_>, table: Option<&Table>) {
         }
         seen.insert(row.key().to_owned(), ());
         let rep_id = record_id("representations", row.key());
-        if box_.is_none() {
-            // where the symbol draws the CPs of its first function (`ew_derive::rep_cp_end` without a pin map)
-            for (idx, local) in &sym_cps {
-                let Some(point) = pos.checked_add(*local) else {
-                    continue;
-                };
-                let slot = cx
-                    .cp_points
-                    .entry((ids[0], *idx, page_info.id))
-                    .or_insert((rep_id, point));
-                if rep_id < slot.0 {
-                    *slot = (rep_id, point);
-                }
+        // where the symbol, else its black box (FT-1419), draws the CPs of its first function
+        // (`ew_derive::rep_cp_end` without a pin map)
+        let drawn: Vec<(u16, Pt2)> = match &box_ {
+            Some(b) if sym_cps.is_empty() => b.cps.iter().map(|c| (c.idx, c.pos)).collect(),
+            _ => sym_cps,
+        };
+        for (idx, local) in &drawn {
+            let Some(point) = pos.checked_add(*local) else {
+                continue;
+            };
+            let slot = cx
+                .cp_points
+                .entry((ids[0], *idx, page_info.id))
+                .or_insert((rep_id, point));
+            if rep_id < slot.0 {
+                *slot = (rep_id, point);
             }
         }
         cx.records.push(Record::Representation(Representation {

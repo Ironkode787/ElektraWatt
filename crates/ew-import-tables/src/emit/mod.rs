@@ -170,6 +170,9 @@ pub(crate) struct Cx<'l> {
     pub(crate) device_functions: BTreeMap<String, Vec<String>>,
     /// `junctions` keys (registered before the connections, which may end at them).
     pub(crate) junctions: BTreeMap<String, Id<Junction>>,
+    /// Where each registered junction lies, the point the stored route of a `connections.csv` row starts or ends at
+    /// when it ends at the junction (FT-1419).
+    pub(crate) junction_points: BTreeMap<Id<Junction>, (Id<Page>, Pt2)>,
     /// `conductors` keys.
     pub(crate) conductors: BTreeMap<String, Id<Conductor>>,
     /// `connections` keys.
@@ -205,6 +208,7 @@ impl<'l> Cx<'l> {
             functions: BTreeMap::new(),
             device_functions: BTreeMap::new(),
             junctions: BTreeMap::new(),
+            junction_points: BTreeMap::new(),
             conductors: BTreeMap::new(),
             connections: BTreeMap::new(),
             cp_points: BTreeMap::new(),

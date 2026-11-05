@@ -34,10 +34,20 @@ pub(crate) fn register_junctions(cx: &mut Cx<'_>, table: Option<&Table>) {
         if key.is_empty() || !seen.insert(key) || cx.junctions.contains_key(key) {
             continue;
         }
-        let page_known = row.get("page").is_some_and(|p| cx.pages.contains_key(p));
-        let cell_ok = row.get("cell").is_some_and(|c| parse_cell(c).is_ok());
-        if page_known && cell_ok {
-            cx.junctions.insert(key.to_owned(), record_id("junctions", key));
+        let page = row.get("page").and_then(|p| cx.pages.get(p)).copied();
+        let cell = row.get("cell").and_then(|c| parse_cell(c).ok());
+        if let (Some(page), Some(cell)) = (page, cell) {
+            let id = record_id("junctions", key);
+            cx.junctions.insert(key.to_owned(), id);
+            // where it lies, as `emit_junctions` places it (FT-1419)
+            let px = |c: &str| row.get(c).map_or(Some(0), |v| v.parse::<i64>().ok());
+            let at = px("dx")
+                .zip(px("dy"))
+                .and_then(|(dx, dy)| cell_point(cell, dx, dy))
+                .and_then(|t| place(page.grid, t, Pt2::ORIGIN).ok());
+            if let Some(at) = at {
+                cx.junction_points.insert(id, (page.id, at));
+            }
         }
     }
 }
@@ -304,7 +314,8 @@ fn route_cells(r: &mut Rd<'_>) -> Vec<((i64, i64), i64, i64)> {
 }
 
 /// The stored route of a connection on `page` with the corners `corners` (of [`route_cells`]): from the point where
-/// end `a` is drawn, through the corners, to the point where end `b` is drawn, as `connection.draw` stores it
+/// end `a` is drawn (a CP drawn by a symbol or a black box, or a junction on the page; FT-1419), through the corners,
+/// to the point where end `b` is drawn, as `connection.draw` stores it
 /// (`ew_commands::geometry::require_route`). A CP drawn by a symbol may lie off the page grid by the nm rounding of
 /// QET px, so a corner coordinate that names the same QET px as a coordinate of an end takes the end's exact value;
 /// every other corner coordinate must be a point of the page grid (never snapped, doc 06 §5.7).
@@ -318,10 +329,18 @@ fn stored_route(
     let end = |e: &Endpoint, text: &str| {
         match e {
             Endpoint::Cp(f, idx) => cx.cp_points.get(&(*f, *idx, page.id)).map(|(_, p)| *p),
+            Endpoint::Junction(j) => cx
+                .junction_points
+                .get(j)
+                .filter(|(on, _)| *on == page.id)
+                .map(|(_, p)| *p),
             _ => None,
         }
         .ok_or_else(|| {
-            format!("column `route`: `{text}` is not a CP drawn by a symbol on the connection's page")
+            format!(
+                "column `route`: `{text}` is not a CP drawn by a symbol or a black box, nor a junction, on the \
+                 connection's page"
+            )
         })
     };
     let (a, b) = (end(a, a_text)?, end(b, b_text)?);
