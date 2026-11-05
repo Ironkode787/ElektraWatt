@@ -20,6 +20,9 @@ cargo_metadata.workspace = true
 # `gen-icons` (WP-S2.17 part 6, D9): SVG path parsing for the icon table; already in the graph through ew-dl and
 # ew-render2d with the same features, no new package.
 kurbo = { version = "0.13.1", default-features = false, features = ["std"] }
+# `lane-check` (ID-1425): the lexer that tells a rewrite of a `.rs` file's layout alone; syn's own, already in the
+# graph through serde_derive, no new package.
+proc-macro2 = { version = "1.0.107", default-features = false }
 serde.workspace = true
 serde_json = "1.0.154"
 sha2.workspace = true
