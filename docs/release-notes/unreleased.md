@@ -7,6 +7,17 @@ SPDX-License-Identifier: CC-BY-4.0
 
 Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-variant`, `text-change`.
 
+- api-add: window Symbol editor (drawing, connection points, function data, text slots, anchors, live A–H
+  previews, library publication and scratch placement; small shape/function icons follow the main ribbon;
+  F1 opens the editor reference; WP-S2.10, in review for 0.2.0)
+- api-add: cli ew symbol template, schema, validate, import and publish (portable data-only authoring for
+  automation and AI tools, using the editor's validator; no project or library format 0.1 changes or migration)
+- api-add: symbol imports from QElectroTech .elmt, EPLAN EDZ/PXF and the supported SLK 1.2/FE53 drawing-table
+  subset (SLK requires its sibling .sdb folder but no EPLAN installation; unsupported features produce review
+  findings or refusal; binary macros and full EPLAN electrical semantics are not supported)
+- dependency: EPLAN archive decoding adds pinned sevenz-turbo 0.26.0, lzma-turbo 0.6.0, crc-fast 1.10.0,
+  spin 0.10.1 and zeroize 1.9.1 (release remains blocked pending dependency/licence review; no exceptions granted)
+
 - api-break: cli lib list --json (prints `{"$schema": "ew.lib-list-result/1", "libraries": [...]}` instead of a bare
   array; a Preview surface, WP-S1.22 D3 (d))
 - api-break: cli lib search --json (prints `{"$schema": "ew.lib-search-result/1", "hits": [...]}` instead of a bare

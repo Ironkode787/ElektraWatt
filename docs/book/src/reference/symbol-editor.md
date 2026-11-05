@@ -6,6 +6,8 @@ Choose A to draw; B–H show live rotated/mirrored previews. Select a graphic to
 its coordinates in **Drawing**. **Draw by coordinates** also creates geometry from the keyboard.
 Pin coordinates, directions and function mappings are editable in **Electrical data**.
 The command bar and status bar follow the active symbol; library paths and publication settings live in **Library**.
+The ribbon uses the same small icons, labels and selected state as the main window. **More shapes** contains
+ellipse, arc, polyline and polygon. Press **F1** in the editor to open this reference.
 Text fields can show tags, function text, technical data, pin designations or cross-references.
 **Advanced JSON** exposes the complete draft, including other slot types, styles and arrangements.
 

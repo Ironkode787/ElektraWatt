@@ -9,6 +9,7 @@ use crate::{
     theme,
 };
 use egui::{Pos2, Sense, Stroke, Ui, Vec2};
+use ew_viewmodel::command_bar::{ButtonKind, CommandButton, CommandSize};
 use ew_viewmodel::ew_api::symbols::{self, SymbolDraft};
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::strings;
@@ -79,24 +80,56 @@ fn display_text(v: &Value) -> String {
 }
 
 pub(crate) fn toolbar_height(t: &theme::Tokens) -> f32 {
-    2.0 * t.size_control + 3.0 * t.space_2
+    2.0 * t.size_command_small + 3.0 * t.space_2
 }
 
-const TOOLS: [&str; 13] = [
-    "select",
-    "line",
-    "rectangle",
-    "circle",
-    "ellipse",
-    "arc",
-    "text",
-    "cp",
-    "slot",
-    "anchor",
-    "link",
-    "polyline",
-    "polygon",
+// Drawing action parameter, translated caption and the shared icon key.
+const TOOLS: [(&str, &str, &str); 13] = [
+    ("select", "symbol-select", "pointer"),
+    ("line", "symbol-line", "ew-shape-line"),
+    ("rectangle", "symbol-rectangle", "ew-shape-rectangle"),
+    ("circle", "symbol-circle", "ew-shape-circle"),
+    ("ellipse", "symbol-ellipse", "ew-shape-ellipse"),
+    ("arc", "symbol-arc", "ew-shape-arc"),
+    ("text", "symbol-text", "typography"),
+    ("cp", "symbol-cp", "plug-connected"),
+    ("slot", "symbol-slot", "text-size"),
+    ("anchor", "symbol-anchor", "current-location"),
+    ("link", "symbol-link", "link"),
+    ("polyline", "symbol-polyline", "ew-shape-polyline"),
+    ("polygon", "symbol-polygon", "ew-shape-polygon"),
 ];
+
+fn ribbon_button(
+    ui: &mut Ui,
+    key: &'static str,
+    icon: &'static str,
+    checked: bool,
+    enabled: bool,
+    menu: bool,
+) -> egui::Response {
+    let name = label(strings::Key::run_time(key));
+    crate::command_bar::inline_command(
+        ui,
+        &CommandButton {
+            id: key,
+            label: name.to_owned(),
+            bar_label: name.to_owned(),
+            icon,
+            size: CommandSize::Small,
+            shortcut: String::new(),
+            enabled,
+            reason: (!enabled).then(|| label(strings::Key::run_time("reason-no-project")).to_owned()),
+            checked,
+            topic: Some("symbol-editor"),
+            kind: if menu {
+                ButtonKind::Menu(Vec::new())
+            } else {
+                ButtonKind::Plain
+            },
+        },
+    )
+}
 
 // MlText permits both neutral strings and language maps. Keep the form the author supplied.
 fn edit_text(value: &mut Value, text: &str) {
@@ -302,7 +335,15 @@ impl EditorView {
             for i in [0, 1, 2, 3] {
                 self.tool_button(ui, i);
             }
-            ui.menu_button(label(strings::Key::run_time("symbol-more-shapes")), |ui| {
+            let more = ribbon_button(
+                ui,
+                "symbol-more-shapes",
+                "category",
+                matches!(self.tool, 4 | 5 | 11 | 12),
+                true,
+                true,
+            );
+            egui::Popup::menu(&more).show(|ui| {
                 for i in [4, 5, 11, 12] {
                     if self.tool_button(ui, i) {
                         ui.close();
@@ -315,45 +356,22 @@ impl EditorView {
             }
         });
         ui.horizontal(|ui| {
-            if components::button_with_icon(
-                ui,
-                Kind::Primary,
-                Some(crate::icons::IconId::device_floppy),
-                label(strings::Key::run_time("symbol-save")),
-                true,
-                0.0,
-            )
-            .clicked()
-            {
+            if ribbon_button(ui, "symbol-save", "device-floppy", false, true, false).clicked() {
                 if self.directory.is_empty() {
                     self.panel = 2;
                 } else {
                     action(events, "symbol.save", json!({"directory":self.directory}));
                 }
             }
-            if button(ui, "symbol-import") {
+            if ribbon_button(ui, "symbol-import", "file-import", false, true, false).clicked() {
                 self.panel = 2;
             }
-            if components::button(
-                ui,
-                Kind::Secondary,
-                label(strings::Key::run_time("symbol-scratch")),
-                shell.has_project(),
-                0.0,
-            )
-            .clicked()
+            if ribbon_button(ui, "symbol-scratch", "eye", false, shell.has_project(), false).clicked()
+                && shell.has_project()
             {
                 action(events, "symbol.scratch", json!({}));
             }
-            if components::button(
-                ui,
-                Kind::Subtle,
-                label(strings::Key::run_time("symbol-close")),
-                true,
-                0.0,
-            )
-            .clicked()
-            {
+            if ribbon_button(ui, "symbol-close", "x", false, true, false).clicked() {
                 self.request(shell, events, "symbol.close", json!({}));
             }
             ui.separator();
@@ -366,12 +384,8 @@ impl EditorView {
     }
 
     fn tool_button(&mut self, ui: &mut Ui, index: usize) -> bool {
-        let clicked = ui
-            .selectable_label(
-                self.tool == index,
-                label(strings::Key::run_time(&format!("symbol-{}", TOOLS[index]))),
-            )
-            .clicked();
+        let (_, caption, icon) = TOOLS[index];
+        let clicked = ribbon_button(ui, caption, icon, self.tool == index, true, false).clicked();
         if clicked {
             self.tool = index;
             self.start = None;
@@ -628,7 +642,7 @@ impl EditorView {
                     8 => action(events, "symbol.slot", json!({"x":x,"y":y,"kind":slot_kind(self.slot_kind,self.slot_pin)})),
                     10 => action(events, "symbol.link", json!({"x":x,"y":y,"name":self.link_name})),
                     11 | 12 => self.vertices.push([x,y]),
-                    _ => action(events, "symbol.draw", json!({"tool":TOOLS[self.tool],"x":x,"y":y,"x2":x2,"y2":y2,"text":self.text})),
+                    _ => action(events, "symbol.draw", json!({"tool":TOOLS[self.tool].0,"x":x,"y":y,"x2":x2,"y2":y2,"text":self.text})),
                 }
             }
             if self.tool >= 11 && self.vertices.len() >= if self.tool == 12 { 3 } else { 2 } && button(ui, "symbol-finish-path") {

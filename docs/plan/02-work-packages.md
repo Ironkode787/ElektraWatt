@@ -1870,7 +1870,7 @@ Open: FT-1162 (texts built in `ew-api`), FT-1237, FT-1238, FT-1247 to FT-1265, F
 | Field | Value |
 |---|---|
 | Objective | Let users draw and maintain their own symbols with lint feedback. |
-| Scope in | Graphics, CP placement on the native grid, FnDef assignment, text slots and anchors, variants preview; ECAD authoring standard, AI JSON/CLI/actions, QET elements and bounded EPLAN EDZ/PXF/parts XML import |
+| Scope in | Graphics, CP placement on the native grid, FnDef assignment, text slots and anchors, variants preview; ECAD authoring standard, AI JSON/CLI/actions, QET elements and bounded EPLAN EDZ/PXF/parts XML and direct SLK drawing-table import |
 | Scope out | Library lint rules (WP-S7.04) |
 | Deliverables | Symbol editor; the migration of any project or library format change it brings (ADR-0011, ID-1325); its guide pages (a tutorial and the reference) |
 | Depends on | WP-S2.04; WP-S6.08 (the release: it is built once 0.1.0 is tagged) |
@@ -1883,8 +1883,12 @@ Open: FT-1162 (texts built in `ew-api`), FT-1237, FT-1238, FT-1247 to FT-1265, F
 
 *Status (2026-11-05, owner's implementation request; ID-1445 branch authority).* **Implementation in review** on
 `feature/symbol-editor`; [specification and evidence](specs/WP-S2.10-symbol-editor.md). No format 0.1 change.
-EPLAN PXF support is a documented subset; binary SLK remains unsupported. The owner explicitly keeps release blocked pending dependency review. Independent
-G-M2.5 review also remains a release gate. The feature branch is not merged into the working or release branch.
+EPLAN PXF and direct SLK support are documented subsets; binary macros remain unsupported. The brief audit in
+the specification lists unmet drag pin mapping and the visible imported-symbol fork workflow, plus the exact
+reference acceptance and release-gate evidence still needed. Small shape/function icons now use the main
+ribbon renderer, and F1 routes to the editor guide. The owner explicitly keeps release blocked pending dependency
+review. Independent G-M2.5 review also remains a release gate. The feature branch is not merged into the working
+or release branch.
 
 #### WP-S2.11 GUI test suite (egui_kittest)
 

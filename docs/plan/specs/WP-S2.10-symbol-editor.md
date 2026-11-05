@@ -52,10 +52,10 @@ QET element import and investigation/implementation of EDZ and native EPLAN symb
 | D4 | Use the existing geometry lowering for previews. A–H are derived, never eight separately maintained drawings. Keep pin identities and readable text. GraphicCentre is the initial cross-reference anchor; insertion origin is distinct. |
 | D5 | Validation is shared by GUI, headless authoring and import. Check finite bounded geometry, reference integrity, unique indices, CP mapping/discipline, the grid, slots, anchors, names and provenance. Errors block publishing; advice does not. This is editor validation, not WP-S7.04's library lint rules. |
 | D6 | Expose documented `symbol.*` actions and authoring JSON for AI programs. Millimetre action parameters, templates and concrete examples avoid hand-managing IDs. Draft changes and validation are available without an external service. No generated code or remote URLs execute. |
-| D7 | Save through the library writer, preserving its lock, writability, semantic-version and atomic-generation rules. New symbols have their own function definition; assigning an existing definition retains its semantics. Test placement uses the existing placement command with embedded copies and one undo transaction. |
+| D7 | Save through the library writer, preserving its lock, writability, semantic-version and atomic-generation rules. New symbols have their own function definition; assigning an existing definition retains its semantics. Placement uses the existing command with embedded copies and one undo transaction. Creating a scratch page is a separate undoable operation; undo placement, then undo page creation. |
 | D8 | QET `.elmt` uses the existing bounded reader and keeps the QET grid, origin, unsupported-data report and source. A native-grid conversion is not implicit. |
 | D9 | EPLAN scope includes EDZ and `.slk/.ema/.ems` as requested. Verify against manufacturer downloads kept outside the repository. Record supported input versions and feature losses. Binary macro/symbol decoding requires evidence; a factual-data fallback must be explicitly identified as a generated symbol, with original graphics unavailable. |
-| D10 | UI follows doc 16a: drawing leads, task-ordered labelled tools, properties beside it, validation in words, all identifiers readable. Inspect at 1920×1080 and 1280×800. New text lives in en-GB and nl-NL. |
+| D10 | UI follows doc 16a: drawing leads, task-ordered labelled tools, properties beside it, validation in words, all identifiers readable. Use the main ribbon's small-button renderer: 16 px icons with labels, shared theme tokens and active states. Geometric glyphs use the existing EW 24-unit icon set; functions reuse existing icons. Inspect at 1920×1080 and 1280×800. New text lives in en-GB and nl-NL. |
 
 ## 5. Build order (one lane)
 
@@ -170,3 +170,34 @@ named variant controls, numeric keyboard creation and a discard confirmation. Fu
 source and optional-pin flags are visible without JSON. Printing a designation does not set electrical meaning.
 The correction set has targeted regressions and offscreen checks at 1280×800 and 1920×1080; independent
 re-review is still pending. The owner's dependency-review release block remains in force; no exemption was added.
+
+## 11. Orchestrator brief audit (2026-11-05)
+
+**Not complete.** This audit compares the implementation with the original WP-S2.10 handoff, doc 07 §5 and
+[G-M2.5](../03-gates.md#55a-g-m25-symbol-editor-release-020-m25). It does not replace their acceptance criteria
+with the smaller synthetic fixture in §6. It is an implementation audit, not an independent acceptance review.
+
+| Requirement | Current evidence and remaining work |
+|---|---|
+| Graphics, native-grid CPs, slots, anchors, link points, live A–H | Implemented through shared authoring actions and the production renderer. The initial anchor is GraphicCentre. Unit/action tests and offscreen examples exist; exact reference acceptance remains below. |
+| Doc 07 §5 FnDef panel with CP table and drag assignment | **Partial:** numeric `fn_cp` mapping and an existing-function library-key field work. Drag assignment is not implemented. A browsable function picker would also improve the current key-entry workflow. |
+| Doc 07 §5 fork from QET import | **Partial:** `.elmt` opening and the shared `symbol.fork` action work. There is no visible editor command to fork an existing imported project/library symbol; complete that GUI route and its FnDef assignment flow. |
+| Scratch test placement and lint feedback | Implemented. The page uses the symbol's grid; placement on an incompatible existing page is refused. Page creation and placement are two undo operations. Editor validation is included; WP-S7.04 library lint remains out of scope. |
+| Doc 16a appearance and small shape/function icons | The editor now reuses the main ribbon's small-button renderer, icons, text size, tooltips and active state. Its contextual layout still needs independent visual acceptance at both required sizes. |
+| G-M2.5-01: exact reference power block, saved, placed, wired and reported | **Pending:** the six-pin synthetic fixture is not the specified reference reproduction. Complete the exact picture-based flow, wiring/report checks and preview comparison in kittest and a built-binary script. Keep private reference data out of the public repository. |
+| G-M2.5-02: off-grid refusal at save, in words; fine graphics saved | Validator/publication tests cover refusal and fine graphics; action tests cover the full error wording. **Partial gate evidence:** complete the explicit kittest save attempt at 4.5 mm and successful 0.5 mm graphics save. |
+| G-M2.5-03: picture-only blind personas | **Pending** on the release candidate, including severity fixes and persona reruns. Author-operated screenshots do not satisfy it. |
+| G-M2.5-04: release pipeline, advisories/fuzz/hostile inputs/network policy | **Blocked/pending:** the owner's dependency-review block remains. Targeted tests are not the end-to-end release dossier. |
+| G-M2.5-05: tutorial/reference, offline F1, release notes | Guide pages and SUMMARY entries exist. This revision adds editor/action F1 routing and release-note entries. **Pending:** verify the final release's offline bundle and CI documentation gate. |
+| G-M2.5-06: formats and migration | No changes to the 0.1 project/library format; no migration is introduced. **Pending:** the release fixture corpus on the 0.2.0 candidate. |
+| G-M2.5-07: still-applicable G-M2 and AC-24 | **Pending** on the 0.2.0 candidate; no full regression-gate claim. |
+| Owner additions: design standard, AI authoring, QET/EPLAN import | Standard, schema/template/validate/publish and QET element import are implemented. EDZ/PXF and direct SLK have the explicit supported subsets above. Native binary macros and full EPLAN electrical/part semantics remain unsupported. |
+
+Remaining build order, within the same feature branch: finish drag pin mapping and the visible import-fork
+workflow; execute the exact reference and grid-save acceptance flows; obtain independent re-review and the
+picture-only persona round; verify offline documentation and the release fixture/regression/pipeline evidence.
+Dependency review and release promotion stay with their authorised owners. Do not describe the package as
+complete or merge it into the working/release branches before those decisions and gates.
+
+Proposed **FT-?**: implement the missing drag assignment and visible imported-symbol fork workflow, retaining
+the shared validation and headless actions. These are unmet brief items, not an approved descope.

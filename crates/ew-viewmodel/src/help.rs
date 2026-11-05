@@ -37,6 +37,11 @@ const WINDOW: &str = "how-to/application-window.md";
 
 /// The anchors, in no particular order; `topic` is unique.
 pub static ANCHORS: &[Anchor] = &[
+    on(
+        "reference/symbol-editor.md",
+        "symbol-editor",
+        "symbol-editor-and-automated-authoring",
+    ),
     Anchor {
         topic: "home",
         page: "introduction.md",
@@ -230,6 +235,7 @@ pub fn action_topic(action: &str) -> Option<&'static str> {
         "messages.show" => "nav-messages",
         "strip.edit" => "strip-editor",
         "navigator.table" => "table-mode",
+        a if a.starts_with("symbol.") => "symbol-editor",
         a if a.starts_with("tool.") => return tool_topic(a),
         a if a.starts_with("view.workspace") => "workspaces",
         // WP-S2.17 part 2 (CB1): every command of the command bar has a page; until the book has a command-bar
@@ -252,6 +258,9 @@ pub fn context_topic(model: &ShellModel) -> &'static str {
     }
     if let Some(dialog) = model.dialog() {
         return dialog_topic(dialog);
+    }
+    if model.symbol_editor().is_some() {
+        return "symbol-editor";
     }
     if let Some(topic) = focus_topic(model) {
         return topic;

@@ -475,6 +475,13 @@ fn command_button(ui: &Ui, t: &Tokens, b: &CommandButton, rect: Rect) -> (Respon
     (response, chevron)
 }
 
+/// A command in a contextual toolbar, with the main ribbon's sizing, painting and accessible name.
+pub(crate) fn inline_command(ui: &mut Ui, b: &CommandButton) -> Response {
+    let t = theme::current(ui.ctx());
+    let (rect, _) = ui.allocate_exact_size(button_size(ui, &t, b), Sense::hover());
+    command_button(ui, &t, b, rect).0
+}
+
 /// A menu of `items`: each an entry with its shortcut, greyed with its reason when disabled.
 fn items_menu(ui: &mut Ui, items: &[ActionItem], events: &mut Vec<Event>) {
     for i in items {

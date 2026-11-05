@@ -6,6 +6,35 @@ use ew_viewmodel::shell::{Mode, Outcome, ShellConfig, ShellModel};
 use serde_json::json;
 
 #[test]
+fn editor_f1_opens_its_reference_in_both_frontends() {
+    for mode in [Mode::Headless, Mode::Gui] {
+        let tmp = Tmp::new("symbol-help");
+        let mut shell = ShellModel::new(mode, ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"));
+        done(
+            &mut shell,
+            "symbol.new",
+            json!({"key":"example.help","name":"Help"}),
+        );
+        done(&mut shell, "help.documentation", json!({}));
+        assert_eq!(
+            shell.last_help(),
+            Some("reference/symbol-editor.html#symbol-editor-and-automated-authoring")
+        );
+        assert_eq!(
+            ew_viewmodel::help::action_topic("symbol.new"),
+            Some("symbol-editor")
+        );
+        done(&mut shell, "symbol.close", json!({"discard":true}));
+        done(&mut shell, "help.documentation", json!({}));
+        assert_eq!(
+            shell.last_help(),
+            Some("how-to/application-window.html#start-page")
+        );
+        shell.shutdown();
+    }
+}
+
+#[test]
 fn editor_power_block_history_export_save_and_place_in_both_frontends() {
     for mode in [Mode::Headless, Mode::Gui] {
         let tmp = Tmp::new("symbol-editor");
