@@ -156,11 +156,11 @@ fn catalogue_order(s: &Session) -> Vec<(String, String, bool)> {
         .collect()
 }
 
-/// FT-1087 (ID-1184): the chooser has one order, (maker, part number), across the parts the project holds and those of
-/// the libraries it does not; embedding a part (here by the Parts row's `part.assign`, which carries the part with its
-/// closure) does not move it.
+/// FT-1087 (ID-1184) as FT-1375 (ID-1391) amends it: the chooser lists the parts the project holds first, then those
+/// of the libraries it does not, each by (maker, part number); embedding a part (here by the Parts row's
+/// `part.assign`, which carries the part with its closure) moves it to the front, among the project's own.
 #[test]
-fn embedding_a_library_part_does_not_move_it_in_the_catalogue() {
+fn embedding_a_library_part_moves_it_among_the_projects_parts() {
     let (mut s, device) = with_device();
     let before = catalogue_order(&s);
     assert!(before.len() > 2, "the starter parts are listed");
@@ -169,7 +169,7 @@ fn embedding_a_library_part_does_not_move_it_in_the_catalogue() {
     let mut sorted = keys.clone();
     sorted.sort_unstable();
     assert_eq!(keys, sorted, "maker, then part-number order");
-    // A part that is not the first of its maker: embedding it must not bring it to the front of the maker's group.
+    // A part that is not the first of its maker: embedding it brings it to the front.
     let number = before[before.len() / 2].1.clone();
     let copy = library_copy(&s, &number);
     let value = json!([{"part": {"copy": copy.to_string()}, "qty": "1"}]);
@@ -188,14 +188,14 @@ fn embedding_a_library_part_does_not_move_it_in_the_catalogue() {
         after.iter().any(|(_, n, held)| *held && *n == number),
         "{number} is the held one"
     );
+    assert_eq!(after[0].1, number, "the project's own part first");
     let names = |v: &[(String, String, bool)]| -> Vec<(String, String)> {
         v.iter().map(|(m, n, _)| (m.clone(), n.clone())).collect()
     };
-    assert_eq!(
-        names(&after),
-        names(&before),
-        "the same order after the embedding"
-    );
+    let mut expected = names(&before);
+    let moved = expected.remove(before.len() / 2);
+    expected.insert(0, moved);
+    assert_eq!(names(&after), expected, "the others keep their order");
 }
 
 /// FT-1087 (ID-1184): a part names its maker by the library record's name, not its key: a library part whose

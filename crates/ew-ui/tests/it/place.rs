@@ -463,3 +463,73 @@ fn ft890_the_device_picker_is_titled_insert_device_and_the_symbol_picker_insert_
     assert!(h.query_by_label("Insert device").is_none());
     h.state_mut().shell_mut().shutdown();
 }
+
+/// FT-1375 (R0-F1, ID-1391): on GP-UT (Golden A without -102F1 and its four wires), folio 102, Draw ▸ Place ▸ Device
+/// from part… (its key from the keymap) filtered by `A9F78116` lists the project's own copy, which has no function
+/// template; choosing it asks for its symbol, and the MCB symbol places -102F1 with its part, in one undo step.
+#[test]
+fn ft1375_device_from_part_places_the_projects_a9f78116_as_102f1_on_gp_ut() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "102");
+    let gp_ut = std::fs::read_to_string(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../golden/J-E-2416/variants/gp-ut.ewcmd"),
+    )
+    .expect("the GP-UT log");
+    let line: Value = serde_json::from_str(gp_ut.lines().nth(1).expect("its command")).unwrap();
+    dispatch(&mut h, "command.run", line);
+    settle(&mut h);
+    let (key, mods) = chord_of(&h, "tool.place_part");
+    h.key_press_modifiers(mods, key);
+    settle(&mut h);
+    assert!(h.query_by_label("Insert device").is_some(), "titled Insert device");
+    h.get_all_by_role(egui::Role::TextInput)
+        .next()
+        .expect("the filter field")
+        .type_text("A9F78116");
+    settle(&mut h);
+    let picker = h.state().shell().picker().expect("the picker");
+    let rows: Vec<String> = picker.rows.iter().map(|r| picker.row_line(*r)).collect();
+    assert_eq!(rows, ["row part \"A9F78116\" symbol"]);
+    assert!(
+        h.query_by_label_contains("Miniature circuit breaker 1P").is_some(),
+        "the row leads with the part's description"
+    );
+    press(&mut h, Key::Enter);
+    assert!(
+        h.query_by_label("Choose a symbol for A9F78116").is_some(),
+        "the symbols for the part"
+    );
+    h.get_all_by_role(egui::Role::TextInput)
+        .next()
+        .expect("the filter field")
+        .type_text("mcb-1p@");
+    settle(&mut h);
+    let picker = h.state().shell().picker().expect("the picker");
+    let rows: Vec<String> = picker.rows.iter().map(|r| picker.row_line(*r)).collect();
+    assert_eq!(rows, ["row symbol \"mcb-1p\" embedded \"ew.iec.mcb-1p@qet10\""]);
+    let before = reps(&h);
+    press(&mut h, Key::Enter);
+    assert_eq!(h.state().shell().tool().name(), "place");
+    press(&mut h, Key::ArrowRight);
+    press(&mut h, Key::Enter);
+    assert_eq!(reps(&h), before + 1);
+    assert_eq!(
+        h.state().shell().toast().map(|t| t.text.clone()).as_deref(),
+        Some("Placed -102F1 at 102-F8")
+    );
+    // The placed device is selected; its Properties name the part.
+    let describe = h.state().shell().describe();
+    let lines: Vec<&str> = describe.lines().filter(|l| l.contains("A9F78116")).collect();
+    assert_eq!(
+        lines,
+        [
+            "    row \"device/parts\" \"Parts\" \"A9F78116 × 1\" authored actions edit clear",
+            "    row \"device/parts[0].part\" \"Part\" \"A9F78116 (Schneider Electric)\" library \"v1.0.0\" actions edit"
+        ]
+    );
+    // One undo step takes the device and its part use back.
+    h.key_press_modifiers(Modifiers::COMMAND, Key::Z);
+    settle(&mut h);
+    assert_eq!(reps(&h), before);
+    h.state_mut().shell_mut().shutdown();
+}

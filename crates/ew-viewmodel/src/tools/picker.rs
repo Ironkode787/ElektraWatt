@@ -9,6 +9,11 @@
 //! symbol's name and keywords and a part's description and category (cycle 36), every typed token somewhere in the
 //! row; Up, Down, Home and End move the row; Enter chooses; Escape closes.
 //!
+//! **Device from part** (FT-1375, ID-1391) lists the project's own part copies first, then the libraries' parts; a
+//! held copy without a function template is one row ([`PickerRow::Part`]), whose choice lists the allowed symbols
+//! that are no black box, one of which places the part (`device.place` `from_part`, entry 0). Its empty state under
+//! a filter names Edit ▸ Choose part… as the next step.
+//!
 //! A row is disabled with a reason when the page's type does not allow the symbol's representation type or when a
 //! template function has no symbol on the page. In exchange mode (§7.5) only the allowed symbol rows are listed. A
 //! black-box row (a black-box symbol, or a template function that is a black box) arms the black box tool instead of
@@ -68,6 +73,9 @@ pub enum PickerRow {
     PartFn(usize, usize),
     /// A strip of the strip chooser: an index into the catalogue's strips.
     Strip(usize),
+    /// A part copy of the project without a function template (FT-1375): an index into the catalogue's parts;
+    /// choosing it lists the symbols to place it with ([`Picker::part`]).
+    Part(usize),
 }
 
 /// The terminal placement a strip chooser was opened for: the terminal symbol and the parameters of the choice that
@@ -100,6 +108,9 @@ pub struct Picker {
     pub rows: Vec<PickerRow>,
     /// The terminal placement of the strip chooser.
     pub pending: Option<PendingTerminal>,
+    /// The chosen part without a function template (FT-1375): an index into the catalogue's parts; while set, the
+    /// rows are the allowed symbols that are no black box, one of which places the part.
+    pub part: Option<usize>,
 }
 
 impl Picker {
@@ -113,6 +124,7 @@ impl Picker {
             folio: folio.to_owned(),
             rows: Vec::new(),
             pending: None,
+            part: None,
         };
         p.refilter();
         p
@@ -146,6 +158,19 @@ impl Picker {
             self.row = 0;
             return;
         }
+        // FT-1375: the symbols a part without a function template can be placed with.
+        if self.part.is_some() {
+            for (i, s) in self.catalogue.symbols.iter().enumerate() {
+                let mut texts = vec![s.key.as_str(), s.fndef_key.as_str()];
+                texts.extend(s.words.iter().map(String::as_str));
+                if s.allowed && !s.black_box && hits(&texts) {
+                    rows.push(PickerRow::Symbol(i));
+                }
+            }
+            self.rows = rows;
+            self.row = 0;
+            return;
+        }
         if self.mode != PickerMode::Parts {
             for (i, s) in self.catalogue.symbols.iter().enumerate() {
                 if self.mode == PickerMode::Exchange && !s.allowed {
@@ -164,14 +189,28 @@ impl Picker {
         if self.mode != PickerMode::Exchange {
             // FT-425 (WP-S2.17 part 4): the part rows grouped by manufacturer, under the manufacturer's header
             // ([`Picker::header_before`]); the filter matches the manufacturer too. FT-1087 (ID-1184): one order,
-            // (manufacturer, part number), whether a part is embedded or not, the catalogue's order within a tie.
+            // (manufacturer, part number), the catalogue's order within a tie; FT-1375 (ID-1391): the project's own
+            // copies before the libraries' parts.
             let mut parts: Vec<usize> = (0..self.catalogue.parts.len()).collect();
             parts.sort_by(|a, b| {
                 let (a, b) = (&self.catalogue.parts[*a], &self.catalogue.parts[*b]);
-                (&a.manufacturer, &a.part_number).cmp(&(&b.manufacturer, &b.part_number))
+                (a.library.is_some(), &a.manufacturer, &a.part_number).cmp(&(
+                    b.library.is_some(),
+                    &b.manufacturer,
+                    &b.part_number,
+                ))
             });
             for p in parts {
                 let part = &self.catalogue.parts[p];
+                // FT-1375: Device from part lists a held copy without a function template as one row.
+                if part.functions.is_empty() {
+                    let mut texts = vec![part.part_number.as_str(), part.manufacturer.as_str()];
+                    texts.extend(part.words.iter().map(String::as_str));
+                    if self.mode == PickerMode::Parts && hits(&texts) {
+                        rows.push(PickerRow::Part(p));
+                    }
+                    continue;
+                }
                 for (k, func) in part.functions.iter().enumerate() {
                     if self.mode == PickerMode::BlackBox && !func.black_box {
                         continue;
@@ -196,7 +235,9 @@ impl Picker {
     /// differs from the row before it (or that is the first part row); `None` for every other row.
     pub fn header_before(&self, i: usize) -> Option<&str> {
         let manufacturer = |row: Option<&PickerRow>| match row {
-            Some(PickerRow::PartFn(p, _)) => self.catalogue.parts.get(*p).map(|x| x.manufacturer.as_str()),
+            Some(PickerRow::PartFn(p, _) | PickerRow::Part(p)) => {
+                self.catalogue.parts.get(*p).map(|x| x.manufacturer.as_str())
+            }
             _ => None,
         };
         let here = manufacturer(self.rows.get(i))?;
@@ -206,12 +247,16 @@ impl Picker {
 
     /// The string key of the text the picker shows instead of rows; `None` while it has rows. With a filter typed it
     /// is `picker-empty` ("Nothing matches the filter"); with the filter empty the list itself is empty, and the text
-    /// says what is missing for the mode (a fresh project has no part copies, so Device lists nothing).
+    /// says what is missing for the mode (a fresh project has no part copies, so Device lists nothing). FT-1375
+    /// (ID-1391): Device from part's empty state names Choose part… as the next step (`picker-empty-parts-filter`).
     pub fn empty_text(&self) -> Option<Key<'static>> {
         if !self.rows.is_empty() {
             return None;
         }
         if !self.filter.is_empty() {
+            if self.mode == PickerMode::Parts && self.part.is_none() {
+                return Some(key!("picker-empty-parts-filter"));
+            }
             return Some(key!("picker-empty"));
         }
         Some(match self.mode {
@@ -225,6 +270,13 @@ impl Picker {
     /// Sets the filter.
     pub fn set_filter(&mut self, text: &str) {
         self.filter = text.to_owned();
+        self.refilter();
+    }
+
+    /// FT-1375: lists the symbols to place part `p` (a part without a function template) with, the filter empty.
+    pub fn choose_part(&mut self, p: usize) {
+        self.part = Some(p);
+        self.filter.clear();
         self.refilter();
     }
 
@@ -268,13 +320,13 @@ impl Picker {
                     None
                 }
             }
-            PickerRow::Strip(_) => None,
+            PickerRow::Strip(_) | PickerRow::Part(_) => None,
         }
     }
 
     /// The describe line of a row (without its indentation): `row symbol "<key>" embedded`,
-    /// `row part "<number>" function <n> of <count> "<fndef>" [main]` or `row strip "<tag>" terminal "<next>" <id>`,
-    /// then ` disabled: <reason>`.
+    /// `row part "<number>" function <n> of <count> "<fndef>" [main]`, `row part "<number>" symbol`
+    /// (FT-1375) or `row strip "<tag>" terminal "<next>" <id>`, then ` disabled: <reason>`.
     pub fn row_line(&self, row: PickerRow) -> String {
         let mut line = match row {
             PickerRow::Symbol(i) => {
@@ -300,6 +352,10 @@ impl Picker {
                     if f.main { " main" } else { "" }
                 )
             }
+            PickerRow::Part(p) => format!(
+                "row part \"{}\" symbol",
+                self.catalogue.parts[p].part_number
+            ),
             PickerRow::Strip(i) => {
                 let strip = &self.catalogue.strips[i];
                 // The strip's ID ends the line, which the printer names `@n` (FT-485 item 9): a strip without

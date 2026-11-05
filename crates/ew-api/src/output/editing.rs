@@ -60,7 +60,8 @@ pub struct PlaceCatalogue {
     /// The embedded symbol copies and the starter symbols the project has not embedded, of the page's grid family,
     /// in key order.
     pub symbols: Vec<CatalogueSymbol>,
-    /// The embedded part copies with a function template, by part number, then manufacturer, then copy ID.
+    /// The embedded part copies, then the system libraries' parts with a function template the project does not hold
+    /// (FT-1375), each group by manufacturer, then part number, then copy ID.
     pub parts: Vec<CataloguePart>,
     /// Every terminal strip of the project, by its tag as the page prints it (FT-421): the strip chooser of a
     /// terminal placement (§7.1).
@@ -123,7 +124,7 @@ pub struct CataloguePart {
     pub description: String,
     /// The manufacturer's name (the library record's, held or not; [`Session::library_manufacturer`]).
     pub manufacturer: String,
-    /// The template's functions, in template order.
+    /// The template's functions, in template order; empty for a held copy without a function template (FT-1375).
     pub functions: Vec<CatalogueTemplateFn>,
     /// The words the picker's filter matches besides the part number, the manufacturer and the FnDef keys (cycle 36:
     /// "relay" found nothing): the description in every language and the category.
@@ -265,9 +266,10 @@ fn fndef_of(q: &Q, r: &LibRef) -> Option<Arc<LibCopy<FnDef>>> {
         .or_else(|| starter_fndef(id).map(|c| Arc::new(c.clone())))
 }
 
-/// The catalogue row of part `part` with copy ID `copy` (the manufacturer left empty), or `None` without a function
-/// template. `library` names a library part the project does not hold: its template FnDefs that the project does not
-/// embed are read from the starter.
+/// The catalogue row of part `part` with copy ID `copy` (the manufacturer left empty); for a library part without a
+/// function template `None` (FT-1375: a held copy without one is a row without functions, placed with a symbol the
+/// user chooses). `library` names a library part the project does not hold: its template FnDefs that the project
+/// does not embed are read from the starter.
 fn catalogue_part(
     q: &Q,
     rows: &[(CatalogueSymbol, Id<FnDef>)],
@@ -275,7 +277,7 @@ fn catalogue_part(
     part: &Part,
     library: Option<(Uuid, Uuid)>,
 ) -> Option<CataloguePart> {
-    if part.function_template.is_empty() {
+    if part.function_template.is_empty() && library.is_some() {
         return None;
     }
     let functions = part
@@ -446,10 +448,10 @@ impl Session {
     /// the project identifier set's letter for the FnDef's category (`ew-rds`' mapping), `black_box` whether the
     /// FnDef's contact kind is `black_box`, `terminal` whether its first category is `Terminal`, `allowed` whether
     /// the page's type allows the symbol's representation type (`allowed_rep_types`). `parts` lists every embedded
-    /// part copy with a non-empty function template and every part of the system libraries the project does not
-    /// hold, in one order: manufacturer name, part number, copy ID (FT-1087, ID-1184: embedding a part on placing
-    /// it does not move it); a template function's `symbol` is the key of the first allowed symbol row that draws
-    /// its FnDef.
+    /// part copy, with or without a function template, then every part of the system libraries with a function
+    /// template the project does not hold (FT-1375, ID-1391: the project's own copies first), each group by
+    /// manufacturer name, part number, copy ID (FT-1087); a template function's `symbol` is the key of the first
+    /// allowed symbol row that draws its FnDef.
     pub fn place_catalogue(&self, folio: &str) -> Option<PlaceCatalogue> {
         let q = self.query();
         let (_, page_id) = drawn_page(&q, folio)?;
@@ -483,8 +485,8 @@ impl Session {
                 .cmp(&b.key)
                 .then_with(|| b.copy.is_some().cmp(&a.copy.is_some()))
         });
-        // FT-1087 (ID-1184): one order for the chooser, (maker, part number, copy), across the embedded copies and the
-        // system libraries' parts the project does not hold, so that embedding a part on placing it does not move it;
+        // FT-1087 (ID-1184): one order for the chooser, (maker, part number, copy), within the embedded copies and
+        // within the system libraries' parts the project does not hold, the embedded ones first (FT-1375, ID-1391);
         // and one maker name, the library record's, held or not ([`Session::library_manufacturer`]).
         let mut parts: Vec<CataloguePart> = Vec::new();
         for (id, copy) in q.parts().iter() {
@@ -506,8 +508,14 @@ impl Session {
                 parts.push(CataloguePart { manufacturer, ..row });
             }
         }
+        // FT-1375 (ID-1391): the project's own copies first, then the libraries' parts, each in that order.
         parts.sort_by(|a, b| {
-            (&a.manufacturer, &a.part_number, a.copy).cmp(&(&b.manufacturer, &b.part_number, b.copy))
+            (a.library.is_some(), &a.manufacturer, &a.part_number, a.copy).cmp(&(
+                b.library.is_some(),
+                &b.manufacturer,
+                &b.part_number,
+                b.copy,
+            ))
         });
         Some(PlaceCatalogue {
             symbols: rows.into_iter().map(|(r, _)| r).collect(),

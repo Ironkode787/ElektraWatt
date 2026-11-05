@@ -46,7 +46,7 @@ fn place_terminal(s: &mut ShellModel, cell: &str) {
 // Item 9: the Device button's picker on a fresh project.
 
 /// A fresh project has no part copies, but Draw ▸ Device (`tool.place_part`) lists the starter parts (WP-S2.18 D6),
-/// so it has no empty text; with a filter that matches nothing it is the filter's text. The parts' own empty text
+/// so it has no empty text; with a filter that matches nothing it is the parts filter's text. The parts' own empty text
 /// stays for a picker without part rows.
 #[test]
 fn the_device_picker_of_a_fresh_project_lists_the_starter_parts() {
@@ -61,8 +61,16 @@ fn the_device_picker_of_a_fresh_project_lists_the_starter_parts() {
         ew_viewmodel::strings::text(key!("picker-empty-parts")),
         "No parts in this project yet"
     );
+    // FT-1375 (ID-1391): under a filter the Device picker's empty state names Choose part… as the next step.
     done(&mut s, "picker.filter", json!({"text": "zzz"}));
-    assert_eq!(s.picker().unwrap().empty_text(), Some(key!("picker-empty")));
+    assert_eq!(
+        s.picker().unwrap().empty_text(),
+        Some(key!("picker-empty-parts-filter"))
+    );
+    assert_eq!(
+        ew_viewmodel::strings::text(key!("picker-empty-parts-filter")),
+        "No part matches the filter. To give a placed symbol its part, select it and use Edit ▸ Choose part…"
+    );
     done(&mut s, "ui.dismiss", json!({}));
     // The symbol picker of the same page has rows, so no empty text.
     done(&mut s, "tool.place", json!({}));

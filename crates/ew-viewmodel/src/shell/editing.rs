@@ -35,6 +35,8 @@ enum Pick {
     Symbol(usize),
     /// A template function: the part's and the function's indices.
     PartFn(usize, usize),
+    /// A part without a function template with a symbol row (FT-1375): the part's and the symbol's indices.
+    PartSymbol(usize, usize),
     /// Another representation of a function, with a symbol row.
     Function(String, usize),
     /// An existing device (WP-S2.18 D1, D4: `place.pick device=<tag>`), with a symbol row.
@@ -481,6 +483,12 @@ impl ShellModel {
                     Some((part.copy.to_string(), f.index, part.part_number.clone())),
                 )
             }
+            // FT-1375: the device carries the part; its one function is the symbol's (`from_part` entry 0).
+            Pick::PartSymbol(pi, i) => {
+                let part = &cat.parts[*pi];
+                part_copy = Some(part.copy);
+                (*i, Some((part.copy.to_string(), 0, part.part_number.clone())))
+            }
         };
         let row = cat.symbols[row_index].clone();
         if !row.allowed {
@@ -776,8 +784,18 @@ impl ShellModel {
             return Outcome::Refused { reason_key };
         }
         let (mode, cat, pending) = (picker.mode, Arc::clone(&picker.catalogue), picker.pending.clone());
+        // FT-1375: a part without a function template asks for its symbol, then places with it.
+        if let (PickerRow::Symbol(i), Some(pi)) = (row, picker.part) {
+            return self.arm(cat, Pick::PartSymbol(pi, i), p);
+        }
         match (mode, row) {
             (PickerMode::Exchange, PickerRow::Symbol(i)) => self.arm_exchange(cat, i),
+            (_, PickerRow::Part(pi)) => {
+                if let Some(picker) = &mut self.tools.picker {
+                    picker.choose_part(pi);
+                }
+                Outcome::Done
+            }
             (_, PickerRow::Symbol(i)) => self.arm(cat, Pick::Symbol(i), p),
             (_, PickerRow::PartFn(a, b)) => self.arm(cat, Pick::PartFn(a, b), p),
             // The strip chooser (FT-421): the pending terminal placement with the chosen strip.
@@ -824,7 +842,7 @@ impl ShellModel {
     }
 
     /// `place.pick` (§7.6, headless): one of `symbol` (key or copy ID), `part` (part number or copy ID) with
-    /// `template` (0-based), `function` (ID, with `symbol`); optional `letter`; for a terminal `strip` (tag or ID)
+    /// `template` (0-based; a part without a function template with `symbol` instead, FT-1375), `function` (ID, with `symbol`); optional `letter`; for a terminal `strip` (tag or ID)
     /// and `designation`. WP-S2.18 D4: `device=<tag>` (with `symbol`) joins an existing device, and `function` also
     /// takes `<tag>:<slot>` or `<tag>` (with `symbol`): see [`super::join`].
     pub(crate) fn act_place_pick(&mut self, p: &Map<String, Value>) -> Outcome {
@@ -886,14 +904,22 @@ impl ShellModel {
                 else {
                     return unknown;
                 };
-                let Some(fi) = cat.parts[pi]
-                    .functions
-                    .iter()
-                    .position(|f| u64::from(f.index) == template)
-                else {
-                    return unknown;
-                };
-                Pick::PartFn(pi, fi)
+                // FT-1375: a part without a function template is placed with the symbol named beside it.
+                if cat.parts[pi].functions.is_empty() {
+                    let Some(i) = symbol.as_deref().and_then(find) else {
+                        return failed(key!("error-missing-param"), &["symbol"]);
+                    };
+                    Pick::PartSymbol(pi, i)
+                } else {
+                    let Some(fi) = cat.parts[pi]
+                        .functions
+                        .iter()
+                        .position(|f| u64::from(f.index) == template)
+                    else {
+                        return unknown;
+                    };
+                    Pick::PartFn(pi, fi)
+                }
             }
             (_, Ok(Some(function))) => {
                 // WP-S2.07 §6.8: an unplaced terminal row names its terminal device, which places the device's main

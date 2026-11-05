@@ -58,16 +58,16 @@ fn the_golden_parts_table_imports_into_a_new_project_once() {
         !cat.parts.is_empty(),
         "the picker lists the parts with a template"
     );
-    // The embedded parts and the starter parts the project does not hold (WP-S2.18 D6) in one order, by maker then part
-    // number (FT-439, FT-1087).
-    let order: Vec<(&str, &str)> = cat
+    // The embedded parts, then the starter parts the project does not hold (WP-S2.18 D6; FT-1375, ID-1391), each by
+    // maker then part number (FT-439, FT-1087).
+    let order: Vec<(bool, &str, &str)> = cat
         .parts
         .iter()
-        .map(|p| (p.manufacturer.as_str(), p.part_number.as_str()))
+        .map(|p| (p.library.is_some(), p.manufacturer.as_str(), p.part_number.as_str()))
         .collect();
     let mut sorted = order.clone();
     sorted.sort_unstable();
-    assert_eq!(order, sorted, "maker, then part-number order (FT-439, FT-1087)");
+    assert_eq!(order, sorted, "the embedded first, then maker, then part-number order");
     assert!(cat.parts.iter().any(|p| p.library.is_none()), "embedded rows");
     assert!(cat.parts.iter().any(|p| p.library.is_some()), "library rows");
 }

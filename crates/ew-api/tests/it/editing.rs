@@ -98,17 +98,31 @@ fn the_catalogue_of_folio_102_keeps_the_grid_family_and_maps_the_letters() {
         cat.symbols.iter().any(|r| r.copy.is_none()),
         "starter rows beside the embedded ones"
     );
-    // Parts: every embedded part copy with a template and every part of the system libraries the project does not hold,
-    // in one order, (maker, part number, copy), embedded or not (FT-1087, ID-1184); a template function names a symbol
-    // of the page that draws its FnDef.
-    let order: Vec<(&str, &str, Uuid)> = cat
+    // Parts: every embedded part copy, then every part with a template of the system libraries the project does not
+    // hold, each group in the order (maker, part number, copy) (FT-1087; FT-1375, ID-1391: the project's own first);
+    // a template function names a symbol of the page that draws its FnDef.
+    let order: Vec<(bool, &str, &str, Uuid)> = cat
         .parts
         .iter()
-        .map(|p| (p.manufacturer.as_str(), p.part_number.as_str(), p.copy))
+        .map(|p| {
+            (
+                p.library.is_some(),
+                p.manufacturer.as_str(),
+                p.part_number.as_str(),
+                p.copy,
+            )
+        })
         .collect();
     let mut sorted = order.clone();
     sorted.sort();
-    assert_eq!(order, sorted, "one order across embedded and library parts");
+    assert_eq!(order, sorted, "the embedded parts first, then the library parts");
+    // FT-1375: Golden A's A9F78116, a copy without a function template, is a row without functions.
+    let mcb_part = cat
+        .parts
+        .iter()
+        .find(|p| p.part_number == "A9F78116")
+        .expect("the project's A9F78116");
+    assert_eq!((mcb_part.library, mcb_part.functions.len()), (None, 0));
     assert!(cat.parts.iter().any(|p| p.library.is_none()), "embedded rows");
     let library: Vec<&str> = cat
         .parts
@@ -119,7 +133,7 @@ fn the_catalogue_of_folio_102_keeps_the_grid_family_and_maps_the_letters() {
     assert!(!library.is_empty());
     assert!(library.iter().all(|n| n.starts_with("EW-GEN-")), "{library:?}");
     for p in &cat.parts {
-        assert!(!p.functions.is_empty());
+        assert!(p.library.is_none() || !p.functions.is_empty());
         for (i, f) in p.functions.iter().enumerate() {
             assert_eq!(usize::from(f.index), i);
             // FT-664: the picker's words for the entry, never its FnDef key where the FnDef has a category.

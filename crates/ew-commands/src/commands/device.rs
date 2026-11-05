@@ -225,7 +225,8 @@ pub struct ConnectHint {
 ///   contact kind is `black_box`, else normal; `template_entry` the entry's index, so the CPs follow from that
 ///   entry, doc 03 §7, FT-655); the representation
 ///   draws entry `template`, the others stay unplaced. The symbol's FnDef must be entry `template`'s, and that
-///   entry must not be a black box (`box.black` places those).
+///   entry must not be a black box (`box.black` places those). A part without a function template (FT-1375) takes
+///   `template` 0 and gets one main function of the symbol's FnDef.
 /// - `new_terminal` (AC-28): one terminal of the strip, created as `terminal.add` creates it (the strip's letter,
 ///   structure and the sequence number as counter; the next sequence number when `seq` is absent) with its main
 ///   function `{def: the symbol's FnDef}`, then placed. With `part` (part-first placement of a terminal part) the
@@ -1544,7 +1545,15 @@ fn insert_from_part(
     let number = copy.item.part_number.as_str().to_owned();
     let entries = copy.item.function_template.clone();
     if entries.is_empty() {
-        return tx.reject(text!("refusal-from-part-no-template", number));
+        // FT-1375 (ID-1391): a part without a function template is placed with the symbol the user chose, entry 0 of
+        // `device.place` only: the device carries the part and one main function of the symbol's FnDef.
+        return match placed {
+            PartEntry::Normal(symbol_def) if template == 0 => {
+                let device = insert_part_device(tx, part, letter)?;
+                insert_function(tx, Some(device), symbol_def, FnRole::Main)
+            }
+            _ => tx.reject(text!("refusal-from-part-no-template", number)),
+        };
     }
     if usize::from(template) >= entries.len() {
         return tx.reject(text!(
@@ -1599,6 +1608,23 @@ fn insert_from_part(
             }
         }
     }
+    let device = insert_part_device(tx, part, letter)?;
+    let mut placed_fn = None;
+    for (i, (e, (def, kind))) in entries.iter().zip(defs).enumerate() {
+        let role = if e.main { FnRole::Main } else { FnRole::Aux };
+        // The entry index is stored (FT-655); an index beyond u16 (never in practice) is left out and the derivation
+        // falls back to the first entry of the FnDef.
+        let entry = u16::try_from(i).ok();
+        let f = insert_function_of_kind(tx, Some(device), def, role, kind, entry)?;
+        if i == usize::from(template) {
+            placed_fn = Some(f);
+        }
+    }
+    placed_fn.ok_or_else(|| CmdError::internal("the template entry was not created"))
+}
+
+/// The device of a `from_part` target: `{tag: {letter, counter: none}, parts: [the part, quantity 1]}`.
+fn insert_part_device(tx: &mut TxBuilder<'_>, part: Id<Part>, letter: &Ident) -> Result<Id<Device>, CmdError> {
     let device: Id<Device> = tx.mint();
     tx.insert(Device {
         id: device,
@@ -1625,18 +1651,7 @@ fn insert_from_part(
         aspects: DeviceAspects::default(),
         extra: Extra::new(),
     })?;
-    let mut placed_fn = None;
-    for (i, (e, (def, kind))) in entries.iter().zip(defs).enumerate() {
-        let role = if e.main { FnRole::Main } else { FnRole::Aux };
-        // The entry index is stored (FT-655); an index beyond u16 (never in practice) is left out and the derivation
-        // falls back to the first entry of the FnDef.
-        let entry = u16::try_from(i).ok();
-        let f = insert_function_of_kind(tx, Some(device), def, role, kind, entry)?;
-        if i == usize::from(template) {
-            placed_fn = Some(f);
-        }
-    }
-    placed_fn.ok_or_else(|| CmdError::internal("the template entry was not created"))
+    Ok(device)
 }
 
 /// The terminal of a `new_terminal` target (see [`PlaceSymbol`]): returns its main function.

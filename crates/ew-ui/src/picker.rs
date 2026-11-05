@@ -49,7 +49,13 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
     if enter {
         events.push(Event::Action("picker.choose", json!({})));
     }
+    // FT-1375: the symbols for a part without a function template name the part.
+    let part_title = picker
+        .part
+        .and_then(|p| picker.catalogue.parts.get(p))
+        .map(|p| strings::format(key!("picker-title-part-symbol"), &[&p.part_number]));
     let title = match picker.mode {
+        _ if part_title.is_some() => part_title.as_deref().unwrap_or_default(),
         PickerMode::Exchange => strings::text(key!("picker-title-exchange")),
         PickerMode::Place => strings::text(key!("picker-title")),
         // FT-890: the Device button (`tool.place_part`) picks a part, so its dialog names a device.
@@ -192,7 +198,7 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
                                 .atom_max_width(meta_w)
                                 .atom_align(egui::Align2::RIGHT_CENTER),
                         );
-                        let tooltip = if matches!(row, PickerRow::PartFn(..)) {
+                        let tooltip = if matches!(row, PickerRow::PartFn(..) | PickerRow::Part(_)) {
                             format!("{tooltip}\n{meta}")
                         } else {
                             tooltip
@@ -291,6 +297,27 @@ fn row_texts(
                 part.manufacturer, part.part_number, f.kind_text, f.fndef_key
             ));
             (name, second, meta, tip)
+        }
+        // FT-1375: a held part without a function template; its symbol is chosen next.
+        PickerRow::Part(p) => {
+            let part = &picker.catalogue.parts[p];
+            let (name, second) = if part.description.is_empty() {
+                (part.part_number.clone(), None)
+            } else {
+                (part.description.clone(), Some(part.part_number.clone()))
+            };
+            let mut tip = String::new();
+            if !part.description.is_empty() {
+                tip.push_str(&part.description);
+                tip.push('\n');
+            }
+            tip.push_str(&format!("{} {}", part.manufacturer, part.part_number));
+            (
+                name,
+                second,
+                strings::text(key!("picker-part-symbol")).to_owned(),
+                tip,
+            )
         }
         PickerRow::Strip(k) => {
             let st = &picker.catalogue.strips[k];

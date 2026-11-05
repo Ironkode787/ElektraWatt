@@ -162,26 +162,32 @@ fn the_picker_lists_the_imported_parts_under_their_manufacturer_in_part_number_o
     done(&mut shell, "preview.apply", json!({}));
     done(&mut shell, "tool.place", json!({}));
     let picker = shell.picker().expect("the picker is open");
-    // FT-425 (WP-S2.17 part 4, CP5): grouped by manufacturer, in part-number order within one (FT-439).
-    let rows: Vec<(usize, &str, &str)> = picker
+    // FT-425 (WP-S2.17 part 4, CP5): grouped by manufacturer, in part-number order within one (FT-439), the project's
+    // own parts before the libraries' (FT-1375, ID-1391).
+    let rows: Vec<(usize, &str, &str, bool)> = picker
         .rows
         .iter()
         .enumerate()
         .filter_map(|(i, r)| match r {
             PickerRow::PartFn(p, _) => {
                 let part = &picker.catalogue.parts[*p];
-                Some((i, part.manufacturer.as_str(), part.part_number.as_str()))
+                Some((
+                    i,
+                    part.manufacturer.as_str(),
+                    part.part_number.as_str(),
+                    part.library.is_some(),
+                ))
             }
             _ => None,
         })
         .collect();
     assert!(!rows.is_empty(), "part rows are listed");
-    let keys: Vec<(&str, &str)> = rows.iter().map(|(_, m, n)| (*m, *n)).collect();
+    let keys: Vec<(bool, &str, &str)> = rows.iter().map(|(_, m, n, l)| (*l, *m, *n)).collect();
     let mut sorted = keys.clone();
     sorted.sort_unstable();
-    assert_eq!(keys, sorted, "manufacturer, then part-number order");
+    assert_eq!(keys, sorted, "the project's first, then manufacturer, then part-number order");
     // A header stands above the first part row of each manufacturer and above no other row.
-    for (k, (i, m, _)) in rows.iter().enumerate() {
+    for (k, (i, m, _, _)) in rows.iter().enumerate() {
         let first = k == 0 || rows[k - 1].1 != *m;
         assert_eq!(picker.header_before(*i), first.then_some(*m), "row {i}");
     }

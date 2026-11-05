@@ -1069,11 +1069,11 @@ fn the_strip_chooser_says_what_it_waits_for_and_a_canvas_press_starts_nothing() 
     assert_ne!(state(&s)["status"][0], hint);
 }
 
-/// FT-1087 (ID-1184; play-test rv-vis-7, t0059): the chooser's order does not change between openings. Placing a
-/// terminal from a library part embeds the part, and the part keeps its row: the rows (maker, part number, function) of
-/// the chooser opened again are those of the first opening, only the part's `library` mark is gone.
+/// FT-1087 (ID-1184; play-test rv-vis-7, t0059) as FT-1375 (ID-1391) amends it: the chooser lists the project's own
+/// parts first, then the libraries', each by (maker, part number). Placing a terminal from a library part embeds the
+/// part, which then stands among the project's own: the chooser opened again has the same rows, in that order.
 #[test]
-fn ft1087_the_chooser_keeps_its_order_when_a_placement_embeds_a_part() {
+fn ft1087_the_chooser_lists_the_projects_parts_first_also_after_a_placement_embeds_one() {
     use ew_viewmodel::tools::PickerRow;
     let tmp = Tmp::new("ft1087-order");
     let mut s = shell(&tmp, "103");
@@ -1101,10 +1101,13 @@ fn ft1087_the_chooser_keeps_its_order_when_a_placement_embeds_a_part() {
     let held_before = |n: &str| before.iter().any(|r| r.1 == n && r.3);
     assert!(!held_before("EW-GEN-TRM-1"), "the library part is not held yet");
     assert!(before.iter().any(|r| r.1 == "EW-GEN-TRM-1"));
-    let keys: Vec<(&str, &str)> = before.iter().map(|r| (r.0.as_str(), r.1.as_str())).collect();
-    let mut sorted = keys.clone();
-    sorted.sort();
-    assert_eq!(keys, sorted, "maker, then part number");
+    let in_order = |v: &[(String, String, u16, bool)]| {
+        let keys: Vec<(bool, &str, &str)> = v.iter().map(|r| (!r.3, r.0.as_str(), r.1.as_str())).collect();
+        let mut sorted = keys.clone();
+        sorted.sort();
+        keys == sorted
+    };
+    assert!(in_order(&before), "the project's first, then maker, then part number");
     done(&mut s, "ui.dismiss", json!({}));
     // The placement embeds the part with its closure.
     done(
@@ -1121,10 +1124,11 @@ fn ft1087_the_chooser_keeps_its_order_when_a_placement_embeds_a_part() {
         after.iter().any(|r| r.1 == "EW-GEN-TRM-1" && r.3),
         "the part is held after its placement"
     );
-    let order = |v: &[(String, String, u16, bool)]| -> Vec<(String, String, u16)> {
+    assert!(in_order(&after), "the embedded part among the project's own");
+    let rows_of = |v: &[(String, String, u16, bool)]| -> std::collections::BTreeSet<(String, String, u16)> {
         v.iter().map(|r| (r.0.clone(), r.1.clone(), r.2)).collect()
     };
-    assert_eq!(order(&after), order(&before), "the same rows in the same order");
+    assert_eq!(rows_of(&after), rows_of(&before), "the same rows");
     s.shutdown();
 }
 
@@ -1145,7 +1149,7 @@ fn the_picker_filter_matches_descriptions_names_and_keywords_by_token() {
             match r {
                 PickerRow::PartFn(i, _) => parts.push(p.catalogue.parts[*i].part_number.clone()),
                 PickerRow::Symbol(i) => symbols.push(p.catalogue.symbols[*i].key.clone()),
-                PickerRow::Strip(_) => {}
+                PickerRow::Strip(_) | PickerRow::Part(_) => {}
             }
         }
         (parts, symbols)

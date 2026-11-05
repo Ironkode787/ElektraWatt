@@ -431,6 +431,30 @@ fn from_part_makes_the_device_with_one_function_per_template_entry() {
     );
 }
 
+/// FT-1375 (ID-1391): a part without a function template is placed with the symbol the user chose: one device with
+/// the part, one main function of the symbol's FnDef, drawn.
+#[test]
+fn from_part_without_a_template_places_the_symbol_with_the_part() {
+    let mut e = arrange_engine();
+    let cmd = place_with(SYM_TWO, PAGE_101, gp(3, 3), from_part(PART_EMPTY, 0, "K"));
+    let r = e.execute(&cmd).expect("device.place");
+    let devs: Vec<Id<Device>> = created(&r, Kind::Device);
+    let fns: Vec<Id<Function>> = created(&r, Kind::Function);
+    assert_eq!((devs.len(), fns.len()), (1, 1));
+    let dev = row(&e, devs[0]);
+    assert_eq!(
+        dev.parts.iter().map(|u| u.part.copy).collect::<Vec<_>>(),
+        vec![PART_EMPTY]
+    );
+    assert_eq!(dev.tag.letter, ident("K"));
+    let f = row(&e, fns[0]);
+    assert_eq!(
+        (f.def, f.role.clone(), f.kind.clone(), f.device, f.template_entry),
+        (fndef_two(), FnRole::Main, FunctionKind::Normal, Some(devs[0]), None)
+    );
+    assert_eq!(row(&e, primary::<Representation>(&r)).functions, vec![fns[0]]);
+}
+
 #[test]
 fn from_part_places_an_auxiliary_entry_and_numbers_the_device_through_it() {
     let mut e = arrange_engine();
@@ -521,9 +545,13 @@ fn from_part_rejections_write_nothing() {
         e.execute(&place_with(SYM_TWO, PAGE_101, at, from_part(PART_TWO, 2, "K"))),
         "has no template entry 2",
     );
-    // An empty template.
+    // An empty template takes entry 0 only (FT-1375), and never as a black box.
     rejected_with(
-        e.execute(&place_with(SYM_TWO, PAGE_101, at, from_part(PART_EMPTY, 0, "K"))),
+        e.execute(&place_with(SYM_TWO, PAGE_101, at, from_part(PART_EMPTY, 1, "K"))),
+        "no function template",
+    );
+    rejected_with(
+        e.execute(&black_with(SYM_TWO, at, from_part(PART_EMPTY, 0, "K"))),
         "no function template",
     );
     // A template FnDef that is not embedded (entry 1), also when entry 0 is the one placed.
