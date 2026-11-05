@@ -31,6 +31,7 @@ use serde_json::json;
 
 use crate::app::Event;
 use crate::canvas::CanvasHost;
+use crate::components::Tip;
 
 /// A pane of the tree: a tab by its ID.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -315,6 +316,45 @@ impl Behavior<TabPane> for AreaBehavior<'_> {
     /// Tabs are dragged, groups are not: a group's tab bar gets no unnamed drag area of its own.
     fn is_tile_draggable(&self, tiles: &Tiles<TabPane>, tile_id: TileId) -> bool {
         matches!(tiles.get(tile_id), Some(Tile::Pane(_)))
+    }
+
+    /// FT-1435 (ID-1409): Back beside the group's page tabs, enabled only while its tab has a step to go back to; its
+    /// tooltip names its key from the keymap ("Back (Alt+Left)"). A click focuses the group's tab and goes back.
+    fn tab_bar_left_ui(&mut self, tiles: &Tiles<TabPane>, ui: &mut Ui, _tile_id: TileId, tabs: &Tabs) {
+        let Some((g, i)) = tabs.active.and_then(|a| match tiles.get(a) {
+            Some(Tile::Pane(p)) => self.place(p.0),
+            _ => None,
+        }) else {
+            return;
+        };
+        let Some(b) = ew_viewmodel::command_bar::action_button(self.shell, "nav.back") else {
+            return;
+        };
+        let enabled = self.area.groups[g].active_tab().history.back_len() > 0;
+        let key = ew_viewmodel::keymap::short_display(&b.shortcut);
+        let tip = if key.is_empty() {
+            b.label.clone()
+        } else {
+            format!("{} ({key})", b.label)
+        };
+        let response = crate::components::icon_toggle_tip(
+            ui,
+            crate::icons::IconId::arrow_left,
+            &b.label,
+            &tip,
+            enabled,
+            None,
+        );
+        let response = if enabled {
+            response
+        } else {
+            response.disabled_tip(format!("{tip}: {}", strings::text(key!("reason-history-empty"))))
+        };
+        if enabled && response.clicked() {
+            self.events
+                .push(Event::Action("tab.activate", json!({"group": g, "index": i})));
+            self.events.push(Event::Action("nav.back", json!({})));
+        }
     }
 
     fn simplification_options(&self) -> SimplificationOptions {

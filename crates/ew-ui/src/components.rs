@@ -348,6 +348,18 @@ pub(crate) fn icon_button(ui: &mut Ui, id: IconId, name: &str) -> Response {
 /// Selected state while on (`color.accent.subtle` fill, the icon in `color.accent`; doc 16a §6.1) and gives the node
 /// its selected state, as the navigators' Table toggle (§6.21).
 pub(crate) fn icon_toggle(ui: &mut Ui, id: IconId, name: &str, enabled: bool, on: Option<bool>) -> Response {
+    icon_toggle_tip(ui, id, name, name, enabled, on)
+}
+
+/// [`icon_toggle`] whose tooltip is `tip` rather than its name (FT-1435: Back names its key, "Back (Alt+Left)").
+pub(crate) fn icon_toggle_tip(
+    ui: &mut Ui,
+    id: IconId,
+    name: &str,
+    tip: &str,
+    enabled: bool,
+    on: Option<bool>,
+) -> Response {
     let t = tokens(ui);
     let size = Vec2::splat(t.size_control_inline);
     // A disabled button is allocated in a disabled scope, so its caller's `on_disabled_hover_text` shows the reason.
@@ -389,7 +401,7 @@ pub(crate) fn icon_toggle(ui: &mut Ui, id: IconId, name: &str, enabled: bool, on
         colour.color32(),
         t.icon_stroke,
     );
-    response.tip(name)
+    response.tip(tip)
 }
 
 /// The kind of a status badge (doc 16a §6.16, §6.19).

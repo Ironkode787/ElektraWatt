@@ -517,3 +517,75 @@ fn j32_canvas_tab_badges_are_chips_not_bracketed_words() {
     );
     h.state_mut().shell_mut().shutdown();
 }
+
+/// The Back button beside the page tabs (FT-1435): the Back button whose middle is level with the view tabs.
+fn tab_bar_back(h: &Harness<'_, App>) -> (bool, String, egui::Rect) {
+    let tab = support::view_tabs(h).first().expect("a view tab").rect();
+    let back = h
+        .get_all_by_role(egui::Role::Button)
+        .find(|n| {
+            n.accesskit_node().label().as_deref() == Some("Back") && tab.y_range().contains(n.rect().center().y)
+        })
+        .expect("Back beside the page tabs");
+    let node = back.accesskit_node();
+    (
+        !node.is_disabled(),
+        node.description().unwrap_or_default().to_owned(),
+        back.rect(),
+    )
+}
+
+/// FT-1435 (ID-1409): a jump centres its arrival and marks it with a ring that fades out on the frame clock; Back
+/// stands beside the page tabs, at the floor and at 1920 × 1080, enabled only with a step to go back to, its tooltip
+/// naming its key, and a click on it goes back.
+#[test]
+fn ft1435_a_jump_marks_its_arrival_and_back_stands_beside_the_tabs() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp);
+    let start = folio(&h);
+    assert_ne!(start, "103");
+    for size in [egui::vec2(1920.0, 1080.0), egui::vec2(1280.0, 800.0)] {
+        h.set_size(size);
+        settle(&mut h);
+        let (enabled, tip, rect) = tab_bar_back(&h);
+        assert!(!enabled, "{size:?}: nothing to go back to yet");
+        assert_eq!(tip, "Back (Alt+Left)");
+        let tab = support::view_tabs(&h).first().unwrap().rect();
+        assert!(rect.right() <= tab.left() + 0.5, "{size:?}: Back {rect:?} before the tabs {tab:?}");
+    }
+    // With motion (the CPU canvas reduces it by default) the ring fades; reduced, it stands still for its moment.
+    for reduce in [false, true] {
+        dispatch(&mut h, "view.reduce_motion", json!({ "on": reduce }));
+        dispatch(&mut h, "nav.goto", json!({"text": "103-A1"}));
+        h.step();
+        let g = h.state().shell().area().unwrap().focused;
+        let canvas = h.state().shell().canvas().unwrap();
+        let (at, _) = canvas.arrival().expect("the arrival is marked");
+        assert_eq!(canvas.centre(), at, "the arrival at the centre");
+        let first = h.state_mut().canvas_host().arrival_mark(g).expect("the ring shows");
+        assert_eq!(first, 1.0);
+        h.step();
+        let later = h.state_mut().canvas_host().arrival_mark(g).expect("still showing");
+        if reduce {
+            assert_eq!(later, 1.0, "still");
+        } else {
+            assert!(later < first, "it fades: {first} then {later}");
+        }
+        // Two seconds of frames (a still mark asks for its last frame by time, which the harness does not wait on).
+        for _ in 0..8 {
+            h.step();
+        }
+        assert_eq!(h.state_mut().canvas_host().arrival_mark(g), None, "gone after its moment");
+    }
+    assert_eq!(folio(&h), "103");
+    let (enabled, _, rect) = tab_bar_back(&h);
+    assert!(enabled, "a step to go back to");
+    h.get_all_by_role(egui::Role::Button)
+        .find(|n| n.accesskit_node().label().as_deref() == Some("Back") && n.rect() == rect)
+        .expect("Back")
+        .click();
+    settle(&mut h);
+    assert_eq!(folio(&h), start);
+    assert!(!tab_bar_back(&h).0, "nothing left to go back to");
+    h.state_mut().shell_mut().shutdown();
+}

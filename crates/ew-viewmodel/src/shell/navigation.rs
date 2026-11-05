@@ -516,7 +516,11 @@ impl ShellModel {
                     }
                 }
                 Arrival::Exact(v) => c.set_viewport(&v),
-                Arrival::Jump { at, zoom } => c.jump_view(at, zoom),
+                Arrival::Jump { at, zoom } => {
+                    c.jump_view(at, zoom);
+                    // FT-1435: the arrival, centred, is marked for a moment.
+                    c.mark_arrival(at);
+                }
             }
             c
         });

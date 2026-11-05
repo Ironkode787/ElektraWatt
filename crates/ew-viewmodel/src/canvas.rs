@@ -534,7 +534,12 @@ pub struct CanvasModel {
     hover_link: Option<usize>,
     /// Logical points at the pane's bottom that a fit keeps clear (the tool HUD's band, doc 16a §5.5; 0 headless).
     fit_inset: f64,
+    /// The point a jump arrived at and the jump's serial (FT-1435): the window marks it for a moment.
+    arrival: Option<((i64, i64), u64)>,
 }
+
+/// The serial of the next jump's arrival (FT-1435): a new jump to the same point is a new mark.
+static ARRIVALS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
 
 impl CanvasModel {
     /// The view of `page` in a pane of `pane` points at `ppp` pixels per point, fitted.
@@ -552,9 +557,16 @@ impl CanvasModel {
             cursor: None,
             hover_link: None,
             fit_inset: 0.0,
+            arrival: None,
         };
         m.fit();
         m
+    }
+
+    /// The point a jump arrived at and the jump's serial (FT-1435), which the window marks for a moment; `None` for
+    /// a view no jump made.
+    pub fn arrival(&self) -> Option<((i64, i64), u64)> {
+        self.arrival
     }
 
     /// The UI scale the pane's logical points include (1.0 headless; WP-S2.02 FT-349).
@@ -990,6 +1002,12 @@ impl CanvasModel {
         self.clamp_centre();
         self.fitted = false;
         self.update_hover();
+    }
+
+    /// Marks `p` as where a jump arrived (FT-1435), with a new serial.
+    pub fn mark_arrival(&mut self, p: (i64, i64)) {
+        let serial = ARRIVALS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        self.arrival = Some((p, serial));
     }
 
     /// The view as a tab remembers it.

@@ -613,10 +613,21 @@ fn v6_follow_back_forward_and_links_at_the_model() {
     let target = c.cursor().unwrap();
     assert_eq!(c.page().cell_text(target).as_deref(), Some("103-A1"));
     assert_eq!(c.centre(), target, "the target at the centre");
+    // FT-1435: the arrival is marked; Back and Forward restore a view and mark nothing.
+    let (arrived, serial) = c.arrival().expect("the arrival is marked");
+    assert_eq!(arrived, target);
     done(&mut shell, "nav.back", json!({}));
     assert_eq!((shell.current_folio(), view_nm(&shell)), (Some("102"), before));
+    assert_eq!(shell.canvas().unwrap().arrival(), None);
     done(&mut shell, "nav.forward", json!({}));
     assert_eq!(shell.current_folio(), Some("103"));
+    assert_eq!(shell.canvas().unwrap().arrival(), None);
+    // A second jump to the same point is a new mark.
+    done(&mut shell, "nav.back", json!({}));
+    done(&mut shell, "nav.follow", json!({"x_mm": mm(at.0), "y_mm": mm(at.1)}));
+    let again = shell.canvas().unwrap().arrival().expect("marked again");
+    assert_eq!(again.0, target);
+    assert_ne!(again.1, serial);
     // Next and previous link walk the reading order and wrap.
     done(&mut shell, "cursor.set", json!({}));
     let n = shell.canvas().unwrap().page().links.len();

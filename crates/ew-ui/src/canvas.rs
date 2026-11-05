@@ -980,6 +980,25 @@ pub struct CanvasHost {
     /// The wire-colour view's codes painted last per group, each frame (points) and whether it is faded, and the frames
     /// of the printed texts they kept clear of (FT-1345; tests).
     wire_codes: [WireCodes; GROUPS],
+    /// Per group, the serial of the jump arrival being marked and the frame time its mark started (FT-1435), and
+    /// the opacity it was painted at last (tests).
+    arrivals: [Option<(u64, f64, f32)>; GROUPS],
+}
+
+/// How long a jump's arrival stays marked, in seconds of frame time (FT-1435): its ring fades out over it.
+pub(crate) const ARRIVAL_SECONDS: f64 = 1.5;
+
+/// The opacity of a jump's arrival mark `elapsed` seconds after it started (FT-1435): from 1 down to 0 over
+/// [`ARRIVAL_SECONDS`], or 1 throughout with reduced motion; `None` once it is over.
+pub(crate) fn arrival_opacity(elapsed: f64, reduce_motion: bool) -> Option<f32> {
+    if !(0.0..ARRIVAL_SECONDS).contains(&elapsed) {
+        return None;
+    }
+    Some(if reduce_motion {
+        1.0
+    } else {
+        (1.0 - elapsed / ARRIVAL_SECONDS) as f32
+    })
 }
 
 impl Default for CanvasHost {
@@ -1079,6 +1098,60 @@ impl CanvasHost {
             drawn: Default::default(),
             locks: Default::default(),
             wire_codes: Default::default(),
+            arrivals: Default::default(),
+        }
+    }
+
+    /// The opacity group `group`'s jump arrival mark was painted at last, `None` when none showed (FT-1435; tests).
+    pub fn arrival_mark(&self, group: usize) -> Option<f32> {
+        self.arrivals.get(group).copied().flatten().map(|(_, _, a)| a).filter(|a| *a > 0.0)
+    }
+
+    /// Paints group `group`'s jump arrival mark (FT-1435): a ring in `color.accent` around the point the jump
+    /// arrived at, fading out over [`ARRIVAL_SECONDS`] of frame time from the first frame that shows it.
+    #[allow(clippy::too_many_arguments)]
+    fn paint_arrival(
+        &mut self,
+        ui: &Ui,
+        rect: Rect,
+        ppp: f32,
+        t: &DrawTransform,
+        canvas: &CanvasModel,
+        group: usize,
+        reduce_motion: bool,
+    ) {
+        let Some((at, serial)) = canvas.arrival() else {
+            self.arrivals[group] = None;
+            return;
+        };
+        let time = ui.input(|i| i.time);
+        let start = match self.arrivals[group] {
+            Some((s, start, _)) if s == serial => start,
+            _ => time,
+        };
+        let opacity = arrival_opacity(time - start, reduce_motion).unwrap_or(0.0);
+        self.arrivals[group] = Some((serial, start, opacity));
+        if opacity <= 0.0 {
+            return;
+        }
+        let tokens = crate::theme::current(ui.ctx());
+        let (x, y) = t.to_screen((at.0 as f64, at.1 as f64));
+        let centre = rect.min + egui::Vec2::new(x as f32, y as f32) / ppp;
+        let mut colour = tokens.accent;
+        colour.a = (f32::from(colour.a) * opacity).round() as u8;
+        ui.painter_at(rect).circle_stroke(
+            centre,
+            tokens.size_control_inline,
+            crate::theme::stroke(2.0 * tokens.focus_width, colour),
+        );
+        if reduce_motion {
+            // A still mark needs one more frame only, when its moment is over (a visual run's next frames show it until
+            // that much frame time has passed).
+            let left = ARRIVAL_SECONDS - (time - start);
+            ui.ctx()
+                .request_repaint_after(Duration::from_secs_f64(left.max(0.0)));
+        } else {
+            ui.ctx().request_repaint();
         }
     }
 
@@ -1360,6 +1433,8 @@ impl CanvasHost {
         paint_conflicts(ui, rect, ppp, &transform, shell, group);
         // WP-S2.06 part 2: the window's highlights on this page (§7.3).
         paint_highlights(ui, rect, ppp, &transform, shell, group);
+        // FT-1435: a jump's arrival, marked for a moment.
+        self.paint_arrival(ui, rect, ppp, &transform, canvas, group, shell.reduce_motion());
         // FT-997: a locked placement's lock icon, over the page on either backend.
         self.locks[group] = paint_locks(ui, rect, ppp, &transform, canvas);
         let stats = shell
