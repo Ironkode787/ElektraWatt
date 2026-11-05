@@ -365,7 +365,7 @@ impl ShellModel {
         crate::properties::command_choices_in_words(&mut sheet);
         crate::properties::report_source_in_words(&mut sheet);
         crate::properties::values_in_words(&mut sheet);
-        self.positions_in_words(&mut sheet);
+        self.positions_in_words(&mut sheet, p.session.decimal_comma());
         crate::properties::header_in_words(&mut sheet);
         // FT-1162 (ID-1219 ruling 6): the header's finding chips in the UI language, as the Messages detail renders
         // them, for the online report's finding of the chip's rule and message.
@@ -396,8 +396,9 @@ impl ShellModel {
     }
 
     /// FT-1043 (ID-1391): a representation's position reads in millimetres, with its grid cell when the focused
-    /// canvas shows its page (`102-C5 · x 18.521 y 74.083 mm`), never in nanometres.
-    fn positions_in_words(&self, sheet: &mut PropertySheet) {
+    /// canvas shows its page (`102-C5 · x 18.5 y 74.1 mm`), never in nanometres; ID-1427 (W52 F5): one decimal, as the
+    /// status bar's (ID-946), with the project's decimal separator (`comma`).
+    fn positions_in_words(&self, sheet: &mut PropertySheet, comma: bool) {
         let page = self.canvas().map(|c| c.page());
         for section in sheet.sections.iter_mut().filter(|s| s.kind == "representation") {
             let rep = section.targets.first().copied();
@@ -411,10 +412,11 @@ impl ShellModel {
                 else {
                     continue;
                 };
-                let (x_mm, y_mm) = (
-                    super::layout::mm_text(i128::from(x), false),
-                    super::layout::mm_text(i128::from(y), false),
-                );
+                let mm = |nm: i64| {
+                    let text = crate::canvas::mm1(nm);
+                    if comma { text.replace('.', ",") } else { text }
+                };
+                let (x_mm, y_mm) = (mm(x), mm(y));
                 let cell = page
                     .filter(|p| p.tables.reps.iter().any(|r| Some(r.id) == rep))
                     .and_then(|p| p.cell_text(p.snapper.page_to_sheet((x, y))));

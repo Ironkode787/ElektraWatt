@@ -1416,8 +1416,24 @@ fn json_words(json: &Value) -> String {
 
 /// Writes the sheet's header in words (FT-1357, FT-1319): a record without a title of its own by its kind as a heading
 /// in the UI language ("Project", not `project`), a fluid line by its line kind ("Working line", "Werkleiding"), its
-/// ID row likewise.
+/// ID row likewise, and a selection of several records by its count and kind (ID-1427: "2 apparaten").
 pub fn header_in_words(sheet: &mut PropertySheet) {
+    // ID-1427 (W52 F4): a selection of several records is titled by its first section's count and kind in the UI
+    // language ("2 apparaten"), as the card lines are (FT52i), or by its count when it has no section.
+    let picked: usize = sheet.header.kinds.iter().map(|(_, n)| n).sum();
+    if picked > 1 {
+        sheet.header.title = match sheet.sections.first() {
+            Some(s) => strings::format(
+                key!("props-header-many"),
+                &[
+                    &s.targets.len().to_string(),
+                    &kind_plural(&s.kind, s.targets.len()),
+                ],
+            ),
+            None => strings::format_count(crate::count_key!("props-items"), picked),
+        };
+        return;
+    }
     let [(kind, 1)] = sheet.header.kinds.as_slice() else {
         return;
     };

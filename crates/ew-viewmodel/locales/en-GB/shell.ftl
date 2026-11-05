@@ -1934,6 +1934,7 @@ props-a-record = a record
 props-options = Options of { $p0 }
 props-gone-title = Object no longer exists
 props-none = No common fields: the selection holds { $p0 }
+props-header-many = { $p0 } { $p1 }
 props-empty = Nothing to show
 props-member-varies = The member differs between the selected records; set the whole value first
 props-cannot-compose = This value cannot be set here
@@ -3301,6 +3302,9 @@ hud-paste-versions-one = Another version of { $p0 } is in the project; choose in
 hud-paste-versions-many = Other versions of { $p0 } are in the project; choose in the card below
 hud-paste-update = Apply the update in the card below; the paste follows
 preview-field-content = content
+preview-change-added = added
+preview-change-changed = changed
+preview-change-removed = removed
 
 # The change size of a paste choice's conflict row in words (the describe line keeps patch, minor, major).
 paste-class-patch = a data change

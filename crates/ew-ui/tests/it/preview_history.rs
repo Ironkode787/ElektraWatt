@@ -141,7 +141,7 @@ fn pv5_the_history_panel_lists_the_steps_with_undo_to_here_and_show_changes() {
     h.get_all_by_label("Show changes").next().unwrap().click();
     settle(&mut h);
     assert!(h.query_by_label("Changes of step 2").is_some());
-    assert!(has_text(&h, "changed device -101F1 (function_text)"));
+    assert!(has_text(&h, "changed device -101F1 (function text)"));
     h.get_by_label("Close").click();
     settle(&mut h);
     assert!(h.state().shell().history_pane().changes().is_none());
@@ -309,5 +309,46 @@ fn w31_7_an_undone_entry_offers_redo_to_here() {
     settle(&mut h);
     assert_eq!(h.state().shell().history_pane().view().unwrap().cursor, 3);
     assert_eq!(h.query_all_by_label("Redo to here").count(), 0);
+    h.state_mut().shell_mut().shutdown();
+}
+
+/// ID-1427 (W52 F6, F4): in Dutch the changed record's line reads in Dutch, its change word, its kind and its field: in
+/// Show changes and on the Preview tab's card; the Properties header of two devices reads "2 apparaten".
+#[test]
+fn id1427_a_changed_records_line_reads_in_dutch() {
+    let tmp = Tmp::new();
+    let dir = tmp.golden("g.ew");
+    let mut h = harness(&tmp, Scripted::default(), Some(dir));
+    settle(&mut h);
+    dispatch(&mut h, "view.language", json!({ "value": "nl" }));
+    dispatch(
+        &mut h,
+        "command.run",
+        json!({"cmd": "fields.set", "params": {"kind": "device", "targets": [{"ref": "tag:-101F1"}],
+            "path": "function_text", "value": "een"}}),
+    );
+    dispatch(&mut h, "history.show", json!({}));
+    settle(&mut h);
+    h.get_all_by_label("Wijzigingen tonen").next().unwrap().click();
+    settle(&mut h);
+    assert!(has_text(&h, "gewijzigd apparaat -101F1 (functietekst)"));
+    h.get_by_label("Sluiten").click();
+    settle(&mut h);
+    dispatch(&mut h, "page.goto", json!({"folio": "101"}));
+    dispatch(
+        &mut h,
+        "select.set",
+        json!({"refs": ["tag:-101F1", "tag:-102F1"]}),
+    );
+    dispatch(&mut h, "props.show", json!({"on": true}));
+    dispatch(
+        &mut h,
+        "props.set",
+        json!({"row": "device/tag.counter", "value": "9"}),
+    );
+    settle(&mut h);
+    // The tag's member by its Properties label ("Kenmerknummering"), and the header of the two devices.
+    assert!(has_text(&h, "gewijzigd apparaat -101F1 (kenmerknummering)"));
+    assert!(has_text(&h, "2 apparaten"));
     h.state_mut().shell_mut().shutdown();
 }

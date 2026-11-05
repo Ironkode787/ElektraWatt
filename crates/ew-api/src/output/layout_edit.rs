@@ -889,6 +889,12 @@ pub(crate) fn centred_datum(
 }
 
 impl Session {
+    /// Whether the project writes a decimal comma (`settings.formatting.decimal_separator`, FT-366): the shell's
+    /// millimetre texts follow it (ID-1427: the Properties position row).
+    pub fn decimal_comma(&self) -> bool {
+        comma(&self.query())
+    }
+
     /// The one command of a layout row's edit (ruling 3): the door through which the view model commits every row of
     /// [`EditRoute::Command`].
     ///

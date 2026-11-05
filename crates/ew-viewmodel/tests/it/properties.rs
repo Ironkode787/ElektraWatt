@@ -1158,7 +1158,8 @@ fn ft1347_a_huge_properties_step_stops_at_the_last_row() {
     shell.shutdown();
 }
 
-/// FT-1043 (ID-1391): a representation's position reads in millimetres with its grid cell, never in nanometres.
+/// FT-1043 (ID-1391): a representation's position reads in millimetres with its grid cell, never in nanometres;
+/// ID-1427 (W52 F5): with one decimal (ID-946) and the project's decimal separator.
 #[test]
 fn ft1043_a_representations_position_reads_in_millimetres_with_its_cell() {
     let tmp = Tmp::new("props-ft1043");
@@ -1178,8 +1179,21 @@ fn ft1043_a_representations_position_reads_in_millimetres_with_its_cell() {
     let (_, row) = find_row(sheet, "representation/pos").expect("the position row");
     assert_eq!(
         ew_viewmodel::properties::value_text(row),
-        "102-C7 · x 124.354167 y 52.916667 mm"
+        "102-C7 · x 124.4 y 52.9 mm"
     );
+    shell.shutdown();
+    // The project's decimal comma (no command sets it: the company-standard wizard writes it).
+    let file = tmp.golden_copy().join("project.jsonl");
+    let jsonl = std::fs::read_to_string(&file).unwrap();
+    assert!(jsonl.contains("\"decimal_separator\":\"point\""));
+    std::fs::write(
+        &file,
+        jsonl.replace("\"decimal_separator\":\"point\"", "\"decimal_separator\":\"comma\""),
+    )
+    .unwrap();
+    let mut shell = writable(&tmp, "102");
+    done(&mut shell, "select.set", json!({"ids": [rep.to_string()]}));
+    assert_eq!(text(&shell, "representation/pos"), "102-C7 · x 124,4 y 52,9 mm");
     shell.shutdown();
 }
 

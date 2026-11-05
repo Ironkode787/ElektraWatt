@@ -438,9 +438,12 @@ pub fn show_changes(ctx: &Context, shell: &ShellModel, events: &mut Vec<Event>) 
         .iter()
         .take(MAX_CHANGES)
         .map(|e| {
-            let mut line = format!("{} {} {}", e.change, e.kind, e.label);
-            if !e.fields.is_empty() {
-                line.push_str(&format!(" ({})", e.fields.join(", ")));
+            // ID-1427 (W52 F6): in the UI language, as the Preview tab's line.
+            let (change, kind) = ew_viewmodel::preview::entity_words(e);
+            let mut line = format!("{change} {kind} {}", e.label);
+            let fields = ew_viewmodel::preview::field_words(&e.kind, &e.fields);
+            if !fields.is_empty() {
+                line.push_str(&format!(" ({})", fields.join(", ")));
             }
             line
         })

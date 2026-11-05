@@ -138,7 +138,9 @@ fn id1427_part_names_are_whole_in_device_from_part() {
         let painted: Vec<&(String, bool)> = texts.iter().filter(|(t, _)| names.contains(t)).collect();
         assert!(painted.len() >= 5, "part rows at {size:?}: {names:?}");
         assert!(
-            texts.iter().any(|(t, _)| t == "32P-VGL-R-MAHAHAHAHAHAHUL3LAHU-28MS"),
+            texts
+                .iter()
+                .any(|(t, _)| t == "32P-VGL-R-MAHAHAHAHAHAHUL3LAHU-28MS"),
             "the long order code on show at {size:?}"
         );
         let cut: Vec<&String> = painted.iter().filter(|(_, e)| *e).map(|(t, _)| t).collect();

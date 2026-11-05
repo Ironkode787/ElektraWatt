@@ -43,19 +43,32 @@ pub fn card_key(card: &Card) -> CardKey {
     )
 }
 
-/// The changed fields of a record (its top-level members) in words for the Preview tab's row (cycle 39, FIX39b-1): an
-/// underscore reads as a space (`part_number` → "part number"); a library copy's content hash (`sha256`) is no field to
-/// a reader: it is left out when another field changed, and reads "content" when it is the only change.
-pub fn field_words(fields: &[String]) -> Vec<String> {
+/// The changed fields of a record of `kind` (its top-level members) in words for the Preview tab's row (cycle 39,
+/// FIX39b-1): each by its label in a sentence (ID-1427: `part_number` → "part number"); a library copy's content hash
+/// (`sha256`) is no field to a reader: it is left out when another field changed, and reads "content" when it is the
+/// only change.
+pub fn field_words(kind: &str, fields: &[String]) -> Vec<String> {
     let hash = |f: &String| f == "sha256";
     if !fields.is_empty() && fields.iter().all(hash) {
         return vec![crate::strings::text(key!("preview-field-content")).to_owned()];
     }
+    // ID-1427 (W52 F6): each field by the property grid's label in the UI language, in a sentence ("kenmerk").
     fields
         .iter()
         .filter(|f| !hash(f))
-        .map(|f| f.replace('_', " "))
+        .map(|f| crate::strings::in_sentence(&crate::strings::field_label(kind, f)))
         .collect()
+}
+
+/// A changed record's line in words (ID-1427, W52 F6): its change word ("changed", "gewijzigd") and its kind in a
+/// sentence ("device", "apparaat") in the UI language.
+pub fn entity_words(e: &PreviewEntity) -> (&'static str, String) {
+    let change = crate::strings::text(match e.change {
+        "added" => key!("preview-change-added"),
+        "removed" => key!("preview-change-removed"),
+        _ => key!("preview-change-changed"),
+    });
+    (change, crate::properties::kind_plural(&e.kind, 1))
 }
 
 /// One cross-reference text change: the folio of the representation's page (empty when it has none), the text before
@@ -115,7 +128,7 @@ mod tests {
     use super::field_words;
 
     fn words(fields: &[&str]) -> Vec<String> {
-        field_words(&fields.iter().map(|f| (*f).to_owned()).collect::<Vec<_>>())
+        field_words("part", &fields.iter().map(|f| (*f).to_owned()).collect::<Vec<_>>())
     }
 
     #[test]
