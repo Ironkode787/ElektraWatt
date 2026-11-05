@@ -64,11 +64,40 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
         PickerMode::BlackBox => strings::text(key!("picker-title-black-box")),
     };
     let t = crate::theme::current(ctx);
-    let width = crate::dialog::grown(
-        t.size_palette,
-        crate::palette::PALETTE_SHARE,
-        ctx.content_rect().width(),
-    );
+    // ID-1427 (W52 F2): the table uses the space it has. The picker is as wide as its widest name, its part number
+    // column and its function column need, at least its grown width and at most the window inside `space.6`.
+    let need = {
+        let measure = |text: &str, font: &crate::theme::TypeToken| {
+            ctx.fonts_mut(|f| {
+                f.layout_no_wrap(text.to_owned(), crate::theme::font(font), crate::theme::NONE)
+                    .size()
+                    .x
+            })
+        };
+        let (mut name_w, mut number_w, mut meta_w) = (0.0_f32, 0.0_f32, 0.0_f32);
+        for row in &picker.rows {
+            let (name, second, meta, _) = row_texts(picker, *row);
+            let meta = picker
+                .disabled(*row)
+                .map_or(meta, |r| strings::text(r).to_owned());
+            name_w = name_w.max(measure(&name, &t.type_body));
+            number_w = number_w.max(second.as_deref().map_or(0.0, |n| measure(n, &t.type_small)));
+            meta_w = meta_w.max(measure(&meta, &t.type_small));
+        }
+        let spacing = ctx.global_style().spacing.clone();
+        // The row's button padding and its gaps between the columns, the window's margins, the scroll bar.
+        name_w
+            + number_w
+            + meta_w
+            + 2.0 * spacing.button_padding.x
+            + 3.0 * spacing.item_spacing.x
+            + 2.0 * spacing.window_margin.leftf()
+            + spacing.scroll.bar_width
+            + spacing.scroll.bar_outer_margin
+    };
+    let window = ctx.content_rect().width();
+    let width = crate::dialog::grown(t.size_palette, crate::palette::PALETTE_SHARE, window)
+        .max(need.min(window - 2.0 * t.space_6));
     Window::new(title)
         .id(Id::unique("place-picker"))
         .anchor(
