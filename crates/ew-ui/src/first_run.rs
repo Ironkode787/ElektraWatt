@@ -131,13 +131,13 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             ui.horizontal(|ui| {
                 for (key, action) in left {
                     if ui.button(strings::text(*key)).clicked() {
-                        events.push(Event::Action(*action, Value::Null));
+                        events.push(Event::Action(action, Value::Null));
                     }
                 }
                 if let Some((key, action)) = next {
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                         if ui.button(strings::text(*key)).clicked() {
-                            events.push(Event::Action(*action, Value::Null));
+                            events.push(Event::Action(action, Value::Null));
                         }
                     });
                 }
