@@ -90,6 +90,11 @@ fn wire(s: &mut ShellModel, a: (i64, i64), b: (i64, i64)) -> TableConnection {
 /// terminal of a new strip placed free `dy` grid steps below the point's CP, in line with it; the point's CP and the
 /// terminal's upper CP.
 fn ip_over_terminal(tmp: &Tmp, quarter_turns: usize, dy: i64) -> (ShellModel, TableCp, TableCp) {
+    ip_near_terminal(tmp, quarter_turns, 0, dy)
+}
+
+/// [`ip_over_terminal`] with the terminal `dx` grid steps to the right of the point's axis.
+fn ip_near_terminal(tmp: &Tmp, quarter_turns: usize, dx: i64, dy: i64) -> (ShellModel, TableCp, TableCp) {
     let mut s = new_project(tmp);
     let before = tables(&s).reps.clone();
     done(&mut s, "tool.ip", json!({}));
@@ -109,7 +114,7 @@ fn ip_over_terminal(tmp: &Tmp, quarter_turns: usize, dy: i64) -> (ShellModel, Ta
         json!({"symbol": "ew.iec.terminal@qet10", "strip": "-?X?", "terminal_designation": "1"}),
     );
     let sn = s.canvas().unwrap().page().snapper.clone();
-    let k = (sn.grid_index_of(ip_cp.at.0), sn.grid_index_of(ip_cp.at.1) + dy);
+    let k = (sn.grid_index_of(ip_cp.at.0) + dx, sn.grid_index_of(ip_cp.at.1) + dy);
     let q = page_point(&s, k);
     click(&mut s, q, true);
     done(&mut s, "tool.select", json!({}));
@@ -159,4 +164,21 @@ fn ft1210_a_point_that_leaves_towards_the_terminal_routes_straight_as_before() {
     assert_eq!(ip.dir, Some(Dir::Down));
     let c = wire(&mut s, ip.at, top.at);
     assert_eq!(vertices(&c.polyline), [ip.at, top.at]);
+}
+
+/// C52-p4#6 (ID-1407): the straight exit applies only on the point's axis. With the terminal one grid step off it, the
+/// wire leaves the point up as it points and turns, as before FT-1210.
+#[test]
+fn ft1210_a_terminal_one_step_off_the_axis_keeps_the_turn() {
+    let tmp = Tmp::new("ft1210-off-axis");
+    let (mut s, ip, top) = ip_near_terminal(&tmp, 0, 1, 4);
+    assert_eq!(ip.dir, Some(Dir::Up));
+    let sn = s.canvas().unwrap().page().snapper.clone();
+    // One grid line above the point, then over to the terminal's axis and down into it.
+    let above = sn.page_of_index(sn.grid_index_of(ip.at.1) - 1);
+    let c = wire(&mut s, ip.at, top.at);
+    assert_eq!(
+        vertices(&c.polyline),
+        [ip.at, (ip.at.0, above), (top.at.0, above), top.at]
+    );
 }
