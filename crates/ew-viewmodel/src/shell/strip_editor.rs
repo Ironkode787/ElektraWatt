@@ -69,12 +69,6 @@ impl Rows {
     fn words(&self, s: usize) -> String {
         crate::navigators::strip_label(&self.node(s).label)
     }
-
-    /// `<strip>:<designation>` of terminal row `i`.
-    fn name(&self, i: usize) -> String {
-        let strip = self.strip_of(i).map_or("", |s| self.node(s).label.as_str());
-        format!("{strip}:{}", self.node(i).label)
-    }
 }
 
 /// The first record of a node as a UUID.
@@ -370,7 +364,12 @@ impl ShellModel {
                 } else {
                     key!("toast-strip-inserted")
                 };
-                strings::format(key, &[&n, &rows.name(i)])
+                // FT-1412: the terminal in words, as FT-1360's toast ("terminal 5 of -X1031").
+                let terminal = strings::format(
+                    key!("accessory-at-terminal"),
+                    &[&rows.words(s), &rows.node(i).label],
+                );
+                strings::format(key, &[&n, &terminal])
             }
             None => {
                 let key = if count == 1 {
@@ -612,11 +611,16 @@ impl ShellModel {
             let n = moved.len();
             let strip = rows.words(s);
             let text = if n == 1 {
-                strings::format(key!("toast-strip-moved-one"), &[&n.to_string(), &strip])
+                // FT-1412: the one terminal in words ("terminal 15 of -X1031").
+                let terminal = strings::format(
+                    key!("accessory-at-terminal"),
+                    &[&strip, &rows.node(moved[0]).label],
+                );
+                strings::format(key!("toast-strip-moved-one"), &[&n.to_string(), &terminal])
             } else {
                 strings::format(key!("toast-strip-moved"), &[&n.to_string(), &strip])
             };
-            self.notify(text, true);
+            self.notify(strings::sentence_start(&text).into_owned(), true);
         }
         out
     }

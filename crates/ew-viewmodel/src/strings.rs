@@ -623,6 +623,13 @@ pub fn kind_heading(kind: &str) -> String {
     lookup(&key).map_or_else(|| sentence_start(&kind_label(kind)).into_owned(), str::to_owned)
 }
 
+/// A record kind in the plural as a heading in the UI language (FT-1411: `Devices`, `Apparaten`): its
+/// `record-kinds-<kind>` text, else [`kind_plural`] with a capital.
+pub fn kinds_heading(kind: &str) -> String {
+    let key = format!("record-kinds-{}", kind.replace('_', "-"));
+    lookup(&key).map_or_else(|| sentence_start(&kind_plural(kind)).into_owned(), str::to_owned)
+}
+
 /// An accessory kind of the strip editor in the UI language (FT-1289): the text of `accessory-<kind>` (`end_clamp`
 /// is "End bracket", "Eindsteun"), `accessory-other` for a kind this version does not know. The words of
 /// `ew_api::output::accessory_kind_word` in en-GB, which the table round trip keeps.

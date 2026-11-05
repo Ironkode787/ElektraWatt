@@ -344,7 +344,7 @@ fn se9_insert_delete_and_move_rows() {
     assert_eq!(cmd, "terminal.insert", "{params}");
     assert_eq!(
         lines_with(&shell, "toast "),
-        ["toast \"Inserted 1 terminal before -X1031:5\" undo"]
+        ["toast \"Inserted 1 terminal before terminal 5 of -X1031\" undo"]
     );
     let terminals = texts(&shell, "Terminal");
     assert_eq!(terminals[..6], ["1", "2", "3", "4", "21", "5"]);
@@ -410,7 +410,7 @@ fn se9_insert_delete_and_move_rows() {
     }
     assert_eq!(
         lines_with(&shell, "toast "),
-        ["toast \"Moved 1 terminal of -X1031\" undo"]
+        ["toast \"Moved terminal 15 of -X1031\" undo"]
     );
     let terminals = texts(&shell, "Terminal");
     assert_eq!(terminals[10..15], ["11", "15", "12", "13", "14"]);
@@ -655,6 +655,21 @@ fn ft1289_the_strip_editor_and_its_accessory_toast_read_in_dutch() {
     assert_eq!(
         lines_with(&shell, "toast "),
         ["toast \"Eindsteun toegevoegd na klem 4 van -X1031\" undo"]
+    );
+    // FT-1412: the insert and the move name the terminal in words, in Dutch too.
+    let k5 = row(&shell, "Klem", "5");
+    at(&mut shell, &k5);
+    done(&mut shell, "strip.insert", json!({}));
+    assert_eq!(
+        lines_with(&shell, "toast "),
+        ["toast \"1 klem ingevoegd vóór klem 5 van -X1031\" undo"]
+    );
+    let k15 = row(&shell, "Klem", "15");
+    mark(&mut shell, std::slice::from_ref(&k15));
+    done(&mut shell, "strip.move", json!({"step": -1}));
+    assert_eq!(
+        lines_with(&shell, "toast "),
+        ["toast \"Klem 15 van -X1031 verplaatst\" undo"]
     );
     shell.shutdown();
 }

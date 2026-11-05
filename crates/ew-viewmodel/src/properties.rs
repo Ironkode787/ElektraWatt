@@ -1050,18 +1050,13 @@ pub fn kind_plural(kind: &str, n: usize) -> String {
 }
 
 /// The header of a sheet's section of `n` records of `kind` (ID-1139): the kind in sentence case, singular for one,
-/// with the count ("Device (1)", "Devices (2)"); one record's kind in the UI language (FT-1356: "Apparaat (1)").
+/// with the count ("Device (1)", "Devices (2)"), in the UI language (FT-1356: "Apparaat (1)"; FT-1411: "Apparaten
+/// (2)").
 pub fn section_header(kind: &str, n: usize) -> String {
     if n == 1 {
         return format!("{} ({n})", strings::kind_heading(kind));
     }
-    let words = kind_plural(kind, n);
-    let mut chars = words.chars();
-    let words = match chars.next() {
-        Some(first) => first.to_uppercase().chain(chars).collect(),
-        None => String::new(),
-    };
-    format!("{words} ({n})")
+    format!("{} ({n})", strings::kinds_heading(kind))
 }
 
 /// The default value of a new list item of type `ty` (`props.list` `add`, §6.5).
@@ -1557,6 +1552,11 @@ mod tests {
         // FT-1356: one record's kind in the UI language.
         assert!(strings::set_locale("nl"));
         assert_eq!(section_header("device", 1), "Apparaat (1)");
+        // FT-1411: several records' kind in the plural of the UI language.
+        assert_eq!(
+            [section_header("device", 2), section_header("potential_def", 3)],
+            ["Apparaten (2)", "Potentiaaldefinities (3)"]
+        );
         assert!(strings::set_locale("en"));
     }
 
