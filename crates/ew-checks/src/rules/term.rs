@@ -188,6 +188,7 @@ impl Rule for DuplicateDesignation {
                     message,
                 )
                 // FT-1334: the arguments of the rule's pattern.
+                .arg("form", "used")
                 .arg("designation", designation)
                 .arg("count", members.len().to_string())
                 .arg("strip", strip_tag.clone())
@@ -230,9 +231,11 @@ impl Rule for DuplicateDesignation {
             reported.insert((term.strip, key.clone()));
             let strip_tag = full_tag(after, term.strip, "the strip");
             let mut remedy = Vec::new();
-            if let Some(free) = next_free_number(groups.values().map(|(d, _)| d.as_str())) {
+            let free = next_free_number(groups.values().map(|(d, _)| d.as_str()));
+            if let Some(free) = &free {
                 remedy.push(format!("use {free}"));
             }
+            let mut swap = None;
             if let Some((strip, old_key)) = &old
                 && *strip == term.strip
                 && !groups.contains_key(old_key)
@@ -245,6 +248,7 @@ impl Rule for DuplicateDesignation {
                 remedy.push(format!(
                     "swap {old_text} \u{2194} {designation} in one transaction (terminal.designate)"
                 ));
+                swap = Some(old_text);
             }
             let mut message = format!(
                 "designation {designation} is taken on {strip_tag} ({} terminals)",
@@ -254,13 +258,29 @@ impl Rule for DuplicateDesignation {
                 message.push_str("; ");
                 message.push_str(&remedy.join(" or "));
             }
-            out.push(Finding::new(
-                &DUPLICATE_DESIGNATION,
-                members.iter().map(|m| Target::new(Kind::Device, *m)),
-                "",
-                format!("{strip_tag}:{designation}"),
-                message,
-            ));
+            // FT-1417: the arguments of the rule's pattern, so that each language words the prevent finding too.
+            let remedy = match (&free, &swap) {
+                (Some(_), Some(_)) => "both",
+                (Some(_), None) => "free",
+                (None, Some(_)) => "swap",
+                (None, None) => "none",
+            };
+            out.push(
+                Finding::new(
+                    &DUPLICATE_DESIGNATION,
+                    members.iter().map(|m| Target::new(Kind::Device, *m)),
+                    "",
+                    format!("{strip_tag}:{designation}"),
+                    message,
+                )
+                .arg("form", "taken")
+                .arg("designation", designation.clone())
+                .arg("count", members.len().to_string())
+                .arg("strip", strip_tag)
+                .arg("remedy", remedy)
+                .arg("free", free.map(|f| f.to_string()).unwrap_or_default())
+                .arg("old", swap.unwrap_or_default()),
+            );
         }
         out
     }

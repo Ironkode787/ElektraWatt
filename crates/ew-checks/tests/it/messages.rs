@@ -64,6 +64,8 @@ fn every_rule_has_its_message_title_and_hint_in_en_gb() {
         );
         for lang in LANGUAGES {
             assert!(has(m.id, Some("title"), lang), "{lang} has no title for {}", m.id);
+            // FT-1422: and its hint, the remedy the finding's detail shows.
+            assert!(has(m.id, Some("hint"), lang), "{lang} has no hint for {}", m.id);
         }
     }
     for lang in LANGUAGES.iter().filter(|l| **l != DEFAULT_LANGUAGE) {
@@ -203,6 +205,107 @@ fn by_hand(rule: &str, discriminator: &str, en: &str, args: &[(&'static str, &st
     }
     assert_eq!(format(&f, DEFAULT_LANGUAGE).as_deref(), Some(en), "{rule}");
     f
+}
+
+/// FT-1417: EW-TERM-002's prevent finding carries its pattern's arguments, so nl-NL words it with each remedy.
+#[test]
+fn nl_nl_words_ew_term_002_s_prevent_finding() {
+    for (remedy, free, old, en, nl) in [
+        (
+            "none",
+            "",
+            "",
+            "designation 4 is taken on -X1 (2 terminals)",
+            "aanduiding 4 is al bezet op -X1 (2 klemmen)",
+        ),
+        (
+            "free",
+            "21",
+            "",
+            "designation 4 is taken on -X1 (2 terminals); use 21",
+            "aanduiding 4 is al bezet op -X1 (2 klemmen); gebruik 21",
+        ),
+        (
+            "swap",
+            "",
+            "7",
+            "designation 4 is taken on -X1 (2 terminals); swap 7 \u{2194} 4 in one transaction (terminal.designate)",
+            "aanduiding 4 is al bezet op -X1 (2 klemmen); verwissel 7 \u{2194} 4 in één transactie (terminal.designate)",
+        ),
+        (
+            "both",
+            "21",
+            "7",
+            "designation 4 is taken on -X1 (2 terminals); use 21 or swap 7 \u{2194} 4 in one transaction \
+             (terminal.designate)",
+            "aanduiding 4 is al bezet op -X1 (2 klemmen); gebruik 21 of verwissel 7 \u{2194} 4 in één transactie \
+             (terminal.designate)",
+        ),
+    ] {
+        let f = by_hand(
+            "EW-TERM-002",
+            "",
+            en,
+            &[
+                ("form", "taken"),
+                ("designation", "4"),
+                ("count", "2"),
+                ("strip", "-X1"),
+                ("remedy", remedy),
+                ("free", free),
+                ("old", old),
+            ],
+        );
+        assert_eq!(render(&f, "nl-NL"), nl, "{remedy}");
+    }
+}
+
+/// FT-1416: EW-BUS-001 words an untagged port in each language, a TBD address's port and a duplicate's ports alike.
+#[test]
+fn nl_nl_words_ew_bus_001_s_untagged_ports() {
+    for (args, en, nl) in [
+        (
+            &[("form", "tbd"), ("end", "connector"), ("port", "")][..],
+            "a connector: the station address is TBD; enter it before release",
+            "een connector: het stationsadres is TBD; vul het in vóór de vrijgave",
+        ),
+        (
+            &[("form", "tbd"), ("end", "device"), ("port", "DP")][..],
+            "a device:DP: the station address is TBD; enter it before release",
+            "een apparaat:DP: het stationsadres is TBD; vul het in vóór de vrijgave",
+        ),
+        (
+            &[("form", "tbd"), ("end", "named"), ("port", "-3X1")][..],
+            "-3X1: the station address is TBD; enter it before release",
+            "-3X1: het stationsadres is TBD; vul het in vóór de vrijgave",
+        ),
+        (
+            &[("form", "duplicate"), ("named", "some"), ("others", "none"), ("untagged", "0"), ("ports", "-3X1, -3X2"),
+                ("address", "3"), ("net", "DP1")][..],
+            "-3X1, -3X2: station address 3 is used more than once in logical net DP1; give each port its own address",
+            "-3X1, -3X2: stationsadres 3 komt meer dan eens voor in logisch net DP1; geef elke poort een eigen adres",
+        ),
+        (
+            &[("form", "duplicate"), ("named", "some"), ("others", "one"), ("untagged", "1"), ("ports", "-3X1"), ("address", "3"),
+                ("net", "DP1")][..],
+            "-3X1 and a port without a tag: station address 3 is used more than once in logical net DP1; give each \
+             port its own address",
+            "-3X1 en een poort zonder kenmerk: stationsadres 3 komt meer dan eens voor in logisch net DP1; geef elke \
+             poort een eigen adres",
+        ),
+        (
+            &[("form", "duplicate"), ("named", "none"), ("others", "many"), ("untagged", "2"), ("ports", ""), ("address", "3"),
+                ("net", "DP1")][..],
+            "2 ports without a tag: station address 3 is used more than once in logical net DP1; give each port its \
+             own address",
+            "2 poorten zonder kenmerk: stationsadres 3 komt meer dan eens voor in logisch net DP1; geef elke poort een \
+             eigen adres",
+        ),
+    ] {
+        let form = args[0].1;
+        let f = by_hand("EW-BUS-001", if form == "tbd" { "address" } else { "duplicate" }, en, args);
+        assert_eq!(render(&f, "nl-NL"), nl, "{args:?}");
+    }
 }
 
 /// FT-1334, FT-1370: the uniqueness rules EW-CORE-052 and EW-POT-015 (and so EW-CORE-013 that reports them after a

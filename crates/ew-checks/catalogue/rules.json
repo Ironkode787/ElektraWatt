@@ -92,7 +92,7 @@
     {
       "code": "100001",
       "docs": "reference/rules/ew-core-001",
-      "hint": "",
+      "hint": "Save the project to write a new manifest, or take either side's version from git.",
       "id": "EW-CORE-001",
       "kind": "integrity",
       "modes": [],
@@ -131,7 +131,7 @@
     {
       "code": "100002",
       "docs": "reference/rules/ew-core-002",
-      "hint": "",
+      "hint": "Restore the project's files from one save (git, the sync client or a backup), or replay a crashed session with ew recover.",
       "id": "EW-CORE-002",
       "kind": "integrity",
       "modes": [
@@ -172,7 +172,7 @@
     {
       "code": "100003",
       "docs": "reference/rules/ew-core-003",
-      "hint": "",
+      "hint": "Restore the file from git, the sync client or a backup, or let a cloud folder finish downloading and open the project again.",
       "id": "EW-CORE-003",
       "kind": "integrity",
       "modes": [
@@ -213,7 +213,7 @@
     {
       "code": "100004",
       "docs": "reference/rules/ew-core-004",
-      "hint": "",
+      "hint": "Compare the file with the project, merge what you need as an external change, then delete the file.",
       "id": "EW-CORE-004",
       "kind": "integrity",
       "modes": [],
@@ -252,7 +252,7 @@
     {
       "code": "100005",
       "docs": "reference/rules/ew-core-005",
-      "hint": "",
+      "hint": "Repair the project with ew fmt --repair, or correct the line in a text editor.",
       "id": "EW-CORE-005",
       "kind": "integrity",
       "modes": [
@@ -293,7 +293,7 @@
     {
       "code": "100006",
       "docs": "reference/rules/ew-core-006",
-      "hint": "",
+      "hint": "Resolve the conflict in git, or settle its conflict records with ew merge resolve.",
       "id": "EW-CORE-006",
       "kind": "integrity",
       "modes": [
@@ -334,7 +334,7 @@
     {
       "code": "100007",
       "docs": "reference/rules/ew-core-007",
-      "hint": "",
+      "hint": "Correct the line in a text editor by the format's reference, or restore it from git.",
       "id": "EW-CORE-007",
       "kind": "integrity",
       "modes": [
@@ -416,7 +416,7 @@
     {
       "code": "100009",
       "docs": "reference/rules/ew-core-009",
-      "hint": "",
+      "hint": "Delete the extra line in a text editor, or give its record a new ID where both are wanted.",
       "id": "EW-CORE-009",
       "kind": "integrity",
       "modes": [
@@ -457,7 +457,7 @@
     {
       "code": "100010",
       "docs": "reference/rules/ew-core-010",
-      "hint": "",
+      "hint": "Save the project: the save moves the record to its file.",
       "id": "EW-CORE-010",
       "kind": "integrity",
       "modes": [],
@@ -537,7 +537,7 @@
     {
       "code": "100012",
       "docs": "reference/rules/ew-core-012",
-      "hint": "",
+      "hint": "Let the next change of the record restore the invariant, or restore the file from git.",
       "id": "EW-CORE-012",
       "kind": "integrity",
       "modes": [
@@ -620,7 +620,7 @@
     {
       "code": "100014",
       "docs": "reference/rules/ew-core-014",
-      "hint": "",
+      "hint": "Embed the copy again from the library, or keep the change on purpose.",
       "id": "EW-CORE-014",
       "kind": "integrity",
       "modes": [],
@@ -659,7 +659,7 @@
     {
       "code": "100015",
       "docs": "reference/rules/ew-core-015",
-      "hint": "",
+      "hint": "Import the asset again or restore the file from git, and delete the damaged file.",
       "id": "EW-CORE-015",
       "kind": "integrity",
       "modes": [
@@ -700,7 +700,7 @@
     {
       "code": "100016",
       "docs": "reference/rules/ew-core-016",
-      "hint": "",
+      "hint": "Open the project in the newer ElektraWatt that wrote it, or upgrade ElektraWatt.",
       "id": "EW-CORE-016",
       "kind": "integrity",
       "modes": [
@@ -741,7 +741,7 @@
     {
       "code": "100017",
       "docs": "reference/rules/ew-core-017",
-      "hint": "",
+      "hint": "Enter the value again in Properties, which shows the raw value.",
       "id": "EW-CORE-017",
       "kind": "integrity",
       "modes": [
@@ -782,7 +782,7 @@
     {
       "code": "100018",
       "docs": "reference/rules/ew-core-018",
-      "hint": "",
+      "hint": "Open the project in a build that ships the profile.",
       "id": "EW-CORE-018",
       "kind": "integrity",
       "modes": [
@@ -823,7 +823,7 @@
     {
       "code": "100019",
       "docs": "reference/rules/ew-core-019",
-      "hint": "",
+      "hint": "Split or repair the file outside ElektraWatt, and check where the project came from.",
       "id": "EW-CORE-019",
       "kind": "integrity",
       "modes": [

@@ -7,24 +7,31 @@
 
 rule-ew-core-001 =
     .title = Manifest beschadigd
+    .hint = Sla het project op om een nieuw manifest te schrijven, of neem de versie van een van beide kanten uit git.
 
 rule-ew-core-002 =
     .title = Gemengde generatie
+    .hint = Zet de bestanden van het project terug uit één opslag (git, de synchronisatieclient of een back-up), of speel een onverwacht beëindigde sessie opnieuw af met ew recover.
 
 rule-ew-core-003 =
     .title = Vermeld bestand ontbreekt
+    .hint = Zet het bestand terug uit git, de synchronisatieclient of een back-up, of laat een cloudmap het downloaden afmaken en open het project opnieuw.
 
 rule-ew-core-004 =
     .title = Verweesd bestand
+    .hint = Vergelijk het bestand met het project, voeg wat u nodig hebt samen als externe wijziging en verwijder daarna het bestand.
 
 rule-ew-core-005 =
     .title = JSON-syntaxisfout
+    .hint = Herstel het project met ew fmt --repair, of corrigeer de regel in een teksteditor.
 
 rule-ew-core-006 =
     .title = Git-conflictmarkeringen
+    .hint = Los het conflict op in git, of handel de conflictrecords af met ew merge resolve.
 
 rule-ew-core-007 =
     .title = Schemaschending
+    .hint = Corrigeer de regel in een teksteditor volgens de referentie van het formaat, of zet haar terug uit git.
 
 rule-ew-core-008 =
     .title = Verwijzing naar een ontbrekend record
@@ -32,9 +39,11 @@ rule-ew-core-008 =
 
 rule-ew-core-009 =
     .title = Dubbele record-ID
+    .hint = Verwijder de extra regel in een teksteditor, of geef het record een nieuwe ID als u beide wilt houden.
 
 rule-ew-core-010 =
     .title = Record in het verkeerde bestand
+    .hint = Sla het project op: de opslag zet het record in zijn bestand.
 
 rule-ew-core-011 =
     .title = Conflictrecords aanwezig
@@ -42,24 +51,31 @@ rule-ew-core-011 =
 
 rule-ew-core-012 =
     .title = Structurele invariant geschonden
+    .hint = Laat de volgende wijziging van het record de invariant herstellen, of zet het bestand terug uit git.
 
 rule-ew-core-014 =
     .title = Bibliotheekkopie gewijzigd
+    .hint = Neem de kopie opnieuw over uit de bibliotheek, of behoud de wijziging bewust.
 
 rule-ew-core-015 =
     .title = Middel ontbreekt
+    .hint = Importeer het middel opnieuw of zet het bestand terug uit git, en verwijder het beschadigde bestand.
 
 rule-ew-core-016 =
     .title = Gegevens uit een nieuwer formaat
+    .hint = Open het project in de nieuwere ElektraWatt die het schreef, of werk ElektraWatt bij.
 
 rule-ew-core-017 =
     .title = Ongeldige bekende variant
+    .hint = Voer de waarde opnieuw in bij Eigenschappen, dat de ruwe waarde toont.
 
 rule-ew-core-018 =
     .title = Onbekend afleidingsprofiel
+    .hint = Open het project in een build die het profiel meelevert.
 
 rule-ew-core-019 =
     .title = Leeslimiet overschreden
+    .hint = Splits of herstel het bestand buiten ElektraWatt, en controleer waar het project vandaan komt.
 
 rule-ew-core-021 =
     .title = Folio buiten zijn sectie
@@ -354,8 +370,19 @@ rule-ew-plc-015 = { $subject }: { $what ->
     .hint = Vul het adres in vóór de vrijgave.
 
 rule-ew-bus-001 = { $form ->
-        [duplicate] { $ports }: stationsadres { $address } komt meer dan eens voor in logisch net { $net }; geef elke poort een eigen adres
-       *[tbd] { $port }: het stationsadres is TBD; vul het in vóór de vrijgave
+        [duplicate] { $named ->
+            [none] { $untagged } poorten zonder kenmerk
+           *[some] { $others ->
+                [none] { $ports }
+                [one] { $ports } en een poort zonder kenmerk
+               *[other] { $ports } en { $untagged } poorten zonder kenmerk
+            }
+        }: stationsadres { $address } komt meer dan eens voor in logisch net { $net }; geef elke poort een eigen adres
+       *[tbd] { $end ->
+            [connector] een connector
+            [device] een apparaat:{ $port }
+           *[named] { $port }
+        }: het stationsadres is TBD; vul het in vóór de vrijgave
     }
     .title = Busadres ontbreekt of dubbel
     .hint = Vul vóór de vrijgave een stationsadres in dat uniek is in het logische net.
@@ -523,7 +550,15 @@ rule-ew-term-001 =
     .title = Klem zonder aanduiding
     .hint = Geef de klem een aanduiding.
 
-rule-ew-term-002 = aanduiding { $designation } wordt gebruikt door { $count } klemmen van { $strip }
+rule-ew-term-002 = { $form ->
+        [taken] aanduiding { $designation } is al bezet op { $strip } ({ $count } klemmen){ $remedy ->
+            [free] ; gebruik { $free }
+            [swap] ; verwissel { $old } ↔ { $designation } in één transactie (terminal.designate)
+            [both] ; gebruik { $free } of verwissel { $old } ↔ { $designation } in één transactie (terminal.designate)
+           *[none] {""}
+        }
+       *[used] aanduiding { $designation } wordt gebruikt door { $count } klemmen van { $strip }
+    }
     .title = Dubbele aanduiding
     .hint = Hernummer de klemmenstrook, of geef een van de klemmen een andere aanduiding.
 

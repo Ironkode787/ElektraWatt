@@ -163,6 +163,20 @@ fn term002_prevent_cases() {
                 assert!(v[0].message.contains("taken"), "case {c}: {}", v[0].message);
                 assert!(v[0].message.contains("use 3"), "case {c}: {}", v[0].message);
                 assert!(v[0].message.contains("swap 3"), "case {c}: {}", v[0].message);
+                // FT-1417: the prevent finding carries its pattern's arguments: nl-NL words it, never falls back.
+                assert_eq!(
+                    ew_checks::messages::format(&v[0], ew_checks::messages::DEFAULT_LANGUAGE).as_deref(),
+                    Some(v[0].message.as_str()),
+                    "case {c}"
+                );
+                assert_eq!(
+                    ew_checks::messages::format(&v[0], "nl-NL").as_deref(),
+                    Some(
+                        "aanduiding 2 is al bezet op -?X1 (2 klemmen); gebruik 3 of verwissel 3 \u{2194} 2 in één \
+                         transactie (terminal.designate)"
+                    ),
+                    "case {c}"
+                );
             },
         ),
         (

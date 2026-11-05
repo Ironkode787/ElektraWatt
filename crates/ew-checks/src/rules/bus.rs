@@ -124,7 +124,8 @@ impl Rule for BusAddress {
             };
             match &port.address {
                 AddrValue::Tbd => {
-                    let name = port_name(q, function, port);
+                    // FT-1416: an untagged port by the selector `end`, so each language words it.
+                    let (name, end, words) = end_words(q, *f);
                     out.push(
                         Finding::new(
                             &BUS_ADDRESS,
@@ -134,7 +135,8 @@ impl Rule for BusAddress {
                             format!("{name}: the station address is TBD; enter it before release"),
                         )
                         .arg("form", "tbd")
-                        .arg("port", name),
+                        .arg("end", end)
+                        .arg("port", words),
                     );
                 }
                 AddrValue::Value(NetAddress::Profibus(n)) => by_address.entry(*n).or_default().push(*f),
@@ -145,27 +147,44 @@ impl Rule for BusAddress {
             if ports.len() < 2 {
                 continue;
             }
-            let names: Vec<String> = ports
-                .iter()
-                .filter_map(|f| {
-                    let function = functions.get(*f)?;
-                    let port = function.bus_port.as_ref()?;
-                    Some(port_name(q, function, port))
-                })
-                .collect();
+            // FT-1416: the tagged ports by name, the untagged ones counted, so that each language words them.
+            let mut names: Vec<String> = Vec::new();
+            let mut untagged = 0_usize;
+            for f in &ports {
+                match end_words(q, *f) {
+                    (name, "named", _) => names.push(name),
+                    _ => untagged += 1,
+                }
+            }
             let list = names.join(", ");
+            let ports_text = match (list.is_empty(), untagged) {
+                (_, 0) => list.clone(),
+                (true, n) => format!("{n} ports without a tag"),
+                (false, 1) => format!("{list} and a port without a tag"),
+                (false, n) => format!("{list} and {n} ports without a tag"),
+            };
             out.push(
                 Finding::new(
                     &BUS_ADDRESS,
                     ports.iter().map(|f| Target::new(Kind::Function, *f)),
                     "duplicate",
-                    list.clone(),
+                    ports_text.clone(),
                     format!(
-                        "{list}: station address {address} is used more than once in logical net {net_name}; give \
-                         each port its own address"
+                        "{ports_text}: station address {address} is used more than once in logical net {net_name}; \
+                         give each port its own address"
                     ),
                 )
                 .arg("form", "duplicate")
+                .arg("named", if list.is_empty() { "none" } else { "some" })
+                .arg(
+                    "others",
+                    match untagged {
+                        0 => "none",
+                        1 => "one",
+                        _ => "many",
+                    },
+                )
+                .arg("untagged", untagged.to_string())
                 .arg("ports", list)
                 .arg("address", address.to_string())
                 .arg("net", net_name.clone()),

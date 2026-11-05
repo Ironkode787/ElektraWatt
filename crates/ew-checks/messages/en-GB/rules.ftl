@@ -4,30 +4,38 @@
 # The rule messages in en-GB (doc 15 §3.8; WP-S1.16 D6): the mandatory language and the fallback of every other.
 # Every registered rule has `rule-<id lower case>` with `.title` (the catalogue title) and `.hint`. A rule whose
 # findings carry arguments also has the message's value, which renders the finding's message byte for byte. An
-# integrity rule of opening a project (`INTEGRITY`) has its `.title`, since its findings reach the Messages pane.
+# integrity rule of opening a project (`INTEGRITY`) has its `.title` and `.hint`, since its findings reach the Messages
+# pane.
 
 ## EW-CORE: integrity, pages, cables, parts, interruption points, texts, the rule system
 
 rule-ew-core-001 =
     .title = Manifest damaged
+    .hint = Save the project to write a new manifest, or take either side's version from git.
 
 rule-ew-core-002 =
     .title = Mixed generation
+    .hint = Restore the project's files from one save (git, the sync client or a backup), or replay a crashed session with ew recover.
 
 rule-ew-core-003 =
     .title = Listed file missing
+    .hint = Restore the file from git, the sync client or a backup, or let a cloud folder finish downloading and open the project again.
 
 rule-ew-core-004 =
     .title = Orphan file
+    .hint = Compare the file with the project, merge what you need as an external change, then delete the file.
 
 rule-ew-core-005 =
     .title = JSON syntax error
+    .hint = Repair the project with ew fmt --repair, or correct the line in a text editor.
 
 rule-ew-core-006 =
     .title = Git conflict markers
+    .hint = Resolve the conflict in git, or settle its conflict records with ew merge resolve.
 
 rule-ew-core-007 =
     .title = Schema violation
+    .hint = Correct the line in a text editor by the format's reference, or restore it from git.
 
 rule-ew-core-008 =
     .title = Dangling reference
@@ -35,9 +43,11 @@ rule-ew-core-008 =
 
 rule-ew-core-009 =
     .title = Duplicate record ID
+    .hint = Delete the extra line in a text editor, or give its record a new ID where both are wanted.
 
 rule-ew-core-010 =
     .title = Record in the wrong file
+    .hint = Save the project: the save moves the record to its file.
 
 rule-ew-core-011 =
     .title = Conflict records present
@@ -45,24 +55,31 @@ rule-ew-core-011 =
 
 rule-ew-core-012 =
     .title = Structural invariant violated
+    .hint = Let the next change of the record restore the invariant, or restore the file from git.
 
 rule-ew-core-014 =
     .title = Library copy modified
+    .hint = Embed the copy again from the library, or keep the change on purpose.
 
 rule-ew-core-015 =
     .title = Asset missing
+    .hint = Import the asset again or restore the file from git, and delete the damaged file.
 
 rule-ew-core-016 =
     .title = Data from a newer format
+    .hint = Open the project in the newer ElektraWatt that wrote it, or upgrade ElektraWatt.
 
 rule-ew-core-017 =
     .title = Malformed known variant
+    .hint = Enter the value again in Properties, which shows the raw value.
 
 rule-ew-core-018 =
     .title = Unknown derivation profile
+    .hint = Open the project in a build that ships the profile.
 
 rule-ew-core-019 =
     .title = Reader limit exceeded
+    .hint = Split or repair the file outside ElektraWatt, and check where the project came from.
 
 rule-ew-core-021 =
     .title = Folio outside its section
@@ -367,8 +384,19 @@ rule-ew-plc-015 = { $subject }: the { $what ->
 ## EW-BUS: bus networks
 
 rule-ew-bus-001 = { $form ->
-        [duplicate] { $ports }: station address { $address } is used more than once in logical net { $net }; give each port its own address
-       *[tbd] { $port }: the station address is TBD; enter it before release
+        [duplicate] { $named ->
+            [none] { $untagged } ports without a tag
+           *[some] { $others ->
+                [none] { $ports }
+                [one] { $ports } and a port without a tag
+               *[other] { $ports } and { $untagged } ports without a tag
+            }
+        }: station address { $address } is used more than once in logical net { $net }; give each port its own address
+       *[tbd] { $end ->
+            [connector] a connector
+            [device] a device:{ $port }
+           *[named] { $port }
+        }: the station address is TBD; enter it before release
     }
     .title = Bus address missing or duplicate
     .hint = Enter a station address that is unique in the logical net before release.
@@ -559,7 +587,15 @@ rule-ew-term-001 =
     .title = Terminal without designation
     .hint = Give the terminal a designation.
 
-rule-ew-term-002 = designation { $designation } is used by { $count } terminals of { $strip }
+rule-ew-term-002 = { $form ->
+        [taken] designation { $designation } is taken on { $strip } ({ $count } terminals){ $remedy ->
+            [free] ; use { $free }
+            [swap] ; swap { $old } ↔ { $designation } in one transaction (terminal.designate)
+            [both] ; use { $free } or swap { $old } ↔ { $designation } in one transaction (terminal.designate)
+           *[none] {""}
+        }
+       *[used] designation { $designation } is used by { $count } terminals of { $strip }
+    }
     .title = Duplicate designation
     .hint = Renumber the strip, or give one of the terminals another designation.
 
