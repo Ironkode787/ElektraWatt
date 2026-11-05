@@ -1102,6 +1102,8 @@ pub fn run_step(
 ) -> StepResult {
     // WP-S2.09 §6.3 item 5: the ends of the jobs that finished since the last step are taken first.
     shell.poll_jobs();
+    // FT-1440: the project and revision before the step, so that a done step answers with what it changed.
+    let before = shell.epoch_rev();
     // FT-720: `script.expect_refused` runs its inner step and is done exactly when that step is refused; the refusal's
     // key stays in `reason` (with its sentence) so the transcript says which refusal was met.
     // FT-1409: `script.expect_failed` likewise, the failure's text staying in `message`.
@@ -1148,6 +1150,17 @@ pub fn run_step(
     ];
     if step.action == "ui.describe" && outcome == Outcome::Done {
         members.push(member("describe", &Value::from(crate::describe::describe(shell))));
+    }
+    // FT-1440 (ID-1397): a done step that changed the same project answers with what it changed, the undo steps it
+    // committed in words (a finished wire, a chosen part), never a bare "done".
+    if outcome == Outcome::Done
+        && let Some((epoch, rev)) = before
+        && shell.epoch_rev().is_some_and(|(e, now)| e == epoch && now > rev)
+    {
+        let changed = shell.changes_since(rev);
+        if !changed.is_empty() {
+            members.push(member("changed", &Value::from(changed)));
+        }
     }
     // FT-1267 (WP-S6.08 D6): the page a documentation request opens, so that the installed tree's run proves the guide
     // is found.

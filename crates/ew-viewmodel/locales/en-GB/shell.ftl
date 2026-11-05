@@ -2611,6 +2611,8 @@ history-not-undoable = not undoable
 history-merged = merged { $p0 }
 history-changes-title = Changes of step { $p0 }
 history-redo = undone
+# FT-1440: the text protocol's answer to a step that changed the project: the step's title and its pages.
+history-changed-on = { $p0 } on { $p1 }
 history-redo-to = Redo to here
 # FT-1362: an entry's origin in words.
 history-origin-gui = by hand

@@ -210,7 +210,7 @@ impl ShellModel {
 
     /// The project session and revision before an action runs (the dispatch's argument to
     /// [`ShellModel::track_editing_page`]).
-    pub(super) fn epoch_rev(&self) -> Option<(u64, u64)> {
+    pub(crate) fn epoch_rev(&self) -> Option<(u64, u64)> {
         self.project.as_ref().map(|p| (p.epoch, p.session.world().rev.0))
     }
 

@@ -2445,6 +2445,8 @@ history-not-undoable = niet ongedaan te maken
 history-merged = { $p0 } samengevoegd
 history-changes-title = Wijzigingen van stap { $p0 }
 history-redo = ongedaan gemaakt
+# FT-1440: the text protocol's answer to a step that changed the project: the step's title and its pages.
+history-changed-on = { $p0 } op { $p1 }
 history-redo-to = Tot hier opnieuw
 history-origin-gui = met de hand
 history-origin-from = uit { $p0 }

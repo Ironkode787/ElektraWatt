@@ -379,6 +379,28 @@ fn tutorial_1_a_first_schematic_page_runs_as_its_page_says() {
     let tmp = Tmp::new();
     let out = run_tutorial(&tmp, "first-page");
     let transcript = all_done(&out);
+    // FT-1440 (ID-1397): a finished wire answers with what it changed, never a bare "done".
+    let changed: Vec<String> = transcript
+        .lines()
+        .skip(1)
+        .filter_map(|l| {
+            let step: Value = serde_json::from_str(l).unwrap();
+            (step["action"] == "canvas.activate" && step["changed"].is_array())
+                .then(|| step["changed"].to_string())
+        })
+        .collect();
+    assert_eq!(
+        changed,
+        [
+            r#"["Place device on 1"]"#,
+            r#"["Place device on 1"]"#,
+            r#"["Place device on 1"]"#,
+            r#"["Draw wire on 1"]"#,
+            r#"["Draw wire on 1"]"#,
+            r#"["Draw wire on 1"]"#,
+            r#"["Draw wire on 1"]"#,
+        ]
+    );
     let describe = last_describe(&transcript);
     let rows: Vec<&str> = describe
         .lines()
@@ -567,6 +589,16 @@ fn tutorial_6_importing_a_qelectrotech_project_runs_as_its_page_says() {
     .unwrap();
     let out = run_tutorial(&tmp, "import-qet");
     let transcript = all_done(&out);
+    // FT-1440 (ID-1397): a part chosen answers with what it changed, never a bare "done".
+    let picked: Vec<String> = transcript
+        .lines()
+        .skip(1)
+        .filter_map(|l| {
+            let step: Value = serde_json::from_str(l).unwrap();
+            (step["action"] == "part.pick").then(|| step["changed"].to_string())
+        })
+        .collect();
+    assert_eq!(picked, [r#"["Assign part on 1"]"#; 4]);
     let [preview, imported, wired, end] = <[String; 4]>::try_from(describes(&transcript)).unwrap();
     assert_eq!(
         lines_of(&preview, &["label \"1 page,"]),

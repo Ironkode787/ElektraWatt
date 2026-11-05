@@ -97,6 +97,27 @@ impl ShellModel {
         self.history.view = Some((epoch, rev, view));
     }
 
+    /// FT-1440 (ID-1397): what the undo steps committed after revision `since` changed, in words, oldest first: each
+    /// step's title with the folios its changes touch ("Draw wire on 101"), the text protocol's answer to a step.
+    pub fn changes_since(&self, since: u64) -> Vec<String> {
+        let Some(project) = &self.project else {
+            return Vec::new();
+        };
+        let view = project.session.history_view();
+        view.rows[..view.cursor.min(view.rows.len())]
+            .iter()
+            .filter(|r| r.step && r.rev > since)
+            .map(|r| {
+                let title = HistoryPane::label_words(r);
+                if r.pages.is_empty() {
+                    title.to_owned()
+                } else {
+                    crate::strings::format(key!("history-changed-on"), &[title, &r.pages.join(", ")])
+                }
+            })
+            .collect()
+    }
+
     /// `history.show {on?}` (Edit, History): opens or closes the panel in the bottom dock.
     pub(crate) fn act_history_show(&mut self, p: &Map<String, Value>) -> Outcome {
         let shown = self.history_shown();
