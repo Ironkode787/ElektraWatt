@@ -213,6 +213,7 @@ pub(super) fn badge_word(code: &str) -> String {
         "deprecated" => strings::text(key!("badge-deprecated")),
         "local_fork" => strings::text(key!("badge-local-fork")),
         "index_failed" => strings::text(key!("badge-index-failed")),
+        "profile_unreadable" => strings::text(key!("badge-profile-unreadable")),
         other => {
             if let Some(n) = other
                 .strip_suffix(" spare")

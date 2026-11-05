@@ -2599,6 +2599,7 @@ badge-source-missing = Bron ontbreekt
 badge-deprecated = Verouderd
 badge-local-fork = Lokale afsplitsing
 badge-index-failed = Index mislukt
+badge-profile-unreadable = PLC-profiel onleesbaar
 action-macros-insert = Macro invoegen…
 action-macros-place = Een macro plaatsen
 action-macros-value-set = De waardenset van de macro kiezen

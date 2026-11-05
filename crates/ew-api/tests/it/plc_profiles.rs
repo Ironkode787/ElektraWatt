@@ -11,6 +11,7 @@
 use std::path::{Path, PathBuf};
 
 use ew_api::library::{LibraryTiers, Registry};
+use ew_api::output::{NavKind, NavRole};
 use ew_api::{AnyCommand, CmdLog, CmdLogError, Recovery, Session, SessionOptions, StoreOptions};
 use ew_commands::CmdError;
 use ew_derive::{ChannelAddr, ChannelAddresses, Q};
@@ -83,6 +84,18 @@ fn library(root: &Path) -> (LibraryTiers, Uuid) {
     ];
     reg.write(lib, &docs).unwrap();
     (t, lib)
+}
+
+/// The badges and the State cell of the Libraries navigator's row of the library `name`.
+fn library_row(s: &Session, name: &str) -> (Vec<String>, String) {
+    let t = s.navigator_table(NavKind::Libraries);
+    let n = t
+        .nodes
+        .iter()
+        .find(|n| n.role == NavRole::Library && n.label == name)
+        .expect("the library's row");
+    let state = t.columns.iter().position(|c| c.key == "state").unwrap();
+    (n.badges.clone(), n.cells[state].clone())
 }
 
 fn open(dir: &Path, root: &Path, libraries: Option<LibraryTiers>) -> Session {
@@ -169,6 +182,13 @@ fn a_library_profile_is_chosen_without_a_code_change_and_stays_with_the_project(
         ew_api::unreadable_profiles(s.libraries(), lib),
         ["the address profile fixture-hex@1 cannot be read: only base 10 is rendered"]
     );
+    // FT-1426: the Libraries navigator notes it too, on the library's row.
+    let (badges, state) = library_row(&s, "PLC profiles");
+    assert_eq!(badges, ["profile_unreadable"]);
+    assert_eq!(
+        state,
+        "Index up to date; the address profile fixture-hex@1 cannot be read: only base 10 is rendered"
+    );
     let e = s.run_script(&line(cfg, "fixture-hex"), "profiles").unwrap_err();
     let CmdLogError::Failed { error, .. } = &e else {
         panic!("{e:?}")
@@ -211,6 +231,15 @@ fn a_library_profile_is_chosen_without_a_code_change_and_stays_with_the_project(
         1,
         "the project holds its copy"
     );
+    // FT-1426: the copy is listed by its label as a PLC profile, never "Item".
+    let t = s.navigator_table(NavKind::Libraries);
+    let copy = t
+        .nodes
+        .iter()
+        .find(|n| n.role == NavRole::LibCopy && n.label == "Fixture absolute")
+        .expect("the profile's copy row");
+    let kind = t.columns.iter().position(|c| c.key == "kind").unwrap();
+    assert_eq!(copy.cells[kind], "PLC profile");
     let texts = module_texts(&s);
     assert_eq!(&texts[..2], ["%Q0.0", "%Q0.1"]);
     s.save().unwrap();

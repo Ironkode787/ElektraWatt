@@ -1779,6 +1779,7 @@ badge-source-missing = Source missing
 badge-deprecated = Deprecated
 badge-local-fork = Local fork
 badge-index-failed = Index failed
+badge-profile-unreadable = PLC profile unreadable
 action-macros-insert = Insert macro…
 action-macros-place = Place a macro
 action-macros-value-set = Choose the macro's value set

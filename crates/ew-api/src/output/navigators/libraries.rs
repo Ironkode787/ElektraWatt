@@ -99,6 +99,7 @@ fn kind_word(k: Kind) -> &'static str {
         Kind::Form => "Form",
         Kind::Macro => "Macro",
         Kind::Manufacturer => "Manufacturer",
+        Kind::PlcProfile => "PLC profile",
         _ => "Item",
     }
 }
@@ -167,7 +168,8 @@ fn form_name(kind: &FormKind, key: Option<&str>) -> String {
 }
 
 /// The name a held copy is listed by (FT-755: words, never an ID): a part's number, a symbol's or manufacturer's
-/// name, a function definition's kind text ("Black box", "NO contact 13-14"), a form's [`form_name`], else its key.
+/// name, a function definition's kind text ("Black box", "NO contact 13-14"), a form's [`form_name`], a PLC
+/// profile's label else its `id@version` (FT-1426), else its key.
 fn copy_label(q: &Q, kind: Kind, copy: Uuid) -> String {
     fn key<T>(c: &LibCopy<T>, meta: impl Fn(&T) -> &ew_schema::ItemMeta) -> Option<String> {
         meta(&c.item).key.as_ref().map(ToString::to_string)
@@ -218,6 +220,13 @@ fn copy_label(q: &Q, kind: Kind, copy: Uuid) -> String {
                     Some(name)
                 }
             }),
+        Kind::PlcProfile => q.plc_profiles().get(Id::from_uuid(copy)).map(|c| {
+            if c.item.label.is_empty() {
+                format!("{}@{}", c.item.profile.id, c.item.profile.version)
+            } else {
+                c.item.label.clone()
+            }
+        }),
         _ => None,
     };
     label
@@ -685,6 +694,15 @@ impl Session {
                 if matches!(lib.index, IndexState::Failed(_)) {
                     badges.push("index_failed".to_owned());
                 }
+                // WP-S7.03 T2 (FT-1426): an address profile that does not render, as `ew lib list` notes it.
+                let unreadable = crate::unreadable_profiles(self.libraries(), lib.id);
+                if !unreadable.is_empty() {
+                    badges.push("profile_unreadable".to_owned());
+                }
+                let state = std::iter::once(index_word(&lib.index))
+                    .chain(unreadable)
+                    .collect::<Vec<_>>()
+                    .join("; ");
                 let cells = vec![
                     lib.name.clone(),
                     "Library".to_owned(),
@@ -692,7 +710,7 @@ impl Session {
                     lib.version.clone(),
                     lib.licence.clone(),
                     access.to_owned(),
-                    index_word(&lib.index),
+                    state,
                     String::new(),
                 ];
                 let mut facets = vec![
