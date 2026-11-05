@@ -65,13 +65,10 @@ pub enum CoordSpace {
 }
 
 impl CoordSpace {
-    /// The space of the platform this build runs on: logical points on macOS, physical pixels elsewhere.
+    /// The space of the platform this build runs on: physical pixels (Windows and X11; macOS is not a supported
+    /// platform, ID-880).
     pub fn of_this_platform() -> CoordSpace {
-        if cfg!(target_os = "macos") {
-            CoordSpace::Logical
-        } else {
-            CoordSpace::Physical
-        }
+        CoordSpace::Physical
     }
 }
 

@@ -256,9 +256,7 @@ fn the_editor_records_refuses_shadows_resets_and_round_trips() {
         json!({"action": "file.open", "keys": "Ctrl+phys:Digit0"}),
     );
     let refusal = shell.keymap_editor().refusal.clone().unwrap();
-    if cfg!(not(target_os = "macos")) {
-        assert_eq!(refusal.errors, ["Ctrl+0 is already Actual size everywhere."]);
-    }
+    assert_eq!(refusal.errors, ["Ctrl+0 is already Actual size everywhere."]);
     // Ctrl+Alt and the reserved chords are errors too.
     refused(
         &mut shell,

@@ -393,7 +393,6 @@ fn opener(os: &str, url: &str) -> (&'static str, Vec<String>) {
             "rundll32",
             vec!["url.dll,FileProtocolHandler".to_owned(), url.to_owned()],
         ),
-        "macos" => ("open", vec![url.to_owned()]),
         _ => ("xdg-open", vec![url.to_owned()]),
     }
 }
@@ -529,7 +528,7 @@ impl eframe::App for ShellApp {
 }
 
 /// FT-526 (R1-4, R2-1, R3-1, R3-2): on the first frame the window goes to the saved outer position of `saved` (in the
-/// platform's desktop space: physical pixels, logical points on macOS), one whose position is on no monitor (its
+/// platform's desktop space: physical pixels), one whose position is on no monitor (its
 /// monitor gone) moves onto the primary monitor, and a window saved maximised is maximised after the move (the builder
 /// never maximises it). This reads winit's physical values; the conversion, the clamp and the order of the steps are
 /// the pure `ew_ui::window_memory::first_frame`. A minimised or full-screen window and a frame without a winit window
@@ -1090,9 +1089,8 @@ mod tests {
                 vec!["url.dll,FileProtocolHandler".to_owned(), url.to_owned()]
             )
         );
-        assert_eq!(opener("macos", url), ("open", vec![url.to_owned()]));
         assert_eq!(opener("linux", url), ("xdg-open", vec![url.to_owned()]));
-        for os in ["windows", "macos", "linux", "freebsd"] {
+        for os in ["windows", "linux", "freebsd"] {
             assert!(
                 !["cmd", "sh", "bash", "powershell"].contains(&opener(os, url).0),
                 "{os}"

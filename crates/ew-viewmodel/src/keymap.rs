@@ -112,7 +112,7 @@ pub enum ChordKey {
 /// A normalised key chord (doc 16 §15.5): two chords are the same binding exactly when they are equal.
 #[derive(Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Debug)]
 pub struct Chord {
-    /// Ctrl (Cmd on macOS).
+    /// Ctrl.
     pub ctrl: bool,
     /// Alt.
     pub alt: bool,
@@ -189,20 +189,15 @@ impl Chord {
         format!("{}{key}", self.modifier_text())
     }
 
-    /// The text a person reads (the window's chips and menus, the editor's refusals and notes, KM-4 ruling): `Ctrl`
-    /// reads `Cmd` on macOS and a physical key reads as the cap it shows on a US layout (`Ctrl+phys:Digit0` is
-    /// "Ctrl+0", `phys:KeyA` "A", `phys:Minus` "-"): the `phys:` grammar belongs to the keymap file only.
+    /// The text a person reads (the window's chips and menus, the editor's refusals and notes, KM-4 ruling): a
+    /// physical key reads as the cap it shows on a US layout (`Ctrl+phys:Digit0` is "Ctrl+0", `phys:KeyA` "A",
+    /// `phys:Minus` "-"): the `phys:` grammar belongs to the keymap file only.
     pub fn display(&self) -> String {
         let key = match &self.key {
             ChordKey::Logical(name) => name.clone(),
             ChordKey::Physical(code) => physical_cap(code),
         };
-        let modifiers = self.modifier_text();
-        if cfg!(target_os = "macos") {
-            format!("{}{key}", modifiers.replace("Ctrl", "Cmd"))
-        } else {
-            format!("{modifiers}{key}")
-        }
+        format!("{}{key}", self.modifier_text())
     }
 
     /// The text a keymap file writes: a physical key always in the `phys:` form (D6).
@@ -229,11 +224,10 @@ fn physical_cap(code: &str) -> String {
 }
 
 /// A binding text as a person reads it ([`Chord::display`]), the long form [`short_display`] shortens; the keymap's
-/// findings name chords in this form. A text that is no chord stays as it is, with `Ctrl` read as `Cmd` on macOS.
+/// findings name chords in this form. A text that is no chord stays as it is.
 pub fn display(text: &str) -> String {
     match Chord::parse(text) {
         Ok(chord) => chord.display(),
-        Err(_) if cfg!(target_os = "macos") => text.replace("Ctrl", "Cmd"),
         Err(_) => text.to_owned(),
     }
 }
@@ -1305,13 +1299,12 @@ mod tests {
     /// FT-964 (ID-1150): the HUD's short names; a key without one, and a chord's modifiers, as `display` shows them.
     #[test]
     fn ft964_the_short_form_shortens_only_the_long_key_names() {
-        let ctrl = if cfg!(target_os = "macos") { "Cmd" } else { "Ctrl" };
         assert_eq!(short_display("Escape"), "Esc");
         assert_eq!(short_display("Delete"), "Del");
         assert_eq!(short_display("Arrow Up"), "Up");
         assert_eq!(short_display("Alt+Arrow Down"), "Alt+Down");
-        assert_eq!(short_display("Ctrl+Delete"), format!("{ctrl}+Del"));
-        assert_eq!(short_display("Ctrl+Plus"), format!("{ctrl}+Plus"));
+        assert_eq!(short_display("Ctrl+Delete"), "Ctrl+Del");
+        assert_eq!(short_display("Ctrl+Plus"), "Ctrl+Plus");
         assert_eq!(short_display("Enter"), "Enter");
         assert_eq!(short_display("R"), "R");
         assert_eq!(short_display("phys:KeyA"), "A");
@@ -1336,7 +1329,6 @@ mod tests {
 
     /// Cycle-40 review: a chord reads as its key caps wherever a person sees it, for every physical key the `phys:`
     /// grammar accepts; the binding text and the file text keep the grammar.
-    #[cfg(not(target_os = "macos"))]
     #[test]
     fn physical_keys_display_as_their_key_caps() {
         assert_eq!(chord("Ctrl+phys:Digit0").display(), "Ctrl+0");

@@ -4,8 +4,8 @@
 //! Keyboard shortcuts of the keymap as egui shortcuts (WP-S2.01 part 1, spec section 5.3, UX/UI doc 16
 //! section 4.2; WP-S2.08 part 2, D6).
 //!
-//! The keymap writes bindings as text (`Ctrl+Shift+Z`, `Page Down`, `]`, `phys:BracketRight`); on macOS `Ctrl` reads
-//! `Cmd`, which egui calls `COMMAND`. Letters, digits and named keys match by logical key; a punctuation character and
+//! The keymap writes bindings as text (`Ctrl+Shift+Z`, `Page Down`, `]`, `phys:BracketRight`); `Ctrl` is
+//! what egui calls `COMMAND`. Letters, digits and named keys match by logical key; a punctuation character and
 //! a `phys:` key match by physical key ([`Binding::physical`]), so `]` needs no AltGr on QWERTZ and AZERTY. Routing
 //! order: a focused text field, then an open popup or dialog, then the shell's shortcuts; Escape closes the topmost
 //! popup or dialog and otherwise does nothing.
@@ -163,7 +163,7 @@ pub fn chord_text(key: Key, physical: Option<Key>, modifiers: Modifiers) -> Opti
     Chord::parse(&text).ok().map(|c| c.text())
 }
 
-/// The text of a binding for display: `Ctrl` reads `Cmd` on macOS, and a physical key reads as its key cap
+/// The text of a binding for display: a physical key reads as its key cap
 /// (`Ctrl+phys:Digit0` is "Ctrl+0", `phys:Minus` "-", KM-4 ruling): the window never prints the `phys:` grammar. The
 /// view-model's one display function, under [`short_display`]; only the keymap's findings show it as it is.
 pub use ew_viewmodel::keymap::display;
@@ -225,7 +225,6 @@ mod tests {
     }
 
     /// KM-4 ruling: the window shows a physical digit or letter as its key cap, never the `phys:` grammar.
-    #[cfg(not(target_os = "macos"))]
     #[test]
     fn a_physical_digit_displays_as_its_key_cap() {
         assert_eq!(display("Ctrl+phys:Digit0"), "Ctrl+0");
