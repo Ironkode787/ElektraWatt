@@ -948,9 +948,10 @@ that labels may take half the row is FT-1498.
 *As built (2026-11-05, cycle 52, FIXW52 and its second round; decision log ID-1438, ID-1439).* **Labels give way to
 identifiers only, down to half their width.** The note above is amended as built: the word floor no longer holds for
 an identifier, so an identifier value (a tag, a part number, any word with a digit) can narrow the label column down to
-half its labels' width, and a label whose longest word no longer fits is then cut on one line with its whole text as
+half of `size.property_label`, and a label whose longest word no longer fits is then cut on one line with its whole text as
 its tooltip; a nested Dutch label can therefore be cut at the floor beside an identifier. A prose value or choice word
-without a digit, one word or several, and a list count take no width from the labels. The row's "…" button now counts
+without a digit, one word or several, and a list count take no width from the labels; a mixed value (‹varies›) counts
+whole, as an identifier does. The row's "…" button now counts
 in the value's width, so the selected row's identifier stays whole too.
 
 ### 6.9 Cards
@@ -1205,7 +1206,8 @@ as-built "[stale]" text; the summary line in `type.small` `color.text.secondary`
 
 **The Preview tab** (bottom dock): a header row with the title, revision and badge at the left and Apply and Cancel at
 the right, so the actions stay visible above long lists (as built they sit under the summary); the summary line under
-it ("12 records · 4 tags · 6 cross-reference texts · 3 pages", and an import's created and skipped counts); then the
+it ("12 items · 4 tags · 6 cross-reference texts · 3 pages" as built since cycle 52, ID-1442; an import's created
+and skipped counts); then the
 lists **Entities, Tags, Xrefs, Pages** as collapsible sections with headers in the style of the property categories
 (§6.8: 28 px, `type.small` SemiBold `color.text.secondary`, a chevron) and a count badge (§6.16) instead of "(n)".
 List rows are `size.row` in `type.small`: an entity row shows the change word in `color.text.tertiary` in a 64-px
