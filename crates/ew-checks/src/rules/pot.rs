@@ -17,7 +17,7 @@ use std::sync::OnceLock;
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::natural_cmp;
 use ew_derive::ew_schema::{
-    BondKind, ColourCode, Connection, Csa, Device, Discipline, Function, FunctionKind, IecColour, Kind, Page,
+    BondKind, ColourCode, Connection, ContactKind, Csa, Device, Discipline, Function, FunctionKind, IecColour, Kind, Page,
     PotentialEarthing, PotentialType, StructureNode,
 };
 use ew_derive::ew_units::Dec3;
@@ -2099,8 +2099,12 @@ fn is_earth(t: &PotentialType) -> bool {
 }
 
 /// The CPs of a two-terminal load (a coil, a lamp, a heater): its physical electrical CPs without an earth role, when
-/// there are exactly two; `None` for any other function.
+/// there are exactly two; `None` for any other function and for a black box (FT-1398: a two-pin element an importer
+/// could not read, a QElectroTech supply among them, is neither a load nor a source).
 fn two_terminal(q: &Q, f: Id<Function>) -> Option<[u16; 2]> {
+    if is_black_box(q, f) {
+        return None;
+    }
     let cps: Vec<u16> = q
         .get::<FunctionCps>(f)
         .iter()
@@ -2117,6 +2121,17 @@ fn two_terminal(q: &Q, f: Id<Function>) -> Option<[u16; 2]> {
     }
 }
 
+/// Whether a function is a black box: of that kind, or on a function definition of contact kind `black_box` (an
+/// importer's element without function semantics).
+fn is_black_box(q: &Q, f: Id<Function>) -> bool {
+    q.functions().get(f).is_some_and(|x| {
+        matches!(x.kind, FunctionKind::BlackBox)
+            || q.fndefs()
+                .get(x.def)
+                .is_some_and(|d| d.item.contact_kind == ContactKind::BlackBox)
+    })
+}
+
 /// Whether a function only passes a potential on: a terminal (its device's terminal aspect or a terminal contact).
 fn is_terminal(q: &Q, f: Id<Function>) -> bool {
     q.functions()
@@ -2130,8 +2145,8 @@ fn is_terminal(q: &Q, f: Id<Function>) -> bool {
 /// Whether the potential `p` has no source (EW-POT-021): the flow does not reach it (`potential_flow` distance ∞), its
 /// type is not an earth, no member CP carries a potential role (the outputs of a supply, the return pin of a module,
 /// as their CP data declares them), and every member other than an interruption point or a terminal is a two-terminal
-/// load. A potential that holds a CP of any other function (a PLC module, a power supply, a switch) is not judged:
-/// that function may be its source. At least one load must be on it.
+/// load. A potential that holds a CP of any other function (a PLC module, a power supply, a switch, a black box) is not
+/// judged: that function may be its source. At least one load must be on it.
 fn sourceless(q: &Q, p: PotentialId) -> bool {
     let entry = q.get::<PotentialFlow>(p);
     let Some(entry) = entry.as_ref().as_ref() else {

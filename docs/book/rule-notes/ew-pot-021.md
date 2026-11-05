@@ -3,7 +3,9 @@
 A load (a two-terminal function such as a coil or a lamp) fed on one side whose other side sits on a potential with no
 source: no supply reaches it, its type is not PE or FE, no connection point on it has a potential role and everything
 on it besides terminals and interruption points is such a load. Each load is reported once. A load with no source on
-either side is left out, and an unconnected pin is EW-POT-009's.
+either side is left out, and an unconnected pin is EW-POT-009's. A black box (an imported element whose function the
+importer could not read, such as a two-pin supply from QElectroTech) is neither a load nor a source: a potential that
+holds one is not judged.
 
 ## Why
 

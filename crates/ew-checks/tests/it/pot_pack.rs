@@ -658,6 +658,34 @@ fn pot021_cases() {
             ),
             Case::silent("the A2 net linked to the supply's −", coils(true, true)),
             Case::silent("no supply at all: unfed, not unreturned", coils(false, false)),
+            Case::silent(
+                "a two-pin black-box supply is neither a load nor a source (FT-1398)",
+                black_box_circuit(),
+            ),
         ],
     );
+}
+
+/// The function definition of an imported element without function semantics: two pins, contact kind `black_box`.
+const FNDEF_BB: u128 = 0x50a;
+const SYM_BB: u128 = 0x51a;
+
+/// A complete circuit as a QElectroTech import gives it: a two-pin black box 0x1001 (a supply the importer could not
+/// read), its pin 1 through the switch 0x1004 to the coil 0x1002's A1, the coil's A2 back to its pin 2.
+fn black_box_circuit() -> Model {
+    let mut fx = Fx::base();
+    fx.fndef_with(
+        FNDEF_BB,
+        SYM_BB,
+        &[(0, "1", none()), (1, "2", none())],
+        &json!([]),
+        &json!({"contact_kind": "black_box"}),
+    );
+    fx.func_of(0x1001, FNDEF_BB, SYM_BB, P1);
+    fx.pass(0x1004, P1);
+    fx.func(0x1002, P1);
+    fx.conn(0x2001, P1, cp(0x1001), cp(0x1004), &none());
+    fx.conn(0x2002, P1, Ep::Cp(0x1004, 1), cp(0x1002), &none());
+    fx.conn(0x2003, P1, Ep::Cp(0x1002, 1), Ep::Cp(0x1001, 1), &none());
+    fx.build()
 }
