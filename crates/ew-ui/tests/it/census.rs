@@ -827,9 +827,17 @@ fn the_macro_and_text_edit_tools_cancel_with_escape_and_change_nothing() {
     let config = ShellConfig::in_dir(&tmp.0.join("config-tools"), "0.0.0-test").with_libraries(Some(tiers));
     let mut shell = ShellModel::new(Mode::Gui, config);
     let done = |shell: &mut ShellModel, action: &str, params: Value| {
-        assert_eq!(shell.dispatch(action, &params), Outcome::Done, "{action} {params}");
+        assert_eq!(
+            shell.dispatch(action, &params),
+            Outcome::Done,
+            "{action} {params}"
+        );
     };
-    done(&mut shell, "file.open", json!({"dir": dir.to_string_lossy(), "read_only": false}));
+    done(
+        &mut shell,
+        "file.open",
+        json!({"dir": dir.to_string_lossy(), "read_only": false}),
+    );
     // The macro: folio 102's devices and wires, saved into "Mine".
     done(&mut shell, "page.goto", json!({"folio": "102"}));
     let ids: Vec<String> = {
@@ -884,7 +892,10 @@ fn the_macro_and_text_edit_tools_cancel_with_escape_and_change_nothing() {
     wait_for_page(&mut h);
     h.run_ok();
     let rows: [(&str, Vec<(&str, Value)>); 2] = [
-        ("macro", vec![("navigator.open", json!({"kind": "macros", "key": key}))]),
+        (
+            "macro",
+            vec![("navigator.open", json!({"kind": "macros", "key": key}))],
+        ),
         (
             "text_edit",
             vec![("select.set", json!({"ids": [text]})), ("text.edit", json!({}))],
@@ -904,8 +915,16 @@ fn the_macro_and_text_edit_tools_cancel_with_escape_and_change_nothing() {
             h.key_press(egui::Key::Escape);
             h.run_ok();
         }
-        assert_eq!(h.state().shell().tool().name(), "select", "{want} gives way to Select");
-        assert_eq!(h.state().shell().revision(), rev, "Escape leaves the revision of {want}");
+        assert_eq!(
+            h.state().shell().tool().name(),
+            "select",
+            "{want} gives way to Select"
+        );
+        assert_eq!(
+            h.state().shell().revision(),
+            rev,
+            "Escape leaves the revision of {want}"
+        );
     }
     h.state_mut().shell_mut().shutdown();
 }

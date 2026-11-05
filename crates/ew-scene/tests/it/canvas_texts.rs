@@ -764,5 +764,9 @@ fn a_cross_reference_rises_off_a_horizontal_wire() {
         "{after:?} {SLOT_TEXT_GAP:?} above the wire"
     );
     assert_eq!(after.max().y - after.min().y, before.max().y - before.min().y);
-    assert_eq!((after.min().x, after.max().x), (before.min().x, before.max().x), "in its column");
+    assert_eq!(
+        (after.min().x, after.max().x),
+        (before.min().x, before.max().x),
+        "in its column"
+    );
 }

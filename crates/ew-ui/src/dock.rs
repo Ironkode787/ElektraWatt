@@ -618,7 +618,10 @@ const BOTTOM_GROW: f32 = 0.4;
 fn default_bottom_share() -> f32 {
     fn find(n: &LayoutNode) -> Option<f32> {
         match n {
-            LayoutNode::Split { dir: SplitDir::Vertical, children } if children.iter().any(|(_, c)| c.holds(PaneKind::PageView)) => {
+            LayoutNode::Split {
+                dir: SplitDir::Vertical,
+                children,
+            } if children.iter().any(|(_, c)| c.holds(PaneKind::PageView)) => {
                 let total: u64 = children.iter().map(|(s, _)| u64::from(*s)).sum();
                 let (s, _) = children.iter().find(|(_, c)| c.holds(PaneKind::Find))?;
                 Some(*s as f32 / total.max(1) as f32)

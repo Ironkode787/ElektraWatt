@@ -1720,7 +1720,10 @@ impl Builder<'_> {
             let Some(own) = self.text_box(&texts[i].spec(false), false) else {
                 continue;
             };
-            if !wires.iter().any(|&(a, c)| a.y == c.y && wire_through(own, (a, c))) {
+            if !wires
+                .iter()
+                .any(|&(a, c)| a.y == c.y && wire_through(own, (a, c)))
+            {
                 continue;
             }
             let entity = entities[i];

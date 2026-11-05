@@ -291,9 +291,9 @@ pub(crate) fn toasts_low(
     let Some(pane) = canvas.filter(|_| working) else {
         return false;
     };
-    let Some(p) = pointer.filter(|p| {
-        pane.contains(*p) && p.x >= pane.center().x && !stack.is_some_and(|s| s.contains(*p))
-    }) else {
+    let Some(p) = pointer
+        .filter(|p| pane.contains(*p) && p.x >= pane.center().x && !stack.is_some_and(|s| s.contains(*p)))
+    else {
         return low;
     };
     p.y < pane.center().y
@@ -445,18 +445,42 @@ mod tests {
     #[test]
     fn the_toasts_keep_clear_of_a_working_tool() {
         let pane = Some(Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(800.0, 600.0)));
-        let stack = Some(Rect::from_min_max(egui::pos2(480.0, 400.0), egui::pos2(780.0, 580.0)));
+        let stack = Some(Rect::from_min_max(
+            egui::pos2(480.0, 400.0),
+            egui::pos2(780.0, 580.0),
+        ));
         let at = |x: f32, y: f32| Some(egui::pos2(x, y));
         assert!(toasts_low(false, true, pane, at(700.0, 100.0), None));
         assert!(!toasts_low(false, false, pane, at(700.0, 100.0), None), "Select");
-        assert!(!toasts_low(true, true, None, at(700.0, 100.0), stack), "no canvas");
-        assert!(toasts_low(true, true, pane, at(600.0, 500.0), stack), "on the stack");
-        assert!(toasts_low(true, true, pane, at(100.0, 500.0), stack), "the left half");
+        assert!(
+            !toasts_low(true, true, None, at(700.0, 100.0), stack),
+            "no canvas"
+        );
+        assert!(
+            toasts_low(true, true, pane, at(600.0, 500.0), stack),
+            "on the stack"
+        );
+        assert!(
+            toasts_low(true, true, pane, at(100.0, 500.0), stack),
+            "the left half"
+        );
         assert!(toasts_low(true, true, pane, None, stack), "no pointer");
-        assert!(!toasts_low(true, true, pane, at(450.0, 500.0), stack), "off the stack");
-        assert!(!toasts_low(false, true, pane, at(100.0, 100.0), None), "the left half");
-        let high = Some(Rect::from_min_max(egui::pos2(480.0, 20.0), egui::pos2(780.0, 200.0)));
-        assert!(!toasts_low(false, true, pane, at(600.0, 100.0), high), "a toast reached for stays");
+        assert!(
+            !toasts_low(true, true, pane, at(450.0, 500.0), stack),
+            "off the stack"
+        );
+        assert!(
+            !toasts_low(false, true, pane, at(100.0, 100.0), None),
+            "the left half"
+        );
+        let high = Some(Rect::from_min_max(
+            egui::pos2(480.0, 20.0),
+            egui::pos2(780.0, 200.0),
+        ));
+        assert!(
+            !toasts_low(false, true, pane, at(600.0, 100.0), high),
+            "a toast reached for stays"
+        );
     }
 
     #[test]

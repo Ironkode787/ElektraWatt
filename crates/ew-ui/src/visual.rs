@@ -561,8 +561,12 @@ pub fn parse_input_in(o: &Map<String, Value>, g: Geometry) -> Result<Input, Stri
                 .get("path")
                 .and_then(Value::as_str)
                 .filter(|p| !p.is_empty() && p.chars().count() <= 260 && !p.chars().any(char::is_control))
-                .ok_or_else(|| bad("`path` names the file, 1 to 260 characters without control characters"))?;
-            Input::AnswerOpen { path: path.to_owned() }
+                .ok_or_else(|| {
+                    bad("`path` names the file, 1 to 260 characters without control characters")
+                })?;
+            Input::AnswerOpen {
+                path: path.to_owned(),
+            }
         }
         _ => match o.get("ms").and_then(Value::as_u64) {
             Some(ms @ 100..=5000) => Input::Wait { ms: ms as u32 },

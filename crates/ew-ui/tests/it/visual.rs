@@ -484,7 +484,11 @@ fn answer_open_names_the_file_of_the_next_open_dialog() {
     d.shell_mut().shutdown();
     let mut d = import(false);
     assert!(d.shell_mut().dialog().is_none(), "cancelled");
-    assert_eq!(actions(&mut d), ["file.import_qet"], "only the step's own dispatch");
+    assert_eq!(
+        actions(&mut d),
+        ["file.import_qet"],
+        "only the step's own dispatch"
+    );
     d.shell_mut().shutdown();
     assert_eq!(
         parse_input(&obj(json!({"input": "answer_open", "path": ""}))),
