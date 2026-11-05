@@ -474,8 +474,7 @@ fn ft1415_messages_shows_five_rows_at_the_floor() {
     let tree = h
         .get_all_by_role(egui::Role::Tree)
         .map(|n| n.rect())
-        .filter(|r| r.top() > 400.0)
-        .next()
+        .find(|r| r.top() > 400.0)
         .expect("the Messages list in the bottom dock");
     let rows = h
         .get_all_by_role(egui::Role::TreeItem)
