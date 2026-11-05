@@ -284,16 +284,15 @@ fn row_texts(
             } else {
                 strings::text(key!("picker-badge-starter"))
             };
-            // The name is the key's last segment without its grid variant (`ew.iec.mcb-1p@qet10` → `mcb-1p`).
-            let name = ew_viewmodel::tools::symbol_name(&s.key).to_owned();
-            // FT-1196 (as ID-1225 ruling 8 for the part rows): the tooltip in words, the symbol's name, then the row's
-            // function column whole (its reason when disabled), never the keys.
-            let words = if s.name.is_empty() {
-                name.clone()
+            // ID-1427 (W52 F16): the row names the symbol by its name in words ("Contact, changeover"), in both
+            // languages; a symbol without a name by the key's last segment without its grid variant
+            // (`ew.iec.mcb-1p@qet10` → `mcb-1p`). FT-1196: the tooltip likewise, never the keys.
+            let name = if s.name.is_empty() {
+                ew_viewmodel::tools::symbol_name(&s.key).to_owned()
             } else {
                 s.name.clone()
             };
-            (name, None, library.to_owned(), words)
+            (name.clone(), None, library.to_owned(), name)
         }
         PickerRow::PartFn(p, k) => {
             let part = &picker.catalogue.parts[p];

@@ -514,6 +514,16 @@ fn ft1375_device_from_part_places_the_projects_a9f78116_as_102f1_on_gp_ut() {
     let picker = h.state().shell().picker().expect("the picker");
     let rows: Vec<String> = picker.rows.iter().map(|r| picker.row_line(*r)).collect();
     assert_eq!(rows, ["row symbol \"mcb-1p\" embedded \"ew.iec.mcb-1p@qet10\""]);
+    // ID-1427 (W52 F16): the row names the symbol by its name in words, never by its key.
+    assert!(
+        h.query_by_label_contains("Miniature circuit breaker, 1 pole")
+            .is_some(),
+        "the symbol by its name"
+    );
+    assert!(
+        h.query_by_label_contains("mcb-1p").is_none(),
+        "no key on show"
+    );
     let before = reps(&h);
     press(&mut h, Key::Enter);
     assert_eq!(h.state().shell().tool().name(), "place");
