@@ -114,7 +114,10 @@ fn ip_near_terminal(tmp: &Tmp, quarter_turns: usize, dx: i64, dy: i64) -> (Shell
         json!({"symbol": "ew.iec.terminal@qet10", "strip": "-?X?", "terminal_designation": "1"}),
     );
     let sn = s.canvas().unwrap().page().snapper.clone();
-    let k = (sn.grid_index_of(ip_cp.at.0) + dx, sn.grid_index_of(ip_cp.at.1) + dy);
+    let k = (
+        sn.grid_index_of(ip_cp.at.0) + dx,
+        sn.grid_index_of(ip_cp.at.1) + dy,
+    );
     let q = page_point(&s, k);
     click(&mut s, q, true);
     done(&mut s, "tool.select", json!({}));

@@ -75,10 +75,11 @@ fn ft1383_save_as_is_refused_and_the_banner_names_the_device_and_the_copy() {
     let (dir, copy) = damaged_golden(&tmp);
     let file = format!("lib/parts/{copy}.json");
     let target = tmp.0.join("save-as");
-    let refused = |s: &mut ShellModel| match s.dispatch("file.save_as", &json!({"dir": target.to_string_lossy()})) {
-        Outcome::Failed { message } => message,
-        other => panic!("{other:?}"),
-    };
+    let refused =
+        |s: &mut ShellModel| match s.dispatch("file.save_as", &json!({"dir": target.to_string_lossy()})) {
+            Outcome::Failed { message } => message,
+            other => panic!("{other:?}"),
+        };
     for (locale, banner, save_as) in [
         (
             "en",
@@ -119,7 +120,10 @@ fn ft1383_save_as_is_refused_and_the_banner_names_the_device_and_the_copy() {
         assert_eq!(s.banner(), Some(banner.as_str()));
         assert_eq!(refused(&mut s), save_as);
         assert!(!target.exists(), "nothing is written");
-        assert!(s.read_only_reason().is_some(), "the session stays on the read-only project");
+        assert!(
+            s.read_only_reason().is_some(),
+            "the session stays on the read-only project"
+        );
         done(&mut s, "file.close", json!({}));
     }
     assert!(strings::set_locale("en"));

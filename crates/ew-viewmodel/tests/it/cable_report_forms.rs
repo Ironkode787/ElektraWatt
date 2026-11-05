@@ -532,7 +532,8 @@ fn cables_on_no_page_or_placed_by_a_core_keep_their_scope_in_edits_and_renumberi
     ] {
         done(&mut s, "view.language", json!({ "value": language }));
         let rev = s.revision();
-        let Outcome::Failed { message } = s.dispatch("props.set", &json!({"row": "device/tag.counter", "value": "1"}))
+        let Outcome::Failed { message } =
+            s.dispatch("props.set", &json!({"row": "device/tag.counter", "value": "1"}))
         else {
             panic!("{language}: a taken counter")
         };
@@ -541,13 +542,21 @@ fn cables_on_no_page_or_placed_by_a_core_keep_their_scope_in_edits_and_renumberi
     }
     done(&mut s, "view.language", json!({ "value": "en" }));
     // (b) -W2 off to 7 and -W3, placed through its first core on folio 103, off to 9: renumbering takes both back.
-    done(&mut s, "props.set", json!({"row": "device/tag.counter", "value": "7"}));
+    done(
+        &mut s,
+        "props.set",
+        json!({"row": "device/tag.counter", "value": "7"}),
+    );
     let w = wires(&s);
     done(&mut s, "select.set", json!({"ids": [w[0].to_string()]}));
     done(&mut s, "cable.connect_cores", json!({"cable": "-W3"}));
     done(&mut s, "navigator.show", json!({"kind": "cables"}));
     done(&mut s, "navigator.select", json!({"keys": ["-103W1"]}));
-    done(&mut s, "props.set", json!({"row": "device/tag.counter", "value": "9"}));
+    done(
+        &mut s,
+        "props.set",
+        json!({"row": "device/tag.counter", "value": "9"}),
+    );
     assert_eq!(new(&mut s), ["-103W9", "-W1", "-W7"]);
     done(
         &mut s,

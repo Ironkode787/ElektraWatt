@@ -1323,10 +1323,7 @@ impl Session {
         let q = self.query();
         let device = match referrer.0 {
             ew_schema::Kind::Device => Some(referrer.1.cast()),
-            ew_schema::Kind::Function => q
-                .functions()
-                .get(referrer.1.cast())
-                .and_then(|f| f.device),
+            ew_schema::Kind::Function => q.functions().get(referrer.1.cast()).and_then(|f| f.device),
             ew_schema::Kind::Representation => q
                 .table::<ew_schema::Representation>()
                 .get(referrer.1.cast())

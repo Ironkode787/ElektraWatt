@@ -479,10 +479,7 @@ fn a_damaged_copy_a_device_names_opens_read_only_with_its_finding() {
         Store::create(&target, &model, opts),
         Err(ew_store::OpenError::Model { .. })
     ));
-    assert!(
-        project_files(&vfs, &target).is_empty(),
-        "nothing is written"
-    );
+    assert!(project_files(&vfs, &target).is_empty(), "nothing is written");
     use ew_store::Vfs as _;
     assert!(vfs.stat(&target).is_err(), "not even the folder");
     store.close();

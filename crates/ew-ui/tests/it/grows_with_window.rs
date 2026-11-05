@@ -459,7 +459,10 @@ fn the_strip_editor_comes_to_rest() {
         for _ in 0..4 {
             h.run_ok();
         }
-        assert!(h.run_ok().is_some(), "at {size:?} the window repaints every frame");
+        assert!(
+            h.run_ok().is_some(),
+            "at {size:?} the window repaints every frame"
+        );
         h.state_mut().shell_mut().shutdown();
     }
 }
