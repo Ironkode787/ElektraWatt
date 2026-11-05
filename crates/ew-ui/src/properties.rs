@@ -1681,6 +1681,9 @@ fn value_need(ui: &Ui, t: &crate::theme::Tokens, section: &SheetSection, row: &P
         _ if varies => Some(shown.clone()),
         Some((first, _)) if first.chars().any(|c| c.is_ascii_digit()) => Some(format!("{first} …")),
         Some(_) => return (f32::INFINITY, f32::INFINITY),
+        // ID-1439 (C52-p8#1): a single word is an identifier only with a digit; prose or a choice word
+        // ("Hoofdschakelaar") takes nothing from the labels.
+        None if !shown.chars().any(|c| c.is_ascii_digit()) => return (f32::INFINITY, f32::INFINITY),
         None => Some(shown.clone()),
     };
     // ID-1427 (W52 F3): the row's "…" button counts, so that the value stays whole on the cursor row too.

@@ -1222,6 +1222,26 @@ fn id1427_an_identifier_stays_whole_beside_its_chip_at_the_floor() {
             ("-X1031:71".to_owned(), false)
         ]
     );
+    // ID-1439 (C52-p8#8): a label whose word is longer than the column left is cut on one line, its whole text in
+    // its tooltip (the label button's description).
+    let line = ew_ui::theme::current(&h.ctx).size_control_inline;
+    let cut = h
+        .get_all_by_role(egui::Role::Button)
+        .find(|n| n.accesskit_node().label().as_deref() == Some("Kenmerkletter"))
+        .expect("the label Kenmerkletter");
+    assert_eq!(
+        cut.accesskit_node().description().as_deref(),
+        Some("Kenmerkletter")
+    );
+    assert!(
+        cut.rect().height() <= line + 0.5,
+        "one line: {:?}",
+        cut.rect()
+    );
+    assert!(
+        texts_in_row(&h, "Kenmerkletter").contains(&("Kenmerkletter".to_owned(), true)),
+        "cut with an ellipsis"
+    );
     dispatch(&mut h, "select.set", json!({"refs": ["-102F1", "-102F2"]}));
     settle(&mut h);
     settle(&mut h);
@@ -1265,4 +1285,34 @@ fn id1427_the_position_row_is_whole_at_the_floor() {
         rows.contains(&("102-C7 · x 124.4 y 52.9 mm".to_owned(), false)),
         "{rows:?}"
     );
+}
+
+/// ID-1439 (C52-p8#1): at the 1280 × 800 floor in Dutch a one-word prose value ("Hoofdschakelaarkast", no digit) takes
+/// nothing from the labels: the label column keeps at least `size.property_label`.
+#[test]
+fn id1439_a_one_word_prose_value_takes_nothing_from_the_labels() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "101");
+    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    dispatch(&mut h, "view.language", json!({ "value": "nl" }));
+    dispatch(
+        &mut h,
+        "command.run",
+        json!({"cmd": "fields.set", "params": {"kind": "device", "targets": [{"ref": "tag:-101F1"}],
+            "path": "function_text", "value": "Hoofdschakelaarkast"}}),
+    );
+    dispatch(&mut h, "select.set", json!({"refs": ["tag:-101F1"]}));
+    // The row alone, so that no identifier of another row narrows the column.
+    dispatch(&mut h, "props.filter", json!({"text": "Functietekst"}));
+    settle(&mut h);
+    settle(&mut h);
+    let least = ew_ui::theme::current(&h.ctx).size_property_label;
+    let column = h
+        .get_all_by_role(egui::Role::Button)
+        .find(|n| n.accesskit_node().label().as_deref() == Some("Functietekst"))
+        .expect("the label Functietekst")
+        .rect()
+        .width();
+    assert!(column >= least - 0.5, "the label column {column}");
+    h.state_mut().shell_mut().shutdown();
 }
