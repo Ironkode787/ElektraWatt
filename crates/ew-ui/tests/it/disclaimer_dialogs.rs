@@ -96,7 +96,7 @@ fn the_approve_and_release_dialogs_end_with_the_disclaimer() {
             } else {
                 buttons.iter().rev().copied().collect()
             };
-            assert_eq!(after, buttons,"{language} {action}: {texts:?}");
+            assert_eq!(after, buttons, "{language} {action}: {texts:?}");
             dispatch(&mut h, action, json!({ "cancel": true }));
             settle(&mut h);
         }
