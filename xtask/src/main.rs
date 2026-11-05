@@ -143,10 +143,12 @@ commands:
                        tests require), the all-features `cargo nextest run -p ... --all-features` for those of
                        them in the all-features set (none when no one is), and `cargo clippy -p ...` commands for
                        them; for between-wave and fix-round verifies only, a gate runs the full suite
-  all-features-set     the workspace packages with a feature that the default run leaves off (computed from the
-                       manifests' features and the edges that switch them on) as `-p <package>` arguments on one
-                       line, nothing when there is none: the packages of CI's all-features test run and of
-                       `ci`'s all-features nextest and doctest steps
+  all-features-set [--doctests]
+                       the workspace packages with a feature that the default run leaves off (computed from the
+                       manifests' features and the edges that switch them on, for the host platform) as
+                       `-p <package>` arguments on one line, nothing when there is none: the packages of CI's
+                       all-features test run and of `ci`'s all-features nextest step; --doctests keeps those
+                       with a library target with doctests, the packages of the all-features doctest steps
   settle [--check] [--merge] [--all] [--base <rev>]
                        the mechanical upkeep of a change, one table of steps in one order (xtask/src/settle.rs):
                        rustfmt on the changed .rs files, the shell's text keys, the command and CLI schemas, the rule catalogue, the
@@ -392,7 +394,7 @@ fn main() -> ExitCode {
             }
         }
         "affected" => affected::run(&args[1..], &workspace_root()),
-        "all-features-set" => all_features::run(),
+        "all-features-set" => all_features::run(&args[1..]),
         "settle" => settle::run(&args[1..], &workspace_root()),
         "lane-check" => lane_check::run(&args[1..], &workspace_root()),
         "map" => map::run(&args[1..], &workspace_root()),
@@ -811,8 +813,12 @@ fn run_echoing_stderr(command: &mut Command) -> Result<(std::process::ExitStatus
 
 /// The cargo steps of `ci()`, in order, as `(label, arguments)`. The default nextest run takes the whole workspace
 /// (the headless acceptance tests and the command fuzzer run in it, once); an all-features nextest run and doctest run
-/// follow it for the packages of `all_features` alone, and not at all when it is empty (FT-1132, ID-1217).
-fn ci_cargo_steps(all_features: &BTreeSet<String>) -> Vec<(&'static str, Vec<String>)> {
+/// follow it for the packages of `all_features` alone, and not at all when it is empty (FT-1132, ID-1217); the doctest
+/// run takes `with_doctests`, the part of the set with a library target (FT-1155).
+fn ci_cargo_steps(
+    all_features: &BTreeSet<String>,
+    with_doctests: &BTreeSet<String>,
+) -> Vec<(&'static str, Vec<String>)> {
     let fixed: &[(&'static str, &[&str])] = &[
         ("fmt", &["fmt", "--all", "--check"]),
         (
@@ -878,13 +884,13 @@ fn ci_cargo_steps(all_features: &BTreeSet<String>) -> Vec<(&'static str, Vec<Str
     for (name, args) in fixed {
         steps.push((*name, args.iter().map(ToString::to_string).collect::<Vec<_>>()));
         let after = match *name {
-            "nextest" => Some(("nextest-all-features", &["nextest", "run"][..])),
-            "doctests" => Some(("doctests-all-features", &["test", "--doc"][..])),
+            "nextest" => Some(("nextest-all-features", &["nextest", "run"][..], all_features)),
+            "doctests" => Some(("doctests-all-features", &["test", "--doc"][..], with_doctests)),
             _ => None,
         };
-        if let (Some((label, head)), false) = (after, all_features.is_empty()) {
+        if let Some((label, head, set)) = after.filter(|(_, _, set)| !set.is_empty()) {
             let mut args: Vec<String> = head.iter().map(ToString::to_string).collect();
-            args.extend(all_features::argument_list(all_features));
+            args.extend(all_features::argument_list(set));
             args.extend(["--all-features".to_owned(), "--locked".to_owned()]);
             steps.push((label, args));
         }
@@ -927,7 +933,10 @@ fn run_checks_beside<T>(checks: &[Check], beside: impl FnOnce() -> T) -> (T, Vec
 /// Runs the local mirror of the per-PR CI set and prints a summary. Every step runs, even after a failure,
 /// so one invocation shows everything that needs fixing.
 fn ci() -> Result<bool> {
-    let cargo_steps = ci_cargo_steps(&all_features::workspace_set()?);
+    let cargo_steps = ci_cargo_steps(
+        &all_features::workspace_set()?,
+        &all_features::workspace_doctest_set()?,
+    );
     let checks: [Check; 17] = [
         ("check-deps", check_deps),
         ("check-features", check_features),
@@ -1186,11 +1195,13 @@ mod tests {
 
     /// FT-1132: `ci()`'s cargo steps. fmt runs first; the default nextest and doctest runs take the whole workspace,
     /// and the acceptance tests and the fuzzer are not filtered out of the default run; the all-features nextest and
-    /// doctest runs follow them for the packages of the set alone; an empty set has neither.
+    /// doctest runs follow them for the packages of the set alone, the doctest run for those with a library alone
+    /// (FT-1155); an empty set has neither.
     #[test]
     fn ci_runs_the_all_features_tests_for_the_set_alone() {
-        let set: BTreeSet<String> = ["ew-ui", "a-lib"].into_iter().map(str::to_owned).collect();
-        let steps = ci_cargo_steps(&set);
+        let set: BTreeSet<String> = ["ew-ui", "a-lib", "a-bin"].into_iter().map(str::to_owned).collect();
+        let with_doctests: BTreeSet<String> = ["ew-ui", "a-lib"].into_iter().map(str::to_owned).collect();
+        let steps = ci_cargo_steps(&set, &with_doctests);
         let args = |label: &str| -> Vec<&str> {
             steps
                 .iter()
@@ -1208,6 +1219,8 @@ mod tests {
             [
                 "nextest",
                 "run",
+                "-p",
+                "a-bin",
                 "-p",
                 "a-lib",
                 "-p",
@@ -1233,7 +1246,7 @@ mod tests {
         let position = |label: &str| steps.iter().position(|(name, _)| *name == label).unwrap();
         assert!(position("nextest") < position("nextest-all-features"));
         assert!(position("doctests") < position("doctests-all-features"));
-        let none = ci_cargo_steps(&BTreeSet::new());
+        let none = ci_cargo_steps(&BTreeSet::new(), &BTreeSet::new());
         let labels: Vec<&str> = none.iter().map(|(name, _)| *name).collect();
         assert!(
             labels.contains(&"nextest") && labels.contains(&"doctests"),

@@ -241,6 +241,8 @@ jobs:
         run: |
           packages="$(cargo xtask all-features-set)"
           echo "ALL_FEATURES_PACKAGES=$packages" >> "$GITHUB_ENV"
+          doctests="$(cargo xtask all-features-set --doctests)"
+          echo "ALL_FEATURES_DOCTEST_PACKAGES=$doctests" >> "$GITHUB_ENV"
       - name: compile the tests (all features)
         if: env.ALL_FEATURES_PACKAGES != ''
         run: cargo test $ALL_FEATURES_PACKAGES --all-features --locked --no-run
@@ -304,9 +306,10 @@ jobs:
       # nextest does not run doctests.
       - name: cargo test --doc
         run: cargo test --doc --workspace --locked
+      # FT-1155: `cargo test --doc` errors for a package without a library, so this step takes those with one alone.
       - name: cargo test --doc (all features)
-        if: env.ALL_FEATURES_PACKAGES != ''
-        run: cargo test --doc $ALL_FEATURES_PACKAGES --all-features --locked
+        if: env.ALL_FEATURES_DOCTEST_PACKAGES != ''
+        run: cargo test --doc $ALL_FEATURES_DOCTEST_PACKAGES --all-features --locked
 
   test-linux-default:
     name: test-linux-default

@@ -311,7 +311,7 @@ pub fn shipping_graph(
 }
 
 /// Parses `cargo tree --prefix none --format "{p}|{f}"` lines into package name → enabled features.
-fn parse_tree(stdout: &str) -> BTreeMap<String, std::collections::BTreeSet<String>> {
+pub(crate) fn parse_tree(stdout: &str) -> BTreeMap<String, std::collections::BTreeSet<String>> {
     let mut graph = BTreeMap::<String, std::collections::BTreeSet<String>>::new();
     for line in stdout.lines() {
         let Some((package, features)) = line.split_once('|') else {
