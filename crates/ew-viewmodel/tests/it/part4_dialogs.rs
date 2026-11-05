@@ -297,6 +297,11 @@ const OPENS_INPUT: &[&str] = &[
     "cable.new",
     "cable.connect_cores",
     "report_block.new",
+    // WP-S2.10: the editor and file actions accept parameters through the shared palette form.
+    "symbol.new",
+    "symbol.open",
+    "symbol.fork",
+    "symbol.export",
 ];
 
 #[test]

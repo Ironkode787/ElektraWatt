@@ -151,6 +151,11 @@ item = "impl IdSource for SystemSource"
 count = 1
 
 [[allow]]
+crate = "ew-import-eplan"
+item = "fn manufacturer_edz_when_supplied"
+count = 1
+
+[[allow]]
 crate = "ew-import-qet"
 item = "inner attribute"
 count = 1

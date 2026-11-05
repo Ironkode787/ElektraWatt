@@ -5,7 +5,7 @@ SPDX-License-Identifier: CC-BY-4.0
 
 # Draw a six-pin power block
 
-Create a project from the built-in template. Open **Edit → New symbol**, name it **Power block**, and use the
+Create a project from the built-in template. Open **Edit → Symbol editor**, name it **Power block**, and use the
 key `example.power`. Draw a rectangle from `(4, 0)` to `(24, 28)` mm. Choose the connection tool, outward direction
 Left, and add six pins at x = 0 mm, y = 4, 8, 12, 16, 20 and 24 mm. Set their designations to 1, 2, 3, 4, 5 and FE.
 Draw a short lead from each pin to the left edge of the body. FE is a printed designation; assign its electrical

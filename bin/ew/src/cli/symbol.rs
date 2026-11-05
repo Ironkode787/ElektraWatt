@@ -69,6 +69,7 @@ fn execute(args: SymbolArgs) -> Result<(serde_json::Value, i32), Box<dyn std::er
                 .ok_or("No user library directory is configured")?;
             tiers.company.push(library.clone());
             let mut registry = ew_api::library::Registry::open(&tiers)?;
+            d.check_function(&registry)?;
             let id = match registry
                 .libraries()
                 .into_iter()

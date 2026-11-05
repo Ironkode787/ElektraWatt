@@ -4441,7 +4441,7 @@ symbol-invalid-version = Voer een versie in als hoofdversie.subversie.patch: { $
 symbol-name-required = Geef het symbool een naam: { $p0 }.
 symbol-provenance-required = Voeg een licentie en bron toe voor { $p0 }.
 symbol-grid-unsupported = Kies het standaardraster van 4 mm of het QET-raster van 10 px voor { $p0 }.
-symbol-cp-off-grid = Aansluitpunt { $p0 } ligt buiten het aansluitraster. Verplaats het naar het raster voordat u opslaat.
+symbol-cp-off-grid = Aansluitpunt { $p0 } ligt buiten het verbindingsraster. Verplaats het naar het raster voordat u opslaat.
 symbol-cp-mapping = Aansluitpunt { $p0 } vereist een uniek, passend functieaansluitpunt.
 symbol-cp-direction = Kies een uitgaande richting voor aansluitpunt { $p0 }.
 symbol-slot-pin = De aanduidingstekst verwijst naar een ontbrekend aansluitpunt: { $p0 }.
@@ -4505,9 +4505,9 @@ symbol-up = Omhoog
 symbol-right = Rechts
 symbol-down = Omlaag
 symbol-left = Links
-symbol-native-grid = Aansluitingen: 4 mm · grafische elementen: 0,5 mm · tekst: 1 mm
-symbol-qet-grid = Aansluitingen: QET 10 px · oorspronkelijke schaal behouden
-symbol-draw-hint = Kies een gereedschap. Klik op het begin- en eindpunt. Escape annuleert de huidige lijn.
+symbol-native-grid = Verbindingen: 4 mm · grafische elementen: 0,5 mm · tekst: 1 mm
+symbol-qet-grid = Verbindingen: QET 10 px · oorspronkelijke schaal behouden
+symbol-draw-hint = Kies een gereedschap. Klik op het begin- en eindpunt.
 symbol-import-notes = Importrapport
 symbol-fndef-key = Sleutel van bestaande functie
 symbol-assign = Functie toewijzen
@@ -4526,7 +4526,7 @@ action-symbol-variant = Symboolvariant bekijken
 action-symbol-validate = Symbool valideren
 action-symbol-draw = Grafisch symboolelement tekenen
 action-symbol-cp = Aansluitpunt van symbool bewerken
-action-symbol-slot = Tekstpositie toevoegen
+action-symbol-slot = Tekstpositie aan symbool toevoegen
 action-symbol-export = Symboolconcept exporteren…
 action-symbol-save = Symbool opslaan in bibliotheek
 action-symbol-place = Bewerkt symbool plaatsen
@@ -4534,7 +4534,7 @@ action-symbol-candidate = Geïmporteerd symbool kiezen
 action-symbol-function = Functiedefinitie toewijzen
 action-symbol-link = Mechanisch koppelingspunt toevoegen
 symbol-coordinate-required = Voer een geldige coördinaat in millimeters in.
-symbol-import-review = Controleer de geïmporteerde geometrie, aansluitingen en bronvoorwaarden voordat u opslaat.
+symbol-import-review = Controleer de geïmporteerde geometrie, verbindingen en bronvoorwaarden voordat u opslaat.
 symbol-graphics-required = Teken ten minste één grafisch element voordat u opslaat.
 symbol-link-duplicate = Koppelingspunt { $p0 } moet een unieke naam hebben.
 symbol-extra-variants = Opgeslagen alternatieve tekeningen moeten afzonderlijk worden gecontroleerd; maak eerst een kopie van de gewenste tekening.
@@ -4550,7 +4550,7 @@ symbol-path = Pad
 symbol-rotation = Rotatie (graden)
 symbol-slot-kind = Tekstveld
 symbol-visible = Zichtbaar
-symbol-tag = Apparaatcodering
+symbol-tag = Apparaatkenmerk
 symbol-function-text = Functietekst
 symbol-tech-data = Technische gegevens
 symbol-cp-designation = Aansluitcodering
@@ -4563,11 +4563,11 @@ eplan-binary-unsupported = Deze binaire EPLAN-bibliotheek of macro wordt niet on
 eplan-xml-invalid = De EPLAN-XML is ongeldig of bevat niet-toegestane declaraties.
 eplan-geometry-invalid = De EPLAN-tekening bevat ongeldige coördinaten.
 eplan-pxf-version = Deze EPLAN PXF-versie wordt niet ondersteund; de lezer ondersteunt revisie 1.23.
-eplan-no-symbols = Er is geen ondersteunde symbooltekening of aansluitingssjabloon gevonden.
+eplan-no-symbols = Er is geen ondersteunde symbooltekening of verbindingssjabloon gevonden.
 eplan-format-unsupported = Dit EPLAN-documenttype wordt niet ondersteund.
-eplan-macro-incomplete = Sommige macrorecords konden niet worden geconverteerd. Controleer de geometrie en wijs elke aansluitrichting toe.
+eplan-macro-incomplete = Sommige macrorecords konden niet worden geconverteerd. Controleer de geometrie en wijs elke verbindingsrichting toe.
 eplan-styles-review = Lijn- en tekststijlen moeten worden vergeleken met de oorspronkelijke macro.
-eplan-generated-body = Deze omtrek is gegenereerd uit artikelaansluitingen. Het is niet de oorspronkelijke EPLAN-tekening.
+eplan-generated-body = Deze omtrek is gegenereerd uit artikelverbindingen. Het is niet de oorspronkelijke EPLAN-tekening.
 eplan-function-review = Controleer de gegenereerde functiedefinitie en aansluittoewijzing vóór gebruik.
 symbol-arc-start = Beginhoek (graden)
 symbol-arc-sweep = Booghoek (graden)
@@ -4576,3 +4576,19 @@ action-symbol-path = Polylijn of veelhoek tekenen
 symbol-path-hint = Klik op elke hoek; dubbelklik op de laatste hoek om te voltooien.
 symbol-function-connections = De functie bevat een ongeldige interne verbinding. Controleer de aansluitingsindexen en het verbindingstype.
 symbol-editor-active = Sluit de symboolbewerker voordat u de projecttekening wijzigt.
+
+choice-anchor = Anker
+
+choice-ellipse = Ellips
+
+choice-rectangle = Rechthoek
+
+choice-text = Tekst
+
+symbol-x-mm = X (mm)
+
+symbol-y-mm = Y (mm)
+
+symbol-mm = { $p0 } (mm)
+
+symbol-graphic-item = { $p0 } { $p1 }

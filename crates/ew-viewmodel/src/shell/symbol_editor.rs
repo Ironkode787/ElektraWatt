@@ -12,6 +12,8 @@ use std::path::{Path, PathBuf};
 /// Editable document state. History never shares the project's undo stack.
 #[derive(Debug)]
 pub struct SymbolEditor {
+    /// Replacement generation; the view clears transient tool state when this changes.
+    pub generation: u64,
     /// Current portable document.
     pub draft: SymbolDraft,
     /// Last successful export/publication; equality determines unsaved changes.
@@ -31,6 +33,7 @@ pub struct SymbolEditor {
 impl SymbolEditor {
     fn new(draft: SymbolDraft, directory: String) -> Self {
         Self {
+            generation: 0,
             draft,
             saved: None,
             undo: Vec::new(),
@@ -163,6 +166,10 @@ impl ShellModel {
                 .map(|p| p.to_string_lossy().into_owned())
                 .unwrap_or_default();
             let mut editor = SymbolEditor::new(draft, dir);
+            editor.generation = self
+                .symbol_editor
+                .as_ref()
+                .map_or(0, |old| old.generation.wrapping_add(1));
             if action == "open" {
                 editor.saved = Some(editor.draft.clone());
             }
@@ -177,12 +184,17 @@ impl ShellModel {
                 .ok_or_else(|| strings::text(key!("symbol-not-open")).to_owned())?
                 .draft;
             draft.documents(symbols::DRAFT_LIBRARY).map_err(err)?;
+            let project = self
+                .project
+                .as_ref()
+                .ok_or_else(|| strings::text(key!("reason-no-project")).to_owned())?;
+            draft.check_function(project.session.libraries()).map_err(err)?;
             let labels = self.page_labels();
             let mut index = 1;
-            while labels.iter().any(|l| l == &format!("SYM-{index}")) {
+            while labels.iter().any(|l| l == &index.to_string()) {
                 index += 1;
             }
-            let params = json!({"folio":format!("SYM-{index}")});
+            let params = json!({"folio":index.to_string(),"title":strings::text(key!("symbol-title"))});
             match self.dispatch("page.new", &params) {
                 Outcome::Done => {}
                 Outcome::Failed { message } => return Err(message),
@@ -243,11 +255,19 @@ impl ShellModel {
                 let draft = editor.candidates.get(index).cloned().ok_or("index")?;
                 editor.replace(draft.clone());
                 editor.saved = Some(draft);
+                editor.generation = editor.generation.wrapping_add(1);
             }
             "function" => {
-                let registry = self.project.as_ref().map(|p| p.session.libraries());
-                let fallback = ew_api::library::Registry::starter_only();
-                let registry = registry.unwrap_or(&fallback);
+                let fallback;
+                let registry = if let Some(project) = &self.project {
+                    project.session.libraries()
+                } else {
+                    fallback = match &self.config.libraries {
+                        Some(tiers) => ew_api::library::Registry::open(tiers).map_err(|e| e.to_string())?,
+                        None => ew_api::library::Registry::starter_only(),
+                    };
+                    &fallback
+                };
                 let f = registry
                     .libraries()
                     .iter()
@@ -358,13 +378,6 @@ impl ShellModel {
                 if index > u64::from(u16::MAX) {
                     return Err("idx".into());
                 }
-                let fn_cp = p.get("fn_cp").and_then(Value::as_u64).unwrap_or(index);
-                let dir = if text(p, "direction").is_empty() {
-                    "left"
-                } else {
-                    text(p, "direction")
-                };
-                let cp = json!({"idx":index,"fn_cp":fn_cp,"pos":[nm(p,"x")?,nm(p,"y")?],"dir":dir});
                 let points = d["symbol"]
                     .as_object_mut()
                     .ok_or("symbol")?
@@ -372,6 +385,19 @@ impl ShellModel {
                     .or_insert(json!([]))
                     .as_array_mut()
                     .ok_or("cps")?;
+                let mut cp = points
+                    .iter()
+                    .find(|v| v["idx"] == index)
+                    .cloned()
+                    .unwrap_or(json!({"idx":index,"fn_cp":index,"dir":"left"}));
+                if let Some(mapping) = p.get("fn_cp") {
+                    cp["fn_cp"] = mapping.clone();
+                }
+                if !text(p, "direction").is_empty() {
+                    cp["dir"] = json!(text(p, "direction"));
+                }
+                cp["pos"] = json!([nm(p, "x")?, nm(p, "y")?]);
+                let fn_cp = cp["fn_cp"].as_u64().ok_or("fn_cp")?;
                 points.retain(|v| v["idx"] != index);
                 points.push(cp);
                 points.sort_by_key(|v| v["idx"].as_u64());
@@ -463,6 +489,7 @@ impl ShellModel {
                     tiers.company.push(path.clone());
                 }
                 let mut registry = ew_api::library::Registry::open(&tiers).map_err(|e| e.to_string())?;
+                draft.check_function(&registry).map_err(err)?;
                 let target = match registry
                     .libraries()
                     .into_iter()

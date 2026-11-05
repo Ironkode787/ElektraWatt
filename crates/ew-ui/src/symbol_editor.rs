@@ -3,8 +3,8 @@
 
 //! Symbol editor canvas and properties. All edits dispatch the shared headless actions.
 
-use crate::app::Event;
-use egui::{Color32, Pos2, Sense, Stroke, Ui, Vec2};
+use crate::{app::Event, theme};
+use egui::{Pos2, Sense, Stroke, Ui, Vec2};
 use ew_viewmodel::ew_api::symbols::{self, SymbolDraft};
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::strings;
@@ -13,6 +13,7 @@ use symbols::drawing;
 
 #[derive(Default)]
 pub(crate) struct EditorView {
+    generation: Option<u64>,
     file: String,
     directory: String,
     tool: usize,
@@ -35,17 +36,17 @@ pub(crate) struct EditorView {
     json_error: bool,
 }
 
-fn label(key: &str) -> &str {
-    strings::text(strings::Key::run_time(key))
+fn label(key: strings::Key<'_>) -> &'static str {
+    strings::text(key)
 }
 fn action(events: &mut Vec<Event>, name: &'static str, value: Value) {
     events.push(Event::Action(name, value));
 }
 fn button(ui: &mut Ui, key: &str) -> bool {
-    ui.button(label(key)).clicked()
+    ui.button(label(strings::Key::run_time(key))).clicked()
 }
 fn field(ui: &mut Ui, key: &str, value: &mut String) -> bool {
-    ui.label(label(key));
+    ui.label(label(strings::Key::run_time(key)));
     ui.text_edit_singleline(value).changed()
 }
 fn display_text(v: &Value) -> String {
@@ -61,6 +62,12 @@ impl EditorView {
         let Some(editor) = shell.symbol_editor() else {
             return;
         };
+        if self.generation != Some(editor.generation) {
+            *self = Self {
+                generation: Some(editor.generation),
+                ..Default::default()
+            };
+        }
         if self.zoom == 0.0 {
             self.zoom = 8.0;
         }
@@ -68,21 +75,28 @@ impl EditorView {
             self.directory = editor.directory.clone();
         }
         let draft = &editor.draft;
+        let t = theme::current(ui.ctx());
         ui.horizontal_wrapped(|ui| {
-            ui.heading(label("symbol-title"));
-            ui.label(label(if editor.dirty() {
+            ui.heading(label(strings::Key::run_time("symbol-title")));
+            ui.label(label(strings::Key::run_time(if editor.dirty() {
                 "symbol-dirty"
             } else {
                 "symbol-saved"
-            }));
+            })));
             if ui
-                .add_enabled(editor.can_undo(), egui::Button::new(label("symbol-undo")))
+                .add_enabled(
+                    editor.can_undo(),
+                    egui::Button::new(label(strings::Key::run_time("symbol-undo"))),
+                )
                 .clicked()
             {
                 action(events, "symbol.undo", json!({}));
             }
             if ui
-                .add_enabled(editor.can_redo(), egui::Button::new(label("symbol-redo")))
+                .add_enabled(
+                    editor.can_redo(),
+                    egui::Button::new(label(strings::Key::run_time("symbol-redo"))),
+                )
                 .clicked()
             {
                 action(events, "symbol.redo", json!({}));
@@ -93,13 +107,15 @@ impl EditorView {
             if button(ui, "symbol-close") {
                 action(events, "symbol.close", json!({"discard":self.discard}));
             }
-            ui.checkbox(&mut self.discard, label("symbol-discard"));
+            ui.checkbox(&mut self.discard, label(strings::Key::run_time("symbol-discard")));
         });
-        ui.label(label(if draft.symbol.grid == symbols::units::Grid::QET_10PX {
-            "symbol-qet-grid"
-        } else {
-            "symbol-native-grid"
-        }));
+        ui.label(label(strings::Key::run_time(
+            if draft.symbol.grid == symbols::units::Grid::QET_10PX {
+                "symbol-qet-grid"
+            } else {
+                "symbol-native-grid"
+            },
+        )));
         ui.separator();
         let width = (ui.available_width() * 0.27).clamp(260.0, 430.0);
         let height = ui.available_height();
@@ -108,7 +124,7 @@ impl EditorView {
                 egui::ScrollArea::vertical().id_salt("symbol-properties-scroll").max_height(height).show(ui,|ui| {
                     ui.set_min_width(width - 20.0);
                     self.properties(ui,draft,events);
-                    if editor.candidates.len() > 1 { ui.collapsing(label("symbol-candidates"), |ui| {
+                    if editor.candidates.len() > 1 { ui.collapsing(label(strings::Key::run_time("symbol-candidates")), |ui| {
                         for (i,d) in editor.candidates.iter().enumerate() {
                             if ui.button(display_text(&serde_json::to_value(&d.symbol.name).unwrap_or_default())).clicked() {
                                 action(events,"symbol.candidate",json!({"index":i,"discard":self.discard}));
@@ -116,29 +132,30 @@ impl EditorView {
                         }
                     }); }
                     ui.separator();
-                    ui.collapsing(label("symbol-import"),|ui| {
+                    ui.collapsing(label(strings::Key::run_time("symbol-import")),|ui| {
                         field(ui,"symbol-file",&mut self.file);
                         if button(ui,"symbol-import") { action(events,"symbol.open",json!({"file":self.file,"key":draft.key,"discard":self.discard})); }
                         if button(ui,"symbol-export") { action(events,"symbol.export",json!({"file":self.file})); }
                     });
                     field(ui,"symbol-library-folder",&mut self.directory);
-                    ui.collapsing(label("symbol-place"),|ui| {
+                    ui.collapsing(label(strings::Key::run_time("symbol-place")),|ui| {
                         ui.horizontal(|ui| {
-                            ui.label("X (mm)"); ui.add(egui::DragValue::new(&mut self.place[0]).speed(4.0));
-                            ui.label("Y (mm)"); ui.add(egui::DragValue::new(&mut self.place[1]).speed(4.0));
+                            ui.label(label(strings::Key::run_time("symbol-x-mm"))); ui.add(egui::DragValue::new(&mut self.place[0]).speed(4.0));
+                            ui.label(label(strings::Key::run_time("symbol-y-mm"))); ui.add(egui::DragValue::new(&mut self.place[1]).speed(4.0));
                         });
-                        if ui.add_enabled(shell.has_project(),egui::Button::new(label("symbol-place"))).clicked() { action(events,"symbol.place",json!({"x":self.place[0],"y":self.place[1]})); }
-                        if ui.add_enabled(shell.has_project(),egui::Button::new(label("symbol-scratch"))).clicked() { action(events,"symbol.scratch",json!({})); }
+                        if ui.add_enabled(shell.has_project(),egui::Button::new(label(strings::Key::run_time("symbol-place")))).clicked() { action(events,"symbol.place",json!({"x":self.place[0],"y":self.place[1]})); }
+                        if ui.add_enabled(shell.has_project(),egui::Button::new(label(strings::Key::run_time("symbol-scratch")))).clicked() { action(events,"symbol.scratch",json!({})); }
                     });
-                    ui.separator(); ui.strong(label("symbol-validation"));
+                    ui.separator(); ui.strong(label(strings::Key::run_time("symbol-validation")));
                     let issues = draft.validate();
-                    if issues.is_empty() { ui.label(label("symbol-valid")); }
+                    if issues.is_empty() { ui.label(label(strings::Key::run_time("symbol-valid"))); }
                     for issue in issues { ui.colored_label(ui.visuals().error_fg_color, strings::format(strings::Key::run_time(issue.code),&[&issue.detail])); }
                     if let Some(error) = &editor.error { ui.colored_label(ui.visuals().error_fg_color,error); }
-                    if !draft.import_notes.is_empty() { ui.collapsing(label("symbol-import-notes"),|ui| {
-                        for note in &draft.import_notes { ui.label(label(note)); }
+                    if !draft.import_notes.is_empty() { ui.collapsing(label(strings::Key::run_time("symbol-import-notes")),|ui| {
+                        for note in &draft.import_notes { ui.label(label(strings::Key::run_time(note))); }
+                        for detail in &draft.import_details { ui.label(&detail.message); }
                         let mut reviewed=draft.import_reviewed;
-                        if ui.checkbox(&mut reviewed,label("symbol-reviewed")).changed() {
+                        if ui.checkbox(&mut reviewed,label(strings::Key::run_time("symbol-reviewed"))).changed() {
                             let mut d=draft.clone();d.import_reviewed=reviewed;action(events,"symbol.replace",json!({"document":d}));
                         }
                     }); }
@@ -148,23 +165,23 @@ impl EditorView {
             ui.vertical(|ui| {
                 let tools = ["select","line","rectangle","circle","ellipse","arc","text","cp","slot","anchor","link","polyline","polygon"];
                 ui.horizontal_wrapped(|ui| { for (i,name) in tools.iter().enumerate() {
-                    if ui.selectable_label(self.tool == i,label(&format!("symbol-{name}"))).clicked() { self.tool = i; self.start = None; self.vertices.clear(); }
+                    if ui.selectable_label(self.tool == i,label(strings::Key::run_time(&format!("symbol-{name}")))).clicked() { self.tool = i; self.start = None; self.vertices.clear(); }
                 }});
                 if self.tool == 6 { field(ui,"symbol-text",&mut self.text); }
                 if self.tool == 10 { field(ui,"symbol-name",&mut self.link_name); }
                 if self.tool == 8 { slot_kind_control(ui,&mut self.slot_kind,&mut self.slot_pin); }
                 if self.tool == 7 { ui.horizontal_wrapped(|ui| {
                     field(ui,"symbol-designation",&mut self.designation);
-                    egui::ComboBox::from_id_salt("symbol-cp-direction").selected_text(label(["symbol-up","symbol-right","symbol-down","symbol-left"][self.direction])).show_ui(ui,|ui| {
-                        for (i,k) in ["symbol-up","symbol-right","symbol-down","symbol-left"].iter().enumerate() { ui.selectable_value(&mut self.direction,i,label(k)); }
+                    egui::ComboBox::from_id_salt("symbol-cp-direction").selected_text(label(strings::Key::run_time(["symbol-up","symbol-right","symbol-down","symbol-left"][self.direction]))).show_ui(ui,|ui| {
+                        for (i,k) in ["symbol-up","symbol-right","symbol-down","symbol-left"].iter().enumerate() { ui.selectable_value(&mut self.direction,i,label(strings::Key::run_time(k))); }
                     });
                 }); }
-                ui.label(label("symbol-draw-hint"));
-                if self.tool>=11 {ui.label(label("symbol-path-hint"));}
+                ui.label(label(strings::Key::run_time("symbol-draw-hint")));
+                if self.tool>=11 {ui.label(label(strings::Key::run_time("symbol-path-hint")));}
                 let canvas_height = (ui.available_height() - 122.0).max(120.0);
                 let (rect,response) = ui.allocate_exact_size(Vec2::new(ui.available_width(),canvas_height),Sense::click_and_drag());
                 let painter = ui.painter_at(rect);
-                painter.rect_filled(rect,0.0,Color32::WHITE);
+                painter.rect_filled(rect,t.radius_none,t.canvas_sheet.color32());
                 if response.dragged_by(egui::PointerButton::Middle) { self.manual_view=true; self.pan += ui.input(|i|i.pointer.delta()); }
                 if response.hovered() {
                     let scroll = ui.input(|i| i.smooth_scroll_delta.y);
@@ -182,14 +199,14 @@ impl EditorView {
                     let x0 = ((rect.left()-origin.x)/step).floor() as i32;
                     let y0 = ((rect.top()-origin.y)/step).floor() as i32;
                     for x in x0..x0+((rect.width()/step).ceil() as i32)+1 { for y in y0..y0+((rect.height()/step).ceil() as i32)+1 {
-                        painter.circle_filled(origin+Vec2::new(x as f32*step,y as f32*step),0.8,Color32::from_gray(218));
+                        painter.circle_filled(origin+Vec2::new(x as f32*step,y as f32*step),0.8,t.canvas_grid_dot.color32());
                     }}
                 }
-                painter.line_segment([origin-Vec2::new(8.0,0.0),origin+Vec2::new(8.0,0.0)],Stroke::new(1.0,Color32::GRAY));
-                painter.line_segment([origin-Vec2::new(0.0,8.0),origin+Vec2::new(0.0,8.0)],Stroke::new(1.0,Color32::GRAY));
+                painter.line_segment([origin-Vec2::new(8.0,0.0),origin+Vec2::new(8.0,0.0)],Stroke::new(t.border_width,t.canvas_grid_dot.color32()));
+                painter.line_segment([origin-Vec2::new(0.0,8.0),origin+Vec2::new(0.0,8.0)],Stroke::new(t.border_width,t.canvas_grid_dot.color32()));
                 paint(&painter,draft,editor.variant,origin,self.zoom,true);
-                for p in self.vertices.windows(2) {painter.line_segment([origin+Vec2::new(p[0][0] as f32,p[0][1] as f32)*self.zoom,origin+Vec2::new(p[1][0] as f32,p[1][1] as f32)*self.zoom],Stroke::new(1.0,Color32::BLUE));}
-                if editor.variant != 0 { painter.text(rect.left_top()+Vec2::splat(8.0),egui::Align2::LEFT_TOP,label("symbol-edit-a"),egui::FontId::proportional(14.0),Color32::DARK_BLUE); }
+                for p in self.vertices.windows(2) {painter.line_segment([origin+Vec2::new(p[0][0] as f32,p[0][1] as f32)*self.zoom,origin+Vec2::new(p[1][0] as f32,p[1][1] as f32)*self.zoom],Stroke::new(t.border_width,t.canvas_selection.color32()));}
+                if editor.variant != 0 { painter.text(rect.left_top()+Vec2::splat(8.0),egui::Align2::LEFT_TOP,label(strings::Key::run_time("symbol-edit-a")),theme::font(&t.type_body),t.canvas_selection.color32()); }
                 if editor.variant == 0 && self.tool == 0 {
                     if response.clicked() && let Some(pointer)=response.interact_pointer_pos() {
                         self.selected=pick_graphic(draft,(pointer-origin)/self.zoom,5.0/self.zoom);
@@ -197,7 +214,7 @@ impl EditorView {
                     if let Some(index)=self.selected && let Some(bounds)=graphic_bounds(draft,index) {
                         let lo=origin+Vec2::new(bounds[0],bounds[1])*self.zoom;
                         let hi=origin+Vec2::new(bounds[2],bounds[3])*self.zoom;
-                        painter.rect_stroke(egui::Rect::from_two_pos(lo,hi).expand(3.0),0.0,Stroke::new(1.0,Color32::BLUE),egui::StrokeKind::Outside);
+                        painter.rect_stroke(egui::Rect::from_two_pos(lo,hi).expand(3.0),t.radius_none,Stroke::new(t.border_width,t.canvas_selection.color32()),egui::StrokeKind::Outside);
                         if response.drag_stopped_by(egui::PointerButton::Primary) {
                             let delta=response.drag_delta()/self.zoom;
                             let dx=(f64::from(delta.x)*2.0).round() as i64*500_000;
@@ -208,8 +225,8 @@ impl EditorView {
                 }
                 if let Some(start) = self.start {
                     let at = origin+Vec2::new(start[0] as f32*self.zoom,start[1] as f32*self.zoom);
-                    painter.circle_stroke(at,4.0,Stroke::new(1.5,Color32::from_rgb(30,100,220)));
-                    if let Some(pointer) = response.hover_pos() { painter.line_segment([at,pointer],Stroke::new(1.0,Color32::from_rgb(30,100,220))); }
+                    painter.circle_stroke(at,4.0,Stroke::new(t.focus_width,t.canvas_selection.color32()));
+                    if let Some(pointer) = response.hover_pos() { painter.line_segment([at,pointer],Stroke::new(t.border_width,t.canvas_selection.color32())); }
                 }
                 if editor.variant == 0 && response.clicked() && let Some(pointer) = response.interact_pointer_pos() {
                     let at = (pointer-origin)/self.zoom;
@@ -233,7 +250,7 @@ impl EditorView {
                 }
                 if ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE,egui::Key::Escape)) { self.start=None;self.vertices.clear(); }
                 ui.horizontal(|ui| {
-                    ui.label(label("symbol-variants"));
+                    ui.label(label(strings::Key::run_time("symbol-variants")));
                     if button(ui,"symbol-fit") { self.manual_view=false; }
                 });
                 ui.horizontal(|ui| {
@@ -241,8 +258,8 @@ impl EditorView {
                     for variant in 0..8u8 {
                         let (r,response)=ui.allocate_exact_size(Vec2::new(w,78.0),Sense::click());
                         let painter=ui.painter_at(r);
-                        painter.rect_filled(r,2.0,if variant==editor.variant {Color32::from_rgb(230,240,255)} else {Color32::WHITE});
-                        painter.text(r.left_top()+Vec2::new(4.0,2.0),egui::Align2::LEFT_TOP,char::from(b'A'+variant),egui::FontId::proportional(12.0),Color32::BLACK);
+                        painter.rect_filled(r,t.radius_mark,if variant==editor.variant {t.canvas_selection.alpha(24).over(t.canvas_sheet).color32()} else {t.canvas_sheet.color32()});
+                        painter.text(r.left_top()+Vec2::new(4.0,2.0),egui::Align2::LEFT_TOP,char::from(b'A'+variant),theme::font(&t.type_small),t.canvas_sheet_line.color32());
                         if let Ok(g)=draft.preview(variant) {
                             let b=g.bounds; let width=(b.max().x.0-b.min().x.0) as f32/1_000_000.0;
                             let height=(b.max().y.0-b.min().y.0) as f32/1_000_000.0;
@@ -274,7 +291,7 @@ impl EditorView {
                 changed = true;
             }
         }
-        ui.collapsing(label("symbol-properties"), |ui| {
+        ui.collapsing(label(strings::Key::run_time("symbol-properties")), |ui| {
             for key in ["licence", "sources"] {
                 let mut value = if key == "sources" {
                     doc["symbol"]["meta"][key][0]
@@ -306,12 +323,15 @@ impl EditorView {
                 }
             }
             let mut centre = doc["symbol"]["anchor"] == "graphic_centre";
-            if ui.checkbox(&mut centre, label("symbol-centre")).changed() {
+            if ui
+                .checkbox(&mut centre, label(strings::Key::run_time("symbol-centre")))
+                .changed()
+            {
                 doc["symbol"]["anchor"] = json!(if centre { "graphic_centre" } else { "origin" });
                 changed = true;
             }
         });
-        ui.collapsing(label("symbol-graphics"), |ui| {
+        ui.collapsing(label(strings::Key::run_time("symbol-graphics")), |ui| {
             for (i, g) in draft.symbol.graphics.iter().enumerate() {
                 let value = serde_json::to_value(g).unwrap_or_default();
                 let kind = value
@@ -319,20 +339,17 @@ impl EditorView {
                     .and_then(|m| m.keys().next())
                     .map(String::as_str)
                     .unwrap_or("");
-                if ui
-                    .selectable_label(
-                        self.selected == Some(i),
-                        format!(
-                            "{} {}",
-                            label(&format!(
-                                "symbol-{}",
-                                if kind == "rect" { "rectangle" } else { kind }
-                            )),
-                            i + 1
-                        ),
-                    )
-                    .clicked()
-                {
+                let title = strings::format(
+                    strings::Key::run_time("symbol-graphic-item"),
+                    &[
+                        label(strings::Key::run_time(&format!(
+                            "symbol-{}",
+                            if kind == "rect" { "rectangle" } else { kind }
+                        ))),
+                        &(i + 1).to_string(),
+                    ],
+                );
+                if ui.selectable_label(self.selected == Some(i), title).clicked() {
                     self.selected = Some(i);
                 }
             }
@@ -352,11 +369,11 @@ impl EditorView {
                     for key in ["start", "sweep"] {
                         let mut degrees = arc[key].as_f64().unwrap_or(0.0) / 1000.0;
                         ui.horizontal(|ui| {
-                            ui.label(label(if key == "start" {
+                            ui.label(label(strings::Key::run_time(if key == "start" {
                                 "symbol-arc-start"
                             } else {
                                 "symbol-arc-sweep"
-                            }));
+                            })));
                             if ui
                                 .add(egui::DragValue::new(&mut degrees).range(-360.0..=360.0))
                                 .changed()
@@ -376,7 +393,7 @@ impl EditorView {
                 }
             }
         });
-        ui.collapsing(label("symbol-pins"), |ui| {
+        ui.collapsing(label(strings::Key::run_time("symbol-pins")), |ui| {
             let mut remove = None;
             if let Some(cps) = doc["symbol"]["cps"].as_array_mut() {
                 for (i, cp) in cps.iter_mut().enumerate() {
@@ -392,7 +409,7 @@ impl EditorView {
                         changed |= numeric_fields(ui, &mut cp["pos"], "", true);
                         let mut mapped = cp["fn_cp"].as_u64().unwrap_or_default();
                         ui.horizontal(|ui| {
-                            ui.label(label("symbol-function"));
+                            ui.label(label(strings::Key::run_time("symbol-function")));
                             if ui
                                 .add(egui::DragValue::new(&mut mapped).range(0..=65535))
                                 .changed()
@@ -401,17 +418,21 @@ impl EditorView {
                                 changed = true;
                             }
                         });
+                        let current_direction = cp["dir"].clone();
                         egui::ComboBox::from_id_salt(("cp-direction", i))
-                            .selected_text(label(&format!(
+                            .selected_text(label(strings::Key::run_time(&format!(
                                 "symbol-{}",
-                                cp["dir"].as_str().unwrap_or("direction")
-                            )))
+                                match cp["dir"].as_str() {
+                                    Some(d @ ("up" | "right" | "down" | "left")) => d,
+                                    _ => "direction",
+                                }
+                            ))))
                             .show_ui(ui, |ui| {
                                 for direction in ["up", "right", "down", "left"] {
                                     if ui
                                         .selectable_label(
-                                            cp["dir"] == direction,
-                                            label(&format!("symbol-{direction}")),
+                                            current_direction == direction,
+                                            label(strings::Key::run_time(&format!("symbol-{direction}"))),
                                         )
                                         .clicked()
                                     {
@@ -433,7 +454,7 @@ impl EditorView {
                 changed = true;
             }
         });
-        ui.collapsing(label("symbol-function"), |ui| {
+        ui.collapsing(label(strings::Key::run_time("symbol-function")), |ui| {
             field(ui, "symbol-fndef-key", &mut self.function_key);
             if button(ui, "symbol-assign") {
                 action(events, "symbol.function", json!({"key":self.function_key}));
@@ -452,16 +473,27 @@ impl EditorView {
                 }
             });
         });
-        ui.collapsing(label("symbol-slots"), |ui| {
+        ui.collapsing(label(strings::Key::run_time("symbol-slots")), |ui| {
             let mut remove = None;
             if let Some(slots) = doc["symbol"]["text_slots"].as_array_mut() {
                 for (i, slot) in slots.iter_mut().enumerate() {
                     ui.push_id(("slot", i), |ui| {
-                        ui.label(slot["kind"].to_string());
+                        let kind = slot["kind"].as_str().unwrap_or("cp_designation");
+                        let key = match kind {
+                            "tag" => "symbol-tag",
+                            "function_text" => "symbol-function-text",
+                            "technical_data" => "symbol-tech-data",
+                            "cross_reference" => "symbol-xref",
+                            _ => "symbol-cp-designation",
+                        };
+                        ui.label(label(strings::Key::run_time(key)));
                         changed |= numeric_fields(ui, &mut slot["pos"], "", true);
                         changed |= rotation_control(ui, slot);
                         let mut visible = slot["visible"].as_bool().unwrap_or(false);
-                        if ui.checkbox(&mut visible, label("symbol-visible")).changed() {
+                        if ui
+                            .checkbox(&mut visible, label(strings::Key::run_time("symbol-visible")))
+                            .changed()
+                        {
                             slot["visible"] = json!(visible);
                             changed = true;
                         }
@@ -478,7 +510,7 @@ impl EditorView {
                 changed = true;
             }
         });
-        ui.collapsing(label("symbol-link"), |ui| {
+        ui.collapsing(label(strings::Key::run_time("symbol-link")), |ui| {
             let mut remove = None;
             if let Some(points) = doc["symbol"]["link_points"].as_array_mut() {
                 for (i, p) in points.iter_mut().enumerate() {
@@ -505,7 +537,7 @@ impl EditorView {
         if changed {
             action(events, "symbol.replace", json!({"document":doc}));
         }
-        ui.collapsing(label("symbol-advanced"), |ui| {
+        ui.collapsing(label(strings::Key::run_time("symbol-advanced")), |ui| {
             if self.advanced.is_empty() {
                 self.advanced = serde_json::to_string_pretty(draft).unwrap_or_default();
             }
@@ -529,7 +561,10 @@ impl EditorView {
                 }
             }
             if self.json_error {
-                ui.colored_label(ui.visuals().error_fg_color, label("symbol-json-invalid"));
+                ui.colored_label(
+                    ui.visuals().error_fg_color,
+                    label(strings::Key::run_time("symbol-json-invalid")),
+                );
             }
         });
     }
@@ -559,7 +594,7 @@ fn numeric_fields(ui: &mut Ui, value: &mut Value, name: &str, coordinate: bool) 
         Value::Number(n) if coordinate => {
             let mut mm = n.as_f64().unwrap_or_default() / 1_000_000.0;
             ui.horizontal(|ui| {
-                ui.label(format!("{name} (mm)"));
+                ui.label(strings::format(strings::Key::run_time("symbol-mm"), &[name]));
                 if ui
                     .add(
                         egui::DragValue::new(&mut mm)
@@ -579,6 +614,7 @@ fn numeric_fields(ui: &mut Ui, value: &mut Value, name: &str, coordinate: bool) 
 }
 
 fn paint(painter: &egui::Painter, draft: &SymbolDraft, variant: u8, origin: Pos2, scale: f32, texts: bool) {
+    let t = theme::current(painter.ctx());
     let Ok(g) = draft.preview(variant) else {
         return;
     };
@@ -591,7 +627,7 @@ fn paint(painter: &egui::Painter, draft: &SymbolDraft, variant: u8, origin: Pos2
         painter.circle_stroke(
             p,
             if texts { 3.5 } else { 1.8 },
-            Stroke::new(1.2, Color32::from_rgb(30, 100, 220)),
+            Stroke::new(t.border_width, t.canvas_selection.color32()),
         );
         if texts
             && !draft
@@ -611,8 +647,8 @@ fn paint(painter: &egui::Painter, draft: &SymbolDraft, variant: u8, origin: Pos2
                 p + Vec2::new(5.0, -5.0),
                 egui::Align2::LEFT_BOTTOM,
                 name,
-                egui::FontId::proportional(12.0),
-                Color32::from_rgb(30, 80, 150),
+                theme::font(&t.type_small),
+                t.canvas_selection.color32(),
             );
         }
     }
@@ -632,7 +668,7 @@ fn paint(painter: &egui::Painter, draft: &SymbolDraft, variant: u8, origin: Pos2
                     .map(|f| f.designation.to_string())
                     .unwrap_or_default(),
                 symbols::TextSource::Slot(symbols::schema::SlotKind::Tag) => "-U1".into(),
-                symbols::TextSource::Slot(_) => label("symbol-text").into(),
+                symbols::TextSource::Slot(_) => label(strings::Key::run_time("symbol-text")).into(),
             };
             use symbols::schema::Align;
             let align = match text.align {
@@ -649,19 +685,41 @@ fn paint(painter: &egui::Painter, draft: &SymbolDraft, variant: u8, origin: Pos2
             let galley = painter.layout_no_wrap(
                 content,
                 egui::FontId::proportional((2.0 * scale).clamp(3.0, 160.0)),
-                Color32::BLACK,
+                t.canvas_sheet_line.color32(),
             );
             let rect = align.anchor_size(at(text.pos), galley.size());
             painter.add(
-                egui::epaint::TextShape::new(rect.min, galley, Color32::BLACK)
+                egui::epaint::TextShape::new(rect.min, galley, t.canvas_sheet_line.color32())
                     .with_angle_and_anchor(-(text.angle.to_degrees_f64() as f32).to_radians(), align),
             );
         }
         if texts {
+            use symbols::units::Orient2;
+            let orientation = [
+                Orient2::R0,
+                Orient2::R90,
+                Orient2::R180,
+                Orient2::R270,
+                Orient2::M0,
+                Orient2::M90,
+                Orient2::M180,
+                Orient2::M270,
+            ][usize::from(variant)];
+            for point in &draft.symbol.link_points {
+                let pos = at(orientation.apply(point.pos));
+                painter.circle_stroke(pos, 4.0, Stroke::new(t.border_width, t.canvas_snap.color32()));
+                painter.text(
+                    pos + Vec2::new(5.0, 5.0),
+                    egui::Align2::LEFT_TOP,
+                    point.name.as_str(),
+                    theme::font(&t.type_small),
+                    t.canvas_snap.color32(),
+                );
+            }
             painter.circle_stroke(
                 at(g.anchor),
                 6.0,
-                Stroke::new(1.0, Color32::from_rgb(150, 90, 20)),
+                Stroke::new(t.border_width, t.canvas_snap.color32()),
             );
         }
     }
@@ -670,7 +728,7 @@ fn paint(painter: &egui::Painter, draft: &SymbolDraft, variant: u8, origin: Pos2
 fn rotation_control(ui: &mut Ui, value: &mut Value) -> bool {
     let mut degrees = value["rot"].as_f64().unwrap_or(0.0) / 1000.0;
     ui.horizontal(|ui| {
-        ui.label(label("symbol-rotation"));
+        ui.label(label(strings::Key::run_time("symbol-rotation")));
         if ui
             .add(egui::DragValue::new(&mut degrees).range(-360.0..=360.0))
             .changed()
@@ -701,10 +759,10 @@ fn slot_kind_control(ui: &mut Ui, index: &mut usize, pin: &mut u16) {
         "symbol-xref",
     ];
     egui::ComboBox::from_id_salt("symbol-new-slot")
-        .selected_text(label(keys[*index]))
+        .selected_text(label(strings::Key::run_time(keys[*index])))
         .show_ui(ui, |ui| {
             for (i, k) in keys.iter().enumerate() {
-                ui.selectable_value(index, i, label(k));
+                ui.selectable_value(index, i, label(strings::Key::run_time(k)));
             }
         });
     if *index == 3 {
@@ -825,6 +883,6 @@ fn paint_graphics(
         texture.id(),
         rect,
         egui::Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)),
-        Color32::WHITE,
+        theme::NO_TINT,
     );
 }

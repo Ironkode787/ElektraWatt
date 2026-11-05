@@ -4438,4 +4438,12 @@ pub const KEYS: &[&str] = &[
     "symbol-path-hint",
     "symbol-function-connections",
     "symbol-editor-active",
+    "choice-anchor",
+    "choice-ellipse",
+    "choice-rectangle",
+    "choice-text",
+    "symbol-x-mm",
+    "symbol-y-mm",
+    "symbol-mm",
+    "symbol-graphic-item",
 ];

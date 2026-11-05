@@ -48,9 +48,24 @@ pub struct SymbolDraft {
     /// Import limitations, retained in the portable draft for review.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub import_notes: Vec<String>,
+    /// Detailed source-reader findings, preserved for review and automated correction.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub import_details: Vec<ImportDetail>,
     /// Explicit author acknowledgement of EPLAN geometry, function and source-term limitations.
     #[serde(default)]
     pub import_reviewed: bool,
+}
+
+/// A source-reader finding. The message retains the reader's original language.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, schemars::JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct ImportDetail {
+    /// Stable source-reader diagnostic code.
+    pub code: String,
+    /// What was changed or omitted, in the reader's original wording.
+    pub message: String,
+    /// Source line when available.
+    pub line: Option<u32>,
 }
 
 /// A validation message with a stable code, field path and localisable arguments.
@@ -624,6 +639,15 @@ pub fn import_qet(bytes: &[u8], name: &str, key: &str) -> Result<SymbolDraft, Er
     if !imported.entries.is_empty() {
         draft.import_notes.push("symbol-qet-review".into());
     }
+    draft.import_details = imported
+        .entries
+        .into_iter()
+        .map(|entry| ImportDetail {
+            code: entry.code.to_string(),
+            message: entry.message,
+            line: entry.location.and_then(|location| location.line),
+        })
+        .collect();
     draft.symbol.meta.key = Some(key.parse().map_err(input)?);
     Ok(draft)
 }

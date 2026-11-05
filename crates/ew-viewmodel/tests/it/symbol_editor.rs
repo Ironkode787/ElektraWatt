@@ -85,3 +85,66 @@ fn editor_power_block_history_export_save_and_place_in_both_frontends() {
         shell.shutdown();
     }
 }
+
+#[test]
+fn moving_an_assigned_pin_keeps_its_mapping_and_scratch_uses_a_free_folio() {
+    for mode in [Mode::Headless, Mode::Gui] {
+        let tmp = Tmp::new("symbol-scratch");
+        let mut shell = ShellModel::new(mode, ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"));
+        done(
+            &mut shell,
+            "file.new",
+            json!({"dir":tmp.0.join("scratch.ew"),"template":"builtin"}),
+        );
+        done(
+            &mut shell,
+            "symbol.new",
+            json!({"key":"example.contact","name":"Contact"}),
+        );
+        done(&mut shell, "symbol.function", json!({"key":"ew.fn.contact-no"}));
+        done(
+            &mut shell,
+            "symbol.draw",
+            json!({"tool":"line","x":0,"y":0,"x2":0,"y2":8}),
+        );
+        done(
+            &mut shell,
+            "symbol.cp",
+            json!({"idx":1,"fn_cp":0,"x":0,"y":0,"direction":"up"}),
+        );
+        done(
+            &mut shell,
+            "symbol.cp",
+            json!({"idx":2,"fn_cp":1,"x":0,"y":8,"direction":"down"}),
+        );
+        let before = shell
+            .symbol_editor()
+            .unwrap()
+            .draft
+            .symbol
+            .cps
+            .iter()
+            .next()
+            .unwrap()
+            .clone();
+        done(&mut shell, "symbol.cp", json!({"idx":1,"x":4,"y":0}));
+        let after = shell
+            .symbol_editor()
+            .unwrap()
+            .draft
+            .symbol
+            .cps
+            .iter()
+            .next()
+            .unwrap();
+        assert_eq!(after.fn_cp, before.fn_cp);
+        assert_eq!(after.dir, before.dir);
+        done(&mut shell, "symbol.validate", json!({}));
+        let pages = shell.page_count();
+        done(&mut shell, "symbol.scratch", json!({}));
+        assert_eq!(shell.page_count(), pages + 1);
+        done(&mut shell, "symbol.scratch", json!({}));
+        assert_eq!(shell.page_count(), pages + 2);
+        shell.shutdown();
+    }
+}

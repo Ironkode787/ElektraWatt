@@ -1134,192 +1134,6 @@ use ActionKind::{Command, View};
 /// The registry: the part-1 actions of the spec, section 5.2, in menu order, then the headless-only ones.
 pub static ACTIONS: &[ActionMeta] = &[
     with_params(
-        "key?:text, name?:text, discard?:bool",
-        act(
-            "symbol.new",
-            View,
-            Menu::Edit,
-            &[],
-            always,
-            slot(Menu::Edit),
-            |s, p| s.act_symbol("new", p),
-        ),
-    ),
-    with_params(
-        "file:path, key?:text, discard?:bool",
-        hidden(act("symbol.open", View, Menu::Edit, &[], always, None, |s, p| {
-            s.act_symbol("open", p)
-        })),
-    ),
-    with_params(
-        "index:uint, discard?:bool",
-        hidden(act(
-            "symbol.candidate",
-            View,
-            Menu::Edit,
-            &[],
-            always,
-            None,
-            |s, p| s.act_symbol("candidate", p),
-        )),
-    ),
-    with_params(
-        "key:text",
-        hidden(act(
-            "symbol.function",
-            View,
-            Menu::Edit,
-            &[],
-            always,
-            None,
-            |s, p| s.act_symbol("function", p),
-        )),
-    ),
-    with_params(
-        "name:text, x:mm, y:mm",
-        hidden(act("symbol.link", View, Menu::Edit, &[], always, None, |s, p| {
-            s.act_symbol("link", p)
-        })),
-    ),
-    with_params(
-        "points:json, closed?:bool",
-        hidden(act("symbol.path", View, Menu::Edit, &[], always, None, |s, p| {
-            s.act_symbol("path", p)
-        })),
-    ),
-    with_params(
-        "source:text, key:text, discard?:bool",
-        hidden(act("symbol.fork", View, Menu::Edit, &[], always, None, |s, p| {
-            s.act_symbol("fork", p)
-        })),
-    ),
-    with_params(
-        "discard?:bool",
-        hidden(act(
-            "symbol.close",
-            View,
-            Menu::Edit,
-            &[],
-            always,
-            None,
-            |s, p| s.act_symbol("close", p),
-        )),
-    ),
-    with_params(
-        "document:json",
-        hidden(act(
-            "symbol.replace",
-            View,
-            Menu::Edit,
-            &[],
-            always,
-            None,
-            |s, p| s.act_symbol("replace", p),
-        )),
-    ),
-    hidden(parameterless(act(
-        "symbol.undo",
-        View,
-        Menu::Edit,
-        &[],
-        always,
-        None,
-        |s, p| s.act_symbol("undo", p),
-    ))),
-    hidden(parameterless(act(
-        "symbol.redo",
-        View,
-        Menu::Edit,
-        &[],
-        always,
-        None,
-        |s, p| s.act_symbol("redo", p),
-    ))),
-    with_params(
-        "variant:uint",
-        hidden(act(
-            "symbol.variant",
-            View,
-            Menu::Edit,
-            &[],
-            always,
-            None,
-            |s, p| s.act_symbol("variant", p),
-        )),
-    ),
-    hidden(parameterless(act(
-        "symbol.validate",
-        View,
-        Menu::Edit,
-        &[],
-        always,
-        None,
-        |s, p| s.act_symbol("validate", p),
-    ))),
-    with_params(
-        "tool:enum(line|rectangle|circle|ellipse|arc|text|anchor), x:mm, y:mm, x2?:mm, y2?:mm, text?:text",
-        hidden(act("symbol.draw", View, Menu::Edit, &[], always, None, |s, p| {
-            s.act_symbol("draw", p)
-        })),
-    ),
-    with_params(
-        "x:mm, y:mm, idx?:uint, fn_cp?:uint, designation?:text, direction?:enum(up|right|down|left)",
-        hidden(act("symbol.cp", View, Menu::Edit, &[], always, None, |s, p| {
-            s.act_symbol("cp", p)
-        })),
-    ),
-    with_params(
-        "kind?:json, x:mm, y:mm",
-        hidden(act("symbol.slot", View, Menu::Edit, &[], always, None, |s, p| {
-            s.act_symbol("slot", p)
-        })),
-    ),
-    with_params(
-        "file:path",
-        hidden(act(
-            "symbol.export",
-            Command,
-            Menu::Edit,
-            &[],
-            always,
-            None,
-            |s, p| s.act_symbol("export", p),
-        )),
-    ),
-    with_params(
-        "directory?:path",
-        hidden(act(
-            "symbol.save",
-            Command,
-            Menu::Edit,
-            &[],
-            always,
-            None,
-            |s, p| s.act_symbol("save", p),
-        )),
-    ),
-    with_params(
-        "x:mm, y:mm",
-        hidden(act(
-            "symbol.place",
-            Command,
-            Menu::Edit,
-            &[],
-            writable,
-            None,
-            |s, p| s.act_symbol("place", p),
-        )),
-    ),
-    hidden(parameterless(act(
-        "symbol.scratch",
-        Command,
-        Menu::Edit,
-        &[],
-        writable,
-        None,
-        |s, p| s.act_symbol("scratch", p),
-    ))),
-    with_params(
         "dir?:path, template?:path, discard?:bool",
         act(
             "file.new",
@@ -5692,6 +5506,192 @@ pub static ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_keymap_export(p),
         )),
     ),
+    with_params(
+        "key?:text, name?:text, discard?:bool",
+        act(
+            "symbol.new",
+            View,
+            Menu::Edit,
+            &[],
+            always,
+            slot(Menu::Edit),
+            |s, p| s.act_symbol("new", p),
+        ),
+    ),
+    with_params(
+        "file:path, key?:text, discard?:bool",
+        hidden(act("symbol.open", View, Menu::Edit, &[], always, None, |s, p| {
+            s.act_symbol("open", p)
+        })),
+    ),
+    with_params(
+        "index:uint, discard?:bool",
+        hidden(act(
+            "symbol.candidate",
+            View,
+            Menu::Edit,
+            &[],
+            always,
+            None,
+            |s, p| s.act_symbol("candidate", p),
+        )),
+    ),
+    with_params(
+        "key:text",
+        hidden(act(
+            "symbol.function",
+            View,
+            Menu::Edit,
+            &[],
+            always,
+            None,
+            |s, p| s.act_symbol("function", p),
+        )),
+    ),
+    with_params(
+        "name:text, x:mm, y:mm",
+        hidden(act("symbol.link", View, Menu::Edit, &[], always, None, |s, p| {
+            s.act_symbol("link", p)
+        })),
+    ),
+    with_params(
+        "points:json, closed?:bool",
+        hidden(act("symbol.path", View, Menu::Edit, &[], always, None, |s, p| {
+            s.act_symbol("path", p)
+        })),
+    ),
+    with_params(
+        "source:text, key:text, discard?:bool",
+        hidden(act("symbol.fork", View, Menu::Edit, &[], always, None, |s, p| {
+            s.act_symbol("fork", p)
+        })),
+    ),
+    with_params(
+        "discard?:bool",
+        hidden(act(
+            "symbol.close",
+            View,
+            Menu::Edit,
+            &[],
+            always,
+            None,
+            |s, p| s.act_symbol("close", p),
+        )),
+    ),
+    with_params(
+        "document:json",
+        hidden(act(
+            "symbol.replace",
+            View,
+            Menu::Edit,
+            &[],
+            always,
+            None,
+            |s, p| s.act_symbol("replace", p),
+        )),
+    ),
+    hidden(parameterless(act(
+        "symbol.undo",
+        View,
+        Menu::Edit,
+        &[],
+        always,
+        None,
+        |s, p| s.act_symbol("undo", p),
+    ))),
+    hidden(parameterless(act(
+        "symbol.redo",
+        View,
+        Menu::Edit,
+        &[],
+        always,
+        None,
+        |s, p| s.act_symbol("redo", p),
+    ))),
+    with_params(
+        "variant:uint",
+        hidden(act(
+            "symbol.variant",
+            View,
+            Menu::Edit,
+            &[],
+            always,
+            None,
+            |s, p| s.act_symbol("variant", p),
+        )),
+    ),
+    hidden(parameterless(act(
+        "symbol.validate",
+        View,
+        Menu::Edit,
+        &[],
+        always,
+        None,
+        |s, p| s.act_symbol("validate", p),
+    ))),
+    with_params(
+        "tool:enum(line|rectangle|circle|ellipse|arc|text|anchor), x:mm, y:mm, x2?:mm, y2?:mm, text?:text",
+        hidden(act("symbol.draw", View, Menu::Edit, &[], always, None, |s, p| {
+            s.act_symbol("draw", p)
+        })),
+    ),
+    with_params(
+        "x:mm, y:mm, idx?:uint, fn_cp?:uint, designation?:text, direction?:enum(up|right|down|left)",
+        hidden(act("symbol.cp", View, Menu::Edit, &[], always, None, |s, p| {
+            s.act_symbol("cp", p)
+        })),
+    ),
+    with_params(
+        "kind?:json, x:mm, y:mm",
+        hidden(act("symbol.slot", View, Menu::Edit, &[], always, None, |s, p| {
+            s.act_symbol("slot", p)
+        })),
+    ),
+    with_params(
+        "file:path",
+        hidden(act(
+            "symbol.export",
+            Command,
+            Menu::Edit,
+            &[],
+            always,
+            None,
+            |s, p| s.act_symbol("export", p),
+        )),
+    ),
+    with_params(
+        "directory?:path",
+        hidden(act(
+            "symbol.save",
+            Command,
+            Menu::Edit,
+            &[],
+            always,
+            None,
+            |s, p| s.act_symbol("save", p),
+        )),
+    ),
+    with_params(
+        "x:mm, y:mm",
+        hidden(act(
+            "symbol.place",
+            Command,
+            Menu::Edit,
+            &[],
+            writable,
+            None,
+            |s, p| s.act_symbol("place", p),
+        )),
+    ),
+    hidden(parameterless(act(
+        "symbol.scratch",
+        Command,
+        Menu::Edit,
+        &[],
+        writable,
+        None,
+        |s, p| s.act_symbol("scratch", p),
+    ))),
 ];
 
 // WP-S2.08 part 2

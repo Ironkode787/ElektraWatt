@@ -119,6 +119,7 @@ fn malformed_and_unsupported_inputs_refuse_without_panics() {
 
 /// External manufacturer files are opt-in local evidence and never repository fixtures.
 #[test]
+// The environment only selects a private test fixture; it never enters persisted or exported output.
 #[allow(clippy::disallowed_methods)]
 fn manufacturer_edz_when_supplied() {
     let Some(path) = std::env::var_os("EW_EPLAN_SAMPLE") else {

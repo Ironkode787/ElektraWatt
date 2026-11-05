@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ElektraWatt User Guide\n"
-"POT-Creation-Date: 2026-11-05T11:01:27+01:00\n"
+"POT-Creation-Date: 2026-11-05T18:56:40+01:00\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -40,63 +40,71 @@ msgstr ""
 msgid "Importing a QElectroTech project"
 msgstr ""
 
-#: src/SUMMARY.md:12 src/tutorials/headless-workflow.md:1
+#: src/SUMMARY.md:12 src/tutorials/symbol-editor.md:6
+msgid "Draw a six-pin power block"
+msgstr ""
+
+#: src/SUMMARY.md:13 src/tutorials/headless-workflow.md:1
 msgid "A first headless run on the golden project"
 msgstr ""
 
-#: src/SUMMARY.md:14 src/SUMMARY.md:16 src/how-to/index.md:1
+#: src/SUMMARY.md:15 src/SUMMARY.md:17 src/how-to/index.md:1
 msgid "How-to guides"
 msgstr ""
 
-#: src/SUMMARY.md:17 src/how-to/install.md:1
+#: src/SUMMARY.md:18 src/how-to/install.md:1
 msgid "Install ElektraWatt"
 msgstr ""
 
-#: src/SUMMARY.md:18 src/how-to/application-window.md:1
+#: src/SUMMARY.md:19 src/how-to/application-window.md:1
 msgid "Use the application window"
 msgstr ""
 
-#: src/SUMMARY.md:19 src/how-to/text-interface.md:1
+#: src/SUMMARY.md:20 src/how-to/text-interface.md:1
 msgid "Draw a page from the text interface"
 msgstr ""
 
-#: src/SUMMARY.md:20 src/how-to/define-supply-potential.md:1
+#: src/SUMMARY.md:21 src/how-to/define-supply-potential.md:1
 msgid "Define a supply potential"
 msgstr ""
 
-#: src/SUMMARY.md:21 src/how-to/choose-parts.md:1
+#: src/SUMMARY.md:22 src/how-to/choose-parts.md:1
 msgid "Choose parts"
 msgstr ""
 
-#: src/SUMMARY.md:22 src/how-to/upgrade-a-project.md:1
+#: src/SUMMARY.md:23 src/how-to/upgrade-a-project.md:1
 msgid "Upgrade a project"
 msgstr ""
 
-#: src/SUMMARY.md:24 src/SUMMARY.md:26 src/reference/index.md:1
+#: src/SUMMARY.md:25 src/SUMMARY.md:27 src/reference/index.md:1
 msgid "Reference"
 msgstr ""
 
-#: src/SUMMARY.md:27 src/reference/window/tools.md:1
+#: src/SUMMARY.md:28 src/reference/window/tools.md:1
 msgid "Tools"
 msgstr ""
 
-#: src/SUMMARY.md:28 src/reference/window/dialogs.md:1
+#: src/SUMMARY.md:29 src/reference/window/dialogs.md:1
 msgid "Dialogs"
 msgstr ""
 
-#: src/SUMMARY.md:29 src/reference/window/panels.md:1
+#: src/SUMMARY.md:30 src/reference/window/panels.md:1
 msgid "Panels"
 msgstr ""
 
-#: src/SUMMARY.md:31 src/SUMMARY.md:33 src/explanation/index.md:1
+#: src/SUMMARY.md:31 src/reference/symbol-editor.md:6
+msgid "Symbol editor and automated authoring"
+msgstr ""
+
+#: src/SUMMARY.md:33 src/SUMMARY.md:35 src/explanation/index.md:1
 msgid "Explanation"
 msgstr ""
 
-#: src/SUMMARY.md:34 src/explanation/eplan-and-ew.md:1
+#: src/SUMMARY.md:36 src/explanation/eplan-and-ew.md:1
 msgid "EPLAN and EW"
 msgstr ""
 
-#: src/SUMMARY.md:35 src/explanation/qet-and-ew.md:1
+#: src/SUMMARY.md:37 src/explanation/qet-and-ew.md:1
 msgid "QElectroTech and EW"
 msgstr ""
 
@@ -335,10 +343,16 @@ msgid ""
 msgstr ""
 
 #: src/tutorials/index.md:28
-msgid "Planned"
+msgid ""
+"[Draw a six-pin power block](symbol-editor.md): create, validate, preview, "
+"publish and test a reusable symbol."
 msgstr ""
 
 #: src/tutorials/index.md:30
+msgid "Planned"
+msgstr ""
+
+#: src/tutorials/index.md:32
 msgid ""
 "The documentation requirements (NFR-DOC-03) name the tutorials that follow "
 "at version 1.0: a PLC card with addressing, and 2D/3D layout with the wire "
@@ -624,7 +638,7 @@ msgstr ""
 
 #: src/tutorials/reports-and-pdf.md:14
 msgid ""
-"Choose **Help ▸ Tutorials ▸ Reports and PDF** and name a new folder "
+"Choose **Help ▸ Tutorials ▸ Reports and PDF…** and name a new folder "
 "`reports.ew`. EW makes a fresh copy of the sample project there and opens "
 "it; the banner says \"A fresh copy of the sample project was made for the "
 "tutorials.\" This tutorial's page of the guide opens beside it."
@@ -838,6 +852,52 @@ msgid ""
 "[QElectroTech and EW](../explanation/qet-and-ew.md) explains how "
 "QElectroTech's elements, labels, conductors and folio reports become EW's "
 "functions, devices, wires and interruption points."
+msgstr ""
+
+#: src/tutorials/symbol-editor.md:8
+msgid ""
+"Create a project from the built-in template. Open **Edit → Symbol editor**, "
+"name it **Power block**, and use the key `example.power`. Draw a rectangle "
+"from `(4, 0)` to `(24, 28)` mm. Choose the connection tool, outward "
+"direction Left, and add six pins at x = 0 mm, y = 4, 8, 12, 16, 20 and 24 "
+"mm. Set their designations to 1, 2, 3, 4, 5 and FE. Draw a short lead from "
+"each pin to the left edge of the body. FE is a printed designation; assign "
+"its electrical role in the function definition after checking the intended "
+"device. It must not be confused with PE."
+msgstr ""
+
+#: src/tutorials/symbol-editor.md:14
+msgid ""
+"Add a tag text field above the body and a designation field beside each "
+"connection, selecting its pin index. Review A–H in the strip. The large "
+"preview follows the selected variant; choose A to resume editing. Try "
+"changing the first pin's x coordinate to 4.5 mm: the editor refuses "
+"publication. Undo that edit. Fine drawing coordinates, such as 0.5 mm, "
+"remain valid."
+msgstr ""
+
+#: src/tutorials/symbol-editor.md:19
+msgid ""
+"Choose a writable `.ewlib` folder and save. Test the symbol on a new scratch "
+"page, close the saved draft, and inspect the placed copy. Reopen the "
+"portable draft to continue editing. Increment its semantic version before "
+"publishing changed content under the same key. Previously placed copies keep "
+"their original version."
+msgstr ""
+
+#: src/tutorials/symbol-editor.md:23
+msgid ""
+"The same workflow is available to AI tools and repeatable scripts in "
+"[`symbol-editor.ewui`](../../tutorial-scripts/symbol-editor.ewui). Run it in "
+"a fresh directory:"
+msgstr ""
+
+#: src/tutorials/symbol-editor.md:30
+msgid ""
+"The script creates a sample project and library alongside itself. It exports "
+"`power.symbol.json`, which the window can open. See the "
+"[reference](../reference/symbol-editor.md) for JSON, actions and import "
+"compatibility."
 msgstr ""
 
 #: src/tutorials/headless-workflow.md:3
@@ -3060,6 +3120,327 @@ msgid ""
 "finding and Check ▸ Previous finding walk them; Help ▸ Documentation on a "
 "finding opens its rule's page in the [rule reference](../rules/index.md). "
 "Open it with Check ▸ Messages."
+msgstr ""
+
+#: src/reference/symbol-editor.md:8
+msgid ""
+"Open **Edit → Symbol editor**. A symbol draft has its own undo history, "
+"drawing, function definition, connection points, text slots and "
+"cross-reference anchor. Changes do not alter existing placements. Choose A "
+"to draw; B–H show live rotated/mirrored previews. Select a graphic to move "
+"it by dragging or edit its coordinates in the properties. Pin coordinates, "
+"directions and function mappings are editable in **Pins**. Text fields can "
+"show tags, function text, technical data, pin designations or "
+"cross-references. **Advanced JSON** exposes the complete draft, including "
+"other slot types, styles and arrangements."
+msgstr ""
+
+#: src/reference/symbol-editor.md:15
+msgid ""
+"Native connections must lie on the 4 mm grid. Drawing clicks snap to 0.5 mm; "
+"text clicks to 1 mm. Numeric pin edits remain exactly as entered: a pin at "
+"4.5 mm is visibly invalid and blocks publication. See the [design "
+"standard](../../../design/07a-symbol-design-standard.md) for the full "
+"authoring profile."
+msgstr ""
+
+#: src/reference/symbol-editor.md:19
+msgid ""
+"**Save to library** writes a symbol and its owned function definition to the "
+"chosen `.ewlib` folder. An assigned existing function definition stays "
+"referenced and its semantics cannot be edited in place. Increase the version "
+"when changing previously published content. **Export draft** writes portable "
+"JSON to a new file, including incomplete work; an existing file is never "
+"overwritten. Closing an unsaved draft requires the explicit **Discard "
+"changes** choice. **Test on scratch page** creates a page in the current "
+"project and places embedded copies there. Project undo removes the placement "
+"after closing the editor."
+msgstr ""
+
+#: src/reference/symbol-editor.md:26
+msgid "AI and command-line tools"
+msgstr ""
+
+#: src/reference/symbol-editor.md:28
+msgid "No remote service or generated code is required. Use `ew symbol`:"
+msgstr ""
+
+#: src/reference/symbol-editor.md:30
+msgid ""
+"```text\n"
+"ew symbol template example.power \"Power block\" > power.symbol.json\n"
+"ew symbol schema > symbol-authoring.schema.json\n"
+"ew symbol validate power.symbol.json\n"
+"ew symbol publish power.symbol.json --library symbols.ewlib\n"
+"ew symbol import element.elmt --key example.import > imported-drafts.json\n"
+"ew symbol import manufacturer.edz --key example.import > "
+"imported-drafts.json\n"
+"```"
+msgstr ""
+
+#: src/reference/symbol-editor.md:39
+msgid ""
+"Template and schema print JSON. Validation prints stable issue codes, JSON "
+"pointers and details, exiting 0 when valid, 1 for validation findings, or 2 "
+"for unreadable/malformed input. Import prints an **array** of drafts; choose "
+"one object and save it as a `.symbol.json` file. QET conversion findings are "
+"retained in `import_details` with their original message, code and source "
+"line, so tools can identify each loss. Publication validates again and uses "
+"the ordinary library writer's lock, version and transaction protections. It "
+"does not save the current project."
+msgstr ""
+
+#: src/reference/symbol-editor.md:45
+msgid ""
+"The portable envelope uses `format: \"ew.symbol/1\"`, `key`, `version`, "
+"`symbol`, `function`, optional `function_ref`, `import_notes`, "
+"`import_details` and `import_reviewed`. File coordinates are integer "
+"**nanometres**; 4 mm is `4000000`. A pin has `idx`, `fn_cp`, `pos: [x,y]` "
+"and outward `dir`. The function's pin with the corresponding `idx` holds its "
+"printed `designation`. Keep the reference created by the template; the "
+"publisher replaces temporary references for owned functions."
+msgstr ""
+
+#: src/reference/symbol-editor.md:51
+msgid "The window and `.ewui` scripts share these actions:"
+msgstr ""
+
+#: src/reference/symbol-editor.md:53
+msgid "Action"
+msgstr ""
+
+#: src/reference/symbol-editor.md:53
+msgid "Parameters"
+msgstr ""
+
+#: src/reference/symbol-editor.md:55
+msgid "`symbol.new`"
+msgstr ""
+
+#: src/reference/symbol-editor.md:55
+msgid "`key`, `name`"
+msgstr ""
+
+#: src/reference/symbol-editor.md:56
+msgid "`symbol.open`"
+msgstr ""
+
+#: src/reference/symbol-editor.md:56
+msgid "`file`, optional import `key`"
+msgstr ""
+
+#: src/reference/symbol-editor.md:57
+msgid "`symbol.candidate`"
+msgstr ""
+
+#: src/reference/symbol-editor.md:57
+msgid "zero-based `index` from an import package"
+msgstr ""
+
+#: src/reference/symbol-editor.md:58
+msgid "`symbol.fork`"
+msgstr ""
+
+#: src/reference/symbol-editor.md:58
+msgid "source symbol `source` key, new `key`; includes embedded QET imports"
+msgstr ""
+
+#: src/reference/symbol-editor.md:59
+msgid "`symbol.draw`"
+msgstr ""
+
+#: src/reference/symbol-editor.md:59
+msgid "`tool`, `x`, `y`, optional `x2`, `y2`, `text`"
+msgstr ""
+
+#: src/reference/symbol-editor.md:60
+msgid "`symbol.path`"
+msgstr ""
+
+#: src/reference/symbol-editor.md:60
+msgid "`points` as millimetre pairs, optional `closed` for a polygon"
+msgstr ""
+
+#: src/reference/symbol-editor.md:61
+msgid "`symbol.cp`"
+msgstr ""
+
+#: src/reference/symbol-editor.md:61
+msgid "`x`, `y`, optional `idx`, `fn_cp`, `designation`, `direction`"
+msgstr ""
+
+#: src/reference/symbol-editor.md:62
+msgid "`symbol.slot`"
+msgstr ""
+
+#: src/reference/symbol-editor.md:62
+msgid "`kind`, `x`, `y`; e.g. `\"tag\"` or `{\"cp_designation\":1}`"
+msgstr ""
+
+#: src/reference/symbol-editor.md:63
+msgid "`symbol.link`"
+msgstr ""
+
+#: src/reference/symbol-editor.md:63
+msgid "`name`, `x`, `y`"
+msgstr ""
+
+#: src/reference/symbol-editor.md:64
+msgid "`symbol.function`"
+msgstr ""
+
+#: src/reference/symbol-editor.md:64
+msgid "existing function definition `key`"
+msgstr ""
+
+#: src/reference/symbol-editor.md:65
+msgid "`symbol.replace`"
+msgstr ""
+
+#: src/reference/symbol-editor.md:65
+msgid "complete `document` object"
+msgstr ""
+
+#: src/reference/symbol-editor.md:66
+msgid "`symbol.undo`, `symbol.redo`, `symbol.validate`"
+msgstr ""
+
+#: src/reference/symbol-editor.md:66
+msgid "none"
+msgstr ""
+
+#: src/reference/symbol-editor.md:67
+msgid "`symbol.variant`"
+msgstr ""
+
+#: src/reference/symbol-editor.md:67
+msgid "`variant` 0–7 for A–H"
+msgstr ""
+
+#: src/reference/symbol-editor.md:68
+msgid "`symbol.export`, `symbol.save`"
+msgstr ""
+
+#: src/reference/symbol-editor.md:68
+msgid "`file` or library `directory` respectively"
+msgstr ""
+
+#: src/reference/symbol-editor.md:69
+msgid "`symbol.place`"
+msgstr ""
+
+#: src/reference/symbol-editor.md:69
+msgid "`x`, `y` on the current project page"
+msgstr ""
+
+#: src/reference/symbol-editor.md:70
+msgid "`symbol.scratch`"
+msgstr ""
+
+#: src/reference/symbol-editor.md:70
+msgid "none; creates a test page in the current project"
+msgstr ""
+
+#: src/reference/symbol-editor.md:71
+msgid "`symbol.close`"
+msgstr ""
+
+#: src/reference/symbol-editor.md:71
+msgid "optional `discard: true`"
+msgstr ""
+
+#: src/reference/symbol-editor.md:73
+msgid ""
+"Action coordinates are **millimetres**, unlike JSON document coordinates. "
+"Placement snaps the insertion point to the destination page grid; it never "
+"moves a pin within the symbol. Replacing/opening/closing dirty drafts also "
+"requires `discard: true` where applicable. `ui.describe` and the script "
+"state expose the open editor and validation findings. [The "
+"tutorial](../tutorials/symbol-editor.md) includes a complete six-pin example."
+msgstr ""
+
+#: src/reference/symbol-editor.md:78
+msgid "Imported formats and limits"
+msgstr ""
+
+#: src/reference/symbol-editor.md:80
+msgid "Input"
+msgstr ""
+
+#: src/reference/symbol-editor.md:80
+msgid "Supported behavior"
+msgstr ""
+
+#: src/reference/symbol-editor.md:82
+msgid "QElectroTech `.elmt`"
+msgstr ""
+
+#: src/reference/symbol-editor.md:82
+msgid ""
+"Existing bounded element reader; preserves the QET 10 px grid and "
+"provenance. Review conversion warnings."
+msgstr ""
+
+#: src/reference/symbol-editor.md:83
+msgid "EPLAN `.edz`"
+msgstr ""
+
+#: src/reference/symbol-editor.md:83
+msgid ""
+"Bounded 7-Zip or ZIP container; candidates from supported XML members. Never "
+"extracts files to disk."
+msgstr ""
+
+#: src/reference/symbol-editor.md:84
+msgid "EPLAN `.ema`, `.ems`, `.esl` XML"
+msgstr ""
+
+#: src/reference/symbol-editor.md:84
+msgid ""
+"PXF revision **1.23**: straight lines, rectangles, polylines, full circles "
+"and text. Each macro variant becomes a separate candidate."
+msgstr ""
+
+#: src/reference/symbol-editor.md:85
+msgid "EPLAN parts XML"
+msgstr ""
+
+#: src/reference/symbol-editor.md:85
+msgid ""
+"Connection designations become a generated rectangular outline. This is "
+"explicitly **not the original macro artwork**."
+msgstr ""
+
+#: src/reference/symbol-editor.md:86
+msgid "EPLAN binary `.slk` or binary macros"
+msgstr ""
+
+#: src/reference/symbol-editor.md:86
+msgid ""
+"Refused with an explanation. Export a supported XML macro/parts file from "
+"EPLAN."
+msgstr ""
+
+#: src/reference/symbol-editor.md:88
+msgid ""
+"PXF arcs/ellipses, images, groups, external symbol references and "
+"unrecognised records are not faithfully reconstructed. The importer reports "
+"incomplete geometry and style differences; unresolved macro pins have an "
+"unknown direction and cannot be published until corrected. Macro insertion "
+"points are not verified terminal positions. Check each position and mapping "
+"against the source. No claim of complete EPLAN compatibility is made. The "
+"reference manufacturer EDZ was exercised locally; its content is not "
+"distributed with ElektraWatt."
+msgstr ""
+
+#: src/reference/symbol-editor.md:94
+msgid ""
+"EPLAN drafts require a licence/source review and explicit acknowledgement. A "
+"download is not treated as a redistribution licence. No links or embedded "
+"executables are followed. Input limits: 4 MiB per XML/draft, 32 MiB "
+"compressed archive, 64 MiB unpacked total, 4,096 archive entries, 512 "
+"recovered candidates, 4,096 editable primitives/pins per symbol; archive "
+"names, CRCs, decompression ratio and XML depth are checked."
 msgstr ""
 
 #: src/explanation/index.md:3

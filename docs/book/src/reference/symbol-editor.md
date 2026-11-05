@@ -5,7 +5,7 @@ SPDX-License-Identifier: CC-BY-4.0
 
 # Symbol editor and automated authoring
 
-Open **Edit → New symbol**. A symbol draft has its own undo history, drawing, function definition,
+Open **Edit → Symbol editor**. A symbol draft has its own undo history, drawing, function definition,
 connection points, text slots and cross-reference anchor. Changes do not alter existing placements.
 Choose A to draw; B–H show live rotated/mirrored previews. Select a graphic to move it by dragging or edit
 its coordinates in the properties. Pin coordinates, directions and function mappings are editable in **Pins**.
@@ -38,11 +38,12 @@ ew symbol import manufacturer.edz --key example.import > imported-drafts.json
 
 Template and schema print JSON. Validation prints stable issue codes, JSON pointers and details, exiting 0
 when valid, 1 for validation findings, or 2 for unreadable/malformed input. Import prints an **array** of drafts;
-choose one object and save it as a `.symbol.json` file. Publication validates again and uses the ordinary library
+choose one object and save it as a `.symbol.json` file. QET conversion findings are retained in
+`import_details` with their original message, code and source line, so tools can identify each loss. Publication validates again and uses the ordinary library
 writer's lock, version and transaction protections. It does not save the current project.
 
 The portable envelope uses `format: "ew.symbol/1"`, `key`, `version`, `symbol`, `function`, optional
-`function_ref`, `import_notes` and `import_reviewed`. File coordinates are integer **nanometres**;
+`function_ref`, `import_notes`, `import_details` and `import_reviewed`. File coordinates are integer **nanometres**;
 4 mm is `4000000`. A pin has `idx`, `fn_cp`, `pos: [x,y]` and outward `dir`.
 The function's pin with the corresponding `idx` holds its printed `designation`.
 Keep the reference created by the template; the publisher replaces temporary references for owned functions.

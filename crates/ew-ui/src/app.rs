@@ -1003,6 +1003,9 @@ impl App {
             }
         }
         let mut page_pane = None;
+        if self.shell.symbol_editor().is_none() {
+            self.symbol_editor_view = crate::symbol_editor::EditorView::default();
+        }
         CentralPanel::default().show(ui, |ui| {
             crate::properties::remember_free_area(ui);
             if self.shell.first_run().is_some() {

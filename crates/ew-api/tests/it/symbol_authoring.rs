@@ -22,6 +22,28 @@ fn qet_element_keeps_grid_pins_and_foreign_provenance() {
     );
 }
 
+#[test]
+fn qet_conversion_details_survive_a_portable_round_trip() {
+    let xml = include_str!("../../../ew-import-qet/tests/fixtures/contact_no.elmt").replacen(
+        "end1=\"none\"",
+        "end1=\"square\"",
+        1,
+    );
+    let draft = symbols::import_qet(xml.as_bytes(), "contact.elmt", "example.contact").unwrap();
+    let finding = draft
+        .import_details
+        .iter()
+        .find(|d| d.code == "EW-IMP-004")
+        .unwrap();
+    assert_eq!(
+        finding.message,
+        "line end square not supported, drawn without marker"
+    );
+    assert!(finding.line.is_some());
+    let reopened = SymbolDraft::parse(&serde_json::to_vec(&draft).unwrap()).unwrap();
+    assert_eq!(reopened.import_details, draft.import_details);
+}
+
 pub fn block() -> SymbolDraft {
     let mut d = serde_json::to_value(SymbolDraft::new("example.power", "Power block").unwrap()).unwrap();
     d["symbol"]["graphics"] =

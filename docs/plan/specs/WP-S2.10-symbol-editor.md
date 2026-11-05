@@ -135,7 +135,7 @@ Proposed **FT-?**: implement verified native SLK/symbol-library export decoding 
 transforms and library-resolved connection positions, with redistributable synthetic fixtures.
 Proposed **ID-?**: decide the five pinned decoder dependencies (`sevenz-turbo` 0.26.0, `lzma-turbo` 0.6.0,
 `crc-fast` 1.10.0, `spin` 0.10.1, `zeroize` 1.9.1). `cargo-vet` has no approvals for them, and `cargo-deny` rejects
-`lzma-turbo`'s GPL-3.0-or-later licence under the current external-dependency allowlist. No exemptions or licence
+`lzma-turbo`'s GPL-3.0-or-later licence under the current external-dependency allowlist. The owner explicitly chose to keep release blocked pending dependency review. No exemptions or licence
 policy changes have been made. The GPL application graph uses Rust 1.97.1 for this importer; the workspace's
 pinned compiler is 1.99.0 and the permissive crates' MSRV is unchanged. These checks block release approval.
 

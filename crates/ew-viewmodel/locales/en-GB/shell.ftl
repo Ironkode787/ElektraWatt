@@ -4676,7 +4676,7 @@ symbol-operation-failed = Symbol editor: { $p0 }
 symbol-input-limit = The symbol file exceeds the supported size or item limit.
 symbol-input-version = This symbol authoring format is not supported.
 symbol-invalid-key = Use a key with letters, numbers, dots, hyphens or underscores: { $p0 }.
-symbol-invalid-version = Enter a version as major.minor.patch: { $p0 }.
+symbol-invalid-version = Use a version as major.minor.patch: { $p0 }.
 symbol-name-required = Give the symbol a name: { $p0 }.
 symbol-provenance-required = Add a licence and source for { $p0 }.
 symbol-grid-unsupported = Choose the native 4 mm or QET 10 px grid for { $p0 }.
@@ -4740,13 +4740,13 @@ symbol-redo = Redo
 symbol-variants = Variants
 symbol-direction = Direction
 symbol-designation = Designation
-symbol-up = Up
-symbol-right = Right
-symbol-down = Down
-symbol-left = Left
+symbol-up = Facing up
+symbol-right = Facing right
+symbol-down = Facing down
+symbol-left = Facing left
 symbol-native-grid = Connections: 4 mm · graphics: 0.5 mm · text: 1 mm
 symbol-qet-grid = Connections: QET 10 px · original scale retained
-symbol-draw-hint = Choose a tool. Click the start and end points. Escape cancels the current stroke.
+symbol-draw-hint = Choose a tool. Click the start and end points.
 symbol-import-notes = Import report
 symbol-fndef-key = Existing function key
 symbol-assign = Assign function
@@ -4772,13 +4772,13 @@ action-symbol-place = Place edited symbol
 action-symbol-candidate = Choose imported symbol
 action-symbol-function = Assign function definition
 action-symbol-link = Add mechanical link point
-symbol-coordinate-required = Enter a valid coordinate in millimetres.
+symbol-coordinate-required = Provide a valid coordinate in millimetres.
 symbol-import-review = Review the imported geometry, connections and source terms before saving.
 symbol-graphics-required = Draw at least one graphic before saving.
 symbol-link-duplicate = Link point { $p0 } needs a unique name.
 symbol-extra-variants = Stored alternative drawings require separate review; fork the required drawing first.
 symbol-qet-review = The QElectroTech reader reported conversion limitations. Compare the draft with the source before use.
-symbol-reviewed = I have checked the import and source terms
+symbol-reviewed = Import and source terms checked
 symbol-edit-a = Choose A to edit the drawing.
 symbol-candidates = Drawings in this file
 symbol-json-invalid = The JSON is invalid. Correct it before applying.
@@ -4815,3 +4815,19 @@ action-symbol-path = Draw a polyline or polygon
 symbol-path-hint = Click each corner; double-click the final corner to finish.
 symbol-function-connections = The function contains an invalid internal connection. Check its pin indices and link kind.
 symbol-editor-active = Close the symbol editor before changing the project drawing.
+
+choice-anchor = Anchor
+
+choice-ellipse = Ellipse
+
+choice-rectangle = Rectangle
+
+choice-text = Text
+
+symbol-x-mm = X (mm)
+
+symbol-y-mm = Y (mm)
+
+symbol-mm = { $p0 } (mm)
+
+symbol-graphic-item = { $p0 } { $p1 }
