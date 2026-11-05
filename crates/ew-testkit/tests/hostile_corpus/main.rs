@@ -386,9 +386,11 @@ fn raster_assets() {
                 "jpeg-without-end-marker.jpg",
                 "taken as Jpeg of Some((16, 8)); not decoded",
             ),
+            // FT-1378 (ID-1392): the gate refuses a declared size over the decode limit, in words.
             (
                 "png-2-31-pixels.png",
-                "taken as Png of Some((65536, 32768)); not decoded",
+                "the png image is 65536 × 32768 pixels, more than a drawing can show (at most 16777216 pixels and \
+                 65535 on a side); scale it down and add it again",
             ),
         ],
         |_, bytes| match ew_api::asset_ref_of(bytes) {

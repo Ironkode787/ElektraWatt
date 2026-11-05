@@ -294,6 +294,8 @@ fn ft1015_no_icon_key_serves_two_concepts() {
         ("ew-interruption-point", &["pane ips", "tool.ip"]),
         // The Structure identifiers navigator and the command that adds one.
         ("sitemap", &["pane structure", "structure.new"]),
+        // A QElectroTech project imported, and the same file imported again into its import (FT-1388).
+        ("file-import", &["file.import_qet", "file.reimport_qet"]),
     ];
     let mut by_key: BTreeMap<&str, BTreeSet<String>> = BTreeMap::new();
     for a in ew_viewmodel::actions::ACTIONS {

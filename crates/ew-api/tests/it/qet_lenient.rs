@@ -840,7 +840,7 @@ fn a_label_kept_as_a_frozen_tag_offers_unfreeze() {
         serde_json::json!({"kind": "device", "targets": [device], "path": "tag.frozen", "value": null})
     );
     s.execute(&ew_api::AnyCommand {
-        name: fix.command.into(),
+        name: fix.command,
         params: fix.params,
     })
     .expect("the quick fix runs");

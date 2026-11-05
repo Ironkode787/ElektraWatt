@@ -1219,7 +1219,7 @@ pub static ACTIONS: &[ActionMeta] = &[
                 CommandSize::Small,
                 Some(key!("bar-reimport-qet")),
             ),
-            "restore",
+            "file-import",
             act(
                 "file.reimport_qet",
                 Command,
