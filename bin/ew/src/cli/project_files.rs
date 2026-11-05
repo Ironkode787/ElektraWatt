@@ -664,6 +664,7 @@ fn run_recover_with(
             }
             match saved {
                 Ok(saved) => {
+                    super::warn_unreleased(saved.unstable, &mut std::io::stderr());
                     say(
                         output,
                         &format!(
@@ -845,6 +846,7 @@ fn run_upgrade_with(
     let backup = session.upgrade_backup().map(Path::to_path_buf);
     match result {
         Ok(saved) => {
+            super::warn_unreleased(saved.unstable, errors);
             let _ = writeln!(
                 output,
                 "upgraded the project from format {from} to format {format}; saved generation {}",
@@ -1752,6 +1754,39 @@ mod tests {
         );
         assert_eq!(upgrade_files(&dir), after);
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// FT-1154 (WP-S6.08 D3, RL-2): with a released list that lacks this build's format, the save of `ew upgrade --yes`
+    /// marks the manifest `unstable` and prints the warning on stderr, the exit code unchanged; with the format
+    /// released, neither.
+    #[test]
+    fn a_save_in_an_unreleased_format_warns_on_stderr() {
+        static OLDER: [&str; 1] = ["0.0"];
+        static THIS: [&str; 1] = [ew_api::FORMAT];
+        for (released, marked) in [(&OLDER[..], true), (&THIS[..], false)] {
+            let dir = setup_v0("upgrade-unreleased");
+            let project = dir.join("p.ew");
+            let mut store = upgrade_store(&dir);
+            store.released = released;
+            let (code, output, errors) = upgrade(&project, store, (false, true), false, "");
+            assert_eq!(
+                (code, output),
+                (
+                    0,
+                    format!(
+                        "upgraded the project from format 0.0 to format {}; saved generation 2\nbackup: {}\n",
+                        ew_api::FORMAT,
+                        backup_of(&dir).display()
+                    )
+                )
+            );
+            let warning = "warning: saved in a format that is not released yet; released versions of ElektraWatt \
+                           open this project read-only\n";
+            assert_eq!(errors, if marked { warning } else { "" }, "{released:?}");
+            let manifest = std::fs::read_to_string(project.join("manifest.json")).unwrap();
+            assert_eq!(manifest.contains("\"unstable\": true"), marked, "{manifest}");
+            let _ = std::fs::remove_dir_all(&dir);
+        }
     }
 
     /// FT-1336: a session on a project of an older format (opened migrated) adds page 3 and crashes. `ew upgrade`

@@ -447,6 +447,9 @@ pub struct DocRequest {
     pub target: String,
     /// The `file://` URL, when the built book is installed; `None` when it is not.
     pub url: Option<String>,
+    /// The file `url` opens, below the book's directory (`nl/how-to/application-window.html` in a Dutch window that has
+    /// the Dutch book); `None` when the book is not installed (FT-1267: the headless transcript's `doc`).
+    pub page: Option<String>,
 }
 
 /// A request to the window to ask the user for a path and then dispatch `action` again with it as `param`.
@@ -1257,6 +1260,11 @@ impl ShellModel {
         self.doc_request.take()
     }
 
+    /// The documentation page F1 asked for while the window has not taken it (the headless mode never does).
+    pub fn doc_request(&self) -> Option<&DocRequest> {
+        self.doc_request.as_ref()
+    }
+
     /// The target of the last documentation request (`how-to/application-window.html#start-page`).
     pub fn last_help(&self) -> Option<&str> {
         self.last_help.as_deref()
@@ -1840,6 +1848,9 @@ impl ShellModel {
         if let Some(chain) = self.collab.migrations {
             store.migrations = chain;
         }
+        if let Some(released) = self.collab.released {
+            store.released = released;
+        }
         store
     }
 
@@ -2016,7 +2027,7 @@ impl ShellModel {
             };
         };
         match p.session.save() {
-            Ok(_) => {
+            Ok(saved) => {
                 self.record.saved_steps = self.record.steps.clone();
                 // WP-S2.09 §8.4: a save is a marker line of the history panel.
                 let rev = p.session.world().rev.0;
@@ -2024,6 +2035,13 @@ impl ShellModel {
                     rev,
                     text: strings::text(key!("marker-saved")).to_owned(),
                 });
+                // FT-1154 (WP-S6.08 D3): every save that wrote an unreleased format says so.
+                if saved.unstable {
+                    self.notify_toned(
+                        strings::text(key!("toast-saved-unreleased-format")).to_owned(),
+                        crate::notifications::NoteTone::Warning,
+                    );
+                }
                 Outcome::Done
             }
             // WP-S1.17 D11, D24: the first save of a project of an older format asks once.

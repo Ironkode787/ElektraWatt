@@ -161,6 +161,45 @@ fn md6_the_manifest_merges_to_max_plus_one_merged_and_no_base() {
     assert_eq!(merged, expected);
 }
 
+/// FT-1235 (WP-S6.08 D4, RL-3): theirs' manifest names a format newer than this reader's: nothing is merged, `%A`
+/// stays ours byte for byte, the driver says so and exits 1. Ours' newer format (the working tree's manifest) keeps a
+/// page of that project as ours the same way.
+#[test]
+fn a_side_newer_than_the_reader_is_left_as_ours() {
+    let t = Tree::new();
+    let base = std::fs::read_to_string(Path::new(GOLDEN_A).join("manifest.json")).unwrap();
+    let format = format!("\"format\": \"{}\"", ew_api::FORMAT);
+    assert!(base.contains(&format));
+    let ours = base.replace("\"generation\": 1,", "\"generation\": 2,");
+    let theirs = base
+        .replace("\"generation\": 1,", "\"generation\": 3,")
+        .replace(&format, "\"format\": \"9.0\"");
+    let manifest = "proj/J-E-2416.ew/manifest.json";
+    let (out, merged) = t.merge([&base, &ours, &theirs], form(true, manifest));
+    let said = |path: &str| {
+        format!(
+            "merge-driver: {path}: written by a newer ElektraWatt (format 9.0; this one reads {}); left as ours: \
+             merge it with that version\n",
+            ew_api::FORMAT
+        )
+    };
+    assert_eq!(result(&out), (Some(1), String::new(), said(manifest)));
+    assert_eq!(merged, ours);
+
+    std::fs::write(t.0.join(manifest), &theirs).unwrap();
+    let ours = page_with(r#""overrides":{"csa":"1.5","colour":["BU"],"show_marker":true}"#);
+    let (out, merged) = t.merge(
+        [
+            &page_with(W20_OVERRIDES),
+            &ours,
+            &page_with(r#""overrides":{"csa":"2.5","show_marker":true}"#),
+        ],
+        form(false, REPO_PAGE),
+    );
+    assert_eq!(result(&out), (Some(1), String::new(), said(REPO_PAGE)));
+    assert_eq!(merged, ours);
+}
+
 /// MD-5, ruling 6: a write that fails (the temporary file's name is taken by a folder) exits 129 and leaves `%A`
 /// byte-identical, the folder as it was.
 #[test]

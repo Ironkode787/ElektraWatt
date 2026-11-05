@@ -1665,22 +1665,17 @@ fn the_manifest_merges_by_max_plus_one_with_pending_where_both_changed() {
     assert_eq!(merged.extra.get("base"), None);
 }
 
+/// FT-1235 (WP-S6.08 D4): a side that names a format newer than this reader's, theirs, ours or the ancestor, is not
+/// merged: ours as it is, not clean, so the merge never takes a format this reader cannot read.
 #[test]
-fn the_manifest_takes_the_later_format_and_min_reader() {
+fn a_manifest_side_of_a_newer_format_keeps_ours_as_it_is() {
+    let newer = |m: String| m.replace("\"0.1\"", "\"0.2\"");
     let o = manifest(1, &[("a.jsonl", 1)], "");
     let a = manifest(2, &[("a.jsonl", 2)], "");
-    let b = manifest(3, &[("a.jsonl", 1)], "").replace("\"0.1\"", "\"0.2\"");
-    let (merged, conflicts) = merge_manifests(&o, &a, &b);
-    let merged = Manifest::parse(merged.as_bytes(), &Limits::default()).expect("readable");
-    assert_eq!(
-        (
-            merged.format.as_str(),
-            merged.min_reader.as_str(),
-            merged.generation,
-            conflicts
-        ),
-        ("0.2", "0.2", 4, 0)
-    );
+    let b = manifest(3, &[("a.jsonl", 1)], "");
+    assert_eq!(merge_manifests(&o, &a, &newer(b.clone())), (a.clone(), 1));
+    assert_eq!(merge_manifests(&newer(o.clone()), &a, &b), (a.clone(), 1));
+    assert_eq!(merge_manifests(&o, &newer(a.clone()), &b), (newer(a), 1));
 }
 
 #[test]

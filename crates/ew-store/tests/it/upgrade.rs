@@ -304,6 +304,8 @@ fn the_unstable_marker_follows_the_released_list() {
         let saved = store.save(&model, Changes::All).expect("saves");
         assert_eq!(saved.manifest_written, marked, "{released:?}");
         assert_eq!(manifest_on(&vfs, &root).unstable, marked, "{released:?}");
+        // FT-1154 (WP-S6.08 D3): the save's result says so, for the front ends' warning.
+        assert_eq!(saved.unstable, marked, "{released:?}");
         store.close();
         if !marked {
             continue;

@@ -89,6 +89,8 @@ pub(crate) struct CollabState {
     pub(crate) collisions_shown: bool,
     /// The migration chain the shell's stores open with, set by a test (feature `testkit`); `None`: the shipped one.
     pub(crate) migrations: Option<&'static ew_api::Migrations>,
+    /// The released formats the shell's stores save with, set by a test (feature `testkit`); `None`: the shipped list.
+    pub(crate) released: Option<&'static [&'static str]>,
 }
 
 /// The most polls `project.check_disk` makes while the change settles.
@@ -521,6 +523,13 @@ impl ShellModel {
     #[cfg(feature = "testkit")]
     pub fn set_migrations_for_tests(&mut self, chain: Option<&'static ew_api::Migrations>) {
         self.collab.migrations = chain;
+    }
+
+    /// The released formats of the stores the shell opens from now on, instead of the shipped list (feature
+    /// `testkit`): a list without this build's format makes every save mark its manifest `unstable` (FT-1154).
+    #[cfg(feature = "testkit")]
+    pub fn set_released_for_tests(&mut self, released: Option<&'static [&'static str]>) {
+        self.collab.released = released;
     }
 
     /// The `ew` executable `git.setup` configures from now on, instead of the one beside this program (feature

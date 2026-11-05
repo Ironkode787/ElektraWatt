@@ -1172,7 +1172,8 @@ fn three_way<T: PartialEq + Clone>(
 }
 
 /// `manifest.json` (doc 05 §11.3, D16): `generation = max(a, b) + 1`, `format` and `min_reader` the later, `generator`
-/// and `project` ours, `files` three-way per path with `sha256:pending` where both changed, `merged: true`, no `base`.
+/// and `project` ours, `files` three-way per path with `sha256:pending` where both changed, `merged: true`, no `base`;
+/// when a side names a format newer than this reader's, ours as it is with 1 conflict (FT-1235).
 fn merge_manifest(
     base: MergeSide<'_>,
     ours: MergeSide<'_>,
@@ -1181,14 +1182,24 @@ fn merge_manifest(
     chain: &Migrations,
 ) -> FileMerge {
     let o = read_manifest(base.bytes, limits, chain);
+    let (a, b) = (
+        read_manifest(ours.bytes, limits, chain),
+        read_manifest(theirs.bytes, limits, chain),
+    );
+    // FT-1235 (WP-S6.08 D4): a side of a format newer than this reader's is never merged, so the merge never stamps a
+    // format this reader cannot read: ours as it is, not clean.
+    if [&o, &a, &b]
+        .into_iter()
+        .flatten()
+        .any(|m| version::parse(&m.format) > version::parse(FORMAT))
+    {
+        return ours_as_it_is(ours);
+    }
     // A base that is not empty but does not read (markers a web merge committed, doc 05 §11.4) cannot tell a path one
     // side added from one the other deleted: a path on one side only is a conflict.
     let unread_base = o.is_none() && !base.bytes.is_empty();
     let next = |g: u64| g.saturating_add(1).min(MAX_GENERATION);
-    let (merged, conflicts) = match (
-        read_manifest(ours.bytes, limits, chain),
-        read_manifest(theirs.bytes, limits, chain),
-    ) {
+    let (merged, conflicts) = match (a, b) {
         (Some(a), Some(b)) => {
             let mut m = a.clone();
             m.format = later_format(&a.format, &b.format);

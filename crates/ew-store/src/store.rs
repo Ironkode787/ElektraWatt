@@ -524,6 +524,9 @@ pub struct SaveReport {
     /// for each file that sat at a path the save writes without being in the baseline, moved aside to its
     /// [`FilePath::unlisted`] name, which the finding names.
     pub findings: Vec<Finding>,
+    /// Whether the `manifest.json` this save wrote is marked `unstable` (an unreleased format, WP-S1.17 D3): the front
+    /// ends warn on every such save (FT-1154, WP-S6.08 D3). False when no manifest was written.
+    pub unstable: bool,
 }
 
 /// The state of the lock after a heartbeat.
@@ -2117,6 +2120,7 @@ impl Store {
             leftovers: Vec::new(),
             journal_error: None,
             findings: Vec::new(),
+            unstable: manifest.unstable,
         };
         let removes: Vec<FilePath> = plan.removes.iter().cloned().collect();
         if let Some(j) = &mut self.journal {

@@ -690,6 +690,7 @@ pub const KEYS: &[&str] = &[
     "error-open",
     "error-save",
     "error-save-as",
+    "toast-saved-unreleased-format",
     "error-export",
     "error-write",
     "error-unsaved",

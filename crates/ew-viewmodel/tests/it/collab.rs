@@ -435,6 +435,34 @@ fn xw6_export_and_open_ewz_and_the_upgrade_dialog() {
     assert!(s.dialog().is_none(), "asked once");
 }
 
+/// FT-1154 (WP-S6.08 D3, RL-2): with a released list that lacks this build's format, every save that writes marks the
+/// manifest `unstable` and shows S1 as its toast; with the format released, neither.
+#[test]
+fn a_save_in_an_unreleased_format_says_so_every_time() {
+    static OLDER: [&str; 1] = ["0.0"];
+    static THIS: [&str; 1] = [ew_viewmodel::ew_api::FORMAT];
+    let s1 = "Saved in a format that is not released yet. Released versions of ElektraWatt open this project read-only.";
+    for (released, marked) in [(&OLDER[..], true), (&THIS[..], false)] {
+        let tmp = Tmp::new("ft1154");
+        let dir = tmp.0.join("J-E-2416.ew");
+        copy_dir(Path::new(GOLDEN_A), &dir);
+        let mut s = shell(&tmp);
+        s.set_released_for_tests(Some(released));
+        open(&mut s, &dir, false);
+        for (saves, folio) in [(1, "777"), (2, "778")] {
+            done(&mut s, "page.new", json!({ "folio": folio }));
+            done(&mut s, "file.save", json!({}));
+            if marked {
+                assert_eq!(s.toast().map(|n| n.lines().0), Some(s1), "the save's toast");
+            }
+            let shown = s.notifications().entries().filter(|n| n.lines().0 == s1).count();
+            assert_eq!(shown, if marked { saves } else { 0 }, "{released:?}");
+            let manifest = std::fs::read_to_string(dir.join("manifest.json")).unwrap();
+            assert_eq!(manifest.contains("\"unstable\": true"), marked, "{manifest}");
+        }
+    }
+}
+
 /// `git` in `dir` for the test's own set-up: `-C dir`, the repository-selecting variables removed.
 fn git_in(dir: &Path, args: &[&str]) -> Option<String> {
     let mut cmd = Command::new("git");

@@ -7,7 +7,8 @@
 //! It reads the three files under the reader's limits (doc 05 §3.6), makes `%P` project-relative, merges once through
 //! [`ew_api::merge_file`] and writes the result to `%A` all-or-nothing (a temporary file beside it, then a rename). It
 //! never runs git and takes no project lock: `%A` is git's temporary file, not a project file. Exit 0 clean, 1 with
-//! conflict records, 129 on a caught internal error (I/O, a panic in the merge) with `%A` as it was; a usage error
+//! conflict records (or with `%A` left as ours when a side is newer than this reader, FT-1235), 129 on a caught internal
+//! error (I/O, a panic in the merge) with `%A` as it was; a usage error
 //! exits 129 too, with clap's text (decision log ID-1273).
 
 use std::io::Read as _;
@@ -99,6 +100,24 @@ fn merge_and_write(a: &MergeDriverArgs, project: Project<'_>, limits: &Limits, m
         return CONFLICTS;
     }
     let (path, format) = project(&a.path);
+    // FT-1235 (WP-S6.08 D4): a side written by a newer ElektraWatt is not merged in this project. The driver sees ours'
+    // format (the working tree's manifest) and, when it merges the manifest, the three sides' own.
+    let formats: Vec<String> = if path == "manifest.json" {
+        [&base, &ours, &theirs]
+            .iter()
+            .filter_map(|b| Manifest::parse(b, limits).ok().map(|m| m.format))
+            .collect()
+    } else {
+        vec![format.clone()]
+    };
+    if let Some(newer) = formats.iter().find(|f| newer_than_reader(f)) {
+        eprintln!(
+            "merge-driver: {}: written by a newer ElektraWatt (format {newer}; this one reads {FORMAT}); left as \
+             ours: merge it with that version",
+            a.path
+        );
+        return CONFLICTS;
+    }
     let merged = merge(
         &path,
         MergeSide::current(&base),
@@ -143,6 +162,15 @@ fn project_path(worktree: &Path, repo_path: &str, limits: &Limits) -> (String, S
         }
     }
     (repo_path.to_owned(), FORMAT.to_owned())
+}
+
+/// Whether `format` (`major.minor`) is newer than this reader's [`FORMAT`]; a format that does not parse is not.
+fn newer_than_reader(format: &str) -> bool {
+    let parse = |f: &str| -> Option<(u32, u32)> {
+        let (major, minor) = f.split_once('.')?;
+        Some((major.parse().ok()?, minor.parse().ok()?))
+    };
+    matches!((parse(format), parse(FORMAT)), (Some(side), Some(reader)) if side > reader)
 }
 
 /// The bytes of `path`, at most `max + 1` of them: a longer file is read only far enough to know it is too long.

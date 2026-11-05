@@ -91,7 +91,10 @@ pub(super) fn run_merge_resolve(a: &MergeResolveArgs) -> i32 {
         session.close();
         return 1;
     }
-    let code = match session.save() {
+    let code = match session
+        .save()
+        .inspect(|saved| super::warn_unreleased(saved.unstable, &mut std::io::stderr()))
+    {
         Ok(_) if a.json => {
             let result = ew_api::cli_results::MergeResolveResult {
                 schema: ew_api::cli_results::MERGE_RESOLVE.to_owned(),

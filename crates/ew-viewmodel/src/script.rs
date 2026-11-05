@@ -17,7 +17,9 @@
 //! refusal or null), `reason_text` (the sentence of that key, or null; G-PP triage row 10), `message` (the text of a
 //! failure or null), `pending` (the summary line of a preview card left open after the step, as the window shows it,
 //! or null), `state`, and for `ui.describe` the member
-//! `describe`. `state` holds, in this order: `title`, `project` (the directory name, never a path), `access`,
+//! `describe`; for a done `help.documentation` (FT-1267) the member `doc`: the file the request opens below the
+//! installed user guide's folder (`nl/` first in a Dutch window that has the Dutch guide), or null when no guide is
+//! installed. `state` holds, in this order: `title`, `project` (the directory name, never a path), `access`,
 //! `dirty`, `page`, `page_index` (0-based), `page_count`, `can_undo`, `can_redo`, `banner`, `status`, `canvas`, `tabs`,
 //! `focus`, `navigator`.
 //! `canvas` (WP-S2.02 section 6.6) is `null` while no page is shown, else an object with, in this order: `folio`,
@@ -1101,6 +1103,12 @@ pub fn run_step(
     ];
     if step.action == "ui.describe" && outcome == Outcome::Done {
         members.push(member("describe", &Value::from(crate::describe::describe(shell))));
+    }
+    // FT-1267 (WP-S6.08 D6): the page a documentation request opens, so that the installed tree's run proves the guide
+    // is found.
+    if step.action == "help.documentation" && outcome == Outcome::Done {
+        let page = shell.doc_request().and_then(|r| r.page.as_deref());
+        members.push(member("doc", &page.map_or(Value::Null, Value::from)));
     }
     // WP-S6.13 part 1: `page.describe` carries the page's text in the same member.
     if step.action == "page.describe" {

@@ -494,7 +494,7 @@ fn the_about_dialog_is_complete_and_leads_to_the_notices() {
         "This version has no update check and sends no crash reports.",
         "Licence: GPL-3.0-or-later",
         "ElektraWatt's checks do not replace engineering verification by a competent person.",
-        "Support: pre-release build; only the latest 0.x release is supported.",
+        "Support: only the latest 0.x release is supported, until the next minor release.",
     ] {
         assert!(h.query_by_label(label).is_some(), "{label}");
     }

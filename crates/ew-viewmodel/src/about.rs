@@ -44,7 +44,8 @@ pub fn privacy_target(model: &ShellModel) -> String {
 pub const NOTICE: &str = include_str!("../../../NOTICE");
 
 /// The support line of the About dialog for a planned end and today's date (both `YYYY-MM-DD`), computed without
-/// any network access: no end is "pre-release"; an end in the past is "no longer receives security fixes".
+/// any network access: no end is the rule before 1.0, the latest 0.x until the next minor (WP-S6.08 D7); an end in the
+/// past is "no longer receives security fixes".
 /// Without today's date (a run without a clock) an end is shown as the planned date.
 pub fn support_line(end: Option<&str>, today: Option<&str>) -> String {
     match (end, today) {
@@ -93,7 +94,7 @@ mod tests {
     fn the_support_status_is_computed_offline_from_the_planned_end() {
         assert_eq!(
             support_line(None, Some("2030-01-01")),
-            "Support: pre-release build; only the latest 0.x release is supported."
+            "Support: only the latest 0.x release is supported, until the next minor release."
         );
         assert_eq!(
             support_line(Some("2029-03-19"), Some("2028-12-31")),

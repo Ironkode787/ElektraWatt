@@ -368,7 +368,8 @@ jobs:
         shell: pwsh
         run: ./packaging/windows/install-test.ps1 deny -Dir "$env:LOCALAPPDATA\Programs\ElektraWatt"
       # IN-10 to IN-12 on Windows' installed tree: the smoke run, the installed-resources script and its runs on copies
-      # without each resource (D13), AC-40's acceptance (D12), then the same listing and SHA-256 of every file.
+      # without each resource (D13), AC-40's acceptance (D12), the installed guide found (FT-1267, WP-S6.08 D6), then
+      # the same listing and SHA-256 of every file.
       - name: the installed tree, read-only (IN-10 to IN-12)
         run: |
           set -euo pipefail
@@ -377,6 +378,7 @@ jobs:
           "$root/elektrawatt.exe" --smoke "$root/samples/J-E-2416.ew"
           python -I packaging/stage.py resources --tree "$root" --work "$RUNNER_TEMP/resources"
           bash ci/installed-acceptance.sh "$root/ew.exe" "$root/samples/J-E-2416.ew" golden/J-E-2416/expected "$RUNNER_TEMP/acceptance"
+          bash ci/installed-guide.sh "$root/elektrawatt.exe" "$root/docs" "$RUNNER_TEMP/guide"
           python -I packaging/stage.py listing "$root" > "$RUNNER_TEMP/listing-after.txt"
           diff "$RUNNER_TEMP/listing-before.txt" "$RUNNER_TEMP/listing-after.txt" || { echo "::error::the programs changed the installed tree (IN-10)"; exit 1; }
           echo "the installed tree is unchanged: $(wc -l < "$RUNNER_TEMP/listing-before.txt") files"
@@ -716,6 +718,14 @@ jobs:
           sudo apt-get "${apt[@]}" update -qq
           sudo apt-get "${apt[@]}" install -y -qq --no-install-recommends "$RUNNER_TEMP/strace/$STRACE_DEB"
           strace --version | sed -n 1p
+      # FT-1267 (WP-S6.08 D6): the extraction's `elektrawatt` finds its installed guide, read-only as the step above.
+      - name: the installed guide is found (FT-1267)
+        run: |
+          set -euo pipefail
+          appdir="$RUNNER_TEMP/install-tests/runner/squashfs-root"
+          trap 'chmod -R u+w "$appdir"' EXIT
+          chmod -R a-w "$appdir"
+          bash ci/installed-guide.sh "$appdir/AppRun" "$appdir/usr/lib/elektrawatt/docs" "$RUNNER_TEMP/guide"
       # D12 (d), G-M2-15: no listening socket on the installed tree (the extraction the step above leaves).
       - name: no listening socket (D12 (d))
         run: |

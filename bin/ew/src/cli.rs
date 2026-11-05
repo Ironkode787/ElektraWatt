@@ -1360,7 +1360,10 @@ fn run_import_table(a: &ImportTableArgs) -> i32 {
             session.close();
             return 2;
         }
-        if let Err(e) = session.save() {
+        if let Err(e) = session
+            .save()
+            .map(|r| warn_unreleased(r.unstable, &mut std::io::stderr()))
+        {
             eprintln!("error: the save failed: {e:?}");
             session.close();
             return 2;
@@ -2245,7 +2248,8 @@ fn run_apply(a: &ApplyArgs) -> i32 {
         return code;
     }
     match session.save() {
-        Ok(_) => {
+        Ok(saved) => {
+            warn_unreleased(saved.unstable, &mut std::io::stderr());
             if a.json {
                 print_result(committed, true);
             } else {
@@ -2487,7 +2491,8 @@ fn run_checks_set(a: &ChecksSetArgs) -> i32 {
         return 1;
     }
     let code = match session.save() {
-        Ok(_) => {
+        Ok(saved) => {
+            warn_unreleased(saved.unstable, &mut std::io::stderr());
             println!("check schemes set; saved");
             0
         }
@@ -2639,10 +2644,23 @@ fn run_revision_with(
     code
 }
 
+/// The warning after a save that wrote an unreleased format (FT-1154, WP-S6.08 D3).
+pub(crate) const UNRELEASED_SAVE: &str = "warning: saved in a format that is not released yet; released versions of \
+                                          ElektraWatt open this project read-only";
+
+/// After a save: [`UNRELEASED_SAVE`] on `errors` when the manifest it wrote is marked `unstable` (FT-1154); the exit
+/// code stays the save's.
+pub(crate) fn warn_unreleased(unstable: bool, errors: &mut dyn std::io::Write) {
+    if unstable {
+        let _ = writeln!(errors, "{UNRELEASED_SAVE}");
+    }
+}
+
 /// Saves after a confirmed revision command: exit 0 with `done` printed, 2 when the save fails.
 fn save_revision(session: &mut ew_api::Session, output: &mut dyn std::io::Write, done: &str) -> i32 {
     match session.save() {
         Ok(report) => {
+            warn_unreleased(report.unstable, &mut std::io::stderr());
             let _ = writeln!(output, "{done}; saved (generation {})", report.generation);
             0
         }
@@ -3124,6 +3142,7 @@ fn run_assets_purge_with(
     }
     let code = match session.purge_assets(Some(&plan.hashes())) {
         Ok((done, report)) => {
+            warn_unreleased(report.unstable, &mut std::io::stderr());
             let _ = writeln!(
                 output,
                 "removed {} asset file(s); generation {}",
@@ -3963,7 +3982,10 @@ fn run_import_parts_mapped(a: &ImportPartsArgs, map: &Path, dir: &Path) -> i32 {
         (created, skipped) =
             ew_api::import::parts_import_counts(receipt.outcome.note.as_deref().unwrap_or_default())
                 .unwrap_or((0, 0));
-        if let Err(e) = session.save() {
+        if let Err(e) = session
+            .save()
+            .map(|r| warn_unreleased(r.unstable, &mut std::io::stderr()))
+        {
             eprintln!("error: the save failed: {e:?}");
             session.close();
             return 2;
@@ -4033,7 +4055,10 @@ fn run_import_parts(a: &ImportPartsArgs) -> i32 {
     let (created, skipped) =
         ew_api::import::parts_import_counts(receipt.outcome.note.as_deref().unwrap_or_default())
             .unwrap_or((0, 0));
-    if let Err(e) = session.save() {
+    if let Err(e) = session
+        .save()
+        .map(|r| warn_unreleased(r.unstable, &mut std::io::stderr()))
+    {
         eprintln!("error: the save failed: {e:?}");
         session.close();
         return 2;
@@ -4305,7 +4330,10 @@ fn run_reimport_qet(
         return 2;
     }
     if writes {
-        if let Err(e) = session.save() {
+        if let Err(e) = session
+            .save()
+            .map(|r| warn_unreleased(r.unstable, &mut std::io::stderr()))
+        {
             eprintln!("error: the save failed: {e:?}");
             session.close();
             return 2;

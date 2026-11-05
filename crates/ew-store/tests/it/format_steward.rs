@@ -67,6 +67,82 @@ fn mg6_the_shipped_chain_and_corpus_pass_the_steward_check() {
     assert!(words.is_empty(), "{words:#?}");
 }
 
+/// FT-96 (WP-S6.08 D5, RL-4; ADR-0011 amendment 1, doc 05 §10.3): a project of this format whose record lines carry
+/// members this reader does not know, appended as a later additive release writes them (after a record's members, and
+/// after a nested object's), opens; an edit of another record of the same file saves, and every untouched line of that
+/// file is written as it was, byte for byte, the edited record keeping its unknown member.
+#[test]
+fn ft96_untouched_lines_with_later_members_are_kept_byte_for_byte() {
+    use ew_model::{AnyRow, Op};
+    use ew_store::ew_format::ew_schema::Device;
+    use ew_store::ew_format::{FileHash, FilePath, Limits, MANIFEST, Manifest, sha256};
+    use std::sync::Arc;
+
+    let later = |line: &str| -> String {
+        let line = match line.strip_suffix("}}") {
+            Some(head) if !head.ends_with('{') => format!("{head},\"later_ref\":1}}}}"),
+            _ => line.to_owned(),
+        };
+        format!("{},\"later_member\":\"kept\"}}", &line[..line.len() - 1])
+    };
+    let mut files = common::small_fixture();
+    let (shard, text) = files
+        .iter()
+        .filter(|(p, _)| p.starts_with("devices/"))
+        .map(|(p, b)| (p.clone(), String::from_utf8(b.clone()).expect("UTF-8")))
+        .find(|(_, t)| t.lines().count() >= 3 && t.starts_with("{\"$k\":\"device\""))
+        .expect("a device shard of three lines or more");
+    let lines: Vec<String> = text.lines().map(later).collect();
+    assert!(
+        lines.iter().any(|l| l.contains("\"later_ref\":1}")),
+        "a nested member too"
+    );
+    let bytes = format!("{}\n", lines.join("\n")).into_bytes();
+    let mut manifest = Manifest::parse(&files[MANIFEST], &Limits::default()).unwrap();
+    manifest
+        .files
+        .insert(FilePath::new(&shard).unwrap(), FileHash::Sha256(sha256(&bytes)));
+    files.insert(shard.clone(), bytes);
+    files.insert(MANIFEST.to_owned(), manifest.to_text().into_bytes());
+
+    let (vfs, root) = common::mem_project_of(DirSync::Explicit, files);
+    let Opened {
+        mut store,
+        model,
+        report,
+    } = Store::open(&root, options(&vfs, 1)).expect("opens");
+    assert_eq!(report.access, ew_store::Access::Edit);
+    let first: serde_json::Value = serde_json::from_str(&lines[0]).unwrap();
+    let id = first["id"].as_str().unwrap().to_owned();
+    let row = model
+        .table::<Device>()
+        .iter()
+        .find(|(_, d)| d.id.to_string() == id)
+        .map(|(_, d)| Arc::clone(d))
+        .expect("the shard's first device");
+    let after = common::device_with_text(&row, "edited");
+    let mut keys = BTreeSet::new();
+    let model = common::apply(
+        &model,
+        &[Op::update(AnyRow::Device(row), AnyRow::of(after))],
+        &mut keys,
+    )
+    .expect("the edit applies");
+    let saved = store.save(&model, Changes::Keys(&keys)).expect("saves");
+    store.close();
+    assert_eq!(saved.written, [FilePath::new(&shard).unwrap()]);
+    let written = String::from_utf8(project_files(&vfs, &root)[&shard].clone()).unwrap();
+    let written: Vec<&str> = written.lines().collect();
+    assert_eq!(written.len(), lines.len());
+    assert!(
+        written[0].contains("\"function_text\":\"edited\"")
+            && written[0].contains("\"later_member\":\"kept\""),
+        "{}",
+        written[0]
+    );
+    assert_eq!(&written[1..], &lines[1..]);
+}
+
 /// The corpus job: each project of each released format's folder opens (migrated when older, with the consent),
 /// saves in full and equals its expected folder file by file. No project is there while the corpus is absent.
 #[test]

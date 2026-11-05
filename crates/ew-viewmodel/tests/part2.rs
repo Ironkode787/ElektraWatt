@@ -1828,6 +1828,45 @@ fn f1_in_a_dutch_window_opens_the_dutch_page_when_the_book_has_it() {
     shell.shutdown();
 }
 
+/// FT-1267 (WP-S6.08 D6): a headless `help.documentation` step names the file it opens below the installed guide
+/// (`doc`), the Dutch guide's in a Dutch window that has it, and null without a guide.
+#[test]
+fn a_documentation_step_names_the_installed_guide_page_it_opens() {
+    use ew_viewmodel::script::{NoExtension, Step, run_step};
+    let tmp = Tmp::new();
+    let docs = tmp.0.join("book");
+    std::fs::create_dir_all(docs.join("nl")).unwrap();
+    std::fs::write(docs.join("nl/introduction.html"), "").unwrap();
+    let doc = |shell: &mut ShellModel| -> Value {
+        let step = Step {
+            line: 1,
+            action: "help.documentation".to_owned(),
+            params: json!({"topic": "home"}),
+        };
+        let line = run_step(shell, &mut NoExtension, 1, &step).line;
+        serde_json::from_str::<Value>(&line).unwrap()["doc"].clone()
+    };
+    let mut config = tmp.config();
+    config.resources.docs_dir = Some(docs);
+    let mut shell = ShellModel::new(Mode::Headless, config);
+    assert_eq!(doc(&mut shell), json!("introduction.html"));
+    done(
+        &mut shell,
+        "settings.set",
+        json!({"key": "language", "value": "nl"}),
+    );
+    assert_eq!(doc(&mut shell), json!("nl/introduction.html"));
+    done(
+        &mut shell,
+        "settings.set",
+        json!({"key": "language", "value": "en"}),
+    );
+    shell.shutdown();
+    let mut shell = ShellModel::new(Mode::Headless, tmp.config());
+    assert_eq!(doc(&mut shell), Value::Null);
+    shell.shutdown();
+}
+
 #[test]
 fn quick_switches_validate_and_persist() {
     let tmp = Tmp::new();
@@ -2386,7 +2425,7 @@ fn describe_lists_the_start_page_the_wizard_and_the_project_view() {
     done(&mut shell, "help.about", json!({}));
     let about = shell.describe();
     for needle in [
-        "Support: pre-release build; only the latest 0.x release is supported.",
+        "Support: only the latest 0.x release is supported, until the next minor release.",
         "ElektraWatt's checks do not replace engineering verification by a competent person.",
         "PRIVACY.md lists every data flow",
         "button \"Privacy (PRIVACY.md)\"",

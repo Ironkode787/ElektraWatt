@@ -171,7 +171,7 @@ impl ShellModel {
     /// Asks the window to open `target`, a page of the built book (`how-to/x.html#fragment`): in a Dutch window the
     /// Dutch book's page (`<docs_dir>/nl/<target>`, WP-S7.05 D14) when the book has it, else the English one.
     pub(super) fn request_doc_target(&mut self, target: String) {
-        let url = self
+        let (page, url) = self
             .config
             .resources
             .docs_dir
@@ -181,13 +181,14 @@ impl ShellModel {
                 let page = target.split_once('#').map_or(target.as_str(), |(page, _)| page);
                 let nl = d.join("nl");
                 if strings::locale() == "nl" && nl.join(page).is_file() {
-                    file_url(&nl, &target)
+                    (format!("nl/{page}"), file_url(&nl, &target))
                 } else {
-                    file_url(d, &target)
+                    (page.to_owned(), file_url(d, &target))
                 }
-            });
+            })
+            .unzip();
         self.last_help = Some(target.clone());
-        self.doc_request = Some(DocRequest { target, url });
+        self.doc_request = Some(DocRequest { target, url, page });
     }
 
     pub(crate) fn act_documentation(&mut self, p: &Map<String, Value>) -> Outcome {
