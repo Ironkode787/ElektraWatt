@@ -155,7 +155,7 @@ fn the_insert_entries_open_the_structure_and_external_reference_dialogs() {
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
     // WP-S4.02 part 4: Enclosure… makes the Project group four entries, a submenu (doc 16a §9.2).
-    support::open_menu(&mut h, &["Project", "Project"]);
+    support::open_menu(&mut h, &["Project", "Setup"]);
     settle(&mut h);
     h.get_by_label("Structure node…").click();
     settle(&mut h);
@@ -164,7 +164,7 @@ fn the_insert_entries_open_the_structure_and_external_reference_dialogs() {
     settle(&mut h);
     h.key_press(Key::Enter);
     wait_until(&mut h, "the dialog's close", |s| s.dialog().is_none());
-    support::open_menu(&mut h, &["Project", "Project"]);
+    support::open_menu(&mut h, &["Project", "Setup"]);
     settle(&mut h);
     h.get_by_label("External reference…").click();
     settle(&mut h);
@@ -192,7 +192,7 @@ fn the_new_entries_are_disabled_without_a_project() {
     );
     h.key_press(Key::Escape);
     settle(&mut h);
-    support::open_menu(&mut h, &["Project", "Project"]);
+    support::open_menu(&mut h, &["Project", "Setup"]);
     settle(&mut h);
     for entry in ["Structure node…", "External reference…"] {
         assert!(h.get_by_label(entry).accesskit_node().is_disabled(), "{entry}");

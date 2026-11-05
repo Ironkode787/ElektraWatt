@@ -106,7 +106,7 @@ accessories. **What differs:** the strip editor is a table you edit cell by cell
 
 **The same:** the higher-level function (`=`) and the mounting location (`+`) structure the project, and a device's
 full tag carries them. **What differs:** a structure node is a record of its own, so renaming it renames every tag
-under it; EW keeps a code as one token and never splits it again. **In the window:** **Project ▸ Project ▸ Structure
+under it; EW keeps a code as one token and never splits it again. **In the window:** **Project ▸ Setup ▸ Structure
 node…**.
 
 ## Black box

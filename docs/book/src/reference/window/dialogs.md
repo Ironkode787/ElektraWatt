@@ -22,8 +22,8 @@ Go ▸ Go to page or cell….
 
 ## Form dialogs
 
-The fields of an action that needs values before it runs, such as Page ▸ New page…, Project ▸ Project ▸ Structure
-node… and Project ▸ Project ▸ External reference…. The primary button runs the action with the values; Cancel
+The fields of an action that needs values before it runs, such as Page ▸ New page…, Project ▸ Setup ▸ Structure
+node… and Project ▸ Setup ▸ External reference…. The primary button runs the action with the values; Cancel
 changes nothing.
 
 ## Purge unused images

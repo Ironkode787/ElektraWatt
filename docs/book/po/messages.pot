@@ -2682,7 +2682,7 @@ msgstr ""
 #: src/reference/window/dialogs.md:25
 msgid ""
 "The fields of an action that needs values before it runs, such as Page ▸ New "
-"page…, Project ▸ Project ▸ Structure node… and Project ▸ Project ▸ External "
+"page…, Project ▸ Setup ▸ Structure node… and Project ▸ Setup ▸ External "
 "reference…. The primary button runs the action with the values; Cancel "
 "changes nothing."
 msgstr ""
@@ -3423,7 +3423,7 @@ msgid ""
 "(`+`) structure the project, and a device's full tag carries them. **What "
 "differs:** a structure node is a record of its own, so renaming it renames "
 "every tag under it; EW keeps a code as one token and never splits it again. "
-"**In the window:** **Project ▸ Project ▸ Structure node…**."
+"**In the window:** **Project ▸ Setup ▸ Structure node…**."
 msgstr ""
 
 #: src/explanation/eplan-and-ew.md:114 src/explanation/qet-and-ew.md:99
@@ -3641,7 +3641,7 @@ msgid ""
 "**The same:** plant and location codes group the elements and print in their "
 "labels. **What differs:** a structure node is a record, and a device's tag "
 "carries it, so renaming the node renames every tag below it. **In the "
-"window:** **Project ▸ Project ▸ Structure node…**."
+"window:** **Project ▸ Setup ▸ Structure node…**."
 msgstr ""
 
 #: src/explanation/qet-and-ew.md:97

@@ -92,7 +92,7 @@ Place ▸ Terminal strip…** and **Edit ▸ Strip editor**. See
 
 **The same:** plant and location codes group the elements and print in their labels. **What differs:** a structure
 node is a record, and a device's tag carries it, so renaming the node renames every tag below it. **In the window:**
-**Project ▸ Project ▸ Structure node…**.
+**Project ▸ Setup ▸ Structure node…**.
 
 ## Rectangle
 
