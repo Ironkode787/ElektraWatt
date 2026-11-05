@@ -25,6 +25,7 @@ pub(crate) struct EditorView {
     start: Option<[f64; 2]>,
     vertices: Vec<[f64; 2]>,
     selected: Option<usize>,
+    move_start: Option<Pos2>,
     advanced: String,
     text: String,
     designation: String,
@@ -36,12 +37,19 @@ pub(crate) struct EditorView {
     manual_view: bool,
     place: [f64; 2],
     draw_coordinates: [f64; 4],
+    arc_angles: [i32; 2],
     function_key: String,
+    source: String,
+    fork_key: String,
+    source_filter: String,
     slot_kind: usize,
     slot_pin: u16,
     link_name: String,
     json_error: bool,
 }
+
+#[derive(Clone)]
+struct FunctionPinDrag(u16);
 
 fn label(key: strings::Key<'_>) -> &'static str {
     strings::text(key)
@@ -49,8 +57,102 @@ fn label(key: strings::Key<'_>) -> &'static str {
 fn control_name(name: &str, value: &str) -> String {
     strings::format(strings::Key::run_time("symbol-control-name"), &[name, value])
 }
+fn function_choice_name(f: &ew_viewmodel::shell::symbol_editor::SymbolFunctionChoice) -> String {
+    let kind = serde_json::to_value(&f.kind).unwrap_or_default();
+    strings::format(
+        strings::Key::run_time("symbol-function-choice"),
+        &[
+            &f.category,
+            label(strings::Key::run_time(&format!(
+                "symbol-kind-{}",
+                kind.as_str().unwrap_or("unknown")
+            ))),
+            &f.pins.join(", "),
+            &f.library,
+        ],
+    )
+}
+fn source_choice_name(s: &ew_viewmodel::shell::symbol_editor::SymbolSource) -> String {
+    strings::format(
+        strings::Key::run_time(if s.grid == symbols::units::Grid::QET_10PX {
+            "symbol-source-qet"
+        } else {
+            "symbol-source-native"
+        }),
+        &[
+            &display_text(&serde_json::to_value(&s.name).unwrap_or_default()),
+            s.library
+                .as_deref()
+                .unwrap_or_else(|| label(strings::Key::run_time("symbol-project-copy"))),
+        ],
+    )
+}
+fn function_pin_name(draft: &SymbolDraft, index: u16) -> String {
+    let Some(pin) = draft.function.cps.get(&index) else {
+        return "—".to_owned();
+    };
+    if draft
+        .function
+        .cps
+        .iter()
+        .filter(|p| p.designation == pin.designation)
+        .count()
+        > 1
+    {
+        let ordinal = draft
+            .function
+            .cps
+            .iter()
+            .position(|p| p.idx == index)
+            .unwrap_or_default()
+            + 1;
+        strings::format(
+            strings::Key::run_time("symbol-pin-ordinal"),
+            &[pin.designation.as_str(), &ordinal.to_string()],
+        )
+    } else {
+        pin.designation.to_string()
+    }
+}
 fn action(events: &mut Vec<Event>, name: &'static str, value: Value) {
     events.push(Event::Action(name, value));
+}
+// Several controls can commit on one focus change. Merge their changes against the same frame's draft.
+fn replace_action(events: &mut Vec<Event>, draft: &SymbolDraft, document: Value) {
+    fn merge(base: &Value, changed: &Value, target: &mut Value) {
+        if base == changed {
+            return;
+        }
+        if let (Some(base), Some(changed), Some(target)) =
+            (base.as_object(), changed.as_object(), target.as_object_mut())
+        {
+            for key in base.keys().filter(|key| !changed.contains_key(*key)) {
+                target.remove(key);
+            }
+            for (key, value) in changed {
+                merge(
+                    base.get(key).unwrap_or(&Value::Null),
+                    value,
+                    target.entry(key.clone()).or_insert(Value::Null),
+                );
+            }
+        } else {
+            *target = changed.clone();
+        }
+    }
+    if let Some(Event::Action(_, params)) = events
+        .iter_mut()
+        .find(|event| matches!(event, Event::Action("symbol.replace", _)))
+    {
+        merge(
+            &serde_json::to_value(draft).unwrap_or_default(),
+            &document,
+            &mut params["document"],
+        );
+    } else {
+        // Commit a field losing focus before the ribbon's Save/Test action.
+        events.insert(0, Event::Action("symbol.replace", json!({"document":document})));
+    }
 }
 fn button(ui: &mut Ui, key: &str) -> bool {
     components::button(ui, Kind::Secondary, label(strings::Key::run_time(key)), true, 0.0).clicked()
@@ -161,7 +263,11 @@ fn text_field(ui: &mut Ui, key: &str, value: &mut Value) -> bool {
         .unwrap_or_else(|| (value.clone(), display_text(value)));
     let caption = ui.label(label(strings::Key::run_time(key)));
     let response = ui
-        .add(egui::TextEdit::singleline(&mut buffer).desired_width(ui.available_width()))
+        .add(
+            egui::TextEdit::singleline(&mut buffer)
+                .id(id.with("input"))
+                .desired_width(ui.available_width()),
+        )
         .labelled_by(caption.id);
     response.widget_info(|| {
         let mut info = egui::WidgetInfo::labeled(
@@ -225,6 +331,7 @@ fn function_pins(ui: &mut Ui, cps: &mut [Value]) -> bool {
                 };
                 egui::ComboBox::from_id_salt(("role", i))
                     .width(65.0)
+                    .height(160.0)
                     .selected_text(shown)
                     .show_ui(ui, |ui| {
                         if ui
@@ -311,6 +418,14 @@ impl EditorView {
             *self = Self {
                 generation: Some(editor.generation),
                 directory: editor.directory.clone(),
+                arc_angles: [0, 180],
+                slot_pin: editor.draft.symbol.cps.iter().next().map_or(1, |p| p.idx),
+                function_key: editor
+                    .draft
+                    .function_ref
+                    .as_ref()
+                    .map(|r| format!("library:{}:{}", r.library, r.item))
+                    .unwrap_or_default(),
                 ..Default::default()
             };
         }
@@ -376,7 +491,15 @@ impl EditorView {
             }
             ui.separator();
             ui.label(label(strings::Key::run_time(if editor.variant == 0 {
-                "symbol-draw-hint"
+                match self.tool {
+                    0 => "symbol-select-hint",
+                    3 => "symbol-circle-hint",
+                    4 | 5 => "symbol-bounds-hint",
+                    9 => "symbol-anchor-hint",
+                    10 => "symbol-link-hint",
+                    6..=8 => "symbol-point-hint",
+                    _ => "symbol-draw-hint",
+                }
             } else {
                 "symbol-edit-a"
             })));
@@ -388,7 +511,11 @@ impl EditorView {
         let clicked = ribbon_button(ui, caption, icon, self.tool == index, true, false).clicked();
         if clicked {
             self.tool = index;
+            if index != 0 {
+                self.panel = 0;
+            }
             self.start = None;
+            self.move_start = None;
             self.vertices.clear();
         }
         clicked
@@ -454,6 +581,14 @@ impl EditorView {
                 )));
             });
         });
+        if let Some(error) = &editor.error {
+            ui.colored_label(ui.visuals().error_fg_color, error);
+        } else if let Some(issue) = draft.validate().first() {
+            ui.colored_label(
+                ui.visuals().error_fg_color,
+                strings::format(strings::Key::run_time(issue.code), &[&issue.detail]),
+            );
+        }
         ui.separator();
         let width =
             (t.size_panel_left + 0.35 * (ui.available_width() - 1280.0).max(0.0)).min(t.size_panel_left_max);
@@ -475,11 +610,40 @@ impl EditorView {
                         for detail in &draft.import_details { ui.label(&detail.message); }
                         let mut reviewed=draft.import_reviewed;
                         if ui.checkbox(&mut reviewed,label(strings::Key::run_time("symbol-reviewed"))).changed() {
-                            let mut d=draft.clone();d.import_reviewed=reviewed;action(events,"symbol.replace",json!({"document":d}));
+                            let mut d=draft.clone();d.import_reviewed=reviewed;replace_action(events,draft,serde_json::to_value(d).unwrap_or_default());
                         }
                     }); }
-                    ui.push_id(editor.generation, |ui| self.properties(ui,draft,events));
+                    if self.panel == 1 {
+                        self.pin_mapping(ui, draft, events);
+                        ui.collapsing(label(strings::Key::run_time("symbol-assign")), |ui| {
+                            let current = editor.functions.iter().find(|f| f.source == self.function_key);
+                            let title = current.map(function_choice_name).unwrap_or_else(|| label(strings::Key::run_time("symbol-choose-function")).to_owned());
+                            egui::ComboBox::from_id_salt("symbol-function-choice").selected_text(title).width(ui.available_width()).show_ui(ui, |ui| {
+                                for f in &editor.functions {
+                                    ui.selectable_value(&mut self.function_key, f.source.clone(), function_choice_name(f)).on_hover_text(&f.key);
+                                }
+                            }).response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, true, label(strings::Key::run_time("symbol-choose-function"))));
+                            if button(ui, "symbol-assign") { action(events, "symbol.function", json!({"key": self.function_key})); }
+                        });
+                    }
+                    ui.push_id(editor.generation, |ui| self.properties(ui,draft,&styles,events));
                     if self.panel == 2 {
+                    egui::CollapsingHeader::new(label(strings::Key::run_time("symbol-fork"))).default_open(true).show(ui, |ui| {
+                        field(ui, "symbol-source-filter", &mut self.source_filter);
+                        let title = editor.sources.iter().find(|s| s.source == self.source).map(source_choice_name).unwrap_or_else(|| label(strings::Key::run_time("symbol-choose-source")).to_owned());
+                        egui::ComboBox::from_id_salt("symbol-fork-source").selected_text(title).width(ui.available_width()).show_ui(ui, |ui| {
+                            for source in &editor.sources {
+                                let name = source_choice_name(source);
+                                if name.to_lowercase().contains(&self.source_filter.to_lowercase()) || source.key.as_deref().is_some_and(|k| k.to_lowercase().contains(&self.source_filter.to_lowercase())) {
+                                    ui.selectable_value(&mut self.source, source.source.clone(), name);
+                                }
+                            }
+                        }).response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, true, label(strings::Key::run_time("symbol-choose-source"))));
+                        field(ui, "symbol-fork-key", &mut self.fork_key);
+                        if components::button(ui, Kind::Secondary, label(strings::Key::run_time("symbol-fork-create")), !self.source.is_empty() && !self.fork_key.is_empty(), 0.0).clicked() {
+                            self.request(shell, events, "symbol.fork", json!({"source":self.source,"key":self.fork_key}));
+                        }
+                    });
                     if editor.candidates.len() > 1 { ui.collapsing(label(strings::Key::run_time("symbol-candidates")), |ui| {
                         for (i,d) in editor.candidates.iter().enumerate() {
                             if ui.button(display_text(&serde_json::to_value(&d.symbol.name).unwrap_or_default())).clicked() {
@@ -521,7 +685,7 @@ impl EditorView {
                     field(ui,"symbol-designation",&mut self.designation);
                     egui::ComboBox::from_id_salt("symbol-cp-direction").selected_text(label(strings::Key::run_time(["symbol-up","symbol-right","symbol-down","symbol-left"][self.direction]))).show_ui(ui,|ui| {
                         for (i,k) in ["symbol-up","symbol-right","symbol-down","symbol-left"].iter().enumerate() { ui.selectable_value(&mut self.direction,i,label(strings::Key::run_time(k))); }
-                    });
+                    }).response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, true, label(strings::Key::run_time("symbol-direction"))));
                 }); }
                 if self.tool>=11 {ui.label(label(strings::Key::run_time("symbol-path-hint")));}
                 let canvas_height = (ui.available_height() - 122.0).max(120.0);
@@ -561,8 +725,11 @@ impl EditorView {
                         let lo=origin+Vec2::new(bounds[0],bounds[1])*self.zoom;
                         let hi=origin+Vec2::new(bounds[2],bounds[3])*self.zoom;
                         painter.rect_stroke(egui::Rect::from_two_pos(lo,hi).expand(3.0),t.radius_none,Stroke::new(t.border_width,t.canvas_selection.color32()),egui::StrokeKind::Outside);
-                        if response.drag_stopped_by(egui::PointerButton::Primary) {
-                            let delta=response.drag_delta()/self.zoom;
+                        if response.drag_started_by(egui::PointerButton::Primary) {
+                            self.move_start = ui.input(|i| i.pointer.press_origin());
+                        }
+                        if response.drag_stopped_by(egui::PointerButton::Primary) && let Some(start) = self.move_start.take() && let Some(end) = response.interact_pointer_pos() {
+                            let delta=(end-start)/self.zoom;
                             let dx=(f64::from(delta.x)*2.0).round() as i64*500_000;
                             let dy=(f64::from(delta.y)*2.0).round() as i64*500_000;
                             if dx!=0||dy!=0 { let mut d=serde_json::to_value(draft).unwrap_or_default();translate_graphic(&mut d["symbol"]["graphics"][index],dx,dy);action(events,"symbol.replace",json!({"document":d})); }
@@ -589,12 +756,12 @@ impl EditorView {
                             action(events,"symbol.path",json!({"points":self.vertices,"closed":self.tool==12}));self.vertices.clear();
                         }
                     }
-                    else if matches!(self.tool,6|9) { action(events,"symbol.draw",json!({"tool":tools[self.tool],"x":p[0],"y":p[1],"text":self.text})); }
+                    else if matches!(self.tool,6|9) { action(events,"symbol.draw",json!({"tool":tools[self.tool].0,"x":p[0],"y":p[1],"text":self.text})); }
                     else if self.tool > 0 {
-                        if let Some(start)=self.start.take() { action(events,"symbol.draw",json!({"tool":tools[self.tool],"x":start[0],"y":start[1],"x2":p[0],"y2":p[1]})); } else { self.start=Some(p); }
+                        if let Some(start)=self.start.take() { action(events,"symbol.draw",json!({"tool":tools[self.tool].0,"x":start[0],"y":start[1],"x2":p[0],"y2":p[1],"start":self.arc_angles[0],"sweep":self.arc_angles[1]})); } else { self.start=Some(p); }
                     }
                 }
-                if ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE,egui::Key::Escape)) { self.start=None;self.vertices.clear(); }
+                if ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE,egui::Key::Escape)) { self.start=None;self.move_start=None;self.vertices.clear(); }
                 ui.horizontal(|ui| {
                     ui.label(label(strings::Key::run_time("symbol-variants")));
                 });
@@ -635,6 +802,19 @@ impl EditorView {
                     });
                 }
             }
+            if self.tool == 5 {
+                for (i, key) in ["symbol-arc-start", "symbol-arc-sweep"].iter().enumerate() {
+                    ui.horizontal(|ui| {
+                        let caption = ui.label(label(strings::Key::run_time(key)));
+                        let response = ui.add(egui::DragValue::new(&mut self.arc_angles[i]).range(-360..=360).update_while_editing(false)).labelled_by(caption.id);
+                        response.widget_info(|| {
+                            let mut info = egui::WidgetInfo::drag_value(ui.is_enabled(), f64::from(self.arc_angles[i]));
+                            info.label = Some(label(strings::Key::run_time(key)).to_owned());
+                            info
+                        });
+                    });
+                }
+            }
             if button(ui, "symbol-add") {
                 let [x, y, x2, y2] = self.draw_coordinates;
                 match self.tool {
@@ -642,7 +822,7 @@ impl EditorView {
                     8 => action(events, "symbol.slot", json!({"x":x,"y":y,"kind":slot_kind(self.slot_kind,self.slot_pin)})),
                     10 => action(events, "symbol.link", json!({"x":x,"y":y,"name":self.link_name})),
                     11 | 12 => self.vertices.push([x,y]),
-                    _ => action(events, "symbol.draw", json!({"tool":TOOLS[self.tool].0,"x":x,"y":y,"x2":x2,"y2":y2,"text":self.text})),
+                    _ => action(events, "symbol.draw", json!({"tool":TOOLS[self.tool].0,"x":x,"y":y,"x2":x2,"y2":y2,"text":self.text,"start":self.arc_angles[0],"sweep":self.arc_angles[1]})),
                 }
             }
             if self.tool >= 11 && self.vertices.len() >= if self.tool == 12 { 3 } else { 2 } && button(ui, "symbol-finish-path") {
@@ -651,11 +831,108 @@ impl EditorView {
         });
     }
 
-    fn properties(&mut self, ui: &mut Ui, draft: &SymbolDraft, events: &mut Vec<Event>) {
+    fn pin_mapping(&mut self, ui: &mut Ui, draft: &SymbolDraft, events: &mut Vec<Event>) {
+        egui::CollapsingHeader::new(label(strings::Key::run_time("symbol-pin-mapping")))
+            .default_open(true)
+            .show(ui, |ui| {
+                ui.label(label(strings::Key::run_time("symbol-mapping-help")));
+                ui.horizontal_wrapped(|ui| {
+                    for pin in draft.function.cps.iter().filter(|p| p.physical) {
+                        let name = strings::format(
+                            strings::Key::run_time("symbol-function-pin"),
+                            &[&function_pin_name(draft, pin.idx)],
+                        );
+                        let response = ui.add(egui::Button::new(name).sense(Sense::drag()));
+                        response.dnd_set_drag_payload(FunctionPinDrag(pin.idx));
+                    }
+                });
+                for cp in &draft.symbol.cps {
+                    ui.push_id(("map-cp", cp.idx), |ui| {
+                        let name = strings::format(
+                            strings::Key::run_time("symbol-mapping-target"),
+                            &[&cp.idx.to_string()],
+                        );
+                        let row = ui
+                            .horizontal(|ui| {
+                                let target = ui.button(&name);
+                                let current = function_pin_name(draft, cp.fn_cp);
+                                egui::ComboBox::from_id_salt("mapping")
+                                    .selected_text(current)
+                                    .width(65.0)
+                                    .show_ui(ui, |ui| {
+                                        for pin in draft
+                                            .function
+                                            .cps
+                                            .iter()
+                                            .filter(|p| p.physical && p.discipline == cp.discipline)
+                                        {
+                                            if ui
+                                                .selectable_label(
+                                                    cp.fn_cp == pin.idx,
+                                                    function_pin_name(draft, pin.idx),
+                                                )
+                                                .clicked()
+                                            {
+                                                action(
+                                                    events,
+                                                    "symbol.map_cp",
+                                                    json!({"cp":cp.idx,"fn_cp":pin.idx}),
+                                                );
+                                            }
+                                        }
+                                    })
+                                    .response
+                                    .widget_info(|| {
+                                        egui::WidgetInfo::labeled(
+                                            egui::Role::ComboBox,
+                                            true,
+                                            strings::format(
+                                                strings::Key::run_time("symbol-map-control"),
+                                                &[&cp.idx.to_string()],
+                                            ),
+                                        )
+                                    });
+                                target
+                            })
+                            .inner;
+                        if row.dnd_hover_payload::<FunctionPinDrag>().is_some() {
+                            let t = theme::current(ui.ctx());
+                            ui.painter().rect_stroke(
+                                row.rect,
+                                theme::radius(t.radius_md),
+                                theme::stroke(t.focus_width, t.focus),
+                                egui::StrokeKind::Inside,
+                            );
+                        }
+                        if let Some(pin) = row.dnd_release_payload::<FunctionPinDrag>() {
+                            action(events, "symbol.map_cp", json!({"cp":cp.idx,"fn_cp":pin.0}));
+                        }
+                    });
+                }
+            });
+    }
+
+    fn properties(
+        &mut self,
+        ui: &mut Ui,
+        draft: &SymbolDraft,
+        styles: &symbols::TextStyleTable,
+        events: &mut Vec<Event>,
+    ) {
         let Ok(mut doc) = serde_json::to_value(draft) else {
             return;
         };
         let mut changed = false;
+        if self.panel == 0
+            && !ui.ctx().text_edit_focused()
+            && ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Delete))
+            && let Some(index) = self.selected.take()
+            && let Some(graphics) = doc["symbol"]["graphics"].as_array_mut()
+            && index < graphics.len()
+        {
+            graphics.remove(index);
+            changed = true;
+        }
         changed |= text_field(ui, "symbol-name", &mut doc["symbol"]["name"]);
         if self.panel == 2 {
             for (key, path) in [("symbol-key", "key"), ("symbol-version", "version")] {
@@ -735,7 +1012,24 @@ impl EditorView {
                         && let Some(value) = doc["symbol"]["graphics"].get_mut(i)
                     {
                         changed |= numeric_fields(ui, value, "", false);
+                        for kind in ["rect", "circle", "ellipse", "polygon"] {
+                            if let Some(shape) = value.get_mut(kind) {
+                                let mut filled = !shape["fill"].is_null();
+                                if ui
+                                    .checkbox(&mut filled, label(strings::Key::run_time("symbol-fill")))
+                                    .changed()
+                                {
+                                    if filled {
+                                        shape["fill"] = json!("by_layer");
+                                    } else if let Some(object) = shape.as_object_mut() {
+                                        object.remove("fill");
+                                    }
+                                    changed = true;
+                                }
+                            }
+                        }
                         if let Some(text) = value.get_mut("text") {
+                            changed |= text_style_control(ui, text, styles);
                             changed |= ui
                                 .push_id(("graphic-text", i), |ui| {
                                     text_field(ui, "symbol-text", &mut text["text"])
@@ -777,12 +1071,6 @@ impl EditorView {
             egui::CollapsingHeader::new(label(strings::Key::run_time("symbol-function")))
                 .default_open(true)
                 .show(ui, |ui| {
-                    ui.collapsing(label(strings::Key::run_time("symbol-assign")), |ui| {
-                        field(ui, "symbol-fndef-key", &mut self.function_key);
-                        if button(ui, "symbol-assign") {
-                            action(events, "symbol.function", json!({"key":self.function_key}));
-                        }
-                    });
                     ui.add_enabled_ui(draft.function_ref.is_none(), |ui| {
                         ui.label(label(strings::Key::run_time("symbol-function-kind")));
                         let kind = doc["function"]["contact_kind"].as_str().unwrap_or("").to_owned();
@@ -834,17 +1122,6 @@ impl EditorView {
                                     .unwrap_or_else(|| (i + 1).to_string());
                                 ui.strong(name);
                                 changed |= numeric_fields(ui, &mut cp["pos"], "", true);
-                                let mut mapped = cp["fn_cp"].as_u64().unwrap_or_default();
-                                ui.horizontal(|ui| {
-                                    ui.label(label(strings::Key::run_time("symbol-function")));
-                                    if ui
-                                        .add(egui::DragValue::new(&mut mapped).range(0..=65535))
-                                        .changed()
-                                    {
-                                        cp["fn_cp"] = json!(mapped);
-                                        changed = true;
-                                    }
-                                });
                                 let current_direction = cp["dir"].clone();
                                 egui::ComboBox::from_id_salt(("cp-direction", i))
                                     .selected_text(label(strings::Key::run_time(&format!(
@@ -894,11 +1171,12 @@ impl EditorView {
                             let key = match kind {
                                 "tag" => "symbol-tag",
                                 "function_text" => "symbol-function-text",
-                                "technical_data" => "symbol-tech-data",
-                                "cross_reference" => "symbol-xref",
+                                "tech_data" => "symbol-tech-data",
+                                "xref" => "symbol-xref",
                                 _ => "symbol-cp-designation",
                             };
                             ui.label(label(strings::Key::run_time(key)));
+                            changed |= text_style_control(ui, slot, styles);
                             changed |= numeric_fields(ui, &mut slot["pos"], "", true);
                             changed |= rotation_control(ui, slot);
                             let mut visible = slot["visible"].as_bool().unwrap_or(false);
@@ -948,7 +1226,7 @@ impl EditorView {
             });
         }
         if changed {
-            action(events, "symbol.replace", json!({"document":doc}));
+            replace_action(events, draft, doc);
         }
         if self.panel == 2 {
             ui.collapsing(label(strings::Key::run_time("symbol-advanced")), |ui| {
@@ -1009,15 +1287,22 @@ fn numeric_fields(ui: &mut Ui, value: &mut Value, name: &str, coordinate: bool) 
         Value::Number(n) if coordinate => {
             let mut mm = n.as_f64().unwrap_or_default() / 1_000_000.0;
             ui.horizontal(|ui| {
-                ui.label(strings::format(strings::Key::run_time("symbol-mm"), &[name]));
-                if ui
+                let caption = strings::format(strings::Key::run_time("symbol-mm"), &[name]);
+                let label = ui.label(&caption);
+                let response = ui
                     .add(
                         egui::DragValue::new(&mut mm)
                             .speed(0.5)
+                            .update_while_editing(false)
                             .range(-1_000_000.0..=1_000_000.0),
                     )
-                    .changed()
-                {
+                    .labelled_by(label.id);
+                response.widget_info(|| {
+                    let mut info = egui::WidgetInfo::drag_value(ui.is_enabled(), mm);
+                    info.label = Some(caption.clone());
+                    info
+                });
+                if response.changed() {
                     *value = json!((mm * 1_000_000.0).round() as i64);
                     changed = true;
                 }
@@ -1109,6 +1394,58 @@ fn paint(
     }
 }
 
+fn text_style_control(ui: &mut Ui, value: &mut Value, styles: &symbols::TextStyleTable) -> bool {
+    let before = value
+        .get("style")
+        .and_then(Value::as_str)
+        .unwrap_or_default()
+        .to_owned();
+    let mut selected = before.clone();
+    ui.horizontal(|ui| {
+        ui.label(label(strings::Key::run_time("symbol-text-style")));
+        egui::ComboBox::from_id_salt("text-style")
+            .height(160.0)
+            .selected_text(if selected.is_empty() {
+                label(strings::Key::run_time("symbol-style-default"))
+            } else {
+                &selected
+            })
+            .show_ui(ui, |ui| {
+                ui.selectable_value(
+                    &mut selected,
+                    String::new(),
+                    label(strings::Key::run_time("symbol-style-default")),
+                );
+                for row in styles.rows() {
+                    let name = strings::format(
+                        strings::Key::run_time("symbol-style-choice"),
+                        &[&format!("{:.2}", row.em.0 as f64 / 1_000_000.0), &row.key],
+                    );
+                    ui.selectable_value(&mut selected, row.key.clone(), name);
+                }
+            })
+            .response
+            .widget_info(|| {
+                egui::WidgetInfo::labeled(
+                    egui::Role::ComboBox,
+                    true,
+                    label(strings::Key::run_time("symbol-text-style")),
+                )
+            });
+    });
+    if selected == before {
+        return false;
+    }
+    if selected.is_empty() {
+        if let Some(object) = value.as_object_mut() {
+            object.remove("style");
+        }
+    } else {
+        value["style"] = json!(selected);
+    }
+    true
+}
+
 fn rotation_control(ui: &mut Ui, value: &mut Value) -> bool {
     let mut degrees = value["rot"].as_f64().unwrap_or(0.0) / 1000.0;
     ui.horizontal(|ui| {
@@ -1148,9 +1485,23 @@ fn slot_kind_control(ui: &mut Ui, index: &mut usize, pin: &mut u16) {
             for (i, k) in keys.iter().enumerate() {
                 ui.selectable_value(index, i, label(strings::Key::run_time(k)));
             }
+        })
+        .response
+        .widget_info(|| {
+            egui::WidgetInfo::labeled(
+                egui::Role::ComboBox,
+                true,
+                label(strings::Key::run_time("symbol-slot-kind")),
+            )
         });
     if *index == 3 {
-        ui.add(egui::DragValue::new(pin));
+        let caption = ui.label(label(strings::Key::run_time("symbol-slot-pin-number")));
+        let response = ui.add(egui::DragValue::new(pin)).labelled_by(caption.id);
+        response.widget_info(|| {
+            let mut info = egui::WidgetInfo::drag_value(true, f64::from(*pin));
+            info.label = Some(label(strings::Key::run_time("symbol-slot-pin-number")).to_owned());
+            info
+        });
     }
 }
 fn graphic_bounds(draft: &SymbolDraft, index: usize) -> Option<[f32; 4]> {
@@ -1285,6 +1636,28 @@ fn paint_graphics(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn simultaneous_name_and_import_review_commits_are_merged_before_save() {
+        let draft = SymbolDraft::new("example.text", "Before").unwrap();
+        let mut reviewed = serde_json::to_value(&draft).unwrap();
+        reviewed["import_reviewed"] = json!(true);
+        let mut renamed = serde_json::to_value(&draft).unwrap();
+        renamed["symbol"]["name"] = json!({"en":"After"});
+        let mut events = vec![Event::Action("symbol.save", json!({}))];
+        replace_action(&mut events, &draft, reviewed);
+        replace_action(&mut events, &draft, renamed);
+        let Event::Action("symbol.replace", params) = &events[0] else {
+            panic!("commit first")
+        };
+        let changed = SymbolDraft::parse(&serde_json::to_vec(&params["document"]).unwrap()).unwrap();
+        assert!(changed.import_reviewed);
+        assert_eq!(
+            serde_json::to_value(changed.symbol.name).unwrap(),
+            json!({"en":"After"})
+        );
+        assert!(matches!(&events[1], Event::Action("symbol.save", _)));
+    }
 
     #[test]
     fn edits_legal_neutral_and_multilingual_names_without_losing_other_languages() {

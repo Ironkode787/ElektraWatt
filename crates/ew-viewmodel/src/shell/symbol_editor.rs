@@ -7,7 +7,39 @@ use super::{Outcome, ShellModel, failed};
 use crate::{key, strings};
 use ew_api::symbols::{self, SymbolDraft};
 use serde_json::{Map, Value, json};
-use std::path::{Path, PathBuf};
+use std::path::Path;
+
+/// A named symbol that can be forked without changing its source.
+#[derive(Debug)]
+pub struct SymbolSource {
+    /// Source key, or embedded copy identity; passed to `symbol.fork`.
+    pub source: String,
+    /// Source library name; an embedded project copy has no library here.
+    pub library: Option<String>,
+    /// Optional stable key, retained for searching and automation.
+    pub key: Option<String>,
+    /// Human-readable symbol name.
+    pub name: symbols::MlText,
+    /// Connection grid, so native and imported versions can be distinguished.
+    pub grid: symbols::units::Grid,
+}
+
+/// A function definition offered by the editor's library chooser.
+#[derive(Debug)]
+pub struct SymbolFunctionChoice {
+    /// Library/item address passed to `symbol.function`.
+    pub source: String,
+    /// Human-readable source library name.
+    pub library: String,
+    /// Stable key, retained for display and legacy automation.
+    pub key: String,
+    /// Electrical function type.
+    pub kind: symbols::schema::ContactKind,
+    /// Source category path, distinguishing functions with the same kind and pins.
+    pub category: String,
+    /// Printed connection designations, in function-pin order.
+    pub pins: Vec<String>,
+}
 
 /// Editable document state. History never shares the project's undo stack.
 #[derive(Debug)]
@@ -28,6 +60,10 @@ pub struct SymbolEditor {
     pub directory: String,
     /// Other drawings recovered from the same input; selecting one is an explicit replacement.
     pub candidates: Vec<SymbolDraft>,
+    /// Available embedded and installed symbols, read when the editor opens.
+    pub sources: Vec<SymbolSource>,
+    /// Installed function definitions, read when the editor opens.
+    pub functions: Vec<SymbolFunctionChoice>,
 }
 
 impl SymbolEditor {
@@ -42,6 +78,8 @@ impl SymbolEditor {
             error: None,
             directory,
             candidates: Vec::new(),
+            sources: Vec::new(),
+            functions: Vec::new(),
         }
     }
     /// Whether the draft differs from its last saved state.
@@ -151,14 +189,18 @@ impl ShellModel {
                     .cloned()
                     .ok_or_else(|| strings::text(key!("eplan-no-symbols")).to_owned())?
             } else if action == "fork" {
-                let project = self
-                    .project
-                    .as_ref()
-                    .ok_or_else(|| strings::text(key!("reason-no-project")).to_owned())?;
-                project
-                    .session
-                    .symbol_draft(text(p, "source"), key)
-                    .map_err(err)?
+                if let Some(project) = &self.project {
+                    project
+                        .session
+                        .symbol_draft(text(p, "source"), key)
+                        .map_err(err)?
+                } else {
+                    let registry = match &self.configured_libraries() {
+                        Some(tiers) => ew_api::library::Registry::open(tiers).map_err(|e| e.to_string())?,
+                        None => ew_api::library::Registry::starter_only(),
+                    };
+                    SymbolDraft::from_library(&registry, text(p, "source"), key).map_err(err)?
+                }
             } else {
                 let name = if text(p, "name").is_empty() {
                     strings::text(key!("symbol-untitled"))
@@ -168,21 +210,69 @@ impl ShellModel {
                 SymbolDraft::new(key, name).map_err(err)?
             };
             let dir = self
-                .config
-                .libraries
+                .configured_libraries()
                 .as_ref()
                 .map(|t| t.user.join("symbols.ewlib"))
                 .map(|p| p.to_string_lossy().into_owned())
                 .unwrap_or_default();
             let mut editor = SymbolEditor::new(draft, dir);
-            editor.generation = self
-                .symbol_editor
-                .as_ref()
-                .map_or(0, |old| old.generation.wrapping_add(1));
+            self.symbol_editor_generation = self.symbol_editor_generation.wrapping_add(1);
+            editor.generation = self.symbol_editor_generation;
             if action == "open" {
                 editor.saved = Some(editor.draft.clone());
             }
             editor.candidates = candidates;
+            let fallback;
+            let registry = if let Some(project) = &self.project {
+                for (id, s) in project.session.query().symbols().iter() {
+                    editor.sources.push(SymbolSource {
+                        source: id.to_string(),
+                        library: None,
+                        key: s.item.meta.key.as_ref().map(ToString::to_string),
+                        name: s.item.name.clone(),
+                        grid: s.item.grid,
+                    });
+                }
+                project.session.libraries()
+            } else {
+                fallback = match &self.configured_libraries() {
+                    Some(tiers) => ew_api::library::Registry::open(tiers).map_err(|e| e.to_string())?,
+                    None => ew_api::library::Registry::starter_only(),
+                };
+                &fallback
+            };
+            for library in registry.libraries() {
+                for doc in registry.documents(library.id, symbols::schema::Kind::Symbol) {
+                    if let symbols::schema::LibDocument::Symbol(s) = doc {
+                        editor.sources.push(SymbolSource {
+                            source: format!("library:{}:{}", s.library_id, s.item_id),
+                            library: Some(library.name.clone()),
+                            key: s.item.meta.key.as_ref().map(ToString::to_string),
+                            name: s.item.name,
+                            grid: s.item.grid,
+                        });
+                    }
+                }
+                for doc in registry.documents(library.id, symbols::schema::Kind::Fndef) {
+                    if let symbols::schema::LibDocument::Fndef(f) = doc
+                        && let Some(key) = &f.item.meta.key
+                    {
+                        editor.functions.push(SymbolFunctionChoice {
+                            source: format!("library:{}:{}", f.library_id, f.item_id),
+                            library: library.name.clone(),
+                            key: key.to_string(),
+                            kind: f.item.contact_kind,
+                            category: format!(
+                                "{} / {} / {}",
+                                f.item.category.0, f.item.category.1, f.item.category.2
+                            ),
+                            pins: f.item.cps.iter().map(|p| p.designation.to_string()).collect(),
+                        });
+                    }
+                }
+            }
+            editor.functions.sort_by(|a, b| a.key.cmp(&b.key));
+            editor.functions.dedup_by(|a, b| a.source == b.source);
             self.symbol_editor = Some(editor);
             return Ok(());
         }
@@ -214,13 +304,69 @@ impl ShellModel {
                 self.tools.selection.clear();
                 self.show_page_by_id(&id);
             }
-            return self.symbol_operation("place", json!({"x":40,"y":40}).as_object().ok_or("position")?);
+            self.symbol_operation("place", json!({"x":40,"y":40}).as_object().ok_or("position")?)?;
+            self.notify(
+                strings::format(
+                    strings::Key::run_time("symbol-scratch-created"),
+                    &[&index.to_string()],
+                ),
+                false,
+            );
+            return Ok(());
         }
+        let configured_libraries = self.configured_libraries();
         let editor = self
             .symbol_editor
             .as_mut()
             .ok_or_else(|| strings::text(key!("symbol-not-open")).to_owned())?;
         match action {
+            "map_cp" => {
+                let index = |key: &str| {
+                    p.get(key)
+                        .and_then(Value::as_u64)
+                        .and_then(|i| u16::try_from(i).ok())
+                };
+                let (Some(cp), Some(fn_cp)) = (index("cp"), index("fn_cp")) else {
+                    return Err(strings::text(key!("symbol-mapping-incompatible")).to_owned());
+                };
+                let mut draft = editor.draft.clone();
+                let compatible = |c: &symbols::schema::SymbolCp, pin| {
+                    draft
+                        .function
+                        .cps
+                        .get(&pin)
+                        .is_some_and(|f| f.physical && f.discipline == c.discipline)
+                };
+                let mut target = draft
+                    .symbol
+                    .cps
+                    .get(&cp)
+                    .cloned()
+                    .ok_or_else(|| strings::text(key!("symbol-mapping-incompatible")).to_owned())?;
+                if !compatible(&target, fn_cp) {
+                    return Err(strings::text(key!("symbol-mapping-incompatible")).to_owned());
+                }
+                let occupied: Vec<_> = draft
+                    .symbol
+                    .cps
+                    .iter()
+                    .filter(|c| c.idx != cp && c.fn_cp == fn_cp)
+                    .cloned()
+                    .collect();
+                if occupied.len() > 1 {
+                    return Err(strings::text(key!("symbol-mapping-incompatible")).to_owned());
+                }
+                if let Some(mut other) = occupied.into_iter().next() {
+                    if !compatible(&other, target.fn_cp) {
+                        return Err(strings::text(key!("symbol-mapping-incompatible")).to_owned());
+                    }
+                    other.fn_cp = target.fn_cp;
+                    draft.symbol.cps.insert(other);
+                }
+                target.fn_cp = fn_cp;
+                draft.symbol.cps.insert(target);
+                editor.replace(draft);
+            }
             "path" => {
                 let points = p
                     .get("points")
@@ -269,14 +415,15 @@ impl ShellModel {
                 let draft = editor.candidates.get(index).cloned().ok_or("index")?;
                 editor.replace(draft.clone());
                 editor.saved = Some(draft);
-                editor.generation = editor.generation.wrapping_add(1);
+                self.symbol_editor_generation = self.symbol_editor_generation.wrapping_add(1);
+                editor.generation = self.symbol_editor_generation;
             }
             "function" => {
                 let fallback;
                 let registry = if let Some(project) = &self.project {
                     project.session.libraries()
                 } else {
-                    fallback = match &self.config.libraries {
+                    fallback = match &configured_libraries {
                         Some(tiers) => ew_api::library::Registry::open(tiers).map_err(|e| e.to_string())?,
                         None => ew_api::library::Registry::starter_only(),
                     };
@@ -288,11 +435,12 @@ impl ShellModel {
                     .flat_map(|l| registry.documents(l.id, symbols::schema::Kind::Fndef))
                     .find_map(|d| match d {
                         symbols::schema::LibDocument::Fndef(f)
-                            if f.item
-                                .meta
-                                .key
-                                .as_ref()
-                                .is_some_and(|k| k.as_str() == text(p, "key")) =>
+                            if format!("library:{}:{}", f.library_id, f.item_id) == text(p, "key")
+                                || f.item
+                                    .meta
+                                    .key
+                                    .as_ref()
+                                    .is_some_and(|k| k.as_str() == text(p, "key")) =>
                         {
                             Some(f)
                         }
@@ -312,11 +460,13 @@ impl ShellModel {
             "undo" => {
                 if let Some(d) = editor.undo.pop() {
                     editor.redo.push(std::mem::replace(&mut editor.draft, d));
+                    editor.error = None;
                 }
             }
             "redo" => {
                 if let Some(d) = editor.redo.pop() {
                     editor.undo.push(std::mem::replace(&mut editor.draft, d));
+                    editor.error = None;
                 }
             }
             "variant" => {
@@ -356,7 +506,17 @@ impl ShellModel {
                         json!({"ellipse":{"rect":[[x.min(x2),y.min(y2)],[x.max(x2),y.max(y2)]],"stroke":stroke}})
                     }
                     "arc" => {
-                        json!({"arc":{"rect":[[x.min(x2),y.min(y2)],[x.max(x2),y.max(y2)]],"start":0,"sweep":180000,"stroke":stroke}})
+                        let angle = |key: &str, default: i64| -> Result<i32, String> {
+                            let degrees = match p.get(key) {
+                                Some(v) => v.as_i64().ok_or(key)?,
+                                None => default,
+                            };
+                            if !(-360..=360).contains(&degrees) {
+                                return Err(key.to_owned());
+                            }
+                            Ok((degrees * 1000) as i32)
+                        };
+                        json!({"arc":{"rect":[[x.min(x2),y.min(y2)],[x.max(x2),y.max(y2)]],"start":angle("start",0)?,"sweep":angle("sweep",180)?,"stroke":stroke}})
                     }
                     "text" => json!({"text":{"pos":[x,y],"text":{"en":text(p,"text")},"align":"top_left"}}),
                     "anchor" => {
@@ -482,7 +642,7 @@ impl ShellModel {
                 } else {
                     text(p, "directory").to_owned()
                 };
-                let path = PathBuf::from(&directory);
+                let path = std::path::absolute(&directory).map_err(|e| e.to_string())?;
                 if directory.is_empty() {
                     return Err(strings::text(key!("symbol-directory-required")).into());
                 }
@@ -490,7 +650,7 @@ impl ShellModel {
                 if !issues.is_empty() {
                     return Err(err(symbols::Error::Invalid(issues)));
                 }
-                let mut tiers = self.config.libraries.clone().unwrap_or_else(|| {
+                let mut tiers = configured_libraries.unwrap_or_else(|| {
                     ew_api::library::LibraryTiers::under(
                         Path::new("."),
                         &path.parent().unwrap_or(Path::new(".")).join(".symbol-index"),
@@ -527,6 +687,10 @@ impl ShellModel {
                 editor.directory = directory;
                 editor.saved = Some(draft);
                 editor.error = None;
+                self.settings
+                    .remember_library(&path, self.config.config_dir.as_deref());
+                self.save_settings();
+                self.libraries_changed();
             }
             "place" => {
                 let mut draft = editor.draft.clone();

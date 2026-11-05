@@ -1,0 +1,81 @@
+{"$schema": "ew.uiscript/1", "label": "Supply symbol authoring reference solution"}
+{"action": "symbol.new", "params": {"key": "example.supply-block", "name": "Supply block"}}
+{"action": "symbol.draw", "params": {"tool": "line", "x": 0, "y": 0, "x2": 11, "y2": 0}}
+{"action": "symbol.draw", "params": {"tool": "line", "x": 13, "y": 0, "x2": 19, "y2": 0}}
+{"action": "symbol.draw", "params": {"tool": "line", "x": 21, "y": 0, "x2": 27, "y2": 0}}
+{"action": "symbol.draw", "params": {"tool": "line", "x": 29, "y": 0, "x2": 35, "y2": 0}}
+{"action": "symbol.draw", "params": {"tool": "line", "x": 37, "y": 0, "x2": 43, "y2": 0}}
+{"action": "symbol.draw", "params": {"tool": "line", "x": 45, "y": 0, "x2": 56, "y2": 0}}
+{"action": "symbol.draw", "params": {"tool": "line", "x": 0, "y": 0, "x2": 0, "y2": 20}}
+{"action": "symbol.draw", "params": {"tool": "line", "x": 0, "y": 20, "x2": 56, "y2": 20}}
+{"action": "symbol.draw", "params": {"tool": "line", "x": 56, "y": 20, "x2": 56, "y2": 0}}
+{"action": "symbol.draw", "params": {"tool": "arc", "sweep": -180, "x": 11, "y": -1, "x2": 13, "y2": 1}}
+{"action": "symbol.draw", "params": {"tool": "line", "x": 12, "y": -4, "x2": 12, "y2": -3}}
+{"action": "symbol.draw", "params": {"tool": "line", "x": 11.5, "y": -3, "x2": 11.5, "y2": -0.5}}
+{"action": "symbol.draw", "params": {"tool": "line", "x": 12, "y": -3, "x2": 12, "y2": -0.5}}
+{"action": "symbol.draw", "params": {"tool": "line", "x": 12.5, "y": -3, "x2": 12.5, "y2": -0.5}}
+{"action": "symbol.cp", "params": {"idx": 1, "x": 12, "y": -4, "designation": "1", "direction": "up"}}
+{"action": "symbol.slot", "params": {"kind": {"cp_designation": 1}, "x": 13, "y": -6}}
+{"action": "symbol.draw", "params": {"tool": "text", "x": 10, "y": 2, "text": "0V"}}
+{"action": "symbol.draw", "params": {"tool": "text", "x": 10, "y": 5, "text": "Val"}}
+{"action": "symbol.draw", "params": {"tool": "arc", "sweep": -180, "x": 19, "y": -1, "x2": 21, "y2": 1}}
+{"action": "symbol.draw", "params": {"tool": "line", "x": 20, "y": -4, "x2": 20, "y2": -3}}
+{"action": "symbol.draw", "params": {"tool": "line", "x": 19.5, "y": -3, "x2": 19.5, "y2": -0.5}}
+{"action": "symbol.draw", "params": {"tool": "line", "x": 20, "y": -3, "x2": 20, "y2": -0.5}}
+{"action": "symbol.draw", "params": {"tool": "line", "x": 20.5, "y": -3, "x2": 20.5, "y2": -0.5}}
+{"action": "symbol.cp", "params": {"idx": 2, "x": 20, "y": -4, "designation": "2", "direction": "up"}}
+{"action": "symbol.slot", "params": {"kind": {"cp_designation": 2}, "x": 21, "y": -6}}
+{"action": "symbol.draw", "params": {"tool": "text", "x": 18, "y": 2, "text": "0V"}}
+{"action": "symbol.draw", "params": {"tool": "text", "x": 18, "y": 5, "text": "El"}}
+{"action": "symbol.draw", "params": {"tool": "arc", "sweep": -180, "x": 27, "y": -1, "x2": 29, "y2": 1}}
+{"action": "symbol.draw", "params": {"tool": "line", "x": 28, "y": -4, "x2": 28, "y2": -3}}
+{"action": "symbol.draw", "params": {"tool": "line", "x": 27.5, "y": -3, "x2": 27.5, "y2": -0.5}}
+{"action": "symbol.draw", "params": {"tool": "line", "x": 28, "y": -3, "x2": 28, "y2": -0.5}}
+{"action": "symbol.draw", "params": {"tool": "line", "x": 28.5, "y": -3, "x2": 28.5, "y2": -0.5}}
+{"action": "symbol.cp", "params": {"idx": 3, "x": 28, "y": -4, "designation": "3", "direction": "up"}}
+{"action": "symbol.slot", "params": {"kind": {"cp_designation": 3}, "x": 29, "y": -6}}
+{"action": "symbol.draw", "params": {"tool": "text", "x": 26, "y": 2, "text": "PE"}}
+{"action": "symbol.draw", "params": {"tool": "arc", "sweep": -180, "x": 35, "y": -1, "x2": 37, "y2": 1}}
+{"action": "symbol.draw", "params": {"tool": "line", "x": 36, "y": -4, "x2": 36, "y2": -3}}
+{"action": "symbol.draw", "params": {"tool": "line", "x": 35.5, "y": -3, "x2": 35.5, "y2": -0.5}}
+{"action": "symbol.draw", "params": {"tool": "line", "x": 36, "y": -3, "x2": 36, "y2": -0.5}}
+{"action": "symbol.draw", "params": {"tool": "line", "x": 36.5, "y": -3, "x2": 36.5, "y2": -0.5}}
+{"action": "symbol.cp", "params": {"idx": 4, "x": 36, "y": -4, "designation": "4", "direction": "up"}}
+{"action": "symbol.slot", "params": {"kind": {"cp_designation": 4}, "x": 37, "y": -6}}
+{"action": "symbol.draw", "params": {"tool": "text", "x": 34, "y": 2, "text": "24V"}}
+{"action": "symbol.draw", "params": {"tool": "text", "x": 34, "y": 5, "text": "El"}}
+{"action": "symbol.draw", "params": {"tool": "arc", "sweep": -180, "x": 43, "y": -1, "x2": 45, "y2": 1}}
+{"action": "symbol.draw", "params": {"tool": "line", "x": 44, "y": -4, "x2": 44, "y2": -3}}
+{"action": "symbol.draw", "params": {"tool": "line", "x": 43.5, "y": -3, "x2": 43.5, "y2": -0.5}}
+{"action": "symbol.draw", "params": {"tool": "line", "x": 44, "y": -3, "x2": 44, "y2": -0.5}}
+{"action": "symbol.draw", "params": {"tool": "line", "x": 44.5, "y": -3, "x2": 44.5, "y2": -0.5}}
+{"action": "symbol.cp", "params": {"idx": 5, "x": 44, "y": -4, "designation": "5", "direction": "up"}}
+{"action": "symbol.slot", "params": {"kind": {"cp_designation": 5}, "x": 45, "y": -6}}
+{"action": "symbol.draw", "params": {"tool": "text", "x": 42, "y": 2, "text": "24V"}}
+{"action": "symbol.draw", "params": {"tool": "text", "x": 42, "y": 5, "text": "Val"}}
+{"action": "symbol.draw", "params": {"tool": "circle", "x": 56, "y": 12, "x2": 57, "y2": 12}}
+{"action": "symbol.draw", "params": {"tool": "line", "x": 57, "y": 12, "x2": 60, "y2": 12}}
+{"action": "symbol.draw", "params": {"tool": "line", "x": 52, "y": 10, "x2": 52, "y2": 13}}
+{"action": "symbol.draw", "params": {"tool": "line", "x": 50.5, "y": 13, "x2": 53.5, "y2": 13}}
+{"action": "symbol.draw", "params": {"tool": "line", "x": 51, "y": 14, "x2": 53, "y2": 14}}
+{"action": "symbol.draw", "params": {"tool": "line", "x": 51.5, "y": 15, "x2": 52.5, "y2": 15}}
+{"action": "symbol.cp", "params": {"idx": 6, "x": 60, "y": 12, "designation": "FE", "direction": "right"}}
+{"action": "symbol.draw", "params": {"tool": "text", "x": 18, "y": 14, "text": "Supply block"}}
+{"action": "symbol.slot", "params": {"kind": "tag", "x": -12, "y": -8}}
+{"action": "symbol.slot", "params": {"kind": "xref", "x": -12, "y": -2}}
+{"action": "symbol.draw", "params": {"tool": "anchor", "x": 0, "y": 10}}
+{"action": "symbol.validate", "params": {}}
+{"action": "symbol.variant", "params": {"variant": 0}}
+{"action": "symbol.variant", "params": {"variant": 1}}
+{"action": "symbol.variant", "params": {"variant": 2}}
+{"action": "symbol.variant", "params": {"variant": 3}}
+{"action": "symbol.variant", "params": {"variant": 4}}
+{"action": "symbol.variant", "params": {"variant": 5}}
+{"action": "symbol.variant", "params": {"variant": 6}}
+{"action": "symbol.variant", "params": {"variant": 7}}
+{"action": "symbol.variant", "params": {"variant": 0}}
+{"action": "symbol.save", "params": {"directory": "symbols.ewlib"}}
+{"action": "symbol.export", "params": {"file": "supply.symbol.json"}}
+{"action": "symbol.scratch", "params": {}}
+{"action": "symbol.close", "params": {}}
+{"action": "file.save", "params": {}}

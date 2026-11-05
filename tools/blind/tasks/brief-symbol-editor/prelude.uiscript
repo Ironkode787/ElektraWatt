@@ -1,0 +1,2 @@
+{"$schema":"ew.uiscript/1","label":"symbol editor playtest setup"}
+{"action":"file.new","params":{"dir":"project","template":"builtin"}}

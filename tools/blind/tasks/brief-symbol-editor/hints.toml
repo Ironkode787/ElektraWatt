@@ -1,0 +1,8 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: CC-BY-4.0
+[[hint]]
+text = "Look in the Edit menu for the place to create and maintain reusable symbols. The user guide has a drawing tutorial."
+[[hint]]
+text = "The Drawing panel includes coordinate entry. Electrical data contains connection names, function information and pin mapping. Library contains the key and publication folder."
+[[hint]]
+text = "Use the primitive tools and Connection point tool. Choose A while editing, use the other letters to preview orientations, then Save to library and Test on scratch page. Close the editor before saving the project."

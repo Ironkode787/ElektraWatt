@@ -528,6 +528,7 @@ struct Project {
 /// All state of the application shell.
 pub struct ShellModel {
     symbol_editor: Option<symbol_editor::SymbolEditor>,
+    symbol_editor_generation: u64,
     mode: Mode,
     config: ShellConfig,
     settings: Settings,
@@ -1097,6 +1098,7 @@ impl ShellModel {
             rail_collapsed: false,
             macros: macros::MacroState::default(),
             symbol_editor: None,
+            symbol_editor_generation: 0,
             dispatch_log: None,
             person: mode == Mode::Gui,
             revision: revision::RevisionState::default(),
@@ -1940,15 +1942,26 @@ impl ShellModel {
     /// set a source (`set_id_source_for_tests`, feature `testkit`); the configuration's library tiers with the
     /// company libraries of the settings key `libraries.company` after any the configuration names (WP-S1.19 D4,
     /// FT-754 (f)).
-    fn session_options(&self) -> SessionOptions {
-        let libraries = self.config.libraries.clone().map(|mut tiers| {
-            for dir in self.settings.company_libraries(self.config.config_dir.as_deref()) {
+    fn configured_libraries(&self) -> Option<ew_api::library::LibraryTiers> {
+        let company = self.settings.company_libraries(self.config.config_dir.as_deref());
+        let tiers = self.config.libraries.clone().or_else(|| {
+            let dir = self.config.config_dir.as_deref()?;
+            (!company.is_empty()).then(|| {
+                ew_api::library::LibraryTiers::under(dir, &dir.join("library-index"), Vec::new(), Vec::new())
+            })
+        });
+        tiers.map(|mut tiers| {
+            for dir in company {
                 if !tiers.company.contains(&dir) {
                     tiers.company.push(dir);
                 }
             }
             tiers
-        });
+        })
+    }
+
+    fn session_options(&self) -> SessionOptions {
+        let libraries = self.configured_libraries();
         SessionOptions {
             origin: Origin::Gui,
             ids: self.id_source.map(|make| make()),

@@ -1,0 +1,11 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: CC-BY-4.0
+kind = "brief"
+grade = 3
+version = 1
+turn_budget = 90
+senses = ["visual"]
+requires = ["action: symbol.new", "action: symbol.save", "action: symbol.scratch"]
+areas = ["symbol editor", "drawing", "connection mapping", "library publication", "placement"]
+task_id = "SYM"
+rounds = ["M2.5 development"]

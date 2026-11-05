@@ -122,11 +122,9 @@ impl crate::Session {
     /// The source or its function definition is unavailable.
     pub fn symbol_draft(&self, source: &str, key: &str) -> Result<SymbolDraft, Error> {
         let q = self.query();
-        if let Some((_, s)) = q
-            .symbols()
-            .iter()
-            .find(|(_, s)| s.item.meta.key.as_ref().is_some_and(|k| k.as_str() == source))
-        {
+        if let Some((_, s)) = q.symbols().iter().find(|(id, s)| {
+            id.to_string() == source || s.item.meta.key.as_ref().is_some_and(|k| k.as_str() == source)
+        }) {
             let r = &s.item.fndef;
             let id = v5::lib_copy_id(r.library.as_uuid(), r.item.as_uuid());
             let function = q
@@ -139,19 +137,31 @@ impl crate::Session {
             d.symbol.meta.key = Some(key.parse().map_err(input)?);
             return Ok(d);
         }
-        let found = self
-            .libraries()
+        SymbolDraft::from_library(self.libraries(), source, key)
+    }
+}
+
+impl SymbolDraft {
+    /// Fork an installed symbol by its library/item address, or by its legacy library key.
+    ///
+    /// # Errors
+    /// The symbol or its function definition is unavailable.
+    pub fn from_library(registry: &Registry, source: &str, key: &str) -> Result<Self, Error> {
+        let found = registry
             .libraries()
             .iter()
-            .flat_map(|l| self.libraries().documents(l.id, schema::Kind::Symbol))
+            .flat_map(|l| registry.documents(l.id, schema::Kind::Symbol))
             .find_map(|d| match d {
-                LibDocument::Symbol(s) if s.item.meta.key.as_ref().is_some_and(|k| k.as_str() == source) => {
+                LibDocument::Symbol(s)
+                    if format!("library:{}:{}", s.library_id, s.item_id) == source
+                        || s.item.meta.key.as_ref().is_some_and(|k| k.as_str() == source) =>
+                {
                     Some(s)
                 }
                 _ => None,
             })
             .ok_or_else(|| input("symbol-input-object"))?;
-        SymbolDraft::fork(self.libraries(), &found, key)
+        Self::fork(registry, &found, key)
     }
 }
 

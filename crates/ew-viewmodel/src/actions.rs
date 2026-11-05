@@ -5549,6 +5549,18 @@ pub static ACTIONS: &[ActionMeta] = &[
         )),
     ),
     with_params(
+        "cp:uint, fn_cp:uint",
+        hidden(act(
+            "symbol.map_cp",
+            View,
+            Menu::Edit,
+            &[],
+            always,
+            None,
+            |s, p| s.act_symbol("map_cp", p),
+        )),
+    ),
+    with_params(
         "name:text, x:mm, y:mm",
         hidden(act("symbol.link", View, Menu::Edit, &[], always, None, |s, p| {
             s.act_symbol("link", p)
@@ -5630,7 +5642,7 @@ pub static ACTIONS: &[ActionMeta] = &[
         |s, p| s.act_symbol("validate", p),
     ))),
     with_params(
-        "tool:enum(line|rectangle|circle|ellipse|arc|text|anchor), x:mm, y:mm, x2?:mm, y2?:mm, text?:text",
+        "tool:enum(line|rectangle|circle|ellipse|arc|text|anchor), x:mm, y:mm, x2?:mm, y2?:mm, text?:text, start?:int, sweep?:int",
         hidden(act("symbol.draw", View, Menu::Edit, &[], always, None, |s, p| {
             s.act_symbol("draw", p)
         })),

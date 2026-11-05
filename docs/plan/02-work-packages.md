@@ -1884,9 +1884,10 @@ Open: FT-1162 (texts built in `ew-api`), FT-1237, FT-1238, FT-1247 to FT-1265, F
 *Status (2026-11-05, owner's implementation request; ID-1445 branch authority).* **Implementation in review** on
 `feature/symbol-editor`; [specification and evidence](specs/WP-S2.10-symbol-editor.md). No format 0.1 change.
 EPLAN PXF and direct SLK support are documented subsets; binary macros remain unsupported. The brief audit in
-the specification lists unmet drag pin mapping and the visible imported-symbol fork workflow, plus the exact
-reference acceptance and release-gate evidence still needed. Small shape/function icons now use the main
-ribbon renderer, and F1 routes to the editor guide. The owner explicitly keeps release blocked pending dependency
+the specification records implemented drag/list pin mapping, visible imported-symbol forks and picture-based
+window/headless acceptance. Two fresh development personas completed the picture task with help and found
+material issues; fixes and retest remain separate from the formal candidate gate. Small shape/function icons use
+the main ribbon renderer, and F1 routes to the editor guide. The owner explicitly keeps release blocked pending dependency
 review. Independent G-M2.5 review also remains a release gate. The feature branch is not merged into the working
 or release branch.
 

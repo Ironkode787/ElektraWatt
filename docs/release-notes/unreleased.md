@@ -10,6 +10,12 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
 - api-add: window Symbol editor (drawing, connection points, function data, text slots, anchors, live A–H
   previews, library publication and scratch placement; small shape/function icons follow the main ribbon;
   F1 opens the editor reference; WP-S2.10, in review for 0.2.0)
+- api-add: symbol.map_cp supports undoable drag/list pin assignment; symbol.fork and symbol.function accept
+  explicit library/item sources, and the window distinguishes project copies, libraries and repeated pin names
+- behaviour-change: symbol editor shape dragging commits the complete gesture; Delete removes the selected
+  graphic; coordinate properties commit on Enter/focus loss; arc creation has whole-degree start/sweep controls
+- behaviour-change: symbol editor offers shape fills and text styles; committing a name before Save retains
+  the visible value; published library folders are remembered and their symbols appear in Insert on the matching grid
 - api-add: cli ew symbol template, schema, validate, import and publish (portable data-only authoring for
   automation and AI tools, using the editor's validator; no project or library format 0.1 changes or migration)
 - api-add: symbol imports from QElectroTech .elmt, EPLAN EDZ/PXF and the supported SLK 1.2/FE53 drawing-table

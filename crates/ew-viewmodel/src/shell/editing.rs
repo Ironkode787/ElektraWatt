@@ -390,7 +390,10 @@ impl ShellModel {
         let project = self.project.as_ref().ok_or(no_row.clone())?;
         let copies = project
             .session
-            .starter_embed(key)
+            .symbol_embed(key)
+            .map_err(|e| Outcome::Failed {
+                message: e.to_string(),
+            })?
             .map(copies_of)
             .unwrap_or_default();
         if row.copy.is_none() {
@@ -532,11 +535,14 @@ impl ShellModel {
                 Err(keys) => return failed(key!("error-part-fndef-missing"), &[&keys.join(", ")]),
                 Ok(params) => params.map(copies_of).unwrap_or_default(),
             },
-            (Some(project), None) => project
-                .session
-                .starter_embed(&row.key)
-                .map(copies_of)
-                .unwrap_or_default(),
+            (Some(project), None) => match project.session.symbol_embed(&row.key) {
+                Ok(params) => params.map(copies_of).unwrap_or_default(),
+                Err(error) => {
+                    return Outcome::Failed {
+                        message: error.to_string(),
+                    };
+                }
+            },
         };
         let mut row = row;
         if row.copy.is_none() {

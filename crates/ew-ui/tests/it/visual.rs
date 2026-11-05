@@ -763,3 +763,608 @@ fn symbol_editor_accessible_controls_and_numeric_keyboard_creation() {
     assert_eq!(graphics[0]["line"]["to"], json!([8_000_000, 0]));
     d.shell_mut().shutdown();
 }
+
+#[test]
+fn symbol_editor_drag_and_keyboard_mapping_use_the_same_undoable_action() {
+    use ew_ui::ew_viewmodel::shell::Outcome;
+    let tmp = Tmp::new();
+    let mut d = Driver::in_folder(tmp.config(), None, tmp.0.clone()).unwrap();
+    d.enable_accesskit();
+    for (action, params) in [
+        ("symbol.new", json!({"key":"example.mapping","name":"Contact"})),
+        ("symbol.function", json!({"key":"ew.fn.contact-no"})),
+        (
+            "symbol.cp",
+            json!({"idx":1,"fn_cp":0,"x":0,"y":0,"direction":"up"}),
+        ),
+        (
+            "symbol.cp",
+            json!({"idx":2,"fn_cp":1,"x":0,"y":8,"direction":"down"}),
+        ),
+    ] {
+        assert_eq!(d.shell_mut().dispatch(action, &params), Outcome::Done);
+    }
+    d.settle();
+    d.input(&click(d.find("Electrical data").unwrap()));
+    let names: Vec<_> = d
+        .shell_mut()
+        .symbol_editor()
+        .unwrap()
+        .draft
+        .function
+        .cps
+        .iter()
+        .map(|p| p.designation.to_string())
+        .collect();
+    let from = d.find(&format!("Function pin {}", names[1])).unwrap();
+    let to = d.find("Connection point 1").unwrap();
+    d.input(&Input::Drag {
+        from,
+        to,
+        button: PointerButton::Primary,
+        mods: Modifiers::NONE,
+    });
+    assert!(actions(&mut d).contains(&"symbol.map_cp".to_owned()));
+    assert_eq!(
+        d.shell_mut()
+            .symbol_editor()
+            .unwrap()
+            .draft
+            .symbol
+            .cps
+            .get(&1)
+            .unwrap()
+            .fn_cp,
+        1
+    );
+    d.input(&key("ctrl+z"));
+    assert_eq!(
+        d.shell_mut()
+            .symbol_editor()
+            .unwrap()
+            .draft
+            .symbol
+            .cps
+            .get(&1)
+            .unwrap()
+            .fn_cp,
+        0
+    );
+    d.input(&click(d.find("Map connection point 1").unwrap()));
+    d.input(&click(d.find(&names[1]).unwrap()));
+    assert_eq!(
+        d.shell_mut()
+            .symbol_editor()
+            .unwrap()
+            .draft
+            .symbol
+            .cps
+            .get(&1)
+            .unwrap()
+            .fn_cp,
+        1
+    );
+    d.shell_mut().shutdown();
+}
+
+#[test]
+fn symbol_editor_forks_a_named_library_symbol_through_the_window() {
+    use ew_ui::ew_viewmodel::shell::Outcome;
+    let tmp = Tmp::new();
+    let mut d = Driver::in_folder(tmp.config(), None, tmp.0.clone()).unwrap();
+    d.enable_accesskit();
+    assert_eq!(
+        d.shell_mut()
+            .dispatch("symbol.new", &json!({"key":"example.empty","name":"Empty"})),
+        Outcome::Done
+    );
+    let source = d
+        .shell_mut()
+        .symbol_editor()
+        .unwrap()
+        .sources
+        .iter()
+        .find(|s| s.key.as_deref() == Some("ew.iec.contact-no"))
+        .unwrap();
+    let name = match source.name.view() {
+        ew_ui::ew_viewmodel::ew_api::symbols::MlTextView::Neutral(s) => s.to_owned(),
+        ew_ui::ew_viewmodel::ew_api::symbols::MlTextView::Langs(m) => m.values().next().unwrap().to_owned(),
+    };
+    let library_name = source.library.clone().unwrap();
+    d.settle();
+    d.input(&click(d.find("Library").unwrap()));
+    d.input(&click(d.find("Find symbol by name").unwrap()));
+    d.input(&Input::Type { text: name.clone() });
+    d.input(&click(d.find("Choose a symbol").unwrap()));
+    d.input(&click(
+        d.find(&format!("{name} · 4 mm · {library_name}"))
+            .unwrap_or_else(|| panic!("source menu: {:?}", d.labels())),
+    ));
+    d.input(&click(d.find("New symbol key").unwrap()));
+    d.input(&Input::Type {
+        text: "example.copy".into(),
+    });
+    d.input(&click(d.find("Create editable copy").unwrap()));
+    d.input(&click(d.find("Discard changes").unwrap()));
+    assert!(actions(&mut d).contains(&"symbol.fork".to_owned()));
+    let draft = &d.shell_mut().symbol_editor().unwrap().draft;
+    assert_eq!(draft.key, "example.copy");
+    assert!(!draft.symbol.graphics.is_empty());
+    assert!(draft.function_ref.is_none());
+    d.shell_mut().shutdown();
+}
+
+#[test]
+fn symbol_editor_duplicate_designations_remain_distinguishable_when_mapping() {
+    use ew_ui::ew_viewmodel::shell::Outcome;
+    let tmp = Tmp::new();
+    let mut d = Driver::in_folder(tmp.config(), None, tmp.0.clone()).unwrap();
+    d.enable_accesskit();
+    for (action, params) in [
+        ("symbol.new", json!({"key":"example.mcb","name":"Breaker"})),
+        ("symbol.function", json!({"key":"ew.fn.mcb-1pn"})),
+        ("symbol.cp", json!({"idx":1,"fn_cp":2,"x":0,"y":0})),
+        ("symbol.cp", json!({"idx":2,"fn_cp":3,"x":0,"y":4})),
+    ] {
+        assert_eq!(d.shell_mut().dispatch(action, &params), Outcome::Done);
+    }
+    d.settle();
+    d.input(&click(d.find("Electrical data").unwrap()));
+    assert!(d.find("Function pin N (3)").is_some());
+    assert!(d.find("Function pin N (4)").is_some());
+    d.input(&click(d.find("Map connection point 1").unwrap()));
+    assert!(d.find("N (3)").is_some());
+    d.input(&click(d.find("N (4)").unwrap()));
+    let draft = &d.shell_mut().symbol_editor().unwrap().draft;
+    assert_eq!(draft.symbol.cps.get(&1).unwrap().fn_cp, 3);
+    assert_eq!(draft.symbol.cps.get(&2).unwrap().fn_cp, 2);
+    d.shell_mut().shutdown();
+}
+
+#[test]
+fn symbol_editor_save_refuses_off_grid_pin_in_words_and_saves_fine_graphics() {
+    use ew_ui::ew_viewmodel::shell::Outcome;
+    let tmp = Tmp::new();
+    let library = tmp.0.join("fine.ewlib");
+    let mut d = Driver::in_folder(tmp.config(), None, tmp.0.clone()).unwrap();
+    d.enable_accesskit();
+    for (action, params) in [
+        ("symbol.new", json!({"key":"example.grid","name":"Grid"})),
+        (
+            "symbol.draw",
+            json!({"tool":"line","x":0.5,"y":0.5,"x2":8.5,"y2":0.5}),
+        ),
+        (
+            "symbol.cp",
+            json!({"idx":1,"designation":"1","x":4.5,"y":0,"direction":"up"}),
+        ),
+    ] {
+        assert_eq!(d.shell_mut().dispatch(action, &params), Outcome::Done);
+    }
+    d.settle();
+    d.input(&click(d.find("Library").unwrap()));
+    d.input(&click(d.find("Library folder").unwrap()));
+    d.input(&key("ctrl+a"));
+    d.input(&Input::Type {
+        text: library.to_string_lossy().into_owned(),
+    });
+    d.input(&click(d.find("Save to library").unwrap()));
+    assert!(actions(&mut d).contains(&"symbol.save".to_owned()));
+    assert_eq!(
+        d.shell_mut().symbol_editor().unwrap().error.as_deref(),
+        Some("Connection point 1 is off the connection grid. Move it onto the grid before saving.")
+    );
+    assert!(!library.exists(), "invalid save created a library");
+    assert_eq!(
+        d.shell_mut().dispatch("symbol.cp", &json!({"idx":1,"x":4,"y":0})),
+        Outcome::Done
+    );
+    d.settle();
+    d.input(&click(d.find("Save to library").unwrap()));
+    let editor = d.shell_mut().symbol_editor().unwrap();
+    assert_eq!(editor.error, None);
+    assert!(!editor.dirty());
+    assert!(library.is_dir());
+    let graphics = serde_json::to_value(&editor.draft.symbol.graphics).unwrap();
+    assert_eq!(graphics[0]["line"]["from"], json!([500_000, 500_000]));
+    d.shell_mut().shutdown();
+}
+
+#[test]
+fn symbol_editor_pointer_tools_dispatch_the_drawing_tool_name() {
+    use ew_ui::ew_viewmodel::shell::Outcome;
+    let tmp = Tmp::new();
+    let mut d = Driver::in_folder(tmp.config(), None, tmp.0.clone()).unwrap();
+    d.enable_accesskit();
+    assert_eq!(
+        d.shell_mut()
+            .dispatch("symbol.new", &json!({"key":"example.pointer","name":"Pointer"})),
+        Outcome::Done
+    );
+    d.settle();
+    d.input(&click(d.find("Line").unwrap()));
+    d.input(&click((700, 400)));
+    d.input(&click((800, 450)));
+    assert!(actions(&mut d).contains(&"symbol.draw".to_owned()));
+    assert_eq!(
+        d.shell_mut().symbol_editor().unwrap().draft.symbol.graphics.len(),
+        1
+    );
+    assert_eq!(d.shell_mut().symbol_editor().unwrap().error, None);
+    d.input(&click(d.find("Select").unwrap()));
+    d.input(&click(d.find("Line 1").unwrap()));
+    let before = d.shell_mut().symbol_editor().unwrap().draft.clone();
+    d.input(&Input::Drag {
+        from: (750, 425),
+        to: (830, 465),
+        button: PointerButton::Primary,
+        mods: Modifiers::NONE,
+    });
+    let after = d.shell_mut().symbol_editor().unwrap().draft.clone();
+    assert_ne!(after.symbol.graphics, before.symbol.graphics);
+    d.input(&key("ctrl+z"));
+    assert_eq!(d.shell_mut().symbol_editor().unwrap().draft, before);
+    d.input(&key("delete"));
+    assert!(
+        d.shell_mut()
+            .symbol_editor()
+            .unwrap()
+            .draft
+            .symbol
+            .graphics
+            .is_empty()
+    );
+    d.input(&key("ctrl+z"));
+    assert_eq!(d.shell_mut().symbol_editor().unwrap().draft, before);
+    d.input(&click(d.find("Anchor").unwrap()));
+    d.input(&click((700, 400)));
+    let anchor = serde_json::to_value(&d.shell_mut().symbol_editor().unwrap().draft.symbol.anchor).unwrap();
+    assert!(anchor.get("named").is_some());
+    d.shell_mut().shutdown();
+}
+
+#[test]
+fn symbol_editor_numeric_properties_commit_complete_text_as_one_undo() {
+    use ew_ui::ew_viewmodel::shell::Outcome;
+    let tmp = Tmp::new();
+    let mut d = Driver::in_folder(tmp.config(), None, tmp.0.clone()).unwrap();
+    d.enable_accesskit();
+    assert_eq!(
+        d.shell_mut()
+            .dispatch("symbol.new", &json!({"key":"example.numeric","name":"Numeric"})),
+        Outcome::Done
+    );
+    assert_eq!(
+        d.shell_mut().dispatch(
+            "symbol.draw",
+            &json!({"tool":"rectangle","x":-12,"y":-12,"x2":12,"y2":12})
+        ),
+        Outcome::Done
+    );
+    d.settle();
+    d.input(&click(d.find("Rectangle 1").unwrap()));
+    let before = d.shell_mut().symbol_editor().unwrap().draft.clone();
+    let at = d.find("X (mm)").unwrap();
+    d.input(&Input::DoubleClick {
+        at,
+        mods: Modifiers::NONE,
+    });
+    d.input(&key("ctrl+a"));
+    d.input(&Input::Type { text: "-13.5".into() });
+    assert_eq!(d.shell_mut().symbol_editor().unwrap().draft, before);
+    d.input(&key("tab"));
+    let graphic =
+        serde_json::to_value(&d.shell_mut().symbol_editor().unwrap().draft.symbol.graphics[0]).unwrap();
+    assert_eq!(graphic["rect"]["rect"][0][0], json!(-13_500_000));
+    d.input(&key("escape"));
+    d.input(&key("ctrl+z"));
+    assert_eq!(d.shell_mut().symbol_editor().unwrap().draft, before);
+    d.input(&click(d.find("Fill shape").unwrap()));
+    let filled =
+        serde_json::to_value(&d.shell_mut().symbol_editor().unwrap().draft.symbol.graphics[0]).unwrap();
+    assert_eq!(filled["rect"]["fill"], json!("by_layer"));
+    d.input(&key("ctrl+z"));
+    assert_eq!(d.shell_mut().symbol_editor().unwrap().draft, before);
+    d.shell_mut().shutdown();
+}
+
+#[test]
+fn symbol_editor_name_commits_on_mouse_save_and_new_draft_has_no_stale_text() {
+    use ew_ui::ew_viewmodel::shell::Outcome;
+    let tmp = Tmp::new();
+    let mut d = Driver::in_folder(tmp.config(), None, tmp.0.clone()).unwrap();
+    d.enable_accesskit();
+    for (action, params) in [
+        ("symbol.new", json!({"key":"example.name"})),
+        ("symbol.draw", json!({"tool":"line","x":0,"y":0,"x2":4,"y2":0})),
+    ] {
+        assert_eq!(d.shell_mut().dispatch(action, &params), Outcome::Done);
+    }
+    d.settle();
+    d.input(&click(d.find("Library").unwrap()));
+    d.input(&click(d.find("Library folder").unwrap()));
+    d.input(&key("ctrl+a"));
+    d.input(&Input::Type {
+        text: tmp.0.join("names.ewlib").to_string_lossy().into_owned(),
+    });
+    d.input(&click(d.find("Name").unwrap()));
+    d.input(&key("ctrl+a"));
+    d.input(&Input::Type {
+        text: "Committed name".into(),
+    });
+    // No Enter or Tab: the toolbar's mouse click must commit and save the visible value.
+    d.input(&click(d.find("Save to library").unwrap()));
+    let editor = d.shell_mut().symbol_editor().unwrap();
+    assert_eq!(
+        serde_json::to_value(&editor.draft.symbol.name).unwrap(),
+        json!({"en":"Committed name"})
+    );
+    assert_eq!(editor.error, None);
+    assert!(!editor.dirty());
+    d.input(&click(d.find("Close editor").unwrap()));
+    d.settle();
+    assert_eq!(
+        d.shell_mut()
+            .dispatch("symbol.new", &json!({"key":"example.name"})),
+        Outcome::Done
+    );
+    d.input(&Input::Hover { at: (600, 300) });
+    d.settle();
+    d.input(&click(
+        d.find("Name").unwrap_or_else(|| panic!("{:?}", d.labels())),
+    ));
+    // Focusing and leaving the fresh field must not resurrect the previous buffer.
+    d.input(&key("tab"));
+    assert_eq!(
+        serde_json::to_value(&d.shell_mut().symbol_editor().unwrap().draft.symbol.name).unwrap(),
+        json!({"en":"New symbol"})
+    );
+    d.shell_mut().shutdown();
+}
+
+/// The supply-block acceptance is drawn through the window's coordinate controls, then saved and placed.
+/// The source picture stays private; the reusable fixture contains only the generic electrical drawing.
+#[test]
+fn symbol_editor_supply_block_is_drawn_saved_and_placed_through_the_window() {
+    use ew_ui::ew_viewmodel::shell::Outcome;
+    fn enter(d: &mut Driver, name: &str, value: &str) {
+        let at = d
+            .labels()
+            .into_iter()
+            .filter(|(n, _)| n == name)
+            .map(|(_, p)| p)
+            .last()
+            .unwrap_or_else(|| panic!("missing {name}: {:?}", d.labels()));
+        d.input(&click(at));
+        d.input(&key("ctrl+a"));
+        d.input(&Input::Type {
+            text: value.to_owned(),
+        });
+        d.input(&key("tab"));
+    }
+    let tmp = Tmp::new();
+    let mut d = Driver::in_folder(tmp.config(), None, tmp.0.clone()).unwrap();
+    d.enable_accesskit();
+    assert_eq!(
+        d.shell_mut().dispatch(
+            "file.new",
+            &json!({"dir":tmp.0.join("supply.ew"),"template":"builtin"})
+        ),
+        Outcome::Done
+    );
+    assert_eq!(
+        d.shell_mut().dispatch(
+            "symbol.new",
+            &json!({"key":"example.supply-block","name":"Supply block"})
+        ),
+        Outcome::Done
+    );
+    d.settle();
+    d.input(&click(d.find("Graphics").unwrap()));
+    let solution = include_str!("../../../../tools/blind/tasks/brief-symbol-editor/solution.uiscript");
+    for row in solution
+        .lines()
+        .skip(1)
+        .map(|l| serde_json::from_str::<Value>(l).unwrap())
+    {
+        let action = row["action"].as_str().unwrap();
+        let p = &row["params"];
+        if !matches!(action, "symbol.draw" | "symbol.cp" | "symbol.slot") {
+            continue;
+        }
+        let tool = match action {
+            "symbol.cp" => "Connection point",
+            "symbol.slot" => "Text slot",
+            _ => match p["tool"].as_str().unwrap() {
+                "line" => "Line",
+                "arc" => "Arc",
+                "circle" => "Circle",
+                "text" => "Text",
+                "anchor" => "Anchor",
+                _ => panic!("fixture tool"),
+            },
+        };
+        if tool == "Arc" {
+            d.input(&click(d.find("More shapes").unwrap()));
+        }
+        d.input(&click(d.find(tool).unwrap()));
+        for (member, label) in [
+            ("x", "x (mm)"),
+            ("y", "y (mm)"),
+            ("x2", "End x (mm)"),
+            ("y2", "End y (mm)"),
+        ] {
+            if let Some(value) = p.get(member) {
+                enter(&mut d, label, &value.to_string());
+            }
+        }
+        if tool == "Text" {
+            enter(&mut d, "Text", p["text"].as_str().unwrap());
+        }
+        if tool == "Arc" {
+            enter(&mut d, "Arc sweep (degrees)", "-180");
+        }
+        if tool == "Connection point" {
+            enter(&mut d, "Designation", p["designation"].as_str().unwrap());
+            d.input(&click(d.find("Direction").unwrap()));
+            d.input(&click(
+                d.find(if p["direction"] == "up" {
+                    "Facing up"
+                } else {
+                    "Facing right"
+                })
+                .unwrap_or_else(|| panic!("direction menu: {:?}", d.labels())),
+            ));
+        }
+        if tool == "Text slot" {
+            let kind = if p["kind"].is_object() {
+                "Pin designation"
+            } else if p["kind"] == "tag" {
+                "Device tag"
+            } else {
+                "Cross-reference"
+            };
+            d.input(&click(d.find("Text field").unwrap()));
+            d.input(&click(d.find(kind).unwrap()));
+            if let Some(pin) = p["kind"].get("cp_designation") {
+                enter(&mut d, "Pin number", &pin.to_string());
+            }
+        }
+        d.input(&click(d.find("Add").unwrap()));
+        assert_eq!(d.shell_mut().symbol_editor().unwrap().error, None, "{row}");
+    }
+    d.input(&click(d.find("Electrical data").unwrap()));
+    d.input(&click(d.find("Pin mapping").unwrap()));
+    for (pin, role) in [
+        ("1", "M"),
+        ("2", "M"),
+        ("3", "PE"),
+        ("4", "L+"),
+        ("5", "L+"),
+        ("FE", "FE"),
+    ] {
+        d.input(&click(d.find(&format!("Potential role {pin}")).unwrap()));
+        if d.find(role).is_none() {
+            let at = d
+                .find("L1")
+                .or_else(|| d.find("Unassigned"))
+                .unwrap_or_else(|| panic!("role menu for {pin}: {:?}", d.labels()));
+            d.input(&Input::Scroll {
+                at,
+                dx: 0,
+                dy: 6,
+                mods: Modifiers::NONE,
+            });
+        }
+        d.input(&click(
+            d.find(role)
+                .unwrap_or_else(|| panic!("role {role}: {:?}", d.labels())),
+        ));
+    }
+    let authored = d.shell_mut().symbol_editor().unwrap().draft.clone();
+    assert!(authored.validate().is_empty());
+    assert_eq!(authored.symbol.cps.len(), 6);
+    for (i, x) in [(1, 12), (2, 20), (3, 28), (4, 36), (5, 44)] {
+        let pin = authored.symbol.cps.get(&i).unwrap();
+        assert_eq!((pin.pos.x.0, pin.pos.y.0), (x * 1_000_000, -4_000_000));
+    }
+    let fe = authored.symbol.cps.get(&6).unwrap();
+    assert_eq!((fe.pos.x.0, fe.pos.y.0), (60_000_000, 12_000_000));
+    assert_eq!(authored.function.cps.get(&6).unwrap().designation.as_str(), "FE");
+    assert_eq!(
+        serde_json::to_value(&authored.symbol.anchor).unwrap(),
+        json!({"named":[0,10_000_000]})
+    );
+    for variant in 'A'..='H' {
+        d.input(&click(d.find(&format!("Variants {variant}")).unwrap()));
+        assert_eq!(
+            d.shell_mut().symbol_editor().unwrap().variant,
+            variant as u8 - b'A'
+        );
+    }
+    d.input(&click(d.find("Variants A").unwrap()));
+    d.input(&click(d.find("Library").unwrap()));
+    enter(
+        &mut d,
+        "Library folder",
+        &tmp.0.join("symbols.ewlib").to_string_lossy(),
+    );
+    d.input(&click(d.find("Save to library").unwrap()));
+    assert!(!d.shell_mut().symbol_editor().unwrap().dirty());
+    d.input(&click(d.find("Test on scratch page").unwrap()));
+    assert_eq!(d.shell_mut().symbol_editor().unwrap().error, None);
+    d.input(&click(d.find("Close editor").unwrap()));
+    // Route from every real pin through the same wire tool used in the main window.
+    // Page points must be converted to sheet coordinates before setting the cursor.
+    use ew_ui::ew_viewmodel::ew_api::geometry::Dir;
+    let mut pins = d.shell_mut().canvas().unwrap().page().tables.cps.clone();
+    assert_eq!(pins.len(), 6);
+    pins.sort_by_key(|p| std::cmp::Reverse(p.at.0));
+    for pin in pins {
+        let s = d.shell_mut();
+        assert_eq!(s.dispatch("tool.wire", &json!({})), Outcome::Done);
+        let start = s.canvas().unwrap().page().snapper.page_to_sheet(pin.at);
+        assert_eq!(
+            s.dispatch(
+                "cursor.set",
+                &json!({"x_mm":start.0 as f64/1_000_000.0,"y_mm":start.1 as f64/1_000_000.0})
+            ),
+            Outcome::Done
+        );
+        assert_eq!(s.dispatch("canvas.activate", &json!({})), Outcome::Done);
+        assert_eq!(s.tool().state(), "routing", "{}", pin.label);
+        let delta = if pin.dir == Some(Dir::Up) {
+            (0, -12_000_000)
+        } else {
+            (12_000_000, 0)
+        };
+        let end = s
+            .canvas()
+            .unwrap()
+            .page()
+            .snapper
+            .page_to_sheet((pin.at.0 + delta.0, pin.at.1 + delta.1));
+        assert_eq!(
+            s.dispatch(
+                "cursor.set",
+                &json!({"x_mm":end.0 as f64/1_000_000.0,"y_mm":end.1 as f64/1_000_000.0})
+            ),
+            Outcome::Done
+        );
+        assert_eq!(s.dispatch("tool.ip", &json!({})), Outcome::Done);
+        let tables = &s.canvas().unwrap().page().tables;
+        let connected = tables.cps.iter().find(|p| p.id == pin.id).unwrap();
+        assert_eq!(connected.connections.len(), 1, "{}", pin.label);
+        let wire = tables
+            .connections
+            .iter()
+            .find(|w| w.id == connected.connections[0])
+            .unwrap();
+        assert_eq!(wire.polyline.first(), Some(&pin.at));
+        assert_eq!(s.dispatch("ui.dismiss", &json!({})), Outcome::Done);
+    }
+    d.input(&key("ctrl+s"));
+    assert!(!d.shell_mut().is_dirty());
+    assert!(d.shell_mut().symbol_editor().is_none());
+    d.shell_mut().shutdown();
+    let (session, _) =
+        ew_ui::ew_viewmodel::ew_api::Session::open_read_only(&tmp.0.join("supply.ew"), "ElektraWatt test")
+            .unwrap();
+    use ew_ui::ew_viewmodel::ew_api::output::{RowExport, row_export};
+    let report = row_export(&session.query(), &RowExport::Kind("wire_list".into()), None).unwrap();
+    let projection = session.sql_projection(None).unwrap();
+    let reader = projection
+        .reader(ew_ui::ew_viewmodel::ew_api::sql::Profile::EW_SQL)
+        .unwrap();
+    let endpoints = reader.query("SELECT cp AS pin FROM (SELECT from_cp AS cp FROM api_v1_wire UNION SELECT to_cp FROM api_v1_wire) WHERE cp <> '' ORDER BY pin").unwrap().to_csv();
+    assert_eq!(endpoints, "pin\n1\n2\n3\n4\n5\nFE\n");
+    // Interruption-point pairs can join two drawn legs into one physical wire.
+    assert!(report.rows > 0);
+    for pin in ["1", "2", "3", "4", "5", "FE"] {
+        assert!(
+            report.csv.contains(&format!(",{pin},")),
+            "missing {pin}: {}",
+            report.csv
+        );
+    }
+}

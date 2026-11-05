@@ -23,6 +23,51 @@ fn qet_element_keeps_grid_pins_and_foreign_provenance() {
 }
 
 #[test]
+fn nameless_embedded_qet_symbol_can_be_forked_by_copy_identity() {
+    use ew_api::{AnyCommand, NewProjectKind, ProjectTemplate, Session, SessionOptions};
+    let mut original = symbols::import_qet(
+        include_bytes!("../../../ew-import-qet/tests/fixtures/contact_no.elmt"),
+        "contact.elmt",
+        "example.qet",
+    )
+    .unwrap();
+    original.symbol.meta.licence = Some("CC-BY-SA-4.0".into());
+    let mut copies = original.documents(symbols::DRAFT_LIBRARY).unwrap();
+    let symbol = copies
+        .iter_mut()
+        .find(|d| matches!(d, symbols::schema::LibDocument::Symbol(_)))
+        .unwrap();
+    if let symbols::schema::LibDocument::Symbol(s) = symbol {
+        s.item.meta.key = None;
+    }
+    let digest = ew_store::ew_format::library_copy_hash(symbol).unwrap();
+    let source = if let symbols::schema::LibDocument::Symbol(s) = symbol {
+        s.sha256 = ew_schema::Sha256(digest);
+        s.id.to_string()
+    } else {
+        unreachable!()
+    };
+    let mut session = Session::new_project(
+        ProjectTemplate::Builtin,
+        NewProjectKind::Schematic,
+        SessionOptions::default(),
+    )
+    .unwrap();
+    session
+        .execute(&AnyCommand {
+            name: "library.embed".into(),
+            params: json!({"copies":copies}),
+        })
+        .unwrap();
+    let fork = session.symbol_draft(&source, "example.copy").unwrap();
+    assert_eq!(fork.symbol.grid, symbols::units::Grid::QET_10PX);
+    assert_eq!(fork.symbol.graphics, original.symbol.graphics);
+    assert_eq!(fork.function.cps, original.function.cps);
+    assert_eq!(fork.symbol.meta.key.unwrap().as_str(), "example.copy");
+    assert!(fork.function_ref.is_none());
+}
+
+#[test]
 fn qet_conversion_details_survive_a_portable_round_trip() {
     let xml = include_str!("../../../ew-import-qet/tests/fixtures/contact_no.elmt").replacen(
         "end1=\"none\"",
@@ -115,6 +160,65 @@ fn off_grid_is_retained_and_blocks_save_while_fine_graphics_are_valid() {
     );
     assert!(d.documents(symbols::DRAFT_LIBRARY).is_err());
     assert!(d.preview(0).is_ok());
+}
+
+#[test]
+fn authored_symbol_closure_is_carried_when_placing_a_part_without_a_template() {
+    use ew_api::{AnyCommand, NewProjectKind, ProjectTemplate, Session, SessionOptions};
+    let dir = ew_testdir::fresh_dir("symbol-part-closure");
+    let lib = dir.join("symbols.ewlib");
+    let tiers = ew_api::library::LibraryTiers::under(&dir, &dir.join("cache"), vec![], vec![lib.clone()]);
+    let mut registry = ew_api::library::Registry::open(&tiers).unwrap();
+    let library = registry
+        .create(&lib, "symbols", "Symbols", "CC-BY-SA-4.0")
+        .unwrap();
+    let draft = block();
+    draft.publish(&mut registry, library).unwrap();
+    let docs = draft.documents(library).unwrap();
+    let symbol = docs
+        .iter()
+        .find_map(|doc| match doc {
+            symbols::schema::LibDocument::Symbol(s) => Some(s),
+            _ => None,
+        })
+        .unwrap();
+    let address = format!("library:{}:{}", symbol.library_id, symbol.item_id);
+    let mut part: serde_json::Value =
+        serde_json::from_str(include_str!("../expected/two_fndef_part.json")).unwrap();
+    part["function_template"] = json!([]);
+    let mut part = symbols::schema::LibDocument::from_value(part).unwrap();
+    let hash = ew_store::ew_format::library_copy_hash(&part).unwrap();
+    let id = if let symbols::schema::LibDocument::Part(p) = &mut part {
+        p.sha256 = ew_schema::Sha256(hash);
+        p.id.as_uuid()
+    } else {
+        panic!("part fixture")
+    };
+    let mut session = Session::new_project(
+        ProjectTemplate::Builtin,
+        NewProjectKind::Schematic,
+        SessionOptions::default(),
+    )
+    .unwrap();
+    *session.libraries_mut() = registry;
+    session
+        .execute(&AnyCommand {
+            name: "library.embed".into(),
+            params: json!({"copies":[part]}),
+        })
+        .unwrap();
+    let params = session
+        .starter_embed_part(id, &address)
+        .unwrap()
+        .expect("authored symbol closure");
+    session
+        .execute(&AnyCommand {
+            name: "library.embed".into(),
+            params,
+        })
+        .unwrap();
+    assert!(session.query().symbols().contains(symbol.id));
+    assert!(session.starter_embed_part(id, &address).unwrap().is_none());
 }
 
 #[test]

@@ -5,23 +5,43 @@ connection points, text slots and cross-reference anchor. Changes do not alter e
 Choose A to draw; B–H show live rotated/mirrored previews. Select a graphic to move it by dragging or edit
 its coordinates in **Drawing**. **Draw by coordinates** also creates geometry from the keyboard.
 Pin coordinates, directions and function mappings are editable in **Electrical data**.
+In **Pin mapping**, drag a function pin onto a connection point or use its list. Assigning a pin already used
+by another compatible connection swaps their mappings in one undo step. Repeated designations have an ordinal
+in parentheses, so two terminals both named N remain distinguishable. Function choices include their category
+and source library. **Library → Fork existing symbol** searches project and installed-library symbols by name
+or key; each choice shows its source and grid. **Create editable copy** leaves the original unchanged.
 The command bar and status bar follow the active symbol; library paths and publication settings live in **Library**.
 The ribbon uses the same small icons, labels and selected state as the main window. **More shapes** contains
 ellipse, arc, polyline and polygon. Press **F1** in the editor to open this reference.
 Text fields can show tags, function text, technical data, pin designations or cross-references.
 **Advanced JSON** exposes the complete draft, including other slot types, styles and arrangements.
+The circle tool takes a centre and a point on its circumference; arcs and ellipses take opposite bounding-box
+corners. Arc creation angles are whole degrees; negative sweep reverses direction. Select a shape and press
+**Delete** to remove it, or drag it to move it; either change takes one undo step. Numeric property edits commit
+when you press Enter or leave the field, so partially typed coordinates do not reshape the drawing.
+Selected rectangles, circles, ellipses and polygons have **Fill shape**. Text and text slots have a **Text style**
+list showing the project's style sizes; choose a larger style when connection numbers need to match other labels.
+
+**Anchor** sets the point used to calculate the symbol's cross-reference cell on the project page. It does not
+move the symbol's insertion origin. Place it on the left edge for a supply block. **Link point** instead adds a
+named attachment position for a mechanical link; it does not create an electrical connection.
 
 Native connections must lie on the 4 mm grid. Drawing clicks snap to 0.5 mm; text clicks to 1 mm.
 Numeric pin edits remain exactly as entered: a pin at 4.5 mm is visibly invalid and blocks publication.
 See the [design standard](../../../design/07a-symbol-design-standard.md) for the full authoring profile.
 
 **Save to library** writes a symbol and its owned function definition to the chosen `.ewlib` folder.
+The window remembers that folder. Its symbols appear under **Insert → Symbol**, with the library name;
+the page must use the symbol's connection grid. Already embedded copies stay at their existing version until
+you explicitly update them. Repeated placement keeps the authored outline and pins.
 An assigned existing function definition stays referenced and its semantics cannot be edited in place.
 Increase the version when changing previously published content. **Export draft** writes portable JSON to a
 new file, including incomplete work; an existing file is never overwritten. Closing an unsaved draft requires
 the explicit **Discard changes** choice. **Test on scratch page** creates a page in the current project and
 uses the symbol's connection grid and places embedded copies there. After closing the editor, project undo removes
 the placement; a second undo removes the scratch page.
+Scratch placements are independent draft copies, so **Source missing** in the Libraries navigator refers to
+their temporary draft source. To place a copy linked to the published library, use **Insert → Symbol** after saving.
 
 ## AI and command-line tools
 
@@ -56,13 +76,14 @@ The window and `.ewui` scripts share these actions:
 | `symbol.new` | `key`, `name` |
 | `symbol.open` | `file`, optional import `key` |
 | `symbol.candidate` | zero-based `index` from an import package |
-| `symbol.fork` | source symbol `source` key, new `key`; includes embedded QET imports |
-| `symbol.draw` | `tool`, `x`, `y`, optional `x2`, `y2`, `text` |
+| `symbol.fork` | `source`: embedded copy UUID, `library:<library UUID>:<item UUID>`, or legacy key; new `key` |
+| `symbol.draw` | `tool`, `x`, `y`, optional `x2`, `y2`, `text`, arc `start`/`sweep` in whole degrees |
 | `symbol.path` | `points` as millimetre pairs, optional `closed` for a polygon |
 | `symbol.cp` | `x`, `y`, optional `idx`, `fn_cp`, `designation`, `direction` |
+| `symbol.map_cp` | drawing `cp`, target function `fn_cp`; an occupied compatible pin swaps |
 | `symbol.slot` | `kind`, `x`, `y`; e.g. `"tag"` or `{"cp_designation":1}` |
 | `symbol.link` | `name`, `x`, `y` |
-| `symbol.function` | existing function definition `key` |
+| `symbol.function` | existing function `key`, or `library:<library UUID>:<item UUID>` in `key` |
 | `symbol.replace` | complete `document` object |
 | `symbol.undo`, `symbol.redo`, `symbol.validate` | none |
 | `symbol.variant` | `variant` 0–7 for A–H |

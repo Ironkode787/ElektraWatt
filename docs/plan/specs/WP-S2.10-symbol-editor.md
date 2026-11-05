@@ -153,9 +153,9 @@ Proposed **ID-?**: decide the five pinned decoder dependencies (`sevenz-turbo` 0
 policy changes have been made. The GPL application graph uses Rust 1.97.1 for this importer; the workspace's
 pinned compiler is 1.99.0 and the permissive crates' MSRV is unchanged. These checks block release approval.
 
-The independent G-M2.5 blind-persona review and release promotion remain with the orchestrator. The generic
-power-block fixture demonstrates authoring behavior; it is not a claim that the private reference drawing was
-reproduced or that every G-M2.5 gate passed.
+The initial generic fixture did not establish reference fidelity. The follow-up evidence in §11 uses the
+specified picture and supersedes that limitation. Release-candidate acceptance and promotion remain with the
+orchestrator; development evidence does not establish every G-M2.5 gate.
 
 ### Independent review corrections and UI revision
 
@@ -168,36 +168,49 @@ predicate; status follows the symbol document. Preview glyphs use the page's fon
 The editor uses one contextual command bar and Drawing / Electrical data / Library panels, labelled fields,
 named variant controls, numeric keyboard creation and a discard confirmation. Function type, potential roles,
 source and optional-pin flags are visible without JSON. Printing a designation does not set electrical meaning.
-The correction set has targeted regressions and offscreen checks at 1280×800 and 1920×1080; independent
-re-review is still pending. The owner's dependency-review release block remains in force; no exemption was added.
+The correction set has targeted regressions and offscreen checks at 1280×800 and 1920×1080. Independent review
+subsequently found source-identity collisions, incomplete drag displacement and ambiguous choices. Follow-up
+fixes and regression tests cover those findings, whole-degree arcs and clearing stale errors on undo/redo.
+The owner's dependency-review release block remains in force; no exemption was added.
 
 ## 11. Orchestrator brief audit (2026-11-05)
 
-**Not complete.** This audit compares the implementation with the original WP-S2.10 handoff, doc 07 §5 and
+**Release acceptance remains incomplete.** This audit compares the implementation with the original WP-S2.10 handoff, doc 07 §5 and
 [G-M2.5](../03-gates.md#55a-g-m25-symbol-editor-release-020-m25). It does not replace their acceptance criteria
 with the smaller synthetic fixture in §6. It is an implementation audit, not an independent acceptance review.
 
 | Requirement | Current evidence and remaining work |
 |---|---|
-| Graphics, native-grid CPs, slots, anchors, link points, live A–H | Implemented through shared authoring actions and the production renderer. The initial anchor is GraphicCentre. Unit/action tests and offscreen examples exist; exact reference acceptance remains below. |
-| Doc 07 §5 FnDef panel with CP table and drag assignment | **Partial:** numeric `fn_cp` mapping and an existing-function library-key field work. Drag assignment is not implemented. A browsable function picker would also improve the current key-entry workflow. |
-| Doc 07 §5 fork from QET import | **Partial:** `.elmt` opening and the shared `symbol.fork` action work. There is no visible editor command to fork an existing imported project/library symbol; complete that GUI route and its FnDef assignment flow. |
+| Graphics, native-grid CPs, slots, anchors, link points, live A–H | Implemented through shared authoring actions and the production renderer. The initial anchor is GraphicCentre. Follow-up adds complete pointer dragging, Delete, reliable numeric entry, filled closed shapes and text-style selection. |
+| Doc 07 §5 FnDef panel with CP table and drag assignment | Implemented: drag a function pin onto a graphical CP, or choose its mapping from a list. An occupied compatible target swaps atomically with one undo. Function choices show category, kind, pins and library; repeated designations show ordinals. |
+| Doc 07 §5 fork from QET import | Implemented: a visible source chooser searches names/keys and distinguishes project copies, libraries and grids. Qualified library addresses and embedded-copy identities prevent same-key collisions; nameless QET imports can be forked by copy identity. Source records remain unchanged. |
 | Scratch test placement and lint feedback | Implemented. The page uses the symbol's grid; placement on an incompatible existing page is refused. Page creation and placement are two undo operations. Editor validation is included; WP-S7.04 library lint remains out of scope. |
 | Doc 16a appearance and small shape/function icons | The editor now reuses the main ribbon's small-button renderer, icons, text size, tooltips and active state. Its contextual layout still needs independent visual acceptance at both required sizes. |
-| G-M2.5-01: exact reference power block, saved, placed, wired and reported | **Pending:** the six-pin synthetic fixture is not the specified reference reproduction. Complete the exact picture-based flow, wiring/report checks and preview comparison in kittest and a built-binary script. Keep private reference data out of the public repository. |
-| G-M2.5-02: off-grid refusal at save, in words; fine graphics saved | Validator/publication tests cover refusal and fine graphics; action tests cover the full error wording. **Partial gate evidence:** complete the explicit kittest save attempt at 4.5 mm and successful 0.5 mm graphics save. |
-| G-M2.5-03: picture-only blind personas | **Pending** on the release candidate, including severity fixes and persona reruns. Author-operated screenshots do not satisfy it. |
+| G-M2.5-01: reference power block, saved, placed, wired and reported | Development acceptance now follows the private picture: five upper plug pins, FE at right, supply labels, device-tag/xref fields and left-edge anchor, adapted to the native grid. The actual-window test draws it, assigns M/M/PE/L+/L+/FE, checks A–H, publishes, places, wires all six pins, saves/reopens and verifies report/SQL endpoints. A built-binary script also draws, saves and wires it. The private picture is not committed; the reusable fixture is generic. Final candidate acceptance remains pending. |
+| G-M2.5-02: off-grid refusal at save, in words; fine graphics saved | Actual-window test attempts Save with a CP at 4.5 mm, asserts the complete refusal and absence of a library, then fixes the pin and saves graphics at 0.5 mm. |
+| G-M2.5-03: picture-only blind personas | Two fresh development personas completed the picture task with all three hints: QET user 73 turns/21 frictions, keep 5/10; EPLAN designer 116 turns/34 frictions, keep 4/10. They found material usability/data issues; this is not a passing release verdict. Fix verification and fresh retest precede the formal candidate round. Author-operated screenshots are separate evidence. |
 | G-M2.5-04: release pipeline, advisories/fuzz/hostile inputs/network policy | **Blocked/pending:** the owner's dependency-review block remains. Targeted tests are not the end-to-end release dossier. |
 | G-M2.5-05: tutorial/reference, offline F1, release notes | Guide pages and SUMMARY entries exist. This revision adds editor/action F1 routing and release-note entries. **Pending:** verify the final release's offline bundle and CI documentation gate. |
 | G-M2.5-06: formats and migration | No changes to the 0.1 project/library format; no migration is introduced. **Pending:** the release fixture corpus on the 0.2.0 candidate. |
 | G-M2.5-07: still-applicable G-M2 and AC-24 | **Pending** on the 0.2.0 candidate; no full regression-gate claim. |
 | Owner additions: design standard, AI authoring, QET/EPLAN import | Standard, schema/template/validate/publish and QET element import are implemented. EDZ/PXF and direct SLK have the explicit supported subsets above. Native binary macros and full EPLAN electrical/part semantics remain unsupported. |
 
-Remaining build order, within the same feature branch: finish drag pin mapping and the visible import-fork
-workflow; execute the exact reference and grid-save acceptance flows; obtain independent re-review and the
-picture-only persona round; verify offline documentation and the release fixture/regression/pipeline evidence.
-Dependency review and release promotion stay with their authorised owners. Do not describe the package as
-complete or merge it into the working/release branches before those decisions and gates.
+Remaining work is verification of the playtest fixes and retest, followed by the release-candidate offline
+bundle, fixture/regression/pipeline evidence and owner dependency review. Do not describe the release gate as
+passed or merge into working/release branches before those decisions and gates.
 
-Proposed **FT-?**: implement the missing drag assignment and visible imported-symbol fork workflow, retaining
-the shared validation and headless actions. These are unmet brief items, not an approved descope.
+### Follow-up design details
+
+- `symbol.map_cp` is the shared drag/keyboard/automation mapping operation; failed mapping does not mutate data.
+- Source addresses preserve library/item identity; the window uses human-readable names, library and grid.
+- Publication remembers explicit library directories. Insert offers their symbols on the stored connection grid,
+  carries the symbol/function closure (including part-associated placement), and retains existing project versions.
+  Only the known starter box placeholder invokes resizable-box creation; authored outlines remain intact on repeat
+  insertion. Scratch placements remain independent draft copies, distinct from source-linked library insertion.
+- Name fields keep stable focus across panels. A focus change commits before Save/Test, and simultaneous property
+  changes merge rather than replacing one another with stale frame data. New drafts reset transient field state.
+- Arc creation uses whole degrees consistently in the window and headless action, stored as millidegrees.
+- Numeric properties commit complete entries on Enter/focus loss. Filled shapes and text styles use existing
+  format fields. The anchor is the cross-reference attachment; link points describe named mating locations.
+- The picture-only brief has a separate manual rubric. Action-log checks establish save/placement activity,
+  not drawing fidelity, electrical roles or readable labels.
