@@ -582,6 +582,9 @@ pub struct ShellModel {
     doc_request: Option<DocRequest>,
     /// The target of the last documentation request, kept for `ui.describe`.
     last_help: Option<String>,
+    /// A note the status bar's state field shows instead of "Ready" while the project it was made for is open at the
+    /// revision it was made at (ID-1392, FT-1405): its text, the project's epoch and revision.
+    status_note: Option<(String, Option<u64>, Option<u64>)>,
     /// The open pages as tabs in one or two groups (WP-S2.03): each tab's canvas, view memory and history.
     area: Option<CanvasArea>,
     /// The page navigator (WP-S2.03 §6.1).
@@ -1023,6 +1026,7 @@ impl ShellModel {
             layout_changed_at: None,
             doc_request: None,
             last_help: None,
+            status_note: None,
             area: None,
             navigator: PageNavigator::new(),
             navs: std::collections::BTreeMap::new(),
@@ -1257,6 +1261,12 @@ impl ShellModel {
             self.access(),
             Some(AccessMode::ReadOnly { reason_key }) if reason_key == key!("readonly-recovery")
         )
+    }
+
+    /// The status bar's note (ID-1392, FT-1405): shown once, until the project changes or another one opens.
+    pub fn status_note(&self) -> Option<&str> {
+        let (text, epoch, rev) = self.status_note.as_ref()?;
+        (*epoch == self.project.as_ref().map(|p| p.epoch) && *rev == self.revision()).then_some(text.as_str())
     }
 
     /// The documentation page F1 asked for, taken once by the window.

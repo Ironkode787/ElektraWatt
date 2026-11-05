@@ -84,6 +84,8 @@ pub enum JobStatus {
 pub struct ExportDone {
     /// The pages of the PDF.
     pub pages: usize,
+    /// The drawing pages and the section divider pages among them (FT-1212).
+    pub kinds: ew_api::output::PageKinds,
     /// The bytes written.
     pub bytes: usize,
 }
@@ -235,7 +237,7 @@ impl JobsState {
         rev: u64,
         epoch: u64,
     ) -> std::io::Result<u64> {
-        let produce = move |ctl: &JobCtl| job.run(ctl).map(|e| (e.bytes, e.pages));
+        let produce = move |ctl: &JobCtl| job.run(ctl).map(|e| (e.bytes, (e.pages, e.kinds)));
         self.start(JobKind::Pdf, produce, target, name, rev, epoch)
     }
 
@@ -249,7 +251,7 @@ impl JobsState {
         rev: u64,
         epoch: u64,
     ) -> std::io::Result<u64> {
-        let produce = move |_: &JobCtl| file.encode().map(|bytes| (bytes, 0));
+        let produce = move |_: &JobCtl| file.encode().map(|bytes| (bytes, (0, Default::default())));
         self.start(JobKind::Table, produce, target, name, rev, epoch)
     }
 
@@ -257,7 +259,7 @@ impl JobsState {
     fn start(
         &mut self,
         kind: JobKind,
-        produce: impl FnOnce(&JobCtl) -> Result<(Vec<u8>, usize), JobError> + Send + 'static,
+        produce: impl FnOnce(&JobCtl) -> Result<(Vec<u8>, PageCount), JobError> + Send + 'static,
         target: PathBuf,
         name: String,
         rev: u64,
@@ -399,16 +401,19 @@ pub(crate) fn io_cause(e: &std::io::Error) -> String {
     }
 }
 
+/// The pages a job's body produced, and their kinds (FT-1212).
+type PageCount = (usize, ew_api::output::PageKinds);
+
 /// The export job's body (§6.3 step 3): the export (`produce`: the bytes and the pages), then the sibling written and
 /// synced, the checkpoint `rename`, the rename over the target.
 fn export_body(
-    produce: impl FnOnce(&JobCtl) -> Result<(Vec<u8>, usize), JobError>,
+    produce: impl FnOnce(&JobCtl) -> Result<(Vec<u8>, PageCount), JobError>,
     ctl: &JobCtl,
     target: &Path,
     sibling: &Path,
     hooks: &TestHooks,
 ) -> Result<ExportDone, JobError> {
-    let (bytes, pages) = produce(ctl)?;
+    let (bytes, (pages, kinds)) = produce(ctl)?;
     let mut guard = Sibling {
         path: sibling,
         armed: true,
@@ -425,6 +430,7 @@ fn export_body(
     guard.armed = false;
     Ok(ExportDone {
         pages,
+        kinds,
         bytes: bytes.len(),
     })
 }

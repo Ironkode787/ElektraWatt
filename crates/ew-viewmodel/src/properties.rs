@@ -1498,14 +1498,101 @@ pub fn action_label(action: RowAction) -> &'static str {
     })
 }
 
+/// The phrases `ew-api` builds a provenance chip's text from, in English for the CLI and the JSON (FT-680), each with
+/// its key: a fixed phrase (`None`), or the text before and after one argument.
+const CHIP_PHRASES: &[(&str, Option<&str>, Key<'static>)] = &[
+    ("frozen (sign hidden)", None, key!("chip-via-frozen-sign-hidden")),
+    ("frozen", None, key!("chip-via-frozen")),
+    ("numbering", None, key!("chip-via-numbering")),
+    ("main representation", None, key!("chip-via-main-representation")),
+    ("strip groups", None, key!("chip-via-strip-groups")),
+    ("function definition", None, key!("chip-via-function-definition")),
+    ("override (CDP)", None, key!("chip-via-override-cdp")),
+    ("wire numbering", None, key!("chip-via-wire-numbering")),
+    ("connectivity", None, key!("chip-via-connectivity")),
+    ("project description", None, key!("chip-via-project-description")),
+    (
+        "cross-reference format",
+        None,
+        key!("chip-via-cross-reference-format"),
+    ),
+    ("project default", None, key!("chip-via-project-default")),
+    ("override", None, key!("chip-via-override")),
+    ("primary part", None, key!("chip-via-primary-part")),
+    ("layout label", None, key!("chip-via-layout-label")),
+    ("part", None, key!("chip-via-part")),
+    (
+        "rail length less placements and end brackets",
+        None,
+        key!("chip-via-rail-length"),
+    ),
+    ("path", None, key!("chip-via-path")),
+    (
+        "override on another connection",
+        None,
+        key!("chip-via-override-on-another"),
+    ),
+    ("child of ", Some(""), key!("chip-via-child-of")),
+    ("terminal of strip ", Some(""), key!("chip-via-terminal-of-strip")),
+    ("numbering scheme '", Some("'"), key!("chip-via-numbering-scheme")),
+    (
+        "structure box on page ",
+        Some(""),
+        key!("chip-via-structure-box-on-page"),
+    ),
+    ("page ", Some(""), key!("chip-via-page")),
+    ("override on ", Some(""), key!("chip-via-override-on")),
+    (
+        "project description is '",
+        Some("'"),
+        key!("chip-via-project-description-is"),
+    ),
+    ("conductor ", Some(""), key!("chip-via-conductor")),
+    (
+        "potential definition at ",
+        Some(""),
+        key!("chip-via-potential-definition-at"),
+    ),
+    (
+        "potential definition ",
+        Some(""),
+        key!("chip-via-potential-definition"),
+    ),
+    ("potential ", Some(""), key!("chip-via-potential")),
+    ("colour profile '", Some("'"), key!("chip-via-colour-profile")),
+    ("size profile '", Some("'"), key!("chip-via-size-profile")),
+    ("class ", Some(""), key!("chip-via-class")),
+    ("built-in default (", Some(")"), key!("chip-via-built-in-default")),
+];
+
+/// A provenance chip's words in the UI language (FT-1338, ID-1392): each ` · `-separated part of `ew-api`'s English
+/// text by its [`CHIP_PHRASES`] key, its argument kept; a part without a phrase stays as it is.
+fn chip_words(text: &str) -> String {
+    text.split(" · ")
+        .map(|part| {
+            CHIP_PHRASES
+                .iter()
+                .find_map(|(before, after, key)| match after {
+                    None => (part == *before).then(|| strings::text(*key).to_owned()),
+                    Some(after) => {
+                        let arg = part.strip_prefix(before)?.strip_suffix(after)?;
+                        Some(strings::format(*key, &[arg]))
+                    }
+                })
+                .unwrap_or_else(|| part.to_owned())
+        })
+        .collect::<Vec<_>>()
+        .join(" · ")
+}
+
 /// The provenance chip's text (an icon glyph and words, never colour alone; FR-UI-025).
 pub fn chip_text(p: &Provenance) -> String {
     match p {
         Provenance::Authored => strings::text(key!("chip-authored")).to_owned(),
-        Provenance::Inherited { from } => strings::format(key!("chip-inherited"), &[from]),
-        Provenance::Derived { via } => strings::format(key!("chip-derived"), &[via]),
-        Provenance::Overridden { note } => strings::format(key!("chip-overridden"), &[note]),
-        Provenance::Frozen { note } => strings::format(key!("chip-frozen"), &[note]),
+        Provenance::Inherited { from } => strings::format(key!("chip-inherited"), &[&chip_words(from)]),
+        Provenance::Derived { via } => strings::format(key!("chip-derived"), &[&chip_words(via)]),
+        Provenance::Overridden { note } => strings::format(key!("chip-overridden"), &[&chip_words(note)]),
+        Provenance::Frozen { note } => strings::format(key!("chip-frozen"), &[&chip_words(note)]),
         Provenance::Library { item } => strings::format(key!("chip-library"), &[item]),
         Provenance::Generated { block } => strings::format(key!("chip-generated"), &[block]),
         Provenance::Varies { count } => strings::format(key!("chip-varies"), &[&count.to_string()]),

@@ -1208,17 +1208,27 @@ pub static ACTIONS: &[ActionMeta] = &[
         )),
     ),
     // WP-S3.09 D10 to D12: Project, Import, Re-import QElectroTech project (the open project's earlier import), its
-    // proposal's Re-import (`accept`) and the re-import card's Apply.
+    // proposal's Re-import (`accept`) and the re-import card's Apply. FT-1388 (ID-1392): a command-bar button beside
+    // the import's.
     with_params(
         "file?:path, accept?:bool",
-        act(
-            "file.reimport_qet",
-            Command,
-            Menu::Project,
-            &[],
-            project_open,
-            slot(Menu::Project),
-            |s, p| s.act_reimport_qet(p),
+        placed(
+            place(
+                Group::Import,
+                3,
+                CommandSize::Small,
+                Some(key!("bar-reimport-qet")),
+            ),
+            "restore",
+            act(
+                "file.reimport_qet",
+                Command,
+                Menu::Project,
+                &[],
+                project_open,
+                slot(Menu::Project),
+                |s, p| s.act_reimport_qet(p),
+            ),
         ),
     ),
     hidden(parameterless(act(
@@ -2235,17 +2245,22 @@ pub static ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_wheel_scrolls(p),
         ),
     ),
-    // FT-1280 (ID-1315 ruling 3): View ▸ Show tips, the setting `tips` (FR-UI-048), beside Reduce motion.
+    // FT-1280 (ID-1315 ruling 3): View ▸ Show tips, the setting `tips` (FR-UI-048), beside Reduce motion. FT-1367
+    // (ID-1392): a switch of the View tab's Show group too, so its menu item is View ▸ Show ▸ Show tips.
     with_params(
         "on?:bool",
-        act(
-            "view.tips",
-            View,
-            Menu::View,
-            &[],
-            always,
-            slot(Menu::View),
-            |s, p| s.act_tips(p),
+        placed(
+            place(Group::Show, 4, CommandSize::Small, None),
+            "info-circle",
+            act(
+                "view.tips",
+                View,
+                Menu::View,
+                &[],
+                always,
+                slot(Menu::View),
+                |s, p| s.act_tips(p),
+            ),
         ),
     ),
     // WP-S2.17 part 1: View ▸ Theme and View ▸ Density (doc 16a §4.13, D5, D6). The theme words of the spec
@@ -5735,32 +5750,7 @@ pub(crate) fn item_of(meta: &ActionMeta, model: &ShellModel) -> ActionItem {
         shortcut: model.shortcut_text(meta),
         enabled,
         reason: paste_reason.or_else(|| state.err().map(|k| strings::text(k).to_owned())),
-        checked: match meta.id {
-            "view.grid" => model.grid_on(),
-            "view.frame_stats" => model.frame_stats_shown(),
-            "view.cpu_canvas" => model.cpu_canvas_setting(),
-            "view.reduce_motion" => model.reduce_motion(),
-            "view.wheel_scrolls" => model.settings().wheel_scrolls,
-            "view.tips" => model.tips_on(),
-            "view.side_by_side" => model.area().is_some_and(crate::area::CanvasArea::side_by_side),
-            "props.show" => model
-                .layout()
-                .panes()
-                .contains(&crate::layout::PaneKind::Properties),
-            // WP-S2.09 part 1.
-            "jobs.show" => model.jobs_shown(),
-            "notifications.show" => model.notifications().popup_open(),
-            // WP-S2.09 part 2.
-            "messages.show" => model.navigator_open(crate::navigators::NavKind::Messages),
-            // WP-S3.09 D9 d.
-            "messages.migration" => model.messages_shows_migration(),
-            // WP-S2.09 part 3.
-            "history.show" => model.history_shown(),
-            "preview.show" => model.preview_shown(),
-            "view.bottom_dock" => model.bottom_dock_shown(),
-            // WP-S2.08 part 6.
-            "help.glossary" => model.glossary_shown(),
-            "view.wire_colours" => model.wire_colours_on(),
+        checked: switch_on(model, meta.id).unwrap_or_else(|| match meta.id {
             "tool.select" | "tool.measure" => meta.id.strip_prefix("tool.") == Some(model.tool().name()),
             // WP-S2.04 part 2.
             "tool.wire" => model.tool().name() == "wire",
@@ -5774,16 +5764,50 @@ pub(crate) fn item_of(meta: &ActionMeta, model: &ShellModel) -> ActionItem {
             // WP-S4.02 part 4.
             "tool.rail_draw" => model.tool().name() == "rail_draw",
             "tool.duct_draw" => model.tool().name() == "duct_draw",
-            "project.crossings" => model.crossings_hops(),
-            // WP-S2.17 part 2: the Place tool lights Symbol in the bar; the command bar's collapse.
+            // WP-S2.17 part 2: the Place tool lights Symbol in the bar.
             "tool.place" => model.tool().name() == "place",
-            "view.command_bar" => model.command_bar_collapsed(),
-            // WP-S2.17 part 3.
-            "props.show_advanced" => model.properties_show_advanced(),
             _ => false,
-        },
+        }),
         topic: crate::help::action_topic(meta.id),
     }
+}
+
+/// The on or off state of a switch (a view toggle, a pane shown or hidden): the menu item's check, the command-bar
+/// button's lit state and the palette entry's state (FT-1367, ID-1392); `None` for an action that is no switch.
+pub(crate) fn switch_on(model: &ShellModel, id: &str) -> Option<bool> {
+    Some(match id {
+        "view.grid" => model.grid_on(),
+        "view.frame_stats" => model.frame_stats_shown(),
+        "view.cpu_canvas" => model.cpu_canvas_setting(),
+        "view.reduce_motion" => model.reduce_motion(),
+        "view.wheel_scrolls" => model.settings().wheel_scrolls,
+        "view.tips" => model.tips_on(),
+        "view.side_by_side" => model.area().is_some_and(crate::area::CanvasArea::side_by_side),
+        "props.show" => model
+            .layout()
+            .panes()
+            .contains(&crate::layout::PaneKind::Properties),
+        // WP-S2.09 part 1.
+        "jobs.show" => model.jobs_shown(),
+        "notifications.show" => model.notifications().popup_open(),
+        // WP-S2.09 part 2.
+        "messages.show" => model.navigator_open(crate::navigators::NavKind::Messages),
+        // WP-S3.09 D9 d.
+        "messages.migration" => model.messages_shows_migration(),
+        // WP-S2.09 part 3.
+        "history.show" => model.history_shown(),
+        "preview.show" => model.preview_shown(),
+        "view.bottom_dock" => model.bottom_dock_shown(),
+        // WP-S2.08 part 6.
+        "help.glossary" => model.glossary_shown(),
+        "view.wire_colours" => model.wire_colours_on(),
+        "project.crossings" => model.crossings_hops(),
+        // WP-S2.17 part 2: the command bar's collapse.
+        "view.command_bar" => model.command_bar_collapsed(),
+        // WP-S2.17 part 3.
+        "props.show_advanced" => model.properties_show_advanced(),
+        _ => return None,
+    })
 }
 
 /// The items of a submenu, from the registry actions that have a slot in it (in registry order).

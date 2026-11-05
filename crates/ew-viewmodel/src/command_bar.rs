@@ -788,7 +788,7 @@ pub fn hud(model: &ShellModel) -> HudModel {
             target = Some(name.clone());
             // FT-1023 (ID-1107): a proposal other than its base's name says so in the name's place.
             let mut parts = vec![model.tool().proposal_note().unwrap_or(name)];
-            // FT-822: the role and the key that changes it ("0V · source: feeds its targets · D: target"), so the next
+            // FT-822: the role and the key that changes it ("0V · source: the wire continues at its targets · D: target"), so the next
             // role is on screen; FT-899: the role says what it does, the key's part keeps the short next word.
             // W42b, ID-1146: a star source is a source point (the tool shows a starred point as a source), so the
             // star's hint stands alone in the role's place.

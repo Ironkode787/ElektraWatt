@@ -31,6 +31,9 @@ use crate::value::Sha256;
 
 /// The largest raster asset (PNG, JPEG): 16 MiB (doc 05 §13.3).
 pub const MAX_RASTER_BYTES: usize = 16 * 1024 * 1024;
+/// The most pixels a raster asset may declare: 16 Mi, the decode limit of the renderers (`ew_render_cpu`'s
+/// `MAX_IMAGE_PIXELS`), each side at most 65535 (FT-1378): a larger image would be placed but never drawn.
+pub const MAX_RASTER_PIXELS: u64 = 16 * 1024 * 1024;
 /// The largest SVG asset: 8 MiB (doc 05 §13.3).
 pub const MAX_SVG_BYTES: usize = 8 * 1024 * 1024;
 /// The most elements an SVG asset may have (doc 05 §13.3).
@@ -120,6 +123,15 @@ pub enum AssetError {
     },
     /// An SVG file with more than [`MAX_SVG_NODES`] elements.
     TooManyNodes,
+    /// A PNG or JPEG file that declares more than [`MAX_RASTER_PIXELS`] pixels, or a side over 65535 (FT-1378).
+    TooManyPixels {
+        /// The format.
+        format: AssetFormat,
+        /// The declared width in pixels.
+        width: u32,
+        /// The declared height in pixels.
+        height: u32,
+    },
     /// The header of a PNG or JPEG file is cut short or damaged.
     Damaged(AssetFormat),
     /// Text that is not base64 (standard alphabet, padded).
@@ -231,6 +243,16 @@ impl fmt::Display for AssetError {
                 format.ext()
             ),
             AssetError::TooManyNodes => write!(f, "the SVG file has more than {MAX_SVG_NODES} elements"),
+            AssetError::TooManyPixels {
+                format,
+                width,
+                height,
+            } => write!(
+                f,
+                "the {} image is {width} × {height} pixels, more than a drawing can show (at most \
+                 {MAX_RASTER_PIXELS} pixels and 65535 on a side); scale it down and add it again",
+                format.ext()
+            ),
             AssetError::Damaged(format) => write!(f, "the {} header is damaged or cut short", format.ext()),
             AssetError::Base64 => f.write_str("not base64 text (standard alphabet, padded)"),
             AssetError::UnsafeSvg(h) => {
@@ -268,6 +290,21 @@ pub fn sniff(bytes: &[u8]) -> Result<(AssetFormat, Option<(u32, u32)>), AssetErr
             len: bytes.len(),
             limit,
         });
+    }
+    match size {
+        Some((width, height))
+            if format.is_raster()
+                && (u64::from(width) * u64::from(height) > MAX_RASTER_PIXELS
+                    || width > 65535
+                    || height > 65535) =>
+        {
+            return Err(AssetError::TooManyPixels {
+                format,
+                width,
+                height,
+            });
+        }
+        _ => {}
     }
     if format == AssetFormat::Svg && svg_elements(bytes) > MAX_SVG_NODES {
         return Err(AssetError::TooManyNodes);
@@ -3386,6 +3423,38 @@ mod tests {
             sniff(&[0xff, 0xd8, 0xff, 0xd9]),
             Err(AssetError::Damaged(AssetFormat::Jpeg))
         );
+    }
+
+    /// FT-1378: a raster image that declares more pixels than a drawing shows, or a side over 65535, is refused at the
+    /// gate in words; the decode limit itself is taken.
+    #[test]
+    fn a_raster_image_over_the_decode_limit_is_refused() {
+        let refused = sniff(&png(65536, 32768)).unwrap_err();
+        assert_eq!(
+            refused,
+            AssetError::TooManyPixels {
+                format: AssetFormat::Png,
+                width: 65536,
+                height: 32768
+            }
+        );
+        assert_eq!(
+            refused.to_string(),
+            "the png image is 65536 × 32768 pixels, more than a drawing can show (at most 16777216 pixels and 65535 \
+             on a side); scale it down and add it again"
+        );
+        assert_eq!(
+            sniff(&png(4096, 4096)),
+            Ok((AssetFormat::Png, Some((4096, 4096))))
+        );
+        assert!(matches!(
+            sniff(&png(4097, 4096)),
+            Err(AssetError::TooManyPixels { .. })
+        ));
+        assert!(matches!(
+            sniff(&png(65536, 1)),
+            Err(AssetError::TooManyPixels { .. })
+        ));
     }
 
     #[test]

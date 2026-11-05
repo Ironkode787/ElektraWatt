@@ -368,6 +368,7 @@ impl ShellModel {
         );
         if outcome == Outcome::Done {
             open_page(self);
+            self.note_missing_guide();
         }
         outcome
     }
@@ -403,8 +404,23 @@ impl ShellModel {
         };
         if outcome == Outcome::Done {
             self.request_doc_target(page);
+            self.note_missing_guide();
         }
         outcome
+    }
+
+    /// ID-1392 (FT-1405): without an installed guide a tutorial's project opens with no banner over it, and the status
+    /// bar says once that the guide is not installed.
+    fn note_missing_guide(&mut self) {
+        if self.doc_request.as_ref().is_some_and(|r| r.url.is_none()) {
+            self.doc_request = None;
+            let epoch = self.project.as_ref().map(|p| p.epoch);
+            self.status_note = Some((
+                strings::text(key!("status-guide-missing")).to_owned(),
+                epoch,
+                self.revision(),
+            ));
+        }
     }
 
     pub(crate) fn act_import_qet(&mut self, p: &Map<String, Value>) -> Outcome {

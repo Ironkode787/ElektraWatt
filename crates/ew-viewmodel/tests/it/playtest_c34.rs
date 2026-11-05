@@ -95,6 +95,27 @@ fn strip_with_two_terminals(tmp: &Tmp) -> (ShellModel, String) {
     (s, strip)
 }
 
+/// FT-1403 (ID-1392): the new-strip toast's example is the tag the strip takes with its first terminal, by the
+/// project's scheme (`-101X1`, not `-X1011`).
+#[test]
+fn the_new_strip_toasts_example_is_the_tag_it_takes() {
+    let tmp = Tmp::new("c34-strip-example");
+    let mut s = new_project(&tmp);
+    done(&mut s, "strip.new", json!({"letter": "X"}));
+    let toast = common::state(&s)["toast"]["text"]
+        .as_str()
+        .unwrap_or_default()
+        .to_owned();
+    assert_eq!(
+        toast,
+        "Created a terminal strip. It takes its tag, such as -101X1, when its first terminal is placed: Draw \u{25b8} \
+         Symbol\u{2026} and the terminal symbol, whose strip picker lists it."
+    );
+    place_terminal(&mut s, "101-D2");
+    let label = s.canvas().unwrap().page().tables.cps[0].label.clone();
+    assert_eq!(label.split(':').next(), Some("-101X1"));
+}
+
 /// `select.set` with a terminal's list-form tag (`-101X1:2`, the play-test's `-X1011:2`) selects the terminal device,
 /// and the next transform takes it as the representation the page shows of it (as Delete and Cut do, FT-485 items 9
 /// and 10) instead of refusing "Nothing is selected".

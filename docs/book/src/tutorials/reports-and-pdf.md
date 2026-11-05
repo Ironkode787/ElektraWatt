@@ -26,7 +26,8 @@ drawn: EW generates them from the schematic, so they follow every change.
    `Terminal overview`, and choose **Create**.
    The page 913 lists every terminal strip of the project on one page.
 5. Choose **Output ▸ Export PDF…** (`Ctrl+Shift+E`) and save the file as `reports.pdf`.
-   When the export is done, the toast says "Exported reports.pdf: 41 pages", with the file's size. Open the file
+   When the export is done, the toast says "Exported reports.pdf: 13 drawing pages, 3 section divider pages and 25
+   report pages", with the file's size. Open the file
    from the toast to see it: one PDF/A-2b file with every page, its outline and its cross-reference links.
 6. Choose **Output ▸ Print…** (`Ctrl+P`).
    The Print dialog shows the range, the paper and a preview of the first page: "1 of 41". Step to the next page in

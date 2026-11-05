@@ -52,6 +52,7 @@ impl ExportJob {
             report: out.report,
             pages: pages.pages.len(),
             findings: pages.findings,
+            kinds: pages.kinds,
         })
     }
 }

@@ -628,12 +628,12 @@ placed action has an icon, a label and a docs anchor, and that each tab's groups
 
 | Tab | Groups, left to right (large buttons in **bold**; bar labels) | Next step · notes |
 |---|---|---|
-| Project | Project: **Properties**, Structure · Parts: Project parts · Standards: Schemes, Company standard · Import: **Import parts**, Import QElectroTech project… (as built, decision log ID-756) | None · set up once; New, Open and Save are in the app menu and quick access, never duplicated here |
+| Project | Project: **Properties**, Structure · Parts: Project parts · Standards: Schemes, Company standard · Import: **Import parts**, Import QElectroTech project…, Re-import QElectroTech project… (as built, decision log ID-756; FT-1388) | None · set up once; New, Open and Save are in the app menu and quick access, never duplicated here |
 | Page | Pages: **New page**, Page properties, Delete page · Order: Renumber pages, Move up, Move down · Go: **Go to** (Ctrl+G), Back (Alt+Left), Forward (Alt+Right), Follow reference (F) | None · folio navigation and page set-up |
 | **Draw** (home) | Select: **Select** · Place: **Symbol** (I), **Device** (Shift+I), Terminal, Black box (B) · Connect: **Wire** (W), Potential (Shift+P), Interruption (P) · Annotate: **Text** (T), Measure · Arrange: Rotate (R), Mirror (X, Y), Align, Renumber | **Check project** (F7) · the core loop and the tab that opens with a project; exactly the mockup's fourteen commands and its next step. Move, Delete, Wire marker, Graphic, Image, Structure box, Properties and Change symbol are reached by their keys, the context menu, the app menu's Draw and the palette; Align arrives with its package |
 | Check | Run: **Check project** (F7), Check scheme ▾ · Findings: **Messages**, Next finding (F8), Previous finding (Shift+F8) · Numbering: Freeze tag, Unfreeze tag · Trace: Highlight potential (Ctrl+Shift+H), Clear highlights | **Export PDF** · make it right before output; Renumber lives on Draw (the mockup) |
 | Output | PDF: **Export PDF**, Print · Reports: **Report blocks**, Open generated page · Lists: Parts list, Wire list, Terminal diagram (open their generated pages) · Jobs: Jobs | None · everything that leaves the project |
-| View | Zoom: **Fit page** (Home), Zoom in, Zoom out, Actual size · Show: Grid, Snap, Frame statistics · Panels: Navigators ▾, Properties, Messages, Jobs, History, Notifications · Layout: Side by side, Workspaces ▾, Reset layout · Appearance: Theme ▾, Density ▾, UI scale ▾ | None · never needed for the work itself |
+| View | Zoom: **Fit page** (Home), Zoom in, Zoom out, Actual size · Show: Grid, Snap, Frame statistics, Show tips (FT-1367) · Panels: Navigators ▾, Properties, Messages, Jobs, History, Notifications · Layout: Side by side, Workspaces ▾, Reset layout · Appearance: Theme ▾, Density ▾, UI scale ▾ | None · never needed for the work itself |
 
 Commands of later packages join their tab's group when they exist (Macro in Place, Cable in Connect, Waivers in
 Findings); a new group, or a new command on Draw, needs a design-language review against the mockup. The Edit commands Cut, Copy, Paste, Duplicate and Select all
@@ -1372,6 +1372,10 @@ HUD; chips avoid it (§7.4).
    was not written: the folder does not exist. Choose another folder." No "Please", no exclamation marks, no blame,
    no codes without words (a rule ID follows the words: "Contact T55 switches N-55 without its line conductor
    (EW-POT-013)").
+   *As built (cycle 52; decision log ID-1392, FT-1216):* a reason (`reason-*`, the words a refused or disabled
+   command shows in the status line, a tooltip or a menu) ends without a full stop, also when it holds two clauses
+   ("That action does not apply to this row; its menu shows the ones that do"); an error message (`error-*`), a toast
+   and a banner are sentences and end with one.
 6. **Numbers**: a space between value and unit ("2.5 mm²", "69 %", as built); counts with their noun ("3 devices",
    "1 selected"); "of" for positions ("Page 6 of 36", "2 of 4 placed").
 7. **Keys** are written as on the keyboard with "+" ("Ctrl+Shift+H") in text and tooltips, and as spaced keys in a key

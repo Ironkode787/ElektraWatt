@@ -580,6 +580,29 @@ pub fn field_choice_text(kind: &str, path: &str, value: &str) -> String {
     }
 }
 
+/// The words of the choice `value` of the field `path` of `kind` in every shipped language, as
+/// [`field_choice_text`] picks them (FT-1338: a table cell copied in one language and pasted in the other).
+pub fn field_choice_texts(kind: &str, path: &str, value: &str) -> Vec<&'static str> {
+    let own = format!(
+        "choice-{}-{}-{}",
+        kind.replace('_', "-"),
+        generic_field_path(path)
+            .replace("[]", "-item")
+            .replace(['.', '_'], "-"),
+        value.replace('_', "-")
+    );
+    let generic = format!("choice-{}", value.replace('_', "-"));
+    [en_gb(), nl_nl()]
+        .into_iter()
+        .filter_map(|l| {
+            l.texts
+                .get(own.as_str())
+                .or_else(|| l.texts.get(generic.as_str()))
+                .copied()
+        })
+        .collect()
+}
+
 /// A field path with every list index as `[]` (`levels[0].role` is `levels[].role`).
 fn generic_field_path(path: &str) -> String {
     let mut generic = String::with_capacity(path.len());

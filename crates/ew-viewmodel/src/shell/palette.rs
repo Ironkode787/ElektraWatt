@@ -136,6 +136,14 @@ impl ShellModel {
             ) else {
                 continue;
             };
+            // FT-1367 (ID-1392): a View switch says whether it is on, after where it lives ("View · Show · On").
+            let mut breadcrumb = actions::breadcrumb_of(meta, label);
+            if meta.kind == actions::ActionKind::View
+                && let Some(on) = actions::switch_on(self, meta.id)
+            {
+                let word = if on { key!("choice-on") } else { key!("choice-off") };
+                breadcrumb = format!("{breadcrumb} · {}", strings::text(word));
+            }
             ranked.push(Ranked {
                 entry: PaletteEntry {
                     run: PaletteRun::Action(meta.id),
@@ -144,7 +152,7 @@ impl ShellModel {
                     shortcut: self.shortcut_text(meta),
                     enabled: state.is_ok(),
                     reason: state.err().map(|k| strings::text(k).to_owned()),
-                    breadcrumb: actions::breadcrumb_of(meta, label),
+                    breadcrumb,
                 },
                 rank,
             });

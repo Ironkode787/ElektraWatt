@@ -131,7 +131,7 @@ fn ft822_the_hud_names_the_role_and_d_goes_on_from_the_offered_one() {
     );
     assert_eq!(
         prompt(&s),
-        format!("0V \u{b7} source: feeds its targets \u{b7} {d}: target")
+        format!("0V \u{b7} source: the wire continues at its targets \u{b7} {d}: target")
     );
     // W42b: with the star on, the star's hint stands alone in the role's place.
     done(&mut s, "tool.star_source", json!({}));
@@ -209,7 +209,7 @@ fn w42b_a_starred_point_is_named_the_star_source_alone_in_every_direction() {
             (
                 "source".to_owned(),
                 false,
-                format!("0V \u{b7} source: feeds its targets \u{b7} {d}: target"),
+                format!("0V \u{b7} source: the wire continues at its targets \u{b7} {d}: target"),
                 "0V source".to_owned()
             ),
         ]

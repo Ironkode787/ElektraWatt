@@ -410,7 +410,7 @@ rule-ew-pot-001 = { $conflicts }{ $more ->
         [none] {""}
        *[other] ; en nog { $more } aansluitpunten
     }{ $hint ->
-        [bond] ; declareer de potentiaalverbinding met Tekenen ▸ Potentiaalverbinding
+        [bond] ; declareer de potentiaalverbinding met Tekenen ▸ Verbinden ▸ Potentiaalverbinding
        *[none] {""}
     }
     .title = Type- of spanningsconflict

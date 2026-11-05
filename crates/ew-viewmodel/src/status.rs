@@ -459,11 +459,11 @@ pub fn bar(model: &ShellModel, hide_job: bool) -> Vec<StatusField> {
         tone,
         tip: String::new(),
     };
-    let mut out = vec![field(
-        StatusKind::State,
-        strings::text(key!("status-ready")).to_owned(),
-        Tone::Normal,
-    )];
+    // ID-1392 (FT-1405): a note the shell made for the open project stands in the state's place.
+    let state = model
+        .status_note()
+        .unwrap_or_else(|| strings::text(key!("status-ready")));
+    let mut out = vec![field(StatusKind::State, state.to_owned(), Tone::Normal)];
     if model.project_name().is_some() {
         if let Some((text, tone)) = findings(model) {
             out.push(field(StatusKind::Findings, text, tone));

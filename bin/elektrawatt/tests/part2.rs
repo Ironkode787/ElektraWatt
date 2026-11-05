@@ -184,7 +184,7 @@ fn a_qelectrotech_project_is_imported_by_a_script() {
         steps[1]["state"]["banner"]
             .as_str()
             .unwrap()
-            .starts_with("Imported example.qet: 1 pages")
+            .starts_with("Imported example.qet: 1 page, ")
     );
     assert!(dir.join("manifest.json").is_file());
     // A file that is no project fails the step with a message that has no path (exit code 1).

@@ -78,9 +78,11 @@ pub const TERMINAL_WITHOUT_DESIGNATION: RuleMeta = RuleMeta {
 };
 
 /// EW-TERM-001: a terminal of a strip whose designation is empty. `Ident` is non-empty, so a model built
-/// through the command layer never holds one; the rule stays for the registry and for lenient data (a
-/// designation of white space only). One finding per terminal, no discriminator. No prevent
-/// implementation: the parameter layer refuses an empty designation before a transaction exists.
+/// through the command layer rarely holds one; the rule stays for the registry and for lenient data (a
+/// designation of white space only). One finding per terminal, no discriminator. Its prevent half (doc 15 §4.4
+/// "prevent, lenient on import"; ID-1392, FT-1399) refuses a batch that leaves a touched terminal without a
+/// designation it had before; `Ident` already refuses an empty or blank designation, so it is silent on every snapshot
+/// the schema reads.
 #[derive(Clone, Copy, Debug)]
 pub struct TerminalWithoutDesignation;
 
@@ -112,6 +114,33 @@ impl Rule for TerminalWithoutDesignation {
                     full_tag(q, t, &strip_tag),
                     format!("a terminal of {strip_tag} has no designation"),
                 )
+            })
+            .collect()
+    }
+
+    fn prevent(&self, before: &Q, after: &Q, touched: &Touched) -> Vec<Finding> {
+        let blank = |q: &Q, id: Id<Device>| {
+            q.devices()
+                .get(id)
+                .and_then(|d| d.aspects.terminal.as_ref())
+                .map(|t| (t.strip, t.designation.as_str().trim().is_empty()))
+        };
+        touched_ids::<Device>(touched, Kind::Device)
+            .filter_map(|id| {
+                let (strip, true) = blank(after, id)? else {
+                    return None;
+                };
+                if blank(before, id).is_some_and(|(_, was)| was) {
+                    return None;
+                }
+                let strip_tag = full_tag(after, strip, "the strip");
+                Some(Finding::new(
+                    &TERMINAL_WITHOUT_DESIGNATION,
+                    [Target::new(Kind::Device, id)],
+                    "",
+                    full_tag(after, id, &strip_tag),
+                    format!("a terminal of {strip_tag} has no designation"),
+                ))
             })
             .collect()
     }

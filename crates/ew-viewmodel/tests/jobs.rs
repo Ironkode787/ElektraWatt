@@ -156,17 +156,20 @@ fn p2_a_second_export_of_the_same_file_says_again() {
     done(&mut s, "file.export_pdf", json!({"path": path_text(&target)}));
     let kib = |p: &Path| std::fs::metadata(p).unwrap().len().div_ceil(1024);
     let pages = s.page_count();
-    let first = format!("Exported out.pdf: {pages} pages, {} KiB", kib(&target));
+    let first = format!("Exported out.pdf: {pages} drawing pages, {} KiB", kib(&target));
     assert_eq!(s.toast().unwrap().text, first);
     done(
         &mut s,
         "file.export_pdf",
         json!({"path": path_text(&target), "replace": true}),
     );
-    let second = format!("Exported out.pdf again: {pages} pages, {} KiB", kib(&target));
+    let second = format!(
+        "Exported out.pdf again: {pages} drawing pages, {} KiB",
+        kib(&target)
+    );
     assert_eq!(s.toast().unwrap().text, second);
     done(&mut s, "file.export_pdf", json!({"path": path_text(&other)}));
-    let third = format!("Exported other.pdf: {pages} pages, {} KiB", kib(&other));
+    let third = format!("Exported other.pdf: {pages} drawing pages, {} KiB", kib(&other));
     assert_eq!(log_texts(&s), [third, second, first]);
     s.shutdown();
 }
@@ -187,7 +190,7 @@ fn jb4_the_replace_rule_and_the_marker() {
     let kib = bytes.len().div_ceil(1024);
     assert_eq!(
         s.toast().unwrap().text,
-        format!("Exported out.pdf: {} pages, {kib} KiB", s.page_count())
+        format!("Exported out.pdf: {} drawing pages, {kib} KiB", s.page_count())
     );
     // An existing file without `replace`: refused, unchanged.
     std::fs::write(&target, b"not a pdf").unwrap();
@@ -361,7 +364,7 @@ fn jb5_polling_takes_the_end_of_a_job_that_was_not_waited_for() {
         s.toast()
             .unwrap()
             .text
-            .starts_with(&format!("Exported out.pdf: {pages} pages"))
+            .starts_with(&format!("Exported out.pdf: {pages} drawing pages"))
     );
     s.shutdown();
 }
@@ -409,7 +412,7 @@ fn jb6_the_log_popup_and_its_refusals() {
         .div_ceil(1024);
     assert!(
         d.contains(&format!(
-            "notifications 1\n  notification 1 \"Exported out.pdf: {} pages, {kib} KiB\" open",
+            "notifications 1\n  notification 1 \"Exported out.pdf: {} drawing pages, {kib} KiB\" open",
             s.page_count()
         )),
         "{d}"

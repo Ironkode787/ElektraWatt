@@ -21,7 +21,7 @@ Import a QElectroTech project with one hand-written label among formula labels.
 
 ## How to fix
 
-Unfreeze the tag in the property grid to take the scheme's value. There is no quick fix.
+Unfreeze the tag with the quick fix in the Messages pane, or in the property grid, to take the scheme's value.
 
 ## Waiving
 

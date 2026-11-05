@@ -1688,6 +1688,29 @@ fn json_map(v: Value) -> Map<String, Value> {
     }
 }
 
+/// A function's kind text in the UI language (FT-1338, ID-1392): its longest leading words that `ew-api`'s
+/// `KIND_WORDS` give ("Two-way process valve" of "Two-way process valve 1-2") by their `kind-words-<words>` text, the
+/// CP designations after them kept; `None` when no leading words have a text.
+fn kind_words(text: &str) -> Option<String> {
+    let words: Vec<&str> = text.split(' ').collect();
+    (1..=words.len()).rev().find_map(|n| {
+        let slug: String = words[..n]
+            .join(" ")
+            .to_lowercase()
+            .split(|c: char| !c.is_alphanumeric())
+            .filter(|w| !w.is_empty())
+            .collect::<Vec<_>>()
+            .join("-");
+        let head = strings::lookup(&format!("kind-words-{slug}"))?;
+        Some(
+            std::iter::once(head)
+                .chain(words[n..].iter().copied())
+                .collect::<Vec<_>>()
+                .join(" "),
+        )
+    })
+}
+
 /// A navigator table's texts in the UI language (ID-1315 ruling 1: `ew-api` gives the codes, the shell the words),
 /// once per fetch: the column headers by their `column-<navigator>-<key>` text, else `column-<key>` (FT-1264, the
 /// strip editor's columns with them, FT-1289), an accessory row's kind (FT-1289), the Messages pane's group headers
@@ -1716,7 +1739,52 @@ pub(super) fn table_in_words(table: &mut ew_api::output::NavTable, project: &sup
         .filter(|(_, c)| ["generated", "shield", "external"].contains(&c.key.as_str()))
         .map(|(i, _)| i)
         .collect();
+    // FT-1338 (ID-1392): the closed sets' cells, a device's or a node's kind, a terminal's or a channel's state and an
+    // interruption point's direction by their `choice-*` words, a library copy's state by its badge's.
+    let closed: Vec<(usize, &str)> = (table.columns.iter().enumerate())
+        .filter_map(|(i, c)| match (nav, c.key.as_str()) {
+            ("devices" | "structure", "kind") | ("strips" | "plc", "state") | ("ips", "direction") => {
+                Some((i, "choice"))
+            }
+            ("libraries", "state") => Some((i, "badge")),
+            _ => None,
+        })
+        .collect();
+    let kind = (nav == "libraries")
+        .then(|| table.columns.iter().position(|c| c.key == "kind"))
+        .flatten();
     for node in &mut table.nodes {
+        // FT-1338 (ID-1392): a function's kind, and a function definition's in the Libraries tree, in `KIND_WORDS`'
+        // words.
+        let fndef = kind
+            .and_then(|i| node.cells.get(i))
+            .is_some_and(|c| c == "Function definition");
+        if (node.role == NavRole::Function || (node.role == NavRole::LibCopy && fndef))
+            && let Some(words) = kind_words(&node.label)
+        {
+            let english = std::mem::replace(&mut node.label, words.clone());
+            for cell in node.cells.iter_mut().filter(|c| **c == english) {
+                *cell = words.clone();
+            }
+        }
+        for (i, prefix) in &closed {
+            if let Some(cell) = node.cells.get_mut(*i)
+                && let Some(text) = strings::lookup(&format!(
+                    "{prefix}-{}",
+                    cell.to_lowercase().replace([' ', '_'], "-")
+                ))
+            {
+                *cell = if cell.starts_with(|c: char| c.is_lowercase()) {
+                    let mut chars = text.chars();
+                    chars
+                        .next()
+                        .map(|c| c.to_lowercase().chain(chars).collect())
+                        .unwrap_or_default()
+                } else {
+                    strings::sentence_start(text).into_owned()
+                };
+            }
+        }
         for i in &yes_no {
             if let Some(cell) = node.cells.get_mut(*i) {
                 match cell.as_str() {

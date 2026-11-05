@@ -155,7 +155,7 @@ pub(crate) fn jb4_the_export_script_is_byte_identical_twice_writes_the_golden_pd
             "{d}"
         );
         assert!(
-            d.contains("notifications 1\n  notification 1 \"Exported out.pdf: 36 pages, "),
+            d.contains("notifications 1\n  notification 1 \"Exported out.pdf: 13 drawing pages, 3 section divider pages and 20 report pages, "),
             "{d}"
         );
         assert!(d.contains("\" open"), "{d}");
@@ -164,7 +164,7 @@ pub(crate) fn jb4_the_export_script_is_byte_identical_twice_writes_the_golden_pd
         assert!(d.contains("  job 2 pdf \"out.pdf\" done pages 36 kib "), "{d}");
         // P-2: the second export of the same file says "again".
         assert!(
-            d.contains("notification 2 \"Exported out.pdf again: 36 pages, "),
+            d.contains("notification 2 \"Exported out.pdf again: 13 drawing pages, 3 section divider pages and 20 report pages, "),
             "{d}"
         );
         // The second export's toast replaced the first (one key).

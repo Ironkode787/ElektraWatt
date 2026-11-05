@@ -13,7 +13,7 @@
 //!
 //! **The second point** is constrained to the dominant axis of the pointer's displacement from the first (a rail is
 //! axis-parallel, D5). The part is the tool option's rail part ([`DrawPart`]), its profile from its rail section; a
-//! part without one is refused ("The rail part has no profile; choose a rail part with a rail section.").
+//! part without one is refused ("The rail part has no profile; choose a rail part with a rail section").
 //!
 //! **Ghost** (ruling 4): [`super::Ghost::Line`] from the first point to the pointer, drawn as a solid line in the
 //! `ghost` token with one chip giving its length (doc 16a §7.3, §7.4).

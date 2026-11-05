@@ -820,19 +820,20 @@ fn zero_volt_meets_pe_without_a_carrier() -> Model {
 }
 
 #[test]
-fn pot001_without_a_carrier_has_no_fix_and_names_draw_bond() {
+fn pot001_without_a_carrier_has_no_fix_and_names_draw_connect_bond() {
     let f = findings_of(&zero_volt_meets_pe_without_a_carrier(), "EW-POT-001");
     assert_eq!(f.len(), 1, "{f:#?}");
     assert!(f[0].fix.is_none(), "{:?}", f[0].fix);
+    // FT-1400: the menu path as the menus give it (Draw ▸ Connect ▸ Bond).
     assert_eq!(
         f[0].message,
-        "member roles M meet Pe; the first in role order applies; declare the bond with Draw ▸ Bond"
+        "member roles M meet Pe; the first in role order applies; declare the bond with Draw ▸ Connect ▸ Bond"
     );
     // C50-p7#5: the Dutch hint names the Dutch menu path.
     assert_eq!(
         ew_checks::messages::render(&f[0], "nl-NL"),
         "aansluitpuntrollen M botsen met Pe; de eerste in de rolvolgorde geldt; declareer de potentiaalverbinding met \
-         Tekenen ▸ Potentiaalverbinding"
+         Tekenen ▸ Verbinden ▸ Potentiaalverbinding"
     );
 }
 

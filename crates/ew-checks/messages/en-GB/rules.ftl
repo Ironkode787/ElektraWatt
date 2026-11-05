@@ -426,7 +426,7 @@ rule-ew-pot-001 = { $conflicts }{ $more ->
         [none] {""}
        *[other] ; and { $more } more member CPs
     }{ $hint ->
-        [bond] ; declare the bond with Draw ▸ Bond
+        [bond] ; declare the bond with Draw ▸ Connect ▸ Bond
        *[none] {""}
     }
     .title = Type or voltage conflict

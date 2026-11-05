@@ -330,9 +330,30 @@ fn ft1264_every_navigator_column_and_badge_reads_in_both_locales() {
         .iter()
         .map(|r| r.text.clone())
         .collect();
+    // FT-1338 (ID-1392): a function's kind of `KIND_WORDS` in Dutch too.
+    let kinds = [
+        ("Double-acting cylinder ", "Dubbelwerkende cilinder "),
+        ("Two-way process valve ", "Tweewegprocesklep "),
+        ("Decoration ", "Decoratie "),
+        ("PROFIBUS connector ", "PROFIBUS-connector "),
+        ("PROFIBUS port ", "PROFIBUS-poort "),
+        ("1P+N MCB ", "1P+N-installatieautomaat "),
+        ("1P MCB ", "1P-installatieautomaat "),
+        ("Overview ", "Overzicht "),
+        ("5/2 valve ", "5/2-ventiel "),
+        ("Terminal strip segment ", "Klemmenstrooksegment "),
+        ("Protective earth bar ", "PE-rail "),
+        ("Enclosure heater ", "Kastverwarming "),
+        ("2P manual switch ", "2P-handschakelaar "),
+        ("NO position switch ", "NO-positieschakelaar "),
+    ];
     let worded: Vec<String> = english
         .iter()
         .map(|t| {
+            let t = kinds
+                .iter()
+                .find_map(|(en, nl)| t.strip_prefix(en).map(|rest| format!("{nl}{rest}")))
+                .unwrap_or_else(|| t.clone());
             t.replace(" [main]", " [hoofdfunctie]")
                 .replace(" [aux]", " [hulpfunctie]")
                 .replace(" [spare]", " [reserve]")
@@ -964,5 +985,77 @@ fn ft1364_a_language_switch_drops_the_toasts_on_show() {
     assert!(shell.toast().is_none());
     assert_eq!(shell.notifications().len(), logged, "the log keeps it");
     done(&mut shell, "view.language", json!({"value": "en"}));
+    shell.shutdown();
+}
+
+/// FT-1338 (ID-1392): the window words what `ew-api` builds in English (FT-680) in its language: a device's kind, a
+/// terminal's state, an interruption point's direction, a function's kind of `KIND_WORDS` and a provenance chip; in
+/// en-GB they read as before.
+#[test]
+fn navigator_cells_kinds_and_chips_read_in_dutch() {
+    use ew_viewmodel::navigators::NavRole;
+    use ew_viewmodel::properties::{Provenance, chip_text};
+    let tmp = Tmp::new("ft1338-rest");
+    let mut shell = tmp.shell_in(Mode::Headless, true, "102");
+    let cell = |shell: &ShellModel, kind: NavKind, col: &str, role: NavRole| -> (String, String) {
+        let t = shell
+            .nav(kind)
+            .and_then(|n| n.table())
+            .cloned()
+            .expect("the table");
+        let i = t.columns.iter().position(|c| c.key == col).expect("the column");
+        // The source point 0VDC on 102-C15, whatever the order of the rows.
+        let n = t
+            .nodes
+            .iter()
+            .find(|n| n.role == role && (role != NavRole::Ip || n.label == "102-C15"))
+            .expect("a row");
+        (n.label.clone(), n.cells[i].clone())
+    };
+    let function = |shell: &ShellModel| -> String {
+        let t = shell
+            .nav(NavKind::Devices)
+            .and_then(|n| n.table())
+            .cloned()
+            .expect("the table");
+        t.nodes
+            .iter()
+            .filter(|n| n.role == NavRole::Function)
+            .map(|n| n.label.clone())
+            .find(|l| l.ends_with(" 1-2"))
+            .expect("a two-way process valve")
+    };
+    let chip = Provenance::Derived {
+        via: "potential definition at -X1:1 · colour profile 'DBU/WH 24 V'".into(),
+    };
+    for (locale, kind, state, direction, valve, chip_words) in [
+        (
+            "en",
+            "Device",
+            "used",
+            "source",
+            "Two-way process valve 1-2",
+            "f derived · potential definition at -X1:1 · colour profile 'DBU/WH 24 V'",
+        ),
+        (
+            "nl",
+            "Apparaat",
+            "gebruikt",
+            "bron",
+            "Tweewegprocesklep 1-2",
+            "f afgeleid · potentiaaldefinitie bij -X1:1 · kleurprofiel 'DBU/WH 24 V'",
+        ),
+    ] {
+        done(&mut shell, "view.language", json!({ "value": locale }));
+        for k in ["devices", "strips", "ips"] {
+            done(&mut shell, "navigator.show", json!({ "kind": k }));
+        }
+        assert_eq!(cell(&shell, NavKind::Devices, "kind", NavRole::Device).1, kind);
+        assert_eq!(cell(&shell, NavKind::Strips, "state", NavRole::Terminal).1, state);
+        assert_eq!(cell(&shell, NavKind::Ips, "direction", NavRole::Ip).1, direction);
+        assert_eq!(function(&shell), valve);
+        assert_eq!(chip_text(&chip), chip_words);
+    }
+    done(&mut shell, "view.language", json!({ "value": "en" }));
     shell.shutdown();
 }

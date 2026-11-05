@@ -104,7 +104,7 @@ fn hud_head(s: &ShellModel, name: &str) -> String {
     let dir = IpDir::from_word(&direction).unwrap();
     // FT-899: the role in words.
     let role = match dir {
-        IpDir::Source => "source: feeds its targets",
+        IpDir::Source => "source: the wire continues at its targets",
         IpDir::Target => "target: fed by its source",
         IpDir::Undirected => "undirected: pairs either way",
     };

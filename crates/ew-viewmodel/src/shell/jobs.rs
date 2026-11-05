@@ -49,6 +49,27 @@ pub(super) fn bool_param(p: &Map<String, Value>, name: &str, default: bool) -> R
     }
 }
 
+/// An export's pages by kind in words ("1 drawing page and 10 report pages", FT-1212): the drawing pages, the
+/// section divider pages and the report pages that it has, each count with its plural form.
+fn page_words(done: &ExportDone) -> String {
+    let kinds = done.kinds;
+    let reports = done.pages.saturating_sub(kinds.drawing + kinds.dividers);
+    let parts: Vec<String> = [
+        (kinds.drawing, crate::count_key!("export-pages-drawing")),
+        (kinds.dividers, crate::count_key!("export-pages-divider")),
+        (reports, crate::count_key!("export-pages-report")),
+    ]
+    .into_iter()
+    .filter(|(n, _)| *n > 0)
+    .map(|(n, key)| strings::format_count(key, n))
+    .collect();
+    match parts.as_slice() {
+        [] => strings::format_count(crate::count_key!("export-pages-drawing"), 0),
+        [one] => one.clone(),
+        [rest @ .., last] => format!("{} {} {last}", rest.join(", "), strings::text(key!("list-and"))),
+    }
+}
+
 /// The numbers `1, 2 and 3` of a refusal that names the valid ones.
 fn number_list(numbers: &[u64]) -> String {
     let texts: Vec<String> = numbers.iter().map(u64::to_string).collect();
@@ -501,24 +522,16 @@ impl ShellModel {
                 });
                 // WP-S3.08 ruling 4 of ID-1224: a table has no pages; its end says the size only.
                 let table = entry.kind == JobKind::Table;
-                // ID-1278 ruling 6: one page in the singular.
-                let one = done.pages == 1;
+                // ID-1392 (FT-1212): the pages by kind ("1 drawing page and 10 report pages"), each count with its
+                // plural form (ID-1278 ruling 6).
+                let pages = page_words(&done);
                 let text = match (table, again) {
-                    (false, false) if one => strings::format(
-                        key!("toast-export-pdf-one"),
-                        &[&entry.name, &done.pages.to_string(), &kib.to_string()],
-                    ),
-                    (false, true) if one => strings::format(
-                        key!("toast-export-pdf-again-one"),
-                        &[&entry.name, &done.pages.to_string(), &kib.to_string()],
-                    ),
-                    (false, false) => strings::format(
-                        key!("toast-export-pdf"),
-                        &[&entry.name, &done.pages.to_string(), &kib.to_string()],
-                    ),
+                    (false, false) => {
+                        strings::format(key!("toast-export-pdf"), &[&entry.name, &pages, &kib.to_string()])
+                    }
                     (false, true) => strings::format(
                         key!("toast-export-pdf-again"),
-                        &[&entry.name, &done.pages.to_string(), &kib.to_string()],
+                        &[&entry.name, &pages, &kib.to_string()],
                     ),
                     (true, false) => {
                         strings::format(key!("toast-export-table"), &[&entry.name, &kib.to_string()])

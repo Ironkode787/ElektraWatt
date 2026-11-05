@@ -97,7 +97,7 @@ fn the_new_strip_form_holds_the_example_tag_and_leaves_it_derived() {
         (
             "New terminal strip",
             "Create",
-            vec![("Tag", "-X1011".to_owned())],
+            vec![("Tag", "-101X1".to_owned())],
             None
         )
     );
@@ -105,10 +105,10 @@ fn the_new_strip_form_holds_the_example_tag_and_leaves_it_derived() {
     assert_eq!(s.submit_form(), Outcome::Done);
     assert!(s.dialog().is_none());
     assert_eq!(s.revision(), rev.map(|r| r + 1), "one commit");
-    assert_ne!(current_strip_tag(&s), "-X1011", "derived, not frozen");
+    assert_ne!(current_strip_tag(&s), "-101X1", "derived, not frozen");
     assert_eq!(
         toast(&s),
-        "Created a terminal strip. It takes its tag, such as -X1011, when its first terminal is placed: Draw \u{25b8} \
+        "Created a terminal strip. It takes its tag, such as -101X1, when its first terminal is placed: Draw \u{25b8} \
          Symbol\u{2026} and the terminal symbol, whose strip picker lists it."
     );
 }
@@ -152,7 +152,7 @@ fn escape_cancels_the_form_and_a_refused_tag_stays_in_it() {
     assert_eq!(fields, vec![("Tag", "-".to_owned())]);
     assert_eq!(
         error.as_deref(),
-        Some("\"-\" is not a tag. Type the tag as the page is to print it, such as -X1011.")
+        Some("\"-\" is not a tag. Type the tag as the page is to print it, such as -101X1.")
     );
     assert_eq!(s.revision(), rev);
     // Escape closes the form and leaves the chooser open.

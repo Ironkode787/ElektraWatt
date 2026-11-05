@@ -1112,7 +1112,7 @@ fn a_refused_row_action_names_why_the_row_refuses_it() {
     );
     assert_eq!(
         ew_viewmodel::strings::text(key!("reason-action-not-offered")),
-        "That action does not apply to this row; its menu shows the ones that do."
+        "That action does not apply to this row; its menu shows the ones that do"
     );
     // The identity row reads its read-only reason.
     assert_eq!(
@@ -1129,7 +1129,7 @@ fn a_refused_row_action_names_why_the_row_refuses_it() {
     );
     assert_eq!(
         ew_viewmodel::strings::text(key!("reason-row-computed")),
-        "This value is computed from the drawing; it cannot be edited here."
+        "This value is computed from the drawing; it cannot be edited here"
     );
     // A row a command of its own changes reads that reason.
     assert_eq!(

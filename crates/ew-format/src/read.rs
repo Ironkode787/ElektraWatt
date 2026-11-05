@@ -498,6 +498,33 @@ struct HeldConflict {
     record: Record,
 }
 
+/// A library document in words (FT-1213, doc 16a §8): its kind, what names it (a part by its part number, a symbol, a
+/// macro or a manufacturer by its name, a PLC profile by its label) and its version.
+fn document_words(doc: &LibDocument) -> String {
+    // A multi-language name: its neutral text, else its first language's.
+    macro_rules! text {
+        ($t:expr) => {
+            $t.as_neutral()
+                .or_else(|| $t.languages().next().and_then(|l| $t.get(l)))
+                .map(str::to_owned)
+        };
+    }
+    let (kind, name, version) = match doc {
+        LibDocument::Part(d) => ("part", Some(d.item.part_number.as_str().to_owned()), &d.version),
+        LibDocument::Symbol(d) => ("symbol", text!(d.item.name), &d.version),
+        LibDocument::Fndef(d) => ("function definition", None, &d.version),
+        LibDocument::Form(d) => ("form", None, &d.version),
+        LibDocument::Macro(d) => ("macro", text!(d.item.name), &d.version),
+        LibDocument::Manufacturer(d) => ("manufacturer", text!(d.item.name), &d.version),
+        LibDocument::PlcProfile(d) => ("PLC profile", Some(d.item.label.clone()), &d.version),
+        LibDocument::Unknown(_) => return "a library document".to_owned(),
+    };
+    match name.filter(|n| !n.is_empty()) {
+        Some(name) => format!("the {kind} \"{name}\" (version {version})"),
+        None => format!("a {kind} (version {version})"),
+    }
+}
+
 /// `bytes` with every `\r\n` replaced by `\n`, a lone `\r` kept: the line-end normalisation under which a file equals
 /// its manifest hash (doc 05 §6.2, [`FindingKind::LineEndings`](crate::FindingKind)), and under which a save finds a
 /// file it replaces or removes unchanged.
@@ -1128,14 +1155,15 @@ impl<'a> Loader<'a> {
             return;
         };
         let identity = (kind.name().to_owned(), id);
-        if let Some((first_file, _)) = self.seen.get(&identity).cloned() {
+        if self.seen.contains_key(&identity) {
+            // FT-1213 (ID-1392): the document in words, never its kind and ID or the other file's path.
+            let words = document_words(&doc);
             if migrated_text.is_some() {
                 self.refuse_opaque(
                     path,
                     format!(
-                        "once migrated, {}:{id} duplicates the document of {first_file}; remove one of the two files \
-                         and open the project again",
-                        kind.name()
+                        "once migrated, this file holds {words}, which another library file holds too; remove one of \
+                         the two files and open the project again"
                     ),
                 );
                 return;
@@ -1144,10 +1172,7 @@ impl<'a> Loader<'a> {
                 FindingKind::DuplicateRecord,
                 path,
                 None,
-                format!(
-                    "{}:{id} duplicates the document of {first_file}; the first is kept",
-                    kind.name()
-                ),
+                format!("this file holds {words}, which another library file holds too; the first is kept"),
             );
             self.opaque(path, hash);
             return;

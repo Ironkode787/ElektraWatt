@@ -334,3 +334,60 @@ fn ft1174_the_breadcrumb_never_repeats_the_row_and_both_rows_have_icons() {
         (Some("language"), Some("arrows-sort"))
     );
 }
+
+/// FT-1367 (ID-1392): Show tips is a switch of the View tab's Show group, lit while tips are on, and the palette's
+/// entry says whether it is on, after where it lives, in the UI language.
+#[test]
+fn show_tips_is_a_view_tab_switch_and_the_palette_says_its_state() {
+    use ew_viewmodel::command_bar::{Group, Tab, command_bar_of};
+    let tmp = Tmp::new("pal-ft1367");
+    let mut shell = tmp.shell_in(Mode::Gui, true, "103");
+    let button = |shell: &ShellModel| {
+        command_bar_of(shell, Tab::View)
+            .groups
+            .into_iter()
+            .find(|g| g.group == Group::Show)
+            .expect("the Show group")
+            .buttons
+            .into_iter()
+            .find(|b| b.id == "view.tips")
+            .expect("Show tips in the Show group")
+    };
+    let tips = |shell: &mut ShellModel| {
+        query(shell, "tips")
+            .into_iter()
+            .find(|e| e.id == "view.tips")
+            .expect("the Show tips entry")
+            .breadcrumb
+    };
+    done(&mut shell, "view.tips", json!({"on": false}));
+    assert!(!button(&shell).checked);
+    assert_eq!(tips(&mut shell), "View \u{b7} Show \u{b7} Off");
+    done(&mut shell, "view.tips", json!({"on": true}));
+    assert!(button(&shell).checked);
+    assert_eq!(tips(&mut shell), "View \u{b7} Show \u{b7} On");
+    assert!(strings::set_locale("nl"));
+    let nl = tips(&mut shell);
+    assert!(strings::set_locale("en"));
+    assert_eq!(nl, "Beeld \u{b7} Tonen \u{b7} Aan");
+    shell.shutdown();
+}
+
+/// FT-1388 (ID-1392): Re-import QElectroTech project… is a button of the Project tab's Import group, beside the
+/// import's.
+#[test]
+fn reimport_has_a_command_bar_button_beside_the_import() {
+    use ew_viewmodel::command_bar::{Group, Tab, command_bar_of};
+    let tmp = Tmp::new("pal-ft1388");
+    let shell = tmp.shell_in(Mode::Gui, true, "103");
+    let ids: Vec<&str> = command_bar_of(&shell, Tab::Project)
+        .groups
+        .into_iter()
+        .find(|g| g.group == Group::Import)
+        .expect("the Import group")
+        .buttons
+        .iter()
+        .map(|b| b.id)
+        .collect();
+    assert_eq!(ids, ["parts.import", "file.import_qet", "file.reimport_qet"]);
+}

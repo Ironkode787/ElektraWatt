@@ -457,6 +457,18 @@ pub struct ExportPages {
     pub options: PdfOptions,
     /// The findings of the page scenes, in page order.
     pub findings: Vec<PageFindingAt>,
+    /// The drawing pages and the section divider pages among them; the rest are report pages (FT-1212).
+    pub kinds: PageKinds,
+}
+
+/// How many pages of an export are drawing pages and section divider pages; the rest are generated report pages
+/// (FT-1212, ID-1392: the export toast names its pages by kind).
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub struct PageKinds {
+    /// The authored pages.
+    pub drawing: usize,
+    /// The divider pages of sections.
+    pub dividers: usize,
 }
 
 /// A written PDF.
@@ -470,6 +482,8 @@ pub struct PdfExport {
     pub pages: usize,
     /// The findings of the page scenes.
     pub findings: Vec<PageFindingAt>,
+    /// The drawing pages and the section divider pages among them (FT-1212).
+    pub kinds: PageKinds,
 }
 
 /// A written SVG set.
@@ -763,6 +777,14 @@ pub(crate) fn export_pages_hooked<H: Hooks>(
         });
         hooks.checkpoint("page")?;
     }
+    let kinds = PageKinds {
+        drawing: (phase1.iter())
+            .filter(|p| matches!(p.entry.page, ew_derive::PageRef::Drawn(_)))
+            .count(),
+        dividers: (phase1.iter())
+            .filter(|p| matches!(p.entry.page, ew_derive::PageRef::Divider(_)))
+            .count(),
+    };
     let mut findings: Vec<PageFindingAt> = phase1
         .iter()
         .flat_map(|p| {
@@ -821,6 +843,7 @@ pub(crate) fn export_pages_hooked<H: Hooks>(
         options: pdf_options(q, options, labels.as_deref(), &pages),
         pages,
         findings,
+        kinds,
     })
 }
 
@@ -886,6 +909,7 @@ pub fn export_pdf_with(
         report: out.report,
         pages: pages.pages.len(),
         findings: pages.findings,
+        kinds: pages.kinds,
     })
 }
 

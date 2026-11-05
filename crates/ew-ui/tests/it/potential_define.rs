@@ -314,3 +314,65 @@ fn a_failed_define_stays_in_its_form_and_no_banner_follows() {
     assert_eq!(h.state().shell().banner(), None, "its success clears it");
     h.state_mut().shell_mut().shutdown();
 }
+
+/// FT-1205 (ID-1392): Escape in a context menu closes the menu and nothing else: the selection stays, as Escape in the
+/// app menu does (FT-1130).
+#[test]
+fn escape_in_a_context_menu_keeps_the_selection() {
+    let tmp = Tmp::new();
+    let dir = tmp.golden("g.ew");
+    let mut h: Harness<'static, App> = harness(&tmp, Scripted::default(), Some(dir));
+    settle(&mut h);
+    wait_for_page(&mut h);
+    let shell = h.state_mut().shell_mut();
+    done(shell, "navigator.show", json!({"kind": "potentials"}));
+    done(shell, "navigator.table", json!({"kind": "potentials"}));
+    // As above: 24VDC-4's definition deleted, so its row offers Define potential….
+    let def = {
+        let t = shell.nav(NavKind::Potentials).and_then(|n| n.table()).unwrap();
+        t.nodes
+            .iter()
+            .find(|n| n.role == NavRole::Potential && n.label == "24VDC-4")
+            .map(|n| n.records[0])
+            .expect("24VDC-4")
+    };
+    done(
+        shell,
+        "command.run",
+        json!({"cmd": "edit.delete", "params": {"targets": [{"kind": "potential_def", "id": def.to_string()}]}}),
+    );
+    let (node, label) = {
+        let t = shell.nav(NavKind::Potentials).and_then(|n| n.table()).unwrap();
+        let i = t
+            .nodes
+            .iter()
+            .position(|n| n.table_row && n.define_at.is_some())
+            .expect("a potential with a point to define it at");
+        (u32::try_from(i).unwrap(), t.nodes[i].label.clone())
+    };
+    done(
+        shell,
+        "navigator.filter",
+        json!({"kind": "potentials", "text": label}),
+    );
+    done(shell, "select.set", json!({"refs": ["-102F1"]}));
+    settle(&mut h);
+    let name = cell_name(h.state().shell(), node, "Potential");
+    h.get_by_label(&name).click_secondary();
+    settle(&mut h);
+    assert!(
+        h.query_by_label("Define potential…").is_some(),
+        "the context menu"
+    );
+    let selected = h.state().shell().selection().items.clone();
+    assert!(!selected.is_empty());
+    h.key_press(egui::Key::Escape);
+    settle(&mut h);
+    assert!(h.query_by_label("Define potential…").is_none(), "the menu closed");
+    assert_eq!(
+        h.state().shell().selection().items,
+        selected,
+        "the selection stays"
+    );
+    h.state_mut().shell_mut().shutdown();
+}

@@ -414,7 +414,7 @@ impl ShellModel {
     /// embedded in one host commit before the tool arms; an FnDef neither the project nor the starter library holds
     /// fails the pick by name and arms nothing.
     /// The tag a new strip with letter `letter` would take from its first terminal placed on the page on show (FT-893):
-    /// the strip scheme `{letter}{page}{counter}` (doc 20 §3) with the lowest counter no device of that letter prints
+    /// the strip's numbering format (`Session::strip_format`) with the lowest counter no device of that letter prints
     /// on the page (FR-NUM-007 fills gaps). `None` off a schematic page or on a folio that is not a whole number, where
     /// the scheme's `{page}` is not the folio as written.
     fn strip_tag_example(&self, letter: &str) -> Option<String> {
@@ -426,6 +426,15 @@ impl ShellModel {
             return None;
         }
         let session = &self.project.as_ref()?.session;
+        // FT-1403 (ID-1392): the format the strip's scheme gives it (`-101X1` under `{page}{letter}{counter}`, `-X1011`
+        // under the strip rule `{letter}{page}{counter}`); a format with another token gives no example.
+        let format = session
+            .strip_format(letter)
+            .replace("{letter}", letter)
+            .replace("{page}", &row.folio);
+        if format.replace("{counter}", "").contains('{') {
+            return None;
+        }
         let q = session.query();
         let taken: std::collections::BTreeSet<String> = q
             .devices()
@@ -435,7 +444,7 @@ impl ShellModel {
             .collect();
         // Bounded: at most one candidate per printed tag is taken.
         (1..=taken.len() + 1)
-            .map(|c| format!("-{letter}{}{c}", row.folio))
+            .map(|c| format!("-{}", format.replace("{counter}", &c.to_string())))
             .find(|t| !taken.contains(t))
     }
 

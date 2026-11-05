@@ -224,3 +224,23 @@ fn the_bond_submenu_lists_the_four_kinds() {
     assert_eq!(kinds, ["pelv_0v_pe", "fe_pe", "equipotential", "shield"]);
     assert_eq!(items[0].label, "0 V–PE bond (PELV)");
 }
+
+/// FT-1400 (ID-1392): EW-POT-001's bond hint names the menu path in the registry's words, Draw ▸ Connect ▸ Bond, in
+/// both languages.
+#[test]
+fn the_bond_hint_names_the_menu_path_in_the_registrys_words() {
+    let path = || {
+        [key!("menu-draw"), key!("group-connect"), key!("submenu-bond")]
+            .map(ew_viewmodel::strings::text)
+            .join(" \u{25b8} ")
+    };
+    let en = include_str!("../../../ew-checks/messages/en-GB/rules.ftl");
+    assert!(en.contains(&format!("[bond] ; declare the bond with {}\n", path())));
+    assert!(ew_viewmodel::strings::set_locale("nl"));
+    let nl = include_str!("../../../ew-checks/messages/nl-NL/rules.ftl");
+    assert!(nl.contains(&format!(
+        "[bond] ; declareer de potentiaalverbinding met {}\n",
+        path()
+    )));
+    assert!(ew_viewmodel::strings::set_locale("en"));
+}

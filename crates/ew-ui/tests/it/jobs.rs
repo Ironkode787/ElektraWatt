@@ -67,7 +67,9 @@ fn jb4_the_save_dialogs_answer_replaces_an_existing_file_through_a_job() {
     let bytes = std::fs::read(&pdf).unwrap();
     assert!(bytes.starts_with(b"%PDF-"), "the file was replaced");
     let kib = bytes.len().div_ceil(1024);
-    let text = format!("Exported out.pdf: 36 pages, {kib} KiB");
+    // FT-1212 (ID-1392): the pages by kind.
+    let text =
+        format!("Exported out.pdf: 13 drawing pages, 3 section divider pages and 20 report pages, {kib} KiB");
     assert!(h.query_by_label(&text).is_some(), "the toast");
     assert!(
         h.query_by_label("Notifications 1").is_some(),

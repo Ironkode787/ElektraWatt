@@ -256,6 +256,21 @@ fn the_tutorials_open_a_fresh_copy_of_the_sample_project() {
     let (sample, _) = Session::open_read_only(Path::new(GOLDEN_A), VERSION).unwrap();
     assert_eq!(shell.page_labels(), sample.page_labels().as_slice());
     assert_eq!(shell.last_help(), Some("tutorials/index.html"));
+    // ID-1392 (FT-1405): without an installed guide no page is asked for, so no banner covers the copy; the status
+    // bar says once that the guide is not installed, until the project changes.
+    assert!(shell.doc_request().is_none());
+    assert_eq!(
+        shell.banner(),
+        Some("A fresh copy of the sample project was made for the tutorials.")
+    );
+    let state = |s: &ShellModel| ew_viewmodel::status::bar(s, false)[0].text.clone();
+    assert_eq!(state(&shell), "The user guide is not installed with this build");
+    done(
+        &mut shell,
+        "page.new",
+        json!({"folio": "999", "type": "multi_line", "title": "Extra"}),
+    );
+    assert_eq!(state(&shell), "Ready");
     shell.shutdown();
 }
 
@@ -838,11 +853,9 @@ fn a_reimport_of_a_closed_project_is_dropped_whatever_its_end() {
         "{:?}",
         gui.dialog()
     );
-    assert_eq!(
-        gui.banner(),
-        importing.as_deref(),
-        "the other import's banner stays"
-    );
+    // ID-1392 (FT-1391): the other import's end takes its own banner away once its card is open; the closed project's
+    // job takes only a banner of its own file ("Importing example.qet…").
+    assert_eq!(gui.banner(), None, "the other import's own end took its banner");
     gui.shutdown();
 }
 

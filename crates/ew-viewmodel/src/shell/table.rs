@@ -343,6 +343,36 @@ impl ShellModel {
     }
 
     /// The route of an editable cell, or why it is read-only.
+    /// Whether `text` means what cell (node `i`, column `col`) shows: the same text, or in an enumerated field's
+    /// column the same choice, by its code or by its words in a shipped language (FT-1338, ID-1392: such a cell reads
+    /// in the window's language, so a copy made in the other language pastes unchanged).
+    fn same_cell(&self, view: &TableView, i: u32, col: usize, text: &str) -> bool {
+        let Some(shown) = view.table.nodes[i as usize].cells.get(col) else {
+            return false;
+        };
+        if shown == text {
+            return true;
+        }
+        let Ok((kind, path)) = self.cell_route(view, i, col) else {
+            return false;
+        };
+        let Some(FieldType::Enum { options }) = ew_api::output::field_catalogue(&kind)
+            .and_then(|c| c.iter().find(|s| s.path == path).map(|s| s.ty.inner().clone()))
+        else {
+            return false;
+        };
+        let fold = |t: &str| t.trim().to_lowercase();
+        options.iter().any(|o| {
+            let means = |t: &str| {
+                fold(o) == fold(t)
+                    || strings::field_choice_texts(&kind, &path, o)
+                        .iter()
+                        .any(|w| fold(w) == fold(t))
+            };
+            means(shown) && means(text)
+        })
+    }
+
     fn cell_route(&self, view: &TableView, i: u32, col: usize) -> Result<(String, String), String> {
         let node = &view.table.nodes[i as usize];
         match cell_reason(&view.table, node, col) {
@@ -1352,9 +1382,7 @@ impl ShellModel {
                 let col = map.get(j).copied().flatten();
                 match (at, col) {
                     (Some(i), Some(c)) => {
-                        if view.table.nodes[i as usize].cells.get(c) == Some(text)
-                            && !self.defines(&view, i, c)
-                        {
+                        if self.same_cell(&view, i, c, text) && !self.defines(&view, i, c) {
                             continue;
                         }
                         cells.push(self.text_cell(&view, i, c, text));

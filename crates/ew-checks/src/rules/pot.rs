@@ -398,7 +398,7 @@ impl Rule for TypeOrVoltageConflict {
                         });
                     }
                     None => {
-                        message.push_str("; declare the bond with Draw ▸ Bond");
+                        message.push_str("; declare the bond with Draw ▸ Connect ▸ Bond");
                         hint = "bond";
                     }
                 }

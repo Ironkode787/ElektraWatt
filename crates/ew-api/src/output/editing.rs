@@ -124,6 +124,9 @@ pub struct CataloguePart {
     pub description: String,
     /// The manufacturer's name (the library record's, held or not; [`Session::library_manufacturer`]).
     pub manufacturer: String,
+    /// The part's ratings in words, its rated current, voltage and power in that order (`4 A · 230 V`), which tell
+    /// two parts of one kind apart (FT-1209, ID-1392); empty when it has none.
+    pub rating: String,
     /// The template's functions, in template order; empty for a held copy without a function template (FT-1375).
     pub functions: Vec<CatalogueTemplateFn>,
     /// The words the picker's filter matches besides the part number, the manufacturer and the FnDef keys (cycle 36:
@@ -358,9 +361,28 @@ fn catalogue_part(
         part_number: part.part_number.as_str().to_owned(),
         description: super::properties::neutral_or_first(&part.description),
         manufacturer: String::new(),
+        rating: rating_text(part),
         functions,
         words,
     })
+}
+
+/// A part's ratings in words ([`CataloguePart::rating`]): each of its rated current, voltage and power as
+/// `<value> <unit>`, joined by ` · `.
+fn rating_text(part: &Part) -> String {
+    ["rated_current", "rated_voltage", "rated_power"]
+        .iter()
+        .filter_map(|k| {
+            let t = part.tech_data.iter().find(|t| t.key.as_str() == *k)?;
+            let v = serde_json::to_value(&t.value).ok()?;
+            Some(format!(
+                "{} {}",
+                v.get("value")?.as_str()?,
+                v.get("unit")?.as_str()?
+            ))
+        })
+        .collect::<Vec<_>>()
+        .join(" \u{b7} ")
 }
 
 /// Every text of `m`: the neutral one, else each language's.

@@ -63,7 +63,7 @@ fn ft1023_a_renamed_point_says_its_base_is_taken_in_the_hud_and_the_toast() {
     let d = key_of(&s, "tool.ip_direction");
     assert_eq!(
         hud(&s),
-        format!("0V \u{b7} source: feeds its targets \u{b7} {d}: target")
+        format!("0V \u{b7} source: the wire continues at its targets \u{b7} {d}: target")
     );
     done(&mut s, "canvas.activate", json!({}));
     // The next proposal on the same page goes on from 0V, which has its source here.
@@ -75,7 +75,9 @@ fn ft1023_a_renamed_point_says_its_base_is_taken_in_the_hud_and_the_toast() {
     );
     assert_eq!(
         hud(&s),
-        format!("0V is taken, so this point is 0V-1. \u{b7} source: feeds its targets \u{b7} {d}: target")
+        format!(
+            "0V is taken, so this point is 0V-1. \u{b7} source: the wire continues at its targets \u{b7} {d}: target"
+        )
     );
     done(&mut s, "canvas.activate", json!({}));
     assert_eq!(toast(&s), "0V is taken, so this point is 0V-1.");
@@ -173,7 +175,7 @@ fn the_armed_ip_tools_hud_leads_with_its_name() {
     let d = key_of(&s, "tool.ip_direction");
     assert_eq!(
         hud(&s),
-        format!("IP \u{b7} source: feeds its targets \u{b7} {d}: target")
+        format!("IP \u{b7} source: the wire continues at its targets \u{b7} {d}: target")
     );
 }
 

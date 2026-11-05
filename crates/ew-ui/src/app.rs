@@ -162,11 +162,12 @@ pub trait Platform {
     }
 }
 
-/// Whether `ui.dismiss` goes to the open app menu (FT-1130, ID-1228 item 5): while it is open the menu (with its
+/// Whether `ui.dismiss` goes to an open menu (FT-1130, ID-1228 item 5; FT-1205): while one is open the menu (with its
 /// submenus) closes and nothing else runs, as Escape does. The one place the window's event loop and a visual script's
 /// action line both reach (FT-1188).
 pub(crate) fn menu_takes_dismiss(ctx: &egui::Context) -> bool {
-    if egui::Popup::is_id_open(ctx, crate::command_bar::app_menu_id()) {
+    // FT-1205 (ID-1392): any open menu, a context menu among them, takes it, not the app menu alone.
+    if egui::Popup::is_any_open(ctx) {
         egui::Popup::close_all(ctx);
         return true;
     }
@@ -1228,7 +1229,7 @@ impl App {
         let marks_before = (self.shell.revision(), self.shell.tool_overlay().len());
         for event in events {
             // FT-1130 (ID-1228 item 5): `ui.dismiss` while the app menu is open closes the menu and nothing else, as
-            // Escape does.
+            // Escape does; FT-1205 (ID-1392): so does any menu, a context menu among them.
             if matches!(event, Event::Action("ui.dismiss", _)) && menu_takes_dismiss(&ctx) {
                 continue;
             }
@@ -1302,9 +1303,8 @@ impl App {
             || self.shell.notifications().popup_open();
         let overlay = palette_open || dialog_open || picker_open;
         // WP-S2.17 part 2: Escape closes the app menu (with its submenus), then the collapsed bar's command-row popover.
-        if egui::Popup::is_id_open(ctx, crate::command_bar::app_menu_id())
-            && ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape))
-        {
+        // FT-1205 (ID-1392): any open menu, a context menu among them, closes and nothing else (the selection stays).
+        if egui::Popup::is_any_open(ctx) && ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape)) {
             egui::Popup::close_all(ctx);
             return;
         }

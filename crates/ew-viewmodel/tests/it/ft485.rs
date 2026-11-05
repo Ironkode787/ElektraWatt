@@ -276,10 +276,10 @@ fn item9_an_unused_strip_is_listed_with_its_alias_and_deleted_by_delete() {
     let mut s = new_project(&tmp);
     done(&mut s, "strip.new", json!({"letter": "X"}));
     // Item 1: the toast says where the strip shows. FT-893: not its `-X??` tag; the tag it takes with its first
-    // terminal on page 101, a fresh multi-line page, by the strip scheme `{letter}{page}{counter}`.
+    // terminal on page 101, a fresh multi-line page, by the project's scheme `{page}{letter}{counter}` (FT-1403).
     assert_eq!(
         toast(&s),
-        "Created a terminal strip. It takes its tag, such as -X1011, when its first terminal is placed: Draw \u{25b8} \
+        "Created a terminal strip. It takes its tag, such as -101X1, when its first terminal is placed: Draw \u{25b8} \
          Symbol\u{2026} and the terminal symbol, whose strip picker lists it."
     );
     // The terminal symbol opens the strip picker, whose row ends with the strip's alias.

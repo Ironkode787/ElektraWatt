@@ -490,15 +490,14 @@ fn ft1279_the_view_menu_fits_a_1000_by_700_window() {
             outside.push(format!("{label} at {r:?}"));
         }
     }
-    for show in [
-        "Grid",
-        "Frame statistics",
-        "Use the CPU renderer for the canvas",
-        "Wire colours",
-    ] {
+    // FT-1367 (ID-1392): Show tips joined the Show group, which has four entries now and so is a submenu (doc 16a
+    // §9.2): Grid, Frame statistics and the CPU canvas are reached through it.
+    for show in ["Show", "Wire colours"] {
         assert!(seen.iter().any(|s| s == show), "{show} in {seen:?}");
     }
     assert_eq!(outside, Vec::<String>::new());
+    support::menu_node(&h, "Show").click();
+    settle(&mut h);
     support::menu_node(&h, "Grid").click();
     settle(&mut h);
     assert!(!h.state().shell().grid_on());

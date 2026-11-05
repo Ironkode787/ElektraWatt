@@ -1457,3 +1457,25 @@ fn ft900_a_placement_selects_what_it_placed_and_the_tool_stays_armed() {
     assert_eq!(s.tool().name(), "place");
     assert_eq!(s.tool().state(), "floating");
 }
+
+/// FT-1209 (ID-1392): a part row carries its rating beside its part number, which tells two parts of one kind apart:
+/// the starter fuse EW-GEN-FUS-1 is rated 4 A.
+#[test]
+fn a_part_row_carries_its_rating() {
+    use ew_viewmodel::tools::PickerRow;
+    let tmp = Tmp::new("picker-rating");
+    let mut s = shell(&tmp, "101");
+    done(&mut s, "tool.place", json!({}));
+    done(&mut s, "picker.filter", json!({"text": "EW-GEN-FUS-1"}));
+    let p = s.picker().expect("the picker");
+    let ratings: Vec<(String, String)> = p
+        .rows
+        .iter()
+        .filter_map(|r| match r {
+            PickerRow::PartFn(i, _) => Some(&p.catalogue.parts[*i]),
+            _ => None,
+        })
+        .map(|part| (part.part_number.clone(), part.rating.clone()))
+        .collect();
+    assert_eq!(ratings, [("EW-GEN-FUS-1".to_owned(), "4 A".to_owned())]);
+}

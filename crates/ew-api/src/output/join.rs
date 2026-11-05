@@ -241,6 +241,12 @@ impl Session {
         q.devices().contains(id).then(|| tag_of(&q, id))
     }
 
+    /// The numbering format a new terminal strip of letter `letter` takes (`{page}{letter}{counter}`;
+    /// `ew_derive::strip_format`, FT-1403).
+    pub fn strip_format(&self, letter: &str) -> String {
+        ew_derive::strip_format(&self.query(), letter)
+    }
+
     /// Why the channel `channel` cannot bind a CP of `function`, before `plc.bind_channel` runs (cycle 38, FX38d): the
     /// function's device tag and the channel's module tag when the function is not on that module or one of its
     /// children ([`ew_commands::commands::is_on_module`], the rule the command applies); `None` when it is, or when

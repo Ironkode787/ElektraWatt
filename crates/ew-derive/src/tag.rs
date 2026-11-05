@@ -336,6 +336,24 @@ pub fn rule_product(q: &Q, device: Id<Device>) -> Option<(String, TagSource)> {
     Some((product, source))
 }
 
+/// The numbering format a new terminal strip of letter `letter` takes (a device with the `strip` aspect, the default
+/// scheme and no kind, FT-1403): the applied scheme's first matching rule's format, else the scheme's.
+pub fn strip_format(q: &Q, letter: &str) -> String {
+    let settings = q.get::<profile::NumberingSettingsOf>(());
+    let scheme = applied_scheme(q, settings.as_ref().as_ref(), None);
+    scheme
+        .rules
+        .iter()
+        .find(|r| {
+            let s = &r.select;
+            s.aspect.as_deref().is_none_or(|a| a == "strip")
+                && s.letter.as_deref().is_none_or(|l| l == letter)
+                && s.kind.is_none()
+        })
+        .map_or(scheme.format.as_str(), |r| r.format.as_str())
+        .to_owned()
+}
+
 fn rule_designation(q: &Q, id: Id<Device>, dev: &Device) -> (String, Option<String>, bool, TagSource) {
     if let Some(t) = &dev.aspects.terminal {
         // The strip edge of the inheritance graph (EW-INV-015): a cycle prints "?" instead of panicking.

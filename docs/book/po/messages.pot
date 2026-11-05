@@ -664,9 +664,9 @@ msgstr ""
 msgid ""
 "Choose **Output ▸ Export PDF…** (`Ctrl+Shift+E`) and save the file as "
 "`reports.pdf`. When the export is done, the toast says \"Exported "
-"reports.pdf: 41 pages\", with the file's size. Open the file from the toast "
-"to see it: one PDF/A-2b file with every page, its outline and its "
-"cross-reference links."
+"reports.pdf: 13 drawing pages, 3 section divider pages and 25 report "
+"pages\", with the file's size. Open the file from the toast to see it: one "
+"PDF/A-2b file with every page, its outline and its cross-reference links."
 msgstr ""
 
 #: src/tutorials/reports-and-pdf.md:31

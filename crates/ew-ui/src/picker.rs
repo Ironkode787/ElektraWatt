@@ -284,10 +284,17 @@ fn row_texts(
             // FT-664: the function in words, never an ID; the tooltip adds the FnDef key that scripts name. FT-712:
             // the description leads (the part number when the part has none), the part number follows it, and the
             // tooltip starts with the whole description.
-            let (name, second) = if part.description.is_empty() {
-                (part.part_number.clone(), None)
+            // FT-1209 (ID-1392): the part number and the rating tell two parts of one kind apart ("Fuse holder with
+            // fuse link", "EW-GEN-FUS-1 · 4 A").
+            let number = if part.rating.is_empty() {
+                part.part_number.clone()
             } else {
-                (part.description.clone(), Some(part.part_number.clone()))
+                format!("{} \u{b7} {}", part.part_number, part.rating)
+            };
+            let (name, second) = if part.description.is_empty() {
+                (number, None)
+            } else {
+                (part.description.clone(), Some(number))
             };
             let mut tip = String::new();
             if !part.description.is_empty() {

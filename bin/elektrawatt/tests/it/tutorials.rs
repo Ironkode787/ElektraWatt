@@ -559,7 +559,9 @@ fn tutorial_4_reports_and_pdf_runs_as_its_page_says() {
     );
     let toast = lines_of(&end, &["toast \"Exported"]);
     assert!(
-        toast.len() == 1 && toast[0].starts_with("toast \"Exported reports.pdf: 41 pages, "),
+        toast.len() == 1 && toast[0].starts_with(
+                "toast \"Exported reports.pdf: 13 drawing pages, 3 section divider pages and 25 report pages, "
+            ),
         "{toast:?}"
     );
     assert!(tmp.path("reports.pdf").is_file());

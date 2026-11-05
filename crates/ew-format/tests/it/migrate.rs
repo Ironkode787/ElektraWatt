@@ -456,8 +456,8 @@ fn a_migrated_library_document_that_ends_opaque_refuses_the_load() {
     assert_eq!(
         refusal(&CHAIN, &twice),
         format!(
-            "{second}: once migrated, fndef:5d1ab4de-706a-5b85-b463-8b15311c4f39 duplicates the document of {lib}; \
-             remove one of the two files and open the project again"
+            "{second}: once migrated, this file holds a function definition (version 0.1.0), which another library \
+             file holds too; remove one of the two files and open the project again"
         )
     );
 }

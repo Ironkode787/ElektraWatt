@@ -223,6 +223,28 @@ fn term002_prevent_cases() {
     }
 }
 
+/// FT-1399 (ID-1392): EW-TERM-001 runs in prevent mode too (doc 15 §4.4). `Ident` refuses an empty or blank
+/// designation, so no snapshot holds the violation; a batch that designates, renumbers or adds terminals passes it.
+#[test]
+fn term001_prevent_passes_every_designated_batch() {
+    let meta = ew_checks::rule("EW-TERM-001").expect("registered").meta();
+    assert!(meta.modes.prevent);
+    assert_eq!(
+        ew_derive::ew_mltext::Ident::from_input(" ")
+            .map(|i| i.as_str().to_owned())
+            .ok(),
+        None,
+        "a blank designation is no identifier"
+    );
+    let before = model(three_terminals(["1", "2", "3"]));
+    let mut records = three_terminals(["3", "1", "2"]);
+    records.push(terminal(0x104, STRIP, 4, "4"));
+    let after = model(records);
+    let touched = [dev_key(0x101), dev_key(0x102), dev_key(0x103), dev_key(0x104)];
+    let v = prevent(&Q::new(&before), &Q::new(&after), &touched);
+    assert!(v.iter().all(|f| f.rule != "EW-TERM-001"), "{v:#?}");
+}
+
 /// A strip with a rail-bonded terminal; `pe` gives it a function with a PE CP, `bonded` the flag.
 fn rail_strip(pe: bool, bonded: bool) -> ew_model::Model {
     let mut fx = Fx::base();
