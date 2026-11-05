@@ -557,14 +557,70 @@ pub const IMPURE_NAMES: [&str; 7] = [
     "Command::new",
 ];
 
-/// The lines of `text` (the source file `file`) that name one of [`IMPURE_NAMES`], as violations. Comment lines and
-/// `#[cfg(test)]` items (to their closing brace) are skipped.
+/// The `std` module a grouped import `use std::{…}` names among its direct members (`fs`, `env`, `net`, `process`), as
+/// its [`IMPURE_NAMES`] entry. `depth` is the group's brace depth, carried from line to line (0: outside a group).
+fn grouped_std_module(code: &str, depth: &mut i64) -> Option<&'static str> {
+    let rest = if *depth > 0 {
+        code
+    } else {
+        &code[code.find("std::{")? + "std::".len()..]
+    };
+    // The last non-blank character before the current word: a member starts after `{` or `,`.
+    let mut prev = if *depth > 0 { ',' } else { ' ' };
+    let mut word = String::new();
+    let mut found = None;
+    for c in rest.chars().chain([' ']) {
+        if c.is_alphanumeric() || c == '_' {
+            word.push(c);
+            continue;
+        }
+        if !word.is_empty() {
+            if *depth == 1 && found.is_none() && matches!(prev, '{' | ',') {
+                found = match word.as_str() {
+                    "fs" => Some("std::fs"),
+                    "env" => Some("std::env"),
+                    "net" => Some("std::net"),
+                    "process" => Some("std::process"),
+                    _ => None,
+                };
+            }
+            word.clear();
+            prev = 'a';
+        }
+        match c {
+            '{' => *depth += 1,
+            '}' => *depth -= 1,
+            _ => {}
+        }
+        if *depth <= 0 {
+            *depth = 0;
+            break;
+        }
+        if !c.is_whitespace() {
+            prev = c;
+        }
+    }
+    found
+}
+
+/// The lines of `text` (the source file `file`) that name one of [`IMPURE_NAMES`], or one of their modules inside a
+/// grouped `use std::{…}`, as violations. Comment lines and `#[cfg(test)]` items (to their closing brace or `;`, on the
+/// attribute's own line too) are skipped.
 pub fn impure_lines(file: &str, text: &str) -> Vec<String> {
     let mut out = Vec::new();
     // Inside a `#[cfg(test)]` item: its brace depth, and whether its first brace was seen.
     let mut skip: Option<(i64, bool)> = None;
+    // Inside a grouped `use std::{…}`: its brace depth.
+    let mut group = 0;
     for (n, line) in text.lines().enumerate() {
-        let code = line.trim_start();
+        let mut code = line.trim_start();
+        if skip.is_none() {
+            if let Some(rest) = code.strip_prefix("#[cfg(test)]") {
+                // The item may start on the attribute's own line.
+                skip = Some((0, false));
+                code = rest.trim_start();
+            }
+        }
         if let Some((depth, opened)) = skip.as_mut() {
             for c in code.chars() {
                 match c {
@@ -578,14 +634,16 @@ pub fn impure_lines(file: &str, text: &str) -> Vec<String> {
             }
             continue;
         }
-        if code.starts_with("#[cfg(test)]") {
-            skip = Some((0, false));
-            continue;
-        }
         if code.starts_with("//") {
             continue;
         }
-        if let Some(name) = IMPURE_NAMES.iter().find(|name| code.contains(*name)) {
+        let grouped = grouped_std_module(code, &mut group);
+        if let Some(name) = IMPURE_NAMES
+            .iter()
+            .copied()
+            .find(|name| code.contains(*name))
+            .or(grouped)
+        {
             out.push(format!(
                 "importer purity (NFR-SEC-18): {file}:{} names `{name}`; an importer reads only the bytes it is given",
                 n + 1
@@ -1075,12 +1133,16 @@ mod tests {
     /// module; the workspace's importers pass it.
     #[test]
     fn the_importer_purity_check_finds_file_access_and_passes_the_workspace() {
-        let fixture = "use std::fs;\n// std::net in a comment\nfn f() { let _ = File::open(\"x\"); }\n#[cfg(test)]\nmod tests {\n    use std::env;\n}\nfn g() {}\n";
+        // FT-1385: a one-line `#[cfg(test)] use …;` skips only itself, and a grouped import names its module.
+        let fixture = "use std::fs;\n// std::net in a comment\nfn f() { let _ = File::open(\"x\"); }\n#[cfg(test)]\nmod tests {\n    use std::env;\n}\nfn g() {}\n#[cfg(test)] use std::net;\nuse std::process;\nuse std::{fs::read, env};\nuse std::{\n    io::Read,\n    env,\n};\nuse std::{collections::HashMap, io::{self, Read}};\n";
         assert_eq!(
             impure_lines("crates/ew-import-x/src/lib.rs", fixture),
             [
                 "importer purity (NFR-SEC-18): crates/ew-import-x/src/lib.rs:1 names `std::fs`; an importer reads only the bytes it is given",
                 "importer purity (NFR-SEC-18): crates/ew-import-x/src/lib.rs:3 names `File::`; an importer reads only the bytes it is given",
+                "importer purity (NFR-SEC-18): crates/ew-import-x/src/lib.rs:10 names `std::process`; an importer reads only the bytes it is given",
+                "importer purity (NFR-SEC-18): crates/ew-import-x/src/lib.rs:11 names `std::fs`; an importer reads only the bytes it is given",
+                "importer purity (NFR-SEC-18): crates/ew-import-x/src/lib.rs:14 names `std::env`; an importer reads only the bytes it is given",
             ]
         );
         let v = importer_purity(&crate::workspace_root()).expect("the importer sources read");
