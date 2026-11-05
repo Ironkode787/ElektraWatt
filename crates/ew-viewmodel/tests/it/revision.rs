@@ -862,6 +862,27 @@ fn ruling1_ruling4_golden_a_counts_its_blockers_in_words() {
     s.shutdown();
 }
 
+/// ID-1389 (W51 finding F): in nl-NL the Approve and Release dialogs list the gate's findings in Dutch, as Messages
+/// renders them, never the English message.
+#[test]
+fn the_revision_dialogs_list_the_findings_in_dutch() {
+    let tmp = Tmp::new("revision-nl");
+    let mut s = tmp.shell_in(Mode::Headless, true, "101");
+    done(&mut s, "view.language", json!({ "value": "nl" }));
+    done(&mut s, "revision.approve", json!({}));
+    let approve = s.revision_list().to_vec();
+    done(&mut s, "revision.approve", json!({ "cancel": true }));
+    done(&mut s, "revision.release", json!({}));
+    let release = s.revision_list().to_vec();
+    let first = [
+        "=P01+J-E-2416-3W1 heeft geen gerouteerde, handmatige of artikellengte",
+        "101.8: PE-draad 101.8 heeft 1.5 mm², minder dan de 2.5 mm² die nodig is voor de lijngeleiders van 2.5 mm² bij \
+         1X1 (de dimensioneringstabel is niet getoetst aan de norm)",
+    ];
+    assert_eq!((&approve[..2], &release[..2]), (&first.map(String::from)[..], &first.map(String::from)[..]));
+    s.shutdown();
+}
+
 /// Cycle 41, ruling 4 ("the purge's origin": a scripted purge is refused): the scripted window opens the purge
 /// confirmation but its confirm is refused and deletes nothing; the headless shell refuses the action.
 #[test]

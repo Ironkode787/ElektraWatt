@@ -113,12 +113,14 @@ fn path_free(text: &str, paths: &[PathBuf]) -> String {
     out
 }
 
-/// One finding as a dialog lists it: its subject and message in words (no rule ID).
+/// One finding as a dialog lists it: its subject and message in words (no rule ID), the message in the UI language as
+/// Messages renders it (ID-1389, W51 finding F).
 fn finding_line(f: &Finding) -> String {
-    if f.subject.is_empty() || f.message.starts_with(&f.subject) {
-        f.message.clone()
+    let message = ew_api::checks::messages::render(f, strings::rule_language());
+    if f.subject.is_empty() || message.starts_with(&f.subject) {
+        message
     } else {
-        strings::format(key!("revision-finding"), &[&f.subject, &f.message])
+        strings::format(key!("revision-finding"), &[&f.subject, &message])
     }
 }
 
