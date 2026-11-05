@@ -141,6 +141,18 @@ impl Model {
         records: impl IntoIterator<Item = Record>,
         lib: impl IntoIterator<Item = LibDocument>,
     ) -> Result<Model, ModelError> {
+        Model::from_records_missing(project, records, lib, &BTreeSet::new())
+    }
+
+    /// [`Model::from_records`] for a project whose library copies `missing` could not be read (FT-1383, ID-1395): a
+    /// record that names one of them is no EW-INV-001 here, so the project opens (read-only, the loader's finding
+    /// naming the copy); an edit that touches such a record is still refused by EW-INV-001.
+    pub fn from_records_missing(
+        project: Project,
+        records: impl IntoIterator<Item = Record>,
+        lib: impl IntoIterator<Item = LibDocument>,
+        missing: &BTreeSet<AnyKey>,
+    ) -> Result<Model, ModelError> {
         let mut m = Model::new(project);
         let mut duplicates = BTreeSet::new();
         let mut unknown = Vec::new();
@@ -193,7 +205,9 @@ impl Model {
         m.unknown = Arc::new(unknown);
         m.unknown_lib = Arc::new(unknown_lib);
         m.idx = BaseIndexes::rebuild(&m);
-        m.integrity_check()?;
+        let mut scope = Scope::full(&m);
+        scope.missing = missing.clone();
+        invariants::check(&m, &scope)?;
         Ok(m)
     }
 

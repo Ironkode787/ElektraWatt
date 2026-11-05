@@ -433,3 +433,46 @@ fn a_cloud_synced_open_reads_a_missing_file_again_after_five_seconds() {
     assert!(opened.report.findings.is_empty(), "{:?}", opened.report.findings);
     assert_eq!(opened.report.access, Access::Edit);
 }
+
+/// FT-1383 (ID-1395): one damaged library copy that a device names (a part copy cut short, so the loader drops it)
+/// no longer refuses the whole project with EW-INV-001: the project opens read-only, its finding naming the copy's
+/// file, and the copy is not in the model. A repair open of it stays read-only too.
+#[test]
+fn a_damaged_copy_a_device_names_opens_read_only_with_its_finding() {
+    let files = fixture();
+    let copy = files
+        .iter()
+        .filter(|(name, _)| name.starts_with("devices/"))
+        .find_map(|(_, bytes)| {
+            let text = String::from_utf8_lossy(bytes);
+            let at = text.find("\"copy\":\"")? + "\"copy\":\"".len();
+            Some(text[at..at + 36].to_owned())
+        })
+        .expect("a device names a part copy");
+    let path = format!("lib/parts/{copy}.json");
+    assert!(files.contains_key(&path), "{path}");
+    let (vfs, root) = mem_project(DirSync::Explicit);
+    vfs.put(&join(&root, &path), b"{\"$k\": \"part\",\n");
+
+    let Opened { model, report, store } = Store::open(&root, options(&vfs, 1)).expect("opens");
+    assert_eq!(report.access, Access::ReadOnly(ReadOnlyReason::Integrity));
+    assert!(
+        report
+            .findings
+            .iter()
+            .any(|f| f.file.as_ref().is_some_and(|p| p.as_str() == path)),
+        "{:?}",
+        report.findings
+    );
+    let id = ew_store::ew_format::ew_schema::AnyId::from_uuid(copy.parse().unwrap());
+    let key = (ew_store::ew_format::ew_schema::Kind::Part, id);
+    assert!(!model.contains(&key), "the damaged copy is not loaded");
+    assert!(
+        model.integrity_check().is_err(),
+        "a device names the missing copy"
+    );
+    store.close();
+    let opened = Store::open(&root, repair_options(&vfs, 1)).expect("opens");
+    assert_eq!(opened.report.access, Access::ReadOnly(ReadOnlyReason::Integrity));
+    opened.store.close();
+}

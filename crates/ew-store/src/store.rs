@@ -1274,7 +1274,23 @@ impl Store {
         let Some(project) = loaded.project else {
             return Err(OpenError::NoProject(findings));
         };
-        let mut model = match Model::from_records(project, loaded.records, loaded.lib) {
+        // FT-1383 (ID-1395): the library copies of the documents with a finding, which the loader may have dropped. A
+        // record that names one is no EW-INV-001 at this open: the project opens read-only, the finding naming the
+        // copy's file, and the user updates the copy from its library.
+        let missing: BTreeSet<AnyKey> = findings
+            .iter()
+            .filter_map(|f| match classify(f.file.as_ref()?.as_str()) {
+                PathClass::LibDocument { id, .. } => Some(id),
+                _ => None,
+            })
+            .flat_map(|id| {
+                ew_format::ew_schema::Kind::ALL
+                    .into_iter()
+                    .filter(|k| k.is_library())
+                    .map(move |k| (k, id))
+            })
+            .collect();
+        let mut model = match Model::from_records_missing(project, loaded.records, loaded.lib, &missing) {
             Ok(m) => m,
             Err(error) => return Err(OpenError::Model { error, findings }),
         };
@@ -1288,7 +1304,9 @@ impl Store {
         let forced = findings
             .iter()
             .any(|f| f.kind.forces_read_only() && !(repair && f.is_broken_line()));
-        if !repairable || loader_read_only || forced {
+        // A record that names a copy the loader dropped: never an editable session, a repair open included.
+        let dangling = !missing.is_empty() && model.integrity_check().is_err();
+        if !repairable || loader_read_only || forced || dangling {
             self.demote(ReadOnlyReason::Integrity);
         }
 

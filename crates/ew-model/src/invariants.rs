@@ -268,6 +268,8 @@ pub(crate) struct Scope {
     pub(crate) before: BTreeMap<AnyKey, Option<AnyRow>>,
     /// The batch is an edit ([`Model::apply_with`]): the rules that judge what an edit adds (EW-INV-023) run.
     pub(crate) edit: bool,
+    /// The library copies a load could not read (FT-1383): a reference to one is no EW-INV-001 at that load.
+    pub(crate) missing: BTreeSet<AnyKey>,
 }
 
 impl Scope {
@@ -285,6 +287,7 @@ impl Scope {
             keys,
             before: BTreeMap::new(),
             edit: false,
+            missing: BTreeSet::new(),
         }
     }
 
@@ -362,7 +365,11 @@ fn refs_resolve(m: &Model, scope: &Scope) -> Result<(), ModelError> {
                                 .iter()
                                 .any(|k| get_row(m, &(*k, t.id())).is_some())
                         };
-                        if !present && !link.lib_ref && !link.load_tolerant {
+                        if !present
+                            && !link.lib_ref
+                            && !link.load_tolerant
+                            && !scope.missing.contains(&target)
+                        {
                             return Err(violation(
                                 REFS_RESOLVE,
                                 format!(
