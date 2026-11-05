@@ -806,3 +806,43 @@ fn entries_about_emitted_records_name_them() {
         all_entries(&imported)
     );
 }
+
+/// ID-1392 (FT-1386): EW-IMP-103's label kept as a frozen tag offers the deterministic remedy as its quick fix,
+/// Unfreeze (`fields.set` of `tag.frozen` to null); running it unfreezes the tag, and the finding then offers none.
+#[test]
+fn a_label_kept_as_a_frozen_tag_offers_unfreeze() {
+    let text = qet(
+        r#"version="0.100""#,
+        &[folio(
+            "1",
+            "A",
+            vec![
+                el(SIMPLE, uuid(1), 100, 100).label("-K1"),
+                el(SIMPLE, uuid(2), 300, 100).label("K\t1"),
+            ],
+        )],
+    );
+    let mut s = import(&text).session.expect("the session opens");
+    let finding = |s: &ew_api::Session| {
+        s.check(&ew_api::checks::MIGRATION, ew_api::checks::CheckMode::Release)
+            .findings
+            .into_iter()
+            .find(|f| f.rule == "EW-IMP-103")
+            .expect("the frozen label is listed")
+    };
+    let f = finding(&s);
+    let device = f.targets[0].id.to_string();
+    let fix = f.fix.expect("a quick fix");
+    assert_eq!(fix.label, "Unfreeze the tag");
+    assert_eq!(fix.command, "fields.set");
+    assert_eq!(
+        fix.params,
+        serde_json::json!({"kind": "device", "targets": [device], "path": "tag.frozen", "value": null})
+    );
+    s.execute(&ew_api::AnyCommand {
+        name: fix.command.into(),
+        params: fix.params,
+    })
+    .expect("the quick fix runs");
+    assert_eq!(finding(&s).fix, None);
+}

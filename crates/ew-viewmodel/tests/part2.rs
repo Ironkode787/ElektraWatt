@@ -394,8 +394,11 @@ fn a_qelectrotech_project_is_imported_into_a_new_directory() {
     assert_eq!(shell.access(), Some(AccessMode::Edit));
     assert!(!shell.is_dirty());
     assert_eq!(shell.page_count(), 1);
-    let banner = shell.banner().unwrap_or_default().to_owned();
-    assert!(banner.contains("Imported example.qet: 1 pages"), "{banner}");
+    // ID-1392 (FT-1397): the banner counts the migration report's findings, as the card does, with plural forms.
+    assert_eq!(
+        shell.banner(),
+        Some("Imported example.qet: 1 page, 0 devices, 0 findings in the migration report.")
+    );
     assert!(dir.join("manifest.json").is_file());
     // WP-S3.09 D8, D9 d (T11): the new project opens on its migration report in Messages, a choice beside the
     // project's scheme.
@@ -420,6 +423,51 @@ fn a_qelectrotech_project_is_imported_into_a_new_directory() {
     plain.shutdown();
 }
 
+/// ID-1392 (FT-1386): the migration report's EW-IMP-103 row offers its quick fix, and `messages.fix` previews it from
+/// the report the pane shows.
+#[test]
+fn a_migration_report_row_previews_its_quick_fix() {
+    use ew_viewmodel::navigators::{NavKind, NavRole};
+    let tmp = Tmp::new();
+    let qet = tmp.0.join("lamp-circuit.qet");
+    std::fs::copy(
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../docs/book/src/tutorials/files/lamp-circuit.qet"),
+        &qet,
+    )
+    .unwrap();
+    let dir = tmp.0.join("lamp.ew");
+    let mut shell = tmp.shell();
+    done(
+        &mut shell,
+        "file.import_qet",
+        json!({ "file": path(&qet), "dir": path(&dir) }),
+    );
+    done(&mut shell, "file.import_qet_apply", json!({ "confirm": true }));
+    // FT-1397: the banner's count is the report's (8 warnings and 5 infos).
+    assert_eq!(
+        shell.banner(),
+        Some("Imported lamp-circuit.qet: 1 page, 4 devices, 13 findings in the migration report.")
+    );
+    assert!(shell.messages_shows_migration());
+    done(&mut shell, "messages.show", json!({"on": true}));
+    let row = shell
+        .nav(NavKind::Messages)
+        .and_then(|n| n.table())
+        .expect("the Messages table")
+        .nodes
+        .iter()
+        .find(|n| n.role == NavRole::Finding && n.cells[1] == "EW-IMP-103")
+        .cloned()
+        .expect("an EW-IMP-103 row");
+    assert_eq!(row.cells[5], "Unfreeze the tag");
+    let rev = shell.revision();
+    done(&mut shell, "messages.fix", json!({"key": row.key}));
+    assert_eq!(shell.revision(), rev, "the fix is previewed first");
+    let card = shell.properties().card().expect("the quick-fix card");
+    assert_eq!(card.preview.name, "fields.set");
+    shell.shutdown();
+}
+
 /// WP-S3.09 D4: in the window the importer runs as a job: the step returns at once with the banner, and the job's end
 /// opens the import card.
 #[test]
@@ -439,6 +487,8 @@ fn the_window_imports_as_a_job() {
     assert!(gui.wait_jobs().is_empty());
     let spec = ew_viewmodel::dialogs::spec(gui.dialog().expect("the import card"), &gui);
     assert_eq!(spec.title, "Import example.qet");
+    // ID-1392 (FT-1391): the job's end takes the "Importing…" banner away while the card is open.
+    assert_eq!(gui.banner(), None);
     assert!(!dir.exists(), "the card writes nothing");
 }
 
@@ -681,6 +731,7 @@ fn the_window_re_imports_as_a_job() {
         panic!("the re-import card: {:?}", gui.dialog());
     };
     assert_eq!(rows, &["Changed in the source: page 1".to_owned()]);
+    assert_eq!(gui.banner(), None, "the job's end takes its banner away");
     gui.shutdown();
 }
 

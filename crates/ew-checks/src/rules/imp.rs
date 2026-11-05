@@ -325,12 +325,41 @@ impl Rule for ImportEntries {
                         command: fix.command.clone(),
                         params: fix.params.clone(),
                     });
+                } else if let Some(fix) = remedy(q, self.0.id, &f.targets) {
+                    f = f.with_fix(fix);
                 }
                 out.push(f);
             }
         }
         out
     }
+}
+
+/// The quick fix of an entry that names none, for the one rule whose remedy is deterministic (ID-1392, FT-1386):
+/// EW-IMP-103's label kept as a frozen tag is unfrozen (`fields.set` of `tag.frozen` to null, the property grid's
+/// Unfreeze), while the device's tag is still frozen. Every other EW-IMP rule's remedy asks for a judgement or a
+/// value (a label to give, a record to delete, a version to keep), so it offers none.
+fn remedy(q: &Q, rule: &str, targets: &[Target]) -> Option<QuickFix> {
+    if rule != "EW-IMP-103" {
+        return None;
+    }
+    let devices = q.devices();
+    let ids: Vec<String> = targets
+        .iter()
+        .filter(|t| t.kind == Kind::Device)
+        .filter(|t| devices.get(t.id.cast()).is_some_and(|d| d.tag.frozen.is_some()))
+        .map(|t| t.id.to_string())
+        .collect();
+    (!ids.is_empty()).then(|| QuickFix {
+        label: "Unfreeze the tag".to_owned(),
+        command: "fields.set".to_owned(),
+        params: serde_json::json!({
+            "kind": "device",
+            "targets": ids,
+            "path": "tag.frozen",
+            "value": null,
+        }),
+    })
 }
 
 /// The fixed pairs of doc 14 §2.5's "one row per condition": an import code and the live rule that reports the same

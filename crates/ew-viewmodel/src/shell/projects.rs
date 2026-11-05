@@ -13,8 +13,8 @@ use std::path::{Path, PathBuf};
 
 use ew_api::ew_jobs::{Job, JobEnd, JobOptions};
 use ew_api::import::{
-    Detected, ImportBatch, LineageInfo, QetLineages, Refusal, ReimportClass, ReimportError, Severity,
-    StarterLibrary, detect_qet_reimport, import_qet_batch, imported_of, migration_counts, reimport_qet_batch,
+    Detected, ImportBatch, LineageInfo, QetLineages, Refusal, ReimportClass, ReimportError, StarterLibrary,
+    detect_qet_reimport, import_qet_batch, imported_of, migration_counts, reimport_qet_batch,
 };
 use ew_api::{NewProjectKind, ProjectTemplate, Recovery, Session};
 use serde_json::{Map, Value};
@@ -532,13 +532,6 @@ impl ShellModel {
             }
         };
         let counts = imported.counts();
-        let findings = imported
-            .batch
-            .report
-            .entries
-            .iter()
-            .filter(|e| e.severity != Severity::Info)
-            .count();
         let session = match imported.session {
             Ok(s) => s,
             Err(reason) => {
@@ -547,22 +540,31 @@ impl ShellModel {
                 return Outcome::Failed { message };
             }
         };
+        // WP-S3.09 D8: the import card first (its summary and pages); Apply asks the checkpoint confirmation, then
+        // writes and opens the project. Cancel writes nothing.
+        let (errors, warnings, infos) = migration_counts(&session);
+        // ID-1392 (FT-1397, FT-1391): the banner counts the migration report's findings, as the card does, each count
+        // with its plural form; it replaces the "Importing…" banner.
         let mut banner = strings::format(
             key!("banner-imported"),
             &[
                 &name,
-                &counts.pages.to_string(),
-                &counts.devices.to_string(),
-                &findings.to_string(),
+                &strings::format_count(crate::count_key!("import-card-pages"), counts.pages),
+                &strings::format_count(crate::count_key!("import-card-devices"), counts.devices),
+                &strings::format_count(
+                    crate::count_key!("import-card-findings"),
+                    errors + warnings + infos,
+                ),
             ],
         );
         if let Some(note) = library_note {
             banner.push(' ');
             banner.push_str(note);
         }
-        // WP-S3.09 D8: the import card first (its summary and pages); Apply asks the checkpoint confirmation, then
-        // writes and opens the project. Cancel writes nothing.
-        let (errors, warnings, infos) = migration_counts(&session);
+        let importing = strings::format(key!("banner-importing"), &[&name]);
+        if self.banner.as_deref() == Some(importing.as_str()) {
+            self.banner = None;
+        }
         // ID-1376: each count with its plural form ("1 page").
         let summary = strings::format(
             key!("import-card-summary"),
@@ -774,11 +776,12 @@ impl ShellModel {
         path: PathBuf,
         epoch: u64,
     ) -> Outcome {
+        // ID-1392 (FT-1391): the job's end takes its own "Importing…" banner away, whatever follows.
+        let importing = strings::format(key!("banner-importing"), &[&name]);
+        if self.banner.as_deref() == Some(importing.as_str()) {
+            self.banner = None;
+        }
         if self.project.as_ref().is_none_or(|p| p.epoch != epoch) {
-            let importing = strings::format(key!("banner-importing"), &[&name]);
-            if self.banner.as_deref() == Some(importing.as_str()) {
-                self.banner = None;
-            }
             return Outcome::Done;
         }
         let found = match end {
@@ -834,7 +837,9 @@ impl ShellModel {
                 &n(ReimportClass::Unchanged),
             ],
         );
-        let value = ew_api::import::member_text;
+        // ID-1392 (FT-1387): each member's values in words, as the property grid shows them.
+        let session = &project.session;
+        let value = |m: &str, v: Option<&Value>, kind: &str| session.member_words(kind, m, v);
         let mut rows = Vec::new();
         for row in &reimport.plan.rows {
             let key = match row.class {
@@ -855,9 +860,9 @@ impl ShellModel {
                     key!("reimport-row-member"),
                     &[
                         &strings::field_label(row.key.0.name(), &m.path),
-                        &value(m.ours.as_ref()),
+                        &value(&m.path, m.ours.as_ref(), row.key.0.name()),
                         &name,
-                        &value(m.theirs.as_ref()),
+                        &value(&m.path, m.theirs.as_ref(), row.key.0.name()),
                     ],
                 ));
             }

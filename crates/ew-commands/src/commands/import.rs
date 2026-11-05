@@ -100,8 +100,8 @@ pub struct ReimportPlan {
     pub rows: Vec<ReimportRow>,
     /// The records applied: added and changed in the source.
     pub apply: Vec<Record>,
-    /// The hashes the new run carries for the records kept (unchanged, kept with this project's changes, conflicts,
-    /// removed in the source).
+    /// The hashes the new run carries for the records kept (unchanged, kept with this project's changes, conflicts);
+    /// a record removed in the source carries none (ID-1392).
     pub carried: BTreeMap<AnyId, RecordHash>,
     /// The EW-IMP-011 entries of the conflicts and the EW-IMP-010 entries of the removals, in that order.
     pub entries: Vec<ew_schema::RunEntry>,
@@ -337,10 +337,9 @@ pub fn plan_reimport(
             .copied()
             .collect();
         if !removed.is_empty() {
+            // ID-1392 (FT-1384): a removed record carries no base hash, so the next run's base has the source's
+            // state of it (absent) and the same file again finds nothing to do.
             for key in model.keys().into_iter().filter(|k| removed.contains(&k.1)) {
-                if let Some(h) = base.record_hashes.get(&key.1) {
-                    plan.carried.insert(key.1, h.clone());
-                }
                 rows.push(ReimportRow {
                     class: ReimportClass::Removed,
                     key,

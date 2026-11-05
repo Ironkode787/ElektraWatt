@@ -691,6 +691,26 @@ impl Session {
         prop_via(q, source, potential, class)
     }
 
+    /// A member value of a re-import's conflict row in words (ID-1392, FT-1387): as the property grid shows the
+    /// member `path` of a `kind` record (a link by its record's title, a quantity with its unit), `-` for an absent
+    /// value, a record ID by the record's title, and any other member the grid does not list by
+    /// [`ew_commands::commands::member_text`].
+    pub fn member_words(&self, kind: &str, path: &str, value: Option<&Value>) -> String {
+        let Some(value) = value.filter(|v| !v.is_null()) else {
+            return "-".to_owned();
+        };
+        let q = self.query();
+        let ty = field_catalogue(kind).and_then(|c| spec_of(&c, path).map(|s| s.ty.clone()));
+        if let Some(ty) = ty {
+            return format_with(&SheetCx::new(&q), &ty, value);
+        }
+        value
+            .as_str()
+            .and_then(|s| Uuid::parse_str(s).ok())
+            .and_then(|id| Session::record_words(&q, id))
+            .unwrap_or_else(|| ew_commands::commands::member_text(Some(value)))
+    }
+
     /// A short title of the record `id`, as the property sheet's header names it: a device's tag, a page's folio and
     /// title, a node's path, a wire's number, a name.
     pub(crate) fn record_words(q: &Q, id: Uuid) -> Option<String> {

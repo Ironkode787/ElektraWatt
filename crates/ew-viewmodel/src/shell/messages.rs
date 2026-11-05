@@ -692,14 +692,22 @@ impl ShellModel {
                 reason_key: key!("reason-no-fix"),
             };
         };
+        let migration = self.messages_shows_migration();
         let Some(project) = &self.project else {
             return Outcome::Refused {
                 reason_key: key!("reason-no-project"),
             };
         };
-        let report = project
-            .session
-            .check(project.session.online_scheme(), CheckMode::Online);
+        // ID-1392 (FT-1386): a row of the migration report is found in the run that lists it.
+        let report = if migration {
+            project
+                .session
+                .check(&ew_api::checks::MIGRATION, CheckMode::Release)
+        } else {
+            project
+                .session
+                .check(project.session.online_scheme(), CheckMode::Online)
+        };
         let Some(finding) = report.findings.iter().find(|f| f.fingerprint.to_string() == fp) else {
             return Outcome::Refused {
                 reason_key: key!("reason-no-fix"),

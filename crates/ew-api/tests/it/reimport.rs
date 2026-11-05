@@ -296,6 +296,49 @@ fn a_change_on_both_sides_and_a_removal_are_kept_and_listed() {
     );
 }
 
+/// ID-1392 (FT-1387): a conflict row's member values in words: a multi-language text as its text, a record ID by the
+/// record's title, an absent value as `-`.
+#[test]
+fn member_values_read_in_words() {
+    let s = imported(&base_text());
+    let k1 = device(&s, "-K1").id.to_string();
+    assert_eq!(
+        s.member_words("device", "function_text", Some(&json!({"en": "Main contactor"}))),
+        "Main contactor"
+    );
+    assert_eq!(
+        s.member_words("connection", "from.device", Some(&json!(k1))),
+        "-K1"
+    );
+    assert_eq!(s.member_words("device", "function_text", None), "-");
+}
+
+/// ID-1392 (FT-1384): after a re-import that keeps a record removed in the source, the same file again writes
+/// nothing: no run, no undo step, no change.
+#[test]
+fn the_same_file_after_a_removal_writes_nothing() {
+    let mut s = imported(&base_text());
+    let text = qet(r#"version="0.100""#, &[folio("1", "Base", vec![k1("-K1")])]);
+    let reimport = |s: &mut Session| {
+        let detected = s
+            .detect_qet_lineage(FILE, text.clone().into_bytes(), &library())
+            .expect("the earlier import is proposed");
+        s.reimport_qet(FILE, text.clone().into_bytes(), &library(), detected.lineage())
+            .expect("the re-import is planned")
+    };
+    let r = reimport(&mut s);
+    assert!(r.plan.count(ReimportClass::Removed) > 0);
+    s.apply_reimport(r).expect("applied").expect("a transaction");
+    let (before, before_rev) = (model(&s), s.world().rev);
+    let r = reimport(&mut s);
+    assert_eq!(r.plan.count(ReimportClass::Removed), 0);
+    assert!(!r.plan.writes());
+    assert!(s.apply_reimport(r).expect("nothing to apply").is_none());
+    assert!(model(&s).content_eq(&before), "nothing was written");
+    assert_eq!(s.world().rev, before_rev);
+    device(&s, "-K2");
+}
+
 /// ID-1389 (W51 finding C): a device the source renames is listed by the tag it has here, not by the source's new
 /// label.
 #[test]

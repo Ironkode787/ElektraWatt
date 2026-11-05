@@ -1314,7 +1314,7 @@ tooltip-learn-more = F1: learn more
 # Part 2: banners and errors.
 banner-sample = This is the sample project. It is open read-only; Save as makes a copy of your own.
 banner-tutorial-copy = A fresh copy of the sample project was made for the tutorials.
-banner-imported = Imported { $p0 }: { $p1 } pages, { $p2 } devices, { $p3 } findings in the migration report.
+banner-imported = Imported { $p0 }: { $p1 }, { $p2 }, { $p3 } in the migration report.
 banner-import-no-content = The starter library was not found; symbols the project refers to may be missing.
 banner-journal-discarded = The unsaved changes of the earlier session were discarded. The project is open for editing.
 banner-workspace-bad = The workspace file { $p0 } could not be read; the built-in layout is used and the file was left as it is.
@@ -4125,6 +4125,9 @@ import-card-warnings = { $p0 } warnings
 import-card-warnings-one = 1 warning
 import-card-infos = { $p0 } infos
 import-card-infos-one = 1 info
+# FT-1397 (ID-1392): the import banner's count of the migration report's findings.
+import-card-findings = { $p0 } findings
+import-card-findings-one = 1 finding
 import-card-more = and { $p0 } more pages
 import-card-page = Page { $p0 }
 import-card-apply = Apply
