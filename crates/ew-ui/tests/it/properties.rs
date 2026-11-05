@@ -1158,3 +1158,79 @@ fn ft1413_the_label_column_gives_way_to_no_count_and_no_prose() {
         }
     }
 }
+
+/// The texts painted inside the row whose group is named `label`, each with whether it was cut (elided).
+fn texts_in_row(h: &Harness<'_, App>, label: &str) -> Vec<(String, bool)> {
+    fn walk(shape: &egui::Shape, out: &mut Vec<(String, bool, egui::Pos2)>) {
+        match shape {
+            egui::Shape::Vec(v) => v.iter().for_each(|s| walk(s, out)),
+            egui::Shape::Text(t) => out.push((t.galley.text().to_owned(), t.galley.elided, t.pos)),
+            _ => {}
+        }
+    }
+    let rows: Vec<egui::Rect> = h
+        .get_all_by_role(egui::Role::Group)
+        .filter(|g| g.accesskit_node().label().as_deref() == Some(label))
+        .map(|g| g.rect())
+        .collect();
+    assert!(!rows.is_empty(), "the row {label}");
+    let mut out = Vec::new();
+    for c in &h.output().shapes {
+        walk(&c.shape, &mut out);
+    }
+    out.into_iter()
+        .filter(|(_, _, p)| rows.iter().any(|r| r.contains(*p)))
+        .map(|(t, cut, _)| (t, cut))
+        .collect()
+}
+
+/// ID-1427 (W52 F3, F4): at the 1280 × 800 floor in Dutch an identifier stays whole beside its chip, on the cursor
+/// row too: a placed terminal's derived Tag ("-X1031:71" beside "afgeleid") and two devices' mixed Tag
+/// ("‹verschilt› (2)" beside "verschilt"); the label column yields to them, its labels whole or cut, never the value.
+#[test]
+fn id1427_an_identifier_stays_whole_beside_its_chip_at_the_floor() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "103");
+    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    dispatch(&mut h, "view.language", json!({ "value": "nl" }));
+    settle(&mut h);
+    dispatch(
+        &mut h,
+        "place.pick",
+        json!({"symbol": "ew.iec.terminal@qet10", "strip": "-X1031", "terminal_designation": "71"}),
+    );
+    dispatch(&mut h, "cursor.set", json!({"x_mm": 158.75, "y_mm": 74.083}));
+    dispatch(&mut h, "canvas.activate_alt", json!({}));
+    dispatch(&mut h, "tool.select", json!({}));
+    settle(&mut h);
+    settle(&mut h);
+    let (tag, provenance) = row(&h, "device/derived.tag");
+    assert_eq!(tag, "-X1031:71");
+    assert!(
+        !matches!(provenance, Provenance::Authored),
+        "a chip stands by the tag: {provenance:?}"
+    );
+    dispatch(&mut h, "props.focus", json!({}));
+    settle(&mut h);
+    row_to(&mut h, "device/derived.tag");
+    settle(&mut h);
+    assert_eq!(
+        texts_in_row(&h, "Kenmerk"),
+        [
+            ("Kenmerk".to_owned(), false),
+            ("afgeleid".to_owned(), false),
+            ("-X1031:71".to_owned(), false)
+        ]
+    );
+    dispatch(&mut h, "select.set", json!({"refs": ["-102F1", "-102F2"]}));
+    settle(&mut h);
+    settle(&mut h);
+    assert_eq!(
+        texts_in_row(&h, "Kenmerk"),
+        [
+            ("Kenmerk".to_owned(), false),
+            ("verschilt".to_owned(), false),
+            ("‹verschilt› (2)".to_owned(), false)
+        ]
+    );
+}

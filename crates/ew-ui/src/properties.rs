@@ -57,9 +57,6 @@ pub struct PropertiesPane {
     base_depth: u8,
     /// The width the widest label of the rows on show needs this frame (M39: the label column fits its labels).
     label_need: f32,
-    /// The width the widest single word of a label on show needs with its indent this frame (FT-1413: the column
-    /// never gives way below it, so a label wraps at its words and is never cut inside one).
-    word_need: f32,
     /// The widths each value of the rows on show needs in its cell this frame, whole and by its first word, with its
     /// chip (W40b: the label column gives way to them).
     value_needs: Vec<(f32, f32)>,
@@ -215,7 +212,6 @@ impl PropertiesPane {
             // M39: the label column fits the widest label of the rows on show (with its indent); W40b: what each value
             // needs, so that the label column gives way to it.
             self.value_needs.clear();
-            self.word_need = 0.0;
             self.label_need = {
                 let font = crate::theme::font(&t.type_small);
                 let mut need = 0.0_f32;
@@ -240,9 +236,6 @@ impl PropertiesPane {
                                     .x
                             };
                             need = need.max(depth + width(label.clone()));
-                            for word in label.split_whitespace() {
-                                self.word_need = self.word_need.max(depth + width(word.to_owned()));
-                            }
                             self.value_needs.push(value_need(ui, &t, section, row));
                         }
                     }
@@ -661,11 +654,11 @@ impl PropertiesPane {
         let width = ui.available_width();
         // M39 (owner 2026-10-31: scale, not cap): the label column fits the widest label on show, between
         // `size.property_label` and half the row (FT-1413, ID-1419); W40b: it gives way to the widest value it can make
-        // whole (a tag, a part number), never below the widest single word of a label. A label longer than its column
+        // whole (a tag, a part number), below the widest single word of a label too (ID-1427). A label longer than its column
         // wraps at its words onto a second line and the row grows (FT-1413); one that still does not fit elides with
         // the whole label in its tooltip.
         let (label_column_width, indent) = (
-            label_column(&t, width, self.label_need, self.word_need, &self.value_needs),
+            label_column(&t, width, self.label_need, &self.value_needs),
             t.space_3,
         );
         let depth = indent * f32::from(row.depth.saturating_sub(self.base_depth)).min(6.0);
@@ -693,7 +686,22 @@ impl PropertiesPane {
             label.clone(),
             egui::TextFormat::simple(crate::theme::font(&t.type_small), t.text_secondary.color32()),
         );
-        job.wrap = if depth + natural > label_width {
+        // ID-1427: a label wraps at its words only; one with a word longer than its column is cut on one line (its
+        // whole text in the tooltip), never broken inside the word.
+        let widest_word = label
+            .split_whitespace()
+            .map(|word| {
+                ui.painter()
+                    .layout_no_wrap(
+                        word.to_owned(),
+                        crate::theme::font(&t.type_small),
+                        crate::theme::NONE,
+                    )
+                    .size()
+                    .x
+            })
+            .fold(0.0_f32, f32::max);
+        job.wrap = if depth + natural > label_width && depth + widest_word <= label_width {
             egui::text::TextWrapping {
                 max_width: label_width - depth,
                 max_rows: 2,
@@ -1599,13 +1607,12 @@ fn count_words(severity: &str, n: usize) -> String {
     crate::messages::count_words(severity, n)
 }
 
-/// The Properties label column's width in a row `row` wide whose widest label on show needs `need`, whose widest
-/// single word of a label needs `word` (with its indent) and whose values need `values` (each with its chip,
-/// [`value_need`]).
+/// The Properties label column's width in a row `row` wide whose widest label on show needs `need` and whose values
+/// need `values` (each with its chip, [`value_need`]).
 ///
 /// M39: `need`, never below `size.property_label` and never above half the row (FT-1413, ID-1419: a longer label wraps
 /// at its words; the floor wins in a row too narrow for both). W40b (the value column gets the width first): the
-/// column then gives way, down to half of `size.property_label` and never below `word` (FT-1413), to the widest value
+/// column then gives way, down to half of `size.property_label` (ID-1427: below a label's widest word too), to the widest value
 /// it can make whole that way. Each value counts whole, or, when it is too
 /// wide for that, by its first word if that is an identifier (a part number before its name, "EW-GEN-CPU-1
 /// (Generic)"), so that the tag or the number is never cut while the labels have room; a value or first word too wide
@@ -1614,7 +1621,6 @@ pub(crate) fn label_column(
     t: &crate::theme::Tokens,
     row: f32,
     need: f32,
-    word: f32,
     values: &[(f32, f32)],
 ) -> f32 {
     let labels = need.min(row * 0.5).max(t.size_property_label);
@@ -1630,7 +1636,9 @@ pub(crate) fn label_column(
     if value <= 0.0 {
         return labels;
     }
-    labels.min(inner - value).max(least).max(word.min(labels))
+    // ID-1427 (W52 F3): an identifier keeps its width and its chip; the labels yield first, down to `least`, their
+    // widest single word included (a word longer than its column is cut, its whole label in the tooltip).
+    labels.min(inner - value).max(least)
 }
 
 /// A row's value text as its cell shows it: nothing for a header row, a page's Kind in words, else the value.
@@ -1649,7 +1657,7 @@ fn row_value(section: &SheetSection, row: &PropRow) -> String {
 /// The widths the value cell of `row` needs to show its value whole and to show its first word whole, infinite when
 /// that first word is not an identifier (W40b): the
 /// text in `type.body` with the cell's `space.icon` padding on both sides and the provenance chip with its `space.2`
-/// gap when it shows. The row's "…" button is not counted: the value makes room for it only while it shows (X32b).
+/// gap when it shows, and the row's "…" button when it has actions (ID-1427: the cursor row's value stays whole).
 fn value_need(ui: &Ui, t: &crate::theme::Tokens, section: &SheetSection, row: &PropRow) -> (f32, f32) {
     // FT-1413: a list's words (its item count, "4 elementen") summarise it; the label column never gives way to them.
     if matches!(
@@ -1677,12 +1685,19 @@ fn value_need(ui: &Ui, t: &crate::theme::Tokens, section: &SheetSection, row: &P
     // The first word with the ellipsis that follows it when the rest is cut, for an identifier only (a word with a
     // digit: a tag, a part number, an order number). FT-1413: prose ("Electrical Definition") takes nothing from the
     // labels; it elides with the whole value in its tooltip, and the labels stay whole.
+    // ID-1427 (W52 F4): a mixed value ("‹varies› (2)") counts whole, as an identifier does.
+    let varies = matches!(row.value, RowValue::Varies { .. });
     let head = match shown.split_once(' ') {
+        _ if varies => Some(shown.clone()),
         Some((first, _)) if first.chars().any(|c| c.is_ascii_digit()) => Some(format!("{first} …")),
         Some(_) => return (f32::INFINITY, f32::INFINITY),
         None => Some(shown.clone()),
     };
+    // ID-1427 (W52 F3): the row's "…" button counts, so that the value stays whole on the cursor row too.
     let mut extra = 2.0 * t.space_icon;
+    if !row.actions.is_empty() {
+        extra += t.size_control_inline + t.space_1;
+    }
     if !header && !matches!(row.provenance, Provenance::Authored) {
         extra +=
             measure(chip_word(&row.provenance).to_owned(), &t.type_caption) + 2.0 * t.space_icon + t.space_2;
@@ -1791,13 +1806,13 @@ mod tests {
         let t = tokens(Theme::Light, Density::Comfortable);
         // Short labels: the floor. A long label: its width, up to half the row.
         assert_eq!(
-            super::label_column(&t, 600.0, 40.0, 0.0, &[]),
+            super::label_column(&t, 600.0, 40.0, &[]),
             t.size_property_label
         );
-        assert_eq!(super::label_column(&t, 600.0, 150.0, 0.0, &[]), 150.0);
-        assert_eq!(super::label_column(&t, 600.0, 400.0, 0.0, &[]), 300.0);
+        assert_eq!(super::label_column(&t, 600.0, 150.0, &[]), 150.0);
+        assert_eq!(super::label_column(&t, 600.0, 400.0, &[]), 300.0);
         assert_eq!(
-            super::label_column(&t, 100.0, 400.0, 0.0, &[]),
+            super::label_column(&t, 100.0, 400.0, &[]),
             t.size_property_label
         );
     }
@@ -1812,40 +1827,31 @@ mod tests {
         // The floor's grid: a 275-point row, labels that want 150 (half is 137.5).
         let row = 275.0;
         let inner = row - 2.0 * t.space_4 - t.space_3;
-        let labels = super::label_column(&t, row, 150.0, 0.0, &[]);
+        let labels = super::label_column(&t, row, 150.0, &[]);
         assert_eq!(labels, 137.5);
         let tag = (60.0, 60.0);
         // A part number with its chip wanting 180: the labels give way so that it is whole.
-        let part = super::label_column(&t, row, 150.0, 0.0, &[tag, (180.0, 180.0)]);
+        let part = super::label_column(&t, row, 150.0, &[tag, (180.0, 180.0)]);
         assert_eq!(part, inner - 180.0);
         assert!(part >= t.size_property_label / 2.0);
-        // FT-1413: never below a label's widest single word with its indent (nor above the labels' own width).
-        assert_eq!(
-            super::label_column(&t, row, 150.0, 120.0, &[tag, (180.0, 180.0)]),
-            120.0
-        );
-        assert_eq!(
-            super::label_column(&t, row, 150.0, 400.0, &[tag, (180.0, 180.0)]),
-            labels
-        );
         // A part number with its name, too wide to be whole even at the least label width: by its first word.
-        let named = super::label_column(&t, row, 150.0, 0.0, &[tag, (260.0, 170.0)]);
+        let named = super::label_column(&t, row, 150.0, &[tag, (260.0, 170.0)]);
         assert_eq!(named, inner - 170.0);
         // A long description whose first word fits beside the labels: the labels keep their width.
         assert_eq!(
-            super::label_column(&t, row, 150.0, 0.0, &[tag, (900.0, 70.0)]),
+            super::label_column(&t, row, 150.0, &[tag, (900.0, 70.0)]),
             labels
         );
         // A single word too wide even at the least label width takes nothing from them.
         assert_eq!(
-            super::label_column(&t, row, 150.0, 0.0, &[tag, (900.0, 900.0)]),
+            super::label_column(&t, row, 150.0, &[tag, (900.0, 900.0)]),
             labels
         );
         // A short value that fits beside the labels changes nothing.
-        assert_eq!(super::label_column(&t, row, 150.0, 0.0, &[(90.0, 40.0)]), labels);
+        assert_eq!(super::label_column(&t, row, 150.0, &[(90.0, 40.0)]), labels);
         // At 1920 (a 455-point row) the same part number fits beside the labels' own width.
         assert_eq!(
-            super::label_column(&t, 455.0, 115.0, 0.0, &[tag, (180.0, 180.0)]),
+            super::label_column(&t, 455.0, 115.0, &[tag, (180.0, 180.0)]),
             115.0
         );
     }
