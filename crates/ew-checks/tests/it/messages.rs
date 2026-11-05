@@ -251,12 +251,48 @@ fn nl_nl_words_ew_term_002_s_prevent_finding() {
                 ("designation", "4"),
                 ("count", "2"),
                 ("strip", "-X1"),
+                ("end", "named"),
                 ("remedy", remedy),
                 ("free", free),
                 ("old", old),
             ],
         );
         assert_eq!(render(&f, "nl-NL"), nl, "{remedy}");
+    }
+}
+
+/// FT-1480: EW-TERM-002 words a strip without a printed designation in each language, in both its forms.
+#[test]
+fn nl_nl_words_ew_term_002_s_untagged_strip() {
+    for (form, en, nl) in [
+        (
+            "used",
+            "designation 4 is used by 2 terminals of strip",
+            "aanduiding 4 wordt gebruikt door 2 klemmen van de klemmenstrook",
+        ),
+        (
+            "taken",
+            "designation 4 is taken on the strip (2 terminals)",
+            "aanduiding 4 is al bezet op de klemmenstrook (2 klemmen)",
+        ),
+    ] {
+        let fallback = if form == "used" { "strip" } else { "the strip" };
+        let f = by_hand(
+            "EW-TERM-002",
+            "",
+            en,
+            &[
+                ("form", form),
+                ("designation", "4"),
+                ("count", "2"),
+                ("strip", fallback),
+                ("end", "untagged"),
+                ("remedy", "none"),
+                ("free", ""),
+                ("old", ""),
+            ],
+        );
+        assert_eq!(render(&f, "nl-NL"), nl, "{form}");
     }
 }
 

@@ -551,13 +551,19 @@ rule-ew-term-001 =
     .hint = Geef de klem een aanduiding.
 
 rule-ew-term-002 = { $form ->
-        [taken] aanduiding { $designation } is al bezet op { $strip } ({ $count } klemmen){ $remedy ->
+        [taken] aanduiding { $designation } is al bezet op { $end ->
+            [untagged] de klemmenstrook
+           *[named] { $strip }
+        } ({ $count } klemmen){ $remedy ->
             [free] ; gebruik { $free }
             [swap] ; verwissel { $old } ↔ { $designation } in één transactie (terminal.designate)
             [both] ; gebruik { $free } of verwissel { $old } ↔ { $designation } in één transactie (terminal.designate)
            *[none] {""}
         }
-       *[used] aanduiding { $designation } wordt gebruikt door { $count } klemmen van { $strip }
+       *[used] aanduiding { $designation } wordt gebruikt door { $count } klemmen van { $end ->
+            [untagged] de klemmenstrook
+           *[named] { $strip }
+        }
     }
     .title = Dubbele aanduiding
     .hint = Hernummer de klemmenstrook, of geef een van de klemmen een andere aanduiding.

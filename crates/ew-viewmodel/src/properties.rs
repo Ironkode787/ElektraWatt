@@ -1041,12 +1041,13 @@ pub fn member_path(route: &EditRoute) -> Option<String> {
 /// (WP-S3.08 D10; ID-1174 ruling 3), re-exported under its old path.
 pub use ew_api::output::table_edit::compose;
 
-/// The kind's plural for the card and the toast (`devices`).
+/// The kind's plural for the card and the toast (`devices`), in the UI language inside a sentence (FT-1479:
+/// `apparaten`).
 pub fn kind_plural(kind: &str, n: usize) -> String {
     if n == 1 {
-        return strings::kind_label(kind);
+        return strings::in_sentence(&strings::kind_heading(kind));
     }
-    strings::kind_plural(kind)
+    strings::in_sentence(&strings::kinds_heading(kind))
 }
 
 /// The header of a sheet's section of `n` records of `kind` (ID-1139): the kind in sentence case, singular for one,
@@ -1645,6 +1646,19 @@ mod tests {
             ["Apparaten (2)", "Potentiaaldefinities (3)"]
         );
         assert!(strings::set_locale("en"));
+    }
+
+    /// FT-1479: the card line's and the toast's kind reads in the UI language inside a sentence.
+    #[test]
+    fn a_card_kind_reads_in_the_ui_language() {
+        assert_eq!(
+            [kind_plural("device", 1), kind_plural("device", 2), kind_plural("medium", 2)],
+            ["device", "devices", "media"]
+        );
+        assert!(strings::set_locale("nl"));
+        let dutch = [kind_plural("device", 1), kind_plural("device", 2), kind_plural("potential_def", 3)];
+        assert!(strings::set_locale("en"));
+        assert_eq!(dutch, ["apparaat", "apparaten", "potentiaaldefinities"]);
     }
 
     /// FT-1353: a row another command edits names the command by its title, in the UI language, never its ID.

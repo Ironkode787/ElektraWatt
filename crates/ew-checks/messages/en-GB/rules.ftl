@@ -588,13 +588,19 @@ rule-ew-term-001 =
     .hint = Give the terminal a designation.
 
 rule-ew-term-002 = { $form ->
-        [taken] designation { $designation } is taken on { $strip } ({ $count } terminals){ $remedy ->
+        [taken] designation { $designation } is taken on { $end ->
+            [untagged] the strip
+           *[named] { $strip }
+        } ({ $count } terminals){ $remedy ->
             [free] ; use { $free }
             [swap] ; swap { $old } ↔ { $designation } in one transaction (terminal.designate)
             [both] ; use { $free } or swap { $old } ↔ { $designation } in one transaction (terminal.designate)
            *[none] {""}
         }
-       *[used] designation { $designation } is used by { $count } terminals of { $strip }
+       *[used] designation { $designation } is used by { $count } terminals of { $end ->
+            [untagged] strip
+           *[named] { $strip }
+        }
     }
     .title = Duplicate designation
     .hint = Renumber the strip, or give one of the terminals another designation.

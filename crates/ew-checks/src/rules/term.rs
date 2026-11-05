@@ -37,6 +37,16 @@ pub(crate) fn full_tag(q: &Q, device: Id<Device>, fallback: &str) -> String {
         .map_or_else(|| fallback.to_owned(), |t| t.full.clone())
 }
 
+/// FT-1480: the `end` argument of EW-TERM-002's pattern: `named` for a strip with a printed designation, `untagged`
+/// for one without, which each language words itself ("the strip", "de klemmenstrook").
+fn strip_end(q: &Q, strip: Id<Device>) -> &'static str {
+    if q.get::<DeviceTag>(strip).as_ref().is_some() {
+        "named"
+    } else {
+        "untagged"
+    }
+}
+
 /// The designation groups of a strip: comparison key → (designation text, terminals).
 type Groups = BTreeMap<String, (String, Vec<Id<Device>>)>;
 
@@ -221,6 +231,7 @@ impl Rule for DuplicateDesignation {
                 .arg("designation", designation)
                 .arg("count", members.len().to_string())
                 .arg("strip", strip_tag.clone())
+                .arg("end", strip_end(q, strip))
             })
             .collect()
     }
@@ -306,6 +317,7 @@ impl Rule for DuplicateDesignation {
                 .arg("designation", designation.clone())
                 .arg("count", members.len().to_string())
                 .arg("strip", strip_tag)
+                .arg("end", strip_end(after, term.strip))
                 .arg("remedy", remedy)
                 .arg("free", free.map(|f| f.to_string()).unwrap_or_default())
                 .arg("old", swap.unwrap_or_default()),
