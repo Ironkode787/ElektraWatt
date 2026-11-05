@@ -1133,7 +1133,7 @@ fn symbol_editor_supply_block_is_drawn_saved_and_placed_through_the_window() {
             .into_iter()
             .filter(|(n, _)| n == name)
             .map(|(_, p)| p)
-            .last()
+            .next_back()
             .unwrap_or_else(|| panic!("missing {name}: {:?}", d.labels()));
         d.input(&click(at));
         d.input(&key("ctrl+a"));
