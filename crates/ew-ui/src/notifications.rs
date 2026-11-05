@@ -207,7 +207,23 @@ fn toast(
                             );
                         }
                         (_, None) => {
-                            live_text(ui, n, theme::font(&t.type_body_strong), t.text_primary.color32());
+                            // FT-1195 (doc 16a §6.10, ID-940): a long text wraps up to three rows, then is cut with an
+                            // ellipsis; the whole text is the toast's tooltip.
+                            let response = ui.add(
+                                egui::Label::new(line_job(
+                                    &n.text,
+                                    theme::font(&t.type_body_strong),
+                                    t.text_primary.color32(),
+                                    LINE_ROWS,
+                                ))
+                                .wrap()
+                                .show_tooltip_when_elided(false),
+                            );
+                            let live = n.text.clone();
+                            ui.ctx().accesskit_node_builder(response.id, |node| {
+                                node.set_live(egui::accesskit::Live::Polite);
+                                node.set_value(live);
+                            });
                         }
                     }
                     action_link(ui, t, shell, n, events);
@@ -226,7 +242,7 @@ fn toast(
             is_cut(ui, title, theme::font(&t.type_body_strong), TITLE_ROWS, text_w)
                 || is_cut(ui, &line, theme::font(&t.type_small), LINE_ROWS, text_w)
         }
-        (_, None) => false,
+        (_, None) => is_cut(ui, &n.text, theme::font(&t.type_body_strong), LINE_ROWS, text_w),
     };
     let mut node = ui.interact(
         frame.response.rect,

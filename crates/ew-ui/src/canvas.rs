@@ -1536,7 +1536,18 @@ impl CanvasHost {
         events: &mut Vec<Event>,
     ) {
         let ours = shell.focus() == Some(Focus::Canvas(group));
-        if ours && !response.has_focus() && !ui.ctx().text_edit_focused() && shell.dialog().is_none() {
+        // FT-1171: a toast's control that holds the keyboard focus keeps it until the toast goes or Escape returns it.
+        let toast_holds = ui.memory(|m| m.focused()).is_some_and(|id| {
+            ui.ctx()
+                .read_response(id)
+                .is_some_and(|r| r.layer_id.id == egui::Id::unique(crate::notifications::TOASTS_AREA))
+        });
+        if ours
+            && !response.has_focus()
+            && !toast_holds
+            && !ui.ctx().text_edit_focused()
+            && shell.dialog().is_none()
+        {
             response.request_focus();
         }
         if response.has_focus() {

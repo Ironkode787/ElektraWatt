@@ -451,6 +451,92 @@ fn ft1137_a_toast_that_holds_the_keyboard_focus_is_paused() {
     h.state_mut().shell_mut().shutdown();
 }
 
+/// FT-1171: while the shell's focus is on the canvas, a toast's Dismiss button that takes the keyboard focus keeps it
+/// (the canvas does not take it back each frame), so the toast stays paused.
+#[test]
+fn ft1171_a_toasts_control_keeps_the_focus_from_the_canvas() {
+    let tmp = Tmp::new();
+    let dir = tmp.golden("g.ew");
+    let mut h = harness(&tmp, Scripted::default(), Some(dir));
+    let shown = one_toast(&mut h);
+    assert_eq!(opacity_at(&mut h, shown, 1.0), Some(1.0));
+    assert_eq!(
+        h.state().shell().focus(),
+        Some(ew_ui::ew_viewmodel::shell::Focus::Canvas(0)),
+        "the canvas has the shell's focus"
+    );
+    let toast = h
+        .get_all_by_role(egui::Role::Group)
+        .find(|n| n.accesskit_node().label().as_deref() == Some("Notification"))
+        .expect("the toast's node")
+        .rect();
+    h.get_all_by_role(egui::Role::Button)
+        .find(|n| n.accesskit_node().label().as_deref() == Some("Dismiss") && toast.contains_rect(n.rect()))
+        .expect("the toast's Dismiss button")
+        .focus();
+    h.step();
+    for t in [2.0, 7.95, 20.0] {
+        assert_eq!(opacity_at(&mut h, shown, t), Some(1.0), "focused at {t} s");
+        let focused = h.ctx.memory(|m| m.focused());
+        let dismiss = h
+            .get_all_by_role(egui::Role::Button)
+            .find(|n| {
+                n.accesskit_node().label().as_deref() == Some("Dismiss") && toast.contains_rect(n.rect())
+            })
+            .map(|n| n.accesskit_node().is_focused());
+        assert_eq!(
+            dismiss,
+            Some(true),
+            "the Dismiss button keeps the focus at {t} s ({focused:?})"
+        );
+    }
+    h.state_mut().shell_mut().shutdown();
+}
+
+/// FT-1195 (doc 16a §6.10, ID-940): a toast of one long text (no title and line) wraps up to three rows and is cut with
+/// an ellipsis; its whole text is the tooltip under the pointer.
+#[test]
+fn ft1195_a_long_toast_is_cut_at_three_rows_with_its_whole_text_in_the_tooltip() {
+    let tmp = Tmp::new();
+    let dir = tmp.golden("g.ew");
+    let mut h = harness(&tmp, Scripted::default(), Some(dir));
+    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    settle(&mut h);
+    dispatch(&mut h, "view.reduce_motion", json!({"on": false}));
+    dispatch(&mut h, "page.goto", json!({"folio": "101"}));
+    // A new strip's toast is one long sentence, its tag inside.
+    dispatch(
+        &mut h,
+        "strip.new",
+        json!({"tag": format!("-X{}", "9".repeat(40))}),
+    );
+    settle(&mut h);
+    let whole = {
+        let visible = h.state().shell().notifications().visible();
+        let n = visible.last().expect("a toast");
+        assert!(n.lines().1.is_none(), "one text: {}", n.text);
+        n.text.clone()
+    };
+    let toast = h
+        .get_all_by_role(egui::Role::Group)
+        .find(|n| n.accesskit_node().label().as_deref() == Some("Notification"))
+        .expect("the toast's node")
+        .rect();
+    h.hover_at(toast.center());
+    let start = h.ctx.input(|i| i.time);
+    let mut tip = false;
+    for i in 0..40 {
+        h.input_mut().time = Some(start + f64::from(i) * 0.05);
+        h.step();
+        tip |= h
+            .get_all_by_role(egui::Role::Label)
+            .filter(|n| n.accesskit_node().value().as_deref() == Some(whole.as_str()))
+            .any(|n| !toast.contains_rect(n.rect()));
+    }
+    assert!(tip, "the whole text in the tooltip: {whole}");
+    h.state_mut().shell_mut().shutdown();
+}
+
 /// FT-1144 (ID-1225; ID-940): a toast whose text is whole shows no tooltip under the pointer (it would only repeat
 /// the text); its accessible name stays "Notification".
 #[test]

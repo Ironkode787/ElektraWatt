@@ -1479,7 +1479,12 @@ struct Steps {
 }
 
 impl script::StepExtension for Steps {
-    fn handle(&mut self, shell: &mut ShellModel, action: &str, params: &Value) -> Option<ew_viewmodel::shell::Outcome> {
+    fn handle(
+        &mut self,
+        shell: &mut ShellModel,
+        action: &str,
+        params: &Value,
+    ) -> Option<ew_viewmodel::shell::Outcome> {
         if action == "ui.dismiss" && crate::app::menu_takes_dismiss(&self.ctx) {
             return Some(ew_viewmodel::shell::Outcome::Done);
         }
