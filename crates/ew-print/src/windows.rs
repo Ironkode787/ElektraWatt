@@ -88,9 +88,7 @@ impl Windows {
     /// save dialog).
     #[cfg(test)]
     fn to_file(output: PathBuf) -> Windows {
-        Windows {
-            output: Some(output),
-        }
+        Windows { output: Some(output) }
     }
 }
 
