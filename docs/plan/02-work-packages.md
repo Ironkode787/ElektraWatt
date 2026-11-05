@@ -1883,8 +1883,8 @@ Open: FT-1162 (texts built in `ew-api`), FT-1237, FT-1238, FT-1247 to FT-1265, F
 
 *Status (2026-11-05, owner's implementation request; ID-1445 branch authority).* **Implementation in review** on
 `feature/symbol-editor`; [specification and evidence](specs/WP-S2.10-symbol-editor.md). No format 0.1 change.
-EPLAN PXF support is a documented subset; binary SLK remains unsupported. Dependency approval and independent
-G-M2.5 review remain release gates. The feature branch is not merged into the working or release branch.
+EPLAN PXF support is a documented subset; binary SLK remains unsupported. The owner explicitly keeps release blocked pending dependency review. Independent
+G-M2.5 review also remains a release gate. The feature branch is not merged into the working or release branch.
 
 #### WP-S2.11 GUI test suite (egui_kittest)
 

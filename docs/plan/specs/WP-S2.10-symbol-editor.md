@@ -119,9 +119,18 @@ Sources: handoff WP-S2.10; ADR-0011/0027; docs 07/16/16a; the neighbouring speci
 - `ew-import-eplan`: bounded 7z/ZIP and PXF 1.23 drawing subset, plus clearly marked generated parts outlines.
   Verified locally with the manufacturer's P30O EDZ download; source files remain private. The preserved source
   identity is a content hash, not the source's embedded workstation/user metadata.
-- Focused acceptance: 18 tests passed (API authoring, GUI/headless shared actions, archive/XML boundaries,
-  QET provenance/grid and the opt-in external EDZ sample). Larger lane-check and visual evidence are recorded
-  in the hand-back after the final run. Performance: not measured (owner's rule).
+- The affected-package suite exercised 3,540 tests (19 skipped): 3,538 passed in the final full run;
+  the remaining coordinate-label and book-translation checks passed on their focused rerun after correction.
+  This includes API authoring, GUI/headless actions, archive/XML boundaries, QET conversion-report round trips,
+  pin-mapping preservation, repeated scratch-page creation and the opt-in manufacturer EDZ sample.
+- Formatting, generated-file settlement, clippy, documentation/doctests and fuzz-target compilation passed.
+  The remaining policy failures are exactly the dependency gates below. No snapshot baselines were changed.
+- Offscreen scripts passed at 1280×800 and 1920×1080: six-pin drawing, A–H, pointer drawing, off-grid feedback,
+  export, library save and embedded placement. Separate scripts passed for assigned functions, two successive
+  scratch pages and the manufacturer's EDZ preview (33 editable candidates). Images/transcripts remain local.
+  The manufacturer's source identity is SHA-256
+  `01c7910f1625f15d6f284cf6fc7092de82b6cab848eabed7b274c959f60c2685`.
+- Performance: not measured (owner's rule). Independent review and release promotion are not claimed.
 
 ### Exact limitations and remaining gates
 

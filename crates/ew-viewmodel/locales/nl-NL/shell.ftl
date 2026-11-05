@@ -4585,9 +4585,9 @@ choice-rectangle = Rechthoek
 
 choice-text = Tekst
 
-symbol-x-mm = X (mm)
+symbol-x-mm = x (mm)
 
-symbol-y-mm = Y (mm)
+symbol-y-mm = y (mm)
 
 symbol-mm = { $p0 } (mm)
 

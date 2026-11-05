@@ -422,10 +422,10 @@ impl EditorView {
                         egui::ComboBox::from_id_salt(("cp-direction", i))
                             .selected_text(label(strings::Key::run_time(&format!(
                                 "symbol-{}",
-                                match cp["dir"].as_str() {
-                                    Some(d @ ("up" | "right" | "down" | "left")) => d,
-                                    _ => "direction",
-                                }
+                                cp["dir"]
+                                    .as_str()
+                                    .filter(|d| matches!(*d, "up" | "right" | "down" | "left"))
+                                    .unwrap_or("direction")
                             ))))
                             .show_ui(ui, |ui| {
                                 for direction in ["up", "right", "down", "left"] {

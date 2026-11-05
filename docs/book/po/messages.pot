@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ElektraWatt User Guide\n"
-"POT-Creation-Date: 2026-11-05T18:56:40+01:00\n"
+"POT-Creation-Date: 2026-11-05T19:08:02+01:00\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -40,7 +40,7 @@ msgstr ""
 msgid "Importing a QElectroTech project"
 msgstr ""
 
-#: src/SUMMARY.md:12 src/tutorials/symbol-editor.md:6
+#: src/SUMMARY.md:12 src/tutorials/symbol-editor.md:1
 msgid "Draw a six-pin power block"
 msgstr ""
 
@@ -92,7 +92,7 @@ msgstr ""
 msgid "Panels"
 msgstr ""
 
-#: src/SUMMARY.md:31 src/reference/symbol-editor.md:6
+#: src/SUMMARY.md:31 src/reference/symbol-editor.md:1
 msgid "Symbol editor and automated authoring"
 msgstr ""
 
@@ -854,7 +854,7 @@ msgid ""
 "functions, devices, wires and interruption points."
 msgstr ""
 
-#: src/tutorials/symbol-editor.md:8
+#: src/tutorials/symbol-editor.md:3
 msgid ""
 "Create a project from the built-in template. Open **Edit → Symbol editor**, "
 "name it **Power block**, and use the key `example.power`. Draw a rectangle "
@@ -866,7 +866,7 @@ msgid ""
 "device. It must not be confused with PE."
 msgstr ""
 
-#: src/tutorials/symbol-editor.md:14
+#: src/tutorials/symbol-editor.md:9
 msgid ""
 "Add a tag text field above the body and a designation field beside each "
 "connection, selecting its pin index. Review A–H in the strip. The large "
@@ -876,7 +876,7 @@ msgid ""
 "remain valid."
 msgstr ""
 
-#: src/tutorials/symbol-editor.md:19
+#: src/tutorials/symbol-editor.md:14
 msgid ""
 "Choose a writable `.ewlib` folder and save. Test the symbol on a new scratch "
 "page, close the saved draft, and inspect the placed copy. Reopen the "
@@ -885,14 +885,14 @@ msgid ""
 "their original version."
 msgstr ""
 
-#: src/tutorials/symbol-editor.md:23
+#: src/tutorials/symbol-editor.md:18
 msgid ""
 "The same workflow is available to AI tools and repeatable scripts in "
 "[`symbol-editor.ewui`](../../tutorial-scripts/symbol-editor.ewui). Run it in "
 "a fresh directory:"
 msgstr ""
 
-#: src/tutorials/symbol-editor.md:30
+#: src/tutorials/symbol-editor.md:25
 msgid ""
 "The script creates a sample project and library alongside itself. It exports "
 "`power.symbol.json`, which the window can open. See the "
@@ -3122,7 +3122,7 @@ msgid ""
 "Open it with Check ▸ Messages."
 msgstr ""
 
-#: src/reference/symbol-editor.md:8
+#: src/reference/symbol-editor.md:3
 msgid ""
 "Open **Edit → Symbol editor**. A symbol draft has its own undo history, "
 "drawing, function definition, connection points, text slots and "
@@ -3135,7 +3135,7 @@ msgid ""
 "other slot types, styles and arrangements."
 msgstr ""
 
-#: src/reference/symbol-editor.md:15
+#: src/reference/symbol-editor.md:10
 msgid ""
 "Native connections must lie on the 4 mm grid. Drawing clicks snap to 0.5 mm; "
 "text clicks to 1 mm. Numeric pin edits remain exactly as entered: a pin at "
@@ -3144,7 +3144,7 @@ msgid ""
 "authoring profile."
 msgstr ""
 
-#: src/reference/symbol-editor.md:19
+#: src/reference/symbol-editor.md:14
 msgid ""
 "**Save to library** writes a symbol and its owned function definition to the "
 "chosen `.ewlib` folder. An assigned existing function definition stays "
@@ -3157,15 +3157,15 @@ msgid ""
 "after closing the editor."
 msgstr ""
 
-#: src/reference/symbol-editor.md:26
+#: src/reference/symbol-editor.md:21
 msgid "AI and command-line tools"
 msgstr ""
 
-#: src/reference/symbol-editor.md:28
+#: src/reference/symbol-editor.md:23
 msgid "No remote service or generated code is required. Use `ew symbol`:"
 msgstr ""
 
-#: src/reference/symbol-editor.md:30
+#: src/reference/symbol-editor.md:25
 msgid ""
 "```text\n"
 "ew symbol template example.power \"Power block\" > power.symbol.json\n"
@@ -3178,7 +3178,7 @@ msgid ""
 "```"
 msgstr ""
 
-#: src/reference/symbol-editor.md:39
+#: src/reference/symbol-editor.md:34
 msgid ""
 "Template and schema print JSON. Validation prints stable issue codes, JSON "
 "pointers and details, exiting 0 when valid, 1 for validation findings, or 2 "
@@ -3190,7 +3190,7 @@ msgid ""
 "does not save the current project."
 msgstr ""
 
-#: src/reference/symbol-editor.md:45
+#: src/reference/symbol-editor.md:40
 msgid ""
 "The portable envelope uses `format: \"ew.symbol/1\"`, `key`, `version`, "
 "`symbol`, `function`, optional `function_ref`, `import_notes`, "
@@ -3201,155 +3201,155 @@ msgid ""
 "publisher replaces temporary references for owned functions."
 msgstr ""
 
-#: src/reference/symbol-editor.md:51
+#: src/reference/symbol-editor.md:46
 msgid "The window and `.ewui` scripts share these actions:"
 msgstr ""
 
-#: src/reference/symbol-editor.md:53
+#: src/reference/symbol-editor.md:48
 msgid "Action"
 msgstr ""
 
-#: src/reference/symbol-editor.md:53
+#: src/reference/symbol-editor.md:48
 msgid "Parameters"
 msgstr ""
 
-#: src/reference/symbol-editor.md:55
+#: src/reference/symbol-editor.md:50
 msgid "`symbol.new`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:55
+#: src/reference/symbol-editor.md:50
 msgid "`key`, `name`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:56
+#: src/reference/symbol-editor.md:51
 msgid "`symbol.open`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:56
+#: src/reference/symbol-editor.md:51
 msgid "`file`, optional import `key`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:57
+#: src/reference/symbol-editor.md:52
 msgid "`symbol.candidate`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:57
+#: src/reference/symbol-editor.md:52
 msgid "zero-based `index` from an import package"
 msgstr ""
 
-#: src/reference/symbol-editor.md:58
+#: src/reference/symbol-editor.md:53
 msgid "`symbol.fork`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:58
+#: src/reference/symbol-editor.md:53
 msgid "source symbol `source` key, new `key`; includes embedded QET imports"
 msgstr ""
 
-#: src/reference/symbol-editor.md:59
+#: src/reference/symbol-editor.md:54
 msgid "`symbol.draw`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:59
+#: src/reference/symbol-editor.md:54
 msgid "`tool`, `x`, `y`, optional `x2`, `y2`, `text`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:60
+#: src/reference/symbol-editor.md:55
 msgid "`symbol.path`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:60
+#: src/reference/symbol-editor.md:55
 msgid "`points` as millimetre pairs, optional `closed` for a polygon"
 msgstr ""
 
-#: src/reference/symbol-editor.md:61
+#: src/reference/symbol-editor.md:56
 msgid "`symbol.cp`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:61
+#: src/reference/symbol-editor.md:56
 msgid "`x`, `y`, optional `idx`, `fn_cp`, `designation`, `direction`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:62
+#: src/reference/symbol-editor.md:57
 msgid "`symbol.slot`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:62
+#: src/reference/symbol-editor.md:57
 msgid "`kind`, `x`, `y`; e.g. `\"tag\"` or `{\"cp_designation\":1}`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:63
+#: src/reference/symbol-editor.md:58
 msgid "`symbol.link`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:63
+#: src/reference/symbol-editor.md:58
 msgid "`name`, `x`, `y`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:64
+#: src/reference/symbol-editor.md:59
 msgid "`symbol.function`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:64
+#: src/reference/symbol-editor.md:59
 msgid "existing function definition `key`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:65
+#: src/reference/symbol-editor.md:60
 msgid "`symbol.replace`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:65
+#: src/reference/symbol-editor.md:60
 msgid "complete `document` object"
 msgstr ""
 
-#: src/reference/symbol-editor.md:66
+#: src/reference/symbol-editor.md:61
 msgid "`symbol.undo`, `symbol.redo`, `symbol.validate`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:66
+#: src/reference/symbol-editor.md:61
 msgid "none"
 msgstr ""
 
-#: src/reference/symbol-editor.md:67
+#: src/reference/symbol-editor.md:62
 msgid "`symbol.variant`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:67
+#: src/reference/symbol-editor.md:62
 msgid "`variant` 0–7 for A–H"
 msgstr ""
 
-#: src/reference/symbol-editor.md:68
+#: src/reference/symbol-editor.md:63
 msgid "`symbol.export`, `symbol.save`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:68
+#: src/reference/symbol-editor.md:63
 msgid "`file` or library `directory` respectively"
 msgstr ""
 
-#: src/reference/symbol-editor.md:69
+#: src/reference/symbol-editor.md:64
 msgid "`symbol.place`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:69
+#: src/reference/symbol-editor.md:64
 msgid "`x`, `y` on the current project page"
 msgstr ""
 
-#: src/reference/symbol-editor.md:70
+#: src/reference/symbol-editor.md:65
 msgid "`symbol.scratch`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:70
+#: src/reference/symbol-editor.md:65
 msgid "none; creates a test page in the current project"
 msgstr ""
 
-#: src/reference/symbol-editor.md:71
+#: src/reference/symbol-editor.md:66
 msgid "`symbol.close`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:71
+#: src/reference/symbol-editor.md:66
 msgid "optional `discard: true`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:73
+#: src/reference/symbol-editor.md:68
 msgid ""
 "Action coordinates are **millimetres**, unlike JSON document coordinates. "
 "Placement snaps the insertion point to the destination page grid; it never "
@@ -3359,69 +3359,69 @@ msgid ""
 "tutorial](../tutorials/symbol-editor.md) includes a complete six-pin example."
 msgstr ""
 
-#: src/reference/symbol-editor.md:78
+#: src/reference/symbol-editor.md:73
 msgid "Imported formats and limits"
 msgstr ""
 
-#: src/reference/symbol-editor.md:80
+#: src/reference/symbol-editor.md:75
 msgid "Input"
 msgstr ""
 
-#: src/reference/symbol-editor.md:80
+#: src/reference/symbol-editor.md:75
 msgid "Supported behavior"
 msgstr ""
 
-#: src/reference/symbol-editor.md:82
+#: src/reference/symbol-editor.md:77
 msgid "QElectroTech `.elmt`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:82
+#: src/reference/symbol-editor.md:77
 msgid ""
 "Existing bounded element reader; preserves the QET 10 px grid and "
 "provenance. Review conversion warnings."
 msgstr ""
 
-#: src/reference/symbol-editor.md:83
+#: src/reference/symbol-editor.md:78
 msgid "EPLAN `.edz`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:83
+#: src/reference/symbol-editor.md:78
 msgid ""
 "Bounded 7-Zip or ZIP container; candidates from supported XML members. Never "
 "extracts files to disk."
 msgstr ""
 
-#: src/reference/symbol-editor.md:84
+#: src/reference/symbol-editor.md:79
 msgid "EPLAN `.ema`, `.ems`, `.esl` XML"
 msgstr ""
 
-#: src/reference/symbol-editor.md:84
+#: src/reference/symbol-editor.md:79
 msgid ""
 "PXF revision **1.23**: straight lines, rectangles, polylines, full circles "
 "and text. Each macro variant becomes a separate candidate."
 msgstr ""
 
-#: src/reference/symbol-editor.md:85
+#: src/reference/symbol-editor.md:80
 msgid "EPLAN parts XML"
 msgstr ""
 
-#: src/reference/symbol-editor.md:85
+#: src/reference/symbol-editor.md:80
 msgid ""
 "Connection designations become a generated rectangular outline. This is "
 "explicitly **not the original macro artwork**."
 msgstr ""
 
-#: src/reference/symbol-editor.md:86
+#: src/reference/symbol-editor.md:81
 msgid "EPLAN binary `.slk` or binary macros"
 msgstr ""
 
-#: src/reference/symbol-editor.md:86
+#: src/reference/symbol-editor.md:81
 msgid ""
 "Refused with an explanation. Export a supported XML macro/parts file from "
 "EPLAN."
 msgstr ""
 
-#: src/reference/symbol-editor.md:88
+#: src/reference/symbol-editor.md:83
 msgid ""
 "PXF arcs/ellipses, images, groups, external symbol references and "
 "unrecognised records are not faithfully reconstructed. The importer reports "
@@ -3433,7 +3433,7 @@ msgid ""
 "distributed with ElektraWatt."
 msgstr ""
 
-#: src/reference/symbol-editor.md:94
+#: src/reference/symbol-editor.md:89
 msgid ""
 "EPLAN drafts require a licence/source review and explicit acknowledgement. A "
 "download is not treated as a redistribution licence. No links or embedded "

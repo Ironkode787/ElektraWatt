@@ -1,8 +1,3 @@
-<!--
-SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
-SPDX-License-Identifier: CC-BY-4.0
--->
-
 # Symbol editor and automated authoring
 
 Open **Edit → Symbol editor**. A symbol draft has its own undo history, drawing, function definition,

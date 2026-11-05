@@ -1,8 +1,3 @@
-<!--
-SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
-SPDX-License-Identifier: CC-BY-4.0
--->
-
 # Draw a six-pin power block
 
 Create a project from the built-in template. Open **Edit → Symbol editor**, name it **Power block**, and use the
