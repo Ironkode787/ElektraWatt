@@ -724,7 +724,7 @@ msgstr ""
 #: src/tutorials/terminal-strip-and-cable.md:34
 msgid ""
 "Click the field wire of -1X1:1, then Shift+click the field wire of -1X1:2. "
-"Choose **Draw ▸ Connect ▸ Connect cores…**, choose the cable **-W1**, and "
+"Choose **Draw ▸ Connect ▸ Connect cores…**, choose the cable **\\-W1**, and "
 "choose **Connect**. The toast says \"Wires connected to the cores of -1W1: "
 "2\": the two field wires are now cores of the cable, and the cable takes its "
 "page number from its first core."
