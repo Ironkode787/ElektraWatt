@@ -524,7 +524,8 @@ fn tab_bar_back(h: &Harness<'_, App>) -> (bool, String, egui::Rect) {
     let back = h
         .get_all_by_role(egui::Role::Button)
         .find(|n| {
-            n.accesskit_node().label().as_deref() == Some("Back") && tab.y_range().contains(n.rect().center().y)
+            n.accesskit_node().label().as_deref() == Some("Back")
+                && tab.y_range().contains(n.rect().center().y)
         })
         .expect("Back beside the page tabs");
     let node = back.accesskit_node();
@@ -551,7 +552,10 @@ fn ft1435_a_jump_marks_its_arrival_and_back_stands_beside_the_tabs() {
         assert!(!enabled, "{size:?}: nothing to go back to yet");
         assert_eq!(tip, "Back (Alt+Left)");
         let tab = support::view_tabs(&h).first().unwrap().rect();
-        assert!(rect.right() <= tab.left() + 0.5, "{size:?}: Back {rect:?} before the tabs {tab:?}");
+        assert!(
+            rect.right() <= tab.left() + 0.5,
+            "{size:?}: Back {rect:?} before the tabs {tab:?}"
+        );
     }
     // With motion (the CPU canvas reduces it by default) the ring fades; reduced, it stands still for its moment.
     for reduce in [false, true] {
@@ -562,10 +566,18 @@ fn ft1435_a_jump_marks_its_arrival_and_back_stands_beside_the_tabs() {
         let canvas = h.state().shell().canvas().unwrap();
         let (at, _) = canvas.arrival().expect("the arrival is marked");
         assert_eq!(canvas.centre(), at, "the arrival at the centre");
-        let first = h.state_mut().canvas_host().arrival_mark(g).expect("the ring shows");
+        let first = h
+            .state_mut()
+            .canvas_host()
+            .arrival_mark(g)
+            .expect("the ring shows");
         assert_eq!(first, 1.0);
         h.step();
-        let later = h.state_mut().canvas_host().arrival_mark(g).expect("still showing");
+        let later = h
+            .state_mut()
+            .canvas_host()
+            .arrival_mark(g)
+            .expect("still showing");
         if reduce {
             assert_eq!(later, 1.0, "still");
         } else {
@@ -575,7 +587,11 @@ fn ft1435_a_jump_marks_its_arrival_and_back_stands_beside_the_tabs() {
         for _ in 0..8 {
             h.step();
         }
-        assert_eq!(h.state_mut().canvas_host().arrival_mark(g), None, "gone after its moment");
+        assert_eq!(
+            h.state_mut().canvas_host().arrival_mark(g),
+            None,
+            "gone after its moment"
+        );
     }
     assert_eq!(folio(&h), "103");
     let (enabled, _, rect) = tab_bar_back(&h);

@@ -624,7 +624,11 @@ fn v6_follow_back_forward_and_links_at_the_model() {
     assert_eq!(shell.canvas().unwrap().arrival(), None);
     // A second jump to the same point is a new mark.
     done(&mut shell, "nav.back", json!({}));
-    done(&mut shell, "nav.follow", json!({"x_mm": mm(at.0), "y_mm": mm(at.1)}));
+    done(
+        &mut shell,
+        "nav.follow",
+        json!({"x_mm": mm(at.0), "y_mm": mm(at.1)}),
+    );
     let again = shell.canvas().unwrap().arrival().expect("marked again");
     assert_eq!(again.0, target);
     assert_ne!(again.1, serial);

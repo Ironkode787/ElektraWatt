@@ -1104,7 +1104,12 @@ impl CanvasHost {
 
     /// The opacity group `group`'s jump arrival mark was painted at last, `None` when none showed (FT-1435; tests).
     pub fn arrival_mark(&self, group: usize) -> Option<f32> {
-        self.arrivals.get(group).copied().flatten().map(|(_, _, a)| a).filter(|a| *a > 0.0)
+        self.arrivals
+            .get(group)
+            .copied()
+            .flatten()
+            .map(|(_, _, a)| a)
+            .filter(|a| *a > 0.0)
     }
 
     /// Paints group `group`'s jump arrival mark (FT-1435): a ring in `color.accent` around the point the jump

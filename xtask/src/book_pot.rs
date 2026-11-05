@@ -54,7 +54,10 @@ fn messages(pot: &str) -> Messages {
         let Some(start) = lines.iter().position(|l| l.starts_with("msgid ")) else {
             continue;
         };
-        let end = lines.iter().position(|l| l.starts_with("msgstr")).unwrap_or(lines.len());
+        let end = lines
+            .iter()
+            .position(|l| l.starts_with("msgstr"))
+            .unwrap_or(lines.len());
         let mut id = vec![&lines[start]["msgid ".len()..]];
         id.extend_from_slice(&lines[start + 1..end]);
         let text = po_text(&id);
@@ -110,13 +113,10 @@ fn without_markers(rel: &str, page: &str) -> String {
         })
         .map(|l| {
             let t = l.trim_start();
-            let rest = t
-                .strip_prefix("- ")
-                .or_else(|| t.strip_prefix("* "))
-                .or_else(|| {
-                    let digits = t.len() - t.trim_start_matches(|c: char| c.is_ascii_digit()).len();
-                    (digits > 0).then(|| t[digits..].strip_prefix(". ")).flatten()
-                });
+            let rest = t.strip_prefix("- ").or_else(|| t.strip_prefix("* ")).or_else(|| {
+                let digits = t.len() - t.trim_start_matches(|c: char| c.is_ascii_digit()).len();
+                (digits > 0).then(|| t[digits..].strip_prefix(". ")).flatten()
+            });
             rest.unwrap_or(t).to_owned()
         })
         .collect::<Vec<_>>()
@@ -142,13 +142,18 @@ fn pages(book: &Path, gitignore: &str) -> Vec<(String, String)> {
                 .expect("under the book")
                 .to_string_lossy()
                 .replace('\\', "/");
-            if generated.iter().any(|g| rel == g.trim_end_matches('/') || rel.starts_with(g.as_str())) {
+            if generated
+                .iter()
+                .any(|g| rel == g.trim_end_matches('/') || rel.starts_with(g.as_str()))
+            {
                 continue;
             }
             if path.is_dir() {
                 stack.push(path);
             } else if rel.ends_with(".md") {
-                let mut text = std::fs::read_to_string(&path).expect("a page reads").replace("\r\n", "\n");
+                let mut text = std::fs::read_to_string(&path)
+                    .expect("a page reads")
+                    .replace("\r\n", "\n");
                 if rel == "src/SUMMARY.md" {
                     text = text
                         .lines()
