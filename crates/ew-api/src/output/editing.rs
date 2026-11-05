@@ -428,10 +428,11 @@ fn symbol_row(
         rep_type: rep_type_word(&symbol.rep_type),
         letter: letter_of(set, def.as_deref()),
         black_box: symbol.meta.key.as_ref().is_some_and(|key| {
-            matches!(key.as_str(), "ew.gen.blackbox" | "ew.gen.blackbox@qet10")
-                && starter_symbol(key.as_str()).is_some_and(|s| {
-                    s.item.fndef.library == symbol.fndef.library && s.item.fndef.item == symbol.fndef.item
-                })
+            starter_symbol(key.as_str()).is_some_and(|s| {
+                copy.is_none_or(|id| id == s.id.as_uuid())
+                    && s.item.fndef.library == symbol.fndef.library
+                    && s.item.fndef.item == symbol.fndef.item
+            })
         }) && def
             .as_ref()
             .is_some_and(|d| d.item.contact_kind == ContactKind::BlackBox),

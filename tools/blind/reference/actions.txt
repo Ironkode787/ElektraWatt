@@ -363,7 +363,7 @@ symbol.new View "Symbol editor…" menu "Edit" shortcut none context global para
 symbol.open View "Open symbol…" menu none shortcut none context global hidden params "file:path, key?:text, discard?:bool"
 symbol.candidate View "Choose imported symbol" menu none shortcut none context global hidden params "index:uint, discard?:bool"
 symbol.function View "Assign function definition" menu none shortcut none context global hidden params "key:text"
-symbol.map_cp View "Map a symbol connection to a function pin" menu none shortcut none context global hidden params "cp:uint, fn_cp:uint"
+symbol.map_cp View "Map a symbol connection point to a function pin" menu none shortcut none context global hidden params "cp:uint, fn_cp:uint"
 symbol.link View "Add mechanical link point" menu none shortcut none context global hidden params "name:text, x:mm, y:mm"
 symbol.path View "Draw a polyline or polygon" menu none shortcut none context global hidden params "points:json, closed?:bool"
 symbol.fork View "Fork symbol…" menu none shortcut none context global hidden params "source:text, key:text, discard?:bool"

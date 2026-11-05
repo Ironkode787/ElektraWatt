@@ -205,8 +205,8 @@ passed or merge into working/release branches before those decisions and gates.
 - Source addresses preserve library/item identity; the window uses human-readable names, library and grid.
 - Publication remembers explicit library directories. Insert offers their symbols on the stored connection grid,
   carries the symbol/function closure (including part-associated placement), and retains existing project versions.
-  Only the known starter box placeholder invokes resizable-box creation; authored outlines remain intact on repeat
-  insertion. Scratch placements remain independent draft copies, distinct from source-linked library insertion.
+  Built-in templates retain their existing insertion behavior; authored outlines remain intact on repeat insertion.
+  Scratch placements remain independent draft copies, distinct from source-linked library insertion.
 - Name fields keep stable focus across panels. A focus change commits before Save/Test, and simultaneous property
   changes merge rather than replacing one another with stale frame data. New drafts reset transient field state.
 - Arc creation uses whole degrees consistently in the window and headless action, stored as millidegrees.

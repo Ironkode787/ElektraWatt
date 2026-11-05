@@ -4882,7 +4882,7 @@ symbol-optional-column = Optional
 
 symbol-control-name = { $p0 } { $p1 }
 symbol-pin-mapping = Pin mapping
-symbol-mapping-help = Drag a function pin onto a connection below, or choose it from the list. Pins already in use swap places.
+symbol-mapping-help = Drag a function pin onto a connection point below, or choose it from the list. Pins already in use swap places.
 symbol-function-pin = Function pin { $p0 }
 symbol-mapping-target = Connection point { $p0 }
 symbol-map-control = Map connection point { $p0 }
@@ -4900,7 +4900,7 @@ symbol-source-native = { $p0 } · 4 mm · { $p1 }
 symbol-source-qet = { $p0 } · QET · { $p1 }
 symbol-project-copy = Project copy
 symbol-slot-pin-number = Pin number
-action-symbol-map-cp = Map a symbol connection to a function pin
+action-symbol-map-cp = Map a symbol connection point to a function pin
 
 symbol-pin-ordinal = { $p0 } ({ $p1 })
 symbol-select-hint = Select a shape to edit, drag to move, or press Delete to remove it.

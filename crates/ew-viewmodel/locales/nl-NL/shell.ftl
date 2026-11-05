@@ -4674,4 +4674,4 @@ symbol-fill = Vorm vullen
 symbol-text-style = Tekststijl
 symbol-style-default = Standaard voor dit veld
 symbol-style-choice = { $p0 } mm · { $p1 }
-symbol-scratch-created = Testkopie geplaatst op pagina { $p0 }. Sluit de editor om deze te bekijken en te bedraden.
+symbol-scratch-created = Testkopie geplaatst op pagina { $p0 }. Sluit de editor om deze te bekijken en draden aan te sluiten.
