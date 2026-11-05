@@ -196,7 +196,22 @@ fn explicit_folio_problem(
                 last.to_string()
             ));
         }
-        if s.divider && printed == first.to_string() {
+    }
+    held_folio_problem(tx, sec, section, printed)
+}
+
+/// Why a page of `section` may not print `printed` (FT-459; FR-PAG-009, FR-REP-041; `page.renumber`, ID-1427), in
+/// this order: the printed folio of the section's divider page (its range's first folio); the printed folio of a
+/// generated page of a page-oriented report block of the same section (its first folio, and with sub-page continuation
+/// any `<first>.<k>`). `None` when the folio is free of them.
+fn held_folio_problem(
+    tx: &TxBuilder<'_>,
+    sec: Option<&Section>,
+    section: Option<Id<Section>>,
+    printed: &str,
+) -> Option<Text> {
+    if let Some(s) = sec {
+        if s.divider && printed == s.folio_range.0.to_string() {
             return Some(text!(
                 "refusal-page-create-divider",
                 printed,
@@ -397,7 +412,8 @@ pub enum PageScope {
 /// in the same section is rejected. A page of the same section whose label's leading number segment (up to the first
 /// `.`, or the whole label) is the printed old number takes the printed new number instead (`101.1` becomes `20.1`
 /// when 101 becomes 20; `101a` and `1011.1` keep their label; FT-475); a rewritten label that equals another page's
-/// printed folio is rejected. Bulk.
+/// printed folio is rejected. A page whose printed folio changes is rejected, in `page.create`'s words, on the folio
+/// of its section's divider page or on a folio a page-oriented report block of its section generates (ID-1427). Bulk.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct RenumberPages {
@@ -523,9 +539,27 @@ impl Command for RenumberPages {
                 .map_err(|_| CmdError::internal(format!("sub-page label `{text}` is not an identifier")))?;
             relabel.push((p.id, new_label));
         }
+        // ID-1427 (C52-p6#1, W52 F1): a page whose printed folio changes may not take the section's divider folio or
+        // a folio a page-oriented report block of the section generates, as `page.create` refuses it.
+        let new_number: BTreeMap<Id<Page>, u32> = new_numbers.iter().copied().collect();
+        for p in tx.iter::<Page>() {
+            let number = new_number.get(&p.id).copied().unwrap_or(p.folio.number);
+            let label = relabel
+                .iter()
+                .find(|(id, _)| *id == p.id)
+                .map(|(_, l)| l)
+                .or(p.folio.label.as_ref());
+            let printed = printed_folio(number, label);
+            if printed == printed_folio(p.folio.number, p.folio.label.as_ref()) {
+                continue;
+            }
+            let sec = p.folio.section.and_then(|s| tx.get::<Section>(s));
+            if let Some(reason) = held_folio_problem(tx, sec.as_deref(), p.folio.section, &printed) {
+                return tx.reject(reason);
+            }
+        }
         if !relabel.is_empty() {
             // The printed folios after the renumbering must stay distinct within a section.
-            let new_number: BTreeMap<Id<Page>, u32> = new_numbers.iter().copied().collect();
             let new_label: BTreeMap<Id<Page>, &Ident> = relabel.iter().map(|(id, l)| (*id, l)).collect();
             let mut printed: BTreeMap<(Option<Id<Section>>, String), u32> = BTreeMap::new();
             let mut texts: Vec<(Option<Id<Section>>, String, bool)> = Vec::new();

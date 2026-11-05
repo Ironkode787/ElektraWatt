@@ -192,18 +192,17 @@ fn create_page_refuses_a_folio_a_report_block_generates() {
 /// block, duplicate is the one the reason names.
 #[test]
 fn create_page_names_the_first_of_several_refusals() {
-    let mut e = engine(golden_model());
-    let sec2: Id<Section> = typed(
-        e.execute(&section_cmd(2, 200, 299))
-            .unwrap()
-            .outcome
-            .primary
-            .unwrap(),
-    );
-    // A report block of section 2 whose first folio is the divider's.
-    let mut on_divider = block(Some(200));
+    // A report block of section 2 whose first folio is the divider's: no command makes it (ID-1427), so the project is
+    // loaded with it, as a file may hold it.
+    let (p, mut records, _) = mini_golden_parts();
+    let sec2: Id<Section> = id(0xf200);
+    let mut divided = section(sec2, 2, 200, 299, "Terminals");
+    divided.divider = true;
+    records.push(ew_schema::Record::Section(divided));
+    let mut on_divider = report_block(id(0xf201), 200);
     on_divider.section = Some(sec2);
-    bulk(&mut e, &on_divider).expect("a block at the divider's folio");
+    records.push(ew_schema::Record::ReportBlock(on_divider));
+    let mut e = engine(ew_model::Model::from_records(p, records, library()).expect("a loadable project"));
     // Range before divider: number 300 is outside 200 to 299, and its label prints the divider's folio "200".
     assert_eq!(
         rejected(e.execute(&labelled(Some(sec2), 300, "200"))),
@@ -880,6 +879,84 @@ fn set_fields_refuses_a_report_block_folio_a_page_holds() {
         .expect("its own folio is free");
     e.execute(&set_block(moved, "first_folio", serde_json::json!(186)))
         .expect("a free folio");
+}
+
+/// ID-1427 (W52 F1): the divider page of a section holds the section's first folio against every command that sets a
+/// folio: `report_block.create` and `fields.set` of a block's first folio refuse it in `page.create`'s words for a
+/// page that exists, `page.renumber` and `page.create` name the divider. Nothing changes on a refusal.
+#[test]
+fn every_folio_path_refuses_the_divider_folio() {
+    let mut e = engine(golden_model());
+    let sec2: Id<Section> = typed(
+        e.execute(&section_cmd(2, 200, 299))
+            .unwrap()
+            .outcome
+            .primary
+            .unwrap(),
+    );
+    let mut on_divider = block(Some(200));
+    on_divider.section = Some(sec2);
+    assert_eq!(
+        rejected(e.execute(&on_divider)),
+        "folio 200 already exists in this section; choose a free folio"
+    );
+    let mut next = block(Some(201));
+    next.section = Some(sec2);
+    let moved: Id<ReportBlock> = typed(bulk(&mut e, &next).unwrap().outcome.primary.unwrap());
+    let before = e.model().table::<ReportBlock>().get(&moved).unwrap().clone();
+    assert_eq!(
+        rejected(e.execute(&set_block(moved, "first_folio", serde_json::json!(200)))),
+        "folio 200 already exists in this section; choose a free folio"
+    );
+    assert_eq!(*e.model().table::<ReportBlock>().get(&moved).unwrap(), before);
+    let page: Id<Page> = typed(
+        e.execute(&CreatePage::at(Some(sec2), 250))
+            .unwrap()
+            .outcome
+            .primary
+            .unwrap(),
+    );
+    assert_eq!(
+        rejected(bulk(&mut e, &renumber(PageScope::Pages(vec![page]), 200, 1, false))),
+        "folio 200 is the divider page of section 2; choose another folio"
+    );
+    assert_eq!(folio_of(&e, page), (Some(sec2), 250, None));
+    assert_eq!(
+        rejected(e.execute(&CreatePage::at(Some(sec2), 200))),
+        "folio 200 is the divider page of section 2; choose another folio"
+    );
+    bulk(&mut e, &renumber(PageScope::Pages(vec![page]), 260, 1, false)).expect("a free folio");
+}
+
+/// C52-p6#1 (ID-1424): `page.renumber` refuses, in `page.create`'s words, a new printed folio a page-oriented report
+/// block of the section generates: its first folio, and with sub-page continuation a `<first>.<k>` that a sub-page
+/// label takes when it follows its page (FT-475). Nothing changes on a refusal; a free folio goes through.
+#[test]
+fn renumber_refuses_a_folio_a_report_block_generates() {
+    let mut e = engine(golden_model());
+    bulk(&mut e, &block(Some(190))).expect("a sub-page block at 190");
+    let before = lines(e.model());
+    assert_eq!(
+        rejected(bulk(&mut e, &renumber(PageScope::Pages(vec![PAGE_101]), 190, 1, false))),
+        "folio 190 is a page the report block at folio 190 generates; choose another folio"
+    );
+    assert_eq!(lines(e.model()), before);
+    let lettered: Id<Page> = typed(
+        e.execute(&labelled(Some(SEC1), 160, "160a"))
+            .unwrap()
+            .outcome
+            .primary
+            .unwrap(),
+    );
+    e.execute(&labelled(Some(SEC1), 160, "160.1"))
+        .expect("a sub-page of 160");
+    let with_pages = lines(e.model());
+    assert_eq!(
+        rejected(bulk(&mut e, &renumber(PageScope::Pages(vec![lettered]), 190, 1, false))),
+        "folio 190.1 is a page the report block at folio 190 generates; choose another folio"
+    );
+    assert_eq!(lines(e.model()), with_pages);
+    bulk(&mut e, &renumber(PageScope::Pages(vec![PAGE_101]), 170, 1, false)).expect("a free folio");
 }
 
 /// The shipped frame without the grid (`content/forms`), the form of the golden report blocks, in the `lib/` JSON
