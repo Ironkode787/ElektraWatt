@@ -1154,3 +1154,41 @@ fn the_shipped_starter_parts_library_has_the_derived_id() {
     );
     assert!(!reg.search(&PartQuery::default()).is_empty());
 }
+
+/// FT-1382: a library given as its files in memory reads as its directory does, with the index in memory; a set of
+/// files without a manifest is left out with a finding.
+#[test]
+fn a_library_in_memory_reads_as_its_directory() {
+    fn walk(dir: &Path, base: &Path, out: &mut std::collections::BTreeMap<String, Vec<u8>>) {
+        for e in std::fs::read_dir(dir).unwrap() {
+            let p = e.unwrap().path();
+            if p.is_dir() {
+                walk(&p, base, out);
+            } else {
+                let rel = p.strip_prefix(base).unwrap().to_string_lossy().replace('\\', "/");
+                out.insert(rel, std::fs::read(&p).unwrap());
+            }
+        }
+    }
+    let f = Fixture::new("ew-library-in-memory");
+    let mut reg = f.open();
+    let lib = company(&f, &mut reg);
+    let dir = f.root.join("company").join("company-std.ewlib");
+    let mut files = std::collections::BTreeMap::new();
+    walk(&dir, &dir, &mut files);
+    files.remove(LOCK);
+    let mem = Registry::in_memory(Tier::Company, files.clone()).unwrap();
+    assert_eq!(mem.documents(lib, Kind::Part), reg.documents(lib, Kind::Part));
+    let info = mem.libraries().into_iter().find(|l| l.id == lib).unwrap();
+    assert_eq!((info.tier, info.writable, info.path), (Tier::Company, false, None));
+    assert_eq!(search(&mem, "A9P52610")[0].library, lib);
+    assert!(mem.findings().is_empty(), "{:?}", mem.findings());
+
+    files.remove("library.json");
+    let mem = Registry::in_memory(Tier::Company, files).unwrap();
+    assert!(mem.libraries().iter().all(|l| l.id != lib));
+    assert_eq!(
+        mem.findings(),
+        ["<in-memory>: library.json: not among the library's files; the library is not used"]
+    );
+}

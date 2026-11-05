@@ -31,6 +31,8 @@ const STARTER_PATH: &str = "<compiled-in>";
 const STARTER_FILE: &str = "starter";
 /// The pseudo path of the compiled-in system library of starter parts in the index.
 const STARTER_PARTS_PATH: &str = "<compiled-in>/ew-starter-parts";
+/// The pseudo path of a library given in memory, before its key, in the index.
+const MEMORY_PATH: &str = "<in-memory>";
 
 /// What [`Registry::libraries`] reports per library.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -99,6 +101,8 @@ struct Lib {
     manifest: Option<LibManifest>,
     /// The files of a compiled-in `.ewlib` library (the starter parts, WP-S2.18 D6) as `(path, text)`.
     compiled: Option<&'static [(&'static str, &'static str)]>,
+    /// The files of a library given in memory ([`Registry::in_memory`]) as `(path, bytes)`, `library.json` among them.
+    memory: Option<BTreeMap<String, Vec<u8>>>,
 }
 
 impl Lib {
@@ -130,6 +134,7 @@ impl Lib {
     fn index_path(&self) -> String {
         match (self.dir(), self.compiled) {
             (Some(d), _) => d.display().to_string(),
+            (None, None) if self.memory.is_some() => format!("{MEMORY_PATH}/{}", self.info.key),
             (None, Some(_)) => STARTER_PARTS_PATH.to_owned(),
             (None, None) => STARTER_PATH.to_owned(),
         }
@@ -218,8 +223,24 @@ fn library_dirs(path: &Path) -> Vec<PathBuf> {
 
 /// Reads and checks `dir`'s manifest.
 fn open_manifest(dir: &Path, limits: &Limits) -> Result<LibManifest, String> {
-    let bytes = read_file(dir, MANIFEST, limits.max_manifest_bytes)?;
-    let m = LibManifest::parse(&bytes)?;
+    check_manifest(&read_file(dir, MANIFEST, limits.max_manifest_bytes)?, limits)
+}
+
+/// The file `path` of a library given in memory, under the same size limit as [`read_file`]'s.
+fn memory_file(files: &BTreeMap<String, Vec<u8>>, path: &str, max_bytes: u64) -> Result<Vec<u8>, String> {
+    let bytes = files
+        .get(path)
+        .ok_or_else(|| format!("{path}: not among the library's files"))?;
+    let len = u64::try_from(bytes.len()).unwrap_or(u64::MAX);
+    if len > max_bytes {
+        return Err(format!("{path}: larger than the loader limit ({len} bytes)"));
+    }
+    Ok(bytes.clone())
+}
+
+/// Parses and checks a manifest's bytes.
+fn check_manifest(bytes: &[u8], limits: &Limits) -> Result<LibManifest, String> {
+    let m = LibManifest::parse(bytes)?;
     if !m.readable() {
         return Err(format!(
             "library.json needs reader format {} (this reader: {})",
@@ -458,6 +479,53 @@ impl Registry {
         reg
     }
 
+    /// A registry of the compiled-in libraries and one library of tier `tier` given as its files in memory (`(path,
+    /// bytes)`, `library.json` among them), with the index in memory (no tiers configured, nothing on disk): the
+    /// `.ewlib` reader without a directory (FT-1382). The library is read as a directory's would be, under the same
+    /// limits, and is not writable; when it cannot be read it is left out with a finding.
+    ///
+    /// # Errors
+    ///
+    /// The in-memory index fails.
+    pub fn in_memory(tier: Tier, files: BTreeMap<String, Vec<u8>>) -> Result<Registry, LibraryError> {
+        let mut reg = Registry::with_index(LibraryTiers::default(), Index::in_memory()?);
+        reg.libs.retain(|l| l.dir().is_none());
+        match memory_file(&files, MANIFEST, reg.limits.max_manifest_bytes)
+            .and_then(|bytes| check_manifest(&bytes, &reg.limits))
+        {
+            Ok(m) if reg.libs.iter().any(|l| l.info.id == m.id) => reg.findings.push(format!(
+                "{MEMORY_PATH}: library {} is installed twice; the first one is used",
+                m.id
+            )),
+            Ok(m) => {
+                let notes = m.files.keys().filter_map(|p| classify(p).err()).collect();
+                reg.libs.push(Lib {
+                    info: LibraryInfo {
+                        id: m.id,
+                        key: m.key.clone(),
+                        name: m.name.clone(),
+                        tier,
+                        version: m.version.clone(),
+                        licence: m.licence.clone(),
+                        writable: false,
+                        path: None,
+                        generation: m.generation,
+                        index: IndexState::Fresh,
+                        findings: notes,
+                    },
+                    manifest: Some(m),
+                    compiled: None,
+                    memory: Some(files),
+                });
+            }
+            Err(e) => reg
+                .findings
+                .push(format!("{MEMORY_PATH}: {e}; the library is not used")),
+        }
+        reg.reindex_all(false)?;
+        Ok(reg)
+    }
+
     fn with_index(tiers: LibraryTiers, index: Index) -> Registry {
         let limits = Limits::default();
         let mut findings = Vec::new();
@@ -485,6 +553,7 @@ impl Registry {
             },
             manifest: None,
             compiled: None,
+            memory: None,
         }];
         let mut seen: BTreeSet<Uuid> = BTreeSet::from([starter::LIBRARY]);
         // The system library of starter parts, compiled in (WP-S2.18 D6): a new project reaches its parts with no
@@ -509,6 +578,7 @@ impl Registry {
                     },
                     manifest: Some(m),
                     compiled: Some(starter_parts::FILES),
+                    memory: None,
                 });
             }
             Err(e) => findings.push(format!(
@@ -565,6 +635,7 @@ impl Registry {
                             },
                             manifest: Some(m),
                             compiled: None,
+                            memory: None,
                         });
                     }
                     Err(e) => findings.push(format!("{}: {e}; the library is not used", dir.display())),
@@ -606,7 +677,10 @@ impl Registry {
                 .find(|(p, _)| *p == path)
                 .map(|(_, text)| text.as_bytes().to_vec())
                 .ok_or_else(|| format!("{path}: not compiled in; skipped"))?,
-            (None, None) => return Err(format!("{path}: the library has no directory")),
+            (None, None) => match &lib.memory {
+                Some(files) => memory_file(files, path, self.limits.max_file_bytes)?,
+                None => return Err(format!("{path}: the library has no directory")),
+            },
         };
         let expected = lib.manifest.as_ref().and_then(|m| m.files.get(path));
         if !expected.is_some_and(|h| hash_matches(h, &bytes)) {
@@ -1236,6 +1310,7 @@ impl Registry {
                 },
                 manifest: Some(manifest),
                 compiled: None,
+                memory: None,
             });
             let i = self.libs.len() - 1;
             let state = self.index().state(id)?;

@@ -7,12 +7,12 @@
 //!
 //! The input is a set of files with a mode byte ([`decode`]): `library.json`, `library.lock` and records files named by
 //! [`path_of`]. Mode bit 0 replaces the manifest by one computed from the files (a fixed identity, generation 1, every
-//! file's SHA-256), so the shards' lines get past the hash check. Each input is written to a fresh directory below the
-//! system's temporary folder (the reader reads files only) and removed afterwards; the registry's index lives in one
-//! cache folder per process, so the compiled-in libraries are indexed once and the input's library, at a new path each
-//! time, is indexed whole. One input runs at a time. Properties, whatever the bytes:
+//! file's SHA-256), so the shards' lines get past the hash check. The library is read through the reader's in-memory
+//! entry, `Registry::in_memory`, with the index in memory, so no input touches the disk (FT-1382); only an input with a
+//! `library.lock` is written to a fresh directory below the system's temporary folder, for the lock, and removed
+//! afterwards. One input runs at a time. Properties, whatever the bytes:
 //!
-//! - nothing panics: [`LibManifest::parse`], [`LockRecord::parse`], `Registry::open` over the directory as a company
+//! - nothing panics: [`LibManifest::parse`], [`LockRecord::parse`], `Registry::in_memory` over the files as a company
 //!   library, every document of every kind it then hands out, and the writer's lock taken over the input's
 //!   `library.lock`;
 //! - a manifest that parses writes back to a text that parses to the same manifest, and a lock record likewise;
@@ -23,10 +23,10 @@
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{Mutex, OnceLock};
+use std::sync::Mutex;
 
 use ew_api::library::lock::{self, Identity, LockRecord};
-use ew_api::library::{LibManifest, LibraryTiers, LockPolicy, MANIFEST, Registry};
+use ew_api::library::{LibManifest, LockPolicy, MANIFEST, Registry, Tier};
 use ew_schema::{Kind, LibDocument};
 
 /// The selector of the manifest's section.
@@ -153,16 +153,6 @@ fn fresh() -> PathBuf {
     dir
 }
 
-/// The process's data and cache folders of the registry, made empty once.
-fn shared() -> &'static PathBuf {
-    static SHARED: OnceLock<PathBuf> = OnceLock::new();
-    SHARED.get_or_init(|| {
-        let dir = std::env::temp_dir().join(format!("ew-fuzz-ewlib-{}-shared", std::process::id()));
-        let _ = std::fs::remove_dir_all(&dir);
-        dir
-    })
-}
-
 fn write(dir: &Path, rel: &str, bytes: &[u8]) {
     let path = rel.split('/').fold(dir.to_path_buf(), |p, s| p.join(s));
     std::fs::create_dir_all(path.parent().expect("a parent")).expect("a folder of the input");
@@ -200,29 +190,15 @@ pub fn check(input: &[u8]) -> Outcome {
         );
     }
 
-    let root = fresh();
-    let dir = root.join(LIBRARY);
-    std::fs::create_dir_all(&dir).expect("the library folder");
-    for (path, bytes) in &case.files {
-        write(&dir, path, bytes);
-    }
+    let mut files = case.files.clone();
     if let Some(m) = &manifest {
-        write(&dir, MANIFEST, m);
+        files.insert(MANIFEST.to_owned(), m.clone());
     }
-    if let Some(l) = &case.lock {
-        write(&dir, lock::LOCK, l);
-    }
-    let tiers = LibraryTiers::under(
-        &shared().join("data"),
-        &shared().join("cache"),
-        Vec::new(),
-        vec![dir.clone()],
-    );
-    if let Ok(reg) = Registry::open(&tiers) {
+    if let Ok(reg) = Registry::in_memory(Tier::Company, files) {
         let ours: Vec<_> = reg
             .libraries()
             .into_iter()
-            .filter(|l| l.tier == ew_api::library::Tier::Company)
+            .filter(|l| l.tier == Tier::Company)
             .collect();
         outcome.listed = !ours.is_empty();
         for library in ours {
@@ -236,6 +212,9 @@ pub fn check(input: &[u8]) -> Outcome {
         }
     }
     if let Some(bytes) = &case.lock {
+        let root = fresh();
+        let dir = root.join(LIBRARY);
+        write(&dir, lock::LOCK, bytes);
         let me = Identity::current("ew-fuzz");
         let taken = lock::acquire(&dir, &me, &LockPolicy::default());
         assert!(taken.is_err(), "another session's lock was taken over: {taken:?}");
@@ -244,7 +223,7 @@ pub fn check(input: &[u8]) -> Outcome {
             Some(bytes),
             "taking the lock changed another session's lock file"
         );
+        let _ = std::fs::remove_dir_all(&root);
     }
-    let _ = std::fs::remove_dir_all(&root);
     outcome
 }
