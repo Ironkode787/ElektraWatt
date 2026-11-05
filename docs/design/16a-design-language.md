@@ -703,7 +703,7 @@ Show · On"). Frame statistics drawn with its icon where its siblings show their
 
 *As built (2026-11-05, cycle 52, FT-1435 and FT-1443; decision log ID-1409, ID-1419, ID-1422, ID-1433).* **A jump's
 arrival.** After a cross-reference jump the target is centred and marked by a ring of `size.control.inline` radius in
-`color.accent`, which fades over 1.5 s of frame time, also under reduced motion. Keeping the centred view on the sheet
+`color.accent`, which fades over 1.5 s of frame time; under reduced motion it stays fully drawn for 1.5 s, then goes. Keeping the centred view on the sheet
 and the ring clear of the texts it covers is FT-1506. **Back beside the page tabs.** Each canvas tab bar starts with a
 Back button, enabled only when there is a page to go back to; its tooltip takes the key from the
 keymap, "Back (Alt+Left)", and when disabled reads "Back (Alt+Left): No page to return to". **A page's first view** is
