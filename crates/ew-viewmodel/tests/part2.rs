@@ -730,12 +730,12 @@ fn an_identical_re_import_says_there_is_nothing_to_re_import() {
     for (locale, body, reason) in [
         (
             "en",
-            "Nothing to re-import: the file matches the project.",
+            "Nothing to re-import: the file has not changed since its last import.",
             "The file changes nothing in the project",
         ),
         (
             "nl",
-            "Niets opnieuw te importeren: het bestand komt overeen met het project.",
+            "Niets opnieuw te importeren: het bestand is niet gewijzigd sinds de laatste import.",
             "Het bestand wijzigt niets in het project",
         ),
     ] {
@@ -760,6 +760,53 @@ fn an_identical_re_import_says_there_is_nothing_to_re_import() {
     }
     assert!(ew_viewmodel::strings::set_locale("en"));
     assert_eq!(shell.revision(), rev, "nothing is written");
+    shell.shutdown();
+}
+
+/// ID-1439 (C52-p8#4): after the user edited an imported record, re-importing the unchanged file says the file has
+/// not changed since its last import and counts the record kept with the user's changes, in both languages.
+#[test]
+fn an_unchanged_re_import_counts_the_records_kept_with_your_changes() {
+    let tmp = Tmp::new();
+    let qet = tmp.0.join("example.qet");
+    std::fs::write(&qet, QET).unwrap();
+    let dir = tmp.0.join("imported.ew");
+    let mut shell = tmp.shell();
+    done(
+        &mut shell,
+        "file.import_qet",
+        json!({ "file": path(&qet), "dir": path(&dir) }),
+    );
+    done(&mut shell, "file.import_qet_apply", json!({ "confirm": true }));
+    done(
+        &mut shell,
+        "command.run",
+        json!({"cmd": "fields.set", "params": {"kind": "page", "targets": [{"ref": "folio:1"}],
+            "path": "title", "value": "Main page"}}),
+    );
+    for (locale, body) in [
+        (
+            "en",
+            "Nothing to re-import: the file has not changed since its last import; 1 kept with your changes.",
+        ),
+        (
+            "nl",
+            "Niets opnieuw te importeren: het bestand is niet gewijzigd sinds de laatste import; 1 behouden met uw \
+             wijzigingen.",
+        ),
+    ] {
+        assert!(ew_viewmodel::strings::set_locale(locale));
+        done(
+            &mut shell,
+            "file.reimport_qet",
+            json!({ "file": path(&qet), "accept": true }),
+        );
+        let spec = ew_viewmodel::dialogs::spec(shell.dialog().expect("the re-import card"), &shell);
+        assert_eq!(spec.body, [body]);
+        assert!(spec.primary.disabled.is_some(), "Apply is disabled");
+        done(&mut shell, "ui.dismiss", json!({}));
+    }
+    assert!(ew_viewmodel::strings::set_locale("en"));
     shell.shutdown();
 }
 

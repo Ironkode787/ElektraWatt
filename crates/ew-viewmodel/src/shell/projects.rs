@@ -843,7 +843,12 @@ impl ShellModel {
         let n = |c: ReimportClass| reimport.plan.count(c).to_string();
         // ID-1427 (W52 F8): a file that writes nothing says so, as a table import does, and its Apply is disabled.
         let nothing = reimport.preview.is_none();
-        let summary = if nothing {
+        // ID-1439 (C52-p8#4): the file has not changed since its last import (records the user edited are kept, and
+        // counted).
+        let kept = reimport.plan.count(ReimportClass::EwChanged);
+        let summary = if nothing && kept > 0 {
+            strings::format(key!("reimport-card-nothing-kept"), &[&kept.to_string()])
+        } else if nothing {
             strings::text(key!("reimport-card-nothing")).to_owned()
         } else {
             strings::format(

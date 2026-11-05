@@ -4248,6 +4248,7 @@ pub const KEYS: &[&str] = &[
     "reimport-card-title",
     "reimport-card-summary",
     "reimport-card-nothing",
+    "reimport-card-nothing-kept",
     "reimport-card-more",
     "reimport-card-apply",
     "reimport-row-added",
