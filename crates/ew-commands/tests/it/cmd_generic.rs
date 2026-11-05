@@ -656,17 +656,18 @@ fn renumber_include_frozen_with_only_nonconforming_keeps_conforming_counters() {
     assert!(p.ops().is_empty(), "{:?}", p.ops());
 }
 
+/// C52-p4#3 (FT-1406, ID-1418): a cable without a drawn representation is numbered in its scope (its first core's page,
+/// or the project's), so with `include_frozen` its frozen tag gives way to a counter, as a placed device's does.
 #[test]
-fn renumber_include_frozen_keeps_an_unplaced_frozen_tag() {
+fn renumber_include_frozen_numbers_a_cable_without_a_representation() {
     let mut e = engine(golden_model());
     e.execute(&set_device(DEV_3W1, "tag.frozen", json!({"text": "W99"})))
         .unwrap();
-    let counter_before = counter(&e, DEV_3W1);
     let p = e.preview(&include_frozen(RenumberOptions::default())).unwrap();
     e.commit(p).unwrap();
     let w = device(&e, DEV_3W1);
-    assert_eq!(w.tag.frozen, frozen("W99"));
-    assert_eq!(w.tag.counter, counter_before);
+    assert_eq!(w.tag.frozen, None);
+    assert!(w.tag.counter.is_some());
 }
 
 #[test]

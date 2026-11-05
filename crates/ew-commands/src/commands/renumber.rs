@@ -88,8 +88,8 @@ impl Default for RenumberOptions {
 /// default scheme) takes part like the others and is unfrozen: `TagSpec.frozen` is cleared, keeping no
 /// literal, so its tag follows the numbering rule from then on; this explicit renumber, previewed and
 /// undoable like every command, is the one user action that changes a frozen tag (doc 03 §8.6). A frozen
-/// device in scope that the scheme cannot number (unplaced, a terminal, a `Child` or named scheme) keeps its
-/// frozen tag, because without it the tag would print "?".
+/// device in scope that the scheme cannot number (unplaced and no cable, a terminal, a `Child` or named scheme) keeps
+/// its frozen tag, because without it the tag would print "?".
 ///
 /// Only counters (and, with `include_frozen`, frozen tags) change: identities and every reference by ID
 /// stay, so the topology is identical and no reference is orphaned (Golden B, FR-NUM-008). Running it

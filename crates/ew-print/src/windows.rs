@@ -90,7 +90,6 @@ impl Windows {
     fn to_file(output: PathBuf) -> Windows {
         Windows {
             output: Some(output),
-            ..Windows::default()
         }
     }
 }
