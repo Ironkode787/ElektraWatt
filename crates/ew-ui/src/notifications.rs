@@ -275,6 +275,30 @@ pub(crate) fn toast_anchor(t: &Tokens, ctx: &Context, canvas: Option<Rect>, bar_
     }
 }
 
+/// Whether the toasts stand at the canvas's bottom right rather than its top right (FT-1211, doc 16a §6.10), from
+/// whether they did in the last frame (`low`): while a tool other than Select is active (`working`) and the pointer is
+/// in the canvas's top-right quarter, where the toasts would stand over the next placing, they go low; they come back
+/// up when it is in the bottom-right quarter, and whenever Select is back or there is no canvas. A pointer on the stack
+/// (`stack`, last frame's) or outside the canvas's right half moves nothing, so a toast the user reaches for does not
+/// move away.
+pub(crate) fn toasts_low(
+    low: bool,
+    working: bool,
+    canvas: Option<Rect>,
+    pointer: Option<egui::Pos2>,
+    stack: Option<Rect>,
+) -> bool {
+    let Some(pane) = canvas.filter(|_| working) else {
+        return false;
+    };
+    let Some(p) = pointer.filter(|p| {
+        pane.contains(*p) && p.x >= pane.center().x && !stack.is_some_and(|s| s.contains(*p))
+    }) else {
+        return low;
+    };
+    p.y < pane.center().y
+}
+
 /// The id of the toasts' area (tests: its layer).
 pub const TOASTS_AREA: &str = "ew-toasts";
 
@@ -288,22 +312,23 @@ pub(crate) fn toast_opacity(age: f64, life: f64, fade: f64) -> f32 {
     ((age / fade).min((life - age) / fade)).clamp(0.0, 1.0) as f32
 }
 
-/// The visible toasts of `shell`, the newest at the top, anchored at `anchor` (their top-right corner), each painted
-/// at its opacity in `opacity` (1 when absent); `under_modal` puts them in the middle order, below a modal dialog's
-/// backdrop (doc 16a §6.12), so the dialog is the only focus. Returns the serials of the toasts under the pointer and
-/// those of the toasts that hold the keyboard focus (FT-1137).
+/// The visible toasts of `shell`, the newest at the top, anchored at `anchor` (the stack's corner `pivot` there: its
+/// top right, or its bottom right while the toasts stand low, FT-1211), each painted at its opacity in `opacity` (1
+/// when absent); `under_modal` puts them in the middle order, below a modal dialog's backdrop (doc 16a §6.12), so the
+/// dialog is the only focus. Returns the serials of the toasts under the pointer, those of the toasts that hold the
+/// keyboard focus (FT-1137), and the stack's rectangle.
 pub(crate) fn show_toasts(
     ctx: &Context,
     shell: &ShellModel,
-    anchor: egui::Pos2,
+    (anchor, pivot): (egui::Pos2, Align2),
     under_modal: bool,
     opacity: &std::collections::BTreeMap<u64, f32>,
     events: &mut Vec<Event>,
-) -> (Vec<u64>, Vec<u64>) {
+) -> (Vec<u64>, Vec<u64>, Option<Rect>) {
     let visible = shell.notifications().visible();
     let (mut hovered, mut focused) = (Vec::new(), Vec::new());
     if visible.is_empty() {
-        return (hovered, focused);
+        return (hovered, focused, None);
     }
     let t = theme::current(ctx);
     let order = if under_modal {
@@ -311,8 +336,8 @@ pub(crate) fn show_toasts(
     } else {
         egui::Order::Foreground
     };
-    egui::Area::new(egui::Id::unique(TOASTS_AREA))
-        .pivot(Align2::RIGHT_TOP)
+    let shown = egui::Area::new(egui::Id::unique(TOASTS_AREA))
+        .pivot(pivot)
         .fixed_pos(anchor)
         .order(order)
         .interactable(true)
@@ -336,7 +361,7 @@ pub(crate) fn show_toasts(
                 }
             }
         });
-    (hovered, focused)
+    (hovered, focused, Some(shown.response.rect))
 }
 
 /// The notifications log while its popover is open.
@@ -413,6 +438,26 @@ pub(crate) fn show_log(ctx: &Context, shell: &ShellModel, events: &mut Vec<Event
 mod tests {
     use super::*;
     use crate::theme::{Density, Theme};
+
+    /// FT-1211: a tool at work in the canvas's top-right quarter sends the toasts low; they stay where they are while
+    /// the pointer is on their stack or in the left half, come back up in the bottom-right quarter off the stack, and
+    /// always with Select or without a canvas.
+    #[test]
+    fn the_toasts_keep_clear_of_a_working_tool() {
+        let pane = Some(Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(800.0, 600.0)));
+        let stack = Some(Rect::from_min_max(egui::pos2(480.0, 400.0), egui::pos2(780.0, 580.0)));
+        let at = |x: f32, y: f32| Some(egui::pos2(x, y));
+        assert!(toasts_low(false, true, pane, at(700.0, 100.0), None));
+        assert!(!toasts_low(false, false, pane, at(700.0, 100.0), None), "Select");
+        assert!(!toasts_low(true, true, None, at(700.0, 100.0), stack), "no canvas");
+        assert!(toasts_low(true, true, pane, at(600.0, 500.0), stack), "on the stack");
+        assert!(toasts_low(true, true, pane, at(100.0, 500.0), stack), "the left half");
+        assert!(toasts_low(true, true, pane, None, stack), "no pointer");
+        assert!(!toasts_low(true, true, pane, at(450.0, 500.0), stack), "off the stack");
+        assert!(!toasts_low(false, true, pane, at(100.0, 100.0), None), "the left half");
+        let high = Some(Rect::from_min_max(egui::pos2(480.0, 20.0), egui::pos2(780.0, 200.0)));
+        assert!(!toasts_low(false, true, pane, at(600.0, 100.0), high), "a toast reached for stays");
+    }
 
     #[test]
     fn the_toast_icon_follows_the_tone() {

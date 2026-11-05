@@ -236,6 +236,10 @@ pub struct App {
     toast_clock: Option<f64>,
     /// The toasts the pointer was on in the last frame (their clocks stand still).
     toast_hovered: Vec<u64>,
+    /// FT-1211: the toasts stand at the canvas's bottom right, clear of where a tool works ([`crate::notifications::toasts_low`]),
+    /// and the stack's rectangle in the last frame.
+    toasts_low: bool,
+    toast_stack: Option<egui::Rect>,
     /// The running jobs by number and the frame time (egui's `input.time`, seconds) the window first saw each (the
     /// elapsed time and the 200 ms rule, §6.4; FT-570: the frame clock, like the toasts').
     job_started: std::collections::BTreeMap<u64, f64>,
@@ -345,6 +349,8 @@ impl App {
             toast_opacity: std::collections::BTreeMap::new(),
             toast_clock: None,
             toast_hovered: Vec::new(),
+            toasts_low: false,
+            toast_stack: None,
             job_started: std::collections::BTreeMap::new(),
             waker_set: false,
             area_splitters: 0,
@@ -1121,6 +1127,27 @@ impl App {
         if let Some(banner) = self.banner_overlay(&ctx, &tokens, bar_bottom, &mut events) {
             anchor.y = anchor.y.max(banner.bottom() + tokens.space_4);
         }
+        // FT-1211 (doc 16a §6.10): while a tool works where the toasts stand, they move to the canvas's bottom right.
+        self.toasts_low = crate::notifications::toasts_low(
+            self.toasts_low,
+            self.shell.tool().name() != "select",
+            self.page_pane,
+            ctx.input(|i| i.pointer.hover_pos()),
+            self.toast_stack,
+        );
+        let pivot = match self.page_pane {
+            Some(pane) if self.toasts_low => {
+                // Above the zoom control and the HUD while it stands at the bottom (doc 16a §5.5).
+                let zoom = crate::hud::zoom_rect(&tokens, pane);
+                let bottom = self
+                    .hud_rect
+                    .filter(|h| h.center().y > pane.center().y)
+                    .map_or(zoom.top(), |h| h.top().min(zoom.top()));
+                anchor = egui::pos2(anchor.x, bottom - tokens.space_4);
+                egui::Align2::RIGHT_BOTTOM
+            }
+            _ => egui::Align2::RIGHT_TOP,
+        };
         let dialog_open = self.shell.dialog().is_some();
         // Doc 16a §6.12: under a modal the toasts go below its backdrop, which dims them with the rest.
         let under_modal = dialog_open || ctx.memory(|m| m.top_modal_layer().is_some());
@@ -1150,10 +1177,10 @@ impl App {
                 )
             })
             .collect();
-        let (hovered, focused) = crate::notifications::show_toasts(
+        let (hovered, focused, stack) = crate::notifications::show_toasts(
             &ctx,
             &self.shell,
-            anchor,
+            (anchor, pivot),
             under_modal,
             &self.toast_opacity,
             &mut events,
@@ -1163,6 +1190,7 @@ impl App {
         // pointer at rest is not paused, so it fades on time. FT-1137 (ID-1225): a toast that holds the keyboard focus
         // is paused too.
         let pointer_moved = ctx.input(|i| i.events.iter().any(|e| matches!(e, egui::Event::PointerMoved(_))));
+        self.toast_stack = stack;
         self.toast_hovered = hovered
             .into_iter()
             .filter(|serial| pointer_moved || was_paused.contains(serial))
