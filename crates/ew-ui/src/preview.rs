@@ -534,7 +534,7 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             let title = if choice {
                 command.to_owned()
             } else {
-                strings::format(key!("preview-title"), &[command])
+                strings::format(key!("preview-title"), &[&strings::after_colon(command)])
             };
             let response = ui.label(
                 RichText::new(&title)
@@ -546,7 +546,7 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             } else {
                 strings::format(
                     key!("preview-header"),
-                    &[command, &card.preview.base_rev.to_string()],
+                    &[&strings::after_colon(command), &card.preview.base_rev.to_string()],
                 )
             };
             if status == CardStatus::Stale {

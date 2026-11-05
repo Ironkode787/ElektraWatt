@@ -257,8 +257,9 @@ impl TableUi {
             let id = t.get_id(ui);
             t.show(ui, &mut delegate);
             // FT-1404: the strip editor's side columns in a wide window: the width its columns lack is reported, and
-            // the dock widens the left column by it (as far as its default share may grow).
-            if kind == NavKind::Strips {
+            // the dock widens the left column by it (as far as its default share may grow). ID-1427 (W52 F15): the
+            // Libraries table likewise, so that its State column (an unreadable library's reason) is in reach.
+            if matches!(kind, NavKind::Strips | NavKind::Libraries) {
                 let widths = egui_table::TableState::load(ui.ctx(), id).map(|s| s.col_widths);
                 let need: f32 = column_ids
                     .iter()

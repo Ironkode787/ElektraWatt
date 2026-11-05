@@ -307,7 +307,7 @@ fn each_tutorial_has_its_own_start() {
         items,
         [
             (
-                "A first schematic page with potentials".to_owned(),
+                "A first schematic page with potentials…".to_owned(),
                 json!({"tutorial": "first-page"})
             ),
             (
@@ -315,7 +315,7 @@ fn each_tutorial_has_its_own_start() {
                 json!({"tutorial": "terminal-strip-and-cable"})
             ),
             (
-                "Reports and PDF".to_owned(),
+                "Reports and PDF…".to_owned(),
                 json!({"tutorial": "reports-and-pdf"})
             ),
             (

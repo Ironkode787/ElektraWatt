@@ -313,7 +313,8 @@ fn w31_7_an_undone_entry_offers_redo_to_here() {
 }
 
 /// ID-1427 (W52 F6, F4): in Dutch the changed record's line reads in Dutch, its change word, its kind and its field: in
-/// Show changes and on the Preview tab's card; the Properties header of two devices reads "2 apparaten".
+/// Show changes and on the Preview tab's card; the Properties header of two devices reads "2 apparaten"; the Preview
+/// tab's title has the action in a sentence after its colon.
 #[test]
 fn id1427_a_changed_records_line_reads_in_dutch() {
     let tmp = Tmp::new();
@@ -350,5 +351,8 @@ fn id1427_a_changed_records_line_reads_in_dutch() {
     // The tag's member by its Properties label ("Kenmerknummering"), and the header of the two devices.
     assert!(has_text(&h, "gewijzigd apparaat -101F1 (kenmerknummering)"));
     assert!(has_text(&h, "2 apparaten"));
+    // The action after the Preview's colon in a sentence, and the revision in words (the orchestrator's wording).
+    assert!(has_text(&h, "Voorbeeld: eigenschap instellen"));
+    assert!(has_text(&h, "Voorbeeld: eigenschap instellen · vanaf revisie 1"));
     h.state_mut().shell_mut().shutdown();
 }

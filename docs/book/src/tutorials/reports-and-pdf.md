@@ -11,7 +11,7 @@ drawn: EW generates them from the schematic, so they follow every change.
 
 ## Steps
 
-1. Choose **Help ▸ Tutorials ▸ Reports and PDF** and name a new folder `reports.ew`.
+1. Choose **Help ▸ Tutorials ▸ Reports and PDF…** and name a new folder `reports.ew`.
    EW makes a fresh copy of the sample project there and opens it; the banner says "A fresh copy of the sample
    project was made for the tutorials." This tutorial's page of the guide opens beside it.
 2. Read the report pages in the Pages navigator, in section 9 (folios 900 to 999). They are marked generated: the

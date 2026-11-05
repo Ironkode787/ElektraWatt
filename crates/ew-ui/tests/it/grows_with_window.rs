@@ -489,6 +489,27 @@ fn the_strip_editor_shows_its_side_columns_at_1920() {
     h.state_mut().shell_mut().shutdown();
 }
 
+/// ID-1427 (W52 F15): at 1920 the Libraries table shows its last column, State, without scrolling sideways: the left
+/// column grows by what the table lacks.
+#[test]
+fn id1427_the_libraries_table_shows_its_state_column_at_1920() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, egui::Vec2::new(1920.0, 1080.0));
+    dispatch(&mut h, "navigator.show", json!({"kind": "libraries"}));
+    dispatch(&mut h, "navigator.table", json!({"kind": "libraries", "on": true}));
+    for _ in 0..4 {
+        settle(&mut h);
+    }
+    let grid = h
+        .get_all_by_role(egui::Role::Table)
+        .map(|n| n.rect())
+        .max_by(|a, b| a.width().total_cmp(&b.width()))
+        .expect("the Libraries table");
+    let state = h.get_by_label_contains("Sort by State").rect();
+    assert!(state.right() <= grid.right(), "{state:?} in {grid:?}");
+    h.state_mut().shell_mut().shutdown();
+}
+
 /// C52-p4#5 (FT-1404, ID-1418): the strip editor's grid asks for a repaint only while what its columns lack changes: at
 /// the floor, where the left column does not grow, and at 1920 once it has grown, the window comes to rest after the
 /// first frames instead of repainting every frame.

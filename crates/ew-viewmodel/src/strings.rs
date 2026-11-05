@@ -356,6 +356,15 @@ pub fn locale() -> &'static str {
     }
 }
 
+/// A label that follows a colon in a heading ("Preview: Set property"): as it is in English, in a sentence in Dutch,
+/// whose word after a colon starts with a lower-case letter ("Voorbeeld: eigenschap instellen", ID-1427).
+pub fn after_colon(label: &str) -> String {
+    match locale() {
+        "nl" => in_sentence(label),
+        _ => label.to_owned(),
+    }
+}
+
 /// The languages View ▸ Language offers, as (settings value, the language's own name): the shipped ones
 /// ([`crate::settings::LANGUAGES`]), then the test languages of `testkit` under another tag. The pseudo-locale is never
 /// offered.
