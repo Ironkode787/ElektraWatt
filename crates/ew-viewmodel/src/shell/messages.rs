@@ -439,11 +439,18 @@ impl ShellModel {
             Some(messages::counts(&table, self.editing_folio().as_deref()))
         });
         if let Some(c) = counts {
+            // FT-1432: the last check of this project, which the toast's changes count from.
+            let epoch = self.project.as_ref().map(|p| p.epoch);
+            let before = self
+                .messages
+                .checked
+                .filter(|((e, _), _)| Some(*e) == epoch)
+                .map(|(_, before)| before);
             self.messages.checked = self
                 .project
                 .as_ref()
                 .map(|p| ((p.epoch, p.session.world().rev.0), c));
-            self.notify_toned(check_summary(c), check_tone(c));
+            self.notify_toned(check_summary(c, before), check_tone(c));
             self.messages.check_toast = self
                 .messages
                 .checked
@@ -808,8 +815,10 @@ fn named_cp(discriminator: &str) -> Option<(ew_api::output::Uuid, u16)> {
 
 /// The toast of `messages.check` (FT-549): the errors and warnings always, the infos when there are any; the waived and
 /// pending findings, when there are any, qualify the title so the line of counts stays one line (FT-664):
-/// `Check: 1 error, 0 warnings`, `Check · 1 waived: 1 error, 0 warnings`.
-pub(crate) fn check_summary(c: MessageCounts) -> String {
+/// `Check: 1 error, 0 warnings`, `Check · 1 waived: 1 error, 0 warnings`. FT-1432 (ID-1397): after an earlier check of
+/// the same project (`before`), the line leads with what changed since then, then the project's totals:
+/// `Check: −1 error since the last check; project: 0 errors, 2 warnings`.
+pub(crate) fn check_summary(c: MessageCounts, before: Option<MessageCounts>) -> String {
     let count = |n: usize, one: Key<'_>, many: Key<'_>| match n {
         1 => strings::text(one).to_owned(),
         n => strings::format(many, &[&n.to_string()]),
@@ -820,6 +829,34 @@ pub(crate) fn check_summary(c: MessageCounts) -> String {
     ];
     if c.infos > 0 {
         parts.push(count(c.infos, key!("check-info"), key!("check-infos")));
+    }
+    if let Some(b) = before {
+        let changes: Vec<String> = [
+            (b.errors, c.errors, key!("check-error"), key!("check-errors")),
+            (
+                b.warnings,
+                c.warnings,
+                key!("check-warning"),
+                key!("check-warnings"),
+            ),
+            (b.infos, c.infos, key!("check-info"), key!("check-infos")),
+        ]
+        .into_iter()
+        .filter(|(was, now, _, _)| was != now)
+        .map(|(was, now, one, many)| {
+            let sign = if now > was { "+" } else { "\u{2212}" };
+            format!("{sign}{}", count(now.abs_diff(was), one, many))
+        })
+        .collect();
+        let changes = if changes.is_empty() {
+            strings::text(key!("check-unchanged")).to_owned()
+        } else {
+            changes.join(", ")
+        };
+        parts = vec![strings::format(
+            key!("check-since"),
+            &[&changes, &parts.join(", ")],
+        )];
     }
     // FT-664: the waived and pending counts qualify the title ("Check · 4 waived · 1 pending"), so the line of
     // severity counts stays one line in the toast.
@@ -895,16 +932,38 @@ mod tests {
             waived,
             pending,
         };
-        assert_eq!(check_summary(c(1, 0, 0, 0, 0)), "Check: 1 error, 0 warnings");
-        assert_eq!(check_summary(c(0, 1, 0, 0, 0)), "Check: 0 errors, 1 warning");
+        assert_eq!(
+            check_summary(c(1, 0, 0, 0, 0), None),
+            "Check: 1 error, 0 warnings"
+        );
+        assert_eq!(
+            check_summary(c(0, 1, 0, 0, 0), None),
+            "Check: 0 errors, 1 warning"
+        );
         // FT-664: waived and pending qualify the title; the line keeps the severities.
         assert_eq!(
-            check_summary(c(2, 3, 1, 4, 1)),
+            check_summary(c(2, 3, 1, 4, 1), None),
             "Check · 4 waived · 1 pending: 2 errors, 3 warnings, 1 info"
         );
         assert_eq!(
-            check_summary(c(0, 25, 0, 1, 0)),
+            check_summary(c(0, 25, 0, 1, 0), None),
             "Check · 1 waived: 0 errors, 25 warnings"
+        );
+        // FT-1432: after an earlier check, what changed leads, then the project's totals.
+        assert_eq!(
+            check_summary(c(32, 4, 0, 0, 0), Some(c(33, 3, 1, 0, 0))),
+            "Check: \u{2212}1 error, +1 warning, \u{2212}1 info since the last check; project: 32 errors, 4 warnings"
+        );
+        assert_eq!(
+            check_summary(c(33, 3, 0, 1, 0), Some(c(33, 3, 0, 0, 0))),
+            "Check · 1 waived: no change since the last check; project: 33 errors, 3 warnings"
+        );
+        assert!(strings::set_locale("nl"));
+        let dutch = check_summary(c(32, 3, 0, 0, 0), Some(c(33, 3, 0, 0, 0)));
+        assert!(strings::set_locale("en"));
+        assert_eq!(
+            dutch,
+            "Controle: \u{2212}1 fout sinds de vorige controle; project: 32 fouten, 3 waarschuwingen"
         );
     }
 }

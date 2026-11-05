@@ -1568,6 +1568,9 @@ check-waived-one = 1 vrijgesteld
 check-waived = { $p0 } vrijgesteld
 check-pending-one = 1 wachtend
 check-pending = { $p0 } wachtend
+# FT-1432: after an earlier check, the toast leads with what changed since, then the project's totals.
+check-since = { $p0 } sinds de vorige controle; project: { $p1 }
+check-unchanged = geen wijziging
 marker-export = PDF geëxporteerd naar { $p0 }
 marker-recovered = { $p0 } wijzigingen uit het journaal hersteld
 marker-recovered-one = 1 wijziging uit het journaal hersteld

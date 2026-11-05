@@ -1651,6 +1651,9 @@ check-waived-one = 1 waived
 check-waived = { $p0 } waived
 check-pending-one = 1 pending
 check-pending = { $p0 } pending
+# FT-1432: after an earlier check, the toast leads with what changed since, then the project's totals.
+check-since = { $p0 } since the last check; project: { $p1 }
+check-unchanged = no change
 marker-export = Exported PDF to { $p0 }
 marker-recovered = Recovered { $p0 } changes from the journal
 marker-recovered-one = Recovered 1 change from the journal
