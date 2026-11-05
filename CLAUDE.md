@@ -16,6 +16,8 @@ source: GPL-3.0-or-later for the app, MIT OR Apache-2.0 for the format crates. T
   the working branch only (owner's standing instruction, amended 2026-10-31).
   - A release has its own branch, `release/<X.Y>`, cut at a delivery. Its candidates are tagged on it, and only fixes
     for them land there, each also on the working branch (owner, 2026-11-05, ID-1412).
+  - The symbol editor (WP-S2.10, M2.5) is built on its own branch, `feature/symbol-editor`, cut from the working
+    branch, and merged into the working branch when 0.1.0 is completed (owner, 2026-11-05, ID-1445).
 - **Public repository.** Never commit any of these:
   - customer or end-user names, addresses, project or drawing numbers;
   - personal names or e-mail addresses;

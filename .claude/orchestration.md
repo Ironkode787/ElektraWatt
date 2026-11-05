@@ -206,6 +206,12 @@ The main session orchestrates. It plans each cycle, briefs Claude subagents, int
       delivery. Its candidates are tagged there, and only fixes for what the release's checks find land there: a fix
       lane bases on the release branch, and the orchestrator cherry-picks each fix onto the working branch too. Every
       other lane goes on as before on the working branch, and `main` follows the working branch at deliveries.
+    - **The symbol editor's branch** (owner, 2026-11-05, ID-1445). WP-S2.10 is built on `feature/symbol-editor`, cut
+      from the working branch at cycle 52's delivery, by whoever the owner names (the handoff:
+      `ew-private/notes/handoffs/HANDOFF-WP-S2.10-symbol-editor.md`). It takes the working branch in by merges, never
+      the other way, and merges into the working branch when 0.1.0 is completed (promoted); its review parts run
+      before that merge. Until then it numbers no decision line or FT row: it proposes them and the orchestrator
+      numbers them.
 17. **Facts and the feasibility read before dispatch** (amended 2026-11-02; the facts, 2026-11-01, cycle-43 retro;
     fix rulings, cycle-45 retro).
     - **The facts, for every brief:** a `scout` (Haiku) gathers them at the lane's base hash with `git show` and
