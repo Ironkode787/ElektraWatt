@@ -472,7 +472,7 @@ impl FindPane {
             .max(ui.spacing().interact_size.y);
         let pitch = height + ui.spacing().item_spacing.y;
         ui.scope_builder(egui::UiBuilder::new().accessibility_parent(list_id), |ui| {
-            egui::ScrollArea::vertical()
+            let shown = egui::ScrollArea::vertical()
                 .id_salt("find-results-scroll")
                 .auto_shrink([false, false])
                 // A target taken by the pitch holds for the offset it was taken at: an animated scroll ran past the
@@ -526,6 +526,13 @@ impl FindPane {
                         }
                     }
                 });
+            // FT-1415: the dock follows the results' height.
+            crate::dock::report_content(
+                ui,
+                ew_viewmodel::layout::PaneKind::Find,
+                shown.inner_rect,
+                shown.content_size.y,
+            );
         });
     }
 

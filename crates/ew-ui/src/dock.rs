@@ -370,6 +370,10 @@ impl Dock {
     /// FT-1362 (ID-1358 ruling 7): the height follows the content. Where the bottom child's shown pane reported its
     /// list in the last frame (`reports`, by pane: the list's top and its content's height, [`report_content`]), the
     /// child is shown no higher than from its top to the content's end: a short History is a short dock.
+    ///
+    /// FT-1415 (ID-1406): while the split keeps the bottom dock's default share ([`default_bottom_share`]; a share the
+    /// user dragged stands), a shown pane whose content needs more is shown up to [`BOTTOM_GROW`] of the window's
+    /// height (twice `floor`), past the page view's half: at the 1280 × 800 floor Messages shows five findings.
     fn keep_bottom_min(
         &mut self,
         fallback: f32,
@@ -451,7 +455,13 @@ impl Dock {
             if total <= 0.0 {
                 continue;
             }
-            let shown = (own / total).max(want);
+            let grow = match needed {
+                Some(n) if (own / total - default_bottom_share()).abs() <= 5e-4 => {
+                    (n.min(BOTTOM_GROW * 2.0 * floor) / usable).min(2.0 / 3.0)
+                }
+                _ => 0.0,
+            };
+            let shown = (own / total).max(want).max(grow);
             let want = match needed {
                 Some(n) => shown.min(n / usable),
                 None => shown,
@@ -597,6 +607,28 @@ fn default_left_share() -> f32 {
         }
         _ => 0.0,
     }
+}
+
+/// FT-1415 (ID-1406): the most of the window's height the bottom dock grows to for its content while it keeps its
+/// default share.
+const BOTTOM_GROW: f32 = 0.4;
+
+/// The bottom dock's share of its split as [`Layout::with_bottom`] makes it (350 of 1000): a share the user has not
+/// dragged.
+fn default_bottom_share() -> f32 {
+    fn find(n: &LayoutNode) -> Option<f32> {
+        match n {
+            LayoutNode::Split { dir: SplitDir::Vertical, children } if children.iter().any(|(_, c)| c.holds(PaneKind::PageView)) => {
+                let total: u64 = children.iter().map(|(s, _)| u64::from(*s)).sum();
+                let (s, _) = children.iter().find(|(_, c)| c.holds(PaneKind::Find))?;
+                Some(*s as f32 / total.max(1) as f32)
+            }
+            LayoutNode::Split { children, .. } => children.iter().find_map(|(_, c)| find(c)),
+            LayoutNode::Tabs { children, .. } => children.iter().find_map(find),
+            LayoutNode::Pane(_) => None,
+        }
+    }
+    find(&Layout::schematic().with_bottom(PaneKind::Find).root).unwrap_or(0.0)
 }
 
 /// The height a tile was last shown at, if it was.
@@ -1149,6 +1181,40 @@ mod tests {
         }
         let h = shown_height(&dock, PaneKind::Navigator(NavKind::Messages));
         assert!(h >= 299.0, "the Messages pane is shown {h} pt tall");
+    }
+
+    /// FT-1415 (ID-1406): at the 1280 × 800 floor a Messages list longer than its dock grows the dock to 40 % of the
+    /// window's height, past the page view's half, while the split keeps its default share; a share the user dragged
+    /// (300 : 700) stands.
+    #[test]
+    fn ft1415_the_bottom_dock_grows_to_its_content_while_its_share_is_the_default() {
+        let ctx = egui::Context::default();
+        let messages = PaneKind::Navigator(NavKind::Messages);
+        let shown = |bottom: u32| {
+            let mut layout = page_over_messages();
+            if let LayoutNode::Split { children, .. } = &mut layout.root
+                && let LayoutNode::Split { children: column, .. } = &mut children[1].1
+            {
+                column[0].0 = 1000 - bottom;
+                column[1].0 = bottom;
+            }
+            let mut dock = Dock::new(&layout, 0);
+            frame(&ctx, &mut dock, 1280.0, 800.0);
+            let id = dock.tree.tiles.find_pane(&messages).unwrap();
+            let split = dock.tree.tiles.parent_of(id).unwrap();
+            let height = dock.tree.tiles.rect(split).unwrap().height();
+            let top = dock.tree.tiles.rect(id).unwrap().top();
+            let reports = BTreeMap::from([(format!("{messages:?}"), (top, 1000.0))]);
+            let (clamps, _) = dock.keep_bottom_min(height, 0.0, 400.0, &reports);
+            // Without a clamp the pane is shown at its own share.
+            clamps.first().map_or(bottom as f32 / 1000.0 * height, |c| {
+                c.shown[1].1 / c.shown.iter().map(|(_, s)| s).sum::<f32>() * height
+            })
+        };
+        let grown = shown(350);
+        assert!((grown - 320.0).abs() <= 8.0, "40 % of 800: {grown}");
+        let dragged = shown(300);
+        assert!(dragged < 260.0, "the dragged share stands: {dragged}");
     }
 
     /// R2-2 of cycle 31: a short window then a tall one does not raise the share: on the tall frame the Messages pane

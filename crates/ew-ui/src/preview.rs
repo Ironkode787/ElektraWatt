@@ -467,7 +467,7 @@ fn table_import(
             })
         });
     ui.add_space(t.space_2);
-    egui::ScrollArea::vertical()
+    let shown = egui::ScrollArea::vertical()
         .id_salt("table-import-lists")
         .auto_shrink([false, false])
         .show(ui, |ui| {
@@ -479,6 +479,17 @@ fn table_import(
                 false,
             );
         });
+    report(ui, &shown);
+}
+
+/// FT-1415: the dock follows the Preview tab's lists.
+fn report<R>(ui: &Ui, shown: &egui::scroll_area::ScrollAreaOutput<R>) {
+    crate::dock::report_content(
+        ui,
+        ew_viewmodel::layout::PaneKind::Preview,
+        shown.inner_rect,
+        shown.content_size.y,
+    );
 }
 
 /// Paints the Preview tab of `shell`.
@@ -633,7 +644,7 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         }
         ui.add_space(t.space_2);
         let [entities, tags, xrefs, pages] = rows(&t, shell);
-        egui::ScrollArea::vertical()
+        let shown = egui::ScrollArea::vertical()
             .id_salt("preview-lists")
             .auto_shrink([false, false])
             .show(ui, |ui| {
@@ -650,6 +661,7 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                 list(ui, strings::text(key!("preview-xrefs")), &xrefs, false);
                 list(ui, strings::text(key!("preview-pages")), &pages, false);
             });
+        report(ui, &shown);
     });
 }
 

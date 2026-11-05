@@ -461,3 +461,28 @@ fn ft1199_a_jobs_entry_is_inset_from_the_panes_edge() {
     );
     h.state_mut().shell_mut().shutdown();
 }
+
+/// FT-1415 (ID-1406): at the 1280 × 800 floor the Messages dock grows with its list, so at least five rows of Golden
+/// A's findings are on show, and it stays within 40 % of the window's height.
+#[test]
+fn ft1415_messages_shows_five_rows_at_the_floor() {
+    let tmp = Tmp::new();
+    let mut h = window(&tmp);
+    dispatch(&mut h, "messages.show", json!({"on": true}));
+    settle(&mut h);
+    settle(&mut h);
+    let tree = h
+        .get_all_by_role(egui::Role::Tree)
+        .map(|n| n.rect())
+        .filter(|r| r.top() > 400.0)
+        .next()
+        .expect("the Messages list in the bottom dock");
+    let rows = h
+        .get_all_by_role(egui::Role::TreeItem)
+        .filter(|n| tree.contains_rect(n.rect()))
+        .count();
+    assert!(rows >= 5, "{rows} rows on show in {tree:?}");
+    let window = h.ctx.content_rect();
+    assert!(window.bottom() - tree.top() <= 0.4 * window.height(), "{tree:?}");
+    h.state_mut().shell_mut().shutdown();
+}

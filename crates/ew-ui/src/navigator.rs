@@ -200,6 +200,8 @@ impl NavigatorPane {
 
     /// Paints the navigator of `shell` into `ui`.
     pub(crate) fn show(&mut self, ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
+        // FT-1415: where the pane ends, under the Messages list's detail block and footer.
+        let pane_bottom = ui.max_rect().bottom();
         // The Pages navigator as built (WP-S2.03); in table mode (WP-S2.06 part 3) it is a generic navigator.
         let pages = self.kind == NavKind::Pages && shell.nav(NavKind::Pages).is_none();
         let table_nav = shell.nav(self.kind).filter(|n| n.table_mode().is_some());
@@ -570,6 +572,16 @@ impl NavigatorPane {
                 }
             }
         });
+        // FT-1415: the dock follows the Messages rows and what stands under them (the detail block, the footer).
+        if kind == NavKind::Messages {
+            let below = (pane_bottom - list_rect.bottom()).max(0.0);
+            crate::dock::report_content(
+                ui,
+                ew_viewmodel::layout::PaneKind::Navigator(kind),
+                list_rect.with_max_y(pane_bottom),
+                visible.len() as f32 * row + below,
+            );
+        }
         self.painted = painted;
         self.view = view;
     }

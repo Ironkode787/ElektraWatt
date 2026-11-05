@@ -153,7 +153,7 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         ];
         let widths = column_widths(width, longest, actions_w);
         header(ui, &t, &widths);
-        egui::ScrollArea::vertical()
+        let shown = egui::ScrollArea::vertical()
             .auto_shrink([false, true])
             .show(ui, |ui| {
                 let cursor = shell.glossary_row();
@@ -161,6 +161,13 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                     row(ui, &t, shell, r, &widths, cursor == Some(i), events);
                 }
             });
+        // FT-1415: the dock follows the glossary's rows.
+        crate::dock::report_content(
+            ui,
+            ew_viewmodel::layout::PaneKind::Glossary,
+            shown.inner_rect,
+            shown.content_size.y,
+        );
     });
 }
 

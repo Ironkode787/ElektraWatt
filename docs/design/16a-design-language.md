@@ -734,6 +734,12 @@ rows), Jobs (§6.19 and §6.25), History (§6.24) and Preview (§6.23).
 
 *As amended (cycle 38, fix round FX38d; decision log ID-889, amending ID-743).* **Close.** A bottom pane alone in the dock, without the tab row, carries the dock's close button at its header's right end; the command that opens Messages closes it again (`messages.show` without `on` toggles, as History, Preview and Jobs do), and Escape with the focus in Messages closes it once a tool at work has had its Escape. **The canvas keeps its view.** Opening, closing or dragging a dock keeps each canvas tab's zoom and centre; a fit happens only on the host's first size of a canvas group, a page change or an explicit fit. The trade-off: with the Preview dock open the kept zoom crops the sheet's top row and title block, where the old refit showed the whole page; whether a fitted, untouched view should refit when a dock opens is FT-769. **The clamp.** The display clamp above also leaves the page view at least half the window's client height, so in a short window `size.dock.bottom_min` gives way to it (ID-743 as amended).
 
+*As built (cycle 52; decision log ID-1406, FT-1415).* **The dock grows with its content.** Messages, Find, Preview,
+Glossary, History and Jobs report their list's height; the dock is shown no higher than the shown pane needs and,
+while the split keeps its default share (350/1000), grows past the page view's half to at most 40 % of the window's
+height when the content needs it: at the 1280 × 800 floor Messages shows six rows without its detail block, four with
+it. A share the user dragged stands.
+
 ### 5.8 The status bar
 
 `size.status` (26 px) on `color.surface.chrome`, `type.small` with tabular digits, separated from the content by a
