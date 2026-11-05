@@ -79,10 +79,12 @@
 //!   when the step runs it. Not held: the contents of folders named by variables, and git-ignored files; run `--fresh`
 //!   after changing them. A run on a clean worktree (no tracked change, no untracked file outside
 //!   `.gitignore`) skips a step whose record matches and prints it as `ok (from memory; --fresh runs it again)`. A
-//!   record that matches in all but the tree holds too when no path that changed between its tree and the current
-//!   one (`git diff --name-only`) is an input of the step (ID-1425): [`INPUTS`] says which steps read a path, an
-//!   unknown path being an input of every step. The record then moves to the current tree, and one more memory line names the steps skipped so: `lane-check:
-//!   memory: skipped on a changed tree: clippy (no input changed among docs/a.md)`. A
+//!   record of fmt, clippy, doc or nextest ([`SKIP_BY_INPUTS`]) that matches in all but the tree holds too when no
+//!   path that changed between its tree and the current one (`git diff --name-only`) is an input of the step
+//!   (ID-1425, ID-1441): [`INPUTS`] says which of them read a path, an unknown path being an input of every step;
+//!   settle, policy and fuzz read more than a table can name, so they keep the rule of the same tree. The record then
+//!   moves to the current tree, and one more memory line names the steps skipped so: `lane-check: memory: skipped on
+//!   a changed tree: clippy (no input changed among docs/a.md)`. A
 //!   dirty worktree records nothing and skips nothing; once a step changed the worktree (a rewrite stops the run; any
 //!   other change), no later step is skipped or recorded. A failure forgets the step's record. A step that runs `cargo
 //!   deny` is never recorded: the advisory database comes from the network. The trailers step is never recorded or
@@ -1213,31 +1215,26 @@ enum Readers {
 }
 
 // map: lane-check-inputs: a new top-level folder or workspace-wide file goes in this table, with the steps that read it (a path no row matches is an input of every step).
-/// What each recorded step reads (ID-1425): for a changed path, the first row that holds it names the steps it is an
-/// input of. A path no row holds is an input of every step, so the table only ever lets a step skip. Besides the
-/// table: settle reads a path that triggers one of its lane steps ([`crate::settle::triggered`]); fuzz reads every
-/// path (as before ID-1425); policy reads every path when it runs one of [`READ_EVERY_FILE`]. The cargo steps read every file of a member: a member's change that the diff did not hold before adds the member to
-/// their commands, and changed commands miss anyway.
+/// What fmt, clippy, doc and nextest read (ID-1425, ID-1441): for a changed path, the first row that holds it names
+/// the steps it is an input of. A path no row holds is an input of every step, so the table only ever lets a step
+/// skip. The cargo steps read every file of a member: a member's change that the diff did not hold before adds the
+/// member to their commands, and changed commands miss anyway.
 const INPUTS: &[(Paths, Readers)] = &[
     (Paths::Glob("**/*.rs"), Readers::Every),
     (Paths::Glob("**/Cargo.toml"), Readers::Every),
     (Paths::Glob("Cargo.lock"), Readers::Every),
     (Paths::Glob("rust-toolchain.toml"), Readers::Every),
     (Paths::Glob(".cargo/**"), Readers::Every),
-    (Paths::Glob("clippy.toml"), Readers::Steps(&["clippy", "policy"])),
-    (Paths::Glob("rustfmt.toml"), Readers::Steps(&["fmt", "policy"])),
-    (
-        Paths::Glob(".config/nextest.toml"),
-        Readers::Steps(&["nextest", "policy"]),
-    ),
-    (
-        Paths::Member,
-        Readers::Steps(&["clippy", "doc", "nextest", "policy"]),
-    ),
-    // `map --check` reads every `.toml` file, `check-raw-read` the workflows, `cargo vet` the supply chain.
-    (Paths::Glob("**/*.toml"), Readers::Named(&["policy"])),
-    (Paths::Glob(".github/**"), Readers::Named(&["policy"])),
-    (Paths::Glob("supply-chain/**"), Readers::Named(&["policy"])),
+    // rustfmt and clippy take the nearest configuration upwards, under either name.
+    (Paths::Glob("**/rustfmt.toml"), Readers::Steps(&["fmt"])),
+    (Paths::Glob("**/.rustfmt.toml"), Readers::Steps(&["fmt"])),
+    (Paths::Glob("**/clippy.toml"), Readers::Steps(&["clippy"])),
+    (Paths::Glob("**/.clippy.toml"), Readers::Steps(&["clippy"])),
+    (Paths::Glob(".config/nextest.toml"), Readers::Steps(&["nextest"])),
+    (Paths::Member, Readers::Steps(&["clippy", "doc", "nextest"])),
+    (Paths::Glob("**/*.toml"), Readers::Named(&[])),
+    (Paths::Glob(".github/**"), Readers::Named(&[])),
+    (Paths::Glob("supply-chain/**"), Readers::Named(&[])),
     (Paths::Glob("docs/**"), Readers::Named(&[])),
     (Paths::Glob("golden/**"), Readers::Named(&[])),
     (Paths::Glob("content/**"), Readers::Named(&[])),
@@ -1252,9 +1249,10 @@ const INPUTS: &[(Paths, Readers)] = &[
     (Paths::Glob("NOTICE"), Readers::Named(&[])),
 ];
 
-/// The policy checks that read every file of the repository: the licence map (each path and its header) and the test
-/// layout (each `--test` in a text file).
-const READ_EVERY_FILE: [&str; 2] = ["check-licence-map", "check-test-layout"];
+/// The steps whose record of another tree holds when none of their inputs changed (ID-1441). Settle's running steps,
+/// policy's checks and the fuzz workspace read more than a table can name (the rule notes, the release notes, the
+/// schemas, the paths the markers name, ...): they read every path, so they keep the rule of the same tree.
+const SKIP_BY_INPUTS: [&str; 4] = ["fmt", "clippy", "doc", "nextest"];
 
 /// What a changed tree means for one step's record (ID-1425).
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -1271,24 +1269,13 @@ enum Since {
 trait Oracle {
     /// Whether `path` is a file of a workspace member.
     fn member_file(&self, path: &str) -> bool;
-    /// Whether `path` triggers one of the steps of a lane's settle run.
-    fn triggers_settle(&self, path: &str) -> bool;
     /// Whether a package of `step` or a workspace dependency of one names `path` ([`names_path`]).
     fn named(&mut self, step: &str, path: &str) -> bool;
 }
 
-/// Whether the step `step` with `cmds` reads `path` ([`INPUTS`], ID-1425).
-fn reads(step: &str, cmds: &[Cmd], path: &str, oracle: &mut dyn Oracle) -> bool {
-    let every_file = |c: &Cmd| {
-        c.program == Program::Xtask
-            && c.args
-                .first()
-                .is_some_and(|a| READ_EVERY_FILE.contains(&a.as_str()))
-    };
-    if step == "fuzz" || (step == "policy" && cmds.iter().any(every_file)) {
-        return true;
-    }
-    if step == "settle" && oracle.triggers_settle(path) {
+/// Whether the step `step` reads `path` ([`INPUTS`], ID-1425): a step outside [`SKIP_BY_INPUTS`] reads every path.
+fn reads(step: &str, path: &str, oracle: &mut dyn Oracle) -> bool {
+    if !SKIP_BY_INPUTS.contains(&step) {
         return true;
     }
     let row = INPUTS.iter().find(|(paths, _)| match paths {
@@ -1306,28 +1293,24 @@ fn reads(step: &str, cmds: &[Cmd], path: &str, oracle: &mut dyn Oracle) -> bool 
 }
 
 /// The first of `changed` (the paths changed since a recorded tree) that the step reads ([`reads`]).
-fn first_input<'c>(
-    step: &str,
-    cmds: &[Cmd],
-    changed: &'c [String],
-    oracle: &mut dyn Oracle,
-) -> Option<&'c str> {
+fn first_input<'c>(step: &str, changed: &'c [String], oracle: &mut dyn Oracle) -> Option<&'c str> {
     changed
         .iter()
-        .find(|p| reads(step, cmds, p, oracle))
+        .find(|p| reads(step, p, oracle))
         .map(String::as_str)
 }
 
-/// Whether the code `text` names the repository path `path` (`/`-separated, from the root) as a place it reads: a
-/// call on its first segment alone (`join("docs")`, `new("NOTICE")`) or a parent-relative literal of it
-/// (`"../../docs"`) names every path below it; a literal `"docs/<x>` or `/docs/<x>` names the paths below
-/// `docs/<x>`, and every path below `docs` when `<x>` is no plain name (`"docs/{name}"`, `"../content/"`). `code` is
-/// without its comment lines ([`code_lines`]). A false match only costs a run.
+/// Whether the code `code` names the repository path `path` (`/`-separated, from the root) as a place it reads: a
+/// literal of its first segment alone, anywhere (`join("docs")`, `find_dir("EW_CONTENT_DIR", "content")`, an array
+/// item), or a parent-relative literal of it (`"../../docs"`) names every path below it; a literal `"docs/<x>` or
+/// `/docs/<x>` names the paths below `docs/<x>`, and every path below `docs` when `<x>` is no plain name
+/// (`"docs/{name}"`, `"../content/"`). `code` is without its comment lines ([`code_lines`]). A false match only costs
+/// a run.
 fn names_path(code: &str, path: &str) -> bool {
     let mut segments = path.split('/');
     let first = segments.next().unwrap_or_default();
     let second = segments.next();
-    if [format!("(\"{first}\")"), format!("../{first}\"")]
+    if [format!("\"{first}\""), format!("../{first}\"")]
         .iter()
         .any(|p| code.contains(p.as_str()))
     {
@@ -1345,12 +1328,25 @@ fn names_path(code: &str, path: &str) -> bool {
     })
 }
 
-/// The lines of `text` that do not start with `//`: a path a comment names is no path the code reads.
+/// The lines of `text` that do not start with `//`, a path a comment names being no path the code reads, and the
+/// doc-comment lines inside a code block (` ``` `), which the doc step runs as doctests.
 fn code_lines(text: &str) -> String {
-    text.lines()
-        .filter(|l| !l.trim_start().starts_with("//"))
-        .collect::<Vec<_>>()
-        .join("\n")
+    let mut in_block = false;
+    let mut out: Vec<&str> = Vec::new();
+    for line in text.lines() {
+        let trimmed = line.trim_start();
+        let doc = ["///", "//!"]
+            .iter()
+            .find_map(|p| trimmed.strip_prefix(p))
+            .map(str::trim_start);
+        match doc {
+            Some(d) if d.starts_with("```") => in_block = !in_block,
+            Some(_) if in_block => out.push(line),
+            _ if !trimmed.starts_with("//") => out.push(line),
+            _ => {}
+        }
+    }
+    out.join("\n")
 }
 
 /// The packages of `set` and their workspace dependencies (normal, build and dev edges), transitively.
@@ -1390,8 +1386,8 @@ struct Worktree<'a> {
 }
 
 impl Worktree<'_> {
-    /// What the change since the recorded tree `from` means for the step `step` with `cmds`.
-    fn since(&mut self, step: &str, cmds: &[Cmd], from: &str) -> Since {
+    /// What the change since the recorded tree `from` means for the step `step`.
+    fn since(&mut self, step: &str, from: &str) -> Since {
         let Some(tree) = self.tree.clone() else {
             return Since::Unknown;
         };
@@ -1408,7 +1404,7 @@ impl Worktree<'_> {
         let Some(changed) = changed else {
             return Since::Unknown;
         };
-        match first_input(step, cmds, &changed, self) {
+        match first_input(step, &changed, self) {
             Some(path) => Since::Input(path.to_owned()),
             None => Since::NoInput(changed),
         }
@@ -1420,22 +1416,9 @@ fn member_file(path: &str, members: &Members) -> bool {
     matches!(affected::owner(path, members), Ok(Some(_)))
 }
 
-/// Whether `path` triggers one of the steps that `settle --base` runs (every step but the merge-only ones).
-fn triggers_settle(path: &str, members: &Members) -> bool {
-    let files: BTreeSet<String> = [path.to_owned()].into_iter().collect();
-    crate::settle::STEPS
-        .iter()
-        .filter(|s| s.phase != crate::settle::Phase::MergeOnly)
-        .any(|s| crate::settle::triggered(s, &files, Some(members)))
-}
-
 impl Oracle for Worktree<'_> {
     fn member_file(&self, path: &str) -> bool {
         member_file(path, self.members)
-    }
-
-    fn triggers_settle(&self, path: &str) -> bool {
-        triggers_settle(path, self.members)
     }
 
     /// `xtask`, whose checks and their tests read the whole repository, names every path.
@@ -1873,7 +1856,7 @@ pub(crate) fn run(args: &[String], root: &Path) -> Result<bool> {
         sources: None,
         texts: BTreeMap::new(),
     };
-    let mut since = |step: &str, cmds: &[Cmd], from: &str| worktree.since(step, cmds, from);
+    let mut since = |step: &str, from: &str| worktree.since(step, from);
 
     if a.plan {
         let remembered: BTreeSet<&str> = plan
@@ -1930,16 +1913,10 @@ pub(crate) fn run(args: &[String], root: &Path) -> Result<bool> {
             StepRun::Run(cmds)
                 if remembered_step(&records, s, key.as_ref(), a.fresh, &mut tool_version, &mut since) =>
             {
-                // ID-1425: a pass that holds on a changed tree moves to it.
-                let from = records.get(s.name).map(|r| r.tree.clone());
-                if let (Some(from), Some(k)) = (from, key.as_ref()) {
-                    if from != k.tree {
-                        if let Since::NoInput(changed) = since(s.name, cmds, &from) {
-                            skips.push((s.name, changed));
-                        }
-                        record_step(&mut records, s, "ok", Some(k), &mut tool_version);
-                    }
-                }
+                skips.extend(
+                    move_to_tree(&mut records, s, key.as_ref(), &mut tool_version, &mut since)
+                        .map(|c| (s.name, c)),
+                );
                 Outcome {
                     commands: cmds.iter().map(ToString::to_string).collect(),
                     ..Outcome::without_command(s.name, "ok", FROM_MEMORY)
@@ -2045,7 +2022,7 @@ fn remembered_step(
     key: Option<&MemoryKey>,
     fresh: bool,
     tool_version: &mut dyn FnMut(&str) -> Option<String>,
-    since: &mut dyn FnMut(&str, &[Cmd], &str) -> Since,
+    since: &mut dyn FnMut(&str, &str) -> Since,
 ) -> bool {
     match &step.run {
         StepRun::Run(cmds) => remembered(records, step.name, cmds, key, fresh, tool_version, since),
@@ -2068,6 +2045,28 @@ fn record_step(
     }
 }
 
+/// After `step` was skipped from memory (ID-1425): a pass recorded on another tree holds on this one too, so the
+/// record moves to it; the paths changed since the recorded tree, none an input of the step (`since`), for the memory
+/// line ([`skip_line`]). `None` when the record was of this tree.
+fn move_to_tree(
+    records: &mut BTreeMap<String, Record>,
+    step: &StepPlan,
+    key: Option<&MemoryKey>,
+    tool_version: &mut dyn FnMut(&str) -> Option<String>,
+    since: &mut dyn FnMut(&str, &str) -> Since,
+) -> Option<Vec<String>> {
+    let key = key?;
+    let from = records.get(step.name).map(|r| r.tree.clone())?;
+    if from == key.tree {
+        return None;
+    }
+    record_step(records, step, "ok", Some(key), tool_version);
+    match since(step.name, &from) {
+        Since::NoInput(changed) => Some(changed),
+        Since::Input(_) | Since::Unknown => None,
+    }
+}
+
 /// Whether a run skips the step `name` with `cmds`: not with `--fresh` or on a dirty worktree (`key` is `None`), never
 /// a step that is not [`rememberable`], else when its record matches what a pass now would record, or matches it in
 /// all but the tree and no input of the step changed since the recorded tree (`since`, ID-1425).
@@ -2078,7 +2077,7 @@ fn remembered(
     key: Option<&MemoryKey>,
     fresh: bool,
     tool_version: &mut dyn FnMut(&str) -> Option<String>,
-    since: &mut dyn FnMut(&str, &[Cmd], &str) -> Since,
+    since: &mut dyn FnMut(&str, &str) -> Since,
 ) -> bool {
     let Some(key) = key else { return false };
     if fresh || !rememberable(cmds) {
@@ -2093,7 +2092,7 @@ fn remembered(
             tree: now.tree.clone(),
             ..record.clone()
         } == now
-            && matches!(since(name, cmds, &record.tree), Since::NoInput(_)))
+            && matches!(since(name, &record.tree), Since::NoInput(_)))
 }
 
 /// Why a run does not skip the step `name` with `cmds` although the memory applies (`key` holds, no `--fresh`, the
@@ -2107,7 +2106,7 @@ fn miss_reason(
     key: Option<&MemoryKey>,
     fresh: bool,
     tool_version: &mut dyn FnMut(&str) -> Option<String>,
-    since: &mut dyn FnMut(&str, &[Cmd], &str) -> Since,
+    since: &mut dyn FnMut(&str, &str) -> Since,
 ) -> Option<String> {
     let key = key?;
     if fresh || !rememberable(cmds) {
@@ -2121,7 +2120,7 @@ fn miss_reason(
     let why = if was.merge_base != now.merge_base {
         "the merge base changed".to_owned()
     } else if only_the_tree {
-        match since(name, cmds, &was.tree) {
+        match since(name, &was.tree) {
             Since::NoInput(_) => return None,
             Since::Input(path) => format!("input {path} changed"),
             Since::Unknown => "the tree changed".to_owned(),
@@ -3295,7 +3294,7 @@ mod tests {
     }
 
     /// A change since a recorded tree that cannot be told: a record of another tree never holds.
-    fn untold(_: &str, _: &[Cmd], _: &str) -> Since {
+    fn untold(_: &str, _: &str) -> Since {
         Since::Unknown
     }
 
@@ -3748,8 +3747,8 @@ mod tests {
         assert!(!skips(&unknown, &mut tool));
     }
 
-    /// The input table's answers from fixed data: the members of [`members`], settle's own triggers and the paths a
-    /// package of the step names.
+    /// The input table's answers from fixed data: the members of [`members`] and the paths a package of the step
+    /// names.
     struct Fixed {
         members: Members,
         named: BTreeSet<&'static str>,
@@ -3758,10 +3757,6 @@ mod tests {
     impl Oracle for Fixed {
         fn member_file(&self, path: &str) -> bool {
             member_file(path, &self.members)
-        }
-
-        fn triggers_settle(&self, path: &str) -> bool {
-            triggers_settle(path, &self.members)
         }
 
         fn named(&mut self, _: &str, path: &str) -> bool {
@@ -3776,73 +3771,74 @@ mod tests {
         }
     }
 
-    /// The steps of [`STEPS`] that `path` is an input of, with `policy_cmds` as the policy step's commands.
-    fn readers_of(path: &str, policy_cmds: &[Cmd], oracle: &mut Fixed) -> Vec<&'static str> {
-        STEPS
-            .iter()
-            .filter(|s| **s != "trailers")
-            .filter(|s| {
-                let cmds = if **s == "policy" { policy_cmds } else { &[] };
-                reads(s, cmds, path, oracle)
-            })
-            .copied()
+    /// The recorded steps: every step of [`STEPS`] but trailers, which is never recorded.
+    fn recorded_steps() -> Vec<&'static str> {
+        STEPS.iter().copied().filter(|s| *s != "trailers").collect()
+    }
+
+    /// The recorded steps that `path` is an input of.
+    fn readers_of(path: &str, oracle: &mut Fixed) -> Vec<&'static str> {
+        recorded_steps()
+            .into_iter()
+            .filter(|s| reads(s, path, oracle))
             .collect()
     }
 
-    /// ID-1425: each step reads its inputs, and a change outside them lets it skip.
+    /// The recorded steps that `path` is an input of, besides settle, policy and fuzz, which read every path.
+    fn table_readers_of(path: &str, oracle: &mut Fixed) -> Vec<&'static str> {
+        readers_of(path, oracle)
+            .into_iter()
+            .filter(|s| SKIP_BY_INPUTS.contains(s))
+            .collect()
+    }
+
+    /// ID-1425, ID-1441: fmt, clippy, doc and nextest read their inputs, and a change outside them lets them skip.
     #[test]
     fn each_step_reads_its_inputs_and_skips_a_change_outside_them() {
-        let code_checks = [Cmd::xtask(&["check-raw-read"]), Cmd::xtask(&["map", "--check"])];
         let mut o = fixed(&["golden/J-E-2416/tables/a.csv"]);
-        let all = ["fmt", "settle", "clippy", "doc", "nextest", "policy", "fuzz"];
+        let cargo = ["fmt", "clippy", "doc", "nextest"];
         let cases: &[(&str, &[&str])] = &[
-            // fmt: the `.rs` files, the manifests and rustfmt's configuration.
-            ("crates/ew-leaf/src/lib.rs", &all),
-            ("rustfmt.toml", &["fmt", "policy", "fuzz"]),
-            // settle: the paths its lane steps' triggers name (docs-gen's plan, the golden change list's tables).
-            ("docs/plan/01-global-plan.md", &["settle", "fuzz"]),
-            (
-                "golden/J-E-2416/tables/a.csv",
-                &["settle", "clippy", "doc", "nextest", "fuzz"],
-            ),
-            // clippy and doc: every file of a member and the build-wide files.
-            (
-                "crates/ew-leaf/README.md",
-                &["clippy", "doc", "nextest", "policy", "fuzz"],
-            ),
-            (
-                "ci/dep-rules.toml",
-                &["settle", "clippy", "doc", "nextest", "policy", "fuzz"],
-            ),
-            ("Cargo.lock", &all),
-            ("clippy.toml", &["settle", "clippy", "policy", "fuzz"]),
+            // fmt: the `.rs` files, the manifests and rustfmt's configuration under either name, anywhere.
+            ("crates/ew-leaf/src/lib.rs", &cargo),
+            ("rustfmt.toml", &["fmt"]),
+            ("crates/ew-leaf/.rustfmt.toml", &["fmt"]),
+            // clippy and doc: every file of a member, the build-wide files, clippy's configuration.
+            ("crates/ew-leaf/README.md", &["clippy", "doc", "nextest"]),
+            ("ci/dep-rules.toml", &["clippy", "doc", "nextest"]),
+            ("Cargo.lock", &cargo),
+            ("clippy.toml", &["clippy"]),
+            ("crates/ew-leaf/.clippy.toml", &["clippy"]),
             // nextest: its configuration, and the data a package of it names.
-            (".config/nextest.toml", &["nextest", "policy", "fuzz"]),
-            ("golden/J-E-2416/drawing.ew", &["fuzz"]),
-            // policy: what its code checks read.
-            (".github/workflows/ci.yml", &["policy", "fuzz"]),
-            ("deny.toml", &["policy", "fuzz"]),
-            // Read by no step but fuzz (every path, as before ID-1425): a design document, the agents, the root
-            // documents, the licence texts.
-            ("docs/design/16a-design-language.md", &["fuzz"]),
-            (".claude/agents/lane.md", &["fuzz"]),
-            ("README.md", &["fuzz"]),
-            ("LICENSES/MIT.txt", &["fuzz"]),
+            (".config/nextest.toml", &["nextest"]),
+            ("golden/J-E-2416/tables/a.csv", &["clippy", "doc", "nextest"]),
+            ("golden/J-E-2416/drawing.ew", &[]),
+            // Read by none of them: a workflow, a plan or design document, the agents, the root documents, the
+            // licence texts.
+            (".github/workflows/ci.yml", &[]),
+            ("deny.toml", &[]),
+            ("docs/design/16a-design-language.md", &[]),
+            (".claude/agents/lane.md", &[]),
+            ("README.md", &[]),
+            ("LICENSES/MIT.txt", &[]),
         ];
         for (path, want) in cases {
-            assert_eq!(readers_of(path, &code_checks, &mut o), *want, "{path}");
+            assert_eq!(table_readers_of(path, &mut o), *want, "{path}");
         }
-        // The licence map and the test layout read every file: policy reads every path when it runs one of them.
-        for check in READ_EVERY_FILE {
-            assert_eq!(
-                readers_of(
-                    "docs/design/16a-design-language.md",
-                    &[Cmd::xtask(&[check])],
-                    &mut o
-                ),
-                ["policy", "fuzz"],
-                "{check}"
-            );
+    }
+
+    /// ID-1441 (C52-p9#1, #2): settle, policy and fuzz read every path, so a changed tree always runs them: api-guard
+    /// reads the release notes and the schemas, docs-gen the rule notes, the self-tests the content.
+    #[test]
+    fn settle_policy_and_fuzz_run_on_any_change() {
+        let mut o = fixed(&[]);
+        for path in [
+            "docs/release-notes/unreleased.md",
+            "schemas/0.1/page.schema.json",
+            "docs/book/rule-notes/ew-pot-021.md",
+            "content/symbols/qet10/a.json",
+            "docs/plan/decisions.md",
+        ] {
+            assert_eq!(readers_of(path, &mut o), ["settle", "policy", "fuzz"], "{path}");
         }
     }
 
@@ -3850,9 +3846,8 @@ mod tests {
     #[test]
     fn an_unknown_path_is_an_input_of_every_step() {
         let mut o = fixed(&[]);
-        let all = ["fmt", "settle", "clippy", "doc", "nextest", "policy", "fuzz"];
         for path in ["newdir/data.bin", ".gitignore", "about.json"] {
-            assert_eq!(readers_of(path, &[], &mut o), all, "{path}");
+            assert_eq!(readers_of(path, &mut o), recorded_steps(), "{path}");
         }
     }
 
@@ -3902,6 +3897,18 @@ mod tests {
                 .is_empty()
         );
         assert!(names(r#"let s = "the docs";"#).is_empty());
+        // C52-p9#3: a bare literal of the folder anywhere, and a doctest's path.
+        assert_eq!(
+            names(r#"find_dir("EW_CONTENT_DIR", "content", "content")"#),
+            ["content/forms/a.json"]
+        );
+        assert_eq!(names(r#"const ROOTS: [&str; 1] = ["NOTICE"];"#), ["NOTICE"]);
+        assert_eq!(
+            names(
+                "/// ```\n/// let p = repo().join(\"docs/plan/x.md\");\n/// ```\n/// docs/design/a.md\nfn f() {}\n"
+            ),
+            ["docs/plan/decisions.md"]
+        );
         // The packages that read: the step's own and their workspace dependencies, transitively.
         assert_eq!(
             with_dependencies(&set(&["elektrawatt"]), &members()),
@@ -3935,11 +3942,11 @@ mod tests {
             &mut tool,
         );
         let now = key("n3w7ree");
-        let mut docs_only = |step: &str, cmds: &[Cmd], from: &str| {
-            assert_eq!((step, cmds, from), ("clippy", &clippy[..], "0ld7ree"));
+        let mut docs_only = |step: &str, from: &str| {
+            assert_eq!((step, from), ("clippy", "0ld7ree"));
             Since::NoInput(vec!["docs/plan/decisions.md".to_owned()])
         };
-        let mut code = |_: &str, _: &[Cmd], _: &str| Since::Input("crates/ew-leaf/src/lib.rs".to_owned());
+        let mut code = |_: &str, _: &str| Since::Input("crates/ew-leaf/src/lib.rs".to_owned());
         assert!(remembered(
             &records,
             "clippy",
@@ -4065,5 +4072,138 @@ mod tests {
                  docs/b.md); nextest (no input changed among docs/1.md, docs/2.md, docs/3.md and 2 more)"
             )
         );
+    }
+
+    /// ID-1441 (C52-p9#5): a step skipped on a changed tree has its record moved to the current tree, and gives the
+    /// changed paths for the memory line; a record of the current tree stays as it is.
+    #[test]
+    fn a_skipped_step_moves_its_record_to_the_current_tree() {
+        let step = StepPlan {
+            name: "clippy",
+            run: StepRun::Run(vec![Cmd::cargo(&["clippy", "-p", "ew-leaf"])]),
+        };
+        let mut tool = |_: &str| None;
+        let mut records = BTreeMap::new();
+        record_step(&mut records, &step, "ok", Some(&key("0ld7ree")), &mut tool);
+        let mut docs_only = |_: &str, _: &str| Since::NoInput(vec!["docs/a.md".to_owned()]);
+        let now = key("n3w7ree");
+        assert_eq!(
+            move_to_tree(&mut records, &step, Some(&now), &mut tool, &mut docs_only),
+            Some(vec!["docs/a.md".to_owned()])
+        );
+        assert_eq!(records["clippy"].tree, "n3w7ree");
+        assert_eq!(
+            move_to_tree(&mut records, &step, Some(&now), &mut tool, &mut docs_only),
+            None
+        );
+        assert_eq!(records["clippy"].tree, "n3w7ree");
+    }
+
+    /// Runs git in `dir` with a fixed identity; panics when it fails. The output, trimmed.
+    fn git_in(dir: &Path, args: &[&str]) -> String {
+        let out = Command::new("git")
+            .args([
+                "-c",
+                "user.name=t",
+                "-c",
+                "user.email=t@example.invalid",
+                "-c",
+                "core.autocrlf=false",
+            ])
+            .args(args)
+            .current_dir(dir)
+            .output()
+            .unwrap();
+        assert!(
+            out.status.success(),
+            "git {args:?}: {}",
+            String::from_utf8_lossy(&out.stderr)
+        );
+        String::from_utf8_lossy(&out.stdout).trim().to_owned()
+    }
+
+    /// ID-1441 (C52-p9#5): `Worktree::since` on a real repository: a rename and a deletion count on both sides, a
+    /// changed `.rs` file is the first input, a tree git does not hold runs the step; `named` finds a package's bare
+    /// literal and lets xtask name every path.
+    #[test]
+    fn since_reads_the_change_between_two_real_trees() {
+        let dir = std::env::temp_dir().join(format!(
+            "ew-xtask-lane-check-since-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        let write = |path: &str, text: &str| {
+            let p = dir.join(path);
+            std::fs::create_dir_all(p.parent().unwrap()).unwrap();
+            std::fs::write(p, text).unwrap();
+        };
+        write(
+            "crates/ew-leaf/src/lib.rs",
+            "pub fn root() -> &'static str {\n    \"docs\"\n}\n",
+        );
+        write("crates/ew-leaf/src/a.rs", "pub fn a() {}\n");
+        write("docs/old.md", "old\n");
+        write("docs/gone.md", "gone\n");
+        git_in(&dir, &["init", "-q"]);
+        git_in(&dir, &["add", "-A"]);
+        git_in(&dir, &["commit", "-q", "-m", "a"]);
+        let tree_a = git_in(&dir, &["rev-parse", "HEAD^{tree}"]);
+        git_in(&dir, &["mv", "docs/old.md", "docs/new.md"]);
+        git_in(&dir, &["rm", "-q", "docs/gone.md"]);
+        git_in(&dir, &["commit", "-q", "-m", "b"]);
+        let tree_b = git_in(&dir, &["rev-parse", "HEAD^{tree}"]);
+        git_in(
+            &dir,
+            &["mv", "crates/ew-leaf/src/a.rs", "crates/ew-leaf/src/b.rs"],
+        );
+        git_in(&dir, &["commit", "-q", "-m", "c"]);
+        let tree_c = git_in(&dir, &["rev-parse", "HEAD^{tree}"]);
+
+        let members = members();
+        let leaf = set(&["ew-leaf"]);
+        let tools = set(&["xtask"]);
+        let worktree = |tree: &str, crates: &'static str| Worktree {
+            root: &dir,
+            members: &members,
+            tree: Some(tree.to_owned()),
+            crates: if crates == "xtask" { &tools } else { &leaf },
+            nextest_set: &leaf,
+            changed: BTreeMap::new(),
+            sources: None,
+            texts: BTreeMap::new(),
+        };
+        let mut b = worktree(&tree_b, "ew-leaf");
+        let moved = vec![
+            "docs/gone.md".to_owned(),
+            "docs/new.md".to_owned(),
+            "docs/old.md".to_owned(),
+        ];
+        // ew-leaf names `"docs"`: its cargo steps read the documents; fmt does not; settle reads every path.
+        assert_eq!(b.since("fmt", &tree_a), Since::NoInput(moved.clone()));
+        assert_eq!(
+            b.since("clippy", &tree_a),
+            Since::Input("docs/gone.md".to_owned())
+        );
+        assert_eq!(
+            b.since("settle", &tree_a),
+            Since::Input("docs/gone.md".to_owned())
+        );
+        assert!(!b.named("clippy", "golden/x.ew"));
+        assert_eq!(
+            b.since("fmt", "0123456789abcdef0123456789abcdef01234567"),
+            Since::Unknown
+        );
+        let mut c = worktree(&tree_c, "ew-leaf");
+        assert_eq!(
+            c.since("fmt", &tree_b),
+            Since::Input("crates/ew-leaf/src/a.rs".to_owned())
+        );
+        let mut tools_tree = worktree(&tree_b, "xtask");
+        assert!(tools_tree.named("clippy", "golden/x.ew"));
+        drop((b, c, tools_tree));
+        std::fs::remove_dir_all(&dir).unwrap();
     }
 }
