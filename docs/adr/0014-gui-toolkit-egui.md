@@ -54,6 +54,13 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
 2. **Accessible-name coverage** (2026-10-18; same document, open question 6). egui_kittest fails only on unnamed
    *input* widgets, while NFR-A11Y-02 covers all interactive widgets. An `ew-ui` test helper therefore walks the
    AccessKit tree after every kittest flow and fails on any unnamed focusable node.
+
+   *As built (2026-11-05, cycle 51; WP-S2.11 D3, decision log ID-1375).* The helper is `assert_accessible` with role
+   and state as well as the name: on every visible, enabled, interactive node, a name, label or placeholder (R1); the
+   toggled state of a check box, switch, radio button or toggle (R2); the expanded state of a combo box, a pop-up or a
+   tree item with children (R3); the selected state of an option, tab, row or tree item (R4); a value on a text input or spin button (R5); and a
+   button whose action the registry reports unavailable disabled, not hidden (R6). It runs over a census of every surface of the window (each menu path, every dialog,
+   the panes and navigators), not after each flow; context menus are not yet in the census (a row).
 3. **Wiring viewer** (2026-10-18; [manufacturing outputs](../design/13-manufacturing-outputs.md),
    [architecture](../design/04-architecture.md) §3). The read-only `.ewpp` wiring viewer of 1.0 is built on
    `ew-ui` widgets. Rule 3 therefore reads: only `ew-ui`, `ew-viewer`, the app binary and the `ew-wiring-viewer`

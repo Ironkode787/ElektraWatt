@@ -121,6 +121,12 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    Decision 1's row "Project-authored part facts, examples, tutorials, …" gives way for tutorials: they are
    `CC-BY-4.0` as the documentation row is, since they live in the user guide (`docs/book/src/tutorials/`), which
    `ci/licence-map.toml`'s `docs/**` row and the existing tutorial already put under that licence. Part facts, examples, the golden fixture and the own test corpus stay `CC0-1.0`.
+7. **Decision 4 holds for the fuzz crate too** (2026-11-05, project owner (delegated); decision log ID-1363, ID-1374,
+   ID-1379). The fuzz crate (`fuzz/`, its own workspace) and `ew-testkit` reach the QET importers through `ew-api`
+   only: the project importer through `import_qet` and the front door, one `.elmt` through
+   `ew_api::import::import_qet_element`. Neither holds an edge to `ew-import-qet`, and the confinement rule of
+   `ci/dep-rules.toml`, which `check-deps` enforces, reads `fuzz/Cargo.toml`'s direct dependencies as well as the
+   workspace's. A direct edge allowed elsewhere (ID-1328) never overrides decision 4.
 
 ## Consequences
 

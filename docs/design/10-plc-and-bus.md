@@ -276,6 +276,17 @@ absolute profile. Tag-based profiles render from the station and slot model inst
 its size as X: `%Q0.1` parses as `%QX0.1`, and because the prefix is optional `Q0.1` parses as the same bit. A unit
 address must name its size (`%Q10` is no address), because the row above covers only the bit case.
 
+*As built (2026-11-05, cycle 51; WP-S7.03 D7 and D8, decision log ID-1375).* A profile is a JSON library document of
+kind `plc_profile`, not the TOML above: `PlcProfileDef` with the members `profile` (`{id, version}`, the pin),
+`label`, `absolute`, `base`, `unit_bits`, `word_align`, `mnemonics`, `render`, `parse` and `allocation`, and the item
+meta. Its item version is the library's semver; its `profile.version` is the pin, and a change in what it renders is a
+new `profile.version`. The built-ins `siemens-tia-intl@2027.1` and `iec-61131-3` are `content/plc-profiles/*.json`
+(CC-BY-SA-4.0), compiled into `ew-derive` and parsed once through `AddressProfile::new`, the one validating
+constructor of `ew-plcaddr`; a user's file reaches a project through `library.embed`, which refuses one that does not
+validate with "the address profile <key> cannot be read: <reason>". One lookup order holds everywhere: the project's
+own copy of a pin first, then the built-in, so a project prints and parses in one notation (ID-1375).
+`plc.set_profile` refuses a pin that is neither, naming the profiles at hand.
+
 ### 2.6 PLC and bus part data
 
 The PLC and bus sections of a part are level L2 data in [07](07-symbols-parts-macros.md) §2.5, owned by this

@@ -1,6 +1,8 @@
 # WP-S7.05: User documentation, rule pages and the MVP tutorials (closed specification)
 
-**Status:** specified in cycle 50 (documents only), an M2 package built whole by one lane (ID-1281) in the eight steps
+**Status:** complete in cycle 51, built by one lane in two sittings and a resume, with its fix round FIX705
+(decision log ID-1362, ID-1364, ID-1370, ID-1376); `build-book.sh`'s Linux run is CI's at the delivery; specified in
+cycle 50 (documents only), an M2 package built whole by one lane (ID-1281) in the eight steps
 of §6, with one hand-back point (§10); about 6.4 pw by its steps, the PERT of 6.7 pw unchanged · **Date:** 2026-11-04 ·
 **Work package:**
 [WP-S7.05](../02-work-packages.md#wp-s705-user-documentation-rule-pages-and-mvp-tutorials) · **Decision log:**
@@ -150,6 +152,20 @@ Each is a lead ruling that the owner may reverse.
 | D17 | **Tutorial 6 and WP-S3.09.** Tutorial 6 describes the import as WP-S3.09 builds it; when that package is not merged when the lane reaches step 6, the step leaves as a follow-up without a further ruling, and the tutorials page lists tutorial 6 as "follows" (G-M2-23 asks for tutorials 1, 2 and 4 only, tutorial 6 following QET import under lever (b)) | The tutorial describes what ships, never a spike |
 | D18 | **Licences.** The pages, the rule notes, the PO files, the scripts and the tutorial's QElectroTech project are CC-BY-4.0 under `docs/**` (L9, the map's existing row, §12 O3); the generated rule and release-notes pages keep the licence of their sources (the rule pages GPL-3.0-or-later, carrying the CC-BY-4.0 notes, which that licence admits; the release-notes pages CC-BY-4.0); `REUSE.toml` and `ci/licence-map.toml` gain the release-notes path | ID-403's rule, each page its source's licence |
 | D19 | **Every item closed;** no decision changes an ADR | — |
+
+*As built (2026-11-05, cycle 51; decision log ID-1362, ID-1364, ID-1370).* D10, tutorial 6: the import is
+**Project ▸ Import QElectroTech project…**, the window's menu path, not File ▸ Import, which the page names as built
+(ID-1364); its QElectroTech file gives the supply a PE pin, since a two-pin black-box supply counts as a load (a row).
+D10, tutorials 2 and 4, written on FT-1371's and FT-1372's window actions (ID-1362, ID-1370): tutorial 2 builds the
+strip with **Draw ▸ Place ▸ Terminal strip…**, the cable with **Draw ▸ Connect ▸ New cable…** from the sample library's
+five-core part and **Connect cores…** on the selected field wires, reads the Cables navigator as its cable list (a
+fresh project holds no report block) and freezes the cable's tag, since a cable without a drawn definition line
+prints `-?W?` (a row); tutorial 4, on the Help ▸ Tutorials copy, adds the two report kinds the sample lacks (a parts
+list and a terminal overview) with **Output ▸ Report block…** and reads the terminal diagrams, cable overview and
+parts list it already holds, so D10's "terminal diagram, cable list, parts list added" would have duplicated them;
+the tutorial tests set `EW_DATA_DIR`, since the starter set holds no cable part (a row). D14's explicit `<a id>`
+anchors are read by `docs/plan/tools/doccheck.py` (ID-1364 named it `ci/doccheck.py`; the file is the plan's tool),
+which joined §8.2's files for that one change (ID-1364).
 
 ## 5. The texts
 

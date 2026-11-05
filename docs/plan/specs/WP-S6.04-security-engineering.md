@@ -1,6 +1,8 @@
 # WP-S6.04: Security engineering for the pilot release (closed specification)
 
-**Status:** specified in cycle 50 (documents only), an M2 package at the size of ID-1187's re-estimate (PERT 1.1 pw,
+**Status:** complete in cycle 51, built by one lane in two sittings (S604, S604b) and its fix round FIX604 (decision
+log ID-1363, ID-1369); SE-5, SE-7's symbolic-link case and SE-8 are CI's to prove at the delivery; specified in cycle
+50 (documents only), an M2 package at the size of ID-1187's re-estimate (PERT 1.1 pw,
 which stays), built whole by one lane (ID-1281) in the six steps of §6 · **Date:** 2026-11-04 · **Work package:**
 [WP-S6.04](../02-work-packages.md#wp-s604-security-engineering-for-the-pilot-release) · **Decision log:** ID-1187,
 ID-1188, ID-1203, ID-1321 · **Part of:** ElektraWatt plan, specifications
@@ -156,6 +158,16 @@ for the orchestrator's read.
 | S3 | Approve and release dialogs, last line; `DISCLAIMER` | `ElektraWatt's checks do not replace engineering verification by a competent person.` (the key `about-disclaimer`) |
 | S4 | `ci/sandbox-check.py`, the new rule | `<flow>: foreign-file: <syscall line>` (the existing rules' form) |
 | S5 | `check-unsafe`, a keyword in the fuzz crate | `<path>:<line>: \`unsafe\` in the fuzz crate, which ci/unsafe-allowlist.toml does not list (doc 18 §11.2, NFR-SEC-04)` |
+
+*As built (2026-11-05, cycle 51; decision log ID-1363, ID-1369, ID-1379).* S2 in `ew import table` is one line,
+`error: ` followed by S2 with its first letter in lower case, as S1 and every other `ew` error line
+(`error: the table import stopped on an internal error while reading <file>; nothing was changed.`), asserted whole
+(ID-1369); the window's banner keeps S2 as written. D10's `.elmt` files reach the corpus test through `import_qet`,
+since `ew-import-qet` is `ew-api`'s alone (ADR-0024 decision 4, ID-1363); the fuzz target `qet_element` reaches the
+element importer through `ew_api::import::import_qet_element`, so neither `ew-testkit` nor the fuzz crate holds an
+edge to `ew-import-qet`, and the confinement rule reads `fuzz/Cargo.toml` too (ID-1379). D15's guards are tested at
+their call sites (`run_sql`, `run_import_table`, the window's import) through debug-only seams that make the guarded
+read itself panic (`EW_DEBUG_PANIC`, the testkit's job fault), so a removed guard fails a test (ID-1369).
 
 ## 6. Build order
 

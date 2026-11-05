@@ -454,6 +454,10 @@ data = ["pe-sizing"]                    # data/pe-sizing.toml, verified flag che
 params = { line_types = ["L", "L1", "L2", "L3"] }
 ```
 
+*As built (2026-11-05, cycle 51; WP-S7.05 D6, decision log ID-1362).* A shipped rule's `docs` reads
+`reference/rules/<id in lower case>` (`reference/rules/ew-pot-013`, not `rules/ew-pot-013` above), the bundled
+guide's page; its hand-written text is the notes file `docs/book/rule-notes/<id>.md` (§3.8).
+
 A company rule in rhai, the acceptance example of FR-CHK-006. Quantities are exposed as fixed-point integers, and
 collections are sorted by ID, so a script adds neither float noise nor ordering effects:
 
@@ -503,6 +507,15 @@ rule-ew-pot-013 = { $device } switches the neutral { $from } → { $to }; { $loa
   checked and why, the standard by number and clause without copied text, a golden example, quick fixes and waiver
   guidance (NFR-DOC-02). CI fails when the page is missing. Company packs ship `docs/<rule>.md`, which EW renders to
   a temporary HTML file for the system browser, without a network request.
+
+*As built (2026-11-05, cycle 51; WP-S7.05 D3 to D6, decision log ID-1362, ID-1376).* A shipped rule's `docs` is
+`reference/rules/<id in lower case>` (`RuleMeta.docs`, declared by every rule; `ew-checks`' pack test fails on another
+form, T5), and `docs-gen` writes that page from the catalogue and the rule's notes file
+`docs/book/rule-notes/<id>.md` (`## What it checks`, `## Why`, `## Standard`, `## Example`, `## How to fix`,
+`## Waiving`, each non-empty), failing on a rule without its notes, a missing heading, a notes file for no rule, or a
+`docs` that names no page. The store's integrity rules (`INTEGRITY`: EW-CORE-001 to 019 but 008, 011 and 013) have
+notes and pages too, since their findings reach the Messages pane; they have titles in both languages and no hint
+yet (a row). The catalogue snapshot carries `docs` and `hint`. Company packs' rendered pages stay WP-S7.05 FP-2.
 
 ### 3.9 Trust, versions and reproducibility
 
@@ -1452,7 +1465,7 @@ Screens are designed in [16](16-ux-ui.md). This area supplies:
 | Waiver dialog | Required reason, expiry, scope; bulk waiver with one reason; single findings only for safety rules; not offered to MCP, scripts or plugins (`HumanOnly`) | FR-CHK-009 |
 | Scheme editor, rule packs | Per-rule enable, severity and parameters with locks and origin; packs with version, source, trust and `verified` flags | FR-CHK-003, -004 |
 | Revision panel | Revisions, label proposal, purpose, page notes with generated summaries, transmittals | FR-REV-001, -012 |
-| Approve and release dialogs | Blockers first with jumps, sign-off state, waivers to acknowledge, disclaimer (NFR-COMP-04), archive location, tag option, step progress | FR-REV-005 … 008 |
+| Approve and release dialogs | Blockers first with jumps, sign-off state, waivers to acknowledge, disclaimer (NFR-COMP-04), archive location, tag option, step progress. *As built (2026-11-05, cycle 51; WP-S6.04 step 3, decision log ID-1363):* both dialogs end, before their buttons, with the one disclaimer line "ElektraWatt's checks do not replace engineering verification by a competent person." (`ew_checks::report::DISCLAIMER`, the About dialog's `about-disclaimer`, nl "De controles van ElektraWatt vervangen geen technische verificatie door een deskundige."), which the check report, `ew check`'s Markdown and the release report (with its waivers in force) also end with | FR-REV-005 … 008 |
 | Compare view, merge panel, comments | §6.5–§6.7 | FR-REV-014, -017, -018, FR-COL-015, -017 |
 
 The persona and journey IDs P1–P6 and J1–J6 of [00](00-vision-and-scope.md) apply. The checker (P4) works mainly in

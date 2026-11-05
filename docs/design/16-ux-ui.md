@@ -1426,6 +1426,18 @@ that names a scheme this build does not ship gets `pre-delivery` with a notice o
 
 *Cycle 28 (ID-661):* The four SVG wizard refusal texts were observed wrapped, readable and actionable in the actual Windows window, including the plain-SVG/re-export routes. This is scoped Windows evidence; exhaustive DPI, other-OS and assistive-technology checks remain unestablished.
 
+*As built (2026-11-05, cycle 51; WP-S7.03 D10 and D11, decision log ID-1354, ID-1375).* Step 2 gains the field "Pin
+numbers and markers" (nl "Pinnummers en markeringen") with two choices: "Readable (new projects)", the default, which
+writes the built-in basic project's `text_styles` explicitly through `project.settings.set`, and "As in the sample
+project", which writes no `text_styles` member, so the base table that Golden A prints applies. NFR-UX-08 is proven by
+`ew-viewmodel`'s test `golden_from_the_basic_project`: the wizard run with the pilot's choices and "As in the sample
+project", a project made from the result with `file.new`, and its effective conventions compared with Golden A's (the
+identifier set, numbering and strip rule, cross-reference format, colour and size profiles, text styles, formatting,
+frames per page type, sections, aspect signs, revision label, check scheme, derivation profile and report blocks);
+the named exclusions are the parties and master data, the per-strip and per-device report blocks 903 to 905, the
+title-block cell mapping (FT-365), report block 908's title (a selection names its station) and the location nodes
+(the project's own cabinets), the last two by ID-1354.
+
 ## 10. Accessibility
 
 ### 10.1 AccessKit tree
@@ -1560,6 +1572,13 @@ on automatically on the CPU renderer. No interaction has a time limit (NFR-A11Y-
 | Automated WCAG 2.1 AA scan of the built HTML documentation; alternative text on every screenshot | NFR-A11Y-06 | N, 1.0 |
 | Accessibility Conformance Report against EN 301 549 clauses 11 and 12, gaps listed | NFR-COMP-06 | 1.0 |
 
+*As built (2026-11-05, cycle 51; WP-S2.11 D3 and D13, decision log ID-1375).* The first row is the accessibility
+census (`crates/ew-ui/tests/it/census.rs`) in place of a walker over flows: every menu path, dialog, pane and
+navigator of the window opened, each interactive node checked for its name, role and state (R1 to R6), context menus
+not yet (a row). The NVDA and Orca row and the Linux clipboard are protocols MT-1 to MT-3 of
+`docs/release/manual-tests.md`, run at each minor release (WP-S6.08's RC-05). The Escape row stays open (WP-S2.11
+FP-1, a row).
+
 ---
 
 ## 11. Theming
@@ -1644,6 +1663,14 @@ renderer's final pass, applied to the screen only. Thumbnails, PNG export, PDF a
   engineering-verification disclaimer and the support status computed offline from the planned support end
   (FR-UI-038; [18](18-quality-security-release.md) §7.5; NFR-COMP-04). Help ▸ Verify derived data runs
   `ew verify-derived` as a job (ARCH §6.8).
+
+*As built (2026-11-05, cycle 51; WP-S7.05 D8, D14 and FP-4, decision log ID-1362, ID-1364, ID-1370).* Help ▸ Tutorials
+opens the tutorials page and one fresh copy of the sample project for every tutorial (each tutorial's own start is
+WP-S7.05 FP-4, a row); with no installed guide it shows a "user guide is not installed" banner over the copy (a row).
+F1 resolves a topic for every `tool.` action, every dialog (an exhaustive match), every pane and navigator, through
+the three window reference pages `reference/window/tools.md`, `dialogs.md` and `panels.md`, and a rule's `docs`
+reference `reference/rules/<id>`. In a Dutch window F1 opens `nl/<page>` when the Dutch guide holds that page, and the
+English page otherwise.
 
 ---
 

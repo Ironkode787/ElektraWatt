@@ -61,6 +61,10 @@
    - coordinated disclosure, with acknowledgement within 7 days.
 
    A threat model is kept in the repository and reviewed every minor release.
+
+   *As built (2026-11-05, cycle 51; WP-S6.04, decision log ID-1363).* The threat model's file is
+   `docs/security/threat-model.md` (TM-01 to TM-19, each with its 0.1.0 state, controls and evidence, and a review
+   log), which `SECURITY.md` links; its review at each minor release is a row of its log.
 5. **Updates** are installed only on a user action, after signature verification. There is no silent auto-update
    (NFR-SEC-15).
 

@@ -686,6 +686,14 @@ colour profiles only (ID-577).
   until the shipped profiles are verified and a profile can select by circuit class: a company default over a standard
   whose shipped table would print such a line black.
 
+*As built (2026-11-05, cycle 51; WP-S7.03 D5 and D6, decision log ID-1332, ID-1375).* The sample project's company
+profiles ship as content too: the colour profile "DBU/WH 24 V" as `content/profiles/colour/company.dbu-wh-24v.json`
+and the size profile "0.75/1.5" as `content/profiles/size/company.0.75-1.5.json`, each byte for byte the value the
+setting stores, the wizard's constants now `include_str!` of the files, with their rows in
+`content/profiles/README.md` (basis: company convention, `verified: true`). No standard-based size profile ships at
+0.1.0 (WP-S7.03 §13 O4): its cross-sections would need a licensed copy of the standard to choose and to mark verified,
+and the built-in defaults stay code; "No size profile ships" above now reads "no standard-based size profile".
+
 ### 4.4 Company codes
 
 - **What a company code is.** It is declared by its profile with a base IEC 60757 code and a shade (DBU = BU,

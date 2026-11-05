@@ -1,6 +1,8 @@
 # WP-S2.12: the usability rounds R0 and R1 as blind-persona rounds (closed specification)
 
-**Status:** specified in cycle 50 (documents only), an M2 package in two halves: the lane's five build steps of §7
+**Status:** the first half built in cycle 51 (§7 steps 1 to 5 and the R0 run, decision log ID-1361, ID-1365); R1
+waits for WP-S6.08's first candidate, with FT-1375 (R0-F1) fixed before it; specified in cycle 50 (documents only), an
+M2 package in two halves: the lane's five build steps of §7
 (the harness additions, GP-UT, the personas and the round prompt, the task sheets, then R0 with its report and its
 fix list routed), built whole by one lane (ID-1281), about 2.05 pw; and R1 on the first release candidate inside
 WP-S6.08's release cycle, with its report and re-tests (§7 steps 6 and 7), about 0.65 pw; the orchestrator's runs
@@ -182,12 +184,26 @@ Each is a lead ruling that the owner may reverse.
 T1 to T8 and A7 pass `check-brief`. T9 to T11 are committed with `check-brief`'s verdict in their `task.md` history:
 runnable, or not runnable with its problems, as `brief-relays-valves` was committed (visual spec §6.3).
 
+*As built (2026-11-05, cycle 51; decision log ID-1355, ID-1361).* T1 to T6, T8 and A7 are committed and pass
+`check-brief`. T7 is not committed (§9.3 item 1): its waiver step is human-only (`check.waive`, ADR-0008) and
+`check-brief` replays headless, so the item cannot be proven; R0 does not need it, and before R1 a row settles whether
+`check-brief` proves a human-only step or T7 stays out of R1 (R0 report row P-1). T9 to T11 are not committed: they
+leave under §10's de-scope rule as WP-S2.16's rows, their drafts in the lane's hand-off note, which replaces the
+paragraph above's "committed with `check-brief`'s verdict" for them (ID-1355's ruling on them amended by ID-1361).
+
 ### 5.2 Who takes part
 
 | Round | Personas (D10) | Mirrors |
 |---|---|---|
 | R0 formative | `qet-veteran`, `qet-user` | The pilot user and a colleague (doc 16 `:1873`) |
 | R1 summative | `eplan-designer`, `eplan-maintainer`, `qet-user`; T6 also `qet-veteran` | ≥ 2 EPLAN users, ≥ 1 QET user (doc 16 `:1874`) |
+
+*Amended (2026-11-05, cycle 51; decision log ID-1365, R0 report row P-3).* For R1, T8's second hard item (A2) accepts
+a return to the start page by the arriving cross-reference as well as by Back: the actions `nav.follow`, then
+`nav.back` or `nav.follow`, with a new item that folio 101 shows again at the run's last step, which needs the page
+shown in the decision (a harness addition), in the sheet's version 2. In R0 a persona returned by double-clicking the
+back reference, as QET users do, and failed the narrower item; the missing visible Back stays R0-F6. §5.1's row for T8
+reads in this light.
 
 ### 5.3 Run counts
 

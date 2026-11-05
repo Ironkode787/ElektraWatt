@@ -1,6 +1,8 @@
 # WP-S7.03: Starter parts, profiles, address maps and the basic project (closed specification)
 
-**Status:** specified in cycle 50 (documents only), an M2 package built whole by one lane (ID-1281) in the six steps
+**Status:** complete in cycle 51, built whole by one lane and its fix round FIX51p3 (decision log ID-1354,
+ID-1375); SC-9 is CI's (`package.yml`) at the delivery; specified in cycle 50 (documents only), an M2 package built
+whole by one lane (ID-1281) in the six steps
 of §6, with one hand-back point (§11); about 2.5 pw by its steps, the PERT of 2.6 pw unchanged · **Date:** 2026-11-04
 · **Work package:**
 [WP-S7.03](../02-work-packages.md#wp-s703-starter-parts-profiles-address-maps-and-basic-project) · **Decision log:**
@@ -138,6 +140,12 @@ changed schema is re-blessed, with no migration.
 | D10 | **NFR-UX-08's proof.** A test of `ew-viewmodel`, `golden_from_the_basic_project`, runs `tools.company_standard` with the pilot's choices (the defaults, and D11's choice "As in the sample project"), finishes into a fresh directory, makes a project from it with `file.new`, and compares its **effective** conventions with Golden A's: identifier set; numbering schemes and the strip rule; cross-reference format; colour and size profiles (whole values); the effective text-style table; date and number formatting; the frame of each page type (Golden A: the form its pages of that type name; the basic project: its frame defaults); sections (number, folio range, divider); structure aspect signs; revision label format; check scheme; derivation profile; report blocks by kind, first folio, form and title. The test names its exclusions in one table, each with its reason: parties and master data (the project's own); the per-strip and per-device report blocks 903 to 905 (their selection names project records); the title-block cell mapping (FT-365). A member that differs and is a value the wizard sets is fixed in the wizard's default. A member with no wizard field and no command is a stop | Golden A built "from the defaults and the basic project only" (02c), as the effective settings that print, not as JSON members; the two may differ in form (frame defaults against per-page forms) and agree in output |
 | D11 | **The text-size choice** (§13 O3's option 1). Step 2 of the wizard (Frame and title block) gains the field "Pin numbers and markers" with two choices: "Readable (new projects)" (the default: the built-in basic project's `text_styles`, ADR-0032 decision 3) and "As in the sample project", which writes no `text_styles` member (the base table that Golden A prints). It is written through the existing `project.settings.set` (`text_styles`); no command is added | Without it no basic project from the wizard reproduces Golden A, and NFR-UX-08 fails; the default keeps ADR-0032's legibility for every new user |
 | D12 | **Every item closed;** no decision changes an ADR. D7 implements a kind that ADR-0011's registry already holds; doc 05 is updated at the design pass (§14) | — |
+
+*Amended (2026-11-05, cycle 51; decision log ID-1375).* D8 named two orders: `profile_of` the project's copies
+first, "the profiles at hand" the built-ins first. One order holds everywhere: the project's own copy of a pin first,
+then the built-in, `profiles_at_hand` following `profile_of` (the copy takes the built-in's place, the list's order
+kept), so a project whose copy carries a built-in's pin prints, sets and parses addresses in one notation. D10's
+exclusions also hold report block 908's title and the location nodes, which are project data (ID-1354).
 
 ## 5. The texts
 

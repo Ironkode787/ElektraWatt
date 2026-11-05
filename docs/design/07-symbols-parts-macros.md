@@ -861,6 +861,15 @@ waives Article 3 of CC-BY-SA-4.0 (attribution and ShareAlike) for designs, drawi
 and projects that use or embed library items. NFR-LIC-09 states the same for EW outputs. Redistributing the
 library itself, modified or not, stays under CC-BY-SA-4.0.
 
+*As built (2026-11-05, cycle 51; WP-S7.03 D1 and D2, decision log ID-1332, ID-1375).* Every shipped record carries a
+licence and a source: `ew-library`'s test `content_audit` reads every library document under `content/` and every copy
+under `golden/J-E-2416.ew/lib/` as bytes and fails, naming the file and the item, on a missing or empty `meta.licence`,
+a licence other than its kind's row above (the record's, not its file's), or an empty `meta.sources`; under
+`content/` the file's row in `ci/licence-map.toml` must allow it too. The golden bootstrap writes `CC0-1.0` on its part
+and manufacturer copies; a user's `ew import parts` writes none, the licence being the user's to state.
+`content/README.md` lists each shipped content set (folder, kind, licence, source, `verified`, the package that made
+it), which the test keeps complete: RC-07's evidence.
+
 ---
 
 ## 4. Algorithms
@@ -1246,6 +1255,17 @@ Seven further symbols join the starter set for the pilot corpus (§2.3, decision
 `main` before its bump: `ew.fn.valve-5-2-sol-spring` 0.2.0, `ew.fn.cylinder-double-acting` 0.1.1, the new
 `ew.fn.valve-solenoid` 0.1.0, `ew.iso.valve-5-2-sol-spring` 0.3.0 in both editions, `ew.ovw.module@qet10` 0.2.0,
 `EW-GEN-VLV-1` 0.2.0, `ew-starter-parts` 0.4.0 and the starter library 0.4.0; Golden A's 571334 declares solenoid 14.
+
+*As built (2026-11-05, cycle 51; WP-S7.03 D3 and D4, decision log ID-1332).* The sample project's catalogue parts ship
+as the system library `ew-sample-parts` 0.1.0 (`content/libraries/ew-sample-parts.ewlib`, "Sample project parts",
+CC0-1.0), read by the installation's system tier and not compiled in: 23 parts and their 7 manufacturers, Golden A's 29
+less the four `TBD` test parts and the two configured order codes, written by the generator test `sample_parts` from
+Golden A's copies read as bytes, so Golden A keeps its project-local copies. Each part whose Golden A device has
+functions on starter function definitions gains a function template and a CP pattern from them (the cable's
+decoration function `ew.fn.graphic` left out; 550208's single template entry is its main one; 195740 takes the
+overview and the DP slave port), with the PLC and bus sections as Golden A holds them (550208's supply and earth kept
+as CP roles). `meta.confidence` names each section (`part`, `mech`, `cp_pattern`, `function_template` and each data
+section) as `test` where doc 20 gives the value as a test input and `unverified` otherwise; nothing is `verified`.
 
 ### 9.3 Macros on the golden project
 

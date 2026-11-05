@@ -144,6 +144,13 @@ Optional directories and files are absent in the golden project:
 over this list's date, and WP-S7.03 D7 types the kind with the built-in profiles as library documents. The machine
 and label profiles of `lib/profiles/` stay 1.0's.
 
+*As built (2026-11-05, cycle 51; WP-S7.03 D7 and D8, decision log ID-1354, ID-1375).* The kind `plc_profile` is
+implemented: `PlcProfileDef` in `ew-schema` (doc 10 §2.5's members), `LibDocument::PlcProfile`, the record directory
+`plc-profiles` of a library and `lib/plc-profiles/<copy_id>.json` of a project, item keys `ew.plc-profile.<id>`, the
+schema in `schemas/0.1`. The two built-in profiles are compiled into `ew-derive` from `content/plc-profiles/`
+(`siemens-tia-intl.json`, `iec-61131-3.json`); a project's copy of a profile is found before the built-in of the same
+pin everywhere (ID-1375). §2.2's row reads "MVP" for the kind.
+
 None of the rule, report, script or job content runs until the user trusts the project (NFR-SEC-05, §13.4).
 
 **Temps, orphans and strays** (2026-10-20, ADR-0010 amendment 3; decision log ID-203, ID-214). The save protocol's
@@ -183,7 +190,7 @@ rule**. Ranks are never reused or renumbered.
 | 70, 71 | `exchange_record`, `foreign_id` (1.0) | `exchange/<config-project-uuid>.jsonl` | configuration project |
 | 72 | `import_run` | `imports/<run-uuid>.jsonl` | own ID |
 | — | `part`, `symbol`, `fndef`, `form`, `macro`, `manufacturer` (library copies) | `lib/<kind>s/<id>.json`, one pretty document each (§3.4) | own ID |
-| — | `plc_profile` (library copy, 1.0) | `lib/plc-profiles/<id>.json` (§3.4) | own ID |
+| — | `plc_profile` (library copy, 1.0; implemented at the MVP, cycle 51, WP-S7.03 D7) | `lib/plc-profiles/<id>.json` (§3.4) | own ID |
 | — | `machine_profile`, `label_profile` (library copies, 1.0) | `lib/profiles/<id>.toml`, the TOML source form; the `schema` key tells the kinds apart | own ID |
 | 255 | `conflict` | file of its target | target |
 

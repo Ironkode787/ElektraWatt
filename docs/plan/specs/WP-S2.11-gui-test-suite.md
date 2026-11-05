@@ -1,6 +1,8 @@
 # WP-S2.11: The GUI test suite as the per-PR gate (closed specification)
 
-**Status:** specified in cycle 50 (documents only), an M2 package built whole by one lane (ID-1281) in the eight steps
+**Status:** complete in cycle 51, built whole by one lane and its fix round FIX51p3 (decision log ID-1354,
+ID-1375); the Linux pixel gate is proven by CI at the delivery, after the merge point's WSL re-bless; specified in cycle
+50 (documents only), an M2 package built whole by one lane (ID-1281) in the eight steps
 of §6, with one hand-back point (§11); about 2.6 pw by its steps, the PERT of 2.6 pw unchanged · **Date:** 2026-11-04
 · **Work package:** [WP-S2.11](../02-work-packages.md#wp-s211-gui-test-suite-egui_kittest) · **Decision log:**
 ID-1281, ID-1322, ID-1327 · **Part of:** ElektraWatt plan, specifications

@@ -170,6 +170,12 @@ after each part).
 | D15 | **The generated references** (NFR-DOC-06): `docs-gen` gains the CLI reference (`reference/cli/`, one page per subcommand group from `cli.json` and the result schemas), the query reference (`reference/queries.md` from `queries.json`), the `api_v1` view reference (`reference/api-v1.md` from `api_v1.json`) and the format reference (`reference/format/`, one page per record kind from `schemas/0.1/*.schema.json`); the WIT docs are 1.x and the keymap sheets WP-S2.08 part 2's | The same data-file pattern as the command and rule pages; `--check` covers them |
 | D16 | **Parts 2 to 5 in the detail they need now.** Part 1 is closed to the flag; later parts are closed to their items, decisions and acceptance; each part is re-read against the delivered earlier parts at dispatch without reopening D1 to D15 | Part 1 dispatches first; the rest depend on its table and types |
 
+*As built (2026-11-05, cycle 51; FT-1336, decision log ID-1356).* D10's `--replay` gains `--yes`: on a project of an
+older format, `ew recover --replay` opens it migrated in memory, replays the journal onto it and saves only after the
+upgrade's consent (the word `upgrade` typed on a terminal, or `--yes`), the backup written before any project byte
+(WP-S1.17 D11); off a terminal without `--yes` it exits 2, on another word 1, each with nothing saved and the journal
+kept. `api-guard` reads the flag as additive, and the exit catalogue's meanings are unchanged.
+
 No decision changes an ADR.
 
 ## 5. Part 1: CLI conventions and result schemas

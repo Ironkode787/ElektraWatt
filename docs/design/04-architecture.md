@@ -375,7 +375,8 @@ graph TD
   wv --> viewer
   stepw --> stepp
   testkit --> itab & model & schema & ids & units & mltext & rds
-  testkit -. dev .-> api & cmd & derive
+  testkit -. dev .-> api & cmd & derive & rcpu
+  lib -. dev .-> derive
   api -. dev .-> testkit
   derive -. dev .-> cmd
   api -. dev .-> rcpu & ids
@@ -387,6 +388,12 @@ graph TD
   cmd & api & testkit -. dev .-> testids
   vm & ui & app & cli & mfg & r3d -. dev .-> cmd
 ```
+
+*As built (2026-11-05, cycle 51; decision log ID-1354, ID-1363).* Two dev edges join the graph and
+`[allowed_dev_edges]`, neither adding a crate: `ew-library` → `ew-derive` (WP-S7.03: the content audit parses every
+shipped designation pattern with `ew_derive::expand_pattern`, ID-1354) and `ew-testkit` → `ew-render-cpu` (WP-S6.04
+D10: the hostile corpus test decodes a raster asset as the renderers do, ID-1363). Both are GPL to GPL; `ew-testkit`
+holds no edge to `ew-import-qet` (ADR-0024 decision 4, amendment 7).
 
 **Rules.**
 1. **Model access** (amended 2026-10-18, ADR-0001 amendment 1). `ew-model`'s tables are `pub(crate)`, and its raw

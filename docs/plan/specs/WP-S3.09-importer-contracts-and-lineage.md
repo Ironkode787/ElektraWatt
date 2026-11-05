@@ -1,6 +1,8 @@
 # WP-S3.09: Importer contracts, lineage and the migration report (closed specification)
 
-**Status:** specified in cycle 50 (documents only), an M2 package built whole by one lane (ID-1281) in the seven steps
+**Status:** built in cycle 51 by one lane in two sittings (S309, S309b) with its fix round FIX309 (decision log
+ID-1360, ID-1374, ID-1379), complete when cycle 52's first review part accepts FIX309; specified in cycle 50
+(documents only), an M2 package built whole by one lane (ID-1281) in the seven steps
 of §6, with one hand-back point (§11); about 3.1 pw by its steps, the PERT of 3.1 pw unchanged · **Date:** 2026-11-04 ·
 **Work package:**
 [WP-S3.09](../02-work-packages.md#wp-s309-importer-contracts-lineage-and-migration-report) · **Decision log:**
@@ -151,6 +153,19 @@ Each is a lead ruling that the owner may reverse.
 | D15 | **Fuzz targets** (this package's four; WP-S6.04 owns the others, its D5 and D9): `qet_project` (bytes as one `.qet` through the front door, then `ApplyImport` on an empty project), `qet_element` (bytes as one `.elmt` under `Limits::element_definition()`), `golden_tables` (a selector byte splits the input into up to eight named tables of the golden dialect, then the bootstrap's own path, `session_from_batch`, which D13 keeps), `parts_table` (bytes as a CSV or XLSX supplier table with a fixed column map). Properties: no panic; every emitted record re-reads through `ew-schema`'s strict reader (`Record::load` of its own line, no malformed variant) and `Record::validate` passes (the typed reader is the strict check, ADR-0011 amendment 3); D3 holds; where `ApplyImport` (`qet_project`) or the bootstrap's session (`golden_tables`) runs, it commits or refuses with a report and a committed model passes the structural check. Each is a `[[bin]]` of `fuzz/Cargo.toml` with its harness in `fuzz/src/`, seeds under `fuzz/corpus/<target>/` from `seed_corpus.rs` (the `.elmt` fixtures, `qet_synth`'s project, Golden A's tables, a CSV and an XLSX parts table), a row of `ci/fuzz-smoke-targets.toml` (`cargo xtask fuzz-smoke-table`) and an entry of the deep nightly's matrix (`max_len` 65,536; 16,384 for `qet_element`) | Doc 14 §11's three properties, the schema half through the typed reader instead of a JSON Schema validator (no new dependency); the names say which importer each target drives (doc 14 §11's `table_csv` and `table_xlsx` are `golden_tables` and `parts_table`) |
 | D16 | **Golden C through the pipeline.** `import_qet` becomes the front door plus `ApplyImport` into an empty project, so the corpus-gated tests run the real path. The expected file `c-migration-report.csv` keeps its columns; its `as_built` column is the run's count per code, and a count that changes is re-blessed with a `Golden:` trailer and named in the commit (§8). The 18 folios and 63 texts are unchanged | AC-25's part that is this package's: the pipeline, not new detections |
 | D17 | **No decision changes an ADR's decision;** D1, D6 and D11 are recorded at the design pass as ADR-0021 and ADR-0011 notes (§13) | — |
+
+*As built (2026-11-05, cycle 51; decision log ID-1360, ID-1374, ID-1379).* D4's ruled deviation: the window runs the
+importer on a job thread, while the transaction and the preview stay on the window thread, since a `Session` cannot
+move between threads (ID-1360); the re-import's importer runs once, on the job thread, as one job (FIX309, ID-1379).
+At the card's Apply the unsaved-changes question is asked again for whatever project is open then, Cancel or Escape
+keeping the edit and bringing the card back (ID-1374's major, fixed by FIX309). D4's fuzz host for one `.elmt` is
+`ew_api::import::import_qet_element`, so the fuzz crate holds no edge to `ew-import-qet` (ADR-0024 decision 4,
+ID-1379). D11 as built: the hash is the first 128 bits of SHA-256 over the record's canonical line (`$k` first, the
+members in declaration order, as `ew-format` writes it) less the `source_ref` member, for both `source` and `ew`
+(ID-1374; the lane's first build hashed sorted-key JSON, and the format is free before 0.1.0, ID-1325). D12 as built:
+a record the base lists as removed keeps its base hashes, so it is classed removed again on each re-import of the
+same file and a new run is written (a row); `ew import qet --strict --out` writes nothing when it exits 1, as
+`ew import csv --strict` does.
 
 ## 5. The texts
 

@@ -503,6 +503,16 @@ the headless M1 gate.
 (`Conformance::PdfA2b`) in every run; the veraPDF cross-check of §3.9 is `not_applicable` in the headless run
 (external tool) and runs in the CI job that has veraPDF.
 
+*As built (2026-11-05, cycle 51; WP-S2.11 D2, decision log ID-1354, ID-1375).* The requirement table: a hand-kept
+map, `golden/J-E-2416/acceptance/requirements.toml`, names each GP-named requirement's tests as `<binary ID> <test
+path>` (`[[requirement]]`) and each criterion proven outside `ew-api`'s runner (`[[criterion]]`); `xtask/src/requirements.rs`
+writes `golden/J-E-2416/expected/acceptance_requirements.md` from it and Golden A's requirement IDs. A row is
+`mapped` when it has a map test or one of its ACs has runner entries or is a criterion, else `missing`, which is listed
+and does not block (WP-S2.11 §13 O3). `cargo xtask acceptance --gate M1|M2` checks the map first, runs the gate and the
+mapped tests in one nextest run, reads the JUnit results per binary and appends the pass, fail and missing sections.
+A `mapped` row whose test does not assert its criterion is a false pass, so FR-CHK-016 stays `missing` until a test
+asserts it (ID-1375).
+
 ### 3.11 UI tests
 
 egui_kittest drives `ew-ui` in-process over GP. The flow content belongs to [16](16-ux-ui.md) (AC-28, the five core
@@ -532,6 +542,17 @@ exact counts of the multi-canvas host while a script runs `nav.next_link` and th
 to draws complete in its first frame; V12 is the viewer without a pointer (Go to, links, Back, tabs, side by side, the
 navigator and the grid cursor with its AccessKit announcement), with the accessible-name walker after every step. A
 kittest assertion on tiles follows the rule of §3.14: it never counts tiles by delivery timing.
+
+*As built (2026-11-05, cycle 51; WP-S2.11 D1, D3 to D7, decision log ID-1354, ID-1375).* AC-28 runs as one kittest
+flow (`crates/ew-ui/tests/it/ac28.rs`). The walker over flows gives way to a census (`tests/it/census.rs`): every
+surface of the window (each menu path, the command-bar groups and submenus included, every dialog by `DialogKind`'s
+own list, the panes and navigators) opened on a writable `Tmp` copy of Golden A that it never commits, and on each
+visible, enabled, interactive node the rules R1 to R6 of `assert_accessible` (a name; the toggled, expanded and
+selected states; a text input's value; an unavailable action's button disabled, not hidden), every failing node of a surface listed at once; an
+unavailable menu entry the census cannot find is a failure of its own. Context menus are not yet visited (a row). The
+pixel gate runs on Windows (WARP) and on Linux (Mesa lavapipe pinned, §5.2), the Linux images reading
+`tests/expected/snapshots/linux/<name>` where an override exists; a bless on Linux writes an override only beyond the
+tolerance. The suite asserts no time and runs no UI-thread watchdog (WP-S2.11 FP-4, the milestone run's).
 
 ### 3.12 Parser fuzzing and hostile input
 
@@ -595,6 +616,21 @@ kittest assertion on tiles follows the rule of §3.14: it never counts tiles by 
 - **Release rule.** An open fuzz crash blocks the release (RC-02).
 
 *Cycle 28 (ID-662):* `png_pdf` (max_len 16,384) exercises PNGs accepted by `decode_image` through PDF writing/drawing. This records target coverage, without a fresh campaign or hosted-success claim.
+
+*As built (2026-11-05, cycle 51; WP-S6.04 and WP-S3.09, decision log ID-1360, ID-1363, ID-1379).* The fuzz crate holds
+seventeen targets: WP-S6.04's `sql_sandbox` (FT-223's hostile SQL among its seeds), `svg_asset`, `image_decode`,
+`textconv`, `table_round_trip` (a selector byte picks whether the table key is given; the bytes' own signature picks
+CSV or XLSX) and `command_log`, and `ewlib_read` (`ew-library`'s own `.ewlib` reader); WP-S3.09's `qet_project`,
+`qet_element` (through `ew_api::import::import_qet_element`, the fuzz crate holding no edge to `ew-import-qet`),
+`golden_tables` and `parts_table`, whose checks live in `fuzz/src/importers.rs` so that the replay test runs their
+seeds; beside the earlier `jsonl_loader`, `migration_chain`, `command_sequence`, `ewz_read`, `merge_file` and
+`png_pdf`. `fuzz/tests/replay.rs` runs every target's seeds in CI and, when `fuzz/**` or `golden/**` changes, in the
+merge point's verify (FT-1374, ID-1378). The hostile corpus is `crates/ew-testkit/hostile/` (`qet`, `elmt`, `xlsx`,
+`ewz`, `jsonl`, `svg`, `raster`, with an index), read through each parser's public entry point by the test binary
+`hostile_corpus`, whose counting global allocator holds every input under 256 MiB; the counting allocator is that
+binary's only, none is in `fuzz/` (WP-S6.04 D10, FP-4). The `.elmt` files reach it through `import_qet`. ZIP64 is not
+read, so the archive entry limit equals the format's 16-bit count and its hostile case is refused by the end record
+(a row).
 
 ### 3.13 Reliability harnesses
 
@@ -1116,7 +1152,7 @@ The PR set stays within 30 min wall time (NFR-MAINT-05); a monthly CI-duration r
 | CI-PR-04 (removed) | Removed by decision log ID-880: macOS is not a supported platform. The jobs `test-macos` and `test-macos-all-features` (FT-438) ran the filtered default-features nextest run, the unfiltered all-features run and both doctest runs on macos-15; all of these also run in CI-PR-02. The ID is not reused | — | — |
 | CI-PR-05 headless | `ew export pdf` and `ew render --page 103 --png` on GP with no display, no GPU, no system fonts and empty library directories (NFR-PLAT-04, NFR-REL-11); the PDF's SHA-256 equals that of the kittest GUI export of CI-PR-07 (FR-OUT-022, FR-EXT-001). *As built (cycle 18, FT-295; in part):* `ci.yml` job `headless` runs `ew export pdf golden/J-E-2416.ew` in a bare `ubuntu:24.04` container (image pinned by digest; `--network none`, a read-only root, no device; `ci/headless-export.sh` proves inside it that there is no display, GPU, font file or user-directory content) on one and four threads and compares both PDFs with `expected/pdf/sha256.txt`. The checks run as root with `DAC_READ_SEARCH` (the font search reads every directory and fails on any read error), and the export runs as the runner's user through `setpriv` with a cleared environment; the job keeps no other capability (decision log ID-457). `ew render --page 103 --png` (FT-254) and the equality with the GUI export wait for their commands and for CI-PR-07. *As built (cycle 40, WP-S1.22 part 2, OU-5; decision log ID-925):* the same job also runs `ew render --page 103 --png` on the golden project inside the container (`ci/headless-export.sh`), and the next step compares the PNG's SHA-256 with the digest of the committed `expected/png/103.png` (NFR-PLAT-04); the renderer's bytes are proven equal on a Linux host in cycle 40 (decision log ID-937) and the container digest is proven by CI at cycle 41's delivery (cycle 40 ends at a checkpoint, ID-938). The equality with the GUI export still waits for CI-PR-07 | Linux container | Merge, once in the required checks after three green runs on `main` (FT-325, owner) |
 | CI-PR-06 output | Golden PNGs; PDF structure; veraPDF when `ew-scene`, `ew-export`, fonts or forms change; GPU smoke per backend where available (NFR-PLAT-02) | Linux, Windows | Merge |
-| CI-PR-07 ui-a11y | kittest flows and image snapshots; name walker; CVD renders; contrast lint; pseudo-locale; keymap reachability; 300 % | Linux (lavapipe) | Merge |
+| CI-PR-07 ui-a11y | kittest flows and image snapshots; name walker; CVD renders; contrast lint; pseudo-locale; keymap reachability; 300 %. *As built (2026-11-05, cycle 51; WP-S2.11 D4, ID-1354, ID-1375):* the Linux pixel gate runs inside `test-linux` (and the other Linux job), with `mesa-vulkan-drivers` at the version in `ci/mesa-lavapipe.txt` installed by `ci/mesa-lavapipe.sh` from Ubuntu's snapshot archive, an apt preferences file pinning the snapshot origin at 1001 so lavapipe's LLVM comes from it too; the Linux overrides are blessed in WSL on the merged tip at each merge point | Linux (lavapipe) | Merge |
 | CI-PR-08 fuzz-smoke | 60 s per changed parser target; 60 s command fuzzer. *As built (cycle 21, FT-335):* `ci.yml` job `fuzz-smoke` runs 60 s of each cargo-fuzz target of `fuzz/` that the change can reach (`-max_total_time=60`, the committed corpus as seeds, libFuzzer's `-timeout=120` and `-rss_limit_mb=4096` per input) on the nightly of `fuzz/rust-toolchain.toml` (the job only; `RUSTUP_TOOLCHAIN`, equal to `NIGHTLY_TOOLCHAIN`, which a test of xtask keeps equal to the file's date), AddressSanitizer on. The path filter `ci/fuzz-smoke-targets.py` maps the changed paths (the pull request's against its base; a push against `before`; a dispatch and a push without a usable base run every target) to the targets whose path-dependency closure holds the changed crate (`ci/fuzz-smoke-targets.toml`: `jsonl_loader` six crates, `migration_chain` eight, `command_sequence` forty through the `ew-api` facade; a test of xtask recomputes the closures from the `Cargo.toml` files; a crate's tests, benches, examples and Markdown are not built into a target, but the command generator `crates/ew-testkit/tests/command_fuzz` is), and a change inside `fuzz/` to the target it names or, for the harness, the manifest and the toolchain file, to all three (the README, the deny policy and tool output run nothing). A change that reaches no target runs the filter and nothing else, so the job is always present for a required check. **Red** for a finding (a libFuzzer `crash-`, `oom-`, `leak-` or `timeout-` input: one input over 120 s is a finding), a failed build, and a run that ends without a verdict, the run's own bound included (`timeout 8m`, exit code 124: libFuzzer's `-timeout=120` bounds one input, so a target still running after 8 minutes is a hang the oracle missed or a broken setup). The crash inputs and logs are uploaded with `if: always()` as the artifact `fuzz-smoke` and the first kilobyte of each input is in the job summary; a finding is committed under `fuzz/regressions/<target>/` and reported, not fixed in the change that finds it (§3.12). Until the first pull request that reaches a target has run it, the job is exercised by `workflow_dispatch` only; the command fuzzer's seeded `fuzz_smoke` of every test job (§3.6, FT-306) stays as the cheap run of the command fuzzer | Linux | Merge |
 | CI-PR-09 supply-chain | cargo-deny; cargo-audit; cargo-vet; build-script allowlist; licence-boundary check over every permissive crate of ARCH §3 (§10); dependency-rule check; `unsafe` allowlist; feature bans over the resolved graph (rhai `unchecked` anywhere, 17 §5.2; serde_json `preserve_order` anywhere, because the canonical writer needs sorted maps, 05 §3.1; egui `inspection`, `egui_mcp`, `ew-testids`, `ew-commands/testkit`, `ew-viewmodel/testkit` and `ew/test-confirm` in any non-test target; the uniform test features requested by every test build that reaches their crate, §2.2); MSRV build of permissive crates (NFR-SEC-10, NFR-MAINT-03) | Linux | Merge |
 | CI-PR-10 legal-docs | `reuse lint` (NFR-LIC-01, NFR-LIC-02; 19 LR-01); licence-map check against `ci/licence-map.toml` (19 LR-02), including the collective copyright notice (NFR-LIC-10); no committed third-party fixture (19 LR-11); DCO (NFR-LIC-03); governance-file presence (NFR-DOC-08); RFC reference on PRs labelled `format-major`, `api-break` or `licence` (NFR-DOC-09); anonymisation guard (NFR-PRIV-09; 20 §3.5, 19 LR-12); mdBook and rustdoc build with link check (NFR-MAINT-08); F1 anchors (NFR-DOC-01); rule pages (NFR-DOC-02); generated references unchanged (NFR-DOC-06) | Linux | Merge |
@@ -1380,6 +1416,22 @@ were executed when it was written.
 | NFR-DOC-03 | Not met: one headless tutorial exists; the four MVP tutorials and their scripted CI runs are WP-S7.05 |
 | NFR-DOC-06 | In part: the command catalogue with its parameter schemas and the rule catalogue are generated and checked for staleness; the CLI reference, the format specification, the `api_v1` view reference, the WIT docs and the keymap sheets are not generated yet (WP-S1.22, WP-S7.05) |
 | NFR-I18N-07 | Not met: the book declares its source language only; mdbook-i18n-helpers (FT-282) and Weblate (FT-281) are open |
+
+*As built (2026-11-05, cycle 51; WP-S7.05, decision log ID-1362, ID-1364, ID-1370, ID-1376).* The offline build
+runs one preprocessor, mdbook-i18n-helpers 0.4.0's `mdbook-gettext` (Apache-2.0, pinned by its crate's SHA-256 in
+`packaging/components.toml` and installed by `ci/build-book.sh` with `--locked` before the network-less builds). The
+states now: **NFR-DOC-01** met for 0.1.0: the book is bundled offline, every page names its release (the title
+"ElektraWatt User Guide <version>", checked by the build), and F1 resolves a topic for every tool, dialog, pane and
+navigator (`help.rs`) and, in a Dutch window, the Dutch page where one exists; no hosted versions (WP-S7.05 FP-1).
+**NFR-DOC-02** met: `docs-gen` writes `reference/rules/<id>.md` for every shipped rule, the integrity rules of
+`INTEGRITY` included, from its notes `docs/book/rule-notes/<id>.md` (What it checks, Why, Standard, Example, How to
+fix, Waiving), and every rule declares `docs` as `reference/rules/<id>`. **NFR-DOC-03** met for tutorials 1, 2, 4
+and 6 and the headless tutorial: each window tutorial is a script run as a test with its page lint
+(`bin/elektrawatt/tests/it/tutorials.rs`), the headless one's commands run on a copy of Golden A
+(`bin/ew/tests/it/headless_tutorial.rs`). **NFR-I18N-07** met for 0.1.0's part: `docs/book/po/nl.po` translates the
+introduction, the tutorials page and the tutorials (the Dutch guide titled "ElektraWatt Gebruikershandleiding
+<version>"), `ci/translation-status.py` reports the shares and fails on an untranslated tutorial or introduction
+message, and Weblate comes at 1.0 (ID-1331 (1)). `build-book.sh`'s Linux run is CI's to prove at the delivery.
 
 ---
 
@@ -1715,6 +1767,13 @@ cargo-audit's 100 MiB default). A waiver is the same `ignore` entry in two files
 
 ### 11.1 Threat model
 
+*As built (2026-11-05, cycle 51; WP-S6.04, decision log ID-1363, ID-1369).* The maintained copy is
+`docs/security/threat-model.md` (NFR-SEC-01): the threats TM-01 to TM-19, each with its 0.1.0 state (in force, not
+shipped, or another package's), the controls as built and the evidence that proves them, every control and evidence
+named by `path:line`, which `docs/plan/tools/doccheck.py` checks exists and holds more than white space or brackets;
+a parser and extension table, the importer and `.ewlib` rows and a review log. This section stays the design; where
+the two differ, the threat model states the release.
+
 **Assets:**
 - the confidentiality of projects (customer work, personal data);
 - the **integrity of engineering data**: a silently changed cross-section or protective device is a safety
@@ -1791,6 +1850,13 @@ whose lints are the workspace's (amending the default above) and finds the keywo
 runs in `cargo xtask ci`, in lane-check's policy step and in CI's lint job. A listed crate's manifest copies the
 workspace's lints with `unsafe_code = "deny"`, and the listed module allows it.
 
+*As built (2026-11-05, cycle 51; WP-S6.04 D8, decision log ID-1363).* The allowlist names two crates: `ew-print`
+(`src/windows.rs`) and `ew-testkit` (`tests/hostile_corpus/alloc.rs`, the counting `GlobalAlloc` and its four blocks,
+each with its `SAFETY:` comment, in the `hostile_corpus` test binary only; the library keeps `forbid`). The other
+candidates above enter the list when a package needs them. `check-unsafe` also lexes the fuzz crate, which holds no
+`unsafe` (FP-4 left the counting allocator out of `fuzz/`), and refuses an occurrence there with its text whole.
+`ew-testkit` is test-only by `ci/dep-rules.toml` (a normal edge to it fails).
+
 ### 11.3 Vulnerability handling
 
 | Stage | Action | Deadline |
@@ -1803,6 +1869,12 @@ workspace's lints with `unsafe_code = "deny"`, and the listed module allows it.
 | Release | Patch releases for every supported line (§7.5); from 1.0 the update manifest's `severity: security` | With the fix |
 | Disclose | Publish the GitHub advisory; CVE through GitHub as CNA; RUSTSEC advisory for published crates; release notes | At release; embargo ≤ 90 days |
 | Learn | Post-mortem; threat-model update | Next minor |
+
+*As built (2026-11-05, cycle 51; WP-S6.04, decision log ID-1324, ID-1363, ID-1368).* `SECURITY.md` states the 0.1.0
+process in full: reports through GitHub's private vulnerability reporting only (on, read back by ID-1368), no role
+mailbox until the project has a domain (WP-S6.04 FP-5), the acknowledgement and triage deadlines above, the supported
+versions (0.1.x until 0.2.0, the latest 0.x release only before 1.0, ID-1324), the disclosure by GitHub advisory
+with a CVE per fixed vulnerability, and the CRA notification by 1.0 (WP-S6.10).
 
 ### 11.4 Incident runbook: key or pipeline compromise
 
@@ -2143,6 +2215,7 @@ prevention mechanisms from regressing.
 | Supply chain | Full §10 set from the first commit | crates.io trusted publishing | — |
 | Security | `SECURITY.md`, threat model, fuzzing, `unsafe` allowlist, per-PR security tests (§11.5) | CRA runbook; tabletop exercise; OSS-Fuzz application | Worker OS sandbox (NFR-SEC-21) |
 | Privacy | Zero network (no update check, no crash upload), network sandbox, a local crash log with the panic's backtrace, redacted logs | Local minidump; opt-in scrubbed upload if ADR-0029 creates an endpoint | — |
+| *Security, as built for 0.1.0 (2026-11-05, cycle 51; WP-S6.04, ID-1363)* | `SECURITY.md` in full; `docs/security/threat-model.md` (TM-01 to TM-19 with their 0.1.0 state); seventeen fuzz targets with their seeds replayed in CI; the hostile corpus under its allocation bound; the `unsafe` allowlist of two crates; the import flows' file-access trace (`foreign-file`); the engineering-verification disclaimer (S3) on the approve and release dialogs and the reports | — | — |
 | CRA | None: the steward's processes apply from 1.0 (ID-1187, ID-1188) | Steward-grade processes (NFR-COMP-01); full application is already in force (2027-12-11 falls before 0.1.0 in the plan of record, §13.1); the 1.0 documentation set and the support-period declaration are complete | Manufacturer path only with a commercial decision |
 
 ---

@@ -381,6 +381,13 @@ these equal the page's structure (FR-NUM-002).
 | Check scheme | `pre-delivery` with the parameters of §18; minimum printed cap height 1.2 mm ▲U-31 |
 | Derivation profile | the first shipped profile (FR-PRJ-011) |
 
+*As built (2026-11-05, cycle 51; WP-S7.03 D10 and D11, decision log ID-1354, ID-1375).* Golden A holds no
+`text_styles` member, so it prints the base table of §17.5; a new project prints the built-in basic project's readable
+table (ADR-0032), and the wizard's choice "As in the sample project" gives the base table back. The settings above are
+compared with a basic project's as **effective** conventions, the values that print, not as JSON members (frame
+defaults against per-page forms, for example): `golden_from_the_basic_project` in `ew-viewmodel` (NFR-UX-08), with its
+named exclusions (16 §9.2).
+
 ---
 
 ## 5. Pages
@@ -1566,6 +1573,8 @@ keys of 66 memoised families (cycle 17: 2037 of 65). Headless counts: **94 entri
 that waits for the owner's acknowledgement with the generated change list (ID-638). The headless counts are unchanged.
 
 *Cycle 27.* WP-S2.04 part 4a added the families `rep_structure_box` and `ip_structure`, so the sweep is **2527 keys of 72 memoised families** (decision log ID-647), again the one changed line of `expected/acceptance_headless.md`, a reviewed golden change for the owner's acknowledgement (ID-655); the golden bytes and the headless counts are otherwise unchanged.
+
+*As built (2026-11-05, cycle 51; WP-S2.11 D1 and D2, decision log ID-1375).* G-M2's GUI entries come from kittest: AC-28 is one flow on a copy of Golden A (`crates/ew-ui/tests/it/ac28.rs`), and the GP-named requirements map to their tests in `golden/J-E-2416/acceptance/requirements.toml`, which `cargo xtask acceptance --gate M2` reads, runs and reports per row ID as pass, fail or missing (`expected/acceptance_requirements.md`); FR-CHK-016 stays missing until a test asserts its criterion.
 
 ---
 
