@@ -1817,6 +1817,7 @@ pub const KEYS: &[&str] = &[
     "toast-placed",
     "toast-placed-no-cell",
     "toast-placed-in-wire",
+    "toast-placed-moved",
     "toast-ip-connected",
     "toast-ip-connected-no-cell",
     "toast-ip-external-connected",
