@@ -313,6 +313,11 @@ The main session orchestrates. It plans each cycle, briefs Claude subagents, int
     still holding one.
   - Clean the main checkout's `target` after every last verify and gate.
   - Incremental builds make targets larger: watch them at each merge point.
+- **The shared compile cache** (ID-1404). Every local cargo run goes through one sccache server, set in the user's
+  cargo configuration: the third-party crates come from the cache, the workspace's crates stay incremental.
+  - A lane never sets `CARGO_TARGET_DIR`: the path enters the cache key and the lane shares nothing.
+  - The cache holds at most 50 GB and counts against the guard. Freeing a target never touches it.
+  - At each retro, read `sccache --show-stats` (the server never idles out, so the counts cover the cycle).
 - **Free space.** At least 150 GB before a gate. The orchestrator's guard is 250 GB before every dispatch and verify:
   run `python ../ew-private/notes/tools/gate.py verify` (or `df`) right before each builder's dispatch, a resumed
   author's included, and dispatch only on its `go`. Never send the guard in parallel with the dispatch: in cycle 51 a
