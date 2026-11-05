@@ -256,7 +256,7 @@ pub const TEXTS: &[(&str, &str)] = &[
     ("refusal-words-kind-plc-profile", "a PLC profile"),
     ("refusal-words-kind-machine-profile", "a machine profile"),
     ("refusal-words-kind-label-profile", "a label profile"),
-    ("refusal-words-kind-other", "a record"),
+    ("refusal-words-kind-other", "an item"),
     (
         "refusal-geometry-off-grid",
         "{0} at {1} is not on the drawing grid",

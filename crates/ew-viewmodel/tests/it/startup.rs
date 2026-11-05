@@ -452,3 +452,53 @@ fn the_files_of_the_configuration_directory_are_user_only() {
     }
     shell.shutdown();
 }
+
+/// C52-p1#6 (ID-1390): each writer that may create the configuration directory (the user's keymap, a named workspace,
+/// the wizard's draft) makes it user-only itself, 0700 on Unix: each runs alone in a fresh folder, with no settings
+/// save before it to tighten the directory first.
+#[test]
+fn each_writer_makes_the_configuration_directory_user_only() {
+    type Writer = (&'static str, fn(&mut ShellModel));
+    let writers: [Writer; 3] = [
+        ("keymap", |shell| {
+            done(shell, "help.shortcuts", json!({}));
+            done(
+                shell,
+                "keymap.record",
+                json!({"action": "canvas.activate", "keys": "F9"}),
+            );
+        }),
+        // The active workspace's file, written on a layout change; saving it under a name saves the settings too.
+        ("workspace", |shell| {
+            done(shell, "view.workspace_reset", json!({}));
+            assert!(shell.persist_layout_if_due(0.0));
+        }),
+        ("draft", |shell| {
+            done(shell, "tools.company_standard", json!({}));
+            done(
+                shell,
+                "wizard.set",
+                json!({"field": "text_styles", "value": "readable"}),
+            );
+        }),
+    ];
+    for (writer, write) in writers {
+        let tmp = Tmp::new(&format!("config-dir-user-only-{writer}"));
+        let dir = tmp.0.join("config");
+        let mut shell = ShellModel::new(Mode::Headless, config(&tmp));
+        assert!(
+            !dir.exists(),
+            "{writer}: the directory is not there before the writer"
+        );
+        write(&mut shell);
+        assert!(dir.is_dir(), "{writer}: the writer made the directory");
+        assert!(!dir.join("settings.toml").exists(), "{writer}: no settings save");
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt as _;
+            let mode = std::fs::metadata(&dir).unwrap().permissions().mode() & 0o777;
+            assert_eq!(mode, 0o700, "{writer}");
+        }
+        shell.shutdown();
+    }
+}

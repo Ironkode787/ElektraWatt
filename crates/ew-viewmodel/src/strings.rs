@@ -1298,6 +1298,14 @@ mod tests {
         );
     }
 
+    /// C52-p1#7 (ID-1390): a record of a kind without words of its own is "an item" ("een element"), not the jargon
+    /// "record" (FT-1366); the CLI's English, `TEXTS`, follows [`every_command_refusal_has_its_texts`].
+    #[test]
+    fn the_kind_fallback_names_an_item() {
+        assert_eq!(en_gb().texts["refusal-words-kind-other"], "an item");
+        assert_eq!(nl_nl().texts["refusal-words-kind-other"], "een element");
+    }
+
     /// Every field of every record kind's catalogue with its value type: (kind, path, type), the kinds read from the
     /// `record-kind-*` texts.
     fn catalogue_fields() -> Vec<(String, String, ew_api::output::FieldType)> {

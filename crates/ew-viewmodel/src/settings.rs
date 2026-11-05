@@ -770,9 +770,24 @@ const TEMP_ATTEMPTS: u32 = 64;
 /// The bytes go to a fresh temporary file first, created only if nothing is at its name (the process and a counter
 /// name it, so no other file or link is written through and two instances never share one; mode `0o600` on Unix),
 /// which is then hard-linked to the target: a link never replaces a file that is there, and a failed write leaves no
-/// half-written `.bad-<n>` that a later look would take for a different file. The temporary file is removed in every
-/// case; any failure but a taken name gives up.
+/// half-written `.bad-<n>` that a later look would take for a different file. Where the file system has no hard links
+/// (FAT, exFAT, some network shares), the link fails with another error, and the bytes are written to the target as a
+/// new user-only file instead, which never replaces a file either (C52-p1#1, ID-1390). The temporary file is removed in
+/// every case; any failure but a taken name gives up.
 fn write_aside(dir: &Path, file_name: &str, first: u32, bytes: &[u8]) -> Option<String> {
+    write_aside_linking(dir, file_name, first, bytes, |from, to| {
+        std::fs::hard_link(from, to)
+    })
+}
+
+/// As [`write_aside`], with `link` making the hard link (a seam for a file system without links).
+fn write_aside_linking(
+    dir: &Path,
+    file_name: &str,
+    first: u32,
+    bytes: &[u8],
+    link: impl Fn(&Path, &Path) -> std::io::Result<()>,
+) -> Option<String> {
     use std::io::Write as _;
     use std::sync::atomic::{AtomicU32, Ordering};
     static NEXT: AtomicU32 = AtomicU32::new(0);
@@ -788,9 +803,22 @@ fn write_aside(dir: &Path, file_name: &str, first: u32, bytes: &[u8]) -> Option<
     let written = file.write_all(bytes).and_then(|()| file.sync_all());
     drop(file);
     let linked = written.ok().and_then(|()| {
+        let mut no_links = false;
         for n in first..=BAD_COPIES {
             let name = format!("{file_name}.bad-{n}");
-            match std::fs::hard_link(&tmp, dir.join(&name)) {
+            let target = dir.join(&name);
+            let made = if no_links {
+                write_new(&target, bytes)
+            } else {
+                match link(&tmp, &target) {
+                    Err(e) if e.kind() != std::io::ErrorKind::AlreadyExists => {
+                        no_links = true;
+                        write_new(&target, bytes)
+                    }
+                    made => made,
+                }
+            };
+            match made {
                 Ok(()) => return Some(name),
                 Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {}
                 Err(_) => return None,
@@ -800,6 +828,19 @@ fn write_aside(dir: &Path, file_name: &str, first: u32, bytes: &[u8]) -> Option<
     });
     let _ = std::fs::remove_file(&tmp);
     linked
+}
+
+/// Writes `bytes` as the new user-only file `path`, created only if nothing is at its name; a file this call created
+/// and could not write in full is removed, so no half-written copy stays.
+fn write_new(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
+    use std::io::Write as _;
+    let mut file = user_only_options().create_new(true).open(path)?;
+    let written = file.write_all(bytes).and_then(|()| file.sync_all());
+    drop(file);
+    if written.is_err() {
+        let _ = std::fs::remove_file(path);
+    }
+    written
 }
 
 /// Makes the directory `dir` user-only on Unix, mode 0700, when its mode is wider (WP-S6.05 D10, NFR-PRIV-05: the
@@ -948,6 +989,41 @@ mod tests {
             ["keymap.toml.bad-1", "keymap.toml.bad-2", "keymap.toml.bad-3"],
             "no temporary file left"
         );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// C52-p1#1 (ID-1390): where the file system refuses the hard link (FAT, exFAT), the copy is still made, as a
+    /// new file that takes the next free name past one made meanwhile, and no temporary file is left.
+    #[test]
+    fn a_copy_aside_is_made_where_the_link_is_refused() {
+        let dir = temp_dir("bad-nolink");
+        std::fs::write(dir.join("settings.toml.bad-1"), "made meanwhile").unwrap();
+        let refuse = |_: &Path, _: &Path| Err(std::io::Error::from(std::io::ErrorKind::Unsupported));
+        assert_eq!(
+            write_aside_linking(&dir, "settings.toml", 1, b"bad = [", refuse).as_deref(),
+            Some("settings.toml.bad-2")
+        );
+        let read = |n: u32| std::fs::read_to_string(dir.join(format!("settings.toml.bad-{n}"))).unwrap();
+        assert_eq!([read(1), read(2)], ["made meanwhile", "bad = ["]);
+        let mut left: Vec<String> = std::fs::read_dir(&dir)
+            .unwrap()
+            .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+            .collect();
+        left.sort();
+        assert_eq!(
+            left,
+            ["settings.toml.bad-1", "settings.toml.bad-2"],
+            "no temporary file left"
+        );
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt as _;
+            let mode = std::fs::metadata(dir.join("settings.toml.bad-2"))
+                .unwrap()
+                .permissions()
+                .mode();
+            assert_eq!(mode & 0o777, 0o600);
+        }
         let _ = std::fs::remove_dir_all(&dir);
     }
 

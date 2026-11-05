@@ -88,6 +88,10 @@ impl ShellModel {
             return Ok(());
         };
         std::fs::create_dir_all(&dir)?;
+        // The configuration directory, which the same call may have made (C52-p1#6).
+        if let Some(config) = dir.parent() {
+            crate::settings::user_only_dir(config);
+        }
         crate::settings::user_only_dir(&dir);
         crate::settings::write_user_only(&dir.join(format!("{name}.json")), layout.to_json(name).as_bytes())
     }

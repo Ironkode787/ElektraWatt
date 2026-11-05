@@ -470,7 +470,7 @@ fn check_confined(policy: &Policy, graph: &Graph, v: &mut Vec<String>) {
 }
 
 /// The direct dependencies a manifest declares (its `[dependencies]`, `[dev-dependencies]` and
-/// `[build-dependencies]`), each by its real name, also when renamed.
+/// `[build-dependencies]`, also under a `[target.'cfg(…)']` table), each by its real name, also when renamed.
 ///
 /// # Errors
 ///
@@ -484,23 +484,32 @@ pub fn manifest_edges(text: &str) -> Result<Vec<Edge>> {
         .unwrap_or("?")
         .to_owned();
     let mut edges = Vec::new();
-    for (table, kind) in [
-        ("dependencies", Kind::Normal),
-        ("dev-dependencies", Kind::Dev),
-        ("build-dependencies", Kind::Build),
-    ] {
-        for (name, spec) in doc
-            .get(table)
-            .and_then(toml::Value::as_table)
-            .into_iter()
-            .flatten()
-        {
-            let to = spec.get("package").and_then(toml::Value::as_str).unwrap_or(name);
-            edges.push(Edge {
-                from: from.clone(),
-                to: to.to_owned(),
-                kind,
-            });
+    // The manifest's own tables, then each target's (C52-p1#9).
+    let targets = doc
+        .get("target")
+        .and_then(toml::Value::as_table)
+        .into_iter()
+        .flat_map(toml::Table::values)
+        .filter_map(toml::Value::as_table);
+    for tables in std::iter::once(&doc).chain(targets) {
+        for (table, kind) in [
+            ("dependencies", Kind::Normal),
+            ("dev-dependencies", Kind::Dev),
+            ("build-dependencies", Kind::Build),
+        ] {
+            for (name, spec) in tables
+                .get(table)
+                .and_then(toml::Value::as_table)
+                .into_iter()
+                .flatten()
+            {
+                let to = spec.get("package").and_then(toml::Value::as_str).unwrap_or(name);
+                edges.push(Edge {
+                    from: from.clone(),
+                    to: to.to_owned(),
+                    kind,
+                });
+            }
         }
     }
     Ok(edges)
@@ -948,10 +957,10 @@ mod tests {
     }
 
     /// ID-1374 (C51-p2#2): the confined rule reads the manifests it names outside the workspace: a direct edge there,
-    /// renamed or a dev-dependency, fails; the real fuzz manifest passes.
+    /// renamed, a dev-dependency or under a target table (C52-p1#9, ID-1390), fails; the real fuzz manifest passes.
     #[test]
     fn confined_crate_in_a_manifest_outside_the_workspace_fails() {
-        let manifest = "[package]\nname = \"g-fuzz\"\n\n[dependencies]\ng-top = { path = \"../top\" }\nqet = { package = \"g-import-qet\", path = \"../qet\" }\n\n[dev-dependencies]\ng-import-qet = { path = \"../qet\" }\n";
+        let manifest = "[package]\nname = \"g-fuzz\"\n\n[dependencies]\ng-top = { path = \"../top\" }\nqet = { package = \"g-import-qet\", path = \"../qet\" }\n\n[dev-dependencies]\ng-import-qet = { path = \"../qet\" }\n\n[target.'cfg(unix)'.build-dependencies]\ng-import-qet = { path = \"../qet\" }\n";
         let edges = manifest_edges(manifest).unwrap();
         let to: Vec<(&str, &str, Kind)> = edges
             .iter()
@@ -963,6 +972,7 @@ mod tests {
                 ("g-fuzz", "g-top", Kind::Normal),
                 ("g-fuzz", "g-import-qet", Kind::Normal),
                 ("g-fuzz", "g-import-qet", Kind::Dev),
+                ("g-fuzz", "g-import-qet", Kind::Build),
             ]
         );
         let root = std::env::temp_dir().join(format!("ew-xtask-confined-{}", std::process::id()));
@@ -977,6 +987,7 @@ mod tests {
             [
                 "confined: `g-fuzz` (fuzz/Cargo.toml) depends on `g-import-qet` (dependency); only g-top may (ADR-0024 decision 4)",
                 "confined: `g-fuzz` (fuzz/Cargo.toml) depends on `g-import-qet` (dev-dependency); only g-top may (ADR-0024 decision 4)",
+                "confined: `g-fuzz` (fuzz/Cargo.toml) depends on `g-import-qet` (build-dependency); only g-top may (ADR-0024 decision 4)",
             ]
         );
         let real = Policy::load(&crate::workspace_root().join("ci/dep-rules.toml")).unwrap();
