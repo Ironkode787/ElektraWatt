@@ -14,7 +14,8 @@
 //! then [`Store::open`]. Properties:
 //!
 //! - the open never panics (a refusal, [`ew_store::OpenError`], is fine);
-//! - the model it returns passes `Model::integrity_check`;
+//! - the model it returns passes `Model::integrity_check`, unless the session is read-only, its EW-INV-001 names a
+//!   library copy that a loader finding names (FT-1383, ID-1395), and a save is refused;
 //! - an input whose operations change only the shape of the files ([`shape_only`]: member order, the line order of a
 //!   JSON Lines file, CRLF, a BOM, a missing final LF, a blank line; in a JSON Lines file or a library document)
 //!   opens, with a model equal to the golden project's (`Model::content_eq`): the open of an old shape is lossless,
@@ -33,11 +34,12 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{Duration, UNIX_EPOCH};
 
-use ew_format::{FileHash, FilePath, FindingKind, Limits, Manifest, sha256};
-use ew_model::Model;
+use ew_format::ew_schema::AnyId;
+use ew_format::{FileHash, FilePath, FindingKind, Limits, Manifest, PathClass, classify, sha256};
+use ew_model::{Model, ModelError};
 use ew_store::mem::{DirSync, MemVfs};
 use ew_store::{
-    Access, Changes, Identity, ManualClock, OpenMode, Opened, ProcessProbe, ProcessState, Store,
+    Access, Changes, Identity, ManualClock, OpenMode, Opened, ProcessProbe, ProcessState, SaveError, Store,
     StoreOptions, Vfs, join,
 };
 use serde_json::Value;
@@ -482,7 +484,37 @@ pub fn check(input: &[u8]) -> Outcome {
         return Outcome::Refused;
     };
     if let Err(e) = model.integrity_check() {
-        panic!("the opened model fails its integrity check: {e:?}");
+        // FT-1383 (ID-1395): a record that names a library copy the loader could not read opens read-only, a loader
+        // finding naming the copy's file, and its model fails EW-INV-001 for that record (the cycle-52 finding,
+        // `regressions/migration_chain/missing-symbol-copy`). That state, and only that, is no failure here; the
+        // session must still refuse every write.
+        let named: BTreeSet<AnyId> = report
+            .findings
+            .iter()
+            .filter_map(|f| match classify(f.file.as_ref()?.as_str()) {
+                PathClass::LibDocument { id, .. } => Some(id),
+                _ => None,
+            })
+            .collect();
+        let dangling = matches!(
+            &e,
+            ModelError::Invariant { id: "EW-INV-001", keys, .. }
+                if keys.iter().any(|(kind, id)| kind.is_library() && named.contains(id))
+        );
+        assert!(
+            dangling && !shape_only && report.access != Access::Edit,
+            "the opened model fails its integrity check: {e:?} (access {:?}, findings {:?})",
+            report.access,
+            report.findings
+        );
+        assert!(
+            matches!(
+                store.save(&model, Changes::Keys(&BTreeSet::new())),
+                Err(SaveError::ReadOnly(_))
+            ),
+            "a session whose model names a missing library copy saves"
+        );
+        return Outcome::ReadOnly;
     }
     // The open of an old shape is lossless: the model is the golden project's.
     if shape_only {

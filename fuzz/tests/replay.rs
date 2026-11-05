@@ -319,6 +319,23 @@ fn the_png_pdf_plte_finding_is_refused_without_a_panic() {
     );
 }
 
+/// The fuzz finding of CI run 42079778094 (`regressions/migration_chain/missing-symbol-copy`, 5 bytes): the golden
+/// project with the library copy of one symbol deleted (its manifest listing kept), opened for editing. Since FT-1383
+/// (ID-1395) the loader names the missing copy and the project opens read-only, its model failing EW-INV-001 for the
+/// representations that name the symbol; the oracle asked every opened model to pass its integrity check. It now
+/// accepts that state only read-only, with the failing record naming a copy a loader finding names, and a save refused.
+#[test]
+fn the_migration_chain_missing_symbol_copy_opens_read_only() {
+    let bytes = inputs_named(&inputs("regressions/migration_chain"), "missing-symbol-copy");
+    assert_eq!(bytes, [0x00, 0x93, 0x01, 0x0d, 0x21]);
+    let paths = ew_fuzz::golden::paths();
+    assert_eq!(
+        paths[0x93 % paths.len()],
+        "lib/symbols/4f6bee27-45fb-5898-a9f7-48a91ddce41c.json"
+    );
+    assert_eq!(open_path::check(&bytes), Outcome::ReadOnly);
+}
+
 /// The importer seeds (WP-S3.09 D15, IC-17) pass and reach their properties: every QET project imports and commits;
 /// the element fixtures that are definitions import; the golden tables import and the smallest set opens as a
 /// project; both supplier tables import parts.
