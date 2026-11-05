@@ -1132,7 +1132,8 @@ impl App {
             self.toasts_low,
             self.shell.tool().name() != "select",
             self.page_pane,
-            ctx.input(|i| i.pointer.hover_pos()),
+            // C52-p3#2 (ID-1417): the tool's press decides, never a move of the pointer.
+            ctx.input(|i| i.pointer.any_pressed().then(|| i.pointer.interact_pos()).flatten()),
             self.toast_stack,
         );
         let pivot = match self.page_pane {

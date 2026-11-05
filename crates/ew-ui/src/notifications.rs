@@ -275,28 +275,26 @@ pub(crate) fn toast_anchor(t: &Tokens, ctx: &Context, canvas: Option<Rect>, bar_
     }
 }
 
-/// Whether the toasts stand at the canvas's bottom right rather than its top right (FT-1211, doc 16a §6.10), from
-/// whether they did in the last frame (`low`): while a tool other than Select is active (`working`) and the pointer is
-/// in the canvas's top-right quarter, where the toasts would stand over the next placing, they go low; they come back
-/// up when it is in the bottom-right quarter, and whenever Select is back or there is no canvas. A pointer on the stack
-/// (`stack`, last frame's) or outside the canvas's right half moves nothing, so a toast the user reaches for does not
-/// move away.
+/// Whether the toasts stand at the canvas's bottom right rather than its top right (FT-1211, doc 16a §6.10; ID-1417,
+/// C52-p3#2), from whether they did in the last frame (`low`): while a tool other than Select is active (`working`), a
+/// press in the canvas's top-right quarter, where the toasts would stand over the next placing, sends them low; they
+/// stay low until Select is back or a press elsewhere on the canvas. A pointer that only moves changes nothing, nor
+/// does a press on the stack (`stack`, last frame's: the toast's own action) or outside the canvas, so a toast the user
+/// reaches for never moves away.
 pub(crate) fn toasts_low(
     low: bool,
     working: bool,
     canvas: Option<Rect>,
-    pointer: Option<egui::Pos2>,
+    press: Option<egui::Pos2>,
     stack: Option<Rect>,
 ) -> bool {
     let Some(pane) = canvas.filter(|_| working) else {
         return false;
     };
-    let Some(p) = pointer
-        .filter(|p| pane.contains(*p) && p.x >= pane.center().x && !stack.is_some_and(|s| s.contains(*p)))
-    else {
+    let Some(p) = press.filter(|p| pane.contains(*p) && !stack.is_some_and(|s| s.contains(*p))) else {
         return low;
     };
-    p.y < pane.center().y
+    p.x >= pane.center().x && p.y < pane.center().y
 }
 
 /// The id of the toasts' area (tests: its layer).
@@ -439,48 +437,23 @@ mod tests {
     use super::*;
     use crate::theme::{Density, Theme};
 
-    /// FT-1211: a tool at work in the canvas's top-right quarter sends the toasts low; they stay where they are while
-    /// the pointer is on their stack or in the left half, come back up in the bottom-right quarter off the stack, and
-    /// always with Select or without a canvas.
+    /// FT-1211, C52-p3#2: a tool's press in the canvas's top-right quarter sends the toasts low; they stay low without
+    /// a press, for a press on their stack or outside the canvas, and come back up for a press elsewhere on the canvas,
+    /// with Select, or without a canvas.
     #[test]
     fn the_toasts_keep_clear_of_a_working_tool() {
         let pane = Some(Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(800.0, 600.0)));
-        let stack = Some(Rect::from_min_max(
-            egui::pos2(480.0, 400.0),
-            egui::pos2(780.0, 580.0),
-        ));
+        let stack = Some(Rect::from_min_max(egui::pos2(480.0, 400.0), egui::pos2(780.0, 580.0)));
         let at = |x: f32, y: f32| Some(egui::pos2(x, y));
-        assert!(toasts_low(false, true, pane, at(700.0, 100.0), None));
+        assert!(toasts_low(false, true, pane, at(700.0, 100.0), None), "a press in the top-right quarter");
         assert!(!toasts_low(false, false, pane, at(700.0, 100.0), None), "Select");
-        assert!(
-            !toasts_low(true, true, None, at(700.0, 100.0), stack),
-            "no canvas"
-        );
-        assert!(
-            toasts_low(true, true, pane, at(600.0, 500.0), stack),
-            "on the stack"
-        );
-        assert!(
-            toasts_low(true, true, pane, at(100.0, 500.0), stack),
-            "the left half"
-        );
-        assert!(toasts_low(true, true, pane, None, stack), "no pointer");
-        assert!(
-            !toasts_low(true, true, pane, at(450.0, 500.0), stack),
-            "off the stack"
-        );
-        assert!(
-            !toasts_low(false, true, pane, at(100.0, 100.0), None),
-            "the left half"
-        );
-        let high = Some(Rect::from_min_max(
-            egui::pos2(480.0, 20.0),
-            egui::pos2(780.0, 200.0),
-        ));
-        assert!(
-            !toasts_low(false, true, pane, at(600.0, 100.0), high),
-            "a toast reached for stays"
-        );
+        assert!(!toasts_low(true, true, None, at(700.0, 100.0), stack), "no canvas");
+        assert!(toasts_low(true, true, pane, None, stack), "no press");
+        assert!(toasts_low(true, true, pane, at(600.0, 500.0), stack), "a press on the stack");
+        assert!(toasts_low(true, true, pane, at(900.0, 100.0), stack), "a press outside the canvas");
+        assert!(!toasts_low(true, true, pane, at(450.0, 500.0), stack), "a press elsewhere");
+        assert!(!toasts_low(true, true, pane, at(100.0, 100.0), stack), "a press in the left half");
+        assert!(!toasts_low(false, true, pane, None, None), "no press keeps them up");
     }
 
     #[test]

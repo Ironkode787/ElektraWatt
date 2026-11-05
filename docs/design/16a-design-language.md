@@ -954,12 +954,12 @@ fades on time, and a toast already paused stays paused while the pointer is stil
 their action (beside ID-750's rule), and the key `tip`. A toast with two actions (Undo and Show changes after an
 external change) shows them on one row while they fit.
 
-*As built (cycle 52; decision log ID-1406, FT-1211).* **The toasts keep clear of a tool at work:** while a tool other
-than Select is active and the pointer is in the canvas's top-right quarter, where the stack would stand over the next
-placing, the toasts stand at the canvas's bottom right, `space.4` above the zoom control and the HUD (§5.5) and
-`space.4` from the right edge, newest still at the top. They come
-back up when the pointer is in the bottom-right quarter, and whenever Select is back; a pointer on the stack moves
-nothing, so a toast the user reaches for never moves away.
+*As built (cycle 52; decision log ID-1406, FT-1211; ID-1417).* **The toasts keep clear of a tool at work:** while a
+tool other than Select is active, its press in the canvas's top-right quarter, where the stack would stand over the
+next placing, sends the toasts to the canvas's bottom right, `space.4` above the zoom control and the HUD (§5.5) and
+`space.4` from the right edge, newest still at the top. They stay there until Select is back or a press elsewhere on
+the canvas; moving the pointer, or pressing on the stack itself, moves nothing, so a toast the user reaches for never
+moves away.
 
 ### 6.11 Banners
 

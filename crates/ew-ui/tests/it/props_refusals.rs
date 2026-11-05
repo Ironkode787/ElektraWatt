@@ -320,3 +320,76 @@ fn a_toasts_line_is_drawn_with_a_capital() {
     );
     h.state_mut().shell_mut().shutdown();
 }
+
+/// FT-1211, C52-p3#2 (ID-1417): with the place tool armed, its press in the canvas's top-right quarter places a lamp
+/// and sends the Placed toast low. The pointer then travels to the toast's Undo with the tool still armed: the stack
+/// stays where it stood on every step, and the click on Undo takes the placing back.
+#[test]
+fn c52_p3_2_a_placed_toasts_undo_is_reached_with_a_tool_armed() {
+    use egui_kittest::kittest::{NodeT as _, Queryable as _};
+    let tmp = Tmp::new();
+    let dir = tmp.golden("g.ew");
+    let mut h = harness(&tmp, Scripted::default(), Some(dir));
+    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    settle(&mut h);
+    wait_for_page(&mut h);
+    dispatch(&mut h, "page.goto", json!({"folio": "101"}));
+    wait_for_page(&mut h);
+    dispatch(&mut h, "tool.place", json!({}));
+    dispatch(&mut h, "picker.filter", json!({"text": "lamp"}));
+    dispatch(&mut h, "picker.choose", json!({}));
+    settle(&mut h);
+    let rev = h.state().shell().revision();
+    let reps = |h: &Harness<'_, App>| h.state().shell().canvas().map_or(0, |c| c.page().tables.reps.len());
+    let before = reps(&h);
+    let canvas = h
+        .get_all_by_role(egui::Role::Canvas)
+        .next()
+        .expect("the canvas")
+        .rect();
+    let press = egui::pos2(
+        canvas.left() + 0.8 * canvas.width(),
+        canvas.top() + 0.25 * canvas.height(),
+    );
+    let click = |h: &mut Harness<'_, App>, at: egui::Pos2| {
+        for pressed in [true, false] {
+            h.event(egui::Event::PointerButton {
+                pos: at,
+                button: egui::PointerButton::Primary,
+                pressed,
+                modifiers: Modifiers::NONE,
+            });
+            h.step();
+        }
+    };
+    h.event(egui::Event::PointerMoved(press));
+    h.step();
+    click(&mut h, press);
+    settle(&mut h);
+    assert_ne!(h.state().shell().revision(), rev, "the lamp is placed");
+    assert_eq!(h.state().shell().tool().name(), "place", "the tool stays armed");
+    let toast = |h: &Harness<'_, App>| {
+        h.get_all_by_role(egui::Role::Group)
+            .find(|n| n.accesskit_node().label().as_deref() == Some("Notification"))
+            .expect("the Placed toast")
+            .rect()
+    };
+    let low = toast(&h);
+    assert!(low.center().y > canvas.center().y, "the toast stands low: {low:?}");
+    let undo = h
+        .get_all_by_role(egui::Role::Button)
+        .map(|n| n.rect())
+        .find(|r| low.contains_rect(*r) && r.width() > r.height())
+        .expect("the toast's Undo");
+    for k in 1..=10 {
+        let t = k as f32 / 10.0;
+        h.event(egui::Event::PointerMoved(press + (undo.center() - press) * t));
+        h.step();
+        assert_eq!(toast(&h), low, "step {k}: the stack stays");
+    }
+    click(&mut h, undo.center());
+    settle(&mut h);
+    assert!(h.state().shell().can_redo(), "Undo ran");
+    assert_eq!(reps(&h), before, "Undo took the placing back");
+    h.state_mut().shell_mut().shutdown();
+}
