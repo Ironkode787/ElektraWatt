@@ -768,4 +768,32 @@ mod tests {
         assert_eq!(folio_number("101.1"), Some(101));
         assert_eq!(folio_number("A"), None);
     }
+
+    /// C52-p5#5: the stale purge refusal has a form for one image, in both languages; the count decides.
+    #[test]
+    fn the_stale_purge_refusal_counts_its_images() {
+        let stale = |n: u8| PurgeError::Stale((0..n).map(|i| ew_api::Sha256([i; 32])).collect());
+        assert_eq!(
+            purge_reason(&stale(1)),
+            "1 of the listed images can no longer be purged; preview again; nothing was removed"
+        );
+        assert_eq!(
+            purge_reason(&stale(2)),
+            "2 of the listed images can no longer be purged; preview again; nothing was removed"
+        );
+        assert!(strings::set_locale("nl"));
+        let dutch = (purge_reason(&stale(1)), purge_reason(&stale(2)));
+        assert!(strings::set_locale("en"));
+        assert_eq!(
+            dutch,
+            (
+                "1 van de vermelde afbeeldingen kan niet meer worden opgeruimd; bekijk het voorbeeld opnieuw; er is \
+                 niets verwijderd"
+                    .to_owned(),
+                "2 van de vermelde afbeeldingen kunnen niet meer worden opgeruimd; bekijk het voorbeeld opnieuw; er \
+                 is niets verwijderd"
+                    .to_owned()
+            )
+        );
+    }
 }

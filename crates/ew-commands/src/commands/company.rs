@@ -27,9 +27,10 @@ pub const COMPANY_MEMBER: &str = ew_schema::COMPANY_MEMBER;
 
 /// Brings the image file of `text` (base64, RFC 4648 §4) into the project's asset store: the one path of the company logo
 /// and of an image given as data to `item.place`. The text is checked against [`ew_schema::MAX_LOGO_BYTES`] before it is
-/// decoded, then decoded, sniffed (format, intrinsic size, the size limits and, for an SVG, the rejecter of FT-383) and
-/// stored with the transaction ([`TxBuilder::put_asset`]). `what` names the file and the limit in the refusal text, in
-/// words (the logo, a company logo); every refusal is `InvalidParams` of `command` at `pointer`.
+/// decoded, then decoded, sniffed (format, intrinsic size, the size limits, a raster image's pixel limit and, for an SVG,
+/// the rejecter of FT-383) and stored with the transaction ([`TxBuilder::put_asset`]). `what` names the file and the
+/// limit in the refusal text, in words (the logo, a company logo); every refusal is `InvalidParams` of `command` at
+/// `pointer`.
 pub(crate) fn store_image(
     tx: &mut TxBuilder<'_>,
     command: &str,
@@ -58,9 +59,13 @@ pub(crate) fn store_image(
     if bytes.len() > ew_schema::MAX_LOGO_BYTES {
         return Err(too_large());
     }
-    tx.put_asset(bytes).map_err(|e| {
+    let refused = |e: ew_schema::AssetError| {
         CmdError::invalid_params(command, pointer, text!("refusal-params-detail", e.to_string()))
-    })
+    };
+    let reference = tx.put_asset(bytes).map_err(refused)?;
+    // ID-1417: a gate that brings an image in applies the pixel limit; a refusal drops the transaction and its asset.
+    ew_schema::pixel_limit(reference.format, reference.size).map_err(refused)?;
+    Ok(reference)
 }
 
 /// `project.company.set` (`SetCompany`): sets the company of the project, the panel builder (doc 16 §9.2 step 1).

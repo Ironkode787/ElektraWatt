@@ -1846,6 +1846,13 @@ impl ShellModel {
                 None => extra,
             });
         }
+        // FT-1378 (ID-1417): each image over the pixel limit that an earlier build took in is kept, not drawn, and named.
+        for extra in self.undrawn_image_notes() {
+            self.banner = Some(match self.banner.take() {
+                Some(b) => format!("{b} {extra}"),
+                None => extra,
+            });
+        }
         self.install_view();
         self.settings.push_recent(&path_text);
         self.save_settings();
@@ -1853,6 +1860,29 @@ impl ShellModel {
         // an incomplete release.
         self.revision_opened(integrity);
         Outcome::Done
+    }
+
+    /// The open project's images that no drawing shows, one sentence each (FT-1378, decision log ID-1417): which image
+    /// (the company logo, or the folios that show it), its size in pixels, that it is kept but not drawn, and the
+    /// remedy.
+    fn undrawn_image_notes(&self) -> Vec<String> {
+        let Some(project) = &self.project else {
+            return Vec::new();
+        };
+        let mut notes = Vec::new();
+        for image in project.session.undrawn_images() {
+            let (w, h) = (image.width.to_string(), image.height.to_string());
+            if image.logo {
+                notes.push(strings::format(key!("banner-logo-not-drawn"), &[&w, &h]));
+            }
+            let key = match image.folios.len() {
+                0 => continue,
+                1 => key!("banner-image-not-drawn"),
+                _ => key!("banner-image-not-drawn-folios"),
+            };
+            notes.push(strings::format(key, &[&image.folios.join(", "), &w, &h]));
+        }
+        notes
     }
 
     fn open_for_editing(&self, dir: &Path) -> Result<(Session, OpenReport), OpenError> {

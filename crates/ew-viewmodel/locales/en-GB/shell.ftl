@@ -1491,6 +1491,8 @@ refusal-purge-recovery = a crashed session left unsaved changes in its journal; 
 refusal-purge-incomplete = the last save is incomplete; it completes first
 refusal-purge-external = the project changed on disk; merge the change first
 refusal-purge-stale = { $p0 } of the listed images can no longer be purged; preview again; nothing was removed
+# C52-p5#5: the form for one image.
+refusal-purge-stale-one = 1 of the listed images can no longer be purged; preview again; nothing was removed
 refusal-purge-unreadable = a file of the project could not be read; nothing was removed
 refusal-purge-save = the save that removes the images failed: { $p0 }
 refusal-purge-human-only = the purge is human-only: confirm it in ElektraWatt or with ew project assets purge on a terminal; nothing was removed
@@ -4026,6 +4028,10 @@ external-theirs = Theirs
 external-row = { $p0 } · { $p1 }
 external-side = { $p0 }: { $p1 }
 banner-older-format = This project is in an older format; saving converts it.
+# FT-1378 (ID-1417): an image over the pixel limit that an earlier build took in is kept at open, not drawn, and named.
+banner-image-not-drawn = The image on folio { $p0 } is { $p1 } × { $p2 } pixels, more than a drawing can show, so it is kept but not drawn; scale it down and add it again.
+banner-image-not-drawn-folios = The image on folios { $p0 } is { $p1 } × { $p2 } pixels, more than a drawing can show, so it is kept but not drawn; scale it down and add it again.
+banner-logo-not-drawn = The company logo is { $p0 } × { $p1 } pixels, more than a drawing can show, so it is kept but not drawn; scale it down and add it again.
 upgrade-title = Convert this project to the current format?
 upgrade-text = This project is in the older format { $p0 }. Saving converts it to format { $p1 }, which older versions of ElektraWatt cannot open.
 upgrade-backup = A backup of the project as it is now is written beside its folder first.

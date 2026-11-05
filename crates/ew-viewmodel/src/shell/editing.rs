@@ -1185,17 +1185,18 @@ impl ShellModel {
         let tables = Arc::clone(&c.page().tables);
         let mut movable = transform::selected_movable(&self.tools.selection, c.page());
         // FT-1438 (ID-1397): a device or a function selected by reference (`select.set` with its tag) is moved as the
-        // representations the page shown draws of it, as R and X take it: the selection becomes those symbols.
+        // representations the page shown draws of it, as R and X take it: the selection becomes those symbols, but
+        // only once the move starts (C52-p5#3, FT-626): a refused move puts the selection back as it was.
+        let mut replaced = None;
         if movable.is_empty() {
             let drawn = self.drawn_reps_of_selection();
             if !drawn.is_empty() {
-                if self
+                let before = self.tools.selection.clone();
+                let changed = self
                     .tools
                     .selection
-                    .apply(&crate::tools::SelectionChange::Replace(drawn.clone()))
-                {
-                    self.announce_selection();
-                }
+                    .apply(&crate::tools::SelectionChange::Replace(drawn.clone()));
+                replaced = Some((before, changed));
                 movable = drawn;
             }
         }
@@ -1245,13 +1246,21 @@ impl ShellModel {
             .flatten();
         match out {
             Some(ToolOutput::Transient(o)) => {
+                if replaced.is_some_and(|(_, changed)| changed) {
+                    self.announce_selection();
+                }
                 self.tools.overlay = o;
                 self.announce_tool();
                 Outcome::Done
             }
-            _ => Outcome::Refused {
-                reason_key: key!("reason-no-cursor"),
-            },
+            _ => {
+                if let Some((before, _)) = replaced {
+                    self.tools.selection = before;
+                }
+                Outcome::Refused {
+                    reason_key: key!("reason-no-cursor"),
+                }
+            }
         }
     }
 

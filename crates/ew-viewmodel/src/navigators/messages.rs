@@ -30,6 +30,8 @@ const MESSAGE: usize = 2;
 const FIX: usize = 5;
 /// The column of a finding row's state (`open`, `waived`).
 const STATE: usize = 6;
+/// The table a Check project counted (C52-p5#2): the scheme's name and whether it was the migration report.
+pub(crate) type CheckedTable = (&'static str, bool);
 
 /// The message panel's view state in the shell.
 #[derive(Clone, Debug, Default)]
@@ -49,8 +51,10 @@ pub struct MessagesState {
     /// What the shell reads from the online report, once per (project session, revision) and only when asked.
     pub(crate) online: std::cell::RefCell<Option<OnlineFacts>>,
     /// The counts of the last Check project, by (project session, revision): the status bar's findings field while
-    /// the Messages pane is closed and the revision is the checked one (FX38d: its click opens the pane).
-    pub(crate) checked: Option<((u64, u64), MessageCounts)>,
+    /// the Messages pane is closed and the revision is the checked one (FX38d: its click opens the pane). With them
+    /// the table they were counted from, (the scheme's name, whether it was the migration report): the next check
+    /// counts its changes only from a check of the same table (C52-p5#2).
+    pub(crate) checked: Option<((u64, u64), CheckedTable, MessageCounts)>,
     /// The serial of the last Check project's toast and the (project session, revision) it counted: the toast goes
     /// once the revision leaves that one, so its counts never disagree with the dock's pending ones (FT-759).
     pub(crate) check_toast: Option<((u64, u64), u64)>,

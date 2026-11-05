@@ -70,8 +70,8 @@ impl ShellModel {
         let at = (project.epoch, project.session.world().rev.0);
         self.messages
             .checked
-            .filter(|(when, _)| *when == at)
-            .map(|(_, c)| c)
+            .filter(|(when, _, _)| *when == at)
+            .map(|(_, _, c)| c)
     }
 
     /// The Messages tab's count chip (doc 16a §5.7, FT-710): [`MessageCounts::open`] of the open pane's counts, the
@@ -439,22 +439,30 @@ impl ShellModel {
             Some(messages::counts(&table, self.editing_folio().as_deref()))
         });
         if let Some(c) = counts {
-            // FT-1432: the last check of this project, which the toast's changes count from.
+            // FT-1432: the last check of this project, which the toast's changes count from; C52-p5#2: only a check
+            // of the same table, the same scheme and the migration report or not, so a switch reads as no change.
+            let table = (
+                self.project
+                    .as_ref()
+                    .map(|p| p.session.online_scheme().name)
+                    .unwrap_or_default(),
+                self.messages_shows_migration(),
+            );
             let epoch = self.project.as_ref().map(|p| p.epoch);
             let before = self
                 .messages
                 .checked
-                .filter(|((e, _), _)| Some(*e) == epoch)
-                .map(|(_, before)| before);
+                .filter(|((e, _), t, _)| Some(*e) == epoch && *t == table)
+                .map(|(_, _, before)| before);
             self.messages.checked = self
                 .project
                 .as_ref()
-                .map(|p| ((p.epoch, p.session.world().rev.0), c));
+                .map(|p| ((p.epoch, p.session.world().rev.0), table, c));
             self.notify_toned(check_summary(c, before), check_tone(c));
             self.messages.check_toast = self
                 .messages
                 .checked
-                .map(|(at, _)| (at, self.notes.newest_serial()));
+                .map(|(at, _, _)| (at, self.notes.newest_serial()));
         }
         Outcome::Done
     }
@@ -973,5 +981,46 @@ mod tests {
             dutch,
             "Controle: \u{2212}1 fout sinds de vorige controle; project: 32 fouten, 3 waarschuwingen"
         );
+    }
+
+    /// C52-p5#2 (FT-1432): Check project counts its changes only from a check of the same table. A switch of the
+    /// project's scheme between two checks gives no "since the last check": the toast is the plain one of the new
+    /// table.
+    #[test]
+    fn a_scheme_switch_between_two_checks_reports_no_change() {
+        use crate::shell::{Outcome, ShellModel};
+        use ew_api::{AnyCommand, Origin, Submit};
+        use serde_json::json;
+        let mut shell = ShellModel::for_tests();
+        let base = crate::shell::fresh_test_dir("ew-check-scheme");
+        let dir = base.join("g.ew");
+        let golden = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../golden/J-E-2416.ew");
+        crate::shell::properties::tests::copy_dir(&golden, &dir);
+        let run = |shell: &mut ShellModel, action: &str, p: serde_json::Value| {
+            assert_eq!(shell.dispatch(action, &p), Outcome::Done, "{action}");
+        };
+        run(&mut shell, "file.open", json!({ "dir": dir.to_string_lossy() }));
+        run(&mut shell, "messages.check", json!({}));
+        run(&mut shell, "messages.check", json!({}));
+        let c = shell.status_counts().expect("the checked counts");
+        let toast = |shell: &ShellModel| shell.toast().expect("the check toast").text.clone();
+        assert_eq!(
+            toast(&shell),
+            check_summary(c, Some(c)),
+            "the same table: no change"
+        );
+        let cmd = AnyCommand {
+            name: "project.checks.set".into(),
+            params: json!({"active_scheme": "full"}),
+        };
+        let session = &mut shell.project.as_mut().unwrap().session;
+        session
+            .execute_with(&cmd, Submit::from(Origin::Gui))
+            .expect("the GUI sets the scheme");
+        run(&mut shell, "messages.check", json!({}));
+        let c = shell.status_counts().expect("the checked counts");
+        assert_eq!(toast(&shell), check_summary(c, None), "another table: no since");
+        shell.shutdown();
+        let _ = std::fs::remove_dir_all(&base);
     }
 }

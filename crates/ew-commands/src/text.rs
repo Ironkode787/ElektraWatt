@@ -2072,6 +2072,10 @@ pub const TEXTS: &[(&str, &str)] = &[
         "{0} of the listed images can no longer be purged; preview again; nothing was removed",
     ),
     (
+        "refusal-purge-stale-one",
+        "1 of the listed images can no longer be purged; preview again; nothing was removed",
+    ),
+    (
         "refusal-purge-unreadable",
         "a file of the project could not be read; nothing was removed",
     ),

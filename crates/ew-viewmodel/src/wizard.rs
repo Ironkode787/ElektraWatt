@@ -581,8 +581,9 @@ impl Logo {
         if bytes.len() > ew_api::MAX_LOGO_BYTES {
             return Err(key!("wizard-error-logo-size"));
         }
-        let (format, _) = match ew_api::sniff_asset(&bytes) {
-            Ok(sniffed) => sniffed,
+        // The gate of an image brought in, with the pixel limit (ID-1417).
+        let format = match ew_api::asset_ref_of(&bytes) {
+            Ok(reference) => reference.format,
             Err(ew_api::AssetError::UnsafeSvg(hazard)) => return Err(svg_refusal_key(hazard)),
             Err(_) => return Err(key!("wizard-error-logo")),
         };

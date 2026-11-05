@@ -1448,6 +1448,8 @@ refusal-purge-recovery = een onverwacht beëindigde sessie liet niet-opgeslagen 
 refusal-purge-incomplete = de laatste opslag is onvolledig; die wordt eerst voltooid
 refusal-purge-external = het project is op schijf gewijzigd; voeg de wijziging eerst samen
 refusal-purge-stale = { $p0 } van de vermelde afbeeldingen kunnen niet meer worden opgeruimd; bekijk het voorbeeld opnieuw; er is niets verwijderd
+# C52-p5#5: the form for one image.
+refusal-purge-stale-one = 1 van de vermelde afbeeldingen kan niet meer worden opgeruimd; bekijk het voorbeeld opnieuw; er is niets verwijderd
 refusal-purge-unreadable = een bestand van het project kon niet worden gelezen; er is niets verwijderd
 refusal-purge-save = de opslag die de afbeeldingen verwijdert is mislukt: { $p0 }
 refusal-purge-human-only = opruimen is alleen voor mensen: bevestig het in ElektraWatt of met ew project assets purge op de opdrachtregel; er is niets verwijderd
@@ -3788,6 +3790,10 @@ external-theirs = Versie op schijf
 external-row = { $p0 } · { $p1 }
 external-side = { $p0 }: { $p1 }
 banner-older-format = Dit project heeft een ouder formaat; opslaan zet het om.
+# FT-1378 (ID-1417): an image over the pixel limit that an earlier build took in is kept at open, not drawn, and named.
+banner-image-not-drawn = De afbeelding op folio { $p0 } is { $p1 } × { $p2 } pixels, meer dan een tekening kan tonen, en wordt daarom bewaard maar niet getekend; verklein haar en voeg haar opnieuw toe.
+banner-image-not-drawn-folios = De afbeelding op folio's { $p0 } is { $p1 } × { $p2 } pixels, meer dan een tekening kan tonen, en wordt daarom bewaard maar niet getekend; verklein haar en voeg haar opnieuw toe.
+banner-logo-not-drawn = Het bedrijfslogo is { $p0 } × { $p1 } pixels, meer dan een tekening kan tonen, en wordt daarom bewaard maar niet getekend; verklein het en voeg het opnieuw toe.
 upgrade-title = Dit project naar het huidige formaat omzetten?
 upgrade-text = Dit project heeft het oudere formaat { $p0 }. Opslaan zet het om naar formaat { $p1 }, dat oudere versies van ElektraWatt niet kunnen openen.
 upgrade-backup = Eerst wordt naast de projectmap een back-up van het project zoals het nu is geschreven.

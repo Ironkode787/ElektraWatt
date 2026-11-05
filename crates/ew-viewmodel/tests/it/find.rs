@@ -9,7 +9,7 @@
 //! members with the 14 words; the exact counts; the jump and the Escape chain.
 
 use crate::common;
-use ew_viewmodel::key;
+use ew_viewmodel::{key, strings};
 
 use common::{Tmp, done, refused, state};
 use ew_viewmodel::properties::{Provenance, RowValue, find_row};
@@ -369,10 +369,25 @@ fn exact_counts_the_jump_the_escape_chain_and_errors() {
         "The regular expression cannot be used: check its brackets, repeats and escapes, or make it simpler"
     );
     assert!(shell.describe().contains("find error \""), "{}", shell.describe());
+    // C52-p5#10: the same error in the Dutch window, whole.
+    assert!(strings::set_locale("nl"));
+    done(&mut shell, "find.run", json!({}));
+    let dutch = state(&shell)["find"]["error"].clone();
+    assert!(strings::set_locale("en"));
+    assert_eq!(
+        dutch,
+        "De reguliere expressie is niet bruikbaar: controleer haar haakjes, herhalingen en escapetekens, of maak haar \
+         eenvoudiger"
+    );
     done(&mut shell, "find.option", json!({"option": "regex", "on": false}));
     done(&mut shell, "find.folios", json!({"folios": ["999"]}));
     done(&mut shell, "find.run", json!({}));
     assert_eq!(state(&shell)["find"]["error"], "No page has the folio 999");
+    assert!(strings::set_locale("nl"));
+    done(&mut shell, "find.run", json!({}));
+    let dutch = state(&shell)["find"]["error"].clone();
+    assert!(strings::set_locale("en"));
+    assert_eq!(dutch, "Geen pagina heeft het folio 999");
     // In selection with nothing selected.
     done(&mut shell, "select.set", json!({"ids": []}));
     done(

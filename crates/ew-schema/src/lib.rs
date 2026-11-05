@@ -108,7 +108,7 @@ pub use asset::{
     MAX_SVG_ARC_PIECES, MAX_SVG_BYTES, MAX_SVG_CSS_DECLARATIONS, MAX_SVG_CSS_RULES, MAX_SVG_CSS_WORK,
     MAX_SVG_DEPTH, MAX_SVG_EXPANSION, MAX_SVG_MARKER_WORK, MAX_SVG_NODES, MAX_SVG_NUMBER,
     MAX_SVG_PATH_SEGMENTS, MAX_SVG_REF_DEPTH, SvgHazard, base64_decode, base64_encode, company_logo,
-    sha256_mentions, sniff, svg_hazard, svg_path_segment_bound, svg_segment_bound,
+    pixel_limit, sha256_mentions, sniff, svg_hazard, svg_path_segment_bound, svg_segment_bound,
 };
 pub use bus::{
     AddrValue, BusMedium, BusPort, BusRate, BusSection, BusSystem, LogicalNet, NetAddress, OnOff,

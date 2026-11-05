@@ -12,7 +12,8 @@ use crate::common;
 use common::{Tmp, click, done, empty_point};
 use ew_viewmodel::canvas::HOVER_SLOP_PT;
 use ew_viewmodel::ew_api::output::ew_dl::EntityRef;
-use ew_viewmodel::shell::{Mode, ShellModel};
+use ew_viewmodel::key;
+use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use ew_viewmodel::tools::{pick_stack, segment_dist2};
 use serde_json::json;
 
@@ -300,5 +301,25 @@ fn ft1438_a_symbol_s_body_wins_and_a_device_by_its_tag_moves() {
     assert_ne!(s.selection().items, vec![lamp], "the device itself");
     done(&mut s, "tool.move", json!({}));
     assert_eq!(s.selection().items, vec![lamp], "Move takes its symbol");
+    s.shutdown();
+}
+
+/// C52-p5#3 (FT-626): Move changes a by-reference selection only once the move starts. With a press held on the page
+/// the Select tool is busy, so the move is refused, and E56 stays selected as the device it was.
+#[test]
+fn a_refused_move_keeps_a_by_reference_selection() {
+    let tmp = Tmp::new("ft1438-refused");
+    let mut s = tmp.shell_in(Mode::Headless, true, "101");
+    let empty = empty_point(s.canvas().unwrap());
+    done(&mut s, "canvas.press", common::at(empty, json!({})));
+    done(&mut s, "select.set", json!({"refs": ["tag:E56"]}));
+    let before = s.selection().clone();
+    assert_eq!(
+        s.dispatch("tool.move", &json!({})),
+        Outcome::Refused {
+            reason_key: key!("reason-no-cursor")
+        }
+    );
+    assert_eq!(s.selection(), &before, "the device, not its symbol");
     s.shutdown();
 }

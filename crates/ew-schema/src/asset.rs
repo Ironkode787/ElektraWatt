@@ -264,7 +264,8 @@ impl fmt::Display for AssetError {
 
 impl std::error::Error for AssetError {}
 
-/// The format and intrinsic size of asset bytes, after the size limits (doc 05 §13.3, decision log ID-61).
+/// The format and intrinsic size of asset bytes, after the size limits (doc 05 §13.3, decision log ID-61). The pixel
+/// limit of a raster image is [`pixel_limit`]'s, which only the gates that bring an image in apply (ID-1417).
 ///
 /// # Errors
 ///
@@ -291,21 +292,6 @@ pub fn sniff(bytes: &[u8]) -> Result<(AssetFormat, Option<(u32, u32)>), AssetErr
             limit,
         });
     }
-    match size {
-        Some((width, height))
-            if format.is_raster()
-                && (u64::from(width) * u64::from(height) > MAX_RASTER_PIXELS
-                    || width > 65535
-                    || height > 65535) =>
-        {
-            return Err(AssetError::TooManyPixels {
-                format,
-                width,
-                height,
-            });
-        }
-        _ => {}
-    }
     if format == AssetFormat::Svg && svg_elements(bytes) > MAX_SVG_NODES {
         return Err(AssetError::TooManyNodes);
     }
@@ -315,6 +301,31 @@ pub fn sniff(bytes: &[u8]) -> Result<(AssetFormat, Option<(u32, u32)>), AssetErr
         }
     }
     Ok((format, size.filter(|(w, h)| *w > 0 && *h > 0)))
+}
+
+/// The pixel limit of a raster image a project takes in (FT-1378, decision log ID-1417): a PNG or JPEG of `size` that
+/// declares more than [`MAX_RASTER_PIXELS`] pixels, or a side over 65535, is refused. The gates that bring an image in
+/// apply it after [`sniff`]; an open does not, so an image an earlier build took in is kept (and not drawn).
+///
+/// # Errors
+///
+/// [`AssetError::TooManyPixels`] for a raster image over the limit.
+pub fn pixel_limit(format: AssetFormat, size: Option<(u32, u32)>) -> Result<(), AssetError> {
+    match size {
+        Some((width, height))
+            if format.is_raster()
+                && (u64::from(width) * u64::from(height) > MAX_RASTER_PIXELS
+                    || width > 65535
+                    || height > 65535) =>
+        {
+            Err(AssetError::TooManyPixels {
+                format,
+                width,
+                height,
+            })
+        }
+        _ => Ok(()),
+    }
 }
 
 fn be32(b: &[u8], at: usize) -> Option<u32> {
@@ -3426,10 +3437,16 @@ mod tests {
     }
 
     /// FT-1378: a raster image that declares more pixels than a drawing shows, or a side over 65535, is refused at the
-    /// gate in words; the decode limit itself is taken.
+    /// gate in words; the decode limit itself is taken. ID-1417: the sniff alone (an open's) takes it.
     #[test]
     fn a_raster_image_over_the_decode_limit_is_refused() {
-        let refused = sniff(&png(65536, 32768)).unwrap_err();
+        let gate = |bytes: &[u8]| sniff(bytes).and_then(|(f, size)| pixel_limit(f, size).map(|()| (f, size)));
+        // ID-1417: the sniff of an open takes it; the gate refuses it.
+        assert_eq!(
+            sniff(&png(65536, 32768)),
+            Ok((AssetFormat::Png, Some((65536, 32768))))
+        );
+        let refused = gate(&png(65536, 32768)).unwrap_err();
         assert_eq!(
             refused,
             AssetError::TooManyPixels {
@@ -3443,16 +3460,13 @@ mod tests {
             "the png image is 65536 × 32768 pixels, more than a drawing can show (at most 16777216 pixels and 65535 \
              on a side); scale it down and add it again"
         );
-        assert_eq!(
-            sniff(&png(4096, 4096)),
-            Ok((AssetFormat::Png, Some((4096, 4096))))
-        );
+        assert_eq!(gate(&png(4096, 4096)), Ok((AssetFormat::Png, Some((4096, 4096)))));
         assert!(matches!(
-            sniff(&png(4097, 4096)),
+            gate(&png(4097, 4096)),
             Err(AssetError::TooManyPixels { .. })
         ));
         assert!(matches!(
-            sniff(&png(65536, 1)),
+            gate(&png(65536, 1)),
             Err(AssetError::TooManyPixels { .. })
         ));
     }

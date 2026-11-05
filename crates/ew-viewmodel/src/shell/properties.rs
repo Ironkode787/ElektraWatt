@@ -2377,7 +2377,7 @@ impl ShellModel {
 }
 
 #[cfg(test)]
-mod tests {
+pub(super) mod tests {
     use std::path::Path;
 
     use ew_api::Origin;
@@ -2403,7 +2403,7 @@ mod tests {
         assert_eq!(tag_edit_of("-102F1", "F", "", "-102F2"), None, "no counter");
     }
 
-    fn copy_dir(from: &Path, to: &Path) {
+    pub(in crate::shell) fn copy_dir(from: &Path, to: &Path) {
         std::fs::create_dir_all(to).unwrap();
         for entry in std::fs::read_dir(from).unwrap() {
             let entry = entry.unwrap();

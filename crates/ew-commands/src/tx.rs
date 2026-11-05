@@ -988,7 +988,9 @@ impl<'a> TxBuilder<'a> {
     /// Brings image bytes into the project's asset store (doc 05 §13.3): sniffs their format and intrinsic
     /// size, applies the size limits ([`ew_schema::sniff`]) and hashes them. The reference it returns is what a
     /// record stores; the bytes join the model with this transaction's ops (an asset is not an op: undo keeps
-    /// it, and the save writes the assets that records name).
+    /// it, and the save writes the assets that records name). The pixel limit of a raster image is the gates' that
+    /// bring an image in (`store_image`, [`ew_schema::pixel_limit`], ID-1417), not this one's: `external.apply` takes
+    /// the assets another build saved as they are.
     ///
     /// # Errors
     ///

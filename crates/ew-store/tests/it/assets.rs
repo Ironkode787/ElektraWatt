@@ -164,6 +164,46 @@ fn the_journal_restores_the_assets_of_a_transaction() {
     assert_eq!(asset.reference().format, AssetFormat::Svg);
 }
 
+/// FT-1378 as ruled by ID-1417 (C52-p5#7): a raster image over the pixel limit, which an earlier build took in, is kept
+/// by an open and by a journal replay, never dropped: the limit is the gates' that bring an image in.
+#[test]
+fn an_image_over_the_pixel_limit_is_kept_by_the_open_and_the_journal() {
+    let mut big = b"\x89PNG\r\n\x1a\n".to_vec();
+    big.extend_from_slice(&13u32.to_be_bytes());
+    big.extend_from_slice(b"IHDR");
+    big.extend_from_slice(&65536u32.to_be_bytes());
+    big.extend_from_slice(&32768u32.to_be_bytes());
+    big.extend_from_slice(&[8, 6, 0, 0, 0, 0, 0, 0, 0]);
+    let asset = logo_asset(&big);
+    assert_eq!(asset.reference().size, Some((65536, 32768)));
+    // The open.
+    let (vfs, root) = mem_project(DirSync::Explicit);
+    let o = Store::open(&root, options(&vfs, 1)).expect("the golden project opens");
+    let mut store = o.store;
+    let (model, keys) = with_logo(&o.model, &asset);
+    store.save(&model, Changes::Keys(&keys)).expect("the save");
+    store.close();
+    let o = reopen(&vfs, 2);
+    assert_eq!(o.model.asset(asset.sha256()), Some(&asset), "the open keeps it");
+    // The journal.
+    let (vfs, root) = mem_project(DirSync::Explicit);
+    let o = Store::open(&root, options(&vfs, 1)).expect("the golden project opens");
+    let mut store = o.store;
+    let (model, keys) = with_logo(&o.model, &asset);
+    let keys: Vec<AnyKey> = keys.into_iter().collect();
+    store
+        .journal_commit(&o.model, &model, &keys, "project.company.set", "test")
+        .expect("the journal accepts the commit");
+    store.crash();
+    let mut o = reopen(&vfs, 2);
+    let rec = o.store.recover(&o.model).expect("the journal replays");
+    assert_eq!(
+        rec.model.asset(asset.sha256()),
+        Some(&asset),
+        "the replay keeps it"
+    );
+}
+
 /// A second placeholder logo.
 const LOGO_Y: &[u8] =
     br#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 30"><circle r="15"/></svg>"#;

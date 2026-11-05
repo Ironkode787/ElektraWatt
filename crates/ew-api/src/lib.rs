@@ -239,6 +239,7 @@ pub const TEXT_KEYS: &[&str] = &[
 ];
 /// The reference of an image file as the asset store makes it ([`sniff_asset`] and the SHA-256 of the bytes): what a
 /// front-end reads from a file the user picked or dropped before it asks `item.place` to store it (WP-S2.04 part 5).
+/// It is a gate that brings an image in, so it applies the pixel limit ([`ew_schema::pixel_limit`], ID-1417).
 ///
 /// # Errors
 ///
@@ -246,11 +247,25 @@ pub const TEXT_KEYS: &[&str] = &[
 pub fn asset_ref_of(bytes: &[u8]) -> Result<AssetRef, AssetError> {
     use sha2::Digest;
     let (format, size) = ew_schema::sniff(bytes)?;
+    ew_schema::pixel_limit(format, size)?;
     Ok(AssetRef {
         sha256: Sha256(sha2::Sha256::digest(bytes).into()),
         format,
         size,
     })
+}
+
+/// An image of the project that no drawing shows ([`Session::undrawn_images`], decision log ID-1417).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct UndrawnImage {
+    /// Whether it is the company logo.
+    pub logo: bool,
+    /// The folios of the pages whose image items show it, in page order.
+    pub folios: Vec<String>,
+    /// Its width in pixels.
+    pub width: u32,
+    /// Its height in pixels.
+    pub height: u32,
 }
 
 /// The check engine (`ew check`, the message panel, the migration report): rules, schemes, findings.
@@ -549,6 +564,8 @@ pub fn purge_refusal(e: &PurgeError) -> Text {
         PurgeError::Recovery => api_text!("refusal-purge-recovery"),
         PurgeError::Incomplete(_) => api_text!("refusal-purge-incomplete"),
         PurgeError::ExternalChange => api_text!("refusal-purge-external"),
+        // C52-p5#5: one image has its own form.
+        PurgeError::Stale(hashes) if hashes.len() == 1 => api_text!("refusal-purge-stale-one"),
         PurgeError::Stale(hashes) => api_text!("refusal-purge-stale", hashes.len().to_string()),
         PurgeError::Io { .. } => api_text!("refusal-purge-unreadable"),
         PurgeError::Save { error, .. } => api_text!("refusal-purge-save", error.to_string()),
@@ -720,6 +737,58 @@ impl Session {
             .model()
             .asset(sha256)
             .map(|a| (*a.reference(), Arc::clone(a.bytes())))
+    }
+
+    /// The images of the project that no drawing shows (FT-1378, decision log ID-1417): a PNG or JPEG over the pixel
+    /// limit ([`ew_schema::pixel_limit`]) that an earlier build took in, which the open keeps and never drops. Each is
+    /// named by where it shows, the company logo or the folios of the pages whose image items show it; in hash order.
+    pub fn undrawn_images(&self) -> Vec<UndrawnImage> {
+        let q = self.query();
+        let model = self.engine.model();
+        let over = |sha: &ew_schema::Sha256| {
+            let r = *model.asset(sha)?.reference();
+            match ew_schema::pixel_limit(r.format, r.size) {
+                Err(AssetError::TooManyPixels { width, height, .. }) => Some((width, height)),
+                _ => None,
+            }
+        };
+        // Where each image shows: `None` for the company logo, else a folio, in page order.
+        let mut shows: Vec<(ew_schema::Sha256, Option<String>)> = Vec::new();
+        if let Some(logo) = ew_schema::company_logo(&q.project().extra) {
+            shows.push((logo.sha256, None));
+        }
+        let mut pages: Vec<(ew_derive::ew_ids::Id<ew_schema::Page>, ew_schema::Sha256)> = Vec::new();
+        for (_, item) in q.page_items().iter() {
+            if let ew_schema::PageItemKind::Image(image) = &item.kind {
+                pages.push((item.page, image.asset));
+            }
+        }
+        pages.sort();
+        pages.dedup();
+        for e in &q.get::<PageOrder>(()).entries {
+            if let ew_derive::PageRef::Drawn(page) = e.page {
+                for (_, sha) in pages.iter().filter(|(p, _)| *p == page) {
+                    shows.push((*sha, Some(e.folio.clone())));
+                }
+            }
+        }
+        let mut found: std::collections::BTreeMap<ew_schema::Sha256, UndrawnImage> = Default::default();
+        for (sha, folio) in shows {
+            let Some((width, height)) = over(&sha) else {
+                continue;
+            };
+            let image = found.entry(sha).or_insert_with(|| UndrawnImage {
+                logo: false,
+                folios: Vec::new(),
+                width,
+                height,
+            });
+            match folio {
+                None => image.logo = true,
+                Some(folio) => image.folios.push(folio),
+            }
+        }
+        found.into_values().collect()
     }
 
     /// The libraries of [`SessionOptions::libraries`] (WP-S1.19 §5.2), opened (and reindexed where they changed) at
