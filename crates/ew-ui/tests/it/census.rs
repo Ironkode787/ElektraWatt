@@ -801,6 +801,115 @@ fn every_tool_cancels_with_escape_and_changes_nothing() {
     assert_eq!(problems, Vec::<String>::new(), "started: {started:?}");
 }
 
+/// FT-1444 (NFR-UX-07): the two tools Golden A cannot reach, on a fixture the test builds: a copy of Golden A with a
+/// user library that holds a macro saved from folio 102 (installed, so the Macros navigator arms the macro tool on
+/// it) and a free text placed on folio 101 (F2 on it starts the text-edit tool). Each gives way to Select at Escape
+/// and leaves the revision as it was; with the sixteen of [`every_tool_cancels_with_escape_and_changes_nothing`] every
+/// tool is tested.
+#[test]
+fn the_macro_and_text_edit_tools_cancel_with_escape_and_change_nothing() {
+    use ew_ui::ew_viewmodel::ew_api::library::{LibraryTiers, Registry};
+    use ew_ui::ew_viewmodel::navigators::NavRole;
+    use ew_ui::ew_viewmodel::shell::ShellConfig;
+    let tmp = Tmp::new();
+    let tiers = LibraryTiers {
+        system: Vec::new(),
+        community: tmp.0.join("data").join("packs"),
+        company: Vec::new(),
+        user: tmp.0.join("data").join("libraries"),
+        cache: tmp.0.join("cache"),
+    };
+    Registry::open(&tiers)
+        .unwrap()
+        .create(&tiers.user.join("mine.ewlib"), "mine", "Mine", "CC0-1.0")
+        .unwrap();
+    let dir = tmp.golden("tools.ew");
+    let config = ShellConfig::in_dir(&tmp.0.join("config-tools"), "0.0.0-test").with_libraries(Some(tiers));
+    let mut shell = ShellModel::new(Mode::Gui, config);
+    let done = |shell: &mut ShellModel, action: &str, params: Value| {
+        assert_eq!(shell.dispatch(action, &params), Outcome::Done, "{action} {params}");
+    };
+    done(&mut shell, "file.open", json!({"dir": dir.to_string_lossy(), "read_only": false}));
+    // The macro: folio 102's devices and wires, saved into "Mine".
+    done(&mut shell, "page.goto", json!({"folio": "102"}));
+    let ids: Vec<String> = {
+        let tables = &shell.canvas().expect("folio 102").page().tables;
+        tables
+            .reps
+            .iter()
+            .filter(|r| r.device.is_some())
+            .map(|r| r.id)
+            .chain(tables.connections.iter().map(|c| c.id))
+            .map(|id| id.to_string())
+            .collect()
+    };
+    done(&mut shell, "select.set", json!({ "ids": ids }));
+    done(
+        &mut shell,
+        "macros.save",
+        json!({"name": "PSU", "library": "Mine", "description": "Power supply", "confirm": true}),
+    );
+    // The free text on folio 101.
+    done(&mut shell, "page.goto", json!({"folio": "101"}));
+    let page = shell.canvas().unwrap().page().tables.page.to_string();
+    done(
+        &mut shell,
+        "command.run",
+        json!({"cmd": "item.place", "params": {"page": page, "kind": {"free_text": {"text": "note", "at": [0, 0]}}}}),
+    );
+    let text = shell
+        .canvas()
+        .unwrap()
+        .page()
+        .tables
+        .items
+        .iter()
+        .find(|i| i.text.as_deref() == Some("note"))
+        .expect("the free text")
+        .id
+        .to_string();
+    done(&mut shell, "navigator.show", json!({"kind": "macros"}));
+    let key = shell
+        .nav(NavKind::Macros)
+        .and_then(|n| n.table())
+        .and_then(|t| {
+            t.nodes
+                .iter()
+                .find(|n| n.role == NavRole::Macro && n.label == "PSU")
+                .map(|n| n.key.clone())
+        })
+        .expect("the macro's row");
+    let mut h = harness_with(shell, Scripted::default(), None);
+    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    wait_for_page(&mut h);
+    h.run_ok();
+    let rows: [(&str, Vec<(&str, Value)>); 2] = [
+        ("macro", vec![("navigator.open", json!({"kind": "macros", "key": key}))]),
+        (
+            "text_edit",
+            vec![("select.set", json!({"ids": [text]})), ("text.edit", json!({}))],
+        ),
+    ];
+    for (want, steps) in rows {
+        for (action, params) in steps {
+            dispatch(&mut h, action, params);
+        }
+        h.run_ok();
+        assert_eq!(h.state().shell().tool().name(), want);
+        let rev = h.state().shell().revision();
+        for _ in 0..3 {
+            if h.state().shell().tool().name() == "select" {
+                break;
+            }
+            h.key_press(egui::Key::Escape);
+            h.run_ok();
+        }
+        assert_eq!(h.state().shell().tool().name(), "select", "{want} gives way to Select");
+        assert_eq!(h.state().shell().revision(), rev, "Escape leaves the revision of {want}");
+    }
+    h.state_mut().shell_mut().shutdown();
+}
+
 /// D3: the start page, the five first-run steps and the ten wizard steps.
 #[test]
 fn census_the_start_page_the_first_run_and_the_wizard() {
