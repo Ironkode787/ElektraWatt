@@ -394,7 +394,7 @@ fn tutorial_1_a_first_schematic_page_runs_as_its_page_says() {
             "row level 2 rule \"EW-POT-009 Unconnected CP\" badge \"2\" expanded",
         ]
     );
-    // Step 8: "no error and five warnings, still pending while you draw" (ID-1376).
+    // Step 8: "the Messages header shows E 0, W 0 and pending 5" (ID-1376, FT-1407).
     assert_eq!(
         lines_of(&describe, &["messages scheme"]),
         ["messages scheme \"Drafting\" errors 0 warnings 0 infos 0 waived 0 pending 5"]

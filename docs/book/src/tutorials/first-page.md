@@ -35,9 +35,9 @@ Nothing else: the project starts from EW's built-in basic project.
 7. Choose **View ▸ Panels ▸ Navigators ▸ Potentials**.
    The Potentials navigator lists 0VAC and 24VAC, each with its two wires.
 8. Choose **Check ▸ Messages**.
-   The Messages pane lists no error and five warnings, still pending while you draw: three devices without a part
-   (EW-CORE-041: -1E1, -1E2 and -1T1) and the transformer's two open primary pins (EW-POT-009: -1T1:1U1 and
-   -1T1:2U1).
+   The Messages header shows E 0, W 0 and pending 5: five findings wait on the page you are drawing until you leave
+   it or run the checks. They are three devices without a part (EW-CORE-041: -1E1, -1E2 and -1T1) and the
+   transformer's two open primary pins (EW-POT-009: -1T1:1U1 and -1T1:2U1).
 9. Choose **File ▸ Save** (`Ctrl+S`).
    The title bar no longer marks the project as changed, and the status bar says Saved.
 
