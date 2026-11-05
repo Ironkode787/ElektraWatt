@@ -1334,17 +1334,12 @@ fn first_input<'c>(
 /// Whether the code `text` names the repository path `path` (`/`-separated, from the root) as a place it reads: a
 /// call on its first segment alone (`join("docs")`, `new("NOTICE")`) or a parent-relative literal of it
 /// (`"../../docs"`) names every path below it; a literal `"docs/<x>` or `/docs/<x>` names the paths below
-/// `docs/<x>`, and every path below `docs` when `<x>` is no plain name (`"docs/{name}"`, `"../content/"`). Lines that
-/// start with `//` are left out. A false match only costs a run.
-fn names_path(text: &str, path: &str) -> bool {
+/// `docs/<x>`, and every path below `docs` when `<x>` is no plain name (`"docs/{name}"`, `"../content/"`). `code` is
+/// without its comment lines ([`code_lines`]). A false match only costs a run.
+fn names_path(code: &str, path: &str) -> bool {
     let mut segments = path.split('/');
     let first = segments.next().unwrap_or_default();
     let second = segments.next();
-    let code: String = text
-        .lines()
-        .filter(|l| !l.trim_start().starts_with("//"))
-        .collect::<Vec<_>>()
-        .join("\n");
     if [format!("(\"{first}\")"), format!("../{first}\"")]
         .iter()
         .any(|p| code.contains(p.as_str()))
@@ -1361,6 +1356,14 @@ fn names_path(text: &str, path: &str) -> bool {
             next.is_empty() || next == second
         })
     })
+}
+
+/// The lines of `text` that do not start with `//`: a path a comment names is no path the code reads.
+fn code_lines(text: &str) -> String {
+    text.lines()
+        .filter(|l| !l.trim_start().starts_with("//"))
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
 /// The packages of `set` and their workspace dependencies (normal, build and dev edges), transitively.
@@ -1412,7 +1415,7 @@ struct Worktree<'a> {
     changed: BTreeMap<String, Option<Vec<String>>>,
     /// The tracked `.rs` files by package, read once.
     sources: Option<BTreeMap<String, Vec<String>>>,
-    /// The text of each package's `.rs` files, read once.
+    /// The code of each package's `.rs` files without their comment lines, read once.
     texts: BTreeMap<String, String>,
 }
 
@@ -1502,6 +1505,7 @@ impl Oracle for Worktree<'_> {
                     .into_iter()
                     .flatten()
                     .filter_map(|f| std::fs::read_to_string(root.join(f)).ok())
+                    .map(|t| code_lines(&t))
                     .collect::<Vec<_>>()
                     .join("\n")
             });
@@ -3945,7 +3949,7 @@ mod tests {
                 "NOTICE",
             ]
             .into_iter()
-            .filter(|p| names_path(text, p))
+            .filter(|p| names_path(&code_lines(text), p))
             .collect()
         };
         assert_eq!(
