@@ -23,7 +23,7 @@
 use std::sync::Arc;
 
 use ew_api::ew_jobs::{Job, JobEnd, JobOptions, Progress};
-use ew_api::output::PageSelection;
+use ew_api::output::{OutputError, PageSelection};
 use ew_api::output::print::{Fit, Paper, PrintOptions, PrintSet};
 use serde_json::{Map, Value};
 
@@ -233,7 +233,7 @@ pub enum PrintEnd {
 #[derive(Default)]
 pub(crate) struct PrintState {
     /// The running build: its generation and its job.
-    job: Option<(u64, Job<PrintSet>)>,
+    job: Option<(u64, Job<Result<PrintSet, OutputError>>)>,
     /// The built set of a generation.
     set: Option<(u64, Arc<PrintSet>)>,
     /// The last generation started.
@@ -546,7 +546,7 @@ impl ShellModel {
         let job = match (&self.project, selection) {
             (Some(project), Some(selection)) => {
                 let job = project.session.print_set_job(&d.options(selection));
-                Some(Job::spawn(options, move |ctl| job.run(ctl)))
+                Some(Job::spawn(options, move |ctl| job.run_typed(ctl)))
             }
             _ => None,
         };
@@ -592,14 +592,13 @@ impl ShellModel {
     }
 
     /// The end of build `generation`: the dialog's state, when it still shows that build.
-    fn finish_print(&mut self, generation: u64, end: JobEnd<PrintSet>) {
+    fn finish_print(&mut self, generation: u64, end: JobEnd<Result<PrintSet, OutputError>>) {
         // FT-1124 (ID-1225): a selection the page order refuses is the Pages text's refusal, shown once under the field
-        // in words while the preview shows the empty state; any other failure shows in the preview only. The engine
-        // words (the CLI's) are told by `OutputError::Selection`'s own prefix.
-        let selection = ew_api::output::OutputError::Selection(String::new()).to_string();
+        // in words while the preview shows the empty state; any other failure shows in the preview only. FT-1190: the
+        // refusal is told by its kind, `OutputError::Selection`, never by its text.
         let pages = self.print_dialog().is_some_and(|d| d.range == PrintRange::Pages);
         let (build, set, field_error) = match end {
-            JobEnd::Done(set) => (
+            JobEnd::Done(Ok(set)) => (
                 PrintBuild::Built {
                     pages: set.pages.len(),
                 },
@@ -607,11 +606,12 @@ impl ShellModel {
                 None,
             ),
             JobEnd::Cancelled => (PrintBuild::Empty, None, None),
-            JobEnd::Failed(cause) if pages && cause.starts_with(&selection) => (
+            JobEnd::Done(Err(OutputError::Selection(_))) if pages => (
                 PrintBuild::Empty,
                 None,
                 Some(strings::text(key!("print-pages-error")).to_owned()),
             ),
+            JobEnd::Done(Err(e)) => (PrintBuild::Failed(e.to_string()), None, None),
             JobEnd::Failed(cause) => (PrintBuild::Failed(cause), None, None),
             JobEnd::Panicked => (
                 PrintBuild::Failed(strings::text(key!("job-cause-internal")).to_owned()),
@@ -660,6 +660,11 @@ impl ShellModel {
         let d = self.print_dialog()?;
         match &d.build {
             PrintBuild::Built { .. } if self.print_set().is_some() => None,
+            // FT-1172 (ID-1391): a refused Pages text says why in words.
+            PrintBuild::Empty if d.range == PrintRange::Pages && d.pages_error.is_some() => Some(strings::format(
+                key!("reason-print-not-a-range"),
+                &[d.pages.trim()],
+            )),
             PrintBuild::Empty => Some(strings::text(key!("reason-print-no-pages")).to_owned()),
             PrintBuild::Failed(_) => Some(strings::text(key!("reason-print-failed")).to_owned()),
             _ => Some(strings::text(key!("reason-print-not-built")).to_owned()),

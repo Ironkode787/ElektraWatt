@@ -973,6 +973,27 @@ pub fn read_only_reason(sheet: &PropertySheet, section: &SheetSection, row: &Pro
     }
 }
 
+/// The refusal of an edit of read-only row `row` as a sentence (FT-1051): the identity, a command and no command each
+/// have their own; any other reason is wrapped (`props-refused-read-only`). `None` where [`read_only_reason`] is.
+pub fn refusal_text(sheet: &PropertySheet, section: &SheetSection, row: &PropRow) -> Option<String> {
+    let reason = read_only_reason(sheet, section, row)?;
+    let generated = matches!(row.provenance, Provenance::Generated { .. });
+    Some(match &row.route {
+        EditRoute::ReadOnly(r) if sheet.read_only.is_none() && !generated => match r {
+            FieldReadOnly::Identity => strings::text(key!("props-refused-identity")).to_owned(),
+            FieldReadOnly::Command {
+                action: Some(action), ..
+            } => strings::format(key!("props-refused-action"), &[action]),
+            FieldReadOnly::Command { command, .. } => {
+                strings::format(key!("props-refused-command"), &[strings::command_title(command)])
+            }
+            FieldReadOnly::NoCommand => strings::text(key!("props-refused-no-command")).to_owned(),
+            _ => strings::format(key!("props-refused-read-only"), &[&reason]),
+        },
+        _ => strings::format(key!("props-refused-read-only"), &[&reason]),
+    })
+}
+
 /// The text of a read-only reason.
 pub fn reason_text(reason: &FieldReadOnly) -> String {
     match reason {

@@ -390,7 +390,7 @@ fn pg8_refusals_notes_and_read_only_rows() {
     assert_eq!(
         shell.dispatch("props.set", &json!({"row": "device/id", "value": "x"})),
         Outcome::Failed {
-            message: "This row cannot be edited: identity.".to_owned()
+            message: "This row identifies the item, so it cannot be edited.".to_owned()
         }
     );
     done(&mut shell, "props.project", json!({}));
@@ -1117,7 +1117,7 @@ fn a_refused_row_action_names_why_the_row_refuses_it() {
     // The identity row reads its read-only reason.
     assert_eq!(
         action(&mut shell, "device/id", "edit"),
-        failed("This row cannot be edited: identity.")
+        failed("This row identifies the item, so it cannot be edited.")
     );
     // A derived row is computed.
     done(&mut shell, "select.set", json!({"ids": [W29]}));
@@ -1134,7 +1134,15 @@ fn a_refused_row_action_names_why_the_row_refuses_it() {
     // A row a command of its own changes reads that reason.
     assert_eq!(
         action(&mut shell, "connection/a", "edit"),
-        failed("This row cannot be edited: changed with the canvas.")
+        failed("This row is changed with the canvas.")
+    );
+    // FT-1052: a command is named by its title, never its ID.
+    assert_eq!(
+        ew_viewmodel::properties::reason_text(&ew_viewmodel::properties::FieldReadOnly::Command {
+            command: "assembly.attach".to_owned(),
+            action: None,
+        }),
+        "changed by Attach assembly"
     );
     shell.shutdown();
 }

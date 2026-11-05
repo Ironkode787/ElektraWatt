@@ -63,6 +63,11 @@ fn props_follow_goes_from_a_placement_to_its_device_on_its_main_page() {
         ),
         "reason-row-no-link"
     );
+    // FT-1057: a sentence with its next step.
+    assert_eq!(
+        ew_viewmodel::strings::text(ew_viewmodel::key!("reason-row-no-link")),
+        "The property row links to nothing. Choose a row that names a device to go to it."
+    );
     assert_eq!(s.current_folio(), Some("902"));
     // The focused row, moved to the Device row, followed.
     done(&mut s, "props.row", json!({"to": "placement/derived.device"}));

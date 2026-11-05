@@ -183,4 +183,38 @@ fn the_link_previews_line_without_a_key_names_the_menu_path() {
         format!("Click the link or use {path} to go there")
     );
     assert_eq!(path, "Page ▸ Follow cross-reference");
+    // FT-1189: the canvas link's hint without a key names the same path.
+    assert_eq!(
+        ew_viewmodel::strings::format(ew_viewmodel::key!("status-hint-follow-none"), &["103-A1"]),
+        format!("Click or use {path}: go to 103-A1")
+    );
+}
+
+/// FT-1042: a link's hint takes the follow key from the keymap, in Properties (`props.follow`) as on the canvas
+/// (`nav.follow`), the canvas's also once rebound (the keymap editor does not rebind `props.follow`, a key of the
+/// grid's own).
+#[test]
+fn ft1042_a_links_hint_takes_its_follow_key_from_the_keymap() {
+    use ew_viewmodel::status::follow_hint;
+    let tmp = Tmp::new("ft1042-hint");
+    let mut s = golden(&tmp);
+    assert_eq!(follow_hint(&s, "-201U7", "props.follow"), "Click or F: go to -201U7");
+    assert_eq!(follow_hint(&s, "103-A1", "nav.follow"), "Click or F: go to 103-A1");
+    done(&mut s, "help.shortcuts", json!({}));
+    done(
+        &mut s,
+        "keymap.record",
+        json!({"action": "nav.follow", "keys": "Ctrl+Shift+F7"}),
+    );
+    done(&mut s, "ui.dismiss", json!({}));
+    let key = ew_viewmodel::keymap::short_display("Ctrl+Shift+F7");
+    assert_eq!(
+        follow_hint(&s, "103-A1", "nav.follow"),
+        format!("Click or {key}: go to 103-A1")
+    );
+    assert_eq!(follow_hint(&s, "-201U7", "props.follow"), "Click or F: go to -201U7");
+    assert_eq!(
+        ew_viewmodel::strings::format(ew_viewmodel::key!("status-hint-link"), &["-201U7"]),
+        "Click to go to -201U7"
+    );
 }

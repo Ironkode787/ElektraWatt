@@ -93,13 +93,26 @@ impl PrintSetJob {
     /// [`JobError::Cancelled`] at a checkpoint after [`ew_jobs::Job::cancel`]; [`JobError::Failed`] with the
     /// [`OutputError`]'s text (no path) for a selection the page order does not have or pages the writer refuses.
     pub fn run(self, ctl: &JobCtl) -> Result<PrintSet, JobError> {
+        self.run_typed(ctl)?
+            .map_err(|e| JobError::Failed(e.to_string()))
+    }
+
+    /// [`PrintSetJob::run`] with the build's failure kept as its [`OutputError`] (FT-1190): the outer `Err` is
+    /// [`JobError::Cancelled`] (or a checkpoint's), the inner one the selection or the writer's refusal, so a caller
+    /// tells a refused selection apart by its kind, not by its text.
+    ///
+    /// # Errors
+    ///
+    /// [`JobError::Cancelled`] at a checkpoint after [`ew_jobs::Job::cancel`].
+    pub fn run_typed(self, ctl: &JobCtl) -> Result<Result<PrintSet, OutputError>, JobError> {
         let q = Q::new(&self.world.model).with_report_pages(self.reports);
-        let set = print_set_hooked(&q, &self.options, &self.assets, ctl).map_err(|h| match h {
-            Halt::Cancelled => JobError::Cancelled,
-            Halt::Output(e) => JobError::Failed(e.to_string()),
-        })?;
+        let set = match print_set_hooked(&q, &self.options, &self.assets, ctl) {
+            Ok(set) => set,
+            Err(Halt::Cancelled) => return Err(JobError::Cancelled),
+            Err(Halt::Output(e)) => return Ok(Err(e)),
+        };
         ctl.checkpoint("written")?;
-        Ok(set)
+        Ok(Ok(set))
     }
 
     /// The revision of the snapshot the set is built from.

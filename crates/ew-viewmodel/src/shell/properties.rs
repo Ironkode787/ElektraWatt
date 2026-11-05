@@ -31,7 +31,7 @@ use crate::properties::{
     Card, CardOrigin, ChoiceKind, Choices, Decision, EditBuffer, PendingEdit, Popup, PropRow,
     PropertiesState, PropertySheet, Provenance, RowAction, RowMenuItem, RowValue, SheetKey, SheetSection,
     compose, filter_shown, find_row, is_derived, item_default, kind_plural, member_path, policy,
-    read_only_reason, visible_rows,
+    visible_rows,
 };
 use crate::strings;
 use crate::strings::Key;
@@ -417,7 +417,8 @@ impl ShellModel {
     /// Why a row cannot take `action` now, as the outcome that refuses it: `None` when it can (ID-1113). A read-only
     /// project refuses with `reason-read-only`; in an editable project a derived row is computed
     /// (`reason-row-computed`), a human-only row keeps `reason-human-only`, a row with another read-only reason reads
-    /// that reason in a sentence (`props-refused-read-only`, a formatted refusal), and an editable row that does not
+    /// that reason in a sentence (`crate::properties::refusal_text`, a formatted refusal; FT-1051), and an editable
+    /// row that does not
     /// offer the action reads `reason-action-not-offered`.
     fn props_refusal(&self, section: &SheetSection, row: &PropRow, action: RowAction) -> Option<Outcome> {
         let sheet = self.props.sheet()?;
@@ -431,7 +432,7 @@ impl ShellModel {
         if is_derived(row) {
             return refused(key!("reason-row-computed"));
         }
-        match read_only_reason(sheet, section, row) {
+        match crate::properties::refusal_text(sheet, section, row) {
             Some(_)
                 if matches!(
                     row.route,
@@ -442,9 +443,7 @@ impl ShellModel {
             {
                 refused(key!("reason-human-only"))
             }
-            Some(reason) => Some(Outcome::Failed {
-                message: strings::format(key!("props-refused-read-only"), &[&reason]),
-            }),
+            Some(message) => Some(Outcome::Failed { message }),
             None => refused(key!("reason-action-not-offered")),
         }
     }

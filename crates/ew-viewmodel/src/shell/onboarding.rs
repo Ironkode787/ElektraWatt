@@ -40,10 +40,14 @@ impl ShellModel {
     /// Sets one quick-switch setting; the reason of a failure is an [`Outcome`].
     fn apply_setting(&mut self, key: &str, value: &Value) -> Result<(), Outcome> {
         let text = value.as_str();
+        // FT-1175: a value that is not one of the choices names them (doc 16a §8 item 5).
         let choice = |choices: &[&str]| {
             text.filter(|t| choices.contains(t))
                 .map(str::to_owned)
-                .ok_or_else(|| failed(key!("error-bad-param"), &["value"]))
+                .ok_or_else(|| {
+                    let given = text.map_or_else(|| value.to_string(), str::to_owned);
+                    failed(key!("error-not-one-of"), &[&given, &choices.join(", ")])
+                })
         };
         match key {
             // WP-S2.08 part 3 (D10): the languages View ▸ Language offers; the texts follow at once.

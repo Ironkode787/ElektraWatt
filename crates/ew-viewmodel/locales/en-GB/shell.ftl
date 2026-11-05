@@ -347,10 +347,10 @@ notice-ip-second-source = Not placed: { $p0 } already has a source on page { $p1
 # Cycle-40 review: the same, when `tool.ip_direction` has no key: the action by its title.
 notice-ip-second-source-unbound = Not placed: { $p0 } already has a source on page { $p1 }; use { $p2 } for a target, or mark one source as the star
 reason-external-never-pairs = An external connection point never pairs, so it has no star source
-error-no-external = No external reference is "{ $p0 }"; name one as device:connection, optionally after its location and " / " (+J-E-206 / JE-N1000-03:L). The project's: { $p1 }
-external-none = none (create one with Project ▸ External reference…)
+error-no-external = No external reference is "{ $p0 }"; name one as device:connection, optionally after its location and " / " (+J-E-206 / JE-N1000-03:L). The project's: { $p1 }.
+external-none = none (create one with Project ▸ Setup ▸ External reference…)
 # FT-1131 (ID-1229 item 7): the same, when `external_ref.new` has a key: the key from the keymap.
-external-none-key = none (create one with Project ▸ External reference…, { $p0 })
+external-none-key = none (create one with Project ▸ Setup ▸ External reference…, { $p0 })
 reason-external-ambiguous = Several external references print this text: name one by its ID
 reason-select-one-ip = Select exactly one interruption point
 reason-select-ips = Select at least two interruption points
@@ -643,7 +643,7 @@ action-view-tips = Show tips
 action-view-command-tab = Command tab
 action-view-command-bar = Collapse command bar
 submenu-command-tab = Command tab
-group-project = Project
+group-project = Setup
 group-parts = Parts
 group-standards = Standards
 group-import = Import
@@ -740,6 +740,10 @@ reason-point-outside-drawing = That point lies too far away to draw; check the p
 reason-row-computed = This value is computed from the drawing; it cannot be edited here.
 reason-action-not-offered = That action does not apply to this row; its menu shows the ones that do.
 props-refused-read-only = This row cannot be edited: { $p0 }.
+props-refused-identity = This row identifies the item, so it cannot be edited.
+props-refused-action = This row is changed with { $p0 }.
+props-refused-command = This row is changed by { $p0 }.
+props-refused-no-command = No command edits this row yet.
 reason-nothing-to-undo = Nothing to undo
 reason-nothing-to-redo = Nothing to redo
 reason-no-project = No project is open
@@ -1352,7 +1356,7 @@ action-props-row-menu = Property actions
 
 # FT-1030 (ID-1107): a link row of the grid followed.
 action-props-follow = Go to the linked record
-reason-row-no-link = The property row links to nothing
+reason-row-no-link = The property row links to nothing. Choose a row that names a device to go to it.
 error-device-not-drawn = { $p0 } is drawn on no page.
 action-props-filter = Filter the properties
 props-filter-hint = Filter properties
@@ -1594,8 +1598,8 @@ toast-placed-no-cell = Placed { $p0 }
 toast-placed-in-wire = { $p0 }, connected into the wire it was dropped on
 
 # FIXPT41: an interruption point dropped on a pin ({3} the key of `canvas.activate_alt`).
-toast-ip-connected = Placed the interruption point { $p0 } at { $p1 } and connected it to { $p2 }. Alt+Click or { $p3 } places it without connecting
-toast-ip-connected-no-cell = Placed the interruption point { $p0 } and connected it to { $p2 }. Alt+Click or { $p3 } places it without connecting
+toast-ip-connected = Placed the interruption point { $p0 } at { $p1 } and connected it to { $p2 }. Alt+Click or { $p3 } places it without connecting.
+toast-ip-connected-no-cell = Placed the interruption point { $p0 } and connected it to { $p2 }. Alt+Click or { $p3 } places it without connecting.
 toast-ip-external-connected = Placed the external point { $p0 } at { $p1 } and connected it to { $p2 }. Alt+Click or { $p3 } places it without connecting.
 toast-ip-external-connected-no-cell = Placed the external point { $p0 } and connected it to { $p2 }. Alt+Click or { $p3 } places it without connecting.
 terminal-in-sentence = { $p0 } terminal { $p1 }
@@ -1693,11 +1697,12 @@ print-unavailable = Printing is not available in this window. Export a PDF and p
 toast-print-printed = Sent { $p0 } to the printer
 toast-print-opened = Opened { $p0 } in your PDF viewer
 toast-print-fallback-printer = Printing through the print dialog failed, so { $p0 } went to the default printer.
-toast-print-fallback-viewer = Printing could not start, so { $p0 } opened in your PDF viewer to print from there
+toast-print-fallback-viewer = Printing could not start, so { $p0 } opened in your PDF viewer to print from there.
 toast-print-failed = Printing failed: { $p0 }. Export a PDF and print it from your PDF viewer.
 reason-no-print-dialog = Open the print dialog first
 reason-print-not-built = The print set is still being built
 reason-print-no-pages = No pages are chosen
+reason-print-not-a-range = "{ $p0 }" is not a page range of this project
 reason-print-failed = The print set could not be built
 job-cause-in-use = the file is in use
 job-cause-no-folder = the folder does not exist
@@ -2469,10 +2474,11 @@ error-goto-empty = Type a folio or a cell.
 error-goto-not-found = No page or cell matches "{ $p0 }".
 error-goto-no-cell = Page { $p0 } has no cell { $p1 }.
 status-cursor-cell = { $p0 } · x { $p1 } y { $p2 } mm
-status-hint-link = Click or F: go to { $p0 }
+status-hint-link = Click to go to { $p0 }
 
 # FT-964 (ID-1150): the status bar's link hint, with the key of `nav.follow` from the keymap.
 status-hint-follow = Click or { $p1 }: go to { $p0 }
+status-hint-follow-none = Click or use Page ▸ Follow cross-reference: go to { $p0 }
 status-hint-link-external = Link to another project
 canvas-cursor-description = , cursor { $p0 } x { $p1 } y { $p2 } mm
 canvas-cursor-description-no-cell = , cursor x { $p0 } y { $p1 } mm

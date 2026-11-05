@@ -222,15 +222,26 @@ pub fn canvas_node(model: &ShellModel, group: usize) -> Option<CanvasNodeText> {
     })
 }
 
+/// The hint of a link to `label` that action `action` follows (`nav.follow` on the canvas, `props.follow` in
+/// Properties): "Click or F: go to -201U7", the key from the keymap (FT-1042); with no key, `nav.follow` by its menu
+/// path, as `link-preview-go-none` names it, and any other action without one (FT-1189).
+pub fn follow_hint(model: &ShellModel, label: &str, action: &str) -> String {
+    let key = crate::command_bar::key_of(model, action);
+    if !key.is_empty() {
+        strings::format(key!("status-hint-follow"), &[label, &key])
+    } else if action == "nav.follow" {
+        strings::format(key!("status-hint-follow-none"), &[label])
+    } else {
+        strings::format(key!("status-hint-link"), &[label])
+    }
+}
+
 /// The hint of one canvas: the hovered link's target while the active tool shows the hover, else the tool's status
 /// hint (WP-S2.03 §6.4, §7.2).
 fn hint_of(model: &ShellModel, c: &crate::canvas::CanvasModel) -> String {
     match c.hovered_link().filter(|_| model.tool().wants_hover()) {
         Some(link) => match link.label() {
-            Some(label) => strings::format(
-                key!("status-hint-follow"),
-                &[&label, &crate::command_bar::key_name(model, "nav.follow")],
-            ),
+            Some(label) => follow_hint(model, &label, "nav.follow"),
             None => strings::text(key!("status-hint-link-external")).to_owned(),
         },
         None => match model.tool_notice() {

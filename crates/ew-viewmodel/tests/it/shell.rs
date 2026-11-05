@@ -427,11 +427,24 @@ fn dl7_density_and_theme_round_trip_through_settings_toml() {
     let text = std::fs::read_to_string(&file).unwrap();
     assert!(text.contains("density = \"compact\""), "{text}");
     assert!(text.contains("theme = \"hc-dark\""), "{text}");
-    for (action, value) in [("view.density", "dense"), ("view.theme", "purple")] {
+    // FT-1175: a refused theme or language names the values it takes.
+    for (action, value, message) in [
+        ("view.density", "dense", "\"dense\" is not one of the choices: comfortable, compact."),
+        (
+            "view.theme",
+            "purple",
+            "\"purple\" is not one of the choices: system, light, dark, hc-dark, hc-light.",
+        ),
+        (
+            "view.language",
+            "fr",
+            "\"fr\" is not one of the choices: en, nl.",
+        ),
+    ] {
         assert_eq!(
             shell.dispatch(action, &json!({"value": value})),
             Outcome::Failed {
-                message: "Parameter `value` is not valid.".to_owned()
+                message: message.to_owned()
             },
             "{action} {value}"
         );

@@ -369,7 +369,7 @@ fn ft1131_no_external_reference_names_the_menu_path_and_a_bound_key() {
     assert_eq!(
         failed(&mut s, "ip.external", json!({"external": "X:L"})),
         "No external reference is \"X:L\"; name one as device:connection, optionally after its location and \" / \" \
-         (+J-E-206 / JE-N1000-03:L). The project's: none (create one with Project ▸ External reference…)"
+         (+J-E-206 / JE-N1000-03:L). The project's: none (create one with Project ▸ Setup ▸ External reference…)."
     );
     done(&mut s, "help.shortcuts", json!({}));
     done(
@@ -383,8 +383,8 @@ fn ft1131_no_external_reference_names_the_menu_path_and_a_bound_key() {
         failed(&mut s, "ip.external", json!({"external": "X:L"})),
         format!(
             "No external reference is \"X:L\"; name one as device:connection, optionally after its location and \
-             \" / \" (+J-E-206 / JE-N1000-03:L). The project's: none (create one with Project ▸ External \
-             reference…, {key})"
+             \" / \" (+J-E-206 / JE-N1000-03:L). The project's: none (create one with Project ▸ Setup ▸ External \
+             reference…, {key})."
         )
     );
 }

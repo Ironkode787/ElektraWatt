@@ -831,9 +831,6 @@ mod tests {
         ("choice-right", "the rail's side rail.show chooses"),
         ("choice-up", "a list item's move props.list makes"),
         ("choice-down", "a list item's move props.list makes"),
-        // Open: `props.follow`'s F in the Properties pane's link (ew-ui `properties.rs`, a later row); the status bar's
-        // link hint is `status-hint-follow`.
-        ("status-hint-link", "props.follow's F, not yet from the keymap"),
         // Keys no keymap action reaches there.
         ("hint-choose-strip", "Esc closes the picker popup (app.rs)"),
         ("reason-choose-strip", "Esc closes the picker popup (app.rs)"),

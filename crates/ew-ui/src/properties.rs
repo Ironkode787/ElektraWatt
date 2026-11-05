@@ -910,8 +910,8 @@ impl PropertiesPane {
                 let tip = if on_chip {
                     Some(chip.clone())
                 } else if link {
-                    // The canvas link's hint (FT-1030): "Click or F: go to -201U7".
-                    Some(strings::format(key!("status-hint-link"), &[&value]))
+                    // The canvas link's hint (FT-1030): "Click or F: go to -201U7", the key from the keymap (FT-1042).
+                    Some(ew_viewmodel::status::follow_hint(shell, &value, "props.follow"))
                 } else if !editable && !header {
                     reason.clone().or(long)
                 } else {

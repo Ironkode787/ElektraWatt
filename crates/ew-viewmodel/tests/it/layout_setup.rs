@@ -109,7 +109,7 @@ fn ps7_the_layout_group_is_enabled_on_a_panel_page_and_says_why_not_elsewhere() 
         refused(&mut s, "tool.rail_draw", json!({})),
         "reason-no-panel-page"
     );
-    // Project ▸ Project holds Enclosure…, enabled in a project that can be changed.
+    // Project ▸ Setup holds Enclosure…, enabled in a project that can be changed.
     let bar = command_bar_of(&s, Tab::Project);
     let enclosure = bar
         .groups

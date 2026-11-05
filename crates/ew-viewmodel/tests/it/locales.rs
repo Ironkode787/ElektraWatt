@@ -675,7 +675,7 @@ fn lo2_view_language_switches_the_menus_and_back() {
     assert_eq!(
         shell.dispatch("view.language", &json!({"value": "xx"})),
         Outcome::Failed {
-            message: "Parameter `value` is niet geldig.".to_owned()
+            message: "\"xx\" is geen van de keuzes: en, nl.".to_owned()
         }
     );
     done(&mut shell, "view.language", json!({"value": "en"}));

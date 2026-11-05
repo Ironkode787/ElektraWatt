@@ -206,6 +206,10 @@ fn the_pages_field_shows_the_parsers_and_the_page_orders_refusal() {
             "error: The pages could not be read. Type folio labels or ranges, separated by commas.",
         ]
     );
+    assert_eq!(
+        s.print_disabled_reason().as_deref(),
+        Some("\"100,,101\" is not a page range of this project")
+    );
     // FT-1124 (ID-1225): the page order's refusal is the same sentence, once, under the field; the preview is empty.
     done(&mut s, "print.set", json!({"pages": "999"}));
     assert_eq!(
@@ -219,7 +223,11 @@ fn the_pages_field_shows_the_parsers_and_the_page_orders_refusal() {
         s.print_dialog().map(|d| d.build.clone()),
         Some(ew_viewmodel::shell::print::PrintBuild::Empty)
     );
-    assert_eq!(s.print_disabled_reason().as_deref(), Some("No pages are chosen"));
+    // FT-1172, FT-1190: Print… says why in words; the refusal is told by its kind.
+    assert_eq!(
+        s.print_disabled_reason().as_deref(),
+        Some("\"999\" is not a page range of this project")
+    );
     done(&mut s, "print.set", json!({"pages": "101-102"}));
     assert_eq!(s.print_page_text().as_deref(), Some("1 of 2"));
     done(&mut s, "print.page", json!({"to": "next"}));
@@ -261,7 +269,7 @@ fn print_send_hands_the_set_to_the_window_and_each_end_has_one_toast() {
         ),
         (
             PrintEnd::FellBackToViewer,
-            "Printing could not start, so J-E-2416 opened in your PDF viewer to print from there",
+            "Printing could not start, so J-E-2416 opened in your PDF viewer to print from there.",
         ),
         (
             PrintEnd::Failed("`lp` failed with exit status: 1".to_owned()),
@@ -270,6 +278,11 @@ fn print_send_hands_the_set_to_the_window_and_each_end_has_one_toast() {
         (
             PrintEnd::Failed("`lp` said: no default destination.".to_owned()),
             "Printing failed: `lp` said: no default destination. Export a PDF and print it from your PDF viewer.",
+        ),
+        // FT-1192: a cause that ends in an ellipsis keeps it whole.
+        (
+            PrintEnd::Failed("`lp` said: printer busy...".to_owned()),
+            "Printing failed: `lp` said: printer busy... Export a PDF and print it from your PDF viewer.",
         ),
         (
             PrintEnd::Unavailable,
