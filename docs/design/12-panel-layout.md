@@ -378,6 +378,12 @@ snap_on_rail(rail, device, cursor, mode):
   accessories, and recomputes on every strip change. Adding a terminal in the schematic lengthens the placed strip in
   the next derivation; if the rail overflows, EW-LAY-010 reports it. A strip may be split across carriers with
   `segment` ranges, and it stays one BOM row (D-42).
+  *As built (cycle 52, FT-1441; decision log ID-1416).* A strip that grows by `terminal.insert` or by a new terminal
+  placed in the schematic shifts the items after it on its rail by the overlap, cascading as push does (§3.3), in the
+  same transaction: free space after the strip is used first, a locked item stops the cascade (EW-LAY-010 then reports
+  the overlap), and past the rail end the positions are written and EW-LAY-010 reports `bracket_outside`. The command
+  is never refused for the layout's sake. A strip whose footprint is unknown before or after (a terminal without a
+  part, so every `terminal.add`) pushes nothing; neither does a strip turned 180°, whose growth runs left.
 - **Group accessories** (FR-LAY-060, MVP). A group is a maximal run of abutting strip placements on one rail.
   Wherever strips are placed, `rail_occupancy` derives one end bracket per strip boundary in the run plus one at each
   run end, so k abutting strips need k + 1 brackets. GP rail R2 holds 1X1, -X1031 and -X1032 abutting: **4**
@@ -401,6 +407,10 @@ snap_on_rail(rail, device, cursor, mode):
 | Device location changes (+J-E-2416 → +J-E-206) | placement kept; EW-LAY-004 with quick fixes "remove placement" and "move to the layout space of +J-E-206" | silent move |
 | Terminal added to a placed strip | strip length grows; EW-LAY-010 on overflow | rail auto-extension |
 | Part use removed that a placement names | EW-LAY-003; quick fix "realise the primary part" | silent retarget |
+
+*As built (cycle 52, FT-1441; decision log ID-1416).* "Terminal added to a placed strip" now also moves the items after
+the strip on its rail by the overlap, as §3.4's as-built note says; the strip's length still grows and EW-LAY-010 still
+reports an overflow, and the rail is still never extended.
 
 ### 3.6 Carrier deletion
 

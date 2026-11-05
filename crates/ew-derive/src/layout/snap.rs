@@ -394,8 +394,14 @@ fn push(others: &[RailItem], length: i128, m: &RailItem, s_left: i128) -> Result
 /// items after it in rail order. Each item moves right only as far as its minimum gap to its moved left neighbour
 /// requires; the cascade stops at the first that need not move. Then the last moved item, with its rail-end gap when it
 /// is the last item of the rail, must end by `length`. `first_is_item`: `first` is the dropped item (a past-end refusal
-/// then names no neighbour).
-fn cascade(
+/// then names no neighbour). Push and swap run it, and so does a strip that grows by inserted terminals (`ew-commands`,
+/// FT-1441), with `first` the grown strip.
+///
+/// # Errors
+///
+/// [`SnapError::Locked`] for a locked item that would move, [`SnapError::PastEnd`] when the last moved item passes
+/// `length`; the moves are then not returned.
+pub fn cascade(
     first: RailItem,
     rest: &[RailItem],
     length: i128,

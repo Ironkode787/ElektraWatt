@@ -18,7 +18,7 @@
 
 use crate::golden_common;
 
-use ew_api::output::{RowExport, page_layer, row_export};
+use ew_api::output::{RowExport, StripEdit, page_layer, row_export};
 use ew_api::{AnyCommand, CmdError, Session};
 use ew_derive::ew_ids::{Id, Uuid};
 use ew_derive::ew_units::{Nm, Pt2, Rect};
@@ -449,4 +449,73 @@ fn eb_the_bracket_lines_memoise_as_they_run_cold() {
     check(&s, "-102G1 moved");
     let mismatches = s.take_oracle_mismatches();
     assert!(mismatches.is_empty(), "{mismatches:?}");
+}
+
+/// Inserts `count` terminals at the end of `strip` as the strip editor compiles it (`terminal.insert` with the
+/// reference terminal's definition and parts).
+fn insert_terminals(s: &mut Session, strip: &str, count: u32) {
+    let cmd = s
+        .strip_edit(&StripEdit::Insert {
+            strip: dev(strip).as_uuid(),
+            before: None,
+            count,
+            designation: None,
+        })
+        .expect("the insert compiles");
+    assert_eq!(cmd.name, "terminal.insert");
+    run(s, &cmd.name, cmd.params);
+}
+
+/// Where the footprint of placement `key` starts along its rail (a strip's clip point is its left end), in tenths of a
+/// millimetre.
+fn s10(s: &Session, key: &str) -> i64 {
+    let q = s.query();
+    let row = q.table::<Placement>().get(placement(key)).cloned().expect("the placement");
+    row.pose.t[0].0 * 10 / MM
+}
+
+/// FT-1441 (decision log ID-1416; doc 12 §3.3's push), T3's case on R2 (570 mm): one PT 2.5-TWIN (5.2 mm) inserted into
+/// -X1031 moves -X1032 from 172.6 to 177.8 mm in the same step, with no finding; 69 fit, 70 put -X1032's bracket past
+/// the rail end (one `bracket_outside`); with -X1032 locked it stays, the insert is not refused and the bracket after
+/// -X1031 overlaps it.
+#[test]
+fn ft1441_a_growing_strip_pushes_the_items_after_it() {
+    let fresh = || golden_common::session(&golden_common::batch());
+    let mut s = fresh();
+    assert_eq!((s10(&s, "-X1031"), s10(&s, "-X1032")), (586, 1726));
+    insert_terminals(&mut s, "-X1031", 1);
+    assert_eq!((s10(&s, "-X1031"), s10(&s, "-X1032")), (586, 1778));
+    assert_eq!(bracket_findings(&s), Vec::<(String, String)>::new());
+
+    let mut s = fresh();
+    insert_terminals(&mut s, "-X1031", 69);
+    assert_eq!(s10(&s, "-X1032"), 1726 + 69 * 52);
+    assert_eq!(bracket_findings(&s), Vec::<(String, String)>::new());
+
+    let mut s = fresh();
+    insert_terminals(&mut s, "-X1031", 70);
+    assert_eq!(s10(&s, "-X1032"), 1726 + 70 * 52);
+    assert_eq!(
+        bracket_findings(&s),
+        vec![(
+            "The end bracket after =P01+J-E-2416-X1032 passes the end of rail 2 by 2.6 mm.".to_owned(),
+            "De eindsteun na =P01+J-E-2416-X1032 steekt 2.6 mm voorbij het einde van rail 2.".to_owned(),
+        )]
+    );
+
+    let mut s = fresh();
+    run(
+        &mut s,
+        "layout.lock",
+        json!({"placement": id_json(placement("-X1032")), "locked": true}),
+    );
+    insert_terminals(&mut s, "-X1031", 1);
+    assert_eq!(s10(&s, "-X1032"), 1726);
+    assert_eq!(
+        bracket_findings(&s),
+        vec![(
+            "The end bracket after =P01+J-E-2416-X1031 overlaps =P01+J-E-2416-X1032 on rail 2.".to_owned(),
+            "De eindsteun na =P01+J-E-2416-X1031 overlapt =P01+J-E-2416-X1032 op rail 2.".to_owned(),
+        )]
+    );
 }

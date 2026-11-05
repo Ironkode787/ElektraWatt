@@ -15,7 +15,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use ew_derive::Q;
 use ew_derive::layout::{
     Fit, Mountable, PathError, PoseError, PoseOn, Profile, Quarter, RailAxis, RailExtent, RailItem,
-    Resolution, SnapError, SnapMode, Unplaced, bracket_part, carrier_label, check_path, check_pose,
+    PlacementGeometry, Resolution, SnapError, SnapMode, Unplaced, bracket_part, carrier_label, cascade, check_path,
+    check_pose,
     clip_offset, fits_rail, member_order, member_slot, min_gap, mm, mount_label, next_fit, plate_frame,
     rail_extent, rail_items, rehome_pose, resolve,
 };
@@ -1670,6 +1671,87 @@ pub(crate) fn follow_part_change(
         tx.update::<Placement>(p, |pl| pl.part = Some(PartRef::new(new)))?;
     }
     Ok(())
+}
+
+/// FT-1441 (doc 12 §3.3's push; decision log ID-1416): after terminals were inserted into `strip`, each placement of the
+/// strip as a whole on a rail (turned 0°) that grew shifts the items after it on the rail by the overlap, cascading
+/// ([`cascade`] with the grown strip first), in the same transaction. The grown width is the strip's terminals as the
+/// transaction holds them, side by side; the positions are the base snapshot's.
+///
+/// - Free space after the strip is used first; an item moves only as far as its minimum gap to its moved neighbour
+///   requires (between two strips, the end bracket).
+/// - A locked item stops the cascade: the items before it move, it and those after it stay, and EW-LAY-010 reports the
+///   overlap. Past the rail's end the positions are written all the same, and EW-LAY-010 reports `bracket_outside`. The
+///   command is never refused for the layout's sake.
+/// - A strip whose footprint is unknown before or after (a terminal without a part or without a width and height)
+///   pushes nothing, so `terminal.add`, which inserts terminals without a part, never pushes.
+pub(crate) fn push_after_growth(tx: &mut TxBuilder<'_>, strip: Id<Device>) -> Result<(), CmdError> {
+    let mut width = 0i128;
+    for t in tx.terminals_of_strip(strip) {
+        let size = tx
+            .get::<Device>(t)
+            .and_then(|d| primary_part(tx, &d))
+            .and_then(|p| mech_of(tx, p.copy))
+            .and_then(|m| Some((m.width?, m.height?)));
+        let Some((w, _)) = size else {
+            return Ok(());
+        };
+        width += i128::from(w.0);
+    }
+    let base_model = tx.base_model().clone();
+    let q = Q::new(&base_model);
+    let mut writes = Vec::new();
+    for p in tx.placements_of_device(strip) {
+        let Some(row) = tx.get::<Placement>(p) else {
+            continue;
+        };
+        let CarrierRef::Carrier(c) = row.carrier else {
+            continue;
+        };
+        let known = q.get::<PlacementGeometry>(p).as_ref().as_ref().is_some_and(|g| !g.unknown);
+        if row.part.is_some() || !known || Quarter::of(row.pose.q) != Some(Quarter::NONE) {
+            continue;
+        }
+        let Some(axis) = tx.get::<Carrier>(c).and_then(|r| RailAxis::of(&r.path)) else {
+            continue;
+        };
+        if let Some(d) = tx.get::<Device>(strip) {
+            note_rail_reads(tx, c, &[d.as_ref()]);
+        }
+        let mut items = rail_items(&q, c);
+        items.sort_by_key(|i| (i.s0, i.s1, i.placement));
+        let Some(k) = items.iter().position(|i| i.placement == Some(p)) else {
+            continue;
+        };
+        let grown = RailItem {
+            s1: items[k].s0 + width,
+            ..items[k]
+        };
+        if grown.s1 <= items[k].s1 {
+            continue;
+        }
+        // The rail's end refuses nothing here: EW-LAY-010 reports it.
+        let rest = &items[k + 1..];
+        let moves = match cascade(grown, rest, i128::MAX, true) {
+            Ok(moves) => moves,
+            Err(SnapError::Locked(Some(locked))) => {
+                let stop = rest.iter().position(|i| i.placement == Some(locked)).unwrap_or(0);
+                cascade(grown, &rest[..stop], i128::MAX, true).unwrap_or_default()
+            }
+            Err(_) => Vec::new(),
+        };
+        for (moved, s0) in moves {
+            let (Some(pl), Some(old)) = (
+                tx.get::<Placement>(moved),
+                rest.iter().find(|i| i.placement == Some(moved)),
+            ) else {
+                continue;
+            };
+            let s = i128::from(pl.pose.t[0].0) + (s0 - old.s0);
+            writes.push((moved, rail_pose(tx, &axis, s, &pl.pose)?));
+        }
+    }
+    move_neighbours(tx, writes)
 }
 
 // ---------------------------------------------------------------------------------------------------------

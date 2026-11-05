@@ -19,6 +19,7 @@ use serde_json::Value;
 
 use crate::command::{Command, Outcome};
 use crate::commands::assign::embed_closure;
+use crate::commands::layout::push_after_growth;
 use crate::error::CmdError;
 use crate::meta::CommandMeta;
 use crate::proxy::{IdentS, MlTextS, UuidS};
@@ -344,7 +345,8 @@ fn designation_of(tx: &TxBuilder<'_>, t: Id<Device>) -> String {
 /// the number of terminals. In one transaction every terminal of the strip with `seq ≥ s` gets `seq + n` (its tag
 /// and designation stay), every group bound (`from_seq`, `to_seq`) and every accessory `after_seq` at or above s is
 /// raised by n, and the new terminals are inserted as `terminal.add` inserts them, with `seq` s, s + 1, … in list
-/// order and `parts` on each. Rejected: the strip is not a device with the strip aspect; `before` is not a terminal of
+/// order and `parts` on each. A placement of the strip on a rail that grows pushes the items after it by the overlap,
+/// cascading (FT-1441). Rejected: the strip is not a device with the strip aspect; `before` is not a terminal of
 /// the strip; new terminals between two terminals of one consecutive bridge group (FT-641, CI-06: the message names
 /// the group and the places outside it); no terminal; a spec with `seq`; a designation already used in the strip or twice in the list; a
 /// sequence number beyond 4294967295. A missing strip, `before`, function definition or part copy is `NotFound`.
@@ -527,6 +529,8 @@ impl Command for InsertTerminals {
             )?;
             first.get_or_insert(device);
         }
+        // FT-1441: the grown strip pushes the items after it on its rail.
+        push_after_growth(tx, self.strip)?;
         Ok(Outcome {
             primary: first.map(|d| (Kind::Device, d.cast())),
             note: None,

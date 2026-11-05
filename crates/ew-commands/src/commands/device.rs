@@ -23,6 +23,7 @@ use serde_json::Value;
 use crate::command::{Command, Outcome};
 use crate::commands::assign::embed_closure;
 use crate::commands::common::EndpointParam;
+use crate::commands::layout::push_after_growth;
 use crate::commands::terminal::{TerminalSpec, insert_terminal, strip_usage};
 use crate::error::CmdError;
 use crate::geometry::{
@@ -1707,6 +1708,7 @@ fn insert_new_terminal(
         rail_bonded: false,
     };
     let (_, function) = insert_terminal(tx, strip_id, &strip, def, &spec, seq, parts)?;
+    push_after_growth(tx, strip_id)?;
     Ok(function)
 }
 
