@@ -488,3 +488,4 @@ scheduled, expired and other.
 - FT-1469 (cycle 51, Low, CI; due: WP-S3.10): the QElectroTech mirror corpus fetched at a pinned commit in CI (doc 14 §12; SC-4; WP-S3.09 FP-5). Source: ID-1379
 - FT-1470 (cycle 51, Low, ew-interop-api, ew-checks; due: WP-S3.10): Fluent keys and arguments for import findings (doc 14 §2.4's `FluentKey`; WP-S3.09 FP-6). Source: ID-1379
 - FT-1471 (cycle 51, Low, ew-format; due: WP-S3.10): a merge rule for `ImportLineage.last_run` when two branches import into one lineage (WP-S3.09 FP-8). Source: ID-1379
+- FT-1472 (cycle 51, Low, ew-ui; due: cycle 52 (FT batch)): `census::census_every_dialog` failed once in cycle 51's full merge-point verify under load (53 s, the whole workspace in parallel) and passed alone (21 s); since FIX51p3 it opens every submenu path, so find what it waits on (a frame or settle bound) and make it independent of load, without a retry. Source: ID-1388
