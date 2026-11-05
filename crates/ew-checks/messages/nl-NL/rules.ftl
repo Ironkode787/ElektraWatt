@@ -47,7 +47,7 @@ rule-ew-core-014 =
     .title = Bibliotheekkopie gewijzigd
 
 rule-ew-core-015 =
-    .title = Asset ontbreekt
+    .title = Middel ontbreekt
 
 rule-ew-core-016 =
     .title = Gegevens uit een nieuwer formaat
