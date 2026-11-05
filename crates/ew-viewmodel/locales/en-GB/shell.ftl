@@ -3156,6 +3156,14 @@ reason-macro-no-key = The name has no letter or digit to make a key from; type a
 reason-library-write-window = Only a person saves a macro, in the window: a library write is not undoable and no script reaches it
 reason-variable-one-record = Make variable takes the field of one record
 reason-variable-derived = A derived value cannot be a variable
+# FT-1477 (ID-1409): the words of a text-slots value in the macro value table ("slot 2: at 10, -5 mm, turned 90°,
+# hidden; slot 3: shown"), each a word the cell reads back.
+macro-slots-default = as the symbol
+macro-slots-slot = slot
+macro-slots-at = at
+macro-slots-turned = turned
+macro-slots-hidden = hidden
+macro-slots-shown = shown
 macro-conflict-tag = The tag { $p0 } is printed by another device
 macro-conflict-pairs = { $p0 } pairs with { $p1 } existing interruption points
 macro-conflict-pairs-one = { $p0 } pairs with an existing interruption point

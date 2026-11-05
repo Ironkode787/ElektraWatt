@@ -1655,11 +1655,19 @@ mod tests {
     #[test]
     fn a_card_kind_reads_in_the_ui_language() {
         assert_eq!(
-            [kind_plural("device", 1), kind_plural("device", 2), kind_plural("medium", 2)],
+            [
+                kind_plural("device", 1),
+                kind_plural("device", 2),
+                kind_plural("medium", 2)
+            ],
             ["device", "devices", "media"]
         );
         assert!(strings::set_locale("nl"));
-        let dutch = [kind_plural("device", 1), kind_plural("device", 2), kind_plural("potential_def", 3)];
+        let dutch = [
+            kind_plural("device", 1),
+            kind_plural("device", 2),
+            kind_plural("potential_def", 3),
+        ];
         assert!(strings::set_locale("en"));
         assert_eq!(dutch, ["apparaat", "apparaten", "potentiaaldefinities"]);
     }

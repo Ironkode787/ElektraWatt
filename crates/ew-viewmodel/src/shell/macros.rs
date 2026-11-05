@@ -130,14 +130,105 @@ fn literal_value(ty: &str, text: &str) -> Value {
             .map_or_else(|_| Value::from(text), Value::from),
         "number" => Value::from(text.replace(',', ".")),
         "part" if text.parse::<Uuid>().is_ok() => json!({ "copy": text }),
+        "text_slots" => slots_value(text).unwrap_or_else(|| Value::from(text)),
         _ => Value::from(text),
     }
 }
 
-/// A variable's value as the card and the value-set table show it: a text as it is, a part by its copy ID, any other
-/// value as its JSON text.
+/// A text-slots value typed in words (FT-1477), in the UI language: `as the symbol` is the empty list (every slot as
+/// the symbol draws it), else one clause per slot, `;` between them: `slot 2: at 10, -5 mm, turned 90°, hidden`, each
+/// part optional and in any order. `None` for a text that does not read so.
+fn slots_value(text: &str) -> Option<Value> {
+    let word = |k: Key<'_>| strings::text(k).to_lowercase();
+    let text = text.to_lowercase().replace('\u{2212}', "-");
+    if text == word(key!("macro-slots-default")) {
+        return Some(Value::Array(Vec::new()));
+    }
+    let mut slots = Vec::new();
+    for clause in text.split(';') {
+        let clause = clause.replace([',', ':'], " ").replace('°', " ");
+        let mut tokens = clause.split_whitespace().filter(|t| *t != "mm");
+        if tokens.next()? != word(key!("macro-slots-slot")) {
+            return None;
+        }
+        let n: u16 = tokens.next()?.parse().ok().filter(|n| *n >= 1)?;
+        let mut slot = Map::new();
+        slot.insert("slot".to_owned(), json!(n - 1));
+        while let Some(t) = tokens.next() {
+            if t == word(key!("macro-slots-at")) {
+                let x = ew_api::output::parse_mm(tokens.next()?)?;
+                let y = ew_api::output::parse_mm(tokens.next()?)?;
+                slot.insert(
+                    "pos".to_owned(),
+                    json!([i64::try_from(x).ok()?, i64::try_from(y).ok()?]),
+                );
+            } else if t == word(key!("macro-slots-turned")) {
+                // Degrees to millidegrees, through the millimetre reading's six fraction digits.
+                let micro = ew_api::output::parse_mm(tokens.next()?)?;
+                if micro % 1000 != 0 {
+                    return None;
+                }
+                slot.insert("angle".to_owned(), json!(i32::try_from(micro / 1000).ok()?));
+            } else if t == word(key!("macro-slots-hidden")) {
+                slot.insert("visible".to_owned(), Value::Bool(false));
+            } else if t == word(key!("macro-slots-shown")) {
+                slot.insert("visible".to_owned(), Value::Bool(true));
+            } else {
+                return None;
+            }
+        }
+        slots.push(Value::Object(slot));
+    }
+    Some(Value::Array(slots))
+}
+
+/// A text-slots value in words (FT-1477), as [`slots_value`] reads them back; `None` for a list that is not one of
+/// slot overrides.
+fn slots_text(items: &[Value]) -> Option<String> {
+    if items.is_empty() {
+        return Some(strings::text(key!("macro-slots-default")).to_owned());
+    }
+    let mut clauses = Vec::new();
+    for item in items {
+        let slot = item.get("slot")?.as_u64()?;
+        let mut parts = Vec::new();
+        if let Some(pos) = item.get("pos") {
+            let x = pos.get(0)?.as_i64()?;
+            let y = pos.get(1)?.as_i64()?;
+            parts.push(format!(
+                "{} {}, {} mm",
+                strings::text(key!("macro-slots-at")),
+                super::layout::mm_text(i128::from(x), false),
+                super::layout::mm_text(i128::from(y), false)
+            ));
+        }
+        if let Some(angle) = item.get("angle") {
+            parts.push(format!(
+                "{} {}°",
+                strings::text(key!("macro-slots-turned")),
+                super::layout::mm_text(i128::from(angle.as_i64()?) * 1000, false)
+            ));
+        }
+        match item.get("visible").and_then(Value::as_bool) {
+            Some(true) => parts.push(strings::text(key!("macro-slots-shown")).to_owned()),
+            Some(false) => parts.push(strings::text(key!("macro-slots-hidden")).to_owned()),
+            None => {}
+        }
+        let slot = format!("{} {}", strings::text(key!("macro-slots-slot")), slot + 1);
+        clauses.push(if parts.is_empty() {
+            slot
+        } else {
+            format!("{slot}: {}", parts.join(", "))
+        });
+    }
+    Some(clauses.join("; "))
+}
+
+/// A variable's value as the card and the value-set table show it: a text as it is, a part by its copy ID, a list of
+/// text slots in words (FT-1477), any other value as its JSON text.
 fn value_text(v: &Value) -> String {
     match v {
+        Value::Array(items) => slots_text(items).unwrap_or_else(|| v.to_string()),
         Value::String(s) => s.clone(),
         Value::Object(o) => match o.get("copy") {
             Some(Value::String(c)) => c.clone(),
@@ -1200,5 +1291,52 @@ mod tests {
         assert_eq!(words[0], "a second source");
         assert!(words[1].contains("L-1") && words[1].contains('2'), "{words:?}");
         assert!(words[2].contains("N-1"), "{words:?}");
+    }
+
+    /// FT-1477: a text-slots value reads and shows in words in each language, and the words read back.
+    #[test]
+    fn a_text_slots_value_reads_in_words() {
+        let slots = json!([
+            {"slot": 1, "pos": [10_000_000, -5_500_000], "angle": 90_000, "visible": false},
+            {"slot": 2, "visible": true},
+            {"slot": 4}
+        ]);
+        let Value::Array(items) = &slots else {
+            unreachable!()
+        };
+        let en = "slot 2: at 10, -5.5 mm, turned 90°, hidden; slot 3: shown; slot 5";
+        assert_eq!(value_text(&slots), en);
+        assert_eq!(literal_value("text_slots", en), slots);
+        assert_eq!(literal_value("text_slots", "As the symbol"), json!([]));
+        assert_eq!(value_text(&json!([])), "as the symbol");
+        // Any order, the minus sign, no unit.
+        assert_eq!(
+            literal_value("text_slots", "Slot 2: hidden, turned 90, at 10 −5.5"),
+            json!([{"slot": 1, "visible": false, "angle": 90_000, "pos": [10_000_000, -5_500_000]}])
+        );
+        // A text that does not read stays a text, which the command refuses.
+        assert_eq!(
+            literal_value("text_slots", "slot 0: hidden"),
+            json!("slot 0: hidden")
+        );
+        assert_eq!(literal_value("text_slots", "slot 2: left"), json!("slot 2: left"));
+        assert!(strings::set_locale("nl"));
+        let nl = (
+            slots_text(items),
+            slots_value(
+                "tekstvak 2: op 10, -5.5 mm, gedraaid 90°, verborgen; tekstvak 3: zichtbaar; tekstvak 5",
+            ),
+        );
+        assert!(strings::set_locale("en"));
+        assert_eq!(
+            nl,
+            (
+                Some(
+                    "tekstvak 2: op 10, -5.5 mm, gedraaid 90°, verborgen; tekstvak 3: zichtbaar; tekstvak 5"
+                        .to_owned()
+                ),
+                Some(slots.clone())
+            )
+        );
     }
 }
