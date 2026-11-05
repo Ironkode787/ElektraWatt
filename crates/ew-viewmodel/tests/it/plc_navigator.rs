@@ -741,7 +741,10 @@ fn ft1448_the_address_profile_is_chosen_in_properties() {
         (text.clone(), options)
     };
     let (now, options) = profile(&s);
-    assert!(options.len() >= 2 && options.contains(&now), "{now} among {options:?}");
+    assert!(
+        options.len() >= 2 && options.contains(&now),
+        "{now} among {options:?}"
+    );
     let other = options.iter().find(|o| **o != now).unwrap().clone();
     done(
         &mut s,
