@@ -522,8 +522,8 @@ impl Command for ApproveRevision {
                 "/scheme",
                 text!(
                     "refusal-checks-scheme-unknown",
-                    self.scheme.as_str().to_string(),
-                    schemes.join(", ").to_string()
+                    self.scheme.as_str(),
+                    schemes.join(", ")
                 ),
             ));
         }

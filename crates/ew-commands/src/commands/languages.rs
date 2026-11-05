@@ -84,10 +84,7 @@ impl Command for SetProjectLanguages {
                     return Err(CmdError::invalid_params(
                         Self::NAME,
                         "/translations",
-                        text!(
-                            "refusal-languages-source-as-translation",
-                            source.as_str().to_string()
-                        ),
+                        text!("refusal-languages-source-as-translation", source.as_str()),
                     ));
                 }
                 let translations: Set<LangTag> = self.translations.iter().cloned().collect();

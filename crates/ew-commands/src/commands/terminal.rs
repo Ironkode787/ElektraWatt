@@ -421,19 +421,13 @@ impl Command for InsertTerminals {
             if existing.contains(&spec.designation) {
                 return Self::bad(
                     format!("/terminals/{i}/designation"),
-                    text!(
-                        "refusal-terminal-designation-used",
-                        spec.designation.as_str().to_string()
-                    ),
+                    text!("refusal-terminal-designation-used", spec.designation.as_str()),
                 );
             }
             if !listed.insert(&spec.designation) {
                 return Self::bad(
                     format!("/terminals/{i}/designation"),
-                    text!(
-                        "refusal-terminal-designation-twice",
-                        spec.designation.as_str().to_string()
-                    ),
+                    text!("refusal-terminal-designation-twice", spec.designation.as_str()),
                 );
             }
         }

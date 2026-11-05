@@ -142,7 +142,7 @@ fn read_part(raw: &Value) -> Result<Part, CmdError> {
             if !seen.insert(v.key.as_str().to_owned()) {
                 return Err(bad(
                     format!("/part/tech_data/{i}"),
-                    text!("refusal-part-edit-tech-twice", v.key.as_str().to_string()),
+                    text!("refusal-part-edit-tech-twice", v.key.as_str()),
                 ));
             }
             values.push(v);

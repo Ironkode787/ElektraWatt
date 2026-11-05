@@ -2291,9 +2291,9 @@ mod tests {
 
     /// FT-1337 (ID-1359 ruling 1): no refusal of the crate goes without its key. `tx.reject` and `CmdError::rejected`
     /// take a [`Text`]; besides them, no source builds a `CmdError::Rejected` itself (with `source:`) or one without a
-    /// text (`text: None`), and every key of [`TEXTS`] is named by the code. FT-1395 (ID-1415): `CmdError::invalid_params`
-    /// and the helpers around it take a [`Text`] too, so no source builds a `CmdError::InvalidParams` itself (with
-    /// `message:`), and none builds a [`Text`] but through `text!`.
+    /// text (`text: None`), and every key of [`TEXTS`] is named by the code. FT-1395 (ID-1415):
+    /// `CmdError::invalid_params` and the helpers around it take a [`Text`] too, so no source builds a
+    /// `CmdError::InvalidParams` itself (with `message:`), and none builds a [`Text`] but through `text!`.
     #[test]
     fn every_refusal_of_the_crate_is_keyed() {
         let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src");

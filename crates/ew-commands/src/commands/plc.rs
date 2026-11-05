@@ -424,7 +424,7 @@ impl Command for SetProfile {
                 text!(
                     "refusal-plc-profile-unknown",
                     self.profile.to_string(),
-                    list.join(", ").to_string()
+                    list.join(", ")
                 ),
             ));
         };

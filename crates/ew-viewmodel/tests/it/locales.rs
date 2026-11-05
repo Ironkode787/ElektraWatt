@@ -462,6 +462,56 @@ const OTHER_SENSES: &[(&str, &str, &str)] = &[
         "part",
         "a share of an assembly (deel)",
     ),
+    // FT-1395: a command, a member, a value or a library kind by its own name, a rule pack's code, a Git tag, a share.
+    (
+        "refusal-box-black-terminal",
+        "device",
+        "the command `device.place`",
+    ),
+    (
+        "refusal-check-waive-rule-id",
+        "core",
+        "the rule pack code EW-CORE",
+    ),
+    ("refusal-library-copy-hash", "core", "the rule code EW-CORE-014"),
+    (
+        "refusal-fields-port-role-unknown",
+        "device",
+        "the port role value `device`",
+    ),
+    (
+        "refusal-join-device-link",
+        "part",
+        "the phrase \"takes part in\" (neemt deel aan)",
+    ),
+    (
+        "refusal-layout-carrier-edit-no-member",
+        "part",
+        "the member `part`",
+    ),
+    ("refusal-library-embed-kind", "part", "the library kind `part`"),
+    (
+        "refusal-library-embed-kind",
+        "symbol",
+        "the library kind `symbol`",
+    ),
+    ("refusal-paste-library-kind", "part", "the library kind `part`"),
+    (
+        "refusal-paste-library-kind",
+        "symbol",
+        "the library kind `symbol`",
+    ),
+    (
+        "refusal-library-update-not-held",
+        "library",
+        "the command `library.embed`",
+    ),
+    (
+        "refusal-library-update-not-held",
+        "part",
+        "the command `part.assign`",
+    ),
+    ("refusal-revision-git-tag", "tag", "a Git tag"),
 ];
 
 /// NL-2 (ID-1269 rulings 1 and 2): the terminology table heads the nl-NL file with the ruling's rows; over the

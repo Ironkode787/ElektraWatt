@@ -871,7 +871,7 @@ impl Insertion<'_> {
                                     "refusal-paste-adapt-major",
                                     kind.to_string(),
                                     lib_title(value).to_string(),
-                                    diff.major_reasons.join(", ").to_string()
+                                    diff.major_reasons.join(", ")
                                 ),
                             ));
                         }

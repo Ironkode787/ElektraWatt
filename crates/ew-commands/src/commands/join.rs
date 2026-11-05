@@ -316,7 +316,7 @@ impl Command for JoinDevice {
                 text!(
                     "refusal-join-cp-connected",
                     self.device.to_string(),
-                    lost.join(", ").to_string()
+                    lost.join(", ")
                 ),
             ));
         }

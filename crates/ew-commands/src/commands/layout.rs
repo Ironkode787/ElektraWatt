@@ -2540,10 +2540,7 @@ impl Command for CreateEnclosureFromPart {
                 return Err(CmdError::invalid_params(
                     name,
                     "/function",
-                    text!(
-                        "refusal-layout-node-not-function",
-                        fnode.code.as_str().to_string()
-                    ),
+                    text!("refusal-layout-node-not-function", fnode.code.as_str()),
                 ));
             }
         }

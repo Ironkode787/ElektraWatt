@@ -79,8 +79,8 @@ impl Command for SetCheckSchemes {
                     format!("/{member}"),
                     text!(
                         "refusal-checks-scheme-unknown",
-                        name.as_str().to_string(),
-                        SHIPPED_CHECK_SCHEMES.join(", ").to_string()
+                        name.as_str(),
+                        SHIPPED_CHECK_SCHEMES.join(", ")
                     ),
                 ));
             }
@@ -188,7 +188,7 @@ impl Command for WaiveFinding {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/rule",
-                text!("refusal-check-waive-rule-id", self.rule.as_str().to_string()),
+                text!("refusal-check-waive-rule-id", self.rule.as_str()),
             ));
         }
         if self.fingerprint.len() != 32 || !self.fingerprint.bytes().all(|b| b.is_ascii_hexdigit()) {

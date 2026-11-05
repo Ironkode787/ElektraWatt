@@ -55,7 +55,7 @@ impl Command for SetProjectSupply {
                 text!(
                     "refusal-supply-member-unknown",
                     self.path.to_string(),
-                    SETTABLE_SUPPLY.join(", ").to_string()
+                    SETTABLE_SUPPLY.join(", ")
                 ),
             ));
         }

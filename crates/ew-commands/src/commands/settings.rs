@@ -117,7 +117,7 @@ impl Command for SetProjectSettings {
                 text!(
                     "refusal-settings-member-unknown",
                     self.member.to_string(),
-                    settable.join(", ").to_string()
+                    settable.join(", ")
                 ),
             ));
         };
