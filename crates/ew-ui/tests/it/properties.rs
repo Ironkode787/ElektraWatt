@@ -559,7 +559,7 @@ fn j32_property_rows_are_left_aligned_with_one_word_chips() {
     };
     // W40b: at the floor the column then gives way to the widest value it can make whole (or its first word), never
     // under half of `size.property_label`.
-    let expected = need.min(row_width * 0.4).max(tokens.size_property_label);
+    let expected = need.min(row_width * 0.5).max(tokens.size_property_label);
     assert!(
         column.width() <= expected + 0.5 && column.width() >= tokens.size_property_label / 2.0 - 0.5,
         "the label column {} against the rule's {expected} (widest label {need}, row {row_width})",
@@ -1103,36 +1103,45 @@ fn c39_the_header_chip_keeps_its_word_and_stays_inside_the_pane() {
     );
 }
 
-/// FT-1413: at 1280 × 800 in Dutch the project sheet's label column keeps M39's width (its labels need more than 40 %
-/// of the row, so 40 %): it no longer gives way to a list's item count ("4 elementen") or to prose ("Electrical
-/// Definition"), which took it down to its least, half of `size.property_label`.
+/// FT-1413 (ID-1419): in Dutch the project sheet's label column takes what its labels need up to half the row and gives
+/// way to no list's item count ("4 elementen") and to no prose; a label longer than its column wraps at its words onto
+/// a second line and its row grows. At the 1280 × 800 floor no label is cut: "Persoonsgegevens" whole on one line,
+/// "Personen en organisaties" on two; at 1920 × 1080 both stand on one line.
 #[test]
 fn ft1413_the_label_column_gives_way_to_no_count_and_no_prose() {
-    let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "101");
-    h.set_size(egui::Vec2::new(1280.0, 800.0));
-    dispatch(&mut h, "view.language", json!({ "value": "nl" }));
-    settle(&mut h);
-    dispatch(&mut h, "props.project", json!({}));
-    settle(&mut h);
-    settle(&mut h);
-    for label in ["Persoonsgegevens", "Personen en organisaties"] {
-        let columns: Vec<(f32, f32)> = h
-            .get_all_by_role(egui::Role::Group)
-            .filter(|g| g.accesskit_node().label().as_deref() == Some(label))
-            .filter_map(|g| {
-                let column = h.get_all_by_role(egui::Role::Button).find(|n| {
-                    n.accesskit_node().label().as_deref() == Some(label) && g.rect().contains_rect(n.rect())
-                })?;
-                Some((column.rect().width(), g.rect().width()))
-            })
-            .collect();
-        assert!(!columns.is_empty(), "the rows {label}");
-        for (column, row) in columns {
-            assert!(
-                (column - row * 0.4).abs() < 0.5,
-                "{label}: the column {column} in a row {row}"
-            );
+    for (size, wraps) in [
+        (egui::Vec2::new(1280.0, 800.0), true),
+        (egui::Vec2::new(1920.0, 1080.0), false),
+    ] {
+        let tmp = Tmp::new();
+        let mut h = on_golden(&tmp, "101");
+        h.set_size(size);
+        dispatch(&mut h, "view.language", json!({ "value": "nl" }));
+        settle(&mut h);
+        dispatch(&mut h, "props.project", json!({}));
+        settle(&mut h);
+        settle(&mut h);
+        let line = ew_ui::theme::current(&h.ctx).size_control_inline;
+        for (label, two) in [("Persoonsgegevens", false), ("Personen en organisaties", wraps)] {
+            // Each row's label cell: its width, its height, whether it elided (an elided label has its tooltip as its
+            // description), and the row's width.
+            let cells: Vec<(f32, f32, bool, f32)> = h
+                .get_all_by_role(egui::Role::Group)
+                .filter(|g| g.accesskit_node().label().as_deref() == Some(label))
+                .filter_map(|g| {
+                    let cell = h.get_all_by_role(egui::Role::Button).find(|n| {
+                        n.accesskit_node().label().as_deref() == Some(label) && g.rect().contains_rect(n.rect())
+                    })?;
+                    let elided = cell.accesskit_node().description().is_some();
+                    Some((cell.rect().width(), cell.rect().height(), elided, g.rect().width()))
+                })
+                .collect();
+            assert!(!cells.is_empty(), "the rows {label}");
+            for (column, height, elided, row) in cells {
+                assert!(!elided, "{label} at {size:?}: cut");
+                assert!(column <= row * 0.5 + 0.5, "{label} at {size:?}: the column {column} in a row {row}");
+                assert_eq!(height > line + 0.5, two, "{label} at {size:?}: a cell {height} high");
+            }
         }
     }
 }

@@ -469,8 +469,8 @@ fn ft1077_a_row_with_no_value_lets_its_label_run_across_the_value_column() {
     let name = label_rect(&h, "Name");
     assert_eq!(with_value.width(), name.width());
     assert!(
-        with_value.width() < empty.width(),
-        "the column {} is narrower than the run-on label {}",
+        with_value.width() <= empty.width(),
+        "the column {} is wider than the run-on label {} (FT-1413: the column may take its labels' width)",
         with_value.width(),
         empty.width()
     );
