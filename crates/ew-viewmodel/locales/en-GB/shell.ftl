@@ -637,6 +637,8 @@ action-view-theme = Theme
 action-view-density = Density
 action-view-min-font = Minimum text size
 action-view-reduce-motion = Reduce motion
+# FT-1439: the plain mouse wheel scrolls the canvas, Ctrl with the wheel zooms; off, the wheel zooms.
+action-view-wheel-scrolls = Mouse wheel scrolls
 action-view-tips = Show tips
 
 # WP-S2.17 part 2: the command bar (doc 16a §5).

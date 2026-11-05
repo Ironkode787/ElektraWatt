@@ -394,4 +394,21 @@ impl ShellModel {
         }
         Outcome::Done
     }
+
+    /// View, Mouse wheel scrolls (FT-1439, ID-1397): `on`, else the opposite of the setting; on, the plain wheel
+    /// scrolls the canvas and Ctrl with the wheel zooms, as in QElectroTech; off, the wheel zooms.
+    pub(crate) fn act_wheel_scrolls(&mut self, p: &Map<String, Value>) -> Outcome {
+        let on = match p.get("on") {
+            None => !self.settings.wheel_scrolls,
+            Some(v) => match v.as_bool() {
+                Some(b) => b,
+                None => return failed(key!("error-bad-param"), &["on"]),
+            },
+        };
+        if self.settings.wheel_scrolls != on {
+            self.settings.wheel_scrolls = on;
+            self.save_settings();
+        }
+        Outcome::Done
+    }
 }

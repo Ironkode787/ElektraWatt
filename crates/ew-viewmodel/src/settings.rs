@@ -119,6 +119,9 @@ pub struct Settings {
     /// Reduce motion (`reduce_motion`, WP-S2.08 D14, NFR-A11Y-04); `None` while unset, which is on with the CPU canvas
     /// and off otherwise (`ShellModel::reduce_motion`). Written only when set.
     pub reduce_motion: Option<bool>,
+    /// FT-1439 (ID-1397): whether the plain mouse wheel scrolls the canvas, Ctrl with the wheel zooming
+    /// (`wheel_scrolls`); off, the default, the wheel zooms. Written only when on.
+    pub wheel_scrolls: bool,
     // WP-S2.08 part 6 (D17)
     /// Whether the one-time tips may be shown (`tips`; on unless the file says `tips = false`).
     pub tips: bool,
@@ -152,6 +155,7 @@ impl Default for Settings {
             parts_recent: Vec::new(),
             min_font_pt: 0,
             reduce_motion: None,
+            wheel_scrolls: false,
             tips: true,
             tips_seen: Vec::new(),
             extra: toml::Table::new(),
@@ -253,6 +257,11 @@ impl Settings {
         let reduce_motion = match table.remove("reduce_motion") {
             None => None,
             Some(toml::Value::Boolean(on)) => Some(on),
+            Some(_) => return None,
+        };
+        let wheel_scrolls = match table.remove("wheel_scrolls") {
+            None => false,
+            Some(toml::Value::Boolean(on)) => on,
             Some(_) => return None,
         };
         // WP-S2.08 part 6 (D17): `tips` a bool (absent is on), `tips_seen` a list of texts.
@@ -386,6 +395,7 @@ impl Settings {
             parts_recent,
             min_font_pt,
             reduce_motion,
+            wheel_scrolls,
             tips,
             tips_seen,
             extra: table,
@@ -482,6 +492,9 @@ impl Settings {
         }
         if let Some(on) = self.reduce_motion {
             table.insert("reduce_motion".to_owned(), toml::Value::Boolean(on));
+        }
+        if self.wheel_scrolls {
+            table.insert("wheel_scrolls".to_owned(), toml::Value::Boolean(true));
         }
         // WP-S2.08 part 6 (D17): written only when set, likewise.
         if !self.tips {

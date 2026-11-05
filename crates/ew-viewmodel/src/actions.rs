@@ -2222,6 +2222,19 @@ pub static ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_reduce_motion(p),
         ),
     ),
+    // FT-1439 (ID-1397): View ▸ Mouse wheel scrolls, the setting `wheel_scrolls`; off, the wheel zooms.
+    with_params(
+        "on?:bool",
+        act(
+            "view.wheel_scrolls",
+            View,
+            Menu::View,
+            &[],
+            always,
+            slot(Menu::View),
+            |s, p| s.act_wheel_scrolls(p),
+        ),
+    ),
     // FT-1280 (ID-1315 ruling 3): View ▸ Show tips, the setting `tips` (FR-UI-048), beside Reduce motion.
     with_params(
         "on?:bool",
@@ -5727,6 +5740,7 @@ pub(crate) fn item_of(meta: &ActionMeta, model: &ShellModel) -> ActionItem {
             "view.frame_stats" => model.frame_stats_shown(),
             "view.cpu_canvas" => model.cpu_canvas_setting(),
             "view.reduce_motion" => model.reduce_motion(),
+            "view.wheel_scrolls" => model.settings().wheel_scrolls,
             "view.tips" => model.tips_on(),
             "view.side_by_side" => model.area().is_some_and(crate::area::CanvasArea::side_by_side),
             "props.show" => model

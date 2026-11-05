@@ -618,6 +618,8 @@ action-view-theme = Thema
 action-view-density = Dichtheid
 action-view-min-font = Minimale tekstgrootte
 action-view-reduce-motion = Animaties beperken
+# FT-1439: the plain mouse wheel scrolls the canvas, Ctrl with the wheel zooms; off, the wheel zooms.
+action-view-wheel-scrolls = Muiswiel schuift
 action-view-tips = Tips tonen
 action-view-command-tab = Opdrachttab
 action-view-command-bar = Opdrachtbalk inklappen

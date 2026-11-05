@@ -1260,6 +1260,7 @@ impl CanvasHost {
             group,
             finishes,
             shell.reduce_motion(),
+            shell.settings().wheel_scrolls,
             events,
         );
         self.context_menu(&response, shell, canvas, group, events);
@@ -1745,6 +1746,7 @@ impl CanvasHost {
         group: usize,
         finishes: bool,
         reduce_motion: bool,
+        wheel_scrolls: bool,
         events: &mut Vec<Event>,
     ) {
         let mm = |p: (i64, i64)| (p.0 as f64 / 1e6, p.1 as f64 / 1e6);
@@ -1974,6 +1976,11 @@ impl CanvasHost {
                         // egui's for a scroll area); the plain vertical wheel steps the zoom.
                         MouseWheelUnit::Line | MouseWheelUnit::Page if modifiers.shift => {
                             pan.x += (delta.x + delta.y) * line_pts;
+                        }
+                        // FT-1439 (ID-1397): with View ▸ Mouse wheel scrolls the plain wheel pans as a scroll area
+                        // does, and Ctrl with the wheel zooms (above).
+                        MouseWheelUnit::Line | MouseWheelUnit::Page if wheel_scrolls => {
+                            pan += *delta * line_pts;
                         }
                         MouseWheelUnit::Line | MouseWheelUnit::Page => {
                             lines += delta.y;

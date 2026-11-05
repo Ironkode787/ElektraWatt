@@ -199,3 +199,66 @@ fn ft895_the_wheel_table_by_the_visual_driver() {
     }
     assert_eq!(table, expected());
 }
+
+/// FT-1439 (ID-1397): with View ▸ Mouse wheel scrolls on, the plain vertical wheel scrolls three of egui's lines (32 mm
+/// at 100 %) and leaves the zoom, a line down showing more of the bottom; Ctrl with the wheel still zooms.
+#[test]
+fn ft1439_the_wheel_scrolls_by_the_preference() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp);
+    let out = h
+        .state_mut()
+        .shell_mut()
+        .dispatch("view.wheel_scrolls", &json!({"on": true}));
+    assert_eq!(out, Outcome::Done);
+    let mut table = Vec::new();
+    for m in ["none", "ctrl"] {
+        for step in [(0, 3), (0, -3)] {
+            let out = h
+                .state_mut()
+                .shell_mut()
+                .dispatch("view.zoom_to", &json!({"percent": 100.0}));
+            assert_eq!(out, Outcome::Done);
+            settle(&mut h);
+            let at = canvas_centre(&h);
+            h.input_mut().events.push(egui::Event::PointerMoved(at));
+            h.step();
+            let before = view(&h);
+            let input = h.input_mut();
+            input.events.push(egui::Event::ModifiersChanged(mods(m)));
+            input.events.push(egui::Event::MouseWheel {
+                unit: MouseWheelUnit::Line,
+                delta: Vec2::new(-(step.0 as f32), -(step.1 as f32)),
+                phase: TouchPhase::Move,
+                source: MouseWheelSource::Unknown,
+                modifiers: mods(m),
+            });
+            h.step();
+            h.input_mut()
+                .events
+                .push(egui::Event::ModifiersChanged(Modifiers::NONE));
+            settle(&mut h);
+            table.push((m, step, change(before, view(&h))));
+        }
+    }
+    let row = |m, step, zoom: i64, moved_mm| {
+        (
+            m,
+            step,
+            Change {
+                zoom: (100, zoom),
+                moved_mm,
+            },
+        )
+    };
+    assert_eq!(
+        table,
+        [
+            row("none", (0, 3), 100, (0, 32)),
+            row("none", (0, -3), 100, (0, -32)),
+            row("ctrl", (0, 3), 55, (0, 0)),
+            row("ctrl", (0, -3), 182, (0, 0)),
+        ]
+    );
+    h.state_mut().shell_mut().shutdown();
+}
