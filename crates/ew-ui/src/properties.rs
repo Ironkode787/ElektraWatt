@@ -1560,7 +1560,7 @@ fn count_words(severity: &str, n: usize) -> String {
 /// `size.property_label`, to the widest value it can make whole that way. Each value counts whole, or, when it is too
 /// wide for that, by its first word if that is an identifier (a part number before its name, "EW-GEN-CPU-1
 /// (Generic)"), so that the tag or the number is never cut while the labels have room; a value or first word too wide
-/// even then, and long prose, take nothing from the labels.
+/// even then, prose and (FT-1413) a list's count take nothing from the labels.
 pub(crate) fn label_column(t: &crate::theme::Tokens, row: f32, need: f32, values: &[(f32, f32)]) -> f32 {
     let labels = need.min(row * 0.4).max(t.size_property_label);
     // The label, the `space.3` gap and the value cell share the row inside its `space.4` padding.
@@ -1596,6 +1596,17 @@ fn row_value(section: &SheetSection, row: &PropRow) -> String {
 /// text in `type.body` with the cell's `space.icon` padding on both sides and the provenance chip with its `space.2`
 /// gap when it shows. The row's "…" button is not counted: the value makes room for it only while it shows (X32b).
 fn value_need(ui: &Ui, t: &crate::theme::Tokens, section: &SheetSection, row: &PropRow) -> (f32, f32) {
+    // FT-1413: a list's or a structure's words (its item count, "4 elementen") summarise it; the label column never
+    // gives way to them.
+    if matches!(
+        &row.value,
+        RowValue::One {
+            json: serde_json::Value::Array(_) | serde_json::Value::Object(_),
+            ..
+        }
+    ) {
+        return (f32::INFINITY, f32::INFINITY);
+    }
     let header = is_header(section, row);
     let value = row_value(section, row);
     let shown = if value.is_empty() && !header {
@@ -1610,10 +1621,11 @@ fn value_need(ui: &Ui, t: &crate::theme::Tokens, section: &SheetSection, row: &P
             .x
     };
     // The first word with the ellipsis that follows it when the rest is cut, for an identifier only (a word with a
-    // digit: a tag, a part number, an order number); prose ("Expansion Control Cabinets") counts whole or not at all.
+    // digit: a tag, a part number, an order number). FT-1413: prose ("Electrical Definition") takes nothing from the
+    // labels; it elides with the whole value in its tooltip, and the labels stay whole.
     let head = match shown.split_once(' ') {
         Some((first, _)) if first.chars().any(|c| c.is_ascii_digit()) => Some(format!("{first} …")),
-        Some(_) => None,
+        Some(_) => return (f32::INFINITY, f32::INFINITY),
         None => Some(shown.clone()),
     };
     let mut extra = 2.0 * t.space_icon;

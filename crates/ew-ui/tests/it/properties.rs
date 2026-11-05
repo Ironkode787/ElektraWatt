@@ -1102,3 +1102,34 @@ fn c39_the_header_chip_keeps_its_word_and_stays_inside_the_pane() {
         "the chip {chip:?} past the gutter of the filter field {filter:?}"
     );
 }
+
+/// FT-1413: at 1280 × 800 in Dutch the project sheet's label column keeps M39's width (its labels need more than 40 %
+/// of the row, so 40 %): it no longer gives way to a list's item count ("4 elementen") or to prose ("Electrical
+/// Definition"), which took it down to its least, half of `size.property_label`.
+#[test]
+fn ft1413_the_label_column_gives_way_to_no_count_and_no_prose() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "101");
+    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    dispatch(&mut h, "view.language", json!({ "value": "nl" }));
+    settle(&mut h);
+    dispatch(&mut h, "props.project", json!({}));
+    settle(&mut h);
+    settle(&mut h);
+    for label in ["Persoonsgegevens", "Personen en organisaties"] {
+        let columns: Vec<(f32, f32)> = h
+            .get_all_by_role(egui::Role::Group)
+            .filter(|g| g.accesskit_node().label().as_deref() == Some(label))
+            .filter_map(|g| {
+                let column = h.get_all_by_role(egui::Role::Button).find(|n| {
+                    n.accesskit_node().label().as_deref() == Some(label) && g.rect().contains_rect(n.rect())
+                })?;
+                Some((column.rect().width(), g.rect().width()))
+            })
+            .collect();
+        assert!(!columns.is_empty(), "the rows {label}");
+        for (column, row) in columns {
+            assert!((column - row * 0.4).abs() < 0.5, "{label}: the column {column} in a row {row}");
+        }
+    }
+}
