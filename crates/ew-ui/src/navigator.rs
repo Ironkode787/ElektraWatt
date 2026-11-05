@@ -270,7 +270,7 @@ impl NavigatorPane {
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                         ui.spacing_mut().item_spacing.x = t.space_2;
                         if let Some(nav) = table_nav {
-                            crate::nav_table::chooser(ui, nav, events);
+                            crate::nav_table::chooser(ui, shell, nav, events);
                         }
                         // C49-p8b#2: the strip editor's scope (one strip, by its ID) stands in the filter's place in
                         // words, with its Clear; Clear, or Escape on the empty filter, ends it.

@@ -442,7 +442,7 @@ impl TableUi {
 /// The column chooser (§8.1, `table.columns`) of navigator `nav` in table mode, on the pane's tool line: the Columns
 /// menu button, a Subtle button with a chevron (doc 16a §6.21), whose menu has a check box per column (the key column
 /// cannot be hidden) and Move left and Move right for the columns on show.
-pub(crate) fn chooser(ui: &mut Ui, nav: &Navigator, events: &mut Vec<Event>) {
+pub(crate) fn chooser(ui: &mut Ui, shell: &ew_viewmodel::shell::ShellModel, nav: &Navigator, events: &mut Vec<Event>) {
     let (Some(table), Some(mode)) = (nav.table(), nav.table_mode()) else {
         return;
     };
@@ -512,7 +512,14 @@ pub(crate) fn chooser(ui: &mut Ui, nav: &Navigator, events: &mut Vec<Event>) {
             ("navigator.export_table", key!("action-navigator-export-table")),
             ("navigator.import_table", key!("action-navigator-import-table")),
         ] {
-            if ui.button(strings::text(label)).clicked() {
+            // FT-1167: drawn from the action's predicate, disabled with its reason as the tooltip (doc 16a §6.1).
+            let reason = ew_viewmodel::actions::find(action).and_then(|a| (a.enabled)(shell).err());
+            let response = ui.add_enabled(reason.is_none(), egui::Button::new(strings::text(label)));
+            let response = match reason {
+                Some(r) => response.disabled_tip(strings::text(r)),
+                None => response,
+            };
+            if response.clicked() {
                 events.push(Event::Action(
                     "ui.focus",
                     json!({"area": "navigator", "kind": word}),

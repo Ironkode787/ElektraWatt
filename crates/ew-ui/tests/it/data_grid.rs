@@ -986,3 +986,36 @@ fn the_scroll_handle_is_a_quiet_boundary_not_the_text_colour() {
         h.state_mut().shell_mut().shutdown();
     }
 }
+
+/// FT-1167: the Columns menu draws Export table… and Import table… from their predicates: enabled while the strips
+/// table is the one shown, disabled once a second table shows and neither is focused (the predicate's refusal).
+#[test]
+fn ft1167_export_and_import_table_follow_their_predicates() {
+    let tmp = Tmp::new();
+    let mut h = strips(&tmp);
+    h.get_by_label("Columns").click();
+    settle(&mut h);
+    for name in ["Export table…", "Import table…"] {
+        assert!(!h.get_by_label(name).accesskit_node().is_disabled(), "{name}");
+    }
+    h.key_press(Key::Escape);
+    settle(&mut h);
+    let shell = h.state_mut().shell_mut();
+    done(shell, "navigator.show", json!({"kind": "devices"}));
+    done(shell, "navigator.table", json!({"kind": "devices", "on": true}));
+    // Terminal strips behind the Devices tab moves to the bottom dock, so both tables are shown (ID-1231).
+    let strips_pane = ew_ui::ew_viewmodel::layout::PaneKind::Navigator(NavKind::Strips);
+    let moved = shell.layout().without(strips_pane).with_bottom(strips_pane);
+    shell.set_layout(moved, 1.0);
+    done(shell, "ui.focus", json!({"area": "canvas", "group": 0}));
+    settle(&mut h);
+    let reason = ew_ui::ew_viewmodel::actions::find("navigator.export_table")
+        .and_then(|a| (a.enabled)(h.state().shell()).err());
+    assert_eq!(reason, Some(ew_ui::ew_viewmodel::key!("reason-table-which")));
+    h.get_all_by_label("Columns").next().expect("a Columns button").click();
+    settle(&mut h);
+    for name in ["Export table…", "Import table…"] {
+        assert!(h.get_by_label(name).accesskit_node().is_disabled(), "{name}");
+    }
+    h.state_mut().shell_mut().shutdown();
+}
