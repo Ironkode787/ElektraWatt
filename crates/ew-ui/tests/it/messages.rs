@@ -854,3 +854,45 @@ fn a_finding_keeps_its_fix_badge_in_dutch() {
         "the Fix status badge is painted"
     );
 }
+
+/// FT-1186 (doc 16a §6.24): a group or rule row's count stands `space.2` after its name, at 1920 as at the floor, not
+/// at the row's far end.
+#[test]
+fn ft1186_a_group_rows_count_follows_its_name() {
+    for size in [egui::Vec2::new(1920.0, 1080.0), egui::Vec2::new(1280.0, 800.0)] {
+        let tmp = Tmp::new();
+        let mut h = on_golden(&tmp, Scripted::default());
+        h.set_size(size);
+        dispatch(&mut h, "navigator.show", json!({"kind": "messages"}));
+        settle(&mut h);
+        settle(&mut h);
+        let t = ew_ui::theme::current(&h.ctx);
+        let row = h
+            .state()
+            .shell()
+            .shown_rows(NavKind::Messages)
+            .into_iter()
+            .find(|r| r.finding.is_none() && r.badges.iter().any(|b| b.parse::<usize>().is_ok()))
+            .expect("a group row with a count");
+        let count = row.badges.iter().find(|b| b.parse::<usize>().is_ok()).unwrap().clone();
+        let texts = painted_texts(&h);
+        let (_, name, _) = texts
+            .iter()
+            .find(|(s, _, _)| *s == row.label)
+            .unwrap_or_else(|| panic!("{} painted", row.label));
+        let (_, badge, _) = texts
+            .iter()
+            .filter(|(s, r, _)| *s == count && (r.center().y - name.center().y).abs() < 4.0)
+            .min_by(|a, b| a.1.left().total_cmp(&b.1.left()))
+            .expect("its count painted on its row");
+        // The badge is `size.badge` wide at least, its number centred in it; the name's button keeps its padding.
+        let inner = ((badge.width() + 2.0 * t.space_icon).max(t.size_badge) - badge.width()) / 2.0;
+        let gap = badge.left() - name.right();
+        assert!(
+            gap >= t.space_2 + inner && gap < t.space_4 + inner + t.space_2,
+            "{size:?}: {} then {count}, {gap} points apart",
+            row.label
+        );
+        h.state_mut().shell_mut().shutdown();
+    }
+}

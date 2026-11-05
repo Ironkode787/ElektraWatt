@@ -1003,6 +1003,22 @@ fn row_ui(
             // `space.4` padding, the title cut with an ellipsis before them and whole in its tooltip. A finding's
             // `fix`, `waived` and `pending` are status badges (its severity word is the severity cell's); a Messages
             // rule row's finding count is a count badge; another navigator's badges are caption chips.
+            // FT-1186 (doc 16a §6.24): a Messages group or rule row's count stands `space.2` after its name, not at the
+            // row's far end.
+            let counts: Vec<usize> = if kind == NavKind::Messages && row.finding.is_none() {
+                row.badges
+                    .iter()
+                    .zip(&row.badge_codes)
+                    .filter(|(_, code)| crate::messages::finding_badge(code).is_none())
+                    .filter_map(|(b, _)| b.parse::<usize>().ok())
+                    .collect()
+            } else {
+                Vec::new()
+            };
+            let counts_w: f32 = counts
+                .iter()
+                .map(|n| crate::components::count_badge_layout(ui, &t, *n).1.x + t.space_2)
+                .sum();
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 ui.add_space(t.space_4);
                 // C50-p5#2: a status badge from its code, a chip and a count from the words.
@@ -1011,20 +1027,30 @@ fn row_ui(
                         crate::components::caption_chip(ui, b);
                     } else if let Some(status) = crate::messages::finding_badge(code) {
                         crate::components::status_badge(ui, status);
-                    } else if row.finding.is_none()
-                        && let Ok(n) = b.parse::<usize>()
-                    {
-                        crate::components::count_badge(ui, n);
                     }
                 }
                 ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
-                    let room = ui.available_width() - 2.0 * ui.spacing().button_padding.x;
+                    let room = ui.available_width() - 2.0 * ui.spacing().button_padding.x - counts_w;
                     let full = ui
                         .painter()
                         .layout_no_wrap(row.label.clone(), font, t.text_primary.color32())
                         .size()
                         .x;
-                    let response = ui.add(button);
+                    let response = if counts.is_empty() {
+                        ui.add(button)
+                    } else {
+                        // The name's text ends `button_padding` inside its button; the count follows `space.2` after
+                        // the text.
+                        let padding = ui.spacing().button_padding.x;
+                        let width = full.min(room.max(0.0)) + 2.0 * padding;
+                        ui.spacing_mut().item_spacing.x = 0.0;
+                        let response = ui.add_sized(egui::vec2(width, ui.spacing().interact_size.y), button);
+                        for (i, n) in counts.iter().enumerate() {
+                            ui.add_space(if i == 0 { (t.space_2 - padding).max(0.0) } else { t.space_2 });
+                            crate::components::count_badge(ui, *n);
+                        }
+                        response
+                    };
                     let response = if full > room {
                         response.tip(&row.label)
                     } else {
