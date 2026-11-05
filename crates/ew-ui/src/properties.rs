@@ -1610,7 +1610,13 @@ fn count_words(severity: &str, n: usize) -> String {
 /// wide for that, by its first word if that is an identifier (a part number before its name, "EW-GEN-CPU-1
 /// (Generic)"), so that the tag or the number is never cut while the labels have room; a value or first word too wide
 /// even then, prose and (FT-1413) a list's count take nothing from the labels.
-pub(crate) fn label_column(t: &crate::theme::Tokens, row: f32, need: f32, word: f32, values: &[(f32, f32)]) -> f32 {
+pub(crate) fn label_column(
+    t: &crate::theme::Tokens,
+    row: f32,
+    need: f32,
+    word: f32,
+    values: &[(f32, f32)],
+) -> f32 {
     let labels = need.min(row * 0.5).max(t.size_property_label);
     // The label, the `space.3` gap and the value cell share the row inside its `space.4` padding.
     let inner = row - 2.0 * t.space_4 - t.space_3;
@@ -1784,10 +1790,16 @@ mod tests {
         use crate::theme::{Density, Theme, tokens};
         let t = tokens(Theme::Light, Density::Comfortable);
         // Short labels: the floor. A long label: its width, up to half the row.
-        assert_eq!(super::label_column(&t, 600.0, 40.0, 0.0, &[]), t.size_property_label);
+        assert_eq!(
+            super::label_column(&t, 600.0, 40.0, 0.0, &[]),
+            t.size_property_label
+        );
         assert_eq!(super::label_column(&t, 600.0, 150.0, 0.0, &[]), 150.0);
         assert_eq!(super::label_column(&t, 600.0, 400.0, 0.0, &[]), 300.0);
-        assert_eq!(super::label_column(&t, 100.0, 400.0, 0.0, &[]), t.size_property_label);
+        assert_eq!(
+            super::label_column(&t, 100.0, 400.0, 0.0, &[]),
+            t.size_property_label
+        );
     }
 
     /// W40b: at the floor the value column gets the width first. The label column gives way to the widest value it
@@ -1820,7 +1832,10 @@ mod tests {
         let named = super::label_column(&t, row, 150.0, 0.0, &[tag, (260.0, 170.0)]);
         assert_eq!(named, inner - 170.0);
         // A long description whose first word fits beside the labels: the labels keep their width.
-        assert_eq!(super::label_column(&t, row, 150.0, 0.0, &[tag, (900.0, 70.0)]), labels);
+        assert_eq!(
+            super::label_column(&t, row, 150.0, 0.0, &[tag, (900.0, 70.0)]),
+            labels
+        );
         // A single word too wide even at the least label width takes nothing from them.
         assert_eq!(
             super::label_column(&t, row, 150.0, 0.0, &[tag, (900.0, 900.0)]),

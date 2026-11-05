@@ -1130,17 +1130,30 @@ fn ft1413_the_label_column_gives_way_to_no_count_and_no_prose() {
                 .filter(|g| g.accesskit_node().label().as_deref() == Some(label))
                 .filter_map(|g| {
                     let cell = h.get_all_by_role(egui::Role::Button).find(|n| {
-                        n.accesskit_node().label().as_deref() == Some(label) && g.rect().contains_rect(n.rect())
+                        n.accesskit_node().label().as_deref() == Some(label)
+                            && g.rect().contains_rect(n.rect())
                     })?;
                     let elided = cell.accesskit_node().description().is_some();
-                    Some((cell.rect().width(), cell.rect().height(), elided, g.rect().width()))
+                    Some((
+                        cell.rect().width(),
+                        cell.rect().height(),
+                        elided,
+                        g.rect().width(),
+                    ))
                 })
                 .collect();
             assert!(!cells.is_empty(), "the rows {label}");
             for (column, height, elided, row) in cells {
                 assert!(!elided, "{label} at {size:?}: cut");
-                assert!(column <= row * 0.5 + 0.5, "{label} at {size:?}: the column {column} in a row {row}");
-                assert_eq!(height > line + 0.5, two, "{label} at {size:?}: a cell {height} high");
+                assert!(
+                    column <= row * 0.5 + 0.5,
+                    "{label} at {size:?}: the column {column} in a row {row}"
+                );
+                assert_eq!(
+                    height > line + 0.5,
+                    two,
+                    "{label} at {size:?}: a cell {height} high"
+                );
             }
         }
     }

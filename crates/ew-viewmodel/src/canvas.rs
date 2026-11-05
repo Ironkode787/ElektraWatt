@@ -1266,7 +1266,10 @@ mod tests {
         assert!(m.is_fitted() && m.is_first_view());
         let k = m.points_per_nm();
         let top = 400.0 - m.centre().1 as f64 * k;
-        assert!((top - 16.0).abs() < 0.01, "the sheet's top {top} points below the pane's");
+        assert!(
+            (top - 16.0).abs() < 0.01,
+            "the sheet's top {top} points below the pane's"
+        );
         assert_eq!(m.centre().0, 148_500_000);
         // A new pane: the first view again.
         m.relayout((1600.0, 800.0), 1.0);
