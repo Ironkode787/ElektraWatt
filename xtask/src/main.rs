@@ -89,8 +89,8 @@ commands:
                        names a test binary of its `-p` package (of any package without `-p`)
   check-unsafe         every crate forbids `unsafe_code` (its crate roots' `#![forbid(unsafe_code)]`, or
                        `[lints] workspace = true` under the workspace's forbid) or is listed in
-                       ci/unsafe-allowlist.toml, and the `unsafe` keyword stands only in the files listed there
-                       (doc 18 §11.2, NFR-SEC-04)
+                       ci/unsafe-allowlist.toml, and the `unsafe` keyword stands only in the files listed there,
+                       as many times as listed (doc 18 §11.2, NFR-SEC-04)
   check-workflows      actions pinned by commit SHA, read-only default token, no pull_request_target,
                        credential-free checkouts, secrets only in `release` (.github/workflows/)
   check-licence-map    path licences, collective notice, crate licences, permissive-layer licence boundary

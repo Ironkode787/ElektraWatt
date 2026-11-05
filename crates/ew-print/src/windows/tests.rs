@@ -123,12 +123,16 @@ fn paper(mode: &DevMode) -> (u32, [i16; 4]) {
 #[test]
 fn the_paper_request_names_a_known_size_or_gives_its_sides() {
     let mut mode = DevMode::blank(PDF_PRINTER);
-    let dm = mode.public();
-    assert_eq!(dm.dmSize as usize, size_of::<DEVMODEW>());
-    assert_eq!(dm.dmDriverExtra, 0);
-    let name: Vec<u16> = PDF_PRINTER.encode_utf16().collect();
-    assert_eq!(dm.dmDeviceName[..name.len()], name[..]);
-    assert_eq!(dm.dmDeviceName[name.len()], 0);
+    let b = bytes(&mode);
+    let unit = |at: usize| u16::from_ne_bytes([b[at], b[at + 1]]);
+    assert_eq!(usize::from(unit(offset_of!(DEVMODEW, dmSize))), size_of::<DEVMODEW>());
+    assert_eq!(unit(offset_of!(DEVMODEW, dmDriverExtra)), 0);
+    assert_eq!(unit(offset_of!(DEVMODEW, dmSpecVersion)), DM_SPECVERSION.0 as u16);
+    let name: Vec<u16> = PDF_PRINTER.encode_utf16().chain([0]).collect();
+    let device: Vec<u16> = (0..name.len())
+        .map(|i| unit(offset_of!(DEVMODEW, dmDeviceName) + 2 * i))
+        .collect();
+    assert_eq!(device, name);
     let fields = |f: &[DEVMODE_FIELD_FLAGS]| f.iter().fold(0, |a, b| a | b.0);
     // A4 landscape on A5 landscape: the Windows A5 paper, turned.
     mode.ask_paper(210_000_000, 148_000_000);
@@ -159,15 +163,15 @@ fn the_paper_request_names_a_known_size_or_gives_its_sides() {
     );
     // A dialog's block that names a form: the form leaves the request, its name zeroed, both for a named size and
     // for one given by its sides.
+    let form = offset_of!(DEVMODEW, dmFormName);
+    let flags = offset_of!(DEVMODEW, dmFields);
     for (width, height) in [(210_000_000, 297_000_000), (594_000_000, 841_000_000)] {
-        let dm = mode.public();
-        dm.dmFields |= DM_FORMNAME;
-        dm.dmFormName = [0; 32];
-        dm.dmFormName[..2].copy_from_slice(&[u16::from(b'A'), u16::from(b'3')]);
+        let named = u32::from_ne_bytes(mode.get4(flags)) | DM_FORMNAME.0;
+        mode.put(flags, &named.to_ne_bytes());
+        mode.put(form, &[b'A', 0, b'3', 0]);
         mode.ask_paper(width, height);
-        let dm = mode.public();
-        assert_eq!(dm.dmFields & DM_FORMNAME, DEVMODE_FIELD_FLAGS(0));
-        assert_eq!(dm.dmFormName, [0; 32]);
+        assert_eq!(u32::from_ne_bytes(mode.get4(flags)) & DM_FORMNAME.0, 0);
+        assert_eq!(bytes(&mode)[form..form + 64], [0; 64]);
     }
     // The dialog's block: read back whole; shorter than its own size, refused.
     let block = bytes(&mode);
@@ -303,4 +307,53 @@ fn four_placed_pages_print_to_microsoft_print_to_pdf() {
         .collect();
     println!("{PDF_PRINTER} wrote {} bytes; {boxes:?}", pdf.len());
     assert_eq!(page_objects(&pdf), 4);
+}
+
+/// FT-1150, FT-1159 (ID-1394 ruling 9): only a window of this process owns the dialog. A test process has no window,
+/// so the owner is a hidden window it makes, which belongs to it and is gone once the guard drops; another process's
+/// window (the terminal's, or one at another integrity level) never passes the rule.
+#[test]
+fn the_dialog_is_owned_by_a_window_of_this_process() {
+    assert!(ours(std::process::id()));
+    assert!(!ours(0));
+    assert!(!ours(std::process::id().wrapping_add(1)));
+    let owner = Owner::new().unwrap();
+    assert!(owner.1, "a test process has no window of its own in the foreground");
+    let window = owner.0;
+    assert_eq!(window_process(window), std::process::id());
+    drop(owner);
+    assert_eq!(window_process(window), 0);
+}
+
+/// FT-1158: a band is white paper only when every pixel is; one grey channel sends it.
+#[test]
+fn a_white_band_is_not_sent() {
+    let mut band = RgbaImage {
+        width: 4,
+        height: 2,
+        pixels: vec![u8::MAX; 4 * 2 * 4],
+    };
+    assert!(white(&band));
+    band.pixels[13] = 0x80;
+    assert!(!white(&band));
+}
+
+/// FT-1157: a print whose cancel signal is set ends before its first band is sent, the document aborted, as
+/// [`PrintError::Cancelled`]; the spooler writes no file. Skipped, with its line, as WN-3 is when the PDF printer
+/// cannot be opened.
+#[test]
+fn a_cancelled_print_aborts_before_its_first_band() {
+    let dir = Dir::new("cancel");
+    let out = dir.0.join("cancel.pdf");
+    let mut adapter = Windows::cancelled_by(Arc::new(AtomicBool::new(true)));
+    adapter.output = Some(out.clone());
+    match adapter.print(&job(PDF_PRINTER, vec![placed_page(1)])) {
+        Err(PrintError::Windows { what, reason }) if what == Step::Open(PDF_PRINTER).to_string() => {
+            println!("skipped: {what}: {reason}");
+        }
+        printed => {
+            assert_eq!(printed, Err(PrintError::Cancelled));
+            assert!(!out.exists(), "{} was written", out.display());
+        }
+    }
 }

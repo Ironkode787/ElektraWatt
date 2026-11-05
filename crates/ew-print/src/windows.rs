@@ -5,14 +5,16 @@
 //! `ew-render-cpu` in bands of [`BAND_ROWS`] device rows and sent to a printer through GDI.
 //!
 //! Without a printer named, the Windows print dialog (`PrintDlgExW`) chooses the printer and its settings; its owner is
-//! the foreground window (the window the person chose Print… in, or the terminal that ran `ew print`), else the
-//! desktop's, and its Cancel is [`PrintError::Cancelled`]. With a printer named, its device context is opened with
+//! a window of this process ([`Owner`], ID-1394 ruling 9), and its Cancel is [`PrintError::Cancelled`]. With a printer
+//! named, its device context is opened with
 //! its default settings and no dialog (`CreateDCW`). Then `StartDocW`, and per page: its paper and orientation asked
 //! for by `ResetDCW` (D6's named sizes as `dmPaperSize` where Windows has one, else `dmPaperWidth` and
 //! `dmPaperLength` in 0.1 mm; what the driver makes of the request is the driver's), `StartPage`, the bands rendered
 //! at the lower of the device's horizontal and vertical resolutions (the placement's offset is from the paper's corner,
 //! so the printable area's offset is subtracted) and each stretched by `StretchDIBits` to its device rectangle,
-//! `EndPage`; then `EndDoc`. A band that would start below the device's paper is not sent. With
+//! `EndPage`; then `EndDoc`. A band that would start below the device's paper is not sent, nor a band that is white
+//! paper alone (FT-1158). The adapter's cancel signal ([`Windows::cancelled_by`], FT-1157) is read before each band:
+//! once it is set, the document is aborted (`AbortDoc`) and the print is [`PrintError::Cancelled`]. With
 //! [`PrintJob::monochrome`] the bands are drawn from the lists `ew_render_cpu::monochrome` gives, the greying the PDF
 //! uses; the driver's colour setting is left as it is. A failure aborts the document. The print set's PDF is not used.
 //!
@@ -27,10 +29,12 @@ use std::marker::PhantomData;
 use std::mem::{align_of, offset_of, size_of};
 use std::os::windows::ffi::OsStrExt as _;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use ::windows::Win32::Foundation::{ERROR_CANCELLED, ERROR_SUCCESS, GlobalFree, HGLOBAL, HWND, SetLastError};
 use ::windows::Win32::Graphics::Gdi::{
-    BI_RGB, BITMAPINFO, BITMAPINFOHEADER, CreateDCW, DEVMODEW, DIB_RGB_COLORS, DM_FORMNAME, DM_ORIENTATION,
+    BI_RGB, BITMAPINFO, BITMAPINFOHEADER, CreateDCW, DEVMODEW, DEVMODEW_0_0, DIB_RGB_COLORS, DM_FORMNAME, DM_ORIENTATION,
     DM_PAPERLENGTH, DM_PAPERSIZE, DM_PAPERWIDTH, DM_SPECVERSION, DMORIENT_LANDSCAPE, DMORIENT_PORTRAIT,
     DMPAPER_A2, DMPAPER_A3, DMPAPER_A4, DMPAPER_A5, DMPAPER_LEGAL, DMPAPER_LETTER, DMPAPER_TABLOID, DeleteDC,
     GDI_ERROR, GET_DEVICE_CAPS_INDEX, GetDeviceCaps, HDC, LOGPIXELSX, LOGPIXELSY, PHYSICALHEIGHT,
@@ -43,7 +47,9 @@ use ::windows::Win32::UI::Controls::Dialogs::{
     DEVNAMES, PD_HIDEPRINTTOFILE, PD_NOCURRENTPAGE, PD_NOPAGENUMS, PD_NOSELECTION, PD_RESULT_PRINT,
     PD_RETURNDC, PD_USEDEVMODECOPIESANDCOLLATE, PRINTDLGEXW, PrintDlgExW, START_PAGE_GENERAL,
 };
-use ::windows::Win32::UI::WindowsAndMessaging::{GetDesktopWindow, GetForegroundWindow};
+use ::windows::Win32::UI::WindowsAndMessaging::{
+    CreateWindowExW, DestroyWindow, GetForegroundWindow, GetWindowThreadProcessId, WS_EX_TOOLWINDOW, WS_POPUP,
+};
 use ::windows::core::{HRESULT, PCWSTR, w};
 use ew_render_cpu::{PagePlacement, RenderOptions, RgbaImage, monochrome, pixel_size, render_placed_band};
 
@@ -65,11 +71,13 @@ const NAMED_PAPERS: [(i64, i64, u32); 7] = [
 ];
 
 /// The Windows adapter: the print dialog, or the printer [`PrintJob::printer`] names, then the pages through GDI.
-#[derive(Clone, PartialEq, Eq, Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct Windows {
     /// The file the spooler writes the job to instead of the printer's port (DOCINFO's output); `None` but in WN-3's
     /// test.
     output: Option<PathBuf>,
+    /// The cancel signal read before each band (FT-1157): set, the document is aborted.
+    cancel: Arc<AtomicBool>,
 }
 
 impl Windows {
@@ -78,11 +86,22 @@ impl Windows {
         Windows::default()
     }
 
+    /// The adapter whose print ends, aborted, at the first band after `cancel` is set (FT-1157).
+    pub fn cancelled_by(cancel: Arc<AtomicBool>) -> Windows {
+        Windows {
+            cancel,
+            ..Windows::default()
+        }
+    }
+
     /// The adapter writing its jobs to `output` (ruling 7 of ID-1218: a print to "Microsoft Print to PDF" without its
     /// save dialog).
     #[cfg(test)]
     fn to_file(output: PathBuf) -> Windows {
-        Windows { output: Some(output) }
+        Windows {
+            output: Some(output),
+            ..Windows::default()
+        }
     }
 }
 
@@ -98,7 +117,7 @@ impl PrintAdapter for Windows {
         };
         dc.start_doc(&job.title, self.output.as_deref())?;
         for page in &job.pages {
-            if let Err(e) = send_page(&dc, &mut mode, page, job) {
+            if let Err(e) = send_page(&dc, &mut mode, page, job, &self.cancel) {
                 dc.abort_doc();
                 return Err(e);
             }
@@ -182,8 +201,15 @@ fn wide(s: &str) -> Vec<u16> {
     s.encode_utf16().chain([0]).collect()
 }
 
-/// One page: its paper asked for, then its bands between `StartPage` and `EndPage`.
-fn send_page(dc: &Dc, mode: &mut DevMode, page: &PdfPage, job: &PrintJob) -> Result<(), PrintError> {
+/// One page: its paper asked for, then its bands between `StartPage` and `EndPage`, white ones not sent; `cancel` set
+/// before a band is [`PrintError::Cancelled`].
+fn send_page(
+    dc: &Dc,
+    mode: &mut DevMode,
+    page: &PdfPage,
+    job: &PrintJob,
+    cancel: &AtomicBool,
+) -> Result<(), PrintError> {
     let label = page.label.as_str();
     // An export page's paper is its sheet (the window's preview does the same).
     let mut placement = page.placement.clone().unwrap_or_else(|| PagePlacement {
@@ -225,6 +251,9 @@ fn send_page(dc: &Dc, mode: &mut DevMode, page: &PdfPage, job: &PrintJob) -> Res
     }
     let mut first_row: u32 = 0;
     while u64::from(first_row) < rows {
+        if cancel.load(Ordering::Relaxed) {
+            return Err(PrintError::Cancelled);
+        }
         let y = device(u64::from(first_row), y_dpi, dpi);
         if device_height > 0 && y >= device_height {
             break;
@@ -233,6 +262,10 @@ fn send_page(dc: &Dc, mode: &mut DevMode, page: &PdfPage, job: &PrintJob) -> Res
             content, &placement, &options, first_row, BAND_ROWS, &job.fonts, None,
         )
         .map_err(|e| error(Step::Render(label), e.to_string()))?;
+        if white(&band) {
+            first_row += band.height;
+            continue;
+        }
         let bottom = device(u64::from(first_row) + u64::from(band.height), y_dpi, dpi);
         // RGBA to the B, G, R, unused order of a 32-bit BI_RGB bitmap; the background is opaque.
         for px in band.pixels.as_chunks_mut::<4>().0 {
@@ -250,6 +283,12 @@ fn send_page(dc: &Dc, mode: &mut DevMode, page: &PdfPage, job: &PrintJob) -> Res
     Ok(())
 }
 
+/// Whether `band` is white paper alone (every channel of every pixel at its full value), so sending it changes nothing
+/// on the sheet (FT-1158).
+fn white(band: &RgbaImage) -> bool {
+    band.pixels.iter().all(|&c| c == u8::MAX)
+}
+
 /// `v` pixels at `dpi` in device pixels at `logical` per inch, rounded half up (the identity when they are equal).
 fn device(v: u64, logical: i32, dpi: u32) -> i32 {
     let (logical, dpi) = (i128::from(logical), i128::from(dpi.max(1)));
@@ -260,9 +299,10 @@ fn device(v: u64, logical: i32, dpi: u32) -> i32 {
 /// (`None` when the dialog's block holds none); Cancel is [`PrintError::Cancelled`].
 fn dialog() -> Result<(Dc, DevMode, Option<String>), PrintError> {
     let _com = Com::init().map_err(|code| error(Step::Dialog, code.message()))?;
+    let owner = Owner::new()?;
     let mut pd = PRINTDLGEXW {
         lStructSize: size_of::<PRINTDLGEXW>() as u32,
-        hwndOwner: owner(),
+        hwndOwner: owner.0,
         // The page range was chosen before (the pre-dialog or `--pages`); the copies stay in the settings.
         Flags: PD_RETURNDC
             | PD_NOPAGENUMS
@@ -296,17 +336,69 @@ fn dialog() -> Result<(Dc, DevMode, Option<String>), PrintError> {
     Ok((dc, mode, printer))
 }
 
-/// The dialog's owner (ruling 5 of ID-1218): the foreground window, else the desktop's.
-fn owner() -> HWND {
-    // SAFETY: neither function takes an argument; each only returns a window handle (null when there is none).
-    unsafe {
-        let foreground = GetForegroundWindow();
-        if foreground.is_invalid() {
-            GetDesktopWindow()
-        } else {
-            foreground
+/// The print dialog's owner (FT-1150, FT-1159; ID-1394 ruling 9): a window of this process, never another's. A modal
+/// dialog disables its owner while it shows, and Windows lets a window of one process own a window of another, tying
+/// their input together, so an `ew print` killed while its dialog showed would leave the terminal that ran it
+/// disabled. When the foreground window is this process's (the main window the person chose Print… in), it is the
+/// owner; otherwise (`ew print`, or a window that lost the foreground meanwhile) the owner is a hidden window of this
+/// process, made for the dialog and destroyed after it. An elevated application is the same case: its own windows share
+/// its integrity level, and a foreground window of another process, at whatever level, is never the owner (between
+/// levels, User Interface Privilege Isolation blocks the messages of the lower to the higher).
+struct Owner(HWND, bool);
+
+impl Owner {
+    /// The foreground window when it is this process's, else a hidden window of its own.
+    fn new() -> Result<Owner, PrintError> {
+        // SAFETY: `GetForegroundWindow` takes no argument and returns a handle, null when there is none.
+        let foreground = unsafe { GetForegroundWindow() };
+        if !foreground.is_invalid() && ours(window_process(foreground)) {
+            return Ok(Owner(foreground, false));
+        }
+        // SAFETY: the class is the system's static `STATIC` (no instance needed), the strings are a static literal and
+        // null, there is no parent, menu or creation data; the window is a zero-size popup that is never shown, and
+        // this guard destroys it, on this thread (not `Send`).
+        let hidden = unsafe {
+            CreateWindowExW(
+                WS_EX_TOOLWINDOW,
+                w!("STATIC"),
+                PCWSTR::null(),
+                WS_POPUP,
+                0,
+                0,
+                0,
+                0,
+                None,
+                None,
+                None,
+                None,
+            )
+        };
+        hidden
+            .map(|h| Owner(h, true))
+            .map_err(|e| error(Step::Dialog, e.message()))
+    }
+}
+
+impl Drop for Owner {
+    fn drop(&mut self) {
+        if self.1 {
+            // SAFETY: the window was created by this guard on this thread and nothing else destroys it.
+            let _ = unsafe { DestroyWindow(self.0) };
         }
     }
+}
+
+/// The process of `window`; 0 when the handle names no window.
+fn window_process(window: HWND) -> u32 {
+    let mut process = 0;
+    // SAFETY: `process` is a live `u32` the call writes the id to; an invalid handle only returns 0 and writes none.
+    unsafe { GetWindowThreadProcessId(window, Some(&mut process)) };
+    process
+}
+
+/// Whether `process` is this one (the owner rule of [`Owner`]).
+fn ours(process: u32) -> bool {
+    process == std::process::id()
 }
 
 /// The printer's name in a DEVNAMES block: the NUL-terminated wide string at its device offset (in characters from
@@ -396,12 +488,14 @@ impl DevMode {
     /// for what they set and leaves the rest to the driver's defaults (a printer named, no dialog).
     fn blank(printer: &str) -> DevMode {
         let mut mode = DevMode(vec![0; size_of::<DEVMODEW>().div_ceil(8)]);
-        let dm = mode.public();
-        for (slot, unit) in dm.dmDeviceName.iter_mut().take(31).zip(printer.encode_utf16()) {
-            *slot = unit;
-        }
-        dm.dmSpecVersion = DM_SPECVERSION.0 as u16;
-        dm.dmSize = size_of::<DEVMODEW>() as u16;
+        let name: Vec<u8> = printer
+            .encode_utf16()
+            .take(31)
+            .flat_map(u16::to_ne_bytes)
+            .collect();
+        mode.put(offset_of!(DEVMODEW, dmDeviceName), &name);
+        mode.put(offset_of!(DEVMODEW, dmSpecVersion), &(DM_SPECVERSION.0 as u16).to_ne_bytes());
+        mode.put(offset_of!(DEVMODEW, dmSize), &(size_of::<DEVMODEW>() as u16).to_ne_bytes());
         mode
     }
 
@@ -427,12 +521,19 @@ impl DevMode {
         Some(DevMode(words))
     }
 
-    /// The DEVMODEW at the buffer's start.
-    fn public(&mut self) -> &mut DEVMODEW {
-        // SAFETY: the buffer holds at least `size_of::<DEVMODEW>()` bytes (`blank` and `from_bytes` allocate so) and is
-        // aligned for `u64`, at least DEVMODEW's alignment (asserted above); DEVMODEW is integers, arrays and unions of
-        // integers, valid for any bytes; the view borrows the buffer mutably for as long as it lives.
-        unsafe { &mut *self.0.as_mut_ptr().cast::<DEVMODEW>() }
+    /// Writes `bytes` at the byte offset `at` of the settings (a DEVMODEW field at its `offset_of!` position, FT-1151:
+    /// no view of the buffer as a DEVMODEW); every field lies inside the buffer, which is never shorter than one.
+    fn put(&mut self, at: usize, bytes: &[u8]) {
+        for (k, &b) in (at..).zip(bytes) {
+            let mut word = self.0[k / 8].to_ne_bytes();
+            word[k % 8] = b;
+            self.0[k / 8] = u64::from_ne_bytes(word);
+        }
+    }
+
+    /// The four bytes at the byte offset `at` of the settings.
+    fn get4(&self, at: usize) -> [u8; 4] {
+        std::array::from_fn(|i| self.0[(at + i) / 8].to_ne_bytes()[(at + i) % 8])
     }
 
     /// The settings as GDI reads them: the DEVMODEW, then its driver's bytes, all inside the buffer.
@@ -451,28 +552,32 @@ impl DevMode {
             .iter()
             .find(|p| (p.0, p.1) == (short, long))
             .map(|p| p.2);
-        let dm = self.public();
         let orientation = if width > height {
             DMORIENT_LANDSCAPE
         } else {
             DMORIENT_PORTRAIT
         };
-        dm.Anonymous1.Anonymous1.dmOrientation = orientation as i16;
-        dm.dmFields &= !DM_FORMNAME;
-        dm.dmFormName = [0; 32];
+        let paper = |field: usize| offset_of!(DEVMODEW, Anonymous1) + field;
+        let flags = offset_of!(DEVMODEW, dmFields);
+        let mut fields = u32::from_ne_bytes(self.get4(flags)) & !DM_FORMNAME.0;
+        self.put(
+            paper(offset_of!(DEVMODEW_0_0, dmOrientation)),
+            &(orientation as i16).to_ne_bytes(),
+        );
+        self.put(offset_of!(DEVMODEW, dmFormName), &[0; 64]);
         match named {
             Some(size) => {
-                dm.dmFields =
-                    (dm.dmFields | DM_ORIENTATION | DM_PAPERSIZE) & !(DM_PAPERLENGTH | DM_PAPERWIDTH);
-                dm.Anonymous1.Anonymous1.dmPaperSize = size as i16;
+                fields = (fields | DM_ORIENTATION.0 | DM_PAPERSIZE.0) & !(DM_PAPERLENGTH.0 | DM_PAPERWIDTH.0);
+                self.put(paper(offset_of!(DEVMODEW_0_0, dmPaperSize)), &(size as i16).to_ne_bytes());
             }
             None => {
-                dm.dmFields = (dm.dmFields | DM_ORIENTATION | DM_PAPERLENGTH | DM_PAPERWIDTH) & !DM_PAPERSIZE;
-                dm.Anonymous1.Anonymous1.dmPaperSize = 0;
-                dm.Anonymous1.Anonymous1.dmPaperWidth = tenths(short);
-                dm.Anonymous1.Anonymous1.dmPaperLength = tenths(long);
+                fields = (fields | DM_ORIENTATION.0 | DM_PAPERLENGTH.0 | DM_PAPERWIDTH.0) & !DM_PAPERSIZE.0;
+                self.put(paper(offset_of!(DEVMODEW_0_0, dmPaperSize)), &0i16.to_ne_bytes());
+                self.put(paper(offset_of!(DEVMODEW_0_0, dmPaperWidth)), &tenths(short).to_ne_bytes());
+                self.put(paper(offset_of!(DEVMODEW_0_0, dmPaperLength)), &tenths(long).to_ne_bytes());
             }
         }
+        self.put(flags, &fields.to_ne_bytes());
     }
 }
 

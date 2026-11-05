@@ -6,8 +6,9 @@
 //! A workspace package complies when its `[lints]` table is `workspace = true` and the workspace forbids
 //! `unsafe_code` (the workspace's lint counts as the crate's `forbid`), or when each of its crate roots (every target's
 //! root file) carries `#![forbid(unsafe_code)]`. Any other package must be listed in [`ALLOWLIST`]. The `unsafe`
-//! keyword (a block, fn, impl, trait or extern block) may stand only in a file the allowlist lists for its package;
-//! comments and strings do not count (the source is lexed). `fuzz/` is its own workspace, outside `cargo metadata`:
+//! keyword (a block, fn, impl, trait or extern block) may stand only in a file the allowlist lists for its package,
+//! and there exactly as many times as the allowlist gives for that file (FT-1151: an added block fails until the
+//! allowlist counts it); comments and strings do not count (the source is lexed). `fuzz/` is its own workspace, outside `cargo metadata`:
 //! every `.rs` file under it is lexed too, and the keyword fails there unless the allowlist lists the file for the
 //! fuzz crate `ew-fuzz`, relative to `fuzz/` (WP-S6.04 D7; no crate root's `forbid` is required there, since
 //! `libfuzzer-sys`'s macro expands its own exported symbol).
@@ -26,11 +27,26 @@ use crate::raw_read::{Parsed, Tk, collect_rs};
 /// The allowlist, relative to the workspace root.
 pub const ALLOWLIST: &str = "ci/unsafe-allowlist.toml";
 
-/// The allowlist file: per crate, the files (relative to the crate's directory) where `unsafe` may stand.
+/// The allowlist file: per crate, the files (relative to the crate's directory) where `unsafe` may stand, each with
+/// the number of its `unsafe` keywords.
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Allowlist {
-    crates: BTreeMap<String, Vec<String>>,
+    crates: BTreeMap<String, Files>,
+}
+
+/// A crate's files where `unsafe` stands and how many times in each.
+type Files = BTreeMap<String, usize>;
+
+/// The violation of a listed file whose `unsafe` keywords are not the allowlist's count; `None` when they are.
+fn miscount(path: &str, text: &str, allowed: usize, package: &str) -> Option<String> {
+    let found = unsafe_count(text);
+    (found != allowed).then(|| {
+        format!(
+            "{path}: `unsafe` stands {found} times, and {ALLOWLIST} gives {allowed} for `{package}` (doc 18 §11.2, \
+             NFR-SEC-04)"
+        )
+    })
 }
 
 /// One workspace package as the check reads it.
@@ -64,7 +80,7 @@ const FUZZ_CRATE: &str = "ew-fuzz";
 
 /// The `unsafe` keywords of the `.rs` files under `<root>/fuzz` (not `target`, not hidden directories) that stand
 /// outside a file the allowlist lists for [`FUZZ_CRATE`] (WP-S6.04 D7, S5); none without a `fuzz/` folder.
-fn fuzz_violations(root: &Path, allowed: &BTreeMap<String, Vec<String>>) -> Result<Vec<String>> {
+fn fuzz_violations(root: &Path, allowed: &BTreeMap<String, Files>) -> Result<Vec<String>> {
     let dir = root.join("fuzz");
     if !dir.is_dir() {
         return Ok(Vec::new());
@@ -74,7 +90,8 @@ fn fuzz_violations(root: &Path, allowed: &BTreeMap<String, Vec<String>>) -> Resu
     let listed = allowed.get(FUZZ_CRATE);
     let mut v = Vec::new();
     for (path, text) in &files {
-        if listed.is_some_and(|files| files.iter().any(|f| format!("fuzz/{f}") == *path)) {
+        if let Some(count) = listed.and_then(|files| files.iter().find(|(f, _)| format!("fuzz/{f}") == *path)) {
+            v.extend(miscount(path, text, *count.1, FUZZ_CRATE));
             continue;
         }
         for line in unsafe_lines(text) {
@@ -180,9 +197,18 @@ fn unsafe_lines(text: &str) -> Vec<usize> {
     lines
 }
 
+/// The number of `unsafe` keywords in `text`, outside comments and strings.
+fn unsafe_count(text: &str) -> usize {
+    Parsed::new(text)
+        .toks
+        .iter()
+        .filter(|t| matches!(&t.kind, Tk::Ident(word) if word == "unsafe"))
+        .count()
+}
+
 /// The check over `packages`, with the workspace manifest's text and the allowlist's entries (crate name to the files
 /// relative to the crate's directory).
-fn check(manifest: &str, allowed: &BTreeMap<String, Vec<String>>, packages: &[Package]) -> Vec<String> {
+fn check(manifest: &str, allowed: &BTreeMap<String, Files>, packages: &[Package]) -> Vec<String> {
     let inherited = workspace_forbids(manifest);
     let mut v = Vec::new();
     for package in packages {
@@ -210,8 +236,8 @@ fn check(manifest: &str, allowed: &BTreeMap<String, Vec<String>>, packages: &[Pa
             format!("{}/", package.dir)
         };
         for (path, text) in &package.files {
-            let in_list = listed.is_some_and(|files| files.iter().any(|f| format!("{prefix}{f}") == *path));
-            if in_list {
+            if let Some(count) = listed.and_then(|files| files.iter().find(|(f, _)| format!("{prefix}{f}") == *path)) {
+                v.extend(miscount(path, text, *count.1, &package.name));
                 continue;
             }
             for line in unsafe_lines(text) {
@@ -287,7 +313,7 @@ mod tests {
     #[test]
     fn a_workspace_of_complying_crates_and_a_listed_file_passes() {
         let dir = fresh("pass");
-        workspace(&dir, "[crates]\nffi = [\"src/sys.rs\"]\n");
+        workspace(&dir, "[crates]\nffi = { \"src/sys.rs\" = 1 }\n");
         write(
             &dir,
             "crates/ffi/Cargo.toml",
@@ -308,7 +334,7 @@ mod tests {
     #[test]
     fn unsafe_in_an_unlisted_file_fails() {
         let dir = fresh("unlisted");
-        workspace(&dir, "[crates]\nffi = [\"src/sys.rs\"]\n");
+        workspace(&dir, "[crates]\nffi = { \"src/sys.rs\" = 1 }\n");
         write(
             &dir,
             "crates/ffi/Cargo.toml",
@@ -339,6 +365,40 @@ mod tests {
         );
     }
 
+    /// FT-1151: a listed file counts its `unsafe` keywords, so a block added beyond the allowlist's count fails, as
+    /// does a count the file no longer reaches; comments and strings do not count.
+    #[test]
+    fn a_listed_file_holds_exactly_its_counted_unsafe() {
+        let dir = fresh("count");
+        workspace(&dir, "[crates]\nffi = { \"src/sys.rs\" = 2 }\n");
+        write(
+            &dir,
+            "crates/ffi/Cargo.toml",
+            "[package]\nname = \"ffi\"\nversion = \"0.0.0\"\nedition = \"2021\"\n",
+        );
+        write(&dir, "crates/ffi/src/lib.rs", "#![deny(unsafe_code)]\nmod sys;\n");
+        let sys = |blocks: usize| {
+            format!(
+                "#![allow(unsafe_code)]\n// unsafe in a comment\npub fn f() {{ {} }}\n",
+                "unsafe {} ".repeat(blocks)
+            )
+        };
+        let found = |n: usize| {
+            vec![format!(
+                "crates/ffi/src/sys.rs: `unsafe` stands {n} times, and ci/unsafe-allowlist.toml gives 2 for `ffi` (doc \
+                 18 §11.2, NFR-SEC-04)"
+            )]
+        };
+        write(&dir, "crates/ffi/src/sys.rs", &sys(2));
+        assert_eq!(violations(&dir).unwrap(), Vec::<String>::new());
+        write(&dir, "crates/ffi/src/sys.rs", &sys(3));
+        assert_eq!(violations(&dir).unwrap(), found(3));
+        write(&dir, "crates/ffi/src/sys.rs", &sys(1));
+        let v = violations(&dir);
+        std::fs::remove_dir_all(&dir).unwrap();
+        assert_eq!(v.unwrap(), found(1));
+    }
+
     /// SE-4 (WP-S6.04 D7, S5): `unsafe` in a file of the fuzz folder fails with the file and its line, unless the
     /// allowlist lists the file for `ew-fuzz`; comments, strings and `target/` do not count.
     #[test]
@@ -360,7 +420,7 @@ mod tests {
               §11.2, NFR-SEC-04)"
             ]
         );
-        write(&dir, ALLOWLIST, "[crates]\new-fuzz = [\"src/alloc.rs\"]\n");
+        write(&dir, ALLOWLIST, "[crates]\new-fuzz = { \"src/alloc.rs\" = 1 }\n");
         let v = violations(&dir);
         std::fs::remove_dir_all(&dir).unwrap();
         assert_eq!(v.unwrap(), Vec::<String>::new());
@@ -394,7 +454,7 @@ mod tests {
         };
         assert_eq!(v.unwrap(), [refusal("crates/loose/src/lib.rs", "loose")]);
         // Listed, it passes; a workspace that does not forbid `unsafe_code` covers no crate.
-        write(&dir, ALLOWLIST, "[crates]\nloose = []\n");
+        write(&dir, ALLOWLIST, "[crates]\nloose = {}\n");
         assert_eq!(violations(&dir).unwrap(), Vec::<String>::new());
         write(
             &dir,
