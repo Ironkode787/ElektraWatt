@@ -713,7 +713,8 @@ impl CanvasModel {
         self.fit_page();
     }
 
-    /// Whether the view is a page's first view, untouched (FT-1443): it fits again as [`CanvasModel::first_view`].
+    /// Whether the view is a page's first view, untouched (FT-1443): fit-width where that is larger than Fit page,
+    /// which fits again as one on a new pane.
     pub fn is_first_view(&self) -> bool {
         self.first && self.fitted
     }
