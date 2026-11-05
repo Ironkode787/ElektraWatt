@@ -1234,3 +1234,35 @@ fn id1427_an_identifier_stays_whole_beside_its_chip_at_the_floor() {
         ]
     );
 }
+
+/// ID-1427 (W52 F5): at the 1280 × 800 floor in Dutch the position row of -102F1's representation is whole: its grid
+/// cell and its millimetres with one decimal ("102-C7 · x 124.4 y 52.9 mm").
+#[test]
+fn id1427_the_position_row_is_whole_at_the_floor() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "102");
+    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    dispatch(&mut h, "view.language", json!({ "value": "nl" }));
+    settle(&mut h);
+    let rep = h
+        .state()
+        .shell()
+        .canvas()
+        .unwrap()
+        .page()
+        .tables
+        .reps
+        .iter()
+        .find(|r| r.symbol_key == "ew.iec.mcb-1p@qet10")
+        .expect("-102F1's MCB")
+        .id;
+    dispatch(&mut h, "select.set", json!({"ids": [rep.to_string()]}));
+    dispatch(&mut h, "props.filter", json!({"text": "Pos"}));
+    settle(&mut h);
+    settle(&mut h);
+    let rows = texts_in_row(&h, "Positie");
+    assert!(
+        rows.contains(&("102-C7 · x 124.4 y 52.9 mm".to_owned(), false)),
+        "{rows:?}"
+    );
+}

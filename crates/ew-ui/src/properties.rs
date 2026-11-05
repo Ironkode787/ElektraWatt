@@ -1655,13 +1655,8 @@ fn row_value(section: &SheetSection, row: &PropRow) -> String {
 /// gap when it shows, and the row's "…" button when it has actions (ID-1427: the cursor row's value stays whole).
 fn value_need(ui: &Ui, t: &crate::theme::Tokens, section: &SheetSection, row: &PropRow) -> (f32, f32) {
     // FT-1413: a list's words (its item count, "4 elementen") summarise it; the label column never gives way to them.
-    if matches!(
-        &row.value,
-        RowValue::One {
-            json: serde_json::Value::Array(_),
-            ..
-        }
-    ) {
+    // ID-1427 (W52 F5): a list field's only; a position's pair reads as words ("102-C7 · x 124.4 y 52.9 mm").
+    if matches!(row.ty.inner(), FieldType::List(_)) {
         return (f32::INFINITY, f32::INFINITY);
     }
     let header = is_header(section, row);
