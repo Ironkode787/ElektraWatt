@@ -10,7 +10,9 @@ use std::sync::Arc;
 
 use ew_dl::{ItemKind, Layer};
 use ew_ids::{Id, Uuid};
-use ew_scene::page::{PageKind, PageView, PinText, RepView, SLOT_TEXT_GAP, SlotValue, page_display_list};
+use ew_scene::page::{
+    BLACK_BOX_CAPTION_GAP, PageKind, PageView, PinText, RepView, SLOT_TEXT_GAP, SlotValue, page_display_list,
+};
 use ew_schema::{LibCopy, LibDocument, Representation, SlotKind, SymbolDef};
 use ew_text::{builtin, bundled};
 use ew_units::{Nm, Pt2};
@@ -276,4 +278,56 @@ fn a_black_box_caption_rises_above_a_neighbours_pin_text() {
         near(pa.1 - cb.1, SLOT_TEXT_GAP.0),
         "pin {pa:?} {pb:?}, caption {ca:?} {cb:?}"
     );
+}
+
+/// FT-1215: the same caption near the sheet's top edge would rise off the sheet above the neighbour's pin text; it
+/// stays at its slot, its anchor `BLACK_BOX_CAPTION_GAP` above the box, inside the page.
+#[test]
+fn a_black_box_caption_never_rises_off_the_sheet() {
+    let mut v = view("r0");
+    let tag = v.reps[0]
+        .symbol
+        .as_ref()
+        .unwrap()
+        .text_slots
+        .iter()
+        .position(|s| matches!(s.kind, SlotKind::Tag))
+        .unwrap();
+    {
+        let r = Arc::make_mut(&mut v.reps[0].rep);
+        r.pos = Pt2::new(Nm(g(30)), Nm(g(4)));
+        r.box_.as_mut().unwrap().cps.clear();
+    }
+    v.reps[0].pins.clear();
+    v.reps[0].slots = vec![SlotValue {
+        slot: u16::try_from(tag).unwrap(),
+        text: "-A1".to_owned(),
+        link: None,
+        item_links: Vec::new(),
+    }];
+    let mut neighbour = v.reps[0].clone();
+    {
+        let r = Arc::make_mut(&mut neighbour.rep);
+        r.id = Id::from_uuid(Uuid::from_u128(0x12));
+        r.pos = Pt2::new(Nm(g(30)), Nm(g(-8)));
+        r.box_.as_mut().unwrap().cps =
+            serde_json::from_value(json!([{"idx": 1, "pos": [g(1), g(12)], "dir": "down"}])).unwrap();
+    }
+    neighbour.slots.clear();
+    neighbour.pins = vec![PinText {
+        idx: 1,
+        text: "Q1.0".to_owned(),
+    }];
+    v.reps.push(neighbour);
+    let r = runs(&v);
+    let (ca, cb) = r
+        .iter()
+        .find(|(x, _, _)| x == "-A1")
+        .map(|(_, a, b)| (*a, *b))
+        .unwrap();
+    assert!(
+        near(cb.1, g(4) - BLACK_BOX_CAPTION_GAP.0),
+        "caption {ca:?} {cb:?}"
+    );
+    assert!(ca.1 >= 0, "caption {ca:?} {cb:?}");
 }

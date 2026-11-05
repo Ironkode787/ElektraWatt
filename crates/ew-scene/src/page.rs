@@ -103,8 +103,8 @@
 //!   override stays where it says. A stack that collides with another representation's pin
 //!   text (FT-1138) rises [`SLOT_TEXT_GAP`] above what is in its way, at most three times, as a raised device tag
 //!   does, to the first place the device-tag rule judges free (ID-1250: no wire runs through it, it collides with no
-//!   text or pin text of another representation; a movable device tag yields to it in its turn); without a free place
-//!   it stays.
+//!   text or pin text of another representation; a movable device tag yields to it in its turn) and that stays inside
+//!   the page's drawing area (FT-1215: the frame's drawing area, else the page); without a free place it stays.
 //! - **Device tags** (FT-758). A device tag of a symbol that is no black box, without a position or angle override
 //!   and printing horizontally, moves when a wire runs through it, or when it collides (as in rule 2 above) with a
 //!   fixed text of another representation (a black-box caption, a CP designation, a pin text) or with the tag of a
@@ -563,6 +563,15 @@ pub fn page_rect(view: &PageView) -> Rect {
             .map_or_else(|| sheet(f.form.sheet.width, f.form.sheet.height), |g| g.outer),
         None => sheet(DEFAULT_SHEET.0, DEFAULT_SHEET.1),
     }
+}
+
+/// The page's drawing area in page coordinates (FT-1215): the frame's drawing area inside its grid header, else
+/// [`page_rect`].
+fn drawing_area(view: &PageView) -> Rect {
+    view.frame
+        .as_ref()
+        .and_then(|f| FrameGeometry::of(&f.form, f.title_block.as_deref()))
+        .map_or_else(|| page_rect(view), |g| g.drawing_area)
 }
 
 /// All layers of one page, ready for the writers.
@@ -1261,7 +1270,8 @@ impl Builder<'_> {
     /// step left of the leftmost top CP, so that no caption text stands over a CP, its pin text or its wire. A stack
     /// that collides with another representation's pin text (`pins`, FT-1138) rises [`SLOT_TEXT_GAP`] above what is in
     /// its way, at most [`SLOT_TEXT_DROPS`] times, as a raised device tag does, to the first place the tag rule's free
-    /// test ([`in_the_way`], ID-1250) passes; without a free place it stays. The stacks rise after all are stacked.
+    /// test ([`in_the_way`], ID-1250) passes, never above the page's drawing area ([`drawing_area`], FT-1215); without a
+    /// free place it stays. The stacks rise after all are stacked.
     fn place_black_box_captions(
         &self,
         view: &PageView,
@@ -1369,6 +1379,7 @@ impl Builder<'_> {
             return;
         }
         let wires = page_wires(view);
+        let area = drawing_area(view);
         let entities: Vec<EntityRef> = texts.iter().map(|t| t.entity).collect();
         let movable: Vec<bool> = texts
             .iter()
@@ -1403,6 +1414,10 @@ impl Builder<'_> {
                     Pt2::new(b.min().x, b.min().y + dy),
                     Pt2::new(b.max().x, b.max().y + dy),
                 );
+                // FT-1215: the stack never rises out of the drawing area (into the frame, or off the sheet).
+                if b.min().y < area.min().y {
+                    break;
+                }
                 if in_way(b).is_some_and(|w| w.is_empty()) {
                     found = true;
                     break;
