@@ -4,7 +4,8 @@
 //! `api-guard [--base <rev>]`: the API stability guard (NFR-MAINT-10, doc 18 CI-PR-14, WP-S1.22 D14).
 //!
 //! Five committed snapshots describe the published surfaces (WP-S1.22 D13), each written by its owner's test and read
-//! here as plain data, so that this permissive-layer tool links no GPL crate:
+//! here as plain data, so that this permissive-layer tool links no GPL crate; the file format's published schemas are a
+//! sixth surface, below:
 //!
 //! | Surface | Snapshot | Item |
 //! |---|---|---|
@@ -33,6 +34,19 @@
 //! <item>` that ends there or continues with a space (the orchestrator's ruling 5). From the 1.0 freeze ([`FROZEN`]) a
 //! break also needs the pull request's label `api-break` and a `docs/adr/` reference in its description, read from the
 //! event file at `$GITHUB_EVENT_PATH` as docs.yml's RFC step reads them.
+//!
+//! **The sixth surface, `format`** (WP-S6.08 D9; ADR-0011 amendment 6). Each format folder `schemas/<f>/` is compared
+//! with its base, the oldest final release tag (`v<X.Y.Z>`, no `-rc`) whose tree holds `schemas/<f>/index.json`;
+//! without one the format is not released and the guard prints "format <f>: not released; nothing to compare". Its
+//! items are `index.json`, `<kind>` (a schema file or an index entry) and `<kind> <path>` (a property path as above).
+//! Against the base, **breaking**, which always fails with its own line and no `api-break` line lets pass: a schema
+//! file or a kind removed; a property removed, its type changed or newly required; an `enum` value, a `const` or a
+//! `oneOf`/`anyOf` branch removed; a kind's `file`, `rank`, `v` or `schema` changed (a reserved kind that gains them is
+//! additive), or the index's `format`; any file of `fixtures/format/<f>/<project>/` changed, added or removed (the
+//! `<project>.expected/` folders may change). A new value or branch of a node the base holds passes only when
+//! `docs/release-notes/unreleased.md` gains `- format-variant: <kind> <path> <value>` since the base tag (the reviewer
+//! checks the type's `Unknown(Value)` arm, ADR-0011 amendment 1). A new optional property and a new kind's schema are
+//! additive.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::Write as _;
@@ -59,6 +73,12 @@ const QUERIES: &str = "crates/ew-api/api/queries.json";
 const API_V1: &str = "crates/ew-sqlview/api/api_v1.json";
 /// The release notes of the next release.
 const RELEASE_NOTES: &str = "docs/release-notes/unreleased.md";
+/// The published schemas of the file format, one folder per format (WP-S6.08 D9).
+const SCHEMAS_DIR: &str = "schemas";
+/// The frozen copies of each released format's projects (ADR-0011 amendment 6).
+const FIXTURES_DIR: &str = "fixtures/format";
+/// The sixth surface's name.
+const FORMAT_SURFACE: &str = "format";
 /// The nesting depth up to which property paths are followed (a bound on hostile input).
 const MAX_DEPTH: usize = 32;
 
@@ -141,12 +161,18 @@ pub(crate) fn guard_at(root: &Path, base: &str) -> Result<Report> {
 fn guard(root: &Path, base: &str, frozen: bool, event: Option<&Value>) -> Result<Report> {
     let before = base_files(root, base)?;
     let after = working_files(root)?;
-    let changes = classify(
+    let mut changes = classify(
         &Snapshot::parse(&before, "the base")?,
         &Snapshot::parse(&after, "the working tree")?,
     );
     let notes = |files: &Files| files.get(RELEASE_NOTES).cloned().unwrap_or_default();
-    Ok(report(&changes, &notes(&before), &notes(&after), frozen, event))
+    let format = format_guard(root, &notes(&after))?;
+    changes.extend(format.changes);
+    let mut report = report(&changes, &notes(&before), &notes(&after), frozen, event);
+    let summary = report.lines.len() - 1;
+    report.lines.splice(summary..summary, format.notes);
+    report.failure.extend(format.failure);
+    Ok(report)
 }
 
 /// The pull request event at `path`, if a path is given.
@@ -176,6 +202,11 @@ fn report(
         changes.len() - breaking.len()
     ));
 
+    // A released format's break fails on its own text, whatever the notes say ([`format_guard`]).
+    let breaking: Vec<&Change> = breaking
+        .into_iter()
+        .filter(|c| c.surface != FORMAT_SURFACE)
+        .collect();
     let before: BTreeSet<&str> = notes_before.lines().collect();
     let added: Vec<&str> = notes_after.lines().filter(|l| !before.contains(l)).collect();
     let uncovered: Vec<&Change> = breaking
@@ -292,6 +323,11 @@ fn base_files(root: &Path, rev: &str) -> Result<Files> {
         ],
     )?;
     let paths: Vec<&str> = listed.lines().filter(|p| is_snapshot_file(p)).collect();
+    read_blobs(root, rev, &paths)
+}
+
+/// The text of each of `paths` at the commit `rev` (LF line ends), read by one `git cat-file --batch`.
+fn read_blobs(root: &Path, rev: &str, paths: &[&str]) -> Result<Files> {
     if paths.is_empty() {
         return Ok(Files::new());
     }
@@ -321,7 +357,7 @@ fn base_files(root: &Path, rev: &str) -> Result<Files> {
     }
     let mut files = Files::new();
     let mut rest: &[u8] = &output.stdout;
-    for path in paths {
+    for &path in paths {
         let end = rest
             .iter()
             .position(|b| *b == b'\n')
@@ -849,6 +885,393 @@ fn schema_changes(
     }
 }
 
+// ---------------------------------------------------------------------------------------------------------
+// The format surface (WP-S6.08 D9)
+
+/// The guard's lines and failures of the `format` surface.
+#[derive(Default)]
+struct FormatReport {
+    /// One classified change per item, as the other surfaces'.
+    changes: Vec<Change>,
+    /// A format that is not released: "nothing to compare".
+    notes: Vec<String>,
+    /// S5, S6 and S7 of WP-S6.08 §8, one line each.
+    failure: Vec<String>,
+}
+
+/// The `format` surface: each format folder `schemas/<f>/` of the working tree or of a release, against its base, the
+/// oldest final release tag whose tree holds `schemas/<f>/index.json`, with `notes_after` the working tree's release
+/// notes. Without a base the format is not released and nothing is compared.
+fn format_guard(root: &Path, notes_after: &str) -> Result<FormatReport> {
+    let mut out = FormatReport::default();
+    let mut base: BTreeMap<String, String> = BTreeMap::new();
+    for tag in final_tags(root)? {
+        let listed = crate::repo::git(root, &["ls-tree", "-r", "--name-only", &tag, "--", SCHEMAS_DIR])?;
+        for f in listed.lines().filter_map(|p| {
+            p.strip_prefix(SCHEMAS_DIR)?
+                .strip_prefix('/')?
+                .strip_suffix("/index.json")
+        }) {
+            base.entry(f.to_owned()).or_insert_with(|| tag.clone());
+        }
+    }
+    let mut formats: BTreeSet<String> = base.keys().cloned().collect();
+    if let Ok(entries) = std::fs::read_dir(root.join(SCHEMAS_DIR)) {
+        for entry in entries.flatten() {
+            if entry.path().join("index.json").is_file() {
+                formats.insert(entry.file_name().to_string_lossy().into_owned());
+            }
+        }
+    }
+    for f in formats {
+        match base.get(&f) {
+            None => out
+                .notes
+                .push(format!("format {f}: not released; nothing to compare")),
+            Some(tag) => compare_format(root, &f, tag, notes_after, &mut out)?,
+        }
+    }
+    Ok(out)
+}
+
+/// The final release tags `v<X.Y.Z>` (no `-rc` or other suffix), oldest version first.
+fn final_tags(root: &Path) -> Result<Vec<String>> {
+    let listed = crate::repo::git(root, &["tag", "--list", "v*"])?;
+    let mut tags: Vec<((u64, u64, u64), String)> = listed
+        .lines()
+        .filter_map(|t| {
+            let mut parts = t.strip_prefix('v')?.split('.');
+            let mut number = || -> Option<u64> {
+                let p = parts.next()?;
+                (!p.is_empty() && p.bytes().all(|b| b.is_ascii_digit())).then(|| p.parse().ok())?
+            };
+            let version = (number()?, number()?, number()?);
+            parts.next().is_none().then(|| (version, t.to_owned()))
+        })
+        .collect();
+    tags.sort();
+    Ok(tags.into_iter().map(|(_, t)| t).collect())
+}
+
+/// The format `f` of the working tree against its release `tag`: the index, every schema, the frozen fixture.
+fn compare_format(root: &Path, f: &str, tag: &str, notes_after: &str, out: &mut FormatReport) -> Result<()> {
+    let dir = format!("{SCHEMAS_DIR}/{f}");
+    let listed = crate::repo::git(root, &["ls-tree", "-r", "--name-only", tag, "--", &dir])?;
+    let paths: Vec<&str> = listed
+        .lines()
+        .filter(|p| {
+            p.strip_prefix(dir.as_str())
+                .and_then(|rest| rest.strip_prefix('/'))
+                .is_some_and(|name| !name.contains('/') && name.ends_with(".json"))
+        })
+        .chain([RELEASE_NOTES])
+        .collect();
+    let mut before = read_blobs(root, tag, &paths)?;
+    let notes_before = before.remove(RELEASE_NOTES).unwrap_or_default();
+    let json = |text: &str, path: &str, side: &str| -> Result<Value> {
+        serde_json::from_str(text).with_context(|| format!("parsing {path} of {side}"))
+    };
+    let mut changes: Vec<(bool, String, String)> = Vec::new();
+    let mut variants: Vec<(String, String)> = Vec::new();
+    for (path, text) in &before {
+        let name = &path[dir.len() + 1..];
+        let item = name.strip_suffix(".schema.json").unwrap_or(name);
+        let after = match std::fs::read_to_string(root.join(path)) {
+            Ok(after) => after,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                changes.push((true, item.to_owned(), "removed".to_owned()));
+                continue;
+            }
+            Err(e) => return Err(e).with_context(|| format!("reading {path}")),
+        };
+        let (b, a) = (json(text, path, tag)?, json(&after, path, "the working tree")?);
+        if name == "index.json" {
+            index_changes(&b, &a, &mut changes);
+        } else {
+            node_changes(item, &b, &a, &mut changes, &mut variants);
+        }
+    }
+    let new: BTreeSet<String> = std::fs::read_dir(root.join(&dir))
+        .into_iter()
+        .flatten()
+        .flatten()
+        .map(|e| e.file_name().to_string_lossy().into_owned())
+        .filter(|name| name.ends_with(".json") && !before.contains_key(&format!("{dir}/{name}")))
+        .collect();
+    for name in new {
+        let item = name.strip_suffix(".schema.json").unwrap_or(&name).to_owned();
+        changes.push((false, item, "added".to_owned()));
+    }
+    let ending = "a released format changes only additively (ADR-0011 amendment 6)";
+    for (breaking, item, what) in changes {
+        if breaking {
+            out.failure
+                .push(format!("format {f}: {item}: {what} since {tag}; {ending}"));
+        }
+        push(
+            &mut out.changes,
+            breaking,
+            FORMAT_SURFACE,
+            format!("{f} {item}"),
+            what,
+        );
+    }
+    let gained: BTreeSet<&str> = notes_before.lines().collect();
+    let added: Vec<&str> = notes_after.lines().filter(|l| !gained.contains(l)).collect();
+    for (item, value) in variants {
+        let line = format!("- format-variant: {item} {value}");
+        let covered = added.iter().any(|l| {
+            l.trim_end()
+                .strip_prefix(&line)
+                .is_some_and(|rest| rest.is_empty() || rest.starts_with(' '))
+        });
+        if !covered {
+            out.failure.push(format!(
+                "format {f}: {item}: the new value {value} since {tag} needs the line \"{line}\" in {RELEASE_NOTES}"
+            ));
+        }
+    }
+    // The frozen copy: every byte of `fixtures/format/<f>/<project>/`, its `.expected` folders aside.
+    let fixtures = format!("{FIXTURES_DIR}/{f}");
+    let diff = crate::repo::git(
+        root,
+        &["diff", "--name-only", "--no-renames", tag, "--", &fixtures],
+    )?;
+    let new = crate::repo::git(
+        root,
+        &["ls-files", "--others", "--exclude-standard", "--", &fixtures],
+    )?;
+    let changed: BTreeSet<&str> = diff.lines().chain(new.lines()).collect();
+    for path in changed {
+        let below = path
+            .strip_prefix(fixtures.as_str())
+            .and_then(|r| r.strip_prefix('/'));
+        if below.is_some_and(|b| !b.split('/').next().is_some_and(|p| p.ends_with(".expected"))) {
+            push(
+                &mut out.changes,
+                true,
+                FORMAT_SURFACE,
+                format!("{f} {path}"),
+                "changed",
+            );
+            out.failure.push(format!(
+                "format {f}: {path} changed since {tag}; a released format's fixture never changes"
+            ));
+        }
+    }
+    Ok(())
+}
+
+/// The changes of the format's `index.json`: its `format`, and each kind's `file`, `rank`, `v` and `schema` break (but a
+/// reserved kind that gains its `v` and schema, as a new kind's schema, and a changed `status`); a kind removed breaks,
+/// a kind added does not.
+fn index_changes(before: &Value, after: &Value, out: &mut Vec<(bool, String, String)>) {
+    if before.get("format") != after.get("format") {
+        out.push((
+            true,
+            "index.json".to_owned(),
+            format!(
+                "format changed from {} to {}",
+                compact(before.get("format")),
+                compact(after.get("format"))
+            ),
+        ));
+    }
+    let kinds = |v: &Value| -> BTreeMap<String, Value> {
+        v.get("kinds")
+            .and_then(Value::as_array)
+            .map(|ks| {
+                ks.iter()
+                    .map(|k| {
+                        (
+                            k.get("kind").and_then(Value::as_str).unwrap_or("").to_owned(),
+                            k.clone(),
+                        )
+                    })
+                    .collect()
+            })
+            .unwrap_or_default()
+    };
+    let (b, a) = (kinds(before), kinds(after));
+    for (kind, k) in &b {
+        let Some(nk) = a.get(kind) else {
+            out.push((true, kind.clone(), "removed from index.json".to_owned()));
+            continue;
+        };
+        for key in ["file", "rank", "v", "schema", "status"] {
+            let (old, new) = (k.get(key), nk.get(key));
+            if old != new {
+                let breaking = match key {
+                    "file" | "rank" => true,
+                    "status" => false,
+                    _ => !old.is_none_or(Value::is_null),
+                };
+                out.push((
+                    breaking,
+                    kind.clone(),
+                    format!("{key} changed from {} to {}", compact(old), compact(new)),
+                ));
+            }
+        }
+    }
+    for kind in a.keys().filter(|k| !b.contains_key(*k)) {
+        out.push((false, kind.clone(), "added to index.json".to_owned()));
+    }
+}
+
+/// One node of a format schema: its type, whether it is required, and its values (`enum` values, `const`, and the
+/// `oneOf` and `anyOf` branches).
+#[derive(Default)]
+struct FormatNode {
+    ty: Option<String>,
+    required: bool,
+    values: BTreeSet<String>,
+}
+
+/// The nodes of a format schema by property path (`a.b`, `a[]`, from the top level `""` and from each `$defs` entry
+/// by its name), as the other surfaces name them.
+fn format_nodes(schema: &Value) -> BTreeMap<String, FormatNode> {
+    let mut nodes = BTreeMap::new();
+    format_walk(schema, "", &mut nodes, 0);
+    if let Some(defs) = schema.get("$defs").and_then(Value::as_object) {
+        for (name, def) in defs {
+            format_walk(def, name, &mut nodes, 0);
+        }
+    }
+    nodes
+}
+
+/// A value as the guard names it: a string bare, anything else as JSON.
+fn value_word(v: &Value) -> String {
+    v.as_str().map_or_else(|| v.to_string(), str::to_owned)
+}
+
+/// A `oneOf` or `anyOf` branch as the guard names it: its `const`, the definition its `$ref` names, `{<members>}` for an
+/// object, else its type.
+fn branch_word(b: &Value) -> String {
+    if let Some(c) = b.get("const") {
+        return value_word(c);
+    }
+    if let Some(r) = b.get("$ref").and_then(Value::as_str) {
+        return r.rsplit('/').next().unwrap_or(r).to_owned();
+    }
+    if let Some(props) = b.get("properties").and_then(Value::as_object) {
+        return format!("{{{}}}", props.keys().cloned().collect::<Vec<_>>().join(","));
+    }
+    match b.get("type") {
+        Some(t) => type_text(Some(t)),
+        None => compact(Some(b)),
+    }
+}
+
+fn format_walk(node: &Value, path: &str, nodes: &mut BTreeMap<String, FormatNode>, depth: usize) {
+    if depth >= MAX_DEPTH {
+        return;
+    }
+    let entry = nodes.entry(path.to_owned()).or_default();
+    if entry.ty.is_none() {
+        entry.ty = match (node.get("type"), node.get("$ref").and_then(Value::as_str)) {
+            (Some(t), _) => Some(type_text(Some(t))),
+            (None, Some(r)) => Some(r.rsplit('/').next().unwrap_or(r).to_owned()),
+            (None, None) => None,
+        };
+    }
+    if let Some(values) = node.get("enum").and_then(Value::as_array) {
+        entry.values.extend(values.iter().map(value_word));
+    }
+    if let Some(c) = node.get("const") {
+        entry.values.insert(value_word(c));
+    }
+    for key in ["oneOf", "anyOf"] {
+        if let Some(branches) = node.get(key).and_then(Value::as_array) {
+            nodes
+                .entry(path.to_owned())
+                .or_default()
+                .values
+                .extend(branches.iter().map(branch_word));
+            // The members of an object branch are the node's own.
+            for b in branches.iter().filter(|b| b.get("const").is_none()) {
+                format_members(b, path, nodes, depth + 1);
+            }
+        }
+    }
+    format_members(node, path, nodes, depth);
+}
+
+/// The `properties` and `items` of `node` at `path`.
+fn format_members(node: &Value, path: &str, nodes: &mut BTreeMap<String, FormatNode>, depth: usize) {
+    if let Some(props) = node.get("properties").and_then(Value::as_object) {
+        let required: BTreeSet<&str> = node
+            .get("required")
+            .and_then(Value::as_array)
+            .map(|r| r.iter().filter_map(Value::as_str).collect())
+            .unwrap_or_default();
+        for (name, prop) in props {
+            let child = if path.is_empty() {
+                name.clone()
+            } else {
+                format!("{path}.{name}")
+            };
+            format_walk(prop, &child, nodes, depth + 1);
+            if required.contains(name.as_str()) {
+                nodes.entry(child).or_default().required = true;
+            }
+        }
+    }
+    if let Some(items) = node.get("items").filter(|i| i.is_object()) {
+        format_walk(items, &format!("{path}[]"), nodes, depth + 1);
+    }
+}
+
+/// The changes of one schema of kind `kind`: a node removed, retyped or newly required breaks, a value removed breaks;
+/// a new value of a node that both sides hold is additive and goes into `variants` (it needs its release-note line).
+fn node_changes(
+    kind: &str,
+    before: &Value,
+    after: &Value,
+    out: &mut Vec<(bool, String, String)>,
+    variants: &mut Vec<(String, String)>,
+) {
+    let (b, a) = (format_nodes(before), format_nodes(after));
+    let item = |path: &str| {
+        if path.is_empty() {
+            kind.to_owned()
+        } else {
+            format!("{kind} {path}")
+        }
+    };
+    for (path, node) in &b {
+        let Some(new) = a.get(path) else {
+            out.push((true, item(path), "removed".to_owned()));
+            continue;
+        };
+        if let (Some(ty), Some(new_ty)) = (&node.ty, &new.ty)
+            && ty != new_ty
+        {
+            out.push((true, item(path), format!("type changed from {ty} to {new_ty}")));
+        }
+        match (node.required, new.required) {
+            (false, true) => out.push((true, item(path), "newly required".to_owned())),
+            (true, false) => out.push((false, item(path), "no longer required".to_owned())),
+            _ => {}
+        }
+        for value in node.values.difference(&new.values) {
+            out.push((true, item(path), format!("value {value} removed")));
+        }
+        for value in new.values.difference(&node.values) {
+            out.push((false, item(path), format!("value {value} added")));
+            variants.push((item(path), value.clone()));
+        }
+    }
+    for (path, node) in a.iter().filter(|(p, _)| !b.contains_key(*p)) {
+        if node.required && b.contains_key(parent(path)) {
+            out.push((true, item(path), "added as required".to_owned()));
+        } else {
+            out.push((false, item(path), "added".to_owned()));
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1328,5 +1751,216 @@ mod tests {
         }
         let shape = shape_of(&node);
         assert_eq!(shape.types.len(), MAX_DEPTH);
+    }
+
+    /// The released format of the `format` tests: an index of three kinds (one reserved), two schemas, and the frozen
+    /// copy of a project with its expected folder.
+    fn format_state(s: &Scratch) {
+        s.write_json(
+            "schemas/0.1/index.json",
+            &json!({"format": "0.1", "kinds": [
+                {"file": "devices.jsonl", "kind": "device", "rank": 30, "schema": "device.schema.json",
+                    "status": "implemented", "v": 1},
+                {"file": "project.jsonl", "kind": "medium", "rank": 14, "schema": null, "status": "reserved", "v": null},
+                {"file": "pins.jsonl", "kind": "pin", "rank": 31, "schema": "pin.schema.json", "status": "implemented",
+                    "v": 1}
+            ]}),
+        );
+        s.write_json("schemas/0.1/device.schema.json", &device_schema(|_| {}));
+        s.write_json(
+            "schemas/0.1/pin.schema.json",
+            &json!({"type": "object", "properties": {"n": {"type": "integer"}}}),
+        );
+        s.write(
+            "fixtures/format/0.1/p.ew/manifest.json",
+            "{\"format\": \"0.1\"}\n",
+        );
+        s.write(
+            "fixtures/format/0.1/p.ew.expected/manifest.json",
+            "{\"format\": \"0.1\"}\n",
+        );
+        s.write(RELEASE_NOTES, NOTES_WITHOUT);
+    }
+
+    /// The device schema of [`format_state`], changed by `edit`.
+    fn device_schema(edit: impl FnOnce(&mut Value)) -> Value {
+        let mut schema = json!({"type": "object", "required": ["tag"],
+            "properties": {"tag": {"type": "string"}, "note": {"type": "string"}, "side": {"$ref": "#/$defs/Side"},
+                "mode": {"type": "string", "enum": ["a", "b"]}},
+            "$defs": {"Side": {"oneOf": [{"const": "left", "type": "string"}, {"const": "right", "type": "string"},
+                {"type": "object", "properties": {"at": {"type": "integer"}}, "required": ["at"]}]}}});
+        edit(&mut schema);
+        schema
+    }
+
+    /// The guard of the second commit of `s` against its first, `base`.
+    fn format_report(s: &Scratch, base: &str) -> Report {
+        s.commit("change");
+        guard(&s.dir, base, false, None).unwrap()
+    }
+
+    /// RL-6 (WP-S6.08 D9): without a final release tag (a candidate's `-rc` tag is none) the format is not released:
+    /// the guard says so and passes, whatever changed.
+    #[test]
+    fn a_format_without_a_release_tag_is_not_compared() {
+        let s = Scratch::new("format-unreleased");
+        format_state(&s);
+        let base = s.commit("base");
+        s.git(&["tag", "v0.1.0-rc.1"]);
+        s.remove_file("schemas/0.1/pin.schema.json");
+        s.write("fixtures/format/0.1/p.ew/manifest.json", "{}\n");
+        let report = format_report(&s, &base);
+        s.remove();
+        assert_eq!(
+            report,
+            Report {
+                lines: vec![
+                    "format 0.1: not released; nothing to compare".to_owned(),
+                    "api-guard: 0 breaking, 0 additive".to_owned(),
+                ],
+                failure: vec![],
+            }
+        );
+    }
+
+    /// RL-6 (WP-S6.08 D9): against the release tag `v0.1.0` each breaking change of D9's list fails with S5, a new value
+    /// without its `- format-variant:` line with S6 (with it, it passes), a changed fixture with S7; a new optional
+    /// property, a reserved kind's new schema and a changed expected folder pass. The base is the oldest final tag.
+    #[test]
+    fn a_released_format_changes_only_additively() {
+        let s = Scratch::new("format-released");
+        format_state(&s);
+        let base = s.commit("base");
+        s.git(&["tag", "v0.1.0-rc.1"]);
+        s.git(&["tag", "v0.1.0"]);
+        s.write("README.md", "later\n");
+        s.commit("later");
+        s.git(&["tag", "v0.2.0"]);
+        s.write_json(
+            "schemas/0.1/index.json",
+            &json!({"format": "0.2", "kinds": [
+                {"file": "devices.jsonl", "kind": "device", "rank": 32, "schema": "device.schema.json",
+                    "status": "implemented", "v": 1},
+                {"file": "project.jsonl", "kind": "medium", "rank": 14, "schema": "medium.schema.json",
+                    "status": "implemented", "v": 1}
+            ]}),
+        );
+        s.write_json("schemas/0.1/medium.schema.json", &json!({"type": "object"}));
+        s.remove_file("schemas/0.1/pin.schema.json");
+        s.write_json(
+            "schemas/0.1/device.schema.json",
+            &device_schema(|d| {
+                let props = d["properties"].as_object_mut().unwrap();
+                props.remove("note");
+                props.insert("tag".to_owned(), json!({"type": "integer"}));
+                props.insert("mode".to_owned(), json!({"type": "string", "enum": ["a", "c"]}));
+                props.insert("extra".to_owned(), json!({"type": "string"}));
+                props.insert("level".to_owned(), json!({"type": "integer"}));
+                d["required"] = json!(["tag", "level"]);
+                d["$defs"]["Side"]["oneOf"][1] = json!({"const": "up", "type": "string"});
+            }),
+        );
+        s.write(
+            "fixtures/format/0.1/p.ew/manifest.json",
+            "{\"format\": \"0.2\"}\n",
+        );
+        s.write(
+            "fixtures/format/0.1/p.ew.expected/manifest.json",
+            "{\"format\": \"0.2\"}\n",
+        );
+        s.write(
+            RELEASE_NOTES,
+            "# Unreleased changes\n\n- format-variant: device Side up (a new side)\n",
+        );
+        let report = format_report(&s, &base);
+        s.remove();
+        let lines = [
+            "breaking: format 0.1 device Side: value right removed",
+            "additive: format 0.1 device Side: value up added",
+            "breaking: format 0.1 device mode: value b removed",
+            "additive: format 0.1 device mode: value c added",
+            "breaking: format 0.1 device note: removed",
+            "breaking: format 0.1 device tag: type changed from string to integer",
+            "additive: format 0.1 device extra: added",
+            "breaking: format 0.1 device level: added as required",
+            "breaking: format 0.1 index.json: format changed from \"0.1\" to \"0.2\"",
+            "breaking: format 0.1 device: rank changed from 30 to 32",
+            "additive: format 0.1 medium: v changed from null to 1",
+            "additive: format 0.1 medium: schema changed from null to \"medium.schema.json\"",
+            "additive: format 0.1 medium: status changed from \"reserved\" to \"implemented\"",
+            "breaking: format 0.1 pin: removed from index.json",
+            "breaking: format 0.1 pin: removed",
+            "additive: format 0.1 medium: added",
+            "breaking: format 0.1 fixtures/format/0.1/p.ew/manifest.json: changed",
+            "api-guard: 10 breaking, 7 additive",
+        ];
+        let s5 = |item: &str, what: &str| {
+            format!(
+                "format 0.1: {item}: {what} since v0.1.0; a released format changes only additively (ADR-0011 amendment 6)"
+            )
+        };
+        assert_eq!(
+            report,
+            Report {
+                lines: lines.map(str::to_owned).to_vec(),
+                failure: vec![
+                    s5("device Side", "value right removed"),
+                    s5("device mode", "value b removed"),
+                    s5("device note", "removed"),
+                    s5("device tag", "type changed from string to integer"),
+                    s5("device level", "added as required"),
+                    s5("index.json", "format changed from \"0.1\" to \"0.2\""),
+                    s5("device", "rank changed from 30 to 32"),
+                    s5("pin", "removed from index.json"),
+                    s5("pin", "removed"),
+                    "format 0.1: device mode: the new value c since v0.1.0 needs the line \"- format-variant: device \
+                     mode c\" in docs/release-notes/unreleased.md"
+                        .to_owned(),
+                    "format 0.1: fixtures/format/0.1/p.ew/manifest.json changed since v0.1.0; a released format's \
+                     fixture never changes"
+                        .to_owned(),
+                ],
+            }
+        );
+    }
+
+    /// RL-6 (WP-S6.08 D9): a new value with its line, a new optional property and a changed expected folder pass.
+    #[test]
+    fn a_new_value_with_its_line_and_a_new_optional_property_pass() {
+        let s = Scratch::new("format-additive");
+        format_state(&s);
+        let base = s.commit("base");
+        s.git(&["tag", "v0.1.0"]);
+        s.write_json(
+            "schemas/0.1/device.schema.json",
+            &device_schema(|d| {
+                let props = d["properties"].as_object_mut().unwrap();
+                props.insert(
+                    "mode".to_owned(),
+                    json!({"type": "string", "enum": ["a", "b", "c"]}),
+                );
+                props.insert("extra".to_owned(), json!({"type": "string"}));
+            }),
+        );
+        s.write("fixtures/format/0.1/p.ew.expected/manifest.json", "{}\n");
+        s.write(
+            RELEASE_NOTES,
+            "# Unreleased changes\n\n- format-variant: device mode c (FT-0, a third mode)\n",
+        );
+        let report = format_report(&s, &base);
+        s.remove();
+        assert_eq!(
+            report,
+            Report {
+                lines: [
+                    "additive: format 0.1 device mode: value c added",
+                    "additive: format 0.1 device extra: added",
+                    "api-guard: 0 breaking, 2 additive",
+                ]
+                .map(str::to_owned)
+                .to_vec(),
+                failure: vec![],
+            }
+        );
     }
 }

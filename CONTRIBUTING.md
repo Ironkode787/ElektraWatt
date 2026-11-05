@@ -144,6 +144,10 @@ changes. There is no CLA and no copyright assignment. The main rows:
 - Every PR needs one approving review by someone other than the author. CODEOWNERS routes the reviews. Critical
   paths get a second owner by M1.
 - A change to the file format needs the schema steward's review.
+- A released format changes only additively (ADR-0011 amendment 6): from its release tag on, `cargo xtask api-guard`
+  fails any other change to `schemas/<format>/` and any change to its frozen copy `fixtures/format/<format>/`, and a
+  new enum value or `oneOf`/`anyOf` branch passes only with the line `- format-variant: <kind> <path> <value>` in
+  `docs/release-notes/unreleased.md`, and the reviewer checks the type's `Unknown(Value)` arm (ADR-0011 amendment 1).
 - Licence, governance, format-major and API-break changes need an accepted RFC in `rfcs/`, referenced from the PR.
   The RFC process opens with the first binary release. Until then the decision is an ADR in `docs/adr/`.
 
