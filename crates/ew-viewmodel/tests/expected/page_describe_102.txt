@@ -1,9 +1,9 @@
 page "102" "Power Supply 2 - Control Current" reps 12 connections 19 junctions 4
-  rep ip "L-1" direction target cell "102-A1" symbol "ew.gen.ip@qet10" variant "A" at 38.495 25.447 mm
+  rep ip "L-1" direction target continues "101-H16" cell "102-A1" symbol "ew.gen.ip@qet10" variant "A" at 38.495 25.447 mm
     cp "L-1" at 38.495 22.838 mm wires 1 potential "L-1"
-  rep ip "N-1" direction target cell "102-A1" symbol "ew.gen.ip@qet10" variant "A" at 38.495 30.666 mm
+  rep ip "N-1" direction target continues "101-H16" cell "102-A1" symbol "ew.gen.ip@qet10" variant "A" at 38.495 30.666 mm
     cp "N-1" at 38.495 28.057 mm wires 1 potential "N-1"
-  rep ip "PE-1.2" direction source cell "102-A15" symbol "ew.gen.ip@qet10" variant "A" at 257.696 25.447 mm
+  rep ip "PE-1.2" direction source continues "103-G6" cell "102-A15" symbol "ew.gen.ip@qet10" variant "A" at 257.696 25.447 mm
     cp "PE-1.2" at 257.696 22.838 mm wires 1 potential "PE"
   rep "-102G1" cell "102-B6" symbol "ew.gen.blackbox@qet10" variant "A" at 116.781 38.495 mm
     cp "-102G1:L" at 119.391 38.495 mm wires 1 potential "L-1"
@@ -16,9 +16,9 @@ page "102" "Power Supply 2 - Control Current" reps 12 connections 19 junctions 4
   rep "-102F1" cell "102-C7" symbol "ew.iec.mcb-1p@qet10" variant "A" at 132.438 61.981 mm
     cp "-102F1:1" at 132.438 61.981 mm wires 1 potential "+24V"
     cp "-102F1:2" at 132.438 72.419 mm wires 1 potential "+24V-F"
-  rep ip "0VDC" direction source cell "102-C15" symbol "ew.gen.ip@qet10" variant "A" at 257.696 67.200 mm
+  rep ip "0VDC" direction source continues "103-A1" cell "102-C15" symbol "ew.gen.ip@qet10" variant "A" at 257.696 67.200 mm
     cp "0VDC" at 257.696 64.590 mm wires 1 potential "0V"
-  rep ip "PE-0VDC" direction source cell "102-D15" symbol "ew.gen.ip@qet10" variant "A" at 257.696 88.076 mm
+  rep ip "PE-0VDC" direction source continues "103-G1" cell "102-D15" symbol "ew.gen.ip@qet10" variant "A" at 257.696 88.076 mm
     cp "PE-0VDC" at 257.696 85.467 mm wires 1 potential "0V"
   rep "-102F2" cell "102-E7" symbol "ew.gen.blackbox@qet10" variant "A" at 132.438 101.124 mm
     cp "-102F2:24VDC#1" at 135.048 101.124 mm wires 1 potential "+24V-F"
@@ -31,13 +31,13 @@ page "102" "Power Supply 2 - Control Current" reps 12 connections 19 junctions 4
     cp "-102F2:Out2" at 145.486 116.781 mm wires 1 potential "24VDC-2"
     cp "-102F2:Out3" at 150.705 116.781 mm wires 1 potential "24VDC-3"
     cp "-102F2:Out4" at 155.924 116.781 mm wires 1 potential "24VDC-4"
-  rep ip "24VDC-3" direction source cell "102-G15" symbol "ew.gen.ip@qet10" variant "A" at 257.696 150.705 mm
+  rep ip "24VDC-3" direction source continues "103-D1" cell "102-G15" symbol "ew.gen.ip@qet10" variant "A" at 257.696 150.705 mm
     cp "24VDC-3" at 257.696 148.096 mm wires 1 potential "24VDC-3"
-  rep ip "24VDC-4" direction source cell "102-G15" symbol "ew.gen.ip@qet10" variant "A" at 257.696 155.924 mm
+  rep ip "24VDC-4" direction source continues "103-F1" cell "102-G15" symbol "ew.gen.ip@qet10" variant "A" at 257.696 155.924 mm
     cp "24VDC-4" at 257.696 153.315 mm wires 1 potential "24VDC-4"
-  rep ip "24VDC-1" direction source cell "102-H15" symbol "ew.gen.ip@qet10" variant "A" at 257.696 171.581 mm
+  rep ip "24VDC-1" direction source continues "103-A1" cell "102-H15" symbol "ew.gen.ip@qet10" variant "A" at 257.696 171.581 mm
     cp "24VDC-1" at 257.696 168.972 mm wires 1 potential "24VDC-1"
-  rep ip "24VDC-2" direction source cell "102-H15" symbol "ew.gen.ip@qet10" variant "A" at 257.696 176.801 mm
+  rep ip "24VDC-2" direction source continues "103-C1" cell "102-H15" symbol "ew.gen.ip@qet10" variant "A" at 257.696 176.801 mm
     cp "24VDC-2" at 257.696 174.191 mm wires 1 potential "24VDC-2"
   wire "-102F1:2" -> junction 4 route provisional bends 0 at 132.438 80.248 mm
   wire "-102F2:Out1" -> "24VDC-1" route provisional bends 1 at 198.982 168.972 mm

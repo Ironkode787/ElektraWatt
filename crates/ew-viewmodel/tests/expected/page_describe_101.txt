@@ -38,17 +38,17 @@ page "101" "Power Supply 1 - Main Current" reps 17 connections 21 junctions 2
   rep "E56" cell "101-E14" symbol "ew.iec.lamp@qet10" variant "A" at 242.039 108.952 mm
     cp "E56:X1" at 242.039 108.952 mm wires 1 potential "N-55S"
     cp "E56:X2" at 242.039 116.781 mm wires 1 potential "L-55"
-  rep ip "J-E-206-L" direction target cell "101-G0" symbol "ew.gen.external-arrow@qet10" variant "A" at 17.619 145.486 mm
+  rep ip "J-E-206-L" direction target continues "+J-E-206 / JE-N1000-03" cell "101-G0" symbol "ew.gen.external-arrow@qet10" variant "A" at 17.619 145.486 mm
     cp "J-E-206-L" at 17.619 145.486 mm wires 1 potential "L"
-  rep ip "J-E-206-N" direction target cell "101-G0" symbol "ew.gen.external-arrow@qet10" variant "A" at 17.619 150.705 mm
+  rep ip "J-E-206-N" direction target continues "+J-E-206 / JE-N1000-03" cell "101-G0" symbol "ew.gen.external-arrow@qet10" variant "A" at 17.619 150.705 mm
     cp "J-E-206-N" at 17.619 150.705 mm wires 1 potential "N"
-  rep ip "J-E-206-PE" direction target cell "101-G0" symbol "ew.gen.external-arrow@qet10" variant "A" at 17.619 155.924 mm
+  rep ip "J-E-206-PE" direction target continues "+J-E-206 / JE-N1000-03" cell "101-G0" symbol "ew.gen.external-arrow@qet10" variant "A" at 17.619 155.924 mm
     cp "J-E-206-PE" at 17.619 155.924 mm wires 1 potential "PE"
-  rep ip "PE-1.1" direction source cell "101-G15" symbol "ew.gen.ip@qet10" variant "A" at 257.696 150.705 mm
+  rep ip "PE-1.1" direction source continues "103-G6" cell "101-G15" symbol "ew.gen.ip@qet10" variant "A" at 257.696 150.705 mm
     cp "PE-1.1" at 257.696 148.096 mm wires 1 potential "PE"
-  rep ip "L-1" direction source cell "101-H16" symbol "ew.gen.ip@qet10" variant "A" at 273.353 171.581 mm
+  rep ip "L-1" direction source continues "102-A1" cell "101-H16" symbol "ew.gen.ip@qet10" variant "A" at 273.353 171.581 mm
     cp "L-1" at 273.353 168.972 mm wires 1 potential "L-1"
-  rep ip "N-1" direction source cell "101-H16" symbol "ew.gen.ip@qet10" variant "A" at 273.353 176.801 mm
+  rep ip "N-1" direction source continues "102-A1" cell "101-H16" symbol "ew.gen.ip@qet10" variant "A" at 273.353 176.801 mm
     cp "N-1" at 273.353 174.191 mm wires 1 potential "N-1"
   wire "-101F1:1" -> "F55:1" route provisional bends 0
   wire "-101F1:2" -> "L-1" route provisional bends 1 at 209.420 168.972 mm

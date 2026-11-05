@@ -388,6 +388,8 @@ const WORDS: &[(&str, &[Reach])] = &[
     ("source", &[Reach::Ip, Reach::Page]),
     ("undirected", &[Reach::Ip, Reach::Page]),
     ("potential", &[Reach::Ip, Reach::Page]),
+    // FT-1437: where an interruption point continues, its printed cross-reference, a reviewed vocabulary change.
+    ("continues", &[Reach::Page]),
     // G-PP triage row 21: a terminal CP's side, `internal` (`field` is older), a reviewed vocabulary change.
     ("internal", &[Reach::Page]),
     // FT-621 (WP-S2.07 part 2): the page text's line of a strip's bridge, a reviewed vocabulary change.
@@ -3188,6 +3190,13 @@ pub fn page_describe(page: &CanvasPage) -> String {
     reps.sort_by(|a, b| a.0.cmp(&b.0));
     for (_, r, cps, tag) in &reps {
         let who = match (&r.ip, tag) {
+            // FT-1437: where the point continues, its printed cross-reference, when it has a partner.
+            (Some(ip), _) if !ip.continuation.is_empty() => format!(
+                "ip {} direction {} continues {}",
+                page_quoted(&ip.name),
+                ip.direction,
+                page_quoted(&ip.continuation)
+            ),
             (Some(ip), _) => format!("ip {} direction {}", page_quoted(&ip.name), ip.direction),
             (None, Some(tag)) => page_quoted(tag),
             (None, None) => "none".to_owned(),

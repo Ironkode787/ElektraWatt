@@ -1317,6 +1317,9 @@ pub struct TableIp {
     pub name: String,
     /// Its direction in its JSON spelling (`source`, `target`, `undirected`).
     pub direction: String,
+    /// Where it continues (FT-1437): its printed cross-reference to its partners, as the canvas prints it; empty for
+    /// a point without a partner.
+    pub continuation: String,
 }
 
 /// A black box's geometry, absolute on the page.
@@ -1678,6 +1681,7 @@ impl Session {
                 FunctionKind::Ip(ip) => Some(TableIp {
                     name: ip.name.as_str().to_owned(),
                     direction: ip_direction_word(&ip.direction),
+                    continuation: q.get::<ew_derive::XrefTextOf>(rid).text.clone(),
                 }),
                 _ => None,
             });
