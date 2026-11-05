@@ -1927,14 +1927,18 @@ pub static ACTIONS: &[ActionMeta] = &[
     )),
     keeps_banner(with_params(
         "by:enum(folio|type)",
-        needs_parameters(act(
-            "pages.sort",
-            View,
-            Menu::View,
-            &[],
-            has_pages,
-            grp_sub(Group::Panels, Submenu::PageNavigator),
-            |s, p| s.act_pages_sort(p),
+        // FT-1174: the palette row's icon (doc 16a §6.14).
+        needs_parameters(with_icon(
+            "arrows-sort",
+            act(
+                "pages.sort",
+                View,
+                Menu::View,
+                &[],
+                has_pages,
+                grp_sub(Group::Panels, Submenu::PageNavigator),
+                |s, p| s.act_pages_sort(p),
+            ),
         )),
     )),
     keeps_banner(placed(
@@ -1978,7 +1982,7 @@ pub static ACTIONS: &[ActionMeta] = &[
         "on?:bool",
         placed(
             place(Group::Panels, 2, CommandSize::Small, None),
-            "list-details",
+            "layout-sidebar-right",
             act("props.show", View, Menu::View, &[], project_open, None, |s, p| {
                 s.act_props_show(p)
             }),
@@ -2256,14 +2260,18 @@ pub static ACTIONS: &[ActionMeta] = &[
     // value of the `language` setting.
     with_params(
         "value:text",
-        needs_parameters(act(
-            "view.language",
-            View,
-            Menu::View,
-            &[],
-            always,
-            sub(Menu::View, Submenu::Language, true),
-            |s, p| s.act_view_setting("language", p),
+        // FT-1174: the palette row's icon (doc 16a §6.14).
+        needs_parameters(with_icon(
+            "language",
+            act(
+                "view.language",
+                View,
+                Menu::View,
+                &[],
+                always,
+                sub(Menu::View, Submenu::Language, true),
+                |s, p| s.act_view_setting("language", p),
+            ),
         )),
     ),
     // WP-S2.17 part 2 (§4.3): the command bar's tab and its collapse (Ctrl+F1, a tab's double click), view actions.
@@ -2295,7 +2303,7 @@ pub static ACTIONS: &[ActionMeta] = &[
         "name:text",
         needs_parameters(placed(
             place(Group::Layout, 2, CommandSize::Small, Some(key!("bar-workspaces"))),
-            "layout-dashboard",
+            "layout-board",
             act(
                 "view.workspace_load",
                 View,
@@ -6111,6 +6119,16 @@ pub fn breadcrumb(meta: &ActionMeta) -> String {
         ),
         Some(slot) => strings::text(slot.menu.label_key()).to_owned(),
         None => strings::text(meta.category.label_key()).to_owned(),
+    }
+}
+
+/// [`breadcrumb`] of a palette row labelled `label`, which it never repeats (FT-1174, doc 16a §6.14): "View" on the
+/// row "Language", not "View · Language".
+pub fn breadcrumb_of(meta: &ActionMeta, label: &str) -> String {
+    let crumb = breadcrumb(meta);
+    match crumb.rsplit_once(" · ") {
+        Some((head, last)) if last == label => head.to_owned(),
+        _ => crumb,
     }
 }
 

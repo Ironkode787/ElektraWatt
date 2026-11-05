@@ -115,7 +115,7 @@ pub const LEFT: [(&str, &str, PaneKind); 13] = [
         PaneKind::Navigator(NavKind::Unplaced),
     ),
     // WP-S1.19 part 6 (FT-754 (g)): after Report blocks, without a Ctrl+<n> key (the ninth is the last).
-    ("macros", "package", PaneKind::Navigator(NavKind::Macros)),
+    ("macros", "template", PaneKind::Navigator(NavKind::Macros)),
     ("libraries", "books", PaneKind::Navigator(NavKind::Libraries)),
 ];
 

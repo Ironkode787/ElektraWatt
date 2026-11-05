@@ -144,7 +144,7 @@ impl ShellModel {
                     shortcut: self.shortcut_text(meta),
                     enabled: state.is_ok(),
                     reason: state.err().map(|k| strings::text(k).to_owned()),
-                    breadcrumb: actions::breadcrumb(meta),
+                    breadcrumb: actions::breadcrumb_of(meta, label),
                 },
                 rank,
             });

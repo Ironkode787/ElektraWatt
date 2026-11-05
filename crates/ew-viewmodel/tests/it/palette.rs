@@ -320,3 +320,23 @@ fn pl6_forms_open_prefilled_run_with_enter_and_a_path_parameter_is_disabled() {
     );
     shell.shutdown();
 }
+
+/// FT-1174 (doc 16a §6.14, §9.3): a palette row's breadcrumb never repeats its label, and the Language and Page
+/// navigator order rows take an icon from the icon set.
+#[test]
+fn ft1174_the_breadcrumb_never_repeats_the_row_and_both_rows_have_icons() {
+    let find = |id: &str| ACTIONS.iter().find(|a| a.id == id).expect(id);
+    let language = find("view.language");
+    assert_eq!(
+        ew_viewmodel::actions::breadcrumb(language),
+        "View · Language"
+    );
+    assert_eq!(
+        ew_viewmodel::actions::breadcrumb_of(language, "Language"),
+        "View"
+    );
+    assert_eq!(
+        (language.icon, find("pages.sort").icon),
+        (Some("language"), Some("arrows-sort"))
+    );
+}

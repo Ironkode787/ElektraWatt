@@ -9,7 +9,7 @@
 use super::Seg::{self, C, L, M, Q, Z};
 
 /// The number of icons in the table.
-pub const COUNT: usize = 105;
+pub const COUNT: usize = 109;
 
 /// One icon of the table, named by its key in `snake_case` (`ew_` for the project's own glyphs).
 #[allow(non_camel_case_types, missing_docs)]
@@ -78,10 +78,13 @@ pub enum IconId {
     highlight_off,
     history,
     info_circle,
+    language,
     layout_align_left,
+    layout_board,
     layout_columns,
     layout_dashboard,
     layout_sidebar,
+    layout_sidebar_right,
     link,
     list,
     list_check,
@@ -112,6 +115,7 @@ pub enum IconId {
     sparkles,
     sun_moon,
     table,
+    template,
     text_size,
     trash,
     typography,
@@ -188,10 +192,13 @@ impl IconId {
         IconId::highlight_off,
         IconId::history,
         IconId::info_circle,
+        IconId::language,
         IconId::layout_align_left,
+        IconId::layout_board,
         IconId::layout_columns,
         IconId::layout_dashboard,
         IconId::layout_sidebar,
+        IconId::layout_sidebar_right,
         IconId::link,
         IconId::list,
         IconId::list_check,
@@ -222,6 +229,7 @@ impl IconId {
         IconId::sparkles,
         IconId::sun_moon,
         IconId::table,
+        IconId::template,
         IconId::text_size,
         IconId::trash,
         IconId::typography,
@@ -298,10 +306,13 @@ pub const KEYS: [&str; COUNT] = [
     "highlight-off",
     "history",
     "info-circle",
+    "language",
     "layout-align-left",
+    "layout-board",
     "layout-columns",
     "layout-dashboard",
     "layout-sidebar",
+    "layout-sidebar-right",
     "link",
     "list",
     "list-check",
@@ -332,6 +343,7 @@ pub const KEYS: [&str; COUNT] = [
     "sparkles",
     "sun-moon",
     "table",
+    "template",
     "text-size",
     "trash",
     "typography",
@@ -1414,6 +1426,22 @@ pub(super) static PATHS: [&[Seg]; COUNT] = [
         L(12.0, 16.0),
         L(13.0, 16.0),
     ],
+    // language
+    &[
+        M(9.0, 6.371),
+        C(9.0, 10.789, 6.761, 13.0, 4.0, 13.0),
+        M(4.0, 6.371),
+        L(11.0, 6.371),
+        M(5.0, 9.0),
+        C(5.0, 11.144, 7.252, 12.908, 11.0, 13.0),
+        M(12.0, 20.0),
+        L(16.0, 11.0),
+        L(20.0, 20.0),
+        M(19.1, 18.0),
+        L(12.9, 18.0),
+        M(6.694, 3.0),
+        L(7.487, 3.582),
+    ],
     // layout-align-left
     &[
         M(4.0, 4.0),
@@ -1427,6 +1455,24 @@ pub(super) static PATHS: [&[Seg]; COUNT] = [
         L(10.0, 15.0),
         C(8.895, 15.0, 8.0, 14.105, 8.0, 13.0),
         L(8.0, 11.0),
+    ],
+    // layout-board
+    &[
+        M(4.0, 6.0),
+        C(4.0, 4.895, 4.895, 4.0, 6.0, 4.0),
+        L(18.0, 4.0),
+        C(19.105, 4.0, 20.0, 4.895, 20.0, 6.0),
+        L(20.0, 18.0),
+        C(20.0, 19.105, 19.105, 20.0, 18.0, 20.0),
+        L(6.0, 20.0),
+        C(4.895, 20.0, 4.0, 19.105, 4.0, 18.0),
+        L(4.0, 6.0),
+        M(4.0, 9.0),
+        L(12.0, 9.0),
+        M(12.0, 15.0),
+        L(20.0, 15.0),
+        M(12.0, 4.0),
+        L(12.0, 20.0),
     ],
     // layout-columns
     &[
@@ -1494,6 +1540,20 @@ pub(super) static PATHS: [&[Seg]; COUNT] = [
         L(4.0, 6.0),
         M(9.0, 4.0),
         L(9.0, 20.0),
+    ],
+    // layout-sidebar-right
+    &[
+        M(4.0, 6.0),
+        C(4.0, 4.895, 4.895, 4.0, 6.0, 4.0),
+        L(18.0, 4.0),
+        C(19.105, 4.0, 20.0, 4.895, 20.0, 6.0),
+        L(20.0, 18.0),
+        C(20.0, 19.105, 19.105, 20.0, 18.0, 20.0),
+        L(6.0, 20.0),
+        C(4.895, 20.0, 4.0, 19.105, 4.0, 18.0),
+        L(4.0, 6.0),
+        M(15.0, 4.0),
+        L(15.0, 20.0),
     ],
     // link
     &[
@@ -2140,6 +2200,33 @@ pub(super) static PATHS: [&[Seg]; COUNT] = [
         L(21.0, 10.0),
         M(10.0, 3.0),
         L(10.0, 21.0),
+    ],
+    // template
+    &[
+        M(4.0, 5.0),
+        C(4.0, 4.448, 4.448, 4.0, 5.0, 4.0),
+        L(19.0, 4.0),
+        C(19.552, 4.0, 20.0, 4.448, 20.0, 5.0),
+        L(20.0, 7.0),
+        C(20.0, 7.552, 19.552, 8.0, 19.0, 8.0),
+        L(5.0, 8.0),
+        C(4.448, 8.0, 4.0, 7.552, 4.0, 7.0),
+        L(4.0, 5.0),
+        M(4.0, 13.0),
+        C(4.0, 12.448, 4.448, 12.0, 5.0, 12.0),
+        L(9.0, 12.0),
+        C(9.552, 12.0, 10.0, 12.448, 10.0, 13.0),
+        L(10.0, 19.0),
+        C(10.0, 19.552, 9.552, 20.0, 9.0, 20.0),
+        L(5.0, 20.0),
+        C(4.448, 20.0, 4.0, 19.552, 4.0, 19.0),
+        L(4.0, 13.0),
+        M(14.0, 12.0),
+        L(20.0, 12.0),
+        M(14.0, 16.0),
+        L(20.0, 16.0),
+        M(14.0, 20.0),
+        L(20.0, 20.0),
     ],
     // text-size
     &[

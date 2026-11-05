@@ -294,11 +294,6 @@ fn ft1015_no_icon_key_serves_two_concepts() {
         ("ew-interruption-point", &["pane ips", "tool.ip"]),
         // The Structure identifiers navigator and the command that adds one.
         ("sitemap", &["pane structure", "structure.new"]),
-        // Known before FT-1015 and outside its ruling, each two concepts on one key: open until a ruling gives each
-        // its own icon (reported with the lane's proposed rows).
-        ("layout-dashboard", &["pane unplaced", "view.workspace_load"]),
-        ("list-details", &["lists.parts", "props.show"]),
-        ("package", &["pane macros", "tool.place_part"]),
     ];
     let mut by_key: BTreeMap<&str, BTreeSet<String>> = BTreeMap::new();
     for a in ew_viewmodel::actions::ACTIONS {
