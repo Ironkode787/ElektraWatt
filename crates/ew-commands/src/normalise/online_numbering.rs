@@ -146,7 +146,10 @@ impl Normaliser for OnlineNumbering {
                 // project's was only for the time it lay on no page. Once, in the pass that places it (the counter it
                 // came with is the base's).
                 let placed_now = dev.aspects.cable.is_some()
-                    && base.table::<Device>().get(&d).is_some_and(|b| b.tag.counter == Some(counter))
+                    && base
+                        .table::<Device>()
+                        .get(&d)
+                        .is_some_and(|b| b.tag.counter == Some(counter))
                     && main_page_in(base, d).is_none()
                     && main_page(tx, d).is_some();
                 if placed_now {
