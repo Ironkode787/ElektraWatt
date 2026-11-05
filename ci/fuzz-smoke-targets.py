@@ -105,18 +105,28 @@ def selftest():
     # a crate's tests, benches, examples and Markdown are not built into a target
     assert run("crates/ew-format/tests/roundtrip.rs", "crates/ew-store/benches/b.rs", "crates/ew-derive/README.md") == ""
     # the closure of each target: the format crate is in five (the command target saves through ew-store, the
-    # .ewz reader parses the manifest, the merge target merges and reloads)
-    assert run("crates/ew-format/src/lib.rs") == f"{loader} {chain} {command} {ewz} {merge} {api}"
-    assert run("crates/ew-schema/src/plc.rs") == f"{loader} {chain} {command} {ewz} {merge} {sql} {svg} {conv} {imp}"
-    assert run("crates/ew-store/src/open.rs") == f"{chain} {command} {ewz} {api}"
-    assert run("crates/ew-model/src/index.rs") == f"{chain} {command} {ewz} {sql} {svg} {conv} {imp}"
-    assert run("crates/ew-zip/src/lib.rs") == f"{chain} {command} {ewz} {sql} {svg} {conv} {imp}"
-    assert run("crates/ew-commands/src/tx.rs") == f"{command} {api}"
-    assert run("crates/ew-derive/src/plc.rs") == f"{command} {sql} {svg} {conv} {imp}"
-    assert run("crates/ew-api/src/verify.rs") == f"{command} {api}"
-    assert run("crates/ew-import-tables/Cargo.toml") == f"{command} {api}"
-    assert run("crates/ew-testkit/src/lib.rs") == f"{command} {kit}"
-    assert run("crates/ew-testkit/tests/command_fuzz/arms.rs") == f"{command} {kit}", "the generator is included by fuzz/"
+    # .ewz reader parses the manifest, the merge target merges and reloads). FT-1380: a crate's targets are checked
+    # by membership, the targets that apply in and those that do not out, so a new target that reaches ew-format or
+    # ew-api edits no line here (the set grows).
+    def has(path, inside, outside):
+        words = run(path).split()
+        got = {w.split(":")[0] for w in words}
+        assert set(inside.split()) <= set(words), (path, inside, words)
+        assert not got & {w.split(":")[0] for w in outside.split()}, (path, outside, words)
+        assert words == [w for w in every.split() if w in words], (path, "not in run order", words)
+
+    has("crates/ew-format/src/lib.rs", f"{loader} {chain} {command} {ewz} {merge} {api}", svg)
+    has("crates/ew-schema/src/plc.rs", f"{loader} {chain} {command} {ewz} {merge} {sql} {svg} {conv} {imp}", "")
+    has("crates/ew-store/src/open.rs", f"{chain} {command} {ewz} {api}", f"{loader} {merge} {svg}")
+    has("crates/ew-model/src/index.rs", f"{chain} {command} {ewz} {sql} {svg} {conv} {imp}", f"{loader} {merge}")
+    has("crates/ew-zip/src/lib.rs", f"{chain} {command} {ewz} {sql} {svg} {conv} {imp}", f"{loader} {merge}")
+    has("crates/ew-commands/src/tx.rs", f"{command} {api}", f"{loader} {chain} {ewz} {merge} {svg}")
+    has("crates/ew-derive/src/plc.rs", f"{command} {sql} {svg} {conv} {imp}", f"{loader} {chain} {ewz} {merge}")
+    has("crates/ew-api/src/verify.rs", f"{command} {api}", f"{loader} {chain} {ewz} {merge} {svg}")
+    has("crates/ew-import-tables/Cargo.toml", f"{command} {api}", f"{loader} {chain} {ewz} {merge} {svg}")
+    has("crates/ew-testkit/src/lib.rs", f"{command} {kit}", f"{loader} {chain} {ewz} {merge} {svg} {imp}")
+    # the generator is included by fuzz/
+    has("crates/ew-testkit/tests/command_fuzz/arms.rs", f"{command} {kit}", f"{loader} {chain} {ewz} {merge} {svg} {imp}")
     assert run("crates/ew-testkit/tests/other.rs") == ""
     assert run("crates/ew-format-extra/x.rs") == "", "a prefix of a directory name is not the crate"
     # the fuzz crate
@@ -128,7 +138,7 @@ def selftest():
     assert run("fuzz/corpus/sql_sandbox/attach.sql") == sql
     assert run("fuzz/fuzz_targets/svg_asset.rs") == svg
     assert run("fuzz/corpus/ewlib_read/sample-computed") == "ewlib_read:65536"
-    assert run("crates/ew-library/src/record.rs") == f"{command} {api}"
+    has("crates/ew-library/src/record.rs", f"{command} {api}", f"{loader} {chain} {ewz} {merge} {svg}")
     assert run("fuzz/src/loader.rs") == every
     assert run("fuzz/Cargo.lock") == every
     assert run("fuzz/rust-toolchain.toml") == every
@@ -136,13 +146,12 @@ def selftest():
     assert run("ci/fuzz-smoke-targets.py") == every
     assert run("ci/fuzz-smoke-targets.toml") == every
     # several paths: the union, in run order, once each
-    assert (
-        run("crates/ew-commands/a.rs", "crates/ew-format/b.rs", "crates/ew-dl/src/lib.rs", "crates/ew-commands/c.rs")
-        == every
-    )
+    paths = ("crates/ew-commands/a.rs", "crates/ew-format/b.rs", "crates/ew-dl/src/lib.rs", "crates/ew-commands/c.rs")
+    union = set().union(*(run(p).split() for p in paths))
+    assert run(*paths) == " ".join(w for w in every.split() if w in union)
     # Windows separators and a leading ./ (a local run)
-    assert run("crates\\ew-store\\src\\lib.rs") == f"{chain} {command} {ewz} {api}"
-    assert run("./crates/ew-commands/src/tx.rs") == f"{command} {api}"
+    has("crates\\ew-store\\src\\lib.rs", f"{chain} {command} {ewz} {api}", f"{loader} {merge} {svg}")
+    has("./crates/ew-commands/src/tx.rs", f"{command} {api}", f"{loader} {chain} {ewz} {merge} {svg}")
 
     # the table agrees with the crate and the deep nightly's matrix (the dependency closure is checked by xtask)
     for spec in TARGETS.values():

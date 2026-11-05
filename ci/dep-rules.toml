@@ -572,7 +572,7 @@ key_deps = "ew-dl, ew-render-cpu; krilla 0.8.2 (default features off; since cycl
 
 [crates."ew-print"]
 responsibility = 'OS print adapters with per-OS features (§8.4)'
-key_deps = 'ew-export, ew-render-cpu'
+key_deps = 'ew-export, ew-render-cpu; Linux: ashpd 0.13.13 (default features off; `async-io`, `print`); Windows: windows 0.62.2 (`Win32_Foundation`, `Win32_Graphics_Gdi`, `Win32_Storage_Xps`, `Win32_System_Com`, `Win32_System_Memory`, `Win32_UI_Controls_Dialogs`, `Win32_UI_WindowsAndMessaging`)'
 
 [crates."ew-plc"]
 responsibility = 'Exchange orchestration, merge and writers: AML AR APC (CAEX 2.15 write, 2.15 and 3.0 read, through `ew-caex`), the TIA "PLC Tags" XLSX exporter and importer, PLCopen XML; rack and slot logic'

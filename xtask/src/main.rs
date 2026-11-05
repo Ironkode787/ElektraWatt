@@ -80,6 +80,8 @@ commands:
                        `disallowed-methods`, FT-317), and the calls in the reader crates, which opt out of the
                        lint: prints them per crate and compares them with ci/disallowed-methods-allow.toml;
                        --bless (or --write) rewrites the list
+  check-fmt            rustfmt --check over every tracked .rs file, the automod test modules under tests/it/ that
+                       `cargo fmt --all --check` does not reach included (FT-1164); names each file not formatted
   check-ui-strings     no string literal reaches an egui text call in crates/ew-ui/src (labels, buttons,
                        headings, check boxes, menus, hints, tooltips, painted texts, RichText::new, WidgetInfo
                        names) outside ci/ui-strings-allow.txt
@@ -287,6 +289,7 @@ fn main() -> ExitCode {
                 Ok(false)
             }
         },
+        "check-fmt" => run_check("check-fmt", check_fmt),
         "check-ui-strings" => run_check("check-ui-strings", check_ui_strings),
         "check-test-layout" => run_check("check-test-layout", check_test_layout),
         "check-unsafe" => run_check("check-unsafe", check_unsafe),
@@ -653,6 +656,11 @@ fn check_test_layout() -> Result<Violations> {
     Ok(violations)
 }
 
+/// FT-1164: every tracked `.rs` file is formatted, the `automod` test modules included.
+fn check_fmt() -> Result<Violations> {
+    settle::check_fmt(&workspace_root())
+}
+
 /// WP-S2.08 D11 (NFR-I18N-02): no string literal reaches an egui text call outside the allowlist.
 fn check_ui_strings() -> Result<Violations> {
     ui_strings::check(&workspace_root())
@@ -937,7 +945,7 @@ fn ci() -> Result<bool> {
         &all_features::workspace_set()?,
         &all_features::workspace_doctest_set()?,
     );
-    let checks: [Check; 17] = [
+    let checks: [Check; 18] = [
         ("check-deps", check_deps),
         ("check-features", check_features),
         ("check-raw-read", check_raw_read),
@@ -952,6 +960,7 @@ fn ci() -> Result<bool> {
         ("docs-gen-check", check_docs_gen),
         ("gen-icons-check", check_gen_icons),
         ("check-test-layout", check_test_layout),
+        ("check-fmt", check_fmt),
         ("check-ui-strings", check_ui_strings),
         ("check-unsafe", check_unsafe),
         ("api-guard", check_api_guard),
@@ -1123,7 +1132,7 @@ mod tests {
             .collect();
         let (doc_set, doc_default): (Vec<&str>, Vec<&str>) = doc_runs
             .iter()
-            .partition(|l| l.contains("$ALL_FEATURES_PACKAGES"));
+            .partition(|l| l.contains("$ALL_FEATURES_DOCTEST_PACKAGES"));
         assert_eq!(
             (doc_default.len(), doc_set.len()),
             (1, 1),
@@ -1199,7 +1208,10 @@ mod tests {
     /// (FT-1155); an empty set has neither.
     #[test]
     fn ci_runs_the_all_features_tests_for_the_set_alone() {
-        let set: BTreeSet<String> = ["ew-ui", "a-lib", "a-bin"].into_iter().map(str::to_owned).collect();
+        let set: BTreeSet<String> = ["ew-ui", "a-lib", "a-bin"]
+            .into_iter()
+            .map(str::to_owned)
+            .collect();
         let with_doctests: BTreeSet<String> = ["ew-ui", "a-lib"].into_iter().map(str::to_owned).collect();
         let steps = ci_cargo_steps(&set, &with_doctests);
         let args = |label: &str| -> Vec<&str> {

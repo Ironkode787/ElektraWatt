@@ -81,6 +81,10 @@ jobs:
         run: test -z "${ICU4X_DATA_DIR:-}"
       - name: cargo fmt
         run: cargo fmt --all --check
+      # FT-1164: `cargo fmt` does not reach the `automod` test modules under tests/it/; rustfmt checks every tracked
+      # `.rs` file.
+      - name: rustfmt (every file)
+        run: cargo xtask check-fmt
       # An unresolvable `disallowed-methods` or `disallowed-types` path in the generated clippy.toml is only a warning,
       # which
       # `-D warnings` does not turn into an error: fail on it here (ADR-0001 amendment 2).

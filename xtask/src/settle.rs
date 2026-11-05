@@ -454,6 +454,8 @@ pub(crate) const STEPS: &[Step] = &[
         triggers: &[
             "golden/J-E-2416.ew/**",
             "fuzz/src/**",
+            // FT-1165: the code that makes the seeds.
+            "xtask/src/fuzz_seeds.rs",
             // WP-S3.09 D15: the importer seeds' sources.
             "golden/J-E-2416/tables/**",
             "crates/ew-import-qet/tests/fixtures/**",
@@ -1164,6 +1166,20 @@ fn git_ls_rs(root: &Path) -> Result<Vec<String>> {
         .split(|b| *b == 0)
         .filter(|p| !p.is_empty())
         .map(|p| String::from_utf8_lossy(p).into_owned())
+        .collect())
+}
+
+/// `check-fmt` (FT-1164): `rustfmt --check` over every `.rs` file settle formats, the `automod` test modules that
+/// `cargo fmt --all --check` does not reach included; one violation per file that is not formatted.
+pub(crate) fn check_fmt(root: &Path) -> Result<Vec<String>> {
+    let outcome = rustfmt(root, &rust_files(root, &BTreeSet::new(), true)?, true)?;
+    if outcome.ok {
+        return Ok(Vec::new());
+    }
+    Ok(outcome
+        .detail
+        .split(", ")
+        .map(|file| format!("{file}: not formatted (`rustfmt {file}` formats it)"))
         .collect())
 }
 
@@ -2065,6 +2081,7 @@ mod tests {
             ("fuzz-table", "crates/ew-format/Cargo.toml"),
             ("fuzz-table", "fuzz/Cargo.toml"),
             ("fuzz-seeds", "fuzz/src/golden.rs"),
+            ("fuzz-seeds", "xtask/src/fuzz_seeds.rs"),
             ("fuzz-seeds", "golden/J-E-2416.ew/manifest.json"),
             ("golden-change-list", "golden/J-E-2416/tables/parts.csv"),
             ("golden-change-list", "docs/plan/06-decision-log.md"),
@@ -2268,6 +2285,38 @@ mod tests {
         for o in [BOOK_SUMMARY, FUZZ_TABLE, GOLDEN_LIST, GLOBAL_PLAN] {
             assert!(!whole_file_outputs().contains(&o), "{o}");
         }
+    }
+
+    /// FT-1164: `check-fmt` names an unformatted `automod` test module, which no `mod` line declares, and passes a
+    /// formatted one.
+    #[test]
+    fn check_fmt_names_an_unformatted_test_module() {
+        let dir = std::env::temp_dir().join(format!("ew-xtask-check-fmt-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(dir.join("tests/it")).unwrap();
+        std::fs::write(dir.join("tests/it/main.rs"), "automod::dir!(\"tests/it\");\n").unwrap();
+        std::fs::write(dir.join("tests/it/tidy.rs"), "fn a() {}\n").unwrap();
+        std::fs::write(dir.join("tests/it/untidy.rs"), "fn  b ( ) { }\n").unwrap();
+        let git = |args: &[&str]| {
+            let out = Command::new("git")
+                .args(["-c", "user.name=xtask", "-c", "user.email=xtask"])
+                .args(args)
+                .current_dir(&dir)
+                .env("GIT_CONFIG_GLOBAL", dir.join("no-global-config"))
+                .env("GIT_CONFIG_NOSYSTEM", "1")
+                .output()
+                .unwrap();
+            assert!(out.status.success(), "git {args:?}: {}", String::from_utf8_lossy(&out.stderr));
+        };
+        git(&["init", "-q"]);
+        git(&["add", "."]);
+        git(&["commit", "-q", "-m", "base"]);
+        let violations = check_fmt(&dir);
+        let _ = std::fs::remove_dir_all(&dir);
+        assert_eq!(
+            violations.unwrap(),
+            ["tests/it/untidy.rs: not formatted (`rustfmt tests/it/untidy.rs` formats it)"]
+        );
     }
 
     /// A module its parent declares under `#[rustfmt::skip]` is not given to rustfmt: `cargo fmt` leaves it alone,

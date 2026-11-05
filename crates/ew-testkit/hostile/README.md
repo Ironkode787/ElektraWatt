@@ -87,7 +87,7 @@ Parser: the `.ewz` reader as every reader opens one, `ew_api::Session::open_ewz`
 
 | File | Tries | Verdict |
 |---|---|---|
-| `65536-entries.ewz` | 65,536 entries, one more than the 16-bit counts hold (*generated*) | Refused: bytes between the central directory and the end record |
+| `65536-entries.ewz` | 65,536 entries, one more than the 16-bit counts hold (*generated*) | Refused: bytes between the central directory and the end record. Not by `MAX_ENTRIES` (65,535, `crates/ew-store/src/ewz.rs`): without ZIP64 the end record's 16-bit count cannot pass 65,535, so the entry limit equals the format's cap and no file can be refused by the limit alone; the 65,536th entry shows as bytes past the counted directory, and this file stands for the limit (FT-1377) |
 | `parent-entry.ewz` | an entry named `../x` | Refused: a `..` segment |
 
 ## `jsonl/`: project files

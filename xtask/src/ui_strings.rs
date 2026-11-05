@@ -13,6 +13,7 @@
 //! passed by name is out of its reach. A literal that holds only `format!` placeholders
 //! (`"{}"`, `"{a}{b}"`) passes; another passes when the allowlist holds it exactly as written in the source (one per
 //! line in its quotes, `#` comments). A `#[cfg(test)]` module, comments and the test tool's own files are not scanned.
+//! An allowlist entry that no such literal matches is stale and fails the check, named (FT-1166).
 
 use std::path::Path;
 
@@ -167,8 +168,9 @@ fn only_placeholders(lit: &str) -> bool {
     rest.is_empty()
 }
 
-/// The literals of `src` that reach a text call and are not allowed: (line, literal).
-fn findings<'s>(src: &'s str, allow: &[String]) -> Vec<(usize, &'s str)> {
+/// The literals of `src` that reach a text call and are not allowed: (line, literal). Each entry of `allow` that such a
+/// literal matches is marked in `used`, index for index (FT-1166).
+fn findings<'s>(src: &'s str, allow: &[String], used: &mut [bool]) -> Vec<(usize, &'s str)> {
     let toks = tokens(src);
     let mut out = Vec::new();
     for (i, t) in toks.iter().enumerate() {
@@ -222,10 +224,11 @@ fn findings<'s>(src: &'s str, allow: &[String]) -> Vec<(usize, &'s str)> {
                         key_depth = Some(depth + 1);
                     }
                 }
-                Tok::Str(lit, line)
-                    if key_depth.is_none() && !only_placeholders(lit) && !allow.iter().any(|a| a == lit) =>
-                {
-                    out.push((*line, *lit));
+                Tok::Str(lit, line) if key_depth.is_none() && !only_placeholders(lit) => {
+                    match allow.iter().position(|a| a == lit) {
+                        Some(k) => used[k] = true,
+                        None => out.push((*line, *lit)),
+                    }
                 }
                 _ => {}
             }
@@ -272,6 +275,7 @@ pub(crate) fn check(root: &Path) -> Result<Vec<String>> {
     let mut files = Vec::new();
     rust_files(&root.join(SCANNED), &mut files)?;
     let mut out = Vec::new();
+    let mut used = vec![false; allow.len()];
     for path in files {
         let rel = path
             .strip_prefix(root)
@@ -283,14 +287,27 @@ pub(crate) fn check(root: &Path) -> Result<Vec<String>> {
             continue;
         }
         let src = std::fs::read_to_string(&path).with_context(|| format!("reading {rel}"))?;
-        for (line, lit) in findings(&src, &allow) {
+        for (line, lit) in findings(&src, &allow, &mut used) {
             out.push(format!(
                 "{rel}:{line}: the literal \"{lit}\" reaches an egui text call; give it a key in \
                  crates/ew-viewmodel/locales/en-GB/shell.ftl or, for a symbol, list it in {ALLOW}"
             ));
         }
     }
+    out.extend(stale(&allow, &used));
     Ok(out)
+}
+
+/// The entries of `allow` that no text call's literal matched (`used` false): a stale entry, named (FT-1166).
+fn stale(allow: &[String], used: &[bool]) -> Vec<String> {
+    allow
+        .iter()
+        .zip(used)
+        .filter(|(_, used)| !**used)
+        .map(|(entry, _)| {
+            format!("{ALLOW}: the entry \"{entry}\" matches no egui text call's literal; remove it")
+        })
+        .collect()
 }
 
 #[cfg(test)]
@@ -298,7 +315,21 @@ mod tests {
     use super::*;
 
     fn found(src: &str) -> Vec<(usize, &str)> {
-        findings(src, &["▸".to_owned()])
+        findings(src, &["▸".to_owned()], &mut [false])
+    }
+
+    /// FT-1166: an entry a text call's literal matches is used; one no literal matches is stale and named.
+    #[test]
+    fn a_stale_allowlist_entry_is_named() {
+        let allow = ["▸".to_owned(), "◂".to_owned()];
+        let mut used = [false, false];
+        let src = "fn f(ui: &mut Ui) {\n    ui.label(\"▸\");\n}\n";
+        assert_eq!(findings(src, &allow, &mut used), []);
+        assert_eq!(used, [true, false]);
+        assert_eq!(
+            stale(&allow, &used),
+            ["ci/ui-strings-allow.txt: the entry \"◂\" matches no egui text call's literal; remove it"]
+        );
     }
 
     /// LO-6: a literal in a label is found; the fixture of the acceptance.

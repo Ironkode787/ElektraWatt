@@ -73,10 +73,7 @@ fn enabled(root: &Path, triple: &str, locked: bool) -> Result<BTreeMap<String, B
 /// The set of the workspace for the host platform.
 pub(crate) fn workspace_set() -> Result<BTreeSet<String>> {
     let root = crate::workspace_root();
-    Ok(set(
-        &crate::metadata()?,
-        &enabled(&root, &host_triple()?, true)?,
-    ))
+    Ok(set(&crate::metadata()?, &enabled(&root, &host_triple()?, true)?))
 }
 
 /// The host's target triple: the `host:` line of `rustc -vV` (`RUSTC` when set).
@@ -105,10 +102,7 @@ pub(crate) fn arguments(set: &BTreeSet<String>) -> String {
 
 /// The part of `set` whose members have a library target with doctests, the packages `cargo test --doc` takes
 /// (FT-1155; lane-check's doc step filters the same way).
-pub(crate) fn with_doctests(
-    set: &BTreeSet<String>,
-    members: &crate::affected::Members,
-) -> BTreeSet<String> {
+pub(crate) fn with_doctests(set: &BTreeSet<String>, members: &crate::affected::Members) -> BTreeSet<String> {
     set.iter()
         .filter(|p| members.get(*p).is_some_and(|m| m.doctests))
         .cloned()

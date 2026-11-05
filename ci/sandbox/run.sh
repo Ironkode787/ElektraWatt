@@ -80,6 +80,12 @@ flow ew-import-qet "0 1" "$bin/ew" import qet "$work/fixture.qet" --content "$re
 printf 'source %s\nwork %s\nrepo %s\nallow %s\n' "$work/fixture-hostile.qet" "$work" "$repo" "$HOME" \
   >"$out/ew-import-qet-hostile.import"
 flow ew-import-qet-hostile "2" "$bin/ew" import qet "$work/fixture-hostile.qet" --content "$repo/content"
+# FT-1376: the hostile fixture's DOCTYPE is refused before its `xi:include` is read; this fixture holds only the
+# `xi:include` of the sibling file, which the importer drops unread (a finding, so exit 0 or 1).
+cp "$repo/ci/sandbox/fixture-include.qet" "$work/fixture-include.qet"
+printf 'source %s\nwork %s\nrepo %s\nallow %s\n' "$work/fixture-include.qet" "$work" "$repo" "$HOME" \
+  >"$out/ew-import-qet-include.import"
+flow ew-import-qet-include "0 1" "$bin/ew" import qet "$work/fixture-include.qet" --content "$repo/content"
 flow ew-print "0" "$bin/ew" print "$cli" --out "$work/print.pdf" --pages 101-103
 flow ew-apply "0 1" "$bin/ew" apply "$cli" "$repo/golden/J-E-2416/variants/b2-renumber-pages.ewcmd"
 
