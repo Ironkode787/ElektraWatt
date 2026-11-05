@@ -25,7 +25,7 @@ use crate::commands::common::KindName;
 use crate::error::CmdError;
 use crate::meta::{CommandMeta, Cost};
 use crate::proxy::UuidS;
-use crate::text::text;
+use crate::text::{Text, TextArg, text};
 use crate::tx::TxBuilder;
 
 /// The settable field paths per kind: dotted JSON member paths of the record's serde form (device aspects
@@ -335,7 +335,7 @@ impl SetFields {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/targets",
-                "give at least one target",
+                text!("refusal-params-no-target"),
             ));
         }
         let mut seen = BTreeSet::new();
@@ -344,7 +344,7 @@ impl SetFields {
                 return Err(CmdError::invalid_params(
                     Self::NAME,
                     format!("/targets/{i}"),
-                    "the target is listed twice",
+                    text!("refusal-params-target-twice"),
                 ));
             }
         }
@@ -352,11 +352,7 @@ impl SetFields {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/path",
-                format!(
-                    "`{}` of a revision is not set here: set by Check ▸ Revision ▸ Set revision author… or by \
-                     approval (four eyes need one confirmed path per role, FT-402)",
-                    self.path
-                ),
+                text!("refusal-fields-revision-party", self.path.to_string()),
             ));
         }
         let allowed = SETTABLE
@@ -366,11 +362,16 @@ impl SetFields {
         if !allowed.contains(&self.path.as_str()) {
             let kind = self.kind.kind();
             let message = if allowed.is_empty() {
-                format!("`{}` is not settable: {kind} has no settable fields", self.path)
+                text!(
+                    "refusal-fields-not-settable-kind",
+                    self.path.clone(),
+                    kind.to_string()
+                )
             } else {
-                format!(
-                    "`{}` is not a settable field of {kind}; settable: {}",
-                    self.path,
+                text!(
+                    "refusal-fields-not-settable",
+                    self.path.clone(),
+                    kind.to_string(),
                     allowed.join(", ")
                 )
             };
@@ -476,8 +477,8 @@ impl SetFields {
                     let b = tx.require::<StructureBox>(t.cast())?;
                     crate::commands::structure_box::check_box(tx, Self::NAME, "", &b).map_err(
                         |e| match e {
-                            CmdError::InvalidParams { message, .. } => {
-                                CmdError::invalid_params(Self::NAME, "/value", message)
+                            CmdError::InvalidParams { text, .. } => {
+                                CmdError::invalid_params(Self::NAME, "/value", text)
                             }
                             other => other,
                         },
@@ -504,7 +505,7 @@ impl SetFields {
                         return Err(CmdError::invalid_params(
                             Self::NAME,
                             "/value",
-                            format!("{v} is not a device link kind; give drives or linkage"),
+                            text!("refusal-fields-link-kind-unknown", v.to_string()),
                         ));
                     }
                 }
@@ -558,11 +559,16 @@ fn set_project_member(
         return Err(CmdError::invalid_params(
             SetFields::NAME,
             "/path",
-            format!("`{path}` lies below a value that is not an object"),
+            text!("refusal-fields-below-non-object", path.to_string()),
         ));
     }
-    let next: ew_schema::Project = serde_json::from_value(json)
-        .map_err(|e| CmdError::invalid_params(SetFields::NAME, "/value", e.to_string()))?;
+    let next: ew_schema::Project = serde_json::from_value(json).map_err(|e| {
+        CmdError::invalid_params(
+            SetFields::NAME,
+            "/value",
+            text!("refusal-params-detail", e.to_string()),
+        )
+    })?;
     tx.set_project(next)
 }
 
@@ -625,8 +631,9 @@ fn channel_address_value(
     }
     let c = tx.require::<Channel>(channel)?;
     let profile = channel_profile(tx, c.module);
-    let address = ew_derive::parse_plc_address(&profiles_in(tx), &profile, text)
-        .map_err(|m| CmdError::invalid_params(SetFields::NAME, "/value", m))?;
+    let address = ew_derive::parse_plc_address(&profiles_in(tx), &profile, text).map_err(|m| {
+        CmdError::invalid_params(SetFields::NAME, "/value", text!("refusal-params-detail", m))
+    })?;
     serde_json::to_value(AddrSpec::Manual(address))
         .map_err(|e| CmdError::internal(format!("fields.set: cannot serialise an address ({e})")))
 }
@@ -671,16 +678,14 @@ fn refuse_unknown_channel_member(tx: &TxBuilder<'_>, channel: ew_ids::Id<Channel
         return Err(CmdError::invalid_params(
             SetFields::NAME,
             "/value",
-            "not an address this build knows; give an address text, auto, excluded or tbd",
+            text!("refusal-fields-address-unknown"),
         ));
     }
     if let Some(ChannelState::Unknown(v)) = &c.state {
         return Err(CmdError::invalid_params(
             SetFields::NAME,
             "/value",
-            format!(
-                "{v} is not a channel state; give spare, reserved or deactivated, or null for the derived state"
-            ),
+            text!("refusal-fields-channel-state-unknown", v.to_string()),
         ));
     }
     Ok(())
@@ -757,16 +762,17 @@ impl Command for SetManyFields {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/edits",
-                "give at least one entry",
+                text!("refusal-params-no-entry"),
             ));
         }
         if self.edits.len() > SET_MANY_MAX_EDITS {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/edits",
-                format!(
-                    "{} entries are more than the {SET_MANY_MAX_EDITS} one command takes",
-                    self.edits.len()
+                text!(
+                    "refusal-fields-set-many-too-many",
+                    self.edits.len().to_string(),
+                    SET_MANY_MAX_EDITS.to_string()
                 ),
             ));
         }
@@ -780,10 +786,7 @@ impl Command for SetManyFields {
                     return Err(CmdError::invalid_params(
                         Self::NAME,
                         format!("/edits/{j}/targets/{k}"),
-                        format!(
-                            "an earlier entry already sets `{}` on this target; give each (target, path) once",
-                            e.path
-                        ),
+                        text!("refusal-fields-set-many-pair-twice", e.path.to_string()),
                     ));
                 }
             }
@@ -792,14 +795,14 @@ impl Command for SetManyFields {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 format!("/edits/{i}/copies"),
-                "give the library documents in the command's `copies`, not in an entry",
+                text!("refusal-fields-copies-in-entry"),
             ));
         }
         crate::commands::assign::embed_closure(Self::NAME, tx, &self.copies)?;
         for (i, e) in self.edits.iter().enumerate() {
             e.apply(tx).map_err(|err| match err {
-                CmdError::InvalidParams { path, message, .. } => {
-                    CmdError::invalid_params(Self::NAME, format!("/edits/{i}{path}"), message)
+                CmdError::InvalidParams { path, text, .. } => {
+                    CmdError::invalid_params(Self::NAME, format!("/edits/{i}{path}"), text)
                 }
                 other => other,
             })?;
@@ -855,10 +858,9 @@ fn refuse_foreign_covers(tx: &TxBuilder<'_>, device: ew_ids::Id<Device>) -> Resu
                 return Err(CmdError::invalid_params(
                     SetFields::NAME,
                     "/value",
-                    format!(
-                        "the configuration {} covers {}, which is neither the assembly device {} nor one of its \
-                         descendants",
-                        config.order_code,
+                    text!(
+                        "refusal-fields-config-covers-other",
+                        config.order_code.to_string(),
                         crate::words::device(tx, *covered),
                         crate::words::device(tx, device)
                     ),
@@ -880,7 +882,12 @@ fn refuse_other_variant(tx: &TxBuilder<'_>, target: AnyId, path: &str) -> Result
         return Err(CmdError::invalid_params(
             SetFields::NAME,
             "/path",
-            format!("the page item is a {own}, not a {variant}; `{path}` is not one of its fields"),
+            text!(
+                "refusal-fields-item-variant",
+                own.to_string(),
+                variant.to_string(),
+                path.to_string()
+            ),
         ));
     }
     Ok(())
@@ -896,9 +903,10 @@ fn refuse_not_ip(tx: &TxBuilder<'_>, target: AnyId, path: &str) -> Result<(), Cm
         return Err(CmdError::invalid_params(
             SetFields::NAME,
             "/path",
-            format!(
-                "{} is not an interruption point; `{path}` is not one of its fields",
-                crate::words::function(tx, target.cast())
+            text!(
+                "refusal-fields-not-ip",
+                crate::words::function(tx, target.cast()),
+                path.to_string()
             ),
         ));
     }
@@ -915,28 +923,22 @@ fn refuse_no_port(tx: &TxBuilder<'_>, target: AnyId, path: &str) -> Result<(), C
     let f = tx.require::<Function>(target.cast())?;
     if f.bus_port.is_none() {
         // "function -Q1 has no …", or "a function without a device has no …": the fallback is its own subject.
-        let who = crate::words::function(tx, target.cast()).to_string();
-        let subject = if who.starts_with("a function ") {
-            who
-        } else {
-            format!("function {who}")
+        let subject = match crate::words::function(tx, target.cast()) {
+            TextArg::Plain(tag) => text!("refusal-fields-function-named", tag).into(),
+            other => other,
         };
         return Err(CmdError::invalid_params(
             SetFields::NAME,
             "/path",
-            format!("{subject} has no bus port; set `bus_port` first"),
+            text!("refusal-fields-no-port", subject),
         ));
     }
     Ok(())
 }
 
 /// The refusal of a value of a newer format at `/value`: an edit writes only what this build knows.
-fn newer(what: &str, v: &Value, give: &str) -> CmdError {
-    CmdError::invalid_params(
-        SetFields::NAME,
-        "/value",
-        format!("{v} is not a {what}; give {give}"),
-    )
+fn newer(text: Text) -> CmdError {
+    CmdError::invalid_params(SetFields::NAME, "/value", text)
 }
 
 /// A function's bus port as read back: every enum value known to this build, and the nets it names exist.
@@ -949,21 +951,13 @@ fn check_port(tx: &TxBuilder<'_>, function: ew_ids::Id<Function>) -> Result<(), 
         return Err(crate::commands::bus::unknown_bus(SetFields::NAME, "/value", v));
     }
     if let PortRole::Unknown(v) = &port.role {
-        return Err(newer(
-            "port role",
-            v,
-            "master, slave, controller, device or passive",
-        ));
+        return Err(newer(text!("refusal-fields-port-role-unknown", v.to_string())));
     }
     if let AddrValue::Unknown(v) | AddrValue::Value(NetAddress::Unknown(v)) = &port.address {
-        return Err(newer(
-            "bus address",
-            v,
-            r#"tbd, not_applicable or {"value": {"profibus": n}}"#,
-        ));
+        return Err(newer(text!("refusal-fields-bus-address-unknown", v.to_string())));
     }
     if let Some(OnOff::Unknown(v)) = &port.termination {
-        return Err(newer("termination", v, "on or off"));
+        return Err(newer(text!("refusal-fields-termination-unknown", v.to_string())));
     }
     if let Some(n) = port.logical_net {
         tx.require::<LogicalNet>(n)?;
@@ -985,7 +979,7 @@ fn check_logical_net(tx: &TxBuilder<'_>, net: ew_ids::Id<LogicalNet>) -> Result<
         return Err(CmdError::invalid_params(
             SetFields::NAME,
             "/value",
-            "a data rate of 0 bit/s; give the rate in bit/s (1500000) or null",
+            text!("refusal-fields-zero-rate"),
         ));
     }
     match &n.master {
@@ -997,7 +991,7 @@ fn check_logical_net(tx: &TxBuilder<'_>, net: ew_ids::Id<LogicalNet>) -> Result<
             return Err(CmdError::invalid_params(
                 SetFields::NAME,
                 "/value",
-                r#"a master is a CP: {"cp": [function, index]}"#,
+                text!("refusal-fields-master-cp"),
             ));
         }
     }
@@ -1009,7 +1003,7 @@ fn check_logical_net(tx: &TxBuilder<'_>, net: ew_ids::Id<LogicalNet>) -> Result<
 fn check_physical_net(tx: &TxBuilder<'_>, net: ew_ids::Id<PhysicalNet>) -> Result<(), CmdError> {
     let n = tx.require::<PhysicalNet>(net)?;
     if let BusMedium::Unknown(v) = &n.medium {
-        return Err(newer("medium", v, "copper or fibre"));
+        return Err(newer(text!("refusal-bus-medium-unknown", v.to_string())));
     }
     for f in &n.order_hint {
         tx.require::<Function>(*f)?;
@@ -1027,7 +1021,7 @@ fn refuse_unknown_direction(tx: &TxBuilder<'_>, target: AnyId) -> Result<(), Cmd
         return Err(CmdError::invalid_params(
             SetFields::NAME,
             "/value",
-            format!("{v} is not a direction; give source, target or undirected"),
+            text!("refusal-fields-direction-unknown", v.to_string()),
         ));
     }
     Ok(())
@@ -1076,7 +1070,7 @@ fn set_line_kind(tx: &mut TxBuilder<'_>, id: ew_ids::Id<Connection>, value: &Val
             return Err(CmdError::invalid_params(
                 SetFields::NAME,
                 "/value",
-                "a line kind is one of working, pilot, exhaust, drain and flexible",
+                text!("refusal-fields-line-kind"),
             ));
         }
         Ok(kind) => kind,
@@ -1107,9 +1101,10 @@ fn set_one<T: Entity + Serialize + DeserializeOwned>(
         return Err(CmdError::invalid_params(
             SetFields::NAME,
             "/path",
-            format!(
-                "the device has no `{}` aspect; `{path}` cannot be set",
-                segments[0]
+            text!(
+                "refusal-fields-no-aspect",
+                segments[0].to_string(),
+                path.to_string()
             ),
         ));
     }
@@ -1117,11 +1112,16 @@ fn set_one<T: Entity + Serialize + DeserializeOwned>(
         return Err(CmdError::invalid_params(
             SetFields::NAME,
             "/path",
-            format!("`{path}` lies below a value that is not an object"),
+            text!("refusal-fields-below-non-object", path.to_string()),
         ));
     }
-    let next: T = serde_json::from_value(json)
-        .map_err(|e| CmdError::invalid_params(SetFields::NAME, "/value", e.to_string()))?;
+    let next: T = serde_json::from_value(json).map_err(|e| {
+        CmdError::invalid_params(
+            SetFields::NAME,
+            "/value",
+            text!("refusal-params-detail", e.to_string()),
+        )
+    })?;
     tx.update::<T>(id, |r| *r = next)?;
     if T::KIND == Kind::Device && matches!(path, "tag.counter" | "tag.letter" | "tag.scheme") {
         refuse_tag_collision(tx, target.cast())?;

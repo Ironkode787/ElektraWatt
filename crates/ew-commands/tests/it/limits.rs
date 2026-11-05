@@ -138,6 +138,7 @@ fn ten_megabyte_string_fails_fast() {
             command,
             path,
             message,
+            ..
         }) => {
             assert_eq!(command, "fields.set");
             assert_eq!(path, "/value");

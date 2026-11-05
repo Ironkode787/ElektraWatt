@@ -57,7 +57,7 @@ impl Command for CreateLogicalNet {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/rate",
-                "a data rate of 0 bit/s; give the rate in bit/s (1500000) or leave it unset",
+                text!("refusal-bus-zero-rate"),
             ));
         }
         refuse_duplicate_logical_name(tx, None, &self.name)?;
@@ -103,7 +103,7 @@ impl Command for CreatePhysicalNet {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/medium",
-                format!("{v} is not a medium; give copper or fibre"),
+                text!("refusal-bus-medium-unknown", v.to_string()),
             ));
         }
         refuse_duplicate_physical_name(tx, None, &self.name)?;
@@ -126,10 +126,7 @@ pub(crate) fn unknown_bus(command: &str, pointer: &str, v: &Value) -> CmdError {
     CmdError::invalid_params(
         command,
         pointer,
-        format!(
-            "{v} is not a bus system; give profibus_dp, profinet, ethercat, ethernet_ip, io_link, asi, canopen or \
-             modbus_tcp"
-        ),
+        text!("refusal-bus-system-unknown", v.to_string()),
     )
 }
 

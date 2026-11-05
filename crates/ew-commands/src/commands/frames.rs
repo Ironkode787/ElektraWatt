@@ -88,7 +88,7 @@ impl SetFrameDefaults {
             _ => Err(CmdError::invalid_params(
                 Self::NAME,
                 path,
-                "the form is not a frame (its kind must be `frame`, `cover` or `divider`)",
+                text!("refusal-frames-not-frame"),
             )),
         }
     }
@@ -113,21 +113,21 @@ impl Command for SetFrameDefaults {
                 return Err(CmdError::invalid_params(
                     Self::NAME,
                     at,
-                    "not a page type of this version",
+                    text!("refusal-frames-unknown-page-type"),
                 ));
             };
             if entry.page_type == PageType::Report {
                 return Err(CmdError::invalid_params(
                     Self::NAME,
                     at,
-                    "report pages take the form of their report block (EW-INV-012); give no entry for `report`",
+                    text!("refusal-frames-report"),
                 ));
             }
             if !seen.insert(name.clone()) {
                 return Err(CmdError::invalid_params(
                     Self::NAME,
                     at,
-                    format!("the page type `{name}` has an entry already; give one entry per page type"),
+                    text!("refusal-frames-page-type-twice", name.to_string()),
                 ));
             }
             Self::check_form(tx, entry.form, &format!("/per_page_type/{i}/form"))?;

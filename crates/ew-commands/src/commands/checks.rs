@@ -77,10 +77,10 @@ impl Command for SetCheckSchemes {
                 return Err(CmdError::invalid_params(
                     Self::NAME,
                     format!("/{member}"),
-                    format!(
-                        "`{}` is not a shipped check scheme; the schemes are: {}",
-                        name.as_str(),
-                        SHIPPED_CHECK_SCHEMES.join(", ")
+                    text!(
+                        "refusal-checks-scheme-unknown",
+                        name.as_str().to_string(),
+                        SHIPPED_CHECK_SCHEMES.join(", ").to_string()
                     ),
                 ));
             }
@@ -188,20 +188,14 @@ impl Command for WaiveFinding {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/rule",
-                format!(
-                    "`{}` is not a rule ID (EW-<PACK>-<three digits>, for example EW-CORE-041)",
-                    self.rule.as_str()
-                ),
+                text!("refusal-check-waive-rule-id", self.rule.as_str().to_string()),
             ));
         }
         if self.fingerprint.len() != 32 || !self.fingerprint.bytes().all(|b| b.is_ascii_hexdigit()) {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/fingerprint",
-                format!(
-                    "`{}` is not a finding fingerprint (32 hex digits)",
-                    self.fingerprint
-                ),
+                text!("refusal-check-waive-fingerprint", self.fingerprint.to_string()),
             ));
         }
         let fingerprint = self.fingerprint.to_ascii_lowercase();
@@ -215,9 +209,7 @@ impl Command for WaiveFinding {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/reason",
-                format!(
-                    "a waiver needs a reason of at least {WAIVER_REASON_MIN_CHARS} characters (doc 15 §2.5)"
-                ),
+                text!("refusal-check-waive-reason", WAIVER_REASON_MIN_CHARS.to_string()),
             ));
         }
         if let Some(twin) = tx.iter::<Waiver>().iter().find(|w| {
@@ -275,7 +267,7 @@ impl Command for UnwaiveFinding {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/waiver",
-                format!("waiver {} does not exist", self.waiver),
+                text!("refusal-check-unwaive-gone", self.waiver.to_string()),
             ));
         }
         tx.delete((Kind::Waiver, self.waiver.cast()))?;

@@ -103,7 +103,7 @@ pub(crate) fn check_copy(
         return Err(CmdError::invalid_params(
             command,
             format!("{at}/library_id"),
-            "a project-local item (library_id = the project ID) is not embedded",
+            text!("refusal-library-embed-local"),
         ));
     }
     Ok((doc, l))
@@ -118,8 +118,13 @@ pub(crate) fn read_copy(
     at: &str,
     value: &Value,
 ) -> Result<(LibDocument, Lineage), CmdError> {
-    let doc = LibDocument::from_value(value.clone())
-        .map_err(|e| CmdError::invalid_params(command, at.to_owned(), e.to_string()))?;
+    let doc = LibDocument::from_value(value.clone()).map_err(|e| {
+        CmdError::invalid_params(
+            command,
+            at.to_owned(),
+            text!("refusal-params-detail", e.to_string()),
+        )
+    })?;
     let l = match &doc {
         LibDocument::Part(c) => lineage(c, &doc),
         LibDocument::Symbol(c) => lineage(c, &doc),
@@ -132,7 +137,7 @@ pub(crate) fn read_copy(
             return Err(CmdError::invalid_params(
                 command,
                 at.to_owned(),
-                "not a library document of kind part, symbol, fndef, form, macro or manufacturer",
+                text!("refusal-library-embed-kind"),
             ));
         }
     };
@@ -141,21 +146,14 @@ pub(crate) fn read_copy(
         return Err(CmdError::invalid_params(
             command,
             format!("{at}/id"),
-            format!(
-                "the copy ID is {}, not the copy identity {identity} = v5(NS_LIBCOPY, library_id ‖ item_id)",
-                l.id
-            ),
+            text!("refusal-library-copy-id", l.id.to_string(), identity.to_string()),
         ));
     }
     if l.computed != Some(l.claimed.0) {
         return Err(CmdError::invalid_params(
             command,
             format!("{at}/sha256"),
-            format!(
-                "{} is not the hash of the item's members (EW-CORE-014); the copy is not consistent \
-                 with the hash it claims",
-                l.claimed
-            ),
+            text!("refusal-library-copy-hash", l.claimed.to_string()),
         ));
     }
     Ok((doc, l))
@@ -173,7 +171,7 @@ impl Command for EmbedLibraryCopies {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/copies",
-                "give at least one library document",
+                text!("refusal-params-no-library-document"),
             ));
         }
         let project = tx.project().id.as_uuid();
@@ -186,14 +184,18 @@ impl Command for EmbedLibraryCopies {
                 return Err(CmdError::invalid_params(
                     Self::NAME,
                     at,
-                    "the item is listed twice",
+                    text!("refusal-params-item-twice"),
                 ));
             }
             // WP-S7.03 D8, T2: an address profile that does not render never reaches a project.
             if let LibDocument::PlcProfile(c) = &doc
                 && let Some(refusal) = ew_derive::unreadable_profile(&c.item)
             {
-                return Err(CmdError::invalid_params(Self::NAME, at, refusal));
+                return Err(CmdError::invalid_params(
+                    Self::NAME,
+                    at,
+                    text!("refusal-params-detail", refusal),
+                ));
             }
             let kind = doc.kind().expect("an implemented kind");
             if tx.row(&(kind, l.id)).is_some() {

@@ -584,7 +584,8 @@ impl Session {
                 }
             }
             if let Some(d) = &var.default {
-                coerce_value(&var.ty, d).map_err(|m| spec(format!("variables/{i}/default"), m))?;
+                coerce_value(&var.ty, d)
+                    .map_err(|m| spec(format!("variables/{i}/default"), m.to_string()))?;
             }
         }
         for (i, g) in spec_in.groups.iter().enumerate() {
@@ -654,17 +655,18 @@ impl Session {
                     .iter()
                     .find(|x| x.name.as_str() == name)
                     .ok_or_else(|| spec(format!("value_sets/{i}"), format!("no variable `{name}`")))?;
-                coerce_value(&var.ty, v).map_err(|m| spec(format!("value_sets/{i}/{name}"), m))?;
+                coerce_value(&var.ty, v)
+                    .map_err(|m| spec(format!("value_sets/{i}/{name}"), m.to_string()))?;
             }
         }
         def.value_sets.clone_from(&spec_in.value_sets);
         // Every value set (and the defaults) applied once.
         let variant = def.variants[0].clone();
         instantiate(&def, &variant, None, &BTreeMap::new())
-            .map_err(|(at, m)| spec(format!("variables{at}"), m))?;
+            .map_err(|(at, m)| spec(format!("variables{at}"), m.to_string()))?;
         for (i, set) in def.value_sets.iter().enumerate() {
             instantiate(&def, &variant, Some(set.name.as_str()), &BTreeMap::new())
-                .map_err(|(_, m)| spec(format!("value_sets/{i}"), m))?;
+                .map_err(|(_, m)| spec(format!("value_sets/{i}"), m.to_string()))?;
         }
         // The document.
         let item = macro_item_id(target, key.as_str());
@@ -778,15 +780,15 @@ impl Session {
                     let known = |n: &Ident| copy.item.value_sets.iter().any(|v| v.name == *n);
                     s.parse::<Ident>().ok().filter(known).ok_or_else(|| {
                         let names: Vec<&str> = copy.item.value_sets.iter().map(|v| v.name.as_str()).collect();
-                        let has = if names.is_empty() {
-                            "the macro has none".to_owned()
+                        let text = if names.is_empty() {
+                            api_text!("refusal-macro-value-set-none", s)
                         } else {
-                            format!("the macro has {}", names.join(", "))
+                            api_text!("refusal-macro-value-set-unknown", s, names.join(", "))
                         };
                         crate::ApiError::Cmd(crate::CmdError::invalid_params(
                             <InsertMacro as ew_commands::Command>::NAME,
                             "/value_set",
-                            format!("no value set `{s}`: {has}"),
+                            text,
                         ))
                     })
                 })

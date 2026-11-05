@@ -164,8 +164,8 @@ pub(super) fn propose_folio(tx: &TxBuilder<'_>, after: &Page) -> Result<(u32, Op
 /// first by the schema's minimum, at `/scale/one_to` ("0 is below the minimum 1"); a typed `page.surface_view.set`
 /// gives this text at `/scale`, and `fields.set` on a page's scale at `/value`. The reader still takes a 1:0 from a
 /// file, which is drawn 1:1.
-pub(crate) fn scale_problem(scale: &Scale) -> Option<&'static str> {
-    matches!(scale, Scale::OneTo(0)).then_some("a scale is 1:n with n at least 1")
+pub(crate) fn scale_problem(scale: &Scale) -> Option<Text> {
+    matches!(scale, Scale::OneTo(0)).then(|| text!("refusal-page-scale"))
 }
 
 /// The printed folio of a drawn page: its label, else its number (`ew_derive::folio_label`).
@@ -585,7 +585,7 @@ pub struct ReorderPages {
 
 impl ReorderPages {
     /// A rejection of the parameters at the JSON Pointer `path`.
-    fn bad<T>(path: impl Into<String>, message: impl Into<String>) -> Result<T, CmdError> {
+    fn bad<T>(path: impl Into<String>, message: Text) -> Result<T, CmdError> {
         Err(CmdError::invalid_params(Self::NAME, path, message))
     }
 }
@@ -599,46 +599,46 @@ impl Command for ReorderPages {
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
         if self.pages.is_empty() {
-            return Self::bad("/pages", "name at least one page");
+            return Self::bad("/pages", text!("refusal-params-no-page"));
         }
         if self.pages.len() > REORDER_MAX {
-            return Self::bad("/pages", "at most 1000 pages may be moved at once");
+            return Self::bad("/pages", text!("refusal-page-reorder-too-many"));
         }
         let mut seen = BTreeSet::new();
         for (i, id) in self.pages.iter().enumerate() {
             if !seen.insert(*id) {
                 return Self::bad(
                     format!("/pages/{i}"),
-                    format!("{} is listed twice", crate::words::page(tx, *id)),
+                    text!("refusal-page-reorder-twice", crate::words::page(tx, *id)),
                 );
             }
         }
         for (i, id) in self.pages.iter().enumerate() {
             if tx.get::<Page>(*id).is_none() {
-                return Self::bad(format!("/pages/{i}"), "the page is not in the project");
+                return Self::bad(format!("/pages/{i}"), text!("refusal-params-page-gone"));
             }
         }
         let target = match self.before {
             Some(b) => match tx.get::<Page>(b) {
                 Some(page) => Some(page),
-                None => return Self::bad("/before", "the page is not in the project"),
+                None => return Self::bad("/before", text!("refusal-params-page-gone")),
             },
             None => None,
         };
         if target.is_some() && self.section.is_some() {
-            return Self::bad("/section", "give either before or section, not both");
+            return Self::bad("/section", text!("refusal-page-reorder-before-and-section"));
         }
         if let Some(s) = self.section {
             if tx.get::<Section>(s).is_none() {
-                return Self::bad("/section", format!("no section {s}"));
+                return Self::bad(
+                    "/section",
+                    text!("refusal-page-reorder-no-section", s.to_string()),
+                );
             }
         }
         if let Some(b) = self.before {
             if seen.contains(&b) {
-                return Self::bad(
-                    "/before",
-                    "the page to put the pages before is one of the moved pages; name a page that stays",
-                );
+                return Self::bad("/before", text!("refusal-page-reorder-before-moved"));
             }
         }
         let sec = match &target {
@@ -650,9 +650,9 @@ impl Command for ReorderPages {
             if page.folio.section != sec {
                 return Self::bad(
                     format!("/pages/{i}"),
-                    format!(
-                        "page {} is in another section; move pages between sections by changing their section first",
-                        printed_folio(page.folio.number, page.folio.label.as_ref())
+                    text!(
+                        "refusal-page-reorder-other-section",
+                        printed_folio(page.folio.number, page.folio.label.as_ref()).to_string()
                     ),
                 );
             }
@@ -689,7 +689,7 @@ impl Command for ReorderPages {
         let old: BTreeMap<Id<Page>, &Folio> = current.iter().map(|(id, f)| (*id, f)).collect();
         let changed: Vec<usize> = (0..order.len()).filter(|&k| order[k] != current[k].0).collect();
         let (Some(&first), Some(&last)) = (changed.first(), changed.last()) else {
-            return Self::bad("/pages", "the pages are already in this order");
+            return Self::bad("/pages", text!("refusal-page-reorder-unchanged"));
         };
         // The page that comes to position k takes the whole key of the page that held k (no sub-page relabelling).
         for k in first..=last {
@@ -779,7 +779,7 @@ impl Command for SetSurfaceView {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/surface",
-                "the mounting surface is not in the project",
+                text!("refusal-params-mounting-surface-gone"),
             ));
         }
         if let Some(problem) = self.scale.as_ref().and_then(scale_problem) {

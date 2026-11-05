@@ -13,6 +13,7 @@ use crate::command::{Command, Outcome};
 use crate::error::CmdError;
 use crate::meta::CommandMeta;
 use crate::proxy::LangTagS;
+use crate::text::text;
 use crate::tx::TxBuilder;
 
 /// `project.languages.set` (`SetProjectLanguages`): sets the project's languages and its printed formats as one
@@ -59,14 +60,14 @@ impl Command for SetProjectLanguages {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/date",
-                "not a date format of this version",
+                text!("refusal-languages-date-format"),
             ));
         }
         if matches!(self.decimal_separator, Some(DecimalSeparator::Unknown(_))) {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/decimal_separator",
-                "not a decimal separator of this version",
+                text!("refusal-languages-decimal-separator"),
             ));
         }
         let languages = match &self.source {
@@ -74,7 +75,7 @@ impl Command for SetProjectLanguages {
                 return Err(CmdError::invalid_params(
                     Self::NAME,
                     "/translations",
-                    "translation languages need a `source` language",
+                    text!("refusal-languages-no-source"),
                 ));
             }
             None => None,
@@ -83,7 +84,10 @@ impl Command for SetProjectLanguages {
                     return Err(CmdError::invalid_params(
                         Self::NAME,
                         "/translations",
-                        format!("`{}` is the source language, not a translation", source.as_str()),
+                        text!(
+                            "refusal-languages-source-as-translation",
+                            source.as_str().to_string()
+                        ),
                     ));
                 }
                 let translations: Set<LangTag> = self.translations.iter().cloned().collect();
@@ -91,7 +95,7 @@ impl Command for SetProjectLanguages {
                     return Err(CmdError::invalid_params(
                         Self::NAME,
                         "/translations",
-                        "a translation language is named twice",
+                        text!("refusal-languages-twice"),
                     ));
                 }
                 let mut next = tx

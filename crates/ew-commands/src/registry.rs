@@ -14,6 +14,7 @@ use serde_json::{Value, json};
 use crate::command::{Command, DynCommand, Outcome};
 use crate::error::CmdError;
 use crate::meta::{CommandMeta, Cost};
+use crate::text::text;
 use crate::tx::TxBuilder;
 
 type ParseFn = fn(Value) -> Result<Box<dyn DynCommand>, serde_json::Error>;
@@ -152,10 +153,11 @@ impl CommandRegistry {
         })?;
         let name = entry.meta.name;
         crate::jsonschema::check_limits(&cmd.params)
-            .map_err(|e| CmdError::invalid_params(name, e.path, e.message))?;
+            .map_err(|e| CmdError::invalid_params(name, e.path, text!("refusal-params-detail", e.message)))?;
         crate::jsonschema::validate(&entry.schema, &cmd.params)
-            .map_err(|e| CmdError::invalid_params(name, e.path, e.message))?;
-        (entry.parse)(cmd.params.clone()).map_err(|e| CmdError::invalid_params(name, "", e.to_string()))
+            .map_err(|e| CmdError::invalid_params(name, e.path, text!("refusal-params-detail", e.message)))?;
+        (entry.parse)(cmd.params.clone())
+            .map_err(|e| CmdError::invalid_params(name, "", text!("refusal-params-detail", e.to_string())))
     }
 
     /// Deserialises an untyped command that this registry's own typed command produced
@@ -166,7 +168,8 @@ impl CommandRegistry {
             name: cmd.name.clone(),
         })?;
         let name = entry.meta.name;
-        (entry.parse)(cmd.params.clone()).map_err(|e| CmdError::invalid_params(name, "", e.to_string()))
+        (entry.parse)(cmd.params.clone())
+            .map_err(|e| CmdError::invalid_params(name, "", text!("refusal-params-detail", e.to_string())))
     }
 
     /// The snapshot files of `crates/ew-commands/schemas/`: one `<name>.schema.json` per command and an

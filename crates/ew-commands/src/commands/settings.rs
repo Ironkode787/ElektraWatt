@@ -12,6 +12,7 @@ use serde_json::Value;
 use crate::command::{Command, Outcome};
 use crate::error::CmdError;
 use crate::meta::CommandMeta;
+use crate::text::text;
 use crate::tx::TxBuilder;
 
 /// One member that `project.settings.set` may edit.
@@ -113,10 +114,10 @@ impl Command for SetProjectSettings {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/member",
-                format!(
-                    "`{}` is not a settable project setting; settable: {}",
-                    self.member,
-                    settable.join(", ")
+                text!(
+                    "refusal-settings-member-unknown",
+                    self.member.to_string(),
+                    settable.join(", ").to_string()
                 ),
             ));
         };
@@ -128,7 +129,11 @@ impl Command for SetProjectSettings {
                 CmdError::invalid_params(
                     Self::NAME,
                     "/value",
-                    format!("not a valid `{}` setting: {detail}", spec.name),
+                    text!(
+                        "refusal-settings-value",
+                        spec.name.to_string(),
+                        detail.to_string()
+                    ),
                 )
             })?;
         }
@@ -156,7 +161,7 @@ impl SetProjectSettings {
                 CmdError::invalid_params(
                     Self::NAME,
                     format!("/text_styles{}", e.pointer),
-                    format!("not a valid `text_styles` setting: {}", e.message),
+                    text!("refusal-settings-text-styles", e.message.to_string()),
                 )
             })?
         };

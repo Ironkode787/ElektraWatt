@@ -18,6 +18,7 @@ use crate::command::{Command, Outcome};
 use crate::error::CmdError;
 use crate::meta::CommandMeta;
 use crate::proxy::{MlTextS, Pt2S, UuidS};
+use crate::text::text;
 use crate::tx::TxBuilder;
 
 /// The line style of a structure box.
@@ -64,24 +65,21 @@ pub(crate) fn check_box(
         return Err(CmdError::invalid_params(
             command,
             format!("{pointer}/outline"),
-            format!(
-                "a structure box's outline needs at least three vertices, not {}",
-                b.outline.len()
-            ),
+            text!("refusal-box-structure-few-vertices", b.outline.len().to_string()),
         ));
     }
     if crate::commands::items::collinear(&b.outline) {
         return Err(CmdError::invalid_params(
             command,
             format!("{pointer}/outline"),
-            "a structure box's outline has no area: its vertices lie on one line",
+            text!("refusal-box-structure-no-area"),
         ));
     }
     if !crate::commands::items::known_box_style(&b.style) {
         return Err(CmdError::invalid_params(
             command,
             format!("{pointer}/style"),
-            "a box style this build does not know; use dotted or dash_dot",
+            text!("refusal-box-structure-style"),
         ));
     }
     for (aspect, name, slot) in slots(&b.assigns) {
@@ -93,14 +91,19 @@ pub(crate) fn check_box(
             return Err(CmdError::invalid_params(
                 command,
                 at,
-                format!("structure node {n} does not exist"),
+                text!("refusal-box-structure-node-gone", n.to_string()),
             ));
         };
         if node.aspect != Open::Known(aspect) {
             return Err(CmdError::invalid_params(
                 command,
                 at,
-                format!("structure node {n} ({}) is not of the aspect {name}", node.code),
+                text!(
+                    "refusal-box-structure-node-aspect",
+                    n.to_string(),
+                    node.code.to_string(),
+                    name.to_string()
+                ),
             ));
         }
     }
@@ -109,7 +112,7 @@ pub(crate) fn check_box(
             return Err(CmdError::invalid_params(
                 command,
                 format!("{pointer}/external"),
-                "the external reference is not in the project",
+                text!("refusal-params-external-ref-gone"),
             ));
         }
     }

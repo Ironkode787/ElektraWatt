@@ -444,24 +444,25 @@ impl Command for ConnectMany {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/connections",
-                "give at least one connection",
+                text!("refusal-params-no-connection"),
             ));
         }
         if self.connections.len() > DRAW_MANY_MAX {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/connections",
-                format!(
-                    "{} connections are more than the {DRAW_MANY_MAX} one command takes",
-                    self.connections.len()
+                text!(
+                    "refusal-connection-draw-many-too-many",
+                    self.connections.len().to_string(),
+                    DRAW_MANY_MAX.to_string()
                 ),
             ));
         }
         let mut first = None;
         for (i, c) in self.connections.iter().enumerate() {
             let out = c.run(tx).map_err(|err| match err {
-                CmdError::InvalidParams { path, message, .. } => {
-                    CmdError::invalid_params(Self::NAME, format!("/connections/{i}{path}"), message)
+                CmdError::InvalidParams { path, text, .. } => {
+                    CmdError::invalid_params(Self::NAME, format!("/connections/{i}{path}"), text)
                 }
                 CmdError::Rejected { source, reason, text } => {
                     let why = text.map_or_else(|| TextArg::from(reason), TextArg::from);
@@ -905,7 +906,11 @@ impl Command for CreateBond {
             return tx.reject(text!("refusal-bond-same-end"));
         }
         if matches!(self.kind, BondKind::Unknown(_)) {
-            return Err(CmdError::invalid_params(Self::NAME, "/kind", "unknown bond kind"));
+            return Err(CmdError::invalid_params(
+                Self::NAME,
+                "/kind",
+                text!("refusal-bond-unknown-kind"),
+            ));
         }
         self.a.check(tx)?;
         self.b.check(tx)?;
@@ -1210,7 +1215,7 @@ impl Command for ArrangeIps {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/ips",
-                "arrange at least two interruption points",
+                text!("refusal-arrange-few-ips"),
             ));
         }
         let mut seen = std::collections::BTreeSet::new();
@@ -1219,7 +1224,7 @@ impl Command for ArrangeIps {
                 return Err(CmdError::invalid_params(
                     Self::NAME,
                     format!("/ips/{i}"),
-                    "the interruption point is listed twice",
+                    text!("refusal-params-ip-twice"),
                 ));
             }
         }

@@ -455,10 +455,11 @@ impl DynCommand for ApplyImport {
         for record in &self.records {
             if hashed(record) {
                 let row = AnyRow::from_record(record.clone()).map_err(|r| {
-                    CmdError::rejected(
-                        Self::NAME,
-                        text!("refusal-import-unknown-kind", format!("{:?}", r.kind())),
-                    )
+                    let what = match (r.kind(), r.id()) {
+                        (Some(kind), Some(id)) => crate::words::record(tx, (kind, ew_ids::Id::from_uuid(id))),
+                        _ => text!("refusal-words-kind-other").into(),
+                    };
+                    CmdError::rejected(Self::NAME, text!("refusal-import-unknown-kind", what))
                 })?;
                 let source = record_hash(&row)?;
                 run.record_hashes.insert(

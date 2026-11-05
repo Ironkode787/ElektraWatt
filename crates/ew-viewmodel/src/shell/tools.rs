@@ -1239,16 +1239,18 @@ impl ShellModel {
 /// shows a command error goes through it: the tool host, `command.run`, the creation dialogs, paste, undo and redo.
 pub(super) fn command_failed(e: &CmdError, params: &Value) -> Outcome {
     match e {
+        // FT-1395 (ID-1415): the reason in the window's language.
         CmdError::InvalidParams {
             command,
             path,
             message,
+            text,
         } => failed(
             key!("error-command-field"),
             &[
                 strings::command_title(command),
                 &param_words(params, path),
-                message,
+                &rejected_words(message, Some(text)),
             ],
         ),
         // FT-909 (ID-1108): a refusal shows its reason, never the error's Display form ("<source>: <reason>"); FT-1337
@@ -1321,7 +1323,9 @@ fn command_error_text(e: &CmdError) -> (Key<'static>, Vec<String>) {
         CmdError::Prevented { .. } | CmdError::Model(_) => (key!("error-command"), vec![e.to_string()]),
         CmdError::History { reason } => (key!("error-command-history"), vec![reason.clone()]),
         CmdError::Internal { reason } => (key!("error-command-internal"), vec![reason.clone()]),
-        CmdError::InvalidParams { message, .. } => (key!("error-command"), vec![message.clone()]),
+        CmdError::InvalidParams { message, text, .. } => {
+            (key!("error-command"), vec![rejected_words(message, Some(text))])
+        }
         CmdError::Rejected { reason, text, .. } => {
             (key!("error-command"), vec![rejected_words(reason, text.as_ref())])
         }
@@ -1370,18 +1374,27 @@ mod ft779 {
         }
     }
 
+    /// The text of `key` with `args`, as a command builds it with `text!`.
+    fn keyed(key: &'static str, args: Vec<ew_api::TextArg>) -> ew_api::Text {
+        ew_api::Text::checked_by_macro(key, args)
+    }
+
     /// FT-779: the toast of an invalid parameter names the field in words: a field set by `fields.set` by its label,
     /// any other parameter by its member humanised with its list position; never a JSON Pointer.
     #[test]
     fn an_invalid_parameter_toast_names_the_field_in_words() {
         let set =
             serde_json::json!({"kind": "function", "targets": [], "path": "kind.ip.sort", "value": "x"});
-        let e = CmdError::invalid_params("fields.set", "/value", "a whole number is needed");
+        let e = CmdError::invalid_params(
+            "fields.set",
+            "/value",
+            keyed("refusal-params-detail", vec!["a whole number is needed".into()]),
+        );
         assert_eq!(
             message(command_failed(&e, &set)),
             "Set property: Chain order: a whole number is needed"
         );
-        let e = CmdError::invalid_params("ip.arrange", "/ips/2", "the interruption point is listed twice");
+        let e = CmdError::invalid_params("ip.arrange", "/ips/2", keyed("refusal-params-ip-twice", vec![]));
         assert_eq!(
             message(command_failed(&e, &Value::Null)),
             "Arrange interruption points: Interruption points, item 3: the interruption point is listed twice"
@@ -1389,11 +1402,39 @@ mod ft779 {
         let e = CmdError::invalid_params(
             "connection.delete",
             "/connections",
-            "list at least one connection",
+            keyed("refusal-params-no-connection", vec![]),
         );
         assert_eq!(
             message(command_failed(&e, &Value::Null)),
-            "Delete wire: Connections: list at least one connection"
+            "Delete wire: Connections: give at least one connection"
+        );
+    }
+
+    /// FT-1395 (ID-1415): an invalid parameter's reason reads in the window's language, a text inside it too, as a
+    /// refusal's does; the error keeps its English message for the CLI.
+    #[test]
+    fn an_invalid_parameter_reads_in_the_windows_language() {
+        let subject = keyed("refusal-fields-function-named", vec!["-Q1".into()]);
+        let e = CmdError::invalid_params(
+            "fields.set",
+            "/path",
+            keyed("refusal-fields-no-port", vec![subject.into()]),
+        );
+        assert_eq!(
+            e.to_string(),
+            "fields.set: invalid parameters at `/path`: function -Q1 has no bus port; set `bus_port` first"
+        );
+        let reason = || command_error_text(&e).1;
+        assert_eq!(
+            reason(),
+            vec!["function -Q1 has no bus port; set `bus_port` first".to_owned()]
+        );
+        assert!(strings::set_locale("nl"));
+        let nl = reason();
+        assert!(strings::set_locale("en"));
+        assert_eq!(
+            nl,
+            vec!["functie -Q1 heeft geen buspoort; stel eerst `bus_port` in".to_owned()]
         );
     }
 

@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 use crate::command::{Command, Outcome};
 use crate::error::CmdError;
 use crate::meta::{CommandMeta, Confirmation, Exposure};
+use crate::text::text;
 use crate::tx::TxBuilder;
 
 /// `project.assets.purge` (`PurgeAssets`): deletes the project's asset files (`assets/<sha256>.<ext>`) that nothing
@@ -64,14 +65,14 @@ impl PurgeAssets {
                 CmdError::invalid_params(
                     Self::NAME,
                     format!("/assets/{i}"),
-                    "an asset hash is `sha256:` and 64 lower-case hex digits",
+                    text!("refusal-purge-asset-hash"),
                 )
             })?;
             if !out.insert(hash) {
                 return Err(CmdError::invalid_params(
                     Self::NAME,
                     format!("/assets/{i}"),
-                    "the asset is listed twice",
+                    text!("refusal-params-asset-twice"),
                 ));
             }
         }

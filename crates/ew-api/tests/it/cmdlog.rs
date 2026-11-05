@@ -95,11 +95,11 @@ fn a_malformed_log_names_its_line() {
 
 #[test]
 fn command_log_errors_print_the_command_error_text() {
-    let error = CmdError::InvalidParams {
-        command: "project.company.set".into(),
-        path: "/logo".into(),
-        message: "m".into(),
-    };
+    let error = CmdError::invalid_params(
+        "project.company.set",
+        "/logo",
+        ew_api::Text::checked_by_macro("refusal-params-detail", vec!["m".into()]),
+    );
     assert_eq!(
         CmdLogError::Failed {
             line: 3,

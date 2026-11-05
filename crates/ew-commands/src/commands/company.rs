@@ -16,7 +16,7 @@ use crate::command::{Command, Outcome};
 use crate::error::CmdError;
 use crate::meta::CommandMeta;
 use crate::proxy::MlTextS;
-use crate::text::text;
+use crate::text::{Text, text};
 use crate::tx::TxBuilder;
 
 /// The project-row member that holds the company data of a basic project until `Project` types it: an object
@@ -28,37 +28,39 @@ pub const COMPANY_MEMBER: &str = ew_schema::COMPANY_MEMBER;
 /// Brings the image file of `text` (base64, RFC 4648 §4) into the project's asset store: the one path of the company logo
 /// and of an image given as data to `item.place`. The text is checked against [`ew_schema::MAX_LOGO_BYTES`] before it is
 /// decoded, then decoded, sniffed (format, intrinsic size, the size limits and, for an SVG, the rejecter of FT-383) and
-/// stored with the transaction ([`TxBuilder::put_asset`]). `what` names the file and the limit in the refusal text, for
-/// example ("the logo", "a company logo"); every refusal is `InvalidParams` of `command` at `pointer`.
+/// stored with the transaction ([`TxBuilder::put_asset`]). `what` names the file and the limit in the refusal text, in
+/// words (the logo, a company logo); every refusal is `InvalidParams` of `command` at `pointer`.
 pub(crate) fn store_image(
     tx: &mut TxBuilder<'_>,
     command: &str,
     pointer: &str,
-    what: (&str, &str),
+    what: (Text, Text),
     text: &str,
 ) -> Result<ew_schema::AssetRef, CmdError> {
     let too_large = || {
         CmdError::invalid_params(
             command,
             pointer,
-            format!(
-                "{} is larger than {} KiB (the limit of {})",
-                what.0,
-                ew_schema::MAX_LOGO_BYTES / 1024,
-                what.1
+            text!(
+                "refusal-company-image-too-large",
+                what.0.clone(),
+                (ew_schema::MAX_LOGO_BYTES / 1024).to_string(),
+                what.1.clone()
             ),
         )
     };
     if text.len() > ew_schema::MAX_LOGO_BYTES.div_ceil(3) * 4 {
         return Err(too_large());
     }
-    let bytes = ew_schema::base64_decode(text)
-        .map_err(|e| CmdError::invalid_params(command, pointer, e.to_string()))?;
+    let bytes = ew_schema::base64_decode(text).map_err(|e| {
+        CmdError::invalid_params(command, pointer, text!("refusal-params-detail", e.to_string()))
+    })?;
     if bytes.len() > ew_schema::MAX_LOGO_BYTES {
         return Err(too_large());
     }
-    tx.put_asset(bytes)
-        .map_err(|e| CmdError::invalid_params(command, pointer, e.to_string()))
+    tx.put_asset(bytes).map_err(|e| {
+        CmdError::invalid_params(command, pointer, text!("refusal-params-detail", e.to_string()))
+    })
 }
 
 /// `project.company.set` (`SetCompany`): sets the company of the project, the panel builder (doc 16 §9.2 step 1).
@@ -117,7 +119,7 @@ impl Command for SetCompany {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "",
-                "give at least one of `name`, `notice`, `personal_data` and `logo`",
+                text!("refusal-company-no-member"),
             ));
         }
         let mut outcome = Outcome::default();
@@ -126,7 +128,13 @@ impl Command for SetCompany {
             None => None,
             Some("") => Some(None),
             Some(text) => {
-                let reference = store_image(tx, Self::NAME, "/logo", ("the logo", "a company logo"), text)?;
+                let reference = store_image(
+                    tx,
+                    Self::NAME,
+                    "/logo",
+                    (text!("refusal-company-the-logo"), text!("refusal-company-a-logo")),
+                    text,
+                )?;
                 if reference.format.is_raster() {
                     outcome.notices.push(format!(
                         "the logo is a {} raster image: it prints rasterised; an SVG logo prints as vectors",

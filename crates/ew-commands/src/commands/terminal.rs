@@ -22,7 +22,7 @@ use crate::commands::assign::embed_closure;
 use crate::error::CmdError;
 use crate::meta::CommandMeta;
 use crate::proxy::{IdentS, MlTextS, UuidS};
-use crate::text::text;
+use crate::text::{Text, text};
 use crate::tx::TxBuilder;
 
 /// One terminal of `terminal.add`.
@@ -86,7 +86,7 @@ impl Command for DesignateTerminals {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/assignments",
-                "give at least one assignment",
+                text!("refusal-params-no-assignment"),
             ));
         }
         let mut seen: BTreeSet<Id<Device>> = BTreeSet::new();
@@ -95,7 +95,7 @@ impl Command for DesignateTerminals {
                 return Err(CmdError::invalid_params(
                     Self::NAME,
                     format!("/assignments/{i}/terminal"),
-                    "the terminal is listed twice",
+                    text!("refusal-params-terminal-twice"),
                 ));
             }
         }
@@ -105,7 +105,7 @@ impl Command for DesignateTerminals {
                 return Err(CmdError::invalid_params(
                     Self::NAME,
                     format!("/assignments/{i}/terminal"),
-                    "the device is not a terminal",
+                    text!("refusal-terminal-not-terminal"),
                 ));
             };
             terminal.designation = a.designation.clone();
@@ -373,13 +373,10 @@ pub struct InsertTerminals {
 
 impl InsertTerminals {
     /// A rejection of the parameters at the JSON Pointer `path`.
-    fn bad<T>(path: impl Into<String>, message: impl Into<String>) -> Result<T, CmdError> {
+    fn bad<T>(path: impl Into<String>, message: Text) -> Result<T, CmdError> {
         Err(CmdError::invalid_params(Self::NAME, path, message))
     }
 }
-
-/// The message of a sequence number that would pass `u32::MAX`.
-const SEQ_OVERFLOW: &str = "the sequence numbers would pass 4294967295; insert at a lower position";
 
 impl Command for InsertTerminals {
     const NAME: &'static str = "terminal.insert";
@@ -391,10 +388,7 @@ impl Command for InsertTerminals {
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
         let strip = tx.require::<Device>(self.strip)?;
         let Some(mut aspect) = strip.aspects.strip.clone() else {
-            return Self::bad(
-                "/strip",
-                "the device is not a terminal strip; pick a device with the strip aspect",
-            );
+            return Self::bad("/strip", text!("refusal-terminal-not-strip"));
         };
         tx.require::<LibCopy<FnDef>>(self.fndef)?;
         for part in &self.parts {
@@ -405,19 +399,19 @@ impl Command for InsertTerminals {
                 let device = tx.require::<Device>(b)?;
                 match device.aspects.terminal.as_ref() {
                     Some(t) if t.strip == self.strip => Some(t.seq),
-                    _ => return Self::bad("/before", "the device is not a terminal of the strip"),
+                    _ => return Self::bad("/before", text!("refusal-terminal-not-of-strip")),
                 }
             }
             None => None,
         };
         if self.terminals.is_empty() {
-            return Self::bad("/terminals", "give at least one terminal to insert");
+            return Self::bad("/terminals", text!("refusal-params-no-terminal-to-insert"));
         }
         for (i, spec) in self.terminals.iter().enumerate() {
             if spec.seq.is_some() {
                 return Self::bad(
                     format!("/terminals/{i}/seq"),
-                    "the position follows from `before`; leave out `seq`",
+                    text!("refusal-terminal-insert-seq"),
                 );
             }
         }
@@ -427,18 +421,18 @@ impl Command for InsertTerminals {
             if existing.contains(&spec.designation) {
                 return Self::bad(
                     format!("/terminals/{i}/designation"),
-                    format!(
-                        "designation {} is already used in the strip; choose another",
-                        spec.designation.as_str()
+                    text!(
+                        "refusal-terminal-designation-used",
+                        spec.designation.as_str().to_string()
                     ),
                 );
             }
             if !listed.insert(&spec.designation) {
                 return Self::bad(
                     format!("/terminals/{i}/designation"),
-                    format!(
-                        "designation {} is given twice; choose another",
-                        spec.designation.as_str()
+                    text!(
+                        "refusal-terminal-designation-twice",
+                        spec.designation.as_str().to_string()
                     ),
                 );
             }
@@ -476,25 +470,27 @@ impl Command for InsertTerminals {
             None => match seqs.last() {
                 Some(max) => match max.checked_add(1) {
                     Some(s) => s,
-                    None => return Self::bad("/terminals", SEQ_OVERFLOW),
+                    None => return Self::bad("/terminals", text!("refusal-terminal-seq-overflow")),
                 },
                 None => 1,
             },
         };
         let Ok(n) = u32::try_from(self.terminals.len()) else {
-            return Self::bad("/terminals", SEQ_OVERFLOW);
+            return Self::bad("/terminals", text!("refusal-terminal-seq-overflow"));
         };
         let shift = |v: u32| -> Result<u32, CmdError> {
             if v >= s {
-                v.checked_add(n)
-                    .map_or_else(|| Self::bad("/terminals", SEQ_OVERFLOW), Ok)
+                v.checked_add(n).map_or_else(
+                    || Self::bad("/terminals", text!("refusal-terminal-seq-overflow")),
+                    Ok,
+                )
             } else {
                 Ok(v)
             }
         };
         // The new terminals take s … s + n − 1.
         if s.checked_add(n - 1).is_none() {
-            return Self::bad("/terminals", SEQ_OVERFLOW);
+            return Self::bad("/terminals", text!("refusal-terminal-seq-overflow"));
         }
         // The strip's terminals at or after s move up by n (only the sequence number changes).
         let mut moved: Vec<(Id<Device>, u32)> = Vec::new();
@@ -572,7 +568,7 @@ pub struct MoveTerminals {
 
 impl MoveTerminals {
     /// A rejection of the parameters at the JSON Pointer `path`.
-    fn bad<T>(path: impl Into<String>, message: impl Into<String>) -> Result<T, CmdError> {
+    fn bad<T>(path: impl Into<String>, message: Text) -> Result<T, CmdError> {
         Err(CmdError::invalid_params(Self::NAME, path, message))
     }
 }
@@ -586,14 +582,14 @@ impl Command for MoveTerminals {
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
         if self.terminals.is_empty() {
-            return Self::bad("/terminals", "name at least one terminal");
+            return Self::bad("/terminals", text!("refusal-params-no-terminal"));
         }
         let mut seen: BTreeSet<Id<Device>> = BTreeSet::new();
         for (i, id) in self.terminals.iter().enumerate() {
             if !seen.insert(*id) {
                 return Self::bad(
                     format!("/terminals/{i}"),
-                    format!("terminal {} is listed twice", crate::words::device(tx, *id)),
+                    text!("refusal-terminal-move-twice", crate::words::device(tx, *id)),
                 );
             }
         }
@@ -601,14 +597,14 @@ impl Command for MoveTerminals {
         for (i, id) in self.terminals.iter().enumerate() {
             let device = tx.require::<Device>(*id)?;
             let Some(t) = device.aspects.terminal.as_ref() else {
-                return Self::bad(format!("/terminals/{i}"), "the device is not a terminal");
+                return Self::bad(format!("/terminals/{i}"), text!("refusal-terminal-not-terminal"));
             };
             match strip {
                 None => strip = Some(t.strip),
                 Some(s) if s != t.strip => {
                     return Self::bad(
                         format!("/terminals/{i}"),
-                        "the terminal is of another strip; move the terminals of one strip at a time",
+                        text!("refusal-terminal-move-other-strip"),
                     );
                 }
                 Some(_) => {}
@@ -619,14 +615,11 @@ impl Command for MoveTerminals {
         };
         if let Some(b) = self.before {
             if seen.contains(&b) {
-                return Self::bad(
-                    "/before",
-                    "the terminal to put the terminals before is one of the moved terminals; name a terminal that stays",
-                );
+                return Self::bad("/before", text!("refusal-terminal-move-before-moved"));
             }
             let device = tx.require::<Device>(b)?;
             if device.aspects.terminal.as_ref().is_none_or(|t| t.strip != strip) {
-                return Self::bad("/before", "the device is not a terminal of the same strip");
+                return Self::bad("/before", text!("refusal-terminal-not-same-strip"));
             }
         }
         // T: the strip's terminals in (seq, ID) order.
@@ -659,7 +652,7 @@ impl Command for MoveTerminals {
         order.splice(at..at, moved);
         let changed: Vec<usize> = (0..order.len()).filter(|&k| order[k] != current[k].1).collect();
         let (Some(&first), Some(&last)) = (changed.first(), changed.last()) else {
-            return Self::bad("/terminals", "the terminals are already there");
+            return Self::bad("/terminals", text!("refusal-terminal-move-unchanged"));
         };
         // FT-641 (CI-06): a bridge group follows its terminals, so a move that keeps every group consecutive is
         // allowed; one that splits a group is refused, naming the group and the way out.

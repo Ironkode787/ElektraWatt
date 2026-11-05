@@ -16,6 +16,7 @@ use serde_json::Value;
 use crate::command::{Command, Outcome};
 use crate::error::CmdError;
 use crate::meta::CommandMeta;
+use crate::text::text;
 use crate::tx::TxBuilder;
 
 use super::library::read_copy;
@@ -79,22 +80,21 @@ impl Command for ImportParts {
                 return Err(CmdError::invalid_params(
                     Self::NAME,
                     at,
-                    "not a part or manufacturer copy",
+                    text!("refusal-parts-import-kind"),
                 ));
             }
             if l.library != project {
                 return Err(CmdError::invalid_params(
                     Self::NAME,
                     format!("{at}/library_id"),
-                    "not a project-local copy (library_id must be the project ID); a copy of another library is \
-                     embedded with library.embed",
+                    text!("refusal-parts-import-not-local"),
                 ));
             }
             if !ids.insert(l.id) {
                 return Err(CmdError::invalid_params(
                     Self::NAME,
                     at,
-                    "the copy is listed twice",
+                    text!("refusal-params-copy-twice"),
                 ));
             }
             match doc {
@@ -103,14 +103,14 @@ impl Command for ImportParts {
                         return Err(CmdError::invalid_params(
                             Self::NAME,
                             format!("{at}/key"),
-                            "a part copy without a key (the key is what a re-import matches on)",
+                            text!("refusal-parts-import-no-key"),
                         ));
                     };
                     if !keys.insert(key) {
                         return Err(CmdError::invalid_params(
                             Self::NAME,
                             at,
-                            "the part is listed twice",
+                            text!("refusal-params-part-twice"),
                         ));
                     }
                     copies.push(copy);
@@ -123,7 +123,7 @@ impl Command for ImportParts {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/copies",
-                "give at least one part copy",
+                text!("refusal-params-no-part-copy"),
             ));
         }
         let existing: BTreeSet<String> = tx

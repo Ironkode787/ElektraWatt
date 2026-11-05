@@ -1507,8 +1507,13 @@ impl Session {
             reason: e.to_string(),
             text: Some(purge_refusal(&e)),
         };
-        let cmd: PurgeAssets = serde_json::from_value(preview.command().params.clone())
-            .map_err(|e| CmdError::invalid_params(PurgeAssets::NAME, "", e.to_string()))?;
+        let cmd: PurgeAssets = serde_json::from_value(preview.command().params.clone()).map_err(|e| {
+            CmdError::invalid_params(
+                PurgeAssets::NAME,
+                "",
+                api_text!("refusal-params-detail", e.to_string()),
+            )
+        })?;
         let listed = cmd.listed()?;
         // `HumanOnly`, judged by the preview's own origin too (the session's is judged in `purge_files`), so that the
         // guard does not rest on the engine refusing a non-human preview before it exists.

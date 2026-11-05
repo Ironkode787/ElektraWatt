@@ -81,7 +81,7 @@ impl Command for ResolveConflicts {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/choices",
-                "no conflict chosen; name at least one",
+                text!("refusal-merge-none-chosen"),
             ));
         }
         let mut seen = BTreeSet::new();
@@ -91,14 +91,14 @@ impl Command for ResolveConflicts {
                 return Err(CmdError::invalid_params(
                     Self::NAME,
                     at,
-                    "an earlier choice names this conflict already",
+                    text!("refusal-merge-chosen-twice"),
                 ));
             }
             let Some(conflict) = tx.get::<Conflict>(choice.conflict) else {
                 return Err(CmdError::invalid_params(
                     Self::NAME,
                     at,
-                    "names no conflict record of the project",
+                    text!("refusal-merge-no-conflict-record"),
                 ));
             };
             match &conflict.body {

@@ -31,6 +31,7 @@ use crate::command::{Command, Outcome};
 use crate::error::CmdError;
 use crate::meta::CommandMeta;
 use crate::proxy::{IdentS, Orient2S, Pt2S, UuidS};
+use crate::text::{Text, text};
 use crate::tx::TxBuilder;
 
 /// The record kinds a macro fragment may carry (ADR-0011 amendment 5): those of a paste, PLC channels and device
@@ -176,46 +177,46 @@ fn set_path(root: &mut Value, path: &str, value: Value) -> bool {
 /// # Errors
 ///
 /// The reason, when the value does not coerce.
-pub fn coerce_value(ty: &VarType, v: &Value) -> Result<Value, String> {
-    let fail = |what: &str| Err(format!("{v} is not {what}"));
+pub fn coerce_value(ty: &VarType, v: &Value) -> Result<Value, Text> {
+    let fail = |text: fn(String) -> Text| Err(text(v.to_string()));
     match ty {
         VarType::Text => match v {
             Value::String(_) | Value::Object(_) => Ok(v.clone()),
-            _ => fail("a text"),
+            _ => fail(|v| text!("refusal-macro-value-text", v)),
         },
         VarType::Ident | VarType::State | VarType::ProcessTag | VarType::Address => match v {
             Value::String(s) if !s.is_empty() => Ok(v.clone()),
-            _ => fail("a non-empty text"),
+            _ => fail(|v| text!("refusal-macro-value-non-empty", v)),
         },
         VarType::Number => match v {
             Value::Number(_) => Ok(v.clone()),
             Value::String(s) if s.parse::<ew_units::Dec3>().is_ok() => Ok(v.clone()),
-            _ => fail("a number"),
+            _ => fail(|v| text!("refusal-macro-value-number", v)),
         },
         VarType::Bool => match v {
             Value::Bool(_) => Ok(v.clone()),
-            _ => fail("true or false"),
+            _ => fail(|v| text!("refusal-macro-value-bool", v)),
         },
         VarType::TagCounter => match v.as_u64() {
             Some(n) if n >= 1 && u32::try_from(n).is_ok() => Ok(v.clone()),
-            _ => fail("a tag counter (an integer from 1)"),
+            _ => fail(|v| text!("refusal-macro-value-tag-counter", v)),
         },
         VarType::ChannelBinding => match v.as_u64() {
             Some(n) if u16::try_from(n).is_ok() => Ok(v.clone()),
-            _ => fail("a channel number (an integer from 0 to 65535)"),
+            _ => fail(|v| text!("refusal-macro-value-channel", v)),
         },
         VarType::Part => match v.get("copy").and_then(Value::as_str) {
             Some(s) if s.parse::<Uuid>().is_ok() => Ok(v.clone()),
-            _ => fail("a part reference ({\"copy\": <copy ID>})"),
+            _ => fail(|v| text!("refusal-macro-value-part", v)),
         },
         VarType::DeviceRef => match v.as_str() {
             Some(s) if s.parse::<Uuid>().is_ok() => Ok(v.clone()),
-            _ => fail("a device ID"),
+            _ => fail(|v| text!("refusal-macro-value-device", v)),
         },
         // FT-1420: a list of text slots; the bound representation checks each slot.
         VarType::TextSlots => match v {
             Value::Array(_) => Ok(v.clone()),
-            _ => fail("a list of text slots"),
+            _ => fail(|v| text!("refusal-macro-value-text-slots", v)),
         },
         VarType::Unknown(_) => Ok(v.clone()),
     }
@@ -234,7 +235,7 @@ pub fn pick_variant<'m>(def: &'m MacroDef, page: Option<&Page>) -> Option<&'m Ma
 }
 
 /// Why a macro could not be instantiated: the parameter's JSON Pointer and the reason.
-pub type InstantiateError = (String, String);
+pub type InstantiateError = (String, Text);
 
 /// A macro instantiated with its values: the fragment to insert, the effective values and the devices (local IDs)
 /// whose tag counter a variable sets.
@@ -269,16 +270,20 @@ pub fn instantiate(
     value_set: Option<&str>,
     literals: &BTreeMap<String, Value>,
 ) -> Result<Instantiated, InstantiateError> {
-    let err = |at: &str, m: String| (at.to_owned(), m);
-    let mut fragment: Fragment = serde_json::from_value(variant.fragment.clone())
-        .map_err(|e| err("/macro", format!("the macro's fragment does not read: {e}")))?;
+    let err = |at: &str, m: Text| (at.to_owned(), m);
+    let mut fragment: Fragment = serde_json::from_value(variant.fragment.clone()).map_err(|e| {
+        err(
+            "/macro",
+            text!("refusal-macro-fragment-unreadable", e.to_string()),
+        )
+    })?;
     let set = match value_set {
         None => None,
         Some(name) => Some(
             def.value_sets
                 .iter()
                 .find(|s| s.name.as_str() == name)
-                .ok_or_else(|| err("/value_set", format!("the macro has no value set `{name}`")))?,
+                .ok_or_else(|| err("/value_set", text!("refusal-macro-no-value-set", name)))?,
         ),
     };
     let var_of = |name: &str| def.variables.iter().find(|v| v.name.as_str() == name);
@@ -286,7 +291,7 @@ pub fn instantiate(
         if var_of(name).is_none() {
             return Err(err(
                 &format!("/values/{name}"),
-                format!("the macro has no variable `{name}`"),
+                text!("refusal-macro-no-variable", name.as_str()),
             ));
         }
     }
@@ -300,7 +305,7 @@ pub fn instantiate(
             (None, None) => (var.default.as_ref(), "/macro".to_owned()),
         };
         let Some(raw) = raw else { continue };
-        let v = coerce_value(&var.ty, raw).map_err(|m| err(&at, format!("variable `{name}`: {m}")))?;
+        let v = coerce_value(&var.ty, raw).map_err(|m| err(&at, text!("refusal-macro-variable", name, m)))?;
         values.insert(name.to_owned(), v);
     }
     // The bindings.
@@ -330,7 +335,7 @@ pub fn instantiate(
             let Some(&(page, i)) = index.get(&local) else {
                 return Err(err(
                     "/macro",
-                    format!("variable `{name}` binds record {local}, which is not in the fragment"),
+                    text!("refusal-macro-binds-missing", name, local.to_string()),
                 ));
             };
             let record = if page {
@@ -342,7 +347,7 @@ pub fn instantiate(
                 .get("$k")
                 .and_then(Value::as_str)
                 .and_then(Kind::from_name)
-                .ok_or_else(|| err("/macro", format!("record {local} has no kind")))?;
+                .ok_or_else(|| err("/macro", text!("refusal-macro-record-no-kind", local.to_string())))?;
             let at = format!("/values/{name}");
             let path = b
                 .field
@@ -352,19 +357,30 @@ pub fn instantiate(
                 .ok_or_else(|| {
                     err(
                         "/macro",
-                        format!(
-                            "variable `{name}` binds `{}`, which a {kind} does not take",
-                            b.field
+                        text!(
+                            "refusal-macro-binds-field",
+                            name,
+                            b.field.as_str(),
+                            kind.to_string()
                         ),
                     )
                 })?;
             if !set_path(record, path, value.clone()) {
-                return Err(err(&at, format!("`{}` does not fit record {local}", b.field)));
+                return Err(err(
+                    &at,
+                    text!("refusal-macro-field-misfit", b.field.as_str(), local.to_string()),
+                ));
             }
             if let Err(e) = Record::from_value(record.clone()) {
                 return Err(err(
                     &at,
-                    format!("`{}` of record {local} does not take {value}: {e}", b.field),
+                    text!(
+                        "refusal-macro-field-value",
+                        b.field.as_str(),
+                        local.to_string(),
+                        value.to_string(),
+                        e.to_string()
+                    ),
                 ));
             }
             if kind == Kind::Device && path == "tag.counter" {
@@ -379,19 +395,17 @@ pub fn instantiate(
         let var: &VarDef = var_of(include).ok_or_else(|| {
             err(
                 "/macro",
-                format!(
-                    "group `{}` is included by `{include}`, which is no variable",
-                    g.name.as_str()
+                text!(
+                    "refusal-macro-group-no-variable",
+                    g.name.as_str(),
+                    include.as_str()
                 ),
             )
         })?;
         if var.ty != VarType::Bool {
             return Err(err(
                 "/macro",
-                format!(
-                    "group `{}` is included by `{include}`, which is not a boolean",
-                    g.name.as_str()
-                ),
+                text!("refusal-macro-group-not-bool", g.name.as_str(), include.as_str()),
             ));
         }
         if values.get(include) == Some(&Value::Bool(false)) {
@@ -549,7 +563,7 @@ fn is_r0(o: &Orient2) -> bool {
 }
 
 impl InsertMacro {
-    fn invalid(at: impl Into<String>, message: impl Into<String>) -> CmdError {
+    fn invalid(at: impl Into<String>, message: Text) -> CmdError {
         CmdError::invalid_params(Self::NAME, at, message)
     }
 
@@ -573,15 +587,16 @@ impl InsertMacro {
                 unreachable!("the kind is macro")
             };
             if copy.id != self.macro_copy || def.is_some() {
-                return Err(Self::invalid(at, "only the inserted macro's document is given"));
+                return Err(Self::invalid(at, text!("refusal-macro-only-own-document")));
             }
             match tx.get::<ew_schema::LibCopy<MacroDef>>(self.macro_copy) {
                 Some(held) if held.sha256 != lineage.claimed => {
                     return Err(Self::invalid(
                         at,
-                        format!(
-                            "the project holds version {} of this macro, not {}; update from library first",
-                            held.version, copy.version
+                        text!(
+                            "refusal-macro-held-version",
+                            held.version.to_string(),
+                            copy.version.to_string()
                         ),
                     ));
                 }
@@ -598,7 +613,7 @@ impl InsertMacro {
                 .ok_or_else(|| {
                     Self::invalid(
                         "/macro",
-                        format!("no macro copy {}: give its document in `copies`", self.macro_copy),
+                        text!("refusal-macro-copy-missing", self.macro_copy.to_string()),
                     )
                 })?,
         };
@@ -617,23 +632,16 @@ impl Command for InsertMacro {
         let (def, embed, rest) = self.split_copies(tx)?;
         let page = tx
             .get::<Page>(self.page)
-            .ok_or_else(|| Self::invalid("/page", "the page is not in the project"))?;
+            .ok_or_else(|| Self::invalid("/page", text!("refusal-params-page-gone")))?;
         let page_macro = match &def.kind {
             MacroKind::Window => false,
             MacroKind::Page => true,
             MacroKind::Symbol | MacroKind::Unknown(_) => {
-                return Err(Self::invalid(
-                    "/macro",
-                    "only window and page macros are inserted at this version",
-                ));
+                return Err(Self::invalid("/macro", text!("refusal-macro-kind")));
             }
         };
-        let variant = pick_variant(&def, (!page_macro).then_some(&*page)).ok_or_else(|| {
-            Self::invalid(
-                "/page",
-                "the macro has no variant for this page's representation types",
-            )
-        })?;
+        let variant = pick_variant(&def, (!page_macro).then_some(&*page))
+            .ok_or_else(|| Self::invalid("/page", text!("refusal-macro-no-variant")))?;
         let mut inst = instantiate(
             &def,
             variant,
@@ -642,24 +650,18 @@ impl Command for InsertMacro {
         )
         .map_err(|(at, m)| Self::invalid(at, m))?;
         if page_macro && inst.fragment.pages.is_empty() {
-            return Err(Self::invalid("/macro", "the page macro's fragment holds no page"));
+            return Err(Self::invalid("/macro", text!("refusal-macro-page-no-page")));
         }
         if !page_macro && !inst.fragment.pages.is_empty() {
-            return Err(Self::invalid(
-                "/macro",
-                "a window macro's fragment holds no pages",
-            ));
+            return Err(Self::invalid("/macro", text!("refusal-macro-window-pages")));
         }
         if page_macro && !self.orient.is_default() {
-            return Err(Self::invalid(
-                "/orient",
-                "a page macro keeps the layout of its pages and takes no orientation; insert it with `r0`",
-            ));
+            return Err(Self::invalid("/orient", text!("refusal-macro-page-orientation")));
         }
         let at = match (page_macro, self.at) {
             (true, _) => inst.fragment.anchor,
             (false, Some(at)) => at,
-            (false, None) => return Err(Self::invalid("/at", "a window macro needs the point `at`")),
+            (false, None) => return Err(Self::invalid("/at", text!("refusal-macro-window-no-at"))),
         };
         inst.fragment.copies = rest;
         inst.fragment.lib.clear();
@@ -674,8 +676,7 @@ impl Command for InsertMacro {
             orient: self.orient,
             fragment: &inst.fragment,
             kinds: &MACRO_KINDS,
-            kinds_refusal: "is not inserted (only devices, functions, representations, connections, junctions, \
-                            channels, potential definitions, device links, page items and structure boxes)",
+            kinds_refusal: text!("refusal-macro-kinds"),
             ids: NewIds::Instance(self.instance.as_uuid()),
             adapt: &[],
             keep_frozen: true,

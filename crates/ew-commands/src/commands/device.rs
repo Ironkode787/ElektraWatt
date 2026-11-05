@@ -31,7 +31,7 @@ use crate::geometry::{
 };
 use crate::meta::CommandMeta;
 use crate::proxy::{IdentS, MlTextS, Orient2S, Pt2S, UuidS};
-use crate::text::{TextArg, text};
+use crate::text::text;
 use crate::tx::TxBuilder;
 
 /// `device.create`: a device without a representation (FR-DEV-001), optionally with its main function.
@@ -528,18 +528,12 @@ pub(crate) fn check_rep_type(tx: &TxBuilder<'_>, page: &Page, rep_type: &RepType
     let list = if allowed.is_empty() {
         text!("refusal-rep-type-none").into()
     } else {
-        TextArg::Plain(
-            allowed
-                .iter()
-                .map(|t| format!("{t:?}"))
-                .collect::<Vec<_>>()
-                .join(", "),
-        )
+        crate::words::comma_list(allowed.iter().map(crate::words::rep_type).collect())
     };
     tx.reject(text!(
         "refusal-rep-type",
-        format!("{rep_type:?}"),
-        format!("{:?}", page.kind),
+        crate::words::rep_type(rep_type),
+        crate::words::page_kind(&page.kind),
         page.id.to_string(),
         list
     ))
@@ -648,7 +642,7 @@ impl MoveReps {
                 return Err(CmdError::invalid_params(
                     Self::NAME,
                     format!("/items/{i}"),
-                    "the item is listed twice",
+                    text!("refusal-params-item-twice"),
                 ));
             }
             let item = if let Some(it) = tx.get::<PageItem>(id.cast()) {
@@ -669,7 +663,7 @@ impl MoveReps {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/items",
-                "page items and structure boxes move on their own page; a move to another page takes no `items`",
+                text!("refusal-rep-move-items-other-page"),
             ));
         }
         let page = out[0].page();
@@ -677,7 +671,7 @@ impl MoveReps {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 format!("/items/{i}"),
-                "every item lies on one page".to_owned(),
+                text!("refusal-rep-move-one-page"),
             ));
         }
         for (i, r) in self.reps.iter().enumerate() {
@@ -686,8 +680,8 @@ impl MoveReps {
                 return Err(CmdError::invalid_params(
                     Self::NAME,
                     format!("/reps/{i}"),
-                    format!(
-                        "{} is on {}, the items on {}; move one page at a time",
+                    text!(
+                        "refusal-rep-move-other-page",
                         crate::words::symbol(tx, *r),
                         crate::words::page(tx, rep.page),
                         crate::words::page(tx, page)
@@ -745,14 +739,14 @@ impl MoveReps {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/steps",
-                "give either `steps` or a non-zero `delta`, not both",
+                text!("refusal-rep-move-steps-and-delta"),
             ));
         }
         if self.page.is_some() {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/steps",
-                "a move to another page takes `delta`; `steps` moves on the representations' own page",
+                text!("refusal-rep-move-steps-other-page"),
             ));
         }
         let items = self.moved_items(tx)?;
@@ -1273,7 +1267,7 @@ impl Command for SetAnchorPolicy {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/reps",
-                "give at least one representation",
+                text!("refusal-params-no-rep"),
             ));
         }
         let mut seen = BTreeSet::new();
@@ -1282,7 +1276,7 @@ impl Command for SetAnchorPolicy {
                 return Err(CmdError::invalid_params(
                     Self::NAME,
                     format!("/reps/{i}"),
-                    "the representation is listed twice",
+                    text!("refusal-params-rep-twice"),
                 ));
             }
         }
@@ -1290,7 +1284,7 @@ impl Command for SetAnchorPolicy {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/anchor",
-                "unknown anchor policy",
+                text!("refusal-rep-anchor-policy-unknown"),
             ));
         }
         for id in &self.reps {
@@ -1382,7 +1376,7 @@ impl Command for PlaceBlackBox {
                 return Err(CmdError::invalid_params(
                     Self::NAME,
                     "/box/outline",
-                    "an outline has at least three points",
+                    text!("refusal-box-black-few-points"),
                 ));
             }
             let mut seen = BTreeSet::new();
@@ -1391,7 +1385,7 @@ impl Command for PlaceBlackBox {
                     return Err(CmdError::invalid_params(
                         Self::NAME,
                         format!("/box/cps/{i}/idx"),
-                        "two box CPs have the same function CP index",
+                        text!("refusal-box-cp-index-twice"),
                     ));
                 }
                 if self.orient == Orient2::default() {
@@ -1429,7 +1423,7 @@ impl Command for PlaceBlackBox {
                 return Err(CmdError::invalid_params(
                     Self::NAME,
                     "/target/new_terminal",
-                    "a black box is no terminal; place a terminal with `device.place`",
+                    text!("refusal-box-black-terminal"),
                 ));
             }
         };

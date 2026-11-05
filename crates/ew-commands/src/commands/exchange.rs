@@ -167,21 +167,21 @@ impl Command for ExchangeSymbol {
                         return Err(CmdError::invalid_params(
                             Self::NAME,
                             format!("/pin_map/{i}/symbol_cp"),
-                            format!("the new symbol has no connection point {}", e.symbol_cp),
+                            text!("refusal-exchange-no-symbol-cp", e.symbol_cp.to_string()),
                         ));
                     }
                     if !own_cps.iter().any(|(c, _)| *c == e.function_cp) {
                         return Err(CmdError::invalid_params(
                             Self::NAME,
                             format!("/pin_map/{i}/function_cp"),
-                            format!("the function has no connection point {}", e.function_cp),
+                            text!("refusal-exchange-no-function-cp", e.function_cp.to_string()),
                         ));
                     }
                     if !seen.insert(e.symbol_cp) {
                         return Err(CmdError::invalid_params(
                             Self::NAME,
                             format!("/pin_map/{i}/symbol_cp"),
-                            "the symbol CP is mapped twice",
+                            text!("refusal-exchange-symbol-cp-twice"),
                         ));
                     }
                     pin_map.push(PinMapEntry {
@@ -198,9 +198,10 @@ impl Command for ExchangeSymbol {
                         return Err(CmdError::invalid_params(
                             Self::NAME,
                             "/pin_map",
-                            format!(
-                                "connection point {symbol_cp} of the new symbol is not in the map and would draw \
-                                 function CP {fn_cp}; map it"
+                            text!(
+                                "refusal-exchange-cp-unmapped",
+                                symbol_cp.to_string(),
+                                fn_cp.to_string()
                             ),
                         ));
                     }

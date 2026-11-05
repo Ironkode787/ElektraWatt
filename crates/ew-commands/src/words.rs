@@ -8,7 +8,9 @@
 
 use ew_derive::layout::{CarrierLabel, CarrierLabelKind};
 use ew_derive::{DeviceTag, Q};
-use ew_schema::{Connection, Device, Function, FunctionKind, Junction, Kind, Page, Representation};
+use ew_schema::{
+    Connection, Device, Function, FunctionKind, Junction, Kind, Page, PageType, RepType, Representation,
+};
 
 use crate::text::{Text, TextArg, text};
 use crate::tx::TxBuilder;
@@ -261,6 +263,64 @@ pub(crate) fn wire(tx: &TxBuilder<'_>, id: ew_ids::Id<Connection>) -> Text {
     match tx.get::<Connection>(id).and_then(|c| c.page) {
         Some(p) => text!("refusal-words-wire-on", page(tx, p)),
         None => text!("refusal-words-wire-any"),
+    }
+}
+
+/// Items in a list joined by "; " (FT-1395), each in the reader's language; empty without items.
+pub(crate) fn list(items: Vec<TextArg>) -> TextArg {
+    joined(items, |a, b| text!("refusal-words-list", a, b))
+}
+
+/// Items in a list joined by ", " (FT-1395), each in the reader's language; empty without items.
+pub(crate) fn comma_list(items: Vec<TextArg>) -> TextArg {
+    joined(items, |a, b| text!("refusal-words-list-comma", a, b))
+}
+
+/// `items` folded from the right by `pair`: the first item, then the text of the rest.
+fn joined(items: Vec<TextArg>, pair: impl Fn(TextArg, TextArg) -> Text) -> TextArg {
+    let mut rest = items.into_iter().rev();
+    let Some(last) = rest.next() else {
+        return TextArg::Plain(String::new());
+    };
+    rest.fold(last, |tail, item| pair(item, tail).into())
+}
+
+/// A representation type in words (FT-1395, the window's own wording of the type choice): a type of a newer format
+/// by its stored value.
+pub(crate) fn rep_type(t: &RepType) -> TextArg {
+    match t {
+        RepType::MultiLine => text!("refusal-words-rep-type-multi-line").into(),
+        RepType::SingleLine => text!("refusal-words-rep-type-single-line").into(),
+        RepType::Overview => text!("refusal-words-rep-type-overview").into(),
+        RepType::Fluid => text!("refusal-words-rep-type-fluid").into(),
+        RepType::Topology => text!("refusal-words-rep-type-topology").into(),
+        RepType::ContactImage => text!("refusal-words-rep-type-contact-image").into(),
+        RepType::PanelFront => text!("refusal-words-rep-type-panel-front").into(),
+        RepType::StripSegment => text!("refusal-words-rep-type-strip-segment").into(),
+        RepType::Graphic => text!("refusal-words-rep-type-graphic").into(),
+        RepType::Unknown(v) => TextArg::Plain(v.to_string()),
+    }
+}
+
+/// A page of a kind, with its article ("a panel layout page", FT-1395, the window's own wording of the page type
+/// choice): a kind of a newer format by its stored value.
+pub(crate) fn page_kind(kind: &PageType) -> TextArg {
+    match kind {
+        PageType::TitlePage => text!("refusal-words-page-kind-title-page").into(),
+        PageType::TableOfContents => text!("refusal-words-page-kind-table-of-contents").into(),
+        PageType::SectionDivider => text!("refusal-words-page-kind-section-divider").into(),
+        PageType::Graphic => text!("refusal-words-page-kind-graphic").into(),
+        PageType::SingleLine => text!("refusal-words-page-kind-single-line").into(),
+        PageType::MultiLine => text!("refusal-words-page-kind-multi-line").into(),
+        PageType::Overview => text!("refusal-words-page-kind-overview").into(),
+        PageType::BusTopology => text!("refusal-words-page-kind-bus-topology").into(),
+        PageType::Fluid => text!("refusal-words-page-kind-fluid").into(),
+        PageType::AssemblyOverview => text!("refusal-words-page-kind-assembly-overview").into(),
+        PageType::PanelLayout => text!("refusal-words-page-kind-panel-layout").into(),
+        PageType::ModelView => text!("refusal-words-page-kind-model-view").into(),
+        PageType::ExternalDocument => text!("refusal-words-page-kind-external-document").into(),
+        PageType::Report => text!("refusal-words-page-kind-report").into(),
+        PageType::Unknown(v) => TextArg::Plain(v.to_string()),
     }
 }
 

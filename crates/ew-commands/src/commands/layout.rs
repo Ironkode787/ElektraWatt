@@ -239,7 +239,7 @@ fn target(tx: &TxBuilder<'_>, name: &'static str, at: &str, on: CarrierRef) -> R
                 return Err(CmdError::invalid_params(
                     name,
                     at,
-                    "the carrier is not in the project",
+                    text!("refusal-params-carrier-gone"),
                 ));
             };
             match (&carrier.kind, &carrier.params) {
@@ -268,7 +268,7 @@ fn target(tx: &TxBuilder<'_>, name: &'static str, at: &str, on: CarrierRef) -> R
                 return Err(CmdError::invalid_params(
                     name,
                     at,
-                    "the surface is not in the project",
+                    text!("refusal-params-surface-gone"),
                 ));
             }
             Ok(Target {
@@ -279,7 +279,7 @@ fn target(tx: &TxBuilder<'_>, name: &'static str, at: &str, on: CarrierRef) -> R
         CarrierRef::Unknown(_) => Err(CmdError::invalid_params(
             name,
             at,
-            "a placement sits on a carrier or on a surface",
+            text!("refusal-layout-placement-on"),
         )),
     }
 }
@@ -375,7 +375,7 @@ fn checked_params(
                 return Err(CmdError::invalid_params(
                     name,
                     "/params/rail/profile",
-                    "a rail profile is ts35x7_5, ts35x15, ts32 or ts15",
+                    text!("refusal-layout-rail-profile"),
                 ));
             };
             let rail = part
@@ -386,10 +386,7 @@ fn checked_params(
                     return Err(CmdError::invalid_params(
                         name,
                         "/params/rail/profile",
-                        format!(
-                            "the rail's part has profile {}; the profile comes from its rail section",
-                            mount_label(&section.profile)
-                        ),
+                        text!("refusal-layout-rail-part-profile", mount_words(&section.profile)),
                     ));
                 }
             }
@@ -416,7 +413,7 @@ fn checked_params(
                     return Err(CmdError::invalid_params(
                         name,
                         format!("/params/duct/{field}"),
-                        "the length must be greater than 0",
+                        text!("refusal-layout-duct-length"),
                     ));
                 }
             }
@@ -431,24 +428,26 @@ fn checked_params(
         (CarrierKind::Unknown(_), _) => Err(CmdError::invalid_params(
             name,
             "/params",
-            "the carrier is of a kind this build does not know; its parameters are kept as they are",
+            text!("refusal-layout-carrier-kind-unknown"),
         )),
         (CarrierKind::Rail, _) => Err(CmdError::invalid_params(
             name,
             "/params",
-            "the parameters of a rail are `rail`",
+            text!("refusal-layout-rail-params"),
         )),
         (CarrierKind::Duct, _) => Err(CmdError::invalid_params(
             name,
             "/params",
-            "the parameters of a duct are `duct`",
+            text!("refusal-layout-duct-params"),
         )),
     }
 }
 
 /// Checks a carrier path (`/path`, D5).
 fn checked_path(name: &'static str, kind: &CarrierKind, path: &[Pt2]) -> Result<(), CmdError> {
-    check_path(kind, path).map_err(|e: PathError| CmdError::invalid_params(name, "/path", e.to_string()))
+    check_path(kind, path).map_err(|e: PathError| {
+        CmdError::invalid_params(name, "/path", text!("refusal-params-detail", e.to_string()))
+    })
 }
 
 /// Refuses a part copy the project does not hold (`at`).
@@ -459,7 +458,7 @@ fn require_part(tx: &TxBuilder<'_>, name: &'static str, at: &str, part: Id<Part>
         Err(CmdError::invalid_params(
             name,
             at,
-            format!("part copy {part} is not held by the project"),
+            text!("refusal-layout-part-copy-missing", part.to_string()),
         ))
     }
 }
@@ -520,7 +519,7 @@ fn checked_location(
         return Err(CmdError::invalid_params(
             name,
             "/location",
-            "the structure node is not in the project",
+            text!("refusal-params-node-gone"),
         ));
     };
     if node.aspect != Open::Known(ew_rds::Aspect::Location) {
@@ -576,7 +575,7 @@ impl Command for DeleteLayoutSpace {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/space",
-                "the layout space is not in the project",
+                text!("refusal-params-space-gone"),
             ));
         }
         tx.delete((Kind::LayoutSpace, self.space.cast()))?;
@@ -630,14 +629,14 @@ impl Command for CreateEnclosure {
             return Err(CmdError::invalid_params(
                 name,
                 "/space",
-                "the layout space is not in the project",
+                text!("refusal-params-space-gone"),
             ));
         }
         let Some(device) = tx.get::<Device>(self.device) else {
             return Err(CmdError::invalid_params(
                 name,
                 "/device",
-                "the device is not in the project",
+                text!("refusal-params-device-gone"),
             ));
         };
         if let Some(first) = tx.iter::<Enclosure>().into_iter().find(|e| e.space == self.space) {
@@ -753,7 +752,7 @@ impl Command for DeleteEnclosure {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/enclosure",
-                "the enclosure is not in the project",
+                text!("refusal-params-enclosure-gone"),
             ));
         }
         tx.delete((Kind::Enclosure, self.enclosure.cast()))?;
@@ -821,7 +820,7 @@ impl Command for AddCarrier {
             return Err(CmdError::invalid_params(
                 name,
                 "/surface",
-                "the surface is not in the project",
+                text!("refusal-params-surface-gone"),
             ));
         }
         if let Some(part) = self.part {
@@ -897,7 +896,7 @@ impl Command for EditCarrier {
             return Err(CmdError::invalid_params(
                 name,
                 "/carrier",
-                "the carrier is not in the project",
+                text!("refusal-params-carrier-gone"),
             ));
         };
         if self.surface.is_none()
@@ -909,7 +908,7 @@ impl Command for EditCarrier {
             return Err(CmdError::invalid_params(
                 name,
                 "",
-                "give at least one member (`surface`, `part`, `path`, `params`, `pe_bond`)",
+                text!("refusal-layout-carrier-edit-no-member"),
             ));
         }
         if let Some(surface) = self.surface {
@@ -917,7 +916,7 @@ impl Command for EditCarrier {
                 return Err(CmdError::invalid_params(
                     name,
                     "/surface",
-                    "the surface is not in the project",
+                    text!("refusal-params-surface-gone"),
                 ));
             }
         }
@@ -994,7 +993,7 @@ impl Command for DeleteCarrier {
             return Err(CmdError::invalid_params(
                 name,
                 "/carrier",
-                "the carrier is not in the project",
+                text!("refusal-params-carrier-gone"),
             ));
         };
         let placements = tx.placements_on_carrier(self.carrier);
@@ -1362,7 +1361,7 @@ impl Command for PlaceDevice {
             return Err(CmdError::invalid_params(
                 name,
                 "/device",
-                "the device is not in the project",
+                text!("refusal-params-device-gone"),
             ));
         };
         let carrier = self.carrier.to_ref();
@@ -1375,7 +1374,7 @@ impl Command for PlaceDevice {
                 return Err(CmdError::invalid_params(
                     name,
                     "/function",
-                    "the function is not one of the device's",
+                    text!("refusal-layout-function-not-device"),
                 ));
             }
         }
@@ -1386,7 +1385,7 @@ impl Command for PlaceDevice {
                     return Err(CmdError::invalid_params(
                         name,
                         "/part",
-                        format!("{} does not use this part", tag(tx, self.device)),
+                        text!("refusal-layout-part-unused", tag(tx, self.device)),
                     ));
                 }
             },
@@ -1490,7 +1489,7 @@ impl Command for MovePlacement {
             return Err(CmdError::invalid_params(
                 name,
                 "/placement",
-                "the placement is not in the project",
+                text!("refusal-params-placement-gone"),
             ));
         };
         let carrier = self
@@ -1506,7 +1505,7 @@ impl Command for MovePlacement {
                     return Err(CmdError::invalid_params(
                         name,
                         "/part",
-                        format!("{} does not use this part", tag(tx, current.device)),
+                        text!("refusal-layout-part-unused", tag(tx, current.device)),
                     ));
                 };
                 let key = placement_key(current.device, Some(&u.part), current.function);
@@ -1585,7 +1584,7 @@ impl Command for RemovePlacement {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/placement",
-                "the placement is not in the project",
+                text!("refusal-params-placement-gone"),
             ));
         }
         tx.delete((Kind::Placement, self.placement.cast()))?;
@@ -1618,7 +1617,7 @@ impl Command for LockPlacement {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/placement",
-                "the placement is not in the project",
+                text!("refusal-params-placement-gone"),
             ));
         }
         let locked = self.locked;
@@ -1957,7 +1956,7 @@ impl Command for PlaceAssembly {
             return Err(CmdError::invalid_params(
                 name,
                 "/device",
-                "the device is not in the project",
+                text!("refusal-params-device-gone"),
             ));
         };
         let target = target(tx, name, "/carrier", self.carrier.to_ref())?;
@@ -2009,8 +2008,8 @@ impl Command for PlaceAssembly {
                 return Err(CmdError::invalid_params(
                     name,
                     "/s",
-                    format!(
-                        "no member of {} is on {} yet; give the position s",
+                    text!(
+                        "refusal-layout-no-member-on-rail",
                         tag(tx, root),
                         rail_in_sentence(&q, rail)
                     ),
@@ -2258,14 +2257,14 @@ impl Command for AutoFill {
                         return Err(CmdError::invalid_params(
                             name,
                             format!("/devices/{i}"),
-                            "the device is not in the project",
+                            text!("refusal-params-device-gone"),
                         ));
                     }
                     if !seen.insert(*d) {
                         return Err(CmdError::invalid_params(
                             name,
                             format!("/devices/{i}"),
-                            "the device is listed twice",
+                            text!("refusal-params-device-twice"),
                         ));
                     }
                 }
@@ -2281,11 +2280,11 @@ impl Command for AutoFill {
             &devices.iter().map(|d| d.as_ref()).collect::<Vec<_>>(),
         );
         let rail = rail_in_sentence(&q, carrier);
-        let mut notices: Vec<Option<String>> = vec![None; devices.len()];
+        let mut notices: Vec<Option<Text>> = vec![None; devices.len()];
         let mut candidates: Vec<Candidate> = Vec::new();
         for (i, d) in devices.iter().enumerate() {
             match fill_refusal(tx, &q, d, space.as_deref(), target.profile.as_ref()) {
-                Some(why) => notices[i] = Some(format!("{}: {why}", tag(tx, d.id))),
+                Some(why) => notices[i] = Some(text!("refusal-layout-fill-notice", tag(tx, d.id), why)),
                 None => candidates.push((i, std::sync::Arc::clone(d))),
             }
         }
@@ -2302,7 +2301,7 @@ impl Command for AutoFill {
             let floor = last.map_or(i128::MIN, |l| l.s1.saturating_add(min_gap(&l, &item)));
             let Some(s) = next_fit(&mem, axis.length, &item, floor) else {
                 for (i, d) in &unit {
-                    notices[*i] = Some(format!("{}: no room left on {rail}", tag(tx, d.id)));
+                    notices[*i] = Some(text!("refusal-layout-fill-no-room", tag(tx, d.id), rail.clone()));
                 }
                 continue;
             };
@@ -2317,12 +2316,12 @@ impl Command for AutoFill {
                 placed.push((m, pose));
             }
         }
-        let notices: Vec<String> = notices.into_iter().flatten().collect();
+        let notices: Vec<Text> = notices.into_iter().flatten().collect();
         if placed.is_empty() {
             let why = if notices.is_empty() {
                 text!("refusal-layout-auto-fill-no-device").into()
             } else {
-                TextArg::Plain(notices.join("; "))
+                crate::words::list(notices.into_iter().map(TextArg::from).collect())
             };
             return tx.reject(text!("refusal-layout-auto-fill-nothing", rail, why));
         }
@@ -2342,7 +2341,7 @@ impl Command for AutoFill {
         Ok(Outcome {
             primary: Some((Kind::Carrier, carrier.cast())),
             note: None,
-            notices,
+            notices: notices.iter().map(Text::to_string).collect(),
         })
     }
 }
@@ -2355,19 +2354,19 @@ fn fill_refusal(
     device: &Device,
     space: Option<&LayoutSpace>,
     profile: Option<&MountKind>,
-) -> Option<String> {
+) -> Option<Text> {
     if !tx.placements_of_device(device.id).is_empty() {
-        return Some("already placed".to_owned());
+        return Some(text!("refusal-layout-fill-placed"));
     }
     let location = q
         .try_get::<StructureOf>(device.id)
         .ok()
         .and_then(|s| s.node(Aspect::Location));
     if space.is_none_or(|s| Some(s.location) != location) {
-        return Some("not in this rail's layout space".to_owned());
+        return Some(text!("refusal-layout-fill-other-space"));
     }
     if !is_mountable(q, device.id) {
-        return Some("not mountable".to_owned());
+        return Some(text!("refusal-layout-fill-not-mountable"));
     }
     let part = primary_part(tx, device);
     let mount = part
@@ -2378,13 +2377,13 @@ fn fill_refusal(
         return None;
     }
     Some(if Profile::of(&mount).is_some() {
-        format!(
-            "{} does not fit a {} rail",
-            mount_label(&mount),
-            mount_label(profile)
+        text!(
+            "refusal-layout-fill-no-fit",
+            mount_words(&mount),
+            mount_words(profile)
         )
     } else {
-        format!("{}, not on a rail", mount_label(&mount))
+        text!("refusal-layout-fill-not-rail", mount_words(&mount))
     })
 }
 
@@ -2450,7 +2449,8 @@ fn fill_units(tx: &TxBuilder<'_>, q: &Q, candidates: Vec<Candidate>) -> Vec<Vec<
 
 /// An identifier this module spells as a literal.
 fn ident(name: &'static str, text: &str) -> Result<Ident, CmdError> {
-    Ident::from_input(text).map_err(|e| CmdError::invalid_params(name, "", e.to_string()))
+    Ident::from_input(text)
+        .map_err(|e| CmdError::invalid_params(name, "", text!("refusal-params-detail", e.to_string())))
 }
 
 /// A device's part use of one piece of `part`.
@@ -2519,7 +2519,7 @@ impl Command for CreateEnclosureFromPart {
             return Err(CmdError::invalid_params(
                 name,
                 "/part",
-                format!("part copy {} is not held by the project", self.part),
+                text!("refusal-layout-part-copy-missing", self.part.to_string()),
             ));
         };
         let Some(section) = copy.item.sections.enclosure.clone() else {
@@ -2533,14 +2533,17 @@ impl Command for CreateEnclosureFromPart {
                 return Err(CmdError::invalid_params(
                     name,
                     "/function",
-                    "the structure node is not in the project",
+                    text!("refusal-params-node-gone"),
                 ));
             };
             if fnode.aspect != Open::Known(Aspect::Function) {
                 return Err(CmdError::invalid_params(
                     name,
                     "/function",
-                    format!("node {} is not a function", fnode.code.as_str()),
+                    text!(
+                        "refusal-layout-node-not-function",
+                        fnode.code.as_str().to_string()
+                    ),
                 ));
             }
         }
@@ -2697,14 +2700,14 @@ impl Command for EditLayoutSpace {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/space",
-                "the layout space is not in the project",
+                text!("refusal-params-space-gone"),
             ));
         }
         let Some(name) = self.name.clone() else {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/name",
-                "give the name, or null to clear it",
+                text!("refusal-layout-space-edit-no-name"),
             ));
         };
         tx.update::<LayoutSpace>(self.space, |s| s.name = name)?;
@@ -2738,7 +2741,7 @@ impl Command for EditEnclosure {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/enclosure",
-                "the enclosure is not in the project",
+                text!("refusal-params-enclosure-gone"),
             ));
         }
         if Quarter::of(self.pose.q) != Some(Quarter::NONE) {
@@ -2774,7 +2777,7 @@ impl Command for EditSurface {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/surface",
-                "the surface is not in the project",
+                text!("refusal-params-surface-gone"),
             ));
         }
         let pe_bond = self.pe_bond;

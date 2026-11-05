@@ -1476,10 +1476,11 @@ mod tests {
                 ApproveError::Command(CmdError::invalid_params(
                     "revision.approve",
                     "/checker",
-                    "the checker is the author's party",
+                    ew_api::Text::checked_by_macro("refusal-revision-checker-is-author", vec![]),
                 )),
                 None,
-                "Approve revision: Checker: the checker is the author's party",
+                "Approve revision: Checker: the checker is the author's party; four eyes need another party: choose \
+                 another checker",
             ),
         ];
         for (e, report, text) in cases {
@@ -1667,7 +1668,7 @@ mod tests {
         let e = CmdError::invalid_params(
             "revision.withdraw",
             "/reason",
-            "a withdrawal needs a reason (doc 15 §5.10)",
+            ew_api::Text::checked_by_macro("refusal-revision-withdraw-no-reason", vec![]),
         );
         let params = serde_json::json!({ "revision": WAIVER, "reason": " " });
         assert_eq!(

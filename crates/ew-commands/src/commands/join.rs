@@ -19,6 +19,7 @@ use crate::command::{Command, Outcome};
 use crate::error::CmdError;
 use crate::meta::CommandMeta;
 use crate::proxy::UuidS;
+use crate::text::{Text, text};
 use crate::tx::TxBuilder;
 
 /// `rep.join_device` (`JoinDevice`, WP-S2.18 D3, FT-628): the placed representation `rep` joins `device` in one
@@ -169,39 +170,36 @@ impl Command for JoinDevice {
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
         let rep = tx.require::<Representation>(self.rep)?;
-        let not_eligible = |why: &str| {
+        let not_eligible = |why: Text| {
             Err(CmdError::invalid_params(
                 Self::NAME,
                 "/rep",
-                format!(
-                    "{why}; a representation joins another device only when its device has exactly one function, \
-                     no part and no other representation"
-                ),
+                text!("refusal-join-not-eligible", why),
             ))
         };
         let [function] = rep.functions.as_slice() else {
-            return not_eligible("the representation draws not exactly one function");
+            return not_eligible(text!("refusal-join-not-one-function"));
         };
         let function = *function;
         let f = tx.require::<Function>(function)?;
         if f.kind != FunctionKind::Normal {
-            return not_eligible("the representation draws an interruption point or a black box");
+            return not_eligible(text!("refusal-join-ip-or-box"));
         }
         let Some(source) = f.device else {
-            return not_eligible("the representation's function has no device");
+            return not_eligible(text!("refusal-join-no-device"));
         };
         let source_device = tx.require::<Device>(source)?;
         if terminal_or_strip(&source_device) {
-            return not_eligible("the representation's device is a terminal or a strip");
+            return not_eligible(text!("refusal-join-terminal"));
         }
         if tx.functions_of_device(source) != [function] {
-            return not_eligible("the representation's device has another function");
+            return not_eligible(text!("refusal-join-other-function"));
         }
         if !source_device.parts.is_empty() {
-            return not_eligible("the representation's device has a part");
+            return not_eligible(text!("refusal-join-has-part"));
         }
         if tx.reps_of_function(function) != [self.rep] {
-            return not_eligible("the representation's function has another representation");
+            return not_eligible(text!("refusal-join-other-rep"));
         }
         // The join removes the source device, and its device links with it (they cascade): refused, not lost.
         if let Some(link) = tx
@@ -214,17 +212,14 @@ impl Command for JoinDevice {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/rep",
-                format!(
-                    "the representation's device takes part in device link {link}, which the join would lose; \
-                     remove the link first"
-                ),
+                text!("refusal-join-device-link", link.to_string()),
             ));
         }
         if self.device == source {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/device",
-                format!("the representation belongs to device {source} already; name another device"),
+                text!("refusal-join-same-device", source.to_string()),
             ));
         }
         let target = tx.require::<Device>(self.device)?;
@@ -264,14 +259,14 @@ impl Command for JoinDevice {
                 return Err(CmdError::invalid_params(
                     Self::NAME,
                     "/device",
-                    format!(
-                        "device {} cannot take function definition {}: it has no unplaced function of it, and {}",
-                        self.device,
-                        f.def,
+                    text!(
+                        "refusal-join-no-function",
+                        self.device.to_string(),
+                        f.def.to_string(),
                         if contact {
-                            "its family takes no auxiliary contacts (no coil, no part naming it)"
+                            text!("refusal-join-no-auxiliary")
                         } else {
-                            "only a contact joins as an auxiliary function"
+                            text!("refusal-join-contact-only")
                         }
                     ),
                 ));
@@ -318,11 +313,10 @@ impl Command for JoinDevice {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/device",
-                format!(
-                    "on device {} the function has no connection point {}, which is connected now; join another \
-                     device or disconnect it first",
-                    self.device,
-                    lost.join(", ")
+                text!(
+                    "refusal-join-cp-connected",
+                    self.device.to_string(),
+                    lost.join(", ").to_string()
                 ),
             ));
         }

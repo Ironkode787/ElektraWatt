@@ -105,7 +105,7 @@ impl Command for AttachChildren {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/children",
-                "give at least one child",
+                text!("refusal-params-no-child"),
             ));
         }
         tx.require::<Device>(self.parent)?;
@@ -116,21 +116,21 @@ impl Command for AttachChildren {
                 return Err(CmdError::invalid_params(
                     Self::NAME,
                     format!("/children/{i}/device"),
-                    "the child is listed twice",
+                    text!("refusal-params-child-twice"),
                 ));
             }
             if c.device == self.parent {
                 return Err(CmdError::invalid_params(
                     Self::NAME,
                     format!("/children/{i}/device"),
-                    "a device cannot be its own child",
+                    text!("refusal-assembly-own-child"),
                 ));
             }
             if c.position == Some(0) {
                 return Err(CmdError::invalid_params(
                     Self::NAME,
                     format!("/children/{i}/position"),
-                    "positions are 1-based",
+                    text!("refusal-params-positions-one-based"),
                 ));
             }
             tx.require::<Device>(c.device)?;
@@ -235,7 +235,7 @@ impl Command for AddValve {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/position",
-                "positions are 1-based",
+                text!("refusal-params-positions-one-based"),
             ));
         }
         tx.require::<Device>(self.module)?;
@@ -329,7 +329,7 @@ impl Command for LinkDevices {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/to",
-                "a device cannot link to itself",
+                text!("refusal-device-link-itself"),
             ));
         }
         tx.require::<Device>(self.from)?;

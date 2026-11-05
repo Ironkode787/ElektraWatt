@@ -18,6 +18,7 @@ use crate::commands::library::check_copy;
 use crate::error::CmdError;
 use crate::meta::{CommandMeta, Cost};
 use crate::proxy::{Dec3S, UuidS};
+use crate::text::text;
 use crate::tx::TxBuilder;
 
 /// From this many devices on, `part.assign` is `Bulk` (WP-S1.19 §8: interactive below 50 devices).
@@ -107,7 +108,11 @@ pub(crate) fn embed_closure(
         let kind = doc.kind().expect("an implemented kind");
         let key = (kind, l.id);
         if !seen.insert(key) {
-            return Err(CmdError::invalid_params(command, at, "the copy is listed twice"));
+            return Err(CmdError::invalid_params(
+                command,
+                at,
+                text!("refusal-params-copy-twice"),
+            ));
         }
         if let Some(held) = tx.row(&key) {
             let held_hash = held_sha(&held);
@@ -116,10 +121,10 @@ pub(crate) fn embed_closure(
                 return Err(CmdError::invalid_params(
                     command,
                     at,
-                    format!(
-                        "the project holds item {} at version {version} with another hash; update from library \
-                         first (library.update)",
-                        l.item
+                    text!(
+                        "refusal-assign-held-other-hash",
+                        l.item.to_string(),
+                        version.to_string()
                     ),
                 ));
             }
@@ -207,7 +212,7 @@ impl Command for AssignPart {
             return Err(CmdError::invalid_params(
                 name,
                 "/devices",
-                "give at least one device",
+                text!("refusal-params-no-device"),
             ));
         }
         let mut listed = BTreeSet::new();
@@ -216,14 +221,14 @@ impl Command for AssignPart {
                 return Err(CmdError::invalid_params(
                     name,
                     format!("/devices/{i}"),
-                    "the device is listed twice",
+                    text!("refusal-params-device-twice"),
                 ));
             }
             if !tx.exists::<Device>(*d) {
                 return Err(CmdError::invalid_params(
                     name,
                     format!("/devices/{i}"),
-                    "the device is not in the project",
+                    text!("refusal-params-device-gone"),
                 ));
             }
         }
@@ -232,7 +237,7 @@ impl Command for AssignPart {
                 return Err(CmdError::invalid_params(
                     name,
                     "/qty",
-                    "the quantity must be greater than 0",
+                    text!("refusal-assign-quantity"),
                 ));
             }
         }
@@ -241,14 +246,14 @@ impl Command for AssignPart {
                 return Err(CmdError::invalid_params(
                     name,
                     "/from",
-                    "mode `replace` needs `from`, the part to replace",
+                    text!("refusal-assign-replace-needs-from"),
                 ));
             }
             (AssignModeParam::Append | AssignModeParam::ReplaceAll, Some(_)) => {
                 return Err(CmdError::invalid_params(
                     name,
                     "/from",
-                    "`from` goes with mode `replace` only",
+                    text!("refusal-assign-from-without-replace"),
                 ));
             }
             _ => {}
@@ -260,10 +265,7 @@ impl Command for AssignPart {
                     return Err(CmdError::invalid_params(
                         name,
                         format!("/devices/{i}"),
-                        format!(
-                            "{} does not use the part to replace",
-                            crate::words::device(tx, *d)
-                        ),
+                        text!("refusal-assign-part-unused", crate::words::device(tx, *d)),
                     ));
                 }
             }
@@ -273,10 +275,7 @@ impl Command for AssignPart {
             return Err(CmdError::invalid_params(
                 name,
                 "/part",
-                format!(
-                    "part copy {} is neither held by the project nor in `copies`",
-                    self.part
-                ),
+                text!("refusal-assign-part-missing", self.part.to_string()),
             ));
         }
         let qty = self.qty.unwrap_or(Dec3::ONE);

@@ -52,10 +52,10 @@ impl Command for SetProjectSupply {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/path",
-                format!(
-                    "`{}` is not a settable supply member; settable: {}",
-                    self.path,
-                    SETTABLE_SUPPLY.join(", ")
+                text!(
+                    "refusal-supply-member-unknown",
+                    self.path.to_string(),
+                    SETTABLE_SUPPLY.join(", ").to_string()
                 ),
             ));
         }
@@ -70,11 +70,16 @@ impl Command for SetProjectSupply {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/path",
-                format!("`{}` lies below a value that is not an object", self.path),
+                text!("refusal-fields-below-non-object", self.path.to_string()),
             ));
         }
-        let next: SupplySpec = serde_json::from_value(json)
-            .map_err(|e| CmdError::invalid_params(Self::NAME, "/value", e.to_string()))?;
+        let next: SupplySpec = serde_json::from_value(json).map_err(|e| {
+            CmdError::invalid_params(
+                Self::NAME,
+                "/value",
+                text!("refusal-params-detail", e.to_string()),
+            )
+        })?;
         if let Some(source) = next.origin.as_ref().and_then(|o| o.source) {
             tx.require::<ExternalRef>(source)?;
         }

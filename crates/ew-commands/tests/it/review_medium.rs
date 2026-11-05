@@ -98,7 +98,7 @@ fn place_refuses_a_rep_type_the_page_does_not_allow() {
     let mut e = engine(golden_model());
     let reason = rejection_reason(e.execute(&place(PAGE_102, Some(RepType::Overview))));
     assert!(
-        reason.contains("Overview") && reason.contains("MultiLine") && reason.contains("ContactImage"),
+        reason.contains("overview") && reason.contains("multi-line") && reason.contains("contact image"),
         "{reason}"
     );
     assert_eq!(e.model().rev().0, 0);
@@ -136,7 +136,7 @@ fn graphic_on_multi_line_and_bus_topology_and_multi_line_on_fluid_are_allowed() 
         .expect("topology on bus topology");
     let reason = rejection_reason(e.execute(&place(PAGE_101, Some(RepType::MultiLine))));
     assert!(
-        reason.contains("Topology") && reason.contains("Graphic"),
+        reason.contains("topology") && reason.contains("graphic"),
         "{reason}"
     );
 
@@ -147,17 +147,17 @@ fn graphic_on_multi_line_and_bus_topology_and_multi_line_on_fluid_are_allowed() 
         .expect("fluid on fluid");
     let reason = rejection_reason(e.execute(&place(PAGE_101, Some(RepType::Graphic))));
     assert!(
-        reason.contains("Fluid") && reason.contains("MultiLine"),
+        reason.contains("fluid") && reason.contains("multi-line"),
         "{reason}"
     );
 
     // Still refused: graphic on a single-line page, fluid on a multi-line page.
     let mut e = engine(with_page_type(PageType::SingleLine));
     let reason = rejection_reason(e.execute(&place(PAGE_101, Some(RepType::Graphic))));
-    assert!(reason.contains("SingleLine"), "{reason}");
+    assert!(reason.contains("single-line"), "{reason}");
     let mut e = engine(golden_model());
     let reason = rejection_reason(e.execute(&place(PAGE_102, Some(RepType::Fluid))));
-    assert!(reason.contains("Fluid") && reason.contains("Graphic"), "{reason}");
+    assert!(reason.contains("fluid") && reason.contains("graphic"), "{reason}");
     assert_eq!(e.model().rev().0, 0);
 }
 
@@ -172,7 +172,7 @@ fn move_refuses_a_page_whose_type_does_not_allow_the_rep() {
         page: Some(PAGE_101),
     }));
     assert!(
-        reason.contains("MultiLine") && reason.contains("Overview"),
+        reason.contains("multi-line") && reason.contains("overview"),
         "{reason}"
     );
     assert_eq!(e.model().rev().0, 0);

@@ -111,7 +111,7 @@ impl Command for SetDrawing {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "",
-                "give at least one member (`crossings`, `marker_mode`)",
+                text!("refusal-drawing-no-member"),
             ));
         }
         let mut project = (*tx.project()).clone();

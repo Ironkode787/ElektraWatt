@@ -553,12 +553,19 @@ impl ShellModel {
         let raw = project.session.preview_with(&cmd, submit);
         // A typed value the command does not take: its reason under the field, without the variable's name the field
         // already shows.
-        if let Err(ew_api::CmdError::InvalidParams { path, message, .. }) = &raw
+        if let Err(ew_api::CmdError::InvalidParams {
+            path, message, text, ..
+        }) = &raw
             && let Some(name) = path.strip_prefix("/values/")
             && let Some(f) = fields.iter_mut().find(|f| f.name == name)
         {
-            let lead = format!("variable `{name}`: ");
-            f.error = Some(message.strip_prefix(&lead).unwrap_or(message).to_owned());
+            // FT-1395 (ID-1415): the reason in the window's language, without the `refusal-macro-variable` lead.
+            f.error = Some(match (text.key(), text.args()) {
+                ("refusal-macro-variable", [_, ew_api::TextArg::Text(why)]) => {
+                    super::tools::rejected_words(message, Some(why))
+                }
+                _ => super::tools::rejected_words(message, Some(text)),
+            });
         }
         let result = raw.map_err(|e| e.to_string());
         let derived = result

@@ -172,7 +172,7 @@ impl Command for ReshapeBox {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/outline",
-                "an outline has at least three vertices",
+                text!("refusal-box-reshape-few-vertices"),
             ));
         }
         let out_of_range = |tx: &TxBuilder<'_>| -> Result<Outcome, CmdError> {
@@ -210,7 +210,7 @@ impl Command for ReshapeBox {
                         return Err(CmdError::invalid_params(
                             Self::NAME,
                             format!("/cps/{i}/idx"),
-                            "two box CPs have the same function CP index",
+                            text!("refusal-box-cp-index-twice"),
                         ));
                     }
                     let Ok(p) = abs(cp.pos) else {
@@ -221,7 +221,7 @@ impl Command for ReshapeBox {
                         return Err(CmdError::invalid_params(
                             Self::NAME,
                             format!("/cps/{i}/pos"),
-                            "the connection point does not lie on the outline; put it on an edge",
+                            text!("refusal-box-reshape-cp-off-outline"),
                         ));
                     }
                 }

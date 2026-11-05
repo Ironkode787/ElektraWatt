@@ -41,13 +41,17 @@ use crate::tools::PreviewState;
 /// its label (`label(i)`, "on -101F1: …").
 fn refusal_text(e: &CmdError, label: &dyn Fn(usize) -> String) -> String {
     match e {
-        CmdError::InvalidParams { path, message, .. } => {
+        // FT-1395 (ID-1415): the reason in the window's language.
+        CmdError::InvalidParams {
+            path, message, text, ..
+        } => {
+            let message = super::tools::rejected_words(message, Some(text));
             match path
                 .strip_prefix("/targets/")
                 .and_then(|i| i.parse::<usize>().ok())
             {
-                Some(i) => strings::format(key!("props-refused-on"), &[&label(i), message]),
-                None => message.clone(),
+                Some(i) => strings::format(key!("props-refused-on"), &[&label(i), &message]),
+                None => message,
             }
         }
         CmdError::Rejected { reason, text, .. } => super::tools::rejected_words(reason, text.as_ref()),
@@ -2439,7 +2443,11 @@ mod tests {
             Outcome::Done
         );
         let section = shell.props.sheet().unwrap().sections[0].clone();
-        let err = CmdError::invalid_params("fields.set", "/targets/1", "refused");
+        let err = CmdError::invalid_params(
+            "fields.set",
+            "/targets/1",
+            ew_api::Text::checked_by_macro("refusal-params-detail", vec!["refused".into()]),
+        );
         let labels: Vec<String> = section
             .targets
             .iter()
@@ -2460,9 +2468,14 @@ mod tests {
         );
         assert!(labels.iter().all(|l| l.starts_with('-')), "{labels:?}");
         assert_eq!(
-            refusal_text(&CmdError::invalid_params("fields.set", "/value", "bad"), &|_| {
-                String::new()
-            }),
+            refusal_text(
+                &CmdError::invalid_params(
+                    "fields.set",
+                    "/value",
+                    ew_api::Text::checked_by_macro("refusal-params-detail", vec!["bad".into()]),
+                ),
+                &|_| String::new()
+            ),
             "bad"
         );
         shell.shutdown();

@@ -482,6 +482,7 @@ fn reorder_error(r: Result<Receipt, CmdError>) -> (String, String) {
             command,
             path,
             message,
+            ..
         }) => {
             assert_eq!(command, "page.reorder");
             (path, message)

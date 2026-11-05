@@ -10,7 +10,7 @@ use crate::common;
 
 use common::fixture::*;
 use common::*;
-use ew_commands::{AnyCommand, CmdError, Engine, Origin};
+use ew_commands::{AnyCommand, Engine, Origin};
 use ew_model::{AnyKey, Model};
 use ew_schema::{Conflict, Connection, Kind, Record};
 use serde_json::{Value, json};
@@ -158,8 +158,8 @@ fn resolve_refuses_no_choice_an_unknown_conflict_and_a_repeated_one() {
     ];
     for (params, path, message) in cases {
         assert_eq!(
-            e.execute(&any("merge.resolve", params)).unwrap_err(),
-            CmdError::invalid_params("merge.resolve", path, message)
+            e.execute(&any("merge.resolve", params)).unwrap_err().to_string(),
+            format!("merge.resolve: invalid parameters at `{path}`: {message}")
         );
     }
     assert_eq!(lines(e.model()), before);

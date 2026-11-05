@@ -124,16 +124,14 @@ impl Command for CreateRevision {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/checker",
-                "the checker of an open revision is written by approval (revision.approve), never when it is \
-                 created: four eyes need one confirmed path per role (FT-402); only a historic released revision \
-                 takes a checker here",
+                text!("refusal-revision-create-checker"),
             ));
         }
         if self.author.is_some() && self.author == self.checker {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/checker",
-                "the checker is the author's party; four eyes need another party: choose another checker",
+                text!("refusal-revision-checker-is-author"),
             ));
         }
         let notes: Vec<PageNote> = self
@@ -325,7 +323,7 @@ impl Command for SetRevisionAuthor {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/role",
-                "the author is the checker's party; four eyes need another party: choose another author",
+                text!("refusal-revision-author-is-checker"),
             ));
         }
         let role = self.role.clone();
@@ -370,19 +368,20 @@ impl Command for WithdrawRevision {
         let revision = require_revision(tx, Self::NAME, self.revision)?;
         if revision.state != RevisionState::Released {
             let what = match &revision.state {
-                RevisionState::Open => "open".to_owned(),
-                RevisionState::Withdrawn => "a withdrawal record".to_owned(),
-                other => format!(
-                    "in the state {}",
+                RevisionState::Open => text!("refusal-revision-state-open"),
+                RevisionState::Withdrawn => text!("refusal-revision-state-withdrawn"),
+                other => text!(
+                    "refusal-revision-state-other",
                     serde_json::to_string(other).unwrap_or_default()
                 ),
             };
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/revision",
-                format!(
-                    "revision {} is {what}; only a released revision is withdrawn: choose a released one",
-                    revision.label
+                text!(
+                    "refusal-revision-withdraw-not-released",
+                    revision.label.to_string(),
+                    what
                 ),
             ));
         }
@@ -397,7 +396,7 @@ impl Command for WithdrawRevision {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/reason",
-                "a withdrawal needs a reason (doc 15 §5.10)",
+                text!("refusal-revision-withdraw-no-reason"),
             ));
         }
         if let Some(earlier) = tx
@@ -506,18 +505,14 @@ impl Command for ApproveRevision {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/revision",
-                format!(
-                    "revision {} has no author; four eyes compare two parties, so set the author first (Revision ▸ \
-                     Set author)",
-                    revision.label
-                ),
+                text!("refusal-revision-approve-no-author", revision.label.to_string()),
             ));
         };
         if author == self.checker {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/checker",
-                "the checker is the author's party; four eyes need another party: choose another checker",
+                text!("refusal-revision-checker-is-author"),
             ));
         }
         let schemes = crate::commands::SHIPPED_CHECK_SCHEMES;
@@ -525,10 +520,10 @@ impl Command for ApproveRevision {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/scheme",
-                format!(
-                    "`{}` is not a shipped check scheme; the schemes are: {}",
-                    self.scheme.as_str(),
-                    schemes.join(", ")
+                text!(
+                    "refusal-checks-scheme-unknown",
+                    self.scheme.as_str().to_string(),
+                    schemes.join(", ").to_string()
                 ),
             ));
         }
@@ -538,17 +533,18 @@ impl Command for ApproveRevision {
                 return Err(CmdError::invalid_params(
                     Self::NAME,
                     format!("/waivers_ack/{i}"),
-                    "the waiver is not in the project",
+                    text!("refusal-params-waiver-gone"),
                 ));
             }
             if !acknowledged.insert(*w) {
                 return Err(CmdError::invalid_params(
                     Self::NAME,
                     format!("/waivers_ack/{i}"),
-                    format!(
-                        "the waiver of {} is listed twice",
+                    text!(
+                        "refusal-revision-waiver-twice",
                         tx.get::<Waiver>(*w)
                             .map_or_else(String::new, |x| x.rule.as_str().to_owned())
+                            .to_string()
                     ),
                 ));
             }
@@ -661,11 +657,7 @@ impl Command for ReleaseRevision {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/revision",
-                format!(
-                    "revision {} has no sign-off; the checker approves it first (Revision ▸ Approve, ew revision \
-                     approve)",
-                    revision.label
-                ),
+                text!("refusal-revision-release-no-sign-off", revision.label.to_string()),
             ));
         };
         let name = &self.archive.name;
@@ -679,7 +671,7 @@ impl Command for ReleaseRevision {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/archive/name",
-                format!("`{name}` is not an archive file name (`<label>.ewarchive`, no directory)"),
+                text!("refusal-revision-archive-name", name.to_string()),
             ));
         }
         if let Some(tag) = &self.git_tag {
@@ -688,7 +680,11 @@ impl Command for ReleaseRevision {
                 return Err(CmdError::invalid_params(
                     Self::NAME,
                     "/git_tag",
-                    format!("the tag of revision {} is `{expected}`", revision.label),
+                    text!(
+                        "refusal-revision-git-tag",
+                        revision.label.to_string(),
+                        expected.to_string()
+                    ),
                 ));
             }
         }
@@ -732,7 +728,7 @@ impl Command for ReleaseRevision {
 /// The revision a command names, or the refusal at `/revision`.
 fn require_revision(tx: &TxBuilder<'_>, command: &str, id: Id<Revision>) -> Result<Arc<Revision>, CmdError> {
     tx.get::<Revision>(id)
-        .ok_or_else(|| CmdError::invalid_params(command, "/revision", "the revision is not in the project"))
+        .ok_or_else(|| CmdError::invalid_params(command, "/revision", text!("refusal-params-revision-gone")))
 }
 
 /// The page notes of a revision written by `command`: every page exists, and no page has two notes
@@ -749,14 +745,14 @@ pub(crate) fn check_page_notes(
             return Err(CmdError::invalid_params(
                 command,
                 format!("{path}/{i}/page"),
-                format!("page {} does not exist", n.page),
+                text!("refusal-revision-note-page-gone", n.page.to_string()),
             ));
         }
         if !seen.insert(n.page) {
             return Err(CmdError::invalid_params(
                 command,
                 format!("{path}/{i}"),
-                format!("page {} has a note already; one note per page", n.page),
+                text!("refusal-revision-note-twice", n.page.to_string()),
             ));
         }
     }
@@ -771,7 +767,9 @@ pub(crate) fn refuse_open_page_notes(command: &str, value: &serde_json::Value) -
     }
     serde_json::from_value::<Vec<RevisionPageNote>>(value.clone())
         .map(|_| ())
-        .map_err(|e| CmdError::invalid_params(command, "/value", e.to_string()))
+        .map_err(|e| {
+            CmdError::invalid_params(command, "/value", text!("refusal-params-detail", e.to_string()))
+        })
 }
 
 /// The refusal of an edit of a revision that is not open: released and withdrawn revisions are immutable
@@ -789,11 +787,7 @@ pub(crate) fn refuse_closed_revision(
     Err(CmdError::invalid_params(
         command,
         path,
-        format!(
-            "revision {} is not open; a released or withdrawn revision is immutable: make the change in the open \
-             revision",
-            revision.label
-        ),
+        text!("refusal-revision-closed", revision.label.to_string()),
     ))
 }
 

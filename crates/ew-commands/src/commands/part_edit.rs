@@ -23,7 +23,7 @@ use crate::commands::library::library_copy_hash;
 use crate::error::CmdError;
 use crate::meta::CommandMeta;
 use crate::proxy::UuidS;
-use crate::text::text;
+use crate::text::{Text, text};
 use crate::tx::TxBuilder;
 
 /// The members of a part that `part.edit_copy` edits (D20); every other member must equal the copy's.
@@ -87,7 +87,7 @@ pub struct EditPartCopy {
     pub copies: Vec<Value>,
 }
 
-fn bad(at: impl Into<String>, message: impl Into<String>) -> CmdError {
+fn bad(at: impl Into<String>, message: Text) -> CmdError {
     CmdError::invalid_params(EditPartCopy::NAME, at, message)
 }
 
@@ -106,29 +106,29 @@ fn fixed_members(part: &Part) -> Map<String, Value> {
 /// The edited item of `raw`, with D21's checks at their pointers; the technical data are put into key order.
 fn read_part(raw: &Value) -> Result<Part, CmdError> {
     let Value::Object(map) = raw else {
-        return Err(bad(
-            "/part",
-            "not a part item: give the part's members as an object",
-        ));
+        return Err(bad("/part", text!("refusal-part-edit-not-object")));
     };
     let mut map = map.clone();
     if map.get("manufacturer").is_none_or(Value::is_null) {
-        return Err(bad("/part/manufacturer", "a part needs a manufacturer"));
+        return Err(bad(
+            "/part/manufacturer",
+            text!("refusal-part-edit-no-manufacturer"),
+        ));
     }
     if map
         .get("part_number")
         .is_none_or(|v| v.as_str().is_some_and(|s| s.trim().is_empty()))
     {
-        return Err(bad("/part/part_number", "a part needs a part number"));
+        return Err(bad("/part/part_number", text!("refusal-part-edit-no-number")));
     }
     if let Some(unit) = map.get("unit") {
         if !unit.as_str().is_some_and(|u| UNITS.contains(&u)) {
-            return Err(bad("/part/unit", "the unit is piece, m or set"));
+            return Err(bad("/part/unit", text!("refusal-part-edit-unit")));
         }
     }
     if let Some(list) = map.get("tech_data") {
         let Value::Array(items) = list else {
-            return Err(bad("/part/tech_data", "the technical data are a list"));
+            return Err(bad("/part/tech_data", text!("refusal-part-edit-tech-data-list")));
         };
         let mut seen = BTreeSet::new();
         let mut values = Vec::with_capacity(items.len());
@@ -136,29 +136,31 @@ fn read_part(raw: &Value) -> Result<Part, CmdError> {
             let v: TechValue = serde_json::from_value(item.clone()).map_err(|e| {
                 bad(
                     format!("/part/tech_data/{i}"),
-                    format!("not a technical value: {e}"),
+                    text!("refusal-part-edit-tech-value", e.to_string()),
                 )
             })?;
             if !seen.insert(v.key.as_str().to_owned()) {
                 return Err(bad(
                     format!("/part/tech_data/{i}"),
-                    format!("{} is given twice", v.key.as_str()),
+                    text!("refusal-part-edit-tech-twice", v.key.as_str().to_string()),
                 ));
             }
             values.push(v);
         }
-        let sorted =
-            ew_schema::KeyedList::from_vec(values).map_err(|e| bad("/part/tech_data", e.to_string()))?;
+        let sorted = ew_schema::KeyedList::from_vec(values)
+            .map_err(|e| bad("/part/tech_data", text!("refusal-params-detail", e.to_string())))?;
         if sorted.is_empty() {
             map.remove("tech_data");
         } else {
             map.insert(
                 "tech_data".into(),
-                serde_json::to_value(&sorted).map_err(|e| bad("/part/tech_data", e.to_string()))?,
+                serde_json::to_value(&sorted)
+                    .map_err(|e| bad("/part/tech_data", text!("refusal-params-detail", e.to_string())))?,
             );
         }
     }
-    serde_json::from_value(Value::Object(map)).map_err(|e| bad("/part", format!("not a part item: {e}")))
+    serde_json::from_value(Value::Object(map))
+        .map_err(|e| bad("/part", text!("refusal-part-edit-not-part", e.to_string())))
 }
 
 /// Replaces the string `from` by `to` at the dotted `path` of `v` (`parts[].part.copy`: `[]` walks every element of
@@ -230,39 +232,27 @@ impl Command for EditPartCopy {
         let Some(held) = tx.get::<LibCopy<Part>>(self.copy) else {
             return Err(bad(
                 "/copy",
-                format!("the project holds no part copy {}", self.copy),
+                text!("refusal-part-edit-copy-missing", self.copy.to_string()),
             ));
         };
         let mut part = read_part(&self.part)?;
         if fixed_members(&part) != fixed_members(&held.item) {
-            return Err(bad(
-                "/part",
-                "only the identity, the description, the category, the unit and the technical data can be edited",
-            ));
+            return Err(bad("/part", text!("refusal-part-edit-fixed-members")));
         }
         let project = tx.project().id.as_uuid();
         let local = held.library_id.as_uuid() == project;
         let fork_copy: Option<Id<Part>> = match (local, self.fork) {
             (true, Some(_)) => {
-                return Err(bad(
-                    "/fork",
-                    "a project-local copy is edited in place; give no `fork`",
-                ));
+                return Err(bad("/fork", text!("refusal-part-edit-local-fork")));
             }
             (false, None) => {
-                return Err(bad(
-                    "/fork",
-                    "a copy from a library is forked: give `fork`, the item ID of the project's copy",
-                ));
+                return Err(bad("/fork", text!("refusal-part-edit-needs-fork")));
             }
             (true, None) => None,
             (false, Some(f)) => {
                 let id: Id<Part> = v5::lib_copy_id(project, f.as_uuid());
                 if tx.exists::<LibCopy<Part>>(id) {
-                    return Err(bad(
-                        "/fork",
-                        format!("the project holds item {f} already; mint another fork item"),
-                    ));
+                    return Err(bad("/fork", text!("refusal-part-edit-fork-held", f.to_string())));
                 }
                 Some(id)
             }
@@ -276,9 +266,10 @@ impl Command for EditPartCopy {
             if !tx.exists::<LibCopy<Manufacturer>>(id) {
                 return Err(bad(
                     "/part/manufacturer",
-                    format!(
-                        "the project holds no manufacturer {}/{} and `copies` does not carry it",
-                        mfr.library, mfr.item
+                    text!(
+                        "refusal-part-edit-manufacturer-missing",
+                        mfr.library.to_string(),
+                        mfr.item.to_string()
                     ),
                 ));
             }

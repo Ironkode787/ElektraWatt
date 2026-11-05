@@ -229,14 +229,14 @@ impl CreateReportBlock {
                 return Err(CmdError::invalid_params(
                     Self::NAME,
                     at,
-                    "not a library document of kind form",
+                    text!("refusal-report-block-not-form"),
                 ));
             };
             if !seen.insert(lineage.id) {
                 return Err(CmdError::invalid_params(
                     Self::NAME,
                     at,
-                    "the item is listed twice",
+                    text!("refusal-params-item-twice"),
                 ));
             }
             copies.push((copy, lineage.item));
@@ -245,7 +245,7 @@ impl CreateReportBlock {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/form",
-                format!("`form` is {}, which none of `form_copies` is", self.form),
+                text!("refusal-report-block-form-not-given", self.form.to_string()),
             ));
         }
         for (copy, _) in copies {

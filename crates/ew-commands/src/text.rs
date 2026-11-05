@@ -297,6 +297,111 @@ pub const TEXTS: &[(&str, &str)] = &[
         "refusal-geometry-overlap",
         "the wire runs back over itself on {0}: its stretch from {1} to {2} lies on its stretch from {3} to {4}; remove the stretch it runs back over",
     ),
+    ("refusal-words-list", "{0}; {1}"),
+    ("refusal-words-list-comma", "{0}, {1}"),
+    ("refusal-words-rep-type-multi-line", "multi-line"),
+    ("refusal-words-rep-type-single-line", "single-line"),
+    ("refusal-words-rep-type-overview", "overview"),
+    ("refusal-words-rep-type-fluid", "fluid"),
+    ("refusal-words-rep-type-topology", "topology"),
+    ("refusal-words-rep-type-contact-image", "contact image"),
+    ("refusal-words-rep-type-panel-front", "panel front"),
+    ("refusal-words-rep-type-strip-segment", "strip segment"),
+    ("refusal-words-rep-type-graphic", "graphic"),
+    ("refusal-words-page-kind-title-page", "a title page"),
+    ("refusal-words-page-kind-table-of-contents", "a table of contents"),
+    ("refusal-words-page-kind-section-divider", "a section divider"),
+    ("refusal-words-page-kind-graphic", "a graphic page"),
+    ("refusal-words-page-kind-single-line", "a single-line page"),
+    ("refusal-words-page-kind-multi-line", "a multi-line page"),
+    ("refusal-words-page-kind-overview", "an overview page"),
+    ("refusal-words-page-kind-bus-topology", "a bus topology page"),
+    ("refusal-words-page-kind-fluid", "a fluid page"),
+    (
+        "refusal-words-page-kind-assembly-overview",
+        "an assembly overview page",
+    ),
+    ("refusal-words-page-kind-panel-layout", "a panel layout page"),
+    ("refusal-words-page-kind-model-view", "a model view page"),
+    (
+        "refusal-words-page-kind-external-document",
+        "an external document page",
+    ),
+    ("refusal-words-page-kind-report", "a report page"),
+    // The parameters of any command: a record not in the project, one listed twice, none given, the schema's detail.
+    ("refusal-params-detail", "{0}"),
+    ("refusal-params-device-gone", "the device is not in the project"),
+    ("refusal-params-surface-gone", "the surface is not in the project"),
+    (
+        "refusal-params-mounting-surface-gone",
+        "the mounting surface is not in the project",
+    ),
+    ("refusal-params-page-gone", "the page is not in the project"),
+    (
+        "refusal-params-placement-gone",
+        "the placement is not in the project",
+    ),
+    (
+        "refusal-params-space-gone",
+        "the layout space is not in the project",
+    ),
+    ("refusal-params-carrier-gone", "the carrier is not in the project"),
+    (
+        "refusal-params-node-gone",
+        "the structure node is not in the project",
+    ),
+    (
+        "refusal-params-enclosure-gone",
+        "the enclosure is not in the project",
+    ),
+    (
+        "refusal-params-revision-gone",
+        "the revision is not in the project",
+    ),
+    ("refusal-params-waiver-gone", "the waiver is not in the project"),
+    (
+        "refusal-params-external-ref-gone",
+        "the external reference is not in the project",
+    ),
+    ("refusal-params-copy-twice", "the copy is listed twice"),
+    ("refusal-params-item-twice", "the item is listed twice"),
+    ("refusal-params-device-twice", "the device is listed twice"),
+    ("refusal-params-rep-twice", "the representation is listed twice"),
+    ("refusal-params-record-twice", "the record is listed twice"),
+    ("refusal-params-target-twice", "the target is listed twice"),
+    ("refusal-params-node-twice", "the structure node is listed twice"),
+    ("refusal-params-part-twice", "the part is listed twice"),
+    (
+        "refusal-params-ip-twice",
+        "the interruption point is listed twice",
+    ),
+    (
+        "refusal-params-connection-twice",
+        "the connection is listed twice",
+    ),
+    ("refusal-params-child-twice", "the child is listed twice"),
+    ("refusal-params-terminal-twice", "the terminal is listed twice"),
+    ("refusal-params-asset-twice", "the asset is listed twice"),
+    ("refusal-params-no-target", "give at least one target"),
+    (
+        "refusal-params-no-library-document",
+        "give at least one library document",
+    ),
+    ("refusal-params-no-connection", "give at least one connection"),
+    ("refusal-params-no-child", "give at least one child"),
+    ("refusal-params-no-device", "give at least one device"),
+    ("refusal-params-no-entry", "give at least one entry"),
+    ("refusal-params-no-rep", "give at least one representation"),
+    ("refusal-params-no-part-copy", "give at least one part copy"),
+    ("refusal-params-no-assignment", "give at least one assignment"),
+    (
+        "refusal-params-no-terminal-to-insert",
+        "give at least one terminal to insert",
+    ),
+    ("refusal-params-no-terminal", "name at least one terminal"),
+    ("refusal-params-no-page", "name at least one page"),
+    ("refusal-params-no-module", "name at least one module"),
+    ("refusal-params-positions-one-based", "positions are 1-based"),
     // assembly.attach, valve.add and device.link.
     (
         "refusal-assembly-position-twice",
@@ -322,6 +427,8 @@ pub const TEXTS: &[(&str, &str)] = &[
         "refusal-device-link-twice",
         "device {0} already links to {1} with this kind (link {2})",
     ),
+    ("refusal-assembly-own-child", "a device cannot be its own child"),
+    ("refusal-device-link-itself", "a device cannot link to itself"),
     // box.reshape.
     (
         "refusal-box-reshape-no-box",
@@ -335,6 +442,39 @@ pub const TEXTS: &[(&str, &str)] = &[
         "refusal-box-reshape-cp-connected",
         "box connection point {0} is connected on this page and the new connection points leave it out; keep it in `cps`",
     ),
+    (
+        "refusal-box-reshape-few-vertices",
+        "an outline has at least three vertices",
+    ),
+    (
+        "refusal-box-reshape-cp-off-outline",
+        "the connection point does not lie on the outline; put it on an edge",
+    ),
+    (
+        "refusal-box-cp-index-twice",
+        "two box CPs have the same function CP index",
+    ),
+    // box.structure.
+    (
+        "refusal-box-structure-few-vertices",
+        "a structure box's outline needs at least three vertices, not {0}",
+    ),
+    (
+        "refusal-box-structure-node-gone",
+        "structure node {0} does not exist",
+    ),
+    (
+        "refusal-box-structure-node-aspect",
+        "structure node {0} ({1}) is not of the aspect {2}",
+    ),
+    (
+        "refusal-box-structure-style",
+        "a box style this build does not know; use dotted or dash_dot",
+    ),
+    (
+        "refusal-box-structure-no-area",
+        "a structure box's outline has no area: its vertices lie on one line",
+    ),
     // bus.logical_net.create and bus.physical_net.create.
     (
         "refusal-bus-logical-net-exists",
@@ -343,6 +483,18 @@ pub const TEXTS: &[(&str, &str)] = &[
     (
         "refusal-bus-physical-net-exists",
         "physical net {0} exists already; names are unique",
+    ),
+    (
+        "refusal-bus-medium-unknown",
+        "{0} is not a medium; give copper or fibre",
+    ),
+    (
+        "refusal-bus-system-unknown",
+        "{0} is not a bus system; give profibus_dp, profinet, ethercat, ethernet_ip, io_link, asi, canopen or modbus_tcp",
+    ),
+    (
+        "refusal-bus-zero-rate",
+        "a data rate of 0 bit/s; give the rate in bit/s (1500000) or leave it unset",
     ),
     // The project settings: project.checks.set, project.frames.set, project.drawing.set and project.company.set.
     (
@@ -361,11 +513,85 @@ pub const TEXTS: &[(&str, &str)] = &[
         "refusal-company-member-not-object",
         "the project row's `{0}` member is not an object (a newer or damaged format); it is kept as it is",
     ),
+    (
+        "refusal-checks-scheme-unknown",
+        "`{0}` is not a shipped check scheme; the schemes are: {1}",
+    ),
+    (
+        "refusal-frames-page-type-twice",
+        "the page type `{0}` has an entry already; give one entry per page type",
+    ),
+    (
+        "refusal-company-no-member",
+        "give at least one of `name`, `notice`, `personal_data` and `logo`",
+    ),
+    (
+        "refusal-drawing-no-member",
+        "give at least one member (`crossings`, `marker_mode`)",
+    ),
+    (
+        "refusal-frames-unknown-page-type",
+        "not a page type of this version",
+    ),
+    (
+        "refusal-frames-report",
+        "report pages take the form of their report block (EW-INV-012); give no entry for `report`",
+    ),
+    (
+        "refusal-frames-not-frame",
+        "the form is not a frame (its kind must be `frame`, `cover` or `divider`)",
+    ),
+    (
+        "refusal-company-image-too-large",
+        "{0} is larger than {1} KiB (the limit of {2})",
+    ),
+    ("refusal-company-the-logo", "the logo"),
+    ("refusal-company-a-logo", "a company logo"),
+    // project.languages.set and project.settings.set.
+    (
+        "refusal-languages-source-as-translation",
+        "`{0}` is the source language, not a translation",
+    ),
+    (
+        "refusal-settings-member-unknown",
+        "`{0}` is not a settable project setting; settable: {1}",
+    ),
+    ("refusal-settings-value", "not a valid `{0}` setting: {1}"),
+    (
+        "refusal-settings-text-styles",
+        "not a valid `text_styles` setting: {0}",
+    ),
+    ("refusal-languages-twice", "a translation language is named twice"),
+    (
+        "refusal-languages-date-format",
+        "not a date format of this version",
+    ),
+    (
+        "refusal-languages-decimal-separator",
+        "not a decimal separator of this version",
+    ),
+    (
+        "refusal-languages-no-source",
+        "translation languages need a `source` language",
+    ),
     // check.waive.
     (
         "refusal-check-waive-twice",
         "waiver {0} already covers the finding {1} of {2}",
     ),
+    (
+        "refusal-check-waive-rule-id",
+        "`{0}` is not a rule ID (EW-<PACK>-<three digits>, for example EW-CORE-041)",
+    ),
+    (
+        "refusal-check-waive-fingerprint",
+        "`{0}` is not a finding fingerprint (32 hex digits)",
+    ),
+    (
+        "refusal-check-waive-reason",
+        "a waiver needs a reason of at least {0} characters (doc 15 §2.5)",
+    ),
+    ("refusal-check-unwaive-gone", "waiver {0} does not exist"),
     // connection.draw, connection.draw_many and connection.delete.
     (
         "refusal-connection-no-page",
@@ -408,6 +634,10 @@ pub const TEXTS: &[(&str, &str)] = &[
     (
         "refusal-connection-delete-none",
         "no connection given; name at least one connection to delete",
+    ),
+    (
+        "refusal-connection-draw-many-too-many",
+        "{0} connections are more than the {1} one command takes",
     ),
     // junction.edit.
     (
@@ -456,6 +686,7 @@ pub const TEXTS: &[(&str, &str)] = &[
         "refusal-bond-same-end",
         "both ends of the bond are the same point; pick two different ends",
     ),
+    ("refusal-bond-unknown-kind", "unknown bond kind"),
     // connection.draw_to_ip.
     (
         "refusal-draw-to-ip-cp-count",
@@ -504,6 +735,10 @@ pub const TEXTS: &[(&str, &str)] = &[
         "refusal-move-route-out-of-range",
         "{0} moves the route of {1} outside the drawable range; move it less far",
     ),
+    (
+        "refusal-arrange-few-ips",
+        "arrange at least two interruption points",
+    ),
     // device.place, box.black and a device from a part.
     (
         "refusal-device-place-no-cp",
@@ -527,7 +762,7 @@ pub const TEXTS: &[(&str, &str)] = &[
     ),
     (
         "refusal-rep-type",
-        "representation type {0} is not allowed on a {1} page ({2}); allowed: {3}",
+        "representation type {0} is not allowed on {1} ({2}); allowed: {3}",
     ),
     (
         "refusal-rep-type-none",
@@ -577,6 +812,36 @@ pub const TEXTS: &[(&str, &str)] = &[
         "refusal-new-terminal-part",
         "part {0} is no terminal of the symbol's function definition; pick a symbol of the part's main function or another part",
     ),
+    (
+        "refusal-box-black-terminal",
+        "a black box is no terminal; place a terminal with `device.place`",
+    ),
+    (
+        "refusal-box-black-few-points",
+        "an outline has at least three points",
+    ),
+    // part.assign.
+    (
+        "refusal-assign-held-other-hash",
+        "the project holds item {0} at version {1} with another hash; update from library first (library.update)",
+    ),
+    (
+        "refusal-assign-part-unused",
+        "{0} does not use the part to replace",
+    ),
+    (
+        "refusal-assign-part-missing",
+        "part copy {0} is neither held by the project nor in `copies`",
+    ),
+    (
+        "refusal-assign-from-without-replace",
+        "`from` goes with mode `replace` only",
+    ),
+    (
+        "refusal-assign-replace-needs-from",
+        "mode `replace` needs `from`, the part to replace",
+    ),
+    ("refusal-assign-quantity", "the quantity must be greater than 0"),
     // rep.move and rep.transform.
     (
         "refusal-rep-move-surface-view",
@@ -646,6 +911,24 @@ pub const TEXTS: &[(&str, &str)] = &[
         "refusal-rep-transform-route-out-of-range",
         "the transform moves the route of {0} outside the drawable range; turn it nearer the page origin",
     ),
+    ("refusal-rep-move-one-page", "every item lies on one page"),
+    (
+        "refusal-rep-move-other-page",
+        "{0} is on {1}, the items on {2}; move one page at a time",
+    ),
+    ("refusal-rep-anchor-policy-unknown", "unknown anchor policy"),
+    (
+        "refusal-rep-move-steps-other-page",
+        "a move to another page takes `delta`; `steps` moves on the representations' own page",
+    ),
+    (
+        "refusal-rep-move-steps-and-delta",
+        "give either `steps` or a non-zero `delta`, not both",
+    ),
+    (
+        "refusal-rep-move-items-other-page",
+        "page items and structure boxes move on their own page; a move to another page takes no `items`",
+    ),
     // The terminals of a strip (device.place, terminal.add).
     (
         "refusal-terminal-not-strip",
@@ -680,6 +963,181 @@ pub const TEXTS: &[(&str, &str)] = &[
         "refusal-edit-delete-carries-enclosure",
         "{0} carries an enclosure; delete the enclosure first.",
     ),
+    ("refusal-edit-delete-project", "the project cannot be deleted"),
+    // edit.paste.
+    (
+        "refusal-paste-grid",
+        "the copied content uses another grid ({0}/{1} nm); paste on a page with that grid (this page has {2})",
+    ),
+    ("refusal-paste-too-many", "{0} records; a paste takes at most {1}"),
+    (
+        "refusal-paste-schema-version",
+        "the record is of schema version {0}, this version reads {1}",
+    ),
+    (
+        "refusal-paste-format",
+        "the fragment is of project format {0}, this version writes {1}",
+    ),
+    (
+        "refusal-paste-channel-module",
+        "a channel's module is not in the fragment; copy them together",
+    ),
+    (
+        "refusal-paste-generated-page-inserted",
+        "a generated page is not inserted",
+    ),
+    ("refusal-paste-generated-page", "a generated page takes no paste"),
+    (
+        "refusal-paste-page-macro",
+        "a page macro's pages are inserted with macro.insert, not pasted",
+    ),
+    ("refusal-paste-page-record-kind", "a page record is of kind page"),
+    ("refusal-paste-node-no-path", "a structure node without a path"),
+    (
+        "refusal-paste-adapt-no-copy",
+        "names no copy of the fragment that the project holds in another version",
+    ),
+    (
+        "refusal-paste-library-kind",
+        "not a library document of kind part, symbol, fndef, form or manufacturer",
+    ),
+    (
+        "refusal-paste-anchor-off-grid",
+        "the anchor is not a point of the fragment's grid",
+    ),
+    ("refusal-paste-empty", "the fragment holds no record"),
+    (
+        "refusal-paste-grid-form",
+        "the grid is [num, den] of positive integers",
+    ),
+    (
+        "refusal-paste-grid-differs",
+        "the page's grid differs from the fragment's",
+    ),
+    (
+        "refusal-paste-page-type",
+        "the page's type takes no symbols or wires: paste on a schematic page",
+    ),
+    (
+        "refusal-paste-out-of-range",
+        "the paste moves the record outside the drawable range",
+    ),
+    (
+        "refusal-paste-far-from-anchor",
+        "the point is too far from the anchor",
+    ),
+    (
+        "refusal-paste-rep-off-grid",
+        "the representation is not on the connection grid, so it cannot be pasted by grid steps",
+    ),
+    (
+        "refusal-paste-rep-type",
+        "the page's type does not take a representation of type {0}",
+    ),
+    ("refusal-paste-off-grid", "{0}; paste at a point on the grid"),
+    ("refusal-paste-the-paste-point", "the paste point"),
+    ("refusal-paste-kind", "a record of kind {0} {1}"),
+    (
+        "refusal-paste-kinds",
+        "is not pasted (only devices, functions, representations, connections, junctions, potential definitions, page items and structure boxes)",
+    ),
+    (
+        "refusal-paste-adapt-major",
+        "the project's version of {0} {1} differs from the pasted one in a major way ({2}); update instead",
+    ),
+    (
+        "refusal-paste-held-other-version",
+        "the project holds another version of {0} {1}; update from library first",
+    ),
+    (
+        "refusal-paste-reference-missing",
+        "the {0}'s {1} names a {2} that is neither in the fragment nor in this project; copy them together",
+    ),
+    // item.place and marker.place, and a page item's members.
+    (
+        "refusal-items-image-asset-missing",
+        "the project holds no asset {0}; an image places an asset the project already holds, or gives its file as `data`",
+    ),
+    (
+        "refusal-items-marker-wire-other-page",
+        "the wire is not drawn on {0}",
+    ),
+    (
+        "refusal-items-marker-angle",
+        "a wire marker's angle is 0 or 90000 (10⁻³ degree), not {0}",
+    ),
+    (
+        "refusal-items-marker-colours",
+        "give no colour or one per connection ({0} connections, {1} colours)",
+    ),
+    (
+        "refusal-items-csa-unknown",
+        "a cross-section this build does not know",
+    ),
+    (
+        "refusal-items-image-asset-or-data",
+        "give exactly one of `asset` (a hash the project holds) and `data` (the image file in base64), not both and not neither",
+    ),
+    ("refusal-items-line-zero", "a line of zero length"),
+    (
+        "refusal-items-polyline-points",
+        "a polyline needs at least two distinct points",
+    ),
+    (
+        "refusal-items-polygon-points",
+        "a polygon needs at least three distinct points",
+    ),
+    (
+        "refusal-items-polygon-no-area",
+        "a polygon without area: its points lie on one line",
+    ),
+    ("refusal-items-rect-no-area", "a rectangle without area"),
+    (
+        "refusal-items-circle-radius",
+        "a circle needs a radius greater than 0",
+    ),
+    ("refusal-items-arc-radius", "an arc needs a radius greater than 0"),
+    ("refusal-items-arc-sweep", "an arc needs a sweep other than 0"),
+    ("refusal-items-shape-unknown", "a shape this build does not know"),
+    (
+        "refusal-items-stroke-width",
+        "a stroke width must be greater than 0",
+    ),
+    (
+        "refusal-items-dash-unknown",
+        "a dash pattern this build does not know",
+    ),
+    (
+        "refusal-items-bind-unknown",
+        "`{0}` is not a bindable name; bindable: {1}",
+    ),
+    (
+        "refusal-items-text-empty",
+        "a free text without `bind` needs a text",
+    ),
+    (
+        "refusal-items-text-angle",
+        "a free text's angle is 0, 90000, 180000 or 270000 (10⁻³ degree), not {0}",
+    ),
+    (
+        "refusal-items-align-unknown",
+        "an alignment this build does not know",
+    ),
+    ("refusal-items-image-no-area", "an image rectangle without area"),
+    (
+        "refusal-items-colour-not-company",
+        "`{0}` is neither an IEC 60757 colour code nor a company code of the project's colour profile",
+    ),
+    (
+        "refusal-items-colour-foreign",
+        "`{0}` is a foreign colour code; use an IEC 60757 code or a company code of the project's colour profile",
+    ),
+    (
+        "refusal-items-colour-unknown",
+        "a colour code this build does not know",
+    ),
+    ("refusal-items-the-image", "the image"),
+    ("refusal-items-image-as-data", "an image given as data"),
     // rep.exchange_symbol.
     (
         "refusal-exchange-no-function",
@@ -709,12 +1167,171 @@ pub const TEXTS: &[(&str, &str)] = &[
         "refusal-exchange-route-out-of-range",
         "the exchange moves the route of {0} outside the drawable range; move the representation nearer the page origin first",
     ),
+    (
+        "refusal-exchange-no-symbol-cp",
+        "the new symbol has no connection point {0}",
+    ),
+    (
+        "refusal-exchange-no-function-cp",
+        "the function has no connection point {0}",
+    ),
+    (
+        "refusal-exchange-cp-unmapped",
+        "connection point {0} of the new symbol is not in the map and would draw function CP {1}; map it",
+    ),
+    (
+        "refusal-exchange-symbol-cp-twice",
+        "the symbol CP is mapped twice",
+    ),
+    // rep.join_device.
+    (
+        "refusal-join-device-link",
+        "the representation's device takes part in device link {0}, which the join would lose; remove the link first",
+    ),
+    (
+        "refusal-join-same-device",
+        "the representation belongs to device {0} already; name another device",
+    ),
+    (
+        "refusal-join-cp-connected",
+        "on device {0} the function has no connection point {1}, which is connected now; join another device or disconnect it first",
+    ),
+    (
+        "refusal-join-not-eligible",
+        "{0}; a representation joins another device only when its device has exactly one function, no part and no other representation",
+    ),
+    (
+        "refusal-join-not-one-function",
+        "the representation draws not exactly one function",
+    ),
+    (
+        "refusal-join-ip-or-box",
+        "the representation draws an interruption point or a black box",
+    ),
+    (
+        "refusal-join-no-device",
+        "the representation's function has no device",
+    ),
+    (
+        "refusal-join-terminal",
+        "the representation's device is a terminal or a strip",
+    ),
+    (
+        "refusal-join-other-function",
+        "the representation's device has another function",
+    ),
+    ("refusal-join-has-part", "the representation's device has a part"),
+    (
+        "refusal-join-other-rep",
+        "the representation's function has another representation",
+    ),
+    (
+        "refusal-join-no-function",
+        "device {0} cannot take function definition {1}: it has no unplaced function of it, and {2}",
+    ),
+    (
+        "refusal-join-no-auxiliary",
+        "its family takes no auxiliary contacts (no coil, no part naming it)",
+    ),
+    (
+        "refusal-join-contact-only",
+        "only a contact joins as an auxiliary function",
+    ),
     // fields.set.
     ("refusal-fields-ip-star", "{0}: {1}"),
     ("refusal-fields-not-fluid-line", "{0} is not a fluid line"),
     (
         "refusal-fields-counter-used",
         "counter {0} with letter {1} is already used on {2} by another device; use {3}, the next free counter",
+    ),
+    (
+        "refusal-fields-revision-party",
+        "`{0}` of a revision is not set here: set by Check ▸ Revision ▸ Set revision author… or by approval (four eyes need one confirmed path per role, FT-402)",
+    ),
+    (
+        "refusal-fields-link-kind-unknown",
+        "{0} is not a device link kind; give drives or linkage",
+    ),
+    (
+        "refusal-fields-below-non-object",
+        "`{0}` lies below a value that is not an object",
+    ),
+    (
+        "refusal-fields-channel-state-unknown",
+        "{0} is not a channel state; give spare, reserved or deactivated, or null for the derived state",
+    ),
+    (
+        "refusal-fields-set-many-too-many",
+        "{0} entries are more than the {1} one command takes",
+    ),
+    (
+        "refusal-fields-set-many-pair-twice",
+        "an earlier entry already sets `{0}` on this target; give each (target, path) once",
+    ),
+    (
+        "refusal-fields-config-covers-other",
+        "the configuration {0} covers {1}, which is neither the assembly device {2} nor one of its descendants",
+    ),
+    (
+        "refusal-fields-item-variant",
+        "the page item is a {0}, not a {1}; `{2}` is not one of its fields",
+    ),
+    (
+        "refusal-fields-not-ip",
+        "{0} is not an interruption point; `{1}` is not one of its fields",
+    ),
+    (
+        "refusal-fields-master-cp",
+        "a master is a CP: {\"cp\": [function, index]}",
+    ),
+    (
+        "refusal-fields-direction-unknown",
+        "{0} is not a direction; give source, target or undirected",
+    ),
+    (
+        "refusal-fields-no-aspect",
+        "the device has no `{0}` aspect; `{1}` cannot be set",
+    ),
+    (
+        "refusal-fields-zero-rate",
+        "a data rate of 0 bit/s; give the rate in bit/s (1500000) or null",
+    ),
+    (
+        "refusal-fields-line-kind",
+        "a line kind is one of working, pilot, exhaust, drain and flexible",
+    ),
+    (
+        "refusal-fields-copies-in-entry",
+        "give the library documents in the command's `copies`, not in an entry",
+    ),
+    (
+        "refusal-fields-address-unknown",
+        "not an address this build knows; give an address text, auto, excluded or tbd",
+    ),
+    (
+        "refusal-fields-not-settable-kind",
+        "`{0}` is not settable: {1} has no settable fields",
+    ),
+    (
+        "refusal-fields-not-settable",
+        "`{0}` is not a settable field of {1}; settable: {2}",
+    ),
+    ("refusal-fields-function-named", "function {0}"),
+    (
+        "refusal-fields-no-port",
+        "{0} has no bus port; set `bus_port` first",
+    ),
+    (
+        "refusal-fields-port-role-unknown",
+        "{0} is not a port role; give master, slave, controller, device or passive",
+    ),
+    (
+        "refusal-fields-bus-address-unknown",
+        "{0} is not a bus address; give tbd, not_applicable or {\"value\": {\"profibus\": n}}",
+    ),
+    (
+        "refusal-fields-termination-unknown",
+        "{0} is not a termination; give on or off",
     ),
     // valve.set_occupancy and fluid.port.close.
     ("refusal-valve-no-positions", "{0} has no valve positions"),
@@ -894,6 +1511,63 @@ pub const TEXTS: &[(&str, &str)] = &[
         "refusal-layout-enclosure-turn",
         "an enclosure's pose is a translation at this version; give it without a turn",
     ),
+    (
+        "refusal-layout-part-copy-missing",
+        "part copy {0} is not held by the project",
+    ),
+    ("refusal-layout-part-unused", "{0} does not use this part"),
+    (
+        "refusal-layout-no-member-on-rail",
+        "no member of {0} is on {1} yet; give the position s",
+    ),
+    ("refusal-layout-node-not-function", "node {0} is not a function"),
+    (
+        "refusal-layout-placement-on",
+        "a placement sits on a carrier or on a surface",
+    ),
+    (
+        "refusal-layout-rail-profile",
+        "a rail profile is ts35x7_5, ts35x15, ts32 or ts15",
+    ),
+    (
+        "refusal-layout-carrier-edit-no-member",
+        "give at least one member (`surface`, `part`, `path`, `params`, `pe_bond`)",
+    ),
+    (
+        "refusal-layout-space-edit-no-name",
+        "give the name, or null to clear it",
+    ),
+    (
+        "refusal-layout-carrier-kind-unknown",
+        "the carrier is of a kind this build does not know; its parameters are kept as they are",
+    ),
+    (
+        "refusal-layout-function-not-device",
+        "the function is not one of the device's",
+    ),
+    ("refusal-layout-duct-length", "the length must be greater than 0"),
+    (
+        "refusal-layout-duct-params",
+        "the parameters of a duct are `duct`",
+    ),
+    (
+        "refusal-layout-rail-params",
+        "the parameters of a rail are `rail`",
+    ),
+    (
+        "refusal-layout-rail-part-profile",
+        "the rail's part has profile {0}; the profile comes from its rail section",
+    ),
+    ("refusal-layout-fill-notice", "{0}: {1}"),
+    ("refusal-layout-fill-no-room", "{0}: no room left on {1}"),
+    ("refusal-layout-fill-placed", "already placed"),
+    (
+        "refusal-layout-fill-other-space",
+        "not in this rail's layout space",
+    ),
+    ("refusal-layout-fill-not-mountable", "not mountable"),
+    ("refusal-layout-fill-no-fit", "{0} does not fit a {1} rail"),
+    ("refusal-layout-fill-not-rail", "{0}, not on a rail"),
     // page.create, page.delete, page.renumber and page.surface_view.set.
     (
         "refusal-page-create-outside-range",
@@ -948,6 +1622,30 @@ pub const TEXTS: &[(&str, &str)] = &[
         "refusal-page-surface-view-not-layout",
         "folio {0} is not a panel-layout page; a surface view goes on a panel-layout page",
     ),
+    ("refusal-page-scale", "a scale is 1:n with n at least 1"),
+    // page.reorder.
+    ("refusal-page-reorder-twice", "{0} is listed twice"),
+    ("refusal-page-reorder-no-section", "no section {0}"),
+    (
+        "refusal-page-reorder-other-section",
+        "page {0} is in another section; move pages between sections by changing their section first",
+    ),
+    (
+        "refusal-page-reorder-too-many",
+        "at most 1000 pages may be moved at once",
+    ),
+    (
+        "refusal-page-reorder-before-and-section",
+        "give either before or section, not both",
+    ),
+    (
+        "refusal-page-reorder-before-moved",
+        "the page to put the pages before is one of the moved pages; name a page that stays",
+    ),
+    (
+        "refusal-page-reorder-unchanged",
+        "the pages are already in this order",
+    ),
     // library.embed and library.update.
     (
         "refusal-library-embed-held",
@@ -968,6 +1666,169 @@ pub const TEXTS: &[(&str, &str)] = &[
     (
         "refusal-library-update-overrides",
         "the mapping moves two CP overrides of function {0} onto CP {1}; change the overrides first",
+    ),
+    (
+        "refusal-library-copy-id",
+        "the copy ID is {0}, not the copy identity {1} = v5(NS_LIBCOPY, library_id ‖ item_id)",
+    ),
+    (
+        "refusal-library-copy-hash",
+        "{0} is not the hash of the item's members (EW-CORE-014); the copy is not consistent with the hash it claims",
+    ),
+    (
+        "refusal-library-update-not-semver",
+        "`{0}` is not a semantic version",
+    ),
+    (
+        "refusal-library-update-downgrade",
+        "version {0} is lower than the held {1}: a downgrade is not an update",
+    ),
+    (
+        "refusal-library-update-map-copy",
+        "copy {0} is not one of `copies`",
+    ),
+    (
+        "refusal-library-embed-local",
+        "a project-local item (library_id = the project ID) is not embedded",
+    ),
+    (
+        "refusal-library-embed-kind",
+        "not a library document of kind part, symbol, fndef, form, macro or manufacturer",
+    ),
+    (
+        "refusal-library-update-map-old-index",
+        "{0} is no CP index of the held copy",
+    ),
+    (
+        "refusal-library-update-map-new-index",
+        "{0} is no CP index of the new copy",
+    ),
+    (
+        "refusal-library-update-map-old-twice",
+        "CP {0} of the held copy is mapped twice",
+    ),
+    (
+        "refusal-library-update-map-new-twice",
+        "CP {0} of the new copy is the target of two CPs of the held copy",
+    ),
+    ("refusal-library-update-attached-connection", "connection {0}"),
+    (
+        "refusal-library-update-attached-potential",
+        "potential definition {0}",
+    ),
+    ("refusal-library-update-attached-bond", "bond {0}"),
+    ("refusal-library-update-attached-channel", "channel {0}"),
+    (
+        "refusal-library-update-not-held",
+        "the project holds no {0} copy {1} (item {2}); embed it first (library.embed or part.assign)",
+    ),
+    ("refusal-library-update-blocked-pin", "{0} pin {1}: {2}"),
+    (
+        "refusal-library-update-embed-held",
+        "the project holds {0} copy {1} already; leave it out",
+    ),
+    (
+        "refusal-library-update-missing-copy",
+        "{0} copy {1} (named by {2} {3})",
+    ),
+    // macro.insert.
+    (
+        "refusal-macro-held-version",
+        "the project holds version {0} of this macro, not {1}; update from library first",
+    ),
+    (
+        "refusal-macro-copy-missing",
+        "no macro copy {0}: give its document in `copies`",
+    ),
+    (
+        "refusal-macro-page-orientation",
+        "a page macro keeps the layout of its pages and takes no orientation; insert it with `r0`",
+    ),
+    (
+        "refusal-macro-window-no-at",
+        "a window macro needs the point `at`",
+    ),
+    (
+        "refusal-macro-window-pages",
+        "a window macro's fragment holds no pages",
+    ),
+    (
+        "refusal-macro-only-own-document",
+        "only the inserted macro's document is given",
+    ),
+    (
+        "refusal-macro-kind",
+        "only window and page macros are inserted at this version",
+    ),
+    (
+        "refusal-macro-no-variant",
+        "the macro has no variant for this page's representation types",
+    ),
+    (
+        "refusal-macro-page-no-page",
+        "the page macro's fragment holds no page",
+    ),
+    ("refusal-macro-value-text", "{0} is not a text"),
+    ("refusal-macro-value-non-empty", "{0} is not a non-empty text"),
+    ("refusal-macro-value-number", "{0} is not a number"),
+    ("refusal-macro-value-bool", "{0} is not true or false"),
+    (
+        "refusal-macro-value-tag-counter",
+        "{0} is not a tag counter (an integer from 1)",
+    ),
+    (
+        "refusal-macro-value-channel",
+        "{0} is not a channel number (an integer from 0 to 65535)",
+    ),
+    (
+        "refusal-macro-value-part",
+        "{0} is not a part reference ({\"copy\": <copy ID>})",
+    ),
+    ("refusal-macro-value-device", "{0} is not a device ID"),
+    (
+        "refusal-macro-value-text-slots",
+        "{0} is not a list of text slots",
+    ),
+    (
+        "refusal-macro-fragment-unreadable",
+        "the macro's fragment does not read: {0}",
+    ),
+    ("refusal-macro-no-value-set", "the macro has no value set `{0}`"),
+    ("refusal-macro-no-variable", "the macro has no variable `{0}`"),
+    ("refusal-macro-variable", "variable `{0}`: {1}"),
+    (
+        "refusal-macro-binds-missing",
+        "variable `{0}` binds record {1}, which is not in the fragment",
+    ),
+    ("refusal-macro-record-no-kind", "record {0} has no kind"),
+    (
+        "refusal-macro-binds-field",
+        "variable `{0}` binds `{1}`, which a {2} does not take",
+    ),
+    ("refusal-macro-field-misfit", "`{0}` does not fit record {1}"),
+    (
+        "refusal-macro-field-value",
+        "`{0}` of record {1} does not take {2}: {3}",
+    ),
+    (
+        "refusal-macro-group-no-variable",
+        "group `{0}` is included by `{1}`, which is no variable",
+    ),
+    (
+        "refusal-macro-group-not-bool",
+        "group `{0}` is included by `{1}`, which is not a boolean",
+    ),
+    (
+        "refusal-macro-value-set-none",
+        "no value set `{0}`: the macro has none",
+    ),
+    (
+        "refusal-macro-value-set-unknown",
+        "no value set `{0}`: the macro has {1}",
+    ),
+    (
+        "refusal-macro-kinds",
+        "is not inserted (only devices, functions, representations, connections, junctions, channels, potential definitions, device links, page items and structure boxes)",
     ),
     // merge.resolve.
     (
@@ -994,8 +1855,68 @@ pub const TEXTS: &[(&str, &str)] = &[
         "refusal-merge-file-line",
         "line {0} of the file the merge could not read is not a record this version reads; take the other side, or fix the file",
     ),
+    (
+        "refusal-merge-chosen-twice",
+        "an earlier choice names this conflict already",
+    ),
+    (
+        "refusal-merge-no-conflict-record",
+        "names no conflict record of the project",
+    ),
+    (
+        "refusal-merge-none-chosen",
+        "no conflict chosen; name at least one",
+    ),
     // part.edit.
     ("refusal-part-edit-unchanged", "the part is unchanged"),
+    ("refusal-part-edit-tech-value", "not a technical value: {0}"),
+    ("refusal-part-edit-tech-twice", "{0} is given twice"),
+    ("refusal-part-edit-not-part", "not a part item: {0}"),
+    (
+        "refusal-part-edit-copy-missing",
+        "the project holds no part copy {0}",
+    ),
+    (
+        "refusal-part-edit-fork-held",
+        "the project holds item {0} already; mint another fork item",
+    ),
+    (
+        "refusal-part-edit-manufacturer-missing",
+        "the project holds no manufacturer {0}/{1} and `copies` does not carry it",
+    ),
+    (
+        "refusal-part-edit-needs-fork",
+        "a copy from a library is forked: give `fork`, the item ID of the project's copy",
+    ),
+    ("refusal-part-edit-no-manufacturer", "a part needs a manufacturer"),
+    ("refusal-part-edit-no-number", "a part needs a part number"),
+    (
+        "refusal-part-edit-local-fork",
+        "a project-local copy is edited in place; give no `fork`",
+    ),
+    (
+        "refusal-part-edit-not-object",
+        "not a part item: give the part's members as an object",
+    ),
+    (
+        "refusal-part-edit-fixed-members",
+        "only the identity, the description, the category, the unit and the technical data can be edited",
+    ),
+    (
+        "refusal-part-edit-tech-data-list",
+        "the technical data are a list",
+    ),
+    ("refusal-part-edit-unit", "the unit is piece, m or set"),
+    // parts.import.
+    (
+        "refusal-parts-import-no-key",
+        "a part copy without a key (the key is what a re-import matches on)",
+    ),
+    ("refusal-parts-import-kind", "not a part or manufacturer copy"),
+    (
+        "refusal-parts-import-not-local",
+        "not a project-local copy (library_id must be the project ID); a copy of another library is embedded with library.embed",
+    ),
     // The PLC configuration: plc.config_project.create, plc.bind_channel, plc.set_start, plc.set_module_part.
     (
         "refusal-plc-project-exists",
@@ -1021,6 +1942,28 @@ pub const TEXTS: &[(&str, &str)] = &[
         "refusal-channel-identity-taken",
         "channel {0} of module {1} cannot be made: channel {2} of module {3} already has its identity; delete that channel first",
     ),
+    (
+        "refusal-plc-profile-reference",
+        "`{0}` is not a profile reference `id@version` (\"siemens-tia-intl@2027.1\")",
+    ),
+    (
+        "refusal-plc-bind-endpoint",
+        "a channel binds a CP (`{\"cp\": {\"function\", \"idx\"}}`), not a junction or a point on a connection",
+    ),
+    (
+        "refusal-plc-profile-unknown",
+        "`{0}` is not an address profile of this build or of the project; the profiles at hand are {1}",
+    ),
+    (
+        "refusal-plc-module-part-use",
+        "the module's `plc_module.part_use` is {0}, which names no entry of the {1} new part use(s); change `plc_module.part_use` first",
+    ),
+    ("refusal-plc-start-input", "an input"),
+    ("refusal-plc-start-output", "an output"),
+    (
+        "refusal-plc-start-area",
+        "`{0}` is not {1} start: {1} start is in area {2}, like {3}",
+    ),
     // revision.create and revision.withdraw.
     (
         "refusal-revision-label-used",
@@ -1037,6 +1980,55 @@ pub const TEXTS: &[(&str, &str)] = &[
     (
         "refusal-revision-withdrawn",
         "revision {0} ({1}) is withdrawn already by the withdrawal record {2}",
+    ),
+    (
+        "refusal-revision-approve-no-author",
+        "revision {0} has no author; four eyes compare two parties, so set the author first (Revision ▸ Set author)",
+    ),
+    (
+        "refusal-revision-waiver-twice",
+        "the waiver of {0} is listed twice",
+    ),
+    (
+        "refusal-revision-release-no-sign-off",
+        "revision {0} has no sign-off; the checker approves it first (Revision ▸ Approve, ew revision approve)",
+    ),
+    (
+        "refusal-revision-archive-name",
+        "`{0}` is not an archive file name (`<label>.ewarchive`, no directory)",
+    ),
+    ("refusal-revision-git-tag", "the tag of revision {0} is `{1}`"),
+    ("refusal-revision-note-page-gone", "page {0} does not exist"),
+    (
+        "refusal-revision-note-twice",
+        "page {0} has a note already; one note per page",
+    ),
+    (
+        "refusal-revision-closed",
+        "revision {0} is not open; a released or withdrawn revision is immutable: make the change in the open revision",
+    ),
+    (
+        "refusal-revision-withdraw-no-reason",
+        "a withdrawal needs a reason (doc 15 §5.10)",
+    ),
+    (
+        "refusal-revision-author-is-checker",
+        "the author is the checker's party; four eyes need another party: choose another author",
+    ),
+    (
+        "refusal-revision-checker-is-author",
+        "the checker is the author's party; four eyes need another party: choose another checker",
+    ),
+    (
+        "refusal-revision-create-checker",
+        "the checker of an open revision is written by approval (revision.approve), never when it is created: four eyes need one confirmed path per role (FT-402); only a historic released revision takes a checker here",
+    ),
+    ("refusal-revision-state-open", "open"),
+    ("refusal-revision-state-withdrawn", "a withdrawal record"),
+    ("refusal-revision-state-other", "in the state {0}"),
+    (
+        "refusal-revision-withdraw-not-released",
+        "revision {0} is {1}; only a released revision is withdrawn: choose a released one",
     ),
     // revision.approve, revision.release and project.assets.purge: the refusals of `ew-api`'s own (FT-1421).
     (
@@ -1087,6 +2079,11 @@ pub const TEXTS: &[(&str, &str)] = &[
         "refusal-purge-human-only",
         "the purge is human-only: confirm it in ElektraWatt or with ew project assets purge on a terminal; nothing was removed",
     ),
+    // project.assets.purge's own parameters.
+    (
+        "refusal-purge-asset-hash",
+        "an asset hash is `sha256:` and 64 lower-case hex digits",
+    ),
     // The structure: structure.create_node, section.create, report_block.create and external_ref.create.
     (
         "refusal-structure-product-aspect",
@@ -1124,10 +2121,22 @@ pub const TEXTS: &[(&str, &str)] = &[
         "refusal-external-ref-not-location",
         "node {0} is not a location; an external reference sits at a location node",
     ),
+    (
+        "refusal-report-block-form-not-given",
+        "`form` is {0}, which none of `form_copies` is",
+    ),
+    (
+        "refusal-report-block-not-form",
+        "not a library document of kind form",
+    ),
     // project.supply.set.
     (
         "refusal-supply-none",
         "the project has no supply (a basic or macro project); there is nothing to set",
+    ),
+    (
+        "refusal-supply-member-unknown",
+        "`{0}` is not a settable supply member; settable: {1}",
     ),
     // terminal.add, terminal.insert, terminal.move and conductor.add.
     ("refusal-terminal-add-none", "give at least one terminal to add"),
@@ -1155,6 +2164,40 @@ pub const TEXTS: &[(&str, &str)] = &[
     (
         "refusal-conductor-core-used",
         "core {0} is already used in the cable; choose another",
+    ),
+    (
+        "refusal-terminal-seq-overflow",
+        "the sequence numbers would pass 4294967295; insert at a lower position",
+    ),
+    (
+        "refusal-terminal-designation-twice",
+        "designation {0} is given twice; choose another",
+    ),
+    ("refusal-terminal-move-twice", "terminal {0} is listed twice"),
+    (
+        "refusal-terminal-not-same-strip",
+        "the device is not a terminal of the same strip",
+    ),
+    (
+        "refusal-terminal-not-of-strip",
+        "the device is not a terminal of the strip",
+    ),
+    ("refusal-terminal-not-terminal", "the device is not a terminal"),
+    (
+        "refusal-terminal-insert-seq",
+        "the position follows from `before`; leave out `seq`",
+    ),
+    (
+        "refusal-terminal-move-other-strip",
+        "the terminal is of another strip; move the terminals of one strip at a time",
+    ),
+    (
+        "refusal-terminal-move-before-moved",
+        "the terminal to put the terminals before is one of the moved terminals; name a terminal that stays",
+    ),
+    (
+        "refusal-terminal-move-unchanged",
+        "the terminals are already there",
     ),
     // The normalisers: a split connection, a dissolving junction and a valve's functions.
     (
@@ -1248,7 +2291,9 @@ mod tests {
 
     /// FT-1337 (ID-1359 ruling 1): no refusal of the crate goes without its key. `tx.reject` and `CmdError::rejected`
     /// take a [`Text`]; besides them, no source builds a `CmdError::Rejected` itself (with `source:`) or one without a
-    /// text (`text: None`), and every key of [`TEXTS`] is named by the code.
+    /// text (`text: None`), and every key of [`TEXTS`] is named by the code. FT-1395 (ID-1415): `CmdError::invalid_params`
+    /// and the helpers around it take a [`Text`] too, so no source builds a `CmdError::InvalidParams` itself (with
+    /// `message:`), and none builds a [`Text`] but through `text!`.
     #[test]
     fn every_refusal_of_the_crate_is_keyed() {
         let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
@@ -1278,10 +2323,19 @@ mod tests {
                     unkeyed.push(format!("{name}:{line}"));
                 }
             }
+            for (at, _) in text.match_indices("InvalidParams {") {
+                let fields = &text[at..at + text[at..].find('}').unwrap_or(text.len() - at)];
+                if fields.contains("message:") {
+                    let line = text[..at].lines().count();
+                    unkeyed.push(format!("{name}:{line}"));
+                }
+            }
             for (i, line) in text.lines().enumerate() {
                 let line = line.trim_start();
                 if !line.starts_with("//")
-                    && (line.contains(".reject(format!") || line.contains(".reject(\""))
+                    && (line.contains(".reject(format!")
+                        || line.contains(".reject(\"")
+                        || line.contains("checked_by_macro"))
                 {
                     unkeyed.push(format!("{name}:{}", i + 1));
                 }

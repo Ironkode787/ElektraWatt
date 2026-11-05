@@ -21,7 +21,7 @@ use crate::commands::library::{check_copy, read_copy};
 use crate::error::CmdError;
 use crate::meta::CommandMeta;
 use crate::proxy::UuidS;
-use crate::text::text;
+use crate::text::{Text, TextArg, text};
 use crate::tx::TxBuilder;
 
 /// The class of a library copy's change (doc 07 §4.5), whatever its declared version says. Ordered: `Patch` <
@@ -259,25 +259,21 @@ pub(crate) fn explicit_map(
     pairs: &[[u16; 2]],
     old: &BTreeMap<u16, CopyCp>,
     new: &BTreeMap<u16, CopyCp>,
-) -> Result<BTreeMap<u16, u16>, (usize, u8, String)> {
+) -> Result<BTreeMap<u16, u16>, (usize, u8, Text)> {
     let mut out = BTreeMap::new();
     let mut targets = BTreeSet::new();
     for (k, [o, n]) in pairs.iter().enumerate() {
         if !old.contains_key(o) {
-            return Err((k, 0, format!("{o} is no CP index of the held copy")));
+            return Err((k, 0, text!("refusal-library-update-map-old-index", o.to_string())));
         }
         if !new.contains_key(n) {
-            return Err((k, 1, format!("{n} is no CP index of the new copy")));
+            return Err((k, 1, text!("refusal-library-update-map-new-index", n.to_string())));
         }
         if out.insert(*o, *n).is_some() {
-            return Err((k, 0, format!("CP {o} of the held copy is mapped twice")));
+            return Err((k, 0, text!("refusal-library-update-map-old-twice", o.to_string())));
         }
         if !targets.insert(*n) {
-            return Err((
-                k,
-                1,
-                format!("CP {n} of the new copy is the target of two CPs of the held copy"),
-            ));
+            return Err((k, 1, text!("refusal-library-update-map-new-twice", n.to_string())));
         }
     }
     Ok(out)
@@ -575,25 +571,29 @@ fn function_moves(
         .collect()
 }
 
-/// What is attached at a function CP: connections, potential definitions, bonds and channel bindings, as text.
-fn attached(tx: &TxBuilder<'_>, f: Id<Function>, ep: u16) -> Vec<String> {
+/// What is attached at a function CP: connections, potential definitions, bonds and channel bindings, in words.
+fn attached(tx: &TxBuilder<'_>, f: Id<Function>, ep: u16) -> Vec<Text> {
     let at = EndpointKey::Cp(f, ep);
     let mut out = Vec::new();
     out.extend(
         tx.connections_at(at)
             .into_iter()
-            .map(|c| format!("connection {c}")),
+            .map(|c| text!("refusal-library-update-attached-connection", c.to_string())),
     );
     out.extend(
         tx.potential_defs_at(at)
             .into_iter()
-            .map(|p| format!("potential definition {p}")),
+            .map(|p| text!("refusal-library-update-attached-potential", p.to_string())),
     );
-    out.extend(tx.bonds_at(at).into_iter().map(|b| format!("bond {b}")));
+    out.extend(
+        tx.bonds_at(at)
+            .into_iter()
+            .map(|b| text!("refusal-library-update-attached-bond", b.to_string())),
+    );
     out.extend(
         tx.channels_at_cp(f, ep)
             .into_iter()
-            .map(|c| format!("channel {c}")),
+            .map(|c| text!("refusal-library-update-attached-channel", c.to_string())),
     );
     out
 }
@@ -612,7 +612,7 @@ impl Command for UpdateLibraryCopies {
             return Err(CmdError::invalid_params(
                 name,
                 "/copies",
-                "give at least one library document",
+                text!("refusal-params-no-library-document"),
             ));
         }
         // (held document, new document, key, whether the hash changed)
@@ -625,16 +625,22 @@ impl Command for UpdateLibraryCopies {
             let kind = doc.kind().expect("an implemented kind");
             let key = (kind, l.id);
             if !seen.insert(key) {
-                return Err(CmdError::invalid_params(name, at, "the copy is listed twice"));
+                return Err(CmdError::invalid_params(
+                    name,
+                    at,
+                    text!("refusal-params-copy-twice"),
+                ));
             }
             primary.get_or_insert(key);
             let Some(held) = tx.row(&key) else {
                 return Err(CmdError::invalid_params(
                     name,
                     at,
-                    format!(
-                        "the project holds no {kind} copy {} (item {}); embed it first (library.embed or part.assign)",
-                        l.id, l.item
+                    text!(
+                        "refusal-library-update-not-held",
+                        kind.to_string(),
+                        l.id.to_string(),
+                        l.item.to_string()
                     ),
                 ));
             };
@@ -645,15 +651,17 @@ impl Command for UpdateLibraryCopies {
                 return Err(CmdError::invalid_params(
                     name,
                     format!("{at}/version"),
-                    format!("`{new_version}` is not a semantic version"),
+                    text!("refusal-library-update-not-semver", new_version.to_string()),
                 ));
             };
             if semver_core(&held_version).is_some_and(|h| new_core < h) {
                 return Err(CmdError::invalid_params(
                     name,
                     format!("{at}/version"),
-                    format!(
-                        "version {new_version} is lower than the held {held_version}: a downgrade is not an update"
+                    text!(
+                        "refusal-library-update-downgrade",
+                        new_version.to_string(),
+                        held_version.to_string()
                     ),
                 ));
             }
@@ -667,19 +675,19 @@ impl Command for UpdateLibraryCopies {
                 return Err(CmdError::invalid_params(
                     name,
                     format!("/cp_maps/{j}/copy"),
-                    format!("copy {} is not one of `copies`", m.copy),
+                    text!("refusal-library-update-map-copy", m.copy.to_string()),
                 ));
             }
             if maps.insert(m.copy, (j, m)).is_some() {
                 return Err(CmdError::invalid_params(
                     name,
                     format!("/cp_maps/{j}/copy"),
-                    "the copy is listed twice",
+                    text!("refusal-params-copy-twice"),
                 ));
             }
         }
         let mut remap: BTreeMap<(Id<Function>, u16), u16> = BTreeMap::new();
-        let mut blocked: Vec<String> = Vec::new();
+        let mut blocked: Vec<TextArg> = Vec::new();
         for (held, new, key, changed) in &updates {
             let (old_cps, new_cps) = (
                 copy_cps(held).unwrap_or_default(),
@@ -702,10 +710,15 @@ impl Command for UpdateLibraryCopies {
                     match to {
                         None => {
                             for what in attached(tx, f, endpoint) {
-                                blocked.push(format!(
-                                    "{} pin {designation}: {what}",
-                                    crate::words::function(tx, f)
-                                ));
+                                blocked.push(
+                                    text!(
+                                        "refusal-library-update-blocked-pin",
+                                        crate::words::function(tx, f),
+                                        designation.to_string(),
+                                        what
+                                    )
+                                    .into(),
+                                );
                             }
                         }
                         Some(to) => {
@@ -728,7 +741,10 @@ impl Command for UpdateLibraryCopies {
             }
         }
         if !blocked.is_empty() {
-            return tx.reject(text!("refusal-library-update-blocked", blocked.join("; ")));
+            return tx.reject(text!(
+                "refusal-library-update-blocked",
+                crate::words::list(blocked)
+            ));
         }
         // FT-640: the closure documents to embed, and the new version's items the project would lack.
         let project = tx.project().id.as_uuid();
@@ -738,18 +754,26 @@ impl Command for UpdateLibraryCopies {
             let (doc, l) = check_copy(name, &at, value, project)?;
             let key = (doc.kind().expect("an implemented kind"), l.id);
             if seen.contains(&key) || embed.iter().any(|(k, _)| *k == key) {
-                return Err(CmdError::invalid_params(name, at, "the copy is listed twice"));
+                return Err(CmdError::invalid_params(
+                    name,
+                    at,
+                    text!("refusal-params-copy-twice"),
+                ));
             }
             if tx.row(&key).is_some() {
                 return Err(CmdError::invalid_params(
                     name,
                     at,
-                    format!("the project holds {} copy {} already; leave it out", key.0, key.1),
+                    text!(
+                        "refusal-library-update-embed-held",
+                        key.0.to_string(),
+                        key.1.to_string()
+                    ),
                 ));
             }
             embed.push((key, doc));
         }
-        let mut missing: Vec<String> = Vec::new();
+        let mut missing: Vec<TextArg> = Vec::new();
         let mut listed: BTreeSet<AnyKey> = BTreeSet::new();
         for (held, new, key, changed) in &updates {
             if !changed {
@@ -759,15 +783,24 @@ impl Command for UpdateLibraryCopies {
             for item in named_items(new).difference(&before) {
                 let lacking = tx.row(item).is_none() && !embed.iter().any(|(k, _)| k == item);
                 if lacking && listed.insert(*item) {
-                    missing.push(format!(
-                        "{} copy {} (named by {} {})",
-                        item.0, item.1, key.0, key.1
-                    ));
+                    missing.push(
+                        text!(
+                            "refusal-library-update-missing-copy",
+                            item.0.to_string(),
+                            item.1.to_string(),
+                            key.0.to_string(),
+                            key.1.to_string()
+                        )
+                        .into(),
+                    );
                 }
             }
         }
         if !missing.is_empty() {
-            return tx.reject(text!("refusal-library-update-missing", missing.join("; ")));
+            return tx.reject(text!(
+                "refusal-library-update-missing",
+                crate::words::list(missing)
+            ));
         }
         for (_, doc) in embed {
             match doc {

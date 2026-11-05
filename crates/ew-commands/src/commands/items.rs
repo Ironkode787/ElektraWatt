@@ -23,6 +23,7 @@ use crate::command::{Command, Outcome};
 use crate::error::CmdError;
 use crate::meta::CommandMeta;
 use crate::proxy::{Angle2S, IdentS, MlTextS, NmS, Pt2S, UuidS};
+use crate::text::{Text, text};
 use crate::tx::TxBuilder;
 
 // -------------------------------------------------------------------------------------------------------------
@@ -245,28 +246,22 @@ pub(crate) fn collinear(points: &[Pt2]) -> bool {
 
 /// Why a graphic is refused (a degenerate shape, a stroke without width, a value of a newer format); `None` when it
 /// is accepted.
-pub(crate) fn graphic_problem(g: &Graphic) -> Option<String> {
+pub(crate) fn graphic_problem(g: &Graphic) -> Option<Text> {
     let problem = match &g.shape {
-        GraphicShape::Line(l) if l.a == l.b => "a line of zero length".to_owned(),
-        GraphicShape::Polyline(p) if distinct(&p.points) < 2 => {
-            "a polyline needs at least two distinct points".to_owned()
-        }
-        GraphicShape::Polygon(p) if distinct(&p.points) < 3 => {
-            "a polygon needs at least three distinct points".to_owned()
-        }
-        GraphicShape::Polygon(p) if collinear(&p.points) => {
-            "a polygon without area: its points lie on one line".to_owned()
-        }
+        GraphicShape::Line(l) if l.a == l.b => text!("refusal-items-line-zero"),
+        GraphicShape::Polyline(p) if distinct(&p.points) < 2 => text!("refusal-items-polyline-points"),
+        GraphicShape::Polygon(p) if distinct(&p.points) < 3 => text!("refusal-items-polygon-points"),
+        GraphicShape::Polygon(p) if collinear(&p.points) => text!("refusal-items-polygon-no-area"),
         GraphicShape::Rect(r) if r.min.x == r.max.x || r.min.y == r.max.y => {
-            "a rectangle without area".to_owned()
+            text!("refusal-items-rect-no-area")
         }
-        GraphicShape::Circle(c) if c.r.0 <= 0 => "a circle needs a radius greater than 0".to_owned(),
-        GraphicShape::Arc(a) if a.r.0 <= 0 => "an arc needs a radius greater than 0".to_owned(),
-        GraphicShape::Arc(a) if a.sweep == Angle2::ZERO => "an arc needs a sweep other than 0".to_owned(),
-        GraphicShape::Unknown(_) => "a shape this build does not know".to_owned(),
+        GraphicShape::Circle(c) if c.r.0 <= 0 => text!("refusal-items-circle-radius"),
+        GraphicShape::Arc(a) if a.r.0 <= 0 => text!("refusal-items-arc-radius"),
+        GraphicShape::Arc(a) if a.sweep == Angle2::ZERO => text!("refusal-items-arc-sweep"),
+        GraphicShape::Unknown(_) => text!("refusal-items-shape-unknown"),
         _ => match (&g.stroke, &g.dash) {
-            (Some(s), _) if s.width.0 <= 0 => "a stroke width must be greater than 0".to_owned(),
-            (_, LineDash::Unknown(_)) => "a dash pattern this build does not know".to_owned(),
+            (Some(s), _) if s.width.0 <= 0 => text!("refusal-items-stroke-width"),
+            (_, LineDash::Unknown(_)) => text!("refusal-items-dash-unknown"),
             _ => return None,
         },
     };
@@ -278,50 +273,44 @@ const TEXT_ANGLES: [i32; 4] = [0, 90_000, 180_000, 270_000];
 
 /// Why a free text is refused (an unknown bindable name, an empty text without `bind`, an angle other than the four
 /// quarter turns, an alignment of a newer format); `None` when it is accepted.
-pub(crate) fn free_text_problem(t: &FreeText) -> Option<String> {
+pub(crate) fn free_text_problem(t: &FreeText) -> Option<Text> {
     if let Some(b) = &t.bind {
         if !ew_derive::BINDABLE.contains(&b.as_str()) {
-            return Some(format!(
-                "`{b}` is not a bindable name; bindable: {}",
+            return Some(text!(
+                "refusal-items-bind-unknown",
+                b.to_string(),
                 ew_derive::BINDABLE.join(", ")
             ));
         }
     } else if t.text.is_empty() {
-        return Some("a free text without `bind` needs a text".to_owned());
+        return Some(text!("refusal-items-text-empty"));
     }
     if !TEXT_ANGLES.contains(&t.angle.0) {
-        return Some(format!(
-            "a free text's angle is 0, 90000, 180000 or 270000 (10⁻³ degree), not {}",
-            t.angle.0
-        ));
+        return Some(text!("refusal-items-text-angle", t.angle.0.to_string()));
     }
     if matches!(t.align, Some(TextAlign::Unknown(_))) {
-        return Some("an alignment this build does not know".to_owned());
+        return Some(text!("refusal-items-align-unknown"));
     }
     None
 }
 
 /// Why a wire marker's own members are refused (an angle other than 0 or 90000); its connections are checked by
 /// `marker.place` and EW-INV-023.
-pub(crate) fn marker_problem(m: &WireMarker) -> Option<String> {
-    (m.angle != Angle2::ZERO && m.angle != Angle2(90_000)).then(|| {
-        format!(
-            "a wire marker's angle is 0 or 90000 (10⁻³ degree), not {}",
-            m.angle.0
-        )
-    })
+pub(crate) fn marker_problem(m: &WireMarker) -> Option<Text> {
+    (m.angle != Angle2::ZERO && m.angle != Angle2(90_000))
+        .then(|| text!("refusal-items-marker-angle", m.angle.0.to_string()))
 }
 
 /// Why an image's own members are refused (a rectangle without area); whether the project holds its asset is checked
 /// by `item.place` and `rep.move` needs no check (the asset does not change).
-pub(crate) fn image_problem(i: &ImageItem) -> Option<String> {
+pub(crate) fn image_problem(i: &ImageItem) -> Option<Text> {
     let r = i.rect.0;
-    (r.min().x == r.max().x || r.min().y == r.max().y).then(|| "an image rectangle without area".to_owned())
+    (r.min().x == r.max().x || r.min().y == r.max().y).then(|| text!("refusal-items-image-no-area"))
 }
 
 /// Why a page item is refused by the commands; `None` when it is accepted (a variant this build keeps verbatim is
 /// not judged).
-pub(crate) fn item_problem(item: &PageItem) -> Option<String> {
+pub(crate) fn item_problem(item: &PageItem) -> Option<Text> {
     match &item.kind {
         PageItemKind::Graphic(g) => graphic_problem(g),
         PageItemKind::FreeText(t) => free_text_problem(t),
@@ -466,7 +455,7 @@ impl Command for PlaceItem {
                         return Err(CmdError::invalid_params(
                             Self::NAME,
                             "/kind/image",
-                            "give exactly one of `asset` (a hash the project holds) and `data` (the image file in base64), not both and not neither",
+                            text!("refusal-items-image-asset-or-data"),
                         ));
                     }
                     (Some(asset), None) => {
@@ -474,9 +463,7 @@ impl Command for PlaceItem {
                             return Err(CmdError::invalid_params(
                                 Self::NAME,
                                 "/kind/image/asset",
-                                format!(
-                                    "the project holds no asset {asset}; an image places an asset the project already holds, or gives its file as `data`"
-                                ),
+                                text!("refusal-items-image-asset-missing", asset.to_string()),
                             ));
                         }
                         *asset
@@ -486,7 +473,10 @@ impl Command for PlaceItem {
                             tx,
                             Self::NAME,
                             "/kind/image/data",
-                            ("the image", "an image given as data"),
+                            (
+                                text!("refusal-items-the-image"),
+                                text!("refusal-items-image-as-data"),
+                            ),
                             data,
                         )?
                         .sha256
@@ -523,23 +513,18 @@ impl Command for PlaceItem {
 
 /// Why a colour is refused (FR-CON-019): a code that is neither an IEC 60757 code nor a company code the project's
 /// colour profile declares; `None` when it is accepted.
-pub(crate) fn colour_problem(company: &BTreeSet<String>, c: &ColourSpec) -> Option<String> {
+pub(crate) fn colour_problem(company: &BTreeSet<String>, c: &ColourSpec) -> Option<Text> {
     for code in c.codes() {
         match code {
             ColourCode::Iec(_) => {}
             ColourCode::Company(k) if company.contains(k.as_str()) => {}
             ColourCode::Company(k) => {
-                return Some(format!(
-                    "`{k}` is neither an IEC 60757 colour code nor a company code of the project's colour profile"
-                ));
+                return Some(text!("refusal-items-colour-not-company", k.to_string()));
             }
             ColourCode::Foreign(k) => {
-                return Some(format!(
-                    "`{k}` is a foreign colour code; use an IEC 60757 code or a company code of the project's \
-                     colour profile"
-                ));
+                return Some(text!("refusal-items-colour-foreign", k.to_string()));
             }
-            ColourCode::Unknown(_) => return Some("a colour code this build does not know".to_owned()),
+            ColourCode::Unknown(_) => return Some(text!("refusal-items-colour-unknown")),
         }
     }
     None
@@ -608,7 +593,7 @@ impl Command for PlaceMarker {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/connections",
-                "give at least one connection",
+                text!("refusal-params-no-connection"),
             ));
         }
         let mut seen = BTreeSet::new();
@@ -617,7 +602,7 @@ impl Command for PlaceMarker {
                 return Err(CmdError::invalid_params(
                     Self::NAME,
                     format!("/connections/{i}"),
-                    "the connection is listed twice",
+                    text!("refusal-params-connection-twice"),
                 ));
             }
             let conn = tx.require::<Connection>(*c)?;
@@ -625,7 +610,10 @@ impl Command for PlaceMarker {
                 return Err(CmdError::invalid_params(
                     Self::NAME,
                     format!("/connections/{i}"),
-                    format!("the wire is not drawn on {}", crate::words::page(tx, self.page)),
+                    text!(
+                        "refusal-items-marker-wire-other-page",
+                        crate::words::page(tx, self.page)
+                    ),
                 ));
             }
         }
@@ -633,20 +621,17 @@ impl Command for PlaceMarker {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/angle",
-                format!(
-                    "a wire marker's angle is 0 or 90000 (10⁻³ degree), not {}",
-                    self.angle.0
-                ),
+                text!("refusal-items-marker-angle", self.angle.0.to_string()),
             ));
         }
         if !self.colours.is_empty() && self.colours.len() != self.connections.len() {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/colours",
-                format!(
-                    "give no colour or one per connection ({} connections, {} colours)",
-                    self.connections.len(),
-                    self.colours.len()
+                text!(
+                    "refusal-items-marker-colours",
+                    self.connections.len().to_string(),
+                    self.colours.len().to_string()
                 ),
             ));
         }
@@ -662,7 +647,7 @@ impl Command for PlaceMarker {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/csa",
-                "a cross-section this build does not know",
+                text!("refusal-items-csa-unknown"),
             ));
         }
         for (i, c) in self.connections.iter().enumerate() {

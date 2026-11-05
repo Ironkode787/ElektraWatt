@@ -29,6 +29,7 @@ use crate::error::CmdError;
 use crate::geometry::{OutOfRange, point_in_range, point_on_grid, rep_cps_checked, sub};
 use crate::meta::{CommandMeta, Cost};
 use crate::proxy::{Pt2S, UuidS};
+use crate::text::{Text, text};
 use crate::tx::TxBuilder;
 
 /// The most records one fragment (and so one paste) may hold (spec §8.3, §8.4).
@@ -567,7 +568,7 @@ pub(crate) struct Insertion<'f> {
     /// The record kinds it may hold.
     pub(crate) kinds: &'static [Kind],
     /// Their refusal text: `is not pasted (only devices, …)`.
-    pub(crate) kinds_refusal: &'static str,
+    pub(crate) kinds_refusal: Text,
     /// How the records get their IDs.
     pub(crate) ids: NewIds,
     /// The held copies of another version the insertion reuses instead of refusing (`edit.paste`'s `adapt`; empty
@@ -598,7 +599,7 @@ pub(crate) struct Inserted {
 }
 
 impl Insertion<'_> {
-    fn invalid(&self, at: impl Into<String>, message: impl Into<String>) -> CmdError {
+    fn invalid(&self, at: impl Into<String>, message: Text) -> CmdError {
         CmdError::invalid_params(self.name, at, message)
     }
 
@@ -669,27 +670,21 @@ impl Insertion<'_> {
     /// page records keeps its positions (no steps) on pages of its own grid after the page `page`.
     fn place(&self, tx: &TxBuilder<'_>) -> Result<(std::sync::Arc<Page>, Grid, [i64; 2]), CmdError> {
         let Some(page) = tx.get::<Page>(self.page) else {
-            return Err(self.invalid("/page", "the page is not in the project"));
+            return Err(self.invalid("/page", text!("refusal-params-page-gone")));
         };
         if self.has_pages() {
             let [num, den] = self.fragment.grid;
             let grid = Grid::new(num, den).map_err(|_| {
-                self.invalid(
-                    format!("{}/grid", self.prefix),
-                    "the grid is [num, den] of positive integers",
-                )
+                self.invalid(format!("{}/grid", self.prefix), text!("refusal-paste-grid-form"))
             })?;
             return Ok((page, grid, [0, 0]));
         }
         match &page.kind {
             PageType::Report | PageType::TableOfContents | PageType::SectionDivider => {
-                return Err(self.invalid("/page", "a generated page takes no paste"));
+                return Err(self.invalid("/page", text!("refusal-paste-generated-page")));
             }
             kind if allowed_rep_types(kind).is_some_and(<[_]>::is_empty) => {
-                return Err(self.invalid(
-                    "/page",
-                    "the page's type takes no symbols or wires: paste on a schematic page",
-                ));
+                return Err(self.invalid("/page", text!("refusal-paste-page-type")));
             }
             _ => {}
         }
@@ -702,19 +697,20 @@ impl Insertion<'_> {
             };
             return Err(self.invalid(
                 format!("{}/grid", self.prefix),
-                format!(
-                    "the copied content uses another grid ({}/{} nm); paste on a page with that grid (this page \
-                     has {size})",
-                    self.fragment.grid[0], self.fragment.grid[1]
+                text!(
+                    "refusal-paste-grid",
+                    self.fragment.grid[0].to_string(),
+                    self.fragment.grid[1].to_string(),
+                    size.to_string()
                 ),
             ));
         }
         if !point_in_range(self.at) || !point_on_grid(grid, self.at) {
             return Err(self.invalid(
                 "/at",
-                format!(
-                    "{}; paste at a point on the grid",
-                    crate::geometry::off_grid(tx, "the paste point", self.page, self.at)
+                text!(
+                    "refusal-paste-off-grid",
+                    crate::geometry::off_grid(tx, text!("refusal-paste-the-paste-point"), self.page, self.at)
                 ),
             ));
         }
@@ -722,7 +718,7 @@ impl Insertion<'_> {
         if !point_in_range(anchor) || !point_on_grid(grid, anchor) {
             return Err(self.invalid(
                 format!("{}/anchor", self.prefix),
-                "the anchor is not a point of the fragment's grid",
+                text!("refusal-paste-anchor-off-grid"),
             ));
         }
         let steps = [
@@ -730,7 +726,7 @@ impl Insertion<'_> {
             grid.snap(self.at.y).checked_sub(grid.snap(anchor.y)),
         ];
         let [Some(kx), Some(ky)] = steps else {
-            return Err(self.invalid("/at", "the point is too far from the anchor"));
+            return Err(self.invalid("/at", text!("refusal-paste-far-from-anchor")));
         };
         Ok((page, grid, [kx, ky]))
     }
@@ -741,13 +737,17 @@ impl Insertion<'_> {
     fn records(&self) -> Result<(Vec<RecordAt>, Vec<String>), CmdError> {
         let records = &self.fragment.records;
         if records.is_empty() && !self.has_pages() {
-            return Err(self.invalid(format!("{}/records", self.prefix), "the fragment holds no record"));
+            return Err(self.invalid(format!("{}/records", self.prefix), text!("refusal-paste-empty")));
         }
         let total = records.len() + self.fragment.pages.len();
         if total > PASTE_MAX_RECORDS {
             return Err(self.invalid(
                 format!("{}/records", self.prefix),
-                format!("{total} records; a paste takes at most {PASTE_MAX_RECORDS}"),
+                text!(
+                    "refusal-paste-too-many",
+                    total.to_string(),
+                    PASTE_MAX_RECORDS.to_string()
+                ),
             ));
         }
         let n = records.len();
@@ -756,15 +756,16 @@ impl Insertion<'_> {
         let mut seen = BTreeSet::new();
         for (i, v) in self.all().enumerate() {
             let at = self.pointer(i);
-            let record = Record::from_value(v.clone()).map_err(|e| self.invalid(&at, e.to_string()))?;
+            let record = Record::from_value(v.clone())
+                .map_err(|e| self.invalid(&at, text!("refusal-params-detail", e.to_string())))?;
             let kind = if i < n {
                 record.kind().filter(|k| self.kinds.contains(k)).ok_or_else(|| {
                     self.invalid(
                         &at,
-                        format!(
-                            "a record of kind {} {}",
+                        text!(
+                            "refusal-paste-kind",
                             record.kind_name().unwrap_or("?"),
-                            self.kinds_refusal
+                            self.kinds_refusal.clone()
                         ),
                     )
                 })?
@@ -775,29 +776,30 @@ impl Insertion<'_> {
                             p.kind,
                             PageType::Report | PageType::TableOfContents | PageType::SectionDivider
                         ) {
-                            return Err(self.invalid(&at, "a generated page is not inserted"));
+                            return Err(self.invalid(&at, text!("refusal-paste-generated-page-inserted")));
                         }
                         if p.grid.num() != self.fragment.grid[0] || p.grid.den() != self.fragment.grid[1] {
-                            return Err(self.invalid(&at, "the page's grid differs from the fragment's"));
+                            return Err(self.invalid(&at, text!("refusal-paste-grid-differs")));
                         }
                         Kind::Page
                     }
-                    _ => return Err(self.invalid(&at, "a page record is of kind page")),
+                    _ => return Err(self.invalid(&at, text!("refusal-paste-page-record-kind"))),
                 }
             };
             let version = v.get("$v").and_then(Value::as_u64).unwrap_or(1);
             if version != u64::from(kind.schema_version()) {
                 return Err(self.invalid(
                     &at,
-                    format!(
-                        "the record is of schema version {version}, this version reads {}",
-                        kind.schema_version()
+                    text!(
+                        "refusal-paste-schema-version",
+                        version.to_string(),
+                        kind.schema_version().to_string()
                     ),
                 ));
             }
             let id = record.id().expect("an implemented kind has an ID");
             if !seen.insert(id) {
-                return Err(self.invalid(&at, "the record is listed twice"));
+                return Err(self.invalid(&at, text!("refusal-params-record-twice")));
             }
             if let Record::PageItem(item) = &record {
                 if matches!(item.kind, PageItemKind::Unknown(_)) {
@@ -829,13 +831,14 @@ impl Insertion<'_> {
         let mut adapted: BTreeSet<Uuid> = BTreeSet::new();
         for (i, a) in self.adapt.iter().enumerate() {
             if !adapted.insert(a.as_uuid()) {
-                return Err(self.invalid(format!("/adapt/{i}"), "the copy is listed twice"));
+                return Err(self.invalid(format!("/adapt/{i}"), text!("refusal-params-copy-twice")));
             }
         }
         let mut used: BTreeSet<Uuid> = BTreeSet::new();
         for (i, value) in self.fragment.copies.iter().enumerate() {
             let at = format!("{}/copies/{i}", self.prefix);
-            let doc = LibDocument::from_value(value.clone()).map_err(|e| self.invalid(&at, e.to_string()))?;
+            let doc = LibDocument::from_value(value.clone())
+                .map_err(|e| self.invalid(&at, text!("refusal-params-detail", e.to_string())))?;
             let (id, claimed): (Id<()>, ew_schema::Sha256) = match &doc {
                 LibDocument::Part(c) => (c.id.cast(), c.sha256),
                 LibDocument::Symbol(c) => (c.id.cast(), c.sha256),
@@ -846,15 +849,12 @@ impl Insertion<'_> {
                 // a fragment carries the closure of its records (doc 07 §3.5), which names no macro and no
                 // address profile
                 LibDocument::Macro(_) | LibDocument::PlcProfile(_) | LibDocument::Unknown(_) => {
-                    return Err(self.invalid(
-                        &at,
-                        "not a library document of kind part, symbol, fndef, form or manufacturer",
-                    ));
+                    return Err(self.invalid(&at, text!("refusal-paste-library-kind")));
                 }
             };
             let kind = doc.kind().expect("an implemented library kind");
             if !usable.insert((kind, id.as_uuid())) {
-                return Err(self.invalid(&at, "the copy is listed twice"));
+                return Err(self.invalid(&at, text!("refusal-params-copy-twice")));
             }
             match tx.row(&(kind, id)) {
                 // A held copy of the same version is reused as it is (also a project-local item of this project).
@@ -867,11 +867,11 @@ impl Insertion<'_> {
                         if diff.class == ChangeClass::Major {
                             return Err(self.invalid(
                                 format!("/adapt/{index}"),
-                                format!(
-                                    "the project's version of {kind} {} differs from the pasted one in a major way \
-                                     ({}); update instead",
-                                    lib_title(value),
-                                    diff.major_reasons.join(", ")
+                                text!(
+                                    "refusal-paste-adapt-major",
+                                    kind.to_string(),
+                                    lib_title(value).to_string(),
+                                    diff.major_reasons.join(", ").to_string()
                                 ),
                             ));
                         }
@@ -879,9 +879,10 @@ impl Insertion<'_> {
                     } else if held_sha(&row) != Some(claimed) {
                         return Err(self.invalid(
                             &at,
-                            format!(
-                                "the project holds another version of {kind} {}; update from library first",
-                                lib_title(value)
+                            text!(
+                                "refusal-paste-held-other-version",
+                                kind.to_string(),
+                                lib_title(value).to_string()
                             ),
                         ));
                     }
@@ -891,10 +892,7 @@ impl Insertion<'_> {
             }
         }
         if let Some(i) = self.adapt.iter().position(|a| !used.contains(&a.as_uuid())) {
-            return Err(self.invalid(
-                format!("/adapt/{i}"),
-                "names no copy of the fragment that the project holds in another version",
-            ));
+            return Err(self.invalid(format!("/adapt/{i}"), text!("refusal-paste-adapt-no-copy")));
         }
         Ok((usable, embed))
     }
@@ -926,7 +924,7 @@ impl Insertion<'_> {
         for (i, n) in self.fragment.nodes.iter().enumerate() {
             let at = format!("{}/nodes/{i}", self.prefix);
             if n.path.is_empty() {
-                return Err(self.invalid(at, "a structure node without a path"));
+                return Err(self.invalid(at, text!("refusal-paste-node-no-path")));
             }
             let leaf = n.path.last().map(String::as_str).unwrap_or_default();
             let same: Vec<&StructureNode> = by_id
@@ -949,7 +947,7 @@ impl Insertion<'_> {
                 .map(|t| t.id.as_uuid());
             let printed = format!("{} {}", n.aspect, n.path.join("."));
             if out.insert(n.id.as_uuid(), (target, printed)).is_some() {
-                return Err(self.invalid(at, "the structure node is listed twice"));
+                return Err(self.invalid(at, text!("refusal-params-node-twice")));
             }
         }
         Ok(out)
@@ -983,10 +981,9 @@ impl Insertion<'_> {
                             id.as_uuid()
                         }
                         _ => {
-                            return Err(self.invalid(
-                                self.pointer(index),
-                                "a channel's module is not in the fragment; copy them together",
-                            ));
+                            return Err(
+                                self.invalid(self.pointer(index), text!("refusal-paste-channel-module"))
+                            );
                         }
                     }
                 }
@@ -1003,10 +1000,10 @@ impl Insertion<'_> {
         if self.fragment.format != ew_schema::FORMAT {
             return Err(self.invalid(
                 format!("{}/format", self.prefix),
-                format!(
-                    "the fragment is of project format {}, this version writes {}",
-                    self.fragment.format,
-                    ew_schema::FORMAT
+                text!(
+                    "refusal-paste-format",
+                    self.fragment.format.to_string(),
+                    ew_schema::FORMAT.to_string()
                 ),
             ));
         }
@@ -1070,10 +1067,11 @@ impl Insertion<'_> {
                 let Some(next) = cleared else {
                     return Err(self.invalid(
                         &at,
-                        format!(
-                            "the {kind}'s {} names a {} that is neither in the fragment nor in this project; copy \
-                             them together",
-                            decl.field, decl.to
+                        text!(
+                            "refusal-paste-reference-missing",
+                            kind.to_string(),
+                            decl.field.to_string(),
+                            decl.to.to_string()
                         ),
                     ));
                 };
@@ -1092,7 +1090,8 @@ impl Insertion<'_> {
                     );
                 }
             }
-            let mut record = Record::from_value(v).map_err(|e| self.invalid(&at, e.to_string()))?;
+            let mut record = Record::from_value(v)
+                .map_err(|e| self.invalid(&at, text!("refusal-params-detail", e.to_string())))?;
             // Effect 7: a marker whose connections were all cleared is not inserted.
             if let Record::PageItem(item) = &record
                 && item.kind.wire_marker().is_some_and(|m| m.connections.is_empty())
@@ -1135,14 +1134,11 @@ impl Insertion<'_> {
                     {
                         return Err(self.invalid(
                             &at,
-                            format!("the page's type does not take a {:?} representation", r.rep_type),
+                            text!("refusal-paste-rep-type", crate::words::rep_type(&r.rep_type)),
                         ));
                     }
                     if !point_on_grid(grid, r.pos) {
-                        return Err(self.invalid(
-                            &at,
-                            "the representation is not on the connection grid, so it cannot be pasted by grid steps",
-                        ));
+                        return Err(self.invalid(&at, text!("refusal-paste-rep-off-grid")));
                     }
                 }
                 _ => {}
@@ -1179,12 +1175,7 @@ impl Insertion<'_> {
         } else {
             Motion::turned(grid, steps, self.orient, self.fragment.anchor, self.at)
         };
-        let too_far = |i: usize| {
-            self.invalid(
-                self.pointer(i),
-                "the paste moves the record outside the drawable range",
-            )
-        };
+        let too_far = |i: usize| self.invalid(self.pointer(i), text!("refusal-paste-out-of-range"));
         let mut moved_reps: Vec<(Representation, Representation)> = Vec::new();
         let mut moved_junctions: BTreeMap<Id<Junction>, (Pt2, Pt2)> = BTreeMap::new();
         for (i, _, record) in &mut typed {
@@ -1385,7 +1376,7 @@ impl Command for PasteFragment {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/fragment/pages",
-                "a page macro's pages are inserted with macro.insert, not pasted",
+                text!("refusal-paste-page-macro"),
             ));
         }
         let insertion = Insertion {
@@ -1396,8 +1387,7 @@ impl Command for PasteFragment {
             orient: Orient2::R0,
             fragment: &self.fragment,
             kinds: &PASTE_KINDS,
-            kinds_refusal: "is not pasted (only devices, functions, representations, connections, junctions, \
-                            potential definitions, page items and structure boxes)",
+            kinds_refusal: text!("refusal-paste-kinds"),
             ids: NewIds::Mint,
             adapt: &self.adapt,
             keep_frozen: false,

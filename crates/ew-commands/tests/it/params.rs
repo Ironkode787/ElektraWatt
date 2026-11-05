@@ -482,6 +482,7 @@ fn invalid(name: &str, params: Value) -> (String, String, String) {
             command,
             path,
             message,
+            ..
         }) => (command, path, message),
         Err(other) => panic!("expected InvalidParams, got {other:?}"),
         Ok(_) => panic!("expected the parameters to be rejected"),

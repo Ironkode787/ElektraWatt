@@ -433,7 +433,11 @@ impl ShellModel {
                 .unwrap_or_else(|| strings::text(key!("props-a-record")).to_owned())
         };
         let text = match e {
-            ew_api::CmdError::InvalidParams { path, message, .. } => {
+            ew_api::CmdError::InvalidParams {
+                path, message, text, ..
+            } => {
+                // FT-1395 (ID-1415): the reason in the window's language.
+                let message = super::tools::rejected_words(message, Some(text));
                 let mut parts = path.trim_start_matches('/').split('/');
                 match (parts.next(), parts.next().and_then(|i| i.parse::<usize>().ok())) {
                     (Some("edits"), Some(i)) => {
@@ -446,10 +450,10 @@ impl ShellModel {
                         let field = entry["path"].as_str().unwrap_or_default();
                         strings::format(
                             key!("props-refused-on"),
-                            &[&format!("{target} ({field})"), message],
+                            &[&format!("{target} ({field})"), &message],
                         )
                     }
-                    _ => message.clone(),
+                    _ => message,
                 }
             }
             ew_api::CmdError::Rejected { reason, text, .. } => {

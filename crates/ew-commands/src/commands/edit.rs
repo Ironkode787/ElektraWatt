@@ -70,7 +70,7 @@ impl Command for DeleteSelection {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/targets",
-                "give at least one target",
+                text!("refusal-params-no-target"),
             ));
         }
         for (i, t) in self.targets.iter().enumerate() {
@@ -78,7 +78,7 @@ impl Command for DeleteSelection {
                 return Err(CmdError::invalid_params(
                     Self::NAME,
                     format!("/targets/{i}"),
-                    "the project cannot be deleted",
+                    text!("refusal-edit-delete-project"),
                 ));
             }
             if tx.row(&t.key()).is_none() {

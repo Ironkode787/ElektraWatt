@@ -69,10 +69,7 @@ impl Command for CreatePlcConfigProject {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/profile",
-                format!(
-                    "`{}` is not a profile reference `id@version` (\"siemens-tia-intl@2027.1\")",
-                    self.profile
-                ),
+                text!("refusal-plc-profile-reference", self.profile.to_string()),
             ));
         }
         if let Some(cpu) = self.cpu {
@@ -169,8 +166,7 @@ impl Command for BindChannel {
                 return Err(CmdError::invalid_params(
                     Self::NAME,
                     "/endpoint",
-                    "a channel binds a CP (`{\"cp\": {\"function\", \"idx\"}}`), not a junction or a point on a \
-                     connection",
+                    text!("refusal-plc-bind-endpoint"),
                 ));
             }
         };
@@ -299,7 +295,7 @@ impl Command for SetStart {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/modules",
-                "name at least one module",
+                text!("refusal-params-no-module"),
             ));
         };
         let word = self.spec.trim().to_ascii_lowercase();
@@ -323,11 +319,20 @@ impl Command for SetStart {
                 _ => {
                     let profile = module_profile(tx, *m);
                     let at_hand = crate::commands::fields::profiles_in(tx);
-                    let a = ew_derive::parse_plc_start(&at_hand, &profile, &self.spec)
-                        .map_err(|e| CmdError::invalid_params(Self::NAME, "/spec", e))?;
+                    let a = ew_derive::parse_plc_start(&at_hand, &profile, &self.spec).map_err(|e| {
+                        CmdError::invalid_params(Self::NAME, "/spec", text!("refusal-params-detail", e))
+                    })?;
                     let (want, name, area) = match self.dir {
-                        StartDir::Input => (PlcArea::I, "an input", ew_derive::ew_plcaddr::Area::I),
-                        StartDir::Output => (PlcArea::Q, "an output", ew_derive::ew_plcaddr::Area::Q),
+                        StartDir::Input => (
+                            PlcArea::I,
+                            text!("refusal-plc-start-input"),
+                            ew_derive::ew_plcaddr::Area::I,
+                        ),
+                        StartDir::Output => (
+                            PlcArea::Q,
+                            text!("refusal-plc-start-output"),
+                            ew_derive::ew_plcaddr::Area::Q,
+                        ),
                     };
                     if a.area != want {
                         let example = ew_derive::pinned_profile(&at_hand, &profile)
@@ -336,10 +341,12 @@ impl Command for SetStart {
                         return Err(CmdError::invalid_params(
                             Self::NAME,
                             "/spec",
-                            format!(
-                                "`{}` is not {name} start: {name} start is in area {}, like {example}",
-                                self.spec,
-                                if want == PlcArea::I { "I" } else { "Q" }
+                            text!(
+                                "refusal-plc-start-area",
+                                self.spec.clone(),
+                                name,
+                                if want == PlcArea::I { "I" } else { "Q" },
+                                example
                             ),
                         ));
                     }
@@ -414,10 +421,10 @@ impl Command for SetProfile {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/profile",
-                format!(
-                    "`{}` is not an address profile of this build or of the project; the profiles at hand are {}",
-                    self.profile,
-                    list.join(", ")
+                text!(
+                    "refusal-plc-profile-unknown",
+                    self.profile.to_string(),
+                    list.join(", ").to_string()
                 ),
             ));
         };
@@ -491,10 +498,10 @@ impl Command for SetModulePart {
                 return Err(CmdError::invalid_params(
                     Self::NAME,
                     "/parts",
-                    format!(
-                        "the module's `plc_module.part_use` is {i}, which names no entry of the {} new part \
-                         use(s); change `plc_module.part_use` first",
-                        parts.len()
+                    text!(
+                        "refusal-plc-module-part-use",
+                        i.to_string(),
+                        parts.len().to_string()
                     ),
                 ));
             }

@@ -25,8 +25,10 @@ pub enum CmdError {
         command: String,
         /// The JSON Pointer of the offending value (`""` for the whole parameter object).
         path: String,
-        /// What is wrong.
+        /// What is wrong, in English.
         message: String,
+        /// The same by key, which the window renders in its language (FT-1395).
+        text: Text,
     },
     /// A record the command names does not exist.
     NotFound {
@@ -101,16 +103,13 @@ impl CmdError {
         }
     }
 
-    /// Invalid parameters of `command` at the JSON Pointer `path`.
-    pub fn invalid_params(
-        command: impl Into<String>,
-        path: impl Into<String>,
-        message: impl Into<String>,
-    ) -> CmdError {
+    /// Invalid parameters of `command` at the JSON Pointer `path`: its English text is `text`'s.
+    pub fn invalid_params(command: impl Into<String>, path: impl Into<String>, text: Text) -> CmdError {
         CmdError::InvalidParams {
             command: command.into(),
             path: path.into(),
-            message: message.into(),
+            message: text.to_string(),
+            text,
         }
     }
 }
@@ -137,6 +136,7 @@ impl fmt::Display for CmdError {
                 command,
                 path,
                 message,
+                ..
             } => write!(f, "{command}: invalid parameters at `{path}`: {message}"),
             CmdError::NotFound { key } => write!(f, "no record {}:{}", key.0, key.1),
             CmdError::Rejected { source, reason, .. } => write!(f, "{source}: {reason}"),
