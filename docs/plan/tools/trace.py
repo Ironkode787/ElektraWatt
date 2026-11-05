@@ -26,9 +26,9 @@ PLAN, DESIGN = DOCS / "plan", DOCS / "design"
 OUT_MD, OUT_CSV = PLAN / "05-traceability.md", PLAN / "traceability-matrix.csv"
 
 ID_RE = re.compile(r"(N?FR)-([A-Z0-9]+)-(\d+)")
-MS_LIST = ["M0", "M1", "M-PP", "M2", "M3", "M4", "M5", "M6", "1.x"]
+MS_LIST = ["M0", "M1", "M-PP", "M2", "M2.5", "M3", "M4", "M5", "M6", "1.x"]
 MS_ORDER = {m: i for i, m in enumerate(MS_LIST)}
-GATE_MS = {"G-M0": "M0", "G-M1": "M1", "G-PP": "M-PP", "G-M2": "M2", "G-M3": "M3", "G-M4": "M4", "G-M5": "M5",
+GATE_MS = {"G-M0": "M0", "G-M1": "M1", "G-PP": "M-PP", "G-M2": "M2", "G-M2.5": "M2.5", "G-M3": "M3", "G-M4": "M4", "G-M5": "M5",
            "G-M6": "M6"}
 ALL_GATES = ["G-M1", "G-M2", "G-M3", "G-M4", "G-M5", "G-M6"]
 # Defects whose golden §19 row names the prevented feature in words only: the FR rows that implement it.
@@ -82,8 +82,8 @@ def load_catalogue():
 def rel_bucket(rel):
     if rel.startswith("MVP"):
         return "MVP"          # "MVP / 1.0" splits: the MVP part gates the MVP
-    if rel == "1.0":
-        return "1.0"
+    if rel in ("0.2.0", "1.0"):
+        return rel            # 0.2.0: the symbol editor's release, M2.5 (ID-1402)
     return "1.x/Later"
 
 
@@ -328,10 +328,11 @@ def build():
             dsrc[dk].append(r["id"])
 
     # ---- coverage
-    cols = [("MVP", "Must"), ("MVP", "Should"), ("MVP", "Could"), ("1.0", "Must"), ("1.0", "Should"), ("1.0", "Could"), ("1.x/Later", None)]
+    cols = [("MVP", "Must"), ("MVP", "Should"), ("MVP", "Could"), ("1.0", "Must"), ("1.0", "Should"), ("1.0", "Could"), ("0.2.0", None),
+            ("1.x/Later", None)]
     tab = collections.defaultdict(lambda: collections.defaultdict(lambda: [0, 0]))
     for r in rows:
-        key = (r["bucket"], r["prio"] if r["bucket"] != "1.x/Later" else None)
+        key = (r["bucket"], r["prio"] if r["bucket"] not in ("0.2.0", "1.x/Later") else None)
         for a in (r["area"], "TOTAL"):
             t = tab[a][key]
             t[1] += 1
@@ -435,7 +436,7 @@ def build():
     A("| Step | Input | Rule |")
     A("|---|---|---|")
     A("| Catalogue | tables of 02a, 02b, 02c | Every table row whose first cell is `FR-xxx-nnn` or `NFR-xxx-nn` and whose third cell is Must, Should or Could. Cells: requirement, priority, release, source, acceptance criterion. First occurrence wins. |")
-    A("| Release buckets | Release cell | `MVP` and `MVP / 1.0` count as **MVP** (a split row owes its MVP part at the MVP); `1.0` is **1.0**; `1.x` and `Later` are **1.x/Later**. |")
+    A("| Release buckets | Release cell | `MVP` and `MVP / 1.0` count as **MVP** (a split row owes its MVP part at the MVP); `1.0` is **1.0**; `0.2.0` (the symbol editor's release, M2.5, ID-1402) is **0.2.0**; `1.x` and `Later` are **1.x/Later**. |")
     A("| WP citations | `requirements` column | Space-separated tokens. A range `A..B` expands to all numbers between its ends (same area, ascending). A token that is no ID, a reversed or cross-area range, a single ID absent from the catalogue, or a range none of whose members exist is an **invalid citation**. A range with some missing members is a **range hole** (members dropped, listed in §5). |")
     A("| Coverage | all of the above | A requirement is **covered** if at least one WP cites it. Citing is not proof of completion; it is the minimum for the plan to be able to deliver the requirement. |")
     A("| Gaps | catalogue minus coverage | Uncovered rows with priority Must or Should in bucket MVP or 1.0. Could, 1.x and Later rows are summarised in §2 and listed in the CSV only. |")
@@ -451,10 +452,10 @@ def build():
     A("")
     A("## 2. Coverage per area, release and priority")
     A("")
-    A("Cells show *covered / total*. Release bucket by §1. The last column pools 1.x and Later at all priorities.")
+    A("Cells show *covered / total*. Release bucket by §1. The 0.2.0 column pools its priorities, and the last column pools 1.x and Later at all priorities.")
     A("")
-    A("| Area | MVP Must | MVP Should | MVP Could | 1.0 Must | 1.0 Should | 1.0 Could | 1.x / Later | All |")
-    A("|---|---|---|---|---|---|---|---|---|")
+    A("| Area | MVP Must | MVP Should | MVP Could | 1.0 Must | 1.0 Should | 1.0 Could | 0.2.0 | 1.x / Later | All |")
+    A("|---|---|---|---|---|---|---|---|---|---|")
     def cell(t):
         c, n = t
         if n == 0:
@@ -470,13 +471,13 @@ def build():
       "reported for information.")
     A("")
     A("**Covered in time, full and lean scope.** A row is covered in time when its earliest covering WP is at or before the "
-      "row's release (M2 for MVP rows, M6 for 1.0 rows), judged with the full-scope `milestone` and with the lean "
+      "row's release (M2 for MVP rows, M2.5 for 0.2.0 rows, M6 for 1.0 rows), judged with the full-scope `milestone` and with the lean "
       "`milestone_lean` of [work-packages.csv](work-packages.csv). The difference is what the scope levers move until "
       "the catalogues are re-labelled (PD-1; §4 lists the rows).")
     A("")
     A("| Release | Priority | Rows | Covered in time, full scope | Covered in time, lean scope | Moved by the levers |")
     A("|---|---|---|---|---|---|")
-    for b, lim in (("MVP", MS_ORDER["M2"]), ("1.0", MS_ORDER["M6"])):
+    for b, lim in (("MVP", MS_ORDER["M2"]), ("0.2.0", MS_ORDER["M2.5"]), ("1.0", MS_ORDER["M6"])):
         for pr in ("Must", "Should", "Could"):
             rs = [r for r in rows if r["bucket"] == b and r["prio"] == pr]
             if not rs:

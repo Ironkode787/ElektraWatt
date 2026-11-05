@@ -133,10 +133,11 @@ performance-spike decision, one month after WP-S1.03.
 | **G-M1** | 23 (Sep 2028) | **17 (Mar 2028)** | 16 (Feb 2028) | 13 (Nov 2027) | 11 (Sep 2027) |
 | **G-PP** | 38 (Dec 2029) | **27 (Jan 2029)** | 26 (Dec 2028) | 21 (Jul 2028) | 18 (Apr 2028) |
 | **G-M2** | 58 (Aug 2031) | **41 (Mar 2030)** | 36 (Oct 2029) | 32 (Jun 2029) | 27 (Jan 2029) |
-| **G-M3** | 67 (May 2032) | **48 (Oct 2030)** | 40 (Feb 2030) | 37 (Nov 2029) | 32 (Jun 2029) |
-| **G-M4** | 81 (Jul 2033) | **57 (Jul 2031)** | 52 (Feb 2031) | 45 (Jul 2030) | 38 (Dec 2029) |
+| **G-M2.5** | 59 (Sep 2031) | **42 (Apr 2030)** | 37 (Nov 2029) | 33 (Jul 2029) | 28 (Feb 2029) |
+| **G-M3** | 68 (Jun 2032) | **48 (Oct 2030)** | 40 (Feb 2030) | 37 (Nov 2029) | 32 (Jun 2029) |
+| **G-M4** | 82 (Aug 2033) | **58 (Aug 2031)** | 52 (Feb 2031) | 45 (Jul 2030) | 39 (Jan 2030) |
 | **G-M5** | 86 (Dec 2033) | **59 (Sep 2031)** | 52 (Feb 2031) | 46 (Aug 2030) | 39 (Jan 2030) |
-| **G-M6** | 97 (Nov 2034) | **69 (Jul 2032)** | 63 (Jan 2032) | 54 (Apr 2031) | 46 (Aug 2030) |
+| **G-M6** | 97 (Nov 2034) | **69 (Jul 2032)** | 64 (Feb 2032) | 54 (Apr 2031) | 46 (Aug 2030) |
 <!-- /generated:gate-timing -->
 
 A work package (WP) is written "WP-S1.21 (month 25)" when the decision is needed before it starts. The month is the

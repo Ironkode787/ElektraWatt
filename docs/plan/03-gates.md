@@ -1,6 +1,6 @@
 # Gates
 
-**Status:** Draft v0.12 · **Date:** 2026-10-29 (2026-11-05, cycle-51 design pass, ID-1384, ID-1386: G-M2-02's frame bound a milestone measurement, G-M2-10's census, G-M2-12's translation report, G-M2-24 read with ID-1331 (4), G-M2-26 as built; 2026-11-04, cycle-50 design pass, ID-1349, ID-1353: G-M2-26, the corpus-gated tests at every delivery's last verify, ID-1352; G-M2-20 to G-M2-22 read the usability rounds as blind-persona rounds, ID-1331 (5), ID-1335; 2026-11-02, ID-1187, ID-1188: G-M2 for the pilot release 0.1.0, built from an unsigned tag with no network code: G-M2-09, -13, -15, -16, -17, -19, -23 and -25, the gate's purpose, entry criteria, open decisions, deliverables and outcomes, and G-M5-05 follow that scope; 2026-10-30: macOS is not a supported platform (decision log ID-880): CP-06, CP-10, G-M2-01, -02, -13, -17, G-M3-13 and KT-6 on Windows and Linux, a note on G-M0-04; v0.12: G-PP recorded Go on the blind-run proxy by the owner's ruling, §5.4, decision log ID-777; v0.11, 2026-10-25: G-M0-04 after the cycle-26 delivery run (the Windows chain 29:34, `test-macos` 23:12, the clause met narrowly) and lane F's re-balance of the Windows parts, decision log ID-644; v0.10: G-M0-04 after FT-387's partition by time: the Windows chain measured at 20:24 and `test-macos` at 30:04 in one run, decision log ID-633; v0.9: PG9 built by WP-S2.05 part 1, §8.2, decision log ID-626; G-M0-04's wall-time clause missed by one second in the cycle-24 delivery run and a third Windows partition, decision log ID-627; v0.8: the evidence pointer of D-06's property-grid entry, WP-S2.05's test PG9, §8.2, decision log ID-599; G-M0-04's wall-time clause met in the cycle-23 delivery run, decision log ID-606; v0.7: the owner ruling that no performance measurement runs during development, performance criteria of a gate that is not a release gate assumed pass until the release phase, §5, decision log ID-512; v0.6: the owner rulings of 2026-10-22: PD-1 and PD-3 decided (G-M0-01, -02 met), the date rule adopted by the owner, G-M1-16 amended (no second named owner), G-M1-26 not applicable (no funding), the legal and licensing items retired as gate criteria (G-M0-08, -09, -10, -17, G-M1-18 to -21, G-M2-18, -19, G-M5-11 in part, G-M6-12, -13, KT-2, KT-6 in part; §4.3, §8.4), decision log ID-450 to ID-455; v0.5: the G-M1 readiness rulings: D-06 split between G-M1 and G-M2 (§8.2, G-M1-08), G-M1-24 restated and G-M1-25 not applicable under the cycle-based plan, the cycle-based date rule (§3.3), open question 3 resolved, decision log ID-419 to ID-423; v0.4: the blind drafter at G-PP and G-M2, WP-S6.13 in M-PP and the 1.0 month of the plan of record, decision log ID-341, ID-342; the Golden A info total; v0.3: the G-SP gate record of 2026-10-20 and the re-forecast) · **Part of:** ElektraWatt plan
+**Status:** Draft v0.12 · **Date:** 2026-10-29 (2026-11-05, cycle 52, ID-1402: the gate G-M2.5 of the symbol editor's release 0.2.0, §5.5a, its items drafted for the orchestrator's ruling; G-M5-06 and G-M5's WBS link without the symbol editor; G-M2.5 in the summary, §1.3, §1.4, §2.1, §2.2's gantt, §8.5 and §9; 2026-11-05, cycle-51 design pass, ID-1384, ID-1386: G-M2-02's frame bound a milestone measurement, G-M2-10's census, G-M2-12's translation report, G-M2-24 read with ID-1331 (4), G-M2-26 as built; 2026-11-04, cycle-50 design pass, ID-1349, ID-1353: G-M2-26, the corpus-gated tests at every delivery's last verify, ID-1352; G-M2-20 to G-M2-22 read the usability rounds as blind-persona rounds, ID-1331 (5), ID-1335; 2026-11-02, ID-1187, ID-1188: G-M2 for the pilot release 0.1.0, built from an unsigned tag with no network code: G-M2-09, -13, -15, -16, -17, -19, -23 and -25, the gate's purpose, entry criteria, open decisions, deliverables and outcomes, and G-M5-05 follow that scope; 2026-10-30: macOS is not a supported platform (decision log ID-880): CP-06, CP-10, G-M2-01, -02, -13, -17, G-M3-13 and KT-6 on Windows and Linux, a note on G-M0-04; v0.12: G-PP recorded Go on the blind-run proxy by the owner's ruling, §5.4, decision log ID-777; v0.11, 2026-10-25: G-M0-04 after the cycle-26 delivery run (the Windows chain 29:34, `test-macos` 23:12, the clause met narrowly) and lane F's re-balance of the Windows parts, decision log ID-644; v0.10: G-M0-04 after FT-387's partition by time: the Windows chain measured at 20:24 and `test-macos` at 30:04 in one run, decision log ID-633; v0.9: PG9 built by WP-S2.05 part 1, §8.2, decision log ID-626; G-M0-04's wall-time clause missed by one second in the cycle-24 delivery run and a third Windows partition, decision log ID-627; v0.8: the evidence pointer of D-06's property-grid entry, WP-S2.05's test PG9, §8.2, decision log ID-599; G-M0-04's wall-time clause met in the cycle-23 delivery run, decision log ID-606; v0.7: the owner ruling that no performance measurement runs during development, performance criteria of a gate that is not a release gate assumed pass until the release phase, §5, decision log ID-512; v0.6: the owner rulings of 2026-10-22: PD-1 and PD-3 decided (G-M0-01, -02 met), the date rule adopted by the owner, G-M1-16 amended (no second named owner), G-M1-26 not applicable (no funding), the legal and licensing items retired as gate criteria (G-M0-08, -09, -10, -17, G-M1-18 to -21, G-M2-18, -19, G-M5-11 in part, G-M6-12, -13, KT-2, KT-6 in part; §4.3, §8.4), decision log ID-450 to ID-455; v0.5: the G-M1 readiness rulings: D-06 split between G-M1 and G-M2 (§8.2, G-M1-08), G-M1-24 restated and G-M1-25 not applicable under the cycle-based plan, the cycle-based date rule (§3.3), open question 3 resolved, decision log ID-419 to ID-423; v0.4: the blind drafter at G-PP and G-M2, WP-S6.13 in M-PP and the 1.0 month of the plan of record, decision log ID-341, ID-342; the Golden A info total; v0.3: the G-SP gate record of 2026-10-20 and the re-forecast) · **Part of:** ElektraWatt plan
 
 **Purpose.** This document defines the gate system of ElektraWatt (EW): the decision points G-M0 … G-M6 and the
 light gate G-PP of the pilot preview, aligned with the milestones M0 … M6 and M-PP of the
@@ -28,7 +28,8 @@ plan's **GA-n**, and this document's own planning basis **GB-n**.
 
 ## Summary for decision makers
 
-**The system in one paragraph.** Eight gates (G-M0 … G-M6 and the light G-PP) and one optional decision gate,
+**The system in one paragraph.** Nine gates (G-M0 … G-M6, G-M2.5 of the symbol editor's release 0.2.0, ID-1402, and
+the light G-PP) and one optional decision gate,
 G-SP. Each gate is a review of evidence against a fixed checklist, held within two weeks of the forecast milestone
 date, with one of five outcomes: go, go with conditions, recycle, descope or stop. Criteria are typed: **H** (hard:
 never waived, never conditioned), **M** (must: may become a condition with an owner and a deadline of at most four
@@ -44,6 +45,7 @@ replaces the committed dates with a re-forecast from measured velocity.
 | **G-M1** | M1 Spine exit | 16 (Feb 2028) | The open format and derivation engine are proven headless; the plan is re-based on measured velocity (PD-11); the legal basis is closed enough to accept contributions | AC-01 … AC-13, AC-15 … AC-17, AC-20, AC-39; LG-1, LG-2; ADR-0030 |
 | **G-PP** (light) | M-PP Pilot preview, release 0.0.x | 26 (Dec 2028) | The pilot may use the unsigned preview for new projects; R0 starts | The pilot draws golden folios 101–103 and the parts list 901 in a new project and exports the PDF (AC-07) |
 | **G-M2** | M2 MVP, release 0.1.0 | 41 (Mar 2030) | The first public release (0.1.0, unsigned); the pilot may switch for new projects | AC-14 (all OSes), AC-18 (GUI), AC-21, AC-23, AC-28 …; R1; CI-R-01 … CI-R-11 (0.1.0's form) |
+| **G-M2.5** | M2.5 Symbol editor, release 0.2.0 | 42 (Apr 2030) | The symbol editor's release (0.2.0, unsigned), right after 0.1.0 (ID-1402) | FR-SYM-017's acceptance (the CPX power block of folio 106 drawn and placed); FR-SYM-009; a blind-persona round; CI-R-01 … CI-R-11 (0.1.0's form) |
 | **G-M3** | M3 Automation and migration | 47 (Sep 2030) | Existing QET projects migrate; PLC exchange and EDZ/DXF work against reference files; SC-3 and SC-4 closed | AC-25 … AC-27, AC-30, AC-38; SC-3, SC-4 |
 | **G-M4** | M4 Manufacturing and 3D | 58 (Aug 2031) | The physical and manufacturing chain works on Golden A-R | AC-34, AC-35 content; NFR-PERF-16, -17, -18, -24 |
 | **G-M5** | M5 Feature complete (beta) | 59 (Sep 2031) | No new scope; 1.0 beta may be published | AC-22; L/XL performance gate green |
@@ -144,18 +146,19 @@ GA-13). They are repeated here because every date in this document depends on th
 
 | Thing | What it is | Relation to gates |
 |---|---|---|
-| **Gate** | A human decision on a fixed checklist (this document) | Eight gates (G-M0 … G-M6 and the light G-PP) and G-SP |
+| **Gate** | A human decision on a fixed checklist (this document) | Nine gates (G-M0 … G-M6, G-M2.5 and the light G-PP) and G-SP |
 | **Release** | A build through the pipeline CI-R-01 … CI-R-11 and the checklist RC-01 … RC-11 ([quality §7.4](../design/18-quality-security-release.md#74-release-pipeline-and-checklist)) | Every release repeats the pipeline. CI-R-02 collects the acceptance rows of every milestone reached. G-M2 authorises 0.1.0, G-M5 authorises 1.0.0-beta.1, G-M6 authorises 1.0.0. The monthly 0.x releases between gates need the pipeline and the checklist, not a gate review |
 | **Checkpoint** | A dated decision or event between gates (§2.5, CP-01 … CP-13): a usability round, an enrolment submission, an ADR | Its outcome is evidence for the next gate; a missed checkpoint is a risk item in the pack |
 | **Monthly plan review** | 30 minutes, project lead ([global plan §11.2](01-global-plan.md#112-tracking-and-re-planning)) | Produces the forecast that every gate pack contains |
 
 ### 1.4 Names
 
-The gate of milestone M*n* is **G-M*n*** (G-M0 … G-M6), and the light gate of the pilot preview M-PP is **G-PP**,
+The gate of milestone M*n* is **G-M*n*** (G-M0 … G-M6, and G-M2.5 of M2.5 since ID-1402), and the light gate of the
+pilot preview M-PP is **G-PP**,
 in this document and in the global plan. The optional decision gate after the performance spike is **G-SP**. The
 earlier short forms (the letter G and a bare digit, and a gate written minus one) collided with the research gap topics
 G1 … G13 and with the spine exit; no plan document uses them (`doccheck.py` enforces it). Kill triggers are KT-n, checkpoints CP-nn, gate-pack items GP-nn
-and exit criteria G-M*n*-*nn*, G-PP-*nn* and G-SP-*nn*.
+and exit criteria G-M*n*-*nn* (G-M2.5-*nn* for G-M2.5), G-PP-*nn* and G-SP-*nn*.
 
 ---
 
@@ -170,6 +173,7 @@ and exit criteria G-M*n*-*nn*, G-PP-*nn* and G-SP-*nn*.
 | **G-M1** | M1 Spine exit; signed source tag `m1`, nightly CLI builds | Milestone gate | The interactive phase as the main effort, acceptance of external contributions (LG-2), opening community channels, the re-based plan (PD-11) | 3 h | As G-M0, plus steward liaison |
 | **G-PP** | M-PP Pilot preview; unsigned development build **0.0.x** for the pilot, source tag `pp` | Light gate | The pilot's use of the preview for new projects; the first preview issue list and R0 | 1 h | Project lead (chair), pilot user, S2 owner |
 | **G-M2** | M2 MVP; release **0.1.0** | Release gate | The first public release (0.1.0, unsigned); the pilot's switch for new projects | 3 h, plus a go/no-go of 30 minutes at the release candidate | As G-M1, plus release manager and UX researcher |
+| **G-M2.5** | M2.5 Symbol editor; release **0.2.0** (ID-1402) | Release gate | The release of the symbol editor, the first after the format locks at 0.1.0 (ID-1325) | 1 h, plus a go/no-go of 30 minutes at the release candidate | As G-M2 |
 | **G-M3** | M3 Automation breadth and migration; release 0.7.0 | Milestone gate | QET migration for existing projects as supported; PLC exchange claims; SC-3 and SC-4 closed | 2 h | As G-M1 |
 | **G-M4** | M4 Manufacturing and 2D/3D panel; release 0.18.0 | Milestone gate | The claim "3D layout, routing and wire lengths work"; partner-shop trials | 2 h | As G-M1 |
 | **G-M5** | M5 Feature complete; release **1.0.0-beta.1** | Release gate | Publication of the beta; the feature stop; R2 preparation | 2 h | As G-M2 |
@@ -195,10 +199,11 @@ otherwise reached. The two AI columns are the internal target and the upside of 
 | **G-M1** | 23 (Sep 2028) | **17 (Mar 2028)** | 16 (Feb 2028) | 13 (Nov 2027) | 11 (Sep 2027) |
 | **G-PP** | 38 (Dec 2029) | **27 (Jan 2029)** | 26 (Dec 2028) | 21 (Jul 2028) | 18 (Apr 2028) |
 | **G-M2** | 58 (Aug 2031) | **41 (Mar 2030)** | 36 (Oct 2029) | 32 (Jun 2029) | 27 (Jan 2029) |
-| **G-M3** | 67 (May 2032) | **48 (Oct 2030)** | 40 (Feb 2030) | 37 (Nov 2029) | 32 (Jun 2029) |
-| **G-M4** | 81 (Jul 2033) | **57 (Jul 2031)** | 52 (Feb 2031) | 45 (Jul 2030) | 38 (Dec 2029) |
+| **G-M2.5** | 59 (Sep 2031) | **42 (Apr 2030)** | 37 (Nov 2029) | 33 (Jul 2029) | 28 (Feb 2029) |
+| **G-M3** | 68 (Jun 2032) | **48 (Oct 2030)** | 40 (Feb 2030) | 37 (Nov 2029) | 32 (Jun 2029) |
+| **G-M4** | 82 (Aug 2033) | **58 (Aug 2031)** | 52 (Feb 2031) | 45 (Jul 2030) | 39 (Jan 2030) |
 | **G-M5** | 86 (Dec 2033) | **59 (Sep 2031)** | 52 (Feb 2031) | 46 (Aug 2030) | 39 (Jan 2030) |
-| **G-M6** | 97 (Nov 2034) | **69 (Jul 2032)** | 63 (Jan 2032) | 54 (Apr 2031) | 46 (Aug 2030) |
+| **G-M6** | 97 (Nov 2034) | **69 (Jul 2032)** | 64 (Feb 2032) | 54 (Apr 2031) | 46 (Aug 2030) |
 <!-- /generated:gate-timing -->
 
 **Sensitivity, three developers.** Capacity −20 % / +20 % (28.8 / 43.2 pw per developer-year), and the full scope
@@ -211,9 +216,10 @@ otherwise reached. The two AI columns are the internal target and the upside of 
 | **G-M0** | 3 (Jan 2027) | 3 (Jan 2027) | 2 (Dec 2026) | 3 (Jan 2027) |
 | **G-M1** | 21 (Jul 2028) | 17 (Mar 2028) | 14 (Dec 2027) | 17 (Mar 2028) |
 | **G-PP** | 34 (Aug 2029) | 27 (Jan 2029) | 23 (Sep 2028) | 27 (Jan 2029) |
-| **G-M2** | 51 (Jan 2031) | 41 (Mar 2030) | 34 (Aug 2029) | 44 (Jun 2030) |
-| **G-M3** | 59 (Sep 2031) | 48 (Oct 2030) | 40 (Feb 2030) | 48 (Oct 2030) |
-| **G-M4** | 72 (Oct 2032) | 57 (Jul 2031) | 48 (Oct 2030) | 60 (Oct 2031) |
+| **G-M2** | 51 (Jan 2031) | 41 (Mar 2030) | 34 (Aug 2029) | 43 (May 2030) |
+| **G-M2.5** | 53 (Mar 2031) | 42 (Apr 2030) | 35 (Sep 2029) | 45 (Jul 2030) |
+| **G-M3** | 60 (Oct 2031) | 48 (Oct 2030) | 40 (Feb 2030) | 49 (Nov 2030) |
+| **G-M4** | 72 (Oct 2032) | 58 (Aug 2031) | 48 (Oct 2030) | 59 (Sep 2031) |
 | **G-M5** | 74 (Dec 2032) | 59 (Sep 2031) | 49 (Nov 2030) | 66 (Apr 2032) |
 | **G-M6** | 86 (Dec 2033) | 69 (Jul 2032) | 58 (Aug 2031) | 77 (Mar 2033) |
 <!-- /generated:gate-sensitivity-3d -->
@@ -228,10 +234,11 @@ otherwise reached. The two AI columns are the internal target and the upside of 
 | **G-M1** | 29 (Mar 2029) | 23 (Sep 2028) | 19 (May 2028) | 19 (May 2028) | 16 (Feb 2028) | 13 (Nov 2027) |
 | **G-PP** | 48 (Oct 2030) | 38 (Dec 2029) | 32 (Jun 2029) | 33 (Jul 2029) | 26 (Dec 2028) | 22 (Aug 2028) |
 | **G-M2** | 72 (Oct 2032) | 58 (Aug 2031) | 48 (Oct 2030) | 44 (Jun 2030) | 36 (Oct 2029) | 30 (Apr 2029) |
-| **G-M3** | 84 (Oct 2033) | 67 (May 2032) | 56 (Jun 2031) | 50 (Dec 2030) | 40 (Feb 2030) | 34 (Aug 2029) |
-| **G-M4** | 102 (Apr 2035) | 81 (Jul 2033) | 68 (Jun 2032) | 64 (Feb 2032) | 52 (Feb 2031) | 43 (May 2030) |
-| **G-M5** | 107 (Sep 2035) | 86 (Dec 2033) | 72 (Oct 2032) | 64 (Feb 2032) | 52 (Feb 2031) | 43 (May 2030) |
-| **G-M6** | 121 (Nov 2036) | 97 (Nov 2034) | 81 (Jul 2033) | 79 (May 2033) | 63 (Jan 2032) | 53 (Mar 2031) |
+| **G-M2.5** | 74 (Dec 2032) | 59 (Sep 2031) | 49 (Nov 2030) | 46 (Aug 2030) | 37 (Nov 2029) | 31 (May 2029) |
+| **G-M3** | 85 (Nov 2033) | 68 (Jun 2032) | 57 (Jul 2031) | 50 (Dec 2030) | 40 (Feb 2030) | 34 (Aug 2029) |
+| **G-M4** | 103 (May 2035) | 82 (Aug 2033) | 69 (Jul 2032) | 65 (Mar 2032) | 52 (Feb 2031) | 44 (Jun 2030) |
+| **G-M5** | 107 (Sep 2035) | 86 (Dec 2033) | 72 (Oct 2032) | 65 (Mar 2032) | 52 (Feb 2031) | 44 (Jun 2030) |
+| **G-M6** | 121 (Nov 2036) | 97 (Nov 2034) | 81 (Jul 2033) | 79 (May 2033) | 64 (Feb 2032) | 53 (Mar 2031) |
 <!-- /generated:gate-sensitivity-2d4d -->
 
 **Full scope, base capacity, two and four developers.**
@@ -244,8 +251,9 @@ otherwise reached. The two AI columns are the internal target and the upside of 
 | **G-M1** | 23 (Sep 2028) | 16 (Feb 2028) |
 | **G-PP** | 38 (Dec 2029) | 26 (Dec 2028) |
 | **G-M2** | 62 (Dec 2031) | 38 (Dec 2029) |
-| **G-M3** | 70 (Aug 2032) | 43 (May 2030) |
-| **G-M4** | 84 (Oct 2033) | 51 (Jan 2031) |
+| **G-M2.5** | 63 (Jan 2032) | 39 (Jan 2030) |
+| **G-M3** | 70 (Aug 2032) | 42 (Apr 2030) |
+| **G-M4** | 85 (Nov 2033) | 50 (Dec 2030) |
 | **G-M5** | 97 (Nov 2034) | 56 (Jun 2031) |
 | **G-M6** | 108 (Oct 2035) | 67 (May 2032) |
 <!-- /generated:gate-full-2d4d -->
@@ -277,6 +285,7 @@ gantt
   G-M1 spine exit :milestone, g1, 2028-02-27, 0d
   G-PP pilot preview 0.0.x :milestone, gpp, 2028-12-08, 0d
   G-M2 MVP release 0.1.0 :milestone, g2, 2030-03-14, 0d
+  G-M2.5 symbol editor release 0.2.0 :milestone, g25, 2030-04-19, 0d
   G-M3 automation and migration :milestone, g3, 2030-09-07, 0d
   G-M4 manufacturing and 3D :milestone, g4, 2031-08-12, 0d
   G-M5 feature complete beta :milestone, g5, 2031-09-15, 0d
@@ -512,11 +521,11 @@ ranges of the zone table are read from the generated table under it.
 <!-- generated:velocity-zones -->
 | Velocity ratio (every WP) | Effort change | G-M1 | G-PP | G-M2 | G-M6 |
 |---|---|---|---|---|---|
-| 1.50 | −33 % | 12 (Oct 2027) | 18 (Apr 2028) | 28 (Feb 2029) | 46 (Aug 2030) |
+| 1.50 | −33 % | 12 (Oct 2027) | 18 (Apr 2028) | 27 (Jan 2029) | 46 (Aug 2030) |
 | 1.25 | −20 % | 14 (Dec 2027) | 22 (Aug 2028) | 33 (Jul 2029) | 55 (May 2031) |
 | 1.10 | −9 % | 16 (Feb 2028) | 25 (Nov 2028) | 37 (Nov 2029) | 63 (Jan 2032) |
 | 1.00 | +0 % | 17 (Mar 2028) | 27 (Jan 2029) | 41 (Mar 2030) | 69 (Jul 2032) |
-| 0.90 | +11 % | 19 (May 2028) | 30 (Apr 2029) | 46 (Aug 2030) | 77 (Mar 2033) |
+| 0.90 | +11 % | 19 (May 2028) | 30 (Apr 2029) | 45 (Jul 2030) | 77 (Mar 2033) |
 | 0.80 | +25 % | 21 (Jul 2028) | 34 (Aug 2029) | 51 (Jan 2031) | 86 (Dec 2033) |
 | 0.67 | +50 % | 26 (Dec 2028) | 40 (Feb 2030) | 61 (Nov 2031) | 103 (May 2035) |
 <!-- /generated:velocity-zones -->
@@ -986,18 +995,67 @@ findings; offline installation of the build on a clean Windows VM). The runbook 
 | **Descope** | DS-7: narrow the MVP with the pilot (remove Must rows the pilot's first three projects do not need, using the triage of the pre-G-M0 workshop, CP-14); each 9 pw is about one month. Never by dropping a never-waived item (§3.5) |
 | **Stop or pivot** | **KT-6** no steward or signing identity can be established: options are the stichting from day one, SignPath for Windows, or source-only releases and unsigned nightlies (no signed release is allowed without LG-4; 0.1.0 ships unsigned, ID-1187); **KT-1** the pilot has left and R1 cannot be staffed; **KT-4** viability line. R1 failing twice is a UX recycle, not a stop: ADR-0007 defaults are amended and re-tested with at least one participant per fix |
 
+### 5.5a G-M2.5 Symbol editor release 0.2.0 (M2.5)
+
+*Added 2026-11-05 (decision log ID-1402).* The owner made the symbol editor (WP-S2.10, FR-SYM-017) milestone M2.5,
+released as 0.2.0 right after 0.1.0's tag and before M3's first release. **Every exit criterion below is drafted by the
+plan lane and awaits the orchestrator's ruling**; until it is recorded, the items are proposals, not gate items.
+
+| Aspect | Content |
+|---|---|
+| **Purpose** | Authorise the release of the symbol editor (0.2.0, unsigned), with which the pilot draws the symbols the starter set lacks. 0.2.0 is the first release after the format locks at 0.1.0 (ID-1325), so the gate also checks that any format change the editor brings has its migration (ADR-0011) |
+| **Kind and length** | Release gate, 1 hour on the release candidate (the RC cadence of G-M2), plus 30 minutes go/no-go at the final candidate |
+| **Timing** | **Month 42 (Apr 2030)**, one month after G-M2; month 53 at −20 % capacity, 35 at +20 %; 2 developers: month 59; 4 developers: month 37 (§2.2) |
+| **Decision makers** | Chair: project lead. **Go decided by the project owner.** Concurrence: pilot user (the editor on their own symbols). Present: release manager, UX researcher, S2 owner |
+| **WBS link** | WP-S2.10, after WP-S6.08 (0.1.0's tag); specified and built whole by one lane (ID-1281) |
+
+**Entry criteria**
+- G-M2 was held with Go and 0.1.0 is tagged; WP-S2.10 is done.
+- A 0.2.0 release candidate exists from a tag, built by CI-R-01 … CI-R-11 in 0.1.0's form (publication in CI-R-11
+  waits for the go).
+- The list of format changes since 0.1.0 exists (empty, or each change with its migration).
+
+**Exit criteria** (*drafted 2026-11-05 by the plan lane, ID-1402, for the orchestrator's ruling*)
+
+| ID | Type | Criterion | Evidence |
+|---|---|---|---|
+| G-M2.5-01 | H | **FR-SYM-017's acceptance**: the CPX power block of folio 106 is drawn in the symbol editor as a new symbol, with the connection points 1 to 5 and FE, a FnDef, text slots and an anchor, saved to a library and placed on a page, where it wires and reports like a starter symbol; the live preview shows the symbol as placed | kittest flow; a headless script through the built binary |
+| G-M2.5-02 | H | **FR-SYM-009**: a connection point off the native grid (4.5 mm on the 4 mm grid, ADR-0027) is refused at save, in words; graphics at 0.5 mm are saved | kittest flow; a unit test |
+| G-M2.5-03 | H | **A blind-persona round on the editor** (WP-S2.12's method, ID-1331 (5)): the personas draw a symbol from a picture of it in picture-only runs on the release candidate; each attempt is reported as unassisted, with hints or not completed; every severe finding (Nielsen 3 or 4) is fixed with a kittest flow and its persona's re-run on the next candidate completes the task | Round report |
+| G-M2.5-04 | H | **The release pipeline as 0.1.0's**: G-M2-13 (CI-R-01 … CI-R-11 end to end), G-M2-14 (advisories, fuzz, hostile corpus), G-M2-15 (no network connection without a user action) and G-M2-17 (RC-01 … RC-10 in 0.1.0's form) repeated on the 0.2.0 candidate | Release dossier (GP-11) |
+| G-M2.5-05 | M | **The guide's pages for the editor**: a tutorial (drawing a new symbol and placing it) and the editor's reference page, bundled offline with F1 anchors (NFR-DOC-01, NFR-DOC-03); release notes (NFR-DOC-07) | CI-PR-10; docs build |
+| G-M2.5-06 | H | **Any format migration the editor brings**: every project and library format change since 0.1.0 is either additive within the released format under ADR-0011's rules, or a new format version with its migration step, the first save's backup and a fixture (ID-1325); every 0.1.0 fixture (Golden A, the sample project and library) opens in 0.2.0, upgrades and saves without loss; the release notes name each change. With no format change, the list says so | Fixture corpus; migration tests; release notes |
+| G-M2.5-07 | H | Regression: every criterion of G-M2 that still applies passes on the 0.2.0 candidate, the AC-24 rows included | Runner report |
+
+**Open decisions closed by G-M2.5.** The orchestrator's ruling on the items above (until then drafted); whether
+0.2.0 changes the format, and the migration if it does.
+
+**Deliverables.** The 0.2.0 release dossier; the round report; the guide pages; the format-change list with its
+migrations; the demo (the CPX power block of folio 106 drawn as a new symbol and placed; an off-grid connection point
+refused).
+
+**Outcomes and kill/pivot**
+
+| Outcome | At G-M2.5 |
+|---|---|
+| **Go** | CI-R-11 publishes 0.2.0; 0.1.0's support ends (ID-1324) |
+| **Go with conditions** | Only the guide pages (G-M2.5-05). A condition never covers G-M2.5-04 or G-M2.5-06 |
+| **Recycle** | Any H open: fix, new RC on the first working day of the next month, new 30-minute go/no-go. M3's releases wait for 0.2.0 |
+| **Descope** | Variants or the live preview move to a later 0.x release by an owner decision, recorded; FR-SYM-017's acceptance (G-M2.5-01) and the grid rule (G-M2.5-02) never move |
+| **Stop or pivot** | None beyond those of G-M2: the editor is not a viability question |
+
 ### 5.6 G-M3 Automation breadth and migration (M3)
 
 | Aspect | Content |
 |---|---|
 | **Purpose** | Show that existing QET projects migrate with a report the pilot can resolve in an hour, that PLC, bus and fluid 1.0 and the exchange formats (AutomationML, TIA tag tables, PLCopen, EDZ, DXF and DWG) work against reference files, that the pilot has switched (SC-3), and that the partners for external acceptance (SC-7, SC-8) exist before the physical chain starts |
-| **Kind and length** | Milestone gate, 2 hours. Release 0.7.0 (the 0.2 … 0.7 releases passed the pipeline individually) |
+| **Kind and length** | Milestone gate, 2 hours. Release 0.7.0 (the 0.3 … 0.7 releases passed the pipeline individually; 0.2.0 is M2.5's, ID-1402) |
 | **Timing** | **Month 47 (Sep 2030)**; month 58 at −20 %, 39 at +20 %; 2 developers: month 70; 4 developers: month 40 (§2.2). With the full scope (levers refused) G-M3 is month 48 |
 | **Decision makers** | Chair: project lead. Decides: project owner. Concurrence: pilot user (SC-3, SC-4, migration of their own projects). Present: steward liaison, release manager, S3 and S5 owner |
 | **WBS link** | WP-S1.24, WP-S1.25, WP-S2.13, WP-S3.10, WP-S3.11, WP-S3.13, WP-S3.16, WP-S3.18, WP-S3.19 (WP-S3.17 GSD/GSDML/IODD moves to 1.x with lever (c)) |
 
 **Entry criteria**
-- All WPs of M3 (lean) are done; releases 0.2 … 0.7 went through CI-R-01 … CI-R-11.
+- All WPs of M3 (lean) are done; releases 0.3 … 0.7 went through CI-R-01 … CI-R-11 (0.2.0 through G-M2.5).
 - The private corpus job CI-N-10 and the corpus job CI-N-11 (24 QET examples at a pinned commit, DXF and EDZ
   corpora) have run nightly for at least two weeks.
 - The OCCT packaging spike (CP-10) has reported.
@@ -1095,7 +1153,7 @@ that folio 907 shows; moving -102G1 marks lengths stale; the `.ewpp` rows equal 
 | **Kind and length** | Release gate for **1.0.0-beta.1**, 2 hours. May be combined with G-M4 (§2.4) |
 | **Timing** | **Month 59 (Sep 2031)**; month 74 at −20 %, 49 at +20 %; 2 developers: month 88; 4 developers: month 52 (§2.2). With the full scope G-M5 is month 66 |
 | **Decision makers** | Chair: project lead. **Go decided by the project owner.** Concurrence: pilot user (journeys J1 … J6). Present: release manager, UX researcher, steward liaison |
-| **WBS link** | WP-S1.26, WP-S1.30, WP-S3.15; lever (a) WPs WP-S1.23, WP-S2.10, WP-S3.12 |
+| **WBS link** | WP-S1.26, WP-S1.30, WP-S3.15; lever (a) WPs WP-S1.23, WP-S3.12 (WP-S2.10 left the lever for M2.5 on 2026-11-05, ID-1402) |
 
 **Entry criteria**
 - Every WP with milestone M0 … M5 (lean) is done; the board has no open WP of those milestones.
@@ -1110,7 +1168,7 @@ that folio 907 shows; moving -102G1 marks lengths stale; the `.ewpp` rows equal 
 | G-M5-03 | H | The remaining defect rows pass: D-18 (1.0 part, seeded description linted), D-21 (1.0 part, clearing `rail_bonded` isolates -X1032 with a finding), D-25 (load report evaluation EF-24); the full run passes every row except D-40 (**AC-24**) | Runner report |
 | G-M5-04 | H | **L and XL performance** green for the last 14 nightly runs (gating since G-M4): open L ≤ 5 s and XL ≤ 20 s; full check XL ≤ 60 s; XL peak memory ≤ 4 GB; commit p99 L ≤ 10 ms and XL ≤ 20 ms; **SC-5** shown for all classes (NFR-PERF-01 … NFR-PERF-25 for their classes) | CI-N-01 |
 | G-M5-05 | H | The beta release candidate passes the pipeline and checklist (G-M2-13 … G-M2-17 repeated, now with the 1.0 parts that ID-1187 moved out of 0.1.0: the signed tag and signing, the MSI and the `.deb`, the second approval, the update check and the minidump with their sandbox runs, the steward's CRA processes (NFR-COMP-01); SBOM, provenance, network sandbox, no unpatched high or critical advisory) | Release dossier (GP-11) |
-| G-M5-06 | M | Lever (a) items are done: read-only MCP server (NFR-SEC-08: off by default, stdio or loopback with a token), symbol editor, QET migration assistants | Runner report; docs |
+| G-M5-06 | M | Lever (a) items are done: read-only MCP server (NFR-SEC-08: off by default, stdio or loopback with a token), QET migration assistants. *Amended 2026-11-05 (decision log ID-1402):* the symbol editor left lever (a) for milestone M2.5 and is gated by G-M2.5 (§5.5a). *Original wording:* Lever (a) items are done: read-only MCP server (NFR-SEC-08: off by default, stdio or loopback with a token), symbol editor, QET migration assistants | Runner report; docs |
 | G-M5-07 | M | Journeys J1 … J6 are walked through with the pilot on the beta and acknowledged | Walkthrough record |
 | G-M5-08 | M | **R2 preparation**: protocol, fixture GP-UT (`variants/gp-ut.ewcmd`), recruitment of at least 5 participants (≥ 2 EPLAN, ≥ 2 QET, ≥ 1 PLC programmer, a wireman for T11), at least one QWERTZ or AZERTY keyboard participant, one GPU-less RDP session, and a moderator, for months 60 … 61 | Recruitment list (roles only) |
 | G-M5-09 | M | Format freeze readiness: no open format change that is not scheduled before 1.0.0-rc.1 (CP-12); the `next-format` feature plan for post-1.0 is written | Format change list |
@@ -1426,6 +1484,7 @@ exists at that gate.
 | **G-M1** | + CI-PR-05, 06, 08, 13 | CI-N-01 (≥ 7 green nights), CI-N-02, CI-N-03, CI-N-04 (Linux), CI-N-09 | CI-R-01 on the `m1` tag (source tag only) |
 | **G-PP** | As G-M1, plus CI-PR-07 for the kittest flows that exist | As G-M1 | CI-R-01 on the `pp` tag (source tag only); the 0.0.x preview is an unsigned CI artefact |
 | **G-M2** | CI-PR-01 … CI-PR-11, CI-PR-13, CI-PR-14, CI-PR-15 | CI-N-01 (S/M gating), CI-N-02 … CI-N-09 | CI-R-01 … CI-R-11 on the release candidate |
+| **G-M2.5** | As G-M2 | As G-M2 | CI-R-01 … CI-R-11 on the 0.2.0 release candidate, in 0.1.0's form |
 | **G-M3** | + CI-PR-12 | + CI-N-10, CI-N-11 | CI-R-01 … CI-R-11 for each 0.x release |
 | **G-M4** | All | CI-N-01 (L/XL gating on), CI-N-05 including lavapipe 3D smoke | + CI-R-04 (`ew-step-worker`) in every package |
 | **G-M5** | All | All, L/XL green 14 nights | All on beta.1 |
@@ -1468,7 +1527,7 @@ PU pilot user, CO counsel, SL steward liaison, UX UX researcher. A role may be h
 | Release candidate, pipeline CI-R-01 … CI-R-11, checklist RC-01 … RC-11 | I | C | R | **A/R** | – | – | C | – |
 | Chair the gate review | C | **A/R** | C | C | C | C | C | C |
 | Decide go, go with conditions, recycle (G-SP, G-M0, G-M1, G-M3, G-M4) | C | **A** | R | – | C | C | – | – |
-| Decide **go for a release** (G-M2, G-M5, G-M6) | **A** | R | R | R | C | C | C | C |
+| Decide **go for a release** (G-M2, G-M2.5, G-M5, G-M6) | **A** | R | R | R | C | C | C | C |
 | Decide descope (PD-12), stop or pivot (KT-n) | **A** | R | C | I | C | C | C | I |
 | Take owner decisions (PD-n) and accept ADRs | **A/R** | C | C | I | C | C | C | I |
 | Publish the release (CI-R-11; two-maintainer approval from 1.0) | I | C | R | **A** | I | – | I | – |

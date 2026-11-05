@@ -1,6 +1,6 @@
 # ElektraWatt vision and scope
 
-**Status:** Draft v0.1 · **Date:** 2026-10-21 (2026-10-30: Windows and Linux only, macOS is not a supported platform (decision log ID-880), the vision, §3, §5, K-4; cycle 11: the QET project import spike, §9.1; cycle 14: product principle PR-13, §8; the 1.0 month of the plan of record, §9) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-21 (2026-11-05: the symbol editor is milestone M2.5, release 0.2.0 right after the MVP, a Must, and leaves lever (a), decision log ID-1402, §9; 2026-10-30: Windows and Linux only, macOS is not a supported platform (decision log ID-880), the vision, §3, §5, K-4; cycle 11: the QET project import spike, §9.1; cycle 14: product principle PR-13, §8; the 1.0 month of the plan of record, §9) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document states why ElektraWatt (EW) exists, who it is for, what it must achieve and what it
 deliberately leaves out. It fixes the release targets (MVP, 1.0, 1.x, Later) per capability area, so that the
@@ -312,7 +312,9 @@ PLC/bus/fluid breadth, manufacturing outputs, 3D panel, EDZ/DXF/AML exchange. **
 parked. A **pilot preview** (milestone M-PP, release 0.0.x, an unsigned build for the pilot only) sits before the
 MVP: interactive 2D editing of *new* projects with the starter symbols, the core reports, PDF and the core online
 checks; it adds no release column, because it is a slice of MVP rows ([global plan](../plan/01-global-plan.md)
-§5.3). The mapping to milestones is MVP = M2, 1.0 = M6 ([architecture](04-architecture.md) §15.2).
+§5.3). The mapping to milestones is MVP = M2, 1.0 = M6 ([architecture](04-architecture.md) §15.2). *Amended
+2026-11-05 (decision log ID-1402):* the symbol editor is milestone **M2.5**, its own release **0.2.0** right after the
+MVP's 0.1.0 and before M3's first release; it is the only item of that release.
 
 **Dates are not set here.** The calendar is the plan of record: see [global plan](../plan/01-global-plan.md)
 §3.4 and §5.1 and [milestones.csv](../plan/milestones.csv). For the plan of record (three developers, lean scope,
@@ -323,7 +325,7 @@ re-baselines them from measured velocity at G-M1.
 |---|---|---|---|---|
 | **PRJ** project & structure | Master data, party roles (D-30), structured supply, IEC 81346 structure nodes (=P01, +J-E-2416), sections, company basic project | Multiple structure aspects in navigators, external project references resolved when open | Multi-project workspaces | — |
 | **PAG** pages & frames | Page types, sparse folios, sub-pages for report continuations (901.1), generated section dividers, 17 × 8 frame, Prev/Next, page navigator | Frame/form editor, A3 and other sheet sizes | — | — |
-| **SYM** symbols | Starter IEC 60617 and ISO 1219 set for the golden project; QET element import; symbol editor (Should) | Full IEC 60617 and ISO 1219 library, symbol linting | Generated symbol families | — |
+| **SYM** symbols | Starter IEC 60617 and ISO 1219 set for the golden project; QET element import; symbol editor (Should). *Amended 2026-11-05 (ID-1402):* the symbol editor is a Must of release 0.2.0 (M2.5), right after the MVP | Full IEC 60617 and ISO 1219 library, symbol linting | Generated symbol families | — |
 | **DEV** devices | Devices, functions, main/aux, black boxes, assemblies with children (valve terminal), spares | Device selection by function, aspects for all PLC and bus roles | Safety-function records (required PL/SIL, category, subsystems) | — |
 | **NUM** tags & numbering | Identifier sets (EN 81346-2:2009 default, IEC 81346-2:2019, IEC 60750), page-based rule -101F1, frozen tags, previewed renumber | Wire-number and terminal-numbering schemes per profile | Numbering from PLC data | — |
 | **CON** connections | Explicit connections, junctions with sequence, potentials, bonds, wire properties with provenance, wire numbers | Net definitions per signal, clamp-capacity data | — | — |
@@ -361,7 +363,7 @@ re-baselines them from measured velocity at G-M1.
 
 | Lever | Moves | Items affected (area) |
 |---|---|---|
-| (a) | MVP Should and Could work to 1.0 | Headless read-only `ew mcp` (EXT), symbol editor (SYM), QET migration assistants for cables, fluid map, layout binding and reconstruction (IMP) |
+| (a) | MVP Should and Could work to 1.0 | Headless read-only `ew mcp` (EXT), QET migration assistants for cables, fluid map, layout binding and reconstruction (IMP). *Amended 2026-11-05 (ID-1402):* the symbol editor (SYM) left this lever; it is milestone M2.5, release 0.2.0 |
 | (b) | QET project migration from the MVP to the 0.x release after it (M3) | QET project import, formulas, strips, tables, corpus and migration verifier (IMP; SC-4 closes at G-M3); QET element import stays in the MVP |
 | (c) | Breadth beyond the four binding v1 additions (PLC/I-O, manufacturing outputs, 3D panel with routing and lengths, EPLAN/QET/DXF import) from 1.0 to 1.x | Thermal calculation (THM), project translations and XLIFF (I18N), revision compare, change lists, clouds and the review and merge UI (REV), forms editor and ISO 5457 frames (PAG), macro placeholders and variants (MAC), automation scripts, jobsets and MCP writes (EXT), editor completion (UI), GSD/GSDML/IODD import (PLC), model views, busbars, bonding and glTF/STL/STEP export (LAY, EXP), verification checklists and the read-only wiring viewer (MFG), the full IEC 60617 and ISO 1219 libraries (SYM) |
 

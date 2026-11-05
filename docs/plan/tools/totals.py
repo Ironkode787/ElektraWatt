@@ -32,11 +32,12 @@ STREAMS = {"S0": "Project foundation and governance", "S1": "Core model and deri
            "S7": "Content: symbols, parts, golden project, docs"}
 WBS_MS = {"M0": "M0 Kick-off and foundations", "M1": "M1 Spine exit: headless golden PDF",
           "M-PP": "M-PP Pilot preview 0.0.x", "M2": "M2 MVP: pilot release",
+          "M2.5": "M2.5 Symbol editor",
           "M3": "M3 Automation breadth: PLC, bus, fluid, exchange", "M4": "M4 Manufacturing and 2D/3D panel",
           "M5": "M5 1.0 feature complete (beta)", "M6": "M6 1.0 release", "1.x": "1.x backlog bucket (no milestone)"}
 LEVER_MS = {"a": "M5", "b": "M3", "c": "1.x"}
-RELEASE = {"M0": "MVP", "M1": "MVP", "M-PP": "MVP", "M2": "MVP", "M3": "1.0", "M4": "1.0", "M5": "1.0", "M6": "1.0",
-           "1.x": "1.x"}
+RELEASE = {"M0": "MVP", "M1": "MVP", "M-PP": "MVP", "M2": "MVP", "M2.5": "0.2.0", "M3": "1.0", "M4": "1.0", "M5": "1.0",
+           "M6": "1.0", "1.x": "1.x"}
 
 ROWS = load_rows()
 ROWD = {r["wp_id"]: r for r in ROWS}
@@ -123,7 +124,7 @@ def catalogue_rows():
             cells = [c.strip() for c in m.group(2).split("|")]
             if len(cells) >= 5 and cells[1] in ("Must", "Should", "Could") and m.group(1) not in seen:
                 seen.add(m.group(1))
-                if cells[2].startswith("MVP") or cells[2] == "1.0":
+                if cells[2].startswith("MVP") or cells[2] in ("0.2.0", "1.0"):
                     n += 1
     return n
 
@@ -136,7 +137,7 @@ def b_plausibility():
     lane2 = sum(pert(r) for r in spine if r["wp_id"][:6] == "WP-S3." and int(r["wp_id"][6:8]) <= 5)
     tot = sum(pert(r) for r in spine)
     return "\n".join([
-        f"- **Per requirement.** The catalogues hold {n} rows released at MVP or 1.0. {f1(full)} pw over them is",
+        f"- **Per requirement.** The catalogues hold {n} rows released at MVP, 0.2.0 or 1.0. {f1(full)} pw over them is",
         f"  {full / n:.2f} pw, about {full / n * 5:.1f} productive days per row, each with an acceptance criterion, "
         "tests and documentation. For an ECAD application whose rows include an AML exchange with three-way merge, "
         "a STEP worker and negotiated-congestion routing, this is not slack.",

@@ -1,6 +1,6 @@
 # Functional requirements: core ECAD
 
-**Status:** Draft v0.2 · **Date:** 2026-10-18 (amended 2026-10-30: FR-OUT-019's acceptance on Windows and Linux, macOS is not a supported platform, decision log ID-880; amended 2026-10-29, cycle-35 design pass: FR-DEV-038's as-built note, the join before placing built and the typed-tag offer deferred, decision log ID-817, ID-830; amended 2026-10-22, cycle-22 design pass: FR-PAG-024's acceptance text follows the derived page order, decision log ID-538; amended 2026-10-23, cycle-23 design pass: FR-PRJ-020's acceptance note, its "external points" are IP functions whose structure `ip_structure` resolves, decision log ID-571; amended 2026-10-24, cycle-24 design pass: FR-DEV-032's example replaces an authored device field and FR-CON-017's provenance names the supplying profiles, decision log ID-598; amended 2026-10-25, cycle-27 design pass: FR-PRT-017's reading for the parts import, decision log ID-651; amended 2026-10-27, cycle-29 design pass: notes on FR-PAG-012 (the folios `page.create` refuses), FR-CON-019 (the colour check of `fields.set`) and FR-NUM-028 (online numbering by anchor cell), decision log ID-670, ID-671; FR-NUM-028's tie-break by what is printed (FT-440) and FR-PAG-012's acceptance text, decision log ID-675; amended 2026-10-28, cycle-30 design pass: FR-NUM-028's note on the wire orientation (FT-478) and FR-PAG-024's drag as built, decision log ID-704, ID-709) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.2 · **Date:** 2026-10-18 (amended 2026-11-05, cycle 52: FR-SYM-017 becomes a Must of release 0.2.0, the symbol editor's milestone M2.5 right after 0.1.0, and the release column gains 0.2.0, decision log ID-1402; amended 2026-10-30: FR-OUT-019's acceptance on Windows and Linux, macOS is not a supported platform, decision log ID-880; amended 2026-10-29, cycle-35 design pass: FR-DEV-038's as-built note, the join before placing built and the typed-tag offer deferred, decision log ID-817, ID-830; amended 2026-10-22, cycle-22 design pass: FR-PAG-024's acceptance text follows the derived page order, decision log ID-538; amended 2026-10-23, cycle-23 design pass: FR-PRJ-020's acceptance note, its "external points" are IP functions whose structure `ip_structure` resolves, decision log ID-571; amended 2026-10-24, cycle-24 design pass: FR-DEV-032's example replaces an authored device field and FR-CON-017's provenance names the supplying profiles, decision log ID-598; amended 2026-10-25, cycle-27 design pass: FR-PRT-017's reading for the parts import, decision log ID-651; amended 2026-10-27, cycle-29 design pass: notes on FR-PAG-012 (the folios `page.create` refuses), FR-CON-019 (the colour check of `fields.set`) and FR-NUM-028 (online numbering by anchor cell), decision log ID-670, ID-671; FR-NUM-028's tie-break by what is printed (FT-440) and FR-PAG-012's acceptance text, decision log ID-675; amended 2026-10-28, cycle-30 design pass: FR-NUM-028's note on the wire orientation (FT-478) and FR-PAG-024's drag as built, decision log ID-704, ID-709) · **Part of:** ElektraWatt design document set
 
 > **Anonymization note:** dates and the manufacturing year of the reference project in this document are synthetic placeholders, not the original values.
 
@@ -47,7 +47,7 @@ requirements are in [02c](02c-nonfunctional-requirements.md).
 | **ID** | `FR-<AREA>-<nnn>`. IDs are stable. A withdrawn requirement keeps its ID with the text "Withdrawn"; numbers are never reused |
 | **Requirement** | One testable statement, "The system shall …". Terms follow the accepted [architecture](04-architecture.md): *Device*, *Function*, *Representation*, *Connection*, *Junction*, *connection point (CP)*, *potential*, *report block*, *command*, *transaction*, *derived* (computed by a query, never stored) |
 | **Prio** | Priority within the release: **Must**, **Should**, **Could** |
-| **Release** | **MVP** = what the pilot user needs to stop using QElectroTech for new projects (interactive 2D schematics reproducing the reference set, QET import, core reports, PDF, checks). **1.0** = full v1 scope (adds PLC/bus/fluid breadth, manufacturing outputs, 3D panel, EDZ/DXF/AML exchange). **1.x** = after 1.0. **Later** = parked. A staged row ("MVP / 1.0") delivers the part named in its text at MVP and is complete at 1.0; it is counted under its first release. Release targets per area follow [vision and scope](00-vision-and-scope.md) §9 |
+| **Release** | **MVP** = what the pilot user needs to stop using QElectroTech for new projects (interactive 2D schematics reproducing the reference set, QET import, core reports, PDF, checks). **0.2.0** = the symbol editor's release right after the MVP (milestone M2.5; amended 2026-11-05, decision log ID-1402). **1.0** = full v1 scope (adds PLC/bus/fluid breadth, manufacturing outputs, 3D panel, EDZ/DXF/AML exchange). **1.x** = after 1.0. **Later** = parked. A staged row ("MVP / 1.0") delivers the part named in its text at MVP and is complete at 1.0; it is counted under its first release. Release targets per area follow [vision and scope](00-vision-and-scope.md) §9 |
 | **Source** | Where the requirement comes from (abbreviations in §1.2) |
 | **Acceptance criterion** | The observable result that makes the requirement pass. "GP" is the golden project |
 
@@ -216,7 +216,7 @@ symbols; it never copies the IEC database or bundles the QET element collection 
 | FR-SYM-014 | The system shall draw mechanical linkages (actuator to contacts, actuator to process valve) as derived dashed lines between the related functions, never as free graphics. | Must | MVP | REF-032, D-28 | Moving S51's actuator symbol moves its dashed linkage; the linkage cannot be selected as a free line. |
 | FR-SYM-015 | The system shall let the user rotate, mirror and cycle symbol variants and representation types while placing, with CPs snapped to the page grid. | Must | MVP | EPL §3.1, G5 | During placement of a contact, pressing the variant key cycles variants A–H; the committed representation stores the chosen variant. |
 | FR-SYM-016 | The system shall keep symbols in versioned libraries and embed every used symbol in the project with {library, item, version, sha256}, and shall update embedded symbols only by a previewed "update from library" command. | Must | MVP | G2, ARCH §7.7 | GP opens and prints with no library installed; updating the lamp symbol lists every affected page before commit. |
-| FR-SYM-017 | The system shall provide a symbol editor to draw graphics, place CPs, assign a FnDef, define text slots, anchors and variants, with live preview. | Should | MVP | EPL §3.1, VIS §9 | The CPX power block of folio 106 can be drawn as a new symbol (pins 1–5, FE) and placed. |
+| FR-SYM-017 | The system shall provide a symbol editor to draw graphics, place CPs, assign a FnDef, define text slots, anchors and variants, with live preview. | Must | 0.2.0 | EPL §3.1, VIS §9, ID-1402 | The CPX power block of folio 106 can be drawn as a new symbol (pins 1–5, FE) and placed. Amended 2026-11-05 (decision log ID-1402): was Should of the MVP, which lever (a) moved to 1.0; the owner made the symbol editor milestone M2.5 and its own release 0.2.0, right after 0.1.0, as a Must. |
 | FR-SYM-018 | The system shall hold symbols converted from imported projects in a per-project import library on their native grid, with provenance, and allow later assignment of a FnDef. | Must | MVP | ADR-0021, IOF §1.12, REF-095 | After QET import of the reference set, the heater symbol of E55 is in the "QET import" library with its source element name and grid. |
 | FR-SYM-019 | The system shall record per symbol its licence (SPDX), author, source and an optional IEC 60617 reference number as metadata. | Must | MVP | STD §4, ADR-0024 | Every starter symbol carries `CC-BY-SA-4.0` with the design exception and no IEC description text. |
 | FR-SYM-020 | The system shall lint symbols: CPs on grid, unique CP indices, anchor defined, variants consistent with the source, required text slots present, licence present. | Should | 1.0 | VIS §9 | The lint run over the shipped library reports zero errors in CI. |
@@ -955,36 +955,38 @@ Defects D-01 … D-42 ([reference analysis](../research/reference-drawing.md) §
 
 ## Appendix B: counts per area, priority and release
 
-Generated from the tables above. The staged row FR-CHK-005 ("MVP / 1.0") is counted under MVP. The counts are for
+Generated from the tables above. The staged row FR-CHK-005 ("MVP / 1.0") is counted under MVP. Amended 2026-11-05
+(decision log ID-1402): FR-SYM-017 moved from a Should of the MVP to a Must of 0.2.0, the column added for it. The counts are for
 the **full-scope release labels**; the plan's lean variant moves rows between the release columns if PD-1 is adopted
 ([vision and scope](00-vision-and-scope.md) §9.1, [global plan](../plan/01-global-plan.md) §14,
 [decision log](../plan/06-decision-log.md)). The five rows FR-DEV-040, FR-CBL-021, FR-PRT-036, FR-REP-052 and
 FR-CHK-062 were added for the scope boundaries of vision §9.2 (02b adds FR-LAY-067 and FR-EXP-012).
 
-| Area | Total | Must | Should | Could | MVP | 1.0 | 1.x | Later |
-|---|---|---|---|---|---|---|---|---|
-| PRJ | 29 | 17 | 11 | 1 | 24 | 4 | 1 | 0 |
-| PAG | 31 | 26 | 2 | 3 | 24 | 5 | 2 | 0 |
-| SYM | 30 | 22 | 6 | 2 | 24 | 4 | 1 | 1 |
-| DEV | 40 | 28 | 10 | 2 | 35 | 2 | 3 | 0 |
-| NUM | 32 | 23 | 7 | 2 | 27 | 4 | 1 | 0 |
-| CON | 45 | 35 | 8 | 2 | 39 | 6 | 0 | 0 |
-| XRF | 25 | 18 | 6 | 1 | 24 | 1 | 0 | 0 |
-| TRM | 27 | 20 | 6 | 1 | 22 | 4 | 1 | 0 |
-| CBL | 21 | 14 | 6 | 1 | 15 | 5 | 1 | 0 |
-| PRT | 36 | 19 | 14 | 3 | 23 | 8 | 5 | 0 |
-| MAC | 18 | 8 | 8 | 2 | 9 | 8 | 1 | 0 |
-| REP | 52 | 37 | 11 | 4 | 35 | 14 | 3 | 0 |
-| OUT | 27 | 17 | 6 | 4 | 20 | 4 | 0 | 3 |
-| CHK | 62 | 44 | 17 | 1 | 48 | 12 | 2 | 0 |
-| REV | 25 | 14 | 9 | 2 | 15 | 9 | 1 | 0 |
-| **All** | **500** | **342** | **127** | **31** | **384** | **90** | **22** | **4** |
+| Area | Total | Must | Should | Could | MVP | 0.2.0 | 1.0 | 1.x | Later |
+|---|---|---|---|---|---|---|---|---|---|
+| PRJ | 29 | 17 | 11 | 1 | 24 | 0 | 4 | 1 | 0 |
+| PAG | 31 | 26 | 2 | 3 | 24 | 0 | 5 | 2 | 0 |
+| SYM | 30 | 23 | 5 | 2 | 23 | 1 | 4 | 1 | 1 |
+| DEV | 40 | 28 | 10 | 2 | 35 | 0 | 2 | 3 | 0 |
+| NUM | 32 | 23 | 7 | 2 | 27 | 0 | 4 | 1 | 0 |
+| CON | 45 | 35 | 8 | 2 | 39 | 0 | 6 | 0 | 0 |
+| XRF | 25 | 18 | 6 | 1 | 24 | 0 | 1 | 0 | 0 |
+| TRM | 27 | 20 | 6 | 1 | 22 | 0 | 4 | 1 | 0 |
+| CBL | 21 | 14 | 6 | 1 | 15 | 0 | 5 | 1 | 0 |
+| PRT | 36 | 19 | 14 | 3 | 23 | 0 | 8 | 5 | 0 |
+| MAC | 18 | 8 | 8 | 2 | 9 | 0 | 8 | 1 | 0 |
+| REP | 52 | 37 | 11 | 4 | 35 | 0 | 14 | 3 | 0 |
+| OUT | 27 | 17 | 6 | 4 | 20 | 0 | 4 | 0 | 3 |
+| CHK | 62 | 44 | 17 | 1 | 48 | 0 | 12 | 2 | 0 |
+| REV | 25 | 14 | 9 | 2 | 15 | 0 | 9 | 1 | 0 |
+| **All** | **500** | **343** | **126** | **31** | **383** | **1** | **90** | **22** | **4** |
 
 Priority by release (all areas):
 
 | Release | Must | Should | Could | Total |
 |---|---|---|---|---|
-| MVP | 313 | 69 | 2 | 384 |
+| MVP | 313 | 68 | 2 | 383 |
+| 0.2.0 | 1 | 0 | 0 | 1 |
 | 1.0 | 29 | 53 | 8 | 90 |
 | 1.x | 0 | 5 | 17 | 22 |
 | Later | 0 | 0 | 4 | 4 |

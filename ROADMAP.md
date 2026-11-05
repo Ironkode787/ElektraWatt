@@ -19,6 +19,7 @@ behind the order are in the [global plan](docs/plan/01-global-plan.md).
 | M1 | Spine exit: headless golden PDF | `ew export pdf` writes the whole reference drawing set from the model, headless; the acceptance tests pass |
 | M-PP | Pilot preview 0.0.x | Interactive 2D editing of new projects with the starter symbols, core reports and PDF; unsigned builds for the pilot only |
 | M2 | MVP: pilot release 0.1.0 | The first release, for Windows and Linux: a per-user Windows setup, a Linux AppImage and the command-line archives, with the golden sample and the documentation inside. Interactive 2D editing of the reference set, QET imports and the pre-delivery check. It is unsigned and has no update check and no crash upload |
+| M2.5 | Symbol editor: release 0.2.0 | The symbol editor, in its own release right after 0.1.0: draw a symbol, place its connection points on the grid, give it a function definition, text slots and variants, and place it on a page. Any change it makes to the file format comes with its migration |
 | M3 | Automation breadth | PLC, bus and fluid models; exchange with TIA Portal and PLCopen tools; EDZ, DXF and DWG import; automation workspaces |
 | M4 | Manufacturing and 2D/3D panel | The STEP worker, the 3D view, collision, routing and wire lengths; wire records, ferrules, labels and machine profiles; the `.ewpp` package |
 | M5 | 1.0 feature complete (beta) | Every 1.0 feature merged; beta releases for the pilot and early adopters |
@@ -37,6 +38,7 @@ delivery comes every second cycle. Measured by content, not by date:
 | M1 | Delivered with follow-up tasks: the model, the commands, the derived data, the checks, the reports and the PDF of the reference project are produced headlessly |
 | M-PP | Closed: the pilot-preview gate was recorded as Go |
 | M2 | In progress, toward the pilot release 0.1.0 on Windows and Linux, unsigned and with no network code |
+| M2.5 | Not started: the symbol editor is built once 0.1.0 is released |
 | M3 to M6, 1.x | Not started |
 
 What works today, in short: the desktop window opens, edits and checks a project, with navigators, table mode, a

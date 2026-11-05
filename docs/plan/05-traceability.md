@@ -8,7 +8,7 @@
 
 ## Summary for decision makers
 
-**Result in one paragraph.** The catalogues hold 1081 requirements (934 FR, 147 NFR). The 126 WPs cover 1058 of them (97.9 %). No MVP or 1.0 Must or Should requirement that the plan promises lacks a WP (§3). In the full scope, no MVP Must/Should requirements are covered only by WPs after M2; in the lean scope of record, 24 such requirements, because the scope levers move their WPs until the catalogues are re-labelled (§4). No WP cites a token that is not a requirement ID or that names no requirement (§5).
+**Result in one paragraph.** The catalogues hold 1081 requirements (934 FR, 147 NFR). The 126 WPs cover 1058 of them (97.9 %). No MVP or 1.0 Must or Should requirement that the plan promises lacks a WP (§3). In the full scope, no MVP Must/Should requirements are covered only by WPs after M2; in the lean scope of record, 23 such requirements, because the scope levers move their WPs until the catalogues are re-labelled (§4). No WP cites a token that is not a requirement ID or that names no requirement (§5).
 
 **What is asked of the plan owner.** (1) Treat the gap lists of §3 as input to the next WP revision: each listed ID either joins an existing WP, gets a new WP, or is re-labelled in the catalogue (release or priority) with a decision record. (2) Fix the invalid citations of §5, which are typing errors, not scope decisions. (3) Re-run `python3 -I docs/plan/tools/trace.py` after every change of the CSV or the catalogues; the gate reviews of [gates](03-gates.md) use this document as their scope check.
 
@@ -37,7 +37,7 @@ python3 -I docs/plan/tools/trace.py --check  # exit code 1 if the committed outp
 | Step | Input | Rule |
 |---|---|---|
 | Catalogue | tables of 02a, 02b, 02c | Every table row whose first cell is `FR-xxx-nnn` or `NFR-xxx-nn` and whose third cell is Must, Should or Could. Cells: requirement, priority, release, source, acceptance criterion. First occurrence wins. |
-| Release buckets | Release cell | `MVP` and `MVP / 1.0` count as **MVP** (a split row owes its MVP part at the MVP); `1.0` is **1.0**; `1.x` and `Later` are **1.x/Later**. |
+| Release buckets | Release cell | `MVP` and `MVP / 1.0` count as **MVP** (a split row owes its MVP part at the MVP); `1.0` is **1.0**; `0.2.0` (the symbol editor's release, M2.5, ID-1402) is **0.2.0**; `1.x` and `Later` are **1.x/Later**. |
 | WP citations | `requirements` column | Space-separated tokens. A range `A..B` expands to all numbers between its ends (same area, ascending). A token that is no ID, a reversed or cross-area range, a single ID absent from the catalogue, or a range none of whose members exist is an **invalid citation**. A range with some missing members is a **range hole** (members dropped, listed in §5). |
 | Coverage | all of the above | A requirement is **covered** if at least one WP cites it. Citing is not proof of completion; it is the minimum for the plan to be able to deliver the requirement. |
 | Gaps | catalogue minus coverage | Uncovered rows with priority Must or Should in bucket MVP or 1.0. Could, 1.x and Later rows are summarised in §2 and listed in the CSV only. |
@@ -51,60 +51,61 @@ Limits: the script checks *citation*, not content. A WP that cites 40 requiremen
 
 ## 2. Coverage per area, release and priority
 
-Cells show *covered / total*. Release bucket by §1. The last column pools 1.x and Later at all priorities.
+Cells show *covered / total*. Release bucket by §1. The 0.2.0 column pools its priorities, and the last column pools 1.x and Later at all priorities.
 
-| Area | MVP Must | MVP Should | MVP Could | 1.0 Must | 1.0 Should | 1.0 Could | 1.x / Later | All |
-|---|---|---|---|---|---|---|---|---|
-| FR-BUS | 9/9 | – | – | 4/4 | 8/8 | – | 2/3 **!** | 23/24 |
-| FR-CBL | 13/13 | 2/2 | – | 1/1 | 3/3 | 1/1 | 0/1 **!** | 20/21 |
-| FR-CHK | 38/38 | 10/10 | – | 6/6 | 6/6 | – | 1/2 **!** | 61/62 |
-| FR-COL | 13/13 | 6/6 | – | 3/3 | 3/3 | – | 3/4 **!** | 28/29 |
-| FR-CON | 34/34 | 4/4 | 1/1 | 1/1 | 4/4 | 1/1 | – | 45/45 |
-| FR-DEV | 27/27 | 8/8 | – | 1/1 | 1/1 | – | 2/3 **!** | 39/40 |
-| FR-EXP | 6/6 | – | – | – | 2/2 | 1/1 | 1/3 **!** | 10/12 |
-| FR-EXT | 16/16 | 4/4 | 2/2 | 2/2 | 5/5 | – | 8/8 | 37/37 |
-| FR-FLU | 7/7 | 4/4 | – | 8/8 | 8/8 | 4/4 | 2/3 **!** | 33/34 |
-| FR-I18N | 6/6 | – | – | 4/4 | 3/3 | – | 3/3 | 16/16 |
-| FR-IMP | 23/23 | 6/6 | – | 6/6 | 6/6 | 1/1 | 2/3 **!** | 44/45 |
-| FR-LAY | 14/14 | 7/7 | – | 20/20 | 13/13 | 3/3 | 8/10 **!** | 65/67 |
-| FR-MAC | 7/7 | 2/2 | – | 1/1 | 6/6 | 1/1 | 1/1 | 18/18 |
-| FR-MFG | – | – | – | 31/31 | 9/9 | 2/2 | 7/9 **!** | 49/51 |
-| FR-NUM | 21/21 | 6/6 | – | 2/2 | 1/1 | 1/1 | 1/1 | 32/32 |
-| FR-OUT | 16/16 | 4/4 | – | 1/1 | 2/2 | 1/1 | 0/3 **!** | 24/27 |
-| FR-PAG | 23/23 | 1/1 | – | 3/3 | 1/1 | 1/1 | 2/2 | 31/31 |
-| FR-PLC | 22/22 | 4/4 | – | 15/15 | 10/10 | – | 4/5 **!** | 55/56 |
-| FR-PRJ | 17/17 | 7/7 | – | – | 4/4 | – | 1/1 | 29/29 |
-| FR-PRT | 16/16 | 7/7 | – | 3/3 | 5/5 | – | 4/5 **!** | 35/36 |
-| FR-REP | 31/31 | 4/4 | – | 6/6 | 7/7 | 1/1 | 2/3 **!** | 51/52 |
-| FR-REV | 12/12 | 3/3 | – | 2/2 | 6/6 | 1/1 | 1/1 | 25/25 |
-| FR-SYM | 21/21 | 3/3 | – | 1/1 | 3/3 | – | 1/2 **!** | 29/30 |
-| FR-THM | – | – | – | 7/7 | 3/3 | – | 1/2 **!** | 11/12 |
-| FR-TRM | 19/19 | 3/3 | – | 1/1 | 3/3 | – | 1/1 | 27/27 |
-| FR-UI | 27/27 | 13/13 | 2/2 | 3/3 | 4/4 | 1/1 | 0/1 **!** | 50/51 |
-| FR-XRF | 18/18 | 5/5 | 1/1 | – | 1/1 | – | – | 25/25 |
-| NFR-A11Y | 4/4 | – | – | – | 2/2 | – | – | 6/6 |
-| NFR-COMP | 4/4 | – | – | 1/1 | 2/2 | – | 0/1 **!** | 7/8 |
-| NFR-DOC | 8/8 | 1/1 | – | – | – | – | – | 9/9 |
-| NFR-I18N | 4/4 | 2/2 | – | – | 1/1 | – | – | 7/7 |
-| NFR-LIC | 11/11 | 2/2 | – | – | 1/1 | – | – | 14/14 |
-| NFR-MAINT | 10/10 | 3/3 | – | – | – | – | – | 13/13 |
-| NFR-PERF | 15/15 | 4/4 | – | 2/2 | 4/4 | – | – | 25/25 |
-| NFR-PLAT | 7/7 | – | – | – | 1/1 | – | – | 8/8 |
-| NFR-PRIV | 5/5 | 3/3 | – | 1/1 | 1/1 | – | – | 10/10 |
-| NFR-REL | 13/13 | 1/1 | – | 1/1 | 2/2 | – | – | 17/17 |
-| NFR-SEC | 14/14 | 3/3 | – | 1/1 | 1/1 | – | 2/2 | 21/21 |
-| NFR-UX | 5/5 | 4/4 | – | – | – | – | – | 9/9 |
-| **TOTAL** | 556/556 | 136/136 | 6/6 | 138/138 | 142/142 | 20/20 | 60/83 **!** | 1058/1081 |
+| Area | MVP Must | MVP Should | MVP Could | 1.0 Must | 1.0 Should | 1.0 Could | 0.2.0 | 1.x / Later | All |
+|---|---|---|---|---|---|---|---|---|---|
+| FR-BUS | 9/9 | – | – | 4/4 | 8/8 | – | – | 2/3 **!** | 23/24 |
+| FR-CBL | 13/13 | 2/2 | – | 1/1 | 3/3 | 1/1 | – | 0/1 **!** | 20/21 |
+| FR-CHK | 38/38 | 10/10 | – | 6/6 | 6/6 | – | – | 1/2 **!** | 61/62 |
+| FR-COL | 13/13 | 6/6 | – | 3/3 | 3/3 | – | – | 3/4 **!** | 28/29 |
+| FR-CON | 34/34 | 4/4 | 1/1 | 1/1 | 4/4 | 1/1 | – | – | 45/45 |
+| FR-DEV | 27/27 | 8/8 | – | 1/1 | 1/1 | – | – | 2/3 **!** | 39/40 |
+| FR-EXP | 6/6 | – | – | – | 2/2 | 1/1 | – | 1/3 **!** | 10/12 |
+| FR-EXT | 16/16 | 4/4 | 2/2 | 2/2 | 5/5 | – | – | 8/8 | 37/37 |
+| FR-FLU | 7/7 | 4/4 | – | 8/8 | 8/8 | 4/4 | – | 2/3 **!** | 33/34 |
+| FR-I18N | 6/6 | – | – | 4/4 | 3/3 | – | – | 3/3 | 16/16 |
+| FR-IMP | 23/23 | 6/6 | – | 6/6 | 6/6 | 1/1 | – | 2/3 **!** | 44/45 |
+| FR-LAY | 14/14 | 7/7 | – | 20/20 | 13/13 | 3/3 | – | 8/10 **!** | 65/67 |
+| FR-MAC | 7/7 | 2/2 | – | 1/1 | 6/6 | 1/1 | – | 1/1 | 18/18 |
+| FR-MFG | – | – | – | 31/31 | 9/9 | 2/2 | – | 7/9 **!** | 49/51 |
+| FR-NUM | 21/21 | 6/6 | – | 2/2 | 1/1 | 1/1 | – | 1/1 | 32/32 |
+| FR-OUT | 16/16 | 4/4 | – | 1/1 | 2/2 | 1/1 | – | 0/3 **!** | 24/27 |
+| FR-PAG | 23/23 | 1/1 | – | 3/3 | 1/1 | 1/1 | – | 2/2 | 31/31 |
+| FR-PLC | 22/22 | 4/4 | – | 15/15 | 10/10 | – | – | 4/5 **!** | 55/56 |
+| FR-PRJ | 17/17 | 7/7 | – | – | 4/4 | – | – | 1/1 | 29/29 |
+| FR-PRT | 16/16 | 7/7 | – | 3/3 | 5/5 | – | – | 4/5 **!** | 35/36 |
+| FR-REP | 31/31 | 4/4 | – | 6/6 | 7/7 | 1/1 | – | 2/3 **!** | 51/52 |
+| FR-REV | 12/12 | 3/3 | – | 2/2 | 6/6 | 1/1 | – | 1/1 | 25/25 |
+| FR-SYM | 21/21 | 2/2 | – | 1/1 | 3/3 | – | 1/1 | 1/2 **!** | 29/30 |
+| FR-THM | – | – | – | 7/7 | 3/3 | – | – | 1/2 **!** | 11/12 |
+| FR-TRM | 19/19 | 3/3 | – | 1/1 | 3/3 | – | – | 1/1 | 27/27 |
+| FR-UI | 27/27 | 13/13 | 2/2 | 3/3 | 4/4 | 1/1 | – | 0/1 **!** | 50/51 |
+| FR-XRF | 18/18 | 5/5 | 1/1 | – | 1/1 | – | – | – | 25/25 |
+| NFR-A11Y | 4/4 | – | – | – | 2/2 | – | – | – | 6/6 |
+| NFR-COMP | 4/4 | – | – | 1/1 | 2/2 | – | – | 0/1 **!** | 7/8 |
+| NFR-DOC | 8/8 | 1/1 | – | – | – | – | – | – | 9/9 |
+| NFR-I18N | 4/4 | 2/2 | – | – | 1/1 | – | – | – | 7/7 |
+| NFR-LIC | 11/11 | 2/2 | – | – | 1/1 | – | – | – | 14/14 |
+| NFR-MAINT | 10/10 | 3/3 | – | – | – | – | – | – | 13/13 |
+| NFR-PERF | 15/15 | 4/4 | – | 2/2 | 4/4 | – | – | – | 25/25 |
+| NFR-PLAT | 7/7 | – | – | – | 1/1 | – | – | – | 8/8 |
+| NFR-PRIV | 5/5 | 3/3 | – | 1/1 | 1/1 | – | – | – | 10/10 |
+| NFR-REL | 13/13 | 1/1 | – | 1/1 | 2/2 | – | – | – | 17/17 |
+| NFR-SEC | 14/14 | 3/3 | – | 1/1 | 1/1 | – | – | 2/2 | 21/21 |
+| NFR-UX | 5/5 | 4/4 | – | – | – | – | – | – | 9/9 |
+| **TOTAL** | 556/556 | 135/135 | 6/6 | 138/138 | 142/142 | 20/20 | 1/1 | 60/83 **!** | 1058/1081 |
 
 `!` marks a cell with uncovered requirements. Only MVP and 1.0 Must/Should cells are gaps; Could and 1.x cells are reported for information.
 
-**Covered in time, full and lean scope.** A row is covered in time when its earliest covering WP is at or before the row's release (M2 for MVP rows, M6 for 1.0 rows), judged with the full-scope `milestone` and with the lean `milestone_lean` of [work-packages.csv](work-packages.csv). The difference is what the scope levers move until the catalogues are re-labelled (PD-1; §4 lists the rows).
+**Covered in time, full and lean scope.** A row is covered in time when its earliest covering WP is at or before the row's release (M2 for MVP rows, M2.5 for 0.2.0 rows, M6 for 1.0 rows), judged with the full-scope `milestone` and with the lean `milestone_lean` of [work-packages.csv](work-packages.csv). The difference is what the scope levers move until the catalogues are re-labelled (PD-1; §4 lists the rows).
 
 | Release | Priority | Rows | Covered in time, full scope | Covered in time, lean scope | Moved by the levers |
 |---|---|---|---|---|---|
 | MVP | Must | 556 | 556 | 539 | 17 |
-| MVP | Should | 136 | 136 | 129 | 7 |
+| MVP | Should | 135 | 135 | 129 | 6 |
 | MVP | Could | 6 | 6 | 4 | 2 |
+| 0.2.0 | Must | 1 | 1 | 1 | – |
 | 1.0 | Must | 138 | 138 | 111 | 27 |
 | 1.0 | Should | 142 | 142 | 97 | 45 |
 | 1.0 | Could | 20 | 20 | 14 | 6 |
@@ -173,9 +174,9 @@ Requirements covered on paper whose earliest covering WP comes after the release
 
 None.
 
-### 4.2 MVP rows after M2, lean scope (24)
+### 4.2 MVP rows after M2, lean scope (23)
 
-These rows are moved by the levers (lever (a): 8, lever (b): 16). They are owed by the MVP in the catalogues today; the catalogue edits that follow PD-1 re-label them to the release of the lever, after which this list is empty.
+These rows are moved by the levers (lever (a): 7, lever (b): 16). They are owed by the MVP in the catalogues today; the catalogue edits that follow PD-1 re-label them to the release of the lever, after which this list is empty.
 
 | ID | Prio | Requirement (abridged) | Earliest WP | WP milestone | Lever |
 |---|---|---|---|---|---|
@@ -200,7 +201,6 @@ These rows are moved by the levers (lever (a): 8, lever (b): 16). They are owed 
 | FR-IMP-042 | Must | The QET importer shall infer numbering rules per letter cla… | WP-S3.11 | M3 | b |
 | FR-IMP-043 | Must | Conductors without stored segments shall receive the path Q… | WP-S3.10 | M3 | b |
 | FR-IMP-044 | Must | Foreign colour notations (BR, SW, BL, RT, GE, WS, GR, GNGE)… | WP-S3.10 | M3 | b |
-| FR-SYM-017 | Should | provide a symbol editor to draw graphics, place CPs, assign… | WP-S2.10 | M5 | a |
 | NFR-PERF-25 | Should | On BM, importing a reference-size `.qet` shall reach the im… | WP-S3.10 | M3 | b |
 | NFR-SEC-08 | Must | `ew mcp` shall never start implicitly. It listens on stdio… | WP-S1.23 | M5 | a |
 
@@ -561,7 +561,7 @@ Computed counts are in the sections above; this section states what follows from
 
 1. **Gaps.** No owed (Must or Should, MVP or 1.0) requirement lacks a WP; areas with gaps: none.
 2. **Invalid citations.** None: no invalid token and no range with missing members (§5).
-3. **Late coverage.** Full scope: no MVP requirements covered only after M2. Lean scope of record: 24 MVP requirements and 72 1.0 requirements, all moved by the scope levers; the catalogue edits that follow PD-1 re-label them (§4).
+3. **Late coverage.** Full scope: no MVP requirements covered only after M2. Lean scope of record: 23 MVP requirements and 72 1.0 requirements, all moved by the scope levers; the catalogue edits that follow PD-1 re-label them (§4).
 4. **Acceptance ownership.** ACs without a WP that names them: none. Each gate AC should have one owner WP so the gate review has a person to ask.
 5. **Regeneration.** The script is the only source of the tables; change the CSV or the catalogues, re-run, review the diff. The CI check (`--check`) keeps the document honest.
 

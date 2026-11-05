@@ -26,7 +26,7 @@ from wbs import (PLAN, MS, RANK, MS_NAMES, GATE, RESERVE, PROD, LOE, STABILISATI
                  milestone, label, mlabel, f1, r1, week_date, md_table, write_or_check, START, wp_ids_text)
 
 TOOL = "schedule.py"
-SHOWN = ["M0", "G-SP", "M1", "M-PP", "M2", "M3", "M4", "M5", "M6"]   # columns of the milestone tables
+SHOWN = ["M0", "G-SP", "M1", "M-PP", "M2", "M2.5", "M3", "M4", "M5", "M6"]   # columns of the milestone tables
 
 # ------------------------------------------------------------------ scenarios
 # key: (label, scope, joins, efficiency from the last join, capacity factor, estimate, AI speed-up)
@@ -191,14 +191,15 @@ def b_summary():
     out = []
     for name, key, bold in rows:
         cells = []
-        for ms in ("M1", "M-PP", "M2", "M6"):
+        for ms in ("M1", "M-PP", "M2", "M2.5", "M6"):
             if isinstance(key, tuple):
                 c = f"{ml(key[0], ms)} / {ml(key[1], ms)}"
             else:
                 c = ml(key, ms)
             cells.append(f"**{c}**" if bold else c)
         out.append([name] + cells)
-    return md_table(["Scenario", "M1 spine exit", "M-PP pilot preview 0.0.x", "M2 MVP 0.1.0", "M6 release 1.0"], out)
+    return md_table(["Scenario", "M1 spine exit", "M-PP pilot preview 0.0.x", "M2 MVP 0.1.0", "M2.5 symbol editor 0.2.0",
+                     "M6 release 1.0"], out)
 
 
 def b_team_scenarios():
@@ -247,8 +248,8 @@ def dates_table(keys, names, bold_key=None):
             cells = [f"**{c}**" for c in cells]
             name = f"**{name}**"
         rows.append([name] + cells)
-    return md_table(["Team", "M0", "G-SP spike", "M1", "M-PP 0.0.x", "M2 MVP", "M3", "M4", "M5 beta", "M6 1.0"],
-                    rows)
+    return md_table(["Team", "M0", "G-SP spike", "M1", "M-PP 0.0.x", "M2 MVP", "M2.5 0.2.0", "M3", "M4", "M5 beta",
+                     "M6 1.0"], rows)
 
 
 def b_dates(scope):
@@ -331,6 +332,8 @@ def b_phases():
         ("**P3 Interactive MVP**", ["M2"], "M2", "Rule packs, revisions, collaboration, parts libraries and macros; "
          "PLC, bus and fluid MVP model; domain tables, palette, keymaps; 2D panel; packaging, release sums and provenance; "
          "R0 and R1", "S1, S2, S4, S6, S7", "M2, release 0.1.0"),
+        ("**P3a Symbol editor**", ["M2.5"], "M2.5", "The symbol editor (WP-S2.10, FR-SYM-017) after 0.1.0's tag, with "
+         "the migration of any format change it brings (ID-1402)", "S2", "M2.5, release 0.2.0"),
         ("**P4 Automation breadth and migration**", ["M3"], "M3", "PLC, bus and fluid 1.0; QET project migration; AML, "
          "TIA and PLCopen exchange; EDZ; DXF/DWG", "S1, S2, S3", "M3"),
         ("**P5 Physical and manufacturing**", ["M4"], "M4", "STEP worker, 3D model and view, collision, routing, "
@@ -374,11 +377,13 @@ def b_release_train():
         if k in LOE:
             continue
         land[math.ceil(res.finish[k] * 12 / 52 - 1e-9)].append(k)
-    rows = []
-    for n in range(ms["M2"] + 1, ms["M5"]):
+    n25 = ms["M2.5"]           # 0.2.0 is M2.5's release (ID-1402); it carries what lands from the MVP to M2.5
+    first = sorted(k for n in range(ms["M2"] + 1, n25 + 1) for k in land[n])
+    rows = [["0.2.0", mlabel(n25), "**M2.5** at 0.2.0", "; ".join(f"{k} {ROWD[k]['title']}" for k in first)]]
+    for n in range(n25 + 1, ms["M5"]):
         if not land[n]:
             continue
-        rel = f"0.{n - ms['M2'] + 1}.0"
+        rel = f"0.{n - n25 + 2}.0"
         mark = next((f"**{x}** at {rel}" for x in ("M3", "M4") if ms[x] == n), "")
         rows.append([rel, mlabel(n), mark, "; ".join(f"{k} {ROWD[k]['title']}" for k in sorted(land[n]))])
     pre = [k for n in range(0, ms["M2"] + 1) for k in land[n] if RANK[wp[k]["ms"]] > RANK["M2"]]
@@ -523,7 +528,7 @@ def b_gantt_baseline():
         last[ms] = max(res.finish[k] for k in wp if RANK[wp[k]["ms"]] <= RANK[ms] and k not in LOE)
         last[ms] = max([last[ms]] + [last[x] for x in MS[:RANK[ms]]])
     names = {"M0": "M0 foundations", "M1": "M1 spine exit", "M-PP": "M-PP pilot preview 0.0.x",
-             "M2": "M2 MVP 0.1.0", "M3": "M3 automation", "M4": "M4 manufacturing and 3D", "M5": "M5 beta",
+             "M2": "M2 MVP 0.1.0", "M2.5": "M2.5 symbol editor 0.2.0", "M3": "M3 automation", "M4": "M4 manufacturing and 3D", "M5": "M5 beta",
              "M6": "M6 release 1.0"}
     for i, ms in enumerate(MS[:-1]):
         L.append(f"  {names[ms]} :milestone, m{i}, {week_date(last[ms])}, 0d")
@@ -847,7 +852,8 @@ def b_pilot_timeline():
         [mlabel(math.ceil(r0 * 12 / 52 - 1e-9)), "R0", "Formative usability round on the preview build"],
         [mlabel(math.ceil(r1_ * 12 / 52 - 1e-9)), "R1", "Summative usability round on the MVP release candidate"],
         [mlabel(ms["M2"]), "M2, release 0.1.0", "First release (unsigned) for new projects on Windows and Linux"],
-        [mlabel(qet), f"release 0.{qet - ms['M2'] + 1}.0", "Migration of existing QET projects (lever b)"],
+        [mlabel(ms["M2.5"]), "M2.5, release 0.2.0", "The symbol editor: the pilot draws its own symbols (ID-1402)"],
+        [mlabel(qet), f"release 0.{qet - ms['M2.5'] + 2}.0", "Migration of existing QET projects (lever b)"],
         [mlabel(ms["M6"]), "M6, release 1.0", "PLC exchange, 3D layout, wire lengths and machine files"],
     ]
     return md_table(["Month (plan of record)", "Milestone or event", "What the pilot gets"], rows)
@@ -891,7 +897,7 @@ def b_wbs_key_results():
 
 def b_wbs_ms_months():
     rows = []
-    for ms in SHOWN[2:] if False else ["M0", "M1", "M-PP", "M2", "M3", "M4", "M5", "M6"]:
+    for ms in SHOWN[2:] if False else ["M0", "M1", "M-PP", "M2", "M2.5", "M3", "M4", "M5", "M6"]:
         rows.append([ms, MS_NAMES[ms], GATE[ms], ml("3d-full", ms), ml("3d-lean", ms)])
     return md_table(["ID", "Name", "Gate", "Realistic month, 3 developers, full scope",
                      "Realistic month, 3 developers, lean scope (plan of record)"], rows)
@@ -1015,7 +1021,7 @@ def b_wbs_lever_dates():
 
 # ------------------------------------------------------------------ optional blocks for other plan documents
 # Any plan document may place these markers; schedule.py then fills them (and --check verifies them).
-GATES = [("G-SP", "G-SP"), ("G-M0", "M0"), ("G-M1", "M1"), ("G-PP", "M-PP"), ("G-M2", "M2"), ("G-M3", "M3"),
+GATES = [("G-SP", "G-SP"), ("G-M0", "M0"), ("G-M1", "M1"), ("G-PP", "M-PP"), ("G-M2", "M2"), ("G-M2.5", "M2.5"), ("G-M3", "M3"),
          ("G-M4", "M4"), ("G-M5", "M5"), ("G-M6", "M6")]
 
 

@@ -22,16 +22,17 @@ PLAN = Path(__file__).resolve().parents[1]
 DOCS = PLAN.parent
 CSV_PATH = PLAN / "work-packages.csv"
 
-# Milestones in order. M-PP (pilot preview, release 0.0.x) sits between the spine exit and the MVP.
-MS = ["M0", "M1", "M-PP", "M2", "M3", "M4", "M5", "M6", "1.x"]
+# Milestones in order. M-PP (pilot preview, release 0.0.x) sits between the spine exit and the MVP; M2.5 (the symbol
+# editor, release 0.2.0, ID-1402) sits between the MVP and M3.
+MS = ["M0", "M1", "M-PP", "M2", "M2.5", "M3", "M4", "M5", "M6", "1.x"]
 RANK = {m: i for i, m in enumerate(MS)}
 MS_NAMES = {
     "M0": "Kick-off and foundations", "M1": "Spine exit: headless golden PDF", "M-PP": "Pilot preview 0.0.x",
-    "M2": "MVP: pilot release 0.1.0", "M3": "Automation breadth and migration", "M4": "Manufacturing and 2D/3D panel",
-    "M5": "1.0 feature complete (beta)", "M6": "1.0 release", "1.x": "1.x backlog",
+    "M2": "MVP: pilot release 0.1.0", "M2.5": "Symbol editor: release 0.2.0", "M3": "Automation breadth and migration",
+    "M4": "Manufacturing and 2D/3D panel", "M5": "1.0 feature complete (beta)", "M6": "1.0 release", "1.x": "1.x backlog",
 }
-GATE = {"M0": "G-M0", "M1": "G-M1", "M-PP": "G-PP", "M2": "G-M2", "M3": "G-M3", "M4": "G-M4", "M5": "G-M5",
-        "M6": "G-M6"}
+GATE = {"M0": "G-M0", "M1": "G-M1", "M-PP": "G-PP", "M2": "G-M2", "M2.5": "G-M2.5", "M3": "G-M3", "M4": "G-M4",
+        "M5": "G-M5", "M6": "G-M6"}
 START = date(2026, 11, 1)
 PROD = 36 / 52          # productive pw per calendar week per developer (GA-3 / PA-3)
 RESERVE = 0.20          # integration, hardening and bug-fix reserve (GA-6 / PA-8)
