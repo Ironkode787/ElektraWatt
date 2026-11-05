@@ -80,6 +80,8 @@ Download the files and check them as a user would (§9).
 
 Fill [the checklist](checklist.md) for the candidate: each item with its evidence and its signature. WP-S6.08 copies
 the filled checklist into the release dossier (GP-11). A failed item is a blocker (§8).
+The dossier of 0.1.0 is [`dossier/0.1.0/`](dossier/0.1.0/README.md): the checklist of each candidate as
+`checklist-rc.<n>.md`, the acceptance run, the translation report, the manual tests and the go.
 
 ## 7. The promote
 
