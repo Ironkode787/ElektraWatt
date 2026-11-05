@@ -418,7 +418,13 @@ fn find_json(shell: &ShellModel) -> String {
             &results.map_or(Value::Null, |r| Value::from(r.hits.len())),
         ),
         member("truncated", &Value::from(results.is_some_and(|r| r.truncated))),
-        member("error", &opt(results.and_then(|r| r.error.as_deref()))),
+        member(
+            "error",
+            &opt(results
+                .and_then(|r| r.error.as_ref())
+                .map(crate::find::error_text)
+                .as_deref()),
+        ),
         member("row", &f.row().map_or(Value::Null, |r| Value::from(r + 1))),
         member("stale", &Value::from(f.stale(shell.revision()))),
         member("note", &opt(f.note())),

@@ -88,12 +88,9 @@ fn folio_number(folio: &str) -> Option<u32> {
     digits.parse().ok()
 }
 
-/// The text of a purge refusal: the store's own text, except a read error, whose text names a path.
+/// The text of a purge refusal in the window's language (FT-1421): its keyed text, which names no path.
 fn purge_reason(e: &PurgeError) -> String {
-    match e {
-        PurgeError::Io { .. } => strings::text(key!("purge-unreadable")).to_owned(),
-        other => other.to_string(),
-    }
+    super::tools::rejected_words("", Some(&ew_api::purge_refusal(e)))
 }
 
 impl ShellModel {

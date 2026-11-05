@@ -101,7 +101,7 @@ pub use jsonschema::{
 };
 pub use meta::{CommandMeta, Confirmation, Cost, Exposure, Origin, Stability};
 pub use registry::{AnyCommand, CommandRegistry, RegisteredCommand};
-pub use text::{TEXTS, Text, TextArg};
+pub use text::{TEXTS, Text, TextArg, arity as text_arity, english as text_english};
 pub use transaction::{Submit, Transaction, TxContext, Viewport};
 pub use tx::{IndexRead, ReadSet, TxBuilder};
 

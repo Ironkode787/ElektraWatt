@@ -72,3 +72,34 @@ fn a_refused_command_shows_its_reason_in_the_window_language() {
     );
     shell.shutdown();
 }
+
+/// FT-1421 (ID-1397 ruling 6): `ew-api`'s own refusals carry their keyed text: a purge of a project with unsaved
+/// changes reaches the Dutch window in Dutch, and the English one in English.
+#[test]
+fn the_api_s_own_refusals_show_in_the_window_language() {
+    let tmp = Tmp::new("api-refusals-nl");
+    let mut shell = tmp.shell_in(Mode::Gui, true, "102");
+    let tables = shell.canvas().unwrap().page().tables.clone();
+    let junction = tables.junctions.first().expect("a junction on folio 102").id;
+    done(
+        &mut shell,
+        "command.run",
+        json!({"cmd": "potential.define", "params": {"at": {"junction": {"junction": junction.to_string()}},
+            "name": "FT1421"}}),
+    );
+    let purge = |shell: &mut ShellModel| match shell.dispatch("project.purge_assets", &json!({})) {
+        Outcome::Failed { message } => message,
+        other => panic!("project.purge_assets: {other:?}"),
+    };
+    assert!(strings::set_locale("nl"));
+    assert_eq!(
+        purge(&mut shell),
+        "Het opruimen is geweigerd: het project heeft niet-opgeslagen wijzigingen; sla op vóór het opruimen"
+    );
+    assert!(strings::set_locale("en"));
+    assert_eq!(
+        purge(&mut shell),
+        "The purge was refused: the project has unsaved changes; save before a purge"
+    );
+    shell.shutdown();
+}

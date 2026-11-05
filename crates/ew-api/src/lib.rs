@@ -71,6 +71,26 @@
 
 #![forbid(unsafe_code)]
 
+/// The keyed [`Text`] of a refusal of `ew-api`'s own (FT-1421), as `ew-commands`' own `text!` gives one: a key that
+/// [`TEXTS`] lacks, or a wrong number of arguments, fails the build.
+macro_rules! api_text {
+    ($k:literal $(, $a:expr)* $(,)?) => {
+        $crate::Text::checked_by_macro(
+            const {
+                let Some(template) = ew_commands::text_english($k) else {
+                    panic!(concat!("unknown text key: ", $k));
+                };
+                assert!(
+                    ew_commands::text_arity(template) == <[&str]>::len(&[$(stringify!($a)),*]),
+                    concat!("the wrong number of arguments for ", $k)
+                );
+                $k
+            },
+            vec![$($crate::TextArg::from($a)),*],
+        )
+    };
+}
+
 // WP-S1.19 part 4: the CSV and XLSX parts import with its column maps (D11).
 pub mod catalog;
 // WP-S1.22 part 1: the JSON results of the `ew` subcommands and their published schemas (D3, D5).
@@ -161,6 +181,10 @@ pub const TEXT_KEYS: &[&str] = &[
     "find-field-part-number",
     "find-field-title",
     "find-field-description",
+    // Find errors (`output::FindError`, FT-1414).
+    "find-error-regex",
+    "find-error-too-long",
+    "find-error-no-page",
     // Table mode's pure rule (`output::table_edit`, WP-S3.08 D10; ID-1174 ruling 3): the read-only reasons of
     // `cell_reason_key` (with `table-no-bridge` above), the reasons of `GestureCell::reason_text`, the words of
     // `GestureKind::word_key` and `rows_word_key`.
@@ -502,6 +526,26 @@ const INTEGRITY_RUN: checks::Scheme = checks::Scheme {
     lenient: false,
     content: checks::Release::Mvp,
 };
+
+/// A purge refusal by key (FT-1421), which the window renders in its language; its English is the store's own text,
+/// [`PurgeError`]'s.
+pub fn purge_refusal(e: &PurgeError) -> Text {
+    match e {
+        PurgeError::ReadOnly(_) => api_text!("refusal-purge-read-only"),
+        PurgeError::Quarantined(files) => api_text!(
+            "refusal-purge-quarantined",
+            files.iter().map(|f| f.as_str()).collect::<Vec<_>>().join(", ")
+        ),
+        PurgeError::Unsaved => api_text!("refusal-purge-unsaved"),
+        PurgeError::Recovery => api_text!("refusal-purge-recovery"),
+        PurgeError::Incomplete(_) => api_text!("refusal-purge-incomplete"),
+        PurgeError::ExternalChange => api_text!("refusal-purge-external"),
+        PurgeError::Stale(hashes) => api_text!("refusal-purge-stale", hashes.len().to_string()),
+        PurgeError::Io { .. } => api_text!("refusal-purge-unreadable"),
+        PurgeError::Save { error, .. } => api_text!("refusal-purge-save", error.to_string()),
+        PurgeError::HumanOnly => api_text!("refusal-purge-human-only"),
+    }
+}
 
 /// The most names an upgrade's backup tries: `.pre-<format>`, then `-2` up to this.
 const UPGRADE_BACKUP_NAMES: u32 = 1_000;
@@ -1452,16 +1496,16 @@ impl Session {
         self.purge_preview().map(|_| ()).map_err(|e| CmdError::Rejected {
             source: PurgeAssets::NAME.to_owned(),
             reason: e.to_string(),
-            text: None,
+            text: Some(purge_refusal(&e)),
         })
     }
 
     /// [`Session::commit`] of a `project.assets.purge` preview: the purge with the listed hashes.
     fn commit_purge(&mut self, preview: Preview) -> Result<Receipt, CmdError> {
-        let rejected = |reason: String| CmdError::Rejected {
+        let rejected = |e: PurgeError| CmdError::Rejected {
             source: PurgeAssets::NAME.to_owned(),
-            reason,
-            text: None,
+            reason: e.to_string(),
+            text: Some(purge_refusal(&e)),
         };
         let cmd: PurgeAssets = serde_json::from_value(preview.command().params.clone())
             .map_err(|e| CmdError::invalid_params(PurgeAssets::NAME, "", e.to_string()))?;
@@ -1479,7 +1523,7 @@ impl Session {
         drop(preview);
         match self.purge_files(listed.as_ref()) {
             Ok((_, _, receipt)) => receipt,
-            Err(e) => Err(rejected(e.to_string())),
+            Err(e) => Err(rejected(e)),
         }
     }
 

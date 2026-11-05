@@ -1038,6 +1038,55 @@ pub const TEXTS: &[(&str, &str)] = &[
         "refusal-revision-withdrawn",
         "revision {0} ({1}) is withdrawn already by the withdrawal record {2}",
     ),
+    // revision.approve, revision.release and project.assets.purge: the refusals of `ew-api`'s own (FT-1421).
+    (
+        "refusal-revision-approve-direct",
+        "the approval is recorded only by Approve revision… on the saved project, which runs the release gate first",
+    ),
+    (
+        "refusal-revision-release-direct",
+        "the release is written only by Release revision…, after the release gate, the as-built archive and the git tag",
+    ),
+    (
+        "refusal-purge-read-only",
+        "the project is open read-only; a purge needs a project open for editing",
+    ),
+    (
+        "refusal-purge-quarantined",
+        "the project has quarantined lines in {0}; repair them before a purge",
+    ),
+    (
+        "refusal-purge-unsaved",
+        "the project has unsaved changes; save before a purge",
+    ),
+    (
+        "refusal-purge-recovery",
+        "a crashed session left unsaved changes in its journal; recover or discard them before a purge",
+    ),
+    (
+        "refusal-purge-incomplete",
+        "the last save is incomplete; it completes first",
+    ),
+    (
+        "refusal-purge-external",
+        "the project changed on disk; merge the change first",
+    ),
+    (
+        "refusal-purge-stale",
+        "{0} of the listed images can no longer be purged; preview again; nothing was removed",
+    ),
+    (
+        "refusal-purge-unreadable",
+        "a file of the project could not be read; nothing was removed",
+    ),
+    (
+        "refusal-purge-save",
+        "the save that removes the images failed: {0}",
+    ),
+    (
+        "refusal-purge-human-only",
+        "the purge is human-only: confirm it in ElektraWatt or with ew project assets purge on a terminal; nothing was removed",
+    ),
     // The structure: structure.create_node, section.create, report_block.create and external_ref.create.
     (
         "refusal-structure-product-aspect",
@@ -1239,6 +1288,12 @@ mod tests {
             }
         }
         assert_eq!(unkeyed, Vec::<String>::new());
+        // FT-1421: the keys of `ew-api`'s own refusals are named there.
+        let mut api = Vec::new();
+        sources(&root.join("../../ew-api/src"), &mut api);
+        for file in api {
+            code.push_str(&std::fs::read_to_string(&file).unwrap());
+        }
         let unused: Vec<&str> = TEXTS
             .iter()
             .map(|(k, _)| *k)

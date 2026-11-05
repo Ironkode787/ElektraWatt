@@ -1127,6 +1127,19 @@ refusal-revision-label-used = revision { $p0 } already has the label { $p1 }; a 
 refusal-revision-open = revision { $p0 } ({ $p1 }) is open; at most one revision collects the current edits
 refusal-revision-released = revision { $p0 } ({ $p1 }) has a release record; a historic released revision cannot follow a release by ElektraWatt: a release goes through revision.release and its gate
 refusal-revision-withdrawn = revision { $p0 } ({ $p1 }) is withdrawn already by the withdrawal record { $p2 }
+# revision.approve, revision.release and project.assets.purge: the refusals of ew-api's own (FT-1421).
+refusal-revision-approve-direct = the approval is recorded only by Approve revision… on the saved project, which runs the release gate first
+refusal-revision-release-direct = the release is written only by Release revision…, after the release gate, the as-built archive and the git tag
+refusal-purge-read-only = the project is open read-only; a purge needs a project open for editing
+refusal-purge-quarantined = the project has quarantined lines in { $p0 }; repair them before a purge
+refusal-purge-unsaved = the project has unsaved changes; save before a purge
+refusal-purge-recovery = a crashed session left unsaved changes in its journal; recover or discard them before a purge
+refusal-purge-incomplete = the last save is incomplete; it completes first
+refusal-purge-external = the project changed on disk; merge the change first
+refusal-purge-stale = { $p0 } of the listed images can no longer be purged; preview again; nothing was removed
+refusal-purge-unreadable = a file of the project could not be read; nothing was removed
+refusal-purge-save = the save that removes the images failed: { $p0 }
+refusal-purge-human-only = the purge is human-only: confirm it in ElektraWatt or with ew project assets purge on a terminal; nothing was removed
 # The structure: structure.create_node, section.create, report_block.create and external_ref.create.
 refusal-structure-product-aspect = the product aspect is the device tree, not a structure node; pick another aspect
 refusal-structure-parent-aspect = the parent belongs to another aspect (EW-INV-011); pick a parent of the same aspect
@@ -1870,6 +1883,10 @@ find-close = Close
 find-results = { $p0 } results
 find-no-results = No results
 find-truncated = More than 10,000 results: refine the search
+# FT-1414: why a search cannot run, in words, never the parser's own text.
+find-error-regex = The regular expression cannot be used: check its brackets, repeats and escapes, or make it simpler
+find-error-too-long = The regular expression is longer than { $p0 } characters
+find-error-no-page = No page has the folio { $p0 }
 find-stale = stale
 find-replaced = Replaced { $p0 }; run again to refresh
 find-updated-fewer = Preview updated: { $p0 } fewer results
@@ -2624,7 +2641,6 @@ confirm-purge-text = These files are deleted and do not come back by undo.
 confirm-purge-more = and { $p0 } more
 dialog-purge = Purge
 error-purge = The purge was refused: { $p0 }
-purge-unreadable = an image file could not be read
 
 # WP-S2.17 part 3: the rails, Properties' Main and Advanced, the status bar (doc 16a §5.4, §5.8, §6.8).
 rail-project = Project

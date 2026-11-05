@@ -402,7 +402,7 @@ impl FindPane {
         }
         if let Some(r) = f.results() {
             if let Some(e) = &r.error {
-                line = e.clone();
+                line = ew_viewmodel::find::error_text(e);
             }
             if r.truncated {
                 line.push_str(&format!(" · {}", strings::text(key!("find-truncated"))));

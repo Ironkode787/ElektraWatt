@@ -8,7 +8,7 @@
 
 use std::path::Path;
 
-use ew_api::output::{FindField, FindQuery, FindResults};
+use ew_api::output::{FindError, FindField, FindQuery, FindResults};
 use ew_api::{AnyCommand, Session};
 use serde_json::{Value, json};
 
@@ -134,22 +134,20 @@ fn errors_and_empty_queries() {
         regex: true,
         ..FindQuery::default()
     });
-    assert!(long.error.as_deref().unwrap().contains("1000"), "{long:?}");
+    assert_eq!(long.error, Some(FindError::TooLong));
+    assert_eq!(FindError::TooLong.args(), ["1000"]);
     assert!(long.hits.is_empty());
     let bad = s.find(&FindQuery {
         text: "(Spare".into(),
         regex: true,
         ..FindQuery::default()
     });
-    assert!(
-        bad.error.as_deref().unwrap().contains("does not compile"),
-        "{bad:?}"
-    );
+    assert_eq!(bad.error, Some(FindError::Regex));
     let folio = s.find(&FindQuery {
         folios: vec!["999".into()],
         ..query("Spare")
     });
-    assert_eq!(folio.error.as_deref(), Some("no page 999"));
+    assert_eq!(folio.error, Some(FindError::NoPage("999".into())));
     assert_eq!(folio.replace_command(), None);
 }
 

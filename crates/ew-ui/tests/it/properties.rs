@@ -1129,7 +1129,10 @@ fn ft1413_the_label_column_gives_way_to_no_count_and_no_prose() {
             .collect();
         assert!(!columns.is_empty(), "the rows {label}");
         for (column, row) in columns {
-            assert!((column - row * 0.4).abs() < 0.5, "{label}: the column {column} in a row {row}");
+            assert!(
+                (column - row * 0.4).abs() < 0.5,
+                "{label}: the column {column} in a row {row}"
+            );
         }
     }
 }

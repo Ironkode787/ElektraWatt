@@ -302,7 +302,9 @@ impl ShellModel {
     /// second preview.
     fn preview_replace(&mut self, results: &FindResults, query: FindQuery, rebuilt: bool) -> Outcome {
         if let Some(e) = &results.error {
-            return Outcome::Failed { message: e.clone() };
+            return Outcome::Failed {
+                message: crate::find::error_text(e),
+            };
         }
         if results.truncated {
             return Outcome::Refused {

@@ -53,6 +53,13 @@ pub fn field_label_key(f: FindField) -> Key<'static> {
     }
 }
 
+/// Why a search could not run, in the UI language (FT-1414): the error's own text by its key, never the parser's.
+pub fn error_text(e: &ew_api::output::FindError) -> String {
+    let args = e.args();
+    let args: Vec<&str> = args.iter().map(String::as_str).collect();
+    strings::format(Key::run_time(e.key()), &args)
+}
+
 /// The results of the last search with what they were made for.
 #[derive(Clone, Debug)]
 pub(crate) struct Ran {

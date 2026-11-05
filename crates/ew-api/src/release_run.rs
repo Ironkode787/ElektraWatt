@@ -1834,7 +1834,7 @@ impl Session {
                 "the release's stamp is written only by the release (Revision ▸ Release, ew revision release), after the \
                  gate ({FOUR_EYES_RULE} and the release scheme), the as-built archive and the git tag (WP-S1.18 D13)"
             ),
-            text: None,
+            text: Some(api_text!("refusal-revision-release-direct")),
         })
     }
 }

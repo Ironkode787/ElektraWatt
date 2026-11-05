@@ -453,8 +453,9 @@ fn a_palette_run_that_fails_is_cleared_by_the_actions_next_success() {
     assert!(h.state().shell().palette().is_none());
     assert_eq!(
         h.state().shell().banner(),
+        // FT-1414: in words, never the parser's own text.
         Some(
-            "the regular expression does not compile: regex parse error:\n    (\n    ^\nerror: unclosed group"
+            "The regular expression cannot be used: check its brackets, repeats and escapes, or make it simpler"
         ),
         "the failure is a banner"
     );

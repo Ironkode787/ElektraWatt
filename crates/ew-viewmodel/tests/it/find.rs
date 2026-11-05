@@ -363,15 +363,16 @@ fn exact_counts_the_jump_the_escape_chain_and_errors() {
     done(&mut shell, "find.text", json!({"text": "(Spare"}));
     done(&mut shell, "find.run", json!({}));
     let st = state(&shell);
-    assert!(
-        st["find"]["error"].as_str().unwrap().contains("does not compile"),
-        "{st}"
+    // FT-1414: in words, never the parser's own text.
+    assert_eq!(
+        st["find"]["error"],
+        "The regular expression cannot be used: check its brackets, repeats and escapes, or make it simpler"
     );
     assert!(shell.describe().contains("find error \""), "{}", shell.describe());
     done(&mut shell, "find.option", json!({"option": "regex", "on": false}));
     done(&mut shell, "find.folios", json!({"folios": ["999"]}));
     done(&mut shell, "find.run", json!({}));
-    assert_eq!(state(&shell)["find"]["error"], "no page 999");
+    assert_eq!(state(&shell)["find"]["error"], "No page has the folio 999");
     // In selection with nothing selected.
     done(&mut shell, "select.set", json!({"ids": []}));
     done(

@@ -1596,12 +1596,11 @@ fn row_value(section: &SheetSection, row: &PropRow) -> String {
 /// text in `type.body` with the cell's `space.icon` padding on both sides and the provenance chip with its `space.2`
 /// gap when it shows. The row's "…" button is not counted: the value makes room for it only while it shows (X32b).
 fn value_need(ui: &Ui, t: &crate::theme::Tokens, section: &SheetSection, row: &PropRow) -> (f32, f32) {
-    // FT-1413: a list's or a structure's words (its item count, "4 elementen") summarise it; the label column never
-    // gives way to them.
+    // FT-1413: a list's words (its item count, "4 elementen") summarise it; the label column never gives way to them.
     if matches!(
         &row.value,
         RowValue::One {
-            json: serde_json::Value::Array(_) | serde_json::Value::Object(_),
+            json: serde_json::Value::Array(_),
             ..
         }
     ) {

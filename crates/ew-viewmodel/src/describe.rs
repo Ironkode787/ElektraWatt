@@ -1380,7 +1380,7 @@ fn find_lines(model: &ShellModel, lines: &mut Vec<String>) {
     lines.push(line);
     if let Some(r) = results {
         if let Some(e) = &r.error {
-            lines.push(format!("find error \"{}\"", user(e)));
+            lines.push(format!("find error \"{}\"", user(&crate::find::error_text(e))));
         }
         if r.truncated {
             lines.push("find truncated".to_owned());

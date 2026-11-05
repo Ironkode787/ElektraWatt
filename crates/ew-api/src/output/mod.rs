@@ -122,7 +122,7 @@ pub use fields::{
     ParsedInput, field_catalogue, field_catalogue_for, format_field_value,
 };
 // WP-S2.05 part 2
-pub use find::{FindField, FindHit, FindQuery, FindResults};
+pub use find::{FindError, FindField, FindHit, FindQuery, FindResults};
 // WP-S2.09 part 1
 pub use history::{HistoryRow, HistoryView};
 pub use job::{ExportJob, PrintSetJob};

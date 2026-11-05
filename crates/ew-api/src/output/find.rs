@@ -113,7 +113,7 @@ pub struct FindResults {
     /// More than 10,000 strings matched: the hits are the first 10,000 and replace is refused.
     pub truncated: bool,
     /// The query could not run (a pattern that does not compile or is too long, an unknown folio): no hits.
-    pub error: Option<String>,
+    pub error: Option<FindError>,
     /// The `fields.set_many` parameters of the replace, computed with the hits.
     command: Option<Value>,
 }
@@ -137,6 +137,38 @@ impl FindResults {
     /// when the results are truncated or in error, or when the replace would change nothing.
     pub fn replace_command(&self) -> Option<Value> {
         self.command.clone()
+    }
+}
+
+/// Why a query could not run (FT-1414): the front-end words it by [`FindError::key`] and [`FindError::args`] in its
+/// language, never the regular-expression parser's own text.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum FindError {
+    /// The regular expression is longer than its limit.
+    TooLong,
+    /// The regular expression does not compile.
+    Regex,
+    /// No page has the folio.
+    NoPage(String),
+}
+
+impl FindError {
+    /// The text key (one of `TEXT_KEYS`).
+    pub fn key(&self) -> &'static str {
+        match self {
+            FindError::TooLong => "find-error-too-long",
+            FindError::Regex => "find-error-regex",
+            FindError::NoPage(_) => "find-error-no-page",
+        }
+    }
+
+    /// The text's arguments: the limit of a pattern's length, or the folio.
+    pub fn args(&self) -> Vec<String> {
+        match self {
+            FindError::TooLong => vec![MAX_PATTERN.to_string()],
+            FindError::Regex => Vec::new(),
+            FindError::NoPage(folio) => vec![folio.clone()],
+        }
     }
 }
 
@@ -223,13 +255,11 @@ fn whole(text: &str, start: usize, end: usize) -> bool {
 }
 
 impl Matcher {
-    /// The matcher of `q`, or the error text of a pattern that is too long or does not compile.
-    fn new(q: &FindQuery) -> Result<Matcher, String> {
+    /// The matcher of `q`, or why a pattern cannot run: it is too long or does not compile.
+    fn new(q: &FindQuery) -> Result<Matcher, FindError> {
         if q.regex {
             if q.text.chars().count() > MAX_PATTERN {
-                return Err(format!(
-                    "the regular expression is longer than {MAX_PATTERN} characters"
-                ));
+                return Err(FindError::TooLong);
             }
             regex::RegexBuilder::new(&q.text)
                 .case_insensitive(!q.match_case)
@@ -238,7 +268,7 @@ impl Matcher {
                 .nest_limit(64)
                 .build()
                 .map(Matcher::Regex)
-                .map_err(|e| format!("the regular expression does not compile: {e}"))
+                .map_err(|_| FindError::Regex)
         } else {
             let needle = ew_mltext::to_nfc(&q.text).into_owned();
             let folded = (!q.match_case).then(|| needle.chars().flat_map(char::to_lowercase).collect());
@@ -406,7 +436,7 @@ impl Session {
                         set.insert(*p);
                     }
                     None => {
-                        results.error = Some(format!("no page {label}"));
+                        results.error = Some(FindError::NoPage(label.clone()));
                         return results;
                     }
                 }
@@ -856,12 +886,12 @@ mod tests {
             regex: true,
             ..FindQuery::default()
         };
-        assert!(Matcher::new(&long).is_err());
+        assert_eq!(Matcher::new(&long).err(), Some(FindError::TooLong));
         let bad = FindQuery {
             text: "(".into(),
             regex: true,
             ..FindQuery::default()
         };
-        assert!(Matcher::new(&bad).unwrap_err().contains("does not compile"));
+        assert_eq!(Matcher::new(&bad).err(), Some(FindError::Regex));
     }
 }
