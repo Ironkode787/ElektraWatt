@@ -841,7 +841,12 @@ impl ShellModel {
             Err(e) => return self.reimport_refused(&name, &e),
         };
         let n = |c: ReimportClass| reimport.plan.count(c).to_string();
-        let summary = strings::format(
+        // ID-1427 (W52 F8): a file that writes nothing says so, as a table import does, and its Apply is disabled.
+        let nothing = reimport.preview.is_none();
+        let summary = if nothing {
+            strings::text(key!("reimport-card-nothing")).to_owned()
+        } else {
+            strings::format(
             key!("reimport-card-summary"),
             &[
                 &name,
@@ -852,7 +857,8 @@ impl ShellModel {
                 &n(ReimportClass::Removed),
                 &n(ReimportClass::Unchanged),
             ],
-        );
+            )
+        };
         // ID-1392 (FT-1387): each member's values in words, as the property grid shows them.
         let session = &project.session;
         let value = |m: &str, v: Option<&Value>, kind: &str| session.member_words(kind, m, v);
@@ -889,6 +895,7 @@ impl ShellModel {
             file: name,
             summary,
             rows,
+            nothing,
         })
     }
 
@@ -913,6 +920,12 @@ impl ShellModel {
         if !matches!(self.dialog, Some(Dialog::Reimport { .. })) {
             return Outcome::Refused {
                 reason_key: key!("reason-no-reimport"),
+            };
+        }
+        // ID-1427 (W52 F8): a re-import that writes nothing has no Apply; the card stays.
+        if matches!(self.dialog, Some(Dialog::Reimport { nothing: true, .. })) {
+            return Outcome::Refused {
+                reason_key: key!("reason-table-import-nothing"),
             };
         }
         let Some(Dialog::Reimport { file, .. }) = self.dialog.take() else {

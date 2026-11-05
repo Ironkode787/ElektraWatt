@@ -711,6 +711,58 @@ fn a_qelectrotech_file_is_re_imported_into_the_open_project() {
     shell.shutdown();
 }
 
+/// ID-1427 (W52 F8): re-importing a file that matches the project says there is nothing to re-import, in both
+/// languages, its Apply disabled with the reason, and Apply refused with the card kept; nothing is written.
+#[test]
+fn an_identical_re_import_says_there_is_nothing_to_re_import() {
+    let tmp = Tmp::new();
+    let qet = tmp.0.join("example.qet");
+    std::fs::write(&qet, QET).unwrap();
+    let dir = tmp.0.join("imported.ew");
+    let mut shell = tmp.shell();
+    done(
+        &mut shell,
+        "file.import_qet",
+        json!({ "file": path(&qet), "dir": path(&dir) }),
+    );
+    done(&mut shell, "file.import_qet_apply", json!({ "confirm": true }));
+    let rev = shell.revision();
+    for (locale, body, reason) in [
+        (
+            "en",
+            "Nothing to re-import: the file matches the project.",
+            "The file changes nothing in the project",
+        ),
+        (
+            "nl",
+            "Niets opnieuw te importeren: het bestand komt overeen met het project.",
+            "Het bestand wijzigt niets in het project",
+        ),
+    ] {
+        assert!(ew_viewmodel::strings::set_locale(locale));
+        done(
+            &mut shell,
+            "file.reimport_qet",
+            json!({ "file": path(&qet), "accept": true }),
+        );
+        let spec = ew_viewmodel::dialogs::spec(shell.dialog().expect("the re-import card"), &shell);
+        assert_eq!(spec.body, [body]);
+        assert_eq!(spec.primary.disabled.as_deref(), Some(reason));
+        match run(&mut shell, "file.reimport_qet_apply", json!({})) {
+            Outcome::Refused { reason_key } => assert_eq!(reason_key.as_str(), "reason-table-import-nothing"),
+            other => panic!("{other:?}"),
+        }
+        assert!(
+            matches!(shell.dialog(), Some(Dialog::Reimport { .. })),
+            "the card stays"
+        );
+        done(&mut shell, "ui.dismiss", json!({}));
+    }
+    assert!(ew_viewmodel::strings::set_locale("en"));
+    assert_eq!(shell.revision(), rev, "nothing is written");
+    shell.shutdown();
+}
+
 /// C51-p2#10: in the window the re-import's importer runs as a job: the step returns at once with the banner, the job's
 /// end shows the proposal (T6), and its Re-import ends in the card.
 #[test]

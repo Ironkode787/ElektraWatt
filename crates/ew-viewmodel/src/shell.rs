@@ -382,10 +382,12 @@ pub enum Dialog {
     Reimport {
         /// The file's name.
         file: String,
-        /// The summary (T8).
+        /// The summary (T8), or that there is nothing to re-import.
         summary: String,
         /// The rows, in words.
         rows: Vec<String>,
+        /// Whether the re-import writes nothing (ID-1427, W52 F8): Apply is disabled.
+        nothing: bool,
     },
     /// File ▸ Open .ewz…: Extract and open (into a new folder beside it), Open read-only, or Cancel.
     OpenEwz {

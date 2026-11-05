@@ -4373,6 +4373,7 @@ reimport-match-accept = Opnieuw importeren
 error-reimport-foreign = { $p0 } is geen eerdere import van dit project; importeer het in een nieuw project.
 reimport-card-title = { $p0 } opnieuw importeren
 reimport-card-summary = Herimport van { $p0 }: { $p1 } toegevoegd, { $p2 } gewijzigd in de bron, { $p3 } behouden met uw wijzigingen, { $p4 } aan beide kanten gewijzigd en behouden, { $p5 } verwijderd in de bron en behouden, { $p6 } ongewijzigd.
+reimport-card-nothing = Niets opnieuw te importeren: het bestand komt overeen met het project.
 reimport-card-more = en nog { $p0 } wijzigingen
 reimport-card-apply = Toepassen
 reimport-row-added = Toegevoegd: { $p0 }

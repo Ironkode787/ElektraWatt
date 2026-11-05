@@ -585,6 +585,7 @@ mod tests {
                 file: text(),
                 summary: text(),
                 rows: Vec::new(),
+                nothing: false,
             },
             Dialog::OpenEwz {
                 path: text(),

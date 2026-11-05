@@ -397,23 +397,29 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
             )
         },
         // WP-S3.09 D12: the re-import card (Apply, Cancel) with T8, its rows listed by the dialog.
-        Dialog::Reimport { file, summary, rows } => {
+        Dialog::Reimport {
+            file,
+            summary,
+            rows,
+            nothing,
+        } => {
             let mut body = vec![summary.clone()];
             if rows.len() > IMPORT_PAGES_LISTED {
                 let more = (rows.len() - IMPORT_PAGES_LISTED).to_string();
                 body.push(strings::format(key!("reimport-card-more"), &[&more]));
             }
+            let mut apply = DialogButton::new(
+                key!("reimport-card-apply"),
+                DialogAnswer::Action("file.reimport_qet_apply", Value::Null),
+            );
+            // ID-1427 (W52 F8): nothing to re-import, Apply disabled with its reason (as a table import's).
+            if *nothing {
+                apply.disabled = Some(strings::text(key!("reason-table-import-nothing")).to_owned());
+            }
             DialogSpec {
                 secondary: vec![cancel()],
                 form: true,
-                ..small(
-                    strings::format(key!("reimport-card-title"), &[file]),
-                    body,
-                    DialogButton::new(
-                        key!("reimport-card-apply"),
-                        DialogAnswer::Action("file.reimport_qet_apply", Value::Null),
-                    ),
-                )
+                ..small(strings::format(key!("reimport-card-title"), &[file]), body, apply)
             }
         }
         // D24: Extract and open (Enter), Open read-only, Cancel.
