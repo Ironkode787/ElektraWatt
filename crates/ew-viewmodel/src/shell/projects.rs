@@ -420,6 +420,12 @@ impl ShellModel {
         {
             let _ = self.open_dialog(card);
         }
+        // C52-p1#2: and the re-import's proposal or card.
+        if self.dialog.is_none()
+            && let Some(dialog) = self.reimport_waiting.take()
+        {
+            let _ = self.open_dialog(dialog);
+        }
         let ended = self.import_job.as_mut().and_then(|pending| pending.job.try_end());
         if let Some(end) = ended
             && let Some(pending) = self.import_job.take()
@@ -647,15 +653,18 @@ impl ShellModel {
         let proposed = self
             .reimport_proposal
             .take()
-            .filter(|(path, _)| accept && *path == file)
-            .map(|(_, lineage)| lineage);
+            .filter(|(at, path, _)| accept && *at == epoch && *path == file)
+            .map(|(_, _, lineage)| lineage);
         let options = JobOptions {
             name: "reimport".to_owned(),
             waker: self.jobs.waker.clone(),
             gate: self.jobs.hooks.gate(),
         };
         let job_name = name.clone();
+        let hooks = self.jobs.hooks.clone();
         let job = Job::spawn(options, move |_| {
+            // A test fault (feature `testkit` only), as the import job has (C52-p1#3).
+            hooks.fault("reimport");
             Ok(find_reimport(
                 &lineages, &job_name, bytes, &library, proposed, accept,
             ))
@@ -696,7 +705,9 @@ impl ShellModel {
     }
 
     /// The end of a re-import job: a refusal in the banner, T6 for a proposed lineage, else the plan and its preview
-    /// on this thread and the re-import card. A job of a project that closed meanwhile shows nothing.
+    /// on this thread and the re-import card; T6 and the card wait behind a dialog open now (C52-p1#2). A job of a
+    /// project that closed meanwhile shows nothing, whatever its end, and takes only its own "Importing…" banner away
+    /// (C52-p1#3).
     pub(super) fn finish_reimport(
         &mut self,
         end: JobEnd<Result<ReimportFound, ReimportError>>,
@@ -704,6 +715,13 @@ impl ShellModel {
         path: PathBuf,
         epoch: u64,
     ) -> Outcome {
+        if self.project.as_ref().is_none_or(|p| p.epoch != epoch) {
+            let importing = strings::format(key!("banner-importing"), &[&name]);
+            if self.banner.as_deref() == Some(importing.as_str()) {
+                self.banner = None;
+            }
+            return Outcome::Done;
+        }
         let found = match end {
             JobEnd::Done(Ok(found)) => found,
             JobEnd::Done(Err(e)) => return self.reimport_refused(&name, &e),
@@ -719,8 +737,7 @@ impl ShellModel {
                 return Outcome::Failed { message };
             }
         };
-        let Some(project) = self.project.as_mut().filter(|p| p.epoch == epoch) else {
-            self.banner = None;
+        let Some(project) = self.project.as_mut() else {
             return Outcome::Done;
         };
         let (lineage, batch) = match found {
@@ -736,8 +753,8 @@ impl ShellModel {
                     source,
                     percent,
                 };
-                self.reimport_proposal = Some((path, lineage));
-                return self.open_dialog(dialog);
+                self.reimport_proposal = Some((epoch, path, lineage));
+                return self.open_or_wait(dialog);
             }
             ReimportFound::Batch { lineage, batch } => (lineage, *batch),
         };
@@ -788,11 +805,25 @@ impl ShellModel {
         }
         self.palette = None;
         self.reimport_pending = Some(reimport);
-        self.open_dialog(Dialog::Reimport {
+        self.open_or_wait(Dialog::Reimport {
             file: name,
             summary,
             rows,
         })
+    }
+
+    /// Opens the re-import's `dialog` (over its own proposal or card), or, while another dialog is open, keeps it until
+    /// that one closes (`poll_import`, C52-p1#2).
+    fn open_or_wait(&mut self, dialog: Dialog) -> Outcome {
+        if self
+            .dialog
+            .as_ref()
+            .is_some_and(|d| !matches!(d, Dialog::ReimportMatch { .. } | Dialog::Reimport { .. }))
+        {
+            self.reimport_waiting = Some(dialog);
+            return Outcome::Done;
+        }
+        self.open_dialog(dialog)
     }
 
     /// `file.reimport_qet_apply` (the re-import card's Apply, WP-S3.09 D12): the previewed re-import committed as one

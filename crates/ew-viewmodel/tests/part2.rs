@@ -606,6 +606,158 @@ fn the_window_re_imports_as_a_job() {
     gui.shutdown();
 }
 
+/// An imported project open in the window with `example.qet` changed since, so that a re-import proposes T6.
+fn imported_and_changed(tmp: &Tmp) -> (ShellModel, PathBuf) {
+    let qet = tmp.0.join("example.qet");
+    std::fs::write(&qet, QET).unwrap();
+    let mut gui = tmp.gui();
+    done(
+        &mut gui,
+        "file.import_qet",
+        json!({ "file": path(&qet), "dir": path(&tmp.0.join("imported.ew")) }),
+    );
+    assert!(gui.wait_jobs().is_empty());
+    done(&mut gui, "file.import_qet_apply", json!({ "confirm": true }));
+    std::fs::write(&qet, QET.replace("First page", "Main page")).unwrap();
+    (gui, qet)
+}
+
+/// ID-1390 (C52-p1#2): a re-import job that ends while the import card's unsaved-changes question is open leaves the
+/// question; the proposal (T6) opens when the dialogs close, and a later, unrelated Cancel brings nothing back.
+#[test]
+fn the_reimport_proposal_waits_for_an_open_dialog() {
+    use ew_viewmodel::shell::ConfirmAnswer;
+    let tmp = Tmp::new();
+    let (mut gui, qet) = imported_and_changed(&tmp);
+    let other = tmp.0.join("other.qet");
+    std::fs::write(&other, QET.replace("Example", "Other")).unwrap();
+    done(
+        &mut gui,
+        "file.import_qet",
+        json!({ "file": path(&other), "dir": path(&tmp.0.join("other.ew")) }),
+    );
+    // The open project takes an edit while the importer runs (ID-1374).
+    done(
+        &mut gui,
+        "command.run",
+        json!({"cmd": "page.create", "params": {"number": 2}}),
+    );
+    assert!(gui.wait_jobs().is_empty());
+    assert!(matches!(gui.dialog(), Some(Dialog::ImportQet { .. })));
+    done(&mut gui, "file.reimport_qet", json!({ "file": path(&qet) }));
+    done(&mut gui, "file.import_qet_apply", json!({ "confirm": true }));
+    assert!(matches!(gui.dialog(), Some(Dialog::ConfirmDiscard { .. })));
+    assert!(gui.wait_jobs().is_empty());
+    assert!(
+        matches!(gui.dialog(), Some(Dialog::ConfirmDiscard { .. })),
+        "the question stays: {:?}",
+        gui.dialog()
+    );
+    assert_eq!(gui.answer_confirm(ConfirmAnswer::Cancel), Outcome::Done);
+    assert!(matches!(gui.dialog(), Some(Dialog::ImportQet { .. })));
+    done(&mut gui, "ui.dismiss", json!({}));
+    gui.poll_jobs();
+    assert!(
+        matches!(gui.dialog(), Some(Dialog::ReimportMatch { .. })),
+        "{:?}",
+        gui.dialog()
+    );
+    done(&mut gui, "ui.dismiss", json!({}));
+    // An unrelated question and its Cancel bring nothing back.
+    let _ = run(&mut gui, "file.close", json!({}));
+    assert!(matches!(gui.dialog(), Some(Dialog::ConfirmDiscard { .. })));
+    assert_eq!(gui.answer_confirm(ConfirmAnswer::Cancel), Outcome::Done);
+    gui.poll_jobs();
+    assert_eq!(gui.dialog(), None);
+    gui.shutdown();
+}
+
+/// ID-1390 (C52-p1#3): a re-import job whose project closed meanwhile is dropped whatever its end, a panic too, and
+/// takes away only its own "Importing…" banner.
+#[test]
+fn a_reimport_of_a_closed_project_is_dropped_whatever_its_end() {
+    let tmp = Tmp::new();
+    let (mut gui, qet) = imported_and_changed(&tmp);
+    gui.set_job_panic_for_tests(Some("reimport"));
+    done(&mut gui, "file.reimport_qet", json!({ "file": path(&qet) }));
+    assert_eq!(gui.banner(), Some("Importing example.qet…"));
+    done(&mut gui, "file.close", json!({ "discard": true }));
+    assert!(gui.wait_jobs().is_empty());
+    assert_eq!((gui.banner(), gui.dialog()), (None, None), "no T1 for a closed project");
+    gui.shutdown();
+    // A job that ends well leaves another import's banner.
+    let tmp = Tmp::new();
+    let (mut gui, qet) = imported_and_changed(&tmp);
+    done(&mut gui, "file.reimport_qet", json!({ "file": path(&qet) }));
+    done(&mut gui, "file.close", json!({ "discard": true }));
+    let other = qet.with_file_name("other.qet");
+    std::fs::write(&other, QET.replace("Example", "Other")).unwrap();
+    done(
+        &mut gui,
+        "file.import_qet",
+        json!({ "file": path(&other), "dir": path(&other.with_file_name("other.ew")) }),
+    );
+    let importing = gui.banner().map(str::to_owned);
+    assert_eq!(importing.as_deref(), Some("Importing other.qet…"));
+    let _ = gui.wait_jobs();
+    assert!(
+        matches!(gui.dialog(), Some(Dialog::ImportQet { .. })),
+        "{:?}",
+        gui.dialog()
+    );
+    assert_eq!(
+        gui.banner(),
+        importing.as_deref(),
+        "the other import's banner stays"
+    );
+    gui.shutdown();
+}
+
+/// ID-1390 (C52-p1#4): the re-import's proposal is its project's: after a close, an `accept: true` for the same file in
+/// another project is refused in words (T7), in English and in Dutch, and imports nothing.
+#[test]
+fn a_reimport_proposal_of_a_closed_project_is_not_accepted_in_another() {
+    for (language, refusal) in [
+        (
+            "en",
+            "example.qet is not an earlier import of this project; import it into a new project instead.",
+        ),
+        (
+            "nl",
+            "example.qet is geen eerdere import van dit project; importeer het in een nieuw project.",
+        ),
+    ] {
+        let tmp = Tmp::new();
+        let (mut gui, qet) = imported_and_changed(&tmp);
+        assert!(ew_viewmodel::strings::set_locale(language));
+        done(&mut gui, "file.reimport_qet", json!({ "file": path(&qet) }));
+        assert!(gui.wait_jobs().is_empty());
+        assert!(matches!(gui.dialog(), Some(Dialog::ReimportMatch { .. })));
+        done(&mut gui, "ui.dismiss", json!({}));
+        done(&mut gui, "file.close", json!({ "discard": true }));
+        done(
+            &mut gui,
+            "file.new",
+            json!({ "dir": path(&tmp.0.join("b.ew")) }),
+        );
+        let rev = gui.revision();
+        let _ = run(
+            &mut gui,
+            "file.reimport_qet",
+            json!({ "file": path(&qet), "accept": true }),
+        );
+        assert!(gui.wait_jobs().is_empty());
+        assert_eq!(
+            (gui.banner(), gui.dialog()),
+            (Some(refusal), None),
+            "{language}"
+        );
+        assert_eq!(gui.revision(), rev);
+        assert!(ew_viewmodel::strings::set_locale("en"));
+        gui.shutdown();
+    }
+}
+
 #[test]
 fn an_import_that_cannot_be_read_fails_without_a_path() {
     let tmp = Tmp::new();

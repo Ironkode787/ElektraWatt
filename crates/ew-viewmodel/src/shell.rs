@@ -550,8 +550,11 @@ pub struct ShellModel {
     reimport_pending: Option<ew_api::import::Reimport>,
     /// The re-import job running for the re-import card (C51-p2#10).
     reimport_job: Option<projects::ReimportJob>,
-    /// The file and lineage of the re-import's proposal (T6) shown last: its Re-import imports into that lineage.
-    reimport_proposal: Option<(PathBuf, ew_api::import::LineageInfo)>,
+    /// The project (its epoch), file and lineage of the re-import's proposal (T6) shown last: its Re-import imports
+    /// into that lineage, in that project only (C52-p1#4).
+    reimport_proposal: Option<(u64, PathBuf, ew_api::import::LineageInfo)>,
+    /// The re-import's proposal (T6) or card that waits behind a dialog open when its job ended (C52-p1#2).
+    reimport_waiting: Option<Dialog>,
     /// Bumped on every opening of a dialog: the window gives a dialog opened again, even as the same kind, its first
     /// focus (C49-p10b#4).
     dialog_gen: u64,
@@ -1003,6 +1006,7 @@ impl ShellModel {
             reimport_pending: None,
             reimport_job: None,
             reimport_proposal: None,
+            reimport_waiting: None,
             dialog_gen: 0,
             prompt: None,
             record: Record::default(),
@@ -1975,6 +1979,9 @@ impl ShellModel {
         self.messages.release_notes = None;
         // WP-S3.09 D9 d: the migration report is the choice of the project it was made for.
         self.messages.migration = false;
+        // C52-p1#4, #2: the re-import's proposal and a waiting proposal or card are the project's.
+        self.reimport_proposal = None;
+        self.reimport_waiting = None;
     }
 
     /// Ends the shell at the end of a run or of the window (also on a log-off): a clean project is closed, a dirty
