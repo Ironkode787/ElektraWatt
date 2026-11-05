@@ -538,7 +538,8 @@ typed in `ew-schema` within format 0.1; no command creates or inserts a macro ye
   fragment}`; the `fragment` is the `#ew-fragment v1` text format of ARCH §5.5, kept as JSON in the permissive schema
   crate and parsed by `ew-commands`, so the `Fragment` struct above is not a schema type. A variable is `{name, ty,
   bindings: Vec<{record (fragment-local ID), field}>, default?}` with `VarType` `text, ident, number, bool, state,
-  part, process_tag, channel_binding, address, tag_counter, device_ref`; the 1.0 `formula` stays in `extra`. A
+  part, process_tag, channel_binding, address, tag_counter, device_ref, text_slots` (`text_slots`, a representation's
+  text slots as a list, ID-1397); the 1.0 `formula` stays in `extra`. A
   placeholder group is `{name, members (fragment-local IDs), include?}` and lives only inside the macro, so the
   project kind `placeholder_group` (rank 47) stays reserved (WP-S1.19 D15). The copy lives under `lib/macros/` and
   `library.embed` embeds it with the checks of the other kinds.

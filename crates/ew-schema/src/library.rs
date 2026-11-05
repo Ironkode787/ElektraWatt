@@ -2313,6 +2313,8 @@ pub enum VarType {
     TagCounter,
     /// An existing device chosen at insertion.
     DeviceRef,
+    /// A representation's text slots, a list (FT-1420: a value set moves or resets a slot).
+    TextSlots,
     /// A value of a newer format, kept verbatim.
     #[serde(skip)]
     Unknown(Value),

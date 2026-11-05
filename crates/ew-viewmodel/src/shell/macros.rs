@@ -79,6 +79,8 @@ fn var_type(path: &str, ty: &ew_api::output::FieldType) -> &'static str {
         "process_tag" => "process_tag",
         "tag.counter" => "tag_counter",
         "state" => "state",
+        // FT-1420: a representation's text slots, which a value set may move or reset.
+        "text_slots" => "text_slots",
         _ => match ty.inner() {
             FieldType::Bool => "bool",
             FieldType::Ident => "ident",

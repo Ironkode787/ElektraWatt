@@ -212,6 +212,11 @@ pub fn coerce_value(ty: &VarType, v: &Value) -> Result<Value, String> {
             Some(s) if s.parse::<Uuid>().is_ok() => Ok(v.clone()),
             _ => fail("a device ID"),
         },
+        // FT-1420: a list of text slots; the bound representation checks each slot.
+        VarType::TextSlots => match v {
+            Value::Array(_) => Ok(v.clone()),
+            _ => fail("a list of text slots"),
+        },
         VarType::Unknown(_) => Ok(v.clone()),
     }
 }

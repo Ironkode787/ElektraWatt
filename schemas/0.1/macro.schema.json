@@ -441,6 +441,11 @@
           "const": "device_ref",
           "description": "An existing device chosen at insertion.",
           "type": "string"
+        },
+        {
+          "const": "text_slots",
+          "description": "A representation's text slots, a list (FT-1420: a value set moves or resets a slot).",
+          "type": "string"
         }
       ]
     }
