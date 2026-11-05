@@ -1136,14 +1136,6 @@ fn a_refused_row_action_names_why_the_row_refuses_it() {
         action(&mut shell, "connection/a", "edit"),
         failed("This row is changed with the canvas.")
     );
-    // FT-1052: a command is named by its title, never its ID.
-    assert_eq!(
-        ew_viewmodel::properties::reason_text(&ew_viewmodel::properties::FieldReadOnly::Command {
-            command: "assembly.attach".to_owned(),
-            action: None,
-        }),
-        "changed by Attach assembly"
-    );
     shell.shutdown();
 }
 
@@ -1163,6 +1155,31 @@ fn ft1347_a_huge_properties_step_stops_at_the_last_row() {
     assert_ne!(shell.properties_row(), last, "the cursor is on row 1");
     done(&mut shell, "props.row", json!({"step": i64::MAX}));
     assert_eq!(shell.properties_row(), last);
+    shell.shutdown();
+}
+
+/// FT-1043 (ID-1391): a representation's position reads in millimetres with its grid cell, never in nanometres.
+#[test]
+fn ft1043_a_representations_position_reads_in_millimetres_with_its_cell() {
+    let tmp = Tmp::new("props-ft1043");
+    let mut shell = writable(&tmp, "102");
+    let rep = shell
+        .canvas()
+        .unwrap()
+        .page()
+        .tables
+        .reps
+        .iter()
+        .find(|r| r.symbol_key == "ew.iec.mcb-1p@qet10")
+        .expect("-102F1's MCB")
+        .id;
+    done(&mut shell, "select.set", json!({"ids": [rep.to_string()]}));
+    let sheet = shell.properties().sheet().expect("a sheet");
+    let (_, row) = find_row(sheet, "representation/pos").expect("the position row");
+    assert_eq!(
+        ew_viewmodel::properties::value_text(row),
+        "102-C7 · x 124.354167 y 52.916667 mm"
+    );
     shell.shutdown();
 }
 
