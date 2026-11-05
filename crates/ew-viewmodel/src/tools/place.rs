@@ -108,6 +108,9 @@ pub struct PlaceTool {
     target: PlaceTarget,
     /// The snapped insertion point: (sheet nm, page nm).
     at: Option<((i64, i64), (i64, i64))>,
+    /// Where the placement at `at` lands (page nm) and how many grid steps right of `at` that is: `at` itself, but for a
+    /// terminal moved off a terminal of its strip ([`Self::stacked_pos`], FT-1208). Set with the overlay.
+    landing: Option<((i64, i64), i64)>,
     /// The predicted tag of a fresh preview.
     tag: Option<String>,
     /// The last overlay answered.
@@ -194,6 +197,7 @@ impl PlaceTool {
             orient: 0,
             target,
             at: None,
+            landing: None,
             tag: None,
             last: Overlay::default(),
             word: "",
@@ -290,10 +294,11 @@ impl PlaceTool {
             .collect()
     }
 
-    /// Recomputes the proposals at the current point.
+    /// Recomputes the proposals at the current point; none for a terminal that moves off it (its command sends none).
     fn propose(&mut self, cx: &ToolCx<'_>) {
+        let moved = self.landing.is_some_and(|(_, steps)| steps != 0);
         self.proposals = match self.at {
-            Some((_, pos)) if self.autoconnect && !self.suppressed => proposals(
+            Some((_, pos)) if self.autoconnect && !self.suppressed && !moved => proposals(
                 &self.ghost_cps(pos),
                 &cx.page.tables,
                 &[],
@@ -557,6 +562,11 @@ impl PlaceTool {
         let Some((sheet, pos)) = self.at else {
             return Overlay::default();
         };
+        // FT-1208: the ghost stands where the placement lands, a terminal moved off a terminal of its strip included.
+        let (sheet, pos) = match self.landing {
+            Some((landing, steps)) if steps != 0 => (cx.snapper.page_to_sheet(landing), landing),
+            _ => (sheet, pos),
+        };
         let mut items = vec![OverlayItem::Paths {
             paths: Arc::clone(&self.outline),
             transform: (self.orient, pos),
@@ -602,6 +612,11 @@ impl PlaceTool {
     }
 
     fn transient(&mut self, cx: &ToolCx<'_>) -> ToolOutput {
+        let grid = super::wire::PageGridMap::new(cx.page.tables.grid);
+        self.landing = self.at.map(|(_, at)| {
+            let pos = self.stacked_pos(cx, at);
+            (pos, grid.index(pos.0) - grid.index(at.0))
+        });
         self.propose(cx);
         let o = self.overlay(cx);
         if let Some((_, pos)) = self.at {
@@ -806,6 +821,15 @@ impl Tool for PlaceTool {
         false
     }
 
+    /// FT-1208 (ID-1416): a terminal that moves off a terminal of its strip standing on the click point (FT-622) says
+    /// so, for the placement's toast.
+    fn proposal_note(&self) -> Option<String> {
+        let (PlaceTarget::Terminal { strip_tag, .. }, Some((_, steps))) = (&self.target, self.landing) else {
+            return None;
+        };
+        (steps != 0).then(|| strings::format(key!("toast-placed-moved"), &[strip_tag, &steps.to_string()]))
+    }
+
     fn ghost(&self) -> Option<Ghost> {
         let strip = match &self.target {
             PlaceTarget::Terminal {
@@ -829,7 +853,7 @@ impl Tool for PlaceTool {
             symbol: self.shape.key.clone(),
             variant: variant_letter(self.orient),
             rep_type: self.shape.rep_type.clone(),
-            at_nm: self.at.map(|(_, p)| p),
+            at_nm: self.landing.map(|(p, _)| p).or(self.at.map(|(_, p)| p)),
             target,
             letter,
             strip,

@@ -465,6 +465,11 @@ impl ShellModel {
                     "ip.place" | "connection.draw_to_ip" => self.tools.tool.proposal_note(),
                     _ => None,
                 };
+                // FT-1208: a terminal moved off a terminal of its strip, said again by the placement's toast.
+                let moved = match cmd.name() {
+                    "device.place" => self.tools.tool.proposal_note(),
+                    _ => None,
+                };
                 // WP-S2.09 D6: an earlier toast stays (its Undo expires with this commit); a new toast of key `edit`
                 // replaces it.
                 let out = self.run_commit(cmd.as_ref());
@@ -488,6 +493,7 @@ impl ShellModel {
                     self.tools.result_note = Some(ResultNote::Placed {
                         pos: (x, y),
                         wires: connects,
+                        moved,
                     });
                 }
                 if out == Outcome::Done

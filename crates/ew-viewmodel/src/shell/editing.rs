@@ -128,7 +128,7 @@ impl ShellModel {
             return;
         };
         match note {
-            ResultNote::Placed { pos, wires } => {
+            ResultNote::Placed { pos, wires, moved } => {
                 // The representation the placement added at its insertion point (the lowest ID if several).
                 let Some(rep) = now
                     .reps
@@ -175,6 +175,11 @@ impl ShellModel {
                     ),
                     None if in_wire => strings::format(key!("toast-placed-in-wire"), &[&placed]),
                     None => placed,
+                };
+                // FT-1208: a terminal that left the click point says where and why, after the result.
+                let text = match moved {
+                    Some(moved) => format!("{text}, {moved}"),
+                    None => text,
                 };
                 self.notify(text, true);
             }

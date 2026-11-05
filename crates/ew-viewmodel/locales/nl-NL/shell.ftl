@@ -1918,6 +1918,7 @@ toast-autoconnect = { $p0 } en { $p1 } verbonden: { $p2 }. Alt+klik of { $p3 } p
 toast-placed = { $p0 } geplaatst op { $p1 }
 toast-placed-no-cell = { $p0 } geplaatst
 toast-placed-in-wire = { $p0 }, verbonden in de draad waarop het is neergezet
+toast-placed-moved = { $p1 } rasterstappen naar rechts: { $p0 } heeft een klem op het klikpunt
 toast-ip-connected = Onderbrekingspunt { $p0 } geplaatst op { $p1 } en verbonden met { $p2 }. Alt+klik of { $p3 } plaatst het zonder te verbinden.
 toast-ip-connected-no-cell = Onderbrekingspunt { $p0 } geplaatst en verbonden met { $p2 }. Alt+klik of { $p3 } plaatst het zonder te verbinden.
 toast-ip-external-connected = Extern punt { $p0 } geplaatst op { $p1 } en verbonden met { $p2 }. Alt+klik of { $p3 } plaatst het zonder te verbinden.

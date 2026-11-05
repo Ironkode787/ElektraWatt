@@ -198,6 +198,9 @@ pub enum ResultNote {
         pos: (i64, i64),
         /// The wires' count and list.
         wires: Option<(String, String)>,
+        /// Why the placement left the click point, as the Place tool's HUD said it (FT-1208: a terminal moved off a
+        /// terminal of its strip); `None` when it stands on the click point.
+        moved: Option<String>,
     },
     /// The IP tool's `connection.draw_to_ip` from the pin under the point's CP (FIXPT41): the point's insertion point
     /// (page nm), its committed name and the pin in words.

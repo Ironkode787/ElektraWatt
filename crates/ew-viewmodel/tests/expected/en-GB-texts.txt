@@ -894,6 +894,7 @@ toast-autoconnect = {0} and connected {1}: {2}. Alt+Click or {3} places without 
 toast-placed = Placed {0} at {1}
 toast-placed-no-cell = Placed {0}
 toast-placed-in-wire = {0}, connected into the wire it was dropped on
+toast-placed-moved = {1} grid steps right: {0} has a terminal on the click point
 toast-ip-connected = Placed the interruption point {0} at {1} and connected it to {2}. Alt+Click or {3} places it without connecting.
 toast-ip-connected-no-cell = Placed the interruption point {0} and connected it to {2}. Alt+Click or {3} places it without connecting.
 toast-ip-external-connected = Placed the external point {0} at {1} and connected it to {2}. Alt+Click or {3} places it without connecting.

@@ -511,7 +511,8 @@ pub trait Tool {
     fn wants_hover(&self) -> bool;
 
     /// A sentence about what the tool proposes, said in the HUD and in the toast of the commit it makes (FT-1023: the
-    /// IP tool's "0V is taken, so this point is 0V-1."); `None` for most tools.
+    /// IP tool's "0V is taken, so this point is 0V-1."; the Place tool's terminal moved off its click point, FT-1208, at
+    /// the end of its toast only); `None` for most tools.
     fn proposal_note(&self) -> Option<String> {
         None
     }
