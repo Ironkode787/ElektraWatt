@@ -874,7 +874,12 @@ fn ft1186_a_group_rows_count_follows_its_name() {
             .into_iter()
             .find(|r| r.finding.is_none() && r.badges.iter().any(|b| b.parse::<usize>().is_ok()))
             .expect("a group row with a count");
-        let count = row.badges.iter().find(|b| b.parse::<usize>().is_ok()).unwrap().clone();
+        let count = row
+            .badges
+            .iter()
+            .find(|b| b.parse::<usize>().is_ok())
+            .unwrap()
+            .clone();
         let texts = painted_texts(&h);
         let (_, name, _) = texts
             .iter()

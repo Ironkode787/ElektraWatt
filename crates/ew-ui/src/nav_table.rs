@@ -442,7 +442,12 @@ impl TableUi {
 /// The column chooser (§8.1, `table.columns`) of navigator `nav` in table mode, on the pane's tool line: the Columns
 /// menu button, a Subtle button with a chevron (doc 16a §6.21), whose menu has a check box per column (the key column
 /// cannot be hidden) and Move left and Move right for the columns on show.
-pub(crate) fn chooser(ui: &mut Ui, shell: &ew_viewmodel::shell::ShellModel, nav: &Navigator, events: &mut Vec<Event>) {
+pub(crate) fn chooser(
+    ui: &mut Ui,
+    shell: &ew_viewmodel::shell::ShellModel,
+    nav: &Navigator,
+    events: &mut Vec<Event>,
+) {
     let (Some(table), Some(mode)) = (nav.table(), nav.table_mode()) else {
         return;
     };

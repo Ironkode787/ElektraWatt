@@ -1046,7 +1046,11 @@ fn row_ui(
                         ui.spacing_mut().item_spacing.x = 0.0;
                         let response = ui.add_sized(egui::vec2(width, ui.spacing().interact_size.y), button);
                         for (i, n) in counts.iter().enumerate() {
-                            ui.add_space(if i == 0 { (t.space_2 - padding).max(0.0) } else { t.space_2 });
+                            ui.add_space(if i == 0 {
+                                (t.space_2 - padding).max(0.0)
+                            } else {
+                                t.space_2
+                            });
                             crate::components::count_badge(ui, *n);
                         }
                         response

@@ -259,7 +259,11 @@ fn row_texts(
             let name = ew_viewmodel::tools::symbol_name(&s.key).to_owned();
             // FT-1196 (as ID-1225 ruling 8 for the part rows): the tooltip in words, the symbol's name, then the row's
             // function column whole (its reason when disabled), never the keys.
-            let words = if s.name.is_empty() { name.clone() } else { s.name.clone() };
+            let words = if s.name.is_empty() {
+                name.clone()
+            } else {
+                s.name.clone()
+            };
             (name, None, library.to_owned(), words)
         }
         PickerRow::PartFn(p, k) => {

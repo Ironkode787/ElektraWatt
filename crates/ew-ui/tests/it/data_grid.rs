@@ -1012,7 +1012,10 @@ fn ft1167_export_and_import_table_follow_their_predicates() {
     let reason = ew_ui::ew_viewmodel::actions::find("navigator.export_table")
         .and_then(|a| (a.enabled)(h.state().shell()).err());
     assert_eq!(reason, Some(ew_ui::ew_viewmodel::key!("reason-table-which")));
-    h.get_all_by_label("Columns").next().expect("a Columns button").click();
+    h.get_all_by_label("Columns")
+        .next()
+        .expect("a Columns button")
+        .click();
     settle(&mut h);
     for name in ["Export table…", "Import table…"] {
         assert!(h.get_by_label(name).accesskit_node().is_disabled(), "{name}");
