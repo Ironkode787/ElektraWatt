@@ -713,3 +713,44 @@ fn pg6_transcript_and_counts() {
         "a commit reads one table"
     );
 }
+
+/// FT-1448 (ID-1397): a configuration project's Address profile row in Properties is a chooser of the profiles at
+/// hand; choosing another pins it through `plc.set_profile`, one undo step.
+#[test]
+fn ft1448_the_address_profile_is_chosen_in_properties() {
+    use ew_viewmodel::properties::{FieldType, RowValue, find_row};
+    // Golden A's configuration project PLC1.
+    const PLC1: &str = "4a1d3ee5-9e34-5065-b364-09f61b6e7c30";
+    let tmp = Tmp::new("plcnav-ft1448");
+    let mut s = tmp.shell_in(Mode::Headless, true, "101");
+    done(&mut s, "navigator.show", json!({"kind": "plc"}));
+    done(
+        &mut s,
+        "navigator.select",
+        json!({"kind": "plc", "keys": [format!("plc_config_project:{PLC1}")]}),
+    );
+    let profile = |s: &ShellModel| {
+        let sheet = s.properties().sheet().expect("a sheet");
+        let (_, row) = find_row(sheet, "plc_config_project/profile").expect("the profile row");
+        let FieldType::Enum { options } = row.ty.clone() else {
+            panic!("a chooser: {:?}", row.ty);
+        };
+        let RowValue::One { text, .. } = &row.value else {
+            panic!("{:?}", row.value);
+        };
+        (text.clone(), options)
+    };
+    let (now, options) = profile(&s);
+    assert!(options.len() >= 2 && options.contains(&now), "{now} among {options:?}");
+    let other = options.iter().find(|o| **o != now).unwrap().clone();
+    done(
+        &mut s,
+        "props.set",
+        json!({"row": "plc_config_project/profile", "value": other}),
+    );
+    assert_eq!(profile(&s).0, other);
+    assert_eq!(
+        s.recorded_commands().last().map(|c| c.cmd.as_str()),
+        Some("plc.set_profile")
+    );
+}

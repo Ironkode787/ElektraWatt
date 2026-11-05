@@ -1459,6 +1459,26 @@ fn part_function_row(q: &Q, cx: &SheetCx<'_>, targets: &[Uuid], built: &mut Vec<
     row.actions = Vec::new();
 }
 
+/// FT-1448 (ID-1397): a configuration project's address profile is a choice of the profiles at hand (the built-ins and
+/// the project's copies, WP-S7.03 D8) by their references, which `plc.set_profile` pins through
+/// [`Session::layout_edit`].
+fn profile_chooser(q: &Q, built: &mut [Built]) {
+    let copies = q.plc_profiles();
+    let options: Vec<String> = ew_derive::profiles_at_hand(copies.iter().map(|(_, c)| &**c))
+        .iter()
+        .map(|p| p.reference())
+        .collect();
+    for b in built.iter_mut().filter(|b| b.row.path == "profile") {
+        b.row.route = EditRoute::Command {
+            command: "plc.set_profile".to_owned(),
+        };
+        b.row.ty = FieldType::Enum {
+            options: options.clone(),
+        };
+        b.row.actions = vec![RowAction::Edit];
+    }
+}
+
 /// ID-1389 (W51 finding G; doc 16a §8.5): the route points of connection `c` as the frame cells they lie in (`D5`), as
 /// cross-references print them, never as nanometres; a point outside the frame grid by its two lengths.
 fn route_in_cells(q: &Q, c: Id<Connection>, built: &mut [Built]) {
@@ -1808,6 +1828,9 @@ impl Session {
         }
         if kind == Kind::Function {
             part_function_row(q, cx, &targets, &mut built);
+        }
+        if kind == Kind::PlcConfigProject && targets.len() == 1 {
+            profile_chooser(q, &mut built);
         }
         if (generated.is_none() || kind != Kind::ReportBlock) && !fluid_lines {
             built.extend(self.derived_rows(q, cx, kind, &targets, &jsons));

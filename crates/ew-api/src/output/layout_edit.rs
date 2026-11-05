@@ -922,6 +922,12 @@ impl Session {
             })
         };
         match (edit.kind.as_str(), name) {
+            // FT-1448 (ID-1397): a configuration project's address profile, chosen among the profiles at hand; the
+            // command refuses a text that names none.
+            ("plc_config_project", "profile") => command(
+                "plc.set_profile",
+                json!({"config_project": edit.target.to_string(), "profile": text}),
+            ),
             ("placement", _) => {
                 let Some(p) = q.table::<Placement>().get(Id::from_uuid(edit.target)) else {
                     return invalid("The placement is no longer in the project.");
