@@ -329,6 +329,7 @@
   - [Glossary](reference/glossary.md)
   - [Keymaps](reference/keymaps.md)
   - [Release notes](reference/release-notes/index.md)
+    - [0.1.0](reference/release-notes/0.1.0.md)
 
 # Explanation
 

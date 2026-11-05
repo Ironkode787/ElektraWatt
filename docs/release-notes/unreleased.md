@@ -5,6 +5,8 @@ SPDX-License-Identifier: CC-BY-4.0
 
 # Unreleased changes
 
+Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-variant`, `text-change`.
+
 - api-break: cli lib list --json (prints `{"$schema": "ew.lib-list-result/1", "libraries": [...]}` instead of a bare
   array; a Preview surface, WP-S1.22 D3 (d))
 - api-break: cli lib search --json (prints `{"$schema": "ew.lib-search-result/1", "hits": [...]}` instead of a bare
@@ -180,3 +182,17 @@ SPDX-License-Identifier: CC-BY-4.0
   (MIT), libfuse 3.15.0 (LGPL-2.1-only), squashfuse 0.5.2 (BSD-2-Clause), libzstd (BSD-3-Clause), zlib (Zlib) and
   mimalloc (MIT); the notices are in NOTICE, the source at https://github.com/AppImage/type2-runtime, tag 20251108,
   commit dd6cebedcbddde9c82f89b011e8e1d40b6e43868)
+- behaviour-change: window canvas wheel (the sideways wheel, and Shift with the wheel, pan horizontally; FT-895)
+- behaviour-change: window Messages detail card (as tall as its content; the list keeps at least two rows; FT-915)
+- behaviour-change: window Messages (Show messages and Next message bring a hidden Messages tab to the front; FT-916)
+- behaviour-change: window and cli every save that writes an unreleased format (the window shows the toast "Saved in a
+  format that is not released yet. Released versions of ElektraWatt open this project read-only." and `ew` prints
+  "warning: saved in a format that is not released yet; released versions of ElektraWatt open this project read-only"
+  on standard error, the exit code unchanged; FT-1154, WP-S6.08 D3)
+- behaviour-change: cli ew merge-driver (a project whose manifest on any side names a format newer than this reader's
+  is not merged: `%A` stays ours, the driver prints "merge-driver: <path>: written by a newer ElektraWatt (format <f>;
+  this one reads <r>); left as ours: merge it with that version" and exits 1; FT-1235, WP-S6.08 D4)
+- text-change: window About (the support line reads "Support: only the latest 0.x release is supported, until the
+  next minor release."; WP-S6.08 D7)
+- api-add: window script transcript (a done `help.documentation` step carries `doc`, the file the request opens below
+  the installed user guide, or null without one; FT-1267, WP-S6.08 D6)
