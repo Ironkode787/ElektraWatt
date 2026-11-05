@@ -493,6 +493,33 @@ fn ft1171_a_toasts_control_keeps_the_focus_from_the_canvas() {
     h.state_mut().shell_mut().shutdown();
 }
 
+/// C52-p3#4 (ID-1417): while a toast shows, every key typed into the page navigator's filter field lands there; the
+/// canvas's check for a toast that holds the focus does not take it.
+#[test]
+fn typing_in_a_navigator_filter_while_a_toast_shows_keeps_every_key() {
+    let tmp = Tmp::new();
+    let dir = tmp.golden("g.ew");
+    let mut h = harness(&tmp, Scripted::default(), Some(dir));
+    let shown = one_toast(&mut h);
+    // The page navigator's filter field is the top one of the left column (the Properties filter is below it).
+    h.get_all_by_role(egui::Role::TextInput)
+        .min_by(|a, b| a.rect().top().total_cmp(&b.rect().top()))
+        .expect("the page navigator's filter field")
+        .click();
+    h.step();
+    for (i, key) in ["1", "0", "2"].into_iter().enumerate() {
+        h.event(egui::Event::Text(key.to_owned()));
+        assert_eq!(
+            opacity_at(&mut h, shown, 1.0 + i as f64),
+            Some(1.0),
+            "the toast shows"
+        );
+        h.step();
+    }
+    assert_eq!(h.state().shell().navigator().filter, "102");
+    h.state_mut().shell_mut().shutdown();
+}
+
 /// FT-1195 (doc 16a §6.10, ID-940): a toast of one long text (no title and line) wraps up to three rows and is cut with
 /// an ellipsis; its whole text is the tooltip under the pointer.
 #[test]

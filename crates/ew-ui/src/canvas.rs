@@ -1618,18 +1618,21 @@ impl CanvasHost {
     ) {
         let ours = shell.focus() == Some(Focus::Canvas(group));
         // FT-1171: a toast's control that holds the keyboard focus keeps it until the toast goes or Escape returns it.
-        // (Only while a toast is on show: reading another widget's response is kept off every other frame.)
-        let toast_holds = !shell.notifications().visible().is_empty()
-            && ui.memory(|m| m.focused()).is_some_and(|id| {
-                ui.ctx()
-                    .read_response(id)
-                    .is_some_and(|r| r.layer_id.id == egui::Id::unique(crate::notifications::TOASTS_AREA))
-            });
+        // (Only while a toast is on show, and evaluated last, C52-p3#4: reading another widget's response is kept off
+        // every frame where the canvas would not take the focus anyway, a text field's included.)
+        let toast_holds = || {
+            !shell.notifications().visible().is_empty()
+                && ui.memory(|m| m.focused()).is_some_and(|id| {
+                    ui.ctx()
+                        .read_response(id)
+                        .is_some_and(|r| r.layer_id.id == egui::Id::unique(crate::notifications::TOASTS_AREA))
+                })
+        };
         if ours
             && !response.has_focus()
-            && !toast_holds
             && !ui.ctx().text_edit_focused()
             && shell.dialog().is_none()
+            && !toast_holds()
         {
             response.request_focus();
         }
