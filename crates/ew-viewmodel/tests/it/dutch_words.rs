@@ -809,7 +809,10 @@ fn the_w51_dutch_texts_read_word_for_word() {
     let cores = |n: usize| {
         strings::format(
             key!("toast-cable-new"),
-            &["-1W1", &strings::format_count(count_key!("toast-cable-new-cores"), n)],
+            &[
+                "-1W1",
+                &strings::format_count(count_key!("toast-cable-new-cores"), n),
+            ],
         )
     };
     assert_eq!(
@@ -820,7 +823,10 @@ fn the_w51_dutch_texts_read_word_for_word() {
             cores(1),
             strings::text(key!("choice-push")).to_owned(),
             strings::format(key!("refusal-structure-code-used"), &["K1"]),
-            strings::format(key!("reimport-card-summary"), &["a.qet", "0", "1", "0", "0", "0", "0"]),
+            strings::format(
+                key!("reimport-card-summary"),
+                &["a.qet", "0", "1", "0", "0", "0", "0"]
+            ),
         ],
         [
             "Title: hier \"Bench\", in lamp-circuit.qet \"Lamp and switch\"",

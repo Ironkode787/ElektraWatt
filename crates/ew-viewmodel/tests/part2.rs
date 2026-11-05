@@ -683,7 +683,11 @@ fn a_reimport_of_a_closed_project_is_dropped_whatever_its_end() {
     assert_eq!(gui.banner(), Some("Importing example.qet…"));
     done(&mut gui, "file.close", json!({ "discard": true }));
     assert!(gui.wait_jobs().is_empty());
-    assert_eq!((gui.banner(), gui.dialog()), (None, None), "no T1 for a closed project");
+    assert_eq!(
+        (gui.banner(), gui.dialog()),
+        (None, None),
+        "no T1 for a closed project"
+    );
     gui.shutdown();
     // A job that ends well leaves another import's banner.
     let tmp = Tmp::new();
@@ -735,11 +739,7 @@ fn a_reimport_proposal_of_a_closed_project_is_not_accepted_in_another() {
         assert!(matches!(gui.dialog(), Some(Dialog::ReimportMatch { .. })));
         done(&mut gui, "ui.dismiss", json!({}));
         done(&mut gui, "file.close", json!({ "discard": true }));
-        done(
-            &mut gui,
-            "file.new",
-            json!({ "dir": path(&tmp.0.join("b.ew")) }),
-        );
+        done(&mut gui, "file.new", json!({ "dir": path(&tmp.0.join("b.ew")) }));
         let rev = gui.revision();
         let _ = run(
             &mut gui,
@@ -747,11 +747,7 @@ fn a_reimport_proposal_of_a_closed_project_is_not_accepted_in_another() {
             json!({ "file": path(&qet), "accept": true }),
         );
         assert!(gui.wait_jobs().is_empty());
-        assert_eq!(
-            (gui.banner(), gui.dialog()),
-            (Some(refusal), None),
-            "{language}"
-        );
+        assert_eq!((gui.banner(), gui.dialog()), (Some(refusal), None), "{language}");
         assert_eq!(gui.revision(), rev);
         assert!(ew_viewmodel::strings::set_locale("en"));
         gui.shutdown();
