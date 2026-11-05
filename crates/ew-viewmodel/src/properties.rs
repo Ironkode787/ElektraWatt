@@ -1090,7 +1090,7 @@ pub fn grid_in_words(sheet: &mut PropertySheet) {
 }
 
 /// Writes a connection's ends A and B in words (ID-1389, W51 finding G): each end as the live description says it
-/// ([`crate::status::end_words`]: the device's tag and its connection point, else "a junction"), never its JSON;
+/// (the device's tag and its connection point, else "a junction"), never its JSON;
 /// `words` gives a record's description values. The JSON values are unchanged.
 pub fn ends_in_words(
     sheet: &mut PropertySheet,

@@ -1707,7 +1707,7 @@ fn the_check_scheme_is_applied_after_finishing_by_a_person_only() {
     );
     let dialog = gui.describe();
     assert!(
-        dialog.contains("dialog \"Apply the check scheme?\"") && dialog.contains("\"full\""),
+        dialog.contains("dialog \"Apply the check scheme?\"") && dialog.contains("\"Full\""),
         "{dialog}"
     );
     done(&mut gui, "wizard.apply_check_scheme", json!({"confirm": true}));
@@ -1719,7 +1719,7 @@ fn the_check_scheme_is_applied_after_finishing_by_a_person_only() {
     );
     let review = gui.describe();
     assert!(
-        review.contains("review \"Check scheme\": \"full\" written"),
+        review.contains("review \"Check scheme\": \"Full\" written"),
         "{review}"
     );
     assert!(!review.contains("button \"Apply the check scheme\""), "{review}");

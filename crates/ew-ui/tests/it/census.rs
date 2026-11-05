@@ -547,6 +547,8 @@ fn open_dialog(tmp: &Tmp, kind: DialogKind) -> Harness<'static, App> {
                     "file.reimport_qet",
                     json!({ "file": file, "accept": accept }),
                 );
+                // The re-import's job ends before the census looks, as the import's does.
+                assert!(h.state_mut().shell_mut().wait_jobs().is_empty());
             }
             h
         }
