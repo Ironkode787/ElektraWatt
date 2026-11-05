@@ -130,9 +130,8 @@ impl Session {
     }
 
     /// The project's cables for Connect cores… (FT-1371): `(cable device, its tag, its words)`, by tag. The words are
-    /// the tag, unless another cable prints the same tag (new cables print `-?W?` until they are numbered, decision log
-    /// ID-1376): then the tag, `·` and the cable's part number (none for a cable without a part), and where those words
-    /// are shared too, its position among them in the order the cables were created, `(1)`, `(2)`.
+    /// the tag, unless another cable prints the same tag (two frozen tags alike; decision log ID-1376, FT-1406): then
+    /// the tag, `·` and the cable's part number (none for a cable without a part), and where those words are shared too, its position among them in the order the cables were created, `(1)`, `(2)`.
     pub fn cables(&self) -> Vec<(Uuid, String, String)> {
         let q = self.query();
         let ids: Vec<Uuid> = q

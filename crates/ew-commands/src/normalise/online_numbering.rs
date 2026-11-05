@@ -27,7 +27,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use ew_ids::Id;
 use ew_model::AnyRow;
-use ew_schema::{Device, Function, Kind, Representation};
+use ew_schema::{Conductor, ConnectionKind, Device, Function, Kind, Representation};
 
 use crate::error::CmdError;
 use crate::normalise::Normaliser;
@@ -53,6 +53,16 @@ fn touched(tx: &TxBuilder<'_>) -> BTreeSet<Id<Device>> {
                 for row in [tx.row(&key), tx.base_row(&key)].into_iter().flatten() {
                     if let AnyRow::Function(f) = row {
                         out.extend(f.device);
+                    }
+                }
+            }
+            // FT-1406: a cable without a definition line is placed through its first connected core.
+            Kind::Connection => {
+                for row in [tx.row(&key), tx.base_row(&key)].into_iter().flatten() {
+                    if let AnyRow::Connection(c) = row
+                        && let ConnectionKind::Core(k) = c.kind
+                    {
+                        out.extend(tx.get::<Conductor>(k).map(|c| c.cable));
                     }
                 }
             }

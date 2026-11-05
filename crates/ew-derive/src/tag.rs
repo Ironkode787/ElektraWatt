@@ -20,11 +20,15 @@
 //! pinned profile's default scheme formats the tag (decision log ID-99; until WP-S1.11 numbers every
 //! scheme).
 
+use std::collections::BTreeSet;
 use std::sync::Arc;
 
 use ew_ids::Id;
 use ew_rds::{Aspect, Designation, RdsSyntax};
-use ew_schema::{Device, DeviceKind, FnRole, Function, RepType, Representation, TagScheme, TagSign};
+use ew_schema::{
+    Conductor, ConnectionKind, Device, DeviceKind, FnRole, Function, Page, RepType, Representation, TagScheme,
+    TagSign,
+};
 
 use crate::Q;
 use crate::cell::RepAnchorCell;
@@ -459,11 +463,31 @@ pub(crate) fn unknown_numbering_token(format: &str) -> Option<String> {
     None
 }
 
-/// Renders a numbering format for a device.
+/// The page of a cable's first connected core (FT-1406): of the core connections that name one of its conductors and
+/// lie on a page, the one of the smallest ID; `None` for a device that is no cable or has no such core. A cable
+/// without a drawn definition line is placed through it, as `ew_commands::numbering::main_page` places it.
+pub fn cable_core_page(q: &Q, device: Id<Device>) -> Option<Id<Page>> {
+    q.devices().get(device)?.aspects.cable.as_ref()?;
+    let conductors: BTreeSet<Id<Conductor>> = q.idx().conductors_of_cable(device).collect();
+    if conductors.is_empty() {
+        return None;
+    }
+    q.connections()
+        .iter()
+        .filter(|(_, c)| matches!(c.kind, ConnectionKind::Core(k) if conductors.contains(&k)))
+        .filter_map(|(id, c)| c.page.map(|p| (id, p)))
+        .min()
+        .map(|(_, p)| p)
+}
+
+/// Renders a numbering format for a device. A cable without a drawn definition line takes the page of its first
+/// connected core, and without one no page: `{page}` prints nothing, its counter being the project's (FT-1406).
 fn render_format(q: &Q, id: Id<Device>, dev: &Device, format: &str) -> String {
     let main_rep = *q.get::<MainRep>(id);
     let rep = main_rep.and_then(|r| q.reps().get(r));
-    let page = rep.and_then(|r| q.pages().get(r.page));
+    let page_id = rep.map(|r| r.page).or_else(|| cable_core_page(q, id));
+    let page = page_id.and_then(|p| q.pages().get(p));
+    let unplaced_cable = rep.is_none() && page_id.is_none() && dev.aspects.cable.is_some();
     let cell = || main_rep.and_then(|r| (*q.get::<RepAnchorCell>(r)).clone());
     let mut out = String::new();
     let mut rest = format;
@@ -482,6 +506,7 @@ fn render_format(q: &Q, id: Id<Device>, dev: &Device, format: &str) -> String {
             "subcounter" => {}
             "page" => match page {
                 Some(p) => out.push_str(&folio_label(p)),
+                None if unplaced_cable => {}
                 None => out.push('?'),
             },
             "column" => match cell() {

@@ -132,6 +132,8 @@ fn a_new_cable_takes_its_parts_cores_and_the_selected_wires_become_its_cores() {
     let mut sorted = cores.clone();
     sorted.sort();
     assert_eq!(sorted, ["BK", "BN", "BU", "GNYE", "WH"], "the part's cores");
+    // FT-1406: a new cable without a definition line takes the project's counter, never `-?W?`.
+    assert_eq!(tag, "-W1");
     assert_eq!(
         state(&s)["toast"]["text"],
         format!("Created cable {tag} with 5 cores")
@@ -159,6 +161,8 @@ fn a_new_cable_takes_its_parts_cores_and_the_selected_wires_become_its_cores() {
     assert_eq!(s.submit_form(), Outcome::Done);
     assert!(s.dialog().is_none());
     assert_eq!(kinds(&s, &w[..2]), ["core", "core"]);
+    // FT-1406: with its first core on folio 103 the cable takes that page, and the toast names it so.
+    let tag = "-103W1".to_owned();
     assert_eq!(
         state(&s)["toast"]["text"],
         format!("Wires connected to the cores of {tag}: 2")
@@ -417,8 +421,9 @@ fn a_library_cable_part_is_embedded_with_its_cable_in_one_undo_step() {
     s.shutdown();
 }
 
-/// ID-1376 (C51-p4#3b): two new cables both print `-?W?`; Connect cores… names each in its list by its part and its
-/// position, and refuses the bare tag in words, in both languages, instead of taking the first.
+/// ID-1376 (C51-p4#3b): two cables that print one tag (two new cables each take the project's counter, FT-1406, so
+/// they are given one frozen tag here); Connect cores… names each in its list by its part and its position, and
+/// refuses the bare tag in words, in both languages, instead of taking the first.
 #[test]
 fn connect_cores_tells_two_cables_with_one_tag_apart() {
     let tmp = Tmp::new("ft1371d");
@@ -432,7 +437,16 @@ fn connect_cores_tells_two_cables_with_one_tag_apart() {
         .map(|(tag, _)| tag)
         .filter(|t| !before.iter().any(|(b, _)| b == t))
         .collect();
-    assert_eq!(new, ["-?W?", "-?W?"], "both new cables print the same tag");
+    assert_eq!(new, ["-W1", "-W2"], "FT-1406: each new cable takes the project's counter");
+    done(&mut s, "navigator.show", json!({"kind": "cables"}));
+    for tag in ["-W1", "-W2"] {
+        done(&mut s, "navigator.select", json!({"keys": [tag]}));
+        done(
+            &mut s,
+            "props.set",
+            json!({"row": "device/tag.frozen", "value": "-9W9"}),
+        );
+    }
     let w = wires(&s);
     done(&mut s, "select.set", json!({"ids": [w[0].to_string()]}));
     done(&mut s, "cable.connect_cores", json!({}));
@@ -440,26 +454,26 @@ fn connect_cores_tells_two_cables_with_one_tag_apart() {
         .options
         .iter()
         .map(|(_, w)| w.clone())
-        .filter(|w| w.starts_with("-?W?"))
+        .filter(|w| w.starts_with("-9W9"))
         .collect();
     assert_eq!(
         words,
         [
-            "-?W? \u{b7} NEBU-G78W5-K-2-N-LE5 (1)",
-            "-?W? \u{b7} NEBU-G78W5-K-2-N-LE5 (2)"
+            "-9W9 \u{b7} NEBU-G78W5-K-2-N-LE5 (1)",
+            "-9W9 \u{b7} NEBU-G78W5-K-2-N-LE5 (2)"
         ]
     );
     done(&mut s, "ui.dismiss", json!({}));
     for (language, refusal) in [
-        ("en", "-?W? is the tag of 2 cables: choose one from the list."),
+        ("en", "-9W9 is the tag of 2 cables: choose one from the list."),
         (
             "nl",
-            "-?W? is het kenmerk van 2 kabels: kies er een uit de lijst.",
+            "-9W9 is het kenmerk van 2 kabels: kies er een uit de lijst.",
         ),
     ] {
         done(&mut s, "view.language", json!({ "value": language }));
         let rev = s.revision();
-        let Outcome::Failed { message } = s.dispatch("cable.connect_cores", &json!({"cable": "-?W?"})) else {
+        let Outcome::Failed { message } = s.dispatch("cable.connect_cores", &json!({"cable": "-9W9"})) else {
             panic!("{language}: an ambiguous tag")
         };
         assert_eq!(message, refusal, "{language}");
@@ -469,11 +483,11 @@ fn connect_cores_tells_two_cables_with_one_tag_apart() {
     done(
         &mut s,
         "cable.connect_cores",
-        json!({"cable": "-?W? \u{b7} NEBU-G78W5-K-2-N-LE5 (2)"}),
+        json!({"cable": "-9W9 \u{b7} NEBU-G78W5-K-2-N-LE5 (2)"}),
     );
     assert_eq!(
         state(&s)["toast"]["text"],
-        "Wires connected to the cores of -?W? \u{b7} NEBU-G78W5-K-2-N-LE5 (2): 1"
+        "Wires connected to the cores of -9W9 \u{b7} NEBU-G78W5-K-2-N-LE5 (2): 1"
     );
     s.shutdown();
 }

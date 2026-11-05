@@ -52,7 +52,8 @@ fn assert_agree(fx: &Fx, devices: &[u128]) {
         let dev: ew_ids::Id<Device> = id(*d);
         let ours = q
             .get::<MainRep>(dev)
-            .and_then(|r| q.reps().get(r).map(|r| r.page));
+            .and_then(|r| q.reps().get(r).map(|r| r.page))
+            .or_else(|| ew_derive::cable_core_page(&q, dev));
         assert_eq!(
             ours,
             ew_commands::numbering::main_page_in(&m, dev),
@@ -145,6 +146,41 @@ fn a_strip_without_a_segment_is_placed_through_its_first_terminal() {
         "102X1"
     );
     assert_agree(&fx, &[0x3000]);
+}
+
+/// FT-1406: a cable without a definition line is placed on the page of its first connected core (the smallest
+/// connection ID), in both layers, and prints that page; a cable with no connected core prints no page, never `?`.
+#[test]
+fn a_cable_without_a_definition_line_is_placed_through_its_first_core() {
+    let mut fx = base();
+    for (cable, counter) in [(0x4000, 1), (0x5000, 2)] {
+        fx.push(json!({"$k": "device", "id": uid(cable), "tag": {"letter": "W", "counter": counter}, "cable": {}}));
+        fx.push(json!({"$k": "conductor", "id": uid(cable + 1), "cable": uid(cable), "core": "BN"}));
+        fx.push(json!({"$k": "conductor", "id": uid(cable + 2), "cable": uid(cable), "core": "BU"}));
+    }
+    fx.device(0x1000, "E", Some(1))
+        .function(0x1001, Some(0x1000), 0x500, true)
+        .rep(0x1010, PAGES[1], 0x510, &[0x1001], 0, 0);
+    fx.device(0x2000, "E", Some(2))
+        .function(0x2001, Some(0x2000), 0x500, true)
+        .rep(0x2010, PAGES[2], 0x510, &[0x2001], 0, 0);
+    // The cores of 0x4000: BU on 103 (the larger ID), BN on 102 (the smaller, its first core).
+    for (n, page, core, f) in [(0x4102, PAGES[2], 0x4002, 0x2001), (0x4101, PAGES[1], 0x4001, 0x1001)] {
+        fx.push(json!({"$k": "connection", "id": uid(n), "page": uid(page),
+            "a": {"cp": [uid(f), 0]}, "b": {"cp": [uid(f), 1]}, "kind": {"core": uid(core)}}));
+    }
+    let m = fx.build();
+    let q = Q::new(&m);
+    assert_eq!(*q.get::<MainRep>(id(0x4000)), None);
+    assert_eq!(
+        ew_commands::numbering::main_page_in(&m, id(0x4000)),
+        Some(id(PAGES[1]))
+    );
+    assert_eq!(ew_commands::numbering::main_page_in(&m, id(0x5000)), None);
+    let product = |d: u128| q.get::<DeviceTag>(id(d)).as_ref().as_ref().unwrap().product.clone();
+    assert_eq!(product(0x4000), "102W1");
+    assert_eq!(product(0x5000), "W2");
+    assert_agree(&fx, &[0x4000, 0x5000, 0x1000, 0x2000]);
 }
 
 /// A contact image is never the main representation, in both layers (doc 03 §5.1): the device's main

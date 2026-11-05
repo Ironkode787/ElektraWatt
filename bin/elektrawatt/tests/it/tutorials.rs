@@ -67,8 +67,8 @@ fn run_tutorial(tmp: &Tmp, name: &str) -> Output {
     run_tutorial_with(tmp, name, None)
 }
 
-/// [`run_tutorial`] with the sample project `sample` (Help ▸ Tutorials copies it; absent: none). The installation's
-/// libraries are read, as in an installed window: a script run reads them only with a data directory (`EW_DATA_DIR`).
+/// [`run_tutorial`] with the sample project `sample` (Help ▸ Tutorials copies it; absent: none). No data directory is
+/// given (`EW_DATA_DIR`): the tutorials run on the compiled-in starter set alone, as a new installation does (FT-1401).
 fn run_tutorial_with(tmp: &Tmp, name: &str, sample: Option<&str>) -> Output {
     let path = Path::new(BOOK)
         .join("tutorial-scripts")
@@ -88,7 +88,7 @@ fn run_tutorial_with(tmp: &Tmp, name: &str, sample: Option<&str>) -> Output {
     };
     cmd.env("EW_CONFIG_DIR", tmp.path(&format!("config-{name}")))
         .env("EW_CONTENT_DIR", CONTENT)
-        .env("EW_DATA_DIR", tmp.path(&format!("data-{name}")))
+        .env_remove("EW_DATA_DIR")
         .env_remove("EW_DOCS_DIR")
         .env_remove("SOURCE_DATE_EPOCH")
         .stdin(Stdio::null())
@@ -439,8 +439,9 @@ fn tutorial_1_a_first_schematic_page_runs_as_its_page_says() {
 }
 
 /// Tutorial 2 (D10, DC-6, FT-1371): on tutorial 1's project, a strip with two terminals, the cabinet and the field
-/// side wired, a cable from its part with the field wires as its cores, its tag and length set, the strip editor and
-/// the Cables navigator read, checked and saved: every step done, the end state the page names, and the lint.
+/// side wired, a cable from the starter set's part with the field wires as its cores (its tag from its first core's
+/// page, FT-1406), its length set, the strip editor and the Cables navigator read, checked and saved: every step done,
+/// the end state the page names, and the lint.
 #[test]
 fn tutorial_2_a_terminal_strip_and_a_cable_runs_as_its_page_says() {
     let tmp = Tmp::new();
@@ -450,11 +451,11 @@ fn tutorial_2_a_terminal_strip_and_a_cable_runs_as_its_page_says() {
     let [created, connected, describe] = <[String; 3]>::try_from(describes(&transcript)).unwrap();
     assert_eq!(
         lines_of(&created, &["toast"]),
-        ["toast \"Created cable -?W? with 5 cores\" undo"]
+        ["toast \"Created cable -W1 with 3 cores\" undo"]
     );
     assert_eq!(
         lines_of(&connected, &["toast"]),
-        ["toast \"Wires connected to the cores of -?W?: 2\" undo"]
+        ["toast \"Wires connected to the cores of -1W1: 2\" undo"]
     );
     assert_eq!(
         lines_of(
@@ -469,16 +470,14 @@ fn tutorial_2_a_terminal_strip_and_a_cable_runs_as_its_page_says() {
         ),
         [
             "title: first-page.ew - ElektraWatt",
-            "row \"-1X1\" \"1\" \"1\" \"\" \"\" \"\" \"24VAC\" \"-1E2:X1\" \"-1E3:X1 via -1W1 BK\" \"\" \"\" \"used\" \
+            "row \"-1X1\" \"1\" \"1\" \"\" \"\" \"\" \"24VAC\" \"-1E2:X1\" \"-1E3:X1 via -1W1 BN\" \"\" \"\" \"used\" \
              cursor \"Strip\"",
             "row \"-1X1\" \"2\" \"2\" \"\" \"\" \"\" \"0VAC\" \"-1E2:X2\" \"-1E3:X2 via -1W1 BU\" \"\" \"\" \"used\"",
             "row level 1 cable \"-1W1\" expanded cursor",
-            "row level 2 conductor \"BK\"",
             "row level 2 conductor \"BN\"",
             "row level 2 conductor \"BU\"",
             "row level 2 conductor \"GNYE\"",
-            "row level 2 conductor \"WH\"",
-            "toast \"Check: 0 errors, 8 warnings, 3 infos\"",
+            "toast \"Check: 0 errors, 8 warnings, 2 infos\"",
         ]
     );
     let items = items(&tmp);

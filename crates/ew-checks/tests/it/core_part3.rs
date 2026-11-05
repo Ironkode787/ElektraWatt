@@ -86,13 +86,13 @@ fn core031_reports_foreign_and_undeclared_company_colours() {
         texts(&f),
         [
             (
-                "-?W1/1".to_owned(),
-                "core -?W1/1 has the colour BR: \"BR\" is not an IEC 60757 code or a company code of the colour profile"
+                "-W1/1".to_owned(),
+                "core -W1/1 has the colour BR: \"BR\" is not an IEC 60757 code or a company code of the colour profile"
                     .to_owned()
             ),
             (
-                "-?W1/2".to_owned(),
-                "core -?W1/2 has the colour DBU: \"DBU\" is not an IEC 60757 code or a company code of the colour profile"
+                "-W1/2".to_owned(),
+                "core -W1/2 has the colour DBU: \"DBU\" is not an IEC 60757 code or a company code of the colour profile"
                     .to_owned()
             ),
         ]
@@ -104,7 +104,7 @@ fn core031_reports_foreign_and_undeclared_company_colours() {
     // With the profile declaring DBU only the foreign code is left.
     let f = findings_of(&colours(colour_profile(), json!(["DBU"])), "EW-CORE-031");
     assert_eq!(f.len(), 1, "{f:#?}");
-    assert_eq!(f[0].subject, "-?W1/1");
+    assert_eq!(f[0].subject, "-W1/1");
 }
 
 /// EW-CORE-031 prevent: a batch that gives a touched core a foreign colour is refused; a foreign colour a lenient
@@ -117,7 +117,7 @@ fn core031_prevent_refuses_a_new_invalid_colour_only() {
     let v = prevent(&Q::new(&before), &Q::new(&after), &[key]);
     assert_eq!(v.len(), 1, "{v:#?}");
     assert_eq!(v[0].rule, "EW-CORE-031");
-    assert_eq!(v[0].subject, "-?W1/2");
+    assert_eq!(v[0].subject, "-W1/2");
     // The held "BR" of core 1 is not refused when core 1 is touched without a change.
     let v = prevent(
         &Q::new(&before),
@@ -164,13 +164,13 @@ fn core032_reports_cores_that_differ_from_the_cable_part() {
         texts(&f),
         [
             (
-                "-?W1/1".to_owned(),
-                "core -?W1/1 differs from the core 1 of the cable part CAB-3G1.5: colour BN ≠ BK, cross-section 2.5 ≠ 1.5"
+                "-W1/1".to_owned(),
+                "core -W1/1 differs from the core 1 of the cable part CAB-3G1.5: colour BN ≠ BK, cross-section 2.5 ≠ 1.5"
                     .to_owned()
             ),
             (
-                "-?W1/3".to_owned(),
-                "core -?W1/3 is not a core of the cable part CAB-3G1.5".to_owned()
+                "-W1/3".to_owned(),
+                "core -W1/3 is not a core of the cable part CAB-3G1.5".to_owned()
             ),
         ]
     );
@@ -266,9 +266,9 @@ fn core036_reports_a_core_assigned_to_two_wires() {
     let f = findings_of(&cores(&[0x2001, 0x2002]), "EW-CORE-036");
     assert_eq!(f.len(), 1, "{f:#?}");
     assert_eq!(f[0].code, "003036");
-    assert_eq!(f[0].subject, "-?W1/1");
+    assert_eq!(f[0].subject, "-1W1/1");
     assert!(
-        f[0].message.starts_with("core -?W1/1 is assigned to 2 wires ("),
+        f[0].message.starts_with("core -1W1/1 is assigned to 2 wires ("),
         "{}",
         f[0].message
     );
@@ -324,8 +324,8 @@ fn core037_reports_a_shield_connected_at_neither_end() {
     assert_eq!(
         texts(&f),
         [(
-            "-?W1/SH".to_owned(),
-            "shield -?W1/SH is connected at neither end; connect it at one end or both".to_owned()
+            "-1W1/SH".to_owned(),
+            "shield -1W1/SH is connected at neither end; connect it at one end or both".to_owned()
         )]
     );
     assert!(

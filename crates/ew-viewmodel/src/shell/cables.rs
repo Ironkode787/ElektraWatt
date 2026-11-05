@@ -264,6 +264,13 @@ impl ShellModel {
         let out = self.commit_from_host(&cmd);
         match out {
             Outcome::Done => {
+                // FT-1406: the cable is placed through its first core now, so the toast names it as it reads after
+                // the step.
+                let tag = self
+                    .project
+                    .as_ref()
+                    .and_then(|p| p.session.cables().into_iter().find(|(i, _, _)| *i == id))
+                    .map_or(tag, |(_, _, words)| words);
                 self.notify(
                     strings::format(key!("toast-cores-connected"), &[&wires.len().to_string(), &tag]),
                     true,

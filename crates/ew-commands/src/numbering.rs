@@ -11,12 +11,15 @@
 //! as the main representation; the main function: role `Main`, smallest ID if the data holds more).
 //! A strip without a segment takes the main representation of its first placed terminal, and a device whose main
 //! function is not drawn takes the smallest-ID representation of its other functions ([`main_rep`]).
-//! `ew_derive::MainRep` applies the same rules; its `tests/agreement.rs` holds the two together.
+//! `ew_derive::MainRep` applies the same rules; its `tests/agreement.rs` holds the two together. A cable without a
+//! drawn definition line is placed on the page of its first connected core ([`main_page`], FT-1406), as
+//! `ew_derive::cable_core_page` places it.
 //!
 //! **Which devices take part.** A device takes part in page-based numbering when it has no terminal
 //! aspect (a terminal is named by its strip and designation), no frozen tag and the default scheme. An
 //! unplaced device (no main representation) has no scope: it keeps its counter, and a device without a
-//! counter gets one when it is placed.
+//! counter gets one when it is placed. An unplaced cable (no definition line, no connected core) takes the project's
+//! counter: the scope of the cables on no page (FT-1406), whose tags print no page.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
@@ -25,8 +28,8 @@ use ew_ids::Id;
 use ew_mltext::{Ident, NaturalKey};
 use ew_model::Model;
 use ew_schema::{
-    Device, FnRole, FormDef, FrameGrid, Function, LibCopy, Page, PageType, RepType, Representation,
-    SymbolDef, TagScheme,
+    Conductor, Connection, ConnectionKind, Device, FnRole, FormDef, FrameGrid, Function, LibCopy, Page, PageType,
+    RepType, Representation, SymbolDef, TagScheme,
 };
 
 use crate::tx::TxBuilder;
@@ -36,6 +39,8 @@ use crate::tx::TxBuilder;
 pub enum CounterScope {
     /// The devices whose main representation is on this page.
     Page(Id<Page>),
+    /// The cables placed on no page: no definition line and no connected core (FT-1406).
+    Project,
 }
 
 /// Whether a device takes part in page-based numbering.
@@ -125,9 +130,36 @@ fn strip_main_rep(tx: &TxBuilder<'_>, device: Id<Device>) -> Option<Arc<Represen
         .map(|(_, rep)| rep)
 }
 
-/// The page of a device's main representation.
+/// The page of a device's main representation; for a cable without a drawn definition line, the page of its first
+/// connected core (FT-1406): of the core connections that name one of its conductors and lie on a page, the one of
+/// the smallest ID (`ew_derive::cable_core_page`).
 pub fn main_page(tx: &TxBuilder<'_>, device: Id<Device>) -> Option<Id<Page>> {
-    main_rep(tx, device).map(|r| r.page)
+    if let Some(rep) = main_rep(tx, device) {
+        return Some(rep.page);
+    }
+    tx.get::<Device>(device)?.aspects.cable.as_ref()?;
+    let conductors: BTreeSet<Id<Conductor>> = tx.conductors_of_cable(device).into_iter().collect();
+    if conductors.is_empty() {
+        return None;
+    }
+    core_page(tx.iter::<Connection>().iter().map(|c| &**c), &conductors)
+}
+
+/// The page of the smallest-ID connection of `connections` that is a core of one of `conductors` and lies on a page.
+fn core_page<'c>(
+    connections: impl Iterator<Item = &'c Connection>,
+    conductors: &BTreeSet<Id<Conductor>>,
+) -> Option<Id<Page>> {
+    connections
+        .filter(|c| matches!(c.kind, ConnectionKind::Core(k) if conductors.contains(&k)))
+        .filter_map(|c| c.page.map(|p| (c.id, p)))
+        .min()
+        .map(|(_, p)| p)
+}
+
+/// Whether a device is a cable on no page, in the project's scope ([`CounterScope::Project`]).
+fn unplaced_cable(device: &Device, page: Option<Id<Page>>) -> bool {
+    page.is_none() && device.aspects.cable.is_some()
 }
 
 /// The two places the command layer reads records from: a transaction's view ([`TxBuilder`], with its
@@ -256,6 +288,16 @@ pub fn main_page_in(model: &Model, device: Id<Device>) -> Option<Id<Page>> {
                 .map(|key| key.2)
         })
         .or_else(|| aux_main_page_in(model, device))
+        .or_else(|| {
+            // a cable without a definition line: the page of its first connected core (see [`main_page`])
+            devices.get(&device)?.aspects.cable.as_ref()?;
+            let conductors: BTreeSet<Id<Conductor>> =
+                model.indexes().conductors_by_cable().get(&device).copied().collect();
+            if conductors.is_empty() {
+                return None;
+            }
+            core_page(model.table::<Connection>().iter().map(|(_, c)| &**c), &conductors)
+        })
 }
 
 /// The auxiliary fallback of [`main_page_in`] (see [`main_rep`]).
@@ -290,18 +332,20 @@ fn own_main_page_in(model: &Model, device: Id<Device>) -> Option<Id<Page>> {
 }
 
 /// Whether two devices held the same page-based tag in a snapshot: both numbered, the same letter and
-/// counter, and the same page of the main representation.
+/// counter, and the same page of the main representation, or both cables on no page (FT-1406).
 pub fn collided_in(model: &Model, a: Id<Device>, b: Id<Device>) -> bool {
     let devices = model.table::<Device>();
     let (Some(da), Some(db)) = (devices.get(&a), devices.get(&b)) else {
         return false;
     };
+    let (pa, pb) = (main_page_in(model, a), main_page_in(model, b));
     numbered(da)
         && numbered(db)
         && da.tag.letter == db.tag.letter
         && da.tag.counter.is_some()
         && da.tag.counter == db.tag.counter
-        && main_page_in(model, a).is_some_and(|p| main_page_in(model, b) == Some(p))
+        && pa == pb
+        && (pa.is_some() || (unplaced_cable(da, pa) && unplaced_cable(db, pb)))
 }
 
 /// The numbered devices in a scope with a given letter, with their counters, in ID order.
@@ -310,8 +354,25 @@ pub fn devices_in_scope(
     letter: &Ident,
     scope: CounterScope,
 ) -> Vec<(Id<Device>, Option<u32>)> {
-    let CounterScope::Page(page) = scope;
+    let page = match scope {
+        CounterScope::Page(page) => page,
+        CounterScope::Project => {
+            return tx
+                .iter::<Device>()
+                .into_iter()
+                .filter(|dev| numbered(dev) && dev.tag.letter == *letter && dev.aspects.cable.is_some())
+                .filter(|dev| main_page(tx, dev.id).is_none())
+                .map(|dev| (dev.id, dev.tag.counter))
+                .collect();
+        }
+    };
     let mut devices: BTreeSet<Id<Device>> = BTreeSet::new();
+    // A cable without a definition line is placed through its first connected core ([`main_page`]).
+    for cid in tx.connections_on_page(page) {
+        if let Some(ConnectionKind::Core(k)) = tx.get::<Connection>(cid).map(|c| c.kind.clone()) {
+            devices.extend(tx.get::<Conductor>(k).map(|c| c.cable));
+        }
+    }
     for rid in tx.reps_on_page(page) {
         let Some(rep) = tx.get::<Representation>(rid) else {
             continue;
@@ -451,10 +512,12 @@ pub fn number_devices(
         if !numbered(&dev) {
             continue;
         }
-        let Some(page) = main_page(tx, *d) else {
-            continue;
+        let page = main_page(tx, *d);
+        let scope = match page {
+            Some(page) => CounterScope::Page(page),
+            None if unplaced_cable(&dev, page) => CounterScope::Project,
+            None => continue,
         };
-        let scope = CounterScope::Page(page);
         let group = groups
             .entry((scope, dev.tag.letter.clone()))
             .or_insert_with(|| ScopeCounters::load(tx, &dev.tag.letter, scope));

@@ -376,7 +376,7 @@ msgstr ""
 msgid "Nothing else: the project starts from EW's built-in basic project."
 msgstr ""
 
-#: src/tutorials/first-page.md:14 src/tutorials/terminal-strip-and-cable.md:14
+#: src/tutorials/first-page.md:14 src/tutorials/terminal-strip-and-cable.md:13
 #: src/tutorials/reports-and-pdf.md:12 src/tutorials/import-qet.md:16
 #: src/how-to/define-supply-potential.md:12
 msgid "Steps"
@@ -451,7 +451,7 @@ msgid ""
 "as changed, and the status bar says Saved."
 msgstr ""
 
-#: src/tutorials/first-page.md:44 src/tutorials/terminal-strip-and-cable.md:51
+#: src/tutorials/first-page.md:44 src/tutorials/terminal-strip-and-cable.md:50
 #: src/tutorials/reports-and-pdf.md:37 src/tutorials/import-qet.md:50
 msgid "What you learnt"
 msgstr ""
@@ -497,25 +497,19 @@ msgid ""
 "potentials](first-page.md), `first-page.ew`, as you saved it at its end."
 msgstr ""
 
-#: src/tutorials/terminal-strip-and-cable.md:12
-msgid ""
-"The installed libraries of ElektraWatt, which hold the cable parts of the "
-"sample project."
-msgstr ""
-
-#: src/tutorials/terminal-strip-and-cable.md:16
+#: src/tutorials/terminal-strip-and-cable.md:15
 msgid ""
 "Choose **File ▸ Open…** (`Ctrl+O`) and open `first-page.ew`. Its page shows "
 "the transformer -1T1 and the lamps -1E1 and -1E2."
 msgstr ""
 
-#: src/tutorials/terminal-strip-and-cable.md:18
+#: src/tutorials/terminal-strip-and-cable.md:17
 msgid ""
 "Choose **Draw ▸ Place ▸ Terminal strip…**. EW creates an empty terminal "
 "strip. It takes its tag when its first terminal is placed."
 msgstr ""
 
-#: src/tutorials/terminal-strip-and-cable.md:20
+#: src/tutorials/terminal-strip-and-cable.md:19
 msgid ""
 "Choose **Draw ▸ Place ▸ Symbol…** (`I`) and choose **terminal**. In the list "
 "of strips, choose the new strip. Click twice, to the right of -1E2 and level "
@@ -524,14 +518,14 @@ msgid ""
 "clamp a, at the bottom and its field side, clamp b, at the top."
 msgstr ""
 
-#: src/tutorials/terminal-strip-and-cable.md:24
+#: src/tutorials/terminal-strip-and-cable.md:23
 msgid ""
 "Choose **Draw ▸ Place ▸ Symbol…** again, choose **lamp**, and click above "
 "and to the right of the terminals. Choose **Draw ▸ Select**. The lamp -1E3, "
 "the lamp on the machine, is on the page."
 msgstr ""
 
-#: src/tutorials/terminal-strip-and-cable.md:27
+#: src/tutorials/terminal-strip-and-cable.md:26
 msgid ""
 "Choose **Draw ▸ Connect ▸ Wire** (`W`). Draw the cabinet side: from X1 of "
 "-1E2 to the bottom of -1X1:1, and from X2 of -1E2 to the bottom of -1X1:2. "
@@ -540,74 +534,75 @@ msgid ""
 "carries 24VAC and -1X1:2 carries 0VAC to the lamp on the machine."
 msgstr ""
 
-#: src/tutorials/terminal-strip-and-cable.md:31
+#: src/tutorials/terminal-strip-and-cable.md:30
 msgid ""
 "Choose **Draw ▸ Connect ▸ New cable…**. In the form, choose the cable part "
-"**NEBU-G78W5-K-2-N-LE5**, a five-core connecting cable, and choose "
-"**Create**. The toast says \"Created cable -?W? with 5 cores\". The cable "
-"has the part's five cores; its tag shows question marks until you give it "
-"one in step 8."
+"**EW-GEN-CBL-1**, the three-core cable of the starter set, and choose "
+"**Create**. The toast says \"Created cable -W1 with 3 cores\". The cable has "
+"the part's three cores. It is drawn on no page yet, so its tag has no page "
+"number."
 msgstr ""
 
-#: src/tutorials/terminal-strip-and-cable.md:35
+#: src/tutorials/terminal-strip-and-cable.md:34
 msgid ""
 "Click the field wire of -1X1:1, then Shift+click the field wire of -1X1:2. "
-"Choose **Draw ▸ Connect ▸ Connect cores…**, choose the cable **\\-?W?**, and "
-"choose **Connect**. The toast says \"Wires connected to the cores of -?W?: "
-"2\": the two field wires are now cores of the cable."
+"Choose **Draw ▸ Connect ▸ Connect cores…**, choose the cable **-W1**, and "
+"choose **Connect**. The toast says \"Wires connected to the cores of -1W1: "
+"2\": the two field wires are now cores of the cable, and the cable takes its "
+"page number from its first core."
 msgstr ""
 
 #: src/tutorials/terminal-strip-and-cable.md:38
 msgid ""
-"Choose **View ▸ Panels ▸ Navigators ▸ Cables** and click the cable -?W?. In "
-"the Properties pane, set **Frozen tag** to `-1W1` and **Length** to `5 m`. "
-"The Cables navigator lists the cable -1W1 with its five cores: BK, BN, BU, "
-"GNYE and WH."
+"Choose **View ▸ Panels ▸ Navigators ▸ Cables** and click the cable -1W1. In "
+"the Properties pane, set **Length** to `5 m`. The Cables navigator lists "
+"the cable -1W1 with its three cores: BN, BU and GNYE."
 msgstr ""
 
 #: src/tutorials/terminal-strip-and-cable.md:41
 msgid ""
 "Click the terminal -1X1:1 and choose **Edit ▸ Strip editor**. The Terminal "
 "strips navigator shows the strip -1X1 as a table: terminal 1 on 24VAC, with "
-"-1E2:X1 on side 1 and \\-1E3:X1 via -1W1 BK on side 2; terminal 2 on 0VAC, "
-"with -1E2:X2 and -1E3:X2 via -1W1 BU."
+"-1E2:X1 on side 1 and the field wire to -1E3:X1 via -1W1 BN on side 2; "
+"terminal 2 on 0VAC, with -1E2:X2 and -1E3:X2 via -1W1 BU."
 msgstr ""
 
 #: src/tutorials/terminal-strip-and-cable.md:44
 msgid ""
 "Choose **Check ▸ Run checks** (`F7`). The toast says \"Check: 0 errors, 8 "
-"warnings, 3 infos\". The warnings are the devices that have no part yet and "
-"the transformer's open primary pins; the infos say that no report covers the "
-"strip or the cable yet, and that the cable's tag is frozen."
+"warnings, 2 infos\". The warnings are the devices that have no part yet and "
+"the transformer's open primary pins; the infos say that no report covers "
+"the strip or the cable yet."
 msgstr ""
 
-#: src/tutorials/terminal-strip-and-cable.md:48
+#: src/tutorials/terminal-strip-and-cable.md:47
 #: src/tutorials/reports-and-pdf.md:34 src/tutorials/import-qet.md:47
 msgid ""
 "Choose **File ▸ Save** (`Ctrl+S`). The title bar no longer marks the project "
 "as changed."
 msgstr ""
 
-#: src/tutorials/terminal-strip-and-cable.md:53
+#: src/tutorials/terminal-strip-and-cable.md:52
 msgid ""
 "A terminal strip is a device of its own, and each terminal you place from "
 "the strip's list is one of its terminals, with a cabinet side and a field "
 "side."
 msgstr ""
 
-#: src/tutorials/terminal-strip-and-cable.md:55
+#: src/tutorials/terminal-strip-and-cable.md:54
 msgid ""
 "A cable is created from its part, with the part's cores; **Draw ▸ Connect ▸ "
-"Connect cores…** makes the selected wires its cores, in order."
+"Connect cores…** makes the selected wires its cores, in order. A cable "
+"without a drawn cable line takes its page number from its first core."
 msgstr ""
 
-#: src/tutorials/terminal-strip-and-cable.md:57
+#: src/tutorials/terminal-strip-and-cable.md:56
 msgid ""
 "The strip editor and the Cables navigator show what passes through each "
 "terminal and each core, from the drawing."
 msgstr ""
 
-#: src/tutorials/terminal-strip-and-cable.md:58
+#: src/tutorials/terminal-strip-and-cable.md:57
 msgid ""
 "The reports that list them, the terminal diagram and the cable list, are the "
 "subject of [Reports and PDF](reports-and-pdf.md)."

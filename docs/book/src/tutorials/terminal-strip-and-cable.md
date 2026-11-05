@@ -9,7 +9,6 @@ cable in the Cables navigator. At the end you have a saved project whose checks 
 
 - The project of the tutorial [A first schematic page with potentials](first-page.md), `first-page.ew`, as you saved
   it at its end.
-- The installed libraries of ElektraWatt, which hold the cable parts of the sample project.
 
 ## Steps
 
@@ -28,23 +27,23 @@ cable in the Cables navigator. At the end you have a saved project whose checks 
    of -1E2 to the bottom of -1X1:2. Then the field side: from the top of -1X1:1 to X1 of -1E3, and from the top of
    -1X1:2 to X2 of -1E3. Choose **Draw ▸ Select**.
    The terminal -1X1:1 carries 24VAC and -1X1:2 carries 0VAC to the lamp on the machine.
-6. Choose **Draw ▸ Connect ▸ New cable…**. In the form, choose the cable part **NEBU-G78W5-K-2-N-LE5**, a five-core
-   connecting cable, and choose **Create**.
-   The toast says "Created cable -?W? with 5 cores". The cable has the part's five cores; its tag shows question
-   marks until you give it one in step 8.
+6. Choose **Draw ▸ Connect ▸ New cable…**. In the form, choose the cable part **EW-GEN-CBL-1**, the three-core cable
+   of the starter set, and choose **Create**.
+   The toast says "Created cable -W1 with 3 cores". The cable has the part's three cores. It is drawn on no page yet,
+   so its tag has no page number.
 7. Click the field wire of -1X1:1, then Shift+click the field wire of -1X1:2. Choose **Draw ▸ Connect ▸ Connect
-   cores…**, choose the cable **-?W?**, and choose **Connect**.
-   The toast says "Wires connected to the cores of -?W?: 2": the two field wires are now cores of the cable.
-8. Choose **View ▸ Panels ▸ Navigators ▸ Cables** and click the cable -?W?. In the Properties pane, set **Frozen tag**
-   to `-1W1` and **Length** to `5 m`.
-   The Cables navigator lists the cable -1W1 with its five cores: BK, BN, BU, GNYE and WH.
+   cores…**, choose the cable **-W1**, and choose **Connect**.
+   The toast says "Wires connected to the cores of -1W1: 2": the two field wires are now cores of the cable, and the
+   cable takes its page number from its first core.
+8. Choose **View ▸ Panels ▸ Navigators ▸ Cables** and click the cable -1W1. In the Properties pane, set **Length** to
+   `5 m`.
+   The Cables navigator lists the cable -1W1 with its three cores: BN, BU and GNYE.
 9. Click the terminal -1X1:1 and choose **Edit ▸ Strip editor**.
    The Terminal strips navigator shows the strip -1X1 as a table: terminal 1 on 24VAC, with -1E2:X1 on side 1 and
-   -1E3:X1 via -1W1 BK on side 2; terminal 2 on 0VAC, with -1E2:X2 and -1E3:X2 via -1W1 BU.
+   the field wire to -1E3:X1 via -1W1 BN on side 2; terminal 2 on 0VAC, with -1E2:X2 and -1E3:X2 via -1W1 BU.
 10. Choose **Check ▸ Run checks** (`F7`).
-    The toast says "Check: 0 errors, 8 warnings, 3 infos". The warnings are the devices that have no part yet and the
-    transformer's open primary pins; the infos say that no report covers the strip or the cable yet, and that the
-    cable's tag is frozen.
+    The toast says "Check: 0 errors, 8 warnings, 2 infos". The warnings are the devices that have no part yet and the
+    transformer's open primary pins; the infos say that no report covers the strip or the cable yet.
 11. Choose **File ▸ Save** (`Ctrl+S`).
     The title bar no longer marks the project as changed.
 
@@ -53,7 +52,7 @@ cable in the Cables navigator. At the end you have a saved project whose checks 
 - A terminal strip is a device of its own, and each terminal you place from the strip's list is one of its terminals,
   with a cabinet side and a field side.
 - A cable is created from its part, with the part's cores; **Draw ▸ Connect ▸ Connect cores…** makes the selected
-  wires its cores, in order.
+  wires its cores, in order. A cable without a drawn cable line takes its page number from its first core.
 - The strip editor and the Cables navigator show what passes through each terminal and each core, from the drawing.
 - The reports that list them, the terminal diagram and the cable list, are the subject of
   [Reports and PDF](reports-and-pdf.md).

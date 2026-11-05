@@ -13,7 +13,8 @@
 //! description, no order or catalogue data; each carries the template functions on the starter FnDefs, the CP pattern,
 //! the contact data of its contacts and the technical data the starter symbols print in their `tech_data` slot. The
 //! layout parts (WP-S4.02 D14: an enclosure, a mounting plate, a rail, a duct and an end bracket) carry no template
-//! and no CP pattern: their sections and their dimensions (`mech`) are their data.
+//! and no CP pattern: their sections and their dimensions (`mech`) are their data. The generic cable (FT-1401) carries
+//! no template either: its cores (`cable_cores`) are its data, so a new project creates a cable without a library.
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -33,8 +34,9 @@ const VERSION: &str = "0.1.0";
 /// switch EW-GEN-SW-1, 0.2.0 since WP-S1.21 D5 added the generic CPU EW-GEN-CPU-1, 0.2.1 since WP-S1.21 D17 gave
 /// it its DP port (a library refuses other content under a published version, doc 05 §13.1), 0.3.0 since WP-S4.02
 /// part 6 (D14) added the layout parts and the dimensions, 0.4.0 since WP-S1.20 D4 gave the valve its fluid section,
-/// 0.4.1 since FT-1204 (ID-1395) moved the on/off switch to the manual-command category, class S.
-const LIBRARY_VERSION: &str = "0.4.1";
+/// 0.4.1 since FT-1204 (ID-1395) moved the on/off switch to the manual-command category, class S, 0.5.0 since FT-1401
+/// added the generic cable EW-GEN-CBL-1.
+const LIBRARY_VERSION: &str = "0.5.0";
 /// The parts whose content changed after 0.1.0, at their next patch version (FT-659: the selector switch on a
 /// manual-command FnDef, letter S; the valve's coil on a solenoid-actuator FnDef, letter M or Y. FT-655: the relay
 /// and the contactor template their contacts beside the coil. WP-S1.21 D17: the CPU's bus section, after 0.2.0.
@@ -570,6 +572,24 @@ fn defs() -> Vec<Def> {
             sections: None,
             unit: None,
         },
+        // FT-1401: a generic cable, so that a new project creates a cable from the starter set alone (tutorial 2).
+        Def {
+            number: "EW-GEN-CBL-1",
+            kind: Some("cable"),
+            description: "Cable 3G1.5 mm², cores brown, blue and green-yellow",
+            cps: Vec::new(),
+            template: Vec::new(),
+            contacts: Vec::new(),
+            tech: Vec::new(),
+            plc: None,
+            mech: None,
+            sections: Some(json!({"cable_cores": [
+                {"core": "BN", "colour": ["BN"]},
+                {"core": "BU", "colour": ["BU"]},
+                {"core": "GNYE", "colour": ["GN", "YE"]},
+            ]})),
+            unit: Some("m"),
+        },
     ]
 }
 
@@ -809,6 +829,7 @@ fn the_shipped_library_is_the_generated_one() {
 /// Whether a part is a layout part of WP-S4.02 D14: an enclosure, a mounting plate, a rail, a duct or an end bracket.
 /// The layout tools use them; they carry no function template.
 fn is_layout(kind: &PartKind) -> bool {
+    // the generic cable (FT-1401) carries no template either: `the_generic_cable_has_its_cores` checks it
     matches!(
         kind,
         PartKind::Enclosure
@@ -816,7 +837,33 @@ fn is_layout(kind: &PartKind) -> bool {
             | PartKind::Rail
             | PartKind::Duct
             | PartKind::EndBracket
+            | PartKind::Cable
     )
+}
+
+/// FT-1401: the generic cable reads back from the shipped files with its kind, its unit and its three cores, and the
+/// compiled-in registry finds it by its number.
+#[test]
+fn the_generic_cable_has_its_cores() {
+    let cable = &shipped_parts()["EW-GEN-CBL-1"];
+    assert_eq!(cable["kind"], json!("cable"));
+    assert_eq!(cable["unit"], json!("m"));
+    assert_eq!(cable["meta"]["licence"], json!(LICENCE));
+    assert_eq!(cable["meta"]["sources"], json!(["ew.original"]));
+    assert_eq!(
+        cable["sections"]["cable_cores"],
+        json!([
+            {"core": "BN", "colour": ["BN"]},
+            {"core": "BU", "colour": ["BU"]},
+            {"core": "GNYE", "colour": ["GN", "YE"]},
+        ])
+    );
+    let hits = Registry::starter_only().search(&PartQuery {
+        text: "EW-GEN-CBL-1".into(),
+        ..PartQuery::default()
+    });
+    assert_eq!(hits[0].part_number, "EW-GEN-CBL-1");
+    assert_eq!(hits[0].kind, PartKind::Cable);
 }
 
 /// The records of the shipped part files, by part number, each as the JSON of its line.
@@ -1093,10 +1140,10 @@ fn the_compiled_in_registry_resolves_a_part_with_its_closure() {
 
 /// WP-S1.21 D5: the generic CPU is a station without I/O ranges on a black box with the supply CPs L+ and M, a new
 /// item at 0.1.0 in the library's minor version 0.2.0 (0.1.1 in 0.2.1 with its DP port, D17; 0.1.2 in 0.3.0 with its
-/// dimensions, D14; unchanged in 0.4.0 and 0.4.1); the cards are modules of 8 channels each.
+/// dimensions, D14; unchanged in 0.4.0, 0.4.1 and 0.5.0); the cards are modules of 8 channels each.
 #[test]
 fn the_generic_cpu_is_a_station_without_io() {
-    assert_eq!(LIBRARY_VERSION, "0.4.1");
+    assert_eq!(LIBRARY_VERSION, "0.5.0");
     let part = |number: &str| {
         parts()
             .into_iter()

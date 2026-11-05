@@ -32,17 +32,16 @@
 {"action":"cursor.set","params":{"x_mm":259.292,"y_mm":68.792}}
 {"action":"canvas.activate"}
 {"action":"tool.select"}
-{"action":"cable.new","params":{"part":"NEBU-G78W5-K-2-N-LE5"}}
+{"action":"cable.new","params":{"part":"EW-GEN-CBL-1"}}
 {"action":"ui.describe"}
 {"action":"canvas.press","params":{"x_mm":219.604,"y_mm":78.052}}
 {"action":"canvas.release","params":{"x_mm":219.604,"y_mm":78.052}}
 {"action":"canvas.press","params":{"x_mm":244.740,"y_mm":95.250,"shift":true}}
 {"action":"canvas.release","params":{"x_mm":244.740,"y_mm":95.250,"shift":true}}
-{"action":"cable.connect_cores","params":{"cable":"-?W?"}}
+{"action":"cable.connect_cores","params":{"cable":"-W1"}}
 {"action":"ui.describe"}
 {"action":"navigator.show","params":{"kind":"cables"}}
-{"action":"navigator.select","params":{"keys":["-?W?"]}}
-{"action":"props.set","params":{"row":"device/tag.frozen","value":"-1W1"}}
+{"action":"navigator.select","params":{"keys":["-1W1"]}}
 {"action":"props.set","params":{"row":"device/cable.length","value":"5 m"}}
 {"action":"canvas.press","params":{"x_mm":219.604,"y_mm":100.542}}
 {"action":"canvas.release","params":{"x_mm":219.604,"y_mm":100.542}}

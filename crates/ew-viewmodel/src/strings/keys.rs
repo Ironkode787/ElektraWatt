@@ -2503,6 +2503,7 @@ pub const KEYS: &[&str] = &[
     "badge-deprecated",
     "badge-local-fork",
     "badge-index-failed",
+    "badge-profile-unreadable",
     "action-macros-insert",
     "action-macros-place",
     "action-macros-value-set",
