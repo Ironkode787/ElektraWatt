@@ -89,6 +89,41 @@ fn the_text_popup_takes_the_text_and_enter_places_it() {
     assert_eq!(h.state().shell().tool().state(), "armed");
 }
 
+/// FT-1206 (decision log ID-1416): opened by a click on the page, as a user opens it (the press and the release in
+/// frames of their own), the popup's field takes the focus, so the first typing, in the next frame, lands in it.
+#[test]
+fn a_click_with_the_text_tool_gives_the_popup_s_field_the_focus() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "101");
+    dispatch(&mut h, "tool.text", json!({}));
+    settle(&mut h);
+    let pos = screen(&h, (100_000_000, 100_000_000));
+    h.event(egui::Event::PointerMoved(pos));
+    h.run_ok();
+    for pressed in [true, false] {
+        h.event(egui::Event::PointerButton {
+            pos,
+            button: egui::PointerButton::Primary,
+            pressed,
+            modifiers: Modifiers::NONE,
+        });
+        h.run_ok();
+    }
+    h.event(egui::Event::Text("a".to_owned()));
+    h.run_ok();
+    settle(&mut h);
+    assert_eq!(h.state().shell().tool().state(), "typing");
+    let field = h
+        .get_all_by_role(egui::Role::TextInput)
+        .find(|n| n.accesskit_node().label().as_deref() == Some(label()))
+        .expect("the text popup's field");
+    assert!(field.is_focused(), "the popup's field keeps the focus");
+    assert!(
+        matches!(h.state().shell().tool_ghost(), Some(Ghost::Text { text, .. }) if text == "a"),
+        "the first typing reaches the field"
+    );
+}
+
 #[test]
 fn escape_closes_the_text_popup_without_a_commit() {
     let tmp = Tmp::new();
