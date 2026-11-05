@@ -1917,6 +1917,8 @@ pub const KEYS: &[&str] = &[
     "toast-print-fallback-printer",
     "toast-print-fallback-viewer",
     "toast-print-failed",
+    "toast-print-cancel-late-printer",
+    "toast-print-cancel-late-viewer",
     "reason-no-print-dialog",
     "reason-print-not-built",
     "reason-print-no-pages",
