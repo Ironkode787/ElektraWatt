@@ -5877,7 +5877,6 @@ dependencies = [
  "anyhow",
  "cargo_metadata",
  "kurbo",
- "proc-macro2",
  "serde",
  "serde_json",
  "sha2",

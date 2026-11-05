@@ -81,9 +81,7 @@
 //!   `.gitignore`) skips a step whose record matches and prints it as `ok (from memory; --fresh runs it again)`. A
 //!   record that matches in all but the tree holds too when no path that changed between its tree and the current
 //!   one (`git diff --name-only`) is an input of the step (ID-1425): [`INPUTS`] says which steps read a path, an
-//!   unknown path being an input of every step; a `.rs` file whose tokens and text without whitespace are the same in
-//!   both trees (a rewrite by rustfmt alone) is no input of clippy, doc and nextest ([`same_layout_change`]). The
-//!   record then moves to the current tree, and one more memory line names the steps skipped so: `lane-check:
+//!   unknown path being an input of every step. The record then moves to the current tree, and one more memory line names the steps skipped so: `lane-check:
 //!   memory: skipped on a changed tree: clippy (no input changed among docs/a.md)`. A
 //!   dirty worktree records nothing and skips nothing; once a step changed the worktree (a rewrite stops the run; any
 //!   other change), no later step is skipped or recorded. A failure forgets the step's record. A step that runs `cargo
@@ -1218,9 +1216,7 @@ enum Readers {
 /// What each recorded step reads (ID-1425): for a changed path, the first row that holds it names the steps it is an
 /// input of. A path no row holds is an input of every step, so the table only ever lets a step skip. Besides the
 /// table: settle reads a path that triggers one of its lane steps ([`crate::settle::triggered`]); fuzz reads every
-/// path (as before ID-1425); policy reads every path when it runs one of [`READ_EVERY_FILE`]; and a `.rs` file whose
-/// change is a rewrite of its layout alone is no input of clippy, doc and nextest ([`same_layout_change`]). The
-/// cargo steps read every file of a member: a member's change that the diff did not hold before adds the member to
+/// path (as before ID-1425); policy reads every path when it runs one of [`READ_EVERY_FILE`]. The cargo steps read every file of a member: a member's change that the diff did not hold before adds the member to
 /// their commands, and changed commands miss anyway.
 const INPUTS: &[(Paths, Readers)] = &[
     (Paths::Glob("**/*.rs"), Readers::Every),
@@ -1260,9 +1256,6 @@ const INPUTS: &[(Paths, Readers)] = &[
 /// layout (each `--test` in a text file).
 const READ_EVERY_FILE: [&str; 2] = ["check-licence-map", "check-test-layout"];
 
-/// The steps that a rewrite of a `.rs` file's layout alone does not reach (ID-1425): policy reports `path:line`.
-const LAYOUT_BLIND: [&str; 3] = ["clippy", "doc", "nextest"];
-
 /// What a changed tree means for one step's record (ID-1425).
 #[derive(Clone, Debug, PartialEq, Eq)]
 enum Since {
@@ -1282,13 +1275,10 @@ trait Oracle {
     fn triggers_settle(&self, path: &str) -> bool;
     /// Whether a package of `step` or a workspace dependency of one names `path` ([`names_path`]).
     fn named(&mut self, step: &str, path: &str) -> bool;
-    /// Whether the `.rs` file `path` changed between the tree `from` and the current one in its layout alone
-    /// ([`same_layout_change`]).
-    fn layout_only(&mut self, from: &str, path: &str) -> bool;
 }
 
-/// Whether the step `step` with `cmds` reads `path`, a path changed since the tree `from` ([`INPUTS`], ID-1425).
-fn reads(step: &str, cmds: &[Cmd], path: &str, from: &str, oracle: &mut dyn Oracle) -> bool {
+/// Whether the step `step` with `cmds` reads `path` ([`INPUTS`], ID-1425).
+fn reads(step: &str, cmds: &[Cmd], path: &str, oracle: &mut dyn Oracle) -> bool {
     let every_file = |c: &Cmd| {
         c.program == Program::Xtask
             && c.args
@@ -1306,9 +1296,7 @@ fn reads(step: &str, cmds: &[Cmd], path: &str, from: &str, oracle: &mut dyn Orac
         Paths::Member => oracle.member_file(path),
     });
     match row.map(|(_, readers)| *readers) {
-        None | Some(Readers::Every) => {
-            !(LAYOUT_BLIND.contains(&step) && path.ends_with(".rs") && oracle.layout_only(from, path))
-        }
+        None | Some(Readers::Every) => true,
         Some(Readers::Steps(steps)) => steps.contains(&step),
         Some(Readers::Named(steps)) => {
             steps.contains(&step)
@@ -1317,17 +1305,16 @@ fn reads(step: &str, cmds: &[Cmd], path: &str, from: &str, oracle: &mut dyn Orac
     }
 }
 
-/// The first of `changed` (the paths changed since the tree `from`) that the step reads ([`reads`]).
+/// The first of `changed` (the paths changed since a recorded tree) that the step reads ([`reads`]).
 fn first_input<'c>(
     step: &str,
     cmds: &[Cmd],
     changed: &'c [String],
-    from: &str,
     oracle: &mut dyn Oracle,
 ) -> Option<&'c str> {
     changed
         .iter()
-        .find(|p| reads(step, cmds, p, from, oracle))
+        .find(|p| reads(step, cmds, p, oracle))
         .map(String::as_str)
 }
 
@@ -1384,23 +1371,6 @@ fn with_dependencies(set: &BTreeSet<String>, members: &Members) -> BTreeSet<Stri
     out
 }
 
-/// Whether the change of a `.rs` file from `old` to `new` is a rewrite of its layout alone (ID-1425): the same text
-/// without whitespace (comments included) and the same tokens (`proc-macro2`'s lexer, the one `syn` uses); a text
-/// that does not lex is no such rewrite.
-fn same_layout_change(old: &str, new: &str) -> bool {
-    let squeezed = |s: &str| s.chars().filter(|c| !c.is_whitespace()).collect::<String>();
-    if squeezed(old) != squeezed(new) {
-        return false;
-    }
-    match (
-        old.parse::<proc_macro2::TokenStream>(),
-        new.parse::<proc_macro2::TokenStream>(),
-    ) {
-        (Ok(a), Ok(b)) => a.to_string() == b.to_string(),
-        _ => false,
-    }
-}
-
 /// The worktree's answers to [`reads`], each computed once (ID-1425).
 struct Worktree<'a> {
     root: &'a Path,
@@ -1438,17 +1408,10 @@ impl Worktree<'_> {
         let Some(changed) = changed else {
             return Since::Unknown;
         };
-        match first_input(step, cmds, &changed, from, self) {
+        match first_input(step, cmds, &changed, self) {
             Some(path) => Since::Input(path.to_owned()),
             None => Since::NoInput(changed),
         }
-    }
-
-    /// The text of the blob `path` in `tree`, if it is there.
-    fn blob(&self, tree: &str, path: &str) -> Option<String> {
-        affected::git_output(self.root, &["cat-file", "blob", &format!("{tree}:{path}")])
-            .ok()
-            .map(|b| String::from_utf8_lossy(&b).into_owned())
     }
 }
 
@@ -1511,16 +1474,6 @@ impl Oracle for Worktree<'_> {
             });
             names_path(text, path)
         })
-    }
-
-    fn layout_only(&mut self, from: &str, path: &str) -> bool {
-        let Some(tree) = self.tree.clone() else {
-            return false;
-        };
-        match (self.blob(from, path), self.blob(&tree, path)) {
-            (Some(old), Some(new)) => same_layout_change(&old, &new),
-            _ => false,
-        }
     }
 }
 
@@ -3795,12 +3748,11 @@ mod tests {
         assert!(!skips(&unknown, &mut tool));
     }
 
-    /// The input table's answers from fixed data: the members of [`members`], settle's own triggers, the paths a
-    /// package of the step names and the `.rs` files changed in their layout alone.
+    /// The input table's answers from fixed data: the members of [`members`], settle's own triggers and the paths a
+    /// package of the step names.
     struct Fixed {
         members: Members,
         named: BTreeSet<&'static str>,
-        layout: BTreeSet<&'static str>,
     }
 
     impl Oracle for Fixed {
@@ -3815,17 +3767,12 @@ mod tests {
         fn named(&mut self, _: &str, path: &str) -> bool {
             self.named.contains(path)
         }
-
-        fn layout_only(&mut self, _: &str, path: &str) -> bool {
-            self.layout.contains(path)
-        }
     }
 
-    fn fixed(named: &[&'static str], layout: &[&'static str]) -> Fixed {
+    fn fixed(named: &[&'static str]) -> Fixed {
         Fixed {
             members: members(),
             named: named.iter().copied().collect(),
-            layout: layout.iter().copied().collect(),
         }
     }
 
@@ -3836,7 +3783,7 @@ mod tests {
             .filter(|s| **s != "trailers")
             .filter(|s| {
                 let cmds = if **s == "policy" { policy_cmds } else { &[] };
-                reads(s, cmds, path, "0ld7ree", oracle)
+                reads(s, cmds, path, oracle)
             })
             .copied()
             .collect()
@@ -3846,7 +3793,7 @@ mod tests {
     #[test]
     fn each_step_reads_its_inputs_and_skips_a_change_outside_them() {
         let code_checks = [Cmd::xtask(&["check-raw-read"]), Cmd::xtask(&["map", "--check"])];
-        let mut o = fixed(&["golden/J-E-2416/tables/a.csv"], &[]);
+        let mut o = fixed(&["golden/J-E-2416/tables/a.csv"]);
         let all = ["fmt", "settle", "clippy", "doc", "nextest", "policy", "fuzz"];
         let cases: &[(&str, &[&str])] = &[
             // fmt: the `.rs` files, the manifests and rustfmt's configuration.
@@ -3902,40 +3849,11 @@ mod tests {
     /// ID-1425: a path no row of the table holds is an input of every step.
     #[test]
     fn an_unknown_path_is_an_input_of_every_step() {
-        let mut o = fixed(&[], &[]);
+        let mut o = fixed(&[]);
         let all = ["fmt", "settle", "clippy", "doc", "nextest", "policy", "fuzz"];
         for path in ["newdir/data.bin", ".gitignore", "about.json"] {
             assert_eq!(readers_of(path, &[], &mut o), all, "{path}");
         }
-    }
-
-    /// ID-1425: a `.rs` file changed in its layout alone is no input of clippy, doc and nextest; fmt, settle and
-    /// policy (`path:line`) still read it. A change of its tokens or of its text without whitespace (a comment, the
-    /// order of the imports) is no such rewrite, and neither is a text that does not lex.
-    #[test]
-    fn a_rewrite_of_the_layout_alone_skips_clippy_doc_and_nextest() {
-        let mut o = fixed(&[], &["crates/ew-leaf/src/lib.rs"]);
-        assert_eq!(
-            readers_of("crates/ew-leaf/src/lib.rs", &[], &mut o),
-            ["fmt", "settle", "policy", "fuzz"]
-        );
-        let before = "use b::B;\nuse a::A;\n/// The sum.\nfn f(x:u8)->u8{ // add one\nx+1}\n";
-        let layout =
-            "use b::B;\nuse a::A;\n/// The sum.\nfn f(x: u8) -> u8 {\n    // add one\n    x + 1\n}\n";
-        assert!(same_layout_change(before, layout));
-        assert!(same_layout_change(before, &layout.replace('\n', "\r\n")));
-        // The same text without whitespace, other tokens.
-        assert!(!same_layout_change("fn f(){let a=b;}", "fn f(){leta=b;}"));
-        assert!(!same_layout_change("fn f(){let a=& &b;}", "fn f(){let a=&&b;}"));
-        // A comment's text, a doc comment, the order of the imports.
-        assert!(!same_layout_change("fn f(){} // one\n", "fn f(){} // two\n"));
-        assert!(!same_layout_change("/// a\nfn f(){}", "/// b\nfn f(){}"));
-        assert!(!same_layout_change(
-            before,
-            &before.replace("use b::B;\nuse a::A;", "use a::A;\nuse b::B;")
-        ));
-        // A text that does not lex.
-        assert!(!same_layout_change("fn f() { \"open", "fn f() {  \"open"));
     }
 
     /// ID-1425: a package names a path where its code reads it; comment lines do not count.
