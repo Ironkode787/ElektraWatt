@@ -21,7 +21,8 @@
 //! - [`importers`]: the QET project and element importers, the golden tables and the parts table, through the import
 //!   front door (WP-S3.09 D15);
 //! - [`ewlib_read`]: a `.ewlib` directory (`library.json`, the shards, `library.lock`) through `ew-library`'s own reader
-//!   (WP-S6.04, ID-1354).
+//!   (WP-S6.04, ID-1354);
+//! - [`ewui_script`]: a `.ewui` script through the headless runner's parser (FT-1452).
 //!
 //! The crate is outside the cargo workspace and builds on the nightly toolchain of `rust-toolchain.toml`.
 //! `unsafe`: none in this crate; the `unsafe` of cargo-fuzz's `fuzz_target!` macro lives in `libfuzzer-sys`.
@@ -31,6 +32,7 @@
 pub mod command;
 pub mod command_log;
 pub mod ewlib_read;
+pub mod ewui_script;
 pub mod ewz_read;
 pub mod golden;
 pub mod image_decode;

@@ -329,6 +329,9 @@ jobs:
           # WP-S6.04 (ID-1354): ew-library's own .ewlib reader.
           - target: ewlib_read
             max_len: "65536"
+          # FT-1452: the headless runner's .ewui scripts.
+          - target: ewui_script
+            max_len: "16384"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

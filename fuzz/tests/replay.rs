@@ -375,6 +375,25 @@ fn the_ewlib_read_seeds_pass_and_read_documents() {
     assert!(check(&inputs_named(&seeds, "sample-manifest")).manifest);
 }
 
+/// FT-1452: the `.ewui` target's seeds pass, and so do the tutorial scripts of the user guide, read where they are
+/// (`docs/book/tutorial-scripts/`), each parsed whole.
+#[test]
+fn the_ewui_script_seeds_and_the_tutorial_scripts_pass() {
+    use ew_fuzz::ewui_script::check;
+    let seeds = inputs("corpus/ewui_script");
+    assert!(!seeds.is_empty(), "the .ewui target's seeds are missing");
+    for (name, bytes) in &seeds {
+        let o = check(bytes);
+        assert!(o.parsed && o.steps > 0, "ewui_script/{name}: {o:?}");
+    }
+    let tutorials = inputs("../docs/book/tutorial-scripts");
+    assert!(tutorials.len() >= 4, "the tutorial scripts are missing");
+    for (name, bytes) in &tutorials {
+        let o = check(bytes);
+        assert!(o.parsed && o.steps > 0, "{name}: {o:?}");
+    }
+}
+
 /// The reported findings: each input of `regressions/<target>/` is replayed in this ordinary test process, where a
 /// panic is caught and the generator's own failure text (the seed, the step, the oracle and the command log of
 /// `command_sequence`) is printed, which libFuzzer's aborting panic hook never lets the fuzz target do. Nothing is
@@ -435,6 +454,9 @@ fn the_regressions_are_replayed_and_reported() {
         }),
         ("regressions/ewlib_read", |b| {
             let _ = ew_fuzz::ewlib_read::check(b);
+        }),
+        ("regressions/ewui_script", |b| {
+            let _ = ew_fuzz::ewui_script::check(b);
         }),
     ];
     for &(dir, check) in targets {

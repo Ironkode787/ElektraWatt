@@ -632,6 +632,10 @@ binary's only, none is in `fuzz/` (WP-S6.04 D10, FP-4). The `.elmt` files reach 
 read, so the archive entry limit equals the format's 16-bit count and its hostile case is refused by the end record
 (a row).
 
+*Cycle 52 (ID-1397).* An eighteenth target, `ewui_script`, reads `.ewui` scripts through the headless runner's parser
+(FT-1452); its replay test runs the user guide's tutorial scripts as seeds, read where they are. `ewlib_read` reads its
+library through `ew-library`'s in-memory entry, `Registry::in_memory`, with the index in memory (FT-1382).
+
 ### 3.13 Reliability harnesses
 
 These harnesses are designed in 05 and run here:

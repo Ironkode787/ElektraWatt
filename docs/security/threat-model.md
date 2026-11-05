@@ -119,7 +119,7 @@ in plain sight.
 |---|---|---|---|
 | SQL through `ew sql` | in force | The sandbox of TM-05 under the `ew sql` profile (`bin/ew/src/cli.rs:819 (EW_SQL)`) | `sql_sandbox`; the sandbox tests |
 | Command logs through `ew apply` | in force | Every line looked up and checked against its exposure class before line 1 runs, so a `HumanOnly` command is refused (`crates/ew-api/src/cmdlog.rs:297 (exposure)`) | `command_log`; the `HumanOnly` replay test (doc 18 §11.5) |
-| The headless script runner (`--headless --script`) | in force | Actions only, through the same action table as the window (`crates/ew-viewmodel/src/script.rs:233 (parse)`) | The script tests; a target is FP-2 of WP-S6.04 |
+| The headless script runner (`--headless --script`) | in force | Actions only, through the same action table as the window (`crates/ew-viewmodel/src/script.rs:233 (parse)`) | The script tests; the fuzz target `ewui_script` (FT-1452) |
 | git's merge driver and textconv, run by git on fetched content (TM-01) | in force | The merge under `catch_unwind` (`bin/ew/src/cli/merge_driver.rs:66 (drive)`); textconv is pure over the bytes | `merge_file`, `textconv` |
 | rhai | not shipped | WP-S1.15's remainder adds the engine with its limits (NFR-SEC-06) | — |
 | The trust gate | not shipped | WP-S1.15's remainder (NFR-SEC-05) | — |

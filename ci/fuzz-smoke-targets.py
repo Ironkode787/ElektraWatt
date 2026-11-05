@@ -86,7 +86,7 @@ def selftest():
     every = " ".join(f"{t}:{n}" for t, n in MAX_LEN.items())
     assert {"jsonl_loader", "migration_chain", "command_sequence", "png_pdf", "ewz_read", "merge_file"} <= set(MAX_LEN), list(MAX_LEN)
     assert {"sql_sandbox", "svg_asset", "image_decode", "textconv", "table_round_trip", "command_log"} <= set(MAX_LEN)
-    assert {"qet_project", "qet_element", "golden_tables", "parts_table", "ewlib_read"} <= set(MAX_LEN)
+    assert {"qet_project", "qet_element", "golden_tables", "parts_table", "ewlib_read", "ewui_script"} <= set(MAX_LEN)
     loader, chain, command = "jsonl_loader:65536", "migration_chain:65", "command_sequence:512"
     ewz, merge = "ewz_read:16384", "merge_file:65536"
     # WP-S6.04: the targets on the golden project's session reach the whole stack through ew-api; the SVG target
@@ -94,9 +94,9 @@ def selftest():
     sql, svg = "sql_sandbox:4096", "svg_asset:16384"
     conv = "textconv:16384 table_round_trip:16384 command_log:16384"
     kit = f"{sql} {conv}"
-    # WP-S3.09: the importer targets, and WP-S6.04's .ewlib reader, reach the whole stack through ew-api, without
-    # ew-testkit
-    imp = "qet_project:65536 qet_element:16384 golden_tables:65536 parts_table:65536 ewlib_read:65536"
+    # WP-S3.09: the importer targets, WP-S6.04's .ewlib reader and FT-1452's .ewui scripts reach the whole stack
+    # through ew-api, without ew-testkit
+    imp = "qet_project:65536 qet_element:16384 golden_tables:65536 parts_table:65536 ewlib_read:65536 ewui_script:16384"
     api = f"{kit} {imp}"
     # nothing relevant
     assert run() == ""
@@ -139,6 +139,8 @@ def selftest():
     assert run("fuzz/fuzz_targets/svg_asset.rs") == svg
     assert run("fuzz/corpus/ewlib_read/sample-computed") == "ewlib_read:65536"
     has("crates/ew-library/src/record.rs", f"{command} {api}", f"{loader} {chain} {ewz} {merge} {svg}")
+    assert run("crates/ew-viewmodel/src/script.rs") == "ewui_script:16384"
+    assert run("fuzz/corpus/ewui_script/small") == "ewui_script:16384"
     assert run("fuzz/src/loader.rs") == every
     assert run("fuzz/Cargo.lock") == every
     assert run("fuzz/rust-toolchain.toml") == every

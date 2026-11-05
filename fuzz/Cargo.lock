@@ -402,6 +402,7 @@ dependencies = [
  "ew-store",
  "ew-testkit",
  "ew-units",
+ "ew-viewmodel",
  "libfuzzer-sys",
  "serde",
  "serde_json",
@@ -785,6 +786,18 @@ name = "ew-units"
 version = "0.0.0"
 dependencies = [
  "serde",
+]
+
+[[package]]
+name = "ew-viewmodel"
+version = "0.0.0"
+dependencies = [
+ "ew-api",
+ "ew-hack",
+ "fluent-bundle",
+ "serde_json",
+ "toml",
+ "unic-langid",
 ]
 
 [[package]]
