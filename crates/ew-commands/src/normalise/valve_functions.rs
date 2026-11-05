@@ -17,7 +17,7 @@
 //!   as `template_entry`; an internal coil whose solenoid differs from its FnDef CP's designation gets a designation
 //!   override on that CP. (c) A coil function of the device that is no entry of the valve part's template (the old
 //!   part's, after a part change) is removed; a channel bound to it is unbound with the notice `solenoid <s> of <valve>
-//!   went with the old part; <channel> is unbound`. (d) The valve function is never replaced or removed: a valve part
+//!   went with the old part; <channel> is unbound`, unless N2 binds the channel again in the same step (FT-1392). (d) The valve function is never replaced or removed: a valve part
 //!   whose valve entry names another FnDef gives the notice `<valve> keeps its drawn valve function; the new part has
 //!   another valve type: replace the symbol to change it`.
 //! - **Entries and functions.** A coil function is the function of an entry when its `template_entry` names that entry
@@ -196,7 +196,10 @@ fn follow_part(tx: &mut TxBuilder<'_>, dev: &Device, part: &LibCopy<Part>) -> Re
             .collect();
         bound.sort();
         bound.dedup();
-        let unbound: Vec<String> = bound.iter().map(|c| words::channel(tx, *c).to_string()).collect();
+        let unbound: Vec<(Id<ew_schema::Channel>, String)> = bound
+            .iter()
+            .map(|c| (*c, words::channel(tx, *c).to_string()))
+            .collect();
         for c in bound {
             tx.update::<ew_schema::Channel>(c, |c| c.binding = None)?;
         }
@@ -204,10 +207,12 @@ fn follow_part(tx: &mut TxBuilder<'_>, dev: &Device, part: &LibCopy<Part>) -> Re
             has_main = false;
         }
         tx.delete((Kind::Function, f.id.cast()))?;
-        for c in unbound {
-            tx.notice(format!(
-                "solenoid {solenoid} of {name} went with the old part; {c} is unbound"
-            ));
+        // FT-1392: N2 may bind the new coil to the same channel in this step; the notice then goes.
+        for (id, c) in unbound {
+            tx.notice_while_unbound(
+                id,
+                format!("solenoid {solenoid} of {name} went with the old part; {c} is unbound"),
+            );
         }
         changed = true;
     }

@@ -427,7 +427,8 @@ fn n_fl_1_makes_the_valve_and_coil_functions_from_the_part() {
 
 /// FT-1313: replacing a part shaped like `EW-GEN-VLV-1` (`[valve-coil, valve]`) by a `[valve, solenoid]` part keeps
 /// the valve function `v5(valve, 1)`, so the new coil of entry 1 takes `v5(v5(valve, 1), 1)`, deterministic and free,
-/// instead of failing on an existing record; N2 binds it, and undo restores the old coil.
+/// instead of failing on an existing record; N2 binds it with no notice that the channel is unbound (FT-1392), and undo
+/// restores the old coil.
 #[test]
 fn n_fl_1_gives_a_new_coil_a_fresh_id_when_its_own_is_the_kept_valve_function() {
     const GENERIC: Id<Part> = id(0x79);
@@ -462,10 +463,8 @@ fn n_fl_1_gives_a_new_coil_a_fresh_id_when_its_own_is_the_kept_valve_function() 
     });
     assert_eq!(row(&e, fresh).template_entry, Some(1));
     assert_eq!(binding(&e, 2), Some(Endpoint::Cp(fresh, 0)));
-    assert_eq!(
-        r.outcome.notices,
-        ["solenoid 14 of -102F2-Q2 went with the old part; channel 2 of -102F2 is unbound"]
-    );
+    // FT-1392: N2 binds the new coil to channel 2 in the same step, so no notice says it is unbound.
+    assert!(r.outcome.notices.is_empty(), "{:?}", r.outcome.notices);
     e.undo(&ew_commands::Origin::Gui).expect("undo");
     assert_eq!(binding(&e, 2), Some(Endpoint::Cp(old_coil, 0)));
 }

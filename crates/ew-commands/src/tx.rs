@@ -354,6 +354,8 @@ pub struct TxBuilder<'a> {
     stale: BTreeSet<AnyKey>,
     /// The notices of the normalisers ([`TxBuilder::notice`]), in first-emission order, without repeats.
     notices: Vec<String>,
+    /// The notices that hold only while a channel stays unbound ([`TxBuilder::notice_while_unbound`]).
+    while_unbound: Vec<(String, Id<Channel>)>,
     /// The assets this transaction brings ([`TxBuilder::put_asset`]), by hash.
     assets: BTreeMap<Sha256, Asset>,
 }
@@ -381,6 +383,7 @@ impl<'a> TxBuilder<'a> {
             scratch: None,
             stale: BTreeSet::new(),
             notices: Vec::new(),
+            while_unbound: Vec::new(),
             assets: BTreeMap::new(),
         }
     }
@@ -395,9 +398,24 @@ impl<'a> TxBuilder<'a> {
         }
     }
 
-    /// Takes the recorded notices.
+    /// Records a notice that `channel` is unbound, dropped when the channel is bound again before the transaction
+    /// ends: a normaliser later in the pipeline may bind it in the same step (FT-1392).
+    pub fn notice_while_unbound(&mut self, channel: Id<Channel>, text: impl Into<String>) {
+        let text = text.into();
+        self.while_unbound.push((text.clone(), channel));
+        self.notice(text);
+    }
+
+    /// Takes the recorded notices, without those of [`TxBuilder::notice_while_unbound`] whose channel is bound now.
     pub(crate) fn take_notices(&mut self) -> Vec<String> {
-        std::mem::take(&mut self.notices)
+        let rebound: Vec<String> = std::mem::take(&mut self.while_unbound)
+            .into_iter()
+            .filter(|(_, c)| self.get::<Channel>(*c).is_some_and(|c| c.binding.is_some()))
+            .map(|(text, _)| text)
+            .collect();
+        let mut notices = std::mem::take(&mut self.notices);
+        notices.retain(|n| !rebound.contains(n));
+        notices
     }
 
     /// Names the command or normaliser now writing, for [`TxBuilder::reject`].
