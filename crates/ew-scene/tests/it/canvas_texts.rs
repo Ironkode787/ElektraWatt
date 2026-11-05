@@ -770,3 +770,129 @@ fn a_cross_reference_rises_off_a_horizontal_wire() {
         "in its column"
     );
 }
+
+/// One horizontal wire per page height in `ys` (nm), each between two black boxes at grid x 10 and 70 (representations
+/// `0x60 + 2k` and `0x61 + 2k`, connection `0x90 + k`).
+fn wires_at(ys: &[i64]) -> (Vec<RepView>, Vec<ConnectionView>) {
+    let s = symbol(BLACKBOX);
+    let mut reps = Vec::new();
+    let mut connections = Vec::new();
+    for (k, &y) in ys.iter().enumerate() {
+        let n = 0x60 + 2 * k as u128;
+        for (m, x, cp_x, dir) in [(n, 10, g(2), "right"), (n + 1, 70, 0, "left")] {
+            let outline = json!([[0, 0], [g(2), 0], [g(2), y + g(1)], [0, y + g(1)]]);
+            reps.push(RepView {
+                rep: rep(
+                    m,
+                    s.id,
+                    x,
+                    0,
+                    json!({"box": {"outline": outline, "cps": [{"idx": 0, "pos": [cp_x, y], "dir": dir}]}}),
+                ),
+                symbol: Some(s.def.clone()),
+                slots: Vec::new(),
+                terminals: Vec::new(),
+                pins: Vec::new(),
+            });
+        }
+        connections.push(connection(0x90 + k as u128, (n + 0x1000, 0), (n + 0x1001, 0)));
+    }
+    (reps, connections)
+}
+
+/// An interruption point `0x21` at grid `(40, y)` with the cross-reference "102-A1".
+fn arrow_at(y: i64) -> RepView {
+    let ip = symbol(IP);
+    RepView {
+        rep: rep(0x21, ip.id, 40, y, json!({})),
+        symbol: Some(ip.def.clone()),
+        slots: vec![value(slot(&ip, &SlotKind::Xref), "102-A1")],
+        terminals: Vec::new(),
+        pins: Vec::new(),
+    }
+}
+
+/// Whether a horizontal wire at `y` runs through `r`.
+fn through(r: Rect, y: i64) -> bool {
+    r.min().y.0 < y && y < r.max().y.0
+}
+
+/// The rectangle of the cross-reference "102-A1" of [`arrow_at`]`(y)` among the wires at `ys`, and with no wire.
+fn arrow_label(y: i64, ys: &[i64], extra: (Vec<RepView>, Vec<ConnectionView>)) -> (Rect, Rect) {
+    let (mut reps, mut connections) = wires_at(ys);
+    reps.push(arrow_at(y));
+    let (more_reps, more) = extra;
+    reps.extend(more_reps.clone());
+    let bare = view(more_reps.into_iter().chain([arrow_at(y)]).collect(), Vec::new());
+    connections.extend(more);
+    (
+        run(&runs(&view(reps, connections)), 0x21, "102-A1").rect,
+        run(&runs(&bare), 0x21, "102-A1").rect,
+    )
+}
+
+/// C52-p3#1 (ID-1417): a coil's two-line contact mirror, which grows down from its first line, is judged where it
+/// prints: a wire through its second line lifts the whole list off it, both lines by the same step.
+#[test]
+fn a_two_line_list_rises_off_a_wire_through_its_second_line() {
+    let c = symbol(COIL);
+    let coil = RepView {
+        rep: rep(0x22, c.id, 40, 20, json!({})),
+        symbol: Some(c.def.clone()),
+        slots: vec![value(slot(&c, &SlotKind::Xref), "101-B6\n101-D8")],
+        terminals: Vec::new(),
+        pins: Vec::new(),
+    };
+    let bare = runs(&view(vec![coil.clone()], Vec::new()));
+    let (first, second) = (run(&bare, 0x22, "101-B6").rect, run(&bare, 0x22, "101-D8").rect);
+    // Through the second line's lower part, which a box laid out about its middle would not reach.
+    let y = second.max().y.0 - (second.max().y.0 - second.min().y.0) / 5;
+    assert!(!through(first, y), "the case: the wire runs through the second line only");
+    let (mut reps, connections) = wires_at(&[y]);
+    reps.push(coil);
+    let r = runs(&view(reps, connections));
+    let (one, two) = (run(&r, 0x22, "101-B6").rect, run(&r, 0x22, "101-D8").rect);
+    assert!(!through(one, y) && !through(two, y), "off the wire: {one:?} {two:?}");
+    assert!(two.max().y.0 < y, "above it: {two:?}");
+    let dy = one.min().y.0 - first.min().y.0;
+    assert!(dy < 0, "risen: {dy}");
+    assert_eq!(two.min().y.0 - second.min().y.0, dy, "the list keeps its lines");
+}
+
+/// C52-p3#5: a rise that would leave the drawing area (here the sheet: no frame) does not happen; the text stays.
+#[test]
+fn a_cross_reference_does_not_rise_out_of_the_drawing_area() {
+    let (shown, bare) = arrow_label(0, &[g(1)], (Vec::new(), Vec::new()));
+    assert!(through(bare, g(1)), "the case: the wire runs through {bare:?}");
+    assert_eq!(shown, bare, "it stays");
+}
+
+/// C52-p3#5: without a free place above the wire (a vertical wire comes down to the arrow's row) the text stays.
+#[test]
+fn a_cross_reference_without_a_free_place_stays() {
+    let blocker = vec![
+        boxed(0x15, (38, 13), (2, 4), &[(0, (1, 4), "down")], &[], None),
+        boxed(0x16, (38, 27), (2, 2), &[(0, (1, 0), "up")], &[], None),
+    ];
+    let down = routed(0x45, (0x1015, 0), (0x1016, 0), &[]);
+    let (shown, bare) = arrow_label(27, &[g(28)], (blocker, vec![down]));
+    assert!(through(bare, g(28)), "the case: the wire runs through {bare:?}");
+    assert!(
+        bare.min().x.0 < g(39) && g(39) < bare.max().x.0,
+        "the case: the vertical wire stands over the text {bare:?}"
+    );
+    assert_eq!(shown, bare, "it stays");
+}
+
+/// C52-p3#5: a text rises at most three times. Wires one grid step apart send it up past three of them, then it is free;
+/// a fourth leaves it where it was.
+#[test]
+fn a_cross_reference_rises_at_most_three_times() {
+    let rows = [g(28), g(27), g(26), g(25)];
+    let (three, bare) = arrow_label(27, &rows[..3], (Vec::new(), Vec::new()));
+    assert!(through(bare, g(28)), "the case: the wire runs through {bare:?}");
+    assert!(rows[..3].iter().all(|y| !through(three, *y)), "past three wires: {three:?}");
+    assert!(three.max().y.0 < g(26), "above the third: {three:?}");
+    let (four, bare) = arrow_label(27, &rows, (Vec::new(), Vec::new()));
+    assert_eq!(four, bare, "a fourth wire: it stays");
+}

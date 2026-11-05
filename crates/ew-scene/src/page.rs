@@ -1716,8 +1716,9 @@ impl Builder<'_> {
             if !texts[i].xref || texts[i].angle != Angle2::ZERO {
                 continue;
             }
-            // The whole text, every line of a list, is judged against the wires.
-            let Some(own) = self.text_box(&texts[i].spec(false), false) else {
+            // The printed text, every line of a list where the list prints (C52-p3#1: grown down from its first line),
+            // is judged against the wires.
+            let Some(own) = boxes[i] else {
                 continue;
             };
             if !wires
