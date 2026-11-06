@@ -260,12 +260,10 @@ impl Picker {
         };
         let here = group(self.rows.get(i))?;
         let before = i.checked_sub(1).and_then(|j| group(self.rows.get(j)));
-        (before != Some(here)).then(|| {
-            if here {
-                key!("picker-group-libraries")
-            } else {
-                key!("picker-group-project")
-            }
+        (before != Some(here)).then_some(if here {
+            key!("picker-group-libraries")
+        } else {
+            key!("picker-group-project")
         })
     }
 
