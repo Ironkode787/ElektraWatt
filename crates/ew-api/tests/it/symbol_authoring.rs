@@ -327,3 +327,51 @@ fn optional_native_slk_sample_opens_without_eplan() {
     assert!(sample.function.cps.len() >= 6);
     assert!(sample.import_notes.iter().any(|n| n == "eplan-slk-subset"));
 }
+
+const PARTS: &str =
+    r#"<partsmanagement><part><functiontemplate connectionDesignation="1"/></part></partsmanagement>"#;
+const LIMIT: &str = "The EPLAN input exceeds the supported size or complexity.";
+
+/// A stored ZIP of `count` copies of `data`, named `parts<n>.xml`.
+fn stored_zip(data: &[u8], count: usize) -> Vec<u8> {
+    let names: Vec<String> = (0..count).map(|i| format!("parts{i}.xml")).collect();
+    let entries: Vec<_> = names
+        .iter()
+        .map(|n| (n.as_str(), ew_api::zip::Method::Stored, data))
+        .collect();
+    ew_api::zip::write(&entries).unwrap()
+}
+
+/// M25-p2#3, SM25#1, SM25#3 and SM25#4: every symbol import passes WP-S3.09's front door under the element preset
+/// and is refused in words: a 10,000-level XML, and an archive past the preset's 16 MiB that the reader alone would
+/// read; a `.pxf` file opens through the EPLAN reader.
+#[test]
+fn symbol_imports_pass_the_front_door_and_refuse_in_words() {
+    let deep = format!("{}{}", "<a>".repeat(10_000), "</a>".repeat(10_000));
+    let e = symbols::import_eplan(deep.as_bytes(), "deep.xml", "k").unwrap_err();
+    assert_eq!(e.to_string(), LIMIT);
+    let member = PARTS.replace("</part>", &format!("</part>{}", " ".repeat(3_500_000)));
+    let big = stored_zip(member.as_bytes(), 5);
+    assert!(big.len() > 16 * 1024 * 1024);
+    assert_eq!(
+        symbols::import_eplan(&big, "big.edz", "k")
+            .unwrap_err()
+            .to_string(),
+        LIMIT
+    );
+    assert_eq!(
+        symbols::import_eplan(&stored_zip(member.as_bytes(), 4), "a.edz", "k")
+            .unwrap()
+            .len(),
+        4
+    );
+    let dir = ew_testdir::fresh_dir("symbol-import");
+    let pxf = dir.join("macro.pxf");
+    std::fs::write(
+        &pxf,
+        br#"<EplanPxfRoot PxfVersion="1.23" Name="M"><MacroVariant><O31 A531="0/0" A532="4/0"/></MacroVariant></EplanPxfRoot>"#,
+    )
+    .unwrap();
+    assert_eq!(symbols::open(&pxf, "k").unwrap().len(), 1);
+    let _ = std::fs::remove_dir_all(&dir);
+}
