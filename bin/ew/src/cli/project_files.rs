@@ -1880,7 +1880,7 @@ mod tests {
 
     /// FT-1489 (WP-S6.08 D19): with a released list that lacks this build's format, `ew fmt` rewriting a page with CRLF
     /// line ends and `ew fmt --repair` discarding a broken line each mark the manifest `unstable` and print the warning
-    /// on stderr after their save, exit 0; with the format released, neither.
+    /// on stderr after their save; with the format released, neither.
     #[test]
     fn fmt_and_its_repair_in_an_unreleased_format_warn_on_stderr() {
         static OLDER: [&str; 1] = ["0.0"];
@@ -1915,12 +1915,16 @@ mod tests {
                 };
                 let mut options = store(&dir);
                 options.released = released;
+                options.release_build = false;
                 let (mut out, mut err) = (Vec::new(), Vec::new());
                 let code = run_fmt_with(&args, options, (&mut out, &mut err));
                 let err = String::from_utf8(err).unwrap();
+                // The repair's own re-open (ID-1185 ruling 6) is this build's, a release build since the lock, which opens
+                // an unstable project read-only: exit 2, the repaired generation kept.
+                let code_after = if repair && marked { 2 } else { 0 };
                 assert_eq!(
                     (code, err.as_str()),
-                    (0, if marked { warning } else { "" }),
+                    (code_after, if marked { warning } else { "" }),
                     "repair {repair}, {released:?}"
                 );
                 let manifest = std::fs::read_to_string(project.join("manifest.json")).unwrap();

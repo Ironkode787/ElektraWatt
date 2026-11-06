@@ -1,0 +1,18 @@
+{
+  "$k": "part",
+  "id": "ace63996-f106-592d-ad67-dc27e86cf040",
+  "library_id": "d76f5765-c456-5393-935c-4cec32a87b01",
+  "item_id": "c4220274-08f7-5b62-90b8-a5731323cb8a",
+  "version": "1.0.0",
+  "sha256": "sha256:6aa8aee8ffcb3ef4586e26d5dcba85a3ea09790aa7afaed38559e9284c2115a6",
+  "meta": {"key": "UK 5 N", "licence": "CC0-1.0", "sources": ["golden.table:parts|UK 5 N"]},
+  "kind": "terminal",
+  "manufacturer": {
+    "library": "d76f5765-c456-5393-935c-4cec32a87b01",
+    "item": "c7cc7426-9bee-56de-807e-d6db02ca0d01",
+    "version_req": "*"
+  },
+  "part_number": "UK 5 N",
+  "description": "Feed-through terminal",
+  "mech": {"width": 6200000, "height": 47000000, "depth": 42000000, "mount_kind": "ts35x7_5"}
+}

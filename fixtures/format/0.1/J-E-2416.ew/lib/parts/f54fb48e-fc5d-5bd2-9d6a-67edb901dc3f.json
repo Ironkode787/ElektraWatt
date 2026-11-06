@@ -1,0 +1,18 @@
+{
+  "$k": "part",
+  "id": "f54fb48e-fc5d-5bd2-9d6a-67edb901dc3f",
+  "library_id": "d76f5765-c456-5393-935c-4cec32a87b01",
+  "item_id": "36e90052-56f9-5141-900d-0e162f2c5e88",
+  "version": "1.0.0",
+  "sha256": "sha256:867edf98c9216bf0f5bf5f9e7efec91f360fbb8b5af7dd134150b0cdf02674af",
+  "meta": {"key": "5SY4204-7", "licence": "CC0-1.0", "sources": ["golden.table:parts|5SY4204-7"]},
+  "manufacturer": {
+    "library": "d76f5765-c456-5393-935c-4cec32a87b01",
+    "item": "286a5453-18d1-5590-87d6-888b1c63e833",
+    "version_req": "*"
+  },
+  "part_number": "5SY4204-7",
+  "description": "Miniature circuit breaker 1P+N",
+  "tech_data": [{"key": "characteristic", "value": "C"}, {"key": "rated_current", "value": {"value": "4", "unit": "A"}}],
+  "mech": {"width": 18000000, "height": 90000000, "depth": 70000000, "mount_kind": "ts35x7_5"}
+}

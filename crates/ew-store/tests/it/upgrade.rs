@@ -330,7 +330,10 @@ fn the_unstable_marker_follows_the_released_list() {
         if !marked {
             continue;
         }
-        let Opened { store, report, .. } = Store::open(&root, options(&vfs, 2)).expect("reopens");
+        // The unreleased reader is a development build: no release build, whatever this build's list holds.
+        let mut o = options(&vfs, 2);
+        o.release_build = false;
+        let Opened { store, report, .. } = Store::open(&root, o).expect("reopens");
         assert_eq!(
             report.access,
             Access::Edit,

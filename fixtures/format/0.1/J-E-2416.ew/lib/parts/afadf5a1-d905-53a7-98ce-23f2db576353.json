@@ -1,0 +1,18 @@
+{
+  "$k": "part",
+  "id": "afadf5a1-d905-53a7-98ce-23f2db576353",
+  "library_id": "d76f5765-c456-5393-935c-4cec32a87b01",
+  "item_id": "2952fc68-177f-54bd-bcdb-39956330a5b9",
+  "version": "1.0.0",
+  "sha256": "sha256:b3fd234c69e54983aad782ac190071df5d3e406b83fd9fccf92e0aa0d65308c2",
+  "meta": {"key": "A9F78116", "licence": "CC0-1.0", "sources": ["golden.table:parts|A9F78116"]},
+  "manufacturer": {
+    "library": "d76f5765-c456-5393-935c-4cec32a87b01",
+    "item": "1bd48037-1c0b-5035-b88c-1576b03a7e74",
+    "version_req": "*"
+  },
+  "part_number": "A9F78116",
+  "description": "Miniature circuit breaker 1P",
+  "tech_data": [{"key": "characteristic", "value": "B"}, {"key": "rated_current", "value": {"value": "16", "unit": "A"}}],
+  "mech": {"width": 18000000, "height": 85000000, "depth": 75000000, "mount_kind": "ts35x7_5"}
+}

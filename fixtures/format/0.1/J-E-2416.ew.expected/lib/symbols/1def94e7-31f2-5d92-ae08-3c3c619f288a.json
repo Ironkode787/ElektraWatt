@@ -1,0 +1,44 @@
+{
+  "$k": "symbol",
+  "id": "1def94e7-31f2-5d92-ae08-3c3c619f288a",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "a96d61c0-7bf2-5cb2-9f5a-c315638c17c2",
+  "version": "0.1.0",
+  "sha256": "sha256:a3b10ee2d85500f0fc52e20b8809a3f56bf18389624a73d49ac34792d08c2129",
+  "meta": {
+    "key": "ew.iso.cylinder-double-acting@qet10",
+    "licence": "CC-BY-SA-4.0",
+    "sources": ["ew.original"],
+    "status": "draft"
+  },
+  "name": {"en": "Cylinder, double-acting"},
+  "keywords": ["actuator", "cylinder", "double-acting", "pneumatic"],
+  "rep_type": "fluid",
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "3e54d172-19a6-5704-9be8-3c21d992112d",
+    "version_req": "^0.1",
+    "key": "ew.fn.cylinder-double-acting"
+  },
+  "grid": {"num": 7937500, "den": 3},
+  "graphics": [
+    {"rect": {"rect": [[0, 0], [5291667, 15875000]], "stroke": {"pen": {"width": 264583}}}},
+    {"line": {"from": [0, 7937500], "to": [5291667, 7937500], "stroke": {"pen": {"width": 264583}}}},
+    {"line": {"from": [2645833, 7937500], "to": [2645833, 21166667], "stroke": {"pen": {"width": 264583}}}},
+    {"line": {"from": [0, 2645833], "to": [-2645833, 2645833], "stroke": {"pen": {"width": 264583}}}},
+    {"line": {"from": [0, 13229167], "to": [-2645833, 13229167], "stroke": {"pen": {"width": 264583}}}}
+  ],
+  "cps": [
+    {"idx": 0, "fn_cp": 0, "pos": [-2645833, 2645833], "dir": "left", "discipline": "pneumatic"},
+    {"idx": 1, "fn_cp": 1, "pos": [-2645833, 13229167], "dir": "left", "discipline": "pneumatic"}
+  ],
+  "text_slots": [
+    {"kind": "tag", "pos": [6614583, 5291667], "align": "middle_left", "visible": true},
+    {"kind": "function_text", "pos": [6614583, 10583333], "align": "middle_left", "visible": true},
+    {"kind": {"cp_designation": 0}, "pos": [-661458, 1984375], "align": "bottom_right", "visible": true},
+    {"kind": {"cp_designation": 1}, "pos": [-661458, 12567708], "align": "bottom_right", "visible": true}
+  ],
+  "arrangements": [{"name": "full", "slots": [0, 1, 2, 3]}, {"name": "tag", "slots": [0]}, {"name": "ports", "slots": [1, 2, 3]}],
+  "anchor": {"named": [2645833, 7937500]},
+  "link_points": [{"name": "rod", "pos": [2645833, 21166667]}]
+}

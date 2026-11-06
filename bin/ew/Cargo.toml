@@ -33,7 +33,7 @@ clap = { version = "4.6.7", default-features = false, features = [
 ] }
 # The parameters of `project.checks.set` that `ew project checks set` submits (already a dev-dependency).
 serde_json = "1.0.154"
-ew-hack = { version = "0.0.0", path = "../../crates/ew-hack" }
+ew-hack = { version = "0.1.0", path = "../../crates/ew-hack" }
 
 [dev-dependencies]
 automod.workspace = true

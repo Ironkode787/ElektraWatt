@@ -18,7 +18,7 @@ workspace = true
 ew-reports = { path = "../ew-reports" }
 ew-panel = { path = "../ew-panel" }
 ew-ewpp = { path = "../ew-ewpp" }
-ew-hack = { version = "0.0.0", path = "../ew-hack" }
+ew-hack = { version = "0.1.0", path = "../ew-hack" }
 
 [dev-dependencies]
 # Only carries the test-only feature to every test build (ci/dep-rules.toml, `[[uniform_test_features]]`).

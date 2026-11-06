@@ -168,6 +168,16 @@ fn the_corpus_job_saves_each_fixture_to_its_expected_files() {
                 .save(&model, Changes::All)
                 .unwrap_or_else(|e| panic!("{} saves: {e}", project.display()));
             store.close();
+            // `EW_BLESS=1` writes the save as the expected folder (WP-S6.08 D13); the fixture itself never changes.
+            if std::env::var_os("EW_BLESS").is_some() {
+                let expected = Path::new(&expected);
+                let _ = std::fs::remove_dir_all(expected);
+                for (rel, bytes) in project_files(&vfs, &root) {
+                    let path = expected.join(&rel);
+                    std::fs::create_dir_all(path.parent().expect("below the folder")).expect("a folder");
+                    std::fs::write(path, bytes).expect("an expected file");
+                }
+            }
             assert_eq!(
                 project_files(&vfs, &root),
                 tree(Path::new(&expected)),

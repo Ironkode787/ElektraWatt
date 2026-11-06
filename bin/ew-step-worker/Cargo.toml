@@ -20,4 +20,4 @@ workspace = true
 
 [dependencies]
 ew-step-proto = { path = "../../crates/ew-step-proto" }
-ew-hack = { version = "0.0.0", path = "../../crates/ew-hack" }
+ew-hack = { version = "0.1.0", path = "../../crates/ew-hack" }

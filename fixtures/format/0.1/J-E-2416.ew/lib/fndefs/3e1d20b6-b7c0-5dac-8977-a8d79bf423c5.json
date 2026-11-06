@@ -1,0 +1,13 @@
+{
+  "$k": "fndef",
+  "id": "3e1d20b6-b7c0-5dac-8977-a8d79bf423c5",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "8d9a50e2-848e-5329-8a2b-ae81d4ec5354",
+  "version": "0.1.0",
+  "sha256": "sha256:6f3b9ac4fca2fec4603abbe97bfc1e45b3bc6538f1e33ee40ef09b3ca6585a63",
+  "meta": {"key": "ew.fn.thermostat-nc", "licence": "CC-BY-SA-4.0", "sources": ["ew.original"], "status": "draft"},
+  "category": ["SensingTemperature", "Thermostat", "NC"],
+  "contact_kind": "nc",
+  "cps": [{"idx": 0, "designation": "5"}, {"idx": 1, "designation": "3"}],
+  "internal": [{"a": 0, "b": 1, "kind": {"pass_through": {"opens": true}}}]
+}

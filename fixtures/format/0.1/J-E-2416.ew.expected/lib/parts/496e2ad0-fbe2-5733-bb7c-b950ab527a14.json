@@ -1,0 +1,27 @@
+{
+  "$k": "part",
+  "id": "496e2ad0-fbe2-5733-bb7c-b950ab527a14",
+  "library_id": "d76f5765-c456-5393-935c-4cec32a87b01",
+  "item_id": "55f342c0-c7f4-5dd9-a24a-82bcd8b73e4f",
+  "version": "1.0.0",
+  "sha256": "sha256:42372467a25441a4793fec5187209ffa6fa1627df013484f0db5cc2c721e10ad",
+  "meta": {"key": "533361", "licence": "CC0-1.0", "sources": ["golden.table:parts|533361"]},
+  "manufacturer": {
+    "library": "d76f5765-c456-5393-935c-4cec32a87b01",
+    "item": "52dbf48a-f70f-55c9-8e9b-577475b13a4e",
+    "version_req": "*"
+  },
+  "part_number": "533361",
+  "description": "VMPA1-FB-EMG-8 electronic module, 4 positions",
+  "mech": {"width": 40000000, "height": 107000000, "depth": 70000000, "mount_kind": "ts35x7_5"},
+  "sections": {
+    "plc": {
+      "role": "module",
+      "io": [{"dir": "out", "bits": 8}],
+      "channels": {"count": 8, "kind": "do", "data_type": "Bool", "designation": "{n}"},
+      "bit_of": "n",
+      "unbound": "deactivated",
+      "positions": {"count": 4, "map": [{"solenoid": "14", "channel": "2p"}, {"solenoid": "12", "channel": "2p+1"}]}
+    }
+  }
+}
