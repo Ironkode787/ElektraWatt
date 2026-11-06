@@ -95,9 +95,12 @@ pub fn resource_errors() -> Vec<(&'static str, String)> {
 const NUMBER_ARGS: &[&str] = &["cp_nth"];
 
 /// The decimal arguments of a rule, by rule ID (ID-1417): written with the decimal separator of the language
-/// ([`DECIMAL_COMMA`]). EW-POT-006's cross-sections in mm².
-const DECIMAL_ARGS: &[(&str, &[&str])] =
-    &[(crate::rules::pot::PE_UNDERSIZED.id, &["pe", "required", "line"])];
+/// ([`DECIMAL_COMMA`]). EW-POT-006's cross-sections in mm²; EW-LAY-010's lengths in mm (FT-1496), its point lists
+/// (`rail`, `at`) keeping their notation.
+const DECIMAL_ARGS: &[(&str, &[&str])] = &[
+    (crate::rules::pot::PE_UNDERSIZED.id, &["pe", "required", "line"]),
+    (crate::rules::layout::CARRIER_INCOMPATIBLE.id, &["s", "length", "from", "to", "by"]),
+];
 
 /// The shipped languages that write a decimal comma (`1,5 mm²`).
 const DECIMAL_COMMA: &[&str] = &["nl-NL"];

@@ -500,7 +500,7 @@ fn ft1441_a_growing_strip_pushes_the_items_after_it() {
         bracket_findings(&s),
         vec![(
             "The end bracket after =P01+J-E-2416-X1032 passes the end of rail 2 by 2.6 mm.".to_owned(),
-            "De eindsteun na =P01+J-E-2416-X1032 steekt 2.6 mm voorbij het einde van rail 2.".to_owned(),
+            "De eindsteun na =P01+J-E-2416-X1032 steekt 2,6 mm voorbij het einde van rail 2.".to_owned(),
         )]
     );
 

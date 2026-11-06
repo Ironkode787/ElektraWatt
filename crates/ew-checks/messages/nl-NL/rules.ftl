@@ -259,14 +259,14 @@ rule-ew-lay-006 = { $form ->
 
 rule-ew-lay-010 = { $form ->
         [on_duct] { $device } is geplaatst op de kabelgoot bij { $duct }, die geen apparaten draagt; plaats het op een rail
-        [off_rail] { $device } is geplaatst op { $s } mm op de rail bij { $rail }, buiten 0.0 tot { $length } mm; verplaats het op de rail
+        [off_rail] { $device } is geplaatst op { $s } mm op de rail bij { $rail }, buiten 0,0 tot { $length } mm; verplaats het op de rail
         [rail_turn] { $device } is op de rail bij { $rail } gedraaid over een andere hoek dan 0° of 180°; draai het terug
         [off_axis] { $device } is naast de as van de rail bij { $rail } geplaatst; verplaats het op de rail
         [profile] { $device } (artikel { $part }) past niet op de rail bij { $rail } ({ $profile }); plaats het op een rail waar het op past
         [surface_turn] { $device } is op de montageplaat gedraaid over een andere hoek dan een veelvoud van 90°; draai het terug
         [off_surface] { $device } ligt niet in het vlak van de montageplaat; plaats het op de plaat
         [surface] { $device } (artikel { $part }) wordt niet op de plaat zelf gemonteerd; plaats het op een rail
-        [overflow] { $device } beslaat { $from } tot { $to } mm op de rail bij { $rail }, voorbij 0.0 tot { $length } mm; maak het korter of verplaats het
+        [overflow] { $device } beslaat { $from } tot { $to } mm op de rail bij { $rail }, voorbij 0,0 tot { $length } mm; maak het korter of verplaats het
         [outside] { $device } ligt buiten het bruikbare vlak van de montageplaat; verplaats het naar binnen
         [bracket_overlap] De eindsteun { $side ->
             [before] vóór
