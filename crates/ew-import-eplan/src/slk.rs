@@ -8,7 +8,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use serde_json::{Value, json};
 
-use crate::{ImportedSymbol, MAX_FILE, MAX_TOTAL, Pin};
+use crate::{Budget, ImportedSymbol, MAX_FILE, MAX_TOTAL, Pin};
 
 /// The only companion files the reader needs. User, lock and workstation records are never opened.
 pub const FILES: [&str; 8] = [
@@ -244,7 +244,7 @@ fn graphic(data: &[u8], class: u16) -> Result<Option<Value>, String> {
     })
 }
 
-fn pins(data: &[u8]) -> Result<Vec<Pin>, String> {
+fn pins(data: &[u8], budget: &mut Budget) -> Result<Vec<Pin>, String> {
     let mut c = Cursor { bytes: data, at: 0 };
     let mut pins = BTreeMap::new();
     while c.at + 2 <= c.bytes.len() {
@@ -280,6 +280,7 @@ fn pins(data: &[u8]) -> Result<Vec<Pin>, String> {
                         _ => return Err("eplan-slk-record-unsupported".into()),
                     }
                 }
+                budget.item(pins.len())?;
                 if pins.len() >= 4096
                     || pins
                         .insert(
@@ -341,7 +342,7 @@ pub fn read(files: &BTreeMap<String, Vec<u8>>) -> Result<Vec<ImportedSymbol>, St
     }
     let mut out = BTreeMap::new();
     let mut decoded = 0u64;
-    let mut graphics_total = 0usize;
+    let mut budget = Budget::default();
     let mut seen = BTreeSet::new();
     for r in variants {
         let id = be32(r, 0)?;
@@ -362,7 +363,7 @@ pub fn read(files: &BTreeMap<String, Vec<u8>>) -> Result<Vec<ImportedSymbol>, St
             "eplan-function-review".into(),
             "eplan-style-review".into(),
         ];
-        let pins = match pins(&data) {
+        let pins = match pins(&data, &mut budget) {
             Ok(pins) => pins,
             Err(e) if e == "eplan-slk-record-unsupported" => {
                 notes.push("eplan-slk-pins-review".into());
@@ -370,9 +371,7 @@ pub fn read(files: &BTreeMap<String, Vec<u8>>) -> Result<Vec<ImportedSymbol>, St
             }
             Err(e) => return Err(e),
         };
-        if out.len() >= 512 {
-            return Err(LIMIT.into());
-        }
+        budget.symbol()?;
         out.insert(
             id,
             ImportedSymbol {
@@ -402,10 +401,7 @@ pub fn read(files: &BTreeMap<String, Vec<u8>>) -> Result<Vec<ImportedSymbol>, St
         }
         match graphic(&data, be16(r, 4)?)? {
             Some(g) => {
-                graphics_total += 1;
-                if graphics_total > 65536 || symbol.graphics.len() >= 4096 {
-                    return Err(LIMIT.into());
-                }
+                budget.item(symbol.graphics.len())?;
                 symbol.graphics.push(g);
             }
             None => {
@@ -500,24 +496,24 @@ mod tests {
             .chain("Test.sdb\n1.2".encode_utf16().flat_map(u16::to_le_bytes))
             .collect();
         assert_eq!(directory(&utf16).unwrap(), "Test.sdb");
-        for s in [
-            "../Test.sdb\n1.2",
-            "C:\\Test.sdb\n1.2",
-            "Test.sdb\n2.0",
-            "Test.sdb\n1.2\nextra",
+        for (s, key) in [
+            ("../Test.sdb\n1.2", "eplan-archive-path"),
+            ("C:\\Test.sdb\n1.2", "eplan-archive-path"),
+            ("Test.sdb\n2.0", "eplan-slk-version"),
+            ("Test.sdb\n1.2\nextra", "eplan-slk-version"),
         ] {
-            assert!(directory(s.as_bytes()).is_err());
+            assert_eq!(directory(s.as_bytes()).unwrap_err(), key);
         }
         let mut f = fixture();
         f.get_mut("Instance.eod").unwrap().pop();
-        assert!(read(&f).is_err());
+        assert_eq!(read(&f).unwrap_err(), INVALID);
         let mut f = fixture();
         let row = f["Instance.eod"].clone();
         f.get_mut("Instance.eod").unwrap().extend(row);
-        assert!(read(&f).is_err());
+        assert_eq!(read(&f).unwrap_err(), INVALID);
         let mut f = fixture();
         f.get_mut("Instance.eox").unwrap()[12..15].fill(255);
-        assert!(read(&f).is_err());
+        assert_eq!(read(&f).unwrap_err(), "eplan-slk-version");
     }
 
     #[test]
@@ -532,9 +528,9 @@ mod tests {
         row[31..31 + data.len()].copy_from_slice(&data);
         assert_eq!(stream(&row, 31, 7, &BTreeMap::new()).unwrap(), raw);
         row[41] ^= 255;
-        assert!(stream(&row, 31, 7, &BTreeMap::new()).is_err());
+        assert_eq!(stream(&row, 31, 7, &BTreeMap::new()).unwrap_err(), INVALID);
         row[33..37].copy_from_slice(&u32::MAX.to_le_bytes());
-        assert!(stream(&row, 31, 7, &BTreeMap::new()).is_err());
+        assert_eq!(stream(&row, 31, 7, &BTreeMap::new()).unwrap_err(), LIMIT);
     }
 
     #[test]
@@ -562,7 +558,7 @@ mod tests {
         let mut blobs = BTreeMap::from([((16, 1), chunks)]);
         assert_eq!(stream(&row, 32, 16, &blobs).unwrap(), raw);
         blobs.get_mut(&(16, 1)).unwrap().remove(&0);
-        assert!(stream(&row, 32, 16, &blobs).is_err());
+        assert_eq!(stream(&row, 32, 16, &blobs).unwrap_err(), INVALID);
         let mut files = fixture();
         *files.get_mut("Instance.eod").unwrap().last_mut().unwrap() = 0;
         assert!(

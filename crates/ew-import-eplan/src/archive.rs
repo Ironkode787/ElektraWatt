@@ -27,19 +27,11 @@ pub(crate) fn read(bytes: &[u8]) -> Result<Vec<(String, Vec<u8>)>, String> {
     if bytes.starts_with(b"PK") {
         return zip(bytes);
     }
-    use sevenz_turbo::{ArchiveLimits, ArchiveReader, Password};
-    let limits = ArchiveLimits {
-        memory_limit_bytes: 64 * 1024 * 1024,
-        max_end_header_bytes: 4 * 1024 * 1024,
-        max_header_unpacked_bytes: 4 * 1024 * 1024,
-        max_entries: 4096,
-        max_name_bytes: 2048,
-        max_total_name_bytes: 4 * 1024 * 1024,
-        ..ArchiveLimits::default()
-    };
-    let mut reader = ArchiveReader::with_limits(Cursor::new(bytes), Password::empty(), limits)
+    use sevenz_rust2::{ArchiveReader, Password};
+    crate::seven::check(bytes)?;
+    let mut reader = ArchiveReader::new(Cursor::new(bytes), Password::empty())
         .map_err(|_| "eplan-archive-invalid".to_owned())?;
-    reader.set_threads(1);
+    reader.set_thread_count(1);
     let mut decoded = 0u64;
     for block in &reader.archive().blocks {
         decoded = decoded
@@ -79,7 +71,7 @@ pub(crate) fn read(bytes: &[u8]) -> Result<Vec<(String, Vec<u8>)>, String> {
                 let mut data = Vec::new();
                 stream.take(MAX_FILE + 1).read_to_end(&mut data)?;
                 if data.len() as u64 != entry.size || data.len() as u64 > MAX_FILE {
-                    return Err(sevenz_turbo::Error::Other("entry size mismatch".into()));
+                    return Err(sevenz_rust2::Error::Other("entry size mismatch".into()));
                 }
                 files.push((entry.name.replace('\\', "/"), data));
             }

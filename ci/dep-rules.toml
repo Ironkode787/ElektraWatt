@@ -592,7 +592,7 @@ key_deps = 'ew-panel, ew-ewpp, zip, csv, rust_xlsxwriter'
 
 [crates."ew-import-qet"]
 responsibility = 'QET `.qet`/`.qetz`; EDZ (7-Zip and ZIP), EPLAN XML/XLSX; DXF (DWG behind a feature)'
-key_deps = 'roxmltree 0.21.1, quick-xml, ew-schema, ew-units, ew-ids, ew-mltext (QET: records and value types, [14](14-interop.md) §4.3); sevenz-rust2 0.24.0, zip, calamine, csv (EPLAN); dxf 0.6.2, acadrust 0.6.4 (MPL-2.0)'
+key_deps = 'roxmltree 0.21.1, quick-xml, ew-schema, ew-units, ew-ids, ew-mltext (QET: records and value types, [14](14-interop.md) §4.3); sevenz-rust2 0.24.2 (without default features; lzma-rust2 0.23.0, ID-1460), zip, calamine, csv (EPLAN); dxf 0.6.2, acadrust 0.6.4 (MPL-2.0)'
 
 [crates."ew-import-eplan"]
 row = "ew-import-qet"
