@@ -10,9 +10,9 @@ actions = ["symbol.draw", "symbol.cp"]
 [[item]]
 id = "A2"
 kind = "hard"
-what = "The saved project contains a placed function using the new supply-block definition. The six pin designations, mapping and native grid are checked separately in the saved symbol."
+what = "The saved project contains a placed copy of the new supply block: a test copy or the published library symbol with its own function definition, or a test copy on a scratch page with an assigned library function. The published symbol placed with an assigned library function, the six pin designations, mapping and native grid are checked separately in the saved symbol."
 how = "work"
-query = "SELECT id FROM api_v1_function WHERE fndef LIKE 'example.supply-block.test.%.function' AND page_id IS NOT NULL"
+query = "SELECT f.id FROM api_v1_function f LEFT JOIN api_v1_page p ON p.id = f.page_id WHERE f.page_id IS NOT NULL AND f.ip_name IS NULL AND (f.fndef LIKE 'example.supply-block%.function' OR p.title LIKE 'Symbol test: %')"
 expect = ">= 1"
 
 [[item]]

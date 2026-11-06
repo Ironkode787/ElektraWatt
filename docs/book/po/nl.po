@@ -40,6 +40,10 @@ msgstr "Rapporten en PDF"
 msgid "Importing a QElectroTech project"
 msgstr "Een QElectroTech-project importeren"
 
+#: src/SUMMARY.md:12 src/tutorials/symbol-editor.md:1
+msgid "Draw a six-pin power block"
+msgstr "Een voedingsblok met zes aansluitingen tekenen"
+
 #: src/SUMMARY.md:12 src/tutorials/headless-workflow.md:1
 msgid "A first headless run on the golden project"
 msgstr "Een eerste sessie op de opdrachtregel met het referentieproject"
@@ -403,6 +407,18 @@ msgstr ""
 "ontbrekende draad getekend en de artikelen gekozen, tot het rapport "
 "alleen nog het verslag van de import bevat. U hebt EW nodig en het "
 "bestand [lamp-circuit.qet](files/lamp-circuit.qet) van de handleiding."
+
+#: src/tutorials/index.md:24
+msgid ""
+"[Draw a six-pin power block](symbol-editor.md): a power block drawn in the "
+"symbol editor, checked on the connection grid, its eight orientations "
+"previewed, saved to a library and tested on a scratch page. You need EW "
+"installed and an empty folder."
+msgstr ""
+"[Een voedingsblok met zes aansluitingen tekenen](symbol-editor.md): een "
+"voedingsblok getekend in de symbooleditor, gecontroleerd op het "
+"verbindingsraster, zijn acht oriëntaties bekeken, opgeslagen in een "
+"bibliotheek en getest op een proefpagina. U hebt EW nodig en een lege map."
 
 #: src/tutorials/index.md:24
 msgid ""
@@ -1160,6 +1176,189 @@ msgstr ""
 "[QElectroTech en EW](../explanation/qet-and-ew.md) legt uit hoe de "
 "elementen, labels, geleiders en folioverwijzingen van QElectroTech de "
 "functies, apparaten, draden en onderbrekingspunten van EW worden."
+
+#: src/tutorials/symbol-editor.md:3
+msgid ""
+"In this tutorial you draw a reusable symbol: a power block with six "
+"connections, designated 1 to 5 and FE. You check it on the connection grid, "
+"preview its eight orientations, save it to a library, keep a portable copy "
+"of the draft and test the symbol on a scratch page of a project. At the end "
+"you have a library with the symbol and a saved project with a test copy, "
+"ready to wire."
+msgstr ""
+"In deze handleiding tekent u een herbruikbaar symbool: een voedingsblok met "
+"zes aansluitingen, aangeduid met 1 tot en met 5 en FE. U controleert het op "
+"het verbindingsraster, bekijkt zijn acht oriëntaties, slaat het op in een "
+"bibliotheek, bewaart een draagbare kopie van het concept en test het symbool "
+"op een proefpagina van een project. Aan het eind hebt u een bibliotheek met "
+"het symbool en een opgeslagen project met een testkopie, klaar om te "
+"bedraden."
+
+#: src/tutorials/symbol-editor.md:11
+msgid "An empty folder."
+msgstr "Een lege map."
+
+#: src/tutorials/symbol-editor.md:15
+msgid ""
+"Choose **File ▸ New project…** (`Ctrl+N`) and pick an empty folder named "
+"`symbol-scratch.ew`."
+msgstr ""
+"Kies **Bestand ▸ Nieuw project…** (`Ctrl+N`) en wijs een lege map aan met de "
+"naam `symbol-scratch.ew`."
+
+#: src/tutorials/symbol-editor.md:16
+msgid ""
+"Choose **Edit ▸ Symbol editor…**. Type **Power block** as its **Name**, and "
+"in **Library** type the key `example.power`. The editor takes the place of "
+"the page, with its own command bar."
+msgstr ""
+"Kies **Bewerken ▸ Symbooleditor…**. Typ **Power block** als **Naam**, en typ "
+"in **Bibliotheek** de sleutel `example.power`. De editor neemt de plaats van "
+"de pagina in, met een eigen opdrachtbalk."
+
+#: src/tutorials/symbol-editor.md:19
+msgid ""
+"In **Drawing**, choose **Rectangle** and draw the body from `(4, 0)` to "
+"`(24, 28)` mm: click both corners, or type them under **Draw by "
+"coordinates** and choose **Add**."
+msgstr ""
+"Kies in **Tekening** **Rechthoek** en teken de behuizing van `(4, 0)` tot "
+"`(24, 28)` mm: klik op beide hoeken, of typ ze onder **Tekenen met "
+"coördinaten** en kies **Toevoegen**."
+
+#: src/tutorials/symbol-editor.md:21
+msgid ""
+"Choose **Connection point**, set its direction to **Facing left**, and add "
+"six connection points at x = 0 mm and y = 4, 8, 12, 16, 20 and 24 mm, with "
+"the designations 1, 2, 3, 4, 5 and FE. Choose **Line** and draw a short lead "
+"from each connection point to the body's left edge, at x = 4 mm."
+msgstr ""
+"Kies **Aansluitpunt**, zet de richting op **Links**, en voeg zes "
+"aansluitpunten toe op x = 0 mm en y = 4, 8, 12, 16, 20 en 24 mm, met de "
+"aanduidingen 1, 2, 3, 4, 5 en FE. Kies **Lijn** en teken van elk "
+"aansluitpunt een korte aansluitlijn naar de linkerrand van de behuizing, op "
+"x = 4 mm."
+
+#: src/tutorials/symbol-editor.md:24
+msgid ""
+"Choose **Text slot**. Add a **Pin designation** field beside each connection "
+"point, with that point's pin number, and a **Device tag** field above the "
+"body. The validation says **Ready to save**. FE is a printed designation: "
+"before you use the symbol, give the FE pin its electrical role under "
+"**Electrical data**, **Function definition**, and never confuse it with PE."
+msgstr ""
+"Kies **Tekstpositie**. Voeg naast elk aansluitpunt een veld "
+"**Aansluitcodering** toe, met het pinnummer van dat punt, en boven de "
+"behuizing een veld **Apparaatkenmerk**. De validatie zegt **Klaar om op te "
+"slaan**. FE is een gedrukte aanduiding: geef de FE-pin voordat u het symbool "
+"gebruikt zijn elektrische rol onder **Elektrische data**, "
+"**Functiedefinitie**, en verwar hem nooit met PE."
+
+#: src/tutorials/symbol-editor.md:28
+msgid ""
+"Click B to H under **Variants**: the large preview shows the symbol turned "
+"and mirrored, every pin keeping its number and turning its direction with "
+"the drawing. Choose A to edit again."
+msgstr ""
+"Klik onder **Varianten** op B tot en met H: het grote voorbeeld toont het "
+"symbool gedraaid en gespiegeld, en elke pin houdt zijn nummer en draait zijn "
+"richting met de tekening mee. Kies A om weer te bewerken."
+
+#: src/tutorials/symbol-editor.md:30
+msgid ""
+"In **Electrical data**, under **Connection points**, change the first "
+"point's x to 4.5 mm. The validation says \"Connection point 1 is off the "
+"connection grid. Move it onto the grid before saving.\" Press `Ctrl+Z` to "
+"undo the change. Fine drawing coordinates, such as 0.5 mm, remain valid."
+msgstr ""
+"Wijzig in **Elektrische data**, onder **Aansluitpunten**, de x van het "
+"eerste punt in 4,5 mm. De validatie zegt \"Aansluitpunt 1 ligt buiten het "
+"verbindingsraster. Verplaats het naar het raster voordat u opslaat.\" Druk op "
+"`Ctrl+Z` om de wijziging ongedaan te maken. Fijne tekencoördinaten, zoals "
+"0,5 mm, blijven geldig."
+
+#: src/tutorials/symbol-editor.md:33
+msgid ""
+"In **Library**, type `symbols.ewlib` as the **Library folder** and choose "
+"**Save to library**: a name without a folder is a library in your user "
+"library folder. The status bar says **Saved**."
+msgstr ""
+"Typ in **Bibliotheek** `symbols.ewlib` als **Bibliotheekmap** en kies "
+"**Opslaan in bibliotheek**: een naam zonder map is een bibliotheek in uw "
+"gebruikersbibliotheekmap. De statusbalk zegt **Opgeslagen**."
+
+#: src/tutorials/symbol-editor.md:35
+msgid ""
+"Under **Open or import**, type `power.symbol.json` as the **Symbol file** "
+"and choose **Export draft**; it is written beside the library. The file is "
+"the portable draft, with the identity the save gave it."
+msgstr ""
+"Typ onder **Openen of importeren** `power.symbol.json` als "
+"**Symboolbestand** en kies **Concept exporteren**; het wordt naast de "
+"bibliotheek geschreven. Het bestand is het draagbare concept, met de "
+"identiteit die het opslaan het gaf."
+
+#: src/tutorials/symbol-editor.md:37
+msgid ""
+"Choose **Test on scratch page**. The editor makes way for a new page with a "
+"test copy of the symbol selected, ready to wire."
+msgstr ""
+"Kies **Testen op proefpagina**. De editor maakt plaats voor een nieuwe "
+"pagina met een geselecteerde testkopie van het symbool, klaar om te "
+"bedraden."
+
+#: src/tutorials/symbol-editor.md:44
+msgid ""
+"The symbol editor keeps its own draft and undo history; saving it to a "
+"library does not change placed copies. Increase the symbol's version before "
+"you save changed content under the same key."
+msgstr ""
+"De symbooleditor heeft een eigen concept en een eigen geschiedenis om "
+"ongedaan te maken; opslaan in een bibliotheek verandert geplaatste kopieën "
+"niet. Verhoog de versie van het symbool voordat u gewijzigde inhoud onder "
+"dezelfde sleutel opslaat."
+
+#: src/tutorials/symbol-editor.md:46
+msgid ""
+"Connection points must lie on the 4 mm connection grid; the editor refuses "
+"to save a point off it, and says which."
+msgstr ""
+"Aansluitpunten moeten op het verbindingsraster van 4 mm liggen; de editor "
+"weigert een punt daarbuiten op te slaan, en zegt welk punt."
+
+#: src/tutorials/symbol-editor.md:47
+msgid ""
+"**Close editor** keeps the draft and its undo history: **Edit ▸ Symbol "
+"editor…** returns to it. In a later session, open `power.symbol.json` under "
+"**Open or import**: its next save updates the same symbol."
+msgstr ""
+"**Editor sluiten** bewaart het concept en de geschiedenis om ongedaan te "
+"maken: **Bewerken ▸ Symbooleditor…** keert ernaar terug. Open in een latere "
+"sessie `power.symbol.json` onder **Openen of importeren**: de volgende keer "
+"opslaan werkt hetzelfde symbool bij."
+
+#: src/tutorials/symbol-editor.md:50
+msgid ""
+"The same workflow is available to AI tools and repeatable scripts in "
+"[`symbol-editor.ewui`](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/book/tutorial-scripts/symbol-editor.ewui). "
+"Run it in a fresh directory:"
+msgstr ""
+"Dezelfde werkwijze is beschikbaar voor AI-hulpmiddelen en herhaalbare "
+"scripts in "
+"[`symbol-editor.ewui`](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/book/tutorial-scripts/symbol-editor.ewui). "
+"Voer het uit in een nieuwe map:"
+
+#: src/tutorials/symbol-editor.md:58
+msgid ""
+"The script creates the project beside itself and the library and "
+"`power.symbol.json` in your user library folder, and reopens the draft. See "
+"the [reference](../reference/symbol-editor.md) for JSON, actions and import "
+"compatibility."
+msgstr ""
+"Het script maakt het project naast zichzelf en de bibliotheek en "
+"`power.symbol.json` in uw gebruikersbibliotheekmap, en opent het concept "
+"opnieuw. Zie de [naslag](../reference/symbol-editor.md) voor JSON, acties en"
+" importcompatibiliteit."
 
 #: src/tutorials/headless-workflow.md:3
 msgid ""

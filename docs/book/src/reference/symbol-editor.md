@@ -1,6 +1,6 @@
 # Symbol editor and automated authoring
 
-Open **Edit → Symbol editor**. A symbol draft has its own undo history, drawing, function definition,
+Open **Edit ▸ Symbol editor…**. A symbol draft has its own undo history, drawing, function definition,
 connection points, text slots and cross-reference anchor. Changes do not alter existing placements.
 Choose A to draw; B–H show live rotated/mirrored previews. Select a graphic to move it by dragging or edit
 its coordinates in **Drawing**. **Draw by coordinates** also creates geometry from the keyboard.
@@ -8,13 +8,13 @@ Pin coordinates, directions and function mappings are editable in **Electrical d
 In **Pin mapping**, drag a function pin onto a connection point or use its list. Assigning a pin already used
 by another compatible connection swaps their mappings in one undo step. Repeated designations have an ordinal
 in parentheses, so two terminals both named N remain distinguishable. Function choices include their category
-and source library. **Library → Fork existing symbol** searches project and installed-library symbols by name
+and source library. In **Library**, **Fork existing symbol** searches project and installed-library symbols by name
 or key; each choice shows its source and grid. **Create editable copy** leaves the original unchanged.
 The command bar and status bar follow the active symbol; library paths and publication settings live in **Library**.
 The ribbon uses the same small icons, labels and selected state as the main window. **More shapes** contains
 ellipse, arc, polyline and polygon. Press **F1** in the editor to open this reference.
 Text fields can show tags, function text, technical data, pin designations or cross-references.
-**Advanced JSON** exposes the complete draft, including other slot types, styles and arrangements.
+**Advanced document** exposes the complete draft, including other slot types, styles and arrangements.
 The circle tool takes a centre and a point on its circumference; arcs and ellipses take opposite bounding-box
 corners. Arc creation angles are whole degrees; negative sweep reverses direction. Select a shape and press
 **Delete** to remove it, or drag it to move it; either change takes one undo step. Numeric property edits commit
@@ -28,10 +28,12 @@ named attachment position for a mechanical link; it does not create an electrica
 
 Native connections must lie on the 4 mm grid. Drawing clicks snap to 0.5 mm; text clicks to 1 mm.
 Numeric pin edits remain exactly as entered: a pin at 4.5 mm is visibly invalid and blocks publication.
-See the [design standard](../../../design/07a-symbol-design-standard.md) for the full authoring profile.
+See the
+[design standard](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/design/07a-symbol-design-standard.md)
+for the full authoring profile.
 
 **Save to library** writes a symbol and its owned function definition to the chosen `.ewlib` folder.
-The window remembers that folder. Its symbols appear under **Insert → Symbol**, with the library name;
+The window remembers that folder. Its symbols appear under **Draw ▸ Place ▸ Symbol…** (`I`), with the library name;
 the page must use the symbol's connection grid. Already embedded copies stay at their existing version until
 you explicitly update them. Repeated placement keeps the authored outline and pins.
 An assigned existing function definition stays referenced and its semantics cannot be edited in place; any
@@ -43,13 +45,14 @@ fork that symbol under its own key to change it. **Export draft** writes portabl
 new file, including incomplete work; an existing file is never overwritten. Leave either path empty to choose it
 in a file or folder dialog; a relative path is read from your default user library folder.
 **Close editor** keeps the draft and its undo history: **Edit ▸ Symbol editor…** returns to it. Only
-**Discard draft** drops it. While the editor shows, Ctrl+S saves the symbol and **File ▸ Save project** saves the
-project. Quitting with unsaved symbol changes asks whether to save the symbol. **Test on scratch page** creates a
+**Discard draft** drops it. While the editor shows, Ctrl+S saves the symbol and the File menu's **Save project**
+saves the project. Quitting with unsaved symbol changes asks whether to save the symbol. **Test on scratch page** creates a
 page in the current project with the symbol's connection grid and places embedded copies there. The page then
 shows with the copy selected; the message's **Back to the editor** returns to the draft. Project undo removes
 the placement; a second undo removes the scratch page.
 Scratch placements are independent draft copies, so **Source missing** in the Libraries navigator refers to
-their temporary draft source. To place a copy linked to the published library, use **Insert → Symbol** after saving.
+their temporary draft source. To place a copy linked to the published library, use **Draw ▸ Place ▸ Symbol…**
+after saving.
 
 ## AI and command-line tools
 
@@ -115,7 +118,7 @@ validation findings. [The tutorial](../tutorials/symbol-editor.md) includes a co
 
 ## Imported formats and limits
 
-| Input | Supported behavior |
+| Input | Supported behaviour |
 |---|---|
 | QElectroTech `.elmt` | Existing bounded element reader; preserves the QET 10 px grid and provenance. Review conversion warnings. |
 | EPLAN `.edz` | Bounded 7-Zip or ZIP container; candidates from supported XML members. Never extracts files to disk. |
@@ -144,9 +147,9 @@ primitives/pins per symbol; archive names, CRCs, decompression ratio and XML dep
 | Manufacturer part | Purchased-product information such as article number, manufacturer and technical ratings; assigned to a project device separately. |
 | Placed device/function | Device tag, function text, chosen part and embedded copies of the symbol/function definitions. |
 
-A new drawing starts with a generic black-box function. In **Electrical data → Function definition**, choose its
+A new drawing starts with a generic black-box function. In **Electrical data**, under **Function definition**, choose its
 function type and set each pin's potential role and flags, or assign an existing library function. Existing assigned
-functions remain read-only. Internal connections and less common fields are available through **Advanced JSON**.
+functions remain read-only. Internal connections and less common fields are available through **Advanced document**.
 Typing `FE` as a designation changes the printed label; select the FE potential role to give it electrical meaning.
 Text slots obtain tags, technical data and function text from the placed device; the editor shows sample values.
 Library publication does not update already placed copies. The EPLAN importer does not create complete manufacturer

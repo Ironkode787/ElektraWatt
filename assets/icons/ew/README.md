@@ -18,5 +18,12 @@ at the token stroke). `cargo xtask gen-icons` reads them with the vendored set a
 | `interruption-point.svg` | `ew-interruption-point` | A conductor ending in an arrow at a page edge: the connection continues elsewhere |
 | `potential.svg` | `ew-potential` | A conductor with two node dots and two taps ending in connection points: one electrical potential (net) |
 | `qet-grid.svg` | `ew-qet-grid` | A frame with a three-by-three dot grid: the QElectroTech grid badge |
+| `shape-arc.svg` | `ew-shape-arc` | A half-circle arc open at the bottom: the symbol editor's Arc tool |
+| `shape-circle.svg` | `ew-shape-circle` | A full circle: the symbol editor's Circle tool |
+| `shape-ellipse.svg` | `ew-shape-ellipse` | A flat ellipse, wider than high: the symbol editor's Ellipse tool |
+| `shape-line.svg` | `ew-shape-line` | One diagonal stroke from bottom left to top right: the symbol editor's Line tool |
+| `shape-polygon.svg` | `ew-shape-polygon` | A closed five-sided outline: the symbol editor's Polygon tool |
+| `shape-polyline.svg` | `ew-shape-polyline` | An open zigzag of three segments: the symbol editor's Polyline tool |
+| `shape-rectangle.svg` | `ew-shape-rectangle` | A landscape rectangle: the symbol editor's Rectangle tool |
 | `structure-box.svg` | `ew-structure-box` | A frame with a "+" in its corner: a location (structure) box |
 | `terminal-strip.svg` | `ew-terminal-strip` | Three terminals in a row with their leads above and below |
