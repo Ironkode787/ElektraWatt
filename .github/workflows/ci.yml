@@ -141,7 +141,12 @@ jobs:
   # registry and the api_v1 columns; each written by its crate's test, read here as data, so xtask links no GPL crate)
   # at the base revision with the checkout, and fails a breaking change that has no `- api-break: <surface> <item>`
   # line added to docs/release-notes/unreleased.md. The base (the orchestrator's ruling 6, cycle 42): a pull request's
-  # base commit; a push's previous tip, or HEAD^ when there is none; a dispatch's merge base with main.
+  # base commit; a push's previous tip, or HEAD^ when there is none; a dispatch's merge base with main. The sixth
+  # surface, `format` (WP-S6.08 D9, D22, D23), compares each released schemas/<f>/ with the oldest final tag that holds
+  # it: a removed or retyped member, a newly required one, a removed value or branch, any constraint keyword changed
+  # (format, bounds, lengths, pattern, item counts, additionalProperties, uniqueItems), a first enum or const, a kind's
+  # file, rank or v, and any byte of fixtures/format/<f>/ always fail; a new value needs its `- format-variant:` line
+  # since the newest final tag not above the workspace version.
   api-guard:
     name: api-guard
     runs-on: ubuntu-24.04
