@@ -89,6 +89,10 @@ The main session orchestrates. It plans each cycle, briefs Claude subagents, int
      ID-1326). When the current cycle has no lane ready for a free slot, its end phase included, the slot takes the
      next cycle's first-wave lane, on the newest picked tip. That lane is integrated after the end tip and reviewed in
      the next cycle (rule 8). The next cycle's briefs are therefore kept ready ahead of need.
+   - **Never with M3 work** (owner, 2026-11-06: "do not continue to M3, when lanes are open. Leave them idle instead";
+     ID-1452). A slot with no M2 or release work left for it takes M2.5's work instead (WP-S2.10, the symbol editor:
+     its smoke test, review, persona runs and polish, ID-1453), and stays idle when there is none: no M3 package,
+     specification or lane.
    - Docs-only lanes write the next cycle's specifications during the current one.
    - The next cycle's first-wave briefs are written, feasibility-read and ruled by the time the last wave is
      dispatched.
@@ -148,34 +152,46 @@ The main session orchestrates. It plans each cycle, briefs Claude subagents, int
       panics, spec gaps, tests, CI and the supply chain, repository hygiene.
     - It gets the code, not the orchestrator's conclusions. It reports ranked findings with `path:line` and evidence,
       and a verdict per part.
-    - Its cargo runs count as a builder: while all three slots are busy it only reads.
+    - Its cargo runs count as a builder: while all three slots are busy it only reads. Its fix phase (rule 13) is a
+      builder too.
     - The independent reviewer is the second maintainer wherever a requirement or ADR asks for one (owner,
       2026-10-31). Its brief names each `unsafe` block in the range.
     - The cycle is accepted when every part is.
-12. **Triage.**
-    - Fixed in the cycle: majors, and minors that touch data, the file format or what users see.
-    - Nits in files that a fix round already touches are fixed by the author in that round (cycle-42 retro).
-    - Other minors and nits become FT rows for one batch lane in the next cycle's first wave, without re-review.
-    - Window-check and play-test findings are triaged the same way.
+12. **Triage** (amended 2026-11-06, ID-1450: "major fixes need to be done by the lane itself, but minors / nits can
+    be done by the reviewer itself").
+    - The reviewer reports every finding to the ledger first; the orchestrator triages before anyone edits.
+    - **To the author** (rule 13), fixed in the cycle: majors and blockers; a minor or nit in a file the author's fix
+      of a major touches; anything that touches `unsafe` (the reviewer is the second maintainer, rule 11).
+    - **To the reviewer** (its fix phase, rule 13), fixed in the cycle: every other minor and nit.
+    - A finding whose fix needs a ruling or a spec change is ruled first, then routed as above. A finding that asks
+      for new work rather than a fix, or a design, becomes an FT row.
+    - Window-check and play-test findings keep the earlier triage: fixed in the cycle by the author or a fix lane are
+      majors and minors that touch data, the file format or what users see; the rest become FT rows.
     - **After the last wave's review part** (its scoped re-review included) and the last window check, only majors,
-      blockers and minors that touch data or the file format get a fix round before the end tip. The rest go to the
-      next cycle's first review part, FT batch or polish lane, named in the ledger (cycle-49 retro: six fix rounds and
-      four re-review parts chained after the last wave).
-13. **Back to the author.**
-    - Findings go verbatim, with the orchestrator's rulings, to the authoring lane.
-    - Resume that lane with SendMessage while its context is under about 750k tokens (ID-1322, the 1M window).
-      Otherwise use a fresh `lane` fixer (Opus `medium`) with the findings and the lane's hand-off note (2026-11-01;
-      amended 2026-11-04).
-    - The lane's worktree is kept until its part is accepted.
-    - A lane resumed after it has handed back may not be able to hand back again. Its message asks it to write its
-      report to a file in the orchestrator's notes and to end with one line naming that file (cycle-46 retro).
+      blockers and minors that touch data or the file format get an author's fix round before the end tip. The last
+      part's reviewer fixes its other minors and nits when a slot is free before the last verify; otherwise they go to
+      the next cycle's first review part or FT batch, named in the ledger (cycle-49 retro: six fix rounds and four
+      re-review parts chained after the last wave).
+13. **Back to the author, or to the reviewer** (amended 2026-11-06, ID-1450).
+    - Findings go verbatim, with the orchestrator's rulings, to whoever fixes them.
+    - **The author:** resume that lane with SendMessage while its context is under about 750k tokens (ID-1322, the 1M
+      window). Otherwise use a fresh `lane` fixer (Opus `medium`) with the findings and the lane's hand-off note
+      (2026-11-01; amended 2026-11-04).
+    - **The reviewer:** resume it with SendMessage while its context is under about 650k tokens, with the findings it
+      fixes by number, the base (the verified tip, or a newer tip when the files changed since), the trailers and the
+      word that a builder slot is its. Above 650k, its findings go to a fresh `lane` fixer (Opus `medium`) with the
+      ledger's entries. Its commits are integrated like a lane's (rule 16).
+    - The lane's and the reviewer's worktrees are kept until the part is accepted.
+    - A lane or reviewer resumed after it has handed back may not be able to hand back again. Its message asks it to
+      write its report to a file in the orchestrator's notes and to end with one line naming that file (cycle-46
+      retro).
 14. **No separate re-review rounds.**
-    - The next part's reviewer first checks the earlier fixes in the ledger: each finding closed, with the test that
-      shows it.
-    - The last part ends with a re-review scoped to the fixes. Only a major re-opens a full re-review. That
+    - The next part's reviewer first checks the earlier fixes in the ledger, the reviewer's own fixes included: each
+      finding closed, with the test that shows it.
+    - The last part ends with a re-review scoped to the authors' fixes. Only a major re-opens a full re-review. That
       re-review's own findings follow rule 12's last bullet; no further re-review runs in the cycle (cycle-49 retro).
-    - A fix that lands after the cycle's review is accepted (a play-test blocker) opens the next cycle's first review
-      part, named in its range.
+    - The last part's own fixes, and a fix that lands after the cycle's review is accepted (a play-test blocker), open
+      the next cycle's first review part, named in its range.
 15. **Shift left.** Every lane runs the hand-back checks and the self-check of its agent definition, and reports them.
     - One full lane-check per hand-back; after a failure, only the failed step (`--only <step>`). A second full run
       needs a reason in the report (cycle-49 retro; LC50 found that cycle 49's repeated runs followed real changes,
@@ -200,8 +216,15 @@ The main session orchestrates. It plans each cycle, briefs Claude subagents, int
         integration commit, never `git add -A` (2026-11-01, cycle-43 retro);
       - squashes a lane's work-in-progress commits that fail alone into the commit that completes them when it
         merges them (ID-1113, from cycle 46).
+      - **integrates a lane by merge, settled in the merge** (retro 52, ID-1449): `git merge --no-ff <lane branch>`,
+        then `cargo xtask settle --base <the pre-merge tip>` amended into the merge commit, so every lane commit builds
+        on its own line and first-parent bisect holds; a single-commit lane may be cherry-picked. The lane's `target`
+        is freed at the merge (the shared cache refills a fix round's dependencies).
+    - **The delivery verify mirrors CI's jobs** (retro 52, ID-1449): the workspace with all features, the fuzz crate's
+      clippy, `ci/translation-status.py` and the book's template check, and each fuzz target for 20 s on its own
+      toolchain.
     - Subagent check results are claims until re-run.
-    - Lanes keep their `target` for a fix round; the orchestrator deletes it when the part is accepted (2026-11-01).
+    - A lane's `target` is freed at its merge (retro 52, ID-1449); before that rule, lanes kept it for a fix round.
     - **A release branch** (owner, 2026-11-05, ID-1412). A release is cut from `release/<X.Y>`, branched at a
       delivery. Its candidates are tagged there, and only fixes for what the release's checks find land there: a fix
       lane bases on the release branch, and the orchestrator cherry-picks each fix onto the working branch too. Every

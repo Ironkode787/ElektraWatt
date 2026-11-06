@@ -29,7 +29,7 @@ pub struct Outcome {
 /// The table key a selector picks (`nav:<navigator>`), and whether it is given.
 pub fn key(selector: u8) -> Option<String> {
     let kind = TABLE_NAVIGATORS[usize::from(selector >> 1) % TABLE_NAVIGATORS.len()];
-    (selector % 2 == 0).then(|| format!("nav:{}", kind.word()))
+    selector.is_multiple_of(2).then(|| format!("nav:{}", kind.word()))
 }
 
 /// Runs one input.

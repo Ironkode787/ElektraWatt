@@ -925,9 +925,52 @@ fn rep_transform(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                     if a.orient != want {
                         return Err(format!("orientation is {:?}, expected {want:?}", a.orient));
                     }
-                    (a.pos == b.pos && a.page == b.page)
+                    if a.page != b.page {
+                        return Err("a transform moved the representation to another page".to_owned());
+                    }
+                    // A black box whose orientation changes turns about the centre of its bounding box (the
+                    // outline's, else its CPs'), so its insertion point moves (`rep.transform`, "The pivot"): the
+                    // centre, in grid half-steps, stays, or moves by the one half-step of a tie. A symbol keeps its
+                    // insertion point.
+                    let local = b.box_.as_ref().map_or(Vec::new(), |x| {
+                        if x.outline.is_empty() {
+                            x.cps.iter().map(|c| c.pos).collect()
+                        } else {
+                            x.outline.clone()
+                        }
+                    });
+                    if local.is_empty() || a.orient == b.orient {
+                        return (a.pos == b.pos)
+                            .then_some(())
+                            .ok_or_else(|| "a transform moved the insertion point".to_owned());
+                    }
+                    let grid = before
+                        .pages()
+                        .get(b.page)
+                        .ok_or("the page of the representation")?
+                        .grid;
+                    let twice_centre = |r: &ew_schema::Representation| {
+                        let pts: Vec<(i64, i64)> = local
+                            .iter()
+                            .map(|p| r.orient.apply(*p))
+                            .map(|p| (grid.snap(p.x), grid.snap(p.y)))
+                            .collect();
+                        let span = |axis: fn(&(i64, i64)) -> i64| {
+                            pts.iter().map(axis).min().unwrap_or(0) + pts.iter().map(axis).max().unwrap_or(0)
+                        };
+                        (
+                            2 * grid.snap(r.pos.x) + span(|p| p.0),
+                            2 * grid.snap(r.pos.y) + span(|p| p.1),
+                        )
+                    };
+                    let (cb, ca) = (twice_centre(b), twice_centre(a));
+                    ((cb.0 - ca.0).abs() <= 1 && (cb.1 - ca.1).abs() <= 1)
                         .then_some(())
-                        .ok_or_else(|| "a transform moved the insertion point or the page".to_owned())
+                        .ok_or_else(|| {
+                            format!(
+                                "a black box's turn moved the centre of its bounding box from {cb:?} to {ca:?} grid half-steps"
+                            )
+                        })
                 }),
             )
         }

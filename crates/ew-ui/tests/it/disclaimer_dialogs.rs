@@ -89,6 +89,13 @@ fn the_approve_and_release_dialogs_end_with_the_disclaimer() {
                 .rposition(|t| t == disclaimer)
                 .unwrap_or_else(|| panic!("{language} {action}: no disclaimer in {texts:?}"));
             let after: Vec<&str> = texts[at + 1..].iter().map(String::as_str).collect();
+            // The footer adds its buttons right to left in the platform's order (`dialog::footer_order`): Windows
+            // shows the Primary left of Cancel, so it is added last; Linux shows it right of Cancel, added first.
+            let buttons: Vec<&str> = if cfg!(target_os = "windows") {
+                buttons.to_vec()
+            } else {
+                buttons.iter().rev().copied().collect()
+            };
             assert_eq!(after, buttons, "{language} {action}: {texts:?}");
             dispatch(&mut h, action, json!({ "cancel": true }));
             settle(&mut h);
