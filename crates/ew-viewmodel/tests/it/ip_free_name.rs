@@ -83,7 +83,11 @@ fn a_point_placed_after_a_reopen_takes_a_free_name_and_joins_nothing() {
     done(&mut s, "page.goto", json!({"folio": "103"}));
     let links = links_to(&s, "102");
     assert_eq!(place_ip(&mut s, (40, 40), "target").1, "IP-2");
-    assert_eq!(links_to(&s, "102"), links, "the new target pairs with no point of 102");
+    assert_eq!(
+        links_to(&s, "102"),
+        links,
+        "the new target pairs with no point of 102"
+    );
     s.shutdown();
 }
 
@@ -104,11 +108,20 @@ fn a_point_placed_after_an_undo_brings_one_back_takes_a_free_name() {
     done(&mut s, "edit.undo", json!({}));
     // The delete undone (the undo shows 102): its source "IP" is back.
     done(&mut s, "edit.undo", json!({}));
-    assert!(tables(&s).reps.iter().any(|r| r.ip.as_ref().is_some_and(|ip| ip.name == "IP")));
+    assert!(
+        tables(&s)
+            .reps
+            .iter()
+            .any(|r| r.ip.as_ref().is_some_and(|ip| ip.name == "IP"))
+    );
     done(&mut s, "page.goto", json!({"folio": "103"}));
     let links = links_to(&s, "102");
     assert_eq!(place_ip(&mut s, (40, 40), "target").1, "IP-1");
-    assert_eq!(links_to(&s, "102"), links, "the new target pairs with no point of 102");
+    assert_eq!(
+        links_to(&s, "102"),
+        links,
+        "the new target pairs with no point of 102"
+    );
     s.shutdown();
 }
 

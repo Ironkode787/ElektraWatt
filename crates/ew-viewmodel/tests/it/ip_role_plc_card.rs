@@ -236,11 +236,12 @@ fn key_of(s: &ShellModel, id: &str) -> String {
 fn ft822_choosing_source_for_a_proposed_name_offers_the_next_free_name() {
     let tmp = Tmp::new("g40-free");
     let mut s = source_on_101(&tmp);
-    // No typed name: the proposal is the last committed name, 0V.
+    // No typed name: the proposal is the last committed name's series' first free name, 0V-1, with the quarter's role
+    // (ID-1462: an automatic name never joins the source on 101).
     done(&mut s, "tool.ip", json!({}));
     done(&mut s, "cursor.set", json!({"x_mm": 330.0, "y_mm": 150.0}));
-    assert_eq!(ghost(&s)["name"], "0V");
-    assert_eq!(ghost(&s)["direction"], "target");
+    assert_eq!(ghost(&s)["name"], "0V-1");
+    assert_eq!(ghost(&s)["direction"], "source");
     done(&mut s, "tool.ip_direction", json!({"direction": "source"}));
     let g = ghost(&s);
     assert_eq!(
