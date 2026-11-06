@@ -4609,7 +4609,6 @@ symbol-mm = { $p0 } (mm)
 symbol-graphic-item = { $p0 } { $p1 }
 
 symbol-more-shapes = Meer vormen
-symbol-cancel = Annuleren
 symbol-drawing-tab = Tekening
 symbol-data-tab = Elektrische data
 symbol-library-tab = Bibliotheek
@@ -4732,3 +4731,5 @@ symbol-delete-row = Verwijderen
 symbol-delete-item = { $p0 } verwijderen
 symbol-visible-of = { $p0 } zichtbaar
 prompt-symbol-filter = Symboolbestanden
+symbol-new-symbol = Nieuw symbool
+symbol-confirm-replace = Het symboolconcept heeft wijzigingen die niet in een bibliotheek staan. Sla het eerst op, of verwerp de wijzigingen.

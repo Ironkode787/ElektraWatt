@@ -4458,7 +4458,6 @@ pub const KEYS: &[&str] = &[
     "symbol-mm",
     "symbol-graphic-item",
     "symbol-more-shapes",
-    "symbol-cancel",
     "symbol-drawing-tab",
     "symbol-data-tab",
     "symbol-library-tab",
@@ -4573,4 +4572,6 @@ pub const KEYS: &[&str] = &[
     "symbol-delete-item",
     "symbol-visible-of",
     "prompt-symbol-filter",
+    "symbol-new-symbol",
+    "symbol-confirm-replace",
 ];

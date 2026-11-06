@@ -285,6 +285,19 @@ impl ShellModel {
         }
     }
 
+    /// The window's way to an editor action that drops the draft (New symbol, Open or import, Fork, a candidate,
+    /// Discard draft): with unsaved changes it asks Save symbol, Discard or Cancel in the house dialog first, the
+    /// action then running with `discard`; otherwise the action runs at once (ID-1472).
+    pub fn ask_symbol_discard(&mut self, action: &'static str, params: Value) -> Outcome {
+        if self.symbol_editor.as_ref().is_some_and(SymbolEditor::dirty) {
+            return self.open_dialog(super::Dialog::ConfirmDiscard {
+                pending: super::Pending { action, params },
+                symbol: true,
+            });
+        }
+        self.dispatch(action, &params)
+    }
+
     /// After a test placement the editor's view closes and the page shows with the symbol selected; the toast offers
     /// the way back to the kept draft (ID-1463).
     fn after_test_placement(&mut self, scratch: bool) {
@@ -344,8 +357,10 @@ impl ShellModel {
                 }
                 return Ok(());
             }
-            // Reopening the editor without naming a new symbol returns to the kept draft.
+            // Reopening the editor without naming a new symbol returns to the kept draft; `discard` starts a fresh one
+            // (ID-1472).
             if action == "new"
+                && !discard
                 && text(p, "key").is_empty()
                 && text(p, "name").is_empty()
                 && let Some(editor) = &mut self.symbol_editor

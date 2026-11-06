@@ -1189,3 +1189,65 @@ fn the_symbol_file_picker_offers_every_extension_an_importer_reads() {
     assert_eq!(offered, read);
     assert!(FILE_EXTENSIONS.contains(&"json"));
 }
+
+/// ID-1472 (M25-p5#6): `symbol.new` with `discard` starts a fresh draft; without a key or name it returns to the kept
+/// one.
+#[test]
+fn a_new_symbol_with_discard_starts_a_fresh_draft() {
+    let tmp = Tmp::new("symbol-fresh");
+    let mut shell = ShellModel::new(
+        Mode::Headless,
+        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
+    );
+    drawn(&mut shell, "example.kept", "Kept");
+    done(&mut shell, "symbol.close", json!({}));
+    done(&mut shell, "symbol.new", json!({}));
+    assert_eq!(shell.symbol_editor().unwrap().draft.key, "example.kept");
+    done(&mut shell, "symbol.new", json!({"discard": true}));
+    let editor = shell.symbol_editor().unwrap();
+    assert!(editor.draft.symbol.graphics.is_empty() && editor.draft.key.is_empty());
+    assert!(!editor.dirty() && !editor.can_undo());
+    shell.shutdown();
+}
+
+/// ID-1472 (M25-p5#6 and the discard question's nit): in the window, New symbol over unsaved changes asks Save
+/// symbol, Discard or Cancel in the house dialog, in words that match its buttons; a clean draft is replaced at once.
+#[test]
+fn new_symbol_over_unsaved_changes_asks_save_discard_or_cancel() {
+    use ew_viewmodel::dialogs::spec;
+    use ew_viewmodel::shell::{ConfirmAnswer, Dialog};
+    let tmp = Tmp::new("symbol-ask");
+    let mut shell = ShellModel::new(Mode::Gui, ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"));
+    drawn(&mut shell, "example.ask", "Ask block");
+    let fresh = json!({"discard": true});
+    assert_eq!(shell.ask_symbol_discard("symbol.new", fresh.clone()), Outcome::Done);
+    let dialog = shell.dialog().unwrap().clone();
+    assert!(matches!(dialog, Dialog::ConfirmDiscard { symbol: true, .. }));
+    let s = spec(&dialog, &shell);
+    assert_eq!(s.title, "Save the symbol Ask block?");
+    assert_eq!(
+        s.body,
+        ["The symbol draft has changes that are not in a library. Save it first, or discard the changes."]
+    );
+    let labels: Vec<&str> = s.buttons().iter().map(|b| b.label.as_str()).collect();
+    assert_eq!(labels, ["Save symbol", "Cancel", "Discard changes"]);
+    // Cancel keeps the draft.
+    assert_eq!(shell.answer_confirm(ConfirmAnswer::Cancel), Outcome::Done);
+    assert_eq!(shell.symbol_editor().unwrap().draft.key, "example.ask");
+    // Discard starts the fresh draft.
+    assert_eq!(shell.ask_symbol_discard("symbol.new", fresh.clone()), Outcome::Done);
+    assert_eq!(shell.answer_confirm(ConfirmAnswer::Discard), Outcome::Done);
+    assert!(shell.symbol_editor().unwrap().draft.key.is_empty());
+    // Save symbol saves the draft first, then starts the fresh one.
+    drawn(&mut shell, "example.ask", "Ask block");
+    done(&mut shell, "symbol.directory", json!({"directory": "ask.ewlib"}));
+    assert_eq!(shell.ask_symbol_discard("symbol.new", fresh.clone()), Outcome::Done);
+    assert_eq!(shell.answer_confirm(ConfirmAnswer::Save), Outcome::Done);
+    assert!(shell.dialog().is_none());
+    assert!(shell.symbol_editor().unwrap().draft.key.is_empty());
+    assert!(tmp.0.join("config").join("libraries").join("ask.ewlib").is_dir());
+    // A clean draft asks nothing.
+    assert_eq!(shell.ask_symbol_discard("symbol.new", fresh), Outcome::Done);
+    assert!(shell.dialog().is_none());
+    shell.shutdown();
+}

@@ -34,7 +34,6 @@ pub(crate) struct EditorView {
     text: String,
     designation: String,
     direction: usize,
-    pending: Option<(&'static str, Value)>,
     panel: usize,
     zoom: f32,
     pan: Vec2,
@@ -120,6 +119,11 @@ fn function_pin_name(draft: &SymbolDraft, index: u16) -> String {
 }
 fn action(events: &mut Vec<Event>, name: &'static str, value: Value) {
     events.push(Event::Action(name, value));
+}
+/// An action that drops the draft: the model asks Save symbol, Discard or Cancel first while it has unsaved changes,
+/// in the house dialog (ID-1472).
+fn ask(events: &mut Vec<Event>, name: &'static str, value: Value) {
+    events.push(Event::SymbolAsk(name, value));
 }
 // Several controls can commit on one focus change. Merge their changes against the same frame's draft.
 fn replace_action(events: &mut Vec<Event>, draft: &SymbolDraft, document: Value) {
@@ -600,14 +604,6 @@ impl EditorView {
         }
     }
 
-    fn request(&mut self, shell: &ShellModel, events: &mut Vec<Event>, name: &'static str, value: Value) {
-        if shell.symbol_editor().is_some_and(|e| e.dirty()) {
-            self.pending = Some((name, value));
-        } else {
-            action(events, name, value);
-        }
-    }
-
     pub(crate) fn toolbar(&mut self, ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         self.sync(shell);
         let Some(editor) = shell.symbol_editor() else {
@@ -644,6 +640,10 @@ impl EditorView {
             let save_key = ew_viewmodel::actions::find("file.save")
                 .map(|m| shell.shortcut_text(m))
                 .unwrap_or_default();
+            // ID-1472: a fresh draft, asking first when the kept one has unsaved changes.
+            if ribbon_button(ui, "symbol-new-symbol", "file-plus", false, true, false, String::new()).clicked() {
+                ask(events, "symbol.new", json!({"discard": true}));
+            }
             // P10: no command switches the panel; an empty folder is refused in words.
             if ribbon_button(ui, "symbol-save", "device-floppy", false, true, false, save_key).clicked() {
                 action(events, "symbol.save", json!({"directory":self.directory}));
@@ -659,7 +659,7 @@ impl EditorView {
             )
             .clicked()
             {
-                self.request(shell, events, "symbol.open", self.file_params());
+                ask(events, "symbol.open", self.file_params());
             }
             if ribbon_button(
                 ui,
@@ -690,7 +690,7 @@ impl EditorView {
             )
             .clicked()
             {
-                self.request(shell, events, "symbol.close", json!({"discard": true}));
+                ask(events, "symbol.close", json!({"discard": true}));
             }
             ui.separator();
             ui.label(label(strings::Key::run_time(if editor.variant == 0 {
@@ -750,30 +750,6 @@ impl EditorView {
         let Some(editor) = shell.symbol_editor() else {
             return;
         };
-        if let Some((name, mut value)) = self.pending.clone() {
-            egui::Modal::new(egui::Id::unique("symbol-discard-confirm")).show(ui.ctx(), |ui| {
-                ui.heading(label(strings::Key::run_time("symbol-dirty")));
-                ui.label(label(strings::Key::run_time("symbol-unsaved")));
-                ui.horizontal(|ui| {
-                    if button(ui, "symbol-cancel") {
-                        self.pending = None;
-                    }
-                    if components::button(
-                        ui,
-                        Kind::Danger,
-                        label(strings::Key::run_time("symbol-discard")),
-                        true,
-                        0.0,
-                    )
-                    .clicked()
-                    {
-                        value["discard"] = json!(true);
-                        action(events, name, value);
-                        self.pending = None;
-                    }
-                });
-            });
-        }
         if self.zoom == 0.0 {
             self.zoom = 8.0;
         }
@@ -816,7 +792,7 @@ impl EditorView {
                             for (i,d) in editor.candidates.iter().enumerate() {
                                 let name = display_text(&serde_json::to_value(&d.symbol.name).unwrap_or_default());
                                 if components::button(ui, Kind::Secondary, &name, true, 0.0).clicked() {
-                                    self.request(shell, events,"symbol.candidate",json!({"index":i}));
+                                    ask(events, "symbol.candidate",json!({"index":i}));
                                 }
                             }
                         }
@@ -859,7 +835,7 @@ impl EditorView {
                         }).response.expanded(ui).widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, true, label(strings::Key::run_time("symbol-choose-source"))));
                         field(ui, "symbol-fork-key", &mut self.fork_key);
                         if components::button(ui, Kind::Secondary, label(strings::Key::run_time("symbol-fork-create")), !self.source.is_empty() && !self.fork_key.is_empty(), 0.0).clicked() {
-                            self.request(shell, events, "symbol.fork", json!({"source":self.source,"key":self.fork_key}));
+                            ask(events, "symbol.fork", json!({"source":self.source,"key":self.fork_key}));
                         }
                     }
                     ui.separator();
@@ -868,7 +844,7 @@ impl EditorView {
                     if section(ui, "import", "symbol-import", None, false) {
                         path_field(ui,"symbol-file",&mut self.file);
                         ui.horizontal_wrapped(|ui| {
-                            if button(ui,"symbol-import") { self.request(shell, events,"symbol.open",self.file_params()); }
+                            if button(ui,"symbol-import") { ask(events, "symbol.open",self.file_params()); }
                             if button(ui,"symbol-export") { action(events,"symbol.export",self.file_params()); }
                         });
                     }

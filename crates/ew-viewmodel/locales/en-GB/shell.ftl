@@ -4848,7 +4848,6 @@ symbol-mm = { $p0 } (mm)
 symbol-graphic-item = { $p0 } { $p1 }
 
 symbol-more-shapes = More shapes
-symbol-cancel = Cancel
 symbol-drawing-tab = Drawing
 symbol-data-tab = Electrical data
 symbol-library-tab = Library
@@ -4971,3 +4970,5 @@ symbol-delete-row = Delete
 symbol-delete-item = Delete { $p0 }
 symbol-visible-of = { $p0 } visible
 prompt-symbol-filter = Symbol files
+symbol-new-symbol = New symbol
+symbol-confirm-replace = The symbol draft has changes that are not in a library. Save it first, or discard the changes.

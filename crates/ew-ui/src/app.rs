@@ -52,6 +52,8 @@ pub(crate) enum Event {
     PaletteField(usize, String),
     /// An answer to the unsaved-changes dialog.
     Confirm(ConfirmAnswer),
+    /// A symbol editor action that drops its draft, asked first when the draft has unsaved changes (ID-1472).
+    SymbolAsk(&'static str, Value),
     /// The go-to field changed.
     GotoText(String),
     /// Go in the go-to dialog: a folio or a cell.
@@ -1838,6 +1840,7 @@ impl App {
             Event::PaletteMove(delta) => self.shell.move_palette_selection(delta),
             Event::PaletteField(i, text) => self.shell.set_palette_field(i, &text),
             Event::Confirm(answer) => self.run(None, |shell| shell.answer_confirm(answer)),
+            Event::SymbolAsk(action, params) => self.run(None, |shell| shell.ask_symbol_discard(action, params)),
             Event::GotoText(text) => self.shell.set_goto_text(&text),
             Event::GotoGo(text) => self.dispatch("nav.goto", &json!({ "text": text })),
             Event::WorkspaceText(text) => self.shell.set_workspace_text(&text),

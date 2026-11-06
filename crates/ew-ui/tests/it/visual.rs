@@ -1821,3 +1821,21 @@ fn symbol_editor_a_drag_of_a_coordinate_commits_once() {
     assert_eq!(editor.draft.symbol.cps.iter().next().unwrap().pos.x.0, 0);
     d.shell_mut().shutdown();
 }
+
+/// ID-1472 (M25-p5#6): the editor's bar has New symbol; over unsaved changes it asks in the house dialog, whose
+/// Discard changes starts the fresh draft.
+#[test]
+fn symbol_editor_new_symbol_asks_before_it_drops_unsaved_changes() {
+    let tmp = Tmp::new();
+    let mut d = symbol_driver(&tmp, "example.fresh");
+    d.input(&click(d.find("New symbol").unwrap()));
+    d.settle();
+    assert!(d.shell_mut().dialog().is_some());
+    assert!(d.find("Save symbol").is_some(), "{:?}", d.labels());
+    d.input(&click(d.find("Discard changes").unwrap()));
+    d.settle();
+    assert!(d.shell_mut().dialog().is_none());
+    let editor = d.shell_mut().symbol_editor().unwrap();
+    assert!(editor.draft.key.is_empty() && editor.draft.symbol.graphics.is_empty());
+    d.shell_mut().shutdown();
+}
