@@ -826,10 +826,18 @@ pub fn open(path: &Path, key: &str) -> Result<Vec<SymbolDraft>, Error> {
             .unwrap_or(Path::new("."))
             .canonicalize()
             .map_err(input)?;
-        let root = parent
-            .join(directory)
-            .canonicalize()
-            .map_err(|_| input("eplan-slk-companion"))?;
+        // NFR-SEC-18 as ID-1461 amends it: the `.sdb` folder and its tables are read as themselves, never through a
+        // link, whatever it points to.
+        let link = |p: &Path| {
+            std::fs::symlink_metadata(p)
+                .map(|m| m.file_type().is_symlink())
+                .map_err(|_| input("eplan-slk-companion"))
+        };
+        let folder = parent.join(directory);
+        if link(&folder)? {
+            return Err(input("eplan-archive-path"));
+        }
+        let root = folder.canonicalize().map_err(|_| input("eplan-slk-companion"))?;
         if root.parent() != Some(parent.as_path()) {
             return Err(input("eplan-archive-path"));
         }
@@ -840,11 +848,12 @@ pub fn open(path: &Path, key: &str) -> Result<Vec<SymbolDraft>, Error> {
         let mut sizes = vec![descriptor.len() as u64];
         for name in ew_import_eplan::slk::FILES {
             let file = root.join(name);
-            if file
-                .canonicalize()
-                .map_err(|_| input("eplan-slk-companion"))?
-                .parent()
-                != Some(root.as_path())
+            if link(&file)?
+                || file
+                    .canonicalize()
+                    .map_err(|_| input("eplan-slk-companion"))?
+                    .parent()
+                    != Some(root.as_path())
             {
                 return Err(input("eplan-archive-path"));
             }

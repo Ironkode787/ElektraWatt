@@ -147,11 +147,10 @@ manufacturer-part import are not claimed.
 
 Proposed **FT-?**: expand the verified SLK subset to remaining primitives/text/styles/encodings and independently
 authored variants; implement symbol-library exports and library-resolved macro connections with synthetic fixtures.
-Proposed **ID-?**: decide the five pinned decoder dependencies (`sevenz-turbo` 0.26.0, `lzma-turbo` 0.6.0,
-`crc-fast` 1.10.0, `spin` 0.10.1, `zeroize` 1.9.1). `cargo-vet` has no approvals for them, and `cargo-deny` rejects
-`lzma-turbo`'s GPL-3.0-or-later licence under the current external-dependency allowlist. The owner explicitly chose to keep release blocked pending dependency review. No dependency exemptions or licence
-policy changes have been made. The GPL application graph uses Rust 1.97.1 for this importer; the workspace's
-pinned compiler is 1.99.0 and the permissive crates' MSRV is unchanged. These checks block release approval.
+The five decoder dependencies first pinned (`sevenz-turbo` 0.26.0, `lzma-turbo` 0.6.0, `crc-fast` 1.10.0, `spin`
+0.10.1, `zeroize` 1.9.1) left the graph (ID-1460): the EDZ 7z reader is sevenz-rust2 0.24.2 without default features,
+with lzma-rust2 0.23.0, both audited, under EW's own 7z header bounds. The importer and its dependents declare Rust
+1.93; the workspace's pinned compiler is 1.99.0 and the permissive crates' MSRV is unchanged.
 
 The initial generic fixture did not establish reference fidelity. The follow-up evidence in §11 uses the
 specified picture and supersedes that limitation. Release-candidate acceptance and promotion remain with the

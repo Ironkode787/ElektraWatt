@@ -331,6 +331,8 @@ fn optional_native_slk_sample_opens_without_eplan() {
 const PARTS: &str =
     r#"<partsmanagement><part><functiontemplate connectionDesignation="1"/></part></partsmanagement>"#;
 const LIMIT: &str = "The EPLAN input exceeds the supported size or complexity.";
+const COMPANION: &str = "Keep the SLK file beside its complete .sdb folder, then open it again. A required drawing table is missing.";
+const PATH: &str = "The EPLAN archive has unsafe or duplicate member names.";
 
 /// A stored ZIP of `count` copies of `data`, named `parts<n>.xml`.
 fn stored_zip(data: &[u8], count: usize) -> Vec<u8> {
@@ -373,5 +375,61 @@ fn symbol_imports_pass_the_front_door_and_refuse_in_words() {
     )
     .unwrap();
     assert_eq!(symbols::open(&pxf, "k").unwrap().len(), 1);
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// A link at `at` to `target`, where the system lets a test make one: Windows asks a privilege for a symbolic link,
+/// so a folder falls back to a junction, which it does not.
+fn link(target: &std::path::Path, at: &std::path::Path, dir: bool) -> bool {
+    #[cfg(windows)]
+    let made = if dir {
+        std::os::windows::fs::symlink_dir(target, at).or_else(|e| {
+            let junction = std::process::Command::new("cmd")
+                .arg("/C")
+                .arg("mklink")
+                .arg("/J")
+                .arg(at)
+                .arg(target)
+                .output()?;
+            if junction.status.success() { Ok(()) } else { Err(e) }
+        })
+    } else {
+        std::os::windows::fs::symlink_file(target, at)
+    };
+    #[cfg(unix)]
+    let made = {
+        let _ = dir;
+        std::os::unix::fs::symlink(target, at)
+    };
+    made.is_ok()
+}
+
+/// ID-1461 and M25-p2#4: an SLK library reads only the tables of its `.sdb` folder beside it, and is refused in
+/// words otherwise: a missing folder or table, a parent path, and a linked table or folder.
+#[test]
+fn slk_reads_only_its_own_tables_beside_it() {
+    let dir = ew_testdir::fresh_dir("symbol-slk");
+    let slk = dir.join("lib.slk");
+    let words = |descriptor: &str| {
+        std::fs::write(&slk, descriptor).unwrap();
+        symbols::open(&slk, "k").unwrap_err().to_string()
+    };
+    assert_eq!(words("lib.sdb\n1.2\n"), COMPANION);
+    let tables = dir.join("lib.sdb");
+    std::fs::create_dir(&tables).unwrap();
+    assert_eq!(words("lib.sdb\n1.2\n"), COMPANION);
+    assert_eq!(words("../lib.sdb\n1.2\n"), PATH);
+    for name in ew_import_eplan::slk::FILES {
+        std::fs::write(tables.join(name), b"").unwrap();
+    }
+    let real = tables.join("real.eox");
+    std::fs::write(&real, b"").unwrap();
+    std::fs::remove_file(tables.join("Symbol.eox")).unwrap();
+    if link(&real, &tables.join("Symbol.eox"), false) {
+        assert_eq!(words("lib.sdb\n1.2\n"), PATH);
+    }
+    if link(&tables, &dir.join("other.sdb"), true) {
+        assert_eq!(words("other.sdb\n1.2\n"), PATH);
+    }
     let _ = std::fs::remove_dir_all(&dir);
 }
