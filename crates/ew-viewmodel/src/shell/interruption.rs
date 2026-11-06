@@ -169,8 +169,9 @@ impl ShellModel {
         })
     }
 
-    /// The project's source points (FT-822): every interruption point of direction `source` that a representation
-    /// draws, with its page; external connection points are left out (they never pair).
+    /// The project's interruption points: the name of every one (ID-1462), and its source points (FT-822): every
+    /// interruption point of direction `source` that a representation draws, with its page; external connection points
+    /// are left out of the sources (they never pair).
     fn project_ips(&self) -> ProjectIps {
         let mut out = ProjectIps::default();
         let Some(p) = &self.project else {
@@ -187,12 +188,14 @@ impl ShellModel {
             let Some(ip) = kind.get("ip") else {
                 continue;
             };
-            if ip.get("direction").and_then(Value::as_str) != Some("source") || ip.get("external").is_some() {
-                continue;
-            }
             let Some(name) = ip.get("name").and_then(Value::as_str) else {
                 continue;
             };
+            // ID-1462: every interruption point's name is taken for an automatic name, an external one's too.
+            out.add_name(name);
+            if ip.get("direction").and_then(Value::as_str) != Some("source") || ip.get("external").is_some() {
+                continue;
+            }
             for r in idx.reps_of_function(id) {
                 if let Some(rep) = q.reps().get(r) {
                     out.add_source(name, rep.page.as_uuid());
@@ -275,7 +278,7 @@ impl ShellModel {
                     }
                     // FT-950: a given potential name, else the last name placed, else the fallback, as the IP tool's.
                     let base = proposal_base(potential_of_end(tables, start), memory.last_name.as_deref());
-                    // FT-822: the project's sources decide the role and the series, as the IP tool's do.
+                    // ID-1462: the first name of the series that no point of the project has, as the IP tool's.
                     let (name, direction) = propose(&base, false, direction, false, false, &project, tables);
                     (name, direction.word())
                 }))
@@ -520,6 +523,8 @@ impl ShellModel {
         if self.tools.tool.name() != "ip" {
             return;
         }
+        // ID-1462: the next name is free among the project's points as the commit left them.
+        self.sync_ip_project();
         let refreshed = self
             .with_tool(|t, cx| {
                 t.as_any_mut()
