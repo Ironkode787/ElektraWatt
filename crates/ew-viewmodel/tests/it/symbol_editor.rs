@@ -1190,6 +1190,42 @@ fn the_symbol_file_picker_offers_every_extension_an_importer_reads() {
     assert!(FILE_EXTENSIONS.contains(&"json"));
 }
 
+/// The quit question's and the scratch page's titles name the symbol in the window's language.
+#[test]
+fn the_titles_name_the_symbol_in_the_windows_language() {
+    use ew_viewmodel::dialogs::spec;
+    use ew_viewmodel::strings;
+    let tmp = Tmp::new("symbol-language");
+    let config = ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test");
+    let dir = tmp.0.join("project.ew");
+    let mut shell = ShellModel::new(Mode::Gui, config);
+    done(&mut shell, "file.new", json!({"dir":dir,"template":"builtin"}));
+    drawn(&mut shell, "example.language", "Supply block");
+    let mut named = serde_json::to_value(&shell.symbol_editor().unwrap().draft).unwrap();
+    named["symbol"]["name"] = json!({"en": "Supply block", "nl": "Voedingsblok"});
+    done(&mut shell, "symbol.replace", json!({"document": named}));
+    assert!(strings::set_locale("nl"));
+    done(&mut shell, "app.quit", json!({}));
+    let title = spec(shell.dialog().unwrap(), &shell).title;
+    done(&mut shell, "ui.dismiss", json!({}));
+    done(&mut shell, "symbol.scratch", json!({}));
+    assert!(strings::set_locale("en"));
+    assert_eq!(title, "Symbool Voedingsblok opslaan?");
+    done(&mut shell, "file.save", json!({}));
+    shell.shutdown();
+    let (session, _) = ew_viewmodel::ew_api::Session::open_read_only(&dir, "ElektraWatt test").unwrap();
+    let titles: Vec<String> = session
+        .query()
+        .pages()
+        .iter()
+        .map(|(_, p)| serde_json::to_value(&p.title).unwrap().to_string())
+        .collect();
+    assert!(
+        titles.iter().any(|t| t.contains("Symbooltest: Voedingsblok")),
+        "{titles:?}"
+    );
+}
+
 /// Part 3's nit (D6): `symbol.role` sets a connection point's potential role, `none` clears it, each one undo step;
 /// a missing point and an assigned function definition are refused in words.
 #[test]

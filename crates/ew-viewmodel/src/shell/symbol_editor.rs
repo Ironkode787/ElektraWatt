@@ -175,13 +175,16 @@ fn content_suffix(draft: &SymbolDraft) -> String {
     format!("{hash:016x}")
 }
 
-/// The words of a symbol's name, its English text first, as the editor shows it.
+/// The words of a symbol's name in the window's language (the dialog's and the scratch page's titles), else its
+/// English text, else its first.
 pub(crate) fn name_words(name: &symbols::MlText) -> String {
+    let language = strings::locale().split('-').next().unwrap_or("en");
     match name.view() {
         symbols::MlTextView::Neutral(s) => s.to_owned(),
         symbols::MlTextView::Langs(map) => map
             .iter()
-            .find(|(k, _)| k.as_str() == "en")
+            .find(|(k, _)| k.as_str() == language)
+            .or_else(|| map.iter().find(|(k, _)| k.as_str() == "en"))
             .or_else(|| map.iter().next())
             .map(|(_, v)| v.to_string())
             .unwrap_or_default(),
