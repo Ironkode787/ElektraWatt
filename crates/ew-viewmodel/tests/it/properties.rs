@@ -1084,7 +1084,7 @@ fn ft554_wire_marker_beside_colour_and_the_mode_switch_counts_markers() {
     done(&mut shell, "project.marker_mode", json!({"mode": "all"}));
     let all = shell.toast().unwrap().text.clone();
     assert!(
-        all.ends_with(" wires carry a marker") && !all.starts_with("0 "),
+        all.ends_with(" wires carry a marker.") && !all.starts_with("0 "),
         "{all}"
     );
 }

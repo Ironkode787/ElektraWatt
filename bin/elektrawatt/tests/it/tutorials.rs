@@ -477,7 +477,7 @@ fn tutorial_2_a_terminal_strip_and_a_cable_runs_as_its_page_says() {
             "row level 2 conductor \"BN\"",
             "row level 2 conductor \"BU\"",
             "row level 2 conductor \"GNYE\"",
-            "toast \"Check: 0 errors, 8 warnings, 2 infos\"",
+            "toast \"Check: 0 errors, 8 warnings, 2 infos.\"",
         ]
     );
     let items = items(&tmp);

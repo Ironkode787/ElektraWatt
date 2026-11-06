@@ -410,7 +410,7 @@ fn se9_insert_delete_and_move_rows() {
     }
     assert_eq!(
         lines_with(&shell, "toast "),
-        ["toast \"Moved terminal 15 of -X1031\" undo"]
+        ["toast \"Moved terminal 15 of -X1031.\" undo"]
     );
     let terminals = texts(&shell, "Terminal");
     assert_eq!(terminals[10..15], ["11", "15", "12", "13", "14"]);
@@ -669,7 +669,7 @@ fn ft1289_the_strip_editor_and_its_accessory_toast_read_in_dutch() {
     done(&mut shell, "strip.move", json!({"step": -1}));
     assert_eq!(
         lines_with(&shell, "toast "),
-        ["toast \"Klem 15 van -X1031 verplaatst\" undo"]
+        ["toast \"Klem 15 van -X1031 verplaatst.\" undo"]
     );
     shell.shutdown();
 }

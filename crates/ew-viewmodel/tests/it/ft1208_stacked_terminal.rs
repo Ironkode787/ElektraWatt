@@ -90,7 +90,7 @@ fn ft1208_a_terminal_moved_off_its_strip_s_terminal_shows_where_it_lands_and_say
     placed(&mut s, "72", (60, 28));
     assert_eq!(
         toast(&s),
-        "-X1031 klem 72 geplaatst op 103-D10, 4 rasterstappen naar rechts: -X1031 heeft een klem op het klikpunt"
+        "-X1031 klem 72 geplaatst op 103-D10, 4 rasterstappen naar rechts: -X1031 heeft een klem op het klikpunt."
     );
     language(&mut s, "en");
 
@@ -99,5 +99,5 @@ fn ft1208_a_terminal_moved_off_its_strip_s_terminal_shows_where_it_lands_and_say
     let free = page_of(&s, (60, 40));
     assert_eq!(ghost_at(&s), (Some(free), Some(free)));
     done(&mut s, "canvas.activate_alt", json!({}));
-    assert_eq!(toast(&s), "Placed -X1031 terminal 73 at 103-E9");
+    assert_eq!(toast(&s), "Placed -X1031 terminal 73 at 103-E9.");
 }
