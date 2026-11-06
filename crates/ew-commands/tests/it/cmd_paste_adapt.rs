@@ -122,7 +122,7 @@ fn adapt_refuses_a_major_change_twice_listed_and_unrelated_copies() {
     // The whole refusal, one sentence with single spaces (FIX39a finding 4).
     assert_eq!(
         message,
-        "the project's version of part 'FX-MCB-1PN' differs from the pasted one in a major way (CP 2 (N) disappears, \
+        "the project's version of FX-MCB-1PN differs from the pasted one in a major way (CP 2 (N) disappears, \
          CP 3 (N) disappears); update instead"
     );
     // A copy listed twice.

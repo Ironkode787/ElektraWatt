@@ -1131,8 +1131,8 @@ refusal-paste-off-grid = { $p0 }; plak op een punt van het raster
 refusal-paste-the-paste-point = het plakpunt
 refusal-paste-kind = een record van de soort { $p0 } { $p1 }
 refusal-paste-kinds = wordt niet geplakt (alleen apparaten, functies, symbolen, verbindingen, aftakkingen, potentiaaldefinities, pagina-elementen en structuurkaders)
-refusal-paste-adapt-major = de versie van { $p0 } { $p1 } in het project verschilt sterk van de geplakte ({ $p2 }); werk in plaats daarvan bij
-refusal-paste-held-other-version = het project bevat een andere versie van { $p0 } { $p1 }; werk eerst bij vanuit de bibliotheek
+refusal-paste-adapt-major = de versie van { $p0 } in het project verschilt sterk van de geplakte ({ $p1 }); werk in plaats daarvan bij
+refusal-paste-held-other-version = het project bevat een andere versie van { $p0 }; werk eerst bij vanuit de bibliotheek
 refusal-paste-reference-missing = het veld { $p1 } van de { $p0 } noemt een { $p2 } die niet in het fragment en niet in dit project staat; kopieer ze samen
 # item.place and marker.place, and a page item's members.
 refusal-items-image-asset-missing = het project bevat geen bestand { $p0 }; een afbeelding plaatst een bestand dat het project al bevat, of geeft haar bestand als `data`
@@ -1324,7 +1324,7 @@ refusal-page-reorder-before-and-section = geef before of section, niet beide
 refusal-page-reorder-before-moved = de pagina waarvoor de pagina's komen is een van de verplaatste pagina's; noem een pagina die blijft
 refusal-page-reorder-unchanged = de pagina's staan al in deze volgorde
 # library.embed and library.update.
-refusal-library-embed-held = het project bevat deze { $p0 } al; neem een andere versie ervan met bijwerken vanuit de bibliotheek
+refusal-library-embed-held = het project bevat { $p0 } al; neem een andere versie ervan met bijwerken vanuit de bibliotheek
 refusal-library-update-cp-twice = twee bijgewerkte kopieën koppelen aansluitpunt { $p0 } van functie { $p1 } verschillend ({ $p2 } en { $p3 })
 refusal-library-update-blocked = de bijwerking laat verbonden aansluitpunten zonder aansluitpunt; koppel ze in `cp_maps`: { $p0 }
 refusal-library-update-missing = de nieuwe versies noemen items die het project niet bevat; geef ze in `embed`: { $p0 }

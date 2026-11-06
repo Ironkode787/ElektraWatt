@@ -869,8 +869,7 @@ impl Insertion<'_> {
                                 format!("/adapt/{index}"),
                                 text!(
                                     "refusal-paste-adapt-major",
-                                    kind.to_string(),
-                                    lib_title(value).to_string(),
+                                    crate::words::document_item(tx, &doc),
                                     diff.major_reasons.join(", ")
                                 ),
                             ));
@@ -881,8 +880,7 @@ impl Insertion<'_> {
                             &at,
                             text!(
                                 "refusal-paste-held-other-version",
-                                kind.to_string(),
-                                lib_title(value).to_string()
+                                crate::words::document_item(tx, &doc)
                             ),
                         ));
                     }
@@ -1322,15 +1320,6 @@ impl Insertion<'_> {
         out.notices = notices;
         Ok(out)
     }
-}
-
-/// A library document's printed name: the part number, else its `item_id`.
-fn lib_title(value: &Value) -> String {
-    value
-        .get("part_number")
-        .or_else(|| value.get("key"))
-        .and_then(Value::as_str)
-        .map_or_else(|| "the item".to_owned(), |s| format!("'{s}'"))
 }
 
 /// Drops a record's import lineage (`source_ref`): a pasted record is new, not imported, so its lineage is not a

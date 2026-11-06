@@ -1052,11 +1052,11 @@ pub const TEXTS: &[(&str, &str)] = &[
     ),
     (
         "refusal-paste-adapt-major",
-        "the project's version of {0} {1} differs from the pasted one in a major way ({2}); update instead",
+        "the project's version of {0} differs from the pasted one in a major way ({1}); update instead",
     ),
     (
         "refusal-paste-held-other-version",
-        "the project holds another version of {0} {1}; update from library first",
+        "the project holds another version of {0}; update from library first",
     ),
     (
         "refusal-paste-reference-missing",
@@ -1662,7 +1662,7 @@ pub const TEXTS: &[(&str, &str)] = &[
     // library.embed and library.update.
     (
         "refusal-library-embed-held",
-        "the project holds this {0} already; take another version of it with update from library",
+        "the project holds {0} already; take another version of it with update from library",
     ),
     (
         "refusal-library-update-cp-twice",
