@@ -740,11 +740,7 @@ fn ft1448_the_address_profile_is_chosen_in_properties() {
         };
         (text.clone(), options)
     };
-    let (now, options) = profile(&s);
-    assert!(
-        options.len() >= 2 && options.contains(&now),
-        "{now} among {options:?}"
-    );
+    let (now_name, options) = profile(&s);
     // FT-1478: the chooser shows each profile's name, its reference as the secondary line, and commits the reference.
     done(&mut s, "props.edit", json!({"row": "plc_config_project/profile"}));
     let c = s.properties().choices().expect("the profiles").clone();
@@ -765,14 +761,31 @@ fn ft1448_the_address_profile_is_chosen_in_properties() {
         assert!(shown.contains(&builtin), "{builtin:?} among {shown:?}");
     }
     assert_eq!(c.details.len(), c.items.len());
-    done(&mut s, "props.cancel", json!({}));
+    // FT-1491 (ID-1456): the row reads the chosen profile's name; its reference is read through the chooser.
+    let name_of = |reference: &str| {
+        shown
+            .iter()
+            .find(|(_, r, _)| *r == reference)
+            .map(|(name, _, _)| name.to_string())
+    };
+    let now = shown
+        .iter()
+        .find(|(name, _, _)| *name == now_name)
+        .map(|(_, r, _)| r.to_string())
+        .unwrap_or_else(|| panic!("{now_name} among {shown:?}"));
+    assert!(
+        options.len() >= 2 && options.contains(&now),
+        "{now} among {options:?}"
+    );
     let other = options.iter().find(|o| **o != now).unwrap().clone();
+    let other_name = name_of(&other).expect("the other profile's name");
+    done(&mut s, "props.cancel", json!({}));
     done(
         &mut s,
         "props.set",
         json!({"row": "plc_config_project/profile", "value": other}),
     );
-    assert_eq!(profile(&s).0, other);
+    assert_eq!(profile(&s).0, other_name);
     assert_eq!(
         s.recorded_commands().last().map(|c| c.cmd.as_str()),
         Some("plc.set_profile")

@@ -26,7 +26,7 @@
 use egui::{Key, Modifiers, RichText, Sense, TextEdit, Ui, Vec2};
 use ew_viewmodel::key;
 use ew_viewmodel::properties::{
-    ChoiceKind, FieldType, Popup, PropRow, PropertySheet, Provenance, RowAction, RowValue, SheetSection,
+    ChoiceKind, EditRoute, FieldType, Popup, PropRow, PropertySheet, Provenance, RowAction, RowValue, SheetSection,
     advanced_count, chip_text, chip_word, filtered, group_key, groups, is_header, read_only_reason,
     row_label, value_text,
 };
@@ -712,7 +712,17 @@ impl PropertiesPane {
             egui::text::TextWrapping::truncate_at_width(label_width - depth)
         };
         let galley = ui.painter().layout_job(job);
-        let row_height = t.size_row.max(galley.size().y + 2.0 * t.space_1);
+        // FT-1498 (ID-1456, doc 16a §6.8): a prose value too wide for its cell wraps at its words onto up to three
+        // lines and the row grows with it; only a longer one is cut, its whole text in the tooltip.
+        let editing = props.edit().is_some_and(|e| e.row == row.key);
+        let prose = (!editing && !header && !is_link(row))
+            .then(|| prose_layout(ui, &t, row, &value, width - 2.0 * t.space_4 - label_width - t.space_3))
+            .flatten();
+        let value_height = prose.as_ref().map_or(0.0, |p| p.height + 2.0 * t.space_1);
+        let row_height = t
+            .size_row
+            .max(galley.size().y + 2.0 * t.space_1)
+            .max(value_height);
         let (rect, _) = ui.allocate_exact_size(Vec2::new(width, row_height), Sense::hover());
         let group_id = ui.scope_id().with(("prop-row", &row.key));
         let group = ui.interact(rect, group_id, Sense::hover());
@@ -789,7 +799,6 @@ impl PropertiesPane {
             events.push(Event::Action("ui.focus", json!({"area": "properties"})));
             events.push(Event::Action("props.row", json!({"to": row.key})));
         }
-        let editing = props.edit().is_some_and(|e| e.row == row.key);
         // Where the value cell (or its editor) starts: the choice list's left edge (FT-1036).
         let value_left = child.cursor().min.x;
         // The chip's word: the source in one word, the whole text in the tooltip (doc 16a §6.8).
@@ -857,7 +866,10 @@ impl PropertiesPane {
                 // FT-1030 (ID-1107): a link row (Device) is a link in `color.accent` (doc 16a P4); a click follows it.
                 let link = !header && !editable && is_link(row);
                 let (cell, response) = child.allocate_exact_size(
-                    Vec2::new(value_w, t.size_control_inline),
+                    Vec2::new(
+                        value_w,
+                        t.size_control_inline.max(prose.as_ref().map_or(0.0, |p| p.height)),
+                    ),
                     if editable || link {
                         Sense::click()
                     } else {
@@ -866,6 +878,8 @@ impl PropertiesPane {
                 );
                 let shown = if value.is_empty() && !header {
                     strings::text(key!("props-empty-value")).to_owned()
+                } else if prose.is_some() {
+                    value.clone()
                 } else {
                     middle(&value)
                 };
@@ -891,14 +905,18 @@ impl PropertiesPane {
                 let mut text_right = cell.right() - t.space_icon - reserve;
                 let mut on_chip = false;
                 if show_chip {
-                    let chip_rect = crate::components::paint_provenance_chip(
-                        &child,
-                        &t,
-                        word,
-                        tertiary,
-                        egui::pos2(text_right, cell.center().y),
-                    );
-                    text_right = chip_rect.left() - t.space_2;
+                    // FT-1498: under a wrapped prose value the chip stands on its own line at the cell's right end.
+                    let at = match &prose {
+                        Some(_) => egui::pos2(
+                            cell.right() - t.space_icon,
+                            cell.bottom() - t.size_chip / 2.0,
+                        ),
+                        None => egui::pos2(text_right, cell.center().y),
+                    };
+                    let chip_rect = crate::components::paint_provenance_chip(&child, &t, word, tertiary, at);
+                    if prose.is_none() {
+                        text_right = chip_rect.left() - t.space_2;
+                    }
                     on_chip = response.hover_pos().is_some_and(|p| chip_rect.contains(p));
                 }
                 let colour = if value.is_empty() {
@@ -921,27 +939,32 @@ impl PropertiesPane {
                     shown.clone()
                 };
                 let mut job = egui::text::LayoutJob::single_section(painted, format);
-                job.wrap = egui::text::TextWrapping::truncate_at_width(
-                    (text_right - cell.left() - t.space_icon).max(0.0),
-                );
+                let text_width = (text_right - cell.left() - t.space_icon).max(0.0);
+                job.wrap = match &prose {
+                    Some(p) => prose_wrapping(text_width, p.rows),
+                    None => egui::text::TextWrapping::truncate_at_width(text_width),
+                };
                 let galley = child.painter().layout_job(job);
                 let cut = galley.elided;
-                child.painter().galley(
-                    egui::pos2(
-                        cell.left() + t.space_icon,
-                        cell.center().y - galley.size().y / 2.0,
-                    ),
-                    galley,
-                    colour.color32(),
-                );
+                let top = match &prose {
+                    Some(_) => cell.top(),
+                    None => cell.center().y - galley.size().y / 2.0,
+                };
+                child
+                    .painter()
+                    .galley(egui::pos2(cell.left() + t.space_icon, top), galley, colour.color32());
                 // The tooltip: the chip's whole text over the chip, else a read-only value's reason, else a long
                 // value's whole text.
-                let long = (cut || value.chars().count() > MAX_SHOWN).then(|| value.clone());
+                let long = (cut || (prose.is_none() && value.chars().count() > MAX_SHOWN)).then(|| value.clone());
                 let tip = if on_chip {
                     Some(chip.clone())
                 } else if link {
                     // The canvas link's hint (FT-1030): "Click or F: go to -201U7", the key from the keymap (FT-1042).
                     Some(ew_viewmodel::status::follow_hint(shell, &value, "props.follow"))
+                } else if let Some(reference) = profile_reference(row) {
+                    // FT-1491 (ID-1456): the Address profile row reads the profile's name; its reference, the
+                    // chooser's secondary line, is the tooltip.
+                    Some(reference)
                 } else if !editable && !header {
                     reason.clone().or(long)
                 } else {
@@ -1699,6 +1722,83 @@ fn value_need(ui: &Ui, t: &crate::theme::Tokens, section: &SheetSection, row: &P
         measure(shown, &t.type_body) + extra,
         head.map_or(f32::INFINITY, |h| measure(h, &t.type_body) + extra),
     )
+}
+
+/// The reference of the address profile an Address profile row names (FT-1491): its stored value, which the row
+/// shows by the profile's name; `None` for every other row.
+fn profile_reference(row: &PropRow) -> Option<String> {
+    match (&row.route, &row.value) {
+        (EditRoute::Command { command }, RowValue::One { json, .. }) if command == "plc.set_profile" => {
+            json.as_str().map(str::to_owned)
+        }
+        _ => None,
+    }
+}
+
+/// How a prose value that does not fit on one line stands in its value cell (FT-1498, ID-1456, doc 16a §6.8).
+struct Prose {
+    /// The text rows it takes, at most three.
+    rows: usize,
+    /// The cell's height: the text's, and the line of the provenance chip under it when the chip shows.
+    height: f32,
+}
+
+/// The layout of a prose value `value` too wide for its value cell `value_w` wide, beside its chip, on one line: it
+/// wraps at its words across the cell onto up to three lines, the rest cut, and its chip, when it shows, stands under
+/// it at the cell's right end. `None` for a value that fits on one line, a value that is not prose (an identifier,
+/// whose first word holds a digit; a list; a mixed value; a checkbox) and an empty one. While the row's "…" button
+/// shows, the text makes room for it within the same rows, so the row never changes height.
+fn prose_layout(ui: &Ui, t: &crate::theme::Tokens, row: &PropRow, value: &str, value_w: f32) -> Option<Prose> {
+    let first = value.split_whitespace().next()?;
+    if matches!(row.ty.inner(), FieldType::List(_) | FieldType::Bool)
+        || matches!(row.value, RowValue::Varies { .. })
+        || !value.contains(char::is_whitespace)
+        || first.chars().any(|c| c.is_ascii_digit())
+    {
+        return None;
+    }
+    let room = value_w.max(t.size_control_inline) - 2.0 * t.space_icon;
+    let chip = (!matches!(row.provenance, Provenance::Authored)).then(|| {
+        ui.painter()
+            .layout_no_wrap(
+                chip_word(&row.provenance).to_owned(),
+                crate::theme::font(&t.type_caption),
+                crate::theme::NONE,
+            )
+            .size()
+            .x
+            + 2.0 * t.space_icon
+            + t.space_2
+    });
+    let whole = ui
+        .painter()
+        .layout_no_wrap(value.to_owned(), crate::theme::font(&t.type_body), crate::theme::NONE)
+        .size()
+        .x;
+    if whole + chip.unwrap_or(0.0) <= room {
+        return None;
+    }
+    let mut job = egui::text::LayoutJob::single_section(
+        value.to_owned(),
+        egui::TextFormat::simple(crate::theme::font(&t.type_body), crate::theme::NONE),
+    );
+    job.wrap = prose_wrapping(room, 3);
+    let galley = ui.painter().layout_job(job);
+    let height = galley.size().y + if chip.is_some() { t.space_1 + t.size_chip } else { 0.0 };
+    Some(Prose {
+        rows: galley.rows.len(),
+        height,
+    })
+}
+
+/// A prose value's wrapping: at its words into `width`, onto `rows` lines at most, the rest cut.
+fn prose_wrapping(width: f32, rows: usize) -> egui::text::TextWrapping {
+    egui::text::TextWrapping {
+        max_width: width.max(0.0),
+        max_rows: rows,
+        break_anywhere: false,
+        overflow_character: Some('…'),
+    }
 }
 
 /// Whether `row` is a page's Kind (its page type, a raw word like `multi_line` that the grid shows in words).

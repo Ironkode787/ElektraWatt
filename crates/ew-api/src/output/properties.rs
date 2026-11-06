@@ -1482,13 +1482,17 @@ fn part_function_row(q: &Q, cx: &SheetCx<'_>, targets: &[Uuid], built: &mut Vec<
 /// FT-1448 (ID-1397): a configuration project's address profile is a choice of the profiles at hand (the built-ins and
 /// the project's copies, WP-S7.03 D8) by their references, which `plc.set_profile` pins through
 /// [`Session::layout_edit`].
+/// FT-1491 (ID-1456): the row's text is the chosen profile's name, its value the reference.
 fn profile_chooser(q: &Q, built: &mut [Built]) {
     let copies = q.plc_profiles();
-    let options: Vec<String> = ew_derive::profiles_at_hand(copies.iter().map(|(_, c)| &**c))
-        .iter()
-        .map(|p| p.reference())
-        .collect();
+    let at_hand = ew_derive::profiles_at_hand(copies.iter().map(|(_, c)| &**c));
+    let options: Vec<String> = at_hand.iter().map(|p| p.reference()).collect();
     for b in built.iter_mut().filter(|b| b.row.path == "profile") {
+        if let RowValue::One { json, text } = &mut b.row.value
+            && let Some(p) = at_hand.iter().find(|p| json.as_str() == Some(p.reference().as_str()))
+        {
+            text.clone_from(&p.label);
+        }
         b.row.route = EditRoute::Command {
             command: "plc.set_profile".to_owned(),
         };
