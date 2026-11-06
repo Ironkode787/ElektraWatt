@@ -57,6 +57,12 @@ QET element import and investigation/implementation of EDZ and native EPLAN symb
 | D9 | EPLAN scope includes EDZ and `.slk/.ema/.ems` as requested. Verify against manufacturer downloads kept outside the repository. Record supported input versions and feature losses. Binary macro/symbol decoding requires evidence; a factual-data fallback must be explicitly identified as a generated symbol, with original graphics unavailable. |
 | D10 | UI follows doc 16a: drawing leads, task-ordered labelled tools, properties beside it, validation in words, all identifiers readable. Use the main ribbon's small-button renderer: 16 px icons with labels, shared theme tokens and active states. Geometric glyphs use the existing EW 24-unit icon set; functions reuse existing icons. Inspect at 1920×1080 and 1280×800. New text lives in en-GB and nl-NL. |
 
+*D1 as built (2026-11-07, cycle 53; decision log ID-1463, ID-1472).* Closing no longer needs a discard:
+**Close editor** keeps the draft and its undo history, and **Edit ▸ Symbol editor…** returns to it. The draft is
+dropped only explicitly, by **Discard draft**, **New symbol**, an import, another drawing of an import or a fork; while
+it has unsaved changes each of these first asks Save symbol, Discard changes or Cancel, as quitting does. Scripts pass
+`discard: true` to `symbol.close`, `symbol.new`, `symbol.open`, `symbol.fork`, `symbol.candidate` and `app.quit`.
+
 ## 5. Build order (one lane)
 
 1. Design standard, this specification, plan and threat-model updates.

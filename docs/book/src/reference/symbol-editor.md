@@ -42,10 +42,13 @@ gives the draft its own identity, and later saves of that draft update the same 
 when changing previously published content. The symbol's own function definition keeps its version while it is
 unchanged. A library that already holds the key for a different symbol refuses the save: choose another key, or
 fork that symbol under its own key to change it. **Export draft** writes portable JSON to a
-new file, including incomplete work; an existing file is never overwritten. Leave either path empty to choose it
-in a file or folder dialog; a relative path is read from your default user library folder.
+new file, including incomplete work; an existing file is never overwritten. Leave **Symbol file** empty to
+choose the file in a file dialog, and choose **Choose folder…** to pick the library folder; an empty **Library
+folder** is refused when you save. A relative path is read from your default user library folder.
 **Close editor** keeps the draft and its undo history: **Edit ▸ Symbol editor…** returns to it. Only
-**Discard draft** drops it. While the editor shows, Ctrl+S saves the symbol and the File menu's **Save project**
+**Discard draft** drops it, and **New symbol** starts a fresh draft. While the draft has unsaved changes,
+**New symbol**, **Open or import**, **Create editable copy**, another drawing of an import and **Discard draft**
+first ask whether to save the symbol. While the editor shows, Ctrl+S saves the symbol and the File menu's **Save project**
 saves the project. Quitting with unsaved symbol changes asks whether to save the symbol. **Test on scratch page** creates a
 page in the current project with the symbol's connection grid and places embedded copies there. The page then
 shows with the copy selected; the message's **Back to the editor** returns to the draft. Project undo removes
@@ -88,7 +91,7 @@ The window and `.ewui` scripts share these actions:
 
 | Action | Parameters |
 |---|---|
-| `symbol.new` | optional `key` and `name` |
+| `symbol.new` | optional `key` and `name`, optional `discard: true` |
 | `symbol.open` | `file`, optional import `key` (default: the file's name) |
 | `symbol.candidate` | zero-based `index` from an import package |
 | `symbol.fork` | `source`: embedded copy UUID, `library:<library UUID>:<item UUID>`, or legacy key; new `key` |
@@ -113,7 +116,7 @@ Action coordinates are **millimetres**, unlike JSON document coordinates. Placem
 the destination page grid; it never moves a pin within the symbol. A different symbol/page grid is refused
 before changing the project; use a scratch page with the matching grid. Replacing or opening over a dirty draft
 requires `discard: true`; `symbol.close` keeps the draft unless it has `discard: true`, and `symbol.new` without a
-key or name returns to it. `app.quit` with `discard: true` discards an unsaved draft. `ui.describe` and the script state expose the open editor and
+key or name returns to it, or with `discard: true` starts a fresh draft. `app.quit` with `discard: true` discards an unsaved draft. `ui.describe` and the script state expose the open editor and
 validation findings. [The tutorial](../tutorials/symbol-editor.md) includes a complete six-pin example.
 
 ## Imported formats and limits
