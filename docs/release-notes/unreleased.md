@@ -203,3 +203,9 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
 - text-change: cli ew upgrade --check (on an `.ewz` of an older format: "the project is in the older format <f>: `ew
   extract` makes a project folder of the archive, and `ew upgrade` converts that folder to format <g> after a backup";
   FT-1214)
+- behaviour-change: cli ew merge-driver (a record file one of whose sides holds a record whose `$v` is above this
+  reader's version of its kind is not merged: `%A` stays ours, the driver prints "merge-driver: <path>: holds records
+  this ElektraWatt cannot read (this one reads format <r>); left as ours: merge it with a newer version" and exits 1;
+  a record of an unknown kind or with unknown members still merges, every member kept; FT-1490, WP-S6.08 D20)
+- api-break: cli merge-driver exit 1 (its meaning names `%A` left as ours for a side in a newer format and for a side
+  holding records this version cannot read; a Preview surface, FT-1516, WP-S6.08 D21)

@@ -200,6 +200,43 @@ fn a_side_newer_than_the_reader_is_left_as_ours() {
     assert_eq!(merged, ours);
 }
 
+/// FT-1490 (WP-S6.08 D20): theirs holds W20 one `$v` above this reader's version of a connection (1): nothing is merged
+/// in the page, `%A` stays ours byte for byte, the driver says so and exits 1. Theirs holding a member this reader does
+/// not know merges cleanly, the member kept.
+#[test]
+fn a_record_this_reader_cannot_read_leaves_the_file_as_ours() {
+    let t = Tree::new();
+    let id = r#""id":"1c5963b7-6c34-53d6-8fa6-9d02d4629711""#;
+    let w20 = |page: String, from: &str, to: &str| -> String {
+        let line = page.lines().find(|l| l.contains(id)).expect("W20").to_owned();
+        page.replace(&line, &line.replacen(from, to, 1))
+    };
+    let base = page_with(W20_OVERRIDES);
+    let ours = page_with(r#""overrides":{"csa":"1.5","colour":["BU"],"show_marker":true}"#);
+    let theirs = page_with(r#""overrides":{"csa":"2.5","show_marker":true}"#);
+    let newer = w20(theirs.clone(), id, &format!("{id},\"$v\":2"));
+    assert_ne!(newer, theirs);
+    let (out, merged) = t.merge([&base, &ours, &newer], form(true, REPO_PAGE));
+    let said = format!(
+        "merge-driver: {REPO_PAGE}: holds records this ElektraWatt cannot read (this one reads format {}); left as \
+         ours: merge it with a newer version\n",
+        ew_api::FORMAT
+    );
+    assert_eq!(result(&out), (Some(1), String::new(), said));
+    assert_eq!(merged, ours);
+
+    let end = r#""key":"connections|W20"}}"#;
+    let later = w20(theirs, end, r#""key":"connections|W20"},"later":"kept"}"#);
+    let expected = w20(
+        page_with(r#""overrides":{"csa":"2.5","colour":["BU"],"show_marker":true}"#),
+        end,
+        r#""key":"connections|W20"},"later":"kept"}"#,
+    );
+    let (out, merged) = t.merge([&base, &ours, &later], form(true, REPO_PAGE));
+    assert_eq!(result(&out), (Some(0), String::new(), String::new()));
+    assert_eq!(merged, expected);
+}
+
 /// MD-5, ruling 6: a write that fails (the temporary file's name is taken by a folder) exits 129 and leaves `%A`
 /// byte-identical, the folder as it was.
 #[test]

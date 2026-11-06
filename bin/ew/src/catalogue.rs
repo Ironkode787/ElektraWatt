@@ -457,7 +457,8 @@ pub const TABLE: &[Row] = &[
             exit(0, "merged cleanly into `%A`"),
             exit(
                 1,
-                "conflict records written, or a side or the merged file above the reader's limits (`%A` as it was)",
+                "conflict records written, or `%A` left as ours: a side or the merged file above the reader's limits, a \
+                 side in a newer format, or a side holding records this version cannot read",
             ),
             exit(
                 129,
