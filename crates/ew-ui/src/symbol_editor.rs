@@ -208,7 +208,10 @@ fn committed_text(
         info.current_text_value = Some(buffer.clone());
         info
     });
-    let commit = response.lost_focus() && buffer != *value && (allow_empty || !buffer.trim().is_empty());
+    // M25-p5#2 (doc 16a §6.8): Escape cancels the entry; it is the field's, so the tool stays.
+    let escape = response.lost_focus() && cancelled(ui);
+    let commit =
+        response.lost_focus() && !escape && buffer != *value && (allow_empty || !buffer.trim().is_empty());
     if response.lost_focus() && !commit {
         buffer.clone_from(value);
     }
@@ -217,6 +220,12 @@ fn committed_text(
         *value = buffer;
     }
     commit
+}
+
+/// Whether the field that lost the focus this frame lost it to Escape, which then is the field's and goes no further
+/// (doc 16a §6.8: Escape cancels).
+fn cancelled(ui: &Ui) -> bool {
+    ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Escape))
 }
 
 /// A number of the document named `name`: typed text commits on Enter or focus loss, a drag at its end, never per
@@ -411,7 +420,12 @@ fn text_field(ui: &mut Ui, key: &str, value: &mut Value) -> bool {
         info.current_text_value = Some(buffer.clone());
         info
     });
-    let commit = response.lost_focus() && buffer != display_text(value);
+    // M25-p5#2: Escape cancels the entry.
+    let escape = response.lost_focus() && cancelled(ui);
+    let commit = response.lost_focus() && !escape && buffer != display_text(value);
+    if escape {
+        buffer = display_text(value);
+    }
     ui.data_mut(|d| d.insert_temp(id, (source, buffer.clone())));
     if commit {
         edit_text(value, &buffer);
@@ -845,7 +859,7 @@ impl EditorView {
                     // and the quit question save there too; Escape takes the editor's folder back.
                     let folder = path_field(ui,"symbol-library-folder",&mut self.directory);
                     if folder.lost_focus() && self.directory != editor.directory {
-                        if ui.input(|i| i.key_pressed(egui::Key::Escape)) {
+                        if cancelled(ui) {
                             self.directory.clone_from(&editor.directory);
                         } else {
                             action(events, "symbol.directory", json!({"directory": self.directory}));

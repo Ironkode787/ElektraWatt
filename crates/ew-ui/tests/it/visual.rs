@@ -1761,3 +1761,35 @@ fn symbol_editor_saves_with_ctrl_s_to_the_library_folder_typed() {
     assert!(typed.is_dir());
     d.shell_mut().shutdown();
 }
+
+/// M25-p5#2 (doc 16a §6.8): Escape cancels a field's entry, and the tool stays; Enter commits.
+#[test]
+fn symbol_editor_escape_cancels_a_field_and_keeps_the_tool() {
+    let tmp = Tmp::new();
+    let mut d = symbol_driver(&tmp, "example.escape");
+    d.input(&Input::Hover { at: (600, 400) });
+    d.input(&key("l"));
+    assert_eq!(d.shell_mut().symbol_editor().unwrap().tool, "line");
+    let before = d.shell_mut().symbol_editor().unwrap().draft.clone();
+    for (field, text) in [("Name", "Typed name"), ("Designation 1", "A1")] {
+        if field == "Designation 1" {
+            d.input(&click(d.find("Electrical data").unwrap()));
+        }
+        d.input(&click(d.find(field).unwrap()));
+        d.input(&key("ctrl+a"));
+        d.input(&Input::Type { text: text.into() });
+        d.input(&key("escape"));
+        assert_eq!(d.shell_mut().symbol_editor().unwrap().draft, before, "{field}");
+        assert_eq!(d.shell_mut().symbol_editor().unwrap().tool, "line", "{field}");
+    }
+    d.input(&click(d.find("Designation 1").unwrap()));
+    d.input(&key("ctrl+a"));
+    d.input(&Input::Type { text: "A1".into() });
+    d.input(&key("enter"));
+    let draft = d.shell_mut().symbol_editor().unwrap().draft.clone();
+    assert_eq!(
+        draft.function.cps.iter().next().unwrap().designation.as_str(),
+        "A1"
+    );
+    d.shell_mut().shutdown();
+}
