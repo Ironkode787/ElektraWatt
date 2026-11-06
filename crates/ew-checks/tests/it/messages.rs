@@ -554,10 +554,7 @@ fn every_quick_fix_label_has_its_key_in_both_languages() {
             }
         }
     }
-    assert!(
-        pairs.iter().any(|(l, _)| l == "Renumber the newer"),
-        "{pairs:#?}"
-    );
+    assert!(pairs.iter().any(|(l, _)| l == "Renumber the newer"), "{pairs:#?}");
     for (label, key) in pairs {
         let key: &'static str = Box::leak(key.into_boxed_str());
         let fix = |key: Option<&'static str>| ew_checks::QuickFix {
@@ -566,8 +563,16 @@ fn every_quick_fix_label_has_its_key_in_both_languages() {
             command: String::new(),
             params: json!(null),
         };
-        assert_eq!(messages::fix_label(&fix(Some(key)), DEFAULT_LANGUAGE), label, "{key}");
-        assert_ne!(messages::fix_label(&fix(Some(key)), "nl-NL"), label, "{key} has its nl-NL text");
+        assert_eq!(
+            messages::fix_label(&fix(Some(key)), DEFAULT_LANGUAGE),
+            label,
+            "{key}"
+        );
+        assert_ne!(
+            messages::fix_label(&fix(Some(key)), "nl-NL"),
+            label,
+            "{key} has its nl-NL text"
+        );
         assert_eq!(messages::fix_label(&fix(None), "nl-NL"), label);
     }
     let unfreeze = ew_checks::QuickFix {

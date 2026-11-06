@@ -99,7 +99,10 @@ const NUMBER_ARGS: &[&str] = &["cp_nth"];
 /// (`rail`, `at`) keeping their notation.
 const DECIMAL_ARGS: &[(&str, &[&str])] = &[
     (crate::rules::pot::PE_UNDERSIZED.id, &["pe", "required", "line"]),
-    (crate::rules::layout::CARRIER_INCOMPATIBLE.id, &["s", "length", "from", "to", "by"]),
+    (
+        crate::rules::layout::CARRIER_INCOMPATIBLE.id,
+        &["s", "length", "from", "to", "by"],
+    ),
 ];
 
 /// The shipped languages that write a decimal comma (`1,5 mm²`).

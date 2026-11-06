@@ -114,7 +114,10 @@ impl ShellModel {
             {
                 d.message = ew_api::checks::messages::render(f, lang);
                 // FT-1482: the quick fix's label by its key.
-                d.fix = f.fix.as_ref().map(|q| ew_api::checks::messages::fix_label(q, lang));
+                d.fix = f
+                    .fix
+                    .as_ref()
+                    .map(|q| ew_api::checks::messages::fix_label(q, lang));
             }
         }
         // FT-1140 (ID-1229 item 9): the message stands on its own line, so it starts with a capital (ID-1182).
