@@ -654,6 +654,54 @@ fn tutorial_6_importing_a_qelectrotech_project_runs_as_its_page_says() {
     );
 }
 
+/// The symbol editor's tutorial (WP-S2.10, G-M2.5-05; M25-p3#2): a six-pin power block drawn in the symbol editor,
+/// refused off the grid in words, saved to a library, exported, tested on a scratch page, the project saved and the
+/// exported draft reopened: every step done, the end state the page names, and the page passes the lint.
+#[test]
+fn tutorial_draw_a_six_pin_power_block_runs_as_its_page_says() {
+    let tmp = Tmp::new();
+    let out = run_tutorial(&tmp, "symbol-editor");
+    let transcript = all_done(&out);
+    let [drawn, off_grid, saved, reopened] = <[String; 4]>::try_from(describes(&transcript)).unwrap();
+    let editor = ["dialog ", "field ", "error "];
+    // Step 5: "The validation says Ready to save" (no finding).
+    assert_eq!(
+        lines_of(&drawn, &editor),
+        ["dialog \"Symbol editor\"", "field \"Key\": \"example.power\""]
+    );
+    // Step 7: the refusal in words.
+    assert_eq!(
+        lines_of(&off_grid, &editor),
+        [
+            "dialog \"Symbol editor\"",
+            "field \"Key\": \"example.power\"",
+            "error \"Connection point 1 is off the connection grid. Move it onto the grid before saving.\"",
+        ]
+    );
+    // Steps 8 to 11: the library, the portable draft and the saved project with its scratch page.
+    assert!(tmp.path("symbols.ewlib").is_dir());
+    assert!(tmp.path("power.symbol.json").is_file());
+    assert_eq!(
+        lines_of(&saved, &["title:"]),
+        ["title: symbol-scratch.ew - ElektraWatt"]
+    );
+    // What you learnt: the exported draft opens again, without a finding.
+    assert_eq!(
+        lines_of(&reopened, &editor),
+        ["dialog \"Symbol editor\"", "field \"Key\": \"example.power\""]
+    );
+    let items = items(&tmp);
+    assert_eq!(
+        lint(
+            "tutorials/symbol-editor.md",
+            &page("tutorials/symbol-editor.md"),
+            Some(&script("symbol-editor")),
+            &items
+        ),
+        Vec::<String>::new()
+    );
+}
+
 /// The translations of the Dutch guide (`docs/book/po/nl.po`): (the entry's first reference, its translation), for
 /// every translated entry.
 fn dutch_translations() -> Vec<(String, String)> {
