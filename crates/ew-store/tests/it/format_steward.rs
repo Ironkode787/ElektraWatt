@@ -212,7 +212,8 @@ fn d30_untouched_lines_with_a_later_variant_are_kept_byte_for_byte() {
     let written = String::from_utf8(project_files(&vfs, &root)[&shard].clone()).unwrap();
     let written: Vec<&str> = written.lines().collect();
     assert_eq!(written.len(), lines.len());
-    let canonical = ew_store::ew_format::record_line(&ew_store::ew_format::ew_schema::Record::Function(after)).unwrap();
+    let canonical =
+        ew_store::ew_format::record_line(&ew_store::ew_format::ew_schema::Record::Function(after)).unwrap();
     assert!(
         canonical.contains(r#""role":{"later":{"alpha":2,"zeta":1}}"#),
         "{canonical}"

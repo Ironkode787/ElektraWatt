@@ -245,10 +245,7 @@ fn a_library_document_this_reader_cannot_read_is_left_as_ours() {
     let t = Tree::new();
     let base = std::fs::read_to_string(t.0.join(DOC)).unwrap();
     let ours = base.replace(r#""name": "Siemens""#, r#""name": "Siemens AG""#);
-    let theirs = base.replace(
-        r#""$k": "manufacturer","#,
-        r#""$k": "manufacturer", "$v": 2,"#,
-    );
+    let theirs = base.replace(r#""$k": "manufacturer","#, r#""$k": "manufacturer", "$v": 2,"#);
     assert!(ours != base && theirs != base);
     let (out, merged) = t.merge([&base, &ours, &theirs], form(true, DOC));
     let said = format!(

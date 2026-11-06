@@ -328,7 +328,13 @@ impl<'de> serde::Deserialize<'de> for Ordered {
 }
 
 /// [`later_minor_line`] below the JSON Pointer `path`.
-fn known_in_order(line: &Ordered, canonical: &Ordered, path: &str, extra: &[String], variants: &[String]) -> bool {
+fn known_in_order(
+    line: &Ordered,
+    canonical: &Ordered,
+    path: &str,
+    extra: &[String],
+    variants: &[String],
+) -> bool {
     if variants.iter().any(|v| v == path) {
         return true;
     }

@@ -2301,7 +2301,10 @@ mod tests {
         s.remove();
         let changes = [
             ("device Side|{at}", "additionalProperties false added"),
-            ("device Text{key}", "pattern changed from \"^[a-z]+$\" to \"^[a-z]{2}$\""),
+            (
+                "device Text{key}",
+                "pattern changed from \"^[a-z]+$\" to \"^[a-z]{2}$\"",
+            ),
             ("device Text|object", "maxProperties 9 added"),
             ("device Text|object", "minProperties changed from 1 to 2"),
         ];

@@ -1022,8 +1022,9 @@ impl<'a> Loader<'a> {
             let later = !extra.is_empty()
                 && !migrated
                 && !normalised
-                && crate::record_line(&record)
-                    .is_ok_and(|canonical| later_minor_line(text, &canonical, &extra.members, &extra.variants));
+                && crate::record_line(&record).is_ok_and(|canonical| {
+                    later_minor_line(text, &canonical, &extra.members, &extra.variants)
+                });
             later.then(|| Kept::Untouched {
                 original: Box::new(record.clone()),
             })
