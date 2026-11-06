@@ -262,8 +262,8 @@ fn print_send_hands_the_set_to_the_window_and_each_end_has_one_toast() {
     assert_eq!(request.set.pages.len(), 1);
     assert!(s.take_print_request().is_none(), "taken once");
     let cases = [
-        (PrintEnd::Printed, "Sent J-E-2416 to the printer"),
-        (PrintEnd::Opened, "Opened J-E-2416 in your PDF viewer"),
+        (PrintEnd::Printed, "Sent J-E-2416 to the printer."),
+        (PrintEnd::Opened, "Opened J-E-2416 in your PDF viewer."),
         (
             PrintEnd::FellBackToPrinter,
             "Printing through the print dialog failed, so J-E-2416 went to the default printer.",

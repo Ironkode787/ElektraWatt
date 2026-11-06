@@ -959,11 +959,11 @@ mod tests {
         };
         assert_eq!(
             check_summary(c(1, 0, 0, 0, 0), None),
-            "Check: 1 error, 0 warnings"
+            "Check: 1 error, 0 warnings."
         );
         assert_eq!(
             check_summary(c(0, 1, 0, 0, 0), None),
-            "Check: 0 errors, 1 warning"
+            "Check: 0 errors, 1 warning."
         );
         // FT-664: waived and pending qualify the title; the line keeps the severities.
         assert_eq!(

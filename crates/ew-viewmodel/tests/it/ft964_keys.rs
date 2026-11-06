@@ -132,7 +132,7 @@ fn ft949_the_autoconnect_toast_takes_ctrl_enter_from_the_keymap() {
          tries the next target; Esc ends"
     );
     assert!(
-        toast.ends_with(". Alt+Click or Ctrl+Enter places without connecting"),
+        toast.ends_with(". Alt+Click or Ctrl+Enter places without connecting."),
         "{toast}"
     );
     // `canvas.activate_alt` is hidden from the editor: the user's keymap file binds it.

@@ -167,6 +167,53 @@ fn shipped_file(locale: &str) -> String {
     std::fs::read_to_string(path).unwrap().replace("\r\n", "\n")
 }
 
+/// FT-1505 (ID-1456, doc 16a §8 item 5): in every shipped locale every whole toast text ends with its full stop. Exempt
+/// by name: the toasts' button and label words, and the fragments composed into another toast's sentence.
+#[test]
+fn every_toast_ends_with_its_full_stop() {
+    const LABELS: [&str; 8] = [
+        "toast-undo",
+        "toast-close",
+        "toast-open",
+        "toast-dismiss",
+        "toast-name",
+        "toast-convert",
+        "toast-show-block",
+        "toast-show-changes",
+    ];
+    const FRAGMENTS: [&str; 5] = [
+        "toast-external-git",
+        "toast-bind-displaced",
+        "toast-cable-new-cores",
+        "toast-cable-new-cores-one",
+        "toast-device-retagged",
+    ];
+    for locale in ["en-GB", "nl-NL"] {
+        let ftl = shipped_file(locale);
+        let lines: Vec<&str> = ftl.lines().collect();
+        let mut without = Vec::new();
+        for (i, line) in lines.iter().enumerate() {
+            let Some((key, text)) = line.split_once(" = ") else {
+                continue;
+            };
+            if !key.starts_with("toast-") || LABELS.contains(&key) || FRAGMENTS.contains(&key) {
+                continue;
+            }
+            // A message's last line holds its end.
+            let end = lines[i + 1..]
+                .iter()
+                .take_while(|l| l.starts_with(' '))
+                .last()
+                .copied()
+                .unwrap_or(text);
+            if !end.trim_end().ends_with('.') {
+                without.push(key);
+            }
+        }
+        assert_eq!(without, Vec::<&str>::new(), "{locale}");
+    }
+}
+
 /// NL-1 (ID-1269 ruling 3): every key of every shipped locale takes the arguments of its en-GB message, no more and
 /// no fewer, and a locale has no key en-GB lacks.
 #[test]

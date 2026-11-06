@@ -432,7 +432,7 @@ fn the_join_toast_names_what_the_source_device_dropped() {
     let toast = state(&s)["toast"]["text"].as_str().unwrap_or_default().to_owned();
     assert!(toast.starts_with(&format!("Joined {relay} ")), "{toast}");
     assert!(
-        toast.ends_with("; the joined device's function text was dropped with it"),
+        toast.ends_with("; the joined device's function text was dropped with it."),
         "{toast}"
     );
 }

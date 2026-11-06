@@ -69,7 +69,7 @@ fn jb4_the_save_dialogs_answer_replaces_an_existing_file_through_a_job() {
     let kib = bytes.len().div_ceil(1024);
     // FT-1212 (ID-1392): the pages by kind.
     let text =
-        format!("Exported out.pdf: 13 drawing pages, 3 section divider pages and 20 report pages, {kib} KiB");
+        format!("Exported out.pdf: 13 drawing pages, 3 section divider pages and 20 report pages, {kib} KiB.");
     assert!(h.query_by_label(&text).is_some(), "the toast");
     assert!(
         h.query_by_label("Notifications 1").is_some(),
@@ -129,7 +129,7 @@ fn jb3_a_running_export_is_a_named_progress_indicator_with_cancel_and_the_job_fi
     gate.release();
     run_until_jobs_end(&mut h);
     assert!(!pdf.exists());
-    assert!(h.query_by_label("Export cancelled; no file written").is_some());
+    assert!(h.query_by_label("Export cancelled; no file written.").is_some());
     assert!(
         h.query_by_label("cancelled; no file written").is_some(),
         "the pane's entry"
@@ -165,7 +165,7 @@ fn jb6_the_toasts_stack_and_the_log_opens_from_the_status_bar() {
         2,
         "two keys, two toasts"
     );
-    assert!(h.query_by_label("Set function text on 2 devices").is_some());
+    assert!(h.query_by_label("Set function text on 2 devices.").is_some());
     assert!(h.query_by_label_contains("Exported a.pdf").is_some());
     h.get_by_label("Notifications 2").click();
     settle(&mut h);
@@ -239,7 +239,7 @@ fn jb7_the_recovery_dialog_offers_recover_open_read_only_and_discard() {
     assert_eq!(shell.access(), Some(AccessMode::Edit));
     assert!(shell.is_dirty());
     assert!(shell.page_labels().iter().any(|l| l == "996"));
-    assert!(h.query_by_label("Recovered 1 change; save to keep it").is_some());
+    assert!(h.query_by_label("Recovered 1 change; save to keep it.").is_some());
     h.state_mut()
         .shell_mut()
         .dispatch("file.close", &json!({"discard": true}));

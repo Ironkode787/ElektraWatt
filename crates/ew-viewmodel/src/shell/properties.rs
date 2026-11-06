@@ -1654,7 +1654,7 @@ impl ShellModel {
                     if notices.is_empty() {
                         text
                     } else {
-                        strings::format(key!("toast-joined-dropped"), &[&text, &notices.join("; ")])
+                        strings::format(key!("toast-joined-dropped"), &[strings::without_stop(&text), &notices.join("; ")])
                     }
                 })
             } else {

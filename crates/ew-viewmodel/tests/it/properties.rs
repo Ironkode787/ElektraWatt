@@ -187,7 +187,7 @@ fn pg6_twenty_terminals_get_a_part_in_one_command() {
     assert_eq!(step.params["targets"].as_array().unwrap().len(), 20);
     assert_eq!(step.params["path"], "parts");
     let toast = shell.toast().expect("a toast");
-    assert_eq!(toast.text, "Set part on 20 devices");
+    assert_eq!(toast.text, "Set part on 20 devices.");
     assert!(text(&shell, "device/parts[0].part").starts_with(other));
     // Undo through the toast: one step.
     done(&mut shell, "toast.undo", json!({}));
@@ -1071,15 +1071,15 @@ fn ft554_wire_marker_beside_colour_and_the_mode_switch_counts_markers() {
     );
     // Golden A has ten connections with an explicit cross-section or colour: the explicit mode marks those ten.
     done(&mut shell, "project.marker_mode", json!({"mode": "explicit"}));
-    assert_eq!(shell.toast().unwrap().text, "10 wires carry a marker");
+    assert_eq!(shell.toast().unwrap().text, "10 wires carry a marker.");
     // The same mode again commits nothing and still reports the count.
     let rev = shell.revision();
     done(&mut shell, "project.marker_mode", json!({"mode": "explicit"}));
     assert_eq!(shell.revision(), rev);
-    assert_eq!(shell.toast().unwrap().text, "10 wires carry a marker");
+    assert_eq!(shell.toast().unwrap().text, "10 wires carry a marker.");
     // No markers: says so, in the plural.
     done(&mut shell, "project.marker_mode", json!({"mode": "none"}));
-    assert_eq!(shell.toast().unwrap().text, "0 wires carry a marker");
+    assert_eq!(shell.toast().unwrap().text, "0 wires carry a marker.");
     // Every wire: a count above one, in the plural.
     done(&mut shell, "project.marker_mode", json!({"mode": "all"}));
     let all = shell.toast().unwrap().text.clone();

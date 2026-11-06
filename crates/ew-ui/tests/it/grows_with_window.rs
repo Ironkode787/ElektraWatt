@@ -245,6 +245,62 @@ fn ft1143_a_part_rows_function_is_cut_with_an_ellipsis_and_whole_in_its_tooltip(
     h.state_mut().shell_mut().shutdown();
 }
 
+/// FT-1514 (ID-1456, ID-1415): a part row's tooltip in Device from part is its description, its maker and part
+/// number, and its function in words, never a FnDef key.
+#[test]
+fn ft1514_a_part_rows_tooltip_ends_with_its_function_in_words() {
+    use ew_viewmodel::{key, strings, tools::PickerRow};
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, egui::Vec2::new(1280.0, 800.0));
+    dispatch(&mut h, "page.goto", json!({"folio": "101"}));
+    dispatch(&mut h, "tool.place_part", json!({}));
+    dispatch(&mut h, "picker.filter", json!({"text": "switch"}));
+    settle(&mut h);
+    settle(&mut h);
+    let wanted: Vec<String> = {
+        let picker = h.state().shell().picker().expect("the picker");
+        picker
+            .rows
+            .iter()
+            .filter_map(|r| match r {
+                PickerRow::PartFn(p, k) => {
+                    let part = &picker.catalogue.parts[*p];
+                    let f = &part.functions[*k];
+                    if part.description.is_empty() || f.kind_text == f.fndef_key {
+                        return None;
+                    }
+                    let mut meta = strings::format(
+                        key!("picker-part-function"),
+                        &[
+                            &(k + 1).to_string(),
+                            &part.functions.len().to_string(),
+                            &f.kind_text,
+                        ],
+                    );
+                    if f.main {
+                        meta.push(' ');
+                        meta.push_str(strings::text(key!("picker-main")));
+                    }
+                    Some(format!(
+                        "{}\n{} {}\n{meta}",
+                        part.description, part.manufacturer, part.part_number
+                    ))
+                }
+                _ => None,
+            })
+            .collect()
+    };
+    assert!(!wanted.is_empty(), "part rows with a description");
+    let tips: Vec<String> = h
+        .get_all_by_role(egui::Role::Button)
+        .filter_map(|n| n.accesskit_node().description())
+        .collect();
+    for tip in &wanted {
+        assert!(tips.contains(tip), "{tip:?} among {tips:?}");
+    }
+    h.state_mut().shell_mut().shutdown();
+}
+
 /// The labels of the nodes AccessKit is told are selected, the command tab on show left out.
 fn selected_labels(h: &Harness<'_, App>) -> Vec<String> {
     h.root()

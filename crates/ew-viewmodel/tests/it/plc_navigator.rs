@@ -435,7 +435,7 @@ fn ft753_a_device_wired_to_the_card_binds_the_card_pin() {
     let toast = s.toast().expect("the bind's toast").text.clone();
     assert_eq!(
         toast,
-        format!("Bound I0.0 to {card}:3, where {switch} is wired; I0.2 was bound there and is now unbound")
+        format!("Bound I0.0 to {card}:3, where {switch} is wired; I0.2 was bound there and is now unbound.")
     );
     done(&mut s, "edit.undo", json!({}));
     assert_eq!(address_at(&s, &format!("{card}:3")).as_deref(), Some("I0.2"));
@@ -464,7 +464,7 @@ fn ft753_a_device_wired_to_two_card_pins_asks_which() {
     assert_eq!(
         toast,
         format!(
-            "{switch} is wired to 2 pins of {card} ({card}:2, {card}:3): drop the channel on the card's pin you mean"
+            "{switch} is wired to 2 pins of {card} ({card}:2, {card}:3): drop the channel on the card's pin you mean."
         )
     );
 }
@@ -591,7 +591,7 @@ fn ft757_a_displaced_channel_is_named() {
     let toast = s.toast().unwrap();
     assert_eq!(
         toast.text,
-        "Bound Q0.0 to -101A2:4; Q0.3 was bound there and is now unbound"
+        "Bound Q0.0 to -101A2:4; Q0.3 was bound there and is now unbound."
     );
     assert!(toast.action().is_some(), "Undo");
     assert!(!toast.text.contains('@'));
@@ -630,7 +630,7 @@ fn ft757_an_edited_row_keeps_the_cursor_and_the_toast_reads_in_sentence_case() {
     );
     let last = n.visible().len() - 1;
     assert_eq!(key(&s, last), first, "the row sorted to the end");
-    assert_eq!(s.toast().unwrap().text, "Set address on 1 channel");
+    assert_eq!(s.toast().unwrap().text, "Set address on 1 channel.");
 }
 
 /// PG6 (WP-S2.07 §8): the PLC navigator's transcript members and describe words, and its table calls. The focus

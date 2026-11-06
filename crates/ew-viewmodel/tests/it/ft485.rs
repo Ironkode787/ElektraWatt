@@ -319,7 +319,7 @@ fn item8_ip_external_takes_the_printed_location_and_lists_the_labels_when_nothin
         "structure.new",
         json!({"kind": "location", "designation": "+J-E-206"}),
     );
-    assert_eq!(toast(&s), "Created the location node J-E-206");
+    assert_eq!(toast(&s), "Created the location node J-E-206.");
     for c in ["L", "N", "PE"] {
         done(
             &mut s,
@@ -464,7 +464,7 @@ fn item3_the_hint_offers_alt_and_the_toast_names_the_wires_a_placement_drew() {
     assert!(t.contains(" and connected "), "{t}");
     assert!(t.contains(" -> \"-101K"), "{t}");
     assert!(
-        t.ends_with("Alt+Click or Ctrl+Enter places without connecting"),
+        t.ends_with("Alt+Click or Ctrl+Enter places without connecting."),
         "{t}"
     );
 }

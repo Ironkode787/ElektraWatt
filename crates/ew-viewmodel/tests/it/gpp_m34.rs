@@ -247,7 +247,7 @@ fn ft547_deleting_an_ip_with_its_wire_says_so_in_the_toast() {
     );
     assert_eq!(
         toast(&s),
-        format!("Deleted the interruption point {name} and the wire connected to it")
+        format!("Deleted the interruption point {name} and the wire connected to it.")
     );
 }
 
@@ -289,7 +289,7 @@ fn ft546_every_place_commit_names_the_tag_and_the_cell() {
         let t = toast(&s);
         assert!(t.starts_with("Placed -"), "{action}: {t}");
         assert!(t.contains('K'), "{action}: {t}");
-        assert!(t.ends_with(&format!(" at {cell}")), "{action}: {t} / {cell}");
+        assert!(t.ends_with(&format!(" at {cell}.")), "{action}: {t} / {cell}");
     }
     // A terminal on Golden A's strip names the terminal; Golden A's frames have no cells.
     let tmp = Tmp::new("m34-546b");
@@ -304,7 +304,7 @@ fn ft546_every_place_commit_names_the_tag_and_the_cell() {
     done(&mut s, "cursor.set", common::at(p, json!({})));
     assert_eq!(s.canvas().unwrap().page().cell_text(p), None);
     done(&mut s, "canvas.activate_alt", json!({}));
-    assert_eq!(toast(&s), "Placed -X1031 terminal 40");
+    assert_eq!(toast(&s), "Placed -X1031 terminal 40.");
 }
 
 // ---------------------------------------------------------------------------------------------------------------

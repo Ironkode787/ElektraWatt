@@ -167,18 +167,18 @@ impl ShellModel {
                     Some((count, list)) => strings::format(
                         key!("toast-autoconnect"),
                         &[
-                            &placed,
+                            strings::without_stop(&placed),
                             &count,
                             &list,
                             &crate::command_bar::key_name(self, "canvas.activate_alt"),
                         ],
                     ),
-                    None if in_wire => strings::format(key!("toast-placed-in-wire"), &[&placed]),
+                    None if in_wire => strings::format(key!("toast-placed-in-wire"), &[strings::without_stop(&placed)]),
                     None => placed,
                 };
                 // FT-1208: a terminal that left the click point says where and why, after the result.
                 let text = match moved {
-                    Some(moved) => format!("{text}, {moved}"),
+                    Some(moved) => format!("{}, {moved}", strings::without_stop(&text)),
                     None => text,
                 };
                 self.notify(text, true);
