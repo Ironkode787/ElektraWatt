@@ -531,11 +531,18 @@ fn ft1497_a_part_change_that_widens_a_strips_terminal_pushes() {
     let terminal = q
         .devices()
         .iter()
-        .filter(|(_, d)| d.aspects.terminal.as_ref().is_some_and(|t| t.strip == dev("-X1031")))
+        .filter(|(_, d)| {
+            d.aspects
+                .terminal
+                .as_ref()
+                .is_some_and(|t| t.strip == dev("-X1031"))
+        })
         .map(|(id, _)| id)
         .min()
         .expect("a terminal of -X1031");
-    let old = q.devices().get(terminal).expect("the terminal").parts[0].part.copy;
+    let old = q.devices().get(terminal).expect("the terminal").parts[0]
+        .part
+        .copy;
     let mut copy: ew_schema::LibCopy<Part> =
         ew_schema::LibCopy::clone(q.table::<ew_schema::LibCopy<Part>>().get(old).expect("the copy"));
     let item = Uuid::from_u128(0x0190_0000_0000_7000_8000_0000_0000_1497);

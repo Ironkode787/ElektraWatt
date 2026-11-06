@@ -207,20 +207,36 @@ fn document_parts(doc: &ew_schema::LibDocument) -> Option<(Kind, Option<TextArg>
     use ew_schema::LibDocument as D;
     let key = |m: &ew_schema::ItemMeta| m.key.as_ref().map(|k| TextArg::Plain(k.to_string()));
     let named = |name: String, words: fn(String) -> Text, m: &ew_schema::ItemMeta| {
-        if name.is_empty() { key(m) } else { Some(words(name).into()) }
+        if name.is_empty() {
+            key(m)
+        } else {
+            Some(words(name).into())
+        }
     };
     Some(match doc {
-        D::Part(c) => (Kind::Part, Some(TextArg::Plain(c.item.part_number.to_string())), &c.version),
+        D::Part(c) => (
+            Kind::Part,
+            Some(TextArg::Plain(c.item.part_number.to_string())),
+            &c.version,
+        ),
         D::Symbol(c) => (
             Kind::Symbol,
-            named(neutral(&c.item.name), |n| text!("refusal-words-symbol-named", n), &c.item.meta),
+            named(
+                neutral(&c.item.name),
+                |n| text!("refusal-words-symbol-named", n),
+                &c.item.meta,
+            ),
             &c.version,
         ),
         D::Fndef(c) => (Kind::Fndef, key(&c.item.meta), &c.version),
         D::Form(c) => (Kind::Form, key(&c.item.meta), &c.version),
         D::Macro(c) => (
             Kind::Macro,
-            named(neutral(&c.item.name), |n| text!("refusal-words-macro-named", n), &c.item.meta),
+            named(
+                neutral(&c.item.name),
+                |n| text!("refusal-words-macro-named", n),
+                &c.item.meta,
+            ),
             &c.version,
         ),
         D::Manufacturer(c) => {
@@ -234,7 +250,11 @@ fn document_parts(doc: &ew_schema::LibDocument) -> Option<(Kind, Option<TextArg>
         }
         D::PlcProfile(c) => (
             Kind::PlcProfile,
-            named(c.item.label.clone(), |n| text!("refusal-words-plc-profile-named", n), &c.item.meta),
+            named(
+                c.item.label.clone(),
+                |n| text!("refusal-words-plc-profile-named", n),
+                &c.item.meta,
+            ),
             &c.version,
         ),
         D::Unknown(_) => return None,
