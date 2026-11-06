@@ -663,6 +663,15 @@ impl App {
         if under_row {
             return;
         }
+        // SM25b m2 (P3): a refusal the symbol editor shows with its draft is not made a banner as well.
+        if self
+            .shell
+            .symbol_editor()
+            .and_then(|e| e.error.as_deref())
+            .is_some_and(|e| message.ends_with(e))
+        {
+            return;
+        }
         // A state banner (W49.3-F2) lies under a message: the message shows over it.
         if self.shell.message_banner().is_none() || ours {
             self.shell.show_banner(&message);

@@ -1082,6 +1082,37 @@ fn census_the_symbol_editor() {
     census.assert_clean();
 }
 
+/// SM25b m2 (doc 16a P3): a Save refused off the grid says so once, in Validation: no banner and no header line.
+#[test]
+fn the_symbol_editors_off_grid_refusal_shows_once() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "g.ew");
+    for (action, params) in [
+        ("symbol.new", json!({"key": "example.once", "name": "Once"})),
+        (
+            "symbol.draw",
+            json!({"tool": "line", "x": 0, "y": 0, "x2": 0, "y2": 4}),
+        ),
+        ("symbol.cp", json!({"x": 4.5, "y": 0, "designation": "1"})),
+        (
+            "symbol.directory",
+            json!({"directory": tmp.0.join("once.ewlib")}),
+        ),
+    ] {
+        dispatch(&mut h, action, params);
+    }
+    h.run_ok();
+    h.get_by_label("Save to library").click();
+    h.run_ok();
+    h.run_ok();
+    let text = "Connection point 1 is off the connection grid. Move it onto the grid before saving.";
+    let shell = h.state().shell();
+    assert_eq!(shell.symbol_editor().unwrap().error.as_deref(), Some(text));
+    assert_eq!(shell.banner(), None);
+    assert_eq!(h.query_all_by_label_contains(text).count(), 1);
+    h.state_mut().shell_mut().shutdown();
+}
+
 /// M25-p5#4 (ID-1463, #8): a control repeated for each pin, slot, link point or the selected shape names the item it
 /// belongs to, so no two share a name.
 #[test]

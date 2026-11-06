@@ -769,7 +769,15 @@ impl EditorView {
                 }
             });
         });
-        if let Some(error) = &editor.error {
+        // P3 (SM25b m2): a refusal that Validation lists, issue by issue, shows there only; any other shows here, once.
+        let issues: Vec<String> = draft
+            .validate()
+            .iter()
+            .map(|i| strings::format(strings::Key::run_time(i.code), &[&i.detail]))
+            .collect();
+        if let Some(error) = &editor.error
+            && !error.lines().all(|line| issues.iter().any(|i| i == line))
+        {
             ui.colored_label(t.error.color32(), error);
         }
         ui.separator();
@@ -878,9 +886,8 @@ impl EditorView {
                     ui.separator(); ui.strong(label(strings::Key::run_time("symbol-validation")));
                     // SM25#9/#10: the issues are what to do before saving, in the secondary text; the refusal of an
                     // operation is the header's error, never repeated here.
-                    let issues = draft.validate();
                     if issues.is_empty() { ui.label(label(strings::Key::run_time("symbol-valid"))); }
-                    for issue in issues { ui.colored_label(t.text_secondary.color32(), strings::format(strings::Key::run_time(issue.code),&[&issue.detail])); }
+                    for issue in &issues { ui.colored_label(t.text_secondary.color32(), issue); }
                 });
             });
             ui.separator();
