@@ -13,7 +13,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 
 use crate::SchemaError;
-use crate::track::{check_value_at, de_open, path_of, raise, variant_names};
+use crate::track::{check_value_at, de_open, note_extra, path_of, raise, variant_names};
 
 /// The `extra` map of a record or value object: unknown members of a newer format minor and namespaced
 /// `plugin.<id>.*` keys (FR-EXT-021). It is flattened last and written in byte-wise key order (doc 05 §3.1).
@@ -65,6 +65,7 @@ pub(crate) fn de_extra<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Ext
     for (key, value) in &map {
         check_value_at(value, &mut path_of(key)).map_err(raise)?;
     }
+    note_extra(&map);
     Ok(map)
 }
 

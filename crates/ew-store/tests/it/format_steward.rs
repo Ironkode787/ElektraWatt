@@ -67,10 +67,11 @@ fn mg6_the_shipped_chain_and_corpus_pass_the_steward_check() {
     assert!(words.is_empty(), "{words:#?}");
 }
 
-/// FT-96 (WP-S6.08 D5, RL-4; ADR-0011 amendment 1, doc 05 §10.3): a project of this format whose record lines carry
-/// members this reader does not know, appended as a later additive release writes them (after a record's members, and
-/// after a nested object's), opens; an edit of another record of the same file saves, and every untouched line of that
-/// file is written as it was, byte for byte, the edited record keeping its unknown member.
+/// FT-96 (WP-S6.08 D5 and D24, RL-4; ADR-0011 amendment 1, doc 05 §10.3): a project of this format whose record lines
+/// carry members this reader does not know, appended as a later additive release writes them (after a record's members,
+/// two of them out of byte order, and after a nested object's), opens; an edit of another record of the same file
+/// saves, and every untouched line of that file is written as it was, byte for byte, the edited record keeping its
+/// unknown members.
 #[test]
 fn ft96_untouched_lines_with_later_members_are_kept_byte_for_byte() {
     use ew_model::{AnyRow, Op};
@@ -83,7 +84,10 @@ fn ft96_untouched_lines_with_later_members_are_kept_byte_for_byte() {
             Some(head) if !head.ends_with('{') => format!("{head},\"later_ref\":1}}}}"),
             _ => line.to_owned(),
         };
-        format!("{},\"later_member\":\"kept\"}}", &line[..line.len() - 1])
+        format!(
+            "{},\"zeta\":\"kept\",\"alpha\":\"kept\"}}",
+            &line[..line.len() - 1]
+        )
     };
     let mut files = common::small_fixture();
     let (shard, text) = files
@@ -136,7 +140,8 @@ fn ft96_untouched_lines_with_later_members_are_kept_byte_for_byte() {
     assert_eq!(written.len(), lines.len());
     assert!(
         written[0].contains("\"function_text\":\"edited\"")
-            && written[0].contains("\"later_member\":\"kept\""),
+            && written[0].contains("\"alpha\":\"kept\"")
+            && written[0].contains("\"zeta\":\"kept\""),
         "{}",
         written[0]
     );
