@@ -2234,10 +2234,10 @@ pub const TEXTS: &[(&str, &str)] = &[
         "{0} cannot take the functions of part {1}: no free function ID is left; replace the device",
     ),
     // The imports and the external changes: import.apply and external.apply.
-    ("refusal-import-unknown-kind", "a record of an unknown kind ({0})"),
+    ("refusal-import-unknown-kind", "an item of an unknown kind ({0})"),
     (
         "refusal-import-removed",
-        "a normaliser removed a record the import brought: {0}",
+        "a normaliser removed an item the import brought: {0}",
     ),
     (
         "refusal-external-image",

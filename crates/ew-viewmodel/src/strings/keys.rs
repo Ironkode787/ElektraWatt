@@ -3937,6 +3937,7 @@ pub const KEYS: &[&str] = &[
     "field-word-cp-overrides",
     "field-word-cps",
     "field-word-cps-item",
+    "field-word-cp-item",
     "field-word-cpu",
     "field-word-created",
     "field-word-csa",

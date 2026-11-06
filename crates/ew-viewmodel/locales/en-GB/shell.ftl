@@ -1549,8 +1549,8 @@ refusal-junction-unnumbered = without a number
 refusal-junction-number-newer = with a number of a newer format
 refusal-valve-functions-no-id = { $p0 } cannot take the functions of part { $p1 }: no free function ID is left; replace the device
 # The imports and the external changes: import.apply and external.apply.
-refusal-import-unknown-kind = a record of an unknown kind ({ $p0 })
-refusal-import-removed = a normaliser removed a record the import brought: { $p0 }
+refusal-import-unknown-kind = an item of an unknown kind ({ $p0 })
+refusal-import-removed = a normaliser removed an item the import brought: { $p0 }
 refusal-external-image = an image of the change does not read ({ $p0 })
 # FT-1337: end of the command refusals.
 
@@ -4294,6 +4294,8 @@ field-word-covers = Covers
 field-word-cp-overrides = Connection point overrides
 field-word-cps = Connection points
 field-word-cps-item = Connection point
+# FT-1531: a device's derived connection points (`derived.cp[n]`).
+field-word-cp-item = Connection point
 field-word-cpu = CPU
 field-word-created = Created
 field-word-csa = Cross-section
