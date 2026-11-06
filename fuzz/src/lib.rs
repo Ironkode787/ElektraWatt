@@ -43,6 +43,7 @@ pub mod open_path;
 pub mod png_pdf;
 pub mod sql_sandbox;
 pub mod svg_asset;
+pub mod symbols;
 pub mod table_round_trip;
 pub mod textconv;
 

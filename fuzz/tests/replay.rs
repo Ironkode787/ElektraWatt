@@ -411,6 +411,34 @@ fn the_ewui_script_seeds_and_the_tutorial_scripts_pass() {
     }
 }
 
+/// M25-p1#8 and M25-p2#6: the symbol readers' seeds pass and make drafts: the template parses as a draft, each EPLAN
+/// seed (parts XML, a PXF macro, a ZIP and a copy-coded 7z EDZ) imports, and the SLK seed reads its one symbol.
+#[test]
+fn the_symbol_seeds_pass_and_make_drafts() {
+    use ew_fuzz::symbols::{authoring, slk};
+    let seeds = inputs("corpus/symbol_authoring");
+    assert!(
+        seeds.len() >= 5,
+        "the symbol authoring target's seeds are missing"
+    );
+    for (name, bytes) in &seeds {
+        let o = authoring(bytes);
+        eprintln!("symbol_authoring/{name}: {o:?}");
+        assert!(o.drafts >= 1, "symbol_authoring/{name}: {o:?}");
+        assert_eq!(
+            o.parsed,
+            name.ends_with(".json"),
+            "symbol_authoring/{name}: {o:?}"
+        );
+    }
+    let seeds = inputs("corpus/symbol_slk");
+    assert!(!seeds.is_empty(), "the SLK target's seeds are missing");
+    for (name, bytes) in &seeds {
+        let o = slk(bytes);
+        assert!(o.descriptor && o.symbols >= 1, "symbol_slk/{name}: {o:?}");
+    }
+}
+
 /// The reported findings: each input of `regressions/<target>/` is replayed in this ordinary test process, where a
 /// panic is caught and the generator's own failure text (the seed, the step, the oracle and the command log of
 /// `command_sequence`) is printed, which libFuzzer's aborting panic hook never lets the fuzz target do. Nothing is
@@ -474,6 +502,12 @@ fn the_regressions_are_replayed_and_reported() {
         }),
         ("regressions/ewui_script", |b| {
             let _ = ew_fuzz::ewui_script::check(b);
+        }),
+        ("regressions/symbol_authoring", |b| {
+            let _ = ew_fuzz::symbols::authoring(b);
+        }),
+        ("regressions/symbol_slk", |b| {
+            let _ = ew_fuzz::symbols::slk(b);
         }),
     ];
     for &(dir, check) in targets {

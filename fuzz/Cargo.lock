@@ -393,6 +393,7 @@ dependencies = [
  "ew-export",
  "ew-format",
  "ew-ids",
+ "ew-import-eplan",
  "ew-import-tables",
  "ew-mltext",
  "ew-model",
