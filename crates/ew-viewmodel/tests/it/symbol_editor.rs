@@ -1190,6 +1190,24 @@ fn the_symbol_file_picker_offers_every_extension_an_importer_reads() {
     assert!(FILE_EXTENSIONS.contains(&"json"));
 }
 
+/// ID-1463 (M25-p5 nit): the quit question's Save symbol saves the draft, then quits.
+#[test]
+fn the_quit_questions_save_symbol_saves_the_draft_and_quits() {
+    use ew_viewmodel::shell::ConfirmAnswer;
+    let tmp = Tmp::new("symbol-quit-save");
+    let config = ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test");
+    let mut shell = ShellModel::new(Mode::Gui, config);
+    drawn(&mut shell, "example.quit-save", "Quit save");
+    done(&mut shell, "symbol.directory", json!({"directory": "quit.ewlib"}));
+    done(&mut shell, "app.quit", json!({}));
+    assert!(shell.dialog().is_some() && !shell.should_quit());
+    assert_eq!(shell.answer_confirm(ConfirmAnswer::Save), Outcome::Done);
+    assert!(shell.should_quit());
+    assert!(shell.kept_symbol_editor().unwrap().stored());
+    assert!(tmp.0.join("config").join("libraries").join("quit.ewlib").is_dir());
+    shell.shutdown();
+}
+
 /// The quit question's and the scratch page's titles name the symbol in the window's language.
 #[test]
 fn the_titles_name_the_symbol_in_the_windows_language() {

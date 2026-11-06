@@ -1082,6 +1082,36 @@ fn census_the_symbol_editor() {
     census.assert_clean();
 }
 
+/// Doc 16a P8 (M25-p5 nit): the tool buttons name the keys of the keymap that choose them, which their tooltips
+/// show; a tool without a key names none.
+#[test]
+fn the_symbol_editors_tool_buttons_name_their_keys() {
+    use egui::accesskit::Role;
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "g.ew");
+    dispatch(&mut h, "symbol.new", json!({"key": "example.keys", "name": "Keys"}));
+    h.run_ok();
+    h.run_ok();
+    let shortcut = |h: &Harness<'_, App>, name: &str| {
+        h.get_by_role_and_label(Role::Button, name)
+            .accesskit_node()
+            .data()
+            .keyboard_shortcut()
+            .map(str::to_owned)
+    };
+    for (tool, key) in [
+        ("Select", Some("Esc")),
+        ("Line", Some("L")),
+        ("Rectangle", Some("B")),
+        ("Text", Some("T")),
+        ("Connection point", Some("P")),
+        ("Circle", None),
+    ] {
+        assert_eq!(shortcut(&h, tool).as_deref(), key, "{tool}");
+    }
+    h.state_mut().shell_mut().shutdown();
+}
+
 /// SM25b m2 (doc 16a P3): a Save refused off the grid says so once, in Validation: no banner and no header line.
 #[test]
 fn the_symbol_editors_off_grid_refusal_shows_once() {
