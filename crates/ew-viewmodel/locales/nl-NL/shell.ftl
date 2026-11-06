@@ -4731,3 +4731,4 @@ symbol-panels = Panelen van de symbooleditor
 symbol-delete-row = Verwijderen
 symbol-delete-item = { $p0 } verwijderen
 symbol-visible-of = { $p0 } zichtbaar
+prompt-symbol-filter = Symboolbestanden

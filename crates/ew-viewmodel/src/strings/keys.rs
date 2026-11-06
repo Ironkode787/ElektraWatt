@@ -4572,4 +4572,5 @@ pub const KEYS: &[&str] = &[
     "symbol-delete-row",
     "symbol-delete-item",
     "symbol-visible-of",
+    "prompt-symbol-filter",
 ];

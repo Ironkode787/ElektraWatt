@@ -4970,3 +4970,4 @@ symbol-panels = Symbol editor panels
 symbol-delete-row = Delete
 symbol-delete-item = Delete { $p0 }
 symbol-visible-of = { $p0 } visible
+prompt-symbol-filter = Symbol files

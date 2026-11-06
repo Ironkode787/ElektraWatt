@@ -1165,3 +1165,27 @@ fn the_file_menu_names_save_symbol_and_keeps_save_project_while_the_editor_shows
     assert!(shell.symbol_editor().unwrap().stored());
     shell.shutdown();
 }
+
+/// M25-p5#5: the file picker offers exactly the extensions the editor reads: JSON, and every extension an importer
+/// takes (a file the JSON reader would refuse otherwise), `.pxf` among them.
+#[test]
+fn the_symbol_file_picker_offers_every_extension_an_importer_reads() {
+    use ew_viewmodel::ew_api::symbols;
+    use ew_viewmodel::shell::symbol_editor::FILE_EXTENSIONS;
+    let tmp = Tmp::new("symbol-extensions");
+    let refusal = |ext: &str| {
+        let path = tmp.0.join(format!("probe.{ext}"));
+        std::fs::write(&path, b"not a symbol").unwrap();
+        symbols::open(&path, "example.probe").unwrap_err().to_string()
+    };
+    let json = refusal("json");
+    let read: Vec<&str> = [
+        "elmt", "edz", "pxf", "ema", "ems", "esl", "slk", "xml", "zip", "qet", "txt", "dxf",
+    ]
+    .into_iter()
+    .filter(|ext| refusal(ext) != json)
+    .collect();
+    let offered: Vec<&str> = FILE_EXTENSIONS.into_iter().filter(|e| *e != "json").collect();
+    assert_eq!(offered, read);
+    assert!(FILE_EXTENSIONS.contains(&"json"));
+}
