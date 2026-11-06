@@ -20,8 +20,9 @@
 //! **The name** is the typed one, unchanged; else a proposal from a base ([`proposal_base`], FT-950; an external point's
 //! is `IP`, FT-619): the derived potential name of the page's CP that lies exactly under the ghost's CP when it is
 //! given (not a fallback), else the last name this tool or the Wire tool's P committed, else that potential's fallback
-//! name, else `IP`; then, while an interruption point of the same direction on the page already has the
-//! proposal, the next name of its numbered series ([`next_in_series`]: `24VDC-1` → `24VDC-2`, `L` → `L-1`). **The direction** is `source` while the star is on (FT-980, ID-1146: a star source is a source point; the chosen
+//! name, else `IP`; then, while an interruption point of the project already has the proposal, the next name of its
+//! numbered series ([`next_in_series`]: `24VDC-1` → `24VDC-2`, `L` → `L-1`), so that only a typed name joins two points
+//! (ID-1462). **The direction** is `source` while the star is on (FT-980, ID-1146: a star source is a source point; the chosen
 //! direction is kept for after it), else the one D chose, else `target` for an external point, else `source` in the right or bottom quarter of the page's drawing area and `target` in the left
 //! or top quarter ([`quarter_direction`]: the horizontal quarters first), else the last committed one. After a commit
 //! the typed name and the star are cleared and the committed name and direction (an external point's are not) are remembered ([`IpMemory`], kept by
@@ -150,38 +151,48 @@ fn on_segment(a: (i64, i64), b: (i64, i64), p: (i64, i64)) -> bool {
     cross == 0 && (a.0.min(b.0)..=a.0.max(b.0)).contains(&p.0) && (a.1.min(b.1)..=a.1.max(b.1)).contains(&p.1)
 }
 
-/// `base`, or the first name of its series that no interruption point of `direction` on the page of `tables` has.
-pub fn unused_name(base: &str, direction: IpDir, tables: &PageTables) -> String {
-    let used = |n: &str| {
-        tables.reps.iter().any(|r| {
-            r.ip.as_ref()
-                .is_some_and(|ip| ip.name == n && ip.direction == direction.word())
-        })
-    };
-    let mut name = base.to_owned();
-    // The series is finite on a page: at most one step per interruption point of the page.
-    for _ in 0..=tables.reps.len() {
-        if !used(&name) {
-            break;
-        }
-        name = next_in_series(&name);
-    }
-    name
-}
-
-/// The project's interruption points with a source role, as the IP tool's proposal reads them (FT-822): EW-CORE-052
-/// counts the source points of a name across the whole project, so a proposal that reads only the page's tables can
-/// offer a second source. External connection points never pair and are left out.
+/// The project's interruption points, as the IP tool's proposal reads them: the name of every one (ID-1462), and those
+/// with a source role (FT-822): EW-CORE-052 counts the source points of a name across the whole project, so a proposal
+/// that reads only the page's tables can offer a second source. External connection points never pair and are left
+/// out of the sources.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct ProjectIps {
     /// (name, page) of every source point (direction `source`), star sources included.
     sources: BTreeSet<(String, Uuid)>,
+    /// The name of every interruption point of the project, of any direction, external connection points included.
+    names: BTreeSet<String>,
 }
 
 impl ProjectIps {
     /// Notes a source point named `name` on the page `page`.
     pub fn add_source(&mut self, name: &str, page: Uuid) {
         self.sources.insert((name.to_owned(), page));
+    }
+
+    /// Notes an interruption point named `name` (ID-1462: an automatic name never takes it).
+    pub fn add_name(&mut self, name: &str) {
+        self.names.insert(name.to_owned());
+    }
+
+    /// `base`, or the first name of its series ([`next_in_series`]) that no interruption point of the project and none
+    /// of the page of `tables` has (ID-1462): an automatic name is free, so it never joins two points.
+    pub fn free_name(&self, base: &str, tables: &PageTables) -> String {
+        let used = |n: &str| {
+            self.names.contains(n)
+                || tables
+                    .reps
+                    .iter()
+                    .any(|r| r.ip.as_ref().is_some_and(|ip| ip.name == n))
+        };
+        let mut name = base.to_owned();
+        // Bounded: each step passes a name that an interruption point of the project or the page has.
+        for _ in 0..=self.names.len() + tables.reps.len() {
+            if !used(&name) {
+                break;
+            }
+            name = next_in_series(&name);
+        }
+        name
     }
 
     /// The pages on which a source point named `name` stands.
@@ -209,12 +220,13 @@ impl ProjectIps {
     }
 }
 
-/// The name and direction an interruption point gets from the proposal `base` (FT-822): `auto` is the direction the
-/// page's quarters or the memory give (`chosen` false) or the one D chose (`chosen` true). An automatic `source` whose
-/// name has a source on another page and none on this one, without a star, becomes `target` with that name. A `source`
-/// without a star then takes the first name of the series that no source of the project or the page has; a `target` or
-/// an undirected point the first that no point of its direction on the page has ([`unused_name`]). With `typed` the
-/// name is the user's and only the automatic direction follows the rule.
+/// The name and direction an interruption point gets from the proposal `base`: `auto` is the direction the page's
+/// quarters or the memory give (`chosen` false) or the one D chose (`chosen` true). With `typed` the name is the
+/// user's, unchanged, and an automatic `source` whose name has a source on another page and none on this one, without a
+/// star, becomes `target` with that name (FT-822): only a name the user gives joins two points. Otherwise the point
+/// keeps `auto` and takes the first name of the series that no interruption point of the project has
+/// ([`ProjectIps::free_name`], ID-1462), read from the model at the moment of naming, so a reopen, an undo or a paste
+/// never repeats a name.
 pub fn propose(
     base: &str,
     typed: bool,
@@ -224,28 +236,16 @@ pub fn propose(
     project: &ProjectIps,
     tables: &PageTables,
 ) -> (String, IpDir) {
+    if !typed {
+        return (project.free_name(base, tables), auto);
+    }
     let direction =
         if !chosen && !star && auto == IpDir::Source && project.source_elsewhere(base, tables.page) {
             IpDir::Target
         } else {
             auto
         };
-    if typed {
-        return (base.to_owned(), direction);
-    }
-    if direction != IpDir::Source || star {
-        return (unused_name(base, direction, tables), direction);
-    }
-    let mut name = base.to_owned();
-    // Bounded: each step passes a name that has a source in the project or on the page.
-    for _ in 0..=project.sources.len() + tables.reps.len() {
-        name = unused_name(&name, direction, tables);
-        if !project.has_source(&name) {
-            break;
-        }
-        name = next_in_series(&name);
-    }
-    (name, direction)
+    (base.to_owned(), direction)
 }
 
 /// The direction of an interruption point at `p` by its place in the drawing area `area` (page nm): `source` in the
@@ -913,7 +913,7 @@ mod tests {
         );
     }
 
-    /// FT-822's proposal against the project's sources: a page `this` and another page `other`.
+    /// FT-822's proposal against the project's sources and ID-1462's free name: a page `this` and another page `other`.
     #[test]
     fn the_proposal_reads_the_projects_sources() {
         let this = Uuid::from_u128(1);
@@ -922,20 +922,21 @@ mod tests {
         tables.page = this;
         let mut project = ProjectIps::default();
         project.add_source("0V", other);
+        project.add_name("0V");
         let p = |base: &str, typed, auto, chosen, star, project: &ProjectIps| {
             propose(base, typed, auto, chosen, star, project, &tables)
         };
-        // A source elsewhere: the found source becomes the target of that name.
+        // ID-1462: a source elsewhere does not lend its name to an automatic point; the series' next free name does.
         assert_eq!(
             p("0V", false, IpDir::Source, false, false, &project),
-            ("0V".to_owned(), IpDir::Target)
+            ("0V-1".to_owned(), IpDir::Source)
         );
-        // Typed: the name stays, the direction follows the same rule.
+        // Typed: the name stays, and a source elsewhere makes the point its target (FT-822).
         assert_eq!(
             p("0V", true, IpDir::Source, false, false, &project),
             ("0V".to_owned(), IpDir::Target)
         );
-        // Source chosen by D: the series' next name that has no source.
+        // Source chosen by D: the series' next free name.
         assert_eq!(
             p("0V", false, IpDir::Source, true, false, &project),
             ("0V-1".to_owned(), IpDir::Source)
@@ -945,20 +946,29 @@ mod tests {
             p("0V", true, IpDir::Source, true, false, &project),
             ("0V".to_owned(), IpDir::Source)
         );
-        // The star source is an explicit choice: the name and role stay.
+        // The star source with an automatic name: the series' next free name too.
         assert_eq!(
             p("0V", false, IpDir::Source, false, true, &project),
-            ("0V".to_owned(), IpDir::Source)
+            ("0V-1".to_owned(), IpDir::Source)
         );
-        // A source on this page: the series goes on as a source, skipping names with a source anywhere.
+        // ID-1462: a target or an undirected point never takes the name of a point of another direction either.
+        assert_eq!(
+            p("0V", false, IpDir::Target, false, false, &project),
+            ("0V-1".to_owned(), IpDir::Target)
+        );
+        assert_eq!(
+            p("0V", false, IpDir::Undirected, true, false, &project),
+            ("0V-1".to_owned(), IpDir::Undirected)
+        );
+        // Names taken on any page and in any direction are skipped.
         let mut here = ProjectIps::default();
-        here.add_source("24V", this);
-        here.add_source("24V-1", other);
+        here.add_name("24V");
+        here.add_name("24V-1");
         assert_eq!(
             p("24V", false, IpDir::Source, false, false, &here),
             ("24V-2".to_owned(), IpDir::Source)
         );
-        // No source of the name: unchanged.
+        // A free name: unchanged.
         assert_eq!(
             p("L", false, IpDir::Source, false, false, &project),
             ("L".to_owned(), IpDir::Source)
