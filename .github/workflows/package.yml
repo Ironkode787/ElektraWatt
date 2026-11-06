@@ -409,7 +409,7 @@ jobs:
           {
             echo "Windows (x86_64): $(python --version 2>&1)."
             if [ -n "${SETUP:-}" ]; then
-              echo "Compiled \`$(basename "$(cygpath -u "$SETUP")")\` with NSIS ${NSIS_VERSION:-}; it never leaves the job (ID-476)."
+              echo "Compiled \`$(basename "$(cygpath -u "$SETUP")")\` with NSIS ${NSIS_VERSION:-}; it leaves the job only in the release's run (\`upload: true\`, ID-1331 (2))."
             else
               echo "No setup was compiled (see the log)."
             fi
@@ -419,7 +419,7 @@ jobs:
               echo "No CLI archive was uploaded (see the log)."
             fi
           } >> "$GITHUB_STEP_SUMMARY"
-      # The CLI archive and the SBOMs only (ID-476): the window's program and the staged tree never leave the job.
+      # The CLI archive and the SBOMs; the setup only in the release's run (below), the staged tree never (ID-476).
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ${{ env.UPLOAD_NAME }}
@@ -782,7 +782,7 @@ jobs:
               echo
             done
             if [ -n "${APPIMAGE:-}" ]; then
-              echo "Built \`$APPIMAGE\` with the type-2 runtime $(python3 -I packaging/stage.py pin appimage-type2-runtime) and $(cat target/squashfs-tools-version.txt 2> /dev/null || echo 'mksquashfs') (zstd); it never leaves the job (ID-476)."
+              echo "Built \`$APPIMAGE\` with the type-2 runtime $(python3 -I packaging/stage.py pin appimage-type2-runtime) and $(cat target/squashfs-tools-version.txt 2> /dev/null || echo 'mksquashfs') (zstd); it leaves the job only in the release's run (\`upload: true\`, ID-1331 (2))."
             else
               echo "No AppImage was built (see the log)."
             fi
@@ -793,7 +793,7 @@ jobs:
               echo "No CLI archive was uploaded (see the log)."
             fi
           } >> "$GITHUB_STEP_SUMMARY"
-      # The reports only; the binaries never leave the job (ID-476).
+      # The reports only; the AppImage leaves the job only in the release's run (below, ID-1331 (2)).
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
@@ -801,7 +801,7 @@ jobs:
           path: target/release-check-*.md
           if-no-files-found: ignore
           retention-days: 30
-      # The CLI archive and the SBOMs only (ID-476).
+      # The CLI archive and the SBOMs; the AppImage only in the release's run (below, ID-1331 (2)).
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ${{ env.UPLOAD_NAME }}
