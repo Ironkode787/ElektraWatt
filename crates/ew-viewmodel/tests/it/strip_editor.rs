@@ -176,7 +176,7 @@ fn se7_order_sort_pos_cells_accessory_rows_and_reasons() {
     done(&mut shell, "strip.add_accessory", json!({}));
     assert_eq!(
         lines_with(&shell, "toast "),
-        ["toast \"Added end bracket at the start of -X1031\" undo"]
+        ["toast \"Added end bracket at the start of -X1031.\" undo"]
     );
     done(&mut shell, "strip.edit", json!({"strip": "-X1031"}));
     let mut expected: Vec<&str> = vec!["0.1"];
@@ -344,7 +344,7 @@ fn se9_insert_delete_and_move_rows() {
     assert_eq!(cmd, "terminal.insert", "{params}");
     assert_eq!(
         lines_with(&shell, "toast "),
-        ["toast \"Inserted 1 terminal before terminal 5 of -X1031\" undo"]
+        ["toast \"Inserted 1 terminal before terminal 5 of -X1031.\" undo"]
     );
     let terminals = texts(&shell, "Terminal");
     assert_eq!(terminals[..6], ["1", "2", "3", "4", "21", "5"]);
@@ -381,7 +381,7 @@ fn se9_insert_delete_and_move_rows() {
     assert_eq!(params["path"], "strip.accessories");
     assert_eq!(
         lines_with(&shell, "toast "),
-        ["toast \"Removed 1 accessory\" undo"]
+        ["toast \"Removed 1 accessory.\" undo"]
     );
     assert_eq!(texts(&shell, "Pos"), SEQ_1_TO_20);
     // A mix: refused.
@@ -410,7 +410,7 @@ fn se9_insert_delete_and_move_rows() {
     }
     assert_eq!(
         lines_with(&shell, "toast "),
-        ["toast \"Moved terminal 15 of -X1031\" undo"]
+        ["toast \"Moved terminal 15 of -X1031.\" undo"]
     );
     let terminals = texts(&shell, "Terminal");
     assert_eq!(terminals[10..15], ["11", "15", "12", "13", "14"]);
@@ -590,7 +590,7 @@ fn an_untagged_strips_accessory_row_names_it_in_words() {
     done(&mut shell, "strip.add_accessory", json!({}));
     assert_eq!(
         lines_with(&shell, "toast "),
-        ["toast \"Added end bracket at the start of New terminal strip \u{b7} no tag yet\" undo"]
+        ["toast \"Added end bracket at the start of New terminal strip \u{b7} no tag yet.\" undo"]
     );
     mark(&mut shell, &[]);
     done(&mut shell, "navigator.row", json!({"kind": "strips", "key": key}));
@@ -654,7 +654,7 @@ fn ft1289_the_strip_editor_and_its_accessory_toast_read_in_dutch() {
     assert_eq!(word, "Eindsteun");
     assert_eq!(
         lines_with(&shell, "toast "),
-        ["toast \"Eindsteun toegevoegd na klem 4 van -X1031\" undo"]
+        ["toast \"Eindsteun toegevoegd na klem 4 van -X1031.\" undo"]
     );
     // FT-1412: the insert and the move name the terminal in words, in Dutch too.
     let k5 = row(&shell, "Klem", "5");
@@ -662,14 +662,14 @@ fn ft1289_the_strip_editor_and_its_accessory_toast_read_in_dutch() {
     done(&mut shell, "strip.insert", json!({}));
     assert_eq!(
         lines_with(&shell, "toast "),
-        ["toast \"1 klem ingevoegd vóór klem 5 van -X1031\" undo"]
+        ["toast \"1 klem ingevoegd vóór klem 5 van -X1031.\" undo"]
     );
     let k15 = row(&shell, "Klem", "15");
     mark(&mut shell, std::slice::from_ref(&k15));
     done(&mut shell, "strip.move", json!({"step": -1}));
     assert_eq!(
         lines_with(&shell, "toast "),
-        ["toast \"Klem 15 van -X1031 verplaatst\" undo"]
+        ["toast \"Klem 15 van -X1031 verplaatst.\" undo"]
     );
     shell.shutdown();
 }

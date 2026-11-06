@@ -5,14 +5,13 @@
 //! maximised state, kept in `settings.toml` as `[window]` and restored at the next start, clamped so that the window
 //! opens on a monitor the system still has.
 //!
-//! **Units** (R2-1, R3-2). The size is in logical points of the desktop (egui's points at the UI scale 1, the
-//! physical pixels divided by the native scale). The position is in the desktop's uniform space, which depends on the
-//! platform: physical pixels on Windows and X11 (one space for monitors of different scales, where a logical position
-//! drifts), global logical points on macOS (where winit's physical values are scaled per display); Wayland reports no
-//! position (see `ew_ui::window_memory::CoordSpace`). Whole numbers in the file. The position is the outer top-left
-//! corner (title bar included), the size the inner size. Until R2-1 (cycle 32, never released) `x` and `y` were
-//! points everywhere; such a value is read in the platform's space, and the window's first frame clamps it onto a
-//! monitor.
+//! **Units** (R2-1). The size is in logical points of the desktop (egui's points at the UI scale 1, the physical
+//! pixels divided by the native scale). The position is in the desktop's uniform space, physical pixels on Windows and
+//! X11 (one space for monitors of different scales, where a logical position drifts); Wayland reports no position
+//! (see `ew_ui::window_memory`; macOS is not a supported platform, ID-880). Whole numbers in the file. The position is
+//! the outer top-left corner (title bar included), the size the inner size. Until R2-1 (cycle 32, never released) `x`
+//! and `y` were points everywhere; such a value is read as physical pixels, and the window's first frame clamps it
+//! onto a monitor.
 //!
 //! **The clamp** ([`restore`]) is a pure function of the saved geometry and the monitors' areas: the size is at least
 //! [`MIN_SIZE`] and at most the largest monitor; the saved position stays when a grip of the title bar ([`GRIP`] wide

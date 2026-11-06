@@ -313,7 +313,12 @@ impl ShellModel {
             strings::format(key!("toast-external-folios"), &[&records, &and_list(&a.folios)])
         };
         if let Some(hash) = &a.commit {
-            text.push_str(&strings::format(key!("toast-external-git"), &[hash]));
+            // FT-1505: the commit goes inside the sentence, before its full stop.
+            text = format!(
+                "{}{}.",
+                strings::without_stop(&text),
+                strings::format(key!("toast-external-git"), &[hash])
+            );
         }
         let (undo, show) = match entry {
             Some((index, rev)) => (

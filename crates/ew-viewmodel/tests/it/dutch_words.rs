@@ -852,8 +852,8 @@ fn the_w51_dutch_texts_read_word_for_word() {
         [
             "Title: hier \"Bench\", in lamp-circuit.qet \"Lamp and switch\"",
             "Het eerste folio moet een nummer zijn; \"9x\" is dat niet.",
-            "Kabel -1W1 gemaakt met 5 aders",
-            "Kabel -1W1 gemaakt met 1 ader",
+            "Kabel -1W1 gemaakt met 5 aders.",
+            "Kabel -1W1 gemaakt met 1 ader.",
             "Duwen",
             "een knooppunt op hetzelfde niveau met code \"K1\" bestaat al in dit aspect; kies een andere code",
             "Herimport van a.qet: 0 toegevoegd, 1 gewijzigd in de bron, 0 behouden met uw wijzigingen, 0 aan beide \

@@ -293,7 +293,7 @@ fn row5_a_device_whose_cps_carry_potentials_and_a_bond_is_kept() {
     assert_eq!(
         unplaced_toast(&s).as_deref(),
         Some(
-            "-102G1 (now -?G1) has no symbol on a page now; it stays in the Devices navigator and the parts list"
+            "-102G1 (now -?G1) has no symbol on a page now; it stays in the Devices navigator and the parts list."
         )
     );
     let (names_after, bonds_after, devices) = connect_intent(&tmp, &mut s);

@@ -1040,11 +1040,27 @@ impl CanvasModel {
     }
 
     /// The view of a jump to the sheet point `p` (WP-S2.03 §6.3): the zoom `max(previous, 2 × fit)` clamped, `p`
-    /// at the centre (clamped to the sheet).
+    /// at the centre (clamped to the sheet). FT-1506 (ID-1456, doc 16a §5.5): the view stays on the sheet: where
+    /// centring `p` would show off-sheet space it stops at the sheet's edge and `p` stands off centre; along a side the
+    /// sheet is smaller than the pane, the sheet is centred.
     pub fn jump_view(&mut self, p: (i64, i64), previous_zoom: f64) {
         self.zoom = clamp_zoom(previous_zoom.max(2.0 * self.fit_zoom()));
         self.centre = p;
         self.clamp_centre();
+        let k = self.points_per_nm();
+        let on_sheet = |c: i64, side: i64, pane: f64| {
+            let half = (pane / 2.0 / k).round() as i64;
+            if 2 * half >= side {
+                side / 2
+            } else {
+                c.clamp(half, side - half)
+            }
+        };
+        let (w, h) = self.page.sheet;
+        self.centre = (
+            on_sheet(self.centre.0, w.max(0), self.pane.0),
+            on_sheet(self.centre.1, h.max(0), self.pane.1),
+        );
         self.fitted = false;
         self.update_hover();
     }

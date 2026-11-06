@@ -564,8 +564,13 @@ impl ShellModel {
             (None, Some(device)) => strings::format(key!("toast-bind-wired"), &[&words, &pin, device]),
             (None, None) => strings::format(key!("toast-bind-done"), &[&words, &pin]),
         };
+        // FT-1505: each displaced channel goes inside the sentence, before its full stop.
         for d in &displaced {
-            text.push_str(&strings::format(key!("toast-bind-displaced"), &[d]));
+            text = format!(
+                "{}{}.",
+                strings::without_stop(&text),
+                strings::format(key!("toast-bind-displaced"), &[d])
+            );
         }
         // An attachment and a bind are two undo steps: that toast offers no Undo of only the second.
         self.notify(text, attach.is_none());

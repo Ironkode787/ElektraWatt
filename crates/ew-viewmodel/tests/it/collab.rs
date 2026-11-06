@@ -108,7 +108,7 @@ fn xw1_the_external_change_toast_offers_undo_and_show_changes() {
     done(&mut s, "project.check_disk", json!({}));
     assert_eq!(
         toasts(&s),
-        ["toast \"External change applied: 1 change on folio 102\" undo show_changes"]
+        ["toast \"External change applied: 1 change on folio 102.\" undo show_changes"]
     );
     assert!(!s.is_dirty(), "the window holds the generation on disk");
     let serial = s.notifications().newest_visible().expect("the toast").serial;
@@ -205,7 +205,7 @@ fn xw2_the_collision_dialog_holds_saves_until_a_side_is_chosen() {
     done(&mut s, "external.apply", json!({"take": "theirs"}));
     assert_eq!(
         toasts(&s),
-        ["toast \"External change applied: 1 change on folio 102\" undo show_changes"],
+        ["toast \"External change applied: 1 change on folio 102.\" undo show_changes"],
         "one step, with its Undo"
     );
     assert_eq!(s.banner(), None);
@@ -373,7 +373,7 @@ fn xw6_export_and_open_ewz_and_the_upgrade_dialog() {
     done(&mut s, "file.export_ewz", json!({"path": ewz.to_string_lossy()}));
     assert_eq!(
         toasts(&s).last().map(String::as_str),
-        Some("toast \"Exported J-E-2416.ewz\"")
+        Some("toast \"Exported J-E-2416.ewz.\"")
     );
     let (reader, _) = Session::open_read_only(&ewz, "ElektraWatt test").expect("the .ewz opens");
     let (direct, _) = Session::open_read_only(&dir, "ElektraWatt test").unwrap();
@@ -724,7 +724,7 @@ fn xw2f_the_dialog_reads_in_words_and_all_mine_says_it_kept_yours() {
     );
     done(&mut s, "view.language", json!({"value": "en"}));
     done(&mut s, "external.apply", json!({"take": "mine"}));
-    assert_eq!(toasts(&s), ["toast \"Your version was kept: 1 change\""]);
+    assert_eq!(toasts(&s), ["toast \"Your version was kept: 1 change.\""]);
 
     // A record deleted on disk is counted as a record.
     let delete = AnyCommand {
@@ -802,7 +802,7 @@ fn xw2g_a_mixed_choice_counts_what_came_from_disk() {
     done(&mut s, "external.apply", json!({}));
     assert_eq!(
         toasts(&s),
-        ["toast \"External change applied: 1 change on folio 102\" undo show_changes"]
+        ["toast \"External change applied: 1 change on folio 102.\" undo show_changes"]
     );
 }
 
@@ -829,11 +829,11 @@ fn xw2h_the_same_edit_on_both_sides_takes_nothing() {
     assert!(s.dialog().is_none(), "no collision: nothing to choose");
     assert_eq!(
         toasts(&s),
-        ["toast \"De wijziging op schijf is gelijk aan uw versie: er is niets over te nemen\""]
+        ["toast \"De wijziging op schijf is gelijk aan uw versie: er is niets over te nemen.\""]
     );
     done(&mut s, "view.language", json!({"value": "en"}));
     assert_eq!(
         ew_viewmodel::strings::text(ew_viewmodel::key!("toast-external-same")),
-        "The change on disk equals your version: nothing to take"
+        "The change on disk equals your version: nothing to take."
     );
 }

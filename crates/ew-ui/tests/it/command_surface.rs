@@ -503,3 +503,42 @@ fn ft1279_the_view_menu_fits_a_1000_by_700_window() {
     assert!(!h.state().shell().grid_on());
     h.state_mut().shell_mut().shutdown();
 }
+
+/// FT-1520 (ID-1456, doc 16a §6.13): View ▸ Show's switches draw only their check in the menu's check column, blank
+/// when off, never their icons: Grid (on) shows its check, Frame statistics (off) nothing.
+#[test]
+fn ft1520_view_show_switches_show_only_their_check() {
+    let tmp = Tmp::new();
+    let mut h = window(&tmp, "comfortable");
+    assert!(h.state().shell().grid_on());
+    assert!(!h.state().shell().frame_stats_shown());
+    support::open_menu(&mut h, &["View", "Show"]);
+    settle(&mut h);
+    // The shapes other than text, painted in a row's check column (its left 32 px), smaller than the row's fill.
+    fn walk(shape: &egui::Shape, out: &mut Vec<Rect>) {
+        match shape {
+            egui::Shape::Vec(v) => v.iter().for_each(|s| walk(s, out)),
+            egui::Shape::Text(_) | egui::Shape::Noop => {}
+            other => out.push(other.visual_bounding_rect()),
+        }
+    }
+    let mut painted = Vec::new();
+    for c in &h.output().shapes {
+        walk(&c.shape, &mut painted);
+    }
+    let in_column = |label: &str| {
+        let row = support::menu_node(&h, label).rect();
+        let column = Rect::from_min_max(row.left_top(), egui::pos2(row.left() + 32.0, row.bottom()));
+        painted
+            .iter()
+            .filter(|r| r.is_positive() && r.width() < 24.0 && column.contains_rect(**r))
+            .count()
+    };
+    assert!(in_column("Grid") > 0, "Grid's check");
+    assert_eq!(
+        in_column("Frame statistics"),
+        0,
+        "no icon beside Frame statistics"
+    );
+    h.state_mut().shell_mut().shutdown();
+}

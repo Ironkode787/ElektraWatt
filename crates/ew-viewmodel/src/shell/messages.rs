@@ -964,36 +964,36 @@ mod tests {
         };
         assert_eq!(
             check_summary(c(1, 0, 0, 0, 0), None),
-            "Check: 1 error, 0 warnings"
+            "Check: 1 error, 0 warnings."
         );
         assert_eq!(
             check_summary(c(0, 1, 0, 0, 0), None),
-            "Check: 0 errors, 1 warning"
+            "Check: 0 errors, 1 warning."
         );
         // FT-664: waived and pending qualify the title; the line keeps the severities.
         assert_eq!(
             check_summary(c(2, 3, 1, 4, 1), None),
-            "Check · 4 waived · 1 pending: 2 errors, 3 warnings, 1 info"
+            "Check · 4 waived · 1 pending: 2 errors, 3 warnings, 1 info."
         );
         assert_eq!(
             check_summary(c(0, 25, 0, 1, 0), None),
-            "Check · 1 waived: 0 errors, 25 warnings"
+            "Check · 1 waived: 0 errors, 25 warnings."
         );
         // FT-1432: after an earlier check, what changed leads, then the project's totals.
         assert_eq!(
             check_summary(c(32, 4, 0, 0, 0), Some(c(33, 3, 1, 0, 0))),
-            "Check: \u{2212}1 error, +1 warning, \u{2212}1 info since the last check; project: 32 errors, 4 warnings"
+            "Check: \u{2212}1 error, +1 warning, \u{2212}1 info since the last check; project: 32 errors, 4 warnings."
         );
         assert_eq!(
             check_summary(c(33, 3, 0, 1, 0), Some(c(33, 3, 0, 0, 0))),
-            "Check · 1 waived: no change since the last check; project: 33 errors, 3 warnings"
+            "Check · 1 waived: no change since the last check; project: 33 errors, 3 warnings."
         );
         assert!(strings::set_locale("nl"));
         let dutch = check_summary(c(32, 3, 0, 0, 0), Some(c(33, 3, 0, 0, 0)));
         assert!(strings::set_locale("en"));
         assert_eq!(
             dutch,
-            "Controle: \u{2212}1 fout sinds de vorige controle; project: 32 fouten, 3 waarschuwingen"
+            "Controle: \u{2212}1 fout sinds de vorige controle; project: 32 fouten, 3 waarschuwingen."
         );
     }
 

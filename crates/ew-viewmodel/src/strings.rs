@@ -706,6 +706,12 @@ pub fn format(key: Key<'_>, args: &[&str]) -> String {
         .unwrap_or_else(|| "?".to_owned())
 }
 
+/// A sentence `text` without its closing full stop, so that another part can follow it inside the same sentence
+/// (FT-1505: every toast text ends with its full stop, doc 16a §8 item 5).
+pub fn without_stop(text: &str) -> &str {
+    text.strip_suffix('.').unwrap_or(text)
+}
+
 /// A column or field label inside a sentence (FT-757, sentence case): its first letter lower-cased ("Address" reads
 /// "address", "Function text" "function text"), unless the label starts with an abbreviation, two capitals in a row
 /// ("DT", "PLC address"), which stays as it is.
@@ -1608,15 +1614,15 @@ mod tests {
     fn format_count_is_singular_for_one_and_plural_otherwise() {
         assert_eq!(
             format_count(count_key!("toast-recovered"), 1),
-            "Recovered 1 change; save to keep it"
+            "Recovered 1 change; save to keep it."
         );
         assert_eq!(
             format_count(count_key!("toast-recovered"), 3),
-            "Recovered 3 changes; save to keep them"
+            "Recovered 3 changes; save to keep them."
         );
         assert_eq!(
             format_count(count_key!("toast-recovered"), 0),
-            "Recovered 0 changes; save to keep them"
+            "Recovered 0 changes; save to keep them."
         );
         assert_eq!(
             format_count(count_key!("marker-recovered"), 1),

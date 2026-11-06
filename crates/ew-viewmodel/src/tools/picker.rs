@@ -232,17 +232,39 @@ impl Picker {
     }
 
     /// The manufacturer header that stands above row `i` (FT-425): the manufacturer of a part row whose manufacturer
-    /// differs from the row before it (or that is the first part row); `None` for every other row.
+    /// differs from the row before it (or that is the first part row), or that starts its group
+    /// ([`Picker::group_before`], FT-1513); `None` for every other row.
     pub fn header_before(&self, i: usize) -> Option<&str> {
         let manufacturer = |row: Option<&PickerRow>| match row {
-            Some(PickerRow::PartFn(p, _) | PickerRow::Part(p)) => {
-                self.catalogue.parts.get(*p).map(|x| x.manufacturer.as_str())
-            }
+            Some(PickerRow::PartFn(p, _) | PickerRow::Part(p)) => self
+                .catalogue
+                .parts
+                .get(*p)
+                .map(|x| (x.library.is_some(), x.manufacturer.as_str())),
             _ => None,
         };
         let here = manufacturer(self.rows.get(i))?;
         let before = i.checked_sub(1).and_then(|j| manufacturer(self.rows.get(j)));
-        (before != Some(here)).then_some(here)
+        (before != Some(here)).then_some(here.1)
+    }
+
+    /// The heading of the group that starts at row `i` (FT-1513, ID-1456): "In this project" above the project's own
+    /// part copies, "From libraries" above the libraries' parts, each over the first part row of its group; `None`
+    /// for every other row.
+    pub fn group_before(&self, i: usize) -> Option<Key<'static>> {
+        let group = |row: Option<&PickerRow>| match row {
+            Some(PickerRow::PartFn(p, _) | PickerRow::Part(p)) => {
+                self.catalogue.parts.get(*p).map(|x| x.library.is_some())
+            }
+            _ => None,
+        };
+        let here = group(self.rows.get(i))?;
+        let before = i.checked_sub(1).and_then(|j| group(self.rows.get(j)));
+        (before != Some(here)).then_some(if here {
+            key!("picker-group-libraries")
+        } else {
+            key!("picker-group-project")
+        })
     }
 
     /// The string key of the text the picker shows instead of rows; `None` while it has rows. With a filter typed it

@@ -1159,6 +1159,56 @@ fn ft1413_the_label_column_gives_way_to_no_count_and_no_prose() {
     }
 }
 
+/// FT-1498 (ID-1456, doc 16a §6.8): at the 1280 × 800 floor folio 101's prose values (its Description beside its
+/// "inherited" chip, its Title) wrap at their words onto further lines, their rows growing, and none is cut; at
+/// 1920 × 1080 they stand on one line.
+#[test]
+fn ft1498_a_prose_value_wraps_and_is_never_cut() {
+    for (size, wraps) in [
+        (egui::Vec2::new(1280.0, 800.0), true),
+        (egui::Vec2::new(1920.0, 1080.0), false),
+    ] {
+        let tmp = Tmp::new();
+        let mut h = on_golden(&tmp, "101");
+        h.set_size(size);
+        settle(&mut h);
+        settle(&mut h);
+        let row = ew_ui::theme::current(&h.ctx).size_row;
+        for label in ["Description", "Title"] {
+            let value = {
+                let sheet = h.state().shell().properties().sheet().expect("the page's sheet");
+                let r = sheet
+                    .sections
+                    .iter()
+                    .flat_map(|s| s.rows.iter().map(move |r| (s, r)))
+                    .find(|(s, r)| ew_ui::ew_viewmodel::properties::row_label(s, r) == label)
+                    .map(|(_, r)| r)
+                    .expect(label);
+                match &r.value {
+                    RowValue::One { text, .. } => text.clone(),
+                    other => panic!("{label}: {other:?}"),
+                }
+            };
+            let texts = texts_in_row(&h, label);
+            assert!(
+                texts.contains(&(value.clone(), false)),
+                "{label} at {size:?}: {value:?} whole among {texts:?}"
+            );
+            let height = h
+                .get_all_by_role(egui::Role::Group)
+                .find(|g| g.accesskit_node().label().as_deref() == Some(label))
+                .expect(label)
+                .rect()
+                .height();
+            assert_eq!(
+                height > row + 0.5,
+                wraps,
+                "{label} at {size:?}: a row {height} high"
+            );
+        }
+    }
+}
+
 /// The texts painted inside the row whose group is named `label`, each with whether it was cut (elided).
 fn texts_in_row(h: &Harness<'_, App>, label: &str) -> Vec<(String, bool)> {
     fn walk(shape: &egui::Shape, out: &mut Vec<(String, bool, egui::Pos2)>) {

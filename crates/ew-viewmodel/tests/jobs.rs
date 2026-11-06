@@ -89,8 +89,8 @@ fn jb3_a_held_export_shows_running_and_the_job_field_and_a_cancel_leaves_no_file
     );
     assert!(!target.exists(), "no file");
     assert!(!sibling(&target).exists(), "no sibling");
-    assert_eq!(s.toast().unwrap().text, "Export cancelled; no file written");
-    assert!(d.contains("toast \"Export cancelled; no file written\""), "{d}");
+    assert_eq!(s.toast().unwrap().text, "Export cancelled; no file written.");
+    assert!(d.contains("toast \"Export cancelled; no file written.\""), "{d}");
     assert_ne!(last_status(&s), "PDF export", "no job field once it ended");
     assert!(s.markers().is_empty(), "a cancelled export adds no marker");
     s.shutdown();
@@ -128,7 +128,7 @@ fn jb3_a_panic_after_the_sibling_is_written_is_reported_and_leaves_no_file() {
     let target = tmp.0.join("out.pdf");
     let rev = s.revision();
     let message = failed(&mut s, "file.export_pdf", json!({"path": path_text(&target)}));
-    assert_eq!(message, "Export failed: an internal error");
+    assert_eq!(message, "Export failed: an internal error.");
     assert!(!target.exists());
     assert!(!sibling(&target).exists(), "the unwinding removed the sibling");
     // The session is untouched and the shell goes on.
@@ -156,7 +156,7 @@ fn p2_a_second_export_of_the_same_file_says_again() {
     done(&mut s, "file.export_pdf", json!({"path": path_text(&target)}));
     let kib = |p: &Path| std::fs::metadata(p).unwrap().len().div_ceil(1024);
     let pages = s.page_count();
-    let first = format!("Exported out.pdf: {pages} drawing pages, {} KiB", kib(&target));
+    let first = format!("Exported out.pdf: {pages} drawing pages, {} KiB.", kib(&target));
     assert_eq!(s.toast().unwrap().text, first);
     done(
         &mut s,
@@ -164,12 +164,12 @@ fn p2_a_second_export_of_the_same_file_says_again() {
         json!({"path": path_text(&target), "replace": true}),
     );
     let second = format!(
-        "Exported out.pdf again: {pages} drawing pages, {} KiB",
+        "Exported out.pdf again: {pages} drawing pages, {} KiB.",
         kib(&target)
     );
     assert_eq!(s.toast().unwrap().text, second);
     done(&mut s, "file.export_pdf", json!({"path": path_text(&other)}));
-    let third = format!("Exported other.pdf: {pages} drawing pages, {} KiB", kib(&other));
+    let third = format!("Exported other.pdf: {pages} drawing pages, {} KiB.", kib(&other));
     assert_eq!(log_texts(&s), [third, second, first]);
     s.shutdown();
 }
@@ -190,7 +190,7 @@ fn jb4_the_replace_rule_and_the_marker() {
     let kib = bytes.len().div_ceil(1024);
     assert_eq!(
         s.toast().unwrap().text,
-        format!("Exported out.pdf: {} drawing pages, {kib} KiB", s.page_count())
+        format!("Exported out.pdf: {} drawing pages, {kib} KiB.", s.page_count())
     );
     // An existing file without `replace`: refused, unchanged.
     std::fs::write(&target, b"not a pdf").unwrap();
@@ -268,7 +268,7 @@ fn jb5_a_target_in_a_missing_folder_fails_with_the_cause_and_the_remedy() {
     assert_eq!(
         message,
         "Export failed: the folder does not exist; check that the folder is writable and the file is not open in \
-         another program"
+         another program."
     );
     assert!(!message.contains(&*path_text(&tmp.0)), "no path");
     done(&mut s, "jobs.show", json!({}));
@@ -412,7 +412,7 @@ fn jb6_the_log_popup_and_its_refusals() {
         .div_ceil(1024);
     assert!(
         d.contains(&format!(
-            "notifications 1\n  notification 1 \"Exported out.pdf: {} drawing pages, {kib} KiB\" open",
+            "notifications 1\n  notification 1 \"Exported out.pdf: {} drawing pages, {kib} KiB.\" open",
             s.page_count()
         )),
         "{d}"
@@ -493,7 +493,7 @@ fn quit_records_a_cancelled_export_in_its_entry_and_the_log() {
         s.jobs().get(1).map(|e| e.status.clone()),
         Some(JobStatus::Cancelled)
     );
-    assert_eq!(log_texts(&s), ["Export cancelled; no file written"]);
+    assert_eq!(log_texts(&s), ["Export cancelled; no file written."]);
     assert!(!target.exists(), "no file");
     assert!(!sibling(&target).exists(), "no sibling");
 }
@@ -590,7 +590,7 @@ fn ft513_wait_jobs_returns_the_unseen_failed_cancelled_and_panicked_ends() {
         json!({"path": path_text(&missing), "wait": false}),
     );
     let failed_text = "Export failed: the folder does not exist; check that the folder is writable and the file is \
-                       not open in another program";
+                       not open in another program.";
     assert_eq!(s.wait_jobs(), vec![failed_text.to_owned()]);
     // Cancelled: held, cancelled, released; the end is taken by `wait_jobs` again.
     let gate = Gate::new();
@@ -605,7 +605,7 @@ fn ft513_wait_jobs_returns_the_unseen_failed_cancelled_and_panicked_ends() {
     done(&mut s, "jobs.cancel", json!({}));
     gate.release();
     s.set_job_gate_for_tests(None);
-    let cancelled_text = "Export cancelled; no file written";
+    let cancelled_text = "Export cancelled; no file written.";
     assert_eq!(
         s.wait_jobs(),
         vec![failed_text.to_owned(), cancelled_text.to_owned()],
@@ -623,7 +623,7 @@ fn ft513_wait_jobs_returns_the_unseen_failed_cancelled_and_panicked_ends() {
         std::thread::yield_now();
     }
     s.set_job_panic_for_tests(None);
-    let internal_text = "Export failed: an internal error";
+    let internal_text = "Export failed: an internal error.";
     assert_eq!(
         s.wait_jobs(),
         vec![
@@ -719,7 +719,7 @@ fn ft513_a_wait_after_a_poll_took_the_end_still_sees_it() {
 #[test]
 fn ft513_jobs_wait_chooses_the_newest_job_no_step_waited_for_whatever_the_polls_took() {
     let failed_text = "Export failed: the folder does not exist; check that the folder is writable and the file is \
-                       not open in another program";
+                       not open in another program.";
     for polled in [true, false] {
         let tmp = Tmp::new(if polled { "r2-1-polled" } else { "r2-1-running" });
         let mut s = small(&tmp, Mode::Headless);

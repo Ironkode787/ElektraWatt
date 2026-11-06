@@ -10,6 +10,7 @@
 
 use egui::{Button, Key, Modifiers, Ui};
 use ew_viewmodel::actions::{ActionItem, MenuEntry, menu_model};
+use ew_viewmodel::command_bar::Group;
 use ew_viewmodel::key;
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::strings;
@@ -45,13 +46,21 @@ pub(crate) fn menu_config(t: &crate::theme::Tokens) -> egui::containers::menu::M
 /// a check icon when checked, else empty so the labels align), the label, and the key in `color.text.secondary`
 /// right-aligned; hover uses the hover overlay, never the accent. Disabled with its reason as the tooltip.
 pub(crate) fn item(ui: &mut Ui, item: &ActionItem, events: &mut Vec<Event>) {
+    item_in(ui, item, true, events);
+}
+
+/// [`item`], with the action's icon in the icon column only when `icons`; else the column holds the check alone, blank
+/// when the item is off (FT-1520, ID-1456: View ▸ Show's switches).
+fn item_in(ui: &mut Ui, item: &ActionItem, icons: bool, events: &mut Vec<Event>) {
     let t = crate::theme::current(ui.ctx());
     let icon = if item.checked {
         Some(IconId::check)
-    } else {
+    } else if icons {
         ew_viewmodel::actions::find(item.id)
             .and_then(|m| m.icon)
             .and_then(IconId::from_key)
+    } else {
+        None
     };
     let colour = if !item.enabled {
         t.text_disabled
@@ -106,28 +115,30 @@ fn blank_column(ui: &Ui) -> egui::Atom<'static> {
     egui::Atom::paint(egui::Vec2::splat(t.icon_sm), |_, _| {})
 }
 
-/// The entries of a menu: items, separators, submenus and the command-bar groups shown as submenus.
-fn entries(ui: &mut Ui, list: &[MenuEntry], events: &mut Vec<Event>) {
+/// The entries of a menu: items, separators, submenus and the command-bar groups shown as submenus. The items show
+/// their actions' icons when `icons` (all but View ▸ Show's switches, FT-1520).
+fn entries(ui: &mut Ui, list: &[MenuEntry], icons: bool, events: &mut Vec<Event>) {
     for entry in list {
         match entry {
             MenuEntry::Separator => {
                 ui.separator();
             }
-            MenuEntry::Item(i) => item(ui, i, events),
+            MenuEntry::Item(i) => item_in(ui, i, icons, events),
             MenuEntry::Submenu { label, items, .. } => {
                 crate::components::submenu(ui, (blank_column(ui), label.as_str()), |ui| {
                     for i in items {
-                        item(ui, i, events);
+                        item_in(ui, i, icons, events);
                     }
                 });
             }
             MenuEntry::Group {
+                group,
                 label,
                 entries: inner,
-                ..
             } => {
+                let icons = icons && *group != Group::Show;
                 crate::components::submenu(ui, (blank_column(ui), label.as_str()), |ui| {
-                    entries(ui, inner, events)
+                    entries(ui, inner, icons, events)
                 });
             }
         }
@@ -137,7 +148,9 @@ fn entries(ui: &mut Ui, list: &[MenuEntry], events: &mut Vec<Event>) {
 /// The app menu's content (the popup of the command bar's app button): one submenu per menu of `shell`.
 pub(crate) fn app_menu(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
     for menu in menu_model(shell) {
-        crate::components::submenu(ui, menu.label.as_str(), |ui| entries(ui, &menu.entries, events));
+        crate::components::submenu(ui, menu.label.as_str(), |ui| {
+            entries(ui, &menu.entries, true, events)
+        });
     }
 }
 

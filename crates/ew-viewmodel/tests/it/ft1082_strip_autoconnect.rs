@@ -113,7 +113,7 @@ fn ft1082_a_terminal_placed_under_one_of_its_strip_is_not_connected_to_it() {
         [pair("-103S1:14", "-X1031:70/b")],
         "the placement made no connection"
     );
-    assert_eq!(toast(&s), "Placed -X1031 terminal 71 at 103-E9");
+    assert_eq!(toast(&s), "Placed -X1031 terminal 71 at 103-E9.");
 }
 
 #[test]
@@ -136,7 +136,7 @@ fn ft1082_a_terminal_of_another_strip_in_that_line_is_proposed_and_connected() {
     assert_eq!(
         toast(&s),
         "Placed -X1032 terminal 90 at 103-E9 and connected 1 wire: \"2\" -> \"-X1031:70/a\". Alt+Click or Ctrl+Enter \
-         places without connecting"
+         places without connecting."
     );
 }
 

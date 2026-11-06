@@ -85,6 +85,17 @@ pub fn definitions() -> FontDefinitions {
     defs
 }
 
+/// Whether the UI's own text faces, Noto Sans Regular and SemiBold, both carry `c` in their character maps (FT-1507:
+/// the non-breaking hyphen of a toast's tags).
+pub fn carries(c: char) -> bool {
+    let definitions = definitions();
+    [REGULAR, SEMIBOLD].iter().all(|name| {
+        definitions.font_data.get(*name).is_some_and(|data| {
+            FontRef::from_index(data.bytes(), data.index).is_ok_and(|font| font.charmap().map(c).is_some())
+        })
+    })
+}
+
 /// Installs the bundled fonts into `ctx` (takes effect with the next pass).
 pub fn install(ctx: &egui::Context) {
     ctx.set_fonts(definitions());

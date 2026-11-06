@@ -110,7 +110,7 @@ fn cp2_cp7_the_toasts_stand_at_the_canvas_top_right_newest_on_top() {
         .map(|n| n.rect())
         .collect();
     assert_eq!(toasts.len(), 2, "two keys, two toasts (at most three)");
-    let edit = h.get_by_label("Set function text on 2 devices").rect();
+    let edit = h.get_by_label("Set function text on 2 devices.").rect();
     let export = h.get_by_label_contains("Exported a.pdf").rect();
     assert!(export.top() < edit.top(), "the newest on top");
     let pane = h.state().command_surface_rects().2.expect("the canvas pane");
@@ -573,7 +573,7 @@ fn ft1144_a_toast_with_its_whole_text_shows_no_tooltip() {
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     let shown = one_toast(&mut h);
     assert_eq!(opacity_at(&mut h, shown, 1.0), Some(1.0));
-    let text = "Set function text on 2 devices";
+    let text = "Set function text on 2 devices.";
     let toast = h
         .get_all_by_role(egui::Role::Group)
         .find(|n| n.accesskit_node().label().as_deref() == Some("Notification"))
@@ -668,18 +668,35 @@ fn a_greyed_commands_toast_title_stands_whole_on_two_rows_at_the_floor() {
         .expect("the Symbol button")
         .click();
     settle(&mut h);
-    // The title's label carries the toast's whole text as its live value; its text runs are the rows as drawn.
+    // The title's label carries the toast's whole text as its live value; its galley's rows are the rows as drawn
+    // (FT-1507: the toast's labels are not selectable, so they hold no text runs).
     let whole = format!("{TITLE}: draw on a schematic page");
-    let label = h
-        .get_all_by_role(egui::Role::Label)
-        .find(|n| n.accesskit_node().value().as_deref() == Some(whole.as_str()))
-        .expect("the toast's title");
-    let rows: Vec<String> = label
-        .children()
-        .filter(|n| n.accesskit_node().role() == egui::accesskit::Role::TextRun)
-        .map(|n| n.accesskit_node().value().unwrap_or_default())
+    assert!(
+        h.get_all_by_role(egui::Role::Label)
+            .any(|n| n.accesskit_node().value().as_deref() == Some(whole.as_str())),
+        "the toast's title"
+    );
+    fn walk(shape: &egui::Shape, out: &mut Vec<std::sync::Arc<egui::Galley>>) {
+        match shape {
+            egui::Shape::Vec(v) => v.iter().for_each(|s| walk(s, out)),
+            egui::Shape::Text(t) => out.push(t.galley.clone()),
+            _ => {}
+        }
+    }
+    let mut galleys = Vec::new();
+    for c in &h.output().shapes {
+        walk(&c.shape, &mut galleys);
+    }
+    let title = galleys
+        .iter()
+        .find(|g| g.text() == TITLE)
+        .expect("the title as drawn");
+    let rows: Vec<String> = title
+        .rows
+        .iter()
+        .map(|r| r.glyphs.iter().map(|g| g.chr).collect())
         .collect();
     assert_eq!(rows.len(), 2, "two rows: {rows:?}");
-    assert_eq!(rows.concat().trim_end(), TITLE, "whole, uncut: {rows:?}");
+    assert!(!title.elided, "whole, uncut: {rows:?}");
     h.state_mut().shell_mut().shutdown();
 }

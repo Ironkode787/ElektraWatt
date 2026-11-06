@@ -195,6 +195,8 @@ pub const KEYS: &[&str] = &[
     "picker-new-strip",
     "picker-empty-black-box",
     "picker-empty-page",
+    "picker-group-project",
+    "picker-group-libraries",
     "reason-letter-needed",
     "reason-one-rep",
     "reason-nothing-to-move",

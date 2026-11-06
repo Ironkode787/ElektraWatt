@@ -658,7 +658,7 @@ fn ft759_a_terminal_dropped_on_a_wire_says_it_is_in_the_circuit() {
     let toast = state(&s)["toast"]["text"].as_str().unwrap_or_default().to_owned();
     assert!(
         toast.starts_with("Placed -X1031 terminal 71")
-            && toast.ends_with(", connected into the wire it was dropped on"),
+            && toast.ends_with(", connected into the wire it was dropped on."),
         "{toast}"
     );
 }
@@ -718,6 +718,6 @@ fn ft1020_a_terminal_dropped_on_an_autoconnected_wire_is_split_into_it() {
     );
     assert_eq!(
         state(&s)["toast"]["text"].as_str(),
-        Some("Placed -X1031 terminal 71 at 103-D9, connected into the wire it was dropped on")
+        Some("Placed -X1031 terminal 71 at 103-D9, connected into the wire it was dropped on.")
     );
 }
