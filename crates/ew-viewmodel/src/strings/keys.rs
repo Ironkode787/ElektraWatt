@@ -918,6 +918,7 @@ pub const KEYS: &[&str] = &[
     "refusal-languages-decimal-separator",
     "refusal-languages-no-source",
     "refusal-check-waive-twice",
+    "refusal-check-waive-twice-subject",
     "refusal-check-waive-rule-id",
     "refusal-check-waive-fingerprint",
     "refusal-check-waive-reason",

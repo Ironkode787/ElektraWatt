@@ -585,6 +585,10 @@ pub const TEXTS: &[(&str, &str)] = &[
         "a waiver of {0} covers this finding already",
     ),
     (
+        "refusal-check-waive-twice-subject",
+        "a waiver of {0} for {1} covers this finding already",
+    ),
+    (
         "refusal-check-waive-rule-id",
         "`{0}` is not a rule ID (EW-<PACK>-<three digits>, for example EW-CORE-041)",
     ),

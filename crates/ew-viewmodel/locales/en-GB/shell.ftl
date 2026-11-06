@@ -1026,6 +1026,7 @@ refusal-languages-decimal-separator = not a decimal separator of this version
 refusal-languages-no-source = translation languages need a `source` language
 # check.waive.
 refusal-check-waive-twice = a waiver of { $p0 } covers this finding already
+refusal-check-waive-twice-subject = a waiver of { $p0 } for { $p1 } covers this finding already
 refusal-check-waive-rule-id = `{ $p0 }` is not a rule ID (EW-<PACK>-<three digits>, for example EW-CORE-041)
 refusal-check-waive-fingerprint = `{ $p0 }` is not a finding fingerprint (32 hex digits)
 refusal-check-waive-reason = a waiver needs a reason of at least { $p0 } characters

@@ -983,6 +983,7 @@ refusal-languages-decimal-separator = geen decimaalteken van deze versie
 refusal-languages-no-source = vertaaltalen hebben een `source`-taal nodig
 # check.waive.
 refusal-check-waive-twice = een vrijstelling van { $p0 } dekt deze bevinding al
+refusal-check-waive-twice-subject = een vrijstelling van { $p0 } voor { $p1 } dekt deze bevinding al
 refusal-check-waive-rule-id = `{ $p0 }` is geen regel-ID (EW-<PAKKET>-<drie cijfers>, bijvoorbeeld EW-CORE-041)
 refusal-check-waive-fingerprint = `{ $p0 }` is geen vingerafdruk van een bevinding (32 hexadecimale cijfers)
 refusal-check-waive-reason = een vrijstelling heeft een reden van ten minste { $p0 } tekens nodig

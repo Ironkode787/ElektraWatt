@@ -130,7 +130,8 @@ pub const WAIVER_REASON_MIN_CHARS: usize = 10;
 ///
 /// Rejected: a rule ID that is not of the form `EW-<PACK>-<three digits>` (at `/rule`); a fingerprint that is not 32
 /// hex digits (at `/fingerprint`); an empty reason or one with a text shorter than [`WAIVER_REASON_MIN_CHARS`]
-/// characters (at `/reason`); a finding that a waiver of the same rule covers already (the existing waiver is named).
+/// characters (at `/reason`); a finding that a waiver of the same rule covers already (the existing waiver is named by
+/// its rule, and by the finding's `subject` when it is given, FT-1509).
 ///
 /// **Exposure `HumanOnly`** (ADR-0019 decision 8, doc 15 §2.5 "Who may waive"): a scripted waiver would defeat the
 /// record, so command logs, scripts, MCP and plugins get `CmdError::Exposure`. Interactive; undoable as one step.
@@ -151,6 +152,10 @@ pub struct WaiveFinding {
     pub author: Ident,
     /// The date of the waiver.
     pub date: Date,
+    /// The finding's subject as printed (a device's tag), which the refusal of a finding waived already names; not
+    /// recorded (FT-1509).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub subject: Option<String>,
 }
 
 /// Whether `rule` has the form of a rule ID: `EW-`, an upper-case pack name of letters and digits, `-` and three
@@ -219,7 +224,10 @@ impl Command for WaiveFinding {
                     .as_deref()
                     .is_some_and(|f| f.eq_ignore_ascii_case(&fingerprint))
         }) {
-            return tx.reject(text!("refusal-check-waive-twice", self.rule.as_str()));
+            return tx.reject(match self.subject.as_deref().filter(|s| !s.is_empty()) {
+                Some(subject) => text!("refusal-check-waive-twice-subject", self.rule.as_str(), subject),
+                None => text!("refusal-check-waive-twice", self.rule.as_str()),
+            });
         }
         let id: Id<Waiver> = tx.mint();
         tx.insert(Waiver {

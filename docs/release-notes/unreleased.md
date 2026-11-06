@@ -206,3 +206,6 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
 - text-change: commands refusals naming a library copy (a manufacturer copy reads "manufacturer <name> (<key>) at
   version <v>", a PLC profile "PLC profile <label>", a symbol and a macro "symbol <name>", "macro <name>"; a part and
   a document without a name as before; FT-1524)
+- api-add: command check.waive subject (optional: the finding's subject as printed, which the window passes from the
+  Messages row; a finding waived already is refused as "a waiver of <rule> for <subject> covers this finding
+  already", the earlier text kept without it; FT-1509)
