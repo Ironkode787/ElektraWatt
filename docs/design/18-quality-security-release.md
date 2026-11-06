@@ -636,6 +636,11 @@ read, so the archive entry limit equals the format's 16-bit count and its hostil
 (FT-1452); its replay test runs the user guide's tutorial scripts as seeds, read where they are. `ewlib_read` reads its
 library through `ew-library`'s in-memory entry, `Registry::in_memory`, with the index in memory (FT-1382).
 
+*Cycle 53 (ID-1463; M25-p1#8, M25-p2#6).* The symbol editor's readers have two targets: `symbol_authoring` (the
+portable `ew.symbol/1` draft, and the EPLAN EDZ, PXF and parts-XML import through the front door, its caught panic a
+failure) and `symbol_slk` (an SLK descriptor and its eight `.sdb` tables through `ew-import-eplan`'s SLK reader, the
+read budget an oracle), with hand-made seeds that the replay test runs. The hostile corpus gains `eplan/`.
+
 ### 3.13 Reliability harnesses
 
 These harnesses are designed in 05 and run here:
@@ -1463,8 +1468,9 @@ message, and Weblate comes at 1.0 (ID-1331 (1)). `build-book.sh`'s Linux run is 
   `ew-export`, `ew-render-cpu` and their dependents declare 1.92 for krilla 0.8.2 (vello_cpu 0.3.0 needs 1.89,
   parley 0.12.0 1.88). As applied: `ew-export`, `ew-render-cpu`, `ew-api`, `ew-print`, `ew-testkit`, `ew-ui`,
   `ew-viewmodel` and both binaries (decision log ID-183); since cycle 19 `ew-ui`, `ew-viewmodel` and `elektrawatt`
-  declare 1.95, which egui 0.37 needs (decision log ID-477). The workspace value 1.85 is the permissive crates' MSRV, not
-  a promise for the application.
+  declare 1.95, which egui 0.37 needs (decision log ID-477); since cycle 53 `ew-import-eplan`, `ew-api`,
+  `ew-testkit` and `ew` declare 1.93, which sevenz-rust2 0.24.2 needs (decision log ID-1460). The workspace value
+  1.85 is the permissive crates' MSRV, not a promise for the application.
 - **The workspace hack** (cycle 43, RD43 R17). The GPL crates depend on the workspace-hack crate `ew-hack` of
   cargo-hakari (§5, `ci/README.md`); the permissive crates never do, so the MSRV job and their publication see no hack.
 

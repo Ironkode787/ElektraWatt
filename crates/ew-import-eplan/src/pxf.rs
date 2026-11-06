@@ -4,14 +4,70 @@
 //! EPLAN PXF 1.23 macro drawing subset, verified against manufacturer exports.
 //! Unknown drawable records are reported, never interpreted as successful geometry.
 
-use crate::{ImportedSymbol, Pin};
+use crate::{Budget, ImportedSymbol, Pin};
 use roxmltree::{Document, Node, ParsingOptions};
 use serde_json::json;
+
+/// The deepest element nesting read: the tree check below allows 65 ancestors with the document root.
+const MAX_DEPTH: usize = 64;
+
+/// The index just past the first `pattern` at or after `from`, else the end of `b`.
+fn after(b: &[u8], from: usize, pattern: &[u8]) -> usize {
+    b.get(from..)
+        .and_then(|rest| rest.windows(pattern.len()).position(|w| w == pattern))
+        .map_or(b.len(), |at| from + at + pattern.len())
+}
+
+/// Whether the element nesting of `text` exceeds `limit`, by a flat scan before the parser recurses into it
+/// (SM25#1): comments, CDATA sections, processing instructions and declarations are skipped, and a quoted
+/// attribute value may hold `>` and `/`. A malformed input gives some answer; the parser reports it.
+fn too_deep(text: &str, limit: usize) -> bool {
+    let b = text.as_bytes();
+    let (mut at, mut depth) = (0, 0usize);
+    while let Some(open) = b.get(at..).and_then(|rest| rest.iter().position(|&c| c == b'<')) {
+        at += open + 1;
+        let rest = &b[at..];
+        if rest.starts_with(b"!--") {
+            at = after(b, at, b"-->");
+        } else if rest.starts_with(b"![CDATA[") {
+            at = after(b, at, b"]]>");
+        } else if rest.starts_with(b"?") {
+            at = after(b, at, b"?>");
+        } else if rest.starts_with(b"!") {
+            at = after(b, at, b">");
+        } else if rest.starts_with(b"/") {
+            depth = depth.saturating_sub(1);
+            at = after(b, at, b">");
+        } else {
+            let mut quote = None;
+            let mut end = at;
+            while let Some(&c) = b.get(end) {
+                match quote {
+                    Some(q) if c == q => quote = None,
+                    Some(_) => {}
+                    None if c == b'"' || c == b'\'' => quote = Some(c),
+                    None if c == b'>' => break,
+                    None => {}
+                }
+                end += 1;
+            }
+            if !(end > at && b[end - 1] == b'/' && b.get(end) == Some(&b'>')) {
+                depth += 1;
+                if depth > limit {
+                    return true;
+                }
+            }
+            at = end + 1;
+        }
+    }
+    false
+}
 
 pub(crate) fn xml(text: &str) -> Result<Document<'_>, String> {
     if text.len() as u64 > crate::MAX_FILE
         || text.bytes().filter(|b| *b == b'<').count() > 100_000
         || text.bytes().filter(|b| *b == b'=').count() > 200_000
+        || too_deep(text, MAX_DEPTH)
     {
         return Err("eplan-input-limit".into());
     }
@@ -66,7 +122,11 @@ fn plain(s: &str) -> String {
         .unwrap_or_default()
 }
 
-pub(crate) fn read(doc: &Document<'_>, source: &str) -> Result<Vec<ImportedSymbol>, String> {
+pub(crate) fn read(
+    doc: &Document<'_>,
+    source: &str,
+    budget: &mut Budget,
+) -> Result<Vec<ImportedSymbol>, String> {
     let root = doc.root_element();
     if root.attribute("PxfVersion") != Some("1.23") {
         return Err("eplan-pxf-version".into());
@@ -88,9 +148,6 @@ pub(crate) fn read(doc: &Document<'_>, source: &str) -> Result<Vec<ImportedSymbo
         let stroke = json!({"pen":"p026"});
         let mut incomplete = false;
         for n in variant.descendants().filter(Node::is_element) {
-            if symbol.graphics.len() > 4096 || symbol.pins.len() > 4096 {
-                return Err("eplan-input-limit".into());
-            }
             let graphic = match n.tag_name().name() {
                 "O31" => Some(
                     json!({"line":{"from":point(n,"A531",origin)?,"to":point(n,"A532",origin)?,"stroke":stroke}}),
@@ -133,6 +190,7 @@ pub(crate) fn read(doc: &Document<'_>, source: &str) -> Result<Vec<ImportedSymbo
                     if let Some(position) = n.children().find(|n| n.has_tag_name("S40x1201")) {
                         let name = n.attribute("A185").unwrap_or("");
                         if !name.is_empty() {
+                            budget.item(symbol.pins.len())?;
                             symbol.pins.push(Pin {
                                 designation: name.into(),
                                 position: point(position, "A762", origin)?,
@@ -154,6 +212,7 @@ pub(crate) fn read(doc: &Document<'_>, source: &str) -> Result<Vec<ImportedSymbo
                 _ => None,
             };
             if let Some(g) = graphic {
+                budget.item(symbol.graphics.len())?;
                 symbol.graphics.push(g);
             }
         }
@@ -162,6 +221,7 @@ pub(crate) fn read(doc: &Document<'_>, source: &str) -> Result<Vec<ImportedSymbo
         }
         symbol.notes.push("eplan-styles-review".into());
         if !symbol.graphics.is_empty() || !symbol.pins.is_empty() {
+            budget.symbol()?;
             out.push(symbol);
         }
     }

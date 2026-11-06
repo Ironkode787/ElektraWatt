@@ -4436,6 +4436,8 @@ pub const KEYS: &[&str] = &[
     "eplan-styles-review",
     "eplan-generated-body",
     "eplan-function-review",
+    "eplan-archive-skipped",
+    "symbol-import-stopped",
     "symbol-arc-start",
     "symbol-arc-sweep",
     "action-symbol-scratch",

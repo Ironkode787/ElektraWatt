@@ -112,6 +112,11 @@ in plain sight.
 | Command logs (`.ewcmd`) | `ew-api`, `Session::run_script` (`crates/ew-api/src/cmdlog.rs:287 (run_script)`) | The command schemas | `command_log` | WP-S6.04 |
 | Library documents of a project's `lib/` | `ew-format`, the `LibDocument` reader of the loader | The loader's | `jsonl_loader` | WP-S0.05a, built |
 | A `.ewlib` folder: `library.json`, the record shards, `library.lock` | `ew-library`, `LibManifest::parse` (`crates/ew-library/src/manifest.rs:65 (parse)`), the shard reader (`crates/ew-library/src/record.rs:314 (parse_records)`), `LockRecord::parse` (`crates/ew-library/src/lock.rs:125 (parse)`), through `Registry::open` (`crates/ew-library/src/registry.rs:447 (open)`) | The loader's (`crates/ew-library/src/lib.rs:15 (the limits of doc 05)`) | `ewlib_read` | WP-S6.04 (ID-1354) |
+| `ew.symbol/1` authoring JSON | `ew-api`, `SymbolDraft::parse` (`crates/ew-api/src/symbols.rs:325 (parse)`), through `symbols::open` and the front door (`crates/ew-api/src/symbols.rs:168 (front_door)`) under `Limits::element_definition()` | `crates/ew-api/src/symbols.rs:27 (MAX_BYTES)`, `:29 (MAX_ITEMS)` | `symbol_authoring` | WP-S2.10 |
+| EDZ archives, 7z and ZIP | `ew-import-eplan`, `read` (`crates/ew-import-eplan/src/lib.rs:56 (read)`) and `archive::read` (`crates/ew-import-eplan/src/archive.rs:23 (read)`); a 7z header is walked by EW first (`crates/ew-import-eplan/src/seven.rs:401 (check)`), then read by sevenz-rust2 0.24.2; through `symbols::import_eplan` (`crates/ew-api/src/symbols.rs:906 (import_eplan)`) and the front door | `crates/ew-import-eplan/src/lib.rs:17 (MAX_INPUT)`, `:19 (MAX_FILE)`, `:21 (MAX_TOTAL)`; the 7z counts, coders, dictionaries and ratio (`crates/ew-import-eplan/src/seven.rs:18 (MAX_COUNT)`); the element preset's 16 MiB | `symbol_authoring` | WP-S2.10 |
+| PXF macro XML (`.pxf`, `.ema`, `.ems`, `.esl`) | `ew-import-eplan`, `pxf::xml` (`crates/ew-import-eplan/src/pxf.rs:66 (xml)`) and `pxf::read` (`:125 (read)`), through `read` | The counts of `pxf::xml` and its depth scan before parsing (`crates/ew-import-eplan/src/pxf.rs:12 (MAX_DEPTH)`); the read budget (`crates/ew-import-eplan/src/lib.rs:139 (Budget)`) | `symbol_authoring` | WP-S2.10 |
+| EPLAN parts XML | `ew-import-eplan`, `parts` (`crates/ew-import-eplan/src/lib.rs:164 (parts)`), through `read` | As PXF's | `symbol_authoring` | WP-S2.10 |
+| EPLAN SLK 1.2 libraries: the descriptor and the eight tables of its `.sdb` folder | `ew-import-eplan`, `slk::directory` (`crates/ew-import-eplan/src/slk.rs:32 (directory)`) and `slk::read` (`:312 (read)`), through `symbols::open` (`crates/ew-api/src/symbols.rs:813 (open)`) and the front door | 8 KiB for the descriptor, `MAX_FILE` for each table and `MAX_TOTAL` for all; only the tables of `crates/ew-import-eplan/src/slk.rs:14 (FILES)`, in the descriptor's own folder, never through a parent path or a link (NFR-SEC-18, ID-1461); the read budget | `symbol_slk` | WP-S2.10 |
 
 ## 4. Extension points
 
@@ -135,14 +140,25 @@ export writes a temporary sibling and links it to a new destination, never trunc
 
 `ew-import-eplan` reads untrusted EDZ 7z/ZIP and PXF/parts XML. It never extracts archive members, opens linked files,
 executes embedded content or follows URLs. Compressed input is at most 32 MiB, one member/XML 4 MiB, total unpacked
-content 64 MiB. The 7z reader has explicit dictionary/header/entry/name limits and one decoding thread; ZIP validates
-central/local headers, names, ranges and CRC, refusing encryption/ZIP64 and unsupported compression. XML forbids
-DTD/entity expansion and bounds nodes, depth and attributes. Unsupported records are reported for review; missing
-connection directions block publication. Downloading does not grant a licence: EPLAN imports require source terms.
+content 64 MiB. Every symbol import runs through WP-S3.09's front door under `Limits::element_definition()`, which
+also bounds the input at 16 MiB and turns a panic into a refusal. The 7z header is walked under EW's own bounds before
+sevenz-rust2 reads it (counts, declared sizes, dictionaries up to 64 MiB, the ratio; copy, LZMA and LZMA2 only), and
+decoding uses one thread; ZIP validates central/local headers, names, ranges and CRC, refusing encryption/ZIP64 and
+unsupported compression. XML forbids DTD/entity expansion and bounds nodes and attributes, and its depth by a flat
+scan before parsing. One budget bounds a read: 4,096 graphics and 4,096 connection points per symbol, 65,536 of both
+per read, 512 symbols. Unsupported records and archive members are reported for review; missing connection directions
+block publication. Downloading does not grant a licence: EPLAN imports require source terms.
 
-Evidence: `ew-import-eplan/tests/it/reader.rs`, `ew-api/tests/it/symbol_authoring.rs`, the `symbol_authoring` fuzz target.
-The downloaded manufacturer sample stays outside the public repository. The new 7z dependency chain is **not yet
-approved by cargo-vet**; this is a release blocker, not an exemption or a completed audit.
+Native SLK import reads only eight fixed drawing-table filenames beneath the descriptor's single sibling `.sdb`
+directory (NFR-SEC-18 as ID-1461 amends it). Traversal, links (the folder or a table), unknown table layouts, duplicate
+identities/continuation chunks, invalid compressed data and excessive records/bytes are refused. It never reads
+user/lock tables or invokes EPLAN. Each file is bounded to 4 MiB, decoded streams to 64 MiB total, and the read budget
+holds. Source provenance hashes the descriptor and all consumed tables; no embedded workstation data enters the draft.
+Unsupported native graphics and connection structures are explicit findings and require author review.
+
+Evidence: `ew-import-eplan/tests/it/reader.rs`, `ew-api/tests/it/symbol_authoring.rs`, the hostile corpus's `eplan/`
+class, the `symbol_authoring` and `symbol_slk` fuzz targets. The downloaded manufacturer sample stays outside the public
+repository. sevenz-rust2 0.24.2 and lzma-rust2 0.23.0 carry `cargo vet` audits (`supply-chain/audits.toml`, ID-1460).
 
 ## 5. Native code and `unsafe`
 
@@ -154,6 +170,11 @@ approved by cargo-vet**; this is a release blocker, not an exemption or a comple
   `cargo xtask check-unsafe` (`.github/workflows/ci.yml:128 (check-unsafe)`) fails on the keyword in a file outside
   the list, in the workspace and in the fuzz crate, and on a listed file whose count differs from the list's
   (NFR-SEC-04, FT-1151).
+- **Third-party `unsafe` on a hostile-input path.** lzma-rust2 0.23.0 decodes 7z streams of EDZ archives in process.
+  The `optimization` feature that sevenz-rust2 forces adds `unsafe`: two inline-assembly loops of its range decoder
+  (`decode_direct_bits` for x86_64 and aarch64), which clamp every read to the buffer, and the encoder's match
+  finders, which decoding never reaches. Its `cargo vet` audit (`supply-chain/audits.toml`, ID-1460) records what was
+  read; EW bounds the 7z header before it decodes (§3's EDZ row) and runs the import under `catch_unwind`.
 - **Test-only crates.** `egui_mcp`, `ew-testids` and `ew-testkit` are banned from the shipped binaries' normal and
   build graph (`ci/dep-rules.toml:35 (banned_crates)`); the fuzz crate is outside the workspace.
 - **C.** The only build script of the shipped graph that compiles C is `libsqlite3-sys`'s, the bundled SQLite
@@ -168,10 +189,3 @@ extension point adds its row to §3 or §4 in the same change ([CONTRIBUTING](..
 | Date | Release | Reviewer | Parsers and extension points added since the last review | Result |
 |---|---|---|---|---|
 | 2026-11-04 | 0.1.0 (in progress) | WP-S6.04's lanes, read by the cycle's reviewer | First review: every row of §3 and §4, the importer rows from WP-S3.09's code (its front door, limits, purity check and four targets; IC-4 its panic evidence). Found: `ew-library`'s `.ewlib` reader parses `library.json`, its shards and `library.lock` with its own code, not through the loader's `LibDocument` reader; it gained the target `ewlib_read` (ID-1354). Added: the hostile corpus with its allocation bound, the sandbox's rule `foreign-file`, the panic guards of `ew sql` and the table round trip's read | Every parser of §3 has a target; complete for 0.1.0 once the delivery's CI runs `fuzz-smoke`, the deep nightly and the network sandbox green |
-
-Native SLK import reads only eight fixed drawing-table filenames beneath the descriptor's single sibling `.sdb`
-directory. Traversal, external symlink targets, unknown table layouts, duplicate identities/continuation chunks,
-invalid compressed data and excessive records/bytes are refused. It never reads user/lock tables or invokes EPLAN.
-Each file is bounded to 4 MiB, decoded streams to 64 MiB total, candidates to 512 and graphics to 65,536 total.
-Source provenance hashes the descriptor and all consumed tables; no embedded workstation data enters the draft.
-Unsupported native graphics and connection structures are explicit findings and require author review.

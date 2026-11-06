@@ -73,6 +73,12 @@ criteria = "safe-to-deploy"
 delta = "0.9.0 -> 0.8.9"
 notes = "AI-performed, owner-delegated (2026-10-22), cycle 20 lead audit. Reverse delta to the 0.8 API: AsRef<OsStr>/&[u8] with cstr_cow_from_bytes instead of AsFilename/AsSymbolName; same dlopen/dlsym/LoadLibraryExW unsafe; name buffers outlive the calls."
 
+[[audits.lzma-rust2]]
+who = "Ironkode787"
+criteria = "safe-to-deploy"
+version = "0.23.0"
+notes = "AI-performed, owner-delegated (2026-10-22), cycle 53 lane FIX25b targeted audit (ID-1460). Compiled with std and optimization only (sevenz-rust2 forces both; no encoder, lzip or xz): no dependency, no build.rs, no fs/env/net/process in library code (std::fs only in bcj.rs's tests). Read the decoding paths: lzma_reader.rs, lzma2_reader.rs, lz/lz_decoder.rs, range_dec.rs, decoder.rs, state.rs and the bcj and delta filters. The window grows with the decoded output (try_reserve_exact, capped at the declared dictionary), not up front. The decoder's unsafe is range_dec.rs's two inline-asm decode_direct_bits loops (x86_64, aarch64; nostack, readonly, pure): each read index is clamped to buf.len() - 1, and is_buffer() keeps an empty slice off the asm path (RangeDecoderBuffer is created at 64 KiB). The other unsafe (lz/mod.rs extend_match with get_unchecked and read_unaligned, lz_encoder.rs's SIMD normalisation) is reached only by the encoder's match finders, which no decoding path calls. lzma2_reader_mt.rs spawns worker threads only for a thread count of two or more; ElektraWatt sets one. Caveat: out-of-bounds input reads return 1 by design, failing later as dist overflow; malformed input fails with an error, which ElektraWatt calls under its own header bounds and the import front door's catch_unwind."
+
 [[audits.naga]]
 who = "Ironkode787"
 criteria = "safe-to-deploy"
@@ -102,6 +108,12 @@ who = "Ironkode787"
 criteria = "safe-to-deploy"
 version = "0.17.2"
 notes = "AI-performed, owner-delegated (2026-10-22), cycle 20 lead audit: xdg-portal (dlopen libdbus, zenity fallback from PATH), Windows COM, macOS. Caveat, not built for ElektraWatt: gtk3 format-string UB (message_dialog.rs:112), wasm innerHTML title."
+
+[[audits.sevenz-rust2]]
+who = "Ironkode787"
+criteria = "safe-to-deploy"
+version = "0.24.2"
+notes = "AI-performed, owner-delegated (2026-10-22), cycle 53 lane FIX25b targeted audit (ID-1460). Compiled without default features (no aes256, bzip2, compress, ppmd or util): dependencies crc32fast and lzma-rust2 only, no build.rs, no unsafe anywhere in the crate. Read the compiled modules: lib.rs, archive.rs, block.rs, bitset.rs, decoder.rs, error.rs, time.rs, encryption/password.rs and reader.rs (header parsing, stream map, BoundedReader, Crc32VerifyingReader, NamesReader, build_decode_stack and for_each_entries). Every header count is bounded by the header's length and allocated fallibly; the next header is bounded by the file length; names are UTF-16 with fallible growth. File access only in the path-based Archive::open and ArchiveReader::open, which ElektraWatt never calls (it reads a Cursor). Caveats: the LZMA2 and PPMd memory limit is usize::MAX, the LZMA dictionary is not bounded, a header that declares millions of entries allocates for them before failing, and the multi-stream (BCJ2) path seeks with unchecked i64 casts; ElektraWatt walks the header under its own bounds first (ew-import-eplan src/seven.rs: counts, sizes, dictionaries, ratio, copy, LZMA and LZMA2 only, simple coders), so none of these is reached."
 
 [[audits.simplecss]]
 who = "Ironkode787"

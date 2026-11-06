@@ -23,8 +23,8 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
 - api-add: symbol imports from QElectroTech .elmt, EPLAN EDZ/PXF and the supported SLK 1.2/FE53 drawing-table
   subset (SLK requires its sibling .sdb folder but no EPLAN installation; unsupported features produce review
   findings or refusal; binary macros and full EPLAN electrical semantics are not supported)
-- dependency: EPLAN archive decoding adds pinned sevenz-turbo 0.26.0, lzma-turbo 0.6.0, crc-fast 1.10.0,
-  spin 0.10.1 and zeroize 1.9.1
+- dependency: EPLAN 7z archive decoding adds pinned sevenz-rust2 0.24.2 (no default features) and lzma-rust2
+  0.23.0, both Apache-2.0 and audited, under ElektraWatt's own 7z header bounds (ID-1460)
 
 - api-break: cli lib list --json (prints `{"$schema": "ew.lib-list-result/1", "libraries": [...]}` instead of a bare
   array; a Preview surface, WP-S1.22 D3 (d))

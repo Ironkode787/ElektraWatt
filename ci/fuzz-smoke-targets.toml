@@ -26,6 +26,8 @@
 # `ew-api` (src/importers.rs, WP-S3.09 D15), so they reach the import and command stack. `ewlib_read` reads a `.ewlib`
 # library's files in memory with `ew-library`'s registry through `ew-api` (src/ewlib_read.rs, WP-S6.04, ID-1354,
 # FT-1382). `ewui_script` feeds the headless runner's script parser of `ew-viewmodel` (src/ewui_script.rs, FT-1452).
+# `symbol_authoring` feeds the symbol editor's draft reader and its EPLAN import through `ew-api`; `symbol_slk` feeds
+# the SLK reader of `ew-import-eplan` itself (src/symbols.rs, M25-p1#8, M25-p2#6).
 
 [targets.symbol_authoring]
 max_len = 65536
@@ -686,3 +688,8 @@ closure = [
     "ew-viewmodel",
     "ew-zip",
 ]
+
+[targets.symbol_slk]
+max_len = 16384
+roots = ["ew-import-eplan"]
+closure = ["ew-import-eplan"]

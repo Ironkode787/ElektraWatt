@@ -66,6 +66,23 @@ it under `Limits::element_definition()`.
 | `billion-laughs.elmt` | the billion laughs in an element's name | Refused: a DOCTYPE is not accepted |
 | `external-entity.elmt` | an external entity naming `/etc/passwd` | Refused: a DOCTYPE is not accepted |
 
+## `eplan/`: EPLAN symbol inputs
+
+Parser: the symbol editor's EPLAN import through the front door, `ew_api::symbols::import_eplan` (`ew symbol import`,
+the editor's Open), under `Limits::element_definition()` (M25-p2#3). The verdict is the refusal's words, as `ew`
+prints them.
+
+| File | Tries | Verdict |
+|---|---|---|
+| `billion-laughs.xml` | the billion laughs in a part's article number | Refused: the XML is malformed or has forbidden declarations |
+| `depth-10000.xml` | elements nested 10,000 deep, which overflowed the stack (SM25#1) (*generated*) | Refused before parsing: the input exceeds the supported size or complexity |
+| `entry-parent.edz` | a parts document named `../x.xml` | Refused: unsafe or duplicate member names |
+| `external-entity.xml` | an external entity naming `/etc/passwd` | Refused: the XML is malformed or has forbidden declarations |
+| `parts-pins-over-the-budget.xml` | 17 parts of 4,000 connections, each within a symbol's 4,096 (M25-p2#2) (*generated*) | Refused: over the 65,536 graphics and connection points of one read |
+| `ratio-over-200.edz` | 1 MiB of spaces that pack to about a thousandth, honestly declared | Refused: over the 200 : 1 ratio |
+| `seven-zip-dictionary-4-gib.edz` | an LZMA2 folder that declares a 4 GiB dictionary | Refused by the 7z header walk before decoding |
+| `seven-zip-entries-over-the-limit.edz` | a 7z header that declares 5,000 entries | Refused by the 7z header walk: over 4,096 entries |
+
 ## `xlsx/`: workbooks
 
 Parser: the parts import's XLSX reader through the front door, `ew_api::catalog::parse_parts` (`ew import parts`, the

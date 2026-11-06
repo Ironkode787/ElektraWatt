@@ -119,7 +119,7 @@ pub enum Error {
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Input(s) => f.write_str(s),
+            Self::Input(s) => f.write_str(words(s).unwrap_or(s)),
             Self::Invalid(v) => {
                 for (i, issue) in v.iter().enumerate() {
                     if i != 0 {
@@ -146,6 +146,72 @@ impl std::error::Error for Error {}
 
 fn input(e: impl std::fmt::Display) -> Error {
     Error::Input(e.to_string())
+}
+
+/// The English words of a refusal key of the readers and importers, as the window's en-GB text has them, for every
+/// caller that prints an [`Error`], the CLI among them (SM25#3); `None` for a text that is no such key.
+fn words(key: &str) -> Option<&'static str> {
+    Some(match key {
+        "symbol-input-limit" => "The symbol file exceeds the supported size or item limit.",
+        "symbol-input-version" => "This symbol authoring format is not supported.",
+        "symbol-input-object" => "The symbol document is not valid.",
+        "symbol-function-required" => "Assign a function definition to this symbol.",
+        "symbol-function-changed" => {
+            "The assigned function definition changed. Assign it again before saving."
+        }
+        "symbol-geometry-limit" => {
+            "The symbol geometry exceeds the supported coordinate or complexity limit."
+        }
+        "symbol-import-stopped" => "The importer stopped on an internal error; nothing was imported.",
+        "eplan-input-limit" => "The EPLAN input exceeds the supported size or complexity.",
+        "eplan-archive-path" => "The EPLAN archive has unsafe or duplicate member names.",
+        "eplan-archive-invalid" => "The EPLAN archive is damaged, encrypted or unsupported.",
+        "eplan-archive-method" => "This archive compression method is unsupported.",
+        "eplan-binary-unsupported" => {
+            "This binary EPLAN library or macro is unsupported. Export a PXF XML macro or parts XML from EPLAN."
+        }
+        "eplan-xml-invalid" => "The EPLAN XML is malformed or contains forbidden declarations.",
+        "eplan-geometry-invalid" => "The EPLAN drawing contains invalid coordinates.",
+        "eplan-pxf-version" => "This EPLAN PXF version is unsupported; the reader supports revision 1.23.",
+        "eplan-no-symbols" => "No supported symbol drawing or connection template was found.",
+        "eplan-format-unsupported" => "This EPLAN document type is unsupported.",
+        "eplan-slk-invalid" => "The symbol-library database is damaged or has an unsupported record layout.",
+        "eplan-slk-version" => "This EPLAN symbol-library database version is not supported.",
+        "eplan-slk-encoding" => {
+            "This older SLK file uses an unsupported text encoding. UTF-16 and UTF-8 descriptors are supported."
+        }
+        "eplan-slk-companion" => {
+            "Keep the SLK file beside its complete .sdb folder, then open it again. A required drawing table is missing."
+        }
+        "eplan-slk-record-unsupported" => {
+            "The symbol-library database contains an unsupported record encoding."
+        }
+        _ => return None,
+    })
+}
+
+/// What a symbol import returns through the front door: its drafts, or its own refusal.
+struct Drafts(Result<Vec<SymbolDraft>, Error>);
+
+impl crate::import::FrontDoorOutput for Drafts {}
+
+/// One symbol import through WP-S3.09's front door under `Limits::element_definition()` (M25-p2#3): the sizes of
+/// its inputs are checked before `run`, a size over the preset refused as `limit`, and a panic in `run` is refused
+/// in words, so the window keeps its draft. `file` names the source.
+fn front_door(
+    file: &str,
+    sizes: &[u64],
+    limit: &str,
+    run: impl FnOnce() -> Result<Vec<SymbolDraft>, Error>,
+) -> Result<Vec<SymbolDraft>, Error> {
+    use crate::import::{Limits, Refusal};
+    match crate::import::front_door(file, sizes, &Limits::element_definition(), None, || {
+        Ok(Drafts(run()))
+    }) {
+        Ok(Drafts(drafts)) => drafts,
+        Err(Refusal::Import(_)) => Err(input(limit)),
+        Err(_) => Err(input("symbol-import-stopped")),
+    }
 }
 
 impl crate::Session {
@@ -867,6 +933,14 @@ pub fn json_schema() -> Value {
 /// # Errors
 /// Invalid or oversized XML, or an unresolved built-in function.
 pub fn import_qet(bytes: &[u8], name: &str, key: &str) -> Result<SymbolDraft, Error> {
+    front_door(name, &[bytes.len() as u64], "symbol-input-limit", || {
+        qet(bytes, name, key).map(|d| vec![d])
+    })?
+    .pop()
+    .ok_or_else(|| input("symbol-input-object"))
+}
+
+fn qet(bytes: &[u8], name: &str, key: &str) -> Result<SymbolDraft, Error> {
     use ew_import_qet::ew_interop_api::{Limits, LineageInfo};
     if bytes.len() as u64 > MAX_BYTES {
         return Err(input("symbol-input-limit"));
@@ -882,7 +956,7 @@ pub fn import_qet(bytes: &[u8], name: &str, key: &str) -> Result<SymbolDraft, Er
         &source,
         &lineage,
         Id::from_uuid(DRAFT_LIBRARY),
-        &Limits::default(),
+        &Limits::element_definition(),
     )
     .map_err(input)?;
     let function = match imported.fndef {
@@ -952,10 +1026,18 @@ pub fn open(path: &Path, key: &str) -> Result<Vec<SymbolDraft>, Error> {
             .unwrap_or(Path::new("."))
             .canonicalize()
             .map_err(input)?;
-        let root = parent
-            .join(directory)
-            .canonicalize()
-            .map_err(|_| input("eplan-slk-companion"))?;
+        // NFR-SEC-18 as ID-1461 amends it: the `.sdb` folder and its tables are read as themselves, never through a
+        // link, whatever it points to.
+        let link = |p: &Path| {
+            std::fs::symlink_metadata(p)
+                .map(|m| m.file_type().is_symlink())
+                .map_err(|_| input("eplan-slk-companion"))
+        };
+        let folder = parent.join(directory);
+        if link(&folder)? {
+            return Err(input("eplan-archive-path"));
+        }
+        let root = folder.canonicalize().map_err(|_| input("eplan-slk-companion"))?;
         if root.parent() != Some(parent.as_path()) {
             return Err(input("eplan-archive-path"));
         }
@@ -963,13 +1045,15 @@ pub fn open(path: &Path, key: &str) -> Result<Vec<SymbolDraft>, Error> {
         let mut hash = Sha256::new();
         hash.update(&descriptor);
         let mut total = 0u64;
+        let mut sizes = vec![descriptor.len() as u64];
         for name in ew_import_eplan::slk::FILES {
             let file = root.join(name);
-            if file
-                .canonicalize()
-                .map_err(|_| input("eplan-slk-companion"))?
-                .parent()
-                != Some(root.as_path())
+            if link(&file)?
+                || file
+                    .canonicalize()
+                    .map_err(|_| input("eplan-slk-companion"))?
+                    .parent()
+                    != Some(root.as_path())
             {
                 return Err(input("eplan-archive-path"));
             }
@@ -981,12 +1065,19 @@ pub fn open(path: &Path, key: &str) -> Result<Vec<SymbolDraft>, Error> {
             hash.update(name.as_bytes());
             hash.update((bytes.len() as u64).to_le_bytes());
             hash.update(&bytes);
+            sizes.push(bytes.len() as u64);
             files.insert(name.to_owned(), bytes);
         }
-        let imported = ew_import_eplan::slk::read(&files).map_err(input)?;
-        return eplan_drafts(imported, key, &format!("{:x}", hash.finalize()));
+        let name = path.file_name().and_then(|e| e.to_str()).unwrap_or("symbol");
+        let hash = format!("{:x}", hash.finalize());
+        return front_door(name, &sizes, "eplan-input-limit", || {
+            eplan_drafts(ew_import_eplan::slk::read(&files).map_err(input)?, key, &hash)
+        });
     }
-    let eplan = matches!(ext.as_str(), "edz" | "ema" | "ems" | "esl" | "slk" | "xml");
+    let eplan = matches!(
+        ext.as_str(),
+        "edz" | "pxf" | "ema" | "ems" | "esl" | "slk" | "xml"
+    );
     let bytes = read_bounded_file(
         path,
         if eplan {
@@ -1001,7 +1092,9 @@ pub fn open(path: &Path, key: &str) -> Result<Vec<SymbolDraft>, Error> {
     } else if ext == "elmt" {
         Ok(vec![import_qet(&bytes, name, key)?])
     } else {
-        Ok(vec![SymbolDraft::parse(&bytes)?])
+        front_door(name, &[bytes.len() as u64], "symbol-input-limit", || {
+            Ok(vec![SymbolDraft::parse(&bytes)?])
+        })
     }
 }
 
@@ -1012,8 +1105,10 @@ pub fn open(path: &Path, key: &str) -> Result<Vec<SymbolDraft>, Error> {
 /// Any importer refusal or a recovered object outside the native format.
 pub fn import_eplan(bytes: &[u8], name: &str, key: &str) -> Result<Vec<SymbolDraft>, Error> {
     use sha2::{Digest, Sha256};
-    let hash = format!("{:x}", Sha256::digest(bytes));
-    eplan_drafts(ew_import_eplan::read(bytes, name).map_err(input)?, key, &hash)
+    front_door(name, &[bytes.len() as u64], "eplan-input-limit", || {
+        let hash = format!("{:x}", Sha256::digest(bytes));
+        eplan_drafts(ew_import_eplan::read(bytes, name).map_err(input)?, key, &hash)
+    })
 }
 
 fn eplan_drafts(
@@ -1033,4 +1128,41 @@ fn eplan_drafts(
         d["import_notes"] = json!(imported.notes);
         SymbolDraft::parse(&serde_json::to_vec(&d).map_err(input)?)
     }).collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// M25-p2#3: a panic inside a symbol import is the front door's refusal, in words.
+    #[test]
+    fn a_panic_in_a_symbol_import_is_refused_in_words() {
+        let e = front_door("x.edz", &[1], "eplan-input-limit", || panic!("decoder fault")).unwrap_err();
+        assert_eq!(
+            e.to_string(),
+            "The importer stopped on an internal error; nothing was imported."
+        );
+        let e = front_door("x.edz", &[17 * 1024 * 1024], "eplan-input-limit", || {
+            Ok(Vec::new())
+        })
+        .unwrap_err();
+        assert_eq!(
+            e.to_string(),
+            "The EPLAN input exceeds the supported size or complexity."
+        );
+    }
+
+    /// SM25#3: the words are the window's en-GB texts of the same keys.
+    #[test]
+    fn the_words_are_the_windows_english() {
+        let ftl = include_str!("../../ew-viewmodel/locales/en-GB/shell.ftl");
+        let mut checked = 0;
+        for (key, text) in ftl.lines().filter_map(|l| l.split_once(" = ")) {
+            if let Some(w) = words(key) {
+                assert_eq!(w, text, "{key}");
+                checked += 1;
+            }
+        }
+        assert!(checked > 0);
+    }
 }
