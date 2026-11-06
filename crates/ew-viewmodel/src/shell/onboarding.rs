@@ -490,7 +490,8 @@ impl ShellModel {
         }
         let name = dir_name(&dir);
         match self.write_basic_project(&draft, &dir) {
-            Ok(()) => {
+            Ok(unstable) => {
+                self.warn_unreleased(unstable);
                 self.settings.basic_project = Some(dir.to_string_lossy().into_owned());
                 self.save_settings();
                 if let Some(path) = self.draft_path() {
@@ -592,8 +593,9 @@ impl ShellModel {
         }
     }
 
-    /// Builds the basic project of `draft` from the built-in one through model commands and writes it to `dir`.
-    fn write_basic_project(&self, draft: &Draft, dir: &Path) -> Result<(), String> {
+    /// Builds the basic project of `draft` from the built-in one through model commands and writes it to `dir`; whether
+    /// the manifest written is marked `unstable` (FT-1489).
+    fn write_basic_project(&self, draft: &Draft, dir: &Path) -> Result<bool, String> {
         let commands = draft.commands().map_err(|key| strings::text(key).to_owned())?;
         let mut session = Session::new_project(
             ProjectTemplate::Builtin,
@@ -605,8 +607,9 @@ impl ShellModel {
         session
             .create(dir, self.store_options())
             .map_err(|e| strings::format(key!("error-wizard-write"), &[strings::text(open_error_key(&e))]))?;
+        let unstable = session.store().is_some_and(|s| s.writes_unstable());
         session.close();
-        Ok(())
+        Ok(unstable)
     }
 }
 

@@ -394,6 +394,33 @@ fn the_approved_fixture_passes_the_gate() {
     let _ = std::fs::remove_dir_all(&base);
 }
 
+/// FT-1489 (WP-S6.08 D19): a release reports whether the manifest its stamp wrote is marked `unstable`: with a
+/// released list that lacks this build's format it is, with the format released it is not.
+#[test]
+fn a_release_reports_an_unreleased_format() {
+    static OLDER: [&str; 1] = ["0.0"];
+    static THIS: [&str; 1] = [ew_api::FORMAT];
+    for (n, (released, marked)) in [(&OLDER[..], true), (&THIS[..], false)].into_iter().enumerate() {
+        let base = ew_testdir::fresh_dir(&format!("ew-release-unreleased-{n}"));
+        let (dir, state, root) = (base.join("release-min"), base.join("state"), base.join("archives"));
+        copy_dir(&fixture(), &dir);
+        let mut store = store_options(&state);
+        store.released = released;
+        let (mut s, report) =
+            Session::open(&dir, store, SessionOptions::default(), Recovery::Keep).expect("opens");
+        let integrity = ew_api::integrity_items(&report);
+        approve(&mut s, &integrity);
+        let done = s
+            .release(&context(), &integrity, &options(&NoGit, Some(&root)))
+            .expect("released");
+        assert_eq!(done.unstable, marked, "{released:?}");
+        s.close();
+        let manifest = std::fs::read_to_string(dir.join("manifest.json")).unwrap();
+        assert_eq!(manifest.contains("\"unstable\": true"), marked, "{manifest}");
+        let _ = std::fs::remove_dir_all(&base);
+    }
+}
+
 // ---------------------------------------------------------------------------------------------------------------
 // RA-1, RA-2, RA-6: the release and its archive
 

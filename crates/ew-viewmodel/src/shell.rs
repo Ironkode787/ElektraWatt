@@ -2120,12 +2120,7 @@ impl ShellModel {
                     text: strings::text(key!("marker-saved")).to_owned(),
                 });
                 // FT-1154 (WP-S6.08 D3): every save that wrote an unreleased format says so.
-                if saved.unstable {
-                    self.notify_toned(
-                        strings::text(key!("toast-saved-unreleased-format")).to_owned(),
-                        crate::notifications::NoteTone::Warning,
-                    );
-                }
+                self.warn_unreleased(saved.unstable);
                 Outcome::Done
             }
             // WP-S1.17 D11, D24: the first save of a project of an older format asks once.
@@ -2139,6 +2134,16 @@ impl ShellModel {
                 }
                 Outcome::Failed { message }
             }
+        }
+    }
+
+    /// S1 as the toast of a write whose manifest is marked `unstable` (FT-1154, FT-1489; WP-S6.08 D3, D19).
+    pub(crate) fn warn_unreleased(&mut self, unstable: bool) {
+        if unstable {
+            self.notify_toned(
+                strings::text(key!("toast-saved-unreleased-format")).to_owned(),
+                crate::notifications::NoteTone::Warning,
+            );
         }
     }
 
@@ -2164,10 +2169,7 @@ impl ShellModel {
             Ok(Some(dir)) => PathBuf::from(dir),
             Ok(None) => return self.need_path("file.save_as", Prompt::NewFolder, "dir", p),
         };
-        let mut store = StoreOptions::new(&self.config.app_version);
-        if let Some(state) = &self.config.state_dir {
-            store.state_dir = Some(state.clone());
-        }
+        let store = self.store_options();
         let Some(project) = &mut self.project else {
             return Outcome::Refused {
                 reason_key: key!("reason-no-project"),
@@ -2175,6 +2177,7 @@ impl ShellModel {
         };
         match project.session.create(&dir, store) {
             Ok(()) => {
+                let unstable = project.session.store().is_some_and(|s| s.writes_unstable());
                 project.dir = dir.clone();
                 project.name = dir_name(&dir);
                 project.access = AccessMode::Edit;
@@ -2182,6 +2185,7 @@ impl ShellModel {
                 self.record.saved_steps = self.record.steps.clone();
                 self.settings.push_recent(&dir.to_string_lossy());
                 self.save_settings();
+                self.warn_unreleased(unstable);
                 Outcome::Done
             }
             Err(e) => {

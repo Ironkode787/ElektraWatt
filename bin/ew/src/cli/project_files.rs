@@ -113,6 +113,10 @@ fn run_fmt_with(
     } else {
         ew_api::fmt::format(&mut session).map(|done| (done.files, done.generation))
     };
+    // FT-1489 (WP-S6.08 D19): a format that wrote says so when its manifest is marked `unstable`.
+    let unstable = !a.check
+        && outcome.as_ref().is_ok_and(|(files, _)| !files.is_empty())
+        && session.store().is_some_and(|s| s.writes_unstable());
     // A format's session holds no unsaved transaction: the clean close loses nothing.
     session.close();
     let (files, generation) = match outcome {
@@ -136,6 +140,7 @@ fn run_fmt_with(
         }
     }
     eprintln!("{}", fmt_summary(a.check, &files, generation));
+    super::warn_unreleased(unstable, err);
     if a.json {
         print!(
             "{}",
@@ -243,11 +248,15 @@ fn run_repair(a: &FmtArgs, store: ew_api::StoreOptions, err: &mut dyn std::io::W
         eprintln!("{}", kept_line(k));
     }
     let outcome = ew_api::fmt::repair(&mut session);
+    // FT-1489 (WP-S6.08 D19): a repair that wrote says so when its manifest is marked `unstable`.
+    let unstable = outcome.as_ref().is_ok_and(|r| r.backup.is_some())
+        && session.store().is_some_and(|s| s.writes_unstable());
     // A repair's session holds no unsaved transaction: the clean close loses nothing.
     session.close();
-    let (code, out, err) = repair_outcome(&dir, a.json, &kept, outcome, || reopen(&dir));
+    let (code, out, text) = repair_outcome(&dir, a.json, &kept, outcome, || reopen(&dir));
     print!("{out}");
-    eprint!("{err}");
+    eprint!("{text}");
+    super::warn_unreleased(unstable, err);
     code
 }
 
@@ -1866,6 +1875,54 @@ mod tests {
             let manifest = std::fs::read_to_string(project.join("manifest.json")).unwrap();
             assert_eq!(manifest.contains("\"unstable\": true"), marked, "{manifest}");
             let _ = std::fs::remove_dir_all(&dir);
+        }
+    }
+
+    /// FT-1489 (WP-S6.08 D19): with a released list that lacks this build's format, `ew fmt` rewriting a page with CRLF
+    /// line ends and `ew fmt --repair` discarding a broken line each mark the manifest `unstable` and print the warning
+    /// on stderr after their save, exit 0; with the format released, neither.
+    #[test]
+    fn fmt_and_its_repair_in_an_unreleased_format_warn_on_stderr() {
+        static OLDER: [&str; 1] = ["0.0"];
+        static THIS: [&str; 1] = [ew_api::FORMAT];
+        let warning = "warning: saved in a format that is not released yet; released versions of ElektraWatt open \
+                       this project read-only\n";
+        for (released, marked) in [(&OLDER[..], true), (&THIS[..], false)] {
+            for repair in [false, true] {
+                let dir = setup(if repair { "repair-unreleased" } else { "fmt-unreleased" });
+                let project = dir.join("p.ew");
+                let page = std::fs::read_dir(project.join("pages"))
+                    .unwrap()
+                    .map(|e| e.unwrap().path())
+                    .find(|p| p.extension().is_some_and(|x| x == "jsonl"))
+                    .expect("a page file");
+                let text = std::fs::read_to_string(&page).unwrap();
+                let edited = if repair {
+                    format!("{text}{{\"$k\":\"page\",\"id\":\n")
+                } else {
+                    text.replace('\n', "\r\n")
+                };
+                std::fs::write(&page, edited).unwrap();
+                let args = FmtArgs {
+                    project: Some(project.clone()),
+                    check: false,
+                    repair,
+                    json: false,
+                };
+                let mut options = store(&dir);
+                options.released = released;
+                let (mut out, mut err) = (Vec::new(), Vec::new());
+                let code = run_fmt_with(&args, options, (&mut out, &mut err));
+                let err = String::from_utf8(err).unwrap();
+                assert_eq!(
+                    (code, err.as_str()),
+                    (0, if marked { warning } else { "" }),
+                    "repair {repair}, {released:?}"
+                );
+                let manifest = std::fs::read_to_string(project.join("manifest.json")).unwrap();
+                assert_eq!(manifest.contains("\"unstable\": true"), marked, "{manifest}");
+                let _ = std::fs::remove_dir_all(&dir);
+            }
         }
     }
 

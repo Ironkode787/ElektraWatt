@@ -463,6 +463,42 @@ fn a_save_in_an_unreleased_format_says_so_every_time() {
     }
 }
 
+/// FT-1489 (WP-S6.08 D19, RL-2): with a released list that lacks this build's format, Save As, a new project and the
+/// wizard's basic project each write a manifest marked `unstable` and show S1 as their toast; with the format released,
+/// none does.
+#[test]
+fn every_window_writer_of_an_unreleased_format_says_so() {
+    static OLDER: [&str; 1] = ["0.0"];
+    static THIS: [&str; 1] = [ew_viewmodel::ew_api::FORMAT];
+    let s1 = "Saved in a format that is not released yet. Released versions of ElektraWatt open this project read-only.";
+    for (released, marked) in [(&OLDER[..], true), (&THIS[..], false)] {
+        let tmp = Tmp::new("ft1489");
+        let golden = tmp.0.join("J-E-2416.ew");
+        copy_dir(Path::new(GOLDEN_A), &golden);
+        let mut s = shell(&tmp);
+        s.set_released_for_tests(Some(released));
+        open(&mut s, &golden, false);
+        let writes = [
+            ("file.save_as", tmp.0.join("copy.ew")),
+            ("file.new", tmp.0.join("new.ew")),
+            ("wizard.finish", tmp.0.join("company.ew")),
+        ];
+        for (n, (action, dir)) in writes.into_iter().enumerate() {
+            if action == "wizard.finish" {
+                done(&mut s, "tools.company_standard", json!({}));
+            }
+            done(&mut s, action, json!({ "dir": dir.to_string_lossy() }));
+            if marked {
+                assert_eq!(s.toast().map(|n| n.lines().0), Some(s1), "{action}");
+            }
+            let shown = s.notifications().entries().filter(|n| n.lines().0 == s1).count();
+            assert_eq!(shown, if marked { n + 1 } else { 0 }, "{action} {released:?}");
+            let manifest = std::fs::read_to_string(dir.join("manifest.json")).unwrap();
+            assert_eq!(manifest.contains("\"unstable\": true"), marked, "{action}: {manifest}");
+        }
+    }
+}
+
 /// `git` in `dir` for the test's own set-up: `-C dir`, the repository-selecting variables removed.
 fn git_in(dir: &Path, args: &[&str]) -> Option<String> {
     let mut cmd = Command::new("git");

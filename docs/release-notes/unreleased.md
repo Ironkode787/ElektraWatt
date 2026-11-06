@@ -209,3 +209,7 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   a record of an unknown kind or with unknown members still merges, every member kept; FT-1490, WP-S6.08 D20)
 - api-break: cli merge-driver exit 1 (its meaning names `%A` left as ours for a side in a newer format and for a side
   holding records this version cannot read; a Preview surface, FT-1516, WP-S6.08 D21)
+- behaviour-change: window and cli every other write of a project in an unreleased format (in the window Save As, a
+  new project, the wizard's basic project and a release; in `ew` the projects `ew import qet --out` and `ew import csv`
+  write, `ew fmt`, `ew fmt --repair` and `ew revision release`) shows the toast and prints the warning of a save;
+  FT-1489, WP-S6.08 D19)
