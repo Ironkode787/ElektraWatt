@@ -112,8 +112,11 @@ impl Target {
 /// (doc 15 §2.6, ADR-0008).
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct QuickFix {
-    /// The label, in English (Fluent keys arrive with the message panel).
+    /// The label, in English: the CLI's and the JSON's text.
     pub label: String,
+    /// The Fluent message of the label in the rule messages (`fix-…`, [`crate::messages::fix_label`]; FT-1482), the
+    /// window's text; `None` for a fix an importer proposed, whose label is shown as written.
+    pub key: Option<&'static str>,
     /// The command name from the catalogue, for example `terminal.designate`.
     pub command: String,
     /// The command's parameters.

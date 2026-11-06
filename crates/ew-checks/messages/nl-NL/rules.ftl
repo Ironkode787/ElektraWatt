@@ -697,3 +697,12 @@ rule-ew-imp-105 =
 rule-ew-imp-114 =
     .title = Geïmporteerde tekststijlen niet aan slotsoorten gebonden
     .hint = Pas de tekststijl toe die de slotsoort noemt.
+
+# De labels van de snelle oplossingen (FT-1482, ID-1457), per sleutel (`QuickFix::key`).
+fix-drop-override = overschrijving verwijderen
+fix-anchor-graphics-centre = anker op het midden van de grafische elementen
+fix-renumber-newer = De nieuwere hernummeren
+fix-unfreeze-tag = Kenmerk losmaken
+fix-realise-primary-part = Het primaire artikel opnieuw plaatsen
+fix-rebind-map-channel = Koppelen aan het kanaal van de kaart
+fix-declare-pelv-bond = 0 V–PE-verbinding (PELV) vastleggen

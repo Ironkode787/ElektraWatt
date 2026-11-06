@@ -322,6 +322,7 @@ impl Rule for ImportEntries {
                 if let Some(fix) = &e.fix {
                     f = f.with_fix(QuickFix {
                         label: fix.label.clone(),
+                        key: None,
                         command: fix.command.clone(),
                         params: fix.params.clone(),
                     });
@@ -352,6 +353,7 @@ fn remedy(q: &Q, rule: &str, targets: &[Target]) -> Option<QuickFix> {
         .collect();
     (!ids.is_empty()).then(|| QuickFix {
         label: "Unfreeze the tag".to_owned(),
+        key: Some("fix-unfreeze-tag"),
         command: "fields.set".to_owned(),
         params: serde_json::json!({
             "kind": "device",
@@ -418,6 +420,7 @@ mod tests {
         let page = |n: u128| Target::new(Kind::Page, Id::<()>::from_uuid(Uuid::from_u128(n)));
         let fix = QuickFix {
             label: "apply style".into(),
+            key: None,
             command: "fields.set".into(),
             params: serde_json::json!({}),
         };

@@ -217,6 +217,21 @@ pub fn has(rule: &str, name: Option<&str>, lang: &str) -> bool {
     }
 }
 
+/// A quick fix's label in `lang` (FT-1482): its key's message of that language, falling back to en-GB's, and to the
+/// English label for a fix without a key (an importer's).
+pub fn fix_label(fix: &crate::finding::QuickFix, lang: &str) -> String {
+    let lookup = |tag: &str| -> Option<String> {
+        let b = bundle(tag)?;
+        let pattern = b.get_message(fix.key?)?.value()?;
+        let mut errors = Vec::new();
+        let text = b.format_pattern(pattern, None, &mut errors);
+        errors.is_empty().then(|| text.into_owned())
+    };
+    lookup(lang)
+        .or_else(|| lookup(DEFAULT_LANGUAGE))
+        .unwrap_or_else(|| fix.label.clone())
+}
+
 /// A rule's title in `lang` (`.title`), falling back to en-GB.
 pub fn title(rule: &str, lang: &str) -> Option<String> {
     attribute(rule, "title", lang)

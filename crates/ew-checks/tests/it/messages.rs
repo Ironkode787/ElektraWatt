@@ -528,3 +528,53 @@ fn nl_nl_words_the_uniqueness_rules_the_bus_ends_and_the_conflicts() {
     );
     assert_eq!(render(&odd, "nl-NL"), "something else");
 }
+
+/// FT-1482 (ID-1457): every quick fix a rule offers names its key beside its English label; the key's en-GB message
+/// is that label byte for byte (the CLI's text), nl-NL words it in Dutch, and a fix without a key keeps its label.
+#[test]
+fn every_quick_fix_label_has_its_key_in_both_languages() {
+    let sources = [
+        include_str!("../../src/rules/core.rs"),
+        include_str!("../../src/rules/imp.rs"),
+        include_str!("../../src/rules/layout.rs"),
+        include_str!("../../src/rules/plc.rs"),
+        include_str!("../../src/rules/pot.rs"),
+    ];
+    let mut pairs = Vec::new();
+    for source in sources {
+        let lines: Vec<&str> = source.lines().map(str::trim).collect();
+        for w in lines.windows(2) {
+            if let (Some(label), Some(key)) = (
+                w[0].strip_prefix("label: \"")
+                    .and_then(|l| l.strip_suffix("\".to_owned(),")),
+                w[1].strip_prefix("key: Some(\"")
+                    .and_then(|k| k.strip_suffix("\"),")),
+            ) {
+                pairs.push((label.to_owned(), key.to_owned()));
+            }
+        }
+    }
+    assert!(
+        pairs.iter().any(|(l, _)| l == "Renumber the newer"),
+        "{pairs:#?}"
+    );
+    for (label, key) in pairs {
+        let key: &'static str = Box::leak(key.into_boxed_str());
+        let fix = |key: Option<&'static str>| ew_checks::QuickFix {
+            label: label.clone(),
+            key,
+            command: String::new(),
+            params: json!(null),
+        };
+        assert_eq!(messages::fix_label(&fix(Some(key)), DEFAULT_LANGUAGE), label, "{key}");
+        assert_ne!(messages::fix_label(&fix(Some(key)), "nl-NL"), label, "{key} has its nl-NL text");
+        assert_eq!(messages::fix_label(&fix(None), "nl-NL"), label);
+    }
+    let unfreeze = ew_checks::QuickFix {
+        label: "Unfreeze the tag".to_owned(),
+        key: Some("fix-unfreeze-tag"),
+        command: String::new(),
+        params: json!(null),
+    };
+    assert_eq!(messages::fix_label(&unfreeze, "nl-NL"), "Kenmerk losmaken");
+}

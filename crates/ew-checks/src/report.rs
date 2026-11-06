@@ -393,6 +393,7 @@ mod tests {
     fn json_shape() {
         let f = finding("-X1:1", "duplicate").with_fix(QuickFix {
             label: "Renumber".into(),
+            key: None,
             command: "terminal.designate".into(),
             params: serde_json::json!({ "n": 3 }),
         });
