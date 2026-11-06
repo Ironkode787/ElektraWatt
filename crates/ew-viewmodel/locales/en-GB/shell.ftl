@@ -1174,8 +1174,8 @@ refusal-paste-off-grid = { $p0 }; paste at a point on the grid
 refusal-paste-the-paste-point = the paste point
 refusal-paste-kind = a record of kind { $p0 } { $p1 }
 refusal-paste-kinds = is not pasted (only devices, functions, representations, connections, junctions, potential definitions, page items and structure boxes)
-refusal-paste-adapt-major = the project's version of { $p0 } { $p1 } differs from the pasted one in a major way ({ $p2 }); update instead
-refusal-paste-held-other-version = the project holds another version of { $p0 } { $p1 }; update from library first
+refusal-paste-adapt-major = the project's version of { $p0 } differs from the pasted one in a major way ({ $p1 }); update instead
+refusal-paste-held-other-version = the project holds another version of { $p0 }; update from library first
 refusal-paste-reference-missing = the { $p0 }'s { $p1 } names a { $p2 } that is neither in the fragment nor in this project; copy them together
 # item.place and marker.place, and a page item's members.
 refusal-items-image-asset-missing = the project holds no asset { $p0 }; an image places an asset the project already holds, or gives its file as `data`
@@ -1367,7 +1367,7 @@ refusal-page-reorder-before-and-section = give either before or section, not bot
 refusal-page-reorder-before-moved = the page to put the pages before is one of the moved pages; name a page that stays
 refusal-page-reorder-unchanged = the pages are already in this order
 # library.embed and library.update.
-refusal-library-embed-held = the project holds this { $p0 } already; take another version of it with update from library
+refusal-library-embed-held = the project holds { $p0 } already; take another version of it with update from library
 refusal-library-update-cp-twice = two updated copies map CP { $p0 } of function { $p1 } differently ({ $p2 } and { $p3 })
 refusal-library-update-blocked = the update leaves connected CPs without a CP; map them in `cp_maps`: { $p0 }
 refusal-library-update-missing = the new versions name items the project does not hold; give them in `embed`: { $p0 }
@@ -1549,8 +1549,8 @@ refusal-junction-unnumbered = without a number
 refusal-junction-number-newer = with a number of a newer format
 refusal-valve-functions-no-id = { $p0 } cannot take the functions of part { $p1 }: no free function ID is left; replace the device
 # The imports and the external changes: import.apply and external.apply.
-refusal-import-unknown-kind = a record of an unknown kind ({ $p0 })
-refusal-import-removed = a normaliser removed a record the import brought: { $p0 }
+refusal-import-unknown-kind = an item of an unknown kind ({ $p0 })
+refusal-import-removed = a normaliser removed an item the import brought: { $p0 }
 refusal-external-image = an image of the change does not read ({ $p0 })
 # FT-1337: end of the command refusals.
 
@@ -4294,6 +4294,8 @@ field-word-covers = Covers
 field-word-cp-overrides = Connection point overrides
 field-word-cps = Connection points
 field-word-cps-item = Connection point
+# FT-1531: a device's derived connection points (`derived.cp[n]`).
+field-word-cp-item = Connection point
 field-word-cpu = CPU
 field-word-created = Created
 field-word-csa = Cross-section

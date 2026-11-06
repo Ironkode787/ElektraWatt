@@ -578,8 +578,8 @@ fn lc5_profile_pose_footprint_strip_and_enclosure_limit() {
     );
     assert_eq!(
         dutch(&m, "EW-LAY-010")[3],
-        "+J-E-2416-X1031 beslaat 550.0 tot 574.8 mm op de rail bij (40.0, 480.0)–(610.0, 480.0) mm, voorbij 0.0 tot \
-         570.0 mm; maak het korter of verplaats het"
+        "+J-E-2416-X1031 beslaat 550,0 tot 574,8 mm op de rail bij (40.0, 480.0)–(610.0, 480.0) mm, voorbij 0,0 tot \
+         570,0 mm; maak het korter of verplaats het"
     );
 }
 

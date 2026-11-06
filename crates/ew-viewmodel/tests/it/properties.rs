@@ -1022,6 +1022,36 @@ fn a_terminal_lists_its_connection_point_labels() {
     shell.shutdown();
 }
 
+/// FT-1531 (ID-1457): in a Dutch window a placed device's connection points are labelled in Dutch ("Aansluitpunt 1"),
+/// by `field_label`'s item rule, never the humanised English "Connection point 1".
+#[test]
+fn ft1531_a_dutch_window_labels_the_connection_points_in_dutch() {
+    let tmp = Tmp::new("props-ft1531");
+    let mut shell = writable(&tmp, "101");
+    done(&mut shell, "view.language", json!({"value": "nl"}));
+    done(&mut shell, "select.set", json!({"refs": ["tag:-101F1"]}));
+    let label = |shell: &ShellModel| {
+        let d = shell.describe();
+        let line = d
+            .lines()
+            .find(|l| l.trim_start().starts_with("row \"device/derived.cp[0]\" "))
+            .unwrap_or_else(|| {
+                panic!(
+                    "no first connection point row:
+{d}"
+                )
+            })
+            .trim_start()
+            .to_owned();
+        line.split('"').nth(3).unwrap_or_default().to_owned()
+    };
+    assert_eq!(label(&shell), "Aansluitpunt 1");
+    assert!(!shell.describe().contains("Connection point"));
+    done(&mut shell, "view.language", json!({"value": "en"}));
+    assert_eq!(label(&shell), "Connection point 1");
+    shell.shutdown();
+}
+
 /// FT-544: `select.set` takes a bare tag as the page prints it, a terminal as `TAG:pin` included, and selects the
 /// same record as `tag:<tag>`; a tag no device prints fails with a sentence that lists the reference forms.
 #[test]

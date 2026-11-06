@@ -388,6 +388,7 @@ impl Rule for TypeOrVoltageConflict {
                     Some(c) => {
                         fix = Some(QuickFix {
                             label: "Declare 0 V–PE bond (PELV)".to_owned(),
+                            key: Some("fix-declare-pelv-bond"),
                             command: "bond.create".to_owned(),
                             params: serde_json::json!({
                                 "a": endpoint_param(c.a),

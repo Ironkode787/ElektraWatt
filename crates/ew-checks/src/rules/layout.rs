@@ -380,6 +380,7 @@ impl Rule for PartNotOnDevice {
             let f = match primary_part(q, device) {
                 Some(primary) => f.with_fix(QuickFix {
                     label: "Realise the primary part".to_owned(),
+                    key: Some("fix-realise-primary-part"),
                     command: "layout.move".to_owned(),
                     params: serde_json::json!({
                         "placement": pl.id.to_string(),

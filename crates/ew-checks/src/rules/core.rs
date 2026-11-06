@@ -429,6 +429,7 @@ impl Rule for TitleBlockOverride {
             .on_page(page)
             .with_fix(QuickFix {
                 label: "drop override".to_owned(),
+                key: Some("fix-drop-override"),
                 command: "fields.set".to_owned(),
                 params: serde_json::json!({
                     "kind": "page",
@@ -539,6 +540,7 @@ impl Rule for XrefCellInvalid {
                 )
                 .with_fix(QuickFix {
                     label: "anchor at the graphics centre".to_owned(),
+                    key: Some("fix-anchor-graphics-centre"),
                     command: "rep.set_anchor_policy".to_owned(),
                     params: serde_json::json!({
                         "reps": [t.rep.to_string()],
@@ -1062,6 +1064,7 @@ pub fn renumber_newer(q: &Q, group: &[Target]) -> Option<QuickFix> {
     let ids: Vec<String> = newer.iter().map(|t| t.id.to_string()).collect();
     Some(QuickFix {
         label: "Renumber the newer".to_owned(),
+        key: Some("fix-renumber-newer"),
         command: "numbering.renumber".to_owned(),
         params: serde_json::json!({
             "scope": {"selection": ids},

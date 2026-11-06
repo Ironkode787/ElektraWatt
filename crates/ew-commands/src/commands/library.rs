@@ -199,7 +199,8 @@ impl Command for EmbedLibraryCopies {
             }
             let kind = doc.kind().expect("an implemented kind");
             if tx.row(&(kind, l.id)).is_some() {
-                return tx.reject(text!("refusal-library-embed-held", kind.to_string()));
+                let item = crate::words::document_item(tx, &doc);
+                return tx.reject(text!("refusal-library-embed-held", item));
             }
             docs.push((kind, doc));
         }

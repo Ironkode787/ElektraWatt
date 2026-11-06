@@ -790,3 +790,107 @@ fn lo4_the_messages_detail_follows_the_ui_language() {
     assert_eq!(detail(&mut shell, &pot.key), pot.cells[2]);
     shell.shutdown();
 }
+
+/// FT-1482 (ID-1457), beside LO-4: with the UI in Dutch a finding's quick fix is labelled in Dutch, in the Messages
+/// detail and in the table's fix cell; in English it is the fix's English label, the CLI's.
+#[test]
+fn lo4_the_quick_fix_label_follows_the_ui_language() {
+    let tmp = Tmp::new("lo4fix");
+    let mut shell = tmp.shell_in(ew_viewmodel::shell::Mode::Headless, true, "102");
+    // As MS3: page 102's own description gives EW-CORE-023's finding, whose fix drops it.
+    let page = shell
+        .page_rows()
+        .iter()
+        .find(|r| r.folio == "102")
+        .map(|r| r.id.to_string())
+        .unwrap();
+    done(
+        &mut shell,
+        "command.run",
+        json!({"cmd": "fields.set", "params": {"kind": "page", "targets": [page], "path": "description_override",
+            "value": "Overridden"}}),
+    );
+    done(&mut shell, "messages.show", json!({"on": true}));
+    let table = |shell: &ShellModel| {
+        shell
+            .nav(NavKind::Messages)
+            .and_then(|n| n.table())
+            .cloned()
+            .unwrap()
+    };
+    let fixed = table(&shell)
+        .nodes
+        .iter()
+        .find(|n| n.role == NavRole::Finding && n.cells[5] == "drop override")
+        .expect("a finding with the drop-override fix")
+        .clone();
+    let fix = |shell: &mut ShellModel| {
+        done(
+            shell,
+            "navigator.row",
+            json!({"kind": "messages", "key": fixed.key}),
+        );
+        shell.messages_detail().unwrap().fix
+    };
+    assert_eq!(fix(&mut shell).as_deref(), Some("drop override"));
+    done(&mut shell, "view.language", json!({"value": "nl"}));
+    assert_eq!(fix(&mut shell).as_deref(), Some("overschrijving verwijderen"));
+    let row = table(&shell)
+        .nodes
+        .iter()
+        .find(|n| n.key == fixed.key)
+        .cloned()
+        .unwrap();
+    assert_eq!(row.cells[5], "overschrijving verwijderen");
+    done(&mut shell, "view.language", json!({"value": "en"}));
+    assert_eq!(fix(&mut shell).as_deref(), Some("drop override"));
+    shell.shutdown();
+}
+
+/// FT-1526, FT-1528 and FT-1529 (ID-1457), whole in both languages: an imported record is "an item" / "een element";
+/// a tutorial is a "zelfstudie" in the Dutch window, as Help ▸ Zelfstudies names it; the Properties card's title puts
+/// the command's title mid-sentence in Dutch (`IN_SENTENCE`), as the Preview tab does.
+#[test]
+fn ft53a_the_reworded_texts_in_both_languages() {
+    let texts = || {
+        [
+            strings::format(key!("refusal-import-unknown-kind"), &["X"]),
+            strings::format(key!("refusal-import-removed"), &["X"]),
+            strings::text(key!("action-help-tutorials")).to_owned(),
+            strings::text(key!("submenu-tutorials")).to_owned(),
+            strings::text(key!("start-tutorials")).to_owned(),
+            strings::text(key!("banner-tutorial-copy")).to_owned(),
+            strings::format(
+                key!("card-title-properties"),
+                &[strings::command_title("fields.set")],
+            ),
+        ]
+    };
+    assert_eq!(
+        texts(),
+        [
+            "an item of an unknown kind (X)",
+            "a normaliser removed an item the import brought: X",
+            "Tutorials",
+            "Tutorials",
+            "Tutorials",
+            "A fresh copy of the sample project was made for the tutorials.",
+            "Preview of Set property",
+        ]
+    );
+    assert!(strings::set_locale("nl"));
+    let dutch = texts();
+    assert!(strings::set_locale("en"));
+    assert_eq!(
+        dutch,
+        [
+            "een element van een onbekende soort (X)",
+            "een normalisator heeft een element verwijderd dat de import meebracht: X",
+            "Zelfstudies",
+            "Zelfstudies",
+            "Zelfstudies",
+            "Voor de zelfstudies is een nieuwe kopie van het voorbeeldproject gemaakt.",
+            "Voorbeeld van eigenschap instellen",
+        ]
+    );
+}
