@@ -90,7 +90,9 @@ The main session orchestrates. It plans each cycle, briefs Claude subagents, int
      next cycle's first-wave lane, on the newest picked tip. That lane is integrated after the end tip and reviewed in
      the next cycle (rule 8). The next cycle's briefs are therefore kept ready ahead of need.
    - **Never with M3 work** (owner, 2026-11-06: "do not continue to M3, when lanes are open. Leave them idle instead";
-     ID-1452). A slot with no M2 or release work left for it stays idle: no M3 package, specification or lane.
+     ID-1452). A slot with no M2 or release work left for it takes M2.5's work instead (WP-S2.10, the symbol editor:
+     its smoke test, review, persona runs and polish, ID-1453), and stays idle when there is none: no M3 package,
+     specification or lane.
    - Docs-only lanes write the next cycle's specifications during the current one.
    - The next cycle's first-wave briefs are written, feasibility-read and ruled by the time the last wave is
      dispatched.
