@@ -237,7 +237,8 @@ fn number(
     range: std::ops::RangeInclusive<f64>,
     name: &str,
 ) -> bool {
-    let id = ui.next_auto_id();
+    // M25-p5#3: a slot of its own beside the DragValue's id, whose precise drag value egui keeps as an `f64` too.
+    let id = ui.next_auto_id().with("symbol-number");
     let mut v = ui.data(|d| d.get_temp::<f64>(id)).unwrap_or(*value);
     let response = ui.add(
         egui::DragValue::new(&mut v)
@@ -2067,6 +2068,51 @@ mod tests {
             json!({"en":"After"})
         );
         assert!(matches!(&events[1], Event::Action("symbol.save", _)));
+    }
+
+    /// M25-p5#3: a drag of one point per frame moves a number (egui keeps the precise value between frames), and the
+    /// number commits once, at the drag's end.
+    #[test]
+    fn a_slow_drag_of_a_number_moves_it_and_commits_once_at_its_end() {
+        let ctx = egui::Context::default();
+        let mut value = 0.0_f64;
+        let mut commits = 0;
+        let start = Pos2::new(20.0, 16.0);
+        let frame = |n: usize, events: Vec<egui::Event>, value: &mut f64, commits: &mut usize| {
+            let input = egui::RawInput {
+                events,
+                time: Some(n as f64 / 60.0),
+                screen_rect: Some(egui::Rect::from_min_size(Pos2::ZERO, Vec2::new(400.0, 200.0))),
+                ..Default::default()
+            };
+            let mut output = ctx.run_ui(input, |ui| {
+                if number(ui, value, 0.5, -100.0..=100.0, "x") {
+                    *commits += 1;
+                }
+            });
+            output.textures_delta.clear();
+        };
+        let button = |pos, pressed| egui::Event::PointerButton {
+            pos,
+            button: egui::PointerButton::Primary,
+            pressed,
+            modifiers: egui::Modifiers::NONE,
+        };
+        frame(0, vec![egui::Event::PointerMoved(start)], &mut value, &mut commits);
+        frame(
+            1,
+            vec![button(start, true)],
+            &mut value,
+            &mut commits,
+        );
+        for i in 1..=40 {
+            let at = start + Vec2::new(i as f32, 0.0);
+            frame(1 + i, vec![egui::Event::PointerMoved(at)], &mut value, &mut commits);
+        }
+        assert_eq!((value, commits), (0.0, 0), "nothing commits while the drag lasts");
+        frame(42, vec![button(start + Vec2::new(40.0, 0.0), false)], &mut value, &mut commits);
+        assert_eq!(commits, 1);
+        assert!(value >= 10.0, "a slow drag stalls: {value}");
     }
 
     #[test]

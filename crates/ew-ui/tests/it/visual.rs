@@ -1793,3 +1793,31 @@ fn symbol_editor_escape_cancels_a_field_and_keeps_the_tool() {
     );
     d.shell_mut().shutdown();
 }
+
+/// M25-p3#4, M25-p5#3: a drag of a coordinate through the window moves it and commits once, at its end (the slow drag
+/// of one point per frame is `symbol_editor`'s unit test: the driver's drag moves eight times).
+#[test]
+fn symbol_editor_a_drag_of_a_coordinate_commits_once() {
+    let tmp = Tmp::new();
+    let mut d = symbol_driver(&tmp, "example.slow");
+    d.input(&click(d.find("Electrical data").unwrap()));
+    d.input(&click(d.find("Connection points (1)").unwrap()));
+    let at = d.find("x (mm) of Connection point 1").unwrap();
+    d.input(&Input::Drag {
+        from: at,
+        to: (at.0 + 40, at.1),
+        button: PointerButton::Primary,
+        mods: Modifiers::NONE,
+    });
+    let editor = d.shell_mut().symbol_editor().unwrap();
+    let x = editor.draft.symbol.cps.iter().next().unwrap().pos.x.0;
+    assert!(x > 0, "the pin did not move: {x}");
+    // One undo step for the whole drag.
+    assert_eq!(
+        d.shell_mut().dispatch("edit.undo", &json!({})),
+        ew_ui::ew_viewmodel::shell::Outcome::Done
+    );
+    let editor = d.shell_mut().symbol_editor().unwrap();
+    assert_eq!(editor.draft.symbol.cps.iter().next().unwrap().pos.x.0, 0);
+    d.shell_mut().shutdown();
+}
