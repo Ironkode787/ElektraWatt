@@ -40,6 +40,9 @@ pub struct SymbolDraft {
     pub key: String,
     /// Semantic version; changing published content requires a new version.
     pub version: String,
+    /// The library items this draft publishes. Absent: the first publication mints them.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub identity: Option<DraftIdentity>,
     /// Drawing, pins, text and anchor in the existing format's integer nanometres.
     pub symbol: SymbolDef,
     /// Electrical semantics, including printed pin designations.
@@ -56,6 +59,20 @@ pub struct SymbolDraft {
     /// Explicit author acknowledgement of EPLAN geometry, function and source-term limitations.
     #[serde(default)]
     pub import_reviewed: bool,
+}
+
+/// The item IDs of a draft's library records, one per kind (ID-1463): UUIDv7s minted at the draft's first
+/// publication, and kept only by a draft that comes from those items under their key.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, schemars::JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct DraftIdentity {
+    /// The symbol's item ID.
+    #[schemars(with = "String")]
+    pub symbol: Id<SymbolDef>,
+    /// The owned function definition's item ID; absent until the draft publishes one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<String>")]
+    pub fndef: Option<Id<FnDef>>,
 }
 
 /// A source-reader finding. The message retains the reader's original language.
@@ -90,6 +107,13 @@ pub enum Error {
     Invalid(Vec<Issue>),
     /// The existing library writer refused the operation.
     Library(LibraryError),
+    /// The target library holds this key for another item of the kind: the draft does not come from it.
+    KeyTaken {
+        /// The symbol's key, or its owned function definition's.
+        key: String,
+        /// Whether the function definition's key is taken rather than the symbol's.
+        function: bool,
+    },
 }
 
 impl std::fmt::Display for Error {
@@ -106,6 +130,15 @@ impl std::fmt::Display for Error {
                 Ok(())
             }
             Self::Library(e) => e.fmt(f),
+            Self::KeyTaken { key, function: false } => write!(
+                f,
+                "The library already holds a different symbol with the key {key}. Choose another key."
+            ),
+            Self::KeyTaken { key, function: true } => write!(
+                f,
+                "The library already holds a different function definition with the key {key}. Choose another \
+                 symbol key."
+            ),
         }
     }
 }
@@ -132,6 +165,7 @@ impl crate::Session {
                 .get(id)
                 .ok_or_else(|| input("symbol-function-required"))?;
             let mut d = SymbolDraft::new(key, key)?;
+            d.identity = kept_identity(s, function, key);
             d.symbol = s.item.clone();
             d.function = function.item.clone();
             d.symbol.meta.key = Some(key.parse().map_err(input)?);
@@ -170,7 +204,18 @@ impl SymbolDraft {
 /// # Errors
 /// Encoding, I/O, or an existing destination. A temporary sibling is removed on failure.
 pub fn export(draft: &SymbolDraft, path: &Path) -> Result<(), Error> {
-    use std::io::Write;
+    export_with(&ew_store::OsVfs, draft, path)
+}
+
+/// [`export`] through `vfs`: the temporary sibling is synced, moved by [`ew_store::Vfs::rename_noreplace`] (where
+/// the file system has no hard links, by [`ew_store::Vfs::rename`] after the name is checked absent again, as the
+/// project store does) and the folder synced. An existing destination is `symbol-export-exists`; any failure leaves
+/// neither the temporary file nor a file of this call at `path`.
+///
+/// # Errors
+/// As [`export`].
+pub fn export_with(vfs: &dyn ew_store::Vfs, draft: &SymbolDraft, path: &Path) -> Result<(), Error> {
+    use std::io::ErrorKind;
     let bytes = serde_json::to_vec_pretty(draft).map_err(input)?;
     let parent = path
         .parent()
@@ -178,20 +223,31 @@ pub fn export(draft: &SymbolDraft, path: &Path) -> Result<(), Error> {
         .unwrap_or(Path::new("."));
     let id = Id::<()>::try_new_v7().map_err(input)?;
     let temporary = parent.join(format!(".symbol-{id}.tmp"));
-    let result = (|| {
-        let mut file = std::fs::OpenOptions::new()
-            .create_new(true)
-            .write(true)
-            .open(&temporary)
-            .map_err(input)?;
-        file.write_all(&bytes)
-            .and_then(|_| file.sync_all())
-            .map_err(input)?;
-        drop(file);
-        std::fs::hard_link(&temporary, path).map_err(input)
-    })();
-    let _ = std::fs::remove_file(&temporary);
-    result
+    vfs.create_new(&temporary, &bytes).map_err(input)?;
+    let placed = vfs
+        .sync(&temporary)
+        .and_then(|()| match vfs.rename_noreplace(&temporary, path) {
+            Err(e) if e.kind() == ErrorKind::Unsupported => match vfs.stat(path) {
+                Ok(_) => Err(ErrorKind::AlreadyExists.into()),
+                Err(e) if e.kind() == ErrorKind::NotFound => vfs.rename(&temporary, path),
+                Err(e) => Err(e),
+            },
+            moved => moved,
+        })
+        .and_then(|()| vfs.sync_dir(parent));
+    let _ = vfs.remove_file(&temporary);
+    match placed {
+        Ok(()) => Ok(()),
+        Err(e) if e.kind() == ErrorKind::AlreadyExists => Err(input("symbol-export-exists")),
+        Err(e) => {
+            // A move by link and unlink, or an unsynced name, can fail after the file is placed: it goes too.
+            if vfs.read(path).is_ok_and(|held| held == bytes) {
+                let _ = vfs.remove_file(path);
+                let _ = vfs.sync_dir(parent);
+            }
+            Err(input(e))
+        }
+    }
 }
 
 /// Preview graphics with text shaped identically to page output. Slot contents are illustrative except pin designations.
@@ -234,16 +290,21 @@ pub fn preview_display_list(
 }
 
 impl SymbolDraft {
-    /// A new native-grid draft with a private, empty black-box function definition.
+    /// A new native-grid draft with a private, empty black-box function definition. An empty key is allowed: the
+    /// draft then cannot be published until it has one.
     ///
     /// # Errors
     /// Invalid text in the supplied name or key.
     pub fn new(key: &str, name: &str) -> Result<Self, Error> {
         let reference = reference(DRAFT_LIBRARY, &format!("{key}.function"), "1.0.0");
+        let mut meta = json!({"licence": "CC-BY-SA-4.0", "sources": ["original"], "status": "draft"});
+        if !key.is_empty() {
+            meta["key"] = json!(key);
+        }
         serde_json::from_value(json!({
             "format": FORMAT, "key": key, "version": "1.0.0",
             "symbol": {
-                "meta": {"key": key, "licence": "CC-BY-SA-4.0", "sources": ["original"], "status": "draft"},
+                "meta": meta,
                 "name": {"en": name}, "grid": {"num": 4000000, "den": 1},
                 "fndef": reference, "anchor": "graphic_centre"
             },
@@ -284,8 +345,9 @@ impl SymbolDraft {
         if self.format != FORMAT {
             issue("symbol-input-version", "/format".into(), self.format.clone());
         }
-        if self.key.is_empty()
-            || self.key.len() > 128
+        if self.key.is_empty() {
+            issue("symbol-key-required", "/key".into(), String::new());
+        } else if self.key.len() > 128
             || !self
                 .key
                 .bytes()
@@ -335,7 +397,7 @@ impl SymbolDraft {
                 self.key.clone(),
             );
         }
-        for cp in self.function.cps.iter() {
+        for (i, cp) in self.function.cps.iter().enumerate() {
             if matches!(cp.discipline, schema::Discipline::Unknown(_))
                 || matches!(cp.potential_role, Some(schema::PotentialType::Unknown(_)))
                 || matches!(cp.side, Some(schema::Side::Unknown(_)))
@@ -343,18 +405,46 @@ impl SymbolDraft {
             {
                 issue(
                     "symbol-function-semantics",
-                    format!("/function/cps/{}", cp.idx),
+                    format!("/function/cps/{i}"),
                     cp.designation.to_string(),
                 );
             }
         }
-        for cp in self.symbol.cps.iter() {
+        for (i, cp) in self.symbol.cps.iter().enumerate() {
             if matches!(cp.discipline, schema::Discipline::Unknown(_)) {
                 issue(
                     "symbol-function-semantics",
-                    format!("/symbol/cps/{}", cp.idx),
+                    format!("/symbol/cps/{i}"),
                     cp.idx.to_string(),
                 );
+            }
+        }
+        // A member this reader does not know is refused before publication (§6), except the importers' extension keys.
+        let mut members: Vec<(String, &schema::Extra)> = vec![
+            ("/symbol".into(), &self.symbol.extra),
+            ("/symbol/meta".into(), &self.symbol.meta.extra),
+            ("/function".into(), &self.function.extra),
+            ("/function/meta".into(), &self.function.meta.extra),
+        ];
+        let symbol_cps = self.symbol.cps.iter().map(|c| &c.extra);
+        let function_cps = self.function.cps.iter().map(|c| &c.extra);
+        members.extend(
+            symbol_cps
+                .enumerate()
+                .map(|(i, e)| (format!("/symbol/cps/{i}"), e)),
+        );
+        members.extend(
+            function_cps
+                .enumerate()
+                .map(|(i, e)| (format!("/function/cps/{i}"), e)),
+        );
+        for (path, extra) in members {
+            for name in extra
+                .keys()
+                .filter(|k| !k.starts_with("qet.") && k.as_str() != "source_ref")
+            {
+                let escaped = name.replace('~', "~0").replace('/', "~1");
+                issue("symbol-unknown-member", format!("{path}/{escaped}"), name.clone());
             }
         }
         let mut mapped = BTreeSet::new();
@@ -387,8 +477,8 @@ impl SymbolDraft {
                 );
             }
         }
-        for cp in self.symbol.cps.iter() {
-            let path = format!("/symbol/cps/{}", cp.idx);
+        for (i, cp) in self.symbol.cps.iter().enumerate() {
+            let path = format!("/symbol/cps/{i}");
             let function = self.function.cps.iter().find(|p| p.idx == cp.fn_cp);
             let label = function.map_or_else(|| cp.idx.to_string(), |p| p.designation.to_string());
             if grid.at(grid.snap(cp.pos.x)) != Some(cp.pos.x)
@@ -523,11 +613,36 @@ impl SymbolDraft {
         Ok(lower(&self.symbol, orientations[usize::from(variant % 8)]))
     }
 
-    /// Materialise ordinary symbol/FnDef copies for a target library, without writing anything.
+    /// Materialise ordinary symbol/FnDef copies for a target library, without writing anything. A draft without an
+    /// identity gets new item IDs on every call.
     ///
     /// # Errors
     /// Any save-blocking validation issue.
     pub fn documents(&self, library: Uuid) -> Result<Vec<LibDocument>, Error> {
+        self.materialise(library, &self.publication_identity()?, &self.version)
+    }
+
+    /// This draft's identity, with a new UUIDv7 for each item it publishes that has none yet.
+    fn publication_identity(&self) -> Result<DraftIdentity, Error> {
+        let mut identity = match &self.identity {
+            Some(identity) => identity.clone(),
+            None => DraftIdentity {
+                symbol: Id::try_new_v7().map_err(input)?,
+                fndef: None,
+            },
+        };
+        if self.function_ref.is_none() && identity.fndef.is_none() {
+            identity.fndef = Some(Id::try_new_v7().map_err(input)?);
+        }
+        Ok(identity)
+    }
+
+    fn materialise(
+        &self,
+        library: Uuid,
+        identity: &DraftIdentity,
+        function_version: &str,
+    ) -> Result<Vec<LibDocument>, Error> {
         let issues = self.validate();
         if !issues.is_empty() {
             return Err(Error::Invalid(issues));
@@ -535,28 +650,83 @@ impl SymbolDraft {
         let mut symbol = self.symbol.clone();
         symbol.meta.key = Some(self.key.parse().map_err(input)?);
         let mut docs = Vec::new();
-        symbol.fndef = if let Some(r) = &self.function_ref {
-            r.clone()
-        } else {
-            let key = format!("{}.function", self.key);
-            let mut function = self.function.clone();
-            function.meta = symbol.meta.clone();
-            function.meta.key = Some(key.parse().map_err(input)?);
-            docs.push(copy("fndef", library, &key, &self.version, &function)?);
-            reference(library, &key, &self.version)
+        symbol.fndef = match (&self.function_ref, identity.fndef) {
+            (Some(r), _) => r.clone(),
+            (None, item) => {
+                let item = item.ok_or_else(|| input("symbol-function-required"))?.as_uuid();
+                let key = format!("{}.function", self.key);
+                let mut function = self.function.clone();
+                function.meta = symbol.meta.clone();
+                function.meta.key = Some(key.parse().map_err(input)?);
+                docs.push(copy("fndef", library, item, function_version, &function)?);
+                LibRef {
+                    library: Id::from_uuid(library),
+                    item: Id::from_uuid(item),
+                    version_req: format!("={function_version}"),
+                    extra: Default::default(),
+                }
+            }
         };
-        docs.push(copy("symbol", library, &self.key, &self.version, &symbol)?);
+        let item = identity.symbol.as_uuid();
+        docs.push(copy("symbol", library, item, &self.version, &symbol)?);
         Ok(docs)
     }
 
-    /// Publish through the library's existing lock and generation transaction.
+    /// Publish through the library's existing lock and generation transaction. The first publication mints the
+    /// draft's identity and keeps it in the draft. A key the library holds for another item is refused; the owned
+    /// function definition keeps the version the library holds while its content is unchanged (ID-1463).
     ///
     /// # Errors
-    /// Validation, unresolved assigned function, stale function, or the writer's lock/version/I/O errors.
-    pub fn publish(&self, registry: &mut Registry, library: Uuid) -> Result<WriteReport, Error> {
+    /// Validation, unresolved assigned function, stale function, a key of another item, or the writer's
+    /// lock/version/I/O errors. The draft and the library are then unchanged.
+    pub fn publish(&mut self, registry: &mut Registry, library: Uuid) -> Result<WriteReport, Error> {
         self.check_function(registry)?;
-        let docs = self.documents(library)?;
-        registry.write(library, &docs).map_err(Error::Library)
+        let identity = self.publication_identity()?;
+        let mut docs = self.materialise(library, &identity, &self.version)?;
+        let function_key = format!("{}.function", self.key);
+        let owned = identity.fndef.filter(|_| self.function_ref.is_none());
+        let mut held_function = None;
+        let symbols = registry.documents(library, schema::Kind::Symbol);
+        for doc in symbols
+            .into_iter()
+            .chain(registry.documents(library, schema::Kind::Fndef))
+        {
+            let (item, key, function, ours) = match &doc {
+                LibDocument::Symbol(s) => (
+                    s.item_id,
+                    &s.item.meta.key,
+                    false,
+                    Some(identity.symbol.as_uuid()),
+                ),
+                LibDocument::Fndef(f) => (f.item_id, &f.item.meta.key, true, owned.map(|i| i.as_uuid())),
+                _ => continue,
+            };
+            let wanted = if function { &function_key } else { &self.key };
+            let same_key = key.as_ref().is_some_and(|k| k.as_str() == wanted);
+            if ours.is_some() && Some(item.as_uuid()) != ours && same_key {
+                return Err(Error::KeyTaken {
+                    key: wanted.clone(),
+                    function,
+                });
+            }
+            if let LibDocument::Fndef(f) = doc
+                && Some(item.as_uuid()) == ours
+            {
+                held_function = Some(f);
+            }
+        }
+        let new_function = docs.iter().find_map(|d| match d {
+            LibDocument::Fndef(f) => Some(&f.item),
+            _ => None,
+        });
+        if let Some(held) =
+            held_function.filter(|h| Some(&h.item) == new_function && h.version != self.version)
+        {
+            docs = self.materialise(library, &identity, &held.version)?;
+        }
+        let report = registry.write(library, &docs).map_err(Error::Library)?;
+        self.identity = Some(identity);
+        Ok(report)
     }
 
     /// Verify an assigned function before publishing or placing the draft.
@@ -583,11 +753,24 @@ impl SymbolDraft {
             return Err(input("symbol-function-required"));
         };
         let mut draft = Self::new(key, key)?;
+        draft.identity = kept_identity(symbol, &function, key);
         draft.symbol = symbol.item.clone();
         draft.function = function.item;
         draft.symbol.meta.key = Some(key.parse().map_err(input)?);
         Ok(draft)
     }
+}
+
+/// The identity a draft keeps from the symbol it comes from: only under the symbol's own key, and its function
+/// definition's only when that is the symbol's own one (ID-1463). Another key makes a new item.
+fn kept_identity(symbol: &LibCopy<SymbolDef>, function: &LibCopy<FnDef>, key: &str) -> Option<DraftIdentity> {
+    let own = |k: Option<&ew_mltext::Ident>, expected: &str| k.is_some_and(|k| k.as_str() == expected);
+    own(symbol.item.meta.key.as_ref(), key).then(|| DraftIdentity {
+        symbol: Id::from_uuid(symbol.item_id.as_uuid()),
+        fndef: (function.library_id == symbol.library_id
+            && own(function.item.meta.key.as_ref(), &format!("{key}.function")))
+        .then(|| Id::from_uuid(function.item_id.as_uuid())),
+    })
 }
 
 fn bounded(v: &Value, depth: usize) -> bool {
@@ -615,11 +798,10 @@ fn reference(library: Uuid, key: &str, version: &str) -> LibRef {
 fn copy<T: Serialize>(
     kind: &str,
     library: Uuid,
-    key: &str,
+    item_id: Uuid,
     version: &str,
     item: &T,
 ) -> Result<LibDocument, Error> {
-    let item_id = v5::imported_id::<()>(library, key).as_uuid();
     let mut value = serde_json::to_value(item).map_err(input)?;
     let map = value
         .as_object_mut()
@@ -730,6 +912,24 @@ pub fn import_qet(bytes: &[u8], name: &str, key: &str) -> Result<SymbolDraft, Er
         .collect();
     draft.symbol.meta.key = Some(key.parse().map_err(input)?);
     Ok(draft)
+}
+
+/// The key of a symbol imported from `path` without one (ID-1463: no shared default key): the file's name before its
+/// first dot (the whole name when that is empty), each character other than an ASCII letter, a digit, `_` or `-`
+/// replaced by `_`.
+pub fn file_key(path: &Path) -> String {
+    let name = path.file_name().unwrap_or_default().to_string_lossy();
+    let stem = name.split('.').next().filter(|s| !s.is_empty()).unwrap_or(&name);
+    stem.chars()
+        .take(100)
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || c == '-' {
+                c
+            } else {
+                '_'
+            }
+        })
+        .collect()
 }
 
 /// Open portable JSON, a QElectroTech element, or EPLAN input. Archive candidates stay separate.

@@ -163,6 +163,14 @@ impl ShellModel {
             {
                 strings::text(strings::Key::run_time(&s)).to_owned()
             }
+            symbols::Error::KeyTaken { key, function } => strings::format(
+                if function {
+                    key!("symbol-function-key-taken")
+                } else {
+                    key!("symbol-key-taken")
+                },
+                &[&key],
+            ),
             e => e.to_string(),
         };
         if matches!(action, "new" | "open" | "fork" | "close") {
@@ -175,15 +183,20 @@ impl ShellModel {
                 self.symbol_editor = None;
                 return Ok(());
             }
-            let key = if text(p, "key").is_empty() {
-                "user.symbol"
-            } else {
-                text(p, "key")
-            };
+            // No shared default key (ID-1463): a new draft starts without one, an import takes its file's name.
+            let key = text(p, "key");
+            if action == "fork" && key.is_empty() {
+                return Err(strings::text(key!("symbol-key-required")).into());
+            }
             let mut candidates = Vec::new();
             let draft = if action == "open" {
                 let path = Path::new(text(p, "file"));
-                candidates = symbols::open(path, key).map_err(err)?;
+                let key = if key.is_empty() {
+                    symbols::file_key(path)
+                } else {
+                    key.to_owned()
+                };
+                candidates = symbols::open(path, &key).map_err(err)?;
                 candidates
                     .first()
                     .cloned()
@@ -448,7 +461,7 @@ impl ShellModel {
                     })
                     .ok_or_else(|| strings::text(key!("symbol-function-required")).to_owned())?;
                 let mut draft = editor.draft.clone();
-                draft.function_ref = Some(serde_json::from_value(json!({"library":f.library_id,"item":f.item_id,"version_req":format!("={}",f.version)})).map_err(|e| e.to_string())?);
+                draft.function_ref = Some(serde_json::from_value(json!({"library":f.library_id,"item":f.item_id,"version_req":format!("^{}",f.version)})).map_err(|e| e.to_string())?);
                 draft.function = f.item;
                 editor.replace(draft);
             }
@@ -636,7 +649,7 @@ impl ShellModel {
                 editor.saved = Some(editor.draft.clone());
             }
             "save" => {
-                let draft = editor.draft.clone();
+                let mut draft = editor.draft.clone();
                 let directory = if text(p, "directory").is_empty() {
                     editor.directory.clone()
                 } else {
@@ -650,16 +663,26 @@ impl ShellModel {
                 if !issues.is_empty() {
                     return Err(err(symbols::Error::Invalid(issues)));
                 }
-                let mut tiers = configured_libraries.unwrap_or_else(|| {
-                    ew_api::library::LibraryTiers::under(
-                        Path::new("."),
-                        &path.parent().unwrap_or(Path::new(".")).join(".symbol-index"),
-                        Vec::new(),
-                        Vec::new(),
-                    )
-                });
-                // Keep every configured tier and add the explicit destination as a writable company path.
-                if !tiers.company.contains(&path) {
+                // Without configured tiers, the settings folder's, as a remembered company path gives; never tiers or
+                // an index in the working directory or beside the library.
+                let config_dir = self.config.config_dir.as_deref();
+                let mut tiers = configured_libraries
+                    .or_else(|| {
+                        config_dir.map(|d| {
+                            ew_api::library::LibraryTiers::under(
+                                d,
+                                &d.join("library-index"),
+                                Vec::new(),
+                                Vec::new(),
+                            )
+                        })
+                    })
+                    .or_else(|| ew_api::library::LibraryTiers::for_user(Vec::new(), Vec::new()))
+                    .ok_or_else(|| strings::text(key!("symbol-directory-required")).to_owned())?;
+                // A library of the user tier opens from it; any other destination is a writable company path.
+                let user_tier = path.extension().is_some_and(|e| e == "ewlib")
+                    && path.parent() == std::path::absolute(&tiers.user).ok().as_deref();
+                if !user_tier && !tiers.company.contains(&path) {
                     tiers.company.push(path.clone());
                 }
                 let mut registry = ew_api::library::Registry::open(&tiers).map_err(|e| e.to_string())?;
@@ -684,11 +707,20 @@ impl ShellModel {
                 if let Some(project) = &mut self.project {
                     *project.session.libraries_mut() = registry;
                 }
+                // The draft's history publishes the same items from now on.
+                let history = editor.undo.iter_mut().chain(editor.redo.iter_mut());
+                for d in history.chain([&mut editor.draft]) {
+                    if d.key == draft.key && d.identity.is_none() {
+                        d.identity.clone_from(&draft.identity);
+                    }
+                }
                 editor.directory = directory;
                 editor.saved = Some(draft);
                 editor.error = None;
-                self.settings
-                    .remember_library(&path, self.config.config_dir.as_deref());
+                if !user_tier {
+                    self.settings
+                        .remember_library(&path, self.config.config_dir.as_deref());
+                }
                 self.save_settings();
                 self.libraries_changed();
             }
@@ -707,6 +739,7 @@ impl ShellModel {
                     "{}.test.{serial}",
                     draft.key.chars().take(100).collect::<String>()
                 );
+                draft.identity = None;
                 let mut docs = draft.documents(symbols::DRAFT_LIBRARY).map_err(err)?;
                 if let Some(r) = &draft.function_ref {
                     let project = self
