@@ -4972,3 +4972,7 @@ symbol-visible-of = { $p0 } visible
 prompt-symbol-filter = Symbol files
 symbol-new-symbol = New symbol
 symbol-confirm-replace = The symbol draft has changes that are not in a library. Save it first, or discard the changes.
+symbol-version-taken = The library holds { $p0 } at version { $p1 } with other content. Give the change a new version.
+symbol-version-older = The library holds { $p0 } at the newer version { $p2 }; version { $p1 } would replace it. Give the change a version above { $p2 }.
+symbol-item-symbol = the symbol { $p0 }
+symbol-item-function = the function definition of { $p0 }

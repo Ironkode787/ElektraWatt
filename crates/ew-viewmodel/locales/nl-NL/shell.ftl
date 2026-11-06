@@ -4733,3 +4733,7 @@ symbol-visible-of = { $p0 } zichtbaar
 prompt-symbol-filter = Symboolbestanden
 symbol-new-symbol = Nieuw symbool
 symbol-confirm-replace = Het symboolconcept heeft wijzigingen die niet in een bibliotheek staan. Sla het eerst op, of verwerp de wijzigingen.
+symbol-version-taken = De bibliotheek bevat { $p0 } al in versie { $p1 } met andere inhoud. Geef de wijziging een nieuwe versie.
+symbol-version-older = De bibliotheek bevat { $p0 } in de nieuwere versie { $p2 }; versie { $p1 } zou die vervangen. Geef de wijziging een versie hoger dan { $p2 }.
+symbol-item-symbol = het symbool { $p0 }
+symbol-item-function = de functiedefinitie van { $p0 }

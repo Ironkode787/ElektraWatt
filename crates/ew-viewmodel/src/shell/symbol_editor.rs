@@ -886,7 +886,28 @@ impl ShellModel {
                         )
                         .map_err(|e| e.to_string())?,
                 };
-                draft.publish(&mut registry, target).map_err(err)?;
+                // M25-p4#6: the writer's version refusals in words, the item named by the symbol, without its UUID.
+                let fndef_item = draft.identity.as_ref().and_then(|i| i.fndef).map(|f| f.as_uuid());
+                let name = name_words(&draft.symbol.name);
+                let item = |id| {
+                    let kind = if Some(id) == fndef_item {
+                        key!("symbol-item-function")
+                    } else {
+                        key!("symbol-item-symbol")
+                    };
+                    strings::format(kind, &[&name])
+                };
+                draft.publish(&mut registry, target).map_err(|e| match e {
+                    symbols::Error::Library(ew_api::library::LibraryError::Immutable { item: id, version }) => {
+                        strings::format(key!("symbol-version-taken"), &[&item(id), &version])
+                    }
+                    symbols::Error::Library(ew_api::library::LibraryError::Downgrade {
+                        item: id,
+                        version,
+                        held,
+                    }) => strings::format(key!("symbol-version-older"), &[&item(id), &version, &held]),
+                    e => err(e),
+                })?;
                 self.config.libraries = Some(tiers);
                 if let Some(project) = &mut self.project {
                     *project.session.libraries_mut() = registry;

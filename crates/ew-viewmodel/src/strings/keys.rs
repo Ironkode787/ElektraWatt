@@ -4574,4 +4574,8 @@ pub const KEYS: &[&str] = &[
     "prompt-symbol-filter",
     "symbol-new-symbol",
     "symbol-confirm-replace",
+    "symbol-version-taken",
+    "symbol-version-older",
+    "symbol-item-symbol",
+    "symbol-item-function",
 ];

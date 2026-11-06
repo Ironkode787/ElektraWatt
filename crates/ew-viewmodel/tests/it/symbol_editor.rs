@@ -1190,6 +1190,48 @@ fn the_symbol_file_picker_offers_every_extension_an_importer_reads() {
     assert!(FILE_EXTENSIONS.contains(&"json"));
 }
 
+/// M25-p4#6: the library writer's version refusals reach the window in words, in both languages: the symbol by its
+/// name, the versions, no UUID.
+#[test]
+fn version_refusals_of_a_save_name_the_symbol_and_its_versions() {
+    use ew_viewmodel::strings;
+    let tmp = Tmp::new("symbol-versions");
+    let mut shell = ShellModel::new(
+        Mode::Headless,
+        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
+    );
+    drawn(&mut shell, "example.versions", "Versions block");
+    let library = json!({"directory": tmp.0.join("versions.ewlib")});
+    done(&mut shell, "symbol.save", library.clone());
+    done(
+        &mut shell,
+        "symbol.draw",
+        json!({"tool":"line","x":4,"y":0,"x2":4,"y2":4}),
+    );
+    assert_eq!(
+        failed(&mut shell, "symbol.save", library.clone()),
+        "Symbol editor: The library holds the symbol Versions block at version 1.0.0 with other content. Give the \
+         change a new version."
+    );
+    assert!(strings::set_locale("nl"));
+    let dutch = failed(&mut shell, "symbol.save", library.clone());
+    assert!(strings::set_locale("en"));
+    assert_eq!(
+        dutch,
+        "Symbooleditor: De bibliotheek bevat het symbool Versions block al in versie 1.0.0 met andere inhoud. Geef de \
+         wijziging een nieuwe versie."
+    );
+    let mut older = serde_json::to_value(&shell.symbol_editor().unwrap().draft).unwrap();
+    older["version"] = json!("0.9.0");
+    done(&mut shell, "symbol.replace", json!({"document": older}));
+    assert_eq!(
+        failed(&mut shell, "symbol.save", library),
+        "Symbol editor: The library holds the symbol Versions block at the newer version 1.0.0; version 0.9.0 would \
+         replace it. Give the change a version above 1.0.0."
+    );
+    shell.shutdown();
+}
+
 /// ID-1472 (M25-p5#6): `symbol.new` with `discard` starts a fresh draft; without a key or name it returns to the kept
 /// one.
 #[test]
