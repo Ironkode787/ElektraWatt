@@ -1019,8 +1019,6 @@ fn compare_format(
     };
     let mut changes: Vec<(bool, String, String)> = Vec::new();
     let mut variants: Vec<(String, String)> = Vec::new();
-    // With a newer line base, the values new since the oldest base are only reported; S6 reads the line base's below.
-    let mut base_variants: Vec<(String, String)> = Vec::new();
     for (path, text) in &before {
         let name = &path[dir.len() + 1..];
         let item = name.strip_suffix(".schema.json").unwrap_or(name);
@@ -1038,7 +1036,9 @@ fn compare_format(
         } else if line_tag == tag {
             node_changes(item, &b, &a, &mut changes, &mut variants);
         } else {
-            node_changes(item, &b, &a, &mut changes, &mut base_variants);
+            // With a newer line base, the values new since the oldest base are reported in `changes` only; S6 reads
+            // the line base's below (C53-p1#7).
+            node_changes(item, &b, &a, &mut changes, &mut Vec::new());
         }
     }
     if line_tag != tag {
