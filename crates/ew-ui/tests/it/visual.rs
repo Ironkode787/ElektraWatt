@@ -1713,3 +1713,51 @@ fn symbol_editor_tools_take_keys_of_the_keymap_and_leave_the_panel() {
     assert_eq!(d.shell_mut().symbol_editor().unwrap().tool, "select");
     d.shell_mut().shutdown();
 }
+
+/// A driver with the symbol editor open on a drawn one-pin draft (a line and pin 1 at the origin).
+fn symbol_driver(tmp: &Tmp, key: &str) -> Driver {
+    use ew_ui::ew_viewmodel::shell::Outcome;
+    let mut d = Driver::in_folder(tmp.config(), None, tmp.0.clone()).unwrap();
+    d.enable_accesskit();
+    for (action, params) in [
+        ("symbol.new", json!({"key":key,"name":"Drawn"})),
+        (
+            "symbol.draw",
+            json!({"tool":"line","x":0,"y":0,"x2":0,"y2":4}),
+        ),
+        (
+            "symbol.cp",
+            json!({"x":0,"y":0,"designation":"1","direction":"left"}),
+        ),
+    ] {
+        assert_eq!(d.shell_mut().dispatch(action, &params), Outcome::Done);
+    }
+    d.settle();
+    d
+}
+
+/// M25-p5#1: the Library folder typed in its field is the editor's once the field is left, so Ctrl+S saves there.
+#[test]
+fn symbol_editor_saves_with_ctrl_s_to_the_library_folder_typed() {
+    let tmp = Tmp::new();
+    let mut d = symbol_driver(&tmp, "example.folder");
+    d.input(&click(d.find("Library").unwrap()));
+    let typed = tmp.0.join("typed.ewlib");
+    d.input(&click(d.find("Library folder").unwrap()));
+    d.input(&key("ctrl+a"));
+    d.input(&Input::Type {
+        text: typed.to_string_lossy().into_owned(),
+    });
+    d.input(&key("tab"));
+    assert_eq!(
+        PathBuf::from(&d.shell_mut().symbol_editor().unwrap().directory),
+        typed
+    );
+    d.input(&Input::Hover { at: (600, 400) });
+    d.input(&key("ctrl+s"));
+    let editor = d.shell_mut().symbol_editor().unwrap();
+    assert_eq!(editor.error, None);
+    assert!(editor.stored());
+    assert!(typed.is_dir());
+    d.shell_mut().shutdown();
+}

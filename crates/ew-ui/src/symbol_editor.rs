@@ -265,7 +265,7 @@ fn section(ui: &mut Ui, salt: &str, key: &str, count: Option<usize>, default_ope
 }
 
 /// A path the user types beside its picker: wrapped, so a long path shows whole at every width (SM25#8).
-fn path_field(ui: &mut Ui, key: &str, value: &mut String) {
+fn path_field(ui: &mut Ui, key: &str, value: &mut String) -> egui::Response {
     let caption = ui.label(label(strings::Key::run_time(key)));
     let response = ui
         .add(
@@ -279,6 +279,7 @@ fn path_field(ui: &mut Ui, key: &str, value: &mut String) {
     let name = label(strings::Key::run_time(key));
     ui.ctx()
         .accesskit_node_builder(response.id, |n| n.set_label(name));
+    response
 }
 
 /// The words of a potential role as the role list shows them: codes as printed, Signal and Undefined in words.
@@ -840,7 +841,16 @@ impl EditorView {
                             if button(ui,"symbol-export") { action(events,"symbol.export",self.file_params()); }
                         });
                     }
-                    path_field(ui,"symbol-library-folder",&mut self.directory);
+                    // M25-p5#1: the folder typed is the editor's on Enter or focus loss, so Ctrl+S, File ▸ Save symbol
+                    // and the quit question save there too; Escape takes the editor's folder back.
+                    let folder = path_field(ui,"symbol-library-folder",&mut self.directory);
+                    if folder.lost_focus() && self.directory != editor.directory {
+                        if ui.input(|i| i.key_pressed(egui::Key::Escape)) {
+                            self.directory.clone_from(&editor.directory);
+                        } else {
+                            action(events, "symbol.directory", json!({"directory": self.directory}));
+                        }
+                    }
                     if button(ui, "symbol-choose-folder") { action(events, "symbol.directory", json!({})); }
                     if section(ui, "place", "symbol-place", None, false) {
                         ui.horizontal(|ui| {
