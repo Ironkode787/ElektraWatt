@@ -1338,6 +1338,14 @@ pub const TEXTS: &[(&str, &str)] = &[
         "refusal-fields-counter-used-project",
         "counter {0} with letter {1} is already used by another cable without a page; use {2}, the next free counter",
     ),
+    (
+        "refusal-fields-section-divider-page",
+        "folio {0} is held by a page; choose another folio for section {1}'s divider",
+    ),
+    (
+        "refusal-fields-section-divider-report",
+        "folio {0} is held by a report block; choose another folio for section {1}'s divider",
+    ),
     // valve.set_occupancy and fluid.port.close.
     ("refusal-valve-no-positions", "{0} has no valve positions"),
     (
@@ -1622,6 +1630,10 @@ pub const TEXTS: &[(&str, &str)] = &[
     (
         "refusal-page-renumber-label-used",
         "sub-page label {0} is already used by another page of the section; choose another `start`",
+    ),
+    (
+        "refusal-page-renumber-outside-section",
+        "folio {0} lies outside section {1}'s folios {2} to {3}; choose another `start` or `step`",
     ),
     (
         "refusal-page-surface-view-not-layout",

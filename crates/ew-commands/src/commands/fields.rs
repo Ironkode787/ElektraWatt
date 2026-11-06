@@ -424,7 +424,14 @@ impl SetFields {
                 }
                 KindName::PotentialDef => set_one::<PotentialDef>(tx, *t, path, value)?,
                 KindName::StructureNode => set_one::<StructureNode>(tx, *t, path, value)?,
-                KindName::Section => set_one::<Section>(tx, *t, path, value)?,
+                KindName::Section => {
+                    set_one::<Section>(tx, *t, path, value)?;
+                    // FT-1510 (WP-S6.08 D27): a divider onto a folio a page or a page-oriented report block of the
+                    // section holds is refused, as `page.create` and `report_block.create` keep the divider's free.
+                    if path == "divider" || path == "folio_range" {
+                        refuse_held_divider(tx, t.cast())?;
+                    }
+                }
                 KindName::ReportBlock => {
                     set_one::<ReportBlock>(tx, *t, path, value)?;
                     // ID-1417 (C52-p2#1): a first folio or a continuation whose generated pages a page of the section
@@ -582,6 +589,40 @@ fn refuse_unknown_colour(tx: &TxBuilder<'_>, conn: ew_ids::Id<Connection>) -> Re
         if let Some(p) = crate::commands::items::colour_problem(&company, colour) {
             return Err(CmdError::invalid_params(SetFields::NAME, "/value", p));
         }
+    }
+    Ok(())
+}
+
+/// `fields.set` on a section's `divider` or `folio_range` (FT-1510, WP-S6.08 D27): with a divider, the range's first
+/// folio, which the divider page prints, may not be printed by a page of the section or be the first folio of one of
+/// its page-oriented report blocks.
+fn refuse_held_divider(tx: &TxBuilder<'_>, section: ew_ids::Id<Section>) -> Result<(), CmdError> {
+    let s = tx.require::<Section>(section)?;
+    if !s.divider {
+        return Ok(());
+    }
+    let first = s.folio_range.0;
+    let head = first.to_string();
+    let page = crate::commands::page::section_pages(tx, Some(s.id))
+        .into_iter()
+        .any(|(_, f)| crate::commands::page::printed_folio(f.number, f.label.as_ref()) == head);
+    if page {
+        return tx.reject(text!(
+            "refusal-fields-section-divider-page",
+            head,
+            s.number.to_string()
+        ));
+    }
+    let report = tx
+        .iter::<ReportBlock>()
+        .iter()
+        .any(|b| b.section == Some(s.id) && b.embedded.is_none() && b.first_folio == Some(first));
+    if report {
+        return tx.reject(text!(
+            "refusal-fields-section-divider-report",
+            head,
+            s.number.to_string()
+        ));
     }
     Ok(())
 }

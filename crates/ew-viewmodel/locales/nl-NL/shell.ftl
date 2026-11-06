@@ -1212,6 +1212,8 @@ refusal-fields-port-role-unknown = { $p0 } is geen poortrol; geef master, slave,
 refusal-fields-bus-address-unknown = { $p0 } is geen busadres; geef tbd, not_applicable of {"{"}"value": {"{"}"profibus": n{"}"}{"}"}
 refusal-fields-termination-unknown = { $p0 } is geen afsluiting; geef on of off
 refusal-fields-counter-used-project = teller { $p0 } met letter { $p1 } wordt al gebruikt door een andere kabel zonder pagina; gebruik { $p2 }, de volgende vrije teller
+refusal-fields-section-divider-page = folio { $p0 } is bezet door een pagina; kies een ander folio voor de scheidingspagina van sectie { $p1 }
+refusal-fields-section-divider-report = folio { $p0 } is bezet door een rapportblok; kies een ander folio voor de scheidingspagina van sectie { $p1 }
 # valve.set_occupancy and fluid.port.close.
 refusal-valve-no-positions = { $p0 } heeft geen ventielplaatsen
 refusal-valve-no-position = { $p0 } heeft { $p1 } ventielplaatsen; plaats { $p2 } bestaat niet
@@ -1308,6 +1310,7 @@ refusal-page-renumber-no-pages = geen pagina's in het bereik; noem pagina's, een
 refusal-page-renumber-out-of-range = nieuw folionummer { $p0 } valt buiten het bereik; kies een andere `start` of `step`
 refusal-page-renumber-used = folio { $p0 } wordt al gebruikt door een pagina buiten de hernummerde pagina's; kies een andere `start` of neem die pagina mee
 refusal-page-renumber-label-used = subpaginalabel { $p0 } wordt al gebruikt door een andere pagina van de sectie; kies een andere `start`
+refusal-page-renumber-outside-section = folio { $p0 } ligt buiten de folio's { $p2 } tot en met { $p3 } van sectie { $p1 }; kies een andere `start` of `step`
 refusal-page-surface-view-not-layout = folio { $p0 } is geen paneellayoutpagina; een paneelaanzicht hoort op een paneellayoutpagina
 refusal-page-scale = een schaal is 1:n met n ten minste 1
 # page.reorder.

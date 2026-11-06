@@ -213,3 +213,8 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   new project, the wizard's basic project and a release; in `ew` the projects `ew import qet --out` and `ew import csv`
   write, `ew fmt`, `ew fmt --repair` and `ew revision release`) shows the toast and prints the warning of a save;
   FT-1489, WP-S6.08 D19)
+- behaviour-change: command page.renumber (a new folio outside its section's folios is refused: "folio <n> lies
+  outside section <s>'s folios <first> to <last>; choose another `start` or `step`"; FT-1511, WP-S6.08 D27)
+- behaviour-change: command fields.set (a section's `divider` or `folio_range` that puts the divider page onto a folio
+  a page or a page-oriented report block of the section holds is refused: "folio <n> is held by a page; choose another
+  folio for section <s>'s divider", or "… held by a report block; …"; FT-1510, WP-S6.08 D27)
