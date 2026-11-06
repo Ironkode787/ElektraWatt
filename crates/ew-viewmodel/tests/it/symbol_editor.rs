@@ -1190,6 +1190,39 @@ fn the_symbol_file_picker_offers_every_extension_an_importer_reads() {
     assert!(FILE_EXTENSIONS.contains(&"json"));
 }
 
+/// Re-review part 4: the same content placed twice is one embedded copy, placed twice.
+#[test]
+fn the_same_content_placed_twice_reuses_one_copy() {
+    let tmp = Tmp::new("symbol-twice");
+    let config = ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test");
+    let dir = tmp.0.join("project.ew");
+    let mut shell = ShellModel::new(Mode::Headless, config);
+    done(&mut shell, "file.new", json!({"dir":dir,"template":"builtin"}));
+    drawn(&mut shell, "example.twice", "Twice");
+    done(&mut shell, "symbol.scratch", json!({}));
+    done(&mut shell, "symbol.new", json!({}));
+    done(&mut shell, "symbol.place", json!({"x":80,"y":80}));
+    done(&mut shell, "file.save", json!({}));
+    shell.shutdown();
+    let (session, _) = ew_viewmodel::ew_api::Session::open_read_only(&dir, "ElektraWatt test").unwrap();
+    let q = session.query();
+    let copies: Vec<_> = q
+        .symbols()
+        .iter()
+        .filter(|(_, s)| {
+            s.item
+                .meta
+                .key
+                .as_ref()
+                .is_some_and(|k| k.to_string().starts_with("example.twice.test."))
+        })
+        .map(|(id, _)| id)
+        .collect();
+    assert_eq!(copies.len(), 1, "{copies:?}");
+    let placed = q.reps().iter().filter(|(_, r)| r.symbol == copies[0]).count();
+    assert_eq!(placed, 2);
+}
+
 /// M25-p4#6: the library writer's version refusals reach the window in words, in both languages: the symbol by its
 /// name, the versions, no UUID.
 #[test]

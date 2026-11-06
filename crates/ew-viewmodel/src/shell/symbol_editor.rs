@@ -943,7 +943,17 @@ impl ShellModel {
                     "{}.test.{suffix}",
                     draft.key.chars().take(100).collect::<String>()
                 );
-                draft.identity = None;
+                // The same content placed again is the same copy (re-review part 4): its item IDs come from its key,
+                // which carries the content's suffix, never a new UUIDv7 per placement.
+                let item = |kind: &str| {
+                    ew_api::output::Uuid::new_v5(&symbols::DRAFT_LIBRARY, format!("{kind}|{}", draft.key).as_bytes())
+                        .to_string()
+                };
+                let fndef = draft.function_ref.is_none().then(|| item("fndef"));
+                draft.identity = Some(
+                    serde_json::from_value(json!({"symbol": item("symbol"), "fndef": fndef}))
+                        .map_err(|e| e.to_string())?,
+                );
                 let mut docs = draft.documents(symbols::DRAFT_LIBRARY).map_err(err)?;
                 if let Some(r) = &draft.function_ref {
                     let project = self
