@@ -1268,78 +1268,77 @@ impl EditorView {
                 ],
             )
         };
-        if self.panel == 0 {
-            if section(
+        if self.panel == 0
+            && section(
                 ui,
                 "graphics",
                 "symbol-graphics",
                 Some(draft.symbol.graphics.len()),
                 true,
-            ) {
+            )
+        {
+            {
+                for i in 0..draft.symbol.graphics.len() {
+                    if ui
+                        .selectable_label(self.selected == Some(i), graphic_title(i))
+                        .clicked()
+                    {
+                        self.selected = Some(i);
+                    }
+                }
+                if let Some(i) = self.selected
+                    && let Some(value) = doc["symbol"]["graphics"].get_mut(i)
                 {
-                    for i in 0..draft.symbol.graphics.len() {
-                        if ui
-                            .selectable_label(self.selected == Some(i), graphic_title(i))
-                            .clicked()
-                        {
-                            self.selected = Some(i);
+                    let owner = graphic_title(i);
+                    changed |= numeric_fields(ui, value, "", false, &owner);
+                    for kind in ["rect", "circle", "ellipse", "polygon"] {
+                        if let Some(shape) = value.get_mut(kind) {
+                            let mut filled = !shape["fill"].is_null();
+                            if ui
+                                .checkbox(&mut filled, label(strings::Key::run_time("symbol-fill")))
+                                .changed()
+                            {
+                                if filled {
+                                    shape["fill"] = json!("by_layer");
+                                } else if let Some(object) = shape.as_object_mut() {
+                                    object.remove("fill");
+                                }
+                                changed = true;
+                            }
                         }
                     }
-                    if let Some(i) = self.selected
-                        && let Some(value) = doc["symbol"]["graphics"].get_mut(i)
-                    {
-                        let owner = graphic_title(i);
-                        changed |= numeric_fields(ui, value, "", false, &owner);
-                        for kind in ["rect", "circle", "ellipse", "polygon"] {
-                            if let Some(shape) = value.get_mut(kind) {
-                                let mut filled = !shape["fill"].is_null();
-                                if ui
-                                    .checkbox(&mut filled, label(strings::Key::run_time("symbol-fill")))
-                                    .changed()
-                                {
-                                    if filled {
-                                        shape["fill"] = json!("by_layer");
-                                    } else if let Some(object) = shape.as_object_mut() {
-                                        object.remove("fill");
-                                    }
+                    if let Some(text) = value.get_mut("text") {
+                        changed |= text_style_control(ui, text, styles);
+                        changed |= ui
+                            .push_id(("graphic-text", i), |ui| {
+                                text_field(ui, "symbol-text", &mut text["text"])
+                            })
+                            .inner;
+                        changed |= rotation_control(ui, text, &owner);
+                    }
+                    if let Some(arc) = value.get_mut("arc") {
+                        for key in ["start", "sweep"] {
+                            let mut degrees = arc[key].as_f64().unwrap_or(0.0) / 1000.0;
+                            ui.horizontal(|ui| {
+                                let caption = label(strings::Key::run_time(if key == "start" {
+                                    "symbol-arc-start"
+                                } else {
+                                    "symbol-arc-sweep"
+                                }));
+                                ui.label(caption);
+                                if number(ui, &mut degrees, 1.0, -360.0..=360.0, &owned(caption, &owner)) {
+                                    arc[key] = json!((degrees * 1000.0).round() as i32);
                                     changed = true;
                                 }
-                            }
+                            });
                         }
-                        if let Some(text) = value.get_mut("text") {
-                            changed |= text_style_control(ui, text, styles);
-                            changed |= ui
-                                .push_id(("graphic-text", i), |ui| {
-                                    text_field(ui, "symbol-text", &mut text["text"])
-                                })
-                                .inner;
-                            changed |= rotation_control(ui, text, &owner);
+                    }
+                    if button(ui, "symbol-delete") {
+                        if let Some(a) = doc["symbol"]["graphics"].as_array_mut() {
+                            a.remove(i);
                         }
-                        if let Some(arc) = value.get_mut("arc") {
-                            for key in ["start", "sweep"] {
-                                let mut degrees = arc[key].as_f64().unwrap_or(0.0) / 1000.0;
-                                ui.horizontal(|ui| {
-                                    let caption = label(strings::Key::run_time(if key == "start" {
-                                        "symbol-arc-start"
-                                    } else {
-                                        "symbol-arc-sweep"
-                                    }));
-                                    ui.label(caption);
-                                    if number(ui, &mut degrees, 1.0, -360.0..=360.0, &owned(caption, &owner))
-                                    {
-                                        arc[key] = json!((degrees * 1000.0).round() as i32);
-                                        changed = true;
-                                    }
-                                });
-                            }
-                        }
-                        if button(ui, "symbol-delete") {
-                            if let Some(a) = doc["symbol"]["graphics"].as_array_mut() {
-                                a.remove(i);
-                            }
-                            self.selected = None;
-                            changed = true;
-                        }
+                        self.selected = None;
+                        changed = true;
                     }
                 }
             }

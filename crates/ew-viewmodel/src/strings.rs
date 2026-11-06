@@ -630,6 +630,10 @@ pub fn choice_words(value: &str) -> String {
         "single_line" => "single-line".to_owned(),
         "user_defined" => "user-defined".to_owned(),
         "page_based" => "page-based".to_owned(),
+        // ID-1463: the symbol editor's tools by their names in the bar.
+        "cp" => "connection point".to_owned(),
+        "slot" => "text slot".to_owned(),
+        "link" => "link point".to_owned(),
         other => other.replace('_', " "),
     };
     let mut chars = words.chars();

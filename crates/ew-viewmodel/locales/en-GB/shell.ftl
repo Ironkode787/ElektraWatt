@@ -4829,6 +4829,14 @@ choice-rectangle = Rectangle
 
 choice-text = Text
 
+choice-select = Select
+
+choice-cp = Connection point
+
+choice-slot = Text slot
+
+choice-link = Link point
+
 symbol-x-mm = x (mm)
 
 symbol-y-mm = y (mm)

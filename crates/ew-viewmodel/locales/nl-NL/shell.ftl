@@ -4590,6 +4590,14 @@ choice-rectangle = Rechthoek
 
 choice-text = Tekst
 
+choice-select = Selecteren
+
+choice-cp = Aansluitpunt
+
+choice-slot = Tekstpositie
+
+choice-link = Koppelpunt
+
 symbol-x-mm = x (mm)
 
 symbol-y-mm = y (mm)
@@ -4695,7 +4703,7 @@ action-symbol-directory = Map van symboolbibliotheek kiezen
 action-symbol-tool = Tekengereedschap voor symbool kiezen
 prompt-open-symbol-title = Een symbool openen of importeren
 prompt-save-symbol-title = Symboolconcept exporteren
-prompt-symbol-name = symbol.json
+prompt-symbol-name = symbool.json
 prompt-library-folder-title = Een map voor de symboolbibliotheek kiezen
 symbol-canvas = Tekening van { $p0 }
 symbol-owned = { $p0 } van { $p1 }
