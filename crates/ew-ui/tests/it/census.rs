@@ -1081,3 +1081,62 @@ fn census_the_symbol_editor() {
     h.state_mut().shell_mut().shutdown();
     census.assert_clean();
 }
+
+/// M25-p5#4 (ID-1463, #8): a control repeated for each pin, slot, link point or the selected shape names the item it
+/// belongs to, so no two share a name.
+#[test]
+fn the_symbol_editors_repeated_controls_name_their_item() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "g.ew");
+    for (action, params) in [
+        ("symbol.new", json!({"key": "example.names", "name": "Names"})),
+        (
+            "symbol.draw",
+            json!({"tool": "rectangle", "x": 0, "y": 0, "x2": 8, "y2": 8}),
+        ),
+        ("symbol.cp", json!({"x": 0, "y": 4, "designation": "1"})),
+        ("symbol.cp", json!({"x": 0, "y": 8, "designation": "2"})),
+        ("symbol.slot", json!({"x": 0, "y": -4, "kind": "tag"})),
+        ("symbol.slot", json!({"x": 4, "y": -4, "kind": "tag"})),
+        ("symbol.link", json!({"x": 8, "y": 0, "name": "a"})),
+        ("symbol.link", json!({"x": 8, "y": 4, "name": "a"})),
+    ] {
+        dispatch(&mut h, action, params);
+    }
+    h.run_ok();
+    let names = |h: &Harness<'_, App>, names: &[&str]| {
+        for name in names {
+            assert_eq!(h.query_all_by_label(name).count(), 1, "{name}");
+        }
+    };
+    for section in ["Rectangle 1", "Text slots (2)"] {
+        h.get_by_label(section).click();
+        h.run_ok();
+    }
+    h.run_ok();
+    names(
+        &h,
+        &[
+            "Fill shape of Rectangle 1",
+            "Delete Rectangle 1",
+            "Device tag 1 visible",
+            "Device tag 2 visible",
+            "Text style of Device tag 2",
+            "Delete Device tag 2",
+        ],
+    );
+    // The slots close, so the link points show in the panel.
+    for section in ["Text slots (2)", "Link point (2)"] {
+        h.get_by_label(section).click();
+        h.run_ok();
+    }
+    h.run_ok();
+    names(&h, &["Name of Link point 2", "Delete Link point 2"]);
+    h.get_by_label("Electrical data").click();
+    h.run_ok();
+    h.get_by_label("Connection points (2)").click();
+    h.run_ok();
+    h.run_ok();
+    names(&h, &["Delete Connection point 1", "Delete Connection point 2"]);
+    h.state_mut().shell_mut().shutdown();
+}

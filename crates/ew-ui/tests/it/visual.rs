@@ -1079,7 +1079,7 @@ fn symbol_editor_numeric_properties_commit_complete_text_as_one_undo() {
     d.input(&key("escape"));
     d.input(&key("ctrl+z"));
     assert_eq!(d.shell_mut().symbol_editor().unwrap().draft, before);
-    d.input(&click(d.find("Fill shape").unwrap()));
+    d.input(&click(d.find("Fill shape of Rectangle 1").unwrap()));
     let filled =
         serde_json::to_value(&d.shell_mut().symbol_editor().unwrap().draft.symbol.graphics[0]).unwrap();
     assert_eq!(filled["rect"]["fill"], json!("by_layer"));

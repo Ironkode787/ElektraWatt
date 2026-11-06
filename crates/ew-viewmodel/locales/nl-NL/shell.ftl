@@ -4728,3 +4728,6 @@ symbol-role-signal = Signaal
 symbol-role-undefined = Onbepaald
 symbol-candidates-count = Dit bestand bevat { $p0 } tekeningen. Kies de tekening die u wilt bewerken.
 symbol-panels = Panelen van de symbooleditor
+symbol-delete-row = Verwijderen
+symbol-delete-item = { $p0 } verwijderen
+symbol-visible-of = { $p0 } zichtbaar

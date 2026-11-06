@@ -4967,3 +4967,6 @@ symbol-role-signal = Signal
 symbol-role-undefined = Undefined
 symbol-candidates-count = This file holds { $p0 } drawings. Choose the one to edit.
 symbol-panels = Symbol editor panels
+symbol-delete-row = Delete
+symbol-delete-item = Delete { $p0 }
+symbol-visible-of = { $p0 } visible

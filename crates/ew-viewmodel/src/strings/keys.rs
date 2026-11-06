@@ -4569,4 +4569,7 @@ pub const KEYS: &[&str] = &[
     "symbol-role-undefined",
     "symbol-candidates-count",
     "symbol-panels",
+    "symbol-delete-row",
+    "symbol-delete-item",
+    "symbol-visible-of",
 ];

@@ -263,6 +263,22 @@ fn number(
     commit
 }
 
+/// A button of one item's row, its words `key`, named "Delete <owner>" (M25-p5#4). Returns whether it was clicked.
+fn delete_button(ui: &mut Ui, key: &str, owner: &str) -> bool {
+    let response = components::button(ui, Kind::Secondary, label(strings::Key::run_time(key)), true, 0.0);
+    let name = strings::format(strings::Key::run_time("symbol-delete-item"), &[owner]);
+    response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, &name));
+    response.clicked()
+}
+
+/// A check box with the words `key`, named `name` for the item it belongs to (M25-p5#4). Returns whether it changed.
+fn named_checkbox(ui: &mut Ui, on: &mut bool, key: &str, name: &str) -> bool {
+    let response = ui.checkbox(on, label(strings::Key::run_time(key)));
+    let state = *on;
+    response.widget_info(|| egui::WidgetInfo::selected(egui::Role::CheckBox, ui.is_enabled(), state, name));
+    response.changed()
+}
+
 /// `{part} of {owner}`: the accessible name of a control that belongs to an item (M25-p3#8).
 fn owned(part: &str, owner: &str) -> String {
     strings::format(strings::Key::run_time("symbol-owned"), &[part, owner])
@@ -1319,10 +1335,12 @@ impl EditorView {
                     for kind in ["rect", "circle", "ellipse", "polygon"] {
                         if let Some(shape) = value.get_mut(kind) {
                             let mut filled = !shape["fill"].is_null();
-                            if ui
-                                .checkbox(&mut filled, label(strings::Key::run_time("symbol-fill")))
-                                .changed()
-                            {
+                            if named_checkbox(
+                                ui,
+                                &mut filled,
+                                "symbol-fill",
+                                &owned(label(strings::Key::run_time("symbol-fill")), &owner),
+                            ) {
                                 if filled {
                                     shape["fill"] = json!("by_layer");
                                 } else if let Some(object) = shape.as_object_mut() {
@@ -1333,7 +1351,7 @@ impl EditorView {
                         }
                     }
                     if let Some(text) = value.get_mut("text") {
-                        changed |= text_style_control(ui, text, styles);
+                        changed |= text_style_control(ui, text, styles, &owner);
                         changed |= ui
                             .push_id(("graphic-text", i), |ui| {
                                 text_field(ui, "symbol-text", &mut text["text"])
@@ -1358,7 +1376,7 @@ impl EditorView {
                             });
                         }
                     }
-                    if button(ui, "symbol-delete") {
+                    if delete_button(ui, "symbol-delete", &owner) {
                         if let Some(a) = doc["symbol"]["graphics"].as_array_mut() {
                             a.remove(i);
                         }
@@ -1471,7 +1489,7 @@ impl EditorView {
                                             owned(label(strings::Key::run_time("symbol-direction")), &owner),
                                         )
                                     });
-                                if button(ui, "symbol-delete") {
+                                if delete_button(ui, "symbol-delete-row", &owner) {
                                     remove = Some(i);
                                 }
                             });
@@ -1506,20 +1524,26 @@ impl EditorView {
                                 "xref" => "symbol-xref",
                                 _ => "symbol-cp-designation",
                             };
-                            let owner = label(strings::Key::run_time(key));
-                            ui.label(owner);
-                            changed |= text_style_control(ui, slot, styles);
-                            changed |= numeric_fields(ui, &mut slot["pos"], "", true, owner);
-                            changed |= rotation_control(ui, slot, owner);
+                            // M25-p5#4: each slot is named by its kind and its place in the list.
+                            let owner = strings::format(
+                                strings::Key::run_time("symbol-graphic-item"),
+                                &[label(strings::Key::run_time(key)), &(i + 1).to_string()],
+                            );
+                            ui.label(&owner);
+                            changed |= text_style_control(ui, slot, styles, &owner);
+                            changed |= numeric_fields(ui, &mut slot["pos"], "", true, &owner);
+                            changed |= rotation_control(ui, slot, &owner);
                             let mut visible = slot["visible"].as_bool().unwrap_or(false);
-                            if ui
-                                .checkbox(&mut visible, label(strings::Key::run_time("symbol-visible")))
-                                .changed()
-                            {
+                            if named_checkbox(
+                                ui,
+                                &mut visible,
+                                "symbol-visible",
+                                &strings::format(strings::Key::run_time("symbol-visible-of"), &[&owner]),
+                            ) {
                                 slot["visible"] = json!(visible);
                                 changed = true;
                             }
-                            if button(ui, "symbol-delete") {
+                            if delete_button(ui, "symbol-delete-row", &owner) {
                                 remove = Some(i);
                             }
                         });
@@ -1544,13 +1568,28 @@ impl EditorView {
                     for (i, p) in points.iter_mut().enumerate() {
                         ui.push_id(("link", i), |ui| {
                             let mut s = p["name"].as_str().unwrap_or_default().to_owned();
-                            let owner = s.clone();
-                            if doc_field(ui, "symbol-name", &mut s) {
+                            // M25-p5#4: a link point is named by its place in the list, whatever its name.
+                            let owner = strings::format(
+                                strings::Key::run_time("symbol-graphic-item"),
+                                &[label(strings::Key::run_time("symbol-link")), &(i + 1).to_string()],
+                            );
+                            let caption = label(strings::Key::run_time("symbol-name"));
+                            ui.label(caption);
+                            let width = ui.available_width();
+                            if committed_text(
+                                ui,
+                                ("doc", "symbol-name"),
+                                &owned(caption, &owner),
+                                None,
+                                &mut s,
+                                width,
+                                true,
+                            ) {
                                 p["name"] = json!(s);
                                 changed = true;
                             }
                             changed |= numeric_fields(ui, &mut p["pos"], "", true, &owner);
-                            if button(ui, "symbol-delete") {
+                            if delete_button(ui, "symbol-delete-row", &owner) {
                                 remove = Some(i);
                             }
                         });
@@ -1803,7 +1842,7 @@ fn paint(
     }
 }
 
-fn text_style_control(ui: &mut Ui, value: &mut Value, styles: &symbols::TextStyleTable) -> bool {
+fn text_style_control(ui: &mut Ui, value: &mut Value, styles: &symbols::TextStyleTable, owner: &str) -> bool {
     let before = value
         .get("style")
         .and_then(Value::as_str)
@@ -1840,7 +1879,7 @@ fn text_style_control(ui: &mut Ui, value: &mut Value, styles: &symbols::TextStyl
                 egui::WidgetInfo::labeled(
                     egui::Role::ComboBox,
                     true,
-                    label(strings::Key::run_time("symbol-text-style")),
+                    owned(label(strings::Key::run_time("symbol-text-style")), owner),
                 )
             });
     });
