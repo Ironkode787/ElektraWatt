@@ -1048,7 +1048,10 @@ fn compare_format(
             let Ok(after) = std::fs::read_to_string(root.join(path)) else {
                 continue;
             };
-            let (b, a) = (json(text, path, line_tag)?, json(&after, path, "the working tree")?);
+            let (b, a) = (
+                json(text, path, line_tag)?,
+                json(&after, path, "the working tree")?,
+            );
             node_changes(item, &b, &a, &mut Vec::new(), &mut variants);
         }
     }
@@ -1404,7 +1407,12 @@ fn node_changes(
         }
         // WP-S6.08 D23: a constraint added, removed or changed, and a first `enum` or `const`, break either old files
         // or old readers.
-        let keys: BTreeSet<&str> = node.constraints.keys().chain(new.constraints.keys()).copied().collect();
+        let keys: BTreeSet<&str> = node
+            .constraints
+            .keys()
+            .chain(new.constraints.keys())
+            .copied()
+            .collect();
         for key in keys {
             let what = match (node.constraints.get(key), new.constraints.get(key)) {
                 (Some(old), Some(now)) if old == now => continue,

@@ -141,7 +141,10 @@ fn an_imported_project_reports_an_unreleased_format() {
         let out = root.0.join(format!("p{n}.ew"));
         let mut options = store();
         options.released = released;
-        assert_eq!(create_project_from(imported_session(7), &out, options).unwrap(), marked);
+        assert_eq!(
+            create_project_from(imported_session(7), &out, options).unwrap(),
+            marked
+        );
         let manifest = std::fs::read_to_string(out.join("manifest.json")).unwrap();
         assert_eq!(manifest.contains("\"unstable\": true"), marked, "{manifest}");
     }

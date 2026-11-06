@@ -494,7 +494,11 @@ fn every_window_writer_of_an_unreleased_format_says_so() {
             let shown = s.notifications().entries().filter(|n| n.lines().0 == s1).count();
             assert_eq!(shown, if marked { n + 1 } else { 0 }, "{action} {released:?}");
             let manifest = std::fs::read_to_string(dir.join("manifest.json")).unwrap();
-            assert_eq!(manifest.contains("\"unstable\": true"), marked, "{action}: {manifest}");
+            assert_eq!(
+                manifest.contains("\"unstable\": true"),
+                marked,
+                "{action}: {manifest}"
+            );
         }
     }
 }

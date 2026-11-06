@@ -344,14 +344,20 @@ fn with_page_105() -> (Engine, Id<Page>) {
 fn renumber_keep_gaps() {
     let (mut e, gap) = with_page_105();
     bulk(&mut e, &renumber(PageScope::Section(SEC1), 110, 2, true)).unwrap();
-    assert_eq!([PAGE_101, PAGE_102, gap].map(|p| folio_of(&e, p).1), [110, 112, 118]);
+    assert_eq!(
+        [PAGE_101, PAGE_102, gap].map(|p| folio_of(&e, p).1),
+        [110, 112, 118]
+    );
 }
 
 #[test]
 fn renumber_without_gaps_compacts() {
     let (mut e, gap) = with_page_105();
     bulk(&mut e, &renumber(PageScope::Section(SEC1), 110, 2, false)).unwrap();
-    assert_eq!([PAGE_101, PAGE_102, gap].map(|p| folio_of(&e, p).1), [110, 112, 114]);
+    assert_eq!(
+        [PAGE_101, PAGE_102, gap].map(|p| folio_of(&e, p).1),
+        [110, 112, 114]
+    );
 }
 
 #[test]
@@ -982,7 +988,11 @@ fn renumber_refuses_a_folio_outside_its_section() {
         "folio 200 lies outside section 1's folios 100 to 199; choose another `start` or `step`"
     );
     assert_eq!(lines(e.model()), before);
-    bulk(&mut e, &renumber(PageScope::Pages(vec![PAGE_101, PAGE_102]), 198, 1, false)).expect("inside the range");
+    bulk(
+        &mut e,
+        &renumber(PageScope::Pages(vec![PAGE_101, PAGE_102]), 198, 1, false),
+    )
+    .expect("inside the range");
 }
 
 /// FT-1510 (WP-S6.08 D27, S9): `fields.set` of a section's `divider` or `folio_range` refuses a divider onto a folio a

@@ -1889,7 +1889,11 @@ mod tests {
                        this project read-only\n";
         for (released, marked) in [(&OLDER[..], true), (&THIS[..], false)] {
             for repair in [false, true] {
-                let dir = setup(if repair { "repair-unreleased" } else { "fmt-unreleased" });
+                let dir = setup(if repair {
+                    "repair-unreleased"
+                } else {
+                    "fmt-unreleased"
+                });
                 let project = dir.join("p.ew");
                 let page = std::fs::read_dir(project.join("pages"))
                     .unwrap()

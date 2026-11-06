@@ -1108,7 +1108,12 @@ impl ShellModel {
             Some(p) => p
                 .session
                 .discard_incomplete_release_as(&origin, &options)
-                .map(|_| (strings::format(key!("toast-revision-discarded"), &[&label]), false)),
+                .map(|_| {
+                    (
+                        strings::format(key!("toast-revision-discarded"), &[&label]),
+                        false,
+                    )
+                }),
             None => return Outcome::Done,
         };
         self.revision.integrity = integrity;

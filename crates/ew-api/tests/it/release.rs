@@ -402,7 +402,11 @@ fn a_release_reports_an_unreleased_format() {
     static THIS: [&str; 1] = [ew_api::FORMAT];
     for (n, (released, marked)) in [(&OLDER[..], true), (&THIS[..], false)].into_iter().enumerate() {
         let base = ew_testdir::fresh_dir(&format!("ew-release-unreleased-{n}"));
-        let (dir, state, root) = (base.join("release-min"), base.join("state"), base.join("archives"));
+        let (dir, state, root) = (
+            base.join("release-min"),
+            base.join("state"),
+            base.join("archives"),
+        );
         copy_dir(&fixture(), &dir);
         let mut store = store_options(&state);
         store.released = released;
