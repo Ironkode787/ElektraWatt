@@ -15,7 +15,9 @@ use crate::kind::{FileRule, Kind};
 use crate::library::{
     FnDef, FormDef, LibCopy, MacroDef, MacroInstance, Manufacturer, Part, PlcProfileDef, SymbolDef,
 };
-use crate::track::{buffer_strict, check_value_at, de_here, parse_value, raise, read_extra, with_context};
+use crate::track::{
+    buffer_strict, check_value_at, de_here, parse_value, raise, read_extra, read_unknown, with_context,
+};
 use crate::value::Endpoint;
 use crate::{
     Bond, Carrier, CarrierRef, Channel, Conductor, Connection, Device, DeviceLink, Enclosure, ExternalRef,
@@ -110,6 +112,23 @@ fn endpoint_anchor(e: &Endpoint) -> AnchorRef {
         Endpoint::Cp(f, _) => AnchorRef::DeviceOfFunction(*f),
         Endpoint::Junction(j) => AnchorRef::PageOfJunction(*j),
         Endpoint::Unknown(_) => AnchorRef::Unknown,
+    }
+}
+
+/// What a record read by [`Record::load_noting_extra`] holds that this reader does not know (ADR-0011 amendment 1),
+/// each by its JSON Pointer.
+#[derive(Clone, PartialEq, Eq, Debug, Default)]
+pub struct Unknowns {
+    /// The members kept in an `extra` map, at any depth.
+    pub members: Vec<String>,
+    /// The values kept as an unknown variant (`Unknown(Value)`; WP-S6.08 D30).
+    pub variants: Vec<String>,
+}
+
+impl Unknowns {
+    /// Whether the record holds nothing this reader does not know.
+    pub fn is_empty(&self) -> bool {
+        self.members.is_empty() && self.variants.is_empty()
     }
 }
 
@@ -452,25 +471,36 @@ impl Record {
         Record::load_noting_extra(value).map(|(r, malformed, _)| (r, malformed))
     }
 
-    /// [`Record::load`], and also the JSON Pointer of each member the record keeps in an `extra` map, at any depth: a
-    /// member this reader does not know (a later additive release's, or a plugin key). The format reader keeps the
-    /// original line of a record that holds one while the record is untouched (ADR-0011 amendment 1).
+    /// [`Record::load`], and also what the record holds that this reader does not know ([`Unknowns`]): the JSON Pointer
+    /// of each member it keeps in an `extra` map, at any depth (a later additive release's, or a plugin key), and of
+    /// each value it keeps as an unknown variant (WP-S6.08 D30). The format reader keeps the original line of a record
+    /// that holds one while the record is untouched (ADR-0011 amendment 1).
     ///
     /// ```
     /// use ew_schema::{Record, parse_value};
     ///
     /// let line = r#"{"$k":"section","id":"1d6f3a92-7c05-5b8e-94a1-e3c2087f5d19","number":1,"folio_range":[1,99]}"#;
-    /// let (_, _, extra) = Record::load_noting_extra(parse_value(line).unwrap()).unwrap();
-    /// assert!(extra.is_empty());
+    /// let (_, _, unknown) = Record::load_noting_extra(parse_value(line).unwrap()).unwrap();
+    /// assert!(unknown.is_empty());
     /// let later = line.replace("]}", "],\"zeta\":1}");
-    /// let (_, _, extra) = Record::load_noting_extra(parse_value(&later).unwrap()).unwrap();
-    /// assert_eq!(extra, ["/zeta"]);
+    /// let (_, _, unknown) = Record::load_noting_extra(parse_value(&later).unwrap()).unwrap();
+    /// assert_eq!(unknown.members, ["/zeta"]);
+    ///
+    /// let role = r#"{"$k":"function","id":"1d6f3a92-7c05-5b8e-94a1-e3c2087f5d19","def":"5b9e2d70-3c41-5f8a-b6d2-19e4c7a03f58","role":{"later":{"b":1,"a":2}}}"#;
+    /// let (_, _, unknown) = Record::load_noting_extra(parse_value(role).unwrap()).unwrap();
+    /// assert_eq!(unknown.variants, ["/role"]);
     /// ```
-    pub fn load_noting_extra(
-        value: Value,
-    ) -> Result<(Record, Vec<MalformedVariant>, Vec<String>), SchemaError> {
-        let (result, malformed) = with_context(true, || Record::read(value).map(|r| (r, read_extra())));
-        result.map(|(r, extra)| (r, malformed, extra))
+    pub fn load_noting_extra(value: Value) -> Result<(Record, Vec<MalformedVariant>, Unknowns), SchemaError> {
+        let (result, malformed) = with_context(true, || {
+            Record::read(value).map(|r| {
+                let unknowns = Unknowns {
+                    members: read_extra(),
+                    variants: read_unknown(),
+                };
+                (r, unknowns)
+            })
+        });
+        result.map(|(r, unknowns)| (r, malformed, unknowns))
     }
 
     /// Checks that the record's serialisation has no repeated member name, which happens when an

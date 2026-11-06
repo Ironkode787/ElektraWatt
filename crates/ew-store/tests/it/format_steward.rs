@@ -148,6 +148,84 @@ fn ft96_untouched_lines_with_later_members_are_kept_byte_for_byte() {
     assert_eq!(&written[1..], &lines[1..]);
 }
 
+/// WP-S6.08 D30 (C53-p1#5, ID-1470; ADR-0011 amendment 1): a project of this format whose function lines carry a role
+/// this reader does not know, its payload's members out of byte order (`zeta`, then `alpha`) as a later minor writes
+/// them, opens; an edit of one function saves, and every untouched line of that file is written as it was, byte for
+/// byte, while the edited function's line is the canonical one, its unknown role in byte order.
+#[test]
+fn d30_untouched_lines_with_a_later_variant_are_kept_byte_for_byte() {
+    use ew_model::{AnyRow, Op};
+    use ew_store::ew_format::ew_schema::Function;
+    use ew_store::ew_format::{FileHash, FilePath, Limits, MANIFEST, Manifest, sha256};
+    use std::sync::Arc;
+
+    // An auxiliary function's role, so that each device keeps its one main function (EW-INV-002).
+    const AUX: &str = r#""role":"aux""#;
+    let later = |line: &str| line.replace(AUX, r#""role":{"later":{"zeta":1,"alpha":2}}"#);
+    let mut files = common::fixture();
+    let (shard, text) = files
+        .iter()
+        .filter(|(p, _)| p.starts_with("devices/"))
+        .map(|(p, b)| (p.clone(), String::from_utf8(b.clone()).expect("UTF-8")))
+        .find(|(_, t)| t.lines().filter(|l| l.contains(AUX)).count() >= 2)
+        .expect("a device shard with two auxiliary functions or more");
+    let lines: Vec<String> = text.lines().map(later).collect();
+    let bytes = format!("{}\n", lines.join("\n")).into_bytes();
+    let mut manifest = Manifest::parse(&files[MANIFEST], &Limits::default()).unwrap();
+    manifest
+        .files
+        .insert(FilePath::new(&shard).unwrap(), FileHash::Sha256(sha256(&bytes)));
+    files.insert(shard.clone(), bytes);
+    files.insert(MANIFEST.to_owned(), manifest.to_text().into_bytes());
+
+    let (vfs, root) = common::mem_project_of(DirSync::Explicit, files);
+    let Opened {
+        mut store,
+        model,
+        report,
+    } = Store::open(&root, options(&vfs, 1)).expect("opens");
+    assert_eq!(report.access, ew_store::Access::Edit);
+    let edited_at = lines
+        .iter()
+        .position(|l| l.contains(r#""role":{"later""#))
+        .expect("a function line with the later role");
+    let first: serde_json::Value = serde_json::from_str(&lines[edited_at]).unwrap();
+    let id = first["id"].as_str().unwrap().to_owned();
+    let row = model
+        .table::<Function>()
+        .iter()
+        .find(|(_, f)| f.id.to_string() == id)
+        .map(|(_, f)| Arc::clone(f))
+        .expect("the shard's first auxiliary function");
+    let mut after = (*row).clone();
+    after.template_entry = Some(9);
+    let mut keys = BTreeSet::new();
+    let model = common::apply(
+        &model,
+        &[Op::update(AnyRow::Function(row), AnyRow::of(after.clone()))],
+        &mut keys,
+    )
+    .expect("the edit applies");
+    let saved = store.save(&model, Changes::Keys(&keys)).expect("saves");
+    store.close();
+    assert_eq!(saved.written, [FilePath::new(&shard).unwrap()]);
+    let written = String::from_utf8(project_files(&vfs, &root)[&shard].clone()).unwrap();
+    let written: Vec<&str> = written.lines().collect();
+    assert_eq!(written.len(), lines.len());
+    let canonical = ew_store::ew_format::record_line(&ew_store::ew_format::ew_schema::Record::Function(after)).unwrap();
+    assert!(
+        canonical.contains(r#""role":{"later":{"alpha":2,"zeta":1}}"#),
+        "{canonical}"
+    );
+    for (n, (w, l)) in written.iter().zip(&lines).enumerate() {
+        if n == edited_at {
+            assert_eq!(*w, canonical);
+        } else {
+            assert_eq!(w, l);
+        }
+    }
+}
+
 /// The corpus job: each project of each released format's folder opens (migrated when older, with the consent),
 /// saves in full and equals its expected folder file by file. No project is there while the corpus is absent.
 #[test]

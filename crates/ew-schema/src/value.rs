@@ -26,7 +26,7 @@ use serde_json::Value;
 use crate::json::{Extra, de_extra};
 use crate::proxy::{Dec3S, IdentS, Pt2S, UuidS};
 use crate::set::keyed;
-use crate::track::{buffer, de_here, de_member, invalid, malformed, not_a_variant, open_enum};
+use crate::track::{buffer, de_here, de_member, invalid, kept_unknown, malformed, not_a_variant, open_enum};
 use crate::{
     ExternalRef, Function, ImportLineage, Junction, LibItem, Library, Part, SchemaError, StructureNode,
 };
@@ -171,14 +171,14 @@ impl<'de> Deserialize<'de> for Csa {
             Value::String(s) if s.starts_with(|c: char| c.is_ascii_digit() || c == '-') => {
                 ("mm2", s.parse::<Dec3>().map(Csa::Mm2).map_err(invalid))
             }
-            Value::String(_) => return Ok(Csa::Unknown(value)),
+            Value::String(_) => return Ok(Csa::Unknown(kept_unknown(value))),
             Value::Object(map) if map.len() == 1 => {
                 if let Some(n) = map.get("awg") {
                     ("awg", de_member("awg", n).map(Csa::Awg))
                 } else if let Some(d) = map.get("kcmil") {
                     ("kcmil", de_member("kcmil", d).map(Csa::Kcmil))
                 } else {
-                    return Ok(Csa::Unknown(value));
+                    return Ok(Csa::Unknown(kept_unknown(value)));
                 }
             }
             _ => return Err(not_a_variant()),
@@ -374,7 +374,7 @@ impl<'de> Deserialize<'de> for ColourCode {
             },
             Value::Object(map) if map.len() == 1 => match map.get("foreign") {
                 Some(code) => ("foreign", de_member("foreign", code).map(ColourCode::Foreign)),
-                None => return Ok(ColourCode::Unknown(value)),
+                None => return Ok(ColourCode::Unknown(kept_unknown(value))),
             },
             _ => return Err(not_a_variant()),
         };
@@ -787,9 +787,9 @@ impl<'de> Deserialize<'de> for Slot {
             Value::String(s) => match s.parse::<Id<StructureNode>>() {
                 Ok(id) => Ok(Slot::Node(id)),
                 Err(e) if Uuid::try_parse(s).is_ok() => malformed("node", invalid(e), value, Slot::Unknown),
-                Err(_) => Ok(Slot::Unknown(value)),
+                Err(_) => Ok(Slot::Unknown(kept_unknown(value))),
             },
-            Value::Object(map) if map.len() == 1 => Ok(Slot::Unknown(value)),
+            Value::Object(map) if map.len() == 1 => Ok(Slot::Unknown(kept_unknown(value))),
             _ => Err(not_a_variant()),
         }
     }
@@ -951,7 +951,7 @@ impl<'de> Deserialize<'de> for TechVal {
         let parsed = match &value {
             Value::Object(_) => ("quantity", de_here(&value).map(TechVal::Quantity)),
             Value::String(s) => ("ident", s.parse::<Ident>().map(TechVal::Ident).map_err(invalid)),
-            _ => return Ok(TechVal::Unknown(value)),
+            _ => return Ok(TechVal::Unknown(kept_unknown(value))),
         };
         match parsed {
             (_, Ok(v)) => Ok(v),
