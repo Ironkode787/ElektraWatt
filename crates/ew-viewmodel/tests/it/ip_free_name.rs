@@ -145,3 +145,42 @@ fn a_point_placed_after_a_paste_takes_a_free_name() {
     assert_eq!(place_ip(&mut s, (44, 40), "target").1, "IP-1");
     s.shutdown();
 }
+
+/// ID-1470 (C53-p1#6): a copied and pasted point keeps its name, an explicit act like a typed name, so it continues the
+/// points of that name; the paste's toast says which, whole, so nothing joins silently.
+#[test]
+fn a_pasted_point_keeps_its_name_and_says_which_point_it_continues() {
+    let tmp = Tmp::new("ip-paste-continues");
+    let mut s = shell(&tmp, "102");
+    assert_eq!(place_ip(&mut s, (40, 40), "source").1, "IP");
+    done(&mut s, "ui.dismiss", json!({}));
+    done(&mut s, "page.goto", json!({"folio": "103"}));
+    done(&mut s, "tool.ip", json!({}));
+    done(&mut s, "ip.name", json!({"text": "IP"}));
+    let (target, name) = place_ip(&mut s, (40, 40), "target");
+    assert_eq!(name, "IP", "typed");
+    done(&mut s, "ui.dismiss", json!({}));
+    done(&mut s, "select.set", json!({ "ids": [target] }));
+    done(&mut s, "edit.copy", json!({}));
+    done(&mut s, "edit.paste_clip", json!({}));
+    let before = tables(&s);
+    cursor_k(&mut s, (60, 40));
+    done(&mut s, "canvas.activate", json!({}));
+    let (pasted, name) = new_ip(&before, &s);
+    assert_eq!(name, "IP", "the pasted point keeps its name");
+    let continuation = tables(&s)
+        .reps
+        .iter()
+        .find(|r| r.id.to_string() == pasted)
+        .and_then(|r| r.ip.as_ref())
+        .map(|ip| ip.continuation.clone())
+        .expect("the pasted point");
+    assert!(continuation.starts_with("102"), "{continuation}");
+    assert_eq!(
+        s.toast().map(|n| n.lines().0.to_owned()),
+        Some(format!(
+            "The pasted interruption point IP keeps its name, so it continues IP at {continuation}"
+        ))
+    );
+    s.shutdown();
+}

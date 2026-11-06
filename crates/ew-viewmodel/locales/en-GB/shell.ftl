@@ -1993,6 +1993,8 @@ toast-ip-deleted-wire = Deleted the interruption point { $p0 } and the wire conn
 toast-ip-deleted-wires = Deleted the interruption point { $p0 } and the { $p1 } wires connected to it
 toast-ips-deleted-wire = Deleted the interruption points { $p0 } and the wire connected to them
 toast-ips-deleted-wires = Deleted the interruption points { $p0 } and the { $p1 } wires connected to them
+# ID-1470 (C53-p1#6): a pasted interruption point keeps its name, so it continues the points of that name.
+toast-paste-ip-continues = The pasted interruption point { $p0 } keeps its name, so it continues { $p0 } at { $p1 }
 
 # FT-709: a delete that leaves a device without a symbol keeps the device; the toast says where it stays.
 toast-device-unplaced = { $p0 } has no symbol on a page now; it stays in the Devices navigator and the parts list

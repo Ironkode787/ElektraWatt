@@ -1817,6 +1817,7 @@ pub const KEYS: &[&str] = &[
     "toast-ip-deleted-wires",
     "toast-ips-deleted-wire",
     "toast-ips-deleted-wires",
+    "toast-paste-ip-continues",
     "toast-device-unplaced",
     "toast-device-unplaced-no-part",
     "toast-devices-unplaced",
