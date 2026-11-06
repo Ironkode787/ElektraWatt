@@ -26,9 +26,9 @@
 use egui::{Key, Modifiers, RichText, Sense, TextEdit, Ui, Vec2};
 use ew_viewmodel::key;
 use ew_viewmodel::properties::{
-    ChoiceKind, EditRoute, FieldType, Popup, PropRow, PropertySheet, Provenance, RowAction, RowValue, SheetSection,
-    advanced_count, chip_text, chip_word, filtered, group_key, groups, is_header, read_only_reason,
-    row_label, value_text,
+    ChoiceKind, EditRoute, FieldType, Popup, PropRow, PropertySheet, Provenance, RowAction, RowValue,
+    SheetSection, advanced_count, chip_text, chip_word, filtered, group_key, groups, is_header,
+    read_only_reason, row_label, value_text,
 };
 use ew_viewmodel::shell::{Focus, ShellModel};
 use ew_viewmodel::strings;
@@ -716,7 +716,15 @@ impl PropertiesPane {
         // lines and the row grows with it; only a longer one is cut, its whole text in the tooltip.
         let editing = props.edit().is_some_and(|e| e.row == row.key);
         let prose = (!editing && !header && !is_link(row))
-            .then(|| prose_layout(ui, &t, row, &value, width - 2.0 * t.space_4 - label_width - t.space_3))
+            .then(|| {
+                prose_layout(
+                    ui,
+                    &t,
+                    row,
+                    &value,
+                    width - 2.0 * t.space_4 - label_width - t.space_3,
+                )
+            })
             .flatten();
         let value_height = prose.as_ref().map_or(0.0, |p| p.height + 2.0 * t.space_1);
         let row_height = t
@@ -868,7 +876,8 @@ impl PropertiesPane {
                 let (cell, response) = child.allocate_exact_size(
                     Vec2::new(
                         value_w,
-                        t.size_control_inline.max(prose.as_ref().map_or(0.0, |p| p.height)),
+                        t.size_control_inline
+                            .max(prose.as_ref().map_or(0.0, |p| p.height)),
                     ),
                     if editable || link {
                         Sense::click()
@@ -907,10 +916,7 @@ impl PropertiesPane {
                 if show_chip {
                     // FT-1498: under a wrapped prose value the chip stands on its own line at the cell's right end.
                     let at = match &prose {
-                        Some(_) => egui::pos2(
-                            cell.right() - t.space_icon,
-                            cell.bottom() - t.size_chip / 2.0,
-                        ),
+                        Some(_) => egui::pos2(cell.right() - t.space_icon, cell.bottom() - t.size_chip / 2.0),
                         None => egui::pos2(text_right, cell.center().y),
                     };
                     let chip_rect = crate::components::paint_provenance_chip(&child, &t, word, tertiary, at);
@@ -950,12 +956,15 @@ impl PropertiesPane {
                     Some(_) => cell.top(),
                     None => cell.center().y - galley.size().y / 2.0,
                 };
-                child
-                    .painter()
-                    .galley(egui::pos2(cell.left() + t.space_icon, top), galley, colour.color32());
+                child.painter().galley(
+                    egui::pos2(cell.left() + t.space_icon, top),
+                    galley,
+                    colour.color32(),
+                );
                 // The tooltip: the chip's whole text over the chip, else a read-only value's reason, else a long
                 // value's whole text.
-                let long = (cut || (prose.is_none() && value.chars().count() > MAX_SHOWN)).then(|| value.clone());
+                let long =
+                    (cut || (prose.is_none() && value.chars().count() > MAX_SHOWN)).then(|| value.clone());
                 let tip = if on_chip {
                     Some(chip.clone())
                 } else if link {
@@ -1748,7 +1757,13 @@ struct Prose {
 /// it at the cell's right end. `None` for a value that fits on one line, a value that is not prose (an identifier,
 /// whose first word holds a digit; a list; a mixed value; a checkbox) and an empty one. While the row's "…" button
 /// shows, the text makes room for it within the same rows, so the row never changes height.
-fn prose_layout(ui: &Ui, t: &crate::theme::Tokens, row: &PropRow, value: &str, value_w: f32) -> Option<Prose> {
+fn prose_layout(
+    ui: &Ui,
+    t: &crate::theme::Tokens,
+    row: &PropRow,
+    value: &str,
+    value_w: f32,
+) -> Option<Prose> {
     let first = value.split_whitespace().next()?;
     if matches!(row.ty.inner(), FieldType::List(_) | FieldType::Bool)
         || matches!(row.value, RowValue::Varies { .. })
@@ -1772,7 +1787,11 @@ fn prose_layout(ui: &Ui, t: &crate::theme::Tokens, row: &PropRow, value: &str, v
     });
     let whole = ui
         .painter()
-        .layout_no_wrap(value.to_owned(), crate::theme::font(&t.type_body), crate::theme::NONE)
+        .layout_no_wrap(
+            value.to_owned(),
+            crate::theme::font(&t.type_body),
+            crate::theme::NONE,
+        )
         .size()
         .x;
     if whole + chip.unwrap_or(0.0) <= room {
@@ -1784,7 +1803,12 @@ fn prose_layout(ui: &Ui, t: &crate::theme::Tokens, row: &PropRow, value: &str, v
     );
     job.wrap = prose_wrapping(room, 3);
     let galley = ui.painter().layout_job(job);
-    let height = galley.size().y + if chip.is_some() { t.space_1 + t.size_chip } else { 0.0 };
+    let height = galley.size().y
+        + if chip.is_some() {
+            t.space_1 + t.size_chip
+        } else {
+            0.0
+        };
     Some(Prose {
         rows: galley.rows.len(),
         height,

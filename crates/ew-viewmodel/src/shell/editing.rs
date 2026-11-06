@@ -173,7 +173,9 @@ impl ShellModel {
                             &crate::command_bar::key_name(self, "canvas.activate_alt"),
                         ],
                     ),
-                    None if in_wire => strings::format(key!("toast-placed-in-wire"), &[strings::without_stop(&placed)]),
+                    None if in_wire => {
+                        strings::format(key!("toast-placed-in-wire"), &[strings::without_stop(&placed)])
+                    }
                     None => placed,
                 };
                 // FT-1208: a terminal that left the click point says where and why, after the result.

@@ -617,8 +617,18 @@ fn v6_follow_back_forward_and_links_at_the_model() {
     // FT-1506 (ID-1456): the view stops at the sheet's corner, so the target in cell A1 stands off centre, in view.
     let [x0, y0, x1, y1] = c.view_nm();
     let (w, h) = c.page().sheet;
-    assert_eq!((x0.min(0), y0.min(0)), (0, 0), "no off-sheet space: {:?}", c.view_nm());
-    assert!(x1 <= w + 1 && y1 <= h + 1, "{:?} on {:?}", c.view_nm(), c.page().sheet);
+    assert_eq!(
+        (x0.min(0), y0.min(0)),
+        (0, 0),
+        "no off-sheet space: {:?}",
+        c.view_nm()
+    );
+    assert!(
+        x1 <= w + 1 && y1 <= h + 1,
+        "{:?} on {:?}",
+        c.view_nm(),
+        c.page().sheet
+    );
     assert!((x0..=x1).contains(&target.0) && (y0..=y1).contains(&target.1));
     assert_ne!(c.centre(), target, "off centre");
     // FT-1435: the arrival is marked; Back and Forward restore a view and mark nothing.

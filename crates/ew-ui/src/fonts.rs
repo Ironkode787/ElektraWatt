@@ -91,8 +91,7 @@ pub fn carries(c: char) -> bool {
     let definitions = definitions();
     [REGULAR, SEMIBOLD].iter().all(|name| {
         definitions.font_data.get(*name).is_some_and(|data| {
-            FontRef::from_index(data.bytes(), data.index)
-                .is_ok_and(|font| font.charmap().map(c).is_some())
+            FontRef::from_index(data.bytes(), data.index).is_ok_and(|font| font.charmap().map(c).is_some())
         })
     })
 }

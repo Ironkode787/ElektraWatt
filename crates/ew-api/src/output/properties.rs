@@ -1489,7 +1489,9 @@ fn profile_chooser(q: &Q, built: &mut [Built]) {
     let options: Vec<String> = at_hand.iter().map(|p| p.reference()).collect();
     for b in built.iter_mut().filter(|b| b.row.path == "profile") {
         if let RowValue::One { json, text } = &mut b.row.value
-            && let Some(p) = at_hand.iter().find(|p| json.as_str() == Some(p.reference().as_str()))
+            && let Some(p) = at_hand
+                .iter()
+                .find(|p| json.as_str() == Some(p.reference().as_str()))
         {
             text.clone_from(&p.label);
         }

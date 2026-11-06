@@ -229,7 +229,10 @@ fn tw1_the_export_is_the_clis_and_an_accepted_import_is_one_undo_step() {
         d.contains(&format!("  job 1 table \"x.xlsx\" done kib {kib} rev {rev}\n")),
         "the job's end names no pages: {d}"
     );
-    assert_eq!(shell.toast().unwrap().text, format!("Exported x.xlsx: {kib} KiB."));
+    assert_eq!(
+        shell.toast().unwrap().text,
+        format!("Exported x.xlsx: {kib} KiB.")
+    );
 
     // Five labels changed in the file.
     let labels = ["Valve 1", "Valve 2", "Valve 3", "Valve 4", "Valve 5"];

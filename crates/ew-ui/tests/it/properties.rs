@@ -1200,7 +1200,11 @@ fn ft1498_a_prose_value_wraps_and_is_never_cut() {
                 .expect(label)
                 .rect()
                 .height();
-            assert_eq!(height > row + 0.5, wraps, "{label} at {size:?}: a row {height} high");
+            assert_eq!(
+                height > row + 0.5,
+                wraps,
+                "{label} at {size:?}: a row {height} high"
+            );
         }
     }
 }

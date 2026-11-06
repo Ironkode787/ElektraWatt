@@ -93,14 +93,7 @@ pub fn first_frame(
 ) -> Vec<FirstFrameStep> {
     let mut steps = Vec::new();
     if let Some(to) = outer_px.and_then(|outer| {
-        first_frame_position(
-            saved.map(|g| (g.x, g.y)),
-            outer,
-            inner_px,
-            displays,
-            scale,
-            zoom,
-        )
+        first_frame_position(saved.map(|g| (g.x, g.y)), outer, inner_px, displays, scale, zoom)
     }) {
         steps.push(FirstFrameStep::MoveTo(to));
     }
@@ -175,11 +168,7 @@ pub fn first_frame_position(
 /// scale, given the last one recorded: the size in points at the zoom 1, the position in physical pixels (see the
 /// module documentation); `None` when there is nothing to record (no real window, no native scale, minimised, full
 /// screen).
-pub fn observed(
-    info: &ViewportInfo,
-    zoom: f32,
-    last: Option<WindowGeometry>,
-) -> Option<WindowGeometry> {
+pub fn observed(info: &ViewportInfo, zoom: f32, last: Option<WindowGeometry>) -> Option<WindowGeometry> {
     if info.monitor_size.is_none() || info.minimized == Some(true) || info.fullscreen == Some(true) {
         return None;
     }
@@ -268,18 +257,12 @@ mod tests {
                 ..normal
             }
         );
-        assert_eq!(
-            observed(&ViewportInfo::default(), 1.0, Some(normal)),
-            None
-        );
+        assert_eq!(observed(&ViewportInfo::default(), 1.0, Some(normal)), None);
         let minimised = ViewportInfo {
             minimized: Some(true),
             ..info(false)
         };
-        assert_eq!(
-            observed(&minimised, 1.0, Some(normal)),
-            None
-        );
+        assert_eq!(observed(&minimised, 1.0, Some(normal)), None);
         let unscaled = ViewportInfo {
             native_pixels_per_point: None,
             ..info(false)
@@ -403,14 +386,7 @@ mod tests {
             1.0,
         );
         assert_eq!(stays, None);
-        let none = first_frame_position(
-            None,
-            (100.0, 50.0),
-            (1280.0, 800.0),
-            &monitors,
-            1.0,
-            1.0,
-        );
+        let none = first_frame_position(None, (100.0, 50.0), (1280.0, 800.0), &monitors, 1.0, 1.0);
         assert_eq!(none, None);
         let nan = first_frame_position(
             Some((f32::NAN, 0.0)),
@@ -479,72 +455,28 @@ mod tests {
         ]);
         let (scale, zoom) = (1.5, 2.0);
         let size = (1920.0, 1200.0);
-        let to = first_frame_position(
-            None,
-            (-3000.0, 60.0),
-            size,
-            &monitors,
-            scale,
-            zoom,
-        )
-        .unwrap();
+        let to = first_frame_position(None, (-3000.0, 60.0), size, &monitors, scale, zoom).unwrap();
         assert_eq!((to.x * zoom * scale, to.y * zoom * scale), (0.0, 60.0));
         // On the secondary monitor: it stays.
         assert_eq!(
-            first_frame_position(
-                None,
-                (3000.0, 60.0),
-                size,
-                &monitors,
-                scale,
-                zoom
-            ),
+            first_frame_position(None, (3000.0, 60.0), size, &monitors, scale, zoom),
             None
         );
         // The primary comes first whatever the system's order: a window off every monitor lands on it, not on the
         // secondary that is listed first.
-        let to = first_frame_position(
-            None,
-            (9000.0, 60.0),
-            size,
-            &monitors,
-            scale,
-            zoom,
-        )
-        .unwrap();
+        let to = first_frame_position(None, (9000.0, 60.0), size, &monitors, scale, zoom).unwrap();
         assert!(to.x * zoom * scale < 2880.0, "{to:?}");
         // No monitor, or a scale or zoom that is not a positive number: nothing moves.
         assert_eq!(
-            first_frame_position(
-                None,
-                (-3000.0, 60.0),
-                size,
-                &[],
-                scale,
-                zoom
-            ),
+            first_frame_position(None, (-3000.0, 60.0), size, &[], scale, zoom),
             None
         );
         assert_eq!(
-            first_frame_position(
-                None,
-                (-3000.0, 60.0),
-                size,
-                &monitors,
-                0.0,
-                zoom
-            ),
+            first_frame_position(None, (-3000.0, 60.0), size, &monitors, 0.0, zoom),
             None
         );
         assert_eq!(
-            first_frame_position(
-                None,
-                (-3000.0, 60.0),
-                size,
-                &monitors,
-                scale,
-                f32::NAN
-            ),
+            first_frame_position(None, (-3000.0, 60.0), size, &monitors, scale, f32::NAN),
             None
         );
     }
@@ -569,14 +501,7 @@ mod tests {
         let guess = b.position.unwrap();
         let opened = (guess.x * scale, guess.y * scale);
         let inner = (1280.0 * scale, 800.0 * scale);
-        let steps = first_frame(
-            Some(saved),
-            Some(opened),
-            inner,
-            &monitors,
-            scale,
-            zoom,
-        );
+        let steps = first_frame(Some(saved), Some(opened), inner, &monitors, scale, zoom);
         let [FirstFrameStep::MoveTo(to), FirstFrameStep::Maximize] = steps[..] else {
             panic!("move, then maximise: {steps:?}");
         };
@@ -585,32 +510,11 @@ mod tests {
             maximized: false,
             ..saved
         };
-        let steps = first_frame(
-            Some(normal),
-            Some(opened),
-            inner,
-            &monitors,
-            scale,
-            zoom,
-        );
+        let steps = first_frame(Some(normal), Some(opened), inner, &monitors, scale, zoom);
         assert!(matches!(steps[..], [FirstFrameStep::MoveTo(_)]), "{steps:?}");
-        let steps = first_frame(
-            Some(saved),
-            Some((2700.0, 100.0)),
-            inner,
-            &monitors,
-            scale,
-            zoom,
-        );
+        let steps = first_frame(Some(saved), Some((2700.0, 100.0)), inner, &monitors, scale, zoom);
         assert_eq!(steps, [FirstFrameStep::Maximize]);
-        let steps = first_frame(
-            Some(saved),
-            None,
-            inner,
-            &monitors,
-            scale,
-            zoom,
-        );
+        let steps = first_frame(Some(saved), None, inner, &monitors, scale, zoom);
         assert_eq!(steps, [FirstFrameStep::Maximize]);
         assert!(first_frame(None, Some(opened), inner, &[], scale, zoom).is_empty());
     }
