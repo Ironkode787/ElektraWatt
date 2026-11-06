@@ -33,7 +33,7 @@ count = 1
 [[allow]]
 crate = "ew"
 item = "fn bin_exe"
-count = 6
+count = 7
 
 [[allow]]
 crate = "ew"

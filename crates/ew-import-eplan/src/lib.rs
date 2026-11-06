@@ -111,7 +111,7 @@ fn text(data: &[u8]) -> Result<std::borrow::Cow<'_, str>, String> {
         if !rest.len().is_multiple_of(2) {
             return Err("eplan-binary-unsupported".to_owned());
         }
-        let units: Vec<u16> = rest.chunks_exact(2).map(|c| unit([c[0], c[1]])).collect();
+        let units: Vec<u16> = rest.as_chunks::<2>().0.iter().map(|c| unit(*c)).collect();
         String::from_utf16(&units)
             .map(std::borrow::Cow::Owned)
             .map_err(|_| "eplan-binary-unsupported".to_owned())
