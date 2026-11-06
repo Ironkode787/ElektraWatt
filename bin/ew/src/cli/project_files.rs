@@ -1919,9 +1919,11 @@ mod tests {
                 let (mut out, mut err) = (Vec::new(), Vec::new());
                 let code = run_fmt_with(&args, options, (&mut out, &mut err));
                 let err = String::from_utf8(err).unwrap();
-                // The repair's own re-open (ID-1185 ruling 6) is this build's, a release build since the lock, which opens
-                // an unstable project read-only: exit 2, the repaired generation kept.
-                let code_after = if repair && marked { 2 } else { 0 };
+                // The repair's own re-open (ID-1185 ruling 6) has this build's options: a release build (this format
+                // released) opens an unstable project read-only, exit 2 with the repaired generation kept; a
+                // development build opens it (C53-p1#9).
+                let release_build = ew_api::StoreOptions::new(VERSION).release_build;
+                let code_after = if repair && marked && release_build { 2 } else { 0 };
                 assert_eq!(
                     (code, err.as_str()),
                     (code_after, if marked { warning } else { "" }),

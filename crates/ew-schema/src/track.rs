@@ -58,6 +58,8 @@ struct Context {
     findings: Vec<MalformedVariant>,
     /// The JSON Pointer of each member read into an `extra` map: a member this reader does not know.
     extra: Vec<String>,
+    /// The JSON Pointer of each value read as an unknown variant (`Unknown(Value)`, WP-S6.08 D30).
+    unknown: Vec<String>,
     /// The structured error of the [`raise`] in progress, taken by [`TrackError`]'s `custom`.
     pending: Option<SchemaError>,
     /// The last structured error raised, for entry points whose deserialiser has a foreign error type.
@@ -111,6 +113,24 @@ pub(crate) fn note_extra<V>(map: &std::collections::BTreeMap<String, V>) {
 /// The JSON Pointers of the `extra` members the current context has read.
 pub(crate) fn read_extra() -> Vec<String> {
     CTX.with(|c| c.borrow().extra.clone())
+}
+
+/// `value`, which the reader keeps as an unknown variant (`Unknown(Value)`): notes its JSON Pointer in the current
+/// context, so that the format reader keeps the line of an untouched record that holds it (WP-S6.08 D30).
+pub(crate) fn kept_unknown(value: Value) -> Value {
+    let path = current_path();
+    CTX.with(|c| {
+        let mut c = c.borrow_mut();
+        if c.active {
+            c.unknown.push(path);
+        }
+    });
+    value
+}
+
+/// The JSON Pointers of the unknown variants the current context has read.
+pub(crate) fn read_unknown() -> Vec<String> {
+    CTX.with(|c| c.borrow().unknown.clone())
 }
 
 /// Takes the last structured error raised in the current context.
@@ -763,10 +783,10 @@ where
     if names.is_empty() {
         // A hand-written foreign enum (`Open<ew_rds::Aspect>`) does not reveal its names: a value it
         // accepts is known, anything else tag-shaped is kept as unknown.
-        return Ok(closed(ValueDe(&value)).unwrap_or_else(|_| unknown(value)));
+        return Ok(closed(ValueDe(&value)).unwrap_or_else(|_| unknown(kept_unknown(value))));
     }
     if !names.contains(&tag) {
-        return Ok(unknown(value));
+        return Ok(unknown(kept_unknown(value)));
     }
     let tag = tag.to_owned();
     match closed(ValueDe(&value)) {

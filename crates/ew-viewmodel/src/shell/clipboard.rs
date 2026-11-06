@@ -528,6 +528,19 @@ impl ShellModel {
             })
             .map(|r| EntityRef(r.id))
             .collect();
+        // ID-1470 (C53-p1#6): a pasted interruption point keeps its name, an explicit act like a typed one, so it
+        // continues the points of that name; the toast says which, so nothing joins silently.
+        let continued: Vec<String> = now
+            .reps
+            .iter()
+            .filter(|r| pasted.contains(&EntityRef(r.id)))
+            .filter_map(|r| r.ip.as_ref())
+            .filter(|ip| !ip.continuation.is_empty())
+            .map(|ip| strings::format(key!("toast-paste-ip-continues"), &[&ip.name, &ip.continuation]))
+            .collect();
+        if !continued.is_empty() {
+            self.notify(continued.join("; "), true);
+        }
         if let Some(select) = tool_named("select") {
             self.activate_tool(select);
         }

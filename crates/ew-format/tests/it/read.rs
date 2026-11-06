@@ -1036,13 +1036,16 @@ const ITEM_LINES: [&str; 6] = [
 
 /// The migration test of WP-S2.04 §10.1: a page file holding both kinds and an unknown `page_item` variant reads
 /// without a finding (typed records, the unknown variant kept as `PageItemKind::Unknown`) and its lines are written
-/// back byte for byte: nothing is quarantined, kept aside or scheduled for a rewrite.
+/// back byte for byte: nothing is quarantined or scheduled for a rewrite, and the line with the unknown variant is
+/// kept as it was read while its record is untouched (WP-S6.08 D30).
 #[test]
 fn a_page_file_with_page_items_and_a_structure_box_round_trips_byte_for_byte() {
     use ew_format::ew_schema::PageItemKind;
     let loaded = load_lines(PAGE_FILE, &ITEM_LINES);
     assert!(loaded.findings.is_empty(), "{:?}", loaded.findings);
-    assert!(loaded.kept.is_empty(), "{:?}", loaded.kept);
+    let kept: Vec<&[u8]> = loaded.kept.iter().map(|k| k.text.as_slice()).collect();
+    assert_eq!(kept, [ITEM_LINES[4].as_bytes()]);
+    assert!(matches!(loaded.kept[0].kept, Kept::Untouched { .. }));
     assert!(loaded.rewrite.is_empty());
     assert_eq!(loaded.records.len(), ITEM_LINES.len());
     let lines: Vec<String> = loaded.records.iter().map(|r| record_line(r).unwrap()).collect();

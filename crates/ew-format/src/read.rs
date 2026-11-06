@@ -1016,14 +1016,15 @@ impl<'a> Loader<'a> {
             }
             Some(Kept::UnknownKind)
         } else if malformed.is_empty() {
-            // ADR-0011 amendment 1 (WP-S6.08 D24): a record with members this reader does not know keeps its line as a
-            // later minor wrote it while it is untouched; a line its own reader would not write (its known members out
-            // of order, migrated, normalised) is rewritten canonically.
+            // ADR-0011 amendment 1 (WP-S6.08 D24, D30): a record with members or variants this reader does not know
+            // keeps its line as a later minor wrote it while it is untouched; a line its own reader would not write
+            // (its known members out of order, migrated, normalised) is rewritten canonically.
             let later = !extra.is_empty()
                 && !migrated
                 && !normalised
-                && crate::record_line(&record)
-                    .is_ok_and(|canonical| later_minor_line(text, &canonical, &extra));
+                && crate::record_line(&record).is_ok_and(|canonical| {
+                    later_minor_line(text, &canonical, &extra.members, &extra.variants)
+                });
             later.then(|| Kept::Untouched {
                 original: Box::new(record.clone()),
             })

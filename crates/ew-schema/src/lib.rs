@@ -178,7 +178,7 @@ pub use project::{
     RunEntry, RunFix, RunLocation, RunMode, RunSeverity, RunSource, RunStats, RunTarget, Section,
     StructureNode, SupplyOrigin, SupplySpec, TagCase,
 };
-pub use record::{AnchorRef, AnyRecord, LibDocument, Record};
+pub use record::{AnchorRef, AnyRecord, LibDocument, Record, Unknowns};
 pub use revision::{
     ArchiveRef, Digest128, LabelFormat, NOT_CONTENT_FILES, PackVersion, PageNote, ReleaseRecord, Revision,
     RevisionState, SignOff, is_content_kind,

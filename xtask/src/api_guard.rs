@@ -43,11 +43,13 @@
 //! file or a kind removed; a property removed, its type changed or newly required; an `enum` value, a `const` or a
 //! `oneOf`/`anyOf` branch removed; a constraint keyword of a node (`format`, `minimum`, `exclusiveMinimum`, `maximum`,
 //! `exclusiveMaximum`, `minLength`, `maxLength`, `minItems`, `maxItems`, `pattern`, `additionalProperties`,
-//! `uniqueItems`) added, removed or changed, and an `enum` or `const` given to a node that had none (WP-S6.08 D23); a
-//! kind's `file`, `rank`, `v` or `schema` changed (a reserved kind that gains them is additive), or the index's
-//! `format`; any file of `fixtures/format/<f>/<project>/` changed, added or removed (the `<project>.expected/` folders
-//! may change). The walk also enters `prefixItems` (`a[0]`) and a map's value schema (`additionalProperties` as a
-//! schema, `a{}`), and sees through a `$defs` definition renamed with its content unchanged. A new value or branch of a
+//! `uniqueItems`, and D29's `minProperties`, `maxProperties`, `propertyNames`) added, removed or changed, also on a
+//! `oneOf`/`anyOf` branch (the item `<kind> <path>|<branch>`, D29), and an `enum` or `const` given to a node that had
+//! none (WP-S6.08 D23); a kind's `file`, `rank`, `v` or `schema` changed (a reserved kind that gains them is additive),
+//! or the index's `format`; any file of `fixtures/format/<f>/<project>/` changed, added or removed (the
+//! `<project>.expected/` folders may change). The walk also enters `prefixItems` (`a[0]`), a map's value schema
+//! (`additionalProperties` as a schema, `a{}`) and its key schema (`propertyNames`, `a{key}`, D29), and sees through a
+//! `$defs` definition renamed with its content unchanged. A new value or branch of a
 //! node the base holds passes only when `docs/release-notes/unreleased.md` gains `- format-variant: <kind> <path>
 //! <value>` (the reviewer checks the type's `Unknown(Value)` arm, ADR-0011 amendment 1); this line check compares with
 //! the **newest** final tag whose tree holds the format, among those whose version is not above the working tree's
@@ -1017,8 +1019,6 @@ fn compare_format(
     };
     let mut changes: Vec<(bool, String, String)> = Vec::new();
     let mut variants: Vec<(String, String)> = Vec::new();
-    // With a newer line base, the values new since the oldest base are only reported; S6 reads the line base's below.
-    let mut base_variants: Vec<(String, String)> = Vec::new();
     for (path, text) in &before {
         let name = &path[dir.len() + 1..];
         let item = name.strip_suffix(".schema.json").unwrap_or(name);
@@ -1036,7 +1036,9 @@ fn compare_format(
         } else if line_tag == tag {
             node_changes(item, &b, &a, &mut changes, &mut variants);
         } else {
-            node_changes(item, &b, &a, &mut changes, &mut base_variants);
+            // With a newer line base, the values new since the oldest base are reported in `changes` only; S6 reads
+            // the line base's below (C53-p1#7).
+            node_changes(item, &b, &a, &mut changes, &mut Vec::new());
         }
     }
     if line_tag != tag {
@@ -1192,10 +1194,13 @@ struct FormatNode {
     values: BTreeSet<String>,
     constraints: BTreeMap<&'static str, String>,
     enumerated: Option<&'static str>,
+    /// A `oneOf` or `anyOf` branch's own constraints, at `<path>|<branch>` (WP-S6.08 D29): the branch itself is the
+    /// node's value, so only its constraints are compared here.
+    branch: bool,
 }
 
-/// The constraint keywords the format guard compares (WP-S6.08 D23): any change to one breaks.
-const CONSTRAINTS: [&str; 12] = [
+/// The constraint keywords the format guard compares (WP-S6.08 D23, D29): any change to one breaks.
+const CONSTRAINTS: [&str; 15] = [
     "format",
     "minimum",
     "exclusiveMinimum",
@@ -1208,7 +1213,24 @@ const CONSTRAINTS: [&str; 12] = [
     "pattern",
     "additionalProperties",
     "uniqueItems",
+    "minProperties",
+    "maxProperties",
+    "propertyNames",
 ];
+
+/// Notes the [`CONSTRAINTS`] keywords of `node` in `entry`, a schema as `a schema` (its content is walked).
+fn note_constraints(node: &Value, entry: &mut FormatNode) {
+    for key in CONSTRAINTS {
+        if let Some(v) = node.get(key) {
+            let word = if v.is_object() {
+                "a schema".to_owned()
+            } else {
+                compact(Some(v))
+            };
+            entry.constraints.insert(key, word);
+        }
+    }
+}
 
 /// `before` with each `$defs` definition that `after` holds under a new name, its content unchanged, renamed to that
 /// name, every local `$ref` to it with it: a rename alone is no change (WP-S6.08 D23).
@@ -1313,16 +1335,7 @@ fn format_walk(node: &Value, path: &str, nodes: &mut BTreeMap<String, FormatNode
         entry.values.insert(value_word(c));
         entry.enumerated.get_or_insert("const");
     }
-    for key in CONSTRAINTS {
-        if let Some(v) = node.get(key) {
-            let word = if v.is_object() {
-                "a schema".to_owned()
-            } else {
-                compact(Some(v))
-            };
-            entry.constraints.insert(key, word);
-        }
-    }
+    note_constraints(node, entry);
     for key in ["oneOf", "anyOf"] {
         if let Some(branches) = node.get(key).and_then(Value::as_array) {
             nodes
@@ -1330,8 +1343,11 @@ fn format_walk(node: &Value, path: &str, nodes: &mut BTreeMap<String, FormatNode
                 .or_default()
                 .values
                 .extend(branches.iter().map(branch_word));
-            // The members of an object branch are the node's own.
+            // The members of an object branch are the node's own; its constraints are its own item (D29).
             for b in branches.iter().filter(|b| b.get("const").is_none()) {
+                let branch = nodes.entry(format!("{path}|{}", branch_word(b))).or_default();
+                branch.branch = true;
+                note_constraints(b, branch);
                 format_members(b, path, nodes, depth + 1);
             }
         }
@@ -1339,8 +1355,8 @@ fn format_walk(node: &Value, path: &str, nodes: &mut BTreeMap<String, FormatNode
     format_members(node, path, nodes, depth);
 }
 
-/// The `properties`, `items`, `prefixItems` (`a[0]`) and a map's value schema (`additionalProperties` as a schema, `a{}`)
-/// of `node` at `path`.
+/// The `properties`, `items`, `prefixItems` (`a[0]`), a map's value schema (`additionalProperties` as a schema, `a{}`)
+/// and its key schema (`propertyNames`, `a{key}`, D29) of `node` at `path`.
 fn format_members(node: &Value, path: &str, nodes: &mut BTreeMap<String, FormatNode>, depth: usize) {
     if let Some(props) = node.get("properties").and_then(Value::as_object) {
         let required: BTreeSet<&str> = node
@@ -1371,6 +1387,9 @@ fn format_members(node: &Value, path: &str, nodes: &mut BTreeMap<String, FormatN
     if let Some(values) = node.get("additionalProperties").filter(|v| v.is_object()) {
         format_walk(values, &format!("{path}{{}}"), nodes, depth + 1);
     }
+    if let Some(names) = node.get("propertyNames").filter(|v| v.is_object()) {
+        format_walk(names, &format!("{path}{{key}}"), nodes, depth + 1);
+    }
 }
 
 /// The changes of one schema of kind `kind`: a node removed, retyped or newly required breaks, a value removed breaks;
@@ -1392,7 +1411,10 @@ fn node_changes(
     };
     for (path, node) in &b {
         let Some(new) = a.get(path) else {
-            out.push((true, item(path), "removed".to_owned()));
+            // A branch removed is its node's value removed, reported there.
+            if !node.branch {
+                out.push((true, item(path), "removed".to_owned()));
+            }
             continue;
         };
         if let (Some(ty), Some(new_ty)) = (&node.ty, &new.ty)
@@ -1435,7 +1457,7 @@ fn node_changes(
             variants.push((item(path), value.clone()));
         }
     }
-    for (path, node) in a.iter().filter(|(p, _)| !b.contains_key(*p)) {
+    for (path, node) in a.iter().filter(|(p, n)| !b.contains_key(*p) && !n.branch) {
         if node.required && b.contains_key(parent(path)) {
             out.push((true, item(path), "added as required".to_owned()));
         } else {
@@ -2223,6 +2245,68 @@ mod tests {
             ("device note", "maxLength 40 added"),
             ("device pos[1]", "minimum 0 added"),
             ("device tag", "enum added"),
+        ];
+        let mut lines: Vec<String> = changes
+            .iter()
+            .map(|(item, what)| format!("breaking: format 0.1 {item}: {what}"))
+            .collect();
+        lines.push("api-guard: 4 breaking, 0 additive".to_owned());
+        assert_eq!(
+            report,
+            Report {
+                lines,
+                failure: changes
+                    .iter()
+                    .map(|(item, what)| {
+                        format!(
+                            "format 0.1: {item}: {what} since v0.1.0; a released format changes only additively \
+                             (ADR-0011 amendment 6)"
+                        )
+                    })
+                    .collect(),
+            }
+        );
+    }
+
+    /// WP-S6.08 D29 (C53-p1#3, #4; ID-1470): a constraint of a `oneOf` branch (`additionalProperties`), of an `anyOf`
+    /// branch (`minProperties` changed, `maxProperties` added) and of a map's key schema (`propertyNames`' `pattern`)
+    /// each fail with S5 under its own item.
+    #[test]
+    fn a_released_format_keeps_its_branch_and_key_constraints() {
+        let s = Scratch::new("format-branch-constraints");
+        format_state(&s);
+        let with = |edit: &dyn Fn(&mut Value)| {
+            device_schema(|d| {
+                d["$defs"]["Text"] = json!({"anyOf": [{"type": "string"}, {"type": "object",
+                    "additionalProperties": {"type": "string"}, "minProperties": 1,
+                    "propertyNames": {"pattern": "^[a-z]+$"}}]});
+                d["properties"]["label"] = json!({"$ref": "#/$defs/Text"});
+                edit(d);
+            })
+        };
+        s.write_json("schemas/0.1/device.schema.json", &with(&|_| {}));
+        let base = s.commit("base");
+        s.git(&["tag", "v0.1.0"]);
+        s.write_json(
+            "schemas/0.1/device.schema.json",
+            &with(&|d| {
+                d["$defs"]["Side"]["oneOf"][2]["additionalProperties"] = json!(false);
+                let object = &mut d["$defs"]["Text"]["anyOf"][1];
+                object["minProperties"] = json!(2);
+                object["maxProperties"] = json!(9);
+                object["propertyNames"]["pattern"] = json!("^[a-z]{2}$");
+            }),
+        );
+        let report = format_report(&s, &base);
+        s.remove();
+        let changes = [
+            ("device Side|{at}", "additionalProperties false added"),
+            (
+                "device Text{key}",
+                "pattern changed from \"^[a-z]+$\" to \"^[a-z]{2}$\"",
+            ),
+            ("device Text|object", "maxProperties 9 added"),
+            ("device Text|object", "minProperties changed from 1 to 2"),
         ];
         let mut lines: Vec<String> = changes
             .iter()

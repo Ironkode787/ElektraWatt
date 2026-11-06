@@ -686,13 +686,19 @@ fn newer_record(value: &Value) -> bool {
 }
 
 /// Whether a side of the project file `path` holds a record this reader cannot merge: a record file with a line whose
-/// `$v` is above this reader's version of its kind (MD-4; ADR-0011 amendment 2), which [`merge_file`] cannot read. The
-/// merge driver then merges nothing in that file (WP-S6.08 D20). A record of a kind or with a member this reader does
-/// not know is not one, since the merge keeps every member of a record's value; nor is a line that does not parse, nor
-/// any file but a record file.
+/// `$v` is above this reader's version of its kind, or a library document whose own `$v` is (MD-4; ADR-0011 amendment
+/// 2), which [`merge_file`] cannot read. The merge driver then merges nothing in that file (WP-S6.08 D20, C53-p1#2). A
+/// record of a kind or with a member this reader does not know is not one, since the merge keeps every member of a
+/// record's value; nor is a line or a document that does not parse, nor any other file.
 pub fn holds_newer_records(path: &str, sides: [&[u8]; 3], limits: &Limits) -> bool {
-    if !matches!(classify(path), PathClass::Records(_)) {
-        return false;
+    match classify(path) {
+        PathClass::Records(_) => {}
+        PathClass::LibDocument { .. } => {
+            return sides
+                .iter()
+                .any(|bytes| parse_document(bytes, limits).is_ok_and(|value| newer_record(&value)));
+        }
+        _ => return false,
     }
     sides.iter().any(|bytes| {
         let data = bytes.strip_prefix(&[0xEF, 0xBB, 0xBF]).unwrap_or(bytes);

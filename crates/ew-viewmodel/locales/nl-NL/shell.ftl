@@ -1920,6 +1920,7 @@ toast-ip-deleted-wire = Onderbrekingspunt { $p0 } en de draad die erop aansloot 
 toast-ip-deleted-wires = Onderbrekingspunt { $p0 } en de { $p1 } draden die erop aansloten verwijderd
 toast-ips-deleted-wire = Onderbrekingspunten { $p0 } en de draad die erop aansloot verwijderd
 toast-ips-deleted-wires = Onderbrekingspunten { $p0 } en de { $p1 } draden die erop aansloten verwijderd
+toast-paste-ip-continues = Het geplakte onderbrekingspunt { $p0 } houdt zijn naam en zet daarom { $p0 } voort bij { $p1 }
 toast-device-unplaced = { $p0 } heeft nu geen symbool op een pagina; het blijft in de navigator Apparaten en de stuklijst
 toast-device-unplaced-no-part = { $p0 } heeft nu geen symbool op een pagina; het blijft in de navigator Apparaten
 toast-devices-unplaced = { $p0 } hebben nu geen symbool op een pagina; ze blijven in de navigator Apparaten en de stuklijst

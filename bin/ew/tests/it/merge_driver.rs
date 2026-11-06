@@ -237,6 +237,26 @@ fn a_record_this_reader_cannot_read_leaves_the_file_as_ours() {
     assert_eq!(merged, expected);
 }
 
+/// C53-p1#2 (WP-S6.08 D20, ID-1470): a library document whose theirs is one `$v` above this reader's version of a
+/// manufacturer (1) is not merged either: `%A` stays ours byte for byte, the driver prints S3b and exits 1.
+#[test]
+fn a_library_document_this_reader_cannot_read_is_left_as_ours() {
+    const DOC: &str = "proj/J-E-2416.ew/lib/manufacturers/221fd06e-3263-5cab-bbb9-27aee71c8d79.json";
+    let t = Tree::new();
+    let base = std::fs::read_to_string(t.0.join(DOC)).unwrap();
+    let ours = base.replace(r#""name": "Siemens""#, r#""name": "Siemens AG""#);
+    let theirs = base.replace(r#""$k": "manufacturer","#, r#""$k": "manufacturer", "$v": 2,"#);
+    assert!(ours != base && theirs != base);
+    let (out, merged) = t.merge([&base, &ours, &theirs], form(true, DOC));
+    let said = format!(
+        "merge-driver: {DOC}: holds records this ElektraWatt cannot read (this one reads format {}); left as ours: \
+         merge it with a newer version\n",
+        ew_api::FORMAT
+    );
+    assert_eq!(result(&out), (Some(1), String::new(), said));
+    assert_eq!(merged, ours);
+}
+
 /// MD-5, ruling 6: a write that fails (the temporary file's name is taken by a folder) exits 129 and leaves `%A`
 /// byte-identical, the folder as it was.
 #[test]

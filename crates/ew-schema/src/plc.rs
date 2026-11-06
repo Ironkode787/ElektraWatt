@@ -20,7 +20,7 @@ use serde_json::Value;
 
 use crate::json::{Extra, de_extra, is_default, is_false, is_v1, v1};
 use crate::proxy::{IdentS, MlTextS, UuidS};
-use crate::track::{buffer, de_here, invalid, malformed, not_a_variant, open_enum, raise};
+use crate::track::{buffer, de_here, invalid, kept_unknown, malformed, not_a_variant, open_enum, raise};
 use crate::value::{Endpoint, SourceRef};
 use crate::{Device, Function};
 
@@ -608,7 +608,7 @@ impl<'de> Deserialize<'de> for MapSpec {
                 Ok(l) => Ok(MapSpec::List(l)),
                 Err(e) => malformed("list", e, value, MapSpec::Unknown),
             },
-            Value::Object(map) if map.len() == 1 => Ok(MapSpec::Unknown(value)),
+            Value::Object(map) if map.len() == 1 => Ok(MapSpec::Unknown(kept_unknown(value))),
             Value::Object(_) => Err(not_a_variant()),
             _ => Err(raise(invalid("expected a map expression or a list"))),
         }
@@ -667,7 +667,7 @@ impl<'de> Deserialize<'de> for PinMap {
                 Ok(l) => Ok(PinMap::List(l)),
                 Err(e) => malformed("list", e, value, PinMap::Unknown),
             },
-            Value::Object(map) if map.len() == 1 => Ok(PinMap::Unknown(value)),
+            Value::Object(map) if map.len() == 1 => Ok(PinMap::Unknown(kept_unknown(value))),
             Value::Object(_) => Err(not_a_variant()),
             _ => Err(raise(invalid(
                 "expected a pin pattern or a list of pin designations",
