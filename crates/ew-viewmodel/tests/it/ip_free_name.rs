@@ -179,7 +179,7 @@ fn a_pasted_point_keeps_its_name_and_says_which_point_it_continues() {
     assert_eq!(
         s.toast().map(|n| n.lines().0.to_owned()),
         Some(format!(
-            "The pasted interruption point IP keeps its name, so it continues IP at {continuation}"
+            "The pasted interruption point IP keeps its name, so it continues IP at {continuation}."
         ))
     );
     s.shutdown();
