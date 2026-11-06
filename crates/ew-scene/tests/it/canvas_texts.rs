@@ -890,6 +890,45 @@ fn a_cross_reference_without_a_free_place_stays() {
     assert_eq!(shown, bare, "it stays");
 }
 
+/// FT-1519 (ID-1455): the rise keeps clear of another representation's symbol body. A coil without texts whose
+/// outline bounds cover the place the label would rise to (above the wire) leaves the label clear of the body: it rises
+/// past it or stays, never onto it.
+#[test]
+fn a_cross_reference_does_not_rise_onto_another_symbols_body() {
+    let (up, bare) = arrow_label(27, &[g(28)], (Vec::new(), Vec::new()));
+    assert!(up.max().y.0 < g(28) && up != bare, "the case: it rises off the wire to {up:?}");
+    let c = symbol(COIL);
+    let b = ew_scene::symbol::lower(&c.def, ew_units::Orient2::R0).bounds;
+    let overlap = |r: Rect, s: Rect| {
+        r.min().x < s.max().x && s.min().x < r.max().x && r.min().y < s.max().y && s.min().y < r.max().y
+    };
+    // A coil at grid x 40 whose body covers the risen place, not the label where it stands nor the wire.
+    let at = |y: i64| {
+        Rect::from_points(
+            Pt2::new(ew_units::Nm(g(40) + b.min().x.0), ew_units::Nm(g(y) + b.min().y.0)),
+            Pt2::new(ew_units::Nm(g(40) + b.max().x.0), ew_units::Nm(g(y) + b.max().y.0)),
+        )
+    };
+    let y = (0..27)
+        .rev()
+        .find(|&y| overlap(at(y), up) && !overlap(at(y), bare) && at(y).max().y.0 < g(28))
+        .expect("a place for the coil");
+    let body = at(y);
+    let coil = RepView {
+        rep: rep(0x30, c.id, 40, y, json!({})),
+        symbol: Some(c.def.clone()),
+        slots: Vec::new(),
+        terminals: Vec::new(),
+        pins: Vec::new(),
+    };
+    let (shown, _) = arrow_label(27, &[g(28)], (vec![coil], Vec::new()));
+    assert!(!overlap(shown, body), "{shown:?} clear of the coil's body {body:?}");
+    assert!(
+        shown == bare || shown.max().y.0 <= body.min().y.0 - SLOT_TEXT_GAP.0 + 1_000,
+        "{shown:?}: where it stood, or above the body"
+    );
+}
+
 /// C52-p3#5: a text rises at most three times. Wires one grid step apart send it up past three of them, then it is free;
 /// a fourth leaves it where it was.
 #[test]
