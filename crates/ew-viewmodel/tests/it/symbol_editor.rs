@@ -919,7 +919,11 @@ fn the_draft_state_says_unsaved_only_after_an_edit_and_saved_only_once_stored() 
         ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
     );
     let words = |shell: &ShellModel| strings::text(shell.symbol_editor().unwrap().state_key()).to_owned();
-    done(&mut shell, "symbol.new", json!({"key":"example.state","name":"State"}));
+    done(
+        &mut shell,
+        "symbol.new",
+        json!({"key":"example.state","name":"State"}),
+    );
     assert!(!shell.symbol_editor().unwrap().dirty());
     assert_eq!(words(&shell), "Not in a library yet");
     done(
@@ -935,10 +939,17 @@ fn the_draft_state_says_unsaved_only_after_an_edit_and_saved_only_once_stored() 
     done(&mut shell, "symbol.open", json!({"file":file}));
     assert!(!shell.symbol_editor().unwrap().dirty());
     assert_eq!(words(&shell), "Not in a library yet");
-    let qet = concat!(env!("CARGO_MANIFEST_DIR"), "/../ew-import-qet/tests/fixtures/contact_no.elmt");
+    let qet = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../ew-import-qet/tests/fixtures/contact_no.elmt"
+    );
     done(&mut shell, "symbol.open", json!({"file":qet}));
     assert_eq!(words(&shell), "Not in a library yet");
-    done(&mut shell, "symbol.fork", json!({"source":"ew.iec.contact-no","key":"example.fork"}));
+    done(
+        &mut shell,
+        "symbol.fork",
+        json!({"source":"ew.iec.contact-no","key":"example.fork"}),
+    );
     assert!(!shell.symbol_editor().unwrap().dirty());
     shell.shutdown();
 }
@@ -985,7 +996,11 @@ fn the_window_asks_the_pickers_for_a_missing_symbol_path() {
         Mode::Gui,
         ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
     );
-    done(&mut shell, "symbol.new", json!({"key":"example.pick","name":"Pick"}));
+    done(
+        &mut shell,
+        "symbol.new",
+        json!({"key":"example.pick","name":"Pick"}),
+    );
     for (action, prompt) in [
         ("symbol.open", Prompt::OpenSymbol),
         ("symbol.export", Prompt::SaveSymbol),
@@ -1095,7 +1110,9 @@ fn quitting_with_an_unsaved_draft_asks_and_discard_discards_it() {
     assert_eq!(s.title, "Save the symbol Quit block?");
     assert_eq!(
         s.body,
-        ["The symbol draft has changes that are not in a library. Save it before you quit, or discard the changes."]
+        [
+            "The symbol draft has changes that are not in a library. Save it before you quit, or discard the changes."
+        ]
     );
     let labels: Vec<&str> = s.buttons().iter().map(|b| b.label.as_str()).collect();
     assert_eq!(labels, ["Save symbol", "Cancel", "Discard changes"]);

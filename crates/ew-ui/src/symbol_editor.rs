@@ -490,7 +490,8 @@ fn function_pins(ui: &mut Ui, cps: &mut [Value]) -> bool {
                                 .changed();
                         }
                     })
-                    .response.expanded(ui)
+                    .response
+                    .expanded(ui)
                     .widget_info(|| {
                         egui::WidgetInfo::labeled(
                             egui::Role::ComboBox,
@@ -1141,7 +1142,8 @@ impl EditorView {
                                             }
                                         }
                                     })
-                                    .response.expanded(ui)
+                                    .response
+                                    .expanded(ui)
                                     .widget_info(|| {
                                         egui::WidgetInfo::labeled(
                                             egui::Role::ComboBox,
@@ -1377,7 +1379,8 @@ impl EditorView {
                                     }
                                 }
                             })
-                            .response.expanded(ui)
+                            .response
+                            .expanded(ui)
                             .widget_info(|| {
                                 egui::WidgetInfo::labeled(
                                     egui::Role::ComboBox,
@@ -1435,7 +1438,8 @@ impl EditorView {
                                             }
                                         }
                                     })
-                                    .response.expanded(ui)
+                                    .response
+                                    .expanded(ui)
                                     .widget_info(|| {
                                         egui::WidgetInfo::labeled(
                                             egui::Role::ComboBox,
@@ -1806,7 +1810,8 @@ fn text_style_control(ui: &mut Ui, value: &mut Value, styles: &symbols::TextStyl
                     ui.selectable_value(&mut selected, row.key.clone(), name);
                 }
             })
-            .response.expanded(ui)
+            .response
+            .expanded(ui)
             .widget_info(|| {
                 egui::WidgetInfo::labeled(
                     egui::Role::ComboBox,
@@ -1866,7 +1871,8 @@ fn slot_kind_control(ui: &mut Ui, index: &mut usize, pin: &mut u16) {
                 ui.selectable_value(index, i, label(strings::Key::run_time(k)));
             }
         })
-        .response.expanded(ui)
+        .response
+        .expanded(ui)
         .widget_info(|| {
             egui::WidgetInfo::labeled(
                 egui::Role::ComboBox,

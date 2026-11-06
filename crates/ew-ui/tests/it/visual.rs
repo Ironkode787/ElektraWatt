@@ -756,7 +756,11 @@ fn symbol_editor_accessible_controls_and_numeric_keyboard_creation() {
         "y (mm) of Connection point FE",
         "Direction of Connection point FE",
     ] {
-        assert!(d.find(name).is_some(), "missing accessible control {name}: {:?}", d.labels());
+        assert!(
+            d.find(name).is_some(),
+            "missing accessible control {name}: {:?}",
+            d.labels()
+        );
     }
     d.input(&click(d.find("Drawing").unwrap()));
     d.input(&click(d.find("Line").unwrap()));
@@ -1605,7 +1609,10 @@ fn symbol_editor_fields_commit_on_focus_loss_and_a_designation_is_retyped() {
     d.enable_accesskit();
     for (action, params) in [
         ("symbol.new", json!({"key":"example.fields","name":"Fields"})),
-        ("symbol.cp", json!({"x":0,"y":0,"designation":"13","direction":"left"})),
+        (
+            "symbol.cp",
+            json!({"x":0,"y":0,"designation":"13","direction":"left"}),
+        ),
     ] {
         assert_eq!(d.shell_mut().dispatch(action, &params), Outcome::Done);
     }
@@ -1630,7 +1637,10 @@ fn symbol_editor_fields_commit_on_focus_loss_and_a_designation_is_retyped() {
     d.input(&Input::Type { text: "A1".into() });
     d.input(&key("enter"));
     let draft = d.shell_mut().symbol_editor().unwrap().draft.clone();
-    assert_eq!(draft.function.cps.iter().next().unwrap().designation.as_str(), "A1");
+    assert_eq!(
+        draft.function.cps.iter().next().unwrap().designation.as_str(),
+        "A1"
+    );
     // A designation left empty keeps the one it had.
     d.input(&click(d.find("Designation 1").unwrap()));
     d.input(&key("ctrl+a"));

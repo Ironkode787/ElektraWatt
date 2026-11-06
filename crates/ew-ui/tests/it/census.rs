@@ -1057,9 +1057,18 @@ fn census_the_symbol_editor() {
     }
     h.run_ok();
     for (panel, sections) in [
-        ("Drawing", &["Rectangle 1", "Text slots (1)", "Link point (0)"][..]),
-        ("Electrical data", &["Connection points (1)", "Assign function"][..]),
-        ("Library", &["Properties", "Advanced document", "Place on current page"][..]),
+        (
+            "Drawing",
+            &["Rectangle 1", "Text slots (1)", "Link point (0)"][..],
+        ),
+        (
+            "Electrical data",
+            &["Connection points (1)", "Assign function"][..],
+        ),
+        (
+            "Library",
+            &["Properties", "Advanced document", "Place on current page"][..],
+        ),
     ] {
         h.get_by_label(panel).click();
         h.run_ok();
