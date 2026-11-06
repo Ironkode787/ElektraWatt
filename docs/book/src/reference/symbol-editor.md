@@ -99,6 +99,7 @@ The window and `.ewui` scripts share these actions:
 | `symbol.path` | `points` as millimetre pairs, optional `closed` for a polygon |
 | `symbol.cp` | `x`, `y`, optional `idx`, `fn_cp`, `designation`, `direction` |
 | `symbol.map_cp` | drawing `cp`, target function `fn_cp`; an occupied compatible pin swaps |
+| `symbol.role` | drawing `cp` and the potential `role` of its function pin (`l1` … `undefined`; `none` clears it) |
 | `symbol.slot` | `kind`, `x`, `y`; e.g. `"tag"` or `{"cp_designation":1}` |
 | `symbol.link` | `name`, `x`, `y` |
 | `symbol.function` | existing function `key`, or `library:<library UUID>:<item UUID>` in `key` |

@@ -4984,3 +4984,6 @@ symbol-cp-index-invalid = Number a connection point from 1 to 65535.
 symbol-function-pin-invalid = Give the function pin as a number.
 symbol-draft-damaged = The symbol draft is damaged. Undo the last change, or open the draft again.
 symbol-image = Image
+action-symbol-role = Set the potential role of a symbol connection point
+symbol-cp-unknown = This symbol has no connection point { $p0 }.
+symbol-role-assigned = An assigned function definition keeps its roles. Change them in a function definition of the symbol's own.

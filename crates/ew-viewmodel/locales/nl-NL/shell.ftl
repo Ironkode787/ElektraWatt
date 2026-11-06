@@ -4745,3 +4745,6 @@ symbol-cp-index-invalid = Nummer een aansluitpunt van 1 tot en met 65535.
 symbol-function-pin-invalid = Geef de functiepin als nummer.
 symbol-draft-damaged = Het symboolconcept is beschadigd. Maak de laatste wijziging ongedaan of open het concept opnieuw.
 symbol-image = Afbeelding
+action-symbol-role = De potentiaalrol van een symboolaansluitpunt instellen
+symbol-cp-unknown = Dit symbool heeft geen aansluitpunt { $p0 }.
+symbol-role-assigned = Een toegewezen functiedefinitie houdt haar rollen. Wijzig ze in een eigen functiedefinitie van het symbool.

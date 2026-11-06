@@ -1190,6 +1190,41 @@ fn the_symbol_file_picker_offers_every_extension_an_importer_reads() {
     assert!(FILE_EXTENSIONS.contains(&"json"));
 }
 
+/// Part 3's nit (D6): `symbol.role` sets a connection point's potential role, `none` clears it, each one undo step;
+/// a missing point and an assigned function definition are refused in words.
+#[test]
+fn symbol_role_sets_and_clears_a_connection_points_potential_role() {
+    let tmp = Tmp::new("symbol-role");
+    let mut shell = ShellModel::new(
+        Mode::Headless,
+        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
+    );
+    drawn(&mut shell, "example.role", "Role");
+    let role = |shell: &ShellModel| {
+        let draft = &shell.symbol_editor().unwrap().draft;
+        serde_json::to_value(draft).unwrap()["function"]["cps"][0]["potential_role"].clone()
+    };
+    done(&mut shell, "symbol.role", json!({"cp": 1, "role": "fe"}));
+    assert_eq!(role(&shell), json!("fe"));
+    done(&mut shell, "symbol.role", json!({"cp": 1, "role": "l_plus"}));
+    assert_eq!(role(&shell), json!("l_plus"));
+    done(&mut shell, "edit.undo", json!({}));
+    assert_eq!(role(&shell), json!("fe"));
+    done(&mut shell, "symbol.role", json!({"cp": 1, "role": "none"}));
+    assert_eq!(role(&shell), serde_json::Value::Null);
+    assert_eq!(
+        failed(&mut shell, "symbol.role", json!({"cp": 9, "role": "pe"})),
+        "Symbol editor: This symbol has no connection point 9."
+    );
+    done(&mut shell, "symbol.function", json!({"key":"ew.fn.contact-no"}));
+    assert_eq!(
+        failed(&mut shell, "symbol.role", json!({"cp": 1, "role": "pe"})),
+        "Symbol editor: An assigned function definition keeps its roles. Change them in a function definition of the \
+         symbol's own."
+    );
+    shell.shutdown();
+}
+
 /// Part 3's nits: a refused action names no member ("index", "idx", "start"), and an Image primitive has its word.
 #[test]
 fn refusals_of_the_editors_actions_are_in_words() {

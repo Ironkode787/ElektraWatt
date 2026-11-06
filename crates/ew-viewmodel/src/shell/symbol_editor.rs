@@ -583,6 +583,40 @@ impl ShellModel {
                 draft.symbol.cps.insert(target);
                 editor.replace(draft);
             }
+            // The potential role of the function pin a connection point draws; `none` clears it (part 3's nit, D6).
+            "role" => {
+                let cp = p.get("cp").and_then(Value::as_u64);
+                let fn_cp = editor
+                    .draft
+                    .symbol
+                    .cps
+                    .iter()
+                    .find(|c| Some(u64::from(c.idx)) == cp)
+                    .map(|c| u64::from(c.fn_cp))
+                    .ok_or_else(|| {
+                        strings::format(key!("symbol-cp-unknown"), &[&cp.unwrap_or_default().to_string()])
+                    })?;
+                if editor.draft.function_ref.is_some() {
+                    return Err(words(key!("symbol-role-assigned")));
+                }
+                let mut d = serde_json::to_value(&editor.draft).map_err(|e| e.to_string())?;
+                let pin = d["function"]["cps"]
+                    .as_array_mut()
+                    .and_then(|pins| pins.iter_mut().find(|v| v["idx"] == fn_cp))
+                    .and_then(Value::as_object_mut)
+                    .ok_or_else(damaged)?;
+                match text(p, "role") {
+                    "none" => {
+                        pin.remove("potential_role");
+                    }
+                    role => {
+                        pin.insert("potential_role".into(), json!(role));
+                    }
+                }
+                editor.replace(
+                    SymbolDraft::parse(&serde_json::to_vec(&d).map_err(|e| e.to_string())?).map_err(err)?,
+                );
+            }
             "path" => {
                 let points = p
                     .get("points")
