@@ -209,3 +209,8 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
 - api-add: command check.waive subject (optional: the finding's subject as printed, which the window passes from the
   Messages row; a finding waived already is refused as "a waiver of <rule> for <subject> covers this finding
   already", the earlier text kept without it; FT-1509)
+- behaviour-change: command terminal.insert (a strip placed turned 180° grows left and pushes the items before it on
+  its rail, leftwards, cascading; past the rail's start the positions are written and EW-LAY-010 reports
+  `bracket_outside`; FT-1495)
+- behaviour-change: command part.assign (a placed strip whose terminal the change widens pushes the items after it,
+  as a growing strip does, in every mode; FT-1497)

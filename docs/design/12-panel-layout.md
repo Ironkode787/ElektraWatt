@@ -383,7 +383,10 @@ snap_on_rail(rail, device, cursor, mode):
   same transaction: free space after the strip is used first, a locked item stops the cascade (EW-LAY-010 then reports
   the overlap), and past the rail end the positions are written and EW-LAY-010 reports `bracket_outside`. The command
   is never refused for the layout's sake. A strip whose footprint is unknown before or after (a terminal without a
-  part, so every `terminal.add`) pushes nothing; neither does a strip turned 180°, whose growth runs left.
+  part, so every `terminal.add`) pushes nothing. A strip turned 180° grows left, so it pushes the items before it,
+  leftwards, by the same cascade on the rail's coordinates mirrored: the gaps and the bracket side apply in the
+  mirrored frame as for an unturned strip, a locked item stops the cascade, and past the rail's start the positions
+  are written and EW-LAY-010 reports `bracket_outside` (cycle 53, FT-1495; ID-1455).
 - **Group accessories** (FR-LAY-060, MVP). A group is a maximal run of abutting strip placements on one rail.
   Wherever strips are placed, `rail_occupancy` derives one end bracket per strip boundary in the run plus one at each
   run end, so k abutting strips need k + 1 brackets. GP rail R2 holds 1X1, -X1031 and -X1032 abutting: **4**
@@ -401,7 +404,7 @@ snap_on_rail(rail, device, cursor, mode):
 
 | Event | Effect | Never |
 |---|---|---|
-| Device part changes (wider MCB on -102F1) | `placement_geometry` re-derives the footprint at the same pose; an overlap with -102F2 is reported (EW-LAY-006, FR-LAY-007) | neighbours are moved |
+| Device part changes (wider MCB on -102F1) | `placement_geometry` re-derives the footprint at the same pose; an overlap with -102F2 is reported (EW-LAY-006, FR-LAY-007) | neighbours are moved, except by a strip placed as a whole whose terminal the change widened: it pushes as a growing strip does (§3.4; cycle 53, FT-1497, ID-1455) |
 | Device renumbered (T55 → T57) | the label changes in the same commit; no file under `layout/` changes (FR-LAY-006, D-01, D-02) | stored label text |
 | Device deleted | placement cascades; the transaction lists it in the preview; routes of its wires become unrouted | orphan placement |
 | Device location changes (+J-E-2416 → +J-E-206) | placement kept; EW-LAY-004 with quick fixes "remove placement" and "move to the layout space of +J-E-206" | silent move |

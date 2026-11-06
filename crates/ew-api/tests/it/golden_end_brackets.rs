@@ -167,7 +167,6 @@ fn eb1_row_26_counts_the_derived_brackets_and_prints_902() {
     assert_eq!((pos, qty, (tags, folios)), (26, "4".to_owned(), want.clone()));
     let (pos, qty, tags, folios) = bracket_row(&q, BomMode::Assembly);
     assert_eq!((pos, qty, (tags, folios)), (20, "4".to_owned(), want));
-    drop(q);
 
     // The fourth strip unplaced keeps its authored 3 pieces and prints no folio of its own.
     let mut s = session();
@@ -177,7 +176,6 @@ fn eb1_row_26_counts_the_derived_brackets_and_prints_902() {
     assert_eq!(qty, "7");
     assert!(tags.contains(&x33_tag), "{tags:?}");
     assert_eq!(folios, ["902"]);
-    drop(q);
 
     // Placed in R2's run, 10 mm after -X1032 (one bracket between): one derived bracket, 5 in all.
     run(
@@ -196,7 +194,6 @@ fn eb1_row_26_counts_the_derived_brackets_and_prints_902() {
     let (pos, qty, tags, folios) = bracket_row(&q, BomMode::Component);
     assert_eq!((pos, qty.as_str(), folios.clone()), (26, "5", owned(&["902"])));
     assert_eq!(tags.len(), 4);
-    drop(q);
 
     // -X1032's placement removed: its line is authored again (1 piece) and prints its representation folio 103;
     // X33 now opens its own run after -X1031's bracket and holds two.
@@ -520,6 +517,105 @@ fn ft1441_a_growing_strip_pushes_the_items_after_it() {
         vec![(
             "The end bracket after =P01+J-E-2416-X1031 overlaps =P01+J-E-2416-X1032 on rail 2.".to_owned(),
             "De eindsteun na =P01+J-E-2416-X1031 overlapt =P01+J-E-2416-X1032 op rail 2.".to_owned(),
+        )]
+    );
+}
+
+/// FT-1497 (decision log ID-1455; doc 12 §3.5): `part.assign` of a 10.4 mm copy of PT 2.5-TWIN onto one terminal of
+/// -X1031 (mode `replace`) widens the strip by 5.2 mm, and -X1032 moves from 172.6 to 177.8 mm in the same step, as
+/// one inserted terminal moves it (FT-1441).
+#[test]
+fn ft1497_a_part_change_that_widens_a_strips_terminal_pushes() {
+    let mut s = golden_common::session(&golden_common::batch());
+    let q = s.query();
+    let terminal = q
+        .devices()
+        .iter()
+        .filter(|(_, d)| d.aspects.terminal.as_ref().is_some_and(|t| t.strip == dev("-X1031")))
+        .map(|(id, _)| id)
+        .min()
+        .expect("a terminal of -X1031");
+    let old = q.devices().get(terminal).expect("the terminal").parts[0].part.copy;
+    let mut copy: ew_schema::LibCopy<Part> =
+        ew_schema::LibCopy::clone(q.table::<ew_schema::LibCopy<Part>>().get(old).expect("the copy"));
+    let item = Uuid::from_u128(0x0190_0000_0000_7000_8000_0000_0000_1497);
+    // A test library of its own: `part.assign` embeds copies of other libraries only.
+    copy.item_id = Id::from_uuid(item);
+    copy.library_id = Id::from_uuid(Uuid::from_u128(0x0190_0000_0000_7000_8000_0000_0000_0001));
+    copy.id = ew_derive::ew_ids::v5::lib_copy_id(copy.library_id.as_uuid(), item);
+    copy.item.meta.key = Some("FT1497-TWIN".parse().expect("a key"));
+    copy.item.part_number = "FT1497-TWIN".parse().expect("a part number");
+    let mech = copy.item.mech.as_mut().expect("the part's mechanics");
+    assert_eq!(mech.width, Some(Nm(5_200_000)), "PT 2.5-TWIN is 5.2 mm wide");
+    mech.width = Some(Nm(10_400_000));
+    let doc = ew_schema::LibDocument::Part(copy.clone());
+    copy.sha256 = ew_schema::Sha256(ew_commands::commands::library_copy_hash(&doc).expect("a part hashes"));
+    assert_eq!((s10(&s, "-X1031"), s10(&s, "-X1032")), (586, 1726));
+    run(
+        &mut s,
+        "part.assign",
+        json!({"devices": [id_json(terminal)], "part": id_json(copy.id),
+               "copies": [serde_json::to_value(ew_schema::LibDocument::Part(copy.clone())).unwrap()],
+               "mode": "replace", "from": id_json(old)}),
+    );
+    assert_eq!((s10(&s, "-X1031"), s10(&s, "-X1032")), (586, 1778));
+    assert_eq!(bracket_findings(&s), Vec::<(String, String)>::new());
+}
+
+/// FT-1495 (decision log ID-1455; doc 12 §3.4): -X1031 turned 180° in place on R2 (its clip point its right end, 162.6
+/// mm) grows left, so one terminal inserted into it moves 1X1, the strip before it, from 30 to 24.8 mm in the same
+/// step, with no finding, and -X1032 after it stays; five put 1X1's bracket 6 mm past the rail's start (one
+/// `bracket_outside`, the positions written); with 1X1 locked it stays, the insert is not refused and the bracket
+/// after 1X1 overlaps -X1031.
+#[test]
+fn ft1495_a_strip_turned_half_way_pushes_the_items_before_it() {
+    let turned = || {
+        let mut s = golden_common::session(&golden_common::batch());
+        run(
+            &mut s,
+            "layout.move",
+            json!({"placement": id_json(placement("-X1031")),
+                   "pose": {"t": [1626 * MM / 10, 0, 0], "q": [0, 0, 0, 1_000_000_000]}}),
+        );
+        s
+    };
+    let mut s = turned();
+    assert_eq!(
+        (s10(&s, "1X1"), s10(&s, "-X1031"), s10(&s, "-X1032")),
+        (300, 1626, 1726)
+    );
+    assert_eq!(bracket_findings(&s), Vec::<(String, String)>::new());
+    insert_terminals(&mut s, "-X1031", 1);
+    assert_eq!(
+        (s10(&s, "1X1"), s10(&s, "-X1031"), s10(&s, "-X1032")),
+        (248, 1626, 1726)
+    );
+    assert_eq!(bracket_findings(&s), Vec::<(String, String)>::new());
+
+    let mut s = turned();
+    insert_terminals(&mut s, "-X1031", 5);
+    assert_eq!(s10(&s, "1X1"), 300 - 5 * 52);
+    assert_eq!(
+        bracket_findings(&s),
+        vec![(
+            "The end bracket before =P01+J-E-2416-1X1 passes the start of rail 2 by 6 mm.".to_owned(),
+            "De eindsteun vóór =P01+J-E-2416-1X1 steekt 6 mm voorbij het begin van rail 2.".to_owned(),
+        )]
+    );
+
+    let mut s = turned();
+    run(
+        &mut s,
+        "layout.lock",
+        json!({"placement": id_json(placement("1X1")), "locked": true}),
+    );
+    insert_terminals(&mut s, "-X1031", 1);
+    assert_eq!(s10(&s, "1X1"), 300);
+    assert_eq!(
+        bracket_findings(&s),
+        vec![(
+            "The end bracket after =P01+J-E-2416-1X1 overlaps =P01+J-E-2416-X1031 on rail 2.".to_owned(),
+            "De eindsteun na =P01+J-E-2416-1X1 overlapt =P01+J-E-2416-X1031 op rail 2.".to_owned(),
         )]
     );
 }
