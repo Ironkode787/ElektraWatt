@@ -759,7 +759,8 @@ fn the_dutch_guide_names_the_dutch_windows_menu_paths() {
     assert_eq!(problems, Vec::<String>::new());
 }
 
-/// D9, D12, D13: the how-to and explanation pages that name menu paths pass the lint.
+/// D9, D12, D13: the how-to and explanation pages that name menu paths pass the lint, as does the symbol editor's
+/// reference page.
 #[test]
 fn the_how_to_and_explanation_pages_name_the_windows_menu_paths() {
     let tmp = Tmp::new();
@@ -769,6 +770,8 @@ fn the_how_to_and_explanation_pages_name_the_windows_menu_paths() {
         "how-to/upgrade-a-project.md",
         "explanation/eplan-and-ew.md",
         "explanation/qet-and-ew.md",
+        // M25-p3#9: the symbol editor's reference names the window's menu paths.
+        "reference/symbol-editor.md",
     ] {
         let text = page(rel);
         assert!(!named(&text).is_empty(), "{rel} names no menu path");
